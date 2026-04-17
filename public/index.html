@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>The Liz Team Realty — Start a Transaction</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: #F7F8FA;
+      color: #1A1A2E;
+      min-height: 100vh;
+    }
+
+    /* HEADER */
+    header {
+      background: #0F2044;
+      padding: 20px 24px;
+      text-align: center;
+    }
+    header .tagline { color: #C9A84C; font-size: 11px; font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase; margin-bottom: 6px; }
+    header h1 { color: #fff; font-size: 24px; font-weight: 800; }
+    header p { color: rgba(255,255,255,0.6); font-size: 13px; margin-top: 4px; }
+
+    /* CONTAINER */
+    .container { max-width: 680px; margin: 32px auto; padding: 0 16px 60px; }
+
+    /* CARD */
+    .card {
+      background: #fff;
+      border-radius: 14px;
+      border: 1px solid #E5E7EB;
+      padding: 28px;
+      margin-bottom: 20px;
+    }
+    .card h2 {
+      font-size: 14px;
+      font-weight: 700;
+      color: #0F2044;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 20px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid #F3F4F6;
+    }
+
+    /* FORM */
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    @media (max-width: 540px) { .grid-2 { grid-template-columns: 1fr; } }
+
+    .field { margin-bottom: 16px; }
+    .field label {
+      display: block;
+      font-size: 11px;
+      font-weight: 700;
+      color: #6B7280;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 5px;
+    }
+    .field label .req { color: #DC2626; }
+    .field input, .field select, .field textarea {
+      width: 100%;
+      padding: 10px 13px;
+      border-radius: 8px;
+      border: 1px solid #E5E7EB;
+      font-size: 14px;
+      font-family: inherit;
+      color: #1A1A2E;
+      background: #fff;
+      transition: border-color 0.15s;
+    }
+    .field input:focus, .field select:focus, .field textarea:focus {
+      outline: none;
+      border-color: #0F2044;
+    }
+    .field textarea { resize: vertical; }
+
+    /* CODE BOX */
+    .code-box {
+      background: #0F2044;
+      border-radius: 10px;
+      padding: 20px;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .code-box .lock { font-size: 32px; }
+    .code-box .text h3 { color: #C9A84C; font-size: 14px; font-weight: 700; margin-bottom: 4px; }
+    .code-box .text p { color: rgba(255,255,255,0.7); font-size: 13px; line-height: 1.5; }
+    .code-box input {
+      flex: 1;
+      padding: 12px 16px;
+      border-radius: 8px;
+      border: 2px solid #C9A84C;
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      text-align: center;
+      color: #0F2044;
+      font-family: monospace;
+    }
+    .code-box input:focus { outline: none; border-color: #fff; }
+
+    /* SUBMIT */
+    .submit-btn {
+      width: 100%;
+      padding: 16px;
+      background: #0F2044;
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: inherit;
+      transition: opacity 0.15s;
+    }
+    .submit-btn:hover { opacity: 0.9; }
+    .submit-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* SUCCESS */
+    .success {
+      display: none;
+      text-align: center;
+      padding: 48px 24px;
+      background: #fff;
+      border-radius: 14px;
+      border: 1px solid #E5E7EB;
+    }
+    .success .icon { font-size: 56px; margin-bottom: 16px; }
+    .success h2 { font-size: 22px; font-weight: 800; color: #0F2044; margin-bottom: 8px; }
+    .success p { color: #6B7280; font-size: 14px; line-height: 1.7; max-width: 400px; margin: 0 auto 20px; }
+    .success .tx-id { background: #F7F8FA; border-radius: 8px; padding: 12px 20px; font-size: 13px; color: #6B7280; margin-top: 16px; }
+    .success .tx-id strong { color: #0F2044; font-size: 18px; display: block; margin-top: 4px; font-family: monospace; letter-spacing: 0.1em; }
+
+    /* ERROR */
+    .error-msg {
+      display: none;
+      background: #FEE2E2;
+      color: #DC2626;
+      border-radius: 8px;
+      padding: 12px 16px;
+      font-size: 13px;
+      margin-bottom: 16px;
+    }
+
+    /* INFO STRIP */
+    .info-strip {
+      display: flex;
+      gap: 20px;
+      justify-content: center;
+      margin-top: 24px;
+      flex-wrap: wrap;
+    }
+    .info-strip .item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      color: #6B7280;
+    }
+    .info-strip .dot { width: 6px; height: 6px; border-radius: 50%; background: #C9A84C; }
+
+    footer {
+      text-align: center;
+      padding: 20px;
+      font-size: 12px;
+      color: #9CA3AF;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="tagline">The Liz Team Realty · Florida Licensed Real Estate</div>
+  <h1>Start a New Transaction</h1>
+  <p>Orange · Osceola · Seminole · Polk Counties</p>
+</header>
+
+<div class="container">
+
+  <!-- SUCCESS STATE -->
+  <div class="success" id="successBox">
+    <div class="icon">🎉</div>
+    <h2>Transaction Submitted!</h2>
+    <p>Your transaction has been received by The Liz Team Realty. We will review the details and reach out within 1 business day to confirm and assign your transaction coordinator.</p>
+    <div class="tx-id">
+      Your Transaction Reference ID
+      <strong id="successTxId">—</strong>
+    </div>
+  </div>
+
+  <!-- FORM STATE -->
+  <div id="formState">
+
+    <!-- TRANSACTION CODE -->
+    <div class="code-box">
+      <div class="lock">🔐</div>
+      <div class="text">
+        <h3>Transaction Code Required</h3>
+        <p>Enter the code provided by The Liz Team to submit a transaction.</p>
+      </div>
+      <input type="text" id="txCode" placeholder="XXXX" maxlength="8" oninput="this.value = this.value.toUpperCase()" />
+    </div>
+
+    <div class="error-msg" id="errorMsg"></div>
+
+    <!-- YOUR INFORMATION -->
+    <div class="card">
+      <h2>Your Information</h2>
+      <div class="grid-2">
+        <div class="field">
+          <label>Full Name <span class="req">*</span></label>
+          <input type="text" id="submitterName" placeholder="John Smith" required />
+        </div>
+        <div class="field">
+          <label>Your Role <span class="req">*</span></label>
+          <select id="submitterRole" required>
+            <option value="">Select your role...</option>
+            <option>Seller</option>
+            <option>Buyer</option>
+            <option>Listing Agent</option>
+            <option>Buyer's Agent</option>
+            <option>Transaction Coordinator</option>
+            <option>Title Company</option>
+            <option>Loan Officer/Lender</option>
+            <option>Inspector</option>
+            <option>Appraiser</option>
+            <option>Attorney</option>
+            <option>Other</option>
+          </select>
+        </div>
+      </div>
+      <div class="grid-2">
+        <div class="field">
+          <label>Email <span class="req">*</span></label>
+          <input type="email" id="submitterEmail" placeholder="john@example.com" required />
+        </div>
+        <div class="field">
+          <label>Cell Phone <span class="req">*</span></label>
+          <input type="tel" id="submitterPhone" placeholder="407-555-0100" required />
+        </div>
+      </div>
+      <div class="field">
+        <label>Company / Brokerage</label>
+        <input type="text" id="submitterCompany" placeholder="ABC Realty" />
+      </div>
+    </div>
+
+    <!-- PROPERTY INFORMATION -->
+    <div class="card">
+      <h2>Property Information</h2>
+      <div class="field">
+        <label>Street Address <span class="req">*</span></label>
+        <input type="text" id="propAddress" placeholder="1234 Orange Blossom Trail" required />
+      </div>
+      <div class="grid-2">
+        <div class="field">
+          <label>City <span class="req">*</span></label>
+          <input type="text" id="propCity" placeholder="Orlando" required />
+        </div>
+        <div class="field">
+          <label>County <span class="req">*</span></label>
+          <select id="propCounty" required>
+            <option value="">Select county...</option>
+            <option>Orange</option>
+            <option>Osceola</option>
+            <option>Seminole</option>
+            <option>Polk</option>
+            <option>Brevard</option>
+            <option>Lake</option>
+            <option>Volusia</option>
+            <option>Hillsborough</option>
+            <option>Other</option>
+          </select>
+        </div>
+      </div>
+      <div class="grid-2">
+        <div class="field">
+          <label>Zip Code</label>
+          <input type="text" id="propZip" placeholder="32801" maxlength="5" />
+        </div>
+        <div class="field">
+          <label>MLS Number</label>
+          <input type="text" id="propMLS" placeholder="O6..." />
+        </div>
+      </div>
+      <div class="grid-2">
+        <div class="field">
+          <label>Property Type <span class="req">*</span></label>
+          <select id="propType" required>
+            <option value="">Select type...</option>
+            <option>Single Family</option>
+            <option>Condo/Townhouse</option>
+            <option>Multi-Family</option>
+            <option>Land</option>
+            <option>Commercial</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Transaction Type <span class="req">*</span></label>
+          <select id="txType" required>
+            <option value="">Select type...</option>
+            <option>Listing (Seller)</option>
+            <option>Buyer Representation</option>
+            <option>Dual Agency</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- PRICING & DATES -->
+    <div class="card">
+      <h2>Pricing &amp; Timeline</h2>
+      <div class="grid-2">
+        <div class="field">
+          <label>List Price ($)</label>
+          <input type="number" id="listPrice" placeholder="350000" />
+        </div>
+        <div class="field">
+          <label>Contract Price ($)</label>
+          <input type="number" id="contractPrice" placeholder="345000" />
+        </div>
+      </div>
+      <div class="grid-2">
+        <div class="field">
+          <label>Contract Date</label>
+          <input type="date" id="openDate" />
+        </div>
+        <div class="field">
+          <label>Closing Date</label>
+          <input type="date" id="closingDate" />
+        </div>
+      </div>
+    </div>
+
+    <!-- ADDITIONAL PARTIES -->
+    <div class="card">
+      <h2>Other Parties (Optional)</h2>
+      <p style="font-size:13px;color:#6B7280;margin-bottom:16px;">List any other parties involved in this transaction so we can reach out to them.</p>
+      <div id="extraParties"></div>
+      <button type="button" onclick="addParty()" style="background:none;border:1px dashed #E5E7EB;border-radius:8px;padding:10px;width:100%;cursor:pointer;color:#6B7280;font-size:13px;font-family:inherit;margin-top:4px">+ Add Another Party</button>
+    </div>
+
+    <!-- NOTES -->
+    <div class="card">
+      <h2>Additional Notes</h2>
+      <div class="field">
+        <textarea id="txNotes" rows="4" placeholder="Any additional information about this transaction..."></textarea>
+      </div>
+    </div>
+
+    <button class="submit-btn" id="submitBtn" onclick="submitForm()">Submit Transaction →</button>
+
+    <div class="info-strip">
+      <div class="item"><div class="dot"></div> Florida Licensed Real Estate</div>
+      <div class="item"><div class="dot"></div> Secure Submission</div>
+      <div class="item"><div class="dot"></div> Response within 1 business day</div>
+    </div>
+
+  </div><!-- end formState -->
+
+</div>
+
+<footer>
+  &copy; 2025 The Liz Team Realty · Orlando, Florida · Licensed by DBPR
+</footer>
+
+<script>
+  // ── CONFIG ──────────────────────────────────────────────────
+  // Change this to your server URL when deployed
+  const SERVER_URL = "http://localhost:3001";
+
+  // Valid transaction codes — add/change these as needed
+  // Share one of these codes with each client
+  const VALID_CODES = ["LIZT2025", "REALTY24", "LZNOVA1", "TXNEW01"];
+
+  // ── ADD PARTY ROW ───────────────────────────────────────────
+  let partyCount = 0;
+  function addParty() {
+    partyCount++;
+    const div = document.createElement("div");
+    div.id = `party_${partyCount}`;
+    div.style.cssText = "border:1px solid #E5E7EB;border-radius:8px;padding:14px;margin-bottom:10px;position:relative";
+    div.innerHTML = `
+      <button onclick="document.getElementById('party_${partyCount}').remove()" style="position:absolute;top:8px;right:10px;background:none;border:none;cursor:pointer;font-size:18px;color:#9CA3AF">×</button>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+        <div class="field" style="margin:0"><label>Name</label><input type="text" id="pname_${partyCount}" placeholder="Jane Doe" /></div>
+        <div class="field" style="margin:0"><label>Role</label>
+          <select id="prole_${partyCount}">
+            <option value="">Role...</option>
+            <option>Seller</option><option>Buyer</option><option>Listing Agent</option>
+            <option>Buyer's Agent</option><option>Transaction Coordinator</option>
+            <option>Title Company</option><option>Loan Officer/Lender</option>
+            <option>Inspector</option><option>Appraiser</option><option>Attorney</option><option>Other</option>
+          </select>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div class="field" style="margin:0"><label>Email</label><input type="email" id="pemail_${partyCount}" placeholder="jane@example.com" /></div>
+        <div class="field" style="margin:0"><label>Phone</label><input type="tel" id="pphone_${partyCount}" placeholder="407-555-0100" /></div>
+      </div>
+    `;
+    document.getElementById("extraParties").appendChild(div);
+  }
+
+  // ── VALIDATE & SUBMIT ───────────────────────────────────────
+  async function submitForm() {
+    const errorEl = document.getElementById("errorMsg");
+    errorEl.style.display = "none";
+
+    const code = document.getElementById("txCode").value.trim().toUpperCase();
+    if (!VALID_CODES.includes(code)) {
+      showError("Invalid transaction code. Please contact The Liz Team for the correct code.");
+      return;
+    }
+
+    const required = [
+      { id: "submitterName", label: "Your Name" },
+      { id: "submitterRole", label: "Your Role" },
+      { id: "submitterEmail", label: "Email" },
+      { id: "submitterPhone", label: "Phone" },
+      { id: "propAddress", label: "Property Address" },
+      { id: "propCity", label: "City" },
+      { id: "propCounty", label: "County" },
+      { id: "propType", label: "Property Type" },
+      { id: "txType", label: "Transaction Type" },
+    ];
+
+    for (const r of required) {
+      if (!document.getElementById(r.id).value.trim()) {
+        showError(`Please fill in: ${r.label}`);
+        document.getElementById(r.id).focus();
+        return;
+      }
+    }
+
+    // Collect extra parties
+    const parties = [];
+    // Add submitter as first party
+    parties.push({
+      name: document.getElementById("submitterName").value.trim(),
+      role: document.getElementById("submitterRole").value,
+      email: document.getElementById("submitterEmail").value.trim(),
+      phone: document.getElementById("submitterPhone").value.trim(),
+      company: document.getElementById("submitterCompany").value.trim(),
+    });
+
+    for (let i = 1; i <= partyCount; i++) {
+      const el = document.getElementById(`party_${i}`);
+      if (!el) continue;
+      const name = document.getElementById(`pname_${i}`)?.value.trim();
+      if (name) {
+        parties.push({
+          name,
+          role: document.getElementById(`prole_${i}`)?.value || "Other",
+          email: document.getElementById(`pemail_${i}`)?.value.trim() || "",
+          phone: document.getElementById(`pphone_${i}`)?.value.trim() || "",
+        });
+      }
+    }
+
+    const payload = {
+      code,
+      address: document.getElementById("propAddress").value.trim(),
+      city: document.getElementById("propCity").value.trim(),
+      county: document.getElementById("propCounty").value,
+      zipCode: document.getElementById("propZip").value.trim(),
+      mlsNumber: document.getElementById("propMLS").value.trim(),
+      propertyType: document.getElementById("propType").value,
+      type: document.getElementById("txType").value,
+      listPrice: document.getElementById("listPrice").value || "",
+      contractPrice: document.getElementById("contractPrice").value || "",
+      openDate: document.getElementById("openDate").value || new Date().toISOString().split("T")[0],
+      closingDate: document.getElementById("closingDate").value || "",
+      notes: document.getElementById("txNotes").value.trim(),
+      parties,
+      submittedAt: new Date().toISOString(),
+      status: "Active",
+    };
+
+    const btn = document.getElementById("submitBtn");
+    btn.disabled = true;
+    btn.textContent = "Submitting...";
+
+    try {
+      const res = await fetch(`${SERVER_URL}/transactions/submit`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (data.success) {
+        document.getElementById("formState").style.display = "none";
+        document.getElementById("successBox").style.display = "block";
+        document.getElementById("successTxId").textContent = data.transactionId;
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      } else {
+        showError(data.error || "Submission failed. Please try again.");
+        btn.disabled = false;
+        btn.textContent = "Submit Transaction →";
+      }
+    } catch (e) {
+      showError("Could not reach the server. Please contact The Liz Team directly.");
+      btn.disabled = false;
+      btn.textContent = "Submit Transaction →";
+    }
+  }
+
+  function showError(msg) {
+    const el = document.getElementById("errorMsg");
+    el.textContent = msg;
+    el.style.display = "block";
+    el.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
+</script>
+
+</body>
+</html>
