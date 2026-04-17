@@ -8,7 +8,7 @@ const COLORS = {
   dangerBg: "#FEE2E2", info: "#1D4ED8", infoBg: "#DBEAFE",
 };
 
-const SMS_SERVER = "http://localhost:3001";
+const SMS_SERVER = "https://liz-team-server-api-production.up.railway.app";
 
 const TRANSACTION_TYPES = ["Listing (Seller)", "Buyer Representation", "Dual Agency"];
 const PROPERTY_TYPES = ["Single Family", "Condo/Townhouse", "Multi-Family", "Land", "Commercial"];
