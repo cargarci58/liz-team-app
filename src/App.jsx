@@ -1009,10 +1009,35 @@ function NewTransactionForm({ onSave, onCancel }) {
   const [form, setForm] = useState({ address: "", city: "", county: "Osceola", zipCode: "", type: "Listing (Seller)", propertyType: "Single Family", listPrice: "", contractPrice: "", mlsNumber: "", openDate: today(), closingDate: "", notes: "", status: "Active" });
   const [useFLTemplates, setUseFLTemplates] = useState(true);
   const f = k => v => setForm(p => ({ ...p, [k]: v }));
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!form.address || !form.city) return;
     const tasks = useFLTemplates ? (FLORIDA_TASK_TEMPLATES[form.type] || []).map(t => ({ id: genId(), name: t.name, category: t.category, assignTo: t.assignTo, dueDate: t.daysFromOpen >= 0 ? addDays(form.openDate, t.daysFromOpen) : (form.closingDate ? addDays(form.closingDate, t.daysFromOpen) : null), status: "Pending", notes: "" })) : [];
-    onSave({ id: genId(), ...form, parties: [], tasks, messages: [], reminders: [], smsThreads: {} });
+    const tok = localStorage.getItem("tp_token") || "";
+    try {
+      const res = await fetch(API + "/transactions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": "Bearer " + tok },
+        body: JSON.stringify({ ...form, parties: [], tasks, reminders: [], smsThreads: {} }),
+      });
+      const data = await res.json();
+      if (data.success && data.transaction) {
+        const t = data.transaction;
+        onSave({
+          id: t.id, address: t.address, city: t.city, state: t.state,
+          zipCode: t.zip_code || form.zipCode, county: t.county || form.county,
+          mlsNumber: t.mls_number || form.mlsNumber, propertyType: t.property_type || form.propertyType,
+          type: t.transaction_type || form.type, status: t.status || form.status,
+          listPrice: t.list_price || form.listPrice, contractPrice: t.contract_price || form.contractPrice,
+          openDate: t.open_date || form.openDate, closingDate: t.closing_date || form.closingDate,
+          notes: t.notes || form.notes, smsThreads: {}, parties: [], tasks, messages: [], reminders: [],
+        });
+      } else {
+        alert("Failed to save transaction: " + (data.error || "Unknown error"));
+      }
+    } catch (e) {
+      console.error("Save error:", e);
+      alert("Could not save transaction. Check your connection.");
+    }
   };
   return (
     <div style={{ fontFamily: "'Segoe UI', system-ui, sans-serif", background: COLORS.bg, minHeight: "100vh" }}>
