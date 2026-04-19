@@ -451,8 +451,14 @@ function SMSPanel({ tx, onUpdate }) {
             const res = await fetch(`${SMS_SERVER}/email/send`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ transactionId: tx.id, transactionAddress: tx.address, toEmail: emailAddr, toName: selectedParty.name, toRole: selectedParty.role, subject: subject || `Re: ${tx.address}`, message: message.trim(), fromName: "The Liz Team" }) });
             const d = await res.json();
             console.log("Email result:", d);
-            if (d.success) anySent = true;
-            else alert("Email failed: " + (d.error || "Unknown error"));
+            if (d.success) {
+              anySent = true;
+              const newThreads = { ...(tx.smsThreads || {}) };
+              const key = emailAddr;
+              if (!newThreads[key]) newThreads[key] = [];
+              newThreads[key].push({ id: d.message?.id || Date.now().toString(), body: message.trim(), direction: "outbound", channel: "email", timestamp: new Date().toISOString(), status: "sent" });
+              onUpdate({ ...tx, smsThreads: newThreads });
+            } else alert("Email failed: " + (d.error || "Unknown error"));
           } catch(e) { console.error("Email error", e); alert("Email error: " + e.message); }
         } else { alert("No email address for this party. Add one in the Parties tab."); }
       }
