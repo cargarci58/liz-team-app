@@ -1,13 +1,5 @@
 import { useState } from "react";
 
-// Add global CSS for input focus instead of JS handlers
-if (typeof document !== 'undefined' && !document.getElementById('login-focus-style')) {
-  const s = document.createElement('style');
-  s.id = 'login-focus-style';
-  s.textContent = 'input:focus { border-color: #C0392B !important; outline: none; }';
-  document.head.appendChild(s);
-}
-
 const API = "https://liz-team-server-api-production.up.railway.app";
 
 const C = {
@@ -96,7 +88,8 @@ export default function LoginScreen({ onLogin }) {
       <label style={labelStyle}>{label}{required && <span style={{ color: C.red }}> *</span>}</label>
       <input type={type} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder}
         required={required} style={inputStyle}
-
+        onFocus={e => e.target.style.border = `1.5px solid ${C.red}`}
+        onBlur={e => e.target.style.border = `1.5px solid ${C.midGray}`}
       />
     </div>
   );
@@ -180,12 +173,12 @@ export default function LoginScreen({ onLogin }) {
                 <div>
                   <label style={labelStyle}>First Name <span style={{ color: C.red }}>*</span></label>
                   <input value={reg.firstName} onChange={e => setReg(r => ({ ...r, firstName: e.target.value }))} placeholder="Carlos" required style={inputStyle}
- />
+                    onFocus={e => e.target.style.border = `1.5px solid ${C.red}`} onBlur={e => e.target.style.border = `1.5px solid ${C.midGray}`} />
                 </div>
                 <div>
                   <label style={labelStyle}>Last Name <span style={{ color: C.red }}>*</span></label>
                   <input value={reg.lastName} onChange={e => setReg(r => ({ ...r, lastName: e.target.value }))} placeholder="Garcia" required style={inputStyle}
- />
+                    onFocus={e => e.target.style.border = `1.5px solid ${C.red}`} onBlur={e => e.target.style.border = `1.5px solid ${C.midGray}`} />
                 </div>
               </div>
               <div style={{ marginBottom: 16 }} />
