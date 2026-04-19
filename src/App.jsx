@@ -108,6 +108,8 @@ if (typeof document !== "undefined" && !document.getElementById("lizteam-mobile"
     #root { max-width: 100vw; overflow-x: hidden; }
     input, textarea, select { font-size: 16px !important; }
     @media (max-width: 768px) {
+      [data-stats-bar] { overflow-x: auto !important; -webkit-overflow-scrolling: touch; flex-wrap: nowrap !important; padding-bottom: 8px; }
+      [data-stats-bar] > div { min-width: 120px !important; flex-shrink: 0 !important; }
       [data-msg-grid] { grid-template-columns: 1fr !important; height: auto !important; min-height: 480px; }
       [data-form-grid] { grid-template-columns: 1fr !important; }
       [data-tx-grid] { grid-template-columns: 1fr !important; }
@@ -1073,7 +1075,7 @@ function Dashboard({ transactions, onSelect, onNew, onOpenContactBook, contactCo
             <Btn onClick={onNew} variant="gold">+ New Transaction</Btn>
           </div>
         </div>
-        <div style={{ display: "flex", marginTop: 16, borderTop: "1px solid rgba(255,255,255,0.1)" }}>
+        <div data-stats-bar="" style={{ display: "flex", marginTop: 16, borderTop: "1px solid rgba(255,255,255,0.1)", overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
           {[["Active Listings", stats.active, COLORS.gold, null], ["Under Contract", stats.underContract, "#93C5FD", null], ["Closed", stats.closed, "#6EE7B7", null], ["Overdue Tasks", stats.overdueAny, stats.overdueAny > 0 ? "#FCA5A5" : "#6EE7B7", stats.overdueAny > 0 ? () => setShowOverdue(true) : null], ["Closing ≤14d", stats.closingSoon, stats.closingSoon > 0 ? "#FDE68A" : "rgba(255,255,255,0.4)", null], ["Volume", `$${(stats.totalVolume / 1000000).toFixed(2)}M`, COLORS.gold, null]].map(([label, value, color, onClick]) => (
             <div key={label} onClick={onClick} style={{ padding: "12px 20px", flex: 1, cursor: onClick ? "pointer" : "default" }}>
               <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>{label}{onClick && " ↗"}</div>
