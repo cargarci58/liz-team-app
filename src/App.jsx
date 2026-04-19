@@ -1,5 +1,6 @@
 import LoginScreen from "./LoginScreen";
 import UserManagement from "./UserManagement";
+import DocumentsTab from "./DocumentsTab";
 const API = "https://liz-team-server-api-production.up.railway.app";
 
 import { useState, useEffect, useCallback, useRef } from "react";
