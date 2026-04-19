@@ -1482,7 +1482,8 @@ export default function App() {
   const [authToken, setAuthToken] = useState(() => localStorage.getItem("tp_token") || "");
 
   if (!authUser || !authToken) {
-    return <LoginScreen onLogin={(user, token) => { setAuthUser(user); setAuthToken(token); }} />;
+    const handleLogin = (user, token) => { setAuthUser(user); setAuthToken(token); };
+    return <LoginScreen onLogin={handleLogin} />;
   }
 
   return <MainApp currentUser={authUser} onLogout={() => {
