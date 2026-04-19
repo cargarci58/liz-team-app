@@ -1,3 +1,6 @@
+import LoginScreen from "./LoginScreen";
+const API = "https://liz-team-server-api-production.up.railway.app";
+
 import { useState, useEffect, useCallback, useRef } from "react";
 
 const COLORS = {
@@ -8,7 +11,7 @@ const COLORS = {
   dangerBg: "#FEE2E2", info: "#1D4ED8", infoBg: "#DBEAFE",
 };
 
-const SMS_SERVER = "https://liz-team-server-api-production.up.railway.app";
+const SMS_SERVER = API;
 
 const TRANSACTION_TYPES = ["Listing (Seller)", "Buyer Representation", "Dual Agency"];
 const PROPERTY_TYPES = ["Single Family", "Condo/Townhouse", "Multi-Family", "Land", "Commercial"];
@@ -1289,7 +1292,7 @@ function ContactBook({ contacts, onClose, onSelect, onAdd, onEdit, onDelete }) {
   );
 }
 
-export default function App() {
+function MainApp({ onLogout, currentUser }) {
   const [transactions, setTransactions] = useState(() => {
     try {
       const saved = localStorage.getItem('lizteam_transactions');
@@ -1355,4 +1358,23 @@ export default function App() {
       )}
     </>
   );
+}
+
+
+export default function App() {
+  const [authUser, setAuthUser] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("tp_user")); } catch { return null; }
+  });
+  const [authToken, setAuthToken] = useState(() => localStorage.getItem("tp_token") || "");
+
+  if (!authUser || !authToken) {
+    return <LoginScreen onLogin={(user, token) => { setAuthUser(user); setAuthToken(token); }} />;
+  }
+
+  return <MainApp currentUser={authUser} onLogout={() => {
+    localStorage.removeItem("tp_token");
+    localStorage.removeItem("tp_user");
+    setAuthUser(null);
+    setAuthToken("");
+  }} />;
 }
