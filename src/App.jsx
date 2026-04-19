@@ -1475,21 +1475,25 @@ function MainApp({ onLogout, currentUser }) {
 }
 
 
-export default function App() {
+// Auth state lives here - completely isolated from MainApp
+function AuthGate() {
   const [authUser, setAuthUser] = useState(() => {
     try { return JSON.parse(localStorage.getItem("tp_user")); } catch { return null; }
   });
-  const [authToken, setAuthToken] = useState(() => localStorage.getItem("tp_token") || "");
 
-  if (!authUser || !authToken) {
-    const handleLogin = (user, token) => { setAuthUser(user); setAuthToken(token); };
-    return <LoginScreen onLogin={handleLogin} />;
+  if (!authUser) {
+    return <LoginScreen onLogin={(user, token) => {
+      localStorage.setItem("tp_token", token);
+      localStorage.setItem("tp_user", JSON.stringify(user));
+      setAuthUser(user);
+    }} />;
   }
 
   return <MainApp currentUser={authUser} onLogout={() => {
     localStorage.removeItem("tp_token");
     localStorage.removeItem("tp_user");
     setAuthUser(null);
-    setAuthToken("");
   }} />;
 }
+
+export default AuthGate;
