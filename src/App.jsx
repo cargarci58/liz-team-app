@@ -1241,10 +1241,21 @@ function ContactBook({ contacts, onClose, onSelect, onAdd, onEdit, onDelete }) {
     return matchRole && matchSearch;
   });
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!form.name || !form.role) return;
-    if (editingContact) { onEdit({ ...editingContact, ...form }); }
-    else { onAdd({ ...form, id: genId() }); }
+    const tok = localStorage.getItem("tp_token") || "";
+    const headers = { "Content-Type": "application/json", "Authorization": "Bearer " + tok };
+    try {
+      if (editingContact) {
+        const res = await fetch(API + "/contacts/" + editingContact.id, { method: "PUT", headers, body: JSON.stringify(form) });
+        const data = await res.json();
+        if (data.success) onEdit({ ...editingContact, ...form });
+      } else {
+        const res = await fetch(API + "/contacts", { method: "POST", headers, body: JSON.stringify(form) });
+        const data = await res.json();
+        if (data.success && data.contact) onAdd(data.contact);
+      }
+    } catch(e) { console.error("Contact save failed:", e); }
     setForm({ role: "", name: "", company: "", email: "", phone: "", notes: "" });
     setShowAddContact(false);
     setEditingContact(null);
@@ -1390,7 +1401,11 @@ function MainApp({ onLogout, currentUser }) {
 
   const addContact = (c) => setContacts(prev => [c, ...prev]);
   const editContact = (c) => setContacts(prev => prev.map(x => x.id === c.id ? c : x));
-  const deleteContact = (id) => setContacts(prev => prev.filter(x => x.id !== id));
+  const deleteContact = async (id) => {
+    setContacts(prev => prev.filter(x => x.id !== id));
+    const tok = localStorage.getItem("tp_token") || "";
+    try { await fetch(API + "/contacts/" + id, { method: "DELETE", headers: { "Authorization": "Bearer " + tok } }); } catch(e) { console.error("Delete failed:", e); }
+  };
 
   const openContactBook = (onSelect) => {
     setContactBookCallback(() => onSelect);
