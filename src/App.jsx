@@ -4,11 +4,15 @@ const API = "https://liz-team-server-api-production.up.railway.app";
 import { useState, useEffect, useCallback, useRef } from "react";
 
 const COLORS = {
-  navy: "#0F2044", gold: "#C9A84C", lightGold: "#F5E6C0",
-  bg: "#F7F8FA", white: "#FFFFFF", text: "#1A1A2E", muted: "#6B7280",
-  border: "#E5E7EB", success: "#15803D", successBg: "#DCFCE7",
-  warning: "#B45309", warningBg: "#FEF3C7", danger: "#DC2626",
-  dangerBg: "#FEE2E2", info: "#1D4ED8", infoBg: "#DBEAFE",
+  navy: "#111111", gold: "#C0392B", lightGold: "#FADBD8",
+  bg: "#F4F4F4", white: "#FFFFFF", text: "#111111", muted: "#666666",
+  border: "#DDDDDD", success: "#1E8449", successBg: "#D5F5E3",
+  warning: "#B7770D", warningBg: "#FEF9E7", danger: "#C0392B",
+  dangerBg: "#FADBD8", info: "#1A5276", infoBg: "#D6EAF8",
+  // TransactPro brand
+  red: "#C0392B", darkRed: "#922B21", lightRed: "#FADBD8",
+  black: "#111111", darkGray: "#222222", gray: "#555555",
+  lightGray: "#F4F4F4", midGray: "#CCCCCC",
 };
 
 const SMS_SERVER = API;
@@ -1293,22 +1297,65 @@ function ContactBook({ contacts, onClose, onSelect, onAdd, onEdit, onDelete }) {
 }
 
 function MainApp({ onLogout, currentUser }) {
-  const [transactions, setTransactions] = useState(() => {
-    try {
-      const saved = localStorage.getItem('lizteam_transactions');
-      return saved ? JSON.parse(saved) : INITIAL_TRANSACTIONS;
-    } catch { return INITIAL_TRANSACTIONS; }
-  });
+  const [transactions, setTransactions] = useState([]);
+  const [txLoading, setTxLoading] = useState(true);
+  const token = localStorage.getItem("tp_token") || "";
+  const authHeaders = { "Content-Type": "application/json", "Authorization": `Bearer ${token}` };
+
+  // Load transactions from database on mount
+  useEffect(() => {
+    fetch(`${API}/transactions`, { headers: authHeaders })
+      .then(r => r.json())
+      .then(data => {
+        if (data.transactions) {
+          // Normalize DB format to app format
+          const normalized = data.transactions.map(t => ({
+            id: t.id,
+            address: t.address,
+            city: t.city,
+            state: t.state,
+            zipCode: t.zip_code,
+            county: t.county,
+            mlsNumber: t.mls_number,
+            propertyType: t.property_type,
+            type: t.transaction_type,
+            status: t.status,
+            listPrice: t.list_price,
+            contractPrice: t.contract_price,
+            openDate: t.open_date,
+            closingDate: t.closing_date,
+            notes: t.notes,
+            smsThreads: t.sms_threads || {},
+            parties: (t.parties || []).filter(Boolean).map(p => ({ id: p.id, role: p.role, name: p.name, email: p.email, phone: p.phone, company: p.company })),
+            tasks: (t.tasks || []).filter(Boolean).map(tk => ({ id: tk.id, name: tk.name, status: tk.status, dueDate: tk.dueDate, category: tk.category, assignTo: tk.assignTo })),
+            reminders: (t.reminders || []).filter(Boolean).map(r => ({ id: r.id, title: r.title, date: r.date, message: r.message, channels: r.channels, parties: r.parties || [], sent: r.sent })),
+          }));
+          setTransactions(normalized);
+        }
+      })
+      .catch(e => console.error("Failed to load transactions:", e))
+      .finally(() => setTxLoading(false));
+  }, []);
+
+  // Load contacts from database
+  useEffect(() => {
+    fetch(`${API}/contacts`, { headers: authHeaders })
+      .then(r => r.json())
+      .then(data => {
+        if (data.contacts) {
+          setContacts(data.contacts.map(c => ({ id: c.id, role: c.role, name: c.name, email: c.email, phone: c.phone, company: c.company, notes: c.notes })));
+        }
+      })
+      .catch(e => console.error("Failed to load contacts:", e));
+  }, []);
   const [view, setView] = useState("dashboard");
   const [selectedId, setSelectedId] = useState(null);
-  const [contacts, setContacts] = useState(() => {
-    try { return JSON.parse(localStorage.getItem("lizteam_contacts") || "[]"); } catch { return []; }
-  });
+  const [contacts, setContacts] = useState([]);
   const [showContactBook, setShowContactBook] = useState(false);
   const [contactBookCallback, setContactBookCallback] = useState(null);
 
   useEffect(() => {
-    localStorage.setItem("lizteam_contacts", JSON.stringify(contacts));
+    // Contacts saved to DB via API
   }, [contacts]);
 
   const addContact = (c) => setContacts(prev => [c, ...prev]);
@@ -1321,7 +1368,12 @@ function MainApp({ onLogout, currentUser }) {
   };
 
   const selectedTx = transactions.find(t => t.id === selectedId);
-  const updateTransaction = useCallback(updated => setTransactions(txs => txs.map(t => t.id === updated.id ? updated : t)), []);
+  const tok = localStorage.getItem("tp_token") || "";
+  const aH = { "Content-Type": "application/json", "Authorization": "Bearer " + tok };
+  const updateTransaction = useCallback(async (updated) => {
+    setTransactions(txs => txs.map(t => t.id === updated.id ? updated : t));
+    try { await fetch(API + "/transactions/" + updated.id, { method: "PUT", headers: aH, body: JSON.stringify({ address: updated.address, city: updated.city, state: updated.state, zipCode: updated.zipCode, county: updated.county, mlsNumber: updated.mlsNumber, propertyType: updated.propertyType, type: updated.type, status: updated.status, listPrice: updated.listPrice, contractPrice: updated.contractPrice, openDate: updated.openDate, closingDate: updated.closingDate, notes: updated.notes, smsThreads: updated.smsThreads || {}, parties: updated.parties || [], tasks: updated.tasks || [], reminders: updated.reminders || [] }) }); } catch(e) { console.error("Save failed:", e); }
+  }, []);
   const addTransaction = tx => { setTransactions(txs => [tx, ...txs]); setSelectedId(tx.id); setView("detail"); };
 
   return (
