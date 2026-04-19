@@ -97,6 +97,28 @@ const TASK_STATUS = {
   "Waived": { color: COLORS.muted, bg: "#F3F4F6" },
 };
 
+
+// ─── INJECT MOBILE STYLES ─────────────────────────────────────
+if (typeof document !== "undefined" && !document.getElementById("lizteam-mobile")) {
+  const s = document.createElement("style");
+  s.id = "lizteam-mobile";
+  s.textContent = `
+    *, *::before, *::after { box-sizing: border-box !important; }
+    body { overflow-x: hidden !important; }
+    #root { max-width: 100vw; overflow-x: hidden; }
+    input, textarea, select { font-size: 16px !important; }
+    @media (max-width: 768px) {
+      [data-msg-grid] { grid-template-columns: 1fr !important; height: auto !important; min-height: 480px; }
+      [data-form-grid] { grid-template-columns: 1fr !important; }
+      [data-tx-grid] { grid-template-columns: 1fr !important; }
+      [data-modal] { width: 100% !important; max-width: 100vw !important; max-height: 100vh !important; border-radius: 0 !important; overflow-y: auto !important; }
+      [data-tabs] { overflow-x: auto !important; flex-wrap: nowrap !important; -webkit-overflow-scrolling: touch; }
+      [data-header] { flex-wrap: wrap !important; gap: 8px !important; }
+    }
+  `;
+  document.head.appendChild(s);
+}
+
 function genId() { return Math.random().toString(36).substr(2, 9); }
 function today() { return new Date().toISOString().split("T")[0]; }
 function addDays(date, days) { const d = new Date(date); d.setDate(d.getDate() + days); return d.toISOString().split("T")[0]; }
@@ -307,7 +329,7 @@ function TaskReminderModal({ task, tx, onClose }) {
                 {partiesWithPhone.length === 0 && (
                   <div style={{ fontSize: 13, color: COLORS.muted, fontStyle: "italic" }}>No parties with phone numbers. Add phone numbers in the Parties tab.</div>
                 )}
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, "data-form-grid": "" }}>
                   {partiesWithPhone.map(p => (
                     <label key={p.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", border: `1px solid ${selectedParties.includes(p.id) ? COLORS.navy : COLORS.border}`, borderRadius: 8, cursor: "pointer", background: selectedParties.includes(p.id) ? "#F0F4FF" : "#fff" }}>
                       <input type="checkbox" checked={selectedParties.includes(p.id)} onChange={() => toggleParty(p.id)} />
@@ -535,7 +557,7 @@ function SMSPanel({ tx, onUpdate }) {
       {partiesWithContact.length === 0 ? (
         <div style={{ textAlign: "center", color: "#6B7280", padding: 40 }}>No parties with phone or email. Add contact info in the Parties tab.</div>
       ) : (
-        <div style={{ display: "grid", gridTemplateColumns: "260px 1fr", gap: 16, height: 560 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "260px 1fr", gap: 16, height: 560, "data-msg-grid": "" }}>
           <div style={{ background: "#fff", border: "1px solid #E5E7EB", borderRadius: 12, overflow: "hidden", display: "flex", flexDirection: "column" }}>
             <div style={{ padding: "12px 14px", borderBottom: "1px solid #E5E7EB", fontSize: 12, fontWeight: 700, color: "#6B7280", textTransform: "uppercase", letterSpacing: "0.05em" }}>Conversations</div>
             <div style={{ flex: 1, overflowY: "auto" }}>
@@ -617,7 +639,7 @@ function SMSPanel({ tx, onUpdate }) {
 
       {showBulk && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
-          <div style={{ background: "#fff", borderRadius: 14, width: 600, maxWidth: "100%", maxHeight: "90vh", overflow: "auto", boxShadow: "0 20px 60px rgba(0,0,0,0.25)" }}>
+          <div style={{ background: "#fff", borderRadius: 14, width: 600, maxWidth: "100%", maxHeight: "90vh", overflow: "auto", boxShadow: "0 20px 60px rgba(0,0,0,0.25)", "data-modal": "" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "20px 24px 16px", borderBottom: "1px solid #E5E7EB" }}>
               <div style={{ fontWeight: 700, fontSize: 18, color: "#0F2044" }}>Broadcast to Parties</div>
               <button onClick={() => setShowBulk(false)} style={{ background: "none", border: "none", fontSize: 22, cursor: "pointer", color: "#6B7280" }}>x</button>
@@ -631,7 +653,7 @@ function SMSPanel({ tx, onUpdate }) {
                   </div>
                   <div style={{ marginBottom: 16 }}>
                     <div style={{ fontWeight: 700, fontSize: 13, color: "#0F2044", marginBottom: 10 }}>Recipients</div>
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, "data-form-grid": "" }}>
                       {partiesWithContact.map(p => (
                         <label key={p.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", border: `1px solid ${bulkSelected.includes(p.id) ? "#0F2044" : "#E5E7EB"}`, borderRadius: 8, cursor: "pointer" }}>
                           <input type="checkbox" checked={bulkSelected.includes(p.id)} onChange={e => setBulkSelected(prev => e.target.checked ? [...prev, p.id] : prev.filter(x => x !== p.id))} />
@@ -675,7 +697,7 @@ function SMSPanel({ tx, onUpdate }) {
 
       {showReminderSMS && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
-          <div style={{ background: "#fff", borderRadius: 14, width: 560, maxWidth: "100%", maxHeight: "90vh", overflow: "auto", boxShadow: "0 20px 60px rgba(0,0,0,0.25)" }}>
+          <div style={{ background: "#fff", borderRadius: 14, width: 560, maxWidth: "100%", maxHeight: "90vh", overflow: "auto", boxShadow: "0 20px 60px rgba(0,0,0,0.25)", "data-modal": "" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "20px 24px 16px", borderBottom: "1px solid #E5E7EB" }}>
               <div style={{ fontWeight: 700, fontSize: 18, color: "#0F2044" }}>Send Deadline Reminder</div>
               <button onClick={() => setShowReminderSMS(false)} style={{ background: "none", border: "none", fontSize: 22, cursor: "pointer", color: "#6B7280" }}>x</button>
@@ -697,7 +719,7 @@ function SMSPanel({ tx, onUpdate }) {
               {reminderTask && (() => { const task = tx.tasks.find(t => t.id === reminderTask); return task ? <div style={{ background: "#FEF3C7", borderRadius: 8, padding: 12, marginBottom: 14, fontSize: 13, color: "#B45309" }}><strong>{task.name}</strong> - Due: {formatDate(task.dueDate)}</div> : null; })()}
               <div style={{ marginBottom: 14 }}>
                 <div style={{ fontSize: 12, fontWeight: 600, color: "#6B7280", textTransform: "uppercase", marginBottom: 8 }}>Notify</div>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, "data-form-grid": "" }}>
                   {partiesWithContact.map(p => (
                     <label key={p.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", border: `1px solid ${reminderParties.includes(p.id) ? "#0F2044" : "#E5E7EB"}`, borderRadius: 8, cursor: "pointer" }}>
                       <input type="checkbox" checked={reminderParties.includes(p.id)} onChange={e => setReminderParties(prev => e.target.checked ? [...prev, p.id] : prev.filter(x => x !== p.id))} />
@@ -1219,7 +1241,7 @@ function ContactBook({ contacts, onClose, onSelect, onAdd, onEdit, onDelete }) {
         {showAddContact && (
           <div style={{ padding: "16px 24px", borderBottom: `1px solid ${COLORS.border}`, background: COLORS.bg, flexShrink: 0 }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: COLORS.navy, marginBottom: 12 }}>{editingContact ? "Edit Contact" : "New Contact"}</div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, "data-form-grid": "" }}>
               <Input label="Full Name" value={form.name} onChange={f("name")} required />
               <Input label="Role" value={form.role} onChange={f("role")} options={PARTY_ROLES} required />
               <Input label="Company / Brokerage" value={form.company} onChange={f("company")} />
