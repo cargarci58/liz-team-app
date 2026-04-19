@@ -783,6 +783,7 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts = [], onSaveContact,
     { id: "parties", label: `Parties (${tx.parties.length})` },
     { id: "sms", label: `Messages${smsMsgCount > 0 ? ` (${smsMsgCount})` : ""}` },
     { id: "notes", label: "Internal Notes" },
+    { id: "documents", label: "📎 Documents" },
     { id: "reminders", label: "Reminders" },
   ];
 
@@ -913,6 +914,7 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts = [], onSaveContact,
           </div>
         )}
 
+        {activeTab === "documents" && <DocumentsTab tx={tx} />}
         {activeTab === "reminders" && (
           <div>
             <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 16 }}><Btn onClick={() => setShowAddReminder(true)} small>+ Add Reminder</Btn></div>
