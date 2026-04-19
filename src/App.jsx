@@ -1417,7 +1417,9 @@ function MainApp({ onLogout, currentUser }) {
   const aH = { "Content-Type": "application/json", "Authorization": "Bearer " + tok };
   const updateTransaction = useCallback(async (updated) => {
     setTransactions(txs => txs.map(t => t.id === updated.id ? updated : t));
-    try { await fetch(API + "/transactions/" + updated.id, { method: "PUT", headers: aH, body: JSON.stringify({ address: updated.address, city: updated.city, state: updated.state, zipCode: updated.zipCode, county: updated.county, mlsNumber: updated.mlsNumber, propertyType: updated.propertyType, type: updated.type, status: updated.status, listPrice: updated.listPrice, contractPrice: updated.contractPrice, openDate: updated.openDate, closingDate: updated.closingDate, notes: updated.notes, smsThreads: updated.smsThreads || {}, parties: updated.parties || [], tasks: updated.tasks || [], reminders: updated.reminders || [] }) }); } catch(e) { console.error("Save failed:", e); }
+    const freshTok = localStorage.getItem("tp_token") || "";
+    const freshH = { "Content-Type": "application/json", "Authorization": "Bearer " + freshTok };
+    try { const r = await fetch(API + "/transactions/" + updated.id, { method: "PUT", headers: freshH, body: JSON.stringify({ address: updated.address, city: updated.city, state: updated.state, zipCode: updated.zipCode, county: updated.county, mlsNumber: updated.mlsNumber, propertyType: updated.propertyType, type: updated.type, status: updated.status, listPrice: updated.listPrice, contractPrice: updated.contractPrice, openDate: updated.openDate, closingDate: updated.closingDate, notes: updated.notes, smsThreads: updated.smsThreads || {}, parties: updated.parties || [], tasks: updated.tasks || [], reminders: updated.reminders || [] }) }); if (!r.ok) { const e = await r.json(); console.error("Save error:", e); } } catch(e) { console.error("Save failed:", e); }
   }, []);
   const addTransaction = tx => { setTransactions(txs => [tx, ...txs]); setSelectedId(tx.id); setView("detail"); };
 
