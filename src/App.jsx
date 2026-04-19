@@ -1078,7 +1078,7 @@ function NewTransactionForm({ onSave, onCancel }) {
 }
 
 // ─── DASHBOARD ────────────────────────────────────────────────
-function Dashboard({ transactions, onSelect, onNew, onOpenContactBook, contactCount }) {
+function Dashboard({ transactions, onSelect, onNew, onOpenContactBook, contactCount, onLogout }) {
   const [filter, setFilter] = useState("All");
   const [search, setSearch] = useState("");
   const [showOverdue, setShowOverdue] = useState(false);
@@ -1097,14 +1097,19 @@ function Dashboard({ transactions, onSelect, onNew, onOpenContactBook, contactCo
     <div style={{ fontFamily: "'Segoe UI', system-ui, sans-serif", background: COLORS.bg, minHeight: "100vh" }}>
       <div style={{ background: COLORS.navy, padding: "0 24px" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: 20, paddingBottom: 8 }}>
-          <div>
-            <div style={{ color: COLORS.gold, fontSize: 11, fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase" }}>The Liz Team Realty</div>
-            <div style={{ color: "#fff", fontSize: 22, fontWeight: 800 }}>Transaction Manager</div>
-            <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 12 }}>Florida Real Estate · Orange, Osceola, Seminole & Polk Counties</div>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <div style={{ width: 36, height: 36, borderRadius: 8, background: COLORS.gold, display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <span style={{ color: "#fff", fontSize: 18, fontWeight: 900 }}>T</span>
+            </div>
+            <div>
+              <div style={{ color: "#fff", fontSize: 18, fontWeight: 800 }}>TransactPro</div>
+              <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 11 }}>Real Estate Transaction Management</div>
+            </div>
           </div>
-          <div style={{ display: "flex", gap: 8 }}>
+          <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
             <Btn onClick={onOpenContactBook} variant="secondary" style={{ background: "rgba(255,255,255,0.15)", color: "#fff", border: "1px solid rgba(255,255,255,0.3)" }}>👥 Contacts {contactCount > 0 ? `(${contactCount})` : ""}</Btn>
             <Btn onClick={onNew} variant="gold">+ New Transaction</Btn>
+            <button onClick={onLogout} style={{ background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.2)", color: "rgba(255,255,255,0.7)", borderRadius: 8, padding: "6px 14px", cursor: "pointer", fontSize: 12, fontFamily: "inherit" }}>Sign Out</button>
           </div>
         </div>
         <div data-stats-bar="" style={{ display: "flex", marginTop: 16, borderTop: "1px solid rgba(255,255,255,0.1)", overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
@@ -1421,6 +1426,7 @@ function MainApp({ onLogout, currentUser }) {
           onNew={() => setView("new")}
           onOpenContactBook={() => openContactBook(null)}
           contactCount={contacts.length}
+          onLogout={onLogout}
         />
       )}
       {showContactBook && (
