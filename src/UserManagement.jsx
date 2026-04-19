@@ -72,7 +72,7 @@ export default function UserManagement({ onClose }) {
 
   return (
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
-      <div style={{ background: C.white, borderRadius: 14, width: 700, maxWidth: "100%", maxHeight: "90vh", overflow: "hidden", display: "flex", flexDirection: "column", boxShadow: "0 20px 60px rgba(0,0,0,0.25)" }}>
+      <div style={{ background: C.white, borderRadius: 0, width: "100%", maxWidth: 700, height: "100vh", maxHeight: "100vh", overflow: "hidden", display: "flex", flexDirection: "column", boxShadow: "0 20px 60px rgba(0,0,0,0.25)" }}>
         {/* Header */}
         <div style={{ padding: "20px 24px 16px", borderBottom: `1px solid ${C.border}`, display: "flex", justifyContent: "space-between", alignItems: "center", background: C.black }}>
           <div>
@@ -146,7 +146,7 @@ export default function UserManagement({ onClose }) {
               <div style={{ fontSize: 13, marginTop: 4 }}>Click "Invite User" to add your first team member</div>
             </div>
           ) : (
-            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <div style={{ overflowX: "auto" }}><table style={{ width: "100%", minWidth: 580, borderCollapse: "collapse" }}>
               <thead>
                 <tr style={{ background: C.lightGray }}>
                   {["Name", "Email", "Role", "Status", "Last Login", "Actions"].map(h => (
@@ -191,8 +191,7 @@ export default function UserManagement({ onClose }) {
                     </td>
                   </tr>
                 ))}
-              </tbody>
-            </table>
+              </tbody></table></div>
           )}
         </div>
 
