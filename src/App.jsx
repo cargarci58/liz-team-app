@@ -1,4 +1,5 @@
 import LoginScreen from "./LoginScreen";
+import UserManagement from "./UserManagement";
 const API = "https://liz-team-server-api-production.up.railway.app";
 
 import { useState, useEffect, useCallback, useRef } from "react";
@@ -1109,6 +1110,7 @@ function Dashboard({ transactions, onSelect, onNew, onOpenContactBook, contactCo
           <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
             <Btn onClick={onOpenContactBook} variant="secondary" style={{ background: "rgba(255,255,255,0.15)", color: "#fff", border: "1px solid rgba(255,255,255,0.3)" }}>👥 Contacts {contactCount > 0 ? `(${contactCount})` : ""}</Btn>
             <Btn onClick={onNew} variant="gold">+ New Transaction</Btn>
+            <button onClick={() => setShowTeam(true)} style={{ background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.2)", color: "rgba(255,255,255,0.7)", borderRadius: 8, padding: "6px 14px", cursor: "pointer", fontSize: 12, fontFamily: "inherit" }}>👥 Team</button>
             <button onClick={onLogout} style={{ background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.2)", color: "rgba(255,255,255,0.7)", borderRadius: 8, padding: "6px 14px", cursor: "pointer", fontSize: 12, fontFamily: "inherit" }}>Sign Out</button>
           </div>
         </div>
@@ -1392,6 +1394,7 @@ function MainApp({ onLogout, currentUser }) {
   const [view, setView] = useState("dashboard");
   const [selectedId, setSelectedId] = useState(null);
   const [contacts, setContacts] = useState([]);
+  const [showTeam, setShowTeam] = useState(false);
   const [showContactBook, setShowContactBook] = useState(false);
   const [contactBookCallback, setContactBookCallback] = useState(null);
 
@@ -1446,6 +1449,7 @@ function MainApp({ onLogout, currentUser }) {
           onLogout={onLogout}
         />
       )}
+      {showTeam && <UserManagement onClose={() => setShowTeam(false)} />}
       {showContactBook && (
         <ContactBook
           contacts={contacts}
