@@ -97,12 +97,15 @@ export default function TransactionChat({ transactionId, user, style, onUnreadCh
           if (document.hidden) {
             showBrowserNotification(msg.sender_name, msg.message);
           }
-          // Increment unread if chat tab is not active
-          setUnreadCount(prev => {
-            const next = prev + 1;
-            if (onUnreadChange) onUnreadChange(next);
-            return next;
-          });
+          // Track as unread and increment badge
+          setUnreadIds(prev => new Set([...prev, msg.id]));
+          if (!isViewing.current) {
+            setUnreadCount(prev => {
+              const next = prev + 1;
+              if (onUnreadChange) onUnreadChange(next);
+              return next;
+            });
+          }
         }
       });
 
@@ -131,7 +134,7 @@ export default function TransactionChat({ transactionId, user, style, onUnreadCh
   useEffect(() => {
     isViewing.current = true;
     setUnreadCount(0);
-    setLastReadTime(new Date().toISOString());
+    setUnreadIds(new Set());
     if (onUnreadChange) onUnreadChange(0);
     return () => { isViewing.current = false; };
   }, []);
@@ -148,9 +151,8 @@ export default function TransactionChat({ transactionId, user, style, onUnreadCh
   const isMe = (msg) => {
     try { const u = JSON.parse(localStorage.getItem("tp_user") || "{}"); return msg.user_id === u.id || msg.user_id === u.userId; } catch { return false; }
   };
-  const isUnread = (msg) => {
-    try { const u = JSON.parse(localStorage.getItem("tp_user") || "{}"); const myId = u.id || u.userId; return msg.user_id !== myId && msg.created_at > lastReadTime; } catch { return false; }
-  };
+  const [unreadIds, setUnreadIds] = useState(new Set());
+  const isUnread = (msg) => unreadIds.has(msg.id);
 
   const roleColors = {
     admin: "#C0392B", agent: "#1A5276", tc: "#B7770D",
