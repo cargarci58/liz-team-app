@@ -31,6 +31,99 @@ const PARTY_ROLES = [
   "HOA Manager", "Seller", "Buyer", "Attorney", "Insurance Agent", "Other"
 ];
 
+const EMAIL_TEMPLATES = [
+  { label: "Intro", subject: (addr) => `Your Transaction — ${addr}`, body: (name, addr, agent) => `Hi ${name},
+
+This is ${agent} with The Liz Team Realty. I wanted to reach out regarding your transaction at ${addr}.
+
+I'm here to guide you through this process and make sure everything goes smoothly. Please don't hesitate to reach out if you have any questions.
+
+Best regards,
+${agent}
+The Liz Team Realty` },
+  { label: "Documents Needed", subject: (addr) => `Documents Required — ${addr}`, body: (name, addr, agent) => `Hi ${name},
+
+I hope you're doing well! I'm reaching out regarding ${addr} because we still need the following documents to keep your transaction on track.
+
+Please send these as soon as possible to avoid any delays in your closing.
+
+If you have any questions about what's needed, please call or text me directly.
+
+Best regards,
+${agent}
+The Liz Team Realty` },
+  { label: "Inspection Scheduled", subject: (addr) => `Inspection Scheduled — ${addr}`, body: (name, addr, agent, closing) => `Hi ${name},
+
+Great news! The inspection for ${addr} has been scheduled.
+
+Please ensure the property is accessible at the scheduled time. If you have a lockbox code, please confirm it's active.
+
+If you have any questions, don't hesitate to reach out.
+
+Best regards,
+${agent}
+The Liz Team Realty` },
+  { label: "Closing Reminder", subject: (addr) => `Closing Reminder — ${addr}`, body: (name, addr, agent, closing) => `Hi ${name},
+
+This is a reminder that your closing for ${addr} is approaching${closing ? " on " + closing : ""}.
+
+Please make sure you:
+• Have a valid government-issued photo ID
+• Have your cashier's check or wire transfer ready (if applicable)
+• Review all closing documents in advance
+• Confirm the closing time and location with the title company
+
+Please don't hesitate to contact me with any questions.
+
+Best regards,
+${agent}
+The Liz Team Realty` },
+  { label: "Under Contract", subject: (addr) => `Under Contract — ${addr}`, body: (name, addr, agent, closing) => `Hi ${name},
+
+Excellent news! ${addr} is now officially under contract!
+
+Closing Date: ${closing || "TBD"}
+
+Here are the next steps:
+• Inspection will be scheduled within the inspection period
+• Please ensure all requested documents are submitted promptly
+• Stay in touch with your lender if financing is involved
+
+I'll keep you updated every step of the way. Feel free to reach out anytime.
+
+Best regards,
+${agent}
+The Liz Team Realty` },
+  { label: "Clear to Close", subject: (addr) => `Clear to Close — ${addr}`, body: (name, addr, agent, closing) => `Hi ${name},
+
+Fantastic news! We have received Clear to Close for ${addr}!
+
+Closing Date: ${closing || "TBD"}
+
+This means all conditions have been satisfied and we are ready to close. The title company will be reaching out with final closing figures and instructions.
+
+Please review the Closing Disclosure carefully and contact me with any questions.
+
+We're almost there!
+
+Best regards,
+${agent}
+The Liz Team Realty` },
+  { label: "Thank You", subject: (addr) => `Thank You — ${addr}`, body: (name, addr, agent) => `Hi ${name},
+
+Thank you so much for trusting The Liz Team Realty with your real estate transaction at ${addr}.
+
+It was a pleasure working with you and I hope we exceeded your expectations. If you ever need anything in the future or know someone buying or selling, I would love to help!
+
+A referral is the greatest compliment I can receive.
+
+Wishing you all the best!
+
+Warm regards,
+${agent}
+The Liz Team Realty` },
+];
+
 const FLORIDA_TASK_TEMPLATES = {
   "Listing (Seller)": [
     { name: "Execute Listing Agreement (FR/Bar)", daysFromOpen: 0, category: "Contract", assignTo: "Listing Agent" },
@@ -637,10 +730,20 @@ function SMSPanel({ tx, onUpdate }) {
                     <input value={subject} onChange={e => setSubject(e.target.value)} placeholder={`Subject (default: Re: ${tx.address})`} style={{ width: "100%", padding: "7px 12px", borderRadius: 8, border: "1px solid #E5E7EB", fontSize: 13, fontFamily: "inherit", boxSizing: "border-box" }} />
                   </div>
                 )}
-                <div style={{ padding: "8px 18px", borderTop: "1px solid #E5E7EB", display: "flex", gap: 6, flexWrap: "wrap" }}>
-                  {[`Hi ${selectedParty.name.split(" ")[0]}, this is The Liz Team regarding ${tx.address}. `, "Please confirm receipt of documents.", "Inspection scheduled. Please confirm.", `Closing set for ${formatDate(tx.closingDate)}. Please prepare.`, "Please send missing documents ASAP."].map((t, i) => (
-                    <button key={i} onClick={() => setMessage(t)} style={{ fontSize: 11, padding: "3px 10px", borderRadius: 14, border: "1px solid #E5E7EB", background: "#F9FAFB", color: "#6B7280", cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>{t.length > 35 ? t.substr(0, 35) + "..." : t}</button>
-                  ))}
+                <div style={{ padding: "8px 18px", borderTop: "1px solid #E5E7EB" }}>
+                  <div style={{ fontSize: 11, color: "#6B7280", marginBottom: 6, fontWeight: 600 }}>📝 EMAIL TEMPLATES</div>
+                  <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                    {EMAIL_TEMPLATES.map((tmpl, i) => (
+                      <button key={i} onClick={() => {
+                        const agentName = "The Liz Team Realty";
+                        const firstName = selectedParty.name.split(" ")[0];
+                        setMessage(tmpl.body(firstName, tx.address, agentName, formatDate(tx.closingDate)));
+                        setSubject(tmpl.subject(tx.address));
+                      }} style={{ fontSize: 11, padding: "4px 12px", borderRadius: 14, border: "1px solid #C0392B", background: "#FEF2F2", color: "#C0392B", cursor: "pointer", fontFamily: "inherit", fontWeight: 600, whiteSpace: "nowrap" }}>
+                        {tmpl.label}
+                      </button>
+                    ))}
+                  </div>
                 </div>
                 <div style={{ padding: "12px 18px", borderTop: "1px solid #E5E7EB", display: "flex", gap: 10, alignItems: "flex-end" }}>
                   <textarea value={message} onChange={e => setMessage(e.target.value)} onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }} placeholder="Type message... (Enter to send, Shift+Enter for new line)" rows={2} style={{ flex: 1, padding: "10px 14px", borderRadius: 10, border: "1px solid #E5E7EB", fontSize: 14, fontFamily: "inherit", resize: "none" }} />
