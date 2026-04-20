@@ -810,7 +810,7 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
           const blob = await res.blob();
           const url = URL.createObjectURL(blob);
           const a = document.createElement("a");
-          a.href = url; a.download = "transaction-report.pdf"; a.click();
+          a.href = url; a.download = "TransactPro-" + (tx.address || "report").replace(/[^a-z0-9]/gi, "-") + "-" + (tx.city || "").replace(/[^a-z0-9]/gi, "-") + ".pdf"; a.click();
           URL.revokeObjectURL(url);
         }} style={{ fontSize: 11, padding: "4px 10px", borderRadius: 6, border: "1px solid rgba(255,255,255,0.3)", background: "rgba(255,255,255,0.1)", color: "#fff", cursor: "pointer", fontFamily: "inherit" }}>📄 PDF</button>
         {tx.status !== "Cancelled" && (
