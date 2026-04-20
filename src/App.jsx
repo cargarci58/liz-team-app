@@ -767,7 +767,7 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
   const [editingParty, setEditingParty] = useState(null);
   const [remindingTask, setRemindingTask] = useState(null);
   const [newMessage, setNewMessage] = useState("");
-  const [partyForm, setPartyForm] = useState({ role: "", name: "", email: "", phone: "", company: "" });
+  const [partyForm, setPartyForm] = useState({ role: "", name: "", email: "", phone: "", company: "", mailingAddress: "", preferredComm: "Email", checksEmail: "Yes", primaryResidence: "Yes", mailAway: "No" });
   const [taskForm, setTaskForm] = useState({ name: "", category: "Contract", assignTo: "", dueDate: "", notes: "" });
   const [reminderForm, setReminderForm] = useState({ title: "", date: "", message: "", channels: "both", parties: [] });
 
@@ -857,7 +857,7 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
         <select value={tx.status} onChange={e => update({ status: e.target.value })} style={{ fontSize: 12, padding: "4px 8px", borderRadius: 6, border: "none", fontFamily: "inherit", background: "rgba(255,255,255,0.15)", color: "#fff", cursor: "pointer" }}>
           {Object.keys(STATUS_CONFIG).map(s => <option key={s} style={{ color: COLORS.text, background: "#fff" }}>{s}</option>)}
         </select>
-        <button onClick={() => { setEditTxForm({ closingDate: tx.closingDate || "", contractPrice: tx.contractPrice || "", openDate: tx.openDate || "", status: tx.status, mlsNumber: tx.mlsNumber || "", notes: tx.notes || "" }); setShowEditTx(true); }} style={{ fontSize: 11, padding: "4px 10px", borderRadius: 6, border: "1px solid rgba(255,255,255,0.3)", background: "rgba(255,255,255,0.1)", color: "#fff", cursor: "pointer", fontFamily: "inherit" }}>✏️ Edit</button>
+        <button onClick={() => { setEditTxForm({ closingDate: tx.closingDate || "", contractPrice: tx.contractPrice || "", openDate: tx.openDate || "", executedDate: tx.executedDate || "", status: tx.status, mlsNumber: tx.mlsNumber || "", notes: tx.notes || "", propertyAccess: tx.propertyAccess || "", commissionListing: tx.commissionListing || "", commissionBuyer: tx.commissionBuyer || "", transactionFee: tx.transactionFee || "", brokerageSplit: tx.brokerageSplit || "", officeFlatFee: tx.officeFlatFee || "", mailAway: tx.mailAway || "No", commissionNotes: tx.commissionNotes || "" }); setShowEditTx(true); }} style={{ fontSize: 11, padding: "4px 10px", borderRadius: 6, border: "1px solid rgba(255,255,255,0.3)", background: "rgba(255,255,255,0.1)", color: "#fff", cursor: "pointer", fontFamily: "inherit" }}>✏️ Edit</button>
         <button onClick={async () => {
           const tok = localStorage.getItem("tp_token") || "";
           const res = await fetch(API + "/transactions/" + tx.id + "/pdf", { headers: { "Authorization": "Bearer " + tok } });
@@ -906,7 +906,7 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, marginBottom: 20 }}>
               {[
                 { title: "Property", rows: [["Address", tx.address], ["City/County", `${tx.city}, ${tx.county} County`], ["Zip", tx.zipCode], ["Type", tx.propertyType], ["Transaction", tx.type], ["MLS #", tx.mlsNumber]] },
-                { title: "Financials", rows: [["List Price", tx.listPrice ? `$${Number(tx.listPrice).toLocaleString()}` : "—"], ["Contract Price", tx.contractPrice ? `$${Number(tx.contractPrice).toLocaleString()}` : "—"], ["Difference", tx.listPrice && tx.contractPrice ? `$${(Number(tx.contractPrice) - Number(tx.listPrice)).toLocaleString()}` : "—"], ["Open Date", formatDate(tx.openDate)], ["Closing Date", formatDate(tx.closingDate)], ["Days to Close", daysToClose !== null ? `${daysToClose}d` : "—"]] },
+                { title: "Financials", rows: [["List Price", tx.listPrice ? `$${Number(tx.listPrice).toLocaleString()}` : "—"], ["Contract Price", tx.contractPrice ? `$${Number(tx.contractPrice).toLocaleString()}` : "—"], ["Difference", tx.listPrice && tx.contractPrice ? `$${(Number(tx.contractPrice) - Number(tx.listPrice)).toLocaleString()}` : "—"], ["Open Date", formatDate(tx.openDate)], ["Executed Date", formatDate(tx.executedDate)], ["Closing Date", formatDate(tx.closingDate)], ["Days to Close", daysToClose !== null ? `${daysToClose}d` : "—"], ["Mail-Away", tx.mailAway || "No"], ["Listing Commission", tx.commissionListing ? tx.commissionListing + "%" : "—"], ["Buyer Commission", tx.commissionBuyer ? tx.commissionBuyer + "%" : "—"]] },
               ].map(({ title, rows }) => (
                 <div key={title} style={{ background: "#fff", border: `1px solid ${COLORS.border}`, borderRadius: 12, padding: 20 }}>
                   <h3 style={{ margin: "0 0 16px", fontSize: 14, color: COLORS.navy, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em" }}>{title}</h3>
@@ -1035,6 +1035,13 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
           <Input label="Company / Brokerage" value={partyForm.company} onChange={v => setPartyForm(f => ({ ...f, company: v }))} />
           <Input label="Email" value={partyForm.email} onChange={v => setPartyForm(f => ({ ...f, email: v }))} type="email" />
           <Input label="Cell Phone (for SMS)" value={partyForm.phone} onChange={v => setPartyForm(f => ({ ...f, phone: v }))} type="tel" placeholder="407-555-0100" />
+          {(partyForm.role === "Buyer" || partyForm.role === "Seller") && (<>
+            <Input label="Mailing Address" value={partyForm.mailingAddress} onChange={v => setPartyForm(f => ({ ...f, mailingAddress: v }))} />
+            <Input label="Preferred Communication" value={partyForm.preferredComm} onChange={v => setPartyForm(f => ({ ...f, preferredComm: v }))} options={["Email", "Phone", "Text"]} />
+            <Input label="Checks Email Frequently?" value={partyForm.checksEmail} onChange={v => setPartyForm(f => ({ ...f, checksEmail: v }))} options={["Yes", "No"]} />
+            {partyForm.role === "Buyer" && <Input label="Primary Residence?" value={partyForm.primaryResidence} onChange={v => setPartyForm(f => ({ ...f, primaryResidence: v }))} options={["Yes", "No"]} />}
+            <Input label="Mail-Away / Mobile Closing?" value={partyForm.mailAway} onChange={v => setPartyForm(f => ({ ...f, mailAway: v }))} options={["Yes", "No"]} />
+          </>)}
           <label style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12, cursor: "pointer", fontSize: 13, color: COLORS.muted }}>
             <input type="checkbox" id="saveContact" style={{ width: 15, height: 15 }} />
             Save this contact to my Contact Book for future transactions
@@ -1095,12 +1102,37 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
               <button onClick={() => setShowEditTx(false)} style={{ background: "none", border: "none", color: "rgba(255,255,255,0.6)", fontSize: 20, cursor: "pointer" }}>x</button>
             </div>
             <div style={{ padding: 24 }}>
-              {[["Open Date", "openDate", "date"], ["Closing Date", "closingDate", "date"], ["Contract Price", "contractPrice", "number"], ["MLS Number", "mlsNumber", "text"]].map(([label, field, type]) => (
+              {[["Open Date", "openDate", "date"], ["Closing Date", "closingDate", "date"], ["Executed Date", "executedDate", "date"], ["Contract Price", "contractPrice", "number"], ["MLS Number", "mlsNumber", "text"]].map(([label, field, type]) => (
                 <div key={field} style={{ marginBottom: 16 }}>
                   <div style={{ fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>{label}</div>
                   <input type={type} value={editTxForm[field] || ""} onChange={e => setEditTxForm(f => ({ ...f, [field]: e.target.value }))} style={{ width: "100%", padding: "10px 14px", borderRadius: 8, border: "1.5px solid #CCC", fontSize: 15, fontFamily: "inherit", boxSizing: "border-box" }} />
                 </div>
               ))}
+              <div style={{ marginBottom: 16 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>Property Access / Lockbox CBS Code</div>
+                <textarea value={editTxForm.propertyAccess || ""} onChange={e => setEditTxForm(f => ({ ...f, propertyAccess: e.target.value }))} placeholder="Lockbox code, gate code, special instructions..." style={{ width: "100%", padding: "10px 14px", borderRadius: 8, border: "1.5px solid #CCC", fontSize: 14, fontFamily: "inherit", boxSizing: "border-box", minHeight: 60, resize: "vertical" }} />
+              </div>
+              <div style={{ background: "#F4F4F4", borderRadius: 10, padding: 16, marginBottom: 16 }}>
+                <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 12, color: "#111" }}>Commission Details</div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                  {[["Listing Agent Commission %", "commissionListing"], ["Buyer Agent Commission %", "commissionBuyer"], ["Transaction Fee", "transactionFee"], ["Brokerage Split %", "brokerageSplit"], ["Office Flat Fee", "officeFlatFee"]].map(([label, field]) => (
+                    <div key={field}>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: "#555", textTransform: "uppercase", marginBottom: 4 }}>{label}</div>
+                      <input value={editTxForm[field] || ""} onChange={e => setEditTxForm(f => ({ ...f, [field]: e.target.value }))} style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: "1.5px solid #CCC", fontSize: 13, fontFamily: "inherit", boxSizing: "border-box" }} />
+                    </div>
+                  ))}
+                  <div>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: "#555", textTransform: "uppercase", marginBottom: 4 }}>Mail-Away Closing?</div>
+                    <select value={editTxForm.mailAway || "No"} onChange={e => setEditTxForm(f => ({ ...f, mailAway: e.target.value }))} style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: "1.5px solid #CCC", fontSize: 13, fontFamily: "inherit" }}>
+                      <option>No</option><option>Yes</option>
+                    </select>
+                  </div>
+                </div>
+                <div style={{ marginTop: 10 }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: "#555", textTransform: "uppercase", marginBottom: 4 }}>Additional Credits / Referrals</div>
+                  <input value={editTxForm.commissionNotes || ""} onChange={e => setEditTxForm(f => ({ ...f, commissionNotes: e.target.value }))} style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: "1.5px solid #CCC", fontSize: 13, fontFamily: "inherit", boxSizing: "border-box" }} />
+                </div>
+              </div>
               <div style={{ marginBottom: 16 }}>
                 <div style={{ fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>Notes</div>
                 <textarea value={editTxForm.notes || ""} onChange={e => setEditTxForm(f => ({ ...f, notes: e.target.value }))} style={{ width: "100%", padding: "10px 14px", borderRadius: 8, border: "1.5px solid #CCC", fontSize: 14, fontFamily: "inherit", boxSizing: "border-box", minHeight: 80, resize: "vertical" }} />
