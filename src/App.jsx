@@ -784,11 +784,12 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
     if (!tx.id) return;
     const tok = localStorage.getItem("tp_token") || "";
     let lastCount = 0;
+    let initialized = false;
     let myId = null;
     try { const u = JSON.parse(localStorage.getItem("tp_user") || "{}"); myId = u.id || u.userId; } catch {}
 
     const checkMessages = async () => {
-      if (activeTabRef.current === "chat") return; // Don't poll when viewing chat
+      if (activeTabRef.current === "chat") return;
       try {
         const res = await fetch("https://liz-team-server-api-production.up.railway.app/chat/" + tx.id, {
           headers: { "Authorization": "Bearer " + tok }
@@ -797,10 +798,10 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
         if (data.messages) {
           const otherMessages = data.messages.filter(m => m.user_id !== myId);
           const newCount = otherMessages.length;
+          if (!initialized) { lastCount = newCount; initialized = true; return; }
           if (newCount > lastCount) {
             const diff = newCount - lastCount;
             setChatUnreadBoth(chatUnreadRef.current + diff);
-            // Play sound
             try {
               const ctx = new (window.AudioContext || window.webkitAudioContext)();
               const osc = ctx.createOscillator(); const gain = ctx.createGain();
@@ -811,14 +812,13 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
               osc.start(); osc.stop(ctx.currentTime + 0.3);
             } catch {}
           }
-          if (!initialized) { lastCount = newCount; initialized = true; return; }
           lastCount = newCount;
         }
       } catch {}
     };
 
-    checkMessages(); // Initial check
-    const interval = setInterval(checkMessages, 10000); // Poll every 10 seconds
+    checkMessages();
+    const interval = setInterval(checkMessages, 10000);
     return () => clearInterval(interval);
   }, [tx.id]);
 
