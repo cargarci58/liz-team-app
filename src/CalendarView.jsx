@@ -88,6 +88,7 @@ export default function CalendarView({ transactions, onBack, onSelectTx }) {
       <div style={styles.header}>
         <button onClick={onBack} style={{ background: "none", border: "none", color: "#fff", fontSize: 20, cursor: "pointer" }}>←</button>
         <div style={{ color: "#fff", fontWeight: 700, fontSize: 18 }}>📅 Calendar</div>
+        <button onClick={() => window.print()} style={{ marginLeft: "auto", background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.3)", color: "#fff", borderRadius: 8, padding: "7px 16px", cursor: "pointer", fontSize: 13, fontWeight: 600, fontFamily: "inherit" }}>🖨️ Print</button>
       </div>
 
       {/* Legend */}
