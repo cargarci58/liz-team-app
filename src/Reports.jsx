@@ -1,5 +1,16 @@
 import { useState, useEffect } from "react";
 
+// Print styles injected dynamically
+const PRINT_STYLES = `
+  @media print {
+    body * { visibility: hidden; }
+    #reports-printable, #reports-printable * { visibility: visible; }
+    #reports-printable { position: absolute; left: 0; top: 0; width: 100%; }
+    .no-print { display: none !important; }
+    .page-break { page-break-before: always; }
+  }
+`;
+
 const COLORS = {
   red: "#C0392B", navy: "#0F2044", gold: "#B7860B",
   green: "#1E8449", gray: "#555", light: "#F4F4F4", border: "#DDD"
@@ -102,13 +113,17 @@ export default function Reports({ transactions, onBack }) {
 
   return (
     <div style={{ minHeight: "100vh", background: "#F4F4F4", fontFamily: "system-ui, sans-serif" }}>
+      <style>{PRINT_STYLES}</style>
       {/* Header */}
-      <div style={{ background: "#111", padding: "14px 24px", display: "flex", alignItems: "center", gap: 16 }}>
+      <div className="no-print" style={{ background: "#111", padding: "14px 24px", display: "flex", alignItems: "center", gap: 16 }}>
         <button onClick={onBack} style={{ background: "none", border: "none", color: "#fff", fontSize: 20, cursor: "pointer" }}>←</button>
         <div style={{ color: "#fff", fontWeight: 700, fontSize: 18 }}>📊 Reports & Analytics</div>
+        <div style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
+          <button onClick={() => window.print()} style={{ background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.3)", color: "#fff", borderRadius: 8, padding: "7px 16px", cursor: "pointer", fontSize: 13, fontWeight: 600, fontFamily: "inherit" }}>🖨️ Print Report</button>
+        </div>
       </div>
 
-      <div style={{ padding: 24, maxWidth: 1100, margin: "0 auto" }}>
+      <div id="reports-printable" style={{ padding: 24, maxWidth: 1100, margin: "0 auto" }}>
 
         {/* Summary Stats */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 16, marginBottom: 24 }}>
