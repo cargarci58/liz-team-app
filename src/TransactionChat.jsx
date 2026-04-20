@@ -38,13 +38,14 @@ function showBrowserNotification(senderName, message) {
 }
 const WS_URL = "https://liz-team-server-api-production.up.railway.app";
 
-export default function TransactionChat({ transactionId, user, style }) {
+export default function TransactionChat({ transactionId, user, style, onUnreadChange }) {
   const [messages, setMessages] = useState([]);
   const [newMsg, setNewMsg] = useState("");
   const [connected, setConnected] = useState(false);
   const [loading, setLoading] = useState(true);
   const socketRef = useRef(null);
   const endRef = useRef(null);
+  const [unreadCount, setUnreadCount] = useState(0);
   const tok = localStorage.getItem("tp_token") || "";
 
   useEffect(() => {
@@ -82,16 +83,21 @@ export default function TransactionChat({ transactionId, user, style }) {
 
       socket.on("new_message", (msg) => {
         setMessages(prev => {
-          // Avoid duplicates
           if (prev.find(m => m.id === msg.id)) return prev;
           return [...prev, msg];
         });
-        // Notify if message is from someone else and page is not focused
-        if (msg.user_id !== socket.auth?.userId) {
+        // Notify if message is from someone else
+        if (msg.user_id !== socket.user?.userId) {
           playNotificationSound();
           if (document.hidden) {
             showBrowserNotification(msg.sender_name, msg.message);
           }
+          // Increment unread if chat tab is not active
+          setUnreadCount(prev => {
+            const next = prev + 1;
+            if (onUnreadChange) onUnreadChange(next);
+            return next;
+          });
         }
       });
 
@@ -115,6 +121,12 @@ export default function TransactionChat({ transactionId, user, style }) {
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  // Reset unread when tab is visible
+  useEffect(() => {
+    setUnreadCount(0);
+    if (onUnreadChange) onUnreadChange(0);
+  }, []);
 
   const sendMessage = () => {
     if (!newMsg.trim() || !socketRef.current) return;
