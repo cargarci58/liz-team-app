@@ -803,6 +803,16 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
         <select value={tx.status} onChange={e => update({ status: e.target.value })} style={{ fontSize: 12, padding: "4px 8px", borderRadius: 6, border: "none", fontFamily: "inherit", background: "rgba(255,255,255,0.15)", color: "#fff", cursor: "pointer" }}>
           {Object.keys(STATUS_CONFIG).map(s => <option key={s} style={{ color: COLORS.text, background: "#fff" }}>{s}</option>)}
         </select>
+        <button onClick={async () => {
+          const tok = localStorage.getItem("tp_token") || "";
+          const res = await fetch(API + "/transactions/" + tx.id + "/pdf", { headers: { "Authorization": "Bearer " + tok } });
+          if (!res.ok) { alert("PDF generation failed"); return; }
+          const blob = await res.blob();
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url; a.download = "transaction-report.pdf"; a.click();
+          URL.revokeObjectURL(url);
+        }} style={{ fontSize: 11, padding: "4px 10px", borderRadius: 6, border: "1px solid rgba(255,255,255,0.3)", background: "rgba(255,255,255,0.1)", color: "#fff", cursor: "pointer", fontFamily: "inherit" }}>📄 PDF</button>
         {tx.status !== "Cancelled" && (
           <button onClick={() => { if (window.confirm("Cancel this transaction? It will be hidden from your dashboard but not deleted.")) update({ status: "Cancelled" }); }} style={{ fontSize: 11, padding: "4px 10px", borderRadius: 6, border: "1px solid rgba(255,100,100,0.5)", background: "rgba(255,100,100,0.15)", color: "#FCA5A5", cursor: "pointer", fontFamily: "inherit" }}>Cancel Transaction</button>
         )}
