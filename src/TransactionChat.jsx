@@ -24,7 +24,7 @@ if (typeof Notification !== "undefined" && Notification.permission === "default"
   Notification.requestPermission();
 }
 
-export default function TransactionChat({ transactionId, user, style, onUnreadChange }) {
+export default function TransactionChat({ transactionId, user, style, onUnreadChange, unreadCount = 0 }) {
   const [messages, setMessages] = useState([]);
   const [newMsg, setNewMsg] = useState("");
   const [connected, setConnected] = useState(false);
@@ -145,7 +145,17 @@ export default function TransactionChat({ transactionId, user, style, onUnreadCh
   const formatTime = (ts) => new Date(ts).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
   const formatDate = (ts) => new Date(ts).toLocaleDateString("en-US", { month: "short", day: "numeric" });
   const isMe = (msg) => msg.user_id === getCurrentUserId();
-  const isUnread = (msg) => unreadIds.has(msg.id);
+  const isUnread = (msg, index, allMsgs) => {
+    if (unreadIds.has(msg.id)) return true;
+    // Also mark last unreadCount messages from others as unread
+    if (unreadCount > 0) {
+      const myId = getCurrentUserId();
+      const othersMessages = allMsgs.filter(m => m.user_id !== myId);
+      const lastNOthers = othersMessages.slice(-unreadCount);
+      return lastNOthers.some(m => m.id === msg.id);
+    }
+    return false;
+  };
 
   const roleColors = { admin: "#C0392B", agent: "#1A5276", tc: "#B7770D", client: "#1E8449" };
 
@@ -180,7 +190,7 @@ export default function TransactionChat({ transactionId, user, style, onUnreadCh
             const showDate = msgDate !== lastDate;
             lastDate = msgDate;
             const mine = isMe(msg);
-            const unread = isUnread(msg);
+            const unread = isUnread(msg, i, messages);
             const roleColor = roleColors[msg.sender_role] || "#555";
             return (
               <div key={msg.id || i}>
