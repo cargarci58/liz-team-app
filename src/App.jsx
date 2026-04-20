@@ -774,8 +774,8 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
   const update = changes => onUpdate({ ...tx, ...changes });
   const updateTask = updated => update({ tasks: tx.tasks.map(t => t.id === updated.id ? updated : t) });
   const [chatUnread, setChatUnread] = useState(0);
-  const activeTabRef = React.useRef(activeTab);
-  React.useEffect(() => { activeTabRef.current = activeTab; if (activeTab === "chat") setChatUnread(0); }, [activeTab]);
+  const activeTabRef = useRef(activeTab);
+  useEffect(() => { activeTabRef.current = activeTab; if (activeTab === "chat") setChatUnread(0); }, [activeTab]);
 
   const completedTasks = tx.tasks.filter(t => t.status === "Completed").length;
   const overdueTasks = tx.tasks.filter(t => { const d = daysUntil(t.dueDate); return d !== null && d < 0 && t.status !== "Completed" && t.status !== "Waived"; }).length;
