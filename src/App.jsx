@@ -827,7 +827,9 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
   const daysToClose = daysUntil(tx.closingDate);
   const statusCfg = STATUS_CONFIG[tx.status] || STATUS_CONFIG["Active"];
   const progress = tx.tasks.length > 0 ? Math.round(completedTasks / tx.tasks.length * 100) : 0;
+  const CATEGORY_ORDER = ["Contract", "Disclosure", "Marketing", "Inspection", "Title", "Finance", "Closing", "General"];
   const tasksByCategory = tx.tasks.reduce((acc, t) => { acc[t.category] = acc[t.category] || []; acc[t.category].push(t); return acc; }, {});
+  const sortedTaskCategories = Object.entries(tasksByCategory).sort(([a], [b]) => { const ai = CATEGORY_ORDER.indexOf(a); const bi = CATEGORY_ORDER.indexOf(b); return (ai === -1 ? 999 : ai) - (bi === -1 ? 999 : bi); });
   const smsMsgCount = Object.values(tx.smsThreads || {}).reduce((a, t) => a + t.length, 0);
 
   const tabs = [
@@ -936,7 +938,7 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
               <div style={{ fontSize: 13, color: COLORS.muted }}>{completedTasks}/{tx.tasks.length} complete {overdueTasks > 0 && <span style={{ color: COLORS.danger }}>· {overdueTasks} overdue</span>}</div>
               <Btn onClick={() => setShowAddTask(true)} small>+ Add Task</Btn>
             </div>
-            {Object.entries(tasksByCategory).map(([cat, tasks]) => (
+            {sortedTaskCategories.map(([cat, tasks]) => (
               <div key={cat} style={{ marginBottom: 24 }}>
                 <div style={{ fontSize: 12, fontWeight: 700, color: COLORS.muted, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 8, padding: "4px 0", borderBottom: `1px solid ${COLORS.border}` }}>{cat} ({tasks.filter(t => t.status === "Completed").length}/{tasks.length})</div>
                 {tasks.map(t => <TaskRow key={t.id} task={t} onUpdate={updateTask} onRemind={setRemindingTask} />)}
