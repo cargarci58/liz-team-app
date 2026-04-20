@@ -324,13 +324,14 @@ function PartyCard({ party, onRemove, onEdit, onClick, onInvite }) {
   );
 }
 
-function TaskRow({ task, onUpdate, onRemind }) {
+function TaskRow({ task, onUpdate, onRemind, onSelect, selected }) {
   const due = daysUntil(task.dueDate);
   const isOverdue = due !== null && due < 0 && task.status !== "Completed" && task.status !== "Waived";
   const effectiveStatus = isOverdue && task.status === "Pending" ? "Overdue" : task.status;
   const cfg = TASK_STATUS[effectiveStatus] || TASK_STATUS["Pending"];
   return (
     <div style={{ background: "#fff", border: `1px solid ${isOverdue ? COLORS.danger + "40" : COLORS.border}`, borderLeft: `3px solid ${cfg.color}`, borderRadius: 8, padding: "10px 14px", marginBottom: 6, display: "flex", alignItems: "center", gap: 12 }}>
+      {onSelect && <input type="checkbox" checked={selected} onChange={e => onSelect(task.id, e.target.checked)} style={{ width: 16, height: 16, cursor: "pointer", flexShrink: 0, accentColor: "#C0392B" }} />}
       <input type="checkbox" checked={task.status === "Completed"} onChange={e => onUpdate({ ...task, status: e.target.checked ? "Completed" : "Pending" })} style={{ width: 16, height: 16, cursor: "pointer", flexShrink: 0 }} />
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: 13, fontWeight: 600, color: task.status === "Completed" ? COLORS.muted : COLORS.text, textDecoration: task.status === "Completed" ? "line-through" : "none" }}>{task.name}</div>
@@ -880,6 +881,7 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
   const [chatUnread, setChatUnread] = useState(0);
   const [showEditTx, setShowEditTx] = useState(false);
   const [editTxForm, setEditTxForm] = useState({});
+  const [selectedTasks, setSelectedTasks] = useState([]);
   const [activities, setActivities] = useState([]);
   const [activitiesLoaded, setActivitiesLoaded] = useState(false);
   const [teamMembers, setTeamMembers] = useState([]);
@@ -1073,7 +1075,22 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
           <div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
               <div style={{ fontSize: 13, color: COLORS.muted }}>{completedTasks}/{tx.tasks.length} complete {overdueTasks > 0 && <span style={{ color: COLORS.danger }}>· {overdueTasks} overdue</span>}</div>
-              <Btn onClick={() => setShowAddTask(true)} small>+ Add Task</Btn>
+              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                {selectedTasks.length > 0 && (
+                  <Btn onClick={() => {
+                    const updated = tx.tasks.map(t => selectedTasks.includes(t.id) ? { ...t, status: "Completed" } : t);
+                    update({ tasks: updated });
+                    setSelectedTasks([]);
+                  }} small variant="secondary">✅ Complete {selectedTasks.length} Selected</Btn>
+                )}
+                {tx.tasks.length > 0 && (
+                  <button onClick={() => setSelectedTasks(selectedTasks.length === tx.tasks.filter(t => t.status !== "Completed").length ? [] : tx.tasks.filter(t => t.status !== "Completed").map(t => t.id))}
+                    style={{ fontSize: 11, color: COLORS.info, background: "none", border: "none", cursor: "pointer", fontFamily: "inherit" }}>
+                    {selectedTasks.length > 0 ? "Deselect All" : "Select All Pending"}
+                  </button>
+                )}
+                <Btn onClick={() => setShowAddTask(true)} small>+ Add Task</Btn>
+              </div>
               {tx.tasks.length === 0 && (
                 <Btn onClick={() => {
                   if (window.confirm("Generate Florida task checklist for this transaction? This will add all standard FL tasks.")) {
@@ -1097,7 +1114,7 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
             {sortedTaskCategories.map(([cat, tasks]) => (
               <div key={cat} style={{ marginBottom: 24 }}>
                 <div style={{ fontSize: 12, fontWeight: 700, color: COLORS.muted, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 8, padding: "4px 0", borderBottom: `1px solid ${COLORS.border}` }}>{cat} ({tasks.filter(t => t.status === "Completed").length}/{tasks.length})</div>
-                {tasks.map(t => <TaskRow key={t.id} task={t} onUpdate={updateTask} onRemind={setRemindingTask} />)}
+                {tasks.map(t => <TaskRow key={t.id} task={t} onUpdate={updateTask} onRemind={setRemindingTask} onSelect={(id, checked) => setSelectedTasks(prev => checked ? [...prev, id] : prev.filter(x => x !== id))} selected={selectedTasks.includes(t.id)} />)}
               </div>
             ))}
           </div>
