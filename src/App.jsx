@@ -777,7 +777,7 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
   const chatUnreadRef = useRef(0);
   const setChatUnreadBoth = (n) => { chatUnreadRef.current = n; setChatUnread(n); };
   const activeTabRef = useRef(activeTab);
-  useEffect(() => { activeTabRef.current = activeTab; if (activeTab === "chat") { setTimeout(() => setChatUnreadBoth(0), 3000); } }, [activeTab]);
+  useEffect(() => { activeTabRef.current = activeTab; if (activeTab !== "chat") setChatUnreadBoth(0); }, [activeTab]);
 
   // Poll for new chat messages to show unread badge
   useEffect(() => {
