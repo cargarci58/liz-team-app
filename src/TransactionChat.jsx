@@ -87,7 +87,10 @@ export default function TransactionChat({ transactionId, user, style, onUnreadCh
           return [...prev, msg];
         });
         // Notify if message is from someone else
-        if (msg.user_id !== socket.user?.userId) {
+        // Get current user ID from localStorage
+        let currentUserId = null;
+        try { const u = JSON.parse(localStorage.getItem("tp_user") || "{}"); currentUserId = u.id || u.userId; } catch {}
+        if (msg.user_id !== currentUserId) {
           playNotificationSound();
           if (document.hidden) {
             showBrowserNotification(msg.sender_name, msg.message);
