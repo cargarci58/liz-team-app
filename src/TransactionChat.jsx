@@ -1,6 +1,41 @@
 import { useState, useEffect, useRef } from "react";
 
 const API = "https://liz-team-server-api-production.up.railway.app";
+
+// Play notification sound
+function playNotificationSound() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const oscillator = ctx.createOscillator();
+    const gainNode = ctx.createGain();
+    oscillator.connect(gainNode);
+    gainNode.connect(ctx.destination);
+    oscillator.type = "sine";
+    oscillator.frequency.setValueAtTime(880, ctx.currentTime);
+    oscillator.frequency.setValueAtTime(660, ctx.currentTime + 0.1);
+    gainNode.gain.setValueAtTime(0.3, ctx.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
+    oscillator.start(ctx.currentTime);
+    oscillator.stop(ctx.currentTime + 0.4);
+  } catch {}
+}
+
+// Request notification permission
+if (typeof Notification !== "undefined" && Notification.permission === "default") {
+  Notification.requestPermission();
+}
+
+function showBrowserNotification(senderName, message) {
+  if (typeof Notification !== "undefined" && Notification.permission === "granted") {
+    try {
+      new Notification(`New message from ${senderName}`, {
+        body: message.length > 80 ? message.slice(0, 80) + "..." : message,
+        icon: "/favicon.ico",
+        badge: "/favicon.ico",
+      });
+    } catch {}
+  }
+}
 const WS_URL = "https://liz-team-server-api-production.up.railway.app";
 
 export default function TransactionChat({ transactionId, user, style }) {
@@ -51,6 +86,13 @@ export default function TransactionChat({ transactionId, user, style }) {
           if (prev.find(m => m.id === msg.id)) return prev;
           return [...prev, msg];
         });
+        // Notify if message is from someone else and page is not focused
+        if (msg.user_id !== socket.auth?.userId) {
+          playNotificationSound();
+          if (document.hidden) {
+            showBrowserNotification(msg.sender_name, msg.message);
+          }
+        }
       });
 
       socket.on("connect_error", (e) => {
