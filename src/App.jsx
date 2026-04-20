@@ -986,7 +986,7 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
                   onSaveContact({ ...partyForm, id: genId() });
                 }
                 if (document.getElementById("sendInvitation")?.checked && onInviteParty) {
-                  onInviteParty(newParty);
+                  onInviteParty({ ...newParty });
                 }
                 setPartyForm({ role: "", name: "", email: "", phone: "", company: "" });
                 setShowAddParty(false);
@@ -1444,19 +1444,37 @@ function MainApp({ onLogout, currentUser }) {
   }, []);
   const addTransaction = tx => { setTransactions(txs => [tx, ...txs]); setSelectedId(tx.id); setView("detail"); };
 
-  const invitePartyToPortal = async (party, txAddress) => {
+  const invitePartyToPortal = async (party, tx) => {
     if (!party.email) { alert("This party has no email address. Add one first."); return; }
-    if (!window.confirm(`Send portal access to ${party.name} (${party.email})?`)) return;
+    if (!window.confirm(`Send portal invitation to ${party.name} (${party.email})?`)) return;
     const tok = localStorage.getItem("tp_token") || "";
+    // Find agent and TC from transaction parties
+    const agent = tx && tx.parties ? tx.parties.find(p => p.role === "Listing Agent" || p.role === "Buyer's Agent") : null;
+    const tc = tx && tx.parties ? tx.parties.find(p => p.role === "Transaction Coordinator") : null;
     try {
       const res = await fetch(API + "/auth/invite", {
         method: "POST",
         headers: { "Content-Type": "application/json", "Authorization": "Bearer " + tok },
-        body: JSON.stringify({ email: party.email, firstName: party.name.split(" ")[0], lastName: party.name.split(" ").slice(1).join(" ") || ".", role: "client", phone: party.phone || "" }),
+        body: JSON.stringify({
+          email: party.email,
+          firstName: party.name.split(" ")[0],
+          lastName: party.name.split(" ").slice(1).join(" ") || ".",
+          role: "client",
+          phone: party.phone || "",
+          partyRole: party.role,
+          transactionAddress: tx ? tx.address : "",
+          transactionCity: tx ? tx.city : "",
+          agentName: agent ? agent.name : "",
+          agentPhone: agent ? agent.phone : "",
+          agentEmail: agent ? agent.email : "",
+          tcName: tc ? tc.name : "",
+          tcPhone: tc ? tc.phone : "",
+          tcEmail: tc ? tc.email : "",
+        }),
       });
       const data = await res.json();
       if (res.ok || data.error === "Email already registered") {
-        alert("Portal access sent to " + party.email + "! They will receive login credentials by email.");
+        alert("Invitation sent to " + party.email + "! They will receive an email with portal access and transaction details.");
       } else {
         alert("Failed: " + (data.error || "Unknown error"));
       }
@@ -1474,7 +1492,7 @@ function MainApp({ onLogout, currentUser }) {
           contacts={contacts}
           onSaveContact={addContact}
           onOpenContactBook={openContactBook}
-          onInviteParty={(party) => invitePartyToPortal(party, selectedTx?.address)}
+          onInviteParty={(party) => invitePartyToPortal(party, selectedTx)}
         />
       )}
       {view === "dashboard" && (
