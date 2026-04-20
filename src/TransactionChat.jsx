@@ -97,6 +97,7 @@ export default function TransactionChat({ transactionId, user, style, onUnreadCh
   const lastViewed = getLastViewed();
   const isMe = msg => msg.user_id === myId;
   // Unread = from others + arrived before we opened this session (use unreadCount from parent)
+  console.log("TransactionChat unreadCount:", unreadCount, "messages:", messages.length);
   const unreadCutoff = messages.length - unreadCount;
   const isUnread = (msg, idx) => !isMe(msg) && idx >= unreadCutoff && unreadCount > 0;
 
