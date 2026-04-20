@@ -774,8 +774,10 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
   const update = changes => onUpdate({ ...tx, ...changes });
   const updateTask = updated => update({ tasks: tx.tasks.map(t => t.id === updated.id ? updated : t) });
   const [chatUnread, setChatUnread] = useState(0);
+  const chatUnreadRef = useRef(0);
+  const setChatUnreadBoth = (n) => { chatUnreadRef.current = n; setChatUnreadBoth(n); };
   const activeTabRef = useRef(activeTab);
-  useEffect(() => { activeTabRef.current = activeTab; if (activeTab === "chat") setChatUnread(0); }, [activeTab]);
+  useEffect(() => { activeTabRef.current = activeTab; if (activeTab === "chat") setChatUnreadBoth(0); }, [activeTab]);
 
   // Poll for new chat messages to show unread badge
   useEffect(() => {
@@ -797,7 +799,7 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
           const newCount = otherMessages.length;
           if (newCount > lastCount) {
             const diff = newCount - lastCount;
-            setChatUnread(prev => prev + diff);
+            setChatUnreadBoth(chatUnreadRef.current + diff);
             // Play sound
             try {
               const ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -976,7 +978,7 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
         )}
 
         {activeTab === "documents" && <DocumentsTab tx={tx} />}
-        {activeTab === "chat" && <div style={{ padding: 20, height: 500 }}><TransactionChat transactionId={tx.id} user={null} style={{ height: "100%" }} unreadCount={chatUnread} onUnreadChange={n => { if (activeTabRef.current !== "chat") setChatUnread(n); else setChatUnread(0); }} /></div>}
+        {activeTab === "chat" && <div style={{ padding: 20, height: 500 }}><TransactionChat transactionId={tx.id} user={null} style={{ height: "100%" }} unreadCount={chatUnreadRef.current} onUnreadChange={n => { if (activeTabRef.current !== "chat") setChatUnreadBoth(n); else setChatUnreadBoth(0); }} /></div>}
         {activeTab === "reminders" && (
           <div>
             <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 16 }}><Btn onClick={() => setShowAddReminder(true)} small>+ Add Reminder</Btn></div>
