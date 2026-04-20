@@ -976,7 +976,7 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
         )}
 
         {activeTab === "documents" && <DocumentsTab tx={tx} />}
-        {activeTab === "chat" && <div style={{ padding: 20, height: 500 }} onClick={() => setChatUnread(0)}><TransactionChat transactionId={tx.id} user={null} style={{ height: "100%" }} unreadCount={chatUnread} onUnreadChange={n => { if (activeTabRef.current !== "chat") setChatUnread(n); }} /></div>}
+        {activeTab === "chat" && <div style={{ padding: 20, height: 500 }}><TransactionChat transactionId={tx.id} user={null} style={{ height: "100%" }} unreadCount={chatUnread} onUnreadChange={n => { if (activeTabRef.current !== "chat") setChatUnread(n); else setChatUnread(0); }} /></div>}
         {activeTab === "reminders" && (
           <div>
             <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 16 }}><Btn onClick={() => setShowAddReminder(true)} small>+ Add Reminder</Btn></div>
