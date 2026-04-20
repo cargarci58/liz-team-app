@@ -879,6 +879,8 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
   const [chatUnread, setChatUnread] = useState(0);
   const [showEditTx, setShowEditTx] = useState(false);
   const [editTxForm, setEditTxForm] = useState({});
+  const [activities, setActivities] = useState([]);
+  const [activitiesLoaded, setActivitiesLoaded] = useState(false);
   const [teamMembers, setTeamMembers] = useState([]);
   useEffect(() => { const tok = localStorage.getItem("tp_token") || ""; fetch(API + "/users", { headers: { "Authorization": "Bearer " + tok } }).then(r => r.json()).then(d => { if (d.users) setTeamMembers(d.users.filter(u => u.role === "agent" || u.role === "admin")); }).catch(() => {}); }, []);
   const chatUnreadRef = useRef(0);
@@ -947,6 +949,7 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
     { id: "notes", label: "Internal Notes" },
     { id: "documents", label: "📎 Documents" },
     { id: "chat", label: chatUnread > 0 ? `💬 Group Chat (${chatUnread})` : "💬 Group Chat" },
+    { id: "activity", label: "📋 Activity Log" },
     { id: "reminders", label: "Reminders" },
   ];
 
@@ -1114,6 +1117,30 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
         )}
 
         {activeTab === "documents" && <DocumentsTab tx={tx} />}
+        {activeTab === "activity" && (() => {
+          if (!activitiesLoaded) {
+            const tok = localStorage.getItem("tp_token") || "";
+            fetch(API + "/activity/" + tx.id, { headers: { "Authorization": "Bearer " + tok } })
+              .then(r => r.json()).then(d => { if (d.activities) setActivities(d.activities); setActivitiesLoaded(true); }).catch(() => {});
+          }
+          const icons = { transaction_created: "🏠", status_changed: "🔄", party_added: "👤", document_uploaded: "📎", email_sent: "📧", sms_sent: "📱", task_completed: "✅" };
+          return (
+            <div style={{ padding: 20, overflowY: "auto", maxHeight: 500 }}>
+              <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 16, color: COLORS.navy }}>Transaction Activity Log</div>
+              {activities.length === 0 ? (
+                <div style={{ textAlign: "center", color: COLORS.muted, padding: 40 }}>No activity recorded yet.</div>
+              ) : activities.map(a => (
+                <div key={a.id} style={{ display: "flex", gap: 12, marginBottom: 16, paddingBottom: 16, borderBottom: `1px solid ${COLORS.border}` }}>
+                  <div style={{ fontSize: 20, flexShrink: 0 }}>{icons[a.action] || "📌"}</div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: COLORS.text }}>{a.details}</div>
+                    <div style={{ fontSize: 11, color: COLORS.muted, marginTop: 2 }}>{a.user_name} · {new Date(a.created_at).toLocaleString()}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          );
+        })()}
         {activeTab === "chat" && <div style={{ padding: 20, height: 500 }}><TransactionChat transactionId={tx.id} user={null} style={{ height: "100%" }} unreadCount={chatUnread} onUnreadChange={() => {}} /></div>}
         {activeTab === "reminders" && (
           <div>
