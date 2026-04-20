@@ -158,6 +158,12 @@ export default function TransactionChat({ transactionId, user, style, onUnreadCh
         </div>
       </div>
 
+      {/* Warning Banner */}
+      <div style={{ background: "#FEF9E7", borderBottom: "1px solid #F9E79F", padding: "8px 16px", display: "flex", alignItems: "center", gap: 8 }}>
+        <span style={{ fontSize: 14 }}>⚠️</span>
+        <span style={{ fontSize: 12, color: "#7D6608" }}>All parties with portal access can see messages in this chat. Keep it professional.</span>
+      </div>
+
       {/* Messages */}
       <div style={{ flex: 1, overflowY: "auto", padding: 16, display: "flex", flexDirection: "column", gap: 8 }}>
         {loading ? (
