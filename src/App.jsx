@@ -229,8 +229,8 @@ if (typeof document !== "undefined" && !document.getElementById("lizteam-mobile"
 function genId() { return Math.random().toString(36).substr(2, 9); }
 function today() { return new Date().toISOString().split("T")[0]; }
 function addDays(date, days) { const d = new Date(date); d.setDate(d.getDate() + days); return d.toISOString().split("T")[0]; }
-function formatDate(s) { if (!s) return "—"; const d = new Date(s + "T00:00:00"); return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }); }
-function daysUntil(s) { if (!s) return null; const diff = new Date(s + "T00:00:00") - new Date(today() + "T00:00:00"); return Math.round(diff / 86400000); }
+function formatDate(s) { if (!s) return "—"; const clean = String(s).includes("T") ? String(s).split("T")[0] : String(s); const d = new Date(clean + "T00:00:00"); return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }); }
+function daysUntil(s) { if (!s) return null; const clean = String(s).includes("T") ? String(s).split("T")[0] : String(s); const diff = new Date(clean + "T00:00:00") - new Date(today() + "T00:00:00"); return Math.round(diff / 86400000); }
 function formatTime(iso) { return new Date(iso).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }); }
 function roleColor(role) { const c = ["#1D4ED8","#15803D","#C9A84C","#7C3AED","#DC2626","#0F766E","#B45309","#9D174D"]; return c[role.length % c.length]; }
 
