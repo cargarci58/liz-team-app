@@ -331,8 +331,11 @@ function TaskRow({ task, onUpdate, onRemind, onSelect, selected }) {
   const cfg = TASK_STATUS[effectiveStatus] || TASK_STATUS["Pending"];
   return (
     <div style={{ background: "#fff", border: `1px solid ${isOverdue ? COLORS.danger + "40" : COLORS.border}`, borderLeft: `3px solid ${cfg.color}`, borderRadius: 8, padding: "10px 14px", marginBottom: 6, display: "flex", alignItems: "center", gap: 12 }}>
-      {onSelect && <input type="checkbox" checked={selected} onChange={e => onSelect(task.id, e.target.checked)} style={{ width: 16, height: 16, cursor: "pointer", flexShrink: 0, accentColor: "#C0392B" }} />}
-      <input type="checkbox" checked={task.status === "Completed"} onChange={e => onUpdate({ ...task, status: e.target.checked ? "Completed" : "Pending" })} style={{ width: 16, height: 16, cursor: "pointer", flexShrink: 0 }} />
+      {onSelect ? (
+        <input type="checkbox" checked={selected} onChange={e => onSelect(task.id, e.target.checked)} style={{ width: 16, height: 16, cursor: "pointer", flexShrink: 0, accentColor: "#C0392B" }} />
+      ) : (
+        <input type="checkbox" checked={task.status === "Completed"} onChange={e => onUpdate({ ...task, status: e.target.checked ? "Completed" : "Pending" })} style={{ width: 16, height: 16, cursor: "pointer", flexShrink: 0 }} />
+      )}
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: 13, fontWeight: 600, color: task.status === "Completed" ? COLORS.muted : COLORS.text, textDecoration: task.status === "Completed" ? "line-through" : "none" }}>{task.name}</div>
         <div style={{ display: "flex", gap: 8, marginTop: 3, flexWrap: "wrap" }}>
