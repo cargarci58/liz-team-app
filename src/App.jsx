@@ -811,6 +811,7 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
               osc.start(); osc.stop(ctx.currentTime + 0.3);
             } catch {}
           }
+          if (!initialized) { lastCount = newCount; initialized = true; return; }
           lastCount = newCount;
         }
       } catch {}
