@@ -1101,7 +1101,7 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
               <div style={{ color: "#fff", fontWeight: 700, fontSize: 16 }}>Edit Transaction</div>
               <button onClick={() => setShowEditTx(false)} style={{ background: "none", border: "none", color: "rgba(255,255,255,0.6)", fontSize: 20, cursor: "pointer" }}>x</button>
             </div>
-            <div style={{ padding: 24 }}>
+            <div style={{ padding: 24, overflowY: "auto", maxHeight: "70vh" }}>
               {[["Open Date", "openDate", "date"], ["Closing Date", "closingDate", "date"], ["Executed Date", "executedDate", "date"], ["Contract Price", "contractPrice", "number"], ["MLS Number", "mlsNumber", "text"]].map(([label, field, type]) => (
                 <div key={field} style={{ marginBottom: 16 }}>
                   <div style={{ fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>{label}</div>
