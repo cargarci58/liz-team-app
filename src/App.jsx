@@ -446,7 +446,7 @@ function SMSPanel({ tx, onUpdate }) {
 
   const partiesWithContact = tx.parties.filter(p => (p.phone && p.phone.trim()) || (p.email && p.email.trim()));
   const normalizePhone = p => { const d = p.replace(/\D/g, ""); return d.length === 10 ? `+1${d}` : `+${d}`; };
-  const getThread = party => (tx.smsThreads || {})[party.phone ? normalizePhone(party.phone) : ""] || [];
+  const getThread = party => { const threads = tx.smsThreads || {}; const phoneKey = party.phone ? normalizePhone(party.phone) : null; const emailKey = party.email || null; const phoneThread = phoneKey ? (threads[phoneKey] || []) : []; const emailThread = emailKey ? (threads[emailKey] || []) : []; return [...phoneThread, ...emailThread].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp)); };
 
   const ChannelPicker = ({ value, onChange }) => (
     <div style={{ display: "flex", background: "#F3F4F6", borderRadius: 8, padding: 3, gap: 2, overflowX: "auto", WebkitOverflowScrolling: "touch", flexShrink: 0 }}>
