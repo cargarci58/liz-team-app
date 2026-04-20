@@ -774,6 +774,8 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
   const update = changes => onUpdate({ ...tx, ...changes });
   const updateTask = updated => update({ tasks: tx.tasks.map(t => t.id === updated.id ? updated : t) });
   const [chatUnread, setChatUnread] = useState(0);
+  const [showEditTx, setShowEditTx] = useState(false);
+  const [editTxForm, setEditTxForm] = useState({});
   const chatUnreadRef = useRef(0);
   const setChatUnreadBoth = (n) => { chatUnreadRef.current = n; setChatUnread(n); };
   const activeTabRef = useRef(activeTab);
@@ -855,6 +857,7 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
         <select value={tx.status} onChange={e => update({ status: e.target.value })} style={{ fontSize: 12, padding: "4px 8px", borderRadius: 6, border: "none", fontFamily: "inherit", background: "rgba(255,255,255,0.15)", color: "#fff", cursor: "pointer" }}>
           {Object.keys(STATUS_CONFIG).map(s => <option key={s} style={{ color: COLORS.text, background: "#fff" }}>{s}</option>)}
         </select>
+        <button onClick={() => { setEditTxForm({ closingDate: tx.closingDate || "", contractPrice: tx.contractPrice || "", openDate: tx.openDate || "", status: tx.status, mlsNumber: tx.mlsNumber || "", notes: tx.notes || "" }); setShowEditTx(true); }} style={{ fontSize: 11, padding: "4px 10px", borderRadius: 6, border: "1px solid rgba(255,255,255,0.3)", background: "rgba(255,255,255,0.1)", color: "#fff", cursor: "pointer", fontFamily: "inherit" }}>✏️ Edit</button>
         <button onClick={async () => {
           const tok = localStorage.getItem("tp_token") || "";
           const res = await fetch(API + "/transactions/" + tx.id + "/pdf", { headers: { "Authorization": "Bearer " + tok } });
@@ -1594,6 +1597,50 @@ function MainApp({ onLogout, currentUser }) {
         />
       )}
       {showTeam && <UserManagement onClose={() => setShowTeam(false)} />}
+      {showEditTx && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 2000, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
+          <div style={{ background: "#fff", borderRadius: 14, width: "100%", maxWidth: 480, boxShadow: "0 8px 40px rgba(0,0,0,0.2)", overflow: "hidden", fontFamily: "system-ui, sans-serif" }}>
+            <div style={{ background: "#111", padding: "16px 24px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div style={{ color: "#fff", fontWeight: 700, fontSize: 16 }}>✏️ Edit Transaction</div>
+              <button onClick={() => setShowEditTx(false)} style={{ background: "none", border: "none", color: "rgba(255,255,255,0.6)", fontSize: 20, cursor: "pointer" }}>×</button>
+            </div>
+            <div style={{ padding: 24 }}>
+              {[["Open Date", "openDate", "date"], ["Closing Date", "closingDate", "date"], ["Contract Price", "contractPrice", "number"], ["MLS Number", "mlsNumber", "text"]].map(([label, field, type]) => (
+                <div key={field} style={{ marginBottom: 16 }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>{label}</div>
+                  <input type={type} value={editTxForm[field] || ""} onChange={e => setEditTxForm(f => ({ ...f, [field]: e.target.value }))}
+                    style={{ width: "100%", padding: "10px 14px", borderRadius: 8, border: "1.5px solid #CCC", fontSize: 15, fontFamily: "inherit", boxSizing: "border-box" }} />
+                </div>
+              ))}
+              <div style={{ marginBottom: 16 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>Notes</div>
+                <textarea value={editTxForm.notes || ""} onChange={e => setEditTxForm(f => ({ ...f, notes: e.target.value }))}
+                  style={{ width: "100%", padding: "10px 14px", borderRadius: 8, border: "1.5px solid #CCC", fontSize: 14, fontFamily: "inherit", boxSizing: "border-box", minHeight: 80, resize: "vertical" }} />
+              </div>
+              <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+                <button onClick={() => setShowEditTx(false)} style={{ padding: "10px 18px", border: "1px solid #CCC", borderRadius: 8, background: "none", cursor: "pointer", fontFamily: "inherit" }}>Cancel</button>
+                <button onClick={() => {
+                  const updated = { ...tx, ...editTxForm };
+                  // Recalculate task due dates for tasks missing due dates when closing date is set
+                  if (editTxForm.closingDate && editTxForm.closingDate !== tx.closingDate) {
+                    const templates = FLORIDA_TASK_TEMPLATES[tx.type] || [];
+                    updated.tasks = tx.tasks.map(task => {
+                      if (task.dueDate) return task; // keep existing due dates
+                      const template = templates.find(t => t.name === task.name);
+                      if (template && template.daysFromOpen < 0) {
+                        return { ...task, dueDate: addDays(editTxForm.closingDate, template.daysFromOpen) };
+                      }
+                      return task;
+                    });
+                  }
+                  onUpdate(updated);
+                  setShowEditTx(false);
+                }} style={{ padding: "10px 20px", background: "#C0392B", color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>Save Changes</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       {showChangePassword && <ChangePassword onClose={() => setShowChangePassword(false)} />}
       {showContactBook && (
         <ContactBook
