@@ -1,3 +1,5 @@
+import { useState, useEffect } from "react";
+
 const API = "https://liz-team-server-api-production.up.railway.app";
 
 const C = {
@@ -26,15 +28,15 @@ function daysUntil(d) {
 }
 
 export default function ClientPortal({ user, onLogout }) {
-  const [tx, setTx] = React.useState(null);
-  const [docs, setDocs] = React.useState([]);
-  const [loading, setLoading] = React.useState(true);
-  const [uploading, setUploading] = React.useState(false);
-  const [activeTab, setActiveTab] = React.useState("overview");
+  const [tx, setTx] = useState(null);
+  const [docs, setDocs] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [uploading, setUploading] = useState(false);
+  const [activeTab, setActiveTab] = useState("overview");
   const tok = localStorage.getItem("tp_token") || "";
   const headers = { "Content-Type": "application/json", "Authorization": "Bearer " + tok };
 
-  React.useEffect(() => {
+  useEffect(() => {
     fetch(`${API}/transactions`, { headers })
       .then(r => r.json())
       .then(data => {
