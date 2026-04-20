@@ -517,26 +517,7 @@ function SMSPanel({ tx, onUpdate }) {
     }).catch(() => setServerOnline(false));
   }, []);
 
-  useEffect(() => {
-    if (!serverOnline) return;
-    const poll = () => {
-      fetch(`${SMS_SERVER}/sms/messages/${tx.id}`)
-        .then(r => r.json()).then(data => {
-          if (data.messages && data.messages.length > 0) {
-            const newThreads = { ...(tx.smsThreads || {}) };
-            data.messages.forEach(m => {
-              const phone = m.direction === "inbound" ? m.from : m.to;
-              if (!newThreads[phone]) newThreads[phone] = [];
-              if (!newThreads[phone].find(x => x.id === m.id)) newThreads[phone].push(m);
-            });
-            onUpdate({ ...tx, smsThreads: newThreads });
-          }
-        }).catch(() => {});
-    };
-    poll();
-    const interval = setInterval(poll, 8000);
-    return () => clearInterval(interval);
-  }, [serverOnline, tx.id]);
+  // SMS inbound polling removed - using message_log instead
 
   useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [selectedParty, tx.smsThreads]);
 
