@@ -2,6 +2,7 @@ import LoginScreen from "./LoginScreen";
 import UserManagement from "./UserManagement";
 import DocumentsTab from "./DocumentsTab";
 import TransactionChat from "./TransactionChat";
+import Reports from "./Reports";
 import ChangePassword from "./ChangePassword";
 import ClientPortal from "./ClientPortal";
 const API = "https://liz-team-server-api-production.up.railway.app";
@@ -1409,7 +1410,7 @@ function NewTransactionForm({ onSave, onCancel }) {
 }
 
 // ─── DASHBOARD ────────────────────────────────────────────────
-function Dashboard({ transactions, onSelect, onNew, onOpenContactBook, contactCount, onLogout, onOpenTeam, onChangePassword }) {
+function Dashboard({ transactions, onSelect, onNew, onOpenContactBook, contactCount, onLogout, onOpenTeam, onChangePassword, onReports }) {
   const [filter, setFilter] = useState("All");
   const [search, setSearch] = useState("");
   const [showOverdue, setShowOverdue] = useState(false);
@@ -1449,6 +1450,7 @@ function Dashboard({ transactions, onSelect, onNew, onOpenContactBook, contactCo
           <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
             <button onClick={onOpenContactBook} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.2)", color: "rgba(255,255,255,0.85)", borderRadius: 8, padding: "7px 12px", cursor: "pointer", fontSize: 12, fontFamily: "inherit" }}>Contacts{contactCount > 0 ? ` (${contactCount})` : ""}</button>
             <button onClick={onNew} style={{ background: "#C0392B", border: "none", color: "#fff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>+ New Transaction</button>
+            <button onClick={onReports} style={{ background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.2)", color: "#fff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>📊 Reports</button>
             <button onClick={onChangePassword} style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.15)", color: "rgba(255,255,255,0.6)", borderRadius: 8, padding: "7px 12px", cursor: "pointer", fontSize: 12, fontFamily: "inherit" }}>Password</button>
             <button onClick={onLogout} style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.15)", color: "rgba(255,255,255,0.6)", borderRadius: 8, padding: "7px 12px", cursor: "pointer", fontSize: 12, fontFamily: "inherit" }}>Sign Out</button>
           </div>
@@ -1762,6 +1764,7 @@ function MainApp({ onLogout, currentUser }) {
       .catch(e => console.error("Failed to load contacts:", e));
   }, []);
   const [view, setView] = useState("dashboard");
+  const [showReports, setShowReports] = useState(false);
   const [selectedId, setSelectedId] = useState(null);
   const [contacts, setContacts] = useState([]);
   const [showTeam, setShowTeam] = useState(false);
@@ -1836,8 +1839,9 @@ function MainApp({ onLogout, currentUser }) {
 
   return (
     <>
-      {view === "new" && <NewTransactionForm onSave={addTransaction} onCancel={() => setView("dashboard")} />}
-      {view === "detail" && selectedTx && (
+      {showReports && <Reports transactions={transactions} onBack={() => setShowReports(false)} />}
+      {!showReports && view === "new" && <NewTransactionForm onSave={addTransaction} onCancel={() => setView("dashboard")} />}
+      {!showReports && view === "detail" && selectedTx && (
         <TransactionDetail
           tx={selectedTx}
           onUpdate={updateTransaction}
@@ -1848,7 +1852,7 @@ function MainApp({ onLogout, currentUser }) {
           onInviteParty={(party) => invitePartyToPortal(party, selectedTx)}
         />
       )}
-      {view === "dashboard" && (
+      {!showReports && view === "dashboard" && (
         <Dashboard
           transactions={transactions}
           onSelect={id => { setSelectedId(id); setView("detail"); }}
@@ -1858,6 +1862,7 @@ function MainApp({ onLogout, currentUser }) {
           onLogout={onLogout}
           onOpenTeam={() => setShowTeam(true)}
           onChangePassword={() => setShowChangePassword(true)}
+          onReports={() => setShowReports(true)}
         />
       )}
       {showTeam && <UserManagement onClose={() => setShowTeam(false)} />}
