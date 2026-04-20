@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import TransactionChat from "./TransactionChat";
 
 const API = "https://liz-team-server-api-production.up.railway.app";
@@ -34,9 +34,12 @@ export default function ClientPortal({ user, onLogout }) {
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [activeTab, setActiveTab] = useState("overview");
+  useEffect(() => { activeTabRef.current = activeTab; if (activeTab === "chat") setChatUnread(0); }, [activeTab]);
   const [messages, setMessages] = useState([]);
   const [newMsg, setNewMsg] = useState("");
   const [sending, setSending] = useState(false);
+  const [chatUnread, setChatUnread] = useState(0);
+  const activeTabRef = useRef(activeTab);
   const tok = localStorage.getItem("tp_token") || "";
   const headers = { "Content-Type": "application/json", "Authorization": "Bearer " + tok };
 
@@ -176,7 +179,7 @@ export default function ClientPortal({ user, onLogout }) {
 
           {/* Tabs */}
           <div style={{ display: "flex", borderBottom: `1px solid ${C.border}`, marginBottom: 0, background: C.white, borderRadius: "12px 12px 0 0", overflowX: "auto" }}>
-            {[["overview", "Overview"], ["documents", "📎 Documents"], ["chat", "💬 Group Chat"], ["contact", "Contact Agent"]].map(([id, label]) => (
+            {[["overview", "Overview"], ["documents", "📎 Documents"], ["chat", chatUnread > 0 ? `💬 Group Chat (${chatUnread})` : "💬 Group Chat"], ["contact", "Contact Agent"]].map(([id, label]) => (
               <button key={id} onClick={() => setActiveTab(id)} style={{ padding: "12px 20px", border: "none", background: "none", borderBottom: `3px solid ${activeTab === id ? C.red : "transparent"}`, color: activeTab === id ? C.red : C.gray, fontWeight: activeTab === id ? 700 : 500, fontSize: 13, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>{label}</button>
             ))}
           </div>
@@ -251,7 +254,7 @@ export default function ClientPortal({ user, onLogout }) {
 
             {/* Messages Tab */}
             {activeTab === "chat" && (
-              <div style={{ padding: 16, height: 480 }}><TransactionChat transactionId={tx?.id} user={null} style={{ height: "100%" }} /></div>
+              <div style={{ padding: 16, height: 480 }}><TransactionChat transactionId={tx?.id} user={null} style={{ height: "100%" }} unreadCount={chatUnread} onUnreadChange={() => {}} /></div>
             )}
             {activeTab === "messages_old" && (
               <div style={{ padding: 20 }}>
