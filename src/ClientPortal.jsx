@@ -172,7 +172,7 @@ export default function ClientPortal({ user, onLogout }) {
 
           {/* Tabs */}
           <div style={{ display: "flex", borderBottom: `1px solid ${C.border}`, marginBottom: 0, background: C.white, borderRadius: "12px 12px 0 0", overflowX: "auto" }}>
-            {[["overview", "Overview"], ["documents", "📎 Documents"], ["contact", "Contact Agent"]].map(([id, label]) => (
+            {[["overview", "Overview"], ["documents", "📎 Documents"], ["messages", "💬 Message Agent"], ["contact", "Contact Agent"]].map(([id, label]) => (
               <button key={id} onClick={() => setActiveTab(id)} style={{ padding: "12px 20px", border: "none", background: "none", borderBottom: `3px solid ${activeTab === id ? C.red : "transparent"}`, color: activeTab === id ? C.red : C.gray, fontWeight: activeTab === id ? 700 : 500, fontSize: 13, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>{label}</button>
             ))}
           </div>
@@ -242,6 +242,52 @@ export default function ClientPortal({ user, onLogout }) {
                     ))}
                   </div>
                 )}
+              </div>
+            )}
+
+            {/* Messages Tab */}
+            {activeTab === "messages" && (
+              <div style={{ padding: 20 }}>
+                <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 16 }}>Message Your Agent</div>
+                <div style={{ background: C.lightGray, borderRadius: 12, padding: 16, marginBottom: 16, maxHeight: 300, overflowY: "auto" }}>
+                  {messages.length === 0 ? (
+                    <div style={{ textAlign: "center", color: C.gray, padding: 20 }}>No messages yet. Send your agent a message below.</div>
+                  ) : messages.map(m => (
+                    <div key={m.id} style={{ marginBottom: 12, display: "flex", justifyContent: m.direction === "inbound" ? "flex-end" : "flex-start" }}>
+                      <div style={{ maxWidth: "80%", background: m.direction === "inbound" ? C.red : "#fff", color: m.direction === "inbound" ? "#fff" : C.black, padding: "10px 14px", borderRadius: 12, fontSize: 14, boxShadow: "0 1px 4px rgba(0,0,0,0.1)" }}>
+                        <div>{m.body}</div>
+                        <div style={{ fontSize: 10, opacity: 0.7, marginTop: 4 }}>{new Date(m.created_at || m.timestamp).toLocaleString()}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <input value={newMsg} onChange={e => setNewMsg(e.target.value)} placeholder="Type your message..." style={{ flex: 1, padding: "10px 14px", borderRadius: 8, border: "1.5px solid #CCC", fontSize: 15, fontFamily: "inherit" }}
+                    onKeyDown={async e => {
+                      if (e.key === "Enter" && newMsg.trim() && tx && !sending) {
+                        setSending(true);
+                        try {
+                          const res = await fetch(API + "/client/message", { method: "POST", headers, body: JSON.stringify({ transactionId: tx.id, message: newMsg.trim() }) });
+                          const data = await res.json();
+                          if (data.success) { setMessages(prev => [...prev, { ...data.message, created_at: new Date().toISOString() }]); setNewMsg(""); }
+                        } catch (e) { alert("Failed to send message"); }
+                        setSending(false);
+                      }
+                    }} />
+                  <button onClick={async () => {
+                    if (!newMsg.trim() || !tx || sending) return;
+                    setSending(true);
+                    try {
+                      const res = await fetch(API + "/client/message", { method: "POST", headers, body: JSON.stringify({ transactionId: tx.id, message: newMsg.trim() }) });
+                      const data = await res.json();
+                      if (data.success) { setMessages(prev => [...prev, { ...data.message, created_at: new Date().toISOString() }]); setNewMsg(""); }
+                    } catch { alert("Failed to send"); }
+                    setSending(false);
+                  }} style={{ padding: "10px 18px", background: C.red, color: "#fff", border: "none", borderRadius: 8, cursor: "pointer", fontWeight: 600, fontFamily: "inherit" }}>
+                    {sending ? "..." : "Send"}
+                  </button>
+                </div>
+                <div style={{ fontSize: 12, color: C.gray, marginTop: 8 }}>Your agent will receive an email notification and can reply through the app.</div>
               </div>
             )}
 
