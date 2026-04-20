@@ -3,6 +3,53 @@ import { useState } from "react";
 export default function CalendarView({ transactions, onBack, onSelectTx }) {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDay, setSelectedDay] = useState(null);
+  const [showPrintOptions, setShowPrintOptions] = useState(false);
+  const [printOptions, setPrintOptions] = useState({ closings: true, openDates: false, tasks: true, allMonths: false });
+
+  const handlePrint = () => {
+    const printWindow = window.open("", "_blank");
+    const rows = [];
+    const monthCount = printOptions.allMonths ? 3 : 1;
+    for (let mo = 0; mo < monthCount; mo++) {
+      const d = new Date(year, month + mo, 1);
+      const mn = d.toLocaleString("en-US", { month: "long", year: "numeric" });
+      rows.push("<h2 style='color:#C0392B;margin-top:20px'>" + mn + "</h2>");
+      rows.push("<table border='1' cellpadding='8' cellspacing='0' width='100%' style='border-collapse:collapse;font-family:Arial,sans-serif;font-size:12px'>");
+      rows.push("<tr style='background:#111;color:#fff'><th>Date</th><th>Type</th><th>Property</th><th>Details</th></tr>");
+      const allEvents = [];
+      transactions.filter(tx => tx.status !== "Cancelled").forEach(tx => {
+        if (printOptions.closings && tx.closingDate) {
+          const cd = new Date(tx.closingDate.split("T")[0] + "T00:00:00");
+          if (cd.getFullYear() === d.getFullYear() && cd.getMonth() === d.getMonth()) allEvents.push({ date: tx.closingDate.split("T")[0], type: "Closing", property: tx.address, detail: tx.status, color: "#C0392B" });
+        }
+        if (printOptions.openDates && tx.openDate) {
+          const od = new Date(tx.openDate.split("T")[0] + "T00:00:00");
+          if (od.getFullYear() === d.getFullYear() && od.getMonth() === d.getMonth()) allEvents.push({ date: tx.openDate.split("T")[0], type: "Open Date", property: tx.address, detail: tx.type, color: "#1A5276" });
+        }
+        if (printOptions.tasks) {
+          (tx.tasks || []).filter(t => t.dueDate && t.status !== "Completed").forEach(task => {
+            const td = new Date(task.dueDate.split("T")[0] + "T00:00:00");
+            if (td.getFullYear() === d.getFullYear() && td.getMonth() === d.getMonth()) allEvents.push({ date: task.dueDate.split("T")[0], type: "Task Due", property: tx.address, detail: task.name, color: "#B7860B" });
+          });
+        }
+      });
+      allEvents.sort((a, b) => a.date.localeCompare(b.date));
+      if (allEvents.length === 0) {
+        rows.push("<tr><td colspan='4' style='text-align:center;color:#888;padding:16px'>No events this month</td></tr>");
+      } else {
+        allEvents.forEach(ev => {
+          const dateStr = new Date(ev.date + "T00:00:00").toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+          rows.push("<tr><td>" + dateStr + "</td><td style='color:" + ev.color + ";font-weight:700'>" + ev.type + "</td><td>" + ev.property + "</td><td>" + ev.detail + "</td></tr>");
+        });
+      }
+      rows.push("</table>");
+    }
+    const html = "<!DOCTYPE html><html><head><title>TransactPro Calendar</title><style>body{font-family:Arial,sans-serif;padding:20px}@media print{button{display:none}}</style></head><body><h1>TransactPro Calendar Report</h1><p>Generated: " + new Date().toLocaleDateString() + "</p>" + rows.join("") + "</body></html>";
+    printWindow.document.write(html);
+    printWindow.document.close();
+    printWindow.print();
+    setShowPrintOptions(false);
+  };
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
@@ -88,7 +135,7 @@ export default function CalendarView({ transactions, onBack, onSelectTx }) {
       <div style={styles.header}>
         <button onClick={onBack} style={{ background: "none", border: "none", color: "#fff", fontSize: 20, cursor: "pointer" }}>←</button>
         <div style={{ color: "#fff", fontWeight: 700, fontSize: 18 }}>📅 Calendar</div>
-        <button onClick={() => window.print()} style={{ marginLeft: "auto", background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.3)", color: "#fff", borderRadius: 8, padding: "7px 16px", cursor: "pointer", fontSize: 13, fontWeight: 600, fontFamily: "inherit" }}>🖨️ Print</button>
+        <button onClick={() => setShowPrintOptions(true)} style={{ marginLeft: "auto", background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.3)", color: "#fff", borderRadius: 8, padding: "7px 16px", cursor: "pointer", fontSize: 13, fontWeight: 600, fontFamily: "inherit" }}>🖨️ Print Options</button>
       </div>
 
       {/* Legend */}
@@ -159,6 +206,29 @@ export default function CalendarView({ transactions, onBack, onSelectTx }) {
           </div>
         )}
       </div>
+      {showPrintOptions && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 2000, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
+          <div style={{ background: "#fff", borderRadius: 14, width: "100%", maxWidth: 400, boxShadow: "0 8px 40px rgba(0,0,0,0.2)", overflow: "hidden", fontFamily: "system-ui, sans-serif" }}>
+            <div style={{ background: "#111", padding: "16px 24px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div style={{ color: "#fff", fontWeight: 700, fontSize: 16 }}>Print Options</div>
+              <button onClick={() => setShowPrintOptions(false)} style={{ background: "none", border: "none", color: "rgba(255,255,255,0.6)", fontSize: 20, cursor: "pointer" }}>x</button>
+            </div>
+            <div style={{ padding: 24 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "#555", textTransform: "uppercase", marginBottom: 12 }}>Include</div>
+              {[["closings", "Closing Dates"], ["openDates", "Open Dates"], ["tasks", "Pending Task Deadlines"], ["allMonths", "Next 3 months (vs current month only)"]].map(([key, label]) => (
+                <label key={key} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12, cursor: "pointer", fontSize: 15 }}>
+                  <input type="checkbox" checked={printOptions[key]} onChange={e => setPrintOptions(p => ({ ...p, [key]: e.target.checked }))} style={{ width: 18, height: 18 }} />
+                  {label}
+                </label>
+              ))}
+              <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 20 }}>
+                <button onClick={() => setShowPrintOptions(false)} style={{ padding: "10px 18px", border: "1px solid #CCC", borderRadius: 8, background: "none", cursor: "pointer", fontFamily: "inherit" }}>Cancel</button>
+                <button onClick={handlePrint} style={{ padding: "10px 20px", background: "#C0392B", color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>Print Now</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
