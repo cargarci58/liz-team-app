@@ -777,6 +777,45 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
   const activeTabRef = useRef(activeTab);
   useEffect(() => { activeTabRef.current = activeTab; if (activeTab === "chat") setChatUnread(0); }, [activeTab]);
 
+  // Background socket for unread badge - runs even when chat tab is not open
+  useEffect(() => {
+    if (!tx.id) return;
+    const tok = localStorage.getItem("tp_token") || "";
+    let socket = null;
+    const loadSocket = () => {
+      socket = window.io("https://liz-team-server-api-production.up.railway.app", {
+        auth: { token: tok }, transports: ["websocket", "polling"],
+      });
+      socket.on("connect", () => socket.emit("join_transaction", tx.id));
+      socket.on("new_message", (msg) => {
+        let myId = null;
+        try { const u = JSON.parse(localStorage.getItem("tp_user") || "{}"); myId = u.id || u.userId; } catch {}
+        if (msg.user_id !== myId && activeTabRef.current !== "chat") {
+          setChatUnread(prev => prev + 1);
+          try {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = ctx.createOscillator(); const gain = ctx.createGain();
+            osc.connect(gain); gain.connect(ctx.destination);
+            osc.frequency.setValueAtTime(880, ctx.currentTime);
+            gain.gain.setValueAtTime(0.3, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
+            osc.start(); osc.stop(ctx.currentTime + 0.3);
+          } catch {}
+        }
+      });
+    };
+    if (window.io) { loadSocket(); } else {
+      const existing = document.querySelector('script[src*="socket.io"]');
+      if (existing) { existing.addEventListener("load", loadSocket); }
+      else {
+        const s = document.createElement("script");
+        s.src = "https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.min.js";
+        s.onload = loadSocket; document.head.appendChild(s);
+      }
+    }
+    return () => { if (socket) { socket.emit("leave_transaction", tx.id); socket.disconnect(); } };
+  }, [tx.id]);
+
   const completedTasks = tx.tasks.filter(t => t.status === "Completed").length;
   const overdueTasks = tx.tasks.filter(t => { const d = daysUntil(t.dueDate); return d !== null && d < 0 && t.status !== "Completed" && t.status !== "Waived"; }).length;
   const daysToClose = daysUntil(tx.closingDate);
