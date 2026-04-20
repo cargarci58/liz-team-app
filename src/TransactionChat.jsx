@@ -46,6 +46,8 @@ export default function TransactionChat({ transactionId, user, style, onUnreadCh
   const socketRef = useRef(null);
   const endRef = useRef(null);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [lastReadTime, setLastReadTime] = useState(new Date().toISOString());
+  const isViewing = useRef(true);
   const tok = localStorage.getItem("tp_token") || "";
 
   useEffect(() => {
@@ -125,10 +127,13 @@ export default function TransactionChat({ transactionId, user, style, onUnreadCh
     endRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Reset unread when tab is visible
+  // Reset unread when component mounts
   useEffect(() => {
+    isViewing.current = true;
     setUnreadCount(0);
+    setLastReadTime(new Date().toISOString());
     if (onUnreadChange) onUnreadChange(0);
+    return () => { isViewing.current = false; };
   }, []);
 
   const sendMessage = () => {
@@ -140,7 +145,12 @@ export default function TransactionChat({ transactionId, user, style, onUnreadCh
   const formatTime = (ts) => new Date(ts).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
   const formatDate = (ts) => new Date(ts).toLocaleDateString("en-US", { month: "short", day: "numeric" });
 
-  const isMe = (msg) => msg.user_id === user?.userId || msg.user_id === user?.id;
+  const isMe = (msg) => {
+    try { const u = JSON.parse(localStorage.getItem("tp_user") || "{}"); return msg.user_id === u.id || msg.user_id === u.userId; } catch { return false; }
+  };
+  const isUnread = (msg) => {
+    try { const u = JSON.parse(localStorage.getItem("tp_user") || "{}"); const myId = u.id || u.userId; return msg.user_id !== myId && msg.created_at > lastReadTime; } catch { return false; }
+  };
 
   const roleColors = {
     admin: "#C0392B", agent: "#1A5276", tc: "#B7770D",
@@ -198,14 +208,14 @@ export default function TransactionChat({ transactionId, user, style, onUnreadCh
                       </div>
                     )}
                     <div style={{
-                      background: mine ? "#C0392B" : "#fff",
+                      background: mine ? "#C0392B" : isUnread(msg) ? "#FFF3CD" : "#fff",
                       color: mine ? "#fff" : "#111",
                       padding: "10px 14px",
                       borderRadius: mine ? "14px 14px 4px 14px" : "14px 14px 14px 4px",
                       fontSize: 14,
                       lineHeight: 1.5,
                       boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
-                      border: mine ? "none" : "1px solid #E5E7EB",
+                      border: mine ? "none" : isUnread(msg) ? "1px solid #F0C040" : "1px solid #E5E7EB",
                     }}>
                       {msg.message}
                     </div>
