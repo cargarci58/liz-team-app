@@ -34,7 +34,7 @@ export default function ClientPortal({ user, onLogout }) {
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [activeTab, setActiveTab] = useState("overview");
-  useEffect(() => { activeTabRef.current = activeTab; }, [activeTab]);
+  useEffect(() => { activeTabRef.current = activeTab; if (activeTab !== "chat") setChatUnread(0); }, [activeTab]);
   const [messages, setMessages] = useState([]);
   const [newMsg, setNewMsg] = useState("");
   const [sending, setSending] = useState(false);
@@ -292,7 +292,7 @@ export default function ClientPortal({ user, onLogout }) {
 
             {/* Messages Tab */}
             {activeTab === "chat" && (
-              <div style={{ padding: 16, height: 480 }}><TransactionChat transactionId={tx?.id} user={null} style={{ height: "100%" }} unreadCount={chatUnread} onUnreadChange={() => { setTimeout(() => setChatUnread(0), 2000); }} /></div>
+              <div style={{ padding: 16, height: 480 }}><TransactionChat transactionId={tx?.id} user={null} style={{ height: "100%" }} unreadCount={chatUnread} onUnreadChange={() => {}} /></div>
             )}
             {activeTab === "messages_old" && (
               <div style={{ padding: 20 }}>

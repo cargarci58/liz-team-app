@@ -777,7 +777,7 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
   const chatUnreadRef = useRef(0);
   const setChatUnreadBoth = (n) => { chatUnreadRef.current = n; setChatUnread(n); };
   const activeTabRef = useRef(activeTab);
-  useEffect(() => { activeTabRef.current = activeTab; }, [activeTab]);
+  useEffect(() => { activeTabRef.current = activeTab; if (activeTab !== "chat") setChatUnreadBoth(0); }, [activeTab]);
 
   // Poll for new chat messages to show unread badge
   useEffect(() => {
@@ -979,7 +979,7 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
         )}
 
         {activeTab === "documents" && <DocumentsTab tx={tx} />}
-        {activeTab === "chat" && <div style={{ padding: 20, height: 500 }}><TransactionChat transactionId={tx.id} user={null} style={{ height: "100%" }} unreadCount={chatUnread} onUnreadChange={() => { setTimeout(() => setChatUnreadBoth(0), 2000); }} /></div>}
+        {activeTab === "chat" && <div style={{ padding: 20, height: 500 }}><TransactionChat transactionId={tx.id} user={null} style={{ height: "100%" }} unreadCount={chatUnread} onUnreadChange={() => {}} /></div>}
         {activeTab === "reminders" && (
           <div>
             <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 16 }}><Btn onClick={() => setShowAddReminder(true)} small>+ Add Reminder</Btn></div>
