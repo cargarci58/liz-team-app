@@ -466,7 +466,7 @@ function SMSPanel({ tx, onUpdate }) {
       console.log("Sending via channel:", channel, "SMS:", isSMS, "Email:", isEmail, "phone:", selectedParty.phone, "email:", selectedParty.email);
       if (isSMS && selectedParty.phone) {
         try {
-          const res = await fetch(`${SMS_SERVER}/sms/send`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ transactionId: tx.id, transactionAddress: tx.address, toPhone: selectedParty.phone, toName: selectedParty.name, toRole: selectedParty.role, message: message.trim(), fromName: "The Liz Team" }) });
+          const res = await fetch(`${SMS_SERVER}/sms/send`, { method: "POST", headers: { "Content-Type": "application/json" }, headers: { "Content-Type": "application/json", "Authorization": "Bearer " + (localStorage.getItem("tp_token") || "") }, body: JSON.stringify({ transactionId: tx.id, transactionAddress: tx.address, toPhone: selectedParty.phone, toName: selectedParty.name, toRole: selectedParty.role, message: message.trim(), fromName: "The Liz Team" }) });
           const d = await res.json();
           if (d.success) {
             anySent = true;
@@ -483,7 +483,7 @@ function SMSPanel({ tx, onUpdate }) {
         console.log("Attempting email to:", emailAddr);
         if (emailAddr) {
           try {
-            const res = await fetch(`${SMS_SERVER}/email/send`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ transactionId: tx.id, transactionAddress: tx.address, toEmail: emailAddr, toName: selectedParty.name, toRole: selectedParty.role, subject: subject || `Re: ${tx.address}`, message: message.trim(), fromName: "The Liz Team" }) });
+            const res = await fetch(`${SMS_SERVER}/email/send`, { method: "POST", headers: { "Content-Type": "application/json" }, headers: { "Content-Type": "application/json", "Authorization": "Bearer " + (localStorage.getItem("tp_token") || "") }, body: JSON.stringify({ transactionId: tx.id, transactionAddress: tx.address, toEmail: emailAddr, toName: selectedParty.name, toRole: selectedParty.role, subject: subject || `Re: ${tx.address}`, message: message.trim(), fromName: "The Liz Team" }) });
             const d = await res.json();
             console.log("Email result:", d);
             if (d.success) {
@@ -511,10 +511,10 @@ function SMSPanel({ tx, onUpdate }) {
     for (const party of parties) {
       const r = { name: party.name, sms: null, email: null };
       if ((bulkChannel === "sms" || bulkChannel === "both") && party.phone) {
-        try { const res = await fetch(`${SMS_SERVER}/sms/send`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ transactionId: tx.id, transactionAddress: tx.address, toPhone: party.phone, toName: party.name, message: `[The Liz Team - ${tx.address}]\n${bulkMessage.trim()}`, fromName: "The Liz Team" }) }); const d = await res.json(); r.sms = d.success; } catch { r.sms = false; }
+        try { const res = await fetch(`${SMS_SERVER}/sms/send`, { method: "POST", headers: { "Content-Type": "application/json" }, headers: { "Content-Type": "application/json", "Authorization": "Bearer " + (localStorage.getItem("tp_token") || "") }, body: JSON.stringify({ transactionId: tx.id, transactionAddress: tx.address, toPhone: party.phone, toName: party.name, message: `[The Liz Team - ${tx.address}]\n${bulkMessage.trim()}`, fromName: "The Liz Team" }) }); const d = await res.json(); r.sms = d.success; } catch { r.sms = false; }
       }
       if ((bulkChannel === "email" || bulkChannel === "both") && party.email) {
-        try { const res = await fetch(`${SMS_SERVER}/email/send`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ transactionId: tx.id, transactionAddress: tx.address, toEmail: party.email, toName: party.name, subject: bulkSubject || `Update: ${tx.address}`, message: bulkMessage.trim(), fromName: "The Liz Team" }) }); const d = await res.json(); r.email = d.success; } catch { r.email = false; }
+        try { const res = await fetch(`${SMS_SERVER}/email/send`, { method: "POST", headers: { "Content-Type": "application/json" }, headers: { "Content-Type": "application/json", "Authorization": "Bearer " + (localStorage.getItem("tp_token") || "") }, body: JSON.stringify({ transactionId: tx.id, transactionAddress: tx.address, toEmail: party.email, toName: party.name, subject: bulkSubject || `Update: ${tx.address}`, message: bulkMessage.trim(), fromName: "The Liz Team" }) }); const d = await res.json(); r.email = d.success; } catch { r.email = false; }
       }
       results.push(r);
     }
@@ -531,10 +531,10 @@ function SMSPanel({ tx, onUpdate }) {
     let sent = 0;
     for (const party of parties) {
       if ((reminderChannel === "sms" || reminderChannel === "both") && party.phone) {
-        try { await fetch(`${SMS_SERVER}/sms/send`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ transactionId: tx.id, transactionAddress: tx.address, toPhone: party.phone, toName: party.name, message: reminderBody, fromName: "The Liz Team" }) }); sent++; } catch {}
+        try { await fetch(`${SMS_SERVER}/sms/send`, { method: "POST", headers: { "Content-Type": "application/json" }, headers: { "Content-Type": "application/json", "Authorization": "Bearer " + (localStorage.getItem("tp_token") || "") }, body: JSON.stringify({ transactionId: tx.id, transactionAddress: tx.address, toPhone: party.phone, toName: party.name, message: reminderBody, fromName: "The Liz Team" }) }); sent++; } catch {}
       }
       if ((reminderChannel === "email" || reminderChannel === "both") && party.email) {
-        try { await fetch(`${SMS_SERVER}/email/send`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ transactionId: tx.id, transactionAddress: tx.address, toEmail: party.email, toName: party.name, subject: `Reminder: ${task?.name} - ${tx.address}`, message: reminderBody, fromName: "The Liz Team" }) }); sent++; } catch {}
+        try { await fetch(`${SMS_SERVER}/email/send`, { method: "POST", headers: { "Content-Type": "application/json" }, headers: { "Content-Type": "application/json", "Authorization": "Bearer " + (localStorage.getItem("tp_token") || "") }, body: JSON.stringify({ transactionId: tx.id, transactionAddress: tx.address, toEmail: party.email, toName: party.name, subject: `Reminder: ${task?.name} - ${tx.address}`, message: reminderBody, fromName: "The Liz Team" }) }); sent++; } catch {}
       }
     }
     alert(`Reminders sent: ${sent} messages delivered.`);
