@@ -1187,8 +1187,28 @@ function Dashboard({ transactions, onSelect, onNew, onOpenContactBook, contactCo
                   {smsMsgCount > 0 && <Badge label={`${smsMsgCount} SMS`} color={COLORS.success} bg={COLORS.successBg} />}
                 </div>
                 <div style={{ marginBottom: 10 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: COLORS.muted, marginBottom: 3 }}><span>Tasks: {completed}/{tx.tasks.length}</span><span>{progress}%</span></div>
-                  <div style={{ height: 5, background: COLORS.border, borderRadius: 3, overflow: "hidden" }}><div style={{ height: "100%", width: `${progress}%`, background: progress === 100 ? COLORS.success : COLORS.gold, borderRadius: 3 }} /></div>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: COLORS.muted, marginBottom: 4 }}>
+                    <span style={{ fontWeight: 600 }}>Progress: {completed}/{tx.tasks.length} tasks</span>
+                    <span style={{ fontWeight: 700, color: progress === 100 ? COLORS.success : progress > 50 ? COLORS.warning : COLORS.muted }}>{progress}%</span>
+                  </div>
+                  <div style={{ height: 8, background: COLORS.border, borderRadius: 4, overflow: "hidden", marginBottom: 6 }}>
+                    <div style={{ height: "100%", width: `${progress}%`, background: progress === 100 ? COLORS.success : progress > 66 ? "#F59E0B" : COLORS.gold, borderRadius: 4, transition: "width 0.5s ease" }} />
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", position: "relative" }}>
+                    {["Contract", "Inspection", "Title", "Closing"].map((milestone, i) => {
+                      const milestoneTasks = tx.tasks.filter(t => t.category === milestone);
+                      const milestoneCompleted = milestoneTasks.filter(t => t.status === "Completed").length;
+                      const milestoneProgress = milestoneTasks.length > 0 ? milestoneCompleted / milestoneTasks.length : 0;
+                      const isDone = milestoneProgress === 1 && milestoneTasks.length > 0;
+                      const isStarted = milestoneProgress > 0;
+                      return (
+                        <div key={milestone} style={{ display: "flex", flexDirection: "column", alignItems: "center", flex: 1 }}>
+                          <div style={{ width: 10, height: 10, borderRadius: "50%", background: isDone ? COLORS.success : isStarted ? COLORS.gold : COLORS.border, border: `2px solid ${isDone ? COLORS.success : isStarted ? COLORS.gold : COLORS.border}`, marginBottom: 3 }} />
+                          <span style={{ fontSize: 9, color: isDone ? COLORS.success : COLORS.muted, fontWeight: isDone ? 700 : 400, whiteSpace: "nowrap" }}>{milestone}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
                 <div style={{ display: "flex", justifyContent: "space-between" }}>
                   <div style={{ fontSize: 12, color: COLORS.muted }}>{tx.parties.length} parties</div>
