@@ -126,7 +126,7 @@ export default function TransactionChat({ transactionId, user, style, onUnreadCh
       </div>
 
       <div style={{ background: "#FEF9E7", borderBottom: "1px solid #F9E79F", padding: "8px 16px", display: "flex", alignItems: "center", gap: 8 }}>
-        <span>⚠️</span>
+        <span>⚠️</span><span style={{marginLeft:8,background:"red",color:"white",padding:"2px 6px",borderRadius:4,fontSize:11}}>unread:{unreadCount}</span>
         <span style={{ fontSize: 12, color: "#7D6608" }}>All parties with portal access can see messages in this chat.</span>
       </div>
 
