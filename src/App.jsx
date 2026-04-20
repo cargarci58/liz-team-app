@@ -1410,7 +1410,7 @@ function Dashboard({ transactions, onSelect, onNew, onOpenContactBook, contactCo
   const [showOverdue, setShowOverdue] = useState(false);
   const [remindingTask, setRemindingTask] = useState(null);
   const [remindingTx, setRemindingTx] = useState(null);
-  const filtered = transactions.filter(tx => ((filter === "All" ? tx.status !== "Cancelled" : tx.status === filter)) && (!search || tx.address.toLowerCase().includes(search.toLowerCase()) || tx.city.toLowerCase().includes(search.toLowerCase()) || (tx.mlsNumber || "").toLowerCase().includes(search.toLowerCase())));
+  const filtered = transactions.filter(tx => ((filter === "All" ? tx.status !== "Cancelled" : tx.status === filter)) && (!search || tx.address.toLowerCase().includes(search.toLowerCase()) || tx.city.toLowerCase().includes(search.toLowerCase()) || (tx.mlsNumber || "").toLowerCase().includes(search.toLowerCase()) || (tx.parties || []).some(p => p && p.name && p.name.toLowerCase().includes(search.toLowerCase()))));
   const stats = {
     active: transactions.filter(t => t.status === "Active").length,
     underContract: transactions.filter(t => t.status === "Under Contract").length,
