@@ -123,14 +123,11 @@ export default function TransactionChat({ transactionId, user, style, onUnreadCh
     };
   }, [transactionId]);
 
-  // Clear unread when component becomes visible
+  // Set visible on mount only
   useEffect(() => {
     isVisible.current = true;
-    if (unreadIds.size > 0) {
-      setUnreadIds(new Set());
-      if (onUnreadChange) onUnreadChange(0);
-    }
-  });
+    return () => { isVisible.current = false; };
+  }, []);
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
