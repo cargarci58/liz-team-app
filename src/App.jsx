@@ -776,6 +776,8 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
   const [chatUnread, setChatUnread] = useState(0);
   const [showEditTx, setShowEditTx] = useState(false);
   const [editTxForm, setEditTxForm] = useState({});
+  const [teamMembers, setTeamMembers] = useState([]);
+  useEffect(() => { const tok = localStorage.getItem("tp_token") || ""; fetch(API + "/users", { headers: { "Authorization": "Bearer " + tok } }).then(r => r.json()).then(d => { if (d.users) setTeamMembers(d.users.filter(u => u.role === "agent" || u.role === "admin")); }).catch(() => {}); }, []);
   const chatUnreadRef = useRef(0);
   const setChatUnreadBoth = (n) => { chatUnreadRef.current = n; setChatUnread(n); };
   const activeTabRef = useRef(activeTab);
@@ -857,7 +859,7 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
         <select value={tx.status} onChange={e => update({ status: e.target.value })} style={{ fontSize: 12, padding: "4px 8px", borderRadius: 6, border: "none", fontFamily: "inherit", background: "rgba(255,255,255,0.15)", color: "#fff", cursor: "pointer" }}>
           {Object.keys(STATUS_CONFIG).map(s => <option key={s} style={{ color: COLORS.text, background: "#fff" }}>{s}</option>)}
         </select>
-        <button onClick={() => { setEditTxForm({ closingDate: tx.closingDate || "", contractPrice: tx.contractPrice || "", openDate: tx.openDate || "", executedDate: tx.executedDate || "", status: tx.status, mlsNumber: tx.mlsNumber || "", notes: tx.notes || "", propertyAccess: tx.propertyAccess || "", commissionListing: tx.commissionListing || "", commissionBuyer: tx.commissionBuyer || "", transactionFee: tx.transactionFee || "", brokerageSplit: tx.brokerageSplit || "", officeFlatFee: tx.officeFlatFee || "", mailAway: tx.mailAway || "No", commissionNotes: tx.commissionNotes || "" }); setShowEditTx(true); }} style={{ fontSize: 11, padding: "4px 10px", borderRadius: 6, border: "1px solid rgba(255,255,255,0.3)", background: "rgba(255,255,255,0.1)", color: "#fff", cursor: "pointer", fontFamily: "inherit" }}>✏️ Edit</button>
+        <button onClick={() => { setEditTxForm({ assignedAgent: tx.assignedAgentId || "", closingDate: tx.closingDate || "", contractPrice: tx.contractPrice || "", openDate: tx.openDate || "", executedDate: tx.executedDate || "", status: tx.status, mlsNumber: tx.mlsNumber || "", notes: tx.notes || "", propertyAccess: tx.propertyAccess || "", commissionListing: tx.commissionListing || "", commissionBuyer: tx.commissionBuyer || "", transactionFee: tx.transactionFee || "", brokerageSplit: tx.brokerageSplit || "", officeFlatFee: tx.officeFlatFee || "", mailAway: tx.mailAway || "No", commissionNotes: tx.commissionNotes || "" }); setShowEditTx(true); }} style={{ fontSize: 11, padding: "4px 10px", borderRadius: 6, border: "1px solid rgba(255,255,255,0.3)", background: "rgba(255,255,255,0.1)", color: "#fff", cursor: "pointer", fontFamily: "inherit" }}>✏️ Edit</button>
         <button onClick={async () => {
           const tok = localStorage.getItem("tp_token") || "";
           const res = await fetch(API + "/transactions/" + tx.id + "/pdf", { headers: { "Authorization": "Bearer " + tok } });
@@ -905,7 +907,7 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
           <div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, marginBottom: 20 }}>
               {[
-                { title: "Property", rows: [["Address", tx.address], ["City/County", `${tx.city}, ${tx.county} County`], ["Zip", tx.zipCode], ["Type", tx.propertyType], ["Transaction", tx.type], ["MLS #", tx.mlsNumber], ["Lockbox Access", tx.propertyAccess || "—"], ["Mail-Away", tx.mailAway || "No"]] },
+                { title: "Property", rows: [["Assigned Agent", tx.assignedAgentName || "—"], ["Address", tx.address], ["City/County", `${tx.city}, ${tx.county} County`], ["Zip", tx.zipCode], ["Type", tx.propertyType], ["Transaction", tx.type], ["MLS #", tx.mlsNumber], ["Lockbox Access", tx.propertyAccess || "—"], ["Mail-Away", tx.mailAway || "No"]] },
                 { title: "Financials", rows: (() => {
                     const price = Number(tx.contractPrice || tx.listPrice || 0);
                     const listComm = tx.commissionListing ? (price * Number(tx.commissionListing) / 100) : 0;
@@ -1133,6 +1135,16 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
                   <input type={type} value={editTxForm[field] || ""} onChange={e => setEditTxForm(f => ({ ...f, [field]: e.target.value }))} style={{ width: "100%", padding: "10px 14px", borderRadius: 8, border: "1.5px solid #CCC", fontSize: 15, fontFamily: "inherit", boxSizing: "border-box" }} />
                 </div>
               ))}
+              {teamMembers.length > 0 && (
+                <div style={{ marginBottom: 16 }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>Assigned Agent</div>
+                  <select value={editTxForm.assignedAgent || ""} onChange={e => setEditTxForm(f => ({ ...f, assignedAgent: e.target.value }))}
+                    style={{ width: "100%", padding: "10px 14px", borderRadius: 8, border: "1.5px solid #CCC", fontSize: 15, fontFamily: "inherit" }}>
+                    <option value="">— Select Agent —</option>
+                    {teamMembers.map(m => <option key={m.id} value={m.id}>{m.first_name} {m.last_name} ({m.role})</option>)}
+                  </select>
+                </div>
+              )}
               <div style={{ marginBottom: 16 }}>
                 <div style={{ fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>Lockbox Access / CBS Code</div>
                 <textarea value={editTxForm.propertyAccess || ""} onChange={e => setEditTxForm(f => ({ ...f, propertyAccess: e.target.value }))} placeholder="Lockbox code, gate code, special instructions..." style={{ width: "100%", padding: "10px 14px", borderRadius: 8, border: "1.5px solid #CCC", fontSize: 14, fontFamily: "inherit", boxSizing: "border-box", minHeight: 60, resize: "vertical" }} />
@@ -1576,6 +1588,8 @@ function MainApp({ onLogout, currentUser }) {
             officeFlatFee: t.office_flat_fee,
             mailAway: t.mail_away,
             commissionNotes: t.commission_notes,
+            assignedAgentId: t.assigned_agent_id,
+            assignedAgentName: t.assigned_agent_name,
             parties: (t.parties || []).filter(Boolean).map(p => ({ id: p.id, role: p.role, name: p.name, email: p.email, phone: p.phone, company: p.company })),
             tasks: (t.tasks || []).filter(Boolean).map(tk => ({ id: tk.id, name: tk.name, status: tk.status, dueDate: tk.dueDate, category: tk.category, assignTo: tk.assignTo })),
             reminders: (t.reminders || []).filter(Boolean).map(r => ({ id: r.id, title: r.title, date: r.date, message: r.message, channels: r.channels, parties: r.parties || [], sent: r.sent })),
@@ -1630,7 +1644,7 @@ function MainApp({ onLogout, currentUser }) {
     setTransactions(txs => txs.map(t => t.id === updated.id ? updated : t));
     const freshTok = localStorage.getItem("tp_token") || "";
     const freshH = { "Content-Type": "application/json", "Authorization": "Bearer " + freshTok };
-    try { const r = await fetch(API + "/transactions/" + updated.id, { method: "PUT", headers: freshH, body: JSON.stringify({ address: updated.address, city: updated.city, state: updated.state, zipCode: updated.zipCode, county: updated.county, mlsNumber: updated.mlsNumber, propertyType: updated.propertyType, type: updated.type, status: updated.status, listPrice: updated.listPrice, contractPrice: updated.contractPrice, openDate: updated.openDate, closingDate: updated.closingDate, executedDate: updated.executedDate, notes: updated.notes, propertyAccess: updated.propertyAccess, commissionListing: updated.commissionListing, commissionBuyer: updated.commissionBuyer, transactionFee: updated.transactionFee, brokerageSplit: updated.brokerageSplit, officeFlatFee: updated.officeFlatFee, mailAway: updated.mailAway, commissionNotes: updated.commissionNotes, smsThreads: updated.smsThreads || {}, parties: updated.parties || [], tasks: updated.tasks || [], reminders: updated.reminders || [] }) }); if (!r.ok) { const e = await r.json(); console.error("Save error:", e); } } catch(e) { console.error("Save failed:", e); }
+    try { const r = await fetch(API + "/transactions/" + updated.id, { method: "PUT", headers: freshH, body: JSON.stringify({ address: updated.address, city: updated.city, state: updated.state, zipCode: updated.zipCode, county: updated.county, mlsNumber: updated.mlsNumber, propertyType: updated.propertyType, type: updated.type, status: updated.status, listPrice: updated.listPrice, contractPrice: updated.contractPrice, openDate: updated.openDate, closingDate: updated.closingDate, executedDate: updated.executedDate, notes: updated.notes, propertyAccess: updated.propertyAccess, commissionListing: updated.commissionListing, commissionBuyer: updated.commissionBuyer, transactionFee: updated.transactionFee, brokerageSplit: updated.brokerageSplit, officeFlatFee: updated.officeFlatFee, mailAway: updated.mailAway, commissionNotes: updated.commissionNotes, assignedAgent: updated.assignedAgentId, smsThreads: updated.smsThreads || {}, parties: updated.parties || [], tasks: updated.tasks || [], reminders: updated.reminders || [] }) }); if (!r.ok) { const e = await r.json(); console.error("Save error:", e); } } catch(e) { console.error("Save failed:", e); }
   }, []);
   const addTransaction = tx => { setTransactions(txs => [tx, ...txs]); setSelectedId(tx.id); setView("detail"); };
 
