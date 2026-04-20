@@ -220,7 +220,7 @@ function PartyCard({ party, onRemove, onEdit, onClick, onInvite }) {
         {party.phone && <div style={{ fontSize: 12, color: COLORS.muted }}>{party.phone}</div>}
       </div>
       <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
-        {onInvite && <button onClick={e => { e.stopPropagation(); onInvite(); }} style={{ background: "none", border: "1px solid #C0392B", borderRadius: 6, cursor: "pointer", color: "#C0392B", fontSize: 11, padding: "2px 8px", fontWeight: 600 }}>📧 Portal</button>}
+        {onInvite && <button onClick={e => { e.stopPropagation(); onInvite(); }} style={{ background: "none", border: "1px solid #C0392B", borderRadius: 6, cursor: "pointer", color: "#C0392B", fontSize: 11, padding: "2px 8px", fontWeight: 600 }}>Send Invite</button>}
         {onEdit && <button onClick={e => { e.stopPropagation(); onEdit(); }} style={{ background: "none", border: `1px solid ${COLORS.border}`, borderRadius: 6, cursor: "pointer", color: COLORS.muted, fontSize: 12, padding: "2px 8px" }}>Edit</button>}
         {onRemove && <button onClick={e => { e.stopPropagation(); onRemove(); }} style={{ background: "none", border: "none", cursor: "pointer", color: COLORS.muted, fontSize: 16 }}>×</button>}
       </div>
@@ -968,17 +968,25 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
           <Input label="Company / Brokerage" value={partyForm.company} onChange={v => setPartyForm(f => ({ ...f, company: v }))} />
           <Input label="Email" value={partyForm.email} onChange={v => setPartyForm(f => ({ ...f, email: v }))} type="email" />
           <Input label="Cell Phone (for SMS)" value={partyForm.phone} onChange={v => setPartyForm(f => ({ ...f, phone: v }))} type="tel" placeholder="407-555-0100" />
-          <label style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16, cursor: "pointer", fontSize: 13, color: COLORS.muted }}>
+          <label style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12, cursor: "pointer", fontSize: 13, color: COLORS.muted }}>
             <input type="checkbox" id="saveContact" style={{ width: 15, height: 15 }} />
             Save this contact to my Contact Book for future transactions
+          </label>
+          <label style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16, cursor: "pointer", fontSize: 13, color: "#C0392B", fontWeight: 600 }}>
+            <input type="checkbox" id="sendInvitation" style={{ width: 15, height: 15 }} />
+            Send portal invitation to this party
           </label>
           <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
             <Btn variant="ghost" onClick={() => setShowAddParty(false)}>Cancel</Btn>
             <Btn onClick={() => {
               if (partyForm.role && partyForm.name) {
-                update({ parties: [...tx.parties, { ...partyForm, id: genId() }] });
+                const newParty = { ...partyForm, id: genId() };
+                update({ parties: [...tx.parties, newParty] });
                 if (document.getElementById("saveContact")?.checked && onSaveContact) {
                   onSaveContact({ ...partyForm, id: genId() });
+                }
+                if (document.getElementById("sendInvitation")?.checked && onInviteParty) {
+                  onInviteParty(newParty);
                 }
                 setPartyForm({ role: "", name: "", email: "", phone: "", company: "" });
                 setShowAddParty(false);
@@ -1120,7 +1128,6 @@ function Dashboard({ transactions, onSelect, onNew, onOpenContactBook, contactCo
           </div>
           <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
             <button onClick={onOpenContactBook} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.2)", color: "rgba(255,255,255,0.85)", borderRadius: 8, padding: "7px 12px", cursor: "pointer", fontSize: 12, fontFamily: "inherit" }}>Contacts{contactCount > 0 ? ` (${contactCount})` : ""}</button>
-            <button onClick={onOpenTeam} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.2)", color: "rgba(255,255,255,0.85)", borderRadius: 8, padding: "7px 12px", cursor: "pointer", fontSize: 12, fontFamily: "inherit" }}>Team</button>
             <button onClick={onNew} style={{ background: "#C0392B", border: "none", color: "#fff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>+ New Transaction</button>
             <button onClick={onLogout} style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.15)", color: "rgba(255,255,255,0.6)", borderRadius: 8, padding: "7px 12px", cursor: "pointer", fontSize: 12, fontFamily: "inherit" }}>Sign Out</button>
           </div>
