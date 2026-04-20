@@ -3,6 +3,7 @@ import UserManagement from "./UserManagement";
 import DocumentsTab from "./DocumentsTab";
 import TransactionChat from "./TransactionChat";
 import Reports from "./Reports";
+import CalendarView from "./CalendarView";
 import ChangePassword from "./ChangePassword";
 import ClientPortal from "./ClientPortal";
 const API = "https://liz-team-server-api-production.up.railway.app";
@@ -1404,7 +1405,7 @@ function NewTransactionForm({ onSave, onCancel }) {
 }
 
 // ─── DASHBOARD ────────────────────────────────────────────────
-function Dashboard({ transactions, onSelect, onNew, onOpenContactBook, contactCount, onLogout, onOpenTeam, onChangePassword, onReports }) {
+function Dashboard({ transactions, onSelect, onNew, onOpenContactBook, contactCount, onLogout, onOpenTeam, onChangePassword, onReports, onCalendar }) {
   const [filter, setFilter] = useState("All");
   const [search, setSearch] = useState("");
   const [showOverdue, setShowOverdue] = useState(false);
@@ -1445,6 +1446,7 @@ function Dashboard({ transactions, onSelect, onNew, onOpenContactBook, contactCo
             <button onClick={onOpenContactBook} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.2)", color: "rgba(255,255,255,0.85)", borderRadius: 8, padding: "7px 12px", cursor: "pointer", fontSize: 12, fontFamily: "inherit" }}>Contacts{contactCount > 0 ? ` (${contactCount})` : ""}</button>
             <button onClick={onNew} style={{ background: "#C0392B", border: "none", color: "#fff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>+ New Transaction</button>
             <button onClick={onReports} style={{ background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.2)", color: "#fff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>📊 Reports</button>
+            <button onClick={onCalendar} style={{ background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.2)", color: "#fff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>📅 Calendar</button>
             <button onClick={onChangePassword} style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.15)", color: "rgba(255,255,255,0.6)", borderRadius: 8, padding: "7px 12px", cursor: "pointer", fontSize: 12, fontFamily: "inherit" }}>Password</button>
             <button onClick={onLogout} style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.15)", color: "rgba(255,255,255,0.6)", borderRadius: 8, padding: "7px 12px", cursor: "pointer", fontSize: 12, fontFamily: "inherit" }}>Sign Out</button>
           </div>
@@ -1760,6 +1762,7 @@ function MainApp({ onLogout, currentUser }) {
   }, []);
   const [view, setView] = useState("dashboard");
   const [showReports, setShowReports] = useState(false);
+  const [showCalendar, setShowCalendar] = useState(false);
   const [selectedId, setSelectedId] = useState(null);
   const [contacts, setContacts] = useState([]);
   const [showTeam, setShowTeam] = useState(false);
@@ -1835,8 +1838,9 @@ function MainApp({ onLogout, currentUser }) {
   return (
     <>
       {showReports && <Reports transactions={transactions} onBack={() => setShowReports(false)} />}
+      {showCalendar && <CalendarView transactions={transactions} onBack={() => setShowCalendar(false)} onSelectTx={id => { setSelectedId(id); setView("detail"); setShowCalendar(false); }} />}
       {!showReports && view === "new" && <NewTransactionForm onSave={addTransaction} onCancel={() => setView("dashboard")} />}
-      {!showReports && view === "detail" && selectedTx && (
+      {!showReports && !showCalendar && view === "detail" && selectedTx && (
         <TransactionDetail
           tx={selectedTx}
           onUpdate={updateTransaction}
@@ -1847,7 +1851,7 @@ function MainApp({ onLogout, currentUser }) {
           onInviteParty={(party) => invitePartyToPortal(party, selectedTx)}
         />
       )}
-      {!showReports && view === "dashboard" && (
+      {!showReports && !showCalendar && view === "dashboard" && (
         <Dashboard
           transactions={transactions}
           onSelect={id => { setSelectedId(id); setView("detail"); }}
@@ -1858,6 +1862,7 @@ function MainApp({ onLogout, currentUser }) {
           onOpenTeam={() => setShowTeam(true)}
           onChangePassword={() => setShowChangePassword(true)}
           onReports={() => setShowReports(true)}
+          onCalendar={() => setShowCalendar(true)}
         />
       )}
       {showTeam && <UserManagement onClose={() => setShowTeam(false)} />}
