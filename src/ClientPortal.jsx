@@ -74,6 +74,44 @@ export default function ClientPortal({ user, onLogout }) {
       .finally(() => setLoading(false));
   }, []);
 
+  // Poll for unread chat messages every 10 seconds
+  useEffect(() => {
+    if (!tx) return;
+    let initialized = false;
+    let lastCount = 0;
+    const myId = (() => { try { const u = JSON.parse(localStorage.getItem("tp_user") || "{}"); return u.id || u.userId; } catch { return null; } })();
+    const tok2 = localStorage.getItem("tp_token") || "";
+    const poll = async () => {
+      if (activeTabRef.current === "chat") return;
+      try {
+        const r = await fetch("https://liz-team-server-api-production.up.railway.app/chat/" + tx.id, {
+          headers: { "Authorization": "Bearer " + tok2 }
+        });
+        const d = await r.json();
+        if (d.messages) {
+          const others = d.messages.filter(m => m.user_id !== myId);
+          if (!initialized) { lastCount = others.length; initialized = true; return; }
+          if (others.length > lastCount) {
+            setChatUnread(prev => prev + (others.length - lastCount));
+            try {
+              const ctx = new (window.AudioContext || window.webkitAudioContext)();
+              const osc = ctx.createOscillator(); const gain = ctx.createGain();
+              osc.connect(gain); gain.connect(ctx.destination);
+              osc.frequency.setValueAtTime(880, ctx.currentTime);
+              gain.gain.setValueAtTime(0.3, ctx.currentTime);
+              gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
+              osc.start(); osc.stop(ctx.currentTime + 0.3);
+            } catch {}
+          }
+          lastCount = others.length;
+        }
+      } catch {}
+    };
+    poll();
+    const interval = setInterval(poll, 10000);
+    return () => clearInterval(interval);
+  }, [tx]);
+
   const handleUpload = async (e) => {
     const file = e.target.files[0];
     if (!file || !tx) return;
