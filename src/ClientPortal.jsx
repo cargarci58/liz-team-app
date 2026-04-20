@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import TransactionChat from "./TransactionChat";
 
 const API = "https://liz-team-server-api-production.up.railway.app";
 
@@ -175,7 +176,7 @@ export default function ClientPortal({ user, onLogout }) {
 
           {/* Tabs */}
           <div style={{ display: "flex", borderBottom: `1px solid ${C.border}`, marginBottom: 0, background: C.white, borderRadius: "12px 12px 0 0", overflowX: "auto" }}>
-            {[["overview", "Overview"], ["documents", "📎 Documents"], ["messages", "💬 Message Agent"], ["contact", "Contact Agent"]].map(([id, label]) => (
+            {[["overview", "Overview"], ["documents", "📎 Documents"], ["chat", "💬 Group Chat"], ["contact", "Contact Agent"]].map(([id, label]) => (
               <button key={id} onClick={() => setActiveTab(id)} style={{ padding: "12px 20px", border: "none", background: "none", borderBottom: `3px solid ${activeTab === id ? C.red : "transparent"}`, color: activeTab === id ? C.red : C.gray, fontWeight: activeTab === id ? 700 : 500, fontSize: 13, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>{label}</button>
             ))}
           </div>
@@ -249,7 +250,10 @@ export default function ClientPortal({ user, onLogout }) {
             )}
 
             {/* Messages Tab */}
-            {activeTab === "messages" && (
+            {activeTab === "chat" && (
+              <div style={{ padding: 16, height: 480 }}><TransactionChat transactionId={tx?.id} user={null} style={{ height: "100%" }} /></div>
+            )}
+            {activeTab === "messages_old" && (
               <div style={{ padding: 20 }}>
                 <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 16 }}>Message Your Agent</div>
                 <div style={{ background: C.lightGray, borderRadius: 12, padding: 16, marginBottom: 16, maxHeight: 300, overflowY: "auto" }}>

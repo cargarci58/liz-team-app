@@ -1,6 +1,7 @@
 import LoginScreen from "./LoginScreen";
 import UserManagement from "./UserManagement";
 import DocumentsTab from "./DocumentsTab";
+import TransactionChat from "./TransactionChat";
 import ChangePassword from "./ChangePassword";
 import ClientPortal from "./ClientPortal";
 const API = "https://liz-team-server-api-production.up.railway.app";
@@ -788,6 +789,7 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
     { id: "sms", label: `Messages${smsMsgCount > 0 ? ` (${smsMsgCount})` : ""}` },
     { id: "notes", label: "Internal Notes" },
     { id: "documents", label: "📎 Documents" },
+    { id: "chat", label: "💬 Group Chat" },
     { id: "reminders", label: "Reminders" },
   ];
 
@@ -929,6 +931,7 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
         )}
 
         {activeTab === "documents" && <DocumentsTab tx={tx} />}
+        {activeTab === "chat" && <div style={{ padding: 20, height: 500 }}><TransactionChat transactionId={tx.id} user={null} style={{ height: "100%" }} /></div>}
         {activeTab === "reminders" && (
           <div>
             <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 16 }}><Btn onClick={() => setShowAddReminder(true)} small>+ Add Reminder</Btn></div>
