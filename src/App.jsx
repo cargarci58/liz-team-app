@@ -227,7 +227,7 @@ if (typeof document !== "undefined" && !document.getElementById("lizteam-mobile"
   document.head.appendChild(s);
 }
 
-function genId() { return Math.random().toString(36).substr(2, 9); }
+function genId() { return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, c => { const r = Math.random() * 16 | 0; return (c === "x" ? r : (r & 0x3 | 0x8)).toString(16); }); }
 function today() { return new Date().toISOString().split("T")[0]; }
 function addDays(date, days) { const d = new Date(date); d.setDate(d.getDate() + days); return d.toISOString().split("T")[0]; }
 function formatDate(s) { if (!s) return "—"; const clean = String(s).includes("T") ? String(s).split("T")[0] : String(s); const d = new Date(clean + "T00:00:00"); return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }); }
