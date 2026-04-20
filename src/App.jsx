@@ -1,6 +1,7 @@
 import LoginScreen from "./LoginScreen";
 import UserManagement from "./UserManagement";
 import DocumentsTab from "./DocumentsTab";
+import ClientPortal from "./ClientPortal";
 const API = "https://liz-team-server-api-production.up.railway.app";
 
 import { useState, useEffect, useCallback, useRef } from "react";
@@ -1486,6 +1487,14 @@ function AuthGate() {
       localStorage.setItem("tp_token", token);
       localStorage.setItem("tp_user", JSON.stringify(user));
       setAuthUser(user);
+    }} />;
+  }
+
+  if (authUser.role === "client") {
+    return <ClientPortal user={authUser} onLogout={() => {
+      localStorage.removeItem("tp_token");
+      localStorage.removeItem("tp_user");
+      setAuthUser(null);
     }} />;
   }
 
