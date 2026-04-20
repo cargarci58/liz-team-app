@@ -775,7 +775,7 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
   const updateTask = updated => update({ tasks: tx.tasks.map(t => t.id === updated.id ? updated : t) });
   const [chatUnread, setChatUnread] = useState(0);
   const chatUnreadRef = useRef(0);
-  const setChatUnreadBoth = (n) => { chatUnreadRef.current = n; setChatUnreadBoth(n); };
+  const setChatUnreadBoth = (n) => { chatUnreadRef.current = n; setChatUnread(n); };
   const activeTabRef = useRef(activeTab);
   useEffect(() => { activeTabRef.current = activeTab; if (activeTab === "chat") setChatUnreadBoth(0); }, [activeTab]);
 
