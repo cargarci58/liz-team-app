@@ -1,6 +1,8 @@
+import { useState } from "react";
+
 export default function CalendarView({ transactions, onBack, onSelectTx }) {
-  const [currentDate, setCurrentDate] = React.useState(new Date());
-  const [selectedDay, setSelectedDay] = React.useState(null);
+  const [currentDate, setCurrentDate] = useState(new Date());
+  const [selectedDay, setSelectedDay] = useState(null);
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
