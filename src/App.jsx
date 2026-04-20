@@ -208,7 +208,7 @@ function PartyAvatar({ party, size = 40 }) {
   return <div style={{ width: size, height: size, borderRadius: "50%", background: color + "22", color, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: size * 0.35, flexShrink: 0 }}>{initials}</div>;
 }
 
-function PartyCard({ party, onRemove, onEdit, onClick }) {
+function PartyCard({ party, onRemove, onEdit, onClick, onInvite }) {
   return (
     <div onClick={onClick} style={{ background: "#fff", border: `1px solid ${COLORS.border}`, borderRadius: 10, padding: "12px 14px", display: "flex", alignItems: "flex-start", gap: 12, marginBottom: 8, cursor: onClick ? "pointer" : "default" }}>
       <PartyAvatar party={party} />
@@ -220,6 +220,7 @@ function PartyCard({ party, onRemove, onEdit, onClick }) {
         {party.phone && <div style={{ fontSize: 12, color: COLORS.muted }}>{party.phone}</div>}
       </div>
       <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
+        {onInvite && <button onClick={e => { e.stopPropagation(); onInvite(); }} style={{ background: "none", border: "1px solid #C0392B", borderRadius: 6, cursor: "pointer", color: "#C0392B", fontSize: 11, padding: "2px 8px", fontWeight: 600 }}>📧 Portal</button>}
         {onEdit && <button onClick={e => { e.stopPropagation(); onEdit(); }} style={{ background: "none", border: `1px solid ${COLORS.border}`, borderRadius: 6, cursor: "pointer", color: COLORS.muted, fontSize: 12, padding: "2px 8px" }}>Edit</button>}
         {onRemove && <button onClick={e => { e.stopPropagation(); onRemove(); }} style={{ background: "none", border: "none", cursor: "pointer", color: COLORS.muted, fontSize: 16 }}>×</button>}
       </div>
@@ -756,7 +757,7 @@ function SMSPanel({ tx, onUpdate }) {
   );
 }
 
-function TransactionDetail({ tx, onUpdate, onBack, contacts = [], onSaveContact, onOpenContactBook }) {
+function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [], onSaveContact, onOpenContactBook }) {
   const [activeTab, setActiveTab] = useState("overview");
   const [showAddParty, setShowAddParty] = useState(false);
   const [showAddTask, setShowAddTask] = useState(false);
@@ -889,7 +890,7 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts = [], onSaveContact,
             {PARTY_ROLES.map(role => {
               const members = tx.parties.filter(p => p.role === role);
               if (!members.length) return null;
-              return <div key={role} style={{ marginBottom: 16 }}><div style={{ fontSize: 12, fontWeight: 700, color: COLORS.muted, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 8 }}>{role}</div>{members.map(p => <PartyCard key={p.id} party={p} onEdit={() => setEditingParty({ ...p })} onRemove={() => update({ parties: tx.parties.filter(pp => pp.id !== p.id) })} />)}</div>;
+              return <div key={role} style={{ marginBottom: 16 }}><div style={{ fontSize: 12, fontWeight: 700, color: COLORS.muted, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 8 }}>{role}</div>{members.map(p => <PartyCard key={p.id} party={p} onEdit={() => setEditingParty({ ...p })} onRemove={() => update({ parties: tx.parties.filter(pp => pp.id !== p.id) })} onInvite={onInviteParty ? () => onInviteParty(p) : undefined} />)}</div>;
             })}
           </div>
         )}
@@ -1436,6 +1437,25 @@ function MainApp({ onLogout, currentUser }) {
   }, []);
   const addTransaction = tx => { setTransactions(txs => [tx, ...txs]); setSelectedId(tx.id); setView("detail"); };
 
+  const invitePartyToPortal = async (party, txAddress) => {
+    if (!party.email) { alert("This party has no email address. Add one first."); return; }
+    if (!window.confirm(`Send portal access to ${party.name} (${party.email})?`)) return;
+    const tok = localStorage.getItem("tp_token") || "";
+    try {
+      const res = await fetch(API + "/auth/invite", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": "Bearer " + tok },
+        body: JSON.stringify({ email: party.email, firstName: party.name.split(" ")[0], lastName: party.name.split(" ").slice(1).join(" ") || ".", role: "client", phone: party.phone || "" }),
+      });
+      const data = await res.json();
+      if (res.ok || data.error === "Email already registered") {
+        alert("Portal access sent to " + party.email + "! They will receive login credentials by email.");
+      } else {
+        alert("Failed: " + (data.error || "Unknown error"));
+      }
+    } catch (e) { alert("Error: " + e.message); }
+  };
+
   return (
     <>
       {view === "new" && <NewTransactionForm onSave={addTransaction} onCancel={() => setView("dashboard")} />}
@@ -1447,6 +1467,7 @@ function MainApp({ onLogout, currentUser }) {
           contacts={contacts}
           onSaveContact={addContact}
           onOpenContactBook={openContactBook}
+          onInviteParty={(party) => invitePartyToPortal(party, selectedTx?.address)}
         />
       )}
       {view === "dashboard" && (
