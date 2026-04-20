@@ -1073,6 +1073,25 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
               <div style={{ fontSize: 13, color: COLORS.muted }}>{completedTasks}/{tx.tasks.length} complete {overdueTasks > 0 && <span style={{ color: COLORS.danger }}>· {overdueTasks} overdue</span>}</div>
               <Btn onClick={() => setShowAddTask(true)} small>+ Add Task</Btn>
+              {tx.tasks.length === 0 && (
+                <Btn onClick={() => {
+                  if (window.confirm("Generate Florida task checklist for this transaction? This will add all standard FL tasks.")) {
+                    const templates = FLORIDA_TASK_TEMPLATES[tx.type] || [];
+                    const newTasks = templates.map(t => ({
+                      id: genId(),
+                      name: t.name,
+                      category: t.category,
+                      assignTo: t.assignTo,
+                      dueDate: t.daysFromOpen >= 0
+                        ? (tx.openDate ? addDays(tx.openDate, t.daysFromOpen) : null)
+                        : (tx.closingDate ? addDays(tx.closingDate, t.daysFromOpen) : null),
+                      status: "Pending",
+                      notes: ""
+                    }));
+                    update({ tasks: newTasks });
+                  }
+                }} small variant="secondary">🏠 Generate FL Tasks</Btn>
+              )}
             </div>
             {sortedTaskCategories.map(([cat, tasks]) => (
               <div key={cat} style={{ marginBottom: 24 }}>
