@@ -827,7 +827,7 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
   const daysToClose = daysUntil(tx.closingDate);
   const statusCfg = STATUS_CONFIG[tx.status] || STATUS_CONFIG["Active"];
   const progress = tx.tasks.length > 0 ? Math.round(completedTasks / tx.tasks.length * 100) : 0;
-  const CATEGORY_ORDER = ["Contract", "Disclosure", "Marketing", "Inspection", "Title", "Finance", "Closing", "General"];
+  const CATEGORY_ORDER = ["Contract", "Disclosure", "Marketing", "Showing", "Inspection", "Escrow", "HOA", "Financing", "Insurance", "Appraisal", "Title", "Closing", "Commission Disbursement", "General"];
   const tasksByCategory = tx.tasks.reduce((acc, t) => { acc[t.category] = acc[t.category] || []; acc[t.category].push(t); return acc; }, {});
   const sortedTaskCategories = Object.entries(tasksByCategory).sort(([a], [b]) => { const ai = CATEGORY_ORDER.indexOf(a); const bi = CATEGORY_ORDER.indexOf(b); return (ai === -1 ? 999 : ai) - (bi === -1 ? 999 : bi); });
   const smsMsgCount = Object.values(tx.smsThreads || {}).reduce((a, t) => a + t.length, 0);
