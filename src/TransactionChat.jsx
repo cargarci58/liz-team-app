@@ -87,6 +87,14 @@ export default function TransactionChat({ transactionId, user, style, onUnreadCh
 
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
 
+  // Notify parent to clear badge after showing unread messages
+  useEffect(() => {
+    if (unreadCount > 0 && onUnreadChange) {
+      const t = setTimeout(() => onUnreadChange(0), 2000);
+      return () => clearTimeout(t);
+    }
+  }, [unreadCount]);
+
   const sendMessage = () => {
     if (!newMsg.trim() || !socketRef.current) return;
     socketRef.current.emit("send_message", { transactionId, message: newMsg.trim() });
