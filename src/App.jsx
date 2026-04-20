@@ -905,7 +905,7 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
           <div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, marginBottom: 20 }}>
               {[
-                { title: "Property", rows: [["Address", tx.address], ["City/County", `${tx.city}, ${tx.county} County`], ["Zip", tx.zipCode], ["Type", tx.propertyType], ["Transaction", tx.type], ["MLS #", tx.mlsNumber]] },
+                { title: "Property", rows: [["Address", tx.address], ["City/County", `${tx.city}, ${tx.county} County`], ["Zip", tx.zipCode], ["Type", tx.propertyType], ["Transaction", tx.type], ["MLS #", tx.mlsNumber], ["Property Access", tx.propertyAccess || "—"], ["Mail-Away", tx.mailAway || "No"]] },
                 { title: "Financials", rows: [["List Price", tx.listPrice ? `$${Number(tx.listPrice).toLocaleString()}` : "—"], ["Contract Price", tx.contractPrice ? `$${Number(tx.contractPrice).toLocaleString()}` : "—"], ["Difference", tx.listPrice && tx.contractPrice ? `$${(Number(tx.contractPrice) - Number(tx.listPrice)).toLocaleString()}` : "—"], ["Open Date", formatDate(tx.openDate)], ["Executed Date", formatDate(tx.executedDate)], ["Closing Date", formatDate(tx.closingDate)], ["Days to Close", daysToClose !== null ? `${daysToClose}d` : "—"], ["Mail-Away", tx.mailAway || "No"], ["Listing Commission", tx.commissionListing ? tx.commissionListing + "%" : "—"], ["Buyer Commission", tx.commissionBuyer ? tx.commissionBuyer + "%" : "—"]] },
               ].map(({ title, rows }) => (
                 <div key={title} style={{ background: "#fff", border: `1px solid ${COLORS.border}`, borderRadius: 12, padding: 20 }}>
