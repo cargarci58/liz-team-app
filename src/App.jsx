@@ -1,6 +1,7 @@
 import LoginScreen from "./LoginScreen";
 import UserManagement from "./UserManagement";
 import DocumentsTab from "./DocumentsTab";
+import ChangePassword from "./ChangePassword";
 import ClientPortal from "./ClientPortal";
 const API = "https://liz-team-server-api-production.up.railway.app";
 
@@ -1098,7 +1099,7 @@ function NewTransactionForm({ onSave, onCancel }) {
 }
 
 // ─── DASHBOARD ────────────────────────────────────────────────
-function Dashboard({ transactions, onSelect, onNew, onOpenContactBook, contactCount, onLogout, onOpenTeam }) {
+function Dashboard({ transactions, onSelect, onNew, onOpenContactBook, contactCount, onLogout, onOpenTeam, onChangePassword }) {
   const [filter, setFilter] = useState("All");
   const [search, setSearch] = useState("");
   const [showOverdue, setShowOverdue] = useState(false);
@@ -1413,6 +1414,7 @@ function MainApp({ onLogout, currentUser }) {
   const [selectedId, setSelectedId] = useState(null);
   const [contacts, setContacts] = useState([]);
   const [showTeam, setShowTeam] = useState(false);
+  const [showChangePassword, setShowChangePassword] = useState(false);
   const [showContactBook, setShowContactBook] = useState(false);
   const [contactBookCallback, setContactBookCallback] = useState(null);
 
