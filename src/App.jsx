@@ -905,8 +905,33 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
           <div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, marginBottom: 20 }}>
               {[
-                { title: "Property", rows: [["Address", tx.address], ["City/County", `${tx.city}, ${tx.county} County`], ["Zip", tx.zipCode], ["Type", tx.propertyType], ["Transaction", tx.type], ["MLS #", tx.mlsNumber], ["Property Access", tx.propertyAccess || "—"], ["Mail-Away", tx.mailAway || "No"]] },
-                { title: "Financials", rows: [["List Price", tx.listPrice ? `$${Number(tx.listPrice).toLocaleString()}` : "—"], ["Contract Price", tx.contractPrice ? `$${Number(tx.contractPrice).toLocaleString()}` : "—"], ["Difference", tx.listPrice && tx.contractPrice ? `$${(Number(tx.contractPrice) - Number(tx.listPrice)).toLocaleString()}` : "—"], ["Open Date", formatDate(tx.openDate)], ["Executed Date", formatDate(tx.executedDate)], ["Closing Date", formatDate(tx.closingDate)], ["Days to Close", daysToClose !== null ? `${daysToClose}d` : "—"], ["Mail-Away", tx.mailAway || "No"], ["Listing Commission", tx.commissionListing ? tx.commissionListing + "%" : "—"], ["Buyer Commission", tx.commissionBuyer ? tx.commissionBuyer + "%" : "—"]] },
+                { title: "Property", rows: [["Address", tx.address], ["City/County", `${tx.city}, ${tx.county} County`], ["Zip", tx.zipCode], ["Type", tx.propertyType], ["Transaction", tx.type], ["MLS #", tx.mlsNumber], ["Lockbox Access", tx.propertyAccess || "—"], ["Mail-Away", tx.mailAway || "No"]] },
+                { title: "Financials", rows: (() => {
+                    const price = Number(tx.contractPrice || tx.listPrice || 0);
+                    const listComm = tx.commissionListing ? (price * Number(tx.commissionListing) / 100) : 0;
+                    const buyerComm = tx.commissionBuyer ? (price * Number(tx.commissionBuyer) / 100) : 0;
+                    const totalComm = listComm + buyerComm;
+                    const txFee = Number(tx.transactionFee || 0);
+                    const split = tx.brokerageSplit ? totalComm * Number(tx.brokerageSplit) / 100 : 0;
+                    const flatFee = Number(tx.officeFlatFee || 0);
+                    const netComm = totalComm + txFee - split - flatFee;
+                    return [
+                      ["List Price", tx.listPrice ? `$${Number(tx.listPrice).toLocaleString()}` : "—"],
+                      ["Contract Price", tx.contractPrice ? `$${Number(tx.contractPrice).toLocaleString()}` : "—"],
+                      ["Open Date", formatDate(tx.openDate)],
+                      ["Executed Date", formatDate(tx.executedDate)],
+                      ["Closing Date", formatDate(tx.closingDate)],
+                      ["Days to Close", daysToClose !== null ? `${daysToClose}d` : "—"],
+                      ["Mail-Away", tx.mailAway || "No"],
+                      ["Listing Commission", tx.commissionListing ? `${tx.commissionListing}% ($${listComm.toLocaleString(undefined,{maximumFractionDigits:0})})` : "—"],
+                      ["Buyer Commission", tx.commissionBuyer ? `${tx.commissionBuyer}% ($${buyerComm.toLocaleString(undefined,{maximumFractionDigits:0})})` : "—"],
+                      ["Transaction Fee", tx.transactionFee ? `$${Number(tx.transactionFee).toLocaleString()}` : "—"],
+                      ["Brokerage Split", tx.brokerageSplit ? `${tx.brokerageSplit}% (-$${split.toLocaleString(undefined,{maximumFractionDigits:0})})` : "—"],
+                      ["Office Flat Fee", tx.officeFlatFee ? `-$${Number(tx.officeFlatFee).toLocaleString()}` : "—"],
+                      ["Total Gross Commission", totalComm > 0 ? `$${totalComm.toLocaleString(undefined,{maximumFractionDigits:0})}` : "—"],
+                      ["Est. Net Commission", netComm > 0 ? `$${netComm.toLocaleString(undefined,{maximumFractionDigits:0})}` : "—"],
+                    ];
+                  })() },
               ].map(({ title, rows }) => (
                 <div key={title} style={{ background: "#fff", border: `1px solid ${COLORS.border}`, borderRadius: 12, padding: 20 }}>
                   <h3 style={{ margin: "0 0 16px", fontSize: 14, color: COLORS.navy, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em" }}>{title}</h3>
@@ -1109,7 +1134,7 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
                 </div>
               ))}
               <div style={{ marginBottom: 16 }}>
-                <div style={{ fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>Property Access / Lockbox CBS Code</div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>Lockbox Access / CBS Code</div>
                 <textarea value={editTxForm.propertyAccess || ""} onChange={e => setEditTxForm(f => ({ ...f, propertyAccess: e.target.value }))} placeholder="Lockbox code, gate code, special instructions..." style={{ width: "100%", padding: "10px 14px", borderRadius: 8, border: "1.5px solid #CCC", fontSize: 14, fontFamily: "inherit", boxSizing: "border-box", minHeight: 60, resize: "vertical" }} />
               </div>
               <div style={{ background: "#F4F4F4", borderRadius: 10, padding: 16, marginBottom: 16 }}>
@@ -1235,6 +1260,15 @@ function Dashboard({ transactions, onSelect, onNew, onOpenContactBook, contactCo
     underContract: transactions.filter(t => t.status === "Under Contract").length,
     closed: transactions.filter(t => t.status === "Closed").length,
     overdueAny: transactions.reduce((acc, t) => acc + t.tasks.filter(tk => { const d = daysUntil(tk.dueDate); return d !== null && d < 0 && tk.status !== "Completed" && tk.status !== "Waived"; }).length, 0),
+    totalCommission: transactions.filter(t => t.status === "Closed").reduce((acc, t) => {
+      const price = Number(t.contractPrice || t.listPrice || 0);
+      const listComm = t.commissionListing ? price * Number(t.commissionListing) / 100 : 0;
+      const buyerComm = t.commissionBuyer ? price * Number(t.commissionBuyer) / 100 : 0;
+      const txFee = Number(t.transactionFee || 0);
+      const split = t.brokerageSplit ? (listComm + buyerComm) * Number(t.brokerageSplit) / 100 : 0;
+      const flatFee = Number(t.officeFlatFee || 0);
+      return acc + (listComm + buyerComm + txFee - split - flatFee);
+    }, 0),
     closingSoon: transactions.filter(t => { const d = daysUntil(t.closingDate); return d !== null && d >= 0 && d <= 14 && t.status === "Under Contract"; }).length,
     totalVolume: transactions.filter(t => t.status !== "Cancelled").reduce((a, t) => a + (Number(t.contractPrice) || Number(t.listPrice) || 0), 0),
   };
@@ -1259,7 +1293,7 @@ function Dashboard({ transactions, onSelect, onNew, onOpenContactBook, contactCo
           </div>
         </div>
         <div data-stats-bar="" style={{ display: "flex", marginTop: 16, borderTop: "1px solid rgba(255,255,255,0.1)", overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
-          {[["Active Listings", stats.active, COLORS.gold, null], ["Under Contract", stats.underContract, "#93C5FD", null], ["Closed", stats.closed, "#6EE7B7", null], ["Overdue Tasks", stats.overdueAny, stats.overdueAny > 0 ? "#FCA5A5" : "#6EE7B7", stats.overdueAny > 0 ? () => setShowOverdue(true) : null], ["Closing ≤14d", stats.closingSoon, stats.closingSoon > 0 ? "#FDE68A" : "rgba(255,255,255,0.4)", null], ["Volume", `$${(stats.totalVolume / 1000000).toFixed(2)}M`, COLORS.gold, null]].map(([label, value, color, onClick]) => (
+          {[["Active Listings", stats.active, COLORS.gold, null], ["Under Contract", stats.underContract, "#93C5FD", null], ["Closed", stats.closed, "#6EE7B7", null], ["Overdue Tasks", stats.overdueAny, stats.overdueAny > 0 ? "#FCA5A5" : "#6EE7B7", stats.overdueAny > 0 ? () => setShowOverdue(true) : null], ["Closing ≤14d", stats.closingSoon, stats.closingSoon > 0 ? "#FDE68A" : "rgba(255,255,255,0.4)", null], ["Volume", `$${(stats.totalVolume / 1000000).toFixed(2)}M`, COLORS.gold, null], ["Closed Commission", stats.totalCommission > 0 ? `$${Math.round(stats.totalCommission).toLocaleString()}` : "$0", "#6EE7B7", null]].map(([label, value, color, onClick]) => (
             <div key={label} onClick={onClick} style={{ padding: "12px 20px", flex: 1, cursor: onClick ? "pointer" : "default" }}>
               <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>{label}{onClick && " ↗"}</div>
               <div style={{ color, fontSize: 22, fontWeight: 800, marginTop: 2 }}>{value}</div>
