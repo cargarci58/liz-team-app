@@ -774,6 +774,8 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
   const update = changes => onUpdate({ ...tx, ...changes });
   const updateTask = updated => update({ tasks: tx.tasks.map(t => t.id === updated.id ? updated : t) });
   const [chatUnread, setChatUnread] = useState(0);
+  const activeTabRef = React.useRef(activeTab);
+  React.useEffect(() => { activeTabRef.current = activeTab; if (activeTab === "chat") setChatUnread(0); }, [activeTab]);
 
   const completedTasks = tx.tasks.filter(t => t.status === "Completed").length;
   const overdueTasks = tx.tasks.filter(t => { const d = daysUntil(t.dueDate); return d !== null && d < 0 && t.status !== "Completed" && t.status !== "Waived"; }).length;
@@ -932,7 +934,7 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
         )}
 
         {activeTab === "documents" && <DocumentsTab tx={tx} />}
-        {activeTab === "chat" && <div style={{ padding: 20, height: 500 }} onClick={() => setChatUnread(0)}><TransactionChat transactionId={tx.id} user={null} style={{ height: "100%" }} onUnreadChange={n => { if (activeTab !== "chat") setChatUnread(n); }} /></div>}
+        {activeTab === "chat" && <div style={{ padding: 20, height: 500 }} onClick={() => setChatUnread(0)}><TransactionChat transactionId={tx.id} user={null} style={{ height: "100%" }} onUnreadChange={n => { if (activeTabRef.current !== "chat") setChatUnread(n); }} /></div>}
         {activeTab === "reminders" && (
           <div>
             <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 16 }}><Btn onClick={() => setShowAddReminder(true)} small>+ Add Reminder</Btn></div>
