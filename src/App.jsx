@@ -1213,11 +1213,12 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
         </Modal>
       )}
       {showAddParty && (
-        <Modal title="Add Party" onClose={() => setShowAddParty(false)}>
+        <Modal title="Add Party" onClose={() => { setShowAddParty(false); setPartyFromContactBook(false); }}>
           {contacts.length > 0 && (
             <div style={{ marginBottom: 16 }}>
               <Btn small variant="secondary" onClick={() => onOpenContactBook && onOpenContactBook(contact => {
                 setPartyForm({ role: contact.role, name: contact.name, company: contact.company || "", email: contact.email || "", phone: contact.phone || "" });
+                setPartyFromContactBook(true);
                 setShowAddParty(true);
               })}>👥 Pick from Contact Book</Btn>
               <span style={{ fontSize: 12, color: COLORS.muted, marginLeft: 10 }}>or fill in manually below</span>
@@ -1235,10 +1236,12 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
             {partyForm.role === "Buyer" && <Input label="Primary Residence?" value={partyForm.primaryResidence} onChange={v => setPartyForm(f => ({ ...f, primaryResidence: v }))} options={["Yes", "No"]} />}
             <Input label="Mail-Away / Mobile Closing?" value={partyForm.mailAway} onChange={v => setPartyForm(f => ({ ...f, mailAway: v }))} options={["Yes", "No"]} />
           </>)}
-          <label style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12, cursor: "pointer", fontSize: 13, color: COLORS.muted }}>
-            <input type="checkbox" id="saveContact" style={{ width: 15, height: 15 }} />
-            Save this contact to my Contact Book for future transactions
-          </label>
+          {!partyFromContactBook && (
+            <label style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12, cursor: "pointer", fontSize: 13, color: COLORS.muted }}>
+              <input type="checkbox" id="saveContact" style={{ width: 15, height: 15 }} />
+              Save this contact to my Contact Book for future transactions
+            </label>
+          )}
           <label style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16, cursor: "pointer", fontSize: 13, color: "#C0392B", fontWeight: 600 }}>
             <input type="checkbox" id="sendInvitation" style={{ width: 15, height: 15 }} />
             Send portal invitation to this party
@@ -1256,6 +1259,7 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
                   onInviteParty({ ...newParty });
                 }
                 setPartyForm({ role: "", name: "", email: "", phone: "", company: "" });
+                setPartyFromContactBook(false);
                 setShowAddParty(false);
               }
             }}>Add Party</Btn>
