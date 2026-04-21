@@ -1770,6 +1770,7 @@ function MainApp({ onLogout, currentUser }) {
   const [contacts, setContacts] = useState([]);
   const [showTeam, setShowTeam] = useState(false);
   const [showChangePassword, setShowChangePassword] = useState(false);
+  const [forcePasswordReset, setForcePasswordReset] = useState(false);
   const [showCompanySettings, setShowCompanySettings] = useState(false);
   const [showContactBook, setShowContactBook] = useState(false);
   const [contactBookCallback, setContactBookCallback] = useState(null);
@@ -1911,6 +1912,7 @@ function MainApp({ onLogout, currentUser }) {
       {showTeam && <UserManagement onClose={() => setShowTeam(false)} />}
 
       {showChangePassword && <ChangePassword onClose={() => setShowChangePassword(false)} />}
+      {forcePasswordReset && <ChangePassword forceReset onClose={() => setForcePasswordReset(false)} />}
       {showCompanySettings && <CompanySettings onClose={() => setShowCompanySettings(false)} />}
       {showContactBook && (
         <ContactBook

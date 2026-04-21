@@ -1,6 +1,6 @@
 const API = "https://liz-team-server-api-production.up.railway.app";
 
-export default function ChangePassword({ onClose }) {
+export default function ChangePassword({ onClose, forceReset }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     const current = e.target.current.value;
@@ -40,6 +40,7 @@ export default function ChangePassword({ onClose }) {
           <button onClick={onClose} style={{ background: "none", border: "none", color: "rgba(255,255,255,0.6)", fontSize: 20, cursor: "pointer" }}>×</button>
         </div>
         <div style={{ padding: 24 }}>
+          {forceReset && <div style={{ background: "#FEF9E7", border: "1px solid #B7860B", borderRadius: 8, padding: 12, marginBottom: 14, fontSize: 13, color: "#B7860B", fontWeight: 600 }}>For security, please set a new password before continuing.</div>}
           <div id="cp-error" style={{ color: "#C0392B", fontSize: 13, marginBottom: 8, minHeight: 18 }}></div>
           <div id="cp-success" style={{ color: "#1E8449", fontSize: 13, marginBottom: 8, minHeight: 18 }}></div>
           <form onSubmit={handleSubmit}>
