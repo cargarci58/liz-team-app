@@ -6,6 +6,7 @@ import Reports from "./Reports";
 import CalendarView from "./CalendarView";
 import ChangePassword from "./ChangePassword";
 import CompanySettings from "./CompanySettings";
+import AgentProfile from "./AgentProfile";
 import ClientPortal from "./ClientPortal";
 const API = "https://liz-team-server-api-production.up.railway.app";
 
@@ -1603,7 +1604,7 @@ function NewTransactionForm({ onSave, onCancel }) {
 }
 
 // ─── DASHBOARD ────────────────────────────────────────────────
-function Dashboard({ transactions, onSelect, onNew, onOpenContactBook, contactCount, onLogout, onOpenTeam, onChangePassword, onReports, onCalendar, onCompanySettings }) {
+function Dashboard({ transactions, onSelect, onNew, onOpenContactBook, contactCount, onLogout, onOpenTeam, onChangePassword, onReports, onCalendar, onCompanySettings, onAgentProfile }) {
   const [filter, setFilter] = useState("All");
   const [search, setSearch] = useState("");
   const [showOverdue, setShowOverdue] = useState(false);
@@ -1646,6 +1647,7 @@ function Dashboard({ transactions, onSelect, onNew, onOpenContactBook, contactCo
             <button onClick={onReports} style={{ background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.2)", color: "#fff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>📊 Reports</button>
             <button onClick={onCalendar} style={{ background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.2)", color: "#fff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>📅 Calendar</button>
             <button onClick={onChangePassword} style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.15)", color: "rgba(255,255,255,0.6)", borderRadius: 8, padding: "7px 12px", cursor: "pointer", fontSize: 12, fontFamily: "inherit" }}>Password</button>
+            <button onClick={onAgentProfile} style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.15)", color: "rgba(255,255,255,0.6)", borderRadius: 8, padding: "7px 12px", cursor: "pointer", fontSize: 12, fontFamily: "inherit" }}>👤 Profile</button>
             <button onClick={onCompanySettings} style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.15)", color: "rgba(255,255,255,0.6)", borderRadius: 8, padding: "7px 12px", cursor: "pointer", fontSize: 12, fontFamily: "inherit" }}>🏢 Settings</button>
             <button onClick={onLogout} style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.15)", color: "rgba(255,255,255,0.6)", borderRadius: 8, padding: "7px 12px", cursor: "pointer", fontSize: 12, fontFamily: "inherit" }}>Sign Out</button>
           </div>
@@ -1968,6 +1970,7 @@ function MainApp({ onLogout, currentUser }) {
   const [showChangePassword, setShowChangePassword] = useState(false);
   const [forcePasswordReset, setForcePasswordReset] = useState(false);
   const [showCompanySettings, setShowCompanySettings] = useState(false);
+  const [showAgentProfile, setShowAgentProfile] = useState(false);
   const [showContactBook, setShowContactBook] = useState(false);
   const [contactBookCallback, setContactBookCallback] = useState(null);
 
@@ -2103,6 +2106,7 @@ function MainApp({ onLogout, currentUser }) {
           onChangePassword={() => setShowChangePassword(true)}
           onReports={() => setShowReports(true)}
           onCompanySettings={() => setShowCompanySettings(true)}
+          onAgentProfile={() => setShowAgentProfile(true)}
           onCalendar={() => setShowCalendar(true)}
         />
       )}
@@ -2111,6 +2115,7 @@ function MainApp({ onLogout, currentUser }) {
       {showChangePassword && <ChangePassword onClose={() => setShowChangePassword(false)} />}
       {forcePasswordReset && <ChangePassword forceReset onClose={() => setForcePasswordReset(false)} />}
       {showCompanySettings && <CompanySettings onClose={() => setShowCompanySettings(false)} />}
+      {showAgentProfile && <AgentProfile currentUser={currentUser} onClose={() => setShowAgentProfile(false)} />}
       {showContactBook && (
         <ContactBook
           contacts={contacts}
