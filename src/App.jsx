@@ -493,12 +493,18 @@ function TaskReminderModal({ task, tx, onClose }) {
 function SMSPanel({ tx, onUpdate, currentUser }) {
   const [companyName, setCompanyName] = useState("");
   const [agentPhone, setAgentPhone] = useState("");
+  const [agentFullName, setAgentFullName] = useState("");
   useEffect(() => {
     const tok = localStorage.getItem("tp_token") || "";
     fetch("https://liz-team-server-api-production.up.railway.app/settings/company", { headers: { "Authorization": "Bearer " + tok } })
       .then(r => r.json()).then(d => { if (d.company) setCompanyName(d.company.name || ""); }).catch(() => {});
     fetch("https://liz-team-server-api-production.up.railway.app/profile", { headers: { "Authorization": "Bearer " + tok } })
-      .then(r => r.json()).then(d => { if (d.profile) setAgentPhone(d.profile.phone || ""); }).catch(() => {});
+      .then(r => r.json()).then(d => { 
+        if (d.profile) {
+          setAgentPhone(d.profile.phone || "");
+          setAgentFullName(((d.profile.firstName || "") + " " + (d.profile.lastName || "")).trim());
+        }
+      }).catch(() => {});
   }, []);
   const [serverOnline, setServerOnline] = useState(null);
   const [emailOnline, setEmailOnline] = useState(false);
@@ -730,7 +736,7 @@ function SMSPanel({ tx, onUpdate, currentUser }) {
                     {EMAIL_TEMPLATES.map((tmpl, i) => (
                       <button key={i} onClick={() => {
                         try {
-                          const agentFirst = (currentUser ? (currentUser.firstName || "") + " " + (currentUser.lastName || "") : "").trim();
+                          const agentFirst = agentFullName || (currentUser ? ((currentUser.firstName || "") + " " + (currentUser.lastName || "")).trim() : "");
                           const email = (currentUser && currentUser.email) ? currentUser.email : "";
                           const phone = agentPhone || "";
                           const company = companyName || "";
