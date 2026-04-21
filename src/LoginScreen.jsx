@@ -75,20 +75,41 @@ export default function LoginScreen({ onLogin }) {
           <div id="register-form" style={{ display: "none" }}>
             <div id="reg-error" style={{ color: "#C0392B", fontSize: 13, marginBottom: 12, minHeight: 20 }}></div>
             <form onSubmit={handleRegister}>
-              <label style={lbl}>Brokerage Name</label>
-              <input name="brokerageName" type="text" required style={inp} placeholder="ABC Realty" />
-              <label style={lbl}>First Name</label>
+              <label style={lbl}>Account Type</label>
+              <select name="accountType" required style={inp}>
+                <option value="solo">Solo Agent — Just me managing my transactions</option>
+                <option value="brokerage">Brokerage — I manage a team of agents</option>
+              </select>
+              <label style={lbl}>Brokerage / Business Name</label>
+              <input name="brokerageName" type="text" required style={inp} placeholder="ABC Realty or Your Name Realty" />
+              <label style={lbl}>Your First Name</label>
               <input name="firstName" type="text" required style={inp} placeholder="Carlos" />
-              <label style={lbl}>Last Name</label>
+              <label style={lbl}>Your Last Name</label>
               <input name="lastName" type="text" required style={inp} placeholder="Garcia" />
               <label style={lbl}>Email</label>
-              <input name="email" type="email" autoComplete="email" required style={inp} placeholder="you@brokerage.com" />
+              <input name="email" type="email" autoComplete="email" required style={inp} placeholder="you@youremail.com" />
               <label style={lbl}>Phone</label>
               <input name="phone" type="tel" style={inp} placeholder="407-555-0100" />
+              <label style={lbl}>State</label>
+              <select name="state" style={inp}>
+                <option value="FL">Florida</option>
+                <option value="TX">Texas</option>
+                <option value="CA">California</option>
+                <option value="NY">New York</option>
+                <option value="GA">Georgia</option>
+                <option value="NC">North Carolina</option>
+                <option value="AZ">Arizona</option>
+                <option value="CO">Colorado</option>
+                <option value="WA">Washington</option>
+                <option value="other">Other</option>
+              </select>
               <label style={lbl}>Password</label>
               <input name="password" type="password" autoComplete="new-password" required style={inp} placeholder="Min 8 characters" />
               <label style={lbl}>Confirm Password</label>
               <input name="confirmPassword" type="password" autoComplete="new-password" required style={inp} placeholder="Repeat password" />
+              <div style={{ background: "#F0FFF4", border: "1px solid #1E8449", borderRadius: 8, padding: 12, marginBottom: 14, fontSize: 12, color: "#1E8449" }}>
+                14-day free trial. No credit card required.
+              </div>
               <button id="reg-btn" type="submit" style={sbtn}>Start Free Trial</button>
             </form>
           </div>
