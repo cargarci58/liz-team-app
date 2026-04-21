@@ -870,6 +870,7 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
   const [chatUnread, setChatUnread] = useState(0);
   const [showEditTx, setShowEditTx] = useState(false);
   const [editTxForm, setEditTxForm] = useState({});
+  const [statusChangeModal, setStatusChangeModal] = useState(null);
   const [selectedTasks, setSelectedTasks] = useState([]);
   const [activities, setActivities] = useState([]);
   const [activitiesLoaded, setActivitiesLoaded] = useState(false);
@@ -956,16 +957,20 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
         <Badge label={tx.status} color={statusCfg.color} bg={statusCfg.bg} />
         <select value={tx.status} onChange={e => {
           const newStatus = e.target.value;
-          const contractStatuses = ["Under Contract", "Closed", "On Hold"];
-          if (contractStatuses.includes(tx.status) && newStatus === "Active") {
-            const confirm = window.confirm(
-              "Are you sure you want to change status back to Active?\n\n" +
-              "This may indicate a contract fell through.\n\n" +
-              "Note: Contract task due dates will remain but can be cleared manually. Continue?"
-            );
-            if (!confirm) { e.target.value = tx.status; return; }
+          if (newStatus === tx.status) return;
+          if (["Under Contract","Closed","On Hold","Cancelled"].includes(tx.status) && newStatus === "Active") {
+            const confirmed = window.confirm("Change back to Active?\n\nAll contract task due dates will be cleared and tasks reset to Pending.");
+            if (!confirmed) { e.target.value = tx.status; return; }
+            const clearedTasks = tx.tasks.map(t => {
+              const tmpl = (FLORIDA_TASK_TEMPLATES[tx.type] || []).find(tmp => tmp.name === t.name);
+              if (tmpl && tmpl.phase === "contract") return { ...t, dueDate: null, status: "Pending" };
+              return t;
+            });
+            update({ status: newStatus, tasks: clearedTasks });
+            return;
           }
-          update({ status: newStatus });
+          setStatusChangeModal({ newStatus, form: { executedDate: tx.executedDate || "", closingDate: tx.closingDate || "", inspectionDays: "10", note: "" } });
+          e.target.value = tx.status;
         }} style={{ fontSize: 12, padding: "4px 8px", borderRadius: 6, border: "none", fontFamily: "inherit", background: "rgba(255,255,255,0.15)", color: "#fff", cursor: "pointer" }}>
           {Object.keys(STATUS_CONFIG).map(s => <option key={s} style={{ color: COLORS.text, background: "#fff" }}>{s}</option>)}
         </select>
@@ -1256,6 +1261,105 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
             }}>Add Party</Btn>
           </div>
         </Modal>
+      )}
+      {statusChangeModal && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 2000, display: "flex", alignItems: "center", justifyContent: "center", padding: 16, fontFamily: "system-ui, sans-serif" }}>
+          <div style={{ background: "#fff", borderRadius: 14, width: "100%", maxWidth: 480, boxShadow: "0 8px 40px rgba(0,0,0,0.2)", overflow: "hidden" }}>
+            <div style={{ background: "#0F2044", padding: "16px 24px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div style={{ color: "#fff", fontWeight: 700, fontSize: 16 }}>
+                {statusChangeModal.newStatus === "Under Contract" ? "Under Contract Details" :
+                 statusChangeModal.newStatus === "Closed" ? "Closing Details" :
+                 statusChangeModal.newStatus === "On Hold" ? "Place On Hold" :
+                 statusChangeModal.newStatus === "Cancelled" ? "Cancel Transaction" :
+                 "Change Status"}
+              </div>
+              <button onClick={() => setStatusChangeModal(null)} style={{ background: "none", border: "none", color: "rgba(255,255,255,0.6)", fontSize: 20, cursor: "pointer" }}>x</button>
+            </div>
+            <div style={{ padding: 24 }}>
+              {statusChangeModal.newStatus === "Under Contract" && (
+                <>
+                  <div style={{ background: "#F0FFF4", border: "1px solid #1E8449", borderRadius: 8, padding: 12, marginBottom: 16, fontSize: 13, color: "#1E8449", fontWeight: 600 }}>
+                    All contract task due dates will be calculated from these dates.
+                  </div>
+                  <div style={{ marginBottom: 14 }}>
+                    <label style={{ fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", display: "block", marginBottom: 6 }}>Executed Date (Contract Date) *</label>
+                    <input type="date" value={statusChangeModal.form.executedDate} onChange={e => setStatusChangeModal(m => ({ ...m, form: { ...m.form, executedDate: e.target.value } }))}
+                      style={{ width: "100%", padding: "10px 14px", borderRadius: 8, border: "1.5px solid #CCC", fontSize: 14, fontFamily: "inherit", boxSizing: "border-box" }} />
+                  </div>
+                  <div style={{ marginBottom: 14 }}>
+                    <label style={{ fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", display: "block", marginBottom: 6 }}>Closing Date *</label>
+                    <input type="date" value={statusChangeModal.form.closingDate} onChange={e => setStatusChangeModal(m => ({ ...m, form: { ...m.form, closingDate: e.target.value } }))}
+                      style={{ width: "100%", padding: "10px 14px", borderRadius: 8, border: "1.5px solid #CCC", fontSize: 14, fontFamily: "inherit", boxSizing: "border-box" }} />
+                  </div>
+                  <div style={{ marginBottom: 14 }}>
+                    <label style={{ fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", display: "block", marginBottom: 6 }}>Inspection Period (days)</label>
+                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                      {["7", "10", "15", "custom"].map(d => (
+                        <button key={d} type="button" onClick={() => setStatusChangeModal(m => ({ ...m, form: { ...m.form, inspectionDays: d === "custom" ? "" : d } }))}
+                          style={{ padding: "8px 16px", borderRadius: 8, border: "1.5px solid " + (statusChangeModal.form.inspectionDays === d ? "#C0392B" : "#CCC"), background: statusChangeModal.form.inspectionDays === d ? "#FEF2F2" : "#fff", color: statusChangeModal.form.inspectionDays === d ? "#C0392B" : "#555", fontWeight: 600, cursor: "pointer", fontFamily: "inherit", fontSize: 13 }}>
+                          {d === "custom" ? "Custom" : d + " days"}
+                        </button>
+                      ))}
+                    </div>
+                    {(statusChangeModal.form.inspectionDays === "" || !["7","10","15"].includes(statusChangeModal.form.inspectionDays)) && (
+                      <input type="number" placeholder="Enter days" value={statusChangeModal.form.inspectionDays} onChange={e => setStatusChangeModal(m => ({ ...m, form: { ...m.form, inspectionDays: e.target.value } }))}
+                        style={{ marginTop: 8, width: "100%", padding: "10px 14px", borderRadius: 8, border: "1.5px solid #CCC", fontSize: 14, fontFamily: "inherit", boxSizing: "border-box" }} />
+                    )}
+                  </div>
+                </>
+              )}
+              {statusChangeModal.newStatus === "Closed" && (
+                <div style={{ marginBottom: 14 }}>
+                  <label style={{ fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", display: "block", marginBottom: 6 }}>Actual Closing Date</label>
+                  <input type="date" value={statusChangeModal.form.closingDate} onChange={e => setStatusChangeModal(m => ({ ...m, form: { ...m.form, closingDate: e.target.value } }))}
+                    style={{ width: "100%", padding: "10px 14px", borderRadius: 8, border: "1.5px solid #CCC", fontSize: 14, fontFamily: "inherit", boxSizing: "border-box" }} />
+                </div>
+              )}
+              {(statusChangeModal.newStatus === "On Hold" || statusChangeModal.newStatus === "Cancelled") && (
+                <div style={{ marginBottom: 14 }}>
+                  <label style={{ fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", display: "block", marginBottom: 6 }}>
+                    {statusChangeModal.newStatus === "Cancelled" ? "Cancellation Reason" : "Reason for Hold"}
+                  </label>
+                  <textarea value={statusChangeModal.form.note} onChange={e => setStatusChangeModal(m => ({ ...m, form: { ...m.form, note: e.target.value } }))}
+                    placeholder={statusChangeModal.newStatus === "Cancelled" ? "e.g. Financing fell through..." : "e.g. Waiting for probate..."}
+                    rows={3} style={{ width: "100%", padding: "10px 14px", borderRadius: 8, border: "1.5px solid #CCC", fontSize: 14, fontFamily: "inherit", boxSizing: "border-box", resize: "none" }} />
+                </div>
+              )}
+              <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 8 }}>
+                <button onClick={() => setStatusChangeModal(null)} style={{ padding: "10px 18px", border: "1px solid #CCC", borderRadius: 8, background: "none", cursor: "pointer", fontFamily: "inherit" }}>Cancel</button>
+                <button onClick={() => {
+                  const { newStatus, form } = statusChangeModal;
+                  const inspDays = parseInt(form.inspectionDays) || 10;
+                  const updates = { status: newStatus };
+                  if (form.closingDate) updates.closingDate = form.closingDate;
+                  if (form.executedDate) updates.executedDate = form.executedDate;
+                  if (form.note) updates.notes = (tx.notes ? tx.notes + "\n\n" : "") + newStatus + " Note: " + form.note;
+                  if (newStatus === "Under Contract" && form.executedDate) {
+                    const templates = FLORIDA_TASK_TEMPLATES[tx.type] || [];
+                    updates.tasks = tx.tasks.map(t => {
+                      const tmpl = templates.find(tmp => tmp.name === t.name);
+                      if (tmpl && tmpl.phase === "contract") {
+                        let days = tmpl.daysFromOpen;
+                        if (t.name.includes("Inspection Period")) days = inspDays;
+                        if (t.name.includes("BINSR") || t.name.includes("Review Inspection")) days = inspDays + 2;
+                        if (days !== null && days >= 0) {
+                          return { ...t, dueDate: addDays(form.executedDate, days) };
+                        } else if (days < 0 && form.closingDate) {
+                          return { ...t, dueDate: addDays(form.closingDate, days) };
+                        }
+                      }
+                      return t;
+                    });
+                  }
+                  update(updates);
+                  setStatusChangeModal(null);
+                }} style={{ padding: "10px 24px", background: "#C0392B", color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                  Confirm
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
       {showAddTask && (
         <Modal title="Add Task" onClose={() => setShowAddTask(false)}>
