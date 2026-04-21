@@ -38,13 +38,12 @@ const PARTY_ROLES = [
 const EMAIL_TEMPLATES = [
   { label: "Intro", subject: (addr) => `Your Transaction — ${addr}`, body: (name, addr, agent) => `Hi ${name},
 
-This is ${agent} with The Liz Team Realty. I wanted to reach out regarding your transaction at ${addr}.
+This is ${agent}. I wanted to reach out regarding your transaction at ${addr}.
 
 I'm here to guide you through this process and make sure everything goes smoothly. Please don't hesitate to reach out if you have any questions.
 
 Best regards,
-${agent}
-The Liz Team Realty` },
+${agent}` },
   { label: "Documents Needed", subject: (addr) => `Documents Required — ${addr}`, body: (name, addr, agent) => `Hi ${name},
 
 I hope you're doing well! I'm reaching out regarding ${addr} because we still need the following documents to keep your transaction on track.
@@ -54,8 +53,7 @@ Please send these as soon as possible to avoid any delays in your closing.
 If you have any questions about what's needed, please call or text me directly.
 
 Best regards,
-${agent}
-The Liz Team Realty` },
+${agent}` },
   { label: "Inspection Scheduled", subject: (addr) => `Inspection Scheduled — ${addr}`, body: (name, addr, agent, closing) => `Hi ${name},
 
 Great news! The inspection for ${addr} has been scheduled.
@@ -65,8 +63,7 @@ Please ensure the property is accessible at the scheduled time. If you have a lo
 If you have any questions, don't hesitate to reach out.
 
 Best regards,
-${agent}
-The Liz Team Realty` },
+${agent}` },
   { label: "Closing Reminder", subject: (addr) => `Closing Reminder — ${addr}`, body: (name, addr, agent, closing) => `Hi ${name},
 
 This is a reminder that your closing for ${addr} is approaching${closing ? " on " + closing : ""}.
@@ -80,8 +77,7 @@ Please make sure you:
 Please don't hesitate to contact me with any questions.
 
 Best regards,
-${agent}
-The Liz Team Realty` },
+${agent}` },
   { label: "Under Contract", subject: (addr) => `Under Contract — ${addr}`, body: (name, addr, agent, closing) => `Hi ${name},
 
 Excellent news! ${addr} is now officially under contract!
@@ -96,8 +92,7 @@ Here are the next steps:
 I'll keep you updated every step of the way. Feel free to reach out anytime.
 
 Best regards,
-${agent}
-The Liz Team Realty` },
+${agent}` },
   { label: "Clear to Close", subject: (addr) => `Clear to Close — ${addr}`, body: (name, addr, agent, closing) => `Hi ${name},
 
 Fantastic news! We have received Clear to Close for ${addr}!
@@ -111,11 +106,10 @@ Please review the Closing Disclosure carefully and contact me with any questions
 We're almost there!
 
 Best regards,
-${agent}
-The Liz Team Realty` },
+${agent}` },
   { label: "Thank You", subject: (addr) => `Thank You — ${addr}`, body: (name, addr, agent) => `Hi ${name},
 
-Thank you so much for trusting The Liz Team Realty with your real estate transaction at ${addr}.
+Thank you so much for trusting us with your real estate transaction at ${addr}.
 
 It was a pleasure working with you and I hope we exceeded your expectations. If you ever need anything in the future or know someone buying or selling, I would love to help!
 
@@ -124,8 +118,7 @@ A referral is the greatest compliment I can receive.
 Wishing you all the best!
 
 Warm regards,
-${agent}
-The Liz Team Realty` },
+${agent}` },
 ];
 
 // phase: "active" = no due date needed (pre-contract tasks)
