@@ -969,7 +969,7 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
               if (tmpl && tmpl.phase === "contract") return { ...t, dueDate: null, status: "Pending" };
               return t;
             });
-            update({ status: newStatus, tasks: clearedTasks });
+            update({ status: newStatus, tasks: clearedTasks, closingDate: null, executedDate: null, contractPrice: null, commissionListing: null, commissionBuyer: null, transactionFee: null, brokerageSplit: null, officeFlatFee: null, commissionNotes: null });
             return;
           }
           setStatusChangeModal({ newStatus, form: { executedDate: tx.executedDate || "", closingDate: tx.closingDate || "", inspectionDays: "10", note: "" } });
