@@ -24,6 +24,28 @@ export default function AgentProfile({ onClose, currentUser }) {
       }).catch(() => setLoading(false));
   }, []);
 
+  const [uploading, setUploading] = useState(false);
+
+  const handlePhotoUpload = async (file) => {
+    if (!file) return;
+    if (!file.type.startsWith("image/")) { alert("Please select an image file."); return; }
+    if (file.size > 5 * 1024 * 1024) { alert("Photo must be under 5MB."); return; }
+    setUploading(true);
+    try {
+      // Get upload URL
+      const res = await fetch(API + "/profile/photo-url", {
+        method: "POST", headers,
+        body: JSON.stringify({ fileName: file.name, fileType: file.type })
+      });
+      const data = await res.json();
+      if (!data.uploadUrl) throw new Error("Failed to get upload URL");
+      // Upload to R2
+      await fetch(data.uploadUrl, { method: "PUT", body: file, headers: { "Content-Type": file.type } });
+      setForm(f => ({ ...f, photoUrl: data.photoUrl }));
+    } catch (e) { alert("Upload failed: " + e.message); }
+    setUploading(false);
+  };
+
   const save = async () => {
     setSaving(true);
     try {
@@ -84,9 +106,16 @@ export default function AgentProfile({ onClose, currentUser }) {
             </div>
 
             <div style={{ marginBottom: 16 }}>
-              <label style={lbl}>Profile Photo URL</label>
+              <label style={lbl}>Profile Photo</label>
+              <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 8 }}>
+                <label style={{ display: "inline-block", padding: "8px 16px", background: "#111", color: "#fff", borderRadius: 8, cursor: "pointer", fontSize: 13, fontWeight: 600, fontFamily: "inherit" }}>
+                  {uploading ? "Uploading..." : "📷 Upload Photo"}
+                  <input type="file" accept="image/*" style={{ display: "none" }} onChange={e => handlePhotoUpload(e.target.files[0])} disabled={uploading} />
+                </label>
+                <span style={{ fontSize: 12, color: "#888" }}>or paste URL below</span>
+              </div>
               <input value={form.photoUrl} onChange={e => setForm(f => ({ ...f, photoUrl: e.target.value }))} style={inp} placeholder="https://yoursite.com/photo.jpg" />
-              <div style={{ fontSize: 11, color: "#888", marginTop: 6 }}>Upload your photo to a hosting service and paste the URL. This appears in email signatures.</div>
+              <div style={{ fontSize: 11, color: "#888", marginTop: 6 }}>Max 5MB. JPG, PNG, or GIF. This appears in your email signatures.</div>
             </div>
 
             {/* Email Signature Preview */}
