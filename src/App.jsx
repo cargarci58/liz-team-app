@@ -1365,6 +1365,53 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
           </div>
         </div>
       )}
+      {showContractWizard && (
+        <Modal title="🎉 Under Contract — Enter Contract Details" onClose={() => setShowContractWizard(false)}>
+          <div style={{ fontSize: 13, color: "#555", marginBottom: 16, background: "#F0FFF4", border: "1px solid #1E8449", borderRadius: 8, padding: 12 }}>
+            Congratulations! Please fill in the contract details. Task due dates will be calculated automatically from the executed date.
+          </div>
+          <Input label="Contract Executed Date *" value={contractWizardForm.executedDate} onChange={v => setContractWizardForm(f => ({ ...f, executedDate: v }))} type="date" required />
+          <Input label="Closing Date *" value={contractWizardForm.closingDate} onChange={v => setContractWizardForm(f => ({ ...f, closingDate: v }))} type="date" required />
+          <Input label="Contract Price ($)" value={contractWizardForm.contractPrice} onChange={v => setContractWizardForm(f => ({ ...f, contractPrice: v }))} type="number" />
+          <Input label="Listing Commission (%)" value={contractWizardForm.commissionListing} onChange={v => setContractWizardForm(f => ({ ...f, commissionListing: v }))} type="number" />
+          <Input label="Buyer Agent Commission (%)" value={contractWizardForm.commissionBuyer} onChange={v => setContractWizardForm(f => ({ ...f, commissionBuyer: v }))} type="number" />
+          <Input label="Transaction Fee ($)" value={contractWizardForm.transactionFee} onChange={v => setContractWizardForm(f => ({ ...f, transactionFee: v }))} type="number" />
+          <Input label="Brokerage Split (%)" value={contractWizardForm.brokerageSplit} onChange={v => setContractWizardForm(f => ({ ...f, brokerageSplit: v }))} type="number" />
+          <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 8 }}>
+            <Btn variant="ghost" onClick={() => setShowContractWizard(false)}>Skip for Now</Btn>
+            <Btn onClick={() => {
+              if (!contractWizardForm.executedDate || !contractWizardForm.closingDate) {
+                alert("Please enter the Executed Date and Closing Date.");
+                return;
+              }
+              // Update contract tasks with due dates from executed date
+              const templates = FLORIDA_TASK_TEMPLATES[tx.type] || [];
+              const updatedTasks = tx.tasks.map(task => {
+                const template = templates.find(t => t.name === task.name);
+                if (template && template.phase === "contract" && template.daysFromOpen !== null) {
+                  const dueDate = template.daysFromOpen >= 0
+                    ? addDays(contractWizardForm.executedDate, template.daysFromOpen)
+                    : addDays(contractWizardForm.closingDate, template.daysFromOpen);
+                  return { ...task, dueDate, status: "Pending" };
+                }
+                return task;
+              });
+              update({
+                status: "Under Contract",
+                executedDate: contractWizardForm.executedDate,
+                closingDate: contractWizardForm.closingDate,
+                contractPrice: contractWizardForm.contractPrice || tx.contractPrice,
+                commissionListing: contractWizardForm.commissionListing || tx.commissionListing,
+                commissionBuyer: contractWizardForm.commissionBuyer || tx.commissionBuyer,
+                transactionFee: contractWizardForm.transactionFee || tx.transactionFee,
+                brokerageSplit: contractWizardForm.brokerageSplit || tx.brokerageSplit,
+                tasks: updatedTasks,
+              });
+              setShowContractWizard(false);
+            }}>Save & Go Under Contract</Btn>
+          </div>
+        </Modal>
+      )}
       {showAddTask && (
         <Modal title="Add Task" onClose={() => setShowAddTask(false)}>
           <Input label="Task Name" value={taskForm.name} onChange={v => setTaskForm(f => ({ ...f, name: v }))} required />
