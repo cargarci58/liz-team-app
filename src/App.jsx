@@ -127,60 +127,67 @@ ${agent}
 The Liz Team Realty` },
 ];
 
+// phase: "active" = no due date needed (pre-contract tasks)
+// phase: "contract" = due dates calculated from executed/contract date
+// daysFromOpen: positive = days after contract date, negative = days before closing
 const FLORIDA_TASK_TEMPLATES = {
   "Listing (Seller)": [
-    { name: "Execute Listing Agreement (FR/Bar)", daysFromOpen: 0, category: "Contract", assignTo: "Listing Agent" },
-    { name: "Order Seller's Disclosure (FR/Bar Mandatory)", daysFromOpen: 1, category: "Disclosure", assignTo: "Listing Agent" },
-    { name: "Confirm HOA/Condo Docs if applicable", daysFromOpen: 2, category: "Disclosure", assignTo: "Transaction Coordinator" },
-    { name: "Input MLS Listing (FMLS/Stellar MLS)", daysFromOpen: 2, category: "Marketing", assignTo: "Listing Agent" },
-    { name: "Property Photos / Drone / Virtual Tour", daysFromOpen: 3, category: "Marketing", assignTo: "Listing Agent" },
-    { name: "Syndicate to Zillow, Realtor.com, etc.", daysFromOpen: 3, category: "Marketing", assignTo: "Listing Agent" },
-    { name: "Pre-Listing Home Inspection (optional)", daysFromOpen: 3, category: "Inspection", assignTo: "Inspector" },
-    { name: "Review and Negotiate Offer(s)", daysFromOpen: 0, category: "Contract", assignTo: "Listing Agent" },
-    { name: "Execute FR/Bar AS-IS or Standard Contract", daysFromOpen: 0, category: "Contract", assignTo: "Transaction Coordinator" },
-    { name: "Open Escrow / Title Order", daysFromOpen: 1, category: "Title", assignTo: "Title Company" },
-    { name: "Verify Earnest Money Deposit Received (3 business days per FL law)", daysFromOpen: 3, category: "Escrow", assignTo: "Transaction Coordinator" },
-    { name: "Inspection Period Tracking (default 10 days per FR/Bar)", daysFromOpen: 10, category: "Inspection", assignTo: "Inspector" },
-    { name: "Buyer Inspection Notice & Seller's Response (BINSR)", daysFromOpen: 12, category: "Inspection", assignTo: "Listing Agent" },
-    { name: "Loan Approval Period Monitoring (if financed)", daysFromOpen: 21, category: "Financing", assignTo: "Loan Officer/Lender" },
-    { name: "Appraisal Ordered", daysFromOpen: 14, category: "Financing", assignTo: "Appraiser" },
-    { name: "Appraisal Report Received", daysFromOpen: 21, category: "Financing", assignTo: "Appraiser" },
-    { name: "HOA Approval (if applicable)", daysFromOpen: 14, category: "HOA", assignTo: "HOA Manager" },
-    { name: "Title Search Completed", daysFromOpen: 14, category: "Title", assignTo: "Title Company" },
-    { name: "Title Commitment Issued", daysFromOpen: 21, category: "Title", assignTo: "Title Company" },
-    { name: "Survey (if required)", daysFromOpen: 14, category: "Title", assignTo: "Title Company" },
-    { name: "Homeowner's Insurance Binding (Buyer to provide)", daysFromOpen: 21, category: "Insurance", assignTo: "Insurance Agent" },
-    { name: "Final Walk-Through (24-48 hrs before closing)", daysFromOpen: -1, category: "Closing", assignTo: "Listing Agent" },
-    { name: "Closing Disclosure (CD) Review", daysFromOpen: -3, category: "Closing", assignTo: "Title Company" },
-    { name: "Wire Transfer / Proceeds Confirmed", daysFromOpen: 0, category: "Closing", assignTo: "Title Company" },
-    { name: "Closing Day / Deed Recorded", daysFromOpen: 0, category: "Closing", assignTo: "Title Company" },
-    { name: "MLS Status Update to Closed", daysFromOpen: 0, category: "Post-Closing", assignTo: "Listing Agent" },
-    { name: "Commission Disbursement (per DBPR rules)", daysFromOpen: 0, category: "Post-Closing", assignTo: "Transaction Coordinator" },
+    // ── ACTIVE PHASE (Pre-Contract) ─────────────────────────
+    { name: "Execute Listing Agreement (FR/Bar)", phase: "active", daysFromOpen: null, category: "Contract", assignTo: "Listing Agent" },
+    { name: "Order Seller's Disclosure (FR/Bar Mandatory)", phase: "active", daysFromOpen: null, category: "Disclosure", assignTo: "Listing Agent" },
+    { name: "Confirm HOA/Condo Docs if applicable", phase: "active", daysFromOpen: null, category: "Disclosure", assignTo: "Transaction Coordinator" },
+    { name: "Input MLS Listing (FMLS/Stellar MLS)", phase: "active", daysFromOpen: null, category: "Marketing", assignTo: "Listing Agent" },
+    { name: "Property Photos / Drone / Virtual Tour", phase: "active", daysFromOpen: null, category: "Marketing", assignTo: "Listing Agent" },
+    { name: "Syndicate to Zillow, Realtor.com, etc.", phase: "active", daysFromOpen: null, category: "Marketing", assignTo: "Listing Agent" },
+    { name: "Pre-Listing Home Inspection (optional)", phase: "active", daysFromOpen: null, category: "Inspection", assignTo: "Inspector" },
+    { name: "Review and Negotiate Offer(s)", phase: "active", daysFromOpen: null, category: "Contract", assignTo: "Listing Agent" },
+    // ── UNDER CONTRACT PHASE ────────────────────────────────
+    { name: "Execute FR/Bar AS-IS or Standard Contract", phase: "contract", daysFromOpen: 0, category: "Contract", assignTo: "Transaction Coordinator" },
+    { name: "Open Escrow / Title Order", phase: "contract", daysFromOpen: 1, category: "Title", assignTo: "Title Company" },
+    { name: "Verify Earnest Money Deposit Received (3 business days per FL law)", phase: "contract", daysFromOpen: 3, category: "Escrow", assignTo: "Transaction Coordinator" },
+    { name: "Inspection Period Tracking (default 10 days per FR/Bar)", phase: "contract", daysFromOpen: 10, category: "Inspection", assignTo: "Inspector" },
+    { name: "Buyer Inspection Notice & Seller's Response (BINSR)", phase: "contract", daysFromOpen: 12, category: "Inspection", assignTo: "Listing Agent" },
+    { name: "Appraisal Ordered", phase: "contract", daysFromOpen: 14, category: "Financing", assignTo: "Appraiser" },
+    { name: "HOA Approval (if applicable)", phase: "contract", daysFromOpen: 14, category: "HOA", assignTo: "HOA Manager" },
+    { name: "Title Search Completed", phase: "contract", daysFromOpen: 14, category: "Title", assignTo: "Title Company" },
+    { name: "Survey (if required)", phase: "contract", daysFromOpen: 14, category: "Title", assignTo: "Title Company" },
+    { name: "Appraisal Report Received", phase: "contract", daysFromOpen: 21, category: "Financing", assignTo: "Appraiser" },
+    { name: "Loan Approval Period Monitoring (if financed)", phase: "contract", daysFromOpen: 21, category: "Financing", assignTo: "Loan Officer/Lender" },
+    { name: "Title Commitment Issued", phase: "contract", daysFromOpen: 21, category: "Title", assignTo: "Title Company" },
+    { name: "Homeowner's Insurance Binding (Buyer to provide)", phase: "contract", daysFromOpen: 21, category: "Insurance", assignTo: "Insurance Agent" },
+    { name: "Closing Disclosure (CD) Review", phase: "contract", daysFromOpen: -3, category: "Closing", assignTo: "Title Company" },
+    { name: "Final Walk-Through (24-48 hrs before closing)", phase: "contract", daysFromOpen: -1, category: "Closing", assignTo: "Listing Agent" },
+    { name: "Wire Transfer / Proceeds Confirmed", phase: "contract", daysFromOpen: -1, category: "Closing", assignTo: "Title Company" },
+    { name: "Closing Day / Deed Recorded", phase: "contract", daysFromOpen: 0, category: "Closing", assignTo: "Title Company" },
+    { name: "MLS Status Update to Closed", phase: "contract", daysFromOpen: 1, category: "Post-Closing", assignTo: "Listing Agent" },
+    { name: "Commission Disbursement (per DBPR rules)", phase: "contract", daysFromOpen: 1, category: "Post-Closing", assignTo: "Transaction Coordinator" },
   ],
   "Buyer Representation": [
-    { name: "Execute Buyer Representation Agreement (per FL SB 1076)", daysFromOpen: 0, category: "Contract", assignTo: "Buyer's Agent" },
-    { name: "Pre-Approval Letter Obtained", daysFromOpen: 0, category: "Financing", assignTo: "Loan Officer/Lender" },
-    { name: "Property Search & Showings", daysFromOpen: 0, category: "Showing", assignTo: "Buyer's Agent" },
-    { name: "Submit Offer (FR/Bar Contract)", daysFromOpen: 0, category: "Contract", assignTo: "Buyer's Agent" },
-    { name: "Offer Accepted / Counter Negotiation", daysFromOpen: 0, category: "Contract", assignTo: "Buyer's Agent" },
-    { name: "Earnest Money Deposit to Escrow (3 business days per FL law)", daysFromOpen: 3, category: "Escrow", assignTo: "Transaction Coordinator" },
-    { name: "Open Title Order", daysFromOpen: 1, category: "Title", assignTo: "Title Company" },
-    { name: "Schedule Home Inspection", daysFromOpen: 2, category: "Inspection", assignTo: "Inspector" },
-    { name: "Inspection Period (default 10 days per FR/Bar)", daysFromOpen: 10, category: "Inspection", assignTo: "Inspector" },
-    { name: "Review Inspection Report with Buyer", daysFromOpen: 11, category: "Inspection", assignTo: "Buyer's Agent" },
-    { name: "Submit BINSR / Request Repairs", daysFromOpen: 11, category: "Inspection", assignTo: "Buyer's Agent" },
-    { name: "Formal Loan Application Submitted", daysFromOpen: 5, category: "Financing", assignTo: "Loan Officer/Lender" },
-    { name: "Appraisal Ordered by Lender", daysFromOpen: 10, category: "Financing", assignTo: "Appraiser" },
-    { name: "Loan Approval/Commitment Letter", daysFromOpen: 21, category: "Financing", assignTo: "Loan Officer/Lender" },
-    { name: "HOA Application & Approval (if applicable)", daysFromOpen: 14, category: "HOA", assignTo: "HOA Manager" },
-    { name: "Review Title Commitment", daysFromOpen: 21, category: "Title", assignTo: "Title Company" },
-    { name: "Bind Homeowner's Insurance", daysFromOpen: 21, category: "Insurance", assignTo: "Insurance Agent" },
-    { name: "Review Closing Disclosure (3-day wait per RESPA)", daysFromOpen: -3, category: "Closing", assignTo: "Buyer's Agent" },
-    { name: "Wire Closing Funds to Title", daysFromOpen: -1, category: "Closing", assignTo: "Buyer" },
-    { name: "Final Walk-Through", daysFromOpen: -1, category: "Closing", assignTo: "Buyer's Agent" },
-    { name: "Closing Day / Keys Delivered", daysFromOpen: 0, category: "Closing", assignTo: "Title Company" },
-    { name: "Utility Transfer Reminder to Buyer", daysFromOpen: 0, category: "Post-Closing", assignTo: "Transaction Coordinator" },
-    { name: "Commission Disbursement", daysFromOpen: 0, category: "Post-Closing", assignTo: "Transaction Coordinator" },
+    // ── ACTIVE PHASE (Pre-Contract) ─────────────────────────
+    { name: "Execute Buyer Representation Agreement (per FL SB 1076)", phase: "active", daysFromOpen: null, category: "Contract", assignTo: "Buyer's Agent" },
+    { name: "Pre-Approval Letter Obtained", phase: "active", daysFromOpen: null, category: "Financing", assignTo: "Loan Officer/Lender" },
+    { name: "Property Search & Showings", phase: "active", daysFromOpen: null, category: "Showing", assignTo: "Buyer's Agent" },
+    { name: "Submit Offer (FR/Bar Contract)", phase: "active", daysFromOpen: null, category: "Contract", assignTo: "Buyer's Agent" },
+    { name: "Offer Accepted / Counter Negotiation", phase: "active", daysFromOpen: null, category: "Contract", assignTo: "Buyer's Agent" },
+    // ── UNDER CONTRACT PHASE ────────────────────────────────
+    { name: "Earnest Money Deposit to Escrow (3 business days per FL law)", phase: "contract", daysFromOpen: 3, category: "Escrow", assignTo: "Transaction Coordinator" },
+    { name: "Open Title Order", phase: "contract", daysFromOpen: 1, category: "Title", assignTo: "Title Company" },
+    { name: "Schedule Home Inspection", phase: "contract", daysFromOpen: 2, category: "Inspection", assignTo: "Inspector" },
+    { name: "Formal Loan Application Submitted", phase: "contract", daysFromOpen: 5, category: "Financing", assignTo: "Loan Officer/Lender" },
+    { name: "Inspection Period (default 10 days per FR/Bar)", phase: "contract", daysFromOpen: 10, category: "Inspection", assignTo: "Inspector" },
+    { name: "Review Inspection Report with Buyer", phase: "contract", daysFromOpen: 11, category: "Inspection", assignTo: "Buyer's Agent" },
+    { name: "Submit BINSR / Request Repairs", phase: "contract", daysFromOpen: 11, category: "Inspection", assignTo: "Buyer's Agent" },
+    { name: "Appraisal Ordered by Lender", phase: "contract", daysFromOpen: 10, category: "Financing", assignTo: "Appraiser" },
+    { name: "HOA Application & Approval (if applicable)", phase: "contract", daysFromOpen: 14, category: "HOA", assignTo: "HOA Manager" },
+    { name: "Loan Approval/Commitment Letter", phase: "contract", daysFromOpen: 21, category: "Financing", assignTo: "Loan Officer/Lender" },
+    { name: "Review Title Commitment", phase: "contract", daysFromOpen: 21, category: "Title", assignTo: "Title Company" },
+    { name: "Bind Homeowner's Insurance", phase: "contract", daysFromOpen: 21, category: "Insurance", assignTo: "Insurance Agent" },
+    { name: "Review Closing Disclosure (3-day wait per RESPA)", phase: "contract", daysFromOpen: -3, category: "Closing", assignTo: "Buyer's Agent" },
+    { name: "Wire Closing Funds to Title", phase: "contract", daysFromOpen: -1, category: "Closing", assignTo: "Buyer" },
+    { name: "Final Walk-Through", phase: "contract", daysFromOpen: -1, category: "Closing", assignTo: "Buyer's Agent" },
+    { name: "Closing Day / Keys Delivered", phase: "contract", daysFromOpen: 0, category: "Closing", assignTo: "Title Company" },
+    { name: "Utility Transfer Reminder to Buyer", phase: "contract", daysFromOpen: 1, category: "Post-Closing", assignTo: "Transaction Coordinator" },
+    { name: "Commission Disbursement", phase: "contract", daysFromOpen: 1, category: "Post-Closing", assignTo: "Transaction Coordinator" },
   ],
   "Dual Agency": []
 };
@@ -1064,16 +1071,19 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
                 <Btn onClick={() => {
                   if (window.confirm("Generate Florida task checklist for this transaction? This will add all standard FL tasks.")) {
                     const templates = FLORIDA_TASK_TEMPLATES[tx.type] || [];
+                    const contractDate = tx.executedDate || tx.openDate;
                     const newTasks = templates.map(t => ({
                       id: genId(),
                       name: t.name,
                       category: t.category,
                       assignTo: t.assignTo,
-                      dueDate: t.daysFromOpen >= 0
-                        ? (tx.openDate ? addDays(tx.openDate, t.daysFromOpen) : null)
-                        : (tx.closingDate ? addDays(tx.closingDate, t.daysFromOpen) : null),
+                      dueDate: t.phase === "active" ? null :
+                        t.daysFromOpen !== null && t.daysFromOpen >= 0
+                          ? (contractDate ? addDays(contractDate, t.daysFromOpen) : null)
+                          : (tx.closingDate ? addDays(tx.closingDate, t.daysFromOpen) : null),
                       status: "Pending",
-                      notes: ""
+                      notes: "",
+                      phase: t.phase || "active"
                     }));
                     update({ tasks: newTasks });
                   }
@@ -1323,7 +1333,19 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
               </div>
               <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
                 <button onClick={() => setShowEditTx(false)} style={{ padding: "10px 18px", border: "1px solid #CCC", borderRadius: 8, background: "none", cursor: "pointer", fontFamily: "inherit" }}>Cancel</button>
-                <button onClick={() => { const updated = { ...tx, ...editTxForm }; if (editTxForm.closingDate && editTxForm.closingDate !== tx.closingDate) { const templates = FLORIDA_TASK_TEMPLATES[tx.type] || []; updated.tasks = tx.tasks.map(task => { if (task.dueDate) return task; const template = templates.find(t => t.name === task.name); if (template && template.daysFromOpen < 0) { return { ...task, dueDate: addDays(editTxForm.closingDate, template.daysFromOpen) }; } return task; }); } onUpdate(updated); setShowEditTx(false); }} style={{ padding: "10px 20px", background: "#C0392B", color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>Save Changes</button>
+                <button onClick={() => { const updated = { ...tx, ...editTxForm }; if (editTxForm.closingDate && editTxForm.closingDate !== tx.closingDate) { const templates = FLORIDA_TASK_TEMPLATES[tx.type] || []; updated.tasks = tx.tasks.map(task => {
+                      const template = templates.find(t => t.name === task.name);
+                      if (template && template.phase === "contract") {
+                        if (template.daysFromOpen < 0 && editTxForm.closingDate) {
+                          return { ...task, dueDate: addDays(editTxForm.closingDate, template.daysFromOpen) };
+                        }
+                        if (template.daysFromOpen >= 0 && !task.dueDate) {
+                          const cd = editTxForm.executedDate || editTxForm.openDate;
+                          return { ...task, dueDate: cd ? addDays(cd, template.daysFromOpen) : null };
+                        }
+                      }
+                      return task;
+                    }); } onUpdate(updated); setShowEditTx(false); }} style={{ padding: "10px 20px", background: "#C0392B", color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>Save Changes</button>
               </div>
             </div>
           </div>
@@ -1340,7 +1362,8 @@ function NewTransactionForm({ onSave, onCancel }) {
   const f = k => v => setForm(p => ({ ...p, [k]: v }));
   const handleSave = async () => {
     if (!form.address || !form.city) return;
-    const tasks = useFLTemplates ? (FLORIDA_TASK_TEMPLATES[form.type] || []).map(t => ({ id: genId(), name: t.name, category: t.category, assignTo: t.assignTo, dueDate: t.daysFromOpen >= 0 ? addDays(form.openDate, t.daysFromOpen) : (form.closingDate ? addDays(form.closingDate, t.daysFromOpen) : null), status: "Pending", notes: "" })) : [];
+    const contractDate = form.executedDate || form.openDate;
+    const tasks = useFLTemplates ? (FLORIDA_TASK_TEMPLATES[form.type] || []).map(t => ({ id: genId(), name: t.name, category: t.category, assignTo: t.assignTo, dueDate: t.phase === "active" ? null : t.daysFromOpen !== null && t.daysFromOpen >= 0 ? (contractDate ? addDays(contractDate, t.daysFromOpen) : null) : (form.closingDate ? addDays(form.closingDate, t.daysFromOpen) : null), status: "Pending", notes: "", phase: t.phase || "active" })) : [];
     const tok = localStorage.getItem("tp_token") || "";
     try {
       const res = await fetch(API + "/transactions", {
