@@ -1940,6 +1940,7 @@ function AuthGate() {
       localStorage.setItem("tp_token", token);
       localStorage.setItem("tp_user", JSON.stringify(user));
       setAuthUser(user);
+      if (user.passwordResetRequired) setForcePasswordReset(true);
     }} />;
   }
 
