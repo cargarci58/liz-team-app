@@ -740,10 +740,8 @@ function SMSPanel({ tx, onUpdate, currentUser }) {
                           const email = (currentUser && currentUser.email) ? currentUser.email : "";
                           const phone = agentPhone || "";
                           const company = companyName || "";
-                          const sig = agentFirst
-                            + (company ? "\n" + company : "")
-                            + (phone ? "\n" + phone : "")
-                            + (email ? "\n" + email : "");
+                          // Don't include signature in body - HTML email builder adds it automatically
+                          const sig = "";
                           const firstName = (selectedParty && selectedParty.name) ? selectedParty.name.split(" ")[0] : "there";
                           const body = tmpl.body(firstName, tx.address || "", sig, formatDate(tx.closingDate));
                           setMessage(body);
