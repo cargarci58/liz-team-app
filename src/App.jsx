@@ -856,6 +856,7 @@ function SMSPanel({ tx, onUpdate }) {
 function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [], onSaveContact, onOpenContactBook, onDuplicate }) {
   const [activeTab, setActiveTab] = useState("overview");
   const [showAddParty, setShowAddParty] = useState(false);
+  const [partyFromContactBook, setPartyFromContactBook] = useState(false);
   const [showAddTask, setShowAddTask] = useState(false);
   const [showContractWizard, setShowContractWizard] = useState(false);
   const [contractWizardForm, setContractWizardForm] = useState({});
