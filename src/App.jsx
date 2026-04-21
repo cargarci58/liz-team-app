@@ -726,9 +726,12 @@ function SMSPanel({ tx, onUpdate }) {
                   <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                     {EMAIL_TEMPLATES.map((tmpl, i) => (
                       <button key={i} onClick={() => {
-                        const agentName = "The Liz Team Realty";
+                        const agentFirst = tx.assignedAgentName || (currentUser ? currentUser.firstName + " " + currentUser.lastName : "");
+                        const brokerage = "The Liz Team Realty";
+                        const agentEmail = currentUser ? currentUser.email : "";
+                        const agentSignature = agentFirst + "\n" + brokerage + (agentEmail ? "\n" + agentEmail : "");
                         const firstName = selectedParty.name.split(" ")[0];
-                        setMessage(tmpl.body(firstName, tx.address, agentName, formatDate(tx.closingDate)));
+                        setMessage(tmpl.body(firstName, tx.address, agentSignature, formatDate(tx.closingDate)));
                         setSubject(tmpl.subject(tx.address));
                       }} style={{ fontSize: 11, padding: "4px 12px", borderRadius: 14, border: "1px solid #C0392B", background: "#FEF2F2", color: "#C0392B", cursor: "pointer", fontFamily: "inherit", fontWeight: 600, whiteSpace: "nowrap" }}>
                         {tmpl.label}
@@ -853,7 +856,7 @@ function SMSPanel({ tx, onUpdate }) {
   );
 }
 
-function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [], onSaveContact, onOpenContactBook, onDuplicate }) {
+function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [], onSaveContact, onOpenContactBook, onDuplicate, currentUser }) {
   const [activeTab, setActiveTab] = useState("overview");
   const [showAddParty, setShowAddParty] = useState(false);
   const [partyFromContactBook, setPartyFromContactBook] = useState(false);
@@ -2080,6 +2083,7 @@ function MainApp({ onLogout, currentUser }) {
           tx={selectedTx}
           onUpdate={updateTransaction}
           onDuplicate={duplicateTransaction}
+          currentUser={currentUser}
           onBack={() => setView("dashboard")}
           contacts={contacts}
           onSaveContact={addContact}
