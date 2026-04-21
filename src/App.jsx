@@ -498,14 +498,12 @@ function TaskReminderModal({ task, tx, onClose }) {
   );
 }
 function SMSPanel({ tx, onUpdate, currentUser }) {
-  const [companyName, setCompanyName] = React.useState("");
-  const [agentPhone, setAgentPhone] = React.useState("");
-  React.useEffect(() => {
+  const [companyName, setCompanyName] = useState("");
+  const [agentPhone, setAgentPhone] = useState("");
+  useEffect(() => {
     const tok = localStorage.getItem("tp_token") || "";
-    // Fetch company name
     fetch("https://liz-team-server-api-production.up.railway.app/settings/company", { headers: { "Authorization": "Bearer " + tok } })
       .then(r => r.json()).then(d => { if (d.company) setCompanyName(d.company.name || ""); }).catch(() => {});
-    // Fetch agent phone
     fetch("https://liz-team-server-api-production.up.railway.app/profile", { headers: { "Authorization": "Bearer " + tok } })
       .then(r => r.json()).then(d => { if (d.profile) setAgentPhone(d.profile.phone || ""); }).catch(() => {});
   }, []);
