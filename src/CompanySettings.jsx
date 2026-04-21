@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 
 const API = "https://liz-team-server-api-production.up.railway.app";
 
-export default function CompanySettings({ onClose }) {
+export default function CompanySettings({ onClose, onChangePassword }) {
   const [form, setForm] = useState({
     name: "", email: "", phone: "", address: "", city: "", state: "FL", zip: "",
     website: "", licenseNumber: "", tagline: "", primaryColor: "#C0392B",
@@ -115,6 +115,9 @@ export default function CompanySettings({ onClose }) {
 
           {/* Save */}
           {saved && <div style={{ background: "#F0FFF4", border: "1px solid #1E8449", borderRadius: 8, padding: 12, marginBottom: 16, color: "#1E8449", fontSize: 13, fontWeight: 600 }}>✅ Settings saved successfully!</div>}
+          <div style={{ borderTop: "1px solid #EEE", paddingTop: 16, marginBottom: 16 }}>
+            <button onClick={() => { onClose(); onChangePassword && onChangePassword(); }} style={{ background: "none", border: "1px solid #CCC", borderRadius: 8, padding: "8px 16px", cursor: "pointer", fontFamily: "inherit", fontSize: 13, color: "#555" }}>🔒 Change Password</button>
+          </div>
           <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
             <button onClick={onClose} style={{ padding: "10px 18px", border: "1px solid #CCC", borderRadius: 8, background: "none", cursor: "pointer", fontFamily: "inherit" }}>Cancel</button>
             <button onClick={save} disabled={saving} style={{ padding: "10px 24px", background: "#C0392B", color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", fontSize: 15 }}>
