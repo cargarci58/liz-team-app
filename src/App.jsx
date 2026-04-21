@@ -954,7 +954,19 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
           <div style={{ color: COLORS.gold, fontSize: 13 }}>{tx.city}, FL {tx.zipCode} · {tx.county} County · {tx.type}</div>
         </div>
         <Badge label={tx.status} color={statusCfg.color} bg={statusCfg.bg} />
-        <select value={tx.status} onChange={e => update({ status: e.target.value })} style={{ fontSize: 12, padding: "4px 8px", borderRadius: 6, border: "none", fontFamily: "inherit", background: "rgba(255,255,255,0.15)", color: "#fff", cursor: "pointer" }}>
+        <select value={tx.status} onChange={e => {
+          const newStatus = e.target.value;
+          const contractStatuses = ["Under Contract", "Closed", "On Hold"];
+          if (contractStatuses.includes(tx.status) && newStatus === "Active") {
+            const confirm = window.confirm(
+              "Are you sure you want to change status back to Active?\n\n" +
+              "This may indicate a contract fell through.\n\n" +
+              "Note: Contract task due dates will remain but can be cleared manually. Continue?"
+            );
+            if (!confirm) { e.target.value = tx.status; return; }
+          }
+          update({ status: newStatus });
+        }} style={{ fontSize: 12, padding: "4px 8px", borderRadius: 6, border: "none", fontFamily: "inherit", background: "rgba(255,255,255,0.15)", color: "#fff", cursor: "pointer" }}>
           {Object.keys(STATUS_CONFIG).map(s => <option key={s} style={{ color: COLORS.text, background: "#fff" }}>{s}</option>)}
         </select>
         <button onClick={() => onDuplicate && onDuplicate(tx)} style={{ fontSize: 11, padding: "4px 10px", borderRadius: 6, border: "1px solid rgba(255,255,255,0.3)", background: "rgba(255,255,255,0.1)", color: "#fff", cursor: "pointer", fontFamily: "inherit" }}>⧉ Duplicate</button>
