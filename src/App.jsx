@@ -727,13 +727,16 @@ function SMSPanel({ tx, onUpdate }) {
                   <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                     {EMAIL_TEMPLATES.map((tmpl, i) => (
                       <button key={i} onClick={() => {
-                        const agentFirst = tx.assignedAgentName || (currentUser ? currentUser.firstName + " " + currentUser.lastName : "");
-                        const brokerage = "The Liz Team Realty";
-                        const agentEmail = currentUser ? currentUser.email : "";
-                        const agentSignature = agentFirst + "\n" + brokerage + (agentEmail ? "\n" + agentEmail : "");
-                        const firstName = selectedParty.name.split(" ")[0];
-                        setMessage(tmpl.body(firstName, tx.address, agentSignature, formatDate(tx.closingDate)));
-                        setSubject(tmpl.subject(tx.address));
+                        try {
+                          const agentFirst = (tx.assignedAgentName || (currentUser ? (currentUser.firstName || "") + " " + (currentUser.lastName || "") : "")).trim();
+                          const brokerage = "The Liz Team Realty";
+                          const agentEmail = (currentUser && currentUser.email) ? currentUser.email : "";
+                          const agentSignature = agentFirst + "\n" + brokerage + (agentEmail ? "\n" + agentEmail : "");
+                          const firstName = (selectedParty && selectedParty.name) ? selectedParty.name.split(" ")[0] : "there";
+                          const body = tmpl.body(firstName, tx.address || "", agentSignature, formatDate(tx.closingDate));
+                          setMessage(body);
+                          setSubject(tmpl.subject(tx.address || ""));
+                        } catch(e) { console.error("Template error:", e); }
                       }} style={{ fontSize: 11, padding: "4px 12px", borderRadius: 14, border: "1px solid #C0392B", background: "#FEF2F2", color: "#C0392B", cursor: "pointer", fontFamily: "inherit", fontWeight: 600, whiteSpace: "nowrap" }}>
                         {tmpl.label}
                       </button>
