@@ -51,7 +51,7 @@ export default function AgentProfile({ onClose, currentUser }) {
     try {
       const res = await fetch(API + "/profile", { method: "PUT", headers, body: JSON.stringify(form) });
       const data = await res.json();
-      if (data.success) { setSaved(true); setTimeout(() => setSaved(false), 3000); }
+      if (data.success) { setSaved(true); setTimeout(() => { setSaved(false); onClose(); }, 1500); }
     } catch {}
     setSaving(false);
   };
