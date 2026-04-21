@@ -1454,7 +1454,24 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
           <Input label="Message" value={reminderForm.message} onChange={v => setReminderForm(f => ({ ...f, message: v }))} type="textarea" />
           <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
             <Btn variant="ghost" onClick={() => setShowAddReminder(false)}>Cancel</Btn>
-            <Btn onClick={() => { if (reminderForm.title && reminderForm.date) { update({ reminders: [...(tx.reminders || []), { ...reminderForm, id: genId() }] }); setReminderForm({ title: "", date: "", message: "" }); setShowAddReminder(false); } }}>Add</Btn>
+            <Btn onClick={async () => {
+              if (reminderForm.title && reminderForm.date) {
+                const newId = genId();
+                const newReminder = { ...reminderForm, id: newId };
+                update({ reminders: [...(tx.reminders || []), newReminder] });
+                // Persist to DB
+                try {
+                  const tok = localStorage.getItem("tp_token") || "";
+                  await fetch(API + "/reminders/save", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json", "Authorization": "Bearer " + tok },
+                    body: JSON.stringify({ id: newId, transactionId: tx.id, title: reminderForm.title, message: reminderForm.message, date: reminderForm.date, channels: reminderForm.channels || "both", parties: reminderForm.parties || [] })
+                  });
+                } catch (e) { console.error("Reminder save error:", e); }
+                setReminderForm({ title: "", date: "", message: "", channels: "both", parties: [] });
+                setShowAddReminder(false);
+              }
+            }}>Add</Btn>
           </div>
         </Modal>
       )}
