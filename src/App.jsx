@@ -498,6 +498,17 @@ function TaskReminderModal({ task, tx, onClose }) {
   );
 }
 function SMSPanel({ tx, onUpdate, currentUser }) {
+  const [companyName, setCompanyName] = React.useState("");
+  const [agentPhone, setAgentPhone] = React.useState("");
+  React.useEffect(() => {
+    const tok = localStorage.getItem("tp_token") || "";
+    // Fetch company name
+    fetch("https://liz-team-server-api-production.up.railway.app/settings/company", { headers: { "Authorization": "Bearer " + tok } })
+      .then(r => r.json()).then(d => { if (d.company) setCompanyName(d.company.name || ""); }).catch(() => {});
+    // Fetch agent phone
+    fetch("https://liz-team-server-api-production.up.railway.app/profile", { headers: { "Authorization": "Bearer " + tok } })
+      .then(r => r.json()).then(d => { if (d.profile) setAgentPhone(d.profile.phone || ""); }).catch(() => {});
+  }, []);
   const [serverOnline, setServerOnline] = useState(null);
   const [emailOnline, setEmailOnline] = useState(false);
   const [selectedParty, setSelectedParty] = useState(null);
@@ -728,12 +739,16 @@ function SMSPanel({ tx, onUpdate, currentUser }) {
                     {EMAIL_TEMPLATES.map((tmpl, i) => (
                       <button key={i} onClick={() => {
                         try {
-                          const agentFirst = (tx.assignedAgentName || (currentUser ? (currentUser.firstName || "") + " " + (currentUser.lastName || "") : "")).trim();
-                          const brokerage = "The Liz Team Realty";
-                          const agentEmail = (currentUser && currentUser.email) ? currentUser.email : "";
-                          const agentSignature = agentFirst + "\n" + brokerage + (agentEmail ? "\n" + agentEmail : "");
+                          const agentFirst = (currentUser ? (currentUser.firstName || "") + " " + (currentUser.lastName || "") : "").trim();
+                          const email = (currentUser && currentUser.email) ? currentUser.email : "";
+                          const phone = agentPhone || "";
+                          const company = companyName || "";
+                          const sig = agentFirst
+                            + (company ? "\n" + company : "")
+                            + (phone ? "\n" + phone : "")
+                            + (email ? "\n" + email : "");
                           const firstName = (selectedParty && selectedParty.name) ? selectedParty.name.split(" ")[0] : "there";
-                          const body = tmpl.body(firstName, tx.address || "", agentSignature, formatDate(tx.closingDate));
+                          const body = tmpl.body(firstName, tx.address || "", sig, formatDate(tx.closingDate));
                           setMessage(body);
                           setSubject(tmpl.subject(tx.address || ""));
                         } catch(e) { console.error("Template error:", e); }
