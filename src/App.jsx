@@ -757,16 +757,14 @@ function SMSPanel({ tx, onUpdate, currentUser }) {
                   <textarea value={message} onChange={e => setMessage(e.target.value)} onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey && channel === "sms") { e.preventDefault(); sendMessage(); } }} placeholder="Type message... (Shift+Enter for new line)" rows={8} style={{ flex: 1, padding: "10px 14px", borderRadius: 10, border: "1px solid #E5E7EB", fontSize: 14, fontFamily: "inherit", resize: "vertical", minHeight: 120, boxSizing: "border-box" }} />
                   <button onClick={sendMessage} disabled={!message.trim() || sending} style={{ height: 52, minWidth: 70, borderRadius: 8, border: "none", background: "#15803D", color: "#fff", fontWeight: 600, fontSize: 14, cursor: "pointer", fontFamily: "inherit", opacity: (!message.trim() || sending) ? 0.5 : 1 }}>{sending ? "..." : "Send"}</button>
                 </div>
-                {(channel === "email" || channel === "both") && (
-                  <div style={{ margin: "0 18px 12px", padding: "10px 14px", borderTop: "2px solid #C0392B", background: "#F9FAFB", borderRadius: "0 0 8px 8px", display: "flex", alignItems: "center", gap: 10 }}>
+                <div style={{ margin: "0 18px 12px", padding: "10px 14px", borderTop: "2px solid #C0392B", background: "#F9FAFB", borderRadius: "0 0 8px 8px", display: "flex", alignItems: "center", gap: 10 }}>
                     <div style={{ fontSize: 10, color: "#999", textTransform: "uppercase", fontWeight: 700, marginRight: 4 }}>Signature:</div>
                     <div style={{ fontSize: 12, color: "#333", lineHeight: 1.5 }}>
-                      <span style={{ fontWeight: 700 }}>{agentFullName}</span>
-                      {companyName && <span style={{ color: "#C0392B" }}> · {companyName}</span>}
+                      <span style={{ fontWeight: 700 }}>{agentFullName || "Your Name"}</span>
+                      {companyName ? <span style={{ color: "#C0392B" }}> · {companyName}</span> : <span style={{ color: "#C0392B" }}> · The Liz Team Realty</span>}
                       {agentPhone && <span style={{ color: "#666" }}> · {agentPhone}</span>}
                     </div>
                   </div>
-                )}
               </>
             )}
           </div>
