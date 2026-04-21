@@ -1934,6 +1934,11 @@ function AuthGate() {
   const [authUser, setAuthUser] = useState(() => {
     try { return JSON.parse(localStorage.getItem("tp_user")); } catch { return null; }
   });
+  const [forcePasswordReset, setForcePasswordReset] = useState(false);
+
+  if (forcePasswordReset) {
+    return <ChangePassword forceReset onClose={() => { setForcePasswordReset(false); }} />;
+  }
 
   if (!authUser) {
     return <LoginScreen onLogin={(user, token) => {
