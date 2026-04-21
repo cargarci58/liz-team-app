@@ -497,7 +497,7 @@ function TaskReminderModal({ task, tx, onClose }) {
     </div>
   );
 }
-function SMSPanel({ tx, onUpdate }) {
+function SMSPanel({ tx, onUpdate, currentUser }) {
   const [serverOnline, setServerOnline] = useState(null);
   const [emailOnline, setEmailOnline] = useState(false);
   const [selectedParty, setSelectedParty] = useState(null);
