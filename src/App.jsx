@@ -846,7 +846,7 @@ function SMSPanel({ tx, onUpdate }) {
   );
 }
 
-function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [], onSaveContact, onOpenContactBook }) {
+function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [], onSaveContact, onOpenContactBook, onDuplicate }) {
   const [activeTab, setActiveTab] = useState("overview");
   const [showAddParty, setShowAddParty] = useState(false);
   const [showAddTask, setShowAddTask] = useState(false);
@@ -950,6 +950,7 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
         <select value={tx.status} onChange={e => update({ status: e.target.value })} style={{ fontSize: 12, padding: "4px 8px", borderRadius: 6, border: "none", fontFamily: "inherit", background: "rgba(255,255,255,0.15)", color: "#fff", cursor: "pointer" }}>
           {Object.keys(STATUS_CONFIG).map(s => <option key={s} style={{ color: COLORS.text, background: "#fff" }}>{s}</option>)}
         </select>
+        <button onClick={() => onDuplicate && onDuplicate(tx)} style={{ fontSize: 11, padding: "4px 10px", borderRadius: 6, border: "1px solid rgba(255,255,255,0.3)", background: "rgba(255,255,255,0.1)", color: "#fff", cursor: "pointer", fontFamily: "inherit" }}>⧉ Duplicate</button>
         <button onClick={() => { setEditTxForm({ assignedAgent: tx.assignedAgentId || "", referralSource: tx.referralSource || "", closingDate: tx.closingDate || "", contractPrice: tx.contractPrice || "", openDate: tx.openDate || "", executedDate: tx.executedDate || "", status: tx.status, mlsNumber: tx.mlsNumber || "", notes: tx.notes || "", propertyAccess: tx.propertyAccess || "", commissionListing: tx.commissionListing || "", commissionBuyer: tx.commissionBuyer || "", transactionFee: tx.transactionFee || "", brokerageSplit: tx.brokerageSplit || "", officeFlatFee: tx.officeFlatFee || "", mailAway: tx.mailAway || "No", commissionNotes: tx.commissionNotes || "" }); setShowEditTx(true); }} style={{ fontSize: 11, padding: "4px 10px", borderRadius: 6, border: "1px solid rgba(255,255,255,0.3)", background: "rgba(255,255,255,0.1)", color: "#fff", cursor: "pointer", fontFamily: "inherit" }}>✏️ Edit</button>
         <button onClick={() => window.print()} style={{ fontSize: 11, padding: "4px 10px", borderRadius: 6, border: "1px solid rgba(255,255,255,0.3)", background: "rgba(255,255,255,0.1)", color: "#fff", cursor: "pointer", fontFamily: "inherit" }}>🖨️ Print</button>
         <button onClick={async () => {
@@ -1801,6 +1802,43 @@ function MainApp({ onLogout, currentUser }) {
   }, []);
   const addTransaction = tx => { setTransactions(txs => [tx, ...txs]); setSelectedId(tx.id); setView("detail"); };
 
+  const duplicateTransaction = async (tx) => {
+    const newAddr = window.prompt("Enter address for the new transaction:", tx.address + " (Copy)");
+    if (!newAddr) return;
+    const tok = localStorage.getItem("tp_token") || "";
+    const freshH = { "Content-Type": "application/json", "Authorization": "Bearer " + tok };
+    const newTx = {
+      address: newAddr, city: tx.city, state: tx.state, zipCode: tx.zipCode,
+      county: tx.county, mlsNumber: "", propertyType: tx.propertyType,
+      type: tx.type, status: "Active", listPrice: tx.listPrice,
+      contractPrice: "", openDate: "", closingDate: "", notes: tx.notes || "",
+      commissionListing: tx.commissionListing, commissionBuyer: tx.commissionBuyer,
+      brokerageSplit: tx.brokerageSplit, officeFlatFee: tx.officeFlatFee,
+      parties: [], smsThreads: {},
+      tasks: (tx.tasks || []).map(t => ({ ...t, id: genId(), status: "Pending", dueDate: null })),
+      reminders: [],
+    };
+    try {
+      const res = await fetch(API + "/transactions", { method: "POST", headers: freshH, body: JSON.stringify(newTx) });
+      const data = await res.json();
+      if (data.success && data.transaction) {
+        const t = data.transaction;
+        const normalized = {
+          id: t.id, address: t.address, city: t.city, state: t.state,
+          zipCode: t.zip_code, county: t.county, mlsNumber: t.mls_number,
+          propertyType: t.property_type, type: t.transaction_type,
+          status: t.status, listPrice: t.list_price, contractPrice: t.contract_price,
+          openDate: t.open_date, closingDate: t.closing_date, notes: t.notes,
+          smsThreads: {}, parties: [], tasks: newTx.tasks, reminders: [],
+          commissionListing: t.commission_listing, commissionBuyer: t.commission_buyer,
+        };
+        setTransactions(txs => [normalized, ...txs]);
+        setSelectedId(normalized.id);
+        setView("detail");
+      }
+    } catch (e) { alert("Failed to duplicate: " + e.message); }
+  };
+
   const invitePartyToPortal = async (party, tx) => {
     if (!party.email) { alert("This party has no email address. Add one first."); return; }
     if (!window.confirm(`Send portal invitation to ${party.name} (${party.email})?`)) return;
@@ -1847,6 +1885,7 @@ function MainApp({ onLogout, currentUser }) {
         <TransactionDetail
           tx={selectedTx}
           onUpdate={updateTransaction}
+          onDuplicate={duplicateTransaction}
           onBack={() => setView("dashboard")}
           contacts={contacts}
           onSaveContact={addContact}
