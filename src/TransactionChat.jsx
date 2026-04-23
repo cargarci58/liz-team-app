@@ -20,9 +20,11 @@ if (typeof Notification !== "undefined" && Notification.permission === "default"
   Notification.requestPermission();
 }
 
-export default function TransactionChat({ transactionId, user, style, onUnreadChange, unreadCount = 0 }) {
+export default function TransactionChat({ transactionId, user, parties = [], style, onUnreadChange, unreadCount = 0 }) {
   const [messages, setMessages] = useState([]);
   const [newMsg, setNewMsg] = useState("");
+  const [selectedParties, setSelectedParties] = useState([]);
+  const [showPartySelect, setShowPartySelect] = useState(false);
   const [connected, setConnected] = useState(false);
   const [loading, setLoading] = useState(true);
   const socketRef = useRef(null);
@@ -79,7 +81,25 @@ export default function TransactionChat({ transactionId, user, style, onUnreadCh
       document.head.appendChild(s);
     }
 
-    return () => {
+    const sendBulkMessage = async () => {
+    if (!newMsg.trim() || selectedParties.length === 0) return;
+    const tok = localStorage.getItem("tp_token") || "";
+    for (const partyId of selectedParties) {
+      const party = parties.find(p => p.id === partyId);
+      if (!party) continue;
+      if (party.phone) {
+        try { await fetch(`${API}/sms/send`, { method: "POST", headers: { "Content-Type": "application/json", "Authorization": "Bearer " + tok }, body: JSON.stringify({ transactionId, toPhone: party.phone, toName: party.name, message: newMsg.trim(), fromName: "The Liz Team" }) }); } catch {}
+      }
+      if (party.email) {
+        try { await fetch(`${API}/email/send`, { method: "POST", headers: { "Content-Type": "application/json", "Authorization": "Bearer " + tok }, body: JSON.stringify({ transactionId, toEmail: party.email, toName: party.name, subject: `Message from The Liz Team — ${transactionId}`, message: newMsg.trim(), fromName: "The Liz Team" }) }); } catch {}
+      }
+    }
+    setNewMsg("");
+    setSelectedParties([]);
+    setShowPartySelect(false);
+  };
+
+  return () => {
       markAsRead();
       if (socketRef.current) { socketRef.current.emit("leave_transaction", transactionId); socketRef.current.disconnect(); }
     };
@@ -108,6 +128,24 @@ export default function TransactionChat({ transactionId, user, style, onUnreadCh
 
   let lastDate = null;
   let shownNewDivider = false;
+
+  const sendBulkMessage = async () => {
+    if (!newMsg.trim() || selectedParties.length === 0) return;
+    const tok = localStorage.getItem("tp_token") || "";
+    for (const partyId of selectedParties) {
+      const party = parties.find(p => p.id === partyId);
+      if (!party) continue;
+      if (party.phone) {
+        try { await fetch(`${API}/sms/send`, { method: "POST", headers: { "Content-Type": "application/json", "Authorization": "Bearer " + tok }, body: JSON.stringify({ transactionId, toPhone: party.phone, toName: party.name, message: newMsg.trim(), fromName: "The Liz Team" }) }); } catch {}
+      }
+      if (party.email) {
+        try { await fetch(`${API}/email/send`, { method: "POST", headers: { "Content-Type": "application/json", "Authorization": "Bearer " + tok }, body: JSON.stringify({ transactionId, toEmail: party.email, toName: party.name, subject: `Message from The Liz Team — ${transactionId}`, message: newMsg.trim(), fromName: "The Liz Team" }) }); } catch {}
+      }
+    }
+    setNewMsg("");
+    setSelectedParties([]);
+    setShowPartySelect(false);
+  };
 
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%", minHeight: 400, background: "#F8F9FA", borderRadius: 12, overflow: "hidden", border: "1px solid #DDD", ...style }}>
@@ -142,7 +180,25 @@ export default function TransactionChat({ transactionId, user, style, onUnreadCh
           if (showNewDivider) shownNewDivider = true;
           const roleColor = roleColors[msg.sender_role] || "#555";
 
-          return (
+          const sendBulkMessage = async () => {
+    if (!newMsg.trim() || selectedParties.length === 0) return;
+    const tok = localStorage.getItem("tp_token") || "";
+    for (const partyId of selectedParties) {
+      const party = parties.find(p => p.id === partyId);
+      if (!party) continue;
+      if (party.phone) {
+        try { await fetch(`${API}/sms/send`, { method: "POST", headers: { "Content-Type": "application/json", "Authorization": "Bearer " + tok }, body: JSON.stringify({ transactionId, toPhone: party.phone, toName: party.name, message: newMsg.trim(), fromName: "The Liz Team" }) }); } catch {}
+      }
+      if (party.email) {
+        try { await fetch(`${API}/email/send`, { method: "POST", headers: { "Content-Type": "application/json", "Authorization": "Bearer " + tok }, body: JSON.stringify({ transactionId, toEmail: party.email, toName: party.name, subject: `Message from The Liz Team — ${transactionId}`, message: newMsg.trim(), fromName: "The Liz Team" }) }); } catch {}
+      }
+    }
+    setNewMsg("");
+    setSelectedParties([]);
+    setShowPartySelect(false);
+  };
+
+  return (
             <div key={msg.id || i}>
               {showDate && (
                 <div style={{ textAlign: "center", marginBottom: 8 }}>
@@ -178,12 +234,25 @@ export default function TransactionChat({ transactionId, user, style, onUnreadCh
       </div>
 
       <div style={{ padding: "12px 16px", background: "#fff", borderTop: "1px solid #DDD", display: "flex", gap: 8 }}>
+        {showPartySelect && (
+          <div style={{ borderTop: "1px solid #EEE", padding: "12px 16px", maxHeight: 200, overflowY: "auto" }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: "#555", marginBottom: 8 }}>Send to parties:</div>
+            {parties.filter(p => (p.phone && p.phone.trim()) || (p.email && p.email.trim())).map(p => (
+              <label key={p.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 0", cursor: "pointer", fontSize: 13 }}>
+                <input type="checkbox" checked={selectedParties.includes(p.id)} onChange={e => setSelectedParties(e.target.checked ? [...selectedParties, p.id] : selectedParties.filter(id => id !== p.id))} />
+                {p.name} ({p.role})
+              </label>
+            ))}
+            <button onClick={() => setSelectedParties(parties.filter(p => (p.phone && p.phone.trim()) || (p.email && p.email.trim())).map(p => p.id))} style={{ marginTop: 8, fontSize: 11, color: "#C0392B", background: "none", border: "none", cursor: "pointer" }}>Select all</button>
+          </div>
+        )}
         <input value={newMsg} onChange={e => setNewMsg(e.target.value)}
           onKeyDown={e => e.key === "Enter" && !e.shiftKey && (e.preventDefault(), sendMessage())}
           placeholder={connected ? "Type a message... (Enter to send)" : "Connecting..."}
           disabled={!connected}
           style={{ flex: 1, padding: "10px 14px", borderRadius: 24, border: "1.5px solid #DDD", fontSize: 14, fontFamily: "inherit", outline: "none", background: connected ? "#fff" : "#F5F5F5" }} />
-        <button onClick={sendMessage} disabled={!connected || !newMsg.trim()}
+        <button onClick={() => setShowPartySelect(!showPartySelect)} style={{ width: 40, height: 40, borderRadius: "50%", background: showPartySelect ? "#C0392B" : "#E0E0E0", color: "#fff", border: "none", cursor: "pointer", fontSize: 16, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginRight: 8 }} title="Send to specific parties">👥</button>
+        <button onClick={selectedParties.length > 0 ? sendBulkMessage : sendMessage} disabled={(!connected && selectedParties.length === 0) || !newMsg.trim()}
           style={{ width: 40, height: 40, borderRadius: "50%", background: connected && newMsg.trim() ? "#C0392B" : "#DDD", color: "#fff", border: "none", cursor: connected && newMsg.trim() ? "pointer" : "not-allowed", fontSize: 18, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
           →
         </button>
