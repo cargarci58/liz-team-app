@@ -1450,9 +1450,12 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
                 alert("Please enter the Executed Date and Closing Date.");
                 return;
               }
-              // Update contract and closing tasks with due dates
+              // Add contract phase tasks and update dates
               const templates = FLORIDA_TASK_TEMPLATES[tx.type] || [];
-              const updatedTasks = tx.tasks.map(task => {
+              const existingTaskNames = tx.tasks.map(t => t.name);
+              
+              // Update dates on existing contract/closing tasks
+              const updatedExisting = tx.tasks.map(task => {
                 const template = templates.find(t => t.name === task.name);
                 if (template && template.phase === "contract" && template.daysFromOpen !== null) {
                   const dueDate = template.daysFromOpen >= 0
@@ -1466,6 +1469,24 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
                 }
                 return task;
               });
+
+              // Add new contract phase tasks that don't exist yet
+              const newContractTasks = templates
+                .filter(t => t.phase === "contract" && !existingTaskNames.includes(t.name))
+                .map(t => ({
+                  id: genId(),
+                  name: t.name,
+                  category: t.category,
+                  assignTo: t.assignTo,
+                  dueDate: t.daysFromOpen !== null && t.daysFromOpen >= 0
+                    ? addDays(contractWizardForm.executedDate, t.daysFromOpen)
+                    : addDays(contractWizardForm.closingDate, t.daysFromOpen),
+                  status: "Pending",
+                  notes: "",
+                  phase: "contract"
+                }));
+
+              const updatedTasks = [...updatedExisting, ...newContractTasks];
               update({
                 status: "Under Contract",
                 executedDate: contractWizardForm.executedDate,
