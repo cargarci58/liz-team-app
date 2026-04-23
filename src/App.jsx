@@ -1149,21 +1149,25 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
                   if (window.confirm("Generate Florida task checklist for this transaction? This will add all standard FL tasks.")) {
                     const templates = FLORIDA_TASK_TEMPLATES[tx.type] || [];
                     const contractDate = tx.executedDate || tx.openDate;
-                    const newTasks = templates.map(t => ({
-                      id: genId(),
-                      name: t.name,
-                      category: t.category,
-                      assignTo: t.assignTo,
-                      dueDate: t.phase === "active" ? null :
-                        t.phase === "closing"
-                          ? (tx.closingDate ? addDays(tx.closingDate, t.daysFromOpen || 0) : null)
-                          : t.daysFromOpen !== null && t.daysFromOpen >= 0
-                            ? (contractDate ? addDays(contractDate, t.daysFromOpen) : null)
-                            : (tx.closingDate ? addDays(tx.closingDate, t.daysFromOpen) : null),
-                      status: "Pending",
-                      notes: "",
-                      phase: t.phase || "active"
-                    }));
+                    const currentPhase = tx.status === "Closed" ? ["active", "contract", "closing"] :
+                                        tx.status === "Under Contract" ? ["active", "contract"] : ["active"];
+                    const newTasks = templates
+                      .filter(t => currentPhase.includes(t.phase || "active"))
+                      .map(t => ({
+                        id: genId(),
+                        name: t.name,
+                        category: t.category,
+                        assignTo: t.assignTo,
+                        dueDate: t.phase === "active" ? null :
+                          t.phase === "closing"
+                            ? (tx.closingDate ? addDays(tx.closingDate, t.daysFromOpen || 0) : null)
+                            : t.daysFromOpen !== null && t.daysFromOpen >= 0
+                              ? (contractDate ? addDays(contractDate, t.daysFromOpen) : null)
+                              : (tx.closingDate ? addDays(tx.closingDate, t.daysFromOpen) : null),
+                        status: "Pending",
+                        notes: "",
+                        phase: t.phase || "active"
+                      }));
                     update({ tasks: newTasks });
                   }
                 }} small variant="secondary">🏠 Generate FL Tasks</Btn>
