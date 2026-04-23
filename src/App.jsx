@@ -419,17 +419,35 @@ function TaskReminderModal({ task, tx, onClose }) {
     setSending(true);
     const parties = selectedParties.map(id => tx.parties.find(p => p.id === id)).filter(Boolean);
     const results = [];
+    const tok = localStorage.getItem("tp_token") || "";
     for (const party of parties) {
-      try {
-        const res = await fetch(`${SMS_SERVER}/sms/send`, {
-          method: "POST", headers: { "Content-Type": "application/json", "Authorization": "Bearer " + (localStorage.getItem("tp_token") || "") },
-          body: JSON.stringify({ transactionId: tx.id, transactionAddress: tx.address, toPhone: party.phone, toName: party.name, toRole: party.role, message: message.trim(), fromName: "The Liz Team" }),
-        });
-        const data = await res.json();
-        results.push({ name: party.name, success: data.success, error: data.error });
-      } catch {
-        results.push({ name: party.name, success: false, error: "Server unreachable" });
+      const partyResult = { name: party.name, smsSuccess: null, emailSuccess: null, error: null };
+      // Send SMS if party has phone
+      if (party.phone) {
+        try {
+          const res = await fetch(`${SMS_SERVER}/sms/send`, {
+            method: "POST", headers: { "Content-Type": "application/json", "Authorization": "Bearer " + tok },
+            body: JSON.stringify({ transactionId: tx.id, transactionAddress: tx.address, toPhone: party.phone, toName: party.name, toRole: party.role, message: message.trim(), fromName: "The Liz Team" }),
+          });
+          const data = await res.json();
+          partyResult.smsSuccess = data.success;
+          if (!data.success) partyResult.error = data.error;
+        } catch { partyResult.smsSuccess = false; partyResult.error = "SMS unreachable"; }
       }
+      // Send Email if party has email
+      if (party.email) {
+        try {
+          const res = await fetch(`${SMS_SERVER}/email/send`, {
+            method: "POST", headers: { "Content-Type": "application/json", "Authorization": "Bearer " + tok },
+            body: JSON.stringify({ transactionId: tx.id, transactionAddress: tx.address, toEmail: party.email, toName: party.name, toRole: party.role, subject: `⏰ Reminder: ${task.name} — ${tx.address}`, message: message.trim(), fromName: "The Liz Team" }),
+          });
+          const data = await res.json();
+          partyResult.emailSuccess = data.success;
+          if (!data.success && !partyResult.error) partyResult.error = data.error;
+        } catch { partyResult.emailSuccess = false; if (!partyResult.error) partyResult.error = "Email unreachable"; }
+      }
+      const success = (partyResult.smsSuccess === true || partyResult.smsSuccess === null) && (partyResult.emailSuccess === true || partyResult.emailSuccess === null);
+      results.push({ name: party.name, success, error: partyResult.error, details: partyResult });
     }
     setResult(results);
     setSending(false);
