@@ -219,7 +219,17 @@ const FLORIDA_TASK_TEMPLATES = {
     { name: "Remind Buyer to Update Address (USPS, Bank, DMV, etc.)", phase: "closing", daysFromOpen: 3, category: "Post-Closing", assignTo: "Transaction Coordinator" },
   ],
   "Dual Agency": []
-};const TASK_STATUS = {
+};
+
+const STATUS_CONFIG = {
+  "Active": { color: "#B7860B", bg: "#FEF9E7" },
+  "Under Contract": { color: "#1D4ED8", bg: "#DBEAFE" },
+  "Closed": { color: "#1E8449", bg: "#F0FFF4" },
+  "On Hold": { color: "#6B7280", bg: "#F3F4F6" },
+  "Cancelled": { color: "#C0392B", bg: "#FEE2E2" },
+};
+
+const TASK_STATUS = {
   "Pending": { color: COLORS.muted, bg: "#F3F4F6" },
   "In Progress": { color: COLORS.info, bg: COLORS.infoBg },
   "Completed": { color: COLORS.success, bg: COLORS.successBg },
