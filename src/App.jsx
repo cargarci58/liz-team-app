@@ -422,7 +422,7 @@ function TaskReminderModal({ task, tx, onClose }) {
     for (const party of parties) {
       try {
         const res = await fetch(`${SMS_SERVER}/sms/send`, {
-          method: "POST", headers: { "Content-Type": "application/json" },
+          method: "POST", headers: { "Content-Type": "application/json", "Authorization": "Bearer " + (localStorage.getItem("tp_token") || "") },
           body: JSON.stringify({ transactionId: tx.id, transactionAddress: tx.address, toPhone: party.phone, toName: party.name, toRole: party.role, message: message.trim(), fromName: "The Liz Team" }),
         });
         const data = await res.json();
