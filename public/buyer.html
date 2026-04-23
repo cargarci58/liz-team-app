@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Buyer Intake Form — The Liz Team Realty</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, -apple-system, sans-serif; background: #F4F4F4; color: #111; }
+    .header { background: #111; padding: 20px 24px; display: flex; align-items: center; gap: 14px; }
+    .logo { width: 40px; height: 40px; background: #1A5276; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 900; font-size: 20px; }
+    .header-text h1 { color: #fff; font-size: 18px; font-weight: 700; }
+    .header-text p { color: #93C5FD; font-size: 13px; }
+    .container { max-width: 680px; margin: 32px auto; padding: 0 16px 60px; }
+    .card { background: #fff; border-radius: 14px; overflow: hidden; box-shadow: 0 2px 12px rgba(0,0,0,0.08); margin-bottom: 20px; }
+    .card-header { background: #1A5276; padding: 16px 24px; }
+    .card-header h2 { color: #fff; font-size: 16px; font-weight: 700; }
+    .card-header p { color: rgba(255,255,255,0.75); font-size: 13px; margin-top: 3px; }
+    .card-body { padding: 24px; }
+    .field { margin-bottom: 18px; }
+    label { display: block; font-size: 12px; font-weight: 700; color: #555; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; }
+    label .req { color: #C0392B; margin-left: 2px; }
+    input, select, textarea { width: 100%; padding: 11px 14px; border-radius: 8px; border: 1.5px solid #DDD; font-size: 15px; font-family: inherit; transition: border-color 0.2s; background: #fff; }
+    input:focus, select:focus, textarea:focus { outline: none; border-color: #1A5276; }
+    textarea { resize: vertical; min-height: 80px; }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+    .radio-group { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 4px; }
+    .radio-btn { display: flex; align-items: center; gap: 8px; padding: 9px 16px; border: 1.5px solid #DDD; border-radius: 8px; cursor: pointer; font-size: 14px; transition: all 0.2s; }
+    .radio-btn input[type="radio"] { width: 16px; height: 16px; accent-color: #1A5276; }
+    .radio-btn.selected { border-color: #1A5276; background: #EFF6FF; color: #1A5276; font-weight: 600; }
+    .upload-area { border: 2px dashed #DDD; border-radius: 8px; padding: 20px; text-align: center; cursor: pointer; transition: all 0.2s; }
+    .upload-area:hover { border-color: #1A5276; background: #EFF6FF; }
+    .upload-area input { display: none; }
+    .upload-area .icon { font-size: 28px; margin-bottom: 8px; }
+    .upload-area p { font-size: 13px; color: #666; }
+    .upload-area .uploaded { font-size: 12px; color: #1E8449; font-weight: 600; margin-top: 6px; }
+    .submit-btn { width: 100%; padding: 16px; background: #1A5276; color: #fff; border: none; border-radius: 10px; font-size: 16px; font-weight: 700; cursor: pointer; font-family: inherit; transition: background 0.2s; }
+    .submit-btn:hover { background: #154360; }
+    .submit-btn:disabled { background: #CCC; cursor: not-allowed; }
+    .success { display: none; text-align: center; padding: 40px 24px; }
+    .success .checkmark { font-size: 60px; margin-bottom: 16px; }
+    .success h2 { font-size: 24px; color: #1E8449; margin-bottom: 10px; }
+    .success p { color: #555; font-size: 15px; line-height: 1.6; }
+    @media (max-width: 500px) { .row, .row3 { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo">T</div>
+  <div class="header-text">
+    <h1>The Liz Team Realty</h1>
+    <p>Buyer Information Form</p>
+  </div>
+</div>
+
+<div class="container">
+  <div id="form-container">
+
+    <div style="background:#fff;border-radius:14px;padding:20px 24px;margin-bottom:20px;border-left:4px solid #1A5276;">
+      <h2 style="font-size:18px;color:#111;margin-bottom:6px">Welcome! Let's Find Your Home 🏡</h2>
+      <p style="color:#555;font-size:14px;line-height:1.6">Please complete this form so we can tailor our home search to your needs. All information is kept strictly confidential.</p>
+    </div>
+
+    <!-- Personal Info -->
+    <div class="card">
+      <div class="card-header">
+        <h2>👤 Your Information</h2>
+        <p>Buyer contact details</p>
+      </div>
+      <div class="card-body">
+        <div class="row">
+          <div class="field">
+            <label>First Name <span class="req">*</span></label>
+            <input type="text" id="firstName" placeholder="Maria" required>
+          </div>
+          <div class="field">
+            <label>Last Name <span class="req">*</span></label>
+            <input type="text" id="lastName" placeholder="Rodriguez" required>
+          </div>
+        </div>
+        <div class="row">
+          <div class="field">
+            <label>Email <span class="req">*</span></label>
+            <input type="email" id="email" placeholder="you@email.com" required>
+          </div>
+          <div class="field">
+            <label>Cell Phone <span class="req">*</span></label>
+            <input type="tel" id="phone" placeholder="407-555-0100" required>
+          </div>
+        </div>
+        <div class="field">
+          <label>Are you a first-time homebuyer?</label>
+          <div class="radio-group">
+            <label class="radio-btn" onclick="selectRadio(this,'firstTime','yes')"><input type="radio" name="firstTime" value="yes"> Yes</label>
+            <label class="radio-btn" onclick="selectRadio(this,'firstTime','no')"><input type="radio" name="firstTime" value="no"> No</label>
+          </div>
+        </div>
+        <div class="field">
+          <label>Current Housing Situation</label>
+          <div class="radio-group">
+            <label class="radio-btn" onclick="selectRadio(this,'housing','renting')"><input type="radio" name="housing" value="renting"> Renting</label>
+            <label class="radio-btn" onclick="selectRadio(this,'housing','own')"><input type="radio" name="housing" value="own"> Own a home</label>
+            <label class="radio-btn" onclick="selectRadio(this,'housing','family')"><input type="radio" name="housing" value="family"> Living with family</label>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Financing -->
+    <div class="card">
+      <div class="card-header">
+        <h2>💰 Financing</h2>
+        <p>Pre-approval and budget information</p>
+      </div>
+      <div class="card-body">
+        <div class="field">
+          <label>Are you pre-approved for a mortgage? <span class="req">*</span></label>
+          <div class="radio-group">
+            <label class="radio-btn" onclick="selectRadio(this,'preApproved','yes');togglePreApproval(true)"><input type="radio" name="preApproved" value="yes"> Yes</label>
+            <label class="radio-btn" onclick="selectRadio(this,'preApproved','no');togglePreApproval(false)"><input type="radio" name="preApproved" value="no"> No — need a lender referral</label>
+            <label class="radio-btn" onclick="selectRadio(this,'preApproved','cash');togglePreApproval(false)"><input type="radio" name="preApproved" value="cash"> Cash buyer</label>
+          </div>
+        </div>
+        <div id="preApprovalFields" style="display:none">
+          <div class="row">
+            <div class="field">
+              <label>Lender Name</label>
+              <input type="text" id="lenderName" placeholder="ABC Mortgage">
+            </div>
+            <div class="field">
+              <label>Pre-Approval Amount</label>
+              <input type="number" id="preApprovalAmount" placeholder="450000">
+            </div>
+          </div>
+        </div>
+        <div class="row">
+          <div class="field">
+            <label>Minimum Budget</label>
+            <input type="number" id="budgetMin" placeholder="300000">
+          </div>
+          <div class="field">
+            <label>Maximum Budget <span class="req">*</span></label>
+            <input type="number" id="budgetMax" placeholder="500000" required>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Property Preferences -->
+    <div class="card">
+      <div class="card-header">
+        <h2>🏠 Property Preferences</h2>
+        <p>Tell us what you're looking for</p>
+      </div>
+      <div class="card-body">
+        <div class="field">
+          <label>Property Type</label>
+          <div class="radio-group">
+            <label class="radio-btn" onclick="selectRadio(this,'propType','Single Family')"><input type="radio" name="propType" value="Single Family"> Single Family</label>
+            <label class="radio-btn" onclick="selectRadio(this,'propType','Townhouse')"><input type="radio" name="propType" value="Townhouse"> Townhouse</label>
+            <label class="radio-btn" onclick="selectRadio(this,'propType','Condo')"><input type="radio" name="propType" value="Condo"> Condo</label>
+            <label class="radio-btn" onclick="selectRadio(this,'propType','Any')"><input type="radio" name="propType" value="Any"> Any</label>
+          </div>
+        </div>
+        <div class="row">
+          <div class="field">
+            <label>Minimum Bedrooms</label>
+            <select id="bedrooms">
+              <option value="">No preference</option>
+              <option value="2">2+</option>
+              <option value="3">3+</option>
+              <option value="4">4+</option>
+              <option value="5">5+</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Minimum Bathrooms</label>
+            <select id="bathrooms">
+              <option value="">No preference</option>
+              <option value="1">1+</option>
+              <option value="2">2+</option>
+              <option value="3">3+</option>
+            </select>
+          </div>
+        </div>
+        <div class="field">
+          <label>Preferred Cities / Areas <span class="req">*</span></label>
+          <input type="text" id="preferredAreas" placeholder="Orlando, St. Cloud, Kissimmee, Lake Nona..." required>
+        </div>
+        <div class="field">
+          <label>Must-Have Features</label>
+          <textarea id="mustHaves" placeholder="Pool, 2-car garage, fenced yard, no HOA, specific school district..."></textarea>
+        </div>
+        <div class="field">
+          <label>Purchase Timeline</label>
+          <div class="radio-group">
+            <label class="radio-btn" onclick="selectRadio(this,'timeline','asap')"><input type="radio" name="timeline" value="asap"> As soon as possible</label>
+            <label class="radio-btn" onclick="selectRadio(this,'timeline','1-3mo')"><input type="radio" name="timeline" value="1-3mo"> 1–3 months</label>
+            <label class="radio-btn" onclick="selectRadio(this,'timeline','3-6mo')"><input type="radio" name="timeline" value="3-6mo"> 3–6 months</label>
+            <label class="radio-btn" onclick="selectRadio(this,'timeline','6mo+')"><input type="radio" name="timeline" value="6mo+"> 6+ months</label>
+          </div>
+        </div>
+        <div class="field">
+          <label>Additional Notes</label>
+          <textarea id="notes" placeholder="Anything else we should know about your home search..."></textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- ID Upload -->
+    <div class="card">
+      <div class="card-header">
+        <h2>📎 Document Upload</h2>
+        <p>Required for transaction processing</p>
+      </div>
+      <div class="card-body">
+        <div class="field">
+          <label>Government-Issued Photo ID (Front) <span class="req">*</span></label>
+          <div class="upload-area" onclick="document.getElementById('idFront').click()">
+            <input type="file" id="idFront" accept="image/*,.pdf" onchange="showUploaded(this,'idFrontLabel')">
+            <div class="icon">🪪</div>
+            <p>Tap to upload Driver's License or Passport (front)</p>
+            <div class="uploaded" id="idFrontLabel"></div>
+          </div>
+        </div>
+        <div class="field">
+          <label>Government-Issued Photo ID (Back)</label>
+          <div class="upload-area" onclick="document.getElementById('idBack').click()">
+            <input type="file" id="idBack" accept="image/*,.pdf" onchange="showUploaded(this,'idBackLabel')">
+            <div class="icon">🪪</div>
+            <p>Tap to upload Driver's License (back)</p>
+            <div class="uploaded" id="idBackLabel"></div>
+          </div>
+        </div>
+        <div class="field">
+          <label>Pre-Approval Letter (optional)</label>
+          <div class="upload-area" onclick="document.getElementById('preApprovalDoc').click()">
+            <input type="file" id="preApprovalDoc" accept="image/*,.pdf" onchange="showUploaded(this,'preApprovalLabel')">
+            <div class="icon">📄</div>
+            <p>Tap to upload your pre-approval letter</p>
+            <div class="uploaded" id="preApprovalLabel"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <button class="submit-btn" id="submitBtn" onclick="submitForm()">Submit Buyer Information →</button>
+    <p style="text-align:center;font-size:12px;color:#888;margin-top:12px">Your information is encrypted and securely transmitted to The Liz Team Realty.</p>
+  </div>
+
+  <div id="success-container" class="card success">
+    <div class="checkmark">✅</div>
+    <h2>Thank You!</h2>
+    <p>Your buyer information has been received. <strong>The Liz Team Realty</strong> will be in touch shortly to begin your home search.</p>
+    <p style="margin-top:16px">A confirmation has been sent to your email address.</p>
+  </div>
+</div>
+
+<script>
+const API = "https://liz-team-server-api-production.up.railway.app";
+
+function selectRadio(el, name, val) {
+  document.querySelectorAll(`[name="${name}"]`).forEach(r => r.closest('.radio-btn').classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+function togglePreApproval(show) {
+  document.getElementById('preApprovalFields').style.display = show ? 'block' : 'none';
+}
+
+function showUploaded(input, labelId) {
+  if (input.files[0]) document.getElementById(labelId).textContent = '✓ ' + input.files[0].name;
+}
+
+async function uploadFile(file, transactionId, category) {
+  if (!file) return null;
+  try {
+    const res = await fetch(API + '/documents/public-upload-url', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ transactionId, fileName: file.name, fileType: file.type, category })
+    });
+    const data = await res.json();
+    if (!data.uploadUrl) return null;
+    await fetch(data.uploadUrl, { method: 'PUT', body: file, headers: { 'Content-Type': file.type } });
+    return data.key;
+  } catch (e) { return null; }
+}
+
+async function submitForm() {
+  const btn = document.getElementById('submitBtn');
+  const firstName = document.getElementById('firstName').value.trim();
+  const lastName = document.getElementById('lastName').value.trim();
+  const email = document.getElementById('email').value.trim();
+  const phone = document.getElementById('phone').value.trim();
+  const budgetMax = document.getElementById('budgetMax').value.trim();
+  const preferredAreas = document.getElementById('preferredAreas').value.trim();
+
+  if (!firstName || !lastName || !email || !phone || !budgetMax || !preferredAreas) {
+    alert('Please fill in all required fields marked with *');
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Submitting...';
+
+  try {
+    const notes = [
+      'Preferred Areas: ' + preferredAreas,
+      document.querySelector('[name="firstTime"]:checked')?.value ? 'First-time buyer: ' + document.querySelector('[name="firstTime"]:checked').value : '',
+      document.querySelector('[name="housing"]:checked')?.value ? 'Housing: ' + document.querySelector('[name="housing"]:checked').value : '',
+      document.querySelector('[name="preApproved"]:checked')?.value ? 'Pre-approved: ' + document.querySelector('[name="preApproved"]:checked').value : '',
+      document.getElementById('lenderName').value ? 'Lender: ' + document.getElementById('lenderName').value : '',
+      document.getElementById('preApprovalAmount').value ? 'Pre-approval amount: $' + Number(document.getElementById('preApprovalAmount').value).toLocaleString() : '',
+      document.querySelector('[name="propType"]:checked')?.value ? 'Property type: ' + document.querySelector('[name="propType"]:checked').value : '',
+      document.getElementById('bedrooms').value ? 'Bedrooms: ' + document.getElementById('bedrooms').value + '+' : '',
+      document.getElementById('bathrooms').value ? 'Bathrooms: ' + document.getElementById('bathrooms').value + '+' : '',
+      document.querySelector('[name="timeline"]:checked')?.value ? 'Timeline: ' + document.querySelector('[name="timeline"]:checked').value : '',
+      document.getElementById('mustHaves').value ? 'Must-haves: ' + document.getElementById('mustHaves').value : '',
+      document.getElementById('notes').value
+    ].filter(Boolean).join('\n');
+
+    const res = await fetch(API + '/intake/buyer', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        firstName, lastName, email, phone,
+        budgetMin: document.getElementById('budgetMin').value || null,
+        budgetMax: parseFloat(budgetMax),
+        preferredAreas, notes
+      })
+    });
+
+    const data = await res.json();
+    if (!data.success) throw new Error(data.error || 'Submission failed');
+
+    const txId = data.transactionId;
+    const idFront = document.getElementById('idFront').files[0];
+    const idBack = document.getElementById('idBack').files[0];
+    const preApprovalDoc = document.getElementById('preApprovalDoc').files[0];
+    if (idFront) await uploadFile(idFront, txId, 'Buyer ID - Front');
+    if (idBack) await uploadFile(idBack, txId, 'Buyer ID - Back');
+    if (preApprovalDoc) await uploadFile(preApprovalDoc, txId, 'Pre-Approval Letter');
+
+    document.getElementById('form-container').style.display = 'none';
+    document.getElementById('success-container').style.display = 'block';
+  } catch (e) {
+    alert('Error: ' + e.message + '\nPlease try again or contact your agent directly.');
+    btn.disabled = false;
+    btn.textContent = 'Submit Buyer Information →';
+  }
+}
+</script>
+</body>
+</html>

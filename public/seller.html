@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Seller Intake Form — The Liz Team Realty</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, -apple-system, sans-serif; background: #F4F4F4; color: #111; }
+    .header { background: #111; padding: 20px 24px; display: flex; align-items: center; gap: 14px; }
+    .logo { width: 40px; height: 40px; background: #C0392B; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 900; font-size: 20px; }
+    .header-text h1 { color: #fff; font-size: 18px; font-weight: 700; }
+    .header-text p { color: #B7860B; font-size: 13px; }
+    .container { max-width: 680px; margin: 32px auto; padding: 0 16px 60px; }
+    .card { background: #fff; border-radius: 14px; overflow: hidden; box-shadow: 0 2px 12px rgba(0,0,0,0.08); margin-bottom: 20px; }
+    .card-header { background: #C0392B; padding: 16px 24px; }
+    .card-header h2 { color: #fff; font-size: 16px; font-weight: 700; }
+    .card-header p { color: rgba(255,255,255,0.75); font-size: 13px; margin-top: 3px; }
+    .card-body { padding: 24px; }
+    .field { margin-bottom: 18px; }
+    label { display: block; font-size: 12px; font-weight: 700; color: #555; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; }
+    label .req { color: #C0392B; margin-left: 2px; }
+    input, select, textarea { width: 100%; padding: 11px 14px; border-radius: 8px; border: 1.5px solid #DDD; font-size: 15px; font-family: inherit; transition: border-color 0.2s; background: #fff; }
+    input:focus, select:focus, textarea:focus { outline: none; border-color: #C0392B; }
+    textarea { resize: vertical; min-height: 80px; }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+    .radio-group { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 4px; }
+    .radio-btn { display: flex; align-items: center; gap: 8px; padding: 9px 16px; border: 1.5px solid #DDD; border-radius: 8px; cursor: pointer; font-size: 14px; transition: all 0.2s; }
+    .radio-btn input[type="radio"] { width: 16px; height: 16px; accent-color: #C0392B; }
+    .radio-btn.selected { border-color: #C0392B; background: #FEF2F2; color: #C0392B; font-weight: 600; }
+    .upload-area { border: 2px dashed #DDD; border-radius: 8px; padding: 20px; text-align: center; cursor: pointer; transition: all 0.2s; }
+    .upload-area:hover { border-color: #C0392B; background: #FEF2F2; }
+    .upload-area input { display: none; }
+    .upload-area .icon { font-size: 28px; margin-bottom: 8px; }
+    .upload-area p { font-size: 13px; color: #666; }
+    .upload-area .uploaded { font-size: 12px; color: #1E8449; font-weight: 600; margin-top: 6px; }
+    .submit-btn { width: 100%; padding: 16px; background: #C0392B; color: #fff; border: none; border-radius: 10px; font-size: 16px; font-weight: 700; cursor: pointer; font-family: inherit; transition: background 0.2s; }
+    .submit-btn:hover { background: #A93226; }
+    .submit-btn:disabled { background: #CCC; cursor: not-allowed; }
+    .success { display: none; text-align: center; padding: 40px 24px; }
+    .success .checkmark { font-size: 60px; margin-bottom: 16px; }
+    .success h2 { font-size: 24px; color: #1E8449; margin-bottom: 10px; }
+    .success p { color: #555; font-size: 15px; line-height: 1.6; }
+    .note { font-size: 12px; color: #888; margin-top: 5px; }
+    @media (max-width: 500px) { .row, .row3 { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo">T</div>
+  <div class="header-text">
+    <h1>The Liz Team Realty</h1>
+    <p>Seller Information Form</p>
+  </div>
+</div>
+
+<div class="container">
+  <div id="form-container">
+
+    <!-- Welcome -->
+    <div style="background:#fff;border-radius:14px;padding:20px 24px;margin-bottom:20px;border-left:4px solid #C0392B;">
+      <h2 style="font-size:18px;color:#111;margin-bottom:6px">Welcome! Let's Get Started 🏠</h2>
+      <p style="color:#555;font-size:14px;line-height:1.6">Please complete this form so we can prepare your listing. All information is kept strictly confidential. This form will automatically open your transaction in our system.</p>
+    </div>
+
+    <!-- Personal Info -->
+    <div class="card">
+      <div class="card-header">
+        <h2>👤 Your Information</h2>
+        <p>Seller contact details</p>
+      </div>
+      <div class="card-body">
+        <div class="row">
+          <div class="field">
+            <label>First Name <span class="req">*</span></label>
+            <input type="text" id="firstName" placeholder="Carlos" required>
+          </div>
+          <div class="field">
+            <label>Last Name <span class="req">*</span></label>
+            <input type="text" id="lastName" placeholder="Garcia" required>
+          </div>
+        </div>
+        <div class="row">
+          <div class="field">
+            <label>Email <span class="req">*</span></label>
+            <input type="email" id="email" placeholder="you@email.com" required>
+          </div>
+          <div class="field">
+            <label>Cell Phone <span class="req">*</span></label>
+            <input type="tel" id="phone" placeholder="407-555-0100" required>
+          </div>
+        </div>
+        <div class="field">
+          <label>Current Mailing Address (if different from property)</label>
+          <input type="text" id="mailingAddress" placeholder="123 Main St, Orlando, FL 32801">
+        </div>
+      </div>
+    </div>
+
+    <!-- Property Info -->
+    <div class="card">
+      <div class="card-header">
+        <h2>🏠 Property Information</h2>
+        <p>The property you'd like to list</p>
+      </div>
+      <div class="card-body">
+        <div class="field">
+          <label>Property Address <span class="req">*</span></label>
+          <input type="text" id="address" placeholder="13131 Alderley Dr" required>
+        </div>
+        <div class="row3">
+          <div class="field">
+            <label>City <span class="req">*</span></label>
+            <input type="text" id="city" placeholder="Orlando" required>
+          </div>
+          <div class="field">
+            <label>ZIP Code</label>
+            <input type="text" id="zip" placeholder="32832">
+          </div>
+          <div class="field">
+            <label>County</label>
+            <select id="county">
+              <option>Orange</option>
+              <option>Osceola</option>
+              <option>Seminole</option>
+              <option>Polk</option>
+              <option>Other</option>
+            </select>
+          </div>
+        </div>
+        <div class="row">
+          <div class="field">
+            <label>Property Type <span class="req">*</span></label>
+            <select id="propertyType">
+              <option>Single Family</option>
+              <option>Townhouse</option>
+              <option>Condominium</option>
+              <option>Villa</option>
+              <option>Multi-Family</option>
+              <option>Land</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Approximate List Price <span class="req">*</span></label>
+            <input type="number" id="listPrice" placeholder="450000" required>
+          </div>
+        </div>
+        <div class="field">
+          <label>Is the property part of an HOA?</label>
+          <div class="radio-group">
+            <label class="radio-btn" onclick="selectRadio(this,'hoa','yes')"><input type="radio" name="hoa" value="yes"> Yes</label>
+            <label class="radio-btn" onclick="selectRadio(this,'hoa','no')"><input type="radio" name="hoa" value="no"> No</label>
+            <label class="radio-btn" onclick="selectRadio(this,'hoa','unknown')"><input type="radio" name="hoa" value="unknown"> Not sure</label>
+          </div>
+        </div>
+        <div class="field" id="hoa-name-field" style="display:none">
+          <label>HOA Name & Monthly Fee</label>
+          <input type="text" id="hoaName" placeholder="Eagle Creek HOA — $250/month">
+        </div>
+        <div class="field">
+          <label>Is the property currently occupied?</label>
+          <div class="radio-group">
+            <label class="radio-btn" onclick="selectRadio(this,'occupied','owner')"><input type="radio" name="occupied" value="owner"> Owner occupied</label>
+            <label class="radio-btn" onclick="selectRadio(this,'occupied','tenant')"><input type="radio" name="occupied" value="tenant"> Tenant occupied</label>
+            <label class="radio-btn" onclick="selectRadio(this,'occupied','vacant')"><input type="radio" name="occupied" value="vacant"> Vacant</label>
+          </div>
+        </div>
+        <div class="field">
+          <label>Preferred Closing Timeline</label>
+          <select id="closingTimeline">
+            <option value="">— Select —</option>
+            <option>30 days</option>
+            <option>45 days</option>
+            <option>60 days</option>
+            <option>90 days</option>
+            <option>Flexible</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Additional Notes</label>
+          <textarea id="notes" placeholder="Any special instructions, conditions, or information we should know..."></textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- ID Upload -->
+    <div class="card">
+      <div class="card-header">
+        <h2>📎 Document Upload</h2>
+        <p>Required for transaction processing</p>
+      </div>
+      <div class="card-body">
+        <div class="field">
+          <label>Government-Issued Photo ID (Front) <span class="req">*</span></label>
+          <div class="upload-area" onclick="document.getElementById('idFront').click()">
+            <input type="file" id="idFront" accept="image/*,.pdf" onchange="showUploaded(this,'idFrontLabel')">
+            <div class="icon">🪪</div>
+            <p>Tap to upload Driver's License or Passport (front)</p>
+            <div class="uploaded" id="idFrontLabel"></div>
+          </div>
+        </div>
+        <div class="field">
+          <label>Government-Issued Photo ID (Back)</label>
+          <div class="upload-area" onclick="document.getElementById('idBack').click()">
+            <input type="file" id="idBack" accept="image/*,.pdf" onchange="showUploaded(this,'idBackLabel')">
+            <div class="icon">🪪</div>
+            <p>Tap to upload Driver's License (back)</p>
+            <div class="uploaded" id="idBackLabel"></div>
+          </div>
+        </div>
+        <div class="field">
+          <label>Mortgage Statement (optional — helps verify payoff amount)</label>
+          <div class="upload-area" onclick="document.getElementById('mortgage').click()">
+            <input type="file" id="mortgage" accept="image/*,.pdf" onchange="showUploaded(this,'mortgageLabel')">
+            <div class="icon">📄</div>
+            <p>Tap to upload most recent mortgage statement</p>
+            <div class="uploaded" id="mortgageLabel"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <button class="submit-btn" id="submitBtn" onclick="submitForm()">Submit Seller Information →</button>
+    <p style="text-align:center;font-size:12px;color:#888;margin-top:12px">Your information is encrypted and securely transmitted to The Liz Team Realty.</p>
+  </div>
+
+  <!-- Success -->
+  <div id="success-container" class="card success">
+    <div class="checkmark">✅</div>
+    <h2>Thank You!</h2>
+    <p>Your seller information has been received. <strong>The Liz Team Realty</strong> will be in touch shortly to discuss your listing.</p>
+    <p style="margin-top:16px">A confirmation has been sent to your email address.</p>
+  </div>
+</div>
+
+<script>
+const API = "https://liz-team-server-api-production.up.railway.app";
+
+function selectRadio(el, name, val) {
+  document.querySelectorAll(`[name="${name}"]`).forEach(r => r.closest('.radio-btn').classList.remove('selected'));
+  el.classList.add('selected');
+  if (name === 'hoa') {
+    document.getElementById('hoa-name-field').style.display = val === 'yes' ? 'block' : 'none';
+  }
+}
+
+function showUploaded(input, labelId) {
+  if (input.files[0]) {
+    document.getElementById(labelId).textContent = '✓ ' + input.files[0].name;
+  }
+}
+
+async function uploadFile(file, transactionId, category) {
+  if (!file) return null;
+  try {
+    const res = await fetch(API + '/documents/public-upload-url', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ transactionId, fileName: file.name, fileType: file.type, category })
+    });
+    const data = await res.json();
+    if (!data.uploadUrl) return null;
+    await fetch(data.uploadUrl, { method: 'PUT', body: file, headers: { 'Content-Type': file.type } });
+    return data.key;
+  } catch (e) { console.error('Upload error:', e); return null; }
+}
+
+async function submitForm() {
+  const btn = document.getElementById('submitBtn');
+  const firstName = document.getElementById('firstName').value.trim();
+  const lastName = document.getElementById('lastName').value.trim();
+  const email = document.getElementById('email').value.trim();
+  const phone = document.getElementById('phone').value.trim();
+  const address = document.getElementById('address').value.trim();
+  const city = document.getElementById('city').value.trim();
+  const listPrice = document.getElementById('listPrice').value.trim();
+
+  if (!firstName || !lastName || !email || !phone || !address || !city || !listPrice) {
+    alert('Please fill in all required fields marked with *');
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Submitting...';
+
+  try {
+    const hoa = document.querySelector('[name="hoa"]:checked')?.value || '';
+    const occupied = document.querySelector('[name="occupied"]:checked')?.value || '';
+    const notes = [
+      document.getElementById('notes').value,
+      hoa ? 'HOA: ' + hoa + (document.getElementById('hoaName').value ? ' — ' + document.getElementById('hoaName').value : '') : '',
+      occupied ? 'Occupancy: ' + occupied : '',
+      document.getElementById('closingTimeline').value ? 'Closing Timeline: ' + document.getElementById('closingTimeline').value : '',
+      document.getElementById('mailingAddress').value ? 'Mailing Address: ' + document.getElementById('mailingAddress').value : ''
+    ].filter(Boolean).join('\n');
+
+    // Submit transaction
+    const res = await fetch(API + '/intake/seller', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        firstName, lastName, email, phone,
+        address, city,
+        zip: document.getElementById('zip').value,
+        county: document.getElementById('county').value,
+        propertyType: document.getElementById('propertyType').value,
+        listPrice: parseFloat(listPrice),
+        notes
+      })
+    });
+
+    const data = await res.json();
+    if (!data.success) throw new Error(data.error || 'Submission failed');
+
+    const txId = data.transactionId;
+
+    // Upload files
+    const idFront = document.getElementById('idFront').files[0];
+    const idBack = document.getElementById('idBack').files[0];
+    const mortgage = document.getElementById('mortgage').files[0];
+    if (idFront) await uploadFile(idFront, txId, 'Seller ID - Front');
+    if (idBack) await uploadFile(idBack, txId, 'Seller ID - Back');
+    if (mortgage) await uploadFile(mortgage, txId, 'Mortgage Statement');
+
+    document.getElementById('form-container').style.display = 'none';
+    document.getElementById('success-container').style.display = 'block';
+  } catch (e) {
+    alert('Error: ' + e.message + '\nPlease try again or contact your agent directly.');
+    btn.disabled = false;
+    btn.textContent = 'Submit Seller Information →';
+  }
+}
+</script>
+</body>
+</html>
