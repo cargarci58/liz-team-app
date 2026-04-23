@@ -1144,6 +1144,9 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
               <div style={{ fontSize: 13, color: COLORS.muted }}>{completedTasks}/{tx.tasks.length} complete {overdueTasks > 0 && <span style={{ color: COLORS.danger }}>· {overdueTasks} overdue</span>}</div>
               <Btn onClick={() => setShowAddTask(true)} small>+ Add Task</Btn>
+              {tx.tasks.length > 0 && (
+                <Btn onClick={() => { if (window.confirm("Delete all tasks? This cannot be undone.")) update({ tasks: [] }); }} small variant="secondary">🗑 Clear All</Btn>
+              )}
               {tx.tasks.length === 0 && (
                 <Btn onClick={() => {
                   if (window.confirm("Generate Florida task checklist for this transaction? This will add all standard FL tasks.")) {
