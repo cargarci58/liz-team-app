@@ -121,26 +121,40 @@ Warm regards,
 ${agent}` },
 ];
 
-// phase: "active" = no due date needed (pre-contract tasks)
-// phase: "contract" = due dates calculated from executed/contract date
-// daysFromOpen: positive = days after contract date, negative = days before closing
+// phase: "active" = pre-contract/pre-listing tasks (no due dates)
+// phase: "contract" = under contract tasks (due dates from executed date)
+// phase: "closing" = closing/post-closing tasks (due dates from closing date)
 const FLORIDA_TASK_TEMPLATES = {
   "Listing (Seller)": [
-    // ── ACTIVE PHASE (Pre-Contract) ─────────────────────────
-    { name: "Execute Listing Agreement (FR/Bar)", phase: "active", daysFromOpen: null, category: "Contract", assignTo: "Listing Agent" },
-    { name: "Order Seller's Disclosure (FR/Bar Mandatory)", phase: "active", daysFromOpen: null, category: "Disclosure", assignTo: "Listing Agent" },
-    { name: "Confirm HOA/Condo Docs if applicable", phase: "active", daysFromOpen: null, category: "Disclosure", assignTo: "Transaction Coordinator" },
-    { name: "Input MLS Listing (FMLS/Stellar MLS)", phase: "active", daysFromOpen: null, category: "Marketing", assignTo: "Listing Agent" },
-    { name: "Property Photos / Drone / Virtual Tour", phase: "active", daysFromOpen: null, category: "Marketing", assignTo: "Listing Agent" },
-    { name: "Syndicate to Zillow, Realtor.com, etc.", phase: "active", daysFromOpen: null, category: "Marketing", assignTo: "Listing Agent" },
+    // ── PRE-LISTING PHASE (Active) ───────────────────────────
+    { name: "Draft Listing Docs for Listing Appointment", phase: "active", daysFromOpen: null, category: "Contract", assignTo: "Listing Agent" },
+    { name: "Receive All Listing Docs Signed (upload if wet signed)", phase: "active", daysFromOpen: null, category: "Contract", assignTo: "Listing Agent" },
+    { name: "Send Copy of Listing Documents to Seller", phase: "active", daysFromOpen: null, category: "Contract", assignTo: "Listing Agent" },
+    { name: "Upload Seller's Property Disclosure (required)", phase: "active", daysFromOpen: null, category: "Disclosure", assignTo: "Listing Agent" },
+    { name: "Upload Broker's Seller Disclosure (required)", phase: "active", daysFromOpen: null, category: "Disclosure", assignTo: "Listing Agent" },
+    { name: "Upload Flood Disclosure (required)", phase: "active", daysFromOpen: null, category: "Disclosure", assignTo: "Listing Agent" },
+    { name: "Upload Rider B - HOA (if applicable)", phase: "active", daysFromOpen: null, category: "Disclosure", assignTo: "Listing Agent" },
+    { name: "Upload Rider A - Condominium (if applicable)", phase: "active", daysFromOpen: null, category: "Disclosure", assignTo: "Listing Agent" },
+    { name: "Upload Rider P - Lead-Based Paint (if built before 1978)", phase: "active", daysFromOpen: null, category: "Disclosure", assignTo: "Listing Agent" },
+    { name: "Upload Rider AA - Licensee Disclosure (if agent related to seller)", phase: "active", daysFromOpen: null, category: "Disclosure", assignTo: "Listing Agent" },
+    { name: "Confirm HOA/Condo Docs if Applicable", phase: "active", daysFromOpen: null, category: "Disclosure", assignTo: "Transaction Coordinator" },
     { name: "Pre-Listing Home Inspection (optional)", phase: "active", daysFromOpen: null, category: "Inspection", assignTo: "Inspector" },
+    { name: "Schedule Photos / Drone / Virtual Tour", phase: "active", daysFromOpen: null, category: "Marketing", assignTo: "Listing Agent" },
+    { name: "Input Listing into MLS (Stellar MLS)", phase: "active", daysFromOpen: null, category: "Marketing", assignTo: "Listing Agent" },
+    { name: "Send MLS Listing to Seller for Review", phase: "active", daysFromOpen: null, category: "Marketing", assignTo: "Listing Agent" },
+    { name: "Go Over Showing Times with Seller", phase: "active", daysFromOpen: null, category: "Marketing", assignTo: "Listing Agent" },
+    { name: "Once Active - Send Seller Copy of Active MLS Broker Synopsis", phase: "active", daysFromOpen: null, category: "Marketing", assignTo: "Listing Agent" },
+    { name: "Print Active MLS Broker Synopsis and Upload to File", phase: "active", daysFromOpen: null, category: "Marketing", assignTo: "Transaction Coordinator" },
+    { name: "Syndicate to Zillow, Realtor.com, etc.", phase: "active", daysFromOpen: null, category: "Marketing", assignTo: "Listing Agent" },
     { name: "Review and Negotiate Offer(s)", phase: "active", daysFromOpen: null, category: "Contract", assignTo: "Listing Agent" },
     // ── UNDER CONTRACT PHASE ────────────────────────────────
     { name: "Execute FR/Bar AS-IS or Standard Contract", phase: "contract", daysFromOpen: 0, category: "Contract", assignTo: "Transaction Coordinator" },
+    { name: "Send Fully Executed Contract to All Parties", phase: "contract", daysFromOpen: 0, category: "Contract", assignTo: "Transaction Coordinator" },
     { name: "Open Escrow / Title Order", phase: "contract", daysFromOpen: 1, category: "Title", assignTo: "Title Company" },
     { name: "Verify Earnest Money Deposit Received (3 business days per FL law)", phase: "contract", daysFromOpen: 3, category: "Escrow", assignTo: "Transaction Coordinator" },
-    { name: "Inspection Period Tracking (default 10 days per FR/Bar)", phase: "contract", daysFromOpen: 10, category: "Inspection", assignTo: "Inspector" },
-    { name: "Buyer Inspection Notice & Seller's Response (BINSR)", phase: "contract", daysFromOpen: 12, category: "Inspection", assignTo: "Listing Agent" },
+    { name: "Confirm Inspection Scheduled", phase: "contract", daysFromOpen: 3, category: "Inspection", assignTo: "Listing Agent" },
+    { name: "Inspection Period Ends (default 10 days per FR/Bar)", phase: "contract", daysFromOpen: 10, category: "Inspection", assignTo: "Inspector" },
+    { name: "Buyer Inspection Notice & Seller Response (BINSR)", phase: "contract", daysFromOpen: 12, category: "Inspection", assignTo: "Listing Agent" },
     { name: "Appraisal Ordered", phase: "contract", daysFromOpen: 14, category: "Financing", assignTo: "Appraiser" },
     { name: "HOA Approval (if applicable)", phase: "contract", daysFromOpen: 14, category: "HOA", assignTo: "HOA Manager" },
     { name: "Title Search Completed", phase: "contract", daysFromOpen: 14, category: "Title", assignTo: "Title Company" },
@@ -151,41 +165,53 @@ const FLORIDA_TASK_TEMPLATES = {
     { name: "Homeowner's Insurance Binding (Buyer to provide)", phase: "contract", daysFromOpen: 21, category: "Insurance", assignTo: "Insurance Agent" },
     { name: "Closing Disclosure (CD) Review", phase: "contract", daysFromOpen: -3, category: "Closing", assignTo: "Title Company" },
     { name: "Final Walk-Through (24-48 hrs before closing)", phase: "contract", daysFromOpen: -1, category: "Closing", assignTo: "Listing Agent" },
-    { name: "Wire Transfer / Proceeds Confirmed", phase: "contract", daysFromOpen: -1, category: "Closing", assignTo: "Title Company" },
-    { name: "Closing Day / Deed Recorded", phase: "contract", daysFromOpen: 0, category: "Closing", assignTo: "Title Company" },
-    { name: "MLS Status Update to Closed", phase: "contract", daysFromOpen: 1, category: "Post-Closing", assignTo: "Listing Agent" },
-    { name: "Commission Disbursement (per DBPR rules)", phase: "contract", daysFromOpen: 1, category: "Post-Closing", assignTo: "Transaction Coordinator" },
+    { name: "Confirm Wire Transfer / Proceeds", phase: "contract", daysFromOpen: -1, category: "Closing", assignTo: "Title Company" },
+    // ── CLOSING / POST-CLOSING PHASE ────────────────────────
+    { name: "Closing Day / Deed Recorded", phase: "closing", daysFromOpen: 0, category: "Closing", assignTo: "Title Company" },
+    { name: "Collect Keys / Garage Remotes from Seller", phase: "closing", daysFromOpen: 0, category: "Closing", assignTo: "Listing Agent" },
+    { name: "MLS Status Update to Closed", phase: "closing", daysFromOpen: 1, category: "Post-Closing", assignTo: "Listing Agent" },
+    { name: "Commission Disbursement (per DBPR rules)", phase: "closing", daysFromOpen: 1, category: "Post-Closing", assignTo: "Transaction Coordinator" },
+    { name: "Send Thank You Note to Seller", phase: "closing", daysFromOpen: 1, category: "Post-Closing", assignTo: "Listing Agent" },
+    { name: "Request Google/Zillow Review from Seller", phase: "closing", daysFromOpen: 2, category: "Post-Closing", assignTo: "Listing Agent" },
   ],
   "Buyer Representation": [
-    // ── ACTIVE PHASE (Pre-Contract) ─────────────────────────
+    // ── BUYER CONSULTATION PHASE (Active) ───────────────────
     { name: "Execute Buyer Representation Agreement (per FL SB 1076)", phase: "active", daysFromOpen: null, category: "Contract", assignTo: "Buyer's Agent" },
-    { name: "Pre-Approval Letter Obtained", phase: "active", daysFromOpen: null, category: "Financing", assignTo: "Loan Officer/Lender" },
-    { name: "Property Search & Showings", phase: "active", daysFromOpen: null, category: "Showing", assignTo: "Buyer's Agent" },
+    { name: "Buyer Needs Analysis / Consultation Notes", phase: "active", daysFromOpen: null, category: "Contract", assignTo: "Buyer's Agent" },
+    { name: "Verify Pre-Approval Letter Obtained", phase: "active", daysFromOpen: null, category: "Financing", assignTo: "Loan Officer/Lender" },
+    { name: "Set Up MLS Property Search / Auto Alerts", phase: "active", daysFromOpen: null, category: "Showing", assignTo: "Buyer's Agent" },
+    { name: "Schedule and Conduct Showings", phase: "active", daysFromOpen: null, category: "Showing", assignTo: "Buyer's Agent" },
+    { name: "Discuss Offer Strategy with Buyer", phase: "active", daysFromOpen: null, category: "Contract", assignTo: "Buyer's Agent" },
     { name: "Submit Offer (FR/Bar Contract)", phase: "active", daysFromOpen: null, category: "Contract", assignTo: "Buyer's Agent" },
-    { name: "Offer Accepted / Counter Negotiation", phase: "active", daysFromOpen: null, category: "Contract", assignTo: "Buyer's Agent" },
+    { name: "Negotiate Offer / Counter Offer", phase: "active", daysFromOpen: null, category: "Contract", assignTo: "Buyer's Agent" },
     // ── UNDER CONTRACT PHASE ────────────────────────────────
+    { name: "Send Fully Executed Contract to All Parties", phase: "contract", daysFromOpen: 0, category: "Contract", assignTo: "Transaction Coordinator" },
     { name: "Earnest Money Deposit to Escrow (3 business days per FL law)", phase: "contract", daysFromOpen: 3, category: "Escrow", assignTo: "Transaction Coordinator" },
     { name: "Open Title Order", phase: "contract", daysFromOpen: 1, category: "Title", assignTo: "Title Company" },
     { name: "Schedule Home Inspection", phase: "contract", daysFromOpen: 2, category: "Inspection", assignTo: "Inspector" },
-    { name: "Formal Loan Application Submitted", phase: "contract", daysFromOpen: 5, category: "Financing", assignTo: "Loan Officer/Lender" },
-    { name: "Inspection Period (default 10 days per FR/Bar)", phase: "contract", daysFromOpen: 10, category: "Inspection", assignTo: "Inspector" },
+    { name: "Submit Formal Loan Application", phase: "contract", daysFromOpen: 5, category: "Financing", assignTo: "Loan Officer/Lender" },
+    { name: "Inspection Period Ends (default 10 days per FR/Bar)", phase: "contract", daysFromOpen: 10, category: "Inspection", assignTo: "Inspector" },
     { name: "Review Inspection Report with Buyer", phase: "contract", daysFromOpen: 11, category: "Inspection", assignTo: "Buyer's Agent" },
-    { name: "Submit BINSR / Request Repairs", phase: "contract", daysFromOpen: 11, category: "Inspection", assignTo: "Buyer's Agent" },
+    { name: "Submit BINSR / Request Repairs or Credit", phase: "contract", daysFromOpen: 11, category: "Inspection", assignTo: "Buyer's Agent" },
     { name: "Appraisal Ordered by Lender", phase: "contract", daysFromOpen: 10, category: "Financing", assignTo: "Appraiser" },
     { name: "HOA Application & Approval (if applicable)", phase: "contract", daysFromOpen: 14, category: "HOA", assignTo: "HOA Manager" },
-    { name: "Loan Approval/Commitment Letter", phase: "contract", daysFromOpen: 21, category: "Financing", assignTo: "Loan Officer/Lender" },
-    { name: "Review Title Commitment", phase: "contract", daysFromOpen: 21, category: "Title", assignTo: "Title Company" },
+    { name: "Loan Approval / Commitment Letter Received", phase: "contract", daysFromOpen: 21, category: "Financing", assignTo: "Loan Officer/Lender" },
+    { name: "Review Title Commitment with Buyer", phase: "contract", daysFromOpen: 21, category: "Title", assignTo: "Title Company" },
     { name: "Bind Homeowner's Insurance", phase: "contract", daysFromOpen: 21, category: "Insurance", assignTo: "Insurance Agent" },
     { name: "Review Closing Disclosure (3-day wait per RESPA)", phase: "contract", daysFromOpen: -3, category: "Closing", assignTo: "Buyer's Agent" },
-    { name: "Wire Closing Funds to Title", phase: "contract", daysFromOpen: -1, category: "Closing", assignTo: "Buyer" },
+    { name: "Wire Closing Funds to Title Company", phase: "contract", daysFromOpen: -1, category: "Closing", assignTo: "Buyer" },
     { name: "Final Walk-Through", phase: "contract", daysFromOpen: -1, category: "Closing", assignTo: "Buyer's Agent" },
-    { name: "Closing Day / Keys Delivered", phase: "contract", daysFromOpen: 0, category: "Closing", assignTo: "Title Company" },
-    { name: "Utility Transfer Reminder to Buyer", phase: "contract", daysFromOpen: 1, category: "Post-Closing", assignTo: "Transaction Coordinator" },
-    { name: "Commission Disbursement", phase: "contract", daysFromOpen: 1, category: "Post-Closing", assignTo: "Transaction Coordinator" },
+    // ── CLOSING / POST-CLOSING PHASE ────────────────────────
+    { name: "Closing Day / Keys Delivered to Buyer", phase: "closing", daysFromOpen: 0, category: "Closing", assignTo: "Title Company" },
+    { name: "Remind Buyer to Transfer Utilities", phase: "closing", daysFromOpen: 0, category: "Post-Closing", assignTo: "Transaction Coordinator" },
+    { name: "Remind Buyer to Change Locks", phase: "closing", daysFromOpen: 0, category: "Post-Closing", assignTo: "Buyer's Agent" },
+    { name: "Commission Disbursement", phase: "closing", daysFromOpen: 1, category: "Post-Closing", assignTo: "Transaction Coordinator" },
+    { name: "Send Thank You Note to Buyer", phase: "closing", daysFromOpen: 1, category: "Post-Closing", assignTo: "Buyer's Agent" },
+    { name: "Request Google/Zillow Review from Buyer", phase: "closing", daysFromOpen: 2, category: "Post-Closing", assignTo: "Buyer's Agent" },
+    { name: "Remind Buyer to Update Address (USPS, Bank, etc.)", phase: "closing", daysFromOpen: 3, category: "Post-Closing", assignTo: "Transaction Coordinator" },
   ],
   "Dual Agency": []
-};
-FLORIDA_TASK_TEMPLATES["Dual Agency"] = [
+};FLORIDA_TASK_TEMPLATES["Dual Agency"] = [
   ...FLORIDA_TASK_TEMPLATES["Listing (Seller)"],
   ...FLORIDA_TASK_TEMPLATES["Buyer Representation"].filter(t =>
     !FLORIDA_TASK_TEMPLATES["Listing (Seller)"].find(l => l.name === t.name))
