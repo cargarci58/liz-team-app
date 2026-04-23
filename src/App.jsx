@@ -2190,7 +2190,7 @@ function MainApp({ onLogout, currentUser }) {
           email: party.email,
           firstName: party.name.split(" ")[0],
           lastName: party.name.split(" ").slice(1).join(" ") || ".",
-          role: "client",
+          role: ["Transaction Coordinator", "Listing Agent", "Buyer's Agent", "Co-Agent"].includes(party.role) ? "agent" : "client",
           phone: party.phone || "",
           partyRole: party.role,
           transactionAddress: tx ? tx.address : "",
