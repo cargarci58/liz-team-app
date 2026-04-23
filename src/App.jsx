@@ -2258,7 +2258,7 @@ function MainApp({ onLogout, currentUser }) {
               <p style={{ fontSize: 13, color: "#555", marginBottom: 20 }}>Share these links with clients. The form automatically creates a transaction in your account.</p>
               {[{ label: "🏠 Seller Intake Form", type: "seller", color: "#C0392B" }, { label: "🏡 Buyer Intake Form", type: "buyer", color: "#1A5276" }].map(({ label, type, color }) => {
                 const slug = currentUser?.slug || "";
-                const url = "https://thelizteam.netlify.app/" + type + ".html" + (slug ? "?agent=" + slug : "");
+                const url = "https://thelizteam.netlify.app/" + type + ".html?agent=" + slug + "&uid=" + (currentUser?.id || "");
                 return (
                   <div key={type} style={{ marginBottom: 16, padding: 16, background: "#F8F9FA", borderRadius: 10, border: "1px solid #EEE" }}>
                     <div style={{ fontWeight: 700, color, marginBottom: 8 }}>{label}</div>

@@ -268,6 +268,7 @@
 <script>
 const API = "https://liz-team-server-api-production.up.railway.app";
 const slug = new URLSearchParams(window.location.search).get("agent") || "";
+const agentId = new URLSearchParams(window.location.search).get("uid") || "";
 
 function selectRadio(el, name, val) {
   document.querySelectorAll(`[name="${name}"]`).forEach(r => r.closest('.radio-btn').classList.remove('selected'));
@@ -338,7 +339,7 @@ async function submitForm() {
         county: document.getElementById('county').value,
         propertyType: document.getElementById('propertyType').value,
         listPrice: parseFloat(listPrice),
-        notes, slug
+        notes, slug, agentId
       })
     });
 
