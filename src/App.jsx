@@ -400,7 +400,7 @@ function TaskReminderModal({ task, tx, onClose }) {
 
   const due = daysUntil(task.dueDate);
   const isOverdue = due !== null && due < 0;
-  const partiesWithPhone = tx.parties.filter(p => p.phone && p.phone.trim());
+  const partiesWithPhone = tx.parties.filter(p => (p.phone && p.phone.trim()) || (p.email && p.email.trim()));
 
   useEffect(() => {
     fetch(`${SMS_SERVER}/health`).then(r => r.json()).then(() => setServerOnline(true)).catch(() => setServerOnline(false));
