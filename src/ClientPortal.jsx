@@ -44,7 +44,7 @@ export default function ClientPortal({ user, onLogout }) {
   const headers = { "Content-Type": "application/json", "Authorization": "Bearer " + tok };
 
   useEffect(() => {
-    fetch(`${API}/transactions`, { headers })
+    fetch(`${API}/client/transactions`, { headers })
       .then(r => r.json())
       .then(data => {
         if (data.transactions && data.transactions.length > 0) {
