@@ -1406,20 +1406,35 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
                   if (form.note) updates.notes = (tx.notes ? tx.notes + "\n\n" : "") + newStatus + " Note: " + form.note;
                   if (newStatus === "Under Contract" && form.executedDate) {
                     const templates = FLORIDA_TASK_TEMPLATES[tx.type] || [];
-                    updates.tasks = tx.tasks.map(t => {
+                    const existingNames = tx.tasks.map(t => t.name);
+                    const updatedExisting = tx.tasks.map(t => {
                       const tmpl = templates.find(tmp => tmp.name === t.name);
                       if (tmpl && tmpl.phase === "contract") {
                         let days = tmpl.daysFromOpen;
                         if (t.name.includes("Inspection Period")) days = inspDays;
                         if (t.name.includes("BINSR") || t.name.includes("Review Inspection")) days = inspDays + 2;
-                        if (days !== null && days >= 0) {
-                          return { ...t, dueDate: addDays(form.executedDate, days) };
-                        } else if (days < 0 && form.closingDate) {
-                          return { ...t, dueDate: addDays(form.closingDate, days) };
-                        }
+                        if (days !== null && days >= 0) return { ...t, dueDate: addDays(form.executedDate, days) };
+                        else if (days < 0 && form.closingDate) return { ...t, dueDate: addDays(form.closingDate, days) };
                       }
                       return t;
                     });
+                    const newContractTasks = templates
+                      .filter(t => t.phase === "contract" && !existingNames.includes(t.name))
+                      .map(t => {
+                        let days = t.daysFromOpen;
+                        if (t.name.includes("Inspection Period")) days = inspDays;
+                        if (t.name.includes("BINSR") || t.name.includes("Review Inspection")) days = inspDays + 2;
+                        return { id: genId(), name: t.name, category: t.category, assignTo: t.assignTo, dueDate: days !== null && days >= 0 ? addDays(form.executedDate, days) : (form.closingDate ? addDays(form.closingDate, days) : null), status: "Pending", notes: "", phase: "contract" };
+                      });
+                    updates.tasks = [...updatedExisting, ...newContractTasks];
+                  }
+                  if (newStatus === "Closed" && form.closingDate) {
+                    const templates = FLORIDA_TASK_TEMPLATES[tx.type] || [];
+                    const existingNames = tx.tasks.map(t => t.name);
+                    const newClosingTasks = templates
+                      .filter(t => t.phase === "closing" && !existingNames.includes(t.name))
+                      .map(t => ({ id: genId(), name: t.name, category: t.category, assignTo: t.assignTo, dueDate: addDays(form.closingDate, t.daysFromOpen || 0), status: "Pending", notes: "", phase: "closing" }));
+                    if (newClosingTasks.length > 0) updates.tasks = [...tx.tasks, ...newClosingTasks];
                   }
                   update(updates);
                   setStatusChangeModal(null);
