@@ -1830,7 +1830,7 @@ function Dashboard({ transactions, onSelect, onNew, onOpenContactBook, contactCo
                 <div>
                   <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
                     <span style={{ fontSize: 14 }}>{tx.type === "Buyer Representation" ? "🏡" : "🏠"}</span>
-                    <span style={{ fontSize: 10, fontWeight: 700, color: tx.type === "Buyer Representation" ? "#93C5FD" : COLORS.gold, textTransform: "uppercase", letterSpacing: "0.08em" }}>{tx.type === "Buyer Representation" ? "Buyer" : "Listing"}</span>
+                    <span style={{ fontSize: 10, fontWeight: 700, color: tx.type === "Buyer Representation" ? "#93C5FD" : COLORS.gold, textTransform: "uppercase", letterSpacing: "0.08em" }}>{tx.type === "Buyer Representation" ? "Buyer" : "Listing"}</span>{tx.brokerage_name && currentUser && tx.tenant_id !== currentUser.tenantId ? <span style={{ marginLeft: 10, fontSize: 9, fontWeight: 700, color: "#fff", background: "rgba(255,255,255,0.15)", padding: "2px 8px", borderRadius: 4, letterSpacing: "0.05em" }}>🏢 {tx.brokerage_name}</span> : null}
                   </div>
                   <div style={{ color: "#fff", fontWeight: 700, fontSize: 15 }}>{tx.address}</div>
                   <div style={{ color: COLORS.gold, fontSize: 12, marginTop: 2 }}>{tx.city}, FL · {tx.county}</div>
