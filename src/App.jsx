@@ -1424,7 +1424,9 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
                         let days = t.daysFromOpen;
                         if (t.name.includes("Inspection Period")) days = inspDays;
                         if (t.name.includes("BINSR") || t.name.includes("Review Inspection")) days = inspDays + 2;
-                        return { id: genId(), name: t.name, category: t.category, assignTo: t.assignTo, dueDate: days !== null && days >= 0 ? addDays(form.executedDate, days) : (form.closingDate ? addDays(form.closingDate, days) : null), status: "Pending", notes: "", phase: "contract" };
+                        // Auto-complete tasks that are done at contract execution
+                        const autoComplete = t.name.includes("Send Fully Executed Contract") || t.name.includes("Execute FR/Bar");
+                        return { id: genId(), name: t.name, category: t.category, assignTo: t.assignTo, dueDate: days !== null && days >= 0 ? addDays(form.executedDate, days) : (form.closingDate ? addDays(form.closingDate, days) : null), status: autoComplete ? "Completed" : "Pending", notes: "", phase: "contract" };
                       });
                     updates.tasks = [...updatedExisting, ...newContractTasks];
                   }
