@@ -1801,8 +1801,15 @@ function Dashboard({ transactions, onSelect, onNew, onOpenContactBook, contactCo
             <div key={tx.id} onClick={() => onSelect(tx.id)} style={{ background: "#fff", border: `1px solid ${COLORS.border}`, borderRadius: 12, cursor: "pointer", overflow: "hidden" }}
               onMouseEnter={e => e.currentTarget.style.boxShadow = "0 6px 20px rgba(0,0,0,0.12)"}
               onMouseLeave={e => e.currentTarget.style.boxShadow = "none"}>
-              <div style={{ background: COLORS.navy, padding: "14px 16px", display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                <div><div style={{ color: "#fff", fontWeight: 700, fontSize: 15 }}>{tx.address}</div><div style={{ color: COLORS.gold, fontSize: 12, marginTop: 2 }}>{tx.city}, FL · {tx.county}</div></div>
+              <div style={{ background: tx.type === "Buyer Representation" ? "#1A3A5C" : COLORS.navy, padding: "14px 16px", display: "flex", justifyContent: "space-between", alignItems: "flex-start", borderTop: `4px solid ${tx.type === "Buyer Representation" ? "#3B82F6" : "#C0392B"}` }}>
+                <div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
+                    <span style={{ fontSize: 14 }}>{tx.type === "Buyer Representation" ? "🏡" : "🏠"}</span>
+                    <span style={{ fontSize: 10, fontWeight: 700, color: tx.type === "Buyer Representation" ? "#93C5FD" : COLORS.gold, textTransform: "uppercase", letterSpacing: "0.08em" }}>{tx.type === "Buyer Representation" ? "Buyer" : "Listing"}</span>
+                  </div>
+                  <div style={{ color: "#fff", fontWeight: 700, fontSize: 15 }}>{tx.address}</div>
+                  <div style={{ color: COLORS.gold, fontSize: 12, marginTop: 2 }}>{tx.city}, FL · {tx.county}</div>
+                </div>
                 <Badge label={tx.status} color={cfg.color} bg={cfg.bg} />
               </div>
               <div style={{ padding: "14px 16px" }}>
