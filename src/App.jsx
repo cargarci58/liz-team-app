@@ -150,7 +150,7 @@ const FLORIDA_TASK_TEMPLATES = {
     { name: "Print and Upload Active MLS Broker Synopsis", phase: "active", daysFromOpen: null, category: "Marketing", assignTo: "Transaction Coordinator" },
     { name: "Syndicate to Zillow, Realtor.com, etc.", phase: "active", daysFromOpen: null, category: "Marketing", assignTo: "Listing Agent" },
     { name: "Schedule Open House (if applicable)", phase: "active", daysFromOpen: null, category: "Marketing", assignTo: "Listing Agent" },
-    { name: "Review and Negotiate Offer(s)", phase: "active", daysFromOpen: null, category: "Contract", assignTo: "Listing Agent" },
+    { name: "Review and Negotiate Offer(s)", phase: "active", daysFromOpen: null, category: "Marketing", assignTo: "Listing Agent" },
     // ── PHASE 3: UNDER CONTRACT ──────────────────────────────
     { name: "Execute FR/Bar AS-IS or Standard Contract", phase: "contract", daysFromOpen: 0, category: "Contract", assignTo: "Transaction Coordinator" },
     { name: "Send Fully Executed Contract to All Parties", phase: "contract", daysFromOpen: 0, category: "Contract", assignTo: "Transaction Coordinator" },
