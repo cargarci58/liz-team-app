@@ -1655,7 +1655,7 @@ function NewTransactionForm({ onSave, onCancel }) {
   const handleSave = async () => {
     if (!form.address || !form.city) return;
     const contractDate = form.executedDate || form.openDate;
-    const tasks = useFLTemplates ? (FLORIDA_TASK_TEMPLATES[form.type] || []).map(t => ({ id: genId(), name: t.name, category: t.category, assignTo: t.assignTo, dueDate: t.phase === "active" ? null : t.phase === "closing" ? (form.closingDate ? addDays(form.closingDate, t.daysFromOpen || 0) : null) : t.daysFromOpen !== null && t.daysFromOpen >= 0 ? (contractDate ? addDays(contractDate, t.daysFromOpen) : null) : (form.closingDate ? addDays(form.closingDate, t.daysFromOpen) : null), status: "Pending", notes: "", phase: t.phase || "active" })) : [];
+    const tasks = useFLTemplates ? (FLORIDA_TASK_TEMPLATES[form.type] || []).filter(t => t.phase === "active").map(t => ({ id: genId(), name: t.name, category: t.category, assignTo: t.assignTo, dueDate: null, status: "Pending", notes: "", phase: "active" })) : [];
     const tok = localStorage.getItem("tp_token") || "";
     try {
       const res = await fetch(API + "/transactions", {
