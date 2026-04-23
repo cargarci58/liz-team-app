@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 const API = "https://liz-team-server-api-production.up.railway.app";
 
 export default function AgentProfile({ onClose, currentUser }) {
-  const [form, setForm] = useState({ firstName: "", lastName: "", phone: "", photoUrl: "" });
+  const [form, setForm] = useState({ firstName: "", lastName: "", phone: "", photoUrl: "", title: "" });
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -19,6 +19,7 @@ export default function AgentProfile({ onClose, currentUser }) {
           lastName: d.profile.lastName || "",
           phone: d.profile.phone || "",
           photoUrl: d.profile.photoUrl || "",
+          title: d.profile.title || "",
         });
         setLoading(false);
       }).catch(() => setLoading(false));
@@ -103,6 +104,11 @@ export default function AgentProfile({ onClose, currentUser }) {
             <div style={{ marginBottom: 16 }}>
               <label style={lbl}>Cell Phone</label>
               <input value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} style={inp} placeholder="407-555-0100" type="tel" />
+            </div>
+            <div style={{ marginBottom: 18 }}>
+              <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", marginBottom: 6 }}>Title</label>
+              <input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} style={inp} placeholder="Transaction Coordinator, Broker, Real Estate Agent..." />
+              <div style={{ fontSize: 11, color: "#888", marginTop: 4 }}>Shown in your email signature</div>
             </div>
 
             <div style={{ marginBottom: 16 }}>
