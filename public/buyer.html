@@ -98,6 +98,36 @@
           </div>
         </div>
         <div class="field">
+          <label>Is there a co-buyer? (spouse, partner)</label>
+          <div class="radio-group">
+            <label class="radio-btn" onclick="selectRadio(this,'coBuyer','yes');document.getElementById('co-buyer-fields').style.display='block'"><input type="radio" name="coBuyer" value="yes"> Yes</label>
+            <label class="radio-btn" onclick="selectRadio(this,'coBuyer','no');document.getElementById('co-buyer-fields').style.display='none'"><input type="radio" name="coBuyer" value="no"> No</label>
+          </div>
+        </div>
+        <div id="co-buyer-fields" style="display:none;border-top:1px solid #EEE;padding-top:16px;margin-top:4px">
+          <div style="font-size:12px;font-weight:700;color:#1A5276;text-transform:uppercase;margin-bottom:12px">Co-Buyer Information</div>
+          <div class="row">
+            <div class="field">
+              <label>Co-Buyer First Name</label>
+              <input type="text" id="coFirstName" placeholder="Carlos">
+            </div>
+            <div class="field">
+              <label>Co-Buyer Last Name</label>
+              <input type="text" id="coLastName" placeholder="Garcia">
+            </div>
+          </div>
+          <div class="row">
+            <div class="field">
+              <label>Co-Buyer Email</label>
+              <input type="email" id="coEmail" placeholder="carlos@email.com">
+            </div>
+            <div class="field">
+              <label>Co-Buyer Phone</label>
+              <input type="tel" id="coPhone" placeholder="407-555-0200">
+            </div>
+          </div>
+        </div>
+        <div class="field">
           <label>Current Housing Situation</label>
           <div class="radio-group">
             <label class="radio-btn" onclick="selectRadio(this,'housing','renting')"><input type="radio" name="housing" value="renting"> Renting</label>

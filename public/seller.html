@@ -96,6 +96,36 @@
           <label>Current Mailing Address (if different from property)</label>
           <input type="text" id="mailingAddress" placeholder="123 Main St, Orlando, FL 32801">
         </div>
+        <div class="field">
+          <label>Is there a co-seller? (spouse, partner, co-owner)</label>
+          <div class="radio-group">
+            <label class="radio-btn" onclick="selectRadio(this,'coSeller','yes');document.getElementById('co-seller-fields').style.display='block'"><input type="radio" name="coSeller" value="yes"> Yes</label>
+            <label class="radio-btn" onclick="selectRadio(this,'coSeller','no');document.getElementById('co-seller-fields').style.display='none'"><input type="radio" name="coSeller" value="no"> No</label>
+          </div>
+        </div>
+        <div id="co-seller-fields" style="display:none;border-top:1px solid #EEE;padding-top:16px;margin-top:4px">
+          <div style="font-size:12px;font-weight:700;color:#C0392B;text-transform:uppercase;margin-bottom:12px">Co-Seller Information</div>
+          <div class="row">
+            <div class="field">
+              <label>Co-Seller First Name</label>
+              <input type="text" id="coFirstName" placeholder="Maria">
+            </div>
+            <div class="field">
+              <label>Co-Seller Last Name</label>
+              <input type="text" id="coLastName" placeholder="Garcia">
+            </div>
+          </div>
+          <div class="row">
+            <div class="field">
+              <label>Co-Seller Email</label>
+              <input type="email" id="coEmail" placeholder="maria@email.com">
+            </div>
+            <div class="field">
+              <label>Co-Seller Phone</label>
+              <input type="tel" id="coPhone" placeholder="407-555-0200">
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
