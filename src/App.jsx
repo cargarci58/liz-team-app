@@ -353,7 +353,7 @@ function PartyCard({ party, onRemove, onEdit, onClick, onInvite }) {
   );
 }
 
-function TaskRow({ task, onUpdate, onRemind }) {
+function TaskRow({ task, onUpdate, onRemind, onRemove }) {
   const due = daysUntil(task.dueDate);
   const isOverdue = due !== null && due < 0 && task.status !== "Completed" && task.status !== "Waived";
   const effectiveStatus = isOverdue && task.status === "Pending" ? "Overdue" : task.status;
@@ -379,6 +379,7 @@ function TaskRow({ task, onUpdate, onRemind }) {
         <select value={task.status} onChange={e => onUpdate({ ...task, status: e.target.value })} style={{ fontSize: 12, padding: "3px 6px", borderRadius: 6, border: `1px solid ${COLORS.border}`, fontFamily: "inherit" }}>
           {Object.keys(TASK_STATUS).map(s => <option key={s}>{s}</option>)}
         </select>
+        {onRemove && <button onClick={() => { if (window.confirm("Delete this task?")) onRemove(task.id); }} style={{ background: "none", border: "none", color: "#CCC", cursor: "pointer", fontSize: 16, padding: "2px 4px", lineHeight: 1 }} title="Delete task">×</button>}
       </div>
     </div>
   );
@@ -1149,9 +1150,11 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
                       category: t.category,
                       assignTo: t.assignTo,
                       dueDate: t.phase === "active" ? null :
-                        t.daysFromOpen !== null && t.daysFromOpen >= 0
-                          ? (contractDate ? addDays(contractDate, t.daysFromOpen) : null)
-                          : (tx.closingDate ? addDays(tx.closingDate, t.daysFromOpen) : null),
+                        t.phase === "closing"
+                          ? (tx.closingDate ? addDays(tx.closingDate, t.daysFromOpen || 0) : null)
+                          : t.daysFromOpen !== null && t.daysFromOpen >= 0
+                            ? (contractDate ? addDays(contractDate, t.daysFromOpen) : null)
+                            : (tx.closingDate ? addDays(tx.closingDate, t.daysFromOpen) : null),
                       status: "Pending",
                       notes: "",
                       phase: t.phase || "active"
@@ -1167,7 +1170,7 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
                 <div style={{ fontSize: 12, fontWeight: 700, color: COLORS.muted, textTransform: "uppercase", letterSpacing: "0.06em" }}>{cat} ({tasks.filter(t => t.status === "Completed").length}/{tasks.length})</div>
                 {tasks.some(t => t.status !== "Completed") && <button onClick={() => update({ tasks: tx.tasks.map(t => tasks.find(ct => ct.id === t.id) ? { ...t, status: "Completed" } : t) })} style={{ fontSize: 10, color: COLORS.success, background: "none", border: `1px solid ${COLORS.success}`, borderRadius: 6, padding: "2px 8px", cursor: "pointer", fontFamily: "inherit", fontWeight: 600 }}>✓ All Done</button>}
               </div>
-                {tasks.map(t => <TaskRow key={t.id} task={t} onUpdate={updateTask} onRemind={setRemindingTask} />)}
+                {tasks.map(t => <TaskRow key={t.id} task={t} onUpdate={updateTask} onRemind={setRemindingTask} onRemove={id => update({ tasks: tx.tasks.filter(tk => tk.id !== id) })} />)}
               </div>
             ))}
           </div>
@@ -1438,7 +1441,7 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
                 alert("Please enter the Executed Date and Closing Date.");
                 return;
               }
-              // Update contract tasks with due dates from executed date
+              // Update contract and closing tasks with due dates
               const templates = FLORIDA_TASK_TEMPLATES[tx.type] || [];
               const updatedTasks = tx.tasks.map(task => {
                 const template = templates.find(t => t.name === task.name);
@@ -1446,6 +1449,10 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
                   const dueDate = template.daysFromOpen >= 0
                     ? addDays(contractWizardForm.executedDate, template.daysFromOpen)
                     : addDays(contractWizardForm.closingDate, template.daysFromOpen);
+                  return { ...task, dueDate, status: "Pending" };
+                }
+                if (template && template.phase === "closing" && template.daysFromOpen !== null) {
+                  const dueDate = addDays(contractWizardForm.closingDate, template.daysFromOpen || 0);
                   return { ...task, dueDate, status: "Pending" };
                 }
                 return task;
@@ -1601,7 +1608,7 @@ function NewTransactionForm({ onSave, onCancel }) {
   const handleSave = async () => {
     if (!form.address || !form.city) return;
     const contractDate = form.executedDate || form.openDate;
-    const tasks = useFLTemplates ? (FLORIDA_TASK_TEMPLATES[form.type] || []).map(t => ({ id: genId(), name: t.name, category: t.category, assignTo: t.assignTo, dueDate: t.phase === "active" ? null : t.daysFromOpen !== null && t.daysFromOpen >= 0 ? (contractDate ? addDays(contractDate, t.daysFromOpen) : null) : (form.closingDate ? addDays(form.closingDate, t.daysFromOpen) : null), status: "Pending", notes: "", phase: t.phase || "active" })) : [];
+    const tasks = useFLTemplates ? (FLORIDA_TASK_TEMPLATES[form.type] || []).map(t => ({ id: genId(), name: t.name, category: t.category, assignTo: t.assignTo, dueDate: t.phase === "active" ? null : t.phase === "closing" ? (form.closingDate ? addDays(form.closingDate, t.daysFromOpen || 0) : null) : t.daysFromOpen !== null && t.daysFromOpen >= 0 ? (contractDate ? addDays(contractDate, t.daysFromOpen) : null) : (form.closingDate ? addDays(form.closingDate, t.daysFromOpen) : null), status: "Pending", notes: "", phase: t.phase || "active" })) : [];
     const tok = localStorage.getItem("tp_token") || "";
     try {
       const res = await fetch(API + "/transactions", {
