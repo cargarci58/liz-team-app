@@ -1725,7 +1725,7 @@ function NewTransactionForm({ onSave, onCancel }) {
 }
 
 // ─── DASHBOARD ────────────────────────────────────────────────
-function Dashboard({ transactions, onSelect, onNew, onOpenContactBook, contactCount, onLogout, onOpenTeam, onChangePassword, onReports, onCalendar, onCompanySettings, onAgentProfile }) {
+function Dashboard({ transactions, onSelect, onNew, onOpenContactBook, contactCount, onLogout, onOpenTeam, onChangePassword, onReports, onCalendar, onCompanySettings, onAgentProfile, onIntakeLinks }) {
   const [filter, setFilter] = useState("All");
   const [search, setSearch] = useState("");
   const [showOverdue, setShowOverdue] = useState(false);
@@ -1767,6 +1767,7 @@ function Dashboard({ transactions, onSelect, onNew, onOpenContactBook, contactCo
             <button onClick={onNew} style={{ background: "#C0392B", border: "none", color: "#fff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>+ New Transaction</button>
             <button onClick={onReports} style={{ background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.2)", color: "#fff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>📊 Reports</button>
             <button onClick={onCalendar} style={{ background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.2)", color: "#fff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>📅 Calendar</button>
+            <button onClick={onIntakeLinks} style={{ background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.2)", color: "#fff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>🔗 Intake Forms</button>
             <button onClick={onAgentProfile} style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.15)", color: "rgba(255,255,255,0.6)", borderRadius: 8, padding: "7px 12px", cursor: "pointer", fontSize: 12, fontFamily: "inherit" }}>👤 Profile</button>
             <button onClick={onCompanySettings} style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.15)", color: "rgba(255,255,255,0.6)", borderRadius: 8, padding: "7px 12px", cursor: "pointer", fontSize: 12, fontFamily: "inherit" }}>⚙️ Settings</button>
             <button onClick={onLogout} style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.15)", color: "rgba(255,255,255,0.6)", borderRadius: 8, padding: "7px 12px", cursor: "pointer", fontSize: 12, fontFamily: "inherit" }}>Sign Out</button>
@@ -2099,6 +2100,7 @@ function MainApp({ onLogout, currentUser }) {
   const [forcePasswordReset, setForcePasswordReset] = useState(false);
   const [showCompanySettings, setShowCompanySettings] = useState(false);
   const [showAgentProfile, setShowAgentProfile] = useState(false);
+  const [showIntakeLinks, setShowIntakeLinks] = useState(false);
   const [showContactBook, setShowContactBook] = useState(false);
   const [contactBookCallback, setContactBookCallback] = useState(null);
 
@@ -2235,6 +2237,7 @@ function MainApp({ onLogout, currentUser }) {
           onReports={() => setShowReports(true)}
           onCompanySettings={() => setShowCompanySettings(true)}
           onAgentProfile={() => setShowAgentProfile(true)}
+          onIntakeLinks={() => setShowIntakeLinks(true)}
           onCalendar={() => setShowCalendar(true)}
         />
       )}
@@ -2244,6 +2247,33 @@ function MainApp({ onLogout, currentUser }) {
       {forcePasswordReset && <ChangePassword forceReset onClose={() => setForcePasswordReset(false)} />}
       {showCompanySettings && <CompanySettings onClose={() => setShowCompanySettings(false)} onChangePassword={() => { setShowCompanySettings(false); setShowChangePassword(true); }} />}
       {showAgentProfile && <AgentProfile currentUser={currentUser} onClose={() => setShowAgentProfile(false)} />}
+      {showIntakeLinks && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 3000, display: "flex", alignItems: "center", justifyContent: "center", padding: 16, fontFamily: "system-ui, sans-serif" }}>
+          <div style={{ background: "#fff", borderRadius: 14, width: "100%", maxWidth: 500, boxShadow: "0 8px 40px rgba(0,0,0,0.2)", overflow: "hidden" }}>
+            <div style={{ background: "#111", padding: "18px 24px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div style={{ color: "#fff", fontWeight: 700, fontSize: 18 }}>🔗 Your Intake Form Links</div>
+              <button onClick={() => setShowIntakeLinks(false)} style={{ background: "none", border: "none", color: "rgba(255,255,255,0.6)", fontSize: 22, cursor: "pointer" }}>x</button>
+            </div>
+            <div style={{ padding: 24 }}>
+              <p style={{ fontSize: 13, color: "#555", marginBottom: 20 }}>Share these links with clients. The form automatically creates a transaction in your account.</p>
+              {[{ label: "🏠 Seller Intake Form", type: "seller", color: "#C0392B" }, { label: "🏡 Buyer Intake Form", type: "buyer", color: "#1A5276" }].map(({ label, type, color }) => {
+                const slug = currentUser?.slug || "";
+                const url = "https://thelizteam.netlify.app/" + type + ".html" + (slug ? "?agent=" + slug : "");
+                return (
+                  <div key={type} style={{ marginBottom: 16, padding: 16, background: "#F8F9FA", borderRadius: 10, border: "1px solid #EEE" }}>
+                    <div style={{ fontWeight: 700, color, marginBottom: 8 }}>{label}</div>
+                    <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                      <input readOnly value={url} style={{ flex: 1, padding: "8px 12px", borderRadius: 8, border: "1px solid #DDD", fontSize: 12, fontFamily: "inherit", background: "#fff" }} onClick={e => e.target.select()} />
+                      <button onClick={() => { navigator.clipboard.writeText(url); alert("Link copied!"); }} style={{ padding: "8px 14px", background: color, color: "#fff", border: "none", borderRadius: 8, cursor: "pointer", fontWeight: 600, fontSize: 12, fontFamily: "inherit", whiteSpace: "nowrap" }}>Copy</button>
+                    </div>
+                    <button onClick={() => window.open(url, "_blank")} style={{ marginTop: 8, background: "none", border: "none", color, cursor: "pointer", fontSize: 12, fontFamily: "inherit", textDecoration: "underline" }}>Preview form</button>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
       {showContactBook && (
         <ContactBook
           contacts={contacts}
