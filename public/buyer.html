@@ -290,6 +290,7 @@
 
 <script>
 const API = "https://liz-team-server-api-production.up.railway.app";
+const slug = new URLSearchParams(window.location.search).get("agent") || "";
 
 function selectRadio(el, name, val) {
   document.querySelectorAll(`[name="${name}"]`).forEach(r => r.closest('.radio-btn').classList.remove('selected'));
