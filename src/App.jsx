@@ -1830,7 +1830,7 @@ function Dashboard({ transactions, onSelect, onNew, onOpenContactBook, contactCo
                 <div>
                   <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
                     <span style={{ fontSize: 14 }}>{tx.type === "Buyer Representation" ? "🏡" : "🏠"}</span>
-                    <span style={{ fontSize: 10, fontWeight: 700, color: tx.type === "Buyer Representation" ? "#93C5FD" : COLORS.gold, textTransform: "uppercase", letterSpacing: "0.08em" }}>{tx.type === "Buyer Representation" ? "Buyer" : "Listing"}</span>{tx.brokerage_name ? <span style={{ marginLeft: 10, fontSize: 9, fontWeight: 700, color: "#fff", background: "rgba(255,255,255,0.15)", padding: "2px 8px", borderRadius: 4, letterSpacing: "0.05em" }}>🏢 {tx.brokerage_name}</span> : null}
+                    <span style={{ fontSize: 10, fontWeight: 700, color: tx.type === "Buyer Representation" ? "#93C5FD" : COLORS.gold, textTransform: "uppercase", letterSpacing: "0.08em" }}>{tx.type === "Buyer Representation" ? "Buyer" : "Listing"}</span>{tx.owningBrokerageName ? <span style={{ marginLeft: 10, fontSize: 9, fontWeight: 700, color: "#fff", background: "rgba(255,255,255,0.15)", padding: "2px 8px", borderRadius: 4, letterSpacing: "0.05em" }}>🏢 {tx.owningBrokerageName}{tx.assignedAgentName ? " · " + tx.assignedAgentName : ""}</span> : null}
                   </div>
                   <div style={{ color: "#fff", fontWeight: 700, fontSize: 15 }}>{tx.address}</div>
                   <div style={{ color: COLORS.gold, fontSize: 12, marginTop: 2 }}>{tx.city}, FL · {tx.county}</div>
@@ -2091,6 +2091,9 @@ function MainApp({ onLogout, currentUser }) {
             referralSource: t.referral_source,
             assignedAgentId: t.assigned_agent_id,
             assignedAgentName: t.assigned_agent_name,
+            owningTenantId: t.tenant_id,
+            owningBrokerageName: t.brokerage_name,
+            owningBrokerageColor: t.brokerage_color,
             messages: t.internal_notes || [],
             parties: (t.parties || []).filter(Boolean).map(p => ({ id: p.id, role: p.role, name: p.name, email: p.email, phone: p.phone, company: p.company })),
             tasks: (t.tasks || []).filter(Boolean).map(tk => ({ id: tk.id, name: tk.name, status: tk.status, dueDate: tk.dueDate, category: tk.category, assignTo: tk.assignTo })),
