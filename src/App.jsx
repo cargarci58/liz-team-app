@@ -2074,11 +2074,29 @@ function MainApp({ onLogout, currentUser }) {
   // Poll unread chat counts every 30s (also on mount)
   useEffect(() => {
     let stopped = false;
+    let prevTotal = null;
+    const playDashboardAlert = () => {
+      try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain); gain.connect(ctx.destination);
+        osc.frequency.setValueAtTime(660, ctx.currentTime);
+        gain.gain.setValueAtTime(0.25, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
+        osc.start(); osc.stop(ctx.currentTime + 0.4);
+      } catch {}
+    };
     const fetchCounts = async () => {
       try {
         const res = await fetch(`${API}/chat/unread/counts`, { headers: { "Authorization": `Bearer ${token}` } });
         const data = await res.json();
-        if (!stopped && data.success) setUnreadCounts(data.counts || {});
+        if (stopped || !data.success) return;
+        const counts = data.counts || {};
+        const total = Object.values(counts).reduce((a, b) => a + b, 0);
+        if (prevTotal !== null && total > prevTotal) playDashboardAlert();
+        prevTotal = total;
+        setUnreadCounts(counts);
       } catch {}
     };
     fetchCounts();

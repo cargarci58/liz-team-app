@@ -16,6 +16,19 @@ function playSound() {
   } catch {}
 }
 
+function playSendSound() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.frequency.setValueAtTime(1200, ctx.currentTime);
+    gain.gain.setValueAtTime(0.15, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.15);
+    osc.start(); osc.stop(ctx.currentTime + 0.15);
+  } catch {}
+}
+
 if (typeof Notification !== "undefined" && Notification.permission === "default") {
   Notification.requestPermission();
 }
@@ -97,6 +110,7 @@ export default function TransactionChat({ transactionId, user, parties = [], sty
   const sendMessage = () => {
     if (!newMsg.trim() || !socketRef.current) return;
     socketRef.current.emit("send_message", { transactionId, message: newMsg.trim() });
+    playSendSound();
     setNewMsg("");
   };
 
