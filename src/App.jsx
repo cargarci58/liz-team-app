@@ -2073,11 +2073,32 @@ function MainApp({ onLogout, currentUser }) {
 
   // Poll unread chat counts every 15s across the whole app (not just dashboard)
   const prevTotalRef = useRef(null);
+  const audioCtxRef = useRef(null);
+  useEffect(() => {
+    // Unlock audio on first user interaction (required by Chrome/Safari autoplay policy)
+    const unlockAudio = () => {
+      try {
+        if (!audioCtxRef.current) {
+          audioCtxRef.current = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        if (audioCtxRef.current.state === "suspended") {
+          audioCtxRef.current.resume();
+        }
+      } catch {}
+    };
+    document.addEventListener("click", unlockAudio);
+    document.addEventListener("keydown", unlockAudio);
+    return () => {
+      document.removeEventListener("click", unlockAudio);
+      document.removeEventListener("keydown", unlockAudio);
+    };
+  }, []);
   useEffect(() => {
     let stopped = false;
     const playDashboardAlert = () => {
       try {
-        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const ctx = audioCtxRef.current || new (window.AudioContext || window.webkitAudioContext)();
+        if (ctx.state === "suspended") ctx.resume();
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
         osc.connect(gain); gain.connect(ctx.destination);
