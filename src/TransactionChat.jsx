@@ -52,6 +52,9 @@ export default function TransactionChat({ transactionId, user, parties = [], sty
       .catch(() => {})
       .finally(() => setLoading(false));
 
+    // Mark chat as read on open (server-side tracking for unread badge)
+    fetch(`${API}/chat/${transactionId}/mark-read`, { method: "POST", headers: { "Authorization": "Bearer " + tok } }).catch(() => {});
+
     const connect = () => {
       const socket = window.io(WS_URL, { auth: { token: tok }, transports: ["websocket", "polling"] });
       socket.on("connect", () => { setConnected(true); socket.emit("join_transaction", transactionId); });

@@ -1854,6 +1854,7 @@ function Dashboard({ transactions, onSelect, onNew, onOpenContactBook, contactCo
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
                   <Badge label={tx.type} color={COLORS.info} bg={COLORS.infoBg} />
                   {smsMsgCount > 0 && <Badge label={`${smsMsgCount} SMS`} color={COLORS.success} bg={COLORS.successBg} />}
+                  {unreadCounts[tx.id] > 0 && <Badge label={`💬 ${unreadCounts[tx.id]} new`} color="#fff" bg="#C0392B" />}
                 </div>
                 <div style={{ marginBottom: 10 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: COLORS.muted, marginBottom: 4 }}>
@@ -2061,8 +2062,32 @@ function ContactBook({ contacts, onClose, onSelect, onAdd, onEdit, onDelete }) {
 function MainApp({ onLogout, currentUser }) {
   const [transactions, setTransactions] = useState([]);
   const [txLoading, setTxLoading] = useState(true);
+  const [unreadCounts, setUnreadCounts] = useState({});
   const token = localStorage.getItem("tp_token") || "";
   const authHeaders = { "Content-Type": "application/json", "Authorization": `Bearer ${token}` };
+
+  // Poll unread chat counts every 30s (also on mount)
+  useEffect(() => {
+    let stopped = false;
+    const fetchCounts = async () => {
+      try {
+        const res = await fetch(`${API}/chat/unread/counts`, { headers: { "Authorization": `Bearer ${token}` } });
+        const data = await res.json();
+        if (!stopped && data.success) setUnreadCounts(data.counts || {});
+      } catch {}
+    };
+    fetchCounts();
+    const interval = setInterval(fetchCounts, 30000);
+    return () => { stopped = true; clearInterval(interval); };
+  }, [token]);
+
+  // Mark a transaction as read (call when user opens chat for that tx)
+  const markChatRead = async (transactionId) => {
+    setUnreadCounts(prev => { const n = { ...prev }; delete n[transactionId]; return n; });
+    try {
+      await fetch(`${API}/chat/${transactionId}/mark-read`, { method: "POST", headers: { "Authorization": `Bearer ${token}` } });
+    } catch {}
+  };
 
   // Load transactions from database on mount
   useEffect(() => {
