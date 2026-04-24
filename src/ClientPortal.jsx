@@ -63,6 +63,12 @@ export default function ClientPortal({ user, onLogout }) {
             type: t.transaction_type,
             parties: (t.parties || []).filter(Boolean),
             tasks: (t.tasks || []).filter(Boolean),
+            owningBrokerage: t.owning_brokerage,
+            brokerageColor: t.brokerage_color,
+            owningAgentName: [t.owning_agent_first_name, t.owning_agent_last_name].filter(Boolean).join(' '),
+            owningAgentEmail: t.owning_agent_email,
+            owningAgentPhone: t.owning_agent_phone,
+            owningAgentTitle: t.owning_agent_title,
           });
           // Load documents
           return fetch(`${API}/client/documents/${t.id}`, { headers });
@@ -186,6 +192,16 @@ export default function ClientPortal({ user, onLogout }) {
         <div style={{ maxWidth: 700, margin: "0 auto", padding: "20px 16px" }}>
           {/* Property Card */}
           <div style={{ background: C.black, borderRadius: 14, padding: 24, marginBottom: 20, color: "#fff" }}>
+            {(tx.owningBrokerage || tx.owningAgentName) && (
+              <div style={{ background: "rgba(255,255,255,0.08)", borderRadius: 10, padding: "10px 14px", marginBottom: 14, display: "flex", alignItems: "center", gap: 10, border: "1px solid rgba(255,255,255,0.12)" }}>
+                <span style={{ fontSize: 18 }}>🏢</span>
+                <div style={{ flex: 1 }}>
+                  {tx.owningBrokerage && <div style={{ fontSize: 13, fontWeight: 700, color: "#fff" }}>{tx.owningBrokerage}</div>}
+                  {tx.owningAgentName && <div style={{ fontSize: 12, color: "rgba(255,255,255,0.75)" }}>Agent: {tx.owningAgentName}{tx.owningAgentTitle ? ` · ${tx.owningAgentTitle}` : ''}</div>}
+                  {(tx.owningAgentEmail || tx.owningAgentPhone) && <div style={{ fontSize: 11, color: "rgba(255,255,255,0.55)", marginTop: 2 }}>{tx.owningAgentPhone || ''}{tx.owningAgentPhone && tx.owningAgentEmail ? ' · ' : ''}{tx.owningAgentEmail || ''}</div>}
+                </div>
+              </div>
+            )}
             <div style={{ fontSize: 11, color: "rgba(255,255,255,0.5)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 4 }}>{tx.type}</div>
             <div style={{ fontSize: 22, fontWeight: 800, marginBottom: 4 }}>{tx.address}</div>
             <div style={{ fontSize: 14, color: "rgba(255,255,255,0.6)", marginBottom: 16 }}>{tx.city}, {tx.state} · {tx.propertyType}</div>
