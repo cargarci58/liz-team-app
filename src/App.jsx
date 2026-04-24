@@ -2071,10 +2071,10 @@ function MainApp({ onLogout, currentUser }) {
   const token = localStorage.getItem("tp_token") || "";
   const authHeaders = { "Content-Type": "application/json", "Authorization": `Bearer ${token}` };
 
-  // Poll unread chat counts every 30s (also on mount)
+  // Poll unread chat counts every 15s across the whole app (not just dashboard)
+  const prevTotalRef = useRef(null);
   useEffect(() => {
     let stopped = false;
-    let prevTotal = null;
     const playDashboardAlert = () => {
       try {
         const ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -2094,13 +2094,13 @@ function MainApp({ onLogout, currentUser }) {
         if (stopped || !data.success) return;
         const counts = data.counts || {};
         const total = Object.values(counts).reduce((a, b) => a + b, 0);
-        if (prevTotal !== null && total > prevTotal) playDashboardAlert();
-        prevTotal = total;
+        if (prevTotalRef.current !== null && total > prevTotalRef.current) playDashboardAlert();
+        prevTotalRef.current = total;
         setUnreadCounts(counts);
       } catch {}
     };
     fetchCounts();
-    const interval = setInterval(fetchCounts, 30000);
+    const interval = setInterval(fetchCounts, 15000);
     return () => { stopped = true; clearInterval(interval); };
   }, [token]);
 
