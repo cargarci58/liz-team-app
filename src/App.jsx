@@ -928,8 +928,8 @@ function SMSPanel({ tx, onUpdate, currentUser }) {
   );
 }
 
-function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [], onSaveContact, onOpenContactBook, onDuplicate, currentUser }) {
-  const [activeTab, setActiveTab] = useState("overview");
+function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [], onSaveContact, onOpenContactBook, onDuplicate, currentUser, initialTab = "overview" }) {
+  const [activeTab, setActiveTab] = useState(initialTab);
   const [showAddParty, setShowAddParty] = useState(false);
   const [partyFromContactBook, setPartyFromContactBook] = useState(false);
   const [showAddTask, setShowAddTask] = useState(false);
@@ -1854,7 +1854,11 @@ function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenCon
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
                   <Badge label={tx.type} color={COLORS.info} bg={COLORS.infoBg} />
                   {smsMsgCount > 0 && <Badge label={`${smsMsgCount} SMS`} color={COLORS.success} bg={COLORS.successBg} />}
-                  {unreadCounts[tx.id] > 0 && <Badge label={`💬 ${unreadCounts[tx.id]} new`} color="#fff" bg="#C0392B" />}
+                  {unreadCounts[tx.id] > 0 && (
+                    <span onClick={e => { e.stopPropagation(); onSelect(tx.id, "chat"); }} style={{ cursor: "pointer" }}>
+                      <Badge label={`💬 ${unreadCounts[tx.id]} new`} color="#fff" bg="#C0392B" />
+                    </span>
+                  )}
                 </div>
                 <div style={{ marginBottom: 10 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: COLORS.muted, marginBottom: 4 }}>
@@ -2063,6 +2067,7 @@ function MainApp({ onLogout, currentUser }) {
   const [transactions, setTransactions] = useState([]);
   const [txLoading, setTxLoading] = useState(true);
   const [unreadCounts, setUnreadCounts] = useState({});
+  const [initialDetailTab, setInitialDetailTab] = useState("overview");
   const token = localStorage.getItem("tp_token") || "";
   const authHeaders = { "Content-Type": "application/json", "Authorization": `Bearer ${token}` };
 
@@ -2274,6 +2279,7 @@ function MainApp({ onLogout, currentUser }) {
       {!showReports && view === "new" && <NewTransactionForm onSave={addTransaction} onCancel={() => setView("dashboard")} />}
       {!showReports && !showCalendar && view === "detail" && selectedTx && (
         <TransactionDetail
+          initialTab={initialDetailTab}
           tx={selectedTx}
           onUpdate={updateTransaction}
           onDuplicate={duplicateTransaction}
@@ -2289,7 +2295,7 @@ function MainApp({ onLogout, currentUser }) {
         <Dashboard
           transactions={transactions}
           unreadCounts={unreadCounts}
-          onSelect={id => { setSelectedId(id); setView("detail"); }}
+          onSelect={(id, tab) => { setSelectedId(id); setInitialDetailTab(tab || "overview"); setView("detail"); }}
           onNew={() => setView("new")}
           onOpenContactBook={() => openContactBook(null)}
           contactCount={contacts.length}
