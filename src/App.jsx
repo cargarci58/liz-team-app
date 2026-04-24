@@ -1830,13 +1830,22 @@ function Dashboard({ transactions, onSelect, onNew, onOpenContactBook, contactCo
                 <div>
                   <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
                     <span style={{ fontSize: 14 }}>{tx.type === "Buyer Representation" ? "🏡" : "🏠"}</span>
-                    <span style={{ fontSize: 10, fontWeight: 700, color: tx.type === "Buyer Representation" ? "#93C5FD" : COLORS.gold, textTransform: "uppercase", letterSpacing: "0.08em" }}>{tx.type === "Buyer Representation" ? "Buyer" : "Listing"}</span>{tx.owningBrokerageName ? <span style={{ marginLeft: 10, fontSize: 9, fontWeight: 700, color: "#fff", background: "rgba(255,255,255,0.15)", padding: "2px 8px", borderRadius: 4, letterSpacing: "0.05em" }}>🏢 {tx.owningBrokerageName}{tx.assignedAgentName ? " · " + tx.assignedAgentName : ""}</span> : null}
+                    <span style={{ fontSize: 10, fontWeight: 700, color: tx.type === "Buyer Representation" ? "#93C5FD" : COLORS.gold, textTransform: "uppercase", letterSpacing: "0.08em" }}>{tx.type === "Buyer Representation" ? "Buyer" : "Listing"}</span>
                   </div>
                   <div style={{ color: "#fff", fontWeight: 700, fontSize: 15 }}>{tx.address}</div>
                   <div style={{ color: COLORS.gold, fontSize: 12, marginTop: 2 }}>{tx.city}, FL · {tx.county}</div>
                 </div>
                 <Badge label={tx.status} color={cfg.color} bg={cfg.bg} />
               </div>
+              {tx.owningBrokerageName && (
+                <div style={{ background: "#F4F6F8", padding: "8px 16px", display: "flex", alignItems: "center", gap: 8, borderBottom: `1px solid ${COLORS.border}` }}>
+                  <span style={{ fontSize: 14 }}>🏢</span>
+                  <div style={{ fontSize: 12, color: COLORS.muted }}>
+                    <span style={{ fontWeight: 700, color: COLORS.navy }}>{tx.owningBrokerageName}</span>
+                    {tx.assignedAgentName && <span> · Agent: <span style={{ fontWeight: 600, color: COLORS.text }}>{tx.assignedAgentName}</span></span>}
+                  </div>
+                </div>
+              )}
               <div style={{ padding: "14px 16px" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12 }}>
                   <div><div style={{ fontSize: 11, color: COLORS.muted, textTransform: "uppercase" }}>Price</div><div style={{ fontSize: 17, fontWeight: 800, color: COLORS.navy }}>{tx.contractPrice ? `$${Number(tx.contractPrice).toLocaleString()}` : tx.listPrice ? `$${Number(tx.listPrice).toLocaleString()}` : "TBD"}</div></div>
