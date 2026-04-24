@@ -1749,7 +1749,7 @@ function NewTransactionForm({ onSave, onCancel }) {
 }
 
 // ─── DASHBOARD ────────────────────────────────────────────────
-function Dashboard({ transactions, onSelect, onNew, onOpenContactBook, contactCount, onLogout, onOpenTeam, onChangePassword, onReports, onCalendar, onCompanySettings, onAgentProfile, onIntakeLinks, currentUser }) {
+function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenContactBook, contactCount, onLogout, onOpenTeam, onChangePassword, onReports, onCalendar, onCompanySettings, onAgentProfile, onIntakeLinks, currentUser }) {
   const [filter, setFilter] = useState("All");
   const [search, setSearch] = useState("");
   const [showOverdue, setShowOverdue] = useState(false);
@@ -2288,6 +2288,7 @@ function MainApp({ onLogout, currentUser }) {
       {!showReports && !showCalendar && view === "dashboard" && (
         <Dashboard
           transactions={transactions}
+          unreadCounts={unreadCounts}
           onSelect={id => { setSelectedId(id); setView("detail"); }}
           onNew={() => setView("new")}
           onOpenContactBook={() => openContactBook(null)}
