@@ -2303,8 +2303,12 @@ function MainApp({ onLogout, currentUser }) {
         }),
       });
       const data = await res.json();
-      if (res.ok || data.error === "Email already registered") {
+      if (res.ok && data.existing) {
+        alert(party.email + " already has an account. They've been added to your brokerage and notified by email.");
+      } else if (res.ok) {
         alert("Invitation sent to " + party.email + "! They will receive an email with portal access and transaction details.");
+      } else if (data.error === "Email already registered") {
+        alert(party.email + " is already registered. They've been notified.");
       } else {
         alert("Failed: " + (data.error || "Unknown error"));
       }
