@@ -39,6 +39,8 @@ export default function TransactionChat({ transactionId, user, parties = [], sty
   const [connected, setConnected] = useState(false);
   const [loading, setLoading] = useState(true);
   const [accessError, setAccessError] = useState(null);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [selectedEmails, setSelectedEmails] = useState([]);
   const socketRef = useRef(null);
   const endRef = useRef(null);
   const tok = localStorage.getItem("tp_token") || "";
@@ -109,9 +111,13 @@ export default function TransactionChat({ transactionId, user, parties = [], sty
 
   const sendMessage = () => {
     if (!newMsg.trim() || !socketRef.current) return;
-    socketRef.current.emit("send_message", { transactionId, message: newMsg.trim() });
+    const payload = { transactionId, message: newMsg.trim() };
+    if (selectedEmails.length > 0) payload.notifyEmails = selectedEmails;
+    socketRef.current.emit("send_message", payload);
     playSendSound();
     setNewMsg("");
+    setSelectedEmails([]);
+    setPickerOpen(false);
   };
 
   const myId = getMyId();
@@ -194,6 +200,14 @@ export default function TransactionChat({ transactionId, user, parties = [], sty
                   <div style={{ background: mine ? "#C0392B" : unread ? "#FFF3CD" : "#fff", color: mine ? "#fff" : "#111", padding: "10px 14px", borderRadius: mine ? "14px 14px 4px 14px" : "14px 14px 14px 4px", fontSize: 14, lineHeight: 1.5, boxShadow: "0 1px 3px rgba(0,0,0,0.1)", border: mine ? "none" : unread ? "2px solid #F0C040" : "1px solid #E5E7EB" }}>
                     {msg.message}
                   </div>
+                  {Array.isArray(msg.notify_emails) && msg.notify_emails.length > 0 && (
+                    <div style={{ fontSize: 10, color: mine ? "rgba(255,255,255,0.85)" : "#888", marginTop: 4, textAlign: mine ? "right" : "left", paddingLeft: 4, paddingRight: 4, fontStyle: "italic" }}>
+                      📧 Notified: {(msg.notify_emails || []).map(e => {
+                        const p = parties.find(p => (p.email || "").toLowerCase() === e.toLowerCase());
+                        return p ? p.name : e;
+                      }).join(", ")}
+                    </div>
+                  )}
                   <div style={{ fontSize: 10, color: "#888", marginTop: 2, textAlign: mine ? "right" : "left", paddingLeft: 4, paddingRight: 4 }}>
                     {formatTime(msg.created_at)}
                   </div>
@@ -205,10 +219,42 @@ export default function TransactionChat({ transactionId, user, parties = [], sty
         <div ref={endRef} />
       </div>
 
-      <div style={{ padding: "12px 16px", background: "#fff", borderTop: "1px solid #DDD", display: "flex", gap: 8 }}>
+      {pickerOpen && (
+        <div style={{ background: "#FAFBFC", borderTop: "1px solid #E5E7EB", padding: "10px 16px", maxHeight: 220, overflowY: "auto" }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: "#666", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.06em" }}>Notify only:</div>
+          {parties.filter(p => p.email).length === 0 ? (
+            <div style={{ fontSize: 12, color: "#888", fontStyle: "italic" }}>No parties with emails on this transaction.</div>
+          ) : parties.filter(p => p.email).map(p => {
+            const checked = selectedEmails.includes(p.email.toLowerCase());
+            return (
+              <label key={p.id || p.email} style={{ display: "flex", alignItems: "center", gap: 8, padding: "5px 0", cursor: "pointer", fontSize: 13 }}>
+                <input type="checkbox" checked={checked} onChange={e => {
+                  const em = p.email.toLowerCase();
+                  setSelectedEmails(prev => e.target.checked ? [...prev, em] : prev.filter(x => x !== em));
+                }} />
+                <span style={{ color: "#111" }}>{p.name}</span>
+                <span style={{ color: "#888", fontSize: 11 }}>· {p.role}</span>
+              </label>
+            );
+          })}
+          {selectedEmails.length > 0 && (
+            <div style={{ marginTop: 6, fontSize: 11, color: "#888" }}>
+              {selectedEmails.length} selected. Leave empty = notify everyone.
+            </div>
+          )}
+        </div>
+      )}
+      <div style={{ padding: "12px 16px", background: "#fff", borderTop: "1px solid #DDD", display: "flex", gap: 8, alignItems: "center" }}>
+        <button onClick={() => setPickerOpen(!pickerOpen)} title="Choose who to notify"
+          style={{ width: 40, height: 40, borderRadius: "50%", background: pickerOpen || selectedEmails.length > 0 ? "#1A5276" : "#E0E0E0", color: "#fff", border: "none", cursor: "pointer", fontSize: 16, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, position: "relative" }}>
+          👥
+          {selectedEmails.length > 0 && (
+            <span style={{ position: "absolute", top: -3, right: -3, background: "#C0392B", color: "#fff", borderRadius: "50%", width: 18, height: 18, fontSize: 10, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", border: "2px solid #fff" }}>{selectedEmails.length}</span>
+          )}
+        </button>
         <input value={newMsg} onChange={e => setNewMsg(e.target.value)}
           onKeyDown={e => e.key === "Enter" && !e.shiftKey && (e.preventDefault(), sendMessage())}
-          placeholder={connected ? "Type a message... (Enter to send)" : "Connecting..."}
+          placeholder={selectedEmails.length > 0 ? `Notify ${selectedEmails.length} party · type message...` : (connected ? "Type a message... (Enter to send)" : "Connecting...")}
           disabled={!connected}
           style={{ flex: 1, padding: "10px 14px", borderRadius: 24, border: "1.5px solid #DDD", fontSize: 14, fontFamily: "inherit", outline: "none", background: connected ? "#fff" : "#F5F5F5" }} />
         <button onClick={sendMessage} disabled={!connected || !newMsg.trim()}
