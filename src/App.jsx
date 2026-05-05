@@ -1794,6 +1794,7 @@ function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenCon
             {["admin","superadmin"].includes(currentUser?.role) && <button onClick={onIntakeLinks} style={{ background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.2)", color: "#fff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>🔗 Intake Forms</button>}
             <button onClick={onAgentProfile} style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.15)", color: "rgba(255,255,255,0.6)", borderRadius: 8, padding: "7px 12px", cursor: "pointer", fontSize: 12, fontFamily: "inherit" }}>👤 Profile</button>
             {["admin","superadmin"].includes(currentUser?.role) && <button onClick={onCompanySettings} style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.15)", color: "rgba(255,255,255,0.6)", borderRadius: 8, padding: "7px 12px", cursor: "pointer", fontSize: 12, fontFamily: "inherit" }}>⚙️ Settings</button>}
+            <TenantSwitcher currentUser={currentUser} />
             <button onClick={onLogout} style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.15)", color: "rgba(255,255,255,0.6)", borderRadius: 8, padding: "7px 12px", cursor: "pointer", fontSize: 12, fontFamily: "inherit" }}>Sign Out</button>
           </div>
         </div>
@@ -2059,6 +2060,59 @@ function ContactBook({ contacts, onClose, onSelect, onAdd, onEdit, onDelete }) {
           ))}
         </div>
       </div>
+    </div>
+  );
+}
+
+function TenantSwitcher({ currentUser }) {
+  const [open, setOpen] = useState(false);
+  const memberships = currentUser?.memberships || [];
+  const activeId = currentUser?.tenantId;
+  if (memberships.length < 2) return null;
+  const active = memberships.find(m => m.tenantId === activeId) || memberships[0];
+
+  const switchTo = async (tenantId) => {
+    if (tenantId === activeId) { setOpen(false); return; }
+    const tok = localStorage.getItem("tp_token") || "";
+    try {
+      const res = await fetch(API + "/auth/switch-tenant", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": "Bearer " + tok },
+        body: JSON.stringify({ tenantId })
+      });
+      const data = await res.json();
+      if (!data.success) { alert("Could not switch: " + (data.error || "Unknown error")); return; }
+      localStorage.setItem("tp_token", data.token);
+      localStorage.setItem("tp_user", JSON.stringify(data.user));
+      window.location.reload();
+    } catch (e) { alert("Switch failed: " + e.message); }
+  };
+
+  return (
+    <div style={{ position: "relative" }}>
+      <button onClick={() => setOpen(!open)} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.2)", color: "#fff", borderRadius: 8, padding: "7px 12px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit", display: "flex", alignItems: "center", gap: 6 }}>
+        🏢 {active?.tenantName || "Brokerage"} <span style={{ fontSize: 10, opacity: 0.7 }}>▾</span>
+      </button>
+      {open && (
+        <>
+          <div onClick={() => setOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 998 }} />
+          <div style={{ position: "absolute", top: "calc(100% + 6px)", right: 0, background: "#fff", border: "1px solid #DDD", borderRadius: 10, boxShadow: "0 8px 24px rgba(0,0,0,0.15)", minWidth: 240, zIndex: 999, overflow: "hidden" }}>
+            <div style={{ padding: "10px 14px", fontSize: 11, color: "#888", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", borderBottom: "1px solid #EEE" }}>Switch Brokerage</div>
+            {memberships.map(m => {
+              const isActive = m.tenantId === activeId;
+              return (
+                <div key={m.tenantId} onClick={() => switchTo(m.tenantId)} style={{ padding: "10px 14px", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center", background: isActive ? "#F4F6F8" : "#fff", borderBottom: "1px solid #F4F6F8" }}>
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: "#111" }}>{m.tenantName}</div>
+                    <div style={{ fontSize: 11, color: "#888", marginTop: 2 }}>{m.role}</div>
+                  </div>
+                  {isActive && <span style={{ color: "#1E8449", fontSize: 14 }}>✓</span>}
+                </div>
+              );
+            })}
+          </div>
+        </>
+      )}
     </div>
   );
 }
