@@ -201,7 +201,7 @@ export default function TransactionChat({ transactionId, user, parties = [], sty
                     {msg.message}
                   </div>
                   {Array.isArray(msg.notify_emails) && msg.notify_emails.length > 0 && (
-                    <div style={{ fontSize: 10, color: mine ? "rgba(255,255,255,0.85)" : "#888", marginTop: 4, textAlign: mine ? "right" : "left", paddingLeft: 4, paddingRight: 4, fontStyle: "italic" }}>
+                    <div style={{ fontSize: 11, fontWeight: 600, color: mine ? "#fff" : "#555", marginTop: 4, textAlign: mine ? "right" : "left", padding: "3px 8px", borderRadius: 8, background: mine ? "rgba(0,0,0,0.15)" : "#F0F4F8", display: "inline-block" }}>
                       📧 Notified: {(msg.notify_emails || []).map(e => {
                         const p = parties.find(p => (p.email || "").toLowerCase() === e.toLowerCase());
                         return p ? p.name : e;
