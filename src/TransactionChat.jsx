@@ -113,6 +113,7 @@ export default function TransactionChat({ transactionId, user, parties = [], sty
     if (!newMsg.trim() || !socketRef.current) return;
     const payload = { transactionId, message: newMsg.trim() };
     if (selectedEmails.length > 0) payload.notifyEmails = selectedEmails;
+    console.log("[CHAT DEBUG] Sending payload:", payload, "selectedEmails state:", selectedEmails);
     socketRef.current.emit("send_message", payload);
     playSendSound();
     setNewMsg("");
