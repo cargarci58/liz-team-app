@@ -928,7 +928,7 @@ function SMSPanel({ tx, onUpdate, currentUser }) {
   );
 }
 
-function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [], onSaveContact, onOpenContactBook, onDuplicate, currentUser, initialTab = "overview" }) {
+function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [], onSaveContact, onOpenContactBook, onDuplicate, currentUser, initialTab = "overview", dashboardUnread = 0 }) {
   const [activeTab, setActiveTab] = useState(initialTab);
   const [showAddParty, setShowAddParty] = useState(false);
   const [partyFromContactBook, setPartyFromContactBook] = useState(false);
@@ -1019,7 +1019,7 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
     { id: "sms", label: `Messages${smsMsgCount > 0 ? ` (${smsMsgCount})` : ""}` },
     { id: "notes", label: "Internal Notes" },
     { id: "documents", label: "📎 Documents" },
-    { id: "chat", label: chatUnread > 0 ? `💬 Group Chat (${chatUnread})` : "💬 Group Chat" },
+    { id: "chat", label: (chatUnread > 0 || dashboardUnread > 0) ? `💬 Group Chat (${Math.max(chatUnread, dashboardUnread)})` : "💬 Group Chat" },
     { id: "activity", label: "📋 Activity Log" },
     { id: "reminders", label: "Reminders" },
   ];
@@ -2377,6 +2377,7 @@ function MainApp({ onLogout, currentUser }) {
       {!showReports && !showCalendar && view === "detail" && selectedTx && (
         <TransactionDetail
           initialTab={initialDetailTab}
+          dashboardUnread={unreadCounts[selectedId] || 0}
           tx={selectedTx}
           onUpdate={updateTransaction}
           onDuplicate={duplicateTransaction}
