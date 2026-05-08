@@ -2525,7 +2525,6 @@ function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenCon
         </div>
         <div style={{ marginLeft: "auto", display: "flex", gap: 6, position: "relative" }}>
           <button onClick={() => setShowViewsMenu(v => !v)} title="My saved views" style={{ padding: "7px 12px", borderRadius: 8, border: `1px solid ${COLORS.border}`, background: "#fff", color: COLORS.text, fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 6 }}>📋 Views {savedViews.length > 0 && <span style={{ background: COLORS.bg, color: COLORS.muted, borderRadius: 10, padding: "1px 7px", fontSize: 11, fontWeight: 700 }}>{savedViews.length}</span>} <span style={{ fontSize: 9 }}>▾</span></button>
-          <button onClick={() => setShowSaveViewModal(true)} title="Save current filters as a view" style={{ padding: "7px 12px", borderRadius: 8, border: `1px solid ${COLORS.border}`, background: "#fff", color: COLORS.text, fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 6 }}>💾 Save</button>
           {showViewsMenu && (
             <>
               <div onClick={() => setShowViewsMenu(false)} style={{ position: "fixed", inset: 0, zIndex: 100 }} />
@@ -2549,6 +2548,12 @@ function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenCon
                     </div>
                   ))
                 )}
+                <div onClick={() => { setShowViewsMenu(false); setShowSaveViewModal(true); }} style={{ padding: "12px 14px", borderTop: `1px solid ${COLORS.border}`, cursor: "pointer", display: "flex", alignItems: "center", gap: 8, fontSize: 13, fontWeight: 600, color: COLORS.navy, background: "#FAFAFA" }}
+                  onMouseEnter={e => e.currentTarget.style.background = COLORS.bg}
+                  onMouseLeave={e => e.currentTarget.style.background = "#FAFAFA"}>
+                  <span style={{ fontSize: 14 }}>+</span>
+                  <span>Save current as new view</span>
+                </div>
               </div>
             </>
           )}
