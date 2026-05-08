@@ -250,6 +250,8 @@ if (typeof document !== "undefined" && !document.getElementById("lizteam-mobile"
   s.id = "lizteam-mobile";
   s.textContent = `
     *, *::before, *::after { box-sizing: border-box !important; }
+    .tx-list-desktop { display: block; }
+    .tx-list-mobile { display: none; }
     body { overflow-x: hidden !important; }
     #root { max-width: 100vw; overflow-x: hidden; }
     input, textarea, select { font-size: 16px !important; }
@@ -261,6 +263,8 @@ if (typeof document !== "undefined" && !document.getElementById("lizteam-mobile"
       [data-tx-grid] { grid-template-columns: 1fr !important; }
       [data-modal] { width: 100% !important; max-width: 100vw !important; max-height: 100vh !important; border-radius: 0 !important; overflow-y: auto !important; }
       [data-tabs] { overflow-x: auto !important; flex-wrap: nowrap !important; -webkit-overflow-scrolling: touch; }
+      .tx-list-desktop { display: none !important; }
+      .tx-list-mobile { display: block !important; }
       [data-header] { flex-wrap: wrap !important; gap: 8px !important; }
     }
   `;
@@ -333,6 +337,106 @@ function Modal({ title, onClose, children, wide }) {
           <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 22, color: COLORS.muted }}>×</button>
         </div>
         <div style={{ padding: "20px 24px 24px" }}>{children}</div>
+      </div>
+    </div>
+  );
+}
+
+function TransactionListView({ transactions, sortKey, sortDir, toggleSort, onSelect }) {
+  const arrow = (key) => sortKey === key ? (sortDir === "asc" ? " ↑" : " ↓") : "";
+  const fmtPrice = (p) => p ? "$" + Number(p).toLocaleString() : "—";
+  const fmtDate = (d) => d ? new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "—";
+  const cols = [
+    { key: "address", label: "Address" },
+    { key: "status", label: "Status" },
+    { key: "closingDate", label: "Closing" },
+    { key: "openDate", label: "Open" },
+    { key: "price", label: "Price" },
+    { key: "progress", label: "Progress" },
+  ];
+  return (
+    <div style={{ padding: "16px 24px" }}>
+      <div className="tx-list-desktop" style={{ background: "#fff", border: `1px solid ${COLORS.border}`, borderRadius: 10, overflow: "hidden" }}>
+        <div style={{ overflowX: "auto" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, minWidth: 720 }}>
+            <thead>
+              <tr style={{ background: COLORS.bg, borderBottom: `1px solid ${COLORS.border}` }}>
+                {cols.map(c => (
+                  <th key={c.key} onClick={() => toggleSort(c.key)} style={{ padding: "10px 14px", textAlign: "left", fontWeight: 700, color: COLORS.navy, cursor: "pointer", userSelect: "none", textTransform: "uppercase", letterSpacing: "0.04em", fontSize: 11 }}>{c.label}{arrow(c.key)}</th>
+                ))}
+                <th style={{ padding: "10px 14px", textAlign: "left", fontWeight: 700, color: COLORS.navy, textTransform: "uppercase", letterSpacing: "0.04em", fontSize: 11 }}>Type</th>
+              </tr>
+            </thead>
+            <tbody>
+              {transactions.map(tx => {
+                const completed = tx.tasks ? tx.tasks.filter(t => t.status === "Completed").length : 0;
+                const total = tx.tasks ? tx.tasks.length : 0;
+                const progress = total > 0 ? Math.round(completed / total * 100) : 0;
+                const cfg = STATUS_CONFIG[tx.status] || STATUS_CONFIG["Active"];
+                const price = tx.contractPrice || tx.listPrice;
+                return (
+                  <tr key={tx.id} onClick={() => onSelect(tx.id)} style={{ cursor: "pointer", borderBottom: `1px solid ${COLORS.border}` }}
+                    onMouseEnter={e => e.currentTarget.style.background = COLORS.bg}
+                    onMouseLeave={e => e.currentTarget.style.background = "#fff"}>
+                    <td style={{ padding: "12px 14px" }}>
+                      <div style={{ fontWeight: 600, color: COLORS.navy }}>{tx.address}</div>
+                      <div style={{ fontSize: 11, color: COLORS.muted, marginTop: 2 }}>{tx.city}, FL</div>
+                    </td>
+                    <td style={{ padding: "12px 14px" }}>
+                      <span style={{ display: "inline-block", padding: "3px 10px", borderRadius: 12, background: cfg.bg, color: cfg.color, fontWeight: 700, fontSize: 11 }}>{tx.status}</span>
+                    </td>
+                    <td style={{ padding: "12px 14px", color: COLORS.text }}>{fmtDate(tx.closingDate)}</td>
+                    <td style={{ padding: "12px 14px", color: COLORS.muted }}>{fmtDate(tx.openDate)}</td>
+                    <td style={{ padding: "12px 14px", fontWeight: 600, color: COLORS.navy }}>{fmtPrice(price)}</td>
+                    <td style={{ padding: "12px 14px", minWidth: 140 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <div style={{ flex: 1, height: 6, background: COLORS.border, borderRadius: 3, overflow: "hidden" }}>
+                          <div style={{ width: progress + "%", height: "100%", background: progress === 100 ? COLORS.success : progress > 50 ? COLORS.gold : COLORS.muted }} />
+                        </div>
+                        <span style={{ fontSize: 11, color: COLORS.muted, minWidth: 32, textAlign: "right" }}>{progress}%</span>
+                      </div>
+                    </td>
+                    <td style={{ padding: "12px 14px", color: COLORS.muted, fontSize: 11 }}>{tx.type === "Buyer Representation" ? "Buyer" : "Listing"}</td>
+                  </tr>
+                );
+              })}
+              {transactions.length === 0 && (
+                <tr><td colSpan="7" style={{ padding: 40, textAlign: "center", color: COLORS.muted }}>No transactions found.</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div className="tx-list-mobile">
+        {transactions.length === 0 && <div style={{ padding: 40, textAlign: "center", color: COLORS.muted, background: "#fff", borderRadius: 10, border: `1px solid ${COLORS.border}` }}>No transactions found.</div>}
+        {transactions.map(tx => {
+          const completed = tx.tasks ? tx.tasks.filter(t => t.status === "Completed").length : 0;
+          const total = tx.tasks ? tx.tasks.length : 0;
+          const progress = total > 0 ? Math.round(completed / total * 100) : 0;
+          const cfg = STATUS_CONFIG[tx.status] || STATUS_CONFIG["Active"];
+          const price = tx.contractPrice || tx.listPrice;
+          return (
+            <div key={tx.id} onClick={() => onSelect(tx.id)} style={{ background: "#fff", border: `1px solid ${COLORS.border}`, borderRadius: 10, padding: "12px 14px", marginBottom: 8, cursor: "pointer" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10 }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: 700, color: COLORS.navy, fontSize: 14, overflow: "hidden", textOverflow: "ellipsis" }}>{tx.address}</div>
+                  <div style={{ fontSize: 11, color: COLORS.muted, marginTop: 2 }}>{tx.city}, FL · {tx.type === "Buyer Representation" ? "Buyer" : "Listing"}</div>
+                </div>
+                <span style={{ display: "inline-block", padding: "2px 8px", borderRadius: 10, background: cfg.bg, color: cfg.color, fontWeight: 700, fontSize: 10, whiteSpace: "nowrap" }}>{tx.status}</span>
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 8, fontSize: 12 }}>
+                <div style={{ color: COLORS.muted }}>Closing: <strong style={{ color: COLORS.text }}>{fmtDate(tx.closingDate)}</strong></div>
+                <div style={{ color: COLORS.navy, fontWeight: 600 }}>{fmtPrice(price)}</div>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 8 }}>
+                <div style={{ flex: 1, height: 5, background: COLORS.border, borderRadius: 3, overflow: "hidden" }}>
+                  <div style={{ width: progress + "%", height: "100%", background: progress === 100 ? COLORS.success : progress > 50 ? COLORS.gold : COLORS.muted }} />
+                </div>
+                <span style={{ fontSize: 10, color: COLORS.muted, minWidth: 30, textAlign: "right" }}>{progress}%</span>
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
@@ -1821,10 +1925,41 @@ function NewTransactionForm({ onSave, onCancel }) {
 function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenContactBook, contactCount, onLogout, onOpenTeam, onChangePassword, onReports, onCalendar, onCompanySettings, onAgentProfile, onIntakeLinks, currentUser }) {
   const [filter, setFilter] = useState("All");
   const [search, setSearch] = useState("");
+  const [viewMode, setViewMode] = useState(() => localStorage.getItem("tp_view_mode") || "cards");
+  const [sortKey, setSortKey] = useState(() => localStorage.getItem("tp_sort_key") || "closingDate");
+  const [sortDir, setSortDir] = useState(() => localStorage.getItem("tp_sort_dir") || "asc");
+  useEffect(() => { localStorage.setItem("tp_view_mode", viewMode); }, [viewMode]);
+  useEffect(() => { localStorage.setItem("tp_sort_key", sortKey); }, [sortKey]);
+  useEffect(() => { localStorage.setItem("tp_sort_dir", sortDir); }, [sortDir]);
   const [showOverdue, setShowOverdue] = useState(false);
   const [remindingTask, setRemindingTask] = useState(null);
   const [remindingTx, setRemindingTx] = useState(null);
   const filtered = transactions.filter(tx => ((filter === "All" ? tx.status !== "Cancelled" : tx.status === filter)) && (!search || tx.address.toLowerCase().includes(search.toLowerCase()) || tx.city.toLowerCase().includes(search.toLowerCase()) || (tx.mlsNumber || "").toLowerCase().includes(search.toLowerCase()) || (tx.parties || []).some(p => p && p.name && p.name.toLowerCase().includes(search.toLowerCase()))));
+  const sorted = [...filtered].sort((a, b) => {
+    const dir = sortDir === "asc" ? 1 : -1;
+    let av, bv;
+    switch (sortKey) {
+      case "address": av = (a.address || "").toLowerCase(); bv = (b.address || "").toLowerCase(); break;
+      case "status": av = a.status || ""; bv = b.status || ""; break;
+      case "price": av = Number(a.contractPrice || a.listPrice || 0); bv = Number(b.contractPrice || b.listPrice || 0); break;
+      case "openDate": av = a.openDate ? new Date(a.openDate).getTime() : 0; bv = b.openDate ? new Date(b.openDate).getTime() : 0; break;
+      case "progress":
+        av = a.tasks && a.tasks.length ? a.tasks.filter(t => t.status === "Completed").length / a.tasks.length : 0;
+        bv = b.tasks && b.tasks.length ? b.tasks.filter(t => t.status === "Completed").length / b.tasks.length : 0;
+        break;
+      case "closingDate":
+      default:
+        av = a.closingDate ? new Date(a.closingDate).getTime() : Number.MAX_SAFE_INTEGER;
+        bv = b.closingDate ? new Date(b.closingDate).getTime() : Number.MAX_SAFE_INTEGER;
+    }
+    if (av < bv) return -1 * dir;
+    if (av > bv) return 1 * dir;
+    return 0;
+  });
+  const toggleSort = (key) => {
+    if (sortKey === key) setSortDir(sortDir === "asc" ? "desc" : "asc");
+    else { setSortKey(key); setSortDir("asc"); }
+  };
   const stats = {
     active: transactions.filter(t => t.status === "Active").length,
     underContract: transactions.filter(t => t.status === "Under Contract").length,
@@ -1856,8 +1991,8 @@ function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenCon
             </div>
           </div>
           <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-            <button onClick={onOpenContactBook} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.2)", color: "rgba(255,255,255,0.85)", borderRadius: 8, padding: "7px 12px", cursor: "pointer", fontSize: 12, fontFamily: "inherit" }}>Contacts{contactCount > 0 ? ` (${contactCount})` : ""}</button>
             <button onClick={onNew} style={{ background: "#C0392B", border: "none", color: "#fff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>+ New Transaction</button>
+            <button onClick={onOpenContactBook} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.2)", color: "rgba(255,255,255,0.85)", borderRadius: 8, padding: "7px 12px", cursor: "pointer", fontSize: 12, fontFamily: "inherit" }}>Contacts{contactCount > 0 ? ` (${contactCount})` : ""}</button>
             <button onClick={onReports} style={{ background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.2)", color: "#fff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>📊 Reports</button>
             <button onClick={onCalendar} style={{ background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.2)", color: "#fff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>📅 Calendar</button>
             {["admin","superadmin"].includes(currentUser?.role) && <button onClick={onIntakeLinks} style={{ background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.2)", color: "#fff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>🔗 Intake Forms</button>}
@@ -1883,9 +2018,16 @@ function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenCon
             <button key={s} onClick={() => setFilter(s)} style={{ padding: "6px 14px", borderRadius: 20, border: `1px solid ${s === "Cancelled" ? (filter === s ? COLORS.danger : COLORS.danger + "60") : filter === s ? COLORS.navy : COLORS.border}`, background: s === "Cancelled" ? (filter === s ? COLORS.danger : "#FEE2E2") : filter === s ? COLORS.navy : "#fff", color: s === "Cancelled" ? (filter === s ? "#fff" : COLORS.danger) : filter === s ? "#fff" : COLORS.muted, fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>{s}</button>
           ))}
         </div>
+        <div style={{ marginLeft: "auto", display: "flex", gap: 4, background: COLORS.bg, borderRadius: 8, padding: 3, border: `1px solid ${COLORS.border}` }}>
+          <button onClick={() => setViewMode("cards")} title="Card view" style={{ padding: "6px 12px", borderRadius: 6, border: "none", background: viewMode === "cards" ? COLORS.navy : "transparent", color: viewMode === "cards" ? "#fff" : COLORS.muted, fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>▦ Cards</button>
+          <button onClick={() => setViewMode("list")} title="List view" style={{ padding: "6px 12px", borderRadius: 6, border: "none", background: viewMode === "list" ? COLORS.navy : "transparent", color: viewMode === "list" ? "#fff" : COLORS.muted, fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>☰ List</button>
+        </div>
       </div>
-      <div style={{ padding: 24, display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(340px, 1fr))", gap: 16 }}>
-        {filtered.map(tx => {
+      {viewMode === "list" ? (
+        <TransactionListView transactions={sorted} sortKey={sortKey} sortDir={sortDir} toggleSort={toggleSort} onSelect={onSelect} />
+      ) : (
+      <div style={{ padding: 24, display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(340px, 1fr))", gap: 16 }} data-tx-grid="">
+        {sorted.map(tx => {
           const completed = tx.tasks.filter(t => t.status === "Completed").length;
           const overdue = tx.tasks.filter(t => { const d = daysUntil(t.dueDate); return d !== null && d < 0 && t.status !== "Completed" && t.status !== "Waived"; }).length;
           const dtc = daysUntil(tx.closingDate);
@@ -1962,8 +2104,9 @@ function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenCon
             </div>
           );
         })}
-        {filtered.length === 0 && <div style={{ gridColumn: "1/-1", textAlign: "center", padding: 60, color: COLORS.muted }}><div style={{ fontSize: 40, marginBottom: 12 }}>🏠</div><div style={{ fontSize: 18, fontWeight: 700, color: COLORS.navy, marginBottom: 6 }}>No transactions found</div><div>Click "+ New Transaction" to get started.</div></div>}
+        {sorted.length === 0 && <div style={{ gridColumn: "1/-1", textAlign: "center", padding: 60, color: COLORS.muted }}><div style={{ fontSize: 40, marginBottom: 12 }}>🏠</div><div style={{ fontSize: 18, fontWeight: 700, color: COLORS.navy, marginBottom: 6 }}>No transactions found</div><div>Click "+ New Transaction" to get started.</div></div>}
       </div>
+      )}
 
       {showOverdue && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
