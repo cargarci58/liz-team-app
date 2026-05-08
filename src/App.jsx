@@ -1559,6 +1559,55 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
           </div>
         </Modal>
       )}
+      {showFilters && (
+        <Modal title="Filter Transactions" onClose={() => setShowFilters(false)}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            <div>
+              <label style={{ fontSize: 11, fontWeight: 700, color: COLORS.muted, textTransform: "uppercase", letterSpacing: "0.05em", display: "block", marginBottom: 6 }}>Assigned Agent</label>
+              <select value={agentFilter} onChange={e => setAgentFilter(e.target.value)} style={{ width: "100%", padding: "9px 12px", borderRadius: 8, border: `1px solid ${COLORS.border}`, fontSize: 14, fontFamily: "inherit", background: "#fff" }}>
+                <option value="">All agents</option>
+                {agentList.map(a => <option key={a.id} value={a.id}>{a.first_name} {a.last_name}</option>)}
+              </select>
+            </div>
+            <div>
+              <label style={{ fontSize: 11, fontWeight: 700, color: COLORS.muted, textTransform: "uppercase", letterSpacing: "0.05em", display: "block", marginBottom: 6 }}>Closing Date</label>
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 8 }}>
+                {[{k:"thisWeek",l:"This Week"},{k:"thisMonth",l:"This Month"},{k:"next30",l:"Next 30 Days"},{k:"custom",l:"Custom"}].map(p => (
+                  <button key={p.k} onClick={() => setDatePreset(p.k)} style={{ padding: "6px 12px", borderRadius: 16, border: `1px solid ${datePreset === p.k ? COLORS.navy : COLORS.border}`, background: datePreset === p.k ? COLORS.navy : "#fff", color: datePreset === p.k ? "#fff" : COLORS.text, fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>{p.l}</button>
+                ))}
+                {(datePreset || closingFrom || closingTo) && <button onClick={() => { setDatePreset(""); setClosingFrom(""); setClosingTo(""); }} style={{ padding: "6px 12px", borderRadius: 16, border: `1px solid ${COLORS.border}`, background: "#fff", color: COLORS.danger, fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>× Clear</button>}
+              </div>
+              {datePreset === "custom" && (
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                  <input type="date" value={closingFrom} onChange={e => setClosingFrom(e.target.value)} placeholder="From" style={{ padding: "8px 10px", borderRadius: 8, border: `1px solid ${COLORS.border}`, fontSize: 14, fontFamily: "inherit" }} />
+                  <input type="date" value={closingTo} onChange={e => setClosingTo(e.target.value)} placeholder="To" style={{ padding: "8px 10px", borderRadius: 8, border: `1px solid ${COLORS.border}`, fontSize: 14, fontFamily: "inherit" }} />
+                </div>
+              )}
+              {datePreset && datePreset !== "custom" && (closingFrom || closingTo) && (
+                <div style={{ fontSize: 12, color: COLORS.muted }}>{closingFrom} → {closingTo}</div>
+              )}
+            </div>
+            <div>
+              <label style={{ fontSize: 11, fontWeight: 700, color: COLORS.muted, textTransform: "uppercase", letterSpacing: "0.05em", display: "block", marginBottom: 6 }}>Property Type</label>
+              <select value={propTypeFilter} onChange={e => setPropTypeFilter(e.target.value)} style={{ width: "100%", padding: "9px 12px", borderRadius: 8, border: `1px solid ${COLORS.border}`, fontSize: 14, fontFamily: "inherit", background: "#fff" }}>
+                <option value="">All property types</option>
+                {PROPERTY_TYPES.map(pt => <option key={pt} value={pt}>{pt}</option>)}
+              </select>
+            </div>
+            <div>
+              <label style={{ fontSize: 11, fontWeight: 700, color: COLORS.muted, textTransform: "uppercase", letterSpacing: "0.05em", display: "block", marginBottom: 6 }}>Transaction Type</label>
+              <select value={txTypeFilter} onChange={e => setTxTypeFilter(e.target.value)} style={{ width: "100%", padding: "9px 12px", borderRadius: 8, border: `1px solid ${COLORS.border}`, fontSize: 14, fontFamily: "inherit", background: "#fff" }}>
+                <option value="">All transaction types</option>
+                {TRANSACTION_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+              </select>
+            </div>
+            <div style={{ display: "flex", gap: 10, justifyContent: "space-between", marginTop: 8, paddingTop: 16, borderTop: `1px solid ${COLORS.border}` }}>
+              <Btn variant="ghost" onClick={() => { clearAllFilters(); }}>Clear All</Btn>
+              <Btn onClick={() => setShowFilters(false)}>Apply</Btn>
+            </div>
+          </div>
+        </Modal>
+      )}
       {pendingInviteParty && (
         <Modal title="Send invitation?" onClose={() => setPendingInviteParty(null)}>
           <div style={{ marginBottom: 18, fontSize: 14, color: COLORS.text, lineHeight: 1.5 }}>
@@ -2022,6 +2071,85 @@ function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenCon
   useEffect(() => { localStorage.setItem("tp_sort_key", sortKey); }, [sortKey]);
   useEffect(() => { localStorage.setItem("tp_sort_dir", sortDir); }, [sortDir]);
 
+  // Advanced filters
+  const readUrl = () => {
+    if (typeof window === "undefined") return {};
+    const sp = new URLSearchParams(window.location.search);
+    return {
+      assignedAgent: sp.get("agent") || "",
+      propertyType: sp.get("propType") || "",
+      transactionType: sp.get("txType") || "",
+      datePreset: sp.get("datePreset") || "",
+      closingDateFrom: sp.get("from") || "",
+      closingDateTo: sp.get("to") || "",
+    };
+  };
+  const initFilters = readUrl();
+  const [agentFilter, setAgentFilter] = useState(initFilters.assignedAgent);
+  const [propTypeFilter, setPropTypeFilter] = useState(initFilters.propertyType);
+  const [txTypeFilter, setTxTypeFilter] = useState(initFilters.transactionType);
+  const [datePreset, setDatePreset] = useState(initFilters.datePreset);
+  const [closingFrom, setClosingFrom] = useState(initFilters.closingDateFrom);
+  const [closingTo, setClosingTo] = useState(initFilters.closingDateTo);
+  const [showFilters, setShowFilters] = useState(false);
+  const [agentList, setAgentList] = useState([]);
+
+  // Fetch agents for the dropdown (one-time)
+  useEffect(() => {
+    const tok = localStorage.getItem("tp_token") || "";
+    fetch(API + "/users", { headers: { "Authorization": "Bearer " + tok } })
+      .then(r => r.json())
+      .then(d => { if (d.users) setAgentList(d.users.filter(u => ["agent","admin","superadmin","tc"].includes(u.role))); })
+      .catch(() => {});
+  }, []);
+
+  // Resolve datePreset to actual from/to dates
+  useEffect(() => {
+    if (!datePreset || datePreset === "custom") return;
+    const today = new Date();
+    const todayStr = today.toISOString().split("T")[0];
+    if (datePreset === "thisWeek") {
+      const day = today.getDay();
+      const diffToMon = day === 0 ? -6 : 1 - day;
+      const mon = new Date(today); mon.setDate(today.getDate() + diffToMon);
+      const sun = new Date(mon); sun.setDate(mon.getDate() + 6);
+      setClosingFrom(mon.toISOString().split("T")[0]);
+      setClosingTo(sun.toISOString().split("T")[0]);
+    } else if (datePreset === "thisMonth") {
+      const first = new Date(today.getFullYear(), today.getMonth(), 1);
+      const last = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+      setClosingFrom(first.toISOString().split("T")[0]);
+      setClosingTo(last.toISOString().split("T")[0]);
+    } else if (datePreset === "next30") {
+      const end = new Date(today); end.setDate(today.getDate() + 30);
+      setClosingFrom(todayStr);
+      setClosingTo(end.toISOString().split("T")[0]);
+    }
+  }, [datePreset]);
+
+  // Sync filters to URL
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const sp = new URLSearchParams(window.location.search);
+    const setOrDelete = (k, v) => v ? sp.set(k, v) : sp.delete(k);
+    setOrDelete("agent", agentFilter);
+    setOrDelete("propType", propTypeFilter);
+    setOrDelete("txType", txTypeFilter);
+    setOrDelete("datePreset", datePreset);
+    setOrDelete("from", closingFrom);
+    setOrDelete("to", closingTo);
+    const qs = sp.toString();
+    const newUrl = window.location.pathname + (qs ? "?" + qs : "") + window.location.hash;
+    window.history.replaceState(null, "", newUrl);
+  }, [agentFilter, propTypeFilter, txTypeFilter, datePreset, closingFrom, closingTo]);
+
+  const clearAllFilters = () => {
+    setAgentFilter(""); setPropTypeFilter(""); setTxTypeFilter("");
+    setDatePreset(""); setClosingFrom(""); setClosingTo("");
+  };
+
+  const activeFilterCount = [agentFilter, propTypeFilter, txTypeFilter, closingFrom || closingTo].filter(Boolean).length;
+
   // Paged transactions state
   const [pagedTxs, setPagedTxs] = useState([]);
   const [pagedTotal, setPagedTotal] = useState(0);
@@ -2047,6 +2175,11 @@ function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenCon
     if (filter && filter !== "All") params.set("status", filter);
     if (sortKey) params.set("sortKey", sortKey);
     if (sortDir) params.set("sortDir", sortDir);
+    if (agentFilter) params.set("assignedAgent", agentFilter);
+    if (propTypeFilter) params.set("propertyType", propTypeFilter);
+    if (txTypeFilter) params.set("transactionType", txTypeFilter);
+    if (closingFrom) params.set("closingDateFrom", closingFrom);
+    if (closingTo) params.set("closingDateTo", closingTo);
     return API + "/transactions/paged?" + params.toString();
   };
 
@@ -2071,7 +2204,7 @@ function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenCon
       .catch(e => { if (!cancelled) { setPagedError(e.message); setPagedTxs([]); } })
       .finally(() => { if (!cancelled) setPagedLoading(false); });
     return () => { cancelled = true; };
-  }, [debouncedSearch, filter, sortKey, sortDir]);
+  }, [debouncedSearch, filter, sortKey, sortDir, agentFilter, propTypeFilter, txTypeFilter, closingFrom, closingTo]);
 
   const loadMore = () => {
     if (pagedLoading || !pagedHasMore) return;
@@ -2237,7 +2370,11 @@ function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenCon
             <button key={s} onClick={() => setFilter(s)} style={{ padding: "6px 14px", borderRadius: 20, border: `1px solid ${s === "Cancelled" ? (filter === s ? COLORS.danger : COLORS.danger + "60") : filter === s ? COLORS.navy : COLORS.border}`, background: s === "Cancelled" ? (filter === s ? COLORS.danger : "#FEE2E2") : filter === s ? COLORS.navy : "#fff", color: s === "Cancelled" ? (filter === s ? "#fff" : COLORS.danger) : filter === s ? "#fff" : COLORS.muted, fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>{s}</button>
           ))}
         </div>
-        <div style={{ marginLeft: "auto", display: "flex", gap: 8, alignItems: "center" }}>
+        <button onClick={() => setShowFilters(true)} style={{ marginLeft: "auto", padding: "7px 12px", borderRadius: 8, border: `1px solid ${activeFilterCount > 0 ? COLORS.navy : COLORS.border}`, background: activeFilterCount > 0 ? COLORS.navy : "#fff", color: activeFilterCount > 0 ? "#fff" : COLORS.text, fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 6, position: "relative" }}>
+          <span>⚙ Filters</span>
+          {activeFilterCount > 0 && <span style={{ background: "#fff", color: COLORS.navy, borderRadius: 10, padding: "1px 7px", fontSize: 11, fontWeight: 700 }}>{activeFilterCount}</span>}
+        </button>
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
           <span style={{ fontSize: 11, color: COLORS.muted, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.04em" }}>Sort:</span>
           <select value={sortKey} onChange={e => setSortKey(e.target.value)} style={{ padding: "6px 10px", borderRadius: 6, border: `1px solid ${COLORS.border}`, background: "#fff", fontSize: 12, fontWeight: 600, color: COLORS.navy, cursor: "pointer", fontFamily: "inherit" }}>
             <option value="closingDate">Closing Date</option>
@@ -2254,6 +2391,29 @@ function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenCon
           <button onClick={() => setViewMode("list")} title="List view" style={{ padding: "6px 12px", borderRadius: 6, border: "none", background: viewMode === "list" ? COLORS.navy : "transparent", color: viewMode === "list" ? "#fff" : COLORS.muted, fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>☰ List</button>
         </div>
       </div>
+      {activeFilterCount > 0 && (
+        <div style={{ background: "#fff", borderBottom: `1px solid ${COLORS.border}`, padding: "8px 24px", display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+          <span style={{ fontSize: 11, color: COLORS.muted, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.04em" }}>Filters:</span>
+          {agentFilter && (() => {
+            const a = agentList.find(x => x.id === agentFilter);
+            const label = a ? `${a.first_name} ${a.last_name}` : "Agent";
+            return <span style={{ background: COLORS.bg, border: `1px solid ${COLORS.border}`, borderRadius: 14, padding: "3px 10px", fontSize: 12, display: "inline-flex", alignItems: "center", gap: 6 }}>Agent: {label}<button onClick={() => setAgentFilter("")} style={{ background: "none", border: "none", color: COLORS.muted, cursor: "pointer", fontSize: 14, lineHeight: 1, padding: 0 }}>×</button></span>;
+          })()}
+          {(closingFrom || closingTo) && (
+            <span style={{ background: COLORS.bg, border: `1px solid ${COLORS.border}`, borderRadius: 14, padding: "3px 10px", fontSize: 12, display: "inline-flex", alignItems: "center", gap: 6 }}>
+              {datePreset && datePreset !== "custom" ? (datePreset === "thisWeek" ? "This Week" : datePreset === "thisMonth" ? "This Month" : "Next 30 Days") : (closingFrom || "...") + " → " + (closingTo || "...")}
+              <button onClick={() => { setDatePreset(""); setClosingFrom(""); setClosingTo(""); }} style={{ background: "none", border: "none", color: COLORS.muted, cursor: "pointer", fontSize: 14, lineHeight: 1, padding: 0 }}>×</button>
+            </span>
+          )}
+          {propTypeFilter && (
+            <span style={{ background: COLORS.bg, border: `1px solid ${COLORS.border}`, borderRadius: 14, padding: "3px 10px", fontSize: 12, display: "inline-flex", alignItems: "center", gap: 6 }}>{propTypeFilter}<button onClick={() => setPropTypeFilter("")} style={{ background: "none", border: "none", color: COLORS.muted, cursor: "pointer", fontSize: 14, lineHeight: 1, padding: 0 }}>×</button></span>
+          )}
+          {txTypeFilter && (
+            <span style={{ background: COLORS.bg, border: `1px solid ${COLORS.border}`, borderRadius: 14, padding: "3px 10px", fontSize: 12, display: "inline-flex", alignItems: "center", gap: 6 }}>{txTypeFilter}<button onClick={() => setTxTypeFilter("")} style={{ background: "none", border: "none", color: COLORS.muted, cursor: "pointer", fontSize: 14, lineHeight: 1, padding: 0 }}>×</button></span>
+          )}
+          <button onClick={clearAllFilters} style={{ marginLeft: "auto", background: "none", border: "none", color: COLORS.danger, fontSize: 11, fontWeight: 600, cursor: "pointer", textTransform: "uppercase", letterSpacing: "0.04em" }}>Clear all</button>
+        </div>
+      )}
       {viewMode === "list" ? (
         <TransactionListView transactions={hydratedPagedTxs} sortKey={sortKey} sortDir={sortDir} toggleSort={toggleSort} onSelect={onSelect} />
       ) : (
