@@ -2018,7 +2018,19 @@ function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenCon
             <button key={s} onClick={() => setFilter(s)} style={{ padding: "6px 14px", borderRadius: 20, border: `1px solid ${s === "Cancelled" ? (filter === s ? COLORS.danger : COLORS.danger + "60") : filter === s ? COLORS.navy : COLORS.border}`, background: s === "Cancelled" ? (filter === s ? COLORS.danger : "#FEE2E2") : filter === s ? COLORS.navy : "#fff", color: s === "Cancelled" ? (filter === s ? "#fff" : COLORS.danger) : filter === s ? "#fff" : COLORS.muted, fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>{s}</button>
           ))}
         </div>
-        <div style={{ marginLeft: "auto", display: "flex", gap: 4, background: COLORS.bg, borderRadius: 8, padding: 3, border: `1px solid ${COLORS.border}` }}>
+        <div style={{ marginLeft: "auto", display: "flex", gap: 8, alignItems: "center" }}>
+          <span style={{ fontSize: 11, color: COLORS.muted, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.04em" }}>Sort:</span>
+          <select value={sortKey} onChange={e => setSortKey(e.target.value)} style={{ padding: "6px 10px", borderRadius: 6, border: `1px solid ${COLORS.border}`, background: "#fff", fontSize: 12, fontWeight: 600, color: COLORS.navy, cursor: "pointer", fontFamily: "inherit" }}>
+            <option value="closingDate">Closing Date</option>
+            <option value="openDate">Open Date</option>
+            <option value="address">Address</option>
+            <option value="status">Status</option>
+            <option value="price">Price</option>
+            <option value="progress">Progress</option>
+          </select>
+          <button onClick={() => setSortDir(sortDir === "asc" ? "desc" : "asc")} title={sortDir === "asc" ? "Ascending" : "Descending"} style={{ padding: "6px 10px", borderRadius: 6, border: `1px solid ${COLORS.border}`, background: "#fff", color: COLORS.navy, fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", minWidth: 36 }}>{sortDir === "asc" ? "↑" : "↓"}</button>
+        </div>
+        <div style={{ display: "flex", gap: 4, background: COLORS.bg, borderRadius: 8, padding: 3, border: `1px solid ${COLORS.border}` }}>
           <button onClick={() => setViewMode("cards")} title="Card view" style={{ padding: "6px 12px", borderRadius: 6, border: "none", background: viewMode === "cards" ? COLORS.navy : "transparent", color: viewMode === "cards" ? "#fff" : COLORS.muted, fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>▦ Cards</button>
           <button onClick={() => setViewMode("list")} title="List view" style={{ padding: "6px 12px", borderRadius: 6, border: "none", background: viewMode === "list" ? COLORS.navy : "transparent", color: viewMode === "list" ? "#fff" : COLORS.muted, fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>☰ List</button>
         </div>
