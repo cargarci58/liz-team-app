@@ -34,7 +34,7 @@ const COUNTIES = ["Orange", "Osceola", "Seminole", "Polk", "Brevard", "Lake", "V
 const PARTY_ROLES = [
   "Listing Agent", "Buyer's Agent", "Transaction Coordinator",
   "Title Company", "Loan Officer/Lender", "Inspector", "Appraiser",
-  "HOA Manager", "Seller", "Buyer", "Attorney", "Insurance Agent", "Other"
+  "HOA Manager", "Seller", "Buyer", "Attorney", "Insurance Agent", "Referral", "Other"
 ];
 
 const EMAIL_TEMPLATES = [
@@ -130,6 +130,7 @@ const FLORIDA_TASK_TEMPLATES = {
   "Listing (Seller)": [
     // ── PHASE 1: PRE-LISTING PREP ────────────────────────────
     { name: "Draft Listing Docs for Listing Appointment", phase: "active", daysFromOpen: null, category: "Pre-Listing", assignTo: "Listing Agent" },
+    { name: "Prepare Estimated Net Sheet for Seller", phase: "active", daysFromOpen: null, category: "Pre-Listing", assignTo: "Listing Agent" },
     { name: "Receive All Listing Docs Signed (upload if wet signed)", phase: "active", daysFromOpen: null, category: "Pre-Listing", assignTo: "Listing Agent" },
     { name: "Send Copy of Listing Documents to Seller", phase: "active", daysFromOpen: null, category: "Pre-Listing", assignTo: "Listing Agent" },
     { name: "Upload Listing Agreement (required)", phase: "active", daysFromOpen: null, category: "Pre-Listing", assignTo: "Listing Agent" },
@@ -192,6 +193,7 @@ const FLORIDA_TASK_TEMPLATES = {
     { name: "Schedule and Conduct Property Showings", phase: "active", daysFromOpen: null, category: "Showing", assignTo: "Buyer's Agent" },
     { name: "Provide Showing Feedback and Market Analysis", phase: "active", daysFromOpen: null, category: "Showing", assignTo: "Buyer's Agent" },
     { name: "Discuss Offer Strategy with Buyer", phase: "active", daysFromOpen: null, category: "Showing", assignTo: "Buyer's Agent" },
+    { name: "Prepare Estimated Net Sheet / Buyer Cost Estimate", phase: "active", daysFromOpen: null, category: "Showing", assignTo: "Buyer's Agent" },
     { name: "Submit Offer (FR/Bar Contract)", phase: "active", daysFromOpen: null, category: "Showing", assignTo: "Buyer's Agent" },
     { name: "Negotiate Offer / Counter Offer", phase: "active", daysFromOpen: null, category: "Showing", assignTo: "Buyer's Agent" },
     // ── PHASE 3: UNDER CONTRACT ──────────────────────────────
