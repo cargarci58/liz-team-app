@@ -228,6 +228,33 @@ const FLORIDA_TASK_TEMPLATES = {
   "Dual Agency": []
 };
 
+const NEW_CONSTRUCTION_TASKS = [
+  // ── PRE-CONTRACT (critical builder registration) ─────────
+  { name: "Register as buyer's agent with builder (CRITICAL — first visit)", phase: "active", daysFromOpen: null, category: "Pre-Contract", assignTo: "Buyer's Agent" },
+  // ── CONTRACT PHASE ───────────────────────────────────────
+  { name: "Review and negotiate builder contract", phase: "contract", daysFromOpen: 0, category: "Contract", assignTo: "Buyer's Agent" },
+  { name: "Submit earnest money to builder", phase: "contract", daysFromOpen: 3, category: "Contract", assignTo: "Buyer" },
+  { name: "Loan application submitted", phase: "contract", daysFromOpen: 7, category: "Financing", assignTo: "Loan Officer/Lender" },
+  { name: "Review HOA docs & community CC&Rs", phase: "contract", daysFromOpen: 10, category: "HOA", assignTo: "Buyer's Agent" },
+  { name: "Buyer attends design center / structural options appointment", phase: "contract", daysFromOpen: 14, category: "Design", assignTo: "Buyer" },
+  { name: "Track construction milestones (foundation/frame/drywall)", phase: "contract", daysFromOpen: null, category: "Construction", assignTo: "Buyer's Agent" },
+  { name: "Schedule independent pre-drywall inspection", phase: "contract", daysFromOpen: null, category: "Inspection", assignTo: "Inspector" },
+  { name: "Pre-drywall walk-through with builder", phase: "contract", daysFromOpen: null, category: "Construction", assignTo: "Buyer's Agent" },
+  { name: "Schedule independent final inspection", phase: "contract", daysFromOpen: -14, category: "Inspection", assignTo: "Inspector" },
+  { name: "Order home insurance", phase: "contract", daysFromOpen: -21, category: "Closing Prep", assignTo: "Insurance Agent" },
+  { name: "Coordinate utilities setup (power, water, internet)", phase: "contract", daysFromOpen: -14, category: "Closing Prep", assignTo: "Buyer" },
+  { name: "Builder orientation walk-through", phase: "contract", daysFromOpen: -10, category: "Closing Prep", assignTo: "Buyer's Agent" },
+  { name: "Review builder warranty terms", phase: "contract", daysFromOpen: -7, category: "Closing Prep", assignTo: "Buyer's Agent" },
+  { name: "Final walk-through with builder", phase: "contract", daysFromOpen: -1, category: "Closing Prep", assignTo: "Buyer's Agent" },
+  // ── CLOSING PHASE ────────────────────────────────────────
+  { name: "Verify all design center selections in final paperwork", phase: "closing", daysFromOpen: 0, category: "Closing", assignTo: "Buyer's Agent" },
+  { name: "Final walk-through punch list signed off", phase: "closing", daysFromOpen: 0, category: "Closing", assignTo: "Buyer's Agent" },
+  { name: "Buyer attends closing", phase: "closing", daysFromOpen: 0, category: "Closing", assignTo: "Buyer" },
+  { name: "Receive builder warranty packet & set 11-month walk reminder", phase: "closing", daysFromOpen: 0, category: "Post-Closing", assignTo: "Buyer's Agent" },
+];
+
+
+
 const STATUS_CONFIG = {
   "Active": { color: "#B7860B", bg: "#FEF9E7" },
   "Under Contract": { color: "#1D4ED8", bg: "#DBEAFE" },
@@ -1342,6 +1369,39 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
           URL.revokeObjectURL(url);
         }} style={{ fontSize: 11, padding: "4px 10px", borderRadius: 6, border: "1px solid rgba(255,255,255,0.3)", background: "rgba(255,255,255,0.1)", color: "#fff", cursor: "pointer", fontFamily: "inherit" }}>📄 PDF</button>
         {tx.status !== "Cancelled" && (
+          {tx.type === "Buyer Representation" && (
+            <button onClick={() => {
+              const existingNames = new Set((tx.tasks || []).map(t => t.name));
+              const newOnes = NEW_CONSTRUCTION_TASKS.filter(t => !existingNames.has(t.name));
+              if (newOnes.length === 0) { alert("New construction tasks are already in this transaction."); return; }
+              if (!window.confirm(`Add ${newOnes.length} new construction tasks to this transaction? Your existing tasks will be preserved.`)) return;
+              const baseDate = tx.executedDate || tx.openDate || new Date().toISOString().slice(0,10);
+              const closingDate = tx.closingDate || null;
+              const computeDue = (t) => {
+                if (t.daysFromOpen === null || t.daysFromOpen === undefined) return null;
+                if (t.daysFromOpen < 0 && closingDate) {
+                  const d = new Date(closingDate); d.setDate(d.getDate() + t.daysFromOpen);
+                  return d.toISOString().slice(0,10);
+                }
+                if (t.daysFromOpen >= 0) {
+                  const d = new Date(baseDate); d.setDate(d.getDate() + t.daysFromOpen);
+                  return d.toISOString().slice(0,10);
+                }
+                return null;
+              };
+              const newTasks = newOnes.map(t => ({
+                id: (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : 'task_' + Math.random().toString(36).slice(2)),
+                name: t.name,
+                category: t.category,
+                phase: t.phase,
+                status: "Pending",
+                dueDate: computeDue(t),
+                assignTo: t.assignTo,
+                notes: ""
+              }));
+              update({ tasks: [...(tx.tasks || []), ...newTasks] });
+            }} style={{ fontSize: 11, padding: "4px 10px", borderRadius: 6, border: "1px solid rgba(251,146,60,0.5)", background: "rgba(251,146,60,0.15)", color: "#FDBA74", cursor: "pointer", fontFamily: "inherit", marginRight: 6 }}>🏗️ Add New Construction Tasks</button>
+          )}
           <button onClick={() => { if (window.confirm("Cancel this transaction? It will be hidden from your dashboard but not deleted.")) update({ status: "Cancelled" }); }} style={{ fontSize: 11, padding: "4px 10px", borderRadius: 6, border: "1px solid rgba(255,100,100,0.5)", background: "rgba(255,100,100,0.15)", color: "#FCA5A5", cursor: "pointer", fontFamily: "inherit" }}>Cancel Transaction</button>
         )}
         {tx.status === "Cancelled" && (
