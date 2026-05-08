@@ -1368,40 +1368,7 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
           a.href = url; a.download = "TransactPro-" + (tx.address || "report").replace(/[^a-z0-9]/gi, "-") + "-" + (tx.city || "").replace(/[^a-z0-9]/gi, "-") + ".pdf"; a.click();
           URL.revokeObjectURL(url);
         }} style={{ fontSize: 11, padding: "4px 10px", borderRadius: 6, border: "1px solid rgba(255,255,255,0.3)", background: "rgba(255,255,255,0.1)", color: "#fff", cursor: "pointer", fontFamily: "inherit" }}>📄 PDF</button>
-        {tx.type === "Buyer Representation" && (
-            <button onClick={() => {
-              const existingNames = new Set((tx.tasks || []).map(t => t.name));
-              const newOnes = NEW_CONSTRUCTION_TASKS.filter(t => !existingNames.has(t.name));
-              if (newOnes.length === 0) { alert("New construction tasks are already in this transaction."); return; }
-              if (!window.confirm(`Add ${newOnes.length} new construction tasks to this transaction? Your existing tasks will be preserved.`)) return;
-              const baseDate = tx.executedDate || tx.openDate || new Date().toISOString().slice(0,10);
-              const closingDate = tx.closingDate || null;
-              const computeDue = (t) => {
-                if (t.daysFromOpen === null || t.daysFromOpen === undefined) return null;
-                if (t.daysFromOpen < 0 && closingDate) {
-                  const d = new Date(closingDate); d.setDate(d.getDate() + t.daysFromOpen);
-                  return d.toISOString().slice(0,10);
-                }
-                if (t.daysFromOpen >= 0) {
-                  const d = new Date(baseDate); d.setDate(d.getDate() + t.daysFromOpen);
-                  return d.toISOString().slice(0,10);
-                }
-                return null;
-              };
-              const newTasks = newOnes.map(t => ({
-                id: (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : 'task_' + Math.random().toString(36).slice(2)),
-                name: t.name,
-                category: t.category,
-                phase: t.phase,
-                status: "Pending",
-                dueDate: computeDue(t),
-                assignTo: t.assignTo,
-                notes: ""
-              }));
-              update({ tasks: [...(tx.tasks || []), ...newTasks] });
-            }} style={{ fontSize: 11, padding: "4px 10px", borderRadius: 6, border: "1px solid rgba(251,146,60,0.5)", background: "rgba(251,146,60,0.15)", color: "#FDBA74", cursor: "pointer", fontFamily: "inherit", marginRight: 6 }}>🏗️ Add New Construction Tasks</button>
-          )}
-          {tx.status !== "Cancelled" && (
+        {tx.status !== "Cancelled" && (
           <button onClick={() => { if (window.confirm("Cancel this transaction? It will be hidden from your dashboard but not deleted.")) update({ status: "Cancelled" }); }} style={{ fontSize: 11, padding: "4px 10px", borderRadius: 6, border: "1px solid rgba(255,100,100,0.5)", background: "rgba(255,100,100,0.15)", color: "#FCA5A5", cursor: "pointer", fontFamily: "inherit" }}>Cancel Transaction</button>
         )}
         {tx.status === "Cancelled" && (
@@ -1755,6 +1722,18 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
                         style={{ marginTop: 8, width: "100%", padding: "10px 14px", borderRadius: 8, border: "1.5px solid #CCC", fontSize: 14, fontFamily: "inherit", boxSizing: "border-box" }} />
                     )}
                   </div>
+                  {tx.type === "Buyer Representation" && (
+                    <div style={{ marginBottom: 14, padding: 12, background: "#FFF7ED", border: "1.5px solid #FDBA74", borderRadius: 8 }}>
+                      <label style={{ display: "flex", alignItems: "flex-start", gap: 10, cursor: "pointer" }}>
+                        <input type="checkbox" checked={!!statusChangeModal.form.isNewConstruction} onChange={e => setStatusChangeModal(m => ({ ...m, form: { ...m.form, isNewConstruction: e.target.checked } }))}
+                          style={{ marginTop: 3, width: 16, height: 16, cursor: "pointer", flexShrink: 0 }} />
+                        <div>
+                          <div style={{ fontSize: 13, fontWeight: 700, color: "#9A3412" }}>🏗️ This is a new construction purchase</div>
+                          <div style={{ fontSize: 11, color: "#9A3412", opacity: 0.85, marginTop: 2 }}>Adds 19 new construction tasks (design center, builder warranty, inspections, etc.)</div>
+                        </div>
+                      </label>
+                    </div>
+                  )}
                 </>
               )}
               {statusChangeModal.newStatus === "Closed" && (
@@ -1807,7 +1786,20 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
                         const autoComplete = t.name.includes("Send Fully Executed Contract") || t.name.includes("Execute FR/Bar");
                         return { id: genId(), name: t.name, category: t.category, assignTo: t.assignTo, dueDate: days !== null && days >= 0 ? addDays(form.executedDate, days) : (form.closingDate ? addDays(form.closingDate, days) : null), status: autoComplete ? "Completed" : "Pending", notes: "", phase: "contract" };
                       });
-                    updates.tasks = [...updatedExisting, ...newContractTasks];
+                    let mergedTasks = [...updatedExisting, ...newContractTasks];
+                    if (form.isNewConstruction) {
+                      const ncExisting = new Set(mergedTasks.map(t => t.name));
+                      const ncNew = NEW_CONSTRUCTION_TASKS.filter(t => !ncExisting.has(t.name));
+                      const computeNcDue = (t) => {
+                        if (t.daysFromOpen === null || t.daysFromOpen === undefined) return null;
+                        if (t.daysFromOpen < 0 && form.closingDate) return addDays(form.closingDate, t.daysFromOpen);
+                        if (t.daysFromOpen >= 0) return addDays(form.executedDate, t.daysFromOpen);
+                        return null;
+                      };
+                      const ncTasks = ncNew.map(t => ({ id: genId(), name: t.name, category: t.category, phase: t.phase, status: "Pending", dueDate: computeNcDue(t), assignTo: t.assignTo, notes: "" }));
+                      mergedTasks = [...mergedTasks, ...ncTasks];
+                    }
+                    updates.tasks = mergedTasks;
                   }
                   if (newStatus === "Closed" && form.closingDate) {
                     const templates = FLORIDA_TASK_TEMPLATES[tx.type] || [];
