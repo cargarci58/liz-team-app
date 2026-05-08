@@ -256,8 +256,46 @@ if (typeof document !== "undefined" && !document.getElementById("lizteam-mobile"
     #root { max-width: 100vw; overflow-x: hidden; }
     input, textarea, select { font-size: 16px !important; }
     @media (max-width: 768px) {
-      [data-stats-bar] { overflow-x: auto !important; -webkit-overflow-scrolling: touch; flex-wrap: nowrap !important; padding-bottom: 8px; }
-      [data-stats-bar] > div { min-width: 120px !important; flex-shrink: 0 !important; }
+      /* Stats bar: 2-col grid on mobile, no horizontal scroll */
+      [data-stats-bar] {
+        display: grid !important;
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 1px;
+        background: rgba(255,255,255,0.08);
+        overflow: visible !important;
+        padding-bottom: 0 !important;
+        margin-top: 12px !important;
+      }
+      [data-stats-bar] > div {
+        min-width: 0 !important;
+        flex-shrink: 1 !important;
+        padding: 10px 14px !important;
+        background: #0F2044;
+      }
+      [data-stats-bar] > div > div:first-child {
+        font-size: 10px !important;
+      }
+      [data-stats-bar] > div > div:nth-child(2) {
+        font-size: 18px !important;
+      }
+      /* Toolbar: stack search and chip group; chips/sort/view scroll horizontally */
+      [data-toolbar] {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        padding: 10px 16px !important;
+        gap: 8px !important;
+      }
+      [data-toolbar] > input { max-width: 100% !important; width: 100% !important; }
+      [data-toolbar] > div {
+        margin-left: 0 !important;
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch;
+        flex-wrap: nowrap !important;
+        white-space: nowrap;
+        scrollbar-width: thin;
+        padding-bottom: 4px;
+      }
+      [data-toolbar] > div > * { flex-shrink: 0 !important; }
       [data-msg-grid] { grid-template-columns: 1fr !important; height: auto !important; min-height: 480px; }
       [data-form-grid] { grid-template-columns: 1fr !important; }
       [data-tx-grid] { grid-template-columns: 1fr !important; }
@@ -2011,7 +2049,7 @@ function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenCon
           ))}
         </div>
       </div>
-      <div style={{ background: "#fff", borderBottom: `1px solid ${COLORS.border}`, padding: "12px 24px", display: "flex", gap: 12, alignItems: "center" }}>
+      <div data-toolbar="" style={{ background: "#fff", borderBottom: `1px solid ${COLORS.border}`, padding: "12px 24px", display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
         <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search address, city, MLS #..." style={{ flex: 1, maxWidth: 340, padding: "8px 14px", borderRadius: 8, border: `1px solid ${COLORS.border}`, fontSize: 14, fontFamily: "inherit" }} />
         <div style={{ display: "flex", gap: 6 }}>
           {["All", "Active", "Under Contract", "Closed", "On Hold", "Cancelled"].map(s => (
