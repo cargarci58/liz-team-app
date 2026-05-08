@@ -1559,55 +1559,6 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
           </div>
         </Modal>
       )}
-      {showFilters && (
-        <Modal title="Filter Transactions" onClose={() => setShowFilters(false)}>
-          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-            <div>
-              <label style={{ fontSize: 11, fontWeight: 700, color: COLORS.muted, textTransform: "uppercase", letterSpacing: "0.05em", display: "block", marginBottom: 6 }}>Assigned Agent</label>
-              <select value={agentFilter} onChange={e => setAgentFilter(e.target.value)} style={{ width: "100%", padding: "9px 12px", borderRadius: 8, border: `1px solid ${COLORS.border}`, fontSize: 14, fontFamily: "inherit", background: "#fff" }}>
-                <option value="">All agents</option>
-                {agentList.map(a => <option key={a.id} value={a.id}>{a.first_name} {a.last_name}</option>)}
-              </select>
-            </div>
-            <div>
-              <label style={{ fontSize: 11, fontWeight: 700, color: COLORS.muted, textTransform: "uppercase", letterSpacing: "0.05em", display: "block", marginBottom: 6 }}>Closing Date</label>
-              <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 8 }}>
-                {[{k:"thisWeek",l:"This Week"},{k:"thisMonth",l:"This Month"},{k:"next30",l:"Next 30 Days"},{k:"custom",l:"Custom"}].map(p => (
-                  <button key={p.k} onClick={() => setDatePreset(p.k)} style={{ padding: "6px 12px", borderRadius: 16, border: `1px solid ${datePreset === p.k ? COLORS.navy : COLORS.border}`, background: datePreset === p.k ? COLORS.navy : "#fff", color: datePreset === p.k ? "#fff" : COLORS.text, fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>{p.l}</button>
-                ))}
-                {(datePreset || closingFrom || closingTo) && <button onClick={() => { setDatePreset(""); setClosingFrom(""); setClosingTo(""); }} style={{ padding: "6px 12px", borderRadius: 16, border: `1px solid ${COLORS.border}`, background: "#fff", color: COLORS.danger, fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>× Clear</button>}
-              </div>
-              {datePreset === "custom" && (
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-                  <input type="date" value={closingFrom} onChange={e => setClosingFrom(e.target.value)} placeholder="From" style={{ padding: "8px 10px", borderRadius: 8, border: `1px solid ${COLORS.border}`, fontSize: 14, fontFamily: "inherit" }} />
-                  <input type="date" value={closingTo} onChange={e => setClosingTo(e.target.value)} placeholder="To" style={{ padding: "8px 10px", borderRadius: 8, border: `1px solid ${COLORS.border}`, fontSize: 14, fontFamily: "inherit" }} />
-                </div>
-              )}
-              {datePreset && datePreset !== "custom" && (closingFrom || closingTo) && (
-                <div style={{ fontSize: 12, color: COLORS.muted }}>{closingFrom} → {closingTo}</div>
-              )}
-            </div>
-            <div>
-              <label style={{ fontSize: 11, fontWeight: 700, color: COLORS.muted, textTransform: "uppercase", letterSpacing: "0.05em", display: "block", marginBottom: 6 }}>Property Type</label>
-              <select value={propTypeFilter} onChange={e => setPropTypeFilter(e.target.value)} style={{ width: "100%", padding: "9px 12px", borderRadius: 8, border: `1px solid ${COLORS.border}`, fontSize: 14, fontFamily: "inherit", background: "#fff" }}>
-                <option value="">All property types</option>
-                {PROPERTY_TYPES.map(pt => <option key={pt} value={pt}>{pt}</option>)}
-              </select>
-            </div>
-            <div>
-              <label style={{ fontSize: 11, fontWeight: 700, color: COLORS.muted, textTransform: "uppercase", letterSpacing: "0.05em", display: "block", marginBottom: 6 }}>Transaction Type</label>
-              <select value={txTypeFilter} onChange={e => setTxTypeFilter(e.target.value)} style={{ width: "100%", padding: "9px 12px", borderRadius: 8, border: `1px solid ${COLORS.border}`, fontSize: 14, fontFamily: "inherit", background: "#fff" }}>
-                <option value="">All transaction types</option>
-                {TRANSACTION_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-              </select>
-            </div>
-            <div style={{ display: "flex", gap: 10, justifyContent: "space-between", marginTop: 8, paddingTop: 16, borderTop: `1px solid ${COLORS.border}` }}>
-              <Btn variant="ghost" onClick={() => { clearAllFilters(); }}>Clear All</Btn>
-              <Btn onClick={() => setShowFilters(false)}>Apply</Btn>
-            </div>
-          </div>
-        </Modal>
-      )}
       {pendingInviteParty && (
         <Modal title="Send invitation?" onClose={() => setPendingInviteParty(null)}>
           <div style={{ marginBottom: 18, fontSize: 14, color: COLORS.text, lineHeight: 1.5 }}>
@@ -2502,6 +2453,55 @@ function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenCon
       {pagedLoading && <div style={{ textAlign: "center", padding: 16, color: COLORS.muted, fontSize: 13 }}>Loading…</div>}
       {!pagedHasMore && hydratedPagedTxs.length > 0 && pagedTotal > 0 && <div style={{ textAlign: "center", padding: 16, color: COLORS.muted, fontSize: 12 }}>Showing all {pagedTotal} transactions</div>}
 
+      {showFilters && (
+        <Modal title="Filter Transactions" onClose={() => setShowFilters(false)}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            <div>
+              <label style={{ fontSize: 11, fontWeight: 700, color: COLORS.muted, textTransform: "uppercase", letterSpacing: "0.05em", display: "block", marginBottom: 6 }}>Assigned Agent</label>
+              <select value={agentFilter} onChange={e => setAgentFilter(e.target.value)} style={{ width: "100%", padding: "9px 12px", borderRadius: 8, border: `1px solid ${COLORS.border}`, fontSize: 14, fontFamily: "inherit", background: "#fff" }}>
+                <option value="">All agents</option>
+                {agentList.map(a => <option key={a.id} value={a.id}>{a.first_name} {a.last_name}</option>)}
+              </select>
+            </div>
+            <div>
+              <label style={{ fontSize: 11, fontWeight: 700, color: COLORS.muted, textTransform: "uppercase", letterSpacing: "0.05em", display: "block", marginBottom: 6 }}>Closing Date</label>
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 8 }}>
+                {[{k:"thisWeek",l:"This Week"},{k:"thisMonth",l:"This Month"},{k:"next30",l:"Next 30 Days"},{k:"custom",l:"Custom"}].map(p => (
+                  <button key={p.k} onClick={() => setDatePreset(p.k)} style={{ padding: "6px 12px", borderRadius: 16, border: `1px solid ${datePreset === p.k ? COLORS.navy : COLORS.border}`, background: datePreset === p.k ? COLORS.navy : "#fff", color: datePreset === p.k ? "#fff" : COLORS.text, fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>{p.l}</button>
+                ))}
+                {(datePreset || closingFrom || closingTo) && <button onClick={() => { setDatePreset(""); setClosingFrom(""); setClosingTo(""); }} style={{ padding: "6px 12px", borderRadius: 16, border: `1px solid ${COLORS.border}`, background: "#fff", color: COLORS.danger, fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>× Clear</button>}
+              </div>
+              {datePreset === "custom" && (
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                  <input type="date" value={closingFrom} onChange={e => setClosingFrom(e.target.value)} placeholder="From" style={{ padding: "8px 10px", borderRadius: 8, border: `1px solid ${COLORS.border}`, fontSize: 14, fontFamily: "inherit" }} />
+                  <input type="date" value={closingTo} onChange={e => setClosingTo(e.target.value)} placeholder="To" style={{ padding: "8px 10px", borderRadius: 8, border: `1px solid ${COLORS.border}`, fontSize: 14, fontFamily: "inherit" }} />
+                </div>
+              )}
+              {datePreset && datePreset !== "custom" && (closingFrom || closingTo) && (
+                <div style={{ fontSize: 12, color: COLORS.muted }}>{closingFrom} → {closingTo}</div>
+              )}
+            </div>
+            <div>
+              <label style={{ fontSize: 11, fontWeight: 700, color: COLORS.muted, textTransform: "uppercase", letterSpacing: "0.05em", display: "block", marginBottom: 6 }}>Property Type</label>
+              <select value={propTypeFilter} onChange={e => setPropTypeFilter(e.target.value)} style={{ width: "100%", padding: "9px 12px", borderRadius: 8, border: `1px solid ${COLORS.border}`, fontSize: 14, fontFamily: "inherit", background: "#fff" }}>
+                <option value="">All property types</option>
+                {PROPERTY_TYPES.map(pt => <option key={pt} value={pt}>{pt}</option>)}
+              </select>
+            </div>
+            <div>
+              <label style={{ fontSize: 11, fontWeight: 700, color: COLORS.muted, textTransform: "uppercase", letterSpacing: "0.05em", display: "block", marginBottom: 6 }}>Transaction Type</label>
+              <select value={txTypeFilter} onChange={e => setTxTypeFilter(e.target.value)} style={{ width: "100%", padding: "9px 12px", borderRadius: 8, border: `1px solid ${COLORS.border}`, fontSize: 14, fontFamily: "inherit", background: "#fff" }}>
+                <option value="">All transaction types</option>
+                {TRANSACTION_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+              </select>
+            </div>
+            <div style={{ display: "flex", gap: 10, justifyContent: "space-between", marginTop: 8, paddingTop: 16, borderTop: `1px solid ${COLORS.border}` }}>
+              <Btn variant="ghost" onClick={() => { clearAllFilters(); }}>Clear All</Btn>
+              <Btn onClick={() => setShowFilters(false)}>Apply</Btn>
+            </div>
+          </div>
+        </Modal>
+      )}
       {showOverdue && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
           <div style={{ background: "#fff", borderRadius: 14, width: 680, maxWidth: "100%", maxHeight: "90vh", overflow: "auto", boxShadow: "0 20px 60px rgba(0,0,0,0.25)" }}>
