@@ -2178,6 +2178,11 @@ function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenCon
 
   // Paged transactions state
   const [pagedTxs, setPagedTxs] = useState([]);
+  const [savedViews, setSavedViews] = useState([]);
+  const [showSaveViewModal, setShowSaveViewModal] = useState(false);
+  const [saveViewName, setSaveViewName] = useState("");
+  const [saveViewAsDefault, setSaveViewAsDefault] = useState(false);
+  const [saveViewLoading, setSaveViewLoading] = useState(false);
   const [pagedTotal, setPagedTotal] = useState(0);
   const [pagedPage, setPagedPage] = useState(1);
   const [pagedHasMore, setPagedHasMore] = useState(false);
@@ -2271,6 +2276,51 @@ function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenCon
   }, [transactions.length]);
 
   // Hydrate snake_case server fields into camelCase the UI expects
+  // ─── Saved Views ───
+  useEffect(() => {
+    const tok = localStorage.getItem("tp_token") || "";
+    fetch(API + "/saved-views", { headers: { "Authorization": "Bearer " + tok } })
+      .then(r => r.json())
+      .then(d => { if (d.views) setSavedViews(d.views); })
+      .catch(() => {});
+  }, []);
+
+  const handleSaveView = async () => {
+    if (!saveViewName.trim()) { alert("Please enter a name"); return; }
+    setSaveViewLoading(true);
+    try {
+      const tok = localStorage.getItem("tp_token") || "";
+      const filters = {
+        agentFilter,
+        propTypeFilter,
+        txTypeFilter,
+        datePreset,
+        closingFrom,
+        closingTo,
+        statusFilter: filter,
+      };
+      const res = await fetch(API + "/saved-views", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": "Bearer " + tok },
+        body: JSON.stringify({ name: saveViewName.trim(), filters, sortKey, sortDir, viewMode, isDefault: saveViewAsDefault })
+      });
+      const data = await res.json();
+      if (!res.ok) { alert("Failed to save view: " + (data.error || res.status)); return; }
+      // Append the new view (or replace if it became default)
+      setSavedViews(prev => {
+        const others = saveViewAsDefault ? prev.map(v => ({ ...v, isDefault: false })) : prev;
+        return [data.view, ...others];
+      });
+      setShowSaveViewModal(false);
+      setSaveViewName("");
+      setSaveViewAsDefault(false);
+    } catch (e) {
+      alert("Network error: " + e.message);
+    } finally {
+      setSaveViewLoading(false);
+    }
+  };
+
   const hydratedPagedTxs = pagedTxs.map(t => ({
     id: t.id,
     address: t.address,
@@ -2389,6 +2439,24 @@ function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenCon
           ))}
         </div>
       </div>
+      {showSaveViewModal && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }} onClick={() => !saveViewLoading && setShowSaveViewModal(false)}>
+          <div style={{ background: "#fff", borderRadius: 12, padding: 24, maxWidth: 440, width: "100%", boxShadow: "0 20px 60px rgba(0,0,0,0.3)" }} onClick={e => e.stopPropagation()}>
+            <div style={{ fontSize: 18, fontWeight: 700, color: COLORS.navy, marginBottom: 6 }}>💾 Save Current View</div>
+            <div style={{ fontSize: 13, color: COLORS.muted, marginBottom: 16 }}>Save your current filters, sort, and view mode so you can come back to it with one click.</div>
+            <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: COLORS.text, marginBottom: 6 }}>View name</label>
+            <input autoFocus value={saveViewName} onChange={e => setSaveViewName(e.target.value)} maxLength={100} placeholder="e.g. My Active Listings" style={{ width: "100%", padding: "10px 14px", borderRadius: 8, border: `1px solid ${COLORS.border}`, fontSize: 14, fontFamily: "inherit", marginBottom: 16, boxSizing: "border-box" }} onKeyDown={e => { if (e.key === "Enter") handleSaveView(); }} />
+            <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: COLORS.text, marginBottom: 20, cursor: "pointer" }}>
+              <input type="checkbox" checked={saveViewAsDefault} onChange={e => setSaveViewAsDefault(e.target.checked)} />
+              <span>Set as my default view (auto-loads when I open the app)</span>
+            </label>
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
+              <button onClick={() => setShowSaveViewModal(false)} disabled={saveViewLoading} style={{ padding: "8px 16px", borderRadius: 8, border: `1px solid ${COLORS.border}`, background: "#fff", color: COLORS.text, fontSize: 13, fontWeight: 600, cursor: saveViewLoading ? "not-allowed" : "pointer", fontFamily: "inherit", opacity: saveViewLoading ? 0.5 : 1 }}>Cancel</button>
+              <button onClick={handleSaveView} disabled={saveViewLoading || !saveViewName.trim()} style={{ padding: "8px 16px", borderRadius: 8, border: "none", background: COLORS.navy, color: "#fff", fontSize: 13, fontWeight: 600, cursor: (saveViewLoading || !saveViewName.trim()) ? "not-allowed" : "pointer", fontFamily: "inherit", opacity: (saveViewLoading || !saveViewName.trim()) ? 0.5 : 1 }}>{saveViewLoading ? "Saving…" : "Save View"}</button>
+            </div>
+          </div>
+        </div>
+      )}
       <div data-toolbar="" style={{ background: "#fff", borderBottom: `1px solid ${COLORS.border}`, padding: "12px 24px", display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
         <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search address, city, MLS #..." style={{ flex: 1, maxWidth: 340, padding: "8px 14px", borderRadius: 8, border: `1px solid ${COLORS.border}`, fontSize: 14, fontFamily: "inherit" }} />
         <div style={{ display: "flex", gap: 6 }}>
@@ -2396,7 +2464,8 @@ function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenCon
             <button key={s} onClick={() => setFilter(s)} style={{ padding: "6px 14px", borderRadius: 20, border: `1px solid ${s === "Cancelled" ? (filter === s ? COLORS.danger : COLORS.danger + "60") : filter === s ? COLORS.navy : COLORS.border}`, background: s === "Cancelled" ? (filter === s ? COLORS.danger : "#FEE2E2") : filter === s ? COLORS.navy : "#fff", color: s === "Cancelled" ? (filter === s ? "#fff" : COLORS.danger) : filter === s ? "#fff" : COLORS.muted, fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>{s}</button>
           ))}
         </div>
-        <button data-filter-btn="" onClick={() => setShowFilters(true)} style={{ marginLeft: "auto", padding: "7px 12px", borderRadius: 8, border: `1px solid ${activeFilterCount > 0 ? COLORS.navy : COLORS.border}`, background: activeFilterCount > 0 ? COLORS.navy : "#fff", color: activeFilterCount > 0 ? "#fff" : COLORS.text, fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 6, position: "relative" }}>
+        <button onClick={() => setShowSaveViewModal(true)} title="Save current filters as a view" style={{ marginLeft: "auto", padding: "7px 12px", borderRadius: 8, border: `1px solid ${COLORS.border}`, background: "#fff", color: COLORS.text, fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 6 }}>💾 Save View</button>
+        <button data-filter-btn="" onClick={() => setShowFilters(true)} style={{ padding: "7px 12px", borderRadius: 8, border: `1px solid ${activeFilterCount > 0 ? COLORS.navy : COLORS.border}`, background: activeFilterCount > 0 ? COLORS.navy : "#fff", color: activeFilterCount > 0 ? "#fff" : COLORS.text, fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 6, position: "relative" }}>
           <span>⚙ Filters</span>
           {activeFilterCount > 0 && <span style={{ background: "#fff", color: COLORS.navy, borderRadius: 10, padding: "1px 7px", fontSize: 11, fontWeight: 700 }}>{activeFilterCount}</span>}
         </button>
