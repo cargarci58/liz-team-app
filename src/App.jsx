@@ -229,7 +229,11 @@ const FLORIDA_TASK_TEMPLATES = {
 
 const STATUS_CONFIG = {
   "Active": { color: "#B7860B", bg: "#FEF9E7" },
+  "New": { color: "#C2410C", bg: "#FFEDD5" },
   "Under Contract": { color: "#1D4ED8", bg: "#DBEAFE" },
+  "Inspection": { color: "#7C3AED", bg: "#EDE9FE" },
+  "Appraisal": { color: "#0F766E", bg: "#CCFBF1" },
+  "Clear to Close": { color: "#0369A1", bg: "#E0F2FE" },
   "Closed": { color: "#1E8449", bg: "#F0FFF4" },
   "On Hold": { color: "#6B7280", bg: "#F3F4F6" },
   "Cancelled": { color: "#C0392B", bg: "#FEE2E2" },
@@ -2321,7 +2325,7 @@ function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenCon
       <div data-toolbar="" style={{ background: "#fff", borderBottom: `1px solid ${COLORS.border}`, padding: "12px 24px", display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
         <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search address, city, MLS #..." style={{ flex: 1, maxWidth: 340, padding: "8px 14px", borderRadius: 8, border: `1px solid ${COLORS.border}`, fontSize: 14, fontFamily: "inherit" }} />
         <div style={{ display: "flex", gap: 6 }}>
-          {["All", "Active", "Under Contract", "Closed", "On Hold", "Cancelled"].map(s => (
+          {["All", "Active", "New", "Under Contract", "Inspection", "Appraisal", "Clear to Close", "Closed", "On Hold", "Cancelled"].map(s => (
             <button key={s} onClick={() => setFilter(s)} style={{ padding: "6px 14px", borderRadius: 20, border: `1px solid ${s === "Cancelled" ? (filter === s ? COLORS.danger : COLORS.danger + "60") : filter === s ? COLORS.navy : COLORS.border}`, background: s === "Cancelled" ? (filter === s ? COLORS.danger : "#FEE2E2") : filter === s ? COLORS.navy : "#fff", color: s === "Cancelled" ? (filter === s ? "#fff" : COLORS.danger) : filter === s ? "#fff" : COLORS.muted, fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>{s}</button>
           ))}
         </div>
