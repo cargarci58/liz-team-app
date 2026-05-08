@@ -937,6 +937,7 @@ function SMSPanel({ tx, onUpdate, currentUser }) {
 function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [], onSaveContact, onOpenContactBook, onDuplicate, currentUser, initialTab = "overview", dashboardUnread = 0 }) {
   const [activeTab, setActiveTab] = useState(initialTab);
   const [showAddParty, setShowAddParty] = useState(false);
+  const [pendingInviteParty, setPendingInviteParty] = useState(null);
   const [partyFromContactBook, setPartyFromContactBook] = useState(false);
   const [showAddTask, setShowAddTask] = useState(false);
   const [showContractWizard, setShowContractWizard] = useState(false);
@@ -1348,14 +1349,36 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
                 if (document.getElementById("saveContact")?.checked && onSaveContact) {
                   onSaveContact({ ...partyForm, id: genId() });
                 }
-                if (document.getElementById("sendInvitation")?.checked && onInviteParty) {
+                const invitedNow = document.getElementById("sendInvitation")?.checked;
+                if (invitedNow && onInviteParty) {
                   onInviteParty({ ...newParty });
+                }
+                // Prompt to send invite if email present and not already invited
+                if (!invitedNow && newParty.email && onInviteParty) {
+                  setPendingInviteParty(newParty);
                 }
                 setPartyForm({ role: "", name: "", email: "", phone: "", company: "" });
                 setPartyFromContactBook(false);
                 setShowAddParty(false);
               }
             }}>Add Party</Btn>
+          </div>
+        </Modal>
+      )}
+      {pendingInviteParty && (
+        <Modal title="Send invitation?" onClose={() => setPendingInviteParty(null)}>
+          <div style={{ marginBottom: 18, fontSize: 14, color: COLORS.text, lineHeight: 1.5 }}>
+            Would you like to send a portal invitation to <strong>{pendingInviteParty.name}</strong> at <strong>{pendingInviteParty.email}</strong> now?
+          </div>
+          <div style={{ background: COLORS.infoBg, border: "1px solid " + COLORS.info, borderRadius: 8, padding: 12, fontSize: 12, color: COLORS.info, marginBottom: 18 }}>
+            They will get an email with a link to access this transaction. You can also send the invite later from the party's card.
+          </div>
+          <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+            <Btn variant="ghost" onClick={() => setPendingInviteParty(null)}>Skip</Btn>
+            <Btn onClick={() => {
+              if (onInviteParty) onInviteParty(pendingInviteParty);
+              setPendingInviteParty(null);
+            }}>Send Invite Now</Btn>
           </div>
         </Modal>
       )}
