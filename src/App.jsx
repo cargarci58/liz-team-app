@@ -8,6 +8,8 @@ import ChangePassword from "./ChangePassword";
 import CompanySettings from "./CompanySettings";
 import AgentProfile from "./AgentProfile";
 import ClientPortal from "./ClientPortal";
+import { DndContext, useDraggable, useDroppable, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
+
 const API = "https://liz-team-server-api-production.up.railway.app";
 
 import { useState, useEffect, useCallback, useRef } from "react";
@@ -246,6 +248,91 @@ const TASK_STATUS = {
   "Overdue": { color: COLORS.danger, bg: COLORS.dangerBg },
   "Waived": { color: COLORS.muted, bg: "#F3F4F6" },
 };
+
+// ===== Kanban / Pipeline Board =====
+const KANBAN_COLUMNS = ["Active", "New", "Under Contract", "Inspection", "Appraisal", "Clear to Close", "Closed"];
+
+function KanbanCard({ tx, onSelect }) {
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: tx.id });
+  const completed = tx.tasks ? tx.tasks.filter(t => t.status === "Completed").length : 0;
+  const total = tx.tasks ? tx.tasks.length : 0;
+  const progress = total > 0 ? Math.round(completed / total * 100) : 0;
+  const overdue = tx.tasks ? tx.tasks.filter(t => { const d = daysUntil(t.dueDate); return d !== null && d < 0 && t.status !== "Completed" && t.status !== "Waived"; }).length : 0;
+  const dtc = daysUntil(tx.closingDate);
+  const price = tx.contractPrice || tx.listPrice;
+  const style = {
+    transform: transform ? `translate3d(${transform.x}px, ${transform.y}px, 0)` : undefined,
+    opacity: isDragging ? 0.4 : 1,
+    cursor: isDragging ? "grabbing" : "grab",
+  };
+  return (
+    <div ref={setNodeRef} style={{ ...style, background: "#fff", border: `1px solid ${COLORS.border}`, borderRadius: 8, padding: 10, marginBottom: 8, boxShadow: "0 1px 2px rgba(0,0,0,0.04)" }} {...attributes} {...listeners} onClick={(e) => { if (!isDragging) onSelect(tx.id); }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
+        <span style={{ fontSize: 14 }}>{tx.type === "Buyer Representation" ? "🏡" : "🏠"}</span>
+        <span style={{ fontSize: 9, fontWeight: 700, color: COLORS.muted, textTransform: "uppercase", letterSpacing: "0.06em" }}>{tx.type === "Buyer Representation" ? "Buyer" : "Listing"}</span>
+        {overdue > 0 && <span title={`${overdue} overdue task(s)`} style={{ marginLeft: "auto", background: COLORS.dangerBg, color: COLORS.danger, fontSize: 9, fontWeight: 700, padding: "1px 6px", borderRadius: 8 }}>⚠ {overdue}</span>}
+      </div>
+      <div style={{ fontWeight: 700, fontSize: 13, color: COLORS.navy, marginBottom: 2, lineHeight: 1.3 }}>{tx.address}</div>
+      <div style={{ fontSize: 11, color: COLORS.muted, marginBottom: 6 }}>{tx.city}, FL</div>
+      {price && <div style={{ fontSize: 13, fontWeight: 700, color: COLORS.navy, marginBottom: 4 }}>${Number(price).toLocaleString()}</div>}
+      {tx.closingDate && <div style={{ fontSize: 11, color: dtc !== null && dtc < 7 ? COLORS.danger : COLORS.muted, marginBottom: 6 }}>Closing: {tx.closingDate}{dtc !== null ? ` (${dtc}d)` : ""}</div>}
+      {total > 0 && (
+        <div style={{ marginBottom: 4 }}>
+          <div style={{ height: 4, background: COLORS.bg, borderRadius: 2, overflow: "hidden" }}>
+            <div style={{ height: "100%", width: progress + "%", background: progress === 100 ? COLORS.success : COLORS.navy }} />
+          </div>
+          <div style={{ fontSize: 10, color: COLORS.muted, marginTop: 2 }}>{completed}/{total} tasks</div>
+        </div>
+      )}
+      {tx.assignedAgentName && <div style={{ fontSize: 10, color: COLORS.muted }}>👤 {tx.assignedAgentName}</div>}
+    </div>
+  );
+}
+
+function KanbanColumn({ status, transactions, onSelect }) {
+  const { setNodeRef, isOver } = useDroppable({ id: status });
+  const cfg = STATUS_CONFIG[status] || STATUS_CONFIG["Active"];
+  return (
+    <div ref={setNodeRef} style={{ minWidth: 260, width: 260, background: isOver ? cfg.bg : COLORS.bg, border: `2px solid ${isOver ? cfg.color : "transparent"}`, borderRadius: 8, padding: 10, display: "flex", flexDirection: "column", maxHeight: "calc(100vh - 280px)" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10, paddingBottom: 8, borderBottom: `2px solid ${cfg.color}` }}>
+        <div style={{ width: 8, height: 8, borderRadius: "50%", background: cfg.color }} />
+        <div style={{ fontWeight: 700, fontSize: 12, color: cfg.color, textTransform: "uppercase", letterSpacing: "0.04em" }}>{status}</div>
+        <div style={{ marginLeft: "auto", background: "#fff", color: COLORS.muted, fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 10, border: `1px solid ${COLORS.border}` }}>{transactions.length}</div>
+      </div>
+      <div style={{ overflowY: "auto", flex: 1 }}>
+        {transactions.length === 0 ? (
+          <div style={{ textAlign: "center", padding: 20, color: COLORS.muted, fontSize: 11, fontStyle: "italic" }}>Drop here</div>
+        ) : (
+          transactions.map(tx => <KanbanCard key={tx.id} tx={tx} onSelect={onSelect} />)
+        )}
+      </div>
+    </div>
+  );
+}
+
+function KanbanBoard({ transactions, onSelect, onStatusChange }) {
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
+  const handleDragEnd = (event) => {
+    const { active, over } = event;
+    if (!over) return;
+    const txId = active.id;
+    const newStatus = over.id;
+    const tx = transactions.find(t => t.id === txId);
+    if (!tx || tx.status === newStatus) return;
+    onStatusChange(txId, newStatus, tx.status);
+  };
+  const grouped = KANBAN_COLUMNS.reduce((acc, s) => { acc[s] = transactions.filter(t => t.status === s); return acc; }, {});
+  return (
+    <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
+      <div style={{ padding: 16, display: "flex", gap: 12, overflowX: "auto", overflowY: "hidden" }}>
+        {KANBAN_COLUMNS.map(s => <KanbanColumn key={s} status={s} transactions={grouped[s]} onSelect={onSelect} />)}
+      </div>
+    </DndContext>
+  );
+}
+// ===== End Kanban =====
+
+
 
 
 // ─── INJECT MOBILE STYLES ─────────────────────────────────────
@@ -2377,11 +2464,31 @@ function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenCon
       {viewMode === "list" ? (
         <TransactionListView transactions={hydratedPagedTxs} sortKey={sortKey} sortDir={sortDir} toggleSort={toggleSort} onSelect={onSelect} />
       ) : viewMode === "kanban" ? (
-        <div style={{ padding: 48, textAlign: "center", color: COLORS.muted, fontSize: 14 }}>
-          <div style={{ fontSize: 48, marginBottom: 12 }}>⋮⋮</div>
-          <div style={{ fontWeight: 600, color: COLORS.text, marginBottom: 6 }}>Pipeline view coming next</div>
-          <div>Drag-and-drop Kanban board with 6 stages: New → Under Contract → Inspection → Appraisal → Clear to Close → Closed</div>
-        </div>
+        <KanbanBoard
+          transactions={hydratedPagedTxs}
+          onSelect={onSelect}
+          onStatusChange={async (txId, newStatus, oldStatus) => {
+            // Optimistic update — card jumps columns immediately
+            setPagedTxs(prev => prev.map(t => t.id === txId ? { ...t, status: newStatus } : t));
+            try {
+              const tok = localStorage.getItem("tp_token") || "";
+              const res = await fetch(API + "/transactions/" + txId + "/status", {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json", "Authorization": "Bearer " + tok },
+                body: JSON.stringify({ status: newStatus })
+              });
+              if (!res.ok) {
+                // Rollback on failure
+                setPagedTxs(prev => prev.map(t => t.id === txId ? { ...t, status: oldStatus } : t));
+                const err = await res.json().catch(() => ({}));
+                alert("Failed to update status: " + (err.error || res.status));
+              }
+            } catch (e) {
+              setPagedTxs(prev => prev.map(t => t.id === txId ? { ...t, status: oldStatus } : t));
+              alert("Network error updating status: " + e.message);
+            }
+          }}
+        />
       ) : (
       <div style={{ padding: 24, display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(340px, 1fr))", gap: 16 }} data-tx-grid="">
         {hydratedPagedTxs.map(tx => {
