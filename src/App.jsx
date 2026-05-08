@@ -2183,6 +2183,8 @@ function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenCon
   const [saveViewName, setSaveViewName] = useState("");
   const [saveViewAsDefault, setSaveViewAsDefault] = useState(false);
   const [saveViewLoading, setSaveViewLoading] = useState(false);
+  const [showViewsMenu, setShowViewsMenu] = useState(false);
+  const [defaultViewApplied, setDefaultViewApplied] = useState(false);
   const [pagedTotal, setPagedTotal] = useState(0);
   const [pagedPage, setPagedPage] = useState(1);
   const [pagedHasMore, setPagedHasMore] = useState(false);
@@ -2284,6 +2286,63 @@ function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenCon
       .then(d => { if (d.views) setSavedViews(d.views); })
       .catch(() => {});
   }, []);
+
+  const applyView = (view) => {
+    if (!view) return;
+    const f = view.filters || {};
+    setAgentFilter(f.agentFilter || "");
+    setPropTypeFilter(f.propTypeFilter || "");
+    setTxTypeFilter(f.txTypeFilter || "");
+    setDatePreset(f.datePreset || "");
+    setClosingFrom(f.closingFrom || "");
+    setClosingTo(f.closingTo || "");
+    setFilter(f.statusFilter || "All");
+    if (view.sortKey) setSortKey(view.sortKey);
+    if (view.sortDir) setSortDir(view.sortDir);
+    if (view.viewMode) setViewMode(view.viewMode);
+    setShowViewsMenu(false);
+  };
+
+  const handleDeleteView = async (id, e) => {
+    if (e) e.stopPropagation();
+    if (!confirm("Delete this saved view?")) return;
+    try {
+      const tok = localStorage.getItem("tp_token") || "";
+      const res = await fetch(API + "/saved-views/" + id, {
+        method: "DELETE",
+        headers: { "Authorization": "Bearer " + tok }
+      });
+      if (!res.ok) { const d = await res.json().catch(() => ({})); alert("Failed to delete: " + (d.error || res.status)); return; }
+      setSavedViews(prev => prev.filter(v => v.id !== id));
+    } catch (err) {
+      alert("Network error: " + err.message);
+    }
+  };
+
+  const handleToggleDefault = async (id, currentDefault, e) => {
+    if (e) e.stopPropagation();
+    try {
+      const tok = localStorage.getItem("tp_token") || "";
+      const res = await fetch(API + "/saved-views/" + id + "/default", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", "Authorization": "Bearer " + tok },
+        body: JSON.stringify({ isDefault: !currentDefault })
+      });
+      if (!res.ok) { const d = await res.json().catch(() => ({})); alert("Failed: " + (d.error || res.status)); return; }
+      setSavedViews(prev => prev.map(v => ({ ...v, isDefault: v.id === id ? !currentDefault : false })));
+    } catch (err) {
+      alert("Network error: " + err.message);
+    }
+  };
+
+  // Auto-apply default view on first load (after savedViews are fetched)
+  useEffect(() => {
+    if (defaultViewApplied) return;
+    if (savedViews.length === 0) return;
+    const def = savedViews.find(v => v.isDefault);
+    if (def) applyView(def);
+    setDefaultViewApplied(true);
+  }, [savedViews, defaultViewApplied]);
 
   const handleSaveView = async () => {
     if (!saveViewName.trim()) { alert("Please enter a name"); return; }
@@ -2464,7 +2523,36 @@ function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenCon
             <button key={s} onClick={() => setFilter(s)} style={{ padding: "6px 14px", borderRadius: 20, border: `1px solid ${s === "Cancelled" ? (filter === s ? COLORS.danger : COLORS.danger + "60") : filter === s ? COLORS.navy : COLORS.border}`, background: s === "Cancelled" ? (filter === s ? COLORS.danger : "#FEE2E2") : filter === s ? COLORS.navy : "#fff", color: s === "Cancelled" ? (filter === s ? "#fff" : COLORS.danger) : filter === s ? "#fff" : COLORS.muted, fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>{s}</button>
           ))}
         </div>
-        <button onClick={() => setShowSaveViewModal(true)} title="Save current filters as a view" style={{ marginLeft: "auto", padding: "7px 12px", borderRadius: 8, border: `1px solid ${COLORS.border}`, background: "#fff", color: COLORS.text, fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 6 }}>💾 Save View</button>
+        <div style={{ marginLeft: "auto", display: "flex", gap: 6, position: "relative" }}>
+          <button onClick={() => setShowViewsMenu(v => !v)} title="My saved views" style={{ padding: "7px 12px", borderRadius: 8, border: `1px solid ${COLORS.border}`, background: "#fff", color: COLORS.text, fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 6 }}>📋 Views {savedViews.length > 0 && <span style={{ background: COLORS.bg, color: COLORS.muted, borderRadius: 10, padding: "1px 7px", fontSize: 11, fontWeight: 700 }}>{savedViews.length}</span>} <span style={{ fontSize: 9 }}>▾</span></button>
+          <button onClick={() => setShowSaveViewModal(true)} title="Save current filters as a view" style={{ padding: "7px 12px", borderRadius: 8, border: `1px solid ${COLORS.border}`, background: "#fff", color: COLORS.text, fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 6 }}>💾 Save</button>
+          {showViewsMenu && (
+            <>
+              <div onClick={() => setShowViewsMenu(false)} style={{ position: "fixed", inset: 0, zIndex: 100 }} />
+              <div style={{ position: "absolute", top: "calc(100% + 6px)", right: 0, background: "#fff", border: `1px solid ${COLORS.border}`, borderRadius: 10, boxShadow: "0 8px 24px rgba(0,0,0,0.15)", minWidth: 280, maxWidth: 360, zIndex: 101, maxHeight: 400, overflowY: "auto" }}>
+                <div style={{ padding: "10px 14px", borderBottom: `1px solid ${COLORS.border}`, fontSize: 11, fontWeight: 700, color: COLORS.muted, textTransform: "uppercase", letterSpacing: "0.06em" }}>My Saved Views</div>
+                {savedViews.length === 0 ? (
+                  <div style={{ padding: "20px 14px", textAlign: "center", color: COLORS.muted, fontSize: 13 }}>No saved views yet.<br/><span style={{ fontSize: 11 }}>Click 💾 Save to create one.</span></div>
+                ) : (
+                  savedViews.map(v => (
+                    <div key={v.id} onClick={() => applyView(v)} style={{ padding: "10px 14px", borderBottom: `1px solid ${COLORS.border}`, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}
+                      onMouseEnter={e => e.currentTarget.style.background = COLORS.bg}
+                      onMouseLeave={e => e.currentTarget.style.background = "#fff"}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: COLORS.text, display: "flex", alignItems: "center", gap: 6 }}>
+                          {v.isDefault && <span title="Default view" style={{ color: COLORS.gold, fontSize: 12 }}>★</span>}
+                          <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{v.name}</span>
+                        </div>
+                      </div>
+                      <button onClick={(e) => handleToggleDefault(v.id, v.isDefault, e)} title={v.isDefault ? "Unset as default" : "Set as default"} style={{ background: "none", border: "none", cursor: "pointer", color: v.isDefault ? COLORS.gold : COLORS.muted, fontSize: 14, padding: 4 }}>{v.isDefault ? "★" : "☆"}</button>
+                      <button onClick={(e) => handleDeleteView(v.id, e)} title="Delete view" style={{ background: "none", border: "none", cursor: "pointer", color: COLORS.muted, fontSize: 14, padding: 4 }} onMouseEnter={e => e.currentTarget.style.color = COLORS.danger} onMouseLeave={e => e.currentTarget.style.color = COLORS.muted}>×</button>
+                    </div>
+                  ))
+                )}
+              </div>
+            </>
+          )}
+        </div>
         <button data-filter-btn="" onClick={() => setShowFilters(true)} style={{ padding: "7px 12px", borderRadius: 8, border: `1px solid ${activeFilterCount > 0 ? COLORS.navy : COLORS.border}`, background: activeFilterCount > 0 ? COLORS.navy : "#fff", color: activeFilterCount > 0 ? "#fff" : COLORS.text, fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 6, position: "relative" }}>
           <span>⚙ Filters</span>
           {activeFilterCount > 0 && <span style={{ background: "#fff", color: COLORS.navy, borderRadius: 10, padding: "1px 7px", fontSize: 11, fontWeight: 700 }}>{activeFilterCount}</span>}
