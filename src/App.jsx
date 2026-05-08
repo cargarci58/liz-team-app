@@ -284,16 +284,20 @@ if (typeof document !== "undefined" && !document.getElementById("lizteam-mobile"
         align-items: stretch !important;
         padding: 10px 16px !important;
         gap: 8px !important;
+        flex-wrap: nowrap !important;
       }
       [data-toolbar] > input { max-width: 100% !important; width: 100% !important; }
-      [data-toolbar] > div {
+      [data-toolbar] > div, [data-toolbar] > button {
         margin-left: 0 !important;
+      }
+      [data-toolbar] > div {
         overflow-x: auto !important;
         -webkit-overflow-scrolling: touch;
         flex-wrap: nowrap !important;
         white-space: nowrap;
         scrollbar-width: thin;
         padding-bottom: 4px;
+        max-width: 100%;
       }
       [data-toolbar] > div > * { flex-shrink: 0 !important; }
       [data-msg-grid] { grid-template-columns: 1fr !important; height: auto !important; min-height: 480px; }
@@ -2321,7 +2325,7 @@ function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenCon
             <button key={s} onClick={() => setFilter(s)} style={{ padding: "6px 14px", borderRadius: 20, border: `1px solid ${s === "Cancelled" ? (filter === s ? COLORS.danger : COLORS.danger + "60") : filter === s ? COLORS.navy : COLORS.border}`, background: s === "Cancelled" ? (filter === s ? COLORS.danger : "#FEE2E2") : filter === s ? COLORS.navy : "#fff", color: s === "Cancelled" ? (filter === s ? "#fff" : COLORS.danger) : filter === s ? "#fff" : COLORS.muted, fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>{s}</button>
           ))}
         </div>
-        <button onClick={() => setShowFilters(true)} style={{ marginLeft: "auto", padding: "7px 12px", borderRadius: 8, border: `1px solid ${activeFilterCount > 0 ? COLORS.navy : COLORS.border}`, background: activeFilterCount > 0 ? COLORS.navy : "#fff", color: activeFilterCount > 0 ? "#fff" : COLORS.text, fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 6, position: "relative" }}>
+        <button data-filter-btn="" onClick={() => setShowFilters(true)} style={{ marginLeft: "auto", padding: "7px 12px", borderRadius: 8, border: `1px solid ${activeFilterCount > 0 ? COLORS.navy : COLORS.border}`, background: activeFilterCount > 0 ? COLORS.navy : "#fff", color: activeFilterCount > 0 ? "#fff" : COLORS.text, fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 6, position: "relative" }}>
           <span>⚙ Filters</span>
           {activeFilterCount > 0 && <span style={{ background: "#fff", color: COLORS.navy, borderRadius: 10, padding: "1px 7px", fontSize: 11, fontWeight: 700 }}>{activeFilterCount}</span>}
         </button>
