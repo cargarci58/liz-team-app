@@ -323,10 +323,12 @@ if (typeof document !== "undefined" && !document.getElementById("lizteam-mobile"
       }
       [data-dash-logo] > div:nth-child(2) > div:first-child {
         font-size: 15px !important;
-        line-height: 1 !important;
+        line-height: 1.1 !important;
       }
       [data-dash-logo] > div:nth-child(2) > div:nth-child(2) {
-        display: none !important;
+        font-size: 9px !important;
+        line-height: 1.1 !important;
+        margin-top: 1px !important;
       }
       [data-tx-detail-header] {
         padding: 10px 12px !important;
