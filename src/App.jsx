@@ -304,6 +304,30 @@ if (typeof document !== "undefined" && !document.getElementById("lizteam-mobile"
       .tx-list-desktop { display: none !important; }
       .tx-list-mobile { display: block !important; }
       [data-header] { flex-wrap: wrap !important; gap: 8px !important; }
+      [data-dash-header] {
+        padding-top: 10px !important;
+        padding-bottom: 6px !important;
+        flex-wrap: wrap !important;
+        gap: 8px !important;
+      }
+      [data-dash-logo] {
+        gap: 8px !important;
+      }
+      [data-dash-logo] > div:first-child {
+        width: 28px !important;
+        height: 28px !important;
+        border-radius: 6px !important;
+      }
+      [data-dash-logo] > div:first-child > span {
+        font-size: 14px !important;
+      }
+      [data-dash-logo] > div:nth-child(2) > div:first-child {
+        font-size: 15px !important;
+        line-height: 1 !important;
+      }
+      [data-dash-logo] > div:nth-child(2) > div:nth-child(2) {
+        display: none !important;
+      }
       [data-tx-detail-header] {
         padding: 10px 12px !important;
         gap: 8px !important;
@@ -2044,8 +2068,8 @@ function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenCon
   return (
     <div style={{ fontFamily: "'Segoe UI', system-ui, sans-serif", background: COLORS.bg, minHeight: "100vh" }}>
       <div style={{ background: COLORS.navy, padding: "0 24px" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: 20, paddingBottom: 8 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        <div data-dash-header="" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: 20, paddingBottom: 8 }}>
+          <div data-dash-logo="" style={{ display: "flex", alignItems: "center", gap: 12 }}>
             <div style={{ width: 36, height: 36, borderRadius: 8, background: COLORS.gold, display: "flex", alignItems: "center", justifyContent: "center" }}>
               <span style={{ color: "#fff", fontSize: 18, fontWeight: 900 }}>T</span>
             </div>
