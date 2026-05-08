@@ -2522,35 +2522,12 @@ function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenCon
           </div>
         </div>
         <div data-stats-bar="" style={{ display: "flex", marginTop: 16, borderTop: "1px solid rgba(255,255,255,0.1)", overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
-          {(() => { const s = dashStats || stats; return [["Active Listings", s.active, COLORS.gold, null], ["Under Contract", s.underContract, "#93C5FD", null], ["Closed", s.closed, "#6EE7B7", null], ["Overdue Tasks", s.overdueAny, s.overdueAny > 0 ? "#FCA5A5" : "#6EE7B7", s.overdueAny > 0 ? () => setShowOverdue(true) : null], ["Closing This Month", s.closingSoon, s.closingSoon > 0 ? "#FDE68A" : "rgba(255,255,255,0.4)", null], ["Volume", `$${((s.totalVolume || 0) / 1000000).toFixed(2)}M`, COLORS.gold, null], ["Closed Commission", s.totalCommission > 0 ? `$${Math.round(s.totalCommission).toLocaleString()}` : "$0", "#6EE7B7", null]]; })().map(([label, value, color, onClick]) => (
+          {(() => { const s = dashStats || stats; return [["Active Listings", s.active, COLORS.gold, null], ["Under Contract", s.underContract, "#93C5FD", null], ["Closed", s.closed, "#6EE7B7", null], ["Closing This Month", s.closingSoon, s.closingSoon > 0 ? "#FDE68A" : "rgba(255,255,255,0.4)", null], ["Volume", `$${((s.totalVolume || 0) / 1000000).toFixed(2)}M`, COLORS.gold, null], ["Pending Commission", `$${Math.round(s.pendingCommissionGross || 0).toLocaleString()}`, "#FDBA74", null], ["Closed Commission", s.totalCommission > 0 ? `$${Math.round(s.totalCommission).toLocaleString()}` : "$0", "#6EE7B7", null]]; })().map(([label, value, color, onClick]) => (
             <div key={label} onClick={onClick} style={{ padding: "12px 20px", flex: 1, cursor: onClick ? "pointer" : "default" }}>
               <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>{label}{onClick && " ↗"}</div>
               <div style={{ color, fontSize: 22, fontWeight: 800, marginTop: 2 }}>{value}</div>
             </div>
           ))}
-        </div>
-      </div>
-      <div data-commission-widget="" style={{ background: "#fff", borderBottom: `1px solid ${COLORS.border}`, padding: "16px 24px" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-          <span style={{ fontSize: 16 }}>💰</span>
-          <span style={{ fontSize: 12, fontWeight: 700, color: COLORS.muted, textTransform: "uppercase", letterSpacing: "0.06em" }}>Commission Summary</span>
-        </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 12 }}>
-          <div style={{ background: COLORS.bg, border: `1px solid ${COLORS.border}`, borderRadius: 10, padding: "12px 16px" }}>
-            <div style={{ fontSize: 11, fontWeight: 600, color: COLORS.muted, textTransform: "uppercase", letterSpacing: "0.04em" }}>Pending — Gross</div>
-            <div style={{ fontSize: 22, fontWeight: 800, color: COLORS.navy, marginTop: 2 }}>${Math.round(stats.pendingCommissionGross || 0).toLocaleString()}</div>
-            <div style={{ fontSize: 10, color: COLORS.muted, marginTop: 2 }}>{stats.pendingCount || 0} in-progress {(stats.pendingCount === 1 ? "transaction" : "transactions")}</div>
-          </div>
-          <div style={{ background: "#FFF7ED", border: `1px solid #FDBA74`, borderRadius: 10, padding: "12px 16px" }}>
-            <div style={{ fontSize: 11, fontWeight: 600, color: "#9A3412", textTransform: "uppercase", letterSpacing: "0.04em" }}>Pending — Net (after splits)</div>
-            <div style={{ fontSize: 22, fontWeight: 800, color: "#9A3412", marginTop: 2 }}>${Math.round(stats.pendingCommissionNet || 0).toLocaleString()}</div>
-            <div style={{ fontSize: 10, color: "#9A3412", opacity: 0.7, marginTop: 2 }}>after fees, splits, flat fees</div>
-          </div>
-          <div style={{ background: "#F0FFF4", border: `1px solid #6EE7B7`, borderRadius: 10, padding: "12px 16px" }}>
-            <div style={{ fontSize: 11, fontWeight: 600, color: COLORS.success, textTransform: "uppercase", letterSpacing: "0.04em" }}>Closed Commission</div>
-            <div style={{ fontSize: 22, fontWeight: 800, color: COLORS.success, marginTop: 2 }}>${Math.round(stats.totalCommission || 0).toLocaleString()}</div>
-            <div style={{ fontSize: 10, color: COLORS.success, opacity: 0.7, marginTop: 2 }}>{stats.closed || 0} closed {(stats.closed === 1 ? "deal" : "deals")} this period</div>
-          </div>
         </div>
       </div>
       {showSaveViewModal && (
