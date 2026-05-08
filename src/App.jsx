@@ -304,6 +304,32 @@ if (typeof document !== "undefined" && !document.getElementById("lizteam-mobile"
       .tx-list-desktop { display: none !important; }
       .tx-list-mobile { display: block !important; }
       [data-header] { flex-wrap: wrap !important; gap: 8px !important; }
+      [data-tx-detail-header] {
+        padding: 10px 12px !important;
+        gap: 8px !important;
+        position: relative !important;
+      }
+      [data-tx-detail-header] > div:first-of-type {
+        flex: 1 1 calc(100% - 60px) !important;
+        min-width: 0 !important;
+      }
+      [data-tx-detail-header] > div:first-of-type > div:first-child {
+        font-size: 14px !important;
+        line-height: 1.3 !important;
+        word-break: break-word;
+      }
+      [data-tx-detail-header] > div:first-of-type > div:nth-child(2) {
+        font-size: 11px !important;
+      }
+      [data-tx-detail-header] > select,
+      [data-tx-detail-header] > button {
+        flex-shrink: 0 !important;
+      }
+      [data-tx-detail-header]::after {
+        content: "";
+        flex-basis: 100%;
+        height: 0;
+      }
     }
   `;
   document.head.appendChild(s);
@@ -1175,7 +1201,7 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
 
   return (
     <div style={{ fontFamily: "'Segoe UI', system-ui, sans-serif", background: COLORS.bg, minHeight: "100vh" }}>
-      <div style={{ background: COLORS.navy, padding: "16px 24px", display: "flex", alignItems: "center", gap: 16, position: "sticky", top: 0, zIndex: 100 }}>
+      <div data-tx-detail-header="" style={{ background: COLORS.navy, padding: "16px 24px", display: "flex", alignItems: "center", gap: 16, position: "sticky", top: 0, zIndex: 100, flexWrap: "wrap" }}>
         <button onClick={onBack} style={{ background: "none", border: "none", color: "#fff", cursor: "pointer", fontSize: 22, opacity: 0.7 }}>←</button>
         <div style={{ flex: 1 }}>
           <div style={{ color: "#fff", fontWeight: 700, fontSize: 17 }}>{tx.address}</div>
