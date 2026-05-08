@@ -1368,8 +1368,7 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
           a.href = url; a.download = "TransactPro-" + (tx.address || "report").replace(/[^a-z0-9]/gi, "-") + "-" + (tx.city || "").replace(/[^a-z0-9]/gi, "-") + ".pdf"; a.click();
           URL.revokeObjectURL(url);
         }} style={{ fontSize: 11, padding: "4px 10px", borderRadius: 6, border: "1px solid rgba(255,255,255,0.3)", background: "rgba(255,255,255,0.1)", color: "#fff", cursor: "pointer", fontFamily: "inherit" }}>📄 PDF</button>
-        {tx.status !== "Cancelled" && (
-          {tx.type === "Buyer Representation" && (
+        {tx.type === "Buyer Representation" && (
             <button onClick={() => {
               const existingNames = new Set((tx.tasks || []).map(t => t.name));
               const newOnes = NEW_CONSTRUCTION_TASKS.filter(t => !existingNames.has(t.name));
@@ -1402,6 +1401,7 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
               update({ tasks: [...(tx.tasks || []), ...newTasks] });
             }} style={{ fontSize: 11, padding: "4px 10px", borderRadius: 6, border: "1px solid rgba(251,146,60,0.5)", background: "rgba(251,146,60,0.15)", color: "#FDBA74", cursor: "pointer", fontFamily: "inherit", marginRight: 6 }}>🏗️ Add New Construction Tasks</button>
           )}
+          {tx.status !== "Cancelled" && (
           <button onClick={() => { if (window.confirm("Cancel this transaction? It will be hidden from your dashboard but not deleted.")) update({ status: "Cancelled" }); }} style={{ fontSize: 11, padding: "4px 10px", borderRadius: 6, border: "1px solid rgba(255,100,100,0.5)", background: "rgba(255,100,100,0.15)", color: "#FCA5A5", cursor: "pointer", fontFamily: "inherit" }}>Cancel Transaction</button>
         )}
         {tx.status === "Cancelled" && (
