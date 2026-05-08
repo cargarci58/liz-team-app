@@ -2461,8 +2461,40 @@ function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenCon
       const flatFee = Number(t.officeFlatFee || 0);
       return acc + (listComm + buyerComm + txFee - split - flatFee);
     }, 0),
-    closingSoon: transactions.filter(t => { const d = daysUntil(t.closingDate); return d !== null && d >= 0 && d <= 14 && t.status === "Under Contract"; }).length,
+    closingSoon: (() => {
+      const today = new Date();
+      const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+      return transactions.filter(t => {
+        if (!t.closingDate) return false;
+        if (!["Active", "Under Contract"].includes(t.status)) return false;
+        const cd = new Date(t.closingDate);
+        return cd >= today && cd <= endOfMonth;
+      }).length;
+    })(),
     totalVolume: transactions.filter(t => t.status !== "Cancelled").reduce((a, t) => a + (Number(t.contractPrice) || Number(t.listPrice) || 0), 0),
+    pendingCommissionGross: transactions.filter(t => !["Closed", "Cancelled", "On Hold"].includes(t.status)).reduce((acc, t) => {
+      const price = Number(t.contractPrice || t.listPrice || 0);
+      const isListing = t.type === "Listing (Seller)";
+      const isBuyer = t.type === "Buyer Representation";
+      const isDual = t.type === "Dual Agency";
+      const ourListComm = (isListing || isDual) && t.commissionListing ? price * Number(t.commissionListing) / 100 : 0;
+      const ourBuyerComm = (isBuyer || isDual) && t.commissionBuyer ? price * Number(t.commissionBuyer) / 100 : 0;
+      return acc + ourListComm + ourBuyerComm;
+    }, 0),
+    pendingCommissionNet: transactions.filter(t => !["Closed", "Cancelled", "On Hold"].includes(t.status)).reduce((acc, t) => {
+      const price = Number(t.contractPrice || t.listPrice || 0);
+      const isListing = t.type === "Listing (Seller)";
+      const isBuyer = t.type === "Buyer Representation";
+      const isDual = t.type === "Dual Agency";
+      const ourListComm = (isListing || isDual) && t.commissionListing ? price * Number(t.commissionListing) / 100 : 0;
+      const ourBuyerComm = (isBuyer || isDual) && t.commissionBuyer ? price * Number(t.commissionBuyer) / 100 : 0;
+      const ourComm = ourListComm + ourBuyerComm;
+      const txFee = Number(t.transactionFee || 0);
+      const split = t.brokerageSplit ? ourComm * Number(t.brokerageSplit) / 100 : 0;
+      const flatFee = Number(t.officeFlatFee || 0);
+      return acc + (ourComm + txFee - split - flatFee);
+    }, 0),
+    pendingCount: transactions.filter(t => !["Closed", "Cancelled", "On Hold"].includes(t.status)).length,
   };
   return (
     <div style={{ fontFamily: "'Segoe UI', system-ui, sans-serif", background: COLORS.bg, minHeight: "100vh" }}>
@@ -2496,6 +2528,29 @@ function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenCon
               <div style={{ color, fontSize: 22, fontWeight: 800, marginTop: 2 }}>{value}</div>
             </div>
           ))}
+        </div>
+      </div>
+      <div data-commission-widget="" style={{ background: "#fff", borderBottom: `1px solid ${COLORS.border}`, padding: "16px 24px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+          <span style={{ fontSize: 16 }}>💰</span>
+          <span style={{ fontSize: 12, fontWeight: 700, color: COLORS.muted, textTransform: "uppercase", letterSpacing: "0.06em" }}>Commission Summary</span>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 12 }}>
+          <div style={{ background: COLORS.bg, border: `1px solid ${COLORS.border}`, borderRadius: 10, padding: "12px 16px" }}>
+            <div style={{ fontSize: 11, fontWeight: 600, color: COLORS.muted, textTransform: "uppercase", letterSpacing: "0.04em" }}>Pending — Gross</div>
+            <div style={{ fontSize: 22, fontWeight: 800, color: COLORS.navy, marginTop: 2 }}>${Math.round(stats.pendingCommissionGross || 0).toLocaleString()}</div>
+            <div style={{ fontSize: 10, color: COLORS.muted, marginTop: 2 }}>{stats.pendingCount || 0} in-progress {(stats.pendingCount === 1 ? "transaction" : "transactions")}</div>
+          </div>
+          <div style={{ background: "#FFF7ED", border: `1px solid #FDBA74`, borderRadius: 10, padding: "12px 16px" }}>
+            <div style={{ fontSize: 11, fontWeight: 600, color: "#9A3412", textTransform: "uppercase", letterSpacing: "0.04em" }}>Pending — Net (after splits)</div>
+            <div style={{ fontSize: 22, fontWeight: 800, color: "#9A3412", marginTop: 2 }}>${Math.round(stats.pendingCommissionNet || 0).toLocaleString()}</div>
+            <div style={{ fontSize: 10, color: "#9A3412", opacity: 0.7, marginTop: 2 }}>after fees, splits, flat fees</div>
+          </div>
+          <div style={{ background: "#F0FFF4", border: `1px solid #6EE7B7`, borderRadius: 10, padding: "12px 16px" }}>
+            <div style={{ fontSize: 11, fontWeight: 600, color: COLORS.success, textTransform: "uppercase", letterSpacing: "0.04em" }}>Closed Commission</div>
+            <div style={{ fontSize: 22, fontWeight: 800, color: COLORS.success, marginTop: 2 }}>${Math.round(stats.totalCommission || 0).toLocaleString()}</div>
+            <div style={{ fontSize: 10, color: COLORS.success, opacity: 0.7, marginTop: 2 }}>{stats.closed || 0} closed {(stats.closed === 1 ? "deal" : "deals")} this period</div>
+          </div>
         </div>
       </div>
       {showSaveViewModal && (
