@@ -2344,6 +2344,7 @@ function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenCon
         <div style={{ display: "flex", gap: 4, background: COLORS.bg, borderRadius: 8, padding: 3, border: `1px solid ${COLORS.border}` }}>
           <button onClick={() => setViewMode("cards")} title="Card view" style={{ padding: "6px 12px", borderRadius: 6, border: "none", background: viewMode === "cards" ? COLORS.navy : "transparent", color: viewMode === "cards" ? "#fff" : COLORS.muted, fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>▦ Cards</button>
           <button onClick={() => setViewMode("list")} title="List view" style={{ padding: "6px 12px", borderRadius: 6, border: "none", background: viewMode === "list" ? COLORS.navy : "transparent", color: viewMode === "list" ? "#fff" : COLORS.muted, fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>☰ List</button>
+          <button onClick={() => setViewMode("kanban")} title="Kanban / Pipeline view" style={{ padding: "6px 12px", borderRadius: 6, border: "none", background: viewMode === "kanban" ? COLORS.navy : "transparent", color: viewMode === "kanban" ? "#fff" : COLORS.muted, fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>⋮⋮ Pipeline</button>
         </div>
       </div>
       {activeFilterCount > 0 && (
@@ -2371,6 +2372,12 @@ function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenCon
       )}
       {viewMode === "list" ? (
         <TransactionListView transactions={hydratedPagedTxs} sortKey={sortKey} sortDir={sortDir} toggleSort={toggleSort} onSelect={onSelect} />
+      ) : viewMode === "kanban" ? (
+        <div style={{ padding: 48, textAlign: "center", color: COLORS.muted, fontSize: 14 }}>
+          <div style={{ fontSize: 48, marginBottom: 12 }}>⋮⋮</div>
+          <div style={{ fontWeight: 600, color: COLORS.text, marginBottom: 6 }}>Pipeline view coming next</div>
+          <div>Drag-and-drop Kanban board with 6 stages: New → Under Contract → Inspection → Appraisal → Clear to Close → Closed</div>
+        </div>
       ) : (
       <div style={{ padding: 24, display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(340px, 1fr))", gap: 16 }} data-tx-grid="">
         {hydratedPagedTxs.map(tx => {
