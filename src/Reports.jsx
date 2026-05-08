@@ -54,11 +54,15 @@ export default function Reports({ transactions, onBack }) {
     const price = Number(tx.contractPrice || tx.listPrice || 0);
     const listComm = tx.commissionListing ? price * Number(tx.commissionListing) / 100 : 0;
     const buyerComm = tx.commissionBuyer ? price * Number(tx.commissionBuyer) / 100 : 0;
-    const total = listComm + buyerComm;
+    // Only count OUR side based on transaction type
+    let ourGross = 0;
+    if (tx.type === "Listing (Seller)") ourGross = listComm;
+    else if (tx.type === "Buyer Representation") ourGross = buyerComm;
+    else if (tx.type === "Dual Agency") ourGross = listComm + buyerComm;
     const txFee = Number(tx.transactionFee || 0);
-    const split = tx.brokerageSplit ? total * Number(tx.brokerageSplit) / 100 : 0;
+    const split = tx.brokerageSplit ? ourGross * Number(tx.brokerageSplit) / 100 : 0;
     const flat = Number(tx.officeFlatFee || 0);
-    return { gross: total, net: total + txFee - split - flat };
+    return { gross: ourGross, net: ourGross + txFee - split - flat };
   };
 
   // Pipeline stats

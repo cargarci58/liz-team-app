@@ -1410,11 +1410,15 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
                     const price = Number(tx.contractPrice || tx.listPrice || 0);
                     const listComm = tx.commissionListing ? (price * Number(tx.commissionListing) / 100) : 0;
                     const buyerComm = tx.commissionBuyer ? (price * Number(tx.commissionBuyer) / 100) : 0;
-                    const totalComm = listComm + buyerComm;
+                    // Determine which side is OURS based on transaction type
+                    const isListing = tx.type === "Listing (Seller)";
+                    const isBuyer = tx.type === "Buyer Representation";
+                    const isDual = tx.type === "Dual Agency";
+                    const ourComm = isListing ? listComm : isBuyer ? buyerComm : isDual ? (listComm + buyerComm) : 0;
                     const txFee = Number(tx.transactionFee || 0);
-                    const split = tx.brokerageSplit ? totalComm * Number(tx.brokerageSplit) / 100 : 0;
+                    const split = tx.brokerageSplit ? ourComm * Number(tx.brokerageSplit) / 100 : 0;
                     const flatFee = Number(tx.officeFlatFee || 0);
-                    const netComm = totalComm + txFee - split - flatFee;
+                    const netComm = ourComm + txFee - split - flatFee;
                     return [
                       ["List Price", tx.listPrice ? `$${Number(tx.listPrice).toLocaleString()}` : "—"],
                       ["Contract Price", tx.contractPrice ? `$${Number(tx.contractPrice).toLocaleString()}` : "—"],
@@ -1423,13 +1427,13 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
                       ["Closing Date", formatDate(tx.closingDate)],
                       ["Days to Close", daysToClose !== null ? `${daysToClose}d` : "—"],
                       ["Mail-Away", tx.mailAway || "No"],
-                      ["Listing Commission", tx.commissionListing ? `${tx.commissionListing}% ($${listComm.toLocaleString(undefined,{maximumFractionDigits:0})})` : "—"],
-                      ["Buyer Commission", tx.commissionBuyer ? `${tx.commissionBuyer}% ($${buyerComm.toLocaleString(undefined,{maximumFractionDigits:0})})` : "—"],
+                      [isBuyer ? "Listing Commission (other side — not ours)" : "Listing Commission", tx.commissionListing ? `${tx.commissionListing}% ($${listComm.toLocaleString(undefined,{maximumFractionDigits:0})})` : "—"],
+                      [isListing ? "Buyer Commission (other side — not ours)" : "Buyer Commission", tx.commissionBuyer ? `${tx.commissionBuyer}% ($${buyerComm.toLocaleString(undefined,{maximumFractionDigits:0})})` : "—"],
                       ["Transaction Fee", tx.transactionFee ? `$${Number(tx.transactionFee).toLocaleString()}` : "—"],
                       ["Brokerage Split", tx.brokerageSplit ? `${tx.brokerageSplit}% (-$${split.toLocaleString(undefined,{maximumFractionDigits:0})})` : "—"],
                       ["Office Flat Fee", tx.officeFlatFee ? `-$${Number(tx.officeFlatFee).toLocaleString()}` : "—"],
-                      ["Total Gross Commission", totalComm > 0 ? `$${totalComm.toLocaleString(undefined,{maximumFractionDigits:0})}` : "—"],
-                      ["Est. Net Commission", netComm > 0 ? `$${netComm.toLocaleString(undefined,{maximumFractionDigits:0})}` : "—"],
+                      ["Our Gross Commission", ourComm > 0 ? `$${ourComm.toLocaleString(undefined,{maximumFractionDigits:0})}` : "—"],
+                      ["Our Estimated Net", netComm > 0 ? `$${netComm.toLocaleString(undefined,{maximumFractionDigits:0})}` : "—"],
                     ];
                   })() },
               ].map(({ title, rows }) => (
