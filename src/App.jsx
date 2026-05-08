@@ -2021,6 +2021,135 @@ function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenCon
   useEffect(() => { localStorage.setItem("tp_view_mode", viewMode); }, [viewMode]);
   useEffect(() => { localStorage.setItem("tp_sort_key", sortKey); }, [sortKey]);
   useEffect(() => { localStorage.setItem("tp_sort_dir", sortDir); }, [sortDir]);
+
+  // Paged transactions state
+  const [pagedTxs, setPagedTxs] = useState([]);
+  const [pagedTotal, setPagedTotal] = useState(0);
+  const [pagedPage, setPagedPage] = useState(1);
+  const [pagedHasMore, setPagedHasMore] = useState(false);
+  const [pagedLoading, setPagedLoading] = useState(false);
+  const [pagedError, setPagedError] = useState(null);
+  const [dashStats, setDashStats] = useState(null);
+  const sentinelRef = useRef(null);
+
+  // Debounced search
+  const [debouncedSearch, setDebouncedSearch] = useState(search);
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(search), 350);
+    return () => clearTimeout(t);
+  }, [search]);
+
+  const buildPagedUrl = (page) => {
+    const params = new URLSearchParams();
+    params.set("page", page);
+    params.set("pageSize", 50);
+    if (debouncedSearch) params.set("search", debouncedSearch);
+    if (filter && filter !== "All") params.set("status", filter);
+    if (sortKey) params.set("sortKey", sortKey);
+    if (sortDir) params.set("sortDir", sortDir);
+    return API + "/transactions/paged?" + params.toString();
+  };
+
+  // Fetch page 1 on filter/sort/search change
+  useEffect(() => {
+    let cancelled = false;
+    const tok = localStorage.getItem("tp_token") || "";
+    setPagedLoading(true);
+    setPagedError(null);
+    fetch(buildPagedUrl(1), { headers: { "Authorization": "Bearer " + tok } })
+      .then(r => r.json())
+      .then(data => {
+        if (cancelled) return;
+        if (data.error) { setPagedError(data.error); setPagedTxs([]); setPagedTotal(0); setPagedHasMore(false); }
+        else {
+          setPagedTxs(data.transactions || []);
+          setPagedTotal(data.total || 0);
+          setPagedHasMore(!!data.hasMore);
+          setPagedPage(1);
+        }
+      })
+      .catch(e => { if (!cancelled) { setPagedError(e.message); setPagedTxs([]); } })
+      .finally(() => { if (!cancelled) setPagedLoading(false); });
+    return () => { cancelled = true; };
+  }, [debouncedSearch, filter, sortKey, sortDir]);
+
+  const loadMore = () => {
+    if (pagedLoading || !pagedHasMore) return;
+    const next = pagedPage + 1;
+    const tok = localStorage.getItem("tp_token") || "";
+    setPagedLoading(true);
+    fetch(buildPagedUrl(next), { headers: { "Authorization": "Bearer " + tok } })
+      .then(r => r.json())
+      .then(data => {
+        if (!data.error) {
+          setPagedTxs(prev => [...prev, ...(data.transactions || [])]);
+          setPagedTotal(data.total || 0);
+          setPagedHasMore(!!data.hasMore);
+          setPagedPage(next);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setPagedLoading(false));
+  };
+
+  // IntersectionObserver for infinite scroll
+  useEffect(() => {
+    if (!sentinelRef.current) return;
+    const obs = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting) loadMore();
+    }, { rootMargin: "200px" });
+    obs.observe(sentinelRef.current);
+    return () => obs.disconnect();
+  }, [pagedHasMore, pagedLoading, pagedPage]);
+
+  // Stats fetch — re-run when global transactions change (proxy for create/edit/delete)
+  useEffect(() => {
+    const tok = localStorage.getItem("tp_token") || "";
+    fetch(API + "/transactions/stats", { headers: { "Authorization": "Bearer " + tok } })
+      .then(r => r.json())
+      .then(data => { if (!data.error) setDashStats(data); })
+      .catch(() => {});
+  }, [transactions.length]);
+
+  // Hydrate snake_case server fields into camelCase the UI expects
+  const hydratedPagedTxs = pagedTxs.map(t => ({
+    id: t.id,
+    address: t.address,
+    city: t.city,
+    state: t.state,
+    zipCode: t.zip_code,
+    county: t.county,
+    mlsNumber: t.mls_number,
+    propertyType: t.property_type,
+    type: t.transaction_type,
+    status: t.status,
+    listPrice: t.list_price,
+    contractPrice: t.contract_price,
+    openDate: t.open_date,
+    closingDate: t.closing_date,
+    executedDate: t.executed_date,
+    notes: t.notes,
+    propertyAccess: t.property_access,
+    commissionListing: t.commission_listing,
+    commissionBuyer: t.commission_buyer,
+    transactionFee: t.transaction_fee,
+    brokerageSplit: t.brokerage_split,
+    officeFlatFee: t.office_flat_fee,
+    commissionNotes: t.commission_notes,
+    referralSource: t.referral_source,
+    occupancyStatus: t.occupancy_status,
+    assignedAgentId: t.assigned_agent_id,
+    assignedAgentName: t.assigned_agent_name,
+    owningTenantId: t.tenant_id,
+    owningBrokerageName: t.brokerage_name,
+    owningBrokerageColor: t.brokerage_color,
+    messages: t.internal_notes || [],
+    parties: (t.parties || []).filter(Boolean).map(p => ({ id: p.id, role: p.role, name: p.name, email: p.email, phone: p.phone, company: p.company })),
+    tasks: (t.tasks || []).filter(Boolean).map(tk => ({ id: tk.id, name: tk.name, status: tk.status, dueDate: tk.dueDate, category: tk.category, assignTo: tk.assignTo })),
+    reminders: (t.reminders || []).filter(Boolean),
+    smsThreads: t.sms_threads || {},
+  }));
+
   const [showOverdue, setShowOverdue] = useState(false);
   const [remindingTask, setRemindingTask] = useState(null);
   const [remindingTx, setRemindingTx] = useState(null);
@@ -2093,7 +2222,7 @@ function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenCon
           </div>
         </div>
         <div data-stats-bar="" style={{ display: "flex", marginTop: 16, borderTop: "1px solid rgba(255,255,255,0.1)", overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
-          {[["Active Listings", stats.active, COLORS.gold, null], ["Under Contract", stats.underContract, "#93C5FD", null], ["Closed", stats.closed, "#6EE7B7", null], ["Overdue Tasks", stats.overdueAny, stats.overdueAny > 0 ? "#FCA5A5" : "#6EE7B7", stats.overdueAny > 0 ? () => setShowOverdue(true) : null], ["Closing ≤14d", stats.closingSoon, stats.closingSoon > 0 ? "#FDE68A" : "rgba(255,255,255,0.4)", null], ["Volume", `$${(stats.totalVolume / 1000000).toFixed(2)}M`, COLORS.gold, null], ["Closed Commission", stats.totalCommission > 0 ? `$${Math.round(stats.totalCommission).toLocaleString()}` : "$0", "#6EE7B7", null]].map(([label, value, color, onClick]) => (
+          {(() => { const s = dashStats || stats; return [["Active Listings", s.active, COLORS.gold, null], ["Under Contract", s.underContract, "#93C5FD", null], ["Closed", s.closed, "#6EE7B7", null], ["Overdue Tasks", s.overdueAny, s.overdueAny > 0 ? "#FCA5A5" : "#6EE7B7", s.overdueAny > 0 ? () => setShowOverdue(true) : null], ["Closing ≤14d", s.closingSoon, s.closingSoon > 0 ? "#FDE68A" : "rgba(255,255,255,0.4)", null], ["Volume", `$${((s.totalVolume || 0) / 1000000).toFixed(2)}M`, COLORS.gold, null], ["Closed Commission", s.totalCommission > 0 ? `$${Math.round(s.totalCommission).toLocaleString()}` : "$0", "#6EE7B7", null]]; })().map(([label, value, color, onClick]) => (
             <div key={label} onClick={onClick} style={{ padding: "12px 20px", flex: 1, cursor: onClick ? "pointer" : "default" }}>
               <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>{label}{onClick && " ↗"}</div>
               <div style={{ color, fontSize: 22, fontWeight: 800, marginTop: 2 }}>{value}</div>
@@ -2126,10 +2255,10 @@ function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenCon
         </div>
       </div>
       {viewMode === "list" ? (
-        <TransactionListView transactions={sorted} sortKey={sortKey} sortDir={sortDir} toggleSort={toggleSort} onSelect={onSelect} />
+        <TransactionListView transactions={hydratedPagedTxs} sortKey={sortKey} sortDir={sortDir} toggleSort={toggleSort} onSelect={onSelect} />
       ) : (
       <div style={{ padding: 24, display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(340px, 1fr))", gap: 16 }} data-tx-grid="">
-        {sorted.map(tx => {
+        {hydratedPagedTxs.map(tx => {
           const completed = tx.tasks.filter(t => t.status === "Completed").length;
           const overdue = tx.tasks.filter(t => { const d = daysUntil(t.dueDate); return d !== null && d < 0 && t.status !== "Completed" && t.status !== "Waived"; }).length;
           const dtc = daysUntil(tx.closingDate);
@@ -2206,9 +2335,12 @@ function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenCon
             </div>
           );
         })}
-        {sorted.length === 0 && <div style={{ gridColumn: "1/-1", textAlign: "center", padding: 60, color: COLORS.muted }}><div style={{ fontSize: 40, marginBottom: 12 }}>🏠</div><div style={{ fontSize: 18, fontWeight: 700, color: COLORS.navy, marginBottom: 6 }}>No transactions found</div><div>Click "+ New Transaction" to get started.</div></div>}
+        {hydratedPagedTxs.length === 0 && !pagedLoading && <div style={{ gridColumn: "1/-1", textAlign: "center", padding: 60, color: COLORS.muted }}><div style={{ fontSize: 40, marginBottom: 12 }}>🏠</div><div style={{ fontSize: 18, fontWeight: 700, color: COLORS.navy, marginBottom: 6 }}>No transactions found</div><div>Click "+ New Transaction" to get started.</div></div>}
       </div>
       )}
+      <div ref={sentinelRef} style={{ height: 1 }} />
+      {pagedLoading && <div style={{ textAlign: "center", padding: 16, color: COLORS.muted, fontSize: 13 }}>Loading…</div>}
+      {!pagedHasMore && hydratedPagedTxs.length > 0 && pagedTotal > 0 && <div style={{ textAlign: "center", padding: 16, color: COLORS.muted, fontSize: 12 }}>Showing all {pagedTotal} transactions</div>}
 
       {showOverdue && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
