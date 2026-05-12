@@ -515,12 +515,42 @@ export default function ClientPortal({ user, onLogout }) {
                 <div style={{ fontSize: 13, color: C.gray, marginBottom: 16, lineHeight: 1.6 }}>
                   Your transaction team is here to support you every step of the way.
                 </div>
-                {tx.parties.length === 0 ? (
+                {/* Always show agent first */}
+                {agentName && (
+                  <div style={{ display: "flex", alignItems: "center", gap: 14,
+                    padding: 16, background: C.white, borderRadius: 12, marginBottom: 10,
+                    boxShadow: "0 1px 3px rgba(0,0,0,0.06)", borderLeft: "4px solid " + C.red }}>
+                    <div style={{ width: 44, height: 44, borderRadius: "50%", background: C.black,
+                      color: "#fff", display: "flex", alignItems: "center", justifyContent: "center",
+                      fontWeight: 700, fontSize: 16, flexShrink: 0 }}>
+                      {agentName[0]}
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontWeight: 700, fontSize: 15 }}>{agentName}</div>
+                      <div style={{ fontSize: 12, color: C.red, fontWeight: 600, marginBottom: 6 }}>
+                        Your Agent {tx.owningBrokerage ? "· " + tx.owningBrokerage : ""}
+                      </div>
+                      {agentPhone && (
+                        <a href={"tel:" + agentPhone}
+                          style={{ fontSize: 13, color: "#1A5276", display: "block" }}>
+                          📞 {agentPhone}
+                        </a>
+                      )}
+                      {agentEmail && (
+                        <a href={"mailto:" + agentEmail}
+                          style={{ fontSize: 13, color: "#1A5276", marginTop: 2, display: "block" }}>
+                          ✉️ {agentEmail}
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                )}
+                {tx.parties.filter(p => p.role !== "Buyer" && p.role !== "Seller").length === 0 && !agentName ? (
                   <div style={{ textAlign: "center", padding: 40, color: C.gray }}>
                     <div style={{ fontSize: 40, marginBottom: 8 }}>👥</div>
                     <div>No team members listed yet</div>
                   </div>
-                ) : tx.parties.map(p => (
+                ) : tx.parties.filter(p => p.role !== "Buyer" && p.role !== "Seller").map(p => (
                   <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 14,
                     padding: 16, background: C.white, borderRadius: 12, marginBottom: 10,
                     boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}>
