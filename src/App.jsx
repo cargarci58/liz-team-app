@@ -1905,6 +1905,7 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
                         onEdit={() => setEditingParty({ ...p })}
                         onRemove={() => update({ parties: tx.parties.filter(pp => pp.id !== p.id) })}
                         onInvite={onInviteParty ? () => onInviteParty(p) : undefined} />
+                      {(() => { if (p.name && p.name.includes("Colleen")) console.log("Colleen in render:", JSON.stringify(p)); return null; })()}
                       {(p.vendorStatus === "selected" || p.vendor_status === "selected") && (
                         <div style={{ display: "flex", alignItems: "center", gap: 10,
                           padding: "8px 12px", background: "#D5F5E3", borderRadius: 8,
