@@ -3139,67 +3139,108 @@ function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenCon
             <div key={tx.id} onClick={() => onSelect(tx.id)} style={{ background: "#fff", border: `1px solid ${COLORS.border}`, borderRadius: 12, cursor: "pointer", overflow: "hidden" }}
               onMouseEnter={e => e.currentTarget.style.boxShadow = "0 6px 20px rgba(0,0,0,0.12)"}
               onMouseLeave={e => e.currentTarget.style.boxShadow = "none"}>
-              <div style={{ background: tx.type === "Buyer Representation" ? "#1A3A5C" : COLORS.navy, padding: "14px 16px", display: "flex", justifyContent: "space-between", alignItems: "flex-start", borderTop: `4px solid ${tx.type === "Buyer Representation" ? "#3B82F6" : "#C0392B"}` }}>
-                <div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
-                    <span style={{ fontSize: 14 }}>{tx.type === "Buyer Representation" ? "🏡" : "🏠"}</span>
-                    <span style={{ fontSize: 10, fontWeight: 700, color: tx.type === "Buyer Representation" ? "#93C5FD" : COLORS.gold, textTransform: "uppercase", letterSpacing: "0.08em" }}>{tx.type === "Buyer Representation" ? "Buyer" : "Listing"}</span>
-                  </div>
-                  <div style={{ color: "#fff", fontWeight: 700, fontSize: 15 }}>{tx.address}</div>
-                  <div style={{ color: COLORS.gold, fontSize: 12, marginTop: 2 }}>{tx.city}, FL · {tx.county}</div>
-                </div>
-                <Badge label={tx.status} color={cfg.color} bg={cfg.bg} />
-              </div>
-              {tx.owningBrokerageName && (
-                <div style={{ background: "#F4F6F8", padding: "8px 16px", display: "flex", alignItems: "center", gap: 8, borderBottom: `1px solid ${COLORS.border}` }}>
-                  <span style={{ fontSize: 14 }}>🏢</span>
-                  <div style={{ fontSize: 12, color: COLORS.muted }}>
-                    <span style={{ fontWeight: 700, color: COLORS.navy }}>{tx.owningBrokerageName}</span>
-                    {tx.assignedAgentName && <span> · Agent: <span style={{ fontWeight: 600, color: COLORS.text }}>{tx.assignedAgentName}</span></span>}
-                  </div>
-                </div>
-              )}
-              <div style={{ padding: "14px 16px" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12 }}>
-                  <div><div style={{ fontSize: 11, color: COLORS.muted, textTransform: "uppercase" }}>Price</div><div style={{ fontSize: 17, fontWeight: 800, color: COLORS.navy }}>{tx.contractPrice ? `$${Number(tx.contractPrice).toLocaleString()}` : tx.listPrice ? `$${Number(tx.listPrice).toLocaleString()}` : "TBD"}</div></div>
-                  <div style={{ textAlign: "right" }}><div style={{ fontSize: 11, color: COLORS.muted, textTransform: "uppercase" }}>Closing</div><div style={{ fontSize: 13, fontWeight: 700, color: dtc !== null && dtc <= 7 ? COLORS.danger : COLORS.text }}>{formatDate(tx.closingDate)}</div>{dtc !== null && <div style={{ fontSize: 11, color: dtc <= 0 ? COLORS.danger : dtc <= 14 ? COLORS.warning : COLORS.muted }}>{dtc < 0 ? `${Math.abs(dtc)}d past` : dtc === 0 ? "Today!" : `${dtc}d away`}</div>}</div>
-                </div>
-                <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
-                  <Badge label={tx.type} color={COLORS.info} bg={COLORS.infoBg} />
-                  {smsMsgCount > 0 && <Badge label={`${smsMsgCount} SMS`} color={COLORS.success} bg={COLORS.successBg} />}
-                  {unreadCounts[tx.id] > 0 && (
-                    <span onClick={e => { e.stopPropagation(); onSelect(tx.id, "chat"); }} style={{ cursor: "pointer" }}>
-                      <Badge label={`💬 ${unreadCounts[tx.id]} new`} color="#fff" bg="#C0392B" />
+              {/* Card Header - Color coded by type */}
+              <div style={{
+                background: tx.type === "Buyer Representation" ? "#0F2744" : "#1A1A1A",
+                padding: "14px 16px",
+                display: "flex", justifyContent: "space-between", alignItems: "flex-start",
+                borderLeft: `5px solid ${tx.type === "Buyer Representation" ? "#3B82F6" : "#C0392B"}`
+              }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
+                    <span style={{ fontSize: 13 }}>{tx.type === "Buyer Representation" ? "🏡" : "🏠"}</span>
+                    <span style={{
+                      fontSize: 10, fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase",
+                      color: tx.type === "Buyer Representation" ? "#60A5FA" : "#F87171",
+                      background: tx.type === "Buyer Representation" ? "rgba(59,130,246,0.15)" : "rgba(192,57,43,0.15)",
+                      padding: "2px 8px", borderRadius: 20
+                    }}>
+                      {tx.type === "Buyer Representation" ? "Buyer" : tx.type === "Dual Agency" ? "Dual" : "Listing"}
                     </span>
-                  )}
+                    <Badge label={tx.status} color={cfg.color} bg={cfg.bg} />
+                  </div>
+                  <div style={{ color: "#FFFFFF", fontWeight: 700, fontSize: 15, marginBottom: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{tx.address}</div>
+                  <div style={{ color: "rgba(255,255,255,0.6)", fontSize: 12 }}>{tx.city}, FL · {tx.county} County</div>
                 </div>
+              </div>
+
+              {/* Card Body */}
+              <div style={{ padding: "14px 16px", background: "#fff" }}>
+
+                {/* Price + Closing row */}
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
+                  <div>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: "#888", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 2 }}>
+                      {tx.contractPrice ? "Contract Price" : "List Price"}
+                    </div>
+                    <div style={{ fontSize: 18, fontWeight: 800, color: "#111" }}>
+                      {tx.contractPrice ? `$${Number(tx.contractPrice).toLocaleString()}` : tx.listPrice ? `$${Number(tx.listPrice).toLocaleString()}` : "TBD"}
+                    </div>
+                  </div>
+                  <div style={{ textAlign: "right" }}>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: "#888", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 2 }}>Closing</div>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: dtc !== null && dtc <= 7 && dtc >= 0 ? "#C0392B" : "#111" }}>
+                      {tx.closingDate ? formatDate(tx.closingDate) : "TBD"}
+                    </div>
+                    {dtc !== null && (
+                      <div style={{ fontSize: 11, fontWeight: 600, color: dtc < 0 ? "#C0392B" : dtc <= 14 ? "#B7770D" : "#888", marginTop: 1 }}>
+                        {dtc < 0 ? `${Math.abs(dtc)}d past` : dtc === 0 ? "Today!" : `${dtc}d away`}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Notification badges */}
+                {(smsMsgCount > 0 || unreadCounts[tx.id] > 0) && (
+                  <div style={{ display: "flex", gap: 6, marginBottom: 10 }}>
+                    {smsMsgCount > 0 && <Badge label={`${smsMsgCount} SMS`} color={COLORS.success} bg={COLORS.successBg} />}
+                    {unreadCounts[tx.id] > 0 && (
+                      <span onClick={e => { e.stopPropagation(); onSelect(tx.id, "chat"); }} style={{ cursor: "pointer" }}>
+                        <Badge label={`💬 ${unreadCounts[tx.id]} new`} color="#fff" bg="#C0392B" />
+                      </span>
+                    )}
+                  </div>
+                )}
+
+                {/* Progress */}
                 <div style={{ marginBottom: 10 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: COLORS.muted, marginBottom: 4 }}>
-                    <span style={{ fontWeight: 600 }}>Progress: {completed}/{tx.tasks.length} tasks</span>
-                    <span style={{ fontWeight: 700, color: progress === 100 ? COLORS.success : progress > 50 ? COLORS.warning : COLORS.muted }}>{progress}%</span>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, marginBottom: 5 }}>
+                    <span style={{ fontWeight: 600, color: "#555" }}>Progress: {completed}/{tx.tasks.length} tasks</span>
+                    <span style={{ fontWeight: 800, color: progress === 100 ? "#1E8449" : progress > 50 ? "#B7770D" : "#555" }}>{progress}%</span>
                   </div>
-                  <div style={{ height: 8, background: COLORS.border, borderRadius: 4, overflow: "hidden", marginBottom: 6 }}>
-                    <div style={{ height: "100%", width: `${progress}%`, background: progress === 100 ? COLORS.success : progress > 66 ? "#F59E0B" : COLORS.gold, borderRadius: 4, transition: "width 0.5s ease" }} />
+                  <div style={{ height: 7, background: "#E5E7EB", borderRadius: 4, overflow: "hidden", marginBottom: 8 }}>
+                    <div style={{ height: "100%", width: `${progress}%`,
+                      background: progress === 100 ? "#1E8449" : tx.type === "Buyer Representation" ? "#3B82F6" : "#C0392B",
+                      borderRadius: 4, transition: "width 0.5s ease" }} />
                   </div>
-                  <div style={{ display: "flex", justifyContent: "space-between", position: "relative" }}>
-                    {["Contract", "Inspection", "Title", "Closing"].map((milestone, i) => {
+                  <div style={{ display: "flex", justifyContent: "space-between" }}>
+                    {["Contract", "Inspection", "Title", "Closing"].map((milestone) => {
                       const milestoneTasks = tx.tasks.filter(t => t.category === milestone);
                       const milestoneCompleted = milestoneTasks.filter(t => t.status === "Completed").length;
                       const milestoneProgress = milestoneTasks.length > 0 ? milestoneCompleted / milestoneTasks.length : 0;
                       const isDone = milestoneProgress === 1 && milestoneTasks.length > 0;
                       const isStarted = milestoneProgress > 0;
+                      const dotColor = isDone ? "#1E8449" : isStarted ? (tx.type === "Buyer Representation" ? "#3B82F6" : "#C0392B") : "#D1D5DB";
                       return (
                         <div key={milestone} style={{ display: "flex", flexDirection: "column", alignItems: "center", flex: 1 }}>
-                          <div style={{ width: 10, height: 10, borderRadius: "50%", background: isDone ? COLORS.success : isStarted ? COLORS.gold : COLORS.border, border: `2px solid ${isDone ? COLORS.success : isStarted ? COLORS.gold : COLORS.border}`, marginBottom: 3 }} />
-                          <span style={{ fontSize: 9, color: isDone ? COLORS.success : COLORS.muted, fontWeight: isDone ? 700 : 400, whiteSpace: "nowrap" }}>{milestone}</span>
+                          <div style={{ width: 9, height: 9, borderRadius: "50%", background: dotColor, marginBottom: 3 }} />
+                          <span style={{ fontSize: 9, color: isDone ? "#1E8449" : "#999", fontWeight: isDone ? 700 : 400 }}>{milestone}</span>
                         </div>
                       );
                     })}
                   </div>
                 </div>
-                <div style={{ display: "flex", justifyContent: "space-between" }}>
-                  <div style={{ fontSize: 12, color: COLORS.muted }}>{tx.parties.length} parties</div>
-                  {overdue > 0 && <Badge label={`${overdue} overdue`} color={COLORS.danger} bg={COLORS.dangerBg} />}
+
+                {/* Footer */}
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: 8, borderTop: "1px solid #F3F4F6" }}>
+                  <div style={{ fontSize: 12, color: "#888" }}>
+                    {tx.parties.length} {tx.parties.length === 1 ? "party" : "parties"}
+                  </div>
+                  {overdue > 0 && (
+                    <span style={{ fontSize: 11, fontWeight: 700, color: "#fff", background: "#C0392B", padding: "2px 10px", borderRadius: 20 }}>
+                      ⚠️ {overdue} overdue
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
