@@ -1880,10 +1880,34 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
               />
             )}
             {PARTY_ROLES.map(role => {
-              const members = tx.parties.filter(p => p.role === role);
+              const members = tx.parties.filter(p => p.role === role && !p.isVendor);
               if (!members.length) return null;
               return <div key={role} style={{ marginBottom: 16 }}><div style={{ fontSize: 12, fontWeight: 700, color: COLORS.muted, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 8 }}>{role}</div>{members.map(p => <PartyCard key={p.id} party={p} onEdit={() => setEditingParty({ ...p })} onRemove={() => update({ parties: tx.parties.filter(pp => pp.id !== p.id) })} onInvite={onInviteParty ? () => onInviteParty(p) : undefined} />)}</div>;
             })}
+            {(() => {
+              const vendorParties = tx.parties.filter(p => p.isVendor || !PARTY_ROLES.includes(p.role));
+              if (!vendorParties.length) return null;
+              const vendorGroups = vendorParties.reduce((acc, p) => {
+                const key = p.vendorCategory || p.role || "Other";
+                acc[key] = acc[key] || [];
+                acc[key].push(p);
+                return acc;
+              }, {});
+              return Object.entries(vendorGroups).map(([cat, members]) => (
+                <div key={cat} style={{ marginBottom: 16 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: COLORS.muted, textTransform: "uppercase", letterSpacing: "0.06em" }}>{cat}</div>
+                    <span style={{ fontSize: 10, fontWeight: 700, color: "#C0392B", background: "#FADBD8", padding: "2px 8px", borderRadius: 20 }}>PREFERRED VENDOR</span>
+                  </div>
+                  {members.map(p => (
+                    <PartyCard key={p.id} party={p}
+                      onEdit={() => setEditingParty({ ...p })}
+                      onRemove={() => update({ parties: tx.parties.filter(pp => pp.id !== p.id) })}
+                      onInvite={onInviteParty ? () => onInviteParty(p) : undefined} />
+                  ))}
+                </div>
+              ));
+            })()}
           </div>
         )}
 
