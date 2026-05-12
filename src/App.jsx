@@ -3545,7 +3545,7 @@ function MainApp({ onLogout, currentUser }) {
           onUpdate={updateTransaction}
           onDuplicate={duplicateTransaction}
           currentUser={currentUser}
-          onBack={() => setView("home")}
+          onBack={() => setView("dashboard")}
           contacts={contacts}
           onSaveContact={addContact}
           onOpenContactBook={openContactBook}
