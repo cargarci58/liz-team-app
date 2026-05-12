@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import TransactionChat from "./TransactionChat";
 
 const API = "https://liz-team-server-api-production.up.railway.app";
@@ -296,6 +296,7 @@ export default function ClientPortal({ user, onLogout }) {
     { id: "documents", label: "📎 Documents" },
     { id: "chat", label: chatUnread > 0 ? "💬 Chat (" + chatUnread + ")" : "💬 Chat" },
     { id: "team", label: "👥 My Team" },
+    { id: "faq", label: "❓ FAQ" },
   ];
 
   return (
@@ -393,14 +394,20 @@ export default function ClientPortal({ user, onLogout }) {
                 <LatestUpdateCard tx={tx} agentName={agentName} />
                 <ActionNeededCard tx={tx} />
 
-                {/* Key dates */}
+                {/* Key Dates & Financials */}
                 <div style={{ background: C.white, borderRadius: 14, padding: 18, marginBottom: 14,
                   boxShadow: "0 1px 4px rgba(0,0,0,0.08)" }}>
                   <div style={{ fontSize: 12, fontWeight: 700, color: C.gray,
-                    textTransform: "uppercase", letterSpacing: 1, marginBottom: 12 }}>KEY DATES</div>
+                    textTransform: "uppercase", letterSpacing: 1, marginBottom: 12 }}>
+                    KEY DATES & DETAILS
+                  </div>
                   {[
+                    { label: "Property", value: tx.address + (tx.city ? ", " + tx.city : "") },
+                    { label: "Property Type", value: tx.propertyType || "—" },
+                    { label: "Transaction Type", value: tx.transactionType || "—" },
                     { label: "Contract Date", value: formatDate(tx.openDate) },
                     { label: "Closing Date", value: formatDate(tx.closingDate) },
+                    { label: "Days to Closing", value: daysUntil(tx.closingDate) !== null && daysUntil(tx.closingDate) >= 0 ? daysUntil(tx.closingDate) + " days" : tx.status === "Closed" ? "Closed" : "TBD" },
                     { label: tx.contractPrice ? "Contract Price" : "List Price",
                       value: tx.contractPrice || tx.listPrice ?
                         "$" + Number(tx.contractPrice || tx.listPrice).toLocaleString() : "TBD" },
@@ -409,15 +416,75 @@ export default function ClientPortal({ user, onLogout }) {
                       alignItems: "center", paddingBottom: 10, marginBottom: 10,
                       borderBottom: "1px solid " + C.lightGray }}>
                       <span style={{ fontSize: 13, color: C.gray }}>{label}</span>
-                      <span style={{ fontSize: 13, fontWeight: 700, color: C.black }}>{value}</span>
+                      <span style={{ fontSize: 13, fontWeight: 700, color: C.black,
+                        textAlign: "right", maxWidth: "60%" }}>{value}</span>
                     </div>
                   ))}
+                </div>
+
+                {/* What Happens Next */}
+                <div style={{ background: C.white, borderRadius: 14, padding: 18, marginBottom: 14,
+                  boxShadow: "0 1px 4px rgba(0,0,0,0.08)" }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: C.gray,
+                    textTransform: "uppercase", letterSpacing: 1, marginBottom: 12 }}>
+                    WHAT HAPPENS NEXT
+                  </div>
+                  {(() => {
+                    const isBuyer = tx.transactionType && tx.transactionType.includes("Buyer");
+                    const steps = {
+                      "Active": isBuyer ? [
+                        { icon: "🏦", text: "Make sure your pre-approval letter is current" },
+                        { icon: "🔍", text: "Continue searching for your ideal home with your agent" },
+                        { icon: "📋", text: "Once you find the right home, your agent will help you submit a strong offer" },
+                      ] : [
+                        { icon: "📸", text: "Professional photos and marketing are being prepared" },
+                        { icon: "🏠", text: "Your home will be listed on MLS and major platforms" },
+                        { icon: "📅", text: "Showings will be scheduled as buyers express interest" },
+                      ],
+                      "Under Contract": [
+                        { icon: "🔍", text: "Schedule and complete the home inspection" },
+                        { icon: "💰", text: "Ensure earnest money deposit is submitted on time" },
+                        { icon: "🏦", text: "Work closely with your lender to complete loan application" },
+                        { icon: "📋", text: "Review and respond to any inspection findings" },
+                      ],
+                      "Inspection": [
+                        { icon: "📋", text: "Review inspection report carefully with your agent" },
+                        { icon: "🔧", text: "Decide which repairs to request from the seller" },
+                        { icon: "🏦", text: "Keep in close contact with your lender" },
+                      ],
+                      "Appraisal": [
+                        { icon: "🏦", text: "Appraisal is being completed by your lender" },
+                        { icon: "📋", text: "Respond quickly to any document requests from your lender" },
+                        { icon: "✅", text: "Await loan approval — you are almost there" },
+                      ],
+                      "Clear to Close": [
+                        { icon: "🏦", text: "Contact title company to confirm wire instructions by phone" },
+                        { icon: "🚶", text: "Schedule your final walk-through" },
+                        { icon: "📋", text: "Bring valid photo ID and any remaining documents to closing" },
+                        { icon: "🔑", text: "Get ready to receive your keys!" },
+                      ],
+                      "Closed": [
+                        { icon: "🎉", text: "Congratulations! The transaction is complete" },
+                        { icon: "📮", text: "Update your address with the post office and your bank" },
+                        { icon: "🔑", text: "Consider changing the locks for added security" },
+                        { icon: "📁", text: "Keep all closing documents in a safe place for tax purposes" },
+                      ],
+                    };
+                    const currentSteps = steps[tx.status] || steps["Active"];
+                    return currentSteps.map((step, i) => (
+                      <div key={i} style={{ display: "flex", gap: 12, alignItems: "flex-start",
+                        marginBottom: 12 }}>
+                        <span style={{ fontSize: 20, flexShrink: 0 }}>{step.icon}</span>
+                        <span style={{ fontSize: 13, color: C.black, lineHeight: 1.6 }}>{step.text}</span>
+                      </div>
+                    ));
+                  })()}
                 </div>
 
                 {/* Agent contact card */}
                 {agentName && (
                   <div style={{ background: C.white, borderRadius: 14, padding: 18,
-                    boxShadow: "0 1px 4px rgba(0,0,0,0.08)" }}>
+                    boxShadow: "0 1px 4px rgba(0,0,0,0.08)", marginBottom: 14 }}>
                     <div style={{ fontSize: 12, fontWeight: 700, color: C.gray,
                       textTransform: "uppercase", letterSpacing: 1, marginBottom: 12 }}>YOUR AGENT</div>
                     <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
@@ -506,6 +573,86 @@ export default function ClientPortal({ user, onLogout }) {
               <div style={{ height: 500 }}>
                 <TransactionChat transactionId={tx?.id} user={null}
                   style={{ height: "100%" }} unreadCount={chatUnread} onUnreadChange={() => {}} />
+              </div>
+            )}
+
+            {/* FAQ TAB */}
+            {activeTab === "faq" && (
+              <div>
+                {[
+                  {
+                    q: "How long does the closing process take?",
+                    a: "In Florida, a typical real estate transaction takes 30-45 days from contract to closing. Cash transactions can close faster, sometimes in 2-3 weeks. Your closing date is set in your contract."
+                  },
+                  {
+                    q: "What is earnest money and do I get it back?",
+                    a: "Earnest money is a deposit (typically 1-3% of the purchase price) that shows the seller you are serious. If you cancel during the inspection period, you usually get it back. After the inspection period, it depends on the reason for cancellation."
+                  },
+                  {
+                    q: "What happens during the inspection?",
+                    a: "A licensed home inspector examines the property from top to bottom — roof, foundation, plumbing, electrical, HVAC, and more. You typically have 10-15 days to complete the inspection and request repairs from the seller."
+                  },
+                  {
+                    q: "What is an appraisal and why does it matter?",
+                    a: "An appraisal is an independent evaluation of the home's market value ordered by your lender. If the home appraises below the purchase price, you may need to negotiate with the seller or cover the difference."
+                  },
+                  {
+                    q: "What does Clear to Close mean?",
+                    a: "Clear to Close means your lender has approved your loan and all conditions have been satisfied. This is the final green light before closing day. Once you receive this, closing is imminent."
+                  },
+                  {
+                    q: "What do I bring to closing?",
+                    a: "Bring a valid government-issued photo ID, your cashier's check or proof of wire transfer (if applicable), and any documents your lender or title company requested. Your agent will give you specific instructions."
+                  },
+                  {
+                    q: "Is wire fraud a real risk?",
+                    a: "Yes — wire fraud is very common in real estate. Never wire money based on email instructions alone. Always call the title company directly using a number you find independently to confirm wire instructions before sending any money."
+                  },
+                  {
+                    q: "When do I get the keys?",
+                    a: "You typically receive the keys at the closing table after all documents are signed and funds are confirmed. In some cases, key transfer may be scheduled for later that day if funding takes time."
+                  },
+                  {
+                    q: "What is title insurance?",
+                    a: "Title insurance protects you against claims on your property from before you owned it — like unpaid taxes, liens, or ownership disputes. It is a one-time fee paid at closing and protects you for as long as you own the home."
+                  },
+                  {
+                    q: "What should I NOT do while under contract?",
+                    a: "Do not make large purchases, open new credit cards, change jobs, or move money between bank accounts without telling your lender. These can affect your loan approval. Stay financially stable until after closing."
+                  },
+                ].map((item, i) => {
+                  const [open, setOpen] = React.useState(false);
+                  return (
+                    <div key={i} style={{ background: C.white, borderRadius: 12, marginBottom: 10,
+                      boxShadow: "0 1px 3px rgba(0,0,0,0.06)", overflow: "hidden" }}>
+                      <button onClick={() => setOpen(!open)}
+                        style={{ width: "100%", padding: "16px 18px", border: "none",
+                          background: "none", textAlign: "left", cursor: "pointer",
+                          display: "flex", justifyContent: "space-between", alignItems: "center",
+                          gap: 12, fontFamily: "inherit" }}>
+                        <span style={{ fontWeight: 700, fontSize: 14, color: C.black,
+                          lineHeight: 1.4 }}>{item.q}</span>
+                        <span style={{ fontSize: 18, color: C.red, flexShrink: 0 }}>
+                          {open ? "−" : "+"}
+                        </span>
+                      </button>
+                      {open && (
+                        <div style={{ padding: "0 18px 16px", fontSize: 13, color: C.gray,
+                          lineHeight: 1.7, borderTop: "1px solid " + C.lightGray, paddingTop: 12 }}>
+                          {item.a}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+                <div style={{ textAlign: "center", padding: "20px 0", fontSize: 13, color: C.gray }}>
+                  Have a question not listed here?{" "}
+                  {agentPhone && (
+                    <a href={"tel:" + agentPhone} style={{ color: C.red, fontWeight: 600 }}>
+                      Call your agent
+                    </a>
+                  )}
+                </div>
               </div>
             )}
 
