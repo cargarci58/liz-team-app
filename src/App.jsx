@@ -4,6 +4,7 @@ import DocumentsTab from "./DocumentsTab";
 import TransactionChat from "./TransactionChat";
 import Reports from "./Reports";
 import DailyDashboard from "./DailyDashboard";
+import VendorLibrary from "./VendorLibrary";
 import ChangePassword from "./ChangePassword";
 import CompanySettings from "./CompanySettings";
 import AgentProfile from "./AgentProfile";
@@ -2371,7 +2372,7 @@ function NewTransactionForm({ onSave, onCancel }) {
 }
 
 // ─── DASHBOARD ────────────────────────────────────────────────
-function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenContactBook, contactCount, onLogout, onOpenTeam, onChangePassword, onReports, onHome, onCompanySettings, onAgentProfile, onIntakeLinks, currentUser }) {
+function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenContactBook, contactCount, onLogout, onOpenTeam, onChangePassword, onReports, onHome, onVendors, onCompanySettings, onAgentProfile, onIntakeLinks, currentUser }) {
   const [filter, setFilter] = useState("All");
   const [search, setSearch] = useState("");
   const [viewMode, setViewMode] = useState(() => localStorage.getItem("tp_view_mode") || "cards");
@@ -2796,6 +2797,7 @@ function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenCon
           <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
             <button onClick={onNew} style={{ background: "#C0392B", border: "none", color: "#fff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>+ New Transaction</button>
             <button onClick={onOpenContactBook} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.2)", color: "rgba(255,255,255,0.85)", borderRadius: 8, padding: "7px 12px", cursor: "pointer", fontSize: 12, fontFamily: "inherit" }}>Contacts{contactCount > 0 ? ` (${contactCount})` : ""}</button>
+            <button onClick={onVendors} style={{ background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.2)", color: "#fff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>🏆 Vendors</button>
             <button onClick={onReports} style={{ background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.2)", color: "#fff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>📊 Reports</button>
             
             {["admin","superadmin"].includes(currentUser?.role) && <button onClick={onIntakeLinks} style={{ background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.2)", color: "#fff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>🔗 Intake Forms</button>}
@@ -3424,6 +3426,7 @@ function MainApp({ onLogout, currentUser }) {
   const [showAgentProfile, setShowAgentProfile] = useState(false);
   const [showIntakeLinks, setShowIntakeLinks] = useState(false);
   const [showContactBook, setShowContactBook] = useState(false);
+  const [showVendorLibrary, setShowVendorLibrary] = useState(false);
   const [contactBookCallback, setContactBookCallback] = useState(null);
 
   useEffect(() => {
@@ -3576,6 +3579,7 @@ function MainApp({ onLogout, currentUser }) {
           onIntakeLinks={() => setShowIntakeLinks(true)}
           currentUser={currentUser}
           onHome={() => setView("home")}
+          onVendors={() => setShowVendorLibrary(true)}
         />
       )}
       {showTeam && <UserManagement onClose={() => setShowTeam(false)} />}
@@ -3611,6 +3615,7 @@ function MainApp({ onLogout, currentUser }) {
           </div>
         </div>
       )}
+      {showVendorLibrary && <VendorLibrary onClose={() => setShowVendorLibrary(false)} />}
       {showContactBook && (
         <ContactBook
           contacts={contacts}
