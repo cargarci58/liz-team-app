@@ -2998,7 +2998,7 @@ function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenCon
           <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
             <button onClick={onNew} style={{ background: "#C0392B", border: "none", color: "#fff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>+ New Transaction</button>
             <button onClick={onOpenContactBook} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.2)", color: "rgba(255,255,255,0.85)", borderRadius: 8, padding: "7px 12px", cursor: "pointer", fontSize: 12, fontFamily: "inherit" }}>Contacts{contactCount > 0 ? ` (${contactCount})` : ""}</button>
-            <button onClick={onVendors} style={{ background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.2)", color: "#fff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>🏆 Vendors</button>
+            <button onClick={onVendors} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.25)", color: "rgba(255,255,255,0.9)", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 600, fontFamily: "inherit" }}>🏆 Vendors</button>
             <button onClick={onReports} style={{ background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.2)", color: "#fff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>📊 Reports</button>
             
             {["admin","superadmin"].includes(currentUser?.role) && <button onClick={onIntakeLinks} style={{ background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.2)", color: "#fff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>🔗 Intake Forms</button>}
@@ -3037,10 +3037,29 @@ function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenCon
       )}
       <div data-toolbar="" style={{ background: "#fff", borderBottom: `1px solid ${COLORS.border}`, padding: "12px 24px", display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
         <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search address, city, MLS #..." style={{ flex: 1, maxWidth: 340, padding: "8px 14px", borderRadius: 8, border: `1px solid ${COLORS.border}`, fontSize: 14, fontFamily: "inherit" }} />
-        <div style={{ display: "flex", gap: 6 }}>
-          {["All", "Active", "Under Contract", "Inspection", "Appraisal", "Clear to Close", "Closed", "On Hold", "Cancelled"].map(s => (
-            <button key={s} onClick={() => setFilter(s)} style={{ padding: "6px 14px", borderRadius: 20, border: `1px solid ${s === "Cancelled" ? (filter === s ? COLORS.danger : COLORS.danger + "60") : filter === s ? COLORS.navy : COLORS.border}`, background: s === "Cancelled" ? (filter === s ? COLORS.danger : "#FEE2E2") : filter === s ? COLORS.navy : "#fff", color: s === "Cancelled" ? (filter === s ? "#fff" : COLORS.danger) : filter === s ? "#fff" : COLORS.muted, fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>{s}</button>
+        <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+          {["All", "Active", "Under Contract", "Closed"].map(s => (
+            <button key={s} onClick={() => setFilter(s)}
+              style={{ padding: "6px 14px", borderRadius: 20, border: "1px solid",
+                borderColor: filter === s ? COLORS.navy : COLORS.border,
+                background: filter === s ? COLORS.navy : "#fff",
+                color: filter === s ? "#fff" : "#555",
+                fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
+                whiteSpace: "nowrap" }}>
+              {s}
+            </button>
           ))}
+          <select value={["All","Active","Under Contract","Closed"].includes(filter) ? "" : filter}
+            onChange={e => { if (e.target.value) setFilter(e.target.value); }}
+            style={{ padding: "6px 12px", borderRadius: 20, border: `1px solid ${COLORS.border}`,
+              background: !["All","Active","Under Contract","Closed"].includes(filter) ? COLORS.navy : "#fff",
+              color: !["All","Active","Under Contract","Closed"].includes(filter) ? "#fff" : "#555",
+              fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
+            <option value="">More ▾</option>
+            {["Inspection","Appraisal","Clear to Close","On Hold","Cancelled"].map(s => (
+              <option key={s} value={s}>{s}</option>
+            ))}
+          </select>
         </div>
         <div style={{ marginLeft: "auto", display: "flex", gap: 6, position: "relative" }}>
           <button onClick={() => setShowViewsMenu(v => !v)} title="My saved views" style={{ padding: "7px 12px", borderRadius: 8, border: `1px solid ${COLORS.border}`, background: "#fff", color: COLORS.text, fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 6 }}>📋 Views {savedViews.length > 0 && <span style={{ background: COLORS.bg, color: COLORS.muted, borderRadius: 10, padding: "1px 7px", fontSize: 11, fontWeight: 700 }}>{savedViews.length}</span>} <span style={{ fontSize: 9 }}>▾</span></button>
