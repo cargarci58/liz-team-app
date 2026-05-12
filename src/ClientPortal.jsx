@@ -889,7 +889,7 @@ export default function ClientPortal({ user, onLogout }) {
 
                         {/* VENDORS TAB */}
             {activeTab === "vendors" && (
-              <VendorsTab tx={tx} token={tok} user={user} />
+              <VendorsTab tx={tx} token={localStorage.getItem("tp_token") || ""} user={user} />
             )}
 
             {/* FAQ TAB */}
