@@ -1905,7 +1905,6 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
                         onEdit={() => setEditingParty({ ...p })}
                         onRemove={() => update({ parties: tx.parties.filter(pp => pp.id !== p.id) })}
                         onInvite={onInviteParty ? () => onInviteParty(p) : undefined} />
-                      {(() => { if (p.name && p.name.includes("Colleen")) console.log("Colleen in render:", JSON.stringify(p)); return null; })()}
                       {(p.vendorStatus === "selected" || p.vendor_status === "selected") && (
                         <div style={{ display: "flex", alignItems: "center", gap: 10,
                           padding: "8px 12px", background: "#D5F5E3", borderRadius: 8,
@@ -2890,7 +2889,7 @@ function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenCon
     owningBrokerageName: t.brokerage_name,
     owningBrokerageColor: t.brokerage_color,
     messages: t.internal_notes || [],
-    parties: (t.parties || []).filter(Boolean).map(p => ({ id: p.id, role: p.role, name: p.name, email: p.email, phone: p.phone, company: p.company })),
+    parties: (t.parties || []).filter(Boolean).map(p => ({ id: p.id, role: p.role, name: p.name, email: p.email, phone: p.phone, company: p.company, isVendor: p.isVendor || false, vendorStatus: p.vendorStatus || null, vendorCategory: p.vendorCategory || null, vendorDescription: p.vendorDescription || null })),
     tasks: (t.tasks || []).filter(Boolean).map(tk => ({ id: tk.id, name: tk.name, status: tk.status, dueDate: tk.dueDate, category: tk.category, assignTo: tk.assignTo })),
     reminders: (t.reminders || []).filter(Boolean),
     smsThreads: t.sms_threads || {},
@@ -3585,7 +3584,7 @@ function MainApp({ onLogout, currentUser }) {
             owningBrokerageName: t.brokerage_name,
             owningBrokerageColor: t.brokerage_color,
             messages: t.internal_notes || [],
-            parties: (t.parties || []).filter(Boolean).map(p => ({ id: p.id, role: p.role, name: p.name, email: p.email, phone: p.phone, company: p.company })),
+            parties: (t.parties || []).filter(Boolean).map(p => ({ id: p.id, role: p.role, name: p.name, email: p.email, phone: p.phone, company: p.company, isVendor: p.isVendor || false, vendorStatus: p.vendorStatus || null, vendorCategory: p.vendorCategory || null, vendorDescription: p.vendorDescription || null })),
             tasks: (t.tasks || []).filter(Boolean).map(tk => ({ id: tk.id, name: tk.name, status: tk.status, dueDate: tk.dueDate, category: tk.category, assignTo: tk.assignTo })),
             reminders: (t.reminders || []).filter(Boolean).map(r => ({ id: r.id, title: r.title, date: r.date, message: r.message, channels: r.channels, parties: r.parties || [], sent: r.sent })),
           }));
