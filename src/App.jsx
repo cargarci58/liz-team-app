@@ -1232,6 +1232,125 @@ function SMSPanel({ tx, onUpdate, currentUser }) {
 }
 
 
+
+// ═══════════════════════════════════════════════════════════════
+// ASSIGN VENDOR PANEL
+// ═══════════════════════════════════════════════════════════════
+function AssignVendorPanel({ tx, token, onClose, onAssigned }) {
+  const [vendors, setVendors] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [assigning, setAssigning] = useState(null);
+  const [selectedCategory, setSelectedCategory] = useState("All");
+
+  const API = "https://liz-team-server-api-production.up.railway.app";
+
+  const CATEGORY_ICONS = {
+    "Inspector": "🔍", "Lender": "🏦", "Title Company": "📋",
+    "Insurance": "🛡️", "Attorney": "⚖️", "Pest Control": "🐛",
+    "Survey": "📐", "Contractor": "🔧", "Moving Company": "🚚",
+    "Locksmith": "🔑", "Other": "👤",
+  };
+
+  useEffect(() => {
+    const fetchVendors = async () => {
+      setLoading(true);
+      try {
+        const res = await fetch(API + "/vendors", {
+          headers: { Authorization: "Bearer " + token }
+        });
+        const data = await res.json();
+        if (data.success) {
+          // Filter out vendors already on this transaction
+          const existingEmails = tx.parties.map(p => (p.email || "").toLowerCase());
+          setVendors((data.vendors || []).filter(v =>
+            !existingEmails.includes((v.email || "").toLowerCase())
+          ));
+        }
+      } catch (e) { console.error(e); }
+      setLoading(false);
+    };
+    fetchVendors();
+  }, []);
+
+  const handleAssign = async (vendor) => {
+    setAssigning(vendor.id);
+    try {
+      const res = await fetch(API + "/vendors/assign/" + tx.id, {
+        method: "POST",
+        headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
+        body: JSON.stringify({ vendorId: vendor.id })
+      });
+      const data = await res.json();
+      if (data.success) {
+        onAssigned(data.party);
+      } else {
+        alert(data.error || "Error assigning vendor");
+      }
+    } catch (e) { alert("Error assigning vendor"); }
+    setAssigning(null);
+  };
+
+  const categories = ["All", ...new Set(vendors.map(v => v.category))];
+  const filtered = selectedCategory === "All" ? vendors : vendors.filter(v => v.category === selectedCategory);
+
+  return (
+    <div style={{ background: "#F4F4F4", borderRadius: 14, padding: 16, marginBottom: 16,
+      border: "2px solid #C0392B" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+        <div style={{ fontWeight: 700, fontSize: 15 }}>🏆 Assign Preferred Vendor</div>
+        <button onClick={onClose} style={{ background: "none", border: "none",
+          fontSize: 20, cursor: "pointer", color: "#555" }}>✕</button>
+      </div>
+
+      {loading ? (
+        <div style={{ textAlign: "center", padding: 20, color: "#555" }}>Loading vendors...</div>
+      ) : vendors.length === 0 ? (
+        <div style={{ textAlign: "center", padding: 20, color: "#555" }}>
+          <div style={{ fontSize: 32, marginBottom: 8 }}>🏆</div>
+          <div style={{ fontWeight: 600, marginBottom: 4 }}>No vendors available</div>
+          <div style={{ fontSize: 13 }}>All your vendors are already on this transaction, or your library is empty.</div>
+        </div>
+      ) : (
+        <>
+          {/* Category filter */}
+          <div style={{ display: "flex", gap: 6, overflowX: "auto", marginBottom: 12,
+            paddingBottom: 4, scrollbarWidth: "none" }}>
+            {categories.map(cat => (
+              <button key={cat} onClick={() => setSelectedCategory(cat)}
+                style={{ padding: "5px 12px", borderRadius: 20, border: "none",
+                  whiteSpace: "nowrap", fontSize: 12, cursor: "pointer",
+                  background: selectedCategory === cat ? "#C0392B" : "#fff",
+                  color: selectedCategory === cat ? "#fff" : "#555",
+                  fontWeight: selectedCategory === cat ? 700 : 500 }}>
+                {cat === "All" ? "All" : (CATEGORY_ICONS[cat] || "") + " " + cat}
+              </button>
+            ))}
+          </div>
+
+          {/* Vendor list */}
+          {filtered.map(v => (
+            <div key={v.id} style={{ background: "#fff", borderRadius: 10, padding: 12,
+              marginBottom: 8, display: "flex", alignItems: "center", gap: 12 }}>
+              <div style={{ fontSize: 24, flexShrink: 0 }}>{CATEGORY_ICONS[v.category] || "👤"}</div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontWeight: 700, fontSize: 14 }}>{v.name}</div>
+                {v.company && <div style={{ fontSize: 12, color: "#C0392B", fontWeight: 600 }}>{v.company}</div>}
+                {v.description && <div style={{ fontSize: 12, color: "#555", marginTop: 2 }}>{v.description}</div>}
+              </div>
+              <button onClick={() => handleAssign(v)} disabled={assigning === v.id}
+                style={{ padding: "8px 14px", borderRadius: 8, border: "none",
+                  background: "#C0392B", color: "#fff", fontWeight: 700,
+                  fontSize: 13, cursor: "pointer", flexShrink: 0 }}>
+                {assigning === v.id ? "..." : "Assign"}
+              </button>
+            </div>
+          ))}
+        </>
+      )}
+    </div>
+  );
+}
+
 // ═══════════════════════════════════════════════════════════════
 // MILESTONES TAB
 // ═══════════════════════════════════════════════════════════════
@@ -1458,6 +1577,7 @@ function MilestonesTab({ tx, token }) {
 function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [], onSaveContact, onOpenContactBook, onDuplicate, currentUser, initialTab = "overview", dashboardUnread = 0 }) {
   const [activeTab, setActiveTab] = useState(initialTab);
   const [showAddParty, setShowAddParty] = useState(false);
+  const [showAssignVendor, setShowAssignVendor] = useState(false);
   const [pendingInviteParty, setPendingInviteParty] = useState(null);
   const [partyFromContactBook, setPartyFromContactBook] = useState(false);
   const [showAddTask, setShowAddTask] = useState(false);
@@ -1744,7 +1864,21 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
 
         {activeTab === "parties" && (
           <div>
-            <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 16 }}><Btn onClick={() => setShowAddParty(true)} small>+ Add Party</Btn></div>
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginBottom: 16 }}>
+              <Btn onClick={() => setShowAssignVendor(true)} small>🏆 Assign Vendor</Btn>
+              <Btn onClick={() => setShowAddParty(true)} small>+ Add Party</Btn>
+            </div>
+            {showAssignVendor && (
+              <AssignVendorPanel
+                tx={tx}
+                token={localStorage.getItem("tp_token") || ""}
+                onClose={() => setShowAssignVendor(false)}
+                onAssigned={(party) => {
+                  onUpdate({ ...tx, parties: [...tx.parties, party] });
+                  setShowAssignVendor(false);
+                }}
+              />
+            )}
             {PARTY_ROLES.map(role => {
               const members = tx.parties.filter(p => p.role === role);
               if (!members.length) return null;

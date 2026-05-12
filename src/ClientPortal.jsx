@@ -161,6 +161,255 @@ function ActionNeededCard({ tx }) {
 }
 
 
+
+// ── VENDORS TAB ───────────────────────────────────────────────
+const VENDOR_CATEGORY_ICONS = {
+  "Inspector": "🔍", "Lender": "🏦", "Title Company": "📋",
+  "Insurance": "🛡️", "Attorney": "⚖️", "Pest Control": "🐛",
+  "Survey": "📐", "Contractor": "🔧", "Moving Company": "🚚",
+  "Locksmith": "🔑", "Other": "👤",
+};
+
+const VENDOR_CATEGORIES_LIST = [
+  "Inspector", "Lender", "Title Company", "Insurance",
+  "Attorney", "Pest Control", "Survey", "Contractor",
+  "Moving Company", "Locksmith", "Other"
+];
+
+function AddOwnVendorForm({ category, transactionId, token, onDone, onCancel }) {
+  const [form, setForm] = useState({ name: "", company: "", phone: "", email: "" });
+  const [saving, setSaving] = useState(false);
+  const API = "https://liz-team-server-api-production.up.railway.app";
+
+  const handleSubmit = async () => {
+    if (!form.name) { alert("Please enter a name"); return; }
+    setSaving(true);
+    try {
+      const res = await fetch(API + "/vendors/client-add/" + transactionId, {
+        method: "POST",
+        headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
+        body: JSON.stringify({ ...form, category })
+      });
+      const data = await res.json();
+      if (data.success) onDone(data.party);
+      else alert(data.error || "Error adding vendor");
+    } catch (e) { alert("Error adding vendor"); }
+    setSaving(false);
+  };
+
+  return (
+    <div style={{ background: "#FEF9E7", borderRadius: 12, padding: 16,
+      border: "1px solid #F9CA24", marginTop: 10 }}>
+      <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 12 }}>
+        Add Your Own {category}
+      </div>
+      {[["Name *", "name", "text"], ["Company", "company", "text"],
+        ["Phone", "phone", "tel"], ["Email", "email", "email"]].map(([label, key, type]) => (
+        <div key={key} style={{ marginBottom: 10 }}>
+          <div style={{ fontSize: 12, fontWeight: 600, color: "#555", marginBottom: 4 }}>{label}</div>
+          <input type={type} value={form[key]}
+            onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))}
+            style={{ width: "100%", padding: "9px 12px", borderRadius: 8,
+              border: "1.5px solid #DDD", fontSize: 14,
+              fontFamily: "inherit", boxSizing: "border-box" }} />
+        </div>
+      ))}
+      <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+        <button onClick={onCancel}
+          style={{ flex: 1, padding: 10, borderRadius: 8, border: "1px solid #DDD",
+            background: "#fff", color: "#555", fontWeight: 600, cursor: "pointer" }}>
+          Cancel
+        </button>
+        <button onClick={handleSubmit} disabled={saving}
+          style={{ flex: 2, padding: 10, borderRadius: 8, border: "none",
+            background: "#C0392B", color: "#fff", fontWeight: 700, cursor: "pointer" }}>
+          {saving ? "Submitting..." : "Submit"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function VendorCategorySection({ category, vendors, transactionId, token, onUpdate }) {
+  const [selecting, setSelecting] = useState(null);
+  const [showAddOwn, setShowAddOwn] = useState(false);
+  const API = "https://liz-team-server-api-production.up.railway.app";
+
+  const icon = VENDOR_CATEGORY_ICONS[category] || "👤";
+  const selected = vendors.find(v => v.vendor_status === "selected");
+  const available = vendors.filter(v => v.vendor_status === "available");
+
+  const handleSelect = async (vendor) => {
+    if (!window.confirm("Select " + vendor.name + " as your " + category + "?")) return;
+    setSelecting(vendor.id);
+    try {
+      const res = await fetch(API + "/vendors/select/" + transactionId + "/" + vendor.id, {
+        method: "PATCH",
+        headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" }
+      });
+      const data = await res.json();
+      if (data.success) onUpdate();
+      else alert(data.error || "Error selecting vendor");
+    } catch (e) { alert("Error selecting vendor"); }
+    setSelecting(null);
+  };
+
+  return (
+    <div style={{ marginBottom: 20 }}>
+      <div style={{ fontSize: 13, fontWeight: 800, color: "#555",
+        textTransform: "uppercase", letterSpacing: 1, marginBottom: 10 }}>
+        {icon} {category}
+      </div>
+
+      {/* Selected vendor */}
+      {selected && (
+        <div style={{ background: "#D5F5E3", borderRadius: 12, padding: 16,
+          marginBottom: 8, border: "2px solid #1E8449" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+            <span style={{ fontSize: 16 }}>✅</span>
+            <span style={{ fontSize: 12, fontWeight: 700, color: "#1E8449",
+              textTransform: "uppercase" }}>Your {category}</span>
+          </div>
+          <div style={{ fontWeight: 700, fontSize: 15, color: "#111" }}>{selected.name}</div>
+          {selected.company && <div style={{ fontSize: 13, color: "#1E8449", fontWeight: 600 }}>{selected.company}</div>}
+          {selected.vendor_description && (
+            <div style={{ fontSize: 13, color: "#555", marginTop: 4, lineHeight: 1.5 }}>
+              {selected.vendor_description}
+            </div>
+          )}
+          <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+            {selected.phone && (
+              <a href={"tel:" + selected.phone}
+                style={{ flex: 1, padding: "8px 0", background: "#111", color: "#fff",
+                  borderRadius: 8, textAlign: "center", fontSize: 13,
+                  fontWeight: 600, textDecoration: "none" }}>📞 Call</a>
+            )}
+            {selected.email && (
+              <a href={"mailto:" + selected.email}
+                style={{ flex: 1, padding: "8px 0", background: "#F4F4F4", color: "#111",
+                  borderRadius: 8, textAlign: "center", fontSize: 13,
+                  fontWeight: 600, textDecoration: "none" }}>✉️ Email</a>
+            )}
+          </div>
+          <div style={{ fontSize: 11, color: "#555", marginTop: 10, textAlign: "center" }}>
+            Need to change? Contact your agent.
+          </div>
+        </div>
+      )}
+
+      {/* Available vendors to choose from */}
+      {!selected && available.map(v => (
+        <div key={v.id} style={{ background: "#fff", borderRadius: 12, padding: 16,
+          marginBottom: 8, boxShadow: "0 1px 4px rgba(0,0,0,0.08)" }}>
+          <div style={{ fontWeight: 700, fontSize: 15, color: "#111", marginBottom: 4 }}>{v.name}</div>
+          {v.company && <div style={{ fontSize: 13, color: "#C0392B", fontWeight: 600 }}>{v.company}</div>}
+          {v.vendor_description && (
+            <div style={{ fontSize: 13, color: "#555", marginTop: 6, lineHeight: 1.5 }}>
+              {v.vendor_description}
+            </div>
+          )}
+          {v.phone && <div style={{ fontSize: 13, color: "#555", marginTop: 6 }}>📞 {v.phone}</div>}
+          <button onClick={() => handleSelect(v)} disabled={selecting === v.id}
+            style={{ width: "100%", marginTop: 12, padding: "11px 0", borderRadius: 8,
+              border: "none", background: "#C0392B", color: "#fff",
+              fontWeight: 700, fontSize: 14, cursor: "pointer" }}>
+            {selecting === v.id ? "Selecting..." : "Select This " + category}
+          </button>
+        </div>
+      ))}
+
+      {/* Add own vendor option */}
+      {!selected && (
+        <div>
+          {!showAddOwn ? (
+            <button onClick={() => setShowAddOwn(true)}
+              style={{ width: "100%", padding: 13, borderRadius: 10,
+                border: "2px dashed #DDD", background: "#fff",
+                color: "#555", fontWeight: 600, fontSize: 14, cursor: "pointer" }}>
+              + I already have a {category} I want to use
+            </button>
+          ) : (
+            <AddOwnVendorForm
+              category={category}
+              transactionId={transactionId}
+              token={token}
+              onDone={() => { setShowAddOwn(false); onUpdate(); }}
+              onCancel={() => setShowAddOwn(false)}
+            />
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function VendorsTab({ tx, token, user }) {
+  const [vendors, setVendors] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const API = "https://liz-team-server-api-production.up.railway.app";
+
+  useEffect(() => { fetchVendors(); }, [tx.id]);
+
+  const fetchVendors = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(API + "/vendors/transaction/" + tx.id, {
+        headers: { Authorization: "Bearer " + token }
+      });
+      const data = await res.json();
+      if (data.success) setVendors(data.vendors || []);
+    } catch (e) { console.error(e); }
+    setLoading(false);
+  };
+
+  if (loading) return (
+    <div style={{ textAlign: "center", padding: 40, color: "#555" }}>
+      Loading vendors...
+    </div>
+  );
+
+  if (vendors.length === 0) return (
+    <div style={{ background: "#fff", borderRadius: 14, padding: 32,
+      textAlign: "center", boxShadow: "0 1px 4px rgba(0,0,0,0.08)" }}>
+      <div style={{ fontSize: 48, marginBottom: 12 }}>🏆</div>
+      <div style={{ fontWeight: 700, fontSize: 18, color: "#111", marginBottom: 8 }}>
+        No Vendors Yet
+      </div>
+      <div style={{ color: "#555", fontSize: 14, lineHeight: 1.6 }}>
+        Your agent will add preferred vendors here for you to choose from.
+        You can also add your own vendors if you already have someone in mind.
+      </div>
+    </div>
+  );
+
+  // Group by category
+  const grouped = vendors.reduce((acc, v) => {
+    acc[v.vendor_category] = acc[v.vendor_category] || [];
+    acc[v.vendor_category].push(v);
+    return acc;
+  }, {});
+
+  return (
+    <div>
+      <div style={{ fontSize: 13, color: "#555", marginBottom: 16, lineHeight: 1.6 }}>
+        Choose your preferred vendors below. Once selected, they will be
+        added to your transaction team and can communicate through the app.
+      </div>
+      {Object.entries(grouped).map(([category, items]) => (
+        <VendorCategorySection
+          key={category}
+          category={category}
+          vendors={items}
+          transactionId={tx.id}
+          token={token}
+          onUpdate={fetchVendors}
+        />
+      ))}
+    </div>
+  );
+}
+
+
 // ── FAQ COMPONENT ─────────────────────────────────────────────
 const FAQ_ITEMS = [
   { q: "How long does the closing process take?", a: "In Florida, a typical real estate transaction takes 30-45 days from contract to closing. Cash transactions can close faster, sometimes in 2-3 weeks. Your closing date is set in your contract." },
@@ -359,6 +608,7 @@ export default function ClientPortal({ user, onLogout }) {
     { id: "documents", label: "📎 Documents" },
     { id: "chat", label: chatUnread > 0 ? "💬 Chat (" + chatUnread + ")" : "💬 Chat" },
     { id: "team", label: "👥 My Team" },
+    { id: "vendors", label: "🏆 Vendors" },
     { id: "faq", label: "❓ FAQ" },
   ];
 
@@ -637,7 +887,12 @@ export default function ClientPortal({ user, onLogout }) {
               </div>
             )}
 
-                        {/* FAQ TAB */}
+                        {/* VENDORS TAB */}
+            {activeTab === "vendors" && (
+              <VendorsTab tx={tx} token={tok} user={user} />
+            )}
+
+            {/* FAQ TAB */}
             {activeTab === "faq" && (
               <FaqTab agentPhone={agentPhone} />
             )}
