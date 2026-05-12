@@ -1230,6 +1230,230 @@ function SMSPanel({ tx, onUpdate, currentUser }) {
   );
 }
 
+
+// ═══════════════════════════════════════════════════════════════
+// MILESTONES TAB
+// ═══════════════════════════════════════════════════════════════
+function MilestonesTab({ tx, token }) {
+  const [milestones, setMilestones] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [generating, setGenerating] = useState(false);
+  const [completing, setCompleting] = useState(null);
+
+  const API = "https://liz-team-server-api-production.up.railway.app";
+
+  useEffect(() => { fetchMilestones(); }, [tx.id]);
+
+  const fetchMilestones = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(API + "/milestones/" + tx.id, {
+        headers: { Authorization: "Bearer " + token }
+      });
+      const data = await res.json();
+      if (data.success) setMilestones(data.milestones || []);
+    } catch (e) { console.error(e); }
+    setLoading(false);
+  };
+
+  const handleGenerate = async () => {
+    if (!tx.openDate && !tx.executedDate) {
+      alert("Please add a contract date to this transaction first.");
+      return;
+    }
+    setGenerating(true);
+    try {
+      const res = await fetch(API + "/milestones/generate/" + tx.id, {
+        method: "POST",
+        headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" }
+      });
+      const data = await res.json();
+      if (data.success) { await fetchMilestones(); }
+    } catch (e) { alert("Error generating milestones"); }
+    setGenerating(false);
+  };
+
+  const handleComplete = async (milestoneId) => {
+    setCompleting(milestoneId);
+    try {
+      await fetch(API + "/milestones/" + milestoneId + "/complete", {
+        method: "PATCH",
+        headers: { Authorization: "Bearer " + token }
+      });
+      setMilestones(prev => prev.map(m =>
+        m.id === milestoneId ? { ...m, status: "Completed", completed_at: new Date().toISOString() } : m
+      ));
+    } catch (e) { alert("Error completing milestone"); }
+    setCompleting(null);
+  };
+
+  const handleSnooze = async (milestoneId) => {
+    try {
+      await fetch(API + "/milestones/" + milestoneId + "/snooze", {
+        method: "PATCH",
+        headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
+        body: JSON.stringify({ days: 1 })
+      });
+      setMilestones(prev => prev.map(m => {
+        if (m.id !== milestoneId) return m;
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        return { ...m, snooze_until: tomorrow.toISOString().split("T")[0] };
+      }));
+    } catch (e) {}
+  };
+
+  const today = new Date().toISOString().split("T")[0];
+  const daysUntil = (d) => d ? Math.round((new Date(d) - new Date(today)) / 86400000) : null;
+
+  const getMilestoneStatus = (m) => {
+    if (m.status === "Completed") return "completed";
+    if (!m.due_date) return "pending";
+    const days = daysUntil(m.due_date);
+    if (days < 0) return "overdue";
+    if (days === 0) return "today";
+    if (days <= 3) return "soon";
+    return "upcoming";
+  };
+
+  const statusConfig = {
+    completed: { color: "#1E8449", bg: "#D5F5E3", label: "Done", icon: "✅" },
+    overdue:   { color: "#C0392B", bg: "#FADBD8", label: "Overdue", icon: "🔴" },
+    today:     { color: "#C0392B", bg: "#FADBD8", label: "Due Today", icon: "⚡" },
+    soon:      { color: "#B7770D", bg: "#FEF9E7", label: "Due Soon", icon: "🟡" },
+    upcoming:  { color: "#555555", bg: "#F4F4F4", label: "Upcoming", icon: "⏳" },
+    pending:   { color: "#555555", bg: "#F4F4F4", label: "Pending", icon: "○" },
+  };
+
+  const grouped = milestones.reduce((acc, m) => {
+    acc[m.category] = acc[m.category] || [];
+    acc[m.category].push(m);
+    return acc;
+  }, {});
+
+  const completed = milestones.filter(m => m.status === "Completed").length;
+  const total = milestones.length;
+  const progress = total > 0 ? Math.round(completed / total * 100) : 0;
+
+  if (loading) return (
+    <div style={{ padding: 32, textAlign: "center", color: "#555" }}>Loading milestones...</div>
+  );
+
+  if (milestones.length === 0) return (
+    <div style={{ padding: 24 }}>
+      <div style={{ background: "#fff", borderRadius: 16, padding: 32, textAlign: "center",
+        boxShadow: "0 1px 4px rgba(0,0,0,0.08)" }}>
+        <div style={{ fontSize: 48, marginBottom: 16 }}>⚡</div>
+        <div style={{ fontWeight: 700, fontSize: 18, color: "#111", marginBottom: 8 }}>
+          Set Up Smart Tracking
+        </div>
+        <div style={{ color: "#555", fontSize: 14, lineHeight: 1.6, marginBottom: 24 }}>
+          Generate all Florida-standard milestones automatically. Due dates are calculated from your contract date.
+        </div>
+        {(!tx.openDate && !tx.executedDate) && (
+          <div style={{ background: "#FEF9E7", border: "1px solid #F9CA24", borderRadius: 10,
+            padding: 12, marginBottom: 20, fontSize: 13, color: "#B7770D" }}>
+            Add a contract date to this transaction first so deadlines can be calculated.
+          </div>
+        )}
+        <button onClick={handleGenerate} disabled={generating}
+          style={{ background: "#C0392B", color: "#fff", border: "none", borderRadius: 12,
+            padding: "14px 32px", fontWeight: 700, fontSize: 16, cursor: "pointer" }}>
+          {generating ? "Generating..." : "Generate Milestones"}
+        </button>
+      </div>
+    </div>
+  );
+
+  return (
+    <div style={{ padding: 16 }}>
+      <div style={{ background: "#fff", borderRadius: 14, padding: 16, marginBottom: 16,
+        boxShadow: "0 1px 4px rgba(0,0,0,0.08)" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+          <div style={{ fontWeight: 700, fontSize: 14 }}>Progress</div>
+          <div style={{ fontWeight: 700, fontSize: 14, color: "#C0392B" }}>{completed}/{total} done</div>
+        </div>
+        <div style={{ background: "#F4F4F4", borderRadius: 20, height: 10, overflow: "hidden" }}>
+          <div style={{ width: progress + "%", height: "100%",
+            background: progress === 100 ? "#1E8449" : "#C0392B",
+            borderRadius: 20, transition: "width 0.4s ease" }} />
+        </div>
+      </div>
+
+      {Object.entries(grouped).map(([category, items]) => (
+        <div key={category} style={{ marginBottom: 20 }}>
+          <div style={{ fontSize: 11, fontWeight: 800, color: "#555", letterSpacing: 1,
+            textTransform: "uppercase", marginBottom: 8 }}>{category}</div>
+          {items.map(m => {
+            const ms = getMilestoneStatus(m);
+            const cfg = statusConfig[ms];
+            const days = daysUntil(m.due_date);
+            const isCompleted = ms === "completed";
+            return (
+              <div key={m.id} style={{ background: "#fff", borderRadius: 12, padding: 14,
+                marginBottom: 8, boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
+                borderLeft: "4px solid " + (isCompleted ? "#1E8449" : cfg.color),
+                opacity: isCompleted ? 0.75 : 1 }}>
+                <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+                  <div style={{ fontSize: 18 }}>{cfg.icon}</div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontWeight: 700, fontSize: 14, color: "#111",
+                      textDecoration: isCompleted ? "line-through" : "none", marginBottom: 4 }}>
+                      {m.name}
+                      {m.is_hard_block && !isCompleted && (
+                        <span style={{ marginLeft: 8, fontSize: 10, fontWeight: 700,
+                          color: "#C0392B", background: "#FADBD8",
+                          padding: "2px 7px", borderRadius: 20 }}>REQUIRED</span>
+                      )}
+                    </div>
+                    {m.due_date && (
+                      <div style={{ fontSize: 12, color: cfg.color, fontWeight: 600 }}>
+                        {isCompleted ? "Completed" :
+                         days === 0 ? "Due today" :
+                         days < 0 ? Math.abs(days) + "d overdue" :
+                         "Due in " + days + "d"} · {m.due_date}
+                      </div>
+                    )}
+                    {m.requires_document && !m.document_uploaded && !isCompleted && (
+                      <div style={{ fontSize: 11, color: "#B7770D", marginTop: 2 }}>📎 Document required</div>
+                    )}
+                    {isCompleted && m.completed_by_name && (
+                      <div style={{ fontSize: 11, color: "#555", marginTop: 2 }}>by {m.completed_by_name}</div>
+                    )}
+                  </div>
+                </div>
+                {!isCompleted && (
+                  <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+                    <button onClick={() => handleComplete(m.id)} disabled={completing === m.id}
+                      style={{ flex: 2, padding: "9px 0", borderRadius: 8, border: "none",
+                        background: "#C0392B", color: "#fff", fontWeight: 700,
+                        fontSize: 13, cursor: "pointer" }}>
+                      {completing === m.id ? "Saving..." : "Mark Complete"}
+                    </button>
+                    <button onClick={() => handleSnooze(m.id)}
+                      style={{ flex: 1, padding: "9px 0", borderRadius: 8,
+                        border: "1.5px solid #DDD", background: "#fff",
+                        color: "#555", fontWeight: 600, fontSize: 13, cursor: "pointer" }}>
+                      Snooze
+                    </button>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      ))}
+
+      <button onClick={handleGenerate} disabled={generating}
+        style={{ width: "100%", padding: 13, borderRadius: 10,
+          border: "1.5px solid #DDD", background: "#fff",
+          color: "#555", fontWeight: 600, fontSize: 14, cursor: "pointer", marginTop: 8 }}>
+        {generating ? "Generating..." : "Add Missing Milestones"}
+      </button>
+    </div>
+  );
+}
+
 function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [], onSaveContact, onOpenContactBook, onDuplicate, currentUser, initialTab = "overview", dashboardUnread = 0 }) {
   const [activeTab, setActiveTab] = useState(initialTab);
   const [showAddParty, setShowAddParty] = useState(false);
