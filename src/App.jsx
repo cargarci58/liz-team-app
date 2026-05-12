@@ -1880,15 +1880,15 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
               />
             )}
             {PARTY_ROLES.map(role => {
-              const members = tx.parties.filter(p => p.role === role && !p.isVendor);
+              const members = tx.parties.filter(p => p.role === role && !p.isVendor && !p.is_vendor);
               if (!members.length) return null;
               return <div key={role} style={{ marginBottom: 16 }}><div style={{ fontSize: 12, fontWeight: 700, color: COLORS.muted, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 8 }}>{role}</div>{members.map(p => <PartyCard key={p.id} party={p} onEdit={() => setEditingParty({ ...p })} onRemove={() => update({ parties: tx.parties.filter(pp => pp.id !== p.id) })} onInvite={onInviteParty ? () => onInviteParty(p) : undefined} />)}</div>;
             })}
             {(() => {
-              const vendorParties = tx.parties.filter(p => p.isVendor || !PARTY_ROLES.includes(p.role));
+              const vendorParties = tx.parties.filter(p => p.isVendor || p.is_vendor || !PARTY_ROLES.includes(p.role));
               if (!vendorParties.length) return null;
               const vendorGroups = vendorParties.reduce((acc, p) => {
-                const key = p.vendorCategory || p.role || "Other";
+                const key = p.vendorCategory || p.vendor_category || p.role || "Other";
                 acc[key] = acc[key] || [];
                 acc[key].push(p);
                 return acc;
@@ -1905,7 +1905,7 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
                         onEdit={() => setEditingParty({ ...p })}
                         onRemove={() => update({ parties: tx.parties.filter(pp => pp.id !== p.id) })}
                         onInvite={onInviteParty ? () => onInviteParty(p) : undefined} />
-                      {p.vendorStatus === "selected" && (
+                      {(p.vendorStatus === "selected" || p.vendor_status === "selected") && (
                         <div style={{ display: "flex", alignItems: "center", gap: 10,
                           padding: "8px 12px", background: "#D5F5E3", borderRadius: 8,
                           marginTop: -8, marginBottom: 8 }}>
