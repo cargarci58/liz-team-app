@@ -1903,7 +1903,16 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
                     <div key={p.id}>
                       <PartyCard party={p}
                         onEdit={() => setEditingParty({ ...p })}
-                        onRemove={() => update({ parties: tx.parties.filter(pp => pp.id !== p.id) })}
+                      onRemove={async () => {
+                        if (!window.confirm("Remove this vendor from the transaction?")) return;
+                        const tok = localStorage.getItem("tp_token") || "";
+                        try {
+                          await fetch("https://liz-team-server-api-production.up.railway.app/transactions/" + tx.id + "/party/" + p.id, {
+                            method: "DELETE", headers: { Authorization: "Bearer " + tok }
+                          });
+                        } catch(e) {}
+                        onUpdate({ ...tx, parties: tx.parties.filter(pp => pp.id !== p.id) });
+                      }}
                         onInvite={onInviteParty ? () => onInviteParty(p) : undefined} />
                       {(p.vendorStatus === "selected" || p.vendor_status === "selected") && (
                         <div style={{ display: "flex", alignItems: "center", gap: 10,
