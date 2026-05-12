@@ -470,9 +470,8 @@ export default function ClientPortal({ user, onLogout }) {
                     { label: "Contract Date", value: formatDate(tx.openDate) },
                     { label: "Closing Date", value: formatDate(tx.closingDate) },
                     { label: "Days to Closing", value: daysUntil(tx.closingDate) !== null && daysUntil(tx.closingDate) >= 0 ? daysUntil(tx.closingDate) + " days" : tx.status === "Closed" ? "Closed" : "TBD" },
-                    { label: tx.contractPrice ? "Contract Price" : "List Price",
-                      value: tx.contractPrice || tx.listPrice ?
-                        "$" + Number(tx.contractPrice || tx.listPrice).toLocaleString() : "TBD" },
+                    { label: "Contract Price", value: tx.contractPrice ? "$" + Number(tx.contractPrice).toLocaleString() : "TBD" },
+                    { label: "List Price", value: tx.listPrice ? "$" + Number(tx.listPrice).toLocaleString() : "TBD" },
                   ].map(({ label, value }) => (
                     <div key={label} style={{ display: "flex", justifyContent: "space-between",
                       alignItems: "center", paddingBottom: 10, marginBottom: 10,
