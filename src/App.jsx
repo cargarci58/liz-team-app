@@ -3,7 +3,7 @@ import UserManagement from "./UserManagement";
 import DocumentsTab from "./DocumentsTab";
 import TransactionChat from "./TransactionChat";
 import Reports from "./Reports";
-import CalendarView from "./CalendarView";
+import DailyDashboard from "./DailyDashboard";
 import ChangePassword from "./ChangePassword";
 import CompanySettings from "./CompanySettings";
 import AgentProfile from "./AgentProfile";
@@ -2143,7 +2143,7 @@ function NewTransactionForm({ onSave, onCancel }) {
 }
 
 // ─── DASHBOARD ────────────────────────────────────────────────
-function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenContactBook, contactCount, onLogout, onOpenTeam, onChangePassword, onReports, onCalendar, onCompanySettings, onAgentProfile, onIntakeLinks, currentUser }) {
+function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenContactBook, contactCount, onLogout, onOpenTeam, onChangePassword, onReports, onHome, onCompanySettings, onAgentProfile, onIntakeLinks, currentUser }) {
   const [filter, setFilter] = useState("All");
   const [search, setSearch] = useState("");
   const [viewMode, setViewMode] = useState(() => localStorage.getItem("tp_view_mode") || "cards");
@@ -2569,7 +2569,7 @@ function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenCon
             <button onClick={onNew} style={{ background: "#C0392B", border: "none", color: "#fff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>+ New Transaction</button>
             <button onClick={onOpenContactBook} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.2)", color: "rgba(255,255,255,0.85)", borderRadius: 8, padding: "7px 12px", cursor: "pointer", fontSize: 12, fontFamily: "inherit" }}>Contacts{contactCount > 0 ? ` (${contactCount})` : ""}</button>
             <button onClick={onReports} style={{ background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.2)", color: "#fff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>📊 Reports</button>
-            <button onClick={onCalendar} style={{ background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.2)", color: "#fff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>📅 Calendar</button>
+            
             {["admin","superadmin"].includes(currentUser?.role) && <button onClick={onIntakeLinks} style={{ background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.2)", color: "#fff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>🔗 Intake Forms</button>}
             <button onClick={onAgentProfile} style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.15)", color: "rgba(255,255,255,0.6)", borderRadius: 8, padding: "7px 12px", cursor: "pointer", fontSize: 12, fontFamily: "inherit" }}>👤 Profile</button>
             {["admin","superadmin"].includes(currentUser?.role) && <button onClick={onCompanySettings} style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.15)", color: "rgba(255,255,255,0.6)", borderRadius: 8, padding: "7px 12px", cursor: "pointer", fontSize: 12, fontFamily: "inherit" }}>⚙️ Settings</button>}
@@ -3184,7 +3184,7 @@ function MainApp({ onLogout, currentUser }) {
       })
       .catch(e => console.error("Failed to load contacts:", e));
   }, []);
-  const [view, setView] = useState("dashboard");
+  const [view, setView] = useState("home");
   const [showReports, setShowReports] = useState(false);
   const [showCalendar, setShowCalendar] = useState(false);
   const [selectedId, setSelectedId] = useState(null);
@@ -3307,8 +3307,8 @@ function MainApp({ onLogout, currentUser }) {
   return (
     <>
       {showReports && <Reports transactions={transactions} onBack={() => setShowReports(false)} />}
-      {showCalendar && <CalendarView transactions={transactions} onBack={() => setShowCalendar(false)} onSelectTx={id => { setSelectedId(id); setView("detail"); setShowCalendar(false); }} />}
-      {!showReports && view === "new" && <NewTransactionForm onSave={addTransaction} onCancel={() => setView("dashboard")} />}
+      
+      {!showReports && view === "new" && <NewTransactionForm onSave={addTransaction} onCancel={() => setView("home")} />}
       {!showReports && !showCalendar && view === "detail" && selectedTx && (
         <TransactionDetail
           initialTab={initialDetailTab}
@@ -3317,11 +3317,18 @@ function MainApp({ onLogout, currentUser }) {
           onUpdate={updateTransaction}
           onDuplicate={duplicateTransaction}
           currentUser={currentUser}
-          onBack={() => setView("dashboard")}
+          onBack={() => setView("home")}
           contacts={contacts}
           onSaveContact={addContact}
           onOpenContactBook={openContactBook}
           onInviteParty={(party) => invitePartyToPortal(party, selectedTx)}
+        />
+      )}
+      {!showReports && view === "home" && (
+        <DailyDashboard
+          token={localStorage.getItem("tp_token") || ""}
+          user={currentUser}
+          onViewTransactions={() => setView("dashboard")}
         />
       )}
       {!showReports && !showCalendar && view === "dashboard" && (
@@ -3340,7 +3347,7 @@ function MainApp({ onLogout, currentUser }) {
           onAgentProfile={() => setShowAgentProfile(true)}
           onIntakeLinks={() => setShowIntakeLinks(true)}
           currentUser={currentUser}
-          onCalendar={() => setShowCalendar(true)}
+          onHome={() => setView("home")}
         />
       )}
       {showTeam && <UserManagement onClose={() => setShowTeam(false)} />}

@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TransactPro — Real Estate Transaction Management</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; color: #111; background: #fff; }
+  a { text-decoration: none; color: inherit; }
+
+  /* NAV */
+  nav { background: #111; padding: 0 5%; display: flex; align-items: center; justify-content: space-between; height: 64px; position: sticky; top: 0; z-index: 100; }
+  .logo { display: flex; align-items: center; gap: 10px; }
+  .logo-icon { width: 36px; height: 36px; background: #C0392B; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 18px; font-weight: 900; }
+  .logo-text { color: #fff; font-size: 18px; font-weight: 800; }
+  .nav-links { display: flex; align-items: center; gap: 24px; }
+  .nav-links a { color: rgba(255,255,255,0.7); font-size: 14px; }
+  .nav-links a:hover { color: #fff; }
+  .btn-nav { background: #C0392B; color: #fff !important; padding: 8px 20px; border-radius: 8px; font-weight: 600; font-size: 14px; }
+
+  /* HERO */
+  .hero { background: #111; color: #fff; padding: 100px 5% 80px; text-align: center; }
+  .hero-badge { display: inline-block; background: rgba(192,57,43,0.2); color: #E74C3C; border: 1px solid rgba(192,57,43,0.3); padding: 6px 16px; border-radius: 20px; font-size: 13px; font-weight: 600; margin-bottom: 24px; }
+  .hero h1 { font-size: clamp(32px, 6vw, 64px); font-weight: 900; line-height: 1.1; margin-bottom: 24px; }
+  .hero h1 span { color: #C0392B; }
+  .hero p { font-size: 18px; color: rgba(255,255,255,0.65); max-width: 600px; margin: 0 auto 40px; line-height: 1.6; }
+  .hero-btns { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
+  .btn-primary { background: #C0392B; color: #fff; padding: 14px 32px; border-radius: 10px; font-size: 16px; font-weight: 700; border: none; cursor: pointer; }
+  .btn-secondary { background: rgba(255,255,255,0.1); color: #fff; padding: 14px 32px; border-radius: 10px; font-size: 16px; font-weight: 600; border: 1px solid rgba(255,255,255,0.2); cursor: pointer; }
+  .hero-stats { display: flex; gap: 48px; justify-content: center; flex-wrap: wrap; margin-top: 64px; padding-top: 48px; border-top: 1px solid rgba(255,255,255,0.1); }
+  .stat { text-align: center; }
+  .stat-num { font-size: 36px; font-weight: 900; color: #C0392B; }
+  .stat-label { font-size: 13px; color: rgba(255,255,255,0.5); margin-top: 4px; }
+
+  /* FEATURES */
+  .section { padding: 80px 5%; }
+  .section-tag { font-size: 12px; font-weight: 700; color: #C0392B; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 12px; }
+  .section h2 { font-size: clamp(28px, 4vw, 44px); font-weight: 900; margin-bottom: 16px; }
+  .section p.sub { font-size: 17px; color: #555; max-width: 600px; line-height: 1.6; margin-bottom: 48px; }
+  .features-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; }
+  .feature-card { background: #F4F4F4; border-radius: 14px; padding: 28px; }
+  .feature-icon { font-size: 32px; margin-bottom: 16px; }
+  .feature-card h3 { font-size: 18px; font-weight: 700; margin-bottom: 10px; }
+  .feature-card p { font-size: 14px; color: #555; line-height: 1.6; }
+
+  /* HOW IT WORKS */
+  .how { background: #F4F4F4; }
+  .steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 32px; }
+  .step { text-align: center; }
+  .step-num { width: 48px; height: 48px; background: #C0392B; color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 20px; margin: 0 auto 16px; }
+  .step h3 { font-size: 16px; font-weight: 700; margin-bottom: 8px; }
+  .step p { font-size: 14px; color: #555; line-height: 1.6; }
+
+  /* PRICING */
+  .pricing-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 24px; max-width: 1000px; margin: 0 auto; }
+  .plan { border: 1px solid #DDD; border-radius: 16px; padding: 32px 28px; position: relative; }
+  .plan.popular { border-color: #C0392B; border-width: 2px; }
+  .popular-badge { position: absolute; top: -12px; left: 50%; transform: translateX(-50%); background: #C0392B; color: #fff; padding: 4px 16px; border-radius: 20px; font-size: 12px; font-weight: 700; white-space: nowrap; }
+  .plan-name { font-size: 14px; font-weight: 700; color: #555; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 8px; }
+  .plan-price { font-size: 48px; font-weight: 900; margin-bottom: 4px; }
+  .plan-price span { font-size: 18px; font-weight: 400; color: #555; }
+  .plan-desc { font-size: 13px; color: #555; margin-bottom: 24px; }
+  .plan-features { list-style: none; margin-bottom: 28px; }
+  .plan-features li { font-size: 14px; padding: 6px 0; border-bottom: 1px solid #F0F0F0; display: flex; gap: 8px; align-items: center; }
+  .plan-features li::before { content: "✓"; color: #C0392B; font-weight: 700; }
+  .btn-plan { width: 100%; padding: 12px; border-radius: 10px; font-size: 15px; font-weight: 700; cursor: pointer; border: none; font-family: inherit; }
+  .btn-plan-primary { background: #C0392B; color: #fff; }
+  .btn-plan-secondary { background: #F4F4F4; color: #111; }
+
+  /* TESTIMONIALS */
+  .testimonials { background: #111; color: #fff; }
+  .testimonials h2 { color: #fff; }
+  .testimonials p.sub { color: rgba(255,255,255,0.6); }
+  .testimonials-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; }
+  .testimonial { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 14px; padding: 28px; }
+  .testimonial p { font-size: 15px; line-height: 1.7; color: rgba(255,255,255,0.8); margin-bottom: 20px; }
+  .testimonial-author { display: flex; align-items: center; gap: 12px; }
+  .avatar { width: 40px; height: 40px; background: #C0392B; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; color: #fff; }
+  .author-name { font-weight: 700; font-size: 14px; }
+  .author-role { font-size: 12px; color: rgba(255,255,255,0.5); }
+
+  /* CTA */
+  .cta { background: #C0392B; color: #fff; text-align: center; padding: 80px 5%; }
+  .cta h2 { font-size: clamp(28px, 4vw, 44px); font-weight: 900; margin-bottom: 16px; }
+  .cta p { font-size: 18px; opacity: 0.85; margin-bottom: 40px; }
+  .btn-cta { background: #fff; color: #C0392B; padding: 16px 40px; border-radius: 10px; font-size: 17px; font-weight: 800; border: none; cursor: pointer; }
+
+  /* FOOTER */
+  footer { background: #0A0A0A; color: rgba(255,255,255,0.4); padding: 40px 5%; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; }
+  footer .logo-text { color: rgba(255,255,255,0.7); }
+
+  @media (max-width: 768px) {
+    nav { padding: 0 4%; }
+    .nav-links { gap: 12px; }
+    .hero { padding: 60px 4% 60px; }
+    .hero-stats { gap: 24px; }
+    .section { padding: 60px 4%; }
+  }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="logo">
+    <div class="logo-icon">T</div>
+    <span class="logo-text">TransactPro</span>
+  </div>
+  <div class="nav-links">
+    <a href="#features">Features</a>
+    <a href="#pricing">Pricing</a>
+    <a href="#how">How It Works</a>
+    <a href="https://thelizteam.netlify.app" class="btn-nav">Sign In</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-badge">🏠 Built for Florida Real Estate</div>
+  <h1>Close More Deals.<br><span>Stress Less.</span></h1>
+  <p>TransactPro is the all-in-one transaction management platform for real estate agents and brokerages. Manage parties, tasks, documents, and client communication — all in one place.</p>
+  <div class="hero-btns">
+    <a href="https://thelizteam.netlify.app"><button class="btn-primary">Start Free Trial →</button></a>
+    <a href="#features"><button class="btn-secondary">See Features</button></a>
+  </div>
+  <div class="hero-stats">
+    <div class="stat"><div class="stat-num">14</div><div class="stat-label">Day Free Trial</div></div>
+    <div class="stat"><div class="stat-num">0</div><div class="stat-label">Setup Fees</div></div>
+    <div class="stat"><div class="stat-num">∞</div><div class="stat-label">Transactions on Pro</div></div>
+    <div class="stat"><div class="stat-num">24/7</div><div class="stat-label">Client Portal Access</div></div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section class="section" id="features">
+  <div class="section-tag">Features</div>
+  <h2>Everything You Need to Close</h2>
+  <p class="sub">From the moment a contract is signed to the closing table — TransactPro keeps every transaction organized and on track.</p>
+  <div class="features-grid">
+    <div class="feature-card">
+      <div class="feature-icon">📋</div>
+      <h3>Transaction Management</h3>
+      <p>Track every transaction with Florida-specific task templates, automated due dates, and real-time progress tracking.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">👥</div>
+      <h3>Party Management</h3>
+      <p>Manage all parties in one place — agents, buyers, sellers, title companies, lenders, inspectors and more.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">📱</div>
+      <h3>SMS & Email Communication</h3>
+      <p>Send messages directly to any party from within the transaction. Full conversation history saved automatically.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">📎</div>
+      <h3>Document Storage</h3>
+      <p>Upload, organize, and share transaction documents securely. Control exactly what clients can see.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🏠</div>
+      <h3>Client Portal</h3>
+      <p>Give buyers and sellers their own portal to track progress, view documents, and stay informed — no phone tag needed.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">⏰</div>
+      <h3>Automated Reminders</h3>
+      <p>Set reminders for inspections, appraisals, and closing deadlines. Automatically notify all relevant parties.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">👁</div>
+      <h3>Team Management</h3>
+      <p>Add agents, transaction coordinators, and admins. Control access levels and manage your entire team from one dashboard.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">📊</div>
+      <h3>Performance Dashboard</h3>
+      <p>See active listings, under contract, closed volume, overdue tasks, and upcoming closings at a glance.</p>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="section how" id="how">
+  <div class="section-tag">How It Works</div>
+  <h2>Up and Running in Minutes</h2>
+  <p class="sub">No training required. TransactPro is designed to be intuitive from day one.</p>
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">1</div>
+      <h3>Create Your Account</h3>
+      <p>Sign up with your brokerage name and email. Your 14-day free trial starts immediately — no credit card required.</p>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <h3>Add Your Team</h3>
+      <p>Invite agents, transaction coordinators, and admins. Each gets their own secure login with role-based access.</p>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <h3>Create a Transaction</h3>
+      <p>Enter the property details and TransactPro automatically generates a Florida-specific task checklist with due dates.</p>
+    </div>
+    <div class="step">
+      <div class="step-num">4</div>
+      <h3>Invite Your Clients</h3>
+      <p>Send buyers and sellers a portal invitation directly from the transaction. They log in and track their own progress.</p>
+    </div>
+  </div>
+</section>
+
+<!-- PRICING -->
+<section class="section" id="pricing" style="background: #fff;">
+  <div style="text-align: center; margin-bottom: 48px;">
+    <div class="section-tag" style="display: inline-block;">Pricing</div>
+    <h2>Simple, Transparent Pricing</h2>
+    <p class="sub" style="margin: 0 auto;">Start free, scale as you grow. No hidden fees, no long-term contracts.</p>
+  </div>
+  <div class="pricing-grid">
+    <div class="plan">
+      <div class="plan-name">Starter</div>
+      <div class="plan-price">$49<span>/mo</span></div>
+      <div class="plan-desc">Perfect for solo agents</div>
+      <ul class="plan-features">
+        <li>Up to 50 transactions</li>
+        <li>3 team members</li>
+        <li>Email & SMS messaging</li>
+        <li>Client portal</li>
+        <li>Document storage</li>
+        <li>Automated reminders</li>
+      </ul>
+      <a href="https://thelizteam.netlify.app"><button class="btn-plan btn-plan-secondary">Start Free Trial</button></a>
+    </div>
+    <div class="plan popular">
+      <div class="popular-badge">Most Popular</div>
+      <div class="plan-name">Pro</div>
+      <div class="plan-price">$99<span>/mo</span></div>
+      <div class="plan-desc">For growing teams</div>
+      <ul class="plan-features">
+        <li>Up to 250 transactions</li>
+        <li>10 team members</li>
+        <li>Everything in Starter</li>
+        <li>Priority support</li>
+        <li>Advanced reporting</li>
+        <li>Transaction PDF export</li>
+      </ul>
+      <a href="https://thelizteam.netlify.app"><button class="btn-plan btn-plan-primary">Start Free Trial</button></a>
+    </div>
+    <div class="plan">
+      <div class="plan-name">Enterprise</div>
+      <div class="plan-price">$299<span>/mo</span></div>
+      <div class="plan-desc">For large brokerages</div>
+      <ul class="plan-features">
+        <li>Unlimited transactions</li>
+        <li>Unlimited team members</li>
+        <li>Everything in Pro</li>
+        <li>Custom branding</li>
+        <li>Dedicated support</li>
+        <li>API access</li>
+      </ul>
+      <a href="https://thelizteam.netlify.app"><button class="btn-plan btn-plan-secondary">Contact Us</button></a>
+    </div>
+  </div>
+</section>
+
+<!-- TESTIMONIALS -->
+<section class="section testimonials">
+  <div class="section-tag" style="color: rgba(192,57,43,0.8);">Testimonials</div>
+  <h2>Trusted by Florida Agents</h2>
+  <p class="sub">Built by real estate professionals, for real estate professionals.</p>
+  <div class="testimonials-grid">
+    <div class="testimonial">
+      <p>"TransactPro completely changed how I manage my transactions. I can see everything at a glance and my clients love the portal."</p>
+      <div class="testimonial-author">
+        <div class="avatar">LG</div>
+        <div>
+          <div class="author-name">Limarys Garcia</div>
+          <div class="author-role">Licensed Realtor · The Liz Team Realty</div>
+        </div>
+      </div>
+    </div>
+    <div class="testimonial">
+      <p>"The automated task checklist saves me hours every week. Everything I need for a Florida transaction is already built in."</p>
+      <div class="testimonial-author">
+        <div class="avatar">MR</div>
+        <div>
+          <div class="author-name">Maria Rodriguez</div>
+          <div class="author-role">Transaction Coordinator · Orlando, FL</div>
+        </div>
+      </div>
+    </div>
+    <div class="testimonial">
+      <p>"My buyers and sellers love being able to check their transaction status without calling me. It's a game changer."</p>
+      <div class="testimonial-author">
+        <div class="avatar">JT</div>
+        <div>
+          <div class="author-name">James Thompson</div>
+          <div class="author-role">Real Estate Agent · Kissimmee, FL</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta">
+  <h2>Ready to Close More Deals?</h2>
+  <p>Join hundreds of Florida agents managing their transactions with TransactPro.<br>Start your free 14-day trial today.</p>
+  <a href="https://thelizteam.netlify.app"><button class="btn-cta">Start Free Trial →</button></a>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="logo">
+    <div class="logo-icon">T</div>
+    <span class="logo-text">TransactPro</span>
+  </div>
+  <div>© 2025 TransactPro · Real Estate Transaction Management · Florida</div>
+  <div style="display: flex; gap: 20px;">
+    <a href="#" style="color: rgba(255,255,255,0.4);">Privacy</a>
+    <a href="#" style="color: rgba(255,255,255,0.4);">Terms</a>
+    <a href="mailto:support@transactpro.app" style="color: rgba(255,255,255,0.4);">Support</a>
+  </div>
+</footer>
+
+</body>
+</html>
