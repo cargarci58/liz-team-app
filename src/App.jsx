@@ -1317,6 +1317,7 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
 
   const tabs = [
     { id: "overview", label: "Overview" },
+    { id: "milestones", label: "🎯 Milestones" },
     { id: "tasks", label: `Tasks${overdueTasks > 0 ? ` ⚠${overdueTasks}` : ""}` },
     { id: "parties", label: `Parties (${tx.parties.length})` },
     { id: "sms", label: `Messages${smsMsgCount > 0 ? ` (${smsMsgCount})` : ""}` },
@@ -1464,7 +1465,10 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
           </div>
         )}
 
-        {activeTab === "tasks" && (
+        {activeTab === "milestones" && (
+            <MilestonesTab tx={tx} token={localStorage.getItem("tp_token") || ""} />
+          )}
+          {activeTab === "tasks" && (
           <div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
               <div style={{ fontSize: 13, color: COLORS.muted }}>{completedTasks}/{tx.tasks.length} complete {overdueTasks > 0 && <span style={{ color: COLORS.danger }}>· {overdueTasks} overdue</span>}</div>
