@@ -160,6 +160,69 @@ function ActionNeededCard({ tx }) {
   );
 }
 
+
+// ── FAQ COMPONENT ─────────────────────────────────────────────
+const FAQ_ITEMS = [
+  { q: "How long does the closing process take?", a: "In Florida, a typical real estate transaction takes 30-45 days from contract to closing. Cash transactions can close faster, sometimes in 2-3 weeks. Your closing date is set in your contract." },
+  { q: "What is earnest money and do I get it back?", a: "Earnest money is a deposit (typically 1-3% of the purchase price) that shows the seller you are serious. If you cancel during the inspection period you usually get it back. After the inspection period it depends on the reason for cancellation." },
+  { q: "What happens during the inspection?", a: "A licensed home inspector examines the property from top to bottom — roof, foundation, plumbing, electrical, HVAC, and more. You typically have 10-15 days to complete the inspection and request repairs from the seller." },
+  { q: "What is an appraisal and why does it matter?", a: "An appraisal is an independent evaluation of the home's market value ordered by your lender. If the home appraises below the purchase price you may need to negotiate with the seller or cover the difference." },
+  { q: "What does Clear to Close mean?", a: "Clear to Close means your lender has approved your loan and all conditions have been satisfied. This is the final green light before closing day. Once you receive this, closing is imminent." },
+  { q: "What do I bring to closing?", a: "Bring a valid government-issued photo ID, your cashier's check or proof of wire transfer if applicable, and any documents your lender or title company requested. Your agent will give you specific instructions." },
+  { q: "Is wire fraud a real risk?", a: "Yes — wire fraud is very common in real estate. Never wire money based on email instructions alone. Always call the title company directly using a number you find independently to confirm wire instructions before sending any money." },
+  { q: "When do I get the keys?", a: "You typically receive the keys at the closing table after all documents are signed and funds are confirmed. In some cases key transfer may be scheduled for later that day if funding takes time." },
+  { q: "What is title insurance?", a: "Title insurance protects you against claims on your property from before you owned it — like unpaid taxes, liens, or ownership disputes. It is a one-time fee paid at closing and protects you for as long as you own the home." },
+  { q: "What should I NOT do while under contract?", a: "Do not make large purchases, open new credit cards, change jobs, or move money between bank accounts without telling your lender. These can affect your loan approval. Stay financially stable until after closing." },
+];
+
+function FaqItem({ item }) {
+  const [open, setOpen] = useState(false);
+  const C = { red: "#C0392B", black: "#111111", gray: "#555555", lightGray: "#F4F4F4", border: "#DDDDDD" };
+  return (
+    <div style={{ background: "#fff", borderRadius: 12, marginBottom: 10,
+      boxShadow: "0 1px 3px rgba(0,0,0,0.06)", overflow: "hidden" }}>
+      <button onClick={() => setOpen(!open)}
+        style={{ width: "100%", padding: "16px 18px", border: "none",
+          background: "none", textAlign: "left", cursor: "pointer",
+          display: "flex", justifyContent: "space-between", alignItems: "center",
+          gap: 12, fontFamily: "inherit" }}>
+        <span style={{ fontWeight: 700, fontSize: 14, color: C.black, lineHeight: 1.4 }}>
+          {item.q}
+        </span>
+        <span style={{ fontSize: 20, color: C.red, flexShrink: 0, fontWeight: 300 }}>
+          {open ? "−" : "+"}
+        </span>
+      </button>
+      {open && (
+        <div style={{ padding: "0 18px 16px", fontSize: 13, color: C.gray,
+          lineHeight: 1.7, borderTop: "1px solid " + C.lightGray, paddingTop: 12 }}>
+          {item.a}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function FaqTab({ agentPhone }) {
+  const C = { red: "#C0392B", gray: "#555555" };
+  return (
+    <div>
+      <div style={{ fontSize: 13, color: C.gray, marginBottom: 16, lineHeight: 1.6 }}>
+        Common questions about your real estate transaction answered simply.
+      </div>
+      {FAQ_ITEMS.map((item, i) => <FaqItem key={i} item={item} />)}
+      <div style={{ textAlign: "center", padding: "20px 0", fontSize: 13, color: C.gray }}>
+        Have another question?{" "}
+        {agentPhone && (
+          <a href={"tel:" + agentPhone} style={{ color: C.red, fontWeight: 600 }}>
+            Call your agent
+          </a>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ── MAIN CLIENT PORTAL ────────────────────────────────────────
 export default function ClientPortal({ user, onLogout }) {
   const [tx, setTx] = useState(null);
@@ -369,24 +432,23 @@ export default function ClientPortal({ user, onLogout }) {
             <ProgressTracker status={tx.status} transactionType={tx.transactionType} />
           </div>
 
-          {/* Bottom Tab Nav */}
-          <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: C.white,
-            borderTop: "1px solid " + C.border, display: "flex", zIndex: 100,
-            paddingBottom: "env(safe-area-inset-bottom)" }}>
+          {/* Top Horizontal Scroll Tabs */}
+          <div style={{ display: "flex", overflowX: "auto", borderBottom: "2px solid " + C.border,
+            background: C.white, scrollbarWidth: "none", msOverflowStyle: "none" }}>
             {tabs.map(tab => (
               <button key={tab.id} onClick={() => setActiveTab(tab.id)}
-                style={{ flex: 1, padding: "10px 4px 8px", border: "none",
-                  background: "none", color: activeTab === tab.id ? C.red : C.gray,
+                style={{ padding: "12px 18px", border: "none", background: "none", whiteSpace: "nowrap",
+                  borderBottom: "3px solid " + (activeTab === tab.id ? C.red : "transparent"),
+                  color: activeTab === tab.id ? C.red : C.gray,
                   fontWeight: activeTab === tab.id ? 700 : 500,
-                  fontSize: 11, cursor: "pointer", fontFamily: "inherit",
-                  borderTop: "2px solid " + (activeTab === tab.id ? C.red : "transparent") }}>
+                  fontSize: 13, cursor: "pointer", fontFamily: "inherit", flexShrink: 0 }}>
                 {tab.label}
               </button>
             ))}
           </div>
 
           {/* Tab Content */}
-          <div style={{ padding: "16px 16px 100px", maxWidth: 600, margin: "0 auto" }}>
+          <div style={{ padding: "16px 16px 40px", maxWidth: 600, margin: "0 auto" }}>
 
             {/* HOME TAB */}
             {activeTab === "home" && (
@@ -576,84 +638,9 @@ export default function ClientPortal({ user, onLogout }) {
               </div>
             )}
 
-            {/* FAQ TAB */}
+                        {/* FAQ TAB */}
             {activeTab === "faq" && (
-              <div>
-                {[
-                  {
-                    q: "How long does the closing process take?",
-                    a: "In Florida, a typical real estate transaction takes 30-45 days from contract to closing. Cash transactions can close faster, sometimes in 2-3 weeks. Your closing date is set in your contract."
-                  },
-                  {
-                    q: "What is earnest money and do I get it back?",
-                    a: "Earnest money is a deposit (typically 1-3% of the purchase price) that shows the seller you are serious. If you cancel during the inspection period, you usually get it back. After the inspection period, it depends on the reason for cancellation."
-                  },
-                  {
-                    q: "What happens during the inspection?",
-                    a: "A licensed home inspector examines the property from top to bottom — roof, foundation, plumbing, electrical, HVAC, and more. You typically have 10-15 days to complete the inspection and request repairs from the seller."
-                  },
-                  {
-                    q: "What is an appraisal and why does it matter?",
-                    a: "An appraisal is an independent evaluation of the home's market value ordered by your lender. If the home appraises below the purchase price, you may need to negotiate with the seller or cover the difference."
-                  },
-                  {
-                    q: "What does Clear to Close mean?",
-                    a: "Clear to Close means your lender has approved your loan and all conditions have been satisfied. This is the final green light before closing day. Once you receive this, closing is imminent."
-                  },
-                  {
-                    q: "What do I bring to closing?",
-                    a: "Bring a valid government-issued photo ID, your cashier's check or proof of wire transfer (if applicable), and any documents your lender or title company requested. Your agent will give you specific instructions."
-                  },
-                  {
-                    q: "Is wire fraud a real risk?",
-                    a: "Yes — wire fraud is very common in real estate. Never wire money based on email instructions alone. Always call the title company directly using a number you find independently to confirm wire instructions before sending any money."
-                  },
-                  {
-                    q: "When do I get the keys?",
-                    a: "You typically receive the keys at the closing table after all documents are signed and funds are confirmed. In some cases, key transfer may be scheduled for later that day if funding takes time."
-                  },
-                  {
-                    q: "What is title insurance?",
-                    a: "Title insurance protects you against claims on your property from before you owned it — like unpaid taxes, liens, or ownership disputes. It is a one-time fee paid at closing and protects you for as long as you own the home."
-                  },
-                  {
-                    q: "What should I NOT do while under contract?",
-                    a: "Do not make large purchases, open new credit cards, change jobs, or move money between bank accounts without telling your lender. These can affect your loan approval. Stay financially stable until after closing."
-                  },
-                ].map((item, i) => {
-                  const [open, setOpen] = React.useState(false);
-                  return (
-                    <div key={i} style={{ background: C.white, borderRadius: 12, marginBottom: 10,
-                      boxShadow: "0 1px 3px rgba(0,0,0,0.06)", overflow: "hidden" }}>
-                      <button onClick={() => setOpen(!open)}
-                        style={{ width: "100%", padding: "16px 18px", border: "none",
-                          background: "none", textAlign: "left", cursor: "pointer",
-                          display: "flex", justifyContent: "space-between", alignItems: "center",
-                          gap: 12, fontFamily: "inherit" }}>
-                        <span style={{ fontWeight: 700, fontSize: 14, color: C.black,
-                          lineHeight: 1.4 }}>{item.q}</span>
-                        <span style={{ fontSize: 18, color: C.red, flexShrink: 0 }}>
-                          {open ? "−" : "+"}
-                        </span>
-                      </button>
-                      {open && (
-                        <div style={{ padding: "0 18px 16px", fontSize: 13, color: C.gray,
-                          lineHeight: 1.7, borderTop: "1px solid " + C.lightGray, paddingTop: 12 }}>
-                          {item.a}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-                <div style={{ textAlign: "center", padding: "20px 0", fontSize: 13, color: C.gray }}>
-                  Have a question not listed here?{" "}
-                  {agentPhone && (
-                    <a href={"tel:" + agentPhone} style={{ color: C.red, fontWeight: 600 }}>
-                      Call your agent
-                    </a>
-                  )}
-                </div>
-              </div>
+              <FaqTab agentPhone={agentPhone} />
             )}
 
             {/* TEAM TAB */}
