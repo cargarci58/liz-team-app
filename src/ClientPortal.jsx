@@ -617,18 +617,27 @@ export default function ClientPortal({ user, onLogout }) {
       fontFamily: "system-ui, sans-serif", paddingBottom: 80 }}>
 
       {/* Header */}
-      <div style={{ background: C.black, padding: "16px 20px",
-        display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <div>
-          <div style={{ color: "#fff", fontWeight: 800, fontSize: 17 }}>TransactPro</div>
-          <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 11 }}>
-            Hi {user.firstName}! 👋
+      <div style={{ background: "#111111", padding: "14px 20px",
+        display: "flex", justifyContent: "space-between", alignItems: "center",
+        borderBottom: "1px solid rgba(255,255,255,0.1)" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <div style={{ width: 34, height: 34, borderRadius: 8, background: "#C0392B",
+            display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+            <span style={{ color: "#fff", fontSize: 18, fontWeight: 900, lineHeight: 1 }}>T</span>
+          </div>
+          <div>
+            <div style={{ color: "#ffffff", fontWeight: 800, fontSize: 16, letterSpacing: "-0.3px" }}>
+              TransactPro
+            </div>
+            <div style={{ color: "rgba(255,255,255,0.65)", fontSize: 12, marginTop: 1 }}>
+              Hi, {user.firstName}! 👋
+            </div>
           </div>
         </div>
         <button onClick={onLogout}
-          style={{ background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.2)",
-            color: "rgba(255,255,255,0.7)", borderRadius: 8, padding: "6px 14px",
-            cursor: "pointer", fontSize: 12, fontFamily: "inherit" }}>
+          style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.3)",
+            color: "#ffffff", borderRadius: 8, padding: "7px 16px",
+            cursor: "pointer", fontSize: 12, fontWeight: 600, fontFamily: "inherit" }}>
           Sign Out
         </button>
       </div>
