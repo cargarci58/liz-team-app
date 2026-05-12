@@ -1900,10 +1900,44 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
                     <span style={{ fontSize: 10, fontWeight: 700, color: "#C0392B", background: "#FADBD8", padding: "2px 8px", borderRadius: 20 }}>PREFERRED VENDOR</span>
                   </div>
                   {members.map(p => (
-                    <PartyCard key={p.id} party={p}
-                      onEdit={() => setEditingParty({ ...p })}
-                      onRemove={() => update({ parties: tx.parties.filter(pp => pp.id !== p.id) })}
-                      onInvite={onInviteParty ? () => onInviteParty(p) : undefined} />
+                    <div key={p.id}>
+                      <PartyCard party={p}
+                        onEdit={() => setEditingParty({ ...p })}
+                        onRemove={() => update({ parties: tx.parties.filter(pp => pp.id !== p.id) })}
+                        onInvite={onInviteParty ? () => onInviteParty(p) : undefined} />
+                      {p.vendorStatus === "selected" && (
+                        <div style={{ display: "flex", alignItems: "center", gap: 10,
+                          padding: "8px 12px", background: "#D5F5E3", borderRadius: 8,
+                          marginTop: -8, marginBottom: 8 }}>
+                          <span style={{ fontSize: 12, color: "#1E8449", fontWeight: 600 }}>
+                            ✅ Selected by client
+                          </span>
+                          <button onClick={async () => {
+                            if (!window.confirm("Reset this vendor selection? The buyer will be able to choose again.")) return;
+                            const tok = localStorage.getItem("tp_token") || "";
+                            try {
+                              const res = await fetch("https://liz-team-server-api-production.up.railway.app/vendors/reset/" + tx.id + "/" + p.id, {
+                                method: "PATCH",
+                                headers: { Authorization: "Bearer " + tok, "Content-Type": "application/json" }
+                              });
+                              const data = await res.json();
+                              if (data.success) {
+                                const updatedParties = tx.parties.map(pp =>
+                                  pp.id === p.id ? { ...pp, vendorStatus: "available", selected_by_name: null } : pp
+                                );
+                                onUpdate({ ...tx, parties: updatedParties });
+                              }
+                            } catch (e) { alert("Error resetting vendor"); }
+                          }}
+                            style={{ marginLeft: "auto", padding: "4px 12px", borderRadius: 6,
+                              border: "1px solid #1E8449", background: "#fff",
+                              color: "#1E8449", fontSize: 12, fontWeight: 600,
+                              cursor: "pointer" }}>
+                            Reset Selection
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   ))}
                 </div>
               ));

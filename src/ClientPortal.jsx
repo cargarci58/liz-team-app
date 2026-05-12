@@ -357,9 +357,8 @@ function VendorsTab({ tx, token, user }) {
         headers: { Authorization: "Bearer " + token }
       });
       const data = await res.json();
-      console.log("Vendors response:", JSON.stringify(data));
       if (data.success) setVendors(data.vendors || []);
-    } catch (e) { console.error("Vendor fetch error:", e); }
+    } catch (e) { console.error(e); }
     setLoading(false);
   };
 
