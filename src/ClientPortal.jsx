@@ -23,12 +23,10 @@ function daysUntil(d) {
 // ── PROGRESS TRACKER ─────────────────────────────────────────
 function ProgressTracker({ status, transactionType }) {
   const isSeller = transactionType && transactionType.includes("Seller");
-  const isBuyer = transactionType && transactionType.includes("Buyer");
 
   const sellerSteps = [
     { key: "Active", label: "Listed", icon: "🏠" },
-    { key: "Showings", label: "Showings", icon: "👀" },
-    { key: "Under Contract", label: "Under Contract", icon: "✍️" },
+    { key: "Under Contract", label: "Contract", icon: "✍️" },
     { key: "Inspection", label: "Inspection", icon: "🔍" },
     { key: "Clear to Close", label: "Clear to Close", icon: "✅" },
     { key: "Closed", label: "Sold!", icon: "🎉" },
@@ -36,7 +34,7 @@ function ProgressTracker({ status, transactionType }) {
 
   const buyerSteps = [
     { key: "Active", label: "Searching", icon: "🔍" },
-    { key: "Under Contract", label: "Under Contract", icon: "✍️" },
+    { key: "Under Contract", label: "Contract", icon: "✍️" },
     { key: "Inspection", label: "Inspection", icon: "🏗️" },
     { key: "Appraisal", label: "Financing", icon: "🏦" },
     { key: "Clear to Close", label: "Clear to Close", icon: "✅" },
@@ -44,7 +42,6 @@ function ProgressTracker({ status, transactionType }) {
   ];
 
   const steps = isSeller ? sellerSteps : buyerSteps;
-
   const statusOrder = ["Active", "Under Contract", "Inspection", "Appraisal", "Clear to Close", "Closed"];
   const currentIndex = Math.max(0, statusOrder.indexOf(status));
 
@@ -54,12 +51,12 @@ function ProgressTracker({ status, transactionType }) {
   };
 
   return (
-    <div style={{ padding: "20px 16px 8px" }}>
-      <div style={{ fontSize: 12, fontWeight: 700, color: "rgba(255,255,255,0.6)",
-        textTransform: "uppercase", letterSpacing: 1, marginBottom: 16 }}>
+    <div style={{ padding: "20px 20px 16px" }}>
+      <div style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.5)",
+        textTransform: "uppercase", letterSpacing: 1.5, marginBottom: 20 }}>
         WHERE YOU ARE TODAY
       </div>
-      <div style={{ display: "flex", alignItems: "flex-start", gap: 0 }}>
+      <div style={{ display: "flex", alignItems: "flex-start" }}>
         {steps.map((step, i) => {
           const stepIdx = getStepIndex(step.key);
           const isDone = stepIdx < currentIndex;
@@ -67,24 +64,32 @@ function ProgressTracker({ status, transactionType }) {
           const isLast = i === steps.length - 1;
 
           return (
-            <div key={step.key} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", position: "relative" }}>
+            <div key={step.key} style={{ flex: 1, display: "flex", flexDirection: "column",
+              alignItems: "center", position: "relative" }}>
               {/* Connector line */}
               {!isLast && (
-                <div style={{ position: "absolute", top: 14, left: "50%", width: "100%", height: 3,
-                  background: isDone ? C.red : "rgba(255,255,255,0.15)", zIndex: 0 }} />
+                <div style={{ position: "absolute", top: 16, left: "50%", width: "100%", height: 2,
+                  background: isDone ? "#C0392B" : "rgba(255,255,255,0.2)", zIndex: 0 }} />
               )}
               {/* Circle */}
-              <div style={{ width: 30, height: 30, borderRadius: "50%", zIndex: 1,
-                background: isDone ? C.red : isCurrent ? "#fff" : "rgba(255,255,255,0.15)",
-                border: isCurrent ? "3px solid " + C.red : "none",
+              <div style={{ width: 32, height: 32, borderRadius: "50%", zIndex: 1,
+                background: isDone ? "#C0392B" : isCurrent ? "#ffffff" : "rgba(255,255,255,0.08)",
+                border: isCurrent ? "3px solid #C0392B" : isDone ? "none" : "2px solid rgba(255,255,255,0.3)",
                 display: "flex", alignItems: "center", justifyContent: "center",
-                fontSize: 13, marginBottom: 6 }}>
-                {isDone ? "✓" : isCurrent ? <span style={{ fontSize: 14 }}>{step.icon}</span> : ""}
+                fontSize: 14, marginBottom: 8, flexShrink: 0 }}>
+                {isDone
+                  ? <span style={{ color: "#fff", fontWeight: 700, fontSize: 14 }}>✓</span>
+                  : isCurrent
+                  ? <span style={{ fontSize: 15 }}>{step.icon}</span>
+                  : <span style={{ color: "rgba(255,255,255,0.4)", fontSize: 12 }}>○</span>
+                }
               </div>
               {/* Label */}
-              <div style={{ fontSize: 10, fontWeight: isCurrent ? 800 : 500,
-                color: isCurrent ? "#fff" : isDone ? "rgba(255,255,255,0.7)" : "rgba(255,255,255,0.35)",
-                textAlign: "center", lineHeight: 1.3 }}>
+              <div style={{
+                fontSize: 10, fontWeight: isCurrent ? 800 : 500, textAlign: "center",
+                lineHeight: 1.3, maxWidth: 60,
+                color: isCurrent ? "#ffffff" : isDone ? "rgba(255,255,255,0.8)" : "rgba(255,255,255,0.45)"
+              }}>
                 {step.label}
               </div>
             </div>
@@ -619,25 +624,27 @@ export default function ClientPortal({ user, onLogout }) {
       {/* Header */}
       <div style={{ background: "#111111", padding: "14px 20px",
         display: "flex", justifyContent: "space-between", alignItems: "center",
-        borderBottom: "1px solid rgba(255,255,255,0.1)" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <div style={{ width: 34, height: 34, borderRadius: 8, background: "#C0392B",
-            display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-            <span style={{ color: "#fff", fontSize: 18, fontWeight: 900, lineHeight: 1 }}>T</span>
+        borderBottom: "2px solid #C0392B" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <div style={{ width: 36, height: 36, borderRadius: 8, background: "#C0392B",
+            display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+            boxShadow: "0 2px 8px rgba(192,57,43,0.4)" }}>
+            <span style={{ color: "#fff", fontSize: 20, fontWeight: 900, lineHeight: 1 }}>T</span>
           </div>
           <div>
-            <div style={{ color: "#ffffff", fontWeight: 800, fontSize: 16, letterSpacing: "-0.3px" }}>
+            <div style={{ color: "#ffffff", fontWeight: 800, fontSize: 17, letterSpacing: "-0.3px" }}>
               TransactPro
             </div>
-            <div style={{ color: "rgba(255,255,255,0.65)", fontSize: 12, marginTop: 1 }}>
-              Hi, {user.firstName}! 👋
+            <div style={{ color: "rgba(255,255,255,0.75)", fontSize: 12, marginTop: 1, fontWeight: 500 }}>
+              Welcome, {user.firstName}! 👋
             </div>
           </div>
         </div>
         <button onClick={onLogout}
-          style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.3)",
-            color: "#ffffff", borderRadius: 8, padding: "7px 16px",
-            cursor: "pointer", fontSize: 12, fontWeight: 600, fontFamily: "inherit" }}>
+          style={{ background: "transparent", border: "1.5px solid rgba(255,255,255,0.5)",
+            color: "#ffffff", borderRadius: 8, padding: "7px 18px",
+            cursor: "pointer", fontSize: 13, fontWeight: 600, fontFamily: "inherit",
+            letterSpacing: "0.3px" }}>
           Sign Out
         </button>
       </div>
@@ -730,7 +737,7 @@ export default function ClientPortal({ user, onLogout }) {
                     { label: "Closing Date", value: formatDate(tx.closingDate) },
                     { label: "Days to Closing", value: daysUntil(tx.closingDate) !== null && daysUntil(tx.closingDate) >= 0 ? daysUntil(tx.closingDate) + " days" : tx.status === "Closed" ? "Closed" : "TBD" },
                     { label: "Contract Price", value: tx.contractPrice ? "$" + Number(tx.contractPrice).toLocaleString() : "TBD" },
-                    { label: "List Price", value: tx.listPrice ? "$" + Number(tx.listPrice).toLocaleString() : "TBD" },
+                    ...(tx.listPrice && tx.listPrice !== tx.contractPrice ? [{ label: "List Price", value: "$" + Number(tx.listPrice).toLocaleString() }] : []),
                   ].map(({ label, value }) => (
                     <div key={label} style={{ display: "flex", justifyContent: "space-between",
                       alignItems: "center", paddingBottom: 10, marginBottom: 10,
