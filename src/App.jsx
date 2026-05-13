@@ -1233,6 +1233,106 @@ function SMSPanel({ tx, onUpdate, currentUser }) {
 
 
 
+
+// ═══════════════════════════════════════════════════════════════
+// WIN THE DAY BUTTON + MODAL
+// ═══════════════════════════════════════════════════════════════
+function WinTheDayButton({ token }) {
+  const [taskCount, setTaskCount] = useState(0);
+  const [showModal, setShowModal] = useState(false);
+  const API = "https://liz-team-server-api-production.up.railway.app";
+
+  // Poll task count every 5 minutes
+  useEffect(() => {
+    fetchCount();
+    const interval = setInterval(fetchCount, 5 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const fetchCount = async () => {
+    try {
+      const res = await fetch(API + "/dashboard/tasks", {
+        headers: { Authorization: "Bearer " + token }
+      });
+      const data = await res.json();
+      if (data.success) {
+        const total = (data.overdue?.length || 0) + (data.dueToday?.length || 0);
+        setTaskCount(total);
+      }
+    } catch (e) {}
+  };
+
+  const btnColor = taskCount === 0 ? "rgba(255,255,255,0.12)" :
+                   taskCount <= 2 ? "#B7770D" : "#C0392B";
+  const btnBorder = taskCount === 0 ? "1px solid rgba(255,255,255,0.22)" :
+                    taskCount <= 2 ? "1px solid #F59E0B" : "1px solid #E74C3C";
+
+  return (
+    <>
+      <button onClick={() => setShowModal(true)}
+        style={{ background: btnColor, border: btnBorder,
+          color: "#fff", borderRadius: 8, padding: "7px 14px",
+          cursor: "pointer", fontSize: 12, fontWeight: 700,
+          fontFamily: "inherit", display: "flex", alignItems: "center", gap: 6,
+          transition: "all 0.2s" }}>
+        ⚡ Win The Day
+        {taskCount > 0 && (
+          <span style={{ background: "#fff",
+            color: taskCount <= 2 ? "#B7770D" : "#C0392B",
+            borderRadius: 20, padding: "1px 7px",
+            fontSize: 11, fontWeight: 800 }}>
+            {taskCount}
+          </span>
+        )}
+      </button>
+
+      {showModal && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 3000,
+          display: "flex", flexDirection: "column" }}>
+          {/* Backdrop */}
+          <div onClick={() => setShowModal(false)}
+            style={{ position: "absolute", inset: 0,
+              background: "rgba(0,0,0,0.6)", backdropFilter: "blur(2px)" }} />
+
+          {/* Modal */}
+          <div style={{ position: "relative", marginTop: "auto",
+            background: "#F4F4F4", borderRadius: "20px 20px 0 0",
+            maxHeight: "85vh", overflowY: "auto",
+            boxShadow: "0 -8px 32px rgba(0,0,0,0.3)",
+            animation: "slideUp 0.25s ease" }}>
+            <style>{`@keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }`}</style>
+
+            {/* Handle bar */}
+            <div style={{ display: "flex", justifyContent: "center", padding: "12px 0 0" }}>
+              <div style={{ width: 40, height: 4, borderRadius: 2, background: "#CCC" }} />
+            </div>
+
+            {/* Header */}
+            <div style={{ display: "flex", justifyContent: "space-between",
+              alignItems: "center", padding: "12px 20px 0" }}>
+              <div style={{ fontWeight: 800, fontSize: 20, color: "#111" }}>
+                ⚡ Win The Day
+              </div>
+              <button onClick={() => { setShowModal(false); fetchCount(); }}
+                style={{ background: "none", border: "none", fontSize: 24,
+                  cursor: "pointer", color: "#555", padding: "0 4px" }}>
+                ✕
+              </button>
+            </div>
+
+            {/* Dashboard content */}
+            <DailyDashboard
+              token={token}
+              user={null}
+              onViewTransactions={() => setShowModal(false)}
+            />
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
 // ═══════════════════════════════════════════════════════════════
 // ASSIGN VENDOR PANEL
 // ═══════════════════════════════════════════════════════════════
@@ -2997,6 +3097,7 @@ function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenCon
           </div>
           <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
             <button onClick={onNew} style={{ background: "#C0392B", border: "none", color: "#fff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>+ New Transaction</button>
+              <WinTheDayButton token={localStorage.getItem("tp_token") || ""} />
             <button onClick={onOpenContactBook} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "rgba(255,255,255,0.88)", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 600, fontFamily: "inherit" }}>Contacts{contactCount > 0 ? ` (${contactCount})` : ""}</button>
             <button onClick={onVendors} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "rgba(255,255,255,0.88)", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 600, fontFamily: "inherit" }}>🏆 Vendors</button>
             <button onClick={onReports} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "rgba(255,255,255,0.88)", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 600, fontFamily: "inherit" }}>📊 Reports</button>
