@@ -197,7 +197,7 @@ function TaskCard({ task, token, onResolve, onSnooze, onOpenModal, onStartChase 
             <button onClick={() => onStartChase(task)}
               style={{ flex:"2 1 60%", padding:"11px 0", borderRadius:10, border:"none",
                 background:COLORS.red, color:COLORS.white, fontWeight:700, fontSize:14, cursor:"pointer" }}>
-              Take Action
+              Follow Up Now
             </button>
             <button onClick={() => onResolve(task.id)}
               style={{ flex:"1 1 30%", padding:"11px 0", borderRadius:10,
@@ -341,14 +341,14 @@ export default function DailyDashboard({ token, user, onViewTransactions }) {
       });
       const data = await res.json();
       if (data.success) {
-        alert("Chase started! First nudge will be sent shortly to " + (data.party?.name || "the party") + ".");
+        alert("Follow-up started! First reminder will be sent shortly to " + (data.party?.name || "the party") + ".");
         setChaseTask(null);
         setResolvedIds(prev => new Set([...prev, chaseTask.id]));
       } else {
-        alert("Could not start chase: " + (data.error || "unknown error"));
+        alert("Could not start follow-up: " + (data.error || "unknown error"));
       }
     } catch (e) {
-      alert("Network error starting chase");
+      alert("Network error starting follow-up");
     }
     setChaseSubmitting(false);
   };
@@ -451,7 +451,7 @@ export default function DailyDashboard({ token, user, onViewTransactions }) {
           <div onClick={e => e.stopPropagation()}
             style={{ background:COLORS.white, borderRadius:14, padding:20, maxWidth:420, width:"100%",
               maxHeight:"90vh", overflowY:"auto" }}>
-            <div style={{ fontSize:18, fontWeight:800, marginBottom:6 }}>🚨 Start Chase</div>
+            <div style={{ fontSize:18, fontWeight:800, marginBottom:6 }}>Start Follow-Up</div>
             <div style={{ fontSize:13, color:COLORS.gray, marginBottom:14 }}>
               {chaseTask.title}
             </div>
@@ -481,7 +481,7 @@ export default function DailyDashboard({ token, user, onViewTransactions }) {
                 style={{ flex:2, padding:"12px 0", borderRadius:10, border:"none",
                   background:COLORS.red, color:COLORS.white, fontWeight:700, fontSize:14,
                   cursor: chaseSubmitting ? "wait" : "pointer", opacity: chaseSubmitting ? 0.7 : 1 }}>
-                {chaseSubmitting ? "Starting..." : "🚨 Start Chase"}
+                {chaseSubmitting ? "Starting..." : "Start Follow-Up"}
               </button>
             </div>
           </div>
