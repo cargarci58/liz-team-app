@@ -1660,6 +1660,44 @@ function MilestonesTab({ tx, token }) {
 
   return (
     <div style={{ padding: 16 }}>
+      {(() => {
+        const complianceArr = Object.values(compliance);
+        const totalRequired = complianceArr.filter(c => c.documentRequired).length;
+        const uploaded = complianceArr.filter(c => c.documentRequired && c.documentUploaded).length;
+        const completedWithoutDoc = complianceArr.filter(c =>
+          c.documentRequired && !c.documentUploaded && c.status === "Completed"
+        ).length;
+        if (totalRequired === 0) return null;
+        const pct = totalRequired === 0 ? 100 : Math.round((uploaded / totalRequired) * 100);
+        return (
+          <div style={{ background: completedWithoutDoc > 0 ? "#FEE2E2" : (pct === 100 ? "#D1FAE5" : "#FFFBEB"),
+            borderRadius: 14, padding: 16, marginBottom: 12,
+            border: "1px solid " + (completedWithoutDoc > 0 ? "#FCA5A5" : (pct === 100 ? "#86EFAC" : "#FCD34D")) }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+              <div style={{ fontWeight: 700, fontSize: 14, color:
+                completedWithoutDoc > 0 ? "#991B1B" : (pct === 100 ? "#065F46" : "#92400E") }}>
+                {pct === 100 ? "✅ Fully Compliant" : "📋 Compliance Status"}
+              </div>
+              <div style={{ fontWeight: 700, fontSize: 14, color:
+                completedWithoutDoc > 0 ? "#991B1B" : (pct === 100 ? "#065F46" : "#92400E") }}>
+                {uploaded}/{totalRequired} documents
+              </div>
+            </div>
+            {completedWithoutDoc > 0 && (
+              <div style={{ fontSize: 12, color: "#991B1B", marginTop: 4, lineHeight: 1.5 }}>
+                ⚠️ <strong>{completedWithoutDoc}</strong> milestone{completedWithoutDoc > 1 ? "s" : ""} marked complete but missing required document{completedWithoutDoc > 1 ? "s" : ""}.
+                Scroll down to upload the missing files.
+              </div>
+            )}
+            {completedWithoutDoc === 0 && pct < 100 && (
+              <div style={{ fontSize: 12, color: "#78350F", marginTop: 4, lineHeight: 1.5 }}>
+                Upload required documents as milestones complete to keep this transaction compliant.
+              </div>
+            )}
+          </div>
+        );
+      })()}
+
       <div style={{ background: "#fff", borderRadius: 14, padding: 16, marginBottom: 16,
         boxShadow: "0 1px 4px rgba(0,0,0,0.08)" }}>
         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
