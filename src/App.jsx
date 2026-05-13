@@ -2674,10 +2674,10 @@ function NewTransactionForm({ onSave, onCancel }) {
 
 // ─── DASHBOARD ────────────────────────────────────────────────
 function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenContactBook, contactCount, onLogout, onOpenTeam, onChangePassword, onReports, onHome, onVendors, onCompanySettings, onAgentProfile, onIntakeLinks, currentUser }) {
-  const [filter, setFilter] = useState("All");
+  const [filter, setFilter] = useState("Active");
   const [search, setSearch] = useState("");
   const [viewMode, setViewMode] = useState(() => localStorage.getItem("tp_view_mode") || "cards");
-  const [sortKey, setSortKey] = useState(() => localStorage.getItem("tp_sort_key") || "closingDate");
+  const [sortKey, setSortKey] = useState(() => localStorage.getItem("tp_sort_key") || "status");
   const [sortDir, setSortDir] = useState(() => localStorage.getItem("tp_sort_dir") || "asc");
   useEffect(() => { localStorage.setItem("tp_view_mode", viewMode); }, [viewMode]);
   useEffect(() => { localStorage.setItem("tp_sort_key", sortKey); }, [sortKey]);
@@ -3011,6 +3011,22 @@ function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenCon
   const sorted = [...filtered].sort((a, b) => {
     const dir = sortDir === "asc" ? 1 : -1;
     let av, bv;
+    // Status priority sort — Active first, then contract stages, then closed
+    if (sortKey === "status") {
+      const STATUS_PRIORITY = {
+        "Active": 1, "Under Contract": 2, "Inspection": 3,
+        "Appraisal": 4, "Clear to Close": 5, "On Hold": 6,
+        "Closed": 7, "Cancelled": 8
+      };
+      return sorted.sort((a, b) => {
+        const pa = STATUS_PRIORITY[a.status] || 9;
+        const pb = STATUS_PRIORITY[b.status] || 9;
+        if (pa !== pb) return sortDir === "asc" ? pa - pb : pb - pa;
+        // Secondary sort by closing date
+        if (a.closingDate && b.closingDate) return new Date(a.closingDate) - new Date(b.closingDate);
+        return 0;
+      });
+    }
     switch (sortKey) {
       case "address": av = (a.address || "").toLowerCase(); bv = (b.address || "").toLowerCase(); break;
       case "status": av = a.status || ""; bv = b.status || ""; break;
@@ -3142,9 +3158,15 @@ function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenCon
           style={{ padding: "7px 14px", borderRadius: 8, border: `1px solid ${COLORS.border}`,
             background: "#fff", color: "#111", fontSize: 13, fontWeight: 600,
             cursor: "pointer", fontFamily: "inherit", minWidth: 160 }}>
-          {["All","Active","Under Contract","Inspection","Appraisal","Clear to Close","Closed","On Hold","Cancelled"].map(s => (
-            <option key={s} value={s}>{s}</option>
-          ))}
+          <option value="Active">Active</option>
+          <option value="Under Contract">Under Contract</option>
+          <option value="Inspection">Inspection</option>
+          <option value="Appraisal">Appraisal</option>
+          <option value="Clear to Close">Clear to Close</option>
+          <option value="All">All (including Closed)</option>
+          <option value="Closed">Closed Only</option>
+          <option value="On Hold">On Hold</option>
+          <option value="Cancelled">Cancelled</option>
         </select>
         <div style={{ marginLeft: "auto", display: "flex", gap: 6, position: "relative" }}>
           <button onClick={() => setShowViewsMenu(v => !v)} title="My saved views" style={{ padding: "7px 12px", borderRadius: 8, border: `1px solid ${COLORS.border}`, background: "#fff", color: COLORS.text, fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 6 }}>📋 Views {savedViews.length > 0 && <span style={{ background: COLORS.bg, color: COLORS.muted, borderRadius: 10, padding: "1px 7px", fontSize: 11, fontWeight: 700 }}>{savedViews.length}</span>} <span style={{ fontSize: 9 }}>▾</span></button>
