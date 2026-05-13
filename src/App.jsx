@@ -2677,7 +2677,7 @@ function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenCon
   const [filter, setFilter] = useState("Active");
   const [search, setSearch] = useState("");
   const [viewMode, setViewMode] = useState(() => localStorage.getItem("tp_view_mode") || "cards");
-  const [sortKey, setSortKey] = useState(() => localStorage.getItem("tp_sort_key") || "status");
+  const [sortKey, setSortKey] = useState(() => { const saved = localStorage.getItem("tp_sort_key"); return saved && saved !== "closingDate" ? saved : "status"; });
   const [sortDir, setSortDir] = useState(() => localStorage.getItem("tp_sort_dir") || "asc");
   useEffect(() => { localStorage.setItem("tp_view_mode", viewMode); }, [viewMode]);
   useEffect(() => { localStorage.setItem("tp_sort_key", sortKey); }, [sortKey]);
@@ -2791,7 +2791,7 @@ function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenCon
     params.set("page", page);
     params.set("pageSize", 50);
     if (debouncedSearch) params.set("search", debouncedSearch);
-    if (filter && filter !== "All") params.set("status", filter);
+    if (filter && filter !== "All" && filter !== "All (including Closed)") params.set("status", filter);
     if (sortKey) params.set("sortKey", sortKey);
     if (sortDir) params.set("sortDir", sortDir);
     if (agentFilter) params.set("assignedAgent", agentFilter);
@@ -2882,7 +2882,7 @@ function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenCon
     setDatePreset(f.datePreset || "");
     setClosingFrom(f.closingFrom || "");
     setClosingTo(f.closingTo || "");
-    setFilter(f.statusFilter || "All");
+    setFilter(f.statusFilter || "Active");
     if (view.sortKey) setSortKey(view.sortKey);
     if (view.sortDir) setSortDir(view.sortDir);
     if (view.viewMode) setViewMode(view.viewMode);
@@ -3007,7 +3007,7 @@ function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenCon
   const [showOverdue, setShowOverdue] = useState(false);
   const [remindingTask, setRemindingTask] = useState(null);
   const [remindingTx, setRemindingTx] = useState(null);
-  const filtered = transactions.filter(tx => ((filter === "All" ? tx.status !== "Cancelled" : tx.status === filter)) && (!search || tx.address.toLowerCase().includes(search.toLowerCase()) || tx.city.toLowerCase().includes(search.toLowerCase()) || (tx.mlsNumber || "").toLowerCase().includes(search.toLowerCase()) || (tx.parties || []).some(p => p && p.name && p.name.toLowerCase().includes(search.toLowerCase()))));
+  const filtered = transactions.filter(tx => ((filter === "All" ? (tx.status !== "Cancelled" && tx.status !== "Closed") : filter === "All (including Closed)" ? tx.status !== "Cancelled" : tx.status === filter)) && (!search || tx.address.toLowerCase().includes(search.toLowerCase()) || tx.city.toLowerCase().includes(search.toLowerCase()) || (tx.mlsNumber || "").toLowerCase().includes(search.toLowerCase()) || (tx.parties || []).some(p => p && p.name && p.name.toLowerCase().includes(search.toLowerCase()))));
   const sorted = [...filtered].sort((a, b) => {
     const dir = sortDir === "asc" ? 1 : -1;
     let av, bv;
