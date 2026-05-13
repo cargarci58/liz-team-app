@@ -1327,6 +1327,7 @@ function WinTheDayButton({ token }) {
               token={token}
               user={null}
               onViewTransactions={() => setShowModal(false)}
+              onOpenTransactionMilestones={(txId) => { setShowModal(false); }}
             />
           </div>
         </div>
@@ -4101,11 +4102,16 @@ function MainApp({ onLogout, currentUser }) {
           onInviteParty={(party) => invitePartyToPortal(party, selectedTx)}
         />
       )}
+  const openTransactionMilestones = (txId) => {
+    const t = transactions.find(t => t.id === txId);
+    if (t) { setSelectedId(txId); setInitialDetailTab("milestones"); setView("detail"); }
+  };
       {!showReports && view === "home" && (
         <DailyDashboard
           token={localStorage.getItem("tp_token") || ""}
           user={currentUser}
           onViewTransactions={() => setView("dashboard")}
+          onOpenTransactionMilestones={openTransactionMilestones}
         />
       )}
       {!showReports && !showCalendar && view === "dashboard" && (

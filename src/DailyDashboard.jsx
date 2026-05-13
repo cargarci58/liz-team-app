@@ -148,12 +148,13 @@ function SellerUpdateModal({ task, token, onClose, onDone }) {
 }
 
 // ── TASK CARD ─────────────────────────────────────────────────
-function TaskCard({ task, token, onResolve, onSnooze, onOpenModal, onStartChase }) {
+function TaskCard({ task, token, onResolve, onSnooze, onOpenModal, onStartChase, onOpenTransactionMilestones }) {
   const cfg = PRIORITY_CONFIG[task.priority] || PRIORITY_CONFIG.normal;
   const icon = TASK_ICONS[task.task_type] || "📌";
   const isSellerUpdate = task.task_type === "seller_update";
   const isBuyerUpdate = task.task_type === "buyer_update";
   const isChaseable = ["milestone_overdue","milestone_upcoming","custom_task_overdue","custom_task_today","custom_task_upcoming"].includes(task.task_type);
+  const isComplianceGap = task.task_type === "compliance_gap";
 
   return (
     <div style={{ background:COLORS.white, borderRadius:14, padding:16, marginBottom:12,
@@ -190,6 +191,14 @@ function TaskCard({ task, token, onResolve, onSnooze, onOpenModal, onStartChase 
                 border:"1.5px solid "+COLORS.border, background:COLORS.white,
                 color:COLORS.gray, fontWeight:600, fontSize:13, cursor:"pointer" }}>
               Already Sent
+            </button>
+          </>
+        ) : isComplianceGap ? (
+          <>
+            <button onClick={() => onOpenTransactionMilestones && onOpenTransactionMilestones(task.transaction_id)}
+              style={{ flex:"2 1 100%", padding:"11px 0", borderRadius:10, border:"none",
+                background:COLORS.red, color:COLORS.white, fontWeight:700, fontSize:14, cursor:"pointer" }}>
+              📎 Open & Upload Document
             </button>
           </>
         ) : isChaseable ? (
@@ -253,7 +262,7 @@ function EmptyState({ firstName }) {
 }
 
 // ── MAIN DASHBOARD ────────────────────────────────────────────
-export default function DailyDashboard({ token, user, onViewTransactions }) {
+export default function DailyDashboard({ token, user, onViewTransactions, onOpenTransactionMilestones }) {
   const [tasks, setTasks] = useState({ overdue:[], dueToday:[], upcoming:[] });
   const [loading, setLoading] = useState(true);
   const [activeModal, setActiveModal] = useState(null);
@@ -445,7 +454,7 @@ export default function DailyDashboard({ token, user, onViewTransactions }) {
           {visibleOverdue.map(task => (
             <TaskCard key={task.id} task={task} token={token}
               onResolve={handleResolve} onSnooze={handleSnooze}
-              onOpenModal={setActiveModal} onStartChase={handleStartChase} />
+              onOpenModal={setActiveModal} onStartChase={handleStartChase} onOpenTransactionMilestones={onOpenTransactionMilestones} />
           ))}
         </div>
       )}
@@ -457,7 +466,7 @@ export default function DailyDashboard({ token, user, onViewTransactions }) {
           {visibleToday.map(task => (
             <TaskCard key={task.id} task={task} token={token}
               onResolve={handleResolve} onSnooze={handleSnooze}
-              onOpenModal={setActiveModal} onStartChase={handleStartChase} />
+              onOpenModal={setActiveModal} onStartChase={handleStartChase} onOpenTransactionMilestones={onOpenTransactionMilestones} />
           ))}
         </div>
       )}
@@ -469,7 +478,7 @@ export default function DailyDashboard({ token, user, onViewTransactions }) {
           {visibleUpcoming.map(task => (
             <TaskCard key={task.id} task={task} token={token}
               onResolve={handleResolve} onSnooze={handleSnooze}
-              onOpenModal={setActiveModal} onStartChase={handleStartChase} />
+              onOpenModal={setActiveModal} onStartChase={handleStartChase} onOpenTransactionMilestones={onOpenTransactionMilestones} />
           ))}
         </div>
       )}
