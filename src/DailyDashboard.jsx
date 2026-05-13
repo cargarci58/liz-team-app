@@ -340,11 +340,21 @@ export default function DailyDashboard({ token, user, onViewTransactions }) {
         })
       });
       const data = await res.json();
+      const persistResolve = async (taskId) => {
+        try {
+          await fetch(API + "/dashboard/tasks/" + taskId + "/resolve", {
+            method: "PATCH", headers: { Authorization: "Bearer " + token }
+          });
+        } catch (e) {}
+      };
+
       if (data.success) {
+        await persistResolve(chaseTask.id);
         alert("Follow-up started! First reminder will be sent shortly to " + (data.party?.name || "the party") + ".");
         setChaseTask(null);
         setResolvedIds(prev => new Set([...prev, chaseTask.id]));
       } else if (data.error && data.error.includes("already active")) {
+        await persistResolve(chaseTask.id);
         alert("A follow-up is already running for this item. It will keep going until the task is marked complete.");
         setChaseTask(null);
         setResolvedIds(prev => new Set([...prev, chaseTask.id]));
