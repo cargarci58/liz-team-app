@@ -276,7 +276,7 @@ const TASK_STATUS = {
 };
 
 // ===== Pipeline View (read-only) =====
-const PIPELINE_COLUMNS = ["Active", "Under Contract", "Inspection", "Appraisal", "Clear to Close", "Closed"];
+const PIPELINE_COLUMNS = ["Active", "Under Contract", "Inspection", "Appraisal", "Clear to Close"];
 
 function PipelineCard({ tx, onSelect }) {
   const completed = tx.tasks ? tx.tasks.filter(t => t.status === "Completed").length : 0;
