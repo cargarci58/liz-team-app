@@ -2830,11 +2830,20 @@ function NewTransactionForm({ onSave, onCancel }) {
   const [teamAgents, setTeamAgents] = useState([]);
   useEffect(() => { const tok = localStorage.getItem("tp_token") || ""; fetch(API + "/users", { headers: { "Authorization": "Bearer " + tok } }).then(r => r.json()).then(d => { if (d.users) setTeamAgents(d.users.filter(u => u.role === "agent" || u.role === "admin" || u.role === "superadmin")); }).catch(() => {}); }, []);
   const [useFLTemplates, setUseFLTemplates] = useState(true);
+  const [taskTemplates, setTaskTemplates] = useState([]);
+  useEffect(() => {
+    const tok = localStorage.getItem("tp_token") || "";
+    fetch(API + "/task-templates?state=FL&transactionType=" + encodeURIComponent(form.type), {
+      headers: { "Authorization": "Bearer " + tok }
+    }).then(r => r.json()).then(d => {
+      if (d.success) setTaskTemplates(d.templates || []);
+    }).catch(() => {});
+  }, [form.type]);
   const f = k => v => setForm(p => ({ ...p, [k]: v }));
   const handleSave = async () => {
     if (!form.address || !form.city || !form.assignedAgent || !form.referralSource || !form.occupancyStatus) { alert("Please fill all required fields: Address, City, Assigned Agent, Referral Source, and Occupancy Status."); return; }
     const contractDate = form.executedDate || form.openDate;
-    const tasks = useFLTemplates ? (FLORIDA_TASK_TEMPLATES[form.type] || []).filter(t => t.phase === "active").map(t => ({ id: genId(), name: t.name, category: t.category, assignTo: t.assignTo, dueDate: null, status: "Pending", notes: "", phase: "active" })) : [];
+    const tasks = useFLTemplates ? taskTemplates.filter(t => t.phase === "active").map(t => ({ id: genId(), name: t.task_name, category: t.category, assignTo: t.default_assignee_role, dueDate: null, status: "Pending", notes: "", phase: "active" })) : [];
     const tok = localStorage.getItem("tp_token") || "";
     try {
       const res = await fetch(API + "/transactions", {
@@ -2926,7 +2935,7 @@ function NewTransactionForm({ onSave, onCancel }) {
             <input type="checkbox" checked={useFLTemplates} onChange={e => setUseFLTemplates(e.target.checked)} style={{ width: 16, height: 16 }} />
             <span style={{ fontSize: 14 }}>Auto-load Florida FR/Bar checklist for <strong>{form.type}</strong></span>
           </label>
-          {useFLTemplates && <div style={{ background: COLORS.infoBg, borderRadius: 8, padding: 12, fontSize: 12, color: COLORS.info }}><strong>{(FLORIDA_TASK_TEMPLATES[form.type] || []).length} tasks</strong> will be created with EMD deadlines, inspection period, BINSR, loan approval, title, and closing requirements.</div>}
+          {useFLTemplates && <div style={{ background: COLORS.infoBg, borderRadius: 8, padding: 12, fontSize: 12, color: COLORS.info }}><strong>{taskTemplates.length} workflow tasks</strong> will be created. Compliance milestones (EMD, BINSR, Loan, Title, Closing, etc.) are tracked separately and will appear in the Milestones tab.</div>}
         </div>
         <Input label="Notes" value={form.notes} onChange={f("notes")} type="textarea" />
         <div style={{ display: "flex", gap: 12, justifyContent: "flex-end" }}>
