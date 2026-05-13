@@ -1491,6 +1491,9 @@ function MilestonesTab({ tx, token }) {
     if (file.size > 50 * 1024 * 1024) { alert("File too large (50MB max)"); return; }
 
     setUploadingFor(milestoneId);
+    // If milestone is already completed, retroactive upload — don't try to re-complete
+    const currentMilestone = milestones.find(m => m.id === milestoneId);
+    const isRetroactive = currentMilestone?.status === "Completed";
     try {
       const urlRes = await fetch(API + "/documents/upload-url", {
         method: "POST",
@@ -1500,7 +1503,7 @@ function MilestonesTab({ tx, token }) {
           milestoneId,
           fileName: file.name,
           fileType: file.type || "application/octet-stream",
-          markComplete: true
+          markComplete: !isRetroactive
         })
       });
       const urlData = await urlRes.json();
@@ -1513,10 +1516,12 @@ function MilestonesTab({ tx, token }) {
       });
       if (!putRes.ok) throw new Error("Upload to storage failed");
 
-      alert("✅ Document uploaded and milestone marked complete!");
-      setMilestones(prev => prev.map(m =>
-        m.id === milestoneId ? { ...m, status: "Completed", completed_at: new Date().toISOString() } : m
-      ));
+      alert(isRetroactive ? "✅ Document uploaded to existing milestone." : "✅ Document uploaded and milestone marked complete!");
+      if (!isRetroactive) {
+        setMilestones(prev => prev.map(m =>
+          m.id === milestoneId ? { ...m, status: "Completed", completed_at: new Date().toISOString() } : m
+        ));
+      }
       fetchCompliance();
     } catch (err) {
       alert("Upload failed: " + err.message);
@@ -1708,6 +1713,11 @@ function MilestonesTab({ tx, token }) {
                     {isCompleted && m.completed_by_name && (
                       <div style={{ fontSize: 11, color: "#555", marginTop: 2 }}>by {m.completed_by_name}</div>
                     )}
+                    {isCompleted && compliance[m.id]?.documentRequired && !compliance[m.id]?.documentUploaded && (
+                      <div style={{ background: "#FEE2E2", border: "1px solid #FCA5A5", borderRadius: 6, padding: 8, marginTop: 6, fontSize: 11, color: "#991B1B" }}>
+                        ⚠️ Compliance gap: marked complete but missing {compliance[m.id].requiredDocType}
+                      </div>
+                    )}
                   </div>
                 </div>
                 {compliance[m.id]?.documentRequired && !isCompleted && (
@@ -1716,6 +1726,15 @@ function MilestonesTab({ tx, token }) {
                       📎 Required: {compliance[m.id].requiredDocType}
                     </div>
                     <div style={{ color: "#78350F" }}>{compliance[m.id].description}</div>
+                  </div>
+                )}
+                {isCompleted && compliance[m.id]?.documentRequired && !compliance[m.id]?.documentUploaded && (
+                  <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+                    <button onClick={() => handleUploadClick(m.id)} disabled={uploadingFor === m.id}
+                      style={{ flex: 1, padding: "10px 0", borderRadius: 8, border: "1.5px solid #C0392B",
+                        background: "#fff", color: "#C0392B", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
+                      {uploadingFor === m.id ? "Uploading..." : "📎 Upload Missing Document"}
+                    </button>
                   </div>
                 )}
                 {!isCompleted && (
