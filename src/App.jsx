@@ -3018,13 +3018,11 @@ function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenCon
         "Appraisal": 4, "Clear to Close": 5, "On Hold": 6,
         "Closed": 7, "Cancelled": 8
       };
-      return sorted.sort((a, b) => {
-        const pa = priorities[a.status] || 9;
-        const pb = priorities[b.status] || 9;
-        if (pa !== pb) return sortDir === "asc" ? pa - pb : pb - pa;
-        if (a.closingDate && b.closingDate) return new Date(a.closingDate) - new Date(b.closingDate);
-        return 0;
-      });
+      const pa = priorities[a.status] || 9;
+      const pb = priorities[b.status] || 9;
+      if (pa !== pb) return sortDir === "asc" ? pa - pb : pb - pa;
+      if (a.closingDate && b.closingDate) return new Date(a.closingDate) - new Date(b.closingDate);
+      return 0;
     }
     switch (sortKey) {
       case "address": av = (a.address || "").toLowerCase(); bv = (b.address || "").toLowerCase(); break;
