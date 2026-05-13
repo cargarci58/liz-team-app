@@ -1759,11 +1759,33 @@ function MilestonesTab({ tx, token }) {
                   </div>
                 </div>
                 {compliance[m.id]?.documentRequired && !isCompleted && (
-                  <div style={{ background: "#FFFBEB", border: "1px solid #FCD34D", borderRadius: 8, padding: 10, marginTop: 10, fontSize: 12, lineHeight: 1.5 }}>
-                    <div style={{ fontWeight: 700, color: "#92400E", marginBottom: 2 }}>
+                  <div style={{ background: "#FFFBEB", border: "1px solid #FCD34D", borderRadius: 8, padding: 12, marginTop: 10, fontSize: 12, lineHeight: 1.5 }}>
+                    <div style={{ fontWeight: 700, color: "#92400E", marginBottom: 4, fontSize: 13 }}>
                       📎 Required: {compliance[m.id].requiredDocType}
                     </div>
-                    <div style={{ color: "#78350F" }}>{compliance[m.id].description}</div>
+                    <div style={{ color: "#78350F", marginBottom: compliance[m.id].legalConsequence ? 8 : 0 }}>
+                      {compliance[m.id].description}
+                    </div>
+                    {compliance[m.id].legalConsequence && (
+                      <div style={{ borderTop: "1px solid #FCD34D", paddingTop: 8, marginTop: 4 }}>
+                        <div style={{ fontWeight: 700, color: "#92400E", fontSize: 11, letterSpacing: 0.5, marginBottom: 2 }}>
+                          ⚠️ WHY THIS MATTERS
+                        </div>
+                        <div style={{ color: "#78350F", fontSize: 12 }}>
+                          {compliance[m.id].legalConsequence}
+                        </div>
+                        {compliance[m.id].statuteReference && (
+                          <div style={{ color: "#92400E", fontSize: 10, fontStyle: "italic", marginTop: 3 }}>
+                            Reference: {compliance[m.id].statuteReference}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    {compliance[m.id].isConditional && compliance[m.id].conditionalLogic && (
+                      <div style={{ borderTop: "1px solid #FCD34D", paddingTop: 8, marginTop: 8, color: "#78350F", fontSize: 11, fontStyle: "italic" }}>
+                        Only applies if: {compliance[m.id].conditionalLogic}
+                      </div>
+                    )}
                   </div>
                 )}
                 {isCompleted && compliance[m.id]?.documentRequired && !compliance[m.id]?.documentUploaded && (
