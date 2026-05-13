@@ -2882,8 +2882,8 @@ function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenCon
     setDatePreset(f.datePreset || "");
     setClosingFrom(f.closingFrom || "");
     setClosingTo(f.closingTo || "");
-    setFilter(f.statusFilter || "Active");
-    if (view.sortKey) setSortKey(view.sortKey);
+    setFilter(f.statusFilter && f.statusFilter !== "All" ? f.statusFilter : "Active");
+    if (view.sortKey && view.sortKey !== 'closingDate') setSortKey(view.sortKey); else setSortKey('status');
     if (view.sortDir) setSortDir(view.sortDir);
     if (view.viewMode) setViewMode(view.viewMode);
     setShowViewsMenu(false);
