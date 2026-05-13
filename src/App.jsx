@@ -276,7 +276,7 @@ const TASK_STATUS = {
 };
 
 // ===== Pipeline View (read-only) =====
-const PIPELINE_COLUMNS = ["Active", "Under Contract", "Inspection", "Appraisal", "Clear to Close"];
+const PIPELINE_COLUMNS = ["Active", "Under Contract", "Inspection", "Appraisal", "Clear to Close", "Closed"];
 
 function PipelineCard({ tx, onSelect }) {
   const completed = tx.tasks ? tx.tasks.filter(t => t.status === "Completed").length : 0;
@@ -3249,7 +3249,7 @@ function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenCon
       {viewMode === "list" ? (
         <TransactionListView transactions={hydratedPagedTxs} sortKey={sortKey} sortDir={sortDir} toggleSort={toggleSort} onSelect={onSelect} />
       ) : viewMode === "kanban" ? (
-        <PipelineBoard transactions={hydratedPagedTxs} onSelect={onSelect} />
+        <PipelineBoard transactions={transactions.filter(t => t.status !== "Cancelled")} onSelect={onSelect} />
       ) : (
       <div style={{ padding: 24, display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(340px, 1fr))", gap: 16 }} data-tx-grid="">
         {hydratedPagedTxs.map(tx => {
