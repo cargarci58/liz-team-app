@@ -148,11 +148,12 @@ function SellerUpdateModal({ task, token, onClose, onDone }) {
 }
 
 // ── TASK CARD ─────────────────────────────────────────────────
-function TaskCard({ task, token, onResolve, onSnooze, onOpenModal }) {
+function TaskCard({ task, token, onResolve, onSnooze, onOpenModal, onStartChase }) {
   const cfg = PRIORITY_CONFIG[task.priority] || PRIORITY_CONFIG.normal;
   const icon = TASK_ICONS[task.task_type] || "📌";
   const isSellerUpdate = task.task_type === "seller_update";
   const isBuyerUpdate = task.task_type === "buyer_update";
+  const isChaseable = ["milestone_overdue","milestone_upcoming","custom_task_overdue","custom_task_today","custom_task_upcoming"].includes(task.task_type);
 
   return (
     <div style={{ background:COLORS.white, borderRadius:14, padding:16, marginBottom:12,
@@ -176,13 +177,35 @@ function TaskCard({ task, token, onResolve, onSnooze, onOpenModal }) {
         </div>
       </div>
 
-      <div style={{ display:"flex", gap:8, marginTop:14 }}>
+      <div style={{ display:"flex", gap:8, marginTop:14, flexWrap:"wrap" }}>
         {(isSellerUpdate || isBuyerUpdate) ? (
-          <button onClick={() => onOpenModal(task)}
-            style={{ flex:2, padding:"11px 0", borderRadius:10, border:"none",
-              background:COLORS.red, color:COLORS.white, fontWeight:700, fontSize:14, cursor:"pointer" }}>
-            Do It Now →
-          </button>
+          <>
+            <button onClick={() => onOpenModal(task)}
+              style={{ flex:"2 1 60%", padding:"11px 0", borderRadius:10, border:"none",
+                background:COLORS.red, color:COLORS.white, fontWeight:700, fontSize:14, cursor:"pointer" }}>
+              Do It Now →
+            </button>
+            <button onClick={() => onResolve(task.id)}
+              style={{ flex:"1 1 30%", padding:"11px 0", borderRadius:10,
+                border:"1.5px solid "+COLORS.border, background:COLORS.white,
+                color:COLORS.gray, fontWeight:600, fontSize:13, cursor:"pointer" }}>
+              Already Sent
+            </button>
+          </>
+        ) : isChaseable ? (
+          <>
+            <button onClick={() => onStartChase(task)}
+              style={{ flex:"2 1 60%", padding:"11px 0", borderRadius:10, border:"none",
+                background:COLORS.red, color:COLORS.white, fontWeight:700, fontSize:14, cursor:"pointer" }}>
+              🚨 Chase Party
+            </button>
+            <button onClick={() => onResolve(task.id)}
+              style={{ flex:"1 1 30%", padding:"11px 0", borderRadius:10,
+                border:"1.5px solid #1E8449", background:COLORS.white,
+                color:"#1E8449", fontWeight:600, fontSize:13, cursor:"pointer" }}>
+              ✓ Done
+            </button>
+          </>
         ) : (
           <button onClick={() => onResolve(task.id)}
             style={{ flex:2, padding:"11px 0", borderRadius:10, border:"none",
@@ -191,10 +214,10 @@ function TaskCard({ task, token, onResolve, onSnooze, onOpenModal }) {
           </button>
         )}
         <button onClick={() => onSnooze(task.id)}
-          style={{ flex:1, padding:"11px 0", borderRadius:10,
+          style={{ flex:"1 1 100%", padding:"10px 0", borderRadius:10, marginTop:4,
             border:"1.5px solid "+COLORS.border, background:COLORS.white,
-            color:COLORS.gray, fontWeight:600, fontSize:14, cursor:"pointer" }}>
-          Not Today
+            color:COLORS.gray, fontWeight:600, fontSize:13, cursor:"pointer" }}>
+          ⏰ Not Today
         </button>
       </div>
     </div>
@@ -279,6 +302,52 @@ export default function DailyDashboard({ token, user, onViewTransactions }) {
     setActiveModal(null);
   };
 
+  const [chaseTask, setChaseTask] = useState(null);
+  const [chaseSubmitting, setChaseSubmitting] = useState(false);
+  const [chaseCustomMsg, setChaseCustomMsg] = useState("");
+
+  const handleStartChase = (task) => {
+    setChaseCustomMsg("");
+    setChaseTask(task);
+  };
+
+  const submitChase = async () => {
+    if (!chaseTask) return;
+    setChaseSubmitting(true);
+    // Determine target type and id from task_type
+    let targetType, targetId;
+    if (chaseTask.task_type === "milestone_overdue" || chaseTask.task_type === "milestone_upcoming") {
+      targetType = "milestone";
+      targetId = chaseTask.target_id || chaseTask.milestone_id;
+    } else {
+      targetType = "task";
+      targetId = chaseTask.target_id || chaseTask.task_ref_id;
+    }
+    try {
+      const res = await fetch(API + "/chases/start", {
+        method: "POST",
+        headers: { "Content-Type":"application/json", Authorization: "Bearer " + token },
+        body: JSON.stringify({
+          transactionId: chaseTask.transaction_id,
+          targetType,
+          targetId,
+          customMessage: chaseCustomMsg || null
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        alert("Chase started! First nudge will be sent shortly to " + (data.party?.name || "the party") + ".");
+        setChaseTask(null);
+        setResolvedIds(prev => new Set([...prev, chaseTask.id]));
+      } else {
+        alert("Could not start chase: " + (data.error || "unknown error"));
+      }
+    } catch (e) {
+      alert("Network error starting chase");
+    }
+    setChaseSubmitting(false);
+  };
+
   const filterVisible = (arr) => arr.filter(t => !resolvedIds.has(t.id));
 
   const visibleOverdue  = filterVisible(tasks.overdue);
@@ -323,7 +392,7 @@ export default function DailyDashboard({ token, user, onViewTransactions }) {
           {visibleOverdue.map(task => (
             <TaskCard key={task.id} task={task} token={token}
               onResolve={handleResolve} onSnooze={handleSnooze}
-              onOpenModal={setActiveModal} />
+              onOpenModal={setActiveModal} onStartChase={handleStartChase} />
           ))}
         </div>
       )}
@@ -335,7 +404,7 @@ export default function DailyDashboard({ token, user, onViewTransactions }) {
           {visibleToday.map(task => (
             <TaskCard key={task.id} task={task} token={token}
               onResolve={handleResolve} onSnooze={handleSnooze}
-              onOpenModal={setActiveModal} />
+              onOpenModal={setActiveModal} onStartChase={handleStartChase} />
           ))}
         </div>
       )}
@@ -347,7 +416,7 @@ export default function DailyDashboard({ token, user, onViewTransactions }) {
           {visibleUpcoming.map(task => (
             <TaskCard key={task.id} task={task} token={token}
               onResolve={handleResolve} onSnooze={handleSnooze}
-              onOpenModal={setActiveModal} />
+              onOpenModal={setActiveModal} onStartChase={handleStartChase} />
           ))}
         </div>
       )}
@@ -369,6 +438,51 @@ export default function DailyDashboard({ token, user, onViewTransactions }) {
           onDone={handleModalDone}
         />
       )}
-    </div>
+    
+      {chaseTask && (
+        <div onClick={() => !chaseSubmitting && setChaseTask(null)}
+          style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.5)",
+            display:"flex", alignItems:"center", justifyContent:"center", zIndex:1000, padding:16 }}>
+          <div onClick={e => e.stopPropagation()}
+            style={{ background:COLORS.white, borderRadius:14, padding:20, maxWidth:420, width:"100%",
+              maxHeight:"90vh", overflowY:"auto" }}>
+            <div style={{ fontSize:18, fontWeight:800, marginBottom:6 }}>🚨 Start Chase</div>
+            <div style={{ fontSize:13, color:COLORS.gray, marginBottom:14 }}>
+              {chaseTask.title}
+            </div>
+            <div style={{ background:"#FEF3C7", borderRadius:8, padding:12, marginBottom:14, fontSize:13, lineHeight:1.5 }}>
+              We'll figure out the right party to contact and send them an SMS + email right away.
+              If they don't respond, we'll keep nudging every 48h → 24h → 12h until they do (or up to 5 times).
+              You'll get an alert if they stop responding.
+            </div>
+            <div style={{ fontSize:12, fontWeight:700, color:COLORS.gray, marginBottom:6 }}>
+              CUSTOM MESSAGE (OPTIONAL)
+            </div>
+            <textarea
+              value={chaseCustomMsg}
+              onChange={e => setChaseCustomMsg(e.target.value)}
+              placeholder="Leave blank to use a friendly default message"
+              style={{ width:"100%", minHeight:80, padding:10, borderRadius:8,
+                border:"1.5px solid "+COLORS.border, fontSize:13, fontFamily:"inherit", boxSizing:"border-box", marginBottom:14 }}
+            />
+            <div style={{ display:"flex", gap:8 }}>
+              <button onClick={() => setChaseTask(null)} disabled={chaseSubmitting}
+                style={{ flex:1, padding:"12px 0", borderRadius:10,
+                  border:"1.5px solid "+COLORS.border, background:COLORS.white,
+                  color:COLORS.gray, fontWeight:600, fontSize:14, cursor:"pointer" }}>
+                Cancel
+              </button>
+              <button onClick={submitChase} disabled={chaseSubmitting}
+                style={{ flex:2, padding:"12px 0", borderRadius:10, border:"none",
+                  background:COLORS.red, color:COLORS.white, fontWeight:700, fontSize:14,
+                  cursor: chaseSubmitting ? "wait" : "pointer", opacity: chaseSubmitting ? 0.7 : 1 }}>
+                {chaseSubmitting ? "Starting..." : "🚨 Start Chase"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      </div>
   );
 }
