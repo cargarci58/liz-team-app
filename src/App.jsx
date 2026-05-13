@@ -2602,19 +2602,55 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
           </div>
         </Modal>
       )}
-      {showAddTask && (
+      {showAddTask && (() => {
+        const partyOptions = (tx.parties || []).filter(p => p.email || p.phone).map(p => ({
+          value: p.id,
+          label: `${p.name} (${p.role})${p.email ? " — " + p.email : ""}${p.phone ? " — " + p.phone : ""}`
+        }));
+        return (
         <Modal title="Add Task" onClose={() => setShowAddTask(false)}>
           <Input label="Task Name" value={taskForm.name} onChange={v => setTaskForm(f => ({ ...f, name: v }))} required />
           <Input label="Category" value={taskForm.category} onChange={v => setTaskForm(f => ({ ...f, category: v }))} options={["Contract","Disclosure","Escrow","Inspection","Financing","Title","HOA","Insurance","Marketing","Closing","Post-Closing"]} />
-          <Input label="Assign To" value={taskForm.assignTo} onChange={v => setTaskForm(f => ({ ...f, assignTo: v }))} options={PARTY_ROLES} />
+          <div style={{ marginBottom: 10 }}>
+            <div style={{ fontSize: 12, fontWeight: 600, color: "#555", marginBottom: 4 }}>Who is responsible? (for follow-ups)</div>
+            <select value={taskForm.assignedPartyId || ""}
+              onChange={e => {
+                const partyId = e.target.value;
+                const party = (tx.parties || []).find(p => p.id === partyId);
+                setTaskForm(f => ({
+                  ...f,
+                  assignedPartyId: partyId,
+                  assignedPartyEmail: party?.email || "",
+                  assignedPartyName: party?.name || "",
+                  assignedPartyPhone: party?.phone || "",
+                  assignTo: party?.role || ""
+                }));
+              }}
+              style={{ width: "100%", padding: 8, borderRadius: 6, border: "1px solid #DDD", fontSize: 13, boxSizing: "border-box" }}>
+              <option value="">No specific party</option>
+              {partyOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </select>
+            {partyOptions.length === 0 && (
+              <div style={{ fontSize: 11, color: "#B7770D", marginTop: 4 }}>
+                No parties with email/phone yet. Add them in the Parties tab to enable follow-ups.
+              </div>
+            )}
+          </div>
           <Input label="Due Date" value={taskForm.dueDate} onChange={v => setTaskForm(f => ({ ...f, dueDate: v }))} type="date" />
           <Input label="Notes" value={taskForm.notes} onChange={v => setTaskForm(f => ({ ...f, notes: v }))} type="textarea" />
           <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
             <Btn variant="ghost" onClick={() => setShowAddTask(false)}>Cancel</Btn>
-            <Btn onClick={() => { if (taskForm.name) { update({ tasks: [...tx.tasks, { ...taskForm, id: genId(), status: "Pending" }] }); setTaskForm({ name: "", category: "Contract", assignTo: "", dueDate: "", notes: "" }); setShowAddTask(false); } }}>Add Task</Btn>
+            <Btn onClick={() => {
+              if (taskForm.name) {
+                update({ tasks: [...tx.tasks, { ...taskForm, id: genId(), status: "Pending" }] });
+                setTaskForm({ name: "", category: "Contract", assignTo: "", dueDate: "", notes: "", assignedPartyId: "", assignedPartyEmail: "", assignedPartyName: "", assignedPartyPhone: "" });
+                setShowAddTask(false);
+              }
+            }}>Add Task</Btn>
           </div>
         </Modal>
-      )}
+        );
+      })()}
       {showAddReminder && (
         <Modal title="Add Reminder" onClose={() => setShowAddReminder(false)}>
           <Input label="Title" value={reminderForm.title} onChange={v => setReminderForm(f => ({ ...f, title: v }))} required />
