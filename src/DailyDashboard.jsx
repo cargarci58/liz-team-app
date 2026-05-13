@@ -305,10 +305,44 @@ export default function DailyDashboard({ token, user, onViewTransactions }) {
   const [chaseTask, setChaseTask] = useState(null);
   const [chaseSubmitting, setChaseSubmitting] = useState(false);
   const [chaseCustomMsg, setChaseCustomMsg] = useState("");
+  const [chasePreview, setChasePreview] = useState(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
 
-  const handleStartChase = (task) => {
+  const handleStartChase = async (task) => {
     setChaseCustomMsg("");
+    setChasePreview(null);
     setChaseTask(task);
+    setPreviewLoading(true);
+
+    let targetType, targetId;
+    if (task.task_type === "milestone_overdue" || task.task_type === "milestone_upcoming") {
+      targetType = "milestone";
+    } else {
+      targetType = "task";
+    }
+    targetId = task.target_ref_id;
+
+    if (!targetId) {
+      setPreviewLoading(false);
+      return;
+    }
+
+    try {
+      const res = await fetch(API + "/chases/preview", {
+        method: "POST",
+        headers: { "Content-Type":"application/json", Authorization: "Bearer " + token },
+        body: JSON.stringify({
+          transactionId: task.transaction_id,
+          targetType, targetId
+        })
+      });
+      const data = await res.json();
+      if (data.success) setChasePreview(data);
+      else setChasePreview({ error: data.error, availableParties: data.availableParties });
+    } catch (e) {
+      setChasePreview({ error: "Could not load preview" });
+    }
+    setPreviewLoading(false);
   };
 
   const submitChase = async () => {
@@ -469,21 +503,63 @@ export default function DailyDashboard({ token, user, onViewTransactions }) {
             <div style={{ fontSize:13, color:COLORS.gray, marginBottom:14 }}>
               {chaseTask.title}
             </div>
-            <div style={{ background:"#FEF3C7", borderRadius:8, padding:12, marginBottom:14, fontSize:13, lineHeight:1.5 }}>
-              We'll figure out the right party to contact and send them an SMS + email right away.
-              If they don't respond, we'll keep nudging every 48h → 24h → 12h until they do (or up to 5 times).
-              You'll get an alert if they stop responding.
-            </div>
-            <div style={{ fontSize:12, fontWeight:700, color:COLORS.gray, marginBottom:6 }}>
-              CUSTOM MESSAGE (OPTIONAL)
-            </div>
-            <textarea
-              value={chaseCustomMsg}
-              onChange={e => setChaseCustomMsg(e.target.value)}
-              placeholder="Leave blank to use a friendly default message"
-              style={{ width:"100%", minHeight:80, padding:10, borderRadius:8,
-                border:"1.5px solid "+COLORS.border, fontSize:13, fontFamily:"inherit", boxSizing:"border-box", marginBottom:14 }}
-            />
+
+            {previewLoading && (
+              <div style={{ padding:"24px 0", textAlign:"center", color:COLORS.gray, fontSize:13 }}>
+                Loading preview...
+              </div>
+            )}
+
+            {!previewLoading && chasePreview && chasePreview.error && (
+              <div style={{ background:"#FEE2E2", color:"#991B1B", borderRadius:8, padding:12, marginBottom:14, fontSize:13 }}>
+                {chasePreview.error}
+              </div>
+            )}
+
+            {!previewLoading && chasePreview && chasePreview.success && (
+              <>
+                <div style={{ fontSize:11, fontWeight:700, color:COLORS.gray, marginBottom:6, letterSpacing:0.5 }}>
+                  WILL CONTACT
+                </div>
+                <div style={{ background:"#F3F4F6", borderRadius:10, padding:12, marginBottom:14 }}>
+                  <div style={{ fontWeight:700, fontSize:15, marginBottom:2 }}>👤 {chasePreview.party.name}</div>
+                  <div style={{ fontSize:12, color:COLORS.gray, marginBottom:6 }}>{chasePreview.party.role}</div>
+                  {chasePreview.party.email && <div style={{ fontSize:13, color:COLORS.black }}>📧 {chasePreview.party.email}</div>}
+                  {chasePreview.party.phone && <div style={{ fontSize:13, color:COLORS.black }}>📱 {chasePreview.party.phone}</div>}
+                </div>
+
+                <div style={{ fontSize:11, fontWeight:700, color:COLORS.gray, marginBottom:6, letterSpacing:0.5 }}>
+                  MESSAGE PREVIEW
+                </div>
+                <div style={{ background:"#FFFBEB", border:"1px solid #FCD34D", borderRadius:8, padding:12, marginBottom:14, fontSize:13, lineHeight:1.6, whiteSpace:"pre-wrap" }}>
+                  {chaseCustomMsg || chasePreview.defaultMessage}
+                </div>
+
+                <div style={{ fontSize:11, fontWeight:700, color:COLORS.gray, marginBottom:6, letterSpacing:0.5 }}>
+                  EDIT MESSAGE (OPTIONAL)
+                </div>
+                <textarea
+                  value={chaseCustomMsg}
+                  onChange={e => setChaseCustomMsg(e.target.value)}
+                  placeholder="Leave blank to use the message above"
+                  style={{ width:"100%", minHeight:70, padding:10, borderRadius:8,
+                    border:"1.5px solid "+COLORS.border, fontSize:13, fontFamily:"inherit", boxSizing:"border-box", marginBottom:14 }}
+                />
+
+                <div style={{ fontSize:11, fontWeight:700, color:COLORS.gray, marginBottom:6, letterSpacing:0.5 }}>
+                  FOLLOW-UP SCHEDULE
+                </div>
+                <div style={{ background:"#EFF6FF", borderRadius:8, padding:12, marginBottom:14, fontSize:12, lineHeight:1.7, color:"#1E3A8A" }}>
+                  • First message: <strong>right now</strong> (SMS + email)<br/>
+                  • 2nd reminder: in 48 hours<br/>
+                  • 3rd reminder: 24 hours after that<br/>
+                  • 4th & 5th: every 12 hours<br/>
+                  • Stops automatically when marked complete<br/>
+                  • You get alerted if they stop responding
+                </div>
+              </>
+            )}
+
             <div style={{ display:"flex", gap:8 }}>
               <button onClick={() => setChaseTask(null)} disabled={chaseSubmitting}
                 style={{ flex:1, padding:"12px 0", borderRadius:10,
@@ -491,11 +567,11 @@ export default function DailyDashboard({ token, user, onViewTransactions }) {
                   color:COLORS.gray, fontWeight:600, fontSize:14, cursor:"pointer" }}>
                 Cancel
               </button>
-              <button onClick={submitChase} disabled={chaseSubmitting}
+              <button onClick={submitChase} disabled={chaseSubmitting || previewLoading || (chasePreview && chasePreview.error)}
                 style={{ flex:2, padding:"12px 0", borderRadius:10, border:"none",
                   background:COLORS.red, color:COLORS.white, fontWeight:700, fontSize:14,
-                  cursor: chaseSubmitting ? "wait" : "pointer", opacity: chaseSubmitting ? 0.7 : 1 }}>
-                {chaseSubmitting ? "Starting..." : "Start Follow-Up"}
+                  cursor: chaseSubmitting ? "wait" : "pointer", opacity: (chaseSubmitting || previewLoading || (chasePreview && chasePreview.error)) ? 0.5 : 1 }}>
+                {chaseSubmitting ? "Sending..." : "Send & Start Follow-Up"}
               </button>
             </div>
           </div>
