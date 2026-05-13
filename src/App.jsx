@@ -1456,6 +1456,74 @@ function AssignVendorPanel({ tx, token, onClose, onAssigned }) {
 // ═══════════════════════════════════════════════════════════════
 function MilestonesTab({ tx, token }) {
   const [milestones, setMilestones] = useState([]);
+  const [compliance, setCompliance] = useState({});
+  const [uploadingFor, setUploadingFor] = useState(null);
+  const fileInputRef = React.useRef(null);
+  const pendingMilestoneRef = React.useRef(null);
+
+  const fetchCompliance = async () => {
+    try {
+      const res = await fetch(API + "/documents/compliance/" + tx.id, {
+        headers: { Authorization: "Bearer " + token }
+      });
+      const data = await res.json();
+      if (data.success) {
+        const map = {};
+        data.compliance.forEach(c => { map[c.milestoneId] = c; });
+        setCompliance(map);
+      }
+    } catch (e) {}
+  };
+
+  React.useEffect(() => { fetchCompliance(); }, []);
+
+  const handleUploadClick = (milestoneId) => {
+    pendingMilestoneRef.current = milestoneId;
+    fileInputRef.current?.click();
+  };
+
+  const handleFileSelected = async (e) => {
+    const file = e.target.files?.[0];
+    const milestoneId = pendingMilestoneRef.current;
+    if (!file || !milestoneId) return;
+    e.target.value = "";
+
+    if (file.size > 50 * 1024 * 1024) { alert("File too large (50MB max)"); return; }
+
+    setUploadingFor(milestoneId);
+    try {
+      const urlRes = await fetch(API + "/documents/upload-url", {
+        method: "POST",
+        headers: { "Content-Type":"application/json", Authorization: "Bearer " + token },
+        body: JSON.stringify({
+          transactionId: tx.id,
+          milestoneId,
+          fileName: file.name,
+          fileType: file.type || "application/octet-stream",
+          markComplete: true
+        })
+      });
+      const urlData = await urlRes.json();
+      if (!urlData.success) throw new Error(urlData.error || "Could not get upload URL");
+
+      const putRes = await fetch(urlData.uploadUrl, {
+        method: "PUT",
+        headers: { "Content-Type": file.type || "application/octet-stream" },
+        body: file
+      });
+      if (!putRes.ok) throw new Error("Upload to storage failed");
+
+      alert("✅ Document uploaded and milestone marked complete!");
+      setMilestones(prev => prev.map(m =>
+        m.id === milestoneId ? { ...m, status: "Completed", completed_at: new Date().toISOString() } : m
+      ));
+      fetchCompliance();
+    } catch (err) {
+      alert("Upload failed: " + err.message);
+    }
+    setUploadingFor(null);
+    pendingMilestoneRef.current = null;
+  };
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [completing, setCompleting] = useState(null);
@@ -1642,14 +1710,29 @@ function MilestonesTab({ tx, token }) {
                     )}
                   </div>
                 </div>
+                {compliance[m.id]?.documentRequired && !isCompleted && (
+                  <div style={{ background: "#FFFBEB", border: "1px solid #FCD34D", borderRadius: 8, padding: 10, marginTop: 10, fontSize: 12, lineHeight: 1.5 }}>
+                    <div style={{ fontWeight: 700, color: "#92400E", marginBottom: 2 }}>
+                      📎 Required: {compliance[m.id].requiredDocType}
+                    </div>
+                    <div style={{ color: "#78350F" }}>{compliance[m.id].description}</div>
+                  </div>
+                )}
                 {!isCompleted && (
-                  <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
-                    <button onClick={() => handleComplete(m.id)} disabled={completing === m.id}
-                      style={{ flex: 2, padding: "9px 0", borderRadius: 8, border: "none",
-                        background: "#C0392B", color: "#fff", fontWeight: 700,
-                        fontSize: 13, cursor: "pointer" }}>
-                      {completing === m.id ? "Saving..." : "Mark Complete"}
-                    </button>
+                  <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
+                    {compliance[m.id]?.documentRequired ? (
+                      <button onClick={() => handleUploadClick(m.id)} disabled={uploadingFor === m.id}
+                        style={{ flex: "2 1 100%", padding: "10px 0", borderRadius: 8, border: "none",
+                          background: "#C0392B", color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
+                        {uploadingFor === m.id ? "Uploading..." : "📎 Upload Document & Complete"}
+                      </button>
+                    ) : (
+                      <button onClick={() => handleComplete(m.id)} disabled={completing === m.id}
+                        style={{ flex: 2, padding: "9px 0", borderRadius: 8, border: "none",
+                          background: "#C0392B", color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
+                        {completing === m.id ? "Saving..." : "Mark Complete"}
+                      </button>
+                    )}
                     <button onClick={() => handleSnooze(m.id)}
                       style={{ flex: 1, padding: "9px 0", borderRadius: 8,
                         border: "1.5px solid #DDD", background: "#fff",
@@ -1670,6 +1753,13 @@ function MilestonesTab({ tx, token }) {
           color: "#555", fontWeight: 600, fontSize: 14, cursor: "pointer", marginTop: 8 }}>
         {generating ? "Generating..." : "Add Missing Milestones"}
       </button>
+      <input
+        ref={fileInputRef}
+        type="file"
+        style={{ display: "none" }}
+        accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+        onChange={handleFileSelected}
+      />
     </div>
   );
 }
