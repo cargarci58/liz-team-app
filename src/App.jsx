@@ -2674,7 +2674,7 @@ function NewTransactionForm({ onSave, onCancel }) {
 
 // ─── DASHBOARD ────────────────────────────────────────────────
 function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenContactBook, contactCount, onLogout, onOpenTeam, onChangePassword, onReports, onHome, onVendors, onCompanySettings, onAgentProfile, onIntakeLinks, currentUser }) {
-  const [filter, setFilter] = useState("Active");
+  const [filter, setFilter] = useState("All");
   const [search, setSearch] = useState("");
   const [viewMode, setViewMode] = useState(() => localStorage.getItem("tp_view_mode") || "cards");
   const [sortKey, setSortKey] = useState(() => { const saved = localStorage.getItem("tp_sort_key"); return saved && saved !== "closingDate" ? saved : "status"; });
@@ -2791,7 +2791,11 @@ function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenCon
     params.set("page", page);
     params.set("pageSize", 50);
     if (debouncedSearch) params.set("search", debouncedSearch);
-    if (filter && filter !== "All" && filter !== "All (including Closed)") params.set("status", filter);
+    if (filter === "Under Contract") {
+      params.set("status", "Under Contract");
+    } else if (filter && filter !== "All") {
+      params.set("status", filter);
+    }
     if (sortKey) params.set("sortKey", sortKey);
     if (sortDir) params.set("sortDir", sortDir);
     if (agentFilter) params.set("assignedAgent", agentFilter);
@@ -2882,7 +2886,7 @@ function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenCon
     setDatePreset(f.datePreset || "");
     setClosingFrom(f.closingFrom || "");
     setClosingTo(f.closingTo || "");
-    setFilter(f.statusFilter && f.statusFilter !== "All" ? f.statusFilter : "Active");
+    setFilter(f.statusFilter || "All");
     if (view.sortKey && view.sortKey !== 'closingDate') setSortKey(view.sortKey); else setSortKey('status');
     if (view.sortDir) setSortDir(view.sortDir);
     if (view.viewMode) setViewMode(view.viewMode);
@@ -3007,7 +3011,7 @@ function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenCon
   const [showOverdue, setShowOverdue] = useState(false);
   const [remindingTask, setRemindingTask] = useState(null);
   const [remindingTx, setRemindingTx] = useState(null);
-  const filtered = transactions.filter(tx => ((filter === "All" ? (tx.status !== "Cancelled" && tx.status !== "Closed") : filter === "All (including Closed)" ? tx.status !== "Cancelled" : tx.status === filter)) && (!search || tx.address.toLowerCase().includes(search.toLowerCase()) || tx.city.toLowerCase().includes(search.toLowerCase()) || (tx.mlsNumber || "").toLowerCase().includes(search.toLowerCase()) || (tx.parties || []).some(p => p && p.name && p.name.toLowerCase().includes(search.toLowerCase()))));
+  const filtered = transactions.filter(tx => ((filter === "All" ? (tx.status !== "Cancelled" && tx.status !== "Closed") : tx.status === filter)) && (!search || tx.address.toLowerCase().includes(search.toLowerCase()) || tx.city.toLowerCase().includes(search.toLowerCase()) || (tx.mlsNumber || "").toLowerCase().includes(search.toLowerCase()) || (tx.parties || []).some(p => p && p.name && p.name.toLowerCase().includes(search.toLowerCase()))));
   const sorted = [...filtered].sort((a, b) => {
     const dir = sortDir === "asc" ? 1 : -1;
     let av, bv;
@@ -3155,12 +3159,9 @@ function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenCon
           style={{ padding: "7px 14px", borderRadius: 8, border: `1px solid ${COLORS.border}`,
             background: "#fff", color: "#111", fontSize: 13, fontWeight: 600,
             cursor: "pointer", fontFamily: "inherit", minWidth: 160 }}>
-          <option value="Active">Active</option>
+          <option value="All">All Active</option>
+          <option value="Active">Active Only</option>
           <option value="Under Contract">Under Contract</option>
-          <option value="Inspection">Inspection</option>
-          <option value="Appraisal">Appraisal</option>
-          <option value="Clear to Close">Clear to Close</option>
-          <option value="All">All (including Closed)</option>
           <option value="Closed">Closed Only</option>
           <option value="On Hold">On Hold</option>
           <option value="Cancelled">Cancelled</option>
