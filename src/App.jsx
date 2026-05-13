@@ -3013,16 +3013,15 @@ function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenCon
     let av, bv;
     // Status priority sort — Active first, then contract stages, then closed
     if (sortKey === "status") {
-      const STATUS_PRIORITY = {
+      const priorities = {
         "Active": 1, "Under Contract": 2, "Inspection": 3,
         "Appraisal": 4, "Clear to Close": 5, "On Hold": 6,
         "Closed": 7, "Cancelled": 8
       };
       return sorted.sort((a, b) => {
-        const pa = STATUS_PRIORITY[a.status] || 9;
-        const pb = STATUS_PRIORITY[b.status] || 9;
+        const pa = priorities[a.status] || 9;
+        const pb = priorities[b.status] || 9;
         if (pa !== pb) return sortDir === "asc" ? pa - pb : pb - pa;
-        // Secondary sort by closing date
         if (a.closingDate && b.closingDate) return new Date(a.closingDate) - new Date(b.closingDate);
         return 0;
       });
