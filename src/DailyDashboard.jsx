@@ -197,7 +197,7 @@ function TaskCard({ task, token, onResolve, onSnooze, onOpenModal, onStartChase 
             <button onClick={() => onStartChase(task)}
               style={{ flex:"2 1 60%", padding:"11px 0", borderRadius:10, border:"none",
                 background:COLORS.red, color:COLORS.white, fontWeight:700, fontSize:14, cursor:"pointer" }}>
-              🚨 Chase Party
+              Take Action
             </button>
             <button onClick={() => onResolve(task.id)}
               style={{ flex:"1 1 30%", padding:"11px 0", borderRadius:10,
@@ -318,10 +318,15 @@ export default function DailyDashboard({ token, user, onViewTransactions }) {
     let targetType, targetId;
     if (chaseTask.task_type === "milestone_overdue" || chaseTask.task_type === "milestone_upcoming") {
       targetType = "milestone";
-      targetId = chaseTask.target_id || chaseTask.milestone_id;
+      targetId = chaseTask.target_ref_id;
     } else {
       targetType = "task";
-      targetId = chaseTask.target_id || chaseTask.task_ref_id;
+      targetId = chaseTask.target_ref_id;
+    }
+    if (!targetId) {
+      alert("This task doesn't have a linked milestone/task yet. Regenerate tasks and try again.");
+      setChaseSubmitting(false);
+      return;
     }
     try {
       const res = await fetch(API + "/chases/start", {
