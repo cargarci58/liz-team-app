@@ -4082,6 +4082,11 @@ function MainApp({ onLogout, currentUser }) {
     } catch (e) { alert("Error: " + e.message); }
   };
 
+  const openTransactionMilestones = (txId) => {
+    const t = transactions.find(t => t.id === txId);
+    if (t) { setSelectedId(txId); setInitialDetailTab("milestones"); setView("detail"); }
+  };
+
   return (
     <>
       {showReports && <Reports transactions={transactions} onBack={() => setShowReports(false)} />}
@@ -4102,10 +4107,6 @@ function MainApp({ onLogout, currentUser }) {
           onInviteParty={(party) => invitePartyToPortal(party, selectedTx)}
         />
       )}
-  const openTransactionMilestones = (txId) => {
-    const t = transactions.find(t => t.id === txId);
-    if (t) { setSelectedId(txId); setInitialDetailTab("milestones"); setView("detail"); }
-  };
       {!showReports && view === "home" && (
         <DailyDashboard
           token={localStorage.getItem("tp_token") || ""}
