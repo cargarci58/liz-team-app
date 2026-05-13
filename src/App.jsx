@@ -643,7 +643,7 @@ function PartyAvatar({ party, size = 40 }) {
   return <div style={{ width: size, height: size, borderRadius: "50%", background: color + "22", color, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: size * 0.35, flexShrink: 0 }}>{initials}</div>;
 }
 
-function PartyCard({ party, onRemove, onEdit, onClick, onInvite }) {
+function PartyCard({ party, onRemove, onEdit, onClick, onInvite, onSendFollowup }) {
   return (
     <div onClick={onClick} style={{ background: "#fff", border: `1px solid ${COLORS.border}`, borderRadius: 10, padding: "12px 14px", display: "flex", alignItems: "flex-start", gap: 12, marginBottom: 8, cursor: onClick ? "pointer" : "default" }}>
       <PartyAvatar party={party} />
@@ -656,6 +656,7 @@ function PartyCard({ party, onRemove, onEdit, onClick, onInvite }) {
       </div>
       <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
         {onInvite && <button onClick={e => { e.stopPropagation(); onInvite(); }} style={{ background: "none", border: "1px solid #C0392B", borderRadius: 6, cursor: "pointer", color: "#C0392B", fontSize: 11, padding: "2px 8px", fontWeight: 600 }}>Send Invite</button>}
+        {onSendFollowup && (party.email || party.phone) && <button onClick={e => { e.stopPropagation(); onSendFollowup(party); }} style={{ background: "#C0392B", border: "1px solid #C0392B", borderRadius: 6, cursor: "pointer", color: "#fff", fontSize: 11, padding: "2px 8px", fontWeight: 600 }}>Follow Up</button>}
         {onEdit && <button onClick={e => { e.stopPropagation(); onEdit(); }} style={{ background: "none", border: `1px solid ${COLORS.border}`, borderRadius: 6, cursor: "pointer", color: COLORS.muted, fontSize: 12, padding: "2px 8px" }}>Edit</button>}
         {onRemove && <button onClick={e => { e.stopPropagation(); onRemove(); }} style={{ background: "none", border: "none", cursor: "pointer", color: COLORS.muted, fontSize: 16 }}>×</button>}
       </div>
@@ -1858,6 +1859,9 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
   const [pendingInviteParty, setPendingInviteParty] = useState(null);
   const [partyFromContactBook, setPartyFromContactBook] = useState(false);
   const [showAddTask, setShowAddTask] = useState(false);
+  const [followupParty, setFollowupParty] = useState(null);
+  const [followupForm, setFollowupForm] = useState({ subject: "", message: "" });
+  const [followupSubmitting, setFollowupSubmitting] = useState(false);
   const [showContractWizard, setShowContractWizard] = useState(false);
   const [contractWizardForm, setContractWizardForm] = useState({});
   const [showAddReminder, setShowAddReminder] = useState(false);
@@ -2159,7 +2163,7 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
             {PARTY_ROLES.map(role => {
               const members = tx.parties.filter(p => p.role === role && !p.isVendor && !p.is_vendor);
               if (!members.length) return null;
-              return <div key={role} style={{ marginBottom: 16 }}><div style={{ fontSize: 12, fontWeight: 700, color: COLORS.muted, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 8 }}>{role}</div>{members.map(p => <PartyCard key={p.id} party={p} onEdit={() => setEditingParty({ ...p })} onRemove={() => update({ parties: tx.parties.filter(pp => pp.id !== p.id) })} onInvite={onInviteParty ? () => onInviteParty(p) : undefined} />)}</div>;
+              return <div key={role} style={{ marginBottom: 16 }}><div style={{ fontSize: 12, fontWeight: 700, color: COLORS.muted, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 8 }}>{role}</div>{members.map(p => <PartyCard key={p.id} party={p} onEdit={() => setEditingParty({ ...p })} onRemove={() => update({ parties: tx.parties.filter(pp => pp.id !== p.id) })} onInvite={onInviteParty ? () => onInviteParty(p) : undefined} onSendFollowup={(party) => setFollowupParty(party)} />)}</div>;
             })}
             {(() => {
               const vendorParties = tx.parties.filter(p => p.isVendor || p.is_vendor || !PARTY_ROLES.includes(p.role));
@@ -2651,6 +2655,55 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
         </Modal>
         );
       })()}
+      {followupParty && (
+        <Modal title={`Send Follow-Up to ${followupParty.name}`} onClose={() => { setFollowupParty(null); setFollowupForm({ subject: "", message: "" }); }}>
+          <div style={{ background:"#F3F4F6", borderRadius:8, padding:10, marginBottom:12, fontSize:12 }}>
+            <div><strong>To:</strong> {followupParty.name} ({followupParty.role})</div>
+            {followupParty.email && <div>📧 {followupParty.email}</div>}
+            {followupParty.phone && <div>📱 {followupParty.phone}</div>}
+            <div style={{ marginTop:4 }}><strong>Property:</strong> {tx.address}</div>
+          </div>
+          <Input label="Subject (what's this about?)" value={followupForm.subject} onChange={v => setFollowupForm(f => ({ ...f, subject: v }))} required />
+          <Input label="Message" value={followupForm.message} onChange={v => setFollowupForm(f => ({ ...f, message: v }))} type="textarea" />
+          <div style={{ background:"#EFF6FF", borderRadius:8, padding:10, marginBottom:12, fontSize:11, color:"#1E3A8A", lineHeight:1.5 }}>
+            We'll send an SMS + email to {followupParty.name.split(" ")[0]} right away.
+            If they don't respond, we'll follow up every 48h → 24h → 12h up to 5 times.
+            You'll get a Win the Day alert if they go silent.
+          </div>
+          <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+            <Btn variant="ghost" onClick={() => { setFollowupParty(null); setFollowupForm({ subject: "", message: "" }); }}>Cancel</Btn>
+            <Btn disabled={followupSubmitting || !followupForm.subject} onClick={async () => {
+              if (!followupForm.subject) { alert("Please add a subject"); return; }
+              setFollowupSubmitting(true);
+              try {
+                const res = await fetch(API + "/chases/start", {
+                  method: "POST",
+                  headers: { "Content-Type":"application/json", Authorization: "Bearer " + (localStorage.getItem("tp_token") || "") },
+                  body: JSON.stringify({
+                    transactionId: tx.id,
+                    targetType: "general",
+                    targetEmail: followupParty.email,
+                    subject: followupForm.subject,
+                    customMessage: followupForm.message || null
+                  })
+                });
+                const data = await res.json();
+                if (data.success) {
+                  alert("Follow-up started! First message will be sent shortly to " + followupParty.name);
+                  setFollowupParty(null);
+                  setFollowupForm({ subject: "", message: "" });
+                } else if (data.error && data.error.includes("already active")) {
+                  alert("A follow-up is already running for this party. It will keep going until resolved.");
+                  setFollowupParty(null);
+                } else {
+                  alert("Could not start follow-up: " + (data.error || "unknown"));
+                }
+              } catch (e) { alert("Network error"); }
+              setFollowupSubmitting(false);
+            }}>{followupSubmitting ? "Sending..." : "Send Follow-Up"}</Btn>
+          </div>
+        </Modal>
+      )}
       {showAddReminder && (
         <Modal title="Add Reminder" onClose={() => setShowAddReminder(false)}>
           <Input label="Title" value={reminderForm.title} onChange={v => setReminderForm(f => ({ ...f, title: v }))} required />
