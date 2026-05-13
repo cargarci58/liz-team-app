@@ -344,6 +344,10 @@ export default function DailyDashboard({ token, user, onViewTransactions }) {
         alert("Follow-up started! First reminder will be sent shortly to " + (data.party?.name || "the party") + ".");
         setChaseTask(null);
         setResolvedIds(prev => new Set([...prev, chaseTask.id]));
+      } else if (data.error && data.error.includes("already active")) {
+        alert("A follow-up is already running for this item. It will keep going until the task is marked complete.");
+        setChaseTask(null);
+        setResolvedIds(prev => new Set([...prev, chaseTask.id]));
       } else {
         alert("Could not start follow-up: " + (data.error || "unknown error"));
       }
