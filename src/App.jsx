@@ -1458,8 +1458,8 @@ function MilestonesTab({ tx, token }) {
   const [milestones, setMilestones] = useState([]);
   const [compliance, setCompliance] = useState({});
   const [uploadingFor, setUploadingFor] = useState(null);
-  const fileInputRef = React.useRef(null);
-  const pendingMilestoneRef = React.useRef(null);
+  const fileInputRef = useRef(null);
+  const pendingMilestoneRef = useRef(null);
 
   const fetchCompliance = async () => {
     try {
@@ -1475,7 +1475,7 @@ function MilestonesTab({ tx, token }) {
     } catch (e) {}
   };
 
-  React.useEffect(() => { fetchCompliance(); }, []);
+  useEffect(() => { fetchCompliance(); }, []);
 
   const handleUploadClick = (milestoneId) => {
     pendingMilestoneRef.current = milestoneId;
