@@ -1,6 +1,7 @@
 import LoginScreen from "./LoginScreen";
 import UserManagement from "./UserManagement";
 import ComplianceAdmin from "./ComplianceAdmin";
+import ComplianceDashboard from "./ComplianceDashboard";
 import DocumentsTab from "./DocumentsTab";
 import TransactionChat from "./TransactionChat";
 import Reports from "./Reports";
@@ -2848,7 +2849,7 @@ function NewTransactionForm({ onSave, onCancel }) {
 }
 
 // ─── DASHBOARD ────────────────────────────────────────────────
-function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenContactBook, contactCount, onLogout, onOpenTeam, onOpenCompliance, onChangePassword, onReports, onHome, onVendors, onCompanySettings, onAgentProfile, onIntakeLinks, currentUser }) {
+function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenContactBook, contactCount, onLogout, onOpenTeam, onOpenCompliance, onOpenComplianceDash, onChangePassword, onReports, onHome, onVendors, onCompanySettings, onAgentProfile, onIntakeLinks, currentUser }) {
   const [filter, setFilter] = useState("All");
   const [search, setSearch] = useState("");
   const [viewMode, setViewMode] = useState(() => localStorage.getItem("tp_view_mode") || "cards");
@@ -3296,7 +3297,8 @@ function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenCon
             
             {["admin","superadmin"].includes(currentUser?.role) && <button onClick={onIntakeLinks} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "rgba(255,255,255,0.88)", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 600, fontFamily: "inherit" }}>🔗 Intake Forms</button>}
             <button onClick={onAgentProfile} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "rgba(255,255,255,0.88)", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 600, fontFamily: "inherit" }}>👤 Profile</button>
-            {["admin","superadmin"].includes(currentUser?.role) && <button onClick={onOpenCompliance} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "rgba(255,255,255,0.88)", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 600, fontFamily: "inherit" }}>📋 Compliance</button>}
+            {["admin","superadmin"].includes(currentUser?.role) && <button onClick={onOpenComplianceDash} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "rgba(255,255,255,0.88)", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 600, fontFamily: "inherit" }}>📊 Compliance Dashboard</button>}
+            {["admin","superadmin"].includes(currentUser?.role) && <button onClick={onOpenCompliance} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "rgba(255,255,255,0.88)", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 600, fontFamily: "inherit" }}>⚖️ Doc Requirements</button>}
             {["admin","superadmin"].includes(currentUser?.role) && <button onClick={onCompanySettings} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "rgba(255,255,255,0.88)", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 600, fontFamily: "inherit" }}>⚙️ Settings</button>}
             <TenantSwitcher currentUser={currentUser} />
             <button onClick={onLogout} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "rgba(255,255,255,0.88)", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 600, fontFamily: "inherit" }}>Sign Out</button>
@@ -3963,6 +3965,7 @@ function MainApp({ onLogout, currentUser }) {
   const [contacts, setContacts] = useState([]);
   const [showTeam, setShowTeam] = useState(false);
   const [showCompliance, setShowCompliance] = useState(false);
+  const [showComplianceDash, setShowComplianceDash] = useState(false);
   const [showChangePassword, setShowChangePassword] = useState(false);
   const [forcePasswordReset, setForcePasswordReset] = useState(false);
   const [showCompanySettings, setShowCompanySettings] = useState(false);
@@ -4116,6 +4119,7 @@ function MainApp({ onLogout, currentUser }) {
           onLogout={onLogout}
           onOpenTeam={() => setShowTeam(true)}
           onOpenCompliance={() => setShowCompliance(true)}
+          onOpenComplianceDash={() => setShowComplianceDash(true)}
           onChangePassword={() => setShowChangePassword(true)}
           onReports={() => setShowReports(true)}
           onCompanySettings={() => setShowCompanySettings(true)}
@@ -4134,6 +4138,21 @@ function MainApp({ onLogout, currentUser }) {
             <div style={{ fontWeight:700, fontSize:16 }}>Compliance Admin</div>
           </div>
           <ComplianceAdmin token={localStorage.getItem("tp_token") || ""} user={currentUser} />
+        </div>
+      )}
+      {showComplianceDash && (
+        <div style={{ position:"fixed", inset:0, background:"#fff", zIndex:200, overflowY:"auto" }}>
+          <div style={{ position:"sticky", top:0, background:"#fff", borderBottom:"1px solid #DDD", padding:"12px 16px", display:"flex", alignItems:"center", gap:12, zIndex:1 }}>
+            <button onClick={() => setShowComplianceDash(false)} style={{ background:"none", border:"none", fontSize:20, cursor:"pointer" }}>←</button>
+            <div style={{ fontWeight:700, fontSize:16 }}>Compliance Dashboard</div>
+          </div>
+          <ComplianceDashboard
+            token={localStorage.getItem("tp_token") || ""}
+            onOpenTransaction={(txId) => {
+              const t = transactions.find(t => t.id === txId);
+              if (t) { setShowComplianceDash(false); setSelectedTx(t); setView("detail"); }
+            }}
+          />
         </div>
       )}
 
