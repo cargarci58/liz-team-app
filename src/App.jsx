@@ -632,13 +632,18 @@ function TransactionListView({ transactions, sortKey, sortDir, toggleSort, onSel
           const cfg = STATUS_CONFIG[tx.status] || STATUS_CONFIG["Active"];
           const price = tx.contractPrice || tx.listPrice;
           return (
-            <div key={tx.id} onClick={() => onSelect(tx.id)} style={{ background: !tx.assignedAgentId ? "#fef3c7" : tx.needsFirstContact ? "#fef2f2" : "#fff", border: `2px solid ${!tx.assignedAgentId ? "#fde68a" : tx.needsFirstContact ? "#fecaca" : COLORS.border}`, borderRadius: 10, padding: "12px 14px", marginBottom: 8, cursor: "pointer" }}>
+            <div key={tx.id} onClick={() => onSelect(tx.id)} style={{ background: !tx.assignedAgentId ? "#fef3c7" : tx.needsReview ? "#eff6ff" : tx.needsFirstContact ? "#fef2f2" : "#fff", border: `2px solid ${!tx.assignedAgentId ? "#fde68a" : tx.needsReview ? "#bfdbfe" : tx.needsFirstContact ? "#fecaca" : COLORS.border}`, borderRadius: 10, padding: "12px 14px", marginBottom: 8, cursor: "pointer" }}>
               {!tx.assignedAgentId && (
                 <div style={{ background: "#f59e0b", color: "white", borderRadius: 6, padding: "4px 10px", fontSize: 11, fontWeight: 700, marginBottom: 8, display: "inline-block" }}>
                   ⚠️ UNASSIGNED LEAD — Tap to Assign an Agent
                 </div>
               )}
-              {tx.assignedAgentId && tx.needsFirstContact && (
+              {tx.assignedAgentId && tx.needsReview && (
+                <div style={{ background: "#2563eb", color: "white", borderRadius: 6, padding: "4px 10px", fontSize: 11, fontWeight: 700, marginBottom: 8, display: "inline-block" }}>
+                  📋 NEW FROM CONTRACT — Review & Verify
+                </div>
+              )}
+              {tx.assignedAgentId && !tx.needsReview && tx.needsFirstContact && (
                 <div style={{ background: "#c8102e", color: "white", borderRadius: 6, padding: "4px 10px", fontSize: 11, fontWeight: 700, marginBottom: 8, display: "inline-block" }}>
                   🔔 NEW BUYER INQUIRY — Contact Within 24hrs
                 </div>
@@ -2260,6 +2265,44 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
       <div style={{ padding: 24, maxWidth: 940, margin: "0 auto" }}>
         {activeTab === "overview" && (
           <div>
+            {tx.assignedAgentId && tx.needsReview && (
+              <div style={{ background: "#eff6ff", border: "2px solid #2563eb", borderRadius: 12, padding: 18, marginBottom: 20 }}>
+                <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
+                  <span style={{ fontSize: 26 }}>📋</span>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontWeight: 800, color: "#1e3a8a", fontSize: 16, marginBottom: 6 }}>NEW FROM CONTRACT — Review & Verify Required</div>
+                    <div style={{ fontSize: 13, color: "#1e40af", marginBottom: 8, lineHeight: 1.5 }}>
+                      <strong>What to do:</strong> Open every section below (Property, Financials, Key Parties, Milestones, Documents) and confirm every field matches the executed contract. Pay special attention to dates, contingency days, deposit amounts, and the Additional Terms section.
+                    </div>
+                    <div style={{ fontSize: 13, color: "#1e40af", marginBottom: 8, lineHeight: 1.5 }}>
+                      <strong>Why it matters:</strong> {tx.reviewReason || "The AI extracted the data automatically but may have misread handwritten changes, strikethroughs, or custom clauses. You are the agent of record — the final accuracy of this transaction is your responsibility, not the AI's."}
+                    </div>
+                    <div style={{ fontSize: 13, color: "#1e40af", marginBottom: 12, lineHeight: 1.5 }}>
+                      <strong>What proves it is done:</strong> Click "I have reviewed & verified" below once every field has been confirmed. The banner will disappear and the transaction will return to normal flow.
+                    </div>
+                    {tx.additionalTerms && (
+                      <div style={{ background: "#fef9c3", border: "1px solid #fde047", borderRadius: 8, padding: 10, marginBottom: 12 }}>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: "#854d0e", marginBottom: 4 }}>📝 Additional Terms / Special Clauses extracted from contract:</div>
+                        <div style={{ fontSize: 12, color: "#713f12", whiteSpace: "pre-wrap", lineHeight: 1.5 }}>{tx.additionalTerms}</div>
+                      </div>
+                    )}
+                    <button onClick={async () => {
+                      try {
+                        const r = await fetch("https://liz-team-server-api-production.up.railway.app/transactions/" + tx.id + "/clear-review", {
+                          method: "POST",
+                          headers: { Authorization: "Bearer " + (localStorage.getItem("tp_token") || "") }
+                        });
+                        const d = await r.json();
+                        if (d.success) { onUpdate({ ...tx, needsReview: false }); }
+                        else { alert("Could not clear: " + (d.error || "Unknown error")); }
+                      } catch (e) { alert("Error: " + e.message); }
+                    }} style={{ background: "#2563eb", color: "white", border: "none", borderRadius: 8, padding: "10px 18px", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                      ✅ I have reviewed & verified all fields
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
             {!tx.assignedAgentId && (
               <div style={{ background: "#fef3c7", border: "2px solid #f59e0b", borderRadius: 12, padding: 18, marginBottom: 20 }}>
                 <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
@@ -3511,11 +3554,13 @@ function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenCon
   };
 
   const hydratedPagedTxs = [...pagedTxs].sort((a, b) => {
-    const aUnassigned = !a.assigned_agent ? 2 : 0;
-    const bUnassigned = !b.assigned_agent ? 2 : 0;
+    const aUnassigned = !a.assigned_agent ? 4 : 0;
+    const bUnassigned = !b.assigned_agent ? 4 : 0;
+    const aReview = a.needs_review ? 2 : 0;
+    const bReview = b.needs_review ? 2 : 0;
     const aNew = a.needs_first_contact ? 1 : 0;
     const bNew = b.needs_first_contact ? 1 : 0;
-    return (bUnassigned + bNew) - (aUnassigned + aNew);
+    return (bUnassigned + bReview + bNew) - (aUnassigned + aReview + aNew);
   }).map(t => ({
     id: t.id,
     address: t.address,
@@ -3555,6 +3600,9 @@ function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenCon
     needsFirstContact: t.needs_first_contact || false,
     submittedVia: t.submitted_via || null,
     intakeStepsDone: t.intake_steps_done || [],
+    needsReview: t.needs_review || false,
+    reviewReason: t.review_reason || null,
+    additionalTerms: t.additional_terms || null,
   }));
 
   const [showOverdue, setShowOverdue] = useState(false);
@@ -3813,7 +3861,7 @@ function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenCon
           const cfg = STATUS_CONFIG[tx.status] || STATUS_CONFIG["Active"];
           const smsMsgCount = Object.values(tx.smsThreads || {}).reduce((a, t) => a + t.length, 0);
           return (
-            <div key={tx.id} onClick={() => onSelect(tx.id)} style={{ background: "#fff", border: !tx.assignedAgentId ? "3px solid #f59e0b" : tx.needsFirstContact ? "3px solid #c8102e" : `1px solid ${COLORS.border}`, borderRadius: 12, cursor: "pointer", overflow: "hidden" }}
+            <div key={tx.id} onClick={() => onSelect(tx.id)} style={{ background: "#fff", border: !tx.assignedAgentId ? "3px solid #f59e0b" : tx.needsReview ? "3px solid #2563eb" : tx.needsFirstContact ? "3px solid #c8102e" : `1px solid ${COLORS.border}`, borderRadius: 12, cursor: "pointer", overflow: "hidden" }}
               onMouseEnter={e => e.currentTarget.style.boxShadow = "0 6px 20px rgba(0,0,0,0.12)"}
               onMouseLeave={e => e.currentTarget.style.boxShadow = "none"}>
               {!tx.assignedAgentId && (
@@ -3821,7 +3869,12 @@ function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenCon
                   ⚠️ UNASSIGNED LEAD — Tap to Assign an Agent
                 </div>
               )}
-              {tx.assignedAgentId && tx.needsFirstContact && (
+              {tx.assignedAgentId && tx.needsReview && (
+                <div style={{ background: "#2563eb", color: "white", padding: "8px 14px", fontSize: 12, fontWeight: 700, letterSpacing: 0.5 }}>
+                  📋 NEW FROM CONTRACT — Review & Verify Details
+                </div>
+              )}
+              {tx.assignedAgentId && !tx.needsReview && tx.needsFirstContact && (
                 <div style={{ background: "#c8102e", color: "white", padding: "8px 14px", fontSize: 12, fontWeight: 700, letterSpacing: 0.5 }}>
                   🔔 NEW BUYER INQUIRY — Contact Within 24hrs
                 </div>
@@ -4327,6 +4380,9 @@ function MainApp({ onLogout, currentUser }) {
             needsFirstContact: t.needs_first_contact || false,
             submittedVia: t.submitted_via || null,
             intakeStepsDone: t.intake_steps_done || [],
+            needsReview: t.needs_review || false,
+            reviewReason: t.review_reason || null,
+            additionalTerms: t.additional_terms || null,
           }));
           // Pin buyer/seller intake transactions needing first contact to top
           const sorted = [...rawTxs].sort((a, b) => {
