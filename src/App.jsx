@@ -3,6 +3,7 @@ import UserManagement from "./UserManagement";
 import ComplianceAdmin from "./ComplianceAdmin";
 import TaskTemplatesAdmin from "./TaskTemplatesAdmin";
 import ContractAutoIntake from "./ContractAutoIntake";
+import ContractUploadPublic from "./ContractUploadPublic";
 import ComplianceDashboard from "./ComplianceDashboard";
 import DocumentsTab from "./DocumentsTab";
 import TransactionChat from "./TransactionChat";
@@ -4190,6 +4191,12 @@ function MainApp({ onLogout, currentUser }) {
     const t = transactions.find(t => t.id === txId);
     if (t) { setSelectedId(txId); setInitialDetailTab("milestones"); setView("detail"); }
   };
+
+  // Public upload route — no auth required
+  if (window.location.pathname.startsWith("/upload-contract/")) {
+    const token = window.location.pathname.split("/upload-contract/")[1];
+    return <ContractUploadPublic urlToken={token} />;
+  }
 
   return (
     <>

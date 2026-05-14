@@ -56,12 +56,41 @@ export default function ContractAutoIntake({ token, user, existingTransactionId,
 // STEP 1: UPLOAD
 // ───────────────────────────────────────────────────────────────
 function UploadStep({ token, existingTransactionId, onBack, onUploaded }) {
+  const [mode, setMode] = useState("self"); // "self" or "link"
   const [file, setFile] = useState(null);
   const [dragging, setDragging] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState("");
   const fileInputRef = useRef(null);
+  const [linkExpiry, setLinkExpiry] = useState(72);
+  const [generatedLink, setGeneratedLink] = useState("");
+  const [generatingLink, setGeneratingLink] = useState(false);
+  const [linkCopied, setLinkCopied] = useState(false);
+
+  const generateShareableLink = async () => {
+    setGeneratingLink(true);
+    setError("");
+    try {
+      const r = await fetch(API + "/contracts/shareable-link", {
+        method: "POST",
+        headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
+        body: JSON.stringify({ existingTransactionId, expiresInHours: linkExpiry })
+      });
+      const d = await r.json();
+      if (!d.success) throw new Error(d.error || "Failed to generate link");
+      setGeneratedLink(d.url);
+    } catch (e) {
+      setError(e.message);
+    }
+    setGeneratingLink(false);
+  };
+
+  const copyLink = () => {
+    navigator.clipboard.writeText(generatedLink);
+    setLinkCopied(true);
+    setTimeout(() => setLinkCopied(false), 2000);
+  };
 
   const onFileSelected = (f) => {
     if (!f) return;
@@ -135,7 +164,76 @@ function UploadStep({ token, existingTransactionId, onBack, onUploaded }) {
           Drop your contract package below. We'll read it, identify every document and addendum, and pull out all the key fields automatically.
         </p>
 
-        <div
+        <div style={{ display: "flex", gap: 8, marginBottom: 24 }}>
+          <button
+            onClick={() => setMode("self")}
+            style={{ flex: 1, padding: "12px", borderRadius: 8, border: `2px solid ${mode === "self" ? COLORS.red : COLORS.border}`, background: mode === "self" ? "#fef2f2" : "white", color: mode === "self" ? COLORS.red : COLORS.text, fontWeight: 600, fontSize: 14, cursor: "pointer", fontFamily: "inherit" }}
+          >
+            📤 Upload Myself
+          </button>
+          <button
+            onClick={() => setMode("link")}
+            style={{ flex: 1, padding: "12px", borderRadius: 8, border: `2px solid ${mode === "link" ? COLORS.red : COLORS.border}`, background: mode === "link" ? "#fef2f2" : "white", color: mode === "link" ? COLORS.red : COLORS.text, fontWeight: 600, fontSize: 14, cursor: "pointer", fontFamily: "inherit" }}
+          >
+            🔗 Send Shareable Link
+          </button>
+        </div>
+
+        {mode === "link" && (
+          <div style={{ background: "white", border: "1px solid " + COLORS.border, borderRadius: 12, padding: 24, marginBottom: 24 }}>
+            <h3 style={{ margin: "0 0 8px 0", color: COLORS.navy, fontSize: 16 }}>Generate Upload Link</h3>
+            <p style={{ color: COLORS.muted, fontSize: 13, marginTop: 0, marginBottom: 16 }}>
+              Anyone with this link can upload the contract — no login required. The AI will process it and notify you when it's ready to review.
+            </p>
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ fontSize: 12, color: COLORS.muted, display: "block", marginBottom: 6, fontWeight: 600 }}>LINK EXPIRES IN</label>
+              <select
+                value={linkExpiry}
+                onChange={e => setLinkExpiry(parseInt(e.target.value))}
+                style={{ padding: "8px 12px", border: "1px solid " + COLORS.border, borderRadius: 6, fontSize: 14, fontFamily: "inherit" }}
+              >
+                <option value={24}>24 hours</option>
+                <option value={48}>48 hours</option>
+                <option value={72}>72 hours (default)</option>
+                <option value={168}>7 days</option>
+              </select>
+            </div>
+            {!generatedLink ? (
+              <button
+                onClick={generateShareableLink}
+                disabled={generatingLink}
+                style={{ background: COLORS.red, color: "white", border: "none", borderRadius: 8, padding: "12px 24px", fontSize: 14, fontWeight: 600, cursor: generatingLink ? "wait" : "pointer", fontFamily: "inherit", opacity: generatingLink ? 0.7 : 1 }}
+              >
+                {generatingLink ? "Generating..." : "Generate Link"}
+              </button>
+            ) : (
+              <div>
+                <div style={{ background: "#f9fafb", border: "1px solid " + COLORS.border, borderRadius: 8, padding: 12, marginBottom: 12, wordBreak: "break-all", fontSize: 13, color: COLORS.text }}>
+                  {generatedLink}
+                </div>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <button
+                    onClick={copyLink}
+                    style={{ background: linkCopied ? COLORS.green : COLORS.navy, color: "white", border: "none", borderRadius: 8, padding: "10px 20px", fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}
+                  >
+                    {linkCopied ? "✓ Copied!" : "📋 Copy Link"}
+                  </button>
+                  <button
+                    onClick={() => { setGeneratedLink(""); setLinkCopied(false); }}
+                    style={{ background: "white", color: COLORS.text, border: "1px solid " + COLORS.border, borderRadius: 8, padding: "10px 20px", fontSize: 14, cursor: "pointer", fontFamily: "inherit" }}
+                  >
+                    Generate New Link
+                  </button>
+                </div>
+                <div style={{ marginTop: 12, fontSize: 12, color: COLORS.muted }}>
+                  ✅ You'll get an email + SMS notification when the contract is uploaded and ready to review.
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {mode === "self" && <div
           onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
           onDragLeave={() => setDragging(false)}
           onDrop={handleDrop}
@@ -164,7 +262,7 @@ function UploadStep({ token, existingTransactionId, onBack, onUploaded }) {
             style={{ display: "none" }}
             onChange={(e) => onFileSelected(e.target.files?.[0])}
           />
-        </div>
+        </div>}
 
         {error && (
           <div style={{ background: "#fef2f2", border: "1px solid #fecaca", color: "#991b1b", borderRadius: 8, padding: "10px 14px", marginTop: 16, fontSize: 14 }}>
@@ -172,7 +270,7 @@ function UploadStep({ token, existingTransactionId, onBack, onUploaded }) {
           </div>
         )}
 
-        {uploading && (
+        {mode === "self" && uploading && (
           <div style={{ marginTop: 20 }}>
             <div style={{ background: "#e5e7eb", height: 8, borderRadius: 4, overflow: "hidden" }}>
               <div style={{ background: COLORS.red, height: "100%", width: progress + "%", transition: "width 0.3s" }} />
@@ -181,7 +279,7 @@ function UploadStep({ token, existingTransactionId, onBack, onUploaded }) {
           </div>
         )}
 
-        {file && !uploading && (
+        {mode === "self" && file && !uploading && (
           <button
             onClick={handleUpload}
             style={{ marginTop: 20, background: COLORS.red, color: "white", border: "none", borderRadius: 8, padding: "14px 28px", fontSize: 15, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}
