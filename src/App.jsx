@@ -3439,7 +3439,12 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
               </div>
               <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
                 <button onClick={() => setShowEditTx(false)} style={{ padding: "10px 18px", border: "1px solid #CCC", borderRadius: 8, background: "none", cursor: "pointer", fontFamily: "inherit" }}>Cancel</button>
-                <button onClick={() => { const updated = { ...tx, ...editTxForm }; if (editTxForm.closingDate && editTxForm.closingDate !== tx.closingDate) { const templates = FLORIDA_TASK_TEMPLATES[tx.type] || []; updated.tasks = tx.tasks.map(task => {
+                <button onClick={() => {
+                  // Don't let empty form fields wipe out existing values — only apply fields the user actually set or that were pre-filled
+                  const cleanedForm = Object.fromEntries(
+                    Object.entries(editTxForm).filter(([k, v]) => v !== "" && v !== null && v !== undefined)
+                  );
+                  const updated = { ...tx, ...cleanedForm }; if (editTxForm.closingDate && editTxForm.closingDate !== tx.closingDate) { const templates = FLORIDA_TASK_TEMPLATES[tx.type] || []; updated.tasks = tx.tasks.map(task => {
                       const template = templates.find(t => t.name === task.name);
                       if (template && template.phase === "contract") {
                         if (template.daysFromOpen < 0 && editTxForm.closingDate) {
