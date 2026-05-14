@@ -1878,6 +1878,78 @@ function MilestonesTab({ tx, token }) {
   );
 }
 
+
+// ═══════════════════════════════════════════════════════════════
+// BUYER INTAKE CHECKLIST
+// ═══════════════════════════════════════════════════════════════
+function BuyerIntakeChecklist({ tx, token, onContactLogged }) {
+  const [logging, setLogging] = useState(false);
+  const [done, setDone] = useState(false);
+  const API_URL = "https://liz-team-server-api-production.up.railway.app";
+
+  const buyer = (tx.parties || []).find(p => p.role === "Buyer");
+  const budget = tx.listPrice ? "$" + Number(tx.listPrice).toLocaleString() : "Not specified";
+
+  const logContact = async () => {
+    setLogging(true);
+    try {
+      const r = await fetch(API_URL + "/transactions/" + tx.id + "/first-contact", {
+        method: "POST",
+        headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" }
+      });
+      const d = await r.json();
+      if (d.success) { setDone(true); if (onContactLogged) onContactLogged(); }
+    } catch (e) { alert("Failed to log contact: " + e.message); }
+    setLogging(false);
+  };
+
+  if (done) return null;
+
+  const steps = [
+    { num: 1, icon: "📞", title: "Contact the buyer within 24 hours", why: "Florida law requires prompt response. First contact establishes your fiduciary relationship.", action: buyer?.phone ? "Call or text " + (buyer.name || "buyer") + " at " + buyer.phone : buyer?.email ? "Email " + (buyer.name || "buyer") + " at " + buyer.email : "Add buyer contact info first", cta: "✓ Mark First Contact Done", onCta: logContact, loading: logging },
+    { num: 2, icon: "🤝", title: "Schedule a Buyer Consultation", why: "Understand their needs, timeline, and qualifications — and explain your role as their agent.", action: "Set up a 30-60 minute meeting (in person, Zoom, or phone)" },
+    { num: 3, icon: "📋", title: "Send Buyer Representation Agreement", why: "Required under Florida law before showing properties. Establishes your commission.", action: "Send via DocuSign, Dotloop, or in person at consultation" },
+    { num: 4, icon: "🏠", title: "Set up MLS auto-alerts", why: "Buyers expect to see new listings immediately. Same-day alerts show you are proactive.", action: "Search: " + tx.address.replace("Buyer Search — ", "") + " · Budget: " + budget },
+    { num: 5, icon: "💰", title: "Confirm pre-approval or proof of funds", why: "Cannot write a credible offer without financing confirmation.", action: "Ask buyer for lender pre-approval letter or bank statement" },
+  ];
+
+  return (
+    <div style={{ background: "#fef2f2", border: "2px solid #fecaca", borderRadius: 12, padding: 20, marginBottom: 20 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
+        <span style={{ fontSize: 24 }}>🔔</span>
+        <div>
+          <div style={{ fontWeight: 800, color: "#991b1b", fontSize: 16 }}>New Buyer Inquiry — Action Required</div>
+          <div style={{ fontSize: 13, color: "#7f1d1d", marginTop: 2 }}>
+            {buyer ? (buyer.name || "") + (buyer.phone ? " · " + buyer.phone : "") + (buyer.email ? " · " + buyer.email : "") : "Buyer info in parties tab"} · Budget: {budget}
+          </div>
+        </div>
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        {steps.map((step, i) => (
+          <div key={i} style={{ background: "white", borderRadius: 8, padding: 14, border: "1px solid #fecaca" }}>
+            <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+              <div style={{ fontSize: 20, flexShrink: 0 }}>{step.icon}</div>
+              <div style={{ flex: 1 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+                  <span style={{ background: "#c8102e", color: "white", borderRadius: "50%", width: 20, height: 20, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, flexShrink: 0 }}>{step.num}</span>
+                  <span style={{ fontWeight: 700, color: "#1a2332", fontSize: 14 }}>{step.title}</span>
+                </div>
+                <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 6, lineHeight: 1.5 }}><strong style={{ color: "#92400e" }}>Why:</strong> {step.why}</div>
+                <div style={{ fontSize: 13, color: "#1a2332", marginBottom: step.onCta ? 10 : 0, background: "#f9fafb", padding: "6px 10px", borderRadius: 6 }}>📌 {step.action}</div>
+                {step.onCta && (
+                  <button onClick={step.onCta} disabled={step.loading} style={{ background: "#1e8449", color: "white", border: "none", borderRadius: 6, padding: "8px 16px", fontSize: 13, fontWeight: 600, cursor: step.loading ? "wait" : "pointer", fontFamily: "inherit", opacity: step.loading ? 0.7 : 1 }}>
+                    {step.loading ? "Logging..." : step.cta}
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [], onSaveContact, onOpenContactBook, onDuplicate, currentUser, initialTab = "overview", dashboardUnread = 0 }) {
   const [activeTab, setActiveTab] = useState(initialTab);
   const [showAddParty, setShowAddParty] = useState(false);
