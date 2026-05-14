@@ -23,10 +23,13 @@ export default function FaqHelpButton({ transactionId, apiBase, token }) {
   const [search, setSearch] = useState('');
 
   useEffect(() => {
-    if (!open || !transactionId) return;
+    if (!open) return;
     setLoading(true);
     setError(null);
-    fetch(`${apiBase}/transactions/${transactionId}/faqs`, {
+    const url = transactionId
+      ? `${apiBase}/transactions/${transactionId}/faqs`
+      : `${apiBase}/me/faqs`;
+    fetch(url, {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then(r => r.ok ? r.json() : r.json().then(e => Promise.reject(e)))

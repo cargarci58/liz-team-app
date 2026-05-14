@@ -2893,12 +2893,6 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
         )}
       </div>
 
-      <FaqHelpButton
-        transactionId={tx.id}
-        apiBase={API}
-        token={localStorage.getItem("tp_token") || ""}
-      />
-
       {editingParty && (
         <Modal title="Edit Party" onClose={() => setEditingParty(null)}>
           <Input label="Role" value={editingParty.role} onChange={v => setEditingParty(p => ({ ...p, role: v }))} options={PARTY_ROLES} required />
@@ -5111,18 +5105,28 @@ function AuthGate() {
   }
 
   if (authUser.role === "client") {
-    return <ClientPortal user={authUser} onLogout={() => {
-      localStorage.removeItem("tp_token");
-      localStorage.removeItem("tp_user");
-      setAuthUser(null);
-    }} />;
+    return (
+      <>
+        <ClientPortal user={authUser} onLogout={() => {
+          localStorage.removeItem("tp_token");
+          localStorage.removeItem("tp_user");
+          setAuthUser(null);
+        }} />
+        <FaqHelpButton apiBase={API} token={localStorage.getItem("tp_token") || ""} />
+      </>
+    );
   }
 
-  return <MainApp currentUser={authUser} onLogout={() => {
-    localStorage.removeItem("tp_token");
-    localStorage.removeItem("tp_user");
-    setAuthUser(null);
-  }} />;
+  return (
+    <>
+      <MainApp currentUser={authUser} onLogout={() => {
+        localStorage.removeItem("tp_token");
+        localStorage.removeItem("tp_user");
+        setAuthUser(null);
+      }} />
+      <FaqHelpButton apiBase={API} token={localStorage.getItem("tp_token") || ""} />
+    </>
+  );
 }
 
 export default AuthGate;
