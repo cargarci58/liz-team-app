@@ -566,6 +566,24 @@ function TransactionListView({ transactions, sortKey, sortDir, toggleSort, onSel
               </tr>
             </thead>
             <tbody>
+              {transactions.filter(tx => tx.needsFirstContact).map(tx => (
+                <tr key={"alert-" + tx.id} style={{ background: "#fef2f2", borderBottom: "1px solid #fecaca" }}>
+                  <td colSpan="7" style={{ padding: "10px 14px" }}>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                        <span style={{ fontSize: 20 }}>🔔</span>
+                        <div>
+                          <div style={{ fontWeight: 700, color: "#991b1b", fontSize: 13 }}>NEW BUYER INQUIRY — Action Required</div>
+                          <div style={{ fontSize: 12, color: "#7f1d1d" }}>{tx.address} · {tx.city}, FL · Contact within 24 hours</div>
+                        </div>
+                      </div>
+                      <div style={{ display: "flex", gap: 8 }}>
+                        <button onClick={e => { e.stopPropagation(); onSelect(tx.id); }} style={{ background: "#c8102e", color: "white", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>View →</button>
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+              ))}
               {transactions.map(tx => {
                 const completed = tx.tasks ? tx.tasks.filter(t => t.status === "Completed").length : 0;
                 const total = tx.tasks ? tx.tasks.length : 0;
@@ -614,7 +632,12 @@ function TransactionListView({ transactions, sortKey, sortDir, toggleSort, onSel
           const cfg = STATUS_CONFIG[tx.status] || STATUS_CONFIG["Active"];
           const price = tx.contractPrice || tx.listPrice;
           return (
-            <div key={tx.id} onClick={() => onSelect(tx.id)} style={{ background: "#fff", border: `1px solid ${COLORS.border}`, borderRadius: 10, padding: "12px 14px", marginBottom: 8, cursor: "pointer" }}>
+            <div key={tx.id} onClick={() => onSelect(tx.id)} style={{ background: tx.needsFirstContact ? "#fef2f2" : "#fff", border: `2px solid ${tx.needsFirstContact ? "#fecaca" : COLORS.border}`, borderRadius: 10, padding: "12px 14px", marginBottom: 8, cursor: "pointer" }}>
+              {tx.needsFirstContact && (
+                <div style={{ background: "#c8102e", color: "white", borderRadius: 6, padding: "4px 10px", fontSize: 11, fontWeight: 700, marginBottom: 8, display: "inline-block" }}>
+                  🔔 NEW BUYER INQUIRY — Contact Within 24hrs
+                </div>
+              )}
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10 }}>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontWeight: 700, color: COLORS.navy, fontSize: 14, overflow: "hidden", textOverflow: "ellipsis" }}>{tx.address}</div>
@@ -2033,6 +2056,9 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
       <div style={{ padding: 24, maxWidth: 940, margin: "0 auto" }}>
         {activeTab === "overview" && (
           <div>
+            {tx.needsFirstContact && (
+              <BuyerIntakeChecklist tx={tx} token={localStorage.getItem("tp_token") || ""} onContactLogged={() => onUpdate({ ...tx, needsFirstContact: false })} />
+            )}
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, marginBottom: 20 }}>
               {[
                 { title: "Property", rows: [["Assigned Agent", tx.assignedAgentName || "—"], ["Referral Source", tx.referralSource || "—"], ["Address", tx.address], ["City/County", `${tx.city}, ${tx.county} County`], ["Zip", tx.zipCode], ["Type", tx.propertyType], ["Transaction", tx.type], ["MLS #", tx.mlsNumber], ["Lockbox Access", tx.propertyAccess || "—"], ["Mail-Away", tx.mailAway || "No"]] },
@@ -4006,7 +4032,7 @@ function MainApp({ onLogout, currentUser }) {
       .then(data => {
         if (data.transactions) {
           // Normalize DB format to app format
-          const normalized = data.transactions.map(t => ({
+          const rawTxs = data.transactions.map(t => ({
             id: t.id,
             address: t.address,
             city: t.city,
@@ -4043,8 +4069,16 @@ function MainApp({ onLogout, currentUser }) {
             parties: (t.parties || []).filter(Boolean).map(p => ({ id: p.id, role: p.role, name: p.name, email: p.email, phone: p.phone, company: p.company, isVendor: p.isVendor || false, vendorStatus: p.vendorStatus || null, vendorCategory: p.vendorCategory || null, vendorDescription: p.vendorDescription || null })),
             tasks: (t.tasks || []).filter(Boolean).map(tk => ({ id: tk.id, name: tk.name, status: tk.status, dueDate: tk.dueDate, category: tk.category, assignTo: tk.assignTo })),
             reminders: (t.reminders || []).filter(Boolean).map(r => ({ id: r.id, title: r.title, date: r.date, message: r.message, channels: r.channels, parties: r.parties || [], sent: r.sent })),
+            needsFirstContact: t.needs_first_contact || false,
+            submittedVia: t.submitted_via || null,
           }));
-          setTransactions(normalized);
+          // Pin buyer/seller intake transactions needing first contact to top
+          const sorted = [...rawTxs].sort((a, b) => {
+            const aNew = a.needsFirstContact ? 1 : 0;
+            const bNew = b.needsFirstContact ? 1 : 0;
+            return bNew - aNew;
+          });
+          setTransactions(sorted);
         }
       })
       .catch(e => console.error("Failed to load transactions:", e))
