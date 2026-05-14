@@ -57,7 +57,7 @@ export default function ContractAutoIntake({ token, user, existingTransactionId,
 // ───────────────────────────────────────────────────────────────
 function UploadStep({ token, existingTransactionId, onBack, onUploaded }) {
   const [mode, setMode] = useState("self"); // "self" or "link"
-  const [file, setFile] = useState(null);
+  const [files, setFiles] = useState([]);
   const [dragging, setDragging] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -92,63 +92,89 @@ function UploadStep({ token, existingTransactionId, onBack, onUploaded }) {
     setTimeout(() => setLinkCopied(false), 2000);
   };
 
-  const onFileSelected = (f) => {
-    if (!f) return;
+  const onFilesSelected = (fList) => {
+    if (!fList || fList.length === 0) return;
     const validTypes = ["application/pdf", "image/jpeg", "image/png", "image/heic", "image/heif"];
-    if (!validTypes.includes(f.type)) {
-      setError("Please upload a PDF or image (JPG, PNG, HEIC). Got: " + f.type);
-      return;
+    const accepted = [];
+    for (const f of Array.from(fList)) {
+      if (!validTypes.includes(f.type)) {
+        setError("Skipped " + f.name + " — only PDF or image (JPG, PNG, HEIC) allowed.");
+        continue;
+      }
+      if (f.size > 30 * 1024 * 1024) {
+        setError("Skipped " + f.name + " — too large (max 30 MB per file).");
+        continue;
+      }
+      accepted.push(f);
     }
-    if (f.size > 30 * 1024 * 1024) {
-      setError("File is too large (max 30 MB). Try compressing the PDF first.");
-      return;
+    if (accepted.length > 0) {
+      setError("");
+      setFiles(prev => [...prev, ...accepted]);
     }
-    setError("");
-    setFile(f);
+  };
+
+  const removeFile = (idx) => {
+    setFiles(prev => prev.filter((_, i) => i !== idx));
   };
 
   const handleDrop = (e) => {
     e.preventDefault();
     setDragging(false);
-    onFileSelected(e.dataTransfer.files?.[0]);
+    onFilesSelected(e.dataTransfer.files);
   };
 
   const handleUpload = async () => {
-    if (!file) return;
+    if (!files || files.length === 0) return;
     setUploading(true);
     setError("");
-    setProgress(10);
+    setProgress(5);
     try {
-      // Step 1: get upload URL
+      const primary = files[0];
+      const extras = files.slice(1);
+
+      // Step 1: get upload URL for primary file
       const r1 = await fetch(API + "/contracts/upload-url", {
         method: "POST",
         headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
-        body: JSON.stringify({ fileName: file.name, fileType: file.type, existingTransactionId })
+        body: JSON.stringify({ fileName: primary.name, fileType: primary.type, existingTransactionId })
       });
       const d1 = await r1.json();
       if (!d1.success) throw new Error(d1.error || "Failed to get upload URL");
-      setProgress(25);
+      const uploadId = d1.uploadId;
+      setProgress(15);
 
-      // Step 2: upload to R2 directly
-      const r2 = await fetch(d1.uploadUrl, {
-        method: "PUT",
-        headers: { "Content-Type": file.type },
-        body: file
-      });
-      if (!r2.ok) throw new Error("Upload to storage failed");
-      setProgress(70);
+      // Step 2: upload primary to R2
+      const u1 = await fetch(d1.uploadUrl, { method: "PUT", headers: { "Content-Type": primary.type }, body: primary });
+      if (!u1.ok) throw new Error("Upload to storage failed for " + primary.name);
+      setProgress(30);
 
-      // Step 3: trigger extraction
-      const r3 = await fetch(API + "/contracts/upload-complete/" + d1.uploadId, {
+      // Step 3: upload each additional file
+      for (let i = 0; i < extras.length; i++) {
+        const ef = extras[i];
+        const ar = await fetch(API + "/contracts/upload-additional-url/" + uploadId, {
+          method: "POST",
+          headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
+          body: JSON.stringify({ fileName: ef.name, fileType: ef.type, fileSize: ef.size })
+        });
+        const ad = await ar.json();
+        if (!ad.success) throw new Error(ad.error || "Failed to get URL for " + ef.name);
+        const eu = await fetch(ad.uploadUrl, { method: "PUT", headers: { "Content-Type": ef.type }, body: ef });
+        if (!eu.ok) throw new Error("Upload failed for " + ef.name);
+        setProgress(30 + Math.round(((i + 1) / extras.length) * 40));
+      }
+      setProgress(75);
+
+      // Step 4: trigger extraction (uses primary's size; backend reads additional_files for the rest)
+      const r3 = await fetch(API + "/contracts/upload-complete/" + uploadId, {
         method: "POST",
         headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
-        body: JSON.stringify({ fileSize: file.size })
+        body: JSON.stringify({ fileSize: primary.size })
       });
       const d3 = await r3.json();
       if (!d3.success) throw new Error(d3.error || "Failed to start extraction");
       setProgress(100);
 
-      onUploaded(d1.uploadId);
+      onUploaded(uploadId);
     } catch (e) {
       setError(e.message);
       setUploading(false);
@@ -250,17 +276,18 @@ function UploadStep({ token, existingTransactionId, onBack, onUploaded }) {
         >
           <div style={{ fontSize: 48, marginBottom: 12 }}>📥</div>
           <div style={{ fontSize: 16, fontWeight: 600, color: COLORS.text, marginBottom: 6 }}>
-            {file ? file.name : "Drop your contract here, or click to browse"}
+            {files.length > 0 ? `${files.length} file${files.length > 1 ? "s" : ""} selected — click to add more` : "Drop contract + addenda here, or click to browse"}
           </div>
           <div style={{ fontSize: 13, color: COLORS.muted }}>
-            {file ? `${(file.size / 1024 / 1024).toFixed(2)} MB` : "PDF, JPG, PNG, or HEIC · Max 30 MB"}
+            {files.length > 0 ? "You can add the contract, addenda, disclosures — all together" : "PDF, JPG, PNG, or HEIC · Max 30 MB each · Select multiple files"}
           </div>
           <input
             ref={fileInputRef}
             type="file"
+            multiple
             accept="application/pdf,image/jpeg,image/png,image/heic,image/heif"
             style={{ display: "none" }}
-            onChange={(e) => onFileSelected(e.target.files?.[0])}
+            onChange={(e) => onFilesSelected(e.target.files)}
           />
         </div>}
 
@@ -279,13 +306,36 @@ function UploadStep({ token, existingTransactionId, onBack, onUploaded }) {
           </div>
         )}
 
-        {mode === "self" && file && !uploading && (
-          <button
-            onClick={handleUpload}
-            style={{ marginTop: 20, background: COLORS.red, color: "white", border: "none", borderRadius: 8, padding: "14px 28px", fontSize: 15, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}
-          >
-            Upload & Process with AI →
-          </button>
+        {mode === "self" && files.length > 0 && !uploading && (
+          <div style={{ marginTop: 16 }}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: COLORS.text, marginBottom: 8 }}>
+              Files to upload ({files.length}):
+            </div>
+            <div style={{ background: "#f9fafb", border: "1px solid #e5e7eb", borderRadius: 8, padding: 12, marginBottom: 16 }}>
+              {files.map((f, idx) => (
+                <div key={idx} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "6px 0", borderBottom: idx < files.length - 1 ? "1px solid #e5e7eb" : "none" }}>
+                  <div style={{ fontSize: 13, color: COLORS.text }}>
+                    📄 {f.name} <span style={{ color: COLORS.muted }}>({(f.size / 1024 / 1024).toFixed(2)} MB)</span>
+                  </div>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); removeFile(idx); }}
+                    style={{ background: "transparent", border: "none", color: "#dc2626", cursor: "pointer", fontSize: 13, fontWeight: 600 }}
+                  >
+                    Remove
+                  </button>
+                </div>
+              ))}
+            </div>
+            <div style={{ fontSize: 12, color: COLORS.muted, marginBottom: 12 }}>
+              💡 Add the contract and any addenda or disclosures together. AI will read them as one package.
+            </div>
+            <button
+              onClick={handleUpload}
+              style={{ background: COLORS.red, color: "white", border: "none", borderRadius: 8, padding: "14px 28px", fontSize: 15, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}
+            >
+              Upload & Process with AI →
+            </button>
+          </div>
         )}
 
         <div style={{ marginTop: 32, padding: 20, background: "#f9fafb", borderRadius: 8, fontSize: 13, color: COLORS.muted, lineHeight: 1.6 }}>
