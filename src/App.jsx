@@ -3382,6 +3382,8 @@ function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenCon
     tasks: (t.tasks || []).filter(Boolean).map(tk => ({ id: tk.id, name: tk.name, status: tk.status, dueDate: tk.dueDate, category: tk.category, assignTo: tk.assignTo })),
     reminders: (t.reminders || []).filter(Boolean),
     smsThreads: t.sms_threads || {},
+    needsFirstContact: t.needs_first_contact || false,
+    submittedVia: t.submitted_via || null,
   }));
 
   const [showOverdue, setShowOverdue] = useState(false);
