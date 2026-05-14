@@ -3515,7 +3515,7 @@ function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenCon
             <button onClick={onVendors} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "rgba(255,255,255,0.88)", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 600, fontFamily: "inherit" }}>🏆 Vendors</button>
             <button onClick={onReports} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "rgba(255,255,255,0.88)", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 600, fontFamily: "inherit" }}>📊 Reports</button>
             
-            {["admin","superadmin"].includes(currentUser?.role) && <button onClick={onIntakeLinks} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "rgba(255,255,255,0.88)", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 600, fontFamily: "inherit" }}>🔗 Intake Forms</button>}
+            <button onClick={onIntakeLinks} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "rgba(255,255,255,0.88)", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 600, fontFamily: "inherit" }}>🔗 My Intake Links</button>
             <button onClick={onAgentProfile} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "rgba(255,255,255,0.88)", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 600, fontFamily: "inherit" }}>👤 Profile</button>
             {["admin","superadmin"].includes(currentUser?.role) && <button onClick={onOpenComplianceDash} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "rgba(255,255,255,0.88)", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 600, fontFamily: "inherit" }}>📊 Compliance Dashboard</button>}
             {["admin","superadmin"].includes(currentUser?.role) && <button onClick={onOpenCompliance} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "rgba(255,255,255,0.88)", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 600, fontFamily: "inherit" }}>⚖️ Doc Requirements</button>}
@@ -4447,7 +4447,7 @@ function MainApp({ onLogout, currentUser }) {
               <p style={{ fontSize: 13, color: "#555", marginBottom: 20 }}>Share these links with clients. The form automatically creates a transaction in your account.</p>
               {[{ label: "🏠 Seller Intake Form", type: "seller", color: "#C0392B" }, { label: "🏡 Buyer Intake Form", type: "buyer", color: "#1A5276" }].map(({ label, type, color }) => {
                 const slug = currentUser?.slug || "";
-                const url = "https://thelizteam.netlify.app/" + type + ".html?agent=" + slug + "&uid=" + (currentUser?.id || "");
+                const url = window.location.origin + "/" + type + ".html?agent=" + slug + "&uid=" + (currentUser?.id || "");
                 return (
                   <div key={type} style={{ marginBottom: 16, padding: 16, background: "#F8F9FA", borderRadius: 10, border: "1px solid #EEE" }}>
                     <div style={{ fontWeight: 700, color, marginBottom: 8 }}>{label}</div>
