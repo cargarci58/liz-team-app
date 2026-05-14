@@ -1,4 +1,5 @@
 import LoginScreen from "./LoginScreen";
+import BuyerCalculator from "./components/BuyerCalculator";
 import UserManagement from "./UserManagement";
 import ComplianceAdmin from "./ComplianceAdmin";
 import TaskTemplatesAdmin from "./TaskTemplatesAdmin";
@@ -2481,6 +2482,8 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
   const sortedTaskCategories = Object.entries(tasksByCategory).sort(([a], [b]) => { const ai = CATEGORY_ORDER.indexOf(a); const bi = CATEGORY_ORDER.indexOf(b); return (ai === -1 ? 999 : ai) - (bi === -1 ? 999 : bi); });
   const smsMsgCount = Object.values(tx.smsThreads || {}).reduce((a, t) => a + t.length, 0);
 
+  const isBuyerSideTx = tx.transactionType && tx.transactionType.includes("Buyer");
+
   const tabs = [
     { id: "overview", label: "Overview" },
     { id: "milestones", label: "🎯 Milestones" },
@@ -2490,6 +2493,7 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
     { id: "notes", label: "Internal Notes" },
     { id: "documents", label: "📎 Documents" },
     { id: "chat", label: (chatUnread > 0 || dashboardUnread > 0) ? `💬 Group Chat (${Math.max(chatUnread, dashboardUnread)})` : "💬 Group Chat" },
+    ...(isBuyerSideTx ? [{ id: "calculator", label: "🧮 Calculator" }] : []),
     { id: "activity", label: "📋 Activity Log" },
     { id: "reminders", label: "Reminders" },
   ];
@@ -2847,6 +2851,15 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
         )}
 
         {activeTab === "documents" && <DocumentsTab tx={tx} />}
+        {activeTab === "calculator" && (
+          <div style={{ padding: 20 }}>
+            <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 8, padding: 12, marginBottom: 16, fontSize: 13, color: "#7f1d1d" }}>
+              <strong>🎓 Why this matters:</strong> Use this with your buyer to set realistic expectations on price, monthly payment, and cash-to-close BEFORE writing offers. Florida's doc stamps, intangible tax, and insurance costs surprise most first-time buyers.
+            </div>
+            <BuyerCalculator />
+          </div>
+        )}
+
         {activeTab === "activity" && (() => {
           if (!activitiesLoaded) {
             const tok = localStorage.getItem("tp_token") || "";

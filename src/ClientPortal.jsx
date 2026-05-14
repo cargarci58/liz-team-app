@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import BuyerCalculator from "./components/BuyerCalculator";
 import TransactionChat from "./TransactionChat";
 
 const API = "https://liz-team-server-api-production.up.railway.app";
@@ -608,12 +609,15 @@ export default function ClientPortal({ user, onLogout }) {
   const agentPhone = tx ? tx.owningAgentPhone : "";
   const agentEmail = tx ? tx.owningAgentEmail : "";
 
+  const isBuyerSide = tx && tx.transactionType && tx.transactionType.includes("Buyer");
+
   const tabs = [
     { id: "home", label: "🏠 My Transaction" },
     { id: "documents", label: "📎 Documents" },
     { id: "chat", label: chatUnread > 0 ? "💬 Chat (" + chatUnread + ")" : "💬 Chat" },
     { id: "team", label: "👥 My Team" },
     { id: "vendors", label: "🏆 Vendors" },
+    ...(isBuyerSide ? [{ id: "calculator", label: "🧮 Calculator" }] : []),
     { id: "faq", label: "❓ FAQ" },
   ];
 
@@ -909,6 +913,15 @@ export default function ClientPortal({ user, onLogout }) {
             )}
 
             {/* FAQ TAB */}
+            {activeTab === "calculator" && (
+              <div style={{ padding: 16 }}>
+                <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 8, padding: 12, marginBottom: 16, fontSize: 13, color: "#7f1d1d" }}>
+                  <strong>🎓 Why this matters:</strong> Buying a home in Florida has costs many buyers don't expect — doc stamps, intangible tax, insurance. Use these calculators to plan with no surprises at closing.
+                </div>
+                <BuyerCalculator />
+              </div>
+            )}
+
             {activeTab === "faq" && (
               <FaqTab agentPhone={agentPhone} />
             )}
