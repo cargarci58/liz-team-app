@@ -2301,6 +2301,53 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
 
   // Pre-fill helper — used everywhere the Edit modal opens.
   // CRITICAL RULE: Edit modal must NEVER open blank. Every field comes from current tx.
+  // Reusable welcome-email sender — used by checklist + Parties tab + post-edit prompt
+  const sendWelcomeEmailsFromTx = async (targetParties = null) => {
+    const partiesWithEmail = (targetParties || tx.parties || []).filter(p => p.email && p.email.includes("@"));
+    if (partiesWithEmail.length === 0) {
+      alert("No party has a valid email address yet. Add emails first, then try again.");
+      return false;
+    }
+    const allParties = tx.parties || [];
+    const partiesNoEmail = allParties.filter(p => !p.email || !p.email.includes("@"));
+    const recipientList = partiesWithEmail.map(p => `  • ${p.name} (${p.role}) → ${p.email}`).join("\n");
+    const missing = [];
+    if (!tx.contractPrice) missing.push("Contract Price");
+    if (!tx.executedDate) missing.push("Executed Date");
+    if (!tx.closingDate) missing.push("Closing Date");
+    if (!tx.earnestMoneyAmount) missing.push("Earnest Money Amount");
+    if (!tx.address || tx.address.includes("pending")) missing.push("Property Address");
+    let warning = "\u26a0\ufe0f  BEFORE SENDING \u2014 REVIEW EVERYTHING\n\n";
+    warning += "The welcome email will include the transaction details below. If any are wrong or missing, FIX THEM FIRST \u2014 recipients will see exactly what is in the transaction right now.\n\n";
+    warning += "\u2500\u2500\u2500 EMAILS WILL BE SENT TO \u2500\u2500\u2500\n" + recipientList + "\n";
+    if (partiesNoEmail.length > 0) {
+      warning += "\n\u26a0\ufe0f  These parties have NO email and will NOT receive the welcome:\n";
+      warning += partiesNoEmail.map(p => `  \u2022 ${p.name} (${p.role})`).join("\n");
+      warning += "\n   (Add their email if they should receive it.)\n";
+    }
+    if (missing.length > 0) {
+      warning += "\n\u26a0\ufe0f  MISSING TRANSACTION FIELDS that the email needs:\n";
+      warning += missing.map(m => `  \u2022 ${m}`).join("\n");
+      warning += "\n   Cancel now, fix these in Edit Transaction, then come back.\n";
+    }
+    warning += "\n\u2500\u2500\u2500 CONFIRM \u2500\u2500\u2500\nClick OK only if every party email is correct AND every transaction field is filled in. This action cannot be undone \u2014 once sent, recipients have the email.";
+    if (!window.confirm(warning)) return false;
+    try {
+      const r = await fetch("https://liz-team-server-api-production.up.railway.app/transactions/" + tx.id + "/send-welcome-emails", {
+        method: "POST",
+        headers: { Authorization: "Bearer " + (localStorage.getItem("tp_token") || "") }
+      });
+      const d = await r.json();
+      if (d.success) {
+        alert(`\u2705 Welcome emails sent to ${d.emailsSent} parties.`);
+        return true;
+      } else {
+        alert("Could not send: " + (d.error || "Unknown error"));
+        return false;
+      }
+    } catch (e) { alert("Error: " + e.message); return false; }
+  };
+
   const buildEditTxForm = (tt = tx) => ({
     assignedAgent: tt.assignedAgentId || "",
     referralSource: tt.referralSource || "",
@@ -2641,6 +2688,25 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
 
         {activeTab === "parties" && (
           <div>
+            {/* Welcome-email reminder banner — shows when transaction is Under Contract or needs review and at least one party has an email */}
+            {(tx.needsReview || tx.status === "Under Contract") && (tx.parties || []).some(p => p.email && p.email.includes("@")) && (
+              <div style={{ background: "#eff6ff", border: "2px solid #2563eb", borderRadius: 10, padding: 14, marginBottom: 16 }}>
+                <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+                  <span style={{ fontSize: 22 }}>✉️</span>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontWeight: 800, color: "#1e3a8a", fontSize: 14, marginBottom: 4 }}>Ready to send welcome emails?</div>
+                    <div style={{ fontSize: 12, color: "#1e40af", lineHeight: 1.5, marginBottom: 10 }}>
+                      <strong>What this does:</strong> Sends a professional intro to every party with their role, key dates, and party roster — so the whole team starts on the same page.<br/>
+                      <strong>Before you click:</strong> Confirm every email and phone below is correct. You will see a final summary list before anything sends.
+                    </div>
+                    <button onClick={() => sendWelcomeEmailsFromTx()}
+                      style={{ background: "#1e8449", color: "white", border: "none", borderRadius: 6, padding: "8px 14px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                      ✉️ Send Welcome Emails to {(tx.parties || []).filter(p => p.email && p.email.includes("@")).length} Parties
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
             <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginBottom: 16 }}>
               <Btn onClick={() => setShowAssignVendor(true)} small>🏆 Assign Vendor</Btn>
               <Btn onClick={() => setShowAddParty(true)} small>+ Add Party</Btn>
@@ -2809,7 +2875,19 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
           <Input label="Cell Phone (for SMS)" value={editingParty.phone || ""} onChange={v => setEditingParty(p => ({ ...p, phone: v }))} type="tel" />
           <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
             <Btn variant="ghost" onClick={() => setEditingParty(null)}>Cancel</Btn>
-            <Btn onClick={() => { update({ parties: tx.parties.map(p => p.id === editingParty.id ? editingParty : p) }); setEditingParty(null); }}>Save Changes</Btn>
+            <Btn onClick={async () => {
+              const editedParty = editingParty;
+              update({ parties: tx.parties.map(p => p.id === editedParty.id ? editedParty : p) });
+              setEditingParty(null);
+              // Prompt to send welcome to just this party — only if they have a valid email
+              if (editedParty.email && editedParty.email.includes("@") && (tx.status === "Under Contract" || tx.needsReview)) {
+                setTimeout(() => {
+                  if (window.confirm(`Send a welcome email to ${editedParty.name} (${editedParty.role}) at ${editedParty.email} now?\n\nThis sends the standard welcome with transaction details. Click Cancel to wait and send to all parties together later.`)) {
+                    sendWelcomeEmailsFromTx([editedParty]);
+                  }
+                }, 200);
+              }
+            }}>Save Changes</Btn>
           </div>
         </Modal>
       )}
@@ -3801,6 +3879,20 @@ function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenCon
     reviewReason: t.review_reason || null,
     additionalTerms: t.additional_terms || null,
     reviewStepsDone: t.review_steps_done || [],
+    earnestMoneyAmount: t.earnest_money_amount || "",
+    emdDeadline: t.emd_deadline || "",
+    inspectionPeriodDays: t.inspection_period_days || "",
+    inspectionPeriodEnd: t.inspection_period_end || "",
+    financingContingency: t.financing_contingency || false,
+    financingContingencyDays: t.financing_contingency_days || "",
+    appraisalContingency: t.appraisal_contingency || false,
+    appraisalContingencyDays: t.appraisal_contingency_days || "",
+    hoaApprovalRequired: t.hoa_approval_required || false,
+    hoaApprovalDays: t.hoa_approval_days || "",
+    surveyRequired: t.survey_required || false,
+    isCash: t.is_cash || false,
+    contractFormType: t.contract_form_type || "",
+    occupancyStatus: t.occupancy_status || "",
   }));
 
   const [showOverdue, setShowOverdue] = useState(false);
@@ -4582,6 +4674,20 @@ function MainApp({ onLogout, currentUser }) {
             reviewReason: t.review_reason || null,
             additionalTerms: t.additional_terms || null,
             reviewStepsDone: t.review_steps_done || [],
+            earnestMoneyAmount: t.earnest_money_amount || "",
+            emdDeadline: t.emd_deadline || "",
+            inspectionPeriodDays: t.inspection_period_days || "",
+            inspectionPeriodEnd: t.inspection_period_end || "",
+            financingContingency: t.financing_contingency || false,
+            financingContingencyDays: t.financing_contingency_days || "",
+            appraisalContingency: t.appraisal_contingency || false,
+            appraisalContingencyDays: t.appraisal_contingency_days || "",
+            hoaApprovalRequired: t.hoa_approval_required || false,
+            hoaApprovalDays: t.hoa_approval_days || "",
+            surveyRequired: t.survey_required || false,
+            isCash: t.is_cash || false,
+            contractFormType: t.contract_form_type || "",
+            occupancyStatus: t.occupancy_status || "",
           }));
           // Pin buyer/seller intake transactions needing first contact to top
           const sorted = [...rawTxs].sort((a, b) => {
