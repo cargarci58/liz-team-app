@@ -442,6 +442,43 @@ function ReviewStep({ token, uploadId, user, onApproved, onBack }) {
           </div>
         )}
 
+        {/* ADDITIONAL TERMS — surfaced prominently because custom clauses are often missed */}
+        <div style={{ background: edited.transaction?.additional_terms ? "#fef9c3" : "#f9fafb", border: edited.transaction?.additional_terms ? "2px solid #facc15" : "1px solid #e5e7eb", borderRadius: 10, padding: 16, marginBottom: 20 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+            <span style={{ fontSize: 20 }}>📝</span>
+            <div style={{ fontWeight: 800, color: edited.transaction?.additional_terms ? "#854d0e" : "#374151", fontSize: 15 }}>
+              {edited.transaction?.additional_terms ? "ADDITIONAL TERMS / SPECIAL CLAUSES DETECTED" : "Additional Terms / Special Clauses"}
+            </div>
+          </div>
+          {edited.transaction?.additional_terms ? (
+            <>
+              <div style={{ fontSize: 12, color: "#713f12", marginBottom: 10, lineHeight: 1.5 }}>
+                <strong>⚠️ Important:</strong> These are CUSTOM clauses negotiated between parties (not standard form terms). They override standard contract terms. <strong>Read every line carefully</strong> — missing one can cost the buyer/seller money or break the deal. Edit below if the AI misread anything.
+              </div>
+              <textarea
+                value={edited.transaction?.additional_terms || ""}
+                onChange={(e) => setEdited(prev => ({ ...prev, transaction: { ...prev.transaction, additional_terms: e.target.value } }))}
+                style={{ width: "100%", minHeight: 120, padding: 10, borderRadius: 6, border: "1.5px solid #facc15", fontSize: 13, fontFamily: "monospace", lineHeight: 1.5, boxSizing: "border-box", background: "white" }}
+              />
+              <div style={{ fontSize: 11, color: "#854d0e", marginTop: 6 }}>
+                ℹ️ On approval, this text will also be saved to the transaction Notes so you can find it later.
+              </div>
+            </>
+          ) : (
+            <>
+              <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 8, lineHeight: 1.5 }}>
+                No custom clauses detected. If the contract has an "Additional Terms" or "Special Clauses" section that the AI missed, paste it here.
+              </div>
+              <textarea
+                value={edited.transaction?.additional_terms || ""}
+                onChange={(e) => setEdited(prev => ({ ...prev, transaction: { ...prev.transaction, additional_terms: e.target.value } }))}
+                placeholder="e.g. Seller to credit buyer $5,000 at closing. Refrigerator stays. Closing contingent on buyer's sale of 123 Main St..."
+                style={{ width: "100%", minHeight: 80, padding: 10, borderRadius: 6, border: "1px solid #d1d5db", fontSize: 13, fontFamily: "monospace", lineHeight: 1.5, boxSizing: "border-box", background: "white" }}
+              />
+            </>
+          )}
+        </div>
+
         <div style={sectionStyle}>
           <h3 style={{ marginTop: 0, color: COLORS.navy, fontSize: 16 }}>📄 Documents Detected ({docs.length})</h3>
           {docs.map((d, i) => (

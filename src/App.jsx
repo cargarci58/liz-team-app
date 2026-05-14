@@ -1977,6 +1977,122 @@ function BuyerIntakeChecklist({ tx, token, onContactLogged }) {
 // ═══════════════════════════════════════════════════════════════
 // ASSIGN AGENT MODAL — guided assignment for unassigned leads
 // ═══════════════════════════════════════════════════════════════
+
+// ═══════════════════════════════════════════════════════════════
+// CONTRACT REVIEW CHECKLIST — 5-step guided verification after auto-intake
+// ═══════════════════════════════════════════════════════════════
+function ContractReviewChecklist({ tx, token, onCleared, setActiveTab, setEditTxForm, setShowEditTx }) {
+  const [stepsDone, setStepsDone] = useState(tx.reviewStepsDone || []);
+  const [updating, setUpdating] = useState(null);
+  const API_URL = "https://liz-team-server-api-production.up.railway.app";
+
+  const toggleStep = async (stepNumber) => {
+    setUpdating(stepNumber);
+    const newDone = !stepsDone.includes(stepNumber);
+    try {
+      const r = await fetch(API_URL + "/transactions/" + tx.id + "/review-step", {
+        method: "POST",
+        headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
+        body: JSON.stringify({ stepNumber, done: newDone })
+      });
+      const d = await r.json();
+      if (d.success) {
+        setStepsDone(d.steps);
+        if (d.allDone && onCleared) onCleared();
+      }
+    } catch (e) { alert("Failed: " + e.message); }
+    setUpdating(null);
+  };
+
+  const openEditModal = () => {
+    setEditTxForm({
+      assignedAgent: tx.assignedAgentId || "", referralSource: tx.referralSource || "",
+      closingDate: tx.closingDate || "", contractPrice: tx.contractPrice || "",
+      openDate: tx.openDate || "", executedDate: tx.executedDate || "", status: tx.status,
+      mlsNumber: tx.mlsNumber || "", notes: tx.notes || "", propertyAccess: tx.propertyAccess || "",
+      commissionListing: tx.commissionListing || "", commissionBuyer: tx.commissionBuyer || "",
+      transactionFee: tx.transactionFee || "", brokerageSplit: tx.brokerageSplit || "",
+      officeFlatFee: tx.officeFlatFee || "", mailAway: tx.mailAway || "No",
+      commissionNotes: tx.commissionNotes || ""
+    });
+    setShowEditTx(true);
+  };
+
+  const steps = [
+    { num: 1, icon: "🏠", title: "Verify Property Address & Type", why: "The address, city, county, and property type must match the contract exactly. A wrong county can break MLS compliance.", action: "Click Edit Transaction below and confirm the Property section.", cta: "Open Edit Form", onCta: openEditModal },
+    { num: 2, icon: "📅", title: "Verify Key Dates (Executed, Closing, EMD Deadline)", why: "Dates drive every milestone and task. A wrong closing date or missed EMD deadline can void the contract or forfeit the deposit.", action: "Check the Financials section. EMD is typically due 3 business days from executed date in Florida.", cta: "Open Edit Form", onCta: openEditModal },
+    { num: 3, icon: "⏱️", title: "Verify Contingency Days (Inspection, Financing, Appraisal)", why: "Handwritten changes to contingency days are common and often misread by AI. Missing a contingency deadline means losing the buyer's right to cancel.", action: "Read paragraphs 8, 12, and 13 of the original contract against what is in Financials.", cta: "Open Edit Form", onCta: openEditModal },
+    { num: 4, icon: "👥", title: "Verify All Parties & Contact Info", why: "Title, lender, and inspector must be reachable. Missing email/phone breaks the welcome email and the entire group communication chain.", action: "Open the Key Parties tab and confirm every party has a working phone and email.", cta: "Open Parties Tab", onCta: () => setActiveTab("parties") },
+    { num: 5, icon: "📝", title: tx.additionalTerms ? "Read & Confirm Additional Terms" : "Confirm No Additional Terms Were Missed", why: tx.additionalTerms ? "Custom clauses override the standard form. These can be repair credits, occupancy provisions, contingent-on-sale clauses, or seller concessions. Each is binding and you must understand them." : "If the contract had any handwritten or typed clauses beyond the standard form that the AI did not detect, you need to add them manually now.", action: tx.additionalTerms ? "Read every line of the Additional Terms section below carefully. Same text is now saved in Notes." : "Re-check the original contract for any custom clauses, addendum signature lines, or 'see attached' references.", cta: tx.additionalTerms ? "Show Notes" : "Open Edit Form", onCta: () => { if (tx.additionalTerms) setActiveTab("overview"); else openEditModal(); } },
+  ];
+
+  const doneCount = stepsDone.length;
+
+  return (
+    <div style={{ background: "#eff6ff", border: "2px solid #2563eb", borderRadius: 12, padding: 20, marginBottom: 20 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
+        <span style={{ fontSize: 26 }}>📋</span>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontWeight: 800, color: "#1e3a8a", fontSize: 16 }}>NEW FROM CONTRACT — {doneCount}/5 Verified</div>
+          <div style={{ fontSize: 12, color: "#1e40af", marginTop: 2 }}>
+            The AI extracted this data from the contract. As the agent of record, you must verify each section below. The banner clears when all 5 are done.
+          </div>
+        </div>
+      </div>
+      <div style={{ background: "#bfdbfe", height: 6, borderRadius: 3, overflow: "hidden", marginBottom: 16 }}>
+        <div style={{ background: "#1e8449", height: "100%", width: (doneCount / 5 * 100) + "%", transition: "width 0.3s" }} />
+      </div>
+
+      {tx.additionalTerms && (
+        <div style={{ background: "#fef9c3", border: "1px solid #fde047", borderRadius: 8, padding: 12, marginBottom: 14 }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: "#854d0e", marginBottom: 6 }}>📝 Additional Terms / Special Clauses extracted from contract (also saved in Notes):</div>
+          <div style={{ fontSize: 12, color: "#713f12", whiteSpace: "pre-wrap", lineHeight: 1.5, fontFamily: "monospace", background: "white", padding: 10, borderRadius: 6 }}>{tx.additionalTerms}</div>
+        </div>
+      )}
+
+      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        {steps.map(step => {
+          const isDone = stepsDone.includes(step.num);
+          const isUpdating = updating === step.num;
+          return (
+            <div key={step.num} style={{ background: isDone ? "#f0fdf4" : "white", borderRadius: 8, padding: 14, border: `1px solid ${isDone ? "#bbf7d0" : "#bfdbfe"}`, opacity: isDone ? 0.7 : 1 }}>
+              <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+                <div style={{ fontSize: 20, flexShrink: 0 }}>{isDone ? "✅" : step.icon}</div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+                    <span style={{ background: isDone ? "#1e8449" : "#2563eb", color: "white", borderRadius: "50%", width: 20, height: 20, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, flexShrink: 0 }}>{step.num}</span>
+                    <span style={{ fontWeight: 700, color: "#1a2332", fontSize: 14, textDecoration: isDone ? "line-through" : "none" }}>{step.title}</span>
+                  </div>
+                  {!isDone && <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 6, lineHeight: 1.5 }}><strong style={{ color: "#1e40af" }}>Why:</strong> {step.why}</div>}
+                  {!isDone && <div style={{ fontSize: 13, color: "#1a2332", marginBottom: 10, background: "#f9fafb", padding: "6px 10px", borderRadius: 6 }}>📌 {step.action}</div>}
+                  {!isDone && (
+                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                      <button onClick={(e) => { e.stopPropagation(); step.onCta(); }}
+                        style={{ background: "#2563eb", color: "white", border: "none", borderRadius: 6, padding: "6px 14px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
+                        {step.cta} →
+                      </button>
+                      <button onClick={() => toggleStep(step.num)} disabled={isUpdating}
+                        style={{ background: "#1e8449", color: "white", border: "none", borderRadius: 6, padding: "6px 14px", fontSize: 12, fontWeight: 600, cursor: isUpdating ? "wait" : "pointer", fontFamily: "inherit", opacity: isUpdating ? 0.7 : 1 }}>
+                        {isUpdating ? "..." : "✓ Mark Verified"}
+                      </button>
+                    </div>
+                  )}
+                  {isDone && (
+                    <button onClick={() => toggleStep(step.num)} disabled={isUpdating}
+                      style={{ background: "white", color: "#6b7280", border: "1px solid #d1d5db", borderRadius: 6, padding: "6px 14px", fontSize: 12, fontWeight: 600, cursor: isUpdating ? "wait" : "pointer", fontFamily: "inherit" }}>
+                      {isUpdating ? "..." : "↺ Undo"}
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function AssignAgentModal({ tx, token, onClose, onAssigned, currentUser }) {
   const [users, setUsers] = useState([]);
   const [selectedAgentId, setSelectedAgentId] = useState(currentUser?.id || "");
@@ -2266,42 +2382,7 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
         {activeTab === "overview" && (
           <div>
             {tx.assignedAgentId && tx.needsReview && (
-              <div style={{ background: "#eff6ff", border: "2px solid #2563eb", borderRadius: 12, padding: 18, marginBottom: 20 }}>
-                <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
-                  <span style={{ fontSize: 26 }}>📋</span>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: 800, color: "#1e3a8a", fontSize: 16, marginBottom: 6 }}>NEW FROM CONTRACT — Review & Verify Required</div>
-                    <div style={{ fontSize: 13, color: "#1e40af", marginBottom: 8, lineHeight: 1.5 }}>
-                      <strong>What to do:</strong> Open every section below (Property, Financials, Key Parties, Milestones, Documents) and confirm every field matches the executed contract. Pay special attention to dates, contingency days, deposit amounts, and the Additional Terms section.
-                    </div>
-                    <div style={{ fontSize: 13, color: "#1e40af", marginBottom: 8, lineHeight: 1.5 }}>
-                      <strong>Why it matters:</strong> {tx.reviewReason || "The AI extracted the data automatically but may have misread handwritten changes, strikethroughs, or custom clauses. You are the agent of record — the final accuracy of this transaction is your responsibility, not the AI's."}
-                    </div>
-                    <div style={{ fontSize: 13, color: "#1e40af", marginBottom: 12, lineHeight: 1.5 }}>
-                      <strong>What proves it is done:</strong> Click "I have reviewed & verified" below once every field has been confirmed. The banner will disappear and the transaction will return to normal flow.
-                    </div>
-                    {tx.additionalTerms && (
-                      <div style={{ background: "#fef9c3", border: "1px solid #fde047", borderRadius: 8, padding: 10, marginBottom: 12 }}>
-                        <div style={{ fontSize: 12, fontWeight: 700, color: "#854d0e", marginBottom: 4 }}>📝 Additional Terms / Special Clauses extracted from contract:</div>
-                        <div style={{ fontSize: 12, color: "#713f12", whiteSpace: "pre-wrap", lineHeight: 1.5 }}>{tx.additionalTerms}</div>
-                      </div>
-                    )}
-                    <button onClick={async () => {
-                      try {
-                        const r = await fetch("https://liz-team-server-api-production.up.railway.app/transactions/" + tx.id + "/clear-review", {
-                          method: "POST",
-                          headers: { Authorization: "Bearer " + (localStorage.getItem("tp_token") || "") }
-                        });
-                        const d = await r.json();
-                        if (d.success) { onUpdate({ ...tx, needsReview: false }); }
-                        else { alert("Could not clear: " + (d.error || "Unknown error")); }
-                      } catch (e) { alert("Error: " + e.message); }
-                    }} style={{ background: "#2563eb", color: "white", border: "none", borderRadius: 8, padding: "10px 18px", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
-                      ✅ I have reviewed & verified all fields
-                    </button>
-                  </div>
-                </div>
-              </div>
+              <ContractReviewChecklist tx={tx} token={localStorage.getItem("tp_token") || ""} onCleared={() => onUpdate({ ...tx, needsReview: false })} setActiveTab={setActiveTab} setEditTxForm={setEditTxForm} setShowEditTx={setShowEditTx} />
             )}
             {!tx.assignedAgentId && (
               <div style={{ background: "#fef3c7", border: "2px solid #f59e0b", borderRadius: 12, padding: 18, marginBottom: 20 }}>
@@ -3603,6 +3684,7 @@ function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenCon
     needsReview: t.needs_review || false,
     reviewReason: t.review_reason || null,
     additionalTerms: t.additional_terms || null,
+    reviewStepsDone: t.review_steps_done || [],
   }));
 
   const [showOverdue, setShowOverdue] = useState(false);
@@ -4383,6 +4465,7 @@ function MainApp({ onLogout, currentUser }) {
             needsReview: t.needs_review || false,
             reviewReason: t.review_reason || null,
             additionalTerms: t.additional_terms || null,
+            reviewStepsDone: t.review_steps_done || [],
           }));
           // Pin buyer/seller intake transactions needing first contact to top
           const sorted = [...rawTxs].sort((a, b) => {
