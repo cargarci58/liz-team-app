@@ -1963,8 +1963,122 @@ function BuyerIntakeChecklist({ tx, token, onContactLogged }) {
   );
 }
 
+
+// ═══════════════════════════════════════════════════════════════
+// ASSIGN AGENT MODAL — guided assignment for unassigned leads
+// ═══════════════════════════════════════════════════════════════
+function AssignAgentModal({ tx, token, onClose, onAssigned, currentUser }) {
+  const [users, setUsers] = useState([]);
+  const [selectedAgentId, setSelectedAgentId] = useState(currentUser?.id || "");
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const API_URL = "https://liz-team-server-api-production.up.railway.app";
+
+  useEffect(() => {
+    fetch(API_URL + "/users/brokerage", { headers: { Authorization: "Bearer " + token } })
+      .then(r => r.json())
+      .then(d => { if (d.success) setUsers(d.users); setLoading(false); })
+      .catch(() => setLoading(false));
+  }, [token]);
+
+  const isBuyer = tx.type === "Buyer Representation";
+  const leadType = isBuyer ? "buyer" : "seller";
+
+  const handleAssign = async () => {
+    if (!selectedAgentId) { alert("Please select an agent first."); return; }
+    setSaving(true);
+    try {
+      const r = await fetch(API_URL + "/transactions/" + tx.id + "/assign-agent", {
+        method: "POST",
+        headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
+        body: JSON.stringify({ agentId: selectedAgentId })
+      });
+      const d = await r.json();
+      if (d.success) {
+        alert("✅ Lead assigned to " + d.assignedTo + ".\n\nThey have been notified by email and SMS to contact this " + leadType + " within 24 hours.");
+        if (onAssigned) onAssigned(selectedAgentId);
+        onClose();
+      } else {
+        alert("Error: " + (d.error || "Could not assign"));
+      }
+    } catch (e) { alert("Error: " + e.message); }
+    setSaving(false);
+  };
+
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 3000, display: "flex", alignItems: "center", justifyContent: "center", padding: 16, fontFamily: "system-ui, sans-serif" }}>
+      <div style={{ background: "#fff", borderRadius: 14, width: "100%", maxWidth: 540, boxShadow: "0 8px 40px rgba(0,0,0,0.2)", overflow: "hidden" }}>
+        <div style={{ background: "#f59e0b", padding: "18px 24px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div style={{ color: "#fff", fontWeight: 800, fontSize: 18 }}>⚠️ Assign This Lead to an Agent</div>
+          <button onClick={onClose} style={{ background: "none", border: "none", color: "rgba(255,255,255,0.85)", fontSize: 24, cursor: "pointer", lineHeight: 1 }}>×</button>
+        </div>
+        <div style={{ padding: 24 }}>
+          {/* Lead summary */}
+          <div style={{ background: "#fef3c7", border: "1px solid #fde68a", borderRadius: 8, padding: 14, marginBottom: 18 }}>
+            <div style={{ fontSize: 13, color: "#78350f", fontWeight: 700, marginBottom: 4 }}>Lead Details</div>
+            <div style={{ fontSize: 14, color: "#1a2332" }}>{tx.address}</div>
+            <div style={{ fontSize: 12, color: "#6b7280", marginTop: 2 }}>{isBuyer ? "Buyer Representation" : "Listing (Seller)"} · {tx.parties && tx.parties[0] ? tx.parties[0].name : "Party info in transaction"}</div>
+          </div>
+
+          {/* What / Why / What proves */}
+          <div style={{ marginBottom: 18 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "#1a2332", marginBottom: 6 }}>📋 What you are about to do</div>
+            <div style={{ fontSize: 13, color: "#374151", lineHeight: 1.5 }}>
+              Pick an agent who will take ownership of this {leadType} lead. They become responsible for first contact, the buyer/seller representation agreement, and all follow-up.
+            </div>
+          </div>
+
+          <div style={{ marginBottom: 18 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "#991b1b", marginBottom: 6 }}>⚠️ Why this matters</div>
+            <div style={{ fontSize: 13, color: "#374151", lineHeight: 1.5 }}>
+              Florida law and brokerage policy require prompt first contact (within 24 hours). Until assigned, no one is responsible for this lead and it can go cold fast. You can assign it to yourself if you are taking it, or to another agent at your brokerage.
+            </div>
+          </div>
+
+          <div style={{ marginBottom: 18 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "#065f46", marginBottom: 6 }}>✅ What happens next</div>
+            <div style={{ fontSize: 13, color: "#374151", lineHeight: 1.5 }}>
+              The agent you pick will receive an email and SMS with the lead details. The transaction card will turn red with the "Contact Within 24hrs" banner. The 5-step intake checklist will activate inside the transaction.
+            </div>
+          </div>
+
+          {/* Agent picker */}
+          <div style={{ marginBottom: 20 }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: "#6b7280", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 8 }}>SELECT AGENT</div>
+            {loading ? (
+              <div style={{ fontSize: 13, color: "#9ca3af", padding: 12 }}>Loading agents at your brokerage…</div>
+            ) : (
+              <select value={selectedAgentId} onChange={e => setSelectedAgentId(e.target.value)}
+                style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: "1.5px solid #d1d5db", fontSize: 14, fontFamily: "inherit", background: "#fff", boxSizing: "border-box" }}>
+                <option value="">— Pick an agent —</option>
+                {users.map(u => (
+                  <option key={u.id} value={u.id}>
+                    {u.first_name} {u.last_name}{u.id === currentUser?.id ? " (me)" : ""} · {u.role === "admin" || u.role === "superadmin" ? "Admin" : "Agent"}
+                  </option>
+                ))}
+              </select>
+            )}
+          </div>
+
+          <div style={{ display: "flex", gap: 10 }}>
+            <button onClick={onClose} disabled={saving}
+              style={{ flex: 1, padding: 13, borderRadius: 10, border: "1.5px solid #d1d5db", background: "#fff", color: "#6b7280", fontWeight: 700, fontSize: 14, cursor: "pointer", fontFamily: "inherit" }}>
+              Cancel
+            </button>
+            <button onClick={handleAssign} disabled={saving || !selectedAgentId}
+              style={{ flex: 2, padding: 13, borderRadius: 10, border: "none", background: selectedAgentId ? "#f59e0b" : "#d1d5db", color: "#fff", fontWeight: 700, fontSize: 14, cursor: saving || !selectedAgentId ? "not-allowed" : "pointer", fontFamily: "inherit" }}>
+              {saving ? "Assigning…" : "👤 Assign Agent & Notify"}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [], onSaveContact, onOpenContactBook, onDuplicate, currentUser, initialTab = "overview", dashboardUnread = 0 }) {
   const [activeTab, setActiveTab] = useState(initialTab);
+  const [showAssignAgent, setShowAssignAgent] = useState(false);
   const [showAddParty, setShowAddParty] = useState(false);
   const [showAssignVendor, setShowAssignVendor] = useState(false);
   const [pendingInviteParty, setPendingInviteParty] = useState(null);
@@ -2141,7 +2255,30 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
       <div style={{ padding: 24, maxWidth: 940, margin: "0 auto" }}>
         {activeTab === "overview" && (
           <div>
-            {tx.needsFirstContact && (
+            {!tx.assignedAgentId && (
+              <div style={{ background: "#fef3c7", border: "2px solid #f59e0b", borderRadius: 12, padding: 18, marginBottom: 20 }}>
+                <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
+                  <span style={{ fontSize: 26 }}>⚠️</span>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontWeight: 800, color: "#78350f", fontSize: 16, marginBottom: 6 }}>UNASSIGNED LEAD — Action Required</div>
+                    <div style={{ fontSize: 13, color: "#92400e", marginBottom: 8, lineHeight: 1.5 }}>
+                      <strong>What to do:</strong> Click the button below to assign this lead to an agent at your brokerage. You can pick yourself if you are taking it.
+                    </div>
+                    <div style={{ fontSize: 13, color: "#92400e", marginBottom: 8, lineHeight: 1.5 }}>
+                      <strong>Why it matters:</strong> Florida law requires prompt first contact (within 24 hours). Until assigned, no one is responsible for this lead and it can go cold quickly. Brokerage admins are notified by email and SMS that this lead is waiting.
+                    </div>
+                    <div style={{ fontSize: 13, color: "#92400e", marginBottom: 12, lineHeight: 1.5 }}>
+                      <strong>What happens after assigning:</strong> The assigned agent gets an email + SMS. The card turns red with the "Contact Within 24hrs" banner. The 5-step onboarding checklist activates.
+                    </div>
+                    <button onClick={() => setShowAssignAgent(true)}
+                      style={{ background: "#f59e0b", color: "white", border: "none", borderRadius: 8, padding: "10px 18px", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                      👤 Assign Agent & Notify
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+            {tx.assignedAgentId && tx.needsFirstContact && (
               <BuyerIntakeChecklist tx={tx} token={localStorage.getItem("tp_token") || ""} onContactLogged={() => onUpdate({ ...tx, needsFirstContact: false })} />
             )}
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, marginBottom: 20 }}>
@@ -2430,6 +2567,15 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
             <Btn onClick={() => { update({ parties: tx.parties.map(p => p.id === editingParty.id ? editingParty : p) }); setEditingParty(null); }}>Save Changes</Btn>
           </div>
         </Modal>
+      )}
+      {showAssignAgent && (
+        <AssignAgentModal
+          tx={tx}
+          token={localStorage.getItem("tp_token") || ""}
+          currentUser={currentUser}
+          onClose={() => setShowAssignAgent(false)}
+          onAssigned={(agentId) => onUpdate({ ...tx, assignedAgentId: agentId })}
+        />
       )}
       {showAddParty && (
         <Modal title="Add Party" onClose={() => { setShowAddParty(false); setPartyFromContactBook(false); }}>
@@ -3360,9 +3506,11 @@ function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenCon
   };
 
   const hydratedPagedTxs = [...pagedTxs].sort((a, b) => {
+    const aUnassigned = !a.assigned_agent ? 2 : 0;
+    const bUnassigned = !b.assigned_agent ? 2 : 0;
     const aNew = a.needs_first_contact ? 1 : 0;
     const bNew = b.needs_first_contact ? 1 : 0;
-    return bNew - aNew;
+    return (bUnassigned + bNew) - (aUnassigned + aNew);
   }).map(t => ({
     id: t.id,
     address: t.address,
@@ -3660,10 +3808,15 @@ function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenCon
           const cfg = STATUS_CONFIG[tx.status] || STATUS_CONFIG["Active"];
           const smsMsgCount = Object.values(tx.smsThreads || {}).reduce((a, t) => a + t.length, 0);
           return (
-            <div key={tx.id} onClick={() => onSelect(tx.id)} style={{ background: "#fff", border: tx.needsFirstContact ? "3px solid #c8102e" : `1px solid ${COLORS.border}`, borderRadius: 12, cursor: "pointer", overflow: "hidden" }}
+            <div key={tx.id} onClick={() => onSelect(tx.id)} style={{ background: "#fff", border: !tx.assignedAgentId ? "3px solid #f59e0b" : tx.needsFirstContact ? "3px solid #c8102e" : `1px solid ${COLORS.border}`, borderRadius: 12, cursor: "pointer", overflow: "hidden" }}
               onMouseEnter={e => e.currentTarget.style.boxShadow = "0 6px 20px rgba(0,0,0,0.12)"}
               onMouseLeave={e => e.currentTarget.style.boxShadow = "none"}>
-              {tx.needsFirstContact && (
+              {!tx.assignedAgentId && (
+                <div style={{ background: "#f59e0b", color: "white", padding: "8px 14px", fontSize: 12, fontWeight: 700, letterSpacing: 0.5 }}>
+                  ⚠️ UNASSIGNED LEAD — Tap to Assign an Agent
+                </div>
+              )}
+              {tx.assignedAgentId && tx.needsFirstContact && (
                 <div style={{ background: "#c8102e", color: "white", padding: "8px 14px", fontSize: 12, fontWeight: 700, letterSpacing: 0.5 }}>
                   🔔 NEW BUYER INQUIRY — Contact Within 24hrs
                 </div>
