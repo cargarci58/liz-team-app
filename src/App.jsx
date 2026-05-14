@@ -632,8 +632,13 @@ function TransactionListView({ transactions, sortKey, sortDir, toggleSort, onSel
           const cfg = STATUS_CONFIG[tx.status] || STATUS_CONFIG["Active"];
           const price = tx.contractPrice || tx.listPrice;
           return (
-            <div key={tx.id} onClick={() => onSelect(tx.id)} style={{ background: tx.needsFirstContact ? "#fef2f2" : "#fff", border: `2px solid ${tx.needsFirstContact ? "#fecaca" : COLORS.border}`, borderRadius: 10, padding: "12px 14px", marginBottom: 8, cursor: "pointer" }}>
-              {tx.needsFirstContact && (
+            <div key={tx.id} onClick={() => onSelect(tx.id)} style={{ background: !tx.assignedAgentId ? "#fef3c7" : tx.needsFirstContact ? "#fef2f2" : "#fff", border: `2px solid ${!tx.assignedAgentId ? "#fde68a" : tx.needsFirstContact ? "#fecaca" : COLORS.border}`, borderRadius: 10, padding: "12px 14px", marginBottom: 8, cursor: "pointer" }}>
+              {!tx.assignedAgentId && (
+                <div style={{ background: "#f59e0b", color: "white", borderRadius: 6, padding: "4px 10px", fontSize: 11, fontWeight: 700, marginBottom: 8, display: "inline-block" }}>
+                  ⚠️ UNASSIGNED LEAD — Tap to Assign an Agent
+                </div>
+              )}
+              {tx.assignedAgentId && tx.needsFirstContact && (
                 <div style={{ background: "#c8102e", color: "white", borderRadius: 6, padding: "4px 10px", fontSize: 11, fontWeight: 700, marginBottom: 8, display: "inline-block" }}>
                   🔔 NEW BUYER INQUIRY — Contact Within 24hrs
                 </div>
