@@ -2482,7 +2482,7 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
   const sortedTaskCategories = Object.entries(tasksByCategory).sort(([a], [b]) => { const ai = CATEGORY_ORDER.indexOf(a); const bi = CATEGORY_ORDER.indexOf(b); return (ai === -1 ? 999 : ai) - (bi === -1 ? 999 : bi); });
   const smsMsgCount = Object.values(tx.smsThreads || {}).reduce((a, t) => a + t.length, 0);
 
-  const isBuyerSideTx = tx.transactionType && tx.transactionType.includes("Buyer");
+  const isBuyerSideTx = tx.type === "Buyer Representation" || tx.type === "Dual Agency";
 
   const tabs = [
     { id: "overview", label: "Overview" },

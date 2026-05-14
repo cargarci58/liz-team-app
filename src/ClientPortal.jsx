@@ -609,7 +609,7 @@ export default function ClientPortal({ user, onLogout }) {
   const agentPhone = tx ? tx.owningAgentPhone : "";
   const agentEmail = tx ? tx.owningAgentEmail : "";
 
-  const isBuyerSide = tx && tx.transactionType && tx.transactionType.includes("Buyer");
+  const isBuyerSide = tx && (tx.type === "Buyer Representation" || tx.type === "Dual Agency" || (tx.transactionType && tx.transactionType.includes("Buyer")));
 
   const tabs = [
     { id: "home", label: "🏠 My Transaction" },
