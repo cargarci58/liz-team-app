@@ -1991,8 +1991,34 @@ function ContractReviewChecklist({ tx, token, onCleared, setActiveTab, openEditT
   const partiesWithEmail = (tx.parties || []).filter(p => p.email && p.email.includes("@"));
 
   const sendWelcomeEmails = async () => {
-    const names = partiesWithEmail.map(p => `${p.name} (${p.role})`).join(", ");
-    if (!window.confirm(`You are about to send a welcome email to ${partiesWithEmail.length} parties:\n\n${names}\n\nContinue?`)) return;
+    // Build a comprehensive review warning
+    const allParties = tx.parties || [];
+    const partiesNoEmail = allParties.filter(p => !p.email || !p.email.includes("@"));
+    const recipientList = partiesWithEmail.map(p => `  • ${p.name} (${p.role}) → ${p.email}`).join("\n");
+
+    const missing = [];
+    if (!tx.contractPrice) missing.push("Contract Price");
+    if (!tx.executedDate) missing.push("Executed Date");
+    if (!tx.closingDate) missing.push("Closing Date");
+    if (!tx.earnestMoneyAmount) missing.push("Earnest Money Amount");
+    if (!tx.address || tx.address.includes("pending")) missing.push("Property Address");
+
+    let warning = "⚠️  BEFORE SENDING — REVIEW EVERYTHING\n\n";
+    warning += "The welcome email will include the transaction details below. If any are wrong or missing, FIX THEM FIRST — recipients will see exactly what is in the transaction right now.\n\n";
+    warning += "─── EMAILS WILL BE SENT TO ───\n" + recipientList + "\n";
+    if (partiesNoEmail.length > 0) {
+      warning += "\n⚠️  These parties have NO email and will NOT receive the welcome:\n";
+      warning += partiesNoEmail.map(p => `  • ${p.name} (${p.role})`).join("\n");
+      warning += "\n   (Add their email in the Parties tab if they should receive it.)\n";
+    }
+    if (missing.length > 0) {
+      warning += "\n⚠️  MISSING TRANSACTION FIELDS that the email needs:\n";
+      warning += missing.map(m => `  • ${m}`).join("\n");
+      warning += "\n   Cancel now, fix these in Edit Transaction, then come back.\n";
+    }
+    warning += "\n─── CONFIRM ───\nClick OK only if every party email is correct AND every transaction field is filled in. This action cannot be undone — once sent, recipients have the email.";
+
+    if (!window.confirm(warning)) return;
     setSendingEmails(true);
     try {
       const r = await fetch("https://liz-team-server-api-production.up.railway.app/transactions/" + tx.id + "/send-welcome-emails", {
@@ -2084,25 +2110,23 @@ function ContractReviewChecklist({ tx, token, onCleared, setActiveTab, openEditT
                         style={{ background: "#2563eb", color: "white", border: "none", borderRadius: 6, padding: "8px 14px", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", alignSelf: "flex-start" }}>
                         {step.cta} →
                       </button>
-                      <div style={{ fontSize: 11, color: partiesOpened ? "#065f46" : "#9ca3af", fontStyle: "italic" }}>
-                        {partiesOpened ? "✓ You opened the Parties tab" : "Open the Parties tab at least once to enable the buttons below"}
-                      </div>
+
                       <div style={{ borderTop: "1px solid #bfdbfe", paddingTop: 10, marginTop: 4 }}>
                         <div style={{ fontSize: 12, color: "#1e40af", marginBottom: 8 }}>
                           After verifying/adding/fixing parties, pick one:
                         </div>
                         <button onClick={(e) => { e.stopPropagation(); sendWelcomeEmails(); }}
-                          disabled={!partiesOpened || sendingEmails || partiesWithEmail.length === 0}
+                          disabled={sendingEmails || partiesWithEmail.length === 0}
                           title={partiesWithEmail.length === 0 ? "At least one party needs a valid email address" : ""}
-                          style={{ background: (!partiesOpened || partiesWithEmail.length === 0) ? "#9ca3af" : "#1e8449", color: "white", border: "none", borderRadius: 6, padding: "10px 16px", fontSize: 13, fontWeight: 700, cursor: (!partiesOpened || partiesWithEmail.length === 0) ? "not-allowed" : "pointer", fontFamily: "inherit", display: "block", marginBottom: 8, width: "100%", textAlign: "left" }}>
+                          style={{ background: partiesWithEmail.length === 0 ? "#9ca3af" : "#1e8449", color: "white", border: "none", borderRadius: 6, padding: "10px 16px", fontSize: 13, fontWeight: 700, cursor: partiesWithEmail.length === 0 ? "not-allowed" : "pointer", fontFamily: "inherit", display: "block", marginBottom: 8, width: "100%", textAlign: "left" }}>
                           {sendingEmails ? "Sending..." : `✉️ Send welcome emails to ${partiesWithEmail.length} parties — Recommended`}
                         </button>
                         <div style={{ fontSize: 11, color: "#6b7280", marginBottom: 10, paddingLeft: 4 }}>
                           Sends a professional intro to every party with their role, key dates, and party roster. Marks this step verified.
                         </div>
                         <button onClick={(e) => { e.stopPropagation(); toggleStep(step.num); }}
-                          disabled={!partiesOpened || isUpdating}
-                          style={{ background: "white", color: !partiesOpened ? "#9ca3af" : "#6b7280", border: `1px solid ${!partiesOpened ? "#e5e7eb" : "#d1d5db"}`, borderRadius: 6, padding: "8px 14px", fontSize: 12, fontWeight: 600, cursor: !partiesOpened || isUpdating ? "not-allowed" : "pointer", fontFamily: "inherit", display: "block", width: "100%", textAlign: "left" }}>
+                          disabled={isUpdating}
+                          style={{ background: "white", color: "#6b7280", border: "1px solid #d1d5db", borderRadius: 6, padding: "8px 14px", fontSize: 12, fontWeight: 600, cursor: isUpdating ? "wait" : "pointer", fontFamily: "inherit", display: "block", width: "100%", textAlign: "left" }}>
                           {isUpdating ? "..." : "✓ Mark Verified without sending emails"}
                         </button>
                         <div style={{ fontSize: 11, color: "#6b7280", marginTop: 4, paddingLeft: 4 }}>
