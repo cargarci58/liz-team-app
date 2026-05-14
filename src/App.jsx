@@ -3379,6 +3379,60 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
                   <input value={editTxForm.commissionNotes || ""} onChange={e => setEditTxForm(f => ({ ...f, commissionNotes: e.target.value }))} style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: "1.5px solid #CCC", fontSize: 13, fontFamily: "inherit", boxSizing: "border-box" }} />
                 </div>
               </div>
+              {/* UNDER CONTRACT DETAILS — visible when status is Under Contract or any later phase */}
+              {(tx.status === "Under Contract" || tx.status === "Inspection" || tx.status === "Appraisal" || tx.status === "Clear to Close" || tx.status === "Closed" || editTxForm.earnestMoneyAmount || editTxForm.emdDeadline) && (
+                <>
+                  <div style={{ borderTop: "2px solid #2563eb", margin: "20px 0 14px 0", paddingTop: 14 }}>
+                    <div style={{ fontSize: 14, fontWeight: 800, color: "#1e3a8a", marginBottom: 4 }}>📋 Under Contract Details</div>
+                    <div style={{ fontSize: 11, color: "#6b7280", marginBottom: 14 }}>These come from the executed contract. Verify each field matches the original.</div>
+                  </div>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 14 }}>
+                    <div>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", marginBottom: 6 }}>Earnest Money ($)</div>
+                      <input type="number" value={editTxForm.earnestMoneyAmount || ""} onChange={e => setEditTxForm(f => ({ ...f, earnestMoneyAmount: e.target.value }))} placeholder="5000" style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: "1.5px solid #CCC", fontSize: 14, fontFamily: "inherit", boxSizing: "border-box" }} />
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", marginBottom: 6 }}>EMD Deadline</div>
+                      <input type="date" value={editTxForm.emdDeadline ? String(editTxForm.emdDeadline).slice(0,10) : ""} onChange={e => setEditTxForm(f => ({ ...f, emdDeadline: e.target.value }))} style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: "1.5px solid #CCC", fontSize: 14, fontFamily: "inherit", boxSizing: "border-box" }} />
+                    </div>
+                  </div>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 14 }}>
+                    <div>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", marginBottom: 6 }}>Inspection (days)</div>
+                      <input type="number" value={editTxForm.inspectionPeriodDays || ""} onChange={e => setEditTxForm(f => ({ ...f, inspectionPeriodDays: e.target.value }))} placeholder="10" style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: "1.5px solid #CCC", fontSize: 14, fontFamily: "inherit", boxSizing: "border-box" }} />
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", marginBottom: 6 }}>Financing (days)</div>
+                      <input type="number" value={editTxForm.financingContingencyDays || ""} onChange={e => setEditTxForm(f => ({ ...f, financingContingencyDays: e.target.value }))} placeholder="30" style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: "1.5px solid #CCC", fontSize: 14, fontFamily: "inherit", boxSizing: "border-box" }} />
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", marginBottom: 6 }}>Appraisal (days)</div>
+                      <input type="number" value={editTxForm.appraisalContingencyDays || ""} onChange={e => setEditTxForm(f => ({ ...f, appraisalContingencyDays: e.target.value }))} placeholder="30" style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: "1.5px solid #CCC", fontSize: 14, fontFamily: "inherit", boxSizing: "border-box" }} />
+                    </div>
+                  </div>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 14 }}>
+                    <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, cursor: "pointer" }}>
+                      <input type="checkbox" checked={!!editTxForm.isCash} onChange={e => setEditTxForm(f => ({ ...f, isCash: e.target.checked }))} /> Cash deal
+                    </label>
+                    <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, cursor: "pointer" }}>
+                      <input type="checkbox" checked={!!editTxForm.hoaApprovalRequired} onChange={e => setEditTxForm(f => ({ ...f, hoaApprovalRequired: e.target.checked }))} /> HOA approval required
+                    </label>
+                    <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, cursor: "pointer" }}>
+                      <input type="checkbox" checked={!!editTxForm.surveyRequired} onChange={e => setEditTxForm(f => ({ ...f, surveyRequired: e.target.checked }))} /> Survey required
+                    </label>
+                    <div>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", marginBottom: 6 }}>Occupancy</div>
+                      <select value={editTxForm.occupancyStatus || ""} onChange={e => setEditTxForm(f => ({ ...f, occupancyStatus: e.target.value }))}
+                        style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: "1.5px solid #CCC", fontSize: 13, fontFamily: "inherit" }}>
+                        <option value="">—</option>
+                        <option>Owner Occupied</option>
+                        <option>Tenant Occupied</option>
+                        <option>Vacant</option>
+                      </select>
+                    </div>
+                  </div>
+                </>
+              )}
               <div style={{ marginBottom: 16 }}>
                 <div style={{ fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>Notes</div>
                 <textarea value={editTxForm.notes || ""} onChange={e => setEditTxForm(f => ({ ...f, notes: e.target.value }))} style={{ width: "100%", padding: "10px 14px", borderRadius: 8, border: "1.5px solid #CCC", fontSize: 14, fontFamily: "inherit", boxSizing: "border-box", minHeight: 80, resize: "vertical" }} />
