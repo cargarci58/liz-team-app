@@ -1943,7 +1943,7 @@ function BuyerIntakeChecklist({ tx, token, onContactLogged }) {
         </div>
       </div>
       <div style={{ background: "#fecaca", height: 6, borderRadius: 3, overflow: "hidden", marginBottom: 16 }}>
-        <div style={{ background: "#1e8449", height: "100%", width: (doneCount / 5 * 100) + "%", transition: "width 0.3s" }} />
+        <div style={{ background: "#1e8449", height: "100%", width: (doneCount / 3 * 100) + "%", transition: "width 0.3s" }} />
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         {steps.map((step) => {
@@ -2006,14 +2006,14 @@ function ContractReviewChecklist({ tx, token, onCleared, setActiveTab, openEditT
 
   const openEditModal = () => { openEditTx(); };
 
-  const steps = [
-    { num: 1, icon: "🏠", title: "Verify Property Address & Type", why: "The address, city, county, and property type must match the contract exactly. A wrong county can break MLS compliance.", action: "Click Edit Transaction below and confirm the Property section.", cta: "Open Edit Form", onCta: openEditModal },
-    { num: 2, icon: "📅", title: "Verify Key Dates (Executed, Closing, EMD Deadline)", why: "Dates drive every milestone and task. A wrong closing date or missed EMD deadline can void the contract or forfeit the deposit.", action: "Check the Financials section. EMD is typically due 3 business days from executed date in Florida.", cta: "Open Edit Form", onCta: openEditModal },
-    { num: 3, icon: "⏱️", title: "Verify Contingency Days (Inspection, Financing, Appraisal)", why: "Handwritten changes to contingency days are common and often misread by AI. Missing a contingency deadline means losing the buyer's right to cancel.", action: "Read paragraphs 8, 12, and 13 of the original contract against what is in Financials.", cta: "Open Edit Form", onCta: openEditModal },
-    { num: 4, icon: "👥", title: "Verify All Parties & Contact Info", why: "Title, lender, and inspector must be reachable. Missing email/phone breaks the welcome email and the entire group communication chain.", action: "Open the Key Parties tab and confirm every party has a working phone and email.", cta: "Open Parties Tab", onCta: () => setActiveTab("parties") },
-    { num: 5, icon: "📝", title: tx.additionalTerms ? "Read & Confirm Additional Terms" : "Confirm No Additional Terms Were Missed", why: tx.additionalTerms ? "Custom clauses override the standard form. These can be repair credits, occupancy provisions, contingent-on-sale clauses, or seller concessions. Each is binding and you must understand them." : "If the contract had any handwritten or typed clauses beyond the standard form that the AI did not detect, you need to add them manually now.", action: tx.additionalTerms ? "Read every line of the Additional Terms section below carefully. Same text is now saved in Notes." : "Re-check the original contract for any custom clauses, addendum signature lines, or 'see attached' references.", cta: tx.additionalTerms ? "Show Notes" : "Open Edit Form", onCta: () => { if (tx.additionalTerms) setActiveTab("overview"); else openEditModal(); } },
+  const baseSteps = [
+    { num: 1, icon: "🏠", title: "Verify Property, Dates & Contingencies", why: "Address, dates (executed/closing/EMD), price, and contingency days (inspection, financing, appraisal) ALL come from the contract and ALL drive milestones, tasks, and legal deadlines. A wrong county breaks MLS compliance. A wrong closing date voids the contract. A wrong inspection day forfeits buyer rights. Handwritten changes are commonly misread by AI.", action: "Click below to open the Edit Transaction form. Compare every field side-by-side against the executed contract. Pay close attention to anything that was crossed out or written by hand.", cta: "Open Edit Form", onCta: openEditModal },
+    { num: 2, icon: "👥", title: "Verify All Parties & Contact Info", why: "Title, lender, inspector, co-op agent must be reachable. Missing email or phone breaks the welcome email and the entire group communication chain. The wrong title company at closing causes wire fraud risk.", action: "Open the Key Parties tab. Confirm every party has a name, working phone, and email. Add any missing parties (e.g. title company, lender) that the contract names but were not extracted.", cta: "Open Parties Tab", onCta: () => setActiveTab("parties") },
   ];
-
+  const termsStep = tx.additionalTerms
+    ? { num: 3, icon: "📝", title: "Read & Confirm Additional Terms", why: "Custom clauses override the standard form. These can be repair credits, occupancy provisions, contingent-on-sale clauses, escalation clauses, or seller concessions. Each is binding and missing one can cost thousands or break the deal.", action: "Read every line of the Additional Terms box shown above. The same text is also saved in the transaction Notes for easy lookup later. If anything looks wrong or was cut off, edit the Notes directly.", cta: "Show Notes", onCta: () => setActiveTab("overview") }
+    : { num: 3, icon: "📝", title: "Confirm No Custom Clauses Were Missed", why: "The AI did not detect any custom clauses. But Florida contracts sometimes include handwritten or typed terms beyond the standard form — repair credits, contingent-on-sale clauses, refrigerator-stays, occupancy provisions, etc. These are binding even if missed by AI.", action: "Quickly re-scan the executed contract for any 'Additional Terms', 'Special Clauses', 'Other Provisions', or 'Riders' section. If you find any, click below and paste them into the Notes field.", cta: "Open Edit Form", onCta: openEditModal };
+  const steps = [...baseSteps, termsStep];
   const doneCount = stepsDone.length;
 
   return (
@@ -2021,14 +2021,14 @@ function ContractReviewChecklist({ tx, token, onCleared, setActiveTab, openEditT
       <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
         <span style={{ fontSize: 26 }}>📋</span>
         <div style={{ flex: 1 }}>
-          <div style={{ fontWeight: 800, color: "#1e3a8a", fontSize: 16 }}>NEW FROM CONTRACT — {doneCount}/5 Verified</div>
+          <div style={{ fontWeight: 800, color: "#1e3a8a", fontSize: 16 }}>NEW FROM CONTRACT — {doneCount}/3 Verified</div>
           <div style={{ fontSize: 12, color: "#1e40af", marginTop: 2 }}>
             The AI extracted this data from the contract. As the agent of record, you must verify each section below. The banner clears when all 5 are done.
           </div>
         </div>
       </div>
       <div style={{ background: "#bfdbfe", height: 6, borderRadius: 3, overflow: "hidden", marginBottom: 16 }}>
-        <div style={{ background: "#1e8449", height: "100%", width: (doneCount / 5 * 100) + "%", transition: "width 0.3s" }} />
+        <div style={{ background: "#1e8449", height: "100%", width: (doneCount / 3 * 100) + "%", transition: "width 0.3s" }} />
       </div>
 
       {tx.additionalTerms && (
