@@ -3346,7 +3346,11 @@ function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenCon
     }
   };
 
-  const hydratedPagedTxs = pagedTxs.map(t => ({
+  const hydratedPagedTxs = [...pagedTxs].sort((a, b) => {
+    const aNew = a.needs_first_contact ? 1 : 0;
+    const bNew = b.needs_first_contact ? 1 : 0;
+    return bNew - aNew;
+  }).map(t => ({
     id: t.id,
     address: t.address,
     city: t.city,
@@ -3635,16 +3639,21 @@ function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenCon
       ) : (
       <div style={{ padding: 24, display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(340px, 1fr))", gap: 16 }} data-tx-grid="">
         {hydratedPagedTxs.map(tx => {
-          const completed = tx.tasks.filter(t => t.status === "Completed").length;
-          const overdue = tx.tasks.filter(t => { const d = daysUntil(t.dueDate); return d !== null && d < 0 && t.status !== "Completed" && t.status !== "Waived"; }).length;
+          const completed = (tx.tasks || []).filter(t => t.status === "Completed").length;
+          const overdue = (tx.tasks || []).filter(t => { const d = daysUntil(t.dueDate); return d !== null && d < 0 && t.status !== "Completed" && t.status !== "Waived"; }).length;
           const dtc = daysUntil(tx.closingDate);
-          const progress = tx.tasks.length > 0 ? Math.round(completed / tx.tasks.length * 100) : 0;
+          const progress = (tx.tasks || []).length > 0 ? Math.round(completed / tx.tasks.length * 100) : 0;
           const cfg = STATUS_CONFIG[tx.status] || STATUS_CONFIG["Active"];
           const smsMsgCount = Object.values(tx.smsThreads || {}).reduce((a, t) => a + t.length, 0);
           return (
-            <div key={tx.id} onClick={() => onSelect(tx.id)} style={{ background: "#fff", border: `1px solid ${COLORS.border}`, borderRadius: 12, cursor: "pointer", overflow: "hidden" }}
+            <div key={tx.id} onClick={() => onSelect(tx.id)} style={{ background: "#fff", border: tx.needsFirstContact ? "3px solid #c8102e" : `1px solid ${COLORS.border}`, borderRadius: 12, cursor: "pointer", overflow: "hidden" }}
               onMouseEnter={e => e.currentTarget.style.boxShadow = "0 6px 20px rgba(0,0,0,0.12)"}
               onMouseLeave={e => e.currentTarget.style.boxShadow = "none"}>
+              {tx.needsFirstContact && (
+                <div style={{ background: "#c8102e", color: "white", padding: "8px 14px", fontSize: 12, fontWeight: 700, letterSpacing: 0.5 }}>
+                  🔔 NEW BUYER INQUIRY — Contact Within 24hrs
+                </div>
+              )}
               {/* Card Header - Color coded by type */}
               <div style={{
                 background: tx.type === "Buyer Representation" ? "#0F2744" : "#1A1A1A",
