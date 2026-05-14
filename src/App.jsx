@@ -1981,7 +1981,7 @@ function BuyerIntakeChecklist({ tx, token, onContactLogged }) {
 // ═══════════════════════════════════════════════════════════════
 // CONTRACT REVIEW CHECKLIST — 5-step guided verification after auto-intake
 // ═══════════════════════════════════════════════════════════════
-function ContractReviewChecklist({ tx, token, onCleared, setActiveTab, setEditTxForm, setShowEditTx }) {
+function ContractReviewChecklist({ tx, token, onCleared, setActiveTab, openEditTx }) {
   const [stepsDone, setStepsDone] = useState(tx.reviewStepsDone || []);
   const [updating, setUpdating] = useState(null);
   const API_URL = "https://liz-team-server-api-production.up.railway.app";
@@ -2004,19 +2004,7 @@ function ContractReviewChecklist({ tx, token, onCleared, setActiveTab, setEditTx
     setUpdating(null);
   };
 
-  const openEditModal = () => {
-    setEditTxForm({
-      assignedAgent: tx.assignedAgentId || "", referralSource: tx.referralSource || "",
-      closingDate: tx.closingDate || "", contractPrice: tx.contractPrice || "",
-      openDate: tx.openDate || "", executedDate: tx.executedDate || "", status: tx.status,
-      mlsNumber: tx.mlsNumber || "", notes: tx.notes || "", propertyAccess: tx.propertyAccess || "",
-      commissionListing: tx.commissionListing || "", commissionBuyer: tx.commissionBuyer || "",
-      transactionFee: tx.transactionFee || "", brokerageSplit: tx.brokerageSplit || "",
-      officeFlatFee: tx.officeFlatFee || "", mailAway: tx.mailAway || "No",
-      commissionNotes: tx.commissionNotes || ""
-    });
-    setShowEditTx(true);
-  };
+  const openEditModal = () => { openEditTx(); };
 
   const steps = [
     { num: 1, icon: "🏠", title: "Verify Property Address & Type", why: "The address, city, county, and property type must match the contract exactly. A wrong county can break MLS compliance.", action: "Click Edit Transaction below and confirm the Property section.", cta: "Open Edit Form", onCta: openEditModal },
@@ -2228,6 +2216,52 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
   const [chatUnread, setChatUnread] = useState(0);
   const [showEditTx, setShowEditTx] = useState(false);
   const [editTxForm, setEditTxForm] = useState({});
+
+  // Pre-fill helper — used everywhere the Edit modal opens.
+  // CRITICAL RULE: Edit modal must NEVER open blank. Every field comes from current tx.
+  const buildEditTxForm = (tt = tx) => ({
+    assignedAgent: tt.assignedAgentId || "",
+    referralSource: tt.referralSource || "",
+    address: tt.address || "",
+    city: tt.city || "",
+    state: tt.state || "FL",
+    zipCode: tt.zipCode || "",
+    county: tt.county || "",
+    propertyType: tt.propertyType || "Single Family",
+    type: tt.type || "",
+    mlsNumber: tt.mlsNumber || "",
+    listPrice: tt.listPrice || "",
+    contractPrice: tt.contractPrice || "",
+    openDate: tt.openDate ? String(tt.openDate).slice(0, 10) : "",
+    executedDate: tt.executedDate ? String(tt.executedDate).slice(0, 10) : "",
+    closingDate: tt.closingDate ? String(tt.closingDate).slice(0, 10) : "",
+    status: tt.status || "Active",
+    notes: tt.notes || "",
+    propertyAccess: tt.propertyAccess || "",
+    occupancyStatus: tt.occupancyStatus || "",
+    earnestMoneyAmount: tt.earnestMoneyAmount || "",
+    emdDeadline: tt.emdDeadline ? String(tt.emdDeadline).slice(0, 10) : "",
+    inspectionPeriodDays: tt.inspectionPeriodDays || "",
+    inspectionPeriodEnd: tt.inspectionPeriodEnd ? String(tt.inspectionPeriodEnd).slice(0, 10) : "",
+    financingContingency: tt.financingContingency || false,
+    financingContingencyDays: tt.financingContingencyDays || "",
+    appraisalContingency: tt.appraisalContingency || false,
+    appraisalContingencyDays: tt.appraisalContingencyDays || "",
+    hoaApprovalRequired: tt.hoaApprovalRequired || false,
+    hoaApprovalDays: tt.hoaApprovalDays || "",
+    surveyRequired: tt.surveyRequired || false,
+    isCash: tt.isCash || false,
+    contractFormType: tt.contractFormType || "",
+    commissionListing: tt.commissionListing || "",
+    commissionBuyer: tt.commissionBuyer || "",
+    transactionFee: tt.transactionFee || "",
+    brokerageSplit: tt.brokerageSplit || "",
+    officeFlatFee: tt.officeFlatFee || "",
+    mailAway: tt.mailAway || "No",
+    commissionNotes: tt.commissionNotes || "",
+    additionalTerms: tt.additionalTerms || "",
+  });
+  const openEditTx = () => { setEditTxForm(buildEditTxForm(tx)); setShowEditTx(true); };
   const [statusChangeModal, setStatusChangeModal] = useState(null);
   const [selectedTasks, setSelectedTasks] = useState([]);
   const [activities, setActivities] = useState([]);
@@ -2334,7 +2368,7 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
           {Object.keys(STATUS_CONFIG).map(s => <option key={s} style={{ color: COLORS.text, background: "#fff" }}>{s}</option>)}
         </select>
         <button onClick={() => onDuplicate && onDuplicate(tx)} style={{ fontSize: 11, padding: "4px 10px", borderRadius: 6, border: "1px solid rgba(255,255,255,0.3)", background: "rgba(255,255,255,0.1)", color: "#fff", cursor: "pointer", fontFamily: "inherit" }}>⧉ Duplicate</button>
-        <button onClick={() => { setEditTxForm({ assignedAgent: tx.assignedAgentId || "", referralSource: tx.referralSource || "", closingDate: tx.closingDate || "", contractPrice: tx.contractPrice || "", openDate: tx.openDate || "", executedDate: tx.executedDate || "", status: tx.status, mlsNumber: tx.mlsNumber || "", notes: tx.notes || "", propertyAccess: tx.propertyAccess || "", commissionListing: tx.commissionListing || "", commissionBuyer: tx.commissionBuyer || "", transactionFee: tx.transactionFee || "", brokerageSplit: tx.brokerageSplit || "", officeFlatFee: tx.officeFlatFee || "", mailAway: tx.mailAway || "No", commissionNotes: tx.commissionNotes || "" }); setShowEditTx(true); }} style={{ fontSize: 11, padding: "4px 10px", borderRadius: 6, border: "1px solid rgba(255,255,255,0.3)", background: "rgba(255,255,255,0.1)", color: "#fff", cursor: "pointer", fontFamily: "inherit" }}>✏️ Edit</button>
+        <button onClick={openEditTx} style={{ fontSize: 11, padding: "4px 10px", borderRadius: 6, border: "1px solid rgba(255,255,255,0.3)", background: "rgba(255,255,255,0.1)", color: "#fff", cursor: "pointer", fontFamily: "inherit" }}>✏️ Edit</button>
         <button onClick={() => window.print()} style={{ fontSize: 11, padding: "4px 10px", borderRadius: 6, border: "1px solid rgba(255,255,255,0.3)", background: "rgba(255,255,255,0.1)", color: "#fff", cursor: "pointer", fontFamily: "inherit" }}>🖨️ Print</button>
         <button onClick={async () => {
           const tok = localStorage.getItem("tp_token") || "";
@@ -2382,7 +2416,7 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
         {activeTab === "overview" && (
           <div>
             {tx.assignedAgentId && tx.needsReview && (
-              <ContractReviewChecklist tx={tx} token={localStorage.getItem("tp_token") || ""} onCleared={() => onUpdate({ ...tx, needsReview: false })} setActiveTab={setActiveTab} setEditTxForm={setEditTxForm} setShowEditTx={setShowEditTx} />
+              <ContractReviewChecklist tx={tx} token={localStorage.getItem("tp_token") || ""} onCleared={() => onUpdate({ ...tx, needsReview: false })} setActiveTab={setActiveTab} openEditTx={openEditTx} />
             )}
             {!tx.assignedAgentId && (
               <div style={{ background: "#fef3c7", border: "2px solid #f59e0b", borderRadius: 12, padding: 18, marginBottom: 20 }}>
