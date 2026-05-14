@@ -14,6 +14,7 @@ import ChangePassword from "./ChangePassword";
 import CompanySettings from "./CompanySettings";
 import AgentProfile from "./AgentProfile";
 import ClientPortal from "./ClientPortal";
+import FaqHelpButton from "./components/FaqHelpButton";
 
 const API = "https://liz-team-server-api-production.up.railway.app";
 
@@ -2891,6 +2892,12 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
           </div>
         )}
       </div>
+
+      <FaqHelpButton
+        transactionId={tx.id}
+        apiBase={API}
+        token={localStorage.getItem("tp_token") || ""}
+      />
 
       {editingParty && (
         <Modal title="Edit Party" onClose={() => setEditingParty(null)}>
