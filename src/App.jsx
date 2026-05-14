@@ -679,7 +679,7 @@ function PartyAvatar({ party, size = 40 }) {
   return <div style={{ width: size, height: size, borderRadius: "50%", background: color + "22", color, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: size * 0.35, flexShrink: 0 }}>{initials}</div>;
 }
 
-function PartyCard({ party, onRemove, onEdit, onClick, onInvite, onSendFollowup }) {
+function PartyCard({ party, onRemove, onEdit, onClick, onInvite, onSendFollowup, onSendWelcome }) {
   return (
     <div onClick={onClick} style={{ background: "#fff", border: `1px solid ${COLORS.border}`, borderRadius: 10, padding: "12px 14px", display: "flex", alignItems: "flex-start", gap: 12, marginBottom: 8, cursor: onClick ? "pointer" : "default" }}>
       <PartyAvatar party={party} />
@@ -693,6 +693,7 @@ function PartyCard({ party, onRemove, onEdit, onClick, onInvite, onSendFollowup 
       <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
         {onInvite && <button onClick={e => { e.stopPropagation(); onInvite(); }} style={{ background: "none", border: "1px solid #C0392B", borderRadius: 6, cursor: "pointer", color: "#C0392B", fontSize: 11, padding: "2px 8px", fontWeight: 600 }}>Send Invite</button>}
         {onSendFollowup && (party.email || party.phone) && <button onClick={e => { e.stopPropagation(); onSendFollowup(party); }} style={{ background: "#C0392B", border: "1px solid #C0392B", borderRadius: 6, cursor: "pointer", color: "#fff", fontSize: 11, padding: "2px 8px", fontWeight: 600 }}>Follow Up</button>}
+        {onSendWelcome && party.email && <button onClick={e => { e.stopPropagation(); onSendWelcome(party); }} title="Send (or re-send) the role-specific welcome email with key dates, financial summary, parties roster, and the contract document package. Use this when you've added or corrected this party's email after the initial Under Contract send." style={{ background: "#1E8449", border: "1px solid #1E8449", borderRadius: 6, cursor: "pointer", color: "#fff", fontSize: 11, padding: "2px 8px", fontWeight: 600 }}>✉️ Send Welcome</button>}
         {onEdit && <button onClick={e => { e.stopPropagation(); onEdit(); }} style={{ background: "none", border: `1px solid ${COLORS.border}`, borderRadius: 6, cursor: "pointer", color: COLORS.muted, fontSize: 12, padding: "2px 8px" }}>Edit</button>}
         {onRemove && <button onClick={e => { e.stopPropagation(); onRemove(); }} style={{ background: "none", border: "none", cursor: "pointer", color: COLORS.muted, fontSize: 16 }}>×</button>}
       </div>
@@ -2283,6 +2284,30 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
   const [followupParty, setFollowupParty] = useState(null);
   const [followupForm, setFollowupForm] = useState({ subject: "", message: "" });
   const [followupSubmitting, setFollowupSubmitting] = useState(false);
+  const [sendingWelcomeFor, setSendingWelcomeFor] = useState(null);
+  const onSendWelcome = async (party) => {
+    if (!party || !party.id) return;
+    if (!party.email) { alert(`${party.name || "This party"} has no email address. Add one in Edit, then try again.`); return; }
+    const isResend = (party.welcome_email_sent_at || party.welcomeEmailSentAt) ? true : false;
+    const verb = isResend ? "RE-SEND" : "SEND";
+    const confirmMsg = `${verb} the role-specific welcome email to ${party.name} (${party.role}) at ${party.email}?\n\nThis email includes:\n• Key dates (loan, appraisal, inspection, HOA, closing)\n• Financial summary (price, EMD, loan type)\n• Parties roster (filtered for their role)\n• Contract document package (if applicable to their role)\n\nWhy this matters: the welcome email is the agent's formal handoff. It tells this party what they need to do, when, and gives them the documents proving the deal is real.`;
+    if (!window.confirm(confirmMsg)) return;
+    setSendingWelcomeFor(party.id);
+    try {
+      const tok = localStorage.getItem("tp_token") || "";
+      const res = await fetch(`https://liz-team-server-api-production.up.railway.app/transactions/${tx.id}/parties/${party.id}/send-welcome`, {
+        method: "POST",
+        headers: { Authorization: "Bearer " + tok, "Content-Type": "application/json" }
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Send failed");
+      alert(`✅ Welcome email sent to ${party.name} at ${party.email}.\n\nIf they don't see it in 1–2 minutes, ask them to check spam.`);
+    } catch (e) {
+      alert(`❌ Could not send welcome email: ${e.message}`);
+    } finally {
+      setSendingWelcomeFor(null);
+    }
+  };
   const [showContractWizard, setShowContractWizard] = useState(false);
   const [contractWizardForm, setContractWizardForm] = useState({});
   const [showAddReminder, setShowAddReminder] = useState(false);
@@ -2725,7 +2750,7 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
             {PARTY_ROLES.map(role => {
               const members = tx.parties.filter(p => p.role === role && !p.isVendor && !p.is_vendor);
               if (!members.length) return null;
-              return <div key={role} style={{ marginBottom: 16 }}><div style={{ fontSize: 12, fontWeight: 700, color: COLORS.muted, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 8 }}>{role}</div>{members.map(p => <PartyCard key={p.id} party={p} onEdit={() => setEditingParty({ ...p })} onRemove={() => update({ parties: tx.parties.filter(pp => pp.id !== p.id) })} onInvite={onInviteParty ? () => onInviteParty(p) : undefined} onSendFollowup={(party) => setFollowupParty(party)} />)}</div>;
+              return <div key={role} style={{ marginBottom: 16 }}><div style={{ fontSize: 12, fontWeight: 700, color: COLORS.muted, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 8 }}>{role}</div>{members.map(p => <PartyCard key={p.id} party={p} onEdit={() => setEditingParty({ ...p })} onRemove={() => update({ parties: tx.parties.filter(pp => pp.id !== p.id) })} onInvite={onInviteParty ? () => onInviteParty(p) : undefined} onSendFollowup={(party) => setFollowupParty(party)} onSendWelcome={onSendWelcome} />)}</div>;
             })}
             {(() => {
               const vendorParties = tx.parties.filter(p => p.isVendor || p.is_vendor || !PARTY_ROLES.includes(p.role));
@@ -2756,7 +2781,8 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
                         } catch(e) {}
                         onUpdate({ ...tx, parties: tx.parties.filter(pp => pp.id !== p.id) });
                       }}
-                        onInvite={onInviteParty ? () => onInviteParty(p) : undefined} />
+                        onInvite={onInviteParty ? () => onInviteParty(p) : undefined}
+                        onSendWelcome={onSendWelcome} />
                       {(p.vendorStatus === "selected" || p.vendor_status === "selected") && (
                         <div style={{ display: "flex", alignItems: "center", gap: 10,
                           padding: "8px 12px", background: "#D5F5E3", borderRadius: 8,
