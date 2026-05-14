@@ -1984,6 +1984,31 @@ function BuyerIntakeChecklist({ tx, token, onContactLogged }) {
 function ContractReviewChecklist({ tx, token, onCleared, setActiveTab, openEditTx }) {
   const [stepsDone, setStepsDone] = useState(tx.reviewStepsDone || []);
   const [updating, setUpdating] = useState(null);
+  const [partiesOpened, setPartiesOpened] = useState(false);
+  const [sendingEmails, setSendingEmails] = useState(false);
+
+  const partiesValid = (tx.parties || []).length > 0 && (tx.parties || []).every(p => p.email || p.phone);
+  const partiesWithEmail = (tx.parties || []).filter(p => p.email && p.email.includes("@"));
+
+  const sendWelcomeEmails = async () => {
+    const names = partiesWithEmail.map(p => `${p.name} (${p.role})`).join(", ");
+    if (!window.confirm(`You are about to send a welcome email to ${partiesWithEmail.length} parties:\n\n${names}\n\nContinue?`)) return;
+    setSendingEmails(true);
+    try {
+      const r = await fetch("https://liz-team-server-api-production.up.railway.app/transactions/" + tx.id + "/send-welcome-emails", {
+        method: "POST",
+        headers: { Authorization: "Bearer " + token }
+      });
+      const d = await r.json();
+      if (d.success) {
+        alert(`✅ Welcome emails sent to ${d.emailsSent} parties.`);
+        toggleStep(2);
+      } else {
+        alert("Could not send: " + (d.error || "Unknown error"));
+      }
+    } catch (e) { alert("Error: " + e.message); }
+    setSendingEmails(false);
+  };
   const API_URL = "https://liz-team-server-api-production.up.railway.app";
 
   const toggleStep = async (stepNumber) => {
@@ -2008,7 +2033,7 @@ function ContractReviewChecklist({ tx, token, onCleared, setActiveTab, openEditT
 
   const baseSteps = [
     { num: 1, icon: "🏠", title: "Verify Property, Dates & Contingencies", why: "Address, dates (executed/closing/EMD), price, and contingency days (inspection, financing, appraisal) ALL come from the contract and ALL drive milestones, tasks, and legal deadlines. A wrong county breaks MLS compliance. A wrong closing date voids the contract. A wrong inspection day forfeits buyer rights. Handwritten changes are commonly misread by AI.", action: "Click below to open the Edit Transaction form. Compare every field side-by-side against the executed contract. Pay close attention to anything that was crossed out or written by hand.", cta: "Open Edit Form", onCta: openEditModal },
-    { num: 2, icon: "👥", title: "Verify All Parties & Contact Info", why: "Title, lender, inspector, co-op agent must be reachable. Missing email or phone breaks the welcome email and the entire group communication chain. The wrong title company at closing causes wire fraud risk.", action: "Open the Key Parties tab. Confirm every party has a name, working phone, and email. Add any missing parties (e.g. title company, lender) that the contract names but were not extracted.", cta: "Open Parties Tab", onCta: () => setActiveTab("parties") },
+    { num: 2, icon: "👥", title: "Verify All Parties & Contact Info", why: "Title, lender, inspector, co-op agent must be reachable. Missing email or phone breaks the welcome email and the entire group communication chain. The wrong title company at closing causes wire fraud risk.", action: "Open the Key Parties tab. Confirm every party has a name, working phone, and email. Add any missing parties (e.g. title company, lender) that the contract names but were not extracted.", cta: "Open Parties Tab", onCta: () => { setPartiesOpened(true); setActiveTab("parties"); }, isPartiesStep: true },
   ];
   const termsStep = tx.additionalTerms
     ? { num: 3, icon: "📝", title: "Read & Confirm Additional Terms", why: "Custom clauses override the standard form. These can be repair credits, occupancy provisions, contingent-on-sale clauses, escalation clauses, or seller concessions. Each is binding and missing one can cost thousands or break the deal.", action: "Read every line of the Additional Terms box shown above. The same text is also saved in the transaction Notes for easy lookup later. If anything looks wrong or was cut off, edit the Notes directly.", cta: "Show Notes", onCta: () => setActiveTab("overview") }
@@ -2053,7 +2078,40 @@ function ContractReviewChecklist({ tx, token, onCleared, setActiveTab, openEditT
                   </div>
                   {!isDone && <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 6, lineHeight: 1.5 }}><strong style={{ color: "#1e40af" }}>Why:</strong> {step.why}</div>}
                   {!isDone && <div style={{ fontSize: 13, color: "#1a2332", marginBottom: 10, background: "#f9fafb", padding: "6px 10px", borderRadius: 6 }}>📌 {step.action}</div>}
-                  {!isDone && (
+                  {!isDone && step.isPartiesStep && (
+                    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                      <button onClick={(e) => { e.stopPropagation(); step.onCta(); }}
+                        style={{ background: "#2563eb", color: "white", border: "none", borderRadius: 6, padding: "8px 14px", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", alignSelf: "flex-start" }}>
+                        {step.cta} →
+                      </button>
+                      <div style={{ fontSize: 11, color: partiesOpened ? "#065f46" : "#9ca3af", fontStyle: "italic" }}>
+                        {partiesOpened ? "✓ You opened the Parties tab" : "Open the Parties tab at least once to enable the buttons below"}
+                      </div>
+                      <div style={{ borderTop: "1px solid #bfdbfe", paddingTop: 10, marginTop: 4 }}>
+                        <div style={{ fontSize: 12, color: "#1e40af", marginBottom: 8 }}>
+                          After verifying/adding/fixing parties, pick one:
+                        </div>
+                        <button onClick={(e) => { e.stopPropagation(); sendWelcomeEmails(); }}
+                          disabled={!partiesOpened || sendingEmails || partiesWithEmail.length === 0}
+                          title={partiesWithEmail.length === 0 ? "At least one party needs a valid email address" : ""}
+                          style={{ background: (!partiesOpened || partiesWithEmail.length === 0) ? "#9ca3af" : "#1e8449", color: "white", border: "none", borderRadius: 6, padding: "10px 16px", fontSize: 13, fontWeight: 700, cursor: (!partiesOpened || partiesWithEmail.length === 0) ? "not-allowed" : "pointer", fontFamily: "inherit", display: "block", marginBottom: 8, width: "100%", textAlign: "left" }}>
+                          {sendingEmails ? "Sending..." : `✉️ Send welcome emails to ${partiesWithEmail.length} parties — Recommended`}
+                        </button>
+                        <div style={{ fontSize: 11, color: "#6b7280", marginBottom: 10, paddingLeft: 4 }}>
+                          Sends a professional intro to every party with their role, key dates, and party roster. Marks this step verified.
+                        </div>
+                        <button onClick={(e) => { e.stopPropagation(); toggleStep(step.num); }}
+                          disabled={!partiesOpened || isUpdating}
+                          style={{ background: "white", color: !partiesOpened ? "#9ca3af" : "#6b7280", border: `1px solid ${!partiesOpened ? "#e5e7eb" : "#d1d5db"}`, borderRadius: 6, padding: "8px 14px", fontSize: 12, fontWeight: 600, cursor: !partiesOpened || isUpdating ? "not-allowed" : "pointer", fontFamily: "inherit", display: "block", width: "100%", textAlign: "left" }}>
+                          {isUpdating ? "..." : "✓ Mark Verified without sending emails"}
+                        </button>
+                        <div style={{ fontSize: 11, color: "#6b7280", marginTop: 4, paddingLeft: 4 }}>
+                          Use this if you want to call parties first or send emails manually later.
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  {!isDone && !step.isPartiesStep && (
                     <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                       <button onClick={(e) => { e.stopPropagation(); step.onCta(); }}
                         style={{ background: "#2563eb", color: "white", border: "none", borderRadius: 6, padding: "6px 14px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
