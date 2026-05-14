@@ -1880,9 +1880,88 @@ function MilestonesTab({ tx, token }) {
 
 
 // ═══════════════════════════════════════════════════════════════
-// BUYER INTAKE CHECKLIST
+// BUYER INTAKE CHECKLIST — 5-step guided onboarding
 // ═══════════════════════════════════════════════════════════════
 function BuyerIntakeChecklist({ tx, token, onContactLogged }) {
+  const [stepsDone, setStepsDone] = useState(tx.intakeStepsDone || []);
+  const [updating, setUpdating] = useState(null);
+  const API_URL = "https://liz-team-server-api-production.up.railway.app";
+
+  const buyer = (tx.parties || []).find(p => p.role === "Buyer");
+  const budget = tx.listPrice ? "$" + Number(tx.listPrice).toLocaleString() : "Not specified";
+
+  const toggleStep = async (stepNumber) => {
+    setUpdating(stepNumber);
+    const newDone = stepsDone.includes(stepNumber) ? false : true;
+    try {
+      const r = await fetch(API_URL + "/transactions/" + tx.id + "/intake-step", {
+        method: "POST",
+        headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
+        body: JSON.stringify({ stepNumber, done: newDone })
+      });
+      const d = await r.json();
+      if (d.success) {
+        setStepsDone(d.steps);
+        if (d.allDone && onContactLogged) onContactLogged();
+      }
+    } catch (e) { alert("Failed: " + e.message); }
+    setUpdating(null);
+  };
+
+  const allDone = [1,2,3,4,5].every(n => stepsDone.includes(n));
+  if (allDone) return null;
+
+  const steps = [
+    { num: 1, icon: "📞", title: "Contact the buyer within 24 hours", why: "Florida law requires prompt response. First contact establishes your fiduciary relationship.", action: buyer?.phone ? "Call or text " + (buyer.name || "buyer") + " at " + buyer.phone : buyer?.email ? "Email " + (buyer.name || "buyer") + " at " + buyer.email : "Add buyer contact info first" },
+    { num: 2, icon: "🤝", title: "Schedule a Buyer Consultation", why: "Understand their needs, timeline, and qualifications — and explain your role as their agent.", action: "Set up a 30-60 minute meeting (in person, Zoom, or phone)" },
+    { num: 3, icon: "📋", title: "Send Buyer Representation Agreement", why: "Required under Florida law before showing properties. Establishes your commission.", action: "Send via DocuSign, Dotloop, or in person at consultation" },
+    { num: 4, icon: "🏠", title: "Set up MLS auto-alerts", why: "Buyers expect to see new listings immediately. Same-day alerts show you are proactive.", action: "Search: " + (tx.address || "").replace("Buyer Search — ", "") + " · Budget: " + budget },
+    { num: 5, icon: "💰", title: "Confirm pre-approval or proof of funds", why: "Cannot write a credible offer without financing confirmation.", action: "Ask buyer for lender pre-approval letter or bank statement" },
+  ];
+
+  const doneCount = stepsDone.length;
+
+  return (
+    <div style={{ background: "#fef2f2", border: "2px solid #fecaca", borderRadius: 12, padding: 20, marginBottom: 20 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
+        <span style={{ fontSize: 24 }}>🔔</span>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontWeight: 800, color: "#991b1b", fontSize: 16 }}>New Buyer Inquiry — {doneCount}/5 Steps Complete</div>
+          <div style={{ fontSize: 13, color: "#7f1d1d", marginTop: 2 }}>
+            {buyer ? (buyer.name || "") + (buyer.phone ? " · " + buyer.phone : "") + (buyer.email ? " · " + buyer.email : "") : "Buyer info in parties tab"} · Budget: {budget}
+          </div>
+        </div>
+      </div>
+      <div style={{ background: "#fecaca", height: 6, borderRadius: 3, overflow: "hidden", marginBottom: 16 }}>
+        <div style={{ background: "#1e8449", height: "100%", width: (doneCount / 5 * 100) + "%", transition: "width 0.3s" }} />
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        {steps.map((step) => {
+          const isDone = stepsDone.includes(step.num);
+          const isUpdating = updating === step.num;
+          return (
+            <div key={step.num} style={{ background: isDone ? "#f0fdf4" : "white", borderRadius: 8, padding: 14, border: `1px solid ${isDone ? "#bbf7d0" : "#fecaca"}`, opacity: isDone ? 0.7 : 1 }}>
+              <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+                <div style={{ fontSize: 20, flexShrink: 0 }}>{isDone ? "✅" : step.icon}</div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+                    <span style={{ background: isDone ? "#1e8449" : "#c8102e", color: "white", borderRadius: "50%", width: 20, height: 20, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, flexShrink: 0 }}>{step.num}</span>
+                    <span style={{ fontWeight: 700, color: "#1a2332", fontSize: 14, textDecoration: isDone ? "line-through" : "none" }}>{step.title}</span>
+                  </div>
+                  {!isDone && <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 6, lineHeight: 1.5 }}><strong style={{ color: "#92400e" }}>Why:</strong> {step.why}</div>}
+                  {!isDone && <div style={{ fontSize: 13, color: "#1a2332", marginBottom: 10, background: "#f9fafb", padding: "6px 10px", borderRadius: 6 }}>📌 {step.action}</div>}
+                  <button onClick={() => toggleStep(step.num)} disabled={isUpdating} style={{ background: isDone ? "white" : "#1e8449", color: isDone ? "#6b7280" : "white", border: isDone ? "1px solid #d1d5db" : "none", borderRadius: 6, padding: "6px 14px", fontSize: 12, fontWeight: 600, cursor: isUpdating ? "wait" : "pointer", fontFamily: "inherit", opacity: isUpdating ? 0.7 : 1 }}>
+                    {isUpdating ? "..." : (isDone ? "↺ Undo" : "✓ Mark Done")}
+                  </button>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
   const [logging, setLogging] = useState(false);
   const [done, setDone] = useState(false);
   const API_URL = "https://liz-team-server-api-production.up.railway.app";
@@ -3388,6 +3467,7 @@ function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenCon
     smsThreads: t.sms_threads || {},
     needsFirstContact: t.needs_first_contact || false,
     submittedVia: t.submitted_via || null,
+    intakeStepsDone: t.intake_steps_done || [],
   }));
 
   const [showOverdue, setShowOverdue] = useState(false);
@@ -4154,6 +4234,7 @@ function MainApp({ onLogout, currentUser }) {
             reminders: (t.reminders || []).filter(Boolean).map(r => ({ id: r.id, title: r.title, date: r.date, message: r.message, channels: r.channels, parties: r.parties || [], sent: r.sent })),
             needsFirstContact: t.needs_first_contact || false,
             submittedVia: t.submitted_via || null,
+            intakeStepsDone: t.intake_steps_done || [],
           }));
           // Pin buyer/seller intake transactions needing first contact to top
           const sorted = [...rawTxs].sort((a, b) => {
