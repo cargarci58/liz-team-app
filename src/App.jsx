@@ -5201,7 +5201,7 @@ function MainApp({ onLogout, currentUser }) {
         <ExpensesPage onBack={() => setView("dashboard")} />
       )}
       {view === "forms" && (
-        <FormsPage user={user} onBack={() => setView("dashboard")} />
+        <FormsPage user={currentUser} onBack={() => setView("dashboard")} />
       )}
       {view === "contacts" && (
         <ContactsPage token={localStorage.getItem("tp_token") || ""} onBack={() => setView("dashboard")} />
