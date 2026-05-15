@@ -81,7 +81,7 @@ function SliderRow({ label, value, onChange, min, max, step, prefix, suffix, inf
   );
 }
 
-export default function SellerCalculator() {
+export default function SellerCalculator({ transactionId, token } = {}) {
   const [salePrice, setSalePrice] = useState(450000);
   const [mortgagePayoff, setMortgagePayoff] = useState(180000);
   const [commissionPct, setCommissionPct] = useState(6);
@@ -92,6 +92,42 @@ export default function SellerCalculator() {
   const [proratedTaxes, setProratedTaxes] = useState(1500);
   const [otherCosts, setOtherCosts] = useState(500);
   const [originalPurchasePrice, setOriginalPurchasePrice] = useState(300000);
+  const [generating, setGenerating] = useState(false);
+  const [genMsg, setGenMsg] = useState(null);
+
+  const generatePdf = async () => {
+    if (!transactionId || !token) {
+      setGenMsg({ type: "error", text: "Open this calculator from inside a transaction to generate a compliance PDF." });
+      return;
+    }
+    setGenerating(true);
+    setGenMsg(null);
+    try {
+      const API = import.meta.env.VITE_API_URL || "https://liz-team-server-api-production.up.railway.app";
+      const res = await fetch(API + "/transactions/" + transactionId + "/seller-net-sheet", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
+        body: JSON.stringify({
+          salePrice, mortgagePayoff, commissionPct,
+          titleSettlement, hoaTransferFee, sellerConcessions,
+          repairs, proratedTaxes, otherCosts,
+          netProceeds: result.netProceeds,
+          commission: result.commission,
+          docStamps: result.docStamps,
+          titleIns: result.titleIns,
+          recording: result.recording,
+          totalCosts: result.totalCosts,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed");
+      setGenMsg({ type: "success", text: "Net Sheet saved to transaction documents as \"" + data.filename + "\". You can download or print it from the Documents tab." });
+    } catch (err) {
+      setGenMsg({ type: "error", text: err.message || "Generation failed" });
+    } finally {
+      setGenerating(false);
+    }
+  };
 
   const result = useMemo(() => {
     const commission = salePrice * (commissionPct / 100);
@@ -202,6 +238,45 @@ export default function SellerCalculator() {
       <div style={{ fontSize: 12, color: "#6b7280", marginTop: 12, fontStyle: "italic" }}>
         ⚠️ Estimate only. Your title company's Seller's Net Sheet (issued before closing) is the official figure. Capital gains tax may apply on profit above $250k (single) / $500k (married) primary residence exclusion.
       </div>
+
+      {transactionId && (
+        <div style={{ marginTop: 20, padding: 16, background: "#fffbeb", border: "1px solid #fcd34d", borderRadius: 8 }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: "#78350f", marginBottom: 6 }}>
+            📄 Generate Compliance PDF
+          </div>
+          <div style={{ fontSize: 12, color: "#78350f", marginBottom: 10, lineHeight: 1.5 }}>
+            FL listing agents have a fiduciary duty to provide sellers with an estimated net sheet before the listing agreement and when reviewing offers. Generate a branded, signed-ready PDF and save it to this transaction's Documents for the brokerage compliance file.
+          </div>
+          <button
+            type="button"
+            onClick={generatePdf}
+            disabled={generating}
+            style={{
+              background: generating ? "#9ca3af" : "#0c4a6e",
+              color: "white",
+              border: "none",
+              borderRadius: 6,
+              padding: "10px 18px",
+              fontSize: 13,
+              fontWeight: 700,
+              cursor: generating ? "wait" : "pointer",
+              fontFamily: "inherit",
+            }}
+          >
+            {generating ? "Generating PDF..." : "📄 Generate Seller's Net Sheet PDF"}
+          </button>
+          {genMsg && (
+            <div style={{
+              marginTop: 10, padding: 10, borderRadius: 6, fontSize: 12,
+              background: genMsg.type === "success" ? "#dcfce7" : "#fee2e2",
+              border: "1px solid " + (genMsg.type === "success" ? "#86efac" : "#fca5a5"),
+              color: genMsg.type === "success" ? "#14532d" : "#7f1d1d",
+            }}>
+              {genMsg.type === "success" ? "✅ " : "⚠️ "}{genMsg.text}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
