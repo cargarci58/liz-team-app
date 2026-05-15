@@ -6,6 +6,7 @@ import UserManagement from "./UserManagement";
 import ContactsPage from "./ContactsPage";
 import ExpensesPage from './ExpensesPage';
 import FormsPage from './FormsPage';
+import FormDownloadPage from './FormDownloadPage';
 import ComplianceAdmin from "./ComplianceAdmin";
 import TaskTemplatesAdmin from "./TaskTemplatesAdmin";
 import ContractAutoIntake from "./ContractAutoIntake";
@@ -5138,6 +5139,10 @@ function MainApp({ onLogout, currentUser }) {
   };
 
   // Public upload route — no auth required
+  if (window.location.pathname.startsWith("/form-download/")) {
+    const token = window.location.pathname.split("/form-download/")[1];
+    return <FormDownloadPage token={token} />;
+  }
   if (window.location.pathname.startsWith("/upload-contract/")) {
     const token = window.location.pathname.split("/upload-contract/")[1];
     return <ContractUploadPublic urlToken={token} />;
