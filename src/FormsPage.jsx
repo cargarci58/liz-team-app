@@ -4,7 +4,7 @@ const API = import.meta.env.VITE_API_URL || 'https://liz-team-server-api-product
 const CATEGORIES = ['Disclosures','Addendums','Checklists','Marketing','Brokerage Policies','Other'];
 const SIDE_LABELS = { listing: '🏠 Listing', buyer: '🔑 Buyer' };
 
-export default function FormsPage({ user }) {
+export default function FormsPage({ user, onBack }) {
   const [forms, setForms] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filterCat, setFilterCat] = useState('All');
@@ -63,7 +63,10 @@ export default function FormsPage({ user }) {
   return (
     <div style={{ padding: 24, maxWidth: 1200, margin: '0 auto' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-        <h1 style={{ margin: 0, fontSize: 28 }}>📋 Forms Library</h1>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <button onClick={() => onBack && onBack()} style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', padding: 4 }} title="Back to dashboard">←</button>
+          <h1 style={{ margin: 0, fontSize: 28 }}>📋 Forms Library</h1>
+        </div>
         {isAdmin && (
           <button onClick={() => setShowUpload(true)}
             style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', color: 'white', border: 'none',
