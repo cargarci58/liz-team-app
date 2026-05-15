@@ -4,6 +4,7 @@ import SellerCalculator from "./components/SellerCalculator";
 import CMACalculator from "./components/CMACalculator";
 import UserManagement from "./UserManagement";
 import ContactsPage from "./ContactsPage";
+import ExpensesPage from './ExpensesPage';
 import ComplianceAdmin from "./ComplianceAdmin";
 import TaskTemplatesAdmin from "./TaskTemplatesAdmin";
 import ContractAutoIntake from "./ContractAutoIntake";
