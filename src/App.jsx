@@ -698,7 +698,7 @@ function PartyCard({ party, onRemove, onEdit, onClick, onInvite, onSendFollowup,
         {onInvite && <button onClick={e => { e.stopPropagation(); onInvite(); }} style={{ background: "none", border: "1px solid #C0392B", borderRadius: 6, cursor: "pointer", color: "#C0392B", fontSize: 11, padding: "2px 8px", fontWeight: 600 }}>Send Invite</button>}
         {onSendFollowup && (party.email || party.phone) && <button onClick={e => { e.stopPropagation(); onSendFollowup(party); }} style={{ background: "#C0392B", border: "1px solid #C0392B", borderRadius: 6, cursor: "pointer", color: "#fff", fontSize: 11, padding: "2px 8px", fontWeight: 600 }}>Follow Up</button>}
         {onSendWelcome && party.email && <button onClick={e => { e.stopPropagation(); onSendWelcome(party); }} title="Send (or re-send) the role-specific welcome email with key dates, financial summary, parties roster, and the contract document package. Use this when you've added or corrected this party's email after the initial Under Contract send." style={{ background: "#1E8449", border: "1px solid #1E8449", borderRadius: 6, cursor: "pointer", color: "#fff", fontSize: 11, padding: "2px 8px", fontWeight: 600 }}>✉️ Send Welcome</button>}
-        {onResetPassword && party.userId && party.email && <button onClick={e => { e.stopPropagation(); onResetPassword(party); }} title="Email a one-time secure link so this party can set a new password. The link expires in 1 hour. Use this when a party calls saying they can't log in." style={{ background: "#7c3aed", border: "1px solid #7c3aed", borderRadius: 6, cursor: "pointer", color: "#fff", fontSize: 11, padding: "2px 8px", fontWeight: 600 }}>🔐 Reset PW</button>}
+        {onResetPassword && party.email && <button onClick={e => { e.stopPropagation(); onResetPassword(party); }} title="Email a one-time secure link so this party can set a new password. The link expires in 1 hour. Use this when a party calls saying they can't log in." style={{ background: "#7c3aed", border: "1px solid #7c3aed", borderRadius: 6, cursor: "pointer", color: "#fff", fontSize: 11, padding: "2px 8px", fontWeight: 600 }}>🔐 Reset PW</button>}
         {onEdit && <button onClick={e => { e.stopPropagation(); onEdit(); }} style={{ background: "none", border: `1px solid ${COLORS.border}`, borderRadius: 6, cursor: "pointer", color: COLORS.muted, fontSize: 12, padding: "2px 8px" }}>Edit</button>}
         {onRemove && <button onClick={e => { e.stopPropagation(); onRemove(); }} style={{ background: "none", border: "none", cursor: "pointer", color: COLORS.muted, fontSize: 16 }}>×</button>}
       </div>
@@ -2763,7 +2763,7 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
               return <div key={role} style={{ marginBottom: 16 }}><div style={{ fontSize: 12, fontWeight: 700, color: COLORS.muted, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 8 }}>{role}</div>{members.map(p => <PartyCard key={p.id} party={p} onEdit={() => setEditingParty({ ...p })} onRemove={() => update({ parties: tx.parties.filter(pp => pp.id !== p.id) })} onInvite={onInviteParty ? () => onInviteParty(p) : undefined} onSendFollowup={(party) => setFollowupParty(party)} onSendWelcome={onSendWelcome} onResetPassword={async (p) => {
               if (!confirm("Email a password reset link to " + (p.name || p.email) + "?\n\nThe link expires in 1 hour.")) return;
               try {
-                const r = await fetch("https://liz-team-server-api-production.up.railway.app/users/" + p.userId + "/send-reset-link", { method: "POST", headers: { Authorization: "Bearer " + (localStorage.getItem("tp_token") || "") } });
+                const r = await fetch("https://liz-team-server-api-production.up.railway.app/users/" + encodeURIComponent(p.email) + "/send-reset-link", { method: "POST", headers: { Authorization: "Bearer " + (localStorage.getItem("tp_token") || ""), "Content-Type": "application/json" }, body: JSON.stringify({ email: p.email }) });
                 const data = await r.json();
                 if (!r.ok) throw new Error(data.error || "Failed");
                 alert("✅ Reset link sent to " + p.email);
@@ -2803,7 +2803,7 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
                         onSendWelcome={onSendWelcome} onResetPassword={async (p) => {
               if (!confirm("Email a password reset link to " + (p.name || p.email) + "?\n\nThe link expires in 1 hour.")) return;
               try {
-                const r = await fetch("https://liz-team-server-api-production.up.railway.app/users/" + p.userId + "/send-reset-link", { method: "POST", headers: { Authorization: "Bearer " + (localStorage.getItem("tp_token") || "") } });
+                const r = await fetch("https://liz-team-server-api-production.up.railway.app/users/" + encodeURIComponent(p.email) + "/send-reset-link", { method: "POST", headers: { Authorization: "Bearer " + (localStorage.getItem("tp_token") || ""), "Content-Type": "application/json" }, body: JSON.stringify({ email: p.email }) });
                 const data = await r.json();
                 if (!r.ok) throw new Error(data.error || "Failed");
                 alert("✅ Reset link sent to " + p.email);
