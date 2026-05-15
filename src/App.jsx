@@ -1296,14 +1296,18 @@ function WinTheDayButton({ token }) {
 
   const fetchCount = async () => {
     try {
-      const res = await fetch(API + "/dashboard/tasks", {
-        headers: { Authorization: "Bearer " + token }
-      });
-      const data = await res.json();
-      if (data.success) {
-        const total = (data.overdue?.length || 0) + (data.dueToday?.length || 0);
-        setTaskCount(total);
+      const [tasksRes, callsRes] = await Promise.all([
+        fetch(API + "/dashboard/tasks", { headers: { Authorization: "Bearer " + token } }),
+        fetch(API + "/contacts/due-today", { headers: { Authorization: "Bearer " + token } }).catch(() => null),
+      ]);
+      const data = await tasksRes.json();
+      let total = 0;
+      if (data.success) total += (data.overdue?.length || 0) + (data.dueToday?.length || 0);
+      if (callsRes && callsRes.ok) {
+        const c = await callsRes.json();
+        total += (c.calls?.length || 0);
       }
+      setTaskCount(total);
     } catch (e) {}
   };
 

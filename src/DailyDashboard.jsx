@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { LogCallButton } from "./ContactsPage";
 
 const API = "https://liz-team-server-api-production.up.railway.app";
 
@@ -264,6 +265,7 @@ function EmptyState({ firstName }) {
 // ── MAIN DASHBOARD ────────────────────────────────────────────
 export default function DailyDashboard({ token, user, onViewTransactions, onOpenTransactionMilestones }) {
   const [tasks, setTasks] = useState({ overdue:[], dueToday:[], upcoming:[] });
+  const [callsDue, setCallsDue] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeModal, setActiveModal] = useState(null);
   const [resolvedIds, setResolvedIds] = useState(new Set());
@@ -277,12 +279,17 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
   const fetchTasks = async () => {
     setLoading(true);
     try {
-      const res = await fetch(API + "/dashboard/tasks", {
-        headers: { Authorization: "Bearer " + token }
-      });
-      const data = await res.json();
+      const [tasksRes, callsRes] = await Promise.all([
+        fetch(API + "/dashboard/tasks", { headers: { Authorization: "Bearer " + token } }),
+        fetch(API + "/contacts/due-today", { headers: { Authorization: "Bearer " + token } }).catch(() => null),
+      ]);
+      const data = await tasksRes.json();
       if (data.success) {
         setTasks({ overdue: data.overdue || [], dueToday: data.dueToday || [], upcoming: data.upcoming || [] });
+      }
+      if (callsRes && callsRes.ok) {
+        const callsData = await callsRes.json();
+        setCallsDue(callsData.calls || []);
       }
     } catch (e) { console.error(e); }
     setLoading(false);
@@ -440,12 +447,45 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
         </div>
         <div style={{ color:COLORS.gray, fontSize:14, marginTop:4 }}>
           {totalVisible === 0
-            ? "You are all caught up today."
-            : `You have ${totalVisible} thing${totalVisible === 1 ? "" : "s"} that need your attention.`}
+            ? (callsDue.length > 0 ? `${callsDue.length} call${callsDue.length === 1 ? "" : "s"} to make today.` : "You are all caught up today.")
+            : `You have ${totalVisible} task${totalVisible === 1 ? "" : "s"}${callsDue.length > 0 ? ` and ${callsDue.length} call${callsDue.length === 1 ? "" : "s"}` : ""} that need your attention.`}
         </div>
       </div>
 
-      {totalVisible === 0 && <EmptyState firstName={firstName} />}
+      {totalVisible === 0 && callsDue.length === 0 && <EmptyState firstName={firstName} />}
+
+      {/* CALLS DUE TODAY (from CRM-lite) */}
+      {callsDue.length > 0 && (
+        <div style={{ marginBottom: 16 }}>
+          <SectionHeader label={"📞 CALLS DUE TODAY"} count={callsDue.length} color={"#0c4a6e"} />
+          <div style={{ background: "#eff6ff", border: "1px solid #93c5fd", borderRadius: 8, padding: 10, fontSize: 11, color: "#1e3a8a", marginBottom: 10 }}>
+            💡 Log each call with one tap — the system auto-schedules the next follow-up based on the outcome.
+          </div>
+          {callsDue.map(c => {
+            const name = [c.first_name, c.last_name].filter(Boolean).join(" ") || c.email || c.phone || "(no name)";
+            const tempEmoji = { hot: "🔥", warm: "🌤", cold: "❄️", sphere: "👥", past: "🏡" }[c.temperature] || "•";
+            const due = c.next_call_due_at ? new Date(c.next_call_due_at) : null;
+            const overdue = due && due < new Date(new Date().setHours(0,0,0,0));
+            return (
+              <div key={c.id} style={{ background: "white", border: "1px solid #e5e7eb", borderRadius: 8, padding: 12, marginBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: 700, fontSize: 14, color: "#111" }}>{tempEmoji} {name}</div>
+                  <div style={{ fontSize: 12, color: "#6b7280", marginTop: 2 }}>
+                    {c.phone || c.email || "no contact info"}
+                    {overdue && <span style={{ color: "#b91c1c", marginLeft: 8, fontWeight: 600 }}>⚠️ Overdue</span>}
+                  </div>
+                  {c.notes && (
+                    <div style={{ fontSize: 11, color: "#6b7280", marginTop: 4, fontStyle: "italic", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                      "{c.notes}"
+                    </div>
+                  )}
+                </div>
+                <LogCallButton contact={c} token={token} onLogged={fetchTasks} compact />
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       {/* OVERDUE / URGENT */}
       {visibleOverdue.length > 0 && (
