@@ -2,6 +2,7 @@ import LoginScreen from "./LoginScreen";
 import BuyerCalculator from "./components/BuyerCalculator";
 import SellerCalculator from "./components/SellerCalculator";
 import CMACalculator from "./components/CMACalculator";
+import TxFormsTab from "./components/TxFormsTab";
 import UserManagement from "./UserManagement";
 import ContactsPage from "./ContactsPage";
 import ExpensesPage from './ExpensesPage';
@@ -2507,6 +2508,7 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
     { id: "chat", label: (chatUnread > 0 || dashboardUnread > 0) ? `💬 Group Chat (${Math.max(chatUnread, dashboardUnread)})` : "💬 Group Chat" },
     ...(isBuyerSideTx ? [{ id: "calculator", label: "🧮 Buyer Calc" }] : []),
     ...(isListingSideTx ? [{ id: "cma", label: "📊 CMA" }, { id: "seller-calc", label: "💰 Seller Net" }] : []),
+    { id: "tx-forms", label: "📋 Forms" },
     { id: "activity", label: "📋 Activity Log" },
     { id: "reminders", label: "Reminders" },
   ];
@@ -2905,6 +2907,10 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
             </div>
             <SellerCalculator transactionId={tx.id} token={localStorage.getItem("tp_token") || ""} />
           </div>
+        )}
+
+        {activeTab === "tx-forms" && (
+          <TxFormsTab tx={tx} side={isListingSideTx ? "listing" : "buyer"} isAdmin={false} />
         )}
 
         {activeTab === "activity" && (() => {
