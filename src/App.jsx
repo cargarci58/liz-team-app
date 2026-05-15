@@ -1,6 +1,7 @@
 import LoginScreen from "./LoginScreen";
 import BuyerCalculator from "./components/BuyerCalculator";
 import SellerCalculator from "./components/SellerCalculator";
+import CMACalculator from "./components/CMACalculator";
 import UserManagement from "./UserManagement";
 import ContactsPage from "./ContactsPage";
 import ComplianceAdmin from "./ComplianceAdmin";
@@ -2502,7 +2503,7 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
     { id: "documents", label: "📎 Documents" },
     { id: "chat", label: (chatUnread > 0 || dashboardUnread > 0) ? `💬 Group Chat (${Math.max(chatUnread, dashboardUnread)})` : "💬 Group Chat" },
     ...(isBuyerSideTx ? [{ id: "calculator", label: "🧮 Buyer Calc" }] : []),
-    ...(isListingSideTx ? [{ id: "seller-calc", label: "💰 Seller Net" }] : []),
+    ...(isListingSideTx ? [{ id: "cma", label: "📊 CMA" }, { id: "seller-calc", label: "💰 Seller Net" }] : []),
     { id: "activity", label: "📋 Activity Log" },
     { id: "reminders", label: "Reminders" },
   ];
@@ -2882,6 +2883,15 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
               <strong>🎓 Why this matters:</strong> Use this with your buyer to set realistic expectations on price, monthly payment, and cash-to-close BEFORE writing offers. Florida's doc stamps, intangible tax, and insurance costs surprise most first-time buyers.
             </div>
             <BuyerCalculator />
+          </div>
+        )}
+
+        {activeTab === "cma" && (
+          <div style={{ padding: 20 }}>
+            <div style={{ background: "#dbeafe", border: "1px solid #93c5fd", borderRadius: 8, padding: 12, marginBottom: 16, fontSize: 13, color: "#1e3a8a" }}>
+              <strong>🎓 Why this matters:</strong> A defensible CMA protects you legally and helps the seller trust your pricing. Pull 3-6 comps from MLS, enter them here. The system applies FL-specific upgrade adjustments (hurricane windows, solar, new roof, etc.) and generates a branded PDF for the listing appointment.
+            </div>
+            <CMACalculator transactionId={tx.id} token={localStorage.getItem("tp_token") || ""} />
           </div>
         )}
 
