@@ -4287,6 +4287,7 @@ function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenCon
           <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
             <button onClick={onNew} style={{ background: "#C0392B", border: "none", color: "#fff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>+ New Transaction</button>
             <button onClick={() => onOpenContacts && onOpenContacts()} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "#fff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>📇 Contacts</button>
+            <button onClick={() => onOpenExpenses && onOpenExpenses()} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "#fff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>💵 Expenses</button>
             <WinTheDayButton token={localStorage.getItem("tp_token") || ""} />
             <button onClick={onVendors} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "rgba(255,255,255,0.88)", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 600, fontFamily: "inherit" }}>🏆 Vendors</button>
             <button onClick={onIntakeLinks} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "rgba(255,255,255,0.88)", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 600, fontFamily: "inherit" }}>🔗 My Intake Links</button>
@@ -5174,7 +5175,7 @@ function MainApp({ onLogout, currentUser }) {
           onSelect={(id, tab) => { setSelectedId(id); setInitialDetailTab(tab || "overview"); setView("detail"); }}
           onNew={() => setView("new")}
           onOpenContactBook={() => openContactBook(null)}
-          onOpenContacts={() => setView("contacts")}
+          onOpenContacts={() => setView("contacts")} onOpenExpenses={() => setView("expenses")}
           contactCount={contacts.length}
           onLogout={onLogout}
           onOpenTeam={() => setShowTeam(true)}
@@ -5193,6 +5194,9 @@ function MainApp({ onLogout, currentUser }) {
         />
       )}
       {showTeam && <UserManagement onClose={() => setShowTeam(false)} />}
+      {view === "expenses" && (
+        <ExpensesPage onBack={() => setView("dashboard")} />
+      )}
       {view === "contacts" && (
         <ContactsPage token={localStorage.getItem("tp_token") || ""} onBack={() => setView("dashboard")} />
       )}
