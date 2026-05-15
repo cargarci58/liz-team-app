@@ -3773,7 +3773,7 @@ function ContactAutocomplete({ token, onSelect }) {
 // ═══════════════════════════════════════════════════════════════
 // SettingsMenu — dropdown that consolidates 6+ buttons into one
 // ═══════════════════════════════════════════════════════════════
-function SettingsMenu({ currentUser, onOpenContactBook, contactCount, onReports, onAgentProfile, onOpenComplianceDash, onOpenCompliance, onOpenTaskTmpls, onCompanySettings, onChangePassword }) {
+function SettingsMenu({ currentUser, onOpenContactBook, contactCount, onReports, onAgentProfile, onOpenComplianceDash, onOpenCompliance, onOpenTaskTmpls, onCompanySettings, onChangePassword, onOpenForms }) {
   const [open, setOpen] = useState(false);
   const isAdmin = ["admin", "superadmin"].includes(currentUser?.role);
   const items = [];
@@ -3781,6 +3781,7 @@ function SettingsMenu({ currentUser, onOpenContactBook, contactCount, onReports,
   items.push({ icon: "📒", label: `Address Book${contactCount > 0 ? ` (${contactCount})` : ""}`, onClick: onOpenContactBook });
   items.push({ icon: "📊", label: "Reports", onClick: onReports });
   items.push({ icon: "👤", label: "My Profile", onClick: onAgentProfile });
+  if (onOpenForms) items.push({ icon: "📋", label: "Forms Library", onClick: onOpenForms });
   items.push({ icon: "🔒", label: "Change Password", onClick: onChangePassword });
   if (isAdmin) {
     items.push({ divider: true });
@@ -3817,7 +3818,7 @@ function SettingsMenu({ currentUser, onOpenContactBook, contactCount, onReports,
   );
 }
 
-function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenContactBook, onOpenContacts, onOpenExpenses, contactCount, onLogout, onOpenTeam, onOpenCompliance, onOpenComplianceDash, onOpenTaskTmpls, onOpenContractIntake, onChangePassword, onReports, onHome, onVendors, onCompanySettings, onAgentProfile, onIntakeLinks, currentUser }) {
+function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenContactBook, onOpenContacts, onOpenExpenses, onOpenForms, contactCount, onLogout, onOpenTeam, onOpenCompliance, onOpenComplianceDash, onOpenTaskTmpls, onOpenContractIntake, onChangePassword, onReports, onHome, onVendors, onCompanySettings, onAgentProfile, onIntakeLinks, currentUser }) {
   const [filter, setFilter] = useState("All");
   const [search, setSearch] = useState("");
   const [viewMode, setViewMode] = useState(() => localStorage.getItem("tp_view_mode") || "cards");
@@ -4289,7 +4290,6 @@ function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenCon
             <button onClick={onNew} style={{ background: "#C0392B", border: "none", color: "#fff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>+ New Transaction</button>
             <button onClick={() => onOpenContacts && onOpenContacts()} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "#fff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>📇 Contacts</button>
             <button onClick={() => onOpenExpenses && onOpenExpenses()} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "#fff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>💵 Expense Tracker</button>
-            <button onClick={() => onOpenForms && onOpenForms()} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "#fff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>📋 Forms</button>
             <WinTheDayButton token={localStorage.getItem("tp_token") || ""} />
             <button onClick={onVendors} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "rgba(255,255,255,0.88)", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 600, fontFamily: "inherit" }}>🏆 Vendors</button>
             <button onClick={onIntakeLinks} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "rgba(255,255,255,0.88)", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 600, fontFamily: "inherit" }}>🔗 My Intake Links</button>
@@ -4304,6 +4304,7 @@ function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenCon
               onOpenCompliance={onOpenCompliance}
               onOpenTaskTmpls={onOpenTaskTmpls}
               onCompanySettings={onCompanySettings}
+              onOpenForms={onOpenForms}
               onChangePassword={onChangePassword}
             />
             <TenantSwitcher currentUser={currentUser} />
