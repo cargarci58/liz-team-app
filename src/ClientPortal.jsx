@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import BuyerCalculator from "./components/BuyerCalculator";
+import SellerCalculator from "./components/SellerCalculator";
 import TransactionChat from "./TransactionChat";
 
 const API = "https://liz-team-server-api-production.up.railway.app";
@@ -610,6 +611,7 @@ export default function ClientPortal({ user, onLogout }) {
   const agentEmail = tx ? tx.owningAgentEmail : "";
 
   const isBuyerSide = tx && (tx.type === "Buyer Representation" || tx.type === "Dual Agency" || (tx.transactionType && tx.transactionType.includes("Buyer")));
+  const isSellerSide = tx && (tx.type === "Listing (Seller)" || tx.type === "Dual Agency" || (tx.transactionType && (tx.transactionType.includes("Listing") || tx.transactionType.includes("Seller"))));
 
   const tabs = [
     { id: "home", label: "🏠 My Transaction" },
@@ -617,7 +619,8 @@ export default function ClientPortal({ user, onLogout }) {
     { id: "chat", label: chatUnread > 0 ? "💬 Chat (" + chatUnread + ")" : "💬 Chat" },
     { id: "team", label: "👥 My Team" },
     { id: "vendors", label: "🏆 Vendors" },
-    ...(isBuyerSide ? [{ id: "calculator", label: "🧮 Calculator" }] : []),
+    ...(isBuyerSide ? [{ id: "calculator", label: "🧮 Buyer Calc" }] : []),
+    ...(isSellerSide ? [{ id: "seller-calc", label: "💰 Net Proceeds" }] : []),
     { id: "faq", label: "❓ FAQ" },
   ];
 
@@ -919,6 +922,15 @@ export default function ClientPortal({ user, onLogout }) {
                   <strong>🎓 Why this matters:</strong> Buying a home in Florida has costs many buyers don't expect — doc stamps, intangible tax, insurance. Use these calculators to plan with no surprises at closing.
                 </div>
                 <BuyerCalculator />
+              </div>
+            )}
+
+            {activeTab === "seller-calc" && (
+              <div style={{ padding: 16 }}>
+                <div style={{ background: "#e0f2fe", border: "1px solid #7dd3fc", borderRadius: 8, padding: 12, marginBottom: 16, fontSize: 13, color: "#0c4a6e" }}>
+                  <strong>🎓 Why this matters:</strong> Estimate the cash you'll walk away with after selling. Florida sellers typically pay agent commission, doc stamps (~0.7%), title insurance, and any negotiated concessions or repairs. This gives you a realistic net.
+                </div>
+                <SellerCalculator />
               </div>
             )}
 

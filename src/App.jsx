@@ -1,5 +1,6 @@
 import LoginScreen from "./LoginScreen";
 import BuyerCalculator from "./components/BuyerCalculator";
+import SellerCalculator from "./components/SellerCalculator";
 import UserManagement from "./UserManagement";
 import ComplianceAdmin from "./ComplianceAdmin";
 import TaskTemplatesAdmin from "./TaskTemplatesAdmin";
@@ -2483,6 +2484,7 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
   const smsMsgCount = Object.values(tx.smsThreads || {}).reduce((a, t) => a + t.length, 0);
 
   const isBuyerSideTx = tx.type === "Buyer Representation" || tx.type === "Dual Agency";
+  const isListingSideTx = tx.type === "Listing (Seller)" || tx.type === "Dual Agency";
 
   const tabs = [
     { id: "overview", label: "Overview" },
@@ -2493,7 +2495,8 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
     { id: "notes", label: "Internal Notes" },
     { id: "documents", label: "📎 Documents" },
     { id: "chat", label: (chatUnread > 0 || dashboardUnread > 0) ? `💬 Group Chat (${Math.max(chatUnread, dashboardUnread)})` : "💬 Group Chat" },
-    ...(isBuyerSideTx ? [{ id: "calculator", label: "🧮 Calculator" }] : []),
+    ...(isBuyerSideTx ? [{ id: "calculator", label: "🧮 Buyer Calc" }] : []),
+    ...(isListingSideTx ? [{ id: "seller-calc", label: "💰 Seller Net" }] : []),
     { id: "activity", label: "📋 Activity Log" },
     { id: "reminders", label: "Reminders" },
   ];
@@ -2857,6 +2860,15 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
               <strong>🎓 Why this matters:</strong> Use this with your buyer to set realistic expectations on price, monthly payment, and cash-to-close BEFORE writing offers. Florida's doc stamps, intangible tax, and insurance costs surprise most first-time buyers.
             </div>
             <BuyerCalculator />
+          </div>
+        )}
+
+        {activeTab === "seller-calc" && (
+          <div style={{ padding: 20 }}>
+            <div style={{ background: "#e0f2fe", border: "1px solid #7dd3fc", borderRadius: 8, padding: 12, marginBottom: 16, fontSize: 13, color: "#0c4a6e" }}>
+              <strong>🎓 Why this matters:</strong> Sellers want to know what they'll walk away with. Use this BEFORE the listing appointment to set realistic expectations on commission, FL doc stamps (~0.7%), title fees, and mortgage payoff. Avoids "I thought I was getting more" at closing.
+            </div>
+            <SellerCalculator />
           </div>
         )}
 
