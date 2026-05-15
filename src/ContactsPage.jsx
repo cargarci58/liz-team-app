@@ -460,8 +460,16 @@ function ImportModal({ token, onClose, onImported }) {
     { key: "source", label: "Source" },
   ];
 
+  // Allow closing only when not importing
+  const safeClose = () => {
+    if (importing) return;
+    if (step === 3) { onClose(); return; }
+    if (rawRows.length > 0 && !confirm("Discard this import? Your progress will be lost.")) return;
+    onClose();
+  };
+
   return (
-    <div style={{ position: "fixed", inset: 0, zIndex: 4000, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }} onClick={onClose}>
+    <div style={{ position: "fixed", inset: 0, zIndex: 4000, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }} onClick={safeClose}>
       <div onClick={e => e.stopPropagation()} style={{ background: "white", borderRadius: 12, maxWidth: 640, width: "100%", maxHeight: "90vh", overflowY: "auto", padding: 24 }}>
         <div style={{ fontSize: 18, fontWeight: 800, marginBottom: 4 }}>📥 Import Contacts (CSV)</div>
         <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 16 }}>
@@ -670,7 +678,12 @@ export default function ContactsPage({ token, onBack }) {
 
       {showAdd && <ContactModal token={token} onClose={() => setShowAdd(false)} onSaved={() => load()} />}
       {editing && <ContactModal contact={editing} token={token} onClose={() => setEditing(null)} onSaved={() => load()} />}
-      {showImport && <ImportModal token={token} onClose={() => setShowImport(false)} onImported={() => load()} />}
+      {showImport && <ImportModal token={token} onClose={() => setShowImport(false)} onImported={(data) => {
+        // Reset all filters so newly imported contacts show
+        setFilter({ temperature: "", type: "", due: "", search: "" });
+        // Reload after a beat so backend has committed
+        setTimeout(() => load(), 300);
+      }} />}
     </div>
   );
 }
