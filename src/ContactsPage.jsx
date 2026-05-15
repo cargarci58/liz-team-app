@@ -535,14 +535,27 @@ function ImportModal({ token, onClose, onImported }) {
 
         {step === 3 && result && (
           <div>
-            <div style={{ background: "#dcfce7", border: "1px solid #86efac", borderRadius: 8, padding: 16, marginBottom: 16 }}>
-              <div style={{ fontWeight: 800, fontSize: 16, color: "#14532d" }}>✅ Import Complete</div>
-              <div style={{ fontSize: 13, color: "#14532d", marginTop: 8 }}>
+            <div style={{ background: result.created > 0 ? "#dcfce7" : "#fee2e2", border: "1px solid " + (result.created > 0 ? "#86efac" : "#fca5a5"), borderRadius: 8, padding: 16, marginBottom: 16 }}>
+              <div style={{ fontWeight: 800, fontSize: 16, color: result.created > 0 ? "#14532d" : "#7f1d1d" }}>
+                {result.created > 0 ? "✅ Import Complete" : "⚠️ Import Failed"}
+              </div>
+              <div style={{ fontSize: 13, color: result.created > 0 ? "#14532d" : "#7f1d1d", marginTop: 8 }}>
                 Created: <strong>{result.created}</strong><br/>
                 Skipped (duplicates / empty): <strong>{result.skipped}</strong><br/>
                 Errors: <strong>{(result.errors && result.errors.length) || 0}</strong>
               </div>
             </div>
+            {result.errors && result.errors.length > 0 && (
+              <div style={{ background: "#fef2f2", border: "1px solid #fca5a5", borderRadius: 8, padding: 12, marginBottom: 16, maxHeight: 300, overflowY: "auto" }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: "#7f1d1d", marginBottom: 8 }}>First {Math.min(result.errors.length, 10)} errors:</div>
+                {result.errors.slice(0, 10).map((e, i) => (
+                  <div key={i} style={{ fontSize: 11, color: "#7f1d1d", marginBottom: 6, fontFamily: "monospace", wordBreak: "break-word" }}>
+                    <strong>Row {i + 1}:</strong> {e.error || "Unknown error"}
+                    <div style={{ color: "#991b1b", marginTop: 2 }}>{JSON.stringify(e.row).slice(0, 200)}</div>
+                  </div>
+                ))}
+              </div>
+            )}
             <div style={{ display: "flex", justifyContent: "flex-end" }}>
               <button onClick={onClose} style={btnStyle("#0c4a6e", "white")}>Done</button>
             </div>
