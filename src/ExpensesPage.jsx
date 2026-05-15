@@ -308,7 +308,7 @@ export default function ExpensesPage({ onBack }) {
                   <Th>Date</Th>
                   <Th>Vendor</Th>
                   <Th>Category</Th>
-                  <Th>Description</Th>
+                  <Th>Notes</Th>
                   <Th align="right">Amount</Th>
                   <Th align="center">Type</Th>
                   <Th align="center">Receipt</Th>
@@ -333,8 +333,8 @@ export default function ExpensesPage({ onBack }) {
                         {exp.category || 'Uncategorized'}
                       </span>
                     </Td>
-                    <Td style={{ color: '#6b7280', maxWidth: 250, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {exp.description || ''}
+                    <Td style={{ color: '#6b7280', maxWidth: 250, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={exp.notes || ''}>
+                      {exp.notes || ''}
                     </Td>
                     <Td align="right" style={{ fontWeight: 600 }}>{fmtCurrency(exp.amount)}</Td>
                     <Td align="center">
@@ -346,7 +346,18 @@ export default function ExpensesPage({ onBack }) {
                     </Td>
                     <Td align="center">
                       {exp.receipt_key ? (
-                        <span title={exp.receipt_key} style={{ color: '#059669' }}>📎</span>
+                        <button
+                          onClick={async () => {
+                            try {
+                              const data = await authFetch(`/expenses/receipt-view-url?key=${encodeURIComponent(exp.receipt_key)}`);
+                              if (data.viewUrl) window.open(data.viewUrl, '_blank');
+                            } catch (e) { alert('Could not load receipt: ' + e.message); }
+                          }}
+                          title="View receipt"
+                          style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, color: '#059669', padding: 4 }}
+                        >
+                          📎
+                        </button>
                       ) : (
                         <span style={{ color: '#d1d5db' }}>—</span>
                       )}
