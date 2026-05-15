@@ -1,6 +1,68 @@
 const API = "https://liz-team-server-api-production.up.railway.app";
 
+import { useState } from "react";
+
+function ForgotPasswordModal({ onClose }) {
+  const [email, setEmail] = useState("");
+  const [sent, setSent] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState(null);
+  const API = "https://liz-team-server-api-production.up.railway.app";
+
+  const submit = async (e) => {
+    e.preventDefault();
+    if (!email.trim()) { setError("Email required"); return; }
+    setSubmitting(true);
+    setError(null);
+    try {
+      const r = await fetch(API + "/auth/forgot-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email.trim() }),
+      });
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.error || "Request failed");
+      setSent(true);
+    } catch (err) { setError(err.message); }
+    finally { setSubmitting(false); }
+  };
+
+  return (
+    <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 5000, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
+      <div onClick={e => e.stopPropagation()} style={{ background: "white", borderRadius: 12, maxWidth: 420, width: "100%", padding: 28 }}>
+        <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 6 }}>🔐 Forgot Your Password?</div>
+        <div style={{ fontSize: 13, color: "#6b7280", marginBottom: 16 }}>
+          Enter your email and we will send you a secure link to set a new password. The link expires in 1 hour.
+        </div>
+        {sent ? (
+          <div>
+            <div style={{ background: "#dcfce7", border: "1px solid #86efac", borderRadius: 8, padding: 14, marginBottom: 16, fontSize: 13, color: "#14532d" }}>
+              ✅ <strong>Check your email.</strong> If an account exists for that address, a reset link has been sent. The link expires in 1 hour.
+            </div>
+            <button onClick={onClose} style={{ width: "100%", background: "#0c4a6e", color: "white", border: "none", padding: "10px 18px", borderRadius: 6, fontWeight: 700, fontSize: 14, cursor: "pointer", fontFamily: "inherit" }}>Close</button>
+          </div>
+        ) : (
+          <form onSubmit={submit}>
+            <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 4 }}>Email</label>
+            <input type="email" value={email} onChange={e => setEmail(e.target.value)} required autoFocus
+              placeholder="you@example.com"
+              style={{ width: "100%", padding: "10px 12px", border: "1px solid #d1d5db", borderRadius: 6, fontSize: 14, marginBottom: 14, boxSizing: "border-box", fontFamily: "inherit" }} />
+            {error && <div style={{ background: "#fee2e2", border: "1px solid #fca5a5", borderRadius: 6, padding: 10, fontSize: 13, color: "#7f1d1d", marginBottom: 14 }}>⚠️ {error}</div>}
+            <div style={{ display: "flex", gap: 8 }}>
+              <button type="button" onClick={onClose} style={{ flex: 1, background: "#e5e7eb", color: "#374151", border: "none", padding: "10px 18px", borderRadius: 6, fontWeight: 700, fontSize: 14, cursor: "pointer", fontFamily: "inherit" }}>Cancel</button>
+              <button type="submit" disabled={submitting} style={{ flex: 1, background: submitting ? "#9ca3af" : "#0c4a6e", color: "white", border: "none", padding: "10px 18px", borderRadius: 6, fontWeight: 700, fontSize: 14, cursor: submitting ? "wait" : "pointer", fontFamily: "inherit" }}>
+                {submitting ? "Sending..." : "Send Reset Link"}
+              </button>
+            </div>
+          </form>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function LoginScreen({ onLogin }) {
+  const [showForgot, setShowForgot] = useState(false);
   const handleLogin = async (e) => {
     e.preventDefault();
     const email = e.target.email.value;
@@ -70,7 +132,14 @@ export default function LoginScreen({ onLogin }) {
               <label style={lbl}>Password</label>
               <input name="password" type="password" autoComplete="current-password" required style={inp} placeholder="Your password" />
               <button id="login-btn" type="submit" style={sbtn}>Sign In</button>
+              <div style={{ textAlign: "center", marginTop: 12 }}>
+                <button type="button" onClick={() => setShowForgot(true)}
+                  style={{ background: "none", border: "none", color: "#0c4a6e", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", textDecoration: "underline" }}>
+                  Forgot your password?
+                </button>
+              </div>
             </form>
+            {showForgot && <ForgotPasswordModal onClose={() => setShowForgot(false)} />}
           </div>
           <div id="register-form" style={{ display: "none" }}>
             <div id="reg-error" style={{ color: "#C0392B", fontSize: 13, marginBottom: 12, minHeight: 20 }}></div>
