@@ -110,7 +110,8 @@ export default function PreApprovalCard({ transactionId, isAgent = true, onChang
 
 function UploadModal({ transactionId, onClose, onSaved }) {
   const fileRef = useRef(null);
-  const [stage, setStage] = useState('pick'); // pick | uploading | extracting | review | saving
+  const [stage, setStage] = useState('pick');
+  const [createLenderParty, setCreateLenderParty] = useState(true); // pick | uploading | extracting | review | saving
   const [extracted, setExtracted] = useState(null);
   const [keyAndName, setKeyAndName] = useState(null);
   const [error, setError] = useState('');
