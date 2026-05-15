@@ -164,10 +164,15 @@ function UploadModal({ transactionId, onClose, onSaved }) {
         body: JSON.stringify({
           key: keyAndName.key,
           filename: keyAndName.filename,
-          lender_name: extracted.lender_name,
+          lender_company: extracted.lender_company,
+          loan_officer_name: extracted.loan_officer_name,
+          loan_officer_email: extracted.loan_officer_email,
+          loan_officer_phone: extracted.loan_officer_phone,
+          nmls_number: extracted.nmls_number,
           loan_amount: extracted.loan_amount,
           loan_type: extracted.loan_type,
           expiration_date: extracted.expiration_date,
+          create_lender_party: createLenderParty,
         })
       });
       const j = await res.json();
@@ -205,8 +210,19 @@ function UploadModal({ transactionId, onClose, onSaved }) {
             <div style={{ fontSize: 13, color: '#444', marginBottom: 10 }}>
               ✨ AI extracted these fields. Review and correct before saving:
             </div>
-            <FormField label="Lender Name" value={extracted.lender_name || ''}
-              onChange={v => setExtracted({ ...extracted, lender_name: v })} />
+            <div style={{ fontSize: 11, fontWeight: 700, color: '#666', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '12px 0 6px' }}>Lender Info</div>
+            <FormField label="Lender Company" value={extracted.lender_company || ''}
+              onChange={v => setExtracted({ ...extracted, lender_company: v })} />
+            <FormField label="Loan Officer Name" value={extracted.loan_officer_name || ''}
+              onChange={v => setExtracted({ ...extracted, loan_officer_name: v })} />
+            <FormField label="Loan Officer Email" value={extracted.loan_officer_email || ''} type="email"
+              onChange={v => setExtracted({ ...extracted, loan_officer_email: v })} />
+            <FormField label="Loan Officer Phone" value={extracted.loan_officer_phone || ''}
+              onChange={v => setExtracted({ ...extracted, loan_officer_phone: v })} />
+            <FormField label="NMLS #" value={extracted.nmls_number || ''}
+              onChange={v => setExtracted({ ...extracted, nmls_number: v })} />
+
+            <div style={{ fontSize: 11, fontWeight: 700, color: '#666', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '14px 0 6px' }}>Loan Details</div>
             <FormField label="Loan Type" value={extracted.loan_type || ''}
               onChange={v => setExtracted({ ...extracted, loan_type: v })}
               options={['Conventional', 'FHA', 'VA', 'USDA', 'Jumbo', 'Other']} />
@@ -214,6 +230,18 @@ function UploadModal({ transactionId, onClose, onSaved }) {
               onChange={v => setExtracted({ ...extracted, loan_amount: v ? Number(v) : null })} />
             <FormField label="Expiration Date" value={extracted.expiration_date || ''} type="date"
               onChange={v => setExtracted({ ...extracted, expiration_date: v })} />
+
+            <div style={{ background: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: 8, padding: 12, marginTop: 14 }}>
+              <label style={{ display: 'flex', alignItems: 'flex-start', gap: 8, cursor: 'pointer' }}>
+                <input type="checkbox" checked={createLenderParty} onChange={e => setCreateLenderParty(e.target.checked)} style={{ marginTop: 3 }} />
+                <div>
+                  <div style={{ fontWeight: 600, fontSize: 13, color: '#0c4a6e' }}>📋 Auto-create Lender party</div>
+                  <div style={{ fontSize: 12, color: '#075985', marginTop: 2 }}>
+                    Add the loan officer as a Lender party on this transaction (skipped if a Lender already exists). You can send them a welcome email after.
+                  </div>
+                </div>
+              </label>
+            </div>
           </div>
         )}
 
