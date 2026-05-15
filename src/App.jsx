@@ -1,5 +1,6 @@
 import LoginScreen from "./LoginScreen";
 import BuyerCalculator from "./components/BuyerCalculator";
+import PreApprovalCard, { PreApprovalBadge } from './components/PreApprovalCard';
 import SellerCalculator from "./components/SellerCalculator";
 import CMACalculator from "./components/CMACalculator";
 import TxFormsTab from "./components/TxFormsTab";
@@ -688,12 +689,13 @@ function PartyAvatar({ party, size = 40 }) {
   return <div style={{ width: size, height: size, borderRadius: "50%", background: color + "22", color, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: size * 0.35, flexShrink: 0 }}>{initials}</div>;
 }
 
-function PartyCard({ party, onRemove, onEdit, onClick, onInvite, onSendFollowup, onSendWelcome, onResetPassword }) {
+function PartyCard({ party, txId, onRemove, onEdit, onClick, onInvite, onSendFollowup, onSendWelcome, onResetPassword }) {
   return (
     <div onClick={onClick} style={{ background: "#fff", border: `1px solid ${COLORS.border}`, borderRadius: 10, padding: "12px 14px", display: "flex", alignItems: "flex-start", gap: 12, marginBottom: 8, cursor: onClick ? "pointer" : "default" }}>
       <PartyAvatar party={party} />
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontWeight: 600, fontSize: 14, color: COLORS.text }}>{party.name}</div>
+        {txId && party.role && /buyer/i.test(party.role) && <PreApprovalBadge transactionId={txId} />}
         <div style={{ fontSize: 12, color: roleColor(party.role), fontWeight: 600, marginBottom: 2 }}>{party.role}</div>
         {party.company && <div style={{ fontSize: 12, color: COLORS.muted }}>{party.company}</div>}
         {party.email && <div style={{ fontSize: 12, color: COLORS.muted }}>{party.email}</div>}
@@ -2589,6 +2591,9 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
       <div style={{ padding: 24, maxWidth: 940, margin: "0 auto" }}>
         {activeTab === "overview" && (
           <div>
+            {(tx.transaction_type || tx.type) && /buyer|dual/i.test(tx.transaction_type || tx.type) && (
+              <PreApprovalCard transactionId={tx.id} isAgent={true} />
+            )}
             {tx.assignedAgentId && tx.needsReview && (
               <ContractReviewChecklist tx={tx} token={localStorage.getItem("tp_token") || ""} onCleared={() => onUpdate({ ...tx, needsReview: false })} setActiveTab={setActiveTab} openEditTx={openEditTx} />
             )}
@@ -2770,7 +2775,7 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
             {PARTY_ROLES.map(role => {
               const members = tx.parties.filter(p => p.role === role && !p.isVendor && !p.is_vendor);
               if (!members.length) return null;
-              return <div key={role} style={{ marginBottom: 16 }}><div style={{ fontSize: 12, fontWeight: 700, color: COLORS.muted, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 8 }}>{role}</div>{members.map(p => <PartyCard key={p.id} party={p} onEdit={() => setEditingParty({ ...p })} onRemove={() => update({ parties: tx.parties.filter(pp => pp.id !== p.id) })} onInvite={onInviteParty ? () => onInviteParty(p) : undefined} onSendFollowup={(party) => setFollowupParty(party)} onSendWelcome={onSendWelcome} onResetPassword={async (p) => {
+              return <div key={role} style={{ marginBottom: 16 }}><div style={{ fontSize: 12, fontWeight: 700, color: COLORS.muted, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 8 }}>{role}</div>{members.map(p => <PartyCard key={p.id} party={p} txId={tx.id} onEdit={() => setEditingParty({ ...p })} onRemove={() => update({ parties: tx.parties.filter(pp => pp.id !== p.id) })} onInvite={onInviteParty ? () => onInviteParty(p) : undefined} onSendFollowup={(party) => setFollowupParty(party)} onSendWelcome={onSendWelcome} onResetPassword={async (p) => {
               if (!confirm("Email a password reset link to " + (p.name || p.email) + "?\n\nThe link expires in 1 hour.")) return;
               try {
                 const r = await fetch("https://liz-team-server-api-production.up.railway.app/users/" + encodeURIComponent(p.email) + "/send-reset-link", { method: "POST", headers: { Authorization: "Bearer " + (localStorage.getItem("tp_token") || ""), "Content-Type": "application/json" }, body: JSON.stringify({ email: p.email }) });
@@ -2797,7 +2802,7 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
                   </div>
                   {members.map(p => (
                     <div key={p.id}>
-                      <PartyCard party={p}
+                      <PartyCard party={p} txId={tx.id}
                         onEdit={() => setEditingParty({ ...p })}
                       onRemove={async () => {
                         if (!window.confirm("Remove this vendor from the transaction?")) return;
