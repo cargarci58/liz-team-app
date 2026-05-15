@@ -2955,14 +2955,28 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
       )}
       {showAddParty && (
         <Modal title="Add Party" onClose={() => { setShowAddParty(false); setPartyFromContactBook(false); }}>
+          <ContactAutocomplete
+            token={localStorage.getItem("tp_token") || ""}
+            onSelect={(c) => {
+              const fullName = [c.first_name, c.last_name].filter(Boolean).join(" ");
+              setPartyForm(f => ({
+                ...f,
+                name: fullName || f.name,
+                email: c.email || f.email,
+                phone: c.phone || f.phone,
+                mailingAddress: [c.address, c.city, c.state, c.zip_code].filter(Boolean).join(", ") || f.mailingAddress,
+              }));
+              setPartyFromContactBook(true);
+            }}
+          />
           {contacts.length > 0 && (
             <div style={{ marginBottom: 16 }}>
               <Btn small variant="secondary" onClick={() => onOpenContactBook && onOpenContactBook(contact => {
                 setPartyForm({ role: contact.role, name: contact.name, company: contact.company || "", email: contact.email || "", phone: contact.phone || "" });
                 setPartyFromContactBook(true);
                 setShowAddParty(true);
-              })}>👥 Pick from Contact Book</Btn>
-              <span style={{ fontSize: 12, color: COLORS.muted, marginLeft: 10 }}>or fill in manually below</span>
+              })}>📒 Pick from Address Book</Btn>
+              <span style={{ fontSize: 12, color: COLORS.muted, marginLeft: 10 }}>(transaction-party shortcuts)</span>
             </div>
           )}
           <Input label="Role" value={partyForm.role} onChange={v => setPartyForm(f => ({ ...f, role: v }))} options={PARTY_ROLES} required />
@@ -3643,6 +3657,133 @@ function NewTransactionForm({ onSave, onCancel }) {
 }
 
 // ─── DASHBOARD ────────────────────────────────────────────────
+
+
+// ═══════════════════════════════════════════════════════════════
+// ContactAutocomplete — search-as-you-type dropdown for CRM contacts
+// Fires onSelect(contact) when a result is picked.
+// ═══════════════════════════════════════════════════════════════
+function ContactAutocomplete({ token, onSelect }) {
+  const [q, setQ] = useState("");
+  const [results, setResults] = useState([]);
+  const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const timerRef = useRef(null);
+
+  useEffect(() => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+    if (!q || q.length < 2) { setResults([]); setOpen(false); return; }
+    timerRef.current = setTimeout(async () => {
+      setLoading(true);
+      try {
+        const r = await fetch("https://liz-team-server-api-production.up.railway.app/contacts/search?q=" + encodeURIComponent(q), {
+          headers: { Authorization: "Bearer " + token }
+        });
+        const data = await r.json();
+        setResults(data.contacts || []);
+        setOpen(true);
+      } catch (e) { console.error(e); }
+      finally { setLoading(false); }
+    }, 250);
+    return () => clearTimeout(timerRef.current);
+  }, [q, token]);
+
+  const TEMP_EMOJI = { hot: "🔥", warm: "🌤", cold: "❄️", sphere: "👥", past: "🏡" };
+
+  const pick = (c) => {
+    onSelect && onSelect(c);
+    setQ("");
+    setResults([]);
+    setOpen(false);
+  };
+
+  return (
+    <div style={{ position: "relative", marginBottom: 14 }}>
+      <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 4 }}>
+        🔍 Search your contacts (optional)
+      </label>
+      <input
+        value={q}
+        onChange={e => setQ(e.target.value)}
+        onFocus={() => results.length > 0 && setOpen(true)}
+        placeholder="Type a name, email, or phone to auto-fill from your CRM..."
+        style={{ width: "100%", padding: "8px 10px", border: "1px solid #d1d5db", borderRadius: 6, fontSize: 13, fontFamily: "inherit", boxSizing: "border-box" }}
+      />
+      {open && results.length > 0 && (
+        <>
+          <div onClick={() => setOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 200 }} />
+          <div style={{ position: "absolute", top: "100%", left: 0, right: 0, marginTop: 2, background: "white", border: "1px solid #d1d5db", borderRadius: 6, boxShadow: "0 6px 18px rgba(0,0,0,0.18)", zIndex: 201, maxHeight: 280, overflowY: "auto" }}>
+            {results.map(c => {
+              const name = [c.first_name, c.last_name].filter(Boolean).join(" ") || c.email || c.phone || "(no name)";
+              return (
+                <button key={c.id} onClick={() => pick(c)}
+                  style={{ display: "block", width: "100%", padding: "8px 12px", textAlign: "left", background: "none", border: "none", borderBottom: "1px solid #f3f4f6", cursor: "pointer", fontSize: 13, fontFamily: "inherit" }}
+                  onMouseEnter={e => e.currentTarget.style.background = "#f9fafb"}
+                  onMouseLeave={e => e.currentTarget.style.background = "none"}>
+                  <div style={{ fontWeight: 600, color: "#111" }}>
+                    {TEMP_EMOJI[c.temperature] || "•"} {name}
+                  </div>
+                  <div style={{ fontSize: 11, color: "#6b7280" }}>
+                    {[c.email, c.phone, c.contact_type].filter(Boolean).join(" · ")}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </>
+      )}
+      {loading && <div style={{ fontSize: 11, color: "#6b7280", marginTop: 4 }}>Searching...</div>}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SettingsMenu — dropdown that consolidates 6+ buttons into one
+// ═══════════════════════════════════════════════════════════════
+function SettingsMenu({ currentUser, onOpenContactBook, contactCount, onReports, onAgentProfile, onOpenComplianceDash, onOpenCompliance, onOpenTaskTmpls, onCompanySettings, onChangePassword }) {
+  const [open, setOpen] = useState(false);
+  const isAdmin = ["admin", "superadmin"].includes(currentUser?.role);
+  const items = [];
+
+  items.push({ icon: "📒", label: `Address Book${contactCount > 0 ? ` (${contactCount})` : ""}`, onClick: onOpenContactBook });
+  items.push({ icon: "📊", label: "Reports", onClick: onReports });
+  items.push({ icon: "👤", label: "My Profile", onClick: onAgentProfile });
+  items.push({ icon: "🔒", label: "Change Password", onClick: onChangePassword });
+  if (isAdmin) {
+    items.push({ divider: true });
+    items.push({ icon: "📊", label: "Compliance Dashboard", onClick: onOpenComplianceDash });
+    items.push({ icon: "⚖️", label: "Doc Requirements", onClick: onOpenCompliance });
+    items.push({ icon: "📝", label: "Task Templates", onClick: onOpenTaskTmpls });
+    items.push({ icon: "⚙️", label: "Company Settings", onClick: onCompanySettings });
+  }
+
+  return (
+    <div style={{ position: "relative" }}>
+      <button onClick={() => setOpen(!open)} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "rgba(255,255,255,0.88)", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 600, fontFamily: "inherit" }}>
+        ⚙️ Menu {open ? "▴" : "▾"}
+      </button>
+      {open && (
+        <>
+          <div onClick={() => setOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 200 }} />
+          <div style={{ position: "absolute", right: 0, top: "100%", marginTop: 4, background: "white", border: "1px solid #e5e7eb", borderRadius: 8, boxShadow: "0 8px 24px rgba(0,0,0,0.18)", zIndex: 201, minWidth: 240, padding: 4 }}>
+            {items.map((it, i) => it.divider ? (
+              <div key={i} style={{ height: 1, background: "#e5e7eb", margin: "6px 8px" }} />
+            ) : (
+              <button key={i} onClick={() => { setOpen(false); it.onClick && it.onClick(); }}
+                style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", padding: "10px 14px", background: "none", border: "none", borderRadius: 4, fontSize: 13, color: "#1f2937", cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}
+                onMouseEnter={e => e.currentTarget.style.background = "#f3f4f6"}
+                onMouseLeave={e => e.currentTarget.style.background = "none"}>
+                <span style={{ fontSize: 16 }}>{it.icon}</span>
+                <span>{it.label}</span>
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenContactBook, onOpenContacts, contactCount, onLogout, onOpenTeam, onOpenCompliance, onOpenComplianceDash, onOpenTaskTmpls, onOpenContractIntake, onChangePassword, onReports, onHome, onVendors, onCompanySettings, onAgentProfile, onIntakeLinks, currentUser }) {
   const [filter, setFilter] = useState("All");
   const [search, setSearch] = useState("");
@@ -4113,26 +4254,23 @@ function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenCon
           </div>
           <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
             <button onClick={onNew} style={{ background: "#C0392B", border: "none", color: "#fff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>+ New Transaction</button>
-              <button onClick={() => onOpenContacts && onOpenContacts()}
-                style={{ background: "rgba(255,255,255,0.12)",
-                  border: "1px solid rgba(255,255,255,0.22)", color: "#fff",
-                  borderRadius: 8, padding: "7px 14px", cursor: "pointer",
-                  fontSize: 12, fontWeight: 700, fontFamily: "inherit",
-                  display: "flex", alignItems: "center", gap: 6, marginRight: 8 }}>
-                📇 Contacts
-              </button>
-              <WinTheDayButton token={localStorage.getItem("tp_token") || ""} />
-            <button onClick={onOpenContactBook} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "rgba(255,255,255,0.88)", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 600, fontFamily: "inherit" }}>📒 Address Book{contactCount > 0 ? ` (${contactCount})` : ""}</button>
+            <button onClick={() => onOpenContacts && onOpenContacts()} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "#fff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>📇 Contacts</button>
+            <WinTheDayButton token={localStorage.getItem("tp_token") || ""} />
             <button onClick={onVendors} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "rgba(255,255,255,0.88)", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 600, fontFamily: "inherit" }}>🏆 Vendors</button>
-            <button onClick={onReports} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "rgba(255,255,255,0.88)", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 600, fontFamily: "inherit" }}>📊 Reports</button>
-            
             <button onClick={onIntakeLinks} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "rgba(255,255,255,0.88)", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 600, fontFamily: "inherit" }}>🔗 My Intake Links</button>
-            <button onClick={onAgentProfile} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "rgba(255,255,255,0.88)", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 600, fontFamily: "inherit" }}>👤 Profile</button>
-            {["admin","superadmin"].includes(currentUser?.role) && <button onClick={onOpenComplianceDash} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "rgba(255,255,255,0.88)", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 600, fontFamily: "inherit" }}>📊 Compliance Dashboard</button>}
-            {["admin","superadmin"].includes(currentUser?.role) && <button onClick={onOpenCompliance} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "rgba(255,255,255,0.88)", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 600, fontFamily: "inherit" }}>⚖️ Doc Requirements</button>}
-            <button onClick={onOpenContractIntake} style={{ background: "#1E8449", border: "1px solid rgba(255,255,255,0.22)", color: "#ffffff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 600, fontFamily: "inherit" }}>📄 Upload Contract</button>
-            {["admin","superadmin"].includes(currentUser?.role) && <button onClick={onOpenTaskTmpls} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "rgba(255,255,255,0.88)", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 600, fontFamily: "inherit" }}>📝 Task Templates</button>}
-            {["admin","superadmin"].includes(currentUser?.role) && <button onClick={onCompanySettings} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "rgba(255,255,255,0.88)", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 600, fontFamily: "inherit" }}>⚙️ Settings</button>}
+            <button onClick={onOpenContractIntake} style={{ background: "#1E8449", border: "1px solid rgba(255,255,255,0.22)", color: "#ffffff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>📄 Upload Contract</button>
+            <SettingsMenu
+              currentUser={currentUser}
+              onOpenContactBook={onOpenContactBook}
+              contactCount={contactCount}
+              onReports={onReports}
+              onAgentProfile={onAgentProfile}
+              onOpenComplianceDash={onOpenComplianceDash}
+              onOpenCompliance={onOpenCompliance}
+              onOpenTaskTmpls={onOpenTaskTmpls}
+              onCompanySettings={onCompanySettings}
+              onChangePassword={onChangePassword}
+            />
             <TenantSwitcher currentUser={currentUser} />
             <button onClick={onLogout} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "rgba(255,255,255,0.88)", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 600, fontFamily: "inherit" }}>Sign Out</button>
           </div>
@@ -5024,7 +5162,7 @@ function MainApp({ onLogout, currentUser }) {
       )}
       {showTeam && <UserManagement onClose={() => setShowTeam(false)} />}
       {view === "contacts" && (
-        <ContactsPage token={localStorage.getItem("tp_token") || ""} />
+        <ContactsPage token={localStorage.getItem("tp_token") || ""} onBack={() => setView("dashboard")} />
       )}
       {showCompliance && (
         <div style={{ position:"fixed", inset:0, background:"#fff", zIndex:200, overflowY:"auto" }}>

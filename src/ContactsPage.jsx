@@ -548,7 +548,7 @@ function ImportModal({ token, onClose, onImported }) {
 // ============================================================
 // MAIN PAGE
 // ============================================================
-export default function ContactsPage({ token }) {
+export default function ContactsPage({ token, onBack }) {
   const [contacts, setContacts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState({ temperature: "", type: "", due: "", search: "" });
@@ -576,6 +576,12 @@ export default function ContactsPage({ token }) {
 
   return (
     <div style={{ padding: 24, fontFamily: "system-ui, sans-serif", maxWidth: 1200, margin: "0 auto" }}>
+      {onBack && (
+        <button onClick={onBack}
+          style={{ background: "transparent", border: "none", color: "#0c4a6e", cursor: "pointer", fontSize: 14, fontWeight: 600, marginBottom: 12, padding: "4px 0", fontFamily: "inherit" }}>
+          ← Back to Dashboard
+        </button>
+      )}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8, flexWrap: "wrap", gap: 12 }}>
         <div>
           <div style={{ fontSize: 26, fontWeight: 800 }}>📇 Contacts</div>
