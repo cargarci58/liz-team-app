@@ -104,28 +104,100 @@ function Info({ children }) {
   );
 }
 
-// Slider + number input combo
+// Slider + editable number input. Tap the value badge to type any amount (can exceed slider range).
 function SliderRow({ label, value, onChange, min, max, step, prefix, suffix, info }) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState("");
+
+  const startEdit = () => {
+    setDraft(String(value));
+    setEditing(true);
+  };
+
+  const commitEdit = () => {
+    const cleaned = draft.replace(/[^0-9.\-]/g, "");
+    const n = parseFloat(cleaned);
+    if (!isNaN(n) && n >= 0) {
+      onChange(n);
+    }
+    setEditing(false);
+  };
+
+  const handleKey = (e) => {
+    if (e.key === "Enter") { e.preventDefault(); commitEdit(); }
+    if (e.key === "Escape") { setEditing(false); }
+  };
+
+  const sliderValue = Math.min(Math.max(value, min), max);
+
   return (
     <div style={{ marginBottom: 16 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-        <label style={{ fontSize: 14, fontWeight: 600, color: "#374151" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6, gap: 8 }}>
+        <label style={{ fontSize: 14, fontWeight: 600, color: "#374151", flex: 1 }}>
           {label}
           {info && <Info>{info}</Info>}
         </label>
-        <span style={{ fontSize: 14, fontWeight: 700, color: "#1f2937" }}>
-          {prefix}{Number(value).toLocaleString("en-US")}{suffix}
-        </span>
+        {editing ? (
+          <div style={{ display: "flex", alignItems: "center", gap: 2 }}>
+            {prefix && <span style={{ fontSize: 14, fontWeight: 700, color: "#1f2937" }}>{prefix}</span>}
+            <input
+              type="text"
+              inputMode="decimal"
+              autoFocus
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              onBlur={commitEdit}
+              onKeyDown={handleKey}
+              style={{
+                width: 120,
+                padding: "4px 8px",
+                fontSize: 14,
+                fontWeight: 700,
+                color: "#1f2937",
+                border: "2px solid #dc2626",
+                borderRadius: 4,
+                textAlign: "right",
+                fontFamily: "inherit",
+                outline: "none",
+              }}
+            />
+            {suffix && <span style={{ fontSize: 14, fontWeight: 700, color: "#1f2937" }}>{suffix}</span>}
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={startEdit}
+            title="Tap to type a value"
+            style={{
+              background: "#f3f4f6",
+              border: "1px solid #d1d5db",
+              borderRadius: 4,
+              padding: "4px 10px",
+              fontSize: 14,
+              fontWeight: 700,
+              color: "#1f2937",
+              cursor: "pointer",
+              fontFamily: "inherit",
+            }}
+          >
+            {prefix}{Number(value).toLocaleString("en-US", { maximumFractionDigits: 2 })}{suffix}
+          </button>
+        )}
       </div>
       <input
         type="range"
         min={min}
         max={max}
         step={step}
-        value={value}
+        value={sliderValue}
         onChange={(e) => onChange(Number(e.target.value))}
         style={{ width: "100%", accentColor: "#dc2626" }}
       />
+      {value > max && (
+        <div style={{ fontSize: 11, color: "#6b7280", marginTop: 2, fontStyle: "italic" }}>
+          Typed value exceeds slider range — slider shows max. Tap value to edit.
+        </div>
+      )}
     </div>
   );
 }
