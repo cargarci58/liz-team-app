@@ -147,7 +147,16 @@ function UploadModal({ transactionId, onClose, onSaved }) {
       });
       const ex = await exRes.json();
       if (ex.error) throw new Error(ex.error);
-      setExtracted(ex);
+      setExtracted({
+        lender_company: ex.lender_company || '',
+        loan_officer_name: ex.loan_officer_name || '',
+        loan_officer_email: ex.loan_officer_email || '',
+        loan_officer_phone: ex.loan_officer_phone || '',
+        nmls_number: ex.nmls_number || '',
+        loan_amount: ex.loan_amount || '',
+        loan_type: ex.loan_type || '',
+        expiration_date: ex.expiration_date || '',
+      });
       setStage('review');
     } catch (e) {
       setError(e.message || 'Upload failed');
