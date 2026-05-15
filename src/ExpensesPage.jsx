@@ -85,7 +85,7 @@ export default function ExpensesPage({ onBack }) {
       const params = new URLSearchParams();
       if (filterStart) params.set('start_date', filterStart);
       if (filterEnd) params.set('end_date', filterEnd);
-      if (filterCategory) params.set('category_id', filterCategory);
+      if (filterCategory) params.set('category', filterCategory);
       const data = await authFetch(`/expenses?${params.toString()}`);
       setExpenses(data.expenses || data || []);
     } catch (e) {
@@ -107,11 +107,11 @@ export default function ExpensesPage({ onBack }) {
 
   // Apply client-side filters (search + deductible)
   const visibleExpenses = expenses.filter(exp => {
-    if (filterDeductible === 'yes' && !exp.tax_deductible) return false;
-    if (filterDeductible === 'no' && exp.tax_deductible) return false;
+    if (filterDeductible === 'mileage' && !exp.is_mileage) return false;
+    if (filterDeductible === 'cash' && exp.is_mileage) return false;
     if (filterSearch.trim()) {
       const q = filterSearch.toLowerCase();
-      const hay = `${exp.vendor || ''} ${exp.description || ''} ${exp.notes || ''} ${exp.category_name || ''}`.toLowerCase();
+      const hay = `${exp.vendor || ''} ${exp.description || ''} ${exp.notes || ''} ${exp.category || ''}`.toLowerCase();
       if (!hay.includes(q)) return false;
     }
     return true;
@@ -119,7 +119,8 @@ export default function ExpensesPage({ onBack }) {
 
   // Totals
   const totalAll = visibleExpenses.reduce((s, e) => s + Number(e.amount || 0), 0);
-  const totalDeductible = visibleExpenses.filter(e => e.tax_deductible).reduce((s, e) => s + Number(e.amount || 0), 0);
+  const totalMileage = visibleExpenses.filter(e => e.is_mileage).reduce((s, e) => s + Number(e.amount || 0), 0);
+  const countMileage = visibleExpenses.filter(e => e.is_mileage).length;
   const countAll = visibleExpenses.length;
 
   // CSV Export
@@ -128,16 +129,17 @@ export default function ExpensesPage({ onBack }) {
       alert('No expenses to export with current filters.');
       return;
     }
-    const headers = ['Date', 'Vendor', 'Category', 'Description', 'Amount', 'Tax Deductible', 'Payment Method', 'Notes'];
+    const headers = ['Date', 'Vendor', 'Category', 'Amount', 'Type', 'Miles', 'Rate', 'Notes', 'Receipt'];
     const rows = visibleExpenses.map(e => [
-      e.expense_date || '',
+      e.occurred_at ? e.occurred_at.split('T')[0] : '',
       e.vendor || '',
-      e.category_name || '',
-      e.description || '',
+      e.category || '',
       Number(e.amount || 0).toFixed(2),
-      e.tax_deductible ? 'Yes' : 'No',
-      e.payment_method || '',
-      (e.notes || '').replace(/\n/g, ' ')
+      e.is_mileage ? 'Mileage' : 'Cash',
+      e.mileage_miles || '',
+      e.mileage_rate || '',
+      (e.notes || '').replace(/\n/g, ' '),
+      e.receipt_key ? 'Yes' : 'No'
     ]);
     const csv = [headers, ...rows]
       .map(row => row.map(cell => {
@@ -210,8 +212,8 @@ export default function ExpensesPage({ onBack }) {
       {/* Summary cards */}
       <div style={{ padding: '20px 24px 0 24px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12 }}>
         <SummaryCard label="Total Expenses" value={fmtCurrency(totalAll)} sub={`${countAll} item${countAll === 1 ? '' : 's'}`} color="#1f2937" />
-        <SummaryCard label="Tax-Deductible" value={fmtCurrency(totalDeductible)} sub="for Schedule C" color="#059669" />
-        <SummaryCard label="Non-Deductible" value={fmtCurrency(totalAll - totalDeductible)} sub="personal/other" color="#6b7280" />
+        <SummaryCard label="Mileage" value={fmtCurrency(totalMileage)} sub={`${countMileage} trip${countMileage === 1 ? '' : 's'}`} color="#10b981" />
+        <SummaryCard label="Cash Expenses" value={fmtCurrency(totalAll - totalMileage)} sub="non-mileage" color="#6b7280" />
         <SummaryCard label="Period" value={`${fmtDate(filterStart)} → ${fmtDate(filterEnd)}`} sub="" color="#3b82f6" smallValue />
       </div>
 
@@ -259,15 +261,15 @@ export default function ExpensesPage({ onBack }) {
           <select value={filterCategory} onChange={e => setFilterCategory(e.target.value)} style={inputStyle}>
             <option value="">All categories</option>
             {categories.map(c => (
-              <option key={c.id} value={c.id}>{c.name}</option>
+              <option key={c.id} value={c.name}>{c.name}</option>
             ))}
           </select>
         </Field>
-        <Field label="Tax-Deductible">
+        <Field label="Type">
           <select value={filterDeductible} onChange={e => setFilterDeductible(e.target.value)} style={inputStyle}>
-            <option value="all">All</option>
-            <option value="yes">Deductible only</option>
-            <option value="no">Non-deductible</option>
+            <option value="all">All types</option>
+            <option value="cash">Cash expenses</option>
+            <option value="mileage">Mileage only</option>
           </select>
         </Field>
         <Field label="Search">
@@ -308,7 +310,7 @@ export default function ExpensesPage({ onBack }) {
                   <Th>Category</Th>
                   <Th>Description</Th>
                   <Th align="right">Amount</Th>
-                  <Th align="center">Deductible</Th>
+                  <Th align="center">Type</Th>
                   <Th align="center">Receipt</Th>
                   <Th align="right">Actions</Th>
                 </tr>
@@ -316,7 +318,7 @@ export default function ExpensesPage({ onBack }) {
               <tbody>
                 {visibleExpenses.map(exp => (
                   <tr key={exp.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
-                    <Td>{fmtDate(exp.expense_date)}</Td>
+                    <Td>{fmtDate(exp.occurred_at)}</Td>
                     <Td><strong>{exp.vendor || '—'}</strong></Td>
                     <Td>
                       <span style={{
@@ -328,7 +330,7 @@ export default function ExpensesPage({ onBack }) {
                         fontSize: 12,
                         fontWeight: 600
                       }}>
-                        {exp.category_name || 'Uncategorized'}
+                        {exp.category || 'Uncategorized'}
                       </span>
                     </Td>
                     <Td style={{ color: '#6b7280', maxWidth: 250, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -336,17 +338,15 @@ export default function ExpensesPage({ onBack }) {
                     </Td>
                     <Td align="right" style={{ fontWeight: 600 }}>{fmtCurrency(exp.amount)}</Td>
                     <Td align="center">
-                      {exp.tax_deductible ? (
-                        <span style={{ color: '#059669', fontSize: 18 }}>✓</span>
+                      {exp.is_mileage ? (
+                        <span style={{ fontSize: 11, padding: '2px 8px', background: '#d1fae5', color: '#065f46', borderRadius: 10, fontWeight: 600 }}>🚗 Mileage</span>
                       ) : (
-                        <span style={{ color: '#d1d5db' }}>—</span>
+                        <span style={{ fontSize: 11, padding: '2px 8px', background: '#f3f4f6', color: '#4b5563', borderRadius: 10, fontWeight: 600 }}>💵 Cash</span>
                       )}
                     </Td>
                     <Td align="center">
-                      {exp.receipt_url ? (
-                        <a href={exp.receipt_url} target="_blank" rel="noopener noreferrer" style={{ color: '#3b82f6', textDecoration: 'none' }}>
-                          📎 View
-                        </a>
+                      {exp.receipt_key ? (
+                        <span title={exp.receipt_key} style={{ color: '#059669' }}>📎</span>
                       ) : (
                         <span style={{ color: '#d1d5db' }}>—</span>
                       )}
@@ -374,8 +374,8 @@ export default function ExpensesPage({ onBack }) {
                 <tr>
                   <Td colSpan={4} style={{ textAlign: 'right', paddingRight: 12 }}>Total ({countAll}):</Td>
                   <Td align="right">{fmtCurrency(totalAll)}</Td>
-                  <Td colSpan={3} style={{ fontSize: 12, color: '#059669' }}>
-                    Deductible: {fmtCurrency(totalDeductible)}
+                  <Td colSpan={3} style={{ fontSize: 12, color: '#10b981' }}>
+                    Mileage: {fmtCurrency(totalMileage)}
                   </Td>
                 </tr>
               </tfoot>
@@ -413,55 +413,78 @@ function AddExpenseModal({ categories, expense, onClose, onSaved }) {
   const isEdit = !!expense;
   const [vendor, setVendor] = useState(expense?.vendor || '');
   const [amount, setAmount] = useState(expense?.amount || '');
-  const [expenseDate, setExpenseDate] = useState(expense?.expense_date || todayISO());
-  const [categoryId, setCategoryId] = useState(expense?.category_id || '');
-  const [description, setDescription] = useState(expense?.description || '');
+  const [occurredAt, setOccurredAt] = useState(expense?.occurred_at ? expense.occurred_at.split('T')[0] : todayISO());
+  const [category, setCategory] = useState(expense?.category || '');
   const [notes, setNotes] = useState(expense?.notes || '');
-  const [paymentMethod, setPaymentMethod] = useState(expense?.payment_method || '');
-  const [taxDeductible, setTaxDeductible] = useState(expense?.tax_deductible !== undefined ? !!expense.tax_deductible : true);
-  const [receiptUrl, setReceiptUrl] = useState(expense?.receipt_url || '');
+  const [receiptKey, setReceiptKey] = useState(expense?.receipt_key || '');
+  const [isMileage, setIsMileage] = useState(!!expense?.is_mileage);
+  const [mileageMiles, setMileageMiles] = useState(expense?.mileage_miles || '');
+  const [mileageRate, setMileageRate] = useState(expense?.mileage_rate || '0.67');
 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
   const [ocrLoading, setOcrLoading] = useState(false);
+  const [ocrStatus, setOcrStatus] = useState('');
   const [ocrPreview, setOcrPreview] = useState(null);
   const fileInputRef = useRef(null);
+  const cameraInputRef = useRef(null);
+
+  // Auto-compute mileage amount when miles/rate change
+  useEffect(() => {
+    if (isMileage && mileageMiles && mileageRate) {
+      const computed = (Number(mileageMiles) * Number(mileageRate)).toFixed(2);
+      setAmount(computed);
+    }
+  }, [isMileage, mileageMiles, mileageRate]);
 
   const handleReceiptUpload = async (file) => {
     if (!file) return;
     setOcrLoading(true);
     setError(null);
+    setOcrPreview(null);
     try {
-      // Convert to base64
-      const base64 = await new Promise((res, rej) => {
-        const r = new FileReader();
-        r.onload = () => res(r.result.split(',')[1]);
-        r.onerror = () => rej(new Error('Read failed'));
-        r.readAsDataURL(file);
-      });
-
-      const data = await authFetch('/expenses/extract-receipt', {
+      // Step 1: get presigned R2 PUT URL
+      setOcrStatus('Getting upload URL...');
+      const presign = await authFetch('/expenses/receipt-upload-url', {
         method: 'POST',
         body: JSON.stringify({
-          file_data: base64,
-          file_name: file.name,
-          mime_type: file.type
+          fileName: file.name || `receipt_${Date.now()}.jpg`,
+          fileType: file.type || 'image/jpeg'
         })
       });
+      const { uploadUrl, receiptKey: newKey } = presign;
 
-      // Backend returns extracted fields + uploaded receipt_url
+      // Step 2: PUT file directly to R2
+      setOcrStatus('Uploading receipt...');
+      const putRes = await fetch(uploadUrl, {
+        method: 'PUT',
+        headers: { 'Content-Type': file.type || 'image/jpeg' },
+        body: file
+      });
+      if (!putRes.ok) throw new Error(`R2 upload failed: ${putRes.status}`);
+
+      setReceiptKey(newKey);
+
+      // Step 3: extract fields via AI
+      setOcrStatus('AI reading receipt...');
+      const data = await authFetch('/expenses/extract-receipt', {
+        method: 'POST',
+        body: JSON.stringify({ receiptKey: newKey })
+      });
+
       const extracted = data.extracted || data;
       setOcrPreview(extracted);
 
       if (extracted.vendor) setVendor(extracted.vendor);
-      if (extracted.amount) setAmount(String(extracted.amount));
-      if (extracted.expense_date) setExpenseDate(extracted.expense_date);
-      if (extracted.description) setDescription(extracted.description);
-      if (extracted.suggested_category_id) setCategoryId(extracted.suggested_category_id);
-      if (data.receipt_url) setReceiptUrl(data.receipt_url);
+      if (extracted.amount != null) setAmount(String(extracted.amount));
+      if (extracted.occurred_at) setOccurredAt(extracted.occurred_at);
+      if (extracted.suggested_category) setCategory(extracted.suggested_category);
+      if (extracted.notes) setNotes(extracted.notes);
 
+      setOcrStatus('');
     } catch (e) {
       setError('Receipt scan failed: ' + e.message);
+      setOcrStatus('');
     } finally {
       setOcrLoading(false);
     }
@@ -473,7 +496,7 @@ function AddExpenseModal({ categories, expense, onClose, onSaved }) {
       setError('Enter a valid amount greater than 0.');
       return;
     }
-    if (!expenseDate) {
+    if (!occurredAt) {
       setError('Pick an expense date.');
       return;
     }
@@ -482,13 +505,13 @@ function AddExpenseModal({ categories, expense, onClose, onSaved }) {
       const payload = {
         vendor: vendor || null,
         amount: Number(amount),
-        expense_date: expenseDate,
-        category_id: categoryId || null,
-        description: description || null,
+        occurredAt: occurredAt,
+        category: category || 'Other',
         notes: notes || null,
-        payment_method: paymentMethod || null,
-        tax_deductible: !!taxDeductible,
-        receipt_url: receiptUrl || null
+        receiptKey: receiptKey || null,
+        isMileage: !!isMileage,
+        mileageMiles: isMileage && mileageMiles ? Number(mileageMiles) : null,
+        mileageRate: isMileage && mileageRate ? Number(mileageRate) : null
       };
       if (isEdit) {
         await authFetch(`/expenses/${expense.id}`, {
@@ -523,8 +546,16 @@ function AddExpenseModal({ categories, expense, onClose, onSaved }) {
             📸 Snap a receipt — let AI fill it in
           </div>
           <div style={{ fontSize: 13, color: '#047857', marginBottom: 10 }}>
-            Upload a photo or PDF of your receipt. We'll extract the vendor, amount, and date automatically. You can review and edit everything before saving.
+            Take a photo or upload a PDF/image. AI extracts vendor, amount, date, and category. You review before saving.
           </div>
+          <input
+            ref={cameraInputRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            style={{ display: 'none' }}
+            onChange={e => handleReceiptUpload(e.target.files?.[0])}
+          />
           <input
             ref={fileInputRef}
             type="file"
@@ -532,71 +563,87 @@ function AddExpenseModal({ categories, expense, onClose, onSaved }) {
             style={{ display: 'none' }}
             onChange={e => handleReceiptUpload(e.target.files?.[0])}
           />
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            disabled={ocrLoading}
-            style={{ ...primaryBtn('#10b981'), opacity: ocrLoading ? 0.6 : 1 }}
-          >
-            {ocrLoading ? '🔄 Scanning receipt...' : '📎 Upload Receipt'}
-          </button>
-          {ocrPreview && (
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <button
+              onClick={() => cameraInputRef.current?.click()}
+              disabled={ocrLoading}
+              style={{ ...primaryBtn('#10b981'), opacity: ocrLoading ? 0.6 : 1 }}
+            >
+              📷 Take Photo
+            </button>
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={ocrLoading}
+              style={{ ...secondaryBtn, opacity: ocrLoading ? 0.6 : 1, borderColor: '#10b981', color: '#065f46' }}
+            >
+              📎 Upload File
+            </button>
+          </div>
+          {ocrLoading && (
+            <div style={{ marginTop: 10, fontSize: 13, color: '#065f46' }}>
+              🔄 {ocrStatus || 'Processing...'}
+            </div>
+          )}
+          {ocrPreview && !ocrLoading && (
             <div style={{ marginTop: 10, padding: 10, background: 'white', borderRadius: 8, fontSize: 13, color: '#065f46' }}>
-              ✨ <strong>AI extracted:</strong> {ocrPreview.vendor || 'unknown vendor'} • {fmtCurrency(ocrPreview.amount || 0)} • {fmtDate(ocrPreview.expense_date)}
+              ✨ <strong>AI extracted:</strong> {ocrPreview.vendor || 'unknown vendor'} • {fmtCurrency(ocrPreview.amount || 0)} • {fmtDate(ocrPreview.occurred_at)}
+              {ocrPreview.suggested_category && <> • <em>{ocrPreview.suggested_category}</em></>}
               <div style={{ marginTop: 4, fontSize: 12 }}>Review the fields below — edit anything that looks off.</div>
             </div>
           )}
         </div>
       )}
 
+      {/* Mileage toggle */}
+      <div style={{ marginBottom: 14, padding: 10, background: '#f9fafb', borderRadius: 8, border: '1px solid #e5e7eb' }}>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 14, fontWeight: 600, color: '#374151' }}>
+          <input
+            type="checkbox"
+            checked={isMileage}
+            onChange={e => setIsMileage(e.target.checked)}
+            style={{ width: 18, height: 18, cursor: 'pointer' }}
+          />
+          🚗 This is a mileage expense (auto-calculates amount from miles × rate)
+        </label>
+        {isMileage && (
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 10 }}>
+            <Field label="Miles driven">
+              <input type="number" step="0.1" min="0" value={mileageMiles} onChange={e => setMileageMiles(e.target.value)} placeholder="e.g. 23.5" style={inputStyle} />
+            </Field>
+            <Field label="IRS rate ($/mile)" hint="2026: $0.67">
+              <input type="number" step="0.001" min="0" value={mileageRate} onChange={e => setMileageRate(e.target.value)} placeholder="0.67" style={inputStyle} />
+            </Field>
+          </div>
+        )}
+      </div>
+
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-        <Field label="Vendor" hint="Who you paid">
-          <input value={vendor} onChange={e => setVendor(e.target.value)} placeholder="e.g. Office Depot" style={inputStyle} />
+        <Field label="Vendor" hint={isMileage ? 'Optional for mileage' : 'Who you paid'}>
+          <input value={vendor} onChange={e => setVendor(e.target.value)} placeholder={isMileage ? 'e.g. Client showing' : 'e.g. Office Depot'} style={inputStyle} />
         </Field>
-        <Field label="Amount *" hint="">
-          <input type="number" step="0.01" min="0" value={amount} onChange={e => setAmount(e.target.value)} placeholder="0.00" style={inputStyle} />
+        <Field label="Amount *" hint={isMileage ? 'Auto-calculated' : ''}>
+          <input
+            type="number" step="0.01" min="0" value={amount}
+            onChange={e => setAmount(e.target.value)}
+            placeholder="0.00"
+            disabled={isMileage}
+            style={{ ...inputStyle, background: isMileage ? '#f3f4f6' : 'white' }}
+          />
         </Field>
         <Field label="Date *">
-          <input type="date" value={expenseDate} onChange={e => setExpenseDate(e.target.value)} style={inputStyle} />
+          <input type="date" value={occurredAt} onChange={e => setOccurredAt(e.target.value)} style={inputStyle} />
         </Field>
         <Field label="Category">
-          <select value={categoryId} onChange={e => setCategoryId(e.target.value)} style={inputStyle}>
+          <select value={category} onChange={e => setCategory(e.target.value)} style={inputStyle}>
             <option value="">— pick one —</option>
             {categories.map(c => (
-              <option key={c.id} value={c.id}>{c.name}</option>
+              <option key={c.id} value={c.name}>{c.name}</option>
             ))}
           </select>
         </Field>
-        <Field label="Payment Method">
-          <select value={paymentMethod} onChange={e => setPaymentMethod(e.target.value)} style={inputStyle}>
-            <option value="">— optional —</option>
-            <option value="Cash">Cash</option>
-            <option value="Credit Card">Credit Card</option>
-            <option value="Debit Card">Debit Card</option>
-            <option value="Check">Check</option>
-            <option value="Bank Transfer">Bank Transfer</option>
-            <option value="Other">Other</option>
-          </select>
-        </Field>
-        <Field label="Tax Deductible?" hint="Schedule C business expense">
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center', height: 38 }}>
-            <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
-              <input
-                type="checkbox"
-                checked={taxDeductible}
-                onChange={e => setTaxDeductible(e.target.checked)}
-                style={{ width: 18, height: 18, cursor: 'pointer' }}
-              />
-              <span style={{ fontSize: 14 }}>{taxDeductible ? '✓ Yes, deductible' : 'No'}</span>
-            </label>
-          </div>
-        </Field>
       </div>
 
-      <Field label="Description" hint="Short summary">
-        <input value={description} onChange={e => setDescription(e.target.value)} placeholder="e.g. Printer paper and toner for closings" style={inputStyle} />
-      </Field>
-
-      <Field label="Notes" hint="Anything else (which client, which property, business purpose)">
+      <Field label="Notes" hint="What was bought / business purpose / which client">
         <textarea
           value={notes}
           onChange={e => setNotes(e.target.value)}
@@ -606,9 +653,9 @@ function AddExpenseModal({ categories, expense, onClose, onSaved }) {
         />
       </Field>
 
-      {receiptUrl && (
+      {receiptKey && (
         <div style={{ fontSize: 13, color: '#059669', marginBottom: 12 }}>
-          📎 Receipt attached — <a href={receiptUrl} target="_blank" rel="noopener noreferrer" style={{ color: '#059669' }}>view</a>
+          📎 Receipt attached ({receiptKey.split('/').pop()})
         </div>
       )}
 
@@ -658,17 +705,15 @@ function ReportModal({ categories, onClose }) {
   }, [year]);
 
   const byCategory = report?.by_category || report?.categories || [];
-  const totalDeductible = report?.total_deductible || byCategory.filter(c => c.tax_deductible !== false).reduce((s, c) => s + Number(c.total || 0), 0);
   const totalAll = report?.total || byCategory.reduce((s, c) => s + Number(c.total || 0), 0);
 
   const exportReportCSV = () => {
     if (!byCategory.length) return;
-    const headers = ['Category', 'Count', 'Total', 'Tax Deductible'];
+    const headers = ['Category', 'Count', 'Total'];
     const rows = byCategory.map(c => [
-      c.category_name || c.name || 'Uncategorized',
+      c.category || c.category_name || c.name || 'Uncategorized',
       c.count || 0,
-      Number(c.total || 0).toFixed(2),
-      c.tax_deductible !== false ? 'Yes' : 'No'
+      Number(c.total || 0).toFixed(2)
     ]);
     const csv = [headers, ...rows].map(r => r.map(x => `"${String(x).replace(/"/g, '""')}"`).join(',')).join('\n');
     const blob = new Blob([csv], { type: 'text/csv' });
@@ -710,7 +755,7 @@ function ReportModal({ categories, onClose }) {
         <>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
             <SummaryCard label="Total Expenses" value={fmtCurrency(totalAll)} sub={`${year}`} color="#1f2937" />
-            <SummaryCard label="Tax-Deductible" value={fmtCurrency(totalDeductible)} sub="Schedule C" color="#059669" />
+            <SummaryCard label="Categories" value={String(byCategory.length)} sub="distinct" color="#3b82f6" />
           </div>
 
           <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 10, overflow: 'hidden', marginBottom: 16 }}>
@@ -728,7 +773,7 @@ function ReportModal({ categories, onClose }) {
                 )}
                 {byCategory.map((c, i) => (
                   <tr key={i} style={{ borderTop: '1px solid #f3f4f6' }}>
-                    <Td>{c.category_name || c.name || 'Uncategorized'}</Td>
+                    <Td>{c.category || c.category_name || c.name || 'Uncategorized'}</Td>
                     <Td align="right">{c.count || 0}</Td>
                     <Td align="right" style={{ fontWeight: 600 }}>{fmtCurrency(c.total)}</Td>
                   </tr>
