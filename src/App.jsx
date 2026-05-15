@@ -3643,7 +3643,7 @@ function NewTransactionForm({ onSave, onCancel }) {
 }
 
 // ─── DASHBOARD ────────────────────────────────────────────────
-function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenContactBook, contactCount, onLogout, onOpenTeam, onOpenCompliance, onOpenComplianceDash, onOpenTaskTmpls, onOpenContractIntake, onChangePassword, onReports, onHome, onVendors, onCompanySettings, onAgentProfile, onIntakeLinks, currentUser }) {
+function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenContactBook, onOpenContacts, contactCount, onLogout, onOpenTeam, onOpenCompliance, onOpenComplianceDash, onOpenTaskTmpls, onOpenContractIntake, onChangePassword, onReports, onHome, onVendors, onCompanySettings, onAgentProfile, onIntakeLinks, currentUser }) {
   const [filter, setFilter] = useState("All");
   const [search, setSearch] = useState("");
   const [viewMode, setViewMode] = useState(() => localStorage.getItem("tp_view_mode") || "cards");
@@ -4113,8 +4113,8 @@ function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenCon
           </div>
           <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
             <button onClick={onNew} style={{ background: "#C0392B", border: "none", color: "#fff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>+ New Transaction</button>
-              <button onClick={() => setView(view === "contacts" ? "dashboard" : "contacts")}
-                style={{ background: view === "contacts" ? "#0c4a6e" : "rgba(255,255,255,0.12)",
+              <button onClick={() => onOpenContacts && onOpenContacts()}
+                style={{ background: "rgba(255,255,255,0.12)",
                   border: "1px solid rgba(255,255,255,0.22)", color: "#fff",
                   borderRadius: 8, padding: "7px 14px", cursor: "pointer",
                   fontSize: 12, fontWeight: 700, fontFamily: "inherit",
@@ -4122,7 +4122,7 @@ function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenCon
                 📇 Contacts
               </button>
               <WinTheDayButton token={localStorage.getItem("tp_token") || ""} />
-            <button onClick={onOpenContactBook} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "rgba(255,255,255,0.88)", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 600, fontFamily: "inherit" }}>Contacts{contactCount > 0 ? ` (${contactCount})` : ""}</button>
+            <button onClick={onOpenContactBook} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "rgba(255,255,255,0.88)", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 600, fontFamily: "inherit" }}>📒 Address Book{contactCount > 0 ? ` (${contactCount})` : ""}</button>
             <button onClick={onVendors} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "rgba(255,255,255,0.88)", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 600, fontFamily: "inherit" }}>🏆 Vendors</button>
             <button onClick={onReports} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "rgba(255,255,255,0.88)", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 600, fontFamily: "inherit" }}>📊 Reports</button>
             
@@ -5004,6 +5004,7 @@ function MainApp({ onLogout, currentUser }) {
           onSelect={(id, tab) => { setSelectedId(id); setInitialDetailTab(tab || "overview"); setView("detail"); }}
           onNew={() => setView("new")}
           onOpenContactBook={() => openContactBook(null)}
+          onOpenContacts={() => setView("contacts")}
           contactCount={contacts.length}
           onLogout={onLogout}
           onOpenTeam={() => setShowTeam(true)}
