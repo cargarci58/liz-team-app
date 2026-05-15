@@ -2,6 +2,7 @@ import LoginScreen from "./LoginScreen";
 import BuyerCalculator from "./components/BuyerCalculator";
 import SellerCalculator from "./components/SellerCalculator";
 import UserManagement from "./UserManagement";
+import ContactsPage from "./ContactsPage";
 import ComplianceAdmin from "./ComplianceAdmin";
 import TaskTemplatesAdmin from "./TaskTemplatesAdmin";
 import ContractAutoIntake from "./ContractAutoIntake";
@@ -4112,6 +4113,14 @@ function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenCon
           </div>
           <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
             <button onClick={onNew} style={{ background: "#C0392B", border: "none", color: "#fff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>+ New Transaction</button>
+              <button onClick={() => setView(view === "contacts" ? "dashboard" : "contacts")}
+                style={{ background: view === "contacts" ? "#0c4a6e" : "rgba(255,255,255,0.12)",
+                  border: "1px solid rgba(255,255,255,0.22)", color: "#fff",
+                  borderRadius: 8, padding: "7px 14px", cursor: "pointer",
+                  fontSize: 12, fontWeight: 700, fontFamily: "inherit",
+                  display: "flex", alignItems: "center", gap: 6, marginRight: 8 }}>
+                📇 Contacts
+              </button>
               <WinTheDayButton token={localStorage.getItem("tp_token") || ""} />
             <button onClick={onOpenContactBook} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "rgba(255,255,255,0.88)", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 600, fontFamily: "inherit" }}>Contacts{contactCount > 0 ? ` (${contactCount})` : ""}</button>
             <button onClick={onVendors} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "rgba(255,255,255,0.88)", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 600, fontFamily: "inherit" }}>🏆 Vendors</button>
@@ -5013,6 +5022,9 @@ function MainApp({ onLogout, currentUser }) {
         />
       )}
       {showTeam && <UserManagement onClose={() => setShowTeam(false)} />}
+      {view === "contacts" && (
+        <ContactsPage token={localStorage.getItem("tp_token") || ""} />
+      )}
       {showCompliance && (
         <div style={{ position:"fixed", inset:0, background:"#fff", zIndex:200, overflowY:"auto" }}>
           <div style={{ position:"sticky", top:0, background:"#fff", borderBottom:"1px solid #DDD", padding:"12px 16px", display:"flex", alignItems:"center", gap:12, zIndex:1 }}>
