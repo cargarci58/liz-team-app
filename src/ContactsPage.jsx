@@ -625,10 +625,62 @@ function ContactDetailDrawer({ contact, token, onClose, onEdit, onLogged }) {
             )}
             <div style={{ fontSize: 12, color: "#6b7280", marginTop: 8 }}>
               Last called: <strong>{fmtDate(contact.last_contacted_at)}</strong>
-              {" · "}
-              Next: <strong>{fmtDate(contact.next_call_due_at)}</strong>
             </div>
           </div>
+
+          {/* Next Follow-Up card */}
+          {(() => {
+            if (!contact.next_call_due_at) {
+              return (
+                <div style={{ background: "#f3f4f6", border: "1px dashed #d1d5db", borderRadius: 8, padding: 14, marginBottom: 16, textAlign: "center" }}>
+                  <div style={{ fontSize: 11, color: "#6b7280", fontWeight: 700, textTransform: "uppercase", marginBottom: 4 }}>🔮 Next Follow-Up</div>
+                  <div style={{ fontSize: 13, color: "#6b7280" }}>No follow-up scheduled. Log a call to plan the next one.</div>
+                </div>
+              );
+            }
+
+            const next = new Date(contact.next_call_due_at);
+            const now = new Date();
+            const days = Math.ceil((next - now) / (1000 * 60 * 60 * 24));
+            const overdue = days < 0;
+            const today = days === 0;
+
+            // Derive reason from most recent call outcome
+            const REASONS = {
+              spoke_interested: "Stay top-of-mind with an interested lead",
+              spoke_not_now: "Check back after their wait period",
+              left_vm: "Follow up — you left a voicemail",
+              no_answer: "Try again — last call went unanswered",
+              meeting_set: "Meeting prep / confirmation",
+              wrong_number: "Verify contact info",
+            };
+            const lastCall = callHistory[0];
+            const reason = lastCall ? (REASONS[lastCall.outcome] || "Scheduled follow-up") : "Scheduled follow-up";
+
+            const bg = overdue ? "#fee2e2" : today ? "#fef3c7" : "#dbeafe";
+            const border = overdue ? "#fca5a5" : today ? "#fcd34d" : "#93c5fd";
+            const color = overdue ? "#7f1d1d" : today ? "#78350f" : "#1e3a8a";
+            const statusLabel = overdue ? `⚠️ ${Math.abs(days)}d Overdue` : today ? "📞 Due Today" : `📅 In ${days} day${days === 1 ? "" : "s"}`;
+
+            return (
+              <div style={{ background: bg, border: "1px solid " + border, borderRadius: 8, padding: 14, marginBottom: 16 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                  <div style={{ fontSize: 11, color, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>🔮 Next Follow-Up</div>
+                  <div style={{ fontSize: 11, color, fontWeight: 700 }}>{statusLabel}</div>
+                </div>
+                <div style={{ fontSize: 15, fontWeight: 700, color: "#111", marginBottom: 4 }}>
+                  {next.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
+                </div>
+                <div style={{ fontSize: 13, color: color, marginBottom: 6 }}>{reason}</div>
+                {lastCall && lastCall.notes && (
+                  <div style={{ fontSize: 12, color: "#374151", marginTop: 8, padding: 8, background: "rgba(255,255,255,0.6)", borderRadius: 4 }}>
+                    <strong style={{ fontSize: 10, textTransform: "uppercase", color: "#6b7280" }}>Last call note:</strong><br/>
+                    {lastCall.notes}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
 
           {/* Profile notes */}
           {contact.notes && (
