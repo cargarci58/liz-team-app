@@ -566,6 +566,124 @@ function ImportModal({ token, onClose, onImported }) {
   );
 }
 
+
+// ============================================================
+// CONTACT DETAIL DRAWER — see all info + call history + notes
+// ============================================================
+function ContactDetailDrawer({ contact, token, onClose, onEdit, onLogged }) {
+  const [callHistory, setCallHistory] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  const load = async () => {
+    setLoading(true);
+    try {
+      const r = await fetch(API + "/contacts/" + contact.id + "/calls", {
+        headers: { Authorization: "Bearer " + token }
+      });
+      const data = await r.json();
+      setCallHistory(data.calls || []);
+    } catch (e) { console.error(e); }
+    finally { setLoading(false); }
+  };
+
+  useEffect(() => { load(); }, [contact.id]);
+
+  const name = [contact.first_name, contact.last_name].filter(Boolean).join(" ") || contact.email || contact.phone || "(no name)";
+  const m = TEMP_META[contact.temperature] || TEMP_META.warm;
+
+  const outcomeMeta = {
+    spoke_interested: { label: "✅ Reached - Interested", color: "#16a34a" },
+    spoke_not_now: { label: "💬 Reached - Not Now", color: "#0284c7" },
+    left_vm: { label: "📵 Left Voicemail", color: "#7c3aed" },
+    no_answer: { label: "📞 No Answer", color: "#6b7280" },
+    wrong_number: { label: "❌ Wrong Number", color: "#dc2626" },
+    meeting_set: { label: "📅 Meeting Set", color: "#16a34a" },
+    dnc: { label: "🛑 Do Not Contact", color: "#6b7280" },
+  };
+
+  return (
+    <div style={{ position: "fixed", inset: 0, zIndex: 4200, background: "rgba(0,0,0,0.5)", display: "flex", justifyContent: "flex-end" }} onClick={onClose}>
+      <div onClick={e => e.stopPropagation()} style={{ width: "100%", maxWidth: 520, background: "white", height: "100%", overflowY: "auto" }}>
+        <div style={{ position: "sticky", top: 0, background: m.bg, borderBottom: "1px solid #e5e7eb", padding: "16px 20px", zIndex: 1 }}>
+          <button onClick={onClose} style={{ float: "right", background: "none", border: "none", fontSize: 22, cursor: "pointer", color: "#374151" }}>✕</button>
+          <div style={{ fontSize: 11, color: m.color, fontWeight: 700, textTransform: "uppercase" }}>{m.emoji} {m.label}</div>
+          <div style={{ fontSize: 20, fontWeight: 800, color: "#111", marginTop: 4 }}>{name}</div>
+          <div style={{ fontSize: 12, color: "#6b7280", marginTop: 4 }}>
+            {(contact.contact_type || "").replace("_", " ")}
+            {contact.source && " · from " + contact.source}
+          </div>
+        </div>
+
+        <div style={{ padding: 20 }}>
+          {/* Contact info card */}
+          <div style={{ background: "#f9fafb", border: "1px solid #e5e7eb", borderRadius: 8, padding: 14, marginBottom: 16 }}>
+            <div style={{ fontSize: 11, color: "#6b7280", fontWeight: 700, textTransform: "uppercase", marginBottom: 8 }}>Contact Info</div>
+            {contact.phone && <div style={{ fontSize: 13, marginBottom: 4 }}>📞 <a href={"tel:" + contact.phone} style={{ color: "#0c4a6e" }}>{contact.phone}</a></div>}
+            {contact.email && <div style={{ fontSize: 13, marginBottom: 4 }}>✉️ <a href={"mailto:" + contact.email} style={{ color: "#0c4a6e" }}>{contact.email}</a></div>}
+            {(contact.address || contact.city) && (
+              <div style={{ fontSize: 13, marginBottom: 4 }}>📍 {[contact.address, contact.city, contact.state, contact.zip_code].filter(Boolean).join(", ")}</div>
+            )}
+            <div style={{ fontSize: 12, color: "#6b7280", marginTop: 8 }}>
+              Last called: <strong>{fmtDate(contact.last_contacted_at)}</strong>
+              {" · "}
+              Next: <strong>{fmtDate(contact.next_call_due_at)}</strong>
+            </div>
+          </div>
+
+          {/* Profile notes */}
+          {contact.notes && (
+            <div style={{ background: "#fefce8", border: "1px solid #fde047", borderRadius: 8, padding: 14, marginBottom: 16 }}>
+              <div style={{ fontSize: 11, color: "#854d0e", fontWeight: 700, textTransform: "uppercase", marginBottom: 6 }}>📌 Profile Notes</div>
+              <div style={{ fontSize: 13, color: "#1f2937", whiteSpace: "pre-wrap" }}>{contact.notes}</div>
+            </div>
+          )}
+
+          {/* Action buttons */}
+          <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
+            <LogCallButton contact={contact} token={token} onLogged={() => { load(); onLogged && onLogged(); }} />
+            <button onClick={() => onEdit(contact)} style={btnStyle("#e5e7eb", "#374151")}>✏️ Edit</button>
+          </div>
+
+          {/* Call history */}
+          <div style={{ fontSize: 12, color: "#6b7280", fontWeight: 700, textTransform: "uppercase", marginBottom: 10 }}>
+            📋 Call History ({callHistory.length})
+          </div>
+
+          {loading && <div style={{ fontSize: 13, color: "#6b7280", textAlign: "center", padding: 20 }}>Loading...</div>}
+          {!loading && callHistory.length === 0 && (
+            <div style={{ background: "#f9fafb", border: "1px dashed #d1d5db", borderRadius: 8, padding: 20, textAlign: "center", color: "#6b7280", fontSize: 13 }}>
+              No calls logged yet. Tap <strong>📞 Log Call</strong> above to record your first contact.
+            </div>
+          )}
+          {!loading && callHistory.map(call => {
+            const o = outcomeMeta[call.outcome] || { label: call.outcome, color: "#6b7280" };
+            const by = [call.by_first, call.by_last].filter(Boolean).join(" ");
+            return (
+              <div key={call.id} style={{ background: "white", border: "1px solid #e5e7eb", borderRadius: 8, padding: 14, marginBottom: 10 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: o.color }}>{o.label}</span>
+                  <span style={{ fontSize: 11, color: "#6b7280" }}>
+                    {new Date(call.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                  </span>
+                </div>
+                {call.notes && (
+                  <div style={{ fontSize: 13, color: "#1f2937", marginTop: 6, padding: 8, background: "#f9fafb", borderRadius: 4, whiteSpace: "pre-wrap" }}>
+                    {call.notes}
+                  </div>
+                )}
+                <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 6 }}>
+                  {by && "Logged by " + by + " · "}
+                  {call.next_call_scheduled_at ? "Next call: " + new Date(call.next_call_scheduled_at).toLocaleDateString("en-US") : "No follow-up scheduled"}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ============================================================
 // MAIN PAGE
 // ============================================================
@@ -576,6 +694,7 @@ export default function ContactsPage({ token, onBack }) {
   const [showAdd, setShowAdd] = useState(false);
   const [showImport, setShowImport] = useState(false);
   const [editing, setEditing] = useState(null);
+  const [viewing, setViewing] = useState(null);
 
   const load = async () => {
     setLoading(true);
@@ -664,7 +783,9 @@ export default function ContactsPage({ token, onBack }) {
               return (
                 <tr key={c.id} style={{ borderTop: "1px solid #f3f4f6" }}>
                   <td style={td}>
-                    <div style={{ fontWeight: 600 }}>{name}</div>
+                    <button onClick={() => setViewing(c)} style={{ background: "none", border: "none", padding: 0, fontFamily: "inherit", cursor: "pointer", textAlign: "left", color: "#0c4a6e", fontWeight: 600, fontSize: 13 }}>
+                      {name}
+                    </button>
                     {c.email && <div style={{ fontSize: 11, color: "#6b7280" }}>{c.email}</div>}
                   </td>
                   <td style={td}>{c.phone || "—"}</td>
@@ -691,6 +812,7 @@ export default function ContactsPage({ token, onBack }) {
 
       {showAdd && <ContactModal token={token} onClose={() => setShowAdd(false)} onSaved={() => load()} />}
       {editing && <ContactModal contact={editing} token={token} onClose={() => setEditing(null)} onSaved={() => load()} />}
+      {viewing && <ContactDetailDrawer contact={viewing} token={token} onClose={() => setViewing(null)} onEdit={(c) => { setViewing(null); setEditing(c); }} onLogged={load} />}
       {showImport && <ImportModal token={token} onClose={() => setShowImport(false)} onImported={(data) => {
         // Reset all filters so newly imported contacts show
         setFilter({ temperature: "", type: "", due: "", search: "" });
