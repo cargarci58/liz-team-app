@@ -107,6 +107,85 @@ function computeComp(subject, comp) {
   return { basePricePerSqft, adjustedValue, adjustments };
 }
 
+
+// ============================================================
+// UPLOAD COMP REPORTS — AI extracts data from broker synopses
+// ============================================================
+function UploadCompsButton({ transactionId, token, onExtracted, disabled }) {
+  const [uploading, setUploading] = useState(false);
+  const [step, setStep] = useState(null); // "uploading" | "extracting" | null
+  const [progress, setProgress] = useState({ done: 0, total: 0 });
+
+  const handleFiles = async (files) => {
+    if (!files || files.length === 0) return;
+    const fileList = Array.from(files).slice(0, 6);
+    setUploading(true);
+    setStep("uploading");
+    setProgress({ done: 0, total: fileList.length });
+
+    const API = "https://liz-team-server-api-production.up.railway.app";
+    const fileKeys = [];
+
+    try {
+      for (let i = 0; i < fileList.length; i++) {
+        const f = fileList[i];
+        // 1. Get signed upload URL
+        const urlRes = await fetch(API + "/documents/upload-url", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
+          body: JSON.stringify({
+            transactionId,
+            fileName: f.name,
+            fileType: f.type || (f.name.toLowerCase().endsWith(".pdf") ? "application/pdf" : "image/jpeg"),
+            category: "CMA Comp Source",
+            isVisibleToClient: false,
+          }),
+        });
+        if (!urlRes.ok) throw new Error("Failed to get upload URL");
+        const { uploadUrl, key } = await urlRes.json();
+
+        // 2. Upload directly to R2
+        await fetch(uploadUrl, { method: "PUT", body: f, headers: { "Content-Type": f.type || "application/pdf" } });
+        fileKeys.push(key);
+        setProgress({ done: i + 1, total: fileList.length });
+      }
+
+      // 3. Trigger extraction
+      setStep("extracting");
+      const extractRes = await fetch(API + "/transactions/" + transactionId + "/extract-comps", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
+        body: JSON.stringify({ fileKeys }),
+      });
+      const data = await extractRes.json();
+      if (!extractRes.ok) throw new Error(data.error || "Extraction failed");
+
+      onExtracted(data.comps || []);
+    } catch (err) {
+      alert("⚠️ " + err.message);
+    } finally {
+      setUploading(false);
+      setStep(null);
+    }
+  };
+
+  return (
+    <div>
+      <label style={{ display: "inline-block", padding: "10px 18px", background: disabled ? "#9ca3af" : "#0c4a6e", color: "white", borderRadius: 6, fontWeight: 700, fontSize: 13, cursor: disabled || uploading ? "wait" : "pointer", fontFamily: "inherit" }}>
+        {uploading
+          ? (step === "uploading" ? `Uploading ${progress.done}/${progress.total}...` : "🤖 AI extracting...")
+          : "✨ Upload Broker Synopses (AI extracts comps)"}
+        <input type="file" accept=".pdf,image/*" multiple disabled={uploading || disabled}
+          onChange={e => { handleFiles(e.target.files); e.target.value = ""; }}
+          style={{ display: "none" }} />
+      </label>
+      <div style={{ fontSize: 11, color: "#6b7280", marginTop: 6 }}>
+        Upload up to 6 MLS broker synopses, PDFs, or property screenshots. AI auto-fills the comp slots — you review and tweak.
+      </div>
+    </div>
+  );
+}
+
 // Subject Property tab
 function SubjectTab({ subject, setSubject }) {
   const update = (k, v) => setSubject(s => ({ ...s, [k]: v }));
@@ -205,7 +284,10 @@ function CompCard({ comp, idx, onChange, onRemove, subjectUpgrades }) {
   return (
     <div style={{ border: "1px solid #d1d5db", borderRadius: 8, padding: 14, marginBottom: 12, background: "white" }}>
       <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}>
-        <div style={{ fontWeight: 700, color: "#1f2937" }}>Comp #{idx + 1}</div>
+        <div style={{ fontWeight: 700, color: "#1f2937" }}>
+          Comp #{idx + 1}
+          {comp._aiExtracted && <span style={{ marginLeft: 8, fontSize: 10, fontWeight: 700, color: "#7c3aed", background: "#ede9fe", padding: "2px 6px", borderRadius: 10 }}>✨ AI</span>}
+        </div>
         <button onClick={onRemove} style={{ background: "none", border: "none", color: "#9ca3af", cursor: "pointer", fontSize: 18 }}>✕</button>
       </div>
 
@@ -371,8 +453,35 @@ export default function CMACalculator({ transactionId, token } = {}) {
 
       {tab === "comps" && (
         <div>
+          {transactionId && (
+            <div style={{ background: "#eff6ff", border: "1px solid #93c5fd", borderRadius: 8, padding: 16, marginBottom: 16 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "#1e3a8a", marginBottom: 8 }}>✨ AI Comp Extraction</div>
+              <UploadCompsButton transactionId={transactionId} token={token}
+                onExtracted={(extracted) => {
+                  // Merge extracted comps into state — replace or append
+                  if (extracted.length === 0) { alert("No comps extracted. Try clearer files."); return; }
+                  const merged = extracted.map(e => ({
+                    address: e.address || "",
+                    soldPrice: e.soldPrice || 0,
+                    soldDate: e.soldDate || "",
+                    beds: e.beds || 0,
+                    baths: e.baths || 0,
+                    sqft: e.sqft || 0,
+                    lotSqft: e.lotSqft || 0,
+                    yearBuilt: e.yearBuilt || 0,
+                    dom: e.dom || 0,
+                    upgrades: e.upgrades || {},
+                    notes: e.notes || "",
+                    _aiExtracted: true,
+                  }));
+                  // Replace existing comps with extracted (agent can add manual ones after)
+                  setComps(merged.slice(0, 6));
+                  alert("✅ Extracted " + merged.length + " comp" + (merged.length === 1 ? "" : "s") + ". Review each one — fields can be adjusted before generating the report.");
+                }} />
+            </div>
+          )}
           <div style={{ background: "#fef3c7", border: "1px solid #fcd34d", borderRadius: 8, padding: 12, marginBottom: 16, fontSize: 13, color: "#78350f" }}>
-            💡 <strong>Pull comps from MLS:</strong> 3-6 recently sold homes (within last 6 months, ½ mile, similar specs). Enter their sold price + specs. The system auto-adjusts for differences from your subject.
+            💡 <strong>Or enter manually:</strong> 3-6 recently sold homes (within last 6 months, ½ mile, similar specs). The system auto-adjusts for differences from your subject.
           </div>
           {comps.map((c, i) => (
             <CompCard key={i} comp={c} idx={i}
