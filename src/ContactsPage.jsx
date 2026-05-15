@@ -736,6 +736,153 @@ function ContactDetailDrawer({ contact, token, onClose, onEdit, onLogged }) {
   );
 }
 
+
+// ============================================================
+// BULK SCHEDULE MODAL — distribute calls across days
+// ============================================================
+function BulkScheduleModal({ token, contactCount, onClose, onScheduled }) {
+  const [step, setStep] = useState(1); // 1: configure, 2: confirm, 3: result
+  const [filter, setFilter] = useState({ temperature: "", type: "", hasNoFollowUp: true });
+  const [startDate, setStartDate] = useState(new Date().toISOString().split("T")[0]);
+  const [callsPerDay, setCallsPerDay] = useState(20);
+  const [skipWeekends, setSkipWeekends] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [result, setResult] = useState(null);
+
+  const submit = async () => {
+    setSubmitting(true);
+    try {
+      const r = await fetch(API + "/contacts/bulk-schedule", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
+        body: JSON.stringify({ filter, startDate, callsPerDay, skipWeekends }),
+      });
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.error || "Failed");
+      setResult(data);
+      setStep(3);
+      onScheduled && onScheduled(data);
+    } catch (e) { alert("Failed: " + e.message); }
+    finally { setSubmitting(false); }
+  };
+
+  return (
+    <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 4100, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
+      <div onClick={e => e.stopPropagation()} style={{ background: "white", borderRadius: 12, maxWidth: 540, width: "100%", maxHeight: "90vh", overflowY: "auto", padding: 24 }}>
+        <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 4 }}>📅 Schedule Calls</div>
+        <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 16 }}>
+          Distribute your contacts into a daily call plan. The system staggers contacts across days so you have a manageable list every morning.
+        </div>
+
+        {step === 1 && (
+          <div>
+            <div style={{ background: "#fef3c7", border: "1px solid #fcd34d", borderRadius: 8, padding: 12, marginBottom: 16, fontSize: 12, color: "#78350f" }}>
+              💡 <strong>How this works:</strong> You have {contactCount} contacts. The app will assign each one a "next call" date, spreading them across business days. Tomorrow's calls show up in your Win-the-Day widget.
+            </div>
+
+            <Field label="Which contacts?" hint="Choose what to schedule">
+              <select value={filter.hasNoFollowUp ? "no_follow" : "all"} onChange={e => setFilter(f => ({ ...f, hasNoFollowUp: e.target.value === "no_follow" }))} style={inputStyle}>
+                <option value="no_follow">Only contacts without a next-call date (recommended)</option>
+                <option value="all">All matching contacts (overrides existing schedule)</option>
+              </select>
+            </Field>
+
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              <Field label="Temperature filter">
+                <select value={filter.temperature} onChange={e => setFilter(f => ({ ...f, temperature: e.target.value }))} style={inputStyle}>
+                  <option value="">All temperatures</option>
+                  {Object.entries(TEMP_META).filter(([k]) => k !== "dnc").map(([k, m]) => <option key={k} value={k}>{m.emoji} {m.label}</option>)}
+                </select>
+              </Field>
+              <Field label="Type filter">
+                <select value={filter.type} onChange={e => setFilter(f => ({ ...f, type: e.target.value }))} style={inputStyle}>
+                  <option value="">All types</option>
+                  {TYPE_OPTIONS.map(t => <option key={t} value={t}>{t.replace("_", " ")}</option>)}
+                </select>
+              </Field>
+            </div>
+
+            <Field label="Start on" hint="First day of your call plan">
+              <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} style={inputStyle} />
+            </Field>
+
+            <Field label="How many calls per day?" hint="Realistic: 10-25 calls/day. Don't overcommit — you'll burn out.">
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 8 }}>
+                {[5, 10, 20, 50].map(n => (
+                  <button key={n} onClick={() => setCallsPerDay(n)} type="button"
+                    style={{ ...btnStyle(callsPerDay === n ? "#0c4a6e" : "#f3f4f6", callsPerDay === n ? "white" : "#374151"), padding: "6px 12px", fontSize: 12 }}>
+                    {n}/day
+                  </button>
+                ))}
+              </div>
+              <input type="number" min="1" max="200" value={callsPerDay}
+                onChange={e => setCallsPerDay(Math.max(1, Math.min(200, parseInt(e.target.value) || 1)))}
+                style={{ ...inputStyle, width: 120 }} />
+            </Field>
+
+            <Field label="Skip weekends?">
+              <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", fontSize: 13 }}>
+                <input type="checkbox" checked={skipWeekends} onChange={e => setSkipWeekends(e.target.checked)} style={{ width: 16, height: 16 }} />
+                Skip Saturdays and Sundays (recommended)
+              </label>
+            </Field>
+
+            <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 16 }}>
+              <button onClick={onClose} style={btnStyle("#e5e7eb", "#374151")}>Cancel</button>
+              <button onClick={() => setStep(2)} style={btnStyle("#0c4a6e", "white")}>Preview →</button>
+            </div>
+          </div>
+        )}
+
+        {step === 2 && (
+          <div>
+            <div style={{ background: "#dbeafe", border: "1px solid #93c5fd", borderRadius: 8, padding: 14, marginBottom: 16, fontSize: 13, color: "#1e3a8a" }}>
+              <strong>📋 Review your plan:</strong>
+              <ul style={{ margin: "8px 0 0 0", paddingLeft: 18, lineHeight: 1.7 }}>
+                <li>Filter: <strong>{filter.hasNoFollowUp ? "Only contacts without a follow-up" : "All matching contacts"}</strong>{filter.temperature ? " · " + (TEMP_META[filter.temperature] || {}).label : ""}{filter.type ? " · " + filter.type : ""}</li>
+                <li>Start: <strong>{new Date(startDate + "T09:00:00").toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}</strong></li>
+                <li>Pace: <strong>{callsPerDay} calls/day</strong></li>
+                <li>Weekends: <strong>{skipWeekends ? "Skipped" : "Included"}</strong></li>
+              </ul>
+            </div>
+
+            <div style={{ background: "#fffbeb", border: "1px solid #fcd34d", borderRadius: 8, padding: 12, fontSize: 12, color: "#78350f", marginBottom: 16 }}>
+              ⚠️ This will assign a "next call" date to each contact. {filter.hasNoFollowUp ? "Only contacts without a schedule will be affected." : "Existing schedules will be overwritten."}
+            </div>
+
+            <div style={{ display: "flex", gap: 8, justifyContent: "space-between" }}>
+              <button onClick={() => setStep(1)} style={btnStyle("#e5e7eb", "#374151")}>← Back</button>
+              <button onClick={submit} disabled={submitting} style={btnStyle("#0c4a6e", "white")}>
+                {submitting ? "Scheduling..." : "✓ Confirm Schedule"}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {step === 3 && result && (
+          <div>
+            <div style={{ background: "#dcfce7", border: "1px solid #86efac", borderRadius: 8, padding: 16, marginBottom: 16 }}>
+              <div style={{ fontWeight: 800, fontSize: 16, color: "#14532d", marginBottom: 8 }}>✅ Calls Scheduled</div>
+              <div style={{ fontSize: 13, color: "#14532d", lineHeight: 1.7 }}>
+                Scheduled: <strong>{result.scheduled} calls</strong><br/>
+                First call: <strong>{new Date(result.first_call_date).toLocaleDateString("en-US", { month: "long", day: "numeric" })}</strong><br/>
+                Last call: <strong>{new Date(result.last_call_date).toLocaleDateString("en-US", { month: "long", day: "numeric" })}</strong><br/>
+                Span: <strong>{result.days_span} business days</strong> at {result.calls_per_day}/day
+              </div>
+              <div style={{ marginTop: 12, fontSize: 12, color: "#14532d", fontStyle: "italic" }}>
+                💡 Your daily call list will appear in the ⚡ Win The Day widget on the dashboard each morning.
+              </div>
+            </div>
+            <div style={{ display: "flex", justifyContent: "flex-end" }}>
+              <button onClick={onClose} style={btnStyle("#0c4a6e", "white")}>Done</button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ============================================================
 // MAIN PAGE
 // ============================================================
@@ -745,6 +892,7 @@ export default function ContactsPage({ token, onBack }) {
   const [filter, setFilter] = useState({ temperature: "", type: "", due: "", search: "" });
   const [showAdd, setShowAdd] = useState(false);
   const [showImport, setShowImport] = useState(false);
+  const [showBulkSchedule, setShowBulkSchedule] = useState(false);
   const [editing, setEditing] = useState(null);
   const [viewing, setViewing] = useState(null);
 
@@ -779,7 +927,8 @@ export default function ContactsPage({ token, onBack }) {
           <div style={{ fontSize: 26, fontWeight: 800 }}>📇 Contacts</div>
           <div style={{ fontSize: 13, color: "#6b7280" }}>Your private lead list. {contacts.length} contact{contacts.length === 1 ? "" : "s"}.</div>
         </div>
-        <div style={{ display: "flex", gap: 8 }}>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <button onClick={() => setShowBulkSchedule(true)} style={btnStyle("#7c3aed", "white")}>📅 Schedule Calls</button>
           <button onClick={() => setShowImport(true)} style={btnStyle("#e5e7eb", "#374151")}>📥 Import CSV</button>
           <button onClick={() => setShowAdd(true)} style={btnStyle("#0c4a6e", "white")}>+ Add Contact</button>
         </div>
@@ -865,6 +1014,7 @@ export default function ContactsPage({ token, onBack }) {
       {showAdd && <ContactModal token={token} onClose={() => setShowAdd(false)} onSaved={() => load()} />}
       {editing && <ContactModal contact={editing} token={token} onClose={() => setEditing(null)} onSaved={() => load()} />}
       {viewing && <ContactDetailDrawer contact={viewing} token={token} onClose={() => setViewing(null)} onEdit={(c) => { setViewing(null); setEditing(c); }} onLogged={load} />}
+      {showBulkSchedule && <BulkScheduleModal token={token} contactCount={contacts.length} onClose={() => setShowBulkSchedule(false)} onScheduled={() => load()} />}
       {showImport && <ImportModal token={token} onClose={() => setShowImport(false)} onImported={(data) => {
         // Reset all filters so newly imported contacts show
         setFilter({ temperature: "", type: "", due: "", search: "" });
