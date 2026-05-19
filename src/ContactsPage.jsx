@@ -83,7 +83,7 @@ function Field({ label, hint, children }) {
 function LogCallModal({ contact, token, onClose, onLogged }) {
   const [step, setStep] = useState(1);
   const [outcome, setOutcome] = useState(null);
-  const [followUpDays, setFollowUpDays] = useState(7);
+  const [followUpDaysList, setFollowUpDaysList] = useState([7]);
   const [customDate, setCustomDate] = useState("");
   const [noFollowUp, setNoFollowUp] = useState(false);
   const [notes, setNotes] = useState("");
@@ -92,11 +92,13 @@ function LogCallModal({ contact, token, onClose, onLogged }) {
 
   const PRESETS = [
     { label: "Tomorrow",    days: 1 },
+    { label: "In 2 days",   days: 2 },
     { label: "In 3 days",   days: 3 },
     { label: "Next week",   days: 7 },
     { label: "In 2 weeks",  days: 14 },
     { label: "In 1 month",  days: 30 },
     { label: "In 3 months", days: 90 },
+    { label: "In 6 months", days: 180 },
   ];
 
   const pickOutcome = (o) => {
@@ -105,7 +107,7 @@ function LogCallModal({ contact, token, onClose, onLogged }) {
       setNoFollowUp(true);
     } else {
       const days = (CADENCE[newTemp] && CADENCE[newTemp][o.id]) || 7;
-      setFollowUpDays(days);
+      setFollowUpDaysList([days]);
       setNoFollowUp(false);
     }
     setStep(2);
@@ -115,20 +117,24 @@ function LogCallModal({ contact, token, onClose, onLogged }) {
   useEffect(() => {
     if (!outcome || customDate || noFollowUp) return;
     const days = (CADENCE[newTemp] && CADENCE[newTemp][outcome.id]) || 7;
-    setFollowUpDays(days);
+    setFollowUpDaysList([days]);
   }, [newTemp]);
 
-  const computedNextDate = () => {
-    if (noFollowUp) return null;
-    if (customDate) return new Date(customDate);
-    return computeDate(followUpDays);
+  const computedNextDates = () => {
+    if (noFollowUp) return [];
+    const dates = followUpDaysList.map(d => computeDate(d));
+    if (customDate) dates.push(new Date(customDate));
+    const seen = new Set();
+    return dates
+      .filter(d => d && !isNaN(d))
+      .filter(d => { const k = d.toISOString().slice(0,10); if (seen.has(k)) return false; seen.add(k); return true; })
+      .sort((a, b) => a - b);
   };
 
   const save = async () => {
     if (!outcome) return;
     setSaving(true);
     try {
-      const next = computedNextDate();
       // Temperature update first if changed
       if (newTemp !== contact.temperature) {
         await fetch(API + "/contacts/" + contact.id, {
@@ -138,8 +144,12 @@ function LogCallModal({ contact, token, onClose, onLogged }) {
         });
       }
       const body = { outcome: outcome.id, notes: notes || null };
-      if (noFollowUp) body.overrideNextCallAt = null;
-      else if (next) body.overrideNextCallAt = next.toISOString();
+      if (noFollowUp) {
+        body.followUps = [];
+      } else {
+        const dates = computedNextDates();
+        body.followUps = dates.map(d => d.toISOString());
+      }
 
       const r = await fetch(API + "/contacts/" + contact.id + "/log-call", {
         method: "POST",
@@ -188,15 +198,18 @@ function LogCallModal({ contact, token, onClose, onLogged }) {
             {/* What's next — preset chips + custom */}
             <div style={{ marginBottom: 16 }}>
               <div style={{ fontSize: 12, fontWeight: 700, color: "#374151", marginBottom: 8 }}>
-                🔮 When should I call them next?
+                🔮 When should I call them next? (tap multiple — each creates a separate reminder)
               </div>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 8 }}>
                 {PRESETS.map(p => {
-                  const active = !noFollowUp && !customDate && followUpDays === p.days;
+                  const active = !noFollowUp && followUpDaysList.includes(p.days);
                   return (
-                    <button key={p.days} onClick={() => { setFollowUpDays(p.days); setNoFollowUp(false); setCustomDate(""); }}
+                    <button key={p.days} onClick={() => {
+                      setNoFollowUp(false);
+                      setFollowUpDaysList(prev => prev.includes(p.days) ? prev.filter(d => d !== p.days) : [...prev, p.days]);
+                    }}
                       style={{ ...btnStyle(active ? "#0c4a6e" : "#f3f4f6", active ? "white" : "#374151"), padding: "6px 12px", fontSize: 12 }}>
-                      {p.label}
+                      {active ? "✓ " : ""}{p.label}
                     </button>
                   );
                 })}
@@ -213,9 +226,22 @@ function LogCallModal({ contact, token, onClose, onLogged }) {
                   <span style={{ fontSize: 11, color: "#6b7280" }}>or pick a custom date</span>
                 </div>
               )}
-              {!noFollowUp && (
+              {!noFollowUp && computedNextDates().length > 0 && (
                 <div style={{ marginTop: 10, padding: 10, background: "#eff6ff", border: "1px solid #93c5fd", borderRadius: 6, fontSize: 13, color: "#1e3a8a" }}>
-                  <strong>Next call scheduled:</strong> {fmtLong(computedNextDate())}
+                  <div style={{ fontWeight: 700, marginBottom: 4 }}>
+                    📅 {computedNextDates().length === 1 ? "Reminder scheduled:" : computedNextDates().length + " reminders scheduled:"}
+                  </div>
+                  {computedNextDates().map((d, i) => (
+                    <div key={i} style={{ fontSize: 12, paddingLeft: 8 }}>• {fmtLong(d)}</div>
+                  ))}
+                  <div style={{ fontSize: 11, color: "#3730a3", marginTop: 6, fontStyle: "italic" }}>
+                    Each reminder will appear in your daily call list on its scheduled day.
+                  </div>
+                </div>
+              )}
+              {!noFollowUp && computedNextDates().length === 0 && (
+                <div style={{ marginTop: 10, padding: 10, background: "#fef3c7", border: "1px solid #fcd34d", borderRadius: 6, fontSize: 12, color: "#92400e" }}>
+                  ⚠️ Pick at least one follow-up interval above, or choose "No follow-up".
                 </div>
               )}
               {noFollowUp && (
