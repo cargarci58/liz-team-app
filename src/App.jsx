@@ -1960,7 +1960,7 @@ function BuyerIntakeChecklist({ tx, token, onContactLogged }) {
         </div>
       </div>
       <div style={{ background: "#fecaca", height: 6, borderRadius: 3, overflow: "hidden", marginBottom: 16 }}>
-        <div style={{ background: "#1e8449", height: "100%", width: (doneCount / 3 * 100) + "%", transition: "width 0.3s" }} />
+        <div style={{ background: "#1e8449", height: "100%", width: (doneCount / 5 * 100) + "%", transition: "width 0.3s" }} />
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         {steps.map((step) => {
@@ -2096,7 +2096,7 @@ function ContractReviewChecklist({ tx, token, onCleared, setActiveTab, openEditT
         </div>
       </div>
       <div style={{ background: "#bfdbfe", height: 6, borderRadius: 3, overflow: "hidden", marginBottom: 16 }}>
-        <div style={{ background: "#1e8449", height: "100%", width: (doneCount / 3 * 100) + "%", transition: "width 0.3s" }} />
+        <div style={{ background: "#1e8449", height: "100%", width: (doneCount / 5 * 100) + "%", transition: "width 0.3s" }} />
       </div>
 
       {tx.additionalTerms && (
