@@ -3425,11 +3425,18 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
           <Input label="Notes" value={taskForm.notes} onChange={v => setTaskForm(f => ({ ...f, notes: v }))} type="textarea" />
           <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
             <Btn variant="ghost" onClick={() => setShowAddTask(false)}>Cancel</Btn>
-            <Btn onClick={() => {
+            <Btn onClick={async () => {
               if (taskForm.name) {
                 update({ tasks: [...tx.tasks, { ...taskForm, id: genId(), status: "Pending" }] });
                 setTaskForm({ name: "", category: "Contract", assignTo: "", dueDate: "", notes: "", assignedPartyId: "", assignedPartyEmail: "", assignedPartyName: "", assignedPartyPhone: "" });
                 setShowAddTask(false);
+                // Regenerate daily tasks for this tx so the new task shows on Win-the-Day immediately
+                try {
+                  await fetch(API + "/transactions/" + tx.id + "/regenerate-daily-tasks", {
+                    method: "POST",
+                    headers: { Authorization: "Bearer " + token }
+                  });
+                } catch (e) { /* non-fatal — cron will catch it tomorrow */ }
               }
             }}>Add Task</Btn>
           </div>
