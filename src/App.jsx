@@ -1880,8 +1880,8 @@ function MilestonesTab({ tx, token }) {
     <div style={{ padding: 16 }}>
       {(() => {
         const complianceArr = Object.values(compliance);
-        const totalRequired = complianceArr.filter(c => c.documentRequired).length;
-        const uploaded = complianceArr.filter(c => c.documentRequired && c.documentUploaded).length;
+        const totalRequired = complianceArr.filter(c => c.documentRequired && c.status !== "Waived").length;
+        const uploaded = complianceArr.filter(c => c.documentRequired && c.documentUploaded && c.status !== "Waived").length;
         const completedWithoutDoc = complianceArr.filter(c =>
           c.documentRequired && !c.documentUploaded && c.status === "Completed"
         ).length;
