@@ -4605,7 +4605,7 @@ function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenCon
           </div>
         </div>
         <div data-stats-bar="" style={{ display: "flex", marginTop: 16, borderTop: "1px solid rgba(255,255,255,0.1)", overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
-          {(() => { const s = dashStats || stats; return [["Active Listings", s.active, COLORS.gold, null], ["Under Contract", s.underContract, "#93C5FD", null], ["Closing This Month", s.closingSoon, s.closingSoon > 0 ? "#FDE68A" : "rgba(255,255,255,0.4)", null], ["Volume", `$${((s.totalVolume || 0) / 1000000).toFixed(2)}M`, COLORS.gold, null], ["Pending Commission", `$${Math.round(s.pendingCommissionGross || 0).toLocaleString()}`, "#FDBA74", null], ["Closed", s.closed, "#6EE7B7", null], ["Closed Commission", s.totalCommission > 0 ? `$${Math.round(s.totalCommission).toLocaleString()}` : "$0", "#6EE7B7", null]]; })().map(([label, value, color, onClick]) => (
+          {(() => { const s = dashStats || stats; return [["Active Listings", s.active, COLORS.gold, () => setFilter("Active")], ["Under Contract", s.underContract, "#93C5FD", () => setFilter("Under Contract")], ["Closing This Month", s.closingSoon, s.closingSoon > 0 ? "#FDE68A" : "rgba(255,255,255,0.4)", null], ["Closed", s.closed, "#6EE7B7", () => setFilter("Closed")], ["Volume", `$${((s.totalVolume || 0) / 1000000).toFixed(2)}M`, COLORS.gold, null], ["Pending Commission", `$${Math.round(s.pendingCommissionGross || 0).toLocaleString()}`, "#FDBA74", null], ["Closed Commission", s.totalCommission > 0 ? `$${Math.round(s.totalCommission).toLocaleString()}` : "$0", "#6EE7B7", null]]; })().map(([label, value, color, onClick]) => (
             <div key={label} onClick={onClick} style={{ padding: "12px 20px", flex: 1, cursor: onClick ? "pointer" : "default" }}>
               <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>{label}{onClick && " ↗"}</div>
               <div style={{ color, fontSize: 22, fontWeight: 800, marginTop: 2 }}>{value}</div>
@@ -4637,12 +4637,12 @@ function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenCon
           style={{ padding: "7px 14px", borderRadius: 8, border: `1px solid ${COLORS.border}`,
             background: "#fff", color: "#111", fontSize: 13, fontWeight: 600,
             cursor: "pointer", fontFamily: "inherit", minWidth: 160 }}>
-          <option value="All">All Active</option>
-          <option value="Active">Active Only</option>
-          <option value="Under Contract">Under Contract</option>
-          <option value="Closed">Closed Only</option>
-          <option value="On Hold">On Hold</option>
-          <option value="Cancelled">Cancelled</option>
+          <option value="All">📂 All Active (default)</option>
+          <option value="Active">🏷️ Active Listings Only</option>
+          <option value="Under Contract">📝 Under Contract Only</option>
+          <option value="Closed">✅ Closed Only</option>
+          <option value="On Hold">⏸️ On Hold</option>
+          <option value="Cancelled">❌ Cancelled</option>
         </select>
         <div style={{ marginLeft: "auto", display: "flex", gap: 6, position: "relative" }}>
           <button onClick={() => setShowViewsMenu(v => !v)} title="My saved views" style={{ padding: "7px 12px", borderRadius: 8, border: `1px solid ${COLORS.border}`, background: "#fff", color: COLORS.text, fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 6 }}>📋 Views {savedViews.length > 0 && <span style={{ background: COLORS.bg, color: COLORS.muted, borderRadius: 10, padding: "1px 7px", fontSize: 11, fontWeight: 700 }}>{savedViews.length}</span>} <span style={{ fontSize: 9 }}>▾</span></button>
