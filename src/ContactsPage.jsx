@@ -18,6 +18,7 @@ const OUTCOMES = [
   { id: "spoke_interested", label: "✅ Reached - Interested",  short: "Interested" },
   { id: "spoke_not_now",    label: "💬 Reached - Not Now",     short: "Not now" },
   { id: "left_vm",          label: "📵 Left Voicemail",        short: "Left VM" },
+  { id: "text_sent",        label: "📨 Text Sent",              short: "Text sent" },
   { id: "no_answer",        label: "📞 No Answer",              short: "No answer" },
   { id: "wrong_number",     label: "❌ Wrong Number",           short: "Wrong #" },
   { id: "meeting_set",      label: "📅 Meeting Set",            short: "Meeting" },
@@ -26,11 +27,11 @@ const OUTCOMES = [
 
 // Mirror of backend cadence defaults (system defaults). Used for live preview.
 const CADENCE = {
-  hot:    { spoke_interested: 2, spoke_not_now: 14, left_vm: 1, no_answer: 1, meeting_set: 7 },
-  warm:   { spoke_interested: 7, spoke_not_now: 30, left_vm: 3, no_answer: 3, meeting_set: 14 },
-  cold:   { spoke_interested: 14, spoke_not_now: 90, left_vm: 14, no_answer: 14, meeting_set: 21 },
-  sphere: { spoke_interested: 30, spoke_not_now: 90, left_vm: 14, no_answer: 14, meeting_set: 30 },
-  past:   { spoke_interested: 60, spoke_not_now: 180, left_vm: 30, no_answer: 30, meeting_set: 90 },
+  hot:    { spoke_interested: 2, spoke_not_now: 14, left_vm: 1, text_sent: 2, no_answer: 1, meeting_set: 7 },
+  warm:   { spoke_interested: 7, spoke_not_now: 30, left_vm: 3, text_sent: 3, no_answer: 3, meeting_set: 14 },
+  cold:   { spoke_interested: 14, spoke_not_now: 90, left_vm: 14, text_sent: 14, no_answer: 14, meeting_set: 21 },
+  sphere: { spoke_interested: 30, spoke_not_now: 90, left_vm: 14, text_sent: 14, no_answer: 14, meeting_set: 30 },
+  past:   { spoke_interested: 60, spoke_not_now: 180, left_vm: 30, text_sent: 30, no_answer: 30, meeting_set: 90 },
 };
 
 function fmtDate(d) {
