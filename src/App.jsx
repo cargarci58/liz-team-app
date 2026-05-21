@@ -1802,11 +1802,8 @@ function MilestonesTab({ tx, token }) {
       });
       const d = await r.json();
       if (!r.ok) { alert("Could not waive: " + (d.error || "unknown error")); setWaiving(false); return; }
-      setMilestones(prev => prev.map(m =>
-        m.id === waiveModalFor.id
-          ? { ...m, status: "Waived", waived_reason: waiveReason, waived_justification: waiveJustification.trim() }
-          : m
-      ));
+      await fetchMilestones();
+      await fetchCompliance();
       setWaiveModalFor(null);
       setWaiveReason("");
       setWaiveJustification("");
@@ -1971,7 +1968,7 @@ function MilestonesTab({ tx, token }) {
                     {isCompleted && m.completed_by_name && (
                       <div style={{ fontSize: 11, color: "#555", marginTop: 2 }}>by {m.completed_by_name}</div>
                     )}
-                    {isCompleted && compliance[m.id]?.documentRequired && !compliance[m.id]?.documentUploaded && (
+                    {isClosed && !isWaived && compliance[m.id]?.documentRequired && !compliance[m.id]?.documentUploaded && (
                       <div style={{ background: "#FEE2E2", border: "1px solid #FCA5A5", borderRadius: 6, padding: 8, marginTop: 6, fontSize: 11, color: "#991B1B" }}>
                         ⚠️ Compliance gap: marked complete but missing {compliance[m.id].requiredDocType}
                       </div>
@@ -2008,7 +2005,7 @@ function MilestonesTab({ tx, token }) {
                     )}
                   </div>
                 )}
-                {isCompleted && compliance[m.id]?.documentRequired && !compliance[m.id]?.documentUploaded && (
+                {isClosed && !isWaived && compliance[m.id]?.documentRequired && !compliance[m.id]?.documentUploaded && (
                   <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
                     <button onClick={() => handleUploadClick(m.id)} disabled={uploadingFor === m.id}
                       style={{ flex: 1, padding: "10px 0", borderRadius: 8, border: "1.5px solid #C0392B",
