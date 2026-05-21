@@ -1962,7 +1962,7 @@ function MilestonesTab({ tx, token }) {
                          "Due in " + days + "d"} · {m.due_date}
                       </div>
                     )}
-                    {m.requires_document && !m.document_uploaded && !isCompleted && (
+                    {m.requires_document && !m.document_uploaded && !isClosed && m.status !== "Waived" && (
                       <div style={{ fontSize: 11, color: "#B7770D", marginTop: 2 }}>📎 Document required</div>
                     )}
                     {isCompleted && m.completed_by_name && (
@@ -1975,7 +1975,7 @@ function MilestonesTab({ tx, token }) {
                     )}
                   </div>
                 </div>
-                {compliance[m.id]?.documentRequired && !isCompleted && (
+                {compliance[m.id]?.documentRequired && !isClosed && compliance[m.id]?.status !== "Waived" && (
                   <div style={{ background: "#FFFBEB", border: "1px solid #FCD34D", borderRadius: 8, padding: 12, marginTop: 10, fontSize: 12, lineHeight: 1.5 }}>
                     <div style={{ fontWeight: 700, color: "#92400E", marginBottom: 4, fontSize: 13 }}>
                       📎 Required: {compliance[m.id].requiredDocType}
