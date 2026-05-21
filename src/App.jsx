@@ -1817,6 +1817,7 @@ function MilestonesTab({ tx, token }) {
 
   const getMilestoneStatus = (m) => {
     if (m.status === "Completed") return "completed";
+    if (m.status === "Waived") return "waived";
     if (!m.due_date) return "pending";
     const days = daysUntil(m.due_date);
     if (days < 0) return "overdue";
@@ -1827,6 +1828,7 @@ function MilestonesTab({ tx, token }) {
 
   const statusConfig = {
     completed: { color: "#1E8449", bg: "#D5F5E3", label: "Done", icon: "✅" },
+    waived:    { color: "#92400E", bg: "#FEF3C7", label: "Waived", icon: "⚠️" },
     overdue:   { color: "#C0392B", bg: "#FADBD8", label: "Overdue", icon: "🔴" },
     today:     { color: "#C0392B", bg: "#FADBD8", label: "Due Today", icon: "⚡" },
     soon:      { color: "#B7770D", bg: "#FEF9E7", label: "Due Soon", icon: "🟡" },
