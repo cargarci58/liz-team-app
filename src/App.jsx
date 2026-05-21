@@ -1937,6 +1937,8 @@ function MilestonesTab({ tx, token }) {
             const cfg = statusConfig[ms];
             const days = daysUntil(m.due_date);
             const isCompleted = ms === "completed";
+            const isWaived = ms === "waived";
+            const isClosed = isCompleted || isWaived;
             return (
               <div key={m.id} style={{ background: "#fff", borderRadius: 12, padding: 14,
                 marginBottom: 8, boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
