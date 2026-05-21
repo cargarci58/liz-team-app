@@ -2016,7 +2016,7 @@ function MilestonesTab({ tx, token }) {
                     </button>
                   </div>
                 )}
-                {!isCompleted && (
+                {!isClosed && (
                   <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
                     {compliance[m.id]?.documentRequired ? (
                       <>
@@ -2071,6 +2071,7 @@ function MilestonesTab({ tx, token }) {
                 <option value="Cash deal — no lender">Cash deal — no lender</option>
                 <option value="New construction — no inspection">New construction — no inspection</option>
                 <option value="Not applicable to this property type">Not applicable to this property type</option>
+                <option value="Bundled with another document upload">Bundled with another document upload</option>
                 <option value="Document exists outside our system">Document exists outside our system (e.g. brokerage uses different form)</option>
                 <option value="Buyer/seller declined">Buyer/seller declined and signed waiver</option>
                 <option value="Other">Other (explain in justification)</option>
