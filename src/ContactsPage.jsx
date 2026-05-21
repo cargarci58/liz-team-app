@@ -1,3 +1,4 @@
+import React from 'react';
 import { useState, useEffect, useRef } from "react";
 
 const API = "https://liz-team-server-api-production.up.railway.app";
@@ -382,6 +383,172 @@ function ContactModal({ contact, token, onClose, onSaved }) {
 // ============================================================
 // CSV IMPORT MODAL
 // ============================================================
+function FillMissingModal({ token, onClose, onDone }) {
+  const [step, setStep] = React.useState(1);
+  const [rawRows, setRawRows] = React.useState([]);
+  const [headers, setHeaders] = React.useState([]);
+  const [mapping, setMapping] = React.useState({});
+  const [busy, setBusy] = React.useState(false);
+  const [result, setResult] = React.useState(null);
+  const fileRef = React.useRef();
+  const API = "https://liz-team-server-api-production.up.railway.app";
+
+  const FIELDS = [
+    { key: "email", label: "Email (required for matching)", required: true },
+    { key: "phone", label: "Phone" },
+    { key: "first_name", label: "First Name" },
+    { key: "last_name", label: "Last Name" },
+    { key: "address", label: "Address" },
+    { key: "city", label: "City" },
+    { key: "state", label: "State" },
+    { key: "zip_code", label: "Zip" },
+    { key: "company", label: "Company" },
+    { key: "notes", label: "Notes" },
+  ];
+
+  const parseCsv = (text) => {
+    const rows = [];
+    let cur = [], field = "", inQuotes = false;
+    for (let i = 0; i < text.length; i++) {
+      const c = text[i];
+      if (inQuotes) {
+        if (c === '"' && text[i+1] === '"') { field += '"'; i++; }
+        else if (c === '"') inQuotes = false;
+        else field += c;
+      } else {
+        if (c === '"') inQuotes = true;
+        else if (c === ",") { cur.push(field); field = ""; }
+        else if (c === "\n" || c === "\r") {
+          if (field || cur.length) { cur.push(field); rows.push(cur); cur = []; field = ""; }
+          if (c === "\r" && text[i+1] === "\n") i++;
+        } else field += c;
+      }
+    }
+    if (field || cur.length) { cur.push(field); rows.push(cur); }
+    return rows;
+  };
+
+  const onFile = async (file) => {
+    if (!file) return;
+    const text = await file.text();
+    const all = parseCsv(text);
+    if (all.length < 2) { alert("File appears empty"); return; }
+    const hdrs = all[0].map(h => h.trim());
+    const data = all.slice(1).filter(r => r.some(c => c && c.trim()));
+    setHeaders(hdrs);
+    setRawRows(data);
+    const auto = {};
+    hdrs.forEach((h, idx) => {
+      const lh = h.toLowerCase();
+      if (lh === "email" || lh === "e-mail") auto.email = idx;
+      else if (/phone|mobile|cell/.test(lh)) auto.phone = idx;
+      else if (/^first[\s_]*name$/.test(lh) || lh === "fname") auto.first_name = idx;
+      else if (/^last[\s_]*name$/.test(lh) || lh === "lname") auto.last_name = idx;
+      else if (lh === "address" || lh === "street") auto.address = idx;
+      else if (lh === "city") auto.city = idx;
+      else if (lh === "state") auto.state = idx;
+      else if (/zip|postal/.test(lh)) auto.zip_code = idx;
+      else if (lh === "company" || lh === "organization") auto.company = idx;
+      else if (lh === "notes" || lh === "note") auto.notes = idx;
+    });
+    setMapping(auto);
+    setStep(2);
+  };
+
+  const submit = async () => {
+    if (mapping.email === undefined) { alert("You must map the Email column."); return; }
+    setBusy(true);
+    const rows = rawRows.map(r => {
+      const out = {};
+      FIELDS.forEach(f => {
+        if (mapping[f.key] !== undefined) out[f.key] = (r[mapping[f.key]] || "").trim();
+      });
+      return out;
+    }).filter(r => r.email);
+    try {
+      const resp = await fetch(API + "/contacts/fill-missing", {
+        method: "POST",
+        headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
+        body: JSON.stringify({ rows })
+      });
+      const data = await resp.json();
+      if (!resp.ok) { alert("Failed: " + (data.error || "unknown")); setBusy(false); return; }
+      setResult(data);
+      setStep(3);
+    } catch (e) { alert("Error: " + e.message); }
+    setBusy(false);
+  };
+
+  return (
+    <div onClick={() => !busy && onClose()} style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.55)", zIndex:9999, display:"flex", alignItems:"center", justifyContent:"center", padding:16 }}>
+      <div onClick={e => e.stopPropagation()} style={{ background:"#fff", borderRadius:14, padding:22, maxWidth:640, width:"100%", maxHeight:"90vh", overflowY:"auto" }}>
+        <div style={{ fontSize:20, fontWeight:800, color:"#92400e", marginBottom:6 }}>🩹 Fill Missing Info from CSV</div>
+        <div style={{ background:"#fef3c7", border:"1px solid #fcd34d", borderRadius:8, padding:12, marginBottom:14, fontSize:13, color:"#78350f", lineHeight:1.5 }}>
+          <strong>What this does:</strong> Re-imports a CSV from your other CRM and fills in <strong>only blank fields</strong> on existing contacts. <strong>Will never overwrite</strong> data you already have. Matches by <strong>email</strong>.<br/><br/>
+          <strong>When to use:</strong> The first import was missing phones (or other fields) because the source CRM didn't include them. Export again with phones, upload here.
+        </div>
+
+        {step === 1 && (
+          <div>
+            <button onClick={() => fileRef.current?.click()} style={{ width:"100%", padding:14, borderRadius:10, border:"2px dashed #d1d5db", background:"#fafafa", cursor:"pointer", fontSize:14, fontWeight:600, color:"#374151" }}>
+              📁 Choose CSV file
+            </button>
+            <input ref={fileRef} type="file" accept=".csv" style={{ display:"none" }} onChange={e => onFile(e.target.files?.[0])} />
+            <div style={{ marginTop:14, fontSize:12, color:"#6b7280" }}>The CSV must include an Email column.</div>
+            <button onClick={onClose} style={{ marginTop:16, width:"100%", padding:10, borderRadius:8, border:"1px solid #d1d5db", background:"#fff", color:"#374151", fontWeight:600, cursor:"pointer" }}>Cancel</button>
+          </div>
+        )}
+
+        {step === 2 && (
+          <div>
+            <div style={{ fontSize:13, color:"#374151", marginBottom:10 }}>{rawRows.length} rows detected. Map your CSV columns to fields:</div>
+            {FIELDS.map(f => (
+              <div key={f.key} style={{ display:"flex", alignItems:"center", gap:10, marginBottom:8 }}>
+                <div style={{ width:200, fontSize:13, color: f.required ? "#92400e" : "#374151", fontWeight: f.required ? 700 : 500 }}>{f.label}</div>
+                <select value={mapping[f.key] === undefined ? "" : mapping[f.key]}
+                  onChange={e => setMapping(m => ({ ...m, [f.key]: e.target.value === "" ? undefined : parseInt(e.target.value) }))}
+                  style={{ flex:1, padding:8, borderRadius:6, border:"1px solid #d1d5db", fontSize:13 }}>
+                  <option value="">— skip —</option>
+                  {headers.map((h, i) => <option key={i} value={i}>{h}</option>)}
+                </select>
+              </div>
+            ))}
+            <div style={{ display:"flex", gap:10, marginTop:18 }}>
+              <button onClick={() => setStep(1)} disabled={busy} style={{ flex:1, padding:11, borderRadius:8, border:"1px solid #d1d5db", background:"#fff", color:"#374151", fontWeight:600, cursor:"pointer" }}>← Back</button>
+              <button onClick={submit} disabled={busy || mapping.email === undefined} style={{ flex:2, padding:11, borderRadius:8, border:"none", background: (busy || mapping.email === undefined) ? "#d1a878" : "#92400e", color:"#fff", fontWeight:700, cursor: busy ? "wait" : "pointer" }}>
+                {busy ? "Filling..." : "🩹 Fill Missing Info"}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {step === 3 && result && (
+          <div>
+            <div style={{ background:"#ecfdf5", border:"1px solid #6ee7b7", borderRadius:8, padding:14, marginBottom:14, fontSize:13, color:"#065f46" }}>
+              <div style={{ fontWeight:700, marginBottom:6 }}>✅ Done</div>
+              <div>Rows in CSV: <strong>{result.summary.total_rows}</strong></div>
+              <div>Matched to existing contacts: <strong>{result.summary.matched}</strong></div>
+              <div>Contacts updated: <strong>{result.summary.updated}</strong></div>
+              <div>Already complete (no blanks): <strong>{result.summary.no_blanks_to_fill}</strong></div>
+              <div>Skipped (no email in row): <strong>{result.summary.skipped_no_email}</strong></div>
+              <div>Skipped (no match in your contacts): <strong>{result.summary.skipped_no_match}</strong></div>
+            </div>
+            {result.sample_updates && result.sample_updates.length > 0 && (
+              <div style={{ fontSize:12, color:"#374151", marginBottom:14 }}>
+                <div style={{ fontWeight:700, marginBottom:4 }}>Sample updates:</div>
+                {result.sample_updates.map((s, i) => (
+                  <div key={i}>• {s.email} → filled: {s.filled.join(", ")}</div>
+                ))}
+              </div>
+            )}
+            <button onClick={onDone} style={{ width:"100%", padding:11, borderRadius:8, border:"none", background:"#0c4a6e", color:"#fff", fontWeight:700, cursor:"pointer" }}>Close & Refresh</button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function ImportModal({ token, onClose, onImported }) {
   const [step, setStep] = useState(1);
   const [rawRows, setRawRows] = useState([]);
@@ -937,6 +1104,7 @@ export default function ContactsPage({ token, onBack }) {
   const [sortBy, setSortBy] = useState({ col: "", dir: "asc" });
   const [showAdd, setShowAdd] = useState(false);
   const [showImport, setShowImport] = useState(false);
+  const [showFillMissing, setShowFillMissing] = useState(false);
   const [showBulkSchedule, setShowBulkSchedule] = useState(false);
   const [editing, setEditing] = useState(null);
   const [viewing, setViewing] = useState(null);
@@ -977,6 +1145,7 @@ export default function ContactsPage({ token, onBack }) {
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           <button onClick={() => setShowBulkSchedule(true)} style={btnStyle("#7c3aed", "white")}>📅 Schedule Calls</button>
           <button onClick={() => setShowImport(true)} style={btnStyle("#e5e7eb", "#374151")}>📥 Import CSV</button>
+          <button onClick={() => setShowFillMissing(true)} style={btnStyle("#fef3c7", "#92400e")} title="Re-import CSV from another CRM to fill in missing phones/emails on existing contacts">🩹 Fill Missing Info</button>
           <button onClick={() => setShowAdd(true)} style={btnStyle("#0c4a6e", "white")}>+ Add Contact</button>
         </div>
       </div>
@@ -1068,6 +1237,7 @@ export default function ContactsPage({ token, onBack }) {
       {editing && <ContactModal contact={editing} token={token} onClose={() => setEditing(null)} onSaved={() => load()} />}
       {viewing && <ContactDetailDrawer contact={viewing} token={token} onClose={() => setViewing(null)} onEdit={(c) => { setViewing(null); setEditing(c); }} onLogged={load} />}
       {showBulkSchedule && <BulkScheduleModal token={token} contactCount={contacts.length} onClose={() => setShowBulkSchedule(false)} onScheduled={() => load()} />}
+      {showFillMissing && <FillMissingModal token={token} onClose={() => setShowFillMissing(false)} onDone={() => { setShowFillMissing(false); load(); }} />}
       {showImport && <ImportModal token={token} onClose={() => setShowImport(false)} onImported={(data) => {
         // Reset all filters so newly imported contacts show
         setFilter({ temperature: "", type: "", due: "", search: "" });
