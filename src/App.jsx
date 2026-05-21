@@ -1294,7 +1294,9 @@ function PersonalTaskAddButton({ token }) {
   const [title, setTitle] = useState("");
   const [notes, setNotes] = useState("");
   const [dueDate, setDueDate] = useState("");
+  const [category, setCategory] = useState("");
   const [saving, setSaving] = useState(false);
+  const CATEGORIES = ["Buyer", "Seller", "Pre-Approval", "Follow Up", "Other"];
   const API = "https://liz-team-server-api-production.up.railway.app";
 
   const PRESETS = [
@@ -1320,11 +1322,11 @@ function PersonalTaskAddButton({ token }) {
       const r = await fetch(API + "/personal-tasks", {
         method: "POST",
         headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
-        body: JSON.stringify({ title: title.trim(), notes: notes || null, due_date: dueDate || null })
+        body: JSON.stringify({ title: title.trim(), notes: notes || null, due_date: dueDate || null, category: category || null })
       });
       if (!r.ok) { const e = await r.json(); alert("Failed: " + (e.error || "unknown")); setSaving(false); return; }
       window.dispatchEvent(new Event("wintheday:refresh"));
-      setTitle(""); setNotes(""); setDueDate(""); setOpen(false);
+      setTitle(""); setNotes(""); setDueDate(""); setCategory(""); setOpen(false);
     } catch (e) { alert("Error: " + e.message); }
     setSaving(false);
   };
@@ -1342,6 +1344,15 @@ function PersonalTaskAddButton({ token }) {
             <div style={{ fontSize: 20, fontWeight: 800, color: "#1a2332", marginBottom: 6 }}>📝 Add Personal Task</div>
             <div style={{ background: "#EFF6FF", border: "1px solid #BFDBFE", borderRadius: 8, padding: 10, marginBottom: 14, fontSize: 12, color: "#1E3A8A", lineHeight: 1.5 }}>
               <strong>What this is:</strong> A personal to-do that's NOT tied to any transaction (e.g., "Renew real estate license", "Order business cards"). Appears on your Win-the-Day dashboard.
+            </div>
+
+            <div style={{ marginBottom: 12 }}>
+              <div style={{ fontSize: 12, fontWeight: 600, color: "#555", marginBottom: 4 }}>Category</div>
+              <select value={category} onChange={e => setCategory(e.target.value)} disabled={saving}
+                style={{ width: "100%", padding: 9, borderRadius: 6, border: "1px solid #d1d5db", fontSize: 14, fontFamily: "inherit", background: "#fff", boxSizing: "border-box" }}>
+                <option value="">— select category —</option>
+                {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
             </div>
 
             <div style={{ marginBottom: 12 }}>
@@ -3569,7 +3580,7 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
         return (
         <Modal title="Add Task" onClose={() => setShowAddTask(false)}>
           <Input label="Task Name" value={taskForm.name} onChange={v => setTaskForm(f => ({ ...f, name: v }))} required />
-          <Input label="Category" value={taskForm.category} onChange={v => setTaskForm(f => ({ ...f, category: v }))} options={["Contract","Disclosure","Escrow","Inspection","Financing","Title","HOA","Insurance","Marketing","Closing","Post-Closing"]} />
+          <Input label="Category" value={taskForm.category} onChange={v => setTaskForm(f => ({ ...f, category: v }))} options={["Buyer","Seller","Pre-Approval","Follow Up","Contract","Disclosure","Escrow","Inspection","Financing","Title","HOA","Insurance","Marketing","Closing","Post-Closing","Other"]} />
           <div style={{ marginBottom: 10 }}>
             <div style={{ fontSize: 12, fontWeight: 600, color: "#555", marginBottom: 4 }}>Who is responsible? (for follow-ups)</div>
             <select value={taskForm.assignedPartyId || ""}
@@ -4572,7 +4583,6 @@ function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenCon
             <button onClick={() => onOpenContacts && onOpenContacts()} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "#fff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>📇 Contacts</button>
             <button onClick={() => onOpenExpenses && onOpenExpenses()} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "#fff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>💵 Expense Tracker</button>
             <WinTheDayButton token={localStorage.getItem("tp_token") || ""} />
-            <PersonalTaskAddButton token={localStorage.getItem("tp_token") || ""} />
             <PersonalTaskAddButton token={localStorage.getItem("tp_token") || ""} />
             <button onClick={onVendors} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "rgba(255,255,255,0.88)", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 600, fontFamily: "inherit" }}>🏆 Vendors</button>
             <button onClick={onIntakeLinks} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "rgba(255,255,255,0.88)", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 600, fontFamily: "inherit" }}>🔗 My Intake Links</button>
