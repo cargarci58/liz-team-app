@@ -1883,7 +1883,7 @@ function MilestonesTab({ tx, token }) {
         const totalRequired = complianceArr.filter(c => c.documentRequired && c.status !== "Waived").length;
         const uploaded = complianceArr.filter(c => c.documentRequired && c.documentUploaded && c.status !== "Waived").length;
         const completedWithoutDoc = complianceArr.filter(c =>
-          c.documentRequired && !c.documentUploaded && c.status === "Completed"
+          c.documentRequired && !c.documentUploaded && c.status === "Completed" && c.status !== "Waived"
         ).length;
         const waivedCount = complianceArr.filter(c => c.status === "Waived").length;
         if (totalRequired === 0) return null;
@@ -1944,15 +1944,15 @@ function MilestonesTab({ tx, token }) {
             return (
               <div key={m.id} style={{ background: "#fff", borderRadius: 12, padding: 14,
                 marginBottom: 8, boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
-                borderLeft: "4px solid " + (isCompleted ? "#1E8449" : cfg.color),
-                opacity: isCompleted ? 0.75 : 1 }}>
+                borderLeft: "4px solid " + (isClosed ? (isWaived ? "#92400E" : "#1E8449") : cfg.color),
+                opacity: isClosed ? 0.75 : 1 }}>
                 <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
                   <div style={{ fontSize: 18 }}>{cfg.icon}</div>
                   <div style={{ flex: 1 }}>
                     <div style={{ fontWeight: 700, fontSize: 14, color: "#111",
-                      textDecoration: isCompleted ? "line-through" : "none", marginBottom: 4 }}>
+                      textDecoration: isClosed ? "line-through" : "none", marginBottom: 4 }}>
                       {m.name}
-                      {m.is_hard_block && !isCompleted && (
+                      {m.is_hard_block && !isClosed && (
                         <span style={{ marginLeft: 8, fontSize: 10, fontWeight: 700,
                           color: "#C0392B", background: "#FADBD8",
                           padding: "2px 7px", borderRadius: 20 }}>REQUIRED</span>
@@ -1960,7 +1960,7 @@ function MilestonesTab({ tx, token }) {
                     </div>
                     {m.due_date && (
                       <div style={{ fontSize: 12, color: cfg.color, fontWeight: 600 }}>
-                        {isCompleted ? "Completed" :
+                        {isWaived ? "Waived" : isCompleted ? "Completed" :
                          days === 0 ? "Due today" :
                          days < 0 ? Math.abs(days) + "d overdue" :
                          "Due in " + days + "d"} · {m.due_date}
