@@ -1653,6 +1653,39 @@ function MilestonesTab({ tx, token }) {
     } catch (e) {}
   };
 
+  const [waiveModalFor, setWaiveModalFor] = useState(null);
+  const [waiveReason, setWaiveReason] = useState("");
+  const [waiveJustification, setWaiveJustification] = useState("");
+  const [waiveConfirm, setWaiveConfirm] = useState(false);
+  const [waiving, setWaiving] = useState(false);
+
+  const handleWaive = async () => {
+    if (!waiveModalFor) return;
+    if (!waiveReason) { alert("Select a reason for waiving."); return; }
+    if (waiveJustification.trim().length < 10) { alert("Justification must be at least 10 characters."); return; }
+    if (!waiveConfirm) { alert("Please confirm you take responsibility for this waiver."); return; }
+    setWaiving(true);
+    try {
+      const r = await fetch(API + "/milestones/" + waiveModalFor.id + "/waive", {
+        method: "POST",
+        headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
+        body: JSON.stringify({ reason: waiveReason, justification: waiveJustification.trim() })
+      });
+      const d = await r.json();
+      if (!r.ok) { alert("Could not waive: " + (d.error || "unknown error")); setWaiving(false); return; }
+      setMilestones(prev => prev.map(m =>
+        m.id === waiveModalFor.id
+          ? { ...m, status: "Waived", waived_reason: waiveReason, waived_justification: waiveJustification.trim() }
+          : m
+      ));
+      setWaiveModalFor(null);
+      setWaiveReason("");
+      setWaiveJustification("");
+      setWaiveConfirm(false);
+    } catch (e) { alert("Error waiving milestone: " + e.message); }
+    setWaiving(false);
+  };
+
   const today = new Date().toISOString().split("T")[0];
   const daysUntil = (d) => d ? Math.round((new Date(d) - new Date(today)) / 86400000) : null;
 
@@ -1874,11 +1907,11 @@ function MilestonesTab({ tx, token }) {
                         {completing === m.id ? "Saving..." : "Mark Complete"}
                       </button>
                     )}
-                    <button onClick={() => handleSnooze(m.id)}
+                    <button onClick={() => setWaiveModalFor(m)}
                       style={{ flex: 1, padding: "9px 0", borderRadius: 8,
-                        border: "1.5px solid #DDD", background: "#fff",
-                        color: "#555", fontWeight: 600, fontSize: 13, cursor: "pointer" }}>
-                      Snooze
+                        border: "1.5px solid #E5B14A", background: "#FFFBEB",
+                        color: "#92400E", fontWeight: 600, fontSize: 12, cursor: "pointer" }}>
+                      ⚠️ Waive — N/A
                     </button>
                   </div>
                 )}
@@ -1888,6 +1921,59 @@ function MilestonesTab({ tx, token }) {
         </div>
       ))}
 
+
+      {waiveModalFor && (
+        <div onClick={() => !waiving && setWaiveModalFor(null)}
+          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
+          <div onClick={e => e.stopPropagation()}
+            style={{ background: "#fff", borderRadius: 14, padding: 22, maxWidth: 520, width: "100%", maxHeight: "90vh", overflowY: "auto", boxShadow: "0 20px 60px rgba(0,0,0,0.3)" }}>
+            <div style={{ fontSize: 20, fontWeight: 800, color: "#92400E", marginBottom: 6 }}>⚠️ Waive Milestone — Not Applicable</div>
+            <div style={{ fontSize: 14, color: "#1a2332", fontWeight: 700, marginBottom: 10 }}>{waiveModalFor.name}</div>
+            <div style={{ background: "#FEF3C7", border: "1px solid #FCD34D", borderRadius: 8, padding: 12, marginBottom: 16, fontSize: 13, lineHeight: 1.5, color: "#78350F" }}>
+              <strong>What this does:</strong> Marks this milestone complete <strong>without</strong> a document. The transaction can keep moving.<br/><br/>
+              <strong>Why it matters:</strong> Your broker and compliance team can see every waiver. If audited, you must be able to defend this decision. A permanent audit-log entry is created with your name, the reason, and your justification.
+            </div>
+
+            <div style={{ marginBottom: 14 }}>
+              <label style={{ display: "block", fontWeight: 700, fontSize: 13, color: "#1a2332", marginBottom: 6 }}>Reason this is not applicable <span style={{ color: "#C0392B" }}>*</span></label>
+              <select value={waiveReason} onChange={e => setWaiveReason(e.target.value)} disabled={waiving}
+                style={{ width: "100%", padding: 10, borderRadius: 8, border: "1.5px solid #D1D5DB", fontSize: 14, fontFamily: "inherit", background: "#fff" }}>
+                <option value="">-- Select a reason --</option>
+                <option value="Cash deal — no lender">Cash deal — no lender</option>
+                <option value="New construction — no inspection">New construction — no inspection</option>
+                <option value="Not applicable to this property type">Not applicable to this property type</option>
+                <option value="Document exists outside our system">Document exists outside our system (e.g. brokerage uses different form)</option>
+                <option value="Buyer/seller declined">Buyer/seller declined and signed waiver</option>
+                <option value="Other">Other (explain in justification)</option>
+              </select>
+            </div>
+
+            <div style={{ marginBottom: 14 }}>
+              <label style={{ display: "block", fontWeight: 700, fontSize: 13, color: "#1a2332", marginBottom: 6 }}>Justification <span style={{ color: "#C0392B" }}>*</span> <span style={{ fontWeight: 400, color: "#6b7280" }}>(min 10 chars — be specific)</span></label>
+              <textarea value={waiveJustification} onChange={e => setWaiveJustification(e.target.value)} disabled={waiving}
+                placeholder="Example: Buyer is paying all-cash via wire transfer from Chase. No financing involved. Confirmed via signed cash letter dated 5/15/26."
+                rows={4}
+                style={{ width: "100%", padding: 10, borderRadius: 8, border: "1.5px solid #D1D5DB", fontSize: 14, fontFamily: "inherit", resize: "vertical", boxSizing: "border-box" }} />
+            </div>
+
+            <label style={{ display: "flex", alignItems: "flex-start", gap: 8, marginBottom: 18, cursor: "pointer", fontSize: 13, color: "#1a2332" }}>
+              <input type="checkbox" checked={waiveConfirm} onChange={e => setWaiveConfirm(e.target.checked)} disabled={waiving} style={{ marginTop: 3, flexShrink: 0 }} />
+              <span>I confirm this waiver is justified and I take responsibility for compliance on this transaction.</span>
+            </label>
+
+            <div style={{ display: "flex", gap: 10 }}>
+              <button onClick={() => { if (!waiving) { setWaiveModalFor(null); setWaiveReason(""); setWaiveJustification(""); setWaiveConfirm(false); } }} disabled={waiving}
+                style={{ flex: 1, padding: "11px 0", borderRadius: 8, border: "1.5px solid #D1D5DB", background: "#fff", color: "#374151", fontWeight: 600, fontSize: 14, cursor: waiving ? "not-allowed" : "pointer" }}>
+                Cancel
+              </button>
+              <button onClick={handleWaive} disabled={waiving || !waiveReason || waiveJustification.trim().length < 10 || !waiveConfirm}
+                style={{ flex: 2, padding: "11px 0", borderRadius: 8, border: "none", background: (waiving || !waiveReason || waiveJustification.trim().length < 10 || !waiveConfirm) ? "#D1A878" : "#92400E", color: "#fff", fontWeight: 700, fontSize: 14, cursor: (waiving || !waiveReason || waiveJustification.trim().length < 10 || !waiveConfirm) ? "not-allowed" : "pointer" }}>
+                {waiving ? "Waiving..." : "⚠️ Waive This Milestone"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       <button onClick={handleGenerate} disabled={generating}
         style={{ width: "100%", padding: 13, borderRadius: 10,
           border: "1.5px solid #DDD", background: "#fff",
