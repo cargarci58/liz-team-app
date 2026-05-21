@@ -1294,11 +1294,18 @@ function WinTheDayButton({ token }) {
   const [showModal, setShowModal] = useState(false);
   const API = "https://liz-team-server-api-production.up.railway.app";
 
-  // Poll task count every 5 minutes
+  // Poll every 5 min + listen for explicit refresh events (e.g. after a task is added)
   useEffect(() => {
     fetchCount();
     const interval = setInterval(fetchCount, 5 * 60 * 1000);
-    return () => clearInterval(interval);
+    const handler = () => fetchCount();
+    window.addEventListener("wintheday:refresh", handler);
+    window.addEventListener("focus", handler);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener("wintheday:refresh", handler);
+      window.removeEventListener("focus", handler);
+    };
   }, []);
 
   const fetchCount = async () => {
@@ -3436,6 +3443,7 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
                     method: "POST",
                     headers: { Authorization: "Bearer " + token }
                   });
+                  window.dispatchEvent(new Event("wintheday:refresh"));
                 } catch (e) { /* non-fatal — cron will catch it tomorrow */ }
               }
             }}>Add Task</Btn>

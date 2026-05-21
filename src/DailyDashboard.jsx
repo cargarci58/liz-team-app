@@ -274,7 +274,16 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
   const hour = new Date().getHours();
   const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
 
-  useEffect(() => { fetchTasks(); }, []);
+  useEffect(() => {
+    fetchTasks();
+    const handler = () => fetchTasks();
+    window.addEventListener("wintheday:refresh", handler);
+    window.addEventListener("focus", handler);
+    return () => {
+      window.removeEventListener("wintheday:refresh", handler);
+      window.removeEventListener("focus", handler);
+    };
+  }, []);
 
   const fetchTasks = async () => {
     setLoading(true);
