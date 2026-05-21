@@ -1843,7 +1843,7 @@ function MilestonesTab({ tx, token }) {
     return acc;
   }, {});
 
-  const completed = milestones.filter(m => m.status === "Completed").length;
+  const completed = milestones.filter(m => m.status === "Completed" || m.status === "Waived").length;
   const total = milestones.length;
   const progress = total > 0 ? Math.round(completed / total * 100) : 0;
 
@@ -1886,6 +1886,7 @@ function MilestonesTab({ tx, token }) {
         const completedWithoutDoc = complianceArr.filter(c =>
           c.documentRequired && !c.documentUploaded && c.status === "Completed"
         ).length;
+        const waivedCount = complianceArr.filter(c => c.status === "Waived").length;
         if (totalRequired === 0) return null;
         const pct = totalRequired === 0 ? 100 : Math.round((uploaded / totalRequired) * 100);
         return (
