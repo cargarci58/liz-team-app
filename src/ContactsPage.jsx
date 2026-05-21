@@ -912,10 +912,29 @@ function BulkScheduleModal({ token, contactCount, onClose, onScheduled }) {
 // ============================================================
 // MAIN PAGE
 // ============================================================
+function SortableTh({ label, col, sortBy, setSortBy, hint }) {
+  const active = sortBy.col === col;
+  const arrow = active ? (sortBy.dir === "asc" ? " ▲" : " ▼") : "";
+  return (
+    <th
+      style={{ padding: "10px 12px", textAlign: "left", borderBottom: "1px solid #e5e7eb", fontWeight: 600, fontSize: 12, color: "#374151", cursor: "pointer", userSelect: "none", whiteSpace: "nowrap" }}
+      title={hint || `Click to sort by ${label}`}
+      onClick={() => {
+        if (sortBy.col !== col) setSortBy({ col, dir: "asc" });
+        else if (sortBy.dir === "asc") setSortBy({ col, dir: "desc" });
+        else setSortBy({ col: "", dir: "asc" });
+      }}
+    >
+      {label}{arrow}
+    </th>
+  );
+}
+
 export default function ContactsPage({ token, onBack }) {
   const [contacts, setContacts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState({ temperature: "", type: "", due: "", search: "" });
+  const [filter, setFilter] = useState({ temperature: "", type: "", due: "", search: "", missing: "" });
+  const [sortBy, setSortBy] = useState({ col: "", dir: "asc" });
   const [showAdd, setShowAdd] = useState(false);
   const [showImport, setShowImport] = useState(false);
   const [showBulkSchedule, setShowBulkSchedule] = useState(false);
@@ -930,6 +949,8 @@ export default function ContactsPage({ token, onBack }) {
       if (filter.type) params.set("type", filter.type);
       if (filter.due) params.set("due", filter.due);
       if (filter.search) params.set("search", filter.search);
+      if (filter.missing) params.set("missing", filter.missing);
+      if (sortBy.col) { params.set("sort", sortBy.col); params.set("dir", sortBy.dir); }
       const r = await fetch(API + "/contacts?" + params, { headers: { Authorization: "Bearer " + token }});
       const data = await r.json();
       setContacts(data.contacts || []);
@@ -937,7 +958,7 @@ export default function ContactsPage({ token, onBack }) {
     finally { setLoading(false); }
   };
 
-  useEffect(() => { load(); }, [filter.temperature, filter.type, filter.due]);
+  useEffect(() => { load(); }, [filter.temperature, filter.type, filter.due, filter.missing, sortBy.col, sortBy.dir]);
   useEffect(() => { const t = setTimeout(load, 300); return () => clearTimeout(t); }, [filter.search]);
 
   return (
@@ -981,18 +1002,24 @@ export default function ContactsPage({ token, onBack }) {
           <option value="today">Due today / overdue</option>
           <option value="overdue">Overdue only</option>
         </select>
+        <select value={filter.missing} onChange={e => setFilter(f => ({ ...f, missing: e.target.value }))} style={{ ...inputStyle, width: 200 }} title="Find contacts with missing info">
+          <option value="">All contacts</option>
+          <option value="no_phone">⚠️ Missing phone</option>
+          <option value="no_email">⚠️ Missing email</option>
+          <option value="no_phone_or_email">⚠️ Missing phone OR email</option>
+        </select>
       </div>
 
       <div style={{ background: "white", border: "1px solid #e5e7eb", borderRadius: 8, overflow: "hidden" }}>
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
           <thead>
             <tr style={{ background: "#f9fafb" }}>
-              <th style={th}>Name</th>
-              <th style={th}>Phone</th>
-              <th style={th}>Type</th>
-              <th style={th}>Temp</th>
-              <th style={th}>Last Called</th>
-              <th style={th}>Next Call</th>
+              <SortableTh label="Name" col="name" sortBy={sortBy} setSortBy={setSortBy} />
+              <SortableTh label="Phone" col="phone" sortBy={sortBy} setSortBy={setSortBy} hint="Click twice → empties at top" />
+              <SortableTh label="Type" col="type" sortBy={sortBy} setSortBy={setSortBy} />
+              <SortableTh label="Temp" col="temperature" sortBy={sortBy} setSortBy={setSortBy} />
+              <SortableTh label="Last Called" col="last_called" sortBy={sortBy} setSortBy={setSortBy} />
+              <SortableTh label="Next Call" col="next_call" sortBy={sortBy} setSortBy={setSortBy} />
               <th style={th}></th>
             </tr>
           </thead>
