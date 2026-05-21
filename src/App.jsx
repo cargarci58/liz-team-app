@@ -1289,6 +1289,117 @@ function SMSPanel({ tx, onUpdate, currentUser }) {
 // ═══════════════════════════════════════════════════════════════
 // WIN THE DAY BUTTON + MODAL
 // ═══════════════════════════════════════════════════════════════
+function PersonalTaskAddButton({ token }) {
+  const [open, setOpen] = useState(false);
+  const [title, setTitle] = useState("");
+  const [notes, setNotes] = useState("");
+  const [dueDate, setDueDate] = useState("");
+  const [saving, setSaving] = useState(false);
+  const API = "https://liz-team-server-api-production.up.railway.app";
+
+  const PRESETS = [
+    { label: "Today", days: 0 }, { label: "Tomorrow", days: 1 },
+    { label: "2 days", days: 2 }, { label: "3 days", days: 3 },
+    { label: "1 week", days: 7 }, { label: "2 weeks", days: 14 },
+    { label: "1 month", days: 30 }, { label: "3 months", days: 90 },
+    { label: "6 months", days: 180 }, { label: "1 year", days: 365 },
+  ];
+
+  const setPreset = (days) => {
+    const d = new Date(); d.setDate(d.getDate() + days);
+    setDueDate(d.toISOString().slice(0, 10));
+  };
+
+  const today = new Date().toISOString().slice(0, 10);
+  const selectedDays = dueDate ? Math.round((new Date(dueDate + "T00:00:00") - new Date(today + "T00:00:00")) / 86400000) : null;
+
+  const save = async () => {
+    if (!title.trim()) { alert("Task title required"); return; }
+    setSaving(true);
+    try {
+      const r = await fetch(API + "/personal-tasks", {
+        method: "POST",
+        headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
+        body: JSON.stringify({ title: title.trim(), notes: notes || null, due_date: dueDate || null })
+      });
+      if (!r.ok) { const e = await r.json(); alert("Failed: " + (e.error || "unknown")); setSaving(false); return; }
+      window.dispatchEvent(new Event("wintheday:refresh"));
+      setTitle(""); setNotes(""); setDueDate(""); setOpen(false);
+    } catch (e) { alert("Error: " + e.message); }
+    setSaving(false);
+  };
+
+  return (
+    <>
+      <button onClick={() => setOpen(true)}
+        style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "#fff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}
+        title="Add a personal task — not tied to any transaction">
+        📝 + Task
+      </button>
+      {open && (
+        <div onClick={() => !saving && setOpen(false)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
+          <div onClick={e => e.stopPropagation()} style={{ background: "#fff", borderRadius: 14, padding: 22, maxWidth: 520, width: "100%", maxHeight: "90vh", overflowY: "auto" }}>
+            <div style={{ fontSize: 20, fontWeight: 800, color: "#1a2332", marginBottom: 6 }}>📝 Add Personal Task</div>
+            <div style={{ background: "#EFF6FF", border: "1px solid #BFDBFE", borderRadius: 8, padding: 10, marginBottom: 14, fontSize: 12, color: "#1E3A8A", lineHeight: 1.5 }}>
+              <strong>What this is:</strong> A personal to-do that's NOT tied to any transaction (e.g., "Renew real estate license", "Order business cards"). Appears on your Win-the-Day dashboard.
+            </div>
+
+            <div style={{ marginBottom: 12 }}>
+              <div style={{ fontSize: 12, fontWeight: 600, color: "#555", marginBottom: 4 }}>Task <span style={{ color: "#C0392B" }}>*</span></div>
+              <input value={title} onChange={e => setTitle(e.target.value)} disabled={saving}
+                placeholder="What do you need to do?"
+                style={{ width: "100%", padding: 9, borderRadius: 6, border: "1px solid #d1d5db", fontSize: 14, fontFamily: "inherit", boxSizing: "border-box" }} />
+            </div>
+
+            <div style={{ marginBottom: 12 }}>
+              <div style={{ fontSize: 12, fontWeight: 600, color: "#555", marginBottom: 6 }}>When?</div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 8 }}>
+                {PRESETS.map(p => {
+                  const active = selectedDays === p.days;
+                  return (
+                    <button key={p.label} type="button" onClick={() => setPreset(p.days)} disabled={saving}
+                      style={{ padding: "6px 10px", borderRadius: 16, border: active ? "1.5px solid #0c4a6e" : "1px solid #d1d5db", background: active ? "#0c4a6e" : "#fff", color: active ? "#fff" : "#374151", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
+                      {p.label}
+                    </button>
+                  );
+                })}
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span style={{ fontSize: 11, color: "#6b7280" }}>Or custom date:</span>
+                <input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} disabled={saving}
+                  style={{ padding: 6, borderRadius: 6, border: "1px solid #d1d5db", fontSize: 13, fontFamily: "inherit" }} />
+                {dueDate && (
+                  <button type="button" onClick={() => setDueDate("")} disabled={saving}
+                    style={{ background: "transparent", border: "none", color: "#dc2626", cursor: "pointer", fontSize: 12, fontWeight: 600 }}>
+                    Clear
+                  </button>
+                )}
+              </div>
+            </div>
+
+            <div style={{ marginBottom: 16 }}>
+              <div style={{ fontSize: 12, fontWeight: 600, color: "#555", marginBottom: 4 }}>Notes (optional)</div>
+              <textarea value={notes} onChange={e => setNotes(e.target.value)} disabled={saving} rows={3}
+                style={{ width: "100%", padding: 9, borderRadius: 6, border: "1px solid #d1d5db", fontSize: 14, fontFamily: "inherit", resize: "vertical", boxSizing: "border-box" }} />
+            </div>
+
+            <div style={{ display: "flex", gap: 10 }}>
+              <button onClick={() => !saving && setOpen(false)} disabled={saving}
+                style={{ flex: 1, padding: 11, borderRadius: 8, border: "1px solid #d1d5db", background: "#fff", color: "#374151", fontWeight: 600, fontSize: 14, cursor: saving ? "not-allowed" : "pointer" }}>
+                Cancel
+              </button>
+              <button onClick={save} disabled={saving || !title.trim()}
+                style={{ flex: 2, padding: 11, borderRadius: 8, border: "none", background: (saving || !title.trim()) ? "#9ca3af" : "#1E8449", color: "#fff", fontWeight: 700, fontSize: 14, cursor: (saving || !title.trim()) ? "not-allowed" : "pointer" }}>
+                {saving ? "Saving..." : "Add Task"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
 function WinTheDayButton({ token }) {
   const [taskCount, setTaskCount] = useState(0);
   const [showModal, setShowModal] = useState(false);
@@ -2382,6 +2493,62 @@ function AssignAgentModal({ tx, token, onClose, onAssigned, currentUser }) {
   );
 }
 
+function DueDatePresetPicker({ label, value, onChange }) {
+  const PRESETS = [
+    { label: "Today", days: 0 },
+    { label: "Tomorrow", days: 1 },
+    { label: "2 days", days: 2 },
+    { label: "3 days", days: 3 },
+    { label: "1 week", days: 7 },
+    { label: "2 weeks", days: 14 },
+    { label: "1 month", days: 30 },
+    { label: "3 months", days: 90 },
+    { label: "6 months", days: 180 },
+    { label: "1 year", days: 365 },
+  ];
+
+  const setPreset = (days) => {
+    const d = new Date();
+    d.setDate(d.getDate() + days);
+    onChange(d.toISOString().slice(0, 10));
+  };
+
+  const today = new Date().toISOString().slice(0, 10);
+  const selectedDays = value ? Math.round((new Date(value + "T00:00:00") - new Date(today + "T00:00:00")) / 86400000) : null;
+
+  return (
+    <div style={{ marginBottom: 12 }}>
+      <div style={{ fontSize: 12, fontWeight: 600, color: "#555", marginBottom: 6 }}>{label || "Due Date"}</div>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 8 }}>
+        {PRESETS.map(p => {
+          const active = selectedDays === p.days;
+          return (
+            <button key={p.label} type="button" onClick={() => setPreset(p.days)}
+              style={{
+                padding: "6px 10px", borderRadius: 16, border: active ? "1.5px solid #0c4a6e" : "1px solid #d1d5db",
+                background: active ? "#0c4a6e" : "#fff", color: active ? "#fff" : "#374151",
+                fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit"
+              }}>
+              {p.label}
+            </button>
+          );
+        })}
+      </div>
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <span style={{ fontSize: 11, color: "#6b7280" }}>Or custom date:</span>
+        <input type="date" value={value || ""} onChange={e => onChange(e.target.value)}
+          style={{ padding: 6, borderRadius: 6, border: "1px solid #d1d5db", fontSize: 13, fontFamily: "inherit" }} />
+        {value && (
+          <button type="button" onClick={() => onChange("")}
+            style={{ background: "transparent", border: "none", color: "#dc2626", cursor: "pointer", fontSize: 12, fontWeight: 600 }}>
+            Clear
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [], onSaveContact, onOpenContactBook, onDuplicate, currentUser, initialTab = "overview", dashboardUnread = 0 }) {
   const [activeTab, setActiveTab] = useState(initialTab);
   const [showAssignAgent, setShowAssignAgent] = useState(false);
@@ -3428,7 +3595,9 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
               </div>
             )}
           </div>
-          <Input label="Due Date" value={taskForm.dueDate} onChange={v => setTaskForm(f => ({ ...f, dueDate: v }))} type="date" />
+          <DueDatePresetPicker label="When to follow up?"
+            value={taskForm.dueDate}
+            onChange={v => setTaskForm(f => ({ ...f, dueDate: v }))} />
           <Input label="Notes" value={taskForm.notes} onChange={v => setTaskForm(f => ({ ...f, notes: v }))} type="textarea" />
           <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
             <Btn variant="ghost" onClick={() => setShowAddTask(false)}>Cancel</Btn>
@@ -4403,6 +4572,8 @@ function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenCon
             <button onClick={() => onOpenContacts && onOpenContacts()} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "#fff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>📇 Contacts</button>
             <button onClick={() => onOpenExpenses && onOpenExpenses()} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "#fff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>💵 Expense Tracker</button>
             <WinTheDayButton token={localStorage.getItem("tp_token") || ""} />
+            <PersonalTaskAddButton token={localStorage.getItem("tp_token") || ""} />
+            <PersonalTaskAddButton token={localStorage.getItem("tp_token") || ""} />
             <button onClick={onVendors} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "rgba(255,255,255,0.88)", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 600, fontFamily: "inherit" }}>🏆 Vendors</button>
             <button onClick={onIntakeLinks} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "rgba(255,255,255,0.88)", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 600, fontFamily: "inherit" }}>🔗 My Intake Links</button>
             <button onClick={onOpenContractIntake} style={{ background: "#1E8449", border: "1px solid rgba(255,255,255,0.22)", color: "#ffffff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>📄 Upload Contract</button>

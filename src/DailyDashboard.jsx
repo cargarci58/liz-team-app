@@ -149,6 +149,63 @@ function SellerUpdateModal({ task, token, onClose, onDone }) {
 }
 
 // ── TASK CARD ─────────────────────────────────────────────────
+function PersonalTaskCard({ task, token, onChange }) {
+  const API = "https://liz-team-server-api-production.up.railway.app";
+  const [busy, setBusy] = React.useState(false);
+
+  const complete = async () => {
+    setBusy(true);
+    try {
+      await fetch(API + "/personal-tasks/" + task.id + "/complete", {
+        method: "PATCH",
+        headers: { Authorization: "Bearer " + token }
+      });
+      window.dispatchEvent(new Event("wintheday:refresh"));
+      if (onChange) onChange();
+    } catch (e) { alert("Error: " + e.message); }
+    setBusy(false);
+  };
+
+  const del = async () => {
+    if (!confirm("Delete this personal task?")) return;
+    setBusy(true);
+    try {
+      await fetch(API + "/personal-tasks/" + task.id, {
+        method: "DELETE",
+        headers: { Authorization: "Bearer " + token }
+      });
+      window.dispatchEvent(new Event("wintheday:refresh"));
+      if (onChange) onChange();
+    } catch (e) { alert("Error: " + e.message); }
+    setBusy(false);
+  };
+
+  const today = new Date().toISOString().slice(0, 10);
+  const overdue = task.due_date && task.due_date < today;
+
+  return (
+    <div style={{ background: "#fff", border: "1px solid #d1fae5", borderLeft: "4px solid #1E8449", borderRadius: 10, padding: 14, marginBottom: 10 }}>
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 10, marginBottom: 6 }}>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: "#1a2332", marginBottom: 4 }}>{task.title}</div>
+          {task.notes && <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 4 }}>{task.notes}</div>}
+          <div style={{ fontSize: 11, color: overdue ? "#b91c1c" : "#6b7280", fontWeight: overdue ? 600 : 400 }}>
+            {overdue ? "⚠️ Overdue · " : ""}Personal task{task.due_date ? " · Due " + task.due_date : ""}
+          </div>
+        </div>
+      </div>
+      <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+        <button onClick={complete} disabled={busy} style={{ flex: 2, padding: "7px 0", borderRadius: 6, border: "none", background: "#1E8449", color: "#fff", fontWeight: 600, fontSize: 13, cursor: busy ? "wait" : "pointer", fontFamily: "inherit" }}>
+          ✓ Done
+        </button>
+        <button onClick={del} disabled={busy} style={{ flex: 1, padding: "7px 0", borderRadius: 6, border: "1px solid #fecaca", background: "#fff", color: "#b91c1c", fontWeight: 600, fontSize: 12, cursor: busy ? "wait" : "pointer", fontFamily: "inherit" }}>
+          🗑 Delete
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function TaskCard({ task, token, onResolve, onSnooze, onOpenModal, onStartChase, onOpenTransactionMilestones }) {
   const cfg = PRIORITY_CONFIG[task.priority] || PRIORITY_CONFIG.normal;
   const icon = TASK_ICONS[task.task_type] || "📌";
@@ -265,6 +322,7 @@ function EmptyState({ firstName }) {
 // ── MAIN DASHBOARD ────────────────────────────────────────────
 export default function DailyDashboard({ token, user, onViewTransactions, onOpenTransactionMilestones }) {
   const [tasks, setTasks] = useState({ overdue:[], dueToday:[], upcoming:[] });
+  const [personal, setPersonal] = useState({ overdue:[], dueToday:[], upcoming:[] });
   const [callsDue, setCallsDue] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeModal, setActiveModal] = useState(null);
@@ -295,6 +353,7 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
       const data = await tasksRes.json();
       if (data.success) {
         setTasks({ overdue: data.overdue || [], dueToday: data.dueToday || [], upcoming: data.upcoming || [] });
+        setPersonal({ overdue: (data.personal && data.personal.overdue) || [], dueToday: (data.personal && data.personal.dueToday) || [], upcoming: (data.personal && data.personal.upcoming) || [] });
       }
       if (callsRes && callsRes.ok) {
         const callsData = await callsRes.json();
@@ -497,6 +556,14 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
       )}
 
       {/* OVERDUE / URGENT */}
+            {(personal.overdue.length > 0 || personal.dueToday.length > 0) && (
+        <div style={{ marginBottom: 24 }}>
+          <SectionHeader label="📝 PERSONAL TASKS DUE TODAY" count={personal.overdue.length + personal.dueToday.length} color="#1E8449" />
+          {[...personal.overdue, ...personal.dueToday].map(t => (
+            <PersonalTaskCard key={t.id} task={t} token={token} onChange={fetchTasks} />
+          ))}
+        </div>
+      )}
       {visibleOverdue.length > 0 && (
         <div>
           <SectionHeader label="NEEDS ATTENTION NOW" count={visibleOverdue.length} color={COLORS.red} />
