@@ -4835,11 +4835,18 @@ function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenCon
                   </div>
                   <div style={{ display: "flex", justifyContent: "space-between" }}>
                     {["Contract", "Inspection", "Title", "Closing"].map((milestone) => {
+                      // Only highlight stages the transaction has actually reached
+                      const stageReached = {
+                        "Contract":   ["Under Contract","Inspection","Appraisal","Clear to Close","Closed"].includes(tx.status),
+                        "Inspection": ["Inspection","Appraisal","Clear to Close","Closed"].includes(tx.status),
+                        "Title":      ["Appraisal","Clear to Close","Closed"].includes(tx.status),
+                        "Closing":    ["Clear to Close","Closed"].includes(tx.status),
+                      }[milestone];
                       const milestoneTasks = tx.tasks.filter(t => t.category === milestone);
                       const milestoneCompleted = milestoneTasks.filter(t => t.status === "Completed").length;
                       const milestoneProgress = milestoneTasks.length > 0 ? milestoneCompleted / milestoneTasks.length : 0;
-                      const isDone = milestoneProgress === 1 && milestoneTasks.length > 0;
-                      const isStarted = milestoneProgress > 0;
+                      const isDone = stageReached && milestoneProgress === 1 && milestoneTasks.length > 0;
+                      const isStarted = stageReached && milestoneProgress > 0;
                       const dotColor = isDone ? "#1E8449" : isStarted ? (tx.type === "Buyer Representation" ? "#3B82F6" : "#C0392B") : "#D1D5DB";
                       return (
                         <div key={milestone} style={{ display: "flex", flexDirection: "column", alignItems: "center", flex: 1 }}>
