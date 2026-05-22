@@ -2022,7 +2022,7 @@ function MilestonesTab({ tx, token }) {
 
   return (
     <div style={{ padding: 16 }}>
-      {(tx.construction_type === "New Construction") ? (
+      {(tx.constructionType === "New Construction") ? (
         <BrokerFilePanel txId={tx.id} token={token} />
       ) : (() => {
         const complianceArr = Object.values(compliance);
