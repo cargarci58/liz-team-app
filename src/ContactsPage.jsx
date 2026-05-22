@@ -907,8 +907,7 @@ function ContactDetailDrawer({ contact, token, onClose, onEdit, onLogged, onArch
             </button>
             <button
               onClick={async () => {
-                const first = prompt("⚠️ DELETE FOREVER\n\nThis will permanently delete " + name + " AND all their call history. This CANNOT be undone.\n\nType DELETE to confirm:");
-                if (first !== "DELETE") { if (first !== null) alert("Deletion cancelled — you must type DELETE exactly."); return; }
+                if (!confirm("⚠️ Permanently delete " + name + " AND all their call history?\n\nThis CANNOT be undone.")) return;
                 try {
                   const r = await fetch(API + "/contacts/" + contact.id, {
                     method: "DELETE",
@@ -1177,8 +1176,7 @@ export default function ContactsPage({ token, onBack }) {
     const verb = action === "delete" ? "PERMANENTLY DELETE" : action === "archive" ? "archive" : "un-archive";
     const noun = selected.size === 1 ? "contact" : "contacts";
     if (action === "delete") {
-      const c = prompt("⚠️ PERMANENTLY DELETE " + selected.size + " " + noun + " AND all their call history. This CANNOT be undone.\n\nType DELETE to confirm:");
-      if (c !== "DELETE") { if (c !== null) alert("Cancelled — you must type DELETE exactly."); return; }
+      if (!confirm("⚠️ Permanently delete " + selected.size + " " + noun + " AND all their call history?\n\nThis CANNOT be undone.")) return;
     } else {
       if (!confirm("Are you sure you want to " + verb + " " + selected.size + " " + noun + "?")) return;
     }
@@ -1317,8 +1315,7 @@ export default function ContactsPage({ token, onBack }) {
                       } catch (e) { alert("Error: " + e.message); }
                     }} title="Archive contact" style={{ background: "transparent", border: "none", cursor: "pointer", fontSize: 14, marginLeft: 6, padding: "2px 4px" }}>📦</button>
                     <button onClick={async () => {
-                      const conf = prompt("⚠️ DELETE " + name + " FOREVER. This CANNOT be undone.\n\nType DELETE to confirm:");
-                      if (conf !== "DELETE") { if (conf !== null) alert("Cancelled."); return; }
+                      if (!confirm("⚠️ Delete " + name + " forever?\n\nThis CANNOT be undone — call history will also be lost.")) return;
                       try {
                         await fetch(API + "/contacts/" + c.id, { method: "DELETE", headers: { Authorization: "Bearer " + token } });
                         load();
