@@ -1792,7 +1792,7 @@ function MilestonesTab({ tx, token }) {
   const handleWaive = async () => {
     if (!waiveModalFor) return;
     if (!waiveReason) { alert("Select a reason for waiving."); return; }
-    if (waiveJustification.trim().length < 10) { alert("Justification must be at least 10 characters."); return; }
+    if (!waiveJustification.trim()) { alert("Justification is required."); return; }
     if (!waiveConfirm) { alert("Please confirm you take responsibility for this waiver."); return; }
     setWaiving(true);
     try {
@@ -2082,7 +2082,7 @@ function MilestonesTab({ tx, token }) {
             </div>
 
             <div style={{ marginBottom: 14 }}>
-              <label style={{ display: "block", fontWeight: 700, fontSize: 13, color: "#1a2332", marginBottom: 6 }}>Justification <span style={{ color: "#C0392B" }}>*</span> <span style={{ fontWeight: 400, color: "#6b7280" }}>(min 10 chars — be specific)</span></label>
+              <label style={{ display: "block", fontWeight: 700, fontSize: 13, color: "#1a2332", marginBottom: 6 }}>Justification <span style={{ color: "#C0392B" }}>*</span></label>
               <textarea value={waiveJustification} onChange={e => setWaiveJustification(e.target.value)} disabled={waiving}
                 placeholder="Example: Buyer is paying all-cash via wire transfer from Chase. No financing involved. Confirmed via signed cash letter dated 5/15/26."
                 rows={4}
@@ -2099,8 +2099,8 @@ function MilestonesTab({ tx, token }) {
                 style={{ flex: 1, padding: "11px 0", borderRadius: 8, border: "1.5px solid #D1D5DB", background: "#fff", color: "#374151", fontWeight: 600, fontSize: 14, cursor: waiving ? "not-allowed" : "pointer" }}>
                 Cancel
               </button>
-              <button onClick={handleWaive} disabled={waiving || !waiveReason || waiveJustification.trim().length < 10 || !waiveConfirm}
-                style={{ flex: 2, padding: "11px 0", borderRadius: 8, border: "none", background: (waiving || !waiveReason || waiveJustification.trim().length < 10 || !waiveConfirm) ? "#D1A878" : "#92400E", color: "#fff", fontWeight: 700, fontSize: 14, cursor: (waiving || !waiveReason || waiveJustification.trim().length < 10 || !waiveConfirm) ? "not-allowed" : "pointer" }}>
+              <button onClick={handleWaive} disabled={waiving || !waiveReason || !waiveJustification.trim() || !waiveConfirm}
+                style={{ flex: 2, padding: "11px 0", borderRadius: 8, border: "none", background: (waiving || !waiveReason || !waiveJustification.trim() || !waiveConfirm) ? "#D1A878" : "#92400E", color: "#fff", fontWeight: 700, fontSize: 14, cursor: (waiving || !waiveReason || !waiveJustification.trim() || !waiveConfirm) ? "not-allowed" : "pointer" }}>
                 {waiving ? "Waiving..." : "⚠️ Waive This Milestone"}
               </button>
             </div>
