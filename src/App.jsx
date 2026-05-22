@@ -1676,20 +1676,37 @@ function BrokerFilePanel({ txId, token }) {
 
     setUploadingType(docType);
     try {
-      const fd = new FormData();
-      fd.append("file", file);
-      fd.append("documentType", docType);
-      const res = await fetch(API + "/broker-file/" + txId + "/upload", {
+      // Step 1: request presigned URL
+      const urlRes = await fetch(API + "/broker-file/" + txId + "/upload-url", {
         method: "POST",
-        headers: { Authorization: "Bearer " + token },
-        body: fd
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer " + token
+        },
+        body: JSON.stringify({
+          documentType: docType,
+          fileName: file.name,
+          fileType: file.type || "application/octet-stream"
+        })
       });
-      const result = await res.json();
-      if (result.success) {
-        await fetchData();
-      } else {
-        alert("Upload failed: " + (result.error || "unknown"));
+      const urlData = await urlRes.json();
+      if (!urlData.success) {
+        alert("Upload failed: " + (urlData.error || "could not get upload URL"));
+        setUploadingType(null);
+        return;
       }
+      // Step 2: PUT file directly to R2
+      const putRes = await fetch(urlData.uploadUrl, {
+        method: "PUT",
+        headers: { "Content-Type": file.type || "application/octet-stream" },
+        body: file
+      });
+      if (!putRes.ok) {
+        alert("Upload to storage failed");
+        setUploadingType(null);
+        return;
+      }
+      await fetchData();
     } catch (err) {
       alert("Upload error: " + err.message);
     }
