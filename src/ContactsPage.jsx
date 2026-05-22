@@ -764,7 +764,7 @@ function ImportModal({ token, onClose, onImported }) {
 // ============================================================
 // CONTACT DETAIL DRAWER — see all info + call history + notes
 // ============================================================
-function ContactDetailDrawer({ contact, token, onClose, onEdit, onLogged }) {
+function ContactDetailDrawer({ contact, token, onClose, onEdit, onLogged, onArchived, onDeleted }) {
   const [callHistory, setCallHistory] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -885,9 +885,46 @@ function ContactDetailDrawer({ contact, token, onClose, onEdit, onLogged }) {
           )}
 
           {/* Action buttons */}
-          <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
+          <div style={{ display: "flex", gap: 8, marginBottom: 8, flexWrap: "wrap" }}>
             <LogCallButton contact={contact} token={token} onLogged={() => { load(); onLogged && onLogged(); }} />
             <button onClick={() => onEdit(contact)} style={btnStyle("#e5e7eb", "#374151")}>✏️ Edit</button>
+            <button
+              onClick={async () => {
+                if (!confirm("Archive " + name + "? They'll be hidden from your main list but their call history is kept. You can un-archive later.")) return;
+                try {
+                  const r = await fetch(API + "/contacts/" + contact.id, {
+                    method: "PUT",
+                    headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
+                    body: JSON.stringify({ is_archived: true })
+                  });
+                  if (!r.ok) { alert("Could not archive"); return; }
+                  if (onArchived) onArchived();
+                  onClose();
+                } catch (e) { alert("Error: " + e.message); }
+              }}
+              style={btnStyle("#fef3c7", "#92400e")} title="Hide from main list but keep history">
+              📦 Archive
+            </button>
+            <button
+              onClick={async () => {
+                const first = prompt("⚠️ DELETE FOREVER\n\nThis will permanently delete " + name + " AND all their call history. This CANNOT be undone.\n\nType DELETE to confirm:");
+                if (first !== "DELETE") { if (first !== null) alert("Deletion cancelled — you must type DELETE exactly."); return; }
+                try {
+                  const r = await fetch(API + "/contacts/" + contact.id, {
+                    method: "DELETE",
+                    headers: { Authorization: "Bearer " + token }
+                  });
+                  if (!r.ok) { alert("Could not delete"); return; }
+                  if (onDeleted) onDeleted();
+                  onClose();
+                } catch (e) { alert("Error: " + e.message); }
+              }}
+              style={btnStyle("#fee2e2", "#991b1b")} title="Permanently delete contact and call history">
+              🗑 Delete Forever
+            </button>
+          </div>
+          <div style={{ fontSize: 11, color: "#6b7280", marginBottom: 16, fontStyle: "italic" }}>
+            💡 Archive hides from your list but keeps history. Delete Forever cannot be undone.
           </div>
 
           {/* Call history */}
@@ -1236,7 +1273,7 @@ export default function ContactsPage({ token, onBack }) {
 
       {showAdd && <ContactModal token={token} onClose={() => setShowAdd(false)} onSaved={() => load()} />}
       {editing && <ContactModal contact={editing} token={token} onClose={() => setEditing(null)} onSaved={() => load()} />}
-      {viewing && <ContactDetailDrawer contact={viewing} token={token} onClose={() => setViewing(null)} onEdit={(c) => { setViewing(null); setEditing(c); }} onLogged={load} />}
+      {viewing && <ContactDetailDrawer contact={viewing} token={token} onClose={() => setViewing(null)} onEdit={(c) => { setViewing(null); setEditing(c); }} onLogged={load} onArchived={load} onDeleted={load} />}
       {showBulkSchedule && <BulkScheduleModal token={token} contactCount={contacts.length} onClose={() => setShowBulkSchedule(false)} onScheduled={() => load()} />}
       {showFillMissing && <FillMissingModal token={token} onClose={() => setShowFillMissing(false)} onDone={() => { setShowFillMissing(false); load(); }} />}
       {showImport && <ImportModal token={token} onClose={() => setShowImport(false)} onImported={(data) => {
