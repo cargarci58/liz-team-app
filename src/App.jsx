@@ -2076,11 +2076,15 @@ function MilestonesTab({ tx, token }) {
         </div>
       </div>
 
-      {Object.entries(grouped).map(([category, items]) => (
+      {Object.entries(grouped).map(([category, items]) => {
+        const isNC = tx.constructionType === "New Construction";
+        const visibleItems = isNC ? items.filter(m => getMilestoneStatus(m) !== "waived") : items;
+        if (visibleItems.length === 0) return null;
+        return (
         <div key={category} style={{ marginBottom: 20 }}>
           <div style={{ fontSize: 11, fontWeight: 800, color: "#555", letterSpacing: 1,
             textTransform: "uppercase", marginBottom: 8 }}>{category}</div>
-          {items.map(m => {
+          {visibleItems.map(m => {
             const ms = getMilestoneStatus(m);
             const cfg = statusConfig[ms];
             const days = daysUntil(m.due_date);
@@ -2098,7 +2102,7 @@ function MilestonesTab({ tx, token }) {
                     <div style={{ fontWeight: 700, fontSize: 14, color: "#111",
                       textDecoration: isClosed ? "line-through" : "none", marginBottom: 4 }}>
                       {m.name}
-                      {m.is_hard_block && !isClosed && (
+                      {m.is_hard_block && !isClosed && tx.constructionType !== "New Construction" && (
                         <span style={{ marginLeft: 8, fontSize: 10, fontWeight: 700,
                           color: "#C0392B", background: "#FADBD8",
                           padding: "2px 7px", borderRadius: 20 }}>REQUIRED</span>
@@ -2166,7 +2170,7 @@ function MilestonesTab({ tx, token }) {
                 )}
                 {!isClosed && (
                   <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
-                    {compliance[m.id]?.documentRequired ? (
+                    {compliance[m.id]?.documentRequired && tx.constructionType !== "New Construction" ? (
                       <>
                         <button onClick={() => handleUploadClick(m.id)} disabled={uploadingFor === m.id}
                           style={{ flex: "2 1 100%", padding: "10px 0", borderRadius: 8, border: "none",
@@ -2196,7 +2200,8 @@ function MilestonesTab({ tx, token }) {
             );
           })}
         </div>
-      ))}
+        );
+      })}
 
 
       {waiveModalFor && (
