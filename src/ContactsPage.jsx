@@ -885,45 +885,9 @@ function ContactDetailDrawer({ contact, token, onClose, onEdit, onLogged, onArch
           )}
 
           {/* Action buttons */}
-          <div style={{ display: "flex", gap: 8, marginBottom: 8, flexWrap: "wrap" }}>
+          <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
             <LogCallButton contact={contact} token={token} onLogged={() => { load(); onLogged && onLogged(); }} />
             <button onClick={() => onEdit(contact)} style={btnStyle("#e5e7eb", "#374151")}>✏️ Edit</button>
-            <button
-              onClick={async () => {
-                if (!confirm("Archive " + name + "? They'll be hidden from your main list but their call history is kept. You can un-archive later.")) return;
-                try {
-                  const r = await fetch(API + "/contacts/" + contact.id, {
-                    method: "PUT",
-                    headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
-                    body: JSON.stringify({ is_archived: true })
-                  });
-                  if (!r.ok) { alert("Could not archive"); return; }
-                  if (onArchived) onArchived();
-                  onClose();
-                } catch (e) { alert("Error: " + e.message); }
-              }}
-              style={btnStyle("#fef3c7", "#92400e")} title="Hide from main list but keep history">
-              📦 Archive
-            </button>
-            <button
-              onClick={async () => {
-                if (!confirm("⚠️ Permanently delete " + name + " AND all their call history?\n\nThis CANNOT be undone.")) return;
-                try {
-                  const r = await fetch(API + "/contacts/" + contact.id, {
-                    method: "DELETE",
-                    headers: { Authorization: "Bearer " + token }
-                  });
-                  if (!r.ok) { alert("Could not delete"); return; }
-                  if (onDeleted) onDeleted();
-                  onClose();
-                } catch (e) { alert("Error: " + e.message); }
-              }}
-              style={btnStyle("#fee2e2", "#991b1b")} title="Permanently delete contact and call history">
-              🗑 Delete Forever
-            </button>
-          </div>
-          <div style={{ fontSize: 11, color: "#6b7280", marginBottom: 16, fontStyle: "italic" }}>
-            💡 Archive hides from your list but keeps history. Delete Forever cannot be undone.
           </div>
 
           {/* Call history */}
