@@ -1139,6 +1139,7 @@ export default function ContactsPage({ token, onBack }) {
   const [contacts, setContacts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState({ temperature: "", type: "", due: "", search: "", missing: "" });
+  const [selected, setSelected] = useState(new Set());
   const [sortBy, setSortBy] = useState({ col: "", dir: "asc" });
   const [showAdd, setShowAdd] = useState(false);
   const [showImport, setShowImport] = useState(false);
@@ -1165,6 +1166,35 @@ export default function ContactsPage({ token, onBack }) {
   };
 
   useEffect(() => { load(); }, [filter.temperature, filter.type, filter.due, filter.missing, sortBy.col, sortBy.dir]);
+
+  const toggleOne = (id) => setSelected(prev => {
+    const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n;
+  });
+  const toggleAll = () => setSelected(prev => prev.size === contacts.length ? new Set() : new Set(contacts.map(c => c.id)));
+
+  const bulkAction = async (action) => {
+    if (selected.size === 0) return;
+    const verb = action === "delete" ? "PERMANENTLY DELETE" : action === "archive" ? "archive" : "un-archive";
+    const noun = selected.size === 1 ? "contact" : "contacts";
+    if (action === "delete") {
+      const c = prompt("⚠️ PERMANENTLY DELETE " + selected.size + " " + noun + " AND all their call history. This CANNOT be undone.\n\nType DELETE to confirm:");
+      if (c !== "DELETE") { if (c !== null) alert("Cancelled — you must type DELETE exactly."); return; }
+    } else {
+      if (!confirm("Are you sure you want to " + verb + " " + selected.size + " " + noun + "?")) return;
+    }
+    try {
+      const r = await fetch(API + "/contacts/bulk", {
+        method: "POST",
+        headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
+        body: JSON.stringify({ ids: Array.from(selected), action })
+      });
+      const data = await r.json();
+      if (!r.ok) { alert("Failed: " + (data.error || "unknown")); return; }
+      setSelected(new Set());
+      load();
+    } catch (e) { alert("Error: " + e.message); }
+  };
+
   useEffect(() => { const t = setTimeout(load, 300); return () => clearTimeout(t); }, [filter.search]);
 
   return (
@@ -1217,10 +1247,23 @@ export default function ContactsPage({ token, onBack }) {
         </select>
       </div>
 
+      {selected.size > 0 && (
+        <div style={{ background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 8, padding: "10px 14px", marginBottom: 10, display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: "#1e3a8a" }}>{selected.size} selected</div>
+          <button onClick={() => bulkAction("archive")} style={btnStyle("#fef3c7", "#92400e")}>📦 Archive</button>
+          <button onClick={() => bulkAction("unarchive")} style={btnStyle("#e0e7ff", "#3730a3")}>📤 Un-archive</button>
+          <button onClick={() => bulkAction("delete")} style={btnStyle("#fee2e2", "#991b1b")}>🗑 Delete Forever</button>
+          <button onClick={() => setSelected(new Set())} style={{ marginLeft: "auto", background: "transparent", border: "none", color: "#6b7280", cursor: "pointer", fontSize: 12, fontWeight: 600 }}>Clear selection</button>
+        </div>
+      )}
       <div style={{ background: "white", border: "1px solid #e5e7eb", borderRadius: 8, overflow: "hidden" }}>
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
           <thead>
             <tr style={{ background: "#f9fafb" }}>
+              <th style={{ ...th, width: 32 }}>
+                <input type="checkbox" checked={contacts.length > 0 && selected.size === contacts.length} onChange={toggleAll}
+                  title="Select all" style={{ cursor: "pointer" }} />
+              </th>
               <SortableTh label="Name" col="name" sortBy={sortBy} setSortBy={setSortBy} />
               <SortableTh label="Phone" col="phone" sortBy={sortBy} setSortBy={setSortBy} hint="Click twice → empties at top" />
               <SortableTh label="Type" col="type" sortBy={sortBy} setSortBy={setSortBy} />
@@ -1231,9 +1274,9 @@ export default function ContactsPage({ token, onBack }) {
             </tr>
           </thead>
           <tbody>
-            {loading && <tr><td colSpan={7} style={{ padding: 40, textAlign: "center", color: "#6b7280" }}>Loading...</td></tr>}
+            {loading && <tr><td colSpan={8} style={{ padding: 40, textAlign: "center", color: "#6b7280" }}>Loading...</td></tr>}
             {!loading && contacts.length === 0 && (
-              <tr><td colSpan={7} style={{ padding: 40, textAlign: "center", color: "#6b7280" }}>
+              <tr><td colSpan={8} style={{ padding: 40, textAlign: "center", color: "#6b7280" }}>
                 No contacts yet. Click <strong>+ Add Contact</strong> or <strong>📥 Import CSV</strong>.
               </td></tr>
             )}
@@ -1242,7 +1285,10 @@ export default function ContactsPage({ token, onBack }) {
               const name = [c.first_name, c.last_name].filter(Boolean).join(" ") || c.email || c.phone || "(no name)";
               const overdue = c.next_call_due_at && new Date(c.next_call_due_at) < new Date();
               return (
-                <tr key={c.id} style={{ borderTop: "1px solid #f3f4f6" }}>
+                <tr key={c.id} style={{ borderTop: "1px solid #f3f4f6", background: selected.has(c.id) ? "#eff6ff" : "transparent" }}>
+                  <td style={{ ...td, width: 32 }}>
+                    <input type="checkbox" checked={selected.has(c.id)} onChange={() => toggleOne(c.id)} style={{ cursor: "pointer" }} />
+                  </td>
                   <td style={td}>
                     <button onClick={() => setViewing(c)} style={{ background: "none", border: "none", padding: 0, fontFamily: "inherit", cursor: "pointer", textAlign: "left", color: "#0c4a6e", fontWeight: 600, fontSize: 13 }}>
                       {name}
@@ -1263,6 +1309,21 @@ export default function ContactsPage({ token, onBack }) {
                   <td style={{ ...td, textAlign: "right", whiteSpace: "nowrap" }}>
                     <LogCallButton contact={c} token={token} onLogged={load} compact />
                     <button onClick={() => setEditing(c)} style={{ ...btnStyle("#e5e7eb", "#374151"), padding: "4px 10px", fontSize: 11, marginLeft: 6 }}>Edit</button>
+                    <button onClick={async () => {
+                      if (!confirm("Archive " + name + "?")) return;
+                      try {
+                        await fetch(API + "/contacts/" + c.id, { method: "PUT", headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" }, body: JSON.stringify({ is_archived: true }) });
+                        load();
+                      } catch (e) { alert("Error: " + e.message); }
+                    }} title="Archive contact" style={{ background: "transparent", border: "none", cursor: "pointer", fontSize: 14, marginLeft: 6, padding: "2px 4px" }}>📦</button>
+                    <button onClick={async () => {
+                      const conf = prompt("⚠️ DELETE " + name + " FOREVER. This CANNOT be undone.\n\nType DELETE to confirm:");
+                      if (conf !== "DELETE") { if (conf !== null) alert("Cancelled."); return; }
+                      try {
+                        await fetch(API + "/contacts/" + c.id, { method: "DELETE", headers: { Authorization: "Bearer " + token } });
+                        load();
+                      } catch (e) { alert("Error: " + e.message); }
+                    }} title="Delete forever" style={{ background: "transparent", border: "none", cursor: "pointer", fontSize: 14, marginLeft: 4, padding: "2px 4px" }}>🗑</button>
                   </td>
                 </tr>
               );
