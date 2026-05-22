@@ -1639,6 +1639,132 @@ function AssignVendorPanel({ tx, token, onClose, onAssigned }) {
 }
 
 // ═══════════════════════════════════════════════════════════════
+// BROKER FILE PANEL (New Construction compliance — retention docs)
+// ═══════════════════════════════════════════════════════════════
+function BrokerFilePanel({ txId, token }) {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [uploadingType, setUploadingType] = useState(null);
+  const fileInputRef = useRef(null);
+  const pendingTypeRef = useRef(null);
+
+  const fetchData = async () => {
+    try {
+      const res = await fetch(API + "/broker-file/" + txId, {
+        headers: { Authorization: "Bearer " + token }
+      });
+      const d = await res.json();
+      if (d.success) setData(d);
+    } catch (e) {}
+    setLoading(false);
+  };
+
+  useEffect(() => { fetchData(); }, [txId]);
+
+  const handleUploadClick = (docType) => {
+    pendingTypeRef.current = docType;
+    fileInputRef.current?.click();
+  };
+
+  const handleFileSelected = async (e) => {
+    const file = e.target.files?.[0];
+    const docType = pendingTypeRef.current;
+    if (!file || !docType) return;
+    e.target.value = "";
+
+    if (file.size > 50 * 1024 * 1024) { alert("File too large (50MB max)"); return; }
+
+    setUploadingType(docType);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      fd.append("documentType", docType);
+      const res = await fetch(API + "/broker-file/" + txId + "/upload", {
+        method: "POST",
+        headers: { Authorization: "Bearer " + token },
+        body: fd
+      });
+      const result = await res.json();
+      if (result.success) {
+        await fetchData();
+      } else {
+        alert("Upload failed: " + (result.error || "unknown"));
+      }
+    } catch (err) {
+      alert("Upload error: " + err.message);
+    }
+    setUploadingType(null);
+    pendingTypeRef.current = null;
+  };
+
+  if (loading) return null;
+  if (!data || data.total === 0) return null;
+
+  const pct = Math.round((data.uploaded / data.total) * 100);
+  const complete = data.complete;
+
+  return (
+    <div style={{ background: complete ? "#D1FAE5" : "#FFFBEB",
+      borderRadius: 14, padding: 16, marginBottom: 12,
+      border: "1px solid " + (complete ? "#86EFAC" : "#FCD34D") }}>
+      <input ref={fileInputRef} type="file" style={{ display: "none" }} onChange={handleFileSelected} />
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+        <div style={{ fontWeight: 700, fontSize: 14, color: complete ? "#065F46" : "#92400E" }}>
+          {complete ? "✅ Broker File Complete" : "📂 Broker File Compliance"}
+        </div>
+        <div style={{ fontWeight: 700, fontSize: 14, color: complete ? "#065F46" : "#92400E" }}>
+          {data.uploaded}/{data.total} documents
+        </div>
+      </div>
+      <div style={{ fontSize: 12, color: "#78350F", marginBottom: 12, lineHeight: 1.5 }}>
+        New Construction broker file. Florida law requires these documents to be retained for 5 years (Fla. Stat. § 475.5015). Upload each as you obtain it.
+      </div>
+
+      {data.items.map(item => (
+        <div key={item.documentType} style={{
+          background: "#fff",
+          borderRadius: 10,
+          padding: 12,
+          marginBottom: 8,
+          borderLeft: "4px solid " + (item.uploaded ? "#1E8449" : "#C0392B"),
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          gap: 12
+        }}>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontWeight: 700, fontSize: 13, color: "#111", marginBottom: 3 }}>
+              {item.uploaded ? "✅ " : "○ "}
+              {item.documentType.replace(/_/g, " ")}
+            </div>
+            <div style={{ fontSize: 11, color: "#555", lineHeight: 1.4 }}>
+              {item.description}
+            </div>
+            {item.uploaded && item.uploadedDoc && (
+              <div style={{ fontSize: 10, color: "#1E8449", marginTop: 4 }}>
+                📎 {item.uploadedDoc.name}
+              </div>
+            )}
+          </div>
+          {!item.uploaded && (
+            <button
+              onClick={() => handleUploadClick(item.documentType)}
+              disabled={uploadingType === item.documentType}
+              style={{
+                background: "#C0392B", color: "#fff", border: "none",
+                borderRadius: 8, padding: "8px 14px", fontWeight: 700,
+                fontSize: 12, cursor: "pointer", whiteSpace: "nowrap"
+              }}>
+              {uploadingType === item.documentType ? "Uploading..." : "📎 Upload"}
+            </button>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
 // MILESTONES TAB
 // ═══════════════════════════════════════════════════════════════
 function MilestonesTab({ tx, token }) {
@@ -1879,7 +2005,9 @@ function MilestonesTab({ tx, token }) {
 
   return (
     <div style={{ padding: 16 }}>
-      {(() => {
+      {(tx.construction_type === "New Construction") ? (
+        <BrokerFilePanel txId={tx.id} token={token} />
+      ) : (() => {
         const complianceArr = Object.values(compliance);
         const totalRequired = complianceArr.filter(c => c.documentRequired && c.status !== "Waived").length;
         const uploaded = complianceArr.filter(c => c.documentRequired && c.documentUploaded && c.status !== "Waived").length;
