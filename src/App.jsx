@@ -1792,7 +1792,7 @@ function MilestonesTab({ tx, token }) {
   const handleWaive = async () => {
     if (!waiveModalFor) return;
     if (!waiveReason) { alert("Select a reason for waiving."); return; }
-    if (!waiveJustification.trim()) { alert("Justification is required."); return; }
+    
     if (!waiveConfirm) { alert("Please confirm you take responsibility for this waiver."); return; }
     setWaiving(true);
     try {
@@ -2099,8 +2099,8 @@ function MilestonesTab({ tx, token }) {
                 style={{ flex: 1, padding: "11px 0", borderRadius: 8, border: "1.5px solid #D1D5DB", background: "#fff", color: "#374151", fontWeight: 600, fontSize: 14, cursor: waiving ? "not-allowed" : "pointer" }}>
                 Cancel
               </button>
-              <button onClick={handleWaive} disabled={waiving || !waiveReason || !waiveJustification.trim() || !waiveConfirm}
-                style={{ flex: 2, padding: "11px 0", borderRadius: 8, border: "none", background: (waiving || !waiveReason || !waiveJustification.trim() || !waiveConfirm) ? "#D1A878" : "#92400E", color: "#fff", fontWeight: 700, fontSize: 14, cursor: (waiving || !waiveReason || !waiveJustification.trim() || !waiveConfirm) ? "not-allowed" : "pointer" }}>
+              <button onClick={handleWaive} disabled={waiving || !waiveReason || !waiveConfirm}
+                style={{ flex: 2, padding: "11px 0", borderRadius: 8, border: "none", background: (waiving || !waiveReason || !waiveConfirm) ? "#D1A878" : "#92400E", color: "#fff", fontWeight: 700, fontSize: 14, cursor: (waiving || !waiveReason || !waiveConfirm) ? "not-allowed" : "pointer" }}>
                 {waiving ? "Waiving..." : "⚠️ Waive This Milestone"}
               </button>
             </div>
