@@ -86,7 +86,7 @@ export default function PreApprovalCard({ transactionId, isAgent = true, onChang
       )}
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 12, fontSize: 13 }}>
-        <div><span style={lbl}>Lender</span><div>{pa.lender_name || '—'}</div></div>
+        <div><span style={lbl}>Lender</span><div>{pa.lender_company || pa.lender_name || '—'}</div></div>
         <div><span style={lbl}>Loan Type</span><div>{pa.loan_type || '—'}</div></div>
         <div><span style={lbl}>Max Loan</span><div>{fmtMoney(pa.loan_amount)}</div></div>
         <div><span style={lbl}>Expires</span><div>{fmtDate(pa.expiration_date)}</div></div>

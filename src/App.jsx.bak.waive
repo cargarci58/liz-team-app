@@ -307,7 +307,6 @@ function PipelineCard({ tx, onSelect }) {
       <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
         <span style={{ fontSize: 14 }}>{tx.type === "Buyer Representation" ? "🏡" : "🏠"}</span>
         <span style={{ fontSize: 9, fontWeight: 700, color: COLORS.muted, textTransform: "uppercase", letterSpacing: "0.06em" }}>{tx.type === "Buyer Representation" ? "Buyer" : "Listing"}</span>
-        {tx.constructionType === "New Construction" && <span title="New Construction" style={{ background: "#FEF9E7", color: "#B7770D", fontSize: 9, fontWeight: 700, padding: "1px 6px", borderRadius: 8 }}>🏗️ NC</span>}
         {overdue > 0 && <span title={`${overdue} overdue task(s)`} style={{ marginLeft: "auto", background: COLORS.dangerBg, color: COLORS.danger, fontSize: 9, fontWeight: 700, padding: "1px 6px", borderRadius: 8 }}>⚠ {overdue}</span>}
       </div>
       <div style={{ fontWeight: 700, fontSize: 13, color: COLORS.navy, marginBottom: 2, lineHeight: 1.3 }}>{tx.address}</div>
@@ -1290,145 +1289,16 @@ function SMSPanel({ tx, onUpdate, currentUser }) {
 // ═══════════════════════════════════════════════════════════════
 // WIN THE DAY BUTTON + MODAL
 // ═══════════════════════════════════════════════════════════════
-function PersonalTaskAddButton({ token }) {
-  const [open, setOpen] = useState(false);
-  const [title, setTitle] = useState("");
-  const [notes, setNotes] = useState("");
-  const [dueDate, setDueDate] = useState("");
-  const [category, setCategory] = useState("");
-  const [saving, setSaving] = useState(false);
-  const CATEGORIES = ["Buyer", "Seller", "Pre-Approval", "Follow Up", "Other"];
-  const API = "https://liz-team-server-api-production.up.railway.app";
-
-  const PRESETS = [
-    { label: "Today", days: 0 }, { label: "Tomorrow", days: 1 },
-    { label: "2 days", days: 2 }, { label: "3 days", days: 3 },
-    { label: "1 week", days: 7 }, { label: "2 weeks", days: 14 },
-    { label: "1 month", days: 30 }, { label: "3 months", days: 90 },
-    { label: "6 months", days: 180 }, { label: "1 year", days: 365 },
-  ];
-
-  const setPreset = (days) => {
-    const d = new Date(); d.setDate(d.getDate() + days);
-    setDueDate(d.toISOString().slice(0, 10));
-  };
-
-  const today = new Date().toISOString().slice(0, 10);
-  const selectedDays = dueDate ? Math.round((new Date(dueDate + "T00:00:00") - new Date(today + "T00:00:00")) / 86400000) : null;
-
-  const save = async () => {
-    if (!title.trim()) { alert("Task title required"); return; }
-    setSaving(true);
-    try {
-      const r = await fetch(API + "/personal-tasks", {
-        method: "POST",
-        headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
-        body: JSON.stringify({ title: title.trim(), notes: notes || null, due_date: dueDate || null, category: category || null })
-      });
-      if (!r.ok) { const e = await r.json(); alert("Failed: " + (e.error || "unknown")); setSaving(false); return; }
-      window.dispatchEvent(new Event("wintheday:refresh"));
-      setTitle(""); setNotes(""); setDueDate(""); setCategory(""); setOpen(false);
-    } catch (e) { alert("Error: " + e.message); }
-    setSaving(false);
-  };
-
-  return (
-    <>
-      <button onClick={() => setOpen(true)}
-        style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "#fff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}
-        title="Add a personal task — not tied to any transaction">
-        📝 + Task
-      </button>
-      {open && (
-        <div onClick={() => !saving && setOpen(false)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
-          <div onClick={e => e.stopPropagation()} style={{ background: "#fff", borderRadius: 14, padding: 22, maxWidth: 520, width: "100%", maxHeight: "90vh", overflowY: "auto" }}>
-            <div style={{ fontSize: 20, fontWeight: 800, color: "#1a2332", marginBottom: 6 }}>📝 Add Personal Task</div>
-            <div style={{ background: "#EFF6FF", border: "1px solid #BFDBFE", borderRadius: 8, padding: 10, marginBottom: 14, fontSize: 12, color: "#1E3A8A", lineHeight: 1.5 }}>
-              <strong>What this is:</strong> A personal to-do that's NOT tied to any transaction (e.g., "Renew real estate license", "Order business cards"). Appears on your Win-the-Day dashboard.
-            </div>
-
-            <div style={{ marginBottom: 12 }}>
-              <div style={{ fontSize: 12, fontWeight: 600, color: "#555", marginBottom: 4 }}>Category</div>
-              <select value={category} onChange={e => setCategory(e.target.value)} disabled={saving}
-                style={{ width: "100%", padding: 9, borderRadius: 6, border: "1px solid #d1d5db", fontSize: 14, fontFamily: "inherit", background: "#fff", boxSizing: "border-box" }}>
-                <option value="">— select category —</option>
-                {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
-              </select>
-            </div>
-
-            <div style={{ marginBottom: 12 }}>
-              <div style={{ fontSize: 12, fontWeight: 600, color: "#555", marginBottom: 4 }}>Task <span style={{ color: "#C0392B" }}>*</span></div>
-              <input value={title} onChange={e => setTitle(e.target.value)} disabled={saving}
-                placeholder="What do you need to do?"
-                style={{ width: "100%", padding: 9, borderRadius: 6, border: "1px solid #d1d5db", fontSize: 14, fontFamily: "inherit", boxSizing: "border-box" }} />
-            </div>
-
-            <div style={{ marginBottom: 12 }}>
-              <div style={{ fontSize: 12, fontWeight: 600, color: "#555", marginBottom: 6 }}>When?</div>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 8 }}>
-                {PRESETS.map(p => {
-                  const active = selectedDays === p.days;
-                  return (
-                    <button key={p.label} type="button" onClick={() => setPreset(p.days)} disabled={saving}
-                      style={{ padding: "6px 10px", borderRadius: 16, border: active ? "1.5px solid #0c4a6e" : "1px solid #d1d5db", background: active ? "#0c4a6e" : "#fff", color: active ? "#fff" : "#374151", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
-                      {p.label}
-                    </button>
-                  );
-                })}
-              </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <span style={{ fontSize: 11, color: "#6b7280" }}>Or custom date:</span>
-                <input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} disabled={saving}
-                  style={{ padding: 6, borderRadius: 6, border: "1px solid #d1d5db", fontSize: 13, fontFamily: "inherit" }} />
-                {dueDate && (
-                  <button type="button" onClick={() => setDueDate("")} disabled={saving}
-                    style={{ background: "transparent", border: "none", color: "#dc2626", cursor: "pointer", fontSize: 12, fontWeight: 600 }}>
-                    Clear
-                  </button>
-                )}
-              </div>
-            </div>
-
-            <div style={{ marginBottom: 16 }}>
-              <div style={{ fontSize: 12, fontWeight: 600, color: "#555", marginBottom: 4 }}>Notes (optional)</div>
-              <textarea value={notes} onChange={e => setNotes(e.target.value)} disabled={saving} rows={3}
-                style={{ width: "100%", padding: 9, borderRadius: 6, border: "1px solid #d1d5db", fontSize: 14, fontFamily: "inherit", resize: "vertical", boxSizing: "border-box" }} />
-            </div>
-
-            <div style={{ display: "flex", gap: 10 }}>
-              <button onClick={() => !saving && setOpen(false)} disabled={saving}
-                style={{ flex: 1, padding: 11, borderRadius: 8, border: "1px solid #d1d5db", background: "#fff", color: "#374151", fontWeight: 600, fontSize: 14, cursor: saving ? "not-allowed" : "pointer" }}>
-                Cancel
-              </button>
-              <button onClick={save} disabled={saving || !title.trim()}
-                style={{ flex: 2, padding: 11, borderRadius: 8, border: "none", background: (saving || !title.trim()) ? "#9ca3af" : "#1E8449", color: "#fff", fontWeight: 700, fontSize: 14, cursor: (saving || !title.trim()) ? "not-allowed" : "pointer" }}>
-                {saving ? "Saving..." : "Add Task"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </>
-  );
-}
-
 function WinTheDayButton({ token }) {
   const [taskCount, setTaskCount] = useState(0);
   const [showModal, setShowModal] = useState(false);
   const API = "https://liz-team-server-api-production.up.railway.app";
 
-  // Poll every 5 min + listen for explicit refresh events (e.g. after a task is added)
+  // Poll task count every 5 minutes
   useEffect(() => {
     fetchCount();
     const interval = setInterval(fetchCount, 5 * 60 * 1000);
-    const handler = () => fetchCount();
-    window.addEventListener("wintheday:refresh", handler);
-    window.addEventListener("focus", handler);
-    return () => {
-      clearInterval(interval);
-      window.removeEventListener("wintheday:refresh", handler);
-      window.removeEventListener("focus", handler);
-    };
+    return () => clearInterval(interval);
   }, []);
 
   const fetchCount = async () => {
@@ -1783,42 +1653,11 @@ function MilestonesTab({ tx, token }) {
     } catch (e) {}
   };
 
-  const [waiveModalFor, setWaiveModalFor] = useState(null);
-  const [waiveReason, setWaiveReason] = useState("");
-  const [waiveJustification, setWaiveJustification] = useState("");
-  const [waiveConfirm, setWaiveConfirm] = useState(false);
-  const [waiving, setWaiving] = useState(false);
-
-  const handleWaive = async () => {
-    if (!waiveModalFor) return;
-    if (!waiveReason) { alert("Select a reason for waiving."); return; }
-    if (waiveJustification.trim().length < 10) { alert("Justification must be at least 10 characters."); return; }
-    if (!waiveConfirm) { alert("Please confirm you take responsibility for this waiver."); return; }
-    setWaiving(true);
-    try {
-      const r = await fetch(API + "/milestones/" + waiveModalFor.id + "/waive", {
-        method: "POST",
-        headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
-        body: JSON.stringify({ reason: waiveReason, justification: waiveJustification.trim() })
-      });
-      const d = await r.json();
-      if (!r.ok) { alert("Could not waive: " + (d.error || "unknown error")); setWaiving(false); return; }
-      await fetchMilestones();
-      await fetchCompliance();
-      setWaiveModalFor(null);
-      setWaiveReason("");
-      setWaiveJustification("");
-      setWaiveConfirm(false);
-    } catch (e) { alert("Error waiving milestone: " + e.message); }
-    setWaiving(false);
-  };
-
   const today = new Date().toISOString().split("T")[0];
   const daysUntil = (d) => d ? Math.round((new Date(d) - new Date(today)) / 86400000) : null;
 
   const getMilestoneStatus = (m) => {
     if (m.status === "Completed") return "completed";
-    if (m.status === "Waived") return "waived";
     if (!m.due_date) return "pending";
     const days = daysUntil(m.due_date);
     if (days < 0) return "overdue";
@@ -1829,7 +1668,6 @@ function MilestonesTab({ tx, token }) {
 
   const statusConfig = {
     completed: { color: "#1E8449", bg: "#D5F5E3", label: "Done", icon: "✅" },
-    waived:    { color: "#92400E", bg: "#FEF3C7", label: "Waived", icon: "⚠️" },
     overdue:   { color: "#C0392B", bg: "#FADBD8", label: "Overdue", icon: "🔴" },
     today:     { color: "#C0392B", bg: "#FADBD8", label: "Due Today", icon: "⚡" },
     soon:      { color: "#B7770D", bg: "#FEF9E7", label: "Due Soon", icon: "🟡" },
@@ -1843,7 +1681,7 @@ function MilestonesTab({ tx, token }) {
     return acc;
   }, {});
 
-  const completed = milestones.filter(m => m.status === "Completed" || m.status === "Waived").length;
+  const completed = milestones.filter(m => m.status === "Completed").length;
   const total = milestones.length;
   const progress = total > 0 ? Math.round(completed / total * 100) : 0;
 
@@ -1881,12 +1719,11 @@ function MilestonesTab({ tx, token }) {
     <div style={{ padding: 16 }}>
       {(() => {
         const complianceArr = Object.values(compliance);
-        const totalRequired = complianceArr.filter(c => c.documentRequired && c.status !== "Waived").length;
-        const uploaded = complianceArr.filter(c => c.documentRequired && c.documentUploaded && c.status !== "Waived").length;
+        const totalRequired = complianceArr.filter(c => c.documentRequired).length;
+        const uploaded = complianceArr.filter(c => c.documentRequired && c.documentUploaded).length;
         const completedWithoutDoc = complianceArr.filter(c =>
-          c.documentRequired && !c.documentUploaded && c.status === "Completed" && c.status !== "Waived"
+          c.documentRequired && !c.documentUploaded && c.status === "Completed"
         ).length;
-        const waivedCount = complianceArr.filter(c => c.status === "Waived").length;
         if (totalRequired === 0) return null;
         const pct = totalRequired === 0 ? 100 : Math.round((uploaded / totalRequired) * 100);
         return (
@@ -1940,20 +1777,18 @@ function MilestonesTab({ tx, token }) {
             const cfg = statusConfig[ms];
             const days = daysUntil(m.due_date);
             const isCompleted = ms === "completed";
-            const isWaived = ms === "waived";
-            const isClosed = isCompleted || isWaived;
             return (
               <div key={m.id} style={{ background: "#fff", borderRadius: 12, padding: 14,
                 marginBottom: 8, boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
-                borderLeft: "4px solid " + (isClosed ? (isWaived ? "#92400E" : "#1E8449") : cfg.color),
-                opacity: isClosed ? 0.75 : 1 }}>
+                borderLeft: "4px solid " + (isCompleted ? "#1E8449" : cfg.color),
+                opacity: isCompleted ? 0.75 : 1 }}>
                 <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
                   <div style={{ fontSize: 18 }}>{cfg.icon}</div>
                   <div style={{ flex: 1 }}>
                     <div style={{ fontWeight: 700, fontSize: 14, color: "#111",
-                      textDecoration: isClosed ? "line-through" : "none", marginBottom: 4 }}>
+                      textDecoration: isCompleted ? "line-through" : "none", marginBottom: 4 }}>
                       {m.name}
-                      {m.is_hard_block && !isClosed && (
+                      {m.is_hard_block && !isCompleted && (
                         <span style={{ marginLeft: 8, fontSize: 10, fontWeight: 700,
                           color: "#C0392B", background: "#FADBD8",
                           padding: "2px 7px", borderRadius: 20 }}>REQUIRED</span>
@@ -1961,26 +1796,26 @@ function MilestonesTab({ tx, token }) {
                     </div>
                     {m.due_date && (
                       <div style={{ fontSize: 12, color: cfg.color, fontWeight: 600 }}>
-                        {isWaived ? "Waived" : isCompleted ? "Completed" :
+                        {isCompleted ? "Completed" :
                          days === 0 ? "Due today" :
                          days < 0 ? Math.abs(days) + "d overdue" :
                          "Due in " + days + "d"} · {m.due_date}
                       </div>
                     )}
-                    {m.requires_document && !m.document_uploaded && !isClosed && m.status !== "Waived" && (
+                    {m.requires_document && !m.document_uploaded && !isCompleted && (
                       <div style={{ fontSize: 11, color: "#B7770D", marginTop: 2 }}>📎 Document required</div>
                     )}
                     {isCompleted && m.completed_by_name && (
                       <div style={{ fontSize: 11, color: "#555", marginTop: 2 }}>by {m.completed_by_name}</div>
                     )}
-                    {isClosed && !isWaived && compliance[m.id]?.documentRequired && !compliance[m.id]?.documentUploaded && (
+                    {isCompleted && compliance[m.id]?.documentRequired && !compliance[m.id]?.documentUploaded && (
                       <div style={{ background: "#FEE2E2", border: "1px solid #FCA5A5", borderRadius: 6, padding: 8, marginTop: 6, fontSize: 11, color: "#991B1B" }}>
                         ⚠️ Compliance gap: marked complete but missing {compliance[m.id].requiredDocType}
                       </div>
                     )}
                   </div>
                 </div>
-                {compliance[m.id]?.documentRequired && !isClosed && compliance[m.id]?.status !== "Waived" && (
+                {compliance[m.id]?.documentRequired && !isCompleted && (
                   <div style={{ background: "#FFFBEB", border: "1px solid #FCD34D", borderRadius: 8, padding: 12, marginTop: 10, fontSize: 12, lineHeight: 1.5 }}>
                     <div style={{ fontWeight: 700, color: "#92400E", marginBottom: 4, fontSize: 13 }}>
                       📎 Required: {compliance[m.id].requiredDocType}
@@ -2010,7 +1845,7 @@ function MilestonesTab({ tx, token }) {
                     )}
                   </div>
                 )}
-                {isClosed && !isWaived && compliance[m.id]?.documentRequired && !compliance[m.id]?.documentUploaded && (
+                {isCompleted && compliance[m.id]?.documentRequired && !compliance[m.id]?.documentUploaded && (
                   <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
                     <button onClick={() => handleUploadClick(m.id)} disabled={uploadingFor === m.id}
                       style={{ flex: 1, padding: "10px 0", borderRadius: 8, border: "1.5px solid #C0392B",
@@ -2019,7 +1854,7 @@ function MilestonesTab({ tx, token }) {
                     </button>
                   </div>
                 )}
-                {!isClosed && (
+                {!isCompleted && (
                   <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
                     {compliance[m.id]?.documentRequired ? (
                       <>
@@ -2039,11 +1874,11 @@ function MilestonesTab({ tx, token }) {
                         {completing === m.id ? "Saving..." : "Mark Complete"}
                       </button>
                     )}
-                    <button onClick={() => setWaiveModalFor(m)}
+                    <button onClick={() => handleSnooze(m.id)}
                       style={{ flex: 1, padding: "9px 0", borderRadius: 8,
-                        border: "1.5px solid #E5B14A", background: "#FFFBEB",
-                        color: "#92400E", fontWeight: 600, fontSize: 12, cursor: "pointer" }}>
-                      ⚠️ Waive — N/A
+                        border: "1.5px solid #DDD", background: "#fff",
+                        color: "#555", fontWeight: 600, fontSize: 13, cursor: "pointer" }}>
+                      Snooze
                     </button>
                   </div>
                 )}
@@ -2053,60 +1888,6 @@ function MilestonesTab({ tx, token }) {
         </div>
       ))}
 
-
-      {waiveModalFor && (
-        <div onClick={() => !waiving && setWaiveModalFor(null)}
-          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
-          <div onClick={e => e.stopPropagation()}
-            style={{ background: "#fff", borderRadius: 14, padding: 22, maxWidth: 520, width: "100%", maxHeight: "90vh", overflowY: "auto", boxShadow: "0 20px 60px rgba(0,0,0,0.3)" }}>
-            <div style={{ fontSize: 20, fontWeight: 800, color: "#92400E", marginBottom: 6 }}>⚠️ Waive Milestone — Not Applicable</div>
-            <div style={{ fontSize: 14, color: "#1a2332", fontWeight: 700, marginBottom: 10 }}>{waiveModalFor.name}</div>
-            <div style={{ background: "#FEF3C7", border: "1px solid #FCD34D", borderRadius: 8, padding: 12, marginBottom: 16, fontSize: 13, lineHeight: 1.5, color: "#78350F" }}>
-              <strong>What this does:</strong> Marks this milestone complete <strong>without</strong> a document. The transaction can keep moving.<br/><br/>
-              <strong>Why it matters:</strong> Your broker and compliance team can see every waiver. If audited, you must be able to defend this decision. A permanent audit-log entry is created with your name, the reason, and your justification.
-            </div>
-
-            <div style={{ marginBottom: 14 }}>
-              <label style={{ display: "block", fontWeight: 700, fontSize: 13, color: "#1a2332", marginBottom: 6 }}>Reason this is not applicable <span style={{ color: "#C0392B" }}>*</span></label>
-              <select value={waiveReason} onChange={e => setWaiveReason(e.target.value)} disabled={waiving}
-                style={{ width: "100%", padding: 10, borderRadius: 8, border: "1.5px solid #D1D5DB", fontSize: 14, fontFamily: "inherit", background: "#fff" }}>
-                <option value="">-- Select a reason --</option>
-                <option value="Cash deal — no lender">Cash deal — no lender</option>
-                <option value="New construction — no inspection">New construction — no inspection</option>
-                <option value="Not applicable to this property type">Not applicable to this property type</option>
-                <option value="Bundled with another document upload">Bundled with another document upload</option>
-                <option value="Document exists outside our system">Document exists outside our system (e.g. brokerage uses different form)</option>
-                <option value="Buyer/seller declined">Buyer/seller declined and signed waiver</option>
-                <option value="Other">Other (explain in justification)</option>
-              </select>
-            </div>
-
-            <div style={{ marginBottom: 14 }}>
-              <label style={{ display: "block", fontWeight: 700, fontSize: 13, color: "#1a2332", marginBottom: 6 }}>Justification <span style={{ color: "#C0392B" }}>*</span> <span style={{ fontWeight: 400, color: "#6b7280" }}>(min 10 chars — be specific)</span></label>
-              <textarea value={waiveJustification} onChange={e => setWaiveJustification(e.target.value)} disabled={waiving}
-                placeholder="Example: Buyer is paying all-cash via wire transfer from Chase. No financing involved. Confirmed via signed cash letter dated 5/15/26."
-                rows={4}
-                style={{ width: "100%", padding: 10, borderRadius: 8, border: "1.5px solid #D1D5DB", fontSize: 14, fontFamily: "inherit", resize: "vertical", boxSizing: "border-box" }} />
-            </div>
-
-            <label style={{ display: "flex", alignItems: "flex-start", gap: 8, marginBottom: 18, cursor: "pointer", fontSize: 13, color: "#1a2332" }}>
-              <input type="checkbox" checked={waiveConfirm} onChange={e => setWaiveConfirm(e.target.checked)} disabled={waiving} style={{ marginTop: 3, flexShrink: 0 }} />
-              <span>I confirm this waiver is justified and I take responsibility for compliance on this transaction.</span>
-            </label>
-
-            <div style={{ display: "flex", gap: 10 }}>
-              <button onClick={() => { if (!waiving) { setWaiveModalFor(null); setWaiveReason(""); setWaiveJustification(""); setWaiveConfirm(false); } }} disabled={waiving}
-                style={{ flex: 1, padding: "11px 0", borderRadius: 8, border: "1.5px solid #D1D5DB", background: "#fff", color: "#374151", fontWeight: 600, fontSize: 14, cursor: waiving ? "not-allowed" : "pointer" }}>
-                Cancel
-              </button>
-              <button onClick={handleWaive} disabled={waiving || !waiveReason || waiveJustification.trim().length < 10 || !waiveConfirm}
-                style={{ flex: 2, padding: "11px 0", borderRadius: 8, border: "none", background: (waiving || !waiveReason || waiveJustification.trim().length < 10 || !waiveConfirm) ? "#D1A878" : "#92400E", color: "#fff", fontWeight: 700, fontSize: 14, cursor: (waiving || !waiveReason || waiveJustification.trim().length < 10 || !waiveConfirm) ? "not-allowed" : "pointer" }}>
-                {waiving ? "Waiving..." : "⚠️ Waive This Milestone"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
       <button onClick={handleGenerate} disabled={generating}
         style={{ width: "100%", padding: 13, borderRadius: 10,
           border: "1.5px solid #DDD", background: "#fff",
@@ -2508,62 +2289,6 @@ function AssignAgentModal({ tx, token, onClose, onAssigned, currentUser }) {
   );
 }
 
-function DueDatePresetPicker({ label, value, onChange }) {
-  const PRESETS = [
-    { label: "Today", days: 0 },
-    { label: "Tomorrow", days: 1 },
-    { label: "2 days", days: 2 },
-    { label: "3 days", days: 3 },
-    { label: "1 week", days: 7 },
-    { label: "2 weeks", days: 14 },
-    { label: "1 month", days: 30 },
-    { label: "3 months", days: 90 },
-    { label: "6 months", days: 180 },
-    { label: "1 year", days: 365 },
-  ];
-
-  const setPreset = (days) => {
-    const d = new Date();
-    d.setDate(d.getDate() + days);
-    onChange(d.toISOString().slice(0, 10));
-  };
-
-  const today = new Date().toISOString().slice(0, 10);
-  const selectedDays = value ? Math.round((new Date(value + "T00:00:00") - new Date(today + "T00:00:00")) / 86400000) : null;
-
-  return (
-    <div style={{ marginBottom: 12 }}>
-      <div style={{ fontSize: 12, fontWeight: 600, color: "#555", marginBottom: 6 }}>{label || "Due Date"}</div>
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 8 }}>
-        {PRESETS.map(p => {
-          const active = selectedDays === p.days;
-          return (
-            <button key={p.label} type="button" onClick={() => setPreset(p.days)}
-              style={{
-                padding: "6px 10px", borderRadius: 16, border: active ? "1.5px solid #0c4a6e" : "1px solid #d1d5db",
-                background: active ? "#0c4a6e" : "#fff", color: active ? "#fff" : "#374151",
-                fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit"
-              }}>
-              {p.label}
-            </button>
-          );
-        })}
-      </div>
-      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        <span style={{ fontSize: 11, color: "#6b7280" }}>Or custom date:</span>
-        <input type="date" value={value || ""} onChange={e => onChange(e.target.value)}
-          style={{ padding: 6, borderRadius: 6, border: "1px solid #d1d5db", fontSize: 13, fontFamily: "inherit" }} />
-        {value && (
-          <button type="button" onClick={() => onChange("")}
-            style={{ background: "transparent", border: "none", color: "#dc2626", cursor: "pointer", fontSize: 12, fontWeight: 600 }}>
-            Clear
-          </button>
-        )}
-      </div>
-    </div>
-  );
-}
-
 function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [], onSaveContact, onOpenContactBook, onDuplicate, currentUser, initialTab = "overview", dashboardUnread = 0 }) {
   const [activeTab, setActiveTab] = useState(initialTab);
   const [showAssignAgent, setShowAssignAgent] = useState(false);
@@ -2673,7 +2398,6 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
     zipCode: tt.zipCode || "",
     county: tt.county || "",
     propertyType: tt.propertyType || "Single Family",
-    constructionType: tt.constructionType || "Resale",
     type: tt.type || "",
     mlsNumber: tt.mlsNumber || "",
     listPrice: tt.listPrice || "",
@@ -2768,7 +2492,7 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
   const statusCfg = STATUS_CONFIG[tx.status] || STATUS_CONFIG["Active"];
   const progress = tx.tasks.length > 0 ? Math.round(completedTasks / tx.tasks.length * 100) : 0;
   const CATEGORY_ORDER = ["Pre-Listing", "Consultation", "Showing", "Contract", "Disclosure", "Marketing", "Escrow", "Inspection", "HOA", "Appraisal", "Insurance", "Title", "Financing", "Closing", "Post-Closing", "Commission Disbursement", "General"];
-  const tasksByCategory = tx.tasks.filter(t => t.status !== "Archived").reduce((acc, t) => { acc[t.category] = acc[t.category] || []; acc[t.category].push(t); return acc; }, {});
+  const tasksByCategory = tx.tasks.reduce((acc, t) => { acc[t.category] = acc[t.category] || []; acc[t.category].push(t); return acc; }, {});
   const sortedTaskCategories = Object.entries(tasksByCategory).sort(([a], [b]) => { const ai = CATEGORY_ORDER.indexOf(a); const bi = CATEGORY_ORDER.indexOf(b); return (ai === -1 ? 999 : ai) - (bi === -1 ? 999 : bi); });
   const smsMsgCount = Object.values(tx.smsThreads || {}).reduce((a, t) => a + t.length, 0);
 
@@ -3585,7 +3309,7 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
         return (
         <Modal title="Add Task" onClose={() => setShowAddTask(false)}>
           <Input label="Task Name" value={taskForm.name} onChange={v => setTaskForm(f => ({ ...f, name: v }))} required />
-          <Input label="Category" value={taskForm.category} onChange={v => setTaskForm(f => ({ ...f, category: v }))} options={["Buyer","Seller","Pre-Approval","Follow Up","Contract","Disclosure","Escrow","Inspection","Financing","Title","HOA","Insurance","Marketing","Closing","Post-Closing","Other"]} />
+          <Input label="Category" value={taskForm.category} onChange={v => setTaskForm(f => ({ ...f, category: v }))} options={["Contract","Disclosure","Escrow","Inspection","Financing","Title","HOA","Insurance","Marketing","Closing","Post-Closing"]} />
           <div style={{ marginBottom: 10 }}>
             <div style={{ fontSize: 12, fontWeight: 600, color: "#555", marginBottom: 4 }}>Who is responsible? (for follow-ups)</div>
             <select value={taskForm.assignedPartyId || ""}
@@ -3611,25 +3335,15 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
               </div>
             )}
           </div>
-          <DueDatePresetPicker label="When to follow up?"
-            value={taskForm.dueDate}
-            onChange={v => setTaskForm(f => ({ ...f, dueDate: v }))} />
+          <Input label="Due Date" value={taskForm.dueDate} onChange={v => setTaskForm(f => ({ ...f, dueDate: v }))} type="date" />
           <Input label="Notes" value={taskForm.notes} onChange={v => setTaskForm(f => ({ ...f, notes: v }))} type="textarea" />
           <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
             <Btn variant="ghost" onClick={() => setShowAddTask(false)}>Cancel</Btn>
-            <Btn onClick={async () => {
+            <Btn onClick={() => {
               if (taskForm.name) {
                 update({ tasks: [...tx.tasks, { ...taskForm, id: genId(), status: "Pending" }] });
                 setTaskForm({ name: "", category: "Contract", assignTo: "", dueDate: "", notes: "", assignedPartyId: "", assignedPartyEmail: "", assignedPartyName: "", assignedPartyPhone: "" });
                 setShowAddTask(false);
-                // Regenerate daily tasks for this tx so the new task shows on Win-the-Day immediately
-                try {
-                  await fetch(API + "/transactions/" + tx.id + "/regenerate-daily-tasks", {
-                    method: "POST",
-                    headers: { Authorization: "Bearer " + token }
-                  });
-                  window.dispatchEvent(new Event("wintheday:refresh"));
-                } catch (e) { /* non-fatal — cron will catch it tomorrow */ }
               }
             }}>Add Task</Btn>
           </div>
@@ -3740,7 +3454,6 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
               <div style={{ marginBottom: 14 }}><div style={{ fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", marginBottom: 6 }}>Address</div><input value={editTxForm.address || ""} onChange={e => setEditTxForm(f => ({ ...f, address: e.target.value }))} placeholder="123 Main St" style={{ width: "100%", padding: "10px 14px", borderRadius: 8, border: "1.5px solid #CCC", fontSize: 15, fontFamily: "inherit", boxSizing: "border-box" }} /></div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 14 }}><div><div style={{ fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", marginBottom: 6 }}>City</div><input value={editTxForm.city || ""} onChange={e => setEditTxForm(f => ({ ...f, city: e.target.value }))} placeholder="Orlando" style={{ width: "100%", padding: "10px 14px", borderRadius: 8, border: "1.5px solid #CCC", fontSize: 15, fontFamily: "inherit", boxSizing: "border-box" }} /></div><div><div style={{ fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", marginBottom: 6 }}>ZIP</div><input value={editTxForm.zipCode || ""} onChange={e => setEditTxForm(f => ({ ...f, zipCode: e.target.value }))} placeholder="32801" style={{ width: "100%", padding: "10px 14px", borderRadius: 8, border: "1.5px solid #CCC", fontSize: 15, fontFamily: "inherit", boxSizing: "border-box" }} /></div></div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 14 }}><div><div style={{ fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", marginBottom: 6 }}>County</div><select value={editTxForm.county || ""} onChange={e => setEditTxForm(f => ({ ...f, county: e.target.value }))} style={{ width: "100%", padding: "10px 14px", borderRadius: 8, border: "1.5px solid #CCC", fontSize: 15, fontFamily: "inherit" }}>{["Orange","Osceola","Seminole","Polk","Lake","Volusia","Other"].map(c => <option key={c}>{c}</option>)}</select></div><div><div style={{ fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", marginBottom: 6 }}>Property Type</div><select value={editTxForm.propertyType || ""} onChange={e => setEditTxForm(f => ({ ...f, propertyType: e.target.value }))} style={{ width: "100%", padding: "10px 14px", borderRadius: 8, border: "1.5px solid #CCC", fontSize: 15, fontFamily: "inherit" }}>{["Single Family","Townhouse","Condominium","Villa","Multi-Family","Land"].map(t => <option key={t}>{t}</option>)}</select></div></div>
-              <div style={{ marginBottom: 14 }}><div style={{ fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", marginBottom: 6 }}>Construction Type</div><select value={editTxForm.constructionType || "Resale"} onChange={e => setEditTxForm(f => ({ ...f, constructionType: e.target.value }))} style={{ width: "100%", padding: "10px 14px", borderRadius: 8, border: "1.5px solid #CCC", fontSize: 15, fontFamily: "inherit" }}>{["Resale","New Construction","Vacant Land","Commercial"].map(t => <option key={t}>{t}</option>)}</select></div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 14 }}><div><div style={{ fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", marginBottom: 6 }}>Transaction Type</div><select value={editTxForm.type || ""} onChange={e => setEditTxForm(f => ({ ...f, type: e.target.value }))} style={{ width: "100%", padding: "10px 14px", borderRadius: 8, border: "1.5px solid #CCC", fontSize: 15, fontFamily: "inherit" }}>{["Listing (Seller)","Buyer Representation","Dual Agency"].map(t => <option key={t}>{t}</option>)}</select></div><div><div style={{ fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", marginBottom: 6 }}>List Price ($)</div><input type="number" value={editTxForm.listPrice || ""} onChange={e => setEditTxForm(f => ({ ...f, listPrice: e.target.value }))} placeholder="450000" style={{ width: "100%", padding: "10px 14px", borderRadius: 8, border: "1.5px solid #CCC", fontSize: 15, fontFamily: "inherit", boxSizing: "border-box" }} /></div></div>
               <div style={{ fontSize: 13, fontWeight: 700, color: "#C0392B", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 12, paddingBottom: 8, borderBottom: "1px solid #EEE", marginTop: 8 }}>Transaction Details</div>
               {teamMembers.length > 0 && (
@@ -3855,17 +3568,7 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
                         }
                       }
                       return task;
-                    }); } onUpdate(updated); setShowEditTx(false);
-                  // If constructionType changed, fire the backend PATCH
-                  if (editTxForm.constructionType && editTxForm.constructionType !== tx.constructionType) {
-                    const tok = localStorage.getItem("tp_token") || "";
-                    fetch(API + "/transactions/" + tx.id + "/construction-type", {
-                      method: "PATCH",
-                      headers: { "Content-Type": "application/json", "Authorization": "Bearer " + tok },
-                      body: JSON.stringify({ constructionType: editTxForm.constructionType })
-                    }).catch(() => {});
-                  }
-                }} style={{ padding: "10px 20px", background: "#C0392B", color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>Save Changes</button>
+                    }); } onUpdate(updated); setShowEditTx(false); }} style={{ padding: "10px 20px", background: "#C0392B", color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>Save Changes</button>
               </div>
             </div>
           </div>
@@ -3908,7 +3611,7 @@ function NewTransactionForm({ onSave, onCancel }) {
         onSave({
           id: t.id, address: t.address, city: t.city, state: t.state,
           zipCode: t.zip_code || form.zipCode, county: t.county || form.county,
-          mlsNumber: t.mls_number || form.mlsNumber, propertyType: t.property_type || form.propertyType, constructionType: t.construction_type || form.constructionType || "Resale",
+          mlsNumber: t.mls_number || form.mlsNumber, propertyType: t.property_type || form.propertyType,
           type: t.transaction_type || form.type, status: t.status || form.status,
           listPrice: t.list_price || form.listPrice, contractPrice: t.contract_price || form.contractPrice,
           openDate: t.open_date || form.openDate, closingDate: t.closing_date || form.closingDate,
@@ -4441,7 +4144,6 @@ function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenCon
     county: t.county,
     mlsNumber: t.mls_number,
     propertyType: t.property_type,
-    constructionType: t.construction_type || "Resale",
     type: t.transaction_type,
     status: t.status,
     listPrice: t.list_price,
@@ -4600,7 +4302,6 @@ function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenCon
             <button onClick={() => onOpenContacts && onOpenContacts()} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "#fff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>📇 Contacts</button>
             <button onClick={() => onOpenExpenses && onOpenExpenses()} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "#fff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>💵 Expense Tracker</button>
             <WinTheDayButton token={localStorage.getItem("tp_token") || ""} />
-            <PersonalTaskAddButton token={localStorage.getItem("tp_token") || ""} />
             <button onClick={onVendors} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "rgba(255,255,255,0.88)", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 600, fontFamily: "inherit" }}>🏆 Vendors</button>
             <button onClick={onIntakeLinks} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "rgba(255,255,255,0.88)", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 600, fontFamily: "inherit" }}>🔗 My Intake Links</button>
             <button onClick={onOpenContractIntake} style={{ background: "#1E8449", border: "1px solid rgba(255,255,255,0.22)", color: "#ffffff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>📄 Upload Contract</button>
@@ -4622,7 +4323,7 @@ function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenCon
           </div>
         </div>
         <div data-stats-bar="" style={{ display: "flex", marginTop: 16, borderTop: "1px solid rgba(255,255,255,0.1)", overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
-          {(() => { const s = dashStats || stats; return [["Active Listings", s.active, COLORS.gold, () => setFilter("Active")], ["Under Contract", s.underContract, "#93C5FD", () => setFilter("Under Contract")], ["Closing This Month", s.closingSoon, s.closingSoon > 0 ? "#FDE68A" : "rgba(255,255,255,0.4)", null], ["Closed", s.closed, "#6EE7B7", () => setFilter("Closed")], ["Volume", `$${((s.totalVolume || 0) / 1000000).toFixed(2)}M`, COLORS.gold, null], ["Pending Commission", `$${Math.round(s.pendingCommissionGross || 0).toLocaleString()}`, "#FDBA74", null], ["Closed Commission", s.totalCommission > 0 ? `$${Math.round(s.totalCommission).toLocaleString()}` : "$0", "#6EE7B7", null]]; })().map(([label, value, color, onClick]) => (
+          {(() => { const s = dashStats || stats; return [["Active Listings", s.active, COLORS.gold, null], ["Under Contract", s.underContract, "#93C5FD", null], ["Closing This Month", s.closingSoon, s.closingSoon > 0 ? "#FDE68A" : "rgba(255,255,255,0.4)", null], ["Volume", `$${((s.totalVolume || 0) / 1000000).toFixed(2)}M`, COLORS.gold, null], ["Pending Commission", `$${Math.round(s.pendingCommissionGross || 0).toLocaleString()}`, "#FDBA74", null], ["Closed", s.closed, "#6EE7B7", null], ["Closed Commission", s.totalCommission > 0 ? `$${Math.round(s.totalCommission).toLocaleString()}` : "$0", "#6EE7B7", null]]; })().map(([label, value, color, onClick]) => (
             <div key={label} onClick={onClick} style={{ padding: "12px 20px", flex: 1, cursor: onClick ? "pointer" : "default" }}>
               <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>{label}{onClick && " ↗"}</div>
               <div style={{ color, fontSize: 22, fontWeight: 800, marginTop: 2 }}>{value}</div>
@@ -4654,12 +4355,12 @@ function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenCon
           style={{ padding: "7px 14px", borderRadius: 8, border: `1px solid ${COLORS.border}`,
             background: "#fff", color: "#111", fontSize: 13, fontWeight: 600,
             cursor: "pointer", fontFamily: "inherit", minWidth: 160 }}>
-          <option value="All">📂 All Active (default)</option>
-          <option value="Active">🏷️ Active Listings Only</option>
-          <option value="Under Contract">📝 Under Contract Only</option>
-          <option value="Closed">✅ Closed Only</option>
-          <option value="On Hold">⏸️ On Hold</option>
-          <option value="Cancelled">❌ Cancelled</option>
+          <option value="All">All Active</option>
+          <option value="Active">Active Only</option>
+          <option value="Under Contract">Under Contract</option>
+          <option value="Closed">Closed Only</option>
+          <option value="On Hold">On Hold</option>
+          <option value="Cancelled">Cancelled</option>
         </select>
         <div style={{ marginLeft: "auto", display: "flex", gap: 6, position: "relative" }}>
           <button onClick={() => setShowViewsMenu(v => !v)} title="My saved views" style={{ padding: "7px 12px", borderRadius: 8, border: `1px solid ${COLORS.border}`, background: "#fff", color: COLORS.text, fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 6 }}>📋 Views {savedViews.length > 0 && <span style={{ background: COLORS.bg, color: COLORS.muted, borderRadius: 10, padding: "1px 7px", fontSize: 11, fontWeight: 700 }}>{savedViews.length}</span>} <span style={{ fontSize: 9 }}>▾</span></button>
@@ -4849,18 +4550,11 @@ function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenCon
                   </div>
                   <div style={{ display: "flex", justifyContent: "space-between" }}>
                     {["Contract", "Inspection", "Title", "Closing"].map((milestone) => {
-                      // Only highlight stages the transaction has actually reached
-                      const stageReached = {
-                        "Contract":   ["Under Contract","Inspection","Appraisal","Clear to Close","Closed"].includes(tx.status),
-                        "Inspection": ["Inspection","Appraisal","Clear to Close","Closed"].includes(tx.status),
-                        "Title":      ["Appraisal","Clear to Close","Closed"].includes(tx.status),
-                        "Closing":    ["Clear to Close","Closed"].includes(tx.status),
-                      }[milestone];
                       const milestoneTasks = tx.tasks.filter(t => t.category === milestone);
                       const milestoneCompleted = milestoneTasks.filter(t => t.status === "Completed").length;
                       const milestoneProgress = milestoneTasks.length > 0 ? milestoneCompleted / milestoneTasks.length : 0;
-                      const isDone = stageReached && milestoneProgress === 1 && milestoneTasks.length > 0;
-                      const isStarted = stageReached && milestoneProgress > 0;
+                      const isDone = milestoneProgress === 1 && milestoneTasks.length > 0;
+                      const isStarted = milestoneProgress > 0;
                       const dotColor = isDone ? "#1E8449" : isStarted ? (tx.type === "Buyer Representation" ? "#3B82F6" : "#C0392B") : "#D1D5DB";
                       return (
                         <div key={milestone} style={{ display: "flex", flexDirection: "column", alignItems: "center", flex: 1 }}>
@@ -5250,7 +4944,6 @@ function MainApp({ onLogout, currentUser }) {
             county: t.county,
             mlsNumber: t.mls_number,
             propertyType: t.property_type,
-    constructionType: t.construction_type || "Resale",
             type: t.transaction_type,
             status: t.status,
             listPrice: t.list_price,
@@ -5395,7 +5088,7 @@ function MainApp({ onLogout, currentUser }) {
         const normalized = {
           id: t.id, address: t.address, city: t.city, state: t.state,
           zipCode: t.zip_code, county: t.county, mlsNumber: t.mls_number,
-          propertyType: t.property_type, constructionType: t.construction_type || "Resale", type: t.transaction_type,
+          propertyType: t.property_type, type: t.transaction_type,
           status: t.status, listPrice: t.list_price, contractPrice: t.contract_price,
           openDate: t.open_date, closingDate: t.closing_date, notes: t.notes,
           smsThreads: {}, parties: [], tasks: newTx.tasks, reminders: [],
