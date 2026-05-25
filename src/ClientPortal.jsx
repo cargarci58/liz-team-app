@@ -570,6 +570,22 @@ export default function ClientPortal({ user, onLogout }) {
   const handleUpload = async (e) => {
     const file = e.target.files[0];
     if (!file || !tx) return;
+    if (file.size > 50 * 1024 * 1024) {
+      alert(`File too large. Maximum is 50 MB, this file is ${(file.size / 1024 / 1024).toFixed(1)} MB.`);
+      if (e.target) e.target.value = "";
+      return;
+    }
+    const ALLOWED = [
+      "application/pdf",
+      "image/jpeg", "image/png", "image/heic", "image/heif", "image/gif", "image/webp",
+      "application/msword",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    ];
+    if (file.type && !ALLOWED.includes(file.type)) {
+      alert(`File type "${file.type}" not allowed. Please upload a PDF, image, or Word document.`);
+      if (e.target) e.target.value = "";
+      return;
+    }
     setUploading(true);
     try {
       const res = await fetch(API + "/documents/upload-url", {

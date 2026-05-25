@@ -5516,10 +5516,25 @@ function MainApp({ onLogout, currentUser }) {
   const tok = localStorage.getItem("tp_token") || "";
   const aH = { "Content-Type": "application/json", "Authorization": "Bearer " + tok };
   const updateTransaction = useCallback(async (updated) => {
-    setTransactions(txs => txs.map(t => t.id === updated.id ? updated : t));
+    // Capture the prior tx so we can roll back if the server rejects the save.
+    let previous = null;
+    setTransactions(txs => { previous = txs.find(t => t.id === updated.id) || null; return txs.map(t => t.id === updated.id ? updated : t); });
     const freshTok = localStorage.getItem("tp_token") || "";
     const freshH = { "Content-Type": "application/json", "Authorization": "Bearer " + freshTok };
-    try { const r = await fetch(API + "/transactions/" + updated.id, { method: "PUT", headers: freshH, body: JSON.stringify({ address: updated.address, city: updated.city, state: updated.state, zipCode: updated.zipCode, county: updated.county, mlsNumber: updated.mlsNumber, propertyType: updated.propertyType, type: updated.type, status: updated.status, listPrice: updated.listPrice, contractPrice: updated.contractPrice, openDate: updated.openDate, closingDate: updated.closingDate, executedDate: updated.executedDate, notes: updated.notes, propertyAccess: updated.propertyAccess, commissionListing: updated.commissionListing, commissionBuyer: updated.commissionBuyer, transactionFee: updated.transactionFee, brokerageSplit: updated.brokerageSplit, officeFlatFee: updated.officeFlatFee, mailAway: updated.mailAway, commissionNotes: updated.commissionNotes, referralSource: updated.referralSource, assignedAgent: updated.assignedAgentId, occupancyStatus: updated.occupancyStatus, earnestMoneyAmount: updated.earnestMoneyAmount, emdDeadline: updated.emdDeadline, inspectionPeriodDays: updated.inspectionPeriodDays, inspectionPeriodEnd: updated.inspectionPeriodEnd, financingContingency: updated.financingContingency, financingContingencyDays: updated.financingContingencyDays, appraisalContingency: updated.appraisalContingency, appraisalContingencyDays: updated.appraisalContingencyDays, hoaApprovalRequired: updated.hoaApprovalRequired, hoaApprovalDays: updated.hoaApprovalDays, surveyRequired: updated.surveyRequired, isCash: updated.isCash, contractFormType: updated.contractFormType, additionalTerms: updated.additionalTerms, internalNotes: updated.messages || [], smsThreads: updated.smsThreads || {}, parties: updated.parties || [], tasks: updated.tasks || [], reminders: updated.reminders || [] }) }); if (!r.ok) { const e = await r.json(); console.error("Save error:", e); } } catch(e) { console.error("Save failed:", e); }
+    const rollback = () => { if (previous) setTransactions(txs => txs.map(t => t.id === updated.id ? previous : t)); };
+    try {
+      const r = await fetch(API + "/transactions/" + updated.id, { method: "PUT", headers: freshH, body: JSON.stringify({ address: updated.address, city: updated.city, state: updated.state, zipCode: updated.zipCode, county: updated.county, mlsNumber: updated.mlsNumber, propertyType: updated.propertyType, type: updated.type, status: updated.status, listPrice: updated.listPrice, contractPrice: updated.contractPrice, openDate: updated.openDate, closingDate: updated.closingDate, executedDate: updated.executedDate, notes: updated.notes, propertyAccess: updated.propertyAccess, commissionListing: updated.commissionListing, commissionBuyer: updated.commissionBuyer, transactionFee: updated.transactionFee, brokerageSplit: updated.brokerageSplit, officeFlatFee: updated.officeFlatFee, mailAway: updated.mailAway, commissionNotes: updated.commissionNotes, referralSource: updated.referralSource, assignedAgent: updated.assignedAgentId, occupancyStatus: updated.occupancyStatus, earnestMoneyAmount: updated.earnestMoneyAmount, emdDeadline: updated.emdDeadline, inspectionPeriodDays: updated.inspectionPeriodDays, inspectionPeriodEnd: updated.inspectionPeriodEnd, financingContingency: updated.financingContingency, financingContingencyDays: updated.financingContingencyDays, appraisalContingency: updated.appraisalContingency, appraisalContingencyDays: updated.appraisalContingencyDays, hoaApprovalRequired: updated.hoaApprovalRequired, hoaApprovalDays: updated.hoaApprovalDays, surveyRequired: updated.surveyRequired, isCash: updated.isCash, contractFormType: updated.contractFormType, additionalTerms: updated.additionalTerms, internalNotes: updated.messages || [], smsThreads: updated.smsThreads || {}, parties: updated.parties || [], tasks: updated.tasks || [], reminders: updated.reminders || [] }) });
+      if (!r.ok) {
+        const e = await r.json().catch(() => ({}));
+        console.error("Save error:", e);
+        rollback();
+        alert("Save failed: " + (e.error || "Please try again."));
+      }
+    } catch (e) {
+      console.error("Save failed:", e);
+      rollback();
+      alert("Save failed. Check your connection and try again.");
+    }
   }, []);
   const addTransaction = tx => { setTransactions(txs => [tx, ...txs]); setSelectedId(tx.id); setView("detail"); };
 

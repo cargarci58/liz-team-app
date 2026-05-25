@@ -41,6 +41,18 @@ export default function PartyUploadPage() {
   const handleUpload = async () => {
     if (!file) return;
     if (file.size > 50 * 1024 * 1024) { alert("File too large (max 50MB)"); return; }
+    // MIME allowlist — the `accept` attribute on the input is only a UI hint;
+    // browsers let users override it, so enforce here.
+    const ALLOWED = [
+      "application/pdf",
+      "image/jpeg", "image/png", "image/heic", "image/heif",
+      "application/msword",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    ];
+    if (file.type && !ALLOWED.includes(file.type)) {
+      alert(`File type "${file.type}" not allowed. Please upload a PDF, image, or Word document.`);
+      return;
+    }
     setUploading(true);
     try {
       const urlRes = await fetch(API + "/party-uploads/upload-url/" + token, {

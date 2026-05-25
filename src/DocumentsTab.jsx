@@ -8,6 +8,16 @@ const COLORS = {
 };
 
 const CATEGORIES = ["General", "Contract", "Inspection", "Title", "Loan", "Closing", "Other"];
+const MAX_UPLOAD_BYTES = 50 * 1024 * 1024; // 50 MB matches the UI hint
+const ALLOWED_UPLOAD_TYPES = [
+  "application/pdf",
+  "image/jpeg", "image/png", "image/heic", "image/heif", "image/gif", "image/webp",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/vnd.ms-excel",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "text/plain", "text/csv",
+];
 
 export default function DocumentsTab({ tx }) {
   const [docs, setDocs] = useState([]);
@@ -28,6 +38,16 @@ export default function DocumentsTab({ tx }) {
   const handleUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
+    if (file.size > MAX_UPLOAD_BYTES) {
+      alert(`File too large. Maximum is 50 MB, this file is ${(file.size / 1024 / 1024).toFixed(1)} MB.`);
+      e.target.value = "";
+      return;
+    }
+    if (file.type && !ALLOWED_UPLOAD_TYPES.includes(file.type)) {
+      alert(`File type "${file.type}" not allowed. Please upload PDFs, images, Word, Excel, or text files.`);
+      e.target.value = "";
+      return;
+    }
     setUploading(true);
     try {
       const res = await fetch(`${API}/documents/upload-url`, {
