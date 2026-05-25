@@ -49,6 +49,7 @@ export default function DocumentsTab({ tx }) {
       return;
     }
     setUploading(true);
+    let docId = null;
     try {
       const res = await fetch(`${API}/documents/upload-url`, {
         method: "POST", headers,
@@ -56,12 +57,26 @@ export default function DocumentsTab({ tx }) {
       });
       const data = await res.json();
       if (!data.uploadUrl) throw new Error("No upload URL received");
-      await fetch(data.uploadUrl, { method: "PUT", body: file, headers: { "Content-Type": file.type } });
+      docId = data.docId;
+      const putRes = await fetch(data.uploadUrl, { method: "PUT", body: file, headers: { "Content-Type": file.type } });
+      if (!putRes.ok) throw new Error("Storage upload failed (" + putRes.status + ")");
+      // 2-step: tell the backend the R2 PUT succeeded so the doc row flips
+      // from pending_upload to active. Without this the doc won't show up.
+      const finRes = await fetch(`${API}/documents/${docId}/finalize`, { method: "POST", headers });
+      if (!finRes.ok) throw new Error("Finalize failed");
+      docId = null; // success — don't try to cancel
       const docsRes = await fetch(`${API}/documents/${tx.id}`, { headers });
       const docsData = await docsRes.json();
       if (docsData.documents) setDocs(docsData.documents);
       alert("✅ Document uploaded!");
-    } catch (e) { console.error("Upload failed:", e); alert("Upload failed: " + e.message); }
+    } catch (e) {
+      console.error("Upload failed:", e);
+      alert("Upload failed: " + e.message);
+      // Clean up the orphan pending row if we got that far.
+      if (docId) {
+        fetch(`${API}/documents/${docId}/pending`, { method: "DELETE", headers }).catch(() => {});
+      }
+    }
     finally { setUploading(false); e.target.value = ""; }
   };
 

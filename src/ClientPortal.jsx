@@ -587,6 +587,7 @@ export default function ClientPortal({ user, onLogout }) {
       return;
     }
     setUploading(true);
+    let docId = null;
     try {
       const res = await fetch(API + "/documents/upload-url", {
         method: "POST", headers,
@@ -594,12 +595,24 @@ export default function ClientPortal({ user, onLogout }) {
       });
       const data = await res.json();
       if (!data.uploadUrl) throw new Error("No upload URL");
-      await fetch(data.uploadUrl, { method: "PUT", body: file, headers: { "Content-Type": file.type } });
+      docId = data.docId;
+      const putRes = await fetch(data.uploadUrl, { method: "PUT", body: file, headers: { "Content-Type": file.type } });
+      if (!putRes.ok) throw new Error("Storage upload failed (" + putRes.status + ")");
+      // 2-step: confirm the R2 PUT succeeded so the row flips from
+      // pending_upload to active. Otherwise the doc never appears.
+      const finRes = await fetch(API + "/documents/" + docId + "/finalize", { method: "POST", headers });
+      if (!finRes.ok) throw new Error("Finalize failed");
+      docId = null;
       const docsRes = await fetch(API + "/client/documents/" + tx.id, { headers });
       const docsData = await docsRes.json();
       if (docsData.documents) setDocs(docsData.documents);
       alert("Document uploaded successfully!");
-    } catch (e) { alert("Upload failed: " + e.message); }
+    } catch (err) {
+      alert("Upload failed: " + err.message);
+      if (docId) {
+        fetch(API + "/documents/" + docId + "/pending", { method: "DELETE", headers }).catch(() => {});
+      }
+    }
     finally { setUploading(false); if (e.target) e.target.value = ""; }
   };
 
