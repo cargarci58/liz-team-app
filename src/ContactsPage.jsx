@@ -1111,7 +1111,12 @@ export default function ContactsPage({ token, onBack }) {
   const [editing, setEditing] = useState(null);
   const [viewing, setViewing] = useState(null);
 
+  // Track latest request — drop results from anything older. Without this,
+  // typing in search or rapidly changing filters can race: an older response
+  // arrives second and overwrites the current view with stale data.
+  const loadRequestId = useRef(0);
   const load = async () => {
+    const myId = ++loadRequestId.current;
     setLoading(true);
     try {
       const params = new URLSearchParams();
@@ -1123,9 +1128,10 @@ export default function ContactsPage({ token, onBack }) {
       if (sortBy.col) { params.set("sort", sortBy.col); params.set("dir", sortBy.dir); }
       const r = await fetch(API + "/contacts?" + params, { headers: { Authorization: "Bearer " + token }});
       const data = await r.json();
+      if (myId !== loadRequestId.current) return; // stale — a newer load() has started
       setContacts(data.contacts || []);
     } catch (e) { console.error(e); }
-    finally { setLoading(false); }
+    finally { if (myId === loadRequestId.current) setLoading(false); }
   };
 
   useEffect(() => { load(); }, [filter.temperature, filter.type, filter.due, filter.missing, sortBy.col, sortBy.dir]);
