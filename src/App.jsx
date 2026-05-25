@@ -2867,7 +2867,7 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
   const chatUnreadRef = useRef(0);
   const setChatUnreadBoth = (n) => { chatUnreadRef.current = n; setChatUnread(n); };
   const activeTabRef = useRef(activeTab);
-  useEffect(() => { activeTabRef.current = activeTab; if (activeTab !== "chat") setChatUnreadBoth(0); }, [activeTab]);
+  useEffect(() => { activeTabRef.current = activeTab; if (activeTab === "chat") setChatUnreadBoth(0); }, [activeTab]);
 
   // Poll for new chat messages to show unread badge
   useEffect(() => {
@@ -3989,11 +3989,13 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
               <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
                 <button onClick={() => setShowEditTx(false)} style={{ padding: "10px 18px", border: "1px solid #CCC", borderRadius: 8, background: "none", cursor: "pointer", fontFamily: "inherit" }}>Cancel</button>
                 <button onClick={() => {
-                  // Don't let empty form fields wipe out existing values — only apply fields the user actually set or that were pre-filled
-                  const cleanedForm = Object.fromEntries(
-                    Object.entries(editTxForm).filter(([k, v]) => v !== "" && v !== null && v !== undefined)
-                  );
-                  const updated = { ...tx, ...cleanedForm }; if (editTxForm.closingDate && editTxForm.closingDate !== tx.closingDate) { const templates = FLORIDA_TASK_TEMPLATES[tx.type] || []; updated.tasks = tx.tasks.map(task => {
+                  // The form is pre-filled from the tx via buildEditTxForm, so an empty
+                  // value means the user intentionally cleared the field. Merge directly
+                  // and let empty strings through — otherwise clearing a field silently
+                  // saves the old value. Also: the form writes to `assignedAgent` but
+                  // updateTransaction reads `assignedAgentId` — map the new value over.
+                  const updated = { ...tx, ...editTxForm, assignedAgentId: editTxForm.assignedAgent };
+                  if (editTxForm.closingDate && editTxForm.closingDate !== tx.closingDate) { const templates = FLORIDA_TASK_TEMPLATES[tx.type] || []; updated.tasks = tx.tasks.map(task => {
                       const template = templates.find(t => t.name === task.name);
                       if (template && template.phase === "contract") {
                         if (template.daysFromOpen < 0 && editTxForm.closingDate) {
