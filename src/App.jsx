@@ -3995,19 +3995,34 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
                   // saves the old value. Also: the form writes to `assignedAgent` but
                   // updateTransaction reads `assignedAgentId` — map the new value over.
                   const updated = { ...tx, ...editTxForm, assignedAgentId: editTxForm.assignedAgent };
-                  if (editTxForm.closingDate && editTxForm.closingDate !== tx.closingDate) { const templates = FLORIDA_TASK_TEMPLATES[tx.type] || []; updated.tasks = tx.tasks.map(task => {
+                  // Recompute contract-phase task deadlines whenever ANY of the basis
+                  // dates change (closing, executed, open). These are legal deadlines
+                  // — if the contract is re-executed, inspection-period and EMD
+                  // deadlines MUST shift; leaving them on the old date is a compliance
+                  // risk. Always overwrite rather than only-when-empty so re-executed
+                  // contracts actually update.
+                  const datesChanged = (
+                    (editTxForm.closingDate && editTxForm.closingDate !== tx.closingDate) ||
+                    (editTxForm.executedDate && editTxForm.executedDate !== tx.executedDate) ||
+                    (editTxForm.openDate && editTxForm.openDate !== tx.openDate)
+                  );
+                  if (datesChanged) {
+                    const templates = FLORIDA_TASK_TEMPLATES[tx.type] || [];
+                    updated.tasks = tx.tasks.map(task => {
                       const template = templates.find(t => t.name === task.name);
                       if (template && template.phase === "contract") {
                         if (template.daysFromOpen < 0 && editTxForm.closingDate) {
                           return { ...task, dueDate: addDays(editTxForm.closingDate, template.daysFromOpen) };
                         }
-                        if (template.daysFromOpen >= 0 && !task.dueDate) {
+                        if (template.daysFromOpen >= 0) {
                           const cd = editTxForm.executedDate || editTxForm.openDate;
-                          return { ...task, dueDate: cd ? addDays(cd, template.daysFromOpen) : null };
+                          return { ...task, dueDate: cd ? addDays(cd, template.daysFromOpen) : task.dueDate };
                         }
                       }
                       return task;
-                    }); } onUpdate(updated); setShowEditTx(false);
+                    });
+                  }
+                  onUpdate(updated); setShowEditTx(false);
                   // If constructionType changed, fire the backend PATCH
                   if (editTxForm.constructionType && editTxForm.constructionType !== tx.constructionType) {
                     const tok = localStorage.getItem("tp_token") || "";
