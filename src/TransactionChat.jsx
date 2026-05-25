@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { io as socketIo } from "socket.io-client";
 
 const API = "https://liz-team-server-api-production.up.railway.app";
 const WS_URL = "https://liz-team-server-api-production.up.railway.app";
@@ -29,8 +30,13 @@ function playSendSound() {
   } catch {}
 }
 
-if (typeof Notification !== "undefined" && Notification.permission === "default") {
-  Notification.requestPermission();
+// Notification permission used to be requested at module load — that fires
+// the scary browser permission popup on the LOGIN screen for new users.
+// Moved to first chat open so the user has shown intent to use chat.
+function ensureNotificationPermission() {
+  if (typeof Notification !== "undefined" && Notification.permission === "default") {
+    try { Notification.requestPermission(); } catch {}
+  }
 }
 
 export default function TransactionChat({ transactionId, user, parties = [], style, onUnreadChange, unreadCount = 0 }) {
@@ -70,8 +76,21 @@ export default function TransactionChat({ transactionId, user, parties = [], sty
     // Mark chat as read on open (server-side tracking for unread badge)
     fetch(`${API}/chat/${transactionId}/mark-read`, { method: "POST", headers: { "Authorization": "Bearer " + tok } }).catch(() => {});
 
+    // Ask for notification permission now that the user has opened a chat.
+    ensureNotificationPermission();
+
     const connect = () => {
-      const socket = window.io(WS_URL, { auth: { token: tok }, transports: ["websocket", "polling"] });
+      // socket.io-client built-in reconnection: keep trying with growing backoff
+      // so a brief network blip doesn't strand the user on "Connecting…".
+      const socket = socketIo(WS_URL, {
+        auth: { token: tok },
+        transports: ["websocket", "polling"],
+        reconnection: true,
+        reconnectionAttempts: Infinity,
+        reconnectionDelay: 1000,
+        reconnectionDelayMax: 10000,
+        timeout: 20000,
+      });
       socket.on("connect", () => { setConnected(true); socket.emit("join_transaction", transactionId); });
       socket.on("disconnect", () => setConnected(false));
       socket.on("chat_history", msgs => { setMessages(msgs); setLoading(false); markAsRead(); });
@@ -90,13 +109,7 @@ export default function TransactionChat({ transactionId, user, parties = [], sty
       socketRef.current = socket;
     };
 
-    if (window.io) { connect(); }
-    else {
-      const s = document.createElement("script");
-      s.src = "https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.min.js";
-      s.onload = connect;
-      document.head.appendChild(s);
-    }
+    connect();
 
     return () => {
       markAsRead();
