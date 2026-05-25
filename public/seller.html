@@ -284,13 +284,13 @@ function showUploaded(input, labelId) {
   }
 }
 
-async function uploadFile(file, transactionId, category) {
+async function uploadFile(file, transactionId, uploadToken, category) {
   if (!file) return null;
   try {
     const res = await fetch(API + '/documents/public-upload-url', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ transactionId, fileName: file.name, fileType: file.type, category })
+      body: JSON.stringify({ transactionId, fileName: file.name, fileType: file.type, category, uploadToken })
     });
     const data = await res.json();
     if (!data.uploadUrl) return null;
@@ -347,14 +347,15 @@ async function submitForm() {
     if (!data.success) throw new Error(data.error || 'Submission failed');
 
     const txId = data.transactionId;
+    const uploadToken = data.uploadToken;
 
     // Upload files
     const idFront = document.getElementById('idFront').files[0];
     const idBack = document.getElementById('idBack').files[0];
     const mortgage = document.getElementById('mortgage').files[0];
-    if (idFront) await uploadFile(idFront, txId, 'Seller ID - Front');
-    if (idBack) await uploadFile(idBack, txId, 'Seller ID - Back');
-    if (mortgage) await uploadFile(mortgage, txId, 'Mortgage Statement');
+    if (idFront) await uploadFile(idFront, txId, uploadToken, 'Seller ID - Front');
+    if (idBack) await uploadFile(idBack, txId, uploadToken, 'Seller ID - Back');
+    if (mortgage) await uploadFile(mortgage, txId, uploadToken, 'Mortgage Statement');
 
     document.getElementById('form-container').style.display = 'none';
     document.getElementById('success-container').style.display = 'block';

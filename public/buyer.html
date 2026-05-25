@@ -306,12 +306,12 @@ function showUploaded(input, labelId) {
   if (input.files[0]) document.getElementById(labelId).textContent = '✓ ' + input.files[0].name;
 }
 
-async function uploadFile(file, transactionId, category) {
+async function uploadFile(file, transactionId, uploadToken, category) {
   if (!file) return null;
   try {
     const res = await fetch(API + '/documents/public-upload-url', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ transactionId, fileName: file.name, fileType: file.type, category })
+      body: JSON.stringify({ transactionId, fileName: file.name, fileType: file.type, category, uploadToken })
     });
     const data = await res.json();
     if (!data.uploadUrl) return null;
@@ -367,12 +367,13 @@ async function submitForm() {
     if (!data.success) throw new Error(data.error || 'Submission failed');
 
     const txId = data.transactionId;
+    const uploadToken = data.uploadToken;
     const idFront = document.getElementById('idFront').files[0];
     const idBack = document.getElementById('idBack').files[0];
     const preApprovalDoc = document.getElementById('preApprovalDoc').files[0];
-    if (idFront) await uploadFile(idFront, txId, 'Buyer ID - Front');
-    if (idBack) await uploadFile(idBack, txId, 'Buyer ID - Back');
-    if (preApprovalDoc) await uploadFile(preApprovalDoc, txId, 'Pre-Approval Letter');
+    if (idFront) await uploadFile(idFront, txId, uploadToken, 'Buyer ID - Front');
+    if (idBack) await uploadFile(idBack, txId, uploadToken, 'Buyer ID - Back');
+    if (preApprovalDoc) await uploadFile(preApprovalDoc, txId, uploadToken, 'Pre-Approval Letter');
 
     document.getElementById('form-container').style.display = 'none';
     document.getElementById('success-container').style.display = 'block';
