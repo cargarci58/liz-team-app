@@ -280,13 +280,28 @@ function FormField({ label, value, onChange, type = 'text', options }) {
   );
 }
 
+// Module-level cache so the badge can render on every PartyCard without
+// firing a separate fetch per card (Parties tab with 8 vendors = 8 identical
+// hits otherwise). 30s TTL is plenty for a status indicator.
+const __preapprovalCache = new Map();
+const __PA_CACHE_TTL = 30 * 1000;
+function fetchPreapprovalCached(transactionId) {
+  const cached = __preapprovalCache.get(transactionId);
+  if (cached && Date.now() - cached.ts < __PA_CACHE_TTL) return cached.promise;
+  const promise = fetch(`${API}/transactions/${transactionId}/preapproval`, {
+    headers: { Authorization: 'Bearer ' + localStorage.getItem('tp_token') }
+  }).then(r => r.json()).catch(() => null);
+  __preapprovalCache.set(transactionId, { promise, ts: Date.now() });
+  return promise;
+}
+
 // Small badge for PartyCard
 export function PreApprovalBadge({ transactionId }) {
   const [data, setData] = useState(null);
   useEffect(() => {
-    fetch(`${API}/transactions/${transactionId}/preapproval`, {
-      headers: { Authorization: 'Bearer ' + localStorage.getItem('tp_token') }
-    }).then(r => r.json()).then(setData).catch(() => {});
+    let cancelled = false;
+    fetchPreapprovalCached(transactionId).then(d => { if (!cancelled) setData(d); });
+    return () => { cancelled = true; };
   }, [transactionId]);
 
   if (!data) return null;

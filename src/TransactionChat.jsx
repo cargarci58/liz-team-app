@@ -4,9 +4,21 @@ import { io as socketIo } from "socket.io-client";
 const API = "https://liz-team-server-api-production.up.railway.app";
 const WS_URL = "https://liz-team-server-api-production.up.railway.app";
 
+// One shared AudioContext for the whole module — creating a new one per beep
+// triggers browser throttling after ~6 concurrent contexts and leaks resources.
+let __sharedAudioCtx = null;
+function getAudioCtx() {
+  if (!__sharedAudioCtx) {
+    try { __sharedAudioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
+    catch { return null; }
+  }
+  return __sharedAudioCtx;
+}
+
 function playSound() {
+  const ctx = getAudioCtx();
+  if (!ctx) return;
   try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
     osc.connect(gain); gain.connect(ctx.destination);
@@ -18,8 +30,9 @@ function playSound() {
 }
 
 function playSendSound() {
+  const ctx = getAudioCtx();
+  if (!ctx) return;
   try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
     osc.connect(gain); gain.connect(ctx.destination);

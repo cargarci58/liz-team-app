@@ -20,6 +20,9 @@ function ForgotPasswordModal({ onClose }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: email.trim() }),
       });
+      if (r.status === 429) {
+        throw new Error("Too many reset attempts from your network. Please wait 15 minutes and try again.");
+      }
       const data = await r.json();
       if (!r.ok) throw new Error(data.error || "Request failed");
       setSent(true);

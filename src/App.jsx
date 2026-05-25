@@ -5343,7 +5343,9 @@ function MainApp({ onLogout, currentUser }) {
   const prevTotalRef = useRef(null);
   const audioCtxRef = useRef(null);
   useEffect(() => {
-    // Unlock audio on first user interaction (required by Chrome/Safari autoplay policy)
+    // Unlock audio on first user interaction (required by Chrome/Safari autoplay policy).
+    // Self-removes after the first successful unlock so we don't fire on every
+    // click/keydown for the rest of the session.
     const unlockAudio = () => {
       try {
         if (!audioCtxRef.current) {
@@ -5351,6 +5353,10 @@ function MainApp({ onLogout, currentUser }) {
         }
         if (audioCtxRef.current.state === "suspended") {
           audioCtxRef.current.resume();
+        }
+        if (audioCtxRef.current && audioCtxRef.current.state !== "suspended") {
+          document.removeEventListener("click", unlockAudio);
+          document.removeEventListener("keydown", unlockAudio);
         }
       } catch {}
     };
