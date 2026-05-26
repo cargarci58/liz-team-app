@@ -6,56 +6,70 @@
   <title>TransactPro — Pre-Launch Tester Guide</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; background: #F4F4F4; color: #1a2332; line-height: 1.6; }
-    .container { max-width: 760px; margin: 0 auto; padding: 24px 16px 80px; }
+    body { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; background: #F4F4F4; color: #1a2332; line-height: 1.55; padding-bottom: 80px; }
+    .container { max-width: 800px; margin: 0 auto; padding: 24px 16px 60px; }
 
-    header { background: #0c4a6e; color: #fff; padding: 28px 24px; border-radius: 14px; margin-bottom: 24px; }
-    header h1 { font-size: 22px; font-weight: 800; margin-bottom: 6px; }
-    header p { font-size: 14px; opacity: 0.9; }
+    header { background: linear-gradient(135deg, #0c4a6e 0%, #1e3a8a 100%); color: #fff; padding: 28px 24px; border-radius: 14px; margin-bottom: 16px; }
+    header h1 { font-size: 24px; font-weight: 800; margin-bottom: 8px; }
+    header p { font-size: 14px; opacity: 0.92; }
 
-    .intro { background: #fff; border-radius: 12px; padding: 24px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
-    .intro h2 { font-size: 18px; margin-bottom: 12px; color: #0c4a6e; }
-    .intro p { margin-bottom: 12px; font-size: 15px; color: #374151; }
-    .intro p:last-child { margin-bottom: 0; }
+    .progress-bar { position: sticky; top: 0; z-index: 100; background: #fff; padding: 12px 20px; margin: 0 -16px 20px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+    .progress-bar .label { font-size: 13px; color: #6b7280; font-weight: 600; }
+    .progress-bar .count { font-size: 18px; color: #0c4a6e; font-weight: 800; }
+    .progress-track { flex: 1; min-width: 200px; height: 8px; background: #e5e7eb; border-radius: 4px; overflow: hidden; }
+    .progress-fill { height: 100%; background: linear-gradient(90deg, #10b981, #059669); width: 0%; transition: width 0.3s; }
+    .reset-btn { background: #fff; color: #6b7280; border: 1px solid #e5e7eb; padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer; font-family: inherit; }
+    .reset-btn:hover { color: #991b1b; border-color: #fca5a5; }
+
+    .card { background: #fff; border-radius: 12px; padding: 24px; margin-bottom: 18px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+    .card h2 { font-size: 18px; margin-bottom: 12px; color: #0c4a6e; }
+    .card p { font-size: 14px; color: #374151; margin-bottom: 10px; }
 
     .callout { background: #fef3c7; border-left: 4px solid #f59e0b; padding: 12px 16px; border-radius: 6px; margin: 16px 0; font-size: 14px; color: #78350f; }
     .callout strong { color: #78350f; }
+    .info-callout { background: #eff6ff; border-left: 4px solid #3b82f6; padding: 12px 16px; border-radius: 6px; margin: 16px 0; font-size: 14px; color: #1e3a8a; }
 
-    .start-btn { display: inline-block; background: #C0392B; color: #fff; text-decoration: none; padding: 14px 28px; border-radius: 8px; font-weight: 700; font-size: 15px; margin-top: 8px; }
+    .start-btn { display: inline-block; background: #C0392B; color: #fff; text-decoration: none; padding: 14px 28px; border-radius: 8px; font-weight: 700; font-size: 15px; margin-top: 12px; }
     .start-btn:hover { background: #9C2A1F; }
 
-    .scenarios { background: #fff; border-radius: 12px; padding: 24px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
-    .scenarios h2 { font-size: 18px; margin-bottom: 16px; color: #0c4a6e; }
+    .session-header { background: #0c4a6e; color: #fff; padding: 18px 24px; border-radius: 12px; margin: 28px 0 14px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
+    .session-header h2 { font-size: 18px; font-weight: 800; margin: 0; }
+    .session-header .est-time { background: rgba(255,255,255,0.15); padding: 4px 10px; border-radius: 16px; font-size: 12px; font-weight: 600; }
 
-    details { border: 1px solid #e5e7eb; border-radius: 8px; margin-bottom: 10px; overflow: hidden; }
-    details[open] { border-color: #0c4a6e; }
-    summary { padding: 14px 16px; cursor: pointer; font-weight: 600; font-size: 15px; background: #f9fafb; user-select: none; list-style: none; display: flex; align-items: center; justify-content: space-between; }
+    .section-title { font-size: 15px; font-weight: 700; color: #1a2332; margin: 18px 0 10px; padding-bottom: 6px; border-bottom: 2px solid #e5e7eb; }
+
+    details { border: 1px solid #e5e7eb; border-radius: 8px; margin-bottom: 8px; overflow: hidden; background: #fff; }
+    details[open] { border-color: #0c4a6e; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+    details.done { border-color: #10b981; background: #f0fdf4; }
+    details.advanced { border-color: #d1d5db; background: #fafafa; }
+    summary { padding: 12px 16px; cursor: pointer; font-weight: 600; font-size: 14px; user-select: none; list-style: none; display: flex; align-items: center; gap: 10px; }
     summary::-webkit-details-marker { display: none; }
-    summary:after { content: "▸"; transition: transform 0.2s; color: #0c4a6e; font-size: 12px; }
-    details[open] summary { background: #eff6ff; border-bottom: 1px solid #dbeafe; }
+    summary .check { display: inline-block; width: 20px; height: 20px; border: 2px solid #d1d5db; border-radius: 4px; flex-shrink: 0; cursor: pointer; position: relative; background: #fff; }
+    summary .check:hover { border-color: #0c4a6e; }
+    summary .check.checked { background: #10b981; border-color: #10b981; }
+    summary .check.checked:after { content: "✓"; color: #fff; position: absolute; top: -2px; left: 3px; font-size: 16px; font-weight: 900; }
+    summary .id { font-size: 11px; font-weight: 800; color: #6b7280; background: #f3f4f6; padding: 2px 6px; border-radius: 3px; margin-right: 4px; }
+    summary .title { flex: 1; }
+    summary:after { content: "▸"; transition: transform 0.2s; color: #0c4a6e; font-size: 11px; }
     details[open] summary:after { transform: rotate(90deg); }
+    details.advanced summary .id { background: #fef3c7; color: #78350f; }
 
-    .badge { display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 4px; margin-right: 8px; text-transform: uppercase; letter-spacing: 0.05em; }
-    .badge.new { background: #1e8449; color: #fff; }
-    .badge.core { background: #0c4a6e; color: #fff; }
-    .badge.edge { background: #6b7280; color: #fff; }
-
-    .step-body { padding: 16px 18px 20px; font-size: 14px; color: #374151; }
-    .step-body ol { margin: 12px 0 12px 22px; }
-    .step-body ol li { margin-bottom: 8px; }
-    .step-body .expect { background: #ecfdf5; border-left: 3px solid #10b981; padding: 8px 12px; border-radius: 4px; margin-top: 12px; font-size: 13px; color: #065f46; }
+    .step-body { padding: 4px 18px 18px 50px; font-size: 13.5px; color: #374151; }
+    .step-body ol { margin: 6px 0 10px 18px; }
+    .step-body ol li { margin-bottom: 6px; }
+    .step-body .expect { background: #ecfdf5; border-left: 3px solid #10b981; padding: 8px 12px; border-radius: 4px; margin-top: 10px; font-size: 12.5px; color: #065f46; }
     .step-body .expect strong { color: #065f46; }
-    .step-body .watch { background: #fef2f2; border-left: 3px solid #ef4444; padding: 8px 12px; border-radius: 4px; margin-top: 8px; font-size: 13px; color: #991b1b; }
+    .step-body .watch { background: #fef2f2; border-left: 3px solid #ef4444; padding: 8px 12px; border-radius: 4px; margin-top: 6px; font-size: 12.5px; color: #991b1b; }
     .step-body .watch strong { color: #991b1b; }
-    .step-body code { background: #f3f4f6; padding: 2px 6px; border-radius: 3px; font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 12.5px; color: #1a2332; }
+    .step-body .note { background: #f3f4f6; border-left: 3px solid #9ca3af; padding: 8px 12px; border-radius: 4px; margin-top: 6px; font-size: 12.5px; color: #4b5563; font-style: italic; }
+    .step-body code { background: #f3f4f6; padding: 2px 6px; border-radius: 3px; font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 12px; color: #1a2332; }
 
-    .report { background: #fff; border-radius: 12px; padding: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
-    .report h2 { font-size: 18px; margin-bottom: 12px; color: #0c4a6e; }
-    .report ul { margin-left: 22px; }
-    .report ul li { margin-bottom: 6px; font-size: 14px; color: #374151; }
-    .report .contact { background: #eff6ff; border-radius: 6px; padding: 12px 16px; margin-top: 16px; font-size: 14px; }
+    .advanced-banner { background: #fef3c7; color: #78350f; padding: 6px 10px; border-radius: 4px; font-size: 11.5px; font-weight: 700; display: inline-block; margin-left: auto; }
 
-    footer { text-align: center; margin-top: 30px; font-size: 12px; color: #6b7280; }
+    footer { background: #fff; border-radius: 12px; padding: 24px; margin-top: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+    footer h3 { font-size: 16px; color: #0c4a6e; margin-bottom: 10px; }
+    footer ul { margin-left: 22px; font-size: 14px; color: #374151; }
+    footer ul li { margin-bottom: 5px; }
   </style>
 </head>
 <body>
@@ -63,206 +77,931 @@
 
     <header>
       <h1>🧪 TransactPro — Pre-Launch Tester Guide</h1>
-      <p>Thanks for helping us shake this out before we open it up to real agents. ~30 minutes start to finish.</p>
+      <p>Thank you for helping us shake this out before real agents start using it. Your progress is saved automatically — pause anytime and come back.</p>
     </header>
 
-    <div class="intro">
-      <h2>What this is</h2>
-      <p>TransactPro is a real-estate transaction-management app. You're testing the agent-side <em>and</em> the client-side flows on the live deployment. Anything you do here is on the real production system, but in a sandbox account you'll create yourself.</p>
-
-      <h2 style="margin-top:20px">What you'll need</h2>
-      <p>
-        • A throwaway email you can read (Gmail trick: <code>youremail+tptest@gmail.com</code> goes to your normal inbox)<br>
-        • A second email (or a friend's) to play "the client"<br>
-        • A sample PDF — any PDF is fine; a receipt photo is helpful for one scenario<br>
-        • ~30 minutes
-      </p>
-
-      <div class="callout">
-        <strong>⚠️ Read this first:</strong> If a step says "you should see X" and you don't, that's a bug — write it down with the step number. Also flag anything confusing, any blank screens, any button that does nothing, or anything where you had to refresh the page to see a change.
-      </div>
-
-      <a href="/" class="start-btn">🚀 Start Testing →</a>
+    <div class="progress-bar">
+      <div class="label">PROGRESS</div>
+      <div class="count"><span id="done-count">0</span> / <span id="total-count">0</span></div>
+      <div class="progress-track"><div class="progress-fill" id="progress-fill"></div></div>
+      <button class="reset-btn" onclick="resetProgress()">Reset</button>
     </div>
 
-    <div class="scenarios">
-      <h2>Test scenarios (10 total)</h2>
+    <div class="card">
+      <h2>How this works</h2>
+      <p>The test is split into <strong>3 sessions of ~50 minutes each</strong> (~2.5 hours total). You don't have to do it all at once — your progress saves automatically in your browser, so you can stop and come back to the same URL.</p>
+      <p>Each scenario has three parts:</p>
+      <ul style="margin-left:22px;margin-top:6px">
+        <li>📋 <strong>Steps</strong> — what to do, in order</li>
+        <li>✅ <strong>Expected</strong> — what should happen if everything's working</li>
+        <li>🚨 <strong>Flag if</strong> — write this down and send it back if you see it</li>
+      </ul>
+      <p style="margin-top:12px">Click a scenario's title to expand it. Click the checkbox on the left when you finish a scenario.</p>
 
-      <details open>
-        <summary><span><span class="badge core">Setup</span>1. Register a new test brokerage</span></summary>
-        <div class="step-body">
-          <ol>
-            <li>Click <strong>Start Testing</strong> above (or just go to <code>thelizteam.netlify.app</code>).</li>
-            <li>Click the <strong>Create Account</strong> tab.</li>
-            <li>Fill in:
-              <ul style="margin-left:20px;margin-top:6px">
-                <li>Account Type: <strong>Solo Agent</strong></li>
-                <li>Brokerage Name: <strong>Tester Realty</strong> (or anything)</li>
-                <li>First/Last Name: your real name is fine</li>
-                <li>Email: your throwaway email (e.g. <code>you+tptest@gmail.com</code>)</li>
-                <li>Phone: any 10-digit number</li>
-                <li>State: <strong>Florida</strong></li>
-                <li>Password: at least 8 characters</li>
-              </ul>
-            </li>
-            <li>Click <strong>Start Free Trial</strong>.</li>
-          </ol>
-          <div class="expect"><strong>✅ Expected:</strong> Account is created and you're logged in. You should see the main dashboard within a couple seconds.</div>
-          <div class="watch"><strong>🚨 Flag if:</strong> You get a generic error, the page hangs, or you don't receive a welcome email at the throwaway address within ~1 minute.</div>
-        </div>
-      </details>
-
-      <details>
-        <summary><span><span class="badge core">Auth</span>2. Log out and log back in</span></summary>
-        <div class="step-body">
-          <ol>
-            <li>Find the logout option (top right area).</li>
-            <li>Confirm you're returned to the login screen.</li>
-            <li>Log in again with the same credentials.</li>
-            <li>Now click <strong>Forgot your password?</strong>, enter the same email, and check your inbox.</li>
-            <li>Click the reset link from the email, set a new password, and log in with the new one.</li>
-          </ol>
-          <div class="expect"><strong>✅ Expected:</strong> Reset email arrives within ~1 minute. The link works. New password lets you log in.</div>
-          <div class="watch"><strong>🚨 Flag if:</strong> No email arrives, the link is expired/broken, or the new password is rejected.</div>
-        </div>
-      </details>
-
-      <details>
-        <summary><span><span class="badge core">Agent</span>3. Create a transaction manually</span></summary>
-        <div class="step-body">
-          <ol>
-            <li>From the dashboard, find <strong>New Transaction</strong> (or the + button).</li>
-            <li>Fill in a property address (anything — "123 Test St, Orlando, FL 32801").</li>
-            <li>Set status to <strong>Under Contract</strong> and pick any closing date 30+ days out.</li>
-            <li>Save.</li>
-          </ol>
-          <div class="expect"><strong>✅ Expected:</strong> The new transaction appears in your list and opens to the transaction detail view.</div>
-          <div class="watch"><strong>🚨 Flag if:</strong> Save silently fails, or required fields aren't clearly marked.</div>
-        </div>
-      </details>
-
-      <details>
-        <summary><span><span class="badge core">Agent</span>4. Add a Buyer and a Seller</span></summary>
-        <div class="step-body">
-          <ol>
-            <li>Open the transaction you just created.</li>
-            <li>Find the <strong>Parties</strong> section. Add a Buyer with your second email (or a friend's) — use a real address you can read.</li>
-            <li>Add a Seller with another address you can read too.</li>
-            <li>Save. Then look for an option like <strong>Send Welcome Emails</strong> and trigger it.</li>
-          </ol>
-          <div class="expect"><strong>✅ Expected:</strong> Each party gets a welcome email with a "Client Portal" link. The agent UI shows them as added.</div>
-          <div class="watch"><strong>🚨 Flag if:</strong> An email doesn't arrive, or the email contains broken formatting / a missing logo / weird symbols.</div>
-        </div>
-      </details>
-
-      <details>
-        <summary><span><span class="badge core">Agent</span>5. Upload a document</span></summary>
-        <div class="step-body">
-          <ol>
-            <li>Inside the transaction, go to the <strong>Documents</strong> tab.</li>
-            <li>Upload any small PDF (under 10 MB).</li>
-            <li>Try uploading something that's <em>not</em> a PDF or image (e.g., a .zip or a really large file > 50 MB) — it should be rejected with a clear message.</li>
-          </ol>
-          <div class="expect"><strong>✅ Expected:</strong> Valid file uploads and appears in the doc list. Invalid file is rejected with a readable error like "File too large" or "File type not allowed".</div>
-          <div class="watch"><strong>🚨 Flag if:</strong> Upload silently fails, the page hangs, or rejection happens with no message.</div>
-        </div>
-      </details>
-
-      <details>
-        <summary><span><span class="badge new">Recent</span>6. AI Receipt Scan (Expenses)</span></summary>
-        <div class="step-body">
-          <p style="margin-bottom:8px">This feature was just rewired to use a background job queue. Worth testing carefully.</p>
-          <ol>
-            <li>Find the <strong>Expenses</strong> page in the app.</li>
-            <li>Click <strong>New Expense</strong>.</li>
-            <li>Take a photo of any receipt (or use a sample receipt image) and upload it.</li>
-            <li>Wait — the message should say something like "AI reading receipt…" for ~5-15 seconds.</li>
-          </ol>
-          <div class="expect"><strong>✅ Expected:</strong> After a few seconds, vendor / amount / date / category auto-fill from the receipt. You can edit them, then save.</div>
-          <div class="watch"><strong>🚨 Flag if:</strong> The status stays on "reading" forever, you get a timeout error, or the form never gets the AI-extracted values.</div>
-        </div>
-      </details>
-
-      <details>
-        <summary><span><span class="badge new">Recent</span>7. CMA Calculator with AI comp extraction</span></summary>
-        <div class="step-body">
-          <ol>
-            <li>Open any transaction and look for the <strong>CMA</strong> or <strong>Pricing</strong> tool.</li>
-            <li>Find a button like <strong>Upload Broker Synopses</strong>.</li>
-            <li>Upload one or two PDFs (any MLS-style or broker-synopsis PDFs — even a generic one is fine, the AI will do its best).</li>
-            <li>Wait — should say "extracting" / "AI extracting…" for ~10-30 seconds.</li>
-          </ol>
-          <div class="expect"><strong>✅ Expected:</strong> AI fills in comp slots (address, sold price, beds/baths, etc.). Some fields may be blank if the AI couldn't read them — that's fine. You should be able to edit and continue.</div>
-          <div class="watch"><strong>🚨 Flag if:</strong> The "extracting" status hangs longer than ~60 seconds with no result, or the page crashes during extraction.</div>
-        </div>
-      </details>
-
-      <details>
-        <summary><span><span class="badge new">Recent</span>8. Pre-Approval Letter upload + AI extract</span></summary>
-        <div class="step-body">
-          <ol>
-            <li>Open any transaction where the Buyer is using financing.</li>
-            <li>Find the <strong>Pre-Approval</strong> card / section.</li>
-            <li>Upload a PDF (any PDF will do for testing).</li>
-            <li>The flow goes: uploading → "extracting…" → a review form with lender name, loan officer, amount, etc.</li>
-          </ol>
-          <div class="expect"><strong>✅ Expected:</strong> Fields are pre-populated from the PDF. You can edit them and click Save. The pre-approval is then attached to the transaction.</div>
-          <div class="watch"><strong>🚨 Flag if:</strong> The extraction stage hangs, or the review form is missing fields.</div>
-        </div>
-      </details>
-
-      <details>
-        <summary><span><span class="badge core">Client</span>9. Client-side test (use your 2nd email)</span></summary>
-        <div class="step-body">
-          <ol>
-            <li>Switch to your second email's inbox (the one used for the Buyer in Step 4).</li>
-            <li>Open the welcome email. Click the <strong>Open Client Portal</strong> link.</li>
-            <li>You should land in the Client Portal — set a password if prompted, log in.</li>
-            <li>Try uploading a document the agent requested (anywhere there's a doc upload button).</li>
-            <li>Try sending a chat message from the client side.</li>
-          </ol>
-          <div class="expect"><strong>✅ Expected:</strong> Portal loads, shows the transaction details, and lets you upload + chat without errors.</div>
-          <div class="watch"><strong>🚨 Flag if:</strong> The link from the email goes to a broken page, the portal is empty, or chat messages don't send.</div>
-        </div>
-      </details>
-
-      <details>
-        <summary><span><span class="badge edge">Edge</span>10. Session-expired handling</span></summary>
-        <div class="step-body">
-          <ol>
-            <li>Stay logged in as the agent.</li>
-            <li>Open your browser's DevTools → Application/Storage → Local Storage.</li>
-            <li>Delete the <code>tp_token</code> entry (or just edit it to "invalid").</li>
-            <li>Try to do anything in the app — click a transaction, refresh a list.</li>
-          </ol>
-          <div class="expect"><strong>✅ Expected:</strong> You get an alert that your session expired and get sent back to the login screen. No silently-broken UI.</div>
-          <div class="watch"><strong>🚨 Flag if:</strong> The UI just freezes, shows weird errors, or never tells you you're logged out.</div>
-        </div>
-      </details>
-
-    </div>
-
-    <div class="report">
-      <h2>How to report what you find</h2>
-      <p style="margin-bottom:10px;font-size:14px;color:#374151">For anything you flag, please include:</p>
-      <ul>
-        <li>The step number (e.g. "Step 6, after uploading the receipt")</li>
-        <li>What you expected vs. what happened</li>
-        <li>Browser + device (e.g. "Chrome on iPhone" / "Safari on Mac")</li>
-        <li>If possible, a screenshot</li>
+      <h2 style="margin-top:22px">What you'll need before starting</h2>
+      <ul style="margin-left:22px;margin-top:6px;font-size:14px;color:#374151">
+        <li>Two email inboxes you can read. The Gmail trick — <code>yourname+test1@gmail.com</code> and <code>yourname+test2@gmail.com</code> both arrive in your normal inbox but the app sees them as different people</li>
+        <li>Any sample PDF (a contract or random document)</li>
+        <li>A receipt photo (a real receipt or sample image)</li>
+        <li>A modern web browser (Chrome, Safari, Firefox, Edge)</li>
       </ul>
 
-      <div class="contact">
-        📧 Send your notes to whoever invited you to test — text, email, or a quick note. Step number + what happened is enough.
+      <div class="callout">
+        <strong>⚠️ Read this first:</strong> If a step says "you should see X" and you don't, that's a bug — write down the scenario ID (e.g. "B3") and what happened. Also flag anything confusing, any blank screens, any button that does nothing, or anything where you had to refresh the page to see a change.
       </div>
 
-      <p style="margin-top:20px;font-size:14px;color:#374151"><strong>Thank you!</strong> Catching bugs at this stage saves real agents pain later.</p>
+      <a href="/" class="start-btn">🚀 Open the App in a new tab</a>
+      <div style="font-size:12px;color:#6b7280;margin-top:8px">(Right-click to open in a new tab so you can keep this guide open alongside.)</div>
     </div>
 
+
+    <!-- ════════════════════════════════════════════════════════════ -->
+    <!-- SESSION 1: CORE EXPERIENCE -->
+    <!-- ════════════════════════════════════════════════════════════ -->
+    <div class="session-header">
+      <h2>🚀 Session 1 — Core Experience</h2>
+      <span class="est-time">~50 minutes</span>
+    </div>
+
+    <div class="section-title">Section A — Sign Up & Sign In</div>
+
+    <details id="s-A1">
+      <summary><span class="check" onclick="toggleCheck(event, 'A1')"></span><span class="id">A1</span><span class="title">Register a new test brokerage account</span></summary>
+      <div class="step-body">
+        <ol>
+          <li>Open the app (button above).</li>
+          <li>Click the <strong>Create Account</strong> tab.</li>
+          <li>Fill in:
+            <ul style="margin-left:20px;margin-top:4px">
+              <li>Account Type: <strong>Solo Agent</strong></li>
+              <li>Brokerage Name: anything (e.g. "Tester Realty")</li>
+              <li>First / Last Name: your real name is fine</li>
+              <li>Email: a throwaway like <code>yourname+test1@gmail.com</code></li>
+              <li>Phone: any 10-digit number</li>
+              <li>State: <strong>Florida</strong></li>
+              <li>Password: at least 8 characters</li>
+            </ul>
+          </li>
+          <li>Click <strong>Start Free Trial</strong>.</li>
+        </ol>
+        <div class="expect"><strong>✅ Expected:</strong> Account is created. You're logged in. Dashboard loads in a few seconds. A welcome email arrives within ~1 minute.</div>
+        <div class="watch"><strong>🚨 Flag if:</strong> Error message, hang, dashboard blank, no welcome email after 2 minutes.</div>
+      </div>
+    </details>
+
+    <details id="s-A2">
+      <summary><span class="check" onclick="toggleCheck(event, 'A2')"></span><span class="id">A2</span><span class="title">Log out and log back in</span></summary>
+      <div class="step-body">
+        <ol>
+          <li>Find the logout option (top right area or settings menu).</li>
+          <li>Confirm you land on the login screen.</li>
+          <li>Log in again with the same email + password.</li>
+        </ol>
+        <div class="expect"><strong>✅ Expected:</strong> Login works, dashboard loads with your data.</div>
+        <div class="watch"><strong>🚨 Flag if:</strong> Login rejects valid credentials, you land on the wrong screen, or you see someone else's data.</div>
+      </div>
+    </details>
+
+    <details id="s-A3">
+      <summary><span class="check" onclick="toggleCheck(event, 'A3')"></span><span class="id">A3</span><span class="title">Forgot password → email reset link</span></summary>
+      <div class="step-body">
+        <ol>
+          <li>At the login screen, click <strong>Forgot your password?</strong></li>
+          <li>Enter the same email you registered with → submit.</li>
+          <li>Check your inbox for the reset email (~1 minute).</li>
+          <li>Click the reset link, set a new password.</li>
+          <li>Try the same reset link a second time.</li>
+          <li>Log in with the new password.</li>
+        </ol>
+        <div class="expect"><strong>✅ Expected:</strong> Email arrives. Link works once. Used link shows "expired" or "already used". New password works for login.</div>
+        <div class="watch"><strong>🚨 Flag if:</strong> No email after 2 minutes, link doesn't work, used link works a second time, new password rejected.</div>
+      </div>
+    </details>
+
+    <details id="s-A4">
+      <summary><span class="check" onclick="toggleCheck(event, 'A4')"></span><span class="id">A4</span><span class="title">Change password from inside the app</span></summary>
+      <div class="step-body">
+        <ol>
+          <li>While logged in, find <strong>Change Password</strong> in profile / settings menu.</li>
+          <li>Enter current password + new password (different from current).</li>
+          <li>Submit.</li>
+          <li>Log out and try the OLD password (should be rejected).</li>
+          <li>Try the NEW password (should work).</li>
+        </ol>
+        <div class="expect"><strong>✅ Expected:</strong> Old password rejected, new password works.</div>
+        <div class="watch"><strong>🚨 Flag if:</strong> Both passwords work, or change silently fails.</div>
+      </div>
+    </details>
+
+    <details id="s-A5" class="advanced">
+      <summary><span class="check" onclick="toggleCheck(event, 'A5')"></span><span class="id">A5</span><span class="title">Session-expired handling</span><span class="advanced-banner">⚙ Skip (technical)</span></summary>
+      <div class="step-body">
+        <div class="note">This one needs browser DevTools. Skip — Carlos can verify this himself.</div>
+      </div>
+    </details>
+
+
+    <div class="section-title">Section B — Transactions</div>
+
+    <details id="s-B1">
+      <summary><span class="check" onclick="toggleCheck(event, 'B1')"></span><span class="id">B1</span><span class="title">Create a transaction manually</span></summary>
+      <div class="step-body">
+        <ol>
+          <li>From the dashboard, click <strong>New Transaction</strong> (or the + button).</li>
+          <li>Fill in: property address ("123 Test St, Orlando, FL 32801"), property type, transaction type (Listing or Buyer Rep).</li>
+          <li>Pick a closing date 30+ days out.</li>
+          <li>Add list price, contract price, earnest money (any reasonable numbers like $400,000 / $5,000).</li>
+          <li>Save.</li>
+        </ol>
+        <div class="expect"><strong>✅ Expected:</strong> Transaction appears in the list. Clicking it opens detail view with all fields you entered.</div>
+        <div class="watch"><strong>🚨 Flag if:</strong> Save fails silently, fields are missing after save, required-field markers (red asterisks) are unclear.</div>
+      </div>
+    </details>
+
+    <details id="s-B2">
+      <summary><span class="check" onclick="toggleCheck(event, 'B2')"></span><span class="id">B2</span><span class="title">Edit transaction — clear a field and verify it stays cleared</span></summary>
+      <div class="step-body">
+        <ol>
+          <li>Open the transaction → click <strong>Edit</strong>.</li>
+          <li>Clear a non-required field (delete the MLS# or county, leave it empty).</li>
+          <li>Save.</li>
+          <li>Re-open Edit.</li>
+        </ol>
+        <div class="expect"><strong>✅ Expected:</strong> The cleared field is still empty.</div>
+        <div class="watch"><strong>🚨 Flag if:</strong> The old value comes back (this was a known bug we fixed — if it's back, it's a regression).</div>
+      </div>
+    </details>
+
+    <details id="s-B3">
+      <summary><span class="check" onclick="toggleCheck(event, 'B3')"></span><span class="id">B3</span><span class="title">Edit transaction — change "Assigned Agent" dropdown</span></summary>
+      <div class="step-body">
+        <ol>
+          <li>Edit a transaction → find the <strong>Assigned Agent</strong> dropdown.</li>
+          <li>Change it to a different agent (or back to yourself if you're the only one).</li>
+          <li>Save.</li>
+          <li>Re-open Edit and verify the new agent is selected.</li>
+        </ol>
+        <div class="expect"><strong>✅ Expected:</strong> The new agent stuck.</div>
+        <div class="watch"><strong>🚨 Flag if:</strong> The old agent is still shown.</div>
+      </div>
+    </details>
+
+    <details id="s-B4">
+      <summary><span class="check" onclick="toggleCheck(event, 'B4')"></span><span class="id">B4</span><span class="title">Move the transaction through status changes</span></summary>
+      <div class="step-body">
+        <ol>
+          <li>Open the transaction, change Status from <strong>New</strong> to <strong>Under Contract</strong> → Save.</li>
+          <li>Verify a list of <strong>Milestones</strong> appears automatically (Inspection deadline, EMD due, etc.).</li>
+          <li>Continue to <strong>Inspection</strong>, then <strong>Appraisal</strong>, then <strong>Clear to Close</strong>.</li>
+        </ol>
+        <div class="expect"><strong>✅ Expected:</strong> Status changes save. Milestones populate. "X days to close" widget updates.</div>
+        <div class="watch"><strong>🚨 Flag if:</strong> Milestones don't appear, status fails to change, the "days to close" counter is wrong.</div>
+      </div>
+    </details>
+
+    <details id="s-B5">
+      <summary><span class="check" onclick="toggleCheck(event, 'B5')"></span><span class="id">B5</span><span class="title">Add a Buyer, a Seller, and a Lender</span></summary>
+      <div class="step-body">
+        <ol>
+          <li>In the transaction, find <strong>Parties</strong> section.</li>
+          <li>Add a <strong>Buyer</strong> using a different email you can read (e.g. <code>yourname+test2@gmail.com</code>).</li>
+          <li>Add a <strong>Seller</strong> with yet another readable email.</li>
+          <li>Add a <strong>Lender</strong> with any email.</li>
+        </ol>
+        <div class="expect"><strong>✅ Expected:</strong> All three parties appear in the parties list with their role labels.</div>
+        <div class="watch"><strong>🚨 Flag if:</strong> Save fails for any role, duplicate detection misfires, or parties don't appear after save.</div>
+      </div>
+    </details>
+
+    <details id="s-B6">
+      <summary><span class="check" onclick="toggleCheck(event, 'B6')"></span><span class="id">B6</span><span class="title">Edit a party then remove a party</span></summary>
+      <div class="step-body">
+        <ol>
+          <li>Edit one of the parties — change their phone or email.</li>
+          <li>Save → verify the change shows.</li>
+          <li>Delete one party.</li>
+        </ol>
+        <div class="expect"><strong>✅ Expected:</strong> Edit saves correctly. Delete removes only the party you picked.</div>
+        <div class="watch"><strong>🚨 Flag if:</strong> Multiple parties get deleted, edit doesn't save, or the page crashes.</div>
+      </div>
+    </details>
+
+    <details id="s-B7">
+      <summary><span class="check" onclick="toggleCheck(event, 'B7')"></span><span class="id">B7</span><span class="title">Send welcome emails to all parties</span></summary>
+      <div class="step-body">
+        <ol>
+          <li>Find <strong>Send Welcome Emails</strong> button or action.</li>
+          <li>Trigger it.</li>
+          <li>Check the inboxes for the Buyer and Seller addresses.</li>
+        </ol>
+        <div class="expect"><strong>✅ Expected:</strong> Each party gets an email. The brokerage name, logo, and brand color render correctly. Email body has no weird characters or broken HTML.</div>
+        <div class="watch"><strong>🚨 Flag if:</strong> Any party doesn't get an email, the logo is broken, special characters look garbled, or HTML tags show as text instead of styled.</div>
+      </div>
+    </details>
+
+    <details id="s-B8">
+      <summary><span class="check" onclick="toggleCheck(event, 'B8')"></span><span class="id">B8</span><span class="title">New Construction transaction type</span></summary>
+      <div class="step-body">
+        <ol>
+          <li>Create a NEW transaction (not the one above).</li>
+          <li>Set Construction Type to <strong>New Construction</strong>.</li>
+          <li>Set status to Under Contract.</li>
+          <li>Look at the milestones list.</li>
+        </ol>
+        <div class="expect"><strong>✅ Expected:</strong> Milestones like "Inspection deadline", "HOA doc review", "Title commitment" should be auto-marked N/A (greyed out or hidden) because they don't apply to New Construction.</div>
+        <div class="watch"><strong>🚨 Flag if:</strong> Those milestones appear as active reminders even though it's New Construction.</div>
+      </div>
+    </details>
+
+
+    <div class="section-title">Section C — Documents</div>
+
+    <details id="s-C1">
+      <summary><span class="check" onclick="toggleCheck(event, 'C1')"></span><span class="id">C1</span><span class="title">Upload a valid PDF document</span></summary>
+      <div class="step-body">
+        <ol>
+          <li>Inside the transaction, open the <strong>Documents</strong> tab.</li>
+          <li>Upload any PDF under 10 MB.</li>
+        </ol>
+        <div class="expect"><strong>✅ Expected:</strong> Upload completes, document appears in the list with name and size.</div>
+        <div class="watch"><strong>🚨 Flag if:</strong> Upload hangs, doc appears in list but you can't open it, or you see a "pending upload" row that never resolves.</div>
+      </div>
+    </details>
+
+    <details id="s-C2">
+      <summary><span class="check" onclick="toggleCheck(event, 'C2')"></span><span class="id">C2</span><span class="title">Try to upload an invalid file</span></summary>
+      <div class="step-body">
+        <ol>
+          <li>Try uploading a <code>.zip</code> file or an executable.</li>
+          <li>Try uploading a file that's larger than 50 MB.</li>
+        </ol>
+        <div class="expect"><strong>✅ Expected:</strong> The app refuses with a readable error like "File type not allowed" or "File too large".</div>
+        <div class="watch"><strong>🚨 Flag if:</strong> Upload starts then fails silently, or shows a generic error.</div>
+      </div>
+    </details>
+
+    <details id="s-C3">
+      <summary><span class="check" onclick="toggleCheck(event, 'C3')"></span><span class="id">C3</span><span class="title">Toggle "Visible to client" on a document</span></summary>
+      <div class="step-body">
+        <ol>
+          <li>Upload a doc and turn <strong>Visible to client</strong> OFF.</li>
+          <li>Note the doc shows on your agent view.</li>
+          <li>(In Section I you'll log in as the client and verify they CAN'T see it.)</li>
+        </ol>
+        <div class="expect"><strong>✅ Expected:</strong> Toggle works in the UI without errors.</div>
+        <div class="watch"><strong>🚨 Flag if:</strong> Toggle resets to ON after save, or has no effect at all.</div>
+      </div>
+    </details>
+
+    <details id="s-C4">
+      <summary><span class="check" onclick="toggleCheck(event, 'C4')"></span><span class="id">C4</span><span class="title">Download a document</span></summary>
+      <div class="step-body">
+        <ol>
+          <li>Click the download/view icon on a document in the list.</li>
+          <li>Confirm the file opens or downloads.</li>
+          <li>Open the file and confirm the contents match what you uploaded.</li>
+        </ol>
+        <div class="expect"><strong>✅ Expected:</strong> File downloads correctly.</div>
+        <div class="watch"><strong>🚨 Flag if:</strong> Wrong file downloads, link is expired, or file is corrupted.</div>
+      </div>
+    </details>
+
+    <details id="s-C5" class="advanced">
+      <summary><span class="check" onclick="toggleCheck(event, 'C5')"></span><span class="id">C5</span><span class="title">Pending-upload cleanup</span><span class="advanced-banner">⚙ Skip (technical)</span></summary>
+      <div class="step-body">
+        <div class="note">Needs precise timing to test reliably. Skip — Carlos can verify this himself.</div>
+      </div>
+    </details>
+
+
+    <!-- ════════════════════════════════════════════════════════════ -->
+    <!-- SESSION 2: DEEP FEATURES -->
+    <!-- ════════════════════════════════════════════════════════════ -->
+    <div class="session-header">
+      <h2>🤖 Session 2 — AI & Deep Features</h2>
+      <span class="est-time">~50 minutes</span>
+    </div>
+
+    <div class="info-callout">
+      <strong>Heads up:</strong> Sections D & E rely on the AI features which were just rewired. These are the most important to test — flag anything that hangs or behaves oddly here.
+    </div>
+
+    <div class="section-title">Section D — Contract Auto-Intake (AI parses a real contract)</div>
+
+    <details id="s-D1">
+      <summary><span class="check" onclick="toggleCheck(event, 'D1')"></span><span class="id">D1</span><span class="title">Upload a contract → AI extracts → review → approve</span></summary>
+      <div class="step-body">
+        <ol>
+          <li>Find <strong>Upload Contract</strong> or <strong>Contract Auto-Intake</strong> in the app (might be on the dashboard or under New Transaction).</li>
+          <li>Upload any real estate contract PDF (a FAR/BAR or AS-IS contract works best — any reasonable PDF works for the test).</li>
+          <li>Wait while it processes (30-60 seconds — you'll see "Reading your contract…" with a spinner).</li>
+          <li>On the review screen: scan the property address, contract price, EMD, executed date, closing date, parties.</li>
+          <li>Fix anything wrong, then click <strong>Approve & Create Transaction</strong>.</li>
+        </ol>
+        <div class="expect"><strong>✅ Expected:</strong> Processing completes within ~60 seconds. Review screen shows fields the AI extracted. You can edit any field. Approving creates a new transaction populated with the data.</div>
+        <div class="watch"><strong>🚨 Flag if:</strong> Processing hangs longer than 2 minutes, review screen is blank, fields are wildly wrong, OR the SAME person is listed as both Buyer and Seller (this was a bug — flag if it returns).</div>
+      </div>
+    </details>
+
+    <details id="s-D2">
+      <summary><span class="check" onclick="toggleCheck(event, 'D2')"></span><span class="id">D2</span><span class="title">Generate a shareable upload link (no-login client upload)</span></summary>
+      <div class="step-body">
+        <ol>
+          <li>In the Contract Auto-Intake area, find <strong>Send Shareable Link</strong>.</li>
+          <li>Generate a link. Copy it.</li>
+          <li>Open the link in an <strong>incognito / private browser window</strong> (this simulates an outside person clicking it).</li>
+          <li>Upload a PDF as that anonymous user.</li>
+          <li>Switch back to your main browser → check the contract uploads list.</li>
+        </ol>
+        <div class="expect"><strong>✅ Expected:</strong> The public upload page loads without requiring login. Upload completes. The agent dashboard shows it processing.</div>
+        <div class="watch"><strong>🚨 Flag if:</strong> The public link asks you to log in, or upload fails for the anonymous user.</div>
+      </div>
+    </details>
+
+    <details id="s-D3">
+      <summary><span class="check" onclick="toggleCheck(event, 'D3')"></span><span class="id">D3</span><span class="title">Multi-file contract package</span></summary>
+      <div class="step-body">
+        <ol>
+          <li>In Contract Auto-Intake, upload the contract PLUS 2-3 additional PDFs at the same time (any PDFs — could be the same one renamed).</li>
+          <li>On the review screen, look for the <strong>Documents Detected</strong> section.</li>
+        </ol>
+        <div class="expect"><strong>✅ Expected:</strong> Each uploaded PDF is identified as a separate document with a confidence label.</div>
+        <div class="watch"><strong>🚨 Flag if:</strong> Only the first file shows up — the others were ignored.</div>
+      </div>
+    </details>
+
+    <details id="s-D4">
+      <summary><span class="check" onclick="toggleCheck(event, 'D4')"></span><span class="id">D4</span><span class="title">Custom clauses surfaced for review</span></summary>
+      <div class="step-body">
+        <ol>
+          <li>If you have a contract with a special-clauses or additional-terms section, upload it.</li>
+          <li>On the review screen, look for a yellow box labeled <strong>Additional Terms / Special Clauses Detected</strong>.</li>
+        </ol>
+        <div class="expect"><strong>✅ Expected:</strong> Custom clauses appear in a yellow callout box so the agent can verify them.</div>
+        <div class="watch"><strong>🚨 Flag if:</strong> The yellow box never appears even though the contract has special clauses, OR the box appears but the text is missing.</div>
+        <div class="note">If your test PDF has no special clauses, just check ✓ and move on.</div>
+      </div>
+    </details>
+
+
+    <div class="section-title">Section E — AI background flows (most important to test)</div>
+
+    <details id="s-E1">
+      <summary><span class="check" onclick="toggleCheck(event, 'E1')"></span><span class="id">E1</span><span class="title">AI Receipt Scan (Expenses)</span></summary>
+      <div class="step-body">
+        <ol>
+          <li>Find the <strong>Expenses</strong> page in the navigation.</li>
+          <li>Click <strong>New Expense</strong> or <strong>Add Expense</strong>.</li>
+          <li>Click the receipt-upload area and pick a receipt photo (any photo of a real or sample receipt).</li>
+          <li>Watch the status — should say "AI reading receipt..." for 5-15 seconds.</li>
+        </ol>
+        <div class="expect"><strong>✅ Expected:</strong> Within ~15 seconds, vendor / amount / date / category fields auto-fill from the receipt. You can edit them, then save.</div>
+        <div class="watch"><strong>🚨 Flag if:</strong> Status stuck on "reading" forever, you get a timeout error, the form never populates, or the page hangs.</div>
+      </div>
+    </details>
+
+    <details id="s-E2">
+      <summary><span class="check" onclick="toggleCheck(event, 'E2')"></span><span class="id">E2</span><span class="title">CMA Calculator with AI comp extraction</span></summary>
+      <div class="step-body">
+        <ol>
+          <li>Open any transaction → find the <strong>CMA</strong> or <strong>Pricing</strong> tool.</li>
+          <li>Click <strong>Upload Broker Synopses</strong>.</li>
+          <li>Upload 1-2 PDFs (any MLS sheets or even random property PDFs are fine for testing).</li>
+          <li>Status should show "AI extracting…" for 10-30 seconds.</li>
+        </ol>
+        <div class="expect"><strong>✅ Expected:</strong> AI populates comp slots (address, sold price, beds/baths, sqft). Some fields can be blank — that's OK. You should be able to edit each one.</div>
+        <div class="watch"><strong>🚨 Flag if:</strong> Extracting hangs over 60 seconds with no result, or only 1 of 2 comps come back.</div>
+      </div>
+    </details>
+
+    <details id="s-E3">
+      <summary><span class="check" onclick="toggleCheck(event, 'E3')"></span><span class="id">E3</span><span class="title">Pre-Approval letter upload + AI extract</span></summary>
+      <div class="step-body">
+        <ol>
+          <li>Open a transaction where the Buyer is using financing (not cash).</li>
+          <li>Find the <strong>Pre-Approval</strong> card on the transaction.</li>
+          <li>Click upload → pick any PDF (any letter-style PDF will do).</li>
+          <li>Flow: uploading → "extracting…" → review form.</li>
+        </ol>
+        <div class="expect"><strong>✅ Expected:</strong> The review form pre-populates with lender, loan officer, NMLS, amount, type, expiration date. You can edit, then save.</div>
+        <div class="watch"><strong>🚨 Flag if:</strong> Extraction stage hangs, review form has missing fields, or save fails.</div>
+      </div>
+    </details>
+
+
+    <div class="section-title">Section F — Milestones & Custom Tasks</div>
+
+    <details id="s-F1">
+      <summary><span class="check" onclick="toggleCheck(event, 'F1')"></span><span class="id">F1</span><span class="title">Milestones auto-seed when status → Under Contract</span></summary>
+      <div class="step-body">
+        <ol>
+          <li>Take a transaction in status "New" or "Active".</li>
+          <li>Set Executed Date AND Closing Date.</li>
+          <li>Change status to <strong>Under Contract</strong>.</li>
+        </ol>
+        <div class="expect"><strong>✅ Expected:</strong> A list of milestones populates: EMD due, Inspection deadline, Loan commitment, etc. Each has a calculated due date.</div>
+        <div class="watch"><strong>🚨 Flag if:</strong> No milestones, milestones with no due date, or duplicate milestones.</div>
+      </div>
+    </details>
+
+    <details id="s-F2">
+      <summary><span class="check" onclick="toggleCheck(event, 'F2')"></span><span class="id">F2</span><span class="title">Mark a milestone Complete</span></summary>
+      <div class="step-body">
+        <ol>
+          <li>Open a milestone like "EMD due" or similar.</li>
+          <li>Mark it <strong>Completed</strong>.</li>
+        </ol>
+        <div class="expect"><strong>✅ Expected:</strong> Milestone shows as Completed. The Daily Dashboard may add a "compliance gap" reminder noting the milestone is complete but missing a document — that's expected behavior, not a bug.</div>
+        <div class="watch"><strong>🚨 Flag if:</strong> Marking Complete fails silently or the milestone reverts to Pending after save.</div>
+      </div>
+    </details>
+
+    <details id="s-F3">
+      <summary><span class="check" onclick="toggleCheck(event, 'F3')"></span><span class="id">F3</span><span class="title">Mark a milestone N/A</span></summary>
+      <div class="step-body">
+        <ol>
+          <li>Mark a different milestone as <strong>N/A</strong> (not applicable).</li>
+        </ol>
+        <div class="expect"><strong>✅ Expected:</strong> Milestone disappears from the active list (or is greyed out). Any related daily reminder also auto-clears.</div>
+        <div class="watch"><strong>🚨 Flag if:</strong> Daily reminder still appears the next day for an N/A milestone.</div>
+      </div>
+    </details>
+
+    <details id="s-F4">
+      <summary><span class="check" onclick="toggleCheck(event, 'F4')"></span><span class="id">F4</span><span class="title">Waive a milestone with reason</span></summary>
+      <div class="step-body">
+        <ol>
+          <li>Try to waive (not just complete) a milestone.</li>
+          <li>The app should require you to enter a <strong>reason</strong> and <strong>justification</strong> text.</li>
+          <li>Submit.</li>
+        </ol>
+        <div class="expect"><strong>✅ Expected:</strong> The waive form requires reason + justification before submitting. After submitting, milestone shows "Waived".</div>
+        <div class="watch"><strong>🚨 Flag if:</strong> You can waive without entering a justification, or activity log doesn't show who waived and why.</div>
+      </div>
+    </details>
+
+    <details id="s-F5">
+      <summary><span class="check" onclick="toggleCheck(event, 'F5')"></span><span class="id">F5</span><span class="title">Custom task → mark Complete → reminder auto-clears (recent fix)</span></summary>
+      <div class="step-body">
+        <ol>
+          <li>Open a transaction → <strong>Tasks</strong> tab.</li>
+          <li>Add a custom task with a due date <strong>3 days in the past</strong> (e.g. if today is the 26th, set due date to the 23rd).</li>
+          <li>Save the transaction.</li>
+          <li>Go to the <strong>Daily Dashboard</strong> — you should see "OVERDUE: [task name]" listed.</li>
+          <li>Go back to the transaction's Tasks tab → mark the task <strong>Completed</strong> → Save.</li>
+          <li>Return to the Daily Dashboard and refresh.</li>
+        </ol>
+        <div class="expect"><strong>✅ Expected:</strong> The "OVERDUE" reminder is GONE without having to click anything on the reminder itself. This is the recent auto-archive fix.</div>
+        <div class="watch"><strong>🚨 Flag if:</strong> The reminder is still there after marking the underlying task Complete.</div>
+      </div>
+    </details>
+
+    <details id="s-F6">
+      <summary><span class="check" onclick="toggleCheck(event, 'F6')"></span><span class="id">F6</span><span class="title">Task templates (Admin)</span></summary>
+      <div class="step-body">
+        <ol>
+          <li>Find Settings → <strong>Task Templates</strong>.</li>
+          <li>Browse the default templates.</li>
+          <li>(Optional) Add a new template — give it a name, pick a phase, days from open. Save.</li>
+          <li>Create a new transaction — verify your new template task appears.</li>
+        </ol>
+        <div class="expect"><strong>✅ Expected:</strong> Custom templates are saved and applied to new transactions.</div>
+        <div class="watch"><strong>🚨 Flag if:</strong> Template list doesn't load, save fails, or templates don't apply.</div>
+      </div>
+    </details>
+
+
+    <div class="section-title">Section G — Daily Dashboard ("Win the Day")</div>
+
+    <details id="s-G1">
+      <summary><span class="check" onclick="toggleCheck(event, 'G1')"></span><span class="id">G1</span><span class="title">Dashboard loads with the right tasks</span></summary>
+      <div class="step-body">
+        <ol>
+          <li>Open the Daily Dashboard.</li>
+          <li>If you have transactions with milestones / overdue items, you should see them.</li>
+          <li>If the dashboard is empty (no transactions yet), just check ✓.</li>
+        </ol>
+        <div class="expect"><strong>✅ Expected:</strong> Tasks are sorted by priority (urgent → high → normal), each showing address + task.</div>
+        <div class="watch"><strong>🚨 Flag if:</strong> Dashboard loads slowly (>3 sec), blank when tasks should be there, or shows tasks for OTHER agents.</div>
+      </div>
+    </details>
+
+    <details id="s-G2">
+      <summary><span class="check" onclick="toggleCheck(event, 'G2')"></span><span class="id">G2</span><span class="title">Click ✓ Done on a reminder — make sure it stays gone</span></summary>
+      <div class="step-body">
+        <ol>
+          <li>If there's a reminder on the dashboard, click <strong>✓ Done</strong>.</li>
+          <li>The reminder should disappear immediately.</li>
+          <li>Refresh the page.</li>
+        </ol>
+        <div class="expect"><strong>✅ Expected:</strong> The reminder is gone after Done and stays gone on refresh. (Verifying it stays gone TOMORROW requires waiting until tomorrow — skip that part.)</div>
+        <div class="watch"><strong>🚨 Flag if:</strong> Reminder comes back after refresh.</div>
+      </div>
+    </details>
+
+    <details id="s-G3">
+      <summary><span class="check" onclick="toggleCheck(event, 'G3')"></span><span class="id">G3</span><span class="title">"⏰ Not Today" snooze</span></summary>
+      <div class="step-body">
+        <ol>
+          <li>If there's a reminder, click <strong>⏰ Not Today</strong> (snooze).</li>
+          <li>Verify it disappears from today's view.</li>
+        </ol>
+        <div class="expect"><strong>✅ Expected:</strong> Reminder hidden for today.</div>
+        <div class="watch"><strong>🚨 Flag if:</strong> Nothing happens, or it's hidden forever (snooze should reappear tomorrow).</div>
+      </div>
+    </details>
+
+    <details id="s-G4">
+      <summary><span class="check" onclick="toggleCheck(event, 'G4')"></span><span class="id">G4</span><span class="title">Seller Weekly Update flow</span></summary>
+      <div class="step-body">
+        <ol>
+          <li>If you have a Listing (Seller) transaction with a seller-update reminder on the dashboard, click it.</li>
+          <li>Fill in: showings count, interest level, optional note.</li>
+          <li>Preview the email → Send.</li>
+        </ol>
+        <div class="expect"><strong>✅ Expected:</strong> Seller gets an email. The dashboard reminder clears.</div>
+        <div class="watch"><strong>🚨 Flag if:</strong> Send fails, no email, or reminder doesn't clear.</div>
+        <div class="note">Skip if you don't have a Listing transaction.</div>
+      </div>
+    </details>
+
+
+    <!-- ════════════════════════════════════════════════════════════ -->
+    <!-- SESSION 3: COMMUNICATION & ADMIN -->
+    <!-- ════════════════════════════════════════════════════════════ -->
+    <div class="session-header">
+      <h2>💬 Session 3 — Communication, Client View, & Admin</h2>
+      <span class="est-time">~50 minutes</span>
+    </div>
+
+    <div class="section-title">Section H — Chat (real-time messages between agent and client)</div>
+
+    <details id="s-H1">
+      <summary><span class="check" onclick="toggleCheck(event, 'H1')"></span><span class="id">H1</span><span class="title">Agent sends a chat message</span></summary>
+      <div class="step-body">
+        <ol>
+          <li>Open a transaction with a Buyer or Seller party that has an email.</li>
+          <li>Find the <strong>Chat</strong> tab.</li>
+          <li>Send a test message ("Hello, this is a test").</li>
+        </ol>
+        <div class="expect"><strong>✅ Expected:</strong> Message appears in the chat history. The client (party with that email) gets a notification email.</div>
+        <div class="watch"><strong>🚨 Flag if:</strong> Message doesn't save, no email to client.</div>
+      </div>
+    </details>
+
+    <details id="s-H2">
+      <summary><span class="check" onclick="toggleCheck(event, 'H2')"></span><span class="id">H2</span><span class="title">Client replies — agent gets notified</span></summary>
+      <div class="step-body">
+        <ol>
+          <li>Go to Section I-1 first (open client portal as the Buyer).</li>
+          <li>In the client portal, reply to the chat.</li>
+          <li>Switch back to the agent view.</li>
+        </ol>
+        <div class="expect"><strong>✅ Expected:</strong> Agent sees the new reply in chat (unread badge updates). Agent also gets an email notification.</div>
+        <div class="watch"><strong>🚨 Flag if:</strong> No badge update, no email.</div>
+      </div>
+    </details>
+
+    <details id="s-H3">
+      <summary><span class="check" onclick="toggleCheck(event, 'H3')"></span><span class="id">H3</span><span class="title">Chat survives a network drop</span></summary>
+      <div class="step-body">
+        <ol>
+          <li>Open the chat.</li>
+          <li>Turn off your wifi for 10 seconds. Turn it back on.</li>
+          <li>Send another message.</li>
+        </ol>
+        <div class="expect"><strong>✅ Expected:</strong> Without refreshing the page, the message sends successfully. The app auto-reconnects.</div>
+        <div class="watch"><strong>🚨 Flag if:</strong> You had to refresh the page to chat again, or the message just fails silently.</div>
+      </div>
+    </details>
+
+
+    <div class="section-title">Section I — Client Portal (using your 2nd email)</div>
+
+    <details id="s-I1">
+      <summary><span class="check" onclick="toggleCheck(event, 'I1')"></span><span class="id">I1</span><span class="title">Open welcome email → land in client portal</span></summary>
+      <div class="step-body">
+        <ol>
+          <li>Open the inbox where you received the welcome email as the Buyer (from B7).</li>
+          <li>Click <strong>Open Client Portal</strong> in the email.</li>
+          <li>If asked, set a password.</li>
+          <li>Log in.</li>
+        </ol>
+        <div class="expect"><strong>✅ Expected:</strong> The portal opens, showing the transaction details for the Buyer.</div>
+        <div class="watch"><strong>🚨 Flag if:</strong> Link goes to a broken page, portal is empty, or you see another transaction's data.</div>
+      </div>
+    </details>
+
+    <details id="s-I2">
+      <summary><span class="check" onclick="toggleCheck(event, 'I2')"></span><span class="id">I2</span><span class="title">Client uploads a requested doc</span></summary>
+      <div class="step-body">
+        <ol>
+          <li>In the portal, find the document upload area.</li>
+          <li>Upload any small PDF.</li>
+          <li>Switch back to the agent view → check the Documents tab.</li>
+        </ol>
+        <div class="expect"><strong>✅ Expected:</strong> Document appears in the agent's Documents list.</div>
+        <div class="watch"><strong>🚨 Flag if:</strong> Upload fails, or agent never sees it.</div>
+      </div>
+    </details>
+
+    <details id="s-I3">
+      <summary><span class="check" onclick="toggleCheck(event, 'I3')"></span><span class="id">I3</span><span class="title">Client sees milestones and closing date — but no agent-only info</span></summary>
+      <div class="step-body">
+        <ol>
+          <li>In the portal, look at what's visible: closing date, status, any milestones.</li>
+          <li>Look for things that should NOT be visible to a client: commission amounts, agent's private notes.</li>
+        </ol>
+        <div class="expect"><strong>✅ Expected:</strong> Client sees milestones/status/closing date. Does NOT see commission, agent notes, internal data.</div>
+        <div class="watch"><strong>🚨 Flag if:</strong> Client sees commission or agent's internal notes — this is a security issue.</div>
+      </div>
+    </details>
+
+    <details id="s-I4">
+      <summary><span class="check" onclick="toggleCheck(event, 'I4')"></span><span class="id">I4</span><span class="title">Buyer / Seller calculator</span></summary>
+      <div class="step-body">
+        <ol>
+          <li>In the portal (or on the agent side), find the <strong>Buyer Calculator</strong> or <strong>Seller Calculator</strong>.</li>
+          <li>Enter realistic numbers (price ~$400K, down payment 20%, interest rate 7%, taxes/insurance).</li>
+          <li>Verify the output (monthly payment, total cash needed, etc.) looks reasonable.</li>
+        </ol>
+        <div class="expect"><strong>✅ Expected:</strong> Numbers are sensible (e.g., monthly payment in the $2-3K range for a $400K house with 20% down at 7%).</div>
+        <div class="watch"><strong>🚨 Flag if:</strong> Numbers are obviously wrong, calculator crashes, or some fields are missing.</div>
+      </div>
+    </details>
+
+
+    <div class="section-title">Section J — Forms Library</div>
+
+    <details id="s-J1">
+      <summary><span class="check" onclick="toggleCheck(event, 'J1')"></span><span class="id">J1</span><span class="title">Browse the Forms Library</span></summary>
+      <div class="step-body">
+        <ol>
+          <li>From the agent view, find <strong>Forms</strong> or <strong>Forms Library</strong>.</li>
+          <li>Browse what's there (FAR/BAR contract, AS-IS contract, disclosures, addenda).</li>
+        </ol>
+        <div class="expect"><strong>✅ Expected:</strong> Agents see a library of forms organized by category.</div>
+        <div class="watch"><strong>🚨 Flag if:</strong> Forms Library is empty, broken, or accessible from the client portal (it should NOT be visible to clients).</div>
+      </div>
+    </details>
+
+    <details id="s-J2">
+      <summary><span class="check" onclick="toggleCheck(event, 'J2')"></span><span class="id">J2</span><span class="title">Download a form</span></summary>
+      <div class="step-body">
+        <ol>
+          <li>Click <strong>Download</strong> on any form.</li>
+        </ol>
+        <div class="expect"><strong>✅ Expected:</strong> The form PDF downloads.</div>
+        <div class="watch"><strong>🚨 Flag if:</strong> Download link is broken or downloads the wrong file.</div>
+      </div>
+    </details>
+
+    <details id="s-J3">
+      <summary><span class="check" onclick="toggleCheck(event, 'J3')"></span><span class="id">J3</span><span class="title">Send a form to a party via shareable link</span></summary>
+      <div class="step-body">
+        <ol>
+          <li>Pick a form → click <strong>Send to party</strong> or <strong>Share</strong>.</li>
+          <li>Enter an email and generate the link.</li>
+          <li>Open the link in an incognito window.</li>
+        </ol>
+        <div class="expect"><strong>✅ Expected:</strong> The link works without requiring login, lets the recipient download the form.</div>
+        <div class="watch"><strong>🚨 Flag if:</strong> Link requires login or returns an error.</div>
+      </div>
+    </details>
+
+
+    <div class="section-title">Section K — Vendors</div>
+
+    <details id="s-K1">
+      <summary><span class="check" onclick="toggleCheck(event, 'K1')"></span><span class="id">K1</span><span class="title">Add a preferred vendor</span></summary>
+      <div class="step-body">
+        <ol>
+          <li>Find the <strong>Vendors</strong> tab on a transaction OR a Vendor Library page.</li>
+          <li>Add a vendor: name ("ABC Title"), category (Title Company), email, phone.</li>
+          <li>Mark as "preferred" if there's a toggle.</li>
+        </ol>
+        <div class="expect"><strong>✅ Expected:</strong> Vendor saves, appears in list.</div>
+        <div class="watch"><strong>🚨 Flag if:</strong> Save fails or vendor doesn't show up.</div>
+      </div>
+    </details>
+
+    <details id="s-K2">
+      <summary><span class="check" onclick="toggleCheck(event, 'K2')"></span><span class="id">K2</span><span class="title">Request a quote from a vendor</span></summary>
+      <div class="step-body">
+        <ol>
+          <li>From a transaction's vendor section, click <strong>Request Quote</strong> on a vendor.</li>
+          <li>If asked, fill in a message.</li>
+          <li>Submit.</li>
+        </ol>
+        <div class="expect"><strong>✅ Expected:</strong> Vendor gets an email with the request.</div>
+        <div class="watch"><strong>🚨 Flag if:</strong> Request silently fails, vendor never gets email.</div>
+        <div class="note">If you can't access the vendor's inbox, just check ✓ when the UI confirms it was sent.</div>
+      </div>
+    </details>
+
+
+    <div class="section-title">Section L — Contacts (Lead/CRM)</div>
+
+    <details id="s-L1">
+      <summary><span class="check" onclick="toggleCheck(event, 'L1')"></span><span class="id">L1</span><span class="title">Add a new contact (lead)</span></summary>
+      <div class="step-body">
+        <ol>
+          <li>Find the <strong>Contacts</strong> page.</li>
+          <li>Add a contact: name, phone, email, temperature (hot/warm/cold), contact type.</li>
+        </ol>
+        <div class="expect"><strong>✅ Expected:</strong> Contact saves, appears in the list.</div>
+        <div class="watch"><strong>🚨 Flag if:</strong> Save fails. Also try rapidly clicking different filters (Hot/Warm/Cold) — the list should always match the selected filter.</div>
+      </div>
+    </details>
+
+    <details id="s-L2">
+      <summary><span class="check" onclick="toggleCheck(event, 'L2')"></span><span class="id">L2</span><span class="title">Log a call → cadence updates</span></summary>
+      <div class="step-body">
+        <ol>
+          <li>On a contact, click <strong>Log Call</strong>.</li>
+          <li>Pick an outcome (Connected, Voicemail, Wrong Number).</li>
+          <li>Save.</li>
+          <li>Look at the contact's "next call due" date.</li>
+        </ol>
+        <div class="expect"><strong>✅ Expected:</strong> Next call date moves into the future based on outcome (e.g., Connected might be 3 days out; Voicemail 1 day out).</div>
+        <div class="watch"><strong>🚨 Flag if:</strong> Next call date is in the past, or doesn't move at all.</div>
+      </div>
+    </details>
+
+    <details id="s-L3">
+      <summary><span class="check" onclick="toggleCheck(event, 'L3')"></span><span class="id">L3</span><span class="title">Daily call list email</span></summary>
+      <div class="step-body">
+        <ol>
+          <li>Make sure you have at least one contact with "next call due" on TODAY's date.</li>
+          <li>The morning email is normally sent at 7 AM — if it's past 7 AM today, check the test inbox.</li>
+          <li>If it's before 7 AM or you don't want to wait, just check ✓ — Carlos can verify this himself.</li>
+        </ol>
+        <div class="expect"><strong>✅ Expected:</strong> Email arrives with a list of contacts due today.</div>
+        <div class="watch"><strong>🚨 Flag if:</strong> Definitely should have arrived (past 7 AM, valid setup) but didn't.</div>
+      </div>
+    </details>
+
+
+    <div class="section-title">Section M — Admin & Settings</div>
+
+    <details id="s-M1">
+      <summary><span class="check" onclick="toggleCheck(event, 'M1')"></span><span class="id">M1</span><span class="title">Invite a team member</span></summary>
+      <div class="step-body">
+        <ol>
+          <li>Find Settings → <strong>Users / Team</strong>.</li>
+          <li>Click <strong>Invite</strong> → enter an email (use another throwaway like <code>yourname+test3@gmail.com</code>) and pick role <strong>Agent</strong>.</li>
+          <li>Submit.</li>
+          <li>Open the invite email at that inbox. Click the link. Set a password. Log in.</li>
+        </ol>
+        <div class="expect"><strong>✅ Expected:</strong> Invited user can sign in and lands in your same brokerage with Agent permissions.</div>
+        <div class="watch"><strong>🚨 Flag if:</strong> No invite email, link broken, wrong role, or invited user lands in a different brokerage.</div>
+      </div>
+    </details>
+
+    <details id="s-M2" class="advanced">
+      <summary><span class="check" onclick="toggleCheck(event, 'M2')"></span><span class="id">M2</span><span class="title">Role escalation block</span><span class="advanced-banner">⚙ Skip (technical)</span></summary>
+      <div class="step-body">
+        <div class="note">Requires creating a non-superadmin first. Skip — Carlos will verify.</div>
+      </div>
+    </details>
+
+    <details id="s-M3">
+      <summary><span class="check" onclick="toggleCheck(event, 'M3')"></span><span class="id">M3</span><span class="title">Company Settings — logo and brand color</span></summary>
+      <div class="step-body">
+        <ol>
+          <li>Settings → <strong>Company</strong> (or Brokerage Settings).</li>
+          <li>Upload a small logo image (any image works).</li>
+          <li>Change the brand color (any hex value).</li>
+          <li>Save.</li>
+          <li>Trigger a test email (e.g., re-send a welcome email to yourself) and check the inbox.</li>
+        </ol>
+        <div class="expect"><strong>✅ Expected:</strong> The logo and brand color appear in the email header.</div>
+        <div class="watch"><strong>🚨 Flag if:</strong> Logo doesn't show, email layout is broken, or the brand color is ignored.</div>
+      </div>
+    </details>
+
+    <details id="s-M4">
+      <summary><span class="check" onclick="toggleCheck(event, 'M4')"></span><span class="id">M4</span><span class="title">Compliance Dashboard</span></summary>
+      <div class="step-body">
+        <ol>
+          <li>Find <strong>Compliance</strong> in the admin nav.</li>
+          <li>Browse what it shows — usually transactions with compliance gaps (missing docs for completed milestones).</li>
+        </ol>
+        <div class="expect"><strong>✅ Expected:</strong> Page loads, lists transactions with their compliance status.</div>
+        <div class="watch"><strong>🚨 Flag if:</strong> Page is blank, errors, or lists transactions you can't see (cross-tenant leak).</div>
+      </div>
+    </details>
+
+
+    <div class="section-title">Section N — Security & Public Pages</div>
+
+    <details id="s-N1">
+      <summary><span class="check" onclick="toggleCheck(event, 'N1')"></span><span class="id">N1</span><span class="title">Rate limiting on login</span></summary>
+      <div class="step-body">
+        <ol>
+          <li>At the login screen, log out if you're logged in.</li>
+          <li>Try logging in with a WRONG password 11 times in a row (same email).</li>
+        </ol>
+        <div class="expect"><strong>✅ Expected:</strong> Around the 11th attempt, you get a "too many attempts, wait 15 minutes" error (HTTP 429).</div>
+        <div class="watch"><strong>🚨 Flag if:</strong> No rate limit kicks in — you can keep trying forever.</div>
+      </div>
+    </details>
+
+    <details id="s-N2" class="advanced">
+      <summary><span class="check" onclick="toggleCheck(event, 'N2')"></span><span class="id">N2</span><span class="title">Cross-tenant isolation</span><span class="advanced-banner">⚙ Skip (technical)</span></summary>
+      <div class="step-body">
+        <div class="note">Requires two brokerages + manual API requests. Skip — Carlos will verify.</div>
+      </div>
+    </details>
+
+    <details id="s-N3" class="advanced">
+      <summary><span class="check" onclick="toggleCheck(event, 'N3')"></span><span class="id">N3</span><span class="title">Email enumeration timing</span><span class="advanced-banner">⚙ Skip (technical)</span></summary>
+      <div class="step-body">
+        <div class="note">Needs network-timing analysis. Skip — Carlos will verify.</div>
+      </div>
+    </details>
+
+    <details id="s-N4" class="advanced">
+      <summary><span class="check" onclick="toggleCheck(event, 'N4')"></span><span class="id">N4</span><span class="title">Stack-trace leak check</span><span class="advanced-banner">⚙ Skip (technical)</span></summary>
+      <div class="step-body">
+        <div class="note">Needs DevTools network tab. Skip — Carlos will verify.</div>
+      </div>
+    </details>
+
+    <details id="s-N5">
+      <summary><span class="check" onclick="toggleCheck(event, 'N5')"></span><span class="id">N5</span><span class="title">Public Buyer/Seller intake forms</span></summary>
+      <div class="step-body">
+        <ol>
+          <li>Open in an incognito window: <code>thelizteam.netlify.app/buyer.html</code></li>
+          <li>Fill out the intake form (name, email, phone, budget, areas).</li>
+          <li>Submit.</li>
+          <li>Switch back to your agent view → check for a new lead/transaction.</li>
+          <li>Repeat for <code>thelizteam.netlify.app/seller.html</code>.</li>
+        </ol>
+        <div class="expect"><strong>✅ Expected:</strong> Lead captured, shows up in the agent dashboard with a "needs first contact" flag.</div>
+        <div class="watch"><strong>🚨 Flag if:</strong> Form submits but no lead appears in the agent dashboard.</div>
+      </div>
+    </details>
+
+
     <footer>
-      TransactPro · The Liz Team Realty · Pre-Launch Testing
+      <h3>📝 How to report what you find</h3>
+      <ul>
+        <li>Note the scenario ID (e.g. "F5" or "I3")</li>
+        <li>What you expected vs. what actually happened</li>
+        <li>What browser + device you're on (e.g. "Chrome on Mac" / "Safari on iPhone")</li>
+        <li>A screenshot helps a lot</li>
+      </ul>
+      <p style="margin-top:14px;font-size:14px">Send your findings to whoever invited you to test — text, email, or a quick voice note all work. Don't try to fix things mid-test; just collect findings and report at the end.</p>
+      <p style="margin-top:14px;font-size:14px"><strong>Thank you for testing!</strong> Real agents will use this in production — catching bugs now saves them headaches later.</p>
     </footer>
 
   </div>
+
+  <script>
+    // ── Progress persistence ────────────────────────────────────────
+    const STORAGE_KEY = "tp_test_progress_v1";
+    const allIds = Array.from(document.querySelectorAll("details[id^='s-']")).map(d => d.id.replace("s-", ""));
+    document.getElementById("total-count").textContent = allIds.length;
+
+    function loadProgress() {
+      try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}"); }
+      catch (e) { return {}; }
+    }
+    function saveProgress(state) {
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+      catch (e) { /* localStorage full or disabled */ }
+    }
+    function refreshUI() {
+      const state = loadProgress();
+      let done = 0;
+      allIds.forEach(id => {
+        const checked = !!state[id];
+        const summary = document.querySelector(`#s-${id} > summary`);
+        const check = summary && summary.querySelector(".check");
+        const details = document.getElementById(`s-${id}`);
+        if (check) check.classList.toggle("checked", checked);
+        if (details) details.classList.toggle("done", checked);
+        if (checked) done++;
+      });
+      document.getElementById("done-count").textContent = done;
+      document.getElementById("progress-fill").style.width = Math.round((done / allIds.length) * 100) + "%";
+    }
+    function toggleCheck(event, id) {
+      event.preventDefault();
+      event.stopPropagation();
+      const state = loadProgress();
+      state[id] = !state[id];
+      saveProgress(state);
+      refreshUI();
+    }
+    function resetProgress() {
+      if (!confirm("Reset all checkboxes? This can't be undone.")) return;
+      localStorage.removeItem(STORAGE_KEY);
+      refreshUI();
+    }
+    refreshUI();
+  </script>
+
 </body>
 </html>
