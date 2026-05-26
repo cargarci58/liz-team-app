@@ -929,17 +929,15 @@
     </details>
 
     <details id="s-N5">
-      <summary><span class="check" onclick="toggleCheck(event, 'N5')"></span><span class="id">N5</span><span class="title">Public Buyer/Seller intake forms</span></summary>
+      <summary><span class="check" onclick="toggleCheck(event, 'N5')"></span><span class="id">N5</span><span class="title">Public Buyer/Seller intake forms — bare URL is blocked</span></summary>
       <div class="step-body">
         <ol>
-          <li>Open in an incognito window: <code>/buyer.html</code> on this same site</li>
-          <li>Fill out the intake form (name, email, phone, budget, areas).</li>
-          <li>Submit.</li>
-          <li>Switch back to your agent view → check for a new lead/transaction.</li>
-          <li>Repeat for <code>/seller.html</code>.</li>
+          <li>Open in an <strong>incognito window</strong> (so you're not logged in): <code>https://transactagentpro.com/buyer.html</code></li>
+          <li>Then try <code>https://transactagentpro.com/seller.html</code> the same way.</li>
         </ol>
-        <div class="expect"><strong>✅ Expected:</strong> Lead captured, shows up in the agent dashboard with a "needs first contact" flag.</div>
-        <div class="watch"><strong>🚨 Flag if:</strong> Form submits but no lead appears in the agent dashboard.</div>
+        <div class="expect"><strong>✅ Expected:</strong> Both URLs show a "🔗 Personalized Link Required" message instead of the form. This is correct — those forms are meant to be reached only through a unique link a real-estate agent shares with their clients (the link includes a brokerage identifier so leads route correctly).</div>
+        <div class="watch"><strong>🚨 Flag if:</strong> The full intake form appears anyway, OR the page is broken (white screen, console errors, etc.). The blocking message must show.</div>
+        <div class="note">If you got a personalized intake link from the person who invited you to test, you can paste THAT into the address bar (it'll look like <code>/buyer.html?agent=something-xyz&uid=abc-123</code>) — that one should show the full form. But the bare URL without those params must be blocked.</div>
       </div>
     </details>
 
