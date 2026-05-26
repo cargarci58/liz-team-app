@@ -11,8 +11,52 @@ export default function CompanySettings({ onClose, onChangePassword }) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [logoError, setLogoError] = useState("");
   const tok = localStorage.getItem("tp_token") || "";
   const headers = { "Content-Type": "application/json", "Authorization": "Bearer " + tok };
+
+  const handleLogoUpload = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = ""; // allow re-selecting the same file later
+    if (!file) return;
+    setLogoError("");
+    if (file.size > 2 * 1024 * 1024) { setLogoError("Logo is too large — max 2 MB."); return; }
+    if (!/^image\//.test(file.type)) { setLogoError("Please pick an image file (PNG, JPG, GIF, WebP, or SVG)."); return; }
+    setUploadingLogo(true);
+    try {
+      const base64 = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result).split(",")[1] || "");
+        reader.onerror = () => reject(new Error("Could not read file"));
+        reader.readAsDataURL(file);
+      });
+      const res = await fetch(API + "/settings/company/logo", {
+        method: "POST", headers,
+        body: JSON.stringify({ filename: file.name, mimeType: file.type, base64 })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || "Upload failed");
+      setForm(f => ({ ...f, logoUrl: data.logoUrl }));
+    } catch (err) {
+      setLogoError(err.message || "Upload failed");
+    } finally {
+      setUploadingLogo(false);
+    }
+  };
+
+  const handleLogoRemove = async () => {
+    if (!confirm("Remove the current logo?")) return;
+    setLogoError("");
+    try {
+      const res = await fetch(API + "/settings/company/logo", { method: "DELETE", headers });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || "Could not remove logo");
+      setForm(f => ({ ...f, logoUrl: "" }));
+    } catch (err) {
+      setLogoError(err.message || "Could not remove logo");
+    }
+  };
 
   useEffect(() => {
     fetch(API + "/settings/company", { headers })
@@ -107,10 +151,26 @@ export default function CompanySettings({ onClose, onChangePassword }) {
             </div>
           </div>
           <div style={{ marginBottom: 16 }}>
-            <label style={lbl}>Logo URL</label>
-            <input value={form.logoUrl || ""} onChange={e => f("logoUrl")(e.target.value)} placeholder="https://yourdomain.com/logo.png" style={inp} />
-            {form.logoUrl && <img src={form.logoUrl} alt="Logo preview" style={{ marginTop: 8, maxHeight: 60, maxWidth: 200, borderRadius: 8, border: "1px solid #DDD" }} onError={e => e.target.style.display="none"} />}
-            <div style={{ fontSize: 11, color: "#888", marginTop: 6 }}>Upload your logo to a hosting service (Cloudflare, Imgur, etc.) and paste the URL here.</div>
+            <label style={lbl}>Logo</label>
+
+            {form.logoUrl ? (
+              <div style={{ marginBottom: 8, padding: 12, background: "#FAFAFA", border: "1px solid #DDD", borderRadius: 8, display: "flex", alignItems: "center", gap: 14 }}>
+                <img src={form.logoUrl} alt="Logo preview" style={{ maxHeight: 60, maxWidth: 200, objectFit: "contain" }} onError={e => e.target.style.display = "none"} />
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: "#1E8449" }}>✓ Logo set</div>
+                  <div style={{ fontSize: 11, color: "#888", marginTop: 2 }}>This logo appears in all client-facing emails.</div>
+                </div>
+                <button onClick={handleLogoRemove} style={{ padding: "6px 12px", background: "none", border: "1px solid #CCC", borderRadius: 6, cursor: "pointer", fontSize: 12, color: "#555", fontFamily: "inherit" }}>Remove</button>
+              </div>
+            ) : null}
+
+            <label style={{ display: "inline-block", padding: "10px 18px", background: uploadingLogo ? "#888" : "#111", color: "#fff", borderRadius: 8, cursor: uploadingLogo ? "wait" : "pointer", fontWeight: 700, fontSize: 13, fontFamily: "inherit" }}>
+              {uploadingLogo ? "Uploading…" : (form.logoUrl ? "📤 Replace Logo" : "📤 Upload Logo")}
+              <input type="file" accept="image/png,image/jpeg,image/gif,image/webp,image/svg+xml" onChange={handleLogoUpload} disabled={uploadingLogo} style={{ display: "none" }} />
+            </label>
+
+            <div style={{ fontSize: 11, color: "#888", marginTop: 6 }}>PNG, JPG, GIF, WebP, or SVG. Max 2 MB.</div>
+            {logoError && <div style={{ fontSize: 12, color: "#C0392B", marginTop: 6, fontWeight: 600 }}>⚠️ {logoError}</div>}
           </div>
 
           {/* Save */}
