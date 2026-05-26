@@ -1,6 +1,10 @@
 import { useState, useEffect } from "react";
 
 const API = "https://liz-team-server-api-production.up.railway.app";
+// Public-facing app URL — where buyer/seller intake forms live.
+// Currently this is the same host the dashboard runs on; if that ever
+// diverges (e.g. marketing site on a different domain), swap to that here.
+const PUBLIC_APP = typeof window !== "undefined" ? window.location.origin : "https://transactagentpro.com";
 
 export default function CompanySettings({ onClose, onChangePassword }) {
   const [form, setForm] = useState({
@@ -113,6 +117,18 @@ export default function CompanySettings({ onClose, onChangePassword }) {
             <div style={{ fontSize: 11, color: "#888", marginTop: 6 }}>Upload your logo to a hosting service (Cloudflare, Imgur, etc.) and paste the URL here.</div>
           </div>
 
+          {/* Intake Links — tenant-specific shareable URLs */}
+          {form.slug && (
+            <>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "#C0392B", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8, marginTop: 8 }}>Your Intake Links</div>
+              <div style={{ fontSize: 12, color: "#666", marginBottom: 14, lineHeight: 1.5 }}>
+                Share these links with prospective clients. Submissions through these URLs are routed to <strong>your brokerage only</strong>. Anyone who reaches the bare <code>{`${PUBLIC_APP}/buyer.html`}</code> (without the link) sees an error — so nobody else's leads can accidentally land on your dashboard.
+              </div>
+              <IntakeLinkRow label="Buyer intake URL" url={`${PUBLIC_APP}/buyer.html?agent=${form.slug}`} />
+              <IntakeLinkRow label="Seller intake URL" url={`${PUBLIC_APP}/seller.html?agent=${form.slug}`} />
+            </>
+          )}
+
           {/* Save */}
           {saved && <div style={{ background: "#F0FFF4", border: "1px solid #1E8449", borderRadius: 8, padding: 12, marginBottom: 16, color: "#1E8449", fontSize: 13, fontWeight: 600 }}>✅ Settings saved successfully!</div>}
           <div style={{ borderTop: "1px solid #EEE", paddingTop: 16, marginBottom: 16 }}>
@@ -125,6 +141,41 @@ export default function CompanySettings({ onClose, onChangePassword }) {
             </button>
           </div>
         </div>
+      </div>
+    </div>
+  );
+}
+
+// Renders a labelled intake URL + a copy-to-clipboard button.
+// Tenant-specific — pass the full URL with the brokerage slug already baked in.
+function IntakeLinkRow({ label, url }) {
+  const [copied, setCopied] = useState(false);
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1800);
+    } catch {
+      // Older browsers / insecure contexts — fall back to manual select
+      window.prompt("Copy this link:", url);
+    }
+  };
+  return (
+    <div style={{ marginBottom: 12 }}>
+      <div style={{ fontSize: 11, fontWeight: 700, color: "#555", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>{label}</div>
+      <div style={{ display: "flex", gap: 8, alignItems: "stretch" }}>
+        <input
+          readOnly
+          value={url}
+          onFocus={e => e.target.select()}
+          style={{ flex: 1, padding: "10px 12px", borderRadius: 8, border: "1.5px solid #CCC", fontSize: 13, fontFamily: "ui-monospace, Menlo, monospace", background: "#FAFAFA", color: "#333" }}
+        />
+        <button
+          onClick={copy}
+          style={{ padding: "0 16px", border: "none", borderRadius: 8, background: copied ? "#1E8449" : "#111", color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}
+        >
+          {copied ? "✓ Copied" : "Copy"}
+        </button>
       </div>
     </div>
   );

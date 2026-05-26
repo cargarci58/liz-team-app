@@ -293,6 +293,26 @@ const API = "https://liz-team-server-api-production.up.railway.app";
 const slug = new URLSearchParams(window.location.search).get("agent") || "";
 const agentId = new URLSearchParams(window.location.search).get("uid") || "";
 
+// Block direct visits without a brokerage slug — these are always meant
+// to be reached via a personalized link an agent shares.
+if (!slug) {
+  document.addEventListener("DOMContentLoaded", () => {
+    const container = document.getElementById("form-container");
+    if (container) container.innerHTML = `
+      <div class="card" style="padding:32px;text-align:center">
+        <div style="font-size:48px;margin-bottom:12px">🔗</div>
+        <h2 style="font-size:20px;color:#111;margin-bottom:10px">Personalized Link Required</h2>
+        <p style="color:#555;font-size:15px;line-height:1.6">
+          This buyer intake form needs to be accessed through the unique link your real estate agent shared with you.
+        </p>
+        <p style="color:#555;font-size:14px;line-height:1.6;margin-top:12px">
+          Please contact your agent and ask for their correct intake form link.
+        </p>
+      </div>
+    `;
+  });
+}
+
 function selectRadio(el, name, val) {
   document.querySelectorAll(`[name="${name}"]`).forEach(r => r.closest('.radio-btn').classList.remove('selected'));
   el.classList.add('selected');
