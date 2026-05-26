@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Seller Intake Form — The Liz Team Realty</title>
+  <title>Seller Intake Form — TransactPro</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: system-ui, -apple-system, sans-serif; background: #F4F4F4; color: #111; }
@@ -51,7 +51,7 @@
 <div class="header">
   <div class="logo">T</div>
   <div class="header-text">
-    <h1>The Liz Team Realty</h1>
+    <h1>TransactPro</h1>
     <p>Seller Information Form</p>
   </div>
 </div>
@@ -253,14 +253,14 @@
     </div>
 
     <button class="submit-btn" id="submitBtn" onclick="submitForm()">Submit Seller Information →</button>
-    <p style="text-align:center;font-size:12px;color:#888;margin-top:12px">Your information is encrypted and securely transmitted to The Liz Team Realty.</p>
+    <p style="text-align:center;font-size:12px;color:#888;margin-top:12px">Your information is encrypted and securely transmitted to your real estate agent.</p>
   </div>
 
   <!-- Success -->
   <div id="success-container" class="card success">
     <div class="checkmark">✅</div>
     <h2>Thank You!</h2>
-    <p>Your seller information has been received. <strong>The Liz Team Realty</strong> will be in touch shortly to discuss your listing.</p>
+    <p>Your seller information has been received. Your agent will be in touch shortly to discuss your listing.</p>
     <p style="margin-top:16px">A confirmation has been sent to your email address.</p>
   </div>
 </div>
@@ -284,13 +284,13 @@ function showUploaded(input, labelId) {
   }
 }
 
-async function uploadFile(file, transactionId, category) {
+async function uploadFile(file, transactionId, uploadToken, category) {
   if (!file) return null;
   try {
     const res = await fetch(API + '/documents/public-upload-url', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ transactionId, fileName: file.name, fileType: file.type, category })
+      body: JSON.stringify({ transactionId, fileName: file.name, fileType: file.type, category, uploadToken })
     });
     const data = await res.json();
     if (!data.uploadUrl) return null;
@@ -347,14 +347,15 @@ async function submitForm() {
     if (!data.success) throw new Error(data.error || 'Submission failed');
 
     const txId = data.transactionId;
+    const uploadToken = data.uploadToken;
 
     // Upload files
     const idFront = document.getElementById('idFront').files[0];
     const idBack = document.getElementById('idBack').files[0];
     const mortgage = document.getElementById('mortgage').files[0];
-    if (idFront) await uploadFile(idFront, txId, 'Seller ID - Front');
-    if (idBack) await uploadFile(idBack, txId, 'Seller ID - Back');
-    if (mortgage) await uploadFile(mortgage, txId, 'Mortgage Statement');
+    if (idFront) await uploadFile(idFront, txId, uploadToken, 'Seller ID - Front');
+    if (idBack) await uploadFile(idBack, txId, uploadToken, 'Seller ID - Back');
+    if (mortgage) await uploadFile(mortgage, txId, uploadToken, 'Mortgage Statement');
 
     document.getElementById('form-container').style.display = 'none';
     document.getElementById('success-container').style.display = 'block';

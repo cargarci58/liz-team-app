@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>The Liz Team Realty — Start a Transaction</title>
+  <title>TransactPro — Start a Transaction</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -176,7 +176,7 @@
 <body>
 
 <header>
-  <div class="tagline">The Liz Team Realty · Florida Licensed Real Estate</div>
+  <div class="tagline">TransactPro · Real Estate Transaction Management</div>
   <h1>Start a New Transaction</h1>
   <p>Orange · Osceola · Seminole · Polk Counties</p>
 </header>
@@ -187,7 +187,7 @@
   <div class="success" id="successBox">
     <div class="icon">🎉</div>
     <h2>Transaction Submitted!</h2>
-    <p>Your transaction has been received by The Liz Team Realty. We will review the details and reach out within 1 business day to confirm and assign your transaction coordinator.</p>
+    <p>Your transaction has been received by TransactPro. We will review the details and reach out within 1 business day to confirm and assign your transaction coordinator.</p>
     <div class="tx-id">
       Your Transaction Reference ID
       <strong id="successTxId">—</strong>
@@ -202,7 +202,7 @@
       <div class="lock">🔐</div>
       <div class="text">
         <h3>Transaction Code Required</h3>
-        <p>Enter the code provided by The Liz Team to submit a transaction.</p>
+        <p>Enter the code provided by your agent to submit a transaction.</p>
       </div>
       <input type="text" id="txCode" placeholder="XXXX" maxlength="8" oninput="this.value = this.value.toUpperCase()" />
     </div>
@@ -367,7 +367,7 @@
 </div>
 
 <footer>
-  &copy; 2025 The Liz Team Realty · Orlando, Florida · Licensed by DBPR
+  &copy; 2026 TransactPro
 </footer>
 
 <script>
@@ -415,7 +415,7 @@
 
     const code = document.getElementById("txCode").value.trim().toUpperCase();
     if (!VALID_CODES.includes(code)) {
-      showError("Invalid transaction code. Please contact The Liz Team for the correct code.");
+      showError("Invalid transaction code. Please contact your agent for the correct code.");
       return;
     }
 
@@ -505,7 +505,7 @@
         btn.textContent = "Submit Transaction →";
       }
     } catch (e) {
-      showError("Could not reach the server. Please contact The Liz Team directly.");
+      showError("Could not reach the server. Please contact your agent directly.");
       btn.disabled = false;
       btn.textContent = "Submit Transaction →";
     }
