@@ -21,6 +21,20 @@ const authFetch = async (path, options = {}) => {
   return res.json();
 };
 
+// Poll an enqueued AI job until it's done or fails.
+const pollAiJob = async (jobId, { timeoutMs = 120000, intervalMs = 1500 } = {}) => {
+  const start = Date.now();
+  while (Date.now() - start < timeoutMs) {
+    await new Promise(r => setTimeout(r, intervalMs));
+    const data = await authFetch(`/ai-jobs/${jobId}`);
+    const job = data.job;
+    if (!job) throw new Error('Job not found');
+    if (job.status === 'completed') return job.result || {};
+    if (job.status === 'failed') throw new Error(job.error || 'AI job failed');
+  }
+  throw new Error('AI job timed out');
+};
+
 const fmtCurrency = (n) => {
   const v = Number(n || 0);
   return v.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
@@ -476,14 +490,17 @@ function AddExpenseModal({ categories, expense, onClose, onSaved }) {
 
       setReceiptKey(newKey);
 
-      // Step 3: extract fields via AI
+      // Step 3: enqueue AI extraction job
       setOcrStatus('AI reading receipt...');
-      const data = await authFetch('/expenses/extract-receipt', {
+      const enqueued = await authFetch('/expenses/extract-receipt', {
         method: 'POST',
         body: JSON.stringify({ receiptKey: newKey })
       });
+      if (!enqueued.jobId) throw new Error(enqueued.error || 'Could not start receipt scan');
 
-      const extracted = data.extracted || data;
+      // Step 4: poll until done
+      const result = await pollAiJob(enqueued.jobId);
+      const extracted = result.extracted || result;
       setOcrPreview(extracted);
 
       if (extracted.vendor) setVendor(extracted.vendor);

@@ -2,6 +2,24 @@ import { useState, useEffect, useRef } from 'react';
 
 const API = import.meta.env.VITE_API_URL || 'https://liz-team-server-api-production.up.railway.app';
 
+// Poll an enqueued AI job until it's done or fails.
+async function pollAiJob(jobId, { timeoutMs = 120000, intervalMs = 1500 } = {}) {
+  const start = Date.now();
+  while (Date.now() - start < timeoutMs) {
+    await new Promise(r => setTimeout(r, intervalMs));
+    const r = await fetch(`${API}/ai-jobs/${jobId}`, {
+      headers: { Authorization: 'Bearer ' + localStorage.getItem('tp_token') }
+    });
+    if (!r.ok) throw new Error('Job lookup failed');
+    const data = await r.json();
+    const job = data.job;
+    if (!job) throw new Error('Job not found');
+    if (job.status === 'completed') return job.result || {};
+    if (job.status === 'failed') throw new Error(job.error || 'AI job failed');
+  }
+  throw new Error('AI job timed out');
+}
+
 export default function PreApprovalCard({ transactionId, isAgent = true, onChange }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -140,14 +158,17 @@ function UploadModal({ transactionId, onClose, onSaved }) {
       setKeyAndName({ key, filename: file.name });
       setStage('extracting');
 
-      // 3) Extract with AI
+      // 3) Enqueue AI extraction
       const exRes = await fetch(`${API}/transactions/${transactionId}/preapproval/extract`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + localStorage.getItem('tp_token') },
         body: JSON.stringify({ key })
       });
-      const ex = await exRes.json();
-      if (ex.error) throw new Error(ex.error);
+      const enqueued = await exRes.json();
+      if (enqueued.error || !enqueued.jobId) throw new Error(enqueued.error || 'Could not start extraction');
+
+      // 4) Poll until done
+      const ex = await pollAiJob(enqueued.jobId);
       setExtracted({
         lender_company: ex.lender_company || '',
         loan_officer_name: ex.loan_officer_name || '',

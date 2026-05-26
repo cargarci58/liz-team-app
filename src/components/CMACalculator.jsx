@@ -108,6 +108,24 @@ function computeComp(subject, comp) {
 }
 
 
+// Poll an enqueued AI job until it's done or fails.
+async function pollAiJob(API, token, jobId, { timeoutMs = 180000, intervalMs = 1500 } = {}) {
+  const start = Date.now();
+  while (Date.now() - start < timeoutMs) {
+    await new Promise(r => setTimeout(r, intervalMs));
+    const r = await fetch(API + "/ai-jobs/" + jobId, {
+      headers: { Authorization: "Bearer " + token }
+    });
+    if (!r.ok) throw new Error("Job lookup failed");
+    const data = await r.json();
+    const job = data.job;
+    if (!job) throw new Error("Job not found");
+    if (job.status === "completed") return job.result || {};
+    if (job.status === "failed") throw new Error(job.error || "AI job failed");
+  }
+  throw new Error("AI job timed out");
+}
+
 // ============================================================
 // UPLOAD COMP REPORTS — AI extracts data from broker synopses
 // ============================================================
@@ -150,17 +168,19 @@ function UploadCompsButton({ transactionId, token, onExtracted, disabled }) {
         setProgress({ done: i + 1, total: fileList.length });
       }
 
-      // 3. Trigger extraction
+      // 3. Enqueue AI extraction (returns a jobId immediately)
       setStep("extracting");
-      const extractRes = await fetch(API + "/transactions/" + transactionId + "/extract-comps", {
+      const enqueueRes = await fetch(API + "/transactions/" + transactionId + "/extract-comps", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
         body: JSON.stringify({ fileKeys }),
       });
-      const data = await extractRes.json();
-      if (!extractRes.ok) throw new Error(data.error || "Extraction failed");
+      const enqueued = await enqueueRes.json();
+      if (!enqueueRes.ok || !enqueued.jobId) throw new Error(enqueued.error || "Extraction failed");
 
-      onExtracted(data.comps || []);
+      // 4. Poll until done
+      const result = await pollAiJob(API, token, enqueued.jobId);
+      onExtracted(result.comps || []);
     } catch (err) {
       alert("⚠️ " + err.message);
     } finally {
