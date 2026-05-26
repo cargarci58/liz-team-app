@@ -74,7 +74,7 @@ export default function DocumentsTab({ tx }) {
       alert("Upload failed: " + e.message);
       // Clean up the orphan pending row if we got that far.
       if (docId) {
-        fetch(`${API}/documents/${docId}/pending`, { method: "DELETE", headers }).catch(() => {});
+        fetch(`${API}/documents/${docId}/pending`, { method: "DELETE", headers }).catch(e => console.error("[bg]", e && e.message ? e.message : e));
       }
     }
     finally { setUploading(false); e.target.value = ""; }

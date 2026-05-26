@@ -90,7 +90,7 @@ export default function LoginScreen({ onLogin }) {
     if (f.password.value.length < 8) { err.textContent = "Password must be at least 8 characters"; return; }
     btn.textContent = "Creating..."; btn.disabled = true; err.textContent = "";
     try {
-      const res = await fetch(API + "/auth/register", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ brokerageName: f.brokerageName.value, firstName: f.firstName.value, lastName: f.lastName.value, email: f.email.value, phone: f.phone.value, password: f.password.value }) });
+      const res = await fetch(API + "/auth/register", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ brokerageName: f.brokerageName.value, firstName: f.firstName.value, lastName: f.lastName.value, email: f.email.value, phone: f.phone.value, password: f.password.value, accountType: f.accountType.value, state: f.state.value }) });
       const data = await res.json();
       if (!res.ok) { err.textContent = data.error || "Registration failed"; btn.textContent = "Start Free Trial"; btn.disabled = false; return; }
       onLogin(data.user, data.token);

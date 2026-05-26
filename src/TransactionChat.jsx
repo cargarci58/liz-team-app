@@ -83,11 +83,11 @@ export default function TransactionChat({ transactionId, user, parties = [], sty
         if (data.error) { setAccessError(data.error); setLoading(false); return; }
         if (data.messages) setMessages(data.messages);
       })
-      .catch(() => {})
+      .catch(e => console.error("[bg]", e && e.message ? e.message : e))
       .finally(() => setLoading(false));
 
     // Mark chat as read on open (server-side tracking for unread badge)
-    fetch(`${API}/chat/${transactionId}/mark-read`, { method: "POST", headers: { "Authorization": "Bearer " + tok } }).catch(() => {});
+    fetch(`${API}/chat/${transactionId}/mark-read`, { method: "POST", headers: { "Authorization": "Bearer " + tok } }).catch(e => console.error("[bg]", e && e.message ? e.message : e));
 
     // Ask for notification permission now that the user has opened a chat.
     ensureNotificationPermission();

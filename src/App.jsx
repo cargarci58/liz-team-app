@@ -903,14 +903,14 @@ function SMSPanel({ tx, onUpdate, currentUser }) {
   useEffect(() => {
     const tok = localStorage.getItem("tp_token") || "";
     fetch("https://liz-team-server-api-production.up.railway.app/settings/company", { headers: { "Authorization": "Bearer " + tok } })
-      .then(r => r.json()).then(d => { if (d.company) setCompanyName(d.company.name || ""); }).catch(() => {});
+      .then(r => r.json()).then(d => { if (d.company) setCompanyName(d.company.name || ""); }).catch(e => console.error("[bg]", e && e.message ? e.message : e));
     fetch("https://liz-team-server-api-production.up.railway.app/profile", { headers: { "Authorization": "Bearer " + tok } })
       .then(r => r.json()).then(d => { 
         if (d.profile) {
           setAgentPhone(d.profile.phone || "");
           setAgentFullName(((d.profile.firstName || "") + " " + (d.profile.lastName || "")).trim());
         }
-      }).catch(() => {});
+      }).catch(e => console.error("[bg]", e && e.message ? e.message : e));
   }, []);
   const [serverOnline, setServerOnline] = useState(null);
   const [emailOnline, setEmailOnline] = useState(false);
@@ -2863,7 +2863,7 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
   const [activities, setActivities] = useState([]);
   const [activitiesLoaded, setActivitiesLoaded] = useState(false);
   const [teamMembers, setTeamMembers] = useState([]);
-  useEffect(() => { const tok = localStorage.getItem("tp_token") || ""; fetch(API + "/users", { headers: { "Authorization": "Bearer " + tok } }).then(r => r.json()).then(d => { if (d.users) setTeamMembers(d.users.filter(u => u.role === "agent" || u.role === "admin")); }).catch(() => {}); }, []);
+  useEffect(() => { const tok = localStorage.getItem("tp_token") || ""; fetch(API + "/users", { headers: { "Authorization": "Bearer " + tok } }).then(r => r.json()).then(d => { if (d.users) setTeamMembers(d.users.filter(u => u.role === "agent" || u.role === "admin")); }).catch(e => console.error("[bg]", e && e.message ? e.message : e)); }, []);
   const chatUnreadRef = useRef(0);
   const setChatUnreadBoth = (n) => { chatUnreadRef.current = n; setChatUnread(n); };
   const activeTabRef = useRef(activeTab);
@@ -3348,7 +3348,7 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
           if (!activitiesLoaded) {
             const tok = localStorage.getItem("tp_token") || "";
             fetch(API + "/activity/" + tx.id, { headers: { "Authorization": "Bearer " + tok } })
-              .then(r => r.json()).then(d => { if (d.activities) setActivities(d.activities); setActivitiesLoaded(true); }).catch(() => {});
+              .then(r => r.json()).then(d => { if (d.activities) setActivities(d.activities); setActivitiesLoaded(true); }).catch(e => console.error("[bg]", e && e.message ? e.message : e));
           }
           const icons = { transaction_created: "🏠", status_changed: "🔄", party_added: "👤", document_uploaded: "📎", email_sent: "📧", sms_sent: "📱", task_completed: "✅" };
           return (
@@ -4030,7 +4030,7 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
                       method: "PATCH",
                       headers: { "Content-Type": "application/json", "Authorization": "Bearer " + tok },
                       body: JSON.stringify({ constructionType: editTxForm.constructionType })
-                    }).catch(() => {});
+                    }).catch(e => console.error("[bg]", e && e.message ? e.message : e));
                   }
                 }} style={{ padding: "10px 20px", background: "#C0392B", color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>Save Changes</button>
               </div>
@@ -4046,7 +4046,7 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
 function NewTransactionForm({ onSave, onCancel }) {
   const [form, setForm] = useState({ address: "", city: "", county: "Osceola", zipCode: "", type: "Listing (Seller)", propertyType: "Single Family", listPrice: "", contractPrice: "", mlsNumber: "", openDate: today(), closingDate: "", executedDate: "", notes: "", status: "Active", assignedAgent: "", referralSource: "", occupancyStatus: "", propertyAccess: "", commissionListing: "", commissionBuyer: "", transactionFee: "", brokerageSplit: "", officeFlatFee: "", commissionNotes: "" });
   const [teamAgents, setTeamAgents] = useState([]);
-  useEffect(() => { const tok = localStorage.getItem("tp_token") || ""; fetch(API + "/users", { headers: { "Authorization": "Bearer " + tok } }).then(r => r.json()).then(d => { if (d.users) setTeamAgents(d.users.filter(u => u.role === "agent" || u.role === "admin" || u.role === "superadmin")); }).catch(() => {}); }, []);
+  useEffect(() => { const tok = localStorage.getItem("tp_token") || ""; fetch(API + "/users", { headers: { "Authorization": "Bearer " + tok } }).then(r => r.json()).then(d => { if (d.users) setTeamAgents(d.users.filter(u => u.role === "agent" || u.role === "admin" || u.role === "superadmin")); }).catch(e => console.error("[bg]", e && e.message ? e.message : e)); }, []);
   const [useFLTemplates, setUseFLTemplates] = useState(true);
   const [taskTemplates, setTaskTemplates] = useState([]);
   useEffect(() => {
@@ -4055,7 +4055,7 @@ function NewTransactionForm({ onSave, onCancel }) {
       headers: { "Authorization": "Bearer " + tok }
     }).then(r => r.json()).then(d => {
       if (d.success) setTaskTemplates(d.templates || []);
-    }).catch(() => {});
+    }).catch(e => console.error("[bg]", e && e.message ? e.message : e));
   }, [form.type]);
   const f = k => v => setForm(p => ({ ...p, [k]: v }));
   const handleSave = async () => {
@@ -4333,7 +4333,7 @@ function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenCon
     fetch(API + "/users", { headers: { "Authorization": "Bearer " + tok } })
       .then(r => r.json())
       .then(d => { if (d.users) setAgentList(d.users.filter(u => ["agent","admin","superadmin","tc"].includes(u.role))); })
-      .catch(() => {});
+      .catch(e => console.error("[bg]", e && e.message ? e.message : e));
   }, []);
 
   // Resolve datePreset to actual from/to dates
@@ -4465,7 +4465,7 @@ function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenCon
           setPagedPage(next);
         }
       })
-      .catch(() => {})
+      .catch(e => console.error("[bg]", e && e.message ? e.message : e))
       .finally(() => setPagedLoading(false));
   };
 
@@ -4485,7 +4485,7 @@ function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenCon
     fetch(API + "/transactions/stats", { headers: { "Authorization": "Bearer " + tok } })
       .then(r => r.json())
       .then(data => { if (!data.error) setDashStats(data); })
-      .catch(() => {});
+      .catch(e => console.error("[bg]", e && e.message ? e.message : e));
   }, [transactions.length]);
 
   // Hydrate snake_case server fields into camelCase the UI expects
@@ -4495,7 +4495,7 @@ function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenCon
     fetch(API + "/saved-views", { headers: { "Authorization": "Bearer " + tok } })
       .then(r => r.json())
       .then(d => { if (d.views) setSavedViews(d.views); })
-      .catch(() => {});
+      .catch(e => console.error("[bg]", e && e.message ? e.message : e));
   }, []);
 
   const applyView = (view) => {

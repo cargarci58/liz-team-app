@@ -610,7 +610,7 @@ export default function ClientPortal({ user, onLogout }) {
     } catch (err) {
       alert("Upload failed: " + err.message);
       if (docId) {
-        fetch(API + "/documents/" + docId + "/pending", { method: "DELETE", headers }).catch(() => {});
+        fetch(API + "/documents/" + docId + "/pending", { method: "DELETE", headers }).catch(e => console.error("[bg]", e && e.message ? e.message : e));
       }
     }
     finally { setUploading(false); if (e.target) e.target.value = ""; }

@@ -357,28 +357,44 @@ function UploadStep({ token, existingTransactionId, onBack, onUploaded }) {
 // STEP 2: PROCESSING (polling)
 // ───────────────────────────────────────────────────────────────
 function ProcessingStep({ token, uploadId, onReady, onFailed }) {
-  const [status, setStatus] = useState("extracting");
   const [error, setError] = useState("");
+  // Hold callbacks in refs so the parent re-rendering (and creating new
+  // function identities for onReady/onFailed) doesn't tear down and
+  // restart the polling effect.
+  const onReadyRef = useRef(onReady);
+  const onFailedRef = useRef(onFailed);
+  useEffect(() => { onReadyRef.current = onReady; onFailedRef.current = onFailed; }, [onReady, onFailed]);
 
   useEffect(() => {
+    let cancelled = false;
+    let failedTimer = null;
     const poll = setInterval(async () => {
+      if (cancelled) return;
       try {
         const r = await fetch(API + "/contracts/uploads/" + uploadId, {
           headers: { "Authorization": "Bearer " + token }
         });
+        if (cancelled) return;
         const d = await r.json();
+        if (cancelled) return;
         if (d.upload?.status === "ready_for_review") {
           clearInterval(poll);
-          onReady();
+          onReadyRef.current();
         } else if (d.upload?.status === "failed") {
           clearInterval(poll);
           setError(d.upload.extraction_error || "Extraction failed");
-          setTimeout(() => onFailed(d.upload.extraction_error), 2000);
+          failedTimer = setTimeout(() => { if (!cancelled) onFailedRef.current(d.upload.extraction_error); }, 2000);
         }
-      } catch (e) { /* keep polling */ }
+      } catch (e) {
+        console.error("[ContractAutoIntake poll]", e && e.message ? e.message : e);
+      }
     }, 3000);
-    return () => clearInterval(poll);
-  }, [uploadId, token, onReady, onFailed]);
+    return () => {
+      cancelled = true;
+      clearInterval(poll);
+      if (failedTimer) clearTimeout(failedTimer);
+    };
+  }, [uploadId, token]);
 
   return (
     <div style={{ fontFamily: "'Segoe UI', system-ui, sans-serif", background: COLORS.bg, minHeight: "100vh", padding: 24, display: "flex", alignItems: "center", justifyContent: "center" }}>
