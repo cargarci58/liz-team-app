@@ -153,7 +153,7 @@ export default function OffersTab({ tx, token }) {
                         style={{ background: "#e5e7eb", color: "#374151", border: "none", padding: "4px 10px", borderRadius: 4, fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", marginRight: 6 }}>
                         Open
                       </button>
-                      {o.status === "draft" && (
+                      {(o.status === "draft" || o.status === "ready") && (
                         <button onClick={() => deleteOffer(o.id)}
                           style={{ background: "#fee2e2", color: "#7f1d1d", border: "none", padding: "4px 10px", borderRadius: 4, fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
                           Delete
