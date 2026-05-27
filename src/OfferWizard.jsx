@@ -150,7 +150,18 @@ export default function OfferWizard({ offerId, token, onClose, onSaved }) {
         if (!r.ok) throw new Error(body.error || "Failed to load offer");
         if (cancelled) return;
         setOffer(body.offer);
-        setData(body.offer.offer_data || {});
+        // Fold schema-level defaults into data so the validation sees what the
+        // UI displays (e.g. checkboxes with default:true should count as "set").
+        const wizardForType = getWizard(body.offer.base_contract_type || "as_is");
+        const initialData = { ...(body.offer.offer_data || {}) };
+        for (const s of wizardForType.steps) {
+          for (const f of (s.fields || [])) {
+            if (f.default !== undefined && initialData[f.id] === undefined) {
+              initialData[f.id] = f.default;
+            }
+          }
+        }
+        setData(initialData);
         setStepIdx(Math.max(0, (body.offer.current_step || 1) - 1));
         // Best-effort fetch the transaction's documents (for the preapproval picker).
         try {
