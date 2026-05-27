@@ -207,6 +207,23 @@ export const AS_IS_WIZARD = {
     },
     {
       id: 11,
+      title: "Listing-Side Contact",
+      subtitle: "Who to send this offer to",
+      why: "These contacts are used to email the offer packet directly to the listing side. Pulled from the MLS sheet — confirm and edit if needed.",
+      fields: [
+        { id: "listing_agent_name", label: "Listing agent name", type: "text", required: true,
+          why: "Goes on the offer cover sheet and the transmittal email." },
+        { id: "listing_agent_email", label: "Listing agent email", type: "text", required: true,
+          hint: "The offer packet email is sent here.",
+          why: "Wrong email = your offer is never delivered. Verify against the MLS sheet." },
+        { id: "listing_agent_phone", label: "Listing agent phone", type: "text", required: false,
+          why: "Used for follow-up if no email response within 24-48h." },
+        { id: "listing_brokerage", label: "Listing brokerage", type: "text", required: false,
+          why: "Shown on the cover sheet to identify the listing side." }
+      ]
+    },
+    {
+      id: 12,
       title: "Review & Generate Bundle",
       subtitle: "Confirm everything, then build the offer package",
       why: "Once generated, the bundle PDF contains the contract + all selected addenda + pre-approval, ready for the agent to download, sign externally, and re-upload.",

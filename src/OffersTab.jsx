@@ -146,7 +146,7 @@ export default function OffersTab({ tx, token }) {
                     <td style={{ padding: "10px 12px", textAlign: "right", color: "#111", fontWeight: 600 }}>
                       {fmtMoney(data.purchase_price)}
                     </td>
-                    <td style={{ padding: "10px 12px", color: "#6b7280" }}>{o.current_step}/10</td>
+                    <td style={{ padding: "10px 12px", color: "#6b7280" }}>{o.current_step}/12</td>
                     <td style={{ padding: "10px 12px", color: "#6b7280" }}>{fmtDate(o.updated_at)}</td>
                     <td style={{ padding: "10px 12px", textAlign: "right", whiteSpace: "nowrap" }}>
                       <button onClick={() => setWizardOfferId(o.id)}
