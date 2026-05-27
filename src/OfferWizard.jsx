@@ -91,14 +91,18 @@ function FieldRenderer({ field, value, onChange, documents }) {
     );
   }
   if (field.type === "preapproval_picker") {
+    // Filter to docs that look like a pre-approval. Picker rendered alongside an upload button below.
+    const candidates = (documents || []).filter(d => /pre.?approval|proof.*funds|pof/i.test((d.category || "") + " " + (d.name || "") + " " + (d.document_type || "")));
     return (
-      <select value={v} onChange={e => onChange(e.target.value)} style={inputStyle}>
-        <option value="">— select a pre-approval / proof of funds —</option>
-        {(documents || []).filter(d => /pre.?approval|proof.*funds|pof/i.test((d.category || "") + " " + (d.name || ""))).map(d => (
-          <option key={d.id} value={d.id}>{d.name}</option>
-        ))}
-        {(documents || []).length === 0 && <option value="" disabled>No documents on this transaction yet — upload via Documents tab</option>}
-      </select>
+      <div>
+        <select value={v} onChange={e => onChange(e.target.value)} style={inputStyle}>
+          <option value="">— select an existing pre-approval / proof of funds —</option>
+          {candidates.map(d => (
+            <option key={d.id} value={d.id}>{d.name}</option>
+          ))}
+          {candidates.length === 0 && <option value="" disabled>None on file yet — upload one below</option>}
+        </select>
+      </div>
     );
   }
   // default: text
@@ -128,6 +132,9 @@ export default function OfferWizard({ offerId, token, onClose, onSaved }) {
   const [mlsUploading, setMlsUploading] = useState(false);
   const [mlsExtracting, setMlsExtracting] = useState(false);
   const [mlsResultMsg, setMlsResultMsg] = useState(null);
+  // Pre-approval upload state (visible on Step 10)
+  const [preapUploading, setPreapUploading] = useState(false);
+  const [preapMsg, setPreapMsg] = useState(null);
 
   const wizard = getWizard(offer?.base_contract_type || "as_is");
   const steps = wizard.steps;
@@ -284,6 +291,49 @@ export default function OfferWizard({ offerId, token, onClose, onSaved }) {
     }
   };
 
+  // Upload a pre-approval letter from within the wizard (server-proxied — no R2 CORS).
+  const onPreapUpload = async (file) => {
+    if (!file) return;
+    setError(null);
+    setPreapMsg(null);
+    setPreapUploading(true);
+    try {
+      if (file.size > 9 * 1024 * 1024) throw new Error("File too large (max 9 MB)");
+      const base64 = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const result = reader.result;
+          const comma = result.indexOf(",");
+          resolve(comma >= 0 ? result.slice(comma + 1) : result);
+        };
+        reader.onerror = () => reject(new Error("Failed to read file"));
+        reader.readAsDataURL(file);
+      });
+      const r = await fetch(API + "/offers/" + offerId + "/preapproval-upload", {
+        method: "POST",
+        headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
+        body: JSON.stringify({ fileName: file.name, fileType: file.type || "application/pdf", base64 }),
+      });
+      const out = await r.json();
+      if (!r.ok) throw new Error(out.error || "Upload failed");
+
+      // Reload docs list + the offer so the new doc shows in the picker AND is selected
+      try {
+        const dr = await fetch(API + "/documents/" + offer.transaction_id, { headers: { Authorization: "Bearer " + token } });
+        if (dr.ok) {
+          const dd = await dr.json();
+          setDocuments(dd.documents || dd || []);
+        }
+      } catch {}
+      setField("preapproval_doc_id", out.documentId);
+      setPreapMsg("✅ Uploaded \"" + out.name + "\" and linked to this offer.");
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setPreapUploading(false);
+    }
+  };
+
   const onSubmit = async () => {
     setSubmitting(true);
     const ok = await save({ nextStepIdx: stepIdx, status: "ready" });
@@ -340,6 +390,32 @@ export default function OfferWizard({ offerId, token, onClose, onSaved }) {
           {step.why && (
             <div style={{ background: "#fef3c7", border: "1px solid #fcd34d", borderRadius: 6, padding: 12, fontSize: 13, color: "#78350f", marginBottom: 20 }}>
               💡 <strong>Why this matters:</strong> {step.why}
+            </div>
+          )}
+
+          {/* Pre-approval upload — only on Step 10 (the preapproval step) */}
+          {step.fields && step.fields.some(f => f.type === "preapproval_picker") && (
+            <div style={{ background: "#eff6ff", border: "1px solid #93c5fd", borderRadius: 8, padding: 16, marginBottom: 20 }}>
+              <div style={{ fontWeight: 700, color: "#1e3a8a", marginBottom: 6, fontSize: 14 }}>
+                📎 Upload the pre-approval letter (or proof of funds)
+              </div>
+              <div style={{ fontSize: 12, color: "#1e40af", marginBottom: 12 }}>
+                Upload a PDF or photo of the buyer's lender pre-approval. It will be saved to this transaction's documents and linked to this offer.
+              </div>
+              <label style={{ display: "inline-block" }}>
+                <input type="file" accept=".pdf,.png,.jpg,.jpeg,.webp"
+                  disabled={preapUploading}
+                  onChange={e => onPreapUpload(e.target.files && e.target.files[0])}
+                  style={{ display: "none" }} />
+                <span style={{ display: "inline-block", background: preapUploading ? "#9ca3af" : "#1e40af", color: "white", padding: "8px 16px", borderRadius: 6, fontSize: 13, fontWeight: 700, cursor: preapUploading ? "wait" : "pointer" }}>
+                  {preapUploading ? "Uploading…" : "📎 Choose File"}
+                </span>
+              </label>
+              {preapMsg && (
+                <div style={{ marginTop: 12, background: "#d1fae5", border: "1px solid #6ee7b7", borderRadius: 6, padding: 10, fontSize: 12, color: "#065f46" }}>
+                  {preapMsg}
+                </div>
+              )}
             </div>
           )}
 
