@@ -4601,13 +4601,24 @@ function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenCon
   };
 
   const hydratedPagedTxs = [...pagedTxs].sort((a, b) => {
-    const aUnassigned = !a.assigned_agent ? 4 : 0;
-    const bUnassigned = !b.assigned_agent ? 4 : 0;
-    const aReview = a.needs_review ? 2 : 0;
-    const bReview = b.needs_review ? 2 : 0;
-    const aNew = a.needs_first_contact ? 1 : 0;
-    const bNew = b.needs_first_contact ? 1 : 0;
-    return (bUnassigned + bReview + bNew) - (aUnassigned + aReview + aNew);
+    // Tier 1: unassigned leads / needs review / needs first contact —
+    // composite score so all three urgency signals share the top band.
+    const aTier1 = (!a.assigned_agent ? 4 : 0) + (a.needs_review ? 2 : 0) + (a.needs_first_contact ? 1 : 0);
+    const bTier1 = (!b.assigned_agent ? 4 : 0) + (b.needs_review ? 2 : 0) + (b.needs_first_contact ? 1 : 0);
+    if (aTier1 !== bTier1) return bTier1 - aTier1;
+
+    // Tier 2: closing within 14 days, soonest first.
+    const todayMs = (() => { const d = new Date(); d.setHours(0,0,0,0); return d.getTime(); })();
+    const aClose = a.closing_date ? new Date(a.closing_date).getTime() : null;
+    const bClose = b.closing_date ? new Date(b.closing_date).getTime() : null;
+    const aDays = aClose != null ? Math.round((aClose - todayMs) / 86400000) : Infinity;
+    const bDays = bClose != null ? Math.round((bClose - todayMs) / 86400000) : Infinity;
+    const aSoon = aDays >= 0 && aDays <= 14;
+    const bSoon = bDays >= 0 && bDays <= 14;
+    if (aSoon !== bSoon) return aSoon ? -1 : 1;
+    if (aSoon && bSoon) return aDays - bDays;
+
+    return 0;
   }).map(t => ({
     id: t.id,
     address: t.address,
