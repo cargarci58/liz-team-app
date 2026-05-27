@@ -144,16 +144,28 @@ function UploadModal({ transactionId, onClose, onSaved }) {
     setError('');
     setStage('uploading');
     try {
-      // 1) Get signed URL
-      const urlRes = await fetch(`${API}/transactions/${transactionId}/preapproval/upload-url`, {
+      if (file.size > 9 * 1024 * 1024) throw new Error('File too large (max 9 MB)');
+
+      // Read file as base64 and upload via server proxy (no R2 CORS issue)
+      const base64 = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const result = reader.result;
+          const comma = result.indexOf(',');
+          resolve(comma >= 0 ? result.slice(comma + 1) : result);
+        };
+        reader.onerror = () => reject(new Error('Failed to read file'));
+        reader.readAsDataURL(file);
+      });
+
+      const upRes = await fetch(`${API}/transactions/${transactionId}/preapproval/upload-direct`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + localStorage.getItem('tp_token') },
-        body: JSON.stringify({ filename: file.name, contentType: file.type })
+        body: JSON.stringify({ filename: file.name, contentType: file.type, base64 })
       });
-      const { uploadUrl, key } = await urlRes.json();
-
-      // 2) Upload to R2
-      await fetch(uploadUrl, { method: 'PUT', body: file, headers: { 'Content-Type': file.type } });
+      const upBody = await upRes.json();
+      if (!upRes.ok) throw new Error(upBody.error || 'Upload failed');
+      const key = upBody.key;
 
       setKeyAndName({ key, filename: file.name });
       setStage('extracting');
