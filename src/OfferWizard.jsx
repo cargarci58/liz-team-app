@@ -3,18 +3,34 @@ import { getWizard } from "./config/offerWizardSchema";
 
 const API = "https://liz-team-server-api-production.up.railway.app";
 
-// Common Florida addenda. Used by the addenda_picker field.
+// Florida addenda + required statutory disclosures. The "FL required" flag
+// drives the addenda_picker default-selection on offer creation.
 const STANDARD_ADDENDA = [
-  { id: "as_is_rider",      label: "AS-IS Rider" },
-  { id: "lead_paint",       label: "Lead-Based Paint Disclosure (pre-1978)" },
-  { id: "hoa_addendum",     label: "HOA Addendum" },
-  { id: "condo_rider",      label: "Condo Rider" },
-  { id: "fha_addendum",     label: "FHA Financing Addendum" },
-  { id: "va_addendum",      label: "VA Financing Addendum" },
-  { id: "cash_addendum",    label: "Cash Sale Addendum" },
-  { id: "comp_rider",       label: "Comprehensive Rider" },
-  { id: "seller_disclosure", label: "Seller's Property Disclosure" },
-  { id: "homestead",        label: "Homestead Notice" },
+  // Always required by Florida statute on residential sales
+  { id: "radon_disclosure",    label: "Radon Gas Disclosure (FL §404.056 — required)", flRequired: true },
+  { id: "property_tax_disc",   label: "Property Tax Disclosure Summary (FL §689.261 — required)", flRequired: true },
+  { id: "energy_efficiency",   label: "Florida Building Energy-Efficiency Disclosure (required)", flRequired: true },
+  { id: "flood_disclosure",    label: "Flood Disclosure (FL residential — required since Oct 2024)", flRequired: true },
+  { id: "seller_disclosure",   label: "Seller's Property Disclosure (Johnson v. Davis — required)", flRequired: true },
+  // AS-IS rider — always included on an AS-IS contract
+  { id: "as_is_rider",         label: "AS-IS Rider (Comprehensive)" },
+  // Conditional — auto-suggested based on MLS data
+  { id: "lead_paint",          label: "Lead-Based Paint Disclosure (homes built pre-1978)" },
+  { id: "hoa_addendum",        label: "HOA Addendum / Disclosure (FL §720)" },
+  { id: "condo_rider",         label: "Condominium Rider (FL §718)" },
+  { id: "homestead",           label: "Homestead / Spousal Acknowledgment" },
+  { id: "coastal_construction", label: "Coastal Construction Control Line Disclosure" },
+  // Financing-type specific
+  { id: "fha_addendum",        label: "FHA Financing Addendum" },
+  { id: "va_addendum",         label: "VA Financing Addendum" },
+  { id: "cash_addendum",       label: "Cash Sale Addendum" },
+  // Property condition
+  { id: "sinkhole_disclosure", label: "Sinkhole Disclosure (if known activity)" },
+  { id: "mold_disclosure",     label: "Mold Disclosure" },
+  { id: "insurance_disclosure", label: "Homeowners' Insurance Disclosure" },
+  { id: "square_footage",      label: "Square Footage Disclosure" },
+  // Misc
+  { id: "comp_rider",          label: "Comprehensive Rider" },
 ];
 
 const inputStyle = {
