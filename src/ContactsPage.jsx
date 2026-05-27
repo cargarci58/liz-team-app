@@ -864,7 +864,7 @@ function ContactDetailDrawer({ contact, token, onClose, onEdit, onLogged, onArch
               <div style={{ fontSize: 13, marginBottom: 4 }}>📍 {[contact.address, contact.city, contact.state, contact.zip_code].filter(Boolean).join(", ")}</div>
             )}
             <div style={{ fontSize: 12, color: "#6b7280", marginTop: 8 }}>
-              Last called: <strong>{fmtDate(contact.last_contacted_at)}</strong>
+              Last called: <strong>{fmtPastDate(contact.last_contacted_at)}</strong>
             </div>
           </div>
 
