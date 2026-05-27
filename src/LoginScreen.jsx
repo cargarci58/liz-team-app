@@ -187,7 +187,13 @@ export default function LoginScreen({ onLogin }) {
           </div>
         </div>
       </div>
-      <div style={{ marginTop: 24, fontSize: 12, color: "#555" }}>2025 TransactPro</div>
+      <div style={{ marginTop: 24, fontSize: 12, color: "#555", textAlign: "center" }}>
+        2026 TransactPro
+        <span style={{ margin: "0 8px", color: "#bbb" }}>·</span>
+        <a href="/terms" style={{ color: "#555", textDecoration: "underline" }}>Terms of Service</a>
+        <span style={{ margin: "0 8px", color: "#bbb" }}>·</span>
+        <a href="/privacy" style={{ color: "#555", textDecoration: "underline" }}>Privacy Policy</a>
+      </div>
     </div>
   );
 }
