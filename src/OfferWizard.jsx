@@ -286,7 +286,12 @@ export default function OfferWizard({ offerId, token, onClose, onSaved }) {
             setOffer(ob.offer);
             setData(ob.offer.offer_data || {});
           }
-          setMlsResultMsg("✅ Read " + (pd.job.result?.fieldCount || 0) + " fields from the MLS sheet. Review below and edit anything that's off.");
+          const extractedObj = (pd.job.result && pd.job.result.extracted) || {};
+          const extractedKeys = Object.keys(extractedObj);
+          setMlsResultMsg(
+            "✅ Read " + extractedKeys.length + " field" + (extractedKeys.length === 1 ? "" : "s") + " from the MLS sheet: " +
+            extractedKeys.join(", ") + ". Review below and edit anything that's off."
+          );
           setMlsExtracting(false);
           return;
         }
