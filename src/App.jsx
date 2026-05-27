@@ -4772,7 +4772,17 @@ function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenCon
             )}
             <div>
               <div style={{ color: "#fff", fontSize: 18, fontWeight: 800 }}>{tenantBrand.name || "TransactPro"}</div>
-              <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 11 }}>{tenantBrand.name ? "Powered by TransactPro" : "Real Estate Transaction Management"}</div>
+              {tenantBrand.name ? (
+                <div style={{ color: "rgba(255,255,255,0.8)", fontSize: 11, display: "flex", alignItems: "center", gap: 5, marginTop: 2 }}>
+                  <span>Powered by</span>
+                  <span style={{ width: 14, height: 14, borderRadius: 3, background: COLORS.gold, display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+                    <span style={{ color: "#fff", fontSize: 9, fontWeight: 900, lineHeight: 1 }}>T</span>
+                  </span>
+                  <strong style={{ color: "#fff", fontWeight: 700 }}>TransactPro</strong>
+                </div>
+              ) : (
+                <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 11 }}>Real Estate Transaction Management</div>
+              )}
             </div>
           </div>
           <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
@@ -5420,9 +5430,12 @@ function MainApp({ onLogout, currentUser }) {
     } catch {}
   };
 
-  // Load transactions from database on mount
+  // Load transactions from database on mount.
+  // includeClosed=true so the Pipeline view's "Closed" column actually
+  // populates and recently-closed deals don't vanish from the dashboard.
+  // Backend caps at LIMIT 500, so this is safe at brokerage scale.
   useEffect(() => {
-    fetch(`${API}/transactions`, { headers: authHeaders })
+    fetch(`${API}/transactions?includeClosed=true`, { headers: authHeaders })
       .then(r => r.json())
       .then(data => {
         if (data.transactions) {
