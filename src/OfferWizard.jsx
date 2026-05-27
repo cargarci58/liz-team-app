@@ -109,6 +109,23 @@ function FieldRenderer({ field, value, onChange, documents }) {
   return <input type="text" value={v} onChange={e => onChange(e.target.value)} style={inputStyle} />;
 }
 
+// Walk every step in the wizard and fold each field's schema-level default
+// into the data object whenever data[id] is undefined. Must be applied any
+// time we replace `data` wholesale (initial load, MLS extraction reload, etc.)
+// — otherwise required fields render their default value visually but the
+// validation sees undefined and complains.
+function applyWizardDefaults(wizard, data) {
+  const out = { ...(data || {}) };
+  for (const s of (wizard?.steps || [])) {
+    for (const f of (s.fields || [])) {
+      if (f.default !== undefined && out[f.id] === undefined) {
+        out[f.id] = f.default;
+      }
+    }
+  }
+  return out;
+}
+
 function fieldVisible(field, data) {
   if (!field.showIf) return true;
   for (const [key, allowed] of Object.entries(field.showIf)) {
@@ -150,18 +167,9 @@ export default function OfferWizard({ offerId, token, onClose, onSaved }) {
         if (!r.ok) throw new Error(body.error || "Failed to load offer");
         if (cancelled) return;
         setOffer(body.offer);
-        // Fold schema-level defaults into data so the validation sees what the
-        // UI displays (e.g. checkboxes with default:true should count as "set").
+        // Fold schema-level defaults into data so validation matches what the UI shows.
         const wizardForType = getWizard(body.offer.base_contract_type || "as_is");
-        const initialData = { ...(body.offer.offer_data || {}) };
-        for (const s of wizardForType.steps) {
-          for (const f of (s.fields || [])) {
-            if (f.default !== undefined && initialData[f.id] === undefined) {
-              initialData[f.id] = f.default;
-            }
-          }
-        }
-        setData(initialData);
+        setData(applyWizardDefaults(wizardForType, body.offer.offer_data));
         setStepIdx(Math.max(0, (body.offer.current_step || 1) - 1));
         // Best-effort fetch the transaction's documents (for the preapproval picker).
         try {
@@ -284,7 +292,10 @@ export default function OfferWizard({ offerId, token, onClose, onSaved }) {
           const ob = await or.json();
           if (or.ok) {
             setOffer(ob.offer);
-            setData(ob.offer.offer_data || {});
+            // Re-apply schema defaults after MLS extraction reload — otherwise
+            // required defaulted fields (EMD due days, AS-IS, right-of-access)
+            // get clobbered back to undefined and validation breaks.
+            setData(applyWizardDefaults(getWizard(ob.offer.base_contract_type || "as_is"), ob.offer.offer_data));
           }
           const extractedObj = (pd.job.result && pd.job.result.extracted) || {};
           const extractedKeys = Object.keys(extractedObj);
