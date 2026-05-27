@@ -48,10 +48,10 @@
 <body>
 
 <div class="header">
-  <div class="logo">T</div>
+  <div class="logo" id="brokerage-logo">T</div>
   <div class="header-text">
-    <h1>TransactPro</h1>
-    <p>Buyer Information Form</p>
+    <h1 id="brokerage-name">TransactPro</h1>
+    <p id="brokerage-subtitle">Buyer Information Form</p>
   </div>
 </div>
 
@@ -292,6 +292,25 @@
 const API = "https://liz-team-server-api-production.up.railway.app";
 const slug = new URLSearchParams(window.location.search).get("agent") || "";
 const agentId = new URLSearchParams(window.location.search).get("uid") || "";
+
+// Co-brand the header with the linking brokerage's logo + name if available.
+// Falls back silently to the generic header if no slug or no logo.
+if (slug) {
+  fetch(API + "/public/brokerage/" + encodeURIComponent(slug) + "/info")
+    .then(r => r.ok ? r.json() : null)
+    .then(info => {
+      if (!info) return;
+      const nameEl = document.getElementById("brokerage-name");
+      const subEl = document.getElementById("brokerage-subtitle");
+      const logoEl = document.getElementById("brokerage-logo");
+      if (nameEl) nameEl.textContent = info.name || "TransactPro";
+      if (subEl) subEl.textContent = "Buyer Information Form · Powered by TransactPro";
+      if (info.logoUrl && logoEl) {
+        logoEl.innerHTML = '<img src="' + info.logoUrl + '" alt="' + (info.name || "").replace(/"/g, "&quot;") + '" style="width:100%;height:100%;object-fit:contain;background:#fff;border-radius:4px;padding:2px;box-sizing:border-box">';
+      }
+    })
+    .catch(() => {});
+}
 
 // Block direct visits without a brokerage slug — these are always meant
 // to be reached via a personalized link an agent shares.

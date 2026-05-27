@@ -4297,6 +4297,15 @@ function SettingsMenu({ currentUser, onOpenContactBook, contactCount, onReports,
 function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenContactBook, onOpenContacts, onOpenExpenses, onOpenForms, contactCount, onLogout, onOpenTeam, onOpenCompliance, onOpenComplianceDash, onOpenTaskTmpls, onOpenContractIntake, onChangePassword, onReports, onHome, onVendors, onCompanySettings, onAgentProfile, onIntakeLinks, currentUser }) {
   const [filter, setFilter] = useState("All");
   const [search, setSearch] = useState("");
+  // Tenant branding for the navbar — fetched once on mount.
+  const [tenantBrand, setTenantBrand] = useState({ name: "", logoUrl: "" });
+  useEffect(() => {
+    const tok = localStorage.getItem("tp_token") || "";
+    fetch("https://liz-team-server-api-production.up.railway.app/settings/company", { headers: { "Authorization": "Bearer " + tok } })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d?.company) setTenantBrand({ name: d.company.name || "", logoUrl: d.company.logoUrl || "" }); })
+      .catch(e => console.error("[bg]", e && e.message ? e.message : e));
+  }, []);
   const [viewMode, setViewMode] = useState(() => localStorage.getItem("tp_view_mode") || "cards");
   const [sortKey, setSortKey] = useState(() => { const saved = localStorage.getItem("tp_sort_key"); return saved && saved !== "closingDate" ? saved : "status"; });
   const [sortDir, setSortDir] = useState(() => localStorage.getItem("tp_sort_dir") || "asc");
@@ -4754,12 +4763,16 @@ function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenCon
       <div style={{ background: COLORS.navy, padding: "0 24px" }}>
         <div data-dash-header="" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: 20, paddingBottom: 8 }}>
           <div data-dash-logo="" style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <div style={{ width: 36, height: 36, borderRadius: 8, background: COLORS.gold, display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <span style={{ color: "#fff", fontSize: 18, fontWeight: 900 }}>T</span>
-            </div>
+            {tenantBrand.logoUrl ? (
+              <img src={tenantBrand.logoUrl} alt={tenantBrand.name || "Logo"} style={{ height: 40, maxWidth: 140, objectFit: "contain", background: "#fff", borderRadius: 6, padding: 4 }} onError={e => { e.target.style.display = "none"; }} />
+            ) : (
+              <div style={{ width: 36, height: 36, borderRadius: 8, background: COLORS.gold, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <span style={{ color: "#fff", fontSize: 18, fontWeight: 900 }}>T</span>
+              </div>
+            )}
             <div>
-              <div style={{ color: "#fff", fontSize: 18, fontWeight: 800 }}>TransactPro</div>
-              <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 11 }}>Real Estate Transaction Management</div>
+              <div style={{ color: "#fff", fontSize: 18, fontWeight: 800 }}>{tenantBrand.name || "TransactPro"}</div>
+              <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 11 }}>{tenantBrand.name ? "Powered by TransactPro" : "Real Estate Transaction Management"}</div>
             </div>
           </div>
           <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
