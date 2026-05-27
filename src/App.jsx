@@ -4601,24 +4601,16 @@ function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenCon
   };
 
   const hydratedPagedTxs = [...pagedTxs].sort((a, b) => {
-    // Tier 1: unassigned leads / needs review / needs first contact —
-    // composite score so all three urgency signals share the top band.
-    const aTier1 = (!a.assigned_agent ? 4 : 0) + (a.needs_review ? 2 : 0) + (a.needs_first_contact ? 1 : 0);
-    const bTier1 = (!b.assigned_agent ? 4 : 0) + (b.needs_review ? 2 : 0) + (b.needs_first_contact ? 1 : 0);
-    if (aTier1 !== bTier1) return bTier1 - aTier1;
-
-    // Tier 2: closing within 14 days, soonest first.
-    const todayMs = (() => { const d = new Date(); d.setHours(0,0,0,0); return d.getTime(); })();
-    const aClose = a.closing_date ? new Date(a.closing_date).getTime() : null;
-    const bClose = b.closing_date ? new Date(b.closing_date).getTime() : null;
-    const aDays = aClose != null ? Math.round((aClose - todayMs) / 86400000) : Infinity;
-    const bDays = bClose != null ? Math.round((bClose - todayMs) / 86400000) : Infinity;
-    const aSoon = aDays >= 0 && aDays <= 14;
-    const bSoon = bDays >= 0 && bDays <= 14;
-    if (aSoon !== bSoon) return aSoon ? -1 : 1;
-    if (aSoon && bSoon) return aDays - bDays;
-
-    return 0;
+    // Tier 1: New buyer/seller inquiries that still need first contact
+    // (from the public intake forms) — always pinned at the top.
+    if (a.needs_first_contact !== b.needs_first_contact) {
+      return a.needs_first_contact ? -1 : 1;
+    }
+    // Tier 2: Everything else by closing date, soonest first.
+    // Transactions without a closing date sink to the bottom.
+    const aClose = a.closing_date ? new Date(a.closing_date).getTime() : Infinity;
+    const bClose = b.closing_date ? new Date(b.closing_date).getTime() : Infinity;
+    return aClose - bClose;
   }).map(t => ({
     id: t.id,
     address: t.address,
