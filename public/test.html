@@ -70,6 +70,25 @@
     footer h3 { font-size: 16px; color: #0c4a6e; margin-bottom: 10px; }
     footer ul { margin-left: 22px; font-size: 14px; color: #374151; }
     footer ul li { margin-bottom: 5px; }
+
+    /* Per-scenario feedback controls (Pass / Issue / Skip + notes) */
+    .feedback-block { margin-top: 14px; padding-top: 12px; border-top: 1px dashed #e5e7eb; }
+    .feedback-status-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+    .feedback-label { font-size: 12px; font-weight: 700; color: #4b5563; text-transform: uppercase; letter-spacing: 0.04em; }
+    .status-pills { display: flex; gap: 6px; }
+    .status-pill { padding: 5px 12px; border: 1.5px solid #e5e7eb; background: #fff; border-radius: 16px; font-size: 12px; font-weight: 600; cursor: pointer; font-family: inherit; color: #4b5563; transition: all 0.15s; }
+    .status-pill:hover { border-color: #9ca3af; }
+    .status-pill.active[data-status="pass"] { background: #d1fae5; border-color: #10b981; color: #065f46; }
+    .status-pill.active[data-status="issue"] { background: #fee2e2; border-color: #ef4444; color: #991b1b; }
+    .status-pill.active[data-status="skip"] { background: #e5e7eb; border-color: #6b7280; color: #374151; }
+    .feedback-notes { width: 100%; min-height: 60px; padding: 8px 12px; border: 1px solid #e5e7eb; border-radius: 6px; font-size: 13px; font-family: inherit; resize: vertical; box-sizing: border-box; }
+    .feedback-notes:focus { outline: none; border-color: #0c4a6e; }
+    .status-dot { display: inline-block; margin-right: 6px; font-size: 14px; }
+
+    /* Export-findings button + result panel */
+    .export-bar { background: #0c4a6e; color: #fff; border: none; border-radius: 10px; padding: 14px 24px; font-weight: 700; font-size: 14px; cursor: pointer; font-family: inherit; margin-top: 12px; }
+    .export-bar:hover { background: #0a3a59; }
+    .export-result { display: none; margin-top: 14px; padding: 14px; background: #ecfdf5; border: 1px solid #10b981; border-radius: 8px; color: #065f46; font-size: 14px; }
   </style>
 </head>
 <body>
@@ -943,14 +962,13 @@
 
 
     <footer>
-      <h3>📝 How to report what you find</h3>
-      <ul>
-        <li>Note the scenario ID (e.g. "F5" or "I3")</li>
-        <li>What you expected vs. what actually happened</li>
-        <li>What browser + device you're on (e.g. "Chrome on Mac" / "Safari on iPhone")</li>
-        <li>A screenshot helps a lot</li>
-      </ul>
-      <p style="margin-top:14px;font-size:14px">Send your findings to whoever invited you to test — text, email, or a quick voice note all work. Don't try to fix things mid-test; just collect findings and report at the end.</p>
+      <h3>📝 Reporting findings</h3>
+      <p style="font-size:14px;color:#374151;margin-bottom:12px">For each scenario above, mark <strong>✅ Pass</strong>, <strong>⚠️ Issue</strong>, or <strong>⏭️ Skip</strong>, and add a note explaining what happened (especially for issues). When you're done, click below — it'll copy a clean report to your clipboard that you can paste into iMessage or email.</p>
+
+      <button class="export-bar" onclick="exportFindings()">📋 Copy Findings to Clipboard</button>
+      <div class="export-result" id="export-result"></div>
+
+      <p style="margin-top:18px;font-size:13px;color:#6b7280">Tip: include your browser + device (e.g. "Chrome on Mac" / "Safari on iPhone") in the chat when you paste the report. A screenshot of anything weird is also gold.</p>
       <p style="margin-top:14px;font-size:14px"><strong>Thank you for testing!</strong> Real agents will use this in production — catching bugs now saves them headaches later.</p>
     </footer>
 
@@ -959,8 +977,148 @@
   <script>
     // ── Progress persistence ────────────────────────────────────────
     const STORAGE_KEY = "tp_test_progress_v1";
+    const STATUS_KEY = "tp_test_status_v1";
+    const NOTES_KEY = "tp_test_notes_v1";
     const allIds = Array.from(document.querySelectorAll("details[id^='s-']")).map(d => d.id.replace("s-", ""));
     document.getElementById("total-count").textContent = allIds.length;
+
+    function loadMap(key) { try { return JSON.parse(localStorage.getItem(key) || "{}"); } catch (e) { return {}; } }
+    function saveMap(key, m) { try { localStorage.setItem(key, JSON.stringify(m)); } catch (e) { /* full or disabled */ } }
+
+    // ── Inject Pass/Issue/Skip + notes controls into every scenario ───
+    const statusMap = loadMap(STATUS_KEY);
+    const notesMap = loadMap(NOTES_KEY);
+    allIds.forEach(id => {
+      const details = document.getElementById("s-" + id);
+      if (!details) return;
+      const stepBody = details.querySelector(".step-body");
+      if (!stepBody) return;
+      const wrap = document.createElement("div");
+      wrap.className = "feedback-block";
+      const existingNotes = (notesMap[id] || "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/"/g,"&quot;");
+      const cur = statusMap[id] || "";
+      wrap.innerHTML =
+        '<div class="feedback-status-row">' +
+          '<div class="feedback-label">How did this go?</div>' +
+          '<div class="status-pills">' +
+            '<button type="button" data-status="pass" class="status-pill' + (cur==="pass"?" active":"") + '">✅ Pass</button>' +
+            '<button type="button" data-status="issue" class="status-pill' + (cur==="issue"?" active":"") + '">⚠️ Issue</button>' +
+            '<button type="button" data-status="skip" class="status-pill' + (cur==="skip"?" active":"") + '">⏭️ Skip</button>' +
+          '</div>' +
+        '</div>' +
+        '<textarea class="feedback-notes" placeholder="Notes (especially helpful for issues — what did you expect vs. what happened?)">' + existingNotes + '</textarea>';
+      stepBody.appendChild(wrap);
+
+      wrap.querySelectorAll(".status-pill").forEach(btn => {
+        btn.addEventListener("click", e => {
+          e.stopPropagation();
+          const s = btn.dataset.status;
+          const m = loadMap(STATUS_KEY);
+          if (m[id] === s) delete m[id]; else m[id] = s;
+          saveMap(STATUS_KEY, m);
+          wrap.querySelectorAll(".status-pill").forEach(b => b.classList.toggle("active", b.dataset.status === m[id]));
+          updateBadge(id, m[id]);
+        });
+      });
+      const ta = wrap.querySelector(".feedback-notes");
+      ta.addEventListener("input", () => {
+        const m = loadMap(NOTES_KEY);
+        if (ta.value.trim()) m[id] = ta.value; else delete m[id];
+        saveMap(NOTES_KEY, m);
+      });
+      ta.addEventListener("click", e => e.stopPropagation());
+
+      updateBadge(id, statusMap[id]);
+    });
+
+    function updateBadge(id, status) {
+      const summary = document.querySelector("#s-" + id + " > summary");
+      if (!summary) return;
+      let dot = summary.querySelector(".status-dot");
+      if (!dot) {
+        dot = document.createElement("span");
+        dot.className = "status-dot";
+        const ref = summary.querySelector(".id");
+        if (ref) summary.insertBefore(dot, ref);
+        else summary.prepend(dot);
+      }
+      dot.textContent = status === "pass" ? "✅" : status === "issue" ? "⚠️" : status === "skip" ? "⏭️" : "";
+    }
+
+    // ── Export findings as a clean text report ────────────────────────
+    function exportFindings() {
+      const sm = loadMap(STATUS_KEY);
+      const nm = loadMap(NOTES_KEY);
+      const lines = [];
+      lines.push("TransactPro — Test Findings");
+      lines.push("Generated: " + new Date().toLocaleString());
+      lines.push("URL: " + (typeof window !== "undefined" ? window.location.origin : ""));
+      lines.push("Browser: " + (navigator.userAgent || "unknown"));
+      lines.push("");
+
+      let pass = 0, issue = 0, skip = 0, untested = 0;
+      allIds.forEach(id => {
+        const s = sm[id];
+        if (s === "pass") pass++;
+        else if (s === "issue") issue++;
+        else if (s === "skip") skip++;
+        else untested++;
+      });
+      lines.push("SUMMARY: ✅ " + pass + " pass · ⚠️ " + issue + " issue · ⏭️ " + skip + " skip · ⬜ " + untested + " untested (of " + allIds.length + " total)");
+      lines.push("");
+
+      // Issues first — these matter most
+      const issues = allIds.filter(id => sm[id] === "issue");
+      if (issues.length) {
+        lines.push("====== ⚠️ ISSUES FLAGGED ======");
+        lines.push("");
+        issues.forEach(id => {
+          const titleEl = document.querySelector("#s-" + id + " > summary .title");
+          const title = titleEl ? titleEl.textContent.trim() : id;
+          lines.push("[" + id + "] " + title);
+          const note = (nm[id] || "").trim();
+          lines.push(note || "(no notes)");
+          lines.push("");
+        });
+        lines.push("");
+      }
+
+      // All results
+      lines.push("====== ALL RESULTS ======");
+      lines.push("");
+      allIds.forEach(id => {
+        const titleEl = document.querySelector("#s-" + id + " > summary .title");
+        const title = titleEl ? titleEl.textContent.trim() : id;
+        const s = sm[id] || "untested";
+        const icon = s === "pass" ? "✅" : s === "issue" ? "⚠️" : s === "skip" ? "⏭️" : "⬜";
+        lines.push(icon + " [" + id + "] " + title + " — " + s.toUpperCase());
+        if (nm[id]) {
+          const noteLines = nm[id].trim().split("\n");
+          noteLines.forEach(nl => lines.push("    " + nl));
+        }
+      });
+
+      const text = lines.join("\n");
+      const resultEl = document.getElementById("export-result");
+      const showResult = (msg) => {
+        if (resultEl) {
+          resultEl.style.display = "block";
+          resultEl.textContent = msg;
+          setTimeout(() => { resultEl.style.display = "none"; }, 6000);
+        }
+      };
+      const fallback = () => window.prompt("Copy these findings:", text);
+
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(
+          () => showResult("✅ Findings copied to clipboard! Paste them into iMessage or email and send to whoever invited you to test."),
+          () => fallback()
+        );
+      } else {
+        fallback();
+      }
+    }
+    window.exportFindings = exportFindings;
 
     function loadProgress() {
       try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}"); }
@@ -994,9 +1152,12 @@
       refreshUI();
     }
     function resetProgress() {
-      if (!confirm("Reset all checkboxes? This can't be undone.")) return;
+      if (!confirm("Reset all checkboxes, status pills, and notes? This can't be undone.")) return;
       localStorage.removeItem(STORAGE_KEY);
-      refreshUI();
+      localStorage.removeItem(STATUS_KEY);
+      localStorage.removeItem(NOTES_KEY);
+      // Cleanest: reload to re-initialize the dynamically-injected feedback controls.
+      window.location.reload();
     }
     refreshUI();
   </script>
