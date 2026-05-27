@@ -569,7 +569,7 @@ function FillMissingModal({ token, onClose, onDone }) {
   );
 }
 
-function ImportModal({ token, onClose, onImported }) {
+function ImportModal({ token, onClose, onImported, onFillMissing }) {
   const [step, setStep] = useState(1);
   const [rawRows, setRawRows] = useState([]);
   const [headers, setHeaders] = useState([]);
@@ -690,15 +690,27 @@ function ImportModal({ token, onClose, onImported }) {
         </div>
 
         {step === 1 && (
-          <div style={{ border: "2px dashed #d1d5db", borderRadius: 8, padding: 32, textAlign: "center", background: "#f9fafb" }}>
-            <input ref={fileRef} type="file" accept=".csv,text/csv" onChange={e => onFile(e.target.files && e.target.files[0])} style={{ display: "none" }} />
-            <button onClick={() => fileRef.current && fileRef.current.click()} style={btnStyle("#0c4a6e", "white")}>
-              Choose CSV File
-            </button>
-            <div style={{ fontSize: 12, color: "#6b7280", marginTop: 12 }}>
-              Max 5,000 rows. Duplicates (same phone or email) are skipped automatically.
+          <>
+            <div style={{ border: "2px dashed #d1d5db", borderRadius: 8, padding: 32, textAlign: "center", background: "#f9fafb" }}>
+              <input ref={fileRef} type="file" accept=".csv,text/csv" onChange={e => onFile(e.target.files && e.target.files[0])} style={{ display: "none" }} />
+              <button onClick={() => fileRef.current && fileRef.current.click()} style={btnStyle("#0c4a6e", "white")}>
+                Choose CSV File
+              </button>
+              <div style={{ fontSize: 12, color: "#6b7280", marginTop: 12 }}>
+                Max 5,000 rows. Duplicates (same phone or email) are skipped automatically.
+              </div>
             </div>
-          </div>
+            {onFillMissing && (
+              <div style={{ marginTop: 16, padding: 12, background: "#fef3c7", border: "1px solid #fcd34d", borderRadius: 8, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+                <div style={{ fontSize: 12, color: "#78350f" }}>
+                  Already have contacts but missing phones/emails? Re-import from another CRM to fill the gaps.
+                </div>
+                <button onClick={onFillMissing} style={{ ...btnStyle("#fef3c7", "#92400e"), border: "1px solid #fcd34d", whiteSpace: "nowrap" }}>
+                  🩹 Fill Missing Info
+                </button>
+              </div>
+            )}
+          </>
         )}
 
         {step === 2 && (
@@ -1223,7 +1235,6 @@ export default function ContactsPage({ token, onBack }) {
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           <button onClick={() => setShowBulkSchedule(true)} style={btnStyle("#7c3aed", "white")}>📅 Schedule Calls</button>
           <button onClick={() => setShowImport(true)} style={btnStyle("#e5e7eb", "#374151")}>📥 Import CSV</button>
-          <button onClick={() => setShowFillMissing(true)} style={btnStyle("#fef3c7", "#92400e")} title="Re-import CSV from another CRM to fill in missing phones/emails on existing contacts">🩹 Fill Missing Info</button>
           <button onClick={() => setShowAdd(true)} style={btnStyle("#0c4a6e", "white")}>+ Add Contact</button>
         </div>
       </div>
@@ -1346,12 +1357,15 @@ export default function ContactsPage({ token, onBack }) {
       {viewing && <ContactDetailDrawer contact={viewing} token={token} onClose={() => setViewing(null)} onEdit={(c) => { setViewing(null); setEditing(c); }} onLogged={load} onArchived={load} onDeleted={load} />}
       {showBulkSchedule && <BulkScheduleModal token={token} contactCount={contacts.length} onClose={() => setShowBulkSchedule(false)} onScheduled={() => load()} />}
       {showFillMissing && <FillMissingModal token={token} onClose={() => setShowFillMissing(false)} onDone={() => { setShowFillMissing(false); load(); }} />}
-      {showImport && <ImportModal token={token} onClose={() => setShowImport(false)} onImported={(data) => {
-        // Reset all filters so newly imported contacts show
-        setFilter({ temperature: "", type: "", due: "", search: "" });
-        // Reload after a beat so backend has committed
-        setTimeout(() => load(), 300);
-      }} />}
+      {showImport && <ImportModal token={token}
+        onClose={() => setShowImport(false)}
+        onFillMissing={() => { setShowImport(false); setShowFillMissing(true); }}
+        onImported={(data) => {
+          // Reset all filters so newly imported contacts show
+          setFilter({ temperature: "", type: "", due: "", search: "" });
+          // Reload after a beat so backend has committed
+          setTimeout(() => load(), 300);
+        }} />}
     </div>
   );
 }
