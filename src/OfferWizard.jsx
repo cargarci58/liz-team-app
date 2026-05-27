@@ -204,39 +204,43 @@ export default function OfferWizard({ offerId, token, onClose, onSaved }) {
     if (ok && onSaved) onSaved();
   };
 
-  // Upload MLS sheet and run AI extraction. Result merges into offer_data
-  // server-side; we reload here so the fields auto-fill.
+  // Upload MLS sheet and run AI extraction. The file goes through our server
+  // (not directly to R2) because Cloudflare R2 has CORS preflight quirks with
+  // AWS SDK v3 signed URLs. Merged data lands on the offer server-side.
   const onMlsUpload = async (file) => {
     if (!file) return;
     setError(null);
     setMlsResultMsg(null);
     setMlsUploading(true);
     try {
-      // 1) Presigned URL
-      const r1 = await fetch(API + "/offers/" + offerId + "/mls-upload-url", {
-        method: "POST",
-        headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
-        body: JSON.stringify({ fileName: file.name, fileType: file.type || "application/pdf" }),
+      if (file.size > 9 * 1024 * 1024) throw new Error("File too large (max 9 MB). Print the MLS sheet to a smaller PDF.");
+
+      // Read file as base64
+      const base64 = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const result = reader.result;
+          // Strip the 'data:<mime>;base64,' prefix
+          const comma = result.indexOf(",");
+          resolve(comma >= 0 ? result.slice(comma + 1) : result);
+        };
+        reader.onerror = () => reject(new Error("Failed to read file"));
+        reader.readAsDataURL(file);
       });
-      const u = await r1.json();
-      if (!r1.ok) throw new Error(u.error || "Upload URL failed");
 
-      // 2) PUT to R2
-      const putRes = await fetch(u.uploadUrl, { method: "PUT", headers: { "Content-Type": file.type || "application/pdf" }, body: file });
-      if (!putRes.ok) throw new Error("Upload to storage failed");
-
-      // 3) Kick off AI extraction
       setMlsUploading(false);
       setMlsExtracting(true);
-      const r2 = await fetch(API + "/offers/" + offerId + "/mls-extract", {
+
+      // Server-proxied upload + extraction in one call
+      const r = await fetch(API + "/offers/" + offerId + "/mls-upload-extract", {
         method: "POST",
         headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
-        body: JSON.stringify({ key: u.key }),
+        body: JSON.stringify({ fileName: file.name, fileType: file.type || "application/pdf", base64 }),
       });
-      const e = await r2.json();
-      if (!r2.ok) throw new Error(e.error || "Extraction failed to start");
+      const e = await r.json();
+      if (!r.ok) throw new Error(e.error || "Upload/extract failed");
 
-      // 4) Poll the job
+      // Poll the AI job
       const jobId = e.jobId;
       const deadline = Date.now() + 90_000;
       while (Date.now() < deadline) {
