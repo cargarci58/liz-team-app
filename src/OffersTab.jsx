@@ -96,7 +96,7 @@ export default function OffersTab({ tx, token }) {
         </div>
         <button onClick={createOffer} disabled={creating}
           style={{ background: creating ? "#9ca3af" : "#0c4a6e", color: "white", border: "none", padding: "10px 18px", borderRadius: 6, fontSize: 14, fontWeight: 700, cursor: creating ? "wait" : "pointer", fontFamily: "inherit" }}>
-          {creating ? "Creating..." : "+ New Offer"}
+          {creating ? "Creating..." : "+ Create Offer"}
         </button>
       </div>
 
@@ -112,7 +112,7 @@ export default function OffersTab({ tx, token }) {
         <div style={{ background: "#f9fafb", border: "2px dashed #d1d5db", borderRadius: 8, padding: 40, textAlign: "center", color: "#6b7280" }}>
           <div style={{ fontSize: 32, marginBottom: 8 }}>📝</div>
           <div style={{ fontWeight: 700, color: "#374151", marginBottom: 4 }}>No offers yet</div>
-          <div style={{ fontSize: 13 }}>Click "+ New Offer" to build your first offer for this buyer.</div>
+          <div style={{ fontSize: 13 }}>Click "+ Create Offer" to build your first offer for this buyer.</div>
         </div>
       ) : (
         <div style={{ background: "white", border: "1px solid #e5e7eb", borderRadius: 8, overflow: "hidden" }}>
