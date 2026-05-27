@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import OfferWizard from "./OfferWizard";
 
 const API = "https://liz-team-server-api-production.up.railway.app";
 
@@ -29,6 +30,7 @@ export default function OffersTab({ tx, token }) {
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState(null);
+  const [wizardOfferId, setWizardOfferId] = useState(null);
 
   const load = async () => {
     setLoading(true);
@@ -60,9 +62,9 @@ export default function OffersTab({ tx, token }) {
       });
       const data = await r.json();
       if (!r.ok) throw new Error(data.error || "Failed to create offer");
-      // Reload list — wizard UI comes next commit
       await load();
-      alert("Draft offer created. The step-by-step wizard is coming in the next update.");
+      // Open the wizard on the newly-created draft
+      if (data.offer && data.offer.id) setWizardOfferId(data.offer.id);
     } catch (e) {
       setError(e.message);
     } finally {
@@ -147,7 +149,7 @@ export default function OffersTab({ tx, token }) {
                     <td style={{ padding: "10px 12px", color: "#6b7280" }}>{o.current_step}/10</td>
                     <td style={{ padding: "10px 12px", color: "#6b7280" }}>{fmtDate(o.updated_at)}</td>
                     <td style={{ padding: "10px 12px", textAlign: "right", whiteSpace: "nowrap" }}>
-                      <button onClick={() => alert("Wizard UI coming next update")}
+                      <button onClick={() => setWizardOfferId(o.id)}
                         style={{ background: "#e5e7eb", color: "#374151", border: "none", padding: "4px 10px", borderRadius: 4, fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", marginRight: 6 }}>
                         Open
                       </button>
@@ -164,6 +166,15 @@ export default function OffersTab({ tx, token }) {
             </tbody>
           </table>
         </div>
+      )}
+
+      {wizardOfferId && (
+        <OfferWizard
+          offerId={wizardOfferId}
+          token={token}
+          onClose={() => { setWizardOfferId(null); load(); }}
+          onSaved={() => load()}
+        />
       )}
     </div>
   );

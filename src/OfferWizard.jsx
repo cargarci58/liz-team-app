@@ -1,0 +1,307 @@
+import { useState, useEffect } from "react";
+import { getWizard } from "./config/offerWizardSchema";
+
+const API = "https://liz-team-server-api-production.up.railway.app";
+
+// Common Florida addenda. Used by the addenda_picker field.
+const STANDARD_ADDENDA = [
+  { id: "as_is_rider",      label: "AS-IS Rider" },
+  { id: "lead_paint",       label: "Lead-Based Paint Disclosure (pre-1978)" },
+  { id: "hoa_addendum",     label: "HOA Addendum" },
+  { id: "condo_rider",      label: "Condo Rider" },
+  { id: "fha_addendum",     label: "FHA Financing Addendum" },
+  { id: "va_addendum",      label: "VA Financing Addendum" },
+  { id: "cash_addendum",    label: "Cash Sale Addendum" },
+  { id: "comp_rider",       label: "Comprehensive Rider" },
+  { id: "seller_disclosure", label: "Seller's Property Disclosure" },
+  { id: "homestead",        label: "Homestead Notice" },
+];
+
+const inputStyle = {
+  width: "100%",
+  padding: "10px 12px",
+  border: "1px solid #d1d5db",
+  borderRadius: 6,
+  fontSize: 14,
+  fontFamily: "inherit",
+  boxSizing: "border-box",
+};
+
+function FieldRenderer({ field, value, onChange, documents }) {
+  const v = value != null ? value : (field.default != null ? field.default : "");
+
+  if (field.type === "textarea") {
+    return <textarea value={v} onChange={e => onChange(e.target.value)} style={{ ...inputStyle, minHeight: 80, resize: "vertical" }} />;
+  }
+  if (field.type === "select") {
+    return (
+      <select value={v} onChange={e => onChange(e.target.value)} style={inputStyle}>
+        <option value="">— select —</option>
+        {(field.options || []).map(o => <option key={o} value={o}>{o}</option>)}
+      </select>
+    );
+  }
+  if (field.type === "checkbox") {
+    return (
+      <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14, color: "#374151", cursor: "pointer" }}>
+        <input type="checkbox" checked={!!v} onChange={e => onChange(e.target.checked)} />
+        {field.checkboxLabel || "Yes"}
+      </label>
+    );
+  }
+  if (field.type === "currency") {
+    return (
+      <div style={{ position: "relative" }}>
+        <span style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "#6b7280", fontSize: 14 }}>$</span>
+        <input type="number" step="0.01" value={v} onChange={e => onChange(e.target.value)} style={{ ...inputStyle, paddingLeft: 26 }} />
+      </div>
+    );
+  }
+  if (field.type === "number") {
+    return <input type="number" value={v} onChange={e => onChange(e.target.value)} style={inputStyle} />;
+  }
+  if (field.type === "date") {
+    return <input type="date" value={v} onChange={e => onChange(e.target.value)} style={inputStyle} />;
+  }
+  if (field.type === "addenda_picker") {
+    const selected = Array.isArray(v) ? v : [];
+    const toggle = (id) => {
+      const next = selected.includes(id) ? selected.filter(x => x !== id) : [...selected, id];
+      onChange(next);
+    };
+    return (
+      <div style={{ display: "grid", gap: 8 }}>
+        {STANDARD_ADDENDA.map(a => (
+          <label key={a.id} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14, color: "#374151", cursor: "pointer" }}>
+            <input type="checkbox" checked={selected.includes(a.id)} onChange={() => toggle(a.id)} />
+            {a.label}
+          </label>
+        ))}
+      </div>
+    );
+  }
+  if (field.type === "preapproval_picker") {
+    return (
+      <select value={v} onChange={e => onChange(e.target.value)} style={inputStyle}>
+        <option value="">— select a pre-approval / proof of funds —</option>
+        {(documents || []).filter(d => /pre.?approval|proof.*funds|pof/i.test((d.category || "") + " " + (d.name || ""))).map(d => (
+          <option key={d.id} value={d.id}>{d.name}</option>
+        ))}
+        {(documents || []).length === 0 && <option value="" disabled>No documents on this transaction yet — upload via Documents tab</option>}
+      </select>
+    );
+  }
+  // default: text
+  return <input type="text" value={v} onChange={e => onChange(e.target.value)} style={inputStyle} />;
+}
+
+function fieldVisible(field, data) {
+  if (!field.showIf) return true;
+  for (const [key, allowed] of Object.entries(field.showIf)) {
+    const val = data[key];
+    if (Array.isArray(allowed)) { if (!allowed.includes(val)) return false; }
+    else if (val !== allowed) return false;
+  }
+  return true;
+}
+
+export default function OfferWizard({ offerId, token, onClose, onSaved }) {
+  const [offer, setOffer] = useState(null);
+  const [data, setData] = useState({});
+  const [stepIdx, setStepIdx] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState(null);
+  const [documents, setDocuments] = useState([]);
+
+  const wizard = getWizard(offer?.base_contract_type || "as_is");
+  const steps = wizard.steps;
+  const step = steps[stepIdx];
+  const isLast = stepIdx === steps.length - 1;
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const r = await fetch(API + "/offers/" + offerId, { headers: { Authorization: "Bearer " + token } });
+        const body = await r.json();
+        if (!r.ok) throw new Error(body.error || "Failed to load offer");
+        if (cancelled) return;
+        setOffer(body.offer);
+        setData(body.offer.offer_data || {});
+        setStepIdx(Math.max(0, (body.offer.current_step || 1) - 1));
+        // Best-effort fetch the transaction's documents (for the preapproval picker).
+        try {
+          const dr = await fetch(API + "/transactions/" + body.offer.transaction_id + "/documents", { headers: { Authorization: "Bearer " + token } });
+          if (dr.ok) {
+            const dd = await dr.json();
+            if (!cancelled) setDocuments(dd.documents || dd || []);
+          }
+        } catch {/* docs are optional for the wizard */}
+      } catch (e) {
+        if (!cancelled) setError(e.message);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [offerId, token]);
+
+  const setField = (id, val) => setData(d => ({ ...d, [id]: val }));
+
+  const save = async ({ nextStepIdx, status }) => {
+    setSaving(true);
+    setError(null);
+    try {
+      const body = { offerData: data };
+      if (nextStepIdx != null) body.currentStep = nextStepIdx + 1;
+      if (Array.isArray(data.selected_addenda)) body.selectedAddenda = data.selected_addenda;
+      if (status) body.status = status;
+      if (data.preapproval_doc_id) body.preapprovalDocId = data.preapproval_doc_id;
+      const r = await fetch(API + "/offers/" + offerId, {
+        method: "PATCH",
+        headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const out = await r.json();
+      if (!r.ok) throw new Error(out.error || "Save failed");
+      return true;
+    } catch (e) {
+      setError(e.message);
+      return false;
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const onNext = async () => {
+    // Validate required fields on this step
+    const missing = (step.fields || []).filter(f => f.required && fieldVisible(f, data)).filter(f => {
+      const v = data[f.id];
+      return v == null || v === "" || (Array.isArray(v) && v.length === 0);
+    });
+    if (missing.length > 0) {
+      setError("Please fill in: " + missing.map(f => f.label).join(", "));
+      return;
+    }
+    const ok = await save({ nextStepIdx: stepIdx + 1 });
+    if (ok) { setStepIdx(stepIdx + 1); setError(null); }
+  };
+
+  const onBack = async () => {
+    await save({ nextStepIdx: stepIdx - 1 });
+    setStepIdx(Math.max(0, stepIdx - 1));
+    setError(null);
+  };
+
+  const onSaveDraft = async () => {
+    const ok = await save({ nextStepIdx: stepIdx });
+    if (ok && onSaved) onSaved();
+  };
+
+  const onSubmit = async () => {
+    setSubmitting(true);
+    const ok = await save({ nextStepIdx: stepIdx, status: "ready" });
+    setSubmitting(false);
+    if (ok) {
+      alert("Offer marked Ready. PDF packet assembly is coming in the next update — for now you can manually download from Documents.");
+      if (onSaved) onSaved();
+      onClose();
+    }
+  };
+
+  if (loading) {
+    return (
+      <div style={overlayStyle} onClick={onClose}>
+        <div style={{ ...modalStyle, padding: 40, textAlign: "center" }} onClick={e => e.stopPropagation()}>Loading…</div>
+      </div>
+    );
+  }
+  if (!offer) {
+    return (
+      <div style={overlayStyle} onClick={onClose}>
+        <div style={{ ...modalStyle, padding: 40 }} onClick={e => e.stopPropagation()}>
+          <div style={{ color: "#7f1d1d" }}>⚠️ {error || "Failed to load offer"}</div>
+          <button onClick={onClose} style={btnSecondary}>Close</button>
+        </div>
+      </div>
+    );
+  }
+
+  const visibleFields = (step.fields || []).filter(f => fieldVisible(f, data));
+
+  return (
+    <div style={overlayStyle} onClick={onClose}>
+      <div style={modalStyle} onClick={e => e.stopPropagation()}>
+        {/* Header */}
+        <div style={{ padding: "20px 28px", borderBottom: "1px solid #e5e7eb", background: "#0c4a6e", color: "white", borderRadius: "12px 12px 0 0" }}>
+          <div style={{ fontSize: 12, opacity: 0.8, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 4 }}>
+            {wizard.contractName} · Step {stepIdx + 1} of {steps.length}
+          </div>
+          <div style={{ fontSize: 20, fontWeight: 800 }}>{step.title}</div>
+          {step.subtitle && <div style={{ fontSize: 13, opacity: 0.85, marginTop: 4 }}>{step.subtitle}</div>}
+        </div>
+
+        {/* Step progress dots */}
+        <div style={{ padding: "12px 28px", borderBottom: "1px solid #e5e7eb", display: "flex", gap: 4, flexWrap: "wrap" }}>
+          {steps.map((s, i) => (
+            <div key={s.id} title={s.title}
+              style={{ flex: 1, height: 4, borderRadius: 2, background: i <= stepIdx ? "#0c4a6e" : "#e5e7eb", minWidth: 12 }} />
+          ))}
+        </div>
+
+        {/* Body */}
+        <div style={{ padding: 28, overflowY: "auto", flex: 1 }}>
+          {step.why && (
+            <div style={{ background: "#fef3c7", border: "1px solid #fcd34d", borderRadius: 6, padding: 12, fontSize: 13, color: "#78350f", marginBottom: 20 }}>
+              💡 <strong>Why this matters:</strong> {step.why}
+            </div>
+          )}
+
+          {visibleFields.length === 0 && isLast && (
+            <div style={{ textAlign: "center", color: "#6b7280", padding: 30 }}>
+              <div style={{ fontSize: 40, marginBottom: 8 }}>📦</div>
+              <div style={{ fontWeight: 700, color: "#374151", marginBottom: 6 }}>Ready to mark this offer as Ready</div>
+              <div style={{ fontSize: 13 }}>Click <strong>Mark Ready</strong> below. PDF packet assembly is coming next.</div>
+            </div>
+          )}
+
+          <div style={{ display: "grid", gap: 18 }}>
+            {visibleFields.map(f => (
+              <div key={f.id}>
+                <label style={{ display: "block", fontSize: 13, fontWeight: 700, color: "#374151", marginBottom: 6 }}>
+                  {f.label} {f.required && <span style={{ color: "#dc2626" }}>*</span>}
+                </label>
+                <FieldRenderer field={f} value={data[f.id]} onChange={(val) => setField(f.id, val)} documents={documents} />
+                {f.hint && <div style={{ fontSize: 11, color: "#6b7280", marginTop: 4 }}>{f.hint}</div>}
+                {f.why && <div style={{ fontSize: 11, color: "#92400e", marginTop: 2, fontStyle: "italic" }}>{f.why}</div>}
+              </div>
+            ))}
+          </div>
+
+          {error && (
+            <div style={{ marginTop: 16, background: "#fee2e2", border: "1px solid #fca5a5", borderRadius: 6, padding: 12, fontSize: 13, color: "#7f1d1d" }}>⚠️ {error}</div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div style={{ padding: "16px 28px", borderTop: "1px solid #e5e7eb", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, background: "#f9fafb", borderRadius: "0 0 12px 12px" }}>
+          <button onClick={onClose} style={btnSecondary}>Close</button>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button onClick={onSaveDraft} disabled={saving} style={btnGhost}>{saving ? "Saving…" : "Save Draft"}</button>
+            {stepIdx > 0 && <button onClick={onBack} disabled={saving} style={btnSecondary}>← Back</button>}
+            {!isLast && <button onClick={onNext} disabled={saving} style={btnPrimary}>{saving ? "Saving…" : "Next →"}</button>}
+            {isLast && <button onClick={onSubmit} disabled={submitting} style={btnPrimary}>{submitting ? "Submitting…" : "Mark Ready ✓"}</button>}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const overlayStyle = { position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 5000, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 };
+const modalStyle = { background: "white", borderRadius: 12, maxWidth: 720, width: "100%", maxHeight: "90vh", display: "flex", flexDirection: "column", boxShadow: "0 20px 60px rgba(0,0,0,0.3)" };
+const btnPrimary = { background: "#0c4a6e", color: "white", border: "none", padding: "10px 18px", borderRadius: 6, fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" };
+const btnSecondary = { background: "#e5e7eb", color: "#374151", border: "none", padding: "10px 18px", borderRadius: 6, fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" };
+const btnGhost = { background: "transparent", color: "#374151", border: "1px solid #d1d5db", padding: "10px 18px", borderRadius: 6, fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" };
