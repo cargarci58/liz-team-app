@@ -4682,23 +4682,27 @@ function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenCon
     //   Tier 3: Everything else ranked by status priority (Active first,
     //           Closed near the bottom).
     if (sortKey === "status") {
-      // Tier 1
-      const aNew = a.needsFirstContact ? 1 : 0;
-      const bNew = b.needsFirstContact ? 1 : 0;
-      if (aNew !== bNew) return sortDir === "asc" ? (bNew - aNew) : (aNew - bNew);
+      // Tier 1 — always pinned to top regardless of sort direction.
+      // New inquiries from the public intake forms need first contact
+      // within 24 hrs (Florida law), so they outrank everything else.
+      if (a.needsFirstContact !== b.needsFirstContact) {
+        return a.needsFirstContact ? -1 : 1;
+      }
 
-      // Tier 2
+      // Tier 2 — also always pinned regardless of sort direction.
+      // Transactions closing within 14 days, soonest first.
       const todayMs = (() => { const d = new Date(); d.setHours(0,0,0,0); return d.getTime(); })();
       const aClose = a.closingDate ? new Date(a.closingDate).getTime() : null;
       const bClose = b.closingDate ? new Date(b.closingDate).getTime() : null;
       const aDays = aClose != null ? Math.round((aClose - todayMs) / 86400000) : Infinity;
       const bDays = bClose != null ? Math.round((bClose - todayMs) / 86400000) : Infinity;
-      const aSoon = aDays >= 0 && aDays <= 14 ? 1 : 0;
-      const bSoon = bDays >= 0 && bDays <= 14 ? 1 : 0;
-      if (aSoon !== bSoon) return sortDir === "asc" ? (bSoon - aSoon) : (aSoon - bSoon);
-      if (aSoon && bSoon) return sortDir === "asc" ? (aDays - bDays) : (bDays - aDays);
+      const aSoon = aDays >= 0 && aDays <= 14;
+      const bSoon = bDays >= 0 && bDays <= 14;
+      if (aSoon !== bSoon) return aSoon ? -1 : 1;
+      if (aSoon && bSoon) return aDays - bDays;
 
-      // Tier 3
+      // Tier 3 — status priority. Respects sortDir so the user can
+      // still flip the underlying ordering with the asc/desc toggle.
       const priorities = {
         "Active": 1, "Under Contract": 2, "Inspection": 3,
         "Appraisal": 4, "Clear to Close": 5, "On Hold": 6,
