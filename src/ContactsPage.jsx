@@ -1026,7 +1026,7 @@ function BulkScheduleModal({ token, contactCount, onClose, onScheduled }) {
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
               <Field label="Temperature filter">
                 <select value={filter.temperature} onChange={e => setFilter(f => ({ ...f, temperature: e.target.value }))} style={inputStyle}>
-                  <option value="">All temperatures</option>
+                  <option value="">All statuses</option>
                   {Object.entries(TEMP_META).filter(([k]) => k !== "dnc").map(([k, m]) => <option key={k} value={k}>{m.emoji} {m.label}</option>)}
                 </select>
               </Field>
@@ -1237,7 +1237,7 @@ export default function ContactsPage({ token, onBack }) {
           onChange={e => setFilter(f => ({ ...f, search: e.target.value }))}
           style={{ ...inputStyle, flex: 1, minWidth: 200, maxWidth: 320 }} />
         <select value={filter.temperature} onChange={e => setFilter(f => ({ ...f, temperature: e.target.value }))} style={{ ...inputStyle, width: 160 }}>
-          <option value="">All temperatures</option>
+          <option value="">All statuses</option>
           {Object.entries(TEMP_META).map(([k, m]) => <option key={k} value={k}>{m.emoji} {m.label}</option>)}
         </select>
         <select value={filter.type} onChange={e => setFilter(f => ({ ...f, type: e.target.value }))} style={{ ...inputStyle, width: 160 }}>
@@ -1277,7 +1277,7 @@ export default function ContactsPage({ token, onBack }) {
               <SortableTh label="Name" col="name" sortBy={sortBy} setSortBy={setSortBy} />
               <SortableTh label="Phone" col="phone" sortBy={sortBy} setSortBy={setSortBy} hint="Click twice → empties at top" />
               <SortableTh label="Type" col="type" sortBy={sortBy} setSortBy={setSortBy} />
-              <SortableTh label="Temp" col="temperature" sortBy={sortBy} setSortBy={setSortBy} />
+              <SortableTh label="Status" col="temperature" sortBy={sortBy} setSortBy={setSortBy} />
               <SortableTh label="Last Called" col="last_called" sortBy={sortBy} setSortBy={setSortBy} />
               <SortableTh label="Next Call" col="next_call" sortBy={sortBy} setSortBy={setSortBy} />
               <th style={th}></th>
