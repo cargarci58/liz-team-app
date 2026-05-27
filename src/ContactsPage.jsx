@@ -286,12 +286,18 @@ function LogCallModal({ contact, token, onClose, onLogged }) {
 // ============================================================
 // Public wrapper button that opens LogCallModal
 // ============================================================
-export function LogCallButton({ contact, token, onLogged, compact }) {
+export function LogCallButton({ contact, token, onLogged, compact, large }) {
   const [open, setOpen] = useState(false);
+  // Three sizes: compact (inline rows), default (most places), large (the
+  // primary CTA on a contact's detail drawer — make it actually feel primary).
+  const sizeStyle = large
+    ? { padding: "12px 22px", fontSize: 14, width: "100%", boxShadow: "0 1px 2px rgba(0,0,0,0.05)" }
+    : compact
+      ? { padding: "4px 10px", fontSize: 11 }
+      : { padding: "6px 14px", fontSize: 12 };
   return (
     <>
-      <button onClick={() => setOpen(true)}
-        style={{ ...btnStyle("#0c4a6e", "white"), padding: compact ? "4px 10px" : "6px 14px", fontSize: compact ? 11 : 12 }}>
+      <button onClick={() => setOpen(true)} style={{ ...btnStyle("#0c4a6e", "white"), ...sizeStyle }}>
         {compact ? "📞 Log" : "📞 Log Call"}
       </button>
       {open && <LogCallModal contact={contact} token={token} onClose={() => setOpen(false)} onLogged={(d) => { setOpen(false); onLogged && onLogged(d); }} />}
@@ -795,6 +801,21 @@ function ContactDetailDrawer({ contact, token, onClose, onEdit, onLogged, onArch
     dnc: { label: "🛑 Do Not Contact", color: "#6b7280" },
   };
 
+  // Section-title style — used for every titled block in the drawer so
+  // labels actually stand out instead of getting lost as tiny uppercase
+  // hints. Bigger, darker, with a small bottom border for separation.
+  const sectionTitle = {
+    fontSize: 15, fontWeight: 800, color: "#0c4a6e", marginBottom: 10,
+    paddingBottom: 6, borderBottom: "2px solid #e5e7eb",
+    display: "flex", alignItems: "center", gap: 6,
+  };
+  // For section titles that live INSIDE a colored card (Profile Notes,
+  // Next Follow-Up) — bigger but no separator, color inherits from card.
+  const innerTitle = (color) => ({
+    fontSize: 14, fontWeight: 800, color: color || "#0c4a6e", marginBottom: 8,
+    display: "flex", alignItems: "center", gap: 6,
+  });
+
   return (
     <div style={{ position: "fixed", inset: 0, zIndex: 4200, background: "rgba(0,0,0,0.5)", display: "flex", justifyContent: "flex-end" }} onClick={onClose}>
       <div onClick={e => e.stopPropagation()} style={{ width: "100%", maxWidth: 520, background: "white", height: "100%", overflowY: "auto" }}>
@@ -810,8 +831,8 @@ function ContactDetailDrawer({ contact, token, onClose, onEdit, onLogged, onArch
 
         <div style={{ padding: 20 }}>
           {/* Contact info card */}
-          <div style={{ background: "#f9fafb", border: "1px solid #e5e7eb", borderRadius: 8, padding: 14, marginBottom: 16 }}>
-            <div style={{ fontSize: 11, color: "#6b7280", fontWeight: 700, textTransform: "uppercase", marginBottom: 8 }}>Contact Info</div>
+          <div style={{ background: "#f9fafb", border: "1px solid #e5e7eb", borderRadius: 8, padding: 14, marginBottom: 20 }}>
+            <div style={innerTitle("#374151")}>📇 Contact Info</div>
             {contact.phone && <div style={{ fontSize: 13, marginBottom: 4 }}>📞 <a href={"tel:" + contact.phone} style={{ color: "#0c4a6e" }}>{contact.phone}</a></div>}
             {contact.email && <div style={{ fontSize: 13, marginBottom: 4 }}>✉️ <a href={"mailto:" + contact.email} style={{ color: "#0c4a6e" }}>{contact.email}</a></div>}
             {(contact.address || contact.city) && (
@@ -826,8 +847,8 @@ function ContactDetailDrawer({ contact, token, onClose, onEdit, onLogged, onArch
           {(() => {
             if (!contact.next_call_due_at) {
               return (
-                <div style={{ background: "#f3f4f6", border: "1px dashed #d1d5db", borderRadius: 8, padding: 14, marginBottom: 16, textAlign: "center" }}>
-                  <div style={{ fontSize: 11, color: "#6b7280", fontWeight: 700, textTransform: "uppercase", marginBottom: 4 }}>🔮 Next Follow-Up</div>
+                <div style={{ background: "#f3f4f6", border: "1px dashed #d1d5db", borderRadius: 8, padding: 16, marginBottom: 20, textAlign: "center" }}>
+                  <div style={{ ...innerTitle("#6b7280"), justifyContent: "center" }}>🔮 Next Follow-Up</div>
                   <div style={{ fontSize: 13, color: "#6b7280" }}>No follow-up scheduled. Log a call to plan the next one.</div>
                 </div>
               );
@@ -857,10 +878,10 @@ function ContactDetailDrawer({ contact, token, onClose, onEdit, onLogged, onArch
             const statusLabel = overdue ? `⚠️ ${Math.abs(days)}d Overdue` : today ? "📞 Due Today" : `📅 In ${days} day${days === 1 ? "" : "s"}`;
 
             return (
-              <div style={{ background: bg, border: "1px solid " + border, borderRadius: 8, padding: 14, marginBottom: 16 }}>
+              <div style={{ background: bg, border: "1px solid " + border, borderRadius: 8, padding: 16, marginBottom: 20 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-                  <div style={{ fontSize: 11, color, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>🔮 Next Follow-Up</div>
-                  <div style={{ fontSize: 11, color, fontWeight: 700 }}>{statusLabel}</div>
+                  <div style={innerTitle(color)}>🔮 Next Follow-Up</div>
+                  <div style={{ fontSize: 12, color, fontWeight: 800, padding: "3px 10px", background: "rgba(255,255,255,0.6)", borderRadius: 12 }}>{statusLabel}</div>
                 </div>
                 <div style={{ fontSize: 15, fontWeight: 700, color: "#111", marginBottom: 4 }}>
                   {next.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
@@ -878,21 +899,29 @@ function ContactDetailDrawer({ contact, token, onClose, onEdit, onLogged, onArch
 
           {/* Profile notes */}
           {contact.notes && (
-            <div style={{ background: "#fefce8", border: "1px solid #fde047", borderRadius: 8, padding: 14, marginBottom: 16 }}>
-              <div style={{ fontSize: 11, color: "#854d0e", fontWeight: 700, textTransform: "uppercase", marginBottom: 6 }}>📌 Profile Notes</div>
-              <div style={{ fontSize: 13, color: "#1f2937", whiteSpace: "pre-wrap" }}>{contact.notes}</div>
+            <div style={{ background: "#fefce8", border: "1px solid #fde047", borderRadius: 8, padding: 16, marginBottom: 20 }}>
+              <div style={innerTitle("#854d0e")}>📌 Profile Notes</div>
+              <div style={{ fontSize: 14, color: "#1f2937", whiteSpace: "pre-wrap", lineHeight: 1.5 }}>{contact.notes}</div>
             </div>
           )}
 
-          {/* Action buttons */}
-          <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
-            <LogCallButton contact={contact} token={token} onLogged={() => { load(); onLogged && onLogged(); }} />
-            <button onClick={() => onEdit(contact)} style={btnStyle("#e5e7eb", "#374151")}>✏️ Edit</button>
+          {/* Action buttons — bigger so the primary CTA actually reads as one */}
+          <div style={{ display: "flex", gap: 10, marginBottom: 24, flexWrap: "wrap" }}>
+            <div style={{ flex: "1 1 auto", minWidth: 180 }}>
+              <LogCallButton large contact={contact} token={token} onLogged={() => { load(); onLogged && onLogged(); }} />
+            </div>
+            <button
+              onClick={() => onEdit(contact)}
+              style={{ background: "#fff", color: "#0c4a6e", border: "2px solid #0c4a6e", borderRadius: 8, padding: "12px 18px", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}
+            >
+              ✏️ Edit Contact
+            </button>
           </div>
 
           {/* Call history */}
-          <div style={{ fontSize: 12, color: "#6b7280", fontWeight: 700, textTransform: "uppercase", marginBottom: 10 }}>
-            📋 Call History ({callHistory.length})
+          <div style={sectionTitle}>
+            📋 Call History
+            <span style={{ fontSize: 13, color: "#6b7280", fontWeight: 600, marginLeft: 4 }}>({callHistory.length})</span>
           </div>
 
           {loading && <div style={{ fontSize: 13, color: "#6b7280", textAlign: "center", padding: 20 }}>Loading...</div>}
@@ -905,21 +934,21 @@ function ContactDetailDrawer({ contact, token, onClose, onEdit, onLogged, onArch
             const o = outcomeMeta[call.outcome] || { label: call.outcome, color: "#6b7280" };
             const by = [call.by_first, call.by_last].filter(Boolean).join(" ");
             return (
-              <div key={call.id} style={{ background: "white", border: "1px solid #e5e7eb", borderRadius: 8, padding: 14, marginBottom: 10 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-                  <span style={{ fontSize: 13, fontWeight: 700, color: o.color }}>{o.label}</span>
-                  <span style={{ fontSize: 11, color: "#6b7280" }}>
-                    {new Date(call.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+              <div key={call.id} style={{ background: "white", border: "1px solid #e5e7eb", borderLeft: `4px solid ${o.color}`, borderRadius: 8, padding: 14, marginBottom: 12, boxShadow: "0 1px 2px rgba(0,0,0,0.04)" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8, gap: 8, flexWrap: "wrap" }}>
+                  <span style={{ fontSize: 14, fontWeight: 800, color: o.color }}>{o.label}</span>
+                  <span style={{ fontSize: 12, color: "#374151", fontWeight: 600 }}>
+                    {new Date(call.created_at).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" })}
                   </span>
                 </div>
                 {call.notes && (
-                  <div style={{ fontSize: 13, color: "#1f2937", marginTop: 6, padding: 8, background: "#f9fafb", borderRadius: 4, whiteSpace: "pre-wrap" }}>
+                  <div style={{ fontSize: 14, color: "#1f2937", marginTop: 6, padding: 10, background: "#f9fafb", borderRadius: 6, whiteSpace: "pre-wrap", lineHeight: 1.5 }}>
                     {call.notes}
                   </div>
                 )}
-                <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 6 }}>
+                <div style={{ fontSize: 12, color: "#6b7280", marginTop: 8, paddingTop: 8, borderTop: "1px dashed #e5e7eb" }}>
                   {by && "Logged by " + by + " · "}
-                  {call.next_call_scheduled_at ? "Next call: " + new Date(call.next_call_scheduled_at).toLocaleDateString("en-US") : "No follow-up scheduled"}
+                  {call.next_call_scheduled_at ? "📅 Next call: " + new Date(call.next_call_scheduled_at).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" }) : "No follow-up scheduled"}
                 </div>
               </div>
             );
