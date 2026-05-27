@@ -42,11 +42,21 @@ function FieldRenderer({ field, value, onChange, documents }) {
     );
   }
   if (field.type === "checkbox") {
+    // Yes/No buttons — clearer than a tiny checkbox and the click target is bigger.
+    const yes = v === true;
+    const no = v === false;
+    const ynBase = { padding: "8px 18px", borderRadius: 6, fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", border: "1px solid #d1d5db" };
     return (
-      <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14, color: "#374151", cursor: "pointer" }}>
-        <input type="checkbox" checked={!!v} onChange={e => onChange(e.target.checked)} />
-        {field.checkboxLabel || "Yes"}
-      </label>
+      <div style={{ display: "flex", gap: 8 }}>
+        <button type="button" onClick={() => onChange(true)}
+          style={{ ...ynBase, background: yes ? "#0c4a6e" : "white", color: yes ? "white" : "#374151", borderColor: yes ? "#0c4a6e" : "#d1d5db" }}>
+          ✓ Yes
+        </button>
+        <button type="button" onClick={() => onChange(false)}
+          style={{ ...ynBase, background: no ? "#7f1d1d" : "white", color: no ? "white" : "#374151", borderColor: no ? "#7f1d1d" : "#d1d5db" }}>
+          ✗ No
+        </button>
+      </div>
     );
   }
   if (field.type === "currency") {
@@ -137,7 +147,7 @@ export default function OfferWizard({ offerId, token, onClose, onSaved }) {
         setStepIdx(Math.max(0, (body.offer.current_step || 1) - 1));
         // Best-effort fetch the transaction's documents (for the preapproval picker).
         try {
-          const dr = await fetch(API + "/transactions/" + body.offer.transaction_id + "/documents", { headers: { Authorization: "Bearer " + token } });
+          const dr = await fetch(API + "/documents/" + body.offer.transaction_id, { headers: { Authorization: "Bearer " + token } });
           if (dr.ok) {
             const dd = await dr.json();
             if (!cancelled) setDocuments(dd.documents || dd || []);
@@ -183,6 +193,8 @@ export default function OfferWizard({ offerId, token, onClose, onSaved }) {
     // Validate required fields on this step
     const missing = (step.fields || []).filter(f => f.required && fieldVisible(f, data)).filter(f => {
       const v = data[f.id];
+      // Required checkboxes (legal acknowledgments) must be specifically TRUE.
+      if (f.type === "checkbox") return v !== true;
       return v == null || v === "" || (Array.isArray(v) && v.length === 0);
     });
     if (missing.length > 0) {
