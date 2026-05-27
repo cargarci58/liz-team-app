@@ -17,7 +17,10 @@ window.fetch = async function patchedFetch(input, init) {
   try {
     const urlStr = typeof input === "string" ? input : (input && input.url) || "";
     const isApiCall = urlStr.includes(API_HOST);
-    if (isApiCall && res.status === 401 && !__reloadingForAuth) {
+    // Skip auth endpoints — a 401 there is "wrong credentials", not "session expired".
+    // Let the LoginScreen / forgot-password / reset-password forms show their own error.
+    const isAuthEndpoint = /\/auth\/(login|register|forgot-password|reset-password)/.test(urlStr);
+    if (isApiCall && res.status === 401 && !__reloadingForAuth && !isAuthEndpoint) {
       const path = window.location.pathname;
       const isPublicPath = path.startsWith('/upload/') || path.startsWith('/reset-password') ||
                            path.startsWith('/form-download/') || path.startsWith('/upload-contract/');
