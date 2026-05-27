@@ -46,6 +46,19 @@ function fmtDate(d) {
   return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
+// For columns showing a past event (e.g. "Last Called"). Never says "overdue".
+function fmtPastDate(d) {
+  if (!d) return "Never";
+  const date = new Date(d);
+  const now = new Date();
+  const diff = Math.floor((now - date) / (1000 * 60 * 60 * 24));
+  if (diff <= 0) return "Today";
+  if (diff === 1) return "Yesterday";
+  if (diff < 7) return diff + "d ago";
+  if (diff < 30) return Math.floor(diff / 7) + "w ago";
+  return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
+
 function fmtLong(d) {
   if (!d) return "";
   return new Date(d).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
@@ -1299,7 +1312,7 @@ export default function ContactsPage({ token, onBack }) {
                       {m.emoji} {m.label}
                     </span>
                   </td>
-                  <td style={td}>{fmtDate(c.last_contacted_at)}</td>
+                  <td style={td}>{fmtPastDate(c.last_contacted_at)}</td>
                   <td style={{ ...td, color: overdue ? "#b91c1c" : "#374151", fontWeight: overdue ? 700 : 400 }}>
                     {fmtDate(c.next_call_due_at)}
                   </td>
