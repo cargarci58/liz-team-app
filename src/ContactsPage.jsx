@@ -1229,7 +1229,7 @@ export default function ContactsPage({ token, onBack }) {
       </div>
 
       <div style={{ background: "#fef3c7", border: "1px solid #fcd34d", borderRadius: 8, padding: 10, fontSize: 12, color: "#78350f", marginBottom: 16 }}>
-        💡 <strong>How this works:</strong> Add contacts and set their temperature. After every call, log the outcome — the system suggests when to call again. Hot leads get called every 2 days, sphere clients every 30, past clients every 60.
+        💡 <strong>How this works:</strong> Add contacts and set their status (Hot, Warm, Cold, Sphere, Past Client, DNC). After every call, log the outcome — the system suggests when to call again. Hot leads get called every 2 days, sphere clients every 30, past clients every 60.
       </div>
 
       <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
