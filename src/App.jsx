@@ -4674,8 +4674,31 @@ function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenCon
   const sorted = [...filtered].sort((a, b) => {
     const dir = sortDir === "asc" ? 1 : -1;
     let av, bv;
-    // Status priority sort — Active first, then contract stages, then closed
+    // Status priority sort with two pinned tiers above the status ranking:
+    //   Tier 1: New buyer/seller inquiries that still need first contact —
+    //           Florida-law urgency, always pin to top of the list.
+    //   Tier 2: Transactions closing within the next 14 days — show next
+    //           so the agent sees what's about to close right under leads.
+    //   Tier 3: Everything else ranked by status priority (Active first,
+    //           Closed near the bottom).
     if (sortKey === "status") {
+      // Tier 1
+      const aNew = a.needsFirstContact ? 1 : 0;
+      const bNew = b.needsFirstContact ? 1 : 0;
+      if (aNew !== bNew) return sortDir === "asc" ? (bNew - aNew) : (aNew - bNew);
+
+      // Tier 2
+      const todayMs = (() => { const d = new Date(); d.setHours(0,0,0,0); return d.getTime(); })();
+      const aClose = a.closingDate ? new Date(a.closingDate).getTime() : null;
+      const bClose = b.closingDate ? new Date(b.closingDate).getTime() : null;
+      const aDays = aClose != null ? Math.round((aClose - todayMs) / 86400000) : Infinity;
+      const bDays = bClose != null ? Math.round((bClose - todayMs) / 86400000) : Infinity;
+      const aSoon = aDays >= 0 && aDays <= 14 ? 1 : 0;
+      const bSoon = bDays >= 0 && bDays <= 14 ? 1 : 0;
+      if (aSoon !== bSoon) return sortDir === "asc" ? (bSoon - aSoon) : (aSoon - bSoon);
+      if (aSoon && bSoon) return sortDir === "asc" ? (aDays - bDays) : (bDays - aDays);
+
+      // Tier 3
       const priorities = {
         "Active": 1, "Under Contract": 2, "Inspection": 3,
         "Appraisal": 4, "Clear to Close": 5, "On Hold": 6,
