@@ -114,6 +114,10 @@ export default function OfferWizard({ offerId, token, onClose, onSaved }) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
   const [documents, setDocuments] = useState([]);
+  // MLS extraction state (visible on Step 1)
+  const [mlsUploading, setMlsUploading] = useState(false);
+  const [mlsExtracting, setMlsExtracting] = useState(false);
+  const [mlsResultMsg, setMlsResultMsg] = useState(null);
 
   const wizard = getWizard(offer?.base_contract_type || "as_is");
   const steps = wizard.steps;
@@ -200,6 +204,70 @@ export default function OfferWizard({ offerId, token, onClose, onSaved }) {
     if (ok && onSaved) onSaved();
   };
 
+  // Upload MLS sheet and run AI extraction. Result merges into offer_data
+  // server-side; we reload here so the fields auto-fill.
+  const onMlsUpload = async (file) => {
+    if (!file) return;
+    setError(null);
+    setMlsResultMsg(null);
+    setMlsUploading(true);
+    try {
+      // 1) Presigned URL
+      const r1 = await fetch(API + "/offers/" + offerId + "/mls-upload-url", {
+        method: "POST",
+        headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
+        body: JSON.stringify({ fileName: file.name, fileType: file.type || "application/pdf" }),
+      });
+      const u = await r1.json();
+      if (!r1.ok) throw new Error(u.error || "Upload URL failed");
+
+      // 2) PUT to R2
+      const putRes = await fetch(u.uploadUrl, { method: "PUT", headers: { "Content-Type": file.type || "application/pdf" }, body: file });
+      if (!putRes.ok) throw new Error("Upload to storage failed");
+
+      // 3) Kick off AI extraction
+      setMlsUploading(false);
+      setMlsExtracting(true);
+      const r2 = await fetch(API + "/offers/" + offerId + "/mls-extract", {
+        method: "POST",
+        headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
+        body: JSON.stringify({ key: u.key }),
+      });
+      const e = await r2.json();
+      if (!r2.ok) throw new Error(e.error || "Extraction failed to start");
+
+      // 4) Poll the job
+      const jobId = e.jobId;
+      const deadline = Date.now() + 90_000;
+      while (Date.now() < deadline) {
+        await new Promise(r => setTimeout(r, 1500));
+        const pr = await fetch(API + "/ai-jobs/" + jobId, { headers: { Authorization: "Bearer " + token } });
+        const pd = await pr.json();
+        if (!pr.ok) throw new Error(pd.error || "Job poll failed");
+        if (pd.job.status === "completed") {
+          // Reload the offer so offer_data has the merged fields
+          const or = await fetch(API + "/offers/" + offerId, { headers: { Authorization: "Bearer " + token } });
+          const ob = await or.json();
+          if (or.ok) {
+            setOffer(ob.offer);
+            setData(ob.offer.offer_data || {});
+          }
+          setMlsResultMsg("✅ Read " + (pd.job.result?.fieldCount || 0) + " fields from the MLS sheet. Review below and edit anything that's off.");
+          setMlsExtracting(false);
+          return;
+        }
+        if (pd.job.status === "failed") {
+          throw new Error(pd.job.error || "AI extraction failed");
+        }
+      }
+      throw new Error("Extraction timed out after 90 seconds");
+    } catch (err) {
+      setError(err.message);
+      setMlsUploading(false);
+      setMlsExtracting(false);
+    }
+  };
+
   const onSubmit = async () => {
     setSubmitting(true);
     const ok = await save({ nextStepIdx: stepIdx, status: "ready" });
@@ -256,6 +324,37 @@ export default function OfferWizard({ offerId, token, onClose, onSaved }) {
           {step.why && (
             <div style={{ background: "#fef3c7", border: "1px solid #fcd34d", borderRadius: 6, padding: 12, fontSize: 13, color: "#78350f", marginBottom: 20 }}>
               💡 <strong>Why this matters:</strong> {step.why}
+            </div>
+          )}
+
+          {/* MLS upload + AI extraction — only on Step 1 */}
+          {stepIdx === 0 && (
+            <div style={{ background: "#eff6ff", border: "1px solid #93c5fd", borderRadius: 8, padding: 16, marginBottom: 20 }}>
+              <div style={{ fontWeight: 700, color: "#1e3a8a", marginBottom: 6, fontSize: 14 }}>
+                📎 Upload the MLS broker synopsis
+              </div>
+              <div style={{ fontSize: 12, color: "#1e40af", marginBottom: 12 }}>
+                Print the listing detail sheet from your MLS as a PDF and upload it here. AI reads property address, list price, year built, HOA, listing agent contact, and more — so you don't have to type it.
+              </div>
+              <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+                <label style={{ display: "inline-block" }}>
+                  <input type="file" accept=".pdf,.png,.jpg,.jpeg,.webp"
+                    disabled={mlsUploading || mlsExtracting}
+                    onChange={e => onMlsUpload(e.target.files && e.target.files[0])}
+                    style={{ display: "none" }} />
+                  <span style={{ display: "inline-block", background: mlsUploading || mlsExtracting ? "#9ca3af" : "#1e40af", color: "white", padding: "8px 16px", borderRadius: 6, fontSize: 13, fontWeight: 700, cursor: mlsUploading || mlsExtracting ? "wait" : "pointer" }}>
+                    {mlsUploading ? "Uploading…" : mlsExtracting ? "Reading MLS sheet…" : "📎 Choose MLS PDF"}
+                  </span>
+                </label>
+                <span style={{ fontSize: 12, color: "#1e40af" }}>
+                  …or fill in the fields manually below.
+                </span>
+              </div>
+              {mlsResultMsg && (
+                <div style={{ marginTop: 12, background: "#d1fae5", border: "1px solid #6ee7b7", borderRadius: 6, padding: 10, fontSize: 12, color: "#065f46" }}>
+                  {mlsResultMsg}
+                </div>
+              )}
             </div>
           )}
 
