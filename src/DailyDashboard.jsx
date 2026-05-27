@@ -151,7 +151,7 @@ function SellerUpdateModal({ task, token, onClose, onDone }) {
 // ── TASK CARD ─────────────────────────────────────────────────
 function PersonalTaskCard({ task, token, onChange }) {
   const API = "https://liz-team-server-api-production.up.railway.app";
-  const [busy, setBusy] = React.useState(false);
+  const [busy, setBusy] = useState(false);
 
   const complete = async () => {
     setBusy(true);
