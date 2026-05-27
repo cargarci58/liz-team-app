@@ -64,6 +64,26 @@ function ForgotPasswordModal({ onClose }) {
   );
 }
 
+function PwInput({ inputStyle, ...rest }) {
+  const [show, setShow] = useState(false);
+  const wrapStyle = { position: "relative", marginBottom: inputStyle?.marginBottom ?? 0 };
+  const innerStyle = { ...inputStyle, marginBottom: 0, paddingRight: 42 };
+  return (
+    <div style={wrapStyle}>
+      <input {...rest} type={show ? "text" : "password"} style={innerStyle} />
+      <button type="button" onClick={() => setShow(s => !s)} tabIndex={-1}
+        aria-label={show ? "Hide password" : "Show password"}
+        style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", padding: 4, cursor: "pointer", color: "#6b7280", lineHeight: 0 }}>
+        {show ? (
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+        ) : (
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+        )}
+      </button>
+    </div>
+  );
+}
+
 export default function LoginScreen({ onLogin }) {
   const [showForgot, setShowForgot] = useState(false);
   const handleLogin = async (e) => {
@@ -133,7 +153,7 @@ export default function LoginScreen({ onLogin }) {
               <label style={lbl}>Email</label>
               <input name="email" type="email" autoComplete="email" required style={inp} placeholder="you@example.com" />
               <label style={lbl}>Password</label>
-              <input name="password" type="password" autoComplete="current-password" required style={inp} placeholder="Your password" />
+              <PwInput name="password" autoComplete="current-password" required inputStyle={inp} placeholder="Your password" />
               <button id="login-btn" type="submit" style={sbtn}>Sign In</button>
               <div style={{ textAlign: "center", marginTop: 12 }}>
                 <button type="button" onClick={() => setShowForgot(true)}
@@ -176,9 +196,9 @@ export default function LoginScreen({ onLogin }) {
                 <option value="other">Other</option>
               </select>
               <label style={lbl}>Password</label>
-              <input name="password" type="password" autoComplete="new-password" required style={inp} placeholder="Min 8 characters" />
+              <PwInput name="password" autoComplete="new-password" required inputStyle={inp} placeholder="Min 8 characters" />
               <label style={lbl}>Confirm Password</label>
-              <input name="confirmPassword" type="password" autoComplete="new-password" required style={inp} placeholder="Repeat password" />
+              <PwInput name="confirmPassword" autoComplete="new-password" required inputStyle={inp} placeholder="Repeat password" />
               <div style={{ background: "#F0FFF4", border: "1px solid #1E8449", borderRadius: 8, padding: 12, marginBottom: 14, fontSize: 12, color: "#1E8449" }}>
                 14-day free trial. No credit card required.
               </div>
