@@ -15,6 +15,7 @@ import ContractAutoIntake from "./ContractAutoIntake";
 import ContractUploadPublic from "./ContractUploadPublic";
 import ComplianceDashboard from "./ComplianceDashboard";
 import DocumentsTab from "./DocumentsTab";
+import OffersTab from "./OffersTab";
 import TransactionChat from "./TransactionChat";
 import Reports from "./Reports";
 import DailyDashboard from "./DailyDashboard";
@@ -2934,7 +2935,7 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
     { id: "notes", label: "Internal Notes" },
     { id: "documents", label: "📎 Documents" },
     { id: "chat", label: (chatUnread > 0 || dashboardUnread > 0) ? `💬 Group Chat (${Math.max(chatUnread, dashboardUnread)})` : "💬 Group Chat" },
-    ...(isBuyerSideTx ? [{ id: "calculator", label: "🧮 Buyer Calc" }] : []),
+    ...(isBuyerSideTx ? [{ id: "offers", label: "📝 Offers" }, { id: "calculator", label: "🧮 Buyer Calc" }] : []),
     ...(isListingSideTx ? [{ id: "cma", label: "📊 CMA" }, { id: "seller-calc", label: "💰 Seller Net" }] : []),
     { id: "tx-forms", label: "📋 Forms" },
     { id: "activity", label: "📋 Activity Log" },
@@ -3313,6 +3314,7 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
         )}
 
         {activeTab === "documents" && <DocumentsTab tx={tx} />}
+        {activeTab === "offers" && <OffersTab tx={tx} token={localStorage.getItem("tp_token") || ""} />}
         {activeTab === "calculator" && (
           <div style={{ padding: 20 }}>
             <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 8, padding: 12, marginBottom: 16, fontSize: 13, color: "#7f1d1d" }}>
