@@ -6,13 +6,17 @@ export default function CompanySettings({ onClose, onChangePassword }) {
   const [form, setForm] = useState({
     name: "", email: "", phone: "", address: "", city: "", state: "FL", zip: "",
     website: "", licenseNumber: "", tagline: "", primaryColor: "#C0392B",
-    facebook: "", instagram: ""
+    facebook: "", instagram: "",
+    ein: "", mlsId: "", businessType: "", dbaName: "", narMemberId: ""
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [logoError, setLogoError] = useState("");
+  const [roster, setRoster] = useState([]);
+  const [generatingW9, setGeneratingW9] = useState(false);
+  const [w9Error, setW9Error] = useState("");
   const tok = localStorage.getItem("tp_token") || "";
   const headers = { "Content-Type": "application/json", "Authorization": "Bearer " + tok };
 
@@ -65,6 +69,12 @@ export default function CompanySettings({ onClose, onChangePassword }) {
         if (d.company) setForm(f => ({ ...f, ...d.company }));
         setLoading(false);
       }).catch(() => setLoading(false));
+
+    // Fetch brokerage roster (admins only — endpoint requires admin role)
+    fetch(API + "/users", { headers })
+      .then(r => r.ok ? r.json() : { users: [] })
+      .then(d => setRoster(Array.isArray(d.users) ? d.users : []))
+      .catch(e => console.error("[bg]", e && e.message ? e.message : e));
   }, []);
 
   const save = async () => {
@@ -72,9 +82,43 @@ export default function CompanySettings({ onClose, onChangePassword }) {
     try {
       const res = await fetch(API + "/settings/company", { method: "PUT", headers, body: JSON.stringify(form) });
       const data = await res.json();
-      if (data.success) { setSaved(true); setTimeout(() => setSaved(false), 3000); }
+      if (data.success) {
+        setSaved(true);
+        // Auto-close after a brief confirmation flash so the user sees the
+        // success and doesn't have to hit Cancel themselves.
+        setTimeout(() => {
+          setSaved(false);
+          onClose();
+        }, 800);
+      }
     } catch {}
     setSaving(false);
+  };
+
+  const handleGenerateW9 = async () => {
+    setW9Error("");
+    setGeneratingW9(true);
+    try {
+      const res = await fetch(API + "/settings/company/w9", { method: "POST", headers });
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}));
+        throw new Error(j.error || `Request failed: ${res.status}`);
+      }
+      // Download the PDF
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `W9_${(form.name || "brokerage").replace(/[^a-z0-9]/gi, "_")}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (err) {
+      setW9Error(err.message || "Could not generate W-9");
+    } finally {
+      setGeneratingW9(false);
+    }
   };
 
   const f = k => v => setForm(p => ({ ...p, [k]: v }));
@@ -107,9 +151,31 @@ export default function CompanySettings({ onClose, onChangePassword }) {
         <div style={{ padding: 24 }}>
           {/* Brokerage Info */}
           <div style={{ fontSize: 13, fontWeight: 700, color: "#C0392B", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 16 }}>Brokerage Information</div>
-          {field("Brokerage Name", "name", "text", "The Liz Team Realty")}
+          {field("Brokerage Name (as on tax return)", "name", "text", "ABC Realty LLC")}
+          {field("DBA (Doing Business As)", "dbaName", "text", "If different from legal name")}
           {field("Tagline", "tagline", "text", "Your trusted real estate partner")}
-          {field("License Number", "licenseNumber", "text", "FL-XXXX")}
+          {field("Brokerage License Number (DBPR)", "licenseNumber", "text", "FL-XXXX")}
+          {field("MLS ID (Broker)", "mlsId", "text", "e.g. 270000-1")}
+          {field("NAR Member ID", "narMemberId", "text", "Optional")}
+
+          {/* Tax / Entity Info — needed for W-9 generation */}
+          <div style={{ fontSize: 13, fontWeight: 700, color: "#C0392B", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 16, marginTop: 8 }}>Tax & Entity Info</div>
+          <div style={{ marginBottom: 16 }}>
+            <label style={lbl}>Business Type</label>
+            <select value={form.businessType || ""} onChange={e => f("businessType")(e.target.value)} style={inp}>
+              <option value="">— Select —</option>
+              <option value="Sole Proprietor">Sole Proprietor / Individual</option>
+              <option value="LLC">LLC (single-member or unspecified)</option>
+              <option value="LLC - S Corp">LLC taxed as S Corporation</option>
+              <option value="LLC - C Corp">LLC taxed as C Corporation</option>
+              <option value="LLC - Partnership">LLC taxed as Partnership</option>
+              <option value="S Corporation">S Corporation</option>
+              <option value="C Corporation">C Corporation</option>
+              <option value="Partnership">Partnership</option>
+              <option value="Trust/Estate">Trust / Estate</option>
+            </select>
+          </div>
+          {field("EIN (Federal Tax ID, 9 digits)", "ein", "text", "XX-XXXXXXX")}
 
           {/* Contact */}
           <div style={{ fontSize: 13, fontWeight: 700, color: "#C0392B", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 16, marginTop: 8 }}>Contact Information</div>
@@ -171,6 +237,53 @@ export default function CompanySettings({ onClose, onChangePassword }) {
 
             <div style={{ fontSize: 11, color: "#888", marginTop: 6 }}>PNG, JPG, GIF, WebP, or SVG. Max 2 MB.</div>
             {logoError && <div style={{ fontSize: 12, color: "#C0392B", marginTop: 6, fontWeight: 600 }}>⚠️ {logoError}</div>}
+          </div>
+
+          {/* Brokerage Roster — read-only list of agents in this brokerage */}
+          {roster.length > 0 && (
+            <>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "#C0392B", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 12, marginTop: 8 }}>Brokerage Roster ({roster.length})</div>
+              <div style={{ background: "#FAFAFA", border: "1px solid #EEE", borderRadius: 8, padding: 4, marginBottom: 16, maxHeight: 220, overflowY: "auto" }}>
+                {roster.map(u => (
+                  <div key={u.id} style={{ padding: "10px 12px", borderBottom: "1px solid #F0F0F0", display: "grid", gridTemplateColumns: "1fr auto", gap: 8, alignItems: "center", fontSize: 13 }}>
+                    <div>
+                      <div style={{ fontWeight: 600, color: "#111" }}>
+                        {u.first_name} {u.last_name}
+                        {!u.is_active && <span style={{ fontSize: 11, color: "#999", marginLeft: 8, fontWeight: 400 }}>(inactive)</span>}
+                      </div>
+                      <div style={{ fontSize: 12, color: "#666", marginTop: 2 }}>
+                        {u.email}
+                        {u.license_number && <span style={{ marginLeft: 8 }}>· License #{u.license_number}</span>}
+                      </div>
+                    </div>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: "#fff", background: u.role === "admin" || u.role === "superadmin" ? "#C0392B" : "#555", padding: "3px 8px", borderRadius: 4, textTransform: "uppercase", letterSpacing: "0.05em" }}>{u.role}</div>
+                  </div>
+                ))}
+              </div>
+              <div style={{ fontSize: 11, color: "#888", marginTop: -8, marginBottom: 16 }}>Read-only summary. To add, remove, or edit agents, use the User Management screen.</div>
+            </>
+          )}
+
+          {/* W-9 Generator */}
+          <div style={{ fontSize: 13, fontWeight: 700, color: "#C0392B", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 12, marginTop: 8 }}>W-9 Form</div>
+          <div style={{ background: "#FAFAFA", border: "1px solid #EEE", borderRadius: 8, padding: 14, marginBottom: 16 }}>
+            <div style={{ fontSize: 13, color: "#333", marginBottom: 10, lineHeight: 1.5 }}>
+              Generate an IRS Form W-9 pre-filled with your brokerage info. Use this when a co-op brokerage or client needs your W-9 on file before paying commission.
+            </div>
+            <div style={{ fontSize: 12, color: "#666", marginBottom: 12, lineHeight: 1.5 }}>
+              <strong>Requires:</strong> Brokerage Name, Address (street, city, state, ZIP), Business Type, and EIN. <strong>Save your settings first</strong> if you just added or changed any of these.
+            </div>
+            <button
+              onClick={handleGenerateW9}
+              disabled={generatingW9}
+              style={{ padding: "10px 18px", background: generatingW9 ? "#888" : "#0c4a6e", color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: generatingW9 ? "wait" : "pointer", fontFamily: "inherit" }}
+            >
+              {generatingW9 ? "Generating…" : "📄 Generate W-9 PDF"}
+            </button>
+            {w9Error && <div style={{ fontSize: 12, color: "#C0392B", marginTop: 10, fontWeight: 600 }}>⚠️ {w9Error}</div>}
+            <div style={{ fontSize: 11, color: "#888", marginTop: 10, lineHeight: 1.4 }}>
+              ℹ️ Print the PDF and sign Part II by hand. The IRS legally requires a real signature for the W-9 to be valid.
+            </div>
           </div>
 
           {/* Save */}
