@@ -142,6 +142,15 @@ function applyWizardDefaults(wizard, data) {
   return out;
 }
 
+// The offers table stores selected_addenda in its own column (not in offer_data
+// JSONB), but the wizard's addenda_picker reads from data.selected_addenda.
+// Fold it in whenever we load/reload the offer.
+function buildWizardData(offer) {
+  const base = { ...(offer.offer_data || {}) };
+  if (Array.isArray(offer.selected_addenda)) base.selected_addenda = offer.selected_addenda;
+  return applyWizardDefaults(getWizard(offer.base_contract_type || "as_is"), base);
+}
+
 function fieldVisible(field, data) {
   if (!field.showIf) return true;
   for (const [key, allowed] of Object.entries(field.showIf)) {
@@ -183,9 +192,8 @@ export default function OfferWizard({ offerId, token, onClose, onSaved }) {
         if (!r.ok) throw new Error(body.error || "Failed to load offer");
         if (cancelled) return;
         setOffer(body.offer);
-        // Fold schema-level defaults into data so validation matches what the UI shows.
-        const wizardForType = getWizard(body.offer.base_contract_type || "as_is");
-        setData(applyWizardDefaults(wizardForType, body.offer.offer_data));
+        // Fold schema defaults + offer.selected_addenda into data state.
+        setData(buildWizardData(body.offer));
         setStepIdx(Math.max(0, (body.offer.current_step || 1) - 1));
         // Best-effort fetch the transaction's documents (for the preapproval picker).
         try {
@@ -308,10 +316,8 @@ export default function OfferWizard({ offerId, token, onClose, onSaved }) {
           const ob = await or.json();
           if (or.ok) {
             setOffer(ob.offer);
-            // Re-apply schema defaults after MLS extraction reload — otherwise
-            // required defaulted fields (EMD due days, AS-IS, right-of-access)
-            // get clobbered back to undefined and validation breaks.
-            setData(applyWizardDefaults(getWizard(ob.offer.base_contract_type || "as_is"), ob.offer.offer_data));
+            // Re-apply defaults + fold in the auto-suggested addenda after MLS reload.
+            setData(buildWizardData(ob.offer));
           }
           const extractedObj = (pd.job.result && pd.job.result.extracted) || {};
           const extractedKeys = Object.keys(extractedObj);
