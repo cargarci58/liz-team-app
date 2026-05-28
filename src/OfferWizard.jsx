@@ -177,6 +177,9 @@ export default function OfferWizard({ offerId, token, onClose, onSaved }) {
   // Pre-approval upload state (visible on Step 10)
   const [preapUploading, setPreapUploading] = useState(false);
   const [preapMsg, setPreapMsg] = useState(null);
+  // Packet generation state (visible on the Review step)
+  const [generating, setGenerating] = useState(false);
+  const [packetReady, setPacketReady] = useState(false);
 
   const wizard = getWizard(offer?.base_contract_type || "as_is");
   const steps = wizard.steps;
@@ -383,6 +386,41 @@ export default function OfferWizard({ offerId, token, onClose, onSaved }) {
     }
   };
 
+  // Generate the offer packet PDF + download it.
+  const onGeneratePacket = async () => {
+    setError(null);
+    setGenerating(true);
+    try {
+      // Persist current data first
+      await save({ nextStepIdx: stepIdx });
+      // Generate
+      const r = await fetch(API + "/offers/" + offerId + "/generate-packet", {
+        method: "POST",
+        headers: { Authorization: "Bearer " + token },
+      });
+      const body = await r.json();
+      if (!r.ok) throw new Error(body.error || "Packet generation failed");
+      setPacketReady(true);
+      // Trigger download immediately
+      const u = await fetch(API + "/offers/" + offerId + "/packet-url", { headers: { Authorization: "Bearer " + token } });
+      const ub = await u.json();
+      if (u.ok && ub.url) window.open(ub.url, "_blank");
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  const onDownloadPacket = async () => {
+    try {
+      const u = await fetch(API + "/offers/" + offerId + "/packet-url", { headers: { Authorization: "Bearer " + token } });
+      const ub = await u.json();
+      if (!u.ok) throw new Error(ub.error || "Download failed");
+      window.open(ub.url, "_blank");
+    } catch (e) { setError(e.message); }
+  };
+
   const onSubmit = async () => {
     setSubmitting(true);
     const ok = await save({ nextStepIdx: stepIdx, status: "ready" });
@@ -500,10 +538,40 @@ export default function OfferWizard({ offerId, token, onClose, onSaved }) {
           )}
 
           {visibleFields.length === 0 && isLast && (
-            <div style={{ textAlign: "center", color: "#6b7280", padding: 30 }}>
-              <div style={{ fontSize: 40, marginBottom: 8 }}>📦</div>
-              <div style={{ fontWeight: 700, color: "#374151", marginBottom: 6 }}>Ready to mark this offer as Ready</div>
-              <div style={{ fontSize: 13 }}>Click <strong>Mark Ready</strong> below. PDF packet assembly is coming next.</div>
+            <div style={{ padding: 20 }}>
+              {/* Quick summary card */}
+              <div style={{ background: "#f9fafb", border: "1px solid #e5e7eb", borderRadius: 8, padding: 16, marginBottom: 20, fontSize: 13, color: "#374151" }}>
+                <div style={{ fontWeight: 700, color: "#111", marginBottom: 8 }}>📋 Offer summary</div>
+                <div><strong>Property:</strong> {data.property_address || "—"}</div>
+                <div><strong>Buyer:</strong> {data.buyer_names || "—"}</div>
+                <div><strong>Price:</strong> {data.purchase_price ? "$" + Number(data.purchase_price).toLocaleString() : "—"}</div>
+                <div><strong>EMD:</strong> {data.initial_emd ? "$" + Number(data.initial_emd).toLocaleString() : "—"}</div>
+                <div><strong>Closing date:</strong> {data.closing_date || "—"}</div>
+                <div><strong>Listing agent:</strong> {data.listing_agent_name || "—"} {data.listing_agent_email ? "(" + data.listing_agent_email + ")" : ""}</div>
+                <div><strong>Addenda:</strong> {(Array.isArray(data.selected_addenda) && data.selected_addenda.length) || 0} selected</div>
+              </div>
+
+              {/* Generate / Download */}
+              <div style={{ background: "#eff6ff", border: "1px solid #93c5fd", borderRadius: 8, padding: 16, textAlign: "center" }}>
+                <div style={{ fontSize: 40, marginBottom: 8 }}>📦</div>
+                <div style={{ fontWeight: 700, color: "#1e3a8a", marginBottom: 6 }}>Generate the offer packet</div>
+                <div style={{ fontSize: 12, color: "#1e40af", marginBottom: 16 }}>
+                  Builds a PDF with the offer summary + addenda checklist + the buyer's pre-approval letter, all in one file. Download and review before marking the offer Ready.
+                </div>
+                <button onClick={onGeneratePacket} disabled={generating}
+                  style={{ background: generating ? "#9ca3af" : "#1e40af", color: "white", border: "none", padding: "12px 24px", borderRadius: 6, fontSize: 14, fontWeight: 700, cursor: generating ? "wait" : "pointer", fontFamily: "inherit", marginRight: 8 }}>
+                  {generating ? "Generating…" : "📦 Generate Packet"}
+                </button>
+                {(packetReady || (offer && offer.packet_pdf_key)) && (
+                  <button onClick={onDownloadPacket}
+                    style={{ background: "#065f46", color: "white", border: "none", padding: "12px 24px", borderRadius: 6, fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                    ⬇️ Download Again
+                  </button>
+                )}
+                <div style={{ fontSize: 11, color: "#6b7280", marginTop: 16, fontStyle: "italic" }}>
+                  V1: summary PDF. V2 will replace with the actual FAR/BAR AS-IS form once we have field-mapped templates.
+                </div>
+              </div>
             </div>
           )}
 
