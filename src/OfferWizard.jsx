@@ -498,14 +498,32 @@ export default function OfferWizard({ offerId, token, onClose, onSaved }) {
     && String(data.financing_type || "") !== "Cash"
     && financingNeeded > maxLoan;
 
+  // Date helpers — parse yyyy-mm-dd as local midnight; compare to today.
+  const parseLocal = (s) => {
+    if (!s || !/^\d{4}-\d{2}-\d{2}$/.test(s)) return null;
+    const [yy, mm, dd] = s.split("-").map(Number);
+    return new Date(yy, mm - 1, dd);
+  };
+  const todayMidnight = (() => { const n = new Date(); return new Date(n.getFullYear(), n.getMonth(), n.getDate()); })();
+
   // Weekend closing-date warning: title/closing companies are closed Sat/Sun.
-  let closingIsWeekend = false, closingDayName = "";
-  if (data.closing_date && /^\d{4}-\d{2}-\d{2}$/.test(data.closing_date)) {
-    const [yy, mm, dd] = data.closing_date.split("-").map(Number);
-    const dow = new Date(yy, mm - 1, dd).getDay(); // local, 0=Sun..6=Sat
+  let closingIsWeekend = false, closingDayName = "", closingInPast = false;
+  const closingDt = parseLocal(data.closing_date);
+  if (closingDt) {
+    const dow = closingDt.getDay();
     closingIsWeekend = dow === 0 || dow === 6;
     closingDayName = dow === 0 ? "Sunday" : "Saturday";
+    closingInPast = closingDt < todayMidnight;
   }
+
+  // Offer-expiration date must be in the future (not today or past).
+  const offerExpDt = parseLocal(data.offer_effective_date);
+  const offerExpNotFuture = offerExpDt ? offerExpDt <= todayMidnight : false;
+
+  // Seller closing-cost contribution over 6% of price.
+  const sellerCredit = _num(data.closing_costs_paid_by);
+  const price = _num(data.purchase_price);
+  const sellerCreditOver6 = price > 0 && sellerCredit > 0 && (sellerCredit / price) > 0.06;
 
   return (
     <div style={overlayStyle} onClick={onClose}>
@@ -561,8 +579,8 @@ export default function OfferWizard({ offerId, token, onClose, onSaved }) {
             </div>
           )}
 
-          {/* MLS upload + AI extraction — only on Step 1 */}
-          {stepIdx === 0 && (
+          {/* MLS upload + AI extraction — on the property step */}
+          {visibleFields.some(f => f.id === "property_address") && (
             <div style={{ background: "#eff6ff", border: "1px solid #93c5fd", borderRadius: 8, padding: 16, marginBottom: 20 }}>
               <div style={{ fontWeight: 700, color: "#1e3a8a", marginBottom: 6, fontSize: 14 }}>
                 📎 Upload the MLS broker synopsis
@@ -639,8 +657,29 @@ export default function OfferWizard({ offerId, token, onClose, onSaved }) {
             </div>
           )}
 
+          {/* Offer-expiration date must be in the future */}
+          {offerExpNotFuture && visibleFields.some(f => f.id === "offer_effective_date") && (
+            <div style={{ background: "#fef2f2", border: "1px solid #fca5a5", borderRadius: 8, padding: 12, marginBottom: 18, fontSize: 13, color: "#7f1d1d" }}>
+              ⚠️ <strong>Offer expiration is today or in the past.</strong> Pick a future date (typically 1-2 business days out) so the seller has time to respond.
+            </div>
+          )}
+
+          {/* Seller contribution over 6% of price */}
+          {sellerCreditOver6 && visibleFields.some(f => f.id === "closing_costs_paid_by") && (
+            <div style={{ background: "#fef9c3", border: "1px solid #fcd34d", borderRadius: 8, padding: 12, marginBottom: 18, fontSize: 13, color: "#78350f" }}>
+              ⚠️ <strong>Seller contribution is over 6% of price.</strong> Most loan programs cap seller-paid closing costs (FHA 6%, Conventional 3-9% by down payment, VA limited). ${sellerCredit.toLocaleString()} is {((sellerCredit / price) * 100).toFixed(1)}% — the lender may not allow it. You can still proceed.
+            </div>
+          )}
+
+          {/* Closing date in the past */}
+          {closingInPast && visibleFields.some(f => f.id === "closing_date") && (
+            <div style={{ background: "#fef2f2", border: "1px solid #fca5a5", borderRadius: 8, padding: 12, marginBottom: 18, fontSize: 13, color: "#7f1d1d" }}>
+              ⚠️ <strong>Closing date is in the past.</strong> Pick a future date that's realistic for the loan type.
+            </div>
+          )}
+
           {/* Weekend closing-date warning when this step shows the closing date */}
-          {closingIsWeekend && !closingDateAck && visibleFields.some(f => f.id === "closing_date") && (
+          {closingIsWeekend && !closingInPast && !closingDateAck && visibleFields.some(f => f.id === "closing_date") && (
             <div style={{ background: "#fef2f2", border: "1px solid #fca5a5", borderRadius: 8, padding: 12, marginBottom: 18, fontSize: 13, color: "#7f1d1d" }}>
               ⚠️ <strong>Closing falls on a {closingDayName}.</strong> Title and closing companies are closed on weekends — this date likely won't work. Pick a weekday, or override to keep it.
               <div style={{ marginTop: 10 }}>

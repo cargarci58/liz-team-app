@@ -18,6 +18,17 @@ export const AS_IS_WIZARD = {
   contractName: "FAR/BAR AS-IS Residential Contract",
   steps: [
     {
+      id: 0,
+      title: "Pre-Approval & Buying Power",
+      subtitle: "Start with the buyer's pre-approval — it sets financing type, rate, term, and the max loan we'll check the price against",
+      why: "No pre-approval = offer dismissed. Uploading it first lets the system pre-fill the financing terms and warn you immediately if the price exceeds what the buyer is approved for.",
+      fields: [
+        { id: "preapproval_doc_id", label: "Pre-approval letter (or proof of funds for cash)", type: "preapproval_picker", required: true,
+          hint: "Pick an existing pre-approval from this buyer's file, or upload a new one. The system reads the financing type, rate, term, and max loan amount from it.",
+          why: "Without this, the offer is unsubmittable. Listing agents will not present it to their seller. Uploading it first drives the affordability warning on the price step." }
+      ]
+    },
+    {
       id: 1,
       title: "Parties & Property",
       subtitle: "Confirm who is buying and what they are buying",
@@ -149,9 +160,9 @@ export const AS_IS_WIZARD = {
           showIf: { title_closing_responsibility: ["Miami-Dade/Broward regional provision"] },
           hint: "Leave blank to use the contract's built-in default of $200.",
           why: "Under the regional provision, the seller pays actual title-search costs up to this cap. Blank = form's $200 default." },
-        { id: "survey_required", label: "Survey?", type: "select", required: false, default: "No survey",
-          options: ["Yes", "No survey"],
-          hint: "Per the contract, if a survey is ordered the SELLER pays. Lenders often require one.",
+        { id: "survey_required", label: "Survey?", type: "select", required: false, default: "Yes — seller pays",
+          options: ["Yes — seller pays", "No survey"],
+          hint: "Default is Yes (seller pays). Lenders often require one.",
           why: "Reveals boundary issues, encroachments, easements. ~$400-700 in FL — seller's expense under the FAR/BAR form." },
         { id: "closing_costs_paid_by", label: "Seller contribution to buyer's closing costs ($)", type: "currency", required: false, default: 0,
           hint: "Cap is usually 3-6% of price depending on loan type (FHA = 6%, Conv = 3%).",
@@ -231,17 +242,6 @@ export const AS_IS_WIZARD = {
         { id: "items_excluded", label: "Items excluded (seller is taking)", type: "textarea", required: false,
           hint: "e.g. Dining room chandelier, garage shelving.",
           why: "Avoids the classic post-closing fight: 'they took the chandelier.'" }
-      ]
-    },
-    {
-      id: 10,
-      title: "Pre-Approval Letter",
-      subtitle: "Proof the buyer can actually close",
-      why: "No pre-approval = offer dismissed. Cash offers need proof of funds. Sellers and listing agents will not entertain offers without this.",
-      fields: [
-        { id: "preapproval_doc_id", label: "Pre-approval letter (or proof of funds for cash)", type: "preapproval_picker", required: true,
-          hint: "Pick an existing pre-approval from this buyer's file, or upload a new one.",
-          why: "Without this, the offer is unsubmittable. Listing agents will not present it to their seller." }
       ]
     },
     {
