@@ -208,6 +208,18 @@ export default function OfferWizard({ offerId, token, onClose, onSaved }) {
             if (!cancelled) setDocuments(dd.documents || dd || []);
           }
         } catch {/* docs are optional for the wizard */}
+        // Pull the transaction's pre-approval max loan for the affordability warning,
+        // in case it was uploaded via the transaction overview (not the wizard).
+        try {
+          const pr = await fetch(API + "/transactions/" + body.offer.transaction_id + "/preapproval", { headers: { Authorization: "Bearer " + token } });
+          if (pr.ok) {
+            const pd = await pr.json();
+            const maxLoan = pd && pd.preapproval && pd.preapproval.loan_amount;
+            if (maxLoan && !cancelled) {
+              setData(prev => prev.preapproval_max_loan ? prev : { ...prev, preapproval_max_loan: maxLoan });
+            }
+          }
+        } catch {/* preapproval optional */}
       } catch (e) {
         if (!cancelled) setError(e.message);
       } finally {
