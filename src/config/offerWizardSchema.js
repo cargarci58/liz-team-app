@@ -193,7 +193,16 @@ export const AS_IS_WIZARD = {
           why: "Max recommended is 60 days; longer triggers FL residential landlord-tenant law." },
         { id: "occupancy_per_diem", label: "Per-diem rent seller pays buyer ($/day)", type: "currency", required: false,
           showIf: { occupancy_type: ["Post-closing occupancy (seller stays)"] },
-          why: "Compensates buyer for delayed possession + mortgage payment. Typical: PITI/30." }
+          why: "Compensates buyer for delayed possession + mortgage payment. Typical: PITI/30." },
+        { id: "assignability", label: "Assignability (Paragraph 7 — CHECK ONE)", type: "select", required: true,
+          default: "May NOT assign this contract",
+          options: [
+            "May NOT assign this contract",
+            "May assign and be released from liability",
+            "May assign but NOT be released from liability"
+          ],
+          hint: "Default (and most common) is 'may not assign.' If no box is checked the contract defaults to may-not-assign.",
+          why: "Controls whether the buyer can hand the contract to someone else before closing. Investors often want assignability; sellers usually prefer the buyer can't swap themselves out." }
       ]
     },
     {
