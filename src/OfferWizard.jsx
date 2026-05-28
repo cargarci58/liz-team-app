@@ -492,11 +492,12 @@ export default function OfferWizard({ offerId, token, onClose, onSaved }) {
   // the pre-approval's max loan amount, flag it. Agent can still proceed.
   const _num = (v) => { const n = Number(v); return isFinite(n) ? n : 0; };
   const maxLoan = _num(data.preapproval_max_loan);
-  // Financing needed = the larger of (price − down payment) and the entered loan amount.
-  const financingNeeded = Math.max(_num(data.purchase_price) - _num(data.down_payment), _num(data.loan_amount));
-  const overPreapproval = maxLoan > 0 && _num(data.purchase_price) > 0
+  // The offer PRICE can exceed the pre-approval (buyer covers the gap with cash/down
+  // payment). Only warn when the LOAN AMOUNT itself exceeds the pre-approved max.
+  const loanAmt = _num(data.loan_amount);
+  const overPreapproval = maxLoan > 0 && loanAmt > 0
     && String(data.financing_type || "") !== "Cash"
-    && financingNeeded > maxLoan;
+    && loanAmt > maxLoan;
 
   // Date helpers — parse yyyy-mm-dd as local midnight; compare to today.
   const parseLocal = (s) => {
@@ -662,9 +663,7 @@ export default function OfferWizard({ offerId, token, onClose, onSaved }) {
           {/* Affordability warning on the price step or the financing step */}
           {overPreapproval && visibleFields.some(f => f.id === "purchase_price" || f.id === "loan_amount") && (
             <div style={{ background: "#fef2f2", border: "1px solid #fca5a5", borderRadius: 8, padding: 12, marginBottom: 18, fontSize: 13, color: "#7f1d1d" }}>
-              ⚠️ <strong>Above pre-approval.</strong> The financing needed (price − down payment ={" "}
-              ${(financingNeeded).toLocaleString()}) exceeds the buyer's pre-approved max loan of{" "}
-              ${maxLoan.toLocaleString()}. Confirm the buyer can cover the difference or adjust the price/down payment. You can still proceed.
+              ⚠️ <strong>Loan exceeds pre-approval.</strong> The loan amount (${loanAmt.toLocaleString()}) is above the buyer's pre-approved max loan of ${maxLoan.toLocaleString()}. Lower the loan amount, increase the down payment, or get an updated pre-approval. You can still proceed.
             </div>
           )}
 
