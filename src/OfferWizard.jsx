@@ -460,6 +460,15 @@ export default function OfferWizard({ offerId, token, onClose, onSaved }) {
 
   const visibleFields = (step.fields || []).filter(f => fieldVisible(f, data));
 
+  // Affordability warning: if the financing needed (price − down payment) exceeds
+  // the pre-approval's max loan amount, flag it. Agent can still proceed.
+  const _num = (v) => { const n = Number(v); return isFinite(n) ? n : 0; };
+  const maxLoan = _num(data.preapproval_max_loan);
+  const financingNeeded = _num(data.purchase_price) - _num(data.down_payment);
+  const overPreapproval = maxLoan > 0 && _num(data.purchase_price) > 0
+    && String(data.financing_type || "") !== "Cash"
+    && financingNeeded > maxLoan;
+
   return (
     <div style={overlayStyle} onClick={onClose}>
       <div style={modalStyle} onClick={e => e.stopPropagation()}>
@@ -580,6 +589,15 @@ export default function OfferWizard({ offerId, token, onClose, onSaved }) {
                   V1: summary PDF. V2 will replace with the actual FAR/BAR AS-IS form once we have field-mapped templates.
                 </div>
               </div>
+            </div>
+          )}
+
+          {/* Affordability warning when this step shows the purchase price */}
+          {overPreapproval && visibleFields.some(f => f.id === "purchase_price") && (
+            <div style={{ background: "#fef2f2", border: "1px solid #fca5a5", borderRadius: 8, padding: 12, marginBottom: 18, fontSize: 13, color: "#7f1d1d" }}>
+              ⚠️ <strong>Above pre-approval.</strong> The financing needed (price − down payment ={" "}
+              ${(financingNeeded).toLocaleString()}) exceeds the buyer's pre-approved max loan of{" "}
+              ${maxLoan.toLocaleString()}. Confirm the buyer can cover the difference or adjust the price/down payment. You can still proceed.
             </div>
           )}
 
