@@ -208,15 +208,26 @@ export default function OfferWizard({ offerId, token, onClose, onSaved }) {
             if (!cancelled) setDocuments(dd.documents || dd || []);
           }
         } catch {/* docs are optional for the wizard */}
-        // Pull the transaction's pre-approval max loan for the affordability warning,
-        // in case it was uploaded via the transaction overview (not the wizard).
+        // Pull the transaction's pre-approval for the affordability warning + to
+        // auto-fill financing type, in case it was uploaded via the transaction
+        // overview (not the wizard).
         try {
           const pr = await fetch(API + "/transactions/" + body.offer.transaction_id + "/preapproval", { headers: { Authorization: "Bearer " + token } });
           if (pr.ok) {
             const pd = await pr.json();
-            const maxLoan = pd && pd.preapproval && pd.preapproval.loan_amount;
-            if (maxLoan && !cancelled) {
-              setData(prev => prev.preapproval_max_loan ? prev : { ...prev, preapproval_max_loan: maxLoan });
+            const pa = pd && pd.preapproval;
+            if (pa && !cancelled) {
+              setData(prev => {
+                const next = { ...prev };
+                if (pa.loan_amount && !next.preapproval_max_loan) next.preapproval_max_loan = pa.loan_amount;
+                // loan_type on the pre-approval → financing_type (gap-fill)
+                if (pa.loan_type && (next.financing_type == null || next.financing_type === "")) {
+                  const lt = String(pa.loan_type);
+                  const known = ["Conventional","FHA","VA","USDA","Cash"].find(k => lt.toLowerCase().includes(k.toLowerCase()));
+                  next.financing_type = known || lt;
+                }
+                return next;
+              });
             }
           }
         } catch {/* preapproval optional */}
@@ -481,7 +492,8 @@ export default function OfferWizard({ offerId, token, onClose, onSaved }) {
   // the pre-approval's max loan amount, flag it. Agent can still proceed.
   const _num = (v) => { const n = Number(v); return isFinite(n) ? n : 0; };
   const maxLoan = _num(data.preapproval_max_loan);
-  const financingNeeded = _num(data.purchase_price) - _num(data.down_payment);
+  // Financing needed = the larger of (price − down payment) and the entered loan amount.
+  const financingNeeded = Math.max(_num(data.purchase_price) - _num(data.down_payment), _num(data.loan_amount));
   const overPreapproval = maxLoan > 0 && _num(data.purchase_price) > 0
     && String(data.financing_type || "") !== "Cash"
     && financingNeeded > maxLoan;
@@ -618,8 +630,8 @@ export default function OfferWizard({ offerId, token, onClose, onSaved }) {
             </div>
           )}
 
-          {/* Affordability warning when this step shows the purchase price */}
-          {overPreapproval && visibleFields.some(f => f.id === "purchase_price") && (
+          {/* Affordability warning on the price step or the financing step */}
+          {overPreapproval && visibleFields.some(f => f.id === "purchase_price" || f.id === "loan_amount") && (
             <div style={{ background: "#fef2f2", border: "1px solid #fca5a5", borderRadius: 8, padding: 12, marginBottom: 18, fontSize: 13, color: "#7f1d1d" }}>
               ⚠️ <strong>Above pre-approval.</strong> The financing needed (price − down payment ={" "}
               ${(financingNeeded).toLocaleString()}) exceeds the buyer's pre-approved max loan of{" "}
