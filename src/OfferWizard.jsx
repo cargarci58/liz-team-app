@@ -525,6 +525,10 @@ export default function OfferWizard({ offerId, token, onClose, onSaved }) {
   const price = _num(data.purchase_price);
   const sellerCreditOver6 = price > 0 && sellerCredit > 0 && (sellerCredit / price) > 0.06;
 
+  // Flood zone other than X → likely requires flood insurance.
+  const floodZone = String(data.flood_zone || "").trim().toUpperCase();
+  const floodRisk = floodZone && floodZone !== "X" && floodZone !== "X500";
+
   return (
     <div style={overlayStyle} onClick={onClose}>
       <div style={modalStyle} onClick={e => e.stopPropagation()}>
@@ -645,6 +649,13 @@ export default function OfferWizard({ offerId, token, onClose, onSaved }) {
                   V1: summary PDF. V2 will replace with the actual FAR/BAR AS-IS form once we have field-mapped templates.
                 </div>
               </div>
+            </div>
+          )}
+
+          {/* Flood zone warning — show on the property step */}
+          {floodRisk && visibleFields.some(f => f.id === "property_address") && (
+            <div style={{ background: "#fef9c3", border: "1px solid #fcd34d", borderRadius: 8, padding: 12, marginBottom: 18, fontSize: 13, color: "#78350f" }}>
+              🌊 <strong>Flood zone {floodZone}.</strong> This property is in a Special Flood Hazard Area — a lender will require flood insurance, and it can be costly. Warn the buyer and factor it into their budget.
             </div>
           )}
 
