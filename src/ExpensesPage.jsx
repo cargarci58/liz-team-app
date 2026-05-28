@@ -6,14 +6,23 @@ const getToken = () => localStorage.getItem('tp_token');
 
 const authFetch = async (path, options = {}) => {
   const token = getToken();
-  const res = await fetch(`${API_URL}${path}`, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`,
-      ...(options.headers || {})
-    }
-  });
+  let res;
+  try {
+    res = await fetch(`${API_URL}${path}`, {
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+        ...(options.headers || {})
+      }
+    });
+  } catch (netErr) {
+    // TypeError("Failed to fetch") lands here — surfaces CORS/network issues
+    // with the API URL attached so a tester can act on the message instead of
+    // staring at a generic "Failed to fetch" toast.
+    console.error('[authFetch] network failure', API_URL + path, netErr);
+    throw new Error(`Cannot reach the server (${API_URL}${path}) — ${netErr.message}. Check your connection or open devtools → Network to see if the request is being blocked.`);
+  }
   if (!res.ok) {
     const errText = await res.text().catch(() => '');
     throw new Error(errText || `Request failed: ${res.status}`);
@@ -481,12 +490,17 @@ function AddExpenseModal({ categories, expense, onClose, onSaved }) {
 
       // Step 2: PUT file directly to R2
       setOcrStatus('Uploading receipt...');
-      const putRes = await fetch(uploadUrl, {
-        method: 'PUT',
-        headers: { 'Content-Type': file.type || 'image/jpeg' },
-        body: file
-      });
-      if (!putRes.ok) throw new Error(`R2 upload failed: ${putRes.status}`);
+      let putRes;
+      try {
+        putRes = await fetch(uploadUrl, {
+          method: 'PUT',
+          headers: { 'Content-Type': file.type || 'image/jpeg' },
+          body: file
+        });
+      } catch (netErr) {
+        throw new Error(`Network error uploading receipt to R2 — ${netErr.message}. Most common cause: R2 bucket CORS rejecting PUTs from this origin.`);
+      }
+      if (!putRes.ok) throw new Error(`R2 storage rejected the receipt (HTTP ${putRes.status}). The signed URL may have expired or the content-type doesn't match the signature.`);
 
       setReceiptKey(newKey);
 

@@ -2413,9 +2413,15 @@ function ContractReviewChecklist({ tx, token, onCleared, setActiveTab, openEditT
         headers: { Authorization: "Bearer " + token }
       });
       const d = await r.json();
-      if (d.success) {
-        alert(`✅ Welcome emails sent to ${d.emailsSent} parties.`);
+      const sentList = (d.sent || []).map(p => `  ✅ ${p.name} (${p.role}) — ${p.email}`).join("\n");
+      const failedList = (d.failed || []).map(p => `  ❌ ${p.name} (${p.role}) — ${p.email}\n      → ${p.error}`).join("\n");
+      if (d.success && (d.emailsSent || 0) > 0) {
+        alert(`✅ Welcome emails sent to ${d.emailsSent} parties.${sentList ? "\n\n" + sentList : ""}`);
         toggleStep(2);
+      } else if ((d.emailsSent || 0) > 0 && (d.emailsFailed || 0) > 0) {
+        alert(`⚠️ Partial send: ${d.emailsSent} delivered, ${d.emailsFailed} FAILED.\n\nDelivered:\n${sentList}\n\nFailed:\n${failedList}`);
+      } else if ((d.emailsFailed || 0) > 0) {
+        alert(`❌ No welcome emails delivered (${d.emailsFailed} failed).\n\n${failedList}`);
       } else {
         alert("Could not send: " + (d.error || "Unknown error"));
       }
@@ -2805,9 +2811,21 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
         headers: { Authorization: "Bearer " + (localStorage.getItem("tp_token") || "") }
       });
       const d = await r.json();
-      if (d.success) {
-        alert(`\u2705 Welcome emails sent to ${d.emailsSent} parties.`);
+      const sentList = (d.sent || []).map(p => `  \u2705 ${p.name} (${p.role}) \u2014 ${p.email}`).join("\n");
+      const failedList = (d.failed || []).map(p => `  \u274c ${p.name} (${p.role}) \u2014 ${p.email}\n      \u2192 ${p.error}`).join("\n");
+      const skippedList = (d.skipped || []).map(p => `  \u26a0\ufe0f ${p.name} (${p.role}) \u2014 ${p.reason}`).join("\n");
+      if (d.success && (d.emailsSent || 0) > 0) {
+        let msg = `\u2705 Welcome emails sent to ${d.emailsSent} parties.`;
+        if (sentList) msg += "\n\n" + sentList;
+        if (skippedList) msg += "\n\nSkipped:\n" + skippedList;
+        alert(msg);
         return true;
+      } else if ((d.emailsSent || 0) > 0 && (d.emailsFailed || 0) > 0) {
+        alert(`\u26a0\ufe0f Partial send: ${d.emailsSent} delivered, ${d.emailsFailed} FAILED.\n\nDelivered:\n${sentList}\n\nFailed:\n${failedList}${skippedList ? "\n\nSkipped:\n" + skippedList : ""}`);
+        return true;
+      } else if ((d.emailsFailed || 0) > 0) {
+        alert(`\u274c No welcome emails delivered (${d.emailsFailed} failed).\n\n${failedList}${skippedList ? "\n\nSkipped:\n" + skippedList : ""}`);
+        return false;
       } else {
         alert("Could not send: " + (d.error || "Unknown error"));
         return false;

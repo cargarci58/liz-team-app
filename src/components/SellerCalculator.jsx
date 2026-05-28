@@ -130,7 +130,8 @@ export default function SellerCalculator({ transactionId, token } = {}) {
   };
 
   const result = useMemo(() => {
-    const commission = salePrice * (commissionPct / 100);
+    const safeCommissionPct = Math.max(0, Math.min(100, Number(commissionPct) || 0));
+    const commission = salePrice * (safeCommissionPct / 100);
     const docStamps = flDocStampsDeed(salePrice);
     const titleIns = flTitleInsurance(salePrice);
     const recording = 50;

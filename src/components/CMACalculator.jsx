@@ -148,22 +148,38 @@ function UploadCompsButton({ transactionId, token, onExtracted, disabled }) {
       for (let i = 0; i < fileList.length; i++) {
         const f = fileList[i];
         // 1. Get signed upload URL
-        const urlRes = await fetch(API + "/documents/upload-url", {
-          method: "POST",
-          headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
-          body: JSON.stringify({
-            transactionId,
-            fileName: f.name,
-            fileType: f.type || (f.name.toLowerCase().endsWith(".pdf") ? "application/pdf" : "image/jpeg"),
-            category: "CMA Comp Source",
-            isVisibleToClient: false,
-          }),
-        });
-        if (!urlRes.ok) throw new Error("Failed to get upload URL");
+        let urlRes;
+        try {
+          urlRes = await fetch(API + "/documents/upload-url", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
+            body: JSON.stringify({
+              transactionId,
+              fileName: f.name,
+              fileType: f.type || (f.name.toLowerCase().endsWith(".pdf") ? "application/pdf" : "image/jpeg"),
+              category: "CMA Comp Source",
+              isVisibleToClient: false,
+            }),
+          });
+        } catch (netErr) {
+          throw new Error(`Network error reaching ${API}/documents/upload-url for "${f.name}" — ${netErr.message}. Open devtools → Network to see if the request was blocked (CORS, offline, or hosting issue).`);
+        }
+        if (!urlRes.ok) {
+          const body = await urlRes.text().catch(() => "");
+          throw new Error(`Upload URL request returned HTTP ${urlRes.status} for "${f.name}". Server said: ${body.slice(0, 200)}`);
+        }
         const { uploadUrl, key } = await urlRes.json();
 
-        // 2. Upload directly to R2
-        await fetch(uploadUrl, { method: "PUT", body: f, headers: { "Content-Type": f.type || "application/pdf" } });
+        // 2. Upload directly to R2 — check status so we don't enqueue extraction on a key R2 never received.
+        let putRes;
+        try {
+          putRes = await fetch(uploadUrl, { method: "PUT", body: f, headers: { "Content-Type": f.type || "application/pdf" } });
+        } catch (netErr) {
+          throw new Error(`Network error uploading "${f.name}" to R2 — ${netErr.message}. Most common cause: R2 bucket CORS rejecting the PUT. Open devtools → Network and check the failed OPTIONS or PUT request.`);
+        }
+        if (!putRes.ok) {
+          throw new Error(`R2 storage rejected "${f.name}" with HTTP ${putRes.status}. The signed URL may have expired (5 min limit) or the file type doesn't match the signature.`);
+        }
         fileKeys.push(key);
         setProgress({ done: i + 1, total: fileList.length });
       }
@@ -182,6 +198,7 @@ function UploadCompsButton({ transactionId, token, onExtracted, disabled }) {
       const result = await pollAiJob(API, token, enqueued.jobId);
       onExtracted(result.comps || []);
     } catch (err) {
+      console.error("[CMA upload] failure:", err);
       alert("⚠️ " + err.message);
     } finally {
       setUploading(false);

@@ -353,12 +353,19 @@ function PaymentTab() {
   const [pmiRate, setPmiRate] = useState(0.5);
 
   const result = useMemo(() => {
-    const downPayment = price * (downPct / 100);
+    // Clamp percent inputs so typing a dollar amount into a % field doesn't
+    // produce nonsense (e.g. "90000" in "Down Payment %" would imply 900x
+    // the price). The SliderRow lets users type values past the slider max.
+    const safeDownPct = Math.max(0, Math.min(100, Number(downPct) || 0));
+    const safeTaxRate = Math.max(0, Math.min(20, Number(taxRate) || 0));
+    const safeInsRate = Math.max(0, Math.min(20, Number(insRate) || 0));
+    const safePmiRate = Math.max(0, Math.min(10, Number(pmiRate) || 0));
+    const downPayment = price * (safeDownPct / 100);
     const loan = price - downPayment;
     const pi = monthlyPI(loan, rate, term);
-    const tax = price * (taxRate / 100) / 12;
-    const ins = price * (insRate / 100) / 12;
-    const pmi = downPct < 20 ? (loan * (pmiRate / 100)) / 12 : 0;
+    const tax = price * (safeTaxRate / 100) / 12;
+    const ins = price * (safeInsRate / 100) / 12;
+    const pmi = safeDownPct < 20 ? (loan * (safePmiRate / 100)) / 12 : 0;
     const total = pi + tax + ins + hoaMonthly + pmi;
     return { downPayment, loan, pi, tax, ins, pmi, total };
   }, [price, downPct, rate, term, taxRate, insRate, hoaMonthly, pmiRate]);
@@ -468,9 +475,11 @@ function CashToCloseTab() {
   const [prepaids, setPrepaids] = useState(3500);
 
   const result = useMemo(() => {
-    const downPayment = price * (downPct / 100);
+    const safeDownPct = Math.max(0, Math.min(100, Number(downPct) || 0));
+    const safeEmdPct = Math.max(0, Math.min(100, Number(emdPct) || 0));
+    const downPayment = price * (safeDownPct / 100);
     const loan = price - downPayment;
-    const emd = price * (emdPct / 100);
+    const emd = price * (safeEmdPct / 100);
     const titleIns = flTitleInsurance(price);
     const docStampsNote = flDocStampsNote(loan);
     const intangibleTax = flIntangibleTax(loan);

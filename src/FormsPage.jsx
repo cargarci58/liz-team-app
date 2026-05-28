@@ -44,11 +44,20 @@ export default function FormsPage({ user, onBack }) {
       return;
     }
     try {
-      const r = await fetch(`${API}/forms/${form.id}/download-url`, { headers: { Authorization: `Bearer ${token()}` } });
+      let r;
+      try {
+        r = await fetch(`${API}/forms/${form.id}/download-url`, { headers: { Authorization: `Bearer ${token()}` } });
+      } catch (netErr) {
+        throw new Error(`Cannot reach the server at ${API} — ${netErr.message}. Check your connection or browser devtools → Network for the blocked request.`);
+      }
+      if (!r.ok) {
+        const body = await r.text().catch(() => '');
+        throw new Error(`Server returned HTTP ${r.status}. ${body.slice(0, 200)}`);
+      }
       const data = await r.json();
       if (data.downloadUrl) window.open(data.downloadUrl, '_blank');
       else alert(data.error || 'Download failed');
-    } catch (e) { alert('Download error: ' + e.message); }
+    } catch (e) { console.error('[forms] download failed', e); alert('Download error: ' + e.message); }
   }
 
   async function handleDelete(form) {
