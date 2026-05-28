@@ -23,9 +23,9 @@ export const AS_IS_WIZARD = {
       subtitle: "Confirm who is buying and what they are buying",
       why: "Every contract must clearly identify the buyer(s), seller(s), and the property. Errors here can void the contract or delay closing.",
       fields: [
-        { id: "offer_effective_date", label: "Offer date", type: "date", required: false,
-          hint: "Today by default. Becomes the contract's Effective Date if accepted as written.",
-          why: "Every deadline in the contract (EMD due, inspection period, financing approval, closing) counts from this date." },
+        { id: "offer_effective_date", label: "Offer expires on (seller must accept by)", type: "date", required: true,
+          hint: "Typically 1-2 business days from today. Your call as the agent.",
+          why: "Sets the deadline for the seller's response. If the seller hasn't accepted by this date, the offer is void and your buyer can move on. Too short and the seller dismisses; too long and your buyer is stuck waiting." },
         { id: "buyer_names", label: "Buyer name(s)", type: "text", required: true,
           hint: "Exact legal name(s) as they will appear on the deed.",
           why: "Title companies match this to ID at closing. Misspellings = closing delay." },
