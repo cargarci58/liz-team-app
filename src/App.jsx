@@ -3377,14 +3377,25 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
             {(tx.reminders || []).length === 0 && <div style={{ textAlign: "center", color: COLORS.muted, padding: 40 }}>No reminders set.</div>}
             {(tx.reminders || []).map(r => {
               const d = daysUntil(r.date);
+              const bumpToTomorrow = () => {
+                const next = new Date();
+                next.setDate(next.getDate() + 1);
+                const iso = next.toISOString().slice(0, 10);
+                update({ reminders: (tx.reminders || []).map(rr => rr.id === r.id ? { ...rr, date: iso } : rr) });
+              };
+              const removeReminder = () => update({ reminders: (tx.reminders || []).filter(rr => rr.id !== r.id) });
               return (
-                <div key={r.id} style={{ background: "#fff", border: `1px solid ${COLORS.border}`, borderLeft: `3px solid ${COLORS.gold}`, borderRadius: 10, padding: "14px 16px", marginBottom: 10, display: "flex", justifyContent: "space-between" }}>
-                  <div>
+                <div key={r.id} style={{ background: "#fff", border: `1px solid ${COLORS.border}`, borderLeft: `3px solid ${COLORS.gold}`, borderRadius: 10, padding: "14px 16px", marginBottom: 10, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
+                  <div style={{ flex: 1 }}>
                     <div style={{ fontWeight: 700, fontSize: 14 }}>{r.title}</div>
                     <div style={{ fontSize: 12, color: COLORS.muted, marginTop: 3 }}>{formatDate(r.date)} {d !== null && <span style={{ color: d < 0 ? COLORS.danger : d <= 3 ? COLORS.warning : COLORS.muted }}>({d === 0 ? "Today" : d > 0 ? `in ${d}d` : `${Math.abs(d)}d ago`})</span>}</div>
                     {r.message && <div style={{ fontSize: 13, marginTop: 4, fontStyle: "italic" }}>{r.message}</div>}
                   </div>
-                  <button onClick={() => update({ reminders: (tx.reminders || []).filter(rr => rr.id !== r.id) })} style={{ background: "none", border: "none", cursor: "pointer", color: COLORS.muted }}>×</button>
+                  <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+                    <button onClick={removeReminder} title="Mark this reminder done — removes it from the list" style={{ background: "#1E8449", border: "none", color: "#fff", borderRadius: 6, padding: "6px 10px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>✓ Done</button>
+                    <button onClick={bumpToTomorrow} title="Snooze 1 day — reappears tomorrow" style={{ background: "#fff", border: `1px solid ${COLORS.border}`, color: COLORS.muted, borderRadius: 6, padding: "6px 10px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>⏰ Not Today</button>
+                    <button onClick={removeReminder} title="Delete reminder" style={{ background: "none", border: "none", cursor: "pointer", color: COLORS.muted, fontSize: 18, padding: "0 6px" }}>×</button>
+                  </div>
                 </div>
               );
             })}
@@ -4046,7 +4057,7 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
 
 // --- NEW TRANSACTION ──────────────────────────────────────────
 function NewTransactionForm({ onSave, onCancel }) {
-  const [form, setForm] = useState({ address: "", city: "", county: "Osceola", zipCode: "", type: "Listing (Seller)", propertyType: "Single Family", listPrice: "", contractPrice: "", mlsNumber: "", openDate: today(), closingDate: "", executedDate: "", notes: "", status: "Active", assignedAgent: "", referralSource: "", occupancyStatus: "", propertyAccess: "", commissionListing: "", commissionBuyer: "", transactionFee: "", brokerageSplit: "", officeFlatFee: "", commissionNotes: "" });
+  const [form, setForm] = useState({ address: "", city: "", county: "Osceola", zipCode: "", type: "Listing (Seller)", propertyType: "Single Family", constructionType: "Resale", listPrice: "", contractPrice: "", mlsNumber: "", openDate: today(), closingDate: "", executedDate: "", notes: "", status: "Active", assignedAgent: "", referralSource: "", occupancyStatus: "", propertyAccess: "", commissionListing: "", commissionBuyer: "", transactionFee: "", brokerageSplit: "", officeFlatFee: "", commissionNotes: "" });
   const [teamAgents, setTeamAgents] = useState([]);
   useEffect(() => { const tok = localStorage.getItem("tp_token") || ""; fetch(API + "/users", { headers: { "Authorization": "Bearer " + tok } }).then(r => r.json()).then(d => { if (d.users) setTeamAgents(d.users.filter(u => u.role === "agent" || u.role === "admin" || u.role === "superadmin")); }).catch(e => console.error("[bg]", e && e.message ? e.message : e)); }, []);
   const [useFLTemplates, setUseFLTemplates] = useState(true);
@@ -4116,7 +4127,7 @@ function NewTransactionForm({ onSave, onCancel }) {
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}><Input label="City" value={form.city} onChange={f("city")} required /><Input label="County" value={form.county} onChange={f("county")} options={COUNTIES} /></div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}><Input label="Zip Code" value={form.zipCode} onChange={f("zipCode")} /><Input label="MLS Number" value={form.mlsNumber} onChange={f("mlsNumber")} placeholder="O6..." /></div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}><Input label="Transaction Type" value={form.type} onChange={f("type")} options={TRANSACTION_TYPES} /><Input label="Property Type" value={form.propertyType} onChange={f("propertyType")} options={PROPERTY_TYPES} /></div>
-          <Input label="Occupancy Status" value={form.occupancyStatus} onChange={f("occupancyStatus")} options={OCCUPANCY_OPTIONS} required />
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}><Input label="Construction Type" value={form.constructionType} onChange={f("constructionType")} options={["Resale","New Construction","Vacant Land","Commercial"]} /><Input label="Occupancy Status" value={form.occupancyStatus} onChange={f("occupancyStatus")} options={OCCUPANCY_OPTIONS} required /></div>
         </div>
         <div style={{ background: "#fff", border: `1px solid ${COLORS.border}`, borderRadius: 14, padding: 28, marginBottom: 20 }}>
           <h3 style={{ margin: "0 0 20px", fontSize: 15, color: COLORS.navy, fontWeight: 700 }}>Pricing & Dates</h3>
@@ -4251,7 +4262,7 @@ function ContactAutocomplete({ token, onSelect }) {
 // ═══════════════════════════════════════════════════════════════
 // SettingsMenu — dropdown that consolidates 6+ buttons into one
 // ═══════════════════════════════════════════════════════════════
-function SettingsMenu({ currentUser, onOpenContactBook, contactCount, onReports, onAgentProfile, onOpenComplianceDash, onOpenCompliance, onOpenTaskTmpls, onCompanySettings, onChangePassword, onOpenForms }) {
+function SettingsMenu({ currentUser, onOpenContactBook, contactCount, onReports, onAgentProfile, onOpenComplianceDash, onOpenCompliance, onOpenTaskTmpls, onCompanySettings, onChangePassword, onOpenForms, onOpenTeam }) {
   const [open, setOpen] = useState(false);
   const isAdmin = ["admin", "superadmin"].includes(currentUser?.role);
   const items = [];
@@ -4263,6 +4274,7 @@ function SettingsMenu({ currentUser, onOpenContactBook, contactCount, onReports,
   items.push({ icon: "🔒", label: "Change Password", onClick: onChangePassword });
   if (isAdmin) {
     items.push({ divider: true });
+    if (onOpenTeam) items.push({ icon: "👥", label: "Team Members / Invite", onClick: onOpenTeam });
     items.push({ icon: "📊", label: "Compliance Dashboard", onClick: onOpenComplianceDash });
     items.push({ icon: "⚖️", label: "Doc Requirements", onClick: onOpenCompliance });
     items.push({ icon: "📝", label: "Task Templates", onClick: onOpenTaskTmpls });
@@ -4838,6 +4850,7 @@ function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenCon
               onCompanySettings={onCompanySettings}
               onOpenForms={onOpenForms}
               onChangePassword={onChangePassword}
+              onOpenTeam={onOpenTeam}
             />
             <TenantSwitcher currentUser={currentUser} />
             <button onClick={onLogout} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "rgba(255,255,255,0.88)", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 600, fontFamily: "inherit" }}>Sign Out</button>
