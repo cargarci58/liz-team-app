@@ -140,10 +140,15 @@ export const AS_IS_WIZARD = {
           default: "Seller designates & pays owner's policy",
           options: [
             "Seller designates & pays owner's policy",
-            "Buyer designates & pays owner's policy"
+            "Buyer designates & pays owner's policy",
+            "Miami-Dade/Broward regional provision"
           ],
-          hint: "Standard in most FL counties: Seller designates the closing agent and pays for the owner's title policy; buyer pays for the lender's policy + endorsements. In Miami-Dade/Broward the buyer typically designates and pays.",
-          why: "This is the actual CHECK ONE box on the contract. 'Seller designates' = seller picks closing agent + pays owner's policy, buyer pays lender's policy. 'Buyer designates' = buyer picks closing agent + pays owner's policy, lender's policy, endorsements and closing fees." },
+          hint: "Standard in most FL counties: Seller designates the closing agent and pays for the owner's title policy; buyer pays for the lender's policy + endorsements. In Miami-Dade/Broward use the regional provision (option iii).",
+          why: "This is the actual CHECK ONE box on the contract. 'Seller designates' = seller picks closing agent + pays owner's policy, buyer pays lender's policy. 'Buyer designates' = buyer picks + pays everything. 'Miami-Dade/Broward' = the regional provision where buyer designates and pays premiums, seller pays for the title search up to a cap." },
+        { id: "title_search_max_cost", label: "Title search cost cap ($) — Miami-Dade/Broward only", type: "currency", required: false,
+          showIf: { title_closing_responsibility: ["Miami-Dade/Broward regional provision"] },
+          hint: "Leave blank to use the contract's built-in default of $200.",
+          why: "Under the regional provision, the seller pays actual title-search costs up to this cap. Blank = form's $200 default." },
         { id: "survey_required", label: "Survey?", type: "select", required: false, default: "No survey",
           options: ["Yes", "No survey"],
           hint: "Per the contract, if a survey is ordered the SELLER pays. Lenders often require one.",
