@@ -23,6 +23,9 @@ export const AS_IS_WIZARD = {
       subtitle: "Confirm who is buying and what they are buying",
       why: "Every contract must clearly identify the buyer(s), seller(s), and the property. Errors here can void the contract or delay closing.",
       fields: [
+        { id: "offer_effective_date", label: "Offer date", type: "date", required: false,
+          hint: "Today by default. Becomes the contract's Effective Date if accepted as written.",
+          why: "Every deadline in the contract (EMD due, inspection period, financing approval, closing) counts from this date." },
         { id: "buyer_names", label: "Buyer name(s)", type: "text", required: true,
           hint: "Exact legal name(s) as they will appear on the deed.",
           why: "Title companies match this to ID at closing. Misspellings = closing delay." },
