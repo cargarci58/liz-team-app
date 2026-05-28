@@ -259,9 +259,9 @@ export const AS_IS_WIZARD = {
           why: "Used for follow-up if no email response within 24-48h." },
         { id: "listing_brokerage", label: "Listing brokerage", type: "text", required: false,
           why: "Shown on the cover sheet to identify the listing side." },
-        { id: "seller_paid_commission", label: "Commission the seller/listing side pays your brokerage", type: "text", required: false,
-          hint: "Enter a dollar amount ('$10,000') or a percent ('2.5%') — a percent is converted to dollars using the purchase price. This does NOT go on the offer; it updates this transaction's commission record.",
-          why: "Tracks the co-op commission offered to the buyer's side as a dollar figure so your brokerage's books reflect it. Not part of the contract sent to the seller." }
+        { id: "seller_paid_commission_pct", label: "Commission % the seller/listing side pays your brokerage", type: "number", required: false,
+          hint: "Enter a percentage, e.g. 2.5 for 2.5%. Converted to a dollar amount using the purchase price. This does NOT go on the offer; it updates this transaction's commission record.",
+          why: "Tracks the co-op commission offered to the buyer's side so your brokerage's books reflect it. Not part of the contract sent to the seller." }
       ]
     },
     {
