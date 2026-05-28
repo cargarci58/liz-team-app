@@ -180,6 +180,8 @@ export default function OfferWizard({ offerId, token, onClose, onSaved }) {
   // Packet generation state (visible on the Review step)
   const [generating, setGenerating] = useState(false);
   const [packetReady, setPacketReady] = useState(false);
+  // Weekend closing-date override
+  const [closingDateAck, setClosingDateAck] = useState(false);
 
   const wizard = getWizard(offer?.base_contract_type || "as_is");
   const steps = wizard.steps;
@@ -215,7 +217,10 @@ export default function OfferWizard({ offerId, token, onClose, onSaved }) {
     return () => { cancelled = true; };
   }, [offerId, token]);
 
-  const setField = (id, val) => setData(d => ({ ...d, [id]: val }));
+  const setField = (id, val) => {
+    if (id === "closing_date") setClosingDateAck(false); // re-warn if the date changes
+    setData(d => ({ ...d, [id]: val }));
+  };
 
   const save = async ({ nextStepIdx, status }) => {
     setSaving(true);
@@ -469,6 +474,15 @@ export default function OfferWizard({ offerId, token, onClose, onSaved }) {
     && String(data.financing_type || "") !== "Cash"
     && financingNeeded > maxLoan;
 
+  // Weekend closing-date warning: title/closing companies are closed Sat/Sun.
+  let closingIsWeekend = false, closingDayName = "";
+  if (data.closing_date && /^\d{4}-\d{2}-\d{2}$/.test(data.closing_date)) {
+    const [yy, mm, dd] = data.closing_date.split("-").map(Number);
+    const dow = new Date(yy, mm - 1, dd).getDay(); // local, 0=Sun..6=Sat
+    closingIsWeekend = dow === 0 || dow === 6;
+    closingDayName = dow === 0 ? "Sunday" : "Saturday";
+  }
+
   return (
     <div style={overlayStyle} onClick={onClose}>
       <div style={modalStyle} onClick={e => e.stopPropagation()}>
@@ -598,6 +612,19 @@ export default function OfferWizard({ offerId, token, onClose, onSaved }) {
               ⚠️ <strong>Above pre-approval.</strong> The financing needed (price − down payment ={" "}
               ${(financingNeeded).toLocaleString()}) exceeds the buyer's pre-approved max loan of{" "}
               ${maxLoan.toLocaleString()}. Confirm the buyer can cover the difference or adjust the price/down payment. You can still proceed.
+            </div>
+          )}
+
+          {/* Weekend closing-date warning when this step shows the closing date */}
+          {closingIsWeekend && !closingDateAck && visibleFields.some(f => f.id === "closing_date") && (
+            <div style={{ background: "#fef2f2", border: "1px solid #fca5a5", borderRadius: 8, padding: 12, marginBottom: 18, fontSize: 13, color: "#7f1d1d" }}>
+              ⚠️ <strong>Closing falls on a {closingDayName}.</strong> Title and closing companies are closed on weekends — this date likely won't work. Pick a weekday, or override to keep it.
+              <div style={{ marginTop: 10 }}>
+                <button type="button" onClick={() => setClosingDateAck(true)}
+                  style={{ background: "#7f1d1d", color: "white", border: "none", padding: "6px 14px", borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                  Override — keep this date
+                </button>
+              </div>
             </div>
           )}
 
