@@ -377,8 +377,16 @@ export default function OfferWizard({ offerId, token, onClose, onSaved }) {
           setDocuments(dd.documents || dd || []);
         }
       } catch {}
+      // Reload the offer so any financing details extracted from the letter
+      // (financing_type, loan_rate_type, loan_term_years, loan_amount) appear.
+      try {
+        const or = await fetch(API + "/offers/" + offerId, { headers: { Authorization: "Bearer " + token } });
+        const ob = await or.json();
+        if (or.ok) { setOffer(ob.offer); setData(buildWizardData(ob.offer)); }
+      } catch {}
       setField("preapproval_doc_id", out.documentId);
-      setPreapMsg("✅ Uploaded \"" + out.name + "\" and linked to this offer.");
+      const got = out.extracted ? Object.keys(out.extracted).filter(k => out.extracted[k] != null && out.extracted[k] !== "") : [];
+      setPreapMsg("✅ Uploaded \"" + out.name + "\"." + (got.length ? " Read from letter: " + got.join(", ") + "." : ""));
     } catch (e) {
       setError(e.message);
     } finally {
