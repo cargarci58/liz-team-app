@@ -41,6 +41,17 @@ const STANDARD_ADDENDA = [
   { id: "GG", label: "GG. Seller's Agreement with Respect to Buyer's Broker Compensation" },
 ];
 
+// Fields agents fill on nearly every offer — highlighted green so the
+// must-fill items stand out from the optional/conditional ones.
+const COMMON_FIELDS = new Set([
+  "preapproval_doc_id", "offer_effective_date", "buyer_names", "property_address",
+  "property_county", "purchase_price", "initial_emd", "initial_emd_deadline_days",
+  "escrow_agent", "financing_type", "loan_amount", "down_payment",
+  "inspection_period_days", "title_closing_responsibility", "survey_required",
+  "closing_date", "occupancy_type", "selected_addenda",
+  "listing_agent_name", "listing_agent_email",
+]);
+
 const inputStyle = {
   width: "100%",
   padding: "10px 12px",
@@ -790,17 +801,26 @@ export default function OfferWizard({ offerId, token, onClose, onSaved }) {
             </div>
           )}
 
+          {visibleFields.length > 0 && (
+            <div style={{ fontSize: 11, color: "#6b7280", marginBottom: 12, display: "flex", alignItems: "center", gap: 6 }}>
+              <span style={{ display: "inline-block", width: 10, height: 10, background: "#16a34a", borderRadius: 2 }} />
+              Green = commonly filled on most offers · plain = optional / only when it applies
+            </div>
+          )}
           <div style={{ display: "grid", gap: 18 }}>
-            {visibleFields.map(f => (
-              <div key={f.id}>
-                <label style={{ display: "block", fontSize: 13, fontWeight: 700, color: "#374151", marginBottom: 6 }}>
+            {visibleFields.map(f => {
+              const common = COMMON_FIELDS.has(f.id);
+              return (
+              <div key={f.id} style={common ? { borderLeft: "3px solid #16a34a", paddingLeft: 12, background: "#f0fdf4", borderRadius: 6, padding: "10px 12px" } : {}}>
+                <label style={{ display: "block", fontSize: 13, fontWeight: 700, color: common ? "#15803d" : "#374151", marginBottom: 6 }}>
                   {f.label} {f.required && <span style={{ color: "#dc2626" }}>*</span>}
+                  {common && <span style={{ fontSize: 10, fontWeight: 700, color: "#16a34a", marginLeft: 6, textTransform: "uppercase", letterSpacing: "0.04em" }}>• commonly filled</span>}
                 </label>
                 <FieldRenderer field={f} value={data[f.id]} onChange={(val) => setField(f.id, val)} documents={documents} />
                 {f.hint && <div style={{ fontSize: 11, color: "#6b7280", marginTop: 4 }}>{f.hint}</div>}
                 {f.why && <div style={{ fontSize: 11, color: "#92400e", marginTop: 2, fontStyle: "italic" }}>{f.why}</div>}
               </div>
-            ))}
+            );})}
           </div>
 
           {error && (
