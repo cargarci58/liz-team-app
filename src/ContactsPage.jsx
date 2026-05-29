@@ -348,11 +348,30 @@ function ContactModal({ contact, token, onClose, onSaved }) {
     contactType: (contact && contact.contact_type) || "lead",
     temperature: (contact && contact.temperature) || "warm",
     source: (contact && contact.source) || "",
-    groups: (contact && Array.isArray(contact.tags) ? contact.tags.join(", ") : "") || "",
+    groups: (contact && Array.isArray(contact.tags) ? contact.tags : []),
     notes: (contact && contact.notes) || "",
   });
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState(null);
+  const [availableGroups, setAvailableGroups] = useState([]);
+  const [newGroup, setNewGroup] = useState("");
+
+  useEffect(() => {
+    fetch(API + "/contacts/groups", { headers: { Authorization: "Bearer " + token } })
+      .then(r => r.json()).then(d => setAvailableGroups((d.groups || []).map(g => g.name))).catch(() => {});
+  }, []);
+
+  const toggleGroup = (name) => setForm(f => ({
+    ...f,
+    groups: f.groups.includes(name) ? f.groups.filter(g => g !== name) : [...f.groups, name],
+  }));
+  const addNewGroup = () => {
+    const n = newGroup.trim();
+    if (!n) return;
+    if (!availableGroups.includes(n)) setAvailableGroups(g => [...g, n]);
+    setForm(f => ({ ...f, groups: f.groups.includes(n) ? f.groups : [...f.groups, n] }));
+    setNewGroup("");
+  };
 
   const update = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
@@ -362,8 +381,8 @@ function ContactModal({ contact, token, onClose, onSaved }) {
     try {
       const url = isEdit ? (API + "/contacts/" + contact.id) : (API + "/contacts");
       const method = isEdit ? "PUT" : "POST";
-      // Convert the comma-separated Groups text into the tags array the API expects.
-      const payload = { ...form, tags: form.groups.split(",").map(s => s.trim()).filter(Boolean) };
+      // form.groups is already an array of selected group names → tags.
+      const payload = { ...form, tags: Array.isArray(form.groups) ? form.groups : [] };
       delete payload.groups;
       const r = await fetch(url, {
         method,
@@ -408,7 +427,30 @@ function ContactModal({ contact, token, onClose, onSaved }) {
           </Field>
         </div>
         <Field label="Source" hint="Where did this lead come from? Zillow, Open House, Referral, etc."><input value={form.source} onChange={e => update("source", e.target.value)} style={inputStyle} /></Field>
-        <Field label="Groups" hint="Comma-separated. e.g. Bunco, Church, Gym — group people by where you know them from."><input value={form.groups} onChange={e => update("groups", e.target.value)} placeholder="Bunco, Open House Oct 2026" style={inputStyle} /></Field>
+        <Field label="Groups" hint="Optional — tag where you know them from. Pick any that apply (a contact can be in several, or none).">
+          {availableGroups.length === 0 && form.groups.length === 0 ? (
+            <div style={{ fontSize: 12, color: "#9ca3af", marginBottom: 6 }}>No groups yet — create one below or in "Manage Groups".</div>
+          ) : (
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 8 }}>
+              {Array.from(new Set([...availableGroups, ...form.groups])).map(name => {
+                const on = form.groups.includes(name);
+                return (
+                  <button type="button" key={name} onClick={() => toggleGroup(name)}
+                    style={{ padding: "4px 12px", borderRadius: 16, fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
+                      border: on ? "1px solid #166534" : "1px solid #d1d5db", background: on ? "#dcfce7" : "white", color: on ? "#166534" : "#6b7280" }}>
+                    {on ? "✓ " : ""}{name}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+          <div style={{ display: "flex", gap: 6 }}>
+            <input value={newGroup} onChange={e => setNewGroup(e.target.value)}
+              onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); addNewGroup(); } }}
+              placeholder="+ New group (e.g. Bunco)" style={{ ...inputStyle, flex: 1, marginBottom: 0 }} />
+            <button type="button" onClick={addNewGroup} style={btnStyle("#e0e7ff", "#3730a3")}>Add</button>
+          </div>
+        </Field>
         <Field label="Notes"><textarea value={form.notes} onChange={e => update("notes", e.target.value)} rows={3} style={{ ...inputStyle, resize: "vertical" }} /></Field>
 
         {err && <div style={{ color: "#b91c1c", fontSize: 13, marginBottom: 8 }}>⚠️ {err}</div>}
