@@ -1360,11 +1360,19 @@ export default function ContactsPage({ token, onBack }) {
       });
     } catch {}
   };
-  // Turning a touch type ON: save the pref, then offer to schedule it right away
-  // (otherwise nothing happens until the agent runs Build Nurture Schedule).
-  const seedAfterEnable = async (kind) => {
-    if (!confirm(kind + " turned on.\n\nSchedule them now for your A/B clients? They'll start showing up on Win the Day over the next few weeks, a few at a time (not all at once).")) return;
+  // Pop-by / Items-of-Value choices are made inside the Build Nurture Schedule
+  // dialog (runNurtureBuild saves them), so these just track local state there.
+  const togglePopBys = (val) => setPopBysEnabled(val);
+  const toggleIov = (val) => setIovEnabled(val);
+
+  const [showNurture, setShowNurture] = useState(false);
+  const [nurtureBuilding, setNurtureBuilding] = useState(false);
+
+  const runNurtureBuild = async () => {
+    setNurtureBuilding(true);
     try {
+      // Save the pop-by / Items-of-Value choices, then build the schedule.
+      await savePref({ popBysEnabled, itemsOfValueEnabled: iovEnabled });
       const r = await fetch(API + "/contacts/nurture-schedule", {
         method: "POST", headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
         body: JSON.stringify({ perDay: 8 }),
@@ -1372,28 +1380,14 @@ export default function ContactsPage({ token, onBack }) {
       const d = await r.json();
       if (!r.ok) throw new Error(d.error || "Failed");
       const parts = [];
+      if (d.scheduled) parts.push(d.scheduled + " calls");
       if (d.popBys) parts.push(d.popBys + " pop-bys");
       if (d.iovs) parts.push(d.iovs + " Items of Value");
-      if (d.scheduled) parts.push(d.scheduled + " calls");
-      alert("✅ Scheduled " + (parts.join(" + ") || "your touches") + ".\n\nThey'll appear on Win the Day on their due dates (starting in about 1–2 weeks). After each one, the app schedules the next automatically.");
+      setShowNurture(false);
       await load();
+      alert("✅ Scheduled " + (parts.join(" + ") || "your touches") + ".\n\nThey'll appear on Win the Day on their due dates (spread over the coming weeks, a few a day). After each one, the app schedules the next automatically by tier.");
     } catch (e) { alert("Error: " + e.message); }
-  };
-  const togglePopBys = async (val) => { setPopBysEnabled(val); await savePref({ popBysEnabled: val }); if (val) seedAfterEnable("🎁 Pop-bys"); };
-  const toggleIov = async (val) => { setIovEnabled(val); await savePref({ itemsOfValueEnabled: val }); if (val) seedAfterEnable("📬 Items of Value"); };
-
-  const buildNurtureSchedule = async () => {
-    if (!confirm("Build your relationship call schedule from your tiers?\n\nThis spreads your A–D contacts who don't have a next call yet across the coming weeks (A clients first, ~8 a day) so your daily list fills up gradually — it won't dump everyone on you at once. Contacts that already have a next call are left alone.")) return;
-    try {
-      const r = await fetch(API + "/contacts/nurture-schedule", {
-        method: "POST", headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
-        body: JSON.stringify({ perDay: 8 }),
-      });
-      const d = await r.json();
-      if (!r.ok) throw new Error(d.error || "Failed");
-      await load();
-      alert("✅ " + (d.message || ("Scheduled " + d.scheduled)) + "\n\nThey'll start appearing in Win the Day on their scheduled days. After each call, the app reschedules the next touch automatically by tier.");
-    } catch (e) { alert("Error: " + e.message); }
+    finally { setNurtureBuilding(false); }
   };
 
   const importReferralMaker = async (file) => {
@@ -1555,7 +1549,7 @@ export default function ContactsPage({ token, onBack }) {
           <div style={{ fontSize: 13, color: "#6b7280" }}>Your private lead list. {contacts.length} contact{contacts.length === 1 ? "" : "s"}.</div>
         </div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          <button onClick={buildNurtureSchedule} style={btnStyle("#16a34a", "white")} title="Auto-build your daily relationship calls from your tiers">⭐ Build Nurture Schedule</button>
+          <button onClick={() => setShowNurture(true)} style={btnStyle("#16a34a", "white")} title="Auto-build your daily relationship calls from your tiers">⭐ Build Nurture Schedule</button>
           <button onClick={() => setShowBulkSchedule(true)} style={btnStyle("#7c3aed", "white")}>📅 Schedule Calls</button>
           <button onClick={() => setShowGroups(true)} style={btnStyle("#e0e7ff", "#3730a3")}>👥 Manage Groups</button>
           <button onClick={() => setShowImport(true)} style={btnStyle("#e5e7eb", "#374151")}>📥 Import CSV</button>
@@ -1569,20 +1563,8 @@ export default function ContactsPage({ token, onBack }) {
         </div>
       </div>
 
-      <div style={{ background: "#fef3c7", border: "1px solid #fcd34d", borderRadius: 8, padding: 10, fontSize: 12, color: "#78350f", marginBottom: 10, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
-        <div>💡 New here, or training an agent? <button onClick={() => setShowGuide(true)} style={{ background: "#0c4a6e", color: "white", border: "none", borderRadius: 6, padding: "5px 12px", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit", marginLeft: 4 }}>📖 How Contacts Work — Start Here</button></div>
-        <div style={{ display: "flex", alignItems: "center", gap: 16, whiteSpace: "nowrap" }}>
-          <label style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer" }}>
-            <input type="checkbox" checked={popBysEnabled} onChange={e => togglePopBys(e.target.checked)} />
-            <span style={{ fontWeight: 700 }}>🎁 Pop-bys</span>
-            <button type="button" onClick={(e) => { e.preventDefault(); setShowPopbyInfo(true); }} title="What's a pop-by?"
-              style={{ background: "#92400e", color: "white", border: "none", borderRadius: 10, width: 16, height: 16, fontSize: 11, cursor: "pointer", lineHeight: 1, padding: 0 }}>?</button>
-          </label>
-          <label style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer" }} title="Send a helpful 'item of value' (market update, tip) to nurture clients">
-            <input type="checkbox" checked={iovEnabled} onChange={e => toggleIov(e.target.checked)} />
-            <span style={{ fontWeight: 700 }}>📬 Items of Value</span>
-          </label>
-        </div>
+      <div style={{ background: "#fef3c7", border: "1px solid #fcd34d", borderRadius: 8, padding: 10, fontSize: 12, color: "#78350f", marginBottom: 10 }}>
+        💡 New here, or training an agent? <button onClick={() => setShowGuide(true)} style={{ background: "#0c4a6e", color: "white", border: "none", borderRadius: 6, padding: "5px 12px", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit", marginLeft: 4 }}>📖 How Contacts Work — Start Here</button>
       </div>
       {showPopbyInfo && (
         <div style={{ position: "fixed", inset: 0, zIndex: 6000, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }} onClick={() => setShowPopbyInfo(false)}>
@@ -1727,6 +1709,29 @@ export default function ContactsPage({ token, onBack }) {
 
       {showAdd && <ContactModal token={token} onClose={() => setShowAdd(false)} onSaved={() => load()} />}
       {showGuide && <ContactsGuide onClose={() => setShowGuide(false)} />}
+      {showNurture && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 5000, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }} onClick={() => !nurtureBuilding && setShowNurture(false)}>
+          <div onClick={e => e.stopPropagation()} style={{ background: "white", borderRadius: 12, maxWidth: 480, width: "100%", padding: 24 }}>
+            <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 6 }}>⭐ Build Nurture Schedule</div>
+            <div style={{ fontSize: 13, color: "#374151", lineHeight: 1.6, marginBottom: 16 }}>
+              This turns your A–D tiers into a daily call schedule — spread out over the coming weeks (A clients most often) so your list fills gradually, not all at once. Contacts that already have a next call are left alone.
+            </div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "#0c4a6e", marginBottom: 8 }}>Also include these touches?</div>
+            <label style={{ display: "flex", alignItems: "flex-start", gap: 8, padding: "10px 12px", border: "1px solid #e5e7eb", borderRadius: 8, marginBottom: 8, cursor: "pointer" }}>
+              <input type="checkbox" checked={popBysEnabled} onChange={e => togglePopBys(e.target.checked)} style={{ marginTop: 3 }} />
+              <span style={{ fontSize: 13, color: "#374151" }}><strong>🎁 Pop-bys</strong> — reminders to drop off a small gift to your A/B clients a few times a year (with a seasonal gift idea + a map route). <em>Optional.</em></span>
+            </label>
+            <label style={{ display: "flex", alignItems: "flex-start", gap: 8, padding: "10px 12px", border: "1px solid #e5e7eb", borderRadius: 8, marginBottom: 16, cursor: "pointer" }}>
+              <input type="checkbox" checked={iovEnabled} onChange={e => toggleIov(e.target.checked)} style={{ marginTop: 3 }} />
+              <span style={{ fontSize: 13, color: "#374151" }}><strong>📬 Items of Value</strong> — reminders to send a helpful note/market update to nurture clients. <em>Optional.</em></span>
+            </label>
+            <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+              <button onClick={() => setShowNurture(false)} disabled={nurtureBuilding} style={btnStyle("#e5e7eb", "#374151")}>Cancel</button>
+              <button onClick={runNurtureBuild} disabled={nurtureBuilding} style={btnStyle("#16a34a", "white")}>{nurtureBuilding ? "Building…" : "⭐ Build Schedule"}</button>
+            </div>
+          </div>
+        </div>
+      )}
       {showGroups && (
         <div style={{ position: "fixed", inset: 0, zIndex: 4000, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }} onClick={() => setShowGroups(false)}>
           <div onClick={e => e.stopPropagation()} style={{ background: "white", borderRadius: 12, maxWidth: 460, width: "100%", maxHeight: "85vh", overflowY: "auto", padding: 24 }}>
