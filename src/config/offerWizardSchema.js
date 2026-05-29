@@ -83,7 +83,12 @@ export const AS_IS_WIZARD = {
           hint: "Only required if Additional EMD is set above." },
         { id: "escrow_agent", label: "Escrow agent (who holds the EMD)", type: "text", required: true,
           hint: "Usually the listing brokerage or the title/closing company.",
-          why: "If money is misdirected, recovery is messy. Be specific: name and license/EIN." }
+          why: "If money is misdirected, recovery is messy. Be specific: name and license/EIN." },
+        { id: "purchase_other_desc", label: "Other funds toward purchase — description (optional)", type: "text", required: false,
+          hint: "Line 40(d) on the contract. e.g. 'Assumed mortgage balance', 'Seller financing'. Leave blank if none.",
+          why: "Rarely used. Only for funds applied to the price that aren't deposit or new financing." },
+        { id: "purchase_other_amount", label: "Other funds toward purchase — amount ($)", type: "currency", required: false,
+          hint: "Dollar amount for the 'Other' line above." }
       ]
     },
     {
