@@ -5727,8 +5727,18 @@ function MainApp({ onLogout, currentUser }) {
   };
 
   const openTransactionMilestones = (txId) => {
+    if (!txId) return;
     const t = transactions.find(t => t.id === txId);
-    if (t) { setSelectedId(txId); setInitialDetailTab("milestones"); setView("detail"); }
+    if (t) {
+      setSelectedId(txId);
+      setInitialDetailTab("documents"); // land on Documents — that's where they upload
+      setView("detail");
+    } else {
+      // Tx not in the loaded list (cap/filter/stale) — go to the transactions list
+      // instead of silently no-opping back to the dashboard home.
+      console.error("[openTransactionMilestones] tx not loaded:", txId);
+      setView("dashboard");
+    }
   };
 
   // Public upload route — no auth required
