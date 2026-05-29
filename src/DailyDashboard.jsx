@@ -325,6 +325,9 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
   const [personal, setPersonal] = useState({ overdue:[], dueToday:[], upcoming:[] });
   const [callsDue, setCallsDue] = useState([]);
   const [occasions, setOccasions] = useState([]);
+  const [popBys, setPopBys] = useState([]);
+  const [itemsOfValue, setItemsOfValue] = useState([]);
+  const [giftIdea, setGiftIdea] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeModal, setActiveModal] = useState(null);
   const [resolvedIds, setResolvedIds] = useState(new Set());
@@ -360,6 +363,9 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
         const callsData = await callsRes.json();
         setCallsDue(callsData.calls || []);
         setOccasions(callsData.occasions || []);
+        setPopBys(callsData.popBys || []);
+        setItemsOfValue(callsData.itemsOfValue || []);
+        setGiftIdea(callsData.popByGiftIdea || null);
       }
     } catch (e) { console.error(e); }
     setLoading(false);
@@ -587,6 +593,51 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
                   <div style={{ fontSize: 12, color: "#6b7280", marginTop: 2 }}>{o.phone || o.email || ""}</div>
                 </div>
                 <LogCallButton contact={o} token={token} onLogged={fetchTasks} compact />
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* POP-BYS DUE */}
+      {popBys.length > 0 && (
+        <div style={{ marginBottom: 24 }}>
+          <SectionHeader label={"🎁 POP-BYS DUE"} count={popBys.length} color={"#b45309"} />
+          {giftIdea && <div style={{ fontSize: 12, color: "#92400e", background: "#fef3c7", border: "1px solid #fcd34d", borderRadius: 6, padding: 8, marginBottom: 8 }}>💡 This month's gift idea: <strong>{giftIdea}</strong></div>}
+          {popBys.map(c => {
+            const name = [c.first_name, c.last_name].filter(Boolean).join(" ") || c.phone || "(no name)";
+            return (
+              <div key={c.id} style={{ background: "white", border: "1px solid #fde68a", borderRadius: 8, padding: 12, marginBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: 700, fontSize: 14, color: "#111" }}>{name}{c.tier && <span style={{ marginLeft: 6, fontSize: 11, fontWeight: 800, color: "#fff", background: "#0c4a6e", borderRadius: 10, padding: "1px 7px" }}>{c.tier}</span>}</div>
+                  <div style={{ fontSize: 12, color: "#6b7280", marginTop: 2 }}>{c.popby_address || c.phone || c.email || "no address on file"}</div>
+                </div>
+                <button onClick={async () => {
+                  const notes = prompt("Pop-by to " + name + " — add a quick note (optional):", "");
+                  if (notes === null) return;
+                  try { await fetch(API + "/contacts/" + c.id + "/log-popby", { method: "POST", headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" }, body: JSON.stringify({ notes }) }); fetchTasks(); } catch {}
+                }} style={{ background: "#b45309", color: "white", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>✓ Done</button>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* ITEMS OF VALUE DUE */}
+      {itemsOfValue.length > 0 && (
+        <div style={{ marginBottom: 24 }}>
+          <SectionHeader label={"📬 ITEMS OF VALUE TO SEND"} count={itemsOfValue.length} color={"#7c3aed"} />
+          {itemsOfValue.map(c => {
+            const name = [c.first_name, c.last_name].filter(Boolean).join(" ") || c.phone || "(no name)";
+            return (
+              <div key={c.id} style={{ background: "white", border: "1px solid #ddd6fe", borderRadius: 8, padding: 12, marginBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: 700, fontSize: 14, color: "#111" }}>{name}{c.tier && <span style={{ marginLeft: 6, fontSize: 11, fontWeight: 800, color: "#fff", background: "#0c4a6e", borderRadius: 10, padding: "1px 7px" }}>{c.tier}</span>}</div>
+                  <div style={{ fontSize: 12, color: "#6b7280", marginTop: 2 }}>{c.email || c.phone || ""}</div>
+                </div>
+                <button onClick={async () => {
+                  try { await fetch(API + "/contacts/" + c.id + "/log-iov", { method: "POST", headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" }, body: "{}" }); fetchTasks(); } catch {}
+                }} style={{ background: "#7c3aed", color: "white", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>✓ Sent</button>
               </div>
             );
           })}
