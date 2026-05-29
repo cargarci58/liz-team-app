@@ -44,12 +44,19 @@ const STANDARD_ADDENDA = [
 // Fields agents fill on nearly every offer — highlighted green so the
 // must-fill items stand out from the optional/conditional ones.
 const COMMON_FIELDS = new Set([
-  "preapproval_doc_id", "offer_effective_date", "buyer_names", "property_address",
-  "property_county", "purchase_price", "initial_emd", "initial_emd_deadline_days",
-  "escrow_agent", "financing_type", "loan_amount", "down_payment",
-  "inspection_period_days", "title_closing_responsibility", "survey_required",
-  "closing_date", "occupancy_type", "selected_addenda",
-  "listing_agent_name", "listing_agent_email",
+  "preapproval_doc_id", "offer_effective_date", "buyer_names", "seller_names",
+  "buyer_marital_status", "property_address", "property_county",
+  "property_parcel_id", "property_legal_description",
+  "purchase_price", "initial_emd", "initial_emd_deadline_days", "escrow_agent",
+  "financing_type", "loan_rate_type", "loan_term_years", "loan_amount", "down_payment",
+  "loan_application_deadline_days", "loan_approval_deadline_days", "appraisal_contingency",
+  "inspection_period_days",
+  "title_company", "title_closing_responsibility", "title_evidence_days", "survey_required",
+  "home_warranty_paid_by", "special_assessments",
+  "closing_date", "occupancy_type", "assignability", "selected_addenda",
+  "common_clauses", "special_clauses", "items_included", "items_excluded",
+  "listing_agent_name", "listing_agent_email", "listing_agent_phone", "listing_brokerage",
+  "seller_paid_commission_pct",
 ]);
 
 const inputStyle = {
