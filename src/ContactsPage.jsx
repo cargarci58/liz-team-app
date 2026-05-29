@@ -1360,35 +1360,17 @@ export default function ContactsPage({ token, onBack }) {
       });
     } catch {}
   };
-  // Pop-by / Items-of-Value choices are made inside the Build Nurture Schedule
-  // dialog (runNurtureBuild saves them), so these just track local state there.
-  const togglePopBys = (val) => setPopBysEnabled(val);
-  const toggleIov = (val) => setIovEnabled(val);
+  // Pop-bys / Items of Value compute live from the tier rhythm, so toggling the
+  // pref takes effect immediately on Win the Day — no build step.
+  const togglePopBys = (val) => { setPopBysEnabled(val); savePref({ popBysEnabled: val }); };
+  const toggleIov = (val) => { setIovEnabled(val); savePref({ itemsOfValueEnabled: val }); };
 
-  const [showNurture, setShowNurture] = useState(false);
-  const [nurtureBuilding, setNurtureBuilding] = useState(false);
-
-  const runNurtureBuild = async () => {
-    setNurtureBuilding(true);
-    try {
-      // Save the pop-by / Items-of-Value choices, then build the schedule.
-      await savePref({ popBysEnabled, itemsOfValueEnabled: iovEnabled });
-      const r = await fetch(API + "/contacts/nurture-schedule", {
-        method: "POST", headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
-        body: JSON.stringify({ perDay: 8 }),
-      });
-      const d = await r.json();
-      if (!r.ok) throw new Error(d.error || "Failed");
-      const parts = [];
-      if (d.scheduled) parts.push(d.scheduled + " calls");
-      if (d.popBys) parts.push(d.popBys + " pop-bys");
-      if (d.iovs) parts.push(d.iovs + " Items of Value");
-      setShowNurture(false);
-      await load();
-      alert("✅ Scheduled " + (parts.join(" + ") || "your touches") + ".\n\nThey'll appear on Win the Day on their due dates (spread over the coming weeks, a few a day). After each one, the app schedules the next automatically by tier.");
-    } catch (e) { alert("Error: " + e.message); }
-    finally { setNurtureBuilding(false); }
-  };
+  const [showSettings, setShowSettings] = useState(false);
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 50;
+  useEffect(() => { setPage(1); }, [filter.temperature, filter.type, filter.due, filter.missing, filter.group, filter.tier, filter.search, sortBy.col, sortBy.dir]);
+  const pageCount = Math.max(1, Math.ceil(contacts.length / PAGE_SIZE));
+  const pagedContacts = contacts.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   const importReferralMaker = async (file) => {
     if (!file) return;
@@ -1549,9 +1531,8 @@ export default function ContactsPage({ token, onBack }) {
           <div style={{ fontSize: 13, color: "#6b7280" }}>Your private lead list. {contacts.length} contact{contacts.length === 1 ? "" : "s"}.</div>
         </div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          <button onClick={() => setShowNurture(true)} style={btnStyle("#16a34a", "white")} title="Auto-build your daily relationship calls from your tiers">⭐ Build Nurture Schedule</button>
-          <button onClick={() => setShowBulkSchedule(true)} style={btnStyle("#7c3aed", "white")}>📅 Schedule Calls</button>
           <button onClick={() => setShowGroups(true)} style={btnStyle("#e0e7ff", "#3730a3")}>👥 Manage Groups</button>
+          <button onClick={() => setShowSettings(true)} style={btnStyle("#e5e7eb", "#374151")}>⚙ Settings</button>
           <button onClick={() => setShowImport(true)} style={btnStyle("#e5e7eb", "#374151")}>📥 Import CSV</button>
           <label style={{ ...btnStyle("#1e8449", "white"), display: "inline-block", cursor: rmImporting ? "wait" : "pointer" }}>
             {rmImporting ? "Importing…" : "🔄 Import Contacts (CSV)"}
@@ -1582,7 +1563,7 @@ export default function ContactsPage({ token, onBack }) {
         </div>
       )}
 
-      <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
+      <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap", position: "sticky", top: 0, zIndex: 20, background: "#f7f8fa", padding: "8px 0" }}>
         <input placeholder="🔍 Search name, email, phone..." value={filter.search}
           onChange={e => setFilter(f => ({ ...f, search: e.target.value }))}
           style={{ ...inputStyle, flex: 1, minWidth: 200, maxWidth: 320 }} />
@@ -1651,7 +1632,7 @@ export default function ContactsPage({ token, onBack }) {
                 No contacts yet. Click <strong>+ Add Contact</strong> or <strong>📥 Import CSV</strong>.
               </td></tr>
             )}
-            {!loading && contacts.map(c => {
+            {!loading && pagedContacts.map(c => {
               const m = TEMP_META[c.temperature] || TEMP_META.warm;
               const name = [c.first_name, c.last_name].filter(Boolean).join(" ") || c.email || c.phone || "(no name)";
               const overdue = c.next_call_due_at && new Date(c.next_call_due_at) < new Date();
@@ -1707,27 +1688,43 @@ export default function ContactsPage({ token, onBack }) {
         </table>
       </div>
 
+      {/* Pagination */}
+      {!loading && contacts.length > PAGE_SIZE && (
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 12, marginTop: 14 }}>
+          <button onClick={() => { setPage(p => Math.max(1, p - 1)); window.scrollTo({ top: 0, behavior: "smooth" }); }}
+            disabled={page === 1} style={{ ...btnStyle(page === 1 ? "#f3f4f6" : "#0c4a6e", page === 1 ? "#9ca3af" : "white"), cursor: page === 1 ? "default" : "pointer" }}>← Prev</button>
+          <span style={{ fontSize: 13, color: "#374151", fontWeight: 600 }}>
+            Page {page} of {pageCount} · showing {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, contacts.length)} of {contacts.length}
+          </span>
+          <button onClick={() => { setPage(p => Math.min(pageCount, p + 1)); window.scrollTo({ top: 0, behavior: "smooth" }); }}
+            disabled={page === pageCount} style={{ ...btnStyle(page === pageCount ? "#f3f4f6" : "#0c4a6e", page === pageCount ? "#9ca3af" : "white"), cursor: page === pageCount ? "default" : "pointer" }}>Next →</button>
+        </div>
+      )}
+
+      {/* Back to top */}
+      <button onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+        title="Back to top"
+        style={{ position: "fixed", bottom: 24, right: 24, zIndex: 30, background: "#0c4a6e", color: "white", border: "none", borderRadius: "50%", width: 46, height: 46, fontSize: 20, cursor: "pointer", boxShadow: "0 2px 10px rgba(0,0,0,0.25)" }}>↑</button>
+
       {showAdd && <ContactModal token={token} onClose={() => setShowAdd(false)} onSaved={() => load()} />}
       {showGuide && <ContactsGuide onClose={() => setShowGuide(false)} />}
-      {showNurture && (
-        <div style={{ position: "fixed", inset: 0, zIndex: 5000, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }} onClick={() => !nurtureBuilding && setShowNurture(false)}>
+      {showSettings && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 5000, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }} onClick={() => setShowSettings(false)}>
           <div onClick={e => e.stopPropagation()} style={{ background: "white", borderRadius: 12, maxWidth: 480, width: "100%", padding: 24 }}>
-            <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 6 }}>⭐ Build Nurture Schedule</div>
+            <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 6 }}>⚙ Contact Settings</div>
             <div style={{ fontSize: 13, color: "#374151", lineHeight: 1.6, marginBottom: 16 }}>
-              This turns your A–D tiers into a daily call schedule — spread out over the coming weeks (A clients most often) so your list fills gradually, not all at once. Contacts that already have a next call are left alone.
+              Your daily call list builds itself from each contact's tier — open Win the Day and the right people are already there. These two extras are optional:
             </div>
-            <div style={{ fontSize: 13, fontWeight: 700, color: "#0c4a6e", marginBottom: 8 }}>Also include these touches?</div>
-            <label style={{ display: "flex", alignItems: "flex-start", gap: 8, padding: "10px 12px", border: "1px solid #e5e7eb", borderRadius: 8, marginBottom: 8, cursor: "pointer" }}>
+            <label style={{ display: "flex", alignItems: "flex-start", gap: 8, padding: "12px", border: "1px solid #e5e7eb", borderRadius: 8, marginBottom: 8, cursor: "pointer" }}>
               <input type="checkbox" checked={popBysEnabled} onChange={e => togglePopBys(e.target.checked)} style={{ marginTop: 3 }} />
-              <span style={{ fontSize: 13, color: "#374151" }}><strong>🎁 Pop-bys</strong> — reminders to drop off a small gift to your A/B clients a few times a year (with a seasonal gift idea + a map route). <em>Optional.</em></span>
+              <span style={{ fontSize: 13, color: "#374151" }}><strong>🎁 Pop-bys</strong> — drop off a small gift to your A/B clients a few times a year (with a seasonal gift idea + a map route to do them in one trip). Turn on and they appear on Win the Day.</span>
             </label>
-            <label style={{ display: "flex", alignItems: "flex-start", gap: 8, padding: "10px 12px", border: "1px solid #e5e7eb", borderRadius: 8, marginBottom: 16, cursor: "pointer" }}>
+            <label style={{ display: "flex", alignItems: "flex-start", gap: 8, padding: "12px", border: "1px solid #e5e7eb", borderRadius: 8, marginBottom: 16, cursor: "pointer" }}>
               <input type="checkbox" checked={iovEnabled} onChange={e => toggleIov(e.target.checked)} style={{ marginTop: 3 }} />
-              <span style={{ fontSize: 13, color: "#374151" }}><strong>📬 Items of Value</strong> — reminders to send a helpful note/market update to nurture clients. <em>Optional.</em></span>
+              <span style={{ fontSize: 13, color: "#374151" }}><strong>📬 Items of Value</strong> — reminders to send a helpful note or market update to nurture clients.</span>
             </label>
-            <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
-              <button onClick={() => setShowNurture(false)} disabled={nurtureBuilding} style={btnStyle("#e5e7eb", "#374151")}>Cancel</button>
-              <button onClick={runNurtureBuild} disabled={nurtureBuilding} style={btnStyle("#16a34a", "white")}>{nurtureBuilding ? "Building…" : "⭐ Build Schedule"}</button>
+            <div style={{ display: "flex", justifyContent: "flex-end" }}>
+              <button onClick={() => setShowSettings(false)} style={btnStyle("#0c4a6e", "white")}>Done</button>
             </div>
           </div>
         </div>
