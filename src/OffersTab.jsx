@@ -87,6 +87,36 @@ export default function OffersTab({ tx, token }) {
     }
   };
 
+  const acceptOffer = async (offerId) => {
+    if (!confirm("Mark this offer ACCEPTED?\n\nThis will:\n• Move the transaction to UNDER CONTRACT\n• Copy the offer's price, closing date, and terms onto the transaction\n• Withdraw any other offers on this transaction\n• Send the welcome emails to ALL assigned parties\n\nMake sure every party (buyer, seller, title, lender…) is assigned with a valid email first.")) return;
+    try {
+      const r = await fetch(API + "/offers/" + offerId + "/accept", {
+        method: "POST", headers: { Authorization: "Bearer " + token },
+      });
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.error || "Accept failed");
+      await load();
+      alert("✅ Accepted. Transaction is now Under Contract.\nWelcome emails sent: " + (data.emailsSent || 0) + (data.emailsFailed ? " (" + data.emailsFailed + " failed)" : ""));
+    } catch (e) {
+      alert("Error: " + e.message);
+    }
+  };
+
+  const unacceptOffer = async (offerId) => {
+    if (!confirm("Undo this acceptance?\n\nThe transaction will revert to its prior status and the other offers will be restored.\n\nNote: welcome emails already sent CANNOT be recalled.")) return;
+    try {
+      const r = await fetch(API + "/offers/" + offerId + "/unaccept", {
+        method: "POST", headers: { Authorization: "Bearer " + token },
+      });
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.error || "Undo failed");
+      await load();
+      alert(data.note || "Acceptance reverted.");
+    } catch (e) {
+      alert("Error: " + e.message);
+    }
+  };
+
   return (
     <div style={{ padding: 24 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 12 }}>
@@ -153,6 +183,18 @@ export default function OffersTab({ tx, token }) {
                         style={{ background: "#e5e7eb", color: "#374151", border: "none", padding: "4px 10px", borderRadius: 4, fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", marginRight: 6 }}>
                         Open
                       </button>
+                      {(o.status === "ready" || o.status === "sent" || o.status === "countered") && (
+                        <button onClick={() => acceptOffer(o.id)}
+                          style={{ background: "#16a34a", color: "white", border: "none", padding: "4px 10px", borderRadius: 4, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", marginRight: 6 }}>
+                          Accepted
+                        </button>
+                      )}
+                      {o.status === "accepted" && (
+                        <button onClick={() => unacceptOffer(o.id)}
+                          style={{ background: "#fef3c7", color: "#92400e", border: "none", padding: "4px 10px", borderRadius: 4, fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", marginRight: 6 }}>
+                          Undo acceptance
+                        </button>
+                      )}
                       {(o.status === "draft" || o.status === "ready") && (
                         <button onClick={() => deleteOffer(o.id)}
                           style={{ background: "#fee2e2", color: "#7f1d1d", border: "none", padding: "4px 10px", borderRadius: 4, fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
