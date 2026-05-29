@@ -79,7 +79,7 @@ const btnStyle = (bg, color) => ({
   background: bg, color, border: "none", borderRadius: 6, padding: "8px 14px",
   fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
 });
-const th = { padding: "10px 12px", fontSize: 11, fontWeight: 700, color: "#6b7280", textTransform: "uppercase", letterSpacing: "0.05em", textAlign: "left" };
+const th = { padding: "12px 12px", fontSize: 13, fontWeight: 800, color: "#0c4a6e", textTransform: "uppercase", letterSpacing: "0.04em", textAlign: "left", borderBottom: "2px solid #cbd5e1" };
 const td = { padding: "10px 12px", verticalAlign: "middle" };
 
 function Field({ label, hint, children }) {
@@ -1139,7 +1139,7 @@ function SortableTh({ label, col, sortBy, setSortBy, hint }) {
   const arrow = active ? (sortBy.dir === "asc" ? " ▲" : " ▼") : "";
   return (
     <th
-      style={{ padding: "10px 12px", textAlign: "left", borderBottom: "1px solid #e5e7eb", fontWeight: 600, fontSize: 12, color: "#374151", cursor: "pointer", userSelect: "none", whiteSpace: "nowrap" }}
+      style={{ padding: "12px 12px", textAlign: "left", borderBottom: "2px solid #cbd5e1", fontWeight: 800, fontSize: 13, color: "#0c4a6e", textTransform: "uppercase", letterSpacing: "0.04em", cursor: "pointer", userSelect: "none", whiteSpace: "nowrap" }}
       title={hint || `Click to sort by ${label}`}
       onClick={() => {
         if (sortBy.col !== col) setSortBy({ col, dir: "asc" });
@@ -1308,7 +1308,7 @@ export default function ContactsPage({ token, onBack }) {
       <div style={{ background: "white", border: "1px solid #e5e7eb", borderRadius: 8, overflow: "hidden" }}>
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
           <thead>
-            <tr style={{ background: "#f9fafb" }}>
+            <tr style={{ background: "#eef2f7" }}>
               <th style={{ ...th, width: 32 }}>
                 <input type="checkbox" checked={contacts.length > 0 && selected.size === contacts.length} onChange={toggleAll}
                   title="Select all" style={{ cursor: "pointer" }} />
