@@ -5,32 +5,40 @@ const API = "https://liz-team-server-api-production.up.railway.app";
 
 // Florida addenda + required statutory disclosures. The "FL required" flag
 // drives the addenda_picker default-selection on offer creation.
+// FAR/BAR AS-IS (ASIS-7) addenda list exactly as printed on contract page 11.
+// Keys are the contract letters so the checklist, the page-11 checkboxes, and
+// the summary all match. (I, K, L are RESERVED on the form — omitted.)
 const STANDARD_ADDENDA = [
-  // Always required by Florida statute on residential sales
-  { id: "radon_disclosure",    label: "Radon Gas Disclosure (FL §404.056 — required)", flRequired: true },
-  { id: "property_tax_disc",   label: "Property Tax Disclosure Summary (FL §689.261 — required)", flRequired: true },
-  { id: "energy_efficiency",   label: "Florida Building Energy-Efficiency Disclosure (required)", flRequired: true },
-  { id: "flood_disclosure",    label: "Flood Disclosure (FL residential — required since Oct 2024)", flRequired: true },
-  { id: "seller_disclosure",   label: "Seller's Property Disclosure (Johnson v. Davis — required)", flRequired: true },
-  // AS-IS rider — always included on an AS-IS contract
-  { id: "as_is_rider",         label: "AS-IS Rider (Comprehensive)" },
-  // Conditional — auto-suggested based on MLS data
-  { id: "lead_paint",          label: "Lead-Based Paint Disclosure (homes built pre-1978)" },
-  { id: "hoa_addendum",        label: "HOA Addendum / Disclosure (FL §720)" },
-  { id: "condo_rider",         label: "Condominium Rider (FL §718)" },
-  { id: "homestead",           label: "Homestead / Spousal Acknowledgment" },
-  { id: "coastal_construction", label: "Coastal Construction Control Line Disclosure" },
-  // Financing-type specific
-  { id: "fha_addendum",        label: "FHA Financing Addendum" },
-  { id: "va_addendum",         label: "VA Financing Addendum" },
-  { id: "cash_addendum",       label: "Cash Sale Addendum" },
-  // Property condition
-  { id: "sinkhole_disclosure", label: "Sinkhole Disclosure (if known activity)" },
-  { id: "mold_disclosure",     label: "Mold Disclosure" },
-  { id: "insurance_disclosure", label: "Homeowners' Insurance Disclosure" },
-  { id: "square_footage",      label: "Square Footage Disclosure" },
-  // Misc
-  { id: "comp_rider",          label: "Comprehensive Rider" },
+  { id: "A",  label: "A. Condominium Rider" },
+  { id: "B",  label: "B. Homeowners' Assn." },
+  { id: "C",  label: "C. Seller Financing" },
+  { id: "D",  label: "D. Mortgage Assumption" },
+  { id: "E",  label: "E. FHA/VA Financing" },
+  { id: "F",  label: "F. Appraisal Contingency" },
+  { id: "G",  label: "G. Short Sale" },
+  { id: "H",  label: "H. Homeowners'/Flood Insurance" },
+  { id: "J",  label: "J. Interest-Bearing Account" },
+  { id: "M",  label: "M. Defective Drywall" },
+  { id: "N",  label: "N. Coastal Construction Control Line" },
+  { id: "O",  label: "O. Insulation Disclosure" },
+  { id: "P",  label: "P. Lead-Based Paint Disclosure (pre-1978)" },
+  { id: "Q",  label: "Q. Housing for Older Persons" },
+  { id: "R",  label: "R. Rezoning" },
+  { id: "S",  label: "S. Lease Purchase / Lease Option" },
+  { id: "T",  label: "T. Pre-Closing Occupancy" },
+  { id: "U",  label: "U. Post-Closing Occupancy" },
+  { id: "V",  label: "V. Sale of Buyer's Property" },
+  { id: "W",  label: "W. Back-up Contract" },
+  { id: "X",  label: "X. Kick-out Clause" },
+  { id: "Y",  label: "Y. Seller's Attorney Approval" },
+  { id: "Z",  label: "Z. Buyer's Attorney Approval" },
+  { id: "AA", label: "AA. Licensee Property Interest" },
+  { id: "BB", label: "BB. Binding Arbitration" },
+  { id: "CC", label: "CC. Miami-Dade County Special Taxing District Disclosure" },
+  { id: "DD", label: "DD. Seasonal/Vacation Rentals" },
+  { id: "EE", label: "EE. Qualifying Improvements Disclosure" },
+  { id: "FF", label: "FF. Credit Related to Buyer's Broker Compensation" },
+  { id: "GG", label: "GG. Seller's Agreement re Buyer's Broker Compensation" },
 ];
 
 const inputStyle = {
@@ -547,6 +555,20 @@ export default function OfferWizard({ offerId, token, onClose, onSaved }) {
   const floodZone = String(data.flood_zone || "").trim().toUpperCase();
   const floodRisk = floodZone && floodZone !== "X" && floodZone !== "X500";
 
+  // Addenda compliance: conditions that REQUIRE a specific addendum letter.
+  // Warn if the condition holds but the agent hasn't selected that addendum.
+  const sel = Array.isArray(data.selected_addenda) ? data.selected_addenda : [];
+  const ft = String(data.financing_type || "");
+  const complianceMisses = [];
+  if ((ft === "FHA" || ft === "VA") && !sel.includes("E")) complianceMisses.push("E. FHA/VA Financing (you selected " + ft + " financing)");
+  if (String(data.appraisal_contingency || "").startsWith("Yes") && !sel.includes("F")) complianceMisses.push("F. Appraisal Contingency (you kept the appraisal contingency)");
+  if (data.is_condo && !sel.includes("A")) complianceMisses.push("A. Condominium Rider (property is a condo)");
+  if (data.has_hoa && !sel.includes("B")) complianceMisses.push("B. Homeowners' Assn. (property has an HOA)");
+  if (data.year_built && Number(data.year_built) < 1978 && !sel.includes("P")) complianceMisses.push("P. Lead-Based Paint Disclosure (built before 1978)");
+  if (ft === "Seller Financing" && !sel.includes("C")) complianceMisses.push("C. Seller Financing (you selected seller financing)");
+  if (String(data.special_financing_method || "").startsWith("Assumption") && !sel.includes("D")) complianceMisses.push("D. Mortgage Assumption (you selected assumption)");
+  if (floodRisk && !sel.includes("H")) complianceMisses.push("H. Homeowners'/Flood Insurance (flood zone " + floodZone + ")");
+
   return (
     <div style={overlayStyle} onClick={onClose}>
       <div style={modalStyle} onClick={e => e.stopPropagation()}>
@@ -667,6 +689,17 @@ export default function OfferWizard({ offerId, token, onClose, onSaved }) {
                   V1: summary PDF. V2 will replace with the actual FAR/BAR AS-IS form once we have field-mapped templates.
                 </div>
               </div>
+            </div>
+          )}
+
+          {/* Addenda compliance — show on the addenda step */}
+          {complianceMisses.length > 0 && visibleFields.some(f => f.id === "selected_addenda") && (
+            <div style={{ background: "#fef2f2", border: "1px solid #fca5a5", borderRadius: 8, padding: 12, marginBottom: 18, fontSize: 13, color: "#7f1d1d" }}>
+              ⚠️ <strong>Possibly-required addenda not selected.</strong> Based on your answers, these should likely be attached:
+              <ul style={{ margin: "8px 0 0 0", paddingLeft: 20 }}>
+                {complianceMisses.map((m, i) => <li key={i} style={{ marginBottom: 2 }}>{m}</li>)}
+              </ul>
+              <div style={{ marginTop: 6, fontSize: 12 }}>In Florida, a checked addendum becomes part of the contract — select them above (or proceed if intentionally omitted).</div>
             </div>
           )}
 
