@@ -1184,6 +1184,7 @@ export default function ContactsPage({ token, onBack }) {
   const [editing, setEditing] = useState(null);
   const [viewing, setViewing] = useState(null);
   const [rmImporting, setRmImporting] = useState(false);
+  const [showGroups, setShowGroups] = useState(false);
 
   const importReferralMaker = async (file) => {
     if (!file) return;
@@ -1241,6 +1242,30 @@ export default function ContactsPage({ token, onBack }) {
     } catch {}
   };
   useEffect(() => { loadGroups(); }, []);
+
+  const createGroup = async () => {
+    const name = prompt("New group name:");
+    if (!name || !name.trim()) return;
+    try {
+      const r = await fetch(API + "/contacts/groups", {
+        method: "POST", headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
+        body: JSON.stringify({ name: name.trim() }),
+      });
+      if (!r.ok) { const d = await r.json(); throw new Error(d.error || "Failed"); }
+      await loadGroups();
+      alert("✅ Group \"" + name.trim() + "\" created. Now add contacts to it.");
+    } catch (e) { alert("Error: " + e.message); }
+  };
+
+  const deleteGroup = async (name) => {
+    if (!confirm("Delete group \"" + name + "\"? It will be removed from all contacts (contacts themselves are kept).")) return;
+    try {
+      const r = await fetch(API + "/contacts/groups/" + encodeURIComponent(name), { method: "DELETE", headers: { Authorization: "Bearer " + token } });
+      if (!r.ok) { const d = await r.json(); throw new Error(d.error || "Failed"); }
+      if (filter.group === name) setFilter(f => ({ ...f, group: "" }));
+      await loadGroups(); await load();
+    } catch (e) { alert("Error: " + e.message); }
+  };
 
   const bulkAddToGroup = async () => {
     if (selected.size === 0) return;
@@ -1304,6 +1329,7 @@ export default function ContactsPage({ token, onBack }) {
         </div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           <button onClick={() => setShowBulkSchedule(true)} style={btnStyle("#7c3aed", "white")}>📅 Schedule Calls</button>
+          <button onClick={() => setShowGroups(true)} style={btnStyle("#e0e7ff", "#3730a3")}>👥 Manage Groups</button>
           <button onClick={() => setShowImport(true)} style={btnStyle("#e5e7eb", "#374151")}>📥 Import CSV</button>
           <label style={{ ...btnStyle("#1e8449", "white"), display: "inline-block", cursor: rmImporting ? "wait" : "pointer" }}>
             {rmImporting ? "Importing…" : "🔄 Import from Referral Maker"}
@@ -1342,7 +1368,7 @@ export default function ContactsPage({ token, onBack }) {
         </select>
         <select value={filter.group} onChange={e => setFilter(f => ({ ...f, group: e.target.value }))} style={{ ...inputStyle, width: 170 }} title="Filter by group">
           <option value="">All groups</option>
-          {groupList.map(g => <option key={g} value={g}>{g}</option>)}
+          {groupList.map(g => <option key={g.name} value={g.name}>{g.name} ({g.count})</option>)}
         </select>
         <select value={filter.missing} onChange={e => setFilter(f => ({ ...f, missing: e.target.value }))} style={{ ...inputStyle, width: 200 }} title="Find contacts with missing info">
           <option value="">All contacts</option>
@@ -1444,6 +1470,37 @@ export default function ContactsPage({ token, onBack }) {
       </div>
 
       {showAdd && <ContactModal token={token} onClose={() => setShowAdd(false)} onSaved={() => load()} />}
+      {showGroups && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 4000, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }} onClick={() => setShowGroups(false)}>
+          <div onClick={e => e.stopPropagation()} style={{ background: "white", borderRadius: 12, maxWidth: 460, width: "100%", maxHeight: "85vh", overflowY: "auto", padding: 24 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+              <div style={{ fontSize: 18, fontWeight: 800 }}>👥 Manage Groups</div>
+              <button onClick={createGroup} style={btnStyle("#16a34a", "white")}>+ New Group</button>
+            </div>
+            <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 14 }}>
+              Groups let you tag where contacts came from (Bunco, Church, Open House). Create one here, then add contacts to it from the list or the contact form.
+            </div>
+            {groupList.length === 0 ? (
+              <div style={{ color: "#9ca3af", fontSize: 13, padding: 20, textAlign: "center" }}>No groups yet. Click "+ New Group".</div>
+            ) : (
+              <div style={{ display: "grid", gap: 6 }}>
+                {groupList.map(g => (
+                  <div key={g.name} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 12px", border: "1px solid #e5e7eb", borderRadius: 8 }}>
+                    <button onClick={() => { setFilter(f => ({ ...f, group: g.name })); setShowGroups(false); }}
+                      style={{ background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 14, fontWeight: 600, color: "#0c4a6e", textAlign: "left" }}>
+                      {g.name} <span style={{ color: "#6b7280", fontWeight: 400 }}>· {g.count} contact{g.count === 1 ? "" : "s"}</span>
+                    </button>
+                    <button onClick={() => deleteGroup(g.name)} title="Delete group" style={{ background: "transparent", border: "none", cursor: "pointer", color: "#b91c1c", fontSize: 13 }}>🗑</button>
+                  </div>
+                ))}
+              </div>
+            )}
+            <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 16 }}>
+              <button onClick={() => setShowGroups(false)} style={btnStyle("#e5e7eb", "#374151")}>Close</button>
+            </div>
+          </div>
+        </div>
+      )}
       {editing && <ContactModal contact={editing} token={token} onClose={() => setEditing(null)} onSaved={() => load()} />}
       {viewing && <ContactDetailDrawer contact={viewing} token={token} onClose={() => setViewing(null)} onEdit={(c) => { setViewing(null); setEditing(c); }} onLogged={load} onArchived={load} onDeleted={load} />}
       {showBulkSchedule && <BulkScheduleModal token={token} contactCount={contacts.length} onClose={() => setShowBulkSchedule(false)} onScheduled={() => load()} />}
