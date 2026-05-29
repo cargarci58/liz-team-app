@@ -175,7 +175,16 @@ export const AS_IS_WIZARD = {
           why: "Reveals boundary issues, encroachments, easements. ~$400-700 in FL — seller's expense under the FAR/BAR form." },
         { id: "closing_costs_paid_by", label: "Seller contribution to buyer's closing costs ($)", type: "currency", required: false, default: 0,
           hint: "Cap is usually 3-6% of price depending on loan type (FHA = 6%, Conv = 3%).",
-          why: "Reduces buyer's cash to close. Common ask in slower markets." }
+          why: "Reduces buyer's cash to close. Common ask in slower markets." },
+        { id: "title_evidence_days", label: "Title evidence delivered at least (days before closing)", type: "number", required: false,
+          hint: "Leave blank to use the contract default (15 days, or 5 if cash). Paragraph 9(c).",
+          why: "Deadline for the seller/closing agent to deliver the title commitment before closing." },
+        { id: "seller_other_costs", label: "Other costs paid by SELLER (optional)", type: "text", required: false,
+          hint: "Free text for the 'Other:' line under Costs Paid by Seller (Paragraph 9a).",
+          why: "Any seller-paid cost not already itemized on the form." },
+        { id: "buyer_other_costs", label: "Other costs paid by BUYER (optional)", type: "text", required: false,
+          hint: "Free text for the 'Other:' line under Costs Paid by Buyer (Paragraph 9b).",
+          why: "Any buyer-paid cost not already itemized on the form." }
       ]
     },
     {
