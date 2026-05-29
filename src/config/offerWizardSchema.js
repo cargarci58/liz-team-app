@@ -262,7 +262,10 @@ export const AS_IS_WIZARD = {
       fields: [
         { id: "selected_addenda", label: "Addenda to include", type: "addenda_picker", required: false,
           hint: "AI-suggested based on your answers. Toggle any on/off and add custom forms from your library.",
-          why: "Each FL transaction has standard addenda. HOA → HOA Addendum. Condo → Condo Rider. FHA → FHA financing addendum + appraisal floor language. Missing the right one = unenforceable terms." }
+          why: "Each FL transaction has standard addenda. HOA → HOA Addendum. Condo → Condo Rider. FHA → FHA financing addendum + appraisal floor language. Missing the right one = unenforceable terms." },
+        { id: "addenda_other_text", label: "Other addendum (specify)", type: "text", required: false,
+          hint: "Any addendum/rider not in the list above. Checks the 'Other' box on the contract and writes this text.",
+          why: "Captures non-standard riders so they're disclosed as part of the contract." }
       ]
     },
     {

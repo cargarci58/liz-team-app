@@ -38,7 +38,7 @@ const STANDARD_ADDENDA = [
   { id: "DD", label: "DD. Seasonal/Vacation Rentals" },
   { id: "EE", label: "EE. Qualifying Improvements Disclosure" },
   { id: "FF", label: "FF. Credit Related to Buyer's Broker Compensation" },
-  { id: "GG", label: "GG. Seller's Agreement re Buyer's Broker Compensation" },
+  { id: "GG", label: "GG. Seller's Agreement with Respect to Buyer's Broker Compensation" },
 ];
 
 const inputStyle = {
