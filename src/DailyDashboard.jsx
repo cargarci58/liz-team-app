@@ -604,6 +604,18 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
         <div style={{ marginBottom: 24 }}>
           <SectionHeader label={"🎁 POP-BYS DUE"} count={popBys.length} color={"#b45309"} />
           {giftIdea && <div style={{ fontSize: 12, color: "#92400e", background: "#fef3c7", border: "1px solid #fcd34d", borderRadius: 6, padding: 8, marginBottom: 8 }}>💡 This month's gift idea: <strong>{giftIdea}</strong></div>}
+          {(() => {
+            const addrs = popBys.map(c => c.popby_address).filter(Boolean);
+            if (addrs.length < 1) return null;
+            const stops = addrs.slice(0, 9); // Google Maps supports ~10 stops per link
+            const url = "https://www.google.com/maps/dir/" + stops.map(a => encodeURIComponent(a)).join("/");
+            return (
+              <button onClick={() => window.open(url, "_blank")}
+                style={{ background: "#b45309", color: "white", border: "none", borderRadius: 6, padding: "8px 14px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", marginBottom: 10 }}>
+                🗺 Plan my route in Google Maps ({stops.length} stop{stops.length === 1 ? "" : "s"}{addrs.length > 9 ? " — first 9" : ""})
+              </button>
+            );
+          })()}
           {popBys.map(c => {
             const name = [c.first_name, c.last_name].filter(Boolean).join(" ") || c.phone || "(no name)";
             return (
