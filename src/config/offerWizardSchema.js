@@ -267,8 +267,8 @@ export const AS_IS_WIZARD = {
     },
     {
       id: 9,
-      title: "Special Clauses & Additional Terms",
-      subtitle: "Anything else the seller needs to agree to",
+      title: "Additional Terms",
+      subtitle: "Anything else the seller needs to agree to (Paragraph 20 of the contract)",
       why: "Free-text clauses cover one-off items: 'Refrigerator conveys', 'Seller to repair roof leak before closing', 'Sale contingent on buyer's home selling'. Be specific — vague clauses get litigated.",
       fields: [
         { id: "common_clauses", label: "Common clauses (select all that apply)", type: "clause_picker", required: false,
