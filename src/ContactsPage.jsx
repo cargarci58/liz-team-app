@@ -420,6 +420,7 @@ function ContactModal({ contact, token, onClose, onSaved }) {
     birthday: (contact && contact.birthday ? contact.birthday.slice(0,10) : "") || "",
     wedding_anniversary: (contact && contact.wedding_anniversary ? contact.wedding_anniversary.slice(0,10) : "") || "",
     referred_by: (contact && contact.referred_by) || "",
+    popby_address: (contact && contact.popby_address) || "",
     groups: (contact && Array.isArray(contact.tags) ? contact.tags : []),
     notes: (contact && contact.notes) || "",
   });
@@ -512,6 +513,7 @@ function ContactModal({ contact, token, onClose, onSaved }) {
           <Field label="Referred By"><input value={form.referred_by} onChange={e => update("referred_by", e.target.value)} style={inputStyle} /></Field>
         </div>
         <Field label="Spouse / Partner Name"><input value={form.spouse_name} onChange={e => update("spouse_name", e.target.value)} style={inputStyle} /></Field>
+        <Field label="Pop-by address (if different from above)" hint="Where to drop off pop-by gifts. Leave blank to use the main address."><input value={form.popby_address} onChange={e => update("popby_address", e.target.value)} style={inputStyle} /></Field>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
           <Field label="Birthday"><input type="date" value={form.birthday} onChange={e => update("birthday", e.target.value)} style={inputStyle} /></Field>
           <Field label="Wedding Anniversary"><input type="date" value={form.wedding_anniversary} onChange={e => update("wedding_anniversary", e.target.value)} style={inputStyle} /></Field>
@@ -1022,6 +1024,25 @@ function ContactDetailDrawer({ contact, token, onClose, onEdit, onLogged, onArch
             </div>
           </div>
 
+          {/* Relationship card — tier, spouse, key dates, groups, referred-by, notes */}
+          {(contact.tier || contact.spouse_name || contact.birthday || contact.wedding_anniversary || contact.referred_by || (Array.isArray(contact.tags) && contact.tags.length) || contact.personal_notes || contact.popby_address) && (
+            <div style={{ background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 8, padding: 14, marginBottom: 20 }}>
+              <div style={innerTitle("#0c4a6e")}>⭐ Relationship</div>
+              {contact.tier && <div style={{ fontSize: 13, marginBottom: 4 }}>Tier: <span style={{ ...tierBadgeStyle(contact.tier) }}>{contact.tier}</span></div>}
+              {contact.spouse_name && <div style={{ fontSize: 13, marginBottom: 4 }}>💑 Spouse/partner: <strong>{contact.spouse_name}</strong></div>}
+              {contact.birthday && <div style={{ fontSize: 13, marginBottom: 4 }}>🎂 Birthday: {fmtDate(contact.birthday)}</div>}
+              {contact.wedding_anniversary && <div style={{ fontSize: 13, marginBottom: 4 }}>💍 Anniversary: {fmtDate(contact.wedding_anniversary)}</div>}
+              {contact.referred_by && <div style={{ fontSize: 13, marginBottom: 4 }}>🙏 Referred by: <strong>{contact.referred_by}</strong></div>}
+              {Array.isArray(contact.tags) && contact.tags.length > 0 && (
+                <div style={{ fontSize: 13, marginBottom: 4, display: "flex", flexWrap: "wrap", gap: 4, alignItems: "center" }}>
+                  👥 Groups: {contact.tags.map(t => <span key={t} style={{ background: "#dbeafe", color: "#1e3a8a", borderRadius: 10, padding: "1px 8px", fontSize: 11, fontWeight: 600 }}>{t}</span>)}
+                </div>
+              )}
+              {contact.popby_address && <div style={{ fontSize: 13, marginBottom: 4 }}>🎁 Pop-by address: {contact.popby_address}</div>}
+              {contact.personal_notes && <div style={{ fontSize: 12, color: "#374151", marginTop: 6, paddingTop: 6, borderTop: "1px solid #bae6fd" }}>{contact.personal_notes}</div>}
+            </div>
+          )}
+
           {/* Next Follow-Up card */}
           {(() => {
             if (!contact.next_call_due_at) {
@@ -1437,6 +1458,23 @@ export default function ContactsPage({ token, onBack }) {
     } catch (e) { alert("Error: " + e.message); }
   };
 
+  const bulkSetTier = async () => {
+    if (selected.size === 0) return;
+    const t = prompt("Set tier for the selected " + selected.size + " contact(s)?\nType: A+, A, B, C, or D");
+    if (!t || !t.trim()) return;
+    try {
+      const r = await fetch(API + "/contacts/bulk-tier", {
+        method: "POST", headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
+        body: JSON.stringify({ ids: [...selected], tier: t.trim() }),
+      });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error || "Failed");
+      setSelected(new Set());
+      await load();
+      alert("✅ Set " + d.count + " contact(s) to tier " + d.tier + ".");
+    } catch (e) { alert("Error: " + e.message); }
+  };
+
   const bulkAddToGroup = async () => {
     if (selected.size === 0) return;
     const g = prompt("Add the selected " + selected.size + " contact(s) to which group?\n(e.g. Bunco, Church, Open House)");
@@ -1579,6 +1617,7 @@ export default function ContactsPage({ token, onBack }) {
       {selected.size > 0 && (
         <div style={{ background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 8, padding: "10px 14px", marginBottom: 10, display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
           <div style={{ fontSize: 13, fontWeight: 700, color: "#1e3a8a" }}>{selected.size} selected</div>
+          <button onClick={bulkSetTier} style={btnStyle("#e0e7ff", "#3730a3")}>⭐ Set Tier</button>
           <button onClick={bulkAddToGroup} style={btnStyle("#dcfce7", "#166534")}>👥 Add to Group</button>
           <button onClick={() => bulkAction("archive")} style={btnStyle("#fef3c7", "#92400e")}>📦 Archive</button>
           <button onClick={() => bulkAction("unarchive")} style={btnStyle("#e0e7ff", "#3730a3")}>📤 Un-archive</button>
