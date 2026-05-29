@@ -49,22 +49,21 @@ export default function DocumentsTab({ tx }) {
       return;
     }
     setUploading(true);
-    let docId = null;
     try {
-      const res = await fetch(`${API}/documents/upload-url`, {
+      // Read the file as base64 and upload through the server (server-proxied).
+      // The old browser→R2 presigned PUT failed CORS ("Failed to fetch").
+      const base64 = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result).split(",")[1]);
+        reader.onerror = () => reject(new Error("Could not read file"));
+        reader.readAsDataURL(file);
+      });
+      const res = await fetch(`${API}/documents/upload`, {
         method: "POST", headers,
-        body: JSON.stringify({ transactionId: tx.id, fileName: file.name, fileType: file.type, category }),
+        body: JSON.stringify({ transactionId: tx.id, fileName: file.name, fileType: file.type, category, base64 }),
       });
       const data = await res.json();
-      if (!data.uploadUrl) throw new Error("No upload URL received");
-      docId = data.docId;
-      const putRes = await fetch(data.uploadUrl, { method: "PUT", body: file, headers: { "Content-Type": file.type } });
-      if (!putRes.ok) throw new Error("Storage upload failed (" + putRes.status + ")");
-      // 2-step: tell the backend the R2 PUT succeeded so the doc row flips
-      // from pending_upload to active. Without this the doc won't show up.
-      const finRes = await fetch(`${API}/documents/${docId}/finalize`, { method: "POST", headers });
-      if (!finRes.ok) throw new Error("Finalize failed");
-      docId = null; // success — don't try to cancel
+      if (!res.ok || !data.success) throw new Error(data.error || ("Upload failed (" + res.status + ")"));
       const docsRes = await fetch(`${API}/documents/${tx.id}`, { headers });
       const docsData = await docsRes.json();
       if (docsData.documents) setDocs(docsData.documents);
@@ -72,10 +71,6 @@ export default function DocumentsTab({ tx }) {
     } catch (e) {
       console.error("Upload failed:", e);
       alert("Upload failed: " + e.message);
-      // Clean up the orphan pending row if we got that far.
-      if (docId) {
-        fetch(`${API}/documents/${docId}/pending`, { method: "DELETE", headers }).catch(e => console.error("[bg]", e && e.message ? e.message : e));
-      }
     }
     finally { setUploading(false); e.target.value = ""; }
   };

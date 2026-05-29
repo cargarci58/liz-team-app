@@ -1826,7 +1826,14 @@ function MilestonesTab({ tx, token }) {
     const currentMilestone = milestones.find(m => m.id === milestoneId);
     const isRetroactive = currentMilestone?.status === "Completed";
     try {
-      const urlRes = await fetch(API + "/documents/upload-url", {
+      // Server-proxied upload (browser→R2 presigned PUT fails CORS).
+      const base64 = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result).split(",")[1]);
+        reader.onerror = () => reject(new Error("Could not read file"));
+        reader.readAsDataURL(file);
+      });
+      const upRes = await fetch(API + "/documents/upload", {
         method: "POST",
         headers: { "Content-Type":"application/json", Authorization: "Bearer " + token },
         body: JSON.stringify({
@@ -1834,18 +1841,12 @@ function MilestonesTab({ tx, token }) {
           milestoneId,
           fileName: file.name,
           fileType: file.type || "application/octet-stream",
-          markComplete: !isRetroactive
+          markComplete: !isRetroactive,
+          base64
         })
       });
-      const urlData = await urlRes.json();
-      if (!urlData.success) throw new Error(urlData.error || "Could not get upload URL");
-
-      const putRes = await fetch(urlData.uploadUrl, {
-        method: "PUT",
-        headers: { "Content-Type": file.type || "application/octet-stream" },
-        body: file
-      });
-      if (!putRes.ok) throw new Error("Upload to storage failed");
+      const upData = await upRes.json();
+      if (!upRes.ok || !upData.success) throw new Error(upData.error || "Upload failed");
 
       alert(isRetroactive ? "✅ Document uploaded to existing milestone." : "✅ Document uploaded and milestone marked complete!");
       if (!isRetroactive) {
