@@ -344,6 +344,7 @@ function ContactModal({ contact, token, onClose, onSaved }) {
     contactType: (contact && contact.contact_type) || "lead",
     temperature: (contact && contact.temperature) || "warm",
     source: (contact && contact.source) || "",
+    groups: (contact && Array.isArray(contact.tags) ? contact.tags.join(", ") : "") || "",
     notes: (contact && contact.notes) || "",
   });
   const [saving, setSaving] = useState(false);
@@ -357,10 +358,13 @@ function ContactModal({ contact, token, onClose, onSaved }) {
     try {
       const url = isEdit ? (API + "/contacts/" + contact.id) : (API + "/contacts");
       const method = isEdit ? "PUT" : "POST";
+      // Convert the comma-separated Groups text into the tags array the API expects.
+      const payload = { ...form, tags: form.groups.split(",").map(s => s.trim()).filter(Boolean) };
+      delete payload.groups;
       const r = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
-        body: JSON.stringify(form),
+        body: JSON.stringify(payload),
       });
       const data = await r.json();
       if (!r.ok) throw new Error(data.error || "Save failed");
@@ -400,6 +404,7 @@ function ContactModal({ contact, token, onClose, onSaved }) {
           </Field>
         </div>
         <Field label="Source" hint="Where did this lead come from? Zillow, Open House, Referral, etc."><input value={form.source} onChange={e => update("source", e.target.value)} style={inputStyle} /></Field>
+        <Field label="Groups" hint="Comma-separated. e.g. Bunco, Church, Gym — group people by where you know them from."><input value={form.groups} onChange={e => update("groups", e.target.value)} placeholder="Bunco, Open House Oct 2026" style={inputStyle} /></Field>
         <Field label="Notes"><textarea value={form.notes} onChange={e => update("notes", e.target.value)} rows={3} style={{ ...inputStyle, resize: "vertical" }} /></Field>
 
         {err && <div style={{ color: "#b91c1c", fontSize: 13, marginBottom: 8 }}>⚠️ {err}</div>}
@@ -1168,7 +1173,8 @@ function SortableTh({ label, col, sortBy, setSortBy, hint }) {
 export default function ContactsPage({ token, onBack }) {
   const [contacts, setContacts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState({ temperature: "", type: "", due: "", search: "", missing: "" });
+  const [filter, setFilter] = useState({ temperature: "", type: "", due: "", search: "", missing: "", group: "", tier: "" });
+  const [groupList, setGroupList] = useState([]);
   const [selected, setSelected] = useState(new Set());
   const [sortBy, setSortBy] = useState({ col: "", dir: "asc" });
   const [showAdd, setShowAdd] = useState(false);
@@ -1214,6 +1220,8 @@ export default function ContactsPage({ token, onBack }) {
       if (filter.due) params.set("due", filter.due);
       if (filter.search) params.set("search", filter.search);
       if (filter.missing) params.set("missing", filter.missing);
+      if (filter.group) params.set("group", filter.group);
+      if (filter.tier) params.set("tier", filter.tier);
       if (sortBy.col) { params.set("sort", sortBy.col); params.set("dir", sortBy.dir); }
       const r = await fetch(API + "/contacts?" + params, { headers: { Authorization: "Bearer " + token }});
       const data = await r.json();
@@ -1223,7 +1231,34 @@ export default function ContactsPage({ token, onBack }) {
     finally { if (myId === loadRequestId.current) setLoading(false); }
   };
 
-  useEffect(() => { load(); }, [filter.temperature, filter.type, filter.due, filter.missing, sortBy.col, sortBy.dir]);
+  useEffect(() => { load(); }, [filter.temperature, filter.type, filter.due, filter.missing, filter.group, filter.tier, sortBy.col, sortBy.dir]);
+
+  const loadGroups = async () => {
+    try {
+      const r = await fetch(API + "/contacts/groups", { headers: { Authorization: "Bearer " + token } });
+      const d = await r.json();
+      if (r.ok) setGroupList(d.groups || []);
+    } catch {}
+  };
+  useEffect(() => { loadGroups(); }, []);
+
+  const bulkAddToGroup = async () => {
+    if (selected.size === 0) return;
+    const g = prompt("Add the selected " + selected.size + " contact(s) to which group?\n(e.g. Bunco, Church, Open House)");
+    if (!g || !g.trim()) return;
+    try {
+      const r = await fetch(API + "/contacts/bulk-group", {
+        method: "POST", headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
+        body: JSON.stringify({ ids: [...selected], group: g.trim() }),
+      });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error || "Failed");
+      setSelected(new Set());
+      await loadGroups();
+      await load();
+      alert("✅ Added " + d.count + " contact(s) to group \"" + d.group + "\".");
+    } catch (e) { alert("Error: " + e.message); }
+  };
 
   const toggleOne = (id) => setSelected(prev => {
     const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n;
@@ -1301,6 +1336,14 @@ export default function ContactsPage({ token, onBack }) {
           <option value="today">Due today / overdue</option>
           <option value="overdue">Overdue only</option>
         </select>
+        <select value={filter.tier} onChange={e => setFilter(f => ({ ...f, tier: e.target.value }))} style={{ ...inputStyle, width: 120 }} title="Filter by Buffini tier">
+          <option value="">All tiers</option>
+          {["A+","A","B","C","D"].map(t => <option key={t} value={t}>Tier {t}</option>)}
+        </select>
+        <select value={filter.group} onChange={e => setFilter(f => ({ ...f, group: e.target.value }))} style={{ ...inputStyle, width: 170 }} title="Filter by group">
+          <option value="">All groups</option>
+          {groupList.map(g => <option key={g} value={g}>{g}</option>)}
+        </select>
         <select value={filter.missing} onChange={e => setFilter(f => ({ ...f, missing: e.target.value }))} style={{ ...inputStyle, width: 200 }} title="Find contacts with missing info">
           <option value="">All contacts</option>
           <option value="no_phone">⚠️ Missing phone</option>
@@ -1312,6 +1355,7 @@ export default function ContactsPage({ token, onBack }) {
       {selected.size > 0 && (
         <div style={{ background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 8, padding: "10px 14px", marginBottom: 10, display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
           <div style={{ fontSize: 13, fontWeight: 700, color: "#1e3a8a" }}>{selected.size} selected</div>
+          <button onClick={bulkAddToGroup} style={btnStyle("#dcfce7", "#166534")}>👥 Add to Group</button>
           <button onClick={() => bulkAction("archive")} style={btnStyle("#fef3c7", "#92400e")}>📦 Archive</button>
           <button onClick={() => bulkAction("unarchive")} style={btnStyle("#e0e7ff", "#3730a3")}>📤 Un-archive</button>
           <button onClick={() => bulkAction("delete")} style={btnStyle("#fee2e2", "#991b1b")}>🗑 Delete Forever</button>
