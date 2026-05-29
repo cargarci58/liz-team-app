@@ -58,8 +58,12 @@ function ContactsGuide({ onClose }) {
           <div style={p}><strong>+ Add Contact</strong> for one person. <strong>Import CSV</strong> or <strong>Import Contacts (CSV)</strong> to bring in a whole list — it won't create duplicates or erase your call notes.</div>
         </div>
         <div style={card}>
-          <div style={h}>🎂 Birthdays & pop-bys</div>
-          <div style={p}>Add a contact's birthday and anniversary and the app reminds you that week — an easy, personal touch that keeps you top-of-mind. (Pop-by reminders are coming next.)</div>
+          <div style={h}>⭐ Build Nurture Schedule</div>
+          <div style={p}>Click this once and the app turns your A–D tiers into a daily call schedule — spread out so you get a handful a day, not hundreds at once. A clients come up most often, D least. After each call it picks the next date for you.</div>
+        </div>
+        <div style={card}>
+          <div style={h}>🎂 Birthdays, 🎁 pop-bys & 📬 Items of Value</div>
+          <div style={p}>Birthdays and anniversaries pop up on your daily list that week. If you turn on <strong>Pop-bys</strong> (top of the page) the app reminds you to drop off a small gift to your best clients a few times a year — with a seasonal gift idea. <strong>Items of Value</strong> reminds you to send a helpful note/market update. Both are optional.</div>
         </div>
 
         <div style={{ fontSize: 13, color: "#6b7280", fontStyle: "italic", margin: "8px 0 16px" }}>👉 The golden rule: open the app, work today's list, log every call. Do that daily and your follow-up runs itself.</div>
