@@ -1360,8 +1360,27 @@ export default function ContactsPage({ token, onBack }) {
       });
     } catch {}
   };
-  const togglePopBys = (val) => { setPopBysEnabled(val); savePref({ popBysEnabled: val }); };
-  const toggleIov = (val) => { setIovEnabled(val); savePref({ itemsOfValueEnabled: val }); };
+  // Turning a touch type ON: save the pref, then offer to schedule it right away
+  // (otherwise nothing happens until the agent runs Build Nurture Schedule).
+  const seedAfterEnable = async (kind) => {
+    if (!confirm(kind + " turned on.\n\nSchedule them now for your A/B clients? They'll start showing up on Win the Day over the next few weeks, a few at a time (not all at once).")) return;
+    try {
+      const r = await fetch(API + "/contacts/nurture-schedule", {
+        method: "POST", headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
+        body: JSON.stringify({ perDay: 8 }),
+      });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error || "Failed");
+      const parts = [];
+      if (d.popBys) parts.push(d.popBys + " pop-bys");
+      if (d.iovs) parts.push(d.iovs + " Items of Value");
+      if (d.scheduled) parts.push(d.scheduled + " calls");
+      alert("✅ Scheduled " + (parts.join(" + ") || "your touches") + ".\n\nThey'll appear on Win the Day on their due dates (starting in about 1–2 weeks). After each one, the app schedules the next automatically.");
+      await load();
+    } catch (e) { alert("Error: " + e.message); }
+  };
+  const togglePopBys = async (val) => { setPopBysEnabled(val); await savePref({ popBysEnabled: val }); if (val) seedAfterEnable("🎁 Pop-bys"); };
+  const toggleIov = async (val) => { setIovEnabled(val); await savePref({ itemsOfValueEnabled: val }); if (val) seedAfterEnable("📬 Items of Value"); };
 
   const buildNurtureSchedule = async () => {
     if (!confirm("Build your relationship call schedule from your tiers?\n\nThis spreads your A–D contacts who don't have a next call yet across the coming weeks (A clients first, ~8 a day) so your daily list fills up gradually — it won't dump everyone on you at once. Contacts that already have a next call are left alone.")) return;
