@@ -39,7 +39,7 @@ function ContactsGuide({ onClose }) {
           <div style={h}>The 3 simple labels on every contact</div>
           <div style={p}>
             <strong>👤 Type</strong> = who they are to you (Buyer, Seller, Past Client, Sphere…).<br/>
-            <strong>⭐ Tier</strong> = how likely they are to send you business — <strong>A</strong> = your best advocates, down to <strong>D</strong>. (Your Buffini grade.)<br/>
+            <strong>⭐ Tier</strong> = how likely they are to send you business — <strong>A</strong> = your best advocates, down to <strong>D</strong>. (Your relationship grade.)<br/>
             <strong>🌡 Temp</strong> = how "hot" the opportunity is right now — 🔥 Hot, 🌤 Warm, ❄️ Cold.
           </div>
         </div>
@@ -55,7 +55,7 @@ function ContactsGuide({ onClose }) {
         </div>
         <div style={card}>
           <div style={h}>📥 Adding people</div>
-          <div style={p}><strong>+ Add Contact</strong> for one person. <strong>Import CSV</strong> or <strong>Import from Referral Maker</strong> to bring in a whole list — it won't create duplicates or erase your call notes.</div>
+          <div style={p}><strong>+ Add Contact</strong> for one person. <strong>Import CSV</strong> or <strong>Import Contacts (CSV)</strong> to bring in a whole list — it won't create duplicates or erase your call notes.</div>
         </div>
         <div style={card}>
           <div style={h}>🎂 Birthdays & pop-bys</div>
@@ -140,7 +140,7 @@ const btnStyle = (bg, color) => ({
 const th = { padding: "12px 12px", fontSize: 13, fontWeight: 800, color: "#0c4a6e", textTransform: "uppercase", letterSpacing: "0.04em", textAlign: "left", borderBottom: "2px solid #cbd5e1" };
 const td = { padding: "10px 12px", verticalAlign: "middle" };
 
-// Buffini A/B/C/D tier badge — distinct colors so the classification pops.
+// A/B/C/D tier badge — distinct colors so the classification pops.
 function tierBadgeStyle(tier) {
   const map = {
     "A+": { bg: "#065f46", color: "#fff" },
@@ -499,7 +499,7 @@ function ContactModal({ contact, token, onClose, onSaved }) {
           </Field>
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-          <Field label="Tier (Buffini A–D)">
+          <Field label="Tier (A–D priority)">
             <select value={form.tier} onChange={e => update("tier", e.target.value)} style={inputStyle}>
               <option value="">— none —</option>
               {["A+","A","B","C","D"].map(t => <option key={t} value={t}>{t}</option>)}
@@ -836,7 +836,7 @@ function ImportModal({ token, onClose, onImported, onFillMissing }) {
       <div onClick={e => e.stopPropagation()} style={{ background: "white", borderRadius: 12, maxWidth: 640, width: "100%", maxHeight: "90vh", overflowY: "auto", padding: 24 }}>
         <div style={{ fontSize: 18, fontWeight: 800, marginBottom: 4 }}>📥 Import Contacts (CSV)</div>
         <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 16 }}>
-          Upload a CSV export from Follow Up Boss, Google Contacts, Excel, or any spreadsheet. Column matching is automatic.
+          Upload a CSV export from your CRM, Google Contacts, Excel, or any spreadsheet. Column matching is automatic.
         </div>
 
         {step === 1 && (
@@ -1331,7 +1331,7 @@ export default function ContactsPage({ token, onBack }) {
       });
       const d = await r.json();
       if (!r.ok) throw new Error(d.error || "Import failed");
-      alert(`✅ Referral Maker import complete.\n\n${d.total} rows processed\n• ${d.updated} existing contacts enriched (tier, spouse, dates, pop-by — call history kept)\n• ${d.created} new contacts added\n• ${d.skipped} skipped (no name)`);
+      alert(`✅ Contact import complete.\n\n${d.total} rows processed\n• ${d.updated} existing contacts enriched (tier, spouse, dates, pop-by — call history kept)\n• ${d.created} new contacts added\n• ${d.skipped} skipped (no name)`);
       load();
     } catch (e) {
       alert("Import error: " + e.message);
@@ -1465,7 +1465,7 @@ export default function ContactsPage({ token, onBack }) {
           <button onClick={() => setShowGroups(true)} style={btnStyle("#e0e7ff", "#3730a3")}>👥 Manage Groups</button>
           <button onClick={() => setShowImport(true)} style={btnStyle("#e5e7eb", "#374151")}>📥 Import CSV</button>
           <label style={{ ...btnStyle("#1e8449", "white"), display: "inline-block", cursor: rmImporting ? "wait" : "pointer" }}>
-            {rmImporting ? "Importing…" : "🔄 Import from Referral Maker"}
+            {rmImporting ? "Importing…" : "🔄 Import Contacts (CSV)"}
             <input type="file" accept=".csv,text/csv" disabled={rmImporting}
               onChange={e => importReferralMaker(e.target.files && e.target.files[0])}
               style={{ display: "none" }} />
@@ -1495,7 +1495,7 @@ export default function ContactsPage({ token, onBack }) {
           <option value="today">Due today / overdue</option>
           <option value="overdue">Overdue only</option>
         </select>
-        <select value={filter.tier} onChange={e => setFilter(f => ({ ...f, tier: e.target.value }))} style={{ ...inputStyle, width: 120 }} title="Filter by Buffini tier">
+        <select value={filter.tier} onChange={e => setFilter(f => ({ ...f, tier: e.target.value }))} style={{ ...inputStyle, width: 120 }} title="Filter by tier">
           <option value="">All tiers</option>
           {["A+","A","B","C","D"].map(t => <option key={t} value={t}>Tier {t}</option>)}
         </select>
@@ -1530,7 +1530,7 @@ export default function ContactsPage({ token, onBack }) {
                   title="Select all" style={{ cursor: "pointer" }} />
               </th>
               <SortableTh label="Name" col="name" sortBy={sortBy} setSortBy={setSortBy} />
-              <SortableTh label="Tier" col="tier" sortBy={sortBy} setSortBy={setSortBy} hint="Buffini A/B/C/D classification" />
+              <SortableTh label="Tier" col="tier" sortBy={sortBy} setSortBy={setSortBy} hint="A/B/C/D priority classification" />
               <SortableTh label="Phone" col="phone" sortBy={sortBy} setSortBy={setSortBy} hint="Click twice → empties at top" />
               <SortableTh label="Type" col="type" sortBy={sortBy} setSortBy={setSortBy} />
               <SortableTh label="Temp" col="temperature" sortBy={sortBy} setSortBy={setSortBy} hint="Opportunity heat: Hot / Warm / Cold" />
