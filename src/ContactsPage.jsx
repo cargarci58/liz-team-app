@@ -7,10 +7,14 @@ const TEMP_META = {
   hot:    { emoji: "🔥", label: "Hot",    color: "#dc2626", bg: "#fee2e2" },
   warm:   { emoji: "🌤",  label: "Warm",   color: "#d97706", bg: "#fef3c7" },
   cold:   { emoji: "❄️",  label: "Cold",   color: "#0284c7", bg: "#e0f2fe" },
+  // Legacy values kept only so old badges still render; not selectable anymore
+  // (these moved to Type / Tier to remove the Type-vs-Status overlap).
   sphere: { emoji: "👥", label: "Sphere", color: "#7c3aed", bg: "#ede9fe" },
   past:   { emoji: "🏡", label: "Past",   color: "#16a34a", bg: "#dcfce7" },
   dnc:    { emoji: "🚫", label: "DNC",    color: "#6b7280", bg: "#f3f4f6" },
 };
+// Temp is now purely opportunity heat: Hot / Warm / Cold.
+const TEMP_SELECTABLE = ["hot", "warm", "cold"];
 
 const TYPE_OPTIONS = ["lead", "buyer", "seller", "past_client", "sphere", "vendor", "other"];
 
@@ -395,10 +399,10 @@ function ContactModal({ contact, token, onClose, onSaved }) {
               {TYPE_OPTIONS.map(t => <option key={t} value={t}>{t.replace("_", " ")}</option>)}
             </select>
           </Field>
-          <Field label="Temperature">
-            <select value={form.temperature} onChange={e => update("temperature", e.target.value)} style={inputStyle}>
-              {Object.entries(TEMP_META).filter(([k]) => k !== "dnc").map(([k, m]) => (
-                <option key={k} value={k}>{m.emoji} {m.label}</option>
+          <Field label="Temp (opportunity heat)">
+            <select value={TEMP_SELECTABLE.includes(form.temperature) ? form.temperature : "warm"} onChange={e => update("temperature", e.target.value)} style={inputStyle}>
+              {TEMP_SELECTABLE.map(k => (
+                <option key={k} value={k}>{TEMP_META[k].emoji} {TEMP_META[k].label}</option>
               ))}
             </select>
           </Field>
@@ -1342,16 +1346,16 @@ export default function ContactsPage({ token, onBack }) {
       </div>
 
       <div style={{ background: "#fef3c7", border: "1px solid #fcd34d", borderRadius: 8, padding: 10, fontSize: 12, color: "#78350f", marginBottom: 16 }}>
-        💡 <strong>How this works:</strong> Add contacts and set their status (Hot, Warm, Cold, Sphere, Past Client, DNC). After every call, log the outcome — the system suggests when to call again. Hot leads get called every 2 days, sphere clients every 30, past clients every 60.
+        💡 <strong>How this works:</strong> Each contact has a <strong>Type</strong> (who they are: Lead, Buyer, Past Client, Sphere…), a <strong>Tier</strong> (Buffini A–D priority), and a <strong>Temp</strong> (opportunity heat: Hot/Warm/Cold). After every call, log the outcome — the system suggests when to call again.
       </div>
 
       <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
         <input placeholder="🔍 Search name, email, phone..." value={filter.search}
           onChange={e => setFilter(f => ({ ...f, search: e.target.value }))}
           style={{ ...inputStyle, flex: 1, minWidth: 200, maxWidth: 320 }} />
-        <select value={filter.temperature} onChange={e => setFilter(f => ({ ...f, temperature: e.target.value }))} style={{ ...inputStyle, width: 160 }}>
-          <option value="">All statuses</option>
-          {Object.entries(TEMP_META).map(([k, m]) => <option key={k} value={k}>{m.emoji} {m.label}</option>)}
+        <select value={filter.temperature} onChange={e => setFilter(f => ({ ...f, temperature: e.target.value }))} style={{ ...inputStyle, width: 140 }}>
+          <option value="">All temps</option>
+          {TEMP_SELECTABLE.map(k => <option key={k} value={k}>{TEMP_META[k].emoji} {TEMP_META[k].label}</option>)}
         </select>
         <select value={filter.type} onChange={e => setFilter(f => ({ ...f, type: e.target.value }))} style={{ ...inputStyle, width: 160 }}>
           <option value="">All types</option>
@@ -1400,7 +1404,7 @@ export default function ContactsPage({ token, onBack }) {
               <SortableTh label="Tier" col="tier" sortBy={sortBy} setSortBy={setSortBy} hint="Buffini A/B/C/D classification" />
               <SortableTh label="Phone" col="phone" sortBy={sortBy} setSortBy={setSortBy} hint="Click twice → empties at top" />
               <SortableTh label="Type" col="type" sortBy={sortBy} setSortBy={setSortBy} />
-              <SortableTh label="Status" col="temperature" sortBy={sortBy} setSortBy={setSortBy} />
+              <SortableTh label="Temp" col="temperature" sortBy={sortBy} setSortBy={setSortBy} hint="Opportunity heat: Hot / Warm / Cold" />
               <SortableTh label="Last Called" col="last_called" sortBy={sortBy} setSortBy={setSortBy} />
               <SortableTh label="Next Call" col="next_call" sortBy={sortBy} setSortBy={setSortBy} />
               <th style={th}></th>
