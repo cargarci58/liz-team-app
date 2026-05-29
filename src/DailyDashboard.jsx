@@ -324,6 +324,7 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
   const [tasks, setTasks] = useState({ overdue:[], dueToday:[], upcoming:[] });
   const [personal, setPersonal] = useState({ overdue:[], dueToday:[], upcoming:[] });
   const [callsDue, setCallsDue] = useState([]);
+  const [occasions, setOccasions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeModal, setActiveModal] = useState(null);
   const [resolvedIds, setResolvedIds] = useState(new Set());
@@ -358,6 +359,7 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
       if (callsRes && callsRes.ok) {
         const callsData = await callsRes.json();
         setCallsDue(callsData.calls || []);
+        setOccasions(callsData.occasions || []);
       }
     } catch (e) { console.error(e); }
     setLoading(false);
@@ -558,6 +560,33 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
                   )}
                 </div>
                 <LogCallButton contact={c} token={token} onLogged={fetchTasks} compact />
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* BIRTHDAYS & ANNIVERSARIES (next 7 days) */}
+      {occasions.length > 0 && (
+        <div style={{ marginBottom: 24 }}>
+          <SectionHeader label={"🎂 BIRTHDAYS & ANNIVERSARIES THIS WEEK"} count={occasions.length} color={"#be185d"} />
+          {occasions.map(o => {
+            const name = [o.first_name, o.last_name].filter(Boolean).join(" ") || o.phone || "(no name)";
+            const md = (d) => d ? new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "";
+            const items = [];
+            if (o.birthday) items.push("🎂 Birthday " + md(o.birthday));
+            if (o.wedding_anniversary) items.push("💍 Anniversary " + md(o.wedding_anniversary));
+            return (
+              <div key={o.id} style={{ background: "white", border: "1px solid #fbcfe8", borderRadius: 8, padding: 12, marginBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: 700, fontSize: 14, color: "#111" }}>
+                    {name}
+                    {o.tier && <span style={{ marginLeft: 6, fontSize: 11, fontWeight: 800, color: "#fff", background: "#0c4a6e", borderRadius: 10, padding: "1px 7px" }}>{o.tier}</span>}
+                  </div>
+                  <div style={{ fontSize: 12.5, color: "#be185d", fontWeight: 700, marginTop: 3 }}>{items.join("  ·  ")}</div>
+                  <div style={{ fontSize: 12, color: "#6b7280", marginTop: 2 }}>{o.phone || o.email || ""}</div>
+                </div>
+                <LogCallButton contact={o} token={token} onLogged={fetchTasks} compact />
               </div>
             );
           })}
