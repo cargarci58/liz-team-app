@@ -184,7 +184,24 @@ export const AS_IS_WIZARD = {
           why: "Any seller-paid cost not already itemized on the form." },
         { id: "buyer_other_costs", label: "Other costs paid by BUYER (optional)", type: "text", required: false,
           hint: "Free text for the 'Other:' line under Costs Paid by Buyer (Paragraph 9b).",
-          why: "Any buyer-paid cost not already itemized on the form." }
+          why: "Any buyer-paid cost not already itemized on the form." },
+        { id: "home_warranty_paid_by", label: "Home warranty — who pays? (Paragraph 9e)", type: "select", required: false, default: "N/A",
+          options: ["N/A", "Buyer", "Seller"],
+          why: "A home warranty covers repair/replacement of major systems for the first year. Buyer or seller can pay, or N/A if none." },
+        { id: "home_warranty_provider", label: "Home warranty provider", type: "text", required: false,
+          showIf: { home_warranty_paid_by: ["Buyer", "Seller"] },
+          hint: "e.g. American Home Shield, First American." },
+        { id: "home_warranty_cost", label: "Home warranty cost not to exceed ($)", type: "currency", required: false,
+          showIf: { home_warranty_paid_by: ["Buyer", "Seller"] },
+          hint: "Typical cap $400-$700." },
+        { id: "special_assessments", label: "Special assessments (Paragraph 9f — CHECK ONE)", type: "select", required: false,
+          default: "(a) Seller pays installments due before closing; Buyer pays after",
+          options: [
+            "(a) Seller pays installments due before closing; Buyer pays after",
+            "(b) Seller pays in full before/at closing"
+          ],
+          hint: "Default is (a). If neither is selected the contract deems (a).",
+          why: "Governs who pays public-body special assessments (e.g., paving, sewer). (a) splits by installment; (b) seller pays the whole thing up front." }
       ]
     },
     {
