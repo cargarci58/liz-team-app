@@ -18,6 +18,60 @@ const TEMP_SELECTABLE = ["hot", "warm", "cold"];
 
 const TYPE_OPTIONS = ["lead", "buyer", "seller", "past_client", "sphere", "vendor", "other"];
 
+// Plain-language, no-jargon walkthrough for agents. Opened from "How Contacts Work".
+function ContactsGuide({ onClose }) {
+  const card = { background: "white", border: "1px solid #e5e7eb", borderRadius: 10, padding: 16, marginBottom: 12 };
+  const h = { fontSize: 16, fontWeight: 800, color: "#0c4a6e", marginBottom: 6 };
+  const p = { fontSize: 14, color: "#374151", lineHeight: 1.6 };
+  const step = (n, title, body) => (
+    <div style={{ ...card, display: "flex", gap: 12 }}>
+      <div style={{ flexShrink: 0, width: 30, height: 30, borderRadius: 16, background: "#0c4a6e", color: "white", fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center" }}>{n}</div>
+      <div><div style={h}>{title}</div><div style={p}>{body}</div></div>
+    </div>
+  );
+  return (
+    <div style={{ position: "fixed", inset: 0, zIndex: 6000, background: "rgba(0,0,0,0.55)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }} onClick={onClose}>
+      <div onClick={e => e.stopPropagation()} style={{ background: "#f9fafb", borderRadius: 14, maxWidth: 640, width: "100%", maxHeight: "92vh", overflowY: "auto", padding: 24 }}>
+        <div style={{ fontSize: 24, fontWeight: 900, color: "#111", marginBottom: 4 }}>📖 How Your Contacts Work</div>
+        <div style={{ fontSize: 14, color: "#6b7280", marginBottom: 18 }}>A 2-minute guide. This is your relationship list — the people who will give you business and referrals. The app tells you who to call each day so you never lose touch.</div>
+
+        <div style={{ ...card, background: "#eff6ff", border: "1px solid #93c5fd" }}>
+          <div style={h}>The 3 simple labels on every contact</div>
+          <div style={p}>
+            <strong>👤 Type</strong> = who they are to you (Buyer, Seller, Past Client, Sphere…).<br/>
+            <strong>⭐ Tier</strong> = how likely they are to send you business — <strong>A</strong> = your best advocates, down to <strong>D</strong>. (Your Buffini grade.)<br/>
+            <strong>🌡 Temp</strong> = how "hot" the opportunity is right now — 🔥 Hot, 🌤 Warm, ❄️ Cold.
+          </div>
+        </div>
+
+        {step(1, "Open the app each morning → Win the Day", "Your dashboard shows exactly who to call today, why, and any birthdays or anniversaries this week. You don't have to remember anyone — the app remembers for you.")}
+        {step(2, "Make the call", "Tap the green 📞 Log Call button next to the person. Their notes and reason for calling are right there so you know what to say.")}
+        {step(3, "Log what happened", "After the call, pick the outcome (Reached, Left Voicemail, etc.), type a quick 'reason for next call' (like \"follow up on pre-approval\"), and the app automatically schedules the next call for you.")}
+        {step(4, "That's the whole loop", "Call → log it → the app picks the next date → it shows up again on the right day. Hot leads come back fast, sphere & past clients come back on a relaxed schedule. You just work the list.")}
+
+        <div style={card}>
+          <div style={h}>👥 Groups</div>
+          <div style={p}>Tag people by where you met them — "Bunco," "Church," "Open House." Use <strong>Manage Groups</strong> to create one, or check several contacts and click <strong>Add to Group</strong>. Then filter to see everyone from that group at once.</div>
+        </div>
+        <div style={card}>
+          <div style={h}>📥 Adding people</div>
+          <div style={p}><strong>+ Add Contact</strong> for one person. <strong>Import CSV</strong> or <strong>Import from Referral Maker</strong> to bring in a whole list — it won't create duplicates or erase your call notes.</div>
+        </div>
+        <div style={card}>
+          <div style={h}>🎂 Birthdays & pop-bys</div>
+          <div style={p}>Add a contact's birthday and anniversary and the app reminds you that week — an easy, personal touch that keeps you top-of-mind. (Pop-by reminders are coming next.)</div>
+        </div>
+
+        <div style={{ fontSize: 13, color: "#6b7280", fontStyle: "italic", margin: "8px 0 16px" }}>👉 The golden rule: open the app, work today's list, log every call. Do that daily and your follow-up runs itself.</div>
+
+        <div style={{ display: "flex", justifyContent: "flex-end" }}>
+          <button onClick={onClose} style={{ background: "#0c4a6e", color: "white", border: "none", borderRadius: 8, padding: "12px 28px", fontWeight: 700, fontSize: 15, cursor: "pointer", fontFamily: "inherit" }}>Got it — let's go</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 const OUTCOMES = [
   { id: "spoke_interested", label: "✅ Reached - Interested",  short: "Interested" },
   { id: "spoke_not_now",    label: "💬 Reached - Not Now",     short: "Not now" },
@@ -1263,6 +1317,7 @@ export default function ContactsPage({ token, onBack }) {
   const [viewing, setViewing] = useState(null);
   const [rmImporting, setRmImporting] = useState(false);
   const [showGroups, setShowGroups] = useState(false);
+  const [showGuide, setShowGuide] = useState(false);
 
   const importReferralMaker = async (file) => {
     if (!file) return;
@@ -1420,7 +1475,7 @@ export default function ContactsPage({ token, onBack }) {
       </div>
 
       <div style={{ background: "#fef3c7", border: "1px solid #fcd34d", borderRadius: 8, padding: 10, fontSize: 12, color: "#78350f", marginBottom: 16 }}>
-        💡 <strong>How this works:</strong> Each contact has a <strong>Type</strong> (who they are: Lead, Buyer, Past Client, Sphere…), a <strong>Tier</strong> (Buffini A–D priority), and a <strong>Temp</strong> (opportunity heat: Hot/Warm/Cold). After every call, log the outcome — the system suggests when to call again.
+        💡 New here, or training an agent? <button onClick={() => setShowGuide(true)} style={{ background: "#0c4a6e", color: "white", border: "none", borderRadius: 6, padding: "5px 12px", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit", marginLeft: 4 }}>📖 How Contacts Work — Start Here</button>
       </div>
 
       <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
@@ -1548,6 +1603,7 @@ export default function ContactsPage({ token, onBack }) {
       </div>
 
       {showAdd && <ContactModal token={token} onClose={() => setShowAdd(false)} onSaved={() => load()} />}
+      {showGuide && <ContactsGuide onClose={() => setShowGuide(false)} />}
       {showGroups && (
         <div style={{ position: "fixed", inset: 0, zIndex: 4000, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }} onClick={() => setShowGroups(false)}>
           <div onClick={e => e.stopPropagation()} style={{ background: "white", borderRadius: 12, maxWidth: 460, width: "100%", maxHeight: "85vh", overflowY: "auto", padding: 24 }}>
