@@ -1164,6 +1164,28 @@ export default function ContactsPage({ token, onBack }) {
   const [showBulkSchedule, setShowBulkSchedule] = useState(false);
   const [editing, setEditing] = useState(null);
   const [viewing, setViewing] = useState(null);
+  const [rmImporting, setRmImporting] = useState(false);
+
+  const importReferralMaker = async (file) => {
+    if (!file) return;
+    setRmImporting(true);
+    try {
+      const csv = await file.text();
+      const r = await fetch(API + "/contacts/import-referral-maker", {
+        method: "POST",
+        headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
+        body: JSON.stringify({ csv }),
+      });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error || "Import failed");
+      alert(`✅ Referral Maker import complete.\n\n${d.total} rows processed\n• ${d.updated} existing contacts enriched (tier, spouse, dates, pop-by — call history kept)\n• ${d.created} new contacts added\n• ${d.skipped} skipped (no name)`);
+      load();
+    } catch (e) {
+      alert("Import error: " + e.message);
+    } finally {
+      setRmImporting(false);
+    }
+  };
 
   // Track latest request — drop results from anything older. Without this,
   // typing in search or rapidly changing filters can race: an older response
@@ -1235,6 +1257,12 @@ export default function ContactsPage({ token, onBack }) {
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           <button onClick={() => setShowBulkSchedule(true)} style={btnStyle("#7c3aed", "white")}>📅 Schedule Calls</button>
           <button onClick={() => setShowImport(true)} style={btnStyle("#e5e7eb", "#374151")}>📥 Import CSV</button>
+          <label style={{ ...btnStyle("#1e8449", "white"), display: "inline-block", cursor: rmImporting ? "wait" : "pointer" }}>
+            {rmImporting ? "Importing…" : "🔄 Import from Referral Maker"}
+            <input type="file" accept=".csv,text/csv" disabled={rmImporting}
+              onChange={e => importReferralMaker(e.target.files && e.target.files[0])}
+              style={{ display: "none" }} />
+          </label>
           <button onClick={() => setShowAdd(true)} style={btnStyle("#0c4a6e", "white")}>+ Add Contact</button>
         </div>
       </div>
