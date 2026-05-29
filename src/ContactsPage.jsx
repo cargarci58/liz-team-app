@@ -1336,6 +1336,20 @@ export default function ContactsPage({ token, onBack }) {
     } catch {}
   };
 
+  const buildNurtureSchedule = async () => {
+    if (!confirm("Build your relationship call schedule from your tiers?\n\nThis spreads your A–D contacts who don't have a next call yet across the coming weeks (A clients first, ~8 a day) so your daily list fills up gradually — it won't dump everyone on you at once. Contacts that already have a next call are left alone.")) return;
+    try {
+      const r = await fetch(API + "/contacts/nurture-schedule", {
+        method: "POST", headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
+        body: JSON.stringify({ perDay: 8 }),
+      });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error || "Failed");
+      await load();
+      alert("✅ " + (d.message || ("Scheduled " + d.scheduled)) + "\n\nThey'll start appearing in Win the Day on their scheduled days. After each call, the app reschedules the next touch automatically by tier.");
+    } catch (e) { alert("Error: " + e.message); }
+  };
+
   const importReferralMaker = async (file) => {
     if (!file) return;
     setRmImporting(true);
@@ -1478,6 +1492,7 @@ export default function ContactsPage({ token, onBack }) {
           <div style={{ fontSize: 13, color: "#6b7280" }}>Your private lead list. {contacts.length} contact{contacts.length === 1 ? "" : "s"}.</div>
         </div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <button onClick={buildNurtureSchedule} style={btnStyle("#16a34a", "white")} title="Auto-build your daily relationship calls from your tiers">⭐ Build Nurture Schedule</button>
           <button onClick={() => setShowBulkSchedule(true)} style={btnStyle("#7c3aed", "white")}>📅 Schedule Calls</button>
           <button onClick={() => setShowGroups(true)} style={btnStyle("#e0e7ff", "#3730a3")}>👥 Manage Groups</button>
           <button onClick={() => setShowImport(true)} style={btnStyle("#e5e7eb", "#374151")}>📥 Import CSV</button>
