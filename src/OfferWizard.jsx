@@ -270,6 +270,29 @@ export default function OfferWizard({ offerId, token, onClose, onSaved }) {
     setData(d => ({ ...d, [id]: val }));
   };
 
+  // Auto-include condition-driven addenda when the agent reaches the addenda step,
+  // so required riders (FHA/VA→E, appraisal→F, condo→A, HOA→B, pre-1978→P, etc.)
+  // are pre-checked. The agent changes the underlying answer to remove them.
+  const onAddendaStep = Array.isArray(step?.fields) && step.fields.some(f => f.id === "selected_addenda");
+  useEffect(() => {
+    if (!onAddendaStep) return;
+    const ftL = String(data.financing_type || "");
+    const req = [];
+    if (ftL === "FHA" || ftL === "VA") req.push("E");
+    if (String(data.appraisal_contingency || "").startsWith("Yes")) req.push("F");
+    if (data.is_condo) req.push("A");
+    if (data.has_hoa) req.push("B");
+    if (data.year_built && Number(data.year_built) < 1978) req.push("P");
+    if (ftL === "Seller Financing") req.push("C");
+    if (String(data.special_financing_method || "").startsWith("Assumption")) req.push("D");
+    const fz = String(data.flood_zone || "").toUpperCase();
+    if (fz && fz !== "X" && fz !== "X500") req.push("H");
+    const cur = Array.isArray(data.selected_addenda) ? data.selected_addenda : [];
+    const missing = req.filter(l => !cur.includes(l));
+    if (missing.length) setData(d => ({ ...d, selected_addenda: [...(d.selected_addenda || []), ...missing] }));
+    // eslint-disable-next-line
+  }, [onAddendaStep]);
+
   const save = async ({ nextStepIdx, status }) => {
     setSaving(true);
     setError(null);
@@ -555,19 +578,25 @@ export default function OfferWizard({ offerId, token, onClose, onSaved }) {
   const floodZone = String(data.flood_zone || "").trim().toUpperCase();
   const floodRisk = floodZone && floodZone !== "X" && floodZone !== "X500";
 
-  // Addenda compliance: conditions that REQUIRE a specific addendum letter.
-  // Warn if the condition holds but the agent hasn't selected that addendum.
+  // Addenda compliance. Condition → required addendum letter. We AUTO-INCLUDE these
+  // (see effect below) so they're pre-checked. We also flag addenda that are selected
+  // but contradict the answers (e.g. FHA/VA addendum on a Conventional loan).
   const sel = Array.isArray(data.selected_addenda) ? data.selected_addenda : [];
   const ft = String(data.financing_type || "");
-  const complianceMisses = [];
-  if ((ft === "FHA" || ft === "VA") && !sel.includes("E")) complianceMisses.push("E. FHA/VA Financing (you selected " + ft + " financing)");
-  if (String(data.appraisal_contingency || "").startsWith("Yes") && !sel.includes("F")) complianceMisses.push("F. Appraisal Contingency (you kept the appraisal contingency)");
-  if (data.is_condo && !sel.includes("A")) complianceMisses.push("A. Condominium Rider (property is a condo)");
-  if (data.has_hoa && !sel.includes("B")) complianceMisses.push("B. Homeowners' Assn. (property has an HOA)");
-  if (data.year_built && Number(data.year_built) < 1978 && !sel.includes("P")) complianceMisses.push("P. Lead-Based Paint Disclosure (built before 1978)");
-  if (ft === "Seller Financing" && !sel.includes("C")) complianceMisses.push("C. Seller Financing (you selected seller financing)");
-  if (String(data.special_financing_method || "").startsWith("Assumption") && !sel.includes("D")) complianceMisses.push("D. Mortgage Assumption (you selected assumption)");
-  if (floodRisk && !sel.includes("H")) complianceMisses.push("H. Homeowners'/Flood Insurance (flood zone " + floodZone + ")");
+  const requiredLetters = [];
+  if (ft === "FHA" || ft === "VA") requiredLetters.push("E");
+  if (String(data.appraisal_contingency || "").startsWith("Yes")) requiredLetters.push("F");
+  if (data.is_condo) requiredLetters.push("A");
+  if (data.has_hoa) requiredLetters.push("B");
+  if (data.year_built && Number(data.year_built) < 1978) requiredLetters.push("P");
+  if (ft === "Seller Financing") requiredLetters.push("C");
+  if (String(data.special_financing_method || "").startsWith("Assumption")) requiredLetters.push("D");
+  if (floodRisk) requiredLetters.push("H");
+  const complianceMisses = requiredLetters.filter(l => !sel.includes(l));
+  // Wrongly-selected: addendum picked that conflicts with the chosen financing.
+  const complianceConflicts = [];
+  if (sel.includes("E") && ft && ft !== "FHA" && ft !== "VA") complianceConflicts.push("E. FHA/VA Financing is selected, but this is a " + ft + " loan — uncheck it unless the loan is FHA or VA.");
+  if (sel.includes("C") && ft !== "Seller Financing") complianceConflicts.push("C. Seller Financing is selected, but the financing type isn't Seller Financing.");
 
   return (
     <div style={overlayStyle} onClick={onClose}>
@@ -700,6 +729,16 @@ export default function OfferWizard({ offerId, token, onClose, onSaved }) {
                 {complianceMisses.map((m, i) => <li key={i} style={{ marginBottom: 2 }}>{m}</li>)}
               </ul>
               <div style={{ marginTop: 6, fontSize: 12 }}>In Florida, a checked addendum becomes part of the contract — select them above (or proceed if intentionally omitted).</div>
+            </div>
+          )}
+
+          {/* Addenda conflict — selected addendum contradicts the answers */}
+          {complianceConflicts.length > 0 && visibleFields.some(f => f.id === "selected_addenda") && (
+            <div style={{ background: "#fef9c3", border: "1px solid #fcd34d", borderRadius: 8, padding: 12, marginBottom: 18, fontSize: 13, color: "#78350f" }}>
+              ⚠️ <strong>Check these selections:</strong>
+              <ul style={{ margin: "8px 0 0 0", paddingLeft: 20 }}>
+                {complianceConflicts.map((m, i) => <li key={i} style={{ marginBottom: 2 }}>{m}</li>)}
+              </ul>
             </div>
           )}
 

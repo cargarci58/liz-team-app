@@ -139,12 +139,9 @@ export const AS_IS_WIZARD = {
       fields: [
         { id: "inspection_period_days", label: "Inspection period (calendar days from effective date)", type: "number", required: true, default: 15,
           hint: "Standard 15 days. Hot markets often see 7-10. Complex properties may need 20+.",
-          why: "This is the buyer's ONLY broad right to cancel. Too short = buyer can't get inspectors scheduled. Too long = seller's house is off market." },
-        { id: "as_is_acknowledged", label: "Buyer acknowledges AS-IS sale", type: "checkbox", required: true, default: true,
-          hint: "Required for AS-IS contract. Seller is not obligated to make repairs.",
-          why: "Without this acknowledgment, buyer may later claim they expected repairs. Document the AS-IS understanding." },
-        { id: "right_of_access", label: "Buyer right of access for inspections", type: "checkbox", required: true, default: true,
-          why: "Confirms buyer (and their inspectors) can enter the property with reasonable notice." }
+          why: "This is the buyer's ONLY broad right to cancel. Too short = buyer can't get inspectors scheduled. Too long = seller's house is off market." }
+        // Note: AS-IS acknowledgment + buyer right of access are inherent terms of the
+        // FAR/BAR AS-IS contract — not negotiable checkboxes — so they aren't asked here.
       ]
     },
     {
