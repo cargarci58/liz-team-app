@@ -82,6 +82,19 @@ const btnStyle = (bg, color) => ({
 const th = { padding: "12px 12px", fontSize: 13, fontWeight: 800, color: "#0c4a6e", textTransform: "uppercase", letterSpacing: "0.04em", textAlign: "left", borderBottom: "2px solid #cbd5e1" };
 const td = { padding: "10px 12px", verticalAlign: "middle" };
 
+// Buffini A/B/C/D tier badge — distinct colors so the classification pops.
+function tierBadgeStyle(tier) {
+  const map = {
+    "A+": { bg: "#065f46", color: "#fff" },
+    "A":  { bg: "#16a34a", color: "#fff" },
+    "B":  { bg: "#2563eb", color: "#fff" },
+    "C":  { bg: "#d97706", color: "#fff" },
+    "D":  { bg: "#6b7280", color: "#fff" },
+  };
+  const c = map[(tier || "").toUpperCase()] || { bg: "#e5e7eb", color: "#374151" };
+  return { background: c.bg, color: c.color, padding: "2px 9px", borderRadius: 12, fontSize: 12, fontWeight: 800, minWidth: 22, display: "inline-block", textAlign: "center" };
+}
+
 function Field({ label, hint, children }) {
   return (
     <div style={{ marginBottom: 12 }}>
@@ -1314,6 +1327,7 @@ export default function ContactsPage({ token, onBack }) {
                   title="Select all" style={{ cursor: "pointer" }} />
               </th>
               <SortableTh label="Name" col="name" sortBy={sortBy} setSortBy={setSortBy} />
+              <SortableTh label="Tier" col="tier" sortBy={sortBy} setSortBy={setSortBy} hint="Buffini A/B/C/D classification" />
               <SortableTh label="Phone" col="phone" sortBy={sortBy} setSortBy={setSortBy} hint="Click twice → empties at top" />
               <SortableTh label="Type" col="type" sortBy={sortBy} setSortBy={setSortBy} />
               <SortableTh label="Status" col="temperature" sortBy={sortBy} setSortBy={setSortBy} />
@@ -1323,9 +1337,9 @@ export default function ContactsPage({ token, onBack }) {
             </tr>
           </thead>
           <tbody>
-            {loading && <tr><td colSpan={8} style={{ padding: 40, textAlign: "center", color: "#6b7280" }}>Loading...</td></tr>}
+            {loading && <tr><td colSpan={9} style={{ padding: 40, textAlign: "center", color: "#6b7280" }}>Loading...</td></tr>}
             {!loading && contacts.length === 0 && (
-              <tr><td colSpan={8} style={{ padding: 40, textAlign: "center", color: "#6b7280" }}>
+              <tr><td colSpan={9} style={{ padding: 40, textAlign: "center", color: "#6b7280" }}>
                 No contacts yet. Click <strong>+ Add Contact</strong> or <strong>📥 Import CSV</strong>.
               </td></tr>
             )}
@@ -1343,6 +1357,11 @@ export default function ContactsPage({ token, onBack }) {
                       {name}
                     </button>
                     {c.email && <div style={{ fontSize: 11, color: "#6b7280" }}>{c.email}</div>}
+                  </td>
+                  <td style={td}>
+                    {c.tier ? (
+                      <span style={{ ...tierBadgeStyle(c.tier) }}>{c.tier}</span>
+                    ) : <span style={{ color: "#d1d5db" }}>—</span>}
                   </td>
                   <td style={td}>{c.phone || "—"}</td>
                   <td style={td}>{(c.contact_type || "").replace("_", " ")}</td>
