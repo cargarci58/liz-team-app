@@ -120,6 +120,7 @@ function LogCallModal({ contact, token, onClose, onLogged }) {
   const [noFollowUp, setNoFollowUp] = useState(false);
   const [notes, setNotes] = useState("");
   const [newTemp, setNewTemp] = useState(contact.temperature || "warm");
+  const [nextReason, setNextReason] = useState("");
   const [saving, setSaving] = useState(false);
 
   const PRESETS = [
@@ -175,7 +176,7 @@ function LogCallModal({ contact, token, onClose, onLogged }) {
           body: JSON.stringify({ temperature: newTemp })
         });
       }
-      const body = { outcome: outcome.id, notes: notes || null };
+      const body = { outcome: outcome.id, notes: notes || null, nextCallReason: nextReason || null };
       if (noFollowUp) {
         body.followUps = [];
       } else {
@@ -283,16 +284,24 @@ function LogCallModal({ contact, token, onClose, onLogged }) {
               )}
             </div>
 
+            {!noFollowUp && (
+              <Field label="🎯 Reason for the next call (optional)" hint="Shows on your Win the Day list so you know why you're calling.">
+                <input value={nextReason} onChange={e => setNextReason(e.target.value)}
+                  placeholder="e.g. Follow up on pre-approval, check in re: listing, send comps"
+                  style={inputStyle} />
+              </Field>
+            )}
+
             <Field label="📝 What did you talk about? (optional)" hint="You'll see these notes next time you call this person.">
               <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={2}
                 placeholder="e.g. Looking in $600-700k range, contingent on selling current home, kids in Lake Mary schools..."
                 style={{ ...inputStyle, resize: "vertical" }} />
             </Field>
 
-            <Field label={"🌡 Temperature — " + m.emoji + " " + m.label} hint="Did this call change how hot this lead is? Changing this adjusts how often you'll be reminded to call them.">
-              <select value={newTemp} onChange={e => setNewTemp(e.target.value)} style={inputStyle}>
-                {Object.entries(TEMP_META).filter(([k]) => k !== "dnc").map(([k, meta]) => (
-                  <option key={k} value={k}>{meta.emoji} {meta.label}</option>
+            <Field label={"🌡 Temp — " + m.emoji + " " + m.label} hint="Did this call change how hot this lead is? Changing this adjusts how often you'll be reminded to call them.">
+              <select value={TEMP_SELECTABLE.includes(newTemp) ? newTemp : "warm"} onChange={e => setNewTemp(e.target.value)} style={inputStyle}>
+                {TEMP_SELECTABLE.map(k => (
+                  <option key={k} value={k}>{TEMP_META[k].emoji} {TEMP_META[k].label}</option>
                 ))}
               </select>
             </Field>
@@ -348,6 +357,11 @@ function ContactModal({ contact, token, onClose, onSaved }) {
     contactType: (contact && contact.contact_type) || "lead",
     temperature: (contact && contact.temperature) || "warm",
     source: (contact && contact.source) || "",
+    tier: (contact && contact.tier) || "",
+    spouse_name: (contact && contact.spouse_name) || "",
+    birthday: (contact && contact.birthday ? contact.birthday.slice(0,10) : "") || "",
+    wedding_anniversary: (contact && contact.wedding_anniversary ? contact.wedding_anniversary.slice(0,10) : "") || "",
+    referred_by: (contact && contact.referred_by) || "",
     groups: (contact && Array.isArray(contact.tags) ? contact.tags : []),
     notes: (contact && contact.notes) || "",
   });
@@ -384,6 +398,10 @@ function ContactModal({ contact, token, onClose, onSaved }) {
       // form.groups is already an array of selected group names → tags.
       const payload = { ...form, tags: Array.isArray(form.groups) ? form.groups : [] };
       delete payload.groups;
+      // Empty date/tier strings must be null (empty string breaks a DATE column).
+      for (const k of ["birthday", "wedding_anniversary", "tier", "spouse_name", "referred_by"]) {
+        if (payload[k] === "") payload[k] = null;
+      }
       const r = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
@@ -425,6 +443,20 @@ function ContactModal({ contact, token, onClose, onSaved }) {
               ))}
             </select>
           </Field>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          <Field label="Tier (Buffini A–D)">
+            <select value={form.tier} onChange={e => update("tier", e.target.value)} style={inputStyle}>
+              <option value="">— none —</option>
+              {["A+","A","B","C","D"].map(t => <option key={t} value={t}>{t}</option>)}
+            </select>
+          </Field>
+          <Field label="Referred By"><input value={form.referred_by} onChange={e => update("referred_by", e.target.value)} style={inputStyle} /></Field>
+        </div>
+        <Field label="Spouse / Partner Name"><input value={form.spouse_name} onChange={e => update("spouse_name", e.target.value)} style={inputStyle} /></Field>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          <Field label="Birthday"><input type="date" value={form.birthday} onChange={e => update("birthday", e.target.value)} style={inputStyle} /></Field>
+          <Field label="Wedding Anniversary"><input type="date" value={form.wedding_anniversary} onChange={e => update("wedding_anniversary", e.target.value)} style={inputStyle} /></Field>
         </div>
         <Field label="Source" hint="Where did this lead come from? Zillow, Open House, Referral, etc."><input value={form.source} onChange={e => update("source", e.target.value)} style={inputStyle} /></Field>
         <Field label="Groups" hint="Optional — tag where you know them from. Pick any that apply (a contact can be in several, or none).">

@@ -537,9 +537,18 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
             return (
               <div key={c.id} style={{ background: "white", border: "1px solid #e5e7eb", borderRadius: 8, padding: 12, marginBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontWeight: 700, fontSize: 14, color: "#111" }}>{tempEmoji} {name}</div>
+                  <div style={{ fontWeight: 700, fontSize: 14, color: "#111" }}>
+                    {tempEmoji} {name}
+                    {c.tier && <span style={{ marginLeft: 6, fontSize: 11, fontWeight: 800, color: "#fff", background: "#0c4a6e", borderRadius: 10, padding: "1px 7px" }}>{c.tier}</span>}
+                  </div>
+                  {c.next_call_reason && (
+                    <div style={{ fontSize: 12.5, color: "#0c4a6e", fontWeight: 700, marginTop: 3 }}>
+                      🎯 {c.next_call_reason}
+                    </div>
+                  )}
                   <div style={{ fontSize: 12, color: "#6b7280", marginTop: 2 }}>
                     {c.phone || c.email || "no contact info"}
+                    {c.last_outcome && <span style={{ marginLeft: 8 }}>· last: {String(c.last_outcome).replace(/_/g, " ")}</span>}
                     {overdue && <span style={{ color: "#b91c1c", marginLeft: 8, fontWeight: 600 }}>⚠️ Overdue</span>}
                   </div>
                   {c.notes && (
