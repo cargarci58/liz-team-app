@@ -1318,6 +1318,23 @@ export default function ContactsPage({ token, onBack }) {
   const [rmImporting, setRmImporting] = useState(false);
   const [showGroups, setShowGroups] = useState(false);
   const [showGuide, setShowGuide] = useState(false);
+  const [popBysEnabled, setPopBysEnabled] = useState(false);
+  const [showPopbyInfo, setShowPopbyInfo] = useState(false);
+
+  useEffect(() => {
+    fetch(API + "/contacts/prefs", { headers: { Authorization: "Bearer " + token } })
+      .then(r => r.json()).then(d => setPopBysEnabled(!!d.popBysEnabled)).catch(() => {});
+  }, []);
+
+  const togglePopBys = async (val) => {
+    setPopBysEnabled(val);
+    try {
+      await fetch(API + "/contacts/prefs", {
+        method: "PUT", headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
+        body: JSON.stringify({ popBysEnabled: val }),
+      });
+    } catch {}
+  };
 
   const importReferralMaker = async (file) => {
     if (!file) return;
@@ -1474,9 +1491,30 @@ export default function ContactsPage({ token, onBack }) {
         </div>
       </div>
 
-      <div style={{ background: "#fef3c7", border: "1px solid #fcd34d", borderRadius: 8, padding: 10, fontSize: 12, color: "#78350f", marginBottom: 16 }}>
-        💡 New here, or training an agent? <button onClick={() => setShowGuide(true)} style={{ background: "#0c4a6e", color: "white", border: "none", borderRadius: 6, padding: "5px 12px", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit", marginLeft: 4 }}>📖 How Contacts Work — Start Here</button>
+      <div style={{ background: "#fef3c7", border: "1px solid #fcd34d", borderRadius: 8, padding: 10, fontSize: 12, color: "#78350f", marginBottom: 10, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+        <div>💡 New here, or training an agent? <button onClick={() => setShowGuide(true)} style={{ background: "#0c4a6e", color: "white", border: "none", borderRadius: 6, padding: "5px 12px", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit", marginLeft: 4 }}>📖 How Contacts Work — Start Here</button></div>
+        <label style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer", whiteSpace: "nowrap" }}>
+          <input type="checkbox" checked={popBysEnabled} onChange={e => togglePopBys(e.target.checked)} />
+          <span style={{ fontWeight: 700 }}>🎁 Pop-bys</span>
+          <button type="button" onClick={(e) => { e.preventDefault(); setShowPopbyInfo(true); }} title="What's a pop-by?"
+            style={{ background: "#92400e", color: "white", border: "none", borderRadius: 10, width: 16, height: 16, fontSize: 11, cursor: "pointer", lineHeight: 1, padding: 0 }}>?</button>
+        </label>
       </div>
+      {showPopbyInfo && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 6000, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }} onClick={() => setShowPopbyInfo(false)}>
+          <div onClick={e => e.stopPropagation()} style={{ background: "white", borderRadius: 12, maxWidth: 440, width: "100%", padding: 24 }}>
+            <div style={{ fontSize: 18, fontWeight: 800, marginBottom: 8 }}>🎁 What's a "pop-by"?</div>
+            <div style={{ fontSize: 14, color: "#374151", lineHeight: 1.6 }}>
+              A pop-by is when you personally drop off a small, thoughtful gift to a top client — a pie in the fall, a cold drink in summer, a little something just to say hello. It keeps you top-of-mind so they think of you (and refer you) when real estate comes up.
+              <br/><br/>
+              Turn this on and the app will remind you to pop by your A/B clients a few times a year and suggest gift ideas. <strong>It's optional</strong> — leave it off if pop-bys aren't your style.
+            </div>
+            <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 16 }}>
+              <button onClick={() => setShowPopbyInfo(false)} style={btnStyle("#0c4a6e", "white")}>Got it</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
         <input placeholder="🔍 Search name, email, phone..." value={filter.search}
