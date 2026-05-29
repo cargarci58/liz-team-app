@@ -106,6 +106,23 @@ function FieldRenderer({ field, value, onChange, documents }) {
       </div>
     );
   }
+  if (field.type === "clause_picker") {
+    const selected = Array.isArray(v) ? v : [];
+    const toggle = (clause) => {
+      const next = selected.includes(clause) ? selected.filter(x => x !== clause) : [...selected, clause];
+      onChange(next);
+    };
+    return (
+      <div style={{ display: "grid", gap: 8 }}>
+        {(field.options || []).map((clause, i) => (
+          <label key={i} style={{ display: "flex", alignItems: "flex-start", gap: 8, fontSize: 13, color: "#374151", cursor: "pointer", lineHeight: 1.4 }}>
+            <input type="checkbox" checked={selected.includes(clause)} onChange={() => toggle(clause)} style={{ marginTop: 3 }} />
+            <span>{clause}</span>
+          </label>
+        ))}
+      </div>
+    );
+  }
   if (field.type === "preapproval_picker") {
     // Filter to docs that look like a pre-approval. Picker rendered alongside an upload button below.
     const candidates = (documents || []).filter(d => /pre.?approval|proof.*funds|pof/i.test((d.category || "") + " " + (d.name || "") + " " + (d.document_type || "")));
