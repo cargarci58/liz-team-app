@@ -707,12 +707,14 @@ function CashToCloseTab({ transactionId, token } = {}) {
 // Main component with tab navigation
 // ============================================================
 export default function BuyerCalculator({ transactionId, token } = {}) {
-  const [tab, setTab] = useState("affordability");
+  // Inside a transaction, open straight to the net sheet (Cash to Close) so the
+  // "Generate Buyer's Net Sheet" PDF is immediately visible. Standalone, start on Affordability.
+  const [tab, setTab] = useState(transactionId ? "cash" : "affordability");
 
   const tabs = [
+    { id: "cash", label: "💰 Buyer Net Sheet", desc: "Cash to close + PDF" },
     { id: "affordability", label: "🏡 Affordability", desc: "How much home can I afford?" },
     { id: "payment", label: "💵 Monthly Payment", desc: "What will my payment be?" },
-    { id: "cash", label: "💰 Cash to Close", desc: "What do I need upfront?" },
   ];
 
   return (
