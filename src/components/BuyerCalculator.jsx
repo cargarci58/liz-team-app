@@ -486,7 +486,7 @@ function CashToCloseTab({ transactionId, token, showGenerate, county } = {}) {
   const [surveyFee, setSurveyFee] = useState(450);
   const [prepaids, setPrepaids] = useState(3500);
   const [sellerConcessions, setSellerConcessions] = useState(0);
-  const [insRate, setInsRate] = useState(1.0);   // homeowners insurance, % of price / yr (FL avg ~1%)
+  const [insAnnual, setInsAnnual] = useState(() => Math.round(450000 * 0.01)); // annual premium $; auto ~1% of price until edited
   const [hoaMonthly, setHoaMonthly] = useState(0);
   const [pmiRate, setPmiRate] = useState(0.5);    // annual PMI, % of loan (when down < 20%)
   const [taxRate, setTaxRate] = useState(() => flTaxRate(undefined, county).rate);
@@ -532,9 +532,19 @@ function CashToCloseTab({ transactionId, token, showGenerate, county } = {}) {
   // insurance cushion + 3 mo tax reserve. Auto-updates until the agent edits it.
   const userTouchedEscrow = React.useRef(false);
   const onPrepaidsChange = (v) => { userTouchedEscrow.current = true; setPrepaids(v); };
+  // Homeowners insurance defaults to ~1% of price (FL avg) until the agent
+  // enters the real annual premium — that's the last lever to match a lender/
+  // title quote exactly (it drives both escrow and the monthly payment).
+  const userTouchedIns = React.useRef(false);
+  const onInsChange = (v) => { userTouchedIns.current = true; setInsAnnual(v); };
+  useEffect(() => {
+    if (userTouchedIns.current) return;
+    setInsAnnual(Math.round(price * 0.01));
+  }, [price]);
+
   useEffect(() => {
     if (userTouchedEscrow.current) return;
-    const annualIns = price * (Math.max(0, Number(insRate) || 0) / 100);
+    const annualIns = Math.max(0, Number(insAnnual) || 0);
     const annualTax = price * (Math.max(0, Number(taxRate) || 0) / 100);
     // Tax escrow: FL property taxes are billed ~November. The lender funds the
     // account so the Nov bill is covered with a 2-month cushion. The fewer monthly
@@ -547,7 +557,7 @@ function CashToCloseTab({ transactionId, token, showGenerate, county } = {}) {
     // Prepaid insurance = 1 yr at closing + 2-month escrow cushion.
     const est = annualIns * (14 / 12) + annualTax * (taxEscrowMonths / 12);
     setPrepaids(Math.round(est));
-  }, [price, insRate, taxRate, closingDate]);
+  }, [price, insAnnual, taxRate, closingDate]);
 
   const result = useMemo(() => {
     const cash = loanType === "Cash";
@@ -621,7 +631,7 @@ function CashToCloseTab({ transactionId, token, showGenerate, county } = {}) {
     const fixedCosts = closingCosts - effPrepaids - prepaidInterest - taxProrationCredit - sellerConcessions;
 
     // ── Estimated monthly payment (PITI + PMI + HOA) ──
-    const annualInsurance = price * (Math.max(0, Number(insRate) || 0) / 100);
+    const annualInsurance = Math.max(0, Number(insAnnual) || 0);
     const piMonthly = hasLoan ? monthlyPI(loan, interestRate, term) : 0;
     const taxMonthly = annualPropertyTax / 12;
     const insMonthly = annualInsurance / 12;
@@ -637,7 +647,7 @@ function CashToCloseTab({ transactionId, token, showGenerate, county } = {}) {
       annualPropertyTax, taxProrationCredit, daysOwned, closingCosts, fixedCosts, totalCash, cashAtClosing,
       piMonthly, taxMonthly, insMonthly, pmiMonthly, hoaMo, monthlyTotal, pmiApplies
     };
-  }, [price, loanType, downPct, emd, rate, term, buyerPaysOwnerTitle, buyerAgentPct, buyerPaysAgent, originationPct, lenderTitleFees, inspectionFee, appraisalFee, lenderFees, surveyFee, prepaids, sellerConcessions, taxRate, insRate, hoaMonthly, pmiRate, closingDate]);
+  }, [price, loanType, downPct, emd, rate, term, buyerPaysOwnerTitle, buyerAgentPct, buyerPaysAgent, originationPct, lenderTitleFees, inspectionFee, appraisalFee, lenderFees, surveyFee, prepaids, sellerConcessions, taxRate, insAnnual, hoaMonthly, pmiRate, closingDate]);
 
   const generatePdf = async (lang = "en") => {
     if (!transactionId || !token) {
@@ -796,9 +806,12 @@ function CashToCloseTab({ transactionId, token, showGenerate, county } = {}) {
       <SliderRow label="Survey" value={surveyFee} onChange={setSurveyFee}
         min={0} max={1000} step={50} prefix="$"
         info="Optional but recommended. Shows property lines, encroachments, easements." />
-      <SliderRow label="Homeowners Insurance Rate %/yr" value={insRate} onChange={setInsRate}
-        min={0.3} max={3.0} step={0.05} suffix="%"
-        info="Annual homeowners insurance as a % of price. FL averages ~1% (highest in the US — hurricane risk); coastal/high-value homes run 1.5%+. Drives both the monthly payment and the escrow reserves — set the real quote if you have it." />
+      <SliderRow label="Annual Homeowners Insurance" value={insAnnual} onChange={onInsChange}
+        min={0} max={40000} step={100} prefix="$"
+        info="Annual premium. Defaults to ~1% of price (FL average — highest in the US). Enter the actual insurance quote to match the lender/title figure exactly. Drives both the monthly payment and the escrow reserves." />
+      <div style={{ background: "#f9fafb", border: "1px solid #e5e7eb", borderRadius: 6, padding: "6px 12px", marginBottom: 16, fontSize: 12, color: "#6b7280" }}>
+        ≈ {(price > 0 ? (insAnnual / price * 100) : 0).toFixed(2)}% of price · {money(insAnnual / 12)}/mo
+      </div>
       <SliderRow label="HOA / Condo Fees (monthly)" value={hoaMonthly} onChange={setHoaMonthly}
         min={0} max={2000} step={25} prefix="$"
         info="Monthly HOA/condo dues, if any. Included in the monthly payment estimate." />
