@@ -93,7 +93,11 @@ export default function SellerCalculator({ transactionId, token } = {}) {
   const [sellerConcessions, setSellerConcessions] = useState(0);
   const [repairs, setRepairs] = useState(0);
   const [annualPropertyTax, setAnnualPropertyTax] = useState(6750);
-  const [closingDate, setClosingDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [closingDate, setClosingDate] = useState(() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 30);
+    return d.toISOString().slice(0, 10);
+  });
   const [otherCosts, setOtherCosts] = useState(500);
   const [originalPurchasePrice, setOriginalPurchasePrice] = useState(300000);
   const [generating, setGenerating] = useState(false);
