@@ -1,4 +1,5 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
+import { flTaxRate } from "../lib/flTaxRates";
 
 // ============================================================
 // Smart Buyer Calculator — Florida-specific
@@ -14,25 +15,6 @@ const FL_TITLE_INS_TIER2_RATE = 0.00500;        // $5.00 per $1,000 from $100k t
 
 // Default down-payment % by loan type. Cash = 100% (no loan).
 const DOWN_DEFAULTS = { Conventional: 5, FHA: 3.5, VA: 0, Cash: 100 };
-
-// Approximate EFFECTIVE property-tax rate (% of market value) by FL county.
-// Used to default the tax line; agents can override the rate for a specific city.
-const FL_COUNTY_TAX_RATES = {
-  alachua: 1.18, brevard: 0.90, broward: 1.15, charlotte: 1.00, citrus: 0.85,
-  clay: 0.95, collier: 0.70, duval: 1.00, escambia: 0.85, flagler: 0.95,
-  hernando: 1.00, hillsborough: 1.10, "indian river": 0.90, lake: 1.05, lee: 1.00,
-  leon: 1.05, manatee: 0.95, marion: 0.95, martin: 0.95, "miami-dade": 1.02,
-  "miami dade": 1.02, monroe: 0.65, nassau: 0.90, okaloosa: 0.80, orange: 1.05,
-  osceola: 1.10, "palm beach": 1.10, pasco: 1.10, pinellas: 0.90, polk: 1.05,
-  "santa rosa": 0.85, sarasota: 0.85, seminole: 1.00, "st. johns": 0.90,
-  "st johns": 0.90, "st. lucie": 1.20, "st lucie": 1.20, sumter: 0.90, volusia: 1.05,
-};
-const FL_DEFAULT_TAX_RATE = 1.10;
-function countyTaxRate(county) {
-  if (!county) return FL_DEFAULT_TAX_RATE;
-  const key = String(county).replace(/county/i, "").trim().toLowerCase();
-  return FL_COUNTY_TAX_RATES[key] != null ? FL_COUNTY_TAX_RATES[key] : FL_DEFAULT_TAX_RATE;
-}
 
 function money(n) {
   if (!isFinite(n)) return "$0";
@@ -502,7 +484,8 @@ function CashToCloseTab({ transactionId, token, showGenerate, county } = {}) {
   const [surveyFee, setSurveyFee] = useState(450);
   const [prepaids, setPrepaids] = useState(3500);
   const [sellerConcessions, setSellerConcessions] = useState(0);
-  const [taxRate, setTaxRate] = useState(() => countyTaxRate(county));
+  const [taxRate, setTaxRate] = useState(() => flTaxRate(undefined, county).rate);
+  const [taxLoc, setTaxLoc] = useState(() => ({ label: county ? `${county} County` : "FL default", source: county ? "county" : "default" }));
   const [closingDate, setClosingDate] = useState(() => {
     const d = new Date();
     d.setDate(d.getDate() + 30);
@@ -513,6 +496,31 @@ function CashToCloseTab({ transactionId, token, showGenerate, county } = {}) {
 
   const isCash = loanType === "Cash";
   const selectLoanType = (t) => { setLoanType(t); setDownPct(DOWN_DEFAULTS[t]); };
+  const userTouchedRate = React.useRef(false);
+  const onTaxRateChange = (v) => { userTouchedRate.current = true; setTaxRate(v); };
+
+  // Default the tax rate to the agent's profile city/county (where most of their
+  // deals are). Falls back to the transaction's county, then the FL default.
+  useEffect(() => {
+    if (!token) return;
+    const API = import.meta.env.VITE_API_URL || "https://liz-team-server-api-production.up.railway.app";
+    fetch(API + "/profile", { headers: { Authorization: "Bearer " + token } })
+      .then(r => r.json())
+      .then(d => {
+        const p = d && d.profile;
+        if (!p || userTouchedRate.current) return;
+        const cityToUse = p.city || "";
+        const countyToUse = p.county || county || "";
+        if (!cityToUse && !countyToUse) return;
+        const r = flTaxRate(cityToUse, countyToUse);
+        setTaxRate(r.rate);
+        setTaxLoc({
+          label: r.source === "city" ? `${cityToUse} (your profile)` : (countyToUse ? `${countyToUse} County` : "FL default"),
+          source: r.source,
+        });
+      })
+      .catch(() => {});
+  }, [token, county]);
 
   const result = useMemo(() => {
     const cash = loanType === "Cash";
@@ -736,11 +744,11 @@ function CashToCloseTab({ transactionId, token, showGenerate, county } = {}) {
         min={0} max={50000} step={500} prefix="$"
         info="Closing-cost help the seller agreed to in the contract. Reduces the buyer's cash to close." />
 
-      <SliderRow label="Property Tax Rate %" value={taxRate} onChange={setTaxRate}
-        min={0.3} max={2.5} step={0.05} suffix="%"
-        info="Defaulted from the county's typical effective rate. Adjust for the specific city/millage if you know it. Annual tax = price × rate." />
+      <SliderRow label="Property Tax Rate %" value={taxRate} onChange={onTaxRateChange}
+        min={0.3} max={3.0} step={0.005} suffix="%"
+        info="Total millage (% of value). Defaulted from your profile city; adjust for the specific property's city/county. Annual tax = price × rate." />
       <div style={{ background: "#f9fafb", border: "1px solid #e5e7eb", borderRadius: 6, padding: "8px 12px", marginBottom: 16, fontSize: 12, color: "#6b7280" }}>
-        {county ? `Based on ${county} County (~${countyTaxRate(county).toFixed(2)}% default — adjust above for the exact city).` : "No county on file for this transaction — using FL default 1.10%."} Est. annual tax: <strong style={{ color: "#374151" }}>{money(result.annualPropertyTax)}</strong>
+        Rate from <strong style={{ color: "#374151" }}>{taxLoc.label}</strong>{taxLoc.source === "default" ? " (no city/county on file — adjust above)" : ""}. Est. annual tax: <strong style={{ color: "#374151" }}>{money(result.annualPropertyTax)}</strong>
       </div>
 
       <div style={{ marginBottom: 16 }}>

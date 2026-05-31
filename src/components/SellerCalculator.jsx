@@ -1,4 +1,5 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
+import { flTaxRate } from "../lib/flTaxRates";
 
 function money(n) {
   if (!isFinite(n)) return "$0";
@@ -81,7 +82,7 @@ function SliderRow({ label, value, onChange, min, max, step, prefix, suffix, inf
   );
 }
 
-export default function SellerCalculator({ transactionId, token } = {}) {
+export default function SellerCalculator({ transactionId, token, county } = {}) {
   const [salePrice, setSalePrice] = useState(450000);
   const [mortgagePayoff, setMortgagePayoff] = useState(0);
   const [loanRate, setLoanRate] = useState(6);
@@ -92,13 +93,35 @@ export default function SellerCalculator({ transactionId, token } = {}) {
   const [hoaTransferFee, setHoaTransferFee] = useState(0);
   const [sellerConcessions, setSellerConcessions] = useState(0);
   const [repairs, setRepairs] = useState(0);
-  const [annualPropertyTax, setAnnualPropertyTax] = useState(6750);
+  const [taxRate, setTaxRate] = useState(() => flTaxRate(undefined, county).rate);
+  const [taxLoc, setTaxLoc] = useState(() => ({ label: county ? `${county} County` : "FL default", source: county ? "county" : "default" }));
   const [closingDate, setClosingDate] = useState(() => {
     const d = new Date();
     d.setDate(d.getDate() + 30);
     return d.toISOString().slice(0, 10);
   });
   const [otherCosts, setOtherCosts] = useState(0);
+
+  // Default the tax rate to the agent's profile city/county (most deals are local).
+  const userTouchedRate = useRef(false);
+  const onTaxRateChange = (v) => { userTouchedRate.current = true; setTaxRate(v); };
+  useEffect(() => {
+    if (!token) return;
+    const API = import.meta.env.VITE_API_URL || "https://liz-team-server-api-production.up.railway.app";
+    fetch(API + "/profile", { headers: { Authorization: "Bearer " + token } })
+      .then(r => r.json())
+      .then(d => {
+        const p = d && d.profile;
+        if (!p || userTouchedRate.current) return;
+        const cityToUse = p.city || "";
+        const countyToUse = p.county || county || "";
+        if (!cityToUse && !countyToUse) return;
+        const r = flTaxRate(cityToUse, countyToUse);
+        setTaxRate(r.rate);
+        setTaxLoc({ label: r.source === "city" ? `${cityToUse} (your profile)` : (countyToUse ? `${countyToUse} County` : "FL default"), source: r.source });
+      })
+      .catch(() => {});
+  }, [token, county]);
   const [originalPurchasePrice, setOriginalPurchasePrice] = useState(300000);
   const [generating, setGenerating] = useState(false);
   const [genMsg, setGenMsg] = useState(null);
@@ -156,7 +179,9 @@ export default function SellerCalculator({ transactionId, token } = {}) {
       const jan1 = new Date(cd.getFullYear(), 0, 1);
       daysOwned = Math.max(0, Math.round((cd - jan1) / 86400000));
     }
-    const proratedTaxes = (Number(annualPropertyTax) || 0) * (daysOwned / 365);
+    const safeTaxRate = Math.max(0, Math.min(5, Number(taxRate) || 0));
+    const annualPropertyTax = salePrice * (safeTaxRate / 100);
+    const proratedTaxes = annualPropertyTax * (daysOwned / 365);
     // Estimated payoff interest — the title company computes this from the payoff
     // alone (no separate input). ~1 month of per-diem interest at the loan rate:
     // payoff × rate ÷ 365 × 30. Seller only enters the principal payoff balance.
@@ -165,8 +190,8 @@ export default function SellerCalculator({ transactionId, token } = {}) {
     const netProceeds = salePrice - mortgagePayoff - totalCosts;
     const equity = salePrice - originalPurchasePrice;
     const equityPct = originalPurchasePrice > 0 ? (equity / originalPurchasePrice) * 100 : 0;
-    return { commission, docStamps, titleIns, recording, proratedTaxes, daysOwned, payoffInterest, totalCosts, netProceeds, equity, equityPct };
-  }, [salePrice, mortgagePayoff, loanRate, commissionPct, titleSettlement, titleSearchFees, titleProcessingFee, hoaTransferFee, sellerConcessions, repairs, annualPropertyTax, closingDate, otherCosts, originalPurchasePrice]);
+    return { commission, docStamps, titleIns, recording, proratedTaxes, annualPropertyTax, daysOwned, payoffInterest, totalCosts, netProceeds, equity, equityPct };
+  }, [salePrice, mortgagePayoff, loanRate, commissionPct, titleSettlement, titleSearchFees, titleProcessingFee, hoaTransferFee, sellerConcessions, repairs, taxRate, closingDate, otherCosts, originalPurchasePrice]);
 
   return (
     <div style={{ maxWidth: 720, margin: "0 auto", padding: 16, fontFamily: "system-ui, sans-serif" }}>
@@ -228,9 +253,12 @@ export default function SellerCalculator({ transactionId, token } = {}) {
         min={0} max={30000} step={250} prefix="$"
         info="Repairs you agreed to pay for after inspection. Either you fix them or credit buyer the amount." />
 
-      <SliderRow label="Annual Property Tax" value={annualPropertyTax} onChange={setAnnualPropertyTax}
-        min={0} max={40000} step={100} prefix="$"
-        info="Total yearly property tax for this home (county tax record or MLS). We use it to compute the prorated tax credit to the buyer." />
+      <SliderRow label="Property Tax Rate %" value={taxRate} onChange={onTaxRateChange}
+        min={0.3} max={3.0} step={0.005} suffix="%"
+        info="Total millage (% of value). Defaulted from your profile city; adjust for the property's city/county. Annual tax = sale price × rate." />
+      <div style={{ background: "#f9fafb", border: "1px solid #e5e7eb", borderRadius: 6, padding: "8px 12px", marginBottom: 16, fontSize: 12, color: "#6b7280" }}>
+        Rate from <strong style={{ color: "#374151" }}>{taxLoc.label}</strong>{taxLoc.source === "default" ? " (no city/county on file — adjust above)" : ""}. Est. annual tax: <strong style={{ color: "#374151" }}>{money(result.annualPropertyTax)}</strong>
+      </div>
 
       <div style={{ marginBottom: 16 }}>
         <label style={{ fontSize: 14, fontWeight: 600, color: "#374151", display: "block", marginBottom: 6 }}>

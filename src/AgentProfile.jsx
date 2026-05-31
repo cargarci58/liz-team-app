@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 const API = "https://liz-team-server-api-production.up.railway.app";
 
 export default function AgentProfile({ onClose, currentUser }) {
-  const [form, setForm] = useState({ firstName: "", lastName: "", phone: "", photoUrl: "", title: "" });
+  const [form, setForm] = useState({ firstName: "", lastName: "", phone: "", photoUrl: "", title: "", city: "", county: "", state: "FL", zip: "" });
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -20,6 +20,10 @@ export default function AgentProfile({ onClose, currentUser }) {
           phone: d.profile.phone || "",
           photoUrl: d.profile.photoUrl || "",
           title: d.profile.title || "",
+          city: d.profile.city || "",
+          county: d.profile.county || "",
+          state: d.profile.state || "FL",
+          zip: d.profile.zip || "",
         });
         setLoading(false);
       }).catch(() => setLoading(false));
@@ -110,6 +114,28 @@ export default function AgentProfile({ onClose, currentUser }) {
               <input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} style={inp} placeholder="Transaction Coordinator, Broker, Real Estate Agent..." />
               <div style={{ fontSize: 11, color: "#888", marginTop: 4 }}>Shown in your email signature</div>
             </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 8 }}>
+              <div>
+                <label style={lbl}>City</label>
+                <input value={form.city} onChange={e => setForm(f => ({ ...f, city: e.target.value }))} style={inp} placeholder="Orlando" />
+              </div>
+              <div>
+                <label style={lbl}>County</label>
+                <input value={form.county} onChange={e => setForm(f => ({ ...f, county: e.target.value }))} style={inp} placeholder="Orange" />
+              </div>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 18 }}>
+              <div>
+                <label style={lbl}>State</label>
+                <input value={form.state} onChange={e => setForm(f => ({ ...f, state: e.target.value }))} style={inp} placeholder="FL" />
+              </div>
+              <div>
+                <label style={lbl}>Zip</label>
+                <input value={form.zip} onChange={e => setForm(f => ({ ...f, zip: e.target.value }))} style={inp} placeholder="32801" />
+              </div>
+            </div>
+            <div style={{ fontSize: 11, color: "#888", marginTop: -8, marginBottom: 16 }}>Your home market — used to default the property-tax rate on net sheets.</div>
 
             <div style={{ marginBottom: 16 }}>
               <label style={lbl}>Profile Photo</label>
