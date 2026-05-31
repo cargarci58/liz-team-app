@@ -486,6 +486,9 @@ function CashToCloseTab({ transactionId, token, showGenerate, county } = {}) {
   const [surveyFee, setSurveyFee] = useState(450);
   const [prepaids, setPrepaids] = useState(3500);
   const [sellerConcessions, setSellerConcessions] = useState(0);
+  const [insRate, setInsRate] = useState(0.6);   // homeowners insurance, % of price / yr
+  const [hoaMonthly, setHoaMonthly] = useState(0);
+  const [pmiRate, setPmiRate] = useState(0.5);    // annual PMI, % of loan (when down < 20%)
   const [taxRate, setTaxRate] = useState(() => flTaxRate(undefined, county).rate);
   const [taxLoc, setTaxLoc] = useState(() => ({ label: county ? `${county} County` : "FL default", source: county ? "county" : "default" }));
   const [closingDate, setClosingDate] = useState(() => {
@@ -523,6 +526,19 @@ function CashToCloseTab({ transactionId, token, showGenerate, county } = {}) {
       })
       .catch(() => {});
   }, [token, county]);
+
+  // Escrow reserves / prepaids scale with taxes + insurance (a flat default badly
+  // understates high-value homes). Estimate = 1 yr prepaid insurance + 2 mo
+  // insurance cushion + 3 mo tax reserve. Auto-updates until the agent edits it.
+  const userTouchedEscrow = React.useRef(false);
+  const onPrepaidsChange = (v) => { userTouchedEscrow.current = true; setPrepaids(v); };
+  useEffect(() => {
+    if (userTouchedEscrow.current) return;
+    const annualIns = price * (Math.max(0, Number(insRate) || 0) / 100);
+    const annualTax = price * (Math.max(0, Number(taxRate) || 0) / 100);
+    const est = annualIns * (14 / 12) + annualTax * (3 / 12);
+    setPrepaids(Math.round(est));
+  }, [price, insRate, taxRate]);
 
   const result = useMemo(() => {
     const cash = loanType === "Cash";
@@ -595,13 +611,24 @@ function CashToCloseTab({ transactionId, token, showGenerate, county } = {}) {
     // after credits, EXCLUDING down payment, escrow reserves & prepaid interest.
     const fixedCosts = closingCosts - effPrepaids - prepaidInterest - taxProrationCredit - sellerConcessions;
 
+    // ── Estimated monthly payment (PITI + PMI + HOA) ──
+    const annualInsurance = price * (Math.max(0, Number(insRate) || 0) / 100);
+    const piMonthly = hasLoan ? monthlyPI(loan, interestRate, term) : 0;
+    const taxMonthly = annualPropertyTax / 12;
+    const insMonthly = annualInsurance / 12;
+    const pmiApplies = hasLoan && loanType !== "VA" && safeDownPct < 20;
+    const pmiMonthly = pmiApplies ? loan * (Math.max(0, Number(pmiRate) || 0) / 100) / 12 : 0;
+    const hoaMo = Math.max(0, Number(hoaMonthly) || 0);
+    const monthlyTotal = piMonthly + taxMonthly + insMonthly + pmiMonthly + hoaMo;
+
     return {
       cash, downPayment, loan, emd, titleIns, ownerPremium, lenderTitle, origination, docStampsNote, intangibleTax,
       titleSearch, recording, settlementFee, inspectionFee, effAppraisal, effLenderFees,
       surveyFee, prepaidInterest, interestDays, effPrepaids, buyerAgentFee, sellerConcessions,
-      annualPropertyTax, taxProrationCredit, daysOwned, closingCosts, fixedCosts, totalCash, cashAtClosing
+      annualPropertyTax, taxProrationCredit, daysOwned, closingCosts, fixedCosts, totalCash, cashAtClosing,
+      piMonthly, taxMonthly, insMonthly, pmiMonthly, hoaMo, monthlyTotal, pmiApplies
     };
-  }, [price, loanType, downPct, emd, rate, buyerPaysOwnerTitle, buyerAgentPct, buyerPaysAgent, originationPct, lenderTitleFees, inspectionFee, appraisalFee, lenderFees, surveyFee, prepaids, sellerConcessions, taxRate, closingDate]);
+  }, [price, loanType, downPct, emd, rate, term, buyerPaysOwnerTitle, buyerAgentPct, buyerPaysAgent, originationPct, lenderTitleFees, inspectionFee, appraisalFee, lenderFees, surveyFee, prepaids, sellerConcessions, taxRate, insRate, hoaMonthly, pmiRate, closingDate]);
 
   const generatePdf = async (lang = "en") => {
     if (!transactionId || !token) {
@@ -633,6 +660,9 @@ function CashToCloseTab({ transactionId, token, showGenerate, county } = {}) {
           taxProrationCredit: result.taxProrationCredit,
           closingCosts: result.closingCosts, fixedCosts: result.fixedCosts,
           totalCash: result.totalCash, cashAtClosing: result.cashAtClosing,
+          piMonthly: result.piMonthly, taxMonthly: result.taxMonthly,
+          insMonthly: result.insMonthly, pmiMonthly: result.pmiMonthly,
+          hoaMonthly: result.hoaMo, monthlyTotal: result.monthlyTotal,
           estimatedClosingDate: closingDate,
         }),
       });
@@ -757,10 +787,21 @@ function CashToCloseTab({ transactionId, token, showGenerate, county } = {}) {
       <SliderRow label="Survey" value={surveyFee} onChange={setSurveyFee}
         min={0} max={1000} step={50} prefix="$"
         info="Optional but recommended. Shows property lines, encroachments, easements." />
+      <SliderRow label="Homeowners Insurance Rate %/yr" value={insRate} onChange={setInsRate}
+        min={0.3} max={3.0} step={0.05} suffix="%"
+        info="Annual homeowners insurance as a % of price. FL is high (hurricane risk) — often 0.6–1.5%+, more for coastal/high-value homes. Drives both the monthly payment and the escrow reserves." />
+      <SliderRow label="HOA / Condo Fees (monthly)" value={hoaMonthly} onChange={setHoaMonthly}
+        min={0} max={2000} step={25} prefix="$"
+        info="Monthly HOA/condo dues, if any. Included in the monthly payment estimate." />
+      {!isCash && result.pmiApplies && (
+        <SliderRow label="PMI Rate %/yr" value={pmiRate} onChange={setPmiRate}
+          min={0.2} max={1.5} step={0.05} suffix="%"
+          info="Private Mortgage Insurance — required when down payment is under 20%. Annual % of the loan; drops off at 78% LTV." />
+      )}
       {!isCash && (
-        <SliderRow label="Escrow Reserves (taxes + insurance)" value={prepaids} onChange={setPrepaids}
-          min={0} max={15000} step={250} prefix="$"
-          info="Lender collects a few months of property tax + insurance up front to fund the escrow account. (Prepaid interest is computed separately from your rate above.)" />
+        <SliderRow label="Escrow Reserves + Prepaids (taxes + insurance)" value={prepaids} onChange={onPrepaidsChange}
+          min={0} max={60000} step={250} prefix="$"
+          info="Auto-estimated as ~1 yr prepaid insurance + a few months of tax & insurance reserves — it SCALES with the home's taxes & insurance. On high-value homes this is large. Exact amount is on the lender's Loan Estimate; edit to override." />
       )}
       <SliderRow label="Seller Concessions (credit to buyer)" value={sellerConcessions} onChange={setSellerConcessions}
         min={0} max={50000} step={500} prefix="$"
@@ -799,6 +840,18 @@ function CashToCloseTab({ transactionId, token, showGenerate, county } = {}) {
 
       <div style={{ background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 8, padding: "10px 14px", marginTop: 12, fontSize: 12, color: "#1e3a8a" }}>
         <strong>Closing costs only: {money(result.fixedCosts)}</strong> — excludes the down payment, escrow reserves &amp; prepaid interest. This is the apples-to-apples number to compare against a title company's "Total Fixed Costs."
+      </div>
+
+      <div style={{ background: "linear-gradient(135deg, #1e3a8a, #1e40af)", color: "white", padding: 20, borderRadius: 12, marginTop: 12 }}>
+        <div style={{ fontSize: 13, opacity: 0.9, marginBottom: 4 }}>Estimated Monthly Payment</div>
+        <div style={{ fontSize: 32, fontWeight: 800 }}>{money(result.monthlyTotal)}/mo</div>
+        <div style={{ fontSize: 13, opacity: 0.95, marginTop: 12, borderTop: "1px solid rgba(255,255,255,0.3)", paddingTop: 12, lineHeight: 1.8 }}>
+          {result.piMonthly > 0 && <div>Principal &amp; Interest: <strong>{money(result.piMonthly)}</strong></div>}
+          <div>Property Taxes: <strong>{money(result.taxMonthly)}</strong></div>
+          <div>Homeowners Insurance: <strong>{money(result.insMonthly)}</strong></div>
+          {result.pmiMonthly > 0 && <div>PMI: <strong>{money(result.pmiMonthly)}</strong></div>}
+          {result.hoaMo > 0 && <div>HOA: <strong>{money(result.hoaMo)}</strong></div>}
+        </div>
       </div>
 
       <details style={{ marginTop: 16, background: "#f9fafb", border: "1px solid #e5e7eb", borderRadius: 8, padding: 12 }}>
