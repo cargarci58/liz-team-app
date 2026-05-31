@@ -99,7 +99,7 @@ export default function SellerCalculator({ transactionId, token } = {}) {
   const [generating, setGenerating] = useState(false);
   const [genMsg, setGenMsg] = useState(null);
 
-  const generatePdf = async () => {
+  const generatePdf = async (lang = "en") => {
     if (!transactionId || !token) {
       setGenMsg({ type: "error", text: "Open this calculator from inside a transaction to generate a compliance PDF." });
       return;
@@ -112,6 +112,7 @@ export default function SellerCalculator({ transactionId, token } = {}) {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
         body: JSON.stringify({
+          lang,
           salePrice, mortgagePayoff, commissionPct,
           titleSettlement, hoaTransferFee, sellerConcessions,
           repairs, otherCosts,
@@ -305,24 +306,44 @@ export default function SellerCalculator({ transactionId, token } = {}) {
           <div style={{ fontSize: 12, color: "#78350f", marginBottom: 10, lineHeight: 1.5 }}>
             FL listing agents have a fiduciary duty to provide sellers with an estimated net sheet before the listing agreement and when reviewing offers. Generate a branded, signed-ready PDF and save it to this transaction's Documents for the brokerage compliance file.
           </div>
-          <button
-            type="button"
-            onClick={generatePdf}
-            disabled={generating}
-            style={{
-              background: generating ? "#9ca3af" : "#0c4a6e",
-              color: "white",
-              border: "none",
-              borderRadius: 6,
-              padding: "10px 18px",
-              fontSize: 13,
-              fontWeight: 700,
-              cursor: generating ? "wait" : "pointer",
-              fontFamily: "inherit",
-            }}
-          >
-            {generating ? "Generating PDF..." : "📄 Generate Seller's Net Sheet PDF"}
-          </button>
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+            <button
+              type="button"
+              onClick={() => generatePdf("en")}
+              disabled={generating}
+              style={{
+                background: generating ? "#9ca3af" : "#0c4a6e",
+                color: "white",
+                border: "none",
+                borderRadius: 6,
+                padding: "10px 18px",
+                fontSize: 13,
+                fontWeight: 700,
+                cursor: generating ? "wait" : "pointer",
+                fontFamily: "inherit",
+              }}
+            >
+              {generating ? "Generating PDF..." : "📄 Generate Net Sheet (English)"}
+            </button>
+            <button
+              type="button"
+              onClick={() => generatePdf("es")}
+              disabled={generating}
+              style={{
+                background: generating ? "#9ca3af" : "#15803d",
+                color: "white",
+                border: "none",
+                borderRadius: 6,
+                padding: "10px 18px",
+                fontSize: 13,
+                fontWeight: 700,
+                cursor: generating ? "wait" : "pointer",
+                fontFamily: "inherit",
+              }}
+            >
+              {generating ? "Generando PDF..." : "📄 Generar Hoja Neta (Español)"}
+            </button>
+          </div>
           {genMsg && (
             <div style={{
               marginTop: 10, padding: 10, borderRadius: 6, fontSize: 12,
