@@ -486,7 +486,7 @@ function CashToCloseTab({ transactionId, token, showGenerate, county } = {}) {
   const [surveyFee, setSurveyFee] = useState(450);
   const [prepaids, setPrepaids] = useState(3500);
   const [sellerConcessions, setSellerConcessions] = useState(0);
-  const [insAnnual, setInsAnnual] = useState(() => Math.round(450000 * 0.01)); // annual premium $; auto ~1% of price until edited
+  const [insAnnual, setInsAnnual] = useState(3000); // annual premium $ — flat FL default; agent enters the real quote
   const [hoaMonthly, setHoaMonthly] = useState(0);
   const [pmiRate, setPmiRate] = useState(0.5);    // annual PMI, % of loan (when down < 20%)
   const [taxRate, setTaxRate] = useState(() => flTaxRate(undefined, county).rate);
@@ -532,16 +532,9 @@ function CashToCloseTab({ transactionId, token, showGenerate, county } = {}) {
   // insurance cushion + 3 mo tax reserve. Auto-updates until the agent edits it.
   const userTouchedEscrow = React.useRef(false);
   const onPrepaidsChange = (v) => { userTouchedEscrow.current = true; setPrepaids(v); };
-  // Homeowners insurance defaults to ~1% of price (FL avg) until the agent
-  // enters the real annual premium — that's the last lever to match a lender/
-  // title quote exactly (it drives both escrow and the monthly payment).
-  const userTouchedIns = React.useRef(false);
-  const onInsChange = (v) => { userTouchedIns.current = true; setInsAnnual(v); };
-  useEffect(() => {
-    if (userTouchedIns.current) return;
-    setInsAnnual(Math.round(price * 0.01));
-  }, [price]);
-
+  // Homeowners insurance is a flat dollar default (NOT a % of price — premiums
+  // are based on replacement cost & risk, not purchase price). The agent enters
+  // the real annual quote; escrow + monthly payment follow whatever is entered.
   useEffect(() => {
     if (userTouchedEscrow.current) return;
     const annualIns = Math.max(0, Number(insAnnual) || 0);
@@ -806,11 +799,11 @@ function CashToCloseTab({ transactionId, token, showGenerate, county } = {}) {
       <SliderRow label="Survey" value={surveyFee} onChange={setSurveyFee}
         min={0} max={1000} step={50} prefix="$"
         info="Optional but recommended. Shows property lines, encroachments, easements." />
-      <SliderRow label="Annual Homeowners Insurance" value={insAnnual} onChange={onInsChange}
+      <SliderRow label="Annual Homeowners Insurance" value={insAnnual} onChange={setInsAnnual}
         min={0} max={40000} step={100} prefix="$"
-        info="Annual premium. Defaults to ~1% of price (FL average — highest in the US). Enter the actual insurance quote to match the lender/title figure exactly. Drives both the monthly payment and the escrow reserves." />
+        info="Actual annual premium (a dollar amount, NOT a % of price — insurance is based on replacement cost & risk). FL typically runs ~$2,500–$4,000; coastal/older homes more. Enter the real quote. Drives the monthly payment and escrow reserves." />
       <div style={{ background: "#f9fafb", border: "1px solid #e5e7eb", borderRadius: 6, padding: "6px 12px", marginBottom: 16, fontSize: 12, color: "#6b7280" }}>
-        ≈ {(price > 0 ? (insAnnual / price * 100) : 0).toFixed(2)}% of price · {money(insAnnual / 12)}/mo
+        {money(insAnnual / 12)}/mo · enter the buyer's actual insurance quote for an accurate estimate.
       </div>
       <SliderRow label="HOA / Condo Fees (monthly)" value={hoaMonthly} onChange={setHoaMonthly}
         min={0} max={2000} step={25} prefix="$"
