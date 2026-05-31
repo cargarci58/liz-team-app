@@ -464,7 +464,7 @@ function PaymentTab() {
 // ============================================================
 // TAB 3 — Cash to Close (all-in upfront)
 // ============================================================
-function CashToCloseTab({ transactionId, token } = {}) {
+function CashToCloseTab({ transactionId, token, showGenerate } = {}) {
   const [price, setPrice] = useState(450000);
   const [downPct, setDownPct] = useState(20);
   const [emdPct, setEmdPct] = useState(1);
@@ -673,7 +673,7 @@ function CashToCloseTab({ transactionId, token } = {}) {
         ⚠️ Estimate only. Your lender's Loan Estimate (LE) within 3 business days of application is the official figure.
       </div>
 
-      {transactionId && (
+      {showGenerate && transactionId && (
         <div style={{ marginTop: 20, padding: 16, background: "#f0fdf4", border: "1px solid #86efac", borderRadius: 8 }}>
           <div style={{ fontSize: 13, fontWeight: 700, color: "#14532d", marginBottom: 6 }}>📄 Generate Buyer's Net Sheet</div>
           <div style={{ fontSize: 12, color: "#14532d", marginBottom: 10, lineHeight: 1.5 }}>
@@ -706,16 +706,30 @@ function CashToCloseTab({ transactionId, token } = {}) {
 // ============================================================
 // Main component with tab navigation
 // ============================================================
-export default function BuyerCalculator({ transactionId, token } = {}) {
-  // Inside a transaction, open straight to the net sheet (Cash to Close) so the
-  // "Generate Buyer's Net Sheet" PDF is immediately visible. Standalone, start on Affordability.
-  const [tab, setTab] = useState(transactionId ? "cash" : "affordability");
+export default function BuyerCalculator({ transactionId, token, mode } = {}) {
+  const [tab, setTab] = useState("affordability");
 
   const tabs = [
-    { id: "cash", label: "💰 Buyer Net Sheet", desc: "Cash to close + PDF" },
     { id: "affordability", label: "🏡 Affordability", desc: "How much home can I afford?" },
     { id: "payment", label: "💵 Monthly Payment", desc: "What will my payment be?" },
+    { id: "cash", label: "💰 Cash to Close", desc: "What do I need upfront?" },
   ];
+
+  // Dedicated net-sheet view (its own transaction tab): render only the net sheet
+  // with the Generate PDF buttons, no calculator sub-tabs.
+  if (mode === "net") {
+    return (
+      <div style={{ maxWidth: 720, margin: "0 auto", padding: 16, fontFamily: "system-ui, sans-serif" }}>
+        <div style={{ marginBottom: 16 }}>
+          <h2 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: "#1f2937" }}>Buyer's Net Sheet</h2>
+          <p style={{ margin: "4px 0 0", fontSize: 13, color: "#6b7280" }}>
+            Florida-specific estimated cash to close. Generate a branded English or Spanish PDF below.
+          </p>
+        </div>
+        <CashToCloseTab transactionId={transactionId} token={token} showGenerate={true} />
+      </div>
+    );
+  }
 
   return (
     <div style={{ maxWidth: 720, margin: "0 auto", padding: 16, fontFamily: "system-ui, sans-serif" }}>
@@ -752,7 +766,7 @@ export default function BuyerCalculator({ transactionId, token } = {}) {
 
       {tab === "affordability" && <AffordabilityTab />}
       {tab === "payment" && <PaymentTab />}
-      {tab === "cash" && <CashToCloseTab transactionId={transactionId} token={token} />}
+      {tab === "cash" && <CashToCloseTab transactionId={transactionId} token={token} showGenerate={false} />}
     </div>
   );
 }
