@@ -1527,7 +1527,7 @@ export default function ContactsPage({ token, onBack }) {
       )}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8, flexWrap: "wrap", gap: 12 }}>
         <div>
-          <div style={{ fontSize: 26, fontWeight: 800 }}>📇 Contacts</div>
+          <div style={{ fontSize: 26, fontWeight: 800 }}>📇 Contacts in the Database</div>
           <div style={{ fontSize: 13, color: "#6b7280" }}>Your private lead list. {contacts.length} contact{contacts.length === 1 ? "" : "s"}.</div>
         </div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
