@@ -84,14 +84,16 @@ function SliderRow({ label, value, onChange, min, max, step, prefix, suffix, inf
 export default function SellerCalculator({ transactionId, token } = {}) {
   const [salePrice, setSalePrice] = useState(450000);
   const [mortgagePayoff, setMortgagePayoff] = useState(180000);
+  const [loanRate, setLoanRate] = useState(6);
   const [commissionPct, setCommissionPct] = useState(6);
-  const [titleSettlement, setTitleSettlement] = useState(500);
+  const [titleSettlement, setTitleSettlement] = useState(575);
   const [titleSearchFees, setTitleSearchFees] = useState(400);
-  const [titleProcessingFee, setTitleProcessingFee] = useState(0);
+  const [titleProcessingFee, setTitleProcessingFee] = useState(499);
   const [hoaTransferFee, setHoaTransferFee] = useState(0);
   const [sellerConcessions, setSellerConcessions] = useState(0);
   const [repairs, setRepairs] = useState(0);
-  const [proratedTaxes, setProratedTaxes] = useState(1500);
+  const [annualPropertyTax, setAnnualPropertyTax] = useState(6750);
+  const [closingDate, setClosingDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [otherCosts, setOtherCosts] = useState(500);
   const [originalPurchasePrice, setOriginalPurchasePrice] = useState(300000);
   const [generating, setGenerating] = useState(false);
@@ -112,8 +114,11 @@ export default function SellerCalculator({ transactionId, token } = {}) {
         body: JSON.stringify({
           salePrice, mortgagePayoff, commissionPct,
           titleSettlement, hoaTransferFee, sellerConcessions,
-          repairs, proratedTaxes, otherCosts,
+          repairs, otherCosts,
           titleSearchFees, titleProcessingFee,
+          proratedTaxes: result.proratedTaxes,
+          payoffInterest: result.payoffInterest,
+          estimatedClosingDate: closingDate,
           netProceeds: result.netProceeds,
           commission: result.commission,
           docStamps: result.docStamps,
@@ -138,12 +143,25 @@ export default function SellerCalculator({ transactionId, token } = {}) {
     const docStamps = flDocStampsDeed(salePrice);
     const titleIns = flTitleInsurance(salePrice);
     const recording = 50;
-    const totalCosts = commission + docStamps + titleIns + titleSettlement + titleSearchFees + titleProcessingFee + hoaTransferFee + sellerConcessions + repairs + proratedTaxes + otherCosts + recording;
+    // FL taxes are paid in arrears — seller credits buyer for the days they owned
+    // the home this calendar year (Jan 1 → closing). Same method the title company uses.
+    let daysOwned = 0;
+    const cd = new Date(closingDate + "T00:00:00");
+    if (!isNaN(cd)) {
+      const jan1 = new Date(cd.getFullYear(), 0, 1);
+      daysOwned = Math.max(0, Math.round((cd - jan1) / 86400000));
+    }
+    const proratedTaxes = (Number(annualPropertyTax) || 0) * (daysOwned / 365);
+    // Estimated payoff interest — the title company computes this from the payoff
+    // alone (no separate input). ~1 month of per-diem interest at the loan rate:
+    // payoff × rate ÷ 365 × 30. Seller only enters the principal payoff balance.
+    const payoffInterest = mortgagePayoff * ((Number(loanRate) || 0) / 100) * (30 / 365);
+    const totalCosts = commission + docStamps + titleIns + titleSettlement + titleSearchFees + titleProcessingFee + hoaTransferFee + sellerConcessions + repairs + proratedTaxes + payoffInterest + otherCosts + recording;
     const netProceeds = salePrice - mortgagePayoff - totalCosts;
     const equity = salePrice - originalPurchasePrice;
     const equityPct = originalPurchasePrice > 0 ? (equity / originalPurchasePrice) * 100 : 0;
-    return { commission, docStamps, titleIns, recording, totalCosts, netProceeds, equity, equityPct };
-  }, [salePrice, mortgagePayoff, commissionPct, titleSettlement, titleSearchFees, titleProcessingFee, hoaTransferFee, sellerConcessions, repairs, proratedTaxes, otherCosts, originalPurchasePrice]);
+    return { commission, docStamps, titleIns, recording, proratedTaxes, daysOwned, payoffInterest, totalCosts, netProceeds, equity, equityPct };
+  }, [salePrice, mortgagePayoff, loanRate, commissionPct, titleSettlement, titleSearchFees, titleProcessingFee, hoaTransferFee, sellerConcessions, repairs, annualPropertyTax, closingDate, otherCosts, originalPurchasePrice]);
 
   return (
     <div style={{ maxWidth: 720, margin: "0 auto", padding: 16, fontFamily: "system-ui, sans-serif" }}>
@@ -164,7 +182,18 @@ export default function SellerCalculator({ transactionId, token } = {}) {
 
       <SliderRow label="Mortgage Payoff" value={mortgagePayoff} onChange={setMortgagePayoff}
         min={0} max={1500000} step={1000} prefix="$"
-        info="Remaining balance on your loan. Includes per-diem interest through closing day. Get exact figure from your lender (payoff statement)." />
+        info="Remaining principal balance on your loan (from your lender). Just enter the payoff — we add an estimated month of per-diem interest below automatically, like the title company does." />
+
+      <SliderRow label="Loan Interest Rate %" value={loanRate} onChange={setLoanRate}
+        min={0} max={12} step={0.125} suffix="%"
+        info="Used only to estimate the payoff interest (~1 month). Default 6% works for most cases; adjust if you know the seller's rate." />
+
+      {mortgagePayoff > 0 && (
+        <div style={{ background: "#f9fafb", border: "1px solid #e5e7eb", borderRadius: 6, padding: "8px 12px", marginBottom: 16, fontSize: 13, color: "#374151" }}>
+          Estimated Payoff Interest (~1 month): <strong>{money(result.payoffInterest)}</strong>
+          <span style={{ color: "#6b7280" }}> — added to closing costs automatically</span>
+        </div>
+      )}
 
       <SliderRow label="Agent Commission %" value={commissionPct} onChange={setCommissionPct}
         min={1} max={10} step={0.25} suffix="%"
@@ -194,9 +223,23 @@ export default function SellerCalculator({ transactionId, token } = {}) {
         min={0} max={30000} step={250} prefix="$"
         info="Repairs you agreed to pay for after inspection. Either you fix them or credit buyer the amount." />
 
-      <SliderRow label="Prorated Property Taxes" value={proratedTaxes} onChange={setProratedTaxes}
-        min={0} max={15000} step={100} prefix="$"
-        info="FL property taxes are paid in arrears (Nov for prior year). Seller credits buyer for days owned in current year. Estimate ~1.1% of sale price ÷ 365 × days from Jan 1 to closing." />
+      <SliderRow label="Annual Property Tax" value={annualPropertyTax} onChange={setAnnualPropertyTax}
+        min={0} max={40000} step={100} prefix="$"
+        info="Total yearly property tax for this home (county tax record or MLS). We use it to compute the prorated tax credit to the buyer." />
+
+      <div style={{ marginBottom: 16 }}>
+        <label style={{ fontSize: 14, fontWeight: 600, color: "#374151", display: "block", marginBottom: 6 }}>
+          Estimated Closing Date
+          <Info>FL property taxes are paid in arrears. The seller credits the buyer for every day they owned the home this year (Jan 1 → closing). This is how the title company computes prorated taxes.</Info>
+        </label>
+        <input type="date" value={closingDate} onChange={(e) => setClosingDate(e.target.value)}
+          style={{ padding: "6px 10px", fontSize: 14, fontWeight: 600, color: "#1f2937", border: "1px solid #d1d5db", borderRadius: 4, fontFamily: "inherit" }} />
+      </div>
+
+      <div style={{ background: "#f9fafb", border: "1px solid #e5e7eb", borderRadius: 6, padding: "8px 12px", marginBottom: 16, fontSize: 13, color: "#374151" }}>
+        Prorated Property Taxes (credit to buyer): <strong>{money(result.proratedTaxes)}</strong>
+        <span style={{ color: "#6b7280" }}> — {result.daysOwned} days owned this year</span>
+      </div>
 
       <SliderRow label="Other Costs (HOA dues, util reads, etc.)" value={otherCosts} onChange={setOtherCosts}
         min={0} max={5000} step={50} prefix="$"
@@ -241,7 +284,8 @@ export default function SellerCalculator({ transactionId, token } = {}) {
             <tr><td style={{ padding: "4px 0" }}>HOA Estoppel/Transfer</td><td style={{ textAlign: "right", fontWeight: 600 }}>{money(hoaTransferFee)}</td></tr>
             <tr><td style={{ padding: "4px 0" }}>Seller Concessions</td><td style={{ textAlign: "right", fontWeight: 600 }}>{money(sellerConcessions)}</td></tr>
             <tr><td style={{ padding: "4px 0" }}>Negotiated Repairs</td><td style={{ textAlign: "right", fontWeight: 600 }}>{money(repairs)}</td></tr>
-            <tr><td style={{ padding: "4px 0" }}>Prorated Taxes</td><td style={{ textAlign: "right", fontWeight: 600 }}>{money(proratedTaxes)}</td></tr>
+            <tr><td style={{ padding: "4px 0" }}>Prorated Taxes</td><td style={{ textAlign: "right", fontWeight: 600 }}>{money(result.proratedTaxes)}</td></tr>
+            <tr><td style={{ padding: "4px 0" }}>Est. Payoff Interest (~1 mo)</td><td style={{ textAlign: "right", fontWeight: 600 }}>{money(result.payoffInterest)}</td></tr>
             <tr><td style={{ padding: "4px 0" }}>Recording Fees</td><td style={{ textAlign: "right", fontWeight: 600 }}>{money(result.recording)}</td></tr>
             <tr><td style={{ padding: "4px 0" }}>Other</td><td style={{ textAlign: "right", fontWeight: 600 }}>{money(otherCosts)}</td></tr>
             <tr style={{ borderTop: "2px solid #d1d5db" }}><td style={{ padding: "8px 0", fontWeight: 700 }}>Total Closing Costs</td><td style={{ textAlign: "right", fontWeight: 700 }}>{money(result.totalCosts)}</td></tr>
