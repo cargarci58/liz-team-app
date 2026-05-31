@@ -498,6 +498,9 @@ function CashToCloseTab({ transactionId, token, showGenerate, county } = {}) {
   });
   const [generating, setGenerating] = useState(false);
   const [genMsg, setGenMsg] = useState(null);
+  const [autofilling, setAutofilling] = useState(false);
+  const [autofillMsg, setAutofillMsg] = useState(null);
+  const autofillInputRef = React.useRef(null);
 
   const isCash = loanType === "Cash";
   const selectLoanType = (t) => { setLoanType(t); setDownPct(DOWN_DEFAULTS[t]); };
@@ -642,6 +645,74 @@ function CashToCloseTab({ transactionId, token, showGenerate, county } = {}) {
     };
   }, [price, loanType, downPct, emd, rate, term, buyerPaysOwnerTitle, buyerAgentPct, buyerPaysAgent, originationPct, lenderTitleFees, inspectionFee, appraisalFee, lenderFees, surveyFee, prepaids, sellerConcessions, taxRate, insAnnual, hoaMonthly, pmiRate, closingDate]);
 
+  const autofillFromDocs = async (file) => {
+    if (!transactionId || !token) {
+      setAutofillMsg({ type: "error", text: "Open this from inside a transaction to auto-fill." });
+      return;
+    }
+    setAutofilling(true);
+    setAutofillMsg(null);
+    try {
+      let payload = { fileName: null, fileType: null, base64: null };
+      if (file) {
+        payload.fileName = file.name;
+        payload.fileType = file.type;
+        payload.base64 = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(String(reader.result).split(",")[1]);
+          reader.onerror = () => reject(new Error("Could not read file"));
+          reader.readAsDataURL(file);
+        });
+      }
+      const API = import.meta.env.VITE_API_URL || "https://liz-team-server-api-production.up.railway.app";
+      const res = await fetch(API + "/transactions/" + transactionId + "/net-sheet-autofill", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Auto-fill failed");
+
+      const p = data.property || {}, l = data.loan || {};
+      const filled = [];
+      let newPrice = price;
+      if (Number(p.list_price) > 0) { newPrice = Number(p.list_price); setPrice(newPrice); filled.push("price"); }
+      if (p.hoa_fee_monthly != null && p.hoa_fee_monthly !== "") { setHoaMonthly(Math.max(0, Number(p.hoa_fee_monthly) || 0)); filled.push("HOA"); }
+      if (Number(p.annual_property_tax) > 0 && newPrice > 0) {
+        onTaxRateChange(Number((Number(p.annual_property_tax) / newPrice * 100).toFixed(3)));
+        filled.push("property tax");
+      }
+      // Loan terms (set type first so its down-payment default doesn't overwrite the real one)
+      let appliedType = loanType;
+      if (l.financing_type) {
+        appliedType = ["Conventional", "FHA", "VA", "Cash"].includes(l.financing_type) ? l.financing_type : "Conventional";
+        selectLoanType(appliedType); filled.push("loan type");
+      }
+      if (Number(l.loan_rate) > 0) { setRate(Number(l.loan_rate)); filled.push("rate"); }
+      if (Number(l.loan_term_years) > 0) { setTerm(Number(l.loan_term_years)); filled.push("term"); }
+      if (appliedType !== "Cash") {
+        let dp = null;
+        if (Number(l.down_payment) > 0 && newPrice > 0) dp = Number(l.down_payment) / newPrice * 100;
+        else if (Number(l.loan_amount) > 0 && newPrice > 0) dp = (1 - Number(l.loan_amount) / newPrice) * 100;
+        if (dp != null && isFinite(dp) && dp >= 0) { setDownPct(Number(dp.toFixed(1))); filled.push("down payment"); }
+      }
+
+      const notes = [];
+      if (data.sources?.property) notes.push("listing: " + data.sources.property);
+      if (data.sources?.loan) notes.push("pre-approval: " + data.sources.loan);
+      if (data.sources?.loanError) notes.push(data.sources.loanError);
+      if (data.sources?.propertyError) notes.push(data.sources.propertyError);
+      setAutofillMsg({
+        type: filled.length ? "success" : "error",
+        text: (filled.length ? "✨ Filled " + filled.join(", ") + " — review everything below before generating." : "Couldn't extract usable numbers.") + (notes.length ? "  (" + notes.join("; ") + ")" : ""),
+      });
+    } catch (e) {
+      setAutofillMsg({ type: "error", text: e.message || "Auto-fill failed" });
+    } finally {
+      setAutofilling(false);
+    }
+  };
+
   const generatePdf = async (lang = "en") => {
     if (!transactionId || !token) {
       setGenMsg({ type: "error", text: "Open this calculator from inside a transaction to generate a PDF." });
@@ -693,6 +764,35 @@ function CashToCloseTab({ transactionId, token, showGenerate, county } = {}) {
       <div style={{ background: "#dcfce7", border: "1px solid #86efac", borderRadius: 8, padding: 12, marginBottom: 16, fontSize: 13, color: "#14532d" }}>
         <strong>💡 What this tells you:</strong> The total cash the buyer needs at closing — down payment PLUS closing costs, minus the property-tax credit from the seller. Florida has specific taxes (doc stamps, intangible tax) most buyers don't know about.
       </div>
+
+      {transactionId && (
+        <div style={{ background: "#eef2ff", border: "1px solid #c7d2fe", borderRadius: 8, padding: 12, marginBottom: 16 }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: "#3730a3", marginBottom: 4 }}>🤖 Auto-fill from documents</div>
+          <div style={{ fontSize: 12, color: "#3730a3", marginBottom: 10, lineHeight: 1.5 }}>
+            Upload the listing / MLS sheet / BPO and the AI pulls price, taxes &amp; HOA — and reads this transaction's pre-approval letter for loan type, down payment, rate &amp; term. Review the fields before generating.
+          </div>
+          <input ref={autofillInputRef} type="file" accept=".pdf,image/*" style={{ display: "none" }}
+            onChange={(e) => { const f = e.target.files && e.target.files[0]; e.target.value = ""; if (f) autofillFromDocs(f); }} />
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+            <button type="button" onClick={() => autofillInputRef.current && autofillInputRef.current.click()} disabled={autofilling}
+              style={{ background: autofilling ? "#9ca3af" : "#4f46e5", color: "white", border: "none", borderRadius: 6, padding: "9px 16px", fontSize: 13, fontWeight: 700, cursor: autofilling ? "wait" : "pointer", fontFamily: "inherit" }}>
+              {autofilling ? "Reading documents…" : "📄 Upload listing & auto-fill"}
+            </button>
+            <button type="button" onClick={() => autofillFromDocs(null)} disabled={autofilling}
+              style={{ background: "#fff", color: "#4f46e5", border: "1px solid #c7d2fe", borderRadius: 6, padding: "9px 16px", fontSize: 13, fontWeight: 700, cursor: autofilling ? "wait" : "pointer", fontFamily: "inherit" }}>
+              Read pre-approval only
+            </button>
+          </div>
+          {autofillMsg && (
+            <div style={{ marginTop: 10, padding: 10, borderRadius: 6, fontSize: 12,
+              background: autofillMsg.type === "success" ? "#dcfce7" : "#fee2e2",
+              border: "1px solid " + (autofillMsg.type === "success" ? "#86efac" : "#fca5a5"),
+              color: autofillMsg.type === "success" ? "#14532d" : "#7f1d1d" }}>
+              {autofillMsg.text}
+            </div>
+          )}
+        </div>
+      )}
 
       <SliderRow label="Home Price" value={price} onChange={setPrice}
         min={100000} max={2000000} step={5000} prefix="$" />
