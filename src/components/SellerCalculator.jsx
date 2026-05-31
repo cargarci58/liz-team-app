@@ -83,7 +83,7 @@ function SliderRow({ label, value, onChange, min, max, step, prefix, suffix, inf
 
 export default function SellerCalculator({ transactionId, token } = {}) {
   const [salePrice, setSalePrice] = useState(450000);
-  const [mortgagePayoff, setMortgagePayoff] = useState(180000);
+  const [mortgagePayoff, setMortgagePayoff] = useState(0);
   const [loanRate, setLoanRate] = useState(6);
   const [commissionPct, setCommissionPct] = useState(6);
   const [titleSettlement, setTitleSettlement] = useState(575);
