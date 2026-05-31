@@ -3339,7 +3339,7 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
             <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 8, padding: 12, marginBottom: 16, fontSize: 13, color: "#7f1d1d" }}>
               <strong>🎓 Why this matters:</strong> Use this with your buyer to set realistic expectations on price, monthly payment, and cash-to-close BEFORE writing offers. Florida's doc stamps, intangible tax, and insurance costs surprise most first-time buyers.
             </div>
-            <BuyerCalculator />
+            <BuyerCalculator transactionId={tx.id} token={localStorage.getItem("tp_token") || ""} />
           </div>
         )}
 
