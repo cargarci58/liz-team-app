@@ -58,8 +58,8 @@ function ContactsGuide({ onClose }) {
           <div style={p}><strong>+ Add Contact</strong> for one person. <strong>Import CSV</strong> or <strong>Import Contacts (CSV)</strong> to bring in a whole list — it won't create duplicates or erase your call notes.</div>
         </div>
         <div style={card}>
-          <div style={h}>⭐ Build Nurture Schedule</div>
-          <div style={p}>Click this once and the app turns your A–D tiers into a daily call schedule — spread out so you get a handful a day, not hundreds at once. A clients come up most often, D least. After each call it picks the next date for you.</div>
+          <div style={h}>⭐ Your daily list builds itself</div>
+          <div style={p}>You don't set anything up. Each contact's tier sets their rhythm (A clients come up often, D rarely), and Win the Day automatically shows the right handful for today — never hundreds at once. Work them, and the next ones appear tomorrow.</div>
         </div>
         <div style={card}>
           <div style={h}>🎂 Birthdays, 🎁 pop-bys & 📬 Items of Value</div>
