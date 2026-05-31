@@ -86,6 +86,8 @@ export default function SellerCalculator({ transactionId, token } = {}) {
   const [mortgagePayoff, setMortgagePayoff] = useState(180000);
   const [commissionPct, setCommissionPct] = useState(6);
   const [titleSettlement, setTitleSettlement] = useState(500);
+  const [titleSearchFees, setTitleSearchFees] = useState(400);
+  const [titleProcessingFee, setTitleProcessingFee] = useState(0);
   const [hoaTransferFee, setHoaTransferFee] = useState(0);
   const [sellerConcessions, setSellerConcessions] = useState(0);
   const [repairs, setRepairs] = useState(0);
@@ -111,6 +113,7 @@ export default function SellerCalculator({ transactionId, token } = {}) {
           salePrice, mortgagePayoff, commissionPct,
           titleSettlement, hoaTransferFee, sellerConcessions,
           repairs, proratedTaxes, otherCosts,
+          titleSearchFees, titleProcessingFee,
           netProceeds: result.netProceeds,
           commission: result.commission,
           docStamps: result.docStamps,
@@ -135,12 +138,12 @@ export default function SellerCalculator({ transactionId, token } = {}) {
     const docStamps = flDocStampsDeed(salePrice);
     const titleIns = flTitleInsurance(salePrice);
     const recording = 50;
-    const totalCosts = commission + docStamps + titleIns + titleSettlement + hoaTransferFee + sellerConcessions + repairs + proratedTaxes + otherCosts + recording;
+    const totalCosts = commission + docStamps + titleIns + titleSettlement + titleSearchFees + titleProcessingFee + hoaTransferFee + sellerConcessions + repairs + proratedTaxes + otherCosts + recording;
     const netProceeds = salePrice - mortgagePayoff - totalCosts;
     const equity = salePrice - originalPurchasePrice;
     const equityPct = originalPurchasePrice > 0 ? (equity / originalPurchasePrice) * 100 : 0;
     return { commission, docStamps, titleIns, recording, totalCosts, netProceeds, equity, equityPct };
-  }, [salePrice, mortgagePayoff, commissionPct, titleSettlement, hoaTransferFee, sellerConcessions, repairs, proratedTaxes, otherCosts, originalPurchasePrice]);
+  }, [salePrice, mortgagePayoff, commissionPct, titleSettlement, titleSearchFees, titleProcessingFee, hoaTransferFee, sellerConcessions, repairs, proratedTaxes, otherCosts, originalPurchasePrice]);
 
   return (
     <div style={{ maxWidth: 720, margin: "0 auto", padding: 16, fontFamily: "system-ui, sans-serif" }}>
@@ -170,6 +173,14 @@ export default function SellerCalculator({ transactionId, token } = {}) {
       <SliderRow label="Title & Settlement Fees" value={titleSettlement} onChange={setTitleSettlement}
         min={0} max={3000} step={50} prefix="$"
         info="Settlement/closing fee charged by title company. Typically $300-$800 in FL." />
+
+      <SliderRow label="Title Search & Lien Searches" value={titleSearchFees} onChange={setTitleSearchFees}
+        min={0} max={1500} step={25} prefix="$"
+        info="Title search + municipal/county lien search fees. Typically $300-$500 combined in FL. Title companies always charge these — confirm exact amounts on their net sheet." />
+
+      <SliderRow label="Title Co. Processing/Transaction Fee" value={titleProcessingFee} onChange={setTitleProcessingFee}
+        min={0} max={1500} step={25} prefix="$"
+        info="Separate processing/transaction/courier fee some title companies charge on top of the settlement fee. Often $300-$500. Set to the figure on the title company's net sheet (0 if none)." />
 
       <SliderRow label="HOA Transfer/Estoppel Fee" value={hoaTransferFee} onChange={setHoaTransferFee}
         min={0} max={1500} step={25} prefix="$"
@@ -225,6 +236,8 @@ export default function SellerCalculator({ transactionId, token } = {}) {
             <tr><td style={{ padding: "4px 0" }}>FL Doc Stamps on Deed <Info>FL state tax: $0.70 per $100 of sale price. Seller pays in most FL counties (Miami-Dade splits with buyer).</Info></td><td style={{ textAlign: "right", fontWeight: 600 }}>{money(result.docStamps)}</td></tr>
             <tr><td style={{ padding: "4px 0" }}>Owner's Title Insurance <Info>FL custom: seller usually provides. Promulgated rate $5.75/$1k up to $100k, then $5.00/$1k.</Info></td><td style={{ textAlign: "right", fontWeight: 600 }}>{money(result.titleIns)}</td></tr>
             <tr><td style={{ padding: "4px 0" }}>Settlement / Closing Fee</td><td style={{ textAlign: "right", fontWeight: 600 }}>{money(titleSettlement)}</td></tr>
+            <tr><td style={{ padding: "4px 0" }}>Title Search & Lien Searches</td><td style={{ textAlign: "right", fontWeight: 600 }}>{money(titleSearchFees)}</td></tr>
+            <tr><td style={{ padding: "4px 0" }}>Title Co. Processing/Transaction Fee</td><td style={{ textAlign: "right", fontWeight: 600 }}>{money(titleProcessingFee)}</td></tr>
             <tr><td style={{ padding: "4px 0" }}>HOA Estoppel/Transfer</td><td style={{ textAlign: "right", fontWeight: 600 }}>{money(hoaTransferFee)}</td></tr>
             <tr><td style={{ padding: "4px 0" }}>Seller Concessions</td><td style={{ textAlign: "right", fontWeight: 600 }}>{money(sellerConcessions)}</td></tr>
             <tr><td style={{ padding: "4px 0" }}>Negotiated Repairs</td><td style={{ textAlign: "right", fontWeight: 600 }}>{money(repairs)}</td></tr>
