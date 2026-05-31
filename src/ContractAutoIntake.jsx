@@ -132,34 +132,39 @@ function UploadStep({ token, existingTransactionId, onBack, onUploaded }) {
       const primary = files[0];
       const extras = files.slice(1);
 
-      // Step 1: get upload URL for primary file
+      // Read a File as base64 (strip the data: URL prefix). We upload through
+      // our server (base64 → server → R2); a browser→R2 presigned PUT fails
+      // CORS with "Failed to fetch".
+      const toBase64 = (file) => new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result).split(",")[1]);
+        reader.onerror = () => reject(new Error("Could not read " + file.name));
+        reader.readAsDataURL(file);
+      });
+
+      // Step 1: upload primary file through the server
+      const primaryB64 = await toBase64(primary);
       const r1 = await fetch(API + "/contracts/upload-url", {
         method: "POST",
         headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
-        body: JSON.stringify({ fileName: primary.name, fileType: primary.type, existingTransactionId })
+        body: JSON.stringify({ fileName: primary.name, fileType: primary.type, existingTransactionId, base64: primaryB64 })
       });
       const d1 = await r1.json();
-      if (!d1.success) throw new Error(d1.error || "Failed to get upload URL");
+      if (!d1.success) throw new Error(d1.error || "Failed to upload " + primary.name);
       const uploadId = d1.uploadId;
-      setProgress(15);
-
-      // Step 2: upload primary to R2
-      const u1 = await fetch(d1.uploadUrl, { method: "PUT", headers: { "Content-Type": primary.type }, body: primary });
-      if (!u1.ok) throw new Error("Upload to storage failed for " + primary.name);
       setProgress(30);
 
-      // Step 3: upload each additional file
+      // Step 2: upload each additional file through the server
       for (let i = 0; i < extras.length; i++) {
         const ef = extras[i];
+        const efB64 = await toBase64(ef);
         const ar = await fetch(API + "/contracts/upload-additional-url/" + uploadId, {
           method: "POST",
           headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
-          body: JSON.stringify({ fileName: ef.name, fileType: ef.type, fileSize: ef.size })
+          body: JSON.stringify({ fileName: ef.name, fileType: ef.type, fileSize: ef.size, base64: efB64 })
         });
         const ad = await ar.json();
-        if (!ad.success) throw new Error(ad.error || "Failed to get URL for " + ef.name);
-        const eu = await fetch(ad.uploadUrl, { method: "PUT", headers: { "Content-Type": ef.type }, body: ef });
-        if (!eu.ok) throw new Error("Upload failed for " + ef.name);
+        if (!ad.success) throw new Error(ad.error || "Upload failed for " + ef.name);
         setProgress(30 + Math.round(((i + 1) / extras.length) * 40));
       }
       setProgress(75);
