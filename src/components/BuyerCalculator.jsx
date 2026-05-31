@@ -478,9 +478,11 @@ function CashToCloseTab({ transactionId, token, showGenerate, county } = {}) {
   const [buyerPaysOwnerTitle, setBuyerPaysOwnerTitle] = useState(false);
   const [buyerAgentPct, setBuyerAgentPct] = useState(2.5);
   const [buyerPaysAgent, setBuyerPaysAgent] = useState(false);
+  const [originationPct, setOriginationPct] = useState(1.0);
+  const [lenderTitleFees, setLenderTitleFees] = useState(900);
   const [inspectionFee, setInspectionFee] = useState(500);
   const [appraisalFee, setAppraisalFee] = useState(600);
-  const [lenderFees, setLenderFees] = useState(2000);
+  const [lenderFees, setLenderFees] = useState(1000);
   const [surveyFee, setSurveyFee] = useState(450);
   const [prepaids, setPrepaids] = useState(3500);
   const [sellerConcessions, setSellerConcessions] = useState(0);
@@ -534,13 +536,19 @@ function CashToCloseTab({ transactionId, token, showGenerate, county } = {}) {
     // lender's policy (simultaneous-issue, ~$25 promulgated). In Miami-Dade/Broward
     // the buyer customarily pays the owner's policy. Toggle handles both.
     const ownerPremium = flTitleInsurance(price);
-    const lenderTitle = hasLoan ? 25 : 0;
+    // Lender's title policy + endorsements (Form 9, 9.2, 8.1, 5.1, simultaneous
+    // loan policy, etc.) — the buyer's loan pays these even when the seller pays
+    // the owner's policy. Editable; title company schedule firms up the exact amount.
+    const lenderTitle = hasLoan ? (Number(lenderTitleFees) || 0) : 0;
     const titleIns = (buyerPaysOwnerTitle ? ownerPremium : 0) + lenderTitle;
     const docStampsNote = hasLoan ? flDocStampsNote(loan) : 0;       // tax on the NOTE — loan only
     const intangibleTax = hasLoan ? flIntangibleTax(loan) : 0;       // tax on the MORTGAGE — loan only
     const titleSearch = buyerPaysOwnerTitle ? 200 : 0;
-    const recording = 150;
-    const settlementFee = 500;
+    const recording = 270; // deed (~$20) + mortgage (~$250)
+    const settlementFee = 575;
+
+    // Loan origination fee — a % of the loan amount (scales with loan size).
+    const origination = hasLoan ? loan * (Math.max(0, Math.min(5, Number(originationPct) || 0)) / 100) : 0;
 
     // Loan-only fees (zeroed for cash purchases)
     const effAppraisal = hasLoan ? appraisalFee : 0;
@@ -565,7 +573,7 @@ function CashToCloseTab({ transactionId, token, showGenerate, county } = {}) {
 
     const closingCosts =
       titleIns + docStampsNote + intangibleTax + titleSearch + recording +
-      settlementFee + inspectionFee + effAppraisal + effLenderFees + surveyFee +
+      settlementFee + origination + inspectionFee + effAppraisal + effLenderFees + surveyFee +
       prepaidInterest + effPrepaids + buyerAgentFee;
 
     // FL taxes are paid in arrears — at closing the seller CREDITS the buyer for
@@ -585,12 +593,12 @@ function CashToCloseTab({ transactionId, token, showGenerate, county } = {}) {
     const cashAtClosing = totalCash - emd; // EMD already paid earlier
 
     return {
-      cash, downPayment, loan, emd, titleIns, ownerPremium, lenderTitle, docStampsNote, intangibleTax,
+      cash, downPayment, loan, emd, titleIns, ownerPremium, lenderTitle, origination, docStampsNote, intangibleTax,
       titleSearch, recording, settlementFee, inspectionFee, effAppraisal, effLenderFees,
       surveyFee, prepaidInterest, interestDays, effPrepaids, buyerAgentFee, sellerConcessions,
       annualPropertyTax, taxProrationCredit, daysOwned, closingCosts, totalCash, cashAtClosing
     };
-  }, [price, loanType, downPct, emd, rate, buyerPaysOwnerTitle, buyerAgentPct, buyerPaysAgent, inspectionFee, appraisalFee, lenderFees, surveyFee, prepaids, sellerConcessions, taxRate, closingDate]);
+  }, [price, loanType, downPct, emd, rate, buyerPaysOwnerTitle, buyerAgentPct, buyerPaysAgent, originationPct, lenderTitleFees, inspectionFee, appraisalFee, lenderFees, surveyFee, prepaids, sellerConcessions, taxRate, closingDate]);
 
   const generatePdf = async (lang = "en") => {
     if (!transactionId || !token) {
@@ -610,6 +618,7 @@ function CashToCloseTab({ transactionId, token, showGenerate, county } = {}) {
           downPayment: result.downPayment, loan: result.loan, emd: result.emd,
           ownerTitleAmt: buyerPaysOwnerTitle ? result.ownerPremium : 0,
           lenderTitle: result.lenderTitle,
+          origination: result.origination, originationPct,
           docStampsNote: result.docStampsNote,
           intangibleTax: result.intangibleTax, titleSearch: result.titleSearch,
           recording: result.recording, settlementFee: result.settlementFee,
@@ -728,9 +737,19 @@ function CashToCloseTab({ transactionId, token, showGenerate, county } = {}) {
           info="Lender-ordered. Required to confirm the home is worth the loan amount." />
       )}
       {!isCash && (
-        <SliderRow label="Lender Fees (origination, underwriting)" value={lenderFees} onChange={setLenderFees}
-          min={0} max={8000} step={100} prefix="$"
-          info="Origination, underwriting, processing, credit report. Shop multiple lenders — these vary widely." />
+        <SliderRow label="Loan Origination Fee %" value={originationPct} onChange={setOriginationPct}
+          min={0} max={3} step={0.125} suffix="%"
+          info="Lender's origination charge as a % of the LOAN amount (often ~1%). This scales with loan size — the single biggest line on large loans. Set to 0 for a no-origination / lender-credit loan." />
+      )}
+      {!isCash && (
+        <SliderRow label="Other Lender Fees (underwriting, credit, etc.)" value={lenderFees} onChange={setLenderFees}
+          min={0} max={8000} step={50} prefix="$"
+          info="Underwriting, processing, credit report, tax service, flood cert — separate from origination % above." />
+      )}
+      {!isCash && (
+        <SliderRow label="Lender's Title Policy & Endorsements" value={lenderTitleFees} onChange={setLenderTitleFees}
+          min={0} max={5000} step={25} prefix="$"
+          info="The buyer's loan pays for the lender's title policy + required endorsements (Form 9, 9.2, 8.1, 5.1, simultaneous loan policy) even when the seller pays the owner's policy. Typically $600–$3,000; confirm on the title company's schedule." />
       )}
       <SliderRow label="Survey" value={surveyFee} onChange={setSurveyFee}
         min={0} max={1000} step={50} prefix="$"
@@ -782,7 +801,7 @@ function CashToCloseTab({ transactionId, token, showGenerate, county } = {}) {
         <table style={{ width: "100%", marginTop: 12, fontSize: 13 }}>
           <tbody>
             {buyerPaysOwnerTitle && <tr><td style={{ padding: "4px 0" }}>Owner's Title Insurance <Info>FL promulgated rate: $5.75/$1k up to $100k, then $5.00/$1k.</Info></td><td style={{ textAlign: "right", fontWeight: 600 }}>{money(result.ownerPremium)}</td></tr>}
-            {!result.cash && <tr><td style={{ padding: "4px 0" }}>Lender's Title Policy <Info>{buyerPaysOwnerTitle ? "Simultaneous-issue rate (~$25) when issued with the owner's policy." : "Buyer's lender's title policy, simultaneous-issue ~$25. The seller pays the owner's policy in most FL counties."}</Info></td><td style={{ textAlign: "right", fontWeight: 600 }}>{money(result.lenderTitle)}</td></tr>}
+            {!result.cash && <tr><td style={{ padding: "4px 0" }}>Lender's Title Policy & Endorsements <Info>Loan title policy + endorsements (Form 9/9.2/8.1/5.1, simultaneous issue) the buyer's loan pays even when the seller covers the owner's policy.</Info></td><td style={{ textAlign: "right", fontWeight: 600 }}>{money(result.lenderTitle)}</td></tr>}
             {!result.cash && <tr><td style={{ padding: "4px 0" }}>Doc Stamps on Note <Info>FL tax: $0.35 per $100 of loan amount. Buyer pays.</Info></td><td style={{ textAlign: "right", fontWeight: 600 }}>{money(result.docStampsNote)}</td></tr>}
             {!result.cash && <tr><td style={{ padding: "4px 0" }}>Intangible Tax <Info>FL tax: 0.2% (2 mills) of loan amount. Buyer pays.</Info></td><td style={{ textAlign: "right", fontWeight: 600 }}>{money(result.intangibleTax)}</td></tr>}
             {result.titleSearch > 0 && <tr><td style={{ padding: "4px 0" }}>Title Search</td><td style={{ textAlign: "right", fontWeight: 600 }}>{money(result.titleSearch)}</td></tr>}
@@ -790,7 +809,8 @@ function CashToCloseTab({ transactionId, token, showGenerate, county } = {}) {
             <tr><td style={{ padding: "4px 0" }}>Settlement / Closing Fee</td><td style={{ textAlign: "right", fontWeight: 600 }}>{money(result.settlementFee)}</td></tr>
             <tr><td style={{ padding: "4px 0" }}>Home Inspection</td><td style={{ textAlign: "right", fontWeight: 600 }}>{money(result.inspectionFee)}</td></tr>
             {!result.cash && <tr><td style={{ padding: "4px 0" }}>Appraisal</td><td style={{ textAlign: "right", fontWeight: 600 }}>{money(result.effAppraisal)}</td></tr>}
-            {!result.cash && <tr><td style={{ padding: "4px 0" }}>Lender Fees</td><td style={{ textAlign: "right", fontWeight: 600 }}>{money(result.effLenderFees)}</td></tr>}
+            {result.origination > 0 && <tr><td style={{ padding: "4px 0" }}>Loan Origination Fee</td><td style={{ textAlign: "right", fontWeight: 600 }}>{money(result.origination)}</td></tr>}
+            {!result.cash && <tr><td style={{ padding: "4px 0" }}>Other Lender Fees</td><td style={{ textAlign: "right", fontWeight: 600 }}>{money(result.effLenderFees)}</td></tr>}
             <tr><td style={{ padding: "4px 0" }}>Survey</td><td style={{ textAlign: "right", fontWeight: 600 }}>{money(result.surveyFee)}</td></tr>
             {!result.cash && <tr><td style={{ padding: "4px 0" }}>Prepaid Interest ({result.interestDays} days)</td><td style={{ textAlign: "right", fontWeight: 600 }}>{money(result.prepaidInterest)}</td></tr>}
             {!result.cash && <tr><td style={{ padding: "4px 0" }}>Escrow Reserves (taxes + insurance)</td><td style={{ textAlign: "right", fontWeight: 600 }}>{money(result.effPrepaids)}</td></tr>}
