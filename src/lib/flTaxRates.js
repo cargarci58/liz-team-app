@@ -67,3 +67,19 @@ export function flTaxRate(city, county) {
   }
   return { rate: FL_DEFAULT_TAX_RATE, source: "default" };
 }
+
+// FL counties where the BUYER customarily pays for the owner's title policy.
+// Everywhere else the seller customarily pays. (Mixed/either in a few counties;
+// these are the well-established buyer-pays counties.)
+export const BUYER_PAYS_OWNER_TITLE_COUNTIES = new Set([
+  "miami-dade", "miami dade", "broward", "sarasota", "collier",
+]);
+export function buyerPaysOwnerTitleDefault(county) {
+  return BUYER_PAYS_OWNER_TITLE_COUNTIES.has(normalizeName(county));
+}
+
+// FL deed documentary-stamp rate per $100 of price. Miami-Dade is $0.60 on a
+// single-family residence; the rest of FL is $0.70.
+export function deedDocStampPer100(county) {
+  return normalizeName(county) === "miami-dade" || normalizeName(county) === "miami dade" ? 0.60 : 0.70;
+}

@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from "react";
-import { flTaxRate } from "../lib/flTaxRates";
+import { flTaxRate, buyerPaysOwnerTitleDefault } from "../lib/flTaxRates";
 
 // ============================================================
 // Smart Buyer Calculator — Florida-specific
@@ -475,7 +475,7 @@ function CashToCloseTab({ transactionId, token, showGenerate, county } = {}) {
   const [rate, setRate] = useState(7.0);
   const [term, setTerm] = useState(30);
   const [emd, setEmd] = useState(5000);
-  const [buyerPaysOwnerTitle, setBuyerPaysOwnerTitle] = useState(false);
+  const [buyerPaysOwnerTitle, setBuyerPaysOwnerTitle] = useState(() => buyerPaysOwnerTitleDefault(county));
   const [buyerAgentPct, setBuyerAgentPct] = useState(2.5);
   const [buyerPaysAgent, setBuyerPaysAgent] = useState(false);
   const [originationPct, setOriginationPct] = useState(1.0);

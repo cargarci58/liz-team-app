@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from "react";
-import { flTaxRate } from "../lib/flTaxRates";
+import { flTaxRate, deedDocStampPer100 } from "../lib/flTaxRates";
 
 function money(n) {
   if (!isFinite(n)) return "$0";
@@ -168,7 +168,7 @@ export default function SellerCalculator({ transactionId, token, county } = {}) 
   const result = useMemo(() => {
     const safeCommissionPct = Math.max(0, Math.min(100, Number(commissionPct) || 0));
     const commission = salePrice * (safeCommissionPct / 100);
-    const docStamps = flDocStampsDeed(salePrice);
+    const docStamps = Math.ceil(salePrice / 100) * deedDocStampPer100(county);
     const titleIns = flTitleInsurance(salePrice);
     const recording = 30;
     // FL taxes are paid in arrears — seller credits buyer for the days they owned
@@ -191,7 +191,7 @@ export default function SellerCalculator({ transactionId, token, county } = {}) 
     const equity = salePrice - originalPurchasePrice;
     const equityPct = originalPurchasePrice > 0 ? (equity / originalPurchasePrice) * 100 : 0;
     return { commission, docStamps, titleIns, recording, proratedTaxes, annualPropertyTax, daysOwned, payoffInterest, totalCosts, netProceeds, equity, equityPct };
-  }, [salePrice, mortgagePayoff, loanRate, commissionPct, titleSettlement, titleSearchFees, titleProcessingFee, hoaTransferFee, sellerConcessions, repairs, taxRate, closingDate, otherCosts, originalPurchasePrice]);
+  }, [salePrice, mortgagePayoff, loanRate, commissionPct, titleSettlement, titleSearchFees, titleProcessingFee, hoaTransferFee, sellerConcessions, repairs, taxRate, closingDate, otherCosts, originalPurchasePrice, county]);
 
   return (
     <div style={{ maxWidth: 720, margin: "0 auto", padding: 16, fontFamily: "system-ui, sans-serif" }}>
