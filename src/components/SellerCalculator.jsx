@@ -98,7 +98,7 @@ export default function SellerCalculator({ transactionId, token } = {}) {
     d.setDate(d.getDate() + 30);
     return d.toISOString().slice(0, 10);
   });
-  const [otherCosts, setOtherCosts] = useState(500);
+  const [otherCosts, setOtherCosts] = useState(0);
   const [originalPurchasePrice, setOriginalPurchasePrice] = useState(300000);
   const [generating, setGenerating] = useState(false);
   const [genMsg, setGenMsg] = useState(null);
@@ -147,7 +147,7 @@ export default function SellerCalculator({ transactionId, token } = {}) {
     const commission = salePrice * (safeCommissionPct / 100);
     const docStamps = flDocStampsDeed(salePrice);
     const titleIns = flTitleInsurance(salePrice);
-    const recording = 50;
+    const recording = 30;
     // FL taxes are paid in arrears — seller credits buyer for the days they owned
     // the home this calendar year (Jan 1 → closing). Same method the title company uses.
     let daysOwned = 0;
@@ -204,9 +204,9 @@ export default function SellerCalculator({ transactionId, token } = {}) {
         min={1} max={10} step={0.25} suffix="%"
         info="Total commission paid by seller (typically split between listing and buyer agent). FL average 5-6%. Negotiable. NEW NAR rules: buyer agent commission may now be negotiated separately." />
 
-      <SliderRow label="Title & Settlement Fees" value={titleSettlement} onChange={setTitleSettlement}
+      <SliderRow label="Settlement / Closing Fee" value={titleSettlement} onChange={setTitleSettlement}
         min={0} max={3000} step={50} prefix="$"
-        info="Settlement/closing fee charged by title company. Typically $300-$800 in FL." />
+        info="Settlement/closing fee charged by the title company (separate from the title insurance policy). Typically $300-$800 in FL." />
 
       <SliderRow label="Title Search & Lien Searches" value={titleSearchFees} onChange={setTitleSearchFees}
         min={0} max={1500} step={25} prefix="$"
