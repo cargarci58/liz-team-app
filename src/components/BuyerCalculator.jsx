@@ -467,7 +467,7 @@ function PaymentTab() {
 function CashToCloseTab({ transactionId, token, showGenerate } = {}) {
   const [price, setPrice] = useState(450000);
   const [downPct, setDownPct] = useState(20);
-  const [emdPct, setEmdPct] = useState(1);
+  const [emd, setEmd] = useState(5000);
   const [buyerPaysOwnerTitle, setBuyerPaysOwnerTitle] = useState(false);
   const [inspectionFee, setInspectionFee] = useState(500);
   const [appraisalFee, setAppraisalFee] = useState(600);
@@ -486,10 +486,8 @@ function CashToCloseTab({ transactionId, token, showGenerate } = {}) {
 
   const result = useMemo(() => {
     const safeDownPct = Math.max(0, Math.min(100, Number(downPct) || 0));
-    const safeEmdPct = Math.max(0, Math.min(100, Number(emdPct) || 0));
     const downPayment = price * (safeDownPct / 100);
     const loan = price - downPayment;
-    const emd = price * (safeEmdPct / 100);
     // Title insurance: in most FL counties (incl. Orange/Orlando) the SELLER pays
     // for the owner's policy and picks the closing agent — the buyer only pays the
     // lender's policy (simultaneous-issue, ~$25 promulgated). In Miami-Dade/Broward
@@ -527,7 +525,7 @@ function CashToCloseTab({ transactionId, token, showGenerate } = {}) {
       lenderFees, surveyFee, prepaids, sellerConcessions, taxProrationCredit, daysOwned,
       closingCosts, totalCash, cashAtClosing
     };
-  }, [price, downPct, emdPct, buyerPaysOwnerTitle, inspectionFee, appraisalFee, lenderFees, surveyFee, prepaids, sellerConcessions, annualPropertyTax, closingDate]);
+  }, [price, downPct, emd, buyerPaysOwnerTitle, inspectionFee, appraisalFee, lenderFees, surveyFee, prepaids, sellerConcessions, annualPropertyTax, closingDate]);
 
   const generatePdf = async (lang = "en") => {
     if (!transactionId || !token) {
@@ -543,7 +541,7 @@ function CashToCloseTab({ transactionId, token, showGenerate } = {}) {
         headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
         body: JSON.stringify({
           lang,
-          price, downPct, emdPct, buyerPaysOwnerTitle,
+          price, downPct, buyerPaysOwnerTitle,
           downPayment: result.downPayment, loan: result.loan, emd: result.emd,
           titleIns: result.titleIns, docStampsNote: result.docStampsNote,
           intangibleTax: result.intangibleTax, titleSearch: result.titleSearch,
@@ -576,9 +574,9 @@ function CashToCloseTab({ transactionId, token, showGenerate } = {}) {
         min={100000} max={2000000} step={5000} prefix="$" />
       <SliderRow label="Down Payment %" value={downPct} onChange={setDownPct}
         min={3} max={50} step={1} suffix="%" />
-      <SliderRow label="Earnest Money Deposit %" value={emdPct} onChange={setEmdPct}
-        min={1} max={10} step={0.5} suffix="%"
-        info="Good-faith deposit due within 3 days of contract. Held in escrow, applied to closing costs. Typically 1–3% in FL." />
+      <SliderRow label="Earnest Money Deposit" value={emd} onChange={setEmd}
+        min={0} max={100000} step={500} prefix="$"
+        info="Good-faith deposit due within 3 days of contract. Held in escrow, applied to closing costs. Enter the dollar amount from the contract (often 1–3% of price)." />
 
       <div style={{ marginBottom: 16 }}>
         <label style={{ fontSize: 14, fontWeight: 600, color: "#374151", display: "block", marginBottom: 6 }}>
