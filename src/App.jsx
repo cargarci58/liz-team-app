@@ -3348,7 +3348,7 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
             <div style={{ background: "#f0fdf4", border: "1px solid #86efac", borderRadius: 8, padding: 12, marginBottom: 16, fontSize: 13, color: "#14532d" }}>
               <strong>🎓 Why this matters:</strong> Give your buyer a clear estimate of the cash they'll need at closing, then generate a branded English or Spanish net sheet and save it to Documents.
             </div>
-            <BuyerCalculator mode="net" transactionId={tx.id} token={localStorage.getItem("tp_token") || ""} />
+            <BuyerCalculator mode="net" transactionId={tx.id} token={localStorage.getItem("tp_token") || ""} county={tx.county} />
           </div>
         )}
 

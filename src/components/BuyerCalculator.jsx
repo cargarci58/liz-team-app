@@ -12,6 +12,28 @@ const FL_INTANGIBLE_TAX_RATE = 0.002;           // 0.2% of loan amount
 const FL_TITLE_INS_TIER1_RATE = 0.00575;        // $5.75 per $1,000 up to $100k
 const FL_TITLE_INS_TIER2_RATE = 0.00500;        // $5.00 per $1,000 from $100k to $1M
 
+// Default down-payment % by loan type. Cash = 100% (no loan).
+const DOWN_DEFAULTS = { Conventional: 5, FHA: 3.5, VA: 0, Cash: 100 };
+
+// Approximate EFFECTIVE property-tax rate (% of market value) by FL county.
+// Used to default the tax line; agents can override the rate for a specific city.
+const FL_COUNTY_TAX_RATES = {
+  alachua: 1.18, brevard: 0.90, broward: 1.15, charlotte: 1.00, citrus: 0.85,
+  clay: 0.95, collier: 0.70, duval: 1.00, escambia: 0.85, flagler: 0.95,
+  hernando: 1.00, hillsborough: 1.10, "indian river": 0.90, lake: 1.05, lee: 1.00,
+  leon: 1.05, manatee: 0.95, marion: 0.95, martin: 0.95, "miami-dade": 1.02,
+  "miami dade": 1.02, monroe: 0.65, nassau: 0.90, okaloosa: 0.80, orange: 1.05,
+  osceola: 1.10, "palm beach": 1.10, pasco: 1.10, pinellas: 0.90, polk: 1.05,
+  "santa rosa": 0.85, sarasota: 0.85, seminole: 1.00, "st. johns": 0.90,
+  "st johns": 0.90, "st. lucie": 1.20, "st lucie": 1.20, sumter: 0.90, volusia: 1.05,
+};
+const FL_DEFAULT_TAX_RATE = 1.10;
+function countyTaxRate(county) {
+  if (!county) return FL_DEFAULT_TAX_RATE;
+  const key = String(county).replace(/county/i, "").trim().toLowerCase();
+  return FL_COUNTY_TAX_RATES[key] != null ? FL_COUNTY_TAX_RATES[key] : FL_DEFAULT_TAX_RATE;
+}
+
 function money(n) {
   if (!isFinite(n)) return "$0";
   return "$" + Math.round(n).toLocaleString("en-US");
@@ -464,19 +486,23 @@ function PaymentTab() {
 // ============================================================
 // TAB 3 — Cash to Close (all-in upfront)
 // ============================================================
-function CashToCloseTab({ transactionId, token, showGenerate } = {}) {
+function CashToCloseTab({ transactionId, token, showGenerate, county } = {}) {
   const [price, setPrice] = useState(450000);
-  const [downPct, setDownPct] = useState(20);
-  const [emd, setEmd] = useState(5000);
+  const [loanType, setLoanType] = useState("Conventional");
+  const [downPct, setDownPct] = useState(5);
   const [rate, setRate] = useState(7.0);
+  const [term, setTerm] = useState(30);
+  const [emd, setEmd] = useState(5000);
   const [buyerPaysOwnerTitle, setBuyerPaysOwnerTitle] = useState(false);
+  const [buyerAgentPct, setBuyerAgentPct] = useState(2.5);
+  const [buyerPaysAgent, setBuyerPaysAgent] = useState(false);
   const [inspectionFee, setInspectionFee] = useState(500);
   const [appraisalFee, setAppraisalFee] = useState(600);
   const [lenderFees, setLenderFees] = useState(2000);
   const [surveyFee, setSurveyFee] = useState(450);
   const [prepaids, setPrepaids] = useState(3500);
   const [sellerConcessions, setSellerConcessions] = useState(0);
-  const [annualPropertyTax, setAnnualPropertyTax] = useState(6750);
+  const [taxRate, setTaxRate] = useState(() => countyTaxRate(county));
   const [closingDate, setClosingDate] = useState(() => {
     const d = new Date();
     d.setDate(d.getDate() + 30);
@@ -485,22 +511,33 @@ function CashToCloseTab({ transactionId, token, showGenerate } = {}) {
   const [generating, setGenerating] = useState(false);
   const [genMsg, setGenMsg] = useState(null);
 
+  const isCash = loanType === "Cash";
+  const selectLoanType = (t) => { setLoanType(t); setDownPct(DOWN_DEFAULTS[t]); };
+
   const result = useMemo(() => {
-    const safeDownPct = Math.max(0, Math.min(100, Number(downPct) || 0));
+    const cash = loanType === "Cash";
+    const safeDownPct = cash ? 100 : Math.max(0, Math.min(100, Number(downPct) || 0));
     const downPayment = price * (safeDownPct / 100);
-    const loan = price - downPayment;
+    const loan = Math.max(0, price - downPayment); // 0 for cash
+    const hasLoan = loan > 0;
+
     // Title insurance: in most FL counties (incl. Orange/Orlando) the SELLER pays
     // for the owner's policy and picks the closing agent — the buyer only pays the
     // lender's policy (simultaneous-issue, ~$25 promulgated). In Miami-Dade/Broward
     // the buyer customarily pays the owner's policy. Toggle handles both.
     const ownerPremium = flTitleInsurance(price);
-    const lenderTitle = loan > 0 ? 25 : 0;
+    const lenderTitle = hasLoan ? 25 : 0;
     const titleIns = (buyerPaysOwnerTitle ? ownerPremium : 0) + lenderTitle;
-    const docStampsNote = flDocStampsNote(loan);
-    const intangibleTax = flIntangibleTax(loan);
-    const titleSearch = buyerPaysOwnerTitle ? 200 : 0; // search is part of the owner's-policy work
+    const docStampsNote = hasLoan ? flDocStampsNote(loan) : 0;       // tax on the NOTE — loan only
+    const intangibleTax = hasLoan ? flIntangibleTax(loan) : 0;       // tax on the MORTGAGE — loan only
+    const titleSearch = buyerPaysOwnerTitle ? 200 : 0;
     const recording = 150;
     const settlementFee = 500;
+
+    // Loan-only fees (zeroed for cash purchases)
+    const effAppraisal = hasLoan ? appraisalFee : 0;
+    const effLenderFees = hasLoan ? lenderFees : 0;
+    const effPrepaids = hasLoan ? prepaids : 0; // escrow reserves require a lender
 
     // Prepaid (per-diem) interest collected at closing: from the closing date
     // through the end of that month. interest = loan × (rate/365) × days.
@@ -511,33 +548,41 @@ function CashToCloseTab({ transactionId, token, showGenerate } = {}) {
       const monthEnd = new Date(cdInt.getFullYear(), cdInt.getMonth() + 1, 0);
       interestDays = Math.max(0, Math.round((monthEnd - cdInt) / 86400000) + 1);
     }
-    const prepaidInterest = loan * ((interestRate / 100) / 365) * interestDays;
+    const prepaidInterest = hasLoan ? loan * ((interestRate / 100) / 365) * interestDays : 0;
+
+    // Buyer's agent commission — under the 2024 NAR rules the buyer may owe their
+    // agent directly if the seller's offered compensation doesn't cover it.
+    const safeBuyerAgentPct = Math.max(0, Math.min(10, Number(buyerAgentPct) || 0));
+    const buyerAgentFee = buyerPaysAgent ? price * (safeBuyerAgentPct / 100) : 0;
 
     const closingCosts =
       titleIns + docStampsNote + intangibleTax + titleSearch + recording +
-      settlementFee + inspectionFee + appraisalFee + lenderFees + surveyFee + prepaidInterest + prepaids;
+      settlementFee + inspectionFee + effAppraisal + effLenderFees + surveyFee +
+      prepaidInterest + effPrepaids + buyerAgentFee;
 
     // FL taxes are paid in arrears — at closing the seller CREDITS the buyer for
     // the days the seller owned the home this year (Jan 1 → closing). This reduces
     // the buyer's cash to close. Same method the title company uses.
+    const safeTaxRate = Math.max(0, Math.min(5, Number(taxRate) || 0));
+    const annualPropertyTax = price * (safeTaxRate / 100);
     let daysOwned = 0;
     const cd = new Date(closingDate + "T00:00:00");
     if (!isNaN(cd)) {
       const jan1 = new Date(cd.getFullYear(), 0, 1);
       daysOwned = Math.max(0, Math.round((cd - jan1) / 86400000));
     }
-    const taxProrationCredit = (Number(annualPropertyTax) || 0) * (daysOwned / 365);
+    const taxProrationCredit = annualPropertyTax * (daysOwned / 365);
 
     const totalCash = downPayment + closingCosts - taxProrationCredit - sellerConcessions;
     const cashAtClosing = totalCash - emd; // EMD already paid earlier
 
     return {
-      downPayment, loan, emd, titleIns, ownerPremium, lenderTitle, docStampsNote, intangibleTax,
-      titleSearch, recording, settlementFee, inspectionFee, appraisalFee,
-      lenderFees, surveyFee, prepaidInterest, interestDays, prepaids, sellerConcessions, taxProrationCredit, daysOwned,
-      closingCosts, totalCash, cashAtClosing
+      cash, downPayment, loan, emd, titleIns, ownerPremium, lenderTitle, docStampsNote, intangibleTax,
+      titleSearch, recording, settlementFee, inspectionFee, effAppraisal, effLenderFees,
+      surveyFee, prepaidInterest, interestDays, effPrepaids, buyerAgentFee, sellerConcessions,
+      annualPropertyTax, taxProrationCredit, daysOwned, closingCosts, totalCash, cashAtClosing
     };
-  }, [price, downPct, emd, rate, buyerPaysOwnerTitle, inspectionFee, appraisalFee, lenderFees, surveyFee, prepaids, sellerConcessions, annualPropertyTax, closingDate]);
+  }, [price, loanType, downPct, emd, rate, buyerPaysOwnerTitle, buyerAgentPct, buyerPaysAgent, inspectionFee, appraisalFee, lenderFees, surveyFee, prepaids, sellerConcessions, taxRate, closingDate]);
 
   const generatePdf = async (lang = "en") => {
     if (!transactionId || !token) {
@@ -553,14 +598,18 @@ function CashToCloseTab({ transactionId, token, showGenerate } = {}) {
         headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
         body: JSON.stringify({
           lang,
-          price, downPct, buyerPaysOwnerTitle,
+          price, downPct, loanType, term, rate, buyerPaysOwnerTitle,
           downPayment: result.downPayment, loan: result.loan, emd: result.emd,
-          titleIns: result.titleIns, docStampsNote: result.docStampsNote,
+          ownerTitleAmt: buyerPaysOwnerTitle ? result.ownerPremium : 0,
+          lenderTitle: result.lenderTitle,
+          docStampsNote: result.docStampsNote,
           intangibleTax: result.intangibleTax, titleSearch: result.titleSearch,
           recording: result.recording, settlementFee: result.settlementFee,
-          inspectionFee, appraisalFee, lenderFees, surveyFee, prepaids,
-          rate, prepaidInterest: result.prepaidInterest,
-          sellerConcessions, annualPropertyTax,
+          inspectionFee, appraisalFee: result.effAppraisal, lenderFees: result.effLenderFees,
+          surveyFee, prepaids: result.effPrepaids,
+          prepaidInterest: result.prepaidInterest,
+          buyerAgentFee: result.buyerAgentFee,
+          sellerConcessions, taxRate, annualPropertyTax: result.annualPropertyTax,
           taxProrationCredit: result.taxProrationCredit,
           closingCosts: result.closingCosts, totalCash: result.totalCash,
           cashAtClosing: result.cashAtClosing,
@@ -585,11 +634,40 @@ function CashToCloseTab({ transactionId, token, showGenerate } = {}) {
 
       <SliderRow label="Home Price" value={price} onChange={setPrice}
         min={100000} max={2000000} step={5000} prefix="$" />
-      <SliderRow label="Down Payment %" value={downPct} onChange={setDownPct}
-        min={3} max={50} step={1} suffix="%" />
-      <SliderRow label="Loan Interest Rate %" value={rate} onChange={setRate}
-        min={3} max={12} step={0.125} suffix="%"
-        info="Buyer's mortgage rate. Used to estimate prepaid (per-diem) interest collected at closing — from the closing date through the end of that month." />
+
+      <div style={{ marginBottom: 16 }}>
+        <label style={{ fontSize: 14, fontWeight: 600, color: "#374151", display: "block", marginBottom: 6 }}>
+          Loan Type
+          <Info>Sets the typical minimum down payment: Conventional 5%, FHA 3.5%, VA 0%. Cash = no loan (skips loan taxes, lender fees, escrow reserves &amp; prepaid interest). FHA/VA upfront fees are normally financed into the loan, not paid in cash.</Info>
+        </label>
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+          {["Conventional", "FHA", "VA", "Cash"].map((t) => (
+            <button key={t} type="button" onClick={() => selectLoanType(t)}
+              style={{ flex: "1 1 70px", padding: "8px", borderRadius: 6, border: "1px solid " + (loanType === t ? "#16a34a" : "#d1d5db"), background: loanType === t ? "#dcfce7" : "#fff", fontWeight: 700, fontSize: 12, color: loanType === t ? "#14532d" : "#6b7280", cursor: "pointer" }}>
+              {t}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {isCash ? (
+        <div style={{ background: "#f0fdf4", border: "1px solid #86efac", borderRadius: 6, padding: "8px 12px", marginBottom: 16, fontSize: 13, color: "#14532d" }}>
+          💵 Cash purchase — full price due at closing. No loan taxes, lender fees, escrow reserves, or prepaid interest.
+        </div>
+      ) : (
+        <>
+          <SliderRow label="Down Payment %" value={downPct} onChange={setDownPct}
+            min={0} max={50} step={0.5} suffix="%"
+            info="Auto-set by loan type (Conventional 5%, FHA 3.5%, VA 0%). Override as needed." />
+          <SliderRow label="Loan Interest Rate %" value={rate} onChange={setRate}
+            min={3} max={12} step={0.125} suffix="%"
+            info="Buyer's mortgage rate. Used to estimate prepaid (per-diem) interest collected at closing — from the closing date through the end of that month." />
+          <SliderRow label="Loan Term (years)" value={term} onChange={setTerm}
+            min={10} max={30} step={5} suffix=" yrs"
+            info="Loan length (most are 30 yr). Shown on the net sheet for reference; cash to close is the same regardless of term." />
+        </>
+      )}
+
       <SliderRow label="Earnest Money Deposit" value={emd} onChange={setEmd}
         min={0} max={100000} step={500} prefix="$"
         info="Good-faith deposit due within 3 days of contract. Held in escrow, applied to closing costs. Enter the dollar amount from the contract (often 1–3% of price)." />
@@ -611,28 +689,59 @@ function CashToCloseTab({ transactionId, token, showGenerate } = {}) {
         </div>
       </div>
 
+      <div style={{ marginBottom: 16 }}>
+        <label style={{ fontSize: 14, fontWeight: 600, color: "#374151", display: "block", marginBottom: 6 }}>
+          Buyer's Agent Commission
+          <Info>Under the 2024 NAR rules the buyer may pay their agent directly if the seller's offered compensation doesn't cover it. If the seller covers it, choose "Seller pays" — it won't count toward the buyer's cash.</Info>
+        </label>
+        <div style={{ display: "flex", gap: 8, marginBottom: buyerPaysAgent ? 8 : 0 }}>
+          <button type="button" onClick={() => setBuyerPaysAgent(false)}
+            style={{ flex: 1, padding: "8px", borderRadius: 6, border: "1px solid " + (!buyerPaysAgent ? "#16a34a" : "#d1d5db"), background: !buyerPaysAgent ? "#dcfce7" : "#fff", fontWeight: 700, fontSize: 12, color: !buyerPaysAgent ? "#14532d" : "#6b7280", cursor: "pointer" }}>
+            Seller pays it
+          </button>
+          <button type="button" onClick={() => setBuyerPaysAgent(true)}
+            style={{ flex: 1, padding: "8px", borderRadius: 6, border: "1px solid " + (buyerPaysAgent ? "#16a34a" : "#d1d5db"), background: buyerPaysAgent ? "#dcfce7" : "#fff", fontWeight: 700, fontSize: 12, color: buyerPaysAgent ? "#14532d" : "#6b7280", cursor: "pointer" }}>
+            Buyer pays it
+          </button>
+        </div>
+        {buyerPaysAgent && (
+          <SliderRow label="Buyer's Agent Commission %" value={buyerAgentPct} onChange={setBuyerAgentPct}
+            min={0} max={5} step={0.25} suffix="%"
+            info="Percent of purchase price paid to the buyer's brokerage. Typically 2.5–3%." />
+        )}
+      </div>
+
       <SliderRow label="Home Inspection" value={inspectionFee} onChange={setInspectionFee}
         min={300} max={1500} step={50} prefix="$"
         info="Paid during inspection period. WDO (termite) inspection adds ~$100. 4-point may be required by insurer." />
-      <SliderRow label="Appraisal Fee" value={appraisalFee} onChange={setAppraisalFee}
-        min={400} max={1500} step={50} prefix="$"
-        info="Lender-ordered. Required to confirm the home is worth the loan amount." />
-      <SliderRow label="Lender Fees (origination, underwriting)" value={lenderFees} onChange={setLenderFees}
-        min={0} max={8000} step={100} prefix="$"
-        info="Origination, underwriting, processing, credit report. Shop multiple lenders — these vary widely." />
+      {!isCash && (
+        <SliderRow label="Appraisal Fee" value={appraisalFee} onChange={setAppraisalFee}
+          min={400} max={1500} step={50} prefix="$"
+          info="Lender-ordered. Required to confirm the home is worth the loan amount." />
+      )}
+      {!isCash && (
+        <SliderRow label="Lender Fees (origination, underwriting)" value={lenderFees} onChange={setLenderFees}
+          min={0} max={8000} step={100} prefix="$"
+          info="Origination, underwriting, processing, credit report. Shop multiple lenders — these vary widely." />
+      )}
       <SliderRow label="Survey" value={surveyFee} onChange={setSurveyFee}
         min={0} max={1000} step={50} prefix="$"
         info="Optional but recommended. Shows property lines, encroachments, easements." />
-      <SliderRow label="Escrow Reserves (taxes + insurance)" value={prepaids} onChange={setPrepaids}
-        min={0} max={15000} step={250} prefix="$"
-        info="Lender collects a few months of property tax + insurance up front to fund the escrow account. (Prepaid interest is computed separately from your rate above.)" />
+      {!isCash && (
+        <SliderRow label="Escrow Reserves (taxes + insurance)" value={prepaids} onChange={setPrepaids}
+          min={0} max={15000} step={250} prefix="$"
+          info="Lender collects a few months of property tax + insurance up front to fund the escrow account. (Prepaid interest is computed separately from your rate above.)" />
+      )}
       <SliderRow label="Seller Concessions (credit to buyer)" value={sellerConcessions} onChange={setSellerConcessions}
         min={0} max={50000} step={500} prefix="$"
         info="Closing-cost help the seller agreed to in the contract. Reduces the buyer's cash to close." />
 
-      <SliderRow label="Annual Property Tax" value={annualPropertyTax} onChange={setAnnualPropertyTax}
-        min={0} max={40000} step={100} prefix="$"
-        info="Yearly property tax for this home (county record or MLS). Used to compute the tax-proration credit the seller gives the buyer at closing." />
+      <SliderRow label="Property Tax Rate %" value={taxRate} onChange={setTaxRate}
+        min={0.3} max={2.5} step={0.05} suffix="%"
+        info="Defaulted from the county's typical effective rate. Adjust for the specific city/millage if you know it. Annual tax = price × rate." />
+      <div style={{ background: "#f9fafb", border: "1px solid #e5e7eb", borderRadius: 6, padding: "8px 12px", marginBottom: 16, fontSize: 12, color: "#6b7280" }}>
+        {county ? `Based on ${county} County (~${countyTaxRate(county).toFixed(2)}% default — adjust above for the exact city).` : "No county on file for this transaction — using FL default 1.10%."} Est. annual tax: <strong style={{ color: "#374151" }}>{money(result.annualPropertyTax)}</strong>
+      </div>
 
       <div style={{ marginBottom: 16 }}>
         <label style={{ fontSize: 14, fontWeight: 600, color: "#374151", display: "block", marginBottom: 6 }}>
@@ -665,18 +774,19 @@ function CashToCloseTab({ transactionId, token, showGenerate } = {}) {
         <table style={{ width: "100%", marginTop: 12, fontSize: 13 }}>
           <tbody>
             {buyerPaysOwnerTitle && <tr><td style={{ padding: "4px 0" }}>Owner's Title Insurance <Info>FL promulgated rate: $5.75/$1k up to $100k, then $5.00/$1k.</Info></td><td style={{ textAlign: "right", fontWeight: 600 }}>{money(result.ownerPremium)}</td></tr>}
-            <tr><td style={{ padding: "4px 0" }}>Lender's Title Policy <Info>{buyerPaysOwnerTitle ? "Simultaneous-issue rate (~$25) when issued with the owner's policy." : "Buyer's lender's title policy, simultaneous-issue ~$25. The seller pays the owner's policy in most FL counties."}</Info></td><td style={{ textAlign: "right", fontWeight: 600 }}>{money(result.lenderTitle)}</td></tr>
-            <tr><td style={{ padding: "4px 0" }}>Doc Stamps on Note <Info>FL tax: $0.35 per $100 of loan amount. Buyer pays.</Info></td><td style={{ textAlign: "right", fontWeight: 600 }}>{money(result.docStampsNote)}</td></tr>
-            <tr><td style={{ padding: "4px 0" }}>Intangible Tax <Info>FL tax: 0.2% (2 mills) of loan amount. Buyer pays.</Info></td><td style={{ textAlign: "right", fontWeight: 600 }}>{money(result.intangibleTax)}</td></tr>
+            {!result.cash && <tr><td style={{ padding: "4px 0" }}>Lender's Title Policy <Info>{buyerPaysOwnerTitle ? "Simultaneous-issue rate (~$25) when issued with the owner's policy." : "Buyer's lender's title policy, simultaneous-issue ~$25. The seller pays the owner's policy in most FL counties."}</Info></td><td style={{ textAlign: "right", fontWeight: 600 }}>{money(result.lenderTitle)}</td></tr>}
+            {!result.cash && <tr><td style={{ padding: "4px 0" }}>Doc Stamps on Note <Info>FL tax: $0.35 per $100 of loan amount. Buyer pays.</Info></td><td style={{ textAlign: "right", fontWeight: 600 }}>{money(result.docStampsNote)}</td></tr>}
+            {!result.cash && <tr><td style={{ padding: "4px 0" }}>Intangible Tax <Info>FL tax: 0.2% (2 mills) of loan amount. Buyer pays.</Info></td><td style={{ textAlign: "right", fontWeight: 600 }}>{money(result.intangibleTax)}</td></tr>}
             {result.titleSearch > 0 && <tr><td style={{ padding: "4px 0" }}>Title Search</td><td style={{ textAlign: "right", fontWeight: 600 }}>{money(result.titleSearch)}</td></tr>}
             <tr><td style={{ padding: "4px 0" }}>Recording Fees</td><td style={{ textAlign: "right", fontWeight: 600 }}>{money(result.recording)}</td></tr>
             <tr><td style={{ padding: "4px 0" }}>Settlement / Closing Fee</td><td style={{ textAlign: "right", fontWeight: 600 }}>{money(result.settlementFee)}</td></tr>
             <tr><td style={{ padding: "4px 0" }}>Home Inspection</td><td style={{ textAlign: "right", fontWeight: 600 }}>{money(result.inspectionFee)}</td></tr>
-            <tr><td style={{ padding: "4px 0" }}>Appraisal</td><td style={{ textAlign: "right", fontWeight: 600 }}>{money(result.appraisalFee)}</td></tr>
-            <tr><td style={{ padding: "4px 0" }}>Lender Fees</td><td style={{ textAlign: "right", fontWeight: 600 }}>{money(result.lenderFees)}</td></tr>
+            {!result.cash && <tr><td style={{ padding: "4px 0" }}>Appraisal</td><td style={{ textAlign: "right", fontWeight: 600 }}>{money(result.effAppraisal)}</td></tr>}
+            {!result.cash && <tr><td style={{ padding: "4px 0" }}>Lender Fees</td><td style={{ textAlign: "right", fontWeight: 600 }}>{money(result.effLenderFees)}</td></tr>}
             <tr><td style={{ padding: "4px 0" }}>Survey</td><td style={{ textAlign: "right", fontWeight: 600 }}>{money(result.surveyFee)}</td></tr>
-            <tr><td style={{ padding: "4px 0" }}>Prepaid Interest ({result.interestDays} days)</td><td style={{ textAlign: "right", fontWeight: 600 }}>{money(result.prepaidInterest)}</td></tr>
-            <tr><td style={{ padding: "4px 0" }}>Escrow Reserves (taxes + insurance)</td><td style={{ textAlign: "right", fontWeight: 600 }}>{money(result.prepaids)}</td></tr>
+            {!result.cash && <tr><td style={{ padding: "4px 0" }}>Prepaid Interest ({result.interestDays} days)</td><td style={{ textAlign: "right", fontWeight: 600 }}>{money(result.prepaidInterest)}</td></tr>}
+            {!result.cash && <tr><td style={{ padding: "4px 0" }}>Escrow Reserves (taxes + insurance)</td><td style={{ textAlign: "right", fontWeight: 600 }}>{money(result.effPrepaids)}</td></tr>}
+            {result.buyerAgentFee > 0 && <tr><td style={{ padding: "4px 0" }}>Buyer's Agent Commission</td><td style={{ textAlign: "right", fontWeight: 600 }}>{money(result.buyerAgentFee)}</td></tr>}
             <tr style={{ borderTop: "1px solid #d1d5db" }}><td style={{ padding: "6px 0", fontWeight: 700 }}>Total Closing Costs</td><td style={{ textAlign: "right", fontWeight: 700 }}>{money(result.closingCosts)}</td></tr>
             {result.taxProrationCredit > 0 && <tr><td style={{ padding: "4px 0", color: "#15803d" }}>Property Tax Proration Credit ({result.daysOwned} days)</td><td style={{ textAlign: "right", fontWeight: 600, color: "#15803d" }}>−{money(result.taxProrationCredit)}</td></tr>}
             {result.sellerConcessions > 0 && <tr><td style={{ padding: "4px 0", color: "#15803d" }}>Seller Concessions</td><td style={{ textAlign: "right", fontWeight: 600, color: "#15803d" }}>−{money(result.sellerConcessions)}</td></tr>}
@@ -721,7 +831,7 @@ function CashToCloseTab({ transactionId, token, showGenerate } = {}) {
 // ============================================================
 // Main component with tab navigation
 // ============================================================
-export default function BuyerCalculator({ transactionId, token, mode } = {}) {
+export default function BuyerCalculator({ transactionId, token, mode, county } = {}) {
   const [tab, setTab] = useState("affordability");
 
   const tabs = [
@@ -741,7 +851,7 @@ export default function BuyerCalculator({ transactionId, token, mode } = {}) {
             Florida-specific estimated cash to close. Generate a branded English or Spanish PDF below.
           </p>
         </div>
-        <CashToCloseTab transactionId={transactionId} token={token} showGenerate={true} />
+        <CashToCloseTab transactionId={transactionId} token={token} county={county} showGenerate={true} />
       </div>
     );
   }
@@ -781,7 +891,7 @@ export default function BuyerCalculator({ transactionId, token, mode } = {}) {
 
       {tab === "affordability" && <AffordabilityTab />}
       {tab === "payment" && <PaymentTab />}
-      {tab === "cash" && <CashToCloseTab transactionId={transactionId} token={token} showGenerate={false} />}
+      {tab === "cash" && <CashToCloseTab transactionId={transactionId} token={token} county={county} showGenerate={false} />}
     </div>
   );
 }
