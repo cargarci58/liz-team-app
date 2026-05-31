@@ -486,7 +486,7 @@ function CashToCloseTab({ transactionId, token, showGenerate, county } = {}) {
   const [surveyFee, setSurveyFee] = useState(450);
   const [prepaids, setPrepaids] = useState(3500);
   const [sellerConcessions, setSellerConcessions] = useState(0);
-  const [insRate, setInsRate] = useState(0.6);   // homeowners insurance, % of price / yr
+  const [insRate, setInsRate] = useState(1.0);   // homeowners insurance, % of price / yr (FL avg ~1%)
   const [hoaMonthly, setHoaMonthly] = useState(0);
   const [pmiRate, setPmiRate] = useState(0.5);    // annual PMI, % of loan (when down < 20%)
   const [taxRate, setTaxRate] = useState(() => flTaxRate(undefined, county).rate);
@@ -536,9 +536,18 @@ function CashToCloseTab({ transactionId, token, showGenerate, county } = {}) {
     if (userTouchedEscrow.current) return;
     const annualIns = price * (Math.max(0, Number(insRate) || 0) / 100);
     const annualTax = price * (Math.max(0, Number(taxRate) || 0) / 100);
-    const est = annualIns * (14 / 12) + annualTax * (3 / 12);
+    // Tax escrow: FL property taxes are billed ~November. The lender funds the
+    // account so the Nov bill is covered with a 2-month cushion. The fewer monthly
+    // payments before Nov, the more is collected up front.
+    const cd = new Date(closingDate + "T00:00:00");
+    const cm = isNaN(cd) ? 6 : cd.getMonth() + 1;          // 1-12
+    const monthsUntilNov = (11 - cm + 12) % 12;
+    const paymentsBeforeNov = Math.max(0, monthsUntilNov - 1);
+    const taxEscrowMonths = Math.min(13, Math.max(2, 12 - paymentsBeforeNov + 2));
+    // Prepaid insurance = 1 yr at closing + 2-month escrow cushion.
+    const est = annualIns * (14 / 12) + annualTax * (taxEscrowMonths / 12);
     setPrepaids(Math.round(est));
-  }, [price, insRate, taxRate]);
+  }, [price, insRate, taxRate, closingDate]);
 
   const result = useMemo(() => {
     const cash = loanType === "Cash";
@@ -789,7 +798,7 @@ function CashToCloseTab({ transactionId, token, showGenerate, county } = {}) {
         info="Optional but recommended. Shows property lines, encroachments, easements." />
       <SliderRow label="Homeowners Insurance Rate %/yr" value={insRate} onChange={setInsRate}
         min={0.3} max={3.0} step={0.05} suffix="%"
-        info="Annual homeowners insurance as a % of price. FL is high (hurricane risk) — often 0.6–1.5%+, more for coastal/high-value homes. Drives both the monthly payment and the escrow reserves." />
+        info="Annual homeowners insurance as a % of price. FL averages ~1% (highest in the US — hurricane risk); coastal/high-value homes run 1.5%+. Drives both the monthly payment and the escrow reserves — set the real quote if you have it." />
       <SliderRow label="HOA / Condo Fees (monthly)" value={hoaMonthly} onChange={setHoaMonthly}
         min={0} max={2000} step={25} prefix="$"
         info="Monthly HOA/condo dues, if any. Included in the monthly payment estimate." />
