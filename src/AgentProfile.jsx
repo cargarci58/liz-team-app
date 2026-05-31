@@ -157,7 +157,7 @@ export default function AgentProfile({ onClose, currentUser }) {
                 {form.photoUrl && <img src={form.photoUrl} alt="" style={{ width: 44, height: 44, borderRadius: "50%", objectFit: "cover" }} onError={e => e.target.style.display="none"} />}
                 <div>
                   <div style={{ fontWeight: 700, fontSize: 14 }}>{form.firstName} {form.lastName}</div>
-                  <div style={{ fontSize: 12, color: "#C0392B", fontWeight: 600 }}>The Liz Team Realty</div>
+                  <div style={{ fontSize: 12, color: "#C0392B", fontWeight: 600 }}>{currentUser?.tenantName || "Your Brokerage"}</div>
                   {form.phone && <div style={{ fontSize: 12, color: "#555" }}>📞 {form.phone}</div>}
                   <div style={{ fontSize: 12, color: "#555" }}>✉️ {currentUser?.email}</div>
                 </div>
