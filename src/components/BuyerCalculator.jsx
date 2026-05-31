@@ -591,12 +591,15 @@ function CashToCloseTab({ transactionId, token, showGenerate, county } = {}) {
 
     const totalCash = downPayment + closingCosts - taxProrationCredit - sellerConcessions;
     const cashAtClosing = totalCash - emd; // EMD already paid earlier
+    // Comparable to a title company's "Total Fixed Costs": closing costs only,
+    // after credits, EXCLUDING down payment, escrow reserves & prepaid interest.
+    const fixedCosts = closingCosts - effPrepaids - prepaidInterest - taxProrationCredit - sellerConcessions;
 
     return {
       cash, downPayment, loan, emd, titleIns, ownerPremium, lenderTitle, origination, docStampsNote, intangibleTax,
       titleSearch, recording, settlementFee, inspectionFee, effAppraisal, effLenderFees,
       surveyFee, prepaidInterest, interestDays, effPrepaids, buyerAgentFee, sellerConcessions,
-      annualPropertyTax, taxProrationCredit, daysOwned, closingCosts, totalCash, cashAtClosing
+      annualPropertyTax, taxProrationCredit, daysOwned, closingCosts, fixedCosts, totalCash, cashAtClosing
     };
   }, [price, loanType, downPct, emd, rate, buyerPaysOwnerTitle, buyerAgentPct, buyerPaysAgent, originationPct, lenderTitleFees, inspectionFee, appraisalFee, lenderFees, surveyFee, prepaids, sellerConcessions, taxRate, closingDate]);
 
@@ -628,8 +631,8 @@ function CashToCloseTab({ transactionId, token, showGenerate, county } = {}) {
           buyerAgentFee: result.buyerAgentFee,
           sellerConcessions, taxRate, annualPropertyTax: result.annualPropertyTax,
           taxProrationCredit: result.taxProrationCredit,
-          closingCosts: result.closingCosts, totalCash: result.totalCash,
-          cashAtClosing: result.cashAtClosing,
+          closingCosts: result.closingCosts, fixedCosts: result.fixedCosts,
+          totalCash: result.totalCash, cashAtClosing: result.cashAtClosing,
           estimatedClosingDate: closingDate,
         }),
       });
@@ -792,6 +795,10 @@ function CashToCloseTab({ transactionId, token, showGenerate, county } = {}) {
             Cash at closing table: <strong>{money(result.cashAtClosing)}</strong>
           </div>
         </div>
+      </div>
+
+      <div style={{ background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 8, padding: "10px 14px", marginTop: 12, fontSize: 12, color: "#1e3a8a" }}>
+        <strong>Closing costs only: {money(result.fixedCosts)}</strong> — excludes the down payment, escrow reserves &amp; prepaid interest. This is the apples-to-apples number to compare against a title company's "Total Fixed Costs."
       </div>
 
       <details style={{ marginTop: 16, background: "#f9fafb", border: "1px solid #e5e7eb", borderRadius: 8, padding: 12 }}>
