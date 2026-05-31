@@ -468,6 +468,7 @@ function CashToCloseTab({ transactionId, token, showGenerate } = {}) {
   const [price, setPrice] = useState(450000);
   const [downPct, setDownPct] = useState(20);
   const [emd, setEmd] = useState(5000);
+  const [rate, setRate] = useState(7.0);
   const [buyerPaysOwnerTitle, setBuyerPaysOwnerTitle] = useState(false);
   const [inspectionFee, setInspectionFee] = useState(500);
   const [appraisalFee, setAppraisalFee] = useState(600);
@@ -501,9 +502,20 @@ function CashToCloseTab({ transactionId, token, showGenerate } = {}) {
     const recording = 150;
     const settlementFee = 500;
 
+    // Prepaid (per-diem) interest collected at closing: from the closing date
+    // through the end of that month. interest = loan × (rate/365) × days.
+    const interestRate = Math.max(0, Math.min(20, Number(rate) || 0));
+    let interestDays = 0;
+    const cdInt = new Date(closingDate + "T00:00:00");
+    if (!isNaN(cdInt)) {
+      const monthEnd = new Date(cdInt.getFullYear(), cdInt.getMonth() + 1, 0);
+      interestDays = Math.max(0, Math.round((monthEnd - cdInt) / 86400000) + 1);
+    }
+    const prepaidInterest = loan * ((interestRate / 100) / 365) * interestDays;
+
     const closingCosts =
       titleIns + docStampsNote + intangibleTax + titleSearch + recording +
-      settlementFee + inspectionFee + appraisalFee + lenderFees + surveyFee + prepaids;
+      settlementFee + inspectionFee + appraisalFee + lenderFees + surveyFee + prepaidInterest + prepaids;
 
     // FL taxes are paid in arrears — at closing the seller CREDITS the buyer for
     // the days the seller owned the home this year (Jan 1 → closing). This reduces
@@ -522,10 +534,10 @@ function CashToCloseTab({ transactionId, token, showGenerate } = {}) {
     return {
       downPayment, loan, emd, titleIns, ownerPremium, lenderTitle, docStampsNote, intangibleTax,
       titleSearch, recording, settlementFee, inspectionFee, appraisalFee,
-      lenderFees, surveyFee, prepaids, sellerConcessions, taxProrationCredit, daysOwned,
+      lenderFees, surveyFee, prepaidInterest, interestDays, prepaids, sellerConcessions, taxProrationCredit, daysOwned,
       closingCosts, totalCash, cashAtClosing
     };
-  }, [price, downPct, emd, buyerPaysOwnerTitle, inspectionFee, appraisalFee, lenderFees, surveyFee, prepaids, sellerConcessions, annualPropertyTax, closingDate]);
+  }, [price, downPct, emd, rate, buyerPaysOwnerTitle, inspectionFee, appraisalFee, lenderFees, surveyFee, prepaids, sellerConcessions, annualPropertyTax, closingDate]);
 
   const generatePdf = async (lang = "en") => {
     if (!transactionId || !token) {
@@ -547,6 +559,7 @@ function CashToCloseTab({ transactionId, token, showGenerate } = {}) {
           intangibleTax: result.intangibleTax, titleSearch: result.titleSearch,
           recording: result.recording, settlementFee: result.settlementFee,
           inspectionFee, appraisalFee, lenderFees, surveyFee, prepaids,
+          rate, prepaidInterest: result.prepaidInterest,
           sellerConcessions, annualPropertyTax,
           taxProrationCredit: result.taxProrationCredit,
           closingCosts: result.closingCosts, totalCash: result.totalCash,
@@ -574,6 +587,9 @@ function CashToCloseTab({ transactionId, token, showGenerate } = {}) {
         min={100000} max={2000000} step={5000} prefix="$" />
       <SliderRow label="Down Payment %" value={downPct} onChange={setDownPct}
         min={3} max={50} step={1} suffix="%" />
+      <SliderRow label="Loan Interest Rate %" value={rate} onChange={setRate}
+        min={3} max={12} step={0.125} suffix="%"
+        info="Buyer's mortgage rate. Used to estimate prepaid (per-diem) interest collected at closing — from the closing date through the end of that month." />
       <SliderRow label="Earnest Money Deposit" value={emd} onChange={setEmd}
         min={0} max={100000} step={500} prefix="$"
         info="Good-faith deposit due within 3 days of contract. Held in escrow, applied to closing costs. Enter the dollar amount from the contract (often 1–3% of price)." />
@@ -607,9 +623,9 @@ function CashToCloseTab({ transactionId, token, showGenerate } = {}) {
       <SliderRow label="Survey" value={surveyFee} onChange={setSurveyFee}
         min={0} max={1000} step={50} prefix="$"
         info="Optional but recommended. Shows property lines, encroachments, easements." />
-      <SliderRow label="Prepaids (escrow setup)" value={prepaids} onChange={setPrepaids}
+      <SliderRow label="Escrow Reserves (taxes + insurance)" value={prepaids} onChange={setPrepaids}
         min={0} max={15000} step={250} prefix="$"
-        info="Lender collects ~2 months tax + ~14 months insurance up front to fund escrow account." />
+        info="Lender collects a few months of property tax + insurance up front to fund the escrow account. (Prepaid interest is computed separately from your rate above.)" />
       <SliderRow label="Seller Concessions (credit to buyer)" value={sellerConcessions} onChange={setSellerConcessions}
         min={0} max={50000} step={500} prefix="$"
         info="Closing-cost help the seller agreed to in the contract. Reduces the buyer's cash to close." />
@@ -659,7 +675,8 @@ function CashToCloseTab({ transactionId, token, showGenerate } = {}) {
             <tr><td style={{ padding: "4px 0" }}>Appraisal</td><td style={{ textAlign: "right", fontWeight: 600 }}>{money(result.appraisalFee)}</td></tr>
             <tr><td style={{ padding: "4px 0" }}>Lender Fees</td><td style={{ textAlign: "right", fontWeight: 600 }}>{money(result.lenderFees)}</td></tr>
             <tr><td style={{ padding: "4px 0" }}>Survey</td><td style={{ textAlign: "right", fontWeight: 600 }}>{money(result.surveyFee)}</td></tr>
-            <tr><td style={{ padding: "4px 0" }}>Prepaids (escrow)</td><td style={{ textAlign: "right", fontWeight: 600 }}>{money(result.prepaids)}</td></tr>
+            <tr><td style={{ padding: "4px 0" }}>Prepaid Interest ({result.interestDays} days)</td><td style={{ textAlign: "right", fontWeight: 600 }}>{money(result.prepaidInterest)}</td></tr>
+            <tr><td style={{ padding: "4px 0" }}>Escrow Reserves (taxes + insurance)</td><td style={{ textAlign: "right", fontWeight: 600 }}>{money(result.prepaids)}</td></tr>
             <tr style={{ borderTop: "1px solid #d1d5db" }}><td style={{ padding: "6px 0", fontWeight: 700 }}>Total Closing Costs</td><td style={{ textAlign: "right", fontWeight: 700 }}>{money(result.closingCosts)}</td></tr>
             {result.taxProrationCredit > 0 && <tr><td style={{ padding: "4px 0", color: "#15803d" }}>Property Tax Proration Credit ({result.daysOwned} days)</td><td style={{ textAlign: "right", fontWeight: 600, color: "#15803d" }}>−{money(result.taxProrationCredit)}</td></tr>}
             {result.sellerConcessions > 0 && <tr><td style={{ padding: "4px 0", color: "#15803d" }}>Seller Concessions</td><td style={{ textAlign: "right", fontWeight: 600, color: "#15803d" }}>−{money(result.sellerConcessions)}</td></tr>}
