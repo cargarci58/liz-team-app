@@ -2980,6 +2980,32 @@ function ListingOffers({ txId, onReview, onReceiveOffer }) {
   const [shareUrl, setShareUrl] = useState("");
   const [sharing, setSharing] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [signingId, setSigningId] = useState(null);
+  const signedRefs = useRef({});
+
+  // Upload the signed copy (seller signed outside the app) into this offer's folder.
+  const uploadSigned = async (offerId, file) => {
+    if (!file) return;
+    if (file.size > 50 * 1024 * 1024) { alert("File too large (max 50 MB)."); return; }
+    setSigningId(offerId);
+    try {
+      const base64 = await new Promise((resolve, reject) => {
+        const rd = new FileReader();
+        rd.onload = () => resolve(String(rd.result).split(",")[1]);
+        rd.onerror = () => reject(new Error("Could not read file"));
+        rd.readAsDataURL(file);
+      });
+      const r = await fetch(`${API}/contracts/uploads/${offerId}/signed-copy`, {
+        method: "POST", headers: { ...hdrs, "Content-Type": "application/json" },
+        body: JSON.stringify({ fileName: file.name, fileType: file.type || "application/pdf", base64 })
+      });
+      const d = await r.json();
+      if (!d.success) throw new Error(d.error || "Upload failed");
+      alert("Signed copy saved to this offer's folder in Documents.");
+      load();
+    } catch (e) { alert("Could not upload signed copy: " + e.message); }
+    finally { setSigningId(null); }
+  };
 
   const reject = async (id) => {
     if (!window.confirm("Reject this offer? This does not change the listing.")) return;
@@ -3083,9 +3109,14 @@ function ListingOffers({ txId, onReview, onReceiveOffer }) {
                   </div>
                 );
               })()}
+              <div style={{ marginTop: 4, fontSize: 11, fontWeight: 700, color: o.has_signed_copy ? "#1E8449" : COLORS.muted }}>
+                {o.has_signed_copy ? "✓ Signed copy on file" : "✎ Awaiting signed copy"}
+              </div>
             </div>
-            <div style={{ display: "flex", gap: 8 }}>
-              {ready && <button onClick={() => onReview(o.id)} style={{ background: "#1E8449", border: "none", color: "#fff", borderRadius: 6, padding: "7px 14px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>Review Offer</button>}
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
+              <input ref={el => signedRefs.current[o.id] = el} type="file" accept=".pdf,.doc,.docx,image/*" style={{ display: "none" }} onChange={e => uploadSigned(o.id, e.target.files && e.target.files[0])} />
+              <button onClick={() => signedRefs.current[o.id] && signedRefs.current[o.id].click()} disabled={signingId === o.id} style={{ background: "#fff", border: "1px solid " + COLORS.navy, color: COLORS.navy, borderRadius: 6, padding: "7px 12px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>{signingId === o.id ? "Uploading…" : (o.has_signed_copy ? "Replace Signed Copy" : "⤴ Upload Signed Copy")}</button>
+              {ready && <button onClick={() => onReview(o.id)} style={{ background: "#1E8449", border: "none", color: "#fff", borderRadius: 6, padding: "7px 14px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>Review &amp; Accept</button>}
               <button onClick={() => reject(o.id)} style={{ background: "#fff", border: "1px solid #E5E7EB", color: "#B91C1C", borderRadius: 6, padding: "7px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Reject</button>
             </div>
           </div>
