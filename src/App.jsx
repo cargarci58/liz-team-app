@@ -3267,6 +3267,9 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
         {["Active", "Coming Soon"].includes(tx.status) && (
           <button onClick={() => { setActiveTab("overview"); setShowReceiveOffer(true); }} style={{ fontSize: 11, padding: "4px 12px", borderRadius: 6, border: "none", background: "#1E8449", color: "#fff", fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>📥 Receive Offer</button>
         )}
+        {["Active", "Coming Soon"].includes(tx.status) && (
+          <button onClick={() => { setActiveTab("overview"); setTimeout(() => { const el = document.getElementById("pending-offers-panel"); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); }, 60); }} style={{ fontSize: 11, padding: "4px 12px", borderRadius: 6, border: "1px solid rgba(255,255,255,0.3)", background: "rgba(255,255,255,0.1)", color: "#fff", fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>📋 Review Offers</button>
+        )}
         {tx.status !== "Cancelled" && (
           <button onClick={() => { if (window.confirm("Cancel this transaction? It will be hidden from your dashboard but not deleted.")) update({ status: "Cancelled" }); }} style={{ fontSize: 11, padding: "4px 10px", borderRadius: 6, border: "1px solid rgba(255,100,100,0.5)", background: "rgba(255,100,100,0.15)", color: "#FCA5A5", cursor: "pointer", fontFamily: "inherit" }}>Cancel Transaction</button>
         )}
@@ -3303,7 +3306,7 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
         {activeTab === "overview" && (
           <div>
             {["Active", "Coming Soon"].includes(tx.status) && (
-              <div style={{ marginBottom: 20 }}>
+              <div id="pending-offers-panel" style={{ marginBottom: 20, scrollMarginTop: 80 }}>
                 <ListingOffers txId={tx.id} onReview={(id) => setReviewOfferId(id)} onReceiveOffer={() => setShowReceiveOffer(true)} />
               </div>
             )}
