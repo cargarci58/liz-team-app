@@ -3419,8 +3419,17 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
 
   const isBuyerSideTx = tx.type === "Buyer Representation" || tx.type === "Dual Agency";
   const isListingSideTx = tx.type === "Listing (Seller)" || tx.type === "Dual Agency";
+  // Guest = the opposing-side agent / vendor (not the paying agent). The server
+  // flags this on the transaction payload (is_guest_view). Guests get a stripped-
+  // down set of tabs — no owner timeline, notes, forms, activity, or reminders.
+  const isGuest = !!tx.isGuestView;
 
-  const tabs = [
+  const tabs = isGuest ? [
+    { id: "overview", label: "Overview" },
+    { id: "parties", label: `Parties (${tx.parties.length})` },
+    { id: "documents", label: "📎 Documents" },
+    { id: "chat", label: (chatUnread > 0 || dashboardUnread > 0) ? `💬 Group Chat (${Math.max(chatUnread, dashboardUnread)})` : "💬 Group Chat" },
+  ] : [
     { id: "overview", label: "Overview" },
     { id: "milestones", label: "📅 Timeline" },
     { id: "parties", label: `Parties (${tx.parties.length})` },
@@ -3444,6 +3453,8 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
           <div style={{ color: COLORS.gold, fontSize: 13 }}>{tx.city}, FL {tx.zipCode} · {tx.county} County · {tx.type}</div>
         </div>
         <Badge label={tx.status} color={statusCfg.color} bg={statusCfg.bg} />
+        {isGuest && <span style={{ background: "rgba(255,255,255,0.15)", color: "#fff", fontSize: 11, fontWeight: 700, padding: "4px 10px", borderRadius: 6 }}>👤 Shared with you · view only</span>}
+        {!isGuest && (<>
         <select value={tx.status} onChange={e => {
           const newStatus = e.target.value;
           if (newStatus === tx.status) return;
@@ -3488,6 +3499,7 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
         {tx.status === "Cancelled" && (
           <button onClick={() => update({ status: "Active" })} style={{ fontSize: 11, padding: "4px 10px", borderRadius: 6, border: "1px solid rgba(100,255,100,0.5)", background: "rgba(100,255,100,0.15)", color: "#6EE7B7", cursor: "pointer", fontFamily: "inherit" }}>Restore Transaction</button>
         )}
+        </>)}
       </div>
 
       <div style={{ background: "#fff", borderBottom: `1px solid ${COLORS.border}`, padding: "12px 24px", display: "flex", gap: 24, overflowX: "auto" }}>
@@ -3695,10 +3707,12 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
         {activeTab === "parties" && (
           <div>
             {/* Welcome emails are sent from the "Preview & Send Welcome Emails" button on the Overview tab (single reviewed flow). */}
-            <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginBottom: 16 }}>
-              <Btn onClick={() => setShowAssignVendor(true)} small>🏆 Assign Vendor</Btn>
-              <Btn onClick={() => setShowAddParty(true)} small>+ Add Party</Btn>
-            </div>
+            {!isGuest && (
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginBottom: 16 }}>
+                <Btn onClick={() => setShowAssignVendor(true)} small>🏆 Assign Vendor</Btn>
+                <Btn onClick={() => setShowAddParty(true)} small>+ Add Party</Btn>
+              </div>
+            )}
             {showAssignVendor && (
               <AssignVendorPanel
                 tx={tx}
@@ -3713,7 +3727,7 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
             {PARTY_ROLES.map(role => {
               const members = tx.parties.filter(p => p.role === role && !p.isVendor && !p.is_vendor);
               if (!members.length) return null;
-              return <div key={role} style={{ marginBottom: 16 }}><div style={{ fontSize: 12, fontWeight: 700, color: COLORS.muted, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 8 }}>{role}</div>{members.map(p => <PartyCard key={p.id} party={p} txId={tx.id} onEdit={() => setEditingParty({ ...p })} onRemove={() => update({ parties: tx.parties.filter(pp => pp.id !== p.id) })} onInvite={onInviteParty ? () => onInviteParty(p) : undefined} onSendFollowup={(party) => setFollowupParty(party)} onSendWelcome={onSendWelcome} onResetPassword={async (p) => {
+              return <div key={role} style={{ marginBottom: 16 }}><div style={{ fontSize: 12, fontWeight: 700, color: COLORS.muted, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 8 }}>{role}</div>{members.map(p => <PartyCard key={p.id} party={p} txId={tx.id} onEdit={isGuest ? undefined : () => setEditingParty({ ...p })} onRemove={isGuest ? undefined : () => update({ parties: tx.parties.filter(pp => pp.id !== p.id) })} onInvite={(!isGuest && onInviteParty) ? () => onInviteParty(p) : undefined} onSendFollowup={isGuest ? undefined : (party) => setFollowupParty(party)} onSendWelcome={isGuest ? undefined : onSendWelcome} onResetPassword={isGuest ? undefined : async (p) => {
               if (!confirm("Email a password reset link to " + (p.name || p.email) + "?\n\nThe link expires in 1 hour.")) return;
               try {
                 const r = await fetch("https://liz-team-server-api-production.up.railway.app/users/" + encodeURIComponent(p.email) + "/send-reset-link", { method: "POST", headers: { Authorization: "Bearer " + (localStorage.getItem("tp_token") || ""), "Content-Type": "application/json" }, body: JSON.stringify({ email: p.email }) });
@@ -5199,6 +5213,8 @@ function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenCon
     tasks: (t.tasks || []).filter(Boolean).map(tk => ({ id: tk.id, name: tk.name, status: tk.status, dueDate: tk.dueDate, category: tk.category, assignTo: tk.assignTo })),
     milestoneSummary: t.milestone_summary || null,
     nextMilestone: t.next_milestone || null,
+    isGuestView: t.is_guest_view || false,
+    guestSide: t.guest_side || null,
     reminders: (t.reminders || []).filter(Boolean),
     smsThreads: t.sms_threads || {},
     needsFirstContact: t.needs_first_contact || false,
@@ -6067,6 +6083,8 @@ function MainApp({ onLogout, currentUser }) {
             tasks: (t.tasks || []).filter(Boolean).map(tk => ({ id: tk.id, name: tk.name, status: tk.status, dueDate: tk.dueDate, category: tk.category, assignTo: tk.assignTo })),
             milestoneSummary: t.milestone_summary || null,
             nextMilestone: t.next_milestone || null,
+            isGuestView: t.is_guest_view || false,
+            guestSide: t.guest_side || null,
             reminders: (t.reminders || []).filter(Boolean).map(r => ({ id: r.id, title: r.title, date: r.date, message: r.message, channels: r.channels, parties: r.parties || [], sent: r.sent })),
             needsFirstContact: t.needs_first_contact || false,
             submittedVia: t.submitted_via || null,
