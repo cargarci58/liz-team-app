@@ -482,6 +482,7 @@ function FaqTab({ agentPhone }) {
 // ── MAIN CLIENT PORTAL ────────────────────────────────────────
 export default function ClientPortal({ user, onLogout }) {
   const [tx, setTx] = useState(null);
+  const [allTx, setAllTx] = useState([]);
   const [docs, setDocs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
@@ -496,34 +497,39 @@ export default function ClientPortal({ user, onLogout }) {
     if (activeTab === "chat") setChatUnread(0);
   }, [activeTab]);
 
+  const mapTx = (t) => ({
+    id: t.id,
+    address: t.address,
+    city: t.city,
+    state: t.state,
+    status: t.status,
+    listPrice: t.list_price,
+    contractPrice: t.contract_price,
+    openDate: t.open_date,
+    closingDate: t.closing_date,
+    propertyType: t.property_type,
+    transactionType: t.transaction_type,
+    parties: (t.parties || []).filter(Boolean),
+    tasks: (t.tasks || []).filter(Boolean),
+    owningBrokerage: t.owning_brokerage,
+    brokerageColor: t.brokerage_color,
+    owningAgentName: [t.owning_agent_first_name, t.owning_agent_last_name].filter(Boolean).join(" "),
+    owningAgentEmail: t.owning_agent_email,
+    owningAgentPhone: t.owning_agent_phone,
+    owningAgentTitle: t.owning_agent_title,
+  });
+
   useEffect(() => {
     fetch(API + "/client/transactions", { headers })
       .then(r => r.json())
       .then(data => {
-        if (data.transactions && data.transactions.length > 0) {
-          const t = data.transactions[0];
-          setTx({
-            id: t.id,
-            address: t.address,
-            city: t.city,
-            state: t.state,
-            status: t.status,
-            listPrice: t.list_price,
-            contractPrice: t.contract_price,
-            openDate: t.open_date,
-            closingDate: t.closing_date,
-            propertyType: t.property_type,
-            transactionType: t.transaction_type,
-            parties: (t.parties || []).filter(Boolean),
-            tasks: (t.tasks || []).filter(Boolean),
-            owningBrokerage: t.owning_brokerage,
-            brokerageColor: t.brokerage_color,
-            owningAgentName: [t.owning_agent_first_name, t.owning_agent_last_name].filter(Boolean).join(" "),
-            owningAgentEmail: t.owning_agent_email,
-            owningAgentPhone: t.owning_agent_phone,
-            owningAgentTitle: t.owning_agent_title,
-          });
-          return fetch(API + "/client/documents/" + t.id, { headers });
+        // A client can have MULTIPLE properties (e.g. selling two at once).
+        // Keep them all and let the client switch; default to the first.
+        const list = (data.transactions || []).map(mapTx);
+        setAllTx(list);
+        if (list.length > 0) {
+          setTx(list[0]);
+          return fetch(API + "/client/documents/" + list[0].id, { headers });
         }
       })
       .then(r => r && r.json())
@@ -531,6 +537,18 @@ export default function ClientPortal({ user, onLogout }) {
       .catch(e => console.error("Load failed:", e))
       .finally(() => setLoading(false));
   }, []);
+
+  // Switch which property the portal is showing.
+  const switchProperty = (id) => {
+    const next = allTx.find(t => t.id === id);
+    if (!next) return;
+    setTx(next);
+    setDocs([]);
+    fetch(API + "/client/documents/" + id, { headers })
+      .then(r => r.json())
+      .then(data => { if (data && data.documents) setDocs(data.documents); })
+      .catch(e => console.error("Load docs failed:", e));
+  };
 
   // Poll for unread chat
   useEffect(() => {
@@ -700,6 +718,15 @@ export default function ClientPortal({ user, onLogout }) {
         <>
           {/* Property Hero */}
           <div style={{ background: C.black, padding: "20px 20px 0" }}>
+            {allTx.length > 1 && (
+              <div style={{ marginBottom: 12 }}>
+                <div style={{ fontSize: 11, color: "rgba(255,255,255,0.5)", fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, marginBottom: 4 }}>Your Properties ({allTx.length})</div>
+                <select value={tx.id} onChange={e => switchProperty(e.target.value)}
+                  style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.25)", background: "rgba(255,255,255,0.1)", color: "#fff", fontSize: 14, fontWeight: 600, fontFamily: "inherit" }}>
+                  {allTx.map(t => <option key={t.id} value={t.id} style={{ color: "#111" }}>{t.address}{t.city ? ", " + t.city : ""} — {t.status}</option>)}
+                </select>
+              </div>
+            )}
             <div style={{ fontSize: 11, color: "rgba(255,255,255,0.5)",
               fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, marginBottom: 4 }}>
               {tx.transactionType || "Your Transaction"}
