@@ -2957,7 +2957,9 @@ function ListingOffers({ txId, onReview, onReceiveOffer }) {
       {offers.map(o => {
         const exd = o.extracted_data || {};
         const t = exd.transaction || {};
-        const buyer = (exd.parties || []).find(p => (p.role || "").toLowerCase() === "buyer");
+        const parties = exd.parties || [];
+        const buyer = parties.find(p => (p.role || "").toLowerCase() === "buyer");
+        const buyerAgent = parties.find(p => (p.role || "").toLowerCase().includes("buyer") && (p.role || "").toLowerCase().includes("agent"));
         const ready = o.status === "ready_for_review";
         return (
           <div key={o.id} style={{ background: "#fff", border: "1px solid #FDE68A", borderRadius: 8, padding: "10px 12px", marginBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
@@ -2967,7 +2969,15 @@ function ListingOffers({ txId, onReview, onReceiveOffer }) {
                 {decisionBadge(o.seller_decision)}
               </div>
               <div style={{ color: COLORS.muted, fontSize: 12 }}>
-                {buyer?.name ? buyer.name : (o.original_filename || "Offer")}{ready ? "" : " · reading contract…"}
+                {!ready ? "reading contract…" : (
+                  buyer?.name || buyerAgent?.name ? (
+                    <>
+                      {buyer?.name && <span><strong>Buyer:</strong> {buyer.name}</span>}
+                      {buyer?.name && buyerAgent?.name && <span> · </span>}
+                      {buyerAgent?.name && <span><strong>Buyer's Agent:</strong> {buyerAgent.name}{buyerAgent.company ? ` (${buyerAgent.company})` : ""}</span>}
+                    </>
+                  ) : (o.original_filename || "Offer")
+                )}
               </div>
             </div>
             <div style={{ display: "flex", gap: 8 }}>
