@@ -3340,6 +3340,9 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
     hoaApprovalDays: tt.hoaApprovalDays || "",
     surveyRequired: tt.surveyRequired || false,
     isCash: tt.isCash || false,
+    yearBuilt: tt.yearBuilt || "",
+    floodZone: tt.floodZone || "",
+    representationExpiresOn: tt.representationExpiresOn || "",
     contractFormType: tt.contractFormType || "",
     commissionListing: tt.commissionListing || "",
     commissionBuyer: tt.commissionBuyer || "",
@@ -4512,6 +4515,20 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
                       </select>
                     </div>
                   </div>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 14 }}>
+                    <div>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", marginBottom: 6 }}>Year Built</div>
+                      <input type="number" value={editTxForm.yearBuilt || ""} onChange={e => setEditTxForm(f => ({ ...f, yearBuilt: e.target.value }))} placeholder="e.g. 1975" style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: "1.5px solid #CCC", fontSize: 14, fontFamily: "inherit", boxSizing: "border-box" }} />
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", marginBottom: 6 }}>Flood Zone</div>
+                      <input value={editTxForm.floodZone || ""} onChange={e => setEditTxForm(f => ({ ...f, floodZone: e.target.value }))} placeholder="e.g. AE, X" style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: "1.5px solid #CCC", fontSize: 14, fontFamily: "inherit", boxSizing: "border-box" }} />
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", marginBottom: 6 }}>Rep. Expires</div>
+                      <input type="date" value={editTxForm.representationExpiresOn || ""} onChange={e => setEditTxForm(f => ({ ...f, representationExpiresOn: e.target.value }))} style={{ width: "100%", padding: "9px 12px", borderRadius: 8, border: "1.5px solid #CCC", fontSize: 14, fontFamily: "inherit", boxSizing: "border-box" }} />
+                    </div>
+                  </div>
                 </>
               )}
               <div style={{ marginBottom: 16 }}>
@@ -5205,6 +5222,9 @@ function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenCon
     hoaApprovalDays: t.hoa_approval_days || "",
     surveyRequired: t.survey_required || false,
     isCash: t.is_cash || false,
+    yearBuilt: t.year_built || "",
+    floodZone: t.flood_zone || "",
+    representationExpiresOn: t.representation_expires_on ? String(t.representation_expires_on).slice(0, 10) : "",
     contractFormType: t.contract_form_type || "",
     occupancyStatus: t.occupancy_status || "",
   }));
@@ -6069,6 +6089,9 @@ function MainApp({ onLogout, currentUser }) {
             hoaApprovalDays: t.hoa_approval_days || "",
             surveyRequired: t.survey_required || false,
             isCash: t.is_cash || false,
+            yearBuilt: t.year_built || "",
+            floodZone: t.flood_zone || "",
+            representationExpiresOn: t.representation_expires_on ? String(t.representation_expires_on).slice(0, 10) : "",
             contractFormType: t.contract_form_type || "",
             occupancyStatus: t.occupancy_status || "",
           }));
@@ -6144,7 +6167,7 @@ function MainApp({ onLogout, currentUser }) {
     const freshH = { "Content-Type": "application/json", "Authorization": "Bearer " + freshTok };
     const rollback = () => { if (previous) setTransactions(txs => txs.map(t => t.id === updated.id ? previous : t)); };
     try {
-      const r = await fetch(API + "/transactions/" + updated.id, { method: "PUT", headers: freshH, body: JSON.stringify({ address: updated.address, city: updated.city, state: updated.state, zipCode: updated.zipCode, county: updated.county, mlsNumber: updated.mlsNumber, propertyType: updated.propertyType, type: updated.type, status: updated.status, listPrice: updated.listPrice, contractPrice: updated.contractPrice, openDate: updated.openDate, closingDate: updated.closingDate, executedDate: updated.executedDate, notes: updated.notes, propertyAccess: updated.propertyAccess, commissionListing: updated.commissionListing, commissionBuyer: updated.commissionBuyer, transactionFee: updated.transactionFee, brokerageSplit: updated.brokerageSplit, officeFlatFee: updated.officeFlatFee, mailAway: updated.mailAway, commissionNotes: updated.commissionNotes, referralSource: updated.referralSource, assignedAgent: updated.assignedAgentId, occupancyStatus: updated.occupancyStatus, earnestMoneyAmount: updated.earnestMoneyAmount, emdDeadline: updated.emdDeadline, inspectionPeriodDays: updated.inspectionPeriodDays, inspectionPeriodEnd: updated.inspectionPeriodEnd, financingContingency: updated.financingContingency, financingContingencyDays: updated.financingContingencyDays, appraisalContingency: updated.appraisalContingency, appraisalContingencyDays: updated.appraisalContingencyDays, hoaApprovalRequired: updated.hoaApprovalRequired, hoaApprovalDays: updated.hoaApprovalDays, surveyRequired: updated.surveyRequired, isCash: updated.isCash, contractFormType: updated.contractFormType, additionalTerms: updated.additionalTerms, internalNotes: updated.messages || [], smsThreads: updated.smsThreads || {}, parties: updated.parties || [], tasks: updated.tasks || [], reminders: updated.reminders || [] }) });
+      const r = await fetch(API + "/transactions/" + updated.id, { method: "PUT", headers: freshH, body: JSON.stringify({ address: updated.address, city: updated.city, state: updated.state, zipCode: updated.zipCode, county: updated.county, mlsNumber: updated.mlsNumber, propertyType: updated.propertyType, type: updated.type, status: updated.status, listPrice: updated.listPrice, contractPrice: updated.contractPrice, openDate: updated.openDate, closingDate: updated.closingDate, executedDate: updated.executedDate, notes: updated.notes, propertyAccess: updated.propertyAccess, commissionListing: updated.commissionListing, commissionBuyer: updated.commissionBuyer, transactionFee: updated.transactionFee, brokerageSplit: updated.brokerageSplit, officeFlatFee: updated.officeFlatFee, mailAway: updated.mailAway, commissionNotes: updated.commissionNotes, referralSource: updated.referralSource, assignedAgent: updated.assignedAgentId, occupancyStatus: updated.occupancyStatus, earnestMoneyAmount: updated.earnestMoneyAmount, emdDeadline: updated.emdDeadline, inspectionPeriodDays: updated.inspectionPeriodDays, inspectionPeriodEnd: updated.inspectionPeriodEnd, financingContingency: updated.financingContingency, financingContingencyDays: updated.financingContingencyDays, appraisalContingency: updated.appraisalContingency, appraisalContingencyDays: updated.appraisalContingencyDays, hoaApprovalRequired: updated.hoaApprovalRequired, hoaApprovalDays: updated.hoaApprovalDays, surveyRequired: updated.surveyRequired, isCash: updated.isCash, yearBuilt: updated.yearBuilt, floodZone: updated.floodZone, representationExpiresOn: updated.representationExpiresOn, contractFormType: updated.contractFormType, additionalTerms: updated.additionalTerms, internalNotes: updated.messages || [], smsThreads: updated.smsThreads || {}, parties: updated.parties || [], tasks: updated.tasks || [], reminders: updated.reminders || [] }) });
       if (!r.ok) {
         const e = await r.json().catch(() => ({}));
         console.error("Save error:", e);
