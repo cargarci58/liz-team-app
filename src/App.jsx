@@ -1903,6 +1903,22 @@ function MilestonesTab({ tx, token }) {
     setGenerating(false);
   };
 
+  const [resetting, setResetting] = useState(false);
+  const handleReset = async () => {
+    if (!window.confirm("Rebuild this deal's checklist?\n\nThis clears the current items and rebuilds the full start-to-finish timeline for this deal's current stage. Your uploaded documents and parties are NOT touched.")) return;
+    setResetting(true);
+    try {
+      const res = await fetch(API + "/milestones/reset/" + tx.id, {
+        method: "POST",
+        headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" }
+      });
+      const data = await res.json();
+      if (data.success) { await fetchMilestones(); await fetchCompliance(); }
+      else alert("Could not rebuild: " + (data.error || "unknown error"));
+    } catch (e) { alert("Error rebuilding checklist"); }
+    setResetting(false);
+  };
+
   const handleComplete = async (milestoneId) => {
     setCompleting(milestoneId);
     try {
@@ -1987,11 +2003,26 @@ function MilestonesTab({ tx, token }) {
     pending:   { color: "#555555", bg: "#F4F4F4", label: "Pending", icon: "○" },
   };
 
+  // Auto-TC: one combined timeline grouped by phase (Active → Under Contract → Closing).
+  const PHASE_META = {
+    active:   { label: "📋 Active — Pre-Contract Checklist", order: 0 },
+    contract: { label: "📝 Under Contract", order: 1 },
+    closing:  { label: "🔑 Closing", order: 2 },
+    other:    { label: "Other", order: 3 },
+  };
+  const OWNER_LABELS = {
+    listing_agent: "Listing Agent", buyer_agent: "Buyer's Agent", seller_agent: "Listing Agent",
+    shared: "Both Agents", title: "Title", lender: "Lender", inspector: "Inspector",
+    buyer: "Buyer", seller: "Seller", hoa: "HOA",
+  };
+
   const grouped = milestones.reduce((acc, m) => {
-    acc[m.category] = acc[m.category] || [];
-    acc[m.category].push(m);
+    const key = (m.phase && PHASE_META[m.phase]) ? m.phase : "other";
+    acc[key] = acc[key] || [];
+    acc[key].push(m);
     return acc;
   }, {});
+  const orderedPhases = Object.keys(grouped).sort((a, b) => (PHASE_META[a]?.order ?? 9) - (PHASE_META[b]?.order ?? 9));
 
   const completed = milestones.filter(m => m.status === "Completed" || m.status === "Waived").length;
   const total = milestones.length;
@@ -2081,16 +2112,28 @@ function MilestonesTab({ tx, token }) {
             background: progress === 100 ? "#1E8449" : "#C0392B",
             borderRadius: 20, transition: "width 0.4s ease" }} />
         </div>
+        {tx.constructionType !== "New Construction" && (
+          <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 10 }}>
+            <button onClick={handleReset} disabled={resetting}
+              style={{ fontSize: 11, fontWeight: 600, color: "#555", background: "#F9FAFB",
+                border: "1px solid #E5E7EB", borderRadius: 8, padding: "5px 12px", cursor: "pointer" }}
+              title="Clear and rebuild this deal's full timeline from the latest template. Documents and parties are not touched.">
+              {resetting ? "Rebuilding…" : "🔄 Reset & Rebuild Checklist"}
+            </button>
+          </div>
+        )}
       </div>
 
-      {Object.entries(grouped).map(([category, items]) => {
+      {orderedPhases.map((phaseKey) => {
+        const items = grouped[phaseKey];
         const isNC = tx.constructionType === "New Construction";
         const visibleItems = isNC ? items.filter(m => getMilestoneStatus(m) !== "waived") : items;
         if (visibleItems.length === 0) return null;
+        const phaseLabel = PHASE_META[phaseKey]?.label || phaseKey;
         return (
-        <div key={category} style={{ marginBottom: 20 }}>
-          <div style={{ fontSize: 11, fontWeight: 800, color: "#555", letterSpacing: 1,
-            textTransform: "uppercase", marginBottom: 8 }}>{category}</div>
+        <div key={phaseKey} style={{ marginBottom: 24 }}>
+          <div style={{ fontSize: 13, fontWeight: 800, color: "#1a2332", letterSpacing: 0.3,
+            marginBottom: 10, paddingBottom: 6, borderBottom: "2px solid #EEE" }}>{phaseLabel}</div>
           {visibleItems.map(m => {
             const ms = getMilestoneStatus(m);
             const cfg = statusConfig[ms];
@@ -2114,6 +2157,9 @@ function MilestonesTab({ tx, token }) {
                           color: "#C0392B", background: "#FADBD8",
                           padding: "2px 7px", borderRadius: 20 }}>REQUIRED</span>
                       )}
+                    </div>
+                    <div style={{ fontSize: 11, color: "#777", marginBottom: 2 }}>
+                      {m.category}{m.owner_role && OWNER_LABELS[m.owner_role] ? " · 👤 " + OWNER_LABELS[m.owner_role] : ""}
                     </div>
                     {m.due_date && (
                       <div style={{ fontSize: 12, color: cfg.color, fontWeight: 600 }}>
@@ -3355,7 +3401,7 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
 
   const tabs = [
     { id: "overview", label: "Overview" },
-    { id: "milestones", label: "🎯 Milestones" },
+    { id: "milestones", label: "📅 Timeline" },
     { id: "tasks", label: `Tasks${overdueTasks > 0 ? ` ⚠${overdueTasks}` : ""}` },
     { id: "parties", label: `Parties (${tx.parties.length})` },
     { id: "sms", label: `Messages${smsMsgCount > 0 ? ` (${smsMsgCount})` : ""}` },
