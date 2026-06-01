@@ -3,6 +3,8 @@ import React, { useState, useEffect } from "react";
 const API = "https://liz-team-server-api-production.up.railway.app";
 
 const COLORS = { navy: "#1A2B4A", gold: "#C9A84C", muted: "#6B7280", border: "#E5E7EB", bg: "#F9FAFB", danger: "#C0392B", green: "#1E8449", amber: "#B7770D" };
+// Fluorescent status colors — high-saturation so each light is instantly distinguishable.
+const STATUS = { ok: "#00E676", down: "#FF1744", attn: "#FFEA00" };
 
 // Service labels for the health grid (keys must match backend /admin/superuser/health)
 const SERVICES = [
@@ -30,15 +32,16 @@ const REVIEW_INTERVAL_DAYS = 92; // ~3 months
 // Color a status: green = healthy, red = broken/down, yellow = needs attention
 // (not configured), gray = still loading / no data yet.
 function statusColor(status) {
-  if (status === "ok") return COLORS.green;
-  if (status === "down") return COLORS.danger;
-  if (status === "unconfigured") return COLORS.amber;
+  if (status === "ok") return STATUS.ok;
+  if (status === "down") return STATUS.down;
+  if (status === "unconfigured") return STATUS.attn;
   return COLORS.muted; // loading / unknown
 }
 
 function statusDot(status) {
   const c = statusColor(status);
-  return <span style={{ display: "inline-block", width: 12, height: 12, borderRadius: "50%", background: c, flexShrink: 0, boxShadow: status === "ok" ? "0 0 6px " + COLORS.green + "80" : "none" }} />;
+  const glow = status === "ok" || status === "down" || status === "unconfigured";
+  return <span style={{ display: "inline-block", width: 14, height: 14, borderRadius: "50%", background: c, flexShrink: 0, boxShadow: glow ? `0 0 8px ${c}, 0 0 3px ${c}` : "none" }} />;
 }
 
 function fmtDate(d) {
@@ -112,7 +115,7 @@ function SuperuserDashboard({ onClose, token }) {
             const c = (health && health[svc.key]) || null;
             const status = c?.status || (healthLoading ? "loading" : "unknown");
             const accent = statusColor(status);
-            const detailColor = status === "down" ? COLORS.danger : status === "unconfigured" ? COLORS.amber : COLORS.muted;
+            const detailColor = status === "down" ? COLORS.danger : status === "unconfigured" ? "#B59A00" : COLORS.muted;
             const detailText = healthLoading ? "checking…"
               : !c ? "no data"
               : c.status === "ok" ? (c.detail || "OK")
