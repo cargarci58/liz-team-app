@@ -13,7 +13,6 @@ const SERVICES = [
   { key: "email", label: "Email (SendGrid)" },
   { key: "sms", label: "SMS (Telnyx/Twilio)" },
   { key: "ai_anthropic", label: "AI — Anthropic" },
-  { key: "ai_openai", label: "AI — OpenAI" },
 ];
 
 // Variable data that drifts statewide and needs periodic review (every 3 months).
@@ -28,8 +27,17 @@ const REVIEW_ITEMS = [
 
 const REVIEW_INTERVAL_DAYS = 92; // ~3 months
 
+// Color a status: green = healthy, red = broken/down, yellow = needs attention
+// (not configured), gray = still loading / no data yet.
+function statusColor(status) {
+  if (status === "ok") return COLORS.green;
+  if (status === "down") return COLORS.danger;
+  if (status === "unconfigured") return COLORS.amber;
+  return COLORS.muted; // loading / unknown
+}
+
 function statusDot(status) {
-  const c = status === "ok" ? COLORS.green : status === "down" ? COLORS.danger : COLORS.muted;
+  const c = statusColor(status);
   return <span style={{ display: "inline-block", width: 12, height: 12, borderRadius: "50%", background: c, flexShrink: 0, boxShadow: status === "ok" ? "0 0 6px " + COLORS.green + "80" : "none" }} />;
 }
 
@@ -99,7 +107,7 @@ function SuperuserDashboard({ onClose, token }) {
           <button onClick={loadHealth} disabled={healthLoading} style={{ background: COLORS.navy, color: "#fff", border: "none", borderRadius: 8, padding: "6px 14px", cursor: healthLoading ? "default" : "pointer", fontSize: 13, fontFamily: "inherit", opacity: healthLoading ? 0.6 : 1 }}>{healthLoading ? "Checking…" : "↻ Refresh"}</button>
         </div>
         {healthError && <div style={{ background: "#FDEDEC", border: `1px solid ${COLORS.danger}40`, color: COLORS.danger, borderRadius: 8, padding: "10px 14px", fontSize: 13, marginBottom: 16 }}>Couldn't load health: {healthError}</div>}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 10, marginBottom: 36 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 10, marginBottom: 12 }}>
           {SERVICES.map(svc => {
             const c = (health && health[svc.key]) || null;
             const status = c?.status || (healthLoading ? "loading" : "unknown");
