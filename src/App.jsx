@@ -3627,25 +3627,7 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
 
         {activeTab === "parties" && (
           <div>
-            {/* Welcome-email reminder banner — shows when transaction is Under Contract or needs review and at least one party has an email */}
-            {(tx.needsReview || tx.status === "Under Contract") && (tx.parties || []).some(p => p.email && p.email.includes("@")) && (
-              <div style={{ background: "#eff6ff", border: "2px solid #2563eb", borderRadius: 10, padding: 14, marginBottom: 16 }}>
-                <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
-                  <span style={{ fontSize: 22 }}>✉️</span>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: 800, color: "#1e3a8a", fontSize: 14, marginBottom: 4 }}>Ready to send welcome emails?</div>
-                    <div style={{ fontSize: 12, color: "#1e40af", lineHeight: 1.5, marginBottom: 10 }}>
-                      <strong>What this does:</strong> Sends a professional intro to every party with their role, key dates, and party roster — so the whole team starts on the same page.<br/>
-                      <strong>Before you click:</strong> Confirm every email and phone below is correct. You will see a final summary list before anything sends.
-                    </div>
-                    <button onClick={() => sendWelcomeEmailsFromTx()}
-                      style={{ background: "#1e8449", color: "white", border: "none", borderRadius: 6, padding: "8px 14px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
-                      ✉️ Send Welcome Emails to {(tx.parties || []).filter(p => p.email && p.email.includes("@")).length} Parties
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
+            {/* Welcome emails are sent from the "Preview & Send Welcome Emails" button on the Overview tab (single reviewed flow). */}
             <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginBottom: 16 }}>
               <Btn onClick={() => setShowAssignVendor(true)} small>🏆 Assign Vendor</Btn>
               <Btn onClick={() => setShowAddParty(true)} small>+ Add Party</Btn>
