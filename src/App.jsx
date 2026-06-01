@@ -491,7 +491,7 @@ function addDays(date, days) { const d = new Date(date); d.setDate(d.getDate() +
 function formatDate(s) { if (!s) return "—"; const clean = String(s).includes("T") ? String(s).split("T")[0] : String(s); const d = new Date(clean + "T00:00:00"); return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }); }
 function daysUntil(s) { if (!s) return null; const clean = String(s).includes("T") ? String(s).split("T")[0] : String(s); const diff = new Date(clean + "T00:00:00") - new Date(today() + "T00:00:00"); return Math.round(diff / 86400000); }
 function formatTime(iso) { return new Date(iso).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }); }
-function roleColor(role) { const c = ["#1D4ED8","#15803D","#C9A84C","#7C3AED","#DC2626","#0F766E","#B45309","#9D174D"]; return c[role.length % c.length]; }
+function roleColor(role) { const c = ["#1D4ED8","#15803D","#C9A84C","#7C3AED","#DC2626","#0F766E","#B45309","#9D174D"]; return c[String(role || "").length % c.length]; }
 
 const INITIAL_TRANSACTIONS = [{
   id: "demo1", address: "1842 Magnolia Blossom Dr", city: "St. Cloud", county: "Osceola",
@@ -690,7 +690,7 @@ function TransactionListView({ transactions, sortKey, sortDir, toggleSort, onSel
 }
 
 function PartyAvatar({ party, size = 40 }) {
-  const initials = party.name.split(" ").map(w => w[0]).join("").toUpperCase().substr(0, 2);
+  const initials = String(party.name || "?").trim().split(/\s+/).map(w => w[0] || "").join("").toUpperCase().substr(0, 2) || "?";
   const color = roleColor(party.role);
   return <div style={{ width: size, height: size, borderRadius: "50%", background: color + "22", color, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: size * 0.35, flexShrink: 0 }}>{initials}</div>;
 }
@@ -2777,7 +2777,21 @@ function WelcomeEmailPreview({ txId, onClose }) {
   const [sentIds, setSentIds] = useState({});   // partyId -> true
   const [busy, setBusy] = useState(false);
   const [attaching, setAttaching] = useState(false);
+  const [excludedDocs, setExcludedDocs] = useState({}); // docId -> true (removed by agent)
   const fileRef = useRef(null);
+
+  const removeAttachment = (docId) => setExcludedDocs(s => ({ ...s, [docId]: true }));
+  const restoreAttachment = (docId) => setExcludedDocs(s => { const n = { ...s }; delete n[docId]; return n; });
+  const excludeList = () => Object.keys(excludedDocs);
+
+  const previewDoc = async (docId) => {
+    try {
+      const r = await fetch(`${API}/documents/${docId}/view-url`, { headers: hdrs });
+      const d = await r.json();
+      if (!d.success || !d.viewUrl) throw new Error(d.error || "Could not open document");
+      window.open(d.viewUrl, "_blank", "noopener");
+    } catch (e) { alert(e.message); }
+  };
 
   const loadPreviews = () => {
     return fetch(`${API}/transactions/${txId}/welcome-emails/preview`, { method: "POST", headers: { ...hdrs, "Content-Type": "application/json" }, body: JSON.stringify({}) })
@@ -2820,7 +2834,7 @@ function WelcomeEmailPreview({ txId, onClose }) {
     if (!p.partyId) { alert("This recipient can't be sent individually (missing id). Use Send All."); return; }
     setBusy(true);
     try {
-      const r = await fetch(`${API}/transactions/${txId}/parties/${p.partyId}/send-welcome`, { method: "POST", headers: hdrs });
+      const r = await fetch(`${API}/transactions/${txId}/parties/${p.partyId}/send-welcome`, { method: "POST", headers: { ...hdrs, "Content-Type": "application/json" }, body: JSON.stringify({ excludeDocIds: excludeList() }) });
       const d = await r.json();
       if (!d.success && d.error) throw new Error(d.error);
       setSentIds(s => ({ ...s, [p.partyId]: true }));
@@ -2832,7 +2846,7 @@ function WelcomeEmailPreview({ txId, onClose }) {
     if (!window.confirm(`Send all ${previews.length} welcome email(s) now?`)) return;
     setBusy(true);
     try {
-      const r = await fetch(`${API}/transactions/${txId}/send-welcome-emails`, { method: "POST", headers: hdrs });
+      const r = await fetch(`${API}/transactions/${txId}/send-welcome-emails`, { method: "POST", headers: { ...hdrs, "Content-Type": "application/json" }, body: JSON.stringify({ excludeDocIds: excludeList() }) });
       const d = await r.json();
       const done = {};
       (d.sent || []).forEach(s => { const m = previews.find(p => p.email === s.email); if (m) done[m.partyId] = true; });
@@ -2893,19 +2907,37 @@ function WelcomeEmailPreview({ txId, onClose }) {
                 <div style={{ fontSize: 13, color: COLORS.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}><strong>To:</strong> {cur?.email} &nbsp; <strong>Subj:</strong> {cur?.subject}</div>
                 <button onClick={() => sendOne(cur)} disabled={busy || sentIds[cur?.partyId]} style={{ background: sentIds[cur?.partyId] ? "#9CA3AF" : "#C0392B", color: "#fff", border: "none", borderRadius: 8, padding: "8px 18px", fontSize: 13, fontWeight: 700, cursor: sentIds[cur?.partyId] ? "default" : "pointer", fontFamily: "inherit", flexShrink: 0 }}>{sentIds[cur?.partyId] ? "✓ Sent" : "Send"}</button>
               </div>
-              {/* attachments for this recipient */}
-              <div style={{ padding: "8px 16px", borderBottom: "1px solid " + COLORS.border, background: "#F9FAFB", display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+              {/* attachments for this recipient — click name to preview, X to remove */}
+              <div style={{ padding: "8px 16px", borderBottom: "1px solid " + COLORS.border, background: "#F9FAFB", display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                 <span style={{ fontSize: 12, fontWeight: 700, color: COLORS.muted }}>📎 Attachments:</span>
-                {(cur?.attachments && cur.attachments.length > 0) ? (
-                  cur.attachments.map((a, i) => (
-                    <span key={i} style={{ fontSize: 12, color: COLORS.text, background: "#fff", border: "1px solid " + COLORS.border, borderRadius: 6, padding: "3px 8px" }}>📄 {a.name}</span>
-                  ))
-                ) : (
-                  <span style={{ fontSize: 12, color: COLORS.muted, fontStyle: "italic" }}>None for this recipient{cur && /inspector|hoa/i.test(cur.role || "") ? " (role gets no documents)" : ""}</span>
-                )}
+                {(() => {
+                  const all = cur?.attachments || [];
+                  const active = all.filter(a => !excludedDocs[a.id]);
+                  const removed = all.filter(a => excludedDocs[a.id]);
+                  return (
+                    <>
+                      {active.length === 0 && removed.length === 0 && (
+                        <span style={{ fontSize: 12, color: COLORS.muted, fontStyle: "italic" }}>None for this recipient{cur && /inspector|hoa/i.test(cur.role || "") ? " (role gets no documents)" : ""}</span>
+                      )}
+                      {active.map((a) => (
+                        <span key={a.id} style={{ fontSize: 12, color: COLORS.text, background: "#fff", border: "1px solid " + COLORS.border, borderRadius: 6, padding: "3px 6px 3px 8px", display: "inline-flex", alignItems: "center", gap: 6 }}>
+                          <span onClick={() => previewDoc(a.id)} title="Click to preview" style={{ cursor: "pointer", textDecoration: "underline", textDecorationStyle: "dotted" }}>📄 {a.name}</span>
+                          <button onClick={() => removeAttachment(a.id)} title="Remove from emails" style={{ background: "none", border: "none", color: "#B91C1C", cursor: "pointer", fontSize: 14, fontWeight: 800, lineHeight: 1, padding: "0 2px" }}>×</button>
+                        </span>
+                      ))}
+                      {removed.map((a) => (
+                        <span key={a.id} style={{ fontSize: 12, color: COLORS.muted, background: "#fff", border: "1px dashed " + COLORS.border, borderRadius: 6, padding: "3px 8px", textDecoration: "line-through", display: "inline-flex", alignItems: "center", gap: 6 }}>
+                          {a.name}
+                          <button onClick={() => restoreAttachment(a.id)} title="Add back" style={{ background: "none", border: "none", color: "#1E8449", cursor: "pointer", fontSize: 11, fontWeight: 700, textDecoration: "none" }}>undo</button>
+                        </span>
+                      ))}
+                    </>
+                  );
+                })()}
                 <input ref={fileRef} type="file" style={{ display: "none" }} onChange={e => attachFile(e.target.files && e.target.files[0])} />
                 <button onClick={() => fileRef.current && fileRef.current.click()} disabled={attaching} style={{ marginLeft: "auto", background: "#fff", color: "#1E8449", border: "1px solid #1E8449", borderRadius: 6, padding: "5px 12px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>{attaching ? "Attaching…" : "+ Attach another file"}</button>
               </div>
+              <div style={{ padding: "4px 16px", fontSize: 11, color: COLORS.muted, borderBottom: "1px solid " + COLORS.border, background: "#F9FAFB" }}>Removing an attachment (×) applies to everyone — it won't be sent to any party.</div>
               <iframe title="email-preview" srcDoc={cur?.html || ""} style={{ flex: 1, width: "100%", border: "none", background: "#fff" }} />
             </div>
           </div>
