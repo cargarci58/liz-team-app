@@ -3438,16 +3438,15 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
   const isBuyerSideTx = tx.type === "Buyer Representation" || tx.type === "Dual Agency";
   const isListingSideTx = tx.type === "Listing (Seller)" || tx.type === "Dual Agency";
   // Guest = the opposing-side agent / vendor (not the paying agent). The server
-  // flags this on the transaction payload (is_guest_view). Guests get a stripped-
-  // down set of tabs — no owner timeline, notes, forms, activity, or reminders.
+  // flags this on the transaction payload (is_guest_view). Guests see ALL tab titles
+  // (full capability showcase); the ones they can actually open are GUEST_ALLOWED_TABS
+  // (their own scoped view). Clicking any other tab pops the paid-subscription paywall
+  // instead of opening it — so private owner data (timeline/notes/activity/etc.) never
+  // loads for a guest.
   const isGuest = !!tx.isGuestView;
+  const GUEST_ALLOWED_TABS = ["overview", "parties", "documents", "chat"];
 
-  const tabs = isGuest ? [
-    { id: "overview", label: "Overview" },
-    { id: "parties", label: `Parties (${tx.parties.length})` },
-    { id: "documents", label: "📎 Documents" },
-    { id: "chat", label: (chatUnread > 0 || dashboardUnread > 0) ? `💬 Group Chat (${Math.max(chatUnread, dashboardUnread)})` : "💬 Group Chat" },
-  ] : [
+  const tabs = [
     { id: "overview", label: "Overview" },
     { id: "milestones", label: "📅 Timeline" },
     { id: "parties", label: `Parties (${tx.parties.length})` },
@@ -3461,6 +3460,11 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
     { id: "activity", label: "📋 Activity Log" },
     { id: "reminders", label: "Reminders" },
   ];
+  // Tab click handler: a guest opening a non-allowed tab gets the paywall, not the tab.
+  const handleTabClick = (t) => {
+    if (isGuest && !GUEST_ALLOWED_TABS.includes(t.id)) { setPaywallFeature(t.label.replace(/\s*\(\d+\)\s*$/, "")); return; }
+    setActiveTab(t.id);
+  };
 
   return (
     <div style={{ fontFamily: "'Segoe UI', system-ui, sans-serif", background: COLORS.bg, minHeight: "100vh" }}>
@@ -3543,7 +3547,7 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
 
       <div style={{ background: "#fff", borderBottom: `1px solid ${COLORS.border}`, display: "flex", overflowX: "auto" }}>
         {tabs.map(t => (
-          <button key={t.id} onClick={() => setActiveTab(t.id)} style={{ padding: "12px 20px", background: "none", border: "none", borderBottom: `3px solid ${activeTab === t.id ? COLORS.navy : "transparent"}`, color: activeTab === t.id ? COLORS.navy : COLORS.muted, fontWeight: activeTab === t.id ? 700 : 500, fontSize: 13, cursor: "pointer", flexShrink: 0, fontFamily: "inherit" }}>{t.label}</button>
+          <button key={t.id} onClick={() => handleTabClick(t)} style={{ padding: "12px 20px", background: "none", border: "none", borderBottom: `3px solid ${activeTab === t.id ? COLORS.navy : "transparent"}`, color: activeTab === t.id ? COLORS.navy : COLORS.muted, fontWeight: activeTab === t.id ? 700 : 500, fontSize: 13, cursor: "pointer", flexShrink: 0, fontFamily: "inherit" }}>{t.label}{isGuest && !GUEST_ALLOWED_TABS.includes(t.id) ? " 🔒" : ""}</button>
         ))}
       </div>
 
