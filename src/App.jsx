@@ -2979,6 +2979,22 @@ function ListingOffers({ txId, onReview, onReceiveOffer }) {
                   ) : (o.original_filename || "Offer")
                 )}
               </div>
+              {(() => {
+                const dl = t.offer_acceptance_deadline;
+                if (!dl) return null;
+                const d = new Date(dl + "T00:00:00");
+                if (isNaN(d)) return null;
+                const today = new Date(); today.setHours(0,0,0,0);
+                const days = Math.round((d - today) / 86400000);
+                const expired = days < 0;
+                const urgent = days <= 2;
+                const label = expired ? `Offer expired ${Math.abs(days)}d ago` : days === 0 ? "Must accept by today" : `Must accept in ${days}d`;
+                return (
+                  <div style={{ marginTop: 4, fontSize: 11, fontWeight: 700, color: expired ? "#B91C1C" : urgent ? "#B7770D" : COLORS.muted }}>
+                    ⏰ {label} <span style={{ fontWeight: 400 }}>({new Date(dl + "T00:00:00").toLocaleDateString()})</span>
+                  </div>
+                );
+              })()}
             </div>
             <div style={{ display: "flex", gap: 8 }}>
               {ready && <button onClick={() => onReview(o.id)} style={{ background: "#1E8449", border: "none", color: "#fff", borderRadius: 6, padding: "7px 14px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>Review &amp; Accept</button>}
