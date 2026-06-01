@@ -464,6 +464,24 @@ function ReviewStep({ token, uploadId, user, onApproved, onBack }) {
     setEdited({ ...edited, parties: [...edited.parties, { role: "Other", name: "", email: "", phone: "", company: "" }] });
   };
 
+  const handleSaveDraft = async () => {
+    setSaving(true);
+    setError("");
+    try {
+      const r = await fetch(API + "/contracts/uploads/" + uploadId + "/save", {
+        method: "POST",
+        headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
+        body: JSON.stringify({ extracted_data: edited })
+      });
+      const d = await r.json();
+      if (!d.success) throw new Error(d.error || "Save failed");
+      onBack();
+    } catch (e) {
+      setError(e.message);
+      setSaving(false);
+    }
+  };
+
   const handleApprove = async () => {
     setSaving(true);
     setError("");
@@ -673,7 +691,7 @@ function ReviewStep({ token, uploadId, user, onApproved, onBack }) {
           💡 <strong>This offer is held in Pending Offers.</strong> Save it now and come back later — share it with the sellers, hold several offers side by side, and only <strong>Approve</strong> once the sellers have signed/accepted. Approving accepts it into the transaction (Under Contract, parties, timeline & tasks).
         </div>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, marginTop: 4, flexWrap: "wrap" }}>
-          <button onClick={onBack} style={{ background: "white", color: COLORS.navy, border: "1px solid " + COLORS.border, borderRadius: 8, padding: "12px 24px", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>← Save to Pending Offers</button>
+          <button onClick={handleSaveDraft} disabled={saving} style={{ background: "white", color: COLORS.navy, border: "1px solid " + COLORS.border, borderRadius: 8, padding: "12px 24px", fontSize: 14, fontWeight: 700, cursor: saving ? "wait" : "pointer", fontFamily: "inherit", opacity: saving ? 0.7 : 1 }}>{saving ? "Saving..." : "← Save to Pending Offers"}</button>
           <button onClick={handleApprove} disabled={saving} style={{ background: COLORS.green, color: "white", border: "none", borderRadius: 8, padding: "12px 28px", fontSize: 14, fontWeight: 600, cursor: saving ? "wait" : "pointer", fontFamily: "inherit", opacity: saving ? 0.7 : 1 }}>
             {saving ? "Approving Offer..." : "✓ Approve Offer (sellers accepted)"}
           </button>
