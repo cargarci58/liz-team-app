@@ -178,6 +178,7 @@ const FLORIDA_TASK_TEMPLATES = {
     { name: "Schedule Open House (if applicable)", phase: "active", daysFromOpen: null, category: "Marketing", assignTo: "Listing Agent" },
     { name: "Review and Negotiate Offer(s)", phase: "active", daysFromOpen: null, category: "Marketing", assignTo: "Listing Agent" },
     // ── PHASE 3: UNDER CONTRACT ──────────────────────────────
+    { name: "Change MLS Status from Active to Under Contract", phase: "contract", daysFromOpen: 0, category: "Contract", assignTo: "Listing Agent" },
     { name: "Execute FR/Bar AS-IS or Standard Contract", phase: "contract", daysFromOpen: 0, category: "Contract", assignTo: "Transaction Coordinator" },
     { name: "Send Fully Executed Contract to All Parties", phase: "contract", daysFromOpen: 0, category: "Contract", assignTo: "Transaction Coordinator" },
     { name: "Open Escrow / Title Order", phase: "contract", daysFromOpen: 1, category: "Title", assignTo: "Title Company" },
