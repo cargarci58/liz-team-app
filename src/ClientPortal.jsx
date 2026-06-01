@@ -672,7 +672,16 @@ export default function ClientPortal({ user, onLogout }) {
     if (isBuyerSide && (r.includes("listing") || r.includes("seller"))) return true;
     return false;
   };
-  const teamParties = tx ? tx.parties.filter(p => p.role !== "Buyer" && p.role !== "Seller" && !hideOppositeAgent(p.role)) : [];
+  // The client's own agent already shows at the top (owningAgent), and is usually
+  // ALSO present in parties as "Listing Agent"/"Buyer's Agent" — drop that duplicate
+  // by matching email (preferred) or name so the same person isn't listed twice.
+  const isMyAgent = (p) => {
+    const n = (s) => (s || "").trim().toLowerCase();
+    return (agentEmail && n(p.email) === n(agentEmail)) || (agentName && n(p.name) === n(agentName));
+  };
+  const teamParties = tx ? tx.parties.filter(p =>
+    p.role !== "Buyer" && p.role !== "Seller" && !hideOppositeAgent(p.role) && !isMyAgent(p)
+  ) : [];
 
   const tabs = [
     { id: "home", label: "🏠 My Transaction" },
