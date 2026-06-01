@@ -3424,7 +3424,6 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
   const tabs = [
     { id: "overview", label: "Overview" },
     { id: "milestones", label: "📅 Timeline" },
-    { id: "tasks", label: `Tasks${overdueTasks > 0 ? ` ⚠${overdueTasks}` : ""}` },
     { id: "parties", label: `Parties (${tx.parties.length})` },
     { id: "sms", label: `Messages${smsMsgCount > 0 ? ` (${smsMsgCount})` : ""}` },
     { id: "notes", label: "Internal Notes" },
