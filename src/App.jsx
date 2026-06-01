@@ -2051,21 +2051,22 @@ function MilestonesTab({ tx, token }) {
         boxShadow: "0 1px 4px rgba(0,0,0,0.08)" }}>
         <div style={{ fontSize: 48, marginBottom: 16 }}>⚡</div>
         <div style={{ fontWeight: 700, fontSize: 18, color: "#111", marginBottom: 8 }}>
-          Set Up Smart Tracking
+          Build This Deal's Timeline
         </div>
         <div style={{ color: "#555", fontSize: 14, lineHeight: 1.6, marginBottom: 24 }}>
-          Generate all Florida-standard milestones automatically. Due dates are calculated from your contract date.
+          Create the full start-to-finish checklist for this deal — built automatically for its
+          current stage and contract details. Due dates fill in from the contract date when one is set.
         </div>
         {(!tx.openDate && !tx.executedDate) && (
           <div style={{ background: "#FEF9E7", border: "1px solid #F9CA24", borderRadius: 10,
             padding: 12, marginBottom: 20, fontSize: 13, color: "#B7770D" }}>
-            Add a contract date to this transaction first so deadlines can be calculated.
+            Tip: add a contract date so deadlines and reminders can be calculated. (You can build the list now either way.)
           </div>
         )}
-        <button onClick={handleGenerate} disabled={generating}
+        <button onClick={handleReset} disabled={resetting}
           style={{ background: "#C0392B", color: "#fff", border: "none", borderRadius: 12,
             padding: "14px 32px", fontWeight: 700, fontSize: 16, cursor: "pointer" }}>
-          {generating ? "Generating..." : "Generate Milestones"}
+          {resetting ? "Building…" : "🔄 Reset & Rebuild Checklist"}
         </button>
       </div>
     </div>
