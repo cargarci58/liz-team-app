@@ -103,18 +103,30 @@ function SuperuserDashboard({ onClose, token }) {
           {SERVICES.map(svc => {
             const c = (health && health[svc.key]) || null;
             const status = c?.status || (healthLoading ? "loading" : "unknown");
+            const accent = statusColor(status);
+            const detailColor = status === "down" ? COLORS.danger : status === "unconfigured" ? COLORS.amber : COLORS.muted;
+            const detailText = healthLoading ? "checking…"
+              : !c ? "no data"
+              : c.status === "ok" ? (c.detail || "OK")
+              : c.status === "down" ? "DOWN — " + (c.detail || "")
+              : c.status === "unconfigured" ? "Not configured — " + (c.detail || "")
+              : (c.detail || c.status);
             return (
-              <div key={svc.key} style={{ display: "flex", alignItems: "center", gap: 12, background: COLORS.bg, border: `1px solid ${COLORS.border}`, borderRadius: 10, padding: "12px 14px" }}>
-                {statusDot(c?.status)}
+              <div key={svc.key} style={{ display: "flex", alignItems: "center", gap: 12, background: COLORS.bg, border: `1px solid ${COLORS.border}`, borderLeft: `4px solid ${accent}`, borderRadius: 10, padding: "12px 14px" }}>
+                {statusDot(status)}
                 <div style={{ minWidth: 0 }}>
                   <div style={{ fontSize: 13, fontWeight: 700, color: COLORS.navy }}>{svc.label}</div>
-                  <div style={{ fontSize: 11, color: status === "down" ? COLORS.danger : COLORS.muted, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                    {healthLoading ? "checking…" : (c ? (c.status === "ok" ? c.detail || "OK" : c.status === "down" ? "DOWN — " + (c.detail || "") : c.detail || c.status) : "no data")}
-                  </div>
+                  <div style={{ fontSize: 11, color: detailColor, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{detailText}</div>
                 </div>
               </div>
             );
           })}
+        </div>
+        {/* Legend */}
+        <div style={{ display: "flex", gap: 18, flexWrap: "wrap", margin: "0 0 36px", fontSize: 11, color: COLORS.muted }}>
+          <span style={{ display: "flex", alignItems: "center", gap: 6 }}>{statusDot("ok")} Healthy</span>
+          <span style={{ display: "flex", alignItems: "center", gap: 6 }}>{statusDot("unconfigured")} Needs attention</span>
+          <span style={{ display: "flex", alignItems: "center", gap: 6 }}>{statusDot("down")} Down</span>
         </div>
 
         {/* ── Quarterly Review ── */}
