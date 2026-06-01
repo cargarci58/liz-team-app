@@ -438,11 +438,15 @@ function ReviewStep({ token, uploadId, user, currentStatus, onApproved, onBack }
         if (d.upload?.extracted_data) {
           setData(d.upload);
           const ed = d.upload.extracted_data;
-          // In Florida the contract's effective date is when it's fully signed AND
-          // delivered. Offers come in unsigned, so default the executed date to
-          // today (Florida time) — the agent can change it before approving.
-          if (ed.transaction && !ed.transaction.executed_date) {
-            ed.transaction.executed_date = new Date().toLocaleDateString("en-CA", { timeZone: "America/New_York" });
+          // In Florida a contract is "executed" when fully signed AND delivered —
+          // which is the moment you accept it. Offers come in unsigned, so default
+          // the executed date to TODAY (Florida time) when it's blank OR in the
+          // past (you can't have executed it before you're accepting it now). The
+          // agent can still change it before approving.
+          if (ed.transaction) {
+            const flToday = new Date().toLocaleDateString("en-CA", { timeZone: "America/New_York" });
+            const cur = ed.transaction.executed_date;
+            if (!cur || cur < flToday) ed.transaction.executed_date = flToday;
           }
           setEdited(ed);
         } else {
