@@ -999,7 +999,7 @@ export default function ClientPortal({ user, onLogout }) {
             {/* CHAT TAB */}
             {activeTab === "chat" && (
               <div style={{ height: 500 }}>
-                <TransactionChat transactionId={tx?.id} user={null}
+                <TransactionChat transactionId={tx?.id} user={null} clientView={true}
                   style={{ height: "100%" }} unreadCount={chatUnread} onUnreadChange={() => {}} />
               </div>
             )}

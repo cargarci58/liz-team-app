@@ -52,7 +52,7 @@ function ensureNotificationPermission() {
   }
 }
 
-export default function TransactionChat({ transactionId, user, parties = [], style, onUnreadChange, unreadCount = 0 }) {
+export default function TransactionChat({ transactionId, user, parties = [], style, onUnreadChange, unreadCount = 0, clientView = false }) {
   const [messages, setMessages] = useState([]);
   const [newMsg, setNewMsg] = useState("");
   const [connected, setConnected] = useState(false);
@@ -264,7 +264,7 @@ export default function TransactionChat({ transactionId, user, parties = [], sty
                   <div style={{ background: mine ? "#C0392B" : unread ? "#FFF3CD" : "#fff", color: mine ? "#fff" : "#111", padding: "10px 14px", borderRadius: mine ? "14px 14px 4px 14px" : "14px 14px 14px 4px", fontSize: 14, lineHeight: 1.5, boxShadow: "0 1px 3px rgba(0,0,0,0.1)", border: mine ? "none" : unread ? "2px solid #F0C040" : "1px solid #E5E7EB" }}>
                     {msg.message}
                   </div>
-                  {Array.isArray(msg.notify_emails) && msg.notify_emails.length > 0 && (
+                  {!clientView && Array.isArray(msg.notify_emails) && msg.notify_emails.length > 0 && (
                     <div style={{ fontSize: 11, fontWeight: 700, color: mine ? "#fff" : "#1A5276", marginTop: 4, textAlign: mine ? "right" : "left", padding: "4px 10px", borderRadius: 10, background: mine ? "rgba(0,0,0,0.35)" : "#D6E4F0", display: "inline-block", border: mine ? "1px solid rgba(255,255,255,0.3)" : "1px solid #A9C5DC" }}>
                       📧 Notified: {(msg.notify_emails || []).map(e => {
                         const p = parties.find(p => (p.email || "").toLowerCase() === e.toLowerCase());
