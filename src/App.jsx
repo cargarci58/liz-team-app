@@ -2928,7 +2928,14 @@ function ListingOffers({ txId, onReview, onReceiveOffer }) {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  if (loading || offers.length === 0) return null;
+  if (loading) return null;
+  if (offers.length === 0) {
+    return (
+      <div style={{ background: "#F9FAFB", border: "1px dashed " + COLORS.border, borderRadius: 12, padding: 16, fontSize: 13, color: COLORS.muted }}>
+        No pending offers on this listing right now.
+      </div>
+    );
+  }
 
   const decisionBadge = (d) => {
     if (!d) return null;
@@ -3293,7 +3300,7 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
         {["Active", "Coming Soon"].includes(tx.status) && (
           <button onClick={() => { setActiveTab("overview"); setShowReceiveOffer(true); }} style={{ fontSize: 11, padding: "4px 12px", borderRadius: 6, border: "none", background: "#1E8449", color: "#fff", fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>📥 Receive Offer</button>
         )}
-        {["Active", "Coming Soon"].includes(tx.status) && (
+        {!["Closed", "Cancelled"].includes(tx.status) && (
           <button onClick={() => { setActiveTab("overview"); setTimeout(() => { const el = document.getElementById("pending-offers-panel"); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); }, 60); }} style={{ fontSize: 11, padding: "4px 12px", borderRadius: 6, border: "1px solid rgba(255,255,255,0.3)", background: "rgba(255,255,255,0.1)", color: "#fff", fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>📋 Review Offers</button>
         )}
         {tx.status !== "Cancelled" && (
@@ -3331,7 +3338,7 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
       <div style={{ padding: 24, maxWidth: 940, margin: "0 auto" }}>
         {activeTab === "overview" && (
           <div>
-            {["Active", "Coming Soon"].includes(tx.status) && (
+            {!["Closed", "Cancelled"].includes(tx.status) && (
               <div id="pending-offers-panel" style={{ marginBottom: 20, scrollMarginTop: 80 }}>
                 <ListingOffers txId={tx.id} onReview={(id) => setReviewOfferId(id)} onReceiveOffer={() => setShowReceiveOffer(true)} />
               </div>
