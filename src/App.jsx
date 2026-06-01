@@ -3529,7 +3529,7 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
       <div style={{ padding: 24, maxWidth: 940, margin: "0 auto" }}>
         {activeTab === "overview" && (
           <div>
-            {!["Closed", "Cancelled"].includes(tx.status) && (
+            {!isGuest && !["Closed", "Cancelled"].includes(tx.status) && (
               <div id="pending-offers-panel" style={{ marginBottom: 20, scrollMarginTop: 80 }}>
                 <ListingOffers txId={tx.id} onReview={(id) => setReviewOfferId(id)} onReceiveOffer={() => setShowReceiveOffer(true)} />
               </div>
@@ -3553,7 +3553,7 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
                 onClose={() => { setShowEmailPreview(false); window.location.reload(); }}
               />
             )}
-            {["Under Contract", "Inspection", "Appraisal", "Clear to Close", "Closed"].includes(tx.status) && (
+            {!isGuest && ["Under Contract", "Inspection", "Appraisal", "Clear to Close", "Closed"].includes(tx.status) && (
               <div style={{ background: "#fff", border: `1px solid ${COLORS.border}`, borderRadius: 12, padding: 16, marginBottom: 20, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
                 <div style={{ fontSize: 13, color: COLORS.muted }}>Send the welcome &amp; intro emails to all parties — you can preview each before it goes out.</div>
                 <button onClick={() => setShowEmailPreview(true)} style={{ background: "#1E8449", color: "#fff", border: "none", borderRadius: 8, padding: "9px 16px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>✉️ Preview &amp; Send Welcome Emails</button>
