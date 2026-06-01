@@ -437,7 +437,14 @@ function ReviewStep({ token, uploadId, user, onApproved, onBack }) {
       .then(d => {
         if (d.upload?.extracted_data) {
           setData(d.upload);
-          setEdited(d.upload.extracted_data);
+          const ed = d.upload.extracted_data;
+          // In Florida the contract's effective date is when it's fully signed AND
+          // delivered. Offers come in unsigned, so default the executed date to
+          // today (Florida time) — the agent can change it before approving.
+          if (ed.transaction && !ed.transaction.executed_date) {
+            ed.transaction.executed_date = new Date().toLocaleDateString("en-CA", { timeZone: "America/New_York" });
+          }
+          setEdited(ed);
         } else {
           setError("No extracted data found");
         }

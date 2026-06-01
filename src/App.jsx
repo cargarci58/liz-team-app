@@ -3354,6 +3354,12 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
                 onClose={() => { setShowEmailPreview(false); window.location.reload(); }}
               />
             )}
+            {["Under Contract", "Inspection", "Appraisal", "Clear to Close", "Closed"].includes(tx.status) && (
+              <div style={{ background: "#fff", border: `1px solid ${COLORS.border}`, borderRadius: 12, padding: 16, marginBottom: 20, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+                <div style={{ fontSize: 13, color: COLORS.muted }}>Send the welcome &amp; intro emails to all parties — you can preview each before it goes out.</div>
+                <button onClick={() => setShowEmailPreview(true)} style={{ background: "#1E8449", color: "#fff", border: "none", borderRadius: 8, padding: "9px 16px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>✉️ Preview &amp; Send Welcome Emails</button>
+              </div>
+            )}
             {(tx.transaction_type || tx.type) && /buyer|dual/i.test(tx.transaction_type || tx.type) && (
               <PreApprovalCard transactionId={tx.id} isAgent={true} />
             )}
