@@ -9,6 +9,7 @@ import ContactsPage from "./ContactsPage";
 import ExpensesPage from './ExpensesPage';
 import FormsPage from './FormsPage';
 import FormDownloadPage from './FormDownloadPage';
+import SuperuserDashboard from './SuperuserDashboard';
 import ComplianceAdmin from "./ComplianceAdmin";
 import TaskTemplatesAdmin from "./TaskTemplatesAdmin";
 import ContractAutoIntake from "./ContractAutoIntake";
@@ -27,6 +28,9 @@ import ClientPortal from "./ClientPortal";
 import FaqHelpButton from "./components/FaqHelpButton";
 
 const API = "https://liz-team-server-api-production.up.railway.app";
+// Platform developer account — only this email sees the Superuser Dashboard.
+// Swap via VITE_SUPERUSER_EMAIL at build time; backend mirrors with SUPERUSER_EMAIL.
+const SUPERUSER_EMAIL = ((import.meta.env && import.meta.env.VITE_SUPERUSER_EMAIL) || "cgarcia@thelizteam.com").toLowerCase();
 
 import { useState, useEffect, useCallback, useRef } from "react";
 
@@ -4290,7 +4294,7 @@ function ContactAutocomplete({ token, onSelect }) {
 // ═══════════════════════════════════════════════════════════════
 // SettingsMenu — dropdown that consolidates 6+ buttons into one
 // ═══════════════════════════════════════════════════════════════
-function SettingsMenu({ currentUser, onOpenContactBook, contactCount, onReports, onAgentProfile, onOpenComplianceDash, onOpenCompliance, onOpenTaskTmpls, onCompanySettings, onChangePassword, onOpenForms, onOpenTeam }) {
+function SettingsMenu({ currentUser, onOpenContactBook, contactCount, onReports, onAgentProfile, onOpenComplianceDash, onOpenCompliance, onOpenTaskTmpls, onCompanySettings, onChangePassword, onOpenForms, onOpenTeam, onOpenSuperuser }) {
   const [open, setOpen] = useState(false);
   const isAdmin = ["admin", "superadmin"].includes(currentUser?.role);
   const items = [];
@@ -4307,6 +4311,10 @@ function SettingsMenu({ currentUser, onOpenContactBook, contactCount, onReports,
     items.push({ icon: "⚖️", label: "Doc Requirements", onClick: onOpenCompliance });
     items.push({ icon: "📝", label: "Task Templates", onClick: onOpenTaskTmpls });
     items.push({ icon: "⚙️", label: "Company Settings", onClick: onCompanySettings });
+  }
+  if ((currentUser?.email || "").toLowerCase() === SUPERUSER_EMAIL && onOpenSuperuser) {
+    items.push({ divider: true });
+    items.push({ icon: "👑", label: "Superuser Dashboard", onClick: onOpenSuperuser });
   }
 
   return (
@@ -4336,7 +4344,7 @@ function SettingsMenu({ currentUser, onOpenContactBook, contactCount, onReports,
   );
 }
 
-function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenContactBook, onOpenContacts, onOpenExpenses, onOpenForms, contactCount, onLogout, onOpenTeam, onOpenCompliance, onOpenComplianceDash, onOpenTaskTmpls, onOpenContractIntake, onChangePassword, onReports, onHome, onVendors, onCompanySettings, onAgentProfile, onIntakeLinks, currentUser }) {
+function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenContactBook, onOpenContacts, onOpenExpenses, onOpenForms, contactCount, onLogout, onOpenTeam, onOpenCompliance, onOpenComplianceDash, onOpenTaskTmpls, onOpenContractIntake, onChangePassword, onReports, onHome, onVendors, onCompanySettings, onSuperuser, onAgentProfile, onIntakeLinks, currentUser }) {
   const [filter, setFilter] = useState("All");
   const [search, setSearch] = useState("");
   // Tenant branding for the navbar — fetched once on mount.
@@ -4876,6 +4884,7 @@ function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenCon
               onOpenCompliance={onOpenCompliance}
               onOpenTaskTmpls={onOpenTaskTmpls}
               onCompanySettings={onCompanySettings}
+              onOpenSuperuser={onSuperuser}
               onOpenForms={onOpenForms}
               onChangePassword={onChangePassword}
               onOpenTeam={onOpenTeam}
@@ -5609,6 +5618,7 @@ function MainApp({ onLogout, currentUser }) {
   const [showChangePassword, setShowChangePassword] = useState(false);
   const [forcePasswordReset, setForcePasswordReset] = useState(false);
   const [showCompanySettings, setShowCompanySettings] = useState(false);
+  const [showSuperuser, setShowSuperuser] = useState(false);
   const [showAgentProfile, setShowAgentProfile] = useState(false);
   const [showIntakeLinks, setShowIntakeLinks] = useState(false);
   const [showContactBook, setShowContactBook] = useState(false);
@@ -5807,6 +5817,7 @@ function MainApp({ onLogout, currentUser }) {
           onChangePassword={() => setShowChangePassword(true)}
           onReports={() => setShowReports(true)}
           onCompanySettings={() => setShowCompanySettings(true)}
+          onSuperuser={() => setShowSuperuser(true)}
           onAgentProfile={() => setShowAgentProfile(true)}
           onIntakeLinks={() => setShowIntakeLinks(true)}
           currentUser={currentUser}
@@ -5874,6 +5885,7 @@ function MainApp({ onLogout, currentUser }) {
       )}
 
       {showChangePassword && <ChangePassword onClose={() => setShowChangePassword(false)} />}
+      {showSuperuser && <SuperuserDashboard onClose={() => setShowSuperuser(false)} token={localStorage.getItem("tp_token") || ""} />}
       {forcePasswordReset && <ChangePassword forceReset onClose={() => setForcePasswordReset(false)} />}
       {showCompanySettings && <CompanySettings onClose={() => setShowCompanySettings(false)} onChangePassword={() => { setShowCompanySettings(false); setShowChangePassword(true); }} />}
       {showAgentProfile && <AgentProfile currentUser={currentUser} onClose={() => setShowAgentProfile(false)} />}
