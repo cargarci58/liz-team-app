@@ -6154,6 +6154,18 @@ function MainApp({ onLogout, currentUser }) {
   const [showCalendar, setShowCalendar] = useState(false);
   const [selectedId, setSelectedId] = useState(null);
   const [contacts, setContacts] = useState([]);
+  // Freemium: a free guest (invited party) sees every feature but is paywalled on use.
+  const [isFreeGuest, setIsFreeGuest] = useState(false);
+  const [paywallFeature, setPaywallFeature] = useState(null);
+  useEffect(() => {
+    const tok = localStorage.getItem("tp_token") || "";
+    fetch(API + "/me/access", { headers: { Authorization: "Bearer " + tok } })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d) setIsFreeGuest(!!d.isFreeGuest); })
+      .catch(() => {});
+  }, []);
+  // Wrap a nav action: free guests get the paywall prompt instead of the feature.
+  const guard = (label, fn) => () => { if (isFreeGuest) setPaywallFeature(label); else fn(); };
   const [showTeam, setShowTeam] = useState(false);
   const [showCompliance, setShowCompliance] = useState(false);
   const [showTaskTmpls, setShowTaskTmpls] = useState(false);
@@ -6317,8 +6329,21 @@ function MainApp({ onLogout, currentUser }) {
 
   return (
     <>
+      {paywallFeature && (
+        <div onClick={() => setPaywallFeature(null)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)", zIndex: 99999, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
+          <div onClick={e => e.stopPropagation()} style={{ background: "#fff", borderRadius: 16, padding: 28, maxWidth: 420, width: "100%", textAlign: "center", boxShadow: "0 20px 60px rgba(0,0,0,0.3)", fontFamily: "'Segoe UI', system-ui, sans-serif" }}>
+            <div style={{ fontSize: 44, marginBottom: 10 }}>✨</div>
+            <div style={{ fontSize: 19, fontWeight: 800, color: "#1a2332", marginBottom: 8 }}>{paywallFeature} is a paid feature</div>
+            <div style={{ fontSize: 14, color: "#667085", lineHeight: 1.6, marginBottom: 20 }}>
+              You're on a free invited-party account. {paywallFeature} — plus your own transaction pipeline, contacts, expense tracking, reminders, intake links, and more — comes with a TransactPro subscription. Feel free to look around!
+            </div>
+            <button onClick={() => setPaywallFeature(null)} style={{ background: "#C0392B", color: "#fff", border: "none", borderRadius: 10, padding: "12px 24px", fontWeight: 700, fontSize: 15, cursor: "pointer", fontFamily: "inherit" }}>Subscribe to unlock</button>
+            <div style={{ marginTop: 12 }}><button onClick={() => setPaywallFeature(null)} style={{ background: "none", border: "none", color: "#667085", fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>Maybe later</button></div>
+          </div>
+        </div>
+      )}
       {showReports && <Reports transactions={transactions} onBack={() => setShowReports(false)} />}
-      
+
       {!showReports && view === "new" && <NewTransactionForm onSave={addTransaction} onCancel={() => setView("home")} />}
       {!showReports && !showCalendar && view === "detail" && selectedTx && (
         <TransactionDetail
@@ -6348,25 +6373,25 @@ function MainApp({ onLogout, currentUser }) {
           transactions={transactions}
           unreadCounts={unreadCounts}
           onSelect={(id, tab) => { setSelectedId(id); setInitialDetailTab(tab || "overview"); setView("detail"); }}
-          onNew={() => setView("new")}
-          onOpenContactBook={() => openContactBook(null)}
-          onOpenContacts={() => setView("contacts")} onOpenExpenses={() => setView("expenses")} onOpenForms={() => setView("forms")}
+          onNew={guard("Creating transactions", () => setView("new"))}
+          onOpenContactBook={guard("Contacts", () => openContactBook(null))}
+          onOpenContacts={guard("Contacts", () => setView("contacts"))} onOpenExpenses={guard("The Expense Tracker", () => setView("expenses"))} onOpenForms={guard("The Forms library", () => setView("forms"))}
           contactCount={contacts.length}
           onLogout={onLogout}
-          onOpenTeam={() => setShowTeam(true)}
-          onOpenCompliance={() => setShowCompliance(true)}
-          onOpenComplianceDash={() => setShowComplianceDash(true)}
-          onOpenTaskTmpls={() => setShowTaskTmpls(true)}
-          onOpenContractIntake={() => setShowContractIntake(true)}
+          onOpenTeam={guard("Team management", () => setShowTeam(true))}
+          onOpenCompliance={guard("Compliance tools", () => setShowCompliance(true))}
+          onOpenComplianceDash={guard("The Compliance dashboard", () => setShowComplianceDash(true))}
+          onOpenTaskTmpls={guard("Task templates", () => setShowTaskTmpls(true))}
+          onOpenContractIntake={guard("Contract intake", () => setShowContractIntake(true))}
           onChangePassword={() => setShowChangePassword(true)}
-          onReports={() => setShowReports(true)}
-          onCompanySettings={() => setShowCompanySettings(true)}
+          onReports={guard("Reports", () => setShowReports(true))}
+          onCompanySettings={guard("Company settings", () => setShowCompanySettings(true))}
           onSuperuser={() => setShowSuperuser(true)}
           onAgentProfile={() => setShowAgentProfile(true)}
-          onIntakeLinks={() => setShowIntakeLinks(true)}
+          onIntakeLinks={guard("My Intake Links", () => setShowIntakeLinks(true))}
           currentUser={currentUser}
           onHome={() => setView("home")}
-          onVendors={() => setShowVendorLibrary(true)}
+          onVendors={guard("The Vendor library", () => setShowVendorLibrary(true))}
         />
       )}
       {showTeam && <UserManagement onClose={() => setShowTeam(false)} />}
