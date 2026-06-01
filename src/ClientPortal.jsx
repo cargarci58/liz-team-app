@@ -524,8 +524,23 @@ export default function ClientPortal({ user, onLogout }) {
       .then(r => r.json())
       .then(data => {
         // A client can have MULTIPLE properties (e.g. selling two at once).
-        // Keep them all and let the client switch; default to the first.
-        const list = (data.transactions || []).map(mapTx);
+        // Keep them all and let the client switch; default to the LIVE deal —
+        // an in-progress transaction (under contract / active) outranks a closed
+        // one, and dead deals (cancelled/withdrawn) sink to the bottom. Ties keep
+        // the backend's most-recent-first order. Generic status matching so it
+        // works for any tenant/agent statewide (buyer or seller portal).
+        const statusRank = (s) => {
+          const v = (s || "").toLowerCase();
+          if (/(cancel|withdraw|terminat|expired|dead|lost|fell)/.test(v)) return 4; // dead last
+          if (v.includes("closed") || v.includes("sold")) return 3;                  // completed
+          if (v.includes("under contract") || v.includes("inspection") || v.includes("appraisal")
+              || v.includes("clear to close") || v.includes("pending")) return 0;    // most actionable
+          if (v.includes("active")) return 1;
+          if (v.includes("coming soon") || v.includes("new")) return 2;
+          return 1; // unknown in-progress status → above closed/dead
+        };
+        const list = (data.transactions || []).map(mapTx)
+          .sort((a, b) => statusRank(a.status) - statusRank(b.status));
         setAllTx(list);
         if (list.length > 0) {
           setTx(list[0]);
