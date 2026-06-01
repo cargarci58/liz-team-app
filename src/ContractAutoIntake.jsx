@@ -33,9 +33,9 @@ const DOC_TYPE_LABELS = {
 // ───────────────────────────────────────────────────────────────
 // UPLOAD SCREEN — entry point
 // ───────────────────────────────────────────────────────────────
-export default function ContractAutoIntake({ token, user, existingTransactionId, onBack, onApproved }) {
-  const [stage, setStage] = useState("upload");
-  const [uploadId, setUploadId] = useState(null);
+export default function ContractAutoIntake({ token, user, existingTransactionId, reviewUploadId, onBack, onApproved }) {
+  const [stage, setStage] = useState(reviewUploadId ? "review" : "upload");
+  const [uploadId, setUploadId] = useState(reviewUploadId || null);
 
   if (stage === "upload") {
     return <UploadStep token={token} existingTransactionId={existingTransactionId} onBack={onBack} onUploaded={(id) => { setUploadId(id); setStage("processing"); }} />;
@@ -350,7 +350,7 @@ function UploadStep({ token, existingTransactionId, onBack, onUploaded }) {
             <li>AI reads every page (takes 30-60 seconds)</li>
             <li>Each document and addendum is identified separately</li>
             <li>You review what was extracted, edit anything wrong, and approve</li>
-            <li>Transaction is created automatically with all the data</li>
+            <li>On approval, the offer is accepted: the listing moves to Under Contract, parties are added, and the timeline + tasks are created</li>
           </ol>
         </div>
       </div>
@@ -500,7 +500,7 @@ function ReviewStep({ token, uploadId, user, onApproved, onBack }) {
         <button onClick={onBack} style={{ background: "none", border: "none", color: COLORS.muted, fontSize: 14, cursor: "pointer", marginBottom: 16 }}>← Back</button>
         <h1 style={{ margin: 0, color: COLORS.navy, fontSize: 26 }}>📋 Review Extracted Contract Data</h1>
         <p style={{ color: COLORS.muted, marginTop: 6, marginBottom: 20 }}>
-          Verify everything below is correct. Edit any field that's wrong. Click <strong>Approve & Create Transaction</strong> when ready.
+          Verify everything below is correct. Edit any field that's wrong. Click <strong>Approve Offer</strong> when ready — this accepts the offer, moves the listing to Under Contract, adds the parties, and sets up the timeline and tasks.
         </p>
 
         <div style={{ background: "#fef3c7", border: "1px solid #fcd34d", borderRadius: 8, padding: "12px 16px", marginBottom: 20, fontSize: 13, color: "#78350f" }}>
@@ -599,6 +599,18 @@ function ReviewStep({ token, uploadId, user, onApproved, onBack }) {
             <div><label style={labelStyle}>INSPECTION PERIOD (DAYS)</label><input type="number" style={inputStyle} value={tx.inspection_period_days || ""} onChange={e => updateTx("inspection_period_days", parseInt(e.target.value) || 0)} /></div>
             <div><label style={labelStyle}>FINANCING CONTINGENCY (DAYS)</label><input type="number" style={inputStyle} value={tx.financing_contingency_days || ""} onChange={e => updateTx("financing_contingency_days", parseInt(e.target.value) || 0)} disabled={!tx.financing_contingency} /></div>
             <div><label style={labelStyle}>APPRAISAL CONTINGENCY (DAYS)</label><input type="number" style={inputStyle} value={tx.appraisal_contingency_days || ""} onChange={e => updateTx("appraisal_contingency_days", parseInt(e.target.value) || 0)} disabled={!tx.appraisal_contingency} /></div>
+            <div style={{ gridColumn: "1 / -1" }}>
+              <label style={{ ...labelStyle, color: tx.buyer_agent_commission_pct ? COLORS.muted : COLORS.red }}>
+                BUYER'S AGENT COMMISSION (%) {tx.buyer_agent_commission_pct ? "" : "— not found on the offer, please enter"}
+              </label>
+              <input
+                type="number" step="0.01" placeholder="e.g. 2.5"
+                style={{ ...inputStyle, maxWidth: 220, border: tx.buyer_agent_commission_pct ? inputStyle.border : "1.5px solid " + COLORS.red }}
+                value={tx.buyer_agent_commission_pct ?? ""}
+                onChange={e => updateTx("buyer_agent_commission_pct", e.target.value === "" ? null : parseFloat(e.target.value))}
+              />
+              <div style={{ fontSize: 11, color: COLORS.muted, marginTop: 4 }}>Buy-side only. The listing-side commission already on the transaction is not changed. Used for pipeline & commission reporting.</div>
+            </div>
           </div>
           <div style={{ display: "flex", gap: 24, marginTop: 16, flexWrap: "wrap" }}>
             <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, cursor: "pointer" }}><input type="checkbox" checked={!!tx.is_cash} onChange={e => updateTx("is_cash", e.target.checked)} /> Cash deal</label>
@@ -660,7 +672,7 @@ function ReviewStep({ token, uploadId, user, onApproved, onBack }) {
         <div style={{ display: "flex", justifyContent: "flex-end", gap: 12, marginTop: 24 }}>
           <button onClick={onBack} style={{ background: "white", color: COLORS.text, border: "1px solid " + COLORS.border, borderRadius: 8, padding: "12px 24px", fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Cancel</button>
           <button onClick={handleApprove} disabled={saving} style={{ background: COLORS.green, color: "white", border: "none", borderRadius: 8, padding: "12px 28px", fontSize: 14, fontWeight: 600, cursor: saving ? "wait" : "pointer", fontFamily: "inherit", opacity: saving ? 0.7 : 1 }}>
-            {saving ? "Creating Transaction..." : "✓ Approve & Create Transaction"}
+            {saving ? "Approving Offer..." : "✓ Approve Offer"}
           </button>
         </div>
       </div>

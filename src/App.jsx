@@ -2726,6 +2726,70 @@ function DueDatePresetPicker({ label, value, onChange }) {
   );
 }
 
+// Pending offers received on a listing. Several can sit here at once; the agent
+// reviews them and approves one (which auto-rejects the rest on the server).
+function ListingOffers({ txId, onReview, onReceiveOffer }) {
+  const [offers, setOffers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const hdrs = { "Authorization": "Bearer " + (localStorage.getItem("tp_token") || "") };
+
+  const load = () => {
+    fetch(`${API}/contracts/uploads`, { headers: hdrs })
+      .then(r => r.json())
+      .then(d => {
+        const mine = (d.uploads || []).filter(u =>
+          u.existing_transaction_id === txId &&
+          ["pending", "extracting", "ready_for_review"].includes(u.status)
+        );
+        setOffers(mine);
+      })
+      .catch(e => console.error("Load offers failed:", e))
+      .finally(() => setLoading(false));
+  };
+  useEffect(() => { load(); }, [txId]);
+
+  const reject = async (id) => {
+    if (!window.confirm("Reject this offer? This does not change the listing.")) return;
+    try {
+      const r = await fetch(`${API}/contracts/uploads/${id}/reject`, { method: "POST", headers: hdrs });
+      const d = await r.json();
+      if (!d.success) throw new Error(d.error || "Failed");
+      load();
+    } catch (e) { alert(e.message); }
+  };
+
+  if (loading || offers.length === 0) return null;
+
+  return (
+    <div style={{ background: "#FFFBEB", border: "1px solid #FCD34D", borderRadius: 12, padding: 16 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+        <div style={{ fontSize: 14, fontWeight: 800, color: "#92400E" }}>📥 Pending Offers ({offers.length})</div>
+        <button onClick={onReceiveOffer} style={{ background: "#1E8449", border: "none", color: "#fff", borderRadius: 6, padding: "6px 12px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>+ Receive Another Offer</button>
+      </div>
+      {offers.map(o => {
+        const exd = o.extracted_data || {};
+        const t = exd.transaction || {};
+        const buyer = (exd.parties || []).find(p => (p.role || "").toLowerCase() === "buyer");
+        const ready = o.status === "ready_for_review";
+        return (
+          <div key={o.id} style={{ background: "#fff", border: "1px solid #FDE68A", borderRadius: 8, padding: "10px 12px", marginBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+            <div style={{ fontSize: 13, color: COLORS.text }}>
+              <div style={{ fontWeight: 700 }}>{t.contract_price ? "$" + Number(t.contract_price).toLocaleString() : (ready ? "Price not read" : "Processing…")}</div>
+              <div style={{ color: COLORS.muted, fontSize: 12 }}>
+                {buyer?.name ? buyer.name : (o.original_filename || "Offer")}{ready ? "" : " · reading contract…"}
+              </div>
+            </div>
+            <div style={{ display: "flex", gap: 8 }}>
+              {ready && <button onClick={() => onReview(o.id)} style={{ background: "#1E8449", border: "none", color: "#fff", borderRadius: 6, padding: "7px 14px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>Review &amp; Accept</button>}
+              <button onClick={() => reject(o.id)} style={{ background: "#fff", border: "1px solid #E5E7EB", color: "#B91C1C", borderRadius: 6, padding: "7px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Reject</button>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [], onSaveContact, onOpenContactBook, onDuplicate, currentUser, initialTab = "overview", dashboardUnread = 0 }) {
   const [activeTab, setActiveTab] = useState(initialTab);
   const [showAssignAgent, setShowAssignAgent] = useState(false);
@@ -2776,6 +2840,8 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
   const [chatUnread, setChatUnread] = useState(0);
   const [showEditTx, setShowEditTx] = useState(false);
   const [editTxForm, setEditTxForm] = useState({});
+  const [showReceiveOffer, setShowReceiveOffer] = useState(false);
+  const [reviewOfferId, setReviewOfferId] = useState(null);
 
   // Pre-fill helper — used everywhere the Edit modal opens.
   // CRITICAL RULE: Edit modal must NEVER open blank. Every field comes from current tx.
@@ -3006,6 +3072,9 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
           a.href = url; a.download = "TransactPro-" + (tx.address || "report").replace(/[^a-z0-9]/gi, "-") + "-" + (tx.city || "").replace(/[^a-z0-9]/gi, "-") + ".pdf"; a.click();
           URL.revokeObjectURL(url);
         }} style={{ fontSize: 11, padding: "4px 10px", borderRadius: 6, border: "1px solid rgba(255,255,255,0.3)", background: "rgba(255,255,255,0.1)", color: "#fff", cursor: "pointer", fontFamily: "inherit" }}>📄 PDF</button>
+        {["Active", "Coming Soon"].includes(tx.status) && (
+          <button onClick={() => { setActiveTab("overview"); setShowReceiveOffer(true); }} style={{ fontSize: 11, padding: "4px 12px", borderRadius: 6, border: "none", background: "#1E8449", color: "#fff", fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>📥 Receive Offer</button>
+        )}
         {tx.status !== "Cancelled" && (
           <button onClick={() => { if (window.confirm("Cancel this transaction? It will be hidden from your dashboard but not deleted.")) update({ status: "Cancelled" }); }} style={{ fontSize: 11, padding: "4px 10px", borderRadius: 6, border: "1px solid rgba(255,100,100,0.5)", background: "rgba(255,100,100,0.15)", color: "#FCA5A5", cursor: "pointer", fontFamily: "inherit" }}>Cancel Transaction</button>
         )}
@@ -3041,6 +3110,23 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
       <div style={{ padding: 24, maxWidth: 940, margin: "0 auto" }}>
         {activeTab === "overview" && (
           <div>
+            {["Active", "Coming Soon"].includes(tx.status) && (
+              <div style={{ marginBottom: 20 }}>
+                <ListingOffers txId={tx.id} onReview={(id) => setReviewOfferId(id)} onReceiveOffer={() => setShowReceiveOffer(true)} />
+              </div>
+            )}
+            {(showReceiveOffer || reviewOfferId) && (
+              <div style={{ position: "fixed", inset: 0, background: "#fff", zIndex: 300, overflowY: "auto" }}>
+                <ContractAutoIntake
+                  token={localStorage.getItem("tp_token") || ""}
+                  user={currentUser}
+                  existingTransactionId={tx.id}
+                  reviewUploadId={reviewOfferId || undefined}
+                  onBack={() => { setShowReceiveOffer(false); setReviewOfferId(null); }}
+                  onApproved={() => { setShowReceiveOffer(false); setReviewOfferId(null); window.location.reload(); }}
+                />
+              </div>
+            )}
             {(tx.transaction_type || tx.type) && /buyer|dual/i.test(tx.transaction_type || tx.type) && (
               <PreApprovalCard transactionId={tx.id} isAgent={true} />
             )}
@@ -4873,7 +4959,7 @@ function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenCon
             <PersonalTaskAddButton token={localStorage.getItem("tp_token") || ""} />
             <button onClick={onVendors} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "rgba(255,255,255,0.88)", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 600, fontFamily: "inherit" }}>🏆 Vendors</button>
             <button onClick={onIntakeLinks} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "rgba(255,255,255,0.88)", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 600, fontFamily: "inherit" }}>🔗 My Intake Links</button>
-            <button onClick={onOpenContractIntake} style={{ background: "#1E8449", border: "1px solid rgba(255,255,255,0.22)", color: "#ffffff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>📄 Upload Contract</button>
+            {/* "Receive Offer" now lives inside each Active listing (open a listing → 📥 Receive Offer). Receiving an offer only applies to listings. */}
             <SettingsMenu
               currentUser={currentUser}
               onOpenContactBook={onOpenContactBook}
