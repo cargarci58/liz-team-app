@@ -142,29 +142,53 @@ export default function DocumentsTab({ tx }) {
       ) : (
         <div>
           <div style={{ fontWeight: 700, marginBottom: 12, fontSize: 14 }}>{docs.length} document{docs.length !== 1 ? "s" : ""}</div>
-          {docs.map(doc => (
-            <div key={doc.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", background: "#fff", border: "1px solid #DDDDDD", borderRadius: 10, marginBottom: 8, flexWrap: "wrap" }}>
-              <div style={{ fontSize: 24, flexShrink: 0 }}>{getIcon(doc.mime_type)}</div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontWeight: 600, fontSize: 14, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{doc.name}</div>
-                <div style={{ fontSize: 11, color: COLORS.muted, marginTop: 2 }}>{doc.category} · {new Date(doc.created_at).toLocaleDateString()}</div>
+          {(() => {
+            // Group into folders: an offer's docs carry a `folder` (e.g. "Offer — John Doe");
+            // everything else groups under its category.
+            const groups = {};
+            for (const doc of docs) {
+              const key = doc.folder || doc.category || "General";
+              (groups[key] = groups[key] || []).push(doc);
+            }
+            // Offer folders first, then the rest alphabetically.
+            const names = Object.keys(groups).sort((a, b) => {
+              const ao = /^offer/i.test(a), bo = /^offer/i.test(b);
+              if (ao !== bo) return ao ? -1 : 1;
+              return a.localeCompare(b);
+            });
+            return names.map(folder => (
+              <div key={folder} style={{ marginBottom: 18 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "0 0 8px 2px" }}>
+                  <span style={{ fontSize: 15 }}>{/^offer/i.test(folder) ? "📥" : "📁"}</span>
+                  <span style={{ fontWeight: 700, fontSize: 13, color: COLORS.navy }}>{folder}</span>
+                  <span style={{ fontSize: 11, color: COLORS.muted }}>({groups[folder].length})</span>
+                </div>
+                {groups[folder].map(doc => (
+                  <div key={doc.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", background: "#fff", border: "1px solid #DDDDDD", borderRadius: 10, marginBottom: 8, marginLeft: 14, flexWrap: "wrap" }}>
+                    <div style={{ fontSize: 24, flexShrink: 0 }}>{getIcon(doc.mime_type)}</div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontWeight: 600, fontSize: 14, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{doc.name}</div>
+                      <div style={{ fontSize: 11, color: COLORS.muted, marginTop: 2 }}>{doc.category} · {new Date(doc.created_at).toLocaleDateString()}</div>
+                    </div>
+                    <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+                      <button onClick={() => toggleVisibility(doc)}
+                        style={{ padding: "4px 8px", borderRadius: 6, border: "1px solid #DDDDDD", background: doc.is_visible_to_client ? "#D5F5E3" : "#F5F5F5", cursor: "pointer", fontSize: 11 }}>
+                        {doc.is_visible_to_client ? "👁 Client" : "🔒 Private"}
+                      </button>
+                      <button onClick={() => handleDownload(doc)}
+                        style={{ padding: "4px 10px", borderRadius: 6, border: "1px solid #DDDDDD", background: "#fff", cursor: "pointer", fontSize: 12, color: COLORS.info }}>
+                        ↓
+                      </button>
+                      <button onClick={() => handleDelete(doc)}
+                        style={{ padding: "4px 8px", borderRadius: 6, border: "1px solid #FCA5A5", background: "#fff", cursor: "pointer", fontSize: 12, color: COLORS.danger }}>
+                        🗑
+                      </button>
+                    </div>
+                  </div>
+                ))}
               </div>
-              <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
-                <button onClick={() => toggleVisibility(doc)}
-                  style={{ padding: "4px 8px", borderRadius: 6, border: "1px solid #DDDDDD", background: doc.is_visible_to_client ? "#D5F5E3" : "#F5F5F5", cursor: "pointer", fontSize: 11 }}>
-                  {doc.is_visible_to_client ? "👁 Client" : "🔒 Private"}
-                </button>
-                <button onClick={() => handleDownload(doc)}
-                  style={{ padding: "4px 10px", borderRadius: 6, border: "1px solid #DDDDDD", background: "#fff", cursor: "pointer", fontSize: 12, color: COLORS.info }}>
-                  ↓
-                </button>
-                <button onClick={() => handleDelete(doc)}
-                  style={{ padding: "4px 8px", borderRadius: 6, border: "1px solid #FCA5A5", background: "#fff", cursor: "pointer", fontSize: 12, color: COLORS.danger }}>
-                  🗑
-                </button>
-              </div>
-            </div>
-          ))}
+            ));
+          })()}
         </div>
       )}
     </div>

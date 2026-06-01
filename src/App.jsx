@@ -3011,8 +3011,9 @@ function ListingOffers({ txId, onReview, onReceiveOffer }) {
   if (loading) return null;
   if (offers.length === 0) {
     return (
-      <div style={{ background: "#F9FAFB", border: "1px dashed " + COLORS.border, borderRadius: 12, padding: 16, fontSize: 13, color: COLORS.muted }}>
-        No pending offers on this listing right now.
+      <div style={{ background: "#F9FAFB", border: "1px dashed " + COLORS.border, borderRadius: 12, padding: 16, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+        <span style={{ fontSize: 13, color: COLORS.muted }}>No pending offers on this listing right now.</span>
+        <button onClick={onReceiveOffer} style={{ background: "#1E8449", border: "none", color: "#fff", borderRadius: 6, padding: "7px 14px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>📥 Receive Offer</button>
       </div>
     );
   }
@@ -3377,7 +3378,7 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
           a.href = url; a.download = "TransactPro-" + (tx.address || "report").replace(/[^a-z0-9]/gi, "-") + "-" + (tx.city || "").replace(/[^a-z0-9]/gi, "-") + ".pdf"; a.click();
           URL.revokeObjectURL(url);
         }} style={{ fontSize: 11, padding: "4px 10px", borderRadius: 6, border: "1px solid rgba(255,255,255,0.3)", background: "rgba(255,255,255,0.1)", color: "#fff", cursor: "pointer", fontFamily: "inherit" }}>📄 PDF</button>
-        {["Active", "Coming Soon"].includes(tx.status) && (
+        {!["Closed", "Cancelled"].includes(tx.status) && (
           <button onClick={() => { setActiveTab("overview"); setShowReceiveOffer(true); }} style={{ fontSize: 11, padding: "4px 12px", borderRadius: 6, border: "none", background: "#1E8449", color: "#fff", fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>📥 Receive Offer</button>
         )}
         {!["Closed", "Cancelled"].includes(tx.status) && (
