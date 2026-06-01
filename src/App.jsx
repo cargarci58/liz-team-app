@@ -2776,9 +2776,11 @@ function WelcomeEmailPreview({ txId, onClose }) {
   const [sel, setSel] = useState(0);
   const [sentIds, setSentIds] = useState({});   // partyId -> true
   const [busy, setBusy] = useState(false);
+  const [attaching, setAttaching] = useState(false);
+  const fileRef = useRef(null);
 
-  useEffect(() => {
-    fetch(`${API}/transactions/${txId}/welcome-emails/preview`, { method: "POST", headers: { ...hdrs, "Content-Type": "application/json" }, body: JSON.stringify({}) })
+  const loadPreviews = () => {
+    return fetch(`${API}/transactions/${txId}/welcome-emails/preview`, { method: "POST", headers: { ...hdrs, "Content-Type": "application/json" }, body: JSON.stringify({}) })
       .then(r => r.json())
       .then(d => {
         if (!d.success) throw new Error(d.error || "Could not build previews");
@@ -2787,7 +2789,32 @@ function WelcomeEmailPreview({ txId, onClose }) {
       })
       .catch(e => setError(e.message))
       .finally(() => setLoading(false));
-  }, [txId]);
+  };
+  useEffect(() => { loadPreviews(); }, [txId]);
+
+  // Attach an extra file: upload it to the transaction as a Contract Package
+  // document so it rides along on the welcome emails, then refresh the preview.
+  const attachFile = async (file) => {
+    if (!file) return;
+    if (file.size > 10 * 1024 * 1024) { alert("File too large — max 10 MB so it fits as an email attachment."); return; }
+    setAttaching(true);
+    try {
+      const base64 = await new Promise((resolve, reject) => {
+        const rd = new FileReader();
+        rd.onload = () => resolve(String(rd.result).split(",")[1]);
+        rd.onerror = () => reject(new Error("Could not read file"));
+        rd.readAsDataURL(file);
+      });
+      const r = await fetch(`${API}/documents/upload`, {
+        method: "POST", headers: { ...hdrs, "Content-Type": "application/json" },
+        body: JSON.stringify({ transactionId: txId, fileName: file.name, fileType: file.type || "application/pdf", category: "Contract Package", base64 })
+      });
+      const d = await r.json();
+      if (d.error) throw new Error(d.error);
+      await loadPreviews();
+    } catch (e) { alert("Could not attach: " + e.message); }
+    finally { setAttaching(false); if (fileRef.current) fileRef.current.value = ""; }
+  };
 
   const sendOne = async (p) => {
     if (!p.partyId) { alert("This recipient can't be sent individually (missing id). Use Send All."); return; }
@@ -2865,6 +2892,19 @@ function WelcomeEmailPreview({ txId, onClose }) {
               <div style={{ padding: "10px 16px", borderBottom: "1px solid " + COLORS.border, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
                 <div style={{ fontSize: 13, color: COLORS.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}><strong>To:</strong> {cur?.email} &nbsp; <strong>Subj:</strong> {cur?.subject}</div>
                 <button onClick={() => sendOne(cur)} disabled={busy || sentIds[cur?.partyId]} style={{ background: sentIds[cur?.partyId] ? "#9CA3AF" : "#C0392B", color: "#fff", border: "none", borderRadius: 8, padding: "8px 18px", fontSize: 13, fontWeight: 700, cursor: sentIds[cur?.partyId] ? "default" : "pointer", fontFamily: "inherit", flexShrink: 0 }}>{sentIds[cur?.partyId] ? "✓ Sent" : "Send"}</button>
+              </div>
+              {/* attachments for this recipient */}
+              <div style={{ padding: "8px 16px", borderBottom: "1px solid " + COLORS.border, background: "#F9FAFB", display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                <span style={{ fontSize: 12, fontWeight: 700, color: COLORS.muted }}>📎 Attachments:</span>
+                {(cur?.attachments && cur.attachments.length > 0) ? (
+                  cur.attachments.map((a, i) => (
+                    <span key={i} style={{ fontSize: 12, color: COLORS.text, background: "#fff", border: "1px solid " + COLORS.border, borderRadius: 6, padding: "3px 8px" }}>📄 {a.name}</span>
+                  ))
+                ) : (
+                  <span style={{ fontSize: 12, color: COLORS.muted, fontStyle: "italic" }}>None for this recipient{cur && /inspector|hoa/i.test(cur.role || "") ? " (role gets no documents)" : ""}</span>
+                )}
+                <input ref={fileRef} type="file" style={{ display: "none" }} onChange={e => attachFile(e.target.files && e.target.files[0])} />
+                <button onClick={() => fileRef.current && fileRef.current.click()} disabled={attaching} style={{ marginLeft: "auto", background: "#fff", color: "#1E8449", border: "1px solid #1E8449", borderRadius: 6, padding: "5px 12px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>{attaching ? "Attaching…" : "+ Attach another file"}</button>
               </div>
               <iframe title="email-preview" srcDoc={cur?.html || ""} style={{ flex: 1, width: "100%", border: "none", background: "#fff" }} />
             </div>
