@@ -665,6 +665,14 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
           ))}
         </div>
       )}
+      {personal.upcoming.length > 0 && (
+        <div style={{ marginBottom: 24 }}>
+          <SectionHeader label="📝 PERSONAL TASKS — UPCOMING & UNDATED" count={personal.upcoming.length} color="#1E8449" />
+          {personal.upcoming.map(t => (
+            <PersonalTaskCard key={t.id} task={t} token={token} onChange={fetchTasks} />
+          ))}
+        </div>
+      )}
       {visibleOverdue.length > 0 && (
         <div>
           <SectionHeader label="NEEDS ATTENTION NOW" count={visibleOverdue.length} color={COLORS.red} />
