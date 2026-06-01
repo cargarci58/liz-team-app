@@ -2793,18 +2793,26 @@ function WelcomeEmailPreview({ txId, onClose }) {
     } catch (e) { alert(e.message); }
   };
 
-  const loadPreviews = () => {
+  const loadPreviews = (seedDefaults) => {
     return fetch(`${API}/transactions/${txId}/welcome-emails/preview`, { method: "POST", headers: { ...hdrs, "Content-Type": "application/json" }, body: JSON.stringify({}) })
       .then(r => r.json())
       .then(d => {
         if (!d.success) throw new Error(d.error || "Could not build previews");
-        setPreviews(d.previews || []);
+        const pv = d.previews || [];
+        setPreviews(pv);
         setSkipped(d.skipped || []);
+        // Default attachments to the MAIN contract only — pre-exclude addenda/
+        // disclosures; the agent opts them back in with "undo". Only seed once.
+        if (seedDefaults) {
+          const ex = {};
+          pv.forEach(p => (p.attachments || []).forEach(a => { if (!a.isBaseContract && a.id) ex[a.id] = true; }));
+          setExcludedDocs(ex);
+        }
       })
       .catch(e => setError(e.message))
       .finally(() => setLoading(false));
   };
-  useEffect(() => { loadPreviews(); }, [txId]);
+  useEffect(() => { loadPreviews(true); }, [txId]);
 
   // Attach an extra file: upload it to the transaction as a Contract Package
   // document so it rides along on the welcome emails, then refresh the preview.
