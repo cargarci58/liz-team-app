@@ -33,7 +33,7 @@ const DOC_TYPE_LABELS = {
 // ───────────────────────────────────────────────────────────────
 // UPLOAD SCREEN — entry point
 // ───────────────────────────────────────────────────────────────
-export default function ContractAutoIntake({ token, user, existingTransactionId, reviewUploadId, onBack, onApproved }) {
+export default function ContractAutoIntake({ token, user, existingTransactionId, reviewUploadId, currentStatus, onBack, onApproved }) {
   const [stage, setStage] = useState(reviewUploadId ? "review" : "upload");
   const [uploadId, setUploadId] = useState(reviewUploadId || null);
 
@@ -44,7 +44,7 @@ export default function ContractAutoIntake({ token, user, existingTransactionId,
     return <ProcessingStep token={token} uploadId={uploadId} onReady={() => setStage("review")} onFailed={(err) => setStage("failed")} />;
   }
   if (stage === "review") {
-    return <ReviewStep token={token} uploadId={uploadId} user={user} onApproved={onApproved} onBack={onBack} />;
+    return <ReviewStep token={token} uploadId={uploadId} user={user} currentStatus={currentStatus} onApproved={onApproved} onBack={onBack} />;
   }
   if (stage === "failed") {
     return <FailedStep onBack={onBack} onRetry={() => setStage("upload")} />;
@@ -422,7 +422,7 @@ function ProcessingStep({ token, uploadId, onReady, onFailed }) {
 // ───────────────────────────────────────────────────────────────
 // STEP 3: REVIEW & APPROVE
 // ───────────────────────────────────────────────────────────────
-function ReviewStep({ token, uploadId, user, onApproved, onBack }) {
+function ReviewStep({ token, uploadId, user, currentStatus, onApproved, onBack }) {
   const [data, setData] = useState(null);
   const [edited, setEdited] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -490,6 +490,19 @@ function ReviewStep({ token, uploadId, user, onApproved, onBack }) {
   };
 
   const handleApprove = async () => {
+    // Guard against accidentally overwriting an already-accepted offer. The
+    // listing is only Active/Coming Soon before any offer is accepted; once it's
+    // Under Contract (or further), approving THIS offer replaces the current
+    // accepted terms — make the agent confirm that's intended.
+    const alreadyUnderContract = currentStatus && !["Active", "Coming Soon", "New"].includes(currentStatus);
+    if (alreadyUnderContract) {
+      const ok = window.confirm(
+        `This listing is already "${currentStatus}" — an offer was already accepted.\n\n` +
+        `Approving THIS offer will replace the accepted offer's price, dates, commission and parties with this one's, and re-run the timeline.\n\n` +
+        `Only do this if you're intentionally switching to this offer. Continue?`
+      );
+      if (!ok) return;
+    }
     setSaving(true);
     setError("");
     try {

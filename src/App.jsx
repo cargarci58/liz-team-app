@@ -3350,6 +3350,7 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
                   user={currentUser}
                   existingTransactionId={tx.id}
                   reviewUploadId={reviewOfferId || undefined}
+                  currentStatus={tx.status}
                   onBack={() => { setShowReceiveOffer(false); setReviewOfferId(null); }}
                   onApproved={() => { setShowReceiveOffer(false); setReviewOfferId(null); setShowEmailPreview(true); }}
                 />
