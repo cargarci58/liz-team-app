@@ -2844,7 +2844,7 @@ function WelcomeEmailPreview({ txId, onClose }) {
     try {
       const r = await fetch(`${API}/transactions/${txId}/parties/${p.partyId}/send-welcome`, { method: "POST", headers: { ...hdrs, "Content-Type": "application/json" }, body: JSON.stringify({ excludeDocIds: excludeList() }) });
       const d = await r.json();
-      if (!d.success && d.error) throw new Error(d.error);
+      if (!d.success) throw new Error(d.error || "Email was not sent.");
       setSentIds(s => ({ ...s, [p.partyId]: true }));
     } catch (e) { alert("Could not send: " + e.message); }
     finally { setBusy(false); }
