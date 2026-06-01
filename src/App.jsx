@@ -2132,16 +2132,14 @@ function MilestonesTab({ tx, token }) {
             background: progress === 100 ? "#1E8449" : "#C0392B",
             borderRadius: 20, transition: "width 0.4s ease" }} />
         </div>
-        {tx.constructionType !== "New Construction" && (
-          <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 10 }}>
-            <button onClick={handleReset} disabled={resetting}
-              style={{ fontSize: 11, fontWeight: 600, color: "#555", background: "#F9FAFB",
-                border: "1px solid #E5E7EB", borderRadius: 8, padding: "5px 12px", cursor: "pointer" }}
-              title="Clear and rebuild this deal's full timeline from the latest template. Documents and parties are not touched.">
-              {resetting ? "Rebuilding…" : "🔄 Reset & Rebuild Checklist"}
-            </button>
-          </div>
-        )}
+        <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 10 }}>
+          <button onClick={handleReset} disabled={resetting}
+            style={{ fontSize: 11, fontWeight: 600, color: "#555", background: "#F9FAFB",
+              border: "1px solid #E5E7EB", borderRadius: 8, padding: "5px 12px", cursor: "pointer" }}
+            title="Clear and rebuild this deal's full timeline from the latest template. Documents and parties are not touched.">
+            {resetting ? "Rebuilding…" : "🔄 Reset & Rebuild Checklist"}
+          </button>
+        </div>
       </div>
 
       {orderedPhases.map((phaseKey) => {
