@@ -300,12 +300,14 @@ const TASK_STATUS = {
 const PIPELINE_COLUMNS = ["Active", "Under Contract", "Inspection", "Appraisal", "Clear to Close", "Closed"];
 
 function PipelineCard({ tx, onSelect }) {
-  // Prefer the combined-timeline summary; fall back to legacy tasks.
+  // Progress reflects the Auto-TC timeline (milestones) ONLY. The legacy tasks
+  // table is a separate system that "clear timeline" doesn't touch — using it as
+  // a fallback showed stale progress that never reset. No timeline = no bar.
   const ms = tx.milestoneSummary;
-  const completed = ms ? (ms.done || 0) : (tx.tasks ? tx.tasks.filter(t => t.status === "Completed").length : 0);
-  const total = ms ? (ms.total || 0) : (tx.tasks ? tx.tasks.length : 0);
+  const completed = ms ? (ms.done || 0) : 0;
+  const total = ms ? (ms.total || 0) : 0;
   const progress = total > 0 ? Math.round(completed / total * 100) : 0;
-  const overdue = ms ? (ms.overdue || 0) : (tx.tasks ? tx.tasks.filter(t => { const d = daysUntil(t.dueDate); return d !== null && d < 0 && t.status !== "Completed" && t.status !== "Waived"; }).length : 0);
+  const overdue = ms ? (ms.overdue || 0) : 0;
   const dtc = daysUntil(tx.closingDate);
   const price = tx.contractPrice || tx.listPrice;
   // Deal health light: red = overdue items; yellow = closing within a week or no due date set; green = on track.
@@ -1892,7 +1894,8 @@ function MilestonesTab({ tx, token, onSummaryChange }) {
   // The card reads tx.milestoneSummary, which is loaded once with the list;
   // recompute it here (mirroring the backend) and bubble it up on every change.
   useEffect(() => {
-    if (!onSummaryChange || loading || milestones.length === 0) return;
+    // Bubble even when empty so clearing the timeline resets the card to 0/0.
+    if (!onSummaryChange || loading) return;
     const active = milestones.filter(m => m.is_na !== true);
     const total = active.length;
     const done = active.filter(m => m.status === "Completed" || m.status === "Waived").length;
