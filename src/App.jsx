@@ -3195,6 +3195,7 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
   const [activeTab, setActiveTab] = useState(initialTab);
   const [showAssignAgent, setShowAssignAgent] = useState(false);
   const [showAddParty, setShowAddParty] = useState(false);
+  const [paywallFeature, setPaywallFeature] = useState(null);  // guest taps a paid feature
   const [showAssignVendor, setShowAssignVendor] = useState(false);
   const [pendingInviteParty, setPendingInviteParty] = useState(null);
   const [partyFromContactBook, setPartyFromContactBook] = useState(false);
@@ -3727,7 +3728,7 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
             {PARTY_ROLES.map(role => {
               const members = tx.parties.filter(p => p.role === role && !p.isVendor && !p.is_vendor);
               if (!members.length) return null;
-              return <div key={role} style={{ marginBottom: 16 }}><div style={{ fontSize: 12, fontWeight: 700, color: COLORS.muted, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 8 }}>{role}</div>{members.map(p => <PartyCard key={p.id} party={p} txId={tx.id} onEdit={isGuest ? undefined : () => setEditingParty({ ...p })} onRemove={isGuest ? undefined : () => update({ parties: tx.parties.filter(pp => pp.id !== p.id) })} onInvite={(!isGuest && onInviteParty) ? () => onInviteParty(p) : undefined} onSendFollowup={isGuest ? undefined : (party) => setFollowupParty(party)} onSendWelcome={isGuest ? undefined : onSendWelcome} onResetPassword={isGuest ? undefined : async (p) => {
+              return <div key={role} style={{ marginBottom: 16 }}><div style={{ fontSize: 12, fontWeight: 700, color: COLORS.muted, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 8 }}>{role}</div>{members.map(p => <PartyCard key={p.id} party={p} txId={tx.id} onEdit={isGuest ? undefined : () => setEditingParty({ ...p })} onRemove={isGuest ? undefined : () => update({ parties: tx.parties.filter(pp => pp.id !== p.id) })} onInvite={isGuest ? () => setPaywallFeature("Inviting parties to the app") : (onInviteParty ? () => onInviteParty(p) : undefined)} onSendFollowup={isGuest ? () => setPaywallFeature("Follow-up reminders") : (party) => setFollowupParty(party)} onSendWelcome={isGuest ? () => setPaywallFeature("Welcome emails") : onSendWelcome} onResetPassword={isGuest ? undefined : async (p) => {
               if (!confirm("Email a password reset link to " + (p.name || p.email) + "?\n\nThe link expires in 1 hour.")) return;
               try {
                 const r = await fetch("https://liz-team-server-api-production.up.railway.app/users/" + encodeURIComponent(p.email) + "/send-reset-link", { method: "POST", headers: { Authorization: "Bearer " + (localStorage.getItem("tp_token") || ""), "Content-Type": "application/json" }, body: JSON.stringify({ email: p.email }) });
@@ -3970,6 +3971,19 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
           onClose={() => setShowAssignAgent(false)}
           onAssigned={(agentId) => onUpdate({ ...tx, assignedAgentId: agentId })}
         />
+      )}
+      {paywallFeature && (
+        <div onClick={() => setPaywallFeature(null)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
+          <div onClick={e => e.stopPropagation()} style={{ background: "#fff", borderRadius: 16, padding: 28, maxWidth: 420, width: "100%", textAlign: "center", boxShadow: "0 20px 60px rgba(0,0,0,0.3)" }}>
+            <div style={{ fontSize: 44, marginBottom: 10 }}>✨</div>
+            <div style={{ fontSize: 19, fontWeight: 800, color: COLORS.navy, marginBottom: 8 }}>{paywallFeature} is a paid feature</div>
+            <div style={{ fontSize: 14, color: COLORS.muted, lineHeight: 1.6, marginBottom: 20 }}>
+              You're viewing this transaction as an invited party. {paywallFeature} — along with your own pipeline, automated reminders, documents, and more — is part of a TransactPro subscription.
+            </div>
+            <button onClick={() => setPaywallFeature(null)} style={{ background: "#C0392B", color: "#fff", border: "none", borderRadius: 10, padding: "12px 24px", fontWeight: 700, fontSize: 15, cursor: "pointer", fontFamily: "inherit" }}>Subscribe to unlock</button>
+            <div style={{ marginTop: 12 }}><button onClick={() => setPaywallFeature(null)} style={{ background: "none", border: "none", color: COLORS.muted, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>Maybe later</button></div>
+          </div>
+        </div>
       )}
       {showAddParty && (
         <Modal title="Add Party" onClose={() => { setShowAddParty(false); setPartyFromContactBook(false); }}>
