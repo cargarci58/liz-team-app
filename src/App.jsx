@@ -2726,6 +2726,44 @@ function DueDatePresetPicker({ label, value, onChange }) {
   );
 }
 
+// Notes textarea that signals when there's more text than fits — shows a
+// "⌄ more" badge in the corner whenever the content overflows and isn't
+// scrolled to the bottom, so the agent knows to keep reading.
+function NotesField({ value, onChange }) {
+  const ref = useRef(null);
+  const [more, setMore] = useState(false);
+
+  const recompute = () => {
+    const el = ref.current;
+    if (!el) return;
+    // more text below if not scrolled to the bottom (small tolerance)
+    setMore(el.scrollHeight - el.clientHeight - el.scrollTop > 4);
+  };
+  useEffect(() => { recompute(); }, [value]);
+
+  return (
+    <div style={{ position: "relative" }}>
+      <textarea
+        ref={ref}
+        value={value || ""}
+        onChange={e => onChange(e.target.value)}
+        onScroll={recompute}
+        rows={4}
+        style={{ width: "100%", border: `1px solid ${COLORS.border}`, borderRadius: 8, padding: "10px 12px", fontFamily: "inherit", fontSize: 14, resize: "vertical", boxSizing: "border-box", overflowY: "auto" }}
+      />
+      {more && (
+        <div
+          onClick={() => { const el = ref.current; if (el) el.scrollBy({ top: el.clientHeight - 24, behavior: "smooth" }); }}
+          title="More notes below — click to scroll"
+          style={{ position: "absolute", right: 12, bottom: 12, background: COLORS.navy, color: "#fff", fontSize: 11, fontWeight: 700, padding: "2px 9px", borderRadius: 20, cursor: "pointer", boxShadow: "0 1px 4px rgba(0,0,0,0.25)", pointerEvents: "auto", userSelect: "none" }}
+        >
+          ⌄ more
+        </div>
+      )}
+    </div>
+  );
+}
+
 // After an offer is accepted, preview every welcome/initial email before sending.
 // The agent reviews each rendered email and clicks Send per recipient (or Send All).
 // HOA + no-email parties are listed as skipped (never emailed).
@@ -3375,7 +3413,7 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
             </div>
             <div style={{ background: "#fff", border: `1px solid ${COLORS.border}`, borderRadius: 12, padding: 20 }}>
               <h3 style={{ margin: "0 0 10px", fontSize: 14, color: COLORS.navy, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em" }}>Notes</h3>
-              <textarea value={tx.notes} onChange={e => update({ notes: e.target.value })} rows={4} style={{ width: "100%", border: `1px solid ${COLORS.border}`, borderRadius: 8, padding: "10px 12px", fontFamily: "inherit", fontSize: 14, resize: "vertical", boxSizing: "border-box" }} />
+              <NotesField value={tx.notes} onChange={v => update({ notes: v })} />
             </div>
           </div>
         )}
