@@ -618,8 +618,10 @@ function TransactionListView({ transactions, sortKey, sortDir, toggleSort, onSel
                 </tr>
               ))}
               {transactions.map(tx => {
-                const completed = tx.tasks ? tx.tasks.filter(t => t.status === "Completed").length : 0;
-                const total = tx.tasks ? tx.tasks.length : 0;
+                // Progress = Auto-TC timeline (milestones), not the legacy tasks table.
+                const ms = tx.milestoneSummary;
+                const completed = ms ? (ms.done || 0) : 0;
+                const total = ms ? (ms.total || 0) : 0;
                 const progress = total > 0 ? Math.round(completed / total * 100) : 0;
                 const cfg = STATUS_CONFIG[tx.status] || STATUS_CONFIG["Active"];
                 const price = tx.contractPrice || tx.listPrice;
@@ -659,8 +661,10 @@ function TransactionListView({ transactions, sortKey, sortDir, toggleSort, onSel
       <div className="tx-list-mobile">
         {transactions.length === 0 && <div style={{ padding: 40, textAlign: "center", color: COLORS.muted, background: "#fff", borderRadius: 10, border: `1px solid ${COLORS.border}` }}>No transactions found.</div>}
         {transactions.map(tx => {
-          const completed = tx.tasks ? tx.tasks.filter(t => t.status === "Completed").length : 0;
-          const total = tx.tasks ? tx.tasks.length : 0;
+          // Progress = Auto-TC timeline (milestones), not the legacy tasks table.
+          const ms = tx.milestoneSummary;
+          const completed = ms ? (ms.done || 0) : 0;
+          const total = ms ? (ms.total || 0) : 0;
           const progress = total > 0 ? Math.round(completed / total * 100) : 0;
           const cfg = STATUS_CONFIG[tx.status] || STATUS_CONFIG["Active"];
           const price = tx.contractPrice || tx.listPrice;
@@ -5340,8 +5344,8 @@ function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenCon
       case "price": av = Number(a.contractPrice || a.listPrice || 0); bv = Number(b.contractPrice || b.listPrice || 0); break;
       case "openDate": av = a.openDate ? new Date(a.openDate).getTime() : 0; bv = b.openDate ? new Date(b.openDate).getTime() : 0; break;
       case "progress":
-        av = a.tasks && a.tasks.length ? a.tasks.filter(t => t.status === "Completed").length / a.tasks.length : 0;
-        bv = b.tasks && b.tasks.length ? b.tasks.filter(t => t.status === "Completed").length / b.tasks.length : 0;
+        av = a.milestoneSummary && a.milestoneSummary.total ? (a.milestoneSummary.done || 0) / a.milestoneSummary.total : 0;
+        bv = b.milestoneSummary && b.milestoneSummary.total ? (b.milestoneSummary.done || 0) / b.milestoneSummary.total : 0;
         break;
       case "closingDate":
       default:
@@ -5587,10 +5591,13 @@ function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenCon
       ) : (
       <div style={{ padding: 24, display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(340px, 1fr))", gap: 16 }} data-tx-grid="">
         {hydratedPagedTxs.map(tx => {
-          const completed = (tx.tasks || []).filter(t => t.status === "Completed").length;
-          const overdue = (tx.tasks || []).filter(t => { const d = daysUntil(t.dueDate); return d !== null && d < 0 && t.status !== "Completed" && t.status !== "Waived"; }).length;
+          // Progress = Auto-TC timeline (milestones), not the legacy tasks table.
+          const ms = tx.milestoneSummary;
+          const completed = ms ? (ms.done || 0) : 0;
+          const total = ms ? (ms.total || 0) : 0;
+          const overdue = ms ? (ms.overdue || 0) : 0;
           const dtc = daysUntil(tx.closingDate);
-          const progress = (tx.tasks || []).length > 0 ? Math.round(completed / tx.tasks.length * 100) : 0;
+          const progress = total > 0 ? Math.round(completed / total * 100) : 0;
           const cfg = STATUS_CONFIG[tx.status] || STATUS_CONFIG["Active"];
           const smsMsgCount = Object.values(tx.smsThreads || {}).reduce((a, t) => a + t.length, 0);
           return (
@@ -5678,7 +5685,7 @@ function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenCon
                 {/* Progress */}
                 <div style={{ marginBottom: 10 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, marginBottom: 5 }}>
-                    <span style={{ fontWeight: 600, color: "#555" }}>Progress: {completed}/{tx.tasks.length} tasks</span>
+                    <span style={{ fontWeight: 600, color: "#555" }}>Progress: {completed}/{total} done</span>
                     <span style={{ fontWeight: 800, color: progress === 100 ? "#1E8449" : progress > 50 ? "#B7770D" : "#555" }}>{progress}%</span>
                   </div>
                   <div style={{ height: 7, background: "#E5E7EB", borderRadius: 4, overflow: "hidden", marginBottom: 8 }}>
@@ -5695,11 +5702,10 @@ function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenCon
                         "Title":      ["Appraisal","Clear to Close","Closed"].includes(tx.status),
                         "Closing":    ["Clear to Close","Closed"].includes(tx.status),
                       }[milestone];
-                      const milestoneTasks = tx.tasks.filter(t => t.category === milestone);
-                      const milestoneCompleted = milestoneTasks.filter(t => t.status === "Completed").length;
-                      const milestoneProgress = milestoneTasks.length > 0 ? milestoneCompleted / milestoneTasks.length : 0;
-                      const isDone = stageReached && milestoneProgress === 1 && milestoneTasks.length > 0;
-                      const isStarted = stageReached && milestoneProgress > 0;
+                      // Stage dots follow the deal's status (where it actually is),
+                      // not the legacy tasks table. Green once the stage is reached.
+                      const isDone = stageReached;
+                      const isStarted = stageReached;
                       const dotColor = isDone ? "#1E8449" : isStarted ? (tx.type === "Buyer Representation" ? "#3B82F6" : "#C0392B") : "#D1D5DB";
                       return (
                         <div key={milestone} style={{ display: "flex", flexDirection: "column", alignItems: "center", flex: 1 }}>
