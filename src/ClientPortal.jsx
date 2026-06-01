@@ -488,9 +488,19 @@ export default function ClientPortal({ user, onLogout }) {
   const [uploading, setUploading] = useState(false);
   const [activeTab, setActiveTab] = useState("home");
   const [chatUnread, setChatUnread] = useState(0);
+  const [timeline, setTimeline] = useState(null);
   const activeTabRef = useRef(activeTab);
   const tok = localStorage.getItem("tp_token") || "";
   const headers = { "Content-Type": "application/json", "Authorization": "Bearer " + tok };
+
+  // Auto-TC: load this transaction's timeline (progress + "my checklist").
+  useEffect(() => {
+    if (!tx?.id) { setTimeline(null); return; }
+    fetch(API + "/client/milestones/" + tx.id, { headers })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => setTimeline(d && d.success ? d : null))
+      .catch(() => setTimeline(null));
+  }, [tx?.id]);
 
   useEffect(() => {
     activeTabRef.current = activeTab;
@@ -820,6 +830,35 @@ export default function ClientPortal({ user, onLogout }) {
             {/* HOME TAB */}
             {activeTab === "home" && (
               <div>
+                {timeline && timeline.total > 0 && (
+                  <div style={{ background: C.white, borderRadius: 14, padding: 18, marginBottom: 14, boxShadow: "0 1px 4px rgba(0,0,0,0.08)" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                      <div style={{ fontSize: 15, fontWeight: 800, color: C.black }}>You're {timeline.progress}% to closing 🎯</div>
+                      <div style={{ fontSize: 12, color: C.gray, fontWeight: 700 }}>{timeline.done}/{timeline.total} steps</div>
+                    </div>
+                    <div style={{ background: C.lightGray, borderRadius: 20, height: 12, overflow: "hidden" }}>
+                      <div style={{ width: timeline.progress + "%", height: "100%", background: timeline.progress === 100 ? "#1E8449" : "#1a2332", borderRadius: 20, transition: "width .5s ease" }} />
+                    </div>
+                    {timeline.mine && timeline.mine.length > 0 && (
+                      <div style={{ marginTop: 16 }}>
+                        <div style={{ fontSize: 12, fontWeight: 800, color: C.gray, textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>✅ What we need from you</div>
+                        {timeline.mine.map((m, i) => (
+                          <div key={m.id} style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: "8px 0", borderBottom: i < timeline.mine.length - 1 ? "1px solid " + C.lightGray : "none" }}>
+                            <span style={{ background: "#1a2332", color: "#fff", borderRadius: "50%", width: 22, height: 22, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, flexShrink: 0 }}>{i + 1}</span>
+                            <div style={{ flex: 1 }}>
+                              <div style={{ fontSize: 14, fontWeight: 600, color: C.black }}>{m.name}</div>
+                              {m.due_date && <div style={{ fontSize: 12, color: C.gray }}>by {formatDate(m.due_date)}</div>}
+                              {m.requires_document && <div style={{ fontSize: 11, color: "#B7770D" }}>📎 Document needed{m.document_label ? `: ${m.document_label}` : ""}</div>}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {timeline.mine && timeline.mine.length === 0 && (
+                      <div style={{ marginTop: 12, fontSize: 13, color: C.gray }}>Nothing needed from you right now — we'll let you know the moment something comes up. 👍</div>
+                    )}
+                  </div>
+                )}
                 <LatestUpdateCard tx={tx} agentName={agentName} />
                 <ActionNeededCard tx={tx} />
 

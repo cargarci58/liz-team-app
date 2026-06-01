@@ -300,32 +300,45 @@ const TASK_STATUS = {
 const PIPELINE_COLUMNS = ["Active", "Under Contract", "Inspection", "Appraisal", "Clear to Close", "Closed"];
 
 function PipelineCard({ tx, onSelect }) {
-  const completed = tx.tasks ? tx.tasks.filter(t => t.status === "Completed").length : 0;
-  const total = tx.tasks ? tx.tasks.length : 0;
+  // Prefer the combined-timeline summary; fall back to legacy tasks.
+  const ms = tx.milestoneSummary;
+  const completed = ms ? (ms.done || 0) : (tx.tasks ? tx.tasks.filter(t => t.status === "Completed").length : 0);
+  const total = ms ? (ms.total || 0) : (tx.tasks ? tx.tasks.length : 0);
   const progress = total > 0 ? Math.round(completed / total * 100) : 0;
-  const overdue = tx.tasks ? tx.tasks.filter(t => { const d = daysUntil(t.dueDate); return d !== null && d < 0 && t.status !== "Completed" && t.status !== "Waived"; }).length : 0;
+  const overdue = ms ? (ms.overdue || 0) : (tx.tasks ? tx.tasks.filter(t => { const d = daysUntil(t.dueDate); return d !== null && d < 0 && t.status !== "Completed" && t.status !== "Waived"; }).length : 0);
   const dtc = daysUntil(tx.closingDate);
   const price = tx.contractPrice || tx.listPrice;
+  // Deal health light: red = overdue items; yellow = closing within a week or no due date set; green = on track.
+  const health = overdue > 0 ? { c: "#C0392B", t: "Needs attention" }
+    : (dtc !== null && dtc >= 0 && dtc < 7) ? { c: "#E0A800", t: "Closing soon" }
+    : { c: "#1E8449", t: "On track" };
+  const next = tx.nextMilestone;
   return (
     <div onClick={() => onSelect(tx.id)} style={{ background: "#fff", border: `1px solid ${COLORS.border}`, borderRadius: 8, padding: 10, marginBottom: 8, boxShadow: "0 1px 2px rgba(0,0,0,0.04)", cursor: "pointer" }}
       onMouseEnter={e => e.currentTarget.style.boxShadow = "0 4px 12px rgba(0,0,0,0.10)"}
       onMouseLeave={e => e.currentTarget.style.boxShadow = "0 1px 2px rgba(0,0,0,0.04)"}>
       <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
+        <span title={health.t} style={{ width: 9, height: 9, borderRadius: "50%", background: health.c, flexShrink: 0, display: "inline-block" }} />
         <span style={{ fontSize: 14 }}>{tx.type === "Buyer Representation" ? "🏡" : "🏠"}</span>
         <span style={{ fontSize: 9, fontWeight: 700, color: COLORS.muted, textTransform: "uppercase", letterSpacing: "0.06em" }}>{tx.type === "Buyer Representation" ? "Buyer" : "Listing"}</span>
         {tx.constructionType === "New Construction" && <span title="New Construction" style={{ background: "#FEF9E7", color: "#B7770D", fontSize: 9, fontWeight: 700, padding: "1px 6px", borderRadius: 8 }}>🏗️ NC</span>}
-        {overdue > 0 && <span title={`${overdue} overdue task(s)`} style={{ marginLeft: "auto", background: COLORS.dangerBg, color: COLORS.danger, fontSize: 9, fontWeight: 700, padding: "1px 6px", borderRadius: 8 }}>⚠ {overdue}</span>}
+        {overdue > 0 && <span title={`${overdue} overdue item(s)`} style={{ marginLeft: "auto", background: COLORS.dangerBg, color: COLORS.danger, fontSize: 9, fontWeight: 700, padding: "1px 6px", borderRadius: 8 }}>⚠ {overdue}</span>}
       </div>
       <div style={{ fontWeight: 700, fontSize: 13, color: COLORS.navy, marginBottom: 2, lineHeight: 1.3 }}>{tx.address}</div>
       <div style={{ fontSize: 11, color: COLORS.muted, marginBottom: 6 }}>{tx.city}, FL</div>
       {price && <div style={{ fontSize: 13, fontWeight: 700, color: COLORS.navy, marginBottom: 4 }}>${Number(price).toLocaleString()}</div>}
       {tx.closingDate && <div style={{ fontSize: 11, color: dtc !== null && dtc < 7 && dtc >= 0 ? COLORS.danger : COLORS.muted, marginBottom: 6 }}>📅 {tx.closingDate}{dtc !== null ? ` (${dtc < 0 ? "past" : dtc + "d"})` : ""}</div>}
+      {next && next.name && (
+        <div style={{ fontSize: 11, color: COLORS.navy, marginBottom: 6, background: "#F8FAFC", borderRadius: 6, padding: "4px 8px" }} title="Next action on this deal">
+          ⏭️ <b>Next:</b> {next.name}{next.dueDate ? ` · ${next.dueDate}` : ""}
+        </div>
+      )}
       {total > 0 && (
         <div style={{ marginBottom: 4 }}>
           <div style={{ height: 4, background: COLORS.bg, borderRadius: 2, overflow: "hidden" }}>
             <div style={{ height: "100%", width: progress + "%", background: progress === 100 ? COLORS.success : COLORS.navy }} />
           </div>
-          <div style={{ fontSize: 10, color: COLORS.muted, marginTop: 2 }}>{completed}/{total} tasks</div>
+          <div style={{ fontSize: 10, color: COLORS.muted, marginTop: 2 }}>{completed}/{total} done</div>
         </div>
       )}
       {tx.assignedAgentName && <div style={{ fontSize: 10, color: COLORS.muted }}>👤 {tx.assignedAgentName}</div>}
@@ -2100,6 +2113,12 @@ function MilestonesTab({ tx, token }) {
           </div>
         );
       })()}
+
+      {!tx.openDate && !tx.executedDate && milestones.some(m => !m.due_date && m.phase !== "active") && (
+        <div style={{ background: "#FEF2F2", border: "1px solid #FCA5A5", borderRadius: 12, padding: 14, marginBottom: 12, fontSize: 13, color: "#991B1B" }}>
+          ⚠️ <b>No contract date set.</b> Add the contract/effective date to this deal so deadlines can be calculated and reminders can go out. Items below have no due date until then.
+        </div>
+      )}
 
       <div style={{ background: "#fff", borderRadius: 14, padding: 16, marginBottom: 16,
         boxShadow: "0 1px 4px rgba(0,0,0,0.08)" }}>
@@ -5163,6 +5182,8 @@ function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenCon
     messages: t.internal_notes || [],
     parties: (t.parties || []).filter(Boolean).map(p => ({ id: p.id, role: p.role, name: p.name, email: p.email, phone: p.phone, company: p.company, isVendor: p.isVendor || false, vendorStatus: p.vendorStatus || null, vendorCategory: p.vendorCategory || null, vendorDescription: p.vendorDescription || null })),
     tasks: (t.tasks || []).filter(Boolean).map(tk => ({ id: tk.id, name: tk.name, status: tk.status, dueDate: tk.dueDate, category: tk.category, assignTo: tk.assignTo })),
+    milestoneSummary: t.milestone_summary || null,
+    nextMilestone: t.next_milestone || null,
     reminders: (t.reminders || []).filter(Boolean),
     smsThreads: t.sms_threads || {},
     needsFirstContact: t.needs_first_contact || false,
@@ -6026,6 +6047,8 @@ function MainApp({ onLogout, currentUser }) {
             messages: t.internal_notes || [],
             parties: (t.parties || []).filter(Boolean).map(p => ({ id: p.id, role: p.role, name: p.name, email: p.email, phone: p.phone, company: p.company, isVendor: p.isVendor || false, vendorStatus: p.vendorStatus || null, vendorCategory: p.vendorCategory || null, vendorDescription: p.vendorDescription || null })),
             tasks: (t.tasks || []).filter(Boolean).map(tk => ({ id: tk.id, name: tk.name, status: tk.status, dueDate: tk.dueDate, category: tk.category, assignTo: tk.assignTo })),
+            milestoneSummary: t.milestone_summary || null,
+            nextMilestone: t.next_milestone || null,
             reminders: (t.reminders || []).filter(Boolean).map(r => ({ id: r.id, title: r.title, date: r.date, message: r.message, channels: r.channels, parties: r.parties || [], sent: r.sent })),
             needsFirstContact: t.needs_first_contact || false,
             submittedVia: t.submitted_via || null,
