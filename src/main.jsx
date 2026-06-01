@@ -5,6 +5,7 @@ import PartyUploadPage from './PartyUploadPage.jsx'
 import ResetPasswordPage from './ResetPasswordPage.jsx'
 import FormDownloadPage from './FormDownloadPage'
 import ContractUploadPublic from './ContractUploadPublic'
+import OfferReviewPublic from './OfferReviewPublic'
 
 // Global 401 interceptor — if any API call comes back unauthorized
 // (expired/revoked token), clear stored credentials and force a fresh
@@ -23,7 +24,8 @@ window.fetch = async function patchedFetch(input, init) {
     if (isApiCall && res.status === 401 && !__reloadingForAuth && !isAuthEndpoint) {
       const path = window.location.pathname;
       const isPublicPath = path.startsWith('/upload/') || path.startsWith('/reset-password') ||
-                           path.startsWith('/form-download/') || path.startsWith('/upload-contract/');
+                           path.startsWith('/form-download/') || path.startsWith('/upload-contract/') ||
+                           path.startsWith('/review-offers/');
       if (!isPublicPath) {
         __reloadingForAuth = true;
         try { localStorage.removeItem('tp_token'); localStorage.removeItem('tp_user'); } catch (_) {}
@@ -46,6 +48,9 @@ else if (path.startsWith('/form-download/')) {
 } else if (path.startsWith('/upload-contract/')) {
   const token = path.split('/upload-contract/')[1];
   Root = <ContractUploadPublic urlToken={token} />;
+} else if (path.startsWith('/review-offers/')) {
+  const token = path.split('/review-offers/')[1];
+  Root = <OfferReviewPublic urlToken={token} />;
 } else Root = <App />;
 
 createRoot(document.getElementById('root')).render(Root);

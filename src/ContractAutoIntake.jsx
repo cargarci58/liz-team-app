@@ -669,10 +669,13 @@ function ReviewStep({ token, uploadId, user, onApproved, onBack }) {
 
         {error && <div style={{ background: "#fef2f2", border: "1px solid #fecaca", color: "#991b1b", borderRadius: 8, padding: "10px 14px", marginBottom: 16, fontSize: 14 }}>{error}</div>}
 
-        <div style={{ display: "flex", justifyContent: "flex-end", gap: 12, marginTop: 24 }}>
-          <button onClick={onBack} style={{ background: "white", color: COLORS.text, border: "1px solid " + COLORS.border, borderRadius: 8, padding: "12px 24px", fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Cancel</button>
+        <div style={{ background: "#EFF6FF", border: "1px solid #BFDBFE", borderRadius: 8, padding: "10px 14px", marginBottom: 14, fontSize: 13, color: "#1E3A8A" }}>
+          💡 <strong>This offer is held in Pending Offers.</strong> Save it now and come back later — share it with the sellers, hold several offers side by side, and only <strong>Approve</strong> once the sellers have signed/accepted. Approving accepts it into the transaction (Under Contract, parties, timeline & tasks).
+        </div>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, marginTop: 4, flexWrap: "wrap" }}>
+          <button onClick={onBack} style={{ background: "white", color: COLORS.navy, border: "1px solid " + COLORS.border, borderRadius: 8, padding: "12px 24px", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>← Save to Pending Offers</button>
           <button onClick={handleApprove} disabled={saving} style={{ background: COLORS.green, color: "white", border: "none", borderRadius: 8, padding: "12px 28px", fontSize: 14, fontWeight: 600, cursor: saving ? "wait" : "pointer", fontFamily: "inherit", opacity: saving ? 0.7 : 1 }}>
-            {saving ? "Approving Offer..." : "✓ Approve Offer"}
+            {saving ? "Approving Offer..." : "✓ Approve Offer (sellers accepted)"}
           </button>
         </div>
       </div>

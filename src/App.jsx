@@ -2726,6 +2726,117 @@ function DueDatePresetPicker({ label, value, onChange }) {
   );
 }
 
+// After an offer is accepted, preview every welcome/initial email before sending.
+// The agent reviews each rendered email and clicks Send per recipient (or Send All).
+// HOA + no-email parties are listed as skipped (never emailed).
+function WelcomeEmailPreview({ txId, onClose }) {
+  const hdrs = { "Authorization": "Bearer " + (localStorage.getItem("tp_token") || "") };
+  const [previews, setPreviews] = useState([]);
+  const [skipped, setSkipped] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [sel, setSel] = useState(0);
+  const [sentIds, setSentIds] = useState({});   // partyId -> true
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    fetch(`${API}/transactions/${txId}/welcome-emails/preview`, { method: "POST", headers: { ...hdrs, "Content-Type": "application/json" }, body: JSON.stringify({}) })
+      .then(r => r.json())
+      .then(d => {
+        if (!d.success) throw new Error(d.error || "Could not build previews");
+        setPreviews(d.previews || []);
+        setSkipped(d.skipped || []);
+      })
+      .catch(e => setError(e.message))
+      .finally(() => setLoading(false));
+  }, [txId]);
+
+  const sendOne = async (p) => {
+    if (!p.partyId) { alert("This recipient can't be sent individually (missing id). Use Send All."); return; }
+    setBusy(true);
+    try {
+      const r = await fetch(`${API}/transactions/${txId}/parties/${p.partyId}/send-welcome`, { method: "POST", headers: hdrs });
+      const d = await r.json();
+      if (!d.success && d.error) throw new Error(d.error);
+      setSentIds(s => ({ ...s, [p.partyId]: true }));
+    } catch (e) { alert("Could not send: " + e.message); }
+    finally { setBusy(false); }
+  };
+
+  const sendAll = async () => {
+    if (!window.confirm(`Send all ${previews.length} welcome email(s) now?`)) return;
+    setBusy(true);
+    try {
+      const r = await fetch(`${API}/transactions/${txId}/send-welcome-emails`, { method: "POST", headers: hdrs });
+      const d = await r.json();
+      const done = {};
+      (d.sent || []).forEach(s => { const m = previews.find(p => p.email === s.email); if (m) done[m.partyId] = true; });
+      setSentIds(prev => ({ ...prev, ...done }));
+      if (d.emailsFailed) alert(`${d.emailsSent} sent, ${d.emailsFailed} failed. Check the ones still marked unsent.`);
+    } catch (e) { alert("Send all failed: " + e.message); }
+    finally { setBusy(false); }
+  };
+
+  const cur = previews[sel];
+  const overlay = { position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 400, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 };
+  const box = { background: "#fff", borderRadius: 12, width: "100%", maxWidth: 960, maxHeight: "90vh", display: "flex", flexDirection: "column", overflow: "hidden" };
+
+  return (
+    <div style={overlay}>
+      <div style={box}>
+        <div style={{ padding: "16px 20px", borderBottom: "1px solid " + COLORS.border, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div>
+            <div style={{ fontSize: 16, fontWeight: 800, color: COLORS.navy }}>✉️ Preview Welcome Emails</div>
+            <div style={{ fontSize: 12, color: COLORS.muted }}>Review each email, then Send. Nothing is sent until you click Send.</div>
+          </div>
+          <div style={{ display: "flex", gap: 8 }}>
+            {previews.length > 0 && <button onClick={sendAll} disabled={busy} style={{ background: "#1E8449", color: "#fff", border: "none", borderRadius: 8, padding: "9px 16px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>Send All</button>}
+            <button onClick={onClose} style={{ background: "#fff", color: COLORS.text, border: "1px solid " + COLORS.border, borderRadius: 8, padding: "9px 16px", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Done</button>
+          </div>
+        </div>
+
+        {loading ? (
+          <div style={{ padding: 40, textAlign: "center", color: COLORS.muted }}>Building previews…</div>
+        ) : error ? (
+          <div style={{ padding: 40, textAlign: "center", color: COLORS.danger }}>{error}</div>
+        ) : previews.length === 0 ? (
+          <div style={{ padding: 40, textAlign: "center", color: COLORS.muted }}>
+            No emails to send (no parties with valid email addresses).
+            {skipped.length > 0 && <div style={{ marginTop: 8, fontSize: 12 }}>Skipped: {skipped.map(s => `${s.name || s.role} (${s.reason})`).join(", ")}</div>}
+          </div>
+        ) : (
+          <div style={{ display: "flex", flex: 1, minHeight: 0 }}>
+            {/* recipient list */}
+            <div style={{ width: 240, borderRight: "1px solid " + COLORS.border, overflowY: "auto", flexShrink: 0 }}>
+              {previews.map((p, i) => (
+                <div key={p.partyId || i} onClick={() => setSel(i)} style={{ padding: "12px 14px", borderBottom: "1px solid " + COLORS.border, cursor: "pointer", background: i === sel ? "#EFF6FF" : "#fff" }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: COLORS.navy }}>{p.name}</div>
+                  <div style={{ fontSize: 11, color: COLORS.muted }}>{p.role} · {p.email}</div>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: sentIds[p.partyId] ? "#1E8449" : COLORS.amber, marginTop: 2 }}>{sentIds[p.partyId] ? "✓ Sent" : "Not sent"}</div>
+                </div>
+              ))}
+              {skipped.length > 0 && (
+                <div style={{ padding: "10px 14px", fontSize: 11, color: COLORS.muted }}>
+                  <div style={{ fontWeight: 700, marginBottom: 4 }}>Not emailed</div>
+                  {skipped.map((s, i) => <div key={i}>{s.name || s.role} — {s.reason === "hoa_reference_only" ? "HOA (reference only)" : s.reason === "no_email" ? "no email" : s.reason}</div>)}
+                </div>
+              )}
+            </div>
+            {/* rendered email */}
+            <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
+              <div style={{ padding: "10px 16px", borderBottom: "1px solid " + COLORS.border, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
+                <div style={{ fontSize: 13, color: COLORS.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}><strong>To:</strong> {cur?.email} &nbsp; <strong>Subj:</strong> {cur?.subject}</div>
+                <button onClick={() => sendOne(cur)} disabled={busy || sentIds[cur?.partyId]} style={{ background: sentIds[cur?.partyId] ? "#9CA3AF" : "#C0392B", color: "#fff", border: "none", borderRadius: 8, padding: "8px 18px", fontSize: 13, fontWeight: 700, cursor: sentIds[cur?.partyId] ? "default" : "pointer", fontFamily: "inherit", flexShrink: 0 }}>{sentIds[cur?.partyId] ? "✓ Sent" : "Send"}</button>
+              </div>
+              <iframe title="email-preview" srcDoc={cur?.html || ""} style={{ flex: 1, width: "100%", border: "none", background: "#fff" }} />
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // Pending offers received on a listing. Several can sit here at once; the agent
 // reviews them and approves one (which auto-rejects the rest on the server).
 function ListingOffers({ txId, onReview, onReceiveOffer }) {
@@ -2748,6 +2859,10 @@ function ListingOffers({ txId, onReview, onReceiveOffer }) {
   };
   useEffect(() => { load(); }, [txId]);
 
+  const [shareUrl, setShareUrl] = useState("");
+  const [sharing, setSharing] = useState(false);
+  const [copied, setCopied] = useState(false);
+
   const reject = async (id) => {
     if (!window.confirm("Reject this offer? This does not change the listing.")) return;
     try {
@@ -2758,14 +2873,49 @@ function ListingOffers({ txId, onReview, onReceiveOffer }) {
     } catch (e) { alert(e.message); }
   };
 
+  const shareWithSellers = async () => {
+    setSharing(true);
+    try {
+      const r = await fetch(`${API}/transactions/${txId}/offer-share-link`, { method: "POST", headers: { ...hdrs, "Content-Type": "application/json" }, body: JSON.stringify({}) });
+      const d = await r.json();
+      if (!d.success) throw new Error(d.error || "Could not create link");
+      setShareUrl(d.url);
+    } catch (e) { alert(e.message); }
+    finally { setSharing(false); }
+  };
+
+  const copyShare = () => {
+    navigator.clipboard.writeText(shareUrl);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
   if (loading || offers.length === 0) return null;
+
+  const decisionBadge = (d) => {
+    if (!d) return null;
+    const accepted = d === "accepted";
+    return <span style={{ fontSize: 11, fontWeight: 700, color: "#fff", background: accepted ? "#1E8449" : "#B91C1C", borderRadius: 20, padding: "2px 10px" }}>{accepted ? "✓ Seller accepted" : "Seller declined"}</span>;
+  };
 
   return (
     <div style={{ background: "#FFFBEB", border: "1px solid #FCD34D", borderRadius: 12, padding: 16 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10, gap: 8, flexWrap: "wrap" }}>
         <div style={{ fontSize: 14, fontWeight: 800, color: "#92400E" }}>📥 Pending Offers ({offers.length})</div>
-        <button onClick={onReceiveOffer} style={{ background: "#1E8449", border: "none", color: "#fff", borderRadius: 6, padding: "6px 12px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>+ Receive Another Offer</button>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <button onClick={shareWithSellers} disabled={sharing} style={{ background: "#fff", border: "1px solid #1E8449", color: "#1E8449", borderRadius: 6, padding: "6px 12px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>{sharing ? "Creating…" : "🔗 Share with Sellers"}</button>
+          <button onClick={onReceiveOffer} style={{ background: "#1E8449", border: "none", color: "#fff", borderRadius: 6, padding: "6px 12px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>+ Receive Another Offer</button>
+        </div>
       </div>
+      {shareUrl && (
+        <div style={{ background: "#fff", border: "1px solid #1E8449", borderRadius: 8, padding: 12, marginBottom: 10 }}>
+          <div style={{ fontSize: 12, color: "#166534", marginBottom: 6, fontWeight: 600 }}>Send this secure link to your seller(s). They'll see all offers side by side and mark Accept/Decline — their choice shows here. You can re-send it any time; nothing is final until you Accept an offer.</div>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <input readOnly value={shareUrl} onFocus={e => e.target.select()} style={{ flex: 1, minWidth: 200, fontSize: 12, padding: "8px 10px", border: "1px solid " + COLORS.border, borderRadius: 6, fontFamily: "inherit" }} />
+            <button onClick={copyShare} style={{ background: copied ? "#1E8449" : COLORS.navy, color: "#fff", border: "none", borderRadius: 6, padding: "8px 16px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>{copied ? "✓ Copied" : "Copy"}</button>
+          </div>
+        </div>
+      )}
       {offers.map(o => {
         const exd = o.extracted_data || {};
         const t = exd.transaction || {};
@@ -2774,7 +2924,10 @@ function ListingOffers({ txId, onReview, onReceiveOffer }) {
         return (
           <div key={o.id} style={{ background: "#fff", border: "1px solid #FDE68A", borderRadius: 8, padding: "10px 12px", marginBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
             <div style={{ fontSize: 13, color: COLORS.text }}>
-              <div style={{ fontWeight: 700 }}>{t.contract_price ? "$" + Number(t.contract_price).toLocaleString() : (ready ? "Price not read" : "Processing…")}</div>
+              <div style={{ fontWeight: 700, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                {t.contract_price ? "$" + Number(t.contract_price).toLocaleString() : (ready ? "Price not read" : "Processing…")}
+                {decisionBadge(o.seller_decision)}
+              </div>
               <div style={{ color: COLORS.muted, fontSize: 12 }}>
                 {buyer?.name ? buyer.name : (o.original_filename || "Offer")}{ready ? "" : " · reading contract…"}
               </div>
@@ -2842,6 +2995,7 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
   const [editTxForm, setEditTxForm] = useState({});
   const [showReceiveOffer, setShowReceiveOffer] = useState(false);
   const [reviewOfferId, setReviewOfferId] = useState(null);
+  const [showEmailPreview, setShowEmailPreview] = useState(false);
 
   // Pre-fill helper — used everywhere the Edit modal opens.
   // CRITICAL RULE: Edit modal must NEVER open blank. Every field comes from current tx.
@@ -3123,9 +3277,15 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
                   existingTransactionId={tx.id}
                   reviewUploadId={reviewOfferId || undefined}
                   onBack={() => { setShowReceiveOffer(false); setReviewOfferId(null); }}
-                  onApproved={() => { setShowReceiveOffer(false); setReviewOfferId(null); window.location.reload(); }}
+                  onApproved={() => { setShowReceiveOffer(false); setReviewOfferId(null); setShowEmailPreview(true); }}
                 />
               </div>
+            )}
+            {showEmailPreview && (
+              <WelcomeEmailPreview
+                txId={tx.id}
+                onClose={() => { setShowEmailPreview(false); window.location.reload(); }}
+              />
             )}
             {(tx.transaction_type || tx.type) && /buyer|dual/i.test(tx.transaction_type || tx.type) && (
               <PreApprovalCard transactionId={tx.id} isAgent={true} />
