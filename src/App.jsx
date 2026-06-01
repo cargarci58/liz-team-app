@@ -2856,7 +2856,7 @@ function WelcomeEmailPreview({ txId, onClose }) {
           </div>
           <div style={{ display: "flex", gap: 8 }}>
             {previews.length > 0 && <button onClick={sendAll} disabled={busy} style={{ background: "#1E8449", color: "#fff", border: "none", borderRadius: 8, padding: "9px 16px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>Send All</button>}
-            <button onClick={onClose} style={{ background: "#fff", color: COLORS.text, border: "1px solid " + COLORS.border, borderRadius: 8, padding: "9px 16px", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Done</button>
+            <button onClick={onClose} style={{ background: "#fff", color: COLORS.text, border: "1px solid " + COLORS.border, borderRadius: 8, padding: "9px 16px", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>{Object.keys(sentIds).length > 0 ? "Done" : "Cancel — send later"}</button>
           </div>
         </div>
 
@@ -2883,7 +2883,7 @@ function WelcomeEmailPreview({ txId, onClose }) {
               {skipped.length > 0 && (
                 <div style={{ padding: "10px 14px", fontSize: 11, color: COLORS.muted }}>
                   <div style={{ fontWeight: 700, marginBottom: 4 }}>Not emailed</div>
-                  {skipped.map((s, i) => <div key={i}>{s.name || s.role} — {s.reason === "hoa_reference_only" ? "HOA (reference only)" : s.reason === "no_email" ? "no email" : s.reason}</div>)}
+                  {skipped.map((s, i) => <div key={i}>{s.name || s.role} — {s.reason === "hoa_reference_only" ? "HOA (reference only)" : s.reason === "no_email" ? "no email" : s.reason === "duplicate_email" ? "duplicate (same email already included)" : s.reason}</div>)}
                 </div>
               )}
             </div>
