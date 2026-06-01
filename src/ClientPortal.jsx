@@ -660,6 +660,20 @@ export default function ClientPortal({ user, onLogout }) {
   const isBuyerSide = tx && (tx.type === "Buyer Representation" || tx.type === "Dual Agency" || (tx.transactionType && tx.transactionType.includes("Buyer")));
   const isSellerSide = tx && (tx.type === "Listing (Seller)" || tx.type === "Dual Agency" || (tx.transactionType && (tx.transactionType.includes("Listing") || tx.transactionType.includes("Seller"))));
 
+  // Hide the OPPOSITE side's agent from "My Team" so a client never sees (and
+  // can't cold-call) the other side's agent. Seller-side clients don't see the
+  // buyer's agent; buyer-side clients don't see the listing/seller's agent.
+  // Their own agent still shows at the top via owningAgent. Role strings vary
+  // ("Buyer's Agent"/"Buyer Agent", "Listing Agent"/"Seller's Agent") so match loosely.
+  const hideOppositeAgent = (role) => {
+    const r = (role || "").toLowerCase();
+    if (!r.includes("agent")) return false;
+    if (isSellerSide && r.includes("buyer")) return true;
+    if (isBuyerSide && (r.includes("listing") || r.includes("seller"))) return true;
+    return false;
+  };
+  const teamParties = tx ? tx.parties.filter(p => p.role !== "Buyer" && p.role !== "Seller" && !hideOppositeAgent(p.role)) : [];
+
   const tabs = [
     { id: "home", label: "🏠 My Transaction" },
     { id: "documents", label: "📎 Documents" },
@@ -1030,12 +1044,12 @@ export default function ClientPortal({ user, onLogout }) {
                     </div>
                   </div>
                 )}
-                {tx.parties.filter(p => p.role !== "Buyer" && p.role !== "Seller").length === 0 && !agentName ? (
+                {teamParties.length === 0 && !agentName ? (
                   <div style={{ textAlign: "center", padding: 40, color: C.gray }}>
                     <div style={{ fontSize: 40, marginBottom: 8 }}>👥</div>
                     <div>No team members listed yet</div>
                   </div>
-                ) : tx.parties.filter(p => p.role !== "Buyer" && p.role !== "Seller").map(p => (
+                ) : teamParties.map(p => (
                   <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 14,
                     padding: 16, background: C.white, borderRadius: 12, marginBottom: 10,
                     boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}>
