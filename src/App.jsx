@@ -342,6 +342,7 @@ function PipelineCard({ tx, onSelect }) {
         </div>
       )}
       {tx.assignedAgentName && <div style={{ fontSize: 10, color: COLORS.muted }}>👤 {tx.assignedAgentName}</div>}
+      {tx.isGuestView && tx.owningBrokerageName && <div style={{ fontSize: 10, color: COLORS.muted, marginTop: 2 }}>🏢 Managed by {tx.owningBrokerageName}</div>}
     </div>
   );
 }
@@ -1803,7 +1804,7 @@ function BrokerFilePanel({ txId, token }) {
 // ═══════════════════════════════════════════════════════════════
 // MILESTONES TAB
 // ═══════════════════════════════════════════════════════════════
-function MilestonesTab({ tx, token }) {
+function MilestonesTab({ tx, token, onSummaryChange }) {
   const [milestones, setMilestones] = useState([]);
   const [compliance, setCompliance] = useState({});
   const [uploadingFor, setUploadingFor] = useState(null);
@@ -1886,6 +1887,22 @@ function MilestonesTab({ tx, token }) {
   const API = "https://liz-team-server-api-production.up.railway.app";
 
   useEffect(() => { fetchMilestones(); }, [tx.id]);
+
+  // Keep the pipeline card's progress bar in sync with timeline edits.
+  // The card reads tx.milestoneSummary, which is loaded once with the list;
+  // recompute it here (mirroring the backend) and bubble it up on every change.
+  useEffect(() => {
+    if (!onSummaryChange || loading || milestones.length === 0) return;
+    const active = milestones.filter(m => m.is_na !== true);
+    const total = active.length;
+    const done = active.filter(m => m.status === "Completed" || m.status === "Waived").length;
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const overdue = active.filter(m =>
+      m.status !== "Completed" && m.status !== "Waived" && m.due_date && new Date(m.due_date) < today
+    ).length;
+    const next = milestones.find(m => m.status !== "Completed" && m.status !== "Waived" && m.is_na !== true) || null;
+    onSummaryChange(tx.id, { total, done, overdue }, next ? { name: next.name, dueDate: next.due_date } : null);
+  }, [milestones, loading]);
 
   const fetchMilestones = async () => {
     setLoading(true);
@@ -3191,7 +3208,7 @@ function ListingOffers({ txId, onReview, onReceiveOffer }) {
   );
 }
 
-function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [], onSaveContact, onOpenContactBook, onDuplicate, currentUser, initialTab = "overview", dashboardUnread = 0 }) {
+function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [], onSaveContact, onOpenContactBook, onDuplicate, currentUser, initialTab = "overview", dashboardUnread = 0, onMilestoneSummary }) {
   const [activeTab, setActiveTab] = useState(initialTab);
   const [showAssignAgent, setShowAssignAgent] = useState(false);
   const [showAddParty, setShowAddParty] = useState(false);
@@ -3452,6 +3469,7 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
         <div style={{ flex: 1 }}>
           <div style={{ color: "#fff", fontWeight: 700, fontSize: 17 }}>{tx.address}</div>
           <div style={{ color: COLORS.gold, fontSize: 13 }}>{tx.city}, FL {tx.zipCode} · {tx.county} County · {tx.type}</div>
+          {isGuest && tx.owningBrokerageName && <div style={{ color: "rgba(255,255,255,0.7)", fontSize: 12, marginTop: 2 }}>🏢 Managed by {tx.owningBrokerageName}</div>}
         </div>
         <Badge label={tx.status} color={statusCfg.color} bg={statusCfg.bg} />
         {isGuest && <span style={{ background: "rgba(255,255,255,0.15)", color: "#fff", fontSize: 11, fontWeight: 700, padding: "4px 10px", borderRadius: 6 }}>👤 Shared with you · view only</span>}
@@ -3656,7 +3674,7 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
         )}
 
         {activeTab === "milestones" && (
-            <MilestonesTab tx={tx} token={localStorage.getItem("tp_token") || ""} />
+            <MilestonesTab tx={tx} token={localStorage.getItem("tp_token") || ""} onSummaryChange={onMilestoneSummary} />
           )}
           {activeTab === "tasks" && (
           <div>
@@ -4876,18 +4894,21 @@ function SettingsMenu({ currentUser, onOpenContactBook, contactCount, onReports,
   );
 }
 
-function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenContactBook, onOpenContacts, onOpenExpenses, onOpenForms, contactCount, onLogout, onOpenTeam, onOpenCompliance, onOpenComplianceDash, onOpenTaskTmpls, onOpenContractIntake, onChangePassword, onReports, onHome, onVendors, onCompanySettings, onSuperuser, onAgentProfile, onIntakeLinks, currentUser }) {
+function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenContactBook, onOpenContacts, onOpenExpenses, onOpenForms, contactCount, onLogout, onOpenTeam, onOpenCompliance, onOpenComplianceDash, onOpenTaskTmpls, onOpenContractIntake, onChangePassword, onReports, onHome, onVendors, onCompanySettings, onSuperuser, onAgentProfile, onIntakeLinks, currentUser, isFreeGuest = false }) {
   const [filter, setFilter] = useState("All");
   const [search, setSearch] = useState("");
-  // Tenant branding for the navbar — fetched once on mount.
+  // Tenant branding for the navbar — fetched once on mount. A free guest belongs to
+  // no single brokerage (they may be on deals from many), so they get NEUTRAL platform
+  // branding here; each brokerage's identity shows on its own transaction card instead.
   const [tenantBrand, setTenantBrand] = useState({ name: "", logoUrl: "" });
   useEffect(() => {
+    if (isFreeGuest) return;  // keep neutral TransactPro branding for guests
     const tok = localStorage.getItem("tp_token") || "";
     fetch("https://liz-team-server-api-production.up.railway.app/settings/company", { headers: { "Authorization": "Bearer " + tok } })
       .then(r => r.ok ? r.json() : null)
       .then(d => { if (d?.company) setTenantBrand({ name: d.company.name || "", logoUrl: d.company.logoUrl || "" }); })
       .catch(e => console.error("[bg]", e && e.message ? e.message : e));
-  }, []);
+  }, [isFreeGuest]);
   const [viewMode, setViewMode] = useState(() => localStorage.getItem("tp_view_mode") || "cards");
   const [sortKey, setSortKey] = useState(() => { const saved = localStorage.getItem("tp_sort_key"); return saved && saved !== "closingDate" ? saved : "status"; });
   const [sortDir, setSortDir] = useState(() => localStorage.getItem("tp_sort_dir") || "asc");
@@ -6224,6 +6245,12 @@ function MainApp({ onLogout, currentUser }) {
       alert("Save failed. Check your connection and try again.");
     }
   }, []);
+  // Live-update the pipeline card's progress when timeline milestones change.
+  const applyMilestoneSummary = useCallback((txId, summary, nextMilestone) => {
+    setTransactions(txs => txs.map(t => t.id === txId
+      ? { ...t, milestoneSummary: summary, nextMilestone: nextMilestone !== undefined ? nextMilestone : t.nextMilestone }
+      : t));
+  }, []);
   const addTransaction = tx => { setTransactions(txs => [tx, ...txs]); setSelectedId(tx.id); setView("detail"); };
 
   const duplicateTransaction = async (tx) => {
@@ -6353,6 +6380,7 @@ function MainApp({ onLogout, currentUser }) {
           dashboardUnread={unreadCounts[selectedId] || 0}
           tx={selectedTx}
           onUpdate={updateTransaction}
+          onMilestoneSummary={applyMilestoneSummary}
           onDuplicate={duplicateTransaction}
           currentUser={currentUser}
           onBack={() => setView("dashboard")}
@@ -6392,6 +6420,7 @@ function MainApp({ onLogout, currentUser }) {
           onAgentProfile={() => setShowAgentProfile(true)}
           onIntakeLinks={guard("My Intake Links", () => setShowIntakeLinks(true))}
           currentUser={currentUser}
+          isFreeGuest={isFreeGuest}
           onHome={() => setView("home")}
           onVendors={guard("The Vendor library", () => setShowVendorLibrary(true))}
         />
