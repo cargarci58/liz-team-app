@@ -2268,12 +2268,17 @@ function MilestonesTab({ tx, token, onSummaryChange }) {
                     {compliance[m.id]?.documentRequired && tx.constructionType !== "New Construction" ? (
                       <>
                         <button onClick={() => handleUploadClick(m.id)} disabled={uploadingFor === m.id}
-                          style={{ flex: "2 1 100%", padding: "10px 0", borderRadius: 8, border: "none",
+                          style={{ flex: "2 1 200px", padding: "10px 0", borderRadius: 8, border: "none",
                             background: "#C0392B", color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
                           {uploadingFor === m.id ? "Uploading..." : "📎 Upload Document & Complete"}
                         </button>
-                        <div style={{ flex: "1 1 100%", fontSize: 11, color: "#92400E", textAlign: "center", marginTop: 4 }}>
-                          🔒 Document required — cannot mark complete without it
+                        <button onClick={() => handleComplete(m.id)} disabled={completing === m.id}
+                          style={{ flex: "1 1 130px", padding: "10px 0", borderRadius: 8, border: "1.5px solid #1E8449",
+                            background: "#fff", color: "#1E8449", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
+                          {completing === m.id ? "Saving..." : "✓ Mark Done"}
+                        </button>
+                        <div style={{ flex: "1 1 100%", fontSize: 11, color: "#92400E", textAlign: "center", marginTop: 2 }}>
+                          📎 Document recommended for your file — upload it now, or mark done (it'll flag as a compliance gap until the doc is added).
                         </div>
                       </>
                     ) : (
