@@ -1889,6 +1889,7 @@ function MilestonesTab({ tx, token, onSummaryChange }) {
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [completing, setCompleting] = useState(null);
+  const [scheduleDates, setScheduleDates] = useState({});
 
   const API = "https://liz-team-server-api-production.up.railway.app";
 
@@ -1967,6 +1968,26 @@ function MilestonesTab({ tx, token, onSummaryChange }) {
         m.id === milestoneId ? { ...m, status: "Completed", completed_at: new Date().toISOString() } : m
       ));
     } catch (e) { alert("Error completing milestone"); }
+    setCompleting(null);
+  };
+
+  // Scheduling-type milestone (e.g. "Inspection Scheduled"): record the date the
+  // buyer's agent gave us and mark it done — no document needed.
+  const handleSchedule = async (milestoneId, date) => {
+    if (!date) { alert("Pick the scheduled date first."); return; }
+    setCompleting(milestoneId);
+    try {
+      const r = await fetch(API + "/milestones/" + milestoneId + "/schedule", {
+        method: "PATCH",
+        headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
+        body: JSON.stringify({ date, complete: true })
+      });
+      const d = await r.json();
+      if (!r.ok || !d.success) throw new Error(d.error || "Failed");
+      setMilestones(prev => prev.map(m =>
+        m.id === milestoneId ? { ...m, status: "Completed", completed_at: new Date().toISOString(), scheduled_date: date } : m
+      ));
+    } catch (e) { alert("Error saving scheduled date: " + e.message); }
     setCompleting(null);
   };
 
@@ -2183,6 +2204,9 @@ function MilestonesTab({ tx, token, onSummaryChange }) {
             const isCompleted = ms === "completed";
             const isWaived = ms === "waived";
             const isClosed = isCompleted || isWaived;
+            // Scheduling-type step: capture a date (buyer's agent communicates it),
+            // not a document. Currently the inspection-scheduled milestone.
+            const isScheduling = /inspection scheduled/i.test(m.name || "");
             return (
               <div key={m.id} style={{ background: "#fff", borderRadius: 12, padding: 14,
                 marginBottom: 8, boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
@@ -2210,6 +2234,9 @@ function MilestonesTab({ tx, token, onSummaryChange }) {
                          days < 0 ? Math.abs(days) + "d overdue" :
                          "Due in " + days + "d"} · {m.due_date}
                       </div>
+                    )}
+                    {m.scheduled_date && (
+                      <div style={{ fontSize: 12, color: "#1E8449", fontWeight: 700, marginTop: 2 }}>📅 Scheduled: {m.scheduled_date}</div>
                     )}
                     {m.requires_document && !m.document_uploaded && !isClosed && m.status !== "Waived" && (
                       <div style={{ fontSize: 11, color: "#B7770D", marginTop: 2 }}>📎 Document required</div>
@@ -2263,7 +2290,28 @@ function MilestonesTab({ tx, token, onSummaryChange }) {
                     </button>
                   </div>
                 )}
-                {!isClosed && (
+                {!isClosed && isScheduling && (
+                  <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap", alignItems: "center" }}>
+                    <input type="date" value={scheduleDates[m.id] ?? (m.scheduled_date || "")}
+                      onChange={e => setScheduleDates(s => ({ ...s, [m.id]: e.target.value }))}
+                      style={{ flex: "1 1 150px", padding: "9px 10px", borderRadius: 8, border: "1.5px solid #D1D5DB", fontSize: 13, fontFamily: "inherit" }} />
+                    <button onClick={() => handleSchedule(m.id, scheduleDates[m.id] ?? m.scheduled_date)} disabled={completing === m.id}
+                      style={{ flex: "2 1 220px", padding: "10px 0", borderRadius: 8, border: "none",
+                        background: "#1E8449", color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
+                      {completing === m.id ? "Saving..." : "✓ Confirm Scheduled Date & Mark Done"}
+                    </button>
+                    <div style={{ flex: "1 1 100%", fontSize: 11, color: "#555", marginTop: 2 }}>
+                      Enter the date the buyer's agent gave you — no inspection report needed on the listing side.
+                    </div>
+                    <button onClick={() => setWaiveModalFor(m)}
+                      style={{ flex: "1 1 90px", padding: "9px 0", borderRadius: 8,
+                        border: "1.5px solid #E5B14A", background: "#FFFBEB",
+                        color: "#92400E", fontWeight: 600, fontSize: 12, cursor: "pointer" }}>
+                      ⚠️ Waive — N/A
+                    </button>
+                  </div>
+                )}
+                {!isClosed && !isScheduling && (
                   <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
                     {compliance[m.id]?.documentRequired && tx.constructionType !== "New Construction" ? (
                       <>
