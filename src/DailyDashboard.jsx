@@ -331,6 +331,8 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
   const [loading, setLoading] = useState(true);
   const [activeModal, setActiveModal] = useState(null);
   const [resolvedIds, setResolvedIds] = useState(new Set());
+  // Contacts the user has tapped "Call" on — the Log button only appears after.
+  const [calledIds, setCalledIds] = useState(() => new Set());
 
   const firstName = user?.firstName || "";
   const hour = new Date().getHours();
@@ -535,7 +537,7 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
         <div style={{ marginBottom: 16 }}>
           <SectionHeader label={"📞 CALLS DUE TODAY"} count={callsDue.length} color={"#0c4a6e"} />
           <div style={{ background: "#eff6ff", border: "1px solid #93c5fd", borderRadius: 8, padding: 10, fontSize: 11, color: "#1e3a8a", marginBottom: 10 }}>
-            💡 Log each call with one tap — the system auto-schedules the next follow-up based on the outcome.
+            💡 Tap <b>Call</b> to dial — then log the outcome so the system can schedule the next follow-up.
           </div>
           {callsDue.map(c => {
             const name = [c.first_name, c.last_name].filter(Boolean).join(" ") || c.email || c.phone || "(no name)";
@@ -555,9 +557,7 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
                     </div>
                   )}
                   <div style={{ fontSize: 12, color: "#6b7280", marginTop: 2 }}>
-                    {c.phone
-                      ? <a href={`tel:${c.phone}`} onClick={e => e.stopPropagation()} style={{ color: "#0c4a6e", fontWeight: 700, textDecoration: "none" }}>📞 {c.phone}</a>
-                      : (c.email || "no contact info")}
+                    {c.phone || c.email || "no contact info"}
                     {c.last_outcome && <span style={{ marginLeft: 8 }}>· last: {String(c.last_outcome).replace(/_/g, " ")}</span>}
                     {overdue && <span style={{ color: "#b91c1c", marginLeft: 8, fontWeight: 600 }}>⚠️ Overdue</span>}
                   </div>
@@ -567,7 +567,14 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
                     </div>
                   )}
                 </div>
-                <LogCallButton contact={c} token={token} onLogged={fetchTasks} compact />
+                {c.phone && !calledIds.has(c.id) ? (
+                  <a href={`tel:${c.phone}`} onClick={() => setCalledIds(s => new Set(s).add(c.id))}
+                    style={{ background: "#15803d", color: "#fff", fontWeight: 700, fontSize: 13, padding: "9px 16px", borderRadius: 8, textDecoration: "none", whiteSpace: "nowrap", flexShrink: 0 }}>
+                    📞 Call
+                  </a>
+                ) : (
+                  <LogCallButton contact={c} token={token} onLogged={fetchTasks} compact />
+                )}
               </div>
             );
           })}
