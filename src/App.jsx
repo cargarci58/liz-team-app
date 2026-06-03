@@ -2431,7 +2431,8 @@ function BuyerIntakeChecklist({ tx, token, onContactLogged }) {
   const [updating, setUpdating] = useState(null);
   const API_URL = "https://liz-team-server-api-production.up.railway.app";
 
-  const buyer = (tx.parties || []).find(p => p.role === "Buyer");
+  const isSeller = /listing|seller/i.test(tx.type || "");
+  const client = (tx.parties || []).find(p => p.role === (isSeller ? "Seller" : "Buyer"));
   const budget = tx.listPrice ? "$" + Number(tx.listPrice).toLocaleString() : "Not specified";
 
   const toggleStep = async (stepNumber) => {
@@ -2455,8 +2456,14 @@ function BuyerIntakeChecklist({ tx, token, onContactLogged }) {
   const allDone = [1,2,3,4,5].every(n => stepsDone.includes(n));
   if (allDone) return null;
 
-  const steps = [
-    { num: 1, icon: "📞", title: "Contact the buyer within 24 hours", why: "Florida law requires prompt response. First contact establishes your fiduciary relationship.", action: buyer?.phone ? "Call or text " + (buyer.name || "buyer") + " at " + buyer.phone : buyer?.email ? "Email " + (buyer.name || "buyer") + " at " + buyer.email : "Add buyer contact info first" },
+  const steps = isSeller ? [
+    { num: 1, icon: "📞", title: "Contact the seller within 24 hours", why: "Prompt response wins the listing and establishes your fiduciary relationship.", action: client?.phone ? "Call or text " + (client.name || "seller") + " at " + client.phone : client?.email ? "Email " + (client.name || "seller") + " at " + client.email : "Add seller contact info first" },
+    { num: 2, icon: "🤝", title: "Schedule a Listing Consultation", why: "Review the home, timeline, and pricing — and present your marketing plan.", action: "Set up a 30–60 minute walkthrough (in person or video)" },
+    { num: 3, icon: "📋", title: "Sign the Listing Agreement (Exclusive Right of Sale)", why: "Required under Florida law before marketing the property. Establishes your commission.", action: "Send via DocuSign, Dotloop, or in person at the consultation" },
+    { num: 4, icon: "📸", title: "Order photos & prep the MLS listing", why: "Professional photos and complete listing data drive showings from day one.", action: "Schedule photography, write the listing copy, set sign/lockbox" },
+    { num: 5, icon: "💰", title: "Confirm pricing with a CMA", why: "An accurate list price from a comparative market analysis prevents stale-listing price drops.", action: "Run a CMA for " + (tx.address || "the property") + " and review it with the seller" },
+  ] : [
+    { num: 1, icon: "📞", title: "Contact the buyer within 24 hours", why: "Florida law requires prompt response. First contact establishes your fiduciary relationship.", action: client?.phone ? "Call or text " + (client.name || "buyer") + " at " + client.phone : client?.email ? "Email " + (client.name || "buyer") + " at " + client.email : "Add buyer contact info first" },
     { num: 2, icon: "🤝", title: "Schedule a Buyer Consultation", why: "Understand their needs, timeline, and qualifications — and explain your role as their agent.", action: "Set up a 30-60 minute meeting (in person, Zoom, or phone)" },
     { num: 3, icon: "📋", title: "Send Buyer Representation Agreement", why: "Required under Florida law before showing properties. Establishes your commission.", action: "Send via DocuSign, Dotloop, or in person at consultation" },
     { num: 4, icon: "🏠", title: "Set up MLS auto-alerts", why: "Buyers expect to see new listings immediately. Same-day alerts show you are proactive.", action: "Search: " + (tx.address || "").replace("Buyer Search — ", "") + " · Budget: " + budget },
@@ -2470,9 +2477,9 @@ function BuyerIntakeChecklist({ tx, token, onContactLogged }) {
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
         <span style={{ fontSize: 24 }}>🔔</span>
         <div style={{ flex: 1 }}>
-          <div style={{ fontWeight: 800, color: "#991b1b", fontSize: 16 }}>New Buyer Inquiry — {doneCount}/5 Steps Complete</div>
+          <div style={{ fontWeight: 800, color: "#991b1b", fontSize: 16 }}>{isSeller ? "New Seller Listing" : "New Buyer Inquiry"} — {doneCount}/5 Steps Complete</div>
           <div style={{ fontSize: 13, color: "#7f1d1d", marginTop: 2 }}>
-            {buyer ? (buyer.name || "") + (buyer.phone ? " · " + buyer.phone : "") + (buyer.email ? " · " + buyer.email : "") : "Buyer info in parties tab"} · Budget: {budget}
+            {client ? (client.name || "") + (client.phone ? " · " + client.phone : "") + (client.email ? " · " + client.email : "") : (isSeller ? "Seller info in parties tab" : "Buyer info in parties tab")} · {isSeller ? "List price" : "Budget"}: {budget}
           </div>
         </div>
       </div>
