@@ -571,8 +571,9 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
                   )}
                 </div>
                 {isMobile && c.phone && !calledIds.has(c.id) ? (
-                  // Mobile: dial first, then reveal Log.
-                  <a href={`tel:${c.phone}`} onClick={() => setCalledIds(s => new Set(s).add(c.id))}
+                  // Mobile: let the tel: link dial first, THEN reveal Log (deferred
+                  // so the state change doesn't unmount the link before it navigates).
+                  <a href={`tel:${c.phone}`} onClick={() => { setTimeout(() => setCalledIds(s => new Set(s).add(c.id)), 800); }}
                     style={{ background: "#15803d", color: "#fff", fontWeight: 700, fontSize: 13, padding: "9px 16px", borderRadius: 8, textDecoration: "none", whiteSpace: "nowrap", flexShrink: 0 }}>
                     📞 Call
                   </a>
