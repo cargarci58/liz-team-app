@@ -383,8 +383,8 @@ function LogCallModal({ contact, token, onClose, onLogged }) {
 // ============================================================
 // Public wrapper button that opens LogCallModal
 // ============================================================
-export function LogCallButton({ contact, token, onLogged, compact, large }) {
-  const [open, setOpen] = useState(false);
+export function LogCallButton({ contact, token, onLogged, compact, large, autoOpen }) {
+  const [open, setOpen] = useState(!!autoOpen);
   // Three sizes: compact (inline rows), default (most places), large (the
   // primary CTA on a contact's detail drawer — make it actually feel primary).
   const sizeStyle = large

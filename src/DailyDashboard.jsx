@@ -578,8 +578,9 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
                     📞 Call
                   </a>
                 ) : (
-                  // Desktop (or already called): log directly — you dial from your cell.
-                  <LogCallButton contact={c} token={token} onLogged={fetchTasks} compact />
+                  // Desktop: log directly. Mobile after a call: auto-open the log
+                  // dialog so the outcome screen pops up when they return.
+                  <LogCallButton contact={c} token={token} onLogged={fetchTasks} compact autoOpen={isMobile && calledIds.has(c.id)} />
                 )}
               </div>
             );
