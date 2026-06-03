@@ -319,6 +319,22 @@ function EmptyState({ firstName }) {
   );
 }
 
+// Pull ONE dialable number out of a phone field that may hold two numbers, an
+// extension, or formatting — otherwise tel: gets a 14+ digit blob and won't dial.
+function telHref(raw) {
+  if (!raw) return "";
+  const s = String(raw);
+  // first phone-like run (stops at a delimiter such as "/" "," ";" "or")
+  const m = s.match(/\+?\d[\d().\-\s]{6,}\d/);
+  let cleaned = (m ? m[0] : s).replace(/[^\d+]/g, "");
+  const digits = cleaned.replace(/\D/g, "");
+  if (digits.length > 11) { // two numbers ran together — keep the first
+    const take = digits[0] === "1" ? 11 : 10;
+    cleaned = (cleaned[0] === "+" ? "+" : "") + digits.slice(0, take);
+  }
+  return cleaned;
+}
+
 // ── MAIN DASHBOARD ────────────────────────────────────────────
 export default function DailyDashboard({ token, user, onViewTransactions, onOpenTransactionMilestones }) {
   const [tasks, setTasks] = useState({ overdue:[], dueToday:[], upcoming:[] });
@@ -573,7 +589,7 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
                 {isMobile && c.phone && !calledIds.has(c.id) ? (
                   // Mobile: let the tel: link dial first, THEN reveal Log (deferred
                   // so the state change doesn't unmount the link before it navigates).
-                  <a href={`tel:${String(c.phone).replace(/[^\d+]/g, "")}`} onClick={() => { setTimeout(() => setCalledIds(s => new Set(s).add(c.id)), 800); }}
+                  <a href={`tel:${telHref(c.phone)}`} onClick={() => { setTimeout(() => setCalledIds(s => new Set(s).add(c.id)), 800); }}
                     style={{ background: "#15803d", color: "#fff", fontWeight: 700, fontSize: 13, padding: "9px 16px", borderRadius: 8, textDecoration: "none", whiteSpace: "nowrap", flexShrink: 0 }}>
                     📞 Call
                   </a>
@@ -607,7 +623,7 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
                   </div>
                   <div style={{ fontSize: 12.5, color: "#be185d", fontWeight: 700, marginTop: 3 }}>{items.join("  ·  ")}</div>
                   <div style={{ fontSize: 12, color: "#6b7280", marginTop: 2 }}>{o.phone
-                    ? <a href={`tel:${String(o.phone).replace(/[^\d+]/g, "")}`} onClick={e => e.stopPropagation()} style={{ color: "#0c4a6e", fontWeight: 700, textDecoration: "none" }}>📞 {o.phone}</a>
+                    ? <a href={`tel:${telHref(o.phone)}`} onClick={e => e.stopPropagation()} style={{ color: "#0c4a6e", fontWeight: 700, textDecoration: "none" }}>📞 {o.phone}</a>
                     : (o.email || "")}</div>
                 </div>
                 <LogCallButton contact={o} token={token} onLogged={fetchTasks} compact />
