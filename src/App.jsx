@@ -55,7 +55,7 @@ const OCCUPANCY_OPTIONS = ["Owner Occupied", "Tenant Occupied", "Vacant"];
 const COUNTIES = ["Orange", "Osceola", "Seminole", "Polk", "Brevard", "Lake", "Volusia", "Hillsborough", "Other"];
 const PARTY_ROLES = [
   "Listing Agent", "Buyer's Agent", "Transaction Coordinator",
-  "Title Company", "Loan Officer/Lender", "Inspector", "Appraiser",
+  "Builder", "Title Company", "Loan Officer/Lender", "Inspector", "Appraiser",
   "HOA Manager", "Seller", "Buyer", "Attorney", "Insurance Agent", "Referral", "Other"
 ];
 
