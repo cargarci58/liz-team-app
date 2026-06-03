@@ -967,13 +967,43 @@ function SMSPanel({ tx, onUpdate, currentUser }) {
     }).catch(() => setServerOnline(false));
   }, []);
 
+  // Authoritative message history comes from message_log on the server. The
+  // optimistic tx.smsThreads only persists if the follow-up transaction PUT
+  // succeeds, so sent messages could vanish on refresh — load the log so they
+  // always show.
+  const [logged, setLogged] = useState([]);
+  const loadLogged = () => {
+    const tok = localStorage.getItem("tp_token") || "";
+    fetch(`${SMS_SERVER}/client/messages/${tx.id}`, { headers: { Authorization: "Bearer " + tok } })
+      .then(r => r.json()).then(d => { if (d && d.success) setLogged(d.messages || []); }).catch(() => {});
+  };
+  useEffect(() => { loadLogged(); }, [tx.id]);
+
   // SMS inbound polling removed - using message_log instead
 
   useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [selectedParty, tx.smsThreads]);
 
   const partiesWithContact = tx.parties.filter(p => (p.phone && p.phone.trim()) || (p.email && p.email.trim()));
   const normalizePhone = p => { const d = p.replace(/\D/g, ""); return d.length === 10 ? `+1${d}` : `+${d}`; };
-  const getThread = party => { const threads = tx.smsThreads || {}; const phoneKey = party.phone ? normalizePhone(party.phone) : null; const emailKey = party.email || null; const phoneThread = phoneKey ? (threads[phoneKey] || []) : []; const emailThread = emailKey ? (threads[emailKey] || []) : []; return [...phoneThread, ...emailThread].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp)); };
+  const getThread = party => {
+    const threads = tx.smsThreads || {};
+    const phoneKey = party.phone ? normalizePhone(party.phone) : null;
+    const emailKey = party.email || null;
+    const phoneThread = phoneKey ? (threads[phoneKey] || []) : [];
+    const emailThread = emailKey ? (threads[emailKey] || []) : [];
+    // Merge in authoritative message_log rows for this party (by email/phone).
+    const partyEmail = (party.email || "").toLowerCase();
+    const partyPhone = party.phone ? normalizePhone(party.phone) : null;
+    const fromLog = (logged || []).filter(m =>
+      (partyEmail && (m.to_email || "").toLowerCase() === partyEmail) ||
+      (partyPhone && m.to_phone && normalizePhone(m.to_phone) === partyPhone)
+    ).map(m => ({ id: m.id, body: m.body, subject: m.subject, direction: m.direction || "outbound", channel: m.channel, timestamp: m.created_at, status: "sent" }));
+    // Dedupe by id (optimistic push reuses the server msg id), then sort.
+    const seen = new Set();
+    return [...phoneThread, ...emailThread, ...fromLog]
+      .filter(x => { const k = x.id || (x.timestamp + "|" + (x.body || "")); if (seen.has(k)) return false; seen.add(k); return true; })
+      .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+  };
 
   const ChannelPicker = ({ value, onChange }) => (
     <div style={{ display: "flex", background: "#F3F4F6", borderRadius: 8, padding: 3, gap: 2, overflowX: "auto", WebkitOverflowScrolling: "touch", flexShrink: 0 }}>
@@ -1024,7 +1054,7 @@ function SMSPanel({ tx, onUpdate, currentUser }) {
           } catch(e) { console.error("Email error", e); alert("Email error: " + e.message); }
         } else { alert("No email address for this party. Add one in the Parties tab."); }
       }
-      if (anySent) { setMessage(""); setSubject(""); }
+      if (anySent) { setMessage(""); setSubject(""); loadLogged(); }
       else alert("Send failed. Check server and credentials.");
     } catch { alert("Server unreachable."); }
     setSending(false);
