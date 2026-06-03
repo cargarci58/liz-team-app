@@ -1938,8 +1938,9 @@ function MilestonesTab({ tx, token, onSummaryChange }) {
   const fetchMilestones = async () => {
     setLoading(true);
     try {
-      const res = await fetch(API + "/milestones/" + tx.id, {
-        headers: { Authorization: "Bearer " + token }
+      const res = await fetch(API + "/milestones/" + tx.id + "?_=" + Date.now(), {
+        headers: { Authorization: "Bearer " + token },
+        cache: "no-store"
       });
       const data = await res.json();
       if (data.success) setMilestones(data.milestones || []);
