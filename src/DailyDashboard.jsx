@@ -333,6 +333,9 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
   const [resolvedIds, setResolvedIds] = useState(new Set());
   // Contacts the user has tapped "Call" on — the Log button only appears after.
   const [calledIds, setCalledIds] = useState(() => new Set());
+  // tel: links only dial on mobile. On desktop the agent calls from their cell,
+  // so we show the Log button directly instead of gating it behind "Call".
+  const isMobile = typeof navigator !== "undefined" && /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
   const firstName = user?.firstName || "";
   const hour = new Date().getHours();
@@ -567,12 +570,14 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
                     </div>
                   )}
                 </div>
-                {c.phone && !calledIds.has(c.id) ? (
+                {isMobile && c.phone && !calledIds.has(c.id) ? (
+                  // Mobile: dial first, then reveal Log.
                   <a href={`tel:${c.phone}`} onClick={() => setCalledIds(s => new Set(s).add(c.id))}
                     style={{ background: "#15803d", color: "#fff", fontWeight: 700, fontSize: 13, padding: "9px 16px", borderRadius: 8, textDecoration: "none", whiteSpace: "nowrap", flexShrink: 0 }}>
                     📞 Call
                   </a>
                 ) : (
+                  // Desktop (or already called): log directly — you dial from your cell.
                   <LogCallButton contact={c} token={token} onLogged={fetchTasks} compact />
                 )}
               </div>
