@@ -555,7 +555,9 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
                     </div>
                   )}
                   <div style={{ fontSize: 12, color: "#6b7280", marginTop: 2 }}>
-                    {c.phone || c.email || "no contact info"}
+                    {c.phone
+                      ? <a href={`tel:${c.phone}`} onClick={e => e.stopPropagation()} style={{ color: "#0c4a6e", fontWeight: 700, textDecoration: "none" }}>📞 {c.phone}</a>
+                      : (c.email || "no contact info")}
                     {c.last_outcome && <span style={{ marginLeft: 8 }}>· last: {String(c.last_outcome).replace(/_/g, " ")}</span>}
                     {overdue && <span style={{ color: "#b91c1c", marginLeft: 8, fontWeight: 600 }}>⚠️ Overdue</span>}
                   </div>
@@ -590,7 +592,9 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
                     {o.tier && <span style={{ marginLeft: 6, fontSize: 11, fontWeight: 800, color: "#fff", background: "#0c4a6e", borderRadius: 10, padding: "1px 7px" }}>{o.tier}</span>}
                   </div>
                   <div style={{ fontSize: 12.5, color: "#be185d", fontWeight: 700, marginTop: 3 }}>{items.join("  ·  ")}</div>
-                  <div style={{ fontSize: 12, color: "#6b7280", marginTop: 2 }}>{o.phone || o.email || ""}</div>
+                  <div style={{ fontSize: 12, color: "#6b7280", marginTop: 2 }}>{o.phone
+                    ? <a href={`tel:${o.phone}`} onClick={e => e.stopPropagation()} style={{ color: "#0c4a6e", fontWeight: 700, textDecoration: "none" }}>📞 {o.phone}</a>
+                    : (o.email || "")}</div>
                 </div>
                 <LogCallButton contact={o} token={token} onLogged={fetchTasks} compact />
               </div>
