@@ -2464,6 +2464,7 @@ function BuyerIntakeChecklist({ tx, token, onContactLogged }) {
   const isSeller = /listing|seller/i.test(tx.type || "");
   const client = (tx.parties || []).find(p => p.role === (isSeller ? "Seller" : "Buyer"));
   const budget = tx.listPrice ? "$" + Number(tx.listPrice).toLocaleString() : "Not specified";
+  const totalSteps = isSeller ? 7 : 5;
 
   const toggleStep = async (stepNumber) => {
     setUpdating(stepNumber);
@@ -2472,7 +2473,7 @@ function BuyerIntakeChecklist({ tx, token, onContactLogged }) {
       const r = await fetch(API_URL + "/transactions/" + tx.id + "/intake-step", {
         method: "POST",
         headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
-        body: JSON.stringify({ stepNumber, done: newDone })
+        body: JSON.stringify({ stepNumber, done: newDone, totalSteps })
       });
       const d = await r.json();
       if (d.success) {
@@ -2483,15 +2484,17 @@ function BuyerIntakeChecklist({ tx, token, onContactLogged }) {
     setUpdating(null);
   };
 
-  const allDone = [1,2,3,4,5].every(n => stepsDone.includes(n));
+  const allDone = Array.from({ length: totalSteps }, (_, i) => i + 1).every(n => stepsDone.includes(n));
   if (allDone) return null;
 
   const steps = isSeller ? [
     { num: 1, icon: "📞", title: "Contact the seller within 24 hours", why: "Prompt response wins the listing and establishes your fiduciary relationship.", action: client?.phone ? "Call or text " + (client.name || "seller") + " at " + client.phone : client?.email ? "Email " + (client.name || "seller") + " at " + client.email : "Add seller contact info first" },
     { num: 2, icon: "🤝", title: "Schedule a Listing Consultation", why: "Review the home, timeline, and pricing — and present your marketing plan.", action: "Set up a 30–60 minute walkthrough (in person or video)" },
     { num: 3, icon: "📋", title: "Sign the Listing Agreement (Exclusive Right of Sale)", why: "Required under Florida law before marketing the property. Establishes your commission.", action: "Send via DocuSign, Dotloop, or in person at the consultation" },
-    { num: 4, icon: "📸", title: "Order photos & prep the MLS listing", why: "Professional photos and complete listing data drive showings from day one.", action: "Schedule photography, write the listing copy, set sign/lockbox" },
-    { num: 5, icon: "💰", title: "Confirm pricing with a CMA", why: "An accurate list price from a comparative market analysis prevents stale-listing price drops.", action: "Run a CMA for " + (tx.address || "the property") + " and review it with the seller" },
+    { num: 4, icon: "📸", title: "Schedule professional photography", why: "Quality photos are the #1 driver of online showings — book before going live.", action: "Book a photographer (add drone/video for luxury or acreage)" },
+    { num: 5, icon: "📝", title: "Write the listing copy & enter MLS data", why: "Complete, accurate MLS data and compelling copy maximize exposure and avoid compliance issues.", action: "Draft the description and enter every property detail in the MLS" },
+    { num: 6, icon: "🪧", title: "Place sign & install lockbox", why: "Signage captures drive-by interest; the lockbox lets agents show the home.", action: "Order/install the yard sign and set up the lockbox for showings" },
+    { num: 7, icon: "💰", title: "Confirm pricing with a CMA", why: "An accurate list price from a comparative market analysis prevents stale-listing price drops.", action: "Run a CMA for " + (tx.address || "the property") + " and review it with the seller" },
   ] : [
     { num: 1, icon: "📞", title: "Contact the buyer within 24 hours", why: "Florida law requires prompt response. First contact establishes your fiduciary relationship.", action: client?.phone ? "Call or text " + (client.name || "buyer") + " at " + client.phone : client?.email ? "Email " + (client.name || "buyer") + " at " + client.email : "Add buyer contact info first" },
     { num: 2, icon: "🤝", title: "Schedule a Buyer Consultation", why: "Understand their needs, timeline, and qualifications — and explain your role as their agent.", action: "Set up a 30-60 minute meeting (in person, Zoom, or phone)" },
@@ -2507,14 +2510,14 @@ function BuyerIntakeChecklist({ tx, token, onContactLogged }) {
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
         <span style={{ fontSize: 24 }}>🔔</span>
         <div style={{ flex: 1 }}>
-          <div style={{ fontWeight: 800, color: "#991b1b", fontSize: 16 }}>{isSeller ? "New Seller Listing" : "New Buyer Inquiry"} — {doneCount}/5 Steps Complete</div>
+          <div style={{ fontWeight: 800, color: "#991b1b", fontSize: 16 }}>{isSeller ? "New Seller Listing" : "New Buyer Inquiry"} — {doneCount}/{totalSteps} Steps Complete</div>
           <div style={{ fontSize: 13, color: "#7f1d1d", marginTop: 2 }}>
             {client ? (client.name || "") + (client.phone ? " · " + client.phone : "") + (client.email ? " · " + client.email : "") : (isSeller ? "Seller info in parties tab" : "Buyer info in parties tab")} · {isSeller ? "List price" : "Budget"}: {budget}
           </div>
         </div>
       </div>
       <div style={{ background: "#fecaca", height: 6, borderRadius: 3, overflow: "hidden", marginBottom: 16 }}>
-        <div style={{ background: "#1e8449", height: "100%", width: (doneCount / 5 * 100) + "%", transition: "width 0.3s" }} />
+        <div style={{ background: "#1e8449", height: "100%", width: (doneCount / totalSteps * 100) + "%", transition: "width 0.3s" }} />
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         {steps.map((step) => {
