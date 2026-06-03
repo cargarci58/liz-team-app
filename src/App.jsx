@@ -1732,33 +1732,26 @@ function BrokerFilePanel({ txId, token }) {
 
     setUploadingType(docType);
     try {
-      // Step 1: request presigned URL
-      const urlRes = await fetch(API + "/broker-file/" + txId + "/upload-url", {
+      // Server-proxied upload (browser→R2 presigned PUT fails CORS → "Failed to fetch").
+      const base64 = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result).split(",")[1]);
+        reader.onerror = () => reject(new Error("Could not read file"));
+        reader.readAsDataURL(file);
+      });
+      const upRes = await fetch(API + "/broker-file/" + txId + "/upload", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: "Bearer " + token
-        },
+        headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
         body: JSON.stringify({
           documentType: docType,
           fileName: file.name,
-          fileType: file.type || "application/octet-stream"
+          fileType: file.type || "application/octet-stream",
+          base64
         })
       });
-      const urlData = await urlRes.json();
-      if (!urlData.success) {
-        alert("Upload failed: " + (urlData.error || "could not get upload URL"));
-        setUploadingType(null);
-        return;
-      }
-      // Step 2: PUT file directly to R2
-      const putRes = await fetch(urlData.uploadUrl, {
-        method: "PUT",
-        headers: { "Content-Type": file.type || "application/octet-stream" },
-        body: file
-      });
-      if (!putRes.ok) {
-        alert("Upload to storage failed");
+      const upData = await upRes.json();
+      if (!upRes.ok || !upData.success) {
+        alert("Upload failed: " + (upData.error || "please try again"));
         setUploadingType(null);
         return;
       }
