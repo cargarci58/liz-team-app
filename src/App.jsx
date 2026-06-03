@@ -2213,7 +2213,7 @@ function MilestonesTab({ tx, token, onSummaryChange }) {
       {orderedPhases.map((phaseKey) => {
         const items = grouped[phaseKey];
         const isNC = tx.constructionType === "New Construction";
-        const visibleItems = isNC ? items.filter(m => getMilestoneStatus(m) !== "waived") : items;
+        const visibleItems = isNC ? items.filter(m => m.is_na !== true && getMilestoneStatus(m) !== "waived") : items;
         if (visibleItems.length === 0) return null;
         const phaseLabel = PHASE_META[phaseKey]?.label || phaseKey;
         return (
