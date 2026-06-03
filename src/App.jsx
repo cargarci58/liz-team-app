@@ -5558,7 +5558,7 @@ function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenCon
           </div>
         </div>
         <div data-stats-bar="" style={{ display: "flex", marginTop: 16, borderTop: "1px solid rgba(255,255,255,0.1)", overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
-          {(() => { const s = dashStats || stats; return [["Active Listings", s.active, COLORS.gold, () => setFilter("Active")], ["Under Contract", s.underContract, "#93C5FD", () => setFilter("Under Contract")], ["Closing This Month", s.closingSoon, s.closingSoon > 0 ? "#FDE68A" : "rgba(255,255,255,0.4)", null], ["Closed", s.closed, "#6EE7B7", () => setFilter("Closed")], ["Volume", `$${((s.totalVolume || 0) / 1000000).toFixed(2)}M`, COLORS.gold, null], ["Pending Commission", `$${Math.round(s.pendingCommissionGross || 0).toLocaleString()}`, "#FDBA74", null], ["Closed Commission", s.totalCommission > 0 ? `$${Math.round(s.totalCommission).toLocaleString()}` : "$0", "#6EE7B7", null]]; })().map(([label, value, color, onClick]) => (
+          {(() => { const s = dashStats || stats; return [["Active Listings", s.active, COLORS.gold, () => setFilter("Active")], ["Under Contract", s.underContract, "#93C5FD", () => setFilter("Under Contract")], ["Closing This Month", s.closingSoon, s.closingSoon > 0 ? "#FDE68A" : "rgba(255,255,255,0.4)", () => { const t = new Date(); const last = new Date(t.getFullYear(), t.getMonth() + 1, 0); setFilter("All"); setClosingFrom(t.toISOString().split("T")[0]); setClosingTo(last.toISOString().split("T")[0]); setShowFilters(true); }], ["Closed", s.closed, "#6EE7B7", () => setFilter("Closed")], ["Volume", `$${((s.totalVolume || 0) / 1000000).toFixed(2)}M`, COLORS.gold, null], ["Pending Commission", `$${Math.round(s.pendingCommissionGross || 0).toLocaleString()}`, "#FDBA74", null], ["Closed Commission", s.totalCommission > 0 ? `$${Math.round(s.totalCommission).toLocaleString()}` : "$0", "#6EE7B7", null]]; })().map(([label, value, color, onClick]) => (
             <div key={label} onClick={onClick} style={{ padding: "12px 20px", flex: 1, cursor: onClick ? "pointer" : "default" }}>
               <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>{label}{onClick && " ↗"}</div>
               <div style={{ color, fontSize: 22, fontWeight: 800, marginTop: 2 }}>{value}</div>
@@ -5809,6 +5809,13 @@ function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenCon
                     })}
                   </div>
                 </div>
+
+                {/* Next action (matches the Pipeline view) */}
+                {tx.nextMilestone && tx.nextMilestone.name && (
+                  <div style={{ fontSize: 11, color: "#0F2744", marginBottom: 10, background: "#F8FAFC", borderRadius: 6, padding: "5px 8px" }} title="Next action on this deal">
+                    ⏭️ <b>Next:</b> {tx.nextMilestone.name}{tx.nextMilestone.dueDate ? ` · ${tx.nextMilestone.dueDate}` : ""}
+                  </div>
+                )}
 
                 {/* Footer */}
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: 8, borderTop: "1px solid #F3F4F6" }}>
