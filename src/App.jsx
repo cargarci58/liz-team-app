@@ -2144,6 +2144,24 @@ function MilestonesTab({ tx, token, onSummaryChange }) {
     setCompleting(null);
   };
 
+  // Undo an accidental completion — reverts the milestone back to Pending.
+  const handleReopen = async (milestoneId) => {
+    if (!window.confirm("Reopen this step? It goes back to pending and reminders resume.")) return;
+    setCompleting(milestoneId);
+    try {
+      const r = await fetch(API + "/milestones/" + milestoneId + "/reopen", {
+        method: "PATCH",
+        headers: { Authorization: "Bearer " + token }
+      });
+      const d = await r.json();
+      if (!r.ok || !d.success) throw new Error(d.error || "Failed");
+      setMilestones(prev => prev.map(m =>
+        m.id === milestoneId ? { ...m, status: "Pending", completed_at: null, completed_by_name: null } : m
+      ));
+    } catch (e) { alert("Error reopening milestone"); }
+    setCompleting(null);
+  };
+
   // Scheduling-type milestone (e.g. "Inspection Scheduled"): record the date the
   // buyer's agent gave us and mark it done — no document needed.
   const handleSchedule = async (milestoneId, date, time) => {
@@ -2493,6 +2511,16 @@ function MilestonesTab({ tx, token, onSummaryChange }) {
                         background: "#fff", color: "#C0392B", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
                       {uploadingFor === m.id ? "Uploading..." : "📎 Upload Missing Document"}
                     </button>
+                  </div>
+                )}
+                {isClosed && (
+                  <div style={{ marginTop: 10 }}>
+                    <button onClick={() => handleReopen(m.id)} disabled={completing === m.id}
+                      style={{ padding: "7px 14px", borderRadius: 8, border: "1.5px solid #D1D5DB",
+                        background: "#fff", color: "#555", fontWeight: 600, fontSize: 12, cursor: "pointer" }}>
+                      {completing === m.id ? "..." : "↩ Reopen (undo)"}
+                    </button>
+                    <span style={{ fontSize: 11, color: "#999", marginLeft: 8 }}>Clicked done by mistake? Put it back.</span>
                   </div>
                 )}
                 {!isClosed && isClosingSchedule && (
