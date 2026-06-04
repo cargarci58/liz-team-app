@@ -1831,6 +1831,154 @@ function BrokerFilePanel({ txId, token }) {
 }
 
 // ═══════════════════════════════════════════════════════════════
+// SCHEDULE CLOSING MODAL — agent inputs title-co/attorney closing
+// details, reviews & edits the email, then sends to OWN SIDE only.
+// ═══════════════════════════════════════════════════════════════
+function ScheduleClosingModal({ tx, token, milestone, onClose, onDone }) {
+  const isBuyer = (tx.type || "").toLowerCase().includes("buyer");
+  const isDual = (tx.type || "").toLowerCase().includes("dual");
+  const sideLabel = isDual ? "your buyer & seller" : isBuyer ? "your buyer" : "your seller";
+  const [date, setDate] = useState("");
+  const [time, setTime] = useState("10:00");
+  const [location, setLocation] = useState("");
+  const [amount, setAmount] = useState("");
+  const [bring, setBring] = useState("A valid government-issued photo ID");
+  const [subject, setSubject] = useState("");
+  const [body, setBody] = useState("");
+  const [edited, setEdited] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [err, setErr] = useState("");
+
+  const prettyWhen = () => {
+    if (!date) return "[closing date]";
+    try {
+      const d = new Date(date + "T" + (time || "10:00"));
+      return d.toLocaleString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" }) +
+        " at " + d.toLocaleString("en-US", { hour: "numeric", minute: "2-digit" });
+    } catch { return date + " " + (time || ""); }
+  };
+  const buildBody = () => {
+    return `Hi there,\n\nGreat news — your closing for ${tx.address} is scheduled!\n\n` +
+      `When: ${prettyWhen()}\n` +
+      `Where: ${location || "[closing location]"}\n` +
+      (amount ? `Amount due at closing: ${amount}\n` : "") +
+      (bring ? `What to bring: ${bring}\n` : "") +
+      `\nPlease plan to arrive a few minutes early. Bring funds by wire or cashier's check as the title company instructed — confirm the method with them in advance.\n\n` +
+      `If anything changes or you have questions, just reply to this email or call me anytime.\n\nLooking forward to getting you to the finish line!`;
+  };
+  // Auto-fill the preview from the fields until the agent hand-edits it.
+  useEffect(() => {
+    if (!edited) {
+      setSubject(`Your closing is scheduled — ${tx.address}`);
+      setBody(buildBody());
+    }
+  }, [date, time, location, amount, bring]); // eslint-disable-line
+
+  const send = async () => {
+    if (!date) { setErr("Please enter the closing date."); return; }
+    setSending(true); setErr("");
+    try {
+      const r = await fetch(API + "/transactions/" + tx.id + "/schedule-closing", {
+        method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
+        body: JSON.stringify({ date, time, location, amount, emailSubject: subject, emailBody: body, send: true }),
+      });
+      const data = await r.json();
+      if (!r.ok || data.error) throw new Error(data.error || "Failed to schedule closing");
+      onDone();
+    } catch (e) { setErr(e.message || "Something went wrong."); setSending(false); }
+  };
+  const saveOnly = async () => {
+    if (!date) { setErr("Please enter the closing date."); return; }
+    setSending(true); setErr("");
+    try {
+      const r = await fetch(API + "/transactions/" + tx.id + "/schedule-closing", {
+        method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
+        body: JSON.stringify({ date, time, location, amount, send: false }),
+      });
+      const data = await r.json();
+      if (!r.ok || data.error) throw new Error(data.error || "Failed to save");
+      onDone();
+    } catch (e) { setErr(e.message || "Something went wrong."); setSending(false); }
+  };
+
+  const fld = { width: "100%", padding: "9px 10px", borderRadius: 8, border: "1.5px solid #D1D5DB", fontSize: 13, fontFamily: "inherit", boxSizing: "border-box" };
+  const lbl = { fontSize: 11, fontWeight: 700, color: "#374151", marginBottom: 4, display: "block", textTransform: "uppercase", letterSpacing: "0.04em" };
+  return (
+    <div onClick={() => !sending && onClose()}
+      style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
+      <div onClick={e => e.stopPropagation()}
+        style={{ background: "#fff", borderRadius: 14, padding: 22, maxWidth: 600, width: "100%", maxHeight: "92vh", overflowY: "auto", boxShadow: "0 20px 60px rgba(0,0,0,0.3)" }}>
+        <div style={{ fontSize: 20, fontWeight: 800, color: "#1E3A8A", marginBottom: 4 }}>🗓️ Schedule the Closing</div>
+        <div style={{ fontSize: 13, color: "#1a2332", fontWeight: 600, marginBottom: 14 }}>{tx.address}</div>
+
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 12 }}>
+          <div style={{ flex: "1 1 150px" }}>
+            <label style={lbl}>Closing date</label>
+            <input type="date" value={date} onChange={e => setDate(e.target.value)} style={fld} />
+          </div>
+          <div style={{ flex: "1 1 120px" }}>
+            <label style={lbl}>Time</label>
+            <input type="time" value={time} onChange={e => setTime(e.target.value)} style={fld} />
+          </div>
+        </div>
+        <div style={{ marginBottom: 12 }}>
+          <label style={lbl}>Location (title company / attorney address)</label>
+          <input type="text" value={location} onChange={e => setLocation(e.target.value)}
+            placeholder="e.g. First American Title, 123 Main St, Orlando, FL" style={fld} />
+        </div>
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 14 }}>
+          <div style={{ flex: "1 1 150px" }}>
+            <label style={lbl}>Amount due at closing</label>
+            <input type="text" value={amount} onChange={e => setAmount(e.target.value)} placeholder="e.g. $14,250.00 (cash to close)" style={fld} />
+          </div>
+          <div style={{ flex: "1 1 150px" }}>
+            <label style={lbl}>What to bring</label>
+            <input type="text" value={bring} onChange={e => setBring(e.target.value)} style={fld} />
+          </div>
+        </div>
+
+        <div style={{ background: "#EFF6FF", border: "1px solid #BFDBFE", borderRadius: 8, padding: "10px 12px", marginBottom: 12, fontSize: 12, color: "#1E40AF", lineHeight: 1.5 }}>
+          ✉️ Review &amp; edit the email below before sending. It goes to <strong>{sideLabel}</strong> only — never the other side. A day-before reminder will go out automatically.
+        </div>
+
+        <div style={{ marginBottom: 10 }}>
+          <label style={lbl}>Email subject</label>
+          <input type="text" value={subject} onChange={e => { setSubject(e.target.value); setEdited(true); }} style={fld} />
+        </div>
+        <div style={{ marginBottom: 6 }}>
+          <label style={lbl}>Email message (editable)</label>
+          <textarea value={body} onChange={e => { setBody(e.target.value); setEdited(true); }} rows={11}
+            style={{ ...fld, resize: "vertical", lineHeight: 1.5, fontFamily: "inherit" }} />
+        </div>
+        {edited && (
+          <button onClick={() => { setEdited(false); setSubject(`Your closing is scheduled — ${tx.address}`); setBody(buildBody()); }}
+            style={{ background: "none", border: "none", color: "#1E3A8A", fontSize: 12, fontWeight: 600, cursor: "pointer", padding: 0, marginBottom: 8 }}>
+            ↻ Reset email to the fields above
+          </button>
+        )}
+
+        {err && <div style={{ color: "#C0392B", fontSize: 13, fontWeight: 600, marginBottom: 10 }}>{err}</div>}
+
+        <div style={{ display: "flex", gap: 10, marginTop: 8, flexWrap: "wrap" }}>
+          <button onClick={send} disabled={sending}
+            style={{ flex: "2 1 220px", padding: "12px 0", borderRadius: 9, border: "none", background: "#1E3A8A", color: "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer" }}>
+            {sending ? "Sending…" : `📨 Send to ${sideLabel} & Mark Done`}
+          </button>
+          <button onClick={saveOnly} disabled={sending}
+            style={{ flex: "1 1 150px", padding: "12px 0", borderRadius: 9, border: "1.5px solid #1E3A8A", background: "#fff", color: "#1E3A8A", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
+            Save without emailing
+          </button>
+          <button onClick={onClose} disabled={sending}
+            style={{ flex: "1 1 90px", padding: "12px 0", borderRadius: 9, border: "1.5px solid #D1D5DB", background: "#fff", color: "#374151", fontWeight: 600, fontSize: 13, cursor: "pointer" }}>
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
 // MILESTONES TAB
 // ═══════════════════════════════════════════════════════════════
 function MilestonesTab({ tx, token, onSummaryChange }) {
@@ -2032,6 +2180,7 @@ function MilestonesTab({ tx, token, onSummaryChange }) {
   };
 
   const [waiveModalFor, setWaiveModalFor] = useState(null);
+  const [closingModalFor, setClosingModalFor] = useState(null);
   const [waiveReason, setWaiveReason] = useState("");
   const [waiveJustification, setWaiveJustification] = useState("");
   const [waiveConfirm, setWaiveConfirm] = useState(false);
@@ -2231,6 +2380,7 @@ function MilestonesTab({ tx, token, onSummaryChange }) {
             // Scheduling-type step: capture a date (buyer's agent communicates it),
             // not a document. Currently the inspection-scheduled milestone.
             const isScheduling = /inspection scheduled/i.test(m.name || "");
+            const isClosingSchedule = /closing scheduled/i.test(m.name || "");
             return (
               <div key={m.id} style={{ background: "#fff", borderRadius: 12, padding: 14,
                 marginBottom: 8, boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
@@ -2314,6 +2464,24 @@ function MilestonesTab({ tx, token, onSummaryChange }) {
                     </button>
                   </div>
                 )}
+                {!isClosed && isClosingSchedule && (
+                  <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap", alignItems: "center" }}>
+                    <button onClick={() => setClosingModalFor(m)}
+                      style={{ flex: "2 1 240px", padding: "11px 0", borderRadius: 8, border: "none",
+                        background: "#1E3A8A", color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
+                      🗓️ Set Closing Date & Notify Client
+                    </button>
+                    <div style={{ flex: "1 1 100%", fontSize: 11, color: "#555", marginTop: 2 }}>
+                      Enter the closing date/time/location & amount the title company or attorney gave you. You'll review &amp; edit the email before it's sent — to your side only.
+                    </div>
+                    <button onClick={() => setWaiveModalFor(m)}
+                      style={{ flex: "1 1 90px", padding: "9px 0", borderRadius: 8,
+                        border: "1.5px solid #E5B14A", background: "#FFFBEB",
+                        color: "#92400E", fontWeight: 600, fontSize: 12, cursor: "pointer" }}>
+                      ⚠️ Waive — N/A
+                    </button>
+                  </div>
+                )}
                 {!isClosed && isScheduling && (
                   <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap", alignItems: "center" }}>
                     <input type="date" value={scheduleDates[m.id] ?? (m.scheduled_date || "")}
@@ -2335,7 +2503,7 @@ function MilestonesTab({ tx, token, onSummaryChange }) {
                     </button>
                   </div>
                 )}
-                {!isClosed && !isScheduling && (
+                {!isClosed && !isScheduling && !isClosingSchedule && (
                   <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
                     {compliance[m.id]?.documentRequired && tx.constructionType !== "New Construction" ? (
                       <>
@@ -2375,6 +2543,12 @@ function MilestonesTab({ tx, token, onSummaryChange }) {
         );
       })}
 
+
+      {closingModalFor && (
+        <ScheduleClosingModal tx={tx} token={token} milestone={closingModalFor}
+          onClose={() => setClosingModalFor(null)}
+          onDone={async () => { setClosingModalFor(null); await fetchMilestones(); }} />
+      )}
 
       {waiveModalFor && (
         <div onClick={() => !waiving && setWaiveModalFor(null)}
