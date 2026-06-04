@@ -2061,6 +2061,7 @@ function MilestonesTab({ tx, token, onSummaryChange }) {
   const [generating, setGenerating] = useState(false);
   const [completing, setCompleting] = useState(null);
   const [scheduleDates, setScheduleDates] = useState({});
+  const [scheduleTimes, setScheduleTimes] = useState({});
 
   const API = "https://liz-team-server-api-production.up.railway.app";
 
@@ -2145,19 +2146,19 @@ function MilestonesTab({ tx, token, onSummaryChange }) {
 
   // Scheduling-type milestone (e.g. "Inspection Scheduled"): record the date the
   // buyer's agent gave us and mark it done — no document needed.
-  const handleSchedule = async (milestoneId, date) => {
+  const handleSchedule = async (milestoneId, date, time) => {
     if (!date) { alert("Pick the scheduled date first."); return; }
     setCompleting(milestoneId);
     try {
       const r = await fetch(API + "/milestones/" + milestoneId + "/schedule", {
         method: "PATCH",
         headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
-        body: JSON.stringify({ date, complete: true })
+        body: JSON.stringify({ date, time: time || null, complete: true })
       });
       const d = await r.json();
       if (!r.ok || !d.success) throw new Error(d.error || "Failed");
       setMilestones(prev => prev.map(m =>
-        m.id === milestoneId ? { ...m, status: "Completed", completed_at: new Date().toISOString(), scheduled_date: date } : m
+        m.id === milestoneId ? { ...m, status: "Completed", completed_at: new Date().toISOString(), scheduled_date: date, scheduled_time: time || null } : m
       ));
     } catch (e) { alert("Error saving scheduled date: " + e.message); }
     setCompleting(null);
@@ -2245,6 +2246,34 @@ function MilestonesTab({ tx, token, onSummaryChange }) {
     listing_agent: "Listing Agent", buyer_agent: "Buyer's Agent", seller_agent: "Listing Agent",
     shared: "Both Agents", title: "Title", lender: "Lender", inspector: "Inspector",
     buyer: "Buyer", seller: "Seller", hoa: "HOA",
+  };
+
+  // Appointment-type milestones: the responsible party comes back with a concrete
+  // date (and usually a clock time) — the agent records it here so the timeline +
+  // reminders anchor to the real appointment. Keyed off the system template NAME,
+  // so it works statewide for every tenant. "Closing Scheduled" is excluded — it
+  // has its own modal (date + time + location + amount + client email).
+  const fmtTime = (t) => {
+    if (!t) return "";
+    const [hStr, m] = String(t).split(":");
+    let h = parseInt(hStr, 10);
+    if (isNaN(h)) return t;
+    const ap = h >= 12 ? "PM" : "AM";
+    h = h % 12 || 12;
+    return h + ":" + (m || "00") + " " + ap;
+  };
+
+  const milestoneScheduleSpec = (name) => {
+    const n = (name || "").toLowerCase();
+    if (/closing scheduled/.test(n)) return null;
+    // Inspections are appointments — but the inspection-PERIOD deadline is not.
+    if (/inspection/.test(n) && !/period|binsr/.test(n)) return { time: true };
+    if (/professional photos/.test(n)) return { time: true };
+    if (/walk-?through/.test(n)) return { time: true };
+    if (/appraisal ordered/.test(n)) return { time: true };
+    if (/showings?|property tours?/.test(n)) return { time: true };
+    if (/wdo|termite/.test(n)) return { time: true };
+    return null;
   };
 
   const grouped = milestones.reduce((acc, m) => {
@@ -2377,10 +2406,12 @@ function MilestonesTab({ tx, token, onSummaryChange }) {
             const isCompleted = ms === "completed";
             const isWaived = ms === "waived";
             const isClosed = isCompleted || isWaived;
-            // Scheduling-type step: capture a date (buyer's agent communicates it),
-            // not a document. Currently the inspection-scheduled milestone.
-            const isScheduling = /inspection scheduled/i.test(m.name || "");
+            // Scheduling-type step: capture the appointment date (and time) the
+            // responsible party communicates, instead of a document. Covers photos,
+            // inspections, WDO/termite, appraisal visit, walk-through, showings, etc.
             const isClosingSchedule = /closing scheduled/i.test(m.name || "");
+            const scheduleSpec = milestoneScheduleSpec(m.name);
+            const isScheduling = !!scheduleSpec;
             return (
               <div key={m.id} style={{ background: "#fff", borderRadius: 12, padding: 14,
                 marginBottom: 8, boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
@@ -2410,7 +2441,7 @@ function MilestonesTab({ tx, token, onSummaryChange }) {
                       </div>
                     )}
                     {m.scheduled_date && (
-                      <div style={{ fontSize: 12, color: "#1E8449", fontWeight: 700, marginTop: 2 }}>📅 Scheduled: {m.scheduled_date}</div>
+                      <div style={{ fontSize: 12, color: "#1E8449", fontWeight: 700, marginTop: 2 }}>📅 Scheduled: {m.scheduled_date}{m.scheduled_time ? " · " + fmtTime(m.scheduled_time) : ""}</div>
                     )}
                     {m.requires_document && !m.document_uploaded && !isClosed && m.status !== "Waived" && (
                       <div style={{ fontSize: 11, color: "#B7770D", marginTop: 2 }}>📎 Document required</div>
@@ -2482,18 +2513,26 @@ function MilestonesTab({ tx, token, onSummaryChange }) {
                     </button>
                   </div>
                 )}
-                {!isClosed && isScheduling && (
+                {!isClosed && isScheduling && (() => {
+                  const dVal = scheduleDates[m.id] ?? (m.scheduled_date || "");
+                  const tVal = scheduleTimes[m.id] ?? (m.scheduled_time || "");
+                  return (
                   <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap", alignItems: "center" }}>
-                    <input type="date" value={scheduleDates[m.id] ?? (m.scheduled_date || "")}
+                    <input type="date" value={dVal}
                       onChange={e => setScheduleDates(s => ({ ...s, [m.id]: e.target.value }))}
-                      style={{ flex: "1 1 150px", padding: "9px 10px", borderRadius: 8, border: "1.5px solid #D1D5DB", fontSize: 13, fontFamily: "inherit" }} />
-                    <button onClick={() => handleSchedule(m.id, scheduleDates[m.id] ?? m.scheduled_date)} disabled={completing === m.id}
+                      style={{ flex: "1 1 140px", padding: "9px 10px", borderRadius: 8, border: "1.5px solid #D1D5DB", fontSize: 13, fontFamily: "inherit" }} />
+                    {scheduleSpec.time && (
+                      <input type="time" value={tVal}
+                        onChange={e => setScheduleTimes(s => ({ ...s, [m.id]: e.target.value }))}
+                        style={{ flex: "1 1 110px", padding: "9px 10px", borderRadius: 8, border: "1.5px solid #D1D5DB", fontSize: 13, fontFamily: "inherit" }} />
+                    )}
+                    <button onClick={() => handleSchedule(m.id, dVal, tVal)} disabled={completing === m.id || !dVal}
                       style={{ flex: "2 1 220px", padding: "10px 0", borderRadius: 8, border: "none",
-                        background: "#1E8449", color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
-                      {completing === m.id ? "Saving..." : "✓ Confirm Scheduled Date & Mark Done"}
+                        background: dVal ? "#1E8449" : "#9CA3AF", color: "#fff", fontWeight: 700, fontSize: 13, cursor: dVal ? "pointer" : "not-allowed" }}>
+                      {completing === m.id ? "Saving..." : "✓ Confirm Date" + (scheduleSpec.time ? " & Time" : "") + " & Mark Done"}
                     </button>
                     <div style={{ flex: "1 1 100%", fontSize: 11, color: "#555", marginTop: 2 }}>
-                      Enter the date the buyer's agent gave you — no inspection report needed on the listing side.
+                      Enter the date{scheduleSpec.time ? " and time" : ""} the responsible party gave you. It's recorded on the deal so you can follow up, and reminders anchor to it.
                     </div>
                     <button onClick={() => setWaiveModalFor(m)}
                       style={{ flex: "1 1 90px", padding: "9px 0", borderRadius: 8,
@@ -2502,7 +2541,8 @@ function MilestonesTab({ tx, token, onSummaryChange }) {
                       ⚠️ Waive — N/A
                     </button>
                   </div>
-                )}
+                  );
+                })()}
                 {!isClosed && !isScheduling && !isClosingSchedule && (
                   <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
                     {compliance[m.id]?.documentRequired && tx.constructionType !== "New Construction" ? (
