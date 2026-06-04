@@ -197,25 +197,48 @@ function CmaTool({ tx, token, currentUser }) {
   const agentDisplayName = branding.agentName || 'Your Agent';
   const agentTitleLine = ['Licensed Realtor', branding.brokerage].filter(Boolean).join(' · ');
 
-  const [mode, setMode] = useState('agent');
-  const [comps, setComps] = useState([]);
-  const [selectedIds, setSelectedIds] = useState(new Set());
-  const [filename, setFilename] = useState('');
-  const [subject, setSubject] = useState(() => makeInitialSubject(tx));
-  const [upgrades, setUpgrades] = useState({});
-  const [marketOverride, setMarketOverride] = useState('auto');
+  // ── Draft autosave ──────────────────────────────────────────────────────
+  // The CMA tab unmounts when the agent switches to another tab, which would
+  // otherwise wipe all in-progress work. Persist a per-transaction draft to
+  // localStorage so switching tabs (and even reloading) keeps the data. The
+  // draft is cleared only by "+ New CMA".
+  const draftKey = `cma_draft_${tx?.id || 'anon'}`;
+  const loadDraft = () => {
+    try { return JSON.parse(localStorage.getItem(draftKey) || 'null'); } catch { return null; }
+  };
+
+  const [mode, setMode] = useState(() => loadDraft()?.mode || 'agent');
+  const [comps, setComps] = useState(() => loadDraft()?.comps || []);
+  const [selectedIds, setSelectedIds] = useState(() => new Set(loadDraft()?.selectedIds || []));
+  const [filename, setFilename] = useState(() => loadDraft()?.filename || '');
+  const [subject, setSubject] = useState(() => loadDraft()?.subject || makeInitialSubject(tx));
+  const [upgrades, setUpgrades] = useState(() => loadDraft()?.upgrades || {});
+  const [marketOverride, setMarketOverride] = useState(() => loadDraft()?.marketOverride || 'auto');
   const [dragging, setDragging] = useState(false);
-  const [filters, setFilters] = useState({ similarSize: true, timeWindow: '9' });
-  const [statusFilter, setStatusFilter] = useState({ SLD: true, PND: true, ACT: true, EXP: true });
-  const [rentalComps, setRentalComps] = useState([]);
-  const [rentalFilename, setRentalFilename] = useState('');
+  const [filters, setFilters] = useState(() => loadDraft()?.filters || { similarSize: true, timeWindow: '9' });
+  const [statusFilter, setStatusFilter] = useState(() => loadDraft()?.statusFilter || { SLD: true, PND: true, ACT: true, EXP: true });
+  const [rentalComps, setRentalComps] = useState(() => loadDraft()?.rentalComps || []);
+  const [rentalFilename, setRentalFilename] = useState(() => loadDraft()?.rentalFilename || '');
   const rentalInputRef = useRef(null);
   const fileInputRef = useRef(null);
   const printRef = useRef(null);
   const [saveState, setSaveState] = useState(null); // { status: 'saving'|'ok'|'err', msg }
 
+  // Autosave the working draft whenever it changes (survives tab switch / reload).
+  useEffect(() => {
+    try {
+      localStorage.setItem(
+        draftKey,
+        JSON.stringify({ mode, comps, selectedIds: [...selectedIds], filename, subject, upgrades, marketOverride, filters, statusFilter, rentalComps, rentalFilename })
+      );
+    } catch {
+      /* localStorage full or unavailable — non-fatal */
+    }
+  }, [draftKey, mode, comps, selectedIds, filename, subject, upgrades, marketOverride, filters, statusFilter, rentalComps, rentalFilename]);
+
   const resetCMA = () => {
     if (window.confirm('Start a new CMA? This will clear the comps and analysis (subject details reset to the transaction).')) {
+      try { localStorage.removeItem(draftKey); } catch { /* ignore */ }
       setComps([]);
       setSelectedIds(new Set());
       setFilename('');
