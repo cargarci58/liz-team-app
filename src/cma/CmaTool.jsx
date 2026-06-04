@@ -641,11 +641,15 @@ function CmaTool({ tx, token, currentUser }) {
             </section>
           )}
 
-          {comps.length > 0 && subject.sqft && (
+          {comps.length > 0 && (
             <section className="section">
               <div className="section-num">03 · COMPS</div>
               <h2 className="section-title">Select comparable properties</h2>
               <p className="section-sub">Tap rows to select. Outliers (price-per-sqft &gt;2.5× normal deviation from median) are flagged in red and automatically excluded from tier calculations even if you select them.</p>
+
+              {!subject.sqft && (
+                <div className="data-info"><strong>Enter the subject's Heated Sqft in section 02 above</strong> to run the pricing analysis. You can select comps now — the verdict and pricing tiers appear once sqft is set.</div>
+              )}
 
               {selected.length > 0 && (
                 <>

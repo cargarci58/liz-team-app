@@ -108,43 +108,75 @@ export const UPGRADE_LIBRARY = [
 // CSV ROW → COMP normalization (ported from handleFile in index.html).
 // Kept separate so CSV parsing (PapaParse) can stay in the component layer.
 // ============================================================================
+// Normalize a header label for tolerant matching ("LP / SqFt" === "lp/sqft" === "LP_SqFt").
+const normKey = (k) => String(k).toLowerCase().replace(/[^a-z0-9]/g, '');
+
+// Build a case/spacing/punctuation-insensitive getter over a CSV row so the tool
+// works with the many different MLS export header conventions, not just one board's.
+const buildGetter = (row) => {
+  const map = {};
+  for (const k of Object.keys(row || {})) map[normKey(k)] = row[k];
+  return (aliases) => {
+    for (const a of aliases) {
+      const v = map[normKey(a)];
+      if (v != null && String(v).trim() !== '') return v;
+    }
+    return undefined;
+  };
+};
+
+// Normalize any MLS status wording to the canonical codes the tool uses.
+const normStatus = (s) => {
+  const v = String(s || '').toUpperCase().replace(/[^A-Z ]/g, ' ').trim();
+  if (!v) return '';
+  if (/\b(SLD|SOLD|CLOSED|CLSD)\b/.test(v) || v === 'S' || v === 'C') return 'SLD';
+  if (/UNDER CONTRACT|PENDING|\bPND\b|\bP\b/.test(v)) return 'PND';
+  if (/EXPIRED|CANCEL|WITHDRAW|TERMINATED|\bEXP\b|\bX\b/.test(v)) return 'EXP';
+  if (/ACTIVE|\bACT\b|\bA\b|COMING SOON|\bNEW\b|BACKUP/.test(v)) return 'ACT';
+  return v.slice(0, 3);
+};
+
 export const normalizeCompRow = (row, idx) => {
+  const g = buildGetter(row);
   const c = {
     id: idx,
-    address: row['Address'] || '',
-    city: row['City'] || '',
-    zip: row['Zip'] || '',
-    subdivision: row['Legal Subdivision Name'] || '',
-    sqft: cleanNum(row['Heated Area']),
-    beds: cleanNum(row['Beds']),
-    fullBaths: cleanNum(row['Full Baths']),
-    halfBaths: cleanNum(row['Half Baths']),
-    yearBuilt: cleanNum(row['Year Built']),
-    pool: row['Pool'] || '',
-    view: row['View'] || '',
-    waterView: row['Water View'] || '',
-    lotSize: cleanNum(row['Lot Size Acres']),
-    stories: classifyStories(row['Stories'] || row['Levels'] || row['Building Stories Total']),
-    garageSpaces: cleanNum(row['Garage Spaces']),
-    currentPrice: cleanMoney(row['Current Price']),
-    lpSqft: cleanMoney(row['LP / SqFt']),
-    spSqft: cleanMoney(row['SP / SqFt']),
-    cdom: cleanNum(row['CDOM']),
-    adom: cleanNum(row['ADOM']),
-    soldTerms: row['Sold Terms'] || '',
-    listAgent: row['List Agent'] || '',
-    sellingAgent: row['Selling Agent'] || '',
-    closeDate: row['Close Date'] || '',
-    onMarketDate: row['On Market Date'] || '',
-    status: (row['Status'] || '').toUpperCase().trim(),
+    address: g(['Address', 'Street Address', 'Property Address', 'Full Address', 'Address 1', 'Street Number Name']) || '',
+    city: g(['City']) || '',
+    zip: g(['Zip', 'Zip Code', 'Postal Code']) || '',
+    subdivision: g(['Legal Subdivision Name', 'Subdivision', 'Subdivision Name', 'Complex']) || '',
+    sqft: cleanNum(g(['Heated Area', 'Heated SqFt', 'Heated Sq Ft', 'Living Area', 'Living SqFt', 'Sq Ft Heated', 'Total Heated Area', 'Approx Heated Area', 'Building Area Total', 'Heated Area Total', 'GLA', 'Square Feet', 'SqFt'])),
+    beds: cleanNum(g(['Beds', 'Bedrooms', 'Beds Total', 'Total Bedrooms', 'BR'])),
+    fullBaths: cleanNum(g(['Full Baths', 'Baths Full', 'Full Bathrooms', 'Bathrooms Full'])),
+    halfBaths: cleanNum(g(['Half Baths', 'Baths Half', 'Half Bathrooms', 'Bathrooms Half'])),
+    yearBuilt: cleanNum(g(['Year Built', 'Yr Built', 'YearBuilt'])),
+    pool: g(['Pool', 'Pool Private', 'Pool Features', 'Private Pool', 'Pool YN']) || '',
+    view: g(['View', 'View Description', 'View Type']) || '',
+    waterView: g(['Water View', 'Waterfront', 'Water Frontage', 'Water Access', 'Waterfront YN', 'Water View YN']) || '',
+    lotSize: cleanNum(g(['Lot Size Acres', 'Acres', 'Lot Acres', 'Lot Size (Acres)', 'Lot Size Area Acres'])),
+    stories: classifyStories(g(['Stories', 'Levels', 'Building Stories Total', 'Stories Total', 'Floors', 'Number of Stories'])),
+    garageSpaces: cleanNum(g(['Garage Spaces', 'Garage', 'Gar Spaces', 'Garage Spaces Total', 'Attached Garage Spaces', '# Garage Spaces'])),
+    currentPrice: cleanMoney(g(['Current Price', 'List Price', 'Price', 'Sold Price', 'Close Price', 'Closed Price', 'Sale Price', 'Last List Price', 'Closing Price', 'Selling Price'])),
+    lpSqft: cleanMoney(g(['LP / SqFt', 'LP/SqFt', 'List Price Per SqFt', 'List Price/SqFt', 'Price Per SqFt', 'List $/SqFt', 'LP per SqFt', '$/SqFt'])),
+    spSqft: cleanMoney(g(['SP / SqFt', 'SP/SqFt', 'Sold Price Per SqFt', 'Close Price Per SqFt', 'Sold $/SqFt', 'SP per SqFt', 'Closed Price Per SqFt'])),
+    cdom: cleanNum(g(['CDOM', 'Cumulative DOM', 'Cumulative Days On Market'])),
+    adom: cleanNum(g(['ADOM', 'DOM', 'Days On Market', 'Agent DOM'])),
+    soldTerms: g(['Sold Terms', 'Terms', 'Financing', 'Sale Terms']) || '',
+    listAgent: g(['List Agent', 'Listing Agent', 'List Agent Full Name', 'List Agent Name']) || '',
+    sellingAgent: g(['Selling Agent', 'Buyer Agent', 'Selling Agent Full Name', 'Buyers Agent', 'Co Selling Agent Full Name']) || '',
+    closeDate: g(['Close Date', 'Closing Date', 'Sold Date', 'Closed Date', 'Settlement Date']) || '',
+    onMarketDate: g(['On Market Date', 'Listing Date', 'List Date', 'Original Entry Timestamp']) || '',
+    status: normStatus(g(['Status', 'MLS Status', 'Standardized Status', 'Listing Status', 'St'])),
   };
   c.poolType = classifyPool(c.pool);
   c.hasPool = c.poolType === 'private';
-  c.hasWaterView = !!(c.waterView && c.waterView.trim() && !c.waterView.toLowerCase().includes('none'));
-  c.hasGolfView = !!(c.view && c.view.toLowerCase().includes('golf'));
+  const wv = String(c.waterView || '').toLowerCase().trim();
+  c.hasWaterView = !!(wv && wv !== 'none' && !['no', 'n', '0', 'false'].includes(wv));
+  c.hasGolfView = !!(c.view && String(c.view).toLowerCase().includes('golf'));
   c.impliedListPrice = c.lpSqft && c.sqft ? c.lpSqft * c.sqft : null;
   c.spLpRatio = c.impliedListPrice && c.currentPrice && c.status === 'SLD' ? c.currentPrice / c.impliedListPrice : null;
-  c.effectivePsf = c.spSqft || c.lpSqft;
+  // Use the per-sqft column when present; otherwise COMPUTE it from price ÷ sqft so
+  // exports that omit the $/SqFt columns still produce a working analysis.
+  c.effectivePsf = c.spSqft || c.lpSqft || (c.currentPrice && c.sqft ? c.currentPrice / c.sqft : null);
   return c;
 };
 
