@@ -206,7 +206,7 @@ function PersonalTaskCard({ task, token, onChange }) {
   );
 }
 
-function TaskCard({ task, token, onResolve, onSnooze, onOpenModal, onStartChase, onOpenTransactionMilestones }) {
+function TaskCard({ task, token, onResolve, onComplete, onSnooze, onOpenModal, onStartChase, onOpenTransactionMilestones }) {
   const cfg = PRIORITY_CONFIG[task.priority] || PRIORITY_CONFIG.normal;
   const icon = TASK_ICONS[task.task_type] || "📌";
   const isSellerUpdate = task.task_type === "seller_update";
@@ -266,7 +266,7 @@ function TaskCard({ task, token, onResolve, onSnooze, onOpenModal, onStartChase,
                 background:COLORS.red, color:COLORS.white, fontWeight:700, fontSize:14, cursor:"pointer" }}>
               Follow Up Now
             </button>
-            <button onClick={() => onResolve(task.id)}
+            <button onClick={() => onComplete(task)}
               style={{ flex:"1 1 30%", padding:"11px 0", borderRadius:10,
                 border:"1.5px solid #1E8449", background:COLORS.white,
                 color:"#1E8449", fontWeight:600, fontSize:13, cursor:"pointer" }}>
@@ -398,6 +398,19 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
         method: "PATCH", headers: { Authorization: "Bearer " + token }
       });
       setResolvedIds(prev => new Set([...prev, taskId]));
+    } catch (e) {}
+  };
+
+  // "✓ Done" on a milestone/task card: actually complete the underlying
+  // milestone/task (so it's gone for good), not just silence the reminder.
+  const handleComplete = async (task) => {
+    setResolvedIds(prev => new Set([...prev, task.id]));  // hide immediately
+    try {
+      await fetch(API + "/dashboard/tasks/" + task.id + "/complete-target", {
+        method: "PATCH", headers: { Authorization: "Bearer " + token }
+      });
+      // Refresh so any downstream changes (compliance badge, progress) show.
+      window.dispatchEvent(new Event("wintheday:refresh"));
     } catch (e) {}
   };
 
@@ -712,7 +725,7 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
           <SectionHeader label="NEEDS ATTENTION NOW" count={visibleOverdue.length} color={COLORS.red} />
           {visibleOverdue.map(task => (
             <TaskCard key={task.id} task={task} token={token}
-              onResolve={handleResolve} onSnooze={handleSnooze}
+              onResolve={handleResolve} onComplete={handleComplete} onSnooze={handleSnooze}
               onOpenModal={setActiveModal} onStartChase={handleStartChase} onOpenTransactionMilestones={onOpenTransactionMilestones} />
           ))}
         </div>
@@ -724,7 +737,7 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
           <SectionHeader label="DUE TODAY" count={visibleToday.length} color={COLORS.warning} />
           {visibleToday.map(task => (
             <TaskCard key={task.id} task={task} token={token}
-              onResolve={handleResolve} onSnooze={handleSnooze}
+              onResolve={handleResolve} onComplete={handleComplete} onSnooze={handleSnooze}
               onOpenModal={setActiveModal} onStartChase={handleStartChase} onOpenTransactionMilestones={onOpenTransactionMilestones} />
           ))}
         </div>
@@ -736,7 +749,7 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
           <SectionHeader label="COMING UP THIS WEEK" count={visibleUpcoming.length} color={COLORS.gray} />
           {visibleUpcoming.map(task => (
             <TaskCard key={task.id} task={task} token={token}
-              onResolve={handleResolve} onSnooze={handleSnooze}
+              onResolve={handleResolve} onComplete={handleComplete} onSnooze={handleSnooze}
               onOpenModal={setActiveModal} onStartChase={handleStartChase} onOpenTransactionMilestones={onOpenTransactionMilestones} />
           ))}
         </div>
