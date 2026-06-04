@@ -213,6 +213,9 @@ function TaskCard({ task, token, onResolve, onComplete, onSnooze, onOpenModal, o
   const isBuyerUpdate = task.task_type === "buyer_update";
   const isChaseable = ["milestone_overdue","milestone_upcoming","custom_task_overdue","custom_task_today","custom_task_upcoming"].includes(task.task_type);
   const isComplianceGap = task.task_type === "compliance_gap";
+  // Undated checklist step: "Done" must COMPLETE the milestone (complete-target),
+  // not just silence the reminder for 7 days — otherwise it never saves as done.
+  const isChecklist = task.task_type === "milestone_checklist";
 
   return (
     <div style={{ background:COLORS.white, borderRadius:14, padding:16, marginBottom:12,
@@ -273,6 +276,12 @@ function TaskCard({ task, token, onResolve, onComplete, onSnooze, onOpenModal, o
               ✓ Done
             </button>
           </>
+        ) : isChecklist ? (
+          <button onClick={() => onComplete(task)}
+            style={{ flex:2, padding:"11px 0", borderRadius:10, border:"none",
+              background:"#1E8449", color:COLORS.white, fontWeight:700, fontSize:14, cursor:"pointer" }}>
+            ✓ Done
+          </button>
         ) : (
           <button onClick={() => onResolve(task.id)}
             style={{ flex:2, padding:"11px 0", borderRadius:10, border:"none",
