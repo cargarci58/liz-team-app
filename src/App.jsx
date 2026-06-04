@@ -2,7 +2,7 @@ import LoginScreen from "./LoginScreen";
 import BuyerCalculator from "./components/BuyerCalculator";
 import PreApprovalCard, { PreApprovalBadge } from './components/PreApprovalCard';
 import SellerCalculator from "./components/SellerCalculator";
-import CMACalculator from "./components/CMACalculator";
+import CmaTool from "./cma/CmaTool";
 import TxFormsTab from "./components/TxFormsTab";
 import UserManagement from "./UserManagement";
 import ContactsPage from "./ContactsPage";
@@ -3790,8 +3790,9 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
     { id: "notes", label: "Internal Notes" },
     { id: "documents", label: "📎 Documents" },
     { id: "chat", label: (chatUnread > 0 || dashboardUnread > 0) ? `💬 Group Chat (${Math.max(chatUnread, dashboardUnread)})` : "💬 Group Chat" },
+    { id: "cma", label: "📊 CMA" },
     ...(isBuyerSideTx ? [{ id: "offers", label: "📝 Create Offer" }, { id: "calculator", label: "🧮 Buyers Calculator" }, { id: "buyer-net", label: "💰 Buyer's Net Sheet" }] : []),
-    ...(isListingSideTx ? [{ id: "cma", label: "📊 CMA" }, { id: "seller-calc", label: "💰 Seller's Net Sheet" }] : []),
+    ...(isListingSideTx ? [{ id: "seller-calc", label: "💰 Seller's Net Sheet" }] : []),
     { id: "tx-forms", label: "📋 Forms" },
     { id: "activity", label: "📋 Activity Log" },
     { id: "reminders", label: "Reminders" },
@@ -4220,12 +4221,7 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
         )}
 
         {activeTab === "cma" && (
-          <div style={{ padding: 20 }}>
-            <div style={{ background: "#dbeafe", border: "1px solid #93c5fd", borderRadius: 8, padding: 12, marginBottom: 16, fontSize: 13, color: "#1e3a8a" }}>
-              <strong>🎓 Why this matters:</strong> A defensible CMA protects you legally and helps the seller trust your pricing. Pull 3-6 comps from MLS, enter them here. The system applies FL-specific upgrade adjustments (hurricane windows, solar, new roof, etc.) and generates a branded PDF for the listing appointment.
-            </div>
-            <CMACalculator transactionId={tx.id} token={localStorage.getItem("tp_token") || ""} />
-          </div>
+          <CmaTool tx={tx} token={localStorage.getItem("tp_token") || ""} currentUser={currentUser} />
         )}
 
         {activeTab === "seller-calc" && (
@@ -5184,13 +5180,14 @@ function ContactAutocomplete({ token, onSelect }) {
 // ═══════════════════════════════════════════════════════════════
 // SettingsMenu — dropdown that consolidates 6+ buttons into one
 // ═══════════════════════════════════════════════════════════════
-function SettingsMenu({ currentUser, onOpenContactBook, contactCount, onReports, onAgentProfile, onOpenComplianceDash, onOpenCompliance, onOpenTaskTmpls, onCompanySettings, onChangePassword, onOpenForms, onOpenTeam, onOpenSuperuser }) {
+function SettingsMenu({ currentUser, onOpenContactBook, contactCount, onReports, onGoalPlanner, onAgentProfile, onOpenComplianceDash, onOpenCompliance, onOpenTaskTmpls, onCompanySettings, onChangePassword, onOpenForms, onOpenTeam, onOpenSuperuser }) {
   const [open, setOpen] = useState(false);
   const isAdmin = ["admin", "superadmin"].includes(currentUser?.role);
   const items = [];
 
   items.push({ icon: "📒", label: `Address Book${contactCount > 0 ? ` (${contactCount})` : ""}`, onClick: onOpenContactBook });
   items.push({ icon: "📊", label: "Reports", onClick: onReports });
+  if (onGoalPlanner) items.push({ icon: "🎯", label: "Goal Planner", onClick: onGoalPlanner });
   items.push({ icon: "👤", label: "My Profile", onClick: onAgentProfile });
   if (onOpenForms) items.push({ icon: "📋", label: "Forms Library", onClick: onOpenForms });
   items.push({ icon: "🔒", label: "Change Password", onClick: onChangePassword });
@@ -5234,7 +5231,7 @@ function SettingsMenu({ currentUser, onOpenContactBook, contactCount, onReports,
   );
 }
 
-function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenContactBook, onOpenContacts, onOpenExpenses, onOpenForms, contactCount, onLogout, onOpenTeam, onOpenCompliance, onOpenComplianceDash, onOpenTaskTmpls, onOpenContractIntake, onChangePassword, onReports, onHome, onVendors, onCompanySettings, onSuperuser, onAgentProfile, onIntakeLinks, currentUser, isFreeGuest = false }) {
+function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenContactBook, onOpenContacts, onOpenExpenses, onOpenForms, contactCount, onLogout, onOpenTeam, onOpenCompliance, onOpenComplianceDash, onOpenTaskTmpls, onOpenContractIntake, onChangePassword, onReports, onGoalPlanner, onHome, onVendors, onCompanySettings, onSuperuser, onAgentProfile, onIntakeLinks, currentUser, isFreeGuest = false }) {
   const [filter, setFilter] = useState("All");
   const [search, setSearch] = useState("");
   // Tenant branding for the navbar — fetched once on mount. A free guest belongs to
@@ -5779,6 +5776,7 @@ function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenCon
               onOpenContactBook={onOpenContactBook}
               contactCount={contactCount}
               onReports={onReports}
+              onGoalPlanner={onGoalPlanner}
               onAgentProfile={onAgentProfile}
               onOpenComplianceDash={onOpenComplianceDash}
               onOpenCompliance={onOpenCompliance}
@@ -6523,6 +6521,8 @@ function MainApp({ onLogout, currentUser }) {
   }, []);
   const [view, setView] = useState("home");
   const [showReports, setShowReports] = useState(false);
+  const [reportsTab, setReportsTab] = useState("overview");
+  const openReports = (tab = "overview") => { setReportsTab(tab); setShowReports(true); };
   const [showCalendar, setShowCalendar] = useState(false);
   const [selectedId, setSelectedId] = useState(null);
   const [contacts, setContacts] = useState([]);
@@ -6720,7 +6720,7 @@ function MainApp({ onLogout, currentUser }) {
           </div>
         </div>
       )}
-      {showReports && <Reports transactions={transactions} onBack={() => setShowReports(false)} />}
+      {showReports && <Reports transactions={transactions} onBack={() => setShowReports(false)} currentUser={currentUser} initialTab={reportsTab} />}
 
       {!showReports && view === "new" && <NewTransactionForm onSave={addTransaction} onCancel={() => setView("home")} />}
       {!showReports && !showCalendar && view === "detail" && selectedTx && (
@@ -6763,7 +6763,8 @@ function MainApp({ onLogout, currentUser }) {
           onOpenTaskTmpls={guard("Task templates", () => setShowTaskTmpls(true))}
           onOpenContractIntake={guard("Contract intake", () => setShowContractIntake(true))}
           onChangePassword={() => setShowChangePassword(true)}
-          onReports={guard("Reports", () => setShowReports(true))}
+          onReports={guard("Reports", () => openReports("overview"))}
+          onGoalPlanner={guard("Goal Planner", () => openReports("goals"))}
           onCompanySettings={guard("Company settings", () => setShowCompanySettings(true))}
           onSuperuser={() => setShowSuperuser(true)}
           onAgentProfile={() => setShowAgentProfile(true)}
