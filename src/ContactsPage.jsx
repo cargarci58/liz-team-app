@@ -55,7 +55,7 @@ function ContactsGuide({ onClose }) {
         </div>
         <div style={card}>
           <div style={h}>📥 Adding people</div>
-          <div style={p}><strong>+ Add Contact</strong> for one person. <strong>Import CSV</strong> or <strong>Import Contacts (CSV)</strong> to bring in a whole list — it won't create duplicates or erase your call notes.</div>
+          <div style={p}><strong>+ Add Contact</strong> for one person. <strong>Import CSV</strong> to bring in a whole list — it won't create duplicates or erase your call notes.</div>
         </div>
         <div style={card}>
           <div style={h}>⭐ Your daily list builds itself</div>
@@ -1340,7 +1340,6 @@ export default function ContactsPage({ token, onBack }) {
   const [showBulkSchedule, setShowBulkSchedule] = useState(false);
   const [editing, setEditing] = useState(null);
   const [viewing, setViewing] = useState(null);
-  const [rmImporting, setRmImporting] = useState(false);
   const [showGroups, setShowGroups] = useState(false);
   const [showGuide, setShowGuide] = useState(false);
   const [popBysEnabled, setPopBysEnabled] = useState(false);
@@ -1371,27 +1370,6 @@ export default function ContactsPage({ token, onBack }) {
   useEffect(() => { setPage(1); }, [filter.temperature, filter.type, filter.due, filter.missing, filter.group, filter.tier, filter.search, sortBy.col, sortBy.dir]);
   const pageCount = Math.max(1, Math.ceil(contacts.length / PAGE_SIZE));
   const pagedContacts = contacts.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
-
-  const importReferralMaker = async (file) => {
-    if (!file) return;
-    setRmImporting(true);
-    try {
-      const csv = await file.text();
-      const r = await fetch(API + "/contacts/import-referral-maker", {
-        method: "POST",
-        headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
-        body: JSON.stringify({ csv }),
-      });
-      const d = await r.json();
-      if (!r.ok) throw new Error(d.error || "Import failed");
-      alert(`✅ Contact import complete.\n\n${d.total} rows processed\n• ${d.updated} existing contacts enriched (tier, spouse, dates, pop-by — call history kept)\n• ${d.created} new contacts added\n• ${d.skipped} skipped (no name)`);
-      load();
-    } catch (e) {
-      alert("Import error: " + e.message);
-    } finally {
-      setRmImporting(false);
-    }
-  };
 
   // Track latest request — drop results from anything older. Without this,
   // typing in search or rapidly changing filters can race: an older response
@@ -1534,12 +1512,6 @@ export default function ContactsPage({ token, onBack }) {
           <button onClick={() => setShowGroups(true)} style={btnStyle("#e0e7ff", "#3730a3")}>👥 Manage Groups</button>
           <button onClick={() => setShowSettings(true)} style={btnStyle("#e5e7eb", "#374151")}>⚙ Settings</button>
           <button onClick={() => setShowImport(true)} style={btnStyle("#e5e7eb", "#374151")}>📥 Import CSV</button>
-          <label style={{ ...btnStyle("#1e8449", "white"), display: "inline-block", cursor: rmImporting ? "wait" : "pointer" }}>
-            {rmImporting ? "Importing…" : "🔄 Import Contacts (CSV)"}
-            <input type="file" accept=".csv,text/csv" disabled={rmImporting}
-              onChange={e => importReferralMaker(e.target.files && e.target.files[0])}
-              style={{ display: "none" }} />
-          </label>
           <button onClick={() => setShowAdd(true)} style={btnStyle("#0c4a6e", "white")}>+ Add Contact</button>
         </div>
       </div>
