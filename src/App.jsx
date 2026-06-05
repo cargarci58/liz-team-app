@@ -4826,6 +4826,12 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
               <div style={{ marginBottom: 14 }}><div style={{ fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", marginBottom: 6 }}>Address</div><input value={editTxForm.address || ""} onChange={e => setEditTxForm(f => ({ ...f, address: e.target.value }))} placeholder="123 Main St" style={{ width: "100%", padding: "10px 14px", borderRadius: 8, border: "1.5px solid #CCC", fontSize: 15, fontFamily: "inherit", boxSizing: "border-box" }} /></div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 14 }}><div><div style={{ fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", marginBottom: 6 }}>City</div><input value={editTxForm.city || ""} onChange={e => setEditTxForm(f => ({ ...f, city: e.target.value }))} placeholder="Orlando" style={{ width: "100%", padding: "10px 14px", borderRadius: 8, border: "1.5px solid #CCC", fontSize: 15, fontFamily: "inherit", boxSizing: "border-box" }} /></div><div><div style={{ fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", marginBottom: 6 }}>ZIP</div><input value={editTxForm.zipCode || ""} onChange={e => setEditTxForm(f => ({ ...f, zipCode: e.target.value }))} placeholder="32801" style={{ width: "100%", padding: "10px 14px", borderRadius: 8, border: "1.5px solid #CCC", fontSize: 15, fontFamily: "inherit", boxSizing: "border-box" }} /></div></div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 14 }}><div><div style={{ fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", marginBottom: 6 }}>County</div><select value={editTxForm.county || ""} onChange={e => setEditTxForm(f => ({ ...f, county: e.target.value }))} style={{ width: "100%", padding: "10px 14px", borderRadius: 8, border: "1.5px solid #CCC", fontSize: 15, fontFamily: "inherit" }}>{["Orange","Osceola","Seminole","Polk","Lake","Volusia","Other"].map(c => <option key={c}>{c}</option>)}</select></div><div><div style={{ fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", marginBottom: 6 }}>Property Type</div><select value={editTxForm.propertyType || ""} onChange={e => setEditTxForm(f => ({ ...f, propertyType: e.target.value }))} style={{ width: "100%", padding: "10px 14px", borderRadius: 8, border: "1.5px solid #CCC", fontSize: 15, fontFamily: "inherit" }}>{["Single Family","Townhouse","Condominium","Villa","Multi-Family","Land"].map(t => <option key={t}>{t}</option>)}</select></div></div>
+              <div style={{ marginBottom: 14 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", marginBottom: 6 }}>Year Built <span style={{ color: "#C0392B" }}>*</span></div>
+                <input type="number" value={editTxForm.yearBuilt || ""} onChange={e => setEditTxForm(f => ({ ...f, yearBuilt: e.target.value }))} placeholder="e.g. 1998"
+                  style={{ width: "100%", padding: "10px 14px", borderRadius: 8, border: "1.5px solid " + (editTxForm.yearBuilt ? "#CCC" : "#E5A5A5"), fontSize: 15, fontFamily: "inherit", boxSizing: "border-box" }} />
+                <div style={{ fontSize: 11, color: "#888", marginTop: 4 }}>Required — determines which disclosures apply (e.g. lead-based paint on pre-1978 homes).</div>
+              </div>
               <div style={{ marginBottom: 14 }}><div style={{ fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", marginBottom: 6 }}>Construction Type</div><select value={editTxForm.constructionType || "Resale"} onChange={e => setEditTxForm(f => ({ ...f, constructionType: e.target.value }))} style={{ width: "100%", padding: "10px 14px", borderRadius: 8, border: "1.5px solid #CCC", fontSize: 15, fontFamily: "inherit" }}>{["Resale","New Construction","Vacant Land","Commercial"].map(t => <option key={t}>{t}</option>)}</select></div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 14 }}><div><div style={{ fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", marginBottom: 6 }}>Transaction Type</div><select value={editTxForm.type || ""} onChange={e => setEditTxForm(f => ({ ...f, type: e.target.value }))} style={{ width: "100%", padding: "10px 14px", borderRadius: 8, border: "1.5px solid #CCC", fontSize: 15, fontFamily: "inherit" }}>{["Listing (Seller)","Buyer Representation","Dual Agency"].map(t => <option key={t}>{t}</option>)}</select></div><div><div style={{ fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", marginBottom: 6 }}>List Price ($)</div><input type="number" value={editTxForm.listPrice || ""} onChange={e => setEditTxForm(f => ({ ...f, listPrice: e.target.value }))} placeholder="450000" style={{ width: "100%", padding: "10px 14px", borderRadius: 8, border: "1.5px solid #CCC", fontSize: 15, fontFamily: "inherit", boxSizing: "border-box" }} /></div></div>
               <div style={{ fontSize: 13, fontWeight: 700, color: "#C0392B", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 12, paddingBottom: 8, borderBottom: "1px solid #EEE", marginTop: 8 }}>Transaction Details</div>
@@ -4916,11 +4922,7 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
                       </select>
                     </div>
                   </div>
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 14 }}>
-                    <div>
-                      <div style={{ fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", marginBottom: 6 }}>Year Built</div>
-                      <input type="number" value={editTxForm.yearBuilt || ""} onChange={e => setEditTxForm(f => ({ ...f, yearBuilt: e.target.value }))} placeholder="e.g. 1975" style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: "1.5px solid #CCC", fontSize: 14, fontFamily: "inherit", boxSizing: "border-box" }} />
-                    </div>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 14 }}>
                     <div>
                       <div style={{ fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", marginBottom: 6 }}>Flood Zone</div>
                       <input value={editTxForm.floodZone || ""} onChange={e => setEditTxForm(f => ({ ...f, floodZone: e.target.value }))} placeholder="e.g. AE, X" style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: "1.5px solid #CCC", fontSize: 14, fontFamily: "inherit", boxSizing: "border-box" }} />
@@ -4950,6 +4952,15 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
               <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
                 <button onClick={() => setShowEditTx(false)} style={{ padding: "10px 18px", border: "1px solid #CCC", borderRadius: 8, background: "none", cursor: "pointer", fontFamily: "inherit" }}>Cancel</button>
                 <button onClick={() => {
+                  // Year Built is required on real property deals — it determines which
+                  // disclosures apply (lead-based paint, etc.). Skip the check for
+                  // prospecting/buyer-search records that have no property yet.
+                  const isProspect = /^\s*buyer search\b/i.test(editTxForm.address || "");
+                  const yb = parseInt(editTxForm.yearBuilt, 10);
+                  if (!isProspect && (!editTxForm.yearBuilt || !Number.isFinite(yb) || yb < 1800 || yb > 2100)) {
+                    alert("Please enter the Year Built (a valid 4-digit year). It's required to determine which disclosures this deal needs — for example, lead-based paint applies only to homes built before 1978.");
+                    return;
+                  }
                   // The form is pre-filled from the tx via buildEditTxForm, so an empty
                   // value means the user intentionally cleared the field. Merge directly
                   // and let empty strings through — otherwise clearing a field silently
@@ -5021,6 +5032,8 @@ function NewTransactionForm({ onSave, onCancel }) {
   const f = k => v => setForm(p => ({ ...p, [k]: v }));
   const handleSave = async () => {
     if (!form.address || !form.city || !form.assignedAgent || !form.referralSource || !form.occupancyStatus) { alert("Please fill all required fields: Address, City, Assigned Agent, Referral Source, and Occupancy Status."); return; }
+    const ybNum = parseInt(form.yearBuilt, 10);
+    if (!form.yearBuilt || !Number.isFinite(ybNum) || ybNum < 1800 || ybNum > 2100) { alert("Please enter the Year Built (a valid 4-digit year). It's required to determine which disclosures this deal needs — for example, lead-based paint applies only to homes built before 1978."); return; }
     const contractDate = form.executedDate || form.openDate;
     const tasks = useFLTemplates ? taskTemplates.filter(t => t.phase === "active").map(t => ({ id: genId(), name: t.task_name, category: t.category, assignTo: t.default_assignee_role, dueDate: null, status: "Pending", notes: "", phase: "active" })) : [];
     const tok = localStorage.getItem("tp_token") || "";
@@ -5076,6 +5089,8 @@ function NewTransactionForm({ onSave, onCancel }) {
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}><Input label="Zip Code" value={form.zipCode} onChange={f("zipCode")} /><Input label="MLS Number" value={form.mlsNumber} onChange={f("mlsNumber")} placeholder="O6..." /></div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}><Input label="Transaction Type" value={form.type} onChange={f("type")} options={TRANSACTION_TYPES} /><Input label="Property Type" value={form.propertyType} onChange={f("propertyType")} options={PROPERTY_TYPES} /></div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}><Input label="Construction Type" value={form.constructionType} onChange={f("constructionType")} options={["Resale","New Construction","Vacant Land","Commercial"]} /><Input label="Occupancy Status" value={form.occupancyStatus} onChange={f("occupancyStatus")} options={OCCUPANCY_OPTIONS} required /></div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}><Input label="Year Built" value={form.yearBuilt} onChange={f("yearBuilt")} type="number" placeholder="e.g. 1998" required /><div /></div>
+          <div style={{ fontSize: 11, color: COLORS.muted, marginTop: -8 }}>Required — sets which disclosures apply (e.g. lead-based paint on pre-1978 homes).</div>
         </div>
         <div style={{ background: "#fff", border: `1px solid ${COLORS.border}`, borderRadius: 14, padding: 28, marginBottom: 20 }}>
           <h3 style={{ margin: "0 0 20px", fontSize: 15, color: COLORS.navy, fontWeight: 700 }}>Pricing & Dates</h3>
@@ -5119,7 +5134,7 @@ function NewTransactionForm({ onSave, onCancel }) {
         <Input label="Notes" value={form.notes} onChange={f("notes")} type="textarea" />
         <div style={{ display: "flex", gap: 12, justifyContent: "flex-end" }}>
           <Btn variant="secondary" onClick={onCancel}>Cancel</Btn>
-          <Btn onClick={handleSave} disabled={!form.address || !form.city || !form.assignedAgent || !form.referralSource || !form.occupancyStatus}>Create Transaction</Btn>
+          <Btn onClick={handleSave} disabled={!form.address || !form.city || !form.assignedAgent || !form.referralSource || !form.occupancyStatus || !form.yearBuilt}>Create Transaction</Btn>
         </div>
       </div>
     </div>
