@@ -3712,6 +3712,8 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
     isCash: tt.isCash || false,
     yearBuilt: tt.yearBuilt || "",
     floodZone: tt.floodZone || "",
+    sellerIsForeign: tt.sellerIsForeign || false,
+    isCoastal: tt.isCoastal || false,
     representationExpiresOn: tt.representationExpiresOn || "",
     contractFormType: tt.contractFormType || "",
     commissionListing: tt.commissionListing || "",
@@ -4928,6 +4930,17 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
                       <input type="date" value={editTxForm.representationExpiresOn || ""} onChange={e => setEditTxForm(f => ({ ...f, representationExpiresOn: e.target.value }))} style={{ width: "100%", padding: "9px 12px", borderRadius: 8, border: "1.5px solid #CCC", fontSize: 14, fontFamily: "inherit", boxSizing: "border-box" }} />
                     </div>
                   </div>
+                  {/* Compliance-checklist triggers the app can't infer */}
+                  <div style={{ display: "flex", gap: 20, marginBottom: 14, flexWrap: "wrap" }}>
+                    <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "#333", cursor: "pointer" }}>
+                      <input type="checkbox" checked={!!editTxForm.sellerIsForeign} onChange={e => setEditTxForm(f => ({ ...f, sellerIsForeign: e.target.checked }))} />
+                      <span>Seller is a <b>foreign person</b> (FIRPTA) <span style={{ color: "#888", fontWeight: 400 }}>— adds FIRPTA docs; withholding is the buyer's liability if missed</span></span>
+                    </label>
+                    <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "#333", cursor: "pointer" }}>
+                      <input type="checkbox" checked={!!editTxForm.isCoastal} onChange={e => setEditTxForm(f => ({ ...f, isCoastal: e.target.checked }))} />
+                      <span><b>Coastal</b> property (seaward of the CCCL) <span style={{ color: "#888", fontWeight: 400 }}>— adds the coastal/erosion disclosure</span></span>
+                    </label>
+                  </div>
                 </>
               )}
               <div style={{ marginBottom: 16 }}>
@@ -5629,6 +5642,8 @@ function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenCon
     isCash: t.is_cash || false,
     yearBuilt: t.year_built || "",
     floodZone: t.flood_zone || "",
+    sellerIsForeign: t.seller_is_foreign || false,
+    isCoastal: t.is_coastal || false,
     representationExpiresOn: t.representation_expires_on ? String(t.representation_expires_on).slice(0, 10) : "",
     contractFormType: t.contract_form_type || "",
     occupancyStatus: t.occupancy_status || "",
@@ -6508,6 +6523,8 @@ function MainApp({ onLogout, currentUser }) {
             isCash: t.is_cash || false,
             yearBuilt: t.year_built || "",
             floodZone: t.flood_zone || "",
+    sellerIsForeign: t.seller_is_foreign || false,
+    isCoastal: t.is_coastal || false,
             representationExpiresOn: t.representation_expires_on ? String(t.representation_expires_on).slice(0, 10) : "",
             contractFormType: t.contract_form_type || "",
             occupancyStatus: t.occupancy_status || "",
@@ -6598,7 +6615,7 @@ function MainApp({ onLogout, currentUser }) {
     const freshH = { "Content-Type": "application/json", "Authorization": "Bearer " + freshTok };
     const rollback = () => { if (previous) setTransactions(txs => txs.map(t => t.id === updated.id ? previous : t)); };
     try {
-      const r = await fetch(API + "/transactions/" + updated.id, { method: "PUT", headers: freshH, body: JSON.stringify({ address: updated.address, city: updated.city, state: updated.state, zipCode: updated.zipCode, county: updated.county, mlsNumber: updated.mlsNumber, propertyType: updated.propertyType, type: updated.type, status: updated.status, listPrice: updated.listPrice, contractPrice: updated.contractPrice, openDate: updated.openDate, closingDate: updated.closingDate, executedDate: updated.executedDate, notes: updated.notes, propertyAccess: updated.propertyAccess, commissionListing: updated.commissionListing, commissionBuyer: updated.commissionBuyer, transactionFee: updated.transactionFee, brokerageSplit: updated.brokerageSplit, officeFlatFee: updated.officeFlatFee, mailAway: updated.mailAway, commissionNotes: updated.commissionNotes, referralSource: updated.referralSource, assignedAgent: updated.assignedAgentId, occupancyStatus: updated.occupancyStatus, earnestMoneyAmount: updated.earnestMoneyAmount, emdDeadline: updated.emdDeadline, inspectionPeriodDays: updated.inspectionPeriodDays, inspectionPeriodEnd: updated.inspectionPeriodEnd, financingContingency: updated.financingContingency, financingContingencyDays: updated.financingContingencyDays, appraisalContingency: updated.appraisalContingency, appraisalContingencyDays: updated.appraisalContingencyDays, hoaApprovalRequired: updated.hoaApprovalRequired, hoaApprovalDays: updated.hoaApprovalDays, surveyRequired: updated.surveyRequired, isCash: updated.isCash, yearBuilt: updated.yearBuilt, floodZone: updated.floodZone, representationExpiresOn: updated.representationExpiresOn, contractFormType: updated.contractFormType, additionalTerms: updated.additionalTerms, internalNotes: updated.messages || [], smsThreads: updated.smsThreads || {}, parties: updated.parties || [], tasks: updated.tasks || [], reminders: updated.reminders || [] }) });
+      const r = await fetch(API + "/transactions/" + updated.id, { method: "PUT", headers: freshH, body: JSON.stringify({ address: updated.address, city: updated.city, state: updated.state, zipCode: updated.zipCode, county: updated.county, mlsNumber: updated.mlsNumber, propertyType: updated.propertyType, type: updated.type, status: updated.status, listPrice: updated.listPrice, contractPrice: updated.contractPrice, openDate: updated.openDate, closingDate: updated.closingDate, executedDate: updated.executedDate, notes: updated.notes, propertyAccess: updated.propertyAccess, commissionListing: updated.commissionListing, commissionBuyer: updated.commissionBuyer, transactionFee: updated.transactionFee, brokerageSplit: updated.brokerageSplit, officeFlatFee: updated.officeFlatFee, mailAway: updated.mailAway, commissionNotes: updated.commissionNotes, referralSource: updated.referralSource, assignedAgent: updated.assignedAgentId, occupancyStatus: updated.occupancyStatus, earnestMoneyAmount: updated.earnestMoneyAmount, emdDeadline: updated.emdDeadline, inspectionPeriodDays: updated.inspectionPeriodDays, inspectionPeriodEnd: updated.inspectionPeriodEnd, financingContingency: updated.financingContingency, financingContingencyDays: updated.financingContingencyDays, appraisalContingency: updated.appraisalContingency, appraisalContingencyDays: updated.appraisalContingencyDays, hoaApprovalRequired: updated.hoaApprovalRequired, hoaApprovalDays: updated.hoaApprovalDays, surveyRequired: updated.surveyRequired, isCash: updated.isCash, yearBuilt: updated.yearBuilt, floodZone: updated.floodZone, sellerIsForeign: updated.sellerIsForeign, isCoastal: updated.isCoastal, representationExpiresOn: updated.representationExpiresOn, contractFormType: updated.contractFormType, additionalTerms: updated.additionalTerms, internalNotes: updated.messages || [], smsThreads: updated.smsThreads || {}, parties: updated.parties || [], tasks: updated.tasks || [], reminders: updated.reminders || [] }) });
       if (!r.ok) {
         const e = await r.json().catch(() => ({}));
         console.error("Save error:", e);
