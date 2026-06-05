@@ -28,6 +28,7 @@ export default function DocumentsTab({ tx }) {
   const [required, setRequired] = useState([]);
   const [reqSummary, setReqSummary] = useState(null);
   const [slotUploading, setSlotUploading] = useState(null); // documentType currently uploading
+  const [preview, setPreview] = useState(null); // { loading, doc, url, mime }
   const tok = localStorage.getItem("tp_token") || "";
   const headers = { "Content-Type": "application/json", "Authorization": "Bearer " + tok };
 
@@ -141,6 +142,24 @@ export default function DocumentsTab({ tx }) {
       const data = await res.json();
       if (data.downloadUrl) window.open(data.downloadUrl, "_blank");
     } catch (e) { alert("Download failed: " + e.message); }
+  };
+
+  // In-app preview: fetch a signed inline URL and show it in a modal (PDF viewer
+  // / image). Non-previewable types fall back to opening in a new tab.
+  const openPreview = async (doc) => {
+    setPreview({ loading: true, doc });
+    try {
+      const res = await fetch(`${API}/documents/${doc.id}/view-url`, { headers });
+      const data = await res.json();
+      if (!res.ok || !data.viewUrl) throw new Error(data.error || "Could not load preview");
+      const mime = data.mimeType || doc.mime_type || "";
+      const previewable = /pdf|image\//i.test(mime);
+      if (!previewable) { window.open(data.viewUrl, "_blank"); setPreview(null); return; }
+      setPreview({ loading: false, doc, url: data.viewUrl, mime });
+    } catch (e) {
+      setPreview(null);
+      alert("Preview failed: " + e.message);
+    }
   };
 
   const handleDelete = async (doc) => {
@@ -314,7 +333,11 @@ export default function DocumentsTab({ tx }) {
                         style={{ padding: "4px 8px", borderRadius: 6, border: "1px solid #DDDDDD", background: doc.is_visible_to_client ? "#D5F5E3" : "#F5F5F5", cursor: "pointer", fontSize: 11 }}>
                         {doc.is_visible_to_client ? "👁 Client" : "🔒 Private"}
                       </button>
-                      <button onClick={() => handleDownload(doc)}
+                      <button onClick={() => openPreview(doc)} title="Preview"
+                        style={{ padding: "4px 10px", borderRadius: 6, border: "1px solid #DDDDDD", background: "#fff", cursor: "pointer", fontSize: 12, color: COLORS.info }}>
+                        👁 View
+                      </button>
+                      <button onClick={() => handleDownload(doc)} title="Download"
                         style={{ padding: "4px 10px", borderRadius: 6, border: "1px solid #DDDDDD", background: "#fff", cursor: "pointer", fontSize: 12, color: COLORS.info }}>
                         ↓
                       </button>
@@ -328,6 +351,40 @@ export default function DocumentsTab({ tx }) {
               </div>
             ));
           })()}
+        </div>
+      )}
+
+      {/* Preview modal */}
+      {preview && (
+        <div onClick={() => setPreview(null)}
+          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", zIndex: 1000, display: "flex", flexDirection: "column", padding: 24 }}>
+          <div onClick={(e) => e.stopPropagation()}
+            style={{ background: "#fff", borderRadius: 12, flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", maxWidth: 1000, width: "100%", margin: "0 auto" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 16px", borderBottom: "1px solid #EEE", gap: 12 }}>
+              <div style={{ fontWeight: 700, fontSize: 14, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{preview.doc?.name}</div>
+              <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
+                {preview.url && (
+                  <a href={preview.url} target="_blank" rel="noreferrer"
+                    style={{ padding: "6px 12px", borderRadius: 7, border: "1px solid #DDD", background: "#fff", color: COLORS.info, fontSize: 12, fontWeight: 600, textDecoration: "none" }}>
+                    Open in new tab
+                  </a>
+                )}
+                <button onClick={() => setPreview(null)}
+                  style={{ padding: "6px 12px", borderRadius: 7, border: "none", background: "#C0392B", color: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
+                  Close ✕
+                </button>
+              </div>
+            </div>
+            <div style={{ flex: 1, background: "#525659", overflow: "auto", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              {preview.loading ? (
+                <div style={{ color: "#fff", padding: 40 }}>Loading preview…</div>
+              ) : /image\//i.test(preview.mime || "") ? (
+                <img src={preview.url} alt={preview.doc?.name} style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain" }} />
+              ) : (
+                <iframe title="preview" src={preview.url} style={{ width: "100%", height: "100%", border: "none", background: "#fff" }} />
+              )}
+            </div>
+          </div>
         </div>
       )}
     </div>
