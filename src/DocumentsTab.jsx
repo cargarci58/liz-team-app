@@ -76,6 +76,24 @@ export default function DocumentsTab({ tx }) {
     } finally { setSlotUploading(null); e.target.value = ""; }
   };
 
+  // Point an already-uploaded document at a checklist slot (no re-upload).
+  const assignExisting = async (documentType, docId) => {
+    if (!docId) return;
+    setSlotUploading(documentType);
+    try {
+      const res = await fetch(`${API}/documents/${docId}/document-type`, {
+        method: "PATCH", headers,
+        body: JSON.stringify({ documentType }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || "Assign failed");
+      await Promise.all([loadDocs(), loadRequired()]);
+    } catch (err) {
+      console.error("Assign failed:", err);
+      alert("Assign failed: " + err.message);
+    } finally { setSlotUploading(null); }
+  };
+
   const handleUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -178,13 +196,24 @@ export default function DocumentsTab({ tx }) {
       {item.present ? (
         <span style={{ fontSize: 11, fontWeight: 700, color: "#1E8449", flexShrink: 0 }}>On file</span>
       ) : (
-        <label style={{ flexShrink: 0, padding: "5px 12px", background: "#C0392B", color: "#fff", borderRadius: 7,
-          cursor: slotUploading ? "not-allowed" : "pointer", fontWeight: 600, fontSize: 12, opacity: slotUploading === item.documentType ? 0.6 : 1 }}>
-          {slotUploading === item.documentType ? "Uploading…" : "📎 Upload"}
-          <input type="file" disabled={!!slotUploading} style={{ display: "none" }}
-            accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg,.gif,.txt"
-            onChange={(e) => handleSlotUpload(item.documentType, item.label, e)} />
-        </label>
+        <div style={{ display: "flex", gap: 6, flexShrink: 0, alignItems: "center", flexWrap: "wrap", justifyContent: "flex-end" }}>
+          {docs.length > 0 && (
+            <select value="" disabled={!!slotUploading}
+              onChange={(e) => assignExisting(item.documentType, e.target.value)}
+              title="Use a document you've already uploaded"
+              style={{ padding: "5px 8px", borderRadius: 7, border: "1px solid #CCC", fontSize: 12, fontFamily: "inherit", maxWidth: 170, background: "#fff", cursor: "pointer" }}>
+              <option value="">Use existing…</option>
+              {docs.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+            </select>
+          )}
+          <label style={{ padding: "5px 12px", background: "#C0392B", color: "#fff", borderRadius: 7,
+            cursor: slotUploading ? "not-allowed" : "pointer", fontWeight: 600, fontSize: 12, opacity: slotUploading === item.documentType ? 0.6 : 1 }}>
+            {slotUploading === item.documentType ? "Saving…" : "📎 Upload"}
+            <input type="file" disabled={!!slotUploading} style={{ display: "none" }}
+              accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg,.gif,.txt"
+              onChange={(e) => handleSlotUpload(item.documentType, item.label, e)} />
+          </label>
+        </div>
       )}
     </div>
   );
