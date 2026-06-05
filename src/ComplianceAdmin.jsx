@@ -179,6 +179,16 @@ function RequiredDocsManager({ token }) {
     } catch (e) { alert("Remove failed"); }
   };
 
+  const move = async (it, direction) => {
+    try {
+      const r = await fetch(API + "/document-requirements/custom/" + it.id + "/move", {
+        method: "PATCH", headers: h, body: JSON.stringify({ direction }),
+      });
+      if (!r.ok) { const d = await r.json().catch(() => ({})); throw new Error(d.error || r.status); }
+      await load();
+    } catch (e) { alert("Move failed: " + e.message); }
+  };
+
   const SIDES = [["Listing (Seller)", "🏡 Seller-side deals"], ["Buyer Representation", "🔑 Buyer-side deals"]];
 
   const Row = (it) => (
@@ -196,10 +206,16 @@ function RequiredDocsManager({ token }) {
       {it.is_system_default ? (
         <span style={{ fontSize: 11, color: COLORS.gray, fontStyle: "italic", flexShrink: 0 }}>required by law</span>
       ) : (
-        <button onClick={() => remove(it)}
-          style={{ flexShrink: 0, padding: "5px 10px", borderRadius: 6, border: "1px solid " + COLORS.dangerBorder, background: COLORS.white, color: COLORS.danger, fontSize: 11, fontWeight: 700, cursor: "pointer" }}>
-          ✕ Remove
-        </button>
+        <div style={{ display: "flex", gap: 6, flexShrink: 0, alignItems: "center" }}>
+          <button onClick={() => move(it, "up")} title="Move up"
+            style={{ padding: "5px 9px", borderRadius: 6, border: "1px solid " + COLORS.border, background: COLORS.white, fontSize: 12, fontWeight: 700, cursor: "pointer" }}>↑</button>
+          <button onClick={() => move(it, "down")} title="Move down"
+            style={{ padding: "5px 9px", borderRadius: 6, border: "1px solid " + COLORS.border, background: COLORS.white, fontSize: 12, fontWeight: 700, cursor: "pointer" }}>↓</button>
+          <button onClick={() => remove(it)}
+            style={{ padding: "5px 10px", borderRadius: 6, border: "1px solid " + COLORS.dangerBorder, background: COLORS.white, color: COLORS.danger, fontSize: 11, fontWeight: 700, cursor: "pointer" }}>
+            ✕ Remove
+          </button>
+        </div>
       )}
     </div>
   );
