@@ -29,8 +29,40 @@ export default function DocumentsTab({ tx }) {
   const [reqSummary, setReqSummary] = useState(null);
   const [slotUploading, setSlotUploading] = useState(null); // documentType currently uploading
   const [preview, setPreview] = useState(null); // { loading, doc, url, mime }
+  const [showAdd, setShowAdd] = useState(false);
+  const [addLabel, setAddLabel] = useState("");
+  const [addSide, setAddSide] = useState(tx.transaction_type === "Buyer Representation" ? "Buyer Representation" : "Listing (Seller)");
+  const [addBusy, setAddBusy] = useState(false);
   const tok = localStorage.getItem("tp_token") || "";
   const headers = { "Content-Type": "application/json", "Authorization": "Bearer " + tok };
+  let role = ""; try { role = JSON.parse(atob((tok.split(".")[1] || ""))).role || ""; } catch { /* ignore */ }
+  const isAdmin = role === "admin" || role === "superadmin";
+
+  const addRequirement = async () => {
+    const label = addLabel.trim();
+    if (!label) { alert("Enter the document name."); return; }
+    setAddBusy(true);
+    try {
+      const res = await fetch(`${API}/document-requirements/custom`, {
+        method: "POST", headers, body: JSON.stringify({ label, side: addSide }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || "Add failed");
+      setAddLabel(""); setShowAdd(false);
+      await loadRequired();
+    } catch (e) { alert("Add failed: " + e.message); }
+    finally { setAddBusy(false); }
+  };
+
+  const removeRequirement = async (item) => {
+    if (!item.requirementId) return;
+    if (!window.confirm(`Remove "${item.label}" as a brokerage requirement?\n\nIt will stop appearing on this side's deals. (Uploaded files are not deleted.)`)) return;
+    try {
+      const res = await fetch(`${API}/admin/document-requirements/${item.requirementId}`, { method: "DELETE", headers });
+      if (!res.ok) { const d = await res.json().catch(() => ({})); throw new Error(d.error || res.status); }
+      await loadRequired();
+    } catch (e) { alert("Remove failed: " + e.message); }
+  };
 
   const loadDocs = () =>
     fetch(`${API}/documents/${tx.id}`, { headers })
@@ -236,6 +268,12 @@ export default function DocumentsTab({ tx }) {
           {item.label}
           {!item.required && <span style={{ marginLeft: 6, fontSize: 10, fontWeight: 700, color: "#92400E", background: "#FEF3C7", padding: "1px 6px", borderRadius: 10 }}>OPTIONAL</span>}
           {item.custom && <span style={{ marginLeft: 6, fontSize: 10, fontWeight: 700, color: "#1A5276", background: "#D6EAF8", padding: "1px 6px", borderRadius: 10 }}>BROKER</span>}
+          {item.custom && isAdmin && item.requirementId && (
+            <button onClick={() => removeRequirement(item)} title="Remove this brokerage requirement"
+              style={{ marginLeft: 6, fontSize: 10, fontWeight: 700, color: "#B91C1C", background: "none", border: "none", cursor: "pointer", padding: 0 }}>
+              ✕ remove
+            </button>
+          )}
         </div>
         {item.waived ? (
           <div style={{ fontSize: 11, color: "#7A7A7A", marginTop: 1 }}>N/A — {item.waiveReason}{item.waivedBy ? ` (${item.waivedBy})` : ""}</div>
@@ -325,6 +363,38 @@ export default function DocumentsTab({ tx }) {
             This list adjusts automatically to the deal (HOA, condo, age of home, financing, coastal, foreign seller, etc.).
             Uploading here labels the file so it's filed correctly. Missing the right trigger? Update the deal's details.
           </div>
+
+          {/* Broker/admin: add a brokerage-specific required document */}
+          {isAdmin && (
+            <div style={{ marginTop: 12, borderTop: "1px dashed #DDD", paddingTop: 12 }}>
+              {!showAdd ? (
+                <button onClick={() => setShowAdd(true)}
+                  style={{ background: "none", border: "1px solid #BBB", borderRadius: 8, padding: "6px 12px", fontSize: 12, fontWeight: 600, color: "#333", cursor: "pointer" }}>
+                  + Add a document our brokerage requires
+                </button>
+              ) : (
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                  <input value={addLabel} onChange={e => setAddLabel(e.target.value)} placeholder="Document name (e.g. Buyer's Broker's Disclosure)"
+                    style={{ flex: "2 1 240px", padding: "8px 10px", borderRadius: 7, border: "1px solid #CCC", fontSize: 13, fontFamily: "inherit" }} />
+                  <select value={addSide} onChange={e => setAddSide(e.target.value)}
+                    style={{ padding: "8px 10px", borderRadius: 7, border: "1px solid #CCC", fontSize: 13, fontFamily: "inherit" }}>
+                    <option value="Listing (Seller)">Seller-side deals</option>
+                    <option value="Buyer Representation">Buyer-side deals</option>
+                    <option value="both">All deals (both sides)</option>
+                  </select>
+                  <button onClick={addRequirement} disabled={addBusy}
+                    style={{ padding: "8px 14px", borderRadius: 7, border: "none", background: "#1E8449", color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
+                    {addBusy ? "Adding…" : "Add"}
+                  </button>
+                  <button onClick={() => { setShowAdd(false); setAddLabel(""); }}
+                    style={{ padding: "8px 12px", borderRadius: 7, border: "1px solid #CCC", background: "#fff", fontSize: 13, color: "#666", cursor: "pointer" }}>
+                    Cancel
+                  </button>
+                  <div style={{ flexBasis: "100%", fontSize: 11, color: COLORS.muted }}>Applies to every deal of that side for your brokerage, marked BROKER. Required (can be uploaded or waived per deal).</div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
 
