@@ -237,11 +237,18 @@ export default function DocumentsTab({ tx }) {
           {!item.required && <span style={{ marginLeft: 6, fontSize: 10, fontWeight: 700, color: "#92400E", background: "#FEF3C7", padding: "1px 6px", borderRadius: 10 }}>OPTIONAL</span>}
           {item.custom && <span style={{ marginLeft: 6, fontSize: 10, fontWeight: 700, color: "#1A5276", background: "#D6EAF8", padding: "1px 6px", borderRadius: 10 }}>BROKER</span>}
         </div>
-        <div style={{ fontSize: 11, color: COLORS.muted, marginTop: 1 }}>
-          {item.waived
-            ? <span style={{ color: "#7A7A7A" }}>N/A — {item.waiveReason}{item.waivedBy ? ` (${item.waivedBy})` : ""}</span>
-            : <>{item.condition && item.condition !== "always" ? `Required because: ${item.condition.replace(/_/g, " ")} · ` : ""}{item.statute || ""}</>}
-        </div>
+        {item.waived ? (
+          <div style={{ fontSize: 11, color: "#7A7A7A", marginTop: 1 }}>N/A — {item.waiveReason}{item.waivedBy ? ` (${item.waivedBy})` : ""}</div>
+        ) : (
+          <>
+            {item.description && (
+              <div style={{ fontSize: 12, color: "#4B5563", marginTop: 2, lineHeight: 1.45 }}>💡 {item.description}</div>
+            )}
+            <div style={{ fontSize: 10.5, color: COLORS.muted, marginTop: 2 }}>
+              {item.condition && item.condition !== "always" ? `Applies because: ${item.condition.replace(/_/g, " ")} · ` : ""}{item.statute || ""}
+            </div>
+          </>
+        )}
       </div>
       {item.waived ? (
         <button onClick={() => unwaiveSlot(item.documentType)} disabled={!!slotUploading}
