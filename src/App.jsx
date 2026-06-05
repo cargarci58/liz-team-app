@@ -2266,6 +2266,18 @@ function MilestonesTab({ tx, token, onSummaryChange }) {
     buyer: "Buyer", seller: "Seller", hoa: "HOA",
   };
 
+  // Plain-English "how do I know this is done?" note for steps agents commonly
+  // ask about. Keyed off the system template NAME (regex), so it works statewide
+  // for every tenant. Returns null when there's nothing helpful to add.
+  const milestoneHelpText = (name) => {
+    const n = (name || "").toLowerCase();
+    if (/compliance audit|file complete/.test(n))
+      return "Mark done when the file is complete: no \"compliance gap\" alerts on this deal (every required document uploaded), all signed disclosures and the executed contract are in, and the other closing steps are done. If you're closing the file without a document you know is missing, use Waive — N/A instead.";
+    if (/thank-?you|review request/.test(n))
+      return "Mark done once you've sent your client a thank-you note and asked for a review or testimonial. This is a private reminder — it doesn't email the client automatically.";
+    return null;
+  };
+
   // Appointment-type milestones: the responsible party comes back with a concrete
   // date (and usually a clock time) — the agent records it here so the timeline +
   // reminders anchor to the real appointment. Keyed off the system template NAME,
@@ -2450,6 +2462,11 @@ function MilestonesTab({ tx, token, onSummaryChange }) {
                     <div style={{ fontSize: 11, color: "#777", marginBottom: 2 }}>
                       {m.category}{m.owner_role && OWNER_LABELS[m.owner_role] ? " · 👤 " + OWNER_LABELS[m.owner_role] : ""}
                     </div>
+                    {!isClosed && milestoneHelpText(m.name) && (
+                      <div style={{ background: "#EFF6FF", border: "1px solid #BFDBFE", borderRadius: 6, padding: "6px 9px", marginTop: 4, marginBottom: 2, fontSize: 11, lineHeight: 1.5, color: "#1E40AF" }}>
+                        💡 {milestoneHelpText(m.name)}
+                      </div>
+                    )}
                     {m.due_date && (
                       <div style={{ fontSize: 12, color: cfg.color, fontWeight: 600 }}>
                         {isWaived ? "Waived" : isCompleted ? "Completed" :
