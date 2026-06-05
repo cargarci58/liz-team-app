@@ -26,6 +26,150 @@ const EMPTY = {
   notes: ""
 };
 
+const COND_OPTIONS = [
+  ["", "Always required"],
+  ["pre1978", "Only if built before 1978"],
+  ["hoa", "Only if HOA property"],
+  ["condo", "Only if condominium"],
+  ["coastal", "Only if coastal"],
+  ["foreign_seller", "Only if foreign seller"],
+  ["fha_va", "Only if FHA/VA loan"],
+  ["seller_pays_buyer_broker", "Only if seller pays buyer broker"],
+  ["tenant_occupied", "Only if tenant-occupied"],
+  ["drywall_2001_2009", "Only if built 2001–2009"],
+  ["short_sale", "Only if short sale"],
+  ["seller_financing", "Only if seller financing"],
+  ["post_closing_occupancy", "Only if seller stays after closing"],
+  ["financed", "Only if financed"],
+  ["cash", "Only if cash"],
+  ["resale", "Only if resale"],
+];
+const condLabel = (f) => (COND_OPTIONS.find(c => c[0] === (f || ""))?.[1]) || f;
+
+// Brokerage Required-Documents checklist manager (deal-level). System items are
+// law (read-only); brokerage-added items can be added/removed and flow to every
+// transaction of the chosen side automatically.
+function RequiredDocsManager({ token }) {
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showAdd, setShowAdd] = useState(false);
+  const [label, setLabel] = useState("");
+  const [side, setSide] = useState("Listing (Seller)");
+  const [cond, setCond] = useState("");
+  const [busy, setBusy] = useState(false);
+  const h = { "Content-Type": "application/json", Authorization: "Bearer " + token };
+
+  const load = async () => {
+    setLoading(true);
+    try {
+      const r = await fetch(API + "/document-requirements/checklist-config", { headers: h });
+      const d = await r.json();
+      if (d.success) setItems(d.items || []);
+    } catch (e) { /* ignore */ }
+    setLoading(false);
+  };
+  useEffect(() => { load(); }, []);
+
+  const add = async () => {
+    if (!label.trim()) { alert("Enter the document name."); return; }
+    setBusy(true);
+    try {
+      const r = await fetch(API + "/document-requirements/custom", {
+        method: "POST", headers: h,
+        body: JSON.stringify({ label: label.trim(), side, conditionFlag: cond || null }),
+      });
+      const d = await r.json();
+      if (!r.ok || !d.success) throw new Error(d.error || "Add failed");
+      setLabel(""); setCond(""); setShowAdd(false); await load();
+    } catch (e) { alert("Add failed: " + e.message); }
+    setBusy(false);
+  };
+
+  const remove = async (it) => {
+    if (!confirm(`Remove "${it.doc_label}" as a brokerage requirement? It will stop appearing on that side's deals.`)) return;
+    try {
+      await fetch(API + "/admin/document-requirements/" + it.id, { method: "DELETE", headers: h });
+      await load();
+    } catch (e) { alert("Remove failed"); }
+  };
+
+  const SIDES = [["Listing (Seller)", "🏡 Seller-side deals"], ["Buyer Representation", "🔑 Buyer-side deals"]];
+
+  const Row = (it) => (
+    <div key={it.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 12px",
+      background: COLORS.white, border: "1px solid " + COLORS.border, borderRadius: 8, marginBottom: 6 }}>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontWeight: 600, fontSize: 13 }}>
+          {it.doc_label || it.document_type}
+          {it.is_system_default
+            ? <span style={{ marginLeft: 6, fontSize: 10, fontWeight: 700, color: "#374151", background: "#E5E7EB", padding: "1px 6px", borderRadius: 10 }}>STATE / LAW</span>
+            : <span style={{ marginLeft: 6, fontSize: 10, fontWeight: 700, color: "#1A5276", background: "#D6EAF8", padding: "1px 6px", borderRadius: 10 }}>BROKER</span>}
+        </div>
+        <div style={{ fontSize: 11, color: COLORS.gray, marginTop: 1 }}>{condLabel(it.condition_flag)}</div>
+      </div>
+      {it.is_system_default ? (
+        <span style={{ fontSize: 11, color: COLORS.gray, fontStyle: "italic", flexShrink: 0 }}>required by law</span>
+      ) : (
+        <button onClick={() => remove(it)}
+          style={{ flexShrink: 0, padding: "5px 10px", borderRadius: 6, border: "1px solid " + COLORS.dangerBorder, background: COLORS.white, color: COLORS.danger, fontSize: 11, fontWeight: 700, cursor: "pointer" }}>
+          ✕ Remove
+        </button>
+      )}
+    </div>
+  );
+
+  return (
+    <div style={{ background: "#F8FAFC", border: "1px solid " + COLORS.border, borderRadius: 14, padding: 18, marginBottom: 24 }}>
+      <div style={{ fontSize: 18, fontWeight: 800, color: COLORS.black, marginBottom: 4 }}>📋 Required Documents Checklist (per deal)</div>
+      <div style={{ fontSize: 13, color: COLORS.gray, marginBottom: 14, lineHeight: 1.5 }}>
+        What every transaction must have to be compliant. <b>STATE / LAW</b> items are fixed. Add your brokerage's own
+        required documents below — they apply to <b>every deal</b> of that side automatically, and agents upload or waive them per deal.
+      </div>
+      {loading ? <div style={{ color: COLORS.gray, padding: 12 }}>Loading…</div> : SIDES.map(([sv, slabel]) => {
+        const group = items.filter(i => i.transaction_type === sv);
+        return (
+          <div key={sv} style={{ marginBottom: 16 }}>
+            <div style={{ fontWeight: 800, fontSize: 13, color: COLORS.black, margin: "4px 0 8px" }}>{slabel}</div>
+            {group.length === 0 ? <div style={{ fontSize: 12, color: COLORS.gray }}>None.</div> : group.map(Row)}
+          </div>
+        );
+      })}
+      {!showAdd ? (
+        <button onClick={() => setShowAdd(true)}
+          style={{ background: COLORS.success, border: "none", borderRadius: 8, padding: "9px 16px", fontSize: 13, fontWeight: 700, color: "#fff", cursor: "pointer" }}>
+          ➕ Add a brokerage-required document
+        </button>
+      ) : (
+        <div style={{ background: COLORS.white, border: "1px solid " + COLORS.border, borderRadius: 10, padding: 14 }}>
+          <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 10 }}>Add a document your brokerage requires</div>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+            <input value={label} onChange={e => setLabel(e.target.value)} placeholder="Name (e.g. Buyer's Broker's Disclosure)"
+              style={{ flex: "2 1 240px", padding: "9px 10px", borderRadius: 7, border: "1px solid " + COLORS.border, fontSize: 13 }} />
+            <select value={side} onChange={e => setSide(e.target.value)}
+              style={{ padding: "9px 10px", borderRadius: 7, border: "1px solid " + COLORS.border, fontSize: 13 }}>
+              <option value="Listing (Seller)">Seller-side deals</option>
+              <option value="Buyer Representation">Buyer-side deals</option>
+              <option value="both">All deals (both sides)</option>
+            </select>
+            <select value={cond} onChange={e => setCond(e.target.value)}
+              style={{ padding: "9px 10px", borderRadius: 7, border: "1px solid " + COLORS.border, fontSize: 13 }}>
+              {COND_OPTIONS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+            </select>
+            <button onClick={add} disabled={busy}
+              style={{ padding: "9px 16px", borderRadius: 7, border: "none", background: COLORS.success, color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
+              {busy ? "Adding…" : "Add"}
+            </button>
+            <button onClick={() => { setShowAdd(false); setLabel(""); setCond(""); }}
+              style={{ padding: "9px 12px", borderRadius: 7, border: "1px solid " + COLORS.border, background: COLORS.white, color: COLORS.gray, fontSize: 13, cursor: "pointer" }}>
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function ComplianceAdmin({ token, user }) {
   const [requirements, setRequirements] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -215,13 +359,16 @@ export default function ComplianceAdmin({ token, user }) {
 
   return (
     <div style={{ maxWidth: 900, margin: "0 auto", padding: "16px 16px 80px" }}>
+      {/* Brokerage Required-Documents checklist manager (the per-deal list) */}
+      <RequiredDocsManager token={token} />
+
       <div style={{ marginBottom: 20 }}>
-        <div style={{ fontSize: 22, fontWeight: 800, color: COLORS.black, marginBottom: 4 }}>
-          📋 Compliance Document Requirements
+        <div style={{ fontSize: 18, fontWeight: 800, color: COLORS.black, marginBottom: 4 }}>
+          ⚙️ Advanced: milestone-linked document rules
         </div>
         <div style={{ fontSize: 13, color: COLORS.gray, lineHeight: 1.5 }}>
-          Manage the documents required for each milestone. Changes apply to all new transactions immediately.
-          Items marked "needs review" are seed data from initial setup and should be verified by a licensed attorney before production use.
+          These tie a required document to a specific milestone step (e.g. "EMD Receipt" on the earnest-money milestone).
+          Most brokerages won't need to touch this — the per-deal checklist above is the main control.
         </div>
       </div>
 
