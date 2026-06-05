@@ -77,6 +77,33 @@ export default function DocumentsTab({ tx }) {
     } finally { setSlotUploading(null); e.target.value = ""; }
   };
 
+  // Mark a required document as Not Applicable for this deal, with a reason on record.
+  const waiveSlot = async (documentType, label) => {
+    const reason = window.prompt(`Mark "${label}" as Not Applicable for this deal.\n\nReason (required) — e.g. "Transaction broker — no disclosure needed":`, "");
+    if (reason == null) return;            // cancelled
+    if (!reason.trim()) { alert("A reason is required to waive a document."); return; }
+    setSlotUploading(documentType);
+    try {
+      const res = await fetch(`${API}/transactions/${tx.id}/doc-waiver`, {
+        method: "POST", headers,
+        body: JSON.stringify({ documentType, reason: reason.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || "Waive failed");
+      await loadRequired();
+    } catch (err) { alert("Waive failed: " + err.message); }
+    finally { setSlotUploading(null); }
+  };
+
+  const unwaiveSlot = async (documentType) => {
+    setSlotUploading(documentType);
+    try {
+      await fetch(`${API}/transactions/${tx.id}/doc-waiver/${encodeURIComponent(documentType)}`, { method: "DELETE", headers });
+      await loadRequired();
+    } catch (err) { alert("Undo failed: " + err.message); }
+    finally { setSlotUploading(null); }
+  };
+
   // Point an already-uploaded document at a checklist slot (no re-upload).
   const assignExisting = async (documentType, docId) => {
     if (!docId) return;
@@ -196,23 +223,32 @@ export default function DocumentsTab({ tx }) {
     ? Math.round((reqSummary.requiredPresent / reqSummary.requiredTotal) * 100) : 100;
   const allIn = reqSummary && reqSummary.requiredMissing === 0;
 
-  const ChecklistRow = (item) => (
+  const ChecklistRow = (item) => {
+    const border = item.waived ? "#D5D5D5" : (item.present ? "#A7E0BE" : "#EEDD9E");
+    const icon = item.waived ? "⊘" : (item.present ? "✅" : (item.required ? "⬜" : "▫️"));
+    return (
     <div key={item.documentType} style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 12px",
-      background: "#fff", border: "1px solid " + (item.present ? "#A7E0BE" : "#EEDD9E"),
-      borderRadius: 8, marginBottom: 6 }}>
-      <div style={{ fontSize: 16, flexShrink: 0 }}>{item.present ? "✅" : (item.required ? "⬜" : "▫️")}</div>
+      background: item.waived ? "#FAFAFA" : "#fff", border: "1px solid " + border,
+      borderRadius: 8, marginBottom: 6, opacity: item.waived ? 0.85 : 1 }}>
+      <div style={{ fontSize: 16, flexShrink: 0 }}>{icon}</div>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontWeight: 600, fontSize: 13, color: COLORS.text }}>
+        <div style={{ fontWeight: 600, fontSize: 13, color: COLORS.text, textDecoration: item.waived ? "line-through" : "none" }}>
           {item.label}
           {!item.required && <span style={{ marginLeft: 6, fontSize: 10, fontWeight: 700, color: "#92400E", background: "#FEF3C7", padding: "1px 6px", borderRadius: 10 }}>OPTIONAL</span>}
           {item.custom && <span style={{ marginLeft: 6, fontSize: 10, fontWeight: 700, color: "#1A5276", background: "#D6EAF8", padding: "1px 6px", borderRadius: 10 }}>BROKER</span>}
         </div>
         <div style={{ fontSize: 11, color: COLORS.muted, marginTop: 1 }}>
-          {item.condition && item.condition !== "always" ? `Required because: ${item.condition.replace(/_/g, " ")} · ` : ""}
-          {item.statute || ""}
+          {item.waived
+            ? <span style={{ color: "#7A7A7A" }}>N/A — {item.waiveReason}{item.waivedBy ? ` (${item.waivedBy})` : ""}</span>
+            : <>{item.condition && item.condition !== "always" ? `Required because: ${item.condition.replace(/_/g, " ")} · ` : ""}{item.statute || ""}</>}
         </div>
       </div>
-      {item.present ? (
+      {item.waived ? (
+        <button onClick={() => unwaiveSlot(item.documentType)} disabled={!!slotUploading}
+          style={{ flexShrink: 0, padding: "5px 12px", borderRadius: 7, border: "1px solid #CCC", background: "#fff", color: COLORS.muted, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
+          ↩ Undo N/A
+        </button>
+      ) : item.present ? (
         <div style={{ display: "flex", flexDirection: "column", gap: 4, flexShrink: 0, alignItems: "flex-end", maxWidth: 230 }}>
           {(item.documents || []).map(d => (
             <div key={d.id} style={{ display: "flex", alignItems: "center", gap: 6, justifyContent: "flex-end" }}>
@@ -230,7 +266,7 @@ export default function DocumentsTab({ tx }) {
             <select value="" disabled={!!slotUploading}
               onChange={(e) => assignExisting(item.documentType, e.target.value)}
               title="Use a document you've already uploaded"
-              style={{ padding: "5px 8px", borderRadius: 7, border: "1px solid #CCC", fontSize: 12, fontFamily: "inherit", maxWidth: 170, background: "#fff", cursor: "pointer" }}>
+              style={{ padding: "5px 8px", borderRadius: 7, border: "1px solid #CCC", fontSize: 12, fontFamily: "inherit", maxWidth: 150, background: "#fff", cursor: "pointer" }}>
               <option value="">Use existing…</option>
               {docs.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
             </select>
@@ -242,10 +278,15 @@ export default function DocumentsTab({ tx }) {
               accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg,.gif,.txt"
               onChange={(e) => handleSlotUpload(item.documentType, item.label, e)} />
           </label>
+          <button onClick={() => waiveSlot(item.documentType, item.label)} disabled={!!slotUploading} title="Not applicable to this deal"
+            style={{ padding: "5px 10px", borderRadius: 7, border: "1px solid #CCC", background: "#fff", color: COLORS.muted, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
+            ⊘ N/A
+          </button>
         </div>
       )}
     </div>
-  );
+    );
+  };
 
   return (
     <div style={{ padding: 24 }}>
