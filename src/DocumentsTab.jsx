@@ -213,7 +213,17 @@ export default function DocumentsTab({ tx }) {
         </div>
       </div>
       {item.present ? (
-        <span style={{ fontSize: 11, fontWeight: 700, color: "#1E8449", flexShrink: 0 }}>On file</span>
+        <div style={{ display: "flex", flexDirection: "column", gap: 4, flexShrink: 0, alignItems: "flex-end", maxWidth: 230 }}>
+          {(item.documents || []).map(d => (
+            <div key={d.id} style={{ display: "flex", alignItems: "center", gap: 6, justifyContent: "flex-end" }}>
+              <span title={d.name} style={{ fontSize: 11, color: "#1E8449", fontWeight: 600, maxWidth: 150, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>📄 {d.name}</span>
+              <button onClick={() => openPreview({ id: d.id, name: d.name, mime_type: d.mimeType })}
+                style={{ padding: "3px 8px", borderRadius: 6, border: "1px solid #A7E0BE", background: "#fff", color: "#1E8449", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>
+                👁 View
+              </button>
+            </div>
+          ))}
+        </div>
       ) : (
         <div style={{ display: "flex", gap: 6, flexShrink: 0, alignItems: "center", flexWrap: "wrap", justifyContent: "flex-end" }}>
           {docs.length > 0 && (
