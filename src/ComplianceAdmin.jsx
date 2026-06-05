@@ -46,6 +46,92 @@ const COND_OPTIONS = [
 ];
 const condLabel = (f) => (COND_OPTIONS.find(c => c[0] === (f || ""))?.[1]) || f;
 
+// Module-level so it doesn't remount on every keystroke (that dropped input focus).
+function Field({ label, children }) {
+  return (
+    <div style={{ marginBottom: 10 }}>
+      <div style={{ fontSize: 11, fontWeight: 700, color: COLORS.gray, marginBottom: 4, letterSpacing: 0.5 }}>{label}</div>
+      {children}
+    </div>
+  );
+}
+
+function EditorForm({ form, setForm, onSave, onCancel, isNew }) {
+  const input = (key, placeholder) => (
+    <input type="text" value={form[key] ?? ""} placeholder={placeholder}
+      onChange={e => setForm({ ...form, [key]: e.target.value })}
+      style={{ width: "100%", padding: 8, borderRadius: 6, border: "1px solid " + COLORS.border, fontSize: 13, boxSizing: "border-box" }} />
+  );
+  const textarea = (key, placeholder) => (
+    <textarea value={form[key] ?? ""} placeholder={placeholder}
+      onChange={e => setForm({ ...form, [key]: e.target.value })}
+      style={{ width: "100%", padding: 8, borderRadius: 6, border: "1px solid " + COLORS.border, fontSize: 13, minHeight: 60, boxSizing: "border-box", fontFamily: "inherit" }} />
+  );
+  return (
+    <div style={{ background: COLORS.white, borderRadius: 12, padding: 16, marginBottom: 12, border: "2px solid " + COLORS.red }}>
+      <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 12 }}>
+        {isNew ? "➕ New Document Requirement" : "✏️ Edit Requirement"}
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+        <Field label="STATE (blank = all states)">{input("state", "FL")}</Field>
+        <Field label="TRANSACTION TYPE (blank = all)">{input("transaction_type", "Listing (Seller) or blank")}</Field>
+      </div>
+      <Field label="MILESTONE NAME PATTERN (keywords to match, lowercase)">
+        {input("milestone_name_pattern", "e.g. earnest money, inspection period")}
+      </Field>
+      <Field label="DOCUMENT TYPE (name shown to agent)">
+        {input("document_type", "e.g. EMD Receipt")}
+      </Field>
+      <Field label="DESCRIPTION (what the document is)">
+        {textarea("description", "Receipt from escrow confirming EMD was deposited...")}
+      </Field>
+      <Field label="LEGAL CONSEQUENCE (why it matters)">
+        {textarea("legal_consequence", "What happens if this is missed?")}
+      </Field>
+      <Field label="STATUTE REFERENCE">
+        {input("statute_reference", "e.g. FS 689.302 or FAR/BAR Section 2")}
+      </Field>
+      <div style={{ display: "flex", gap: 16, marginBottom: 10, flexWrap: "wrap" }}>
+        <label style={{ fontSize: 13 }}>
+          <input type="checkbox" checked={form.is_required}
+            onChange={e => setForm({ ...form, is_required: e.target.checked })} /> Required
+        </label>
+        <label style={{ fontSize: 13 }}>
+          <input type="checkbox" checked={form.is_conditional}
+            onChange={e => setForm({ ...form, is_conditional: e.target.checked })} /> Conditional
+        </label>
+        <label style={{ fontSize: 13 }}>
+          <input type="checkbox" checked={form.active}
+            onChange={e => setForm({ ...form, active: e.target.checked })} /> Active
+        </label>
+      </div>
+      {form.is_conditional && (
+        <Field label="WHEN DOES THIS APPLY?">
+          {input("conditional_logic", "e.g. Homes built before 1978")}
+        </Field>
+      )}
+      <Field label="PRIORITY (lower number = checked first)">
+        <input type="number" value={form.priority}
+          onChange={e => setForm({ ...form, priority: parseInt(e.target.value) || 100 })}
+          style={{ width: 100, padding: 8, borderRadius: 6, border: "1px solid " + COLORS.border, fontSize: 13 }} />
+      </Field>
+      <Field label="INTERNAL NOTES">{input("notes", "Notes for admins only")}</Field>
+      <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
+        <button onClick={onCancel}
+          style={{ flex: 1, padding: 11, borderRadius: 8, border: "1.5px solid " + COLORS.border,
+            background: COLORS.white, color: COLORS.gray, fontWeight: 600, fontSize: 14, cursor: "pointer" }}>
+          Cancel
+        </button>
+        <button onClick={onSave}
+          style={{ flex: 2, padding: 11, borderRadius: 8, border: "none",
+            background: COLORS.red, color: COLORS.white, fontWeight: 700, fontSize: 14, cursor: "pointer" }}>
+          {isNew ? "Create" : "Save Changes"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // Brokerage Required-Documents checklist manager (deal-level). System items are
 // law (read-only); brokerage-added items can be added/removed and flow to every
 // transaction of the chosen side automatically.
@@ -276,87 +362,6 @@ export default function ComplianceAdmin({ token, user }) {
 
   if (loading) return <div style={{ padding: 32, textAlign: "center", color: COLORS.gray }}>Loading...</div>;
 
-  const Field = ({ label, children }) => (
-    <div style={{ marginBottom: 10 }}>
-      <div style={{ fontSize: 11, fontWeight: 700, color: COLORS.gray, marginBottom: 4, letterSpacing: 0.5 }}>{label}</div>
-      {children}
-    </div>
-  );
-  const input = (key, placeholder) => (
-    <input type="text" value={form[key]} placeholder={placeholder}
-      onChange={e => setForm({ ...form, [key]: e.target.value })}
-      style={{ width: "100%", padding: 8, borderRadius: 6, border: "1px solid " + COLORS.border, fontSize: 13, boxSizing: "border-box" }} />
-  );
-  const textarea = (key, placeholder) => (
-    <textarea value={form[key]} placeholder={placeholder}
-      onChange={e => setForm({ ...form, [key]: e.target.value })}
-      style={{ width: "100%", padding: 8, borderRadius: 6, border: "1px solid " + COLORS.border, fontSize: 13, minHeight: 60, boxSizing: "border-box", fontFamily: "inherit" }} />
-  );
-
-  const EditorForm = ({ onSave, onCancel, isNew }) => (
-    <div style={{ background: COLORS.white, borderRadius: 12, padding: 16, marginBottom: 12, border: "2px solid " + COLORS.red }}>
-      <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 12 }}>
-        {isNew ? "➕ New Document Requirement" : "✏️ Edit Requirement"}
-      </div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-        <Field label="STATE (blank = all states)">{input("state", "FL")}</Field>
-        <Field label="TRANSACTION TYPE (blank = all)">{input("transaction_type", "Listing (Seller) or blank")}</Field>
-      </div>
-      <Field label="MILESTONE NAME PATTERN (keywords to match, lowercase)">
-        {input("milestone_name_pattern", "e.g. earnest money, inspection period")}
-      </Field>
-      <Field label="DOCUMENT TYPE (name shown to agent)">
-        {input("document_type", "e.g. EMD Receipt")}
-      </Field>
-      <Field label="DESCRIPTION (what the document is)">
-        {textarea("description", "Receipt from escrow confirming EMD was deposited...")}
-      </Field>
-      <Field label="LEGAL CONSEQUENCE (why it matters)">
-        {textarea("legal_consequence", "What happens if this is missed?")}
-      </Field>
-      <Field label="STATUTE REFERENCE">
-        {input("statute_reference", "e.g. FS 689.302 or FAR/BAR Section 2")}
-      </Field>
-      <div style={{ display: "flex", gap: 16, marginBottom: 10, flexWrap: "wrap" }}>
-        <label style={{ fontSize: 13 }}>
-          <input type="checkbox" checked={form.is_required}
-            onChange={e => setForm({ ...form, is_required: e.target.checked })} /> Required
-        </label>
-        <label style={{ fontSize: 13 }}>
-          <input type="checkbox" checked={form.is_conditional}
-            onChange={e => setForm({ ...form, is_conditional: e.target.checked })} /> Conditional
-        </label>
-        <label style={{ fontSize: 13 }}>
-          <input type="checkbox" checked={form.active}
-            onChange={e => setForm({ ...form, active: e.target.checked })} /> Active
-        </label>
-      </div>
-      {form.is_conditional && (
-        <Field label="WHEN DOES THIS APPLY?">
-          {input("conditional_logic", "e.g. Homes built before 1978")}
-        </Field>
-      )}
-      <Field label="PRIORITY (lower number = checked first)">
-        <input type="number" value={form.priority}
-          onChange={e => setForm({ ...form, priority: parseInt(e.target.value) || 100 })}
-          style={{ width: 100, padding: 8, borderRadius: 6, border: "1px solid " + COLORS.border, fontSize: 13 }} />
-      </Field>
-      <Field label="INTERNAL NOTES">{input("notes", "Notes for admins only")}</Field>
-      <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
-        <button onClick={onCancel}
-          style={{ flex: 1, padding: 11, borderRadius: 8, border: "1.5px solid " + COLORS.border,
-            background: COLORS.white, color: COLORS.gray, fontWeight: 600, fontSize: 14, cursor: "pointer" }}>
-          Cancel
-        </button>
-        <button onClick={onSave}
-          style={{ flex: 2, padding: 11, borderRadius: 8, border: "none",
-            background: COLORS.red, color: COLORS.white, fontWeight: 700, fontSize: 14, cursor: "pointer" }}>
-          {isNew ? "Create" : "Save Changes"}
-        </button>
-      </div>
-    </div>
-  );
-
   return (
     <div style={{ maxWidth: 900, margin: "0 auto", padding: "16px 16px 80px" }}>
       {/* Brokerage Required-Documents checklist manager (the per-deal list) */}
@@ -406,12 +411,12 @@ export default function ComplianceAdmin({ token, user }) {
         </button>
       </div>
 
-      {showCreate && <EditorForm onSave={saveCreate} onCancel={cancelCreate} isNew />}
+      {showCreate && <EditorForm form={form} setForm={setForm} onSave={saveCreate} onCancel={cancelCreate} isNew />}
 
       {filtered.map(req => (
         <div key={req.id}>
           {editingId === req.id ? (
-            <EditorForm onSave={saveEdit} onCancel={cancelEdit} />
+            <EditorForm form={form} setForm={setForm} onSave={saveEdit} onCancel={cancelEdit} />
           ) : (
             <div style={{ background: COLORS.white, borderRadius: 12, padding: 14, marginBottom: 10,
               boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
