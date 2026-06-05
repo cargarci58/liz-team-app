@@ -4826,11 +4826,23 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
               <div style={{ marginBottom: 14 }}><div style={{ fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", marginBottom: 6 }}>Address</div><input value={editTxForm.address || ""} onChange={e => setEditTxForm(f => ({ ...f, address: e.target.value }))} placeholder="123 Main St" style={{ width: "100%", padding: "10px 14px", borderRadius: 8, border: "1.5px solid #CCC", fontSize: 15, fontFamily: "inherit", boxSizing: "border-box" }} /></div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 14 }}><div><div style={{ fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", marginBottom: 6 }}>City</div><input value={editTxForm.city || ""} onChange={e => setEditTxForm(f => ({ ...f, city: e.target.value }))} placeholder="Orlando" style={{ width: "100%", padding: "10px 14px", borderRadius: 8, border: "1.5px solid #CCC", fontSize: 15, fontFamily: "inherit", boxSizing: "border-box" }} /></div><div><div style={{ fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", marginBottom: 6 }}>ZIP</div><input value={editTxForm.zipCode || ""} onChange={e => setEditTxForm(f => ({ ...f, zipCode: e.target.value }))} placeholder="32801" style={{ width: "100%", padding: "10px 14px", borderRadius: 8, border: "1.5px solid #CCC", fontSize: 15, fontFamily: "inherit", boxSizing: "border-box" }} /></div></div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 14 }}><div><div style={{ fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", marginBottom: 6 }}>County</div><select value={editTxForm.county || ""} onChange={e => setEditTxForm(f => ({ ...f, county: e.target.value }))} style={{ width: "100%", padding: "10px 14px", borderRadius: 8, border: "1.5px solid #CCC", fontSize: 15, fontFamily: "inherit" }}>{["Orange","Osceola","Seminole","Polk","Lake","Volusia","Other"].map(c => <option key={c}>{c}</option>)}</select></div><div><div style={{ fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", marginBottom: 6 }}>Property Type</div><select value={editTxForm.propertyType || ""} onChange={e => setEditTxForm(f => ({ ...f, propertyType: e.target.value }))} style={{ width: "100%", padding: "10px 14px", borderRadius: 8, border: "1.5px solid #CCC", fontSize: 15, fontFamily: "inherit" }}>{["Single Family","Townhouse","Condominium","Villa","Multi-Family","Land"].map(t => <option key={t}>{t}</option>)}</select></div></div>
-              <div style={{ marginBottom: 14 }}>
-                <div style={{ fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", marginBottom: 6 }}>Year Built <span style={{ color: "#C0392B" }}>*</span></div>
-                <input type="number" value={editTxForm.yearBuilt || ""} onChange={e => setEditTxForm(f => ({ ...f, yearBuilt: e.target.value }))} placeholder="e.g. 1998"
-                  style={{ width: "100%", padding: "10px 14px", borderRadius: 8, border: "1.5px solid " + (editTxForm.yearBuilt ? "#CCC" : "#E5A5A5"), fontSize: 15, fontFamily: "inherit", boxSizing: "border-box" }} />
-                <div style={{ fontSize: 11, color: "#888", marginTop: 4 }}>Required — determines which disclosures apply (e.g. lead-based paint on pre-1978 homes).</div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 14 }}>
+                <div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", marginBottom: 6 }}>Year Built <span style={{ color: "#C0392B" }}>*</span></div>
+                  <input type="number" value={editTxForm.yearBuilt || ""} onChange={e => setEditTxForm(f => ({ ...f, yearBuilt: e.target.value }))} placeholder="e.g. 1998"
+                    style={{ width: "100%", padding: "10px 14px", borderRadius: 8, border: "1.5px solid " + (editTxForm.yearBuilt ? "#CCC" : "#E5A5A5"), fontSize: 15, fontFamily: "inherit", boxSizing: "border-box" }} />
+                  <div style={{ fontSize: 11, color: "#888", marginTop: 4 }}>Sets which disclosures apply (e.g. lead-based paint on pre-1978 homes).</div>
+                </div>
+                <div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", marginBottom: 6 }}>In an HOA / condo association? <span style={{ color: "#C0392B" }}>*</span></div>
+                  <select value={editTxForm.inHoa || ""} onChange={e => setEditTxForm(f => ({ ...f, inHoa: e.target.value }))}
+                    style={{ width: "100%", padding: "10px 14px", borderRadius: 8, border: "1.5px solid " + (editTxForm.inHoa ? "#CCC" : "#E5A5A5"), fontSize: 15, fontFamily: "inherit", boxSizing: "border-box" }}>
+                    <option value="">—</option>
+                    <option value="yes">Yes</option>
+                    <option value="no">No</option>
+                  </select>
+                  <div style={{ fontSize: 11, color: "#888", marginTop: 4 }}>Adds the HOA disclosure when Yes.</div>
+                </div>
               </div>
               <div style={{ marginBottom: 14 }}><div style={{ fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", marginBottom: 6 }}>Construction Type</div><select value={editTxForm.constructionType || "Resale"} onChange={e => setEditTxForm(f => ({ ...f, constructionType: e.target.value }))} style={{ width: "100%", padding: "10px 14px", borderRadius: 8, border: "1.5px solid #CCC", fontSize: 15, fontFamily: "inherit" }}>{["Resale","New Construction","Vacant Land","Commercial"].map(t => <option key={t}>{t}</option>)}</select></div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 14 }}><div><div style={{ fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", marginBottom: 6 }}>Transaction Type</div><select value={editTxForm.type || ""} onChange={e => setEditTxForm(f => ({ ...f, type: e.target.value }))} style={{ width: "100%", padding: "10px 14px", borderRadius: 8, border: "1.5px solid #CCC", fontSize: 15, fontFamily: "inherit" }}>{["Listing (Seller)","Buyer Representation","Dual Agency"].map(t => <option key={t}>{t}</option>)}</select></div><div><div style={{ fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", marginBottom: 6 }}>List Price ($)</div><input type="number" value={editTxForm.listPrice || ""} onChange={e => setEditTxForm(f => ({ ...f, listPrice: e.target.value }))} placeholder="450000" style={{ width: "100%", padding: "10px 14px", borderRadius: 8, border: "1.5px solid #CCC", fontSize: 15, fontFamily: "inherit", boxSizing: "border-box" }} /></div></div>
@@ -4990,6 +5002,10 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
                     alert("Please enter the Year Built (a valid 4-digit year). It's required to determine which disclosures this deal needs — for example, lead-based paint applies only to homes built before 1978.");
                     return;
                   }
+                  if (!isProspect && !editTxForm.inHoa) {
+                    alert("Please answer whether the property is in an HOA or condo association. It determines whether the HOA disclosure is required.");
+                    return;
+                  }
                   // The form is pre-filled from the tx via buildEditTxForm, so an empty
                   // value means the user intentionally cleared the field. Merge directly
                   // and let empty strings through — otherwise clearing a field silently
@@ -5063,6 +5079,7 @@ function NewTransactionForm({ onSave, onCancel }) {
     if (!form.address || !form.city || !form.assignedAgent || !form.referralSource || !form.occupancyStatus) { alert("Please fill all required fields: Address, City, Assigned Agent, Referral Source, and Occupancy Status."); return; }
     const ybNum = parseInt(form.yearBuilt, 10);
     if (!form.yearBuilt || !Number.isFinite(ybNum) || ybNum < 1800 || ybNum > 2100) { alert("Please enter the Year Built (a valid 4-digit year). It's required to determine which disclosures this deal needs — for example, lead-based paint applies only to homes built before 1978."); return; }
+    if (!form.inHoa) { alert("Please answer whether the property is in an HOA or condo association — it determines whether the HOA disclosure is required."); return; }
     const contractDate = form.executedDate || form.openDate;
     const tasks = useFLTemplates ? taskTemplates.filter(t => t.phase === "active").map(t => ({ id: genId(), name: t.task_name, category: t.category, assignTo: t.default_assignee_role, dueDate: null, status: "Pending", notes: "", phase: "active" })) : [];
     const tok = localStorage.getItem("tp_token") || "";
@@ -5118,8 +5135,8 @@ function NewTransactionForm({ onSave, onCancel }) {
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}><Input label="Zip Code" value={form.zipCode} onChange={f("zipCode")} /><Input label="MLS Number" value={form.mlsNumber} onChange={f("mlsNumber")} placeholder="O6..." /></div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}><Input label="Transaction Type" value={form.type} onChange={f("type")} options={TRANSACTION_TYPES} /><Input label="Property Type" value={form.propertyType} onChange={f("propertyType")} options={PROPERTY_TYPES} /></div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}><Input label="Construction Type" value={form.constructionType} onChange={f("constructionType")} options={["Resale","New Construction","Vacant Land","Commercial"]} /><Input label="Occupancy Status" value={form.occupancyStatus} onChange={f("occupancyStatus")} options={OCCUPANCY_OPTIONS} required /></div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}><Input label="Year Built" value={form.yearBuilt} onChange={f("yearBuilt")} type="number" placeholder="e.g. 1998" required /><div /></div>
-          <div style={{ fontSize: 11, color: COLORS.muted, marginTop: -8 }}>Required — sets which disclosures apply (e.g. lead-based paint on pre-1978 homes).</div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}><Input label="Year Built" value={form.yearBuilt} onChange={f("yearBuilt")} type="number" placeholder="e.g. 1998" required /><Input label="In an HOA / Condo Association?" value={form.inHoa} onChange={f("inHoa")} options={["", "Yes", "No"]} required /></div>
+          <div style={{ fontSize: 11, color: COLORS.muted, marginTop: -8 }}>Required — set which disclosures apply (lead-based paint on pre-1978 homes; HOA disclosure when in an association).</div>
         </div>
         <div style={{ background: "#fff", border: `1px solid ${COLORS.border}`, borderRadius: 14, padding: 28, marginBottom: 20 }}>
           <h3 style={{ margin: "0 0 20px", fontSize: 15, color: COLORS.navy, fontWeight: 700 }}>Pricing & Dates</h3>
@@ -5163,7 +5180,7 @@ function NewTransactionForm({ onSave, onCancel }) {
         <Input label="Notes" value={form.notes} onChange={f("notes")} type="textarea" />
         <div style={{ display: "flex", gap: 12, justifyContent: "flex-end" }}>
           <Btn variant="secondary" onClick={onCancel}>Cancel</Btn>
-          <Btn onClick={handleSave} disabled={!form.address || !form.city || !form.assignedAgent || !form.referralSource || !form.occupancyStatus || !form.yearBuilt}>Create Transaction</Btn>
+          <Btn onClick={handleSave} disabled={!form.address || !form.city || !form.assignedAgent || !form.referralSource || !form.occupancyStatus || !form.yearBuilt || !form.inHoa}>Create Transaction</Btn>
         </div>
       </div>
     </div>
@@ -5688,6 +5705,7 @@ function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenCon
     floodZone: t.flood_zone || "",
     sellerIsForeign: t.seller_is_foreign || false,
     isCoastal: t.is_coastal || false,
+    inHoa: t.in_hoa === true ? "yes" : t.in_hoa === false ? "no" : "",
     financingType: t.financing_type || "",
     sellerPaysBuyerBroker: t.seller_pays_buyer_broker || false,
     isShortSale: t.is_short_sale || false,
@@ -6574,6 +6592,7 @@ function MainApp({ onLogout, currentUser }) {
             floodZone: t.flood_zone || "",
     sellerIsForeign: t.seller_is_foreign || false,
     isCoastal: t.is_coastal || false,
+    inHoa: t.in_hoa === true ? "yes" : t.in_hoa === false ? "no" : "",
     financingType: t.financing_type || "",
     sellerPaysBuyerBroker: t.seller_pays_buyer_broker || false,
     isShortSale: t.is_short_sale || false,
@@ -6669,7 +6688,7 @@ function MainApp({ onLogout, currentUser }) {
     const freshH = { "Content-Type": "application/json", "Authorization": "Bearer " + freshTok };
     const rollback = () => { if (previous) setTransactions(txs => txs.map(t => t.id === updated.id ? previous : t)); };
     try {
-      const r = await fetch(API + "/transactions/" + updated.id, { method: "PUT", headers: freshH, body: JSON.stringify({ address: updated.address, city: updated.city, state: updated.state, zipCode: updated.zipCode, county: updated.county, mlsNumber: updated.mlsNumber, propertyType: updated.propertyType, type: updated.type, status: updated.status, listPrice: updated.listPrice, contractPrice: updated.contractPrice, openDate: updated.openDate, closingDate: updated.closingDate, executedDate: updated.executedDate, notes: updated.notes, propertyAccess: updated.propertyAccess, commissionListing: updated.commissionListing, commissionBuyer: updated.commissionBuyer, transactionFee: updated.transactionFee, brokerageSplit: updated.brokerageSplit, officeFlatFee: updated.officeFlatFee, mailAway: updated.mailAway, commissionNotes: updated.commissionNotes, referralSource: updated.referralSource, assignedAgent: updated.assignedAgentId, occupancyStatus: updated.occupancyStatus, earnestMoneyAmount: updated.earnestMoneyAmount, emdDeadline: updated.emdDeadline, inspectionPeriodDays: updated.inspectionPeriodDays, inspectionPeriodEnd: updated.inspectionPeriodEnd, financingContingency: updated.financingContingency, financingContingencyDays: updated.financingContingencyDays, appraisalContingency: updated.appraisalContingency, appraisalContingencyDays: updated.appraisalContingencyDays, hoaApprovalRequired: updated.hoaApprovalRequired, hoaApprovalDays: updated.hoaApprovalDays, surveyRequired: updated.surveyRequired, isCash: updated.isCash, yearBuilt: updated.yearBuilt, floodZone: updated.floodZone, sellerIsForeign: updated.sellerIsForeign, isCoastal: updated.isCoastal, financingType: updated.financingType, sellerPaysBuyerBroker: updated.sellerPaysBuyerBroker, isShortSale: updated.isShortSale, hasSellerFinancing: updated.hasSellerFinancing, sellerPostClosingOccupancy: updated.sellerPostClosingOccupancy, representationExpiresOn: updated.representationExpiresOn, contractFormType: updated.contractFormType, additionalTerms: updated.additionalTerms, internalNotes: updated.messages || [], smsThreads: updated.smsThreads || {}, parties: updated.parties || [], tasks: updated.tasks || [], reminders: updated.reminders || [] }) });
+      const r = await fetch(API + "/transactions/" + updated.id, { method: "PUT", headers: freshH, body: JSON.stringify({ address: updated.address, city: updated.city, state: updated.state, zipCode: updated.zipCode, county: updated.county, mlsNumber: updated.mlsNumber, propertyType: updated.propertyType, type: updated.type, status: updated.status, listPrice: updated.listPrice, contractPrice: updated.contractPrice, openDate: updated.openDate, closingDate: updated.closingDate, executedDate: updated.executedDate, notes: updated.notes, propertyAccess: updated.propertyAccess, commissionListing: updated.commissionListing, commissionBuyer: updated.commissionBuyer, transactionFee: updated.transactionFee, brokerageSplit: updated.brokerageSplit, officeFlatFee: updated.officeFlatFee, mailAway: updated.mailAway, commissionNotes: updated.commissionNotes, referralSource: updated.referralSource, assignedAgent: updated.assignedAgentId, occupancyStatus: updated.occupancyStatus, earnestMoneyAmount: updated.earnestMoneyAmount, emdDeadline: updated.emdDeadline, inspectionPeriodDays: updated.inspectionPeriodDays, inspectionPeriodEnd: updated.inspectionPeriodEnd, financingContingency: updated.financingContingency, financingContingencyDays: updated.financingContingencyDays, appraisalContingency: updated.appraisalContingency, appraisalContingencyDays: updated.appraisalContingencyDays, hoaApprovalRequired: updated.hoaApprovalRequired, hoaApprovalDays: updated.hoaApprovalDays, surveyRequired: updated.surveyRequired, isCash: updated.isCash, yearBuilt: updated.yearBuilt, inHoa: updated.inHoa, floodZone: updated.floodZone, sellerIsForeign: updated.sellerIsForeign, isCoastal: updated.isCoastal, financingType: updated.financingType, sellerPaysBuyerBroker: updated.sellerPaysBuyerBroker, isShortSale: updated.isShortSale, hasSellerFinancing: updated.hasSellerFinancing, sellerPostClosingOccupancy: updated.sellerPostClosingOccupancy, representationExpiresOn: updated.representationExpiresOn, contractFormType: updated.contractFormType, additionalTerms: updated.additionalTerms, internalNotes: updated.messages || [], smsThreads: updated.smsThreads || {}, parties: updated.parties || [], tasks: updated.tasks || [], reminders: updated.reminders || [] }) });
       if (!r.ok) {
         const e = await r.json().catch(() => ({}));
         console.error("Save error:", e);
