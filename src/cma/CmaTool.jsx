@@ -593,20 +593,23 @@ function CmaTool({ tx, token, currentUser }) {
               the seller intake) so the agent knows the Subject step is
               pre-filled before importing comps. Read-only summary. */}
           {comps.length === 0 && (() => {
-            const condLabels = { premium: 'Premium / Renovated', move_in: 'Move-In Ready', original_maintained: 'Original but Maintained', needs_work: 'Needs Some Work', major_updates: 'Major Updates Needed' };
+            // Read from the SAVED transaction (not `subject`, which carries
+            // editor defaults like garage=2 / move_in). Buyer deals have no
+            // property specs, so this stays empty and the banner hides itself.
             const poolLabels = { private: 'Private pool', community: 'Community pool', none: 'No pool' };
             const chips = [];
-            if (subject.beds) chips.push(`${subject.beds} bed`);
-            if (subject.baths) chips.push(`${subject.baths} bath`);
-            if (subject.sqft) chips.push(`${Number(subject.sqft).toLocaleString()} sqft`);
-            if (subject.lotSize) chips.push(`${subject.lotSize} ac lot`);
-            if (subject.yearBuilt) chips.push(`Built ${subject.yearBuilt}`);
-            if (subject.garageSpaces && String(subject.garageSpaces) !== '0') chips.push(`${subject.garageSpaces}-car garage`);
-            if (subject.poolType && subject.poolType !== 'none') chips.push(poolLabels[subject.poolType] || subject.poolType);
-            if (subject.hasWaterView) chips.push('Water view');
-            if (subject.hasGolfView) chips.push('Golf view');
-            if (subject.conditionTier) chips.push(condLabels[subject.conditionTier] || subject.conditionTier);
-            const upLabels = UPGRADE_LIBRARY.filter((u) => upgrades[u.id] && upgrades[u.id].checked).map((u) => u.name);
+            if (tx?.beds) chips.push(`${tx.beds} bed`);
+            if (tx?.baths) chips.push(`${tx.baths} bath`);
+            if (tx?.sqft) chips.push(`${Number(tx.sqft).toLocaleString()} sqft`);
+            if (tx?.lotAcres) chips.push(`${tx.lotAcres} ac lot`);
+            if (tx?.yearBuilt) chips.push(`Built ${tx.yearBuilt}`);
+            if (tx?.garageSpaces && String(tx.garageSpaces) !== '0') chips.push(`${tx.garageSpaces}-car garage`);
+            if (tx?.poolType && tx.poolType !== 'none') chips.push(poolLabels[tx.poolType] || tx.poolType);
+            if (tx?.hasWaterView) chips.push('Water view');
+            if (tx?.hasGolfView) chips.push('Golf view');
+            if (tx?.propertyCondition) chips.push(tx.propertyCondition);
+            const picked = (tx?.intakeDetails && tx.intakeDetails.upgrades) || {};
+            const upLabels = UPGRADE_LIBRARY.filter((u) => picked[u.id]).map((u) => u.name);
             if (!chips.length && !upLabels.length) return null;
             const chipStyle = { fontSize: 12, background: 'white', border: '1px solid var(--rule)', borderRadius: 12, padding: '3px 10px' };
             return (
