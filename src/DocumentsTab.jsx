@@ -536,27 +536,50 @@ function LetterOfIntentModal({ tx, headers, onClose, onSaved }) {
 
   const fileBase = `Letter_of_Intent_${(f.propertyAddress || "Property").replace(/[^a-zA-Z0-9]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 60)}`;
 
-  const renderPdf = async () => {
-    const [{ default: html2canvas }, { jsPDF }] = await Promise.all([import("html2canvas"), import("jspdf")]);
-    const canvas = await html2canvas(letterRef.current, { scale: 2, backgroundColor: "#ffffff", useCORS: true });
-    const pdf = new jsPDF("p", "pt", "letter");
-    const pageW = pdf.internal.pageSize.getWidth();
-    const pageH = pdf.internal.pageSize.getHeight();
-    const imgH = (canvas.height * pageW) / canvas.width;
-    const img = canvas.toDataURL("image/jpeg", 0.95);
-    let y = 0, page = 0;
-    while (y < imgH - 1) {
-      if (page > 0) pdf.addPage();
-      pdf.addImage(img, "JPEG", 0, -y, pageW, imgH);
-      y += pageH; page += 1;
-    }
-    return pdf;
+  const DOCX_MIME = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+
+  // Build a REAL, fully-editable Word document (OOXML) — opens and edits in
+  // Word / Google Docs / Pages, unlike a flattened PDF.
+  const buildDocxBlob = async () => {
+    const { Document, Packer, Paragraph, TextRun, AlignmentType } = await import("docx");
+    const run = (text, o = {}) => new TextRun({ text, ...o });
+    const P = (children, opts = {}) => new Paragraph({ children, spacing: { after: 160, line: 276 }, ...opts });
+    const clausePs = allClauses.map(([title, text], i) =>
+      P([run(`${i + 1}. ${title}.  `, { bold: true }), run(text)]));
+    const doc = new Document({
+      styles: { default: { document: { run: { font: "Calibri", size: 22 } } } },
+      sections: [{
+        properties: { page: { margin: { top: 1440, bottom: 1440, left: 1440, right: 1440 } } },
+        children: [
+          P([run("LETTER OF INTENT", { bold: true, size: 32 })], { alignment: AlignmentType.CENTER, spacing: { after: 40 } }),
+          P([run("(Non-Binding — For Discussion Purposes Only)", { italics: true, size: 20, color: "555555" })], { alignment: AlignmentType.CENTER, spacing: { after: 260 } }),
+          P([run(fmtDate(f.loiDate))]),
+          P([run("To (Seller): ", { bold: true }), run(f.sellerName || "____________")], { spacing: { after: 0, line: 276 } }),
+          P([run("From (Buyer): ", { bold: true }), run(f.buyerName || "____________")], { spacing: { after: 0, line: 276 } }),
+          P([run("Re: ", { bold: true }), run(`Proposed Purchase of ${f.propertyAddress || "____________"}`)]),
+          P([run(`Dear ${f.sellerName || "Seller"}:`)]),
+          P([run(`This Letter of Intent ("LOI") sets forth the principal terms under which ${f.buyerName || "Buyer"} ("Buyer") proposes to purchase the above-referenced property from ${f.sellerName || "Seller"} ("Seller"). The parties intend to negotiate a definitive purchase agreement consistent with the following:`)]),
+          ...clausePs,
+          P([run("If these terms are acceptable as a basis for negotiation, please sign and return a copy. We look forward to working with you.")], { spacing: { before: 120, after: 420, line: 276 } }),
+          P([run("Buyer: ", { bold: true }), run((f.buyerName || "") + "  ____________________________    Date: ____________")]),
+          P([run("Seller: ", { bold: true }), run((f.sellerName || "") + "  ____________________________    Date: ____________")]),
+          ...(f.preparedBy ? [P([run("Prepared by " + f.preparedBy, { size: 18, color: "666666" })], { spacing: { before: 300 } })] : []),
+        ],
+      }],
+    });
+    return await Packer.toBlob(doc);
   };
 
   const handleDownload = async () => {
     setError(null); setBusy(true);
-    try { const pdf = await renderPdf(); pdf.save(fileBase + ".pdf"); }
-    catch (e) { setError(e.message || "Could not generate PDF"); }
+    try {
+      const blob = await buildDocxBlob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url; a.download = fileBase + ".docx";
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1500);
+    } catch (e) { setError(e.message || "Could not generate Word doc"); }
     finally { setBusy(false); }
   };
 
@@ -564,17 +587,16 @@ function LetterOfIntentModal({ tx, headers, onClose, onSaved }) {
     if (!f.purchasePrice) { setError("Enter a purchase price first."); return; }
     setError(null); setBusy(true);
     try {
-      const pdf = await renderPdf();
-      const blob = pdf.output("blob");
+      const blob = await buildDocxBlob();
       const base64 = await new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = () => resolve(String(reader.result).split(",")[1]);
-        reader.onerror = () => reject(new Error("Could not read PDF"));
+        reader.onerror = () => reject(new Error("Could not read file"));
         reader.readAsDataURL(blob);
       });
       const res = await fetch(`${API}/documents/upload`, {
         method: "POST", headers,
-        body: JSON.stringify({ transactionId: tx.id, fileName: fileBase + ".pdf", fileType: "application/pdf",
+        body: JSON.stringify({ transactionId: tx.id, fileName: fileBase + ".docx", fileType: DOCX_MIME,
           category: "Contract", documentType: "Letter_of_Intent", base64 }),
       });
       const data = await res.json();
@@ -606,7 +628,7 @@ function LetterOfIntentModal({ tx, headers, onClose, onSaved }) {
           {/* Form */}
           <div style={{ flex: "1 1 300px", minWidth: 280 }}>
             <div style={{ fontSize: 12.5, color: COLORS.muted, marginBottom: 12, lineHeight: 1.45 }}>
-              Confirm the numbers below — the legal clauses are pre-written. The letter is <b>non-binding</b> (except confidentiality and the no-shop period).
+              Confirm the numbers below — the legal clauses are pre-written. Generates an <b>editable Word (.docx)</b> you can fine-tune before sending. The letter is <b>non-binding</b> (except confidentiality and the no-shop period).
             </div>
             {field("LOI Date", "loiDate", { type: "date" })}
             {field("Buyer (name / entity)", "buyerName", { placeholder: "ABC Holdings, LLC" })}
@@ -669,10 +691,10 @@ function LetterOfIntentModal({ tx, headers, onClose, onSaved }) {
         <div style={{ position: "sticky", bottom: 0, background: "#fff", borderTop: `1px solid ${COLORS.border}`, padding: "14px 22px", display: "flex", alignItems: "center", gap: 12, justifyContent: "flex-end", flexWrap: "wrap" }}>
           {error && <div style={{ color: COLORS.danger, fontSize: 13, marginRight: "auto" }}>{error}</div>}
           <button onClick={handleDownload} disabled={busy} style={{ background: "#fff", color: "#0E7490", border: "1px solid #0E7490", padding: "10px 16px", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: busy ? "default" : "pointer", opacity: busy ? 0.6 : 1 }}>
-            {busy ? "Working…" : "⬇ Download PDF"}
+            {busy ? "Working…" : "⬇ Download Word (.docx)"}
           </button>
           <button onClick={handleSave} disabled={busy} style={{ background: "#0E7490", color: "#fff", border: "none", padding: "10px 18px", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: busy ? "default" : "pointer", opacity: busy ? 0.6 : 1 }}>
-            {busy ? "Saving…" : "Save to Documents"}
+            {busy ? "Saving…" : "Save Word to Documents"}
           </button>
         </div>
       </div>
