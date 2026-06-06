@@ -4,23 +4,25 @@
 // recently LEASED comps drives a median rent-per-sqft, applied to the subject.
 // Reuses helpers from cmaAnalysis.js so there is one source of truth.
 // ============================================================================
-import { median, cleanMoney, cleanNum } from './cmaAnalysis.js';
+import { median, cleanMoney, cleanNum, buildRowGetter } from './cmaAnalysis.js';
 
-// Normalize one row of a rental/lease MLS CSV export. Rent is read from the
-// common rental column names; falls back to Current Price (which holds the
-// monthly rent on a lease export).
+// Normalize one row of a rental/lease MLS CSV export. Uses the same tolerant,
+// header-insensitive getter as the sale parser so varied MLS exports work. Rent
+// is read from the common rental columns, falling back to Current/List Price
+// (which holds the monthly rent on a lease export).
 export const normalizeRentalRow = (row, idx) => {
-  const sqft = cleanNum(row['Heated Area']);
-  const rent = cleanMoney(row['Lease Price'] || row['Rent'] || row['Monthly Rent'] || row['Current Price']);
+  const g = buildRowGetter(row);
+  const sqft = cleanNum(g(['Heated Area', 'Living Area', 'Heated SqFt', 'Heated Sq Ft', 'Sq Ft Heated', 'Building Area Total', 'GLA', 'Square Feet', 'SqFt']));
+  const rent = cleanMoney(g(['Lease Price', 'Rent', 'Monthly Rent', 'Rent Price', 'Current Price', 'List Price', 'Close Price', 'Closed Price', 'Price']));
   return {
     id: idx,
-    address: row['Address'] || '',
+    address: g(['Address', 'Street Address', 'Property Address', 'Full Address']) || '',
     sqft,
-    beds: cleanNum(row['Beds']),
-    yearBuilt: cleanNum(row['Year Built']),
-    status: (row['Status'] || '').toUpperCase().trim(),
-    closeDate: row['Close Date'] || '',
-    adom: cleanNum(row['ADOM']),
+    beds: cleanNum(g(['Beds', 'Bedrooms', 'Beds Total'])),
+    yearBuilt: cleanNum(g(['Year Built', 'Yr Built'])),
+    status: String(g(['Status', 'MLS Status', 'Listing Status']) || '').toUpperCase().trim(),
+    closeDate: g(['Close Date', 'Closing Date', 'Sold Date', 'Lease Date']) || '',
+    adom: cleanNum(g(['ADOM', 'DOM', 'Days On Market'])),
     rent,
     rentPsf: rent && sqft ? rent / sqft : null,
   };
@@ -60,6 +62,7 @@ export const computeRentalAnalysis = ({ rentalComps = [], subjectSqft, saleValue
     medianMonthlyRent,
     estMonthlyRent,
     annualRent,
+    saleValue: sv,
     grossYield,
     grm,
     onePercentRuleMet,

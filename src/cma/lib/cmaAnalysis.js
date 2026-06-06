@@ -113,7 +113,8 @@ const normKey = (k) => String(k).toLowerCase().replace(/[^a-z0-9]/g, '');
 
 // Build a case/spacing/punctuation-insensitive getter over a CSV row so the tool
 // works with the many different MLS export header conventions, not just one board's.
-const buildGetter = (row) => {
+// Exported so the rental parser shares the same header tolerance.
+export const buildRowGetter = (row) => {
   const map = {};
   for (const k of Object.keys(row || {})) map[normKey(k)] = row[k];
   return (aliases) => {
@@ -137,7 +138,7 @@ const normStatus = (s) => {
 };
 
 export const normalizeCompRow = (row, idx) => {
-  const g = buildGetter(row);
+  const g = buildRowGetter(row);
   const c = {
     id: idx,
     address: g(['Address', 'Street Address', 'Property Address', 'Full Address', 'Address 1', 'Street Number Name']) || '',

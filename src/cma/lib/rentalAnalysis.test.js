@@ -45,4 +45,12 @@ describe('rental analysis', () => {
     expect(c.rentPsf).toBeCloseTo(1.5, 3);
     expect(c.address).toBe('1 A St');
   });
+
+  it('normalizeRentalRow is tolerant of header variants (Living Area, Lease Price)', () => {
+    const c = normalizeRentalRow({ 'Street Address': '2 B St', 'Living Area': '2500', 'Lease Price': '3200', Status: 'Leased' }, 1);
+    expect(c.sqft).toBe(2500);
+    expect(c.rent).toBe(3200);
+    expect(c.rentPsf).toBeCloseTo(1.28, 2);
+    expect(c.address).toBe('2 B St');
+  });
 });

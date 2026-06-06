@@ -632,7 +632,7 @@ function TransactionListView({ transactions, sortKey, sortDir, toggleSort, onSel
                       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                         <span style={{ fontSize: 20 }}>🔔</span>
                         <div>
-                          <div style={{ fontWeight: 700, color: "#991b1b", fontSize: 13 }}>NEW BUYER INQUIRY — Action Required</div>
+                          <div style={{ fontWeight: 700, color: "#991b1b", fontSize: 13 }}>{tx.type === "Buyer Representation" ? "NEW BUYER INQUIRY" : "NEW SELLER LEAD"} — Action Required</div>
                           <div style={{ fontSize: 12, color: "#7f1d1d" }}>{tx.address} · {tx.city}, FL · Contact within 24 hours</div>
                         </div>
                       </div>
@@ -711,7 +711,7 @@ function TransactionListView({ transactions, sortKey, sortDir, toggleSort, onSel
               )}
               {tx.assignedAgentId && !tx.needsReview && tx.needsFirstContact && (
                 <div style={{ background: "#c8102e", color: "white", borderRadius: 6, padding: "4px 10px", fontSize: 11, fontWeight: 700, marginBottom: 8, display: "inline-block" }}>
-                  🔔 NEW BUYER INQUIRY — Contact Within 24hrs
+                  🔔 {tx.type === "Buyer Representation" ? "NEW BUYER INQUIRY" : "NEW SELLER LEAD"} — Contact Within 24hrs
                 </div>
               )}
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10 }}>
@@ -6075,7 +6075,7 @@ function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenCon
               )}
               {tx.assignedAgentId && !tx.needsReview && tx.needsFirstContact && (
                 <div style={{ background: "#c8102e", color: "white", padding: "8px 14px", fontSize: 12, fontWeight: 700, letterSpacing: 0.5 }}>
-                  🔔 NEW BUYER INQUIRY — Contact Within 24hrs
+                  🔔 {tx.type === "Buyer Representation" ? "NEW BUYER INQUIRY" : "NEW SELLER LEAD"} — Contact Within 24hrs
                 </div>
               )}
               {/* Card Header - Color coded by type */}

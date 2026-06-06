@@ -368,16 +368,50 @@ function CmaTool({ tx, token, currentUser }) {
       const html2pdf = mod.default || mod; // UMD/ESM interop safety
       const safeAddr = (subject.address || 'CMA').replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '').slice(0, 40) || 'CMA';
       const filename = `CMA-${safeAddr}-${new Date().toISOString().slice(0, 10)}.pdf`;
-      const blob = await html2pdf()
-        .set({
-          margin: 0,
-          image: { type: 'jpeg', quality: 0.95 },
-          html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff' },
-          jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' },
-          pagebreak: { mode: ['css', 'legacy'] },
-        })
-        .from(node)
-        .outputPdf('blob');
+      // Match the Print/Save-PDF output (the condensed 1–2 page report). html2canvas
+      // ignores @media print, so we inline those rules onto the live DOM and size the
+      // page to the letter printable width (8.5in − 0.7in margins = 7.8in ≈ 749px @96dpi)
+      // for the capture, then revert. Same layout the browser print path produces.
+      const printCss = (() => {
+        const css = cmaCssRaw;
+        const i = css.indexOf('@media print');
+        if (i < 0) return '';
+        const open = css.indexOf('{', i);
+        if (open < 0) return '';
+        let depth = 0;
+        let k = open;
+        for (; k < css.length; k++) {
+          const ch = css[k];
+          if (ch === '{') depth++;
+          else if (ch === '}') { depth--; if (depth === 0) break; }
+        }
+        return css.slice(open + 1, k); // inner rules of the @media print block
+      })();
+      const styleEl = document.createElement('style');
+      styleEl.setAttribute('data-cma-pdf-print', '');
+      styleEl.textContent = printCss;
+      const prevWidth = node.style.width;
+      const prevMaxWidth = node.style.maxWidth;
+      document.head.appendChild(styleEl);
+      node.style.width = '749px';
+      node.style.maxWidth = '749px';
+      let blob;
+      try {
+        blob = await html2pdf()
+          .set({
+            margin: [0.35, 0.35, 0.35, 0.35],
+            image: { type: 'jpeg', quality: 0.95 },
+            html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff', windowWidth: 749 },
+            jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' },
+            pagebreak: { mode: ['css', 'legacy'] },
+          })
+          .from(node)
+          .outputPdf('blob');
+      } finally {
+        styleEl.remove();
+        node.style.width = prevWidth;
+        node.style.maxWidth = prevMaxWidth;
+      }
       const base64 = await blobToBase64(blob);
       setSaveState({ status: 'saving', msg: 'Saving to Documents…' });
       const headers = { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token };
