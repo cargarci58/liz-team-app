@@ -413,17 +413,53 @@ function CmaTool({ tx, token, currentUser }) {
       const pdf = new jsPDF('p', 'pt', 'letter');
       const pageW = pdf.internal.pageSize.getWidth();
       const pageH = pdf.internal.pageSize.getHeight();
-      const imgW = pageW;
-      const imgH = (canvas.height * imgW) / canvas.width;
-      const img = canvas.toDataURL('image/jpeg', 0.95);
-      let y = 0;
-      let page = 0;
-      while (y < imgH - 1) {
-        if (page > 0) pdf.addPage();
-        pdf.addImage(img, 'JPEG', 0, -y, imgW, imgH);
-        y += pageH;
-        page += 1;
+      const srRect = target.getBoundingClientRect();
+      const scale = canvas.width / srRect.width;   // canvas px per CSS px (~2)
+      const cssToPt = pageW / srRect.width;         // CSS px -> PDF pt at full width
+      const pageCssHeight = pageH / cssToPt;        // CSS px that fills one page
+      const totalCss = srRect.height;
+
+      // Smart page breaks: collect the bottom edge of every atomic block (cover,
+      // property line, each section child — heading/paragraph/hero/comp-list/
+      // strategy row/etc., each comp row, signature, footer) so a page never
+      // splits a row, card, heading, or paragraph mid-way.
+      const srTop = srRect.top;
+      const units = target.querySelectorAll(
+        '.sr-cover, .sr-property, .sr-section > *, .sr-comp-card, .sr-signature, .sr-footer'
+      );
+      const breaks = Array.from(new Set(
+        Array.from(units).map((el) => el.getBoundingClientRect().bottom - srTop)
+      )).filter((b) => b > 0 && b < totalCss).sort((a, b) => a - b);
+      breaks.push(totalCss);
+
+      // Greedily fill each page up to the last safe break that fits.
+      const segments = [];
+      let start = 0;
+      let guard = 0;
+      while (start < totalCss - 0.5 && guard++ < 80) {
+        const limit = start + pageCssHeight;
+        let cut = null;
+        for (const b of breaks) { if (b > start + 1 && b <= limit + 0.5) cut = b; }
+        if (cut == null) cut = Math.min(limit, totalCss); // a block taller than a page: hard cut
+        segments.push([start, cut]);
+        start = cut;
       }
+
+      // Render each segment as its own top-aligned page (cropped via a temp canvas
+      // so there is no bleed between pages).
+      const tmp = document.createElement('canvas');
+      const tctx = tmp.getContext('2d');
+      segments.forEach(([s, e], i) => {
+        const sTopPx = Math.round(s * scale);
+        const sHpx = Math.max(1, Math.round((e - s) * scale));
+        tmp.width = canvas.width;
+        tmp.height = sHpx;
+        tctx.fillStyle = '#ffffff';
+        tctx.fillRect(0, 0, tmp.width, tmp.height);
+        tctx.drawImage(canvas, 0, sTopPx, canvas.width, sHpx, 0, 0, canvas.width, sHpx);
+        if (i > 0) pdf.addPage();
+        pdf.addImage(tmp.toDataURL('image/jpeg', 0.95), 'JPEG', 0, 0, pageW, (e - s) * cssToPt);
+      });
       const blob = pdf.output('blob');
       const base64 = await blobToBase64(blob);
       setSaveState({ status: 'saving', msg: 'Saving to Documents…' });
