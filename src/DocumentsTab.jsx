@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
 const API = "https://liz-team-server-api-production.up.railway.app";
 
@@ -29,6 +29,8 @@ export default function DocumentsTab({ tx }) {
   const [reqSummary, setReqSummary] = useState(null);
   const [slotUploading, setSlotUploading] = useState(null); // documentType currently uploading
   const [preview, setPreview] = useState(null); // { loading, doc, url, mime }
+  const [showLOI, setShowLOI] = useState(false); // Letter of Intent generator (commercial only)
+  const isCommercial = /commercial/i.test(`${tx.propertyType || ""} ${tx.constructionType || ""}`);
   const tok = localStorage.getItem("tp_token") || "";
   const headers = { "Content-Type": "application/json", "Authorization": "Bearer " + tok };
 
@@ -297,6 +299,27 @@ export default function DocumentsTab({ tx }) {
 
   return (
     <div style={{ padding: 24 }}>
+      {/* Letter of Intent generator — commercial deals only */}
+      {isCommercial && (
+        <div style={{ background: "#ECFEFF", border: "1px solid #67E8F9", borderRadius: 12, padding: 16, marginBottom: 20,
+          display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+          <div style={{ minWidth: 220, flex: 1 }}>
+            <div style={{ fontWeight: 800, fontSize: 15, color: "#0E7490" }}>📝 Letter of Intent (LOI)</div>
+            <div style={{ fontSize: 12.5, color: "#155E63", marginTop: 3, lineHeight: 1.45 }}>
+              The standard non-binding first step on a commercial deal. Generate a ready-to-send draft from this deal's details — every clause is pre-written, just confirm the numbers.
+            </div>
+          </div>
+          <button onClick={() => setShowLOI(true)} style={{ background: "#0E7490", color: "#fff", border: "none",
+            padding: "10px 18px", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap" }}>
+            Create Letter of Intent
+          </button>
+        </div>
+      )}
+      {showLOI && (
+        <LetterOfIntentModal tx={tx} headers={headers} onClose={() => setShowLOI(false)}
+          onSaved={() => { setShowLOI(false); loadDocs(); loadRequired(); }} />
+      )}
+
       {/* Required Documents checklist — what THIS deal needs to be compliant */}
       {required.length > 0 && (
         <div style={{ background: allIn ? "#EAF7EF" : "#FFFDF5", border: "1px solid " + (allIn ? "#A7E0BE" : "#F1D98A"),
@@ -446,6 +469,213 @@ export default function DocumentsTab({ tx }) {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// ── Letter of Intent generator (commercial deals) ───────────────────────────
+// Pre-fills from the deal, renders a ready-to-send NON-BINDING commercial LOI
+// with every clause pre-written, and lets the agent confirm the numbers, then
+// generate a PDF that downloads and/or saves into the deal's Documents (tagged
+// document_type "Letter_of_Intent" so it ticks the LOI checklist slot).
+function LetterOfIntentModal({ tx, headers, onClose, onSaved }) {
+  const partyName = (role) => (tx.parties || []).find(p => (p.role || "") === role)?.name || "";
+  const fullAddress = [tx.address, tx.city, tx.state, tx.zipCode].filter(Boolean).join(", ");
+  const todayISO = new Date().toISOString().split("T")[0];
+  const plusDaysISO = (n) => { const d = new Date(); d.setDate(d.getDate() + n); return d.toISOString().split("T")[0]; };
+
+  const [f, setF] = useState({
+    loiDate: todayISO,
+    buyerName: partyName("Buyer") || partyName("Buyer (Entity)") || "",
+    sellerName: partyName("Seller") || "",
+    propertyAddress: fullAddress,
+    propertyDesc: "",
+    purchasePrice: tx.contractPrice || tx.listPrice || "",
+    deposit: "",
+    financingType: tx.isCash ? "All cash" : "Conventional / commercial financing",
+    dueDiligenceDays: "45",
+    closingDays: "30",
+    exclusivityDays: "30",
+    expiresDate: plusDaysISO(5),
+    preparedBy: "",
+    additionalTerms: "",
+  });
+  const set = (k) => (v) => setF(s => ({ ...s, [k]: v }));
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState(null);
+  const letterRef = useRef(null);
+
+  const fmtMoney = (v) => {
+    const n = Number(String(v).replace(/[^0-9.]/g, ""));
+    if (!v || isNaN(n) || n === 0) return "$__________";
+    return "$" + n.toLocaleString("en-US", { maximumFractionDigits: 0 });
+  };
+  const fmtDate = (iso) => {
+    if (!iso) return "____________";
+    const [y, m, d] = iso.split("-");
+    return new Date(y, m - 1, d).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
+  };
+
+  const clauses = [
+    ["Property", `The proposed transaction concerns the real property located at ${f.propertyAddress || "____________"}${f.propertyDesc ? `, further described as ${f.propertyDesc}` : ""}, together with all improvements, fixtures, and appurtenances (the "Property").`],
+    ["Purchase Price", `The proposed total purchase price for the Property is ${fmtMoney(f.purchasePrice)}, payable at closing subject to customary prorations and adjustments.`],
+    ["Earnest Money Deposit", `Upon execution of a definitive purchase agreement, Buyer shall deposit ${fmtMoney(f.deposit)} in escrow as an earnest money deposit, to be applied to the purchase price at closing.`],
+    ["Due Diligence / Feasibility Period", `Buyer shall have ${f.dueDiligenceDays || "____"} days following the effective date of a definitive agreement to inspect the Property and review all title, survey, environmental, zoning, lease, financial, and other due-diligence matters. Buyer may terminate for any reason during this period and receive a full refund of the deposit.`],
+    ["Closing", `Closing shall occur within ${f.closingDays || "____"} days after expiration of the Due Diligence Period, at a title company or closing agent mutually acceptable to the parties.`],
+    ["Financing", `This proposal contemplates ${f.financingType || "____________"}. ${/cash/i.test(f.financingType) ? "Buyer will provide proof of funds upon request." : "Closing will be contingent upon Buyer obtaining acceptable financing within the Due Diligence Period."}`],
+    ["Title & Survey", `Seller shall convey marketable, insurable title by special/general warranty deed, free of liens and encumbrances other than those approved by Buyer. Buyer may obtain a current ALTA survey at Buyer's election.`],
+    ["Brokerage", `Each party shall be responsible for its own broker and any commission shall be addressed in the definitive agreement. Each party represents it has dealt with no broker other than as disclosed.`],
+    ["Exclusivity / No-Shop", `For ${f.exclusivityDays || "____"} days following acceptance of this Letter of Intent, Seller agrees not to solicit, negotiate, or accept any competing offer for the Property, so the parties may negotiate a definitive agreement in good faith.`],
+    ["Confidentiality", `The parties shall keep the terms of this Letter and their negotiations confidential, except as required by law or to their respective advisors.`],
+    ["Non-Binding Effect", `THIS LETTER OF INTENT IS A NON-BINDING EXPRESSION OF INTEREST ONLY. Except for the Exclusivity / No-Shop and Confidentiality paragraphs (which are binding), no party shall have any obligation unless and until a definitive written purchase agreement is fully executed by both parties.`],
+    ["Governing Law", `This Letter shall be governed by the laws of the State of Florida.`],
+    ["Expiration", `This Letter of Intent will expire if not accepted in writing by ${fmtDate(f.expiresDate)}.`],
+  ];
+  const extraClause = f.additionalTerms.trim() ? [["Additional Terms", f.additionalTerms.trim()]] : [];
+  const allClauses = [...clauses, ...extraClause];
+
+  const fileBase = `Letter_of_Intent_${(f.propertyAddress || "Property").replace(/[^a-zA-Z0-9]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 60)}`;
+
+  const renderPdf = async () => {
+    const [{ default: html2canvas }, { jsPDF }] = await Promise.all([import("html2canvas"), import("jspdf")]);
+    const canvas = await html2canvas(letterRef.current, { scale: 2, backgroundColor: "#ffffff", useCORS: true });
+    const pdf = new jsPDF("p", "pt", "letter");
+    const pageW = pdf.internal.pageSize.getWidth();
+    const pageH = pdf.internal.pageSize.getHeight();
+    const imgH = (canvas.height * pageW) / canvas.width;
+    const img = canvas.toDataURL("image/jpeg", 0.95);
+    let y = 0, page = 0;
+    while (y < imgH - 1) {
+      if (page > 0) pdf.addPage();
+      pdf.addImage(img, "JPEG", 0, -y, pageW, imgH);
+      y += pageH; page += 1;
+    }
+    return pdf;
+  };
+
+  const handleDownload = async () => {
+    setError(null); setBusy(true);
+    try { const pdf = await renderPdf(); pdf.save(fileBase + ".pdf"); }
+    catch (e) { setError(e.message || "Could not generate PDF"); }
+    finally { setBusy(false); }
+  };
+
+  const handleSave = async () => {
+    if (!f.purchasePrice) { setError("Enter a purchase price first."); return; }
+    setError(null); setBusy(true);
+    try {
+      const pdf = await renderPdf();
+      const blob = pdf.output("blob");
+      const base64 = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result).split(",")[1]);
+        reader.onerror = () => reject(new Error("Could not read PDF"));
+        reader.readAsDataURL(blob);
+      });
+      const res = await fetch(`${API}/documents/upload`, {
+        method: "POST", headers,
+        body: JSON.stringify({ transactionId: tx.id, fileName: fileBase + ".pdf", fileType: "application/pdf",
+          category: "Contract", documentType: "Letter_of_Intent", base64 }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || ("Save failed (" + res.status + ")"));
+      onSaved();
+    } catch (e) { setError(e.message || "Could not save to documents"); setBusy(false); }
+  };
+
+  const field = (label, key, opts) => (
+    <div style={{ marginBottom: 12 }}>
+      <label style={{ fontSize: 11, fontWeight: 700, color: COLORS.muted, display: "block", marginBottom: 4, textTransform: "uppercase", letterSpacing: 0.4 }}>{label}</label>
+      {opts?.type === "textarea"
+        ? <textarea value={f[key]} onChange={e => set(key)(e.target.value)} rows={3} placeholder={opts.placeholder} style={inp} />
+        : opts?.options
+          ? <select value={f[key]} onChange={e => set(key)(e.target.value)} style={inp}>{opts.options.map(o => <option key={o}>{o}</option>)}</select>
+          : <input type={opts?.type || "text"} value={f[key]} onChange={e => set(key)(e.target.value)} placeholder={opts?.placeholder} style={inp} />}
+    </div>
+  );
+  const inp = { width: "100%", padding: "8px 10px", borderRadius: 8, border: `1px solid ${COLORS.border}`, fontSize: 14, fontFamily: "inherit", color: COLORS.text, background: "#fff", boxSizing: "border-box" };
+
+  return (
+    <div onClick={() => !busy && onClose()} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 1100, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
+      <div onClick={e => e.stopPropagation()} style={{ background: "#fff", borderRadius: 14, width: 920, maxWidth: "100%", maxHeight: "94vh", overflow: "auto", boxShadow: "0 20px 60px rgba(0,0,0,0.25)" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "18px 22px 14px", borderBottom: `1px solid ${COLORS.border}`, position: "sticky", top: 0, background: "#fff", zIndex: 2 }}>
+          <h2 style={{ margin: 0, fontSize: 18, color: "#0E7490", fontWeight: 800 }}>📝 Letter of Intent</h2>
+          <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 24, color: COLORS.muted }}>×</button>
+        </div>
+        <div style={{ display: "flex", gap: 20, padding: 22, flexWrap: "wrap", alignItems: "flex-start" }}>
+          {/* Form */}
+          <div style={{ flex: "1 1 300px", minWidth: 280 }}>
+            <div style={{ fontSize: 12.5, color: COLORS.muted, marginBottom: 12, lineHeight: 1.45 }}>
+              Confirm the numbers below — the legal clauses are pre-written. The letter is <b>non-binding</b> (except confidentiality and the no-shop period).
+            </div>
+            {field("LOI Date", "loiDate", { type: "date" })}
+            {field("Buyer (name / entity)", "buyerName", { placeholder: "ABC Holdings, LLC" })}
+            {field("Seller (name / entity)", "sellerName", { placeholder: "Seller name" })}
+            {field("Property Address", "propertyAddress")}
+            {field("Property Description (optional)", "propertyDesc", { placeholder: "e.g. ±12,500 SF retail building on 0.8 acres, Parcel 30-22-…" })}
+            {field("Purchase Price", "purchasePrice", { placeholder: "1,250,000" })}
+            {field("Earnest Money Deposit", "deposit", { placeholder: "25,000" })}
+            {field("Financing", "financingType", { options: ["All cash", "Conventional / commercial financing", "SBA financing", "Seller financing", "Subject to existing financing"] })}
+            {field("Due Diligence Period (days)", "dueDiligenceDays", { type: "number" })}
+            {field("Closing (days after due diligence)", "closingDays", { type: "number" })}
+            {field("Exclusivity / No-Shop (days)", "exclusivityDays", { type: "number" })}
+            {field("This Offer Expires", "expiresDate", { type: "date" })}
+            {field("Prepared By (agent / brokerage)", "preparedBy", { placeholder: "Your name, Brokerage" })}
+            {field("Additional Terms (optional)", "additionalTerms", { type: "textarea", placeholder: "Any extra terms in plain language…" })}
+          </div>
+          {/* Live letter preview */}
+          <div style={{ flex: "1 1 380px", minWidth: 320 }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: COLORS.muted, textTransform: "uppercase", letterSpacing: 0.4, marginBottom: 6 }}>Preview</div>
+            <div style={{ border: `1px solid ${COLORS.border}`, borderRadius: 8, maxHeight: "62vh", overflow: "auto", background: "#F3F4F6", padding: 12 }}>
+              <div ref={letterRef} style={{ background: "#fff", width: 612, maxWidth: "100%", padding: "48px 54px", fontFamily: "Georgia, 'Times New Roman', serif", color: "#111", fontSize: 13, lineHeight: 1.55 }}>
+                <div style={{ textAlign: "center", fontWeight: 700, fontSize: 16, letterSpacing: 0.5, marginBottom: 4 }}>LETTER OF INTENT</div>
+                <div style={{ textAlign: "center", fontSize: 12, color: "#555", marginBottom: 22 }}>(Non-Binding — For Discussion Purposes Only)</div>
+                <div style={{ marginBottom: 14 }}>{fmtDate(f.loiDate)}</div>
+                <div style={{ marginBottom: 14 }}>
+                  <div><b>To (Seller):</b> {f.sellerName || "____________"}</div>
+                  <div><b>From (Buyer):</b> {f.buyerName || "____________"}</div>
+                  <div><b>Re:</b> Proposed Purchase of {f.propertyAddress || "____________"}</div>
+                </div>
+                <div style={{ marginBottom: 14 }}>
+                  Dear {f.sellerName || "Seller"}:
+                </div>
+                <div style={{ marginBottom: 14 }}>
+                  This Letter of Intent ("LOI") sets forth the principal terms under which {f.buyerName || "Buyer"} ("Buyer") proposes to purchase the above-referenced property from {f.sellerName || "Seller"} ("Seller"). The parties intend to negotiate a definitive purchase agreement consistent with the following:
+                </div>
+                {allClauses.map(([title, text], i) => (
+                  <div key={i} style={{ marginBottom: 10 }}>
+                    <b>{i + 1}. {title}.</b> {text}
+                  </div>
+                ))}
+                <div style={{ marginTop: 16, marginBottom: 30 }}>
+                  If these terms are acceptable as a basis for negotiation, please sign and return a copy. We look forward to working with you.
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between", gap: 30, marginTop: 36 }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ borderTop: "1px solid #111", paddingTop: 4, fontSize: 12 }}>Buyer: {f.buyerName || ""}</div>
+                    <div style={{ fontSize: 12, marginTop: 18, borderTop: "1px solid #111", paddingTop: 4 }}>Date</div>
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ borderTop: "1px solid #111", paddingTop: 4, fontSize: 12 }}>Seller: {f.sellerName || ""}</div>
+                    <div style={{ fontSize: 12, marginTop: 18, borderTop: "1px solid #111", paddingTop: 4 }}>Date</div>
+                  </div>
+                </div>
+                {f.preparedBy && <div style={{ marginTop: 26, fontSize: 11, color: "#666" }}>Prepared by {f.preparedBy}</div>}
+              </div>
+            </div>
+          </div>
+        </div>
+        {/* Actions */}
+        <div style={{ position: "sticky", bottom: 0, background: "#fff", borderTop: `1px solid ${COLORS.border}`, padding: "14px 22px", display: "flex", alignItems: "center", gap: 12, justifyContent: "flex-end", flexWrap: "wrap" }}>
+          {error && <div style={{ color: COLORS.danger, fontSize: 13, marginRight: "auto" }}>{error}</div>}
+          <button onClick={handleDownload} disabled={busy} style={{ background: "#fff", color: "#0E7490", border: "1px solid #0E7490", padding: "10px 16px", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: busy ? "default" : "pointer", opacity: busy ? 0.6 : 1 }}>
+            {busy ? "Working…" : "⬇ Download PDF"}
+          </button>
+          <button onClick={handleSave} disabled={busy} style={{ background: "#0E7490", color: "#fff", border: "none", padding: "10px 18px", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: busy ? "default" : "pointer", opacity: busy ? 0.6 : 1 }}>
+            {busy ? "Saving…" : "Save to Documents"}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
