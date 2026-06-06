@@ -295,13 +295,19 @@ const STATUS_CONFIG = {
 // so it tolerates the slightly different values the backend stores
 // ("Commercial", "Vacant Land" vs "Land", "Lease" vs "Rental").
 const COMMERCIAL_ACCENT = "#0E7490"; // teal — distinct from every status color
-const isCommercial = (tx) => /commercial/i.test(tx?.propertyType || "");
 function propertyTypeBadge(tx) {
   const pt = tx?.propertyType || "";
   if (/commercial/i.test(pt)) return { label: "🏢 Commercial", color: COMMERCIAL_ACCENT, bg: "#CFF6F8" };
-  if (/vacant ?land|^land/i.test(pt)) return { label: "🟫 Land", color: "#92400E", bg: "#FEF3C7" };
+  if (/vacant ?land|^land/i.test(pt)) return { label: "🟩 Land", color: "#15803D", bg: "#DCFCE7" };
   if (/lease|rental/i.test(pt)) return { label: "🔑 Lease", color: "#6D28D9", bg: "#EDE9FE" };
   return null; // residential → no badge (keeps the common case uncluttered)
+}
+// Left-edge accent color so the property type is obvious at a glance in the
+// card/list views (commercial teal, land green, lease purple). Residential →
+// no accent. Kept in sync with the badge color above.
+function propertyTypeAccent(tx) {
+  const b = propertyTypeBadge(tx);
+  return b ? b.color : null;
 }
 
 const TASK_STATUS = {
@@ -332,7 +338,7 @@ function PipelineCard({ tx, onSelect }) {
     : { c: "#1E8449", t: "On track" };
   const next = tx.nextMilestone;
   return (
-    <div onClick={() => onSelect(tx.id)} style={{ background: "#fff", border: `1px solid ${COLORS.border}`, borderLeft: isCommercial(tx) ? `4px solid ${COMMERCIAL_ACCENT}` : `1px solid ${COLORS.border}`, borderRadius: 8, padding: 10, marginBottom: 8, boxShadow: "0 1px 2px rgba(0,0,0,0.04)", cursor: "pointer" }}
+    <div onClick={() => onSelect(tx.id)} style={{ background: "#fff", border: `1px solid ${COLORS.border}`, borderLeft: propertyTypeAccent(tx) ? `4px solid ${propertyTypeAccent(tx)}` : `1px solid ${COLORS.border}`, borderRadius: 8, padding: 10, marginBottom: 8, boxShadow: "0 1px 2px rgba(0,0,0,0.04)", cursor: "pointer" }}
       onMouseEnter={e => e.currentTarget.style.boxShadow = "0 4px 12px rgba(0,0,0,0.10)"}
       onMouseLeave={e => e.currentTarget.style.boxShadow = "0 1px 2px rgba(0,0,0,0.04)"}>
       <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
@@ -643,7 +649,7 @@ function TransactionListView({ transactions, sortKey, sortDir, toggleSort, onSel
                 const cfg = STATUS_CONFIG[tx.status] || STATUS_CONFIG["Active"];
                 const price = tx.contractPrice || tx.listPrice;
                 return (
-                  <tr key={tx.id} onClick={() => onSelect(tx.id)} style={{ cursor: "pointer", borderBottom: `1px solid ${COLORS.border}`, borderLeft: isCommercial(tx) ? `4px solid ${COMMERCIAL_ACCENT}` : "4px solid transparent" }}
+                  <tr key={tx.id} onClick={() => onSelect(tx.id)} style={{ cursor: "pointer", borderBottom: `1px solid ${COLORS.border}`, borderLeft: propertyTypeAccent(tx) ? `4px solid ${propertyTypeAccent(tx)}` : "4px solid transparent" }}
                     onMouseEnter={e => e.currentTarget.style.background = COLORS.bg}
                     onMouseLeave={e => e.currentTarget.style.background = "#fff"}>
                     <td style={{ padding: "12px 14px" }}>
@@ -689,7 +695,7 @@ function TransactionListView({ transactions, sortKey, sortDir, toggleSort, onSel
           const cfg = STATUS_CONFIG[tx.status] || STATUS_CONFIG["Active"];
           const price = tx.contractPrice || tx.listPrice;
           return (
-            <div key={tx.id} onClick={() => onSelect(tx.id)} style={{ background: !tx.assignedAgentId ? "#fef3c7" : tx.needsReview ? "#eff6ff" : tx.needsFirstContact ? "#fef2f2" : "#fff", border: `2px solid ${!tx.assignedAgentId ? "#fde68a" : tx.needsReview ? "#bfdbfe" : tx.needsFirstContact ? "#fecaca" : COLORS.border}`, borderLeft: isCommercial(tx) ? `5px solid ${COMMERCIAL_ACCENT}` : undefined, borderRadius: 10, padding: "12px 14px", marginBottom: 8, cursor: "pointer" }}>
+            <div key={tx.id} onClick={() => onSelect(tx.id)} style={{ background: !tx.assignedAgentId ? "#fef3c7" : tx.needsReview ? "#eff6ff" : tx.needsFirstContact ? "#fef2f2" : "#fff", border: `2px solid ${!tx.assignedAgentId ? "#fde68a" : tx.needsReview ? "#bfdbfe" : tx.needsFirstContact ? "#fecaca" : COLORS.border}`, borderLeft: propertyTypeAccent(tx) ? `5px solid ${propertyTypeAccent(tx)}` : undefined, borderRadius: 10, padding: "12px 14px", marginBottom: 8, cursor: "pointer" }}>
               {!tx.assignedAgentId && (
                 <div style={{ background: "#f59e0b", color: "white", borderRadius: 6, padding: "4px 10px", fontSize: 11, fontWeight: 700, marginBottom: 8, display: "inline-block" }}>
                   ⚠️ UNASSIGNED LEAD — Tap to Assign an Agent
