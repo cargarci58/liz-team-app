@@ -288,6 +288,22 @@ const STATUS_CONFIG = {
   "Cancelled": { color: "#C0392B", bg: "#FEE2E2" },
 };
 
+// Property-type visual treatment. Residential is the norm, so it stays clean
+// (no badge); the non-residential types — especially Commercial — get a badge
+// and a distinct accent so they're never mistaken for a house. Used on the
+// pipeline cards, the list/table rows, and the deal header. Matches on a regex
+// so it tolerates the slightly different values the backend stores
+// ("Commercial", "Vacant Land" vs "Land", "Lease" vs "Rental").
+const COMMERCIAL_ACCENT = "#0E7490"; // teal — distinct from every status color
+const isCommercial = (tx) => /commercial/i.test(tx?.propertyType || "");
+function propertyTypeBadge(tx) {
+  const pt = tx?.propertyType || "";
+  if (/commercial/i.test(pt)) return { label: "🏢 Commercial", color: COMMERCIAL_ACCENT, bg: "#CFF6F8" };
+  if (/vacant ?land|^land/i.test(pt)) return { label: "🟫 Land", color: "#92400E", bg: "#FEF3C7" };
+  if (/lease|rental/i.test(pt)) return { label: "🔑 Lease", color: "#6D28D9", bg: "#EDE9FE" };
+  return null; // residential → no badge (keeps the common case uncluttered)
+}
+
 const TASK_STATUS = {
   "Pending": { color: COLORS.muted, bg: "#F3F4F6" },
   "In Progress": { color: COLORS.info, bg: COLORS.infoBg },
@@ -316,13 +332,14 @@ function PipelineCard({ tx, onSelect }) {
     : { c: "#1E8449", t: "On track" };
   const next = tx.nextMilestone;
   return (
-    <div onClick={() => onSelect(tx.id)} style={{ background: "#fff", border: `1px solid ${COLORS.border}`, borderRadius: 8, padding: 10, marginBottom: 8, boxShadow: "0 1px 2px rgba(0,0,0,0.04)", cursor: "pointer" }}
+    <div onClick={() => onSelect(tx.id)} style={{ background: "#fff", border: `1px solid ${COLORS.border}`, borderLeft: isCommercial(tx) ? `4px solid ${COMMERCIAL_ACCENT}` : `1px solid ${COLORS.border}`, borderRadius: 8, padding: 10, marginBottom: 8, boxShadow: "0 1px 2px rgba(0,0,0,0.04)", cursor: "pointer" }}
       onMouseEnter={e => e.currentTarget.style.boxShadow = "0 4px 12px rgba(0,0,0,0.10)"}
       onMouseLeave={e => e.currentTarget.style.boxShadow = "0 1px 2px rgba(0,0,0,0.04)"}>
       <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
         <span title={health.t} style={{ width: 9, height: 9, borderRadius: "50%", background: health.c, flexShrink: 0, display: "inline-block" }} />
         <span style={{ fontSize: 14 }}>{tx.type === "Buyer Representation" ? "🏡" : "🏠"}</span>
         <span style={{ fontSize: 9, fontWeight: 700, color: COLORS.muted, textTransform: "uppercase", letterSpacing: "0.06em" }}>{tx.type === "Buyer Representation" ? "Buyer" : "Listing"}</span>
+        {propertyTypeBadge(tx) && <span title={`${propertyTypeBadge(tx).label.replace(/^\S+\s/, "")} property`} style={{ background: propertyTypeBadge(tx).bg, color: propertyTypeBadge(tx).color, fontSize: 9, fontWeight: 700, padding: "1px 6px", borderRadius: 8 }}>{propertyTypeBadge(tx).label}</span>}
         {tx.constructionType === "New Construction" && <span title="New Construction" style={{ background: "#FEF9E7", color: "#B7770D", fontSize: 9, fontWeight: 700, padding: "1px 6px", borderRadius: 8 }}>🏗️ NC</span>}
         {overdue > 0 && <span title={`${overdue} overdue item(s)`} style={{ marginLeft: "auto", background: COLORS.dangerBg, color: COLORS.danger, fontSize: 9, fontWeight: 700, padding: "1px 6px", borderRadius: 8 }}>⚠ {overdue}</span>}
       </div>
@@ -626,11 +643,14 @@ function TransactionListView({ transactions, sortKey, sortDir, toggleSort, onSel
                 const cfg = STATUS_CONFIG[tx.status] || STATUS_CONFIG["Active"];
                 const price = tx.contractPrice || tx.listPrice;
                 return (
-                  <tr key={tx.id} onClick={() => onSelect(tx.id)} style={{ cursor: "pointer", borderBottom: `1px solid ${COLORS.border}` }}
+                  <tr key={tx.id} onClick={() => onSelect(tx.id)} style={{ cursor: "pointer", borderBottom: `1px solid ${COLORS.border}`, borderLeft: isCommercial(tx) ? `4px solid ${COMMERCIAL_ACCENT}` : "4px solid transparent" }}
                     onMouseEnter={e => e.currentTarget.style.background = COLORS.bg}
                     onMouseLeave={e => e.currentTarget.style.background = "#fff"}>
                     <td style={{ padding: "12px 14px" }}>
-                      <div style={{ fontWeight: 600, color: COLORS.navy }}>{tx.address}</div>
+                      <div style={{ fontWeight: 600, color: COLORS.navy, display: "flex", alignItems: "center", gap: 6 }}>
+                        {tx.address}
+                        {propertyTypeBadge(tx) && <span style={{ background: propertyTypeBadge(tx).bg, color: propertyTypeBadge(tx).color, fontSize: 9, fontWeight: 700, padding: "1px 6px", borderRadius: 8, whiteSpace: "nowrap" }}>{propertyTypeBadge(tx).label}</span>}
+                      </div>
                       <div style={{ fontSize: 11, color: COLORS.muted, marginTop: 2 }}>{tx.city}, FL</div>
                     </td>
                     <td style={{ padding: "12px 14px" }}>
@@ -669,7 +689,7 @@ function TransactionListView({ transactions, sortKey, sortDir, toggleSort, onSel
           const cfg = STATUS_CONFIG[tx.status] || STATUS_CONFIG["Active"];
           const price = tx.contractPrice || tx.listPrice;
           return (
-            <div key={tx.id} onClick={() => onSelect(tx.id)} style={{ background: !tx.assignedAgentId ? "#fef3c7" : tx.needsReview ? "#eff6ff" : tx.needsFirstContact ? "#fef2f2" : "#fff", border: `2px solid ${!tx.assignedAgentId ? "#fde68a" : tx.needsReview ? "#bfdbfe" : tx.needsFirstContact ? "#fecaca" : COLORS.border}`, borderRadius: 10, padding: "12px 14px", marginBottom: 8, cursor: "pointer" }}>
+            <div key={tx.id} onClick={() => onSelect(tx.id)} style={{ background: !tx.assignedAgentId ? "#fef3c7" : tx.needsReview ? "#eff6ff" : tx.needsFirstContact ? "#fef2f2" : "#fff", border: `2px solid ${!tx.assignedAgentId ? "#fde68a" : tx.needsReview ? "#bfdbfe" : tx.needsFirstContact ? "#fecaca" : COLORS.border}`, borderLeft: isCommercial(tx) ? `5px solid ${COMMERCIAL_ACCENT}` : undefined, borderRadius: 10, padding: "12px 14px", marginBottom: 8, cursor: "pointer" }}>
               {!tx.assignedAgentId && (
                 <div style={{ background: "#f59e0b", color: "white", borderRadius: 6, padding: "4px 10px", fontSize: 11, fontWeight: 700, marginBottom: 8, display: "inline-block" }}>
                   ⚠️ UNASSIGNED LEAD — Tap to Assign an Agent
@@ -687,7 +707,10 @@ function TransactionListView({ transactions, sortKey, sortDir, toggleSort, onSel
               )}
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10 }}>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontWeight: 700, color: COLORS.navy, fontSize: 14, overflow: "hidden", textOverflow: "ellipsis" }}>{tx.address}</div>
+                  <div style={{ fontWeight: 700, color: COLORS.navy, fontSize: 14, overflow: "hidden", textOverflow: "ellipsis", display: "flex", alignItems: "center", gap: 6 }}>
+                    <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{tx.address}</span>
+                    {propertyTypeBadge(tx) && <span style={{ background: propertyTypeBadge(tx).bg, color: propertyTypeBadge(tx).color, fontSize: 9, fontWeight: 700, padding: "1px 6px", borderRadius: 8, whiteSpace: "nowrap", flexShrink: 0 }}>{propertyTypeBadge(tx).label}</span>}
+                  </div>
                   <div style={{ fontSize: 11, color: COLORS.muted, marginTop: 2 }}>{tx.city}, FL · {tx.type === "Buyer Representation" ? "Buyer" : "Listing"}</div>
                 </div>
                 <span style={{ display: "inline-block", padding: "2px 8px", borderRadius: 10, background: cfg.bg, color: cfg.color, fontWeight: 700, fontSize: 10, whiteSpace: "nowrap" }}>{tx.status}</span>
@@ -3831,6 +3854,7 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
           <div style={{ color: COLORS.gold, fontSize: 13 }}>{tx.city}, FL {tx.zipCode} · {tx.county} County · {tx.type}</div>
           {isGuest && tx.owningBrokerageName && <div style={{ color: "rgba(255,255,255,0.7)", fontSize: 12, marginTop: 2 }}>🏢 Managed by {tx.owningBrokerageName}</div>}
         </div>
+        {propertyTypeBadge(tx) && <Badge label={propertyTypeBadge(tx).label} color={propertyTypeBadge(tx).color} bg={propertyTypeBadge(tx).bg} />}
         <Badge label={tx.status} color={statusCfg.color} bg={statusCfg.bg} />
         {isGuest && <span style={{ background: "rgba(255,255,255,0.15)", color: "#fff", fontSize: 11, fontWeight: 700, padding: "4px 10px", borderRadius: 6 }}>👤 Shared with you · view only</span>}
         <>
