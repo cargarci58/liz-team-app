@@ -390,7 +390,11 @@ function CmaTool({ tx, token, currentUser }) {
         }
         return css.slice(open + 1, k); // inner rules of the @media print block
       })();
-      const RENDER_W = 940;
+      // Render close to the letter page width so the captured image maps ~1:1 to
+      // the page (no shrink-down) — the print CSS forces the desktop columns, so a
+      // page-width render no longer trips the report's mobile breakpoints. This is
+      // what keeps the saved PDF's type as big as the on-screen/print layout.
+      const RENDER_W = 800;
       iframe = document.createElement('iframe');
       iframe.setAttribute('aria-hidden', 'true');
       iframe.style.cssText = `position:fixed;left:-10000px;top:0;width:${RENDER_W}px;height:3000px;border:0;`;
