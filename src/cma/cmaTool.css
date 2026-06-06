@@ -373,111 +373,73 @@
   .sr-footer { background: white; color: var(--sr-muted); padding: 22px 60px; text-align: center; font-size: 12px; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; letter-spacing: 0.08em; line-height: 1.6; border-top: 2px solid var(--sr-accent); }
 }
 
-/* ===== PRINT STYLES — keep the color & hierarchy, sized for easy reading =====
-   Carlos's directive (2026-06-06): the printed report must be appealing and
-   very easy to read for both agent and seller. So print KEEPS the screen's
-   color (filled hero, tinted blocks, money-green) via print-color-adjust:exact,
-   and uses generous type — a clean 4-5 page deliverable beats a cramped 3. */
+/* ===== PRINT STYLES — ONE-PAGE seller deliverable, big & legible =========
+   Carlos's directive (2026-06-06): the printed Seller Report must fit on ONE
+   page with large, very legible type. So in print we keep only the decision-
+   critical blocks — the recommended price (hero) and the three pricing options
+   — at large sizes, and HIDE the narrative sections (`.sr-print-hide`: evidence/
+   comps, market trend, cost-of-waiting, honest-advice, intro paragraphs). The
+   full rich report still shows on screen; only the printout is condensed.
+   Color is preserved via print-color-adjust:exact. */
 @media print {
+  @page { margin: 0.35in; size: letter; }
   .cma-root * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }
-  .cma-root { background: white !important; font-size: 12pt !important; }
-  .cma-root .no-print, .cma-root .masthead { display: none !important; }
+  .cma-root { background: white !important; }
+  .cma-root .no-print, .cma-root .masthead, .cma-root .sr-print-hide { display: none !important; }
   .cma-root .container { padding: 0 !important; max-width: 100% !important; }
   .cma-root .sr-page { box-shadow: none !important; max-width: 100% !important; margin: 0 !important; }
 
-  /* COVER — filled BRAND-RED band (no black: saves ink, keeps contrast) */
-  .cma-root .sr-cover { background: linear-gradient(160deg, #C0392B 0%, #9E2A20 100%) !important; color: #fff !important; border-bottom: 5px solid #7E2018 !important; padding: 34px 44px 28px !important; }
-  .cma-root .sr-cover-title { font-size: 42px !important; margin-bottom: 12px !important; line-height: 1.02 !important; color: #fff !important; }
-  .cma-root .sr-brand { font-size: 15px !important; margin-bottom: 5px !important; color: #fff !important; }
-  .cma-root .sr-tagline { font-size: 11px !important; margin-bottom: 22px !important; color: #F6D08A !important; }
-  .cma-root .sr-cover-sub { font-size: 16px !important; line-height: 1.45 !important; color: rgba(255,255,255,0.92) !important; max-width: 100% !important; }
-  .cma-root .sr-cover-divider { background: #F6D08A !important; margin-top: 22px !important; }
-  .cma-root .sr-cover::before { background: #F6D08A !important; }
+  /* COVER — slim brand-red banner (title only; sub/divider dropped to save room) */
+  .cma-root .sr-cover { background: linear-gradient(160deg, #C0392B 0%, #9E2A20 100%) !important; color: #fff !important; border-bottom: 4px solid #7E2018 !important; padding: 14px 44px 12px !important; }
+  .cma-root .sr-cover::before { display: none !important; }
+  .cma-root .sr-brand { font-size: 14px !important; margin-bottom: 4px !important; color: #fff !important; }
   .cma-root .sr-brand .mark { color: #F6D08A !important; }
+  .cma-root .sr-tagline { font-size: 10px !important; margin-bottom: 12px !important; color: #F6D08A !important; }
+  .cma-root .sr-cover-title { font-size: 30px !important; margin-bottom: 0 !important; line-height: 1.05 !important; color: #fff !important; }
+  .cma-root .sr-cover-sub, .cma-root .sr-cover-divider { display: none !important; }
 
   /* PROPERTY HEADER */
-  .cma-root .sr-property { background: #F6F6F4 !important; border-bottom: 2px solid #1A1A1A !important; padding: 16px 44px !important; }
-  .cma-root .sr-property-label { color: #C0392B !important; font-size: 10px !important; margin-bottom: 3px !important; }
-  .cma-root .sr-property-addr { color: #1A1A1A !important; font-size: 22px !important; margin-bottom: 3px !important; }
+  .cma-root .sr-property { background: #F6F6F4 !important; border-bottom: 2px solid #1A1A1A !important; padding: 12px 44px !important; }
+  .cma-root .sr-property-label { color: #C0392B !important; font-size: 10px !important; margin-bottom: 2px !important; }
+  .cma-root .sr-property-addr { color: #1A1A1A !important; font-size: 21px !important; margin-bottom: 2px !important; }
   .cma-root .sr-property-details { font-size: 14px !important; color: #3A3A3A !important; }
 
-  /* SECTIONS — comfortable padding, natural flow */
-  .cma-root .sr-section { padding: 26px 44px !important; background: white !important; border-bottom: 1px solid #E2E0DC !important; }
-  .cma-root .sr-eyebrow { color: #C0392B !important; font-size: 11px !important; margin-bottom: 8px !important; }
-  .cma-root .sr-h1 { font-size: 28px !important; margin-bottom: 10px !important; line-height: 1.12 !important; color: #1A1A1A !important; }
-  .cma-root .sr-h2 { font-size: 24px !important; margin-bottom: 10px !important; line-height: 1.14 !important; color: #1A1A1A !important; }
-  .cma-root .sr-body { font-size: 14px !important; line-height: 1.6 !important; color: #3A3A3A !important; }
-  .cma-root .sr-body p { margin-bottom: 10px !important; }
+  /* SECTIONS — the two kept sections, tight padding */
+  .cma-root .sr-section { padding: 11px 44px !important; background: white !important; border-bottom: none !important; page-break-inside: avoid; }
+  .cma-root .sr-eyebrow { color: #C0392B !important; font-size: 12px !important; margin-bottom: 6px !important; }
+  .cma-root .sr-h1 { font-size: 25px !important; margin-bottom: 6px !important; line-height: 1.1 !important; color: #1A1A1A !important; }
+  .cma-root .sr-h2 { font-size: 23px !important; margin-bottom: 8px !important; line-height: 1.12 !important; color: #1A1A1A !important; }
 
-  /* HERO PRICE — filled BRAND-RED band, still the focal point */
-  .cma-root .sr-hero-price { background: linear-gradient(160deg, #C0392B 0%, #9E2A20 100%) !important; color: #fff !important; border-radius: 6px !important; padding: 28px 0 24px !important; margin: 16px 0 !important; page-break-inside: avoid; }
-  .cma-root .sr-hero-price-label { color: #F6D08A !important; font-size: 11px !important; margin-bottom: 10px !important; }
-  .cma-root .sr-hero-price-val { color: #fff !important; font-size: 68px !important; line-height: 0.95 !important; margin-bottom: 6px !important; }
-  .cma-root .sr-hero-price-psf { font-size: 13px !important; margin-bottom: 18px !important; color: rgba(255,255,255,0.85) !important; }
-  .cma-root .sr-hero-price-stats { padding-top: 16px !important; margin: 0 44px !important; border-top: 1px solid rgba(255,255,255,0.3) !important; }
+  /* HERO PRICE — filled brand-red band, the focal point */
+  .cma-root .sr-hero-price { background: linear-gradient(160deg, #C0392B 0%, #9E2A20 100%) !important; color: #fff !important; border-radius: 6px !important; padding: 16px 0 12px !important; margin: 8px 0 0 !important; page-break-inside: avoid; }
+  .cma-root .sr-hero-price-label { color: #F6D08A !important; font-size: 12px !important; margin-bottom: 6px !important; }
+  .cma-root .sr-hero-price-val { color: #fff !important; font-size: 60px !important; line-height: 0.95 !important; margin-bottom: 4px !important; }
+  .cma-root .sr-hero-price-psf { font-size: 14px !important; margin-bottom: 12px !important; color: rgba(255,255,255,0.85) !important; }
+  .cma-root .sr-hero-price-stats { padding-top: 10px !important; margin: 0 44px !important; border-top: 1px solid rgba(255,255,255,0.3) !important; }
   .cma-root .sr-hero-stat { border-right: 1px solid rgba(255,255,255,0.3) !important; }
   .cma-root .sr-hero-stat:last-child { border-right: none !important; }
-  .cma-root .sr-hero-stat-label { font-size: 9px !important; margin-bottom: 4px !important; color: #F6D08A !important; }
-  .cma-root .sr-hero-stat-val { font-size: 18px !important; color: #fff !important; }
+  .cma-root .sr-hero-stat-label { font-size: 10px !important; margin-bottom: 4px !important; color: #F6D08A !important; }
+  .cma-root .sr-hero-stat-val { font-size: 20px !important; color: #fff !important; }
 
-  /* COMP LIST — readable rows with zebra */
-  .cma-root .sr-comp-list { border-top: 2px solid #1A1A1A !important; border-bottom: 2px solid #1A1A1A !important; margin: 14px 0 !important; }
-  .cma-root .sr-comp-card { background: white !important; border-bottom: 1px solid #E2E0DC !important; padding: 11px 12px !important; }
-  .cma-root .sr-comp-card:nth-child(even) { background: #F6F6F4 !important; }
-  .cma-root .sr-comp-addr { font-size: 15px !important; }
-  .cma-root .sr-comp-meta { font-size: 12px !important; margin-top: 2px !important; color: #6B6B6B !important; }
-  .cma-root .sr-comp-price { font-size: 19px !important; color: #15803D !important; }
-  .cma-root .sr-comp-psf { font-size: 13px !important; color: #6B6B6B !important; }
-
-  /* KEY INSIGHT — gold pull quote */
-  .cma-root .sr-key-insight { background: #FBF4E3 !important; border-left: 5px solid #B7770D !important; border-radius: 0 6px 6px 0 !important; padding: 14px 20px !important; margin: 16px 0 !important; page-break-inside: avoid; }
-  .cma-root .sr-key-insight-label { color: #B7770D !important; font-size: 10px !important; margin-bottom: 6px !important; }
-  .cma-root .sr-key-insight-body { color: #1A1A1A !important; font-size: 15px !important; line-height: 1.5 !important; }
-  .cma-root .sr-key-insight-body strong { color: #9E2A20 !important; }
-
-  /* MARKET — tinted callout keyed to direction */
-  .cma-root .sr-market { background: #F6F6F4 !important; border: 1px solid #E2E0DC !important; border-left: 8px solid #6B6B6B !important; border-radius: 6px !important; padding: 16px 20px !important; margin: 16px 0 !important; page-break-inside: avoid; }
-  .cma-root .sr-market.falling { background: #FBECEA !important; border-left-color: #C0392B !important; }
-  .cma-root .sr-market.rising { background: #EAF5EE !important; border-left-color: #15803D !important; }
-  .cma-root .sr-market.falling .sr-market-status { color: #9E2A20 !important; }
-  .cma-root .sr-market.rising .sr-market-status { color: #15803D !important; }
-  .cma-root .sr-market-label { font-size: 10px !important; margin-bottom: 5px !important; }
-  .cma-root .sr-market-status { font-size: 22px !important; margin-bottom: 8px !important; }
-  .cma-root .sr-market-body { font-size: 14px !important; line-height: 1.55 !important; }
-
-  /* STRATEGY CARDS — recommended filled & framed */
-  .cma-root .sr-strategies { page-break-inside: avoid; gap: 10px !important; margin: 16px 0 !important; }
-  .cma-root .sr-strategy { background: #F6F6F4 !important; border: 1px solid #E2E0DC !important; border-radius: 6px !important; padding: 16px 14px !important; }
+  /* STRATEGY CARDS — the three options, recommended filled & framed */
+  .cma-root .sr-strategies { page-break-inside: avoid; gap: 10px !important; margin: 8px 0 0 !important; }
+  .cma-root .sr-strategy { background: #F6F6F4 !important; border: 1px solid #E2E0DC !important; border-radius: 6px !important; padding: 13px 13px !important; }
   .cma-root .sr-strategy.rec { background: #FBECEA !important; border: 3px solid #C0392B !important; }
-  .cma-root .sr-strategy-badge { border: 1.5px solid #6B6B6B !important; color: #6B6B6B !important; background: transparent !important; font-size: 9px !important; padding: 3px 10px !important; margin-bottom: 8px !important; }
+  .cma-root .sr-strategy-badge { border: 1.5px solid #6B6B6B !important; color: #6B6B6B !important; background: transparent !important; font-size: 10px !important; padding: 3px 10px !important; margin-bottom: 8px !important; }
   .cma-root .sr-strategy.danger .sr-strategy-badge { color: #C0392B !important; border-color: #C0392B !important; }
   .cma-root .sr-strategy.rec .sr-strategy-badge { background: #C0392B !important; color: white !important; border-color: #C0392B !important; }
   .cma-root .sr-strategy.fast .sr-strategy-badge { color: #B7770D !important; border-color: #B7770D !important; }
-  .cma-root .sr-strategy-label { font-size: 10px !important; margin-bottom: 6px !important; }
-  .cma-root .sr-strategy-price { font-size: 26px !important; margin-bottom: 10px !important; line-height: 1 !important; }
+  .cma-root .sr-strategy-label { font-size: 11px !important; margin-bottom: 8px !important; }
+  .cma-root .sr-strategy-price { font-size: 28px !important; margin-bottom: 9px !important; line-height: 1 !important; }
   .cma-root .sr-strategy.rec .sr-strategy-price { color: #9E2A20 !important; }
-  .cma-root .sr-strategy-detail { font-size: 12px !important; padding-top: 8px !important; line-height: 1.45 !important; }
+  .cma-root .sr-strategy-detail { font-size: 13px !important; padding-top: 10px !important; line-height: 1.5 !important; }
   .cma-root .sr-strategy-detail .row { padding: 3px 0 !important; }
 
-  /* COST OF WAITING — framed block with tinted danger cells */
-  .cma-root .sr-cost-section { background: #F6F6F4 !important; border: 2px solid #1A1A1A !important; border-radius: 6px !important; padding: 18px 0 14px !important; margin: 16px 0 !important; page-break-inside: avoid; }
-  .cma-root .sr-cost-eyebrow { color: #C0392B !important; font-size: 10px !important; margin-bottom: 6px !important; }
-  .cma-root .sr-cost-title { color: #1A1A1A !important; font-size: 21px !important; margin-bottom: 16px !important; }
-  .cma-root .sr-cost-grid { padding: 0 28px !important; gap: 10px !important; }
-  .cma-root .sr-cost-cell { background: white !important; border: 1px solid #E2E0DC !important; border-radius: 6px !important; padding: 14px 12px !important; }
-  .cma-root .sr-cost-cell.bad { background: #FBECEA !important; border-color: rgba(192,57,43,0.3) !important; }
-  .cma-root .sr-cost-cell-label { font-size: 10px !important; margin-bottom: 8px !important; }
-  .cma-root .sr-cost-cell-val { color: #1A1A1A !important; font-size: 28px !important; line-height: 1 !important; }
-  .cma-root .sr-cost-cell.bad .sr-cost-cell-val { color: #9E2A20 !important; }
-  .cma-root .sr-cost-cell.bad .sr-cost-cell-label { color: #C0392B !important; }
-  .cma-root .sr-cost-body { font-size: 13px !important; line-height: 1.55 !important; margin: 16px 44px 0 !important; padding-top: 12px !important; }
-  .cma-root .sr-cost-body strong { color: #9E2A20 !important; }
-
-  /* SIGNATURE */
-  .cma-root .sr-signature { background: white !important; border-top: 3px solid #C0392B !important; padding: 22px 44px !important; }
-  .cma-root .sr-signature-text { font-size: 14px !important; line-height: 1.6 !important; margin-bottom: 14px !important; }
-  .cma-root .sr-signature-name { color: #1A1A1A !important; font-size: 20px !important; margin-bottom: 2px !important; }
+  /* SIGNATURE — compact close */
+  .cma-root .sr-signature { background: white !important; border-top: 3px solid #C0392B !important; padding: 12px 44px !important; }
+  .cma-root .sr-signature-text { font-size: 13px !important; line-height: 1.5 !important; margin-bottom: 8px !important; max-width: 100% !important; }
+  .cma-root .sr-signature-name { color: #1A1A1A !important; font-size: 19px !important; margin-bottom: 2px !important; }
   .cma-root .sr-signature-title { font-size: 12px !important; color: #6B6B6B !important; }
 
-  .cma-root .sr-footer { background: white !important; color: #6B6B6B !important; padding: 12px 44px !important; font-size: 10px !important; border-top: 2px solid #C0392B !important; }
+  .cma-root .sr-footer { background: white !important; color: #6B6B6B !important; padding: 8px 44px !important; font-size: 10px !important; border-top: 1px solid #E2E0DC !important; }
 }

@@ -418,16 +418,21 @@ function CmaTool({ tx, token, currentUser }) {
     [selected, subject, upgradeAdjustment, marketDirection, outlierInfo, comps]
   );
 
-  const rentalAnalysis = useMemo(
-    () =>
-      computeRentalAnalysis({
-        rentalComps,
-        subjectSqft: subject.sqft,
-        saleValue: analysis?.tiers?.[1]?.listPrice ?? null,
-        monthlyCarry: analysis?.monthlyCarry ?? 0,
-      }),
-    [rentalComps, subject.sqft, analysis]
-  );
+  const rentalAnalysis = useMemo(() => {
+    // Use the recommended price when the sale analysis is complete; otherwise fall
+    // back to a manual override or the current list price so rent vs. buy / yield
+    // still works (e.g. a buyer-side rental check before a full sale CMA).
+    const saleValue =
+      analysis?.tiers?.[1]?.listPrice ??
+      (subject.manualPriceOverride && parseFloat(subject.manualPriceOverride) > 0 ? parseFloat(subject.manualPriceOverride) : null) ??
+      (subject.currentListPrice && parseFloat(subject.currentListPrice) > 0 ? parseFloat(subject.currentListPrice) : null);
+    return computeRentalAnalysis({
+      rentalComps,
+      subjectSqft: subject.sqft,
+      saleValue,
+      monthlyCarry: analysis?.monthlyCarry ?? 0,
+    });
+  }, [rentalComps, subject.sqft, subject.manualPriceOverride, subject.currentListPrice, analysis]);
 
   const toggleComp = (id) => {
     setSelectedIds((prev) => {
@@ -732,6 +737,57 @@ function CmaTool({ tx, token, currentUser }) {
             </section>
           )}
 
+          {comps.length > 0 && subject.sqft && (
+            <section className="section">
+              <div className="section-num">RENTAL <span style={{ color: 'var(--muted)' }}>· optional</span></div>
+              <h2 className="section-title">Rent vs. sell</h2>
+              <p className="section-sub">
+                Upload a SEPARATE MLS export of recently <strong>leased</strong> comps (same area/size, status Leased/Rented). The tool estimates the monthly rent for this home and compares renting to selling — useful when a seller is weighing holding the property, or when advising a buyer on rent vs. buy. This is independent of the sale analysis above.
+              </p>
+              {rentalComps.length === 0 ? (
+                <div className="upload-zone" onClick={() => rentalInputRef.current.click()}>
+                  <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><polyline points="9 22 9 12 15 12 15 22" /></svg>
+                  <div className="primary">Drop leased-comps CSV here</div>
+                  <div className="secondary">or click to browse — MLS export of recently rented homes</div>
+                  <input ref={rentalInputRef} type="file" accept=".csv" onChange={(e) => handleRentalFile(e.target.files[0])} />
+                </div>
+              ) : (
+                <>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '12px 18px', background: 'white', border: '1px solid var(--rule)', borderRadius: 2, marginBottom: 16 }}>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontWeight: 500, fontSize: 14 }}>{rentalFilename}</div>
+                      <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>{rentalComps.length} leased comps loaded{rentalAnalysis ? ` · ${rentalAnalysis.count} used` : ''}</div>
+                    </div>
+                    <button className="btn-mini" onClick={() => { setRentalComps([]); setRentalFilename(''); }}>Replace file</button>
+                  </div>
+                  {!rentalAnalysis ? (
+                    <div className="data-info"><strong>Need 2+ leased comps with rent and sqft</strong> to estimate. Check the CSV has a rent (Lease Price / Current Price) and a sqft (Heated Area / Living Area) column.</div>
+                  ) : (
+                    <div className="carry-wrap">
+                      <div className="carry-grid">
+                        <div><div className="carry-stat-label">Est. Monthly Rent</div><div className="carry-stat-val">{fmtMoney(rentalAnalysis.estMonthlyRent)}</div></div>
+                        <div><div className="carry-stat-label">Annual Rent</div><div className="carry-stat-val">{fmtMoney(rentalAnalysis.annualRent)}</div></div>
+                        <div><div className="carry-stat-label">Gross Yield</div><div className="carry-stat-val">{rentalAnalysis.grossYield != null ? fmtPct(rentalAnalysis.grossYield) : '—'}</div></div>
+                        <div><div className="carry-stat-label">Rent Multiple (GRM)</div><div className="carry-stat-val">{rentalAnalysis.grm != null ? rentalAnalysis.grm.toFixed(1) : '—'}</div></div>
+                      </div>
+                      <div className="carry-narrative">
+                        Based on <strong>${rentalAnalysis.medianRentPsf.toFixed(2)}/sqft/mo</strong> median rent across {rentalAnalysis.count} leased comps, this home would rent for about <strong>{fmtMoney(rentalAnalysis.estMonthlyRent)}/mo</strong>.{' '}
+                        {rentalAnalysis.grossYield != null && rentalAnalysis.saleValue != null && <>That's a <strong>{fmtPct(rentalAnalysis.grossYield)}</strong> gross yield on a {fmtMoney(rentalAnalysis.saleValue)} sale price. </>}
+                        {rentalAnalysis.onePercentRuleMet != null && <>The 1% rule is <strong>{rentalAnalysis.onePercentRuleMet ? 'met' : 'not met'}</strong>. </>}
+                        {rentalAnalysis.rentVsOwn && (
+                          rentalAnalysis.rentVsOwn.diff >= 0
+                            ? <>Estimated rent <strong>covers</strong> the {fmtMoney(rentalAnalysis.rentVsOwn.monthlyCarry)}/mo carrying cost with <strong>{fmtMoney(rentalAnalysis.rentVsOwn.diff)}/mo</strong> to spare — holding and renting is cash-flow positive.</>
+                            : <>Estimated rent is <strong>{fmtMoney(Math.abs(rentalAnalysis.rentVsOwn.diff))}/mo short</strong> of the {fmtMoney(rentalAnalysis.rentVsOwn.monthlyCarry)}/mo carrying cost — holding and renting is cash-flow negative.</>
+                        )}
+                        {rentalAnalysis.saleValue == null && <span style={{ color: 'var(--muted)' }}> Enter a list price or finish the sale analysis to see yield, GRM, and the 1% rule.</span>}
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+            </section>
+          )}
+
           {comps.length > 0 && subject.sqft && selectedIds.size >= 2 && (
             <section className="section">
               <div className="section-num">04 · UPGRADES</div>
@@ -957,54 +1013,6 @@ function CmaTool({ tx, token, currentUser }) {
                 </section>
               )}
 
-              <section className="section">
-                <div className="section-num">12 · RENTAL <span style={{ color: 'var(--muted)' }}>· optional</span></div>
-                <h2 className="section-title">Rent vs. sell</h2>
-                <p className="section-sub">
-                  Upload a SEPARATE MLS export of recently <strong>leased</strong> comps (same area/size, status Leased/Rented). The tool estimates the monthly rent for this home and compares renting to selling — useful when a seller is weighing holding the property, or when advising a buyer on rent vs. buy.
-                </p>
-                {rentalComps.length === 0 ? (
-                  <div className="upload-zone" onClick={() => rentalInputRef.current.click()}>
-                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><polyline points="9 22 9 12 15 12 15 22" /></svg>
-                    <div className="primary">Drop leased-comps CSV here</div>
-                    <div className="secondary">or click to browse — MLS export of recently rented homes</div>
-                    <input ref={rentalInputRef} type="file" accept=".csv" onChange={(e) => handleRentalFile(e.target.files[0])} />
-                  </div>
-                ) : (
-                  <>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '12px 18px', background: 'white', border: '1px solid var(--rule)', borderRadius: 2, marginBottom: 16 }}>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontWeight: 500, fontSize: 14 }}>{rentalFilename}</div>
-                        <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>{rentalComps.length} leased comps loaded{rentalAnalysis ? ` · ${rentalAnalysis.count} used` : ''}</div>
-                      </div>
-                      <button className="btn-mini" onClick={() => { setRentalComps([]); setRentalFilename(''); }}>Replace file</button>
-                    </div>
-                    {!rentalAnalysis ? (
-                      <div className="data-info"><strong>Need 2+ leased comps with rent and sqft</strong> to estimate. Check the CSV has a rent (Lease Price / Current Price) and Heated Area column.</div>
-                    ) : (
-                      <div className="carry-wrap">
-                        <div className="carry-grid">
-                          <div><div className="carry-stat-label">Est. Monthly Rent</div><div className="carry-stat-val">{fmtMoney(rentalAnalysis.estMonthlyRent)}</div></div>
-                          <div><div className="carry-stat-label">Annual Rent</div><div className="carry-stat-val">{fmtMoney(rentalAnalysis.annualRent)}</div></div>
-                          <div><div className="carry-stat-label">Gross Yield</div><div className="carry-stat-val">{rentalAnalysis.grossYield != null ? fmtPct(rentalAnalysis.grossYield) : '—'}</div></div>
-                          <div><div className="carry-stat-label">Rent Multiple (GRM)</div><div className="carry-stat-val">{rentalAnalysis.grm != null ? rentalAnalysis.grm.toFixed(1) : '—'}</div></div>
-                        </div>
-                        <div className="carry-narrative">
-                          Based on <strong>${rentalAnalysis.medianRentPsf.toFixed(2)}/sqft/mo</strong> median rent across {rentalAnalysis.count} leased comps, this home would rent for about <strong>{fmtMoney(rentalAnalysis.estMonthlyRent)}/mo</strong>.{' '}
-                          {rentalAnalysis.grossYield != null && <>That's a <strong>{fmtPct(rentalAnalysis.grossYield)}</strong> gross yield on the {fmtMoney(analysis.tiers[1].listPrice)} recommended price. </>}
-                          {rentalAnalysis.onePercentRuleMet != null && <>The 1% rule is <strong>{rentalAnalysis.onePercentRuleMet ? 'met' : 'not met'}</strong>. </>}
-                          {rentalAnalysis.rentVsOwn && (
-                            rentalAnalysis.rentVsOwn.diff >= 0
-                              ? <>Estimated rent <strong>covers</strong> the {fmtMoney(rentalAnalysis.rentVsOwn.monthlyCarry)}/mo carrying cost with <strong>{fmtMoney(rentalAnalysis.rentVsOwn.diff)}/mo</strong> to spare — holding and renting is cash-flow positive.</>
-                              : <>Estimated rent is <strong>{fmtMoney(Math.abs(rentalAnalysis.rentVsOwn.diff))}/mo short</strong> of the {fmtMoney(rentalAnalysis.rentVsOwn.monthlyCarry)}/mo carrying cost — holding and renting is cash-flow negative.</>
-                          )}
-                        </div>
-                      </div>
-                    )}
-                  </>
-                )}
-              </section>
-
               <section className="section no-print" style={{ display: 'flex', gap: 12, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
                 <button className="btn btn-ghost" onClick={() => setMode('seller')}>View Seller Report →</button>
                 <button className="btn btn-primary" onClick={printView}>Print / Save as PDF</button>
@@ -1123,13 +1131,13 @@ function CmaTool({ tx, token, currentUser }) {
                 <div className="sr-hero-stat"><div className="sr-hero-stat-label">Sells in 60 Days</div><div className="sr-hero-stat-val">{fmtPct(recommendedTier.prob60, 0)}</div></div>
               </div>
             </div>
-            <div className="sr-body">
+            <div className="sr-body sr-print-hide">
               <p>This price isn't a guess. It's built on <strong>{analysis.soldCount} recent sale{analysis.soldCount === 1 ? '' : 's'}</strong> of homes just like yours{analysis.expiredCount > 0 && `, plus ${analysis.expiredCount} listing${analysis.expiredCount === 1 ? '' : 's'} the market rejected at higher prices`}.</p>
               <p>The pages that follow show you the actual sales we used, where the market is headed, and your three pricing options.</p>
             </div>
           </div>
 
-          <div className="sr-section">
+          <div className="sr-section sr-print-hide">
             <div className="sr-eyebrow">The Evidence</div>
             <h2 className="sr-h2">What homes like yours actually sold for.</h2>
             <div className="sr-body"><p>These are the most relevant recent sales. Buyers and appraisers will look at these same homes when deciding what yours is worth.</p></div>
@@ -1160,7 +1168,7 @@ function CmaTool({ tx, token, currentUser }) {
           </div>
 
           {md.confidence !== 'none' && (
-            <div className="sr-section">
+            <div className="sr-section sr-print-hide">
               <div className="sr-eyebrow">Market Trend</div>
               <h2 className="sr-h2">{isFalling ? 'The market is moving against us.' : isRising ? 'The market is working in our favor.' : 'The market is steady right now.'}</h2>
               <div className={`sr-market ${isFalling ? 'falling' : isRising ? 'rising' : 'flat'}`}>
@@ -1183,7 +1191,7 @@ function CmaTool({ tx, token, currentUser }) {
           <div className="sr-section">
             <div className="sr-eyebrow">Your Choice</div>
             <h2 className="sr-h2">You have three pricing options.</h2>
-            <div className="sr-body"><p>Many sellers think pricing high is a "free test." The data tells a different story. Here's the honest breakdown:</p></div>
+            <div className="sr-body sr-print-hide"><p>Many sellers think pricing high is a "free test." The data tells a different story. Here's the honest breakdown:</p></div>
             <div className="sr-strategies">
               <div className="sr-strategy danger">
                 <div className="sr-strategy-badge">RISKY</div>
@@ -1216,7 +1224,7 @@ function CmaTool({ tx, token, currentUser }) {
                 </div>
               </div>
             </div>
-            <div className="sr-key-insight">
+            <div className="sr-key-insight sr-print-hide">
               <div className="sr-key-insight-label">The Aggressive Trap</div>
               <div className="sr-key-insight-body">
                 Listing at <strong>{fmtMoney(analysis.tiers[0].listPrice)}</strong> sounds appealing, but only has a <strong>{fmtPct(analysis.tiers[0].prob60, 0)} chance</strong> of selling in 60 days. After likely price cuts, you'd probably net <strong>{fmtMoney(analysis.tiers[0].expectedSale)}</strong> — only <strong>{fmtMoney(analysis.tiers[0].expectedSale - analysis.tiers[1].expectedSale)} more</strong> than the recommended price, in exchange for months of carrying costs.
@@ -1225,7 +1233,7 @@ function CmaTool({ tx, token, currentUser }) {
           </div>
 
           {analysis.monthlyCarry > 0 && (
-            <div className="sr-section">
+            <div className="sr-section sr-print-hide">
               <div className="sr-eyebrow">The Hidden Cost</div>
               <h2 className="sr-h2">Every month costs you real money.</h2>
               <div className="sr-body"><p>Most sellers don't calculate this. Here's what you pay every month just to hold the home:</p></div>
@@ -1242,7 +1250,7 @@ function CmaTool({ tx, token, currentUser }) {
             </div>
           )}
 
-          <div className="sr-section">
+          <div className="sr-section sr-print-hide">
             <div className="sr-eyebrow">Our Honest Advice</div>
             <h2 className="sr-h2">List at {fmtMoney(recommendedTier.listPrice)}.</h2>
             <div className="sr-body">
