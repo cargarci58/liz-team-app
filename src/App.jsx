@@ -3976,6 +3976,47 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
             {(tx.transaction_type || tx.type) && /buyer|dual/i.test(tx.transaction_type || tx.type) && (
               <PreApprovalCard transactionId={tx.id} isAgent={true} />
             )}
+            {/* Buyer Search Criteria — read-only summary of what the buyer
+                submitted at intake (stored in intake_details). Shows the agent
+                the budget, must-haves, financing and timeline at a glance. */}
+            {tx.intakeDetails && tx.intakeDetails.source === "buyer_intake" && (() => {
+              const d = tx.intakeDetails;
+              const money = (v) => (v != null && v !== "" && !isNaN(Number(v))) ? "$" + Number(v).toLocaleString() : null;
+              const timelineLabels = { asap: "As soon as possible", "1-3mo": "1–3 months", "3-6mo": "3–6 months", "6mo+": "6+ months" };
+              const housingLabels = { renting: "Renting", own: "Owns a home", family: "Living with family" };
+              const preApprovedLabels = { yes: "Pre-approved", no: "Needs a lender", cash: "Cash buyer" };
+              const budget = (money(d.budgetMin) && money(d.budgetMax)) ? `${money(d.budgetMin)} – ${money(d.budgetMax)}`
+                : (money(d.budgetMax) || money(d.budgetMin) || null);
+              const bedBath = [d.bedroomsMin ? `${d.bedroomsMin}+ bed` : null, d.bathroomsMin ? `${d.bathroomsMin}+ bath` : null].filter(Boolean).join(" · ") || null;
+              const rows = [
+                ["Budget", budget],
+                ["Areas", d.preferredAreas],
+                ["Property type", d.propType],
+                ["Beds / baths", bedBath],
+                ["Down payment", money(d.downPayment)],
+                ["Financing", preApprovedLabels[d.preApproved] || d.preApproved],
+                ["Lender", d.lenderName],
+                ["Pre-approval amount", money(d.preApprovalAmount)],
+                ["Timeline", timelineLabels[d.timeline] || d.timeline],
+                ["First-time buyer", d.firstTime === "yes" ? "Yes" : d.firstTime === "no" ? "No" : null],
+                ["Current housing", housingLabels[d.currentHousing] || d.currentHousing],
+                ["Must-haves", d.mustHaves],
+              ].filter(([, v]) => v != null && v !== "");
+              if (!rows.length) return null;
+              return (
+                <div style={{ background: "#fff", border: `1px solid ${COLORS.border}`, borderRadius: 12, padding: 18, marginBottom: 20 }}>
+                  <div style={{ fontSize: 15, fontWeight: 800, color: "#1A5276", marginBottom: 12, display: "flex", alignItems: "center", gap: 8 }}>🔍 Buyer Search Criteria <span style={{ fontSize: 11, fontWeight: 600, color: COLORS.muted, textTransform: "uppercase", letterSpacing: "0.05em" }}>from intake</span></div>
+                  <div style={{ display: "grid", gridTemplateColumns: "minmax(140px, 200px) 1fr", rowGap: 8, columnGap: 16, fontSize: 14 }}>
+                    {rows.map(([label, value]) => (
+                      <div key={label} style={{ display: "contents" }}>
+                        <div style={{ color: COLORS.muted, fontWeight: 600 }}>{label}</div>
+                        <div style={{ color: COLORS.ink || "#111" }}>{value}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
             {tx.assignedAgentId && tx.needsReview && (
               <ContractReviewChecklist tx={tx} token={localStorage.getItem("tp_token") || ""} onCleared={() => onUpdate({ ...tx, needsReview: false })} setActiveTab={setActiveTab} openEditTx={openEditTx} />
             )}
