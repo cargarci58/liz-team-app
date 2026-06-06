@@ -125,26 +125,52 @@ function TrendChart({ points }) {
   );
 }
 
-// Seed the subject from the transaction. Only fields the tx actually stores are
-// auto-filled (address / year built / list price). Beds/sqft/lot/etc. are not
-// stored on the transaction yet — the agent fills those in (backend chunk adds
-// the columns so they carry over automatically).
+// Maps the seller-intake condition label (stored on the transaction) to the
+// CMA's condition-tier code. Falls back to the baseline ("move_in").
+const CONDITION_TIER_MAP = {
+  'Premium / Renovated': 'premium',
+  'Move-In Ready': 'move_in',
+  'Original but Maintained': 'original_maintained',
+  'Needs Some Work': 'needs_work',
+  'Major Updates Needed': 'major_updates',
+  // Also accept the tier code itself (the CMA re-saves specs to the tx).
+  premium: 'premium', move_in: 'move_in', original_maintained: 'original_maintained',
+  needs_work: 'needs_work', major_updates: 'major_updates',
+};
+
+// Seed the upgrade grid from the upgrades the seller checked at intake.
+// intake_details.upgrades is { upgradeId: true }; the grid wants { id: { checked } }.
+// Only ids present in the UPGRADE_LIBRARY survive — anything else is ignored.
+const makeInitialUpgrades = (tx) => {
+  const out = {};
+  const picked = tx?.intakeDetails?.upgrades;
+  if (picked && typeof picked === 'object') {
+    for (const id of Object.keys(picked)) {
+      if (picked[id]) out[id] = { checked: true };
+    }
+  }
+  return out;
+};
+
+// Seed the subject from the transaction. Property specs are captured at intake
+// (seller form) and re-saved each time a CMA is run, so the Subject tab
+// pre-fills. The agent can still edit anything.
 const makeInitialSubject = (tx) => ({
   address: tx?.address || '',
   sqft: tx?.sqft != null && tx?.sqft !== '' ? String(tx.sqft) : '',
   beds: tx?.beds != null && tx?.beds !== '' ? String(tx.beds) : '',
   baths: tx?.baths != null && tx?.baths !== '' ? String(tx.baths) : '',
-  yearBuilt: tx?.year_built ? String(tx.year_built) : '',
-  lotSize: tx?.lot_acres != null && tx?.lot_acres !== '' ? String(tx.lot_acres) : '',
-  poolType: tx?.pool_type || 'none',
+  yearBuilt: tx?.yearBuilt ? String(tx.yearBuilt) : '',
+  lotSize: tx?.lotAcres != null && tx?.lotAcres !== '' ? String(tx.lotAcres) : '',
+  poolType: tx?.poolType ? String(tx.poolType).toLowerCase() : 'none',
   stories: tx?.stories ? String(tx.stories) : '1',
-  garageSpaces: tx?.garage_spaces ? String(tx.garage_spaces) : '2',
-  hasWaterView: !!tx?.has_water_view,
-  hasGolfView: !!tx?.has_golf_view,
-  conditionTier: 'move_in',
+  garageSpaces: tx?.garageSpaces ? String(tx.garageSpaces) : '2',
+  hasWaterView: !!tx?.hasWaterView,
+  hasGolfView: !!tx?.hasGolfView,
+  conditionTier: CONDITION_TIER_MAP[tx?.propertyCondition] || 'move_in',
   lotQuality: 'standard',
   isCurrentlyListed: false,
-  currentListPrice: tx?.list_price ? String(tx.list_price) : '',
+  currentListPrice: tx?.listPrice ? String(tx.listPrice) : '',
   currentDOM: '',
   priceReductions: '',
   showingActivity: 'moderate',
@@ -212,7 +238,7 @@ function CmaTool({ tx, token, currentUser }) {
   const [selectedIds, setSelectedIds] = useState(() => new Set(loadDraft()?.selectedIds || []));
   const [filename, setFilename] = useState(() => loadDraft()?.filename || '');
   const [subject, setSubject] = useState(() => loadDraft()?.subject || makeInitialSubject(tx));
-  const [upgrades, setUpgrades] = useState(() => loadDraft()?.upgrades || {});
+  const [upgrades, setUpgrades] = useState(() => loadDraft()?.upgrades || makeInitialUpgrades(tx));
   const [marketOverride, setMarketOverride] = useState(() => loadDraft()?.marketOverride || 'auto');
   const [dragging, setDragging] = useState(false);
   const [filters, setFilters] = useState(() => loadDraft()?.filters || { similarSize: true, timeWindow: '9' });
