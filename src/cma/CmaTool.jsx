@@ -363,16 +363,19 @@ function CmaTool({ tx, token, currentUser }) {
       return;
     }
     setSaveState({ status: 'saving', msg: 'Generating PDF…' });
+    let iframe;
     try {
-      const mod = await import('html2pdf.js');
-      const html2pdf = mod.default || mod; // UMD/ESM interop safety
+      const [{ default: html2canvas }, { jsPDF }] = await Promise.all([import('html2canvas'), import('jspdf')]);
       const safeAddr = (subject.address || 'CMA').replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '').slice(0, 40) || 'CMA';
       const filename = `CMA-${safeAddr}-${new Date().toISOString().slice(0, 10)}.pdf`;
-      // Match the Print/Save-PDF output (the condensed 1–2 page report). html2canvas
-      // ignores @media print, so we inline those rules onto the live DOM and size the
-      // page to the letter printable width (8.5in − 0.7in margins = 7.8in ≈ 749px @96dpi)
-      // for the capture, then revert. Same layout the browser print path produces.
-      const printCss = (() => {
+
+      // Produce the SAME condensed report the browser Print/Save-PDF path makes.
+      // html2canvas ignores @media print, so we render a self-contained copy in a
+      // hidden iframe whose width (940px, like the print window) keeps the desktop
+      // 3-column layout (narrower would trip the report's mobile breakpoints), and
+      // we inline the @media print rules as always-on. Then we slice the captured
+      // image across US-Letter pages with jsPDF for a deterministic page count.
+      const printInner = (() => {
         const css = cmaCssRaw;
         const i = css.indexOf('@media print');
         if (i < 0) return '';
@@ -387,31 +390,41 @@ function CmaTool({ tx, token, currentUser }) {
         }
         return css.slice(open + 1, k); // inner rules of the @media print block
       })();
-      const styleEl = document.createElement('style');
-      styleEl.setAttribute('data-cma-pdf-print', '');
-      styleEl.textContent = printCss;
-      const prevWidth = node.style.width;
-      const prevMaxWidth = node.style.maxWidth;
-      document.head.appendChild(styleEl);
-      node.style.width = '749px';
-      node.style.maxWidth = '749px';
-      let blob;
-      try {
-        blob = await html2pdf()
-          .set({
-            margin: [0.35, 0.35, 0.35, 0.35],
-            image: { type: 'jpeg', quality: 0.95 },
-            html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff', windowWidth: 749 },
-            jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' },
-            pagebreak: { mode: ['css', 'legacy'] },
-          })
-          .from(node)
-          .outputPdf('blob');
-      } finally {
-        styleEl.remove();
-        node.style.width = prevWidth;
-        node.style.maxWidth = prevMaxWidth;
+      const RENDER_W = 940;
+      iframe = document.createElement('iframe');
+      iframe.setAttribute('aria-hidden', 'true');
+      iframe.style.cssText = `position:fixed;left:-10000px;top:0;width:${RENDER_W}px;height:3000px;border:0;`;
+      document.body.appendChild(iframe);
+      const idoc = iframe.contentDocument;
+      idoc.open();
+      idoc.write(
+        `<!DOCTYPE html><html><head><meta charset="utf-8" />` +
+          `<style>${cmaCssRaw}</style><style>${printInner}</style></head>` +
+          `<body style="margin:0;width:${RENDER_W}px;background:#fff">` +
+          `<div class="cma-root" style="background:#fff"><div class="sr-page">${node.innerHTML}</div></div>` +
+          `</body></html>`
+      );
+      idoc.close();
+      if (idoc.fonts && idoc.fonts.ready) { try { await idoc.fonts.ready; } catch (e) { /* fonts optional */ } }
+      await new Promise((r) => setTimeout(r, 450)); // let layout settle
+      const target = idoc.querySelector('.sr-page');
+      const canvas = await html2canvas(target, { scale: 2, useCORS: true, backgroundColor: '#ffffff', windowWidth: RENDER_W });
+
+      const pdf = new jsPDF('p', 'pt', 'letter');
+      const pageW = pdf.internal.pageSize.getWidth();
+      const pageH = pdf.internal.pageSize.getHeight();
+      const imgW = pageW;
+      const imgH = (canvas.height * imgW) / canvas.width;
+      const img = canvas.toDataURL('image/jpeg', 0.95);
+      let y = 0;
+      let page = 0;
+      while (y < imgH - 1) {
+        if (page > 0) pdf.addPage();
+        pdf.addImage(img, 'JPEG', 0, -y, imgW, imgH);
+        y += pageH;
+        page += 1;
       }
+      const blob = pdf.output('blob');
       const base64 = await blobToBase64(blob);
       setSaveState({ status: 'saving', msg: 'Saving to Documents…' });
       const headers = { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token };
@@ -432,6 +445,8 @@ function CmaTool({ tx, token, currentUser }) {
       setSaveState({ status: 'ok', msg: `Saved "${filename}" to this transaction's Documents.` });
     } catch (e) {
       setSaveState({ status: 'err', msg: e?.message || 'Could not save to Documents.' });
+    } finally {
+      if (iframe && iframe.parentNode) iframe.parentNode.removeChild(iframe);
     }
   };
 
