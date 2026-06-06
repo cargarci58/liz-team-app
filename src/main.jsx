@@ -8,6 +8,24 @@ import ContractUploadPublic from './ContractUploadPublic'
 import OfferReviewPublic from './OfferReviewPublic'
 import MilestoneActionPublic from './MilestoneActionPublic'
 
+// Stale-deploy self-heal: after a new Netlify build, the hashed JS chunks
+// change. A tab that was already open (or one served the SPA index.html
+// fallback for a now-missing chunk) throws "Failed to fetch dynamically
+// imported module" when it lazy-loads something (e.g. jsPDF for the LOI / CMA
+// PDF). Vite fires `vite:preloadError` on that failure — reload once to pull
+// the fresh index + chunk hashes. A 15s cooldown prevents a reload loop if the
+// asset is genuinely gone.
+window.addEventListener('vite:preloadError', (e) => {
+  try {
+    const last = Number(sessionStorage.getItem('vitePreloadReloadAt') || 0);
+    if (Date.now() - last > 15000) {
+      sessionStorage.setItem('vitePreloadReloadAt', String(Date.now()));
+      e.preventDefault();
+      window.location.reload();
+    }
+  } catch (_) { window.location.reload(); }
+});
+
 // Global 401 interceptor — if any API call comes back unauthorized
 // (expired/revoked token), clear stored credentials and force a fresh
 // login instead of leaving the UI silently broken.
