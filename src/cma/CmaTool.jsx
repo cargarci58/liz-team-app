@@ -474,7 +474,7 @@ function CmaTool({ tx, token, currentUser }) {
         <div className="container">
           <MLSGuide />
 
-          <section className="section">
+          <section className="section no-print">
             <div className="section-num">01 · DATA</div>
             <h2 className="section-title">Import MLS comp data</h2>
             <p className="section-sub">Export sold + active + pending + expired comps from MLS as CSV. Click the MLS Search Setup guide above for exact parameters.</p>
@@ -506,7 +506,7 @@ function CmaTool({ tx, token, currentUser }) {
           </section>
 
           {comps.length > 0 && (
-            <section className="section">
+            <section className="section no-print">
               <div className="section-num">02 · SUBJECT</div>
               <h2 className="section-title">Subject property details</h2>
               <p className="section-sub">Square footage is required. Every other field improves the accuracy of the price.</p>
@@ -649,8 +649,8 @@ function CmaTool({ tx, token, currentUser }) {
           {comps.length > 0 && (
             <section className="section">
               <div className="section-num">03 · COMPS</div>
-              <h2 className="section-title">Select comparable properties</h2>
-              <p className="section-sub">Tap rows to select. Outliers (price-per-sqft &gt;2.5× normal deviation from median) are flagged in red and automatically excluded from tier calculations even if you select them.</p>
+              <h2 className="section-title">Comparable properties</h2>
+              <p className="section-sub no-print">Tap rows to select. Outliers (price-per-sqft &gt;2.5× normal deviation from median) are flagged in red and automatically excluded from tier calculations even if you select them.</p>
 
               {!subject.sqft && (
                 <div className="data-info"><strong>Enter the subject's Heated Sqft in section 02 above</strong> to run the pricing analysis. You can select comps now — the verdict and pricing tiers appear once sqft is set.</div>
@@ -683,7 +683,7 @@ function CmaTool({ tx, token, currentUser }) {
               )}
 
               <div className="comp-table-wrap">
-                <div className="comp-controls">
+                <div className="comp-controls no-print">
                   <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                     <div className={`filter-chip ${statusFilter.SLD ? 'active' : ''}`} onClick={() => setStatusFilter({ ...statusFilter, SLD: !statusFilter.SLD })}>Sold</div>
                     <div className={`filter-chip ${statusFilter.PND ? 'active' : ''}`} onClick={() => setStatusFilter({ ...statusFilter, PND: !statusFilter.PND })}>Pending</div>
@@ -738,7 +738,7 @@ function CmaTool({ tx, token, currentUser }) {
           )}
 
           {comps.length > 0 && subject.sqft && (
-            <section className="section">
+            <section className={`section ${rentalAnalysis ? '' : 'no-print'}`}>
               <div className="section-num">RENTAL <span style={{ color: 'var(--muted)' }}>· optional</span></div>
               <h2 className="section-title">Rent vs. sell</h2>
               <p className="section-sub">
@@ -789,7 +789,7 @@ function CmaTool({ tx, token, currentUser }) {
           )}
 
           {comps.length > 0 && subject.sqft && selectedIds.size >= 2 && (
-            <section className="section">
+            <section className="section no-print">
               <div className="section-num">04 · UPGRADES</div>
               <h2 className="section-title">Property upgrades</h2>
               <p className="section-sub">Florida-tuned recovery rates. Override any cost if known.</p>
@@ -831,7 +831,7 @@ function CmaTool({ tx, token, currentUser }) {
                       </div>
                       <div style={{ fontSize: 13, color: 'var(--ink-soft)' }}>{analysis.marketDirection.desc}</div>
                     </div>
-                    <div style={{ flex: '1 1 280px' }}>
+                    <div className="no-print" style={{ flex: '1 1 280px' }}>
                       <div style={{ fontFamily: "'Segoe UI', system-ui, -apple-system, sans-serif", fontSize: 10, letterSpacing: '0.15em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: 8 }}>Manual Override</div>
                       <select value={marketOverride} onChange={(e) => setMarketOverride(e.target.value)} style={{ width: '100%', padding: '10px 12px', fontSize: 14, border: '1px solid var(--rule)', borderRadius: 2, background: 'var(--paper-deep)' }}>
                         <option value="auto">Auto-detect (recommended)</option>
@@ -1131,13 +1131,13 @@ function CmaTool({ tx, token, currentUser }) {
                 <div className="sr-hero-stat"><div className="sr-hero-stat-label">Sells in 60 Days</div><div className="sr-hero-stat-val">{fmtPct(recommendedTier.prob60, 0)}</div></div>
               </div>
             </div>
-            <div className="sr-body sr-print-hide">
+            <div className="sr-body">
               <p>This price isn't a guess. It's built on <strong>{analysis.soldCount} recent sale{analysis.soldCount === 1 ? '' : 's'}</strong> of homes just like yours{analysis.expiredCount > 0 && `, plus ${analysis.expiredCount} listing${analysis.expiredCount === 1 ? '' : 's'} the market rejected at higher prices`}.</p>
               <p>The pages that follow show you the actual sales we used, where the market is headed, and your three pricing options.</p>
             </div>
           </div>
 
-          <div className="sr-section sr-print-hide">
+          <div className="sr-section">
             <div className="sr-eyebrow">The Evidence</div>
             <h2 className="sr-h2">What homes like yours actually sold for.</h2>
             <div className="sr-body"><p>These are the most relevant recent sales. Buyers and appraisers will look at these same homes when deciding what yours is worth.</p></div>
@@ -1168,7 +1168,7 @@ function CmaTool({ tx, token, currentUser }) {
           </div>
 
           {md.confidence !== 'none' && (
-            <div className="sr-section sr-print-hide">
+            <div className="sr-section">
               <div className="sr-eyebrow">Market Trend</div>
               <h2 className="sr-h2">{isFalling ? 'The market is moving against us.' : isRising ? 'The market is working in our favor.' : 'The market is steady right now.'}</h2>
               <div className={`sr-market ${isFalling ? 'falling' : isRising ? 'rising' : 'flat'}`}>
@@ -1191,7 +1191,7 @@ function CmaTool({ tx, token, currentUser }) {
           <div className="sr-section">
             <div className="sr-eyebrow">Your Choice</div>
             <h2 className="sr-h2">You have three pricing options.</h2>
-            <div className="sr-body sr-print-hide"><p>Many sellers think pricing high is a "free test." The data tells a different story. Here's the honest breakdown:</p></div>
+            <div className="sr-body"><p>Many sellers think pricing high is a "free test." The data tells a different story. Here's the honest breakdown:</p></div>
             <div className="sr-strategies">
               <div className="sr-strategy danger">
                 <div className="sr-strategy-badge">RISKY</div>
@@ -1224,7 +1224,7 @@ function CmaTool({ tx, token, currentUser }) {
                 </div>
               </div>
             </div>
-            <div className="sr-key-insight sr-print-hide">
+            <div className="sr-key-insight">
               <div className="sr-key-insight-label">The Aggressive Trap</div>
               <div className="sr-key-insight-body">
                 Listing at <strong>{fmtMoney(analysis.tiers[0].listPrice)}</strong> sounds appealing, but only has a <strong>{fmtPct(analysis.tiers[0].prob60, 0)} chance</strong> of selling in 60 days. After likely price cuts, you'd probably net <strong>{fmtMoney(analysis.tiers[0].expectedSale)}</strong> — only <strong>{fmtMoney(analysis.tiers[0].expectedSale - analysis.tiers[1].expectedSale)} more</strong> than the recommended price, in exchange for months of carrying costs.
@@ -1233,7 +1233,7 @@ function CmaTool({ tx, token, currentUser }) {
           </div>
 
           {analysis.monthlyCarry > 0 && (
-            <div className="sr-section sr-print-hide">
+            <div className="sr-section">
               <div className="sr-eyebrow">The Hidden Cost</div>
               <h2 className="sr-h2">Every month costs you real money.</h2>
               <div className="sr-body"><p>Most sellers don't calculate this. Here's what you pay every month just to hold the home:</p></div>
@@ -1250,7 +1250,7 @@ function CmaTool({ tx, token, currentUser }) {
             </div>
           )}
 
-          <div className="sr-section sr-print-hide">
+          <div className="sr-section">
             <div className="sr-eyebrow">Our Honest Advice</div>
             <h2 className="sr-h2">List at {fmtMoney(recommendedTier.listPrice)}.</h2>
             <div className="sr-body">
