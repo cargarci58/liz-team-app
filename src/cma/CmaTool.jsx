@@ -585,6 +585,45 @@ function CmaTool({ tx, token, currentUser }) {
         <div className="container">
           <MLSGuide />
 
+          {/* Pre-import banner: show the property details already on file (from
+              the seller intake) so the agent knows the Subject step is
+              pre-filled before importing comps. Read-only summary. */}
+          {comps.length === 0 && (() => {
+            const condLabels = { premium: 'Premium / Renovated', move_in: 'Move-In Ready', original_maintained: 'Original but Maintained', needs_work: 'Needs Some Work', major_updates: 'Major Updates Needed' };
+            const poolLabels = { private: 'Private pool', community: 'Community pool', none: 'No pool' };
+            const chips = [];
+            if (subject.beds) chips.push(`${subject.beds} bed`);
+            if (subject.baths) chips.push(`${subject.baths} bath`);
+            if (subject.sqft) chips.push(`${Number(subject.sqft).toLocaleString()} sqft`);
+            if (subject.lotSize) chips.push(`${subject.lotSize} ac lot`);
+            if (subject.yearBuilt) chips.push(`Built ${subject.yearBuilt}`);
+            if (subject.garageSpaces && String(subject.garageSpaces) !== '0') chips.push(`${subject.garageSpaces}-car garage`);
+            if (subject.poolType && subject.poolType !== 'none') chips.push(poolLabels[subject.poolType] || subject.poolType);
+            if (subject.hasWaterView) chips.push('Water view');
+            if (subject.hasGolfView) chips.push('Golf view');
+            if (subject.conditionTier) chips.push(condLabels[subject.conditionTier] || subject.conditionTier);
+            const upLabels = UPGRADE_LIBRARY.filter((u) => upgrades[u.id] && upgrades[u.id].checked).map((u) => u.name);
+            if (!chips.length && !upLabels.length) return null;
+            const chipStyle = { fontSize: 12, background: 'white', border: '1px solid var(--rule)', borderRadius: 12, padding: '3px 10px' };
+            return (
+              <section className="section no-print">
+                <div style={{ background: '#f0f9f4', border: '1px solid var(--green)', borderRadius: 2, padding: '16px 20px' }}>
+                  <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 8, color: 'var(--green)' }}>✓ Property details already on file (from intake)</div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                    {chips.map((c, i) => <span key={i} style={chipStyle}>{c}</span>)}
+                  </div>
+                  {upLabels.length > 0 && (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center', marginTop: 8 }}>
+                      <span style={{ fontSize: 11, color: 'var(--muted)' }}>Upgrades:</span>
+                      {upLabels.map((u, i) => <span key={i} style={chipStyle}>{u}</span>)}
+                    </div>
+                  )}
+                  <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 10 }}>These auto-fill the Subject step automatically once you import comps — edit anything there.</div>
+                </div>
+              </section>
+            );
+          })()}
+
           <section className="section no-print">
             <div className="section-num">01 · DATA</div>
             <h2 className="section-title">Import MLS comp data</h2>
