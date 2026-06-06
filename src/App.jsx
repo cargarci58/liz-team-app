@@ -296,9 +296,12 @@ const STATUS_CONFIG = {
 // ("Commercial", "Vacant Land" vs "Land", "Lease" vs "Rental").
 const COMMERCIAL_ACCENT = "#0E7490"; // teal — distinct from every status color
 function propertyTypeBadge(tx) {
-  const pt = tx?.propertyType || "";
+  // Match the backend's deal-"world" detection: read EITHER property type OR
+  // construction type, so a deal marked commercial/land in just one field still
+  // shows the right badge (and lines up with its commercial/land timeline + docs).
+  const pt = `${tx?.propertyType || ""} ${tx?.constructionType || ""}`;
   if (/commercial/i.test(pt)) return { label: "🏢 Commercial", color: COMMERCIAL_ACCENT, bg: "#CFF6F8" };
-  if (/vacant ?land|^land/i.test(pt)) return { label: "🟩 Land", color: "#15803D", bg: "#DCFCE7" };
+  if (/vacant ?land|\bland\b/i.test(pt)) return { label: "🟩 Land", color: "#15803D", bg: "#DCFCE7" };
   if (/lease|rental/i.test(pt)) return { label: "🔑 Lease", color: "#6D28D9", bg: "#EDE9FE" };
   return null; // residential → no badge (keeps the common case uncluttered)
 }
@@ -6632,6 +6635,19 @@ function MainApp({ onLogout, currentUser }) {
             representationExpiresOn: t.representation_expires_on ? String(t.representation_expires_on).slice(0, 10) : "",
             contractFormType: t.contract_form_type || "",
             occupancyStatus: t.occupancy_status || "",
+            // CMA subject auto-fill: property specs captured at intake (and
+            // re-saved each time a CMA is run) so the Subject tab pre-fills.
+            beds: t.beds ?? "",
+            baths: t.baths ?? "",
+            sqft: t.sqft ?? "",
+            lotAcres: t.lot_acres ?? "",
+            stories: t.stories ?? "",
+            garageSpaces: t.garage_spaces ?? "",
+            poolType: t.pool_type || "",
+            hasWaterView: t.has_water_view || false,
+            hasGolfView: t.has_golf_view || false,
+            propertyCondition: t.property_condition || "",
+            intakeDetails: t.intake_details || null,
           }));
           // Pin buyer/seller intake transactions needing first contact to top
           const sorted = [...rawTxs].sort((a, b) => {
