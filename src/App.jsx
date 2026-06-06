@@ -6094,6 +6094,7 @@ function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenCon
                       {tx.type === "Buyer Representation" ? "Buyer" : tx.type === "Dual Agency" ? "Dual" : "Listing"}
                     </span>
                     <Badge label={tx.status} color={cfg.color} bg={cfg.bg} />
+                    {propertyTypeBadge(tx) && <Badge label={propertyTypeBadge(tx).label} color={propertyTypeBadge(tx).color} bg={propertyTypeBadge(tx).bg} />}
                   </div>
                   <div style={{ color: "#FFFFFF", fontWeight: 700, fontSize: 15, marginBottom: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{tx.address}</div>
                   <div style={{ color: "rgba(255,255,255,0.6)", fontSize: 12 }}>{tx.city}, FL · {tx.county} County</div>
