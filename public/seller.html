@@ -215,6 +215,95 @@
       </div>
     </div>
 
+    <!-- Property Details (powers the CMA / pricing) -->
+    <div class="card">
+      <div class="card-header">
+        <h2>📐 Property Details</h2>
+        <p>The more you share, the more accurate your pricing analysis (CMA)</p>
+      </div>
+      <div class="card-body">
+        <div class="row3">
+          <div class="field">
+            <label>Bedrooms</label>
+            <input type="number" id="beds" min="0" placeholder="4">
+          </div>
+          <div class="field">
+            <label>Bathrooms</label>
+            <input type="number" id="baths" min="0" step="0.5" placeholder="2.5">
+          </div>
+          <div class="field">
+            <label>Living Area (sq ft)</label>
+            <input type="number" id="sqft" min="0" placeholder="2200">
+          </div>
+        </div>
+        <div class="row3">
+          <div class="field">
+            <label>Lot Size (sq ft)</label>
+            <input type="number" id="lotSqft" min="0" placeholder="7500">
+          </div>
+          <div class="field">
+            <label>Year Built</label>
+            <input type="number" id="yearBuilt" min="1800" placeholder="2003">
+          </div>
+          <div class="field">
+            <label>Garage Spaces</label>
+            <input type="number" id="garage" min="0" placeholder="2">
+          </div>
+        </div>
+        <div class="row">
+          <div class="field">
+            <label>Stories</label>
+            <select id="stories">
+              <option value="">— Select —</option>
+              <option value="1">1 story</option>
+              <option value="2">2 stories</option>
+              <option value="3">3+ stories</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Pool</label>
+            <select id="poolType">
+              <option value="">— Select —</option>
+              <option value="None">No pool</option>
+              <option value="Private">Private pool</option>
+              <option value="Community">Community pool only</option>
+            </select>
+          </div>
+        </div>
+        <div class="field">
+          <label>Condition</label>
+          <select id="condition">
+            <option value="">— Select —</option>
+            <option value="Premium / Renovated">Premium / fully renovated</option>
+            <option value="Move-In Ready">Move-in ready</option>
+            <option value="Original but Maintained">Original but well maintained</option>
+            <option value="Needs Some Work">Original — needs some work</option>
+            <option value="Major Updates Needed">Major updates needed</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>View</label>
+          <div class="radio-group">
+            <label class="radio-btn" onclick="toggleView('water')"><input type="checkbox" id="hasWaterView" style="width:16px;height:16px;accent-color:#C0392B"> Water / waterfront</label>
+            <label class="radio-btn" onclick="toggleView('golf')"><input type="checkbox" id="hasGolfView" style="width:16px;height:16px;accent-color:#C0392B"> Golf course</label>
+          </div>
+        </div>
+        <div class="field">
+          <label>Recent Upgrades (check all that apply)</label>
+          <div class="radio-group" id="upgrades-group">
+            <label class="radio-btn"><input type="checkbox" data-upgrade="updated_kitchen" style="width:16px;height:16px;accent-color:#C0392B"> Updated kitchen</label>
+            <label class="radio-btn"><input type="checkbox" data-upgrade="updated_baths" style="width:16px;height:16px;accent-color:#C0392B"> Updated baths</label>
+            <label class="radio-btn"><input type="checkbox" data-upgrade="new_roof" style="width:16px;height:16px;accent-color:#C0392B"> New roof</label>
+            <label class="radio-btn"><input type="checkbox" data-upgrade="new_hvac" style="width:16px;height:16px;accent-color:#C0392B"> New HVAC</label>
+            <label class="radio-btn"><input type="checkbox" data-upgrade="hurricane_windows" style="width:16px;height:16px;accent-color:#C0392B"> Impact windows</label>
+            <label class="radio-btn"><input type="checkbox" data-upgrade="solar_owned" style="width:16px;height:16px;accent-color:#C0392B"> Solar (owned)</label>
+            <label class="radio-btn"><input type="checkbox" data-upgrade="screened_lanai" style="width:16px;height:16px;accent-color:#C0392B"> Screened lanai</label>
+            <label class="radio-btn"><input type="checkbox" data-upgrade="fenced_yard" style="width:16px;height:16px;accent-color:#C0392B"> Fenced yard</label>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- ID Upload -->
     <div class="card">
       <div class="card-header">
@@ -322,6 +411,21 @@ function showUploaded(input, labelId) {
   }
 }
 
+// Toggle the selected styling on the view checkboxes (water / golf).
+function toggleView(which) {
+  const id = which === 'water' ? 'hasWaterView' : 'hasGolfView';
+  const cb = document.getElementById(id);
+  // The onclick fires before the checkbox state flips, so read the about-to-be state.
+  setTimeout(() => cb.closest('.radio-btn').classList.toggle('selected', cb.checked), 0);
+}
+
+// Highlight upgrade chips as they're checked.
+document.addEventListener('change', (e) => {
+  if (e.target.matches('#upgrades-group input[data-upgrade]')) {
+    e.target.closest('.radio-btn').classList.toggle('selected', e.target.checked);
+  }
+});
+
 async function uploadFile(file, transactionId, uploadToken, category) {
   if (!file) return null;
   try {
@@ -366,6 +470,22 @@ async function submitForm() {
       document.getElementById('mailingAddress').value ? 'Mailing Address: ' + document.getElementById('mailingAddress').value : ''
     ].filter(Boolean).join('\n');
 
+    // Collect recent-upgrade checkboxes as a flag map keyed by CMA upgrade id.
+    const upgrades = {};
+    document.querySelectorAll('#upgrades-group input[data-upgrade]').forEach(c => {
+      if (c.checked) upgrades[c.getAttribute('data-upgrade')] = true;
+    });
+
+    // Co-seller (only sent if marked yes + a name was entered).
+    const coSeller = document.querySelector('[name="coSeller"]:checked')?.value === 'yes'
+      ? {
+          firstName: document.getElementById('coFirstName').value.trim(),
+          lastName: document.getElementById('coLastName').value.trim(),
+          email: document.getElementById('coEmail').value.trim(),
+          phone: document.getElementById('coPhone').value.trim()
+        }
+      : null;
+
     // Submit transaction
     const res = await fetch(API + '/intake/seller', {
       method: 'POST',
@@ -377,7 +497,24 @@ async function submitForm() {
         county: document.getElementById('county').value,
         propertyType: document.getElementById('propertyType').value,
         listPrice: parseFloat(listPrice),
-        notes, slug, agentId
+        notes, slug, agentId, coSeller,
+        // Property details (power the CMA)
+        beds: document.getElementById('beds').value || null,
+        baths: document.getElementById('baths').value || null,
+        sqft: document.getElementById('sqft').value || null,
+        lotSqft: document.getElementById('lotSqft').value || null,
+        yearBuilt: document.getElementById('yearBuilt').value || null,
+        garage: document.getElementById('garage').value || null,
+        stories: document.getElementById('stories').value || null,
+        poolType: document.getElementById('poolType').value || null,
+        hasWaterView: document.getElementById('hasWaterView').checked,
+        hasGolfView: document.getElementById('hasGolfView').checked,
+        condition: document.getElementById('condition').value || null,
+        upgrades,
+        // Previously collected but dropped — now persisted
+        hoa, hoaName: document.getElementById('hoaName').value || null,
+        occupied, closingTimeline: document.getElementById('closingTimeline').value || null,
+        mailingAddress: document.getElementById('mailingAddress').value || null
       })
     });
 

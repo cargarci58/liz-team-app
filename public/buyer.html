@@ -165,7 +165,7 @@
             </div>
           </div>
         </div>
-        <div class="row">
+        <div class="row3">
           <div class="field">
             <label>Minimum Budget</label>
             <input type="number" id="budgetMin" placeholder="300000">
@@ -173,6 +173,10 @@
           <div class="field">
             <label>Maximum Budget <span class="req">*</span></label>
             <input type="number" id="budgetMax" placeholder="500000" required>
+          </div>
+          <div class="field">
+            <label>Down Payment Available</label>
+            <input type="number" id="downPayment" placeholder="50000">
           </div>
         </div>
       </div>
@@ -392,13 +396,35 @@ async function submitForm() {
       document.getElementById('notes').value
     ].filter(Boolean).join('\n');
 
+    // Co-buyer (only sent if marked yes + a name was entered).
+    const coBuyer = document.querySelector('[name="coBuyer"]:checked')?.value === 'yes'
+      ? {
+          firstName: document.getElementById('coFirstName').value.trim(),
+          lastName: document.getElementById('coLastName').value.trim(),
+          email: document.getElementById('coEmail').value.trim(),
+          phone: document.getElementById('coPhone').value.trim()
+        }
+      : null;
+
     const res = await fetch(API + '/intake/buyer', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         firstName, lastName, email, phone,
         budgetMin: document.getElementById('budgetMin').value || null,
         budgetMax: parseFloat(budgetMax),
-        preferredAreas, notes, slug, agentId
+        preferredAreas, notes, slug, agentId, coBuyer,
+        downPayment: document.getElementById('downPayment').value || null,
+        // Search criteria + financing (now structured, not just in notes)
+        propType: document.querySelector('[name="propType"]:checked')?.value || null,
+        bedrooms: document.getElementById('bedrooms').value || null,
+        bathrooms: document.getElementById('bathrooms').value || null,
+        mustHaves: document.getElementById('mustHaves').value || null,
+        timeline: document.querySelector('[name="timeline"]:checked')?.value || null,
+        firstTime: document.querySelector('[name="firstTime"]:checked')?.value || null,
+        housing: document.querySelector('[name="housing"]:checked')?.value || null,
+        preApproved: document.querySelector('[name="preApproved"]:checked')?.value || null,
+        lenderName: document.getElementById('lenderName').value || null,
+        preApprovalAmount: document.getElementById('preApprovalAmount').value || null
       })
     });
 
