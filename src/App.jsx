@@ -714,6 +714,11 @@ function TransactionListView({ transactions, sortKey, sortDir, toggleSort, onSel
                   🔔 {tx.type === "Buyer Representation" ? "NEW BUYER INQUIRY" : "NEW SELLER LEAD"} — Contact Within 24hrs
                 </div>
               )}
+              {tx.assignedAgentId && !tx.needsReview && !tx.needsFirstContact && tx.leadConverted === false && (
+                <div style={{ background: "#FEF9E7", color: "#B7860B", border: "1px solid #F1C40F", borderRadius: 6, padding: "4px 10px", fontSize: 11, fontWeight: 700, marginBottom: 8, display: "inline-block" }}>
+                  🌱 {tx.type === "Buyer Representation" ? "INQUIRY" : "LEAD"} — not yet confirmed
+                </div>
+              )}
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10 }}>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontWeight: 700, color: COLORS.navy, fontSize: 14, overflow: "hidden", textOverflow: "ellipsis", display: "flex", alignItems: "center", gap: 6 }}>
@@ -2016,6 +2021,7 @@ function ScheduleClosingModal({ tx, token, milestone, onClose, onDone }) {
 function MilestonesTab({ tx, token, onSummaryChange }) {
   const [milestones, setMilestones] = useState([]);
   const [compliance, setCompliance] = useState({});
+  const [availableDocs, setAvailableDocs] = useState([]);
   const [uploadingFor, setUploadingFor] = useState(null);
   const fileInputRef = useRef(null);
   const pendingMilestoneRef = useRef(null);
@@ -2030,8 +2036,29 @@ function MilestonesTab({ tx, token, onSummaryChange }) {
         const map = {};
         data.compliance.forEach(c => { map[c.milestoneId] = c; });
         setCompliance(map);
+        setAvailableDocs(data.availableDocs || []);
       }
     } catch (e) {}
+  };
+
+  // Attach a file already on the deal to this milestone — no re-upload. Satisfies
+  // compliance immediately and labels the file so it ticks the Documents tab too.
+  const assignExistingToMilestone = async (milestoneId, docId) => {
+    if (!docId) return;
+    setUploadingFor(milestoneId);
+    try {
+      const res = await fetch(API + "/documents/" + docId + "/milestone", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
+        body: JSON.stringify({ milestoneId })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || "Could not attach document");
+      await fetchCompliance();
+    } catch (err) {
+      alert("Could not attach document: " + err.message);
+    }
+    setUploadingFor(null);
   };
 
   useEffect(() => { fetchCompliance(); }, []);
@@ -2554,9 +2581,19 @@ function MilestonesTab({ tx, token, onSummaryChange }) {
                   </div>
                 )}
                 {isClosed && !isWaived && compliance[m.id]?.documentRequired && !compliance[m.id]?.documentUploaded && (
-                  <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+                  <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
+                    {availableDocs.length > 0 && (
+                      <select value="" disabled={uploadingFor === m.id}
+                        onChange={e => assignExistingToMilestone(m.id, e.target.value)}
+                        title="Attach a file already on this deal"
+                        style={{ flex: "1 1 160px", padding: "9px 10px", borderRadius: 8, border: "1.5px solid #C0392B",
+                          fontSize: 13, fontFamily: "inherit", background: "#fff", color: "#C0392B", fontWeight: 600, cursor: "pointer" }}>
+                        <option value="">📄 Use existing document…</option>
+                        {availableDocs.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+                      </select>
+                    )}
                     <button onClick={() => handleUploadClick(m.id)} disabled={uploadingFor === m.id}
-                      style={{ flex: 1, padding: "10px 0", borderRadius: 8, border: "1.5px solid #C0392B",
+                      style={{ flex: "1 1 160px", padding: "10px 0", borderRadius: 8, border: "1.5px solid #C0392B",
                         background: "#fff", color: "#C0392B", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
                       {uploadingFor === m.id ? "Uploading..." : "📎 Upload Missing Document"}
                     </button>
@@ -2629,13 +2666,23 @@ function MilestonesTab({ tx, token, onSummaryChange }) {
                             background: "#C0392B", color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
                           {uploadingFor === m.id ? "Uploading..." : "📎 Upload Document & Complete"}
                         </button>
+                        {availableDocs.length > 0 && (
+                          <select value="" disabled={uploadingFor === m.id}
+                            onChange={e => assignExistingToMilestone(m.id, e.target.value)}
+                            title="Attach a file already on this deal"
+                            style={{ flex: "1 1 160px", padding: "9px 10px", borderRadius: 8, border: "1.5px solid #C0392B",
+                              fontSize: 13, fontFamily: "inherit", background: "#fff", color: "#C0392B", fontWeight: 600, cursor: "pointer" }}>
+                            <option value="">📄 Use existing document…</option>
+                            {availableDocs.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+                          </select>
+                        )}
                         <button onClick={() => handleComplete(m.id)} disabled={completing === m.id}
                           style={{ flex: "1 1 130px", padding: "10px 0", borderRadius: 8, border: "1.5px solid #1E8449",
                             background: "#fff", color: "#1E8449", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
                           {completing === m.id ? "Saving..." : "✓ Mark Done"}
                         </button>
                         <div style={{ flex: "1 1 100%", fontSize: 11, color: "#92400E", textAlign: "center", marginTop: 2 }}>
-                          📎 Document recommended for your file — upload it now, or mark done (it'll flag as a compliance gap until the doc is added).
+                          📎 Already uploaded it? Pick "Use existing document" to file it here — no need to upload twice.
                         </div>
                       </>
                     ) : (
@@ -3943,6 +3990,28 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
       <div style={{ padding: 24, maxWidth: 940, margin: "0 auto" }}>
         {activeTab === "overview" && (
           <div>
+            {!isGuest && tx.assignedAgentId && !tx.needsReview && !tx.needsFirstContact && tx.leadConverted === false && (
+              <div style={{ background: "#FEF9E7", border: "1px solid #F1C40F", borderRadius: 12, padding: 16, marginBottom: 20 }}>
+                <div style={{ display: "flex", alignItems: "flex-start", gap: 12, flexWrap: "wrap" }}>
+                  <span style={{ fontSize: 24 }}>🌱</span>
+                  <div style={{ flex: 1, minWidth: 220 }}>
+                    <div style={{ fontWeight: 800, color: "#7A5C00", fontSize: 15, marginBottom: 4 }}>This is still a {tx.type === "Buyer Representation" ? "buyer inquiry" : "seller lead"} — not yet confirmed</div>
+                    <div style={{ fontSize: 13, color: "#7A5C00", lineHeight: 1.5 }}>It came in from your intake link and hasn't been worked into a real deal yet. Set its status (Active, Under Contract, On Hold, or Cancel) using the status selector at the top — or confirm it now to clear this flag.</div>
+                  </div>
+                  <button
+                    onClick={async () => {
+                      try {
+                        const res = await fetch(`${API}/transactions/${tx.id}/confirm-lead`, { method: "POST", headers: { "Content-Type": "application/json", "Authorization": "Bearer " + (localStorage.getItem("tp_token") || "") } });
+                        if (!res.ok) throw new Error("Failed");
+                        onUpdate({ ...tx, leadConverted: true });
+                      } catch { alert("Could not confirm — please try again."); }
+                    }}
+                    style={{ background: "#B7860B", color: "white", border: "none", borderRadius: 8, padding: "10px 16px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>
+                    ✓ Confirm Lead
+                  </button>
+                </div>
+              </div>
+            )}
             {!isGuest && tx.type !== "Buyer Representation" && !["Closed", "Cancelled"].includes(tx.status) && (
               <div id="pending-offers-panel" style={{ marginBottom: 20, scrollMarginTop: 80 }}>
                 <ListingOffers txId={tx.id} onReview={(id) => setReviewOfferId(id)} onReceiveOffer={() => setShowReceiveOffer(true)} />
@@ -5758,6 +5827,7 @@ function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenCon
     smsThreads: t.sms_threads || {},
     needsFirstContact: t.needs_first_contact || false,
     submittedVia: t.submitted_via || null,
+    leadConverted: t.lead_converted !== false,
     intakeStepsDone: t.intake_steps_done || [],
     needsReview: t.needs_review || false,
     reviewReason: t.review_reason || null,
@@ -6117,6 +6187,11 @@ function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenCon
               {tx.assignedAgentId && !tx.needsReview && tx.needsFirstContact && (
                 <div style={{ background: "#c8102e", color: "white", padding: "8px 14px", fontSize: 12, fontWeight: 700, letterSpacing: 0.5 }}>
                   🔔 {tx.type === "Buyer Representation" ? "NEW BUYER INQUIRY" : "NEW SELLER LEAD"} — Contact Within 24hrs
+                </div>
+              )}
+              {tx.assignedAgentId && !tx.needsReview && !tx.needsFirstContact && tx.leadConverted === false && (
+                <div style={{ background: "#FEF9E7", color: "#B7860B", padding: "8px 14px", fontSize: 12, fontWeight: 700, letterSpacing: 0.5 }}>
+                  🌱 {tx.type === "Buyer Representation" ? "INQUIRY" : "LEAD"} — not yet confirmed
                 </div>
               )}
               {/* Card Header - Color coded by type */}
@@ -6646,6 +6721,7 @@ function MainApp({ onLogout, currentUser }) {
             reminders: (t.reminders || []).filter(Boolean).map(r => ({ id: r.id, title: r.title, date: r.date, message: r.message, channels: r.channels, parties: r.parties || [], sent: r.sent })),
             needsFirstContact: t.needs_first_contact || false,
             submittedVia: t.submitted_via || null,
+            leadConverted: t.lead_converted !== false,
             intakeStepsDone: t.intake_steps_done || [],
             needsReview: t.needs_review || false,
             reviewReason: t.review_reason || null,
