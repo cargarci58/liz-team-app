@@ -718,7 +718,7 @@ function TransactionListView({ transactions, sortKey, sortDir, toggleSort, onSel
                   🔔 {tx.type === "Buyer Representation" ? "NEW BUYER INQUIRY" : "NEW SELLER LEAD"} — Contact Within 24hrs
                 </div>
               )}
-              {tx.assignedAgentId && !tx.needsReview && !tx.needsFirstContact && tx.leadConverted === false && (
+              {tx.assignedAgentId && !tx.needsReview && tx.leadConverted === false && (
                 <div style={{ background: "#FEF9E7", color: "#B7860B", border: "1px solid #F1C40F", borderRadius: 6, padding: "4px 10px", fontSize: 11, fontWeight: 700, marginBottom: 8, display: "inline-block" }}>
                   🌱 {tx.type === "Buyer Representation" ? "INQUIRY" : "LEAD"} — not yet confirmed
                 </div>
@@ -3994,7 +3994,7 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
       <div style={{ padding: 24, maxWidth: 940, margin: "0 auto" }}>
         {activeTab === "overview" && (
           <div>
-            {!isGuest && tx.assignedAgentId && !tx.needsReview && !tx.needsFirstContact && tx.leadConverted === false && (
+            {!isGuest && tx.assignedAgentId && !tx.needsReview && tx.leadConverted === false && (
               <div style={{ background: "#FEF9E7", border: "1px solid #F1C40F", borderRadius: 12, padding: 16, marginBottom: 20 }}>
                 <div style={{ display: "flex", alignItems: "flex-start", gap: 12, flexWrap: "wrap" }}>
                   <span style={{ fontSize: 24 }}>🌱</span>
@@ -6207,7 +6207,7 @@ function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenCon
                   🔔 {tx.type === "Buyer Representation" ? "NEW BUYER INQUIRY" : "NEW SELLER LEAD"} — Contact Within 24hrs
                 </div>
               )}
-              {tx.assignedAgentId && !tx.needsReview && !tx.needsFirstContact && tx.leadConverted === false && (
+              {tx.assignedAgentId && !tx.needsReview && tx.leadConverted === false && (
                 <div style={{ background: "#FEF9E7", color: "#B7860B", padding: "8px 14px", fontSize: 12, fontWeight: 700, letterSpacing: 0.5 }}>
                   🌱 {tx.type === "Buyer Representation" ? "INQUIRY" : "LEAD"} — not yet confirmed
                 </div>
