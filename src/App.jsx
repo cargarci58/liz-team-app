@@ -603,7 +603,7 @@ function Modal({ title, onClose, children, wide }) {
   );
 }
 
-function TransactionListView({ transactions, sortKey, sortDir, toggleSort, onSelect }) {
+function TransactionListView({ transactions, sortKey, sortDir, toggleSort, onSelect, onLeadAction }) {
   const arrow = (key) => sortKey === key ? (sortDir === "asc" ? " ↑" : " ↓") : "";
   const fmtPrice = (p) => p ? "$" + Number(p).toLocaleString() : "—";
   const fmtDate = (d) => d ? new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "—";
@@ -719,8 +719,12 @@ function TransactionListView({ transactions, sortKey, sortDir, toggleSort, onSel
                 </div>
               )}
               {tx.assignedAgentId && !tx.needsReview && tx.leadConverted === false && (
-                <div style={{ background: "#FEF9E7", color: "#B7860B", border: "1px solid #F1C40F", borderRadius: 6, padding: "4px 10px", fontSize: 11, fontWeight: 700, marginBottom: 8, display: "inline-block" }}>
-                  🌱 {tx.type === "Buyer Representation" ? "INQUIRY" : "LEAD"} — not yet confirmed
+                <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 8 }}>
+                  <span style={{ background: "#FEF9E7", color: "#B7860B", border: "1px solid #F1C40F", borderRadius: 6, padding: "4px 10px", fontSize: 11, fontWeight: 700 }}>
+                    🌱 {tx.type === "Buyer Representation" ? "INQUIRY" : "LEAD"} — not yet confirmed
+                  </span>
+                  {onLeadAction && <button onClick={e => { e.stopPropagation(); onLeadAction(tx.id, "confirm"); }} style={{ background: "#B7860B", color: "#fff", border: "none", borderRadius: 6, padding: "4px 10px", fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>✓ Confirm</button>}
+                  {onLeadAction && <button onClick={e => { e.stopPropagation(); onLeadAction(tx.id, "cancel"); }} style={{ background: "transparent", color: "#B7860B", border: "1px solid #C9A227", borderRadius: 6, padding: "4px 10px", fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>✕ Not Pursuing</button>}
                 </div>
               )}
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10 }}>
@@ -5792,6 +5796,23 @@ function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenCon
     }
   };
 
+  // Confirm / cancel a lead straight from the card. Optimistically flips the
+  // raw paged row so the badge clears without a full refetch.
+  const onLeadAction = async (txId, kind) => {
+    const tok = localStorage.getItem("tp_token") || "";
+    try {
+      let res;
+      if (kind === "cancel") {
+        if (!window.confirm("Mark this lead as Not Pursuing? It will be set to Cancelled and removed from your active list.")) return;
+        res = await fetch(`${API}/transactions/${txId}/status`, { method: "PATCH", headers: { "Content-Type": "application/json", "Authorization": "Bearer " + tok }, body: JSON.stringify({ status: "Cancelled" }) });
+      } else {
+        res = await fetch(`${API}/transactions/${txId}/confirm-lead`, { method: "POST", headers: { "Content-Type": "application/json", "Authorization": "Bearer " + tok } });
+      }
+      if (!res.ok) throw new Error("Failed");
+      setPagedTxs(prev => prev.map(r => r.id === txId ? { ...r, lead_converted: true, ...(kind === "cancel" ? { status: "Cancelled" } : {}) } : r));
+    } catch { alert("Could not update — please try again."); }
+  };
+
   const hydratedPagedTxs = [...pagedTxs].sort((a, b) => {
     // Tier 1: New buyer/seller inquiries that still need first contact
     // (from the public intake forms) — always pinned at the top.
@@ -6173,7 +6194,7 @@ function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenCon
         </div>
       )}
       {viewMode === "list" ? (
-        <TransactionListView transactions={hydratedPagedTxs} sortKey={sortKey} sortDir={sortDir} toggleSort={toggleSort} onSelect={onSelect} />
+        <TransactionListView transactions={hydratedPagedTxs} sortKey={sortKey} sortDir={sortDir} toggleSort={toggleSort} onSelect={onSelect} onLeadAction={onLeadAction} />
       ) : viewMode === "kanban" ? (
         <PipelineBoard transactions={transactions.filter(t => t.status !== "Cancelled")} onSelect={onSelect} />
       ) : (
@@ -6208,8 +6229,12 @@ function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenCon
                 </div>
               )}
               {tx.assignedAgentId && !tx.needsReview && tx.leadConverted === false && (
-                <div style={{ background: "#FEF9E7", color: "#B7860B", padding: "8px 14px", fontSize: 12, fontWeight: 700, letterSpacing: 0.5 }}>
-                  🌱 {tx.type === "Buyer Representation" ? "INQUIRY" : "LEAD"} — not yet confirmed
+                <div style={{ background: "#FEF9E7", color: "#B7860B", padding: "8px 14px", fontSize: 12, fontWeight: 700, letterSpacing: 0.5, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, flexWrap: "wrap" }}>
+                  <span>🌱 {tx.type === "Buyer Representation" ? "INQUIRY" : "LEAD"} — not yet confirmed</span>
+                  <span style={{ display: "flex", gap: 6 }}>
+                    <button onClick={e => { e.stopPropagation(); onLeadAction(tx.id, "confirm"); }} style={{ background: "#B7860B", color: "#fff", border: "none", borderRadius: 6, padding: "4px 10px", fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>✓ Confirm</button>
+                    <button onClick={e => { e.stopPropagation(); onLeadAction(tx.id, "cancel"); }} style={{ background: "#fff", color: "#B7860B", border: "1px solid #C9A227", borderRadius: 6, padding: "4px 10px", fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>✕ Not Pursuing</button>
+                  </span>
                 </div>
               )}
               {/* Card Header - Color coded by type */}
