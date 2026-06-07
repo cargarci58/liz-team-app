@@ -6106,7 +6106,8 @@ function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenCon
           style={{ padding: "7px 14px", borderRadius: 8, border: `1px solid ${COLORS.border}`,
             background: "#fff", color: "#111", fontSize: 13, fontWeight: 600,
             cursor: "pointer", fontFamily: "inherit", minWidth: 160 }}>
-          <option value="All">📂 All Active (default)</option>
+          <option value="All">📂 Read All (default)</option>
+          <option value="Leads">🌱 New Leads & Inquiries</option>
           <option value="Active">🏷️ Active Listings Only</option>
           <option value="Under Contract">📝 Under Contract Only</option>
           <option value="Closed">✅ Closed Only</option>
