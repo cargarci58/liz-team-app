@@ -24,6 +24,9 @@ const TASK_ICONS = {
   setup_milestones:  "⚡",
   closing_prep:      "🏠",
   lead_conversion:   "🌱",
+  inbound_email_reply: "💬",
+  chase_reply_received: "💬",
+  chase_opt_out:     "⚠️",
 };
 
 // ── SELLER UPDATE MODAL ───────────────────────────────────────
@@ -207,13 +210,17 @@ function PersonalTaskCard({ task, token, onChange }) {
   );
 }
 
-function TaskCard({ task, token, onResolve, onComplete, onSnooze, onOpenModal, onStartChase, onOpenTransactionMilestones }) {
+function TaskCard({ task, token, onResolve, onComplete, onSnooze, onOpenModal, onStartChase, onOpenTransactionMilestones, onInboundReply }) {
   const cfg = PRIORITY_CONFIG[task.priority] || PRIORITY_CONFIG.normal;
   const icon = TASK_ICONS[task.task_type] || "📌";
   const isSellerUpdate = task.task_type === "seller_update";
   const isBuyerUpdate = task.task_type === "buyer_update";
   const isChaseable = ["milestone_overdue","milestone_upcoming","custom_task_overdue","custom_task_today","custom_task_upcoming"].includes(task.task_type);
   const isComplianceGap = task.task_type === "compliance_gap";
+  // Inbound email reply: a party wrote back. If the AI proposed a milestone
+  // update, the description carries a "🤖 Suggestion:" line and we offer one-tap approve.
+  const isInboundReply = task.task_type === "inbound_email_reply";
+  const inboundHasSuggestion = isInboundReply && /🤖 Suggestion:/.test(task.description || "");
   // Undated checklist step: "Done" must COMPLETE the milestone (complete-target),
   // not just silence the reminder for 7 days — otherwise it never saves as done.
   const isChecklist = task.task_type === "milestone_checklist";
@@ -283,6 +290,27 @@ function TaskCard({ task, token, onResolve, onComplete, onSnooze, onOpenModal, o
               background:"#1E8449", color:COLORS.white, fontWeight:700, fontSize:14, cursor:"pointer" }}>
             ✓ Done
           </button>
+        ) : isInboundReply ? (
+          <>
+            {inboundHasSuggestion && (
+              <button onClick={() => onInboundReply(task, true)}
+                style={{ flex:"2 1 60%", padding:"11px 0", borderRadius:10, border:"none",
+                  background:"#1E8449", color:COLORS.white, fontWeight:700, fontSize:14, cursor:"pointer" }}>
+                ✓ Approve &amp; Update
+              </button>
+            )}
+            <button onClick={() => onOpenTransactionMilestones && onOpenTransactionMilestones(task.transaction_id)}
+              style={{ flex: inboundHasSuggestion ? "1 1 30%" : "2 1 60%", padding:"11px 0", borderRadius:10,
+                border:"none", background:COLORS.red, color:COLORS.white, fontWeight:700, fontSize:14, cursor:"pointer" }}>
+              📂 Open
+            </button>
+            <button onClick={() => onInboundReply(task, false)}
+              style={{ flex:"1 1 30%", padding:"11px 0", borderRadius:10,
+                border:"1.5px solid "+COLORS.border, background:COLORS.white,
+                color:COLORS.gray, fontWeight:600, fontSize:13, cursor:"pointer" }}>
+              Got it
+            </button>
+          </>
         ) : (
           <button onClick={() => onResolve(task.id)}
             style={{ flex:2, padding:"11px 0", borderRadius:10, border:"none",
@@ -430,6 +458,26 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
         method: "PATCH", headers: { Authorization: "Bearer " + token }
       });
       setResolvedIds(prev => new Set([...prev, taskId]));
+    } catch (e) {}
+  };
+
+  // Inbound email reply card: approve the AI-suggested milestone update (or just
+  // dismiss it). target_ref_id is the inbound_emails row id.
+  const handleInboundReply = async (task, approve) => {
+    setResolvedIds(prev => new Set([...prev, task.id]));  // hide immediately
+    try {
+      if (task.target_ref_id) {
+        await fetch(API + "/inbound-emails/" + task.target_ref_id + "/resolve", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
+          body: JSON.stringify({ approve: !!approve }),
+        });
+      } else {
+        await fetch(API + "/dashboard/tasks/" + task.id + "/resolve", {
+          method: "PATCH", headers: { Authorization: "Bearer " + token }
+        });
+      }
+      window.dispatchEvent(new Event("wintheday:refresh"));
     } catch (e) {}
   };
 
@@ -736,7 +784,7 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
           {visibleOverdue.map(task => (
             <TaskCard key={task.id} task={task} token={token}
               onResolve={handleResolve} onComplete={handleComplete} onSnooze={handleSnooze}
-              onOpenModal={setActiveModal} onStartChase={handleStartChase} onOpenTransactionMilestones={onOpenTransactionMilestones} />
+              onOpenModal={setActiveModal} onStartChase={handleStartChase} onOpenTransactionMilestones={onOpenTransactionMilestones} onInboundReply={handleInboundReply} />
           ))}
         </div>
       )}
@@ -748,7 +796,7 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
           {visibleToday.map(task => (
             <TaskCard key={task.id} task={task} token={token}
               onResolve={handleResolve} onComplete={handleComplete} onSnooze={handleSnooze}
-              onOpenModal={setActiveModal} onStartChase={handleStartChase} onOpenTransactionMilestones={onOpenTransactionMilestones} />
+              onOpenModal={setActiveModal} onStartChase={handleStartChase} onOpenTransactionMilestones={onOpenTransactionMilestones} onInboundReply={handleInboundReply} />
           ))}
         </div>
       )}
@@ -760,7 +808,7 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
           {visibleUpcoming.map(task => (
             <TaskCard key={task.id} task={task} token={token}
               onResolve={handleResolve} onComplete={handleComplete} onSnooze={handleSnooze}
-              onOpenModal={setActiveModal} onStartChase={handleStartChase} onOpenTransactionMilestones={onOpenTransactionMilestones} />
+              onOpenModal={setActiveModal} onStartChase={handleStartChase} onOpenTransactionMilestones={onOpenTransactionMilestones} onInboundReply={handleInboundReply} />
           ))}
         </div>
       )}
