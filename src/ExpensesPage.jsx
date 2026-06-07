@@ -905,6 +905,8 @@ const INCOME_CATEGORIES = ['Commission (manual)', 'Referral Fee', 'Rental Income
 
 function IncomeTab() {
   const [rows, setRows] = useState([]);
+  const [commissions, setCommissions] = useState([]);
+  const [commissionTotal, setCommissionTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [from, setFrom] = useState(startOfYearISO());
@@ -915,13 +917,20 @@ function IncomeTab() {
   const load = async () => {
     setLoading(true); setError(null);
     try {
-      const data = await authFetch(`/income?from=${from}&to=${to}`);
-      setRows(data.income || []);
+      // /income = manual entries; /finance/pnl = auto commission income from closed deals
+      const [inc, pnl] = await Promise.all([
+        authFetch(`/income?from=${from}&to=${to}`),
+        authFetch(`/finance/pnl?from=${from}&to=${to}`),
+      ]);
+      setRows(inc.income || []);
+      setCommissions(pnl?.income?.commissions || []);
+      setCommissionTotal(Number(pnl?.income?.commission_total || 0));
     } catch (e) { setError(e.message); } finally { setLoading(false); }
   };
   useEffect(() => { load(); /* eslint-disable-next-line */ }, [from, to]);
 
-  const total = rows.reduce((s, r) => s + Number(r.amount || 0), 0);
+  const manualTotal = rows.reduce((s, r) => s + Number(r.amount || 0), 0);
+  const grandTotal = manualTotal + commissionTotal;
 
   const handleDelete = async (id) => {
     if (!window.confirm('Delete this income entry?')) return;
@@ -931,53 +940,84 @@ function IncomeTab() {
 
   return (
     <div style={{ padding: '20px 24px' }}>
-      <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 10, padding: 12, marginBottom: 16, fontSize: 13, color: '#1e40af' }}>
-        💡 <strong>Closed-deal commissions are added automatically</strong> in the Profit & Loss tab. Use this tab for <em>other</em> income — referral fees, rentals, bonuses, BPOs, etc.
-      </div>
-
       <div style={{ display: 'flex', gap: 12, alignItems: 'end', flexWrap: 'wrap', marginBottom: 16 }}>
         <Field label="From"><input type="date" value={from} onChange={e => setFrom(e.target.value)} style={inputStyle} /></Field>
         <Field label="To"><input type="date" value={to} onChange={e => setTo(e.target.value)} style={inputStyle} /></Field>
-        <button onClick={() => { setEditing(null); setModalOpen(true); }} style={primaryBtn('#10b981')}>➕ Add Income</button>
-        <div style={{ marginLeft: 'auto' }}>
-          <SummaryCard label="Total Other Income" value={fmtCurrency(total)} sub={`${rows.length} entr${rows.length === 1 ? 'y' : 'ies'}`} color="#10b981" />
-        </div>
+        <button onClick={() => { setEditing(null); setModalOpen(true); }} style={primaryBtn('#10b981')}>➕ Add Other Income</button>
       </div>
 
-      <div style={{ background: 'white', borderRadius: 12, boxShadow: '0 1px 3px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
-        {loading && <div style={{ padding: 40, textAlign: 'center', color: '#6b7280' }}>Loading...</div>}
-        {error && <div style={{ padding: 20, color: '#dc2626', background: '#fef2f2' }}>Error: {error}</div>}
-        {!loading && !error && rows.length === 0 && (
-          <div style={{ padding: 50, textAlign: 'center', color: '#6b7280' }}>
-            <div style={{ fontSize: 40, marginBottom: 8 }}>💰</div>No other income recorded for this period.
-          </div>
-        )}
-        {!loading && !error && rows.length > 0 && (
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
-            <thead style={{ background: '#f9fafb', borderBottom: '1px solid #e5e7eb' }}>
-              <tr><Th>Date</Th><Th>Source</Th><Th>Category</Th><Th>Notes</Th><Th align="right">Amount</Th><Th align="right">Actions</Th></tr>
-            </thead>
-            <tbody>
-              {rows.map(r => (
-                <tr key={r.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
-                  <Td>{fmtDate(r.occurred_at)}</Td>
-                  <Td><strong>{r.source || '—'}</strong></Td>
-                  <Td><span style={{ padding: '2px 8px', background: '#ecfdf5', color: '#065f46', borderRadius: 12, fontSize: 12, fontWeight: 600 }}>{r.category || 'Other Income'}</span></Td>
-                  <Td style={{ color: '#6b7280' }}>{r.notes || ''}</Td>
-                  <Td align="right" style={{ fontWeight: 600, color: '#059669' }}>{fmtCurrency(r.amount)}</Td>
-                  <Td align="right">
-                    <button onClick={() => { setEditing(r); setModalOpen(true); }} style={iconBtn} title="Edit">✏️</button>
-                    <button onClick={() => handleDelete(r.id)} style={iconBtn} title="Delete">🗑️</button>
-                  </Td>
-                </tr>
-              ))}
-            </tbody>
-            <tfoot style={{ background: '#f9fafb', borderTop: '2px solid #e5e7eb', fontWeight: 700 }}>
-              <tr><Td colSpan={4} style={{ textAlign: 'right' }}>Total:</Td><Td align="right" style={{ color: '#059669' }}>{fmtCurrency(total)}</Td><Td /></tr>
-            </tfoot>
-          </table>
-        )}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px,1fr))', gap: 12, marginBottom: 20 }}>
+        <SummaryCard label="Total Income" value={fmtCurrency(grandTotal)} sub="commissions + other" color="#059669" />
+        <SummaryCard label="Commission Income" value={fmtCurrency(commissionTotal)} sub={`${commissions.length} closed deal${commissions.length === 1 ? '' : 's'}`} color="#10b981" />
+        <SummaryCard label="Other Income" value={fmtCurrency(manualTotal)} sub={`${rows.length} entr${rows.length === 1 ? 'y' : 'ies'}`} color="#3b82f6" />
       </div>
+
+      {loading && <div style={{ padding: 40, textAlign: 'center', color: '#6b7280' }}>Loading...</div>}
+      {error && <div style={{ padding: 20, color: '#dc2626', background: '#fef2f2', borderRadius: 8 }}>Error: {error}</div>}
+
+      {!loading && !error && (
+        <>
+          {/* Commission income — auto from closed deals */}
+          <div style={{ background: 'white', borderRadius: 12, boxShadow: '0 1px 3px rgba(0,0,0,0.05)', overflow: 'hidden', marginBottom: 20 }}>
+            <div style={{ padding: '12px 16px', borderBottom: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontWeight: 700, color: '#065f46' }}>💼 Commission income <span style={{ fontWeight: 400, fontSize: 12, color: '#9ca3af' }}>— auto from your closed deals (net of split & fees)</span></span>
+              <span style={{ fontWeight: 700, color: '#059669' }}>{fmtCurrency(commissionTotal)}</span>
+            </div>
+            {commissions.length === 0 ? (
+              <div style={{ padding: 24, textAlign: 'center', color: '#6b7280', fontSize: 14 }}>No deals closed in this period. Mark a deal "Closed" with a closing date and it shows up here.</div>
+            ) : (
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
+                <thead style={{ background: '#f9fafb', borderBottom: '1px solid #e5e7eb' }}>
+                  <tr><Th>Closing</Th><Th>Property</Th><Th>Type</Th><Th align="right">Sale Price</Th><Th align="right">Net Commission</Th></tr>
+                </thead>
+                <tbody>
+                  {commissions.map(d => (
+                    <tr key={d.transaction_id} style={{ borderBottom: '1px solid #f3f4f6' }}>
+                      <Td>{fmtDate(d.closing_date)}</Td>
+                      <Td><strong>{d.address || 'Property'}</strong>{d.city ? <span style={{ color: '#9ca3af' }}>, {d.city}</span> : ''}</Td>
+                      <Td style={{ color: '#6b7280', fontSize: 13 }}>{d.transaction_type || ''}</Td>
+                      <Td align="right" style={{ color: '#6b7280' }}>{fmtCurrency(d.price)}</Td>
+                      <Td align="right" style={{ fontWeight: 600, color: '#059669' }}>{fmtCurrency(d.net_commission)}</Td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+
+          {/* Other / manual income */}
+          <div style={{ background: 'white', borderRadius: 12, boxShadow: '0 1px 3px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
+            <div style={{ padding: '12px 16px', borderBottom: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontWeight: 700, color: '#1e40af' }}>➕ Other income <span style={{ fontWeight: 400, fontSize: 12, color: '#9ca3af' }}>— referrals, rentals, bonuses, BPOs</span></span>
+              <span style={{ fontWeight: 700, color: '#059669' }}>{fmtCurrency(manualTotal)}</span>
+            </div>
+            {rows.length === 0 ? (
+              <div style={{ padding: 24, textAlign: 'center', color: '#6b7280', fontSize: 14 }}>No other income recorded. Use "Add Other Income" for non-commission earnings.</div>
+            ) : (
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
+                <thead style={{ background: '#f9fafb', borderBottom: '1px solid #e5e7eb' }}>
+                  <tr><Th>Date</Th><Th>Source</Th><Th>Category</Th><Th>Notes</Th><Th align="right">Amount</Th><Th align="right">Actions</Th></tr>
+                </thead>
+                <tbody>
+                  {rows.map(r => (
+                    <tr key={r.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
+                      <Td>{fmtDate(r.occurred_at)}</Td>
+                      <Td><strong>{r.source || '—'}</strong></Td>
+                      <Td><span style={{ padding: '2px 8px', background: '#ecfdf5', color: '#065f46', borderRadius: 12, fontSize: 12, fontWeight: 600 }}>{r.category || 'Other Income'}</span></Td>
+                      <Td style={{ color: '#6b7280' }}>{r.notes || ''}</Td>
+                      <Td align="right" style={{ fontWeight: 600, color: '#059669' }}>{fmtCurrency(r.amount)}</Td>
+                      <Td align="right">
+                        <button onClick={() => { setEditing(r); setModalOpen(true); }} style={iconBtn} title="Edit">✏️</button>
+                        <button onClick={() => handleDelete(r.id)} style={iconBtn} title="Delete">🗑️</button>
+                      </Td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </>
+      )}
 
       {modalOpen && <IncomeModal entry={editing} onClose={() => { setModalOpen(false); setEditing(null); }} onSaved={() => { setModalOpen(false); setEditing(null); load(); }} />}
     </div>
