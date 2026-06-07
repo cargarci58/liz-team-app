@@ -63,6 +63,7 @@ const startOfYearISO = () => `${new Date().getFullYear()}-01-01`;
 // MAIN PAGE
 // ============================================================
 export default function ExpensesPage({ onBack }) {
+  const [activeTab, setActiveTab] = useState('expenses'); // expenses | income | budget | pnl | import
   const [expenses, setExpenses] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -228,9 +229,40 @@ export default function ExpensesPage({ onBack }) {
           </button>
         </div>
         <div style={{ marginTop: 6, fontSize: 13, opacity: 0.9 }}>
-          Track business expenses. Snap receipts. Export at tax time. Your data is private — even admins can't see it.
+          Track expenses & income, set a budget, import bank statements, and print a P&L. Your data is private — even admins can't see it.
         </div>
       </div>
+
+      {/* Tab bar */}
+      <div style={{ background: 'white', borderBottom: '1px solid #e5e7eb', padding: '0 24px', display: 'flex', gap: 4, overflowX: 'auto' }}>
+        {[
+          ['expenses', '💵 Expenses'],
+          ['income', '💰 Income'],
+          ['budget', '🎯 Budget vs Actuals'],
+          ['pnl', '📈 Profit & Loss'],
+          ['import', '🏦 Import Statement'],
+        ].map(([key, label]) => (
+          <button
+            key={key}
+            onClick={() => setActiveTab(key)}
+            style={{
+              background: 'none', border: 'none', cursor: 'pointer',
+              padding: '14px 16px', fontSize: 14, fontWeight: 600, whiteSpace: 'nowrap',
+              color: activeTab === key ? '#059669' : '#6b7280',
+              borderBottom: activeTab === key ? '3px solid #10b981' : '3px solid transparent',
+            }}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {activeTab === 'income' && <IncomeTab />}
+      {activeTab === 'budget' && <BudgetTab categories={categories} />}
+      {activeTab === 'pnl' && <PnLTab />}
+      {activeTab === 'import' && <ImportTab categories={categories} onCommitted={() => loadExpenses()} />}
+
+      {activeTab === 'expenses' && (<div>
 
       {/* Summary cards */}
       <div style={{ padding: '20px 24px 0 24px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12 }}>
@@ -417,6 +449,8 @@ export default function ExpensesPage({ onBack }) {
           </div>
         )}
       </div>
+
+      </div>)}
 
       {/* Modals */}
       {addModalOpen && (
@@ -861,6 +895,660 @@ function TeachModal({ onClose }) {
         <button onClick={onClose} style={primaryBtn('#10b981')}>Got it</button>
       </div>
     </ModalShell>
+  );
+}
+
+// ============================================================
+// INCOME TAB — manual / other (non-commission) income
+// ============================================================
+const INCOME_CATEGORIES = ['Commission (manual)', 'Referral Fee', 'Rental Income', 'BPO / Valuation', 'Bonus', 'Sign / Lockbox Rebate', 'Other Income'];
+
+function IncomeTab() {
+  const [rows, setRows] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [from, setFrom] = useState(startOfYearISO());
+  const [to, setTo] = useState(todayISO());
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editing, setEditing] = useState(null);
+
+  const load = async () => {
+    setLoading(true); setError(null);
+    try {
+      const data = await authFetch(`/income?from=${from}&to=${to}`);
+      setRows(data.income || []);
+    } catch (e) { setError(e.message); } finally { setLoading(false); }
+  };
+  useEffect(() => { load(); /* eslint-disable-next-line */ }, [from, to]);
+
+  const total = rows.reduce((s, r) => s + Number(r.amount || 0), 0);
+
+  const handleDelete = async (id) => {
+    if (!window.confirm('Delete this income entry?')) return;
+    try { await authFetch(`/income/${id}`, { method: 'DELETE' }); setRows(p => p.filter(r => r.id !== id)); }
+    catch (e) { alert('Delete failed: ' + e.message); }
+  };
+
+  return (
+    <div style={{ padding: '20px 24px' }}>
+      <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 10, padding: 12, marginBottom: 16, fontSize: 13, color: '#1e40af' }}>
+        💡 <strong>Closed-deal commissions are added automatically</strong> in the Profit & Loss tab. Use this tab for <em>other</em> income — referral fees, rentals, bonuses, BPOs, etc.
+      </div>
+
+      <div style={{ display: 'flex', gap: 12, alignItems: 'end', flexWrap: 'wrap', marginBottom: 16 }}>
+        <Field label="From"><input type="date" value={from} onChange={e => setFrom(e.target.value)} style={inputStyle} /></Field>
+        <Field label="To"><input type="date" value={to} onChange={e => setTo(e.target.value)} style={inputStyle} /></Field>
+        <button onClick={() => { setEditing(null); setModalOpen(true); }} style={primaryBtn('#10b981')}>➕ Add Income</button>
+        <div style={{ marginLeft: 'auto' }}>
+          <SummaryCard label="Total Other Income" value={fmtCurrency(total)} sub={`${rows.length} entr${rows.length === 1 ? 'y' : 'ies'}`} color="#10b981" />
+        </div>
+      </div>
+
+      <div style={{ background: 'white', borderRadius: 12, boxShadow: '0 1px 3px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
+        {loading && <div style={{ padding: 40, textAlign: 'center', color: '#6b7280' }}>Loading...</div>}
+        {error && <div style={{ padding: 20, color: '#dc2626', background: '#fef2f2' }}>Error: {error}</div>}
+        {!loading && !error && rows.length === 0 && (
+          <div style={{ padding: 50, textAlign: 'center', color: '#6b7280' }}>
+            <div style={{ fontSize: 40, marginBottom: 8 }}>💰</div>No other income recorded for this period.
+          </div>
+        )}
+        {!loading && !error && rows.length > 0 && (
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
+            <thead style={{ background: '#f9fafb', borderBottom: '1px solid #e5e7eb' }}>
+              <tr><Th>Date</Th><Th>Source</Th><Th>Category</Th><Th>Notes</Th><Th align="right">Amount</Th><Th align="right">Actions</Th></tr>
+            </thead>
+            <tbody>
+              {rows.map(r => (
+                <tr key={r.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
+                  <Td>{fmtDate(r.occurred_at)}</Td>
+                  <Td><strong>{r.source || '—'}</strong></Td>
+                  <Td><span style={{ padding: '2px 8px', background: '#ecfdf5', color: '#065f46', borderRadius: 12, fontSize: 12, fontWeight: 600 }}>{r.category || 'Other Income'}</span></Td>
+                  <Td style={{ color: '#6b7280' }}>{r.notes || ''}</Td>
+                  <Td align="right" style={{ fontWeight: 600, color: '#059669' }}>{fmtCurrency(r.amount)}</Td>
+                  <Td align="right">
+                    <button onClick={() => { setEditing(r); setModalOpen(true); }} style={iconBtn} title="Edit">✏️</button>
+                    <button onClick={() => handleDelete(r.id)} style={iconBtn} title="Delete">🗑️</button>
+                  </Td>
+                </tr>
+              ))}
+            </tbody>
+            <tfoot style={{ background: '#f9fafb', borderTop: '2px solid #e5e7eb', fontWeight: 700 }}>
+              <tr><Td colSpan={4} style={{ textAlign: 'right' }}>Total:</Td><Td align="right" style={{ color: '#059669' }}>{fmtCurrency(total)}</Td><Td /></tr>
+            </tfoot>
+          </table>
+        )}
+      </div>
+
+      {modalOpen && <IncomeModal entry={editing} onClose={() => { setModalOpen(false); setEditing(null); }} onSaved={() => { setModalOpen(false); setEditing(null); load(); }} />}
+    </div>
+  );
+}
+
+function IncomeModal({ entry, onClose, onSaved }) {
+  const isEdit = !!entry;
+  const [amount, setAmount] = useState(entry?.amount || '');
+  const [source, setSource] = useState(entry?.source || '');
+  const [category, setCategory] = useState(entry?.category || 'Other Income');
+  const [occurredAt, setOccurredAt] = useState(entry?.occurred_at ? entry.occurred_at.split('T')[0] : todayISO());
+  const [notes, setNotes] = useState(entry?.notes || '');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState(null);
+
+  const save = async () => {
+    setError(null);
+    if (!amount || isNaN(Number(amount)) || Number(amount) <= 0) { setError('Enter a valid amount.'); return; }
+    if (!occurredAt) { setError('Pick a date.'); return; }
+    setSaving(true);
+    try {
+      const payload = { amount: Number(amount), source: source || null, category, occurredAt, notes: notes || null };
+      if (isEdit) await authFetch(`/income/${entry.id}`, { method: 'PUT', body: JSON.stringify(payload) });
+      else await authFetch('/income', { method: 'POST', body: JSON.stringify(payload) });
+      onSaved();
+    } catch (e) { setError(e.message); setSaving(false); }
+  };
+
+  return (
+    <ModalShell onClose={onClose} title={isEdit ? '✏️ Edit Income' : '➕ Add Income'} width={520}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+        <Field label="Amount *"><input type="number" step="0.01" min="0" value={amount} onChange={e => setAmount(e.target.value)} placeholder="0.00" style={inputStyle} /></Field>
+        <Field label="Date *"><input type="date" value={occurredAt} onChange={e => setOccurredAt(e.target.value)} style={inputStyle} /></Field>
+        <Field label="Source" hint="Who paid you"><input value={source} onChange={e => setSource(e.target.value)} placeholder="e.g. ABC Realty referral" style={inputStyle} /></Field>
+        <Field label="Category">
+          <select value={category} onChange={e => setCategory(e.target.value)} style={inputStyle}>
+            {INCOME_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
+        </Field>
+      </div>
+      <Field label="Notes"><textarea value={notes} onChange={e => setNotes(e.target.value)} rows={2} style={{ ...inputStyle, fontFamily: 'inherit', resize: 'vertical' }} /></Field>
+      {error && <div style={{ background: '#fef2f2', color: '#dc2626', padding: 10, borderRadius: 8, marginBottom: 12, fontSize: 14 }}>{error}</div>}
+      <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+        <button onClick={onClose} style={secondaryBtn}>Cancel</button>
+        <button onClick={save} disabled={saving} style={{ ...primaryBtn('#10b981'), opacity: saving ? 0.6 : 1 }}>{saving ? 'Saving...' : (isEdit ? 'Save' : 'Add Income')}</button>
+      </div>
+    </ModalShell>
+  );
+}
+
+// ============================================================
+// BUDGET vs ACTUALS TAB
+// ============================================================
+const FREQ_LABEL = { monthly: 'Monthly', annual: 'Yearly', one_time: 'One-time' };
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+function budgetedForPeriod(item, period) {
+  const now = new Date();
+  const thisMonth = now.getMonth() + 1;
+  const thisYear = now.getFullYear();
+  const amt = Number(item.amount || 0);
+  if (period === 'year') {
+    if (item.frequency === 'monthly') return amt * 12;
+    if (item.frequency === 'annual') return amt;
+    return (item.year == null || Number(item.year) === thisYear) ? amt : 0; // one_time
+  }
+  // month
+  if (item.frequency === 'monthly') return amt;
+  if (item.frequency === 'annual') return Number(item.due_month) === thisMonth ? amt : 0;
+  return (Number(item.due_month) === thisMonth && (item.year == null || Number(item.year) === thisYear)) ? amt : 0;
+}
+
+function BudgetTab({ categories }) {
+  const [items, setItems] = useState([]);
+  const [pnl, setPnl] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [period, setPeriod] = useState('year'); // year | month
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editing, setEditing] = useState(null);
+
+  const range = (() => {
+    const now = new Date();
+    const y = now.getFullYear();
+    if (period === 'month') {
+      const m = now.getMonth();
+      const from = new Date(y, m, 1).toISOString().split('T')[0];
+      const to = new Date(y, m + 1, 0).toISOString().split('T')[0];
+      return { from, to };
+    }
+    return { from: `${y}-01-01`, to: `${y}-12-31` };
+  })();
+
+  const load = async () => {
+    setLoading(true); setError(null);
+    try {
+      const [b, p] = await Promise.all([
+        authFetch('/budget'),
+        authFetch(`/finance/pnl?from=${range.from}&to=${range.to}`),
+      ]);
+      setItems(b.items || []);
+      setPnl(p);
+    } catch (e) { setError(e.message); } finally { setLoading(false); }
+  };
+  useEffect(() => { load(); /* eslint-disable-next-line */ }, [period]);
+
+  const handleDelete = async (id) => {
+    if (!window.confirm('Delete this budget line?')) return;
+    try { await authFetch(`/budget/${id}`, { method: 'DELETE' }); setItems(p => p.filter(i => i.id !== id)); }
+    catch (e) { alert('Delete failed: ' + e.message); }
+  };
+
+  const expenseItems = items.filter(i => i.kind !== 'income');
+  const incomeItems = items.filter(i => i.kind === 'income');
+
+  // Budget-vs-actual by expense category
+  const actualByCat = {};
+  (pnl?.expenses?.by_category || []).forEach(c => { actualByCat[c.category] = Number(c.total || 0); });
+  const budgetByCat = {};
+  expenseItems.forEach(i => {
+    const cat = i.category || 'Uncategorized';
+    budgetByCat[cat] = (budgetByCat[cat] || 0) + budgetedForPeriod(i, period);
+  });
+  const allCats = Array.from(new Set([...Object.keys(budgetByCat), ...Object.keys(actualByCat)])).sort();
+
+  const totalBudgetExp = Object.values(budgetByCat).reduce((s, v) => s + v, 0);
+  const totalActualExp = pnl?.expenses?.total || 0;
+  const incomeGoal = incomeItems.reduce((s, i) => s + budgetedForPeriod(i, period), 0);
+  const actualIncome = pnl?.income?.total || 0;
+
+  return (
+    <div style={{ padding: '20px 24px' }}>
+      <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 16, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', background: '#f3f4f6', borderRadius: 8, padding: 3 }}>
+          {[['year', 'This Year'], ['month', 'This Month']].map(([k, l]) => (
+            <button key={k} onClick={() => setPeriod(k)} style={{
+              border: 'none', cursor: 'pointer', padding: '7px 14px', borderRadius: 6, fontSize: 13, fontWeight: 600,
+              background: period === k ? 'white' : 'transparent', color: period === k ? '#059669' : '#6b7280',
+              boxShadow: period === k ? '0 1px 2px rgba(0,0,0,0.1)' : 'none',
+            }}>{l}</button>
+          ))}
+        </div>
+        <button onClick={() => { setEditing(null); setModalOpen(true); }} style={primaryBtn('#10b981')}>➕ Add Budget Line</button>
+      </div>
+
+      {loading && <div style={{ padding: 40, textAlign: 'center', color: '#6b7280' }}>Loading...</div>}
+      {error && <div style={{ padding: 20, color: '#dc2626', background: '#fef2f2', borderRadius: 8 }}>Error: {error}</div>}
+
+      {!loading && !error && (
+        <>
+          {/* Top-line scorecards */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px,1fr))', gap: 12, marginBottom: 20 }}>
+            <SummaryCard label="Budgeted Expenses" value={fmtCurrency(totalBudgetExp)} sub={period === 'year' ? 'full year plan' : 'this month'} color="#6b7280" />
+            <SummaryCard label="Actual Expenses" value={fmtCurrency(totalActualExp)} sub={`${totalBudgetExp > 0 ? Math.round(totalActualExp / totalBudgetExp * 100) : 0}% of budget`} color={totalActualExp > totalBudgetExp ? '#dc2626' : '#10b981'} />
+            <SummaryCard label="Income Goal" value={fmtCurrency(incomeGoal)} sub={period === 'year' ? 'full year plan' : 'this month'} color="#3b82f6" />
+            <SummaryCard label="Actual Income" value={fmtCurrency(actualIncome)} sub={`${incomeGoal > 0 ? Math.round(actualIncome / incomeGoal * 100) : 0}% of goal`} color="#10b981" />
+          </div>
+
+          {/* Budget vs actual by category */}
+          <div style={{ background: 'white', borderRadius: 12, boxShadow: '0 1px 3px rgba(0,0,0,0.05)', overflow: 'hidden', marginBottom: 24 }}>
+            <div style={{ padding: '12px 16px', borderBottom: '1px solid #e5e7eb', fontWeight: 700, color: '#1f2937' }}>Expenses — Budget vs Actual</div>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
+              <thead style={{ background: '#f9fafb' }}>
+                <tr><Th>Category</Th><Th align="right">Budgeted</Th><Th align="right">Actual</Th><Th align="right">Remaining</Th><Th>Usage</Th></tr>
+              </thead>
+              <tbody>
+                {allCats.length === 0 && <tr><Td colSpan={5} style={{ textAlign: 'center', padding: 24, color: '#6b7280' }}>No budget lines yet. Add MLS fees, E&O, marketing, etc.</Td></tr>}
+                {allCats.map(cat => {
+                  const bud = budgetByCat[cat] || 0;
+                  const act = actualByCat[cat] || 0;
+                  const pct = bud > 0 ? Math.min(100, Math.round(act / bud * 100)) : (act > 0 ? 100 : 0);
+                  const over = act > bud && bud > 0;
+                  return (
+                    <tr key={cat} style={{ borderTop: '1px solid #f3f4f6' }}>
+                      <Td>{cat}</Td>
+                      <Td align="right">{fmtCurrency(bud)}</Td>
+                      <Td align="right" style={{ fontWeight: 600 }}>{fmtCurrency(act)}</Td>
+                      <Td align="right" style={{ color: over ? '#dc2626' : '#059669' }}>{fmtCurrency(bud - act)}</Td>
+                      <Td>
+                        <div style={{ background: '#f3f4f6', borderRadius: 6, height: 10, overflow: 'hidden', minWidth: 90 }}>
+                          <div style={{ width: `${pct}%`, height: '100%', background: over ? '#dc2626' : pct > 85 ? '#f59e0b' : '#10b981' }} />
+                        </div>
+                      </Td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Budget line management */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px,1fr))', gap: 16 }}>
+            <BudgetLineList title="📤 Planned Expenses" items={expenseItems} period={period} onEdit={(i) => { setEditing(i); setModalOpen(true); }} onDelete={handleDelete} />
+            <BudgetLineList title="📥 Income Goals" items={incomeItems} period={period} onEdit={(i) => { setEditing(i); setModalOpen(true); }} onDelete={handleDelete} />
+          </div>
+        </>
+      )}
+
+      {modalOpen && <BudgetModal item={editing} categories={categories} onClose={() => { setModalOpen(false); setEditing(null); }} onSaved={() => { setModalOpen(false); setEditing(null); load(); }} />}
+    </div>
+  );
+}
+
+function BudgetLineList({ title, items, period, onEdit, onDelete }) {
+  return (
+    <div style={{ background: 'white', borderRadius: 12, boxShadow: '0 1px 3px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
+      <div style={{ padding: '12px 16px', borderBottom: '1px solid #e5e7eb', fontWeight: 700, color: '#1f2937' }}>{title}</div>
+      {items.length === 0 && <div style={{ padding: 20, color: '#6b7280', fontSize: 14 }}>None yet.</div>}
+      {items.map(i => (
+        <div key={i.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 16px', borderTop: '1px solid #f3f4f6' }}>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontWeight: 600, color: '#1f2937', fontSize: 14 }}>{i.label || i.category || '—'}</div>
+            <div style={{ fontSize: 12, color: '#9ca3af' }}>
+              {i.category ? i.category + ' • ' : ''}{FREQ_LABEL[i.frequency] || i.frequency}
+              {i.frequency !== 'monthly' && i.due_month ? ' • ' + MONTHS[i.due_month - 1] : ''}
+            </div>
+          </div>
+          <div style={{ textAlign: 'right' }}>
+            <div style={{ fontWeight: 700, color: '#1f2937' }}>{fmtCurrency(i.amount)}</div>
+            <div style={{ fontSize: 11, color: '#9ca3af' }}>{fmtCurrency(budgetedForPeriod(i, period))}/{period === 'year' ? 'yr' : 'mo'}</div>
+          </div>
+          <button onClick={() => onEdit(i)} style={iconBtn} title="Edit">✏️</button>
+          <button onClick={() => onDelete(i.id)} style={iconBtn} title="Delete">🗑️</button>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function BudgetModal({ item, categories, onClose, onSaved }) {
+  const isEdit = !!item;
+  const [kind, setKind] = useState(item?.kind || 'expense');
+  const [label, setLabel] = useState(item?.label || '');
+  const [category, setCategory] = useState(item?.category || '');
+  const [amount, setAmount] = useState(item?.amount || '');
+  const [frequency, setFrequency] = useState(item?.frequency || 'monthly');
+  const [dueMonth, setDueMonth] = useState(item?.due_month || '');
+  const [notes, setNotes] = useState(item?.notes || '');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState(null);
+
+  const save = async () => {
+    setError(null);
+    if (!amount || isNaN(Number(amount)) || Number(amount) <= 0) { setError('Enter a valid amount.'); return; }
+    setSaving(true);
+    try {
+      const payload = { kind, label: label || null, category: kind === 'income' ? (category || 'Income') : (category || 'Other'), amount: Number(amount), frequency, dueMonth: frequency !== 'monthly' && dueMonth ? Number(dueMonth) : null, notes: notes || null };
+      if (isEdit) await authFetch(`/budget/${item.id}`, { method: 'PUT', body: JSON.stringify(payload) });
+      else await authFetch('/budget', { method: 'POST', body: JSON.stringify(payload) });
+      onSaved();
+    } catch (e) { setError(e.message); setSaving(false); }
+  };
+
+  return (
+    <ModalShell onClose={onClose} title={isEdit ? '✏️ Edit Budget Line' : '➕ Add Budget Line'} width={540}>
+      <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
+        {[['expense', '📤 Planned Expense'], ['income', '📥 Income Goal']].map(([k, l]) => (
+          <button key={k} onClick={() => setKind(k)} style={{
+            flex: 1, padding: '10px', borderRadius: 8, cursor: 'pointer', fontSize: 14, fontWeight: 600,
+            border: kind === k ? '2px solid #10b981' : '1px solid #d1d5db',
+            background: kind === k ? '#ecfdf5' : 'white', color: kind === k ? '#065f46' : '#6b7280',
+          }}>{l}</button>
+        ))}
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+        <Field label="Name / Label" hint="e.g. MLS dues"><input value={label} onChange={e => setLabel(e.target.value)} placeholder="What is this?" style={inputStyle} /></Field>
+        <Field label="Amount *"><input type="number" step="0.01" min="0" value={amount} onChange={e => setAmount(e.target.value)} placeholder="0.00" style={inputStyle} /></Field>
+        <Field label="Category">
+          {kind === 'expense' ? (
+            <select value={category} onChange={e => setCategory(e.target.value)} style={inputStyle}>
+              <option value="">— pick one —</option>
+              {(categories || []).map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+              <option value="Other">Other</option>
+            </select>
+          ) : (
+            <select value={category} onChange={e => setCategory(e.target.value)} style={inputStyle}>
+              <option value="">— pick one —</option>
+              {INCOME_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+          )}
+        </Field>
+        <Field label="Frequency">
+          <select value={frequency} onChange={e => setFrequency(e.target.value)} style={inputStyle}>
+            <option value="monthly">Monthly (recurs every month)</option>
+            <option value="annual">Yearly (once a year)</option>
+            <option value="one_time">One-time</option>
+          </select>
+        </Field>
+        {frequency !== 'monthly' && (
+          <Field label="Month due" hint="when it hits">
+            <select value={dueMonth} onChange={e => setDueMonth(e.target.value)} style={inputStyle}>
+              <option value="">— any —</option>
+              {MONTHS.map((m, i) => <option key={m} value={i + 1}>{m}</option>)}
+            </select>
+          </Field>
+        )}
+      </div>
+      <Field label="Notes"><input value={notes} onChange={e => setNotes(e.target.value)} style={inputStyle} /></Field>
+      {error && <div style={{ background: '#fef2f2', color: '#dc2626', padding: 10, borderRadius: 8, marginBottom: 12, fontSize: 14 }}>{error}</div>}
+      <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+        <button onClick={onClose} style={secondaryBtn}>Cancel</button>
+        <button onClick={save} disabled={saving} style={{ ...primaryBtn('#10b981'), opacity: saving ? 0.6 : 1 }}>{saving ? 'Saving...' : (isEdit ? 'Save' : 'Add Line')}</button>
+      </div>
+    </ModalShell>
+  );
+}
+
+// ============================================================
+// PROFIT & LOSS TAB
+// ============================================================
+function PnLTab() {
+  const [year, setYear] = useState(new Date().getFullYear());
+  const [pnl, setPnl] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [showDeals, setShowDeals] = useState(false);
+
+  const load = async () => {
+    setLoading(true); setError(null);
+    try {
+      const data = await authFetch(`/finance/pnl?from=${year}-01-01&to=${year}-12-31`);
+      setPnl(data);
+    } catch (e) { setError(e.message); } finally { setLoading(false); }
+  };
+  useEffect(() => { load(); /* eslint-disable-next-line */ }, [year]);
+
+  const printPnL = () => {
+    if (!pnl) return;
+    const rowsHtml = (arr, color) => arr.map(c => `<tr><td style="padding:6px 12px">${c.category}</td><td style="padding:6px 12px;text-align:right;color:${color}">${fmtCurrency(c.total)}</td></tr>`).join('');
+    const html = `<!doctype html><html><head><title>Profit & Loss ${year}</title>
+      <style>body{font-family:-apple-system,Segoe UI,Roboto,sans-serif;color:#1f2937;max-width:720px;margin:30px auto;padding:0 20px}
+      h1{color:#059669;margin-bottom:0}h2{border-bottom:2px solid #10b981;padding-bottom:4px;margin-top:24px;font-size:16px}
+      table{width:100%;border-collapse:collapse;font-size:14px}.tot{font-weight:700;border-top:2px solid #e5e7eb}
+      .net{font-size:20px;font-weight:800;padding:14px;border-radius:8px;margin-top:20px;text-align:center}</style></head><body>
+      <h1>Profit &amp; Loss Statement</h1><div style="color:#6b7280">Tax year ${year} • generated ${fmtDate(todayISO())}</div>
+      <h2>Income</h2><table>
+        <tr><td style="padding:6px 12px">Commission income (closed deals)</td><td style="padding:6px 12px;text-align:right;color:#059669">${fmtCurrency(pnl.income.commission_total)}</td></tr>
+        ${rowsHtml(pnl.income.other, '#059669')}
+        <tr class="tot"><td style="padding:6px 12px">Total Income</td><td style="padding:6px 12px;text-align:right;color:#059669">${fmtCurrency(pnl.income.total)}</td></tr>
+      </table>
+      <h2>Expenses</h2><table>
+        ${rowsHtml(pnl.expenses.by_category, '#dc2626')}
+        <tr class="tot"><td style="padding:6px 12px">Total Expenses</td><td style="padding:6px 12px;text-align:right;color:#dc2626">${fmtCurrency(pnl.expenses.total)}</td></tr>
+      </table>
+      <div class="net" style="background:${pnl.net_profit >= 0 ? '#ecfdf5' : '#fef2f2'};color:${pnl.net_profit >= 0 ? '#065f46' : '#dc2626'}">
+        Net ${pnl.net_profit >= 0 ? 'Profit' : 'Loss'}: ${fmtCurrency(pnl.net_profit)}</div>
+      <p style="font-size:12px;color:#9ca3af;margin-top:24px">Commission income is computed from your closed transactions (net of brokerage split & fees). Not tax advice — confirm with your CPA.</p>
+      </body></html>`;
+    const w = window.open('', '_blank');
+    if (!w) { alert('Allow pop-ups to print the P&L.'); return; }
+    w.document.write(html); w.document.close(); w.focus();
+    setTimeout(() => w.print(), 350);
+  };
+
+  return (
+    <div style={{ padding: '20px 24px' }}>
+      <div style={{ display: 'flex', gap: 12, alignItems: 'end', flexWrap: 'wrap', marginBottom: 16 }}>
+        <Field label="Tax Year">
+          <select value={year} onChange={e => setYear(Number(e.target.value))} style={{ ...inputStyle, maxWidth: 160 }}>
+            {[0, 1, 2, 3].map(i => { const y = new Date().getFullYear() - i; return <option key={y} value={y}>{y}</option>; })}
+          </select>
+        </Field>
+        <button onClick={printPnL} disabled={!pnl} style={primaryBtn('#3b82f6')}>🖨️ Print P&L</button>
+      </div>
+
+      {loading && <div style={{ padding: 40, textAlign: 'center', color: '#6b7280' }}>Loading...</div>}
+      {error && <div style={{ padding: 20, color: '#dc2626', background: '#fef2f2', borderRadius: 8 }}>Error: {error}</div>}
+
+      {pnl && !loading && (
+        <>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px,1fr))', gap: 12, marginBottom: 20 }}>
+            <SummaryCard label="Total Income" value={fmtCurrency(pnl.income.total)} sub={`${year}`} color="#10b981" />
+            <SummaryCard label="Total Expenses" value={fmtCurrency(pnl.expenses.total)} sub={`${year}`} color="#dc2626" />
+            <SummaryCard label={pnl.net_profit >= 0 ? 'Net Profit' : 'Net Loss'} value={fmtCurrency(pnl.net_profit)} sub="income − expenses" color={pnl.net_profit >= 0 ? '#059669' : '#dc2626'} />
+          </div>
+
+          {/* Income */}
+          <div style={{ background: 'white', borderRadius: 12, boxShadow: '0 1px 3px rgba(0,0,0,0.05)', overflow: 'hidden', marginBottom: 16 }}>
+            <div style={{ padding: '12px 16px', borderBottom: '1px solid #e5e7eb', fontWeight: 700, color: '#065f46', display: 'flex', justifyContent: 'space-between' }}>
+              <span>Income</span><span>{fmtCurrency(pnl.income.total)}</span>
+            </div>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
+              <tbody>
+                <tr style={{ borderTop: '1px solid #f3f4f6' }}>
+                  <Td>
+                    Commission income (closed deals)
+                    {pnl.income.commissions.length > 0 && (
+                      <button onClick={() => setShowDeals(s => !s)} style={{ marginLeft: 8, background: 'none', border: 'none', color: '#3b82f6', cursor: 'pointer', fontSize: 12 }}>
+                        {showDeals ? 'hide' : `${pnl.income.commissions.length} deal${pnl.income.commissions.length === 1 ? '' : 's'}`}
+                      </button>
+                    )}
+                  </Td>
+                  <Td align="right" style={{ fontWeight: 600, color: '#059669' }}>{fmtCurrency(pnl.income.commission_total)}</Td>
+                </tr>
+                {showDeals && pnl.income.commissions.map(d => (
+                  <tr key={d.transaction_id} style={{ borderTop: '1px solid #f9fafb', background: '#fafafa' }}>
+                    <Td style={{ paddingLeft: 28, color: '#6b7280', fontSize: 13 }}>{fmtDate(d.closing_date)} — {d.address || 'Property'}</Td>
+                    <Td align="right" style={{ color: '#6b7280', fontSize: 13 }}>{fmtCurrency(d.net_commission)}</Td>
+                  </tr>
+                ))}
+                {pnl.income.other.map((c, i) => (
+                  <tr key={i} style={{ borderTop: '1px solid #f3f4f6' }}>
+                    <Td>{c.category}</Td><Td align="right" style={{ color: '#059669' }}>{fmtCurrency(c.total)}</Td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Expenses */}
+          <div style={{ background: 'white', borderRadius: 12, boxShadow: '0 1px 3px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
+            <div style={{ padding: '12px 16px', borderBottom: '1px solid #e5e7eb', fontWeight: 700, color: '#991b1b', display: 'flex', justifyContent: 'space-between' }}>
+              <span>Expenses</span><span>{fmtCurrency(pnl.expenses.total)}</span>
+            </div>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
+              <tbody>
+                {pnl.expenses.by_category.length === 0 && <tr><Td colSpan={2} style={{ textAlign: 'center', padding: 20, color: '#6b7280' }}>No expenses for {year}.</Td></tr>}
+                {pnl.expenses.by_category.map((c, i) => (
+                  <tr key={i} style={{ borderTop: '1px solid #f3f4f6' }}>
+                    <Td>{c.category} <span style={{ color: '#9ca3af', fontSize: 12 }}>({c.count})</span></Td>
+                    <Td align="right" style={{ color: '#dc2626' }}>{fmtCurrency(c.total)}</Td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+// ============================================================
+// BANK STATEMENT IMPORT TAB
+// ============================================================
+function ImportTab({ categories, onCommitted }) {
+  const [accountType, setAccountType] = useState('checking');
+  const [periodLabel, setPeriodLabel] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [status, setStatus] = useState('');
+  const [error, setError] = useState(null);
+  const [importId, setImportId] = useState(null);
+  const [lines, setLines] = useState([]);
+  const [committing, setCommitting] = useState(false);
+  const [done, setDone] = useState(null);
+  const fileRef = useRef(null);
+
+  const catNames = (categories || []).map(c => c.name);
+  const allCatOptions = Array.from(new Set([...catNames, 'Commission', 'Other Income', 'Other']));
+
+  const handleUpload = async (file) => {
+    if (!file) return;
+    setBusy(true); setError(null); setDone(null); setLines([]); setImportId(null);
+    try {
+      setStatus('Getting upload URL...');
+      const presign = await authFetch('/bank-import/upload-url', { method: 'POST', body: JSON.stringify({ fileName: file.name, fileType: file.type || 'application/octet-stream' }) });
+      setStatus('Uploading statement...');
+      const putRes = await fetch(presign.uploadUrl, { method: 'PUT', headers: { 'Content-Type': file.type || 'application/octet-stream' }, body: file });
+      if (!putRes.ok) throw new Error(`Upload failed (HTTP ${putRes.status})`);
+      setStatus('AI reading your statement (this can take a minute)...');
+      const enq = await authFetch('/bank-import/parse', { method: 'POST', body: JSON.stringify({ fileKey: presign.fileKey, fileName: file.name, accountType, periodLabel: periodLabel || null }) });
+      if (!enq.jobId) throw new Error(enq.error || 'Could not start parsing');
+      await pollAiJob(enq.jobId, { timeoutMs: 180000 });
+      setStatus('Loading transactions...');
+      const data = await authFetch(`/bank-import/${enq.importId}`);
+      setImportId(enq.importId);
+      setLines((data.lines || []).map(l => ({
+        id: l.id, include: true, txn_date: l.txn_date ? l.txn_date.split('T')[0] : '',
+        description: l.description || '', amount: Number(l.amount || 0),
+        direction: l.direction || 'expense', category: l.suggested_category || 'Other',
+      })));
+      if (!data.lines || data.lines.length === 0) setError('No transactions were found in that file. Try a CSV export from your bank, or a clearer PDF.');
+      setStatus('');
+    } catch (e) { setError(e.message); setStatus(''); } finally { setBusy(false); }
+  };
+
+  const updateLine = (id, patch) => setLines(prev => prev.map(l => l.id === id ? { ...l, ...patch } : l));
+
+  const commit = async () => {
+    const toCommit = lines.filter(l => l.include);
+    if (toCommit.length === 0) { setError('Nothing selected to import.'); return; }
+    setCommitting(true); setError(null);
+    try {
+      const res = await authFetch(`/bank-import/${importId}/commit`, { method: 'POST', body: JSON.stringify({ lines: toCommit }) });
+      setDone(res.committed);
+      setLines([]); setImportId(null);
+      onCommitted && onCommitted();
+    } catch (e) { setError(e.message); } finally { setCommitting(false); }
+  };
+
+  const includedExp = lines.filter(l => l.include && l.direction === 'expense').reduce((s, l) => s + Number(l.amount || 0), 0);
+  const includedInc = lines.filter(l => l.include && l.direction === 'income').reduce((s, l) => s + Number(l.amount || 0), 0);
+
+  return (
+    <div style={{ padding: '20px 24px' }}>
+      {!lines.length && (
+        <div style={{ background: 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)', border: '1px dashed #3b82f6', borderRadius: 12, padding: 20, marginBottom: 16 }}>
+          <div style={{ fontWeight: 700, color: '#1e40af', marginBottom: 4 }}>🏦 Import a bank or credit-card statement</div>
+          <div style={{ fontSize: 13, color: '#1e3a8a', marginBottom: 14 }}>
+            Upload a monthly statement (CSV export works best; PDF and screenshots also work). AI sorts each transaction into income vs expense and suggests a category. You review everything before it's saved.
+          </div>
+          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'end', marginBottom: 12 }}>
+            <Field label="Account type">
+              <select value={accountType} onChange={e => setAccountType(e.target.value)} style={inputStyle}>
+                <option value="checking">Checking / Bank</option>
+                <option value="credit_card">Credit Card</option>
+              </select>
+            </Field>
+            <Field label="Statement period" hint="optional"><input value={periodLabel} onChange={e => setPeriodLabel(e.target.value)} placeholder="e.g. May 2026" style={inputStyle} /></Field>
+          </div>
+          <input ref={fileRef} type="file" accept=".csv,.txt,.tsv,.ofx,.qfx,application/pdf,image/*" style={{ display: 'none' }} onChange={e => handleUpload(e.target.files?.[0])} />
+          <button onClick={() => fileRef.current?.click()} disabled={busy} style={{ ...primaryBtn('#3b82f6'), opacity: busy ? 0.6 : 1 }}>
+            {busy ? '⏳ Working...' : '📎 Upload Statement'}
+          </button>
+          {status && <div style={{ marginTop: 10, fontSize: 13, color: '#1e40af' }}>🔄 {status}</div>}
+        </div>
+      )}
+
+      {done != null && (
+        <div style={{ background: '#ecfdf5', border: '1px solid #6ee7b7', borderRadius: 10, padding: 16, color: '#065f46', marginBottom: 16 }}>
+          ✅ Imported <strong>{done}</strong> transaction{done === 1 ? '' : 's'}. They now appear in your Expenses, Income, and P&L. <button onClick={() => setDone(null)} style={{ ...secondaryBtn, marginLeft: 8 }}>Import another</button>
+        </div>
+      )}
+
+      {error && <div style={{ padding: 12, color: '#dc2626', background: '#fef2f2', borderRadius: 8, marginBottom: 16 }}>{error}</div>}
+
+      {lines.length > 0 && (
+        <>
+          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center', marginBottom: 12 }}>
+            <SummaryCard label="Will add — Expenses" value={fmtCurrency(includedExp)} sub={`${lines.filter(l => l.include && l.direction === 'expense').length} items`} color="#dc2626" />
+            <SummaryCard label="Will add — Income" value={fmtCurrency(includedInc)} sub={`${lines.filter(l => l.include && l.direction === 'income').length} items`} color="#10b981" />
+            <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
+              <button onClick={() => setLines(p => p.map(l => ({ ...l, include: true })))} style={secondaryBtn}>Select all</button>
+              <button onClick={() => setLines(p => p.map(l => ({ ...l, include: false })))} style={secondaryBtn}>Select none</button>
+              <button onClick={commit} disabled={committing} style={{ ...primaryBtn('#10b981'), opacity: committing ? 0.6 : 1 }}>{committing ? 'Importing...' : `✅ Import ${lines.filter(l => l.include).length} selected`}</button>
+            </div>
+          </div>
+
+          <div style={{ background: 'white', borderRadius: 12, boxShadow: '0 1px 3px rgba(0,0,0,0.05)', overflow: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+              <thead style={{ background: '#f9fafb', borderBottom: '1px solid #e5e7eb' }}>
+                <tr><Th align="center">Add?</Th><Th>Date</Th><Th>Description</Th><Th align="center">Type</Th><Th>Category</Th><Th align="right">Amount</Th></tr>
+              </thead>
+              <tbody>
+                {lines.map(l => (
+                  <tr key={l.id} style={{ borderBottom: '1px solid #f3f4f6', opacity: l.include ? 1 : 0.45 }}>
+                    <Td align="center"><input type="checkbox" checked={l.include} onChange={e => updateLine(l.id, { include: e.target.checked })} style={{ width: 16, height: 16, cursor: 'pointer' }} /></Td>
+                    <Td><input type="date" value={l.txn_date} onChange={e => updateLine(l.id, { txn_date: e.target.value })} style={{ ...inputStyle, padding: '4px 6px', fontSize: 12 }} /></Td>
+                    <Td><input value={l.description} onChange={e => updateLine(l.id, { description: e.target.value })} style={{ ...inputStyle, padding: '4px 6px', fontSize: 12, minWidth: 160 }} /></Td>
+                    <Td align="center">
+                      <select value={l.direction} onChange={e => updateLine(l.id, { direction: e.target.value })} style={{ ...inputStyle, padding: '4px 6px', fontSize: 12, color: l.direction === 'income' ? '#059669' : '#dc2626', fontWeight: 600 }}>
+                        <option value="expense">Expense</option>
+                        <option value="income">Income</option>
+                      </select>
+                    </Td>
+                    <Td>
+                      <select value={l.category} onChange={e => updateLine(l.id, { category: e.target.value })} style={{ ...inputStyle, padding: '4px 6px', fontSize: 12, minWidth: 130 }}>
+                        {!allCatOptions.includes(l.category) && <option value={l.category}>{l.category}</option>}
+                        {allCatOptions.map(c => <option key={c} value={c}>{c}</option>)}
+                      </select>
+                    </Td>
+                    <Td align="right"><input type="number" step="0.01" value={l.amount} onChange={e => updateLine(l.id, { amount: e.target.value })} style={{ ...inputStyle, padding: '4px 6px', fontSize: 12, maxWidth: 100, textAlign: 'right', fontWeight: 600 }} /></Td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
+    </div>
   );
 }
 
