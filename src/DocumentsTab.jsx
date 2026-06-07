@@ -556,7 +556,7 @@ function LetterOfIntentModal({ tx, headers, onClose, onSaved }) {
     impactFees: "",
     ccrs: "Tenant agrees to abide by the project's design guidelines, declarations and association requirements.",
     leaseForm: "Landlord's standard Lease form.",
-    commissionDetail: "",
+    commissionDetail: "Landlord shall compensate the broker(s) pursuant to a separate agreement: fifty percent (50%) of the commission payable within thirty (30) days of Lease execution, and the remaining fifty percent (50%) within thirty (30) days of Rent Commencement. If Tenant fails to open for business, the 50% paid at Lease execution shall be reimbursed to Landlord within thirty (30) days of notice.",
     expiresDate: plusDaysISO(10),
     preparedBy: "",
     additionalTerms: "",
