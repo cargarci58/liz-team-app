@@ -473,37 +473,95 @@ export default function DocumentsTab({ tx }) {
   );
 }
 
-// ── Letter of Intent generator (commercial deals) ───────────────────────────
-// Pre-fills from the deal, renders a ready-to-send NON-BINDING commercial LOI
-// with every clause pre-written, and lets the agent confirm the numbers, then
-// generate a PDF that downloads and/or saves into the deal's Documents (tagged
-// document_type "Letter_of_Intent" so it ticks the LOI checklist slot).
+// ── Letter of Intent generator (commercial: Purchase OR Lease) ───────────────
+// Pre-fills from the deal and produces a comprehensive, ready-to-send NON-BINDING
+// commercial Letter of Intent — a Purchase LOI (property/price/closing/title/reps)
+// or a Lease LOI term sheet (premises/use/rent/escalations/NNN/TI/work/signage/
+// guaranty…), modeled on the brokerage's own LOIs. Output is an editable Word
+// (.docx) the agent can fine-tune. Saves into Documents tagged "Letter_of_Intent".
 function LetterOfIntentModal({ tx, headers, onClose, onSaved }) {
-  const partyName = (role) => (tx.parties || []).find(p => (p.role || "") === role)?.name || "";
+  const partyName = (...roles) => {
+    for (const r of roles) { const m = (tx.parties || []).find(p => (p.role || "") === r); if (m && m.name) return m.name; }
+    return "";
+  };
   const fullAddress = [tx.address, tx.city, tx.state, tx.zipCode].filter(Boolean).join(", ");
   const todayISO = new Date().toISOString().split("T")[0];
   const plusDaysISO = (n) => { const d = new Date(); d.setDate(d.getDate() + n); return d.toISOString().split("T")[0]; };
+  const defaultLease = /lease|rental/i.test(`${tx.propertyType || ""} ${tx.transactionType || ""}`);
 
-  const [f, setF] = useState({
+  const [mode, setMode] = useState(defaultLease ? "lease" : "purchase");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState(null);
+
+  // ── PURCHASE form ──
+  const [pf, setPf] = useState({
     loiDate: todayISO,
-    buyerName: partyName("Buyer") || partyName("Buyer (Entity)") || "",
-    sellerName: partyName("Seller") || "",
+    buyerName: partyName("Buyer", "Buyer (Entity)"),
+    sellerName: partyName("Seller"),
     propertyAddress: fullAddress,
-    propertyDesc: "",
+    legalDescription: "",
+    parcelId: "",
     purchasePrice: tx.contractPrice || tx.listPrice || "",
     deposit: "",
+    additionalDeposit: "",
     financingType: tx.isCash ? "All cash" : "Conventional / commercial financing",
     dueDiligenceDays: "45",
     closingDays: "30",
+    titleCompany: "",
+    deedType: "Special Warranty Deed",
+    possession: "At closing",
+    closingCosts: "Each party pays its own customary closing costs; real estate taxes and assessments prorated as of Closing.",
+    survey: "Buyer may obtain a current ALTA survey at Buyer's expense.",
     exclusivityDays: "30",
+    contingencies: "Satisfactory due diligence, good and insurable title, and acceptable zoning for Buyer's intended use.",
+    assignment: "Buyer may assign this Letter and the resulting contract to an affiliated entity or in connection with a 1031 exchange.",
+    commissionPct: "",
+    commissionPaidBy: "Seller",
+    brokerName: "",
     expiresDate: plusDaysISO(5),
     preparedBy: "",
     additionalTerms: "",
   });
-  const set = (k) => (v) => setF(s => ({ ...s, [k]: v }));
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState(null);
-  const letterRef = useRef(null);
+  const sp = (k) => (v) => setPf(s => ({ ...s, [k]: v }));
+
+  // ── LEASE form ──
+  const [lf, setLf] = useState({
+    loiDate: todayISO,
+    landlordName: partyName("Seller", "Landlord"),
+    tenantName: partyName("Buyer", "Tenant"),
+    tradeName: "",
+    propertyName: "",
+    premises: fullAddress,
+    sqft: "",
+    permittedUse: "",
+    term: "Five (5) years",
+    renewalOptions: "One (1) five (5)-year renewal option with 6 months' prior written notice at market rent.",
+    baseRent: "",
+    rentBasis: "Triple Net (NNN)",
+    rentEscalation: "3% annual increases during the Term.",
+    camTaxesInsurance: "Tenant pays its pro-rata share of Real Estate Taxes, Insurance and Common Area Maintenance (CAM).",
+    estCharges: "",
+    floridaTax: "Tenant pays Florida sales tax on all rent and charges.",
+    rentCommencement: "Sixty (60) days after delivery of the Premises, or upon opening for business, whichever occurs first.",
+    securityDeposit: "One (1) month's rent, operating expenses and sales tax, due upon Lease execution.",
+    prepaidRent: "First (1st) month's rent, operating expenses and sales tax, due upon Lease execution.",
+    tiAllowance: "None — Premises delivered as-is.",
+    landlordWork: "Landlord delivers the Premises in its current \"as-is\" condition.",
+    tenantWork: "Tenant is responsible, at its expense, for all work to be constructed in the Premises.",
+    hvac: "Tenant is responsible for all maintenance, repair and replacement of the HVAC serving the Premises.",
+    utilities: "Tenant pays directly for all utilities and connectivity serving the Premises.",
+    signage: "Tenant, at its expense, may install its standard signage in compliance with the center's sign criteria and local code, subject to Landlord's approval.",
+    operatingHours: "Tenant is not required to operate any minimum hours.",
+    guaranty: "Personal guaranty from all owners (and spouses) during the initial Term.",
+    impactFees: "",
+    ccrs: "Tenant agrees to abide by the project's design guidelines, declarations and association requirements.",
+    leaseForm: "Landlord's standard Lease form.",
+    commissionDetail: "",
+    expiresDate: plusDaysISO(10),
+    preparedBy: "",
+    additionalTerms: "",
+  });
+  const sl = (k) => (v) => setLf(s => ({ ...s, [k]: v }));
 
   const fmtMoney = (v) => {
     const n = Number(String(v).replace(/[^0-9.]/g, ""));
@@ -516,56 +574,125 @@ function LetterOfIntentModal({ tx, headers, onClose, onSaved }) {
     return new Date(y, m - 1, d).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
   };
 
-  const clauses = [
-    ["Property", `The proposed transaction concerns the real property located at ${f.propertyAddress || "____________"}${f.propertyDesc ? `, further described as ${f.propertyDesc}` : ""}, together with all improvements, fixtures, and appurtenances (the "Property").`],
-    ["Purchase Price", `The proposed total purchase price for the Property is ${fmtMoney(f.purchasePrice)}, payable at closing subject to customary prorations and adjustments.`],
-    ["Earnest Money Deposit", `Upon execution of a definitive purchase agreement, Buyer shall deposit ${fmtMoney(f.deposit)} in escrow as an earnest money deposit, to be applied to the purchase price at closing.`],
-    ["Due Diligence / Feasibility Period", `Buyer shall have ${f.dueDiligenceDays || "____"} days following the effective date of a definitive agreement to inspect the Property and review all title, survey, environmental, zoning, lease, financial, and other due-diligence matters. Buyer may terminate for any reason during this period and receive a full refund of the deposit.`],
-    ["Closing", `Closing shall occur within ${f.closingDays || "____"} days after expiration of the Due Diligence Period, at a title company or closing agent mutually acceptable to the parties.`],
-    ["Financing", `This proposal contemplates ${f.financingType || "____________"}. ${/cash/i.test(f.financingType) ? "Buyer will provide proof of funds upon request." : "Closing will be contingent upon Buyer obtaining acceptable financing within the Due Diligence Period."}`],
-    ["Title & Survey", `Seller shall convey marketable, insurable title by special/general warranty deed, free of liens and encumbrances other than those approved by Buyer. Buyer may obtain a current ALTA survey at Buyer's election.`],
-    ["Brokerage", `Each party shall be responsible for its own broker and any commission shall be addressed in the definitive agreement. Each party represents it has dealt with no broker other than as disclosed.`],
-    ["Exclusivity / No-Shop", `For ${f.exclusivityDays || "____"} days following acceptance of this Letter of Intent, Seller agrees not to solicit, negotiate, or accept any competing offer for the Property, so the parties may negotiate a definitive agreement in good faith.`],
-    ["Confidentiality", `The parties shall keep the terms of this Letter and their negotiations confidential, except as required by law or to their respective advisors.`],
-    ["Non-Binding Effect", `THIS LETTER OF INTENT IS A NON-BINDING EXPRESSION OF INTEREST ONLY. Except for the Exclusivity / No-Shop and Confidentiality paragraphs (which are binding), no party shall have any obligation unless and until a definitive written purchase agreement is fully executed by both parties.`],
-    ["Governing Law", `This Letter shall be governed by the laws of the State of Florida.`],
-    ["Expiration", `This Letter of Intent will expire if not accepted in writing by ${fmtDate(f.expiresDate)}.`],
-  ];
-  const extraClause = f.additionalTerms.trim() ? [["Additional Terms", f.additionalTerms.trim()]] : [];
-  const allClauses = [...clauses, ...extraClause];
+  // PURCHASE → numbered letter clauses [title, text]
+  const purchaseClauses = () => {
+    const f = pf;
+    const cl = [
+      ["Property", `The property that is the subject of this Letter is located at ${f.propertyAddress || "____________"}${f.parcelId ? ` (Parcel ID ${f.parcelId})` : ""}, legally described as ${f.legalDescription || "[legal description to be confirmed by title commitment / survey]"}, together with all improvements, rights, easements and appurtenances (the "Property").`],
+      ["Purchase Price", `The total purchase price for the Property is ${fmtMoney(f.purchasePrice)}, payable in cash at Closing, subject to customary prorations and adjustments.`],
+      ["Earnest Money Deposit", `Within five (5) business days after execution of a definitive purchase agreement (the "Contract"), Buyer shall deposit ${fmtMoney(f.deposit)} in escrow with a mutually acceptable title company or escrow agent.${f.additionalDeposit ? ` An additional deposit of ${fmtMoney(f.additionalDeposit)} shall be made upon expiration of the Due Diligence Period.` : ""} All deposits shall be applied to the purchase price at Closing.`],
+      ["Due Diligence / Feasibility Period", `Buyer shall have ${f.dueDiligenceDays || "____"} days from the effective date of the Contract to investigate the Property — including title, survey, environmental (Phase I), zoning and permitted use, soils, utilities, access, any leases, and all physical and financial conditions. Buyer may terminate during this period for any reason or no reason and receive a full refund of its deposit.`],
+      ["Title & Survey", `Seller shall convey good, marketable and insurable title by ${f.deedType || "Special Warranty Deed"}, free and clear of all liens and encumbrances other than those approved by Buyer. Seller shall provide a current title commitment; ${f.survey} Buyer may object to title or survey matters during the Due Diligence Period.`],
+      ["Closing", `Closing shall occur within ${f.closingDays || "____"} days after expiration of the Due Diligence Period${f.titleCompany ? `, at ${f.titleCompany}` : ", at a mutually acceptable title company or closing agent"}.`],
+      ["Possession", /closing/i.test(f.possession) ? "Possession of the Property shall be delivered to Buyer at Closing, free of tenants and occupants unless otherwise agreed in the Contract." : `Possession shall be delivered ${f.possession}.`],
+      ["Closing Costs & Prorations", f.closingCosts],
+      ["Financing", /cash/i.test(f.financingType) ? "This is an all-cash transaction; Buyer will provide proof of funds upon request and this offer is not contingent upon financing." : `This offer contemplates ${f.financingType} and is contingent upon Buyer obtaining acceptable financing within the Due Diligence Period.`],
+      ["Seller's Representations & Warranties", `Seller represents and warrants that: (a) Seller has full authority to sell the Property; (b) the Property is free of liens and encumbrances that will not be satisfied at Closing; (c) there is no pending litigation, condemnation or unrecorded agreement affecting the Property; and (d) Seller has received no notice of any violation of law affecting the Property. If any representation is untrue at Closing, Buyer may terminate and receive a full refund of its deposit.`],
+      ["Property Condition", `Buyer shall accept the Property in its "AS-IS, WHERE-IS" condition as of Closing, subject to Buyer's satisfactory due diligence and Seller's representations above.`],
+      ["Real Property Disclosure", "Seller is not aware of any material defect affecting the value of the Property other than those observable by Buyer or disclosed to Buyer in writing."],
+      ["1031 Exchange", "Either party may structure its purchase or sale as part of a tax-deferred exchange under IRC §1031, and the other party shall reasonably cooperate at no additional cost or liability to it."],
+      ["Assignment", f.assignment],
+      ["Brokerage Commission", `${f.brokerName ? `${f.brokerName} represents Buyer in this transaction. ` : ""}A real estate commission${f.commissionPct ? ` of ${f.commissionPct}% of the purchase price` : ""} shall be paid by ${f.commissionPaidBy || "Seller"} at Closing pursuant to a separate agreement. Each party shall indemnify the other against claims by any other broker with whom it has dealt.`],
+      ["Exclusivity / No-Shop", `For ${f.exclusivityDays || "____"} days following acceptance of this Letter, Seller shall not solicit, negotiate or accept any competing offer for the Property so the parties may negotiate the Contract in good faith.`],
+      ["Confidentiality", "The parties shall keep the terms of this Letter and their negotiations confidential, except as required by law or as shared with their respective advisors, attorneys and lenders."],
+      ["Contingencies", `This proposal is contingent upon: ${f.contingencies}`],
+      ["Expenses", "Except as expressly provided, each party shall bear its own costs and professional fees in connection with this transaction."],
+      ["Non-Binding Effect", "THIS LETTER OF INTENT IS NON-BINDING AND DOES NOT CREATE ANY CONTRACTUAL OBLIGATION. Except for the Exclusivity / No-Shop and Confidentiality paragraphs (which are binding), neither party shall be obligated unless and until a definitive Contract is fully executed by both parties. Either party may negotiate with third parties until a Contract is signed."],
+      ["Governing Law", "This Letter shall be governed by the laws of the State of Florida."],
+      ["Expiration", `This Letter of Intent will expire if not accepted in writing by ${fmtDate(f.expiresDate)}.`],
+    ];
+    if (f.additionalTerms.trim()) cl.push(["Additional Terms", f.additionalTerms.trim()]);
+    return cl;
+  };
 
-  const fileBase = `Letter_of_Intent_${(f.propertyAddress || "Property").replace(/[^a-zA-Z0-9]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 60)}`;
+  // LEASE → term-sheet rows [label, value]
+  const leaseRows = () => {
+    const f = lf;
+    const rows = [
+      ["Landlord", f.landlordName || "____________"],
+      ["Tenant", f.tenantName || "____________"],
+      ["Trade Name", f.tradeName || "To be provided by Tenant"],
+      ["Property", f.propertyName || "____________"],
+      ["Premises", `${f.premises || "____________"}${f.sqft ? `, containing approximately ${f.sqft} leasable square feet (as shown on the attached Exhibit A)` : ""}.`],
+      ["Permitted Use", f.permittedUse || "____________"],
+      ["Term", f.term || "____________"],
+      ["Renewal Options", f.renewalOptions],
+      ["Base Rent", `${f.baseRent ? `${fmtMoney(f.baseRent)} per square foot, ${f.rentBasis}, payable monthly in advance.` : "____________"} ${f.rentEscalation}`],
+      ["CAM, Taxes & Insurance", `${f.camTaxesInsurance}${f.estCharges ? ` Estimated charges: ${f.estCharges} per square foot.` : ""}`],
+      ["Florida Sales Tax", f.floridaTax],
+      ["Rent Commencement", f.rentCommencement],
+      ["Security Deposit", f.securityDeposit],
+      ["Prepaid Rent", f.prepaidRent],
+      ["Tenant Improvement Allowance", f.tiAllowance],
+      ["Landlord's Work", f.landlordWork],
+      ["Tenant's Work", f.tenantWork],
+      ["HVAC", f.hvac],
+      ["Utilities", f.utilities],
+      ["Signage", f.signage],
+      ["Operating Hours", f.operatingHours],
+      ["Guaranty", f.guaranty],
+      ["Impact Fees", f.impactFees || "Not applicable."],
+      ["CC&Rs / Design Guidelines", f.ccrs],
+      ["Documentation", f.leaseForm],
+      ["Brokerage Commission", f.commissionDetail || "As set forth in a separate agreement; Landlord to compensate the broker(s)."],
+      ["Offer Expiration", `This proposal is good until ${fmtDate(f.expiresDate)}.`],
+    ];
+    if (f.additionalTerms.trim()) rows.push(["Additional Terms", f.additionalTerms.trim()]);
+    return rows;
+  };
 
   const DOCX_MIME = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+  const addrForName = (mode === "lease" ? lf.premises : pf.propertyAddress) || "Property";
+  const fileBase = `Letter_of_Intent_${mode === "lease" ? "Lease" : "Purchase"}_${addrForName.replace(/[^a-zA-Z0-9]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 50)}`;
 
-  // Build a REAL, fully-editable Word document (OOXML) — opens and edits in
-  // Word / Google Docs / Pages, unlike a flattened PDF.
   const buildDocxBlob = async () => {
     const { Document, Packer, Paragraph, TextRun, AlignmentType } = await import("docx");
     const run = (text, o = {}) => new TextRun({ text, ...o });
-    const P = (children, opts = {}) => new Paragraph({ children, spacing: { after: 160, line: 276 }, ...opts });
-    const clausePs = allClauses.map(([title, text], i) =>
-      P([run(`${i + 1}. ${title}.  `, { bold: true }), run(text)]));
+    const P = (children, opts = {}) => new Paragraph({ children, spacing: { after: 150, line: 276 }, ...opts });
+    const children = [
+      P([run("LETTER OF INTENT", { bold: true, size: 32 })], { alignment: AlignmentType.CENTER, spacing: { after: 30 } }),
+      P([run(`(Non-Binding — ${mode === "lease" ? "Proposal to Lease" : "Proposal to Purchase"})`, { italics: true, size: 20, color: "555555" })], { alignment: AlignmentType.CENTER, spacing: { after: 260 } }),
+      P([run(fmtDate(mode === "lease" ? lf.loiDate : pf.loiDate))]),
+    ];
+    if (mode === "purchase") {
+      const f = pf;
+      children.push(
+        P([run("To (Seller): ", { bold: true }), run(f.sellerName || "____________")], { spacing: { after: 0, line: 276 } }),
+        P([run("From (Buyer): ", { bold: true }), run(f.buyerName || "____________")], { spacing: { after: 0, line: 276 } }),
+        P([run("Re: ", { bold: true }), run(`Proposed Purchase of ${f.propertyAddress || "____________"}`)]),
+        P([run(`Dear ${f.sellerName || "Seller"}:`)]),
+        P([run(`This Letter of Intent ("LOI") sets forth the principal terms under which ${f.buyerName || "Buyer"} ("Buyer") proposes to purchase the above-referenced property from ${f.sellerName || "Seller"} ("Seller"). The parties intend to negotiate a definitive purchase agreement consistent with the following:`)]),
+      );
+      purchaseClauses().forEach(([t, text], i) => children.push(P([run(`${i + 1}. ${t}.  `, { bold: true }), run(text)])));
+      children.push(
+        P([run("If these terms are acceptable as a basis for negotiation, please sign and return a copy. We look forward to working with you.")], { spacing: { before: 140, after: 420, line: 276 } }),
+        P([run("Buyer: ", { bold: true }), run((f.buyerName || "") + "  ____________________________    Date: ____________")]),
+        P([run("Seller: ", { bold: true }), run((f.sellerName || "") + "  ____________________________    Date: ____________")]),
+      );
+    } else {
+      const f = lf;
+      children.push(
+        P([run("To (Tenant): ", { bold: true }), run(f.tenantName || "____________")], { spacing: { after: 0, line: 276 } }),
+        P([run("From (Landlord): ", { bold: true }), run(f.landlordName || "____________")], { spacing: { after: 0, line: 276 } }),
+        P([run("Re: ", { bold: true }), run(`Proposed Lease at ${f.propertyName || f.premises || "____________"}`)]),
+        P([run(`This Letter of Intent sets forth the principal non-binding terms and conditions under which ${f.landlordName || "Landlord"} ("Landlord") would lease space to ${f.tenantName || "Tenant"} ("Tenant"). The Lease, when negotiated, shall contain among other items the following terms:`)], { spacing: { after: 220, line: 276 } }),
+      );
+      leaseRows().forEach(([label, value]) => children.push(
+        new Paragraph({ spacing: { after: 130, line: 276 }, children: [run(label.toUpperCase() + ":  ", { bold: true }), run(value)] })
+      ));
+      children.push(
+        P([run("This letter is a summary of negotiations to date and does not create any contractual obligation on either party. The Premises have not been taken off the market, and Landlord may continue to market the Premises to others. Final terms will be set forth in a Lease to be executed by Landlord and Tenant.")], { spacing: { before: 180, after: 120, line: 276 } }),
+        P([run("If the above reflects our understanding, please sign below and return a copy, and we will prepare the Lease.")], { spacing: { after: 420, line: 276 } }),
+        P([run("ACCEPTED AND AGREED:", { bold: true })]),
+        P([run("Landlord: ", { bold: true }), run((f.landlordName || "") + "  ____________________________    Date: ____________")]),
+        P([run("Tenant: ", { bold: true }), run((f.tenantName || "") + "  ____________________________    Date: ____________")]),
+      );
+    }
+    const preparedBy = mode === "lease" ? lf.preparedBy : pf.preparedBy;
+    if (preparedBy) children.push(P([run("Prepared by " + preparedBy, { size: 18, color: "666666" })], { spacing: { before: 300 } }));
     const doc = new Document({
       styles: { default: { document: { run: { font: "Calibri", size: 22 } } } },
-      sections: [{
-        properties: { page: { margin: { top: 1440, bottom: 1440, left: 1440, right: 1440 } } },
-        children: [
-          P([run("LETTER OF INTENT", { bold: true, size: 32 })], { alignment: AlignmentType.CENTER, spacing: { after: 40 } }),
-          P([run("(Non-Binding — For Discussion Purposes Only)", { italics: true, size: 20, color: "555555" })], { alignment: AlignmentType.CENTER, spacing: { after: 260 } }),
-          P([run(fmtDate(f.loiDate))]),
-          P([run("To (Seller): ", { bold: true }), run(f.sellerName || "____________")], { spacing: { after: 0, line: 276 } }),
-          P([run("From (Buyer): ", { bold: true }), run(f.buyerName || "____________")], { spacing: { after: 0, line: 276 } }),
-          P([run("Re: ", { bold: true }), run(`Proposed Purchase of ${f.propertyAddress || "____________"}`)]),
-          P([run(`Dear ${f.sellerName || "Seller"}:`)]),
-          P([run(`This Letter of Intent ("LOI") sets forth the principal terms under which ${f.buyerName || "Buyer"} ("Buyer") proposes to purchase the above-referenced property from ${f.sellerName || "Seller"} ("Seller"). The parties intend to negotiate a definitive purchase agreement consistent with the following:`)]),
-          ...clausePs,
-          P([run("If these terms are acceptable as a basis for negotiation, please sign and return a copy. We look forward to working with you.")], { spacing: { before: 120, after: 420, line: 276 } }),
-          P([run("Buyer: ", { bold: true }), run((f.buyerName || "") + "  ____________________________    Date: ____________")]),
-          P([run("Seller: ", { bold: true }), run((f.sellerName || "") + "  ____________________________    Date: ____________")]),
-          ...(f.preparedBy ? [P([run("Prepared by " + f.preparedBy, { size: 18, color: "666666" })], { spacing: { before: 300 } })] : []),
-        ],
-      }],
+      sections: [{ properties: { page: { margin: { top: 1440, bottom: 1440, left: 1440, right: 1440 } } }, children }],
     });
     return await Packer.toBlob(doc);
   };
@@ -584,7 +711,8 @@ function LetterOfIntentModal({ tx, headers, onClose, onSaved }) {
   };
 
   const handleSave = async () => {
-    if (!f.purchasePrice) { setError("Enter a purchase price first."); return; }
+    const price = mode === "lease" ? lf.baseRent : pf.purchasePrice;
+    if (!price) { setError(mode === "lease" ? "Enter the base rent first." : "Enter a purchase price first."); return; }
     setError(null); setBusy(true);
     try {
       const blob = await buildDocxBlob();
@@ -605,84 +733,130 @@ function LetterOfIntentModal({ tx, headers, onClose, onSaved }) {
     } catch (e) { setError(e.message || "Could not save to documents"); setBusy(false); }
   };
 
-  const field = (label, key, opts) => (
+  const inp = { width: "100%", padding: "8px 10px", borderRadius: 8, border: `1px solid ${COLORS.border}`, fontSize: 14, fontFamily: "inherit", color: COLORS.text, background: "#fff", boxSizing: "border-box" };
+  const fld = (formObj, setter, label, key, opts = {}) => (
     <div style={{ marginBottom: 12 }}>
       <label style={{ fontSize: 11, fontWeight: 700, color: COLORS.muted, display: "block", marginBottom: 4, textTransform: "uppercase", letterSpacing: 0.4 }}>{label}</label>
-      {opts?.type === "textarea"
-        ? <textarea value={f[key]} onChange={e => set(key)(e.target.value)} rows={3} placeholder={opts.placeholder} style={inp} />
-        : opts?.options
-          ? <select value={f[key]} onChange={e => set(key)(e.target.value)} style={inp}>{opts.options.map(o => <option key={o}>{o}</option>)}</select>
-          : <input type={opts?.type || "text"} value={f[key]} onChange={e => set(key)(e.target.value)} placeholder={opts?.placeholder} style={inp} />}
+      {opts.type === "textarea"
+        ? <textarea value={formObj[key]} onChange={e => setter(key)(e.target.value)} rows={opts.rows || 2} placeholder={opts.placeholder} style={{ ...inp, resize: "vertical" }} />
+        : opts.options
+          ? <select value={formObj[key]} onChange={e => setter(key)(e.target.value)} style={inp}>{opts.options.map(o => <option key={o}>{o}</option>)}</select>
+          : <input type={opts.type || "text"} value={formObj[key]} onChange={e => setter(key)(e.target.value)} placeholder={opts.placeholder} style={inp} />}
     </div>
   );
-  const inp = { width: "100%", padding: "8px 10px", borderRadius: 8, border: `1px solid ${COLORS.border}`, fontSize: 14, fontFamily: "inherit", color: COLORS.text, background: "#fff", boxSizing: "border-box" };
+
+  const tabBtn = (m, label) => (
+    <button onClick={() => setMode(m)} style={{ flex: 1, padding: "9px 10px", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer",
+      background: mode === m ? "#0E7490" : "#E5F6F8", color: mode === m ? "#fff" : "#0E7490" }}>{label}</button>
+  );
 
   return (
     <div onClick={() => !busy && onClose()} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 1100, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
-      <div onClick={e => e.stopPropagation()} style={{ background: "#fff", borderRadius: 14, width: 920, maxWidth: "100%", maxHeight: "94vh", overflow: "auto", boxShadow: "0 20px 60px rgba(0,0,0,0.25)" }}>
+      <div onClick={e => e.stopPropagation()} style={{ background: "#fff", borderRadius: 14, width: 960, maxWidth: "100%", maxHeight: "94vh", overflow: "auto", boxShadow: "0 20px 60px rgba(0,0,0,0.25)" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "18px 22px 14px", borderBottom: `1px solid ${COLORS.border}`, position: "sticky", top: 0, background: "#fff", zIndex: 2 }}>
           <h2 style={{ margin: 0, fontSize: 18, color: "#0E7490", fontWeight: 800 }}>📝 Letter of Intent</h2>
           <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 24, color: COLORS.muted }}>×</button>
         </div>
+        <div style={{ display: "flex", gap: 8, padding: "14px 22px 0" }}>{tabBtn("purchase", "🏢 Purchase")}{tabBtn("lease", "🔑 Lease")}</div>
         <div style={{ display: "flex", gap: 20, padding: 22, flexWrap: "wrap", alignItems: "flex-start" }}>
           {/* Form */}
-          <div style={{ flex: "1 1 300px", minWidth: 280 }}>
+          <div style={{ flex: "1 1 320px", minWidth: 290 }}>
             <div style={{ fontSize: 12.5, color: COLORS.muted, marginBottom: 12, lineHeight: 1.45 }}>
-              Confirm the numbers below — the legal clauses are pre-written. Generates an <b>editable Word (.docx)</b> you can fine-tune before sending. The letter is <b>non-binding</b> (except confidentiality and the no-shop period).
+              Confirm the terms below — every clause is pre-written in standard FL commercial language. Generates an <b>editable Word (.docx)</b>. The letter is <b>non-binding</b>.
             </div>
-            {field("LOI Date", "loiDate", { type: "date" })}
-            {field("Buyer (name / entity)", "buyerName", { placeholder: "ABC Holdings, LLC" })}
-            {field("Seller (name / entity)", "sellerName", { placeholder: "Seller name" })}
-            {field("Property Address", "propertyAddress")}
-            {field("Property Description (optional)", "propertyDesc", { placeholder: "e.g. ±12,500 SF retail building on 0.8 acres, Parcel 30-22-…" })}
-            {field("Purchase Price", "purchasePrice", { placeholder: "1,250,000" })}
-            {field("Earnest Money Deposit", "deposit", { placeholder: "25,000" })}
-            {field("Financing", "financingType", { options: ["All cash", "Conventional / commercial financing", "SBA financing", "Seller financing", "Subject to existing financing"] })}
-            {field("Due Diligence Period (days)", "dueDiligenceDays", { type: "number" })}
-            {field("Closing (days after due diligence)", "closingDays", { type: "number" })}
-            {field("Exclusivity / No-Shop (days)", "exclusivityDays", { type: "number" })}
-            {field("This Offer Expires", "expiresDate", { type: "date" })}
-            {field("Prepared By (agent / brokerage)", "preparedBy", { placeholder: "Your name, Brokerage" })}
-            {field("Additional Terms (optional)", "additionalTerms", { type: "textarea", placeholder: "Any extra terms in plain language…" })}
+            {mode === "purchase" ? (
+              <>
+                {fld(pf, sp, "LOI Date", "loiDate", { type: "date" })}
+                {fld(pf, sp, "Buyer (name / entity)", "buyerName", { placeholder: "ABC Holdings, LLC" })}
+                {fld(pf, sp, "Seller (name / entity)", "sellerName")}
+                {fld(pf, sp, "Property Address", "propertyAddress")}
+                {fld(pf, sp, "Legal Description", "legalDescription", { type: "textarea", placeholder: "Lot / block / plat or metes & bounds…" })}
+                {fld(pf, sp, "Parcel ID (optional)", "parcelId")}
+                {fld(pf, sp, "Purchase Price", "purchasePrice", { placeholder: "1,250,000" })}
+                {fld(pf, sp, "Earnest Money Deposit", "deposit", { placeholder: "25,000" })}
+                {fld(pf, sp, "Additional Deposit after DD (optional)", "additionalDeposit", { placeholder: "25,000" })}
+                {fld(pf, sp, "Financing", "financingType", { options: ["All cash", "Conventional / commercial financing", "SBA financing", "Seller financing", "Subject to existing financing"] })}
+                {fld(pf, sp, "Due Diligence Period (days)", "dueDiligenceDays", { type: "number" })}
+                {fld(pf, sp, "Closing (days after due diligence)", "closingDays", { type: "number" })}
+                {fld(pf, sp, "Deed Type", "deedType", { options: ["Special Warranty Deed", "General Warranty Deed", "Statutory Warranty Deed"] })}
+                {fld(pf, sp, "Title Company / Closing Agent (optional)", "titleCompany")}
+                {fld(pf, sp, "Possession", "possession", { placeholder: "At closing" })}
+                {fld(pf, sp, "Closing Costs & Prorations", "closingCosts", { type: "textarea" })}
+                {fld(pf, sp, "Title & Survey", "survey", { type: "textarea" })}
+                {fld(pf, sp, "Contingencies", "contingencies", { type: "textarea" })}
+                {fld(pf, sp, "Assignment", "assignment", { type: "textarea" })}
+                {fld(pf, sp, "Commission %", "commissionPct", { placeholder: "6" })}
+                {fld(pf, sp, "Commission Paid By", "commissionPaidBy", { options: ["Seller", "Buyer", "Each party its own"] })}
+                {fld(pf, sp, "Buyer's Broker (name / brokerage)", "brokerName")}
+                {fld(pf, sp, "Exclusivity / No-Shop (days)", "exclusivityDays", { type: "number" })}
+                {fld(pf, sp, "This Offer Expires", "expiresDate", { type: "date" })}
+                {fld(pf, sp, "Prepared By", "preparedBy", { placeholder: "Your name, Brokerage" })}
+                {fld(pf, sp, "Additional Terms (optional)", "additionalTerms", { type: "textarea" })}
+              </>
+            ) : (
+              <>
+                {fld(lf, sl, "LOI Date", "loiDate", { type: "date" })}
+                {fld(lf, sl, "Landlord", "landlordName")}
+                {fld(lf, sl, "Tenant", "tenantName")}
+                {fld(lf, sl, "Trade Name", "tradeName", { placeholder: "Tenant's business name" })}
+                {fld(lf, sl, "Property / Center Name", "propertyName", { placeholder: "Regent Shoppes" })}
+                {fld(lf, sl, "Premises", "premises", { type: "textarea", placeholder: "Unit / suite, address" })}
+                {fld(lf, sl, "Approx. Square Feet", "sqft", { placeholder: "4,750" })}
+                {fld(lf, sl, "Permitted Use", "permittedUse", { placeholder: "Veterinary clinic, gym, retail…" })}
+                {fld(lf, sl, "Term", "term", { placeholder: "Five (5) years" })}
+                {fld(lf, sl, "Renewal Options", "renewalOptions", { type: "textarea" })}
+                {fld(lf, sl, "Base Rent ($/SF)", "baseRent", { placeholder: "14.00" })}
+                {fld(lf, sl, "Rent Basis", "rentBasis", { options: ["Triple Net (NNN)", "Modified Gross", "Gross / Full Service"] })}
+                {fld(lf, sl, "Rent Escalation", "rentEscalation", { type: "textarea" })}
+                {fld(lf, sl, "CAM, Taxes & Insurance", "camTaxesInsurance", { type: "textarea" })}
+                {fld(lf, sl, "Estimated Charges ($/SF, optional)", "estCharges", { placeholder: "$7.85" })}
+                {fld(lf, sl, "Florida Sales Tax", "floridaTax", { type: "textarea" })}
+                {fld(lf, sl, "Rent Commencement", "rentCommencement", { type: "textarea" })}
+                {fld(lf, sl, "Security Deposit", "securityDeposit", { type: "textarea" })}
+                {fld(lf, sl, "Prepaid Rent", "prepaidRent", { type: "textarea" })}
+                {fld(lf, sl, "Tenant Improvement Allowance", "tiAllowance", { type: "textarea" })}
+                {fld(lf, sl, "Landlord's Work", "landlordWork", { type: "textarea" })}
+                {fld(lf, sl, "Tenant's Work", "tenantWork", { type: "textarea" })}
+                {fld(lf, sl, "HVAC", "hvac", { type: "textarea" })}
+                {fld(lf, sl, "Utilities", "utilities", { type: "textarea" })}
+                {fld(lf, sl, "Signage", "signage", { type: "textarea" })}
+                {fld(lf, sl, "Operating Hours", "operatingHours", { type: "textarea" })}
+                {fld(lf, sl, "Guaranty", "guaranty", { type: "textarea" })}
+                {fld(lf, sl, "Impact Fees (optional)", "impactFees", { type: "textarea" })}
+                {fld(lf, sl, "CC&Rs / Design Guidelines", "ccrs", { type: "textarea" })}
+                {fld(lf, sl, "Documentation (Lease form)", "leaseForm" )}
+                {fld(lf, sl, "Brokerage Commission", "commissionDetail", { type: "textarea", placeholder: "Who represents whom & who pays…" })}
+                {fld(lf, sl, "This Offer Expires", "expiresDate", { type: "date" })}
+                {fld(lf, sl, "Prepared By", "preparedBy", { placeholder: "Your name, Brokerage" })}
+                {fld(lf, sl, "Additional Terms (optional)", "additionalTerms", { type: "textarea" })}
+              </>
+            )}
           </div>
-          {/* Live letter preview */}
+          {/* Preview */}
           <div style={{ flex: "1 1 380px", minWidth: 320 }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: COLORS.muted, textTransform: "uppercase", letterSpacing: 0.4, marginBottom: 6 }}>Preview</div>
-            <div style={{ border: `1px solid ${COLORS.border}`, borderRadius: 8, maxHeight: "62vh", overflow: "auto", background: "#F3F4F6", padding: 12 }}>
-              <div ref={letterRef} style={{ background: "#fff", width: 612, maxWidth: "100%", padding: "48px 54px", fontFamily: "Georgia, 'Times New Roman', serif", color: "#111", fontSize: 13, lineHeight: 1.55 }}>
-                <div style={{ textAlign: "center", fontWeight: 700, fontSize: 16, letterSpacing: 0.5, marginBottom: 4 }}>LETTER OF INTENT</div>
-                <div style={{ textAlign: "center", fontSize: 12, color: "#555", marginBottom: 22 }}>(Non-Binding — For Discussion Purposes Only)</div>
-                <div style={{ marginBottom: 14 }}>{fmtDate(f.loiDate)}</div>
-                <div style={{ marginBottom: 14 }}>
-                  <div><b>To (Seller):</b> {f.sellerName || "____________"}</div>
-                  <div><b>From (Buyer):</b> {f.buyerName || "____________"}</div>
-                  <div><b>Re:</b> Proposed Purchase of {f.propertyAddress || "____________"}</div>
-                </div>
-                <div style={{ marginBottom: 14 }}>
-                  Dear {f.sellerName || "Seller"}:
-                </div>
-                <div style={{ marginBottom: 14 }}>
-                  This Letter of Intent ("LOI") sets forth the principal terms under which {f.buyerName || "Buyer"} ("Buyer") proposes to purchase the above-referenced property from {f.sellerName || "Seller"} ("Seller"). The parties intend to negotiate a definitive purchase agreement consistent with the following:
-                </div>
-                {allClauses.map(([title, text], i) => (
-                  <div key={i} style={{ marginBottom: 10 }}>
-                    <b>{i + 1}. {title}.</b> {text}
-                  </div>
-                ))}
-                <div style={{ marginTop: 16, marginBottom: 30 }}>
-                  If these terms are acceptable as a basis for negotiation, please sign and return a copy. We look forward to working with you.
-                </div>
-                <div style={{ display: "flex", justifyContent: "space-between", gap: 30, marginTop: 36 }}>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ borderTop: "1px solid #111", paddingTop: 4, fontSize: 12 }}>Buyer: {f.buyerName || ""}</div>
-                    <div style={{ fontSize: 12, marginTop: 18, borderTop: "1px solid #111", paddingTop: 4 }}>Date</div>
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ borderTop: "1px solid #111", paddingTop: 4, fontSize: 12 }}>Seller: {f.sellerName || ""}</div>
-                    <div style={{ fontSize: 12, marginTop: 18, borderTop: "1px solid #111", paddingTop: 4 }}>Date</div>
-                  </div>
-                </div>
-                {f.preparedBy && <div style={{ marginTop: 26, fontSize: 11, color: "#666" }}>Prepared by {f.preparedBy}</div>}
+            <div style={{ border: `1px solid ${COLORS.border}`, borderRadius: 8, maxHeight: "66vh", overflow: "auto", background: "#F3F4F6", padding: 12 }}>
+              <div style={{ background: "#fff", padding: "40px 46px", fontFamily: "Calibri, Arial, sans-serif", color: "#111", fontSize: 12.5, lineHeight: 1.5 }}>
+                <div style={{ textAlign: "center", fontWeight: 700, fontSize: 16, marginBottom: 2 }}>LETTER OF INTENT</div>
+                <div style={{ textAlign: "center", fontSize: 11.5, color: "#555", fontStyle: "italic", marginBottom: 18 }}>(Non-Binding — {mode === "lease" ? "Proposal to Lease" : "Proposal to Purchase"})</div>
+                <div style={{ marginBottom: 12 }}>{fmtDate(mode === "lease" ? lf.loiDate : pf.loiDate)}</div>
+                {mode === "purchase" ? (
+                  <>
+                    <div><b>To (Seller):</b> {pf.sellerName || "____________"}</div>
+                    <div><b>From (Buyer):</b> {pf.buyerName || "____________"}</div>
+                    <div style={{ marginBottom: 12 }}><b>Re:</b> Proposed Purchase of {pf.propertyAddress || "____________"}</div>
+                    {purchaseClauses().map(([t, text], i) => <div key={i} style={{ marginBottom: 9 }}><b>{i + 1}. {t}.</b> {text}</div>)}
+                    <div style={{ marginTop: 16 }}><b>Buyer:</b> {pf.buyerName} ____________  <b>Seller:</b> {pf.sellerName} ____________</div>
+                  </>
+                ) : (
+                  <>
+                    <div><b>To (Tenant):</b> {lf.tenantName || "____________"}</div>
+                    <div><b>From (Landlord):</b> {lf.landlordName || "____________"}</div>
+                    <div style={{ marginBottom: 12 }}><b>Re:</b> Proposed Lease at {lf.propertyName || lf.premises || "____________"}</div>
+                    {leaseRows().map(([label, value], i) => <div key={i} style={{ marginBottom: 7 }}><b>{label.toUpperCase()}:</b> {value}</div>)}
+                    <div style={{ marginTop: 16 }}><b>Landlord:</b> {lf.landlordName} ____________  <b>Tenant:</b> {lf.tenantName} ____________</div>
+                  </>
+                )}
               </div>
             </div>
           </div>
