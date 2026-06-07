@@ -1332,6 +1332,8 @@ function BudgetModal({ item, categories, onClose, onSaved }) {
 function PnLTab() {
   const [year, setYear] = useState(new Date().getFullYear());
   const [pnl, setPnl] = useState(null);
+  const [company, setCompany] = useState(null);
+  const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showDeals, setShowDeals] = useState(false);
@@ -1339,21 +1341,56 @@ function PnLTab() {
   const load = async () => {
     setLoading(true); setError(null);
     try {
-      const data = await authFetch(`/finance/pnl?from=${year}-01-01&to=${year}-12-31`);
+      // Company + profile are best-effort letterhead info — don't fail the P&L if they error
+      const [data, comp, prof] = await Promise.all([
+        authFetch(`/finance/pnl?from=${year}-01-01&to=${year}-12-31`),
+        authFetch('/settings/company').catch(() => null),
+        authFetch('/profile').catch(() => null),
+      ]);
       setPnl(data);
+      setCompany(comp?.company || null);
+      setProfile(prof?.profile || null);
     } catch (e) { setError(e.message); } finally { setLoading(false); }
   };
   useEffect(() => { load(); /* eslint-disable-next-line */ }, [year]);
 
+  const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
   const printPnL = () => {
     if (!pnl) return;
-    const rowsHtml = (arr, color) => arr.map(c => `<tr><td style="padding:6px 12px">${c.category}</td><td style="padding:6px 12px;text-align:right;color:${color}">${fmtCurrency(c.total)}</td></tr>`).join('');
-    const html = `<!doctype html><html><head><title>Profit & Loss ${year}</title>
+    const rowsHtml = (arr, color) => arr.map(c => `<tr><td style="padding:6px 12px">${esc(c.category)}</td><td style="padding:6px 12px;text-align:right;color:${color}">${fmtCurrency(c.total)}</td></tr>`).join('');
+
+    const c = company || {};
+    const accent = c.primaryColor || '#059669';
+    const cityLine = [c.city, c.state, c.zip].filter(Boolean).join(', ').replace(', ' + (c.zip || ''), ' ' + (c.zip || '')).trim();
+    const contactBits = [c.phone, c.email, c.website].filter(Boolean).map(esc).join(' &nbsp;•&nbsp; ');
+    const brokerName = c.name ? esc(c.name) : 'My Real Estate Business';
+    const agentName = profile ? esc(`${profile.firstName || ''} ${profile.lastName || ''}`.trim()) : '';
+    const agentLine = agentName ? `Prepared for: <strong>${agentName}</strong>${profile?.title ? ' — ' + esc(profile.title) : ''}${profile?.email ? ' &nbsp;•&nbsp; ' + esc(profile.email) : ''}` : '';
+    const logoHtml = c.logoUrl ? `<img src="${esc(c.logoUrl)}" alt="" style="max-height:64px;max-width:220px;object-fit:contain" onerror="this.style.display='none'"/>` : '';
+
+    const letterhead = `
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;border-bottom:3px solid ${accent};padding-bottom:14px">
+        <div>
+          <div style="font-size:24px;font-weight:800;color:${accent}">${brokerName}</div>
+          ${c.dbaName ? `<div style="color:#6b7280;font-size:13px">DBA ${esc(c.dbaName)}</div>` : ''}
+          ${c.address ? `<div style="color:#4b5563;font-size:13px;margin-top:2px">${esc(c.address)}</div>` : ''}
+          ${cityLine ? `<div style="color:#4b5563;font-size:13px">${esc(cityLine)}</div>` : ''}
+          ${contactBits ? `<div style="color:#6b7280;font-size:12px;margin-top:4px">${contactBits}</div>` : ''}
+          ${c.licenseNumber ? `<div style="color:#9ca3af;font-size:12px">License #${esc(c.licenseNumber)}</div>` : ''}
+        </div>
+        <div style="text-align:right">${logoHtml}</div>
+      </div>`;
+
+    const html = `<!doctype html><html><head><title>Profit & Loss ${year} — ${brokerName}</title>
       <style>body{font-family:-apple-system,Segoe UI,Roboto,sans-serif;color:#1f2937;max-width:720px;margin:30px auto;padding:0 20px}
-      h1{color:#059669;margin-bottom:0}h2{border-bottom:2px solid #10b981;padding-bottom:4px;margin-top:24px;font-size:16px}
+      h1{color:${accent};margin:14px 0 0}h2{border-bottom:2px solid ${accent};padding-bottom:4px;margin-top:24px;font-size:16px}
       table{width:100%;border-collapse:collapse;font-size:14px}.tot{font-weight:700;border-top:2px solid #e5e7eb}
       .net{font-size:20px;font-weight:800;padding:14px;border-radius:8px;margin-top:20px;text-align:center}</style></head><body>
-      <h1>Profit &amp; Loss Statement</h1><div style="color:#6b7280">Tax year ${year} • generated ${fmtDate(todayISO())}</div>
+      ${letterhead}
+      <h1>Profit &amp; Loss Statement</h1>
+      <div style="color:#6b7280">Tax year ${year} &nbsp;•&nbsp; generated ${fmtDate(todayISO())}</div>
+      ${agentLine ? `<div style="color:#6b7280;margin-top:2px">${agentLine}</div>` : ''}
       <h2>Income</h2><table>
         <tr><td style="padding:6px 12px">Commission income (closed deals)</td><td style="padding:6px 12px;text-align:right;color:#059669">${fmtCurrency(pnl.income.commission_total)}</td></tr>
         ${rowsHtml(pnl.income.other, '#059669')}
@@ -1389,6 +1426,18 @@ function PnLTab() {
 
       {pnl && !loading && (
         <>
+          {(company || profile) && (
+            <div style={{ background: 'white', borderRadius: 12, boxShadow: '0 1px 3px rgba(0,0,0,0.05)', padding: '14px 18px', marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, borderLeft: `4px solid ${company?.primaryColor || '#059669'}` }}>
+              <div>
+                <div style={{ fontSize: 18, fontWeight: 800, color: company?.primaryColor || '#059669' }}>{company?.name || 'My Real Estate Business'}</div>
+                <div style={{ fontSize: 12, color: '#6b7280' }}>
+                  Profit &amp; Loss — {year}
+                  {profile ? ` • ${[profile.firstName, profile.lastName].filter(Boolean).join(' ')}` : ''}
+                </div>
+              </div>
+              {company?.logoUrl && <img src={company.logoUrl} alt="" style={{ maxHeight: 44, maxWidth: 160, objectFit: 'contain' }} onError={e => { e.target.style.display = 'none'; }} />}
+            </div>
+          )}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px,1fr))', gap: 12, marginBottom: 20 }}>
             <SummaryCard label="Total Income" value={fmtCurrency(pnl.income.total)} sub={`${year}`} color="#10b981" />
             <SummaryCard label="Total Expenses" value={fmtCurrency(pnl.expenses.total)} sub={`${year}`} color="#dc2626" />
