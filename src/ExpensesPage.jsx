@@ -1165,24 +1165,39 @@ function GoalSetupModal({ existing, onClose, onSaved }) {
   );
 }
 
-// "What do you pay every month?" — quick monthly expense budget setup from common bills.
+// "What do you pay every month?" — quick monthly expense budget setup from
+// common bills + any custom lines the agent adds.
 function BillsSetupModal({ existing, onClose, onSaved }) {
+  const monthlyExisting = (existing || []).filter(i => i.frequency === 'monthly');
   const byCat = {};
-  (existing || []).forEach(i => { if (i.frequency === 'monthly') byCat[i.category] = i; });
-  const [rows, setRows] = useState(() => COMMON_BILLS.map(([cat, label]) => ({ cat, label, amount: byCat[cat]?.amount || '', id: byCat[cat]?.id || null })));
+  monthlyExisting.forEach(i => { byCat[i.category] = i; });
+  const presetCats = COMMON_BILLS.map(([cat]) => cat);
+
+  const [rows, setRows] = useState(() => {
+    const preset = COMMON_BILLS.map(([cat, label]) => ({ cat, label, amount: byCat[cat]?.amount || '', id: byCat[cat]?.id || null, custom: false }));
+    // Any existing monthly bills the agent already added that aren't in the preset list
+    const customExisting = monthlyExisting
+      .filter(i => !presetCats.includes(i.category))
+      .map(i => ({ cat: i.category, label: i.label || i.category, amount: i.amount || '', id: i.id, custom: true }));
+    return [...preset, ...customExisting];
+  });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
 
   const setAmt = (i, v) => setRows(prev => prev.map((r, idx) => idx === i ? { ...r, amount: v } : r));
+  const setName = (i, v) => setRows(prev => prev.map((r, idx) => idx === i ? { ...r, label: v, cat: v } : r));
+  const addCustom = () => setRows(prev => [...prev, { cat: '', label: '', amount: '', id: null, custom: true }]);
+  const removeRow = (i) => setRows(prev => prev.filter((_, idx) => idx !== i));
 
   const save = async () => {
     setSaving(true); setError(null);
     try {
       for (const r of rows) {
         const amt = Number(r.amount);
-        if (r.amount === '' || isNaN(amt)) { if (r.id && (r.amount === '' || amt === 0)) { /* leave existing */ } continue; }
-        if (amt <= 0) continue;
-        const payload = { kind: 'expense', label: r.label, category: r.cat, amount: amt, frequency: 'monthly' };
+        if (r.amount === '' || isNaN(amt) || amt <= 0) continue;
+        const name = (r.label || '').trim() || (r.custom ? 'Other' : r.cat);
+        const cat = (r.cat || '').trim() || (r.custom ? 'Other' : r.cat);
+        const payload = { kind: 'expense', label: name, category: cat.slice(0, 80), amount: amt, frequency: 'monthly' };
         if (r.id) await authFetch(`/budget/${r.id}`, { method: 'PUT', body: JSON.stringify(payload) });
         else await authFetch('/budget', { method: 'POST', body: JSON.stringify(payload) });
       }
@@ -1193,17 +1208,25 @@ function BillsSetupModal({ existing, onClose, onSaved }) {
   const total = rows.reduce((s, r) => s + (Number(r.amount) || 0), 0);
 
   return (
-    <ModalShell onClose={onClose} title="🧾 Your monthly business bills" width={500}>
-      <div style={{ fontSize: 14, color: '#374151', marginBottom: 14 }}>About how much do you pay each month? Fill in what applies — leave the rest blank.</div>
+    <ModalShell onClose={onClose} title="🧾 Your monthly business bills" width={520}>
+      <div style={{ fontSize: 14, color: '#374151', marginBottom: 14 }}>About how much do you pay each month? Fill in what applies, add your own below, and leave the rest blank.</div>
       {rows.map((r, i) => (
-        <div key={r.cat} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-          <div style={{ flex: 1, fontSize: 14, color: '#374151' }}>{r.label}</div>
+        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+          {r.custom ? (
+            <input value={r.label} onChange={e => setName(i, e.target.value)} placeholder="Name this bill (e.g. Assistant)" style={{ ...inputStyle, flex: 1 }} />
+          ) : (
+            <div style={{ flex: 1, fontSize: 14, color: '#374151' }}>{r.label}</div>
+          )}
           <span style={{ color: '#9ca3af' }}>$</span>
-          <input type="number" step="1" min="0" value={r.amount} onChange={e => setAmt(i, e.target.value)} placeholder="0" style={{ ...inputStyle, maxWidth: 120, textAlign: 'right' }} />
+          <input type="number" step="1" min="0" value={r.amount} onChange={e => setAmt(i, e.target.value)} placeholder="0" style={{ ...inputStyle, maxWidth: 110, textAlign: 'right' }} />
           <span style={{ fontSize: 12, color: '#9ca3af' }}>/mo</span>
+          {r.custom
+            ? <button onClick={() => removeRow(i)} style={iconBtn} title="Remove">✕</button>
+            : <span style={{ width: 24 }} />}
         </div>
       ))}
-      <div style={{ textAlign: 'right', fontWeight: 700, color: '#1f2937', marginTop: 6 }}>About {fmtCurrency(total)}/month</div>
+      <button onClick={addCustom} style={{ ...secondaryBtn, marginTop: 2 }}>➕ Add another bill</button>
+      <div style={{ textAlign: 'right', fontWeight: 700, color: '#1f2937', marginTop: 12 }}>About {fmtCurrency(total)}/month</div>
       {error && <div style={{ background: '#fef2f2', color: '#dc2626', padding: 10, borderRadius: 8, margin: '12px 0', fontSize: 14 }}>{error}</div>}
       <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 14 }}>
         <button onClick={onClose} style={secondaryBtn}>Cancel</button>
