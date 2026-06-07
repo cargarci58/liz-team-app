@@ -63,6 +63,7 @@ const startOfYearISO = () => `${new Date().getFullYear()}-01-01`;
 // MAIN PAGE
 // ============================================================
 export default function ExpensesPage({ onBack }) {
+  const [viewMode, setViewMode] = useState('simple'); // simple | advanced
   const [activeTab, setActiveTab] = useState('expenses'); // expenses | income | budget | pnl | import
   const [expenses, setExpenses] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -211,27 +212,44 @@ export default function ExpensesPage({ onBack }) {
                 ← Back
               </button>
             )}
-            <h1 style={{ margin: 0, fontSize: 26, fontWeight: 700 }}>💵 Expense Tracker</h1>
+            <h1 style={{ margin: 0, fontSize: 26, fontWeight: 700 }}>💵 My Money</h1>
           </div>
-          <button
-            onClick={() => setTeachOpen(true)}
-            style={{
-              background: 'rgba(255,255,255,0.25)',
-              color: 'white',
-              border: '1px solid rgba(255,255,255,0.4)',
-              borderRadius: 20,
-              padding: '6px 14px',
-              fontSize: 13,
-              cursor: 'pointer'
-            }}
-          >
-            ℹ️ How this helps you
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{ display: 'flex', background: 'rgba(255,255,255,0.2)', borderRadius: 20, padding: 3 }}>
+              {[['simple', 'Simple'], ['advanced', 'Accountant view']].map(([k, l]) => (
+                <button key={k} onClick={() => setViewMode(k)} style={{
+                  border: 'none', cursor: 'pointer', padding: '6px 14px', borderRadius: 18, fontSize: 13, fontWeight: 600,
+                  background: viewMode === k ? 'white' : 'transparent', color: viewMode === k ? '#059669' : 'white',
+                }}>{l}</button>
+              ))}
+            </div>
+            <button
+              onClick={() => setTeachOpen(true)}
+              style={{
+                background: 'rgba(255,255,255,0.25)', color: 'white',
+                border: '1px solid rgba(255,255,255,0.4)', borderRadius: 20,
+                padding: '6px 14px', fontSize: 13, cursor: 'pointer'
+              }}
+            >
+              ℹ️ Help
+            </button>
+          </div>
         </div>
         <div style={{ marginTop: 6, fontSize: 13, opacity: 0.9 }}>
-          Track expenses & income, set a budget, import bank statements, and print a P&L. Your data is private — even admins can't see it.
+          {viewMode === 'simple'
+            ? "See how much you're making, spending, and keeping — in plain English. Private to you."
+            : "Expenses, income, budget, P&L, and bank import. Your data is private — even admins can't see it."}
         </div>
       </div>
+
+      {viewMode === 'simple' && (
+        <SimpleMoneyView
+          categories={categories}
+          goAdvanced={(tab) => { if (tab) setActiveTab(tab); setViewMode('advanced'); }}
+        />
+      )}
+
+      {viewMode === 'advanced' && (<div>
 
       {/* Tab bar */}
       <div style={{ background: 'white', borderBottom: '1px solid #e5e7eb', padding: '0 24px', display: 'flex', gap: 4, overflowX: 'auto' }}>
@@ -449,6 +467,8 @@ export default function ExpensesPage({ onBack }) {
           </div>
         )}
       </div>
+
+      </div>)}
 
       </div>)}
 
@@ -893,6 +913,301 @@ function TeachModal({ onClose }) {
       </div>
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 16 }}>
         <button onClick={onClose} style={primaryBtn('#10b981')}>Got it</button>
+      </div>
+    </ModalShell>
+  );
+}
+
+// ============================================================
+// SIMPLE "MY MONEY" VIEW — plain-language default for non-accountants
+// ============================================================
+const COMMON_BILLS = [
+  ['MLS Fees', 'MLS dues'],
+  ['E&O Insurance', 'E&O insurance'],
+  ['Marketing', 'Marketing & ads'],
+  ['Software / Tech', 'Software / CRM'],
+  ['Gas / Mileage', 'Car & gas'],
+  ['Office Supplies', 'Phone & office'],
+];
+
+function SimpleMoneyView({ categories, goAdvanced }) {
+  const [pnl, setPnl] = useState(null);
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [showGoal, setShowGoal] = useState(false);
+  const [showBills, setShowBills] = useState(false);
+  const [showAddExpense, setShowAddExpense] = useState(false);
+  const [showAddIncome, setShowAddIncome] = useState(false);
+  const [editSetup, setEditSetup] = useState(false);
+
+  const year = new Date().getFullYear();
+
+  const load = async () => {
+    setLoading(true); setError(null);
+    try {
+      const [p, b] = await Promise.all([
+        authFetch(`/finance/pnl?from=${year}-01-01&to=${year}-12-31`),
+        authFetch('/budget'),
+      ]);
+      setPnl(p);
+      setItems(b.items || []);
+    } catch (e) { setError(e.message); } finally { setLoading(false); }
+  };
+  useEffect(() => { load(); /* eslint-disable-next-line */ }, []);
+
+  const made = pnl?.income?.total || 0;
+  const spent = pnl?.expenses?.total || 0;
+  const kept = made - spent;
+  const incomeItems = items.filter(i => i.kind === 'income');
+  const expenseItems = items.filter(i => i.kind !== 'income');
+  const goal = incomeItems.reduce((s, i) => s + budgetedForPeriod(i, 'year'), 0);
+  const monthlyBills = expenseItems.reduce((s, i) => s + budgetedForPeriod(i, 'month'), 0);
+
+  const hasGoal = goal > 0;
+  const hasBills = expenseItems.length > 0;
+  const hasActivity = made > 0 || spent > 0;
+  const setupDone = hasGoal && hasBills && hasActivity;
+
+  // pace
+  const elapsed = Math.min(1, (new Date() - new Date(year, 0, 1)) / (365 * 24 * 3600 * 1000));
+  const goalPct = hasGoal ? Math.round(made / goal * 100) : 0;
+  const expectedByNow = goal * elapsed;
+  const onPace = made >= expectedByNow;
+  const keepRate = made > 0 ? Math.round(kept / made * 100) : 0;
+
+  const topCosts = [...(pnl?.expenses?.by_category || [])].sort((a, b) => b.total - a.total).slice(0, 3);
+
+  const Step = ({ done, n, title, children }) => (
+    <div style={{ display: 'flex', gap: 12, padding: '12px 0', borderTop: n === 1 ? 'none' : '1px solid #f3f4f6' }}>
+      <div style={{ flexShrink: 0, width: 30, height: 30, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 15, background: done ? '#10b981' : '#e5e7eb', color: done ? 'white' : '#6b7280' }}>{done ? '✓' : n}</div>
+      <div style={{ flex: 1 }}>
+        <div style={{ fontWeight: 600, color: '#1f2937', marginBottom: 6 }}>{title}</div>
+        {children}
+      </div>
+    </div>
+  );
+
+  return (
+    <div style={{ padding: '20px 24px', maxWidth: 920, margin: '0 auto' }}>
+      {loading && <div style={{ padding: 40, textAlign: 'center', color: '#6b7280' }}>Loading...</div>}
+      {error && <div style={{ padding: 20, color: '#dc2626', background: '#fef2f2', borderRadius: 8 }}>Error: {error}</div>}
+
+      {!loading && !error && (
+        <>
+          {/* SETUP CHECKLIST */}
+          {(!setupDone || editSetup) && (
+            <div style={{ background: 'white', borderRadius: 14, boxShadow: '0 1px 3px rgba(0,0,0,0.06)', padding: '16px 20px', marginBottom: 20, border: '1px solid #d1fae5' }}>
+              <div style={{ fontWeight: 700, fontSize: 17, color: '#065f46', marginBottom: 4 }}>👋 Let's set up your business money</div>
+              <div style={{ fontSize: 13, color: '#6b7280', marginBottom: 8 }}>Three quick things. You can change them anytime.</div>
+
+              <Step done={hasGoal} n={1} title="How much do you want to make this year?">
+                {hasGoal
+                  ? <div style={{ fontSize: 14, color: '#374151' }}>Your goal: <strong>{fmtCurrency(goal)}</strong> &nbsp;<button onClick={() => setShowGoal(true)} style={linkBtn}>change</button></div>
+                  : <button onClick={() => setShowGoal(true)} style={primaryBtn('#10b981')}>Set my income goal</button>}
+              </Step>
+
+              <Step done={hasBills} n={2} title="What do you pay every month to run your business?">
+                {hasBills
+                  ? <div style={{ fontSize: 14, color: '#374151' }}>About <strong>{fmtCurrency(monthlyBills)}/mo</strong> in bills &nbsp;<button onClick={() => setShowBills(true)} style={linkBtn}>edit</button></div>
+                  : <button onClick={() => setShowBills(true)} style={primaryBtn('#10b981')}>Add my monthly bills</button>}
+              </Step>
+
+              <Step done={hasActivity} n={3} title="Add what you've made and spent">
+                <div style={{ fontSize: 13, color: '#6b7280', marginBottom: 8 }}>The easiest way is to upload a bank statement — we'll sort it for you. Or add things one at a time.</div>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  <button onClick={() => goAdvanced('import')} style={primaryBtn('#3b82f6')}>🏦 Upload a bank statement</button>
+                  <button onClick={() => setShowAddIncome(true)} style={secondaryBtn}>➕ Money I made</button>
+                  <button onClick={() => setShowAddExpense(true)} style={secondaryBtn}>➖ Money I spent</button>
+                </div>
+              </Step>
+
+              {setupDone && (
+                <div style={{ marginTop: 8, textAlign: 'right' }}>
+                  <button onClick={() => setEditSetup(false)} style={linkBtn}>Done editing ✓</button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {setupDone && !editSetup && (
+            <div style={{ textAlign: 'right', marginBottom: 8 }}>
+              <button onClick={() => setEditSetup(true)} style={linkBtn}>⚙️ Edit my goal & bills</button>
+            </div>
+          )}
+
+          {/* THE 3 BIG NUMBERS */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px,1fr))', gap: 14, marginBottom: 18 }}>
+            <BigMoneyCard emoji="💰" label="Money you made" value={made} sub={`so far in ${year}`} color="#059669" />
+            <BigMoneyCard emoji="💸" label="Money you spent" value={spent} sub={`so far in ${year}`} color="#dc2626" />
+            <BigMoneyCard emoji={kept >= 0 ? '✅' : '⚠️'} label="Money you kept" value={kept} sub="after paying expenses" color={kept >= 0 ? '#059669' : '#dc2626'} big />
+          </div>
+
+          {/* GOAL PROGRESS — plain */}
+          {hasGoal && (
+            <div style={{ background: 'white', borderRadius: 14, boxShadow: '0 1px 3px rgba(0,0,0,0.06)', padding: '18px 20px', marginBottom: 18 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 6 }}>
+                <div style={{ fontWeight: 700, color: '#1f2937' }}>Your goal: make {fmtCurrency(goal)} this year</div>
+                <div style={{ fontSize: 14, color: '#6b7280' }}>You've made <strong style={{ color: '#059669' }}>{fmtCurrency(made)}</strong></div>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, margin: '8px 0 10px' }}>
+                <div style={{ fontSize: 30, fontWeight: 800, color: '#059669' }}>{goalPct}%</div>
+                <div style={{ fontSize: 14, color: '#6b7280' }}>{goal - made > 0 ? `${fmtCurrency(goal - made)} to go` : 'You hit your goal! 🎉'}</div>
+              </div>
+              <div style={{ position: 'relative', background: '#f3f4f6', borderRadius: 8, height: 16, overflow: 'hidden' }}>
+                <div style={{ width: `${Math.min(100, goalPct)}%`, height: '100%', background: onPace ? '#10b981' : '#f59e0b' }} />
+                {elapsed > 0 && elapsed < 1 && <div title="Where you'd be if earning evenly" style={{ position: 'absolute', top: -2, bottom: -2, left: `${elapsed * 100}%`, width: 2, background: '#1f2937' }} />}
+              </div>
+              <div style={{ fontSize: 13, marginTop: 8, fontWeight: 600, color: onPace ? '#059669' : '#b45309' }}>
+                {made === 0 ? '➡️ Add what you\'ve made (or upload a statement) to see how you\'re tracking.'
+                  : onPace ? '👍 You\'re on pace to hit your goal — keep it up!'
+                  : `⏳ A little behind — by now you'd want about ${fmtCurrency(expectedByNow)}. ${fmtCurrency(expectedByNow - made)} would catch you up.`}
+              </div>
+            </div>
+          )}
+
+          {/* PLAIN-ENGLISH SUMMARY */}
+          <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 14, padding: '16px 20px', marginBottom: 18 }}>
+            <div style={{ fontWeight: 700, color: '#065f46', marginBottom: 6 }}>📖 In plain English</div>
+            <div style={{ fontSize: 15, color: '#1f2937', lineHeight: 1.6 }}>
+              {!hasActivity ? (
+                <>Nothing's been added yet. Add what you've made and spent — or just <button onClick={() => goAdvanced('import')} style={linkBtn}>upload a bank statement</button> — and I'll do the math for you.</>
+              ) : (
+                <>
+                  You've earned <strong>{fmtCurrency(made)}</strong> and spent <strong>{fmtCurrency(spent)}</strong>, so you've kept <strong style={{ color: kept >= 0 ? '#059669' : '#dc2626' }}>{fmtCurrency(kept)}</strong> so far this year.
+                  {made > 0 && <> That means out of every dollar you make, you keep about <strong>{keepRate}¢</strong>.</>}
+                  {kept < 0 && <> Right now you're spending more than you make — worth a look at your biggest costs below.</>}
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* BIGGEST COSTS */}
+          {topCosts.length > 0 && (
+            <div style={{ background: 'white', borderRadius: 14, boxShadow: '0 1px 3px rgba(0,0,0,0.06)', padding: '16px 20px', marginBottom: 18 }}>
+              <div style={{ fontWeight: 700, color: '#1f2937', marginBottom: 10 }}>Where your money goes</div>
+              {topCosts.map((c, i) => {
+                const pctOfSpend = spent > 0 ? Math.round(c.total / spent * 100) : 0;
+                return (
+                  <div key={i} style={{ marginBottom: 10 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, marginBottom: 3 }}>
+                      <span style={{ color: '#374151' }}>{c.category}</span>
+                      <span style={{ fontWeight: 600 }}>{fmtCurrency(c.total)} <span style={{ color: '#9ca3af', fontWeight: 400 }}>({pctOfSpend}%)</span></span>
+                    </div>
+                    <div style={{ background: '#f3f4f6', borderRadius: 5, height: 8, overflow: 'hidden' }}>
+                      <div style={{ width: `${pctOfSpend}%`, height: '100%', background: '#dc2626', opacity: 0.7 }} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* QUICK ACTIONS */}
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center' }}>
+            <button onClick={() => setShowAddIncome(true)} style={primaryBtn('#10b981')}>➕ Money I made</button>
+            <button onClick={() => setShowAddExpense(true)} style={primaryBtn('#dc2626')}>➖ Money I spent</button>
+            <button onClick={() => goAdvanced('import')} style={primaryBtn('#3b82f6')}>🏦 Upload a bank statement</button>
+            <button onClick={() => goAdvanced('pnl')} style={secondaryBtn}>📈 See the full details</button>
+          </div>
+        </>
+      )}
+
+      {showGoal && <GoalSetupModal existing={incomeItems[0] || null} onClose={() => setShowGoal(false)} onSaved={() => { setShowGoal(false); load(); }} />}
+      {showBills && <BillsSetupModal existing={expenseItems} onClose={() => setShowBills(false)} onSaved={() => { setShowBills(false); load(); }} />}
+      {showAddIncome && <IncomeModal entry={null} onClose={() => setShowAddIncome(false)} onSaved={() => { setShowAddIncome(false); load(); }} />}
+      {showAddExpense && <AddExpenseModal categories={categories} expense={null} onClose={() => setShowAddExpense(false)} onSaved={() => { setShowAddExpense(false); load(); }} />}
+    </div>
+  );
+}
+
+function BigMoneyCard({ emoji, label, value, sub, color, big }) {
+  return (
+    <div style={{ background: 'white', borderRadius: 14, boxShadow: '0 1px 3px rgba(0,0,0,0.06)', padding: 20, borderTop: `4px solid ${color}` }}>
+      <div style={{ fontSize: 13, color: '#6b7280', fontWeight: 600 }}>{emoji} {label}</div>
+      <div style={{ fontSize: big ? 34 : 28, fontWeight: 800, color, marginTop: 6 }}>{fmtCurrency(value)}</div>
+      <div style={{ fontSize: 12, color: '#9ca3af', marginTop: 2 }}>{sub}</div>
+    </div>
+  );
+}
+
+// "How much do you want to make this year?" — creates/updates a yearly income goal.
+function GoalSetupModal({ existing, onClose, onSaved }) {
+  const [amount, setAmount] = useState(existing?.amount || '');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState(null);
+  const save = async () => {
+    setError(null);
+    if (!amount || isNaN(Number(amount)) || Number(amount) <= 0) { setError('Enter how much you want to make.'); return; }
+    setSaving(true);
+    try {
+      const payload = { kind: 'income', label: 'My income goal', category: 'Income', amount: Number(amount), frequency: 'annual' };
+      if (existing) await authFetch(`/budget/${existing.id}`, { method: 'PUT', body: JSON.stringify(payload) });
+      else await authFetch('/budget', { method: 'POST', body: JSON.stringify(payload) });
+      onSaved();
+    } catch (e) { setError(e.message); setSaving(false); }
+  };
+  return (
+    <ModalShell onClose={onClose} title="🎯 Your income goal" width={460}>
+      <div style={{ fontSize: 14, color: '#374151', marginBottom: 14 }}>How much would you like to make this year (before expenses)? A rough number is fine — you can change it anytime.</div>
+      <Field label="I want to make this year">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ fontSize: 22, color: '#6b7280' }}>$</span>
+          <input type="number" step="1000" min="0" value={amount} onChange={e => setAmount(e.target.value)} placeholder="220,000" style={{ ...inputStyle, fontSize: 20, fontWeight: 700 }} autoFocus />
+        </div>
+      </Field>
+      {error && <div style={{ background: '#fef2f2', color: '#dc2626', padding: 10, borderRadius: 8, marginBottom: 12, fontSize: 14 }}>{error}</div>}
+      <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+        <button onClick={onClose} style={secondaryBtn}>Cancel</button>
+        <button onClick={save} disabled={saving} style={{ ...primaryBtn('#10b981'), opacity: saving ? 0.6 : 1 }}>{saving ? 'Saving...' : 'Save goal'}</button>
+      </div>
+    </ModalShell>
+  );
+}
+
+// "What do you pay every month?" — quick monthly expense budget setup from common bills.
+function BillsSetupModal({ existing, onClose, onSaved }) {
+  const byCat = {};
+  (existing || []).forEach(i => { if (i.frequency === 'monthly') byCat[i.category] = i; });
+  const [rows, setRows] = useState(() => COMMON_BILLS.map(([cat, label]) => ({ cat, label, amount: byCat[cat]?.amount || '', id: byCat[cat]?.id || null })));
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState(null);
+
+  const setAmt = (i, v) => setRows(prev => prev.map((r, idx) => idx === i ? { ...r, amount: v } : r));
+
+  const save = async () => {
+    setSaving(true); setError(null);
+    try {
+      for (const r of rows) {
+        const amt = Number(r.amount);
+        if (r.amount === '' || isNaN(amt)) { if (r.id && (r.amount === '' || amt === 0)) { /* leave existing */ } continue; }
+        if (amt <= 0) continue;
+        const payload = { kind: 'expense', label: r.label, category: r.cat, amount: amt, frequency: 'monthly' };
+        if (r.id) await authFetch(`/budget/${r.id}`, { method: 'PUT', body: JSON.stringify(payload) });
+        else await authFetch('/budget', { method: 'POST', body: JSON.stringify(payload) });
+      }
+      onSaved();
+    } catch (e) { setError(e.message); setSaving(false); }
+  };
+
+  const total = rows.reduce((s, r) => s + (Number(r.amount) || 0), 0);
+
+  return (
+    <ModalShell onClose={onClose} title="🧾 Your monthly business bills" width={500}>
+      <div style={{ fontSize: 14, color: '#374151', marginBottom: 14 }}>About how much do you pay each month? Fill in what applies — leave the rest blank.</div>
+      {rows.map((r, i) => (
+        <div key={r.cat} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+          <div style={{ flex: 1, fontSize: 14, color: '#374151' }}>{r.label}</div>
+          <span style={{ color: '#9ca3af' }}>$</span>
+          <input type="number" step="1" min="0" value={r.amount} onChange={e => setAmt(i, e.target.value)} placeholder="0" style={{ ...inputStyle, maxWidth: 120, textAlign: 'right' }} />
+          <span style={{ fontSize: 12, color: '#9ca3af' }}>/mo</span>
+        </div>
+      ))}
+      <div style={{ textAlign: 'right', fontWeight: 700, color: '#1f2937', marginTop: 6 }}>About {fmtCurrency(total)}/month</div>
+      {error && <div style={{ background: '#fef2f2', color: '#dc2626', padding: 10, borderRadius: 8, margin: '12px 0', fontSize: 14 }}>{error}</div>}
+      <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 14 }}>
+        <button onClick={onClose} style={secondaryBtn}>Cancel</button>
+        <button onClick={save} disabled={saving} style={{ ...primaryBtn('#10b981'), opacity: saving ? 0.6 : 1 }}>{saving ? 'Saving...' : 'Save my bills'}</button>
       </div>
     </ModalShell>
   );
@@ -1833,4 +2148,15 @@ const iconBtn = {
   cursor: 'pointer',
   padding: '4px 6px',
   borderRadius: 4
+};
+
+const linkBtn = {
+  background: 'none',
+  border: 'none',
+  color: '#3b82f6',
+  cursor: 'pointer',
+  fontSize: 13,
+  fontWeight: 600,
+  padding: 0,
+  textDecoration: 'underline'
 };
