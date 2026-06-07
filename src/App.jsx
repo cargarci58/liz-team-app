@@ -418,7 +418,11 @@ if (typeof document !== "undefined" && !document.getElementById("lizteam-mobile"
     body { overflow-x: hidden !important; }
     #root { max-width: 100vw; overflow-x: hidden; }
     input, textarea, select { font-size: 16px !important; }
+    img, video { max-width: 100% !important; height: auto; }
     @media (max-width: 768px) {
+      /* Universal: collapse any inline multi-column grid to a single column on phones.
+         Opt out per-element with data-keep-grid="" (e.g. the month calendar). */
+      [style*="grid-template-columns"]:not([data-keep-grid]) { grid-template-columns: 1fr !important; }
       /* Stats bar: 2-col grid on mobile, no horizontal scroll */
       [data-stats-bar] {
         display: grid !important;
@@ -6026,7 +6030,7 @@ function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenCon
             <WinTheDayButton token={localStorage.getItem("tp_token") || ""} />
             <PersonalTaskAddButton token={localStorage.getItem("tp_token") || ""} />
             <button onClick={onVendors} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "rgba(255,255,255,0.88)", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 600, fontFamily: "inherit" }}>🏆 Vendors</button>
-            <button onClick={onIntakeLinks} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "rgba(255,255,255,0.88)", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 600, fontFamily: "inherit" }}>🔗 My Intake Links</button>
+            <button onClick={onIntakeLinks} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "rgba(255,255,255,0.88)", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 600, fontFamily: "inherit" }}>🔗 New Buyer/Seller Intake</button>
             {/* "Receive Offer" now lives inside each Active listing (open a listing → 📥 Receive Offer). Receiving an offer only applies to listings. */}
             <SettingsMenu
               currentUser={currentUser}
@@ -7128,12 +7132,12 @@ function MainApp({ onLogout, currentUser }) {
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 3000, display: "flex", alignItems: "center", justifyContent: "center", padding: 16, fontFamily: "system-ui, sans-serif" }}>
           <div style={{ background: "#fff", borderRadius: 14, width: "100%", maxWidth: 500, boxShadow: "0 8px 40px rgba(0,0,0,0.2)", overflow: "hidden" }}>
             <div style={{ background: "#111", padding: "18px 24px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <div style={{ color: "#fff", fontWeight: 700, fontSize: 18 }}>🔗 Your Intake Form Links</div>
+              <div style={{ color: "#fff", fontWeight: 700, fontSize: 18 }}>🔗 New Buyer / Seller Intake Forms</div>
               <button onClick={() => setShowIntakeLinks(false)} style={{ background: "none", border: "none", color: "rgba(255,255,255,0.6)", fontSize: 22, cursor: "pointer" }}>x</button>
             </div>
             <div style={{ padding: 24 }}>
-              <p style={{ fontSize: 13, color: "#555", marginBottom: 20 }}>Share these links with clients. The form automatically creates a transaction in your account.</p>
-              {[{ label: "🏠 Seller Intake Form", type: "seller", color: "#C0392B" }, { label: "🏡 Buyer Intake Form", type: "buyer", color: "#1A5276" }].map(({ label, type, color }) => {
+              <p style={{ fontSize: 13, color: "#555", marginBottom: 20 }}>Send these to a NEW buyer or seller (or fill them out yourself). Each submission creates a new lead in your pipeline.</p>
+              {[{ label: "🏠 New Seller Intake Form", type: "seller", color: "#C0392B" }, { label: "🏡 New Buyer Intake Form", type: "buyer", color: "#1A5276" }].map(({ label, type, color }) => {
                 const slug = currentUser?.slug || "";
                 const url = window.location.origin + "/" + type + ".html?agent=" + slug + "&uid=" + (currentUser?.id || "");
                 return (
