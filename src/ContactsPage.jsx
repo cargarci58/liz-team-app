@@ -1579,8 +1579,8 @@ export default function ContactsPage({ token, onBack }) {
           <button onClick={() => setSelected(new Set())} style={{ marginLeft: "auto", background: "transparent", border: "none", color: "#6b7280", cursor: "pointer", fontSize: 12, fontWeight: 600 }}>Clear selection</button>
         </div>
       )}
-      <div style={{ background: "white", border: "1px solid #e5e7eb", borderRadius: 8, overflow: "hidden" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+      <div style={{ background: "white", border: "1px solid #e5e7eb", borderRadius: 8, overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, minWidth: 720 }}>
           <thead>
             <tr style={{ background: "#eef2f7" }}>
               <th style={{ ...th, width: 32 }}>

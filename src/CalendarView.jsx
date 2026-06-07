@@ -158,7 +158,7 @@ export default function CalendarView({ transactions, onBack, onSelectTx }) {
 
         {/* Calendar Grid */}
         <div style={{ background: "#fff", borderRadius: 12, overflow: "hidden", border: "1px solid #DDD", marginTop: 16 }}>
-          <div style={styles.grid}>
+          <div data-keep-grid="" style={styles.grid}>
             {["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].map(d => (
               <div key={d} style={styles.dayHeader}>{d}</div>
             ))}

@@ -96,6 +96,7 @@
 
   /* Data health */
   .health-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; background: white; border: 1px solid var(--rule); border-radius: 6px; margin-bottom: 16px; overflow: hidden; }
+  @media (max-width: 768px) { .health-grid { grid-template-columns: repeat(2, 1fr); } }
   .health-stat { text-align: center; padding: 18px 12px; border-right: 1px solid #f0ebe0; }
   .health-stat:last-child { border-right: none; }
   .health-stat-val { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; font-size: 28px; font-weight: 600; line-height: 1; }
