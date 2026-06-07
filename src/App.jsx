@@ -3996,19 +3996,33 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
                   <span style={{ fontSize: 24 }}>🌱</span>
                   <div style={{ flex: 1, minWidth: 220 }}>
                     <div style={{ fontWeight: 800, color: "#7A5C00", fontSize: 15, marginBottom: 4 }}>This is still a {tx.type === "Buyer Representation" ? "buyer inquiry" : "seller lead"} — not yet confirmed</div>
-                    <div style={{ fontSize: 13, color: "#7A5C00", lineHeight: 1.5 }}>It came in from your intake link and hasn't been worked into a real deal yet. Set its status (Active, Under Contract, On Hold, or Cancel) using the status selector at the top — or confirm it now to clear this flag.</div>
+                    <div style={{ fontSize: 13, color: "#7A5C00", lineHeight: 1.5 }}>It came in from your intake link and hasn't been worked into a real deal yet. <strong>Confirm</strong> it to keep working it, or <strong>Not Pursuing</strong> if it went nowhere. (You can also set any status from the selector at the top.)</div>
                   </div>
-                  <button
-                    onClick={async () => {
-                      try {
-                        const res = await fetch(`${API}/transactions/${tx.id}/confirm-lead`, { method: "POST", headers: { "Content-Type": "application/json", "Authorization": "Bearer " + (localStorage.getItem("tp_token") || "") } });
-                        if (!res.ok) throw new Error("Failed");
-                        onUpdate({ ...tx, leadConverted: true });
-                      } catch { alert("Could not confirm — please try again."); }
-                    }}
-                    style={{ background: "#B7860B", color: "white", border: "none", borderRadius: 8, padding: "10px 16px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>
-                    ✓ Confirm Lead
-                  </button>
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    <button
+                      onClick={async () => {
+                        try {
+                          const res = await fetch(`${API}/transactions/${tx.id}/confirm-lead`, { method: "POST", headers: { "Content-Type": "application/json", "Authorization": "Bearer " + (localStorage.getItem("tp_token") || "") } });
+                          if (!res.ok) throw new Error("Failed");
+                          onUpdate({ ...tx, leadConverted: true });
+                        } catch { alert("Could not confirm — please try again."); }
+                      }}
+                      style={{ background: "#B7860B", color: "white", border: "none", borderRadius: 8, padding: "10px 16px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>
+                      ✓ Confirm Lead
+                    </button>
+                    <button
+                      onClick={async () => {
+                        if (!window.confirm("Mark this lead as Not Pursuing? It will be set to Cancelled and removed from your active list. You can reactivate it later by changing the status.")) return;
+                        try {
+                          const res = await fetch(`${API}/transactions/${tx.id}/status`, { method: "PATCH", headers: { "Content-Type": "application/json", "Authorization": "Bearer " + (localStorage.getItem("tp_token") || "") }, body: JSON.stringify({ status: "Cancelled" }) });
+                          if (!res.ok) throw new Error("Failed");
+                          onUpdate({ ...tx, status: "Cancelled", leadConverted: true });
+                        } catch { alert("Could not update — please try again."); }
+                      }}
+                      style={{ background: "transparent", color: "#7A5C00", border: "1px solid #C9A227", borderRadius: 8, padding: "10px 16px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>
+                      ✕ Not Pursuing
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
