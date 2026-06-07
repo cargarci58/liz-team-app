@@ -23,6 +23,7 @@ const TASK_ICONS = {
   milestone_upcoming:"🟡",
   setup_milestones:  "⚡",
   closing_prep:      "🏠",
+  lead_conversion:   "🌱",
 };
 
 // ── SELLER UPDATE MODAL ───────────────────────────────────────
