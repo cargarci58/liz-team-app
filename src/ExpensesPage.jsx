@@ -1148,9 +1148,25 @@ function BudgetTab({ categories }) {
   const totalActualExp = pnl?.expenses?.total || 0;
   const incomeGoal = incomeItems.reduce((s, i) => s + budgetedForPeriod(i, period), 0);
   const actualIncome = pnl?.income?.total || 0;
+  const netSoFar = actualIncome - totalActualExp;
+
+  // How far into the period are we? (for "expected by now" pacing)
+  const elapsedFraction = (() => {
+    const now = new Date();
+    if (period === 'month') {
+      const dim = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+      return Math.min(1, now.getDate() / dim);
+    }
+    const start = new Date(now.getFullYear(), 0, 1);
+    return Math.min(1, (now - start) / (365 * 24 * 3600 * 1000));
+  })();
 
   return (
     <div style={{ padding: '20px 24px' }}>
+      <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 10, padding: 12, marginBottom: 16, fontSize: 13, color: '#1e40af' }}>
+        💡 This tab compares your <strong>plan</strong> to <strong>reality</strong>. Set an <strong>income goal</strong> (what you want to earn) and your <strong>planned expenses</strong> (MLS, E&O, marketing…). The bars below show how you're tracking. Add lines with <strong>➕ Add Budget Line</strong>.
+      </div>
+
       <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 16, flexWrap: 'wrap' }}>
         <div style={{ display: 'flex', background: '#f3f4f6', borderRadius: 8, padding: 3 }}>
           {[['year', 'This Year'], ['month', 'This Month']].map(([k, l]) => (
@@ -1169,17 +1185,28 @@ function BudgetTab({ categories }) {
 
       {!loading && !error && (
         <>
-          {/* Top-line scorecards */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px,1fr))', gap: 12, marginBottom: 20 }}>
-            <SummaryCard label="Budgeted Expenses" value={fmtCurrency(totalBudgetExp)} sub={period === 'year' ? 'full year plan' : 'this month'} color="#6b7280" />
-            <SummaryCard label="Actual Expenses" value={fmtCurrency(totalActualExp)} sub={`${totalBudgetExp > 0 ? Math.round(totalActualExp / totalBudgetExp * 100) : 0}% of budget`} color={totalActualExp > totalBudgetExp ? '#dc2626' : '#10b981'} />
-            <SummaryCard label="Income Goal" value={fmtCurrency(incomeGoal)} sub={period === 'year' ? 'full year plan' : 'this month'} color="#3b82f6" />
-            <SummaryCard label="Actual Income" value={fmtCurrency(actualIncome)} sub={`${incomeGoal > 0 ? Math.round(actualIncome / incomeGoal * 100) : 0}% of goal`} color="#10b981" />
+          {/* INCOME GOAL */}
+          <GoalProgress
+            label={`Income Goal — ${period === 'year' ? 'This Year' : 'This Month'}`}
+            goal={incomeGoal}
+            actual={actualIncome}
+            elapsed={elapsedFraction}
+            actualLabel="Earned so far"
+            emptyHint="No income goal set yet. Click ➕ Add Budget Line → 📥 Income Goal to set your target (e.g. $220,000/yr)."
+            footer={`Earned = closed-deal commissions${pnl?.income?.other_total ? ' + other income' : ''}. Your net (income − expenses) so far is ${fmtCurrency(netSoFar)}.`}
+          />
+
+          {/* EXPENSE BUDGET */}
+          <div style={{ fontWeight: 700, color: '#374151', margin: '8px 2px 10px' }}>Expense Budget</div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px,1fr))', gap: 12, marginBottom: 16 }}>
+            <SummaryCard label="Planned to spend" value={fmtCurrency(totalBudgetExp)} sub={period === 'year' ? 'full-year budget' : 'this month'} color="#6b7280" />
+            <SummaryCard label="Actually spent" value={fmtCurrency(totalActualExp)} sub={`${totalBudgetExp > 0 ? Math.round(totalActualExp / totalBudgetExp * 100) : 0}% of budget used`} color={totalActualExp > totalBudgetExp ? '#dc2626' : '#10b981'} />
+            <SummaryCard label="Left in budget" value={fmtCurrency(totalBudgetExp - totalActualExp)} sub={totalActualExp > totalBudgetExp ? 'over budget' : 'remaining'} color={totalActualExp > totalBudgetExp ? '#dc2626' : '#3b82f6'} />
           </div>
 
           {/* Budget vs actual by category */}
           <div style={{ background: 'white', borderRadius: 12, boxShadow: '0 1px 3px rgba(0,0,0,0.05)', overflow: 'hidden', marginBottom: 24 }}>
-            <div style={{ padding: '12px 16px', borderBottom: '1px solid #e5e7eb', fontWeight: 700, color: '#1f2937' }}>Expenses — Budget vs Actual</div>
+            <div style={{ padding: '12px 16px', borderBottom: '1px solid #e5e7eb', fontWeight: 700, color: '#1f2937' }}>Expenses by category — planned vs actual</div>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
               <thead style={{ background: '#f9fafb' }}>
                 <tr><Th>Category</Th><Th align="right">Budgeted</Th><Th align="right">Actual</Th><Th align="right">Remaining</Th><Th>Usage</Th></tr>
@@ -1211,8 +1238,8 @@ function BudgetTab({ categories }) {
 
           {/* Budget line management */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px,1fr))', gap: 16 }}>
-            <BudgetLineList title="📤 Planned Expenses" items={expenseItems} period={period} onEdit={(i) => { setEditing(i); setModalOpen(true); }} onDelete={handleDelete} />
-            <BudgetLineList title="📥 Income Goals" items={incomeItems} period={period} onEdit={(i) => { setEditing(i); setModalOpen(true); }} onDelete={handleDelete} />
+            <BudgetLineList title="📤 Planned Expenses" hint="What you expect to spend" items={expenseItems} period={period} onEdit={(i) => { setEditing(i); setModalOpen(true); }} onDelete={handleDelete} />
+            <BudgetLineList title="📥 Income Goal" hint="What you want to earn" items={incomeItems} period={period} onEdit={(i) => { setEditing(i); setModalOpen(true); }} onDelete={handleDelete} />
           </div>
         </>
       )}
@@ -1222,10 +1249,50 @@ function BudgetTab({ categories }) {
   );
 }
 
-function BudgetLineList({ title, items, period, onEdit, onDelete }) {
+// Big single-metric progress card (goal vs actual) with pacing.
+function GoalProgress({ label, goal, actual, elapsed, actualLabel, emptyHint, footer }) {
+  if (!goal || goal <= 0) {
+    return (
+      <div style={{ background: 'white', borderRadius: 12, boxShadow: '0 1px 3px rgba(0,0,0,0.05)', padding: 18, marginBottom: 16, borderLeft: '4px solid #3b82f6' }}>
+        <div style={{ fontWeight: 700, color: '#1f2937', marginBottom: 4 }}>{label}</div>
+        <div style={{ color: '#6b7280', fontSize: 14 }}>{emptyHint}</div>
+      </div>
+    );
+  }
+  const pct = Math.round(actual / goal * 100);
+  const expected = goal * (elapsed || 0);
+  const onPace = actual >= expected;
+  const remaining = goal - actual;
+  return (
+    <div style={{ background: 'white', borderRadius: 12, boxShadow: '0 1px 3px rgba(0,0,0,0.05)', padding: 18, marginBottom: 20, borderLeft: '4px solid #10b981' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', flexWrap: 'wrap', gap: 8 }}>
+        <div style={{ fontWeight: 700, color: '#1f2937' }}>{label}</div>
+        <div style={{ fontSize: 13, color: '#6b7280' }}>{actualLabel}: <strong style={{ color: '#059669' }}>{fmtCurrency(actual)}</strong> of <strong>{fmtCurrency(goal)}</strong> goal</div>
+      </div>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, margin: '8px 0 10px' }}>
+        <div style={{ fontSize: 32, fontWeight: 800, color: '#059669' }}>{pct}%</div>
+        <div style={{ fontSize: 13, color: '#6b7280' }}>{remaining > 0 ? `${fmtCurrency(remaining)} to go` : 'goal reached 🎉'}</div>
+      </div>
+      <div style={{ position: 'relative', background: '#f3f4f6', borderRadius: 8, height: 16, overflow: 'hidden' }}>
+        <div style={{ width: `${Math.min(100, pct)}%`, height: '100%', background: onPace ? '#10b981' : '#f59e0b', transition: 'width .3s' }} />
+        {elapsed > 0 && elapsed < 1 && (
+          <div title="Where you'd be if earning evenly all period" style={{ position: 'absolute', top: -2, bottom: -2, left: `${elapsed * 100}%`, width: 2, background: '#1f2937' }} />
+        )}
+      </div>
+      <div style={{ fontSize: 12, color: onPace ? '#059669' : '#b45309', marginTop: 8, fontWeight: 600 }}>
+        {onPace ? '✅ On pace' : '⏳ Behind pace'} — at this point in the period you'd expect about {fmtCurrency(expected)} {onPace ? '' : `(you're ${fmtCurrency(expected - actual)} under)`}
+      </div>
+      {footer && <div style={{ fontSize: 12, color: '#9ca3af', marginTop: 6 }}>{footer}</div>}
+    </div>
+  );
+}
+
+function BudgetLineList({ title, hint, items, period, onEdit, onDelete }) {
   return (
     <div style={{ background: 'white', borderRadius: 12, boxShadow: '0 1px 3px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
-      <div style={{ padding: '12px 16px', borderBottom: '1px solid #e5e7eb', fontWeight: 700, color: '#1f2937' }}>{title}</div>
+      <div style={{ padding: '12px 16px', borderBottom: '1px solid #e5e7eb', fontWeight: 700, color: '#1f2937' }}>
+        {title}{hint && <span style={{ fontWeight: 400, fontSize: 12, color: '#9ca3af' }}> — {hint}</span>}
+      </div>
       {items.length === 0 && <div style={{ padding: 20, color: '#6b7280', fontSize: 14 }}>None yet.</div>}
       {items.map(i => (
         <div key={i.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 16px', borderTop: '1px solid #f3f4f6' }}>
@@ -1276,7 +1343,7 @@ function BudgetModal({ item, categories, onClose, onSaved }) {
     <ModalShell onClose={onClose} title={isEdit ? '✏️ Edit Budget Line' : '➕ Add Budget Line'} width={540}>
       <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
         {[['expense', '📤 Planned Expense'], ['income', '📥 Income Goal']].map(([k, l]) => (
-          <button key={k} onClick={() => setKind(k)} style={{
+          <button key={k} onClick={() => { setKind(k); if (!isEdit) setFrequency(k === 'income' ? 'annual' : 'monthly'); }} style={{
             flex: 1, padding: '10px', borderRadius: 8, cursor: 'pointer', fontSize: 14, fontWeight: 600,
             border: kind === k ? '2px solid #10b981' : '1px solid #d1d5db',
             background: kind === k ? '#ecfdf5' : 'white', color: kind === k ? '#065f46' : '#6b7280',
