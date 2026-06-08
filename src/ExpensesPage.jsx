@@ -1927,6 +1927,31 @@ function ImportTab({ categories, onCommitted }) {
   };
   useEffect(() => { loadHistory(); }, []);
 
+  // Map a server line into an editable review row. Auto-unchecks internal
+  // transfers and commission deposits that match a closed deal.
+  const toReviewLine = (l) => ({
+    id: l.id, include: !(l.is_transfer || l.duplicate_of_deal),
+    txn_date: l.txn_date ? l.txn_date.split('T')[0] : '',
+    description: l.description || '', amount: Number(l.amount || 0),
+    direction: l.direction || 'expense', category: l.suggested_category || 'Other',
+    is_transfer: !!l.is_transfer, duplicate_of_deal: l.duplicate_of_deal || null,
+  });
+
+  // Re-open a previously uploaded statement that wasn't saved yet, back into
+  // the review table so the agent can finish saving it.
+  const resumeImport = async (imp) => {
+    setError(null); setDone(null); setStatus('Loading…');
+    try {
+      const data = await authFetch(`/bank-import/${imp.id}`);
+      setAccountType(imp.account_type || 'checking');
+      setPeriodLabel((imp.period_label || '').trim());
+      setImportId(imp.id);
+      setLines((data.lines || []).map(toReviewLine));
+      setStatus('');
+      if (!data.lines || data.lines.length === 0) setError('This statement has no reviewable transactions. You can remove it.');
+    } catch (e) { setError(e.message); setStatus(''); }
+  };
+
   const deleteImport = async (imp) => {
     const label = `${imp.account_type === 'credit_card' ? 'Credit card' : 'Checking'} — ${(imp.period_label || '').trim() || imp.file_name || 'statement'}`;
     if (!window.confirm(`Remove "${label}"?\n\nThis takes its ${imp.committed_count || 0} saved transaction(s) back out of your Expenses, Income, and P&L. You can re-import the statement later if needed.`)) return;
@@ -1964,13 +1989,7 @@ function ImportTab({ categories, onCommitted }) {
       setStatus('Loading transactions...');
       const data = await authFetch(`/bank-import/${enq.importId}`);
       setImportId(enq.importId);
-      setLines((data.lines || []).map(l => ({
-        id: l.id, include: !(l.is_transfer || l.duplicate_of_deal),
-        txn_date: l.txn_date ? l.txn_date.split('T')[0] : '',
-        description: l.description || '', amount: Number(l.amount || 0),
-        direction: l.direction || 'expense', category: l.suggested_category || 'Other',
-        is_transfer: !!l.is_transfer, duplicate_of_deal: l.duplicate_of_deal || null,
-      })));
+      setLines((data.lines || []).map(toReviewLine));
       if (!data.lines || data.lines.length === 0) setError('No transactions were found in that file. Try a CSV export from your bank, or a clearer PDF.');
       setStatus('');
     } catch (e) { setError(e.message); setStatus(''); } finally { setBusy(false); }
@@ -2052,9 +2071,16 @@ function ImportTab({ categories, onCommitted }) {
                       </Td>
                       <Td align="right">{saved ? imp.committed_count : '—'}</Td>
                       <Td align="right">
-                        <button onClick={() => deleteImport(imp)} disabled={deletingId === imp.id} style={{ background: 'none', border: '1px solid #fecaca', color: '#dc2626', borderRadius: 6, padding: '4px 10px', fontSize: 12, fontWeight: 600, cursor: 'pointer', opacity: deletingId === imp.id ? 0.5 : 1 }}>
-                          {deletingId === imp.id ? 'Removing…' : 'Remove'}
-                        </button>
+                        <div style={{ display: 'inline-flex', gap: 6 }}>
+                          {!saved && (
+                            <button onClick={() => resumeImport(imp)} style={{ background: '#10b981', border: 'none', color: 'white', borderRadius: 6, padding: '4px 10px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+                              Review &amp; save
+                            </button>
+                          )}
+                          <button onClick={() => deleteImport(imp)} disabled={deletingId === imp.id} style={{ background: 'none', border: '1px solid #fecaca', color: '#dc2626', borderRadius: 6, padding: '4px 10px', fontSize: 12, fontWeight: 600, cursor: 'pointer', opacity: deletingId === imp.id ? 0.5 : 1 }}>
+                            {deletingId === imp.id ? 'Removing…' : 'Remove'}
+                          </button>
+                        </div>
                       </Td>
                     </tr>
                   );
@@ -2079,9 +2105,10 @@ function ImportTab({ categories, onCommitted }) {
             <SummaryCard label="Will add — Expenses" value={fmtCurrency(includedExp)} sub={`${lines.filter(l => l.include && l.direction === 'expense').length} items`} color="#dc2626" />
             <SummaryCard label="Will add — Income" value={fmtCurrency(includedInc)} sub={`${lines.filter(l => l.include && l.direction === 'income').length} items`} color="#10b981" />
             <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
+              <button onClick={() => { setLines([]); setImportId(null); setError(null); }} style={secondaryBtn}>← Back</button>
               <button onClick={() => setLines(p => p.map(l => ({ ...l, include: true })))} style={secondaryBtn}>Select all</button>
               <button onClick={() => setLines(p => p.map(l => ({ ...l, include: false })))} style={secondaryBtn}>Select none</button>
-              <button onClick={commit} disabled={committing} style={{ ...primaryBtn('#10b981'), opacity: committing ? 0.6 : 1 }}>{committing ? 'Importing...' : `✅ Import ${lines.filter(l => l.include).length} selected`}</button>
+              <button onClick={() => commit()} disabled={committing} style={{ ...primaryBtn('#10b981'), opacity: committing ? 0.6 : 1 }}>{committing ? 'Importing...' : `✅ Import ${lines.filter(l => l.include).length} selected`}</button>
             </div>
           </div>
 
