@@ -633,25 +633,27 @@ function AddExpenseModal({ categories, expense, allExpenses, onClose, onSaved })
         // one by one.
         const newCat = category || 'Other';
         const vend = (vendor || '').trim();
-        const key = normalizeVendor(vend);
         const categoryChanged = (expense.category || '') !== newCat;
-        if (categoryChanged && key) {
-          const matches = (allExpenses || []).filter(e =>
-            e.id !== expense.id &&
-            normalizeVendor(e.vendor) === key &&
-            (e.category || '') !== newCat
-          );
-          if (matches.length > 0) {
-            const ok = window.confirm(`You have ${matches.length} other expense${matches.length === 1 ? '' : 's'} that look like the same merchant${vend ? ` (“${vend}”)` : ''}. Apply the category “${newCat}” to all of them too?`);
-            if (ok) {
-              try {
+        if (categoryChanged && vend) {
+          try {
+            // Ask the server for other look-alike-merchant expenses across ALL
+            // categories (not just what's loaded on screen).
+            const sim = await authFetch('/expenses/similar-vendor', {
+              method: 'POST',
+              body: JSON.stringify({ vendor: vend, excludeId: expense.id, category: newCat })
+            });
+            if (sim && sim.count > 0) {
+              const inCats = (sim.otherCategories || []).filter(Boolean);
+              const where = inCats.length ? `\n\nThey're currently under: ${inCats.join(', ')}.` : '';
+              const ok = window.confirm(`You have ${sim.count} other expense${sim.count === 1 ? '' : 's'} that look like the same merchant${vend ? ` (“${vend}”)` : ''}.${where}\n\nMove them all to “${newCat}” too?`);
+              if (ok) {
                 await authFetch('/expenses/recategorize-by-vendor', {
                   method: 'POST',
-                  body: JSON.stringify({ ids: matches.map(e => e.id), category: newCat })
+                  body: JSON.stringify({ ids: sim.matches.map(m => m.id), category: newCat })
                 });
-              } catch (e) { /* non-fatal — the single edit already saved */ }
+              }
             }
-          }
+          } catch (e) { /* non-fatal — the single edit already saved */ }
         }
       } else {
         await authFetch('/expenses', {
