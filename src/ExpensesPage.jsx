@@ -477,6 +477,7 @@ export default function ExpensesPage({ onBack }) {
         <AddExpenseModal
           categories={categories}
           expense={editingExpense}
+          allExpenses={expenses}
           onClose={() => { setAddModalOpen(false); setEditingExpense(null); }}
           onSaved={() => { setAddModalOpen(false); setEditingExpense(null); loadExpenses(); }}
         />
@@ -497,7 +498,7 @@ export default function ExpensesPage({ onBack }) {
 // ============================================================
 // ADD / EDIT EXPENSE MODAL
 // ============================================================
-function AddExpenseModal({ categories, expense, onClose, onSaved }) {
+function AddExpenseModal({ categories, expense, allExpenses, onClose, onSaved }) {
   const isEdit = !!expense;
   const [vendor, setVendor] = useState(expense?.vendor || '');
   const [amount, setAmount] = useState(expense?.amount || '');
@@ -614,6 +615,30 @@ function AddExpenseModal({ categories, expense, onClose, onSaved }) {
           method: 'PUT',
           body: JSON.stringify(payload)
         });
+        // If the category changed, offer to apply it to every other expense from
+        // the same merchant/vendor so recurring charges don't have to be fixed
+        // one by one.
+        const newCat = category || 'Other';
+        const vend = (vendor || '').trim();
+        const categoryChanged = (expense.category || '') !== newCat;
+        if (categoryChanged && vend) {
+          const sameVendorOthers = (allExpenses || []).filter(e =>
+            e.id !== expense.id &&
+            (e.vendor || '').trim().toLowerCase() === vend.toLowerCase() &&
+            (e.category || '') !== newCat
+          );
+          if (sameVendorOthers.length > 0) {
+            const ok = window.confirm(`You have ${sameVendorOthers.length} other expense${sameVendorOthers.length === 1 ? '' : 's'} from “${vend}”. Apply the category “${newCat}” to all of them too?`);
+            if (ok) {
+              try {
+                await authFetch('/expenses/recategorize-by-vendor', {
+                  method: 'POST',
+                  body: JSON.stringify({ vendor: vend, category: newCat })
+                });
+              } catch (e) { /* non-fatal — the single edit already saved */ }
+            }
+          }
+        }
       } else {
         await authFetch('/expenses', {
           method: 'POST',
