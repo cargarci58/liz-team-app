@@ -2029,6 +2029,42 @@ function ImportTab({ categories, onCommitted }) {
         </div>
       )}
 
+      {!lines.length && history.length > 0 && (
+        <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 12, padding: '14px 18px', marginBottom: 16 }}>
+          <div style={{ fontWeight: 700, color: '#1f2937', marginBottom: 4 }}>📋 Statements you've imported</div>
+          <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 12 }}>This is everything you've uploaded, so you can tell what's already in your books. Remove any that's wrong or a duplicate — its transactions come back out automatically.</div>
+          <div style={{ overflow: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+              <thead style={{ background: '#f9fafb', borderBottom: '1px solid #e5e7eb' }}>
+                <tr><Th>Account</Th><Th>Statement period</Th><Th align="center">Status</Th><Th align="right">Saved</Th><Th></Th></tr>
+              </thead>
+              <tbody>
+                {history.map(imp => {
+                  const saved = imp.status === 'committed' && (imp.committed_count > 0);
+                  return (
+                    <tr key={imp.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
+                      <Td>{imp.account_type === 'credit_card' ? '💳 Credit card' : '🏦 Checking'}</Td>
+                      <Td>{(imp.period_label || '').trim() || <span style={{ color: '#9ca3af' }}>{imp.file_name || '—'}</span>}</Td>
+                      <Td align="center">
+                        {saved
+                          ? <span style={{ background: '#ecfdf5', color: '#065f46', borderRadius: 6, padding: '2px 8px', fontSize: 12, fontWeight: 600 }}>Saved</span>
+                          : <span style={{ background: '#fef9c3', color: '#854d0e', borderRadius: 6, padding: '2px 8px', fontSize: 12, fontWeight: 600 }}>Not saved</span>}
+                      </Td>
+                      <Td align="right">{saved ? imp.committed_count : '—'}</Td>
+                      <Td align="right">
+                        <button onClick={() => deleteImport(imp)} disabled={deletingId === imp.id} style={{ background: 'none', border: '1px solid #fecaca', color: '#dc2626', borderRadius: 6, padding: '4px 10px', fontSize: 12, fontWeight: 600, cursor: 'pointer', opacity: deletingId === imp.id ? 0.5 : 1 }}>
+                          {deletingId === imp.id ? 'Removing…' : 'Remove'}
+                        </button>
+                      </Td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
       {done != null && (
         <div style={{ background: '#ecfdf5', border: '1px solid #6ee7b7', borderRadius: 10, padding: 16, color: '#065f46', marginBottom: 16 }}>
           ✅ Imported <strong>{done}</strong> transaction{done === 1 ? '' : 's'}. They now appear in your Expenses, Income, and P&L. <button onClick={() => setDone(null)} style={{ ...secondaryBtn, marginLeft: 8 }}>Import another</button>
@@ -2059,7 +2095,11 @@ function ImportTab({ categories, onCommitted }) {
                   <tr key={l.id} style={{ borderBottom: '1px solid #f3f4f6', opacity: l.include ? 1 : 0.45 }}>
                     <Td align="center"><input type="checkbox" checked={l.include} onChange={e => updateLine(l.id, { include: e.target.checked })} style={{ width: 16, height: 16, cursor: 'pointer' }} /></Td>
                     <Td><input type="date" value={l.txn_date} onChange={e => updateLine(l.id, { txn_date: e.target.value })} style={{ ...inputStyle, padding: '4px 6px', fontSize: 12 }} /></Td>
-                    <Td><input value={l.description} onChange={e => updateLine(l.id, { description: e.target.value })} style={{ ...inputStyle, padding: '4px 6px', fontSize: 12, minWidth: 160 }} /></Td>
+                    <Td>
+                      <input value={l.description} onChange={e => updateLine(l.id, { description: e.target.value })} style={{ ...inputStyle, padding: '4px 6px', fontSize: 12, minWidth: 160 }} />
+                      {l.duplicate_of_deal && <div style={{ fontSize: 11, color: '#b45309', marginTop: 3 }}>⚠️ Looks like your commission for {l.duplicate_of_deal.address} — already counted from that closed deal. Left unchecked to avoid double-counting.</div>}
+                      {l.is_transfer && !l.duplicate_of_deal && <div style={{ fontSize: 11, color: '#b45309', marginTop: 3 }}>⚠️ Looks like a transfer between your own accounts (not income). Left unchecked.</div>}
+                    </Td>
                     <Td align="center">
                       <select value={l.direction} onChange={e => updateLine(l.id, { direction: e.target.value })} style={{ ...inputStyle, padding: '4px 6px', fontSize: 12, color: l.direction === 'income' ? '#059669' : '#dc2626', fontWeight: 600 }}>
                         <option value="expense">Expense</option>
