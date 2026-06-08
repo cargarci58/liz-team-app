@@ -1661,21 +1661,27 @@ function BudgetAmountCell({ value, saving, onCommit }) {
   const [draft, setDraft] = useState('');
   if (saving) return <span style={{ color: '#9ca3af', fontSize: 13 }}>saving…</span>;
   if (editing) {
+    const commit = () => { setEditing(false); onCommit(draft); };
     return (
-      <input
-        autoFocus type="number" step="0.01" min="0" value={draft}
-        onChange={e => setDraft(e.target.value)}
-        onBlur={() => { setEditing(false); if (draft !== String(value || '')) onCommit(draft); }}
-        onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur(); if (e.key === 'Escape') setEditing(false); }}
-        style={{ width: 100, padding: '4px 6px', fontSize: 13, textAlign: 'right', border: '1px solid #3b82f6', borderRadius: 6 }}
-      />
+      <span style={{ display: 'inline-flex', gap: 4, alignItems: 'center', justifyContent: 'flex-end' }}>
+        <input
+          autoFocus type="number" step="0.01" min="0" value={draft}
+          onChange={e => setDraft(e.target.value)}
+          onKeyDown={e => { if (e.key === 'Enter') commit(); if (e.key === 'Escape') setEditing(false); }}
+          style={{ width: 90, padding: '5px 6px', fontSize: 13, textAlign: 'right', border: '1px solid #3b82f6', borderRadius: 6 }}
+        />
+        <button onMouseDown={e => e.preventDefault()} onClick={commit} title="Save"
+          style={{ background: '#10b981', border: 'none', color: 'white', borderRadius: 6, width: 26, height: 26, cursor: 'pointer', fontSize: 13, fontWeight: 700 }}>✓</button>
+        <button onMouseDown={e => e.preventDefault()} onClick={() => setEditing(false)} title="Cancel"
+          style={{ background: 'none', border: '1px solid #d1d5db', color: '#6b7280', borderRadius: 6, width: 26, height: 26, cursor: 'pointer', fontSize: 13 }}>✕</button>
+      </span>
     );
   }
   return (
     <button
-      onClick={() => { setDraft(value ? String(value) : ''); setEditing(true); }}
+      onClick={() => { setDraft(value ? String(Math.round(value * 100) / 100) : ''); setEditing(true); }}
       title="Click to set a budget"
-      style={{ background: 'none', border: '1px dashed #cbd5e1', borderRadius: 6, padding: '3px 8px', cursor: 'pointer', fontSize: 13, color: value ? '#1f2937' : '#9ca3af', fontWeight: value ? 600 : 400 }}
+      style={{ background: 'none', border: '1px dashed #cbd5e1', borderRadius: 6, padding: '4px 10px', cursor: 'pointer', fontSize: 13, color: value ? '#1f2937' : '#3b82f6', fontWeight: value ? 600 : 500 }}
     >
       {value ? fmtCurrency(value) : 'Set ✏️'}
     </button>
