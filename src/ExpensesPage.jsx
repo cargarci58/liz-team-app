@@ -1930,11 +1930,12 @@ function ImportTab({ categories, onCommitted }) {
   // Map a server line into an editable review row. Auto-unchecks internal
   // transfers and commission deposits that match a closed deal.
   const toReviewLine = (l) => ({
-    id: l.id, include: !(l.is_transfer || l.duplicate_of_deal),
+    id: l.id, include: !(l.is_transfer || l.duplicate_of_deal || l.is_card_payment),
     txn_date: l.txn_date ? l.txn_date.split('T')[0] : '',
     description: l.description || '', amount: Number(l.amount || 0),
     direction: l.direction || 'expense', category: l.suggested_category || 'Other',
     is_transfer: !!l.is_transfer, duplicate_of_deal: l.duplicate_of_deal || null,
+    is_card_payment: !!l.is_card_payment,
   });
 
   // Re-open a previously uploaded statement that wasn't saved yet, back into
@@ -2134,6 +2135,7 @@ function ImportTab({ categories, onCommitted }) {
                       <input value={l.description} onChange={e => updateLine(l.id, { description: e.target.value })} style={{ ...inputStyle, padding: '4px 6px', fontSize: 12, minWidth: 160 }} />
                       {l.duplicate_of_deal && <div style={{ fontSize: 11, color: '#b45309', marginTop: 3 }}>⚠️ Looks like your commission for {l.duplicate_of_deal.address} — already counted from that closed deal. Left unchecked to avoid double-counting.</div>}
                       {l.is_transfer && !l.duplicate_of_deal && <div style={{ fontSize: 11, color: '#b45309', marginTop: 3 }}>⚠️ Looks like a transfer between your own accounts (not income). Left unchecked.</div>}
+                      {l.is_card_payment && <div style={{ fontSize: 11, color: '#b45309', marginTop: 3 }}>⚠️ Looks like a credit-card payment, not an expense — the real expenses are the charges on the card. Left unchecked.</div>}
                     </Td>
                     <Td align="center">
                       <select value={l.direction} onChange={e => updateLine(l.id, { direction: e.target.value })} style={{ ...inputStyle, padding: '4px 6px', fontSize: 12, color: l.direction === 'income' ? '#059669' : '#dc2626', fontWeight: 600 }}>
