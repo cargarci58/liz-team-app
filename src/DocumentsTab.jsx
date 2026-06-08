@@ -29,6 +29,7 @@ export default function DocumentsTab({ tx }) {
   const [reqSummary, setReqSummary] = useState(null);
   const [slotUploading, setSlotUploading] = useState(null); // documentType currently uploading
   const [preview, setPreview] = useState(null); // { loading, doc, url, mime }
+  const [share, setShare] = useState(null); // { doc } — share-with-party modal
   const [showLOI, setShowLOI] = useState(false); // Letter of Intent generator (commercial only)
   const isCommercial = /commercial/i.test(`${tx.propertyType || ""} ${tx.constructionType || ""}`);
   const tok = localStorage.getItem("tp_token") || "";
@@ -419,6 +420,10 @@ export default function DocumentsTab({ tx }) {
                         style={{ padding: "4px 10px", borderRadius: 6, border: "1px solid #DDDDDD", background: "#fff", cursor: "pointer", fontSize: 12, color: COLORS.info }}>
                         👁 View
                       </button>
+                      <button onClick={() => setShare({ doc })} title="Email this file to a party in the transaction"
+                        style={{ padding: "4px 10px", borderRadius: 6, border: "1px solid #DDDDDD", background: "#fff", cursor: "pointer", fontSize: 12, color: COLORS.info }}>
+                        📤 Share
+                      </button>
                       <button onClick={() => handleDownload(doc)} title="Download"
                         style={{ padding: "4px 10px", borderRadius: 6, border: "1px solid #DDDDDD", background: "#fff", cursor: "pointer", fontSize: 12, color: COLORS.info }}>
                         ↓
@@ -469,6 +474,111 @@ export default function DocumentsTab({ tx }) {
           </div>
         </div>
       )}
+
+      {/* Share-with-party modal */}
+      {share && (
+        <ShareModal tx={tx} doc={share.doc} headers={headers} onClose={() => setShare(null)} />
+      )}
+    </div>
+  );
+}
+
+// ── Share an existing document with a party ──────────────────────────────────
+// Pick a party already on the transaction (or type any email), add an optional
+// note, and the server emails the file as an attachment in the agent's voice.
+function ShareModal({ tx, doc, headers, onClose }) {
+  const parties = (tx.parties || []).filter(p => p.email && !/hoa/i.test(p.role || ""));
+  const [picked, setPicked] = useState(parties[0] ? String(parties[0].id || parties[0].email) : "custom");
+  const [email, setEmail] = useState(parties[0]?.email || "");
+  const [name, setName] = useState(parties[0]?.name || "");
+  const [role, setRole] = useState(parties[0]?.role || "");
+  const [message, setMessage] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [done, setDone] = useState(false);
+  const [error, setError] = useState(null);
+
+  const onPick = (val) => {
+    setPicked(val);
+    if (val === "custom") { setEmail(""); setName(""); setRole(""); return; }
+    const p = parties.find(x => String(x.id || x.email) === val);
+    if (p) { setEmail(p.email || ""); setName(p.name || ""); setRole(p.role || ""); }
+  };
+
+  const send = async () => {
+    if (!email || !/.+@.+\..+/.test(email)) { setError("Enter a valid email address."); return; }
+    setError(null); setBusy(true);
+    try {
+      const res = await fetch(`${API}/documents/${doc.id}/share`, {
+        method: "POST", headers,
+        body: JSON.stringify({ toEmail: email.trim(), toName: name.trim(), toRole: role, message }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || "Could not send.");
+      setDone(true);
+    } catch (e) { setError(e.message); }
+    finally { setBusy(false); }
+  };
+
+  const inp = { width: "100%", padding: "9px 11px", borderRadius: 8, border: "1px solid " + COLORS.border, fontSize: 14, fontFamily: "inherit", boxSizing: "border-box" };
+  const lbl = { fontSize: 11, fontWeight: 700, color: COLORS.muted, display: "block", marginBottom: 4, textTransform: "uppercase", letterSpacing: 0.4 };
+
+  return (
+    <div onClick={() => !busy && onClose()} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 1100, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
+      <div onClick={e => e.stopPropagation()} style={{ background: "#fff", borderRadius: 14, width: 460, maxWidth: "100%", maxHeight: "94vh", overflow: "auto", boxShadow: "0 20px 60px rgba(0,0,0,0.25)" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "18px 22px 14px", borderBottom: "1px solid " + COLORS.border }}>
+          <h2 style={{ margin: 0, fontSize: 18, color: COLORS.text, fontWeight: 800 }}>📤 Share Document</h2>
+          <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 24, color: COLORS.muted }}>×</button>
+        </div>
+        <div style={{ padding: 22 }}>
+          <div style={{ background: "#F8F9FA", border: "1px solid " + COLORS.border, borderRadius: 8, padding: "10px 12px", marginBottom: 16, fontSize: 13 }}>
+            📄 <b>{doc.name}</b> will be attached to the email.
+          </div>
+
+          {done ? (
+            <div style={{ textAlign: "center", padding: "16px 0" }}>
+              <div style={{ fontSize: 40, marginBottom: 8 }}>✅</div>
+              <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 4 }}>Sent to {name || email}</div>
+              <div style={{ fontSize: 13, color: COLORS.muted, marginBottom: 18 }}>The document is on its way and is now visible in their portal.</div>
+              <button onClick={onClose} style={{ background: COLORS.gold, color: "#fff", border: "none", padding: "10px 22px", borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: "pointer" }}>Done</button>
+            </div>
+          ) : (
+            <>
+              <div style={{ marginBottom: 14 }}>
+                <label style={lbl}>Send to</label>
+                <select value={picked} onChange={e => onPick(e.target.value)} style={inp}>
+                  {parties.map(p => <option key={String(p.id || p.email)} value={String(p.id || p.email)}>{p.name || p.email} — {p.role}</option>)}
+                  <option value="custom">✏️ Other email…</option>
+                </select>
+              </div>
+              {picked === "custom" && (
+                <div style={{ display: "flex", gap: 10, marginBottom: 14 }}>
+                  <div style={{ flex: 1 }}>
+                    <label style={lbl}>Name</label>
+                    <input value={name} onChange={e => setName(e.target.value)} placeholder="Recipient name" style={inp} />
+                  </div>
+                  <div style={{ flex: 1.4 }}>
+                    <label style={lbl}>Email</label>
+                    <input value={email} onChange={e => setEmail(e.target.value)} placeholder="name@email.com" style={inp} />
+                  </div>
+                </div>
+              )}
+              <div style={{ marginBottom: 16 }}>
+                <label style={lbl}>Note (optional)</label>
+                <textarea value={message} onChange={e => setMessage(e.target.value)} rows={3}
+                  placeholder="Add a short message — or leave blank and we'll write a friendly one for you."
+                  style={{ ...inp, resize: "vertical" }} />
+              </div>
+              {error && <div style={{ color: COLORS.danger, fontSize: 13, marginBottom: 12 }}>{error}</div>}
+              <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+                <button onClick={onClose} disabled={busy} style={{ background: "#fff", color: COLORS.muted, border: "1px solid " + COLORS.border, padding: "10px 16px", borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: "pointer" }}>Cancel</button>
+                <button onClick={send} disabled={busy} style={{ background: COLORS.gold, color: "#fff", border: "none", padding: "10px 20px", borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: busy ? "default" : "pointer", opacity: busy ? 0.6 : 1 }}>
+                  {busy ? "Sending…" : "📤 Send"}
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
