@@ -1307,6 +1307,199 @@ function BulkScheduleModal({ token, contactCount, onClose, onScheduled }) {
 }
 
 // ============================================================
+// EMAIL NEWSLETTER / MASS MAILING
+// ============================================================
+const NEWSLETTER_STARTER = `Hi {first_name},
+
+Here's a quick look at what's happening in our local market this month:
+
+• Homes are taking an average of __ days to sell right now.
+• Inventory is [up / down] compared to last month, which means it's a [buyer's / seller's] market.
+• Interest rates are around __%, so this is a good time to [buy / refinance / list].
+
+If you've been wondering what your home is worth in today's market, just reply to this email and I'll put together a free, no-pressure estimate for you.
+
+Always here if you have any questions about real estate!`;
+
+function CampaignModal({ token, groupList, onClose }) {
+  const [status, setStatus] = useState(null);            // null = loading
+  const [audienceKind, setAudienceKind] = useState("all");
+  const [audienceValue, setAudienceValue] = useState("");
+  const [subject, setSubject] = useState("");
+  const [body, setBody] = useState(NEWSLETTER_STARTER);
+  const [preview, setPreview] = useState(null);
+  const [previewing, setPreviewing] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [sendDay, setSendDay] = useState(1);
+  const [campaigns, setCampaigns] = useState([]);
+
+  const authHeaders = { Authorization: "Bearer " + token, "Content-Type": "application/json" };
+  const loadCampaigns = () => fetch(API + "/marketing/campaigns", { headers: { Authorization: "Bearer " + token } })
+    .then(r => r.json()).then(d => setCampaigns(d.campaigns || [])).catch(() => {});
+  useEffect(() => {
+    fetch(API + "/marketing/status", { headers: { Authorization: "Bearer " + token } })
+      .then(r => r.json()).then(setStatus).catch(() => setStatus({ configured: false }));
+    loadCampaigns();
+  }, []);
+  // Re-preview the audience whenever it changes.
+  useEffect(() => {
+    if (!status || !status.configured) return;
+    let alive = true;
+    setPreviewing(true);
+    fetch(API + "/marketing/preview", { method: "POST", headers: authHeaders, body: JSON.stringify({ audience_kind: audienceKind, audience_value: audienceValue || null }) })
+      .then(r => r.json()).then(d => { if (alive) setPreview(d); }).catch(() => {}).finally(() => { if (alive) setPreviewing(false); });
+    return () => { alive = false; };
+  }, [audienceKind, audienceValue, status]);
+
+  const send = async () => {
+    if (!subject.trim()) return alert("Add a subject line.");
+    if (!body.trim()) return alert("Write a message first.");
+    const n = preview && preview.count;
+    if (!confirm(`Send this newsletter now${n != null ? ` to about ${n} contact${n === 1 ? "" : "s"}` : ""}?\n\nEveryone gets a one-click unsubscribe link, and anyone who already opted out is skipped automatically. This will NOT affect your transaction emails.`)) return;
+    setBusy(true);
+    try {
+      const r = await fetch(API + "/marketing/send", { method: "POST", headers: authHeaders, body: JSON.stringify({ subject, body, audience_kind: audienceKind, audience_value: audienceValue || null }) });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error || "Failed");
+      alert(`✅ Sent to ${d.sent} contact${d.sent === 1 ? "" : "s"}.`
+        + (d.skipped ? `\nSkipped ${d.skipped} (opted out or no email).` : "")
+        + (d.cappedOut ? `\n${d.cappedOut} held back — you hit this month's send limit.` : "")
+        + (d.failed ? `\n${d.failed} failed to send.` : ""));
+      loadCampaigns();
+    } catch (e) { alert("Error: " + e.message); }
+    finally { setBusy(false); }
+  };
+
+  const schedule = async () => {
+    if (!subject.trim()) return alert("Add a subject line.");
+    if (!body.trim()) return alert("Write a message first.");
+    if (!confirm(`Schedule this to send automatically on day ${sendDay} of every month?`)) return;
+    setBusy(true);
+    try {
+      const r = await fetch(API + "/marketing/schedule", { method: "POST", headers: authHeaders, body: JSON.stringify({ subject, body, audience_kind: audienceKind, audience_value: audienceValue || null, send_day: sendDay }) });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error || "Failed");
+      alert(`✅ Scheduled. This newsletter will send automatically on day ${sendDay} of every month — and you can pause it anytime below.`);
+      loadCampaigns();
+    } catch (e) { alert("Error: " + e.message); }
+    finally { setBusy(false); }
+  };
+
+  const toggleCamp = async (id) => { await fetch(API + `/marketing/campaigns/${id}/toggle`, { method: "POST", headers: authHeaders }).catch(() => {}); loadCampaigns(); };
+  const delCamp = async (id) => { if (!confirm("Delete this campaign?")) return; await fetch(API + `/marketing/campaigns/${id}`, { method: "DELETE", headers: authHeaders }).catch(() => {}); loadCampaigns(); };
+
+  const monthly = campaigns.filter(c => c.schedule_kind === "monthly");
+  const audienceLabel = audienceKind === "all" ? "everyone in your contacts"
+    : audienceKind === "group" ? `the "${audienceValue || "…"}" group`
+    : `Tier ${audienceValue || "…"} contacts`;
+
+  return (
+    <div style={{ position: "fixed", inset: 0, zIndex: 5000, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "flex-start", justifyContent: "center", padding: 16, overflowY: "auto" }} onClick={onClose}>
+      <div onClick={e => e.stopPropagation()} style={{ background: "white", borderRadius: 12, maxWidth: 640, width: "100%", margin: "24px 0", padding: 24 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+          <div style={{ fontSize: 20, fontWeight: 800 }}>📣 Email Newsletter</div>
+          <button onClick={onClose} style={{ background: "transparent", border: "none", fontSize: 22, cursor: "pointer", color: "#6b7280", lineHeight: 1 }}>×</button>
+        </div>
+
+        {status === null && <div style={{ padding: 30, textAlign: "center", color: "#6b7280" }}>Loading…</div>}
+
+        {status && !status.configured && (
+          <div style={{ background: "#fef3c7", border: "1px solid #fcd34d", borderRadius: 10, padding: 16, color: "#78350f", fontSize: 14, lineHeight: 1.6 }}>
+            <div style={{ fontWeight: 800, marginBottom: 6 }}>One-time setup needed first</div>
+            Newsletter sending isn't switched on yet. It needs its <strong>own separate sending address</strong> (a marketing subdomain) so it can never affect the important emails your transactions depend on.
+            <div style={{ marginTop: 10, fontSize: 13 }}>Once your admin finishes the email setup, this screen unlocks and you can write &amp; send. Nothing here can send mail until then.</div>
+          </div>
+        )}
+
+        {status && status.configured && (
+          <>
+            <div style={{ fontSize: 13, color: "#6b7280", marginBottom: 16 }}>
+              Send a friendly update to your database. A one-click <strong>unsubscribe</strong> link and your mailing address are added automatically (required by law), opted-out contacts are skipped, and this is sent on a <strong>separate lane from your transaction emails</strong> so it can't hurt them.
+            </div>
+
+            {/* Audience */}
+            <label style={lbl}>Who gets it?</label>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 6 }}>
+              <select value={audienceKind} onChange={e => { setAudienceKind(e.target.value); setAudienceValue(""); }} style={{ ...inputStyle, width: 200 }}>
+                <option value="all">Everyone in my contacts</option>
+                <option value="group">A specific group</option>
+                <option value="tier">A specific tier</option>
+              </select>
+              {audienceKind === "group" && (
+                <select value={audienceValue} onChange={e => setAudienceValue(e.target.value)} style={{ ...inputStyle, width: 200 }}>
+                  <option value="">Pick a group…</option>
+                  {groupList.map(g => <option key={g.name} value={g.name}>{g.name} ({g.count})</option>)}
+                </select>
+              )}
+              {audienceKind === "tier" && (
+                <select value={audienceValue} onChange={e => setAudienceValue(e.target.value)} style={{ ...inputStyle, width: 140 }}>
+                  <option value="">Pick a tier…</option>
+                  {["A+", "A", "B", "C", "D"].map(t => <option key={t} value={t}>Tier {t}</option>)}
+                </select>
+              )}
+            </div>
+            <div style={{ fontSize: 13, color: "#0c4a6e", fontWeight: 600, marginBottom: 16 }}>
+              {previewing ? "Counting recipients…" : preview ? `📨 Will reach ${preview.count} contact${preview.count === 1 ? "" : "s"} (${audienceLabel}, after skipping opt-outs and contacts with no email).` : ""}
+            </div>
+
+            {/* Subject + body */}
+            <label style={lbl}>Subject line</label>
+            <input value={subject} onChange={e => setSubject(e.target.value)} placeholder="e.g. Your June market update 🏡" style={{ ...inputStyle, width: "100%", marginBottom: 12 }} />
+            <label style={lbl}>Message</label>
+            <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 4 }}>Tip: type <code>{"{first_name}"}</code> and it's swapped for each person's name. Your signature is added automatically.</div>
+            <textarea value={body} onChange={e => setBody(e.target.value)} rows={12} style={{ ...inputStyle, width: "100%", fontFamily: "inherit", lineHeight: 1.5, resize: "vertical", marginBottom: 16 }} />
+
+            {/* Send now */}
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginBottom: 18 }}>
+              <button onClick={send} disabled={busy} style={{ ...btnStyle("#0c4a6e", "white"), opacity: busy ? 0.6 : 1 }}>{busy ? "Working…" : "📤 Send Now"}</button>
+              <span style={{ color: "#9ca3af", fontSize: 13 }}>or schedule it to repeat:</span>
+            </div>
+
+            {/* Schedule monthly */}
+            <div style={{ background: "#f8fafc", border: "1px solid #e5e7eb", borderRadius: 10, padding: 14, marginBottom: 8 }}>
+              <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 8 }}>🔁 Send automatically every month</div>
+              <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+                <span style={{ fontSize: 14, color: "#374151" }}>On day</span>
+                <select value={sendDay} onChange={e => setSendDay(parseInt(e.target.value, 10))} style={{ ...inputStyle, width: 80 }}>
+                  {Array.from({ length: 28 }, (_, i) => i + 1).map(d => <option key={d} value={d}>{d}</option>)}
+                </select>
+                <span style={{ fontSize: 14, color: "#374151" }}>of every month</span>
+                <button onClick={schedule} disabled={busy} style={{ ...btnStyle("#16a34a", "white"), opacity: busy ? 0.6 : 1 }}>Save Monthly</button>
+              </div>
+            </div>
+
+            {/* Existing monthly schedules */}
+            {monthly.length > 0 && (
+              <div style={{ marginTop: 16 }}>
+                <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 6 }}>Your monthly newsletters</div>
+                <div style={{ display: "grid", gap: 6 }}>
+                  {monthly.map(c => (
+                    <div key={c.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, padding: "8px 12px", border: "1px solid #e5e7eb", borderRadius: 8 }}>
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: "#111", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.subject}</div>
+                        <div style={{ fontSize: 11, color: "#6b7280" }}>
+                          Day {c.send_day} monthly · {c.is_active ? "Active" : "Paused"}
+                          {c.last_sent_at ? ` · last sent ${new Date(c.last_sent_at).toLocaleDateString()} (${c.last_sent_count})` : " · not sent yet"}
+                        </div>
+                      </div>
+                      <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+                        <button onClick={() => toggleCamp(c.id)} style={btnStyle(c.is_active ? "#fef3c7" : "#dcfce7", c.is_active ? "#92400e" : "#166534")}>{c.is_active ? "Pause" : "Resume"}</button>
+                        <button onClick={() => delCamp(c.id)} style={btnStyle("#fee2e2", "#991b1b")}>🗑</button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+const lbl = { display: "block", fontSize: 13, fontWeight: 700, color: "#374151", marginBottom: 4 };
+
+// ============================================================
 // MAIN PAGE
 // ============================================================
 function SortableTh({ label, col, sortBy, setSortBy, hint }) {
@@ -1365,6 +1558,8 @@ export default function ContactsPage({ token, onBack }) {
   const toggleIov = (val) => { setIovEnabled(val); savePref({ itemsOfValueEnabled: val }); };
 
   const [showSettings, setShowSettings] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
+  const [showCampaign, setShowCampaign] = useState(false);
   const [page, setPage] = useState(1);
   const PAGE_SIZE = 50;
   useEffect(() => { setPage(1); }, [filter.temperature, filter.type, filter.due, filter.missing, filter.group, filter.tier, filter.search, sortBy.col, sortBy.dir]);
@@ -1495,6 +1690,99 @@ export default function ContactsPage({ token, onBack }) {
 
   useEffect(() => { const t = setTimeout(load, 300); return () => clearTimeout(t); }, [filter.search]);
 
+  // ── Mailing labels (Avery 5160 — 30 per sheet, 1" x 2-5/8") ────────────
+  // Pure-frontend print: opens a window sized exactly to the Avery 5160 grid
+  // and prints. No backend change — the list already returns address fields.
+  const escHtml = (s) => String(s == null ? "" : s)
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+  const buildLabel = (c) => {
+    const name = (c.envelope_salutation && c.envelope_salutation.trim())
+      || [c.first_name, c.last_name].filter(Boolean).join(" ").trim();
+    const street = (c.address || "").trim();
+    const cityState = [c.city, c.state].filter(Boolean).join(", ");
+    const cityZip = [cityState, c.zip_code].filter(Boolean).join(" ").trim();
+    return { name, street, cityZip, hasAddr: !!(street || cityZip) };
+  };
+  const printLabels = (list) => {
+    const labels = list.map(buildLabel).filter(l => l.hasAddr);
+    const skipped = list.length - labels.length;
+    if (labels.length === 0) {
+      alert("None of these contacts have a mailing address on file, so there's nothing to print.\n\nAdd a street/city/state/zip to a contact (Edit), then try again.");
+      return;
+    }
+    if (skipped > 0 && !confirm(`${labels.length} label${labels.length === 1 ? "" : "s"} will print.\n\n${skipped} contact${skipped === 1 ? " was" : "s were"} skipped — no mailing address on file.\n\nContinue?`)) return;
+    const cells = labels.map(l => `
+      <div class="label">
+        <div class="nm">${escHtml(l.name)}</div>
+        ${l.street ? `<div>${escHtml(l.street)}</div>` : ""}
+        ${l.cityZip ? `<div>${escHtml(l.cityZip)}</div>` : ""}
+      </div>`).join("");
+    const html = `<!doctype html><html><head><meta charset="utf-8"><title>Mailing Labels</title>
+      <style>
+        @page { size: 8.5in 11in; margin: 0; }
+        * { box-sizing: border-box; }
+        body { margin: 0; font-family: Arial, Helvetica, sans-serif; color: #000; }
+        .bar { padding: 14px 20px; background: #0c4a6e; color: #fff; font: 600 14px Arial; display: flex; align-items: center; gap: 14px; }
+        .bar button { background: #fff; color: #0c4a6e; border: 0; border-radius: 6px; padding: 8px 16px; font: 700 14px Arial; cursor: pointer; }
+        .bar span { font-weight: 400; opacity: .9; }
+        .sheet { width: 8.5in; padding: 0.5in 0.1875in 0 0.1875in; display: flex; flex-wrap: wrap; align-content: flex-start; }
+        .label { width: 2.625in; height: 1in; margin-right: 0.125in; padding: 0.12in 0.2in; overflow: hidden;
+                 display: flex; flex-direction: column; justify-content: center; font-size: 11pt; line-height: 1.25; break-inside: avoid; }
+        .label:nth-child(3n) { margin-right: 0; }
+        .nm { font-weight: 700; }
+        @media print { .bar { display: none; } }
+      </style></head><body>
+      <div class="bar"><button onclick="window.print()">🖨 Print Labels</button>
+        <span>${labels.length} label${labels.length === 1 ? "" : "s"} • Avery 5160 (also 8160 / 5260 / 8460). Set printer scale to 100% / Actual Size.</span></div>
+      <div class="sheet">${cells}</div>
+      <script>window.onload = function(){ setTimeout(function(){ window.print(); }, 300); };<\/script>
+      </body></html>`;
+    const w = window.open("", "_blank");
+    if (!w) { alert("Your browser blocked the print window. Please allow pop-ups for this site and try again."); return; }
+    w.document.write(html);
+    w.document.close();
+  };
+
+  // ── Export to CSV ──────────────────────────────────────────────────────
+  // Downloads whatever is currently shown (filters/search apply) as a CSV
+  // that re-imports cleanly via 📥 Import CSV. Column names match the importer.
+  const exportCsv = () => {
+    if (contacts.length === 0) { alert("There are no contacts to export right now. Clear your filters or add a contact first."); return; }
+    const cols = [
+      ["first_name", "First Name"], ["last_name", "Last Name"],
+      ["email", "Email"], ["phone", "Phone"],
+      ["contact_type", "Type"], ["temperature", "Temperature"], ["tier", "Tier"],
+      ["source", "Source"],
+      ["address", "Address"], ["city", "City"], ["state", "State"], ["zip_code", "Zip"],
+      ["tags", "Groups"], ["spouse_name", "Spouse"], ["birthday", "Birthday"],
+      ["notes", "Notes"],
+    ];
+    const cell = (v) => {
+      const s = v == null ? "" : String(v);
+      return /[",\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+    };
+    const header = cols.map(c => c[1]).join(",");
+    const rows = contacts.map(c => cols.map(([k]) => {
+      let v = c[k];
+      if (k === "tags") v = Array.isArray(c.tags) ? c.tags.join("; ") : "";
+      if ((k === "birthday") && v) v = String(v).slice(0, 10); // YYYY-MM-DD
+      return cell(v);
+    }).join(","));
+    const csv = "﻿" + [header, ...rows].join("\r\n"); // BOM → Excel reads UTF-8
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    const d = new Date();
+    const stamp = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    a.href = url;
+    a.download = `contacts-${stamp}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div style={{ padding: 24, fontFamily: "system-ui, sans-serif", maxWidth: 1200, margin: "0 auto" }}>
       {onBack && (
@@ -1508,10 +1796,33 @@ export default function ContactsPage({ token, onBack }) {
           <div style={{ fontSize: 26, fontWeight: 800 }}>📇 Contacts</div>
           <div style={{ fontSize: 13, color: "#6b7280" }}>Your private lead list. {contacts.length} contact{contacts.length === 1 ? "" : "s"}.</div>
         </div>
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          <button onClick={() => setShowGroups(true)} style={btnStyle("#e0e7ff", "#3730a3")}>👥 Manage Groups</button>
-          <button onClick={() => setShowSettings(true)} style={btnStyle("#e5e7eb", "#374151")}>⚙ Settings</button>
-          <button onClick={() => setShowImport(true)} style={btnStyle("#e5e7eb", "#374151")}>📥 Import CSV</button>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+          <div style={{ position: "relative" }}>
+            <button onClick={() => setShowMenu(v => !v)} style={btnStyle("#e5e7eb", "#374151")}>☰ Tools ▾</button>
+            {showMenu && (
+              <>
+                <div onClick={() => setShowMenu(false)} style={{ position: "fixed", inset: 0, zIndex: 40 }} />
+                <div style={{ position: "absolute", right: 0, top: "calc(100% + 6px)", zIndex: 50, background: "white", border: "1px solid #e5e7eb", borderRadius: 10, boxShadow: "0 8px 24px rgba(0,0,0,0.12)", padding: 6, minWidth: 220 }}>
+                  {[
+                    { label: "📣 Email Newsletter", on: () => setShowCampaign(true), hint: "mass email" },
+                    { label: "👥 Manage Groups", on: () => setShowGroups(true) },
+                    { label: "📥 Import from CSV", on: () => setShowImport(true) },
+                    { label: "📤 Export to CSV", on: exportCsv, hint: `${contacts.length} shown` },
+                    { label: "🏷 Print Mailing Labels", on: () => printLabels(contacts), hint: "Avery 5160" },
+                    { label: "⚙ Settings", on: () => setShowSettings(true) },
+                  ].map(it => (
+                    <button key={it.label} onClick={() => { setShowMenu(false); it.on(); }}
+                      style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, width: "100%", textAlign: "left", background: "transparent", border: "none", padding: "10px 12px", borderRadius: 6, fontSize: 14, fontWeight: 600, color: "#374151", cursor: "pointer", fontFamily: "inherit" }}
+                      onMouseEnter={e => e.currentTarget.style.background = "#f3f4f6"}
+                      onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+                      <span>{it.label}</span>
+                      {it.hint && <span style={{ fontSize: 11, fontWeight: 500, color: "#9ca3af" }}>{it.hint}</span>}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
           <button onClick={() => setShowAdd(true)} style={btnStyle("#0c4a6e", "white")}>+ Add Contact</button>
         </div>
       </div>
@@ -1573,6 +1884,7 @@ export default function ContactsPage({ token, onBack }) {
           <div style={{ fontSize: 13, fontWeight: 700, color: "#1e3a8a" }}>{selected.size} selected</div>
           <button onClick={bulkSetTier} style={btnStyle("#e0e7ff", "#3730a3")}>⭐ Set Tier</button>
           <button onClick={bulkAddToGroup} style={btnStyle("#dcfce7", "#166534")}>👥 Add to Group</button>
+          <button onClick={() => printLabels(contacts.filter(c => selected.has(c.id)))} style={btnStyle("#fef9c3", "#854d0e")} title="Print Avery 5160 mailing labels for the selected contacts">🏷 Print Labels</button>
           <button onClick={() => bulkAction("archive")} style={btnStyle("#fef3c7", "#92400e")}>📦 Archive</button>
           <button onClick={() => bulkAction("unarchive")} style={btnStyle("#e0e7ff", "#3730a3")}>📤 Un-archive</button>
           <button onClick={() => bulkAction("delete")} style={btnStyle("#fee2e2", "#991b1b")}>🗑 Delete Forever</button>
@@ -1745,6 +2057,7 @@ export default function ContactsPage({ token, onBack }) {
           // Reload after a beat so backend has committed
           setTimeout(() => load(), 300);
         }} />}
+      {showCampaign && <CampaignModal token={token} groupList={groupList} onClose={() => setShowCampaign(false)} />}
     </div>
   );
 }
