@@ -4,6 +4,19 @@ const API_URL = import.meta.env.VITE_API_URL || 'https://liz-team-server-api-pro
 
 const getToken = () => localStorage.getItem('tp_token');
 
+// Normalize a bank/card vendor string so the SAME recurring merchant matches
+// across statements even when the text varies — strips leading dates
+// ("05/04 "), punctuation, and any token containing a digit (transaction codes
+// like "Jpm99Cddokkp", card numbers, "Transaction#:281...", phone numbers).
+const normalizeVendor = (v) => (v || '')
+  .toLowerCase()
+  .replace(/^\d{1,2}\/\d{1,2}\s+/, '')
+  .replace(/[^a-z0-9\s]/g, ' ')
+  .split(/\s+/)
+  .filter(w => w && !/\d/.test(w))
+  .join(' ')
+  .trim();
+
 const authFetch = async (path, options = {}) => {
   const token = getToken();
   let res;
@@ -620,20 +633,21 @@ function AddExpenseModal({ categories, expense, allExpenses, onClose, onSaved })
         // one by one.
         const newCat = category || 'Other';
         const vend = (vendor || '').trim();
+        const key = normalizeVendor(vend);
         const categoryChanged = (expense.category || '') !== newCat;
-        if (categoryChanged && vend) {
-          const sameVendorOthers = (allExpenses || []).filter(e =>
+        if (categoryChanged && key) {
+          const matches = (allExpenses || []).filter(e =>
             e.id !== expense.id &&
-            (e.vendor || '').trim().toLowerCase() === vend.toLowerCase() &&
+            normalizeVendor(e.vendor) === key &&
             (e.category || '') !== newCat
           );
-          if (sameVendorOthers.length > 0) {
-            const ok = window.confirm(`You have ${sameVendorOthers.length} other expense${sameVendorOthers.length === 1 ? '' : 's'} from “${vend}”. Apply the category “${newCat}” to all of them too?`);
+          if (matches.length > 0) {
+            const ok = window.confirm(`You have ${matches.length} other expense${matches.length === 1 ? '' : 's'} that look like the same merchant${vend ? ` (“${vend}”)` : ''}. Apply the category “${newCat}” to all of them too?`);
             if (ok) {
               try {
                 await authFetch('/expenses/recategorize-by-vendor', {
                   method: 'POST',
-                  body: JSON.stringify({ vendor: vend, category: newCat })
+                  body: JSON.stringify({ ids: matches.map(e => e.id), category: newCat })
                 });
               } catch (e) { /* non-fatal — the single edit already saved */ }
             }
