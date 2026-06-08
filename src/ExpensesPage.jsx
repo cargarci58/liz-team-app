@@ -1918,7 +1918,28 @@ function ImportTab({ categories, onCommitted }) {
   const [lines, setLines] = useState([]);
   const [committing, setCommitting] = useState(false);
   const [done, setDone] = useState(null);
+  const [history, setHistory] = useState([]);
+  const [deletingId, setDeletingId] = useState(null);
   const fileRef = useRef(null);
+
+  const loadHistory = async () => {
+    try { const d = await authFetch('/bank-import'); setHistory(d.imports || []); } catch { /* non-fatal */ }
+  };
+  useEffect(() => { loadHistory(); }, []);
+
+  const deleteImport = async (imp) => {
+    const label = `${imp.account_type === 'credit_card' ? 'Credit card' : 'Checking'} — ${(imp.period_label || '').trim() || imp.file_name || 'statement'}`;
+    if (!window.confirm(`Remove "${label}"?\n\nThis takes its ${imp.committed_count || 0} saved transaction(s) back out of your Expenses, Income, and P&L. You can re-import the statement later if needed.`)) return;
+    setDeletingId(imp.id); setError(null);
+    try {
+      const r = await authFetch(`/bank-import/${imp.id}`, { method: 'DELETE' });
+      await loadHistory();
+      onCommitted && onCommitted();
+      setDone(null);
+      setStatus(`Removed ${r.removedExpenses || 0} expense and ${r.removedIncome || 0} income item(s).`);
+      setTimeout(() => setStatus(''), 4000);
+    } catch (e) { setError(e.message); } finally { setDeletingId(null); }
+  };
 
   const catNames = (categories || []).map(c => c.name);
   const allCatOptions = Array.from(new Set([...catNames, 'Commission', 'Other Income', 'Other']));
@@ -1944,9 +1965,11 @@ function ImportTab({ categories, onCommitted }) {
       const data = await authFetch(`/bank-import/${enq.importId}`);
       setImportId(enq.importId);
       setLines((data.lines || []).map(l => ({
-        id: l.id, include: true, txn_date: l.txn_date ? l.txn_date.split('T')[0] : '',
+        id: l.id, include: !(l.is_transfer || l.duplicate_of_deal),
+        txn_date: l.txn_date ? l.txn_date.split('T')[0] : '',
         description: l.description || '', amount: Number(l.amount || 0),
         direction: l.direction || 'expense', category: l.suggested_category || 'Other',
+        is_transfer: !!l.is_transfer, duplicate_of_deal: l.duplicate_of_deal || null,
       })));
       if (!data.lines || data.lines.length === 0) setError('No transactions were found in that file. Try a CSV export from your bank, or a clearer PDF.');
       setStatus('');
@@ -1955,16 +1978,27 @@ function ImportTab({ categories, onCommitted }) {
 
   const updateLine = (id, patch) => setLines(prev => prev.map(l => l.id === id ? { ...l, ...patch } : l));
 
-  const commit = async () => {
+  const commit = async (force = false) => {
     const toCommit = lines.filter(l => l.include);
     if (toCommit.length === 0) { setError('Nothing selected to import.'); return; }
     setCommitting(true); setError(null);
     try {
-      const res = await authFetch(`/bank-import/${importId}/commit`, { method: 'POST', body: JSON.stringify({ lines: toCommit }) });
+      const res = await authFetch(`/bank-import/${importId}/commit`, { method: 'POST', body: JSON.stringify({ lines: toCommit, force }) });
       setDone(res.committed);
       setLines([]); setImportId(null);
+      await loadHistory();
       onCommitted && onCommitted();
-    } catch (e) { setError(e.message); } finally { setCommitting(false); }
+    } catch (e) {
+      // Duplicate-import guard returns a 409 whose body is JSON; offer to override.
+      let dup = null;
+      try { const p = JSON.parse(e.message); if (p && p.error === 'duplicate_import') dup = p; } catch { /* not json */ }
+      if (dup) {
+        setCommitting(false);
+        if (window.confirm(`${dup.message}\n\nImport it anyway?`)) return commit(true);
+        return;
+      }
+      setError(e.message);
+    } finally { setCommitting(false); }
   };
 
   const includedExp = lines.filter(l => l.include && l.direction === 'expense').reduce((s, l) => s + Number(l.amount || 0), 0);
