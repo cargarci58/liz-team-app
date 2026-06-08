@@ -4974,12 +4974,24 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
               <button onClick={() => setShowEditTx(false)} style={{ background: "none", border: "none", color: "rgba(255,255,255,0.6)", fontSize: 20, cursor: "pointer" }}>x</button>
             </div>
             <div style={{ padding: 24, overflowY: "auto", maxHeight: "70vh" }}>
-              {[["Open Date", "openDate", "date"], ["Closing Date", "closingDate", "date"], ["Executed Date", "executedDate", "date"], ["Contract Price", "contractPrice", "number"], ["MLS Number", "mlsNumber", "text"]].map(([label, field, type]) => (
+              {(() => {
+                const isListing = !/buyer/i.test(editTxForm.type || "");
+                const rows = [
+                  [isListing ? "Listing Agreement Start Date" : "Open Date", "openDate", "date"],
+                  [isListing ? "Listing Agreement Expiration" : "Rep. Expires", "representationExpiresOn", "date"],
+                  ["Closing Date", "closingDate", "date"],
+                  ["Executed Date", "executedDate", "date"],
+                  ["Contract Price", "contractPrice", "number"],
+                  ["MLS Number", "mlsNumber", "text"],
+                ];
+                return rows.map(([label, field, type]) => (
                 <div key={field} style={{ marginBottom: 16 }}>
                   <div style={{ fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>{label}</div>
-                  <input type={type} value={editTxForm[field] || ""} onChange={e => setEditTxForm(f => ({ ...f, [field]: e.target.value }))} style={{ width: "100%", padding: "10px 14px", borderRadius: 8, border: "1.5px solid #CCC", fontSize: 15, fontFamily: "inherit", boxSizing: "border-box" }} />
+                  <input type={type} value={editTxForm[field] ? (type === "date" ? String(editTxForm[field]).slice(0,10) : editTxForm[field]) : ""} onChange={e => setEditTxForm(f => ({ ...f, [field]: e.target.value }))} style={{ width: "100%", padding: "10px 14px", borderRadius: 8, border: "1.5px solid #CCC", fontSize: 15, fontFamily: "inherit", boxSizing: "border-box" }} />
+                  {field === "representationExpiresOn" && isListing && <div style={{ fontSize: 11, color: "#888", marginTop: 4 }}>We'll warn you 14, 7, and 1 days before it expires so the listing doesn't lapse in the MLS.</div>}
                 </div>
-              ))}
+                ));
+              })()}
               <div style={{ marginBottom: 16 }}>
                 <div style={{ fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>Referral Source</div>
                 <select value={editTxForm.referralSource || ""} onChange={e => setEditTxForm(f => ({ ...f, referralSource: e.target.value }))}
@@ -5013,22 +5025,6 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
               <div style={{ marginBottom: 14 }}><div style={{ fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", marginBottom: 6 }}>Construction Type</div><select value={editTxForm.constructionType || "Resale"} onChange={e => setEditTxForm(f => ({ ...f, constructionType: e.target.value }))} style={{ width: "100%", padding: "10px 14px", borderRadius: 8, border: "1.5px solid #CCC", fontSize: 15, fontFamily: "inherit" }}>{["Resale","New Construction","Vacant Land","Commercial"].map(t => <option key={t}>{t}</option>)}</select></div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 14 }}><div><div style={{ fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", marginBottom: 6 }}>Transaction Type</div><select value={editTxForm.type || ""} onChange={e => setEditTxForm(f => ({ ...f, type: e.target.value }))} style={{ width: "100%", padding: "10px 14px", borderRadius: 8, border: "1.5px solid #CCC", fontSize: 15, fontFamily: "inherit" }}>{["Listing (Seller)","Buyer Representation","Dual Agency"].map(t => <option key={t}>{t}</option>)}</select></div><div><div style={{ fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", marginBottom: 6 }}>List Price ($)</div><input type="number" value={editTxForm.listPrice || ""} onChange={e => setEditTxForm(f => ({ ...f, listPrice: e.target.value }))} placeholder="450000" style={{ width: "100%", padding: "10px 14px", borderRadius: 8, border: "1.5px solid #CCC", fontSize: 15, fontFamily: "inherit", boxSizing: "border-box" }} /></div></div>
               <div style={{ fontSize: 13, fontWeight: 700, color: "#C0392B", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 12, paddingBottom: 8, borderBottom: "1px solid #EEE", marginTop: 8 }}>Transaction Details</div>
-              {(() => {
-                const isListing = !/buyer/i.test(editTxForm.type || "");
-                return (
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 14 }}>
-                  <div>
-                    <div style={{ fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", marginBottom: 6 }}>{isListing ? "Listing Agreement Start Date" : "Representation Start Date"}</div>
-                    <input type="date" value={editTxForm.openDate ? String(editTxForm.openDate).slice(0,10) : ""} onChange={e => setEditTxForm(f => ({ ...f, openDate: e.target.value }))} style={{ width: "100%", padding: "10px 14px", borderRadius: 8, border: "1.5px solid #CCC", fontSize: 15, fontFamily: "inherit", boxSizing: "border-box" }} />
-                  </div>
-                  <div>
-                    <div style={{ fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", marginBottom: 6 }}>{isListing ? "Listing Agreement Expiration" : "Representation Expiration"}</div>
-                    <input type="date" value={editTxForm.representationExpiresOn ? String(editTxForm.representationExpiresOn).slice(0,10) : ""} onChange={e => setEditTxForm(f => ({ ...f, representationExpiresOn: e.target.value }))} style={{ width: "100%", padding: "10px 14px", borderRadius: 8, border: "1.5px solid #CCC", fontSize: 15, fontFamily: "inherit", boxSizing: "border-box" }} />
-                    <div style={{ fontSize: 11, color: "#888", marginTop: 4 }}>We'll warn you 14, 7, and 1 days before it expires so {isListing ? "the listing doesn't lapse in the MLS" : "representation doesn't lapse"}.</div>
-                  </div>
-                </div>
-                );
-              })()}
               {teamMembers.length > 0 && (
                 <div style={{ marginBottom: 16 }}>
                   <div style={{ fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>Assigned Agent</div>
