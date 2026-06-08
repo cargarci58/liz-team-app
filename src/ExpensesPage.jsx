@@ -2048,17 +2048,23 @@ function ImportTab({ categories, onCommitted }) {
         </div>
       )}
 
-      {!lines.length && history.length > 0 && (
+      {!lines.length && history.length > 0 && (() => {
+        const shown = history.filter(h => h.account_type === accountType);
+        const acctLabel = accountType === 'credit_card' ? 'Credit card' : 'Checking';
+        return (
         <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 12, padding: '14px 18px', marginBottom: 16 }}>
-          <div style={{ fontWeight: 700, color: '#1f2937', marginBottom: 4 }}>📋 Statements you've imported</div>
-          <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 12 }}>This is everything you've uploaded, so you can tell what's already in your books. Remove any that's wrong or a duplicate — its transactions come back out automatically.</div>
+          <div style={{ fontWeight: 700, color: '#1f2937', marginBottom: 4 }}>📋 {acctLabel} statements you've imported</div>
+          <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 12 }}>Showing your <strong>{acctLabel.toLowerCase()}</strong> statements (switch “Account type” above to see the other kind). Remove any that's wrong or a duplicate — its transactions come back out automatically.</div>
+          {shown.length === 0 ? (
+            <div style={{ fontSize: 13, color: '#6b7280', padding: '8px 2px' }}>No {acctLabel.toLowerCase()} statements imported yet.</div>
+          ) : (
           <div style={{ overflow: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
               <thead style={{ background: '#f9fafb', borderBottom: '1px solid #e5e7eb' }}>
                 <tr><Th>Account</Th><Th>Statement period</Th><Th align="center">Status</Th><Th align="right">Saved</Th><Th></Th></tr>
               </thead>
               <tbody>
-                {history.map(imp => {
+                {shown.map(imp => {
                   const saved = imp.status === 'committed' && (imp.committed_count > 0);
                   return (
                     <tr key={imp.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
@@ -2088,8 +2094,10 @@ function ImportTab({ categories, onCommitted }) {
               </tbody>
             </table>
           </div>
+          )}
         </div>
-      )}
+        );
+      })()}
 
       {done != null && (
         <div style={{ background: '#ecfdf5', border: '1px solid #6ee7b7', borderRadius: 10, padding: 16, color: '#065f46', marginBottom: 16 }}>
