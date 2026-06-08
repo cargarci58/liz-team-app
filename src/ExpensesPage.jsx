@@ -271,7 +271,9 @@ export default function ExpensesPage({ onBack }) {
           ['income', '💰 Income'],
           ['budget', '🎯 Budget vs Actuals'],
           ['pnl', '📈 Profit & Loss'],
+          ['balance', '🏦 Balance Sheet'],
           ['import', '🏦 Import Statement'],
+          ['1099', '🧾 1099 Contractors'],
         ].map(([key, label]) => (
           <button
             key={key}
@@ -291,7 +293,9 @@ export default function ExpensesPage({ onBack }) {
       {activeTab === 'income' && <IncomeTab />}
       {activeTab === 'budget' && <BudgetTab categories={categories} />}
       {activeTab === 'pnl' && <PnLTab />}
+      {activeTab === 'balance' && <BalanceSheetTab />}
       {activeTab === 'import' && <ImportTab categories={categories} onCommitted={() => loadExpenses()} />}
+      {activeTab === '1099' && <Contractors1099Tab />}
 
       {activeTab === 'expenses' && (<div>
 
@@ -2120,6 +2124,241 @@ function PnLTab() {
 // ============================================================
 // BANK STATEMENT IMPORT TAB
 // ============================================================
+// ============================================================
+// BALANCE SHEET TAB
+// ============================================================
+function BalanceSheetTab() {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [adding, setAdding] = useState(null); // 'asset' | 'liability'
+  const [label, setLabel] = useState('');
+  const [amount, setAmount] = useState('');
+
+  const load = async () => {
+    setLoading(true); setError(null);
+    try { setData(await authFetch('/finance/balance-sheet')); } catch (e) { setError(e.message); } finally { setLoading(false); }
+  };
+  useEffect(() => { load(); }, []);
+
+  const addItem = async () => {
+    if (!label || !amount || isNaN(Number(amount))) { alert('Enter a name and amount.'); return; }
+    try {
+      await authFetch('/finance/balance-sheet-items', { method: 'POST', body: JSON.stringify({ kind: adding, label, amount: Number(amount) }) });
+      setAdding(null); setLabel(''); setAmount(''); load();
+    } catch (e) { alert('Could not add: ' + e.message); }
+  };
+  const del = async (id) => {
+    if (!window.confirm('Remove this line?')) return;
+    try { await authFetch(`/finance/balance-sheet-items/${id}`, { method: 'DELETE' }); load(); } catch (e) { alert(e.message); }
+  };
+
+  const exportExcel = () => {
+    if (!data) return;
+    const q = (s) => `"${String(s == null ? '' : s).replace(/"/g, '""')}"`;
+    const money = (n) => (Math.round(Number(n || 0) * 100) / 100).toFixed(2);
+    const rows = [[q('Balance Sheet'), ''], [q('As of'), q(fmtDate(todayISO()))], ['', ''], [q('ASSETS'), q('Amount')]];
+    data.assets.forEach(a => rows.push([q(a.label), money(a.amount)]));
+    rows.push([q('Total Assets'), money(data.totalAssets)], ['', ''], [q('LIABILITIES'), q('Amount')]);
+    data.liabilities.forEach(a => rows.push([q(a.label), money(a.amount)]));
+    rows.push([q('Total Liabilities'), money(data.totalLiabilities)], ['', ''], [q('EQUITY (net worth)'), money(data.equity)]);
+    const csv = '﻿' + rows.map(r => r.join(',')).join('\r\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `balance_sheet_${todayISO()}.csv`;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  };
+
+  const section = (title, items, kind, color) => (
+    <div style={{ background: 'white', borderRadius: 12, boxShadow: '0 1px 3px rgba(0,0,0,0.05)', overflow: 'hidden', marginBottom: 16 }}>
+      <div style={{ padding: '12px 16px', borderBottom: '1px solid #e5e7eb', fontWeight: 700, color: '#1f2937', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <span>{title}</span>
+        <button onClick={() => { setAdding(kind); setLabel(''); setAmount(''); }} style={{ ...secondaryBtn, fontSize: 12 }}>➕ Add</button>
+      </div>
+      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
+        <tbody>
+          {items.length === 0 && <tr><Td colSpan={3} style={{ textAlign: 'center', padding: 16, color: '#9ca3af' }}>None yet</Td></tr>}
+          {items.map(it => (
+            <tr key={it.id} style={{ borderTop: '1px solid #f3f4f6' }}>
+              <Td>{it.label}{it.auto && <span style={{ marginLeft: 6, fontSize: 11, color: '#3b82f6' }}>auto from reconciliation</span>}</Td>
+              <Td align="right" style={{ fontWeight: 600, color }}>{fmtCurrency(it.amount)}</Td>
+              <Td align="right" style={{ width: 40 }}>{!it.auto && <button onClick={() => del(it.id)} style={{ background: 'none', border: 'none', color: '#dc2626', cursor: 'pointer', fontSize: 13 }} title="Remove">✕</button>}</Td>
+            </tr>
+          ))}
+          {adding === kind && (
+            <tr style={{ borderTop: '1px solid #f3f4f6', background: '#f9fafb' }}>
+              <Td><input autoFocus value={label} onChange={e => setLabel(e.target.value)} placeholder={kind === 'asset' ? 'e.g. Office equipment, savings' : 'e.g. Auto loan, line of credit'} style={{ ...inputStyle, padding: '5px 8px' }} /></Td>
+              <Td align="right"><input type="number" step="0.01" value={amount} onChange={e => setAmount(e.target.value)} placeholder="0.00" style={{ width: 110, padding: '5px 8px', textAlign: 'right', border: '1px solid #d1d5db', borderRadius: 6 }} /></Td>
+              <Td align="right"><button onClick={addItem} style={{ background: '#10b981', border: 'none', color: 'white', borderRadius: 6, padding: '5px 10px', cursor: 'pointer', fontSize: 12, fontWeight: 600 }}>Save</button></Td>
+            </tr>
+          )}
+        </tbody>
+      </table>
+    </div>
+  );
+
+  return (
+    <div style={{ padding: '20px 24px' }}>
+      <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 10, padding: 12, marginBottom: 16, fontSize: 13, color: '#1e40af' }}>
+        💡 A snapshot of what your business <strong>owns</strong> (assets) minus what it <strong>owes</strong> (liabilities) = your <strong>equity</strong>. Cash comes automatically from your most recently reconciled statement; add anything else (equipment, savings, loans) by hand.
+      </div>
+      <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
+        <button onClick={exportExcel} disabled={!data} style={primaryBtn('#10b981')}>⬇️ Export to Excel</button>
+      </div>
+      {loading && <div style={{ padding: 40, textAlign: 'center', color: '#6b7280' }}>Loading…</div>}
+      {error && <div style={{ padding: 20, color: '#dc2626', background: '#fef2f2', borderRadius: 8 }}>Error: {error}</div>}
+      {data && !loading && (
+        <>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px,1fr))', gap: 12, marginBottom: 20 }}>
+            <SummaryCard label="Total Assets" value={fmtCurrency(data.totalAssets)} color="#10b981" />
+            <SummaryCard label="Total Liabilities" value={fmtCurrency(data.totalLiabilities)} color="#dc2626" />
+            <SummaryCard label="Equity (net worth)" value={fmtCurrency(data.equity)} sub="assets − liabilities" color={data.equity >= 0 ? '#059669' : '#dc2626'} />
+          </div>
+          {section('🟢 Assets — what you own', data.assets, 'asset', '#059669')}
+          {section('🔴 Liabilities — what you owe', data.liabilities, 'liability', '#dc2626')}
+        </>
+      )}
+    </div>
+  );
+}
+
+// ============================================================
+// 1099 CONTRACTORS TAB
+// ============================================================
+function Contractors1099Tab() {
+  const [year, setYear] = useState(new Date().getFullYear());
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [showAll, setShowAll] = useState(false);
+  const [editVendor, setEditVendor] = useState(null);
+
+  const load = async () => {
+    setLoading(true); setError(null);
+    try { setData(await authFetch(`/finance/1099-report?year=${year}`)); } catch (e) { setError(e.message); } finally { setLoading(false); }
+  };
+  useEffect(() => { load(); /* eslint-disable-next-line */ }, [year]);
+
+  const toggle = async (v, val) => {
+    try { await authFetch('/finance/1099-vendor', { method: 'POST', body: JSON.stringify({ vendor_key: v.vendor_key, display_name: v.name, is_1099: val }) }); load(); }
+    catch (e) { alert(e.message); }
+  };
+
+  const vendors = (data?.vendors || []).filter(v => showAll || v.meets_threshold || v.is_1099);
+  const flagged = (data?.vendors || []).filter(v => v.is_1099);
+  const missingW9 = flagged.filter(v => !v.w9 || !v.w9.tin);
+
+  const exportExcel = () => {
+    if (!data) return;
+    const q = (s) => `"${String(s == null ? '' : s).replace(/"/g, '""')}"`;
+    const money = (n) => (Math.round(Number(n || 0) * 100) / 100).toFixed(2);
+    const rows = [[q(`1099 Contractor Report — ${year}`), '', '', '', '', '']];
+    rows.push([q('Name'), q('Legal name'), q('TIN/EIN'), q('Entity'), q('Address'), q('Paid')].map(x => x));
+    flagged.forEach(v => rows.push([q(v.name), q(v.w9?.legal_name || ''), q(v.w9?.tin || ''), q(v.w9?.entity_type || ''), q(v.w9?.address || ''), money(v.total)]));
+    const csv = '﻿' + rows.map(r => r.join(',')).join('\r\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `1099_contractors_${year}.csv`;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  };
+
+  return (
+    <div style={{ padding: '20px 24px' }}>
+      <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 10, padding: 12, marginBottom: 16, fontSize: 13, color: '#1e40af' }}>
+        💡 Mark the people/businesses you paid as <strong>1099 contractors</strong> and store their W-9 info. The app totals what you paid each one — anyone at <strong>$600+</strong> generally needs a 1099. Export the report for your accountant or filing service to file. <strong>This tracks &amp; prepares; it does not e-file with the IRS.</strong>
+      </div>
+      <div style={{ display: 'flex', gap: 8, alignItems: 'end', marginBottom: 16, flexWrap: 'wrap' }}>
+        <Field label="Tax Year">
+          <select value={year} onChange={e => setYear(Number(e.target.value))} style={{ ...inputStyle, maxWidth: 140 }}>
+            {[0, 1, 2, 3].map(i => { const y = new Date().getFullYear() - i; return <option key={y} value={y}>{y}</option>; })}
+          </select>
+        </Field>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: '#374151' }}>
+          <input type="checkbox" checked={showAll} onChange={e => setShowAll(e.target.checked)} /> Show everyone (not just $600+)
+        </label>
+        <button onClick={exportExcel} disabled={!flagged.length} style={primaryBtn('#10b981')}>⬇️ Export 1099 report</button>
+      </div>
+      {flagged.length > 0 && missingW9.length > 0 && (
+        <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 8, padding: '10px 14px', marginBottom: 14, fontSize: 13, color: '#92400e' }}>
+          ⚠️ {missingW9.length} contractor{missingW9.length === 1 ? '' : 's'} marked for 1099 still {missingW9.length === 1 ? 'needs' : 'need'} a W-9 (TIN). Click <strong>W-9</strong> to add it.
+        </div>
+      )}
+      {loading && <div style={{ padding: 40, textAlign: 'center', color: '#6b7280' }}>Loading…</div>}
+      {error && <div style={{ padding: 20, color: '#dc2626', background: '#fef2f2', borderRadius: 8 }}>Error: {error}</div>}
+      {data && !loading && (
+        <div style={{ background: 'white', borderRadius: 12, boxShadow: '0 1px 3px rgba(0,0,0,0.05)', overflow: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+            <thead style={{ background: '#f9fafb', borderBottom: '1px solid #e5e7eb' }}>
+              <tr><Th align="center">1099?</Th><Th>Vendor</Th><Th align="right">Paid {year}</Th><Th align="center">$600+</Th><Th align="center">W-9</Th></tr>
+            </thead>
+            <tbody>
+              {vendors.length === 0 && <tr><Td colSpan={5} style={{ textAlign: 'center', padding: 24, color: '#6b7280' }}>No vendors{showAll ? '' : ' over $600'} for {year}.</Td></tr>}
+              {vendors.map(v => (
+                <tr key={v.vendor_key} style={{ borderTop: '1px solid #f3f4f6' }}>
+                  <Td align="center"><input type="checkbox" checked={v.is_1099} onChange={e => toggle(v, e.target.checked)} style={{ width: 16, height: 16, cursor: 'pointer' }} /></Td>
+                  <Td>{v.name} <span style={{ color: '#9ca3af', fontSize: 12 }}>({v.txns})</span></Td>
+                  <Td align="right" style={{ fontWeight: 600 }}>{fmtCurrency(v.total)}</Td>
+                  <Td align="center">{v.meets_threshold ? <span style={{ color: '#059669', fontWeight: 700 }}>✓</span> : <span style={{ color: '#9ca3af' }}>—</span>}</Td>
+                  <Td align="center">
+                    <button onClick={() => setEditVendor(v)} style={{ background: v.w9 && v.w9.tin ? '#ecfdf5' : 'none', border: '1px solid ' + (v.w9 && v.w9.tin ? '#6ee7b7' : '#d1d5db'), color: v.w9 && v.w9.tin ? '#065f46' : '#6b7280', borderRadius: 6, padding: '3px 10px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+                      {v.w9 && v.w9.tin ? '✓ W-9' : 'W-9'}
+                    </button>
+                  </Td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+      {editVendor && <W9Modal vendor={editVendor} onClose={() => setEditVendor(null)} onSaved={() => { setEditVendor(null); load(); }} />}
+    </div>
+  );
+}
+
+function W9Modal({ vendor, onClose, onSaved }) {
+  const w9 = vendor.w9 || {};
+  const [legalName, setLegalName] = useState(w9.legal_name || vendor.name || '');
+  const [businessName, setBusinessName] = useState(w9.business_name || '');
+  const [tin, setTin] = useState(w9.tin || '');
+  const [entityType, setEntityType] = useState(w9.entity_type || '');
+  const [address, setAddress] = useState(w9.address || '');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState(null);
+
+  const save = async () => {
+    setSaving(true); setError(null);
+    try {
+      await authFetch('/finance/1099-vendor', { method: 'POST', body: JSON.stringify({
+        vendor_key: vendor.vendor_key, display_name: vendor.name, is_1099: true,
+        legal_name: legalName || null, business_name: businessName || null, tin: tin || null,
+        entity_type: entityType || null, address: address || null,
+      }) });
+      onSaved();
+    } catch (e) { setError(e.message); setSaving(false); }
+  };
+
+  return (
+    <ModalShell onClose={onClose} title={`W-9 info — ${vendor.name}`} width={520}>
+      <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 14 }}>From the contractor's W-9. Marking this saves the vendor as a 1099 contractor.</div>
+      {error && <div style={{ padding: 10, color: '#dc2626', background: '#fef2f2', borderRadius: 8, marginBottom: 12 }}>{error}</div>}
+      <Field label="Legal name (person or business)"><input value={legalName} onChange={e => setLegalName(e.target.value)} style={inputStyle} /></Field>
+      <Field label="Business name (if different)"><input value={businessName} onChange={e => setBusinessName(e.target.value)} style={inputStyle} /></Field>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+        <Field label="TIN / EIN / SSN"><input value={tin} onChange={e => setTin(e.target.value)} placeholder="XX-XXXXXXX" style={inputStyle} /></Field>
+        <Field label="Entity type">
+          <select value={entityType} onChange={e => setEntityType(e.target.value)} style={inputStyle}>
+            <option value="">— pick —</option>
+            {['Individual / Sole proprietor', 'Single-member LLC', 'LLC', 'Partnership', 'C Corporation', 'S Corporation', 'Other'].map(o => <option key={o} value={o}>{o}</option>)}
+          </select>
+        </Field>
+      </div>
+      <Field label="Address"><textarea value={address} onChange={e => setAddress(e.target.value)} rows={2} style={{ ...inputStyle, resize: 'vertical' }} /></Field>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 8 }}>
+        <button onClick={onClose} style={secondaryBtn}>Cancel</button>
+        <button onClick={save} disabled={saving} style={{ ...primaryBtn('#10b981'), opacity: saving ? 0.6 : 1 }}>{saving ? 'Saving…' : 'Save W-9'}</button>
+      </div>
+    </ModalShell>
+  );
+}
+
 // Reconciliation cells for one imported statement: enter beginning + ending
 // balance; the app checks that all the statement's lines net to the ending
 // balance. Renders three <Td> (Begin / End / status).
