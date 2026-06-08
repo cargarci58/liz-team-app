@@ -1478,6 +1478,8 @@ function BudgetTab({ categories }) {
   const [period, setPeriod] = useState('year'); // year | month
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState(null);
+  const [buildOpen, setBuildOpen] = useState(false);
+  const [savingCat, setSavingCat] = useState(null);
 
   const range = (() => {
     const now = new Date();
@@ -1512,6 +1514,28 @@ function BudgetTab({ categories }) {
 
   const expenseItems = items.filter(i => i.kind !== 'income');
   const incomeItems = items.filter(i => i.kind === 'income');
+
+  // Set/replace the budget for a category to a single amount in the CURRENT
+  // period (month → monthly line, year → annual line). Keeps one budget line
+  // per category so the inline number and the table stay in sync.
+  const saveCategoryBudget = async (cat, value) => {
+    const entered = Number(value);
+    const existing = expenseItems.find(i => (i.category || 'Uncategorized') === cat);
+    // Always store as a MONTHLY line so the number stays consistent whether the
+    // table is viewed by month or by year. A year-view entry is the annual total.
+    const monthly = period === 'year' ? entered / 12 : entered;
+    setSavingCat(cat);
+    try {
+      if (!entered || entered <= 0) {
+        if (existing) { await authFetch(`/budget/${existing.id}`, { method: 'DELETE' }); }
+      } else {
+        const payload = { kind: 'expense', label: existing?.label || cat, category: cat, amount: Math.round(monthly * 100) / 100, frequency: 'monthly', dueMonth: null, notes: existing?.notes || null };
+        if (existing) await authFetch(`/budget/${existing.id}`, { method: 'PUT', body: JSON.stringify(payload) });
+        else await authFetch('/budget', { method: 'POST', body: JSON.stringify(payload) });
+      }
+      await load();
+    } catch (e) { alert('Could not save budget: ' + e.message); } finally { setSavingCat(null); }
+  };
 
   // Budget-vs-actual by expense category
   const actualByCat = {};
@@ -1557,6 +1581,7 @@ function BudgetTab({ categories }) {
           ))}
         </div>
         <button onClick={() => { setEditing(null); setModalOpen(true); }} style={primaryBtn('#10b981')}>➕ Add Budget Line</button>
+        <button onClick={() => setBuildOpen(true)} style={primaryBtn('#3b82f6')}>✨ Build budget from my expenses</button>
       </div>
 
       {loading && <div style={{ padding: 40, textAlign: 'center', color: '#6b7280' }}>Loading...</div>}
@@ -1585,7 +1610,7 @@ function BudgetTab({ categories }) {
 
           {/* Budget vs actual by category */}
           <div style={{ background: 'white', borderRadius: 12, boxShadow: '0 1px 3px rgba(0,0,0,0.05)', overflow: 'hidden', marginBottom: 24 }}>
-            <div style={{ padding: '12px 16px', borderBottom: '1px solid #e5e7eb', fontWeight: 700, color: '#1f2937' }}>Expenses by category — planned vs actual</div>
+            <div style={{ padding: '12px 16px', borderBottom: '1px solid #e5e7eb', fontWeight: 700, color: '#1f2937' }}>Expenses by category — planned vs actual <span style={{ fontWeight: 400, fontSize: 12, color: '#6b7280' }}>· click any amount in “Budgeted” to set it</span></div>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
               <thead style={{ background: '#f9fafb' }}>
                 <tr><Th>Category</Th><Th align="right">Budgeted</Th><Th align="right">Actual</Th><Th align="right">Remaining</Th><Th>Usage</Th></tr>
@@ -1600,7 +1625,7 @@ function BudgetTab({ categories }) {
                   return (
                     <tr key={cat} style={{ borderTop: '1px solid #f3f4f6' }}>
                       <Td>{cat}</Td>
-                      <Td align="right">{fmtCurrency(bud)}</Td>
+                      <Td align="right"><BudgetAmountCell value={bud} saving={savingCat === cat} onCommit={(v) => saveCategoryBudget(cat, v)} /></Td>
                       <Td align="right" style={{ fontWeight: 600 }}>{fmtCurrency(act)}</Td>
                       <Td align="right" style={{ color: over ? '#dc2626' : '#059669' }}>{fmtCurrency(bud - act)}</Td>
                       <Td>
@@ -1624,7 +1649,116 @@ function BudgetTab({ categories }) {
       )}
 
       {modalOpen && <BudgetModal item={editing} categories={categories} onClose={() => { setModalOpen(false); setEditing(null); }} onSaved={() => { setModalOpen(false); setEditing(null); load(); }} />}
+      {buildOpen && <BuildBudgetModal existing={expenseItems} onClose={() => setBuildOpen(false)} onSaved={() => { setBuildOpen(false); load(); }} />}
     </div>
+  );
+}
+
+// Inline-editable "Budgeted" amount cell. Click to type an amount; commits on
+// Enter or blur. Shows a dash when unset so it's obvious it can be edited.
+function BudgetAmountCell({ value, saving, onCommit }) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState('');
+  if (saving) return <span style={{ color: '#9ca3af', fontSize: 13 }}>saving…</span>;
+  if (editing) {
+    return (
+      <input
+        autoFocus type="number" step="0.01" min="0" value={draft}
+        onChange={e => setDraft(e.target.value)}
+        onBlur={() => { setEditing(false); if (draft !== String(value || '')) onCommit(draft); }}
+        onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur(); if (e.key === 'Escape') setEditing(false); }}
+        style={{ width: 100, padding: '4px 6px', fontSize: 13, textAlign: 'right', border: '1px solid #3b82f6', borderRadius: 6 }}
+      />
+    );
+  }
+  return (
+    <button
+      onClick={() => { setDraft(value ? String(value) : ''); setEditing(true); }}
+      title="Click to set a budget"
+      style={{ background: 'none', border: '1px dashed #cbd5e1', borderRadius: 6, padding: '3px 8px', cursor: 'pointer', fontSize: 13, color: value ? '#1f2937' : '#9ca3af', fontWeight: value ? 600 : 400 }}
+    >
+      {value ? fmtCurrency(value) : 'Set ✏️'}
+    </button>
+  );
+}
+
+// Auto-build a budget from past spending. Pulls per-category monthly averages,
+// pre-selects recurring categories, lets the agent tweak/uncheck, then writes
+// one monthly budget line per chosen category.
+function BuildBudgetModal({ existing, onClose, onSaved }) {
+  const [loading, setLoading] = useState(true);
+  const [rows, setRows] = useState([]);
+  const [error, setError] = useState(null);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const y = new Date().getFullYear();
+        const data = await authFetch(`/finance/expense-averages?from=${y}-01-01&to=${y}-12-31`);
+        const cats = (data.categories || [])
+          .filter(c => c.category && c.category !== 'Other' && c.avg_monthly > 0)
+          .map(c => ({ ...c, include: c.recurring, monthly: c.avg_monthly }));
+        setRows(cats);
+      } catch (e) { setError(e.message); } finally { setLoading(false); }
+    })();
+  }, []);
+
+  const totalMonthly = rows.filter(r => r.include).reduce((s, r) => s + Number(r.monthly || 0), 0);
+
+  const apply = async () => {
+    const chosen = rows.filter(r => r.include && Number(r.monthly) > 0);
+    if (chosen.length === 0) { setError('Pick at least one category.'); return; }
+    setSaving(true); setError(null);
+    try {
+      for (const r of chosen) {
+        const ex = (existing || []).find(i => (i.category || '') === r.category);
+        const payload = { kind: 'expense', label: r.category, category: r.category, amount: Number(r.monthly), frequency: 'monthly', dueMonth: null, notes: null };
+        if (ex) await authFetch(`/budget/${ex.id}`, { method: 'PUT', body: JSON.stringify(payload) });
+        else await authFetch('/budget', { method: 'POST', body: JSON.stringify(payload) });
+      }
+      onSaved();
+    } catch (e) { setError(e.message); setSaving(false); }
+  };
+
+  return (
+    <ModalShell onClose={onClose} title="✨ Build budget from my expenses" width={620}>
+      <div style={{ fontSize: 13, color: '#6b7280', marginBottom: 14 }}>
+        Based on what you've actually spent this year, here's a suggested <strong>monthly</strong> budget for each category. Recurring ones (showing up in 2+ months) are pre-checked. Adjust any amount, uncheck what you don't want, then apply.
+      </div>
+      {loading && <div style={{ padding: 24, textAlign: 'center', color: '#6b7280' }}>Analyzing your expenses…</div>}
+      {error && <div style={{ padding: 12, color: '#dc2626', background: '#fef2f2', borderRadius: 8, marginBottom: 12 }}>{error}</div>}
+      {!loading && rows.length === 0 && <div style={{ padding: 20, textAlign: 'center', color: '#6b7280' }}>No expense history to build from yet.</div>}
+      {!loading && rows.length > 0 && (
+        <>
+          <div style={{ maxHeight: 360, overflow: 'auto', border: '1px solid #e5e7eb', borderRadius: 8 }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+              <thead style={{ background: '#f9fafb', position: 'sticky', top: 0 }}>
+                <tr><Th></Th><Th>Category</Th><Th align="center">Months</Th><Th align="right">Spent</Th><Th align="right">Budget / mo</Th></tr>
+              </thead>
+              <tbody>
+                {rows.map((r, idx) => (
+                  <tr key={r.category} style={{ borderTop: '1px solid #f3f4f6', opacity: r.include ? 1 : 0.5 }}>
+                    <Td align="center"><input type="checkbox" checked={r.include} onChange={e => setRows(p => p.map((x, i) => i === idx ? { ...x, include: e.target.checked } : x))} style={{ width: 16, height: 16, cursor: 'pointer' }} /></Td>
+                    <Td>{r.category}</Td>
+                    <Td align="center" style={{ color: r.recurring ? '#059669' : '#9ca3af' }}>{r.months_active}</Td>
+                    <Td align="right" style={{ color: '#6b7280' }}>{fmtCurrency(r.total)}</Td>
+                    <Td align="right"><input type="number" step="0.01" min="0" value={r.monthly} onChange={e => setRows(p => p.map((x, i) => i === idx ? { ...x, monthly: e.target.value } : x))} style={{ width: 90, padding: '4px 6px', fontSize: 13, textAlign: 'right', border: '1px solid #d1d5db', borderRadius: 6 }} /></Td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 16 }}>
+            <div style={{ fontSize: 14, color: '#374151' }}>Total planned: <strong>{fmtCurrency(totalMonthly)}/mo</strong></div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button onClick={onClose} style={secondaryBtn}>Cancel</button>
+              <button onClick={apply} disabled={saving} style={{ ...primaryBtn('#10b981'), opacity: saving ? 0.6 : 1 }}>{saving ? 'Saving…' : `Apply ${rows.filter(r => r.include).length} budgets`}</button>
+            </div>
+          </div>
+        </>
+      )}
+    </ModalShell>
   );
 }
 
