@@ -2272,7 +2272,7 @@ function Contractors1099Tab() {
     } catch (e) { alert(e.message); }
   };
 
-  const vendors = (data?.vendors || []).filter(v => showAll || v.meets_threshold || v.is_1099 || v.likely_1099);
+  const vendors = (data?.vendors || []).filter(v => showAll || v.is_1099 || v.likely_1099);
   const flagged = (data?.vendors || []).filter(v => v.is_1099);
   const missingW9 = flagged.filter(v => !v.w9 || !v.w9.tin);
 
@@ -2301,7 +2301,7 @@ function Contractors1099Tab() {
           </select>
         </Field>
         <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: '#374151' }}>
-          <input type="checkbox" checked={showAll} onChange={e => setShowAll(e.target.checked)} /> Show everyone (not just $600+)
+          <input type="checkbox" checked={showAll} onChange={e => setShowAll(e.target.checked)} /> Show every vendor (not just contractors)
         </label>
         {likelyUntagged.length > 0 && <button onClick={markLikely} style={primaryBtn('#3b82f6')}>✨ Auto-mark likely contractors ({likelyUntagged.length})</button>}
         <button onClick={exportExcel} disabled={!flagged.length} style={primaryBtn('#10b981')}>⬇️ Export 1099 report</button>
@@ -2320,7 +2320,7 @@ function Contractors1099Tab() {
               <tr><Th align="center">1099?</Th><Th>Vendor</Th><Th align="right">Paid {year}</Th><Th align="center">$600+</Th><Th align="center">W-9</Th></tr>
             </thead>
             <tbody>
-              {vendors.length === 0 && <tr><Td colSpan={5} style={{ textAlign: 'center', padding: 24, color: '#6b7280' }}>No vendors{showAll ? '' : ' over $600'} for {year}.</Td></tr>}
+              {vendors.length === 0 && <tr><Td colSpan={5} style={{ textAlign: 'center', padding: 24, color: '#6b7280' }}>{showAll ? `No vendors for ${year}.` : `No contractor-category expenses for ${year}. Categorize expenses as Contract Labor (1099), Referral Fees, Office Cleaning, etc. — or check “Show every vendor.”`}</Td></tr>}
               {vendors.map(v => (
                 <tr key={v.vendor_key} style={{ borderTop: '1px solid #f3f4f6' }}>
                   <Td align="center"><input type="checkbox" checked={v.is_1099} onChange={e => toggle(v, e.target.checked)} style={{ width: 16, height: 16, cursor: 'pointer' }} /></Td>
