@@ -264,30 +264,44 @@ export default function ExpensesPage({ onBack }) {
 
       {viewMode === 'advanced' && (<div>
 
-      {/* Tab bar */}
-      <div style={{ background: 'white', borderBottom: '1px solid #e5e7eb', padding: '0 24px', display: 'flex', gap: 4, overflowX: 'auto' }}>
-        {[
-          ['expenses', '💵 Expenses'],
-          ['income', '💰 Income'],
-          ['budget', '🎯 Budget vs Actuals'],
-          ['pnl', '📈 Profit & Loss'],
-          ['balance', '🏦 Balance Sheet'],
-          ['import', '🏦 Import Statement'],
-          ['1099', '🧾 1099 Contractors'],
-        ].map(([key, label]) => (
-          <button
-            key={key}
-            onClick={() => setActiveTab(key)}
-            style={{
-              background: 'none', border: 'none', cursor: 'pointer',
-              padding: '14px 16px', fontSize: 14, fontWeight: 600, whiteSpace: 'nowrap',
-              color: activeTab === key ? '#059669' : '#6b7280',
-              borderBottom: activeTab === key ? '3px solid #10b981' : '3px solid transparent',
-            }}
-          >
-            {label}
-          </button>
-        ))}
+      {/* Tab bar — everyday views on the left, the "Import Statement" data tool
+          set apart on the right so the menu reads cleaner. */}
+      <div style={{ background: 'white', borderBottom: '1px solid #e5e7eb', padding: '0 24px', display: 'flex', alignItems: 'center', gap: 2, overflowX: 'auto' }}>
+        {(() => {
+          const tabBtn = ([key, label]) => (
+            <button
+              key={key}
+              onClick={() => setActiveTab(key)}
+              style={{
+                background: 'none', border: 'none', cursor: 'pointer',
+                padding: '14px 13px', fontSize: 14, fontWeight: 600, whiteSpace: 'nowrap',
+                color: activeTab === key ? '#059669' : '#6b7280',
+                borderBottom: activeTab === key ? '3px solid #10b981' : '3px solid transparent',
+              }}
+            >{label}</button>
+          );
+          const everyday = [['expenses', '💵 Expenses'], ['income', '💰 Income'], ['budget', '🎯 Budget'], ['pnl', '📈 P&L']];
+          const reports = [['balance', '🏦 Balance Sheet'], ['1099', '🧾 1099s']];
+          return (
+            <>
+              {everyday.map(tabBtn)}
+              <div style={{ width: 1, alignSelf: 'stretch', background: '#e5e7eb', margin: '8px 6px' }} />
+              {reports.map(tabBtn)}
+              <div style={{ flex: 1, minWidth: 12 }} />
+              <button
+                onClick={() => setActiveTab('import')}
+                title="Upload a bank or credit-card statement"
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap', cursor: 'pointer',
+                  margin: '7px 0', padding: '8px 14px', fontSize: 14, fontWeight: 700, borderRadius: 8,
+                  border: activeTab === 'import' ? '1px solid #10b981' : '1px solid #d1d5db',
+                  background: activeTab === 'import' ? '#ecfdf5' : 'white',
+                  color: activeTab === 'import' ? '#065f46' : '#374151',
+                }}
+              >📥 Import Statement</button>
+            </>
+          );
+        })()}
       </div>
 
       {activeTab === 'income' && <IncomeTab />}
@@ -2206,6 +2220,11 @@ function BalanceSheetTab() {
       </div>
       {loading && <div style={{ padding: 40, textAlign: 'center', color: '#6b7280' }}>Loading…</div>}
       {error && <div style={{ padding: 20, color: '#dc2626', background: '#fef2f2', borderRadius: 8 }}>Error: {error}</div>}
+      {data && !loading && data.totalAssets === 0 && data.totalLiabilities === 0 && data.assets.length === 0 && data.liabilities.length === 0 && (
+        <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 10, padding: '12px 16px', marginBottom: 16, fontSize: 13, color: '#92400e' }}>
+          Everything's at $0 because there's nothing to show yet. Your <strong>cash</strong> appears automatically once you reconcile a statement — go to <strong>Import Statement</strong> and type a statement's <strong>ending balance</strong>. Or click <strong>➕ Add</strong> below to enter assets/liabilities by hand.
+        </div>
+      )}
       {data && !loading && (
         <>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px,1fr))', gap: 12, marginBottom: 20 }}>
@@ -2243,7 +2262,17 @@ function Contractors1099Tab() {
     catch (e) { alert(e.message); }
   };
 
-  const vendors = (data?.vendors || []).filter(v => showAll || v.meets_threshold || v.is_1099);
+  const likelyUntagged = (data?.vendors || []).filter(v => v.likely_1099 && !v.is_1099);
+  const markLikely = async () => {
+    if (!likelyUntagged.length) return;
+    if (!window.confirm(`Mark ${likelyUntagged.length} vendor${likelyUntagged.length === 1 ? '' : 's'} paid under contractor categories (cleaning, TC, referral fees, etc.) as 1099? You can uncheck any afterward.`)) return;
+    try {
+      for (const v of likelyUntagged) await authFetch('/finance/1099-vendor', { method: 'POST', body: JSON.stringify({ vendor_key: v.vendor_key, display_name: v.name, is_1099: true }) });
+      load();
+    } catch (e) { alert(e.message); }
+  };
+
+  const vendors = (data?.vendors || []).filter(v => showAll || v.meets_threshold || v.is_1099 || v.likely_1099);
   const flagged = (data?.vendors || []).filter(v => v.is_1099);
   const missingW9 = flagged.filter(v => !v.w9 || !v.w9.tin);
 
@@ -2274,6 +2303,7 @@ function Contractors1099Tab() {
         <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: '#374151' }}>
           <input type="checkbox" checked={showAll} onChange={e => setShowAll(e.target.checked)} /> Show everyone (not just $600+)
         </label>
+        {likelyUntagged.length > 0 && <button onClick={markLikely} style={primaryBtn('#3b82f6')}>✨ Auto-mark likely contractors ({likelyUntagged.length})</button>}
         <button onClick={exportExcel} disabled={!flagged.length} style={primaryBtn('#10b981')}>⬇️ Export 1099 report</button>
       </div>
       {flagged.length > 0 && missingW9.length > 0 && (
@@ -2294,7 +2324,12 @@ function Contractors1099Tab() {
               {vendors.map(v => (
                 <tr key={v.vendor_key} style={{ borderTop: '1px solid #f3f4f6' }}>
                   <Td align="center"><input type="checkbox" checked={v.is_1099} onChange={e => toggle(v, e.target.checked)} style={{ width: 16, height: 16, cursor: 'pointer' }} /></Td>
-                  <Td>{v.name} <span style={{ color: '#9ca3af', fontSize: 12 }}>({v.txns})</span></Td>
+                  <Td>
+                    <div>{v.name} <span style={{ color: '#9ca3af', fontSize: 12 }}>({v.txns})</span>
+                      {v.likely_1099 && !v.is_1099 && <span style={{ marginLeft: 6, background: '#dbeafe', color: '#1e40af', borderRadius: 6, padding: '1px 7px', fontSize: 11, fontWeight: 600 }}>likely 1099</span>}
+                    </div>
+                    {(v.categories && v.categories.length > 0) && <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 2 }}>{v.categories.join(', ')}</div>}
+                  </Td>
                   <Td align="right" style={{ fontWeight: 600 }}>{fmtCurrency(v.total)}</Td>
                   <Td align="center">{v.meets_threshold ? <span style={{ color: '#059669', fontWeight: 700 }}>✓</span> : <span style={{ color: '#9ca3af' }}>—</span>}</Td>
                   <Td align="center">
