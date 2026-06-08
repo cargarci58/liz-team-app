@@ -1927,13 +1927,17 @@ function ImportTab({ categories, onCommitted }) {
     if (!file) return;
     setBusy(true); setError(null); setDone(null); setLines([]); setImportId(null);
     try {
-      setStatus('Getting upload URL...');
-      const presign = await authFetch('/bank-import/upload-url', { method: 'POST', body: JSON.stringify({ fileName: file.name, fileType: file.type || 'application/octet-stream' }) });
       setStatus('Uploading statement...');
-      const putRes = await fetch(presign.uploadUrl, { method: 'PUT', headers: { 'Content-Type': file.type || 'application/octet-stream' }, body: file });
-      if (!putRes.ok) throw new Error(`Upload failed (HTTP ${putRes.status})`);
+      const base64 = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result).split(',')[1] || '');
+        reader.onerror = () => reject(new Error('Could not read that file.'));
+        reader.readAsDataURL(file);
+      });
+      const up = await authFetch('/bank-import/upload', { method: 'POST', body: JSON.stringify({ fileName: file.name, fileType: file.type || 'application/octet-stream', base64 }) });
+      if (!up.fileKey) throw new Error(up.error || 'Upload failed');
       setStatus('AI reading your statement (this can take a minute)...');
-      const enq = await authFetch('/bank-import/parse', { method: 'POST', body: JSON.stringify({ fileKey: presign.fileKey, fileName: file.name, accountType, periodLabel: periodLabel || null }) });
+      const enq = await authFetch('/bank-import/parse', { method: 'POST', body: JSON.stringify({ fileKey: up.fileKey, fileName: file.name, accountType, periodLabel: periodLabel || null }) });
       if (!enq.jobId) throw new Error(enq.error || 'Could not start parsing');
       await pollAiJob(enq.jobId, { timeoutMs: 180000 });
       setStatus('Loading transactions...');
