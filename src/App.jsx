@@ -5226,7 +5226,7 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
 
 // --- NEW TRANSACTION ──────────────────────────────────────────
 function NewTransactionForm({ onSave, onCancel }) {
-  const [form, setForm] = useState({ address: "", city: "", county: "Osceola", zipCode: "", type: "Listing (Seller)", propertyType: "Single Family", constructionType: "Resale", listPrice: "", contractPrice: "", mlsNumber: "", openDate: today(), closingDate: "", executedDate: "", notes: "", status: "Active", assignedAgent: "", referralSource: "", occupancyStatus: "", propertyAccess: "", commissionListing: "", commissionBuyer: "", transactionFee: "", brokerageSplit: "", officeFlatFee: "", commissionNotes: "" });
+  const [form, setForm] = useState({ address: "", city: "", county: "Osceola", zipCode: "", type: "Listing (Seller)", propertyType: "Single Family", constructionType: "Resale", listPrice: "", contractPrice: "", mlsNumber: "", openDate: today(), closingDate: "", executedDate: "", representationExpiresOn: "", notes: "", status: "Active", assignedAgent: "", referralSource: "", occupancyStatus: "", propertyAccess: "", commissionListing: "", commissionBuyer: "", transactionFee: "", brokerageSplit: "", officeFlatFee: "", commissionNotes: "" });
   const [teamAgents, setTeamAgents] = useState([]);
   useEffect(() => { const tok = localStorage.getItem("tp_token") || ""; fetch(API + "/users", { headers: { "Authorization": "Bearer " + tok } }).then(r => r.json()).then(d => { if (d.users) setTeamAgents(d.users.filter(u => u.role === "agent" || u.role === "admin" || u.role === "superadmin")); }).catch(e => console.error("[bg]", e && e.message ? e.message : e)); }, []);
   const [useFLTemplates, setUseFLTemplates] = useState(true);
@@ -5265,6 +5265,7 @@ function NewTransactionForm({ onSave, onCancel }) {
           listPrice: t.list_price || form.listPrice, contractPrice: t.contract_price || form.contractPrice,
           openDate: t.open_date || form.openDate, closingDate: t.closing_date || form.closingDate,
           executedDate: t.executed_date || form.executedDate,
+          representationExpiresOn: t.representation_expires_on || form.representationExpiresOn,
           notes: t.notes || form.notes,
           assignedAgentId: t.assigned_agent || form.assignedAgent,
           referralSource: t.referral_source || form.referralSource,
@@ -5306,7 +5307,13 @@ function NewTransactionForm({ onSave, onCancel }) {
         <div style={{ background: "#fff", border: `1px solid ${COLORS.border}`, borderRadius: 14, padding: 28, marginBottom: 20 }}>
           <h3 style={{ margin: "0 0 20px", fontSize: 15, color: COLORS.navy, fontWeight: 700 }}>Pricing & Dates</h3>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}><Input label="List Price ($)" value={form.listPrice} onChange={f("listPrice")} type="number" /><Input label="Contract Price ($)" value={form.contractPrice} onChange={f("contractPrice")} type="number" /></div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}><Input label="Open Date" value={form.openDate} onChange={f("openDate")} type="date" /><Input label="Closing Date" value={form.closingDate} onChange={f("closingDate")} type="date" /></div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}><Input label={/listing|seller/i.test(form.type) ? "Listing Agreement Date" : "Open Date"} value={form.openDate} onChange={f("openDate")} type="date" /><Input label="Closing Date" value={form.closingDate} onChange={f("closingDate")} type="date" /></div>
+          {/listing|seller/i.test(form.type) && (
+            <>
+              <Input label="Listing Agreement Expiration" value={form.representationExpiresOn} onChange={f("representationExpiresOn")} type="date" />
+              <div style={{ fontSize: 11, color: COLORS.muted, marginTop: -8 }}>When the listing agreement expires (and the listing drops off the MLS). We'll warn you 14, 7, and 1 days before so it doesn't lapse.</div>
+            </>
+          )}
           <Input label="Executed Date" value={form.executedDate} onChange={f("executedDate")} type="date" />
           <Input label="Status" value={form.status} onChange={f("status")} options={Object.keys(STATUS_CONFIG)} />
         </div>
