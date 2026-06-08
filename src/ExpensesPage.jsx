@@ -2134,7 +2134,7 @@ function ImportTab({ categories, onCommitted }) {
                     <Td>
                       <input value={l.description} onChange={e => updateLine(l.id, { description: e.target.value })} style={{ ...inputStyle, padding: '4px 6px', fontSize: 12, minWidth: 160 }} />
                       {l.duplicate_of_deal && <div style={{ fontSize: 11, color: '#b45309', marginTop: 3 }}>⚠️ Looks like your commission for {l.duplicate_of_deal.address} — already counted from that closed deal. Left unchecked to avoid double-counting.</div>}
-                      {l.is_transfer && !l.duplicate_of_deal && <div style={{ fontSize: 11, color: '#b45309', marginTop: 3 }}>⚠️ Looks like a transfer between your own accounts (not income). Left unchecked.</div>}
+                      {l.is_transfer && !l.duplicate_of_deal && <div style={{ fontSize: 11, color: '#b45309', marginTop: 3 }}>⚠️ Looks like a transfer between your own accounts (not real income or an expense). Left unchecked.</div>}
                       {l.is_card_payment && <div style={{ fontSize: 11, color: '#b45309', marginTop: 3 }}>⚠️ Looks like a credit-card payment, not an expense — the real expenses are the charges on the card. Left unchecked.</div>}
                     </Td>
                     <Td align="center">
