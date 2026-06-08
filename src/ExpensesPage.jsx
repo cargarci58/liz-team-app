@@ -1973,10 +1973,10 @@ function PnLTab() {
       </div>`;
 
     const html = `<!doctype html><html><head><title>Profit & Loss ${year} — ${brokerName}</title>
-      <style>body{font-family:-apple-system,Segoe UI,Roboto,sans-serif;color:#1f2937;max-width:720px;margin:30px auto;padding:0 20px}
-      h1{color:${accent};margin:14px 0 0}h2{border-bottom:2px solid ${accent};padding-bottom:4px;margin-top:24px;font-size:16px}
-      table{width:100%;border-collapse:collapse;font-size:14px}.tot{font-weight:700;border-top:2px solid #e5e7eb}
-      .net{font-size:20px;font-weight:800;padding:14px;border-radius:8px;margin-top:20px;text-align:center}</style></head><body>
+      <style>body{font-family:-apple-system,Segoe UI,Roboto,sans-serif;color:#1f2937;max-width:760px;margin:30px auto;padding:0 20px;font-size:17px;line-height:1.4}
+      h1{color:${accent};margin:14px 0 0;font-size:30px}h2{border-bottom:2px solid ${accent};padding-bottom:6px;margin-top:28px;font-size:22px}
+      table{width:100%;border-collapse:collapse;font-size:17px}td{padding:9px 12px}.tot{font-weight:700;border-top:2px solid #e5e7eb;font-size:18px}
+      .net{font-size:26px;font-weight:800;padding:18px;border-radius:8px;margin-top:22px;text-align:center}</style></head><body>
       ${letterhead}
       <h1>Profit &amp; Loss Statement</h1>
       <div style="color:#6b7280">Tax year ${year} &nbsp;•&nbsp; generated ${fmtDate(todayISO())}</div>
