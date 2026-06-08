@@ -2120,6 +2120,42 @@ function PnLTab() {
 // ============================================================
 // BANK STATEMENT IMPORT TAB
 // ============================================================
+// Reconciliation cells for one imported statement: enter beginning + ending
+// balance; the app checks that all the statement's lines net to the ending
+// balance. Renders three <Td> (Begin / End / status).
+function ReconcileCells({ imp, onSaved }) {
+  const [begin, setBegin] = useState(imp.beginning_balance ?? '');
+  const [end, setEnd] = useState(imp.ending_balance ?? '');
+  useEffect(() => { setBegin(imp.beginning_balance ?? ''); setEnd(imp.ending_balance ?? ''); }, [imp.beginning_balance, imp.ending_balance]);
+  const net = Number(imp.lines_income || 0) - Number(imp.lines_expense || 0);
+  const hasBegin = begin !== '' && begin != null && !isNaN(Number(begin));
+  const hasEnd = end !== '' && end != null && !isNaN(Number(end));
+  const expected = hasBegin ? Number(begin) + net : null;
+  const diff = (expected != null && hasEnd) ? Number(end) - expected : null;
+  const reconciled = diff != null && Math.abs(diff) < 0.01;
+  const save = async (b, e) => {
+    try { await authFetch(`/bank-import/${imp.id}/balances`, { method: 'POST', body: JSON.stringify({ beginning: b === '' ? null : b, ending: e === '' ? null : e }) }); onSaved && onSaved(); }
+    catch (err) { alert('Could not save balances: ' + err.message); }
+  };
+  const cellInput = (val, setVal, onCommit) => (
+    <input type="number" step="0.01" value={val} onChange={e => setVal(e.target.value)} onBlur={() => onCommit()} placeholder="—"
+      style={{ width: 88, padding: '4px 6px', fontSize: 12, textAlign: 'right', border: '1px solid #d1d5db', borderRadius: 6 }} />
+  );
+  return (
+    <>
+      <Td align="right">{cellInput(begin, setBegin, () => save(begin, end))}</Td>
+      <Td align="right">{cellInput(end, setEnd, () => save(begin, end))}</Td>
+      <Td align="center">
+        {!hasBegin || !hasEnd
+          ? <span style={{ color: '#9ca3af', fontSize: 12 }}>—</span>
+          : reconciled
+            ? <span style={{ background: '#ecfdf5', color: '#065f46', borderRadius: 6, padding: '2px 8px', fontSize: 12, fontWeight: 600 }}>✓ Reconciled</span>
+            : <span title={`These transactions add up to an ending balance of ${fmtCurrency(expected)}, but you entered ${fmtCurrency(Number(end))}. A line may be missing or miscategorized.`} style={{ background: '#fef2f2', color: '#dc2626', borderRadius: 6, padding: '2px 8px', fontSize: 12, fontWeight: 600, cursor: 'help' }}>Off by {fmtCurrency(Math.abs(diff))}</span>}
+      </Td>
+    </>
+  );
+}
+
 function ImportTab({ categories, onCommitted }) {
   const [accountType, setAccountType] = useState('checking');
   const [periodLabel, setPeriodLabel] = useState('');
@@ -2267,14 +2303,14 @@ function ImportTab({ categories, onCommitted }) {
         return (
         <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 12, padding: '14px 18px', marginBottom: 16 }}>
           <div style={{ fontWeight: 700, color: '#1f2937', marginBottom: 4 }}>📋 {acctLabel} statements you've imported</div>
-          <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 12 }}>Showing your <strong>{acctLabel.toLowerCase()}</strong> statements (switch “Account type” above to see the other kind). Remove any that's wrong or a duplicate — its transactions come back out automatically.</div>
+          <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 12 }}>Showing your <strong>{acctLabel.toLowerCase()}</strong> statements (switch “Account type” above to see the other kind). Remove any that's wrong or a duplicate — its transactions come back out automatically. <strong>To reconcile</strong>, type each statement's beginning and ending balance — a ✓ means every transaction is accounted for.</div>
           {shown.length === 0 ? (
             <div style={{ fontSize: 13, color: '#6b7280', padding: '8px 2px' }}>No {acctLabel.toLowerCase()} statements imported yet.</div>
           ) : (
           <div style={{ overflow: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
               <thead style={{ background: '#f9fafb', borderBottom: '1px solid #e5e7eb' }}>
-                <tr><Th>Account</Th><Th>Statement period</Th><Th align="center">Status</Th><Th align="right">Saved</Th><Th></Th></tr>
+                <tr><Th>Account</Th><Th>Statement period</Th><Th align="center">Status</Th><Th align="right">Saved</Th><Th align="right">Begin $</Th><Th align="right">End $</Th><Th align="center">Reconciled</Th><Th></Th></tr>
               </thead>
               <tbody>
                 {shown.map(imp => {
@@ -2289,6 +2325,7 @@ function ImportTab({ categories, onCommitted }) {
                           : <span style={{ background: '#fef9c3', color: '#854d0e', borderRadius: 6, padding: '2px 8px', fontSize: 12, fontWeight: 600 }}>Not saved</span>}
                       </Td>
                       <Td align="right">{saved ? imp.committed_count : '—'}</Td>
+                      <ReconcileCells imp={imp} onSaved={loadHistory} />
                       <Td align="right">
                         <div style={{ display: 'inline-flex', gap: 6 }}>
                           {!saved && (
