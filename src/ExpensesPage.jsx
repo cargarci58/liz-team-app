@@ -1996,6 +1996,36 @@ function PnLTab() {
     setTimeout(() => w.print(), 350);
   };
 
+  // Export the full P&L as a spreadsheet (CSV — opens directly in Excel /
+  // Google Sheets). Amounts are raw numbers so the accountant can total them.
+  const exportExcel = () => {
+    if (!pnl) return;
+    const q = (s) => `"${String(s == null ? '' : s).replace(/"/g, '""')}"`;
+    const money = (n) => (Math.round(Number(n || 0) * 100) / 100).toFixed(2);
+    const rows = [];
+    rows.push([q('Profit & Loss Statement'), '']);
+    rows.push([q(company?.name || 'My Real Estate Business'), '']);
+    rows.push([q('Tax Year'), q(year)]);
+    rows.push([q('Generated'), q(fmtDate(todayISO()))]);
+    rows.push(['', '']);
+    rows.push([q('INCOME'), q('Amount')]);
+    rows.push([q('Commission income (closed deals)'), money(pnl.income.commission_total)]);
+    (pnl.income.other || []).forEach(c => rows.push([q(c.category), money(c.total)]));
+    rows.push([q('Total Income'), money(pnl.income.total)]);
+    rows.push(['', '']);
+    rows.push([q('EXPENSES'), q('Amount')]);
+    (pnl.expenses.by_category || []).forEach(c => rows.push([q(c.category), money(c.total)]));
+    rows.push([q('Total Expenses'), money(pnl.expenses.total)]);
+    rows.push(['', '']);
+    rows.push([q(pnl.net_profit >= 0 ? 'NET PROFIT' : 'NET LOSS'), money(pnl.net_profit)]);
+    const csv = '﻿' + rows.map(r => r.join(',')).join('\r\n'); // BOM so Excel reads UTF-8
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `profit_and_loss_${year}.csv`;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  };
+
   return (
     <div style={{ padding: '20px 24px' }}>
       <div style={{ display: 'flex', gap: 12, alignItems: 'end', flexWrap: 'wrap', marginBottom: 16 }}>
@@ -2005,6 +2035,7 @@ function PnLTab() {
           </select>
         </Field>
         <button onClick={printPnL} disabled={!pnl} style={primaryBtn('#3b82f6')}>🖨️ Print P&L</button>
+        <button onClick={exportExcel} disabled={!pnl} style={primaryBtn('#10b981')}>⬇️ Export to Excel</button>
       </div>
 
       {loading && <div style={{ padding: 40, textAlign: 'center', color: '#6b7280' }}>Loading...</div>}
