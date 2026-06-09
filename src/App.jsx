@@ -3648,6 +3648,63 @@ function ListingOffers({ txId, onReview, onReceiveOffer }) {
   );
 }
 
+// Shows any automated follow-ups still running for this deal, with a one-tap Stop.
+// Without this, a "general" follow-up keeps nagging until max-nudges/STOP/upload —
+// the agent has no way to call it off once the party handles it offline.
+function ActiveFollowups({ txId }) {
+  const [chases, setChases] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [stopping, setStopping] = useState(null);
+  const token = localStorage.getItem("tp_token") || "";
+
+  const load = async () => {
+    try {
+      const res = await fetch(API + "/chases/by-transaction/" + txId, { headers: { Authorization: "Bearer " + token } });
+      const data = await res.json();
+      if (data.success) setChases(data.chases || []);
+    } catch (e) { /* silent — non-critical panel */ }
+    setLoading(false);
+  };
+  useEffect(() => { load(); }, [txId]);
+
+  const stop = async (chase) => {
+    if (!window.confirm(`Stop the automated follow-up for "${chase.label}" to ${chase.target_party_name || "this party"}?\n\nNo more reminder emails or texts will be sent for it.`)) return;
+    setStopping(chase.id);
+    try {
+      const res = await fetch(API + "/chases/" + chase.id + "/stop", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
+        body: JSON.stringify({ reason: "Stopped by agent from deal view" })
+      });
+      const data = await res.json();
+      if (data.success) setChases(prev => prev.filter(c => c.id !== chase.id));
+      else alert("Could not stop follow-up: " + (data.error || "unknown"));
+    } catch (e) { alert("Could not stop follow-up. Please try again."); }
+    setStopping(null);
+  };
+
+  if (loading || chases.length === 0) return null;
+
+  return (
+    <div style={{ background: "#FEF6F4", border: "1px solid #F0C9C0", borderRadius: 10, padding: 14, marginBottom: 16 }}>
+      <div style={{ fontSize: 12, fontWeight: 700, color: "#C0392B", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 10 }}>🔔 Active Follow-Ups ({chases.length})</div>
+      {chases.map(c => (
+        <div key={c.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, padding: "8px 0", borderTop: "1px solid #F5DAD3" }}>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontSize: 14, fontWeight: 600, color: COLORS.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.label}</div>
+            <div style={{ fontSize: 12, color: COLORS.muted }}>
+              To {c.target_party_name || c.target_party_email}{c.target_party_role ? " (" + c.target_party_role + ")" : ""} · {c.nudge_count} of {c.max_nudges} reminders sent
+            </div>
+          </div>
+          <button onClick={() => stop(c)} disabled={stopping === c.id} style={{ flexShrink: 0, background: "#fff", border: "1px solid #C0392B", color: "#C0392B", borderRadius: 6, padding: "6px 12px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+            {stopping === c.id ? "Stopping…" : "Stop"}
+          </button>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [], onSaveContact, onOpenContactBook, onDuplicate, currentUser, initialTab = "overview", dashboardUnread = 0, onMilestoneSummary }) {
   const [activeTab, setActiveTab] = useState(initialTab);
   const [showAssignAgent, setShowAssignAgent] = useState(false);
@@ -4260,6 +4317,7 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
                 <Btn onClick={() => setShowAddParty(true)} small>+ Add Party</Btn>
               </div>
             )}
+            {!isGuest && <ActiveFollowups txId={tx.id} />}
             {showAssignVendor && (
               <AssignVendorPanel
                 tx={tx}
