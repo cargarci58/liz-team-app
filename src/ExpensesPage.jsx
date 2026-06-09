@@ -2699,15 +2699,15 @@ function ModalShell({ children, onClose, title, width = 560 }) {
       onClick={onClose}
       style={{
         position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        zIndex: 1000, padding: 16
+        display: 'flex', alignItems: 'flex-start', justifyContent: 'center',
+        zIndex: 1000, padding: 16, overflowY: 'auto'
       }}
     >
       <div
         onClick={e => e.stopPropagation()}
         style={{
           background: 'white', borderRadius: 14, width: '100%', maxWidth: width,
-          maxHeight: '90vh', overflow: 'auto', boxShadow: '0 20px 50px rgba(0,0,0,0.3)'
+          maxHeight: '90vh', overflow: 'auto', boxShadow: '0 20px 50px rgba(0,0,0,0.3)', margin: 'auto'
         }}
       >
         <div style={{

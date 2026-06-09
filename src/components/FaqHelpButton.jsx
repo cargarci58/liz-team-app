@@ -101,9 +101,10 @@ export default function FaqHelpButton({ transactionId, apiBase, token }) {
             background: 'rgba(0,0,0,0.5)',
             zIndex: 1001,
             display: 'flex',
-            alignItems: 'center',
+            alignItems: 'flex-start',
             justifyContent: 'center',
             padding: '20px',
+            overflowY: 'auto',
           }}
         >
           <div
@@ -117,6 +118,7 @@ export default function FaqHelpButton({ transactionId, apiBase, token }) {
               display: 'flex',
               flexDirection: 'column',
               overflow: 'hidden',
+              margin: 'auto',
             }}
           >
             {/* Header */}

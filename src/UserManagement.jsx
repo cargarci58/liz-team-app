@@ -71,8 +71,8 @@ export default function UserManagement({ onClose }) {
   const inputStyle = { width: "100%", padding: "10px 12px", borderRadius: 8, border: `1px solid ${C.midGray}`, fontSize: 14, fontFamily: "inherit", boxSizing: "border-box" };
 
   return (
-    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
-      <div style={{ background: C.white, borderRadius: 0, width: "100%", maxWidth: 700, height: "100vh", maxHeight: "100vh", overflow: "hidden", display: "flex", flexDirection: "column", boxShadow: "0 20px 60px rgba(0,0,0,0.25)" }}>
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 1000, display: "flex", alignItems: "flex-start", justifyContent: "center", padding: 16, overflowY: "auto" }}>
+      <div style={{ background: C.white, borderRadius: 0, width: "100%", maxWidth: 700, height: "100vh", maxHeight: "100vh", overflow: "hidden", display: "flex", flexDirection: "column", boxShadow: "0 20px 60px rgba(0,0,0,0.25)", margin: "auto" }}>
         {/* Header */}
         <div style={{ padding: "20px 24px 16px", borderBottom: `1px solid ${C.border}`, display: "flex", justifyContent: "space-between", alignItems: "center", background: C.black }}>
           <div>

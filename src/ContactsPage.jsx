@@ -30,8 +30,8 @@ function ContactsGuide({ onClose }) {
     </div>
   );
   return (
-    <div style={{ position: "fixed", inset: 0, zIndex: 6000, background: "rgba(0,0,0,0.55)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }} onClick={onClose}>
-      <div onClick={e => e.stopPropagation()} style={{ background: "#f9fafb", borderRadius: 14, maxWidth: 640, width: "100%", maxHeight: "92vh", overflowY: "auto", padding: 24 }}>
+    <div style={{ position: "fixed", inset: 0, zIndex: 6000, background: "rgba(0,0,0,0.55)", display: "flex", alignItems: "flex-start", justifyContent: "center", padding: 16, overflowY: "auto" }} onClick={onClose}>
+      <div onClick={e => e.stopPropagation()} style={{ background: "#f9fafb", borderRadius: 14, maxWidth: 640, width: "100%", maxHeight: "92vh", overflowY: "auto", padding: 24, margin: "auto" }}>
         <div style={{ fontSize: 24, fontWeight: 900, color: "#111", marginBottom: 4 }}>📖 How Your Contacts Work</div>
         <div style={{ fontSize: 14, color: "#6b7280", marginBottom: 18 }}>A 2-minute guide. This is your relationship list — the people who will give you business and referrals. The app tells you who to call each day so you never lose touch.</div>
 
@@ -259,8 +259,8 @@ function LogCallModal({ contact, token, onClose, onLogged }) {
   const m = TEMP_META[newTemp] || TEMP_META.warm;
 
   return (
-    <div style={{ position: "fixed", inset: 0, zIndex: 4500, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }} onClick={onClose}>
-      <div onClick={e => e.stopPropagation()} style={{ background: "white", borderRadius: 12, maxWidth: 560, width: "100%", maxHeight: "90vh", overflowY: "auto", padding: 24 }}>
+    <div style={{ position: "fixed", inset: 0, zIndex: 4500, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "flex-start", justifyContent: "center", padding: 16, overflowY: "auto" }} onClick={onClose}>
+      <div onClick={e => e.stopPropagation()} style={{ background: "white", borderRadius: 12, maxWidth: 560, width: "100%", maxHeight: "90vh", overflowY: "auto", padding: 24, margin: "auto" }}>
         <div style={{ fontSize: 18, fontWeight: 800, marginBottom: 4 }}>📞 Log Call · {contactName}</div>
         <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 16 }}>
           {step === 1 ? "What was the outcome of this call?" : "What's next with this lead?"}
@@ -475,8 +475,8 @@ function ContactModal({ contact, token, onClose, onSaved }) {
   };
 
   return (
-    <div style={{ position: "fixed", inset: 0, zIndex: 4000, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }} onClick={onClose}>
-      <div onClick={e => e.stopPropagation()} style={{ background: "white", borderRadius: 12, maxWidth: 520, width: "100%", maxHeight: "90vh", overflowY: "auto", padding: 24 }}>
+    <div style={{ position: "fixed", inset: 0, zIndex: 4000, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "flex-start", justifyContent: "center", padding: 16, overflowY: "auto" }} onClick={onClose}>
+      <div onClick={e => e.stopPropagation()} style={{ background: "white", borderRadius: 12, maxWidth: 520, width: "100%", maxHeight: "90vh", overflowY: "auto", padding: 24, margin: "auto" }}>
         <div style={{ fontSize: 18, fontWeight: 800, marginBottom: 4 }}>{isEdit ? "Edit Contact" : "Add Contact"}</div>
         <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 16 }}>
           Contacts are private to you. Temperature drives how often the system reminds you to call.
@@ -656,8 +656,8 @@ function FillMissingModal({ token, onClose, onDone }) {
   };
 
   return (
-    <div onClick={() => !busy && onClose()} style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.55)", zIndex:9999, display:"flex", alignItems:"center", justifyContent:"center", padding:16 }}>
-      <div onClick={e => e.stopPropagation()} style={{ background:"#fff", borderRadius:14, padding:22, maxWidth:640, width:"100%", maxHeight:"90vh", overflowY:"auto" }}>
+    <div onClick={() => !busy && onClose()} style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.55)", zIndex:9999, display:"flex", alignItems: "flex-start", justifyContent:"center", padding:16, overflowY: "auto" }}>
+      <div onClick={e => e.stopPropagation()} style={{ background:"#fff", borderRadius:14, padding:22, maxWidth:640, width:"100%", maxHeight:"90vh", overflowY:"auto", margin: "auto" }}>
         <div style={{ fontSize:20, fontWeight:800, color:"#92400e", marginBottom:6 }}>🩹 Fill Missing Info from CSV</div>
         <div style={{ background:"#fef3c7", border:"1px solid #fcd34d", borderRadius:8, padding:12, marginBottom:14, fontSize:13, color:"#78350f", lineHeight:1.5 }}>
           <strong>What this does:</strong> Re-imports a CSV from your other CRM and fills in <strong>only blank fields</strong> on existing contacts. <strong>Will never overwrite</strong> data you already have. Matches by <strong>email</strong>.<br/><br/>
@@ -838,8 +838,8 @@ function ImportModal({ token, onClose, onImported, onFillMissing }) {
   };
 
   return (
-    <div style={{ position: "fixed", inset: 0, zIndex: 4000, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }} onClick={safeClose}>
-      <div onClick={e => e.stopPropagation()} style={{ background: "white", borderRadius: 12, maxWidth: 640, width: "100%", maxHeight: "90vh", overflowY: "auto", padding: 24 }}>
+    <div style={{ position: "fixed", inset: 0, zIndex: 4000, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "flex-start", justifyContent: "center", padding: 16, overflowY: "auto" }} onClick={safeClose}>
+      <div onClick={e => e.stopPropagation()} style={{ background: "white", borderRadius: 12, maxWidth: 640, width: "100%", maxHeight: "90vh", overflowY: "auto", padding: 24, margin: "auto" }}>
         <div style={{ fontSize: 18, fontWeight: 800, marginBottom: 4 }}>📥 Import Contacts (CSV)</div>
         <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 16 }}>
           Upload a CSV export from your CRM, Google Contacts, Excel, or any spreadsheet. Column matching is automatic.
@@ -1190,8 +1190,8 @@ function BulkScheduleModal({ token, contactCount, onClose, onScheduled }) {
   };
 
   return (
-    <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 4100, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
-      <div onClick={e => e.stopPropagation()} style={{ background: "white", borderRadius: 12, maxWidth: 540, width: "100%", maxHeight: "90vh", overflowY: "auto", padding: 24 }}>
+    <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 4100, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "flex-start", justifyContent: "center", padding: 16, overflowY: "auto" }}>
+      <div onClick={e => e.stopPropagation()} style={{ background: "white", borderRadius: 12, maxWidth: 540, width: "100%", maxHeight: "90vh", overflowY: "auto", padding: 24, margin: "auto" }}>
         <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 4 }}>📅 Schedule Calls</div>
         <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 16 }}>
           Distribute your contacts into a daily call plan. The system staggers contacts across days so you have a manageable list every morning.
@@ -1831,8 +1831,8 @@ export default function ContactsPage({ token, onBack }) {
         💡 New here, or training an agent? <button onClick={() => setShowGuide(true)} style={{ background: "#0c4a6e", color: "white", border: "none", borderRadius: 6, padding: "5px 12px", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit", marginLeft: 4 }}>📖 How Contacts Work — Start Here</button>
       </div>
       {showPopbyInfo && (
-        <div style={{ position: "fixed", inset: 0, zIndex: 6000, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }} onClick={() => setShowPopbyInfo(false)}>
-          <div onClick={e => e.stopPropagation()} style={{ background: "white", borderRadius: 12, maxWidth: 440, width: "100%", padding: 24 }}>
+        <div style={{ position: "fixed", inset: 0, zIndex: 6000, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "flex-start", justifyContent: "center", padding: 16, overflowY: "auto" }} onClick={() => setShowPopbyInfo(false)}>
+          <div onClick={e => e.stopPropagation()} style={{ background: "white", borderRadius: 12, maxWidth: 440, width: "100%", padding: 24, margin: "auto" }}>
             <div style={{ fontSize: 18, fontWeight: 800, marginBottom: 8 }}>🎁 What's a "pop-by"?</div>
             <div style={{ fontSize: 14, color: "#374151", lineHeight: 1.6 }}>
               A pop-by is when you personally drop off a small, thoughtful gift to a top client — a pie in the fall, a cold drink in summer, a little something just to say hello. It keeps you top-of-mind so they think of you (and refer you) when real estate comes up.
@@ -1993,8 +1993,8 @@ export default function ContactsPage({ token, onBack }) {
       {showAdd && <ContactModal token={token} onClose={() => setShowAdd(false)} onSaved={() => load()} />}
       {showGuide && <ContactsGuide onClose={() => setShowGuide(false)} />}
       {showSettings && (
-        <div style={{ position: "fixed", inset: 0, zIndex: 5000, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }} onClick={() => setShowSettings(false)}>
-          <div onClick={e => e.stopPropagation()} style={{ background: "white", borderRadius: 12, maxWidth: 480, width: "100%", padding: 24 }}>
+        <div style={{ position: "fixed", inset: 0, zIndex: 5000, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "flex-start", justifyContent: "center", padding: 16, overflowY: "auto" }} onClick={() => setShowSettings(false)}>
+          <div onClick={e => e.stopPropagation()} style={{ background: "white", borderRadius: 12, maxWidth: 480, width: "100%", padding: 24, margin: "auto" }}>
             <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 6 }}>⚙ Contact Settings</div>
             <div style={{ fontSize: 13, color: "#374151", lineHeight: 1.6, marginBottom: 16 }}>
               Your daily call list builds itself from each contact's tier — open Win the Day and the right people are already there. These two extras are optional:
@@ -2014,8 +2014,8 @@ export default function ContactsPage({ token, onBack }) {
         </div>
       )}
       {showGroups && (
-        <div style={{ position: "fixed", inset: 0, zIndex: 4000, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }} onClick={() => setShowGroups(false)}>
-          <div onClick={e => e.stopPropagation()} style={{ background: "white", borderRadius: 12, maxWidth: 460, width: "100%", maxHeight: "85vh", overflowY: "auto", padding: 24 }}>
+        <div style={{ position: "fixed", inset: 0, zIndex: 4000, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "flex-start", justifyContent: "center", padding: 16, overflowY: "auto" }} onClick={() => setShowGroups(false)}>
+          <div onClick={e => e.stopPropagation()} style={{ background: "white", borderRadius: 12, maxWidth: 460, width: "100%", maxHeight: "85vh", overflowY: "auto", padding: 24, margin: "auto" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
               <div style={{ fontSize: 18, fontWeight: 800 }}>👥 Manage Groups</div>
               <button onClick={createGroup} style={btnStyle("#16a34a", "white")}>+ New Group</button>

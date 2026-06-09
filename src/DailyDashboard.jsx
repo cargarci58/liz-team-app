@@ -834,10 +834,10 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
       {chaseTask && (
         <div onClick={() => !chaseSubmitting && setChaseTask(null)}
           style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.5)",
-            display:"flex", alignItems:"center", justifyContent:"center", zIndex:1000, padding:16 }}>
+            display:"flex", alignItems:"flex-start", justifyContent:"center", zIndex:1000, padding:16, overflowY:"auto" }}>
           <div onClick={e => e.stopPropagation()}
             style={{ background:COLORS.white, borderRadius:14, padding:20, maxWidth:420, width:"100%",
-              maxHeight:"90vh", overflowY:"auto" }}>
+              maxHeight:"90vh", overflowY:"auto", margin:"auto" }}>
             <div style={{ fontSize:18, fontWeight:800, marginBottom:6 }}>Start Follow-Up</div>
             <div style={{ fontSize:13, color:COLORS.gray, marginBottom:14 }}>
               {chaseTask.title}

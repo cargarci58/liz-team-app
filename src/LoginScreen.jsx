@@ -31,8 +31,8 @@ function ForgotPasswordModal({ onClose }) {
   };
 
   return (
-    <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 5000, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
-      <div onClick={e => e.stopPropagation()} style={{ background: "white", borderRadius: 12, maxWidth: 420, width: "100%", padding: 28 }}>
+    <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 5000, display: "flex", alignItems: "flex-start", justifyContent: "center", padding: 16, overflowY: "auto" }}>
+      <div onClick={e => e.stopPropagation()} style={{ background: "white", borderRadius: 12, maxWidth: 420, width: "100%", padding: 28, margin: "auto" }}>
         <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 6 }}>🔐 Forgot Your Password?</div>
         <div style={{ fontSize: 13, color: "#6b7280", marginBottom: 16 }}>
           Enter your email and we will send you a secure link to set a new password. The link expires in 1 hour.
