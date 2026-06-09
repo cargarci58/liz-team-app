@@ -52,10 +52,11 @@ function ensureNotificationPermission() {
   }
 }
 
-// `simple` = embedded next to the Messages composer (agent view): no notify
-// picker — private sends belong in One Person mode; this thread is the open
-// room everyone sees. Guests/clients (standalone or portal) keep the picker.
-export default function TransactionChat({ transactionId, user, parties = [], style, onUnreadChange, unreadCount = 0, clientView = false, simple = false }) {
+// `simple` = embedded in the Messages tab (agent view): no notify picker.
+// `directTo` = a party {name, email}: PRIVATE chat — only shows the directed
+// messages between you and them, and everything you send is visible to them
+// alone (notify_emails). Guests/clients (standalone or portal) keep the picker.
+export default function TransactionChat({ transactionId, user, parties = [], style, onUnreadChange, unreadCount = 0, clientView = false, simple = false, directTo = null }) {
   const [messages, setMessages] = useState([]);
   const [newMsg, setNewMsg] = useState("");
   const [connected, setConnected] = useState(false);
@@ -138,16 +139,35 @@ export default function TransactionChat({ transactionId, user, parties = [], sty
 
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
 
+  const directEmail = (directTo?.email || "").trim().toLowerCase();
+
   const sendMessage = () => {
     if (!newMsg.trim() || !socketRef.current) return;
     const payload = { transactionId, message: newMsg.trim() };
-    if (selectedEmails.length > 0) payload.notifyEmails = selectedEmails;
+    if (directEmail) payload.notifyEmails = [directEmail];
+    else if (selectedEmails.length > 0) payload.notifyEmails = selectedEmails;
     socketRef.current.emit("send_message", payload);
     playSendSound();
     setNewMsg("");
     setSelectedEmails([]);
     setPickerOpen(false);
   };
+
+  // Private view: only the directed traffic between me and this party — my
+  // messages addressed to them alone, and their directed messages.
+  const notifyList = (m) => {
+    let n = m.notify_emails;
+    if (typeof n === "string") { try { n = JSON.parse(n); } catch { n = null; } }
+    return Array.isArray(n) ? n.map(x => String(x).toLowerCase()) : [];
+  };
+  const visibleMessages = directEmail
+    ? messages.filter(m => {
+        const arr = notifyList(m);
+        if (!arr.length) return false; // public room messages stay in the group view
+        if (arr.includes(directEmail)) return true; // directed at them (mine or other staff)
+        return (m.sender_name || "").trim().toLowerCase() === (directTo.name || "").trim().toLowerCase(); // their directed replies
+      })
+    : messages;
 
   const myId = getMyId();
   const isMe = msg => msg.user_id === myId;
@@ -174,7 +194,7 @@ export default function TransactionChat({ transactionId, user, parties = [], sty
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%", minHeight: 400, background: "#F8F9FA", borderRadius: 12, overflow: "hidden", border: "1px solid #DDD", ...style }}>
       <div style={{ background: "#111", padding: "12px 16px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <div style={{ color: "#fff", fontWeight: 700, fontSize: 14 }}>💬 Group Chat</div>
+        <div style={{ color: "#fff", fontWeight: 700, fontSize: 14 }}>{directTo ? `🔒 Private chat: ${directTo.name}` : "💬 Group Chat"}</div>
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
           <div style={{ width: 8, height: 8, borderRadius: "50%", background: connected ? "#4CAF50" : "#888" }} />
           <span style={{ color: "rgba(255,255,255,0.6)", fontSize: 11 }}>{connected ? "Live" : "Connecting..."}</span>
@@ -182,20 +202,20 @@ export default function TransactionChat({ transactionId, user, parties = [], sty
       </div>
 
       <div style={{ background: "#FEF9E7", borderBottom: "1px solid #F9E79F", padding: "8px 16px", display: "flex", alignItems: "center", gap: 8 }}>
-        <span>👀</span>
-        <span style={{ fontSize: 12, color: "#7D6608" }}>{simple ? "Everyone on this deal can see this chat. For a private message, switch to 📨 Email / Text above." : "All parties on this transaction can see messages here. Offline parties receive email notifications."}</span>
+        <span>{directTo ? "🔒" : "👀"}</span>
+        <span style={{ fontSize: 12, color: "#7D6608" }}>{directTo ? `Only you and ${directTo.name} can see this conversation. They get an email if they're not in the app.` : simple ? "Everyone on this deal can see this chat. For a private message, switch to 👤 One person above." : "All parties on this transaction can see messages here. Offline parties receive email notifications."}</span>
       </div>
 
       <div style={{ flex: 1, overflowY: "auto", padding: 16, display: "flex", flexDirection: "column", gap: 8 }}>
         {loading ? (
           <div style={{ textAlign: "center", color: "#888", padding: 20 }}>Loading messages...</div>
-        ) : messages.length === 0 ? (
+        ) : visibleMessages.length === 0 ? (
           <div style={{ textAlign: "center", color: "#888", padding: 30 }}>
-            <div style={{ fontSize: 32, marginBottom: 8 }}>💬</div>
+            <div style={{ fontSize: 32, marginBottom: 8 }}>{directTo ? "🔒" : "💬"}</div>
             <div style={{ fontWeight: 600 }}>No messages yet</div>
-            <div style={{ fontSize: 12, marginTop: 4 }}>Start the conversation — everyone on this transaction will be notified.</div>
+            <div style={{ fontSize: 12, marginTop: 4 }}>{directTo ? `Start a private conversation — only ${directTo.name} will see it.` : "Start the conversation — everyone on this transaction will be notified."}</div>
           </div>
-        ) : messages.map((msg, i) => {
+        ) : visibleMessages.map((msg, i) => {
           const msgDate = formatDate(msg.created_at);
           const showDate = msgDate !== lastDate;
           if (showDate) lastDate = msgDate;
@@ -229,7 +249,7 @@ export default function TransactionChat({ transactionId, user, parties = [], sty
                   <div style={{ background: mine ? "#C0392B" : unread ? "#FFF3CD" : "#fff", color: mine ? "#fff" : "#111", padding: "10px 14px", borderRadius: mine ? "14px 14px 4px 14px" : "14px 14px 14px 4px", fontSize: 14, lineHeight: 1.5, boxShadow: "0 1px 3px rgba(0,0,0,0.1)", border: mine ? "none" : unread ? "2px solid #F0C040" : "1px solid #E5E7EB" }}>
                     {msg.message}
                   </div>
-                  {!clientView && Array.isArray(msg.notify_emails) && msg.notify_emails.length > 0 && (
+                  {!clientView && !directTo && Array.isArray(msg.notify_emails) && msg.notify_emails.length > 0 && (
                     <div style={{ fontSize: 11, fontWeight: 700, color: mine ? "#fff" : "#1A5276", marginTop: 4, textAlign: mine ? "right" : "left", padding: "4px 10px", borderRadius: 10, background: mine ? "rgba(0,0,0,0.35)" : "#D6E4F0", display: "inline-block", border: mine ? "1px solid rgba(255,255,255,0.3)" : "1px solid #A9C5DC" }}>
                       📧 Notified: {(msg.notify_emails || []).map(e => {
                         const p = parties.find(p => (p.email || "").toLowerCase() === e.toLowerCase());
@@ -285,7 +305,7 @@ export default function TransactionChat({ transactionId, user, parties = [], sty
         )}
         <input value={newMsg} onChange={e => setNewMsg(e.target.value)}
           onKeyDown={e => e.key === "Enter" && !e.shiftKey && (e.preventDefault(), sendMessage())}
-          placeholder={selectedEmails.length > 0 ? `Notify ${selectedEmails.length} party · type message...` : (connected ? (simple ? "Message everyone..." : "Type a message... (Enter to send)") : "Connecting...")}
+          placeholder={directTo ? `Message ${(directTo.name || "").split(" ")[0]} privately...` : selectedEmails.length > 0 ? `Notify ${selectedEmails.length} party · type message...` : (connected ? (simple ? "Message everyone..." : "Type a message... (Enter to send)") : "Connecting...")}
           disabled={!connected}
           style={{ flex: 1, padding: "10px 14px", borderRadius: 24, border: "1.5px solid #DDD", fontSize: 14, fontFamily: "inherit", outline: "none", background: connected ? "#fff" : "#F5F5F5" }} />
         <button onClick={sendMessage} disabled={!connected || !newMsg.trim()}

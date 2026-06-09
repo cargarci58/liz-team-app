@@ -1218,24 +1218,62 @@ function SMSPanel({ tx, onUpdate, currentUser }) {
           <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "#15803D" }}><div style={{ width: 8, height: 8, borderRadius: "50%", background: "#15803D" }} /> SMS Online</div>
           <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: emailOnline ? "#15803D" : "#DC2626" }}><div style={{ width: 8, height: 8, borderRadius: "50%", background: emailOnline ? "#15803D" : "#DC2626" }} /> Email {emailOnline ? "Online" : "Not configured"}</div>
         </div>
-        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          <div style={{ display: "flex", background: "#F3F4F6", borderRadius: 8, padding: 3, gap: 2 }}>
-            {[["send", "📨 Email / Text"], ["chat", "💬 Chat in the app"]].map(([v, label]) => (
-              <button key={v} onClick={() => setSurface(v)} style={{ padding: "6px 14px", borderRadius: 6, border: "none", background: surface === v ? "#0F2044" : "transparent", color: surface === v ? "#fff" : "#6B7280", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>{label}</button>
-            ))}
-          </div>
-          {surface === "send" && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 6, alignItems: "flex-end" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <span style={{ fontSize: 11, fontWeight: 700, color: "#6B7280", textTransform: "uppercase", letterSpacing: "0.05em" }}>How</span>
             <div style={{ display: "flex", background: "#F3F4F6", borderRadius: 8, padding: 3, gap: 2 }}>
-              {[["direct", "👤 To one person"], ["group", "👥 To everyone"]].map(([v, label]) => (
+              {[["send", "📨 Email / Text"], ["chat", "💬 Chat in the app"]].map(([v, label]) => (
+                <button key={v} onClick={() => setSurface(v)} style={{ padding: "6px 14px", borderRadius: 6, border: "none", background: surface === v ? "#0F2044" : "transparent", color: surface === v ? "#fff" : "#6B7280", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>{label}</button>
+              ))}
+            </div>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <span style={{ fontSize: 11, fontWeight: 700, color: "#6B7280", textTransform: "uppercase", letterSpacing: "0.05em" }}>To</span>
+            <div style={{ display: "flex", background: "#F3F4F6", borderRadius: 8, padding: 3, gap: 2 }}>
+              {[["direct", "👤 One person"], ["group", "👥 Everyone"]].map(([v, label]) => (
                 <button key={v} onClick={() => setMode(v)} style={{ padding: "6px 14px", borderRadius: 6, border: "none", background: mode === v ? "#C9A84C" : "transparent", color: mode === v ? "#fff" : "#6B7280", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>{label}</button>
               ))}
             </div>
-          )}
+          </div>
         </div>
       </div>
       <input ref={fileInputRef} type="file" style={{ display: "none" }} onChange={e => { const f = e.target.files?.[0]; if (f) uploadFromComputer(f); e.target.value = ""; }} />
 
-      {surface === "chat" && (
+      {surface === "chat" && mode === "direct" && (
+        <div style={{ display: "grid", gridTemplateColumns: "260px 1fr", gap: 16, height: 620, "data-msg-grid": "" }}>
+          <div style={{ background: "#fff", border: "1px solid #E5E7EB", borderRadius: 12, overflow: "hidden", display: "flex", flexDirection: "column" }}>
+            <div style={{ padding: "12px 14px", borderBottom: "1px solid #E5E7EB", fontSize: 12, fontWeight: 700, color: "#6B7280", textTransform: "uppercase", letterSpacing: "0.05em" }}>Chat privately with...</div>
+            <div style={{ flex: 1, overflowY: "auto" }}>
+              {tx.parties.filter(p => p.email && p.email.trim()).map(party => {
+                const isSelected = selectedParty?.id === party.id;
+                return (
+                  <div key={party.id} onClick={() => setSelectedParty(party)} style={{ padding: "12px 14px", borderBottom: "1px solid #E5E7EB", cursor: "pointer", background: isSelected ? "#F0F4FF" : "#fff", borderLeft: `3px solid ${isSelected ? "#0F2044" : "transparent"}`, display: "flex", alignItems: "center", gap: 10 }}>
+                    <div style={{ width: 36, height: 36, borderRadius: "50%", background: "#1D4ED822", color: "#1D4ED8", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 13, flexShrink: 0 }}>{party.name.split(" ").map(w => w[0]).join("").toUpperCase().substr(0, 2)}</div>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontWeight: 600, fontSize: 13, color: "#1A1A2E", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{party.name}</div>
+                      <div style={{ fontSize: 11, fontWeight: 600, color: "#C9A84C" }}>{party.role}</div>
+                    </div>
+                  </div>
+                );
+              })}
+              {tx.parties.filter(p => p.email && p.email.trim()).length === 0 && (
+                <div style={{ padding: 20, fontSize: 13, color: "#6B7280" }}>No parties with an email yet — private chat needs one. Add it in the People tab.</div>
+              )}
+            </div>
+          </div>
+          {selectedParty && selectedParty.email ? (
+            <TransactionChat simple directTo={selectedParty} transactionId={tx.id} user={null} parties={tx.parties || []} style={{ height: "100%" }} unreadCount={0} onUnreadChange={() => {}} />
+          ) : (
+            <div style={{ background: "#fff", border: "1px solid #E5E7EB", borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 8, color: "#6B7280", padding: 20, textAlign: "center" }}>
+              <div style={{ fontSize: 40 }}>🔒</div>
+              <div style={{ fontWeight: 700, color: "#0F2044" }}>← Pick a person to chat privately</div>
+              <div style={{ fontSize: 13 }}>Only you and them see it. For the whole group, switch to "👥 Everyone" above.</div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {surface === "chat" && mode === "group" && (
         <div>
           <div style={{ background: "#fff", border: "1px solid #E5E7EB", borderRadius: 12, padding: "10px 14px", marginBottom: 12, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
             <button onClick={openDocPicker} style={{ fontSize: 12, padding: "6px 12px", borderRadius: 8, border: "1px solid #0F2044", background: "#fff", color: "#0F2044", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>📎 Attach from Documents</button>
