@@ -1369,7 +1369,7 @@ function CampaignModal({ token, groupList, onClose }) {
       alert(`✅ Sent to ${d.sent} contact${d.sent === 1 ? "" : "s"}.`
         + (d.skipped ? `\nSkipped ${d.skipped} (opted out or no email).` : "")
         + (d.cappedOut ? `\n${d.cappedOut} held back — you hit this month's send limit.` : "")
-        + (d.failed ? `\n${d.failed} failed to send.` : ""));
+        + (d.failed ? `\n${d.failed} failed to send.` + (d.firstError ? `\n\nReason from email provider:\n${d.firstError}` : "") : ""));
       loadCampaigns();
     } catch (e) { alert("Error: " + e.message); }
     finally { setBusy(false); }
