@@ -132,15 +132,6 @@ export default function PopBysPage({ token, onBack }) {
     } catch (e) { alert("Error: " + e.message); }
   };
 
-  // Select a tight nearby cluster (everyone within 5 mi of the first geocoded stop).
-  const selectCluster = () => {
-    const geo = (data.due || []).filter(c => c.hasCoords && !c.far);
-    if (geo.length === 0) { alert("No nearby contacts with a map location yet (they need a street address, and must be within ~1 hr)."); return; }
-    const anchor = geo[0];
-    const near = geo.filter(c => { const d = miles(anchor, c); return d != null && d <= 5; });
-    setSelected(new Set(near.map(c => c.id)));
-  };
-
   // Far contacts (~1 hr+ drive, incl. out-of-state) are excluded from the run
   // entirely — they get their own section below.
   const nearDue = (data?.due || []).filter(c => !c.far);
@@ -149,6 +140,31 @@ export default function PopBysPage({ token, onBack }) {
   // "The run" = your selection if you made one, otherwise everyone nearby.
   const runList = selectedList.length ? selectedList : nearDue;
   const ordered = routeOrder(runList);
+
+  // Group due contacts into named areas (chains of stops within ~7 mi of each
+  // other), labeled by their most common city — so the agent can pick a zone.
+  const areaClusters = (() => {
+    const unused = nearDue.filter(c => c.hasCoords);
+    const clusters = [];
+    while (unused.length) {
+      const members = [unused.shift()];
+      let grew = true;
+      while (grew) {
+        grew = false;
+        for (let i = unused.length - 1; i >= 0; i--) {
+          if (members.some(m => { const d = miles(m, unused[i]); return d != null && d <= 7; })) {
+            members.push(unused.splice(i, 1)[0]);
+            grew = true;
+          }
+        }
+      }
+      const cityCount = {};
+      members.forEach(m => { const city = (m.city || "").trim(); if (city) cityCount[city] = (cityCount[city] || 0) + 1; });
+      const top = Object.entries(cityCount).sort((a, b) => b[1] - a[1]);
+      clusters.push({ label: top.length ? top[0][0] : "Area", members });
+    }
+    return clusters.sort((a, b) => b.members.length - a.members.length).slice(0, 6);
+  })();
 
   const openMaps = () => {
     const stops = ordered.filter(c => c.fullAddress);
@@ -293,32 +309,9 @@ export default function PopBysPage({ token, onBack }) {
                 </div>
               ) : (
                 <>
-                  {/* ── STEP 1 — pick who ── */}
+                  {/* ── STEP 1 — pick the gift ── */}
                   <div style={stepBox}>
-                    <div style={stepTitle}><span style={stepNum}>1</span> Pick who's on this run</div>
-                    <div style={{ fontSize: 13, color: "#6b7280", marginBottom: 10 }}>Check the people you'll visit this trip. Skip this step to do everyone.</div>
-                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 10, alignItems: "center" }}>
-                      <button onClick={selectCluster} style={btn("#e0e7ff", "#3730a3")}>📍 Pick a nearby group for me</button>
-                      <button onClick={() => setSelected(new Set(nearDue.map(c => c.id)))} style={btn("#e5e7eb", "#374151")}>Select all</button>
-                      {selected.size > 0 && <button onClick={() => setSelected(new Set())} style={btn("#e5e7eb", "#374151")}>Clear</button>}
-                      <span style={{ fontSize: 13, fontWeight: 700, color: "#0c4a6e" }}>{selectedList.length > 0 ? `${selectedList.length} selected` : `all ${nearDue.length} included`}</span>
-                    </div>
-                    <div style={{ display: "grid", gap: 8 }}>
-                      {nearDue.map(c => (
-                        <div key={c.id} style={{ display: "flex", gap: 12, alignItems: "center", background: "#fff", border: "1px solid " + (selected.has(c.id) ? "#0c4a6e" : "#e5e7eb"), borderRadius: 10, padding: 12 }}>
-                          <input type="checkbox" checked={selected.has(c.id)} onChange={() => toggle(c.id)} style={{ width: 18, height: 18, cursor: "pointer" }} />
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ fontWeight: 700 }}>{c.firstName} {c.lastName} <span style={{ fontSize: 11, background: "#0c4a6e", color: "#fff", borderRadius: 6, padding: "1px 6px", marginLeft: 4 }}>{c.tier}</span></div>
-                            <div style={{ fontSize: 12, color: "#6b7280" }}>{c.fullAddress}{!c.hasCoords && (data.geocoding > 0 ? <span style={{ color: "#2563eb" }}> · 📍 locating…</span> : <span style={{ color: "#b45309" }}> · ⚠️ couldn't pinpoint — still included; check the address spelling</span>)}</div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* ── STEP 2 — pick the gift ── */}
-                  <div style={stepBox}>
-                    <div style={stepTitle}><span style={stepNum}>2</span> Pick the gift &amp; go shopping</div>
+                    <div style={stepTitle}><span style={stepNum}>1</span> Pick the gift &amp; go shopping</div>
                     <div style={{ fontSize: 13, color: "#6b7280", marginBottom: 10 }}>One gift for everyone — buy {runList.length} of the same thing.</div>
                     <button onClick={suggestBatch} disabled={suggestingBatch} style={btn("#fef9c3", "#854d0e")}>{suggestingBatch ? "Thinking…" : (batchGift.gift ? "↻ Suggest another gift" : "✨ Suggest a gift")}</button>
                     {batchGift.gift && (
@@ -333,11 +326,42 @@ export default function PopBysPage({ token, onBack }) {
                     )}
                   </div>
 
-                  {/* ── STEP 3 — print the notes ── */}
+                  {/* ── STEP 2 — print the notes ── */}
                   <div style={stepBox}>
-                    <div style={stepTitle}><span style={stepNum}>3</span> Print the note cards</div>
+                    <div style={stepTitle}><span style={stepNum}>2</span> Print the note cards</div>
                     <div style={{ fontSize: 13, color: "#6b7280", marginBottom: 10 }}>One card per person, ready to print on letter paper (8 per page) and cut out. Tape one to each gift.</div>
                     <button onClick={printNotes} style={btn("#e0e7ff", "#3730a3")}>🖨 Print {runList.length} note card{runList.length === 1 ? "" : "s"}</button>
+                  </div>
+
+                  {/* ── STEP 3 — pick who / which area ── */}
+                  <div style={stepBox}>
+                    <div style={stepTitle}><span style={stepNum}>3</span> Pick who's on today's run</div>
+                    <div style={{ fontSize: 13, color: "#6b7280", marginBottom: 10 }}>Your due contacts are grouped by area below — tap an area to do that zone today, or check people one by one. Skip this step to do everyone.</div>
+                    {areaClusters.length > 0 && (
+                      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 10, alignItems: "center" }}>
+                        {areaClusters.map((cl, i) => (
+                          <button key={i} onClick={() => setSelected(new Set(cl.members.map(m => m.id)))} style={btn("#e0e7ff", "#3730a3")}>
+                            📍 {cl.label} area ({cl.members.length})
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 10, alignItems: "center" }}>
+                      <button onClick={() => setSelected(new Set(nearDue.map(c => c.id)))} style={btn("#e5e7eb", "#374151")}>Select all</button>
+                      {selected.size > 0 && <button onClick={() => setSelected(new Set())} style={btn("#e5e7eb", "#374151")}>Clear</button>}
+                      <span style={{ fontSize: 13, fontWeight: 700, color: "#0c4a6e" }}>{selectedList.length > 0 ? `${selectedList.length} on this run` : `all ${nearDue.length} included`}</span>
+                    </div>
+                    <div style={{ display: "grid", gap: 8 }}>
+                      {nearDue.map(c => (
+                        <div key={c.id} style={{ display: "flex", gap: 12, alignItems: "center", background: "#fff", border: "1px solid " + (selected.has(c.id) ? "#0c4a6e" : "#e5e7eb"), borderRadius: 10, padding: 12 }}>
+                          <input type="checkbox" checked={selected.has(c.id)} onChange={() => toggle(c.id)} style={{ width: 18, height: 18, cursor: "pointer" }} />
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontWeight: 700 }}>{c.firstName} {c.lastName} <span style={{ fontSize: 11, background: "#0c4a6e", color: "#fff", borderRadius: 6, padding: "1px 6px", marginLeft: 4 }}>{c.tier}</span></div>
+                            <div style={{ fontSize: 12, color: "#6b7280" }}>{c.fullAddress}{!c.hasCoords && (data.geocoding > 0 ? <span style={{ color: "#2563eb" }}> · 📍 locating…</span> : <span style={{ color: "#b45309" }}> · ⚠️ couldn't pinpoint — still included; check the address spelling</span>)}</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
 
                   {/* ── STEP 4 — drive & deliver ── */}
