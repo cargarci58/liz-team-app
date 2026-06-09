@@ -1004,6 +1004,18 @@ function SMSPanel({ tx, onUpdate, currentUser }) {
   const [reminderChannel, setReminderChannel] = useState("both");
   const [reminderParties, setReminderParties] = useState([]);
   const [reminderSending, setReminderSending] = useState(false);
+  // Group mode: one composer → email + SMS to everyone + posts to the chat thread.
+  const [mode, setMode] = useState("direct");
+  const [gSubject, setGSubject] = useState("");
+  const [gMessage, setGMessage] = useState("");
+  const [gChannel, setGChannel] = useState("both");
+  const [gAttach, setGAttach] = useState([]); // [{ id, name }]
+  const [gSending, setGSending] = useState(false);
+  const [gResult, setGResult] = useState(null);
+  const [docPickerOpen, setDocPickerOpen] = useState(false);
+  const [docList, setDocList] = useState(null);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef(null);
   const messagesEndRef = useRef(null);
 
   useEffect(() => {
@@ -1145,6 +1157,52 @@ function SMSPanel({ tx, onUpdate, currentUser }) {
     setReminderSending(false);
   };
 
+  // ── Group send (everyone at once) ─────────────────────────────
+  const gWithEmail = tx.parties.filter(p => p.email && p.email.trim());
+  const gWithPhone = tx.parties.filter(p => p.phone && p.phone.trim());
+  const gNoContact = tx.parties.filter(p => !(p.email && p.email.trim()) && !(p.phone && p.phone.trim()));
+  const gEmailOnly = tx.parties.filter(p => (p.email && p.email.trim()) && !(p.phone && p.phone.trim()));
+  const gSmsOnly = tx.parties.filter(p => (p.phone && p.phone.trim()) && !(p.email && p.email.trim()));
+
+  const sendGroup = async () => {
+    if (!gMessage.trim()) return;
+    setGSending(true);
+    try {
+      const res = await fetch(`${SMS_SERVER}/transactions/${tx.id}/broadcast`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": "Bearer " + (localStorage.getItem("tp_token") || "") },
+        body: JSON.stringify({ subject: gSubject, message: gMessage.trim(), channel: gChannel, attachDocIds: gAttach.map(a => a.id) }),
+      });
+      const d = await res.json();
+      if (d.success) { setGResult(d.results || []); setGMessage(""); setGSubject(""); setGAttach([]); loadLogged(); }
+      else alert("Send failed: " + (d.error || "unknown error"));
+    } catch { alert("Server unreachable."); }
+    setGSending(false);
+  };
+
+  const openDocPicker = () => {
+    setDocPickerOpen(true);
+    if (docList === null) {
+      const tok = localStorage.getItem("tp_token") || "";
+      fetch(`${SMS_SERVER}/documents/${tx.id}`, { headers: { Authorization: "Bearer " + tok } })
+        .then(r => r.json()).then(d => setDocList(d.documents || [])).catch(() => setDocList([]));
+    }
+  };
+  const toggleAttach = doc => setGAttach(prev => prev.find(a => a.id === doc.id) ? prev.filter(a => a.id !== doc.id) : [...prev, { id: doc.id, name: doc.name }]);
+
+  const uploadFromComputer = async file => {
+    if (!file) return;
+    setUploading(true);
+    try {
+      const base64 = await new Promise((resolve, reject) => { const fr = new FileReader(); fr.onload = () => resolve(fr.result.split(",")[1]); fr.onerror = reject; fr.readAsDataURL(file); });
+      const res = await fetch(`${SMS_SERVER}/documents/upload`, { method: "POST", headers: { "Content-Type": "application/json", "Authorization": "Bearer " + (localStorage.getItem("tp_token") || "") }, body: JSON.stringify({ transactionId: tx.id, fileName: file.name, fileType: file.type, category: "Email Attachments", base64 }) });
+      const d = await res.json();
+      if (d.success && d.docId) { setGAttach(prev => [...prev, { id: d.docId, name: file.name }]); setDocList(null); }
+      else alert("Upload failed: " + (d.error || "unknown error"));
+    } catch (e) { alert("Upload error: " + e.message); }
+    setUploading(false);
+  };
+
   if (serverOnline === false) {
     return (
       <div style={{ background: "#fff", border: "1px solid #E5E7EB", borderRadius: 14, padding: 40, textAlign: "center" }}>
@@ -1164,13 +1222,117 @@ function SMSPanel({ tx, onUpdate, currentUser }) {
           <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "#15803D" }}><div style={{ width: 8, height: 8, borderRadius: "50%", background: "#15803D" }} /> SMS Online</div>
           <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: emailOnline ? "#15803D" : "#DC2626" }}><div style={{ width: 8, height: 8, borderRadius: "50%", background: emailOnline ? "#15803D" : "#DC2626" }} /> Email {emailOnline ? "Online" : "Not configured"}</div>
         </div>
-        <div style={{ display: "flex", gap: 8 }}>
-          <button onClick={() => setShowReminderSMS(true)} style={{ padding: "4px 12px", borderRadius: 8, border: "1px solid #0F2044", background: "#fff", color: "#0F2044", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Deadline Reminder</button>
-          <button onClick={() => { setShowBulk(true); setBulkSelected([]); setBulkMessage(""); setBulkSubject(""); setBulkResult(null); setBulkChannel("sms"); }} style={{ padding: "4px 12px", borderRadius: 8, border: "none", background: "#C9A84C", color: "#fff", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Broadcast</button>
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <div style={{ display: "flex", background: "#F3F4F6", borderRadius: 8, padding: 3, gap: 2 }}>
+            {[["direct", "👤 Direct"], ["group", "👥 Group"]].map(([v, label]) => (
+              <button key={v} onClick={() => setMode(v)} style={{ padding: "5px 12px", borderRadius: 6, border: "none", background: mode === v ? "#0F2044" : "transparent", color: mode === v ? "#fff" : "#6B7280", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>{label}</button>
+            ))}
+          </div>
+          {mode === "direct" && <button onClick={() => setShowReminderSMS(true)} style={{ padding: "4px 12px", borderRadius: 8, border: "1px solid #0F2044", background: "#fff", color: "#0F2044", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Deadline Reminder</button>}
         </div>
       </div>
 
-      {partiesWithContact.length === 0 ? (
+      {mode === "group" && (
+        <div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, alignItems: "start", "data-msg-grid": "" }}>
+            {/* Composer */}
+            <div style={{ background: "#fff", border: "1px solid #E5E7EB", borderRadius: 12, padding: 18 }}>
+              <div style={{ fontWeight: 700, fontSize: 15, color: "#0F2044", marginBottom: 4 }}>Message everyone at once</div>
+              <div style={{ fontSize: 12, color: "#6B7280", marginBottom: 14 }}>Goes out by email <b>and</b> text so it reaches every party — and is saved to the group chat below as the record.</div>
+
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: "#6B7280", textTransform: "uppercase" }}>Send via</div>
+                <ChannelPicker value={gChannel} onChange={setGChannel} />
+              </div>
+
+              {(gChannel === "email" || gChannel === "both") && (
+                <input value={gSubject} onChange={e => setGSubject(e.target.value)} placeholder={`Email subject (default: Update: ${tx.address})`} style={{ width: "100%", padding: "9px 12px", borderRadius: 8, border: "1px solid #E5E7EB", fontSize: 13, fontFamily: "inherit", boxSizing: "border-box", marginBottom: 10 }} />
+              )}
+
+              <textarea value={gMessage} onChange={e => setGMessage(e.target.value)} rows={6} placeholder="Type your message to all parties..." style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: "1px solid #E5E7EB", fontSize: 14, fontFamily: "inherit", resize: "vertical", boxSizing: "border-box", marginBottom: 10 }} />
+
+              {/* Attachments */}
+              <div style={{ marginBottom: 12 }}>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: gAttach.length ? 8 : 0 }}>
+                  <button onClick={openDocPicker} style={{ fontSize: 12, padding: "6px 12px", borderRadius: 8, border: "1px solid #0F2044", background: "#fff", color: "#0F2044", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>📎 Attach from Documents</button>
+                  <button onClick={() => fileInputRef.current?.click()} disabled={uploading} style={{ fontSize: 12, padding: "6px 12px", borderRadius: 8, border: "1px solid #0F2044", background: "#fff", color: "#0F2044", fontWeight: 600, cursor: "pointer", fontFamily: "inherit", opacity: uploading ? 0.5 : 1 }}>{uploading ? "Uploading..." : "💻 Attach from computer"}</button>
+                  <input ref={fileInputRef} type="file" style={{ display: "none" }} onChange={e => { const f = e.target.files?.[0]; if (f) uploadFromComputer(f); e.target.value = ""; }} />
+                </div>
+                {gAttach.map(a => (
+                  <div key={a.id} style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "#F0F4FF", border: "1px solid #C7D2FE", borderRadius: 6, padding: "4px 8px", fontSize: 12, color: "#0F2044", marginRight: 6, marginBottom: 6 }}>
+                    📄 {a.name}
+                    <button onClick={() => setGAttach(prev => prev.filter(x => x.id !== a.id))} style={{ background: "none", border: "none", cursor: "pointer", color: "#6B7280", fontSize: 14, lineHeight: 1 }}>×</button>
+                  </div>
+                ))}
+                {gAttach.length > 0 && (gChannel === "sms" || gChannel === "both") && (
+                  <div style={{ fontSize: 11, color: "#6B7280", marginTop: 2 }}>Texted parties get a secure download link (files can't attach to a text).</div>
+                )}
+              </div>
+
+              {/* Reachability note */}
+              <div style={{ background: "#F9FAFB", border: "1px solid #E5E7EB", borderRadius: 8, padding: "10px 12px", fontSize: 12, color: "#374151", marginBottom: 14 }}>
+                <div style={{ fontWeight: 700, marginBottom: 4 }}>Who will get this</div>
+                {tx.parties.length === 0 ? <div style={{ color: "#6B7280" }}>No parties yet — add them in the Parties tab.</div> : (
+                  <>
+                    <div>📧 {gWithEmail.length} by email · 📱 {gWithPhone.length} by text</div>
+                    {gEmailOnly.length > 0 && <div style={{ color: "#B45309" }}>⚠️ {gEmailOnly.length} {gEmailOnly.length === 1 ? "party has" : "parties have"} no phone — email only</div>}
+                    {gSmsOnly.length > 0 && <div style={{ color: "#B45309" }}>⚠️ {gSmsOnly.length} {gSmsOnly.length === 1 ? "party has" : "parties have"} no email — text only</div>}
+                    {gNoContact.length > 0 && <div style={{ color: "#DC2626", fontWeight: 600 }}>🚫 {gNoContact.length} {gNoContact.length === 1 ? "party has" : "parties have"} no phone or email — add contact info to reach {gNoContact.length === 1 ? "them" : "them"}</div>}
+                  </>
+                )}
+              </div>
+
+              {gResult && (
+                <div style={{ background: "#F0FDF4", border: "1px solid #86EFAC", borderRadius: 8, padding: "10px 12px", fontSize: 12, marginBottom: 12 }}>
+                  <div style={{ fontWeight: 700, color: "#15803D", marginBottom: 4 }}>Sent ✓</div>
+                  {gResult.map((r, i) => (
+                    <div key={i} style={{ color: "#374151" }}>{r.name}: {r.email === true ? "📧" : ""}{r.sms === true ? " 📱" : ""}{r.email === false ? " email failed" : ""}{r.sms === false ? " text failed" : ""}{r.email === null && r.sms === null ? "—" : ""}</div>
+                  ))}
+                </div>
+              )}
+
+              <button onClick={sendGroup} disabled={!gMessage.trim() || gSending || gWithEmail.length + gWithPhone.length === 0} style={{ width: "100%", padding: "11px", borderRadius: 8, border: "none", background: "#15803D", color: "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer", fontFamily: "inherit", opacity: (!gMessage.trim() || gSending || gWithEmail.length + gWithPhone.length === 0) ? 0.5 : 1 }}>{gSending ? "Sending..." : `Send to all ${tx.parties.length} parties`}</button>
+            </div>
+
+            {/* Group chat thread = the record */}
+            <div style={{ height: 620 }}>
+              <TransactionChat transactionId={tx.id} user={null} parties={tx.parties || []} style={{ height: "100%" }} unreadCount={0} onUnreadChange={() => {}} />
+            </div>
+          </div>
+
+          {docPickerOpen && (
+            <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 1000, display: "flex", alignItems: "flex-start", justifyContent: "center", padding: 16, overflowY: "auto" }}>
+              <div style={{ background: "#fff", borderRadius: 14, width: 480, maxWidth: "100%", maxHeight: "90vh", overflow: "auto", boxShadow: "0 20px 60px rgba(0,0,0,0.25)", "data-modal": "", margin: "auto" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "18px 22px", borderBottom: "1px solid #E5E7EB" }}>
+                  <div style={{ fontWeight: 700, fontSize: 16, color: "#0F2044" }}>Attach from Documents</div>
+                  <button onClick={() => setDocPickerOpen(false)} style={{ background: "none", border: "none", fontSize: 22, cursor: "pointer", color: "#6B7280" }}>×</button>
+                </div>
+                <div style={{ padding: "12px 22px 22px" }}>
+                  {docList === null ? <div style={{ color: "#6B7280", padding: 20, textAlign: "center" }}>Loading...</div> :
+                    docList.length === 0 ? <div style={{ color: "#6B7280", padding: 20, textAlign: "center" }}>No documents on this deal yet.</div> :
+                    docList.map(doc => {
+                      const on = !!gAttach.find(a => a.id === doc.id);
+                      return (
+                        <label key={doc.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", border: `1px solid ${on ? "#0F2044" : "#E5E7EB"}`, borderRadius: 8, cursor: "pointer", marginBottom: 8 }}>
+                          <input type="checkbox" checked={on} onChange={() => toggleAttach(doc)} />
+                          <div style={{ minWidth: 0 }}>
+                            <div style={{ fontSize: 13, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{doc.name}</div>
+                            <div style={{ fontSize: 11, color: "#6B7280" }}>{doc.category || doc.folder || "General"}</div>
+                          </div>
+                        </label>
+                      );
+                    })}
+                  <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 8 }}>
+                    <button onClick={() => setDocPickerOpen(false)} style={{ padding: "8px 18px", borderRadius: 8, border: "none", background: "#0F2044", color: "#fff", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Done</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {mode === "direct" && (partiesWithContact.length === 0 ? (
         <div style={{ textAlign: "center", color: "#6B7280", padding: 40 }}>No parties with phone or email. Add contact info in the Parties tab.</div>
       ) : (
         <div style={{ display: "grid", gridTemplateColumns: "260px 1fr", gap: 16, height: 560, "data-msg-grid": "" }}>
@@ -1277,7 +1439,7 @@ function SMSPanel({ tx, onUpdate, currentUser }) {
             )}
           </div>
         </div>
-      )}
+      ))}
 
       {showBulk && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 1000, display: "flex", alignItems: "flex-start", justifyContent: "center", padding: 16, overflowY: "auto" }}>
@@ -3954,7 +4116,9 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
     { id: "sms", label: `Messages${smsMsgCount > 0 ? ` (${smsMsgCount})` : ""}` },
     { id: "notes", label: "Internal Notes" },
     { id: "documents", label: "📎 Documents" },
-    { id: "chat", label: (chatUnread > 0 || dashboardUnread > 0) ? `💬 Group Chat (${Math.max(chatUnread, dashboardUnread)})` : "💬 Group Chat" },
+    // Group chat now lives inside the Messages tab (Group mode) for staff. Guests
+    // still get it as a standalone tab — it's one of their few allowed views.
+    ...(isGuest ? [{ id: "chat", label: (chatUnread > 0 || dashboardUnread > 0) ? `💬 Group Chat (${Math.max(chatUnread, dashboardUnread)})` : "💬 Group Chat" }] : []),
     { id: "cma", label: "📊 CMA" },
     ...(isBuyerSideTx ? [{ id: "offers", label: "📝 Create Offer" }, { id: "calculator", label: "🧮 Buyers Calculator" }, { id: "buyer-net", label: "💰 Buyer's Net Sheet" }] : []),
     ...(isListingSideTx ? [{ id: "seller-calc", label: "💰 Seller's Net Sheet" }] : []),
