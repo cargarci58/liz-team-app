@@ -8,6 +8,9 @@ const FREQ_LABEL = { 30: "Every month", 90: "Every 3 months", 180: "Every 6 mont
 const btn = (bg, color) => ({ background: bg, color, border: "none", borderRadius: 8, padding: "8px 14px", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit" });
 const input = { padding: "9px 12px", borderRadius: 8, border: "1.5px solid #cbd5e1", fontSize: 15, fontFamily: "inherit" };
 const lbl = { display: "block", fontSize: 12, fontWeight: 700, color: "#374151", textTransform: "uppercase", letterSpacing: "0.03em", marginBottom: 4 };
+const stepBox = { background: "#fff", border: "1px solid #e5e7eb", borderRadius: 12, padding: 16, marginTop: 14 };
+const stepTitle = { fontSize: 16, fontWeight: 800, color: "#111", marginBottom: 6, display: "flex", alignItems: "center", gap: 8 };
+const stepNum = { background: "#0c4a6e", color: "#fff", borderRadius: "50%", width: 24, height: 24, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 800, flexShrink: 0 };
 
 // Miles between two lat/lng points (haversine).
 function miles(a, b) {
@@ -139,7 +142,9 @@ export default function PopBysPage({ token, onBack }) {
   };
 
   const selectedList = (data?.due || []).filter(c => selected.has(c.id));
-  const ordered = routeOrder(selectedList);
+  // "The run" = your selection if you made one, otherwise everyone due.
+  const runList = selectedList.length ? selectedList : (data?.due || []);
+  const ordered = routeOrder(runList);
 
   const openMaps = () => {
     const stops = ordered.filter(c => c.fullAddress);
@@ -149,26 +154,46 @@ export default function PopBysPage({ token, onBack }) {
     window.open("https://www.google.com/maps/dir/" + points.map(encodeURIComponent).join("/"), "_blank");
   };
 
+  // Letter-portrait sheet, pre-formatted: 2 columns x 4 rows = 8 cards per page
+  // (each 3.75in x 2.4in), dashed cut lines, auto page breaks. Print at 100%.
   const printNotes = () => {
-    if (!batchGift.note) { alert("Pick a gift for the group first (✨ Suggest a gift) — that's what creates the note card."); return; }
-    const list = selected.size ? ordered : routeOrder(data.due || []);
-    const cards = list.map(c => `
-      <div class="card"><div class="to">For ${escapeHtml(c.firstName || "")} ${escapeHtml(c.lastName || "")}</div>
-      <div class="note">${escapeHtml(batchGift.note)}</div>
-      <div class="gift">${escapeHtml(batchGift.gift || "")}</div></div>`).join("");
-    if (!cards) { alert("No contacts to print note cards for."); return; }
+    if (!batchGift.note) { alert("Pick a gift first (Step 2, ✨ Suggest a gift) — that's what creates the note card."); return; }
+    const list = ordered;
+    if (!list.length) { alert("No contacts to print note cards for."); return; }
+    const PER_PAGE = 8;
+    const pages = [];
+    for (let i = 0; i < list.length; i += PER_PAGE) pages.push(list.slice(i, i + PER_PAGE));
+    const pageHtml = pages.map(pg => `<div class="page">${pg.map(c => `
+      <div class="card">
+        <div class="to">For ${escapeHtml(c.firstName || "")} ${escapeHtml(c.lastName || "")}</div>
+        <div class="note">${escapeHtml(batchGift.note)}</div>
+        <div class="gift">${escapeHtml(batchGift.gift || "")}</div>
+      </div>`).join("")}</div>`).join("");
     const w = window.open("", "_blank");
     if (!w) { alert("Allow pop-ups to print."); return; }
-    w.document.write(`<!doctype html><meta charset=utf-8><title>Pop-by note cards</title>
-      <style>@page{size:letter;margin:0.5in}*{box-sizing:border-box}body{margin:0;font-family:Georgia,serif}
-      .bar{padding:12px 18px;background:#0c4a6e;color:#fff;font:600 14px Arial}.bar button{background:#fff;color:#0c4a6e;border:0;border-radius:6px;padding:7px 14px;font:700 13px Arial;cursor:pointer}
-      .sheet{display:flex;flex-wrap:wrap;padding:8px}
-      .card{width:3.5in;height:2.2in;border:1px dashed #bbb;margin:6px;padding:18px;display:flex;flex-direction:column;justify-content:center;break-inside:avoid}
-      .to{font-size:12px;color:#888;margin-bottom:8px}.note{font-size:18px;font-weight:700;color:#0c4a6e;line-height:1.3}.gift{font-size:12px;color:#aaa;margin-top:10px;font-style:italic}
-      @media print{.bar{display:none}}</style>
-      <div class="bar"><button onclick="window.print()">🖨 Print note cards</button> &nbsp; Cut along the dashed lines.</div>
-      <div class="sheet">${cards}</div>
-      <script>window.onload=function(){setTimeout(function(){window.print()},300)}<\/script>`);
+    w.document.write(`<!doctype html><html><head><meta charset=utf-8><title>Pop-by note cards</title>
+      <style>
+        @page { size: letter portrait; margin: 0.5in; }
+        * { box-sizing: border-box; }
+        body { margin: 0; font-family: Georgia, 'Times New Roman', serif; }
+        .bar { padding: 12px 18px; background: #0c4a6e; color: #fff; font: 600 14px Arial; display: flex; align-items: center; gap: 12px; }
+        .bar button { background: #fff; color: #0c4a6e; border: 0; border-radius: 6px; padding: 8px 16px; font: 700 14px Arial; cursor: pointer; }
+        .bar span { font-weight: 400; opacity: .9; }
+        .page { width: 7.5in; height: 9.9in; margin: 0 auto; display: grid;
+                grid-template-columns: 3.75in 3.75in; grid-auto-rows: 2.4in;
+                align-content: start; page-break-after: always; }
+        .page:last-child { page-break-after: auto; }
+        .card { border: 1px dashed #bbb; padding: 0.25in; display: flex; flex-direction: column; justify-content: center; overflow: hidden; }
+        .to { font-size: 11pt; color: #888; margin-bottom: 8px; }
+        .note { font-size: 16pt; font-weight: 700; color: #0c4a6e; line-height: 1.35; }
+        .gift { font-size: 10pt; color: #aaa; margin-top: 10px; font-style: italic; }
+        @media print { .bar { display: none; } }
+      </style></head><body>
+      <div class="bar"><button onclick="window.print()">🖨 Print</button>
+        <span>${list.length} card${list.length === 1 ? "" : "s"} · ${pages.length} letter page${pages.length === 1 ? "" : "s"} (portrait) · print at 100% / Actual Size · cut along the dashed lines</span></div>
+      ${pageHtml}
+      <script>window.onload=function(){setTimeout(function(){window.print()},300)}<\/script>
+      </body></html>`);
     w.document.close();
   };
 
@@ -256,85 +281,86 @@ export default function PopBysPage({ token, onBack }) {
                 <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 10, padding: 20, color: "#166534" }}>🎉 Nobody's due for a pop-by right now. Check back later — or adjust your tiers/frequency in Settings.</div>
               ) : (
                 <>
-                  {/* Step toolbar */}
-                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12, alignItems: "center" }}>
-                    <button onClick={suggestBatch} disabled={suggestingBatch} style={btn("#fef9c3", "#854d0e")}>{suggestingBatch ? "Thinking…" : (batchGift.gift ? "↻ Suggest another gift" : "✨ Suggest a gift")}</button>
-                    <button onClick={printNotes} style={btn("#e0e7ff", "#3730a3")}>🖨 Print note cards</button>
-                    <span style={{ width: 1, height: 22, background: "#e5e7eb" }} />
-                    <button onClick={selectCluster} style={btn("#e0e7ff", "#3730a3")}>📍 Select a nearby group</button>
-                    <button onClick={() => setSelected(new Set(data.due.filter(c => !c.far).map(c => c.id)))} style={btn("#e5e7eb", "#374151")}>Select all nearby</button>
-                    {selected.size > 0 && <button onClick={() => setSelected(new Set())} style={btn("#e5e7eb", "#374151")}>Clear</button>}
-                    {selected.size > 0 && <span style={{ fontSize: 13, fontWeight: 700, color: "#0c4a6e" }}>{selected.size} selected</span>}
+                  {/* ── STEP 1 — pick who ── */}
+                  <div style={stepBox}>
+                    <div style={stepTitle}><span style={stepNum}>1</span> Pick who's on this run</div>
+                    <div style={{ fontSize: 13, color: "#6b7280", marginBottom: 10 }}>Check the people you'll visit this trip. Skip this step to do everyone.</div>
+                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 10, alignItems: "center" }}>
+                      <button onClick={selectCluster} style={btn("#e0e7ff", "#3730a3")}>📍 Pick a nearby group for me</button>
+                      <button onClick={() => setSelected(new Set(data.due.filter(c => !c.far).map(c => c.id)))} style={btn("#e5e7eb", "#374151")}>Select all nearby</button>
+                      {selected.size > 0 && <button onClick={() => setSelected(new Set())} style={btn("#e5e7eb", "#374151")}>Clear</button>}
+                      <span style={{ fontSize: 13, fontWeight: 700, color: "#0c4a6e" }}>{selected.size > 0 ? `${selected.size} selected` : `all ${data.due.length} included`}</span>
+                    </div>
+                    <div style={{ display: "grid", gap: 8 }}>
+                      {data.due.map(c => (
+                        <div key={c.id} style={{ display: "flex", gap: 12, alignItems: "center", background: "#fff", border: "1px solid " + (selected.has(c.id) ? "#0c4a6e" : "#e5e7eb"), borderRadius: 10, padding: 12 }}>
+                          <input type="checkbox" checked={selected.has(c.id)} onChange={() => toggle(c.id)} style={{ width: 18, height: 18, cursor: "pointer" }} />
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontWeight: 700 }}>{c.firstName} {c.lastName} <span style={{ fontSize: 11, background: "#0c4a6e", color: "#fff", borderRadius: 6, padding: "1px 6px", marginLeft: 4 }}>{c.tier}</span></div>
+                            <div style={{ fontSize: 12, color: "#6b7280" }}>{c.fullAddress}{!c.hasCoords && (data.geocoding > 0 ? <span style={{ color: "#2563eb" }}> · 📍 locating…</span> : <span style={{ color: "#b45309" }}> · ⚠️ couldn't pinpoint — still included; check the address spelling</span>)}{c.far && <span style={{ color: "#b91c1c", fontWeight: 700 }}> · ⏱ ~1 hr+ away ({c.milesFromStart} mi)</span>}</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
 
-                  {/* One gift for the whole run */}
-                  {batchGift.gift && (() => {
-                    const n = selected.size || data.due.length;
-                    return (
-                      <div style={{ background: "#fffbeb", border: "1px solid #fcd34d", borderRadius: 10, padding: 14, marginBottom: 14 }}>
-                        <div style={{ fontSize: 15, fontWeight: 800, color: "#92400e" }}>🎁 Buy {n} × {batchGift.gift}</div>
+                  {/* ── STEP 2 — pick the gift ── */}
+                  <div style={stepBox}>
+                    <div style={stepTitle}><span style={stepNum}>2</span> Pick the gift &amp; go shopping</div>
+                    <div style={{ fontSize: 13, color: "#6b7280", marginBottom: 10 }}>One gift for everyone — buy {runList.length} of the same thing.</div>
+                    <button onClick={suggestBatch} disabled={suggestingBatch} style={btn("#fef9c3", "#854d0e")}>{suggestingBatch ? "Thinking…" : (batchGift.gift ? "↻ Suggest another gift" : "✨ Suggest a gift")}</button>
+                    {batchGift.gift && (
+                      <div style={{ background: "#fffbeb", border: "1px solid #fcd34d", borderRadius: 10, padding: 14, marginTop: 10 }}>
+                        <div style={{ fontSize: 15, fontWeight: 800, color: "#92400e" }}>🛒 Buy {runList.length} × {batchGift.gift}</div>
                         <div style={{ fontSize: 13, color: "#78350f", marginTop: 4 }}>
-                          {batchGift.price != null && <span>💵 about <strong>${batchGift.price}</strong> each{n > 1 ? <span> · ~<strong>${Math.round(batchGift.price * n)}</strong> total</span> : null} (your budget: ${data.settings.budget}/gift)</span>}
+                          {batchGift.price != null && <span>💵 about <strong>${batchGift.price}</strong> each{runList.length > 1 ? <span> · ~<strong>${Math.round(batchGift.price * runList.length)}</strong> total</span> : null} (your budget: ${data.settings.budget}/gift)</span>}
                           {batchGift.whereToBuy && <span>{batchGift.price != null ? " · " : ""}🛍 find it at: <strong>{batchGift.whereToBuy}</strong></span>}
                         </div>
                         <div style={{ fontSize: 13, color: "#78350f", marginTop: 4 }}>Note card for each: <em>"{batchGift.note}"</em></div>
                       </div>
-                    );
-                  })()}
-
-                  {/* Due list */}
-                  <div style={{ display: "grid", gap: 8 }}>
-                    {data.due.map(c => (
-                      <div key={c.id} style={{ display: "flex", gap: 12, alignItems: "flex-start", background: "#fff", border: "1px solid " + (selected.has(c.id) ? "#0c4a6e" : "#e5e7eb"), borderRadius: 10, padding: 12 }}>
-                        <input type="checkbox" checked={selected.has(c.id)} onChange={() => toggle(c.id)} style={{ marginTop: 4, width: 18, height: 18, cursor: "pointer" }} />
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontWeight: 700 }}>{c.firstName} {c.lastName} <span style={{ fontSize: 11, background: "#0c4a6e", color: "#fff", borderRadius: 6, padding: "1px 6px", marginLeft: 4 }}>{c.tier}</span></div>
-                          <div style={{ fontSize: 12, color: "#6b7280" }}>{c.fullAddress}{!c.hasCoords && <span style={{ color: "#b45309" }}> · ⚠️ couldn't map this address</span>}{c.far && <span style={{ color: "#b91c1c", fontWeight: 700 }}> · ⏱ ~1 hr+ away ({c.milesFromStart} mi)</span>}</div>
-                        </div>
-                        <div style={{ display: "flex", flexDirection: "column", gap: 6, alignItems: "flex-end" }}>
-                          <label style={{ fontSize: 12, color: "#374151", display: "flex", alignItems: "center", gap: 4, cursor: "pointer" }}>
-                            <input type="checkbox" checked={c.purchased} onChange={() => togglePurchased(c)} /> bought
-                          </label>
-                          <button onClick={() => markDelivered(c)} style={btn("#dcfce7", "#166534")}>✓ Delivered</button>
-                        </div>
-                      </div>
-                    ))}
+                    )}
                   </div>
 
-                  {/* Selected-run tools */}
-                  {selected.size > 0 && (
-                    <div style={{ background: "#f8fafc", border: "1px solid #e5e7eb", borderRadius: 10, padding: 16, marginTop: 16 }}>
-                      <div style={{ fontWeight: 800, fontSize: 15, marginBottom: 10 }}>Your run — {selected.size} stop{selected.size === 1 ? "" : "s"}</div>
-                      {selectedList.some(c => c.far) && (
-                        <div style={{ background: "#fef2f2", border: "1px solid #fecaca", color: "#991b1b", borderRadius: 8, padding: "8px 12px", marginBottom: 10, fontSize: 13 }}>
-                          ⏱ Heads up: {selectedList.filter(c => c.far).length} selected stop{selectedList.filter(c => c.far).length === 1 ? " is" : "s are"} <strong>~1 hr+ away</strong> from your address — that's a long detour. Consider doing {selectedList.filter(c => c.far).length === 1 ? "it" : "them"} on a separate trip.
-                        </div>
-                      )}
-                      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
-                        <button onClick={openMaps} style={btn("#0c4a6e", "white")}>🗺 Open route in Google Maps</button>
-                      </div>
+                  {/* ── STEP 3 — print the notes ── */}
+                  <div style={stepBox}>
+                    <div style={stepTitle}><span style={stepNum}>3</span> Print the note cards</div>
+                    <div style={{ fontSize: 13, color: "#6b7280", marginBottom: 10 }}>One card per person, ready to print on letter paper (8 per page) and cut out. Tape one to each gift.</div>
+                    <button onClick={printNotes} style={btn("#e0e7ff", "#3730a3")}>🖨 Print {runList.length} note card{runList.length === 1 ? "" : "s"}</button>
+                  </div>
 
-                      {/* Shopping list */}
-                      <div style={{ fontSize: 13, marginBottom: 10 }}>
-                        <div style={{ fontWeight: 700, marginBottom: 4 }}>🛒 Shopping list</div>
-                        {batchGift.gift ? <div style={{ color: "#374151" }}>Buy <strong>{selected.size} × {batchGift.gift}</strong>{batchGift.price != null && <span> · ~${Math.round(batchGift.price * selected.size)} total</span>}{batchGift.whereToBuy && <span> · at {batchGift.whereToBuy}</span>}</div> :
-                          <div style={{ color: "#9ca3af" }}>Tap "✨ Suggest a gift" up top to pick one gift for the whole run.</div>}
+                  {/* ── STEP 4 — drive & deliver ── */}
+                  <div style={stepBox}>
+                    <div style={stepTitle}><span style={stepNum}>4</span> Drive the route &amp; mark delivered</div>
+                    {runList.some(c => c.far) && (
+                      <div style={{ background: "#fef2f2", border: "1px solid #fecaca", color: "#991b1b", borderRadius: 8, padding: "8px 12px", marginBottom: 10, fontSize: 13 }}>
+                        ⏱ Heads up: {runList.filter(c => c.far).length} stop{runList.filter(c => c.far).length === 1 ? " is" : "s are"} <strong>~1 hr+ away</strong> — consider a separate trip.
                       </div>
-
-                      {/* Route preview */}
-                      <div style={{ fontSize: 13 }}>
-                        <div style={{ fontWeight: 700, marginBottom: 4 }}>🚗 Suggested order {routeTotal(ordered) != null && <span style={{ color: "#6b7280", fontWeight: 400 }}>· ~{routeTotal(ordered)} mi total (straight-line)</span>}</div>
-                        <ol style={{ margin: 0, paddingLeft: 20, color: "#374151" }}>
-                          {ordered.map((c, i) => {
-                            const prev = ordered[i - 1];
-                            const leg = prev ? miles(prev, c) : null;
-                            return <li key={c.id} style={{ marginBottom: 2 }}>{c.firstName} {c.lastName} <span style={{ color: "#9ca3af" }}>· {c.fullAddress}{leg != null ? ` · ${leg.toFixed(1)} mi from previous` : ""}</span></li>;
-                          })}
-                        </ol>
-                        {!data.start.hasAddress && <div style={{ color: "#b45309", marginTop: 6 }}>Tip: add your office/home address in My Profile so the route starts from you.</div>}
+                    )}
+                    <button onClick={openMaps} style={{ ...btn("#0c4a6e", "white"), marginBottom: 12 }}>🗺 Open the route in Google Maps</button>
+                    <div style={{ fontSize: 13 }}>
+                      <div style={{ fontWeight: 700, marginBottom: 4 }}>🚗 Stop order {routeTotal(ordered) != null && <span style={{ color: "#6b7280", fontWeight: 400 }}>· ~{routeTotal(ordered)} mi total (straight-line)</span>}</div>
+                      <div style={{ display: "grid", gap: 6 }}>
+                        {ordered.map((c, i) => {
+                          const prev = ordered[i - 1];
+                          const leg = prev ? miles(prev, c) : null;
+                          return (
+                            <div key={c.id} style={{ display: "flex", gap: 10, alignItems: "center", background: "#fff", border: "1px solid #e5e7eb", borderRadius: 8, padding: "8px 12px" }}>
+                              <span style={{ fontWeight: 800, color: "#0c4a6e", width: 22, textAlign: "right" }}>{i + 1}.</span>
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <div style={{ fontWeight: 700, fontSize: 13 }}>{c.firstName} {c.lastName}</div>
+                                <div style={{ fontSize: 12, color: "#9ca3af" }}>{c.fullAddress}{leg != null ? ` · ${leg.toFixed(1)} mi from previous` : ""}</div>
+                              </div>
+                              <label style={{ fontSize: 12, color: "#374151", display: "flex", alignItems: "center", gap: 4, cursor: "pointer", whiteSpace: "nowrap" }}>
+                                <input type="checkbox" checked={c.purchased} onChange={() => togglePurchased(c)} /> gift bought
+                              </label>
+                              <button onClick={() => markDelivered(c)} style={btn("#dcfce7", "#166534")}>✓ Delivered</button>
+                            </div>
+                          );
+                        })}
                       </div>
+                      {!data.start.hasAddress && <div style={{ color: "#b45309", marginTop: 6 }}>Tip: add your office/home address in My Profile so the route starts from you.</div>}
                     </div>
-                  )}
+                  </div>
                 </>
               )}
 
