@@ -141,9 +141,13 @@ export default function PopBysPage({ token, onBack }) {
     setSelected(new Set(near.map(c => c.id)));
   };
 
-  const selectedList = (data?.due || []).filter(c => selected.has(c.id));
-  // "The run" = your selection if you made one, otherwise everyone due.
-  const runList = selectedList.length ? selectedList : (data?.due || []);
+  // Far contacts (~1 hr+ drive, incl. out-of-state) are excluded from the run
+  // entirely — they get their own section below.
+  const nearDue = (data?.due || []).filter(c => !c.far);
+  const farDue = (data?.due || []).filter(c => c.far);
+  const selectedList = nearDue.filter(c => selected.has(c.id));
+  // "The run" = your selection if you made one, otherwise everyone nearby.
+  const runList = selectedList.length ? selectedList : nearDue;
   const ordered = routeOrder(runList);
 
   const openMaps = () => {
@@ -277,8 +281,16 @@ export default function PopBysPage({ token, onBack }) {
                 </div>
               )}
 
-              {(data.due || []).length === 0 ? (
-                <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 10, padding: 20, color: "#166534" }}>🎉 Nobody's due for a pop-by right now. Check back later — or adjust your tiers/frequency in Settings.</div>
+              {!data.start.hasAddress && (data.due || []).length > 0 && (
+                <div style={{ background: "#fff7ed", border: "1px solid #fed7aa", color: "#9a3412", borderRadius: 8, padding: "8px 12px", marginBottom: 10, fontSize: 13 }}>
+                  ⚠️ Add your office/home address in <strong>My Profile</strong> — without it the app can't tell who's too far away or start your route from you.
+                </div>
+              )}
+              {nearDue.length === 0 ? (
+                <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 10, padding: 20, color: "#166534" }}>
+                  🎉 Nobody nearby is due for a pop-by right now. Check back later — or adjust your tiers/frequency in Settings.
+                  {farDue.length > 0 && <div style={{ marginTop: 6, color: "#9a3412" }}>({farDue.length} due contact{farDue.length === 1 ? " is" : "s are"} 1 hr+ away — see below.)</div>}
+                </div>
               ) : (
                 <>
                   {/* ── STEP 1 — pick who ── */}
@@ -287,17 +299,17 @@ export default function PopBysPage({ token, onBack }) {
                     <div style={{ fontSize: 13, color: "#6b7280", marginBottom: 10 }}>Check the people you'll visit this trip. Skip this step to do everyone.</div>
                     <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 10, alignItems: "center" }}>
                       <button onClick={selectCluster} style={btn("#e0e7ff", "#3730a3")}>📍 Pick a nearby group for me</button>
-                      <button onClick={() => setSelected(new Set(data.due.filter(c => !c.far).map(c => c.id)))} style={btn("#e5e7eb", "#374151")}>Select all nearby</button>
+                      <button onClick={() => setSelected(new Set(nearDue.map(c => c.id)))} style={btn("#e5e7eb", "#374151")}>Select all</button>
                       {selected.size > 0 && <button onClick={() => setSelected(new Set())} style={btn("#e5e7eb", "#374151")}>Clear</button>}
-                      <span style={{ fontSize: 13, fontWeight: 700, color: "#0c4a6e" }}>{selected.size > 0 ? `${selected.size} selected` : `all ${data.due.length} included`}</span>
+                      <span style={{ fontSize: 13, fontWeight: 700, color: "#0c4a6e" }}>{selectedList.length > 0 ? `${selectedList.length} selected` : `all ${nearDue.length} included`}</span>
                     </div>
                     <div style={{ display: "grid", gap: 8 }}>
-                      {data.due.map(c => (
+                      {nearDue.map(c => (
                         <div key={c.id} style={{ display: "flex", gap: 12, alignItems: "center", background: "#fff", border: "1px solid " + (selected.has(c.id) ? "#0c4a6e" : "#e5e7eb"), borderRadius: 10, padding: 12 }}>
                           <input type="checkbox" checked={selected.has(c.id)} onChange={() => toggle(c.id)} style={{ width: 18, height: 18, cursor: "pointer" }} />
                           <div style={{ flex: 1, minWidth: 0 }}>
                             <div style={{ fontWeight: 700 }}>{c.firstName} {c.lastName} <span style={{ fontSize: 11, background: "#0c4a6e", color: "#fff", borderRadius: 6, padding: "1px 6px", marginLeft: 4 }}>{c.tier}</span></div>
-                            <div style={{ fontSize: 12, color: "#6b7280" }}>{c.fullAddress}{!c.hasCoords && (data.geocoding > 0 ? <span style={{ color: "#2563eb" }}> · 📍 locating…</span> : <span style={{ color: "#b45309" }}> · ⚠️ couldn't pinpoint — still included; check the address spelling</span>)}{c.far && <span style={{ color: "#b91c1c", fontWeight: 700 }}> · ⏱ ~1 hr+ away ({c.milesFromStart} mi)</span>}</div>
+                            <div style={{ fontSize: 12, color: "#6b7280" }}>{c.fullAddress}{!c.hasCoords && (data.geocoding > 0 ? <span style={{ color: "#2563eb" }}> · 📍 locating…</span> : <span style={{ color: "#b45309" }}> · ⚠️ couldn't pinpoint — still included; check the address spelling</span>)}</div>
                           </div>
                         </div>
                       ))}
@@ -331,11 +343,6 @@ export default function PopBysPage({ token, onBack }) {
                   {/* ── STEP 4 — drive & deliver ── */}
                   <div style={stepBox}>
                     <div style={stepTitle}><span style={stepNum}>4</span> Drive the route &amp; mark delivered</div>
-                    {runList.some(c => c.far) && (
-                      <div style={{ background: "#fef2f2", border: "1px solid #fecaca", color: "#991b1b", borderRadius: 8, padding: "8px 12px", marginBottom: 10, fontSize: 13 }}>
-                        ⏱ Heads up: {runList.filter(c => c.far).length} stop{runList.filter(c => c.far).length === 1 ? " is" : "s are"} <strong>~1 hr+ away</strong> — consider a separate trip.
-                      </div>
-                    )}
                     <button onClick={openMaps} style={{ ...btn("#0c4a6e", "white"), marginBottom: 12 }}>🗺 Open the route in Google Maps</button>
                     <div style={{ fontSize: 13 }}>
                       <div style={{ fontWeight: 700, marginBottom: 4 }}>🚗 Stop order {routeTotal(ordered) != null && <span style={{ color: "#6b7280", fontWeight: 400 }}>· ~{routeTotal(ordered)} mi total (straight-line)</span>}</div>
@@ -362,6 +369,25 @@ export default function PopBysPage({ token, onBack }) {
                     </div>
                   </div>
                 </>
+              )}
+
+              {/* Too-far list — excluded from the run */}
+              {farDue.length > 0 && (
+                <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 10, padding: 14, marginTop: 16 }}>
+                  <div style={{ fontWeight: 700, color: "#991b1b", marginBottom: 6 }}>⏱ {farDue.length} due, but 1 hr+ away — left out of this run</div>
+                  <div style={{ display: "grid", gap: 6 }}>
+                    {farDue.map(c => (
+                      <div key={c.id} style={{ display: "flex", gap: 10, alignItems: "center", background: "#fff", border: "1px solid #fecaca", borderRadius: 8, padding: "8px 12px" }}>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontWeight: 700, fontSize: 13 }}>{c.firstName} {c.lastName} <span style={{ fontSize: 11, background: "#0c4a6e", color: "#fff", borderRadius: 6, padding: "1px 6px", marginLeft: 4 }}>{c.tier}</span></div>
+                          <div style={{ fontSize: 12, color: "#9ca3af" }}>{c.fullAddress} · ~{c.milesFromStart} mi away</div>
+                        </div>
+                        <button onClick={() => markDelivered(c)} style={btn("#dcfce7", "#166534")} title="If you do visit them, mark it here">✓ Delivered</button>
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{ fontSize: 12, color: "#991b1b", marginTop: 8 }}>Too far to mix into a local gift run. Mail them something instead, plan a separate trip — or if the distance looks wrong, double-check their address in Contacts.</div>
+                </div>
               )}
 
               {/* No-address list */}
