@@ -1269,7 +1269,7 @@ function SMSPanel({ tx, onUpdate, currentUser }) {
 
             {/* Group chat thread = the record */}
             <div style={{ height: 620 }}>
-              <TransactionChat transactionId={tx.id} user={null} parties={tx.parties || []} style={{ height: "100%" }} unreadCount={0} onUnreadChange={() => {}} />
+              <TransactionChat simple transactionId={tx.id} user={null} parties={tx.parties || []} style={{ height: "100%" }} unreadCount={0} onUnreadChange={() => {}} />
             </div>
           </div>
 
@@ -1341,9 +1341,10 @@ function SMSPanel({ tx, onUpdate, currentUser }) {
 
           <div style={{ background: "#fff", border: "1px solid #E5E7EB", borderRadius: 12, display: "flex", flexDirection: "column", overflow: "hidden" }}>
             {!selectedParty ? (
-              <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", color: "#6B7280", flexDirection: "column", gap: 8 }}>
-                <div style={{ fontSize: 40 }}>💬</div>
-                <div>Select a party to start messaging</div>
+              <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", color: "#6B7280", flexDirection: "column", gap: 8, padding: 20, textAlign: "center" }}>
+                <div style={{ fontSize: 40 }}>📧</div>
+                <div style={{ fontWeight: 700, color: "#0F2044" }}>← Pick a person to email or text them privately</div>
+                <div style={{ fontSize: 13 }}>Only they see it. For a message the whole group sees, use the Group Chat on the right →</div>
               </div>
             ) : (
               <>
@@ -1429,7 +1430,7 @@ function SMSPanel({ tx, onUpdate, currentUser }) {
             )}
           </div>
           <div style={{ height: "100%", minHeight: 0 }}>
-            <TransactionChat transactionId={tx.id} user={null} parties={tx.parties || []} style={{ height: "100%" }} unreadCount={0} onUnreadChange={() => {}} />
+            <TransactionChat simple transactionId={tx.id} user={null} parties={tx.parties || []} style={{ height: "100%" }} unreadCount={0} onUnreadChange={() => {}} />
           </div>
         </div>
       ))}

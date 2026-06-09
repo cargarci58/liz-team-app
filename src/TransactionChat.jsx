@@ -52,7 +52,10 @@ function ensureNotificationPermission() {
   }
 }
 
-export default function TransactionChat({ transactionId, user, parties = [], style, onUnreadChange, unreadCount = 0, clientView = false }) {
+// `simple` = embedded next to the Messages composer (agent view): no notify
+// picker — private sends belong in One Person mode; this thread is the open
+// room everyone sees. Guests/clients (standalone or portal) keep the picker.
+export default function TransactionChat({ transactionId, user, parties = [], style, onUnreadChange, unreadCount = 0, clientView = false, simple = false }) {
   const [messages, setMessages] = useState([]);
   const [newMsg, setNewMsg] = useState("");
   const [connected, setConnected] = useState(false);
@@ -133,45 +136,7 @@ export default function TransactionChat({ transactionId, user, parties = [], sty
     };
   }, [transactionId]);
 
-    const [formPickerOpen, setFormPickerOpen] = useState(false);
-  const [formsList, setFormsList] = useState([]);
-  const [formsLoading, setFormsLoading] = useState(false);
-  const [formSending, setFormSending] = useState(null);
-
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
-
-  const loadFormsForChat = async () => {
-    setFormsLoading(true);
-    try {
-      const side = (parties || []).some(p => /buyer/i.test(p.role)) && !(parties || []).some(p => /seller|listing/i.test(p.role)) ? 'buyer' : null;
-      const url = side ? `${API}/forms?side=${side}` : `${API}/forms`;
-      const r = await fetch(url, { headers: { Authorization: `Bearer ${localStorage.getItem('tp_token')}` } });
-      const data = await r.json();
-      setFormsList((data.forms || []).filter(f => f.has_file));
-    } catch (e) { console.error('Forms load:', e); }
-    finally { setFormsLoading(false); }
-  };
-
-  const sendFormAsLink = async (form) => {
-    setFormSending(form.id);
-    try {
-      const r = await fetch(`${API}/forms/${form.id}/share-link`, {
-        method: 'POST',
-        headers: { 'Content-Type':'application/json', Authorization: `Bearer ${localStorage.getItem('tp_token')}` },
-        body: JSON.stringify({ transactionId })
-      });
-      const data = await r.json();
-      if (!r.ok || !data.url) { alert(data.error || 'Failed to generate link'); return; }
-      const msg = `📋 ${form.name}\nDownload: ${data.url}\n(Link expires in 7 days)`;
-      const payload = { transactionId, message: msg };
-      if (selectedEmails.length > 0) payload.notifyEmails = selectedEmails;
-      socketRef.current?.emit('send_message', payload);
-      playSendSound();
-      setFormPickerOpen(false);
-      setSelectedEmails([]);
-    } catch (e) { alert('Error: ' + e.message); }
-    finally { setFormSending(null); }
-  };
 
   const sendMessage = () => {
     if (!newMsg.trim() || !socketRef.current) return;
@@ -209,7 +174,7 @@ export default function TransactionChat({ transactionId, user, parties = [], sty
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%", minHeight: 400, background: "#F8F9FA", borderRadius: 12, overflow: "hidden", border: "1px solid #DDD", ...style }}>
       <div style={{ background: "#111", padding: "12px 16px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <div style={{ color: "#fff", fontWeight: 700, fontSize: 14 }}>💬 Transaction Chat</div>
+        <div style={{ color: "#fff", fontWeight: 700, fontSize: 14 }}>💬 Group Chat</div>
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
           <div style={{ width: 8, height: 8, borderRadius: "50%", background: connected ? "#4CAF50" : "#888" }} />
           <span style={{ color: "rgba(255,255,255,0.6)", fontSize: 11 }}>{connected ? "Live" : "Connecting..."}</span>
@@ -217,8 +182,8 @@ export default function TransactionChat({ transactionId, user, parties = [], sty
       </div>
 
       <div style={{ background: "#FEF9E7", borderBottom: "1px solid #F9E79F", padding: "8px 16px", display: "flex", alignItems: "center", gap: 8 }}>
-        <span>⚠️</span>
-        <span style={{ fontSize: 12, color: "#7D6608" }}>All parties on this transaction can see messages here. Offline parties receive email notifications.</span>
+        <span>👀</span>
+        <span style={{ fontSize: 12, color: "#7D6608" }}>{simple ? "Everyone on this deal can see this chat. For a private message, use the panel on the left." : "All parties on this transaction can see messages here. Offline parties receive email notifications."}</span>
       </div>
 
       <div style={{ flex: 1, overflowY: "auto", padding: 16, display: "flex", flexDirection: "column", gap: 8 }}>
@@ -308,44 +273,19 @@ export default function TransactionChat({ transactionId, user, parties = [], sty
           )}
         </div>
       )}
-      {formPickerOpen && (
-        <div style={{ padding: "12px 16px", background: "#f9fafb", borderTop: "1px solid #DDD", maxHeight: 240, overflowY: "auto" }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: "#6b7280", marginBottom: 8 }}>📋 ATTACH A FORM (link expires in 7 days)</div>
-          {formsLoading ? (
-            <div style={{ fontSize: 13, color: "#6b7280" }}>Loading forms...</div>
-          ) : formsList.length === 0 ? (
-            <div style={{ fontSize: 13, color: "#6b7280" }}>No forms with uploaded files available. Admin must upload PDFs in Settings → Forms Library.</div>
-          ) : (
-            <div style={{ display: "grid", gap: 6 }}>
-              {formsList.map(f => (
-                <button key={f.id} onClick={() => sendFormAsLink(f)} disabled={formSending === f.id}
-                  style={{ textAlign: "left", padding: "8px 12px", border: "1px solid #e5e7eb", borderRadius: 6, background: "white", cursor: formSending ? "wait" : "pointer", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 13, fontWeight: 600 }}>{f.name}</div>
-                    <div style={{ fontSize: 11, color: "#6b7280" }}>{f.category}</div>
-                  </div>
-                  <span style={{ fontSize: 12, color: "#6366f1", fontWeight: 600 }}>{formSending === f.id ? "⏳" : "Send →"}</span>
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
       <div style={{ padding: "12px 16px", background: "#fff", borderTop: "1px solid #DDD", display: "flex", gap: 8, alignItems: "center" }}>
-        <button onClick={() => { setFormPickerOpen(!formPickerOpen); if (!formPickerOpen && formsList.length === 0) loadFormsForChat(); }} title="Attach a form"
-          style={{ height: 40, padding: "0 12px", borderRadius: 20, background: formPickerOpen ? "#6366f1" : "#E0E0E0", color: formPickerOpen ? "#fff" : "#333", border: "none", cursor: "pointer", fontSize: 12, fontWeight: 700, display: "flex", alignItems: "center", gap: 4, flexShrink: 0 }}>
-          📎 Forms
-        </button>
-        <button onClick={() => setPickerOpen(!pickerOpen)} title="Choose who to notify"
-          style={{ width: 40, height: 40, borderRadius: "50%", background: pickerOpen || selectedEmails.length > 0 ? "#1A5276" : "#E0E0E0", color: "#fff", border: "none", cursor: "pointer", fontSize: 16, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, position: "relative" }}>
-          👥
-          {selectedEmails.length > 0 && (
-            <span style={{ position: "absolute", top: -3, right: -3, background: "#C0392B", color: "#fff", borderRadius: "50%", width: 18, height: 18, fontSize: 10, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", border: "2px solid #fff" }}>{selectedEmails.length}</span>
-          )}
-        </button>
+        {!simple && (
+          <button onClick={() => setPickerOpen(!pickerOpen)} title="Choose who to notify"
+            style={{ width: 40, height: 40, borderRadius: "50%", background: pickerOpen || selectedEmails.length > 0 ? "#1A5276" : "#E0E0E0", color: "#fff", border: "none", cursor: "pointer", fontSize: 16, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, position: "relative" }}>
+            👥
+            {selectedEmails.length > 0 && (
+              <span style={{ position: "absolute", top: -3, right: -3, background: "#C0392B", color: "#fff", borderRadius: "50%", width: 18, height: 18, fontSize: 10, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", border: "2px solid #fff" }}>{selectedEmails.length}</span>
+            )}
+          </button>
+        )}
         <input value={newMsg} onChange={e => setNewMsg(e.target.value)}
           onKeyDown={e => e.key === "Enter" && !e.shiftKey && (e.preventDefault(), sendMessage())}
-          placeholder={selectedEmails.length > 0 ? `Notify ${selectedEmails.length} party · type message...` : (connected ? "Type a message... (Enter to send)" : "Connecting...")}
+          placeholder={selectedEmails.length > 0 ? `Notify ${selectedEmails.length} party · type message...` : (connected ? (simple ? "Message everyone..." : "Type a message... (Enter to send)") : "Connecting...")}
           disabled={!connected}
           style={{ flex: 1, padding: "10px 14px", borderRadius: 24, border: "1.5px solid #DDD", fontSize: 14, fontFamily: "inherit", outline: "none", background: connected ? "#fff" : "#F5F5F5" }} />
         <button onClick={sendMessage} disabled={!connected || !newMsg.trim()}
