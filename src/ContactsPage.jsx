@@ -454,8 +454,13 @@ function ContactModal({ contact, token, onClose, onSaved }) {
     try {
       const url = isEdit ? (API + "/contacts/" + contact.id) : (API + "/contacts");
       const method = isEdit ? "PUT" : "POST";
-      // form.groups is already an array of selected group names → tags.
-      const payload = { ...form, tags: Array.isArray(form.groups) ? form.groups : [] };
+      // form.groups holds the selected group names → tags. Also fold in a group
+      // the user typed in the "+ New group" box but didn't click Add — otherwise
+      // it's silently dropped and the group shows 0 members.
+      const groups = Array.isArray(form.groups) ? [...form.groups] : [];
+      const pending = newGroup.trim();
+      if (pending && !groups.includes(pending)) groups.push(pending);
+      const payload = { ...form, tags: groups };
       delete payload.groups;
       // Empty date/tier strings must be null (empty string breaks a DATE column).
       for (const k of ["birthday", "wedding_anniversary", "tier", "spouse_name", "referred_by"]) {
