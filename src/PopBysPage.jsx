@@ -21,9 +21,9 @@ function miles(a, b) {
   return R * 2 * Math.atan2(Math.sqrt(x), Math.sqrt(1 - x));
 }
 
-// Order stops for the drive: nearest-neighbor STARTING FROM THE AGENT'S OWN
-// ADDRESS (so the house down your street is stop #1, not stop #9), then a
-// 2-opt pass to untangle any route crossings. Stops without coords go last.
+// Order stops for the drive: pure nearest-neighbor STARTING FROM THE AGENT'S
+// OWN ADDRESS — so the closest house (e.g. one on your own street) is stop #1,
+// the next-closest to that is #2, and so on. Stops without coords go last.
 function routeOrder(stops, start) {
   const withGeo = stops.filter(s => s.hasCoords);
   const noGeo = stops.filter(s => !s.hasCoords);
@@ -31,7 +31,6 @@ function routeOrder(stops, start) {
   const origin = (start && start.lat != null) ? { lat: start.lat, lng: start.lng }
     // no agent address — fall back to the most south-west stop
     : withGeo.reduce((m, s) => (s.lat + s.lng < m.lat + m.lng ? s : m), withGeo[0]);
-  // Nearest-neighbor from the origin.
   const remaining = [...withGeo];
   const ordered = [];
   let current = origin;
@@ -40,22 +39,6 @@ function routeOrder(stops, start) {
     remaining.forEach((s, i) => { const d = miles(current, s); if (d != null && d < bestD) { bestD = d; bestI = i; } });
     current = remaining.splice(bestI, 1)[0];
     ordered.push(current);
-  }
-  // 2-opt: keep reversing segments while it shortens the total drive.
-  const legLen = (arr) => {
-    let t = miles(origin, arr[0]) || 0;
-    for (let i = 1; i < arr.length; i++) t += miles(arr[i - 1], arr[i]) || 0;
-    return t;
-  };
-  let improved = true, guard = 0;
-  while (improved && guard++ < 30) {
-    improved = false;
-    for (let i = 0; i < ordered.length - 1; i++) {
-      for (let j = i + 1; j < ordered.length; j++) {
-        const candidate = [...ordered.slice(0, i), ...ordered.slice(i, j + 1).reverse(), ...ordered.slice(j + 1)];
-        if (legLen(candidate) + 0.01 < legLen(ordered)) { ordered.splice(0, ordered.length, ...candidate); improved = true; }
-      }
-    }
   }
   return [...ordered, ...noGeo];
 }
@@ -101,6 +84,10 @@ export default function PopBysPage({ token, onBack }) {
       const d = await r.json();
       setData(d);
       if (d.settings) setForm({ popByTiers: d.settings.tiers, popByFrequencyDays: d.settings.frequencyDays, popByBudget: d.settings.budget });
+      // Restore the previously-chosen gift so it doesn't vanish on return.
+      if (d.currentGift && d.currentGift.gift) {
+        setBatchGift({ gift: d.currentGift.gift, note: d.currentGift.note || "", price: d.currentGift.price ?? null, whereToBuy: d.currentGift.whereToBuy || "", stores: d.currentGift.stores || [] });
+      }
     } catch (e) { /* ignore */ }
     finally { setLoading(false); }
   };
@@ -213,20 +200,22 @@ export default function PopBysPage({ token, onBack }) {
     window.open("https://www.google.com/maps/dir/" + points.map(encodeURIComponent).join("/"), "_blank");
   };
 
-  // Letter-portrait sheet, pre-formatted: 2 columns x 4 rows = 8 cards per page
-  // (each 3.75in x 2.4in), dashed cut lines, auto page breaks. Print at 100%.
+  // Letter-portrait sheet, pre-formatted: 2 columns x 3 rows = 6 cards per page
+  // (each 3.75in x 3.2in), dashed cut lines, auto page breaks. Each card is a
+  // warm personal note: "Dear [First]," + message + signed by the agent.
   const printNotes = () => {
-    if (!batchGift.note) { alert("Pick a gift first (Step 2, ✨ Suggest a gift) — that's what creates the note card."); return; }
+    if (!batchGift.note) { alert("Pick a gift first (Step 1, ✨ Suggest a gift) — that's what creates the note card."); return; }
     const list = ordered;
     if (!list.length) { alert("No contacts to print note cards for."); return; }
-    const PER_PAGE = 8;
+    const signature = (data && data.agentName) ? data.agentName : "Your Realtor";
+    const PER_PAGE = 6;
     const pages = [];
     for (let i = 0; i < list.length; i += PER_PAGE) pages.push(list.slice(i, i + PER_PAGE));
     const pageHtml = pages.map(pg => `<div class="page">${pg.map(c => `
       <div class="card">
-        <div class="to">For ${escapeHtml(c.firstName || "")} ${escapeHtml(c.lastName || "")}</div>
-        <div class="note">${escapeHtml(batchGift.note)}</div>
-        <div class="gift">${escapeHtml(batchGift.gift || "")}</div>
+        <div class="greet">Dear ${escapeHtml(c.firstName || "friend")},</div>
+        <div class="msg">${escapeHtml(batchGift.note)}</div>
+        <div class="sign">With gratitude,<br><span class="name">${escapeHtml(signature)}</span></div>
       </div>`).join("")}</div>`).join("");
     const w = window.open("", "_blank");
     if (!w) { alert("Allow pop-ups to print."); return; }
@@ -239,13 +228,14 @@ export default function PopBysPage({ token, onBack }) {
         .bar button { background: #fff; color: #0c4a6e; border: 0; border-radius: 6px; padding: 8px 16px; font: 700 14px Arial; cursor: pointer; }
         .bar span { font-weight: 400; opacity: .9; }
         .page { width: 7.5in; height: 9.9in; margin: 0 auto; display: grid;
-                grid-template-columns: 3.75in 3.75in; grid-auto-rows: 2.4in;
+                grid-template-columns: 3.75in 3.75in; grid-auto-rows: 3.2in;
                 align-content: start; page-break-after: always; }
         .page:last-child { page-break-after: auto; }
-        .card { border: 1px dashed #bbb; padding: 0.25in; display: flex; flex-direction: column; justify-content: center; overflow: hidden; }
-        .to { font-size: 11pt; color: #888; margin-bottom: 8px; }
-        .note { font-size: 16pt; font-weight: 700; color: #0c4a6e; line-height: 1.35; }
-        .gift { font-size: 10pt; color: #aaa; margin-top: 10px; font-style: italic; }
+        .card { border: 1px dashed #bbb; padding: 0.3in; display: flex; flex-direction: column; overflow: hidden; }
+        .greet { font-size: 14pt; color: #0c4a6e; font-weight: 700; margin-bottom: 8px; }
+        .msg { font-size: 12.5pt; color: #222; line-height: 1.45; flex: 1; }
+        .sign { font-size: 12pt; color: #444; margin-top: 8px; }
+        .sign .name { font-weight: 700; color: #0c4a6e; font-size: 13pt; }
         @media print { .bar { display: none; } }
       </style></head><body>
       <div class="bar"><button onclick="window.print()">🖨 Print</button>
@@ -357,7 +347,7 @@ export default function PopBysPage({ token, onBack }) {
                       <div style={{ background: "#fffbeb", border: "1px solid #fcd34d", borderRadius: 10, padding: 14, marginTop: 10 }}>
                         <div style={{ fontSize: 15, fontWeight: 800, color: "#92400e" }}>🛒 Buy {runList.length} × {batchGift.gift}</div>
                         <div style={{ fontSize: 13, color: "#78350f", marginTop: 4 }}>
-                          {batchGift.price != null && <span>💵 about <strong>${batchGift.price}</strong> each{runList.length > 1 ? <span> · ~<strong>${Math.round(batchGift.price * runList.length)}</strong> total</span> : null} (your budget: ${data.settings.budget}/gift)</span>}
+                          {batchGift.price != null && <span>💵 <strong>est. ~${batchGift.price}</strong> each{runList.length > 1 ? <span> · ~<strong>${Math.round(batchGift.price * runList.length)}</strong> total</span> : null} <span style={{ color: "#b45309" }}>(rough estimate — prices vary, check the store)</span></span>}
                           {batchGift.stores.length > 0 && (
                             <span>{batchGift.price != null ? " · " : ""}🛍 buy it:{" "}
                               {batchGift.stores.map((s, i) => (
@@ -369,7 +359,7 @@ export default function PopBysPage({ token, onBack }) {
                             </span>
                           )}
                         </div>
-                        <div style={{ fontSize: 13, color: "#78350f", marginTop: 4 }}>Note card for each: <em>"{batchGift.note}"</em></div>
+                        <div style={{ fontSize: 13, color: "#78350f", marginTop: 6, paddingTop: 6, borderTop: "1px dashed #fcd34d" }}>💌 Note card message (each card opens "Dear [name]," and is signed by you):<br /><em>"{batchGift.note}"</em></div>
                       </div>
                     )}
                     <label style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 12, fontSize: 14, fontWeight: 700, color: "#166534", cursor: "pointer" }}>
