@@ -917,7 +917,7 @@ function TaskReminderModal({ task, tx, onClose }) {
               <div style={{ marginBottom: 16 }}>
                 <div style={{ fontSize: 12, fontWeight: 700, color: COLORS.muted, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 8 }}>Notify</div>
                 {partiesWithPhone.length === 0 && (
-                  <div style={{ fontSize: 13, color: COLORS.muted, fontStyle: "italic" }}>No parties with phone numbers. Add phone numbers in the Parties tab.</div>
+                  <div style={{ fontSize: 13, color: COLORS.muted, fontStyle: "italic" }}>No parties with phone numbers. Add phone numbers in the People tab.</div>
                 )}
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, "data-form-grid": "" }}>
                   {partiesWithPhone.map(p => (
@@ -1081,7 +1081,7 @@ function SMSPanel({ tx, onUpdate, currentUser }) {
       console.log("Sending via channel:", channel, "SMS:", isSMS, "Email:", isEmail, "phone:", selectedParty.phone, "email:", selectedParty.email);
       if (isSMS && selectedParty.phone) {
         try {
-          const res = await fetch(`${SMS_SERVER}/sms/send`, { method: "POST", headers: { "Content-Type": "application/json", "Authorization": "Bearer " + (localStorage.getItem("tp_token") || "") }, body: JSON.stringify({ transactionId: tx.id, transactionAddress: tx.address, toPhone: selectedParty.phone, toName: selectedParty.name, toRole: selectedParty.role, message: message.trim(), fromName: "The Liz Team" }) });
+          const res = await fetch(`${SMS_SERVER}/sms/send`, { method: "POST", headers: { "Content-Type": "application/json", "Authorization": "Bearer " + (localStorage.getItem("tp_token") || "") }, body: JSON.stringify({ transactionId: tx.id, transactionAddress: tx.address, toPhone: selectedParty.phone, toName: selectedParty.name, toRole: selectedParty.role, message: message.trim(), fromName: "The Liz Team", attachDocIds: gAttach.map(a => a.id) }) });
           const d = await res.json();
           if (d.success) {
             anySent = true;
@@ -1098,7 +1098,7 @@ function SMSPanel({ tx, onUpdate, currentUser }) {
         console.log("Attempting email to:", emailAddr);
         if (emailAddr) {
           try {
-            const res = await fetch(`${SMS_SERVER}/email/send`, { method: "POST", headers: { "Content-Type": "application/json", "Authorization": "Bearer " + (localStorage.getItem("tp_token") || "") }, body: JSON.stringify({ transactionId: tx.id, transactionAddress: tx.address, toEmail: emailAddr, toName: selectedParty.name, toRole: selectedParty.role, subject: subject || `Re: ${tx.address}`, message: message.trim(), fromName: "The Liz Team" }) });
+            const res = await fetch(`${SMS_SERVER}/email/send`, { method: "POST", headers: { "Content-Type": "application/json", "Authorization": "Bearer " + (localStorage.getItem("tp_token") || "") }, body: JSON.stringify({ transactionId: tx.id, transactionAddress: tx.address, toEmail: emailAddr, toName: selectedParty.name, toRole: selectedParty.role, subject: subject || `Re: ${tx.address}`, message: message.trim(), fromName: "The Liz Team", attachDocIds: gAttach.map(a => a.id) }) });
             const d = await res.json();
             console.log("Email result:", d);
             if (d.success) {
@@ -1110,9 +1110,9 @@ function SMSPanel({ tx, onUpdate, currentUser }) {
               onUpdate({ ...tx, smsThreads: newThreads });
             } else alert("Email failed: " + (d.error || "Unknown error"));
           } catch(e) { console.error("Email error", e); alert("Email error: " + e.message); }
-        } else { alert("No email address for this party. Add one in the Parties tab."); }
+        } else { alert("No email address for this party. Add one in the People tab."); }
       }
-      if (anySent) { setMessage(""); setSubject(""); loadLogged(); }
+      if (anySent) { setMessage(""); setSubject(""); setGAttach([]); loadLogged(); }
       else alert("Send failed. Check server and credentials.");
     } catch { alert("Server unreachable."); }
     setSending(false);
@@ -1224,13 +1224,13 @@ function SMSPanel({ tx, onUpdate, currentUser }) {
         </div>
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
           <div style={{ display: "flex", background: "#F3F4F6", borderRadius: 8, padding: 3, gap: 2 }}>
-            {[["direct", "👤 Direct"], ["group", "👥 Group"]].map(([v, label]) => (
+            {[["direct", "👤 One Person"], ["group", "👥 Everyone"]].map(([v, label]) => (
               <button key={v} onClick={() => setMode(v)} style={{ padding: "5px 12px", borderRadius: 6, border: "none", background: mode === v ? "#0F2044" : "transparent", color: mode === v ? "#fff" : "#6B7280", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>{label}</button>
             ))}
           </div>
-          {mode === "direct" && <button onClick={() => setShowReminderSMS(true)} style={{ padding: "4px 12px", borderRadius: 8, border: "1px solid #0F2044", background: "#fff", color: "#0F2044", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Deadline Reminder</button>}
         </div>
       </div>
+      <input ref={fileInputRef} type="file" style={{ display: "none" }} onChange={e => { const f = e.target.files?.[0]; if (f) uploadFromComputer(f); e.target.value = ""; }} />
 
       {mode === "group" && (
         <div>
@@ -1256,7 +1256,6 @@ function SMSPanel({ tx, onUpdate, currentUser }) {
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: gAttach.length ? 8 : 0 }}>
                   <button onClick={openDocPicker} style={{ fontSize: 12, padding: "6px 12px", borderRadius: 8, border: "1px solid #0F2044", background: "#fff", color: "#0F2044", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>📎 Attach from Documents</button>
                   <button onClick={() => fileInputRef.current?.click()} disabled={uploading} style={{ fontSize: 12, padding: "6px 12px", borderRadius: 8, border: "1px solid #0F2044", background: "#fff", color: "#0F2044", fontWeight: 600, cursor: "pointer", fontFamily: "inherit", opacity: uploading ? 0.5 : 1 }}>{uploading ? "Uploading..." : "💻 Attach from computer"}</button>
-                  <input ref={fileInputRef} type="file" style={{ display: "none" }} onChange={e => { const f = e.target.files?.[0]; if (f) uploadFromComputer(f); e.target.value = ""; }} />
                 </div>
                 {gAttach.map(a => (
                   <div key={a.id} style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "#F0F4FF", border: "1px solid #C7D2FE", borderRadius: 6, padding: "4px 8px", fontSize: 12, color: "#0F2044", marginRight: 6, marginBottom: 6 }}>
@@ -1272,7 +1271,7 @@ function SMSPanel({ tx, onUpdate, currentUser }) {
               {/* Reachability note */}
               <div style={{ background: "#F9FAFB", border: "1px solid #E5E7EB", borderRadius: 8, padding: "10px 12px", fontSize: 12, color: "#374151", marginBottom: 14 }}>
                 <div style={{ fontWeight: 700, marginBottom: 4 }}>Who will get this</div>
-                {tx.parties.length === 0 ? <div style={{ color: "#6B7280" }}>No parties yet — add them in the Parties tab.</div> : (
+                {tx.parties.length === 0 ? <div style={{ color: "#6B7280" }}>No parties yet — add them in the People tab.</div> : (
                   <>
                     <div>📧 {gWithEmail.length} by email · 📱 {gWithPhone.length} by text</div>
                     {gEmailOnly.length > 0 && <div style={{ color: "#B45309" }}>⚠️ {gEmailOnly.length} {gEmailOnly.length === 1 ? "party has" : "parties have"} no phone — email only</div>}
@@ -1300,7 +1299,10 @@ function SMSPanel({ tx, onUpdate, currentUser }) {
             </div>
           </div>
 
-          {docPickerOpen && (
+        </div>
+      )}
+
+      {docPickerOpen && (
             <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 1000, display: "flex", alignItems: "flex-start", justifyContent: "center", padding: 16, overflowY: "auto" }}>
               <div style={{ background: "#fff", borderRadius: 14, width: 480, maxWidth: "100%", maxHeight: "90vh", overflow: "auto", boxShadow: "0 20px 60px rgba(0,0,0,0.25)", "data-modal": "", margin: "auto" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "18px 22px", borderBottom: "1px solid #E5E7EB" }}>
@@ -1329,11 +1331,9 @@ function SMSPanel({ tx, onUpdate, currentUser }) {
               </div>
             </div>
           )}
-        </div>
-      )}
 
       {mode === "direct" && (partiesWithContact.length === 0 ? (
-        <div style={{ textAlign: "center", color: "#6B7280", padding: 40 }}>No parties with phone or email. Add contact info in the Parties tab.</div>
+        <div style={{ textAlign: "center", color: "#6B7280", padding: 40 }}>No parties with phone or email. Add contact info in the People tab.</div>
       ) : (
         <div style={{ display: "grid", gridTemplateColumns: "260px 1fr", gap: 16, height: 560, "data-msg-grid": "" }}>
           <div style={{ background: "#fff", border: "1px solid #E5E7EB", borderRadius: 12, overflow: "hidden", display: "flex", flexDirection: "column" }}>
@@ -1362,6 +1362,7 @@ function SMSPanel({ tx, onUpdate, currentUser }) {
                 );
               })}
             </div>
+            <button onClick={() => setShowReminderSMS(true)} style={{ margin: 10, padding: "8px 12px", borderRadius: 8, border: "1px solid #E5E7EB", background: "#F9FAFB", color: "#0F2044", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>⏰ Send a deadline reminder</button>
           </div>
 
           <div style={{ background: "#fff", border: "1px solid #E5E7EB", borderRadius: 12, display: "flex", flexDirection: "column", overflow: "hidden" }}>
@@ -1422,6 +1423,21 @@ function SMSPanel({ tx, onUpdate, currentUser }) {
                       </button>
                     ))}
                   </div>
+                </div>
+                <div style={{ padding: "10px 18px 0", borderTop: "1px solid #E5E7EB" }}>
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: gAttach.length ? 8 : 0 }}>
+                    <button onClick={openDocPicker} style={{ fontSize: 12, padding: "6px 12px", borderRadius: 8, border: "1px solid #0F2044", background: "#fff", color: "#0F2044", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>📎 Attach from Documents</button>
+                    <button onClick={() => fileInputRef.current?.click()} disabled={uploading} style={{ fontSize: 12, padding: "6px 12px", borderRadius: 8, border: "1px solid #0F2044", background: "#fff", color: "#0F2044", fontWeight: 600, cursor: "pointer", fontFamily: "inherit", opacity: uploading ? 0.5 : 1 }}>{uploading ? "Uploading..." : "💻 Attach from computer"}</button>
+                  </div>
+                  {gAttach.map(a => (
+                    <div key={a.id} style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "#F0F4FF", border: "1px solid #C7D2FE", borderRadius: 6, padding: "4px 8px", fontSize: 12, color: "#0F2044", marginRight: 6, marginBottom: 6 }}>
+                      📄 {a.name}
+                      <button onClick={() => setGAttach(prev => prev.filter(x => x.id !== a.id))} style={{ background: "none", border: "none", cursor: "pointer", color: "#6B7280", fontSize: 14, lineHeight: 1 }}>×</button>
+                    </div>
+                  ))}
+                  {gAttach.length > 0 && channel !== "email" && (
+                    <div style={{ fontSize: 11, color: "#6B7280", marginBottom: 4 }}>Texts get a secure download link (files can't attach to a text).</div>
+                  )}
                 </div>
                 <div style={{ padding: "12px 18px", borderTop: "1px solid #E5E7EB", display: "flex", gap: 10, alignItems: "flex-end", flexWrap: "wrap" }}>
                   <textarea value={message} onChange={e => setMessage(e.target.value)} onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey && channel === "sms") { e.preventDefault(); sendMessage(); } }} placeholder="Type message... (Shift+Enter for new line)" rows={8} style={{ flex: 1, padding: "10px 14px", borderRadius: 10, border: "1px solid #E5E7EB", fontSize: 14, fontFamily: "inherit", resize: "vertical", minHeight: 120, boxSizing: "border-box" }} />
@@ -3086,7 +3102,7 @@ function ContractReviewChecklist({ tx, token, onCleared, setActiveTab, openEditT
     if (partiesNoEmail.length > 0) {
       warning += "\n⚠️  These parties have NO email and will NOT receive the welcome:\n";
       warning += partiesNoEmail.map(p => `  • ${p.name} (${p.role})`).join("\n");
-      warning += "\n   (Add their email in the Parties tab if they should receive it.)\n";
+      warning += "\n   (Add their email in the People tab if they should receive it.)\n";
     }
     if (missing.length > 0) {
       warning += "\n⚠️  MISSING TRANSACTION FIELDS that the email needs:\n";
@@ -3142,7 +3158,7 @@ function ContractReviewChecklist({ tx, token, onCleared, setActiveTab, openEditT
 
   const baseSteps = [
     { num: 1, icon: "🏠", title: "Verify Property, Dates & Contingencies", why: "Address, dates (executed/closing/EMD), price, and contingency days (inspection, financing, appraisal) ALL come from the contract and ALL drive milestones, tasks, and legal deadlines. A wrong county breaks MLS compliance. A wrong closing date voids the contract. A wrong inspection day forfeits buyer rights. Handwritten changes are commonly misread by AI.", action: "Click below to open the Edit Transaction form. Compare every field side-by-side against the executed contract. Pay close attention to anything that was crossed out or written by hand.", cta: "Open Edit Form", onCta: openEditModal },
-    { num: 2, icon: "👥", title: "Verify All Parties & Contact Info", why: "Title, lender, inspector, co-op agent must be reachable. Missing email or phone breaks the welcome email and the entire group communication chain. The wrong title company at closing causes wire fraud risk.", action: "Open the Key Parties tab. Confirm every party has a name, working phone, and email. Add any missing parties (e.g. title company, lender) that the contract names but were not extracted.", cta: "Open Parties Tab", onCta: () => { setPartiesOpened(true); setActiveTab("parties"); }, isPartiesStep: true },
+    { num: 2, icon: "👥", title: "Verify All Parties & Contact Info", why: "Title, lender, inspector, co-op agent must be reachable. Missing email or phone breaks the welcome email and the entire group communication chain. The wrong title company at closing causes wire fraud risk.", action: "Open the People tab. Confirm every party has a name, working phone, and email. Add any missing parties (e.g. title company, lender) that the contract names but were not extracted.", cta: "Open People Tab", onCta: () => { setPartiesOpened(true); setActiveTab("parties"); }, isPartiesStep: true },
   ];
   const termsStep = tx.additionalTerms
     ? { num: 3, icon: "📝", title: "Read & Confirm Additional Terms", why: "Custom clauses override the standard form. These can be repair credits, occupancy provisions, contingent-on-sale clauses, escalation clauses, or seller concessions. Each is binding and missing one can cost thousands or break the deal.", action: "Read every line of the Additional Terms box shown above. The same text is also saved in the transaction Notes for easy lookup later. If anything looks wrong or was cut off, edit the Notes directly.", cta: "Show Notes", onCta: () => setActiveTab("overview") }
@@ -4112,7 +4128,7 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
   const tabs = [
     { id: "overview", label: "Overview" },
     { id: "milestones", label: "📅 Timeline" },
-    { id: "parties", label: `Parties (${tx.parties.length})` },
+    { id: "parties", label: `People (${tx.parties.length})` },
     { id: "sms", label: `Messages${smsMsgCount > 0 ? ` (${smsMsgCount})` : ""}` },
     { id: "notes", label: "Internal Notes" },
     { id: "documents", label: "📎 Documents" },
@@ -5082,7 +5098,7 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
             </select>
             {partyOptions.length === 0 && (
               <div style={{ fontSize: 11, color: "#B7770D", marginTop: 4 }}>
-                No parties with email/phone yet. Add them in the Parties tab to enable follow-ups.
+                No parties with email/phone yet. Add them in the People tab to enable follow-ups.
               </div>
             )}
           </div>
