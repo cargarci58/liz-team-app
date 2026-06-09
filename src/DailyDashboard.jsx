@@ -374,14 +374,12 @@ function telHref(raw) {
 }
 
 // ── MAIN DASHBOARD ────────────────────────────────────────────
-export default function DailyDashboard({ token, user, onViewTransactions, onOpenTransactionMilestones }) {
+export default function DailyDashboard({ token, user, onViewTransactions, onOpenTransactionMilestones, onOpenPopBys }) {
   const [tasks, setTasks] = useState({ overdue:[], dueToday:[], upcoming:[] });
   const [personal, setPersonal] = useState({ overdue:[], dueToday:[], upcoming:[] });
   const [callsDue, setCallsDue] = useState([]);
   const [occasions, setOccasions] = useState([]);
-  const [popBys, setPopBys] = useState([]);
-  const [itemsOfValue, setItemsOfValue] = useState([]);
-  const [giftIdea, setGiftIdea] = useState(null);
+  const [popByDueCount, setPopByDueCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [activeModal, setActiveModal] = useState(null);
   const [resolvedIds, setResolvedIds] = useState(new Set());
@@ -422,9 +420,7 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
         const callsData = await callsRes.json();
         setCallsDue(callsData.calls || []);
         setOccasions(callsData.occasions || []);
-        setPopBys(callsData.popBys || []);
-        setItemsOfValue(callsData.itemsOfValue || []);
-        setGiftIdea(callsData.popByGiftIdea || null);
+        setPopByDueCount(callsData.popByDueCount || 0);
       }
     } catch (e) { console.error(e); }
     setLoading(false);
@@ -704,60 +700,17 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
         </div>
       )}
 
-      {/* POP-BYS DUE */}
-      {popBys.length > 0 && (
+      {/* POP-BYS DUE — single nudge tile linking to the Pop-Bys page */}
+      {popByDueCount > 0 && (
         <div style={{ marginBottom: 24 }}>
-          <SectionHeader label={"🎁 POP-BYS DUE"} count={popBys.length} color={"#b45309"} />
-          {giftIdea && <div style={{ fontSize: 12, color: "#92400e", background: "#fef3c7", border: "1px solid #fcd34d", borderRadius: 6, padding: 8, marginBottom: 8 }}>💡 This month's gift idea: <strong>{giftIdea}</strong></div>}
-          {(() => {
-            const addrs = popBys.map(c => c.popby_address).filter(Boolean);
-            if (addrs.length < 1) return null;
-            const stops = addrs.slice(0, 9); // Google Maps supports ~10 stops per link
-            const url = "https://www.google.com/maps/dir/" + stops.map(a => encodeURIComponent(a)).join("/");
-            return (
-              <button onClick={() => window.open(url, "_blank")}
-                style={{ background: "#b45309", color: "white", border: "none", borderRadius: 6, padding: "8px 14px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", marginBottom: 10 }}>
-                🗺 Plan my route in Google Maps ({stops.length} stop{stops.length === 1 ? "" : "s"}{addrs.length > 9 ? " — first 9" : ""})
-              </button>
-            );
-          })()}
-          {popBys.map(c => {
-            const name = [c.first_name, c.last_name].filter(Boolean).join(" ") || c.phone || "(no name)";
-            return (
-              <div key={c.id} style={{ background: "white", border: "1px solid #fde68a", borderRadius: 8, padding: 12, marginBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontWeight: 700, fontSize: 14, color: "#111" }}>{name}{c.tier && <span style={{ marginLeft: 6, fontSize: 11, fontWeight: 800, color: "#fff", background: "#0c4a6e", borderRadius: 10, padding: "1px 7px" }}>{c.tier}</span>}</div>
-                  <div style={{ fontSize: 12, color: "#6b7280", marginTop: 2 }}>{c.popby_address || c.phone || c.email || "no address on file"}</div>
-                </div>
-                <button onClick={async () => {
-                  const notes = prompt("Pop-by to " + name + " — add a quick note (optional):", "");
-                  if (notes === null) return;
-                  try { await fetch(API + "/contacts/" + c.id + "/log-popby", { method: "POST", headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" }, body: JSON.stringify({ notes }) }); fetchTasks(); } catch {}
-                }} style={{ background: "#b45309", color: "white", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>✓ Done</button>
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      {/* ITEMS OF VALUE DUE */}
-      {itemsOfValue.length > 0 && (
-        <div style={{ marginBottom: 24 }}>
-          <SectionHeader label={"📬 ITEMS OF VALUE TO SEND"} count={itemsOfValue.length} color={"#7c3aed"} />
-          {itemsOfValue.map(c => {
-            const name = [c.first_name, c.last_name].filter(Boolean).join(" ") || c.phone || "(no name)";
-            return (
-              <div key={c.id} style={{ background: "white", border: "1px solid #ddd6fe", borderRadius: 8, padding: 12, marginBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontWeight: 700, fontSize: 14, color: "#111" }}>{name}{c.tier && <span style={{ marginLeft: 6, fontSize: 11, fontWeight: 800, color: "#fff", background: "#0c4a6e", borderRadius: 10, padding: "1px 7px" }}>{c.tier}</span>}</div>
-                  <div style={{ fontSize: 12, color: "#6b7280", marginTop: 2 }}>{c.email || c.phone || ""}</div>
-                </div>
-                <button onClick={async () => {
-                  try { await fetch(API + "/contacts/" + c.id + "/log-iov", { method: "POST", headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" }, body: "{}" }); fetchTasks(); } catch {}
-                }} style={{ background: "#7c3aed", color: "white", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>✓ Sent</button>
-              </div>
-            );
-          })}
+          <button onClick={() => onOpenPopBys && onOpenPopBys()}
+            style={{ width: "100%", textAlign: "left", background: "#fffbeb", border: "1px solid #fcd34d", borderRadius: 10, padding: "14px 16px", cursor: "pointer", fontFamily: "inherit", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
+            <div>
+              <div style={{ fontWeight: 800, fontSize: 15, color: "#92400e" }}>🎁 {popByDueCount} pop-by{popByDueCount === 1 ? "" : "s"} to deliver</div>
+              <div style={{ fontSize: 12, color: "#b45309", marginTop: 2 }}>Plan your gift run — suggestions, route &amp; note cards →</div>
+            </div>
+            <span style={{ fontSize: 20, color: "#b45309" }}>→</span>
+          </button>
         </div>
       )}
 

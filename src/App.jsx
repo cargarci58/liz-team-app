@@ -6,6 +6,7 @@ import CmaTool from "./cma/CmaTool";
 import TxFormsTab from "./components/TxFormsTab";
 import UserManagement from "./UserManagement";
 import ContactsPage from "./ContactsPage";
+import PopBysPage from "./PopBysPage";
 import ExpensesPage from './ExpensesPage';
 import FormsPage from './FormsPage';
 import FormDownloadPage from './FormDownloadPage';
@@ -5560,7 +5561,7 @@ function SettingsMenu({ currentUser, onOpenContactBook, contactCount, onReports,
   );
 }
 
-function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenContactBook, onOpenContacts, onOpenExpenses, onOpenForms, contactCount, onLogout, onOpenTeam, onOpenCompliance, onOpenComplianceDash, onOpenTaskTmpls, onOpenContractIntake, onChangePassword, onReports, onGoalPlanner, onHome, onVendors, onCompanySettings, onSuperuser, onAgentProfile, onIntakeLinks, currentUser, isFreeGuest = false }) {
+function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenContactBook, onOpenContacts, onOpenPopBys, onOpenExpenses, onOpenForms, contactCount, onLogout, onOpenTeam, onOpenCompliance, onOpenComplianceDash, onOpenTaskTmpls, onOpenContractIntake, onChangePassword, onReports, onGoalPlanner, onHome, onVendors, onCompanySettings, onSuperuser, onAgentProfile, onIntakeLinks, currentUser, isFreeGuest = false }) {
   const [filter, setFilter] = useState("All");
   const [search, setSearch] = useState("");
   // Tenant branding for the navbar — fetched once on mount. A free guest belongs to
@@ -6120,6 +6121,7 @@ function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenCon
           <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
             <button onClick={onNew} style={{ background: "#C0392B", border: "none", color: "#fff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>+ New Transaction</button>
             <button onClick={() => onOpenContacts && onOpenContacts()} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "#fff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>📇 Contacts</button>
+            <button onClick={() => onOpenPopBys && onOpenPopBys()} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "#fff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>🎁 Pop-Bys</button>
             <button onClick={() => onOpenExpenses && onOpenExpenses()} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "#fff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>💵 Expense Tracker</button>
             <WinTheDayButton token={localStorage.getItem("tp_token") || ""} />
             <PersonalTaskAddButton token={localStorage.getItem("tp_token") || ""} />
@@ -7133,6 +7135,7 @@ function MainApp({ onLogout, currentUser }) {
           user={currentUser}
           onViewTransactions={() => setView("dashboard")}
           onOpenTransactionMilestones={openTransactionMilestones}
+          onOpenPopBys={() => setView("popbys")}
         />
       )}
       {!showReports && !showCalendar && view === "dashboard" && (
@@ -7142,7 +7145,7 @@ function MainApp({ onLogout, currentUser }) {
           onSelect={(id, tab) => { setSelectedId(id); setInitialDetailTab(tab || "overview"); setView("detail"); }}
           onNew={guard("Creating transactions", () => setView("new"))}
           onOpenContactBook={guard("Contacts", () => openContactBook(null))}
-          onOpenContacts={guard("Contacts", () => setView("contacts"))} onOpenExpenses={guard("The Expense Tracker", () => setView("expenses"))} onOpenForms={guard("The Forms library", () => setView("forms"))}
+          onOpenContacts={guard("Contacts", () => setView("contacts"))} onOpenPopBys={guard("Pop-Bys", () => setView("popbys"))} onOpenExpenses={guard("The Expense Tracker", () => setView("expenses"))} onOpenForms={guard("The Forms library", () => setView("forms"))}
           contactCount={contacts.length}
           onLogout={onLogout}
           onOpenTeam={guard("Team management", () => setShowTeam(true))}
@@ -7172,6 +7175,9 @@ function MainApp({ onLogout, currentUser }) {
       )}
       {view === "contacts" && (
         <ContactsPage token={localStorage.getItem("tp_token") || ""} onBack={() => setView("dashboard")} />
+      )}
+      {view === "popbys" && (
+        <PopBysPage token={localStorage.getItem("tp_token") || ""} onBack={() => setView("dashboard")} />
       )}
       {showCompliance && (
         <div style={{ position:"fixed", inset:0, background:"#fff", zIndex:200, overflowY:"auto" }}>

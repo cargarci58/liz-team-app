@@ -2003,16 +2003,11 @@ export default function ContactsPage({ token, onBack }) {
           <div onClick={e => e.stopPropagation()} style={{ background: "white", borderRadius: 12, maxWidth: 480, width: "100%", padding: 24, margin: "auto" }}>
             <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 6 }}>⚙ Contact Settings</div>
             <div style={{ fontSize: 13, color: "#374151", lineHeight: 1.6, marginBottom: 16 }}>
-              Your daily call list builds itself from each contact's tier — open Win the Day and the right people are already there. These two extras are optional:
+              Your daily call list builds itself from each contact's tier — open Win the Day and the right people are already there.
             </div>
-            <label style={{ display: "flex", alignItems: "flex-start", gap: 8, padding: "12px", border: "1px solid #e5e7eb", borderRadius: 8, marginBottom: 8, cursor: "pointer" }}>
-              <input type="checkbox" checked={popBysEnabled} onChange={e => togglePopBys(e.target.checked)} style={{ marginTop: 3 }} />
-              <span style={{ fontSize: 13, color: "#374151" }}><strong>🎁 Pop-bys</strong> — drop off a small gift to your A/B clients a few times a year (with a seasonal gift idea + a map route to do them in one trip). Turn on and they appear on Win the Day.</span>
-            </label>
-            <label style={{ display: "flex", alignItems: "flex-start", gap: 8, padding: "12px", border: "1px solid #e5e7eb", borderRadius: 8, marginBottom: 16, cursor: "pointer" }}>
-              <input type="checkbox" checked={iovEnabled} onChange={e => toggleIov(e.target.checked)} style={{ marginTop: 3 }} />
-              <span style={{ fontSize: 13, color: "#374151" }}><strong>📬 Items of Value</strong> — reminders to send a helpful note or market update to nurture clients.</span>
-            </label>
+            <div style={{ background: "#fffbeb", border: "1px solid #fcd34d", borderRadius: 8, padding: 12, marginBottom: 16, fontSize: 13, color: "#78350f" }}>
+              🎁 <strong>Pop-bys / gift runs moved to their own page.</strong> Open <strong>🎁 Pop-Bys</strong> from your Dashboard to turn them on, set your tiers, budget &amp; frequency, get gift ideas, and plan a delivery route.
+            </div>
             <div style={{ display: "flex", justifyContent: "flex-end" }}>
               <button onClick={() => setShowSettings(false)} style={btnStyle("#0c4a6e", "white")}>Done</button>
             </div>
