@@ -48,7 +48,8 @@ export default function PopBysPage({ token, onBack }) {
   const [form, setForm] = useState({ popByTiers: "aplus", popByFrequencyDays: 90, popByBudget: 10 });
   const [busy, setBusy] = useState(false);
   const [savedMsg, setSavedMsg] = useState(false);
-  const [suggesting, setSuggesting] = useState(new Set());
+  const [batchGift, setBatchGift] = useState({ gift: "", note: "" });
+  const [suggestingBatch, setSuggestingBatch] = useState(false);
   const [history, setHistory] = useState([]);
 
   const headers = { Authorization: "Bearer " + token, "Content-Type": "application/json" };
@@ -95,22 +96,16 @@ export default function PopBysPage({ token, onBack }) {
 
   const toggle = (id) => setSelected(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
 
-  const suggest = async (contactId, regenerate) => {
-    setSuggesting(prev => new Set(prev).add(contactId));
+  // ONE gift for the whole run (same gift for everyone — buy N of them).
+  const suggestBatch = async (regenerate) => {
+    setSuggestingBatch(true);
     try {
-      const r = await fetch(API + "/popbys/suggest", { method: "POST", headers, body: JSON.stringify({ contactId, regenerate }) });
+      const r = await fetch(API + "/popbys/suggest-batch", { method: "POST", headers, body: JSON.stringify({ regenerate }) });
       const d = await r.json();
-      if (r.ok) setData(prev => ({ ...prev, due: prev.due.map(c => c.id === contactId ? { ...c, gift: d.gift, note: d.note } : c) }));
+      if (r.ok) setBatchGift({ gift: d.gift, note: d.note });
       else alert(d.error || "Couldn't get a suggestion.");
     } catch (e) { alert("Error: " + e.message); }
-    finally { setSuggesting(prev => { const n = new Set(prev); n.delete(contactId); return n; }); }
-  };
-  // Acts on your selection if you've made one, otherwise the whole due list.
-  const actionTargets = () => (selected.size ? (data.due || []).filter(c => selected.has(c.id)) : (data.due || []));
-  const suggestForList = async () => {
-    const ids = actionTargets().filter(c => !c.gift).map(c => c.id);
-    if (!ids.length) { alert("Everyone on the list already has a gift idea. Use “↻ another” on a card to change one."); return; }
-    for (const id of ids) await suggest(id, false);
+    finally { setSuggestingBatch(false); }
   };
 
   const togglePurchased = async (c) => {
@@ -122,7 +117,7 @@ export default function PopBysPage({ token, onBack }) {
   const markDelivered = async (c) => {
     if (!confirm(`Mark the pop-by for ${c.firstName || "this contact"} as delivered? It'll move to your history and reschedule for next time.`)) return;
     try {
-      const r = await fetch(API + "/popbys/" + c.id + "/delivered", { method: "POST", headers, body: JSON.stringify({ gift: c.gift, note: c.note }) });
+      const r = await fetch(API + "/popbys/" + c.id + "/delivered", { method: "POST", headers, body: JSON.stringify({ gift: batchGift.gift, note: batchGift.note }) });
       if (!r.ok) { const d = await r.json(); throw new Error(d.error || "Failed"); }
       setData(prev => ({ ...prev, due: prev.due.filter(x => x.id !== c.id) }));
       setSelected(prev => { const n = new Set(prev); n.delete(c.id); return n; });
@@ -150,12 +145,13 @@ export default function PopBysPage({ token, onBack }) {
   };
 
   const printNotes = () => {
+    if (!batchGift.note) { alert("Pick a gift for the group first (✨ Suggest a gift) — that's what creates the note card."); return; }
     const list = selected.size ? ordered : routeOrder(data.due || []);
-    const cards = list.filter(c => c.note).map(c => `
+    const cards = list.map(c => `
       <div class="card"><div class="to">For ${escapeHtml(c.firstName || "")} ${escapeHtml(c.lastName || "")}</div>
-      <div class="note">${escapeHtml(c.note)}</div>
-      <div class="gift">${escapeHtml(c.gift || "")}</div></div>`).join("");
-    if (!cards) { alert("No note cards yet — generate gift ideas for your selected contacts first."); return; }
+      <div class="note">${escapeHtml(batchGift.note)}</div>
+      <div class="gift">${escapeHtml(batchGift.gift || "")}</div></div>`).join("");
+    if (!cards) { alert("No contacts to print note cards for."); return; }
     const w = window.open("", "_blank");
     if (!w) { alert("Allow pop-ups to print."); return; }
     w.document.write(`<!doctype html><meta charset=utf-8><title>Pop-by note cards</title>
@@ -257,7 +253,7 @@ export default function PopBysPage({ token, onBack }) {
                 <>
                   {/* Step toolbar */}
                   <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12, alignItems: "center" }}>
-                    <button onClick={suggestForList} style={btn("#fef9c3", "#854d0e")}>✨ Suggest gifts {selected.size ? "for selected" : "for everyone"}</button>
+                    <button onClick={() => suggestBatch(!!batchGift.gift)} disabled={suggestingBatch} style={btn("#fef9c3", "#854d0e")}>{suggestingBatch ? "Thinking…" : (batchGift.gift ? "↻ Suggest another gift" : "✨ Suggest a gift")}</button>
                     <button onClick={printNotes} style={btn("#e0e7ff", "#3730a3")}>🖨 Print note cards</button>
                     <span style={{ width: 1, height: 22, background: "#e5e7eb" }} />
                     <button onClick={selectCluster} style={btn("#e0e7ff", "#3730a3")}>📍 Select a nearby group</button>
@@ -265,6 +261,14 @@ export default function PopBysPage({ token, onBack }) {
                     {selected.size > 0 && <button onClick={() => setSelected(new Set())} style={btn("#e5e7eb", "#374151")}>Clear</button>}
                     {selected.size > 0 && <span style={{ fontSize: 13, fontWeight: 700, color: "#0c4a6e" }}>{selected.size} selected</span>}
                   </div>
+
+                  {/* One gift for the whole run */}
+                  {batchGift.gift && (
+                    <div style={{ background: "#fffbeb", border: "1px solid #fcd34d", borderRadius: 10, padding: 14, marginBottom: 14 }}>
+                      <div style={{ fontSize: 15, fontWeight: 800, color: "#92400e" }}>🎁 Buy {selected.size || data.due.length} × {batchGift.gift}</div>
+                      <div style={{ fontSize: 13, color: "#78350f", marginTop: 4 }}>Note card for each: <em>"{batchGift.note}"</em></div>
+                    </div>
+                  )}
 
                   {/* Due list */}
                   <div style={{ display: "grid", gap: 8 }}>
@@ -274,15 +278,6 @@ export default function PopBysPage({ token, onBack }) {
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ fontWeight: 700 }}>{c.firstName} {c.lastName} <span style={{ fontSize: 11, background: "#0c4a6e", color: "#fff", borderRadius: 6, padding: "1px 6px", marginLeft: 4 }}>{c.tier}</span></div>
                           <div style={{ fontSize: 12, color: "#6b7280" }}>{c.fullAddress}{!c.hasCoords && <span style={{ color: "#b45309" }}> · ⚠️ couldn't map this address</span>}{c.far && <span style={{ color: "#b91c1c", fontWeight: 700 }}> · ⏱ ~1 hr+ away ({c.milesFromStart} mi)</span>}</div>
-                          {c.gift ? (
-                            <div style={{ marginTop: 6, fontSize: 13 }}>
-                              <span style={{ fontWeight: 700 }}>🎁 {c.gift}</span>
-                              <span style={{ color: "#6b7280", fontStyle: "italic" }}> — note: "{c.note}"</span>
-                              <button onClick={() => suggest(c.id, true)} disabled={suggesting.has(c.id)} style={{ ...btn("transparent", "#0c4a6e"), padding: "2px 6px", fontSize: 12 }}>{suggesting.has(c.id) ? "…" : "↻ another"}</button>
-                            </div>
-                          ) : (
-                            <button onClick={() => suggest(c.id, false)} disabled={suggesting.has(c.id)} style={{ ...btn("#fef9c3", "#854d0e"), marginTop: 6, padding: "4px 10px" }}>{suggesting.has(c.id) ? "Thinking…" : "✨ Suggest a gift"}</button>
-                          )}
                         </div>
                         <div style={{ display: "flex", flexDirection: "column", gap: 6, alignItems: "flex-end" }}>
                           <label style={{ fontSize: 12, color: "#374151", display: "flex", alignItems: "center", gap: 4, cursor: "pointer" }}>
@@ -310,8 +305,8 @@ export default function PopBysPage({ token, onBack }) {
                       {/* Shopping list */}
                       <div style={{ fontSize: 13, marginBottom: 10 }}>
                         <div style={{ fontWeight: 700, marginBottom: 4 }}>🛒 Shopping list</div>
-                        {selectedList.filter(c => c.gift).length === 0 ? <div style={{ color: "#9ca3af" }}>No gift ideas yet — tap "Suggest gifts for selected".</div> :
-                          <ul style={{ margin: 0, paddingLeft: 18, color: "#374151" }}>{selectedList.filter(c => c.gift).map(c => <li key={c.id}>{c.gift} <span style={{ color: "#9ca3af" }}>(for {c.firstName})</span></li>)}</ul>}
+                        {batchGift.gift ? <div style={{ color: "#374151" }}>Buy <strong>{selected.size} × {batchGift.gift}</strong></div> :
+                          <div style={{ color: "#9ca3af" }}>Tap "✨ Suggest a gift" up top to pick one gift for the whole run.</div>}
                       </div>
 
                       {/* Route preview */}
