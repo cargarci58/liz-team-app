@@ -1309,7 +1309,7 @@ function SMSPanel({ tx, onUpdate, currentUser }) {
       {mode === "direct" && (partiesWithContact.length === 0 ? (
         <div style={{ textAlign: "center", color: "#6B7280", padding: 40 }}>No parties with phone or email. Add contact info in the People tab.</div>
       ) : (
-        <div style={{ display: "grid", gridTemplateColumns: "260px 1fr", gap: 16, height: 560, "data-msg-grid": "" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "260px 1fr 340px", gap: 16, height: 560, "data-msg-grid": "" }}>
           <div style={{ background: "#fff", border: "1px solid #E5E7EB", borderRadius: 12, overflow: "hidden", display: "flex", flexDirection: "column" }}>
             <div style={{ padding: "12px 14px", borderBottom: "1px solid #E5E7EB", fontSize: 12, fontWeight: 700, color: "#6B7280", textTransform: "uppercase", letterSpacing: "0.05em" }}>Conversations</div>
             <div style={{ flex: 1, overflowY: "auto" }}>
@@ -1427,6 +1427,9 @@ function SMSPanel({ tx, onUpdate, currentUser }) {
                   </div>
               </>
             )}
+          </div>
+          <div style={{ height: "100%", minHeight: 0 }}>
+            <TransactionChat transactionId={tx.id} user={null} parties={tx.parties || []} style={{ height: "100%" }} unreadCount={0} onUnreadChange={() => {}} />
           </div>
         </div>
       ))}
