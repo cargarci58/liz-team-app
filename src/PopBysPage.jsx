@@ -378,6 +378,18 @@ export default function PopBysPage({ token, onBack }) {
               <div style={{ fontSize: 13, color: "#6b7280", marginBottom: 10 }}>
                 Showing <strong>{TIER_LABEL[data.settings.tiers]}</strong> contacts due for a pop-by ({FREQ_LABEL[data.settings.frequencyDays]?.toLowerCase()}). Budget ~${data.settings.budget}/gift.
               </div>
+              {(() => {
+                const total = nearDue.length + farDue.length + (data.noAddress || []).length;
+                if (total === 0) return null;
+                return (
+                  <div style={{ background: "#f8fafc", border: "1px solid #e5e7eb", borderRadius: 8, padding: "8px 12px", marginBottom: 10, fontSize: 13, color: "#374151" }}>
+                    <strong>{total}</strong> due this round: <strong style={{ color: "#166534" }}>{nearDue.length} nearby</strong> (your run)
+                    {farDue.length > 0 && <span> · <strong style={{ color: "#991b1b" }}>{farDue.length} too far</strong></span>}
+                    {(data.noAddress || []).length > 0 && <span> · <strong style={{ color: "#9a3412" }}>{data.noAddress.length} missing an address</strong></span>}
+                    {(farDue.length > 0 || (data.noAddress || []).length > 0) && <span style={{ color: "#9ca3af" }}> — see the sections below.</span>}
+                  </div>
+                );
+              })()}
               {data.geocoding > 0 && (
                 <div style={{ background: "#eff6ff", border: "1px solid #bfdbfe", color: "#1e3a8a", borderRadius: 8, padding: "8px 12px", marginBottom: 10, fontSize: 13, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
                   <span>📍 Locating {data.geocoding} address{data.geocoding === 1 ? "" : "es"} for the map… this runs in the background.</span>
