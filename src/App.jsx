@@ -1244,21 +1244,21 @@ function SMSPanel({ tx, onUpdate, currentUser }) {
         </div>
       </div>
 
-      {/* TO sits over the conversations list (left); HOW sits over the messaging window (right) */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, marginBottom: 12, flexWrap: "wrap" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <span style={{ fontSize: 12, fontWeight: 700, color: "#6B7280", textTransform: "uppercase", letterSpacing: "0.05em" }}>To</span>
-          <div style={{ display: "flex", background: "#F3F4F6", borderRadius: 8, padding: 3, gap: 2 }}>
+      {/* The two choices the agent must make: WHO (over the conversations list) and HOW (over the messaging window) */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: 10, marginBottom: 12, flexWrap: "wrap" }}>
+        <div>
+          <div style={{ fontSize: 13, fontWeight: 800, color: "#0F2044", marginBottom: 5 }}>1. Select who to message:</div>
+          <div style={{ display: "inline-flex", background: "#F3F4F6", borderRadius: 8, padding: 3, gap: 2, border: "1.5px solid #C9A84C" }}>
             {[["direct", "👤 One person"], ["group", "👥 Everyone"]].map(([v, label]) => (
-              <button key={v} onClick={() => setMode(v)} style={{ padding: "7px 16px", borderRadius: 6, border: "none", background: mode === v ? "#C9A84C" : "transparent", color: mode === v ? "#fff" : "#6B7280", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>{label}</button>
+              <button key={v} onClick={() => setMode(v)} style={{ padding: "8px 18px", borderRadius: 6, border: "none", background: mode === v ? "#C9A84C" : "transparent", color: mode === v ? "#fff" : "#374151", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>{label}</button>
             ))}
           </div>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <span style={{ fontSize: 12, fontWeight: 700, color: "#6B7280", textTransform: "uppercase", letterSpacing: "0.05em" }}>How</span>
-          <div style={{ display: "flex", background: "#F3F4F6", borderRadius: 8, padding: 3, gap: 2 }}>
+        <div style={{ textAlign: "right" }}>
+          <div style={{ fontSize: 13, fontWeight: 800, color: "#0F2044", marginBottom: 5 }}>2. Select how to send it:</div>
+          <div style={{ display: "inline-flex", background: "#F3F4F6", borderRadius: 8, padding: 3, gap: 2, border: "1.5px solid #0F2044" }}>
             {[["send", "📨 Email / Text"], ["chat", "💬 Chat in the app"]].map(([v, label]) => (
-              <button key={v} onClick={() => setSurface(v)} style={{ padding: "7px 16px", borderRadius: 6, border: "none", background: surface === v ? "#0F2044" : "transparent", color: surface === v ? "#fff" : "#6B7280", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>{label}</button>
+              <button key={v} onClick={() => setSurface(v)} style={{ padding: "8px 18px", borderRadius: 6, border: "none", background: surface === v ? "#0F2044" : "transparent", color: surface === v ? "#fff" : "#374151", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>{label}</button>
             ))}
           </div>
         </div>
