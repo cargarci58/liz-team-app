@@ -24,10 +24,25 @@ function miles(a, b) {
 // Parse the reliable parts of an address (the free geocoder is often fuzzy, but
 // the address TEXT is exact). House number, street name, and zip.
 function houseNum(addr) { const m = String(addr || "").match(/^\s*(\d+)/); return m ? parseInt(m[1], 10) : 999999; }
+// Common street-suffix spellings → one canonical form, so "Alderley Dr" and
+// "Alderley Drive" (or St/Street, Ave/Avenue, etc.) count as the SAME street.
+const STREET_SUFFIX = {
+  dr: "dr", drive: "dr", st: "st", street: "st", ave: "ave", av: "ave", avenue: "ave",
+  rd: "rd", road: "rd", ln: "ln", lane: "ln", ct: "ct", court: "ct", cir: "cir", circle: "cir",
+  blvd: "blvd", boulevard: "blvd", pl: "pl", place: "pl", ter: "ter", terrace: "ter",
+  trl: "trl", trail: "trl", pkwy: "pkwy", parkway: "pkwy", pt: "pt", point: "pt",
+  sq: "sq", square: "sq", hwy: "hwy", highway: "hwy", way: "way", loop: "loop", run: "run", path: "path",
+};
 function streetName(addr) {
-  return String(addr || "").replace(/^\s*\d+\s*/, "")
-    .replace(/\s*(#|apt\.?|apartment|suite|ste\.?|unit|lot)\s*[\w-]+\s*$/i, "")
-    .trim().toLowerCase();
+  const base = String(addr || "")
+    .split(",")[0]                                   // drop city/state/zip if present
+    .replace(/^\s*\d+\s*/, "")                        // drop the house number
+    .replace(/\s*(#|apt\.?|apartment|suite|ste\.?|unit|lot)\s*[\w-]+\s*$/i, "") // drop unit
+    .toLowerCase().replace(/[.,]/g, "").replace(/\s+/g, " ").trim();
+  // canonicalize the last word if it's a known suffix
+  const parts = base.split(" ");
+  if (parts.length > 1 && STREET_SUFFIX[parts[parts.length - 1]]) parts[parts.length - 1] = STREET_SUFFIX[parts[parts.length - 1]];
+  return parts.join(" ");
 }
 function zipOf(s) {
   if (s && s.zip) return String(s.zip).trim().slice(0, 5);
@@ -43,9 +58,8 @@ function zipOf(s) {
 function routeOrder(stops, start) {
   if (stops.length <= 1) return [...stops];
   const origin = (start && start.lat != null) ? { lat: start.lat, lng: start.lng } : null;
-  // Your OWN street (from the address text — reliable even if coords are fuzzy).
-  const homeStreetPart = (start && start.address) ? String(start.address).split(",")[0] : "";
-  const homeKey = start ? ((zipOf({ fullAddress: start.address, zip: start.zip }) || "?") + "|" + (streetName(homeStreetPart) || "?")) : null;
+  // Your OWN street name (from the address text — reliable even if coords are fuzzy).
+  const homeStreet = (start && start.address) ? streetName(start.address) : "";
   // Build street groups (zip + street), each sorted by house number.
   const groupsMap = {};
   stops.forEach(s => { const k = (zipOf(s) || "?") + "|" + (streetName(s.address) || "?"); (groupsMap[k] = groupsMap[k] || []).push(s); });
@@ -55,12 +69,13 @@ function routeOrder(stops, start) {
     const rep = geo.length
       ? (origin ? geo.reduce((best, m) => ((miles(origin, m) ?? Infinity) < (miles(origin, best) ?? Infinity) ? m : best), geo[0]) : geo[0])
       : null;
-    return { key, members, rep };
+    return { key, streetNorm: streetName(members[0].address), members, rep };
   });
   const ordered = [];
   let current = origin;
-  // 1. Anyone on your OWN street goes first, no matter what the coords say.
-  const homeIdx = homeKey ? groups.findIndex(g => g.key === homeKey) : -1;
+  // 1. Anyone on your OWN street goes first, matched by street NAME (so "Dr" vs
+  //    "Drive" or a missing zip can't break it), no matter what the coords say.
+  const homeIdx = homeStreet ? groups.findIndex(g => g.streetNorm && g.streetNorm === homeStreet) : -1;
   if (homeIdx >= 0) {
     const hg = groups.splice(homeIdx, 1)[0];
     ordered.push(...hg.members);
