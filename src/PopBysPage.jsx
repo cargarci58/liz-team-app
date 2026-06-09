@@ -21,26 +21,54 @@ function miles(a, b) {
   return R * 2 * Math.atan2(Math.sqrt(x), Math.sqrt(1 - x));
 }
 
-// Order stops for the drive: pure nearest-neighbor STARTING FROM THE AGENT'S
-// OWN ADDRESS — so the closest house (e.g. one on your own street) is stop #1,
-// the next-closest to that is #2, and so on. Stops without coords go last.
+// Parse the reliable parts of an address (the free geocoder is often fuzzy, but
+// the address TEXT is exact). House number, street name, and zip.
+function houseNum(addr) { const m = String(addr || "").match(/^\s*(\d+)/); return m ? parseInt(m[1], 10) : 999999; }
+function streetName(addr) {
+  return String(addr || "").replace(/^\s*\d+\s*/, "")
+    .replace(/\s*(#|apt\.?|apartment|suite|ste\.?|unit|lot)\s*[\w-]+\s*$/i, "")
+    .trim().toLowerCase();
+}
+function zipOf(s) {
+  if (s && s.zip) return String(s.zip).trim().slice(0, 5);
+  const m = String((s && s.fullAddress) || s || "").match(/(\d{5})(?:-\d{4})?\s*$/);
+  return m ? m[1] : "";
+}
+
+// Order stops for the drive, robust to fuzzy coordinates:
+//   1. group by ZIP — your home zip first, other zips by nearest from home
+//   2. within a zip, group by STREET — nearest street to home first
+//      (same street always stays together, in house-number order)
+// This keeps a neighbor on your own street at the very top even when the
+// geocoder only resolved some houses to their zip-code center.
 function routeOrder(stops, start) {
-  const withGeo = stops.filter(s => s.hasCoords);
-  const noGeo = stops.filter(s => !s.hasCoords);
-  if (withGeo.length <= 1) return [...withGeo, ...noGeo];
-  const origin = (start && start.lat != null) ? { lat: start.lat, lng: start.lng }
-    // no agent address — fall back to the most south-west stop
-    : withGeo.reduce((m, s) => (s.lat + s.lng < m.lat + m.lng ? s : m), withGeo[0]);
-  const remaining = [...withGeo];
-  const ordered = [];
-  let current = origin;
-  while (remaining.length) {
-    let bestI = 0, bestD = Infinity;
-    remaining.forEach((s, i) => { const d = miles(current, s); if (d != null && d < bestD) { bestD = d; bestI = i; } });
-    current = remaining.splice(bestI, 1)[0];
-    ordered.push(current);
-  }
-  return [...ordered, ...noGeo];
+  if (stops.length <= 1) return [...stops];
+  const origin = (start && start.lat != null) ? { lat: start.lat, lng: start.lng } : null;
+  const homeZip = start ? zipOf({ fullAddress: start.address, zip: start.zip }) : "";
+  const minDistToHome = (list) => {
+    const m = list.filter(s => s.hasCoords);
+    if (!origin || !m.length) return Infinity;
+    return Math.min(...m.map(s => { const d = miles(origin, s); return d == null ? Infinity : d; }));
+  };
+  // group by zip
+  const byZip = {};
+  stops.forEach(s => { const z = zipOf(s) || "?"; (byZip[z] = byZip[z] || []).push(s); });
+  const orderWithinZip = (list) => {
+    const byStreet = {};
+    list.forEach(s => { const k = streetName(s.address) || "?"; (byStreet[k] = byStreet[k] || []).push(s); });
+    Object.values(byStreet).forEach(g => g.sort((a, b) => houseNum(a.address) - houseNum(b.address)));
+    return Object.keys(byStreet)
+      .sort((a, b) => { const da = minDistToHome(byStreet[a]), db = minDistToHome(byStreet[b]); return da !== db ? da - db : a.localeCompare(b); })
+      .flatMap(k => byStreet[k]);
+  };
+  return Object.keys(byZip)
+    .sort((a, b) => {
+      if (a === homeZip && b !== homeZip) return -1;
+      if (b === homeZip && a !== homeZip) return 1;
+      const da = minDistToHome(byZip[a]), db = minDistToHome(byZip[b]);
+      return da !== db ? da - db : a.localeCompare(b);
+    })
+    .flatMap(z => orderWithinZip(byZip[z]));
 }
 
 // Search link for a store the AI suggested — real store search pages, no
