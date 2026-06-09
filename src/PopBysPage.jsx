@@ -43,22 +43,31 @@ function zipOf(s) {
 function routeOrder(stops, start) {
   if (stops.length <= 1) return [...stops];
   const origin = (start && start.lat != null) ? { lat: start.lat, lng: start.lng } : null;
+  // Your OWN street (from the address text — reliable even if coords are fuzzy).
+  const homeStreetPart = (start && start.address) ? String(start.address).split(",")[0] : "";
+  const homeKey = start ? ((zipOf({ fullAddress: start.address, zip: start.zip }) || "?") + "|" + (streetName(homeStreetPart) || "?")) : null;
   // Build street groups (zip + street), each sorted by house number.
   const groupsMap = {};
   stops.forEach(s => { const k = (zipOf(s) || "?") + "|" + (streetName(s.address) || "?"); (groupsMap[k] = groupsMap[k] || []).push(s); });
-  const groups = Object.values(groupsMap).map(members => {
+  const groups = Object.entries(groupsMap).map(([key, members]) => {
     members.sort((a, b) => houseNum(a.address) - houseNum(b.address));
     const geo = members.filter(m => m.hasCoords);
-    // representative point = the member closest to home (best anchor for a street)
     const rep = geo.length
       ? (origin ? geo.reduce((best, m) => ((miles(origin, m) ?? Infinity) < (miles(origin, best) ?? Infinity) ? m : best), geo[0]) : geo[0])
       : null;
-    return { members, rep };
+    return { key, members, rep };
   });
-  // Nearest-next over street groups, starting from home.
-  const remaining = [...groups];
   const ordered = [];
   let current = origin;
+  // 1. Anyone on your OWN street goes first, no matter what the coords say.
+  const homeIdx = homeKey ? groups.findIndex(g => g.key === homeKey) : -1;
+  if (homeIdx >= 0) {
+    const hg = groups.splice(homeIdx, 1)[0];
+    ordered.push(...hg.members);
+    if (hg.rep) current = hg.rep;
+  }
+  // 2. Then nearest-next over the remaining streets.
+  const remaining = [...groups];
   while (remaining.length) {
     let bestI = -1, bestD = Infinity;
     remaining.forEach((g, i) => {
