@@ -47,6 +47,7 @@ export default function PopBysPage({ token, onBack }) {
   const [showSettings, setShowSettings] = useState(false);
   const [form, setForm] = useState({ popByTiers: "aplus", popByFrequencyDays: 90, popByBudget: 10 });
   const [busy, setBusy] = useState(false);
+  const [savedMsg, setSavedMsg] = useState(false);
   const [suggesting, setSuggesting] = useState(new Set());
   const [history, setHistory] = useState([]);
 
@@ -77,7 +78,20 @@ export default function PopBysPage({ token, onBack }) {
   };
 
   const enable = () => savePref({ popBysEnabled: true });
-  const saveSettings = async () => { await savePref({ popBysEnabled: true, ...form }); setShowSettings(false); };
+  const saveSettings = async () => {
+    setBusy(true);
+    try {
+      const body = { popBysEnabled: true, popByTiers: form.popByTiers, popByFrequencyDays: parseInt(form.popByFrequencyDays, 10) || 90, popByBudget: parseInt(form.popByBudget, 10) || 10 };
+      await fetch(API + "/contacts/prefs", { method: "PUT", headers, body: JSON.stringify(body) });
+      // Reflect immediately, then refresh the due list in the background.
+      setData(prev => prev ? { ...prev, enabled: true, settings: { tiers: body.popByTiers, frequencyDays: body.popByFrequencyDays, budget: body.popByBudget } } : prev);
+      setForm({ popByTiers: body.popByTiers, popByFrequencyDays: body.popByFrequencyDays, popByBudget: body.popByBudget });
+      setSavedMsg(true); setTimeout(() => setSavedMsg(false), 2500);
+      setShowSettings(false);
+      load();
+    } catch (e) { alert("Couldn't save: " + e.message); }
+    finally { setBusy(false); }
+  };
 
   const toggle = (id) => setSelected(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
 
@@ -198,6 +212,8 @@ export default function PopBysPage({ token, onBack }) {
         </div>
       )}
 
+      {savedMsg && <div style={{ background: "#dcfce7", border: "1px solid #86efac", color: "#166534", borderRadius: 8, padding: "8px 12px", marginTop: 10, fontSize: 13, fontWeight: 700 }}>✓ Settings saved.</div>}
+
       {/* Not enabled yet */}
       {data && !data.enabled && (
         <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 12, padding: 28, marginTop: 16, textAlign: "center" }}>
@@ -224,6 +240,12 @@ export default function PopBysPage({ token, onBack }) {
               <div style={{ fontSize: 13, color: "#6b7280", marginBottom: 10 }}>
                 Showing <strong>{TIER_LABEL[data.settings.tiers]}</strong> contacts due for a pop-by ({FREQ_LABEL[data.settings.frequencyDays]?.toLowerCase()}). Budget ~${data.settings.budget}/gift.
               </div>
+              {data.geocoding > 0 && (
+                <div style={{ background: "#eff6ff", border: "1px solid #bfdbfe", color: "#1e3a8a", borderRadius: 8, padding: "8px 12px", marginBottom: 10, fontSize: 13, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
+                  <span>📍 Locating {data.geocoding} address{data.geocoding === 1 ? "" : "es"} for the map… this runs in the background.</span>
+                  <button onClick={load} style={btn("#dbeafe", "#1e3a8a")}>Refresh</button>
+                </div>
+              )}
 
               {(data.due || []).length === 0 ? (
                 <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 10, padding: 20, color: "#166534" }}>🎉 Nobody's due for a pop-by right now. Check back later — or adjust your tiers/frequency in Settings.</div>
