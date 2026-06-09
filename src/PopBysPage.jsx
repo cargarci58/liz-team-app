@@ -102,6 +102,7 @@ export default function PopBysPage({ token, onBack }) {
   const [form, setForm] = useState({ popByTiers: "aplus", popByFrequencyDays: 90, popByBudget: 10 });
   const [busy, setBusy] = useState(false);
   const [savedMsg, setSavedMsg] = useState(false);
+  const [clusterMi, setClusterMi] = useState(5);   // nearby-group radius (1-10 mi)
   const [batchGift, setBatchGift] = useState({ gift: "", note: "", price: null, whereToBuy: "", stores: [] });
   const [rejectedGifts, setRejectedGifts] = useState([]);
   const [suggestingBatch, setSuggestingBatch] = useState(false);
@@ -199,10 +200,10 @@ export default function PopBysPage({ token, onBack }) {
   const runList = selectedList.length ? selectedList : nearDue;
   const ordered = routeOrder(runList, data?.start);
 
-  // Group due contacts into TIGHT areas where everyone is within ~3 mi of
-  // someone else in the group — so each chip is a quick, gas-saving run. Labeled
-  // by most-common city. Singletons (nobody nearby) are not shown as chips.
-  const CLUSTER_MI = 3;
+  // Group due contacts into areas where everyone is within ~clusterMi of someone
+  // else in the group — so each chip is a tight, gas-saving run. Radius is
+  // agent-controlled (1-10 mi slider). Labeled by most-common city; singletons hidden.
+  const CLUSTER_MI = clusterMi;
   const areaClusters = (() => {
     const unused = nearDue.filter(c => c.hasCoords);
     const clusters = [];
@@ -414,10 +415,15 @@ export default function PopBysPage({ token, onBack }) {
                   {/* ── STEP 3 — pick who / which area ── */}
                   <div style={stepBox}>
                     <div style={stepTitle}><span style={stepNum}>3</span> Pick who's on today's run</div>
-                    <div style={{ fontSize: 13, color: "#6b7280", marginBottom: 10 }}>Tap a <strong>nearby group</strong> below (everyone within ~3 miles of each other) to knock out a tight, gas-saving run today — or check people one by one. Skip this step to do everyone.</div>
-                    {areaClusters.length > 0 && (
+                    <div style={{ fontSize: 13, color: "#6b7280", marginBottom: 10 }}>Tap a <strong>nearby group</strong> below to knock out a tight, gas-saving run today — or check people one by one. Skip this step to do everyone.</div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", marginBottom: 10 }}>
+                      <span style={{ fontSize: 13, fontWeight: 700, color: "#374151" }}>Group size:</span>
+                      <input type="range" min={1} max={10} step={1} value={clusterMi} onChange={e => setClusterMi(parseInt(e.target.value, 10))} style={{ flex: 1, minWidth: 140, maxWidth: 260, accentColor: "#0c4a6e", cursor: "pointer" }} />
+                      <span style={{ fontSize: 13, fontWeight: 700, color: "#0c4a6e", whiteSpace: "nowrap" }}>within {clusterMi} mi</span>
+                    </div>
+                    {areaClusters.length > 0 ? (
                       <div style={{ marginBottom: 10 }}>
-                        <div style={{ fontSize: 12, fontWeight: 700, color: "#3730a3", marginBottom: 6 }}>📍 Nearby groups (within ~3 mi):</div>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: "#3730a3", marginBottom: 6 }}>📍 Nearby groups (within ~{clusterMi} mi):</div>
                         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
                           {areaClusters.map((cl, i) => (
                             <button key={i} onClick={() => setSelected(new Set(cl.members.map(m => m.id)))} style={btn("#e0e7ff", "#3730a3")}>
@@ -426,6 +432,8 @@ export default function PopBysPage({ token, onBack }) {
                           ))}
                         </div>
                       </div>
+                    ) : (
+                      <div style={{ fontSize: 12, color: "#9ca3af", marginBottom: 10 }}>No clusters at {clusterMi} mi — slide right to widen the group, or pick people below.</div>
                     )}
                     <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 10, alignItems: "center" }}>
                       <button onClick={() => setSelected(new Set(nearDue.map(c => c.id)))} style={btn("#e5e7eb", "#374151")}>Select all</button>
