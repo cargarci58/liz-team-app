@@ -1371,6 +1371,7 @@ function CampaignModal({ token, groupList, onClose }) {
         + (d.cappedOut ? `\n${d.cappedOut} held back — you hit this month's send limit.` : "")
         + (d.failed ? `\n${d.failed} failed to send.` + (d.firstError ? `\n\nReason from email provider:\n${d.firstError}` : "") : ""));
       loadCampaigns();
+      if (d.sent > 0) onClose();   // close after a successful send
     } catch (e) { alert("Error: " + e.message); }
     finally { setBusy(false); }
   };
