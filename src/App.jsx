@@ -989,26 +989,19 @@ function SMSPanel({ tx, onUpdate, currentUser }) {
   const [selectedParty, setSelectedParty] = useState(null);
   const [message, setMessage] = useState("");
   const [subject, setSubject] = useState("");
-  const [channel, setChannel] = useState("sms");
+  const [channel, setChannel] = useState("email");
   const [sending, setSending] = useState(false);
-  const [showBulk, setShowBulk] = useState(false);
-  const [bulkMessage, setBulkMessage] = useState("");
-  const [bulkSubject, setBulkSubject] = useState("");
-  const [bulkChannel, setBulkChannel] = useState("sms");
-  const [bulkSelected, setBulkSelected] = useState([]);
-  const [bulkSending, setBulkSending] = useState(false);
-  const [bulkResult, setBulkResult] = useState(null);
   const [showReminderSMS, setShowReminderSMS] = useState(false);
   const [reminderTask, setReminderTask] = useState("");
   const [reminderMsg, setReminderMsg] = useState("");
-  const [reminderChannel, setReminderChannel] = useState("both");
+  const [reminderChannel, setReminderChannel] = useState("email");
   const [reminderParties, setReminderParties] = useState([]);
   const [reminderSending, setReminderSending] = useState(false);
   // Group mode: one composer → email + SMS to everyone + posts to the chat thread.
   const [mode, setMode] = useState("direct");
   const [gSubject, setGSubject] = useState("");
   const [gMessage, setGMessage] = useState("");
-  const [gChannel, setGChannel] = useState("both");
+  const [gChannel, setGChannel] = useState("email");
   const [gAttach, setGAttach] = useState([]); // [{ id, name }]
   const [gSending, setGSending] = useState(false);
   const [gResult, setGResult] = useState(null);
@@ -1118,25 +1111,6 @@ function SMSPanel({ tx, onUpdate, currentUser }) {
     setSending(false);
   };
 
-  const sendBulk = async () => {
-    if (!bulkMessage.trim() || !bulkSelected.length) return;
-    setBulkSending(true);
-    const parties = bulkSelected.map(id => tx.parties.find(p => p.id === id)).filter(Boolean);
-    const results = [];
-    for (const party of parties) {
-      const r = { name: party.name, sms: null, email: null };
-      if ((bulkChannel === "sms" || bulkChannel === "both") && party.phone) {
-        try { const res = await fetch(`${SMS_SERVER}/sms/send`, { method: "POST", headers: { "Content-Type": "application/json", "Authorization": "Bearer " + (localStorage.getItem("tp_token") || "") }, body: JSON.stringify({ transactionId: tx.id, transactionAddress: tx.address, toPhone: party.phone, toName: party.name, message: `[The Liz Team - ${tx.address}]\n${bulkMessage.trim()}`, fromName: "The Liz Team" }) }); const d = await res.json(); r.sms = d.success; } catch { r.sms = false; }
-      }
-      if ((bulkChannel === "email" || bulkChannel === "both") && party.email) {
-        try { const res = await fetch(`${SMS_SERVER}/email/send`, { method: "POST", headers: { "Content-Type": "application/json", "Authorization": "Bearer " + (localStorage.getItem("tp_token") || "") }, body: JSON.stringify({ transactionId: tx.id, transactionAddress: tx.address, toEmail: party.email, toName: party.name, subject: bulkSubject || `Update: ${tx.address}`, message: bulkMessage.trim(), fromName: "The Liz Team" }) }); const d = await res.json(); r.email = d.success; } catch { r.email = false; }
-      }
-      results.push(r);
-    }
-    setBulkResult(results);
-    setBulkSending(false);
-  };
-
   const sendReminder = async () => {
     if (!reminderTask || !reminderParties.length) return;
     setReminderSending(true);
@@ -1234,7 +1208,7 @@ function SMSPanel({ tx, onUpdate, currentUser }) {
 
       {mode === "group" && (
         <div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, alignItems: "start", "data-msg-grid": "" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 16, alignItems: "start", "data-msg-grid": "" }}>
             {/* Composer */}
             <div style={{ background: "#fff", border: "1px solid #E5E7EB", borderRadius: 12, padding: 18 }}>
               <div style={{ fontWeight: 700, fontSize: 15, color: "#0F2044", marginBottom: 4 }}>Message everyone at once</div>
@@ -1249,13 +1223,13 @@ function SMSPanel({ tx, onUpdate, currentUser }) {
                 <input value={gSubject} onChange={e => setGSubject(e.target.value)} placeholder={`Email subject (default: Update: ${tx.address})`} style={{ width: "100%", padding: "9px 12px", borderRadius: 8, border: "1px solid #E5E7EB", fontSize: 13, fontFamily: "inherit", boxSizing: "border-box", marginBottom: 10 }} />
               )}
 
-              <textarea value={gMessage} onChange={e => setGMessage(e.target.value)} rows={6} placeholder="Type your message to all parties..." style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: "1px solid #E5E7EB", fontSize: 14, fontFamily: "inherit", resize: "vertical", boxSizing: "border-box", marginBottom: 10 }} />
+              <textarea value={gMessage} onChange={e => setGMessage(e.target.value)} rows={12} placeholder="Type your message to all parties..." style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: "1px solid #E5E7EB", fontSize: 14, fontFamily: "inherit", resize: "vertical", minHeight: 220, boxSizing: "border-box", marginBottom: 10 }} />
 
               {/* Attachments */}
               <div style={{ marginBottom: 12 }}>
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: gAttach.length ? 8 : 0 }}>
                   <button onClick={openDocPicker} style={{ fontSize: 12, padding: "6px 12px", borderRadius: 8, border: "1px solid #0F2044", background: "#fff", color: "#0F2044", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>📎 Attach from Documents</button>
-                  <button onClick={() => fileInputRef.current?.click()} disabled={uploading} style={{ fontSize: 12, padding: "6px 12px", borderRadius: 8, border: "1px solid #0F2044", background: "#fff", color: "#0F2044", fontWeight: 600, cursor: "pointer", fontFamily: "inherit", opacity: uploading ? 0.5 : 1 }}>{uploading ? "Uploading..." : "💻 Attach from computer"}</button>
+                  <button onClick={() => fileInputRef.current?.click()} disabled={uploading} style={{ fontSize: 12, padding: "6px 12px", borderRadius: 8, border: "1px solid #0F2044", background: "#fff", color: "#0F2044", fontWeight: 600, cursor: "pointer", fontFamily: "inherit", opacity: uploading ? 0.5 : 1 }}>{uploading ? "Uploading..." : "💻 Upload"}</button>
                 </div>
                 {gAttach.map(a => (
                   <div key={a.id} style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "#F0F4FF", border: "1px solid #C7D2FE", borderRadius: 6, padding: "4px 8px", fontSize: 12, color: "#0F2044", marginRight: 6, marginBottom: 6 }}>
@@ -1427,7 +1401,7 @@ function SMSPanel({ tx, onUpdate, currentUser }) {
                 <div style={{ padding: "10px 18px 0", borderTop: "1px solid #E5E7EB" }}>
                   <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: gAttach.length ? 8 : 0 }}>
                     <button onClick={openDocPicker} style={{ fontSize: 12, padding: "6px 12px", borderRadius: 8, border: "1px solid #0F2044", background: "#fff", color: "#0F2044", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>📎 Attach from Documents</button>
-                    <button onClick={() => fileInputRef.current?.click()} disabled={uploading} style={{ fontSize: 12, padding: "6px 12px", borderRadius: 8, border: "1px solid #0F2044", background: "#fff", color: "#0F2044", fontWeight: 600, cursor: "pointer", fontFamily: "inherit", opacity: uploading ? 0.5 : 1 }}>{uploading ? "Uploading..." : "💻 Attach from computer"}</button>
+                    <button onClick={() => fileInputRef.current?.click()} disabled={uploading} style={{ fontSize: 12, padding: "6px 12px", borderRadius: 8, border: "1px solid #0F2044", background: "#fff", color: "#0F2044", fontWeight: 600, cursor: "pointer", fontFamily: "inherit", opacity: uploading ? 0.5 : 1 }}>{uploading ? "Uploading..." : "💻 Upload"}</button>
                   </div>
                   {gAttach.map(a => (
                     <div key={a.id} style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "#F0F4FF", border: "1px solid #C7D2FE", borderRadius: 6, padding: "4px 8px", fontSize: 12, color: "#0F2044", marginRight: 6, marginBottom: 6 }}>
@@ -1456,64 +1430,6 @@ function SMSPanel({ tx, onUpdate, currentUser }) {
           </div>
         </div>
       ))}
-
-      {showBulk && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 1000, display: "flex", alignItems: "flex-start", justifyContent: "center", padding: 16, overflowY: "auto" }}>
-          <div style={{ background: "#fff", borderRadius: 14, width: 600, maxWidth: "100%", maxHeight: "90vh", overflow: "auto", boxShadow: "0 20px 60px rgba(0,0,0,0.25)", "data-modal": "", margin: "auto" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "20px 24px 16px", borderBottom: "1px solid #E5E7EB" }}>
-              <div style={{ fontWeight: 700, fontSize: 18, color: "#0F2044" }}>Broadcast to Parties</div>
-              <button onClick={() => setShowBulk(false)} style={{ background: "none", border: "none", fontSize: 22, cursor: "pointer", color: "#6B7280" }}>x</button>
-            </div>
-            <div style={{ padding: "20px 24px 24px" }}>
-              {!bulkResult ? (
-                <>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-                    <div style={{ fontWeight: 600, fontSize: 13 }}>Send via</div>
-                    <ChannelPicker value={bulkChannel} onChange={setBulkChannel} />
-                  </div>
-                  <div style={{ marginBottom: 16 }}>
-                    <div style={{ fontWeight: 700, fontSize: 13, color: "#0F2044", marginBottom: 10 }}>Recipients</div>
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, "data-form-grid": "" }}>
-                      {partiesWithContact.map(p => (
-                        <label key={p.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", border: `1px solid ${bulkSelected.includes(p.id) ? "#0F2044" : "#E5E7EB"}`, borderRadius: 8, cursor: "pointer" }}>
-                          <input type="checkbox" checked={bulkSelected.includes(p.id)} onChange={e => setBulkSelected(prev => e.target.checked ? [...prev, p.id] : prev.filter(x => x !== p.id))} />
-                          <div><div style={{ fontSize: 13, fontWeight: 600 }}>{p.name}</div><div style={{ fontSize: 11, color: "#6B7280" }}>{p.role} {p.phone ? "📱" : ""}{p.email ? "📧" : ""}</div></div>
-                        </label>
-                      ))}
-                    </div>
-                    <button onClick={() => setBulkSelected(partiesWithContact.map(p => p.id))} style={{ marginTop: 8, fontSize: 12, color: "#1D4ED8", background: "none", border: "none", cursor: "pointer" }}>Select all</button>
-                  </div>
-                  {(bulkChannel === "email" || bulkChannel === "both") && (
-                    <div style={{ marginBottom: 14 }}>
-                      <label style={{ fontSize: 12, fontWeight: 600, color: "#6B7280", display: "block", marginBottom: 4, textTransform: "uppercase" }}>Email Subject</label>
-                      <input value={bulkSubject} onChange={e => setBulkSubject(e.target.value)} placeholder={`Update: ${tx.address}`} style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: "1px solid #E5E7EB", fontSize: 14, fontFamily: "inherit", boxSizing: "border-box" }} />
-                    </div>
-                  )}
-                  <div style={{ marginBottom: 14 }}>
-                    <label style={{ fontSize: 12, fontWeight: 600, color: "#6B7280", display: "block", marginBottom: 4, textTransform: "uppercase" }}>Message</label>
-                    <textarea value={bulkMessage} onChange={e => setBulkMessage(e.target.value)} rows={4} style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: "1px solid #E5E7EB", fontSize: 14, fontFamily: "inherit", resize: "vertical", boxSizing: "border-box" }} />
-                  </div>
-                  <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
-                    <button onClick={() => setShowBulk(false)} style={{ padding: "8px 18px", borderRadius: 8, border: "1px solid #E5E7EB", background: "transparent", cursor: "pointer", fontFamily: "inherit" }}>Cancel</button>
-                    <button onClick={sendBulk} disabled={!bulkMessage.trim() || !bulkSelected.length || bulkSending} style={{ padding: "8px 18px", borderRadius: 8, border: "none", background: "#C9A84C", color: "#fff", fontWeight: 600, cursor: "pointer", fontFamily: "inherit", opacity: bulkSending ? 0.5 : 1 }}>{bulkSending ? "Sending..." : `Send to ${bulkSelected.length} parties`}</button>
-                  </div>
-                </>
-              ) : (
-                <>
-                  {bulkResult.map((r, i) => (
-                    <div key={i} style={{ padding: "10px 0", borderBottom: "1px solid #E5E7EB" }}>
-                      <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 4 }}>{r.name}</div>
-                      {r.sms !== null && <div style={{ fontSize: 12, color: r.sms ? "#15803D" : "#DC2626" }}>📱 SMS: {r.sms ? "Sent" : "Failed"}</div>}
-                      {r.email !== null && <div style={{ fontSize: 12, color: r.email ? "#15803D" : "#DC2626" }}>📧 Email: {r.email ? "Sent" : "Failed"}</div>}
-                    </div>
-                  ))}
-                  <div style={{ marginTop: 16 }}><button onClick={() => setShowBulk(false)} style={{ padding: "8px 18px", borderRadius: 8, border: "none", background: "#0F2044", color: "#fff", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Done</button></div>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
 
       {showReminderSMS && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 1000, display: "flex", alignItems: "flex-start", justifyContent: "center", padding: 16, overflowY: "auto" }}>
