@@ -128,8 +128,8 @@ export default function PopBysPage({ token, onBack }) {
 
   // Select a tight nearby cluster (everyone within 5 mi of the first geocoded stop).
   const selectCluster = () => {
-    const geo = (data.due || []).filter(c => c.hasCoords);
-    if (geo.length === 0) { alert("None of your due contacts have a map location yet (they need a street address)."); return; }
+    const geo = (data.due || []).filter(c => c.hasCoords && !c.far);
+    if (geo.length === 0) { alert("No nearby contacts with a map location yet (they need a street address, and must be within ~1 hr)."); return; }
     const anchor = geo[0];
     const near = geo.filter(c => { const d = miles(anchor, c); return d != null && d <= 5; });
     setSelected(new Set(near.map(c => c.id)));
@@ -254,7 +254,7 @@ export default function PopBysPage({ token, onBack }) {
                   {/* Step toolbar */}
                   <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
                     <button onClick={selectCluster} style={btn("#e0e7ff", "#3730a3")}>📍 Select a nearby group</button>
-                    <button onClick={() => setSelected(new Set(data.due.map(c => c.id)))} style={btn("#e5e7eb", "#374151")}>Select all</button>
+                    <button onClick={() => setSelected(new Set(data.due.filter(c => !c.far).map(c => c.id)))} style={btn("#e5e7eb", "#374151")}>Select all nearby</button>
                     <button onClick={() => setSelected(new Set())} style={btn("#e5e7eb", "#374151")}>Clear</button>
                     {selected.size > 0 && <span style={{ alignSelf: "center", fontSize: 13, fontWeight: 700, color: "#0c4a6e" }}>{selected.size} selected</span>}
                   </div>
@@ -266,7 +266,7 @@ export default function PopBysPage({ token, onBack }) {
                         <input type="checkbox" checked={selected.has(c.id)} onChange={() => toggle(c.id)} style={{ marginTop: 4, width: 18, height: 18, cursor: "pointer" }} />
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ fontWeight: 700 }}>{c.firstName} {c.lastName} <span style={{ fontSize: 11, background: "#0c4a6e", color: "#fff", borderRadius: 6, padding: "1px 6px", marginLeft: 4 }}>{c.tier}</span></div>
-                          <div style={{ fontSize: 12, color: "#6b7280" }}>{c.fullAddress}{!c.hasCoords && <span style={{ color: "#b45309" }}> · ⚠️ couldn't map this address</span>}</div>
+                          <div style={{ fontSize: 12, color: "#6b7280" }}>{c.fullAddress}{!c.hasCoords && <span style={{ color: "#b45309" }}> · ⚠️ couldn't map this address</span>}{c.far && <span style={{ color: "#b91c1c", fontWeight: 700 }}> · ⏱ ~1 hr+ away ({c.milesFromStart} mi)</span>}</div>
                           {c.gift ? (
                             <div style={{ marginTop: 6, fontSize: 13 }}>
                               <span style={{ fontWeight: 700 }}>🎁 {c.gift}</span>
@@ -291,6 +291,11 @@ export default function PopBysPage({ token, onBack }) {
                   {selected.size > 0 && (
                     <div style={{ background: "#f8fafc", border: "1px solid #e5e7eb", borderRadius: 10, padding: 16, marginTop: 16 }}>
                       <div style={{ fontWeight: 800, fontSize: 15, marginBottom: 10 }}>Your run — {selected.size} stop{selected.size === 1 ? "" : "s"}</div>
+                      {selectedList.some(c => c.far) && (
+                        <div style={{ background: "#fef2f2", border: "1px solid #fecaca", color: "#991b1b", borderRadius: 8, padding: "8px 12px", marginBottom: 10, fontSize: 13 }}>
+                          ⏱ Heads up: {selectedList.filter(c => c.far).length} selected stop{selectedList.filter(c => c.far).length === 1 ? " is" : "s are"} <strong>~1 hr+ away</strong> from your address — that's a long detour. Consider doing {selectedList.filter(c => c.far).length === 1 ? "it" : "them"} on a separate trip.
+                        </div>
+                      )}
                       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
                         <button onClick={suggestForSelected} style={btn("#fef9c3", "#854d0e")}>✨ Suggest gifts for selected</button>
                         <button onClick={printNotes} style={btn("#e0e7ff", "#3730a3")}>🖨 Print note cards</button>
