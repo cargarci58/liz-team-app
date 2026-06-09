@@ -152,10 +152,13 @@ export default function PopBysPage({ token, onBack }) {
     finally { setSuggestingBatch(false); }
   };
 
-  const togglePurchased = async (c) => {
-    const next = !c.purchased;
-    setData(prev => ({ ...prev, due: prev.due.map(x => x.id === c.id ? { ...x, purchased: next } : x) }));
-    try { await fetch(API + "/popbys/" + c.id + "/purchased", { method: "POST", headers, body: JSON.stringify({ purchased: next }) }); } catch {}
+  // Gifts are bought in bulk — one checkbox marks the whole run as purchased.
+  const toggleAllPurchased = async (list, next) => {
+    const ids = new Set(list.map(c => c.id));
+    setData(prev => ({ ...prev, due: prev.due.map(x => ids.has(x.id) ? { ...x, purchased: next } : x) }));
+    for (const c of list) {
+      try { await fetch(API + "/popbys/" + c.id + "/purchased", { method: "POST", headers, body: JSON.stringify({ purchased: next }) }); } catch {}
+    }
   };
 
   const markDelivered = async (c) => {
@@ -369,6 +372,12 @@ export default function PopBysPage({ token, onBack }) {
                         <div style={{ fontSize: 13, color: "#78350f", marginTop: 4 }}>Note card for each: <em>"{batchGift.note}"</em></div>
                       </div>
                     )}
+                    <label style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 12, fontSize: 14, fontWeight: 700, color: "#166534", cursor: "pointer" }}>
+                      <input type="checkbox" style={{ width: 18, height: 18, cursor: "pointer" }}
+                        checked={runList.length > 0 && runList.every(c => c.purchased)}
+                        onChange={e => toggleAllPurchased(runList, e.target.checked)} />
+                      ✓ I bought the gifts — ready to deliver
+                    </label>
                   </div>
 
                   {/* ── STEP 2 — print the notes ── */}
@@ -427,9 +436,6 @@ export default function PopBysPage({ token, onBack }) {
                                 <div style={{ fontWeight: 700, fontSize: 13 }}>{c.firstName} {c.lastName}</div>
                                 <div style={{ fontSize: 12, color: "#9ca3af" }}>{c.fullAddress}{leg != null ? ` · ${leg.toFixed(1)} mi ${legLabel}` : ""}</div>
                               </div>
-                              <label style={{ fontSize: 12, color: "#374151", display: "flex", alignItems: "center", gap: 4, cursor: "pointer", whiteSpace: "nowrap" }}>
-                                <input type="checkbox" checked={c.purchased} onChange={() => togglePurchased(c)} /> gift bought
-                              </label>
                               <button onClick={() => markDelivered(c)} style={btn("#dcfce7", "#166534")}>✓ Delivered</button>
                             </div>
                           );
