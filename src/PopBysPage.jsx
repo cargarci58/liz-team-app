@@ -105,8 +105,11 @@ export default function PopBysPage({ token, onBack }) {
     } catch (e) { alert("Error: " + e.message); }
     finally { setSuggesting(prev => { const n = new Set(prev); n.delete(contactId); return n; }); }
   };
-  const suggestForSelected = async () => {
-    const ids = (data.due || []).filter(c => selected.has(c.id) && !c.gift).map(c => c.id);
+  // Acts on your selection if you've made one, otherwise the whole due list.
+  const actionTargets = () => (selected.size ? (data.due || []).filter(c => selected.has(c.id)) : (data.due || []));
+  const suggestForList = async () => {
+    const ids = actionTargets().filter(c => !c.gift).map(c => c.id);
+    if (!ids.length) { alert("Everyone on the list already has a gift idea. Use “↻ another” on a card to change one."); return; }
     for (const id of ids) await suggest(id, false);
   };
 
@@ -147,7 +150,8 @@ export default function PopBysPage({ token, onBack }) {
   };
 
   const printNotes = () => {
-    const cards = ordered.filter(c => c.note).map(c => `
+    const list = selected.size ? ordered : routeOrder(data.due || []);
+    const cards = list.filter(c => c.note).map(c => `
       <div class="card"><div class="to">For ${escapeHtml(c.firstName || "")} ${escapeHtml(c.lastName || "")}</div>
       <div class="note">${escapeHtml(c.note)}</div>
       <div class="gift">${escapeHtml(c.gift || "")}</div></div>`).join("");
@@ -252,11 +256,14 @@ export default function PopBysPage({ token, onBack }) {
               ) : (
                 <>
                   {/* Step toolbar */}
-                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12, alignItems: "center" }}>
+                    <button onClick={suggestForList} style={btn("#fef9c3", "#854d0e")}>✨ Suggest gifts {selected.size ? "for selected" : "for everyone"}</button>
+                    <button onClick={printNotes} style={btn("#e0e7ff", "#3730a3")}>🖨 Print note cards</button>
+                    <span style={{ width: 1, height: 22, background: "#e5e7eb" }} />
                     <button onClick={selectCluster} style={btn("#e0e7ff", "#3730a3")}>📍 Select a nearby group</button>
                     <button onClick={() => setSelected(new Set(data.due.filter(c => !c.far).map(c => c.id)))} style={btn("#e5e7eb", "#374151")}>Select all nearby</button>
-                    <button onClick={() => setSelected(new Set())} style={btn("#e5e7eb", "#374151")}>Clear</button>
-                    {selected.size > 0 && <span style={{ alignSelf: "center", fontSize: 13, fontWeight: 700, color: "#0c4a6e" }}>{selected.size} selected</span>}
+                    {selected.size > 0 && <button onClick={() => setSelected(new Set())} style={btn("#e5e7eb", "#374151")}>Clear</button>}
+                    {selected.size > 0 && <span style={{ fontSize: 13, fontWeight: 700, color: "#0c4a6e" }}>{selected.size} selected</span>}
                   </div>
 
                   {/* Due list */}
@@ -297,8 +304,6 @@ export default function PopBysPage({ token, onBack }) {
                         </div>
                       )}
                       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
-                        <button onClick={suggestForSelected} style={btn("#fef9c3", "#854d0e")}>✨ Suggest gifts for selected</button>
-                        <button onClick={printNotes} style={btn("#e0e7ff", "#3730a3")}>🖨 Print note cards</button>
                         <button onClick={openMaps} style={btn("#0c4a6e", "white")}>🗺 Open route in Google Maps</button>
                       </div>
 
