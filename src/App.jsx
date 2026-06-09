@@ -997,8 +997,12 @@ function SMSPanel({ tx, onUpdate, currentUser }) {
   const [reminderChannel, setReminderChannel] = useState("email");
   const [reminderParties, setReminderParties] = useState([]);
   const [reminderSending, setReminderSending] = useState(false);
-  // Group mode: one composer → email + SMS to everyone + posts to the chat thread.
-  const [mode, setMode] = useState("direct");
+  // Two-step model (Carlos): first pick WHAT you're doing — chat in the app vs
+  // send an email/text — then (for sends) WHO it's for. Never show the chat and
+  // the everyone-composer side by side; that read as two competing "everyone"s.
+  const [surface, setSurface] = useState("send"); // "chat" | "send"
+  const [mode, setMode] = useState("direct");      // send audience: "direct" | "group"
+  const [chatPosting, setChatPosting] = useState(false);
   const [gSubject, setGSubject] = useState("");
   const [gMessage, setGMessage] = useState("");
   const [gChannel, setGChannel] = useState("email");
@@ -1154,6 +1158,24 @@ function SMSPanel({ tx, onUpdate, currentUser }) {
     setGSending(false);
   };
 
+  // Post the picked files into the group chat as secure download links (chat
+  // messages are text, so files travel as links — same as SMS).
+  const postFilesToChat = async () => {
+    if (!gAttach.length || chatPosting) return;
+    setChatPosting(true);
+    try {
+      const res = await fetch(`${SMS_SERVER}/transactions/${tx.id}/chat-attach`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": "Bearer " + (localStorage.getItem("tp_token") || "") },
+        body: JSON.stringify({ docIds: gAttach.map(a => a.id) }),
+      });
+      const d = await res.json();
+      if (d.success) setGAttach([]);
+      else alert(d.error || "Couldn't share the files.");
+    } catch { alert("Server unreachable."); }
+    setChatPosting(false);
+  };
+
   const openDocPicker = () => {
     setDocPickerOpen(true);
     if (docList === null) {
@@ -1198,21 +1220,50 @@ function SMSPanel({ tx, onUpdate, currentUser }) {
         </div>
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
           <div style={{ display: "flex", background: "#F3F4F6", borderRadius: 8, padding: 3, gap: 2 }}>
-            {[["direct", "👤 One Person"], ["group", "👥 Everyone"]].map(([v, label]) => (
-              <button key={v} onClick={() => setMode(v)} style={{ padding: "5px 12px", borderRadius: 6, border: "none", background: mode === v ? "#0F2044" : "transparent", color: mode === v ? "#fff" : "#6B7280", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>{label}</button>
+            {[["send", "📨 Email / Text"], ["chat", "💬 Chat in the app"]].map(([v, label]) => (
+              <button key={v} onClick={() => setSurface(v)} style={{ padding: "6px 14px", borderRadius: 6, border: "none", background: surface === v ? "#0F2044" : "transparent", color: surface === v ? "#fff" : "#6B7280", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>{label}</button>
             ))}
           </div>
+          {surface === "send" && (
+            <div style={{ display: "flex", background: "#F3F4F6", borderRadius: 8, padding: 3, gap: 2 }}>
+              {[["direct", "👤 To one person"], ["group", "👥 To everyone"]].map(([v, label]) => (
+                <button key={v} onClick={() => setMode(v)} style={{ padding: "6px 14px", borderRadius: 6, border: "none", background: mode === v ? "#C9A84C" : "transparent", color: mode === v ? "#fff" : "#6B7280", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>{label}</button>
+              ))}
+            </div>
+          )}
         </div>
       </div>
       <input ref={fileInputRef} type="file" style={{ display: "none" }} onChange={e => { const f = e.target.files?.[0]; if (f) uploadFromComputer(f); e.target.value = ""; }} />
 
-      {mode === "group" && (
+      {surface === "chat" && (
         <div>
-          <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 16, alignItems: "start", "data-msg-grid": "" }}>
+          <div style={{ background: "#fff", border: "1px solid #E5E7EB", borderRadius: 12, padding: "10px 14px", marginBottom: 12, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+            <button onClick={openDocPicker} style={{ fontSize: 12, padding: "6px 12px", borderRadius: 8, border: "1px solid #0F2044", background: "#fff", color: "#0F2044", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>📎 Attach from Documents</button>
+            <button onClick={() => fileInputRef.current?.click()} disabled={uploading} style={{ fontSize: 12, padding: "6px 12px", borderRadius: 8, border: "1px solid #0F2044", background: "#fff", color: "#0F2044", fontWeight: 600, cursor: "pointer", fontFamily: "inherit", opacity: uploading ? 0.5 : 1 }}>{uploading ? "Uploading..." : "💻 Upload"}</button>
+            {gAttach.map(a => (
+              <span key={a.id} style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "#F0F4FF", border: "1px solid #C7D2FE", borderRadius: 6, padding: "4px 8px", fontSize: 12, color: "#0F2044" }}>
+                📄 {a.name}
+                <button onClick={() => setGAttach(prev => prev.filter(x => x.id !== a.id))} style={{ background: "none", border: "none", cursor: "pointer", color: "#6B7280", fontSize: 14, lineHeight: 1 }}>×</button>
+              </span>
+            ))}
+            {gAttach.length > 0 ? (
+              <button onClick={postFilesToChat} disabled={chatPosting} style={{ fontSize: 12, padding: "6px 14px", borderRadius: 8, border: "none", background: "#15803D", color: "#fff", fontWeight: 700, cursor: "pointer", fontFamily: "inherit", opacity: chatPosting ? 0.5 : 1 }}>{chatPosting ? "Sharing..." : `Share ${gAttach.length} file${gAttach.length > 1 ? "s" : ""} in chat`}</button>
+            ) : (
+              <span style={{ fontSize: 11, color: "#6B7280" }}>Files post into the chat as secure download links.</span>
+            )}
+          </div>
+          <div style={{ height: 620 }}>
+            <TransactionChat simple transactionId={tx.id} user={null} parties={tx.parties || []} style={{ height: "100%" }} unreadCount={0} onUnreadChange={() => {}} />
+          </div>
+        </div>
+      )}
+
+      {surface === "send" && mode === "group" && (
+        <div style={{ maxWidth: 760 }}>
             {/* Composer */}
             <div style={{ background: "#fff", border: "1px solid #E5E7EB", borderRadius: 12, padding: 18 }}>
               <div style={{ fontWeight: 700, fontSize: 15, color: "#0F2044", marginBottom: 4 }}>Message everyone at once</div>
-              <div style={{ fontSize: 12, color: "#6B7280", marginBottom: 14 }}>Goes out by email <b>and</b> text so it reaches every party — and is saved to the group chat below as the record.</div>
+              <div style={{ fontSize: 12, color: "#6B7280", marginBottom: 14 }}>Goes out by email <b>and</b> text so it reaches every party. A copy is also saved in the in-app Chat.</div>
 
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
                 <div style={{ fontSize: 12, fontWeight: 700, color: "#6B7280", textTransform: "uppercase" }}>Send via</div>
@@ -1266,13 +1317,6 @@ function SMSPanel({ tx, onUpdate, currentUser }) {
 
               <button onClick={sendGroup} disabled={!gMessage.trim() || gSending || gWithEmail.length + gWithPhone.length === 0} style={{ width: "100%", padding: "11px", borderRadius: 8, border: "none", background: "#15803D", color: "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer", fontFamily: "inherit", opacity: (!gMessage.trim() || gSending || gWithEmail.length + gWithPhone.length === 0) ? 0.5 : 1 }}>{gSending ? "Sending..." : `Send to all ${tx.parties.length} parties`}</button>
             </div>
-
-            {/* Group chat thread = the record */}
-            <div style={{ height: 620 }}>
-              <TransactionChat simple transactionId={tx.id} user={null} parties={tx.parties || []} style={{ height: "100%" }} unreadCount={0} onUnreadChange={() => {}} />
-            </div>
-          </div>
-
         </div>
       )}
 
@@ -1306,10 +1350,10 @@ function SMSPanel({ tx, onUpdate, currentUser }) {
             </div>
           )}
 
-      {mode === "direct" && (partiesWithContact.length === 0 ? (
+      {surface === "send" && mode === "direct" && (partiesWithContact.length === 0 ? (
         <div style={{ textAlign: "center", color: "#6B7280", padding: 40 }}>No parties with phone or email. Add contact info in the People tab.</div>
       ) : (
-        <div style={{ display: "grid", gridTemplateColumns: "260px 1fr 340px", gap: 16, height: 560, "data-msg-grid": "" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "260px 1fr", gap: 16, height: 560, "data-msg-grid": "" }}>
           <div style={{ background: "#fff", border: "1px solid #E5E7EB", borderRadius: 12, overflow: "hidden", display: "flex", flexDirection: "column" }}>
             <div style={{ padding: "12px 14px", borderBottom: "1px solid #E5E7EB", fontSize: 12, fontWeight: 700, color: "#6B7280", textTransform: "uppercase", letterSpacing: "0.05em" }}>Conversations</div>
             <div style={{ flex: 1, overflowY: "auto" }}>
@@ -1344,7 +1388,7 @@ function SMSPanel({ tx, onUpdate, currentUser }) {
               <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", color: "#6B7280", flexDirection: "column", gap: 8, padding: 20, textAlign: "center" }}>
                 <div style={{ fontSize: 40 }}>📧</div>
                 <div style={{ fontWeight: 700, color: "#0F2044" }}>← Pick a person to email or text them privately</div>
-                <div style={{ fontSize: 13 }}>Only they see it. For a message the whole group sees, use the Group Chat on the right →</div>
+                <div style={{ fontSize: 13 }}>Only they see it. To reach everyone at once, switch to "👥 To everyone" above.</div>
               </div>
             ) : (
               <>
@@ -1428,9 +1472,6 @@ function SMSPanel({ tx, onUpdate, currentUser }) {
                   </div>
               </>
             )}
-          </div>
-          <div style={{ height: "100%", minHeight: 0 }}>
-            <TransactionChat simple transactionId={tx.id} user={null} parties={tx.parties || []} style={{ height: "100%" }} unreadCount={0} onUnreadChange={() => {}} />
           </div>
         </div>
       ))}

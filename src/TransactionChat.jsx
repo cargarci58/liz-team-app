@@ -183,7 +183,7 @@ export default function TransactionChat({ transactionId, user, parties = [], sty
 
       <div style={{ background: "#FEF9E7", borderBottom: "1px solid #F9E79F", padding: "8px 16px", display: "flex", alignItems: "center", gap: 8 }}>
         <span>👀</span>
-        <span style={{ fontSize: 12, color: "#7D6608" }}>{simple ? "Everyone on this deal can see this chat. For a private message, use the panel on the left." : "All parties on this transaction can see messages here. Offline parties receive email notifications."}</span>
+        <span style={{ fontSize: 12, color: "#7D6608" }}>{simple ? "Everyone on this deal can see this chat. For a private message, switch to 📨 Email / Text above." : "All parties on this transaction can see messages here. Offline parties receive email notifications."}</span>
       </div>
 
       <div style={{ flex: 1, overflowY: "auto", padding: 16, display: "flex", flexDirection: "column", gap: 8 }}>
