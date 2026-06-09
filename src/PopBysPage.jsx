@@ -21,24 +21,60 @@ function miles(a, b) {
   return R * 2 * Math.atan2(Math.sqrt(x), Math.sqrt(1 - x));
 }
 
-// Greedy nearest-neighbor ordering of stops (those with coords first).
-function routeOrder(stops) {
+// Order stops for the drive: nearest-neighbor STARTING FROM THE AGENT'S OWN
+// ADDRESS (so the house down your street is stop #1, not stop #9), then a
+// 2-opt pass to untangle any route crossings. Stops without coords go last.
+function routeOrder(stops, start) {
   const withGeo = stops.filter(s => s.hasCoords);
   const noGeo = stops.filter(s => !s.hasCoords);
-  if (withGeo.length <= 2) return [...withGeo, ...noGeo];
+  if (withGeo.length <= 1) return [...withGeo, ...noGeo];
+  const origin = (start && start.lat != null) ? { lat: start.lat, lng: start.lng }
+    // no agent address — fall back to the most south-west stop
+    : withGeo.reduce((m, s) => (s.lat + s.lng < m.lat + m.lng ? s : m), withGeo[0]);
+  // Nearest-neighbor from the origin.
   const remaining = [...withGeo];
-  // start from the most south-west point (stable, no Date/random)
-  let current = remaining.reduce((m, s) => (s.lat + s.lng < m.lat + m.lng ? s : m), remaining[0]);
   const ordered = [];
-  remaining.splice(remaining.indexOf(current), 1);
-  ordered.push(current);
+  let current = origin;
   while (remaining.length) {
     let bestI = 0, bestD = Infinity;
     remaining.forEach((s, i) => { const d = miles(current, s); if (d != null && d < bestD) { bestD = d; bestI = i; } });
     current = remaining.splice(bestI, 1)[0];
     ordered.push(current);
   }
+  // 2-opt: keep reversing segments while it shortens the total drive.
+  const legLen = (arr) => {
+    let t = miles(origin, arr[0]) || 0;
+    for (let i = 1; i < arr.length; i++) t += miles(arr[i - 1], arr[i]) || 0;
+    return t;
+  };
+  let improved = true, guard = 0;
+  while (improved && guard++ < 30) {
+    improved = false;
+    for (let i = 0; i < ordered.length - 1; i++) {
+      for (let j = i + 1; j < ordered.length; j++) {
+        const candidate = [...ordered.slice(0, i), ...ordered.slice(i, j + 1).reverse(), ...ordered.slice(j + 1)];
+        if (legLen(candidate) + 0.01 < legLen(ordered)) { ordered.splice(0, ordered.length, ...candidate); improved = true; }
+      }
+    }
+  }
   return [...ordered, ...noGeo];
+}
+
+// Search link for a store the AI suggested — real store search pages, no
+// guessed product URLs. Unknown stores fall back to a Google search.
+function storeSearchUrl(store, gift) {
+  const q = encodeURIComponent(gift);
+  const s = store.toLowerCase();
+  if (s.includes("target")) return `https://www.target.com/s?searchTerm=${q}`;
+  if (s.includes("walmart")) return `https://www.walmart.com/search?q=${q}`;
+  if (s.includes("amazon")) return `https://www.amazon.com/s?k=${q}`;
+  if (s.includes("costco")) return `https://www.costco.com/CatalogSearch?keyword=${q}`;
+  if (s.includes("sam")) return `https://www.samsclub.com/s/${q}`;
+  if (s.includes("dollar tree")) return `https://www.dollartree.com/search?q=${q}`;
+  if (s.includes("trader joe")) return `https://www.traderjoes.com/home/search?q=${q}`;
+  if (s.includes("publix")) return `https://www.publix.com/search?query=${q}`;
+  if (s.includes("home depot")) return `https://www.homedepot.com/s/${q}`;
+  return `https://www.google.com/search?q=${encodeURIComponent(store + " " + gift)}`;
 }
 
 export default function PopBysPage({ token, onBack }) {
@@ -51,7 +87,7 @@ export default function PopBysPage({ token, onBack }) {
   const [form, setForm] = useState({ popByTiers: "aplus", popByFrequencyDays: 90, popByBudget: 10 });
   const [busy, setBusy] = useState(false);
   const [savedMsg, setSavedMsg] = useState(false);
-  const [batchGift, setBatchGift] = useState({ gift: "", note: "", price: null, whereToBuy: "" });
+  const [batchGift, setBatchGift] = useState({ gift: "", note: "", price: null, whereToBuy: "", stores: [] });
   const [rejectedGifts, setRejectedGifts] = useState([]);
   const [suggestingBatch, setSuggestingBatch] = useState(false);
   const [history, setHistory] = useState([]);
@@ -110,7 +146,7 @@ export default function PopBysPage({ token, onBack }) {
       const d = await r.json();
       if (r.ok) {
         if (batchGift.gift) setRejectedGifts(avoid);
-        setBatchGift({ gift: d.gift, note: d.note, price: d.price, whereToBuy: d.whereToBuy || "" });
+        setBatchGift({ gift: d.gift, note: d.note, price: d.price, whereToBuy: d.whereToBuy || "", stores: Array.isArray(d.stores) ? d.stores : [] });
       } else alert(d.error || "Couldn't get a suggestion.");
     } catch (e) { alert("Error: " + e.message); }
     finally { setSuggestingBatch(false); }
@@ -139,7 +175,7 @@ export default function PopBysPage({ token, onBack }) {
   const selectedList = nearDue.filter(c => selected.has(c.id));
   // "The run" = your selection if you made one, otherwise everyone nearby.
   const runList = selectedList.length ? selectedList : nearDue;
-  const ordered = routeOrder(runList);
+  const ordered = routeOrder(runList, data?.start);
 
   // Group due contacts into named areas (chains of stops within ~7 mi of each
   // other), labeled by their most common city — so the agent can pick a zone.
@@ -319,7 +355,16 @@ export default function PopBysPage({ token, onBack }) {
                         <div style={{ fontSize: 15, fontWeight: 800, color: "#92400e" }}>🛒 Buy {runList.length} × {batchGift.gift}</div>
                         <div style={{ fontSize: 13, color: "#78350f", marginTop: 4 }}>
                           {batchGift.price != null && <span>💵 about <strong>${batchGift.price}</strong> each{runList.length > 1 ? <span> · ~<strong>${Math.round(batchGift.price * runList.length)}</strong> total</span> : null} (your budget: ${data.settings.budget}/gift)</span>}
-                          {batchGift.whereToBuy && <span>{batchGift.price != null ? " · " : ""}🛍 find it at: <strong>{batchGift.whereToBuy}</strong></span>}
+                          {batchGift.stores.length > 0 && (
+                            <span>{batchGift.price != null ? " · " : ""}🛍 buy it:{" "}
+                              {batchGift.stores.map((s, i) => (
+                                <span key={s}>
+                                  {i > 0 && " · "}
+                                  <a href={storeSearchUrl(s, batchGift.gift)} target="_blank" rel="noopener noreferrer" style={{ color: "#92400e", fontWeight: 700, textDecoration: "underline" }}>{s} ↗</a>
+                                </span>
+                              ))}
+                            </span>
+                          )}
                         </div>
                         <div style={{ fontSize: 13, color: "#78350f", marginTop: 4 }}>Note card for each: <em>"{batchGift.note}"</em></div>
                       </div>
@@ -372,14 +417,15 @@ export default function PopBysPage({ token, onBack }) {
                       <div style={{ fontWeight: 700, marginBottom: 4 }}>🚗 Stop order {routeTotal(ordered) != null && <span style={{ color: "#6b7280", fontWeight: 400 }}>· ~{routeTotal(ordered)} mi total (straight-line)</span>}</div>
                       <div style={{ display: "grid", gap: 6 }}>
                         {ordered.map((c, i) => {
-                          const prev = ordered[i - 1];
+                          const prev = i === 0 ? (data.start?.lat != null ? data.start : null) : ordered[i - 1];
                           const leg = prev ? miles(prev, c) : null;
+                          const legLabel = i === 0 ? "from home" : "from previous";
                           return (
                             <div key={c.id} style={{ display: "flex", gap: 10, alignItems: "center", background: "#fff", border: "1px solid #e5e7eb", borderRadius: 8, padding: "8px 12px" }}>
                               <span style={{ fontWeight: 800, color: "#0c4a6e", width: 22, textAlign: "right" }}>{i + 1}.</span>
                               <div style={{ flex: 1, minWidth: 0 }}>
                                 <div style={{ fontWeight: 700, fontSize: 13 }}>{c.firstName} {c.lastName}</div>
-                                <div style={{ fontSize: 12, color: "#9ca3af" }}>{c.fullAddress}{leg != null ? ` · ${leg.toFixed(1)} mi from previous` : ""}</div>
+                                <div style={{ fontSize: 12, color: "#9ca3af" }}>{c.fullAddress}{leg != null ? ` · ${leg.toFixed(1)} mi ${legLabel}` : ""}</div>
                               </div>
                               <label style={{ fontSize: 12, color: "#374151", display: "flex", alignItems: "center", gap: 4, cursor: "pointer", whiteSpace: "nowrap" }}>
                                 <input type="checkbox" checked={c.purchased} onChange={() => togglePurchased(c)} /> gift bought
