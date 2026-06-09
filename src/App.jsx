@@ -1158,8 +1158,10 @@ function SMSPanel({ tx, onUpdate, currentUser }) {
     setGSending(false);
   };
 
-  // Post the picked files into the group chat as secure download links (chat
-  // messages are text, so files travel as links — same as SMS).
+  // Post the picked files into the chat as secure download links (chat
+  // messages are text, so files travel as links — same as SMS). In a private
+  // chat the post is directed: only that person (and you) ever sees it.
+  const chatTarget = surface === "chat" && mode === "direct" && selectedParty && selectedParty.email ? selectedParty : null;
   const postFilesToChat = async () => {
     if (!gAttach.length || chatPosting) return;
     setChatPosting(true);
@@ -1167,13 +1169,35 @@ function SMSPanel({ tx, onUpdate, currentUser }) {
       const res = await fetch(`${SMS_SERVER}/transactions/${tx.id}/chat-attach`, {
         method: "POST",
         headers: { "Content-Type": "application/json", "Authorization": "Bearer " + (localStorage.getItem("tp_token") || "") },
-        body: JSON.stringify({ docIds: gAttach.map(a => a.id) }),
+        body: JSON.stringify({ docIds: gAttach.map(a => a.id), notifyEmails: chatTarget ? [chatTarget.email.toLowerCase()] : undefined }),
       });
       const d = await res.json();
       if (d.success) setGAttach([]);
       else alert(d.error || "Couldn't share the files.");
     } catch { alert("Server unreachable."); }
     setChatPosting(false);
+  };
+
+  // One attach bar for both chat views — group room and private chat.
+  const renderChatAttachBar = () => {
+    const first = chatTarget ? (chatTarget.name || "").split(" ")[0] : null;
+    return (
+      <div style={{ background: "#fff", border: "1px solid #E5E7EB", borderRadius: 12, padding: "10px 14px", display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+        <button onClick={openDocPicker} style={{ fontSize: 12, padding: "6px 12px", borderRadius: 8, border: "1px solid #0F2044", background: "#fff", color: "#0F2044", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>📎 Attach from Documents</button>
+        <button onClick={() => fileInputRef.current?.click()} disabled={uploading} style={{ fontSize: 12, padding: "6px 12px", borderRadius: 8, border: "1px solid #0F2044", background: "#fff", color: "#0F2044", fontWeight: 600, cursor: "pointer", fontFamily: "inherit", opacity: uploading ? 0.5 : 1 }}>{uploading ? "Uploading..." : "💻 Upload"}</button>
+        {gAttach.map(a => (
+          <span key={a.id} style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "#F0F4FF", border: "1px solid #C7D2FE", borderRadius: 6, padding: "4px 8px", fontSize: 12, color: "#0F2044" }}>
+            📄 {a.name}
+            <button onClick={() => setGAttach(prev => prev.filter(x => x.id !== a.id))} style={{ background: "none", border: "none", cursor: "pointer", color: "#6B7280", fontSize: 14, lineHeight: 1 }}>×</button>
+          </span>
+        ))}
+        {gAttach.length > 0 ? (
+          <button onClick={postFilesToChat} disabled={chatPosting} style={{ fontSize: 12, padding: "6px 14px", borderRadius: 8, border: "none", background: "#15803D", color: "#fff", fontWeight: 700, cursor: "pointer", fontFamily: "inherit", opacity: chatPosting ? 0.5 : 1 }}>{chatPosting ? "Sharing..." : `Share ${gAttach.length} file${gAttach.length > 1 ? "s" : ""} ${first ? `with ${first} only` : "in chat"}`}</button>
+        ) : (
+          <span style={{ fontSize: 11, color: "#6B7280" }}>{first ? `Files go privately to ${first} as secure download links.` : "Files post into the chat as secure download links."}</span>
+        )}
+      </div>
+    );
   };
 
   const openDocPicker = () => {
@@ -1218,22 +1242,24 @@ function SMSPanel({ tx, onUpdate, currentUser }) {
           <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "#15803D" }}><div style={{ width: 8, height: 8, borderRadius: "50%", background: "#15803D" }} /> SMS Online</div>
           <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: emailOnline ? "#15803D" : "#DC2626" }}><div style={{ width: 8, height: 8, borderRadius: "50%", background: emailOnline ? "#15803D" : "#DC2626" }} /> Email {emailOnline ? "Online" : "Not configured"}</div>
         </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 6, alignItems: "flex-end" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <span style={{ fontSize: 11, fontWeight: 700, color: "#6B7280", textTransform: "uppercase", letterSpacing: "0.05em" }}>How</span>
-            <div style={{ display: "flex", background: "#F3F4F6", borderRadius: 8, padding: 3, gap: 2 }}>
-              {[["send", "📨 Email / Text"], ["chat", "💬 Chat in the app"]].map(([v, label]) => (
-                <button key={v} onClick={() => setSurface(v)} style={{ padding: "6px 14px", borderRadius: 6, border: "none", background: surface === v ? "#0F2044" : "transparent", color: surface === v ? "#fff" : "#6B7280", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>{label}</button>
-              ))}
-            </div>
+      </div>
+
+      {/* Step 1: HOW (big, on top) → Step 2: TO (below it) */}
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10, marginBottom: 20 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", justifyContent: "center" }}>
+          <span style={{ fontSize: 12, fontWeight: 700, color: "#6B7280", textTransform: "uppercase", letterSpacing: "0.05em" }}>How</span>
+          <div style={{ display: "flex", background: "#F3F4F6", borderRadius: 10, padding: 4, gap: 2 }}>
+            {[["send", "📨 Email / Text"], ["chat", "💬 Chat in the app"]].map(([v, label]) => (
+              <button key={v} onClick={() => setSurface(v)} style={{ padding: "9px 22px", borderRadius: 8, border: "none", background: surface === v ? "#0F2044" : "transparent", color: surface === v ? "#fff" : "#6B7280", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>{label}</button>
+            ))}
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <span style={{ fontSize: 11, fontWeight: 700, color: "#6B7280", textTransform: "uppercase", letterSpacing: "0.05em" }}>To</span>
-            <div style={{ display: "flex", background: "#F3F4F6", borderRadius: 8, padding: 3, gap: 2 }}>
-              {[["direct", "👤 One person"], ["group", "👥 Everyone"]].map(([v, label]) => (
-                <button key={v} onClick={() => setMode(v)} style={{ padding: "6px 14px", borderRadius: 6, border: "none", background: mode === v ? "#C9A84C" : "transparent", color: mode === v ? "#fff" : "#6B7280", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>{label}</button>
-              ))}
-            </div>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", justifyContent: "center" }}>
+          <span style={{ fontSize: 12, fontWeight: 700, color: "#6B7280", textTransform: "uppercase", letterSpacing: "0.05em" }}>To</span>
+          <div style={{ display: "flex", background: "#F3F4F6", borderRadius: 8, padding: 3, gap: 2 }}>
+            {[["direct", "👤 One person"], ["group", "👥 Everyone"]].map(([v, label]) => (
+              <button key={v} onClick={() => setMode(v)} style={{ padding: "6px 16px", borderRadius: 6, border: "none", background: mode === v ? "#C9A84C" : "transparent", color: mode === v ? "#fff" : "#6B7280", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>{label}</button>
+            ))}
           </div>
         </div>
       </div>
@@ -1262,7 +1288,12 @@ function SMSPanel({ tx, onUpdate, currentUser }) {
             </div>
           </div>
           {selectedParty && selectedParty.email ? (
-            <TransactionChat simple directTo={selectedParty} transactionId={tx.id} user={null} parties={tx.parties || []} style={{ height: "100%" }} unreadCount={0} onUnreadChange={() => {}} />
+            <div style={{ display: "flex", flexDirection: "column", gap: 10, minHeight: 0 }}>
+              {renderChatAttachBar()}
+              <div style={{ flex: 1, minHeight: 0 }}>
+                <TransactionChat simple directTo={selectedParty} transactionId={tx.id} user={null} parties={tx.parties || []} style={{ height: "100%" }} unreadCount={0} onUnreadChange={() => {}} />
+              </div>
+            </div>
           ) : (
             <div style={{ background: "#fff", border: "1px solid #E5E7EB", borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 8, color: "#6B7280", padding: 20, textAlign: "center" }}>
               <div style={{ fontSize: 40 }}>🔒</div>
@@ -1275,21 +1306,7 @@ function SMSPanel({ tx, onUpdate, currentUser }) {
 
       {surface === "chat" && mode === "group" && (
         <div>
-          <div style={{ background: "#fff", border: "1px solid #E5E7EB", borderRadius: 12, padding: "10px 14px", marginBottom: 12, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-            <button onClick={openDocPicker} style={{ fontSize: 12, padding: "6px 12px", borderRadius: 8, border: "1px solid #0F2044", background: "#fff", color: "#0F2044", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>📎 Attach from Documents</button>
-            <button onClick={() => fileInputRef.current?.click()} disabled={uploading} style={{ fontSize: 12, padding: "6px 12px", borderRadius: 8, border: "1px solid #0F2044", background: "#fff", color: "#0F2044", fontWeight: 600, cursor: "pointer", fontFamily: "inherit", opacity: uploading ? 0.5 : 1 }}>{uploading ? "Uploading..." : "💻 Upload"}</button>
-            {gAttach.map(a => (
-              <span key={a.id} style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "#F0F4FF", border: "1px solid #C7D2FE", borderRadius: 6, padding: "4px 8px", fontSize: 12, color: "#0F2044" }}>
-                📄 {a.name}
-                <button onClick={() => setGAttach(prev => prev.filter(x => x.id !== a.id))} style={{ background: "none", border: "none", cursor: "pointer", color: "#6B7280", fontSize: 14, lineHeight: 1 }}>×</button>
-              </span>
-            ))}
-            {gAttach.length > 0 ? (
-              <button onClick={postFilesToChat} disabled={chatPosting} style={{ fontSize: 12, padding: "6px 14px", borderRadius: 8, border: "none", background: "#15803D", color: "#fff", fontWeight: 700, cursor: "pointer", fontFamily: "inherit", opacity: chatPosting ? 0.5 : 1 }}>{chatPosting ? "Sharing..." : `Share ${gAttach.length} file${gAttach.length > 1 ? "s" : ""} in chat`}</button>
-            ) : (
-              <span style={{ fontSize: 11, color: "#6B7280" }}>Files post into the chat as secure download links.</span>
-            )}
-          </div>
+          <div style={{ marginBottom: 12 }}>{renderChatAttachBar()}</div>
           <div style={{ height: 620 }}>
             <TransactionChat simple transactionId={tx.id} user={null} parties={tx.parties || []} style={{ height: "100%" }} unreadCount={0} onUnreadChange={() => {}} />
           </div>
