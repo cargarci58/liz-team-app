@@ -35,40 +35,44 @@ function zipOf(s) {
   return m ? m[1] : "";
 }
 
-// Order stops for the drive, robust to fuzzy coordinates:
-//   1. group by ZIP — your home zip first, other zips by nearest from home
-//   2. within a zip, group by STREET — nearest street to home first
-//      (same street always stays together, in house-number order)
-// This keeps a neighbor on your own street at the very top even when the
-// geocoder only resolved some houses to their zip-code center.
+// Order stops for the drive. Group houses on the SAME STREET together (from the
+// address text, so it's exact), then visit the streets by true nearest-next:
+// start at home, go to the closest street, then the closest street to THAT, etc.
+// This follows real proximity across zip lines (Lake Waverly → nearby Okaloosa)
+// while still keeping a neighbor on your own street right at the top.
 function routeOrder(stops, start) {
   if (stops.length <= 1) return [...stops];
   const origin = (start && start.lat != null) ? { lat: start.lat, lng: start.lng } : null;
-  const homeZip = start ? zipOf({ fullAddress: start.address, zip: start.zip }) : "";
-  const minDistToHome = (list) => {
-    const m = list.filter(s => s.hasCoords);
-    if (!origin || !m.length) return Infinity;
-    return Math.min(...m.map(s => { const d = miles(origin, s); return d == null ? Infinity : d; }));
-  };
-  // group by zip
-  const byZip = {};
-  stops.forEach(s => { const z = zipOf(s) || "?"; (byZip[z] = byZip[z] || []).push(s); });
-  const orderWithinZip = (list) => {
-    const byStreet = {};
-    list.forEach(s => { const k = streetName(s.address) || "?"; (byStreet[k] = byStreet[k] || []).push(s); });
-    Object.values(byStreet).forEach(g => g.sort((a, b) => houseNum(a.address) - houseNum(b.address)));
-    return Object.keys(byStreet)
-      .sort((a, b) => { const da = minDistToHome(byStreet[a]), db = minDistToHome(byStreet[b]); return da !== db ? da - db : a.localeCompare(b); })
-      .flatMap(k => byStreet[k]);
-  };
-  return Object.keys(byZip)
-    .sort((a, b) => {
-      if (a === homeZip && b !== homeZip) return -1;
-      if (b === homeZip && a !== homeZip) return 1;
-      const da = minDistToHome(byZip[a]), db = minDistToHome(byZip[b]);
-      return da !== db ? da - db : a.localeCompare(b);
-    })
-    .flatMap(z => orderWithinZip(byZip[z]));
+  // Build street groups (zip + street), each sorted by house number.
+  const groupsMap = {};
+  stops.forEach(s => { const k = (zipOf(s) || "?") + "|" + (streetName(s.address) || "?"); (groupsMap[k] = groupsMap[k] || []).push(s); });
+  const groups = Object.values(groupsMap).map(members => {
+    members.sort((a, b) => houseNum(a.address) - houseNum(b.address));
+    const geo = members.filter(m => m.hasCoords);
+    // representative point = the member closest to home (best anchor for a street)
+    const rep = geo.length
+      ? (origin ? geo.reduce((best, m) => ((miles(origin, m) ?? Infinity) < (miles(origin, best) ?? Infinity) ? m : best), geo[0]) : geo[0])
+      : null;
+    return { members, rep };
+  });
+  // Nearest-next over street groups, starting from home.
+  const remaining = [...groups];
+  const ordered = [];
+  let current = origin;
+  while (remaining.length) {
+    let bestI = -1, bestD = Infinity;
+    remaining.forEach((g, i) => {
+      if (!g.rep) return;
+      const d = current ? (miles(current, g.rep) ?? Infinity) : 0;
+      if (d < bestD) { bestD = d; bestI = i; }
+    });
+    if (bestI === -1) break; // only coord-less groups left
+    const g = remaining.splice(bestI, 1)[0];
+    ordered.push(...g.members);
+    current = g.rep;
+  }
+  remaining.forEach(g => ordered.push(...g.members)); // un-mappable streets last
+  return ordered;
 }
 
 // Search link for a store the AI suggested — real store search pages, no
@@ -195,8 +199,10 @@ export default function PopBysPage({ token, onBack }) {
   const runList = selectedList.length ? selectedList : nearDue;
   const ordered = routeOrder(runList, data?.start);
 
-  // Group due contacts into named areas (chains of stops within ~7 mi of each
-  // other), labeled by their most common city — so the agent can pick a zone.
+  // Group due contacts into TIGHT areas where everyone is within ~3 mi of
+  // someone else in the group — so each chip is a quick, gas-saving run. Labeled
+  // by most-common city. Singletons (nobody nearby) are not shown as chips.
+  const CLUSTER_MI = 3;
   const areaClusters = (() => {
     const unused = nearDue.filter(c => c.hasCoords);
     const clusters = [];
@@ -206,7 +212,7 @@ export default function PopBysPage({ token, onBack }) {
       while (grew) {
         grew = false;
         for (let i = unused.length - 1; i >= 0; i--) {
-          if (members.some(m => { const d = miles(m, unused[i]); return d != null && d <= 7; })) {
+          if (members.some(m => { const d = miles(m, unused[i]); return d != null && d <= CLUSTER_MI; })) {
             members.push(unused.splice(i, 1)[0]);
             grew = true;
           }
@@ -217,7 +223,7 @@ export default function PopBysPage({ token, onBack }) {
       const top = Object.entries(cityCount).sort((a, b) => b[1] - a[1]);
       clusters.push({ label: top.length ? top[0][0] : "Area", members });
     }
-    return clusters.sort((a, b) => b.members.length - a.members.length).slice(0, 6);
+    return clusters.filter(c => c.members.length >= 2).sort((a, b) => b.members.length - a.members.length).slice(0, 8);
   })();
 
   const openMaps = () => {
@@ -408,14 +414,17 @@ export default function PopBysPage({ token, onBack }) {
                   {/* ── STEP 3 — pick who / which area ── */}
                   <div style={stepBox}>
                     <div style={stepTitle}><span style={stepNum}>3</span> Pick who's on today's run</div>
-                    <div style={{ fontSize: 13, color: "#6b7280", marginBottom: 10 }}>Your due contacts are grouped by area below — tap an area to do that zone today, or check people one by one. Skip this step to do everyone.</div>
+                    <div style={{ fontSize: 13, color: "#6b7280", marginBottom: 10 }}>Tap a <strong>nearby group</strong> below (everyone within ~3 miles of each other) to knock out a tight, gas-saving run today — or check people one by one. Skip this step to do everyone.</div>
                     {areaClusters.length > 0 && (
-                      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 10, alignItems: "center" }}>
-                        {areaClusters.map((cl, i) => (
-                          <button key={i} onClick={() => setSelected(new Set(cl.members.map(m => m.id)))} style={btn("#e0e7ff", "#3730a3")}>
-                            📍 {cl.label} area ({cl.members.length})
-                          </button>
-                        ))}
+                      <div style={{ marginBottom: 10 }}>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: "#3730a3", marginBottom: 6 }}>📍 Nearby groups (within ~3 mi):</div>
+                        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                          {areaClusters.map((cl, i) => (
+                            <button key={i} onClick={() => setSelected(new Set(cl.members.map(m => m.id)))} style={btn("#e0e7ff", "#3730a3")}>
+                              {cl.label} ({cl.members.length})
+                            </button>
+                          ))}
+                        </div>
                       </div>
                     )}
                     <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 10, alignItems: "center" }}>
