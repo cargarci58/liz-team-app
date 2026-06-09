@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 const API = "https://liz-team-server-api-production.up.railway.app";
 
 export default function AgentProfile({ onClose, currentUser }) {
-  const [form, setForm] = useState({ firstName: "", lastName: "", phone: "", photoUrl: "", title: "", city: "", county: "", state: "FL", zip: "" });
+  const [form, setForm] = useState({ firstName: "", lastName: "", phone: "", photoUrl: "", title: "", address: "", city: "", county: "", state: "FL", zip: "" });
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -20,6 +20,7 @@ export default function AgentProfile({ onClose, currentUser }) {
           phone: d.profile.phone || "",
           photoUrl: d.profile.photoUrl || "",
           title: d.profile.title || "",
+          address: d.profile.address || "",
           city: d.profile.city || "",
           county: d.profile.county || "",
           state: d.profile.state || "FL",
@@ -115,6 +116,11 @@ export default function AgentProfile({ onClose, currentUser }) {
               <div style={{ fontSize: 11, color: "#888", marginTop: 4 }}>Shown in your email signature</div>
             </div>
 
+            <div style={{ marginBottom: 8 }}>
+              <label style={lbl}>Street Address</label>
+              <input value={form.address} onChange={e => setForm(f => ({ ...f, address: e.target.value }))} style={inp} placeholder="123 Main St, Suite 100" />
+              <div style={{ fontSize: 11, color: "#888", marginTop: 4 }}>Your business mailing address — required in the footer of newsletter/marketing emails (CAN-SPAM law).</div>
+            </div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 8 }}>
               <div>
                 <label style={lbl}>City</label>
