@@ -48,7 +48,8 @@ export default function PopBysPage({ token, onBack }) {
   const [form, setForm] = useState({ popByTiers: "aplus", popByFrequencyDays: 90, popByBudget: 10 });
   const [busy, setBusy] = useState(false);
   const [savedMsg, setSavedMsg] = useState(false);
-  const [batchGift, setBatchGift] = useState({ gift: "", note: "" });
+  const [batchGift, setBatchGift] = useState({ gift: "", note: "", price: null, whereToBuy: "" });
+  const [rejectedGifts, setRejectedGifts] = useState([]);
   const [suggestingBatch, setSuggestingBatch] = useState(false);
   const [history, setHistory] = useState([]);
 
@@ -97,13 +98,17 @@ export default function PopBysPage({ token, onBack }) {
   const toggle = (id) => setSelected(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
 
   // ONE gift for the whole run (same gift for everyone — buy N of them).
-  const suggestBatch = async (regenerate) => {
+  // "Suggest another" remembers what you rejected so it never repeats.
+  const suggestBatch = async () => {
     setSuggestingBatch(true);
     try {
-      const r = await fetch(API + "/popbys/suggest-batch", { method: "POST", headers, body: JSON.stringify({ regenerate }) });
+      const avoid = batchGift.gift ? [...rejectedGifts, batchGift.gift] : rejectedGifts;
+      const r = await fetch(API + "/popbys/suggest-batch", { method: "POST", headers, body: JSON.stringify({ avoid }) });
       const d = await r.json();
-      if (r.ok) setBatchGift({ gift: d.gift, note: d.note });
-      else alert(d.error || "Couldn't get a suggestion.");
+      if (r.ok) {
+        if (batchGift.gift) setRejectedGifts(avoid);
+        setBatchGift({ gift: d.gift, note: d.note, price: d.price, whereToBuy: d.whereToBuy || "" });
+      } else alert(d.error || "Couldn't get a suggestion.");
     } catch (e) { alert("Error: " + e.message); }
     finally { setSuggestingBatch(false); }
   };
@@ -253,7 +258,7 @@ export default function PopBysPage({ token, onBack }) {
                 <>
                   {/* Step toolbar */}
                   <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12, alignItems: "center" }}>
-                    <button onClick={() => suggestBatch(!!batchGift.gift)} disabled={suggestingBatch} style={btn("#fef9c3", "#854d0e")}>{suggestingBatch ? "Thinking…" : (batchGift.gift ? "↻ Suggest another gift" : "✨ Suggest a gift")}</button>
+                    <button onClick={suggestBatch} disabled={suggestingBatch} style={btn("#fef9c3", "#854d0e")}>{suggestingBatch ? "Thinking…" : (batchGift.gift ? "↻ Suggest another gift" : "✨ Suggest a gift")}</button>
                     <button onClick={printNotes} style={btn("#e0e7ff", "#3730a3")}>🖨 Print note cards</button>
                     <span style={{ width: 1, height: 22, background: "#e5e7eb" }} />
                     <button onClick={selectCluster} style={btn("#e0e7ff", "#3730a3")}>📍 Select a nearby group</button>
@@ -263,12 +268,19 @@ export default function PopBysPage({ token, onBack }) {
                   </div>
 
                   {/* One gift for the whole run */}
-                  {batchGift.gift && (
-                    <div style={{ background: "#fffbeb", border: "1px solid #fcd34d", borderRadius: 10, padding: 14, marginBottom: 14 }}>
-                      <div style={{ fontSize: 15, fontWeight: 800, color: "#92400e" }}>🎁 Buy {selected.size || data.due.length} × {batchGift.gift}</div>
-                      <div style={{ fontSize: 13, color: "#78350f", marginTop: 4 }}>Note card for each: <em>"{batchGift.note}"</em></div>
-                    </div>
-                  )}
+                  {batchGift.gift && (() => {
+                    const n = selected.size || data.due.length;
+                    return (
+                      <div style={{ background: "#fffbeb", border: "1px solid #fcd34d", borderRadius: 10, padding: 14, marginBottom: 14 }}>
+                        <div style={{ fontSize: 15, fontWeight: 800, color: "#92400e" }}>🎁 Buy {n} × {batchGift.gift}</div>
+                        <div style={{ fontSize: 13, color: "#78350f", marginTop: 4 }}>
+                          {batchGift.price != null && <span>💵 about <strong>${batchGift.price}</strong> each{n > 1 ? <span> · ~<strong>${Math.round(batchGift.price * n)}</strong> total</span> : null} (your budget: ${data.settings.budget}/gift)</span>}
+                          {batchGift.whereToBuy && <span>{batchGift.price != null ? " · " : ""}🛍 find it at: <strong>{batchGift.whereToBuy}</strong></span>}
+                        </div>
+                        <div style={{ fontSize: 13, color: "#78350f", marginTop: 4 }}>Note card for each: <em>"{batchGift.note}"</em></div>
+                      </div>
+                    );
+                  })()}
 
                   {/* Due list */}
                   <div style={{ display: "grid", gap: 8 }}>
@@ -305,7 +317,7 @@ export default function PopBysPage({ token, onBack }) {
                       {/* Shopping list */}
                       <div style={{ fontSize: 13, marginBottom: 10 }}>
                         <div style={{ fontWeight: 700, marginBottom: 4 }}>🛒 Shopping list</div>
-                        {batchGift.gift ? <div style={{ color: "#374151" }}>Buy <strong>{selected.size} × {batchGift.gift}</strong></div> :
+                        {batchGift.gift ? <div style={{ color: "#374151" }}>Buy <strong>{selected.size} × {batchGift.gift}</strong>{batchGift.price != null && <span> · ~${Math.round(batchGift.price * selected.size)} total</span>}{batchGift.whereToBuy && <span> · at {batchGift.whereToBuy}</span>}</div> :
                           <div style={{ color: "#9ca3af" }}>Tap "✨ Suggest a gift" up top to pick one gift for the whole run.</div>}
                       </div>
 
