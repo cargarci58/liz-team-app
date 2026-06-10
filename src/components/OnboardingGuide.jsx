@@ -19,7 +19,7 @@ import { useState } from 'react';
 
 const RED = '#C0392B';
 
-export default function OnboardingGuide({ steps, doneKeys, onTakeMeThere, onDismiss, onFinish }) {
+export default function OnboardingGuide({ steps, doneKeys, onTakeMeThere, onStartTour, onDismiss, onFinish }) {
   // The "current" step = first one not yet done.
   const currentIdx = steps.findIndex(s => !doneKeys.has(s.key));
   const allDone = currentIdx === -1;
@@ -86,14 +86,16 @@ export default function OnboardingGuide({ steps, doneKeys, onTakeMeThere, onDism
             <div style={{ flex: 1 }}>
               <div style={{ fontWeight: 800, fontSize: 15, color: '#222' }}>{s.emoji} {s.title}</div>
               <div style={{ fontSize: 13, color: '#555', margin: '4px 0 6px', lineHeight: 1.45 }}>{s.desc}</div>
-              {isCurrent && (
+              {isCurrent && (s.tour ? (
+                <button onClick={() => onStartTour(s)} style={primaryBtn}>Start the tour →</button>
+              ) : (
                 <>
                   <div style={{ fontSize: 12.5, color: '#777', marginBottom: 10, lineHeight: 1.5 }}>
                     👉 Where to click: <strong>{s.where}</strong> (top-right of your screen).
                   </div>
                   <button onClick={() => onTakeMeThere(s)} style={primaryBtn}>Show me — open it now →</button>
                 </>
-              )}
+              ))}
             </div>
           </div>
         );

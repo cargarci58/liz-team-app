@@ -138,7 +138,7 @@ const GUIDE_SECTIONS = [
   },
 ];
 
-export default function HelpCenter({ apiBase, token, onGoals, onProfile, onCompany, onRestartTour, isAdmin, openSignal }) {
+export default function HelpCenter({ apiBase, token, onGoals, onProfile, onCompany, onRestartTour, onTour, isAdmin, openSignal }) {
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState('start'); // start | guides | faqs
 
@@ -223,13 +223,12 @@ export default function HelpCenter({ apiBase, token, onGoals, onProfile, onCompa
   };
 
   // The 1-2-3 "Start Here" setup steps, wired to real screens.
-  const setupSteps = [
-    { n: 1, emoji: '🎯', title: 'Set up your goals', desc: 'Tell the app your income target so it can plan your day.', where: '⚙️ Menu → 🎯 Goal Planner', go: onGoals },
-    { n: 2, emoji: '👤', title: 'Set up your profile', desc: 'Add your photo, signature, and contact info — used on every email and form.', where: '⚙️ Menu → 👤 My Profile', go: onProfile },
-  ];
-  if (isAdmin && onCompany) {
-    setupSteps.push({ n: 3, emoji: '⚙️', title: 'Set up company settings', desc: 'Add your brokerage name, logo, and branding.', where: '⚙️ Menu → ⚙️ Company Settings', go: onCompany });
-  }
+  // Order: Company → Profile → Goals (Company is admin-only, so non-admins start at Profile).
+  const setupBase = [];
+  if (isAdmin && onCompany) setupBase.push({ emoji: '⚙️', title: 'Set up company settings', desc: 'Add your brokerage name, logo, and branding — it shows on everything your clients see.', where: '⚙️ Menu → ⚙️ Company Settings', go: onCompany });
+  setupBase.push({ emoji: '👤', title: 'Set up your profile', desc: 'Add your photo, signature, and contact info — used on every email and form.', where: '⚙️ Menu → 👤 My Profile', go: onProfile });
+  setupBase.push({ emoji: '🎯', title: 'Set up your goals', desc: 'Tell the app your income target so it can plan your day.', where: '⚙️ Menu → 🎯 Goal Planner', go: onGoals });
+  const setupSteps = setupBase.map((s, i) => ({ ...s, n: i + 1 }));
 
   return (
     <>
@@ -283,8 +282,11 @@ export default function HelpCenter({ apiBase, token, onGoals, onProfile, onCompa
                       </div>
                     </div>
                   ))}
+                  {onTour && (
+                    <button onClick={() => { setOpen(false); onTour(); }} style={{ marginTop: 6, marginBottom: 8, background: '#111', border: 'none', borderRadius: 8, padding: '11px 16px', fontSize: 13, fontWeight: 700, color: '#fff', cursor: 'pointer', fontFamily: 'inherit', width: '100%' }}>🎬 Take the 60-second app tour</button>
+                  )}
                   {onRestartTour && (
-                    <button onClick={() => { setOpen(false); onRestartTour(); }} style={{ marginTop: 6, background: 'none', border: '1px solid #ddd', borderRadius: 8, padding: '9px 16px', fontSize: 13, fontWeight: 600, color: '#444', cursor: 'pointer', fontFamily: 'inherit', width: '100%' }}>↻ Replay the welcome walkthrough</button>
+                    <button onClick={() => { setOpen(false); onRestartTour(); }} style={{ background: 'none', border: '1px solid #ddd', borderRadius: 8, padding: '9px 16px', fontSize: 13, fontWeight: 600, color: '#444', cursor: 'pointer', fontFamily: 'inherit', width: '100%' }}>↻ Replay the welcome walkthrough</button>
                   )}
                 </div>
               )}

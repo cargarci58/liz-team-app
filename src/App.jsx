@@ -32,6 +32,7 @@ const ClientPortal = lazy(() => import("./ClientPortal"));
 import FaqHelpButton from "./components/FaqHelpButton";
 import HelpCenter from "./components/HelpCenter";
 import OnboardingGuide from "./components/OnboardingGuide";
+import AppTour from "./components/AppTour";
 
 const API = "https://liz-team-server-api-production.up.railway.app";
 // Platform developer account — only this email sees the Superuser Dashboard.
@@ -7267,6 +7268,8 @@ function MainApp({ onLogout, currentUser }) {
 
   // Help Center: bump this counter to open it from ⚙️ Menu → ❓ Help.
   const [helpSignal, setHelpSignal] = useState(0);
+  // 🎬 App Tour — replayable swipe-through (last onboarding step + Help Center).
+  const [showTour, setShowTour] = useState(false);
 
   // First-time onboarding walkthrough -------------------------------------
   const isAdminUser = ["admin", "superadmin"].includes(currentUser?.role);
@@ -7283,15 +7286,21 @@ function MainApp({ onLogout, currentUser }) {
     setOnboard(next);
     try { localStorage.setItem(onboardKey, JSON.stringify({ done: [...doneSet], dismissed: !!extra.dismissed, finished: !!extra.finished })); } catch (e) { /* ignore */ }
   };
-  const onboardSteps = [
-    { key: "goals", emoji: "🎯", title: "Set up your goals", desc: "Tell the app your income target so it can plan your day for you.", where: "⚙️ Menu → 🎯 Goal Planner", go: () => openReports("goals") },
-    { key: "profile", emoji: "👤", title: "Set up your profile", desc: "Add your photo, signature, and contact info — used on every email and form you send.", where: "⚙️ Menu → 👤 My Profile", go: () => setShowAgentProfile(true) },
-  ];
-  if (isAdminUser) onboardSteps.push({ key: "company", emoji: "⚙️", title: "Set up company settings", desc: "Add your brokerage name, logo, and branding.", where: "⚙️ Menu → ⚙️ Company Settings", go: () => setShowCompanySettings(true) });
+  // Order: Company → Profile → Goals (Company is admin-only, so non-admins start at Profile), then the App Tour.
+  const onboardSteps = [];
+  if (isAdminUser) onboardSteps.push({ key: "company", emoji: "⚙️", title: "Set up company settings", desc: "Add your brokerage name, logo, and branding — it shows on everything your clients see.", where: "⚙️ Menu → ⚙️ Company Settings", go: () => setShowCompanySettings(true) });
+  onboardSteps.push({ key: "profile", emoji: "👤", title: "Set up your profile", desc: "Add your photo, signature, and contact info — used on every email and form you send.", where: "⚙️ Menu → 👤 My Profile", go: () => setShowAgentProfile(true) });
+  onboardSteps.push({ key: "goals", emoji: "🎯", title: "Set up your goals", desc: "Tell the app your income target so it can plan your day for you.", where: "⚙️ Menu → 🎯 Goal Planner", go: () => openReports("goals") });
+  onboardSteps.push({ key: "tour", tour: true, emoji: "🎬", title: "Take the 60-second tour", desc: "A quick look at what every button does — then you're ready to roll." });
   const onboardTakeMeThere = (step) => {
     const nextDone = new Set(onboard.done); nextDone.add(step.key);
     persistOnboard(true, nextDone);
     step.go();
+  };
+  const onboardStartTour = (step) => {
+    const nextDone = new Set(onboard.done); nextDone.add(step.key);
+    persistOnboard(true, nextDone);
+    setShowTour(true);
   };
   const restartTour = () => persistOnboard(true, new Set());
 
@@ -7640,17 +7649,27 @@ function MainApp({ onLogout, currentUser }) {
           onProfile={() => setShowAgentProfile(true)}
           onCompany={isAdminUser ? () => setShowCompanySettings(true) : null}
           onRestartTour={restartTour}
+          onTour={() => setShowTour(true)}
         />
       )}
 
-      {/* First-time welcome walkthrough — hides while a target screen is open so the user can act */}
-      {onboard.active && !isFreeGuest && !showAgentProfile && !showCompanySettings && !showReports && (
+      {/* First-time welcome walkthrough — hides while a target screen or the tour is open so the user can act */}
+      {onboard.active && !isFreeGuest && !showTour && !showAgentProfile && !showCompanySettings && !showReports && (
         <OnboardingGuide
           steps={onboardSteps}
           doneKeys={onboard.done}
           onTakeMeThere={onboardTakeMeThere}
+          onStartTour={onboardStartTour}
           onDismiss={() => persistOnboard(false, onboard.done, { dismissed: true })}
           onFinish={() => persistOnboard(false, onboard.done, { finished: true })}
+        />
+      )}
+
+      {/* 🎬 App Tour — from onboarding step 4 or Help Center */}
+      {showTour && (
+        <AppTour
+          onClose={() => setShowTour(false)}
+          onCreateFirst={() => { setShowTour(false); setView("new"); }}
         />
       )}
     </Suspense>
