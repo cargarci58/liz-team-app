@@ -140,7 +140,54 @@ const GUIDE_SECTIONS = [
 
 export default function HelpCenter({ apiBase, token, onGoals, onProfile, onCompany, onRestartTour, onTour, isAdmin, openSignal }) {
   const [open, setOpen] = useState(false);
-  const [tab, setTab] = useState('start'); // start | guides | faqs
+  const [tab, setTab] = useState('start'); // start | guides | faqs | feedback
+
+  // ── Feedback / Report-a-problem form state ──
+  const [fbKind, setFbKind] = useState('bug'); // bug | suggestion | other
+  const [fbMessage, setFbMessage] = useState('');
+  const [fbSending, setFbSending] = useState(false);
+  const [fbDone, setFbDone] = useState(false);
+  const [fbError, setFbError] = useState(null);
+
+  const submitFeedback = () => {
+    const msg = fbMessage.trim();
+    if (!msg) { setFbError('Please tell us what happened or what you have in mind.'); return; }
+    setFbSending(true); setFbError(null);
+    fetch(`${apiBase}/feedback`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ kind: fbKind, message: msg, page: (typeof window !== 'undefined' ? (window.location.hash || window.location.pathname) : '') }),
+    })
+      .then(r => r.ok ? r.json() : r.json().then(e => Promise.reject(e)))
+      .then(() => { setFbDone(true); setFbMessage(''); })
+      .catch(e => setFbError(e?.error || 'Could not send. Please try again.'))
+      .finally(() => setFbSending(false));
+  };
+
+  // ── AI Support Assistant (🤖 Ask AI) chat state ──
+  const [aiMessages, setAiMessages] = useState([]); // { role: 'user'|'assistant', content }
+  const [aiInput, setAiInput] = useState('');
+  const [aiSending, setAiSending] = useState(false);
+  const [aiError, setAiError] = useState(null);
+
+  const sendAi = (text) => {
+    const q = (text != null ? text : aiInput).trim();
+    if (!q || aiSending) return;
+    const next = [...aiMessages, { role: 'user', content: q }];
+    setAiMessages(next);
+    setAiInput('');
+    setAiSending(true);
+    setAiError(null);
+    fetch(`${apiBase}/support/chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ messages: next }),
+    })
+      .then(r => r.ok ? r.json() : r.json().then(e => Promise.reject(e)))
+      .then(data => setAiMessages(m => [...m, { role: 'assistant', content: data.reply || "Sorry, I didn't catch that — could you rephrase?" }]))
+      .catch(e => setAiError(e?.error || 'Could not reach the assistant. Please try again, or use the 📣 Feedback tab.'))
+      .finally(() => setAiSending(false));
+  };
 
   // Allow opening from elsewhere (⚙️ Menu → ❓ Help) by bumping `openSignal`.
   useEffect(() => { if (openSignal) setOpen(true); }, [openSignal]);
@@ -251,12 +298,14 @@ export default function HelpCenter({ apiBase, token, onGoals, onProfile, onCompa
             {/* Tabs */}
             <div style={{ display: 'flex', background: '#f5f5f5', borderBottom: '1px solid #eee' }}>
               {tabBtn('start', '🚀 Start Here')}
-              {tabBtn('guides', '📖 How-To Guides')}
+              {tabBtn('ai', '🤖 Ask AI')}
+              {tabBtn('guides', '📖 Guides')}
               {tabBtn('faqs', '💬 FAQs')}
+              {tabBtn('feedback', '📣 Feedback')}
             </div>
 
             {/* Search (guides + faqs only) */}
-            {tab !== 'start' && (
+            {(tab === 'guides' || tab === 'faqs') && (
               <div style={{ padding: '12px 20px', borderBottom: '1px solid #eee' }}>
                 <input type="text" placeholder={tab === 'guides' ? 'Search guides…' : 'Search questions…'} value={search} onChange={(e) => setSearch(e.target.value)} style={{ width: '100%', padding: '9px 12px', border: '1px solid #ddd', borderRadius: 8, fontSize: 14, boxSizing: 'border-box', fontFamily: 'inherit' }} />
               </div>
@@ -326,6 +375,120 @@ export default function HelpCenter({ apiBase, token, onGoals, onProfile, onCompa
                       {generalFaqs.map(f => (
                         <StepGuide key={f.id} gkey={`f:${f.id}`} title={f.question} steps={[f.answer]} />
                       ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {tab === 'ai' && (
+                <div>
+                  {aiMessages.length === 0 && (
+                    <div style={{ marginBottom: 14 }}>
+                      <div style={{ fontSize: 14, color: '#333', marginBottom: 12, lineHeight: 1.5 }}>
+                        Hi! 👋 I'm your support assistant. Ask me anything about how to use the app — like "How do I receive an offer?" or "Where do I set my goals?"
+                      </div>
+                      <div style={{ fontSize: 12, fontWeight: 800, color: '#999', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 8 }}>Try asking…</div>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                        {[
+                          'How do I start a new transaction?',
+                          'How do I receive an offer?',
+                          'Where do I set up my goals?',
+                          'How do Pop-Bys work?',
+                        ].map(q => (
+                          <button key={q} onClick={() => sendAi(q)} style={{ padding: '8px 12px', borderRadius: 16, border: '1px solid #ddd', background: '#fff', color: '#444', fontSize: 12.5, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>{q}</button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {aiMessages.map((m, i) => (
+                    <div key={i} style={{ display: 'flex', justifyContent: m.role === 'user' ? 'flex-end' : 'flex-start', marginBottom: 10 }}>
+                      <div style={{
+                        maxWidth: '85%', padding: '10px 13px', borderRadius: 14, fontSize: 14, lineHeight: 1.5, whiteSpace: 'pre-wrap',
+                        background: m.role === 'user' ? RED : '#F1F1F1',
+                        color: m.role === 'user' ? '#fff' : '#222',
+                        borderBottomRightRadius: m.role === 'user' ? 4 : 14,
+                        borderBottomLeftRadius: m.role === 'user' ? 14 : 4,
+                      }}>{m.content}</div>
+                    </div>
+                  ))}
+                  {aiSending && (
+                    <div style={{ display: 'flex', justifyContent: 'flex-start', marginBottom: 10 }}>
+                      <div style={{ padding: '10px 13px', borderRadius: 14, fontSize: 14, background: '#F1F1F1', color: '#888' }}>Thinking…</div>
+                    </div>
+                  )}
+                  {aiError && <div style={{ color: RED, fontSize: 13, marginBottom: 10 }}>{aiError}</div>}
+
+                  <div style={{ display: 'flex', gap: 8, marginTop: 6, position: 'sticky', bottom: 0, background: '#fff', paddingTop: 6 }}>
+                    <input
+                      type="text"
+                      value={aiInput}
+                      onChange={(e) => setAiInput(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === 'Enter') sendAi(); }}
+                      placeholder="Type your question…"
+                      style={{ flex: 1, padding: '11px 13px', border: '1px solid #ddd', borderRadius: 22, fontSize: 14, fontFamily: 'inherit', boxSizing: 'border-box' }}
+                    />
+                    <button onClick={() => sendAi()} disabled={aiSending || !aiInput.trim()} style={{ flexShrink: 0, width: 44, height: 44, borderRadius: '50%', border: 'none', background: (aiSending || !aiInput.trim()) ? '#ccc' : RED, color: '#fff', fontSize: 18, cursor: (aiSending || !aiInput.trim()) ? 'default' : 'pointer', fontFamily: 'inherit' }}>↑</button>
+                  </div>
+                  <div style={{ fontSize: 11, color: '#aaa', marginTop: 8, lineHeight: 1.4 }}>
+                    AI answers can occasionally be off. For a bug or account issue, use the 📣 Feedback tab; for anything urgent on a live deal, call or text your broker.
+                  </div>
+                </div>
+              )}
+
+              {tab === 'feedback' && (
+                <div>
+                  {fbDone ? (
+                    <div style={{ textAlign: 'center', padding: '24px 12px' }}>
+                      <div style={{ fontSize: 44, marginBottom: 8 }}>🙏</div>
+                      <div style={{ fontSize: 17, fontWeight: 800, color: '#222', marginBottom: 6 }}>Thank you — we got it!</div>
+                      <div style={{ fontSize: 13.5, color: '#555', lineHeight: 1.5, maxWidth: 380, margin: '0 auto 18px' }}>
+                        Your note went straight to the team. We read every single one, and it helps us make the app better for you.
+                      </div>
+                      <button onClick={() => { setFbDone(false); setFbKind('bug'); }} style={{ background: RED, color: '#fff', border: 'none', borderRadius: 8, padding: '9px 18px', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>Send another</button>
+                    </div>
+                  ) : (
+                    <div>
+                      <div style={{ fontSize: 14, color: '#333', marginBottom: 16, lineHeight: 1.5 }}>
+                        Found a bug? Have an idea? Want something added or changed? Tell us — it goes straight to the team.
+                      </div>
+                      <div style={{ fontSize: 12, fontWeight: 800, color: '#999', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 8 }}>What kind of feedback is this?</div>
+                      <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
+                        {[
+                          { id: 'bug', label: '🐞 Something’s broken' },
+                          { id: 'suggestion', label: '💡 Idea / request' },
+                          { id: 'other', label: '💬 Other' },
+                        ].map(opt => (
+                          <button key={opt.id} onClick={() => setFbKind(opt.id)} style={{
+                            flex: '1 1 auto', padding: '10px 12px', borderRadius: 8, cursor: 'pointer', fontFamily: 'inherit',
+                            fontSize: 13, fontWeight: 700,
+                            border: fbKind === opt.id ? `2px solid ${RED}` : '1px solid #ddd',
+                            background: fbKind === opt.id ? '#FCF3F2' : '#fff',
+                            color: fbKind === opt.id ? RED : '#444',
+                          }}>{opt.label}</button>
+                        ))}
+                      </div>
+                      <textarea
+                        value={fbMessage}
+                        onChange={(e) => { setFbMessage(e.target.value); if (fbError) setFbError(null); }}
+                        placeholder={fbKind === 'bug'
+                          ? 'What happened? What were you trying to do, and what went wrong? The more detail, the faster we can fix it.'
+                          : fbKind === 'suggestion'
+                          ? 'What would you like to see? Describe the idea or the change you’re hoping for.'
+                          : 'Tell us what’s on your mind.'}
+                        rows={6}
+                        maxLength={5000}
+                        style={{ width: '100%', padding: '11px 12px', border: '1px solid #ddd', borderRadius: 8, fontSize: 14, boxSizing: 'border-box', fontFamily: 'inherit', resize: 'vertical', lineHeight: 1.5 }}
+                      />
+                      {fbError && <div style={{ color: RED, fontSize: 13, marginTop: 8 }}>{fbError}</div>}
+                      <button
+                        onClick={submitFeedback}
+                        disabled={fbSending}
+                        style={{ marginTop: 14, width: '100%', background: fbSending ? '#999' : RED, color: '#fff', border: 'none', borderRadius: 8, padding: '12px 16px', fontSize: 14, fontWeight: 800, cursor: fbSending ? 'default' : 'pointer', fontFamily: 'inherit' }}
+                      >{fbSending ? 'Sending…' : 'Send to the team'}</button>
+                      <div style={{ fontSize: 12, color: '#999', marginTop: 10, lineHeight: 1.45 }}>
+                        We’ll know who sent it so we can follow up if needed. For an urgent issue with a live deal, call or text your contact directly.
+                      </div>
                     </div>
                   )}
                 </div>
