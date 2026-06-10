@@ -407,13 +407,16 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
     };
   }, []);
 
-  // silent = a follow-up refetch after a server rebuild: keep the current list
-  // on screen (no spinner) and don't chain another refetch.
-  const fetchTasks = async ({ silent = false } = {}) => {
+  // awaitRebuild = the follow-up fetch: ask the server to WAIT for the in-flight
+  // rebuild to finish before answering, so we get the complete list. It runs
+  // silently (no spinner, current list stays on screen) and never chains another.
+  const fetchTasks = async ({ awaitRebuild = false } = {}) => {
+    const silent = awaitRebuild;
     if (!silent) setLoading(true);
     try {
+      const url = API + "/dashboard/tasks" + (awaitRebuild ? "?await=1" : "");
       const [tasksRes, callsRes] = await Promise.all([
-        fetch(API + "/dashboard/tasks", { headers: { Authorization: "Bearer " + token } }),
+        fetch(url, { headers: { Authorization: "Bearer " + token } }),
         fetch(API + "/contacts/due-today", { headers: { Authorization: "Bearer " + token } }).catch(() => null),
       ]);
       const data = await tasksRes.json();
@@ -427,12 +430,14 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
         setOccasions(callsData.occasions || []);
         setPopByDueCount(callsData.popByDueCount || 0);
       }
-      // The server rebuilt the task list in the background — the list we just got
-      // is the pre-rebuild one. Refetch once after it lands so the agent sees
-      // everything without reopening (fixes the "had to click twice" report).
-      if (data.regenerating && !silent) {
+      // A rebuild is running in the background — the list we just got is the
+      // pre-rebuild one. Fire ONE follow-up that waits for it to finish, so the
+      // complete list appears on its own. We only arm this from the initial
+      // (non-awaiting) fetch, so it can't loop. Definitive fix for the recurring
+      // "had to click twice / tasks missing" bug.
+      if (data.regenerating && !awaitRebuild) {
         if (regenTimer.current) clearTimeout(regenTimer.current);
-        regenTimer.current = setTimeout(() => fetchTasks({ silent: true }), 2500);
+        regenTimer.current = setTimeout(() => fetchTasks({ awaitRebuild: true }), 150);
       }
     } catch (e) { console.error(e); }
     if (!silent) setLoading(false);
