@@ -34,6 +34,7 @@ import FaqHelpButton from "./components/FaqHelpButton";
 import HelpCenter from "./components/HelpCenter";
 import OnboardingGuide from "./components/OnboardingGuide";
 import AppTour from "./components/AppTour";
+import SpotlightTour from "./components/SpotlightTour";
 
 const API = "https://liz-team-server-api-production.up.railway.app";
 // Platform developer account — only this email sees the Superuser Dashboard.
@@ -1856,7 +1857,7 @@ function WinTheDayButton({ token, onViewTransactions }) {
 
   return (
     <>
-      <button onClick={() => setShowModal(true)}
+      <button data-tour="winday" onClick={() => setShowModal(true)}
         style={{ background: btnColor, border: btnBorder,
           color: "#fff", borderRadius: 8, padding: "7px 14px",
           cursor: "pointer", fontSize: 12, fontWeight: 700,
@@ -5831,12 +5832,13 @@ function ContactAutocomplete({ token, onSelect }) {
 // ═══════════════════════════════════════════════════════════════
 // SettingsMenu — dropdown that consolidates 6+ buttons into one
 // ═══════════════════════════════════════════════════════════════
-function SettingsMenu({ currentUser, onOpenContactBook, contactCount, onReports, onGoalPlanner, onAgentProfile, onOpenComplianceDash, onOpenCompliance, onOpenTaskTmpls, onCompanySettings, onChangePassword, onOpenForms, onOpenTeam, onOpenSuperuser, onHelp }) {
+function SettingsMenu({ currentUser, onOpenContactBook, contactCount, onReports, onGoalPlanner, onAgentProfile, onOpenComplianceDash, onOpenCompliance, onOpenTaskTmpls, onCompanySettings, onChangePassword, onOpenForms, onOpenTeam, onOpenSuperuser, onHelp, onFeedback }) {
   const [open, setOpen] = useState(false);
   const isAdmin = ["admin", "superadmin"].includes(currentUser?.role);
   const items = [];
 
   if (onHelp) items.push({ icon: "❓", label: "Help & Guides", onClick: onHelp });
+  if (onFeedback) items.push({ icon: "📣", label: "Send Feedback", onClick: onFeedback });
   items.push({ icon: "📒", label: `Address Book${contactCount > 0 ? ` (${contactCount})` : ""}`, onClick: onOpenContactBook });
   items.push({ icon: "📊", label: "Reports", onClick: onReports });
   if (onGoalPlanner) items.push({ icon: "🎯", label: "Goal Planner", onClick: onGoalPlanner });
@@ -5857,7 +5859,7 @@ function SettingsMenu({ currentUser, onOpenContactBook, contactCount, onReports,
   }
 
   return (
-    <div style={{ position: "relative" }}>
+    <div style={{ position: "relative" }} data-tour="menu">
       <button onClick={() => setOpen(!open)} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "rgba(255,255,255,0.88)", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 600, fontFamily: "inherit" }}>
         ⚙️ Menu {open ? "▴" : "▾"}
       </button>
@@ -5883,7 +5885,7 @@ function SettingsMenu({ currentUser, onOpenContactBook, contactCount, onReports,
   );
 }
 
-function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenContactBook, onOpenContacts, onOpenPopBys, onOpenScripts, onOpenExpenses, onOpenForms, contactCount, onLogout, onOpenTeam, onOpenCompliance, onOpenComplianceDash, onOpenTaskTmpls, onOpenContractIntake, onChangePassword, onReports, onGoalPlanner, onHome, onVendors, onCompanySettings, onSuperuser, onAgentProfile, onIntakeLinks, onViewTransactions, onHelp, currentUser, isFreeGuest = false }) {
+function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenContactBook, onOpenContacts, onOpenPopBys, onOpenScripts, onOpenExpenses, onOpenForms, contactCount, onLogout, onOpenTeam, onOpenCompliance, onOpenComplianceDash, onOpenTaskTmpls, onOpenContractIntake, onChangePassword, onReports, onGoalPlanner, onHome, onVendors, onCompanySettings, onSuperuser, onAgentProfile, onIntakeLinks, onViewTransactions, onHelp, onFeedback, currentUser, isFreeGuest = false }) {
   const [filter, setFilter] = useState("All");
   const [search, setSearch] = useState("");
   // Tenant branding for the navbar — fetched once on mount. A free guest belongs to
@@ -6441,15 +6443,15 @@ function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenCon
             </div>
           </div>
           <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-            <button onClick={onNew} style={{ background: "#C0392B", border: "none", color: "#fff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>+ New Transaction</button>
-            <button onClick={() => onOpenContacts && onOpenContacts()} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "#fff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>📇 Contacts</button>
-            <button onClick={() => onOpenPopBys && onOpenPopBys()} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "#fff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>🎁 Pop-Bys</button>
+            <button data-tour="new" onClick={onNew} style={{ background: "#C0392B", border: "none", color: "#fff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>+ New Transaction</button>
+            <button data-tour="contacts" onClick={() => onOpenContacts && onOpenContacts()} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "#fff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>📇 Contacts</button>
+            <button data-tour="popbys" onClick={() => onOpenPopBys && onOpenPopBys()} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "#fff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>🎁 Pop-Bys</button>
             <button onClick={() => onOpenScripts && onOpenScripts()} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "#fff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>📜 Scripts</button>
-            <button onClick={() => onOpenExpenses && onOpenExpenses()} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "#fff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>💵 Financials</button>
+            <button data-tour="financials" onClick={() => onOpenExpenses && onOpenExpenses()} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "#fff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>💵 Financials</button>
             <WinTheDayButton token={localStorage.getItem("tp_token") || ""} onViewTransactions={onViewTransactions} />
             <PersonalTaskAddButton token={localStorage.getItem("tp_token") || ""} />
-            <button onClick={onVendors} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "rgba(255,255,255,0.88)", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 600, fontFamily: "inherit" }}>🏆 Vendors</button>
-            <button onClick={onIntakeLinks} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "rgba(255,255,255,0.88)", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 600, fontFamily: "inherit" }}>🔗 New Buyer/Seller Intake</button>
+            <button data-tour="vendors" onClick={onVendors} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "rgba(255,255,255,0.88)", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 600, fontFamily: "inherit" }}>🏆 Vendors</button>
+            <button data-tour="intake" onClick={onIntakeLinks} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "rgba(255,255,255,0.88)", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 600, fontFamily: "inherit" }}>🔗 New Buyer/Seller Intake</button>
             {/* "Receive Offer" now lives inside each Active listing (open a listing → 📥 Receive Offer). Receiving an offer only applies to listings. */}
             <SettingsMenu
               currentUser={currentUser}
@@ -6467,6 +6469,7 @@ function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenCon
               onChangePassword={onChangePassword}
               onOpenTeam={onOpenTeam}
               onHelp={onHelp}
+              onFeedback={onFeedback}
             />
             <TenantSwitcher currentUser={currentUser} />
             <button onClick={onLogout} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "rgba(255,255,255,0.88)", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 600, fontFamily: "inherit" }}>Sign Out</button>
@@ -6514,11 +6517,20 @@ function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenCon
           <option value="Cancelled">❌ Cancelled</option>
         </select>
         <div style={{ marginLeft: "auto", display: "flex", gap: 6, position: "relative" }}>
-          <button onClick={() => setShowViewsMenu(v => !v)} title="My saved views" style={{ padding: "7px 12px", borderRadius: 8, border: `1px solid ${COLORS.border}`, background: "#fff", color: COLORS.text, fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 6 }}>📋 Views {savedViews.length > 0 && <span style={{ background: COLORS.bg, color: COLORS.muted, borderRadius: 10, padding: "1px 7px", fontSize: 11, fontWeight: 700 }}>{savedViews.length}</span>} <span style={{ fontSize: 9 }}>▾</span></button>
+          <button onClick={() => setShowViewsMenu(v => !v)} title="Layout & saved views" style={{ padding: "7px 12px", borderRadius: 8, border: `1px solid ${COLORS.border}`, background: "#fff", color: COLORS.text, fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 6 }}>📋 Views {savedViews.length > 0 && <span style={{ background: COLORS.bg, color: COLORS.muted, borderRadius: 10, padding: "1px 7px", fontSize: 11, fontWeight: 700 }}>{savedViews.length}</span>} <span style={{ fontSize: 9 }}>▾</span></button>
           {showViewsMenu && (
             <>
               <div onClick={() => setShowViewsMenu(false)} style={{ position: "fixed", inset: 0, zIndex: 100 }} />
               <div style={{ position: "absolute", top: "calc(100% + 6px)", right: 0, background: "#fff", border: `1px solid ${COLORS.border}`, borderRadius: 10, boxShadow: "0 8px 24px rgba(0,0,0,0.15)", minWidth: 280, maxWidth: 360, zIndex: 101, maxHeight: 400, overflowY: "auto" }}>
+                <div style={{ padding: "10px 14px", borderBottom: `1px solid ${COLORS.border}`, fontSize: 11, fontWeight: 700, color: COLORS.muted, textTransform: "uppercase", letterSpacing: "0.06em" }}>Layout</div>
+                {[["cards", "▦ Cards"], ["list", "☰ List"], ["kanban", "⋮⋮ Pipeline"]].map(([mode, label]) => (
+                  <div key={mode} onClick={() => { setViewMode(mode); setShowViewsMenu(false); }} style={{ padding: "10px 14px", borderBottom: `1px solid ${COLORS.border}`, cursor: "pointer", display: "flex", alignItems: "center", gap: 8, fontSize: 13, fontWeight: 600, color: viewMode === mode ? COLORS.navy : COLORS.text, background: viewMode === mode ? COLORS.bg : "#fff" }}
+                    onMouseEnter={e => e.currentTarget.style.background = COLORS.bg}
+                    onMouseLeave={e => e.currentTarget.style.background = viewMode === mode ? COLORS.bg : "#fff"}>
+                    <span style={{ flex: 1 }}>{label}</span>
+                    {viewMode === mode && <span style={{ color: COLORS.navy, fontSize: 14 }}>✓</span>}
+                  </div>
+                ))}
                 <div style={{ padding: "10px 14px", borderBottom: `1px solid ${COLORS.border}`, fontSize: 11, fontWeight: 700, color: COLORS.muted, textTransform: "uppercase", letterSpacing: "0.06em" }}>My Saved Views</div>
                 {savedViews.length === 0 ? (
                   <div style={{ padding: "20px 14px", textAlign: "center", color: COLORS.muted, fontSize: 13 }}>No saved views yet.<br/><span style={{ fontSize: 11 }}>Click 💾 Save to create one.</span></div>
@@ -6563,11 +6575,6 @@ function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenCon
             <option value="progress">Progress</option>
           </select>
           <button onClick={() => setSortDir(sortDir === "asc" ? "desc" : "asc")} title={sortDir === "asc" ? "Ascending" : "Descending"} style={{ padding: "6px 10px", borderRadius: 6, border: `1px solid ${COLORS.border}`, background: "#fff", color: COLORS.navy, fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", minWidth: 36 }}>{sortDir === "asc" ? "↑" : "↓"}</button>
-        </div>
-        <div style={{ display: "flex", gap: 4, background: COLORS.bg, borderRadius: 8, padding: 3, border: `1px solid ${COLORS.border}` }}>
-          <button onClick={() => setViewMode("cards")} title="Card view" style={{ padding: "6px 12px", borderRadius: 6, border: "none", background: viewMode === "cards" ? COLORS.navy : "transparent", color: viewMode === "cards" ? "#fff" : COLORS.muted, fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>▦ Cards</button>
-          <button onClick={() => setViewMode("list")} title="List view" style={{ padding: "6px 12px", borderRadius: 6, border: "none", background: viewMode === "list" ? COLORS.navy : "transparent", color: viewMode === "list" ? "#fff" : COLORS.muted, fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>☰ List</button>
-          <button onClick={() => setViewMode("kanban")} title="Kanban / Pipeline view" style={{ padding: "6px 12px", borderRadius: 6, border: "none", background: viewMode === "kanban" ? COLORS.navy : "transparent", color: viewMode === "kanban" ? "#fff" : COLORS.muted, fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>⋮⋮ Pipeline</button>
         </div>
       </div>
       {activeFilterCount > 0 && (
@@ -7269,6 +7276,8 @@ function MainApp({ onLogout, currentUser }) {
 
   // Help Center: bump this counter to open it from ⚙️ Menu → ❓ Help.
   const [helpSignal, setHelpSignal] = useState(0);
+  // Feedback: bump to open the Help Center straight to the 📣 Feedback tab (⚙️ Menu → 📣 Feedback).
+  const [feedbackSignal, setFeedbackSignal] = useState(0);
   // 🎬 App Tour — replayable swipe-through (last onboarding step + Help Center).
   const [showTour, setShowTour] = useState(false);
 
@@ -7301,6 +7310,7 @@ function MainApp({ onLogout, currentUser }) {
   const onboardStartTour = (step) => {
     const nextDone = new Set(onboard.done); nextDone.add(step.key);
     persistOnboard(true, nextDone);
+    setView("dashboard");   // spotlight tour highlights the dashboard toolbar
     setShowTour(true);
   };
   const restartTour = () => persistOnboard(true, new Set());
@@ -7524,6 +7534,7 @@ function MainApp({ onLogout, currentUser }) {
           onAgentProfile={() => setShowAgentProfile(true)}
           onIntakeLinks={guard("My Intake Links", () => setShowIntakeLinks(true))}
           onHelp={() => setHelpSignal(n => n + 1)}
+          onFeedback={() => setFeedbackSignal(n => n + 1)}
           currentUser={currentUser}
           isFreeGuest={isFreeGuest}
           onHome={() => setView("home")}
@@ -7645,12 +7656,13 @@ function MainApp({ onLogout, currentUser }) {
           apiBase={API}
           token={localStorage.getItem("tp_token") || ""}
           openSignal={helpSignal}
+          feedbackSignal={feedbackSignal}
           isAdmin={isAdminUser}
           onGoals={() => openReports("goals")}
           onProfile={() => setShowAgentProfile(true)}
           onCompany={isAdminUser ? () => setShowCompanySettings(true) : null}
           onRestartTour={restartTour}
-          onTour={() => setShowTour(true)}
+          onTour={() => { setView("dashboard"); setShowTour(true); }}
         />
       )}
 
@@ -7668,7 +7680,7 @@ function MainApp({ onLogout, currentUser }) {
 
       {/* 🎬 App Tour — from onboarding step 4 or Help Center */}
       {showTour && (
-        <AppTour
+        <SpotlightTour
           onClose={() => setShowTour(false)}
           onCreateFirst={() => { setShowTour(false); setView("new"); }}
         />
