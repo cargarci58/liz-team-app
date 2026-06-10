@@ -1020,6 +1020,13 @@ function SMSPanel({ tx, onUpdate, currentUser }) {
   const [gAttach, setGAttach] = useState([]); // [{ id, name }]
   const [gSending, setGSending] = useState(false);
   const [gResult, setGResult] = useState(null);
+  // Group recipients: pick a subset (not always everyone) + type in addresses
+  // that aren't on the deal. null = "all parties" (the default); a Set of party
+  // ids = an explicit subset. gExtra holds typed-in emails not in the party list.
+  const [gSelectedIds, setGSelectedIds] = useState(null);
+  const [gExtra, setGExtra] = useState([]); // [{ name, email }]
+  const [gNewEmail, setGNewEmail] = useState("");
+  const [gNewName, setGNewName] = useState("");
   const [docPickerOpen, setDocPickerOpen] = useState(false);
   const [docList, setDocList] = useState(null);
   const [uploading, setUploading] = useState(false);
@@ -1146,12 +1153,37 @@ function SMSPanel({ tx, onUpdate, currentUser }) {
     setReminderSending(false);
   };
 
-  // ── Group send (everyone at once) ─────────────────────────────
-  const gWithEmail = tx.parties.filter(p => p.email && p.email.trim());
-  const gWithPhone = tx.parties.filter(p => p.phone && p.phone.trim());
-  const gNoContact = tx.parties.filter(p => !(p.email && p.email.trim()) && !(p.phone && p.phone.trim()));
-  const gEmailOnly = tx.parties.filter(p => (p.email && p.email.trim()) && !(p.phone && p.phone.trim()));
-  const gSmsOnly = tx.parties.filter(p => (p.phone && p.phone.trim()) && !(p.email && p.email.trim()));
+  // ── Group send (pick who — some, all, or type in others) ──────
+  const gContactable = tx.parties.filter(p => (p.email && p.email.trim()) || (p.phone && p.phone.trim()));
+  // null = everyone (default); otherwise the explicit subset the agent ticked.
+  const gSelectedSet = gSelectedIds === null ? new Set(gContactable.map(p => p.id)) : gSelectedIds;
+  const isRecipientOn = (id) => gSelectedSet.has(id);
+  const toggleRecipient = (id) => {
+    const next = new Set(gSelectedSet);
+    next.has(id) ? next.delete(id) : next.add(id);
+    setGSelectedIds(next);
+  };
+  const addExtraEmail = () => {
+    const email = gNewEmail.trim();
+    if (!/.+@.+\..+/.test(email)) { alert("Enter a valid email address."); return; }
+    if (gExtra.some(e => e.email.toLowerCase() === email.toLowerCase()) ||
+        gContactable.some(p => (p.email || "").toLowerCase() === email.toLowerCase())) {
+      alert("That email is already on the list."); return;
+    }
+    setGExtra(prev => [...prev, { name: gNewName.trim(), email }]);
+    setGNewEmail(""); setGNewName("");
+  };
+  // The actual recipients of a group send = ticked parties + typed-in addresses.
+  const gChosenParties = gContactable.filter(p => gSelectedSet.has(p.id));
+  const gChosen = [
+    ...gChosenParties.map(p => ({ name: p.name, email: p.email || "", phone: p.phone || "", role: p.role || "" })),
+    ...gExtra.map(e => ({ name: e.name || e.email, email: e.email, phone: "", role: "" })),
+  ];
+  const gWithEmail = gChosen.filter(p => p.email && p.email.trim());
+  const gWithPhone = gChosen.filter(p => p.phone && p.phone.trim());
+  const gNoContact = gChosen.filter(p => !(p.email && p.email.trim()) && !(p.phone && p.phone.trim()));
+  const gEmailOnly = gChosen.filter(p => (p.email && p.email.trim()) && !(p.phone && p.phone.trim()));
+  const gSmsOnly = gChosen.filter(p => (p.phone && p.phone.trim()) && !(p.email && p.email.trim()));
 
   const sendGroup = async () => {
     if (!gMessage.trim()) return;
@@ -1160,10 +1192,10 @@ function SMSPanel({ tx, onUpdate, currentUser }) {
       const res = await fetch(`${SMS_SERVER}/transactions/${tx.id}/broadcast`, {
         method: "POST",
         headers: { "Content-Type": "application/json", "Authorization": "Bearer " + (localStorage.getItem("tp_token") || "") },
-        body: JSON.stringify({ subject: gSubject, message: gMessage.trim(), channel: gChannel, attachDocIds: gAttach.map(a => a.id) }),
+        body: JSON.stringify({ subject: gSubject, message: gMessage.trim(), channel: gChannel, attachDocIds: gAttach.map(a => a.id), recipients: gChosen }),
       });
       const d = await res.json();
-      if (d.success) { setGResult(d.results || []); setGMessage(""); setGSubject(""); setGAttach([]); loadLogged(); }
+      if (d.success) { setGResult(d.results || []); setGMessage(""); setGSubject(""); setGAttach([]); setGExtra([]); setGSelectedIds(null); loadLogged(); }
       else alert("Send failed: " + (d.error || "unknown error"));
     } catch { alert("Server unreachable."); }
     setGSending(false);
@@ -1260,7 +1292,7 @@ function SMSPanel({ tx, onUpdate, currentUser }) {
         <div>
           <div style={{ fontSize: 13, fontWeight: 800, color: "#0F2044", marginBottom: 5 }}>1. Select who to message:</div>
           <div style={{ display: "inline-flex", background: "#F3F4F6", borderRadius: 8, padding: 3, gap: 2, border: "1.5px solid #C9A84C" }}>
-            {[["direct", "👤 One person"], ["group", "👥 Everyone"]].map(([v, label]) => (
+            {[["direct", "👤 One person"], ["group", "👥 Group / several"]].map(([v, label]) => (
               <button key={v} onClick={() => setMode(v)} style={{ padding: "8px 18px", borderRadius: 6, border: "none", background: mode === v ? "#C9A84C" : "transparent", color: mode === v ? "#fff" : "#374151", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>{label}</button>
             ))}
           </div>
@@ -1328,8 +1360,52 @@ function SMSPanel({ tx, onUpdate, currentUser }) {
         <div style={{ maxWidth: 760 }}>
             {/* Composer */}
             <div style={{ background: "#fff", border: "1px solid #E5E7EB", borderRadius: 12, padding: 18 }}>
-              <div style={{ fontWeight: 700, fontSize: 15, color: "#0F2044", marginBottom: 4 }}>Message everyone at once</div>
-              <div style={{ fontSize: 12, color: "#6B7280", marginBottom: 14 }}>Goes out by email <b>and</b> text so it reaches every party. A copy is also saved in the in-app Chat.</div>
+              <div style={{ fontWeight: 700, fontSize: 15, color: "#0F2044", marginBottom: 4 }}>Message the group</div>
+              <div style={{ fontSize: 12, color: "#6B7280", marginBottom: 14 }}>Pick who gets this below — everyone, just a few, or add an email that isn't on the deal. A copy is also saved in the in-app Chat.</div>
+
+              {/* Recipients — some, all, or add an address not on the deal */}
+              <div style={{ background: "#F9FAFB", border: "1px solid #E5E7EB", borderRadius: 8, padding: "10px 12px", marginBottom: 14 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "#6B7280", textTransform: "uppercase" }}>To ({gChosen.length} selected)</div>
+                  {gContactable.length > 0 && (
+                    <div style={{ display: "flex", gap: 12 }}>
+                      <button onClick={() => setGSelectedIds(null)} style={{ background: "none", border: "none", color: "#0F2044", fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "inherit", textDecoration: "underline" }}>Select all</button>
+                      <button onClick={() => setGSelectedIds(new Set())} style={{ background: "none", border: "none", color: "#6B7280", fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "inherit", textDecoration: "underline" }}>Clear</button>
+                    </div>
+                  )}
+                </div>
+                {gContactable.length === 0 ? (
+                  <div style={{ fontSize: 12, color: "#6B7280" }}>No parties with contact info yet — add them in the People tab, or type an email below.</div>
+                ) : (
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }} data-keep-grid="">
+                    {gContactable.map(p => (
+                      <label key={p.id} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "#1A1A2E", cursor: "pointer", padding: "4px 2px" }}>
+                        <input type="checkbox" checked={isRecipientOn(p.id)} onChange={() => toggleRecipient(p.id)} style={{ width: 16, height: 16, flexShrink: 0 }} />
+                        <span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          {p.name} <span style={{ color: "#C9A84C", fontWeight: 600 }}>· {p.role}</span>
+                          {!(p.email && p.email.trim()) && <span style={{ color: "#B45309" }}> (text only)</span>}
+                          {!(p.phone && p.phone.trim()) && <span style={{ color: "#6B7280" }}> (email only)</span>}
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                )}
+                {gExtra.length > 0 && (
+                  <div style={{ marginTop: 8, display: "flex", flexWrap: "wrap", gap: 6 }}>
+                    {gExtra.map((e, i) => (
+                      <span key={i} style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "#EEF2FF", border: "1px solid #C7D2FE", borderRadius: 6, padding: "3px 8px", fontSize: 12, color: "#0F2044" }}>
+                        ✉️ {e.name ? `${e.name} · ` : ""}{e.email}
+                        <button onClick={() => setGExtra(prev => prev.filter((_, j) => j !== i))} style={{ background: "none", border: "none", cursor: "pointer", color: "#6B7280", fontSize: 14, lineHeight: 1 }}>×</button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+                <div style={{ display: "flex", gap: 6, marginTop: 8, flexWrap: "wrap" }}>
+                  <input value={gNewName} onChange={e => setGNewName(e.target.value)} placeholder="Name (optional)" style={{ flex: "0 1 130px", padding: "7px 10px", borderRadius: 8, border: "1px solid #E5E7EB", fontSize: 13, fontFamily: "inherit", boxSizing: "border-box" }} />
+                  <input value={gNewEmail} onChange={e => setGNewEmail(e.target.value)} onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); addExtraEmail(); } }} placeholder="Add another email…" style={{ flex: "1 1 180px", padding: "7px 10px", borderRadius: 8, border: "1px solid #E5E7EB", fontSize: 13, fontFamily: "inherit", boxSizing: "border-box" }} />
+                  <button onClick={addExtraEmail} style={{ fontSize: 13, padding: "7px 14px", borderRadius: 8, border: "1px solid #0F2044", background: "#fff", color: "#0F2044", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>+ Add</button>
+                </div>
+              </div>
 
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
                 <div style={{ fontSize: 12, fontWeight: 700, color: "#6B7280", textTransform: "uppercase" }}>Send via</div>
@@ -1340,7 +1416,7 @@ function SMSPanel({ tx, onUpdate, currentUser }) {
                 <input value={gSubject} onChange={e => setGSubject(e.target.value)} placeholder={`Email subject (default: Update: ${tx.address})`} style={{ width: "100%", padding: "9px 12px", borderRadius: 8, border: "1px solid #E5E7EB", fontSize: 13, fontFamily: "inherit", boxSizing: "border-box", marginBottom: 10 }} />
               )}
 
-              <textarea value={gMessage} onChange={e => setGMessage(e.target.value)} rows={12} placeholder="Type your message to all parties..." style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: "1px solid #E5E7EB", fontSize: 14, fontFamily: "inherit", resize: "vertical", minHeight: 220, boxSizing: "border-box", marginBottom: 10 }} />
+              <textarea value={gMessage} onChange={e => setGMessage(e.target.value)} rows={12} placeholder="Type your message to the selected recipients..." style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: "1px solid #E5E7EB", fontSize: 14, fontFamily: "inherit", resize: "vertical", minHeight: 220, boxSizing: "border-box", marginBottom: 10 }} />
 
               {/* Attachments */}
               <div style={{ marginBottom: 12 }}>
@@ -1362,7 +1438,7 @@ function SMSPanel({ tx, onUpdate, currentUser }) {
               {/* Reachability note */}
               <div style={{ background: "#F9FAFB", border: "1px solid #E5E7EB", borderRadius: 8, padding: "10px 12px", fontSize: 12, color: "#374151", marginBottom: 14 }}>
                 <div style={{ fontWeight: 700, marginBottom: 4 }}>Who will get this</div>
-                {tx.parties.length === 0 ? <div style={{ color: "#6B7280" }}>No parties yet — add them in the People tab.</div> : (
+                {gChosen.length === 0 ? <div style={{ color: "#6B7280" }}>Nobody selected yet — tick a recipient above or add an email.</div> : (
                   <>
                     <div>📧 {gWithEmail.length} by email · 📱 {gWithPhone.length} by text</div>
                     {gEmailOnly.length > 0 && <div style={{ color: "#B45309" }}>⚠️ {gEmailOnly.length} {gEmailOnly.length === 1 ? "party has" : "parties have"} no phone — email only</div>}
@@ -1381,7 +1457,7 @@ function SMSPanel({ tx, onUpdate, currentUser }) {
                 </div>
               )}
 
-              <button onClick={sendGroup} disabled={!gMessage.trim() || gSending || gWithEmail.length + gWithPhone.length === 0} style={{ width: "100%", padding: "11px", borderRadius: 8, border: "none", background: "#15803D", color: "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer", fontFamily: "inherit", opacity: (!gMessage.trim() || gSending || gWithEmail.length + gWithPhone.length === 0) ? 0.5 : 1 }}>{gSending ? "Sending..." : `Send to all ${tx.parties.length} parties`}</button>
+              <button onClick={sendGroup} disabled={!gMessage.trim() || gSending || gWithEmail.length + gWithPhone.length === 0} style={{ width: "100%", padding: "11px", borderRadius: 8, border: "none", background: "#15803D", color: "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer", fontFamily: "inherit", opacity: (!gMessage.trim() || gSending || gWithEmail.length + gWithPhone.length === 0) ? 0.5 : 1 }}>{gSending ? "Sending..." : `Send to ${gChosen.length} recipient${gChosen.length === 1 ? "" : "s"}`}</button>
             </div>
         </div>
       )}
@@ -4181,7 +4257,7 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
         <button onClick={onBack} style={{ background: "none", border: "none", color: "#fff", cursor: "pointer", fontSize: 22, opacity: 0.7 }}>←</button>
         <div style={{ flex: 1 }}>
           <div style={{ color: "#fff", fontWeight: 700, fontSize: 17 }}>{tx.address}</div>
-          <div style={{ color: COLORS.gold, fontSize: 13 }}>{tx.city}, FL {tx.zipCode} · {tx.county} County · {tx.type}</div>
+          <div style={{ color: "rgba(255,255,255,0.85)", fontSize: 13 }}>{tx.city}, FL {tx.zipCode} · {tx.county} County · {tx.type}</div>
           {isGuest && tx.owningBrokerageName && <div style={{ color: "rgba(255,255,255,0.7)", fontSize: 12, marginTop: 2 }}>🏢 Managed by {tx.owningBrokerageName}</div>}
         </div>
         {propertyTypeBadge(tx) && <Badge label={propertyTypeBadge(tx).label} color={propertyTypeBadge(tx).color} bg={propertyTypeBadge(tx).bg} />}
