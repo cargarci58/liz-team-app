@@ -1021,9 +1021,10 @@ function SMSPanel({ tx, onUpdate, currentUser }) {
   const [gSending, setGSending] = useState(false);
   const [gResult, setGResult] = useState(null);
   // Group recipients: pick a subset (not always everyone) + type in addresses
-  // that aren't on the deal. null = "all parties" (the default); a Set of party
-  // ids = an explicit subset. gExtra holds typed-in emails not in the party list.
-  const [gSelectedIds, setGSelectedIds] = useState(null);
+  // that aren't on the deal. Defaults to NONE selected (empty Set) so the agent
+  // deliberately ticks who gets it. null = "all parties" (set by Select all);
+  // any other Set = an explicit subset. gExtra holds typed-in emails not on the deal.
+  const [gSelectedIds, setGSelectedIds] = useState(new Set());
   const [gExtra, setGExtra] = useState([]); // [{ name, email }]
   const [gNewEmail, setGNewEmail] = useState("");
   const [gNewName, setGNewName] = useState("");
@@ -1199,7 +1200,7 @@ function SMSPanel({ tx, onUpdate, currentUser }) {
         body: JSON.stringify({ subject: gSubject, message: gMessage.trim(), channel: gChannel, attachDocIds: gAttach.map(a => a.id), recipients: gChosen }),
       });
       const d = await res.json();
-      if (d.success) { setGResult(d.results || []); setGMessage(""); setGSubject(""); setGAttach([]); setGExtra([]); setGSelectedIds(null); loadLogged(); }
+      if (d.success) { setGResult(d.results || []); setGMessage(""); setGSubject(""); setGAttach([]); setGExtra([]); setGSelectedIds(new Set()); loadLogged(); }
       else alert("Send failed: " + (d.error || "unknown error"));
     } catch { alert("Server unreachable."); }
     setGSending(false);
