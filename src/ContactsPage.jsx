@@ -423,6 +423,7 @@ function ContactModal({ contact, token, onClose, onSaved }) {
     popby_address: (contact && contact.popby_address) || "",
     groups: (contact && Array.isArray(contact.tags) ? contact.tags : []),
     notes: (contact && contact.notes) || "",
+    messagingConsent: !!(contact && contact.messaging_consent),
   });
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState(null);
@@ -493,6 +494,13 @@ function ContactModal({ contact, token, onClose, onSaved }) {
         </div>
         <Field label="Email"><input type="email" value={form.email} onChange={e => update("email", e.target.value)} style={inputStyle} /></Field>
         <Field label="Phone"><input value={form.phone} onChange={e => update("phone", e.target.value)} style={inputStyle} /></Field>
+
+        {(form.phone || form.email) && (
+          <label style={{ display: "flex", gap: 8, alignItems: "flex-start", margin: "2px 0 12px", padding: "10px 12px", background: "#fef6f6", border: "1px solid #f3d4d4", borderRadius: 8, cursor: "pointer", fontSize: 12.5, color: "#7a1f2b", lineHeight: 1.4 }}>
+            <input type="checkbox" checked={form.messagingConsent} onChange={e => update("messagingConsent", e.target.checked)} style={{ marginTop: 2, flexShrink: 0 }} />
+            <span>I have this person's permission to contact them by email and text. <span style={{ color: "#9a3b46" }}>(Required by Florida law before automated messages can be sent.)</span></span>
+          </label>
+        )}
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
           <Field label="Type">

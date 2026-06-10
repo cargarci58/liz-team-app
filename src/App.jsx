@@ -10,6 +10,7 @@ import ContractUploadPublic from "./ContractUploadPublic";
 import TransactionChat from "./TransactionChat";
 import DailyDashboard from "./DailyDashboard";
 import ChangePassword from "./ChangePassword";
+import LegalConsentGate from "./LegalConsentGate";
 // ── Code-split heavy, route-level screens so the phone only downloads the
 // ── code for the screen you actually open, instead of one giant bundle up front.
 const ContactsPage = lazy(() => import("./ContactsPage"));
@@ -7694,6 +7695,18 @@ function AuthGate() {
       localStorage.setItem("tp_user", JSON.stringify(user));
       setAuthUser(user);
       if (user.passwordResetRequired) setForcePasswordReset(true);
+    }} />;
+  }
+
+  // Legal consent gate — block the app until the user accepts the current Terms
+  // of Service / Privacy Policy / AI disclaimer. Shows for anyone whose stored
+  // acceptance is missing or stale (termsAccepted !== true). Skipped only while a
+  // forced password reset is pending (handled above).
+  if (authUser.termsAccepted !== true) {
+    return <LegalConsentGate onAccepted={(version) => {
+      const updated = { ...authUser, termsAccepted: true, termsAcceptedVersion: version || authUser.termsCurrentVersion };
+      localStorage.setItem("tp_user", JSON.stringify(updated));
+      setAuthUser(updated);
     }} />;
   }
 
