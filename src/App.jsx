@@ -3578,6 +3578,36 @@ function NotesField({ value, onChange }) {
   );
 }
 
+// Notes section on the Overview tab: an "Add Note" composer that prepends a
+// dated note on top, leaving any auto-captured intake notes intact below.
+function NotesSection({ value, onChange }) {
+  const [draft, setDraft] = useState("");
+  const addNote = () => {
+    const t = draft.trim();
+    if (!t) return;
+    const stamp = new Date().toLocaleString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" });
+    const entry = `[${stamp}] ${t}`;
+    onChange(value && value.trim() ? entry + "\n\n" + value : entry);
+    setDraft("");
+  };
+  return (
+    <div>
+      <div style={{ display: "flex", gap: 8, marginBottom: 12, alignItems: "flex-start" }}>
+        <textarea
+          value={draft}
+          onChange={e => setDraft(e.target.value)}
+          onKeyDown={e => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); addNote(); } }}
+          rows={2}
+          placeholder="Add a new note… it'll be added on top of the notes below"
+          style={{ flex: 1, border: `1px solid ${COLORS.border}`, borderRadius: 8, padding: "10px 12px", fontFamily: "inherit", fontSize: 14, resize: "vertical", boxSizing: "border-box" }}
+        />
+        <Btn onClick={addNote} small>+ Add Note</Btn>
+      </div>
+      <NotesField value={value} onChange={onChange} />
+    </div>
+  );
+}
+
 // After an offer is accepted, preview every welcome/initial email before sending.
 // The agent reviews each rendered email and clicks Send per recipient (or Send All).
 // HOA + no-email parties are listed as skipped (never emailed).
@@ -4533,7 +4563,7 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
             </div>
             <div style={{ background: "#fff", border: `1px solid ${COLORS.border}`, borderRadius: 12, padding: 20 }}>
               <h3 style={{ margin: "0 0 10px", fontSize: 14, color: COLORS.navy, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em" }}>Notes</h3>
-              <NotesField value={tx.notes} onChange={v => update({ notes: v })} />
+              <NotesSection value={tx.notes} onChange={v => update({ notes: v })} />
             </div>
           </div>
         )}
