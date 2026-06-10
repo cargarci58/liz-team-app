@@ -317,7 +317,7 @@ function ShareVendorModal({ vendor, onClose }) {
 
             {/* optional note */}
             <textarea value={message} onChange={e => setMessage(e.target.value)} rows={3} placeholder="Add a personal note (optional)…" style={{ ...inp, resize: "vertical", marginBottom: 6 }} />
-            <div style={{ fontSize: 11, color: COLORS.gray, marginBottom: 14 }}>The vendor's name, company, phone, email & description are included automatically.</div>
+            <div style={{ fontSize: 11, color: COLORS.gray, marginBottom: 14 }}>Leave the note blank and a warm intro is added for you. The vendor's name, company, phone, email & description are always included.</div>
 
             <button onClick={send} disabled={sending || (chosen.length === 0 && !txId)} style={{ width: "100%", padding: 13, borderRadius: 10, border: "none", background: COLORS.success, color: "#fff", fontWeight: 700, fontSize: 15, cursor: "pointer", opacity: (sending || (chosen.length === 0 && !txId)) ? 0.5 : 1 }}>
               {sending ? "Sending…" : `Share with ${chosen.length || (txId ? "the deal" : "0")} ${chosen.length === 1 ? "person" : chosen.length ? "people" : ""}`.trim()}
