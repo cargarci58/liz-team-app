@@ -68,7 +68,9 @@ const COUNTIES = ["Orange", "Osceola", "Seminole", "Polk", "Brevard", "Lake", "V
 const PARTY_ROLES = [
   "Listing Agent", "Buyer's Agent", "Transaction Coordinator",
   "Builder", "Title Company", "Loan Officer/Lender", "Inspector", "Appraiser",
-  "HOA Manager", "Seller", "Buyer", "Attorney", "Insurance Agent", "Referral", "Other"
+  "HOA Manager", "Seller", "Buyer", "Attorney", "Insurance Agent", "Referral",
+  "Photographer", "Handyman", "Plumber", "Electrician", "General Contractor",
+  "Roofer", "HVAC", "Other"
 ];
 
 const EMAIL_TEMPLATES = [
@@ -1928,8 +1930,10 @@ function AssignVendorPanel({ tx, token, onClose, onAssigned }) {
   const CATEGORY_ICONS = {
     "Inspector": "🔍", "Lender": "🏦", "Title Company": "📋",
     "Insurance": "🛡️", "Attorney": "⚖️", "Pest Control": "🐛",
-    "Survey": "📐", "Contractor": "🔧", "Moving Company": "🚚",
-    "Locksmith": "🔑", "Other": "👤",
+    "Survey": "📐", "Contractor": "🔧",
+    "General Contractor": "👷", "Handyman": "🛠️", "Plumber": "🚰",
+    "Electrician": "⚡", "HVAC": "❄️", "Roofer": "🏠", "Photographer": "📷",
+    "Moving Company": "🚚", "Locksmith": "🔑", "Other": "👤",
   };
 
   useEffect(() => {

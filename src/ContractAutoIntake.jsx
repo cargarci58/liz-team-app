@@ -679,7 +679,12 @@ function ReviewStep({ token, uploadId, user, currentStatus, onApproved, onBack }
                     <option>Buyer's Agent</option><option>Listing Agent</option>
                     <option>Title Company</option><option>Lender</option>
                     <option>Inspector</option><option>HOA Management</option>
-                    <option>Attorney</option><option>Other</option>
+                    <option>Attorney</option>
+                    <option>Photographer</option><option>Handyman</option>
+                    <option>Plumber</option><option>Electrician</option>
+                    <option>General Contractor</option><option>Roofer</option>
+                    <option>HVAC</option>
+                    <option>Other</option>
                   </select>
                 </div>
                 <div>

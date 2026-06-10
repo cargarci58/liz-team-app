@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { LogCallButton } from "./ContactsPage";
 
 const API = "https://liz-team-server-api-production.up.railway.app";
@@ -393,6 +393,8 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
   const hour = new Date().getHours();
   const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
 
+  const regenTimer = useRef(null);
+
   useEffect(() => {
     fetchTasks();
     const handler = () => fetchTasks();
@@ -401,11 +403,14 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
     return () => {
       window.removeEventListener("wintheday:refresh", handler);
       window.removeEventListener("focus", handler);
+      if (regenTimer.current) clearTimeout(regenTimer.current);
     };
   }, []);
 
-  const fetchTasks = async () => {
-    setLoading(true);
+  // silent = a follow-up refetch after a server rebuild: keep the current list
+  // on screen (no spinner) and don't chain another refetch.
+  const fetchTasks = async ({ silent = false } = {}) => {
+    if (!silent) setLoading(true);
     try {
       const [tasksRes, callsRes] = await Promise.all([
         fetch(API + "/dashboard/tasks", { headers: { Authorization: "Bearer " + token } }),
@@ -422,8 +427,15 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
         setOccasions(callsData.occasions || []);
         setPopByDueCount(callsData.popByDueCount || 0);
       }
+      // The server rebuilt the task list in the background — the list we just got
+      // is the pre-rebuild one. Refetch once after it lands so the agent sees
+      // everything without reopening (fixes the "had to click twice" report).
+      if (data.regenerating && !silent) {
+        if (regenTimer.current) clearTimeout(regenTimer.current);
+        regenTimer.current = setTimeout(() => fetchTasks({ silent: true }), 2500);
+      }
     } catch (e) { console.error(e); }
-    setLoading(false);
+    if (!silent) setLoading(false);
   };
 
   const handleResolve = async (taskId) => {
