@@ -27,7 +27,19 @@ const TASK_ICONS = {
   inbound_email_reply: "💬",
   chase_reply_received: "💬",
   chase_opt_out:     "⚠️",
+  price_reduction:   "💰",
 };
+
+// Three ready-to-use scripts to walk a seller toward a price reduction. Shown
+// inside the price_reduction Win-the-Day card. Brackets are the agent's to fill.
+const PRICE_REDUCTION_SCRIPTS = [
+  { title: "Let the market do the talking",
+    body: "“When we listed, we priced on the best information we had at the time. Since then we’ve had [X showings] and [Y offers], and the homes that are selling around us are coming in lower. The market is giving us feedback — and right now it’s telling us we’re priced just ahead of where buyers are. A focused adjustment gets us back in line with what they’re actually paying.”" },
+  { title: "The cost of waiting",
+    body: "“Every month we hold out for the higher number, you’re still carrying the mortgage, taxes, insurance, and upkeep — and the longer a home sits, the more buyers assume something’s wrong with it. A meaningful reduction now usually nets you more than slowly chasing the market down over the next few months. Let’s get ahead of it instead of falling behind it.”" },
+  { title: "Get back in front of buyers",
+    body: "“Your listing already had its first big wave of attention, and that wave has passed. A strategic price drop puts you back at the top of buyers’ searches and triggers a fresh round of alerts. If we move from [$405,000] to [$399,000], we cross a search threshold and show up for a whole new set of buyers who never saw it before. Let’s create that second ‘just listed’ moment.”" },
+];
 
 // ── SELLER UPDATE MODAL ───────────────────────────────────────
 function SellerUpdateModal({ task, token, onClose, onDone }) {
@@ -224,6 +236,9 @@ function TaskCard({ task, token, onResolve, onComplete, onSnooze, onOpenModal, o
   // Undated checklist step: "Done" must COMPLETE the milestone (complete-target),
   // not just silence the reminder for 7 days — otherwise it never saves as done.
   const isChecklist = task.task_type === "milestone_checklist";
+  // Listing sitting on market: card carries 3 seller price-reduction scripts.
+  const isPriceReduction = task.task_type === "price_reduction";
+  const [showScripts, setShowScripts] = useState(false);
 
   return (
     <div style={{ background:COLORS.white, borderRadius:14, padding:16, marginBottom:12,
@@ -243,6 +258,33 @@ function TaskCard({ task, token, onResolve, onComplete, onSnooze, onOpenModal, o
           <div style={{ fontWeight:700, fontSize:15, color:COLORS.black, marginBottom:4 }}>{task.title}</div>
           {task.description && (
             <div style={{ fontSize:13, color:COLORS.gray, lineHeight:1.5 }}>{task.description}</div>
+          )}
+          {isPriceReduction && (
+            <div style={{ marginTop:10 }}>
+              <button onClick={() => setShowScripts(s => !s)}
+                style={{ background:"none", border:"none", padding:0, cursor:"pointer",
+                  color:COLORS.red, fontWeight:700, fontSize:13, fontFamily:"inherit" }}>
+                {showScripts ? "▼ Hide scripts" : "💬 View 3 scripts"}
+              </button>
+              {showScripts && (
+                <div style={{ marginTop:10 }}>
+                  <div style={{ fontSize:12, color:COLORS.gray, marginBottom:8 }}>Pick the angle that fits your seller. Brackets are yours to fill in.</div>
+                  {PRICE_REDUCTION_SCRIPTS.map((s, i) => (
+                    <div key={i} style={{ background:COLORS.lightGray, borderRadius:8,
+                      borderLeft:"3px solid "+COLORS.red, padding:"10px 12px", marginBottom:8 }}>
+                      <div style={{ fontSize:12, fontWeight:700, color:COLORS.darkRed, marginBottom:4 }}>Script {i + 1} · {s.title}</div>
+                      <div style={{ fontSize:13, color:COLORS.black, lineHeight:1.55 }}>{s.body}</div>
+                      <button onClick={() => { try { navigator.clipboard.writeText(s.body); } catch (e) {} }}
+                        style={{ marginTop:8, background:COLORS.white, border:"1px solid "+COLORS.border,
+                          borderRadius:6, padding:"4px 10px", fontSize:11, fontWeight:600, color:COLORS.gray,
+                          cursor:"pointer", fontFamily:"inherit" }}>
+                        📋 Copy
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           )}
         </div>
       </div>
