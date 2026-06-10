@@ -138,7 +138,7 @@ const GUIDE_SECTIONS = [
   },
 ];
 
-export default function HelpCenter({ apiBase, token, onGoals, onProfile, onCompany, onRestartTour, onTour, isAdmin, openSignal }) {
+export default function HelpCenter({ apiBase, token, onGoals, onProfile, onCompany, onRestartTour, onTour, isAdmin, openSignal, feedbackSignal }) {
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState('start'); // start | guides | faqs | feedback
 
@@ -191,6 +191,8 @@ export default function HelpCenter({ apiBase, token, onGoals, onProfile, onCompa
 
   // Allow opening from elsewhere (⚙️ Menu → ❓ Help) by bumping `openSignal`.
   useEffect(() => { if (openSignal) setOpen(true); }, [openSignal]);
+  // ⚙️ Menu → 📣 Feedback opens straight to the Feedback tab.
+  useEffect(() => { if (feedbackSignal) { setTab('feedback'); setFbDone(false); setOpen(true); } }, [feedbackSignal]);
   const [search, setSearch] = useState('');
   const [expanded, setExpanded] = useState(new Set());
 
