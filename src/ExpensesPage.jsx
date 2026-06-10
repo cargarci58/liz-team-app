@@ -2148,12 +2148,18 @@ function BalanceSheetTab() {
   const [adding, setAdding] = useState(null); // 'asset' | 'liability'
   const [label, setLabel] = useState('');
   const [amount, setAmount] = useState('');
+  const [ytd, setYtd] = useState(null);        // year-to-date P&L (deal income reference)
+  const bsYear = new Date().getFullYear();
 
   const load = async () => {
     setLoading(true); setError(null);
     try { setData(await authFetch('/finance/balance-sheet')); } catch (e) { setError(e.message); } finally { setLoading(false); }
+    authFetch(`/finance/pnl?from=${bsYear}-01-01&to=${bsYear}-12-31`).then(setYtd).catch(() => {});
   };
   useEffect(() => { load(); }, []);
+
+  const ytdIncome = Number(ytd?.income?.total || 0);
+  const ytdProfit = ytd ? Number(ytd.net_profit || 0) : null;
 
   const addItem = async () => {
     if (!label || !amount || isNaN(Number(amount))) { alert('Enter a name and amount.'); return; }
@@ -2220,9 +2226,18 @@ function BalanceSheetTab() {
       </div>
       {loading && <div style={{ padding: 40, textAlign: 'center', color: '#6b7280' }}>Loading…</div>}
       {error && <div style={{ padding: 20, color: '#dc2626', background: '#fef2f2', borderRadius: 8 }}>Error: {error}</div>}
+      {ytd && (ytdIncome > 0 || ytdProfit) ? (
+        <div style={{ background: '#ecfdf5', border: '1px solid #a7f3d0', borderRadius: 10, padding: '12px 16px', marginBottom: 16, fontSize: 13, color: '#065f46' }}>
+          💰 <strong>Year-to-date from your deals ({bsYear}):</strong> {fmtCurrency(ytdIncome)} income · {fmtCurrency(ytdProfit)} profit <span style={{ color: '#059669' }}>(from your P&amp;L)</span>.
+          <div style={{ marginTop: 4, color: '#047857' }}>
+            This is your earnings over the year — it's tracked on the <strong>P&amp;L</strong>, not here. The balance sheet shows what you <strong>own &amp; owe right now</strong>, so deal income only appears once it's sitting in a bank account you record.
+            {data && data.totalAssets === 0 && <> <button onClick={() => { setAdding('asset'); setLabel('Cash in bank'); setAmount(''); }} style={{ background: '#059669', border: 'none', color: 'white', borderRadius: 6, padding: '4px 10px', cursor: 'pointer', fontSize: 12, fontWeight: 700, marginLeft: 4 }}>+ Add my bank balance</button></>}
+          </div>
+        </div>
+      ) : null}
       {data && !loading && data.totalAssets === 0 && data.totalLiabilities === 0 && data.assets.length === 0 && data.liabilities.length === 0 && (
         <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 10, padding: '12px 16px', marginBottom: 16, fontSize: 13, color: '#92400e' }}>
-          Everything's at $0 because there's nothing to show yet. Your <strong>cash</strong> appears automatically once you reconcile a statement — go to <strong>Import Statement</strong> and type a statement's <strong>ending balance</strong>. Or click <strong>➕ Add</strong> below to enter assets/liabilities by hand.
+          Everything's at $0 because there's nothing to show yet — the balance sheet tracks what you <strong>own</strong> (cash, savings, equipment) and <strong>owe</strong> (loans, credit cards), <strong>not</strong> your deal income (that's on the P&amp;L). Type in your <strong>bank balance</strong> with <strong>➕ Add</strong> below, or <strong>Import a Statement</strong> to pull cash in automatically.
         </div>
       )}
       {data && !loading && (
