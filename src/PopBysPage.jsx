@@ -554,8 +554,11 @@ export default function PopBysPage({ token, onBack }) {
                 <div style={{ display: "grid", gap: 6 }}>
                   {history.map(h => (
                     <div key={h.id} style={{ display: "flex", justifyContent: "space-between", gap: 12, background: "#fff", border: "1px solid #e5e7eb", borderRadius: 8, padding: "10px 12px" }}>
-                      <div><div style={{ fontWeight: 700 }}>{h.contact_name}</div><div style={{ fontSize: 12, color: "#6b7280" }}>🎁 {h.gift || "—"}{h.note ? ` · "${h.note}"` : ""}</div></div>
-                      <div style={{ fontSize: 12, color: "#9ca3af", whiteSpace: "nowrap" }}>{new Date(h.delivered_at).toLocaleDateString()}</div>
+                      <div>
+                        <div style={{ fontWeight: 700 }}>{h.contact_name || "(no name)"}</div>
+                        <div style={{ fontSize: 12, color: "#166534", fontWeight: 600, marginTop: 2 }}>✓ Delivered on {new Date(h.delivered_at).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric", year: "numeric" })}</div>
+                        {(h.gift || h.note) && <div style={{ fontSize: 12, color: "#6b7280", marginTop: 2 }}>🎁 {h.gift || "—"}{h.note ? ` · "${h.note}"` : ""}</div>}
+                      </div>
                     </div>
                   ))}
                 </div>
