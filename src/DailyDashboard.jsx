@@ -171,7 +171,7 @@ function PersonalTaskCard({ task, token, onChange }) {
   };
 
   const del = async () => {
-    if (!confirm("Delete this personal task?")) return;
+    if (!confirm("Delete this general task?")) return;
     setBusy(true);
     try {
       await fetch(API + "/personal-tasks/" + task.id, {
@@ -194,7 +194,7 @@ function PersonalTaskCard({ task, token, onChange }) {
           <div style={{ fontSize: 14, fontWeight: 700, color: "#1a2332", marginBottom: 4 }}>{task.title}</div>
           {task.notes && <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 4 }}>{task.notes}</div>}
           <div style={{ fontSize: 11, color: overdue ? "#b91c1c" : "#6b7280", fontWeight: overdue ? 600 : 400 }}>
-            {overdue ? "⚠️ Overdue · " : ""}Personal task{task.due_date ? " · Due " + task.due_date : ""}
+            {overdue ? "⚠️ Overdue · " : ""}General task{task.due_date ? " · Due " + task.due_date : ""}
           </div>
         </div>
       </div>
@@ -717,7 +717,7 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
       {/* OVERDUE / URGENT */}
             {(personal.overdue.length > 0 || personal.dueToday.length > 0) && (
         <div style={{ marginBottom: 24 }}>
-          <SectionHeader label="📝 PERSONAL TASKS DUE TODAY" count={personal.overdue.length + personal.dueToday.length} color="#1E8449" />
+          <SectionHeader label="📝 GENERAL TASKS DUE TODAY" count={personal.overdue.length + personal.dueToday.length} color="#1E8449" />
           {[...personal.overdue, ...personal.dueToday].map(t => (
             <PersonalTaskCard key={t.id} task={t} token={token} onChange={fetchTasks} />
           ))}
@@ -725,7 +725,7 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
       )}
       {personal.upcoming.length > 0 && (
         <div style={{ marginBottom: 24 }}>
-          <SectionHeader label="📝 PERSONAL TASKS — UPCOMING & UNDATED" count={personal.upcoming.length} color="#1E8449" />
+          <SectionHeader label="📝 GENERAL TASKS — UPCOMING & UNDATED" count={personal.upcoming.length} color="#1E8449" />
           {personal.upcoming.map(t => (
             <PersonalTaskCard key={t.id} task={t} token={token} onChange={fetchTasks} />
           ))}
