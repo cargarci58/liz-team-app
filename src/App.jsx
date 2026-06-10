@@ -4286,17 +4286,6 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
         <button onClick={() => isGuest ? setPaywallFeature("Duplicating a transaction") : (onDuplicate && onDuplicate(tx))} style={{ fontSize: 11, padding: "4px 10px", borderRadius: 6, border: "1px solid rgba(255,255,255,0.3)", background: "rgba(255,255,255,0.1)", color: "#fff", cursor: "pointer", fontFamily: "inherit" }}>⧉ Duplicate</button>
         <button onClick={() => isGuest ? setPaywallFeature("Editing a transaction") : openEditTx()} style={{ fontSize: 11, padding: "4px 10px", borderRadius: 6, border: "1px solid rgba(255,255,255,0.3)", background: "rgba(255,255,255,0.1)", color: "#fff", cursor: "pointer", fontFamily: "inherit" }}>✏️ Edit</button>
         <button onClick={() => isGuest ? setPaywallFeature("Printing") : window.print()} style={{ fontSize: 11, padding: "4px 10px", borderRadius: 6, border: "1px solid rgba(255,255,255,0.3)", background: "rgba(255,255,255,0.1)", color: "#fff", cursor: "pointer", fontFamily: "inherit" }}>🖨️ Print</button>
-        <button onClick={async () => {
-          if (isGuest) return setPaywallFeature("Exporting a PDF");
-          const tok = localStorage.getItem("tp_token") || "";
-          const res = await fetch(API + "/transactions/" + tx.id + "/pdf", { headers: { "Authorization": "Bearer " + tok } });
-          if (!res.ok) { alert("PDF generation failed"); return; }
-          const blob = await res.blob();
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement("a");
-          a.href = url; a.download = "TransactPro-" + (tx.address || "report").replace(/[^a-z0-9]/gi, "-") + "-" + (tx.city || "").replace(/[^a-z0-9]/gi, "-") + ".pdf"; a.click();
-          URL.revokeObjectURL(url);
-        }} style={{ fontSize: 11, padding: "4px 10px", borderRadius: 6, border: "1px solid rgba(255,255,255,0.3)", background: "rgba(255,255,255,0.1)", color: "#fff", cursor: "pointer", fontFamily: "inherit" }}>📄 PDF</button>
         {tx.type !== "Buyer Representation" && !["Closed", "Cancelled"].includes(tx.status) && (
           <button onClick={() => isGuest ? setPaywallFeature("Receiving offers") : (setActiveTab("overview"), setShowReceiveOffer(true))} style={{ fontSize: 11, padding: "4px 12px", borderRadius: 6, border: "none", background: "#1E8449", color: "#fff", fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>📥 Receive Offer</button>
         )}
