@@ -14,6 +14,7 @@ import ChangePassword from "./ChangePassword";
 // ── code for the screen you actually open, instead of one giant bundle up front.
 const ContactsPage = lazy(() => import("./ContactsPage"));
 const PopBysPage = lazy(() => import("./PopBysPage"));
+const ScriptsPage = lazy(() => import("./ScriptsPage"));
 const ExpensesPage = lazy(() => import('./ExpensesPage'));
 const FormsPage = lazy(() => import('./FormsPage'));
 const SuperuserDashboard = lazy(() => import('./SuperuserDashboard'));
@@ -29,6 +30,8 @@ const CompanySettings = lazy(() => import("./CompanySettings"));
 const AgentProfile = lazy(() => import("./AgentProfile"));
 const ClientPortal = lazy(() => import("./ClientPortal"));
 import FaqHelpButton from "./components/FaqHelpButton";
+import HelpCenter from "./components/HelpCenter";
+import OnboardingGuide from "./components/OnboardingGuide";
 
 const API = "https://liz-team-server-api-production.up.railway.app";
 // Platform developer account — only this email sees the Superuser Dashboard.
@@ -5826,11 +5829,12 @@ function ContactAutocomplete({ token, onSelect }) {
 // ═══════════════════════════════════════════════════════════════
 // SettingsMenu — dropdown that consolidates 6+ buttons into one
 // ═══════════════════════════════════════════════════════════════
-function SettingsMenu({ currentUser, onOpenContactBook, contactCount, onReports, onGoalPlanner, onAgentProfile, onOpenComplianceDash, onOpenCompliance, onOpenTaskTmpls, onCompanySettings, onChangePassword, onOpenForms, onOpenTeam, onOpenSuperuser }) {
+function SettingsMenu({ currentUser, onOpenContactBook, contactCount, onReports, onGoalPlanner, onAgentProfile, onOpenComplianceDash, onOpenCompliance, onOpenTaskTmpls, onCompanySettings, onChangePassword, onOpenForms, onOpenTeam, onOpenSuperuser, onHelp }) {
   const [open, setOpen] = useState(false);
   const isAdmin = ["admin", "superadmin"].includes(currentUser?.role);
   const items = [];
 
+  if (onHelp) items.push({ icon: "❓", label: "Help & Guides", onClick: onHelp });
   items.push({ icon: "📒", label: `Address Book${contactCount > 0 ? ` (${contactCount})` : ""}`, onClick: onOpenContactBook });
   items.push({ icon: "📊", label: "Reports", onClick: onReports });
   if (onGoalPlanner) items.push({ icon: "🎯", label: "Goal Planner", onClick: onGoalPlanner });
@@ -5877,7 +5881,7 @@ function SettingsMenu({ currentUser, onOpenContactBook, contactCount, onReports,
   );
 }
 
-function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenContactBook, onOpenContacts, onOpenPopBys, onOpenExpenses, onOpenForms, contactCount, onLogout, onOpenTeam, onOpenCompliance, onOpenComplianceDash, onOpenTaskTmpls, onOpenContractIntake, onChangePassword, onReports, onGoalPlanner, onHome, onVendors, onCompanySettings, onSuperuser, onAgentProfile, onIntakeLinks, onViewTransactions, currentUser, isFreeGuest = false }) {
+function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenContactBook, onOpenContacts, onOpenPopBys, onOpenScripts, onOpenExpenses, onOpenForms, contactCount, onLogout, onOpenTeam, onOpenCompliance, onOpenComplianceDash, onOpenTaskTmpls, onOpenContractIntake, onChangePassword, onReports, onGoalPlanner, onHome, onVendors, onCompanySettings, onSuperuser, onAgentProfile, onIntakeLinks, onViewTransactions, onHelp, currentUser, isFreeGuest = false }) {
   const [filter, setFilter] = useState("All");
   const [search, setSearch] = useState("");
   // Tenant branding for the navbar — fetched once on mount. A free guest belongs to
@@ -6438,6 +6442,7 @@ function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenCon
             <button onClick={onNew} style={{ background: "#C0392B", border: "none", color: "#fff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>+ New Transaction</button>
             <button onClick={() => onOpenContacts && onOpenContacts()} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "#fff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>📇 Contacts</button>
             <button onClick={() => onOpenPopBys && onOpenPopBys()} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "#fff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>🎁 Pop-Bys</button>
+            <button onClick={() => onOpenScripts && onOpenScripts()} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "#fff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>📜 Scripts</button>
             <button onClick={() => onOpenExpenses && onOpenExpenses()} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "#fff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>💵 Financials</button>
             <WinTheDayButton token={localStorage.getItem("tp_token") || ""} onViewTransactions={onViewTransactions} />
             <PersonalTaskAddButton token={localStorage.getItem("tp_token") || ""} />
@@ -6459,6 +6464,7 @@ function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenCon
               onOpenForms={onOpenForms}
               onChangePassword={onChangePassword}
               onOpenTeam={onOpenTeam}
+              onHelp={onHelp}
             />
             <TenantSwitcher currentUser={currentUser} />
             <button onClick={onLogout} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "rgba(255,255,255,0.88)", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 600, fontFamily: "inherit" }}>Sign Out</button>
@@ -7259,6 +7265,36 @@ function MainApp({ onLogout, currentUser }) {
   const [showVendorLibrary, setShowVendorLibrary] = useState(false);
   const [contactBookCallback, setContactBookCallback] = useState(null);
 
+  // Help Center: bump this counter to open it from ⚙️ Menu → ❓ Help.
+  const [helpSignal, setHelpSignal] = useState(0);
+
+  // First-time onboarding walkthrough -------------------------------------
+  const isAdminUser = ["admin", "superadmin"].includes(currentUser?.role);
+  const onboardKey = `tp_onboarding_v1_${currentUser?.id || "anon"}`;
+  const [onboard, setOnboard] = useState(() => {
+    try {
+      const raw = localStorage.getItem(onboardKey);
+      if (raw) { const p = JSON.parse(raw); return { active: !p.dismissed && !p.finished, done: new Set(p.done || []) }; }
+    } catch (e) { /* ignore */ }
+    return { active: true, done: new Set() };  // brand-new sign-in → walk them through it
+  });
+  const persistOnboard = (active, doneSet, extra = {}) => {
+    const next = { active, done: doneSet };
+    setOnboard(next);
+    try { localStorage.setItem(onboardKey, JSON.stringify({ done: [...doneSet], dismissed: !!extra.dismissed, finished: !!extra.finished })); } catch (e) { /* ignore */ }
+  };
+  const onboardSteps = [
+    { key: "goals", emoji: "🎯", title: "Set up your goals", desc: "Tell the app your income target so it can plan your day for you.", where: "⚙️ Menu → 🎯 Goal Planner", go: () => openReports("goals") },
+    { key: "profile", emoji: "👤", title: "Set up your profile", desc: "Add your photo, signature, and contact info — used on every email and form you send.", where: "⚙️ Menu → 👤 My Profile", go: () => setShowAgentProfile(true) },
+  ];
+  if (isAdminUser) onboardSteps.push({ key: "company", emoji: "⚙️", title: "Set up company settings", desc: "Add your brokerage name, logo, and branding.", where: "⚙️ Menu → ⚙️ Company Settings", go: () => setShowCompanySettings(true) });
+  const onboardTakeMeThere = (step) => {
+    const nextDone = new Set(onboard.done); nextDone.add(step.key);
+    persistOnboard(true, nextDone);
+    step.go();
+  };
+  const restartTour = () => persistOnboard(true, new Set());
+
   useEffect(() => {
     // Contacts saved to DB via API
   }, [contacts]);
@@ -7462,7 +7498,7 @@ function MainApp({ onLogout, currentUser }) {
           onSelect={(id, tab) => { setSelectedId(id); setInitialDetailTab(tab || "overview"); setView("detail"); }}
           onNew={guard("Creating transactions", () => setView("new"))}
           onOpenContactBook={guard("Contacts", () => openContactBook(null))}
-          onOpenContacts={guard("Contacts", () => setView("contacts"))} onOpenPopBys={guard("Pop-Bys", () => setView("popbys"))} onOpenExpenses={guard("Financials", () => setView("expenses"))} onOpenForms={guard("The Forms library", () => setView("forms"))}
+          onOpenContacts={guard("Contacts", () => setView("contacts"))} onOpenPopBys={guard("Pop-Bys", () => setView("popbys"))} onOpenScripts={guard("Scripts", () => setView("scripts"))} onOpenExpenses={guard("Financials", () => setView("expenses"))} onOpenForms={guard("The Forms library", () => setView("forms"))}
           contactCount={contacts.length}
           onLogout={onLogout}
           onOpenTeam={guard("Team management", () => setShowTeam(true))}
@@ -7477,6 +7513,7 @@ function MainApp({ onLogout, currentUser }) {
           onSuperuser={() => setShowSuperuser(true)}
           onAgentProfile={() => setShowAgentProfile(true)}
           onIntakeLinks={guard("My Intake Links", () => setShowIntakeLinks(true))}
+          onHelp={() => setHelpSignal(n => n + 1)}
           currentUser={currentUser}
           isFreeGuest={isFreeGuest}
           onHome={() => setView("home")}
@@ -7495,6 +7532,9 @@ function MainApp({ onLogout, currentUser }) {
       )}
       {view === "popbys" && (
         <PopBysPage token={localStorage.getItem("tp_token") || ""} onBack={() => setView("dashboard")} />
+      )}
+      {view === "scripts" && (
+        <ScriptsPage token={localStorage.getItem("tp_token") || ""} onBack={() => setView("dashboard")} currentUser={currentUser} />
       )}
       {showCompliance && (
         <div style={{ position:"fixed", inset:0, background:"#fff", zIndex:200, overflowY:"auto" }}>
@@ -7588,6 +7628,31 @@ function MainApp({ onLogout, currentUser }) {
           onDelete={deleteContact}
         />
       )}
+
+      {/* App-wide Help — floating ? button + ⚙️ Menu → ❓ Help */}
+      {!isFreeGuest && (
+        <HelpCenter
+          apiBase={API}
+          token={localStorage.getItem("tp_token") || ""}
+          openSignal={helpSignal}
+          isAdmin={isAdminUser}
+          onGoals={() => openReports("goals")}
+          onProfile={() => setShowAgentProfile(true)}
+          onCompany={isAdminUser ? () => setShowCompanySettings(true) : null}
+          onRestartTour={restartTour}
+        />
+      )}
+
+      {/* First-time welcome walkthrough — hides while a target screen is open so the user can act */}
+      {onboard.active && !isFreeGuest && !showAgentProfile && !showCompanySettings && !showReports && (
+        <OnboardingGuide
+          steps={onboardSteps}
+          doneKeys={onboard.done}
+          onTakeMeThere={onboardTakeMeThere}
+          onDismiss={() => persistOnboard(false, onboard.done, { dismissed: true })}
+          onFinish={() => persistOnboard(false, onboard.done, { finished: true })}
+        />
+      )}
     </Suspense>
   );
 }
@@ -7633,7 +7698,7 @@ function AuthGate() {
         localStorage.removeItem("tp_user");
         setAuthUser(null);
       }} />
-      <FaqHelpButton apiBase={API} token={localStorage.getItem("tp_token") || ""} />
+      {/* HelpCenter (floating ? + ⚙️ Menu → ❓ Help) is mounted inside MainApp. */}
     </>
   );
 }

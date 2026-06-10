@@ -28,6 +28,7 @@ const TASK_ICONS = {
   chase_reply_received: "💬",
   chase_opt_out:     "⚠️",
   price_reduction:   "💰",
+  buyer_followup:    "🔑",
 };
 
 // Three ready-to-use scripts to walk a seller toward a price reduction. Shown
@@ -39,6 +40,16 @@ const PRICE_REDUCTION_SCRIPTS = [
     body: "“Every month we hold out for the higher number, you’re still carrying the mortgage, taxes, insurance, and upkeep — and the longer a home sits, the more buyers assume something’s wrong with it. A meaningful reduction now usually nets you more than slowly chasing the market down over the next few months. Let’s get ahead of it instead of falling behind it.”" },
   { title: "Get back in front of buyers",
     body: "“Your listing already had its first big wave of attention, and that wave has passed. A strategic price drop puts you back at the top of buyers’ searches and triggers a fresh round of alerts. If we move from [$405,000] to [$399,000], we cross a search threshold and show up for a whole new set of buyers who never saw it before. Let’s create that second ‘just listed’ moment.”" },
+];
+
+// Buyer-side scripts for the buyer_followup card (buyer still searching).
+const BUYER_FOLLOWUP_SCRIPTS = [
+  { title: "Reset and re-focus the search",
+    body: "“We’ve been at this a little while, so let’s tighten things up. Tell me the two or three things that truly can’t change — and what you’re open to flexing on. The more focused we are, the faster I can get you in front of the right home before someone else does.”" },
+  { title: "Win the next one on terms",
+    body: "“When we find it, I don’t want us to lose it over a soft offer. If we’re ready with strong financing, a solid deposit, and flexibility on the closing date, we look like the safest buyer — and that’s who sellers pick. Let’s have all of that lined up so we can move the same day.”" },
+  { title: "Don’t let the right one pass",
+    body: "“Good homes in your range aren’t sitting — they’re gone in days. I’d rather we move decisively on the right one and use the inspection period to protect you than hesitate and spend the next few months comparing everything to the one that got away. When it shows up, let’s write it.”" },
 ];
 
 // ── SELLER UPDATE MODAL ───────────────────────────────────────
@@ -236,8 +247,10 @@ function TaskCard({ task, token, onResolve, onComplete, onSnooze, onOpenModal, o
   // Undated checklist step: "Done" must COMPLETE the milestone (complete-target),
   // not just silence the reminder for 7 days — otherwise it never saves as done.
   const isChecklist = task.task_type === "milestone_checklist";
-  // Listing sitting on market: card carries 3 seller price-reduction scripts.
-  const isPriceReduction = task.task_type === "price_reduction";
+  // Scripts cards: listing price-reduction + buyer still-searching. Each carries
+  // 3 ready-to-use scripts for the paying agent's side of the deal.
+  const scriptSet = task.task_type === "price_reduction" ? PRICE_REDUCTION_SCRIPTS
+    : task.task_type === "buyer_followup" ? BUYER_FOLLOWUP_SCRIPTS : null;
   const [showScripts, setShowScripts] = useState(false);
 
   return (
@@ -259,7 +272,7 @@ function TaskCard({ task, token, onResolve, onComplete, onSnooze, onOpenModal, o
           {task.description && (
             <div style={{ fontSize:13, color:COLORS.gray, lineHeight:1.5 }}>{task.description}</div>
           )}
-          {isPriceReduction && (
+          {scriptSet && (
             <div style={{ marginTop:10 }}>
               <button onClick={() => setShowScripts(s => !s)}
                 style={{ background:"none", border:"none", padding:0, cursor:"pointer",
@@ -268,8 +281,8 @@ function TaskCard({ task, token, onResolve, onComplete, onSnooze, onOpenModal, o
               </button>
               {showScripts && (
                 <div style={{ marginTop:10 }}>
-                  <div style={{ fontSize:12, color:COLORS.gray, marginBottom:8 }}>Pick the angle that fits your seller. Brackets are yours to fill in.</div>
-                  {PRICE_REDUCTION_SCRIPTS.map((s, i) => (
+                  <div style={{ fontSize:12, color:COLORS.gray, marginBottom:8 }}>Pick the angle that fits your client. Brackets are yours to fill in.</div>
+                  {scriptSet.map((s, i) => (
                     <div key={i} style={{ background:COLORS.lightGray, borderRadius:8,
                       borderLeft:"3px solid "+COLORS.red, padding:"10px 12px", marginBottom:8 }}>
                       <div style={{ fontSize:12, fontWeight:700, color:COLORS.darkRed, marginBottom:4 }}>Script {i + 1} · {s.title}</div>
