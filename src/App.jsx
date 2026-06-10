@@ -4261,7 +4261,6 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
           {isGuest && tx.owningBrokerageName && <div style={{ color: "rgba(255,255,255,0.7)", fontSize: 12, marginTop: 2 }}>🏢 Managed by {tx.owningBrokerageName}</div>}
         </div>
         {propertyTypeBadge(tx) && <Badge label={propertyTypeBadge(tx).label} color={propertyTypeBadge(tx).color} bg={propertyTypeBadge(tx).bg} />}
-        <Badge label={tx.status} color={statusCfg.color} bg={statusCfg.bg} />
         {isGuest && <span style={{ background: "rgba(255,255,255,0.15)", color: "#fff", fontSize: 11, fontWeight: 700, padding: "4px 10px", borderRadius: 6 }}>👤 Shared with you · view only</span>}
         <>
         <select value={tx.status} onChange={e => {
