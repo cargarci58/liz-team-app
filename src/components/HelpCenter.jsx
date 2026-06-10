@@ -138,7 +138,7 @@ const GUIDE_SECTIONS = [
   },
 ];
 
-export default function HelpCenter({ apiBase, token, onGoals, onProfile, onCompany, onRestartTour, onTour, isAdmin, openSignal, feedbackSignal }) {
+export default function HelpCenter({ apiBase, token, onGoals, onProfile, onCompany, onRestartTour, onTour, isAdmin, openSignal, feedbackSignal, supportSignal }) {
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState('start'); // start | guides | faqs | feedback
 
@@ -193,6 +193,8 @@ export default function HelpCenter({ apiBase, token, onGoals, onProfile, onCompa
   useEffect(() => { if (openSignal) setOpen(true); }, [openSignal]);
   // ⚙️ Menu → 📣 Feedback opens straight to the Feedback tab.
   useEffect(() => { if (feedbackSignal) { setTab('feedback'); setFbDone(false); setOpen(true); } }, [feedbackSignal]);
+  // ⚙️ Menu → ✉️ Contact Support opens the same form pre-set to a support request.
+  useEffect(() => { if (supportSignal) { setTab('feedback'); setFbKind('support'); setFbDone(false); setOpen(true); } }, [supportSignal]);
   const [search, setSearch] = useState('');
   const [expanded, setExpanded] = useState(new Set());
 
@@ -452,13 +454,14 @@ export default function HelpCenter({ apiBase, token, onGoals, onProfile, onCompa
                   ) : (
                     <div>
                       <div style={{ fontSize: 14, color: '#333', marginBottom: 16, lineHeight: 1.5 }}>
-                        Found a bug? Have an idea? Want something added or changed? Tell us — it goes straight to the team.
+                        Found a bug? Have an idea? Need a hand? Tell us — it goes straight to our team.
                       </div>
                       <div style={{ fontSize: 12, fontWeight: 800, color: '#999', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 8 }}>What kind of feedback is this?</div>
                       <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
                         {[
                           { id: 'bug', label: '🐞 Something’s broken' },
                           { id: 'suggestion', label: '💡 Idea / request' },
+                          { id: 'support', label: '🆘 Need help' },
                           { id: 'other', label: '💬 Other' },
                         ].map(opt => (
                           <button key={opt.id} onClick={() => setFbKind(opt.id)} style={{
@@ -477,6 +480,8 @@ export default function HelpCenter({ apiBase, token, onGoals, onProfile, onCompa
                           ? 'What happened? What were you trying to do, and what went wrong? The more detail, the faster we can fix it.'
                           : fbKind === 'suggestion'
                           ? 'What would you like to see? Describe the idea or the change you’re hoping for.'
+                          : fbKind === 'support'
+                          ? 'How can we help? Describe your question or the problem you’re running into and our support team will get back to you.'
                           : 'Tell us what’s on your mind.'}
                         rows={6}
                         maxLength={5000}
@@ -487,7 +492,7 @@ export default function HelpCenter({ apiBase, token, onGoals, onProfile, onCompa
                         onClick={submitFeedback}
                         disabled={fbSending}
                         style={{ marginTop: 14, width: '100%', background: fbSending ? '#999' : RED, color: '#fff', border: 'none', borderRadius: 8, padding: '12px 16px', fontSize: 14, fontWeight: 800, cursor: fbSending ? 'default' : 'pointer', fontFamily: 'inherit' }}
-                      >{fbSending ? 'Sending…' : 'Send to the team'}</button>
+                      >{fbSending ? 'Sending…' : (fbKind === 'support' ? 'Send to support' : 'Send to the team')}</button>
                       <div style={{ fontSize: 12, color: '#999', marginTop: 10, lineHeight: 1.45 }}>
                         We’ll know who sent it so we can follow up if needed. For an urgent issue with a live deal, call or text your contact directly.
                       </div>

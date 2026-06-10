@@ -5832,13 +5832,14 @@ function ContactAutocomplete({ token, onSelect }) {
 // ═══════════════════════════════════════════════════════════════
 // SettingsMenu — dropdown that consolidates 6+ buttons into one
 // ═══════════════════════════════════════════════════════════════
-function SettingsMenu({ currentUser, onOpenContactBook, contactCount, onReports, onGoalPlanner, onAgentProfile, onOpenComplianceDash, onOpenCompliance, onOpenTaskTmpls, onCompanySettings, onChangePassword, onOpenForms, onOpenTeam, onOpenSuperuser, onHelp, onFeedback }) {
+function SettingsMenu({ currentUser, onOpenContactBook, contactCount, onReports, onGoalPlanner, onAgentProfile, onOpenComplianceDash, onOpenCompliance, onOpenTaskTmpls, onCompanySettings, onChangePassword, onOpenForms, onOpenTeam, onOpenSuperuser, onHelp, onFeedback, onSupport }) {
   const [open, setOpen] = useState(false);
   const isAdmin = ["admin", "superadmin"].includes(currentUser?.role);
   const items = [];
 
   if (onHelp) items.push({ icon: "❓", label: "Help & Guides", onClick: onHelp });
   if (onFeedback) items.push({ icon: "📣", label: "Send Feedback", onClick: onFeedback });
+  if (onSupport) items.push({ icon: "✉️", label: "Contact Support", onClick: onSupport });
   items.push({ icon: "📒", label: `Address Book${contactCount > 0 ? ` (${contactCount})` : ""}`, onClick: onOpenContactBook });
   items.push({ icon: "📊", label: "Reports", onClick: onReports });
   if (onGoalPlanner) items.push({ icon: "🎯", label: "Goal Planner", onClick: onGoalPlanner });
@@ -5885,7 +5886,7 @@ function SettingsMenu({ currentUser, onOpenContactBook, contactCount, onReports,
   );
 }
 
-function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenContactBook, onOpenContacts, onOpenPopBys, onOpenScripts, onOpenExpenses, onOpenForms, contactCount, onLogout, onOpenTeam, onOpenCompliance, onOpenComplianceDash, onOpenTaskTmpls, onOpenContractIntake, onChangePassword, onReports, onGoalPlanner, onHome, onVendors, onCompanySettings, onSuperuser, onAgentProfile, onIntakeLinks, onViewTransactions, onHelp, onFeedback, currentUser, isFreeGuest = false }) {
+function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenContactBook, onOpenContacts, onOpenPopBys, onOpenScripts, onOpenExpenses, onOpenForms, contactCount, onLogout, onOpenTeam, onOpenCompliance, onOpenComplianceDash, onOpenTaskTmpls, onOpenContractIntake, onChangePassword, onReports, onGoalPlanner, onHome, onVendors, onCompanySettings, onSuperuser, onAgentProfile, onIntakeLinks, onViewTransactions, onHelp, onFeedback, onSupport, currentUser, isFreeGuest = false }) {
   const [filter, setFilter] = useState("All");
   const [search, setSearch] = useState("");
   // Tenant branding for the navbar — fetched once on mount. A free guest belongs to
@@ -6470,6 +6471,7 @@ function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenCon
               onOpenTeam={onOpenTeam}
               onHelp={onHelp}
               onFeedback={onFeedback}
+              onSupport={onSupport}
             />
             <TenantSwitcher currentUser={currentUser} />
             <button onClick={onLogout} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "rgba(255,255,255,0.88)", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 600, fontFamily: "inherit" }}>Sign Out</button>
@@ -7278,6 +7280,8 @@ function MainApp({ onLogout, currentUser }) {
   const [helpSignal, setHelpSignal] = useState(0);
   // Feedback: bump to open the Help Center straight to the 📣 Feedback tab (⚙️ Menu → 📣 Feedback).
   const [feedbackSignal, setFeedbackSignal] = useState(0);
+  // Contact Support: bump to open the Help Center support form (⚙️ Menu → ✉️ Contact Support).
+  const [supportSignal, setSupportSignal] = useState(0);
   // 🎬 App Tour — replayable swipe-through (last onboarding step + Help Center).
   const [showTour, setShowTour] = useState(false);
 
@@ -7535,6 +7539,7 @@ function MainApp({ onLogout, currentUser }) {
           onIntakeLinks={guard("My Intake Links", () => setShowIntakeLinks(true))}
           onHelp={() => setHelpSignal(n => n + 1)}
           onFeedback={() => setFeedbackSignal(n => n + 1)}
+          onSupport={() => setSupportSignal(n => n + 1)}
           currentUser={currentUser}
           isFreeGuest={isFreeGuest}
           onHome={() => setView("home")}
@@ -7657,6 +7662,7 @@ function MainApp({ onLogout, currentUser }) {
           token={localStorage.getItem("tp_token") || ""}
           openSignal={helpSignal}
           feedbackSignal={feedbackSignal}
+          supportSignal={supportSignal}
           isAdmin={isAdminUser}
           onGoals={() => openReports("goals")}
           onProfile={() => setShowAgentProfile(true)}
