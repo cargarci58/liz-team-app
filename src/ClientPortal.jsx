@@ -173,13 +173,17 @@ function ActionNeededCard({ tx }) {
 const VENDOR_CATEGORY_ICONS = {
   "Inspector": "🔍", "Lender": "🏦", "Title Company": "📋",
   "Insurance": "🛡️", "Attorney": "⚖️", "Pest Control": "🐛",
-  "Survey": "📐", "Contractor": "🔧", "Moving Company": "🚚",
-  "Locksmith": "🔑", "Other": "👤",
+  "Survey": "📐", "Contractor": "🔧",
+  "General Contractor": "👷", "Handyman": "🛠️", "Plumber": "🚰",
+  "Electrician": "⚡", "HVAC": "❄️", "Roofer": "🏠", "Photographer": "📷",
+  "Moving Company": "🚚", "Locksmith": "🔑", "Other": "👤",
 };
 
 const VENDOR_CATEGORIES_LIST = [
   "Inspector", "Lender", "Title Company", "Insurance",
   "Attorney", "Pest Control", "Survey", "Contractor",
+  "General Contractor", "Handyman", "Plumber", "Electrician",
+  "HVAC", "Roofer", "Photographer",
   "Moving Company", "Locksmith", "Other"
 ];
 

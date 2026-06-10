@@ -12,14 +12,18 @@ const COLORS = {
 const VENDOR_CATEGORIES = [
   "Inspector", "Lender", "Title Company", "Insurance",
   "Attorney", "Pest Control", "Survey", "Contractor",
+  "General Contractor", "Handyman", "Plumber", "Electrician",
+  "HVAC", "Roofer", "Photographer",
   "Moving Company", "Locksmith", "Other"
 ];
 
 const CATEGORY_ICONS = {
   "Inspector": "🔍", "Lender": "🏦", "Title Company": "📋",
   "Insurance": "🛡️", "Attorney": "⚖️", "Pest Control": "🐛",
-  "Survey": "📐", "Contractor": "🔧", "Moving Company": "🚚",
-  "Locksmith": "🔑", "Other": "👤",
+  "Survey": "📐", "Contractor": "🔧",
+  "General Contractor": "👷", "Handyman": "🛠️", "Plumber": "🚰",
+  "Electrician": "⚡", "HVAC": "❄️", "Roofer": "🏠", "Photographer": "📷",
+  "Moving Company": "🚚", "Locksmith": "🔑", "Other": "👤",
 };
 
 function VendorForm({ vendor, onSave, onCancel }) {
