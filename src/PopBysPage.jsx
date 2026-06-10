@@ -507,7 +507,7 @@ export default function PopBysPage({ token, onBack }) {
                                 <div style={{ fontWeight: 700, fontSize: 13 }}>{c.firstName} {c.lastName}</div>
                                 <div style={{ fontSize: 12, color: "#9ca3af" }}>{c.fullAddress}{leg != null ? ` · ${leg.toFixed(1)} mi ${legLabel}` : ""}</div>
                               </div>
-                              <button onClick={() => markDelivered(c)} style={btn("#dcfce7", "#166534")}>✓ Delivered</button>
+                              <button onClick={() => markDelivered(c)} style={{ ...btn("#fff", "#0c4a6e"), border: "1.5px solid #0c4a6e" }}>Mark delivered</button>
                             </div>
                           );
                         })}
@@ -529,7 +529,7 @@ export default function PopBysPage({ token, onBack }) {
                           <div style={{ fontWeight: 700, fontSize: 13 }}>{c.firstName} {c.lastName} <span style={{ fontSize: 11, background: "#0c4a6e", color: "#fff", borderRadius: 6, padding: "1px 6px", marginLeft: 4 }}>{c.tier}</span></div>
                           <div style={{ fontSize: 12, color: "#9ca3af" }}>{c.fullAddress} · {c.milesFromStart != null ? `~${c.milesFromStart} mi away` : "out of state"}</div>
                         </div>
-                        <button onClick={() => markDelivered(c)} style={btn("#dcfce7", "#166534")} title="If you do visit them, mark it here">✓ Delivered</button>
+                        <button onClick={() => markDelivered(c)} style={{ ...btn("#fff", "#0c4a6e"), border: "1.5px solid #0c4a6e" }} title="If you do visit them, mark it here">Mark delivered</button>
                       </div>
                     ))}
                   </div>
