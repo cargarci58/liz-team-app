@@ -2,30 +2,32 @@ import LoginScreen from "./LoginScreen";
 import BuyerCalculator from "./components/BuyerCalculator";
 import PreApprovalCard, { PreApprovalBadge } from './components/PreApprovalCard';
 import SellerCalculator from "./components/SellerCalculator";
-import CmaTool from "./cma/CmaTool";
+const CmaTool = lazy(() => import("./cma/CmaTool"));
 import TxFormsTab from "./components/TxFormsTab";
 import UserManagement from "./UserManagement";
-import ContactsPage from "./ContactsPage";
-import PopBysPage from "./PopBysPage";
-import ExpensesPage from './ExpensesPage';
-import FormsPage from './FormsPage';
 import FormDownloadPage from './FormDownloadPage';
-import SuperuserDashboard from './SuperuserDashboard';
-import ComplianceAdmin from "./ComplianceAdmin";
-import TaskTemplatesAdmin from "./TaskTemplatesAdmin";
-import ContractAutoIntake from "./ContractAutoIntake";
 import ContractUploadPublic from "./ContractUploadPublic";
-import ComplianceDashboard from "./ComplianceDashboard";
-import DocumentsTab from "./DocumentsTab";
-import OffersTab from "./OffersTab";
 import TransactionChat from "./TransactionChat";
-import Reports from "./Reports";
 import DailyDashboard from "./DailyDashboard";
-import VendorLibrary from "./VendorLibrary";
 import ChangePassword from "./ChangePassword";
-import CompanySettings from "./CompanySettings";
-import AgentProfile from "./AgentProfile";
-import ClientPortal from "./ClientPortal";
+// ── Code-split heavy, route-level screens so the phone only downloads the
+// ── code for the screen you actually open, instead of one giant bundle up front.
+const ContactsPage = lazy(() => import("./ContactsPage"));
+const PopBysPage = lazy(() => import("./PopBysPage"));
+const ExpensesPage = lazy(() => import('./ExpensesPage'));
+const FormsPage = lazy(() => import('./FormsPage'));
+const SuperuserDashboard = lazy(() => import('./SuperuserDashboard'));
+const ComplianceAdmin = lazy(() => import("./ComplianceAdmin"));
+const TaskTemplatesAdmin = lazy(() => import("./TaskTemplatesAdmin"));
+const ContractAutoIntake = lazy(() => import("./ContractAutoIntake"));
+const ComplianceDashboard = lazy(() => import("./ComplianceDashboard"));
+const DocumentsTab = lazy(() => import("./DocumentsTab"));
+const OffersTab = lazy(() => import("./OffersTab"));
+const Reports = lazy(() => import("./Reports"));
+const VendorLibrary = lazy(() => import("./VendorLibrary"));
+const CompanySettings = lazy(() => import("./CompanySettings"));
+const AgentProfile = lazy(() => import("./AgentProfile"));
+const ClientPortal = lazy(() => import("./ClientPortal"));
 import FaqHelpButton from "./components/FaqHelpButton";
 
 const API = "https://liz-team-server-api-production.up.railway.app";
@@ -33,7 +35,7 @@ const API = "https://liz-team-server-api-production.up.railway.app";
 // Swap via VITE_SUPERUSER_EMAIL at build time; backend mirrors with SUPERUSER_EMAIL.
 const SUPERUSER_EMAIL = ((import.meta.env && import.meta.env.VITE_SUPERUSER_EMAIL) || "cgarcia@thelizteam.com").toLowerCase();
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, lazy, Suspense } from "react";
 
 const COLORS = {
   navy: "#111111", gold: "#C0392B", lightGold: "#FADBD8",
@@ -48,6 +50,15 @@ const COLORS = {
 };
 
 const SMS_SERVER = API;
+
+// Fallback shown while a code-split screen's chunk downloads.
+function LazyLoading() {
+  return (
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "60vh", color: "#888", fontSize: 14, fontFamily: "'Segoe UI', system-ui, sans-serif" }}>
+      Loading…
+    </div>
+  );
+}
 
 const TRANSACTION_TYPES = ["Listing (Seller)", "Buyer Representation", "Dual Agency"];
 const PROPERTY_TYPES = ["Single Family", "Condo/Townhouse", "Multi-Family", "Land", "Commercial"];
@@ -1708,7 +1719,7 @@ function PersonalTaskAddButton({ token }) {
   );
 }
 
-function WinTheDayButton({ token }) {
+function WinTheDayButton({ token, onViewTransactions }) {
   const [taskCount, setTaskCount] = useState(0);
   const [showModal, setShowModal] = useState(false);
   const API = "https://liz-team-server-api-production.up.railway.app";
@@ -1806,7 +1817,7 @@ function WinTheDayButton({ token }) {
             <DailyDashboard
               token={token}
               user={null}
-              onViewTransactions={() => setShowModal(false)}
+              onViewTransactions={() => { setShowModal(false); onViewTransactions && onViewTransactions(); }}
               onOpenTransactionMilestones={(txId) => { setShowModal(false); }}
             />
           </div>
@@ -5757,7 +5768,7 @@ function SettingsMenu({ currentUser, onOpenContactBook, contactCount, onReports,
   );
 }
 
-function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenContactBook, onOpenContacts, onOpenPopBys, onOpenExpenses, onOpenForms, contactCount, onLogout, onOpenTeam, onOpenCompliance, onOpenComplianceDash, onOpenTaskTmpls, onOpenContractIntake, onChangePassword, onReports, onGoalPlanner, onHome, onVendors, onCompanySettings, onSuperuser, onAgentProfile, onIntakeLinks, currentUser, isFreeGuest = false }) {
+function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenContactBook, onOpenContacts, onOpenPopBys, onOpenExpenses, onOpenForms, contactCount, onLogout, onOpenTeam, onOpenCompliance, onOpenComplianceDash, onOpenTaskTmpls, onOpenContractIntake, onChangePassword, onReports, onGoalPlanner, onHome, onVendors, onCompanySettings, onSuperuser, onAgentProfile, onIntakeLinks, onViewTransactions, currentUser, isFreeGuest = false }) {
   const [filter, setFilter] = useState("All");
   const [search, setSearch] = useState("");
   // Tenant branding for the navbar — fetched once on mount. A free guest belongs to
@@ -6318,8 +6329,8 @@ function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenCon
             <button onClick={onNew} style={{ background: "#C0392B", border: "none", color: "#fff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>+ New Transaction</button>
             <button onClick={() => onOpenContacts && onOpenContacts()} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "#fff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>📇 Contacts</button>
             <button onClick={() => onOpenPopBys && onOpenPopBys()} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "#fff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>🎁 Pop-Bys</button>
-            <button onClick={() => onOpenExpenses && onOpenExpenses()} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "#fff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>💵 Expense Tracker</button>
-            <WinTheDayButton token={localStorage.getItem("tp_token") || ""} />
+            <button onClick={() => onOpenExpenses && onOpenExpenses()} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "#fff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>💵 Financials</button>
+            <WinTheDayButton token={localStorage.getItem("tp_token") || ""} onViewTransactions={onViewTransactions} />
             <PersonalTaskAddButton token={localStorage.getItem("tp_token") || ""} />
             <button onClick={onVendors} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "rgba(255,255,255,0.88)", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 600, fontFamily: "inherit" }}>🏆 Vendors</button>
             <button onClick={onIntakeLinks} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "rgba(255,255,255,0.88)", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 600, fontFamily: "inherit" }}>🔗 New Buyer/Seller Intake</button>
@@ -7292,7 +7303,7 @@ function MainApp({ onLogout, currentUser }) {
   }
 
   return (
-    <>
+    <Suspense fallback={<LazyLoading />}>
       {paywallFeature && (
         <div onClick={() => setPaywallFeature(null)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)", zIndex: 99999, display: "flex", alignItems: "flex-start", justifyContent: "center", padding: 16, overflowY: "auto" }}>
           <div onClick={e => e.stopPropagation()} style={{ background: "#fff", borderRadius: 16, padding: 28, maxWidth: 420, width: "100%", textAlign: "center", boxShadow: "0 20px 60px rgba(0,0,0,0.3)", fontFamily: "'Segoe UI', system-ui, sans-serif", margin: "auto" }}>
@@ -7329,7 +7340,7 @@ function MainApp({ onLogout, currentUser }) {
         <DailyDashboard
           token={localStorage.getItem("tp_token") || ""}
           user={currentUser}
-          onViewTransactions={() => setView("dashboard")}
+          onViewTransactions={() => { setShowReports(false); setShowCalendar(false); setView("dashboard"); }}
           onOpenTransactionMilestones={openTransactionMilestones}
           onOpenPopBys={() => setView("popbys")}
         />
@@ -7338,10 +7349,11 @@ function MainApp({ onLogout, currentUser }) {
         <Dashboard
           transactions={transactions}
           unreadCounts={unreadCounts}
+          onViewTransactions={() => { setShowReports(false); setShowCalendar(false); setView("dashboard"); }}
           onSelect={(id, tab) => { setSelectedId(id); setInitialDetailTab(tab || "overview"); setView("detail"); }}
           onNew={guard("Creating transactions", () => setView("new"))}
           onOpenContactBook={guard("Contacts", () => openContactBook(null))}
-          onOpenContacts={guard("Contacts", () => setView("contacts"))} onOpenPopBys={guard("Pop-Bys", () => setView("popbys"))} onOpenExpenses={guard("The Expense Tracker", () => setView("expenses"))} onOpenForms={guard("The Forms library", () => setView("forms"))}
+          onOpenContacts={guard("Contacts", () => setView("contacts"))} onOpenPopBys={guard("Pop-Bys", () => setView("popbys"))} onOpenExpenses={guard("Financials", () => setView("expenses"))} onOpenForms={guard("The Forms library", () => setView("forms"))}
           contactCount={contacts.length}
           onLogout={onLogout}
           onOpenTeam={guard("Team management", () => setShowTeam(true))}
@@ -7467,7 +7479,7 @@ function MainApp({ onLogout, currentUser }) {
           onDelete={deleteContact}
         />
       )}
-    </>
+    </Suspense>
   );
 }
 
@@ -7494,14 +7506,14 @@ function AuthGate() {
 
   if (authUser.role === "client") {
     return (
-      <>
+      <Suspense fallback={<LazyLoading />}>
         <ClientPortal user={authUser} onLogout={() => {
           localStorage.removeItem("tp_token");
           localStorage.removeItem("tp_user");
           setAuthUser(null);
         }} />
         <FaqHelpButton apiBase={API} token={localStorage.getItem("tp_token") || ""} />
-      </>
+      </Suspense>
     );
   }
 

@@ -952,7 +952,7 @@ function ReportModal({ categories, onClose }) {
 // ============================================================
 function TeachModal({ onClose }) {
   return (
-    <ModalShell onClose={onClose} title="💵 How the Expense Tracker helps you" width={520}>
+    <ModalShell onClose={onClose} title="💵 How Financials helps you" width={520}>
       <div style={{ fontSize: 14, color: '#374151', lineHeight: 1.6 }}>
         <p><strong>Why this exists:</strong> As an independent contractor real estate agent, you can deduct legitimate business expenses on Schedule C — every deduction reduces your taxable income. But only if you can prove it.</p>
 
