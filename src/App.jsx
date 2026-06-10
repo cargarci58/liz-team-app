@@ -1182,8 +1182,12 @@ function SMSPanel({ tx, onUpdate, currentUser }) {
   const gWithEmail = gChosen.filter(p => p.email && p.email.trim());
   const gWithPhone = gChosen.filter(p => p.phone && p.phone.trim());
   const gNoContact = gChosen.filter(p => !(p.email && p.email.trim()) && !(p.phone && p.phone.trim()));
-  const gEmailOnly = gChosen.filter(p => (p.email && p.email.trim()) && !(p.phone && p.phone.trim()));
-  const gSmsOnly = gChosen.filter(p => (p.phone && p.phone.trim()) && !(p.email && p.email.trim()));
+  // Who can't be reached ON THE CHOSEN CHANNEL — the note only talks about the
+  // channel the agent actually picked (Email-only never mentions text, etc.).
+  const gUnreachable = gChannel === "email" ? gChosen.filter(p => !(p.email && p.email.trim()))
+                     : gChannel === "sms"  ? gChosen.filter(p => !(p.phone && p.phone.trim()))
+                     : gNoContact;
+  const gReachable = gChosen.length - gUnreachable.length; // can actually get it on the chosen channel
 
   const sendGroup = async () => {
     if (!gMessage.trim()) return;
@@ -1440,10 +1444,16 @@ function SMSPanel({ tx, onUpdate, currentUser }) {
                 <div style={{ fontWeight: 700, marginBottom: 4 }}>Who will get this</div>
                 {gChosen.length === 0 ? <div style={{ color: "#6B7280" }}>Nobody selected yet — tick a recipient above or add an email.</div> : (
                   <>
-                    <div>📧 {gWithEmail.length} by email · 📱 {gWithPhone.length} by text</div>
-                    {gEmailOnly.length > 0 && <div style={{ color: "#B45309" }}>⚠️ {gEmailOnly.length} {gEmailOnly.length === 1 ? "party has" : "parties have"} no phone — email only</div>}
-                    {gSmsOnly.length > 0 && <div style={{ color: "#B45309" }}>⚠️ {gSmsOnly.length} {gSmsOnly.length === 1 ? "party has" : "parties have"} no email — text only</div>}
-                    {gNoContact.length > 0 && <div style={{ color: "#DC2626", fontWeight: 600 }}>🚫 {gNoContact.length} {gNoContact.length === 1 ? "party has" : "parties have"} no phone or email — add contact info to reach {gNoContact.length === 1 ? "them" : "them"}</div>}
+                    <div>
+                      {gChannel !== "sms" && <>📧 {gWithEmail.length} by email</>}
+                      {gChannel === "both" && " · "}
+                      {gChannel !== "email" && <>📱 {gWithPhone.length} by text</>}
+                    </div>
+                    {gUnreachable.length > 0 && (
+                      <div style={{ color: "#DC2626", fontWeight: 600 }}>
+                        🚫 {gUnreachable.length} {gUnreachable.length === 1 ? "recipient has" : "recipients have"} no {gChannel === "sms" ? "phone" : gChannel === "email" ? "email" : "phone or email"} — {gChannel === "both" ? "add contact info to reach them" : `won't get this ${gChannel === "sms" ? "text" : "email"}`}
+                      </div>
+                    )}
                   </>
                 )}
               </div>
@@ -1457,7 +1467,7 @@ function SMSPanel({ tx, onUpdate, currentUser }) {
                 </div>
               )}
 
-              <button onClick={sendGroup} disabled={!gMessage.trim() || gSending || gWithEmail.length + gWithPhone.length === 0} style={{ width: "100%", padding: "11px", borderRadius: 8, border: "none", background: "#15803D", color: "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer", fontFamily: "inherit", opacity: (!gMessage.trim() || gSending || gWithEmail.length + gWithPhone.length === 0) ? 0.5 : 1 }}>{gSending ? "Sending..." : `Send to ${gChosen.length} recipient${gChosen.length === 1 ? "" : "s"}`}</button>
+              <button onClick={sendGroup} disabled={!gMessage.trim() || gSending || gReachable === 0} style={{ width: "100%", padding: "11px", borderRadius: 8, border: "none", background: "#15803D", color: "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer", fontFamily: "inherit", opacity: (!gMessage.trim() || gSending || gReachable === 0) ? 0.5 : 1 }}>{gSending ? "Sending..." : `Send to ${gReachable} recipient${gReachable === 1 ? "" : "s"}`}</button>
             </div>
         </div>
       )}
