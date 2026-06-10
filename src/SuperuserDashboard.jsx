@@ -29,6 +29,24 @@ const REVIEW_ITEMS = [
 
 const REVIEW_INTERVAL_DAYS = 92; // ~3 months
 
+// Feedback kind → label + accent
+const FB_KIND = {
+  bug: { label: "🐞 Bug", color: "#C0392B" },
+  suggestion: { label: "💡 Idea", color: "#B7770D" },
+  other: { label: "💬 Note", color: "#1A2B4A" },
+};
+const FB_FILTERS = [
+  { id: "new", label: "New" },
+  { id: "in_progress", label: "In progress" },
+  { id: "done", label: "Done" },
+  { id: "all", label: "All" },
+];
+
+function fmtDateTime(d) {
+  if (!d) return "—";
+  try { return new Date(d).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }); } catch { return "—"; }
+}
+
 // Color a status: green = healthy, red = broken/down, yellow = needs attention
 // (not configured), gray = still loading / no data yet.
 function statusColor(status) {
@@ -57,6 +75,13 @@ function SuperuserDashboard({ onClose, token }) {
   const [reviewsLoading, setReviewsLoading] = useState(true);
   const [savingKey, setSavingKey] = useState(null);
 
+  // Feedback inbox
+  const [feedback, setFeedback] = useState([]);
+  const [fbCounts, setFbCounts] = useState({});
+  const [fbLoading, setFbLoading] = useState(true);
+  const [fbFilter, setFbFilter] = useState("new"); // new | in_progress | done | all
+  const [fbBusyId, setFbBusyId] = useState(null);
+
   const headers = { "Content-Type": "application/json", Authorization: "Bearer " + token };
 
   const loadHealth = () => {
@@ -75,7 +100,26 @@ function SuperuserDashboard({ onClose, token }) {
       .catch(() => setReviewsLoading(false));
   };
 
-  useEffect(() => { loadHealth(); loadReviews(); }, []);
+  const loadFeedback = (filter = fbFilter) => {
+    setFbLoading(true);
+    const qs = filter && filter !== "all" ? `?status=${filter}` : "";
+    fetch(API + "/admin/superuser/feedback" + qs, { headers })
+      .then(r => r.json())
+      .then(d => { setFeedback(d.items || []); setFbCounts(d.counts || {}); setFbLoading(false); })
+      .catch(() => setFbLoading(false));
+  };
+
+  const updateFeedback = async (id, patch) => {
+    setFbBusyId(id);
+    try {
+      await fetch(API + "/admin/superuser/feedback/" + id, { method: "PATCH", headers, body: JSON.stringify(patch) });
+      loadFeedback();
+    } catch (e) { /* surfaced on reload */ }
+    setFbBusyId(null);
+  };
+
+  useEffect(() => { loadHealth(); loadReviews(); loadFeedback(); }, []);
+  useEffect(() => { loadFeedback(fbFilter); }, [fbFilter]);
 
   const markReviewed = async (key) => {
     setSavingKey(key);
@@ -164,6 +208,72 @@ function SuperuserDashboard({ onClose, token }) {
                     <button onClick={() => markReviewed(item.key)} disabled={savingKey === item.key} style={{ background: overdue ? COLORS.danger : COLORS.green, color: "#fff", border: "none", borderRadius: 8, padding: "8px 14px", cursor: savingKey === item.key ? "default" : "pointer", fontSize: 12, fontWeight: 600, fontFamily: "inherit", whiteSpace: "nowrap", opacity: savingKey === item.key ? 0.6 : 1 }}>
                       {savingKey === item.key ? "Saving…" : "✓ Mark reviewed today"}
                     </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* ── Feedback Inbox ── */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", margin: "40px 0 4px" }}>
+          <h2 style={{ margin: 0, fontSize: 16, color: COLORS.navy, fontWeight: 700 }}>
+            Feedback Inbox{(fbCounts.new || 0) > 0 ? <span style={{ marginLeft: 8, background: COLORS.danger, color: "#fff", borderRadius: 999, padding: "2px 9px", fontSize: 12, fontWeight: 700 }}>{fbCounts.new} new</span> : null}
+          </h2>
+          <button onClick={() => loadFeedback()} disabled={fbLoading} style={{ background: COLORS.navy, color: "#fff", border: "none", borderRadius: 8, padding: "6px 14px", cursor: fbLoading ? "default" : "pointer", fontSize: 13, fontFamily: "inherit", opacity: fbLoading ? 0.6 : 1 }}>{fbLoading ? "Loading…" : "↻ Refresh"}</button>
+        </div>
+        <div style={{ fontSize: 12, color: COLORS.muted, marginBottom: 12 }}>Bugs, ideas, and notes submitted by agents from the in-app 📣 Feedback button.</div>
+
+        {/* Filter tabs */}
+        <div style={{ display: "flex", gap: 8, marginBottom: 14, flexWrap: "wrap" }}>
+          {FB_FILTERS.map(f => {
+            const active = fbFilter === f.id;
+            const n = f.id === "all" ? null : fbCounts[f.id];
+            return (
+              <button key={f.id} onClick={() => setFbFilter(f.id)} style={{
+                padding: "6px 14px", borderRadius: 999, cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 700,
+                border: active ? `2px solid ${COLORS.navy}` : `1px solid ${COLORS.border}`,
+                background: active ? COLORS.navy : "#fff", color: active ? "#fff" : COLORS.muted,
+              }}>{f.label}{typeof n === "number" ? ` (${n})` : ""}</button>
+            );
+          })}
+        </div>
+
+        {fbLoading ? (
+          <div style={{ color: COLORS.muted, fontSize: 13 }}>Loading…</div>
+        ) : feedback.length === 0 ? (
+          <div style={{ color: COLORS.muted, fontSize: 13, padding: "16px 0" }}>Nothing here{fbFilter !== "all" ? ` in "${(FB_FILTERS.find(f => f.id === fbFilter) || {}).label}"` : ""}. 🎉</div>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {feedback.map(item => {
+              const meta = FB_KIND[item.kind] || FB_KIND.other;
+              const busy = fbBusyId === item.id;
+              return (
+                <div key={item.id} style={{ border: `1px solid ${COLORS.border}`, borderLeft: `4px solid ${meta.color}`, borderRadius: 10, padding: "12px 16px", background: item.status === "new" ? "#FFFDF5" : "#fff" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, flexWrap: "wrap", marginBottom: 6 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                      <span style={{ fontSize: 12, fontWeight: 800, color: meta.color }}>{meta.label}</span>
+                      <span style={{ fontSize: 12, color: COLORS.navy, fontWeight: 700 }}>{item.user_name || "—"}</span>
+                      <span style={{ fontSize: 12, color: COLORS.muted }}>{item.user_email || ""}</span>
+                    </div>
+                    <span style={{ fontSize: 11, color: COLORS.muted, whiteSpace: "nowrap" }}>{fmtDateTime(item.created_at)}</span>
+                  </div>
+                  <div style={{ fontSize: 14, color: "#222", lineHeight: 1.5, whiteSpace: "pre-wrap", marginBottom: 8 }}>{item.message}</div>
+                  <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 10 }}>
+                    {item.tenant_id != null && <span style={{ fontSize: 11, color: COLORS.muted }}>Tenant #{item.tenant_id}</span>}
+                    {item.page && <span style={{ fontSize: 11, color: COLORS.muted }}>at <code style={{ background: COLORS.bg, padding: "1px 5px", borderRadius: 4 }}>{item.page}</code></span>}
+                  </div>
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    {item.status !== "in_progress" && (
+                      <button onClick={() => updateFeedback(item.id, { status: "in_progress" })} disabled={busy} style={{ background: "#fff", color: COLORS.amber, border: `1px solid ${COLORS.amber}`, borderRadius: 8, padding: "6px 12px", cursor: busy ? "default" : "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit", opacity: busy ? 0.6 : 1 }}>◔ In progress</button>
+                    )}
+                    {item.status !== "done" && (
+                      <button onClick={() => updateFeedback(item.id, { status: "done" })} disabled={busy} style={{ background: COLORS.green, color: "#fff", border: "none", borderRadius: 8, padding: "6px 12px", cursor: busy ? "default" : "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit", opacity: busy ? 0.6 : 1 }}>✓ Done</button>
+                    )}
+                    {item.status !== "new" && (
+                      <button onClick={() => updateFeedback(item.id, { status: "new" })} disabled={busy} style={{ background: "#fff", color: COLORS.muted, border: `1px solid ${COLORS.border}`, borderRadius: 8, padding: "6px 12px", cursor: busy ? "default" : "pointer", fontSize: 12, fontWeight: 600, fontFamily: "inherit", opacity: busy ? 0.6 : 1 }}>↩ Reopen</button>
+                    )}
+                    <span style={{ fontSize: 11, color: COLORS.muted, alignSelf: "center" }}>Status: <strong style={{ color: item.status === "done" ? COLORS.green : item.status === "in_progress" ? COLORS.amber : COLORS.danger }}>{item.status === "in_progress" ? "in progress" : item.status}</strong></span>
                   </div>
                 </div>
               );
