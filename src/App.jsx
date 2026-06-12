@@ -2,7 +2,6 @@ import LoginScreen from "./LoginScreen";
 import BuyerCalculator from "./components/BuyerCalculator";
 import PreApprovalCard, { PreApprovalBadge } from './components/PreApprovalCard';
 import SellerCalculator from "./components/SellerCalculator";
-const CmaTool = lazy(() => import("./cma/CmaTool"));
 import TxFormsTab from "./components/TxFormsTab";
 import UserManagement from "./UserManagement";
 import FormDownloadPage from './FormDownloadPage';
@@ -11,8 +10,24 @@ import TransactionChat from "./TransactionChat";
 import DailyDashboard from "./DailyDashboard";
 import ChangePassword from "./ChangePassword";
 import LegalConsentGate from "./LegalConsentGate";
+import FaqHelpButton from "./components/FaqHelpButton";
+import HelpCenter from "./components/HelpCenter";
+import OnboardingGuide from "./components/OnboardingGuide";
+import AppTour from "./components/AppTour";
+import SpotlightTour from "./components/SpotlightTour";
+
+const API = "https://liz-team-server-api-production.up.railway.app";
+// Platform developer account — only this email sees the Superuser Dashboard.
+// Swap via VITE_SUPERUSER_EMAIL at build time; backend mirrors with SUPERUSER_EMAIL.
+const SUPERUSER_EMAIL = ((import.meta.env && import.meta.env.VITE_SUPERUSER_EMAIL) || "cgarcia@thelizteam.com").toLowerCase();
+
+import { useState, useEffect, useCallback, useRef, lazy, Suspense } from "react";
+
 // ── Code-split heavy, route-level screens so the phone only downloads the
 // ── code for the screen you actually open, instead of one giant bundle up front.
+// ── These MUST come after the `lazy` import above (const declarations are not
+// ── hoisted — placing them above it blanks the whole app in dev).
+const CmaTool = lazy(() => import("./cma/CmaTool"));
 const ContactsPage = lazy(() => import("./ContactsPage"));
 const PopBysPage = lazy(() => import("./PopBysPage"));
 const ScriptsPage = lazy(() => import("./ScriptsPage"));
@@ -30,18 +45,6 @@ const VendorLibrary = lazy(() => import("./VendorLibrary"));
 const CompanySettings = lazy(() => import("./CompanySettings"));
 const AgentProfile = lazy(() => import("./AgentProfile"));
 const ClientPortal = lazy(() => import("./ClientPortal"));
-import FaqHelpButton from "./components/FaqHelpButton";
-import HelpCenter from "./components/HelpCenter";
-import OnboardingGuide from "./components/OnboardingGuide";
-import AppTour from "./components/AppTour";
-import SpotlightTour from "./components/SpotlightTour";
-
-const API = "https://liz-team-server-api-production.up.railway.app";
-// Platform developer account — only this email sees the Superuser Dashboard.
-// Swap via VITE_SUPERUSER_EMAIL at build time; backend mirrors with SUPERUSER_EMAIL.
-const SUPERUSER_EMAIL = ((import.meta.env && import.meta.env.VITE_SUPERUSER_EMAIL) || "cgarcia@thelizteam.com").toLowerCase();
-
-import { useState, useEffect, useCallback, useRef, lazy, Suspense } from "react";
 
 const COLORS = {
   navy: "#111111", gold: "#C0392B", lightGold: "#FADBD8",
