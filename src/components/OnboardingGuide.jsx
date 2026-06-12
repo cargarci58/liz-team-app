@@ -28,7 +28,7 @@ export default function OnboardingGuide({ steps, doneKeys, onTakeMeThere, onStar
   // Welcome splash first, then the checklist.
   if (!welcomed && doneKeys.size === 0) {
     return (
-      <Overlay>
+      <Overlay onBackdrop={onDismiss}>
         <div style={{ textAlign: 'center', padding: '8px 4px' }}>
           <div style={{ fontSize: 44, marginBottom: 8 }}>👋</div>
           <div style={{ fontSize: 22, fontWeight: 800, color: '#111' }}>Welcome! Let's get you set up.</div>
@@ -46,7 +46,7 @@ export default function OnboardingGuide({ steps, doneKeys, onTakeMeThere, onStar
 
   if (allDone) {
     return (
-      <Overlay>
+      <Overlay onBackdrop={onFinish}>
         <div style={{ textAlign: 'center', padding: '8px 4px' }}>
           <div style={{ fontSize: 44, marginBottom: 8 }}>🎉</div>
           <div style={{ fontSize: 22, fontWeight: 800, color: '#111' }}>You're all set!</div>
@@ -60,7 +60,7 @@ export default function OnboardingGuide({ steps, doneKeys, onTakeMeThere, onStar
   }
 
   return (
-    <Overlay>
+    <Overlay onBackdrop={onDismiss}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
         <div style={{ fontSize: 12, fontWeight: 800, color: RED, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
           Setup · Step {currentIdx + 1} of {steps.length}
@@ -108,10 +108,13 @@ export default function OnboardingGuide({ steps, doneKeys, onTakeMeThere, onStar
   );
 }
 
-function Overlay({ children }) {
+function Overlay({ children, onBackdrop }) {
+  // Tapping the dim area must CLOSE the guide, not silently swallow the tap —
+  // users aiming at buttons underneath (e.g. "View All My Transactions" on a
+  // phone) otherwise think the app ignored their first tap.
   return (
-    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 2600, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: 16, overflowY: 'auto', fontFamily: 'system-ui, sans-serif' }}>
-      <div style={{ background: '#fff', borderRadius: 16, width: '100%', maxWidth: 460, boxShadow: '0 20px 60px rgba(0,0,0,0.35)', padding: 24, margin: 'auto', marginTop: 40 }}>
+    <div onClick={onBackdrop || undefined} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 2600, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: 16, overflowY: 'auto', fontFamily: 'system-ui, sans-serif' }}>
+      <div onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: 16, width: '100%', maxWidth: 460, boxShadow: '0 20px 60px rgba(0,0,0,0.35)', padding: 24, margin: 'auto', marginTop: 40 }}>
         {children}
       </div>
     </div>
