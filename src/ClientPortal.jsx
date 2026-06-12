@@ -634,31 +634,26 @@ export default function ClientPortal({ user, onLogout }) {
       return;
     }
     setUploading(true);
-    let docId = null;
     try {
-      const res = await fetch(API + "/documents/upload-url", {
+      // Server-proxied upload (browser→R2 presigned PUT fails CORS).
+      const base64 = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result).split(",")[1]);
+        reader.onerror = () => reject(new Error("Could not read file"));
+        reader.readAsDataURL(file);
+      });
+      const res = await fetch(API + "/documents/upload", {
         method: "POST", headers,
-        body: JSON.stringify({ transactionId: tx.id, fileName: file.name, fileType: file.type, category: "Client Upload" }),
+        body: JSON.stringify({ transactionId: tx.id, fileName: file.name, fileType: file.type || "application/octet-stream", category: "Client Upload", base64 }),
       });
       const data = await res.json();
-      if (!data.uploadUrl) throw new Error("No upload URL");
-      docId = data.docId;
-      const putRes = await fetch(data.uploadUrl, { method: "PUT", body: file, headers: { "Content-Type": file.type } });
-      if (!putRes.ok) throw new Error("Storage upload failed (" + putRes.status + ")");
-      // 2-step: confirm the R2 PUT succeeded so the row flips from
-      // pending_upload to active. Otherwise the doc never appears.
-      const finRes = await fetch(API + "/documents/" + docId + "/finalize", { method: "POST", headers });
-      if (!finRes.ok) throw new Error("Finalize failed");
-      docId = null;
+      if (!res.ok || !data.success) throw new Error(data.error || "Upload failed");
       const docsRes = await fetch(API + "/client/documents/" + tx.id, { headers });
       const docsData = await docsRes.json();
       if (docsData.documents) setDocs(docsData.documents);
       alert("Document uploaded successfully!");
     } catch (err) {
       alert("Upload failed: " + err.message);
-      if (docId) {
-        fetch(API + "/documents/" + docId + "/pending", { method: "DELETE", headers }).catch(e => console.error("[bg]", e && e.message ? e.message : e));
-      }
     }
     finally { setUploading(false); if (e.target) e.target.value = ""; }
   };

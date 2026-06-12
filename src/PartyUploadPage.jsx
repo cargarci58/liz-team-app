@@ -55,20 +55,20 @@ export default function PartyUploadPage() {
     }
     setUploading(true);
     try {
-      const urlRes = await fetch(API + "/party-uploads/upload-url/" + token, {
+      // Server-proxied upload (browser→R2 presigned PUT fails CORS).
+      const base64 = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result).split(",")[1]);
+        reader.onerror = () => reject(new Error("Could not read file"));
+        reader.readAsDataURL(file);
+      });
+      const urlRes = await fetch(API + "/party-uploads/upload/" + token, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ fileName: file.name, fileType: file.type || "application/octet-stream", fileSize: file.size })
+        body: JSON.stringify({ fileName: file.name, fileType: file.type || "application/octet-stream", base64 })
       });
       const urlData = await urlRes.json();
-      if (!urlData.success) throw new Error(urlData.error || "Could not get upload URL");
-
-      const putRes = await fetch(urlData.uploadUrl, {
-        method: "PUT",
-        headers: { "Content-Type": file.type || "application/octet-stream" },
-        body: file
-      });
-      if (!putRes.ok) throw new Error("Upload to storage failed");
+      if (!urlData.success) throw new Error(urlData.error || "Upload failed");
 
       const confirmRes = await fetch(API + "/party-uploads/confirm/" + token, {
         method: "POST",

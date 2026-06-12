@@ -213,16 +213,20 @@ function UploadFormModal({ onClose, onSaved }) {
       });
       const created = await cr.json();
       if (!created.form) throw new Error(created.error || 'Create failed');
-      setProgress('Requesting upload URL...');
-      const u = await fetch(`${API}/forms/${created.form.id}/upload-url`, {
+      setProgress('Uploading file...');
+      // Server-proxied upload (browser→R2 presigned PUT fails CORS).
+      const base64 = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result).split(',')[1]);
+        reader.onerror = () => reject(new Error('Could not read file'));
+        reader.readAsDataURL(file);
+      });
+      const u = await fetch(`${API}/forms/${created.form.id}/upload`, {
         method: 'POST', headers: { 'Content-Type':'application/json', Authorization: `Bearer ${token()}` },
-        body: JSON.stringify({ fileName: file.name, contentType: file.type || 'application/pdf' })
+        body: JSON.stringify({ fileName: file.name, contentType: file.type || 'application/pdf', base64 })
       });
       const udata = await u.json();
-      if (!udata.uploadUrl) throw new Error(udata.error || 'Upload URL failed');
-      setProgress('Uploading file...');
-      const put = await fetch(udata.uploadUrl, { method: 'PUT', headers: { 'Content-Type': file.type || 'application/pdf' }, body: file });
-      if (!put.ok) throw new Error('Upload to storage failed');
+      if (!u.ok || !udata.key) throw new Error(udata.error || 'Upload failed');
       setProgress('Finalizing...');
       await fetch(`${API}/forms/${created.form.id}/finalize-upload`, {
         method: 'POST', headers: { 'Content-Type':'application/json', Authorization: `Bearer ${token()}` },
@@ -319,14 +323,19 @@ function EditFormModal({ form, onClose, onSaved }) {
     const f = e.target.files?.[0]; if (!f) return;
     setReplacing(true);
     try {
-      const u = await fetch(`${API}/forms/${form.id}/upload-url`, {
+      // Server-proxied upload (browser→R2 presigned PUT fails CORS).
+      const base64 = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result).split(',')[1]);
+        reader.onerror = () => reject(new Error('Could not read file'));
+        reader.readAsDataURL(f);
+      });
+      const u = await fetch(`${API}/forms/${form.id}/upload`, {
         method: 'POST', headers: { 'Content-Type':'application/json', Authorization: `Bearer ${token()}` },
-        body: JSON.stringify({ fileName: f.name, contentType: f.type || 'application/pdf' })
+        body: JSON.stringify({ fileName: f.name, contentType: f.type || 'application/pdf', base64 })
       });
       const udata = await u.json();
-      if (!udata.uploadUrl) throw new Error(udata.error || 'Upload URL failed');
-      const put = await fetch(udata.uploadUrl, { method:'PUT', headers:{'Content-Type': f.type || 'application/pdf'}, body: f });
-      if (!put.ok) throw new Error('Upload failed');
+      if (!u.ok || !udata.key) throw new Error(udata.error || 'Upload failed');
       await fetch(`${API}/forms/${form.id}/finalize-upload`, {
         method: 'POST', headers: { 'Content-Type':'application/json', Authorization: `Bearer ${token()}` },
         body: JSON.stringify({ key: udata.key, fileName: f.name, fileSize: f.size })

@@ -563,30 +563,24 @@ function AddExpenseModal({ categories, expense, allExpenses, onClose, onSaved })
     setError(null);
     setOcrPreview(null);
     try {
-      // Step 1: get presigned R2 PUT URL
-      setOcrStatus('Getting upload URL...');
-      const presign = await authFetch('/expenses/receipt-upload-url', {
+      // Server-proxied upload (browser→R2 presigned PUT fails CORS).
+      setOcrStatus('Uploading receipt...');
+      const base64 = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result).split(',')[1]);
+        reader.onerror = () => reject(new Error('Could not read file'));
+        reader.readAsDataURL(file);
+      });
+      const up = await authFetch('/expenses/receipt-upload', {
         method: 'POST',
         body: JSON.stringify({
           fileName: file.name || `receipt_${Date.now()}.jpg`,
-          fileType: file.type || 'image/jpeg'
+          fileType: file.type || 'image/jpeg',
+          base64
         })
       });
-      const { uploadUrl, receiptKey: newKey } = presign;
-
-      // Step 2: PUT file directly to R2
-      setOcrStatus('Uploading receipt...');
-      let putRes;
-      try {
-        putRes = await fetch(uploadUrl, {
-          method: 'PUT',
-          headers: { 'Content-Type': file.type || 'image/jpeg' },
-          body: file
-        });
-      } catch (netErr) {
-        throw new Error(`Network error uploading receipt to R2 — ${netErr.message}. Most common cause: R2 bucket CORS rejecting PUTs from this origin.`);
-      }
-      if (!putRes.ok) throw new Error(`R2 storage rejected the receipt (HTTP ${putRes.status}). The signed URL may have expired or the content-type doesn't match the signature.`);
+      if (!up.success || !up.receiptKey) throw new Error(up.error || 'Receipt upload failed');
+      const newKey = up.receiptKey;
 
       setReceiptKey(newKey);
 

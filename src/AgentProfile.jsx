@@ -38,15 +38,19 @@ export default function AgentProfile({ onClose, currentUser }) {
     if (file.size > 5 * 1024 * 1024) { alert("Photo must be under 5MB."); return; }
     setUploading(true);
     try {
-      // Get upload URL
-      const res = await fetch(API + "/profile/photo-url", {
+      // Server-proxied upload (browser→R2 presigned PUT fails CORS).
+      const base64 = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result).split(",")[1]);
+        reader.onerror = () => reject(new Error("Could not read file"));
+        reader.readAsDataURL(file);
+      });
+      const res = await fetch(API + "/profile/photo", {
         method: "POST", headers,
-        body: JSON.stringify({ fileName: file.name, fileType: file.type })
+        body: JSON.stringify({ fileName: file.name, fileType: file.type, base64 })
       });
       const data = await res.json();
-      if (!data.uploadUrl) throw new Error("Failed to get upload URL");
-      // Upload to R2
-      await fetch(data.uploadUrl, { method: "PUT", body: file, headers: { "Content-Type": file.type } });
+      if (!res.ok || !data.success) throw new Error(data.error || "Upload failed");
       setForm(f => ({ ...f, photoUrl: data.photoUrl }));
     } catch (e) { alert("Upload failed: " + e.message); }
     setUploading(false);
