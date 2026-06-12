@@ -177,6 +177,25 @@
   .exp h3 { font-size: 17px; font-weight: 900; margin-bottom: 6px; }
   .exp p { font-size: 14.5px; color: var(--muted); font-weight: 700; }
 
+  /* IN THE LOOP — group chat mock + party chips */
+  .chat { background: #fff; border: 2px solid var(--line); border-radius: 24px; padding: 22px; box-shadow: 0 24px 50px -26px rgba(0,0,0,0.25); transform: rotate(-1.5deg); transition: transform .2s; }
+  .chat:hover { transform: rotate(0deg) scale(1.02); }
+  .chat .thread-title { text-align: center; font-size: 13px; font-weight: 900; color: var(--muted); margin-bottom: 14px; }
+  .msg { display: flex; gap: 10px; margin-bottom: 11px; align-items: flex-start; }
+  .msg .who { width: 34px; height: 34px; border-radius: 50%; background: var(--gray); display: flex; align-items: center; justify-content: center; font-size: 17px; flex: none; }
+  .msg .bubble { background: var(--gray); border-radius: 4px 16px 16px 16px; padding: 9px 13px; font-size: 13px; font-weight: 700; max-width: 78%; }
+  .msg .bubble .sender { display: block; font-size: 11px; font-weight: 900; color: var(--red); margin-bottom: 2px; }
+  .msg.me { flex-direction: row-reverse; }
+  .msg.me .bubble { background: var(--red); color: #fff; border-radius: 16px 4px 16px 16px; }
+  .msg.me .bubble .sender { color: rgba(255,255,255,0.8); }
+  .channel-row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
+  .channel { display: flex; align-items: center; gap: 7px; background: var(--gray); border-radius: 30px; padding: 8px 16px; font-size: 13.5px; font-weight: 900; }
+  .party-strip { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; margin-top: 40px; }
+  .party { display: flex; align-items: center; gap: 9px; background: #fff; border: 2px solid var(--line); border-radius: 30px; padding: 11px 20px; font-size: 14.5px; font-weight: 800; }
+  .party .emo { font-size: 19px; }
+  .party.hub { background: var(--red); color: #fff; border-color: var(--red); box-shadow: 0 8px 18px rgba(214,59,47,0.35); }
+  .party-link { align-self: center; color: var(--red); font-weight: 900; font-size: 18px; }
+
   /* SECURITY strip */
   .sec-strip { display: flex; flex-wrap: wrap; gap: 14px; justify-content: center; }
   .sec-pill { display: flex; align-items: center; gap: 10px; background: #fff; border: 2px solid var(--line); border-radius: 30px; padding: 12px 22px; font-size: 14.5px; font-weight: 800; }
@@ -240,6 +259,7 @@
     </a>
     <div class="nav-links">
       <a href="#chaos">The Problem</a>
+      <a href="#loop">In the Loop</a>
       <a href="#replaces">Replaces</a>
       <a href="#ai">AI Magic</a>
       <a href="#pricing">Pricing</a>
@@ -255,7 +275,7 @@
     <h1>Stop juggling 8 apps.<br>Run every deal with <span class="swoosh">one click.
       <svg viewBox="0 0 200 12" preserveAspectRatio="none"><path d="M2 9 Q 50 2 100 7 T 198 5" fill="none" stroke="#D63B2F" stroke-width="4" stroke-linecap="round" opacity="0.5"/></svg>
     </span></h1>
-    <p class="lead">TransactPro writes your offers in one click, turns incoming offers into live transactions automatically, and lets AI run every milestone and reminder — so you can get back to people, not paperwork. 🎉</p>
+    <p class="lead">TransactPro writes your offers in one click, turns incoming offers into live transactions automatically, and keeps everyone — buyer, seller, inspector, title, lender — in the loop at every step. You get back to people, not paperwork. 🎉</p>
     <div class="hero-btns">
       <a class="btn btn-red btn-lg" href="/">Start Free 14-Day Trial →</a>
       <a class="btn btn-outline btn-lg" href="#pricing">See Pricing</a>
@@ -312,6 +332,57 @@
       <div><div class="big">1×</div><div class="what">times you type anything with TransactPro</div></div>
       <div class="divider"></div>
       <div><div class="big">0</div><div class="what">deadlines slipping through the cracks</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- IN THE LOOP -->
+<section class="block" id="loop" style="background:#fff;">
+  <div class="wrap">
+    <div class="sec-head center">
+      <span class="eyebrow">📣 The #1 complaint from buyers &amp; sellers</span>
+      <h2 class="title">"I never know <span class="r">what's going on</span>"</h2>
+      <p class="sub">Clients don't leave agents over price — they leave over silence. TransactPro puts your buyers and sellers <strong>inside</strong> the transaction, connected to everyone, informed at every step.</p>
+    </div>
+
+    <div class="feat" style="padding-top: 0;">
+      <div class="copy">
+        <span class="tag">💬 Everyone. One conversation.</span>
+        <h3>The whole team, talking in one place</h3>
+        <p>The inspector, the title company, the lender, both agents, and your client — all in one transaction chat. No more forwarding emails, no more "did anyone tell the buyer?"</p>
+        <ul>
+          <li>Built-in chat for every transaction — every party included</li>
+          <li>Messages reach people how <em>they</em> like: chat, text, or email</li>
+          <li>Clients get their own portal with the full timeline — every step visible</li>
+          <li>Automatic updates at every milestone, written in your voice</li>
+          <li>No more "any update?" calls — they already know</li>
+        </ul>
+        <div class="channel-row">
+          <span class="channel">💬 In-app chat</span>
+          <span class="channel">📱 Text</span>
+          <span class="channel">✉️ Email</span>
+          <span class="channel">🪟 Client portal</span>
+        </div>
+      </div>
+      <div class="chat">
+        <div class="thread-title">🏠 1420 Lake Nona Blvd — Transaction Chat</div>
+        <div class="msg"><div class="who">🔍</div><div class="bubble"><span class="sender">Inspector — Mike</span>Report uploaded ✅ All clear except a minor GFCI fix.</div></div>
+        <div class="msg"><div class="who">🏦</div><div class="bubble"><span class="sender">Lender — Sandra</span>Appraisal came in at value! Clear to move forward 🎉</div></div>
+        <div class="msg"><div class="who">📑</div><div class="bubble"><span class="sender">Title Co. — Maria</span>Clear to close — Friday 10am works for everyone.</div></div>
+        <div class="msg me"><div class="who">👩‍💼</div><div class="bubble"><span class="sender">You — the Agent</span>Great news, team! See you all Friday 🥂</div></div>
+        <div class="msg"><div class="who">😊</div><div class="bubble"><span class="sender">Buyer — Jess</span>First time I've ever felt this informed buying a home!</div></div>
+      </div>
+    </div>
+
+    <div class="party-strip">
+      <span class="party"><span class="emo">😊</span> Buyer</span>
+      <span class="party"><span class="emo">🏡</span> Seller</span>
+      <span class="party"><span class="emo">🔍</span> Inspector</span>
+      <span class="party"><span class="emo">📑</span> Title Company</span>
+      <span class="party"><span class="emo">🏦</span> Lender</span>
+      <span class="party"><span class="emo">🤝</span> Both Agents</span>
+      <span class="party-link">→</span>
+      <span class="party hub"><span class="emo">💬</span> One loop. Everyone in it.</span>
     </div>
   </div>
 </section>
