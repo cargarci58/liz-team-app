@@ -4130,11 +4130,31 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
     warning += "\n\u2500\u2500\u2500 CONFIRM \u2500\u2500\u2500\nClick OK only if every party email is correct AND every transaction field is filled in. This action cannot be undone \u2014 once sent, recipients have the email.";
     if (!window.confirm(warning)) return false;
     try {
-      const r = await fetch("https://liz-team-server-api-production.up.railway.app/transactions/" + tx.id + "/send-welcome-emails", {
-        method: "POST",
-        headers: { Authorization: "Bearer " + (localStorage.getItem("tp_token") || "") }
-      });
-      const d = await r.json();
+      let d;
+      if (targetParties) {
+        // Targeted send — hit the per-party endpoint for ONLY the listed parties.
+        // The bulk /send-welcome-emails endpoint emails EVERY party, which is wrong
+        // when the confirm dialog promised a specific recipient list.
+        d = { success: true, emailsSent: 0, emailsFailed: 0, sent: [], failed: [], skipped: [] };
+        for (const p of partiesWithEmail) {
+          try {
+            const r1 = await fetch("https://liz-team-server-api-production.up.railway.app/transactions/" + tx.id + "/parties/" + p.id + "/send-welcome", {
+              method: "POST",
+              headers: { Authorization: "Bearer " + (localStorage.getItem("tp_token") || "") }
+            });
+            const d1 = await r1.json().catch(() => ({}));
+            if (r1.ok && d1.success) { d.emailsSent++; d.sent.push({ name: p.name, role: p.role, email: p.email }); }
+            else { d.emailsFailed++; d.failed.push({ name: p.name, role: p.role, email: p.email, error: d1.error || "Unknown error" }); }
+          } catch (e1) { d.emailsFailed++; d.failed.push({ name: p.name, role: p.role, email: p.email, error: e1.message }); }
+        }
+        if (d.emailsFailed > 0 && d.emailsSent === 0) d.success = false;
+      } else {
+        const r = await fetch("https://liz-team-server-api-production.up.railway.app/transactions/" + tx.id + "/send-welcome-emails", {
+          method: "POST",
+          headers: { Authorization: "Bearer " + (localStorage.getItem("tp_token") || "") }
+        });
+        d = await r.json();
+      }
       const sentList = (d.sent || []).map(p => `  \u2705 ${p.name} (${p.role}) \u2014 ${p.email}`).join("\n");
       const failedList = (d.failed || []).map(p => `  \u274c ${p.name} (${p.role}) \u2014 ${p.email}\n      \u2192 ${p.error}`).join("\n");
       const skippedList = (d.skipped || []).map(p => `  \u26a0\ufe0f ${p.name} (${p.role}) \u2014 ${p.reason}`).join("\n");
@@ -4874,12 +4894,15 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
             <Btn variant="ghost" onClick={() => setEditingParty(null)}>Cancel</Btn>
             <Btn onClick={async () => {
               const editedParty = editingParty;
-              update({ parties: tx.parties.map(p => p.id === editedParty.id ? editedParty : p) });
+              // Await the save so the server has the corrected party BEFORE any send —
+              // otherwise a welcome could go to the pre-edit email address.
+              await update({ parties: tx.parties.map(p => p.id === editedParty.id ? editedParty : p) });
               setEditingParty(null);
-              // Prompt to send welcome to just this party — only if they have a valid email
+              // Offer to send welcome to JUST this party — only if they have a valid email.
+              // Declining sends nothing; saving a party edit never emails anyone on its own.
               if (editedParty.email && editedParty.email.includes("@") && (tx.status === "Under Contract" || tx.needsReview)) {
                 setTimeout(() => {
-                  if (window.confirm(`Send a welcome email to ${editedParty.name} (${editedParty.role}) at ${editedParty.email} now?\n\nThis sends the standard welcome with transaction details. Click Cancel to wait and send to all parties together later.`)) {
+                  if (window.confirm(`Send a welcome email to ONLY ${editedParty.name} (${editedParty.role}) at ${editedParty.email} now?\n\nNo other party will be emailed. Click Cancel to skip — you can send welcomes later from the transaction.`)) {
                     sendWelcomeEmailsFromTx([editedParty]);
                   }
                 }, 200);
@@ -7291,7 +7314,16 @@ function MainApp({ onLogout, currentUser }) {
   // First-time onboarding walkthrough -------------------------------------
   const isAdminUser = ["admin", "superadmin"].includes(currentUser?.role);
   const onboardKey = `tp_onboarding_v1_${currentUser?.id || "anon"}`;
+  // The walkthrough flag lives on the USER (login response → currentUser.onboarding),
+  // with localStorage as a same-device cache. Server state wins: phones that clear
+  // site data between visits lost the localStorage flag, so the welcome overlay
+  // re-appeared on every mobile login and its backdrop ate the first tap on
+  // "View All My Transactions" — the recurring "have to click twice" bug.
   const [onboard, setOnboard] = useState(() => {
+    const fromServer = currentUser?.onboarding;
+    if (fromServer && typeof fromServer === "object") {
+      return { active: !fromServer.dismissed && !fromServer.finished, done: new Set(fromServer.done || []) };
+    }
     try {
       const raw = localStorage.getItem(onboardKey);
       if (raw) { const p = JSON.parse(raw); return { active: !p.dismissed && !p.finished, done: new Set(p.done || []) }; }
@@ -7301,7 +7333,17 @@ function MainApp({ onLogout, currentUser }) {
   const persistOnboard = (active, doneSet, extra = {}) => {
     const next = { active, done: doneSet };
     setOnboard(next);
-    try { localStorage.setItem(onboardKey, JSON.stringify({ done: [...doneSet], dismissed: !!extra.dismissed, finished: !!extra.finished })); } catch (e) { /* ignore */ }
+    const payload = { done: [...doneSet], dismissed: !!extra.dismissed, finished: !!extra.finished };
+    try { localStorage.setItem(onboardKey, JSON.stringify(payload)); } catch (e) { /* ignore */ }
+    // Server is the durable copy — and keep the cached tp_user in sync so a
+    // remount in this session (or this device's next login) sees the same state.
+    const tok = localStorage.getItem("tp_token") || "";
+    fetch(API + "/me/onboarding", { method: "PUT", headers: { "Content-Type": "application/json", "Authorization": "Bearer " + tok }, body: JSON.stringify(payload) })
+      .catch(e => console.error("[onboarding save]", e && e.message ? e.message : e));
+    try {
+      const u = JSON.parse(localStorage.getItem("tp_user") || "null");
+      if (u) { u.onboarding = payload; localStorage.setItem("tp_user", JSON.stringify(u)); }
+    } catch (e) { /* ignore */ }
   };
   // Order: Company → Profile → Goals (Company is admin-only, so non-admins start at Profile), then the App Tour.
   const onboardSteps = [];
