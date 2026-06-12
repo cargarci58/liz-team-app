@@ -7,6 +7,7 @@ import FormDownloadPage from './FormDownloadPage'
 import ContractUploadPublic from './ContractUploadPublic'
 import OfferReviewPublic from './OfferReviewPublic'
 import MilestoneActionPublic from './MilestoneActionPublic'
+import PortalMagicLogin from './PortalMagicLogin'
 
 // Stale-deploy self-heal: after a new Netlify build, the hashed JS chunks
 // change. A tab that was already open (or one served the SPA index.html
@@ -44,7 +45,8 @@ window.fetch = async function patchedFetch(input, init) {
       const path = window.location.pathname;
       const isPublicPath = path.startsWith('/upload/') || path.startsWith('/reset-password') ||
                            path.startsWith('/form-download/') || path.startsWith('/upload-contract/') ||
-                           path.startsWith('/review-offers/') || path.startsWith('/milestone-action/');
+                           path.startsWith('/review-offers/') || path.startsWith('/milestone-action/') ||
+                           path.startsWith('/portal/');
       if (!isPublicPath) {
         __reloadingForAuth = true;
         try { localStorage.removeItem('tp_token'); localStorage.removeItem('tp_user'); } catch (_) {}
@@ -73,6 +75,9 @@ else if (path.startsWith('/form-download/')) {
 } else if (path.startsWith('/milestone-action/')) {
   const token = path.split('/milestone-action/')[1];
   Root = <MilestoneActionPublic urlToken={token} />;
+} else if (path.startsWith('/portal/')) {
+  const token = path.split('/portal/')[1];
+  Root = <PortalMagicLogin urlToken={token} />;
 } else Root = <App />;
 
 createRoot(document.getElementById('root')).render(Root);
