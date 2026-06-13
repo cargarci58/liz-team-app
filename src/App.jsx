@@ -4041,6 +4041,80 @@ function ActiveFollowups({ txId }) {
   );
 }
 
+// Shows the full text + downloadable attachments of every reply a party has sent
+// back to one of this deal's automated emails (the inbound_emails table). This is
+// where the Win-the-Day "💬 …replied" card lands.
+function InboundRepliesPanel({ tx }) {
+  const [messages, setMessages] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const tok = localStorage.getItem("tp_token") || "";
+  const API = "https://liz-team-server-api-production.up.railway.app";
+  useEffect(() => {
+    let alive = true;
+    fetch(`${API}/transactions/${tx.id}/inbound-emails`, { headers: { Authorization: "Bearer " + tok } })
+      .then(r => r.json())
+      .then(d => { if (alive) { setMessages(Array.isArray(d.messages) ? d.messages : []); setLoading(false); } })
+      .catch(() => { if (alive) setLoading(false); });
+    return () => { alive = false; };
+  }, [tx.id]);
+
+  const openAttachment = async (msgId, idx) => {
+    try {
+      const r = await fetch(`${API}/inbound-emails/${msgId}/attachment/${idx}`, { headers: { Authorization: "Bearer " + tok } });
+      const d = await r.json();
+      if (d.url) window.open(d.url, "_blank");
+      else alert("Could not open that attachment.");
+    } catch { alert("Could not open that attachment."); }
+  };
+
+  if (loading) return <div style={{ padding: 24, color: COLORS.gray }}>Loading replies…</div>;
+  if (!messages.length) return (
+    <div style={{ background: "#fff", border: `1px solid ${COLORS.border}`, borderRadius: 12, padding: 28, textAlign: "center", color: COLORS.gray }}>
+      <div style={{ fontSize: 34, marginBottom: 8 }}>💬</div>
+      <div style={{ fontWeight: 700, color: COLORS.navy, marginBottom: 4 }}>No replies yet</div>
+      <div style={{ fontSize: 13 }}>When a party replies to one of your automated emails, their full message and any attachments show up here.</div>
+    </div>
+  );
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+      {messages.map(m => {
+        const atts = Array.isArray(m.attachments) ? m.attachments : [];
+        const when = m.created_at ? new Date(m.created_at).toLocaleString() : "";
+        return (
+          <div key={m.id} style={{ background: "#fff", border: `1px solid ${COLORS.border}`, borderRadius: 12, padding: 18 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 6, marginBottom: 8 }}>
+              <div>
+                <span style={{ fontWeight: 700, color: COLORS.navy }}>{m.from_name || m.from_email || "A party"}</span>
+                {m.party_role && <span style={{ marginLeft: 8, fontSize: 12, background: COLORS.bg, color: COLORS.gray, padding: "2px 8px", borderRadius: 6 }}>{m.party_role}</span>}
+              </div>
+              <span style={{ fontSize: 12, color: COLORS.gray }}>{when}</span>
+            </div>
+            {m.subject && <div style={{ fontWeight: 600, color: COLORS.navy, marginBottom: 6 }}>{m.subject}</div>}
+            <div style={{ whiteSpace: "pre-wrap", color: "#333", fontSize: 14, lineHeight: 1.5 }}>{m.body_text || m.snippet || ""}</div>
+            {atts.length > 0 && (
+              <div style={{ marginTop: 12, borderTop: `1px solid ${COLORS.border}`, paddingTop: 10 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: COLORS.gray, marginBottom: 6 }}>📎 Attachments</div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                  {atts.map((a, i) => (
+                    <button key={i} onClick={() => openAttachment(m.id, i)}
+                      style={{ border: `1px solid ${COLORS.border}`, background: COLORS.bg, borderRadius: 8, padding: "8px 12px", cursor: "pointer", fontSize: 13, fontWeight: 600, color: COLORS.navy }}>
+                      📄 {a.filename || `Attachment ${i + 1}`}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+            {atts.length === 0 && m.attachment_count > 0 && (
+              <div style={{ marginTop: 10, fontSize: 12, color: COLORS.gray }}>📎 {m.attachment_count} attachment(s) were sent before attachment saving was enabled — ask the sender to resend if you still need them.</div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [], onSaveContact, onOpenContactBook, onDuplicate, currentUser, initialTab = "overview", dashboardUnread = 0, onMilestoneSummary }) {
   const [activeTab, setActiveTab] = useState(initialTab);
   const [showAssignAgent, setShowAssignAgent] = useState(false);
@@ -4307,6 +4381,7 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
     { id: "milestones", label: "📅 Timeline" },
     { id: "parties", label: `People (${tx.parties.length})` },
     { id: "sms", label: `Messages${smsMsgCount > 0 ? ` (${smsMsgCount})` : ""}` },
+    { id: "replies", label: "💬 Replies" },
     { id: "notes", label: "Internal Notes" },
     { id: "documents", label: "📎 Documents" },
     // Group chat now lives inside the Messages tab (Group mode) for staff. Guests
@@ -4768,6 +4843,8 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
         )}
 
         {activeTab === "sms" && <SMSPanel tx={tx} onUpdate={onUpdate} />}
+
+        {activeTab === "replies" && <InboundRepliesPanel tx={tx} />}
 
         {activeTab === "notes" && (
           <div>
@@ -7483,12 +7560,12 @@ function MainApp({ onLogout, currentUser }) {
     } catch (e) { alert("Error: " + e.message); }
   };
 
-  const openTransactionMilestones = (txId) => {
+  const openTransactionMilestones = (txId, tab = "documents") => {
     if (!txId) return;
     const t = transactions.find(t => t.id === txId);
     if (t) {
       setSelectedId(txId);
-      setInitialDetailTab("documents"); // land on Documents — that's where they upload
+      setInitialDetailTab(tab); // default Documents (where they upload); inbound cards land on Replies
       setView("detail");
     } else {
       // Tx not in the loaded list (cap/filter/stale) — go to the transactions list
@@ -7548,6 +7625,7 @@ function MainApp({ onLogout, currentUser }) {
           user={currentUser}
           onViewTransactions={() => { setShowReports(false); setShowCalendar(false); setView("dashboard"); }}
           onOpenTransactionMilestones={openTransactionMilestones}
+          onOpenInboundReply={(txId) => openTransactionMilestones(txId, "replies")}
           onOpenPopBys={() => setView("popbys")}
         />
       )}

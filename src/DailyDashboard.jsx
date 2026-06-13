@@ -233,7 +233,7 @@ function PersonalTaskCard({ task, token, onChange }) {
   );
 }
 
-function TaskCard({ task, token, onResolve, onComplete, onSnooze, onOpenModal, onStartChase, onOpenTransactionMilestones, onInboundReply }) {
+function TaskCard({ task, token, onResolve, onComplete, onSnooze, onOpenModal, onStartChase, onOpenTransactionMilestones, onOpenInboundReply, onInboundReply }) {
   const cfg = PRIORITY_CONFIG[task.priority] || PRIORITY_CONFIG.normal;
   const icon = TASK_ICONS[task.task_type] || "📌";
   const isSellerUpdate = task.task_type === "seller_update";
@@ -354,7 +354,7 @@ function TaskCard({ task, token, onResolve, onComplete, onSnooze, onOpenModal, o
                 ✓ Approve &amp; Update
               </button>
             )}
-            <button onClick={() => onOpenTransactionMilestones && onOpenTransactionMilestones(task.transaction_id)}
+            <button onClick={() => (onOpenInboundReply || onOpenTransactionMilestones) && (onOpenInboundReply || onOpenTransactionMilestones)(task.transaction_id)}
               style={{ flex: inboundHasSuggestion ? "1 1 30%" : "2 1 60%", padding:"11px 0", borderRadius:10,
                 border:"none", background:COLORS.red, color:COLORS.white, fontWeight:700, fontSize:14, cursor:"pointer" }}>
               📂 Open
@@ -429,7 +429,7 @@ function telHref(raw) {
 }
 
 // ── MAIN DASHBOARD ────────────────────────────────────────────
-export default function DailyDashboard({ token, user, onViewTransactions, onOpenTransactionMilestones, onOpenPopBys }) {
+export default function DailyDashboard({ token, user, onViewTransactions, onOpenTransactionMilestones, onOpenInboundReply, onOpenPopBys }) {
   const [tasks, setTasks] = useState({ overdue:[], dueToday:[], upcoming:[] });
   const [personal, setPersonal] = useState({ overdue:[], dueToday:[], upcoming:[] });
   const [callsDue, setCallsDue] = useState([]);
@@ -809,7 +809,7 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
           {visibleOverdue.map(task => (
             <TaskCard key={task.id} task={task} token={token}
               onResolve={handleResolve} onComplete={handleComplete} onSnooze={handleSnooze}
-              onOpenModal={setActiveModal} onStartChase={handleStartChase} onOpenTransactionMilestones={onOpenTransactionMilestones} onInboundReply={handleInboundReply} />
+              onOpenModal={setActiveModal} onStartChase={handleStartChase} onOpenTransactionMilestones={onOpenTransactionMilestones} onOpenInboundReply={onOpenInboundReply} onInboundReply={handleInboundReply} />
           ))}
         </div>
       )}
@@ -821,7 +821,7 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
           {visibleToday.map(task => (
             <TaskCard key={task.id} task={task} token={token}
               onResolve={handleResolve} onComplete={handleComplete} onSnooze={handleSnooze}
-              onOpenModal={setActiveModal} onStartChase={handleStartChase} onOpenTransactionMilestones={onOpenTransactionMilestones} onInboundReply={handleInboundReply} />
+              onOpenModal={setActiveModal} onStartChase={handleStartChase} onOpenTransactionMilestones={onOpenTransactionMilestones} onOpenInboundReply={onOpenInboundReply} onInboundReply={handleInboundReply} />
           ))}
         </div>
       )}
@@ -833,7 +833,7 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
           {visibleUpcoming.map(task => (
             <TaskCard key={task.id} task={task} token={token}
               onResolve={handleResolve} onComplete={handleComplete} onSnooze={handleSnooze}
-              onOpenModal={setActiveModal} onStartChase={handleStartChase} onOpenTransactionMilestones={onOpenTransactionMilestones} onInboundReply={handleInboundReply} />
+              onOpenModal={setActiveModal} onStartChase={handleStartChase} onOpenTransactionMilestones={onOpenTransactionMilestones} onOpenInboundReply={onOpenInboundReply} onInboundReply={handleInboundReply} />
           ))}
         </div>
       )}
