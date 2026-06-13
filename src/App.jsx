@@ -4894,19 +4894,11 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
             <Btn variant="ghost" onClick={() => setEditingParty(null)}>Cancel</Btn>
             <Btn onClick={async () => {
               const editedParty = editingParty;
-              // Await the save so the server has the corrected party BEFORE any send —
-              // otherwise a welcome could go to the pre-edit email address.
+              // Editing a party ONLY saves — it never emails anyone, not even a
+              // prompt. To (re)send a welcome, use the ✉️ Send Welcome button on
+              // the party row, which sends to that one person on purpose.
               await update({ parties: tx.parties.map(p => p.id === editedParty.id ? editedParty : p) });
               setEditingParty(null);
-              // Offer to send welcome to JUST this party — only if they have a valid email.
-              // Declining sends nothing; saving a party edit never emails anyone on its own.
-              if (editedParty.email && editedParty.email.includes("@") && (tx.status === "Under Contract" || tx.needsReview)) {
-                setTimeout(() => {
-                  if (window.confirm(`Send a welcome email to ONLY ${editedParty.name} (${editedParty.role}) at ${editedParty.email} now?\n\nNo other party will be emailed. Click Cancel to skip — you can send welcomes later from the transaction.`)) {
-                    sendWelcomeEmailsFromTx([editedParty]);
-                  }
-                }, 200);
-              }
             }}>Save Changes</Btn>
           </div>
         </Modal>
