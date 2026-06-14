@@ -1325,7 +1325,7 @@ function SMSPanel({ tx, onUpdate, currentUser }) {
       <input ref={fileInputRef} type="file" style={{ display: "none" }} onChange={e => { const f = e.target.files?.[0]; if (f) uploadFromComputer(f); e.target.value = ""; }} />
 
       {surface === "chat" && mode === "direct" && (
-        <div style={{ display: "grid", gridTemplateColumns: "260px 1fr", gap: 16, height: 620, "data-msg-grid": "" }}>
+        <div data-msg-grid style={{ display: "grid", gridTemplateColumns: "260px 1fr", gap: 16, height: "min(900px, calc(100vh - 180px))", minHeight: 600 }}>
           <div style={{ background: "#fff", border: "1px solid #E5E7EB", borderRadius: 12, overflow: "hidden", display: "flex", flexDirection: "column" }}>
             <div style={{ padding: "12px 14px", borderBottom: "1px solid #E5E7EB", fontSize: 12, fontWeight: 700, color: "#6B7280", textTransform: "uppercase", letterSpacing: "0.05em" }}>Chat privately with...</div>
             <div style={{ flex: 1, overflowY: "auto" }}>
@@ -1517,7 +1517,7 @@ function SMSPanel({ tx, onUpdate, currentUser }) {
       {surface === "send" && mode === "direct" && (partiesWithContact.length === 0 ? (
         <div style={{ textAlign: "center", color: "#6B7280", padding: 40 }}>No parties with phone or email. Add contact info in the People tab.</div>
       ) : (
-        <div style={{ display: "grid", gridTemplateColumns: "260px 1fr", gap: 16, height: 560, "data-msg-grid": "" }}>
+        <div data-msg-grid style={{ display: "grid", gridTemplateColumns: "260px 1fr", gap: 16, height: "min(900px, calc(100vh - 180px))", minHeight: 600 }}>
           <div style={{ background: "#fff", border: "1px solid #E5E7EB", borderRadius: 12, overflow: "hidden", display: "flex", flexDirection: "column" }}>
             <div style={{ padding: "12px 14px", borderBottom: "1px solid #E5E7EB", fontSize: 12, fontWeight: 700, color: "#6B7280", textTransform: "uppercase", letterSpacing: "0.05em" }}>Conversations</div>
             <div style={{ flex: 1, overflowY: "auto" }}>
@@ -1537,7 +1537,7 @@ function SMSPanel({ tx, onUpdate, currentUser }) {
                         </div>
                         <div style={{ fontSize: 11, fontWeight: 600, color: "#C9A84C" }}>{party.role}</div>
                         <div style={{ fontSize: 10, color: "#6B7280" }}>{party.phone ? "📱 " : ""}{party.email ? "📧" : ""}</div>
-                        <div style={{ fontSize: 11, color: "#6B7280", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{last ? `${last.direction === "outbound" ? "You: " : ""}${last.body}` : "No messages yet"}</div>
+                        <div style={{ fontSize: 12.5, color: "#4B5563", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginTop: 2 }}>{last ? `${last.direction === "outbound" ? "You: " : ""}${last.body}` : "No messages yet"}</div>
                       </div>
                     </div>
                   </div>
@@ -1564,15 +1564,18 @@ function SMSPanel({ tx, onUpdate, currentUser }) {
                   </div>
                   <ChannelPicker value={channel} onChange={setChannel} />
                 </div>
-                <div style={{ flex: 1, overflowY: "auto", padding: "16px 18px", display: "flex", flexDirection: "column", gap: 10 }}>
+                <div style={{ flex: 1, minHeight: 280, overflowY: "auto", padding: "16px 18px", display: "flex", flexDirection: "column", gap: 10 }}>
                   {getThread(selectedParty).length === 0 && <div style={{ textAlign: "center", color: "#6B7280", fontSize: 13, marginTop: 40 }}>No messages yet. Select SMS, Email, or both above then type below.</div>}
                   {getThread(selectedParty).map(m => {
                     const isOut = m.direction === "outbound";
                     return (
                       <div key={m.id} style={{ display: "flex", justifyContent: isOut ? "flex-end" : "flex-start" }}>
-                        <div style={{ maxWidth: "72%" }}>
-                          <div style={{ fontSize: 10, color: "#6B7280", marginBottom: 3, textAlign: isOut ? "right" : "left" }}>{isOut ? "You" : selectedParty.name} · {formatTime(m.timestamp)} {m.channel === "email" ? "📧" : "📱"}</div>
-                          <div style={{ background: isOut ? "#0F2044" : "#F3F4F6", color: isOut ? "#fff" : "#1A1A2E", padding: "10px 14px", borderRadius: isOut ? "14px 14px 4px 14px" : "14px 14px 14px 4px", fontSize: 14, lineHeight: 1.5, whiteSpace: "pre-wrap" }}>{m.body}</div>
+                        <div style={{ maxWidth: "82%" }}>
+                          <div style={{ fontSize: 12, color: "#4B5563", marginBottom: 4, textAlign: isOut ? "right" : "left", fontWeight: 600 }}>{isOut ? "You" : selectedParty.name} · {formatTime(m.timestamp)} {m.channel === "email" ? "📧 Email" : "📱 Text"}</div>
+                          <div style={{ background: isOut ? "#0F2044" : "#F3F4F6", color: isOut ? "#fff" : "#1A1A2E", padding: "12px 16px", borderRadius: isOut ? "14px 14px 4px 14px" : "14px 14px 14px 4px", fontSize: 15.5, lineHeight: 1.6, whiteSpace: "pre-wrap" }}>
+                            {m.channel === "email" && m.subject && <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 6, opacity: 0.92, borderBottom: isOut ? "1px solid rgba(255,255,255,0.25)" : "1px solid #D1D5DB", paddingBottom: 6 }}>{m.subject}</div>}
+                            {m.body}
+                          </div>
                         </div>
                       </div>
                     );
@@ -1623,8 +1626,8 @@ function SMSPanel({ tx, onUpdate, currentUser }) {
                   )}
                 </div>
                 <div style={{ padding: "12px 18px", borderTop: "1px solid #E5E7EB", display: "flex", gap: 10, alignItems: "flex-end", flexWrap: "wrap" }}>
-                  <textarea value={message} onChange={e => setMessage(e.target.value)} onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey && channel === "sms") { e.preventDefault(); sendMessage(); } }} placeholder="Type message... (Shift+Enter for new line)" rows={8} style={{ flex: 1, padding: "10px 14px", borderRadius: 10, border: "1px solid #E5E7EB", fontSize: 14, fontFamily: "inherit", resize: "vertical", minHeight: 120, boxSizing: "border-box" }} />
-                  <button onClick={sendMessage} disabled={!message.trim() || sending} style={{ height: 52, minWidth: 70, borderRadius: 8, border: "none", background: "#15803D", color: "#fff", fontWeight: 600, fontSize: 14, cursor: "pointer", fontFamily: "inherit", opacity: (!message.trim() || sending) ? 0.5 : 1 }}>{sending ? "..." : "Send"}</button>
+                  <textarea value={message} onChange={e => setMessage(e.target.value)} onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey && channel === "sms") { e.preventDefault(); sendMessage(); } }} placeholder="Type message... (Shift+Enter for new line)" rows={3} style={{ flex: 1, padding: "10px 14px", borderRadius: 10, border: "1px solid #E5E7EB", fontSize: 14, fontFamily: "inherit", resize: "vertical", minHeight: 70, boxSizing: "border-box" }} />
+                  <button onClick={sendMessage} disabled={!message.trim() || sending} style={{ height: 44, minWidth: 70, borderRadius: 8, border: "none", background: "#15803D", color: "#fff", fontWeight: 600, fontSize: 14, cursor: "pointer", fontFamily: "inherit", opacity: (!message.trim() || sending) ? 0.5 : 1 }}>{sending ? "..." : "Send"}</button>
                 </div>
                 <div style={{ margin: "0 18px 12px", padding: "10px 14px", borderTop: "2px solid #C0392B", background: "#F9FAFB", borderRadius: "0 0 8px 8px", display: "flex", alignItems: "center", gap: 10 }}>
                     <div style={{ fontSize: 10, color: "#999", textTransform: "uppercase", fontWeight: 700, marginRight: 4 }}>Signature:</div>
