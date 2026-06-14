@@ -22,6 +22,55 @@ function daysUntil(d) {
   return Math.round((new Date(d) - new Date()) / 86400000);
 }
 
+// Plain-English, client-facing milestone labels (+ why it matters). A seller
+// should never see a cryptic internal name like "Keys / Remotes / Garage
+// Openers" with no context, and should never be handed BUYER tasks.
+const CLIENT_MILESTONE_COPY = [
+  { re: /utilities|move-?out/i, label: "Plan your utilities & move-out", why: "As closing nears, arrange for your power, water, and internet to stop or transfer, and have the home cleared out." },
+  { re: /keys|remotes|garage|openers|fobs?/i, label: "Gather keys, remotes & garage openers", why: "Bring all house keys, garage remotes, mailbox keys, and gate fobs to closing so the new owner can be handed everything." },
+  { re: /home ?warranty/i, label: "Home warranty", why: "Optional coverage — your agent will tell you if it's part of your deal." },
+  { re: /final walk/i, label: "Final walk-through", why: "The buyer takes one last look before closing to confirm the home's condition." },
+  { re: /closing disclosure|cd review|settlement statement|alta/i, label: "Review your closing figures", why: "You'll get a settlement statement with your final numbers — review it and ask your agent about anything unclear." },
+  { re: /lead-?based paint|lead paint/i, label: "Lead-paint disclosure", why: "A required form for homes built before 1978." },
+  { re: /property disclosure|spd/i, label: "Property disclosure", why: "The form describing the home's condition and history for the buyer." },
+  { re: /survey/i, label: "Property survey", why: "Confirms the property lines — usually ordered through the title company." },
+  { re: /hoa|estoppel/i, label: "HOA documents", why: "Your HOA provides the estoppel/financial info needed to close." },
+  { re: /appraisal/i, label: "Appraisal", why: "" },
+  { re: /inspection/i, label: "Home inspection", why: "" },
+  { re: /financing|loan/i, label: "Buyer's financing", why: "" },
+  { re: /title|lien/i, label: "Title work", why: "" },
+];
+function humanizeForClient(name) {
+  const hit = CLIENT_MILESTONE_COPY.find(e => e.re.test(name || ""));
+  if (hit) return { label: hit.label, why: hit.why };
+  const clean = String(name || "this step").replace(/\s*\(.*?\)\s*/g, " ").replace(/\s+/g, " ").trim();
+  return { label: clean, why: "" };
+}
+
+// The DB status is coarse and often stuck at "Under Contract" while the deal has
+// really moved on. Derive the TRUE stage from completed milestones so the portal
+// never tells a seller "under contract" when the appraisal is already in.
+const STAGE_ORDER = ["Active", "Under Contract", "Inspection", "Appraisal", "Clear to Close", "Closed"];
+function deriveStage(timeline, tx) {
+  const ms = (timeline && Array.isArray(timeline.milestones)) ? timeline.milestones : [];
+  const done = ms.filter(m => m.status === "Completed" || m.status === "Waived");
+  const open = ms.filter(m => m.status !== "Completed" && m.status !== "Waived" && m.is_na !== true);
+  const doneHas = (re) => done.some(m => re.test(m.name || ""));
+  let derived = "Active";
+  if (doneHas(/clear to close|cd review|closing disclosure|final walk|settlement statement/i)) derived = "Clear to Close";
+  else if (doneHas(/appraisal received|appraisal report|financing (approved|commitment|secured)|loan (approved|commitment|cleared)/i)) derived = "Appraisal";
+  else if (doneHas(/inspection period|inspection (complete|done|cleared)|repair (request|negotiation)|wdo|termite/i)) derived = "Inspection";
+  else if (doneHas(/executed|under contract|emd|earnest|fully executed/i)) derived = "Under Contract";
+  if ((tx.status || "") === "Closed") return { effectiveStatus: "Closed", lastDone: null, upcoming: [] };
+  const dbIdx = Math.max(0, STAGE_ORDER.indexOf(tx.status));
+  const derivedIdx = STAGE_ORDER.indexOf(derived);
+  const effectiveStatus = STAGE_ORDER[Math.max(dbIdx, derivedIdx)];
+  const meaningful = (m) => !/communication|weekly|thank|review request|compliance|reminder|set up|generate/i.test(m.name || "");
+  const lastDone = [...done].filter(meaningful).sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0)).slice(-1)[0] || null;
+  const upcoming = [...open].filter(meaningful).sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0)).slice(0, 4);
+  return { effectiveStatus, lastDone, upcoming };
+}
+
 // ── PROGRESS TRACKER ─────────────────────────────────────────
 function ProgressTracker({ status, transactionType }) {
   const isSeller = transactionType && transactionType.includes("Seller");
@@ -30,6 +79,7 @@ function ProgressTracker({ status, transactionType }) {
     { key: "Active", label: "Listed", icon: "🏠" },
     { key: "Under Contract", label: "Contract", icon: "✍️" },
     { key: "Inspection", label: "Inspection", icon: "🔍" },
+    { key: "Appraisal", label: "Financing", icon: "🏦" },
     { key: "Clear to Close", label: "Clear to Close", icon: "✅" },
     { key: "Closed", label: "Sold!", icon: "🎉" },
   ];
@@ -103,16 +153,19 @@ function ProgressTracker({ status, transactionType }) {
 }
 
 // ── LATEST UPDATE CARD ────────────────────────────────────────
-function LatestUpdateCard({ tx, agentName }) {
-  const daysToClose = daysUntil(tx.closingDate);
-
+function LatestUpdateCard({ tx, agentName, stage }) {
+  // Driven by the REAL milestone progress (stage), not the coarse DB status —
+  // so a deal that's past appraisal never reads "you're under contract."
   const getUpdateMessage = () => {
-    if (tx.status === "Closed") return "Congratulations! Your transaction has successfully closed. Thank you for trusting us with this important milestone.";
-    if (tx.status === "Clear to Close") return "Great news — you have been cleared to close! Everything is in order and you are almost at the finish line.";
-    if (tx.status === "Inspection") return "The inspection phase is underway. Your agent is reviewing all inspection items and will keep you informed of any next steps.";
-    if (tx.status === "Under Contract") return "You are officially under contract! Your agent is coordinating all the moving parts to keep things on track toward closing.";
-    if (daysToClose !== null && daysToClose <= 7 && daysToClose >= 0) return `Closing is just ${daysToClose} day${daysToClose === 1 ? "" : "s"} away! Your agent is making sure everything is ready for a smooth closing day.`;
-    return "Your transaction is active and moving forward. Your agent is working hard behind the scenes and will reach out with any important updates.";
+    if (tx.status === "Closed") return "Congratulations — your sale is complete! Thank you for trusting us with this milestone.";
+    const eff = (stage && stage.effectiveStatus) || tx.status;
+    const next = stage && stage.upcoming && stage.upcoming[0] ? humanizeForClient(stage.upcoming[0].name).label.toLowerCase() : null;
+    const nextLine = next ? ` Next up: ${next}.` : "";
+    if (eff === "Clear to Close") return `🎉 You're clear to close — everything's in order and we're lining up the final details for closing day!`;
+    if (eff === "Appraisal") return `The appraisal is in and we're working through the buyer's financing — next stop, clear to close.${nextLine}`;
+    if (eff === "Inspection") return `We're through the inspection stage and moving forward toward closing.${nextLine}`;
+    if (eff === "Under Contract") return `You're under contract — we're working through the contract steps to keep things on track toward closing.${nextLine}`;
+    return `Your transaction is moving forward. Your agent is working behind the scenes and will reach out with any updates.${nextLine}`;
   };
 
   return (
@@ -180,6 +233,29 @@ function ClosingCountdownCard({ tx }) {
   );
 }
 
+// ── AGENT CARD — "this is YOUR agent" (branding + one-tap reach) ──
+function AgentCard({ name, title, brokerage, phone, email, photo, brand }) {
+  if (!name) return null;
+  const initials = name.split(/\s+/).map(w => w[0]).filter(Boolean).slice(0, 2).join("").toUpperCase();
+  return (
+    <div style={{ background: "#fff", borderRadius: 16, padding: 16, marginBottom: 14, boxShadow: "0 1px 4px rgba(0,0,0,0.08)", display: "flex", gap: 14, alignItems: "center", flexWrap: "wrap" }}>
+      {photo
+        ? <img src={photo} alt={name} style={{ width: 58, height: 58, borderRadius: "50%", objectFit: "cover", flexShrink: 0, border: `2px solid ${brand}` }} />
+        : <div style={{ width: 58, height: 58, borderRadius: "50%", background: brand, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 20, flexShrink: 0 }}>{initials}</div>}
+      <div style={{ flex: 1, minWidth: 150 }}>
+        <div style={{ fontSize: 11, fontWeight: 700, color: "#888", textTransform: "uppercase", letterSpacing: 1 }}>Your Agent</div>
+        <div style={{ fontSize: 17, fontWeight: 800, color: "#111" }}>{name}</div>
+        <div style={{ fontSize: 12.5, color: "#666" }}>{[title, brokerage].filter(Boolean).join(" · ")}</div>
+      </div>
+      <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
+        {phone && <a href={"tel:" + phone} style={{ background: brand, color: "#fff", textDecoration: "none", borderRadius: 10, padding: "9px 14px", fontSize: 13, fontWeight: 700 }}>📞 Call</a>}
+        {phone && <a href={"sms:" + phone} style={{ background: "#fff", color: brand, textDecoration: "none", border: `1.5px solid ${brand}`, borderRadius: 10, padding: "9px 14px", fontSize: 13, fontWeight: 700 }}>💬 Text</a>}
+        {!phone && email && <a href={"mailto:" + email} style={{ background: brand, color: "#fff", textDecoration: "none", borderRadius: 10, padding: "9px 14px", fontSize: 13, fontWeight: 700 }}>✉️ Email</a>}
+      </div>
+    </div>
+  );
+}
+
 // ── CELEBRATION CONFETTI (no dependency) ──────────────────────
 function Confetti() {
   const colors = ["#C0392B", "#1E8449", "#B7770D", "#1A5276", "#7D3C98", "#C9A84C"];
@@ -197,15 +273,16 @@ function Confetti() {
 }
 
 // ── JOURNEY HERO — celebratory headline + countdown (the emotional anchor) ──
-function JourneyHero({ tx }) {
+function JourneyHero({ tx, stage }) {
   const days = daysUntil(tx.closingDate);
   const isBuyer = tx.transactionType && tx.transactionType.includes("Buyer");
-  const celebrate = tx.status === "Closed" || tx.status === "Clear to Close";
-  const headline = tx.status === "Closed" ? (isBuyer ? "🎉 You're officially a homeowner!" : "🎉 Your home is sold — congratulations!")
-    : tx.status === "Clear to Close" ? "🏁 You're clear to close — the finish line!"
+  const eff = (stage && stage.effectiveStatus) || tx.status;
+  const celebrate = eff === "Closed" || eff === "Clear to Close";
+  const headline = eff === "Closed" ? (isBuyer ? "🎉 You're officially a homeowner!" : "🎉 Your home is sold — congratulations!")
+    : eff === "Clear to Close" ? "🏁 You're clear to close — the finish line!"
     : days !== null && days >= 0 && days <= 45 ? (days === 0 ? "🔑 Closing is today!" : `🔑 ${days} day${days === 1 ? "" : "s"} to closing`)
     : isBuyer ? "🏡 Your home purchase is on track" : "🏡 Your home sale is on track";
-  const sub = tx.status === "Closed" ? "Thank you for trusting us with this milestone."
+  const sub = eff === "Closed" ? "Thank you for trusting us with this milestone."
     : isBuyer ? "We're handling every detail to get you to the closing table." : "We're working hard to get you sold and closed.";
   return (
     <div style={{ position: "relative", borderRadius: 16, padding: 22, marginBottom: 14, color: "#fff",
@@ -233,13 +310,14 @@ function WinsCard({ timeline }) {
   const recent = done.slice(-4).reverse();
   return (
     <div style={{ background: "#fff", borderRadius: 14, padding: 18, marginBottom: 14, boxShadow: "0 1px 4px rgba(0,0,0,0.08)" }}>
-      <div style={{ fontSize: 12, fontWeight: 800, color: "#555", textTransform: "uppercase", letterSpacing: 1, marginBottom: 10 }}>
+      <div style={{ fontSize: 12, fontWeight: 800, color: "#555", textTransform: "uppercase", letterSpacing: 1, marginBottom: 2 }}>
         🎉 Look how far we've come — {done.length} step{done.length === 1 ? "" : "s"} done
       </div>
+      <div style={{ fontSize: 12, color: "#888", marginBottom: 10 }}>Your most recent wins:</div>
       {recent.map((m, i) => (
         <div key={m.id || i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "7px 0", borderBottom: i < recent.length - 1 ? "1px solid #F4F4F4" : "none" }}>
           <span style={{ color: "#1E8449", fontSize: 16, fontWeight: 800 }}>✓</span>
-          <span style={{ fontSize: 14, color: "#111" }}>{m.name}</span>
+          <span style={{ fontSize: 14, color: "#111" }}>{humanizeForClient(m.name).label}</span>
         </div>
       ))}
     </div>
@@ -680,10 +758,12 @@ export default function ClientPortal({ user, onLogout, previewTxId, onExitPrevie
     tasks: (t.tasks || []).filter(Boolean),
     owningBrokerage: t.owning_brokerage,
     brokerageColor: t.brokerage_color,
+    brokerageLogo: t.brokerage_logo,
     owningAgentName: [t.owning_agent_first_name, t.owning_agent_last_name].filter(Boolean).join(" "),
     owningAgentEmail: t.owning_agent_email,
     owningAgentPhone: t.owning_agent_phone,
     owningAgentTitle: t.owning_agent_title,
+    owningAgentPhoto: t.owning_agent_photo,
   });
 
   useEffect(() => {
@@ -834,6 +914,18 @@ export default function ClientPortal({ user, onLogout, previewTxId, onExitPrevie
   const agentName = tx ? tx.owningAgentName : "";
   const agentPhone = tx ? tx.owningAgentPhone : "";
   const agentEmail = tx ? tx.owningAgentEmail : "";
+  const agentPhoto = tx ? tx.owningAgentPhoto : "";
+  const agentTitle = tx ? tx.owningAgentTitle : "";
+  const brokerage = tx ? tx.owningBrokerage : "";
+  const brokerageLogo = tx ? tx.brokerageLogo : "";
+  // The portal wears the AGENT's brokerage color — it's their portal, not generic.
+  // Guard against unreadable near-white brand colors for the dark header.
+  const rawBrand = (tx && tx.brokerageColor) || "";
+  const isLight = (hex) => { const m = /^#?([0-9a-f]{6})$/i.exec(hex || ""); if (!m) return false; const n = parseInt(m[1], 16); const r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255; return (r * 299 + g * 587 + b * 114) / 1000 > 180; };
+  const brand = rawBrand && !isLight(rawBrand) ? rawBrand : "#1A2B4A";
+  // The TRUE stage from milestones (not the stuck DB status) drives the tracker,
+  // latest update, hero, and "what's next" — so the seller never sees stale info.
+  const stage = tx ? deriveStage(timeline, tx) : { effectiveStatus: "Active", lastDone: null, upcoming: [] };
 
   const isBuyerSide = tx && (tx.type === "Buyer Representation" || tx.type === "Dual Agency" || (tx.transactionType && tx.transactionType.includes("Buyer")));
   const isSellerSide = tx && (tx.type === "Listing (Seller)" || tx.type === "Dual Agency" || (tx.transactionType && (tx.transactionType.includes("Listing") || tx.transactionType.includes("Seller"))));
@@ -889,21 +981,21 @@ export default function ClientPortal({ user, onLogout, previewTxId, onExitPrevie
         </div>
       )}
 
-      {/* Header */}
-      <div style={{ background: "#111111", padding: "14px 20px",
-        display: "flex", justifyContent: "space-between", alignItems: "center",
-        borderBottom: "2px solid #C0392B" }}>
+      {/* Header — wears the agent's brokerage brand */}
+      <div style={{ background: brand, padding: "14px 20px",
+        display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <div style={{ width: 36, height: 36, borderRadius: 8, background: "#C0392B",
-            display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
-            boxShadow: "0 2px 8px rgba(192,57,43,0.4)" }}>
-            <span style={{ color: "#fff", fontSize: 20, fontWeight: 900, lineHeight: 1 }}>T</span>
-          </div>
+          {brokerageLogo
+            ? <img src={brokerageLogo} alt={brokerage || "Brokerage"} style={{ height: 36, maxWidth: 140, objectFit: "contain", flexShrink: 0 }} />
+            : <div style={{ width: 36, height: 36, borderRadius: 8, background: "rgba(255,255,255,0.18)",
+                display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                <span style={{ color: "#fff", fontSize: 18, fontWeight: 900, lineHeight: 1 }}>{(brokerage || "T").charAt(0).toUpperCase()}</span>
+              </div>}
           <div>
-            <div style={{ color: "#ffffff", fontWeight: 800, fontSize: 17, letterSpacing: "-0.3px" }}>
-              TransactPro
+            <div style={{ color: "#ffffff", fontWeight: 800, fontSize: 16, letterSpacing: "-0.3px" }}>
+              {brokerage || "Your Transaction Portal"}
             </div>
-            <div style={{ color: "rgba(255,255,255,0.75)", fontSize: 12, marginTop: 1, fontWeight: 500 }}>
+            <div style={{ color: "rgba(255,255,255,0.78)", fontSize: 12, marginTop: 1, fontWeight: 500 }}>
               Welcome, {user.firstName}! 👋
             </div>
           </div>
@@ -972,7 +1064,7 @@ export default function ClientPortal({ user, onLogout, previewTxId, onExitPrevie
             )}
 
             {/* Progress tracker */}
-            <ProgressTracker status={tx.status} transactionType={tx.transactionType} />
+            <ProgressTracker status={stage.effectiveStatus} transactionType={tx.transactionType} />
           </div>
 
           {/* Top Horizontal Scroll Tabs */}
@@ -996,7 +1088,8 @@ export default function ClientPortal({ user, onLogout, previewTxId, onExitPrevie
             {/* HOME TAB */}
             {activeTab === "home" && (
               <div>
-                <JourneyHero tx={tx} />
+                <JourneyHero tx={tx} stage={stage} />
+                <AgentCard name={agentName} title={agentTitle} brokerage={brokerage} phone={agentPhone} email={agentEmail} photo={agentPhoto} brand={brand} />
                 {timeline && timeline.total > 0 && (
                   <div style={{ background: C.white, borderRadius: 14, padding: 18, marginBottom: 14, boxShadow: "0 1px 4px rgba(0,0,0,0.08)" }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
@@ -1008,17 +1101,22 @@ export default function ClientPortal({ user, onLogout, previewTxId, onExitPrevie
                     </div>
                     {timeline.mine && timeline.mine.length > 0 && (
                       <div style={{ marginTop: 16 }}>
-                        <div style={{ fontSize: 12, fontWeight: 800, color: C.gray, textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>✅ What we need from you</div>
-                        {timeline.mine.map((m, i) => (
-                          <div key={m.id} style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: "8px 0", borderBottom: i < timeline.mine.length - 1 ? "1px solid " + C.lightGray : "none" }}>
-                            <span style={{ background: "#1a2332", color: "#fff", borderRadius: "50%", width: 22, height: 22, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, flexShrink: 0 }}>{i + 1}</span>
-                            <div style={{ flex: 1 }}>
-                              <div style={{ fontSize: 14, fontWeight: 600, color: C.black }}>{m.name}</div>
-                              {m.due_date && <div style={{ fontSize: 12, color: C.gray }}>by {formatDate(m.due_date)}</div>}
-                              {m.requires_document && <div style={{ fontSize: 11, color: "#B7770D" }}>📎 Document needed{m.document_label ? `: ${m.document_label}` : ""}</div>}
+                        <div style={{ fontSize: 12, fontWeight: 800, color: C.gray, textTransform: "uppercase", letterSpacing: 1, marginBottom: 2 }}>✅ What we need from you</div>
+                        <div style={{ fontSize: 12, color: C.gray, marginBottom: 10 }}>A few things to take care of as we head toward closing — no rush unless a date is shown.</div>
+                        {timeline.mine.map((m, i) => {
+                          const h = humanizeForClient(m.name);
+                          return (
+                            <div key={m.id} style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: "10px 0", borderBottom: i < timeline.mine.length - 1 ? "1px solid " + C.lightGray : "none" }}>
+                              <span style={{ background: "#1a2332", color: "#fff", borderRadius: "50%", width: 22, height: 22, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, flexShrink: 0 }}>{i + 1}</span>
+                              <div style={{ flex: 1 }}>
+                                <div style={{ fontSize: 14, fontWeight: 700, color: C.black }}>{h.label}</div>
+                                {h.why && <div style={{ fontSize: 12.5, color: C.gray, lineHeight: 1.5, marginTop: 2 }}>{h.why}</div>}
+                                {m.due_date && <div style={{ fontSize: 12, color: "#B7770D", fontWeight: 600, marginTop: 2 }}>📅 by {formatDate(m.due_date)}</div>}
+                                {m.requires_document && <div style={{ fontSize: 11, color: "#B7770D" }}>📎 Document needed{m.document_label ? `: ${m.document_label}` : ""}</div>}
+                              </div>
                             </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     )}
                     {timeline.mine && timeline.mine.length === 0 && (
@@ -1027,10 +1125,9 @@ export default function ClientPortal({ user, onLogout, previewTxId, onExitPrevie
                   </div>
                 )}
                 <SideValueCard tx={tx} />
-                <LatestUpdateCard tx={tx} agentName={agentName} />
+                <LatestUpdateCard tx={tx} agentName={agentName} stage={stage} />
                 <WinsCard timeline={timeline} />
                 <ClosingCountdownCard tx={tx} />
-                <ActionNeededCard tx={tx} />
 
                 {/* Key Dates & Financials */}
                 <div style={{ background: C.white, borderRadius: 14, padding: 18, marginBottom: 14,
@@ -1059,98 +1156,29 @@ export default function ClientPortal({ user, onLogout, previewTxId, onExitPrevie
                   ))}
                 </div>
 
-                {/* What Happens Next */}
-                <div style={{ background: C.white, borderRadius: 14, padding: 18, marginBottom: 14,
-                  boxShadow: "0 1px 4px rgba(0,0,0,0.08)" }}>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: C.gray,
-                    textTransform: "uppercase", letterSpacing: 1, marginBottom: 12 }}>
-                    WHAT HAPPENS NEXT
-                  </div>
-                  {(() => {
-                    const isBuyer = tx.transactionType && tx.transactionType.includes("Buyer");
-                    const steps = {
-                      "Active": isBuyer ? [
-                        { icon: "🏦", text: "Make sure your pre-approval letter is current" },
-                        { icon: "🔍", text: "Continue searching for your ideal home with your agent" },
-                        { icon: "📋", text: "Once you find the right home, your agent will help you submit a strong offer" },
-                      ] : [
-                        { icon: "📸", text: "Professional photos and marketing are being prepared" },
-                        { icon: "🏠", text: "Your home will be listed on MLS and major platforms" },
-                        { icon: "📅", text: "Showings will be scheduled as buyers express interest" },
-                      ],
-                      "Under Contract": [
-                        { icon: "🔍", text: "Schedule and complete the home inspection" },
-                        { icon: "💰", text: "Ensure earnest money deposit is submitted on time" },
-                        { icon: "🏦", text: "Work closely with your lender to complete loan application" },
-                        { icon: "📋", text: "Review and respond to any inspection findings" },
-                      ],
-                      "Inspection": [
-                        { icon: "📋", text: "Review inspection report carefully with your agent" },
-                        { icon: "🔧", text: "Decide which repairs to request from the seller" },
-                        { icon: "🏦", text: "Keep in close contact with your lender" },
-                      ],
-                      "Appraisal": [
-                        { icon: "🏦", text: "Appraisal is being completed by your lender" },
-                        { icon: "📋", text: "Respond quickly to any document requests from your lender" },
-                        { icon: "✅", text: "Await loan approval — you are almost there" },
-                      ],
-                      "Clear to Close": [
-                        { icon: "🏦", text: "Contact title company to confirm wire instructions by phone" },
-                        { icon: "🚶", text: "Schedule your final walk-through" },
-                        { icon: "📋", text: "Bring valid photo ID and any remaining documents to closing" },
-                        { icon: "🔑", text: "Get ready to receive your keys!" },
-                      ],
-                      "Closed": [
-                        { icon: "🎉", text: "Congratulations! The transaction is complete" },
-                        { icon: "📮", text: "Update your address with the post office and your bank" },
-                        { icon: "🔑", text: "Consider changing the locks for added security" },
-                        { icon: "📁", text: "Keep all closing documents in a safe place for tax purposes" },
-                      ],
-                    };
-                    const currentSteps = steps[tx.status] || steps["Active"];
-                    return currentSteps.map((step, i) => (
-                      <div key={i} style={{ display: "flex", gap: 12, alignItems: "flex-start",
-                        marginBottom: 12 }}>
-                        <span style={{ fontSize: 20, flexShrink: 0 }}>{step.icon}</span>
-                        <span style={{ fontSize: 13, color: C.black, lineHeight: 1.6 }}>{step.text}</span>
-                      </div>
-                    ));
-                  })()}
-                </div>
-
-                {/* Agent contact card */}
-                {agentName && (
-                  <div style={{ background: C.white, borderRadius: 14, padding: 18,
-                    boxShadow: "0 1px 4px rgba(0,0,0,0.08)", marginBottom: 14 }}>
+                {/* What's coming up — the deal's REAL upcoming milestones (not a
+                    hardcoded, buyer-centric list). Shown as "what's happening",
+                    never as tasks we're piling on the client. */}
+                {stage.upcoming && stage.upcoming.length > 0 && (
+                  <div style={{ background: C.white, borderRadius: 14, padding: 18, marginBottom: 14,
+                    boxShadow: "0 1px 4px rgba(0,0,0,0.08)" }}>
                     <div style={{ fontSize: 12, fontWeight: 700, color: C.gray,
-                      textTransform: "uppercase", letterSpacing: 1, marginBottom: 12 }}>YOUR AGENT</div>
-                    <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-                      <div style={{ width: 48, height: 48, borderRadius: "50%", background: C.black,
-                        color: "#fff", display: "flex", alignItems: "center", justifyContent: "center",
-                        fontWeight: 700, fontSize: 18, flexShrink: 0 }}>
-                        {agentName[0]}
-                      </div>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontWeight: 700, fontSize: 15, color: C.black }}>{agentName}</div>
-                        {tx.owningBrokerage && (
-                          <div style={{ fontSize: 12, color: C.red, fontWeight: 600 }}>{tx.owningBrokerage}</div>
-                        )}
-                        <div style={{ display: "flex", gap: 10, marginTop: 8 }}>
-                          {agentPhone && (
-                            <a href={"tel:" + agentPhone}
-                              style={{ flex: 1, padding: "8px 0", background: C.black, color: "#fff",
-                                borderRadius: 8, textAlign: "center", fontSize: 13, fontWeight: 600,
-                                textDecoration: "none" }}>📞 Call</a>
-                          )}
-                          {agentEmail && (
-                            <a href={"mailto:" + agentEmail}
-                              style={{ flex: 1, padding: "8px 0", background: C.lightGray, color: C.black,
-                                borderRadius: 8, textAlign: "center", fontSize: 13, fontWeight: 600,
-                                textDecoration: "none" }}>✉️ Email</a>
-                          )}
-                        </div>
-                      </div>
+                      textTransform: "uppercase", letterSpacing: 1, marginBottom: 4 }}>
+                      WHAT'S COMING UP
                     </div>
+                    <div style={{ fontSize: 12, color: C.gray, marginBottom: 12 }}>Here's what's next on your transaction — your agent handles most of this for you.</div>
+                    {stage.upcoming.map((m, i) => {
+                      const h = humanizeForClient(m.name);
+                      return (
+                        <div key={m.id || i} style={{ display: "flex", gap: 12, alignItems: "flex-start", marginBottom: 12 }}>
+                          <span style={{ width: 26, height: 26, borderRadius: "50%", background: C.lightGray, color: C.gray, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, flexShrink: 0 }}>{i + 1}</span>
+                          <div style={{ flex: 1 }}>
+                            <span style={{ fontSize: 14, color: C.black, fontWeight: 600 }}>{h.label}</span>
+                            {m.due_date && <span style={{ fontSize: 12, color: C.gray }}> · around {formatDate(m.due_date)}</span>}
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </div>
