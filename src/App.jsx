@@ -4125,15 +4125,29 @@ function DealDoctorPanel({ tx }) {
   const [running, setRunning] = useState(false);
   const [copied, setCopied] = useState(false);
   const [err, setErr] = useState("");
+  const [snoozeUntil, setSnoozeUntil] = useState(null);
+  const [snoozeOpen, setSnoozeOpen] = useState(false);
   const hdrs = { "Content-Type": "application/json", Authorization: "Bearer " + (localStorage.getItem("tp_token") || "") };
 
   useEffect(() => {
     let alive = true;
     fetch(`${API}/transactions/${tx.id}/deal-doctor`, { headers: hdrs })
-      .then(r => r.json()).then(d => { if (alive && d.success) { setDd(d.dealDoctor); setAt(d.at); } })
+      .then(r => r.json()).then(d => { if (alive && d.success) { setDd(d.dealDoctor); setAt(d.at); setSnoozeUntil(d.snoozeUntil || null); } })
       .catch(() => {});
     return () => { alive = false; };
   }, [tx.id]);
+
+  const snooze = async (days) => {
+    setSnoozeOpen(false); setErr("");
+    const prev = { dd, at, snoozeUntil };
+    setDd(null); setAt(null);  // optimistic
+    try {
+      const r = await fetch(`${API}/transactions/${tx.id}/deal-doctor/snooze`, { method: "POST", headers: hdrs, body: JSON.stringify({ days }) });
+      const d = await r.json();
+      if (!r.ok || !d.success) throw new Error(d.error || "Could not snooze");
+      setSnoozeUntil(d.snoozeUntil);
+    } catch (e) { setErr(e.message); setDd(prev.dd); setAt(prev.at); setSnoozeUntil(prev.snoozeUntil); }
+  };
 
   const run = async () => {
     setRunning(true); setErr("");
@@ -4141,7 +4155,7 @@ function DealDoctorPanel({ tx }) {
       const r = await fetch(`${API}/transactions/${tx.id}/deal-doctor`, { method: "POST", headers: hdrs });
       const d = await r.json();
       if (!r.ok || !d.success) throw new Error(d.error || "Could not run a check-up");
-      setDd(d.dealDoctor); setAt(d.at);
+      setDd(d.dealDoctor); setAt(d.at); setSnoozeUntil(null);  // running lifts any snooze
     } catch (e) { setErr(e.message); } finally { setRunning(false); }
   };
 
@@ -4166,6 +4180,12 @@ function DealDoctorPanel({ tx }) {
     navigator.clipboard?.writeText(text).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); }).catch(() => {});
   };
   const ago = at ? new Date(at).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) : null;
+  const snoozedFuture = snoozeUntil && new Date(snoozeUntil) > new Date();
+  const snoozeLabel = snoozedFuture ? new Date(snoozeUntil).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" }) : null;
+  const snoozeBtn = (label, days) => (
+    <button onClick={() => snooze(days)}
+      style={{ background: "#fff", color: "#475569", border: "1px solid #CBD5E1", borderRadius: 8, padding: "6px 12px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>{label}</button>
+  );
 
   return (
     <div style={{ border: `1px solid ${dd ? t.bar : "#E5E7EB"}`, borderLeft: `5px solid ${dd ? t.bar : "#94A3B8"}`, background: dd ? t.bg : "#F8FAFC", borderRadius: 12, padding: 16, marginBottom: 20 }}>
@@ -4173,11 +4193,12 @@ function DealDoctorPanel({ tx }) {
         <div style={{ fontWeight: 800, fontSize: 15, color: "#1A2B4A" }}>🩺 Deal Doctor {dd && <span style={{ fontSize: 16 }}>{t.dot}</span>}</div>
         <button onClick={run} disabled={running}
           style={{ background: running ? "#9CA3AF" : "#1A2B4A", color: "#fff", border: "none", borderRadius: 8, padding: "7px 14px", fontSize: 13, fontWeight: 700, cursor: running ? "default" : "pointer", fontFamily: "inherit" }}>
-          {running ? "Checking…" : dd ? "↻ Re-check" : "Run check-up"}
+          {running ? "Checking…" : dd ? "↻ Re-check" : snoozedFuture ? "↻ Check now" : "Run check-up"}
         </button>
       </div>
       {err && <div style={{ color: "#C0392B", fontSize: 13, marginTop: 8 }}>{err}</div>}
-      {!dd && !err && <div style={{ fontSize: 13, color: "#64748B", marginTop: 8 }}>Tap “Run check-up” and I'll review this deal — the biggest risk right now and the one move to make today.</div>}
+      {!dd && !err && snoozedFuture && <div style={{ fontSize: 13, color: "#64748B", marginTop: 8 }}>😴 Snoozed until <b>{snoozeLabel}</b> — I'll keep this deal quiet until then. Tap “Check now” to look sooner.</div>}
+      {!dd && !err && !snoozedFuture && <div style={{ fontSize: 13, color: "#64748B", marginTop: 8 }}>Tap “Run check-up” and I'll review this deal — the biggest risk right now and the one move to make today.</div>}
       {dd && (
         <div style={{ marginTop: 12 }}>
           <div style={{ marginBottom: 10 }}>
@@ -4201,12 +4222,26 @@ function DealDoctorPanel({ tx }) {
               </button>
             </div>
           )}
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, flexWrap: "wrap", marginTop: 12 }}>
-            <button onClick={clear} title="I've handled this — clear it. Tonight's check-up will flag anything still outstanding."
-              style={{ background: "#1E8449", color: "#fff", border: "none", borderRadius: 8, padding: "7px 14px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
-              ✓ Mark handled
-            </button>
-            {ago && <span style={{ fontSize: 11, color: "#94A3B8" }}>Checked {ago}</span>}
+          <div style={{ marginTop: 12 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+              <button onClick={clear} title="I've handled this — clear it. Tonight's check-up will flag anything still outstanding."
+                style={{ background: "#1E8449", color: "#fff", border: "none", borderRadius: 8, padding: "7px 14px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                ✓ Mark handled
+              </button>
+              <button onClick={() => setSnoozeOpen(o => !o)} title="Set this aside for a bit — I'll keep it quiet, then bring it back."
+                style={{ background: "#fff", color: "#475569", border: "1px solid #CBD5E1", borderRadius: 8, padding: "7px 14px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                😴 Not today
+              </button>
+              {ago && <span style={{ fontSize: 11, color: "#94A3B8", marginLeft: "auto" }}>Checked {ago}</span>}
+            </div>
+            {snoozeOpen && (
+              <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginTop: 8 }}>
+                <span style={{ fontSize: 12, color: "#64748B", fontWeight: 600 }}>Remind me:</span>
+                {snoozeBtn("Tomorrow", 1)}
+                {snoozeBtn("In 3 days", 3)}
+                {snoozeBtn("In a week", 7)}
+              </div>
+            )}
           </div>
         </div>
       )}
