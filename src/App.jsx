@@ -4145,6 +4145,18 @@ function DealDoctorPanel({ tx }) {
     } catch (e) { setErr(e.message); } finally { setRunning(false); }
   };
 
+  // Clear the current check-up once handled — tonight's run brings back a fresh
+  // read if the risk still stands.
+  const clear = async () => {
+    setErr("");
+    const prev = dd, prevAt = at;
+    setDd(null); setAt(null);  // optimistic
+    try {
+      const r = await fetch(`${API}/transactions/${tx.id}/deal-doctor`, { method: "DELETE", headers: hdrs });
+      if (!r.ok) throw new Error("Could not clear");
+    } catch (e) { setErr(e.message); setDd(prev); setAt(prevAt); }
+  };
+
   const tone = { red: { bar: "#C0392B", bg: "#FDEDEC", dot: "🔴" }, yellow: { bar: "#B7770D", bg: "#FEF9E7", dot: "🟡" }, green: { bar: "#1E8449", bg: "#EAFAF1", dot: "🟢" } };
   const t = dd ? (tone[dd.health] || tone.yellow) : tone.yellow;
   const draft = dd && dd.draft && dd.draft.channel !== "none" ? dd.draft : null;
@@ -4189,7 +4201,13 @@ function DealDoctorPanel({ tx }) {
               </button>
             </div>
           )}
-          {ago && <div style={{ fontSize: 11, color: "#94A3B8", marginTop: 10 }}>Checked {ago}</div>}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, flexWrap: "wrap", marginTop: 12 }}>
+            <button onClick={clear} title="I've handled this — clear it. Tonight's check-up will flag anything still outstanding."
+              style={{ background: "#1E8449", color: "#fff", border: "none", borderRadius: 8, padding: "7px 14px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+              ✓ Mark handled
+            </button>
+            {ago && <span style={{ fontSize: 11, color: "#94A3B8" }}>Checked {ago}</span>}
+          </div>
         </div>
       )}
     </div>
