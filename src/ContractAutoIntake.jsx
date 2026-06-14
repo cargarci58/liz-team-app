@@ -510,12 +510,24 @@ function ReviewStep({ token, uploadId, user, currentStatus, onApproved, onBack }
     setSaving(true);
     setError("");
     try {
-      const r = await fetch(API + "/contracts/uploads/" + uploadId + "/approve", {
+      let r = await fetch(API + "/contracts/uploads/" + uploadId + "/approve", {
         method: "POST",
         headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
         body: JSON.stringify({ approved_data: edited })
       });
-      const d = await r.json();
+      let d = await r.json();
+      // Backend guard: the seller declined this offer on their review link.
+      // Confirm the agent really means to override, then retry.
+      if (r.status === 409 && d.error === "seller_declined") {
+        const ok = window.confirm((d.message || "The seller declined this offer.") + "\n\nApprove it anyway?");
+        if (!ok) { setSaving(false); return; }
+        r = await fetch(API + "/contracts/uploads/" + uploadId + "/approve", {
+          method: "POST",
+          headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
+          body: JSON.stringify({ approved_data: edited, override: true })
+        });
+        d = await r.json();
+      }
       if (!d.success) throw new Error(d.error || "Approval failed");
       onApproved(d.transaction_id);
     } catch (e) {

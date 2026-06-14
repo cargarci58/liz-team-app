@@ -64,7 +64,12 @@ const fmtCurrency = (n) => {
 
 const fmtDate = (d) => {
   if (!d) return '';
-  const dt = new Date(d);
+  // Parse a YYYY-MM-DD DATE as LOCAL midnight, not UTC. `new Date("2026-06-14")`
+  // is UTC midnight, which toLocaleDateString renders as the PREVIOUS day in every
+  // US timezone — so dates showed one day early.
+  const s = String(d);
+  const m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  const dt = m ? new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])) : new Date(s);
   return dt.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
 };
 
@@ -2410,7 +2415,12 @@ function ReconcileCells({ imp, onSaved }) {
   const [begin, setBegin] = useState(imp.beginning_balance ?? '');
   const [end, setEnd] = useState(imp.ending_balance ?? '');
   useEffect(() => { setBegin(imp.beginning_balance ?? ''); setEnd(imp.ending_balance ?? ''); }, [imp.beginning_balance, imp.ending_balance]);
-  const net = Number(imp.lines_income || 0) - Number(imp.lines_expense || 0);
+  // Sign convention differs by account type. Checking: deposits (income) raise
+  // the balance, debits (expense) lower it. Credit card: charges (expense) RAISE
+  // the balance owed, payments/credits (income) lower it — so the net is flipped.
+  const isCard = String(imp.account_type || '').toLowerCase().includes('credit');
+  const inc = Number(imp.lines_income || 0), exp = Number(imp.lines_expense || 0);
+  const net = isCard ? (exp - inc) : (inc - exp);
   const hasBegin = begin !== '' && begin != null && !isNaN(Number(begin));
   const hasEnd = end !== '' && end != null && !isNaN(Number(end));
   const expected = hasBegin ? Number(begin) + net : null;
