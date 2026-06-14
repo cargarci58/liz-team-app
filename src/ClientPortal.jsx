@@ -47,6 +47,28 @@ function humanizeForClient(name) {
   return { label: clean, why: "" };
 }
 
+// Forward-looking, conversational phrasing for the "what's coming up" list — so a
+// step like "Closing Scheduled" reads as something STILL TO HAPPEN, never as if
+// it's already done. Tense matters: the seller shouldn't think it's scheduled.
+const COMING_UP_COPY = [
+  { re: /financing|loan/i, text: "The buyer's lender finalizes their loan" },
+  { re: /clear to close/i, text: "The lender gives the all-clear to close" },
+  { re: /closing scheduled|schedule closing/i, text: "We set your closing day and time" },
+  { re: /cd|closing disclosure|settlement statement|alta/i, text: "You'll review your final closing numbers" },
+  { re: /final walk/i, text: "The buyer does a final walk-through" },
+  { re: /appraisal/i, text: "The appraisal is reviewed" },
+  { re: /title|lien|estoppel/i, text: "The title company prepares everything for closing" },
+  { re: /inspection|repair/i, text: "The home inspection wraps up" },
+  { re: /survey/i, text: "The property survey is completed" },
+  { re: /insurance/i, text: "Insurance is lined up for closing" },
+  { re: /walk|possession|keys/i, text: "We hand over the keys at closing" },
+];
+function comingUpLabel(name) {
+  const hit = COMING_UP_COPY.find(e => e.re.test(name || ""));
+  if (hit) return hit.text;
+  return humanizeForClient(name).label;
+}
+
 // The DB status is coarse and often stuck at "Under Contract" while the deal has
 // really moved on. Derive the TRUE stage from completed milestones so the portal
 // never tells a seller "under contract" when the appraisal is already in.
@@ -156,16 +178,17 @@ function ProgressTracker({ status, transactionType }) {
 function LatestUpdateCard({ tx, agentName, stage }) {
   // Driven by the REAL milestone progress (stage), not the coarse DB status —
   // so a deal that's past appraisal never reads "you're under contract."
+  const isBuyer = tx.transactionType && tx.transactionType.includes("Buyer");
   const getUpdateMessage = () => {
-    if (tx.status === "Closed") return "Congratulations — your sale is complete! Thank you for trusting us with this milestone.";
+    if (tx.status === "Closed") return isBuyer
+      ? "Congratulations — you're officially a homeowner! 🎉 Thank you for letting us be part of it."
+      : "Congratulations — your home is sold! 🎉 Thank you for trusting us with this.";
     const eff = (stage && stage.effectiveStatus) || tx.status;
-    const next = stage && stage.upcoming && stage.upcoming[0] ? humanizeForClient(stage.upcoming[0].name).label.toLowerCase() : null;
-    const nextLine = next ? ` Next up: ${next}.` : "";
-    if (eff === "Clear to Close") return `🎉 You're clear to close — everything's in order and we're lining up the final details for closing day!`;
-    if (eff === "Appraisal") return `The appraisal is in and we're working through the buyer's financing — next stop, clear to close.${nextLine}`;
-    if (eff === "Inspection") return `We're through the inspection stage and moving forward toward closing.${nextLine}`;
-    if (eff === "Under Contract") return `You're under contract — we're working through the contract steps to keep things on track toward closing.${nextLine}`;
-    return `Your transaction is moving forward. Your agent is working behind the scenes and will reach out with any updates.${nextLine}`;
+    if (eff === "Clear to Close") return "Great news — the loan is clear to close! We're setting up your closing day now. You're almost there. 🎉";
+    if (eff === "Appraisal") return "The appraisal came back, and the buyer's lender is finalizing their loan — the last big step before we head to the closing table.";
+    if (eff === "Inspection") return "We're through the inspection stage and moving toward closing. Your agent is keeping everything on track.";
+    if (eff === "Under Contract") return "You're under contract! Your agent is working through the early contract steps to keep everything on schedule.";
+    return "Your transaction is moving forward — your agent is working behind the scenes and will reach out with any updates.";
   };
 
   return (
@@ -302,12 +325,42 @@ function JourneyHero({ tx, stage }) {
   );
 }
 
+// Warm, past-tense phrasing for completed milestones (the "wins" recap).
+const WIN_COPY = [
+  { re: /listed in mls|property listed|listing agreement|go(ing)? live/i, text: "Your home went live on the market" },
+  { re: /executed|under contract|offer accepted|fully executed/i, text: "Went under contract" },
+  { re: /emd|earnest/i, text: "Earnest money received" },
+  { re: /inspection period|inspection (complete|done)|repair/i, text: "Inspection wrapped up" },
+  { re: /appraisal received|appraisal report/i, text: "Appraisal came back" },
+  { re: /appraisal ordered/i, text: "Appraisal ordered" },
+  { re: /appraisal gap/i, text: "Appraised value confirmed" },
+  { re: /title commitment|title search/i, text: "Title work received" },
+  { re: /hoa|estoppel/i, text: "HOA documents collected" },
+  { re: /property disclosure|spd|disclosure/i, text: "Disclosures delivered" },
+  { re: /photos|photography/i, text: "Professional photos done" },
+  { re: /survey/i, text: "Survey completed" },
+];
+function winLabel(name) {
+  const hit = WIN_COPY.find(e => e.re.test(name || ""));
+  return hit ? hit.text : humanizeForClient(name).label;
+}
+
 // ── WINS CARD — "look how far we've come" (momentum) ──────────
 function WinsCard({ timeline }) {
   if (!timeline || !Array.isArray(timeline.milestones)) return null;
-  const done = timeline.milestones.filter(m => m.status === "Completed" || m.status === "Waived");
+  const meaningful = (m) => !/communication|weekly|thank|review request|compliance|reminder|set up|generate/i.test(m.name || "");
+  const done = timeline.milestones.filter(m => (m.status === "Completed" || m.status === "Waived") && meaningful(m));
   if (done.length === 0) return null;
-  const recent = done.slice(-4).reverse();
+  // De-dupe by friendly label (so 3 "Appraisal..." milestones don't all read "Appraisal"),
+  // keeping the most recent distinct wins.
+  const seen = new Set();
+  const recent = [];
+  for (let i = done.length - 1; i >= 0 && recent.length < 5; i--) {
+    const label = winLabel(done[i].name);
+    if (seen.has(label)) continue;
+    seen.add(label);
+    recent.push({ ...done[i], _label: label });
+  }
   return (
     <div style={{ background: "#fff", borderRadius: 14, padding: 18, marginBottom: 14, boxShadow: "0 1px 4px rgba(0,0,0,0.08)" }}>
       <div style={{ fontSize: 12, fontWeight: 800, color: "#555", textTransform: "uppercase", letterSpacing: 1, marginBottom: 2 }}>
@@ -317,7 +370,7 @@ function WinsCard({ timeline }) {
       {recent.map((m, i) => (
         <div key={m.id || i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "7px 0", borderBottom: i < recent.length - 1 ? "1px solid #F4F4F4" : "none" }}>
           <span style={{ color: "#1E8449", fontSize: 16, fontWeight: 800 }}>✓</span>
-          <span style={{ fontSize: 14, color: "#111" }}>{humanizeForClient(m.name).label}</span>
+          <span style={{ fontSize: 14, color: "#111" }}>{m._label}</span>
         </div>
       ))}
     </div>
@@ -929,6 +982,14 @@ export default function ClientPortal({ user, onLogout, previewTxId, onExitPrevie
 
   const isBuyerSide = tx && (tx.type === "Buyer Representation" || tx.type === "Dual Agency" || (tx.transactionType && tx.transactionType.includes("Buyer")));
   const isSellerSide = tx && (tx.type === "Listing (Seller)" || tx.type === "Dual Agency" || (tx.transactionType && (tx.transactionType.includes("Listing") || tx.transactionType.includes("Seller"))));
+  // Greet the CLIENT. In agent preview the logged-in user is the agent, so pull
+  // the own-side client's first name from the parties instead of showing the agent.
+  const ownClientParty = tx ? (tx.parties || []).find(p => {
+    const r = (p.role || "").toLowerCase();
+    return isSellerSide ? /^(co[- ]?)?seller$/.test(r) : /^(co[- ]?)?buyer$/.test(r);
+  }) : null;
+  const clientFirstName = ownClientParty && ownClientParty.name ? ownClientParty.name.trim().split(/\s+/)[0] : "";
+  const greetName = isPreview ? (clientFirstName || "there") : (user.firstName || clientFirstName || "there");
 
   // Hide the OPPOSITE side's agent from "My Team" so a client never sees (and
   // can't cold-call) the other side's agent. Seller-side clients don't see the
@@ -996,7 +1057,7 @@ export default function ClientPortal({ user, onLogout, previewTxId, onExitPrevie
               {brokerage || "Your Transaction Portal"}
             </div>
             <div style={{ color: "rgba(255,255,255,0.78)", fontSize: 12, marginTop: 1, fontWeight: 500 }}>
-              Welcome, {user.firstName}! 👋
+              Welcome, {greetName}! 👋
             </div>
           </div>
         </div>
@@ -1166,19 +1227,13 @@ export default function ClientPortal({ user, onLogout, previewTxId, onExitPrevie
                       textTransform: "uppercase", letterSpacing: 1, marginBottom: 4 }}>
                       WHAT'S COMING UP
                     </div>
-                    <div style={{ fontSize: 12, color: C.gray, marginBottom: 12 }}>Here's what's next on your transaction — your agent handles most of this for you.</div>
-                    {stage.upcoming.map((m, i) => {
-                      const h = humanizeForClient(m.name);
-                      return (
-                        <div key={m.id || i} style={{ display: "flex", gap: 12, alignItems: "flex-start", marginBottom: 12 }}>
-                          <span style={{ width: 26, height: 26, borderRadius: "50%", background: C.lightGray, color: C.gray, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, flexShrink: 0 }}>{i + 1}</span>
-                          <div style={{ flex: 1 }}>
-                            <span style={{ fontSize: 14, color: C.black, fontWeight: 600 }}>{h.label}</span>
-                            {m.due_date && <span style={{ fontSize: 12, color: C.gray }}> · around {formatDate(m.due_date)}</span>}
-                          </div>
-                        </div>
-                      );
-                    })}
+                    <div style={{ fontSize: 12, color: C.gray, marginBottom: 12 }}>Here's what's still ahead — your agent handles most of this for you.</div>
+                    {stage.upcoming.map((m, i) => (
+                      <div key={m.id || i} style={{ display: "flex", gap: 12, alignItems: "flex-start", marginBottom: 12 }}>
+                        <span style={{ width: 26, height: 26, borderRadius: "50%", background: C.lightGray, color: C.gray, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, flexShrink: 0 }}>{i + 1}</span>
+                        <span style={{ flex: 1, fontSize: 14, color: C.black, fontWeight: 600, lineHeight: 1.5 }}>{comingUpLabel(m.name)}</span>
+                      </div>
+                    ))}
                   </div>
                 )}
               </div>
