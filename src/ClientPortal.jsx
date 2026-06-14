@@ -180,6 +180,106 @@ function ClosingCountdownCard({ tx }) {
   );
 }
 
+// ── CELEBRATION CONFETTI (no dependency) ──────────────────────
+function Confetti() {
+  const colors = ["#C0392B", "#1E8449", "#B7770D", "#1A5276", "#7D3C98", "#C9A84C"];
+  const pieces = Array.from({ length: 20 }, (_, i) => i);
+  return (
+    <div aria-hidden style={{ position: "absolute", inset: 0, overflow: "hidden", pointerEvents: "none", borderRadius: 16 }}>
+      <style>{`@keyframes ccfall{0%{transform:translateY(-24px) rotate(0deg);opacity:1}100%{transform:translateY(240px) rotate(560deg);opacity:0}}`}</style>
+      {pieces.map(i => (
+        <div key={i} style={{ position: "absolute", top: -12, left: `${(i * 47) % 100}%`, width: 8, height: 13,
+          background: colors[i % colors.length], borderRadius: 2,
+          animation: `ccfall ${1.9 + (i % 5) * 0.3}s ${(i % 7) * 0.13}s ease-in infinite` }} />
+      ))}
+    </div>
+  );
+}
+
+// ── JOURNEY HERO — celebratory headline + countdown (the emotional anchor) ──
+function JourneyHero({ tx }) {
+  const days = daysUntil(tx.closingDate);
+  const isBuyer = tx.transactionType && tx.transactionType.includes("Buyer");
+  const celebrate = tx.status === "Closed" || tx.status === "Clear to Close";
+  const headline = tx.status === "Closed" ? (isBuyer ? "🎉 You're officially a homeowner!" : "🎉 Your home is sold — congratulations!")
+    : tx.status === "Clear to Close" ? "🏁 You're clear to close — the finish line!"
+    : days !== null && days >= 0 && days <= 45 ? (days === 0 ? "🔑 Closing is today!" : `🔑 ${days} day${days === 1 ? "" : "s"} to closing`)
+    : isBuyer ? "🏡 Your home purchase is on track" : "🏡 Your home sale is on track";
+  const sub = tx.status === "Closed" ? "Thank you for trusting us with this milestone."
+    : isBuyer ? "We're handling every detail to get you to the closing table." : "We're working hard to get you sold and closed.";
+  return (
+    <div style={{ position: "relative", borderRadius: 16, padding: 22, marginBottom: 14, color: "#fff",
+      background: celebrate ? "linear-gradient(135deg,#1E8449,#13502d)" : "linear-gradient(135deg,#1a2332,#34495e)",
+      boxShadow: "0 6px 22px rgba(0,0,0,0.20)", overflow: "hidden" }}>
+      {celebrate && <Confetti />}
+      <div style={{ position: "relative" }}>
+        <div style={{ fontSize: 22, fontWeight: 900, lineHeight: 1.2, marginBottom: 6 }}>{headline}</div>
+        <div style={{ fontSize: 13, color: "rgba(255,255,255,0.82)", lineHeight: 1.5 }}>{sub}</div>
+        {tx.closingDate && tx.status !== "Closed" && (
+          <div style={{ display: "inline-block", marginTop: 12, background: "rgba(255,255,255,0.14)", borderRadius: 20, padding: "5px 14px", fontSize: 12.5, fontWeight: 600 }}>
+            📅 Closing {formatDate(tx.closingDate)}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── WINS CARD — "look how far we've come" (momentum) ──────────
+function WinsCard({ timeline }) {
+  if (!timeline || !Array.isArray(timeline.milestones)) return null;
+  const done = timeline.milestones.filter(m => m.status === "Completed" || m.status === "Waived");
+  if (done.length === 0) return null;
+  const recent = done.slice(-4).reverse();
+  return (
+    <div style={{ background: "#fff", borderRadius: 14, padding: 18, marginBottom: 14, boxShadow: "0 1px 4px rgba(0,0,0,0.08)" }}>
+      <div style={{ fontSize: 12, fontWeight: 800, color: "#555", textTransform: "uppercase", letterSpacing: 1, marginBottom: 10 }}>
+        🎉 Look how far we've come — {done.length} step{done.length === 1 ? "" : "s"} done
+      </div>
+      {recent.map((m, i) => (
+        <div key={m.id || i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "7px 0", borderBottom: i < recent.length - 1 ? "1px solid #F4F4F4" : "none" }}>
+          <span style={{ color: "#1E8449", fontSize: 16, fontWeight: 800 }}>✓</span>
+          <span style={{ fontSize: 14, color: "#111" }}>{m.name}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ── SIDE VALUE CARD — buyer vs seller specific, warm + concrete ──
+function SideValueCard({ tx }) {
+  const isBuyer = tx.transactionType && tx.transactionType.includes("Buyer");
+  const days = daysUntil(tx.closingDate);
+  if (tx.status === "Closed") return null;
+  const moveLine = days !== null && days >= 0
+    ? <>You could be {isBuyer ? "moving in" : "handing over the keys"} <b>{days === 0 ? "today" : "in " + days + " day" + (days === 1 ? "" : "s")}</b>. </>
+    : null;
+  if (isBuyer) {
+    return (
+      <div style={{ background: "#fff", borderRadius: 14, padding: 18, marginBottom: 14, boxShadow: "0 1px 4px rgba(0,0,0,0.08)", borderLeft: "4px solid #1A5276" }}>
+        <div style={{ fontSize: 12, fontWeight: 800, color: "#555", textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>🏡 Your future home</div>
+        <div style={{ fontSize: 14, color: "#111", lineHeight: 1.6 }}>
+          {tx.contractPrice ? <>You're under contract at <b>${Number(tx.contractPrice).toLocaleString()}</b>. </> : null}
+          {moveLine}
+          Your agent is handling the financing, inspection, and closing details for you.
+        </div>
+      </div>
+    );
+  }
+  const atOrAbove = tx.contractPrice && tx.listPrice && Number(tx.contractPrice) >= Number(tx.listPrice);
+  return (
+    <div style={{ background: "#fff", borderRadius: 14, padding: 18, marginBottom: 14, boxShadow: "0 1px 4px rgba(0,0,0,0.08)", borderLeft: "4px solid #C0392B" }}>
+      <div style={{ fontSize: 12, fontWeight: 800, color: "#555", textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>📣 Your sale</div>
+      <div style={{ fontSize: 14, color: "#111", lineHeight: 1.6 }}>
+        {tx.contractPrice ? <>You're under contract at <b>${Number(tx.contractPrice).toLocaleString()}</b>{atOrAbove ? " — at or above your asking price! 🎯" : ""}. </>
+          : tx.listPrice ? <>Your home is listed at <b>${Number(tx.listPrice).toLocaleString()}</b>. </> : null}
+        {moveLine}
+        Your agent is actively driving the sale toward the closing table.
+      </div>
+    </div>
+  );
+}
+
 // ── ACTION NEEDED CARD ────────────────────────────────────────
 function ActionNeededCard({ tx }) {
   const getAction = () => {
@@ -896,6 +996,7 @@ export default function ClientPortal({ user, onLogout, previewTxId, onExitPrevie
             {/* HOME TAB */}
             {activeTab === "home" && (
               <div>
+                <JourneyHero tx={tx} />
                 {timeline && timeline.total > 0 && (
                   <div style={{ background: C.white, borderRadius: 14, padding: 18, marginBottom: 14, boxShadow: "0 1px 4px rgba(0,0,0,0.08)" }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
@@ -925,7 +1026,9 @@ export default function ClientPortal({ user, onLogout, previewTxId, onExitPrevie
                     )}
                   </div>
                 )}
+                <SideValueCard tx={tx} />
                 <LatestUpdateCard tx={tx} agentName={agentName} />
+                <WinsCard timeline={timeline} />
                 <ClosingCountdownCard tx={tx} />
                 <ActionNeededCard tx={tx} />
 
