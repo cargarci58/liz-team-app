@@ -4116,6 +4116,153 @@ function InboundRepliesPanel({ tx }) {
   );
 }
 
+// Send the Deal Doctor's drafted message straight from the panel — editable
+// content, recipients pre-filled from the deal's parties (the role the draft is
+// for is pre-checked), add another email, attach a deal document or upload one
+// from the computer. Sends via the same /broadcast path the Messages composer uses.
+function DealDoctorSendModal({ tx, draft, onClose, onSent }) {
+  const tok = localStorage.getItem("tp_token") || "";
+  const hdrs = { "Content-Type": "application/json", Authorization: "Bearer " + tok };
+  const parties = (tx.parties || []).filter(p => p && (p.email || p.phone));
+  const roleMatches = (p) => {
+    const want = String(draft.toRole || "").toLowerCase().trim();
+    if (!want) return false;
+    const r = String(p.role || "").toLowerCase();
+    return r === want || r.includes(want) || want.includes(r);
+  };
+  const [subject, setSubject] = useState(draft.subject || `Update — ${tx.address || "your transaction"}`);
+  const [body, setBody] = useState(draft.body || "");
+  const [picked, setPicked] = useState(() => {
+    const s = {}; parties.forEach((p, i) => { s[p.id || i] = roleMatches(p) && !!p.email; }); return s;
+  });
+  const [extraEmail, setExtraEmail] = useState("");
+  const [extraEmails, setExtraEmails] = useState([]);
+  const [docs, setDocs] = useState([]);
+  const [attach, setAttach] = useState({});
+  const [uploading, setUploading] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [err, setErr] = useState("");
+
+  useEffect(() => {
+    fetch(`${API}/documents/${tx.id}`, { headers: hdrs })
+      .then(r => r.json()).then(d => { if (d.documents) setDocs(d.documents); }).catch(() => {});
+  }, [tx.id]);
+
+  const addExtra = () => {
+    const e = extraEmail.trim();
+    if (e && e.includes("@") && !extraEmails.includes(e)) setExtraEmails(l => [...l, e]);
+    setExtraEmail("");
+  };
+  const uploadFromComputer = async (file) => {
+    if (!file) return;
+    setUploading(true); setErr("");
+    try {
+      const base64 = await new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result).split(",")[1]); r.onerror = () => rej(new Error("Could not read file")); r.readAsDataURL(file); });
+      const r = await fetch(`${API}/documents/upload`, { method: "POST", headers: hdrs, body: JSON.stringify({ transactionId: tx.id, fileName: file.name, fileType: file.type || "application/octet-stream", category: "Shared", base64 }) });
+      const d = await r.json();
+      if (!r.ok || !d.success) throw new Error(d.error || "Upload failed");
+      setDocs(list => [{ id: d.docId, name: file.name, mime_type: file.type }, ...list]);
+      setAttach(a => ({ ...a, [d.docId]: true }));
+    } catch (e) { setErr(e.message); } finally { setUploading(false); }
+  };
+  const send = async () => {
+    setErr("");
+    const recipients = [
+      ...parties.filter((p, i) => picked[p.id || i] && p.email).map(p => ({ name: p.name, email: p.email, role: p.role })),
+      ...extraEmails.map(e => ({ name: e, email: e })),
+    ];
+    if (recipients.length === 0) { setErr("Pick at least one recipient."); return; }
+    if (!body.trim()) { setErr("The message can't be empty."); return; }
+    setSending(true);
+    try {
+      const attachDocIds = Object.keys(attach).filter(k => attach[k]);
+      const r = await fetch(`${API}/transactions/${tx.id}/broadcast`, {
+        method: "POST", headers: hdrs,
+        body: JSON.stringify({ subject, message: body, channel: "email", recipients, attachDocIds }),
+      });
+      const d = await r.json();
+      if (!r.ok || d.error) throw new Error(d.error || "Send failed");
+      onSent && onSent(recipients.length);
+    } catch (e) { setErr(e.message); setSending(false); }
+  };
+
+  const label = { fontSize: 11, fontWeight: 700, color: "#64748B", letterSpacing: ".04em", textTransform: "uppercase", marginBottom: 6, display: "block" };
+  const input = { width: "100%", boxSizing: "border-box", padding: "9px 11px", border: "1px solid #CBD5E1", borderRadius: 8, fontSize: 14, fontFamily: "inherit" };
+  return (
+    <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 9999, display: "flex", alignItems: "flex-start", justifyContent: "center", padding: 16, overflowY: "auto" }}>
+      <div onClick={e => e.stopPropagation()} style={{ background: "#fff", borderRadius: 14, width: "100%", maxWidth: 560, margin: "auto", boxShadow: "0 20px 60px rgba(0,0,0,0.3)", overflow: "hidden" }}>
+        <div style={{ background: "#1A2B4A", color: "#fff", padding: "14px 18px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div style={{ fontWeight: 800, fontSize: 16 }}>✉️ Send this message</div>
+          <button onClick={onClose} style={{ background: "none", border: "none", color: "rgba(255,255,255,0.7)", fontSize: 22, cursor: "pointer" }}>×</button>
+        </div>
+        <div style={{ padding: 18, maxHeight: "75vh", overflowY: "auto" }}>
+          <div style={{ marginBottom: 14 }}>
+            <span style={label}>To</span>
+            {parties.length === 0 && <div style={{ fontSize: 13, color: "#94A3B8" }}>No parties with contact info on this deal yet.</div>}
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+              {parties.map((p, i) => {
+                const key = p.id || i; const on = !!picked[key];
+                return (
+                  <button key={key} disabled={!p.email} onClick={() => setPicked(s => ({ ...s, [key]: !s[key] }))}
+                    title={p.email || "No email"}
+                    style={{ border: `1.5px solid ${on ? "#1A2B4A" : "#CBD5E1"}`, background: on ? "#EEF2F7" : "#fff", color: p.email ? "#1a2332" : "#94A3B8", borderRadius: 999, padding: "6px 12px", fontSize: 12.5, fontWeight: 600, cursor: p.email ? "pointer" : "not-allowed", fontFamily: "inherit" }}>
+                    {on ? "✓ " : ""}{p.name || p.email}{p.role ? ` · ${p.role}` : ""}
+                  </button>
+                );
+              })}
+            </div>
+            <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+              <input value={extraEmail} onChange={e => setExtraEmail(e.target.value)} onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); addExtra(); } }} placeholder="Add another email…" style={{ ...input, flex: 1 }} />
+              <button onClick={addExtra} style={{ background: "#EEF2F7", border: "1px solid #CBD5E1", borderRadius: 8, padding: "0 14px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>Add</button>
+            </div>
+            {extraEmails.length > 0 && (
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
+                {extraEmails.map(e => <span key={e} style={{ background: "#EEF2F7", borderRadius: 999, padding: "4px 10px", fontSize: 12 }}>{e} <span onClick={() => setExtraEmails(l => l.filter(x => x !== e))} style={{ cursor: "pointer", color: "#94A3B8", marginLeft: 4 }}>×</span></span>)}
+              </div>
+            )}
+          </div>
+          <div style={{ marginBottom: 14 }}>
+            <span style={label}>Subject</span>
+            <input value={subject} onChange={e => setSubject(e.target.value)} style={input} />
+          </div>
+          <div style={{ marginBottom: 14 }}>
+            <span style={label}>Message</span>
+            <textarea value={body} onChange={e => setBody(e.target.value)} rows={9} style={{ ...input, resize: "vertical", lineHeight: 1.5 }} />
+          </div>
+          <div style={{ marginBottom: 14 }}>
+            <span style={label}>Attach (optional)</span>
+            {docs.length > 0 && (
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 8 }}>
+                {docs.slice(0, 30).map(d => {
+                  const on = !!attach[d.id];
+                  return (
+                    <button key={d.id} onClick={() => setAttach(a => ({ ...a, [d.id]: !a[d.id] }))}
+                      style={{ border: `1.5px solid ${on ? "#1E8449" : "#CBD5E1"}`, background: on ? "#EAFAF1" : "#fff", color: "#1a2332", borderRadius: 8, padding: "6px 10px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", maxWidth: 220, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {on ? "📎 " : ""}{d.name}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+            <label style={{ display: "inline-block", background: "#fff", border: "1px dashed #CBD5E1", borderRadius: 8, padding: "8px 14px", fontSize: 12.5, fontWeight: 600, color: "#475569", cursor: "pointer" }}>
+              {uploading ? "Uploading…" : "⬆️ Upload from computer"}
+              <input type="file" style={{ display: "none" }} disabled={uploading} onChange={e => { uploadFromComputer(e.target.files[0]); e.target.value = ""; }} />
+            </label>
+          </div>
+          {err && <div style={{ background: "#FDEDEC", border: "1px solid #F5B7B1", color: "#922B21", borderRadius: 8, padding: "9px 12px", fontSize: 13, marginBottom: 12 }}>{err}</div>}
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: 10 }}>
+            <button onClick={onClose} style={{ background: "#fff", border: "1px solid #CBD5E1", color: "#475569", borderRadius: 8, padding: "10px 18px", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>Cancel</button>
+            <button onClick={send} disabled={sending}
+              style={{ background: sending ? "#9CA3AF" : "#1E8449", color: "#fff", border: "none", borderRadius: 8, padding: "10px 22px", fontSize: 14, fontWeight: 800, cursor: sending ? "default" : "pointer", fontFamily: "inherit" }}>
+              {sending ? "Sending…" : "✉️ Send"}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // 🩺 AI Deal Doctor — shows the deal's biggest risk + the one move to make today,
 // with a ready-to-send draft when a party needs a nudge. Reads the stored nightly
 // check-up on open; "Run check-up" refreshes it live.
@@ -4127,6 +4274,8 @@ function DealDoctorPanel({ tx }) {
   const [err, setErr] = useState("");
   const [snoozeUntil, setSnoozeUntil] = useState(null);
   const [snoozeOpen, setSnoozeOpen] = useState(false);
+  const [sendOpen, setSendOpen] = useState(false);
+  const [sentNote, setSentNote] = useState("");
   const hdrs = { "Content-Type": "application/json", Authorization: "Bearer " + (localStorage.getItem("tp_token") || "") };
 
   useEffect(() => {
@@ -4216,11 +4365,22 @@ function DealDoctorPanel({ tx }) {
               </div>
               {draft.subject && <div style={{ fontSize: 13, fontWeight: 700, color: "#1a2332", marginBottom: 4 }}>{draft.subject}</div>}
               <div style={{ fontSize: 13, color: "#334155", whiteSpace: "pre-wrap", lineHeight: 1.5 }}>{draft.body}</div>
-              <button onClick={copyDraft}
-                style={{ marginTop: 10, background: "#1E8449", color: "#fff", border: "none", borderRadius: 8, padding: "7px 14px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
-                {copied ? "✓ Copied" : "📋 Copy draft"}
-              </button>
+              <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap", alignItems: "center" }}>
+                <button onClick={() => setSendOpen(true)}
+                  style={{ background: "#1E8449", color: "#fff", border: "none", borderRadius: 8, padding: "8px 16px", fontSize: 13, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>
+                  ✉️ Send this
+                </button>
+                <button onClick={copyDraft}
+                  style={{ background: "#fff", color: "#475569", border: "1px solid #CBD5E1", borderRadius: 8, padding: "8px 14px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                  {copied ? "✓ Copied" : "📋 Copy"}
+                </button>
+                {sentNote && <span style={{ fontSize: 12, color: "#1E8449", fontWeight: 700 }}>{sentNote}</span>}
+              </div>
             </div>
+          )}
+          {sendOpen && draft && (
+            <DealDoctorSendModal tx={tx} draft={draft} onClose={() => setSendOpen(false)}
+              onSent={(n) => { setSendOpen(false); setSentNote(`✓ Sent to ${n} recipient${n === 1 ? "" : "s"}`); setTimeout(() => setSentNote(""), 6000); }} />
           )}
           <div style={{ marginTop: 12 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
