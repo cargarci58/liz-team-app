@@ -4116,6 +4116,86 @@ function InboundRepliesPanel({ tx }) {
   );
 }
 
+// 🩺 AI Deal Doctor — shows the deal's biggest risk + the one move to make today,
+// with a ready-to-send draft when a party needs a nudge. Reads the stored nightly
+// check-up on open; "Run check-up" refreshes it live.
+function DealDoctorPanel({ tx }) {
+  const [dd, setDd] = useState(null);
+  const [at, setAt] = useState(null);
+  const [running, setRunning] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [err, setErr] = useState("");
+  const hdrs = { "Content-Type": "application/json", Authorization: "Bearer " + (localStorage.getItem("tp_token") || "") };
+
+  useEffect(() => {
+    let alive = true;
+    fetch(`${API}/transactions/${tx.id}/deal-doctor`, { headers: hdrs })
+      .then(r => r.json()).then(d => { if (alive && d.success) { setDd(d.dealDoctor); setAt(d.at); } })
+      .catch(() => {});
+    return () => { alive = false; };
+  }, [tx.id]);
+
+  const run = async () => {
+    setRunning(true); setErr("");
+    try {
+      const r = await fetch(`${API}/transactions/${tx.id}/deal-doctor`, { method: "POST", headers: hdrs });
+      const d = await r.json();
+      if (!r.ok || !d.success) throw new Error(d.error || "Could not run a check-up");
+      setDd(d.dealDoctor); setAt(d.at);
+    } catch (e) { setErr(e.message); } finally { setRunning(false); }
+  };
+
+  const tone = { red: { bar: "#C0392B", bg: "#FDEDEC", dot: "🔴" }, yellow: { bar: "#B7770D", bg: "#FEF9E7", dot: "🟡" }, green: { bar: "#1E8449", bg: "#EAFAF1", dot: "🟢" } };
+  const t = dd ? (tone[dd.health] || tone.yellow) : tone.yellow;
+  const draft = dd && dd.draft && dd.draft.channel !== "none" ? dd.draft : null;
+  const copyDraft = () => {
+    if (!draft) return;
+    const text = (draft.subject ? `Subject: ${draft.subject}\n\n` : "") + (draft.body || "");
+    navigator.clipboard?.writeText(text).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); }).catch(() => {});
+  };
+  const ago = at ? new Date(at).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) : null;
+
+  return (
+    <div style={{ border: `1px solid ${dd ? t.bar : "#E5E7EB"}`, borderLeft: `5px solid ${dd ? t.bar : "#94A3B8"}`, background: dd ? t.bg : "#F8FAFC", borderRadius: 12, padding: 16, marginBottom: 20 }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
+        <div style={{ fontWeight: 800, fontSize: 15, color: "#1A2B4A" }}>🩺 Deal Doctor {dd && <span style={{ fontSize: 16 }}>{t.dot}</span>}</div>
+        <button onClick={run} disabled={running}
+          style={{ background: running ? "#9CA3AF" : "#1A2B4A", color: "#fff", border: "none", borderRadius: 8, padding: "7px 14px", fontSize: 13, fontWeight: 700, cursor: running ? "default" : "pointer", fontFamily: "inherit" }}>
+          {running ? "Checking…" : dd ? "↻ Re-check" : "Run check-up"}
+        </button>
+      </div>
+      {err && <div style={{ color: "#C0392B", fontSize: 13, marginTop: 8 }}>{err}</div>}
+      {!dd && !err && <div style={{ fontSize: 13, color: "#64748B", marginTop: 8 }}>Tap “Run check-up” and I'll review this deal — the biggest risk right now and the one move to make today.</div>}
+      {dd && (
+        <div style={{ marginTop: 12 }}>
+          <div style={{ marginBottom: 10 }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: "#64748B", letterSpacing: ".04em" }}>⚠️ BIGGEST RISK</div>
+            <div style={{ fontSize: 14, color: "#1a2332", marginTop: 2 }}>{dd.risk}</div>
+          </div>
+          <div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: "#64748B", letterSpacing: ".04em" }}>✅ DO THIS TODAY</div>
+            <div style={{ fontSize: 14, color: "#1a2332", marginTop: 2, fontWeight: 600 }}>{dd.move}</div>
+          </div>
+          {draft && (
+            <div style={{ marginTop: 12, background: "#fff", border: "1px solid #E5E7EB", borderRadius: 8, padding: 12 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: "#64748B", letterSpacing: ".04em", marginBottom: 6 }}>
+                ✍️ READY-TO-SEND {draft.channel === "sms" ? "TEXT" : "EMAIL"}{draft.toRole ? ` · to the ${draft.toRole}` : ""}
+              </div>
+              {draft.subject && <div style={{ fontSize: 13, fontWeight: 700, color: "#1a2332", marginBottom: 4 }}>{draft.subject}</div>}
+              <div style={{ fontSize: 13, color: "#334155", whiteSpace: "pre-wrap", lineHeight: 1.5 }}>{draft.body}</div>
+              <button onClick={copyDraft}
+                style={{ marginTop: 10, background: "#1E8449", color: "#fff", border: "none", borderRadius: 8, padding: "7px 14px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                {copied ? "✓ Copied" : "📋 Copy draft"}
+              </button>
+            </div>
+          )}
+          {ago && <div style={{ fontSize: 11, color: "#94A3B8", marginTop: 10 }}>Checked {ago}</div>}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [], onSaveContact, onOpenContactBook, onDuplicate, currentUser, initialTab = "overview", dashboardUnread = 0, onMilestoneSummary }) {
   const [activeTab, setActiveTab] = useState(initialTab);
   const [showAssignAgent, setShowAssignAgent] = useState(false);
@@ -4415,6 +4495,7 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
       <div style={{ padding: 24, maxWidth: 940, margin: "0 auto" }}>
         {activeTab === "overview" && (
           <div>
+            {!isGuest && <DealDoctorPanel tx={tx} />}
             {!isGuest && tx.assignedAgentId && !tx.needsReview && tx.leadConverted === false && (
               <div style={{ background: "#FEF9E7", border: "1px solid #F1C40F", borderRadius: 12, padding: 16, marginBottom: 20 }}>
                 <div style={{ display: "flex", alignItems: "flex-start", gap: 12, flexWrap: "wrap" }}>
