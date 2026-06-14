@@ -34,6 +34,34 @@ export default function DocumentsTab({ tx }) {
   const isCommercial = /commercial/i.test(`${tx.propertyType || ""} ${tx.constructionType || ""}`);
   const tok = localStorage.getItem("tp_token") || "";
   const headers = { "Content-Type": "application/json", "Authorization": "Bearer " + tok };
+  const [readingDates, setReadingDates] = useState(null); // doc.id being read
+
+  // AI: pull the contract's dates onto this deal + recompute the milestone timeline.
+  const readContractDates = async (doc) => {
+    setReadingDates(doc.id);
+    try {
+      const r = await fetch(`${API}/transactions/${tx.id}/read-contract-dates`, {
+        method: "POST", headers, body: JSON.stringify({ docId: doc.id })
+      });
+      const d = await r.json();
+      if (!r.ok || !d.success) throw new Error(d.error || "Could not read the contract");
+      const sigLine = d.signatureStatus === "fully_executed" ? "✅ Contract appears fully signed."
+        : d.signatureStatus === "partially_signed" ? `⚠️ Not fully signed yet${d.missingSignatures ? " — " + d.missingSignatures : "."}`
+        : d.signatureStatus === "unsigned" ? "⚠️ This copy looks unsigned."
+        : "";
+      alert(
+        `📅 Dates read from "${doc.name}"\n\n` +
+        `${d.milestonesDated} milestone${d.milestonesDated === 1 ? "" : "s"} dated on your timeline.\n` +
+        (d.executedDate ? `Executed: ${d.executedDate}\n` : "") +
+        (d.closingDate ? `Closing: ${d.closingDate}\n` : "") +
+        (sigLine ? `\n${sigLine}\n` : "") +
+        (d.notes ? `\nNote: ${d.notes}` : "")
+      );
+    } catch (e) {
+      alert("Couldn't read the contract: " + e.message);
+    } finally { setReadingDates(null); }
+  };
+  const isContractReadable = (doc) => /pdf$/i.test(doc.mime_type || "") || String(doc.mime_type || "").startsWith("image/");
 
   const loadDocs = () =>
     fetch(`${API}/documents/${tx.id}`, { headers })
@@ -420,6 +448,13 @@ export default function DocumentsTab({ tx }) {
                         style={{ padding: "4px 10px", borderRadius: 6, border: "1px solid #DDDDDD", background: "#fff", cursor: "pointer", fontSize: 12, color: COLORS.info }}>
                         👁 View
                       </button>
+                      {isContractReadable(doc) && (
+                        <button onClick={() => readContractDates(doc)} disabled={readingDates === doc.id}
+                          title="Have AI read this contract and fill in the deal's dates + timeline"
+                          style={{ padding: "4px 10px", borderRadius: 6, border: "1px solid #C9A84C", background: readingDates === doc.id ? "#F5F5F5" : "#FCF6E3", cursor: readingDates === doc.id ? "default" : "pointer", fontSize: 12, color: "#7A5C00", fontWeight: 600 }}>
+                          {readingDates === doc.id ? "Reading…" : "📅 Read dates"}
+                        </button>
+                      )}
                       <button onClick={() => setShare({ doc })} title="Email this file to a party in the transaction"
                         style={{ padding: "4px 10px", borderRadius: 6, border: "1px solid #DDDDDD", background: "#fff", cursor: "pointer", fontSize: 12, color: COLORS.info }}>
                         📤 Share
