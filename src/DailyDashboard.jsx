@@ -233,8 +233,26 @@ function PersonalTaskCard({ task, token, onChange }) {
   );
 }
 
-function TaskCard({ task, token, onResolve, onComplete, onSnooze, onOpenModal, onStartChase, onOpenTransactionMilestones, onOpenInboundReply, onInboundReply }) {
-  const cfg = PRIORITY_CONFIG[task.priority] || PRIORITY_CONFIG.normal;
+// Strip the bucket prefix ("Past due:", "Today:", "Tomorrow:", "In N days:") and
+// the trailing " — <address>" from a task title — the deal card already shows the
+// address in its header and each line shows its own NOW/TODAY/SOON pill.
+function cleanItemTitle(title, address) {
+  if (!title) return "";
+  let s = String(title);
+  if (address) {
+    const i = s.lastIndexOf(" — " + address);
+    if (i >= 0) s = s.slice(0, i);
+  }
+  s = s.replace(/\s+—\s+[^—]*$/, "");                       // any trailing " — tail"
+  s = s.replace(/^\s*(past due|today|tomorrow|due today|in \d+ days?)\s*:\s*/i, "");
+  return s.trim();
+}
+
+// One task line inside a deal's grouped card. No outer card chrome / address —
+// the parent DealGroupCard supplies those. `bucket` carries the NOW/TODAY/SOON
+// label + colors for this specific line.
+function TaskItem({ task, bucket, token, onResolve, onComplete, onSnooze, onOpenModal, onStartChase, onOpenTransactionMilestones, onOpenInboundReply, onInboundReply }) {
+  const cfg = bucket || PRIORITY_CONFIG[task.priority] || PRIORITY_CONFIG.normal;
   const icon = TASK_ICONS[task.task_type] || "📌";
   const isSellerUpdate = task.task_type === "seller_update";
   const isBuyerUpdate = task.task_type === "buyer_update";
@@ -254,21 +272,19 @@ function TaskCard({ task, token, onResolve, onComplete, onSnooze, onOpenModal, o
   const [showScripts, setShowScripts] = useState(false);
 
   return (
-    <div style={{ background:COLORS.white, borderRadius:14, padding:16, marginBottom:12,
-      boxShadow:"0 1px 4px rgba(0,0,0,0.08)", borderLeft:"4px solid "+cfg.color }}>
+    <div style={{ paddingTop:2 }}>
       <div style={{ display:"flex", alignItems:"flex-start", gap:12 }}>
-        <div style={{ fontSize:22, marginTop:2 }}>{icon}</div>
+        <div style={{ fontSize:20, marginTop:2 }}>{icon}</div>
         <div style={{ flex:1 }}>
-          <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:4 }}>
-            <span style={{ fontSize:10, fontWeight:700, color:cfg.color,
-              background:cfg.bg, padding:"2px 8px", borderRadius:20 }}>
-              {cfg.label}
-            </span>
-            {task.address && (
-              <span style={{ fontSize:12, color:COLORS.gray, fontWeight:500 }}>{task.address}</span>
-            )}
-          </div>
-          <div style={{ fontWeight:700, fontSize:15, color:COLORS.black, marginBottom:4 }}>{task.title}</div>
+          {cfg.label && (
+            <div style={{ marginBottom:4 }}>
+              <span style={{ fontSize:10, fontWeight:700, color:cfg.color,
+                background:cfg.bg, padding:"2px 8px", borderRadius:20 }}>
+                {cfg.label}
+              </span>
+            </div>
+          )}
+          <div style={{ fontWeight:700, fontSize:15, color:COLORS.black, marginBottom:4 }}>{cleanItemTitle(task.title, task.address)}</div>
           {task.description && (
             <div style={{ fontSize:13, color:COLORS.gray, lineHeight:1.5 }}>{task.description}</div>
           )}
@@ -380,6 +396,54 @@ function TaskCard({ task, token, onResolve, onComplete, onSnooze, onOpenModal, o
           ⏰ Not Today
         </button>
       </div>
+    </div>
+  );
+}
+
+// Urgency buckets by rank: 0 overdue, 1 today, 2 due-soon, 3 no date.
+const BUCKETS = [
+  { label:"NOW",    color:COLORS.red,     bg:COLORS.lightRed },
+  { label:"TODAY",  color:COLORS.warning, bg:COLORS.warningBg },
+  { label:"SOON",   color:COLORS.gray,    bg:COLORS.lightGray },
+  { label:"",       color:COLORS.gray,    bg:COLORS.lightGray },
+];
+
+// ── DEAL GROUP CARD ───────────────────────────────────────────
+// One card per TRANSACTION. All of that deal's items are grouped here as lines,
+// most-urgent first — instead of scattering 3-5 separate cards across the page.
+// The card's left bar + header badge reflect the single most-urgent item.
+function DealGroupCard({ deal, token, onResolve, onComplete, onSnooze, onOpenModal, onStartChase, onOpenTransactionMilestones, onOpenInboundReply, onInboundReply, onOpenTransaction }) {
+  const top = BUCKETS[deal.rank] || BUCKETS[3];
+  return (
+    <div style={{ background:COLORS.white, borderRadius:14, padding:16, marginBottom:12,
+      boxShadow:"0 1px 4px rgba(0,0,0,0.08)", borderLeft:"4px solid "+top.color }}>
+      {/* Deal header — address once, with the deal's most-urgent badge */}
+      <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:4, flexWrap:"wrap" }}>
+        {top.label && (
+          <span style={{ fontSize:10, fontWeight:800, color:COLORS.white,
+            background:top.color, padding:"2px 8px", borderRadius:20 }}>{top.label}</span>
+        )}
+        <button onClick={() => onOpenTransaction && onOpenTransaction(deal.transaction_id)}
+          style={{ flex:1, minWidth:0, textAlign:"left", background:"none", border:"none",
+            padding:0, cursor:"pointer", fontFamily:"inherit",
+            fontWeight:800, fontSize:15, color:COLORS.black, whiteSpace:"nowrap",
+            overflow:"hidden", textOverflow:"ellipsis" }}>
+          {deal.address || "This transaction"}
+        </button>
+        <span style={{ fontSize:11, color:COLORS.gray, fontWeight:600 }}>
+          {deal.tasks.length} item{deal.tasks.length === 1 ? "" : "s"}
+        </span>
+      </div>
+      {deal.tasks.map((task, i) => (
+        <div key={task.id} style={{ marginTop: i === 0 ? 8 : 14,
+          paddingTop: i === 0 ? 0 : 14, borderTop: i === 0 ? "none" : "1px solid "+COLORS.lightGray }}>
+          <TaskItem task={task} bucket={BUCKETS[task._rank]} token={token}
+            onResolve={onResolve} onComplete={onComplete} onSnooze={onSnooze}
+            onOpenModal={onOpenModal} onStartChase={onStartChase}
+            onOpenTransactionMilestones={onOpenTransactionMilestones}
+            onOpenInboundReply={onOpenInboundReply} onInboundReply={onInboundReply} />
+        </div>
+      ))}
     </div>
   );
 }
@@ -660,6 +724,31 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
   const visibleUpcoming = filterVisible(tasks.upcoming);
   const totalVisible    = visibleOverdue.length + visibleToday.length + visibleUpcoming.length;
 
+  // ── GROUP BY TRANSACTION ──────────────────────────────────────
+  // One card per deal (not one per item). Tag each task with its urgency rank
+  // (0 overdue · 1 today · 2 due-soon · 3 no date), bucket by transaction, then
+  // sort deals by their most-urgent item. Within a deal, lines are urgent-first.
+  const rankedTasks = [
+    ...visibleOverdue.map(t => ({ ...t, _rank: 0 })),
+    ...visibleToday.map(t => ({ ...t, _rank: 1 })),
+    ...visibleUpcoming.map(t => ({ ...t, _rank: t.due_date ? 2 : 3 })),
+  ];
+  const dealMap = new Map();
+  for (const t of rankedTasks) {
+    const key = t.transaction_id || t.id;
+    let deal = dealMap.get(key);
+    if (!deal) { deal = { transaction_id: t.transaction_id, address: t.address, tasks: [], rank: 9 }; dealMap.set(key, deal); }
+    deal.tasks.push(t);
+    if (t._rank < deal.rank) deal.rank = t._rank;
+  }
+  const dealGroups = Array.from(dealMap.values());
+  for (const d of dealGroups) {
+    d.tasks.sort((a, b) => a._rank - b._rank || (a.due_date || "9999").localeCompare(b.due_date || "9999"));
+  }
+  dealGroups.sort((a, b) => a.rank - b.rank ||
+    (a.tasks[0]?.due_date || "9999").localeCompare(b.tasks[0]?.due_date || "9999") ||
+    String(a.address || "").localeCompare(String(b.address || "")));
+
   if (loading) {
     return (
       <div style={{ display:"flex", flexDirection:"column", alignItems:"center",
@@ -803,37 +892,17 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
           ))}
         </div>
       )}
-      {visibleOverdue.length > 0 && (
+      {/* ONE CARD PER TRANSACTION — all of a deal's items grouped, urgent first */}
+      {dealGroups.length > 0 && (
         <div>
-          <SectionHeader label="NEEDS ATTENTION NOW" count={visibleOverdue.length} color={COLORS.red} />
-          {visibleOverdue.map(task => (
-            <TaskCard key={task.id} task={task} token={token}
+          <SectionHeader label="WHAT NEEDS YOU TODAY" count={dealGroups.length} color={COLORS.red} />
+          {dealGroups.map(deal => (
+            <DealGroupCard key={deal.transaction_id || deal.tasks[0]?.id} deal={deal} token={token}
               onResolve={handleResolve} onComplete={handleComplete} onSnooze={handleSnooze}
-              onOpenModal={setActiveModal} onStartChase={handleStartChase} onOpenTransactionMilestones={onOpenTransactionMilestones} onOpenInboundReply={onOpenInboundReply} onInboundReply={handleInboundReply} />
-          ))}
-        </div>
-      )}
-
-      {/* DUE TODAY */}
-      {visibleToday.length > 0 && (
-        <div style={{ marginTop:8 }}>
-          <SectionHeader label="DUE TODAY" count={visibleToday.length} color={COLORS.warning} />
-          {visibleToday.map(task => (
-            <TaskCard key={task.id} task={task} token={token}
-              onResolve={handleResolve} onComplete={handleComplete} onSnooze={handleSnooze}
-              onOpenModal={setActiveModal} onStartChase={handleStartChase} onOpenTransactionMilestones={onOpenTransactionMilestones} onOpenInboundReply={onOpenInboundReply} onInboundReply={handleInboundReply} />
-          ))}
-        </div>
-      )}
-
-      {/* COMING UP */}
-      {visibleUpcoming.length > 0 && (
-        <div style={{ marginTop:8 }}>
-          <SectionHeader label="COMING UP THIS WEEK" count={visibleUpcoming.length} color={COLORS.gray} />
-          {visibleUpcoming.map(task => (
-            <TaskCard key={task.id} task={task} token={token}
-              onResolve={handleResolve} onComplete={handleComplete} onSnooze={handleSnooze}
-              onOpenModal={setActiveModal} onStartChase={handleStartChase} onOpenTransactionMilestones={onOpenTransactionMilestones} onOpenInboundReply={onOpenInboundReply} onInboundReply={handleInboundReply} />
+              onOpenModal={setActiveModal} onStartChase={handleStartChase}
+              onOpenTransaction={onOpenTransactionMilestones}
+              onOpenTransactionMilestones={onOpenTransactionMilestones}
+              onOpenInboundReply={onOpenInboundReply} onInboundReply={handleInboundReply} />
           ))}
         </div>
       )}
