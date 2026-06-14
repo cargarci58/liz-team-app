@@ -4085,6 +4085,7 @@ function InboundRepliesPanel({ tx }) {
           <div key={m.id} style={{ background: "#fff", border: `1px solid ${COLORS.border}`, borderRadius: 12, padding: 18 }}>
             <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 6, marginBottom: 8 }}>
               <div>
+                {!m.read_at && m.status === "received" && <span style={{ marginRight: 8, fontSize: 11, fontWeight: 800, background: "#C0392B", color: "#fff", padding: "2px 8px", borderRadius: 20 }}>● NEW</span>}
                 <span style={{ fontWeight: 700, color: COLORS.navy }}>{m.from_name || m.from_email || "A party"}</span>
                 {m.party_role && <span style={{ marginLeft: 8, fontSize: 12, background: COLORS.bg, color: COLORS.gray, padding: "2px 8px", borderRadius: 6 }}>{m.party_role}</span>}
               </div>
@@ -4164,6 +4165,22 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
   const update = changes => onUpdate({ ...tx, ...changes });
   const updateTask = updated => update({ tasks: tx.tasks.map(t => t.id === updated.id ? updated : t) });
   const [chatUnread, setChatUnread] = useState(0);
+
+  // Unread party-reply badge for the 💬 Replies tab. Loaded on open, cleared
+  // (and marked read on the server) once the agent views the tab.
+  const [unreadReplyCount, setUnreadReplyCount] = useState(0);
+  useEffect(() => {
+    if (tx.isGuestView) return;
+    const tok = localStorage.getItem("tp_token") || "";
+    fetch(`https://liz-team-server-api-production.up.railway.app/transactions/${tx.id}/inbound-emails/unread-count`, { headers: { Authorization: "Bearer " + tok } })
+      .then(r => r.json()).then(d => setUnreadReplyCount(d.count || 0)).catch(() => {});
+  }, [tx.id]);
+  useEffect(() => {
+    if (activeTab !== "replies" || unreadReplyCount === 0) return;
+    const tok = localStorage.getItem("tp_token") || "";
+    fetch(`https://liz-team-server-api-production.up.railway.app/transactions/${tx.id}/inbound-emails/mark-read`, { method: "POST", headers: { Authorization: "Bearer " + tok } }).catch(() => {});
+    setUnreadReplyCount(0);
+  }, [activeTab]);
   const [showEditTx, setShowEditTx] = useState(false);
   const [editTxForm, setEditTxForm] = useState({});
   const [showReceiveOffer, setShowReceiveOffer] = useState(false);
@@ -4302,7 +4319,7 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
     { id: "milestones", label: "📅 Timeline" },
     { id: "parties", label: `People (${tx.parties.length})` },
     { id: "sms", label: `Messages${smsMsgCount > 0 ? ` (${smsMsgCount})` : ""}` },
-    { id: "replies", label: "💬 Replies" },
+    { id: "replies", label: `💬 Replies${unreadReplyCount > 0 ? ` (${unreadReplyCount})` : ""}` },
     { id: "notes", label: "Internal Notes" },
     { id: "documents", label: "📎 Documents" },
     // Group chat now lives inside the Messages tab (Group mode) for staff. Guests
