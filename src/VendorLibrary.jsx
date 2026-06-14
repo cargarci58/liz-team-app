@@ -480,18 +480,20 @@ export default function VendorLibrary({ onClose }) {
 
         {/* Category Filter */}
         {!showForm && vendors.length > 0 && (
-          <div style={{ display: "flex", gap: 8, overflowX: "auto",
-            marginBottom: 16, paddingBottom: 4, scrollbarWidth: "none" }}>
-            {categories.map(cat => (
-              <button key={cat} onClick={() => setActiveCategory(cat)}
-                style={{ padding: "7px 14px", borderRadius: 20, border: "none", whiteSpace: "nowrap",
-                  background: activeCategory === cat ? COLORS.red : COLORS.white,
-                  color: activeCategory === cat ? "#fff" : COLORS.gray,
-                  fontWeight: activeCategory === cat ? 700 : 500,
-                  fontSize: 13, cursor: "pointer" }}>
-                {cat === "All" ? "All" : CATEGORY_ICONS[cat] + " " + cat}
-              </button>
-            ))}
+          <div style={{ marginBottom: 16 }}>
+            <select value={activeCategory} onChange={e => setActiveCategory(e.target.value)}
+              style={{ width: "100%", padding: "10px 12px", borderRadius: 10,
+                border: "1.5px solid " + COLORS.border, fontSize: 14,
+                fontFamily: "inherit", fontWeight: 600, background: COLORS.white,
+                color: COLORS.black, cursor: "pointer" }}>
+              {categories.map(cat => (
+                <option key={cat} value={cat}>
+                  {cat === "All"
+                    ? "All categories (" + vendors.length + ")"
+                    : CATEGORY_ICONS[cat] + " " + cat + " (" + vendors.filter(v => v.category === cat).length + ")"}
+                </option>
+              ))}
+            </select>
           </div>
         )}
 
