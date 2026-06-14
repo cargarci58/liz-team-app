@@ -4262,6 +4262,7 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
     setUnreadReplyCount(0);
   }, [activeTab]);
   const [showEditTx, setShowEditTx] = useState(false);
+  const [showPortalPreview, setShowPortalPreview] = useState(false);
   const [editTxForm, setEditTxForm] = useState({});
   const [showReceiveOffer, setShowReceiveOffer] = useState(false);
   const [reviewOfferId, setReviewOfferId] = useState(null);
@@ -4453,6 +4454,9 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
         <button onClick={() => isGuest ? setPaywallFeature("Duplicating a transaction") : (onDuplicate && onDuplicate(tx))} style={{ fontSize: 11, padding: "4px 10px", borderRadius: 6, border: "1px solid rgba(255,255,255,0.3)", background: "rgba(255,255,255,0.1)", color: "#fff", cursor: "pointer", fontFamily: "inherit" }}>⧉ Duplicate</button>
         <button onClick={() => isGuest ? setPaywallFeature("Editing a transaction") : openEditTx()} style={{ fontSize: 11, padding: "4px 10px", borderRadius: 6, border: "1px solid rgba(255,255,255,0.3)", background: "rgba(255,255,255,0.1)", color: "#fff", cursor: "pointer", fontFamily: "inherit" }}>✏️ Edit</button>
         <button onClick={() => isGuest ? setPaywallFeature("Printing") : window.print()} style={{ fontSize: 11, padding: "4px 10px", borderRadius: 6, border: "1px solid rgba(255,255,255,0.3)", background: "rgba(255,255,255,0.1)", color: "#fff", cursor: "pointer", fontFamily: "inherit" }}>🖨️ Print</button>
+        {!isGuest && (
+          <button onClick={() => setShowPortalPreview(true)} title="See exactly what your buyer/seller sees in their portal" style={{ fontSize: 11, padding: "4px 12px", borderRadius: 6, border: "1px solid rgba(255,255,255,0.3)", background: "rgba(255,255,255,0.1)", color: "#fff", fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>👁 Preview Client Portal</button>
+        )}
         {tx.type !== "Buyer Representation" && !["Closed", "Cancelled"].includes(tx.status) && (
           <button onClick={() => isGuest ? setPaywallFeature("Receiving offers") : (setActiveTab("overview"), setShowReceiveOffer(true))} style={{ fontSize: 11, padding: "4px 12px", borderRadius: 6, border: "none", background: "#1E8449", color: "#fff", fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>📥 Receive Offer</button>
         )}
@@ -5007,6 +5011,18 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
           onClose={() => setShowAssignAgent(false)}
           onAssigned={(agentId) => onUpdate({ ...tx, assignedAgentId: agentId })}
         />
+      )}
+      {showPortalPreview && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 9998, background: COLORS.bg, overflowY: "auto" }}>
+          <Suspense fallback={<div style={{ padding: 60, textAlign: "center", color: COLORS.muted }}>Loading the client's view…</div>}>
+            <ClientPortal
+              user={currentUser || { firstName: "Preview" }}
+              previewTxId={tx.id}
+              onExitPreview={() => setShowPortalPreview(false)}
+              onLogout={() => setShowPortalPreview(false)}
+            />
+          </Suspense>
+        </div>
       )}
       {paywallFeature && (
         <div onClick={() => setPaywallFeature(null)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)", zIndex: 9999, display: "flex", alignItems: "flex-start", justifyContent: "center", padding: 16, overflowY: "auto" }}>

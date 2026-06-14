@@ -534,7 +534,10 @@ function FaqTab({ agentPhone }) {
 }
 
 // ── MAIN CLIENT PORTAL ────────────────────────────────────────
-export default function ClientPortal({ user, onLogout }) {
+// previewTxId (optional): agent "Preview client portal" mode — loads ONE deal
+// via the owner-gated preview endpoint and shows exactly what the client sees.
+export default function ClientPortal({ user, onLogout, previewTxId, onExitPreview }) {
+  const isPreview = !!previewTxId;
   const [tx, setTx] = useState(null);
   const [allTx, setAllTx] = useState([]);
   const [docs, setDocs] = useState([]);
@@ -584,7 +587,8 @@ export default function ClientPortal({ user, onLogout }) {
   });
 
   useEffect(() => {
-    fetch(API + "/client/transactions", { headers })
+    const url = isPreview ? `${API}/client/transaction/${previewTxId}/preview` : `${API}/client/transactions`;
+    fetch(url, { headers })
       .then(r => r.json())
       .then(data => {
         // A client can have MULTIPLE properties (e.g. selling two at once).
@@ -772,6 +776,19 @@ export default function ClientPortal({ user, onLogout }) {
     <div style={{ minHeight: "100vh", background: C.lightGray,
       fontFamily: "system-ui, sans-serif", paddingBottom: 80 }}>
 
+      {/* Preview banner — agent is viewing the client's portal */}
+      {isPreview && (
+        <div style={{ background: "#B7770D", color: "#fff", padding: "10px 16px",
+          display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+          <span style={{ fontSize: 13, fontWeight: 700 }}>👁 Preview — this is exactly what your client sees.</span>
+          <button onClick={() => (onExitPreview ? onExitPreview() : onLogout && onLogout())}
+            style={{ background: "#fff", color: "#7A5C00", border: "none", borderRadius: 8,
+              padding: "6px 14px", cursor: "pointer", fontSize: 12, fontWeight: 800, fontFamily: "inherit" }}>
+            ← Back to deal
+          </button>
+        </div>
+      )}
+
       {/* Header */}
       <div style={{ background: "#111111", padding: "14px 20px",
         display: "flex", justifyContent: "space-between", alignItems: "center",
@@ -791,12 +808,12 @@ export default function ClientPortal({ user, onLogout }) {
             </div>
           </div>
         </div>
-        <button onClick={onLogout}
+        <button onClick={() => (isPreview ? (onExitPreview ? onExitPreview() : onLogout && onLogout()) : onLogout && onLogout())}
           style={{ background: "transparent", border: "1.5px solid rgba(255,255,255,0.5)",
             color: "#ffffff", borderRadius: 8, padding: "7px 18px",
             cursor: "pointer", fontSize: 13, fontWeight: 600, fontFamily: "inherit",
             letterSpacing: "0.3px" }}>
-          Sign Out
+          {isPreview ? "Exit Preview" : "Sign Out"}
         </button>
       </div>
 
