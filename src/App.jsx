@@ -7362,6 +7362,22 @@ function MainApp({ onLogout, currentUser }) {
   const openReports = (tab = "overview") => { setReportsTab(tab); setShowReports(true); };
   const [showCalendar, setShowCalendar] = useState(false);
   const [selectedId, setSelectedId] = useState(null);
+  // Deep link: a briefing/email link like ?deal=<txId>[&tab=documents] opens that
+  // deal directly — so every alert can point at the action, not the homepage.
+  const deepLinkedRef = useRef(false);
+  useEffect(() => {
+    if (deepLinkedRef.current || transactions.length === 0) return;
+    const sp = new URLSearchParams(window.location.search);
+    const dealId = sp.get("deal");
+    if (!dealId) return;
+    const t = transactions.find(x => x.id === dealId);
+    if (t) {
+      deepLinkedRef.current = true;
+      setSelectedId(dealId);
+      setInitialDetailTab(sp.get("tab") || "overview");
+      setView("detail");
+    }
+  }, [transactions]);
   const [contacts, setContacts] = useState([]);
   // Freemium: a free guest (invited party) sees every feature but is paywalled on use.
   const [isFreeGuest, setIsFreeGuest] = useState(false);
