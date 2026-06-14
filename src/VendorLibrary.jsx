@@ -13,7 +13,7 @@ const VENDOR_CATEGORIES = [
   "Inspector", "Lender", "Title Company", "Insurance",
   "Attorney", "Pest Control", "Survey", "Contractor",
   "General Contractor", "Handyman", "Plumber", "Electrician",
-  "HVAC", "Roofer", "Photographer",
+  "HVAC", "Roofer", "Photographer", "Painter", "Drywall",
   "Moving Company", "Locksmith", "Other"
 ];
 
@@ -23,6 +23,7 @@ const CATEGORY_ICONS = {
   "Survey": "📐", "Contractor": "🔧",
   "General Contractor": "👷", "Handyman": "🛠️", "Plumber": "🚰",
   "Electrician": "⚡", "HVAC": "❄️", "Roofer": "🏠", "Photographer": "📷",
+  "Painter": "🎨", "Drywall": "🧱",
   "Moving Company": "🚚", "Locksmith": "🔑", "Other": "👤",
 };
 
