@@ -130,6 +130,56 @@ function LatestUpdateCard({ tx, agentName }) {
   );
 }
 
+// ── CLOSING COUNTDOWN + MOVING CHECKLIST ──────────────────────
+// Appears in the final stretch (closing ≤30 days, not yet Closed). A big,
+// reassuring countdown + a plain-English checklist so a non-tech buyer/seller
+// knows exactly what to do before closing day — led by the wire-fraud warning,
+// the single most important thing to protect them.
+function ClosingCountdownCard({ tx }) {
+  const days = daysUntil(tx.closingDate);
+  if (tx.status === "Closed") return null;
+  if (days === null || days < 0 || days > 30) return null;
+  const isBuyer = tx.transactionType && tx.transactionType.includes("Buyer");
+  const headline = days === 0 ? "Closing is today! 🎉" : days === 1 ? "1 day to closing" : `${days} days to closing`;
+  const items = isBuyer ? [
+    { icon: "🛡️", text: "Confirm your homeowner's insurance is active starting on closing day." },
+    { icon: "👀", text: "Do your final walk-through with your agent to make sure the home is in the agreed condition." },
+    { icon: "💡", text: "Set up utilities in your name (electric, water, internet) to start on closing day." },
+    { icon: "🪪", text: "Bring a government-issued photo ID to closing." },
+    { icon: "📦", text: "Plan your move and forward your mail to the new address." },
+  ] : [
+    { icon: "📦", text: "Be fully packed and moved out by closing day." },
+    { icon: "💡", text: "Schedule your utilities to stop (or transfer) the day after closing." },
+    { icon: "🔑", text: "Gather all keys, garage remotes, mailbox keys, and appliance manuals to hand over." },
+    { icon: "🪪", text: "Bring a government-issued photo ID to closing." },
+    { icon: "📫", text: "Forward your mail to your new address." },
+  ];
+  return (
+    <div style={{ background: C.white, borderRadius: 14, padding: 18, marginBottom: 14,
+      boxShadow: "0 1px 4px rgba(0,0,0,0.08)", borderLeft: "4px solid " + C.red }}>
+      <div style={{ fontSize: 11, fontWeight: 700, color: C.gray, textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>CLOSING COUNTDOWN</div>
+      <div style={{ fontSize: 22, fontWeight: 800, color: C.black, marginBottom: 4 }}>{headline}</div>
+      <div style={{ fontSize: 13, color: C.gray, marginBottom: 14 }}>{formatDate(tx.closingDate)} — here's how to be ready.</div>
+
+      {/* Wire-fraud warning — the most important thing for them to see. */}
+      <div style={{ background: "#FDEDEC", border: "1px solid #F1948A", borderRadius: 10, padding: "12px 14px", marginBottom: 14 }}>
+        <div style={{ fontSize: 13, fontWeight: 800, color: "#922B21", marginBottom: 4 }}>⚠️ Protect your money from wire fraud</div>
+        <div style={{ fontSize: 13, color: "#922B21", lineHeight: 1.6 }}>
+          Before sending ANY money, call the title company using a phone number you looked up yourself — never a number or wiring instructions from an email. Wiring instructions in email can be faked. When in doubt, call your agent first.
+        </div>
+      </div>
+
+      {items.map((it, i) => (
+        <div key={i} style={{ display: "flex", gap: 10, alignItems: "flex-start", paddingBottom: 10, marginBottom: 10, borderBottom: i < items.length - 1 ? "1px solid " + C.lightGray : "none" }}>
+          <span style={{ fontSize: 18, flexShrink: 0 }}>{it.icon}</span>
+          <span style={{ fontSize: 14, color: C.black, lineHeight: 1.5 }}>{it.text}</span>
+        </div>
+      ))}
+      <div style={{ fontSize: 12, color: C.gray, marginTop: 4 }}>Questions about any of these? Just message your agent — that's what they're here for.</div>
+    </div>
+  );
+}
+
 // ── ACTION NEEDED CARD ────────────────────────────────────────
 function ActionNeededCard({ tx }) {
   const getAction = () => {
@@ -859,6 +909,7 @@ export default function ClientPortal({ user, onLogout }) {
                   </div>
                 )}
                 <LatestUpdateCard tx={tx} agentName={agentName} />
+                <ClosingCountdownCard tx={tx} />
                 <ActionNeededCard tx={tx} />
 
                 {/* Key Dates & Financials */}
