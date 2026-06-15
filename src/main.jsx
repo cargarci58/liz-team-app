@@ -1,3 +1,4 @@
+import { Component } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.jsx'
@@ -80,4 +81,27 @@ else if (path.startsWith('/form-download/')) {
   Root = <PortalMagicLogin urlToken={token} />;
 } else Root = <App />;
 
-createRoot(document.getElementById('root')).render(Root);
+// Catch any render-time exception so a glitch shows a recoverable message
+// instead of a blank white page (which leaves the user stuck with no clue).
+// The actual error is shown + logged so a recurring crash is diagnosable.
+class ErrorBoundary extends Component {
+  constructor(props) { super(props); this.state = { err: null }; }
+  static getDerivedStateFromError(err) { return { err }; }
+  componentDidCatch(err, info) { try { console.error('App crashed:', err, info); } catch (_) {} }
+  render() {
+    if (this.state.err) {
+      return (
+        <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16, padding: 24, fontFamily: 'system-ui, sans-serif', textAlign: 'center' }}>
+          <div style={{ fontSize: 40 }}>😕</div>
+          <div style={{ fontWeight: 700, fontSize: 18, color: '#0F2044' }}>Something went wrong</div>
+          <div style={{ fontSize: 14, color: '#555', maxWidth: 420 }}>The page hit an unexpected error. Reloading usually fixes it.</div>
+          <button onClick={() => window.location.reload()} style={{ padding: '12px 28px', background: '#C0392B', color: '#fff', border: 'none', borderRadius: 10, fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>Reload</button>
+          <pre style={{ fontSize: 11, color: '#999', maxWidth: 420, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{String(this.state.err && this.state.err.message || this.state.err)}</pre>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+createRoot(document.getElementById('root')).render(<ErrorBoundary>{Root}</ErrorBoundary>);
