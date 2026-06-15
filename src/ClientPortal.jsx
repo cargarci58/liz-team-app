@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from "react";
 import BuyerCalculator from "./components/BuyerCalculator";
 import SellerCalculator from "./components/SellerCalculator";
 import TransactionChat from "./TransactionChat";
+// Liability-critical client-facing claim logic lives in one tested module.
+import { deriveStage, strongClaimFor } from "./portalClaims";
 
 const API = "https://liz-team-server-api-production.up.railway.app";
 
@@ -69,29 +71,7 @@ function comingUpLabel(name) {
   return humanizeForClient(name).label;
 }
 
-// The DB status is coarse and often stuck at "Under Contract" while the deal has
-// really moved on. Derive the TRUE stage from completed milestones so the portal
-// never tells a seller "under contract" when the appraisal is already in.
-const STAGE_ORDER = ["Active", "Under Contract", "Inspection", "Appraisal", "Clear to Close", "Closed"];
-function deriveStage(timeline, tx) {
-  const ms = (timeline && Array.isArray(timeline.milestones)) ? timeline.milestones : [];
-  const done = ms.filter(m => m.status === "Completed" || m.status === "Waived");
-  const open = ms.filter(m => m.status !== "Completed" && m.status !== "Waived" && m.is_na !== true);
-  const doneHas = (re) => done.some(m => re.test(m.name || ""));
-  let derived = "Active";
-  if (doneHas(/clear to close|cd review|closing disclosure|final walk|settlement statement/i)) derived = "Clear to Close";
-  else if (doneHas(/appraisal received|appraisal report|financing (approved|commitment|secured)|loan (approved|commitment|cleared)/i)) derived = "Appraisal";
-  else if (doneHas(/inspection period|inspection (complete|done|cleared)|repair (request|negotiation)|wdo|termite/i)) derived = "Inspection";
-  else if (doneHas(/executed|under contract|emd|earnest|fully executed/i)) derived = "Under Contract";
-  if ((tx.status || "") === "Closed") return { effectiveStatus: "Closed", lastDone: null, upcoming: [] };
-  const dbIdx = Math.max(0, STAGE_ORDER.indexOf(tx.status));
-  const derivedIdx = STAGE_ORDER.indexOf(derived);
-  const effectiveStatus = STAGE_ORDER[Math.max(dbIdx, derivedIdx)];
-  const meaningful = (m) => !/communication|weekly|thank|review request|compliance|reminder|set up|generate/i.test(m.name || "");
-  const lastDone = [...done].filter(meaningful).sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0)).slice(-1)[0] || null;
-  const upcoming = [...open].filter(meaningful).sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0)).slice(0, 4);
-  return { effectiveStatus, lastDone, upcoming };
-}
+// STAGE_ORDER + deriveStage now live in ./portalClaims (tested, build-gated).
 
 // ── PROGRESS TRACKER ─────────────────────────────────────────
 function ProgressTracker({ status, transactionType }) {
@@ -325,30 +305,13 @@ function JourneyHero({ tx, stage }) {
   );
 }
 
-// Warm, past-tense phrasing for completed milestones (the "wins" recap).
-const WIN_COPY = [
-  // "Went live on the market" means the home is actually IN the MLS — NOT just
-  // that the listing agreement was signed. Keep "listing agreement" OUT of this
-  // pattern (it has its own win below); otherwise a seller whose paperwork is
-  // signed but whose home isn't listed yet sees a false "your home is on the
-  // market" — which is exactly what happened and triggered a seller complaint.
-  { re: /listed in mls|property listed|active on (the )?market|go(ing)? live/i, text: "Your home went live on the market" },
-  { re: /listing agreement|exclusive right/i, text: "Listing agreement signed" },
-  { re: /executed|under contract|offer accepted|fully executed/i, text: "Went under contract" },
-  { re: /emd|earnest/i, text: "Earnest money received" },
-  { re: /inspection period|inspection (complete|done)|repair/i, text: "Inspection wrapped up" },
-  { re: /appraisal received|appraisal report/i, text: "Appraisal came back" },
-  { re: /appraisal ordered/i, text: "Appraisal ordered" },
-  { re: /appraisal gap/i, text: "Appraised value confirmed" },
-  { re: /title commitment|title search/i, text: "Title work received" },
-  { re: /hoa|estoppel/i, text: "HOA documents collected" },
-  { re: /property disclosure|spd|disclosure/i, text: "Disclosures completed" },
-  { re: /photos|photography/i, text: "Professional photos done" },
-  { re: /survey/i, text: "Survey completed" },
-];
+// Warm, past-tense phrasing for completed milestones (the "wins" recap). The
+// claim map (WIN_COPY) + strongClaimFor live in ./portalClaims (tested,
+// build-gated). When no canned claim applies we fall back to a neutral,
+// always-true humanized label — so an unknown milestone can never invent a
+// false claim.
 function winLabel(name) {
-  const hit = WIN_COPY.find(e => e.re.test(name || ""));
-  return hit ? hit.text : humanizeForClient(name).label;
+  return strongClaimFor(name) || humanizeForClient(name).label;
 }
 
 // ── WINS CARD — "look how far we've come" (momentum) ──────────

@@ -5,9 +5,11 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "vitest run src/portalClaims.test.js && vite build",
+    "build:nocheck": "vite build",
     "preview": "vite preview",
     "test": "vitest run",
+    "test:portal": "vitest run src/portalClaims.test.js",
     "test:watch": "vitest"
   },
   "dependencies": {
