@@ -327,7 +327,13 @@ function JourneyHero({ tx, stage }) {
 
 // Warm, past-tense phrasing for completed milestones (the "wins" recap).
 const WIN_COPY = [
-  { re: /listed in mls|property listed|listing agreement|go(ing)? live/i, text: "Your home went live on the market" },
+  // "Went live on the market" means the home is actually IN the MLS — NOT just
+  // that the listing agreement was signed. Keep "listing agreement" OUT of this
+  // pattern (it has its own win below); otherwise a seller whose paperwork is
+  // signed but whose home isn't listed yet sees a false "your home is on the
+  // market" — which is exactly what happened and triggered a seller complaint.
+  { re: /listed in mls|property listed|active on (the )?market|go(ing)? live/i, text: "Your home went live on the market" },
+  { re: /listing agreement|exclusive right/i, text: "Listing agreement signed" },
   { re: /executed|under contract|offer accepted|fully executed/i, text: "Went under contract" },
   { re: /emd|earnest/i, text: "Earnest money received" },
   { re: /inspection period|inspection (complete|done)|repair/i, text: "Inspection wrapped up" },
@@ -336,7 +342,7 @@ const WIN_COPY = [
   { re: /appraisal gap/i, text: "Appraised value confirmed" },
   { re: /title commitment|title search/i, text: "Title work received" },
   { re: /hoa|estoppel/i, text: "HOA documents collected" },
-  { re: /property disclosure|spd|disclosure/i, text: "Disclosures delivered" },
+  { re: /property disclosure|spd|disclosure/i, text: "Disclosures completed" },
   { re: /photos|photography/i, text: "Professional photos done" },
   { re: /survey/i, text: "Survey completed" },
 ];
@@ -1151,10 +1157,21 @@ export default function ClientPortal({ user, onLogout, previewTxId, onExitPrevie
               <div>
                 <JourneyHero tx={tx} stage={stage} />
                 <AgentCard name={agentName} title={agentTitle} brokerage={brokerage} phone={agentPhone} email={agentEmail} photo={agentPhoto} brand={brand} />
-                {timeline && timeline.total > 0 && (
+                {timeline && timeline.total > 0 && (() => {
+                  // A seller listing that isn't under contract yet is in the
+                  // PREP/launch stage — framing its progress as "% to closing" is
+                  // misleading (the home may not even be in the MLS). Frame it as
+                  // getting market-ready instead; only switch to "to closing" once
+                  // the deal is actually under contract.
+                  const isSellerListing = /listing|seller/i.test(tx.transactionType || "");
+                  const preContract = isSellerListing && tx.status === "Active";
+                  const progressHeadline = preContract
+                    ? `You're ${timeline.progress}% to launch 🚀`
+                    : `You're ${timeline.progress}% to closing 🎯`;
+                  return (
                   <div style={{ background: C.white, borderRadius: 14, padding: 18, marginBottom: 14, boxShadow: "0 1px 4px rgba(0,0,0,0.08)" }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-                      <div style={{ fontSize: 15, fontWeight: 800, color: C.black }}>You're {timeline.progress}% to closing 🎯</div>
+                      <div style={{ fontSize: 15, fontWeight: 800, color: C.black }}>{progressHeadline}</div>
                       <div style={{ fontSize: 12, color: C.gray, fontWeight: 700 }}>{timeline.done}/{timeline.total} steps</div>
                     </div>
                     <div style={{ background: C.lightGray, borderRadius: 20, height: 12, overflow: "hidden" }}>
@@ -1163,7 +1180,7 @@ export default function ClientPortal({ user, onLogout, previewTxId, onExitPrevie
                     {timeline.mine && timeline.mine.length > 0 && (
                       <div style={{ marginTop: 16 }}>
                         <div style={{ fontSize: 12, fontWeight: 800, color: C.gray, textTransform: "uppercase", letterSpacing: 1, marginBottom: 2 }}>✅ What we need from you</div>
-                        <div style={{ fontSize: 12, color: C.gray, marginBottom: 10 }}>A few things to take care of as we head toward closing — no rush unless a date is shown.</div>
+                        <div style={{ fontSize: 12, color: C.gray, marginBottom: 10 }}>A few things to take care of as we {preContract ? "get your home ready to list" : "head toward closing"} — no rush unless a date is shown.</div>
                         {timeline.mine.map((m, i) => {
                           const h = humanizeForClient(m.name);
                           return (
@@ -1184,7 +1201,8 @@ export default function ClientPortal({ user, onLogout, previewTxId, onExitPrevie
                       <div style={{ marginTop: 12, fontSize: 13, color: C.gray }}>Nothing needed from you right now — we'll let you know the moment something comes up. 👍</div>
                     )}
                   </div>
-                )}
+                  );
+                })()}
                 <SideValueCard tx={tx} />
                 <LatestUpdateCard tx={tx} agentName={agentName} stage={stage} />
                 <WinsCard timeline={timeline} />
