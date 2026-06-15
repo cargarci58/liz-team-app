@@ -46,6 +46,8 @@ const VendorLibrary = lazy(() => import("./VendorLibrary"));
 const CompanySettings = lazy(() => import("./CompanySettings"));
 const AgentProfile = lazy(() => import("./AgentProfile"));
 const ClientPortal = lazy(() => import("./ClientPortal"));
+const TCPortal = lazy(() => import("./TCPortal"));
+const CoordinatorPanel = lazy(() => import("./CoordinatorPanel"));
 
 const COLORS = {
   navy: "#111111", gold: "#C0392B", lightGold: "#FADBD8",
@@ -5076,6 +5078,7 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
               </div>
             )}
             {!isGuest && <ActiveFollowups txId={tx.id} />}
+            {!isGuest && <Suspense fallback={null}><CoordinatorPanel txId={tx.id} /></Suspense>}
             {showAssignVendor && (
               <AssignVendorPanel
                 tx={tx}
@@ -8235,6 +8238,19 @@ function AuthGate() {
           setAuthUser(null);
         }} />
         <FaqHelpButton apiBase={API} token={localStorage.getItem("tp_token") || ""} />
+      </Suspense>
+    );
+  }
+
+  // Transaction coordinators get their own cross-brokerage portal (not the agent app).
+  if (authUser.role === "tc") {
+    return (
+      <Suspense fallback={<LazyLoading />}>
+        <TCPortal user={authUser} onLogout={() => {
+          localStorage.removeItem("tp_token");
+          localStorage.removeItem("tp_user");
+          setAuthUser(null);
+        }} />
       </Suspense>
     );
   }
