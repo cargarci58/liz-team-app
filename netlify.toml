@@ -1,0 +1,9 @@
+# Pin the deploy to the GATED build so the portal-claims safety test runs on
+# every Netlify deploy. `npm run build` = `vitest run src/portalClaims.test.js
+# && vite build`, so if a change could make the client portal state a false fact
+# (e.g. "your home went live on the market" before it's listed), the test fails,
+# the build fails, and the bad copy never reaches a client. SPA redirects and
+# headers continue to come from dist/_redirects and dist/_headers.
+[build]
+  command = "npm run build"
+  publish = "dist"
