@@ -1,4 +1,4 @@
-import{r as f,j as e}from"./index-DoNWzkJ6.js";const q="https://liz-team-server-api-production.up.railway.app",P=async(r,p={})=>{const a=localStorage.getItem("tp_token"),l=await fetch(`${q}${r}`,{...p,headers:{"Content-Type":"application/json",Authorization:`Bearer ${a}`,...p.headers||{}}});if(!l.ok)throw new Error(`${l.status}`);return l.json()},Q=`
+import{r as f,j as e}from"./index-CyX0wOU9.js";const q="https://liz-team-server-api-production.up.railway.app",P=async(r,p={})=>{const a=localStorage.getItem("tp_token"),l=await fetch(`${q}${r}`,{...p,headers:{"Content-Type":"application/json",Authorization:`Bearer ${a}`,...p.headers||{}}});if(!l.ok)throw new Error(`${l.status}`);return l.json()},Q=`
   @media print {
     body * { visibility: hidden; }
     #reports-printable, #reports-printable * { visibility: visible; }

@@ -346,6 +346,253 @@ function WinsCard({ timeline }) {
   );
 }
 
+// ════════════════════════════════════════════════════════════════
+// BUYER GUIDE — loan types, credit coaching + tracker, first-time roadmap.
+// All content is self-contained (no external data). Loan cards are built
+// "rate-ready" so a daily-rate feed can drop into the rate slot later.
+// ════════════════════════════════════════════════════════════════
+const LOAN_TYPES = [
+  { key: "conv", emoji: "🏦", name: "Conventional", down: "3%–20% down",
+    who: "Buyers with steady income and decent credit (usually 620+).",
+    how: "Not backed by the government. Put 20% down and you skip monthly mortgage insurance (PMI); less down means PMI until you reach 20% equity. The most common loan.",
+    pros: ["No upfront mortgage-insurance fee", "PMI drops off at 20% equity", "Works for primary, second, or investment homes"],
+    cons: ["Higher credit score needed", "PMI if under 20% down"] },
+  { key: "fha", emoji: "🇺🇸", name: "FHA", down: "3.5% down",
+    who: "First-time buyers or lower credit scores (often 580+).",
+    how: "Backed by the Federal Housing Administration. Easier to qualify for, but you pay mortgage insurance (MIP) — usually for the life of the loan unless you refinance later.",
+    pros: ["Low 3.5% down", "Forgiving on credit", "Seller can help with closing costs"],
+    cons: ["Mortgage insurance for the life of the loan", "Loan limits by county", "Property must meet condition standards"] },
+  { key: "va", emoji: "🎖️", name: "VA", down: "0% down",
+    who: "Eligible veterans, active-duty service members, and some spouses.",
+    how: "Guaranteed by the Dept. of Veterans Affairs. Zero down payment and no monthly mortgage insurance — one of the best loans available if you qualify.",
+    pros: ["No down payment", "No monthly mortgage insurance", "Competitive rates"],
+    cons: ["One-time VA funding fee", "Primary residence only", "Must have VA eligibility"] },
+  { key: "usda", emoji: "🌾", name: "USDA Rural", down: "0% down",
+    who: "Buyers in eligible rural/suburban areas under income limits.",
+    how: "Backed by the U.S. Dept. of Agriculture for rural and many suburban areas. No down payment, but the home location and your income both have to qualify.",
+    pros: ["No down payment", "Low mortgage-insurance cost", "Good rates"],
+    cons: ["Location must be USDA-eligible", "Household income limits", "Primary residence only"] },
+  { key: "jumbo", emoji: "💎", name: "Jumbo", down: "10%–20%+ down",
+    who: "Buyers of higher-priced homes above the conforming loan limit.",
+    how: "For loan amounts above the conventional limit. Stricter on credit, income, and reserves because the lender takes on more risk.",
+    pros: ["Finances luxury / high-cost homes", "Competitive rates for strong buyers"],
+    cons: ["Higher credit + cash reserves needed", "Larger down payment", "Tougher to qualify"] },
+  { key: "arm", emoji: "📈", name: "Adjustable-Rate (ARM)", down: "varies",
+    who: "Buyers who plan to move or refinance within a few years.",
+    how: "The rate is fixed for a set period (e.g. 5 years on a 5/1 ARM), then adjusts with the market. Lower starting rate, but it can rise later.",
+    pros: ["Lower initial rate", "Good if you won't keep the loan long"],
+    cons: ["Rate (and payment) can rise later", "Harder to budget long-term"] },
+];
+
+function LoanTypesCard() {
+  const [open, setOpen] = useState("conv");
+  return (
+    <div style={{ background: C.white, borderRadius: 14, padding: 18, marginBottom: 14, boxShadow: "0 1px 4px rgba(0,0,0,0.08)", borderLeft: "4px solid #1A5276" }}>
+      <div style={{ fontSize: 12, fontWeight: 800, color: C.gray, textTransform: "uppercase", letterSpacing: 1, marginBottom: 4 }}>💰 Loan Types — What's Available</div>
+      <div style={{ fontSize: 12, color: C.gray, marginBottom: 4 }}>Tap any loan to learn how it works. Your lender confirms which fits you best.</div>
+      <div style={{ fontSize: 11, color: "#1A5276", background: "#EAF2F8", borderRadius: 8, padding: "6px 10px", marginBottom: 12 }}>📅 Live daily rates are coming soon — for now, ask your lender for today's rate on each loan.</div>
+      {LOAN_TYPES.map((l) => {
+        const isOpen = open === l.key;
+        return (
+          <div key={l.key} style={{ borderBottom: "1px solid " + C.lightGray, paddingBottom: isOpen ? 12 : 0 }}>
+            <div onClick={() => setOpen(isOpen ? "" : l.key)} style={{ display: "flex", alignItems: "center", gap: 10, padding: "11px 0", cursor: "pointer" }}>
+              <span style={{ fontSize: 20 }}>{l.emoji}</span>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 14, fontWeight: 700, color: C.black }}>{l.name}</div>
+                <div style={{ fontSize: 12, color: C.gray }}>{l.down}</div>
+              </div>
+              <span style={{ fontSize: 13, color: C.gray }}>{isOpen ? "▲" : "▼"}</span>
+            </div>
+            {isOpen && (
+              <div style={{ paddingLeft: 30 }}>
+                <div style={{ fontSize: 13, color: C.black, lineHeight: 1.55, marginBottom: 8 }}><b>Best for:</b> {l.who}</div>
+                <div style={{ fontSize: 13, color: C.gray, lineHeight: 1.55, marginBottom: 8 }}>{l.how}</div>
+                <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                  <div style={{ flex: "1 1 140px" }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: C.success, marginBottom: 3 }}>👍 PROS</div>
+                    {l.pros.map((p, i) => <div key={i} style={{ fontSize: 12, color: C.gray, lineHeight: 1.5 }}>• {p}</div>)}
+                  </div>
+                  <div style={{ flex: "1 1 140px" }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: C.warning, marginBottom: 3 }}>👀 KEEP IN MIND</div>
+                    {l.cons.map((p, i) => <div key={i} style={{ fontSize: 12, color: C.gray, lineHeight: 1.5 }}>• {p}</div>)}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+const CREDIT_TIPS = [
+  { icon: "💳", title: "Keep balances under 30% (ideally under 10%)", body: "Credit-card balance ÷ limit = your utilization. It's the fastest needle-mover. Paying a card down below 10% of its limit can jump your score in one cycle." },
+  { icon: "⏰", title: "Never miss a payment", body: "Payment history is the single biggest factor. Even one 30-day late hurts. Put everything on autopay for at least the minimum." },
+  { icon: "✂️", title: "Don't close old cards", body: "Older accounts help your score. Keep them open and use them once in a while so they stay active." },
+  { icon: "🛑", title: "Don't open new credit while buying", body: "Each application dings your score and adds debt the lender sees. No new cards, cars, or financing until after closing." },
+  { icon: "🔍", title: "Dispute errors", body: "Pull your free reports at annualcreditreport.com. Mistakes are common — disputing a wrong late payment or balance can raise your score quickly." },
+  { icon: "📈", title: "Ask for a credit-limit increase", body: "A higher limit (without new spending) lowers your utilization instantly. Ask issuers you've paid on time." },
+];
+
+function CreditCoachCard({ txId }) {
+  const [entries, setEntries] = useState([]);
+  const [score, setScore] = useState("");
+  const [goal, setGoal] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [err, setErr] = useState("");
+  const hdrs = { "Content-Type": "application/json", "Authorization": "Bearer " + (localStorage.getItem("tp_token") || "") };
+  useEffect(() => {
+    if (!txId) return;
+    fetch(API + "/client/credit/" + txId, { headers: hdrs })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d && d.success) { setEntries(d.entries || []); const g = (d.entries || []).filter(e => e.goal_score).slice(-1)[0]; if (g) setGoal(String(g.goal_score)); } })
+      .catch(() => {});
+  }, [txId]);
+  const latest = entries.length ? entries[entries.length - 1] : null;
+  const first = entries.length ? entries[0] : null;
+  const delta = latest && first && entries.length > 1 ? latest.score - first.score : null;
+  const goalScore = latest?.goal_score || (goal ? parseInt(goal) : null);
+  const save = async () => {
+    setErr("");
+    const s = parseInt(score);
+    if (!(s >= 300 && s <= 850)) { setErr("Enter a score between 300 and 850."); return; }
+    setSaving(true);
+    try {
+      const r = await fetch(API + "/client/credit/" + txId, { method: "POST", headers: hdrs, body: JSON.stringify({ score: s, goalScore: goal ? parseInt(goal) : null }) });
+      const d = await r.json();
+      if (d.success) { setEntries(e => [...e, d.entry]); setScore(""); }
+      else setErr(d.error || "Could not save.");
+    } catch { setErr("Could not save."); }
+    setSaving(false);
+  };
+  const band = (s) => s >= 740 ? { t: "Very Good / Excellent", c: C.success } : s >= 670 ? { t: "Good", c: C.success } : s >= 580 ? { t: "Fair — room to grow", c: C.warning } : { t: "Needs work — let's build it", c: C.red };
+  return (
+    <div style={{ background: C.white, borderRadius: 14, padding: 18, marginBottom: 14, boxShadow: "0 1px 4px rgba(0,0,0,0.08)", borderLeft: "4px solid #1A5276" }}>
+      <div style={{ fontSize: 12, fontWeight: 800, color: C.gray, textTransform: "uppercase", letterSpacing: 1, marginBottom: 4 }}>📊 Credit Health & Coaching</div>
+      <div style={{ fontSize: 12, color: C.gray, marginBottom: 12 }}>A better score = a better rate = a lower payment. Track yours here and follow the tips to raise it fast.</div>
+      {latest && (
+        <div style={{ display: "flex", alignItems: "center", gap: 16, background: C.lightGray, borderRadius: 12, padding: 14, marginBottom: 12 }}>
+          <div style={{ textAlign: "center" }}>
+            <div style={{ fontSize: 30, fontWeight: 800, color: band(latest.score).c, lineHeight: 1 }}>{latest.score}</div>
+            <div style={{ fontSize: 10, color: C.gray }}>your score</div>
+          </div>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: band(latest.score).c }}>{band(latest.score).t}</div>
+            {delta !== null && <div style={{ fontSize: 12, color: delta >= 0 ? C.success : C.red }}>{delta >= 0 ? "▲ +" + delta : "▼ " + delta} since you started</div>}
+            {goalScore && <div style={{ fontSize: 12, color: C.gray }}>🎯 Goal: {goalScore}{latest.score >= goalScore ? " — reached! 🎉" : " (" + (goalScore - latest.score) + " to go)"}</div>}
+          </div>
+        </div>
+      )}
+      <div style={{ display: "flex", gap: 8, alignItems: "flex-end", flexWrap: "wrap", marginBottom: entries.length ? 12 : 0 }}>
+        <div>
+          <div style={{ fontSize: 11, color: C.gray, marginBottom: 3 }}>Today's score</div>
+          <input value={score} onChange={e => setScore(e.target.value.replace(/\D/g, "").slice(0, 3))} inputMode="numeric" placeholder="720" style={{ width: 80, fontSize: 16, padding: "8px 10px", border: "1px solid " + C.border, borderRadius: 8 }} />
+        </div>
+        <div>
+          <div style={{ fontSize: 11, color: C.gray, marginBottom: 3 }}>Goal (optional)</div>
+          <input value={goal} onChange={e => setGoal(e.target.value.replace(/\D/g, "").slice(0, 3))} inputMode="numeric" placeholder="740" style={{ width: 80, fontSize: 16, padding: "8px 10px", border: "1px solid " + C.border, borderRadius: 8 }} />
+        </div>
+        <button onClick={save} disabled={saving} style={{ background: "#1A5276", color: "#fff", border: "none", borderRadius: 8, padding: "10px 16px", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>{saving ? "Saving…" : "Log it"}</button>
+      </div>
+      {err && <div style={{ fontSize: 12, color: C.red, marginBottom: 8 }}>{err}</div>}
+      {entries.length > 1 && (
+        <div style={{ display: "flex", gap: 6, alignItems: "flex-end", height: 50, marginBottom: 12, paddingTop: 4 }}>
+          {entries.slice(-12).map((e, i) => {
+            const h = Math.max(6, Math.round(((e.score - 300) / 550) * 46));
+            return <div key={i} title={e.score + " · " + formatDate(e.recorded_on)} style={{ flex: 1, height: h, background: "#1A5276", borderRadius: "3px 3px 0 0", minWidth: 4 }} />;
+          })}
+        </div>
+      )}
+      <div style={{ fontSize: 11, fontWeight: 700, color: C.gray, textTransform: "uppercase", letterSpacing: 1, margin: "4px 0 8px" }}>Raise your score — fastest first</div>
+      {CREDIT_TIPS.map((t, i) => (
+        <div key={i} style={{ display: "flex", gap: 10, alignItems: "flex-start", padding: "8px 0", borderBottom: i < CREDIT_TIPS.length - 1 ? "1px solid " + C.lightGray : "none" }}>
+          <span style={{ fontSize: 16 }}>{t.icon}</span>
+          <div><div style={{ fontSize: 13, fontWeight: 700, color: C.black }}>{t.title}</div><div style={{ fontSize: 12, color: C.gray, lineHeight: 1.5 }}>{t.body}</div></div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+const ROADMAP_STEPS = [
+  { n: 1, t: "Get pre-approved", d: "A lender checks your income, credit, and savings and tells you what you can spend. This makes your offers real to sellers." },
+  { n: 2, t: "Go shopping", d: "Tour homes with your agent. Tell them what you love and hate — it helps them find 'the one' faster." },
+  { n: 3, t: "Make an offer", d: "Your agent prepares the offer and negotiates price and terms. You'll put down an earnest-money deposit to show you're serious." },
+  { n: 4, t: "Under contract", d: "Offer accepted! Now the clock starts: inspections, appraisal, and your loan move forward together." },
+  { n: 5, t: "Inspections & appraisal", d: "An inspector checks the home's condition; the lender's appraiser confirms it's worth the price. Your agent guides any repair requests." },
+  { n: 6, t: "Loan approval", d: "Your lender finalizes everything. Keep your finances steady — this is the danger zone for surprises (see Don'ts)." },
+  { n: 7, t: "Final walk-through", d: "You see the home one last time to confirm it's in the agreed condition before closing." },
+  { n: 8, t: "Closing day 🎉", d: "You sign, funds transfer, and you get the keys. Welcome home!" },
+];
+const DOS = ["Stay in steady, documented employment", "Keep paying every bill on time", "Save your pay stubs and bank statements", "Keep money in your existing accounts", "Answer your lender's requests fast", "Ask your agent any question — there are no dumb ones"];
+const DONTS = ["Don't open new credit cards or finance a car", "Don't change jobs without telling your lender", "Don't make large deposits you can't explain", "Don't co-sign a loan for anyone", "Don't max out or close credit cards", "Don't furniture-shop on credit before closing"];
+
+function FirstTimeRoadmapCard() {
+  return (
+    <div style={{ background: C.white, borderRadius: 14, padding: 18, marginBottom: 14, boxShadow: "0 1px 4px rgba(0,0,0,0.08)", borderLeft: "4px solid #1A5276" }}>
+      <div style={{ fontSize: 12, fontWeight: 800, color: C.gray, textTransform: "uppercase", letterSpacing: 1, marginBottom: 4 }}>🧭 Your Home-Buying Roadmap</div>
+      <div style={{ fontSize: 12, color: C.gray, marginBottom: 14 }}>Never bought before? Here's exactly what happens, start to finish — so nothing catches you off guard.</div>
+      {ROADMAP_STEPS.map((s, i) => (
+        <div key={s.n} style={{ display: "flex", gap: 12, alignItems: "flex-start", marginBottom: i < ROADMAP_STEPS.length - 1 ? 14 : 4 }}>
+          <span style={{ width: 26, height: 26, borderRadius: "50%", background: "#1A5276", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 800, flexShrink: 0 }}>{s.n}</span>
+          <div style={{ flex: 1 }}><div style={{ fontSize: 14, fontWeight: 700, color: C.black }}>{s.t}</div><div style={{ fontSize: 12.5, color: C.gray, lineHeight: 1.55 }}>{s.d}</div></div>
+        </div>
+      ))}
+      <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 8 }}>
+        <div style={{ flex: "1 1 150px", background: C.successBg, borderRadius: 12, padding: 14 }}>
+          <div style={{ fontSize: 13, fontWeight: 800, color: C.success, marginBottom: 8 }}>✅ DO</div>
+          {DOS.map((d, i) => <div key={i} style={{ fontSize: 12.5, color: C.black, lineHeight: 1.5, marginBottom: 6 }}>• {d}</div>)}
+        </div>
+        <div style={{ flex: "1 1 150px", background: "#FDEDEC", borderRadius: 12, padding: 14 }}>
+          <div style={{ fontSize: 13, fontWeight: 800, color: C.red, marginBottom: 8 }}>🚫 DON'T (until after closing)</div>
+          {DONTS.map((d, i) => <div key={i} style={{ fontSize: 12.5, color: C.black, lineHeight: 1.5, marginBottom: 6 }}>• {d}</div>)}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ════════════════════════════════════════════════════════════════
+// SELLER MARKETING FEED — proof of the work being done to sell the home.
+// Merges agent-logged actions with auto-detected marketing milestones.
+// ════════════════════════════════════════════════════════════════
+const MKT_ICON = { photos: "📸", mls: "🌐", social: "📱", openhouse: "🚪", email: "✉️", signage: "🪧", price: "🏷️", showing: "👀", feature: "⭐", milestone: "✅", action: "📣" };
+function MarketingFeedCard({ txId }) {
+  const [data, setData] = useState(null);
+  const hdrs = { "Content-Type": "application/json", "Authorization": "Bearer " + (localStorage.getItem("tp_token") || "") };
+  useEffect(() => {
+    if (!txId) return;
+    fetch(API + "/client/marketing/" + txId, { headers: hdrs })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => setData(d && d.success ? d : { items: [] }))
+      .catch(() => setData({ items: [] }));
+  }, [txId]);
+  const items = data?.items || [];
+  return (
+    <div style={{ background: C.white, borderRadius: 14, padding: 18, marginBottom: 14, boxShadow: "0 1px 4px rgba(0,0,0,0.08)", borderLeft: "4px solid " + C.red }}>
+      <div style={{ fontSize: 12, fontWeight: 800, color: C.gray, textTransform: "uppercase", letterSpacing: 1, marginBottom: 4 }}>📣 Marketing Your Home</div>
+      <div style={{ fontSize: 12, color: C.gray, marginBottom: 14 }}>Everything we're doing to get your home sold — as it happens.</div>
+      {data === null ? (
+        <div style={{ fontSize: 13, color: C.gray }}>Loading…</div>
+      ) : items.length === 0 ? (
+        <div style={{ fontSize: 13, color: C.gray, background: C.lightGray, borderRadius: 10, padding: 14 }}>Your marketing campaign is just getting started — check back soon to see everything your agent is doing to sell your home.</div>
+      ) : (
+        items.map((it, i) => (
+          <div key={it.id || i} style={{ display: "flex", gap: 12, alignItems: "flex-start", padding: "10px 0", borderBottom: i < items.length - 1 ? "1px solid " + C.lightGray : "none" }}>
+            <span style={{ fontSize: 18 }}>{MKT_ICON[it.type] || "📣"}</span>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: C.black }}>{it.label}</div>
+              {it.detail && <div style={{ fontSize: 12.5, color: C.gray, lineHeight: 1.5 }}>{it.detail}</div>}
+              {it.date && <div style={{ fontSize: 11, color: C.midGray }}>{formatDate(it.date)}</div>}
+            </div>
+          </div>
+        ))
+      )}
+    </div>
+  );
+}
+
 // ── SIDE VALUE CARD — buyer vs seller specific, warm + concrete ──
 function SideValueCard({ tx }) {
   const isBuyer = tx.transactionType && tx.transactionType.includes("Buyer");
@@ -988,6 +1235,8 @@ export default function ClientPortal({ user, onLogout, previewTxId, onExitPrevie
     { id: "documents", label: "📎 Documents" },
     { id: "chat", label: chatUnread > 0 ? "💬 Chat (" + chatUnread + ")" : "💬 Chat" },
     { id: "team", label: "👥 My Team" },
+    ...(isBuyerSide ? [{ id: "buyer-guide", label: "🧭 Buyer Guide" }] : []),
+    ...(isSellerSide ? [{ id: "marketing", label: "📣 Marketing" }] : []),
     { id: "vendors", label: "🏆 Vendors" },
     ...(isBuyerSide ? [{ id: "calculator", label: "🧮 Buyer Calc" }] : []),
     ...(isSellerSide ? [{ id: "seller-calc", label: "💰 Net Proceeds" }] : []),
@@ -1217,6 +1466,22 @@ export default function ClientPortal({ user, onLogout, previewTxId, onExitPrevie
                     ))}
                   </div>
                 )}
+              </div>
+            )}
+
+            {/* BUYER GUIDE TAB — loans, credit, first-time roadmap */}
+            {activeTab === "buyer-guide" && isBuyerSide && (
+              <div>
+                <LoanTypesCard />
+                <CreditCoachCard txId={tx.id} />
+                <FirstTimeRoadmapCard />
+              </div>
+            )}
+
+            {/* MARKETING TAB — seller's proof-of-work feed */}
+            {activeTab === "marketing" && isSellerSide && (
+              <div>
+                <MarketingFeedCard txId={tx.id} />
               </div>
             )}
 

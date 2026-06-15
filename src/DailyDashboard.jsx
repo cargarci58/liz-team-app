@@ -787,18 +787,51 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
 
       {totalVisible === 0 && callsDue.length === 0 && <EmptyState firstName={firstName} />}
 
-      {/* CALLS DUE TODAY (from CRM-lite) */}
-      {callsDue.length > 0 && (
+      {/* CALLS DUE TODAY (from CRM-lite) — a FIXED daily batch the agent can finish.
+          Completed calls stay on the list with a ✓ and sink to the bottom; the list does
+          NOT refill as you go, so "15 done" really means the day is won. */}
+      {callsDue.length > 0 && (() => {
+        const doneCalls = callsDue.filter(c => c.done).length;
+        const totalCalls = callsDue.length;
+        const allDone = doneCalls === totalCalls;
+        return (
         <div style={{ marginBottom: 16 }}>
-          <SectionHeader label={"📞 CALLS DUE TODAY"} count={callsDue.length} color={"#0c4a6e"} />
-          <div style={{ background: "#eff6ff", border: "1px solid #93c5fd", borderRadius: 8, padding: 10, fontSize: 11, color: "#1e3a8a", marginBottom: 10 }}>
-            💡 Tap <b>Call</b> to dial — then log the outcome so the system can schedule the next follow-up.
+          <SectionHeader label={"📞 CALLS DUE TODAY"} count={`${doneCalls}/${totalCalls}`} color={"#0c4a6e"} />
+          {/* progress bar */}
+          <div style={{ height: 8, background: "#e5e7eb", borderRadius: 999, overflow: "hidden", margin: "0 0 8px" }}>
+            <div style={{ height: "100%", width: `${totalCalls ? Math.round((doneCalls / totalCalls) * 100) : 0}%`, background: allDone ? "#15803d" : "#0c4a6e", transition: "width .3s" }} />
           </div>
+          {allDone ? (
+            <div style={{ background: "#f0fdf4", border: "1px solid #86efac", borderRadius: 8, padding: 12, fontSize: 13, color: "#166534", marginBottom: 10, fontWeight: 700, textAlign: "center" }}>
+              🎉 You won the day — all {totalCalls} call{totalCalls === 1 ? "" : "s"} done! Fresh list tomorrow.
+            </div>
+          ) : (
+            <div style={{ background: "#eff6ff", border: "1px solid #93c5fd", borderRadius: 8, padding: 10, fontSize: 11, color: "#1e3a8a", marginBottom: 10 }}>
+              💡 Tap <b>Call</b> to dial — then log the outcome. {totalCalls - doneCalls} to go — finish these {totalCalls} and you're done for the day (no new calls added until tomorrow).
+            </div>
+          )}
           {callsDue.map(c => {
             const name = [c.first_name, c.last_name].filter(Boolean).join(" ") || c.email || c.phone || "(no name)";
             const tempEmoji = { hot: "🔥", warm: "🌤", cold: "❄️", sphere: "👥", past: "🏡" }[c.temperature] || "•";
             const due = c.next_call_due_at ? new Date(c.next_call_due_at) : null;
             const overdue = due && due < new Date(new Date().setHours(0,0,0,0));
+            if (c.done) {
+              // Completed today — show as done, no action button, no replacement pulled in.
+              return (
+                <div key={c.id} style={{ background: "#f9fafb", border: "1px solid #e5e7eb", borderRadius: 8, padding: 12, marginBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, opacity: 0.7 }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 700, fontSize: 14, color: "#6b7280", textDecoration: "line-through" }}>
+                      {tempEmoji} {name}
+                      {c.tier && <span style={{ marginLeft: 6, fontSize: 11, fontWeight: 800, color: "#fff", background: "#9ca3af", borderRadius: 10, padding: "1px 7px" }}>{c.tier}</span>}
+                    </div>
+                    <div style={{ fontSize: 12, color: "#9ca3af", marginTop: 2 }}>
+                      {c.last_outcome ? `logged: ${String(c.last_outcome).replace(/_/g, " ")}` : "logged"}
+                    </div>
+                  </div>
+                  <span style={{ color: "#15803d", fontWeight: 800, fontSize: 13, whiteSpace: "nowrap", flexShrink: 0 }}>✓ Done</span>
+                </div>
+              );
+            }
             return (
               <div key={c.id} style={{ background: "white", border: "1px solid #e5e7eb", borderRadius: 8, padding: 12, marginBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
                 <div style={{ flex: 1, minWidth: 0 }}>
@@ -838,7 +871,8 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
             );
           })}
         </div>
-      )}
+        );
+      })()}
 
       {/* BIRTHDAYS & ANNIVERSARIES (next 7 days) */}
       {occasions.length > 0 && (
