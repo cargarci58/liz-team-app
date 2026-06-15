@@ -31,6 +31,7 @@ const CmaTool = lazy(() => import("./cma/CmaTool"));
 const ContactsPage = lazy(() => import("./ContactsPage"));
 const PopBysPage = lazy(() => import("./PopBysPage"));
 const ScriptsPage = lazy(() => import("./ScriptsPage"));
+const StandaloneCmaPage = lazy(() => import("./StandaloneCmaPage"));
 const GrowthPlanPage = lazy(() => import("./GrowthPlanPage"));
 const ExpensesPage = lazy(() => import('./ExpensesPage'));
 const FormsPage = lazy(() => import('./FormsPage'));
@@ -6062,8 +6063,8 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
 }
 
 // --- NEW TRANSACTION ──────────────────────────────────────────
-function NewTransactionForm({ onSave, onCancel }) {
-  const [form, setForm] = useState({ address: "", city: "", county: "Osceola", zipCode: "", type: "Listing (Seller)", propertyType: "Single Family", constructionType: "Resale", listPrice: "", contractPrice: "", mlsNumber: "", openDate: today(), closingDate: "", executedDate: "", representationExpiresOn: "", notes: "", status: "Active", assignedAgent: "", referralSource: "", occupancyStatus: "", propertyAccess: "", commissionListing: "", commissionBuyer: "", transactionFee: "", brokerageSplit: "", officeFlatFee: "", commissionNotes: "" });
+function NewTransactionForm({ onSave, onCancel, prefill = null, cmaId = null }) {
+  const [form, setForm] = useState({ address: "", city: "", county: "Osceola", zipCode: "", type: "Listing (Seller)", propertyType: "Single Family", constructionType: "Resale", listPrice: "", contractPrice: "", mlsNumber: "", openDate: today(), closingDate: "", executedDate: "", representationExpiresOn: "", notes: "", status: "Active", assignedAgent: "", referralSource: "", occupancyStatus: "", propertyAccess: "", commissionListing: "", commissionBuyer: "", transactionFee: "", brokerageSplit: "", officeFlatFee: "", commissionNotes: "", ...(prefill || {}) });
   const [teamAgents, setTeamAgents] = useState([]);
   useEffect(() => { const tok = localStorage.getItem("tp_token") || ""; fetch(API + "/users", { headers: { "Authorization": "Bearer " + tok } }).then(r => r.json()).then(d => { if (d.users) setTeamAgents(d.users.filter(u => u.role === "agent" || u.role === "admin" || u.role === "superadmin")); }).catch(e => console.error("[bg]", e && e.message ? e.message : e)); }, []);
   const [useFLTemplates, setUseFLTemplates] = useState(true);
@@ -6094,6 +6095,15 @@ function NewTransactionForm({ onSave, onCancel }) {
       const data = await res.json();
       if (data.success && data.transaction) {
         const t = data.transaction;
+        // If this transaction was started from a saved standalone CMA, record the
+        // link so that CMA isn't offered for conversion again.
+        if (cmaId) {
+          fetch(API + "/cmas/" + cmaId + "/link-transaction", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "Authorization": "Bearer " + tok },
+            body: JSON.stringify({ transactionId: t.id }),
+          }).catch(e => console.error("[bg]", e && e.message ? e.message : e));
+        }
         onSave({
           id: t.id, address: t.address, city: t.city, state: t.state,
           zipCode: t.zip_code || form.zipCode, county: t.county || form.county,
@@ -6334,7 +6344,7 @@ function SettingsMenu({ currentUser, onOpenContactBook, contactCount, onReports,
   );
 }
 
-function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenContactBook, onOpenContacts, onOpenPopBys, onOpenScripts, onOpenGrowthPlan, onOpenExpenses, onOpenForms, contactCount, onLogout, onOpenTeam, onOpenCompliance, onOpenComplianceDash, onOpenTaskTmpls, onOpenContractIntake, onChangePassword, onReports, onGoalPlanner, onHome, onVendors, onCompanySettings, onSuperuser, onAgentProfile, onIntakeLinks, onViewTransactions, onHelp, onFeedback, onSupport, currentUser, isFreeGuest = false }) {
+function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenContactBook, onOpenContacts, onOpenPopBys, onOpenScripts, onOpenCMA, onOpenGrowthPlan, onOpenExpenses, onOpenForms, contactCount, onLogout, onOpenTeam, onOpenCompliance, onOpenComplianceDash, onOpenTaskTmpls, onOpenContractIntake, onChangePassword, onReports, onGoalPlanner, onHome, onVendors, onCompanySettings, onSuperuser, onAgentProfile, onIntakeLinks, onViewTransactions, onHelp, onFeedback, onSupport, currentUser, isFreeGuest = false }) {
   const [filter, setFilter] = useState("All");
   const [search, setSearch] = useState("");
   // Tenant branding for the navbar — fetched once on mount. A free guest belongs to
@@ -6896,6 +6906,7 @@ function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenCon
             <button data-tour="contacts" onClick={() => onOpenContacts && onOpenContacts()} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "#fff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>📇 Contacts</button>
             <button data-tour="popbys" onClick={() => onOpenPopBys && onOpenPopBys()} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "#fff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>🎁 Pop-Bys</button>
             <button onClick={() => onOpenScripts && onOpenScripts()} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "#fff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>📜 Scripts</button>
+            <button onClick={() => onOpenCMA && onOpenCMA()} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "#fff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>📊 CMA</button>
             <button onClick={() => onOpenGrowthPlan && onOpenGrowthPlan()} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "#fff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>🎯 Growth Plan</button>
             <button data-tour="financials" onClick={() => onOpenExpenses && onOpenExpenses()} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "#fff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>💵 Financials</button>
             <WinTheDayButton token={localStorage.getItem("tp_token") || ""} onViewTransactions={onViewTransactions} />
@@ -7692,6 +7703,22 @@ function MainApp({ onLogout, currentUser }) {
       .catch(e => console.error("Failed to load contacts:", e));
   }, []);
   const [view, setView] = useState("home");
+  // When a standalone CMA is turned into a transaction, the New Transaction form
+  // opens pre-filled from the CMA subject; cmaConvert carries that across.
+  const [cmaConvert, setCmaConvert] = useState(null); // { prefill, cmaId } | null
+  const onCreateTransactionFromCma = ({ cmaId, subject, analysis }) => {
+    const rec = analysis && Array.isArray(analysis.tiers) ? analysis.tiers[1]?.listPrice : null;
+    setCmaConvert({
+      cmaId: cmaId || null,
+      prefill: {
+        address: subject?.address || "",
+        yearBuilt: subject?.yearBuilt || "",
+        listPrice: rec != null ? String(Math.round(rec)) : (subject?.currentListPrice || ""),
+        type: "Listing (Seller)",
+      },
+    });
+    setView("new");
+  };
   const [showReports, setShowReports] = useState(false);
   const [reportsTab, setReportsTab] = useState("overview");
   const openReports = (tab = "overview") => { setReportsTab(tab); setShowReports(true); };
@@ -7721,7 +7748,7 @@ function MainApp({ onLogout, currentUser }) {
   useEffect(() => {
     if (viewLinkedRef.current) return;
     const v = new URLSearchParams(window.location.search).get("view");
-    if (v && ["contacts", "popbys", "scripts", "expenses", "forms"].includes(v)) {
+    if (v && ["contacts", "popbys", "scripts", "expenses", "forms", "cma"].includes(v)) {
       viewLinkedRef.current = true;
       setView(v);
     }
@@ -7985,7 +8012,22 @@ function MainApp({ onLogout, currentUser }) {
       )}
       {showReports && <Reports transactions={transactions} onBack={() => setShowReports(false)} currentUser={currentUser} initialTab={reportsTab} />}
 
-      {!showReports && view === "new" && <NewTransactionForm onSave={addTransaction} onCancel={() => setView("home")} />}
+      {!showReports && view === "new" && (
+        <NewTransactionForm
+          prefill={cmaConvert?.prefill || null}
+          cmaId={cmaConvert?.cmaId || null}
+          onSave={(tx) => { setCmaConvert(null); addTransaction(tx); }}
+          onCancel={() => { setCmaConvert(null); setView(cmaConvert ? "cma" : "home"); }}
+        />
+      )}
+      {view === "cma" && (
+        <StandaloneCmaPage
+          token={localStorage.getItem("tp_token") || ""}
+          currentUser={currentUser}
+          onBack={() => setView("dashboard")}
+          onCreateTransactionFromCma={onCreateTransactionFromCma}
+        />
+      )}
       {!showReports && !showCalendar && view === "detail" && selectedTx && (
         <TransactionDetail
           initialTab={initialDetailTab}
@@ -8020,7 +8062,7 @@ function MainApp({ onLogout, currentUser }) {
           onSelect={(id, tab) => { setSelectedId(id); setInitialDetailTab(tab || "overview"); setView("detail"); }}
           onNew={guard("Creating transactions", () => setView("new"))}
           onOpenContactBook={guard("Contacts", () => openContactBook(null))}
-          onOpenContacts={guard("Contacts", () => setView("contacts"))} onOpenPopBys={guard("Pop-Bys", () => setView("popbys"))} onOpenScripts={guard("Scripts", () => setView("scripts"))} onOpenGrowthPlan={guard("Growth Plan", () => setView("growthplan"))} onOpenExpenses={guard("Financials", () => setView("expenses"))} onOpenForms={guard("The Forms library", () => setView("forms"))}
+          onOpenContacts={guard("Contacts", () => setView("contacts"))} onOpenPopBys={guard("Pop-Bys", () => setView("popbys"))} onOpenScripts={guard("Scripts", () => setView("scripts"))} onOpenCMA={guard("CMA", () => setView("cma"))} onOpenGrowthPlan={guard("Growth Plan", () => setView("growthplan"))} onOpenExpenses={guard("Financials", () => setView("expenses"))} onOpenForms={guard("The Forms library", () => setView("forms"))}
           contactCount={contacts.length}
           onLogout={onLogout}
           onOpenTeam={guard("Team management", () => setShowTeam(true))}

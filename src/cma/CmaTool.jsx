@@ -183,7 +183,7 @@ const makeInitialSubject = (tx) => ({
   estMortgagePayment: '',
 });
 
-function CmaTool({ tx, token, currentUser }) {
+function CmaTool({ tx, token, currentUser, standalone = false, initialCma = null, onConvertToTransaction }) {
   // ===== BRANDING (multi-tenant) =====
   // The masthead and the client-facing seller report must carry the LOGGED-IN
   // agent and THEIR brokerage — never a hardcoded brokerage. Seed from the
@@ -228,18 +228,26 @@ function CmaTool({ tx, token, currentUser }) {
   // otherwise wipe all in-progress work. Persist a per-transaction draft to
   // localStorage so switching tabs (and even reloading) keeps the data. The
   // draft is cleared only by "+ New CMA".
-  const draftKey = `cma_draft_${tx?.id || 'anon'}`;
+  const draftKey = `cma_draft_${initialCma?.id || (standalone ? 'standalone' : tx?.id) || 'anon'}`;
   const loadDraft = () => {
     try { return JSON.parse(localStorage.getItem(draftKey) || 'null'); } catch { return null; }
   };
 
+  // When reopening a SAVED standalone CMA, seed from it (it wins over any draft).
+  // Saved comps are the previously-selected set, so re-select all of them.
+  const reopen = standalone && initialCma ? initialCma : null;
+
+  // The id of the standalone CMA being edited (null until first save). Drives the
+  // Save vs. Update label and lets "Create Transaction" link back to this record.
+  const [standaloneCmaId, setStandaloneCmaId] = useState(reopen?.id || null);
+
   const [mode, setMode] = useState(() => loadDraft()?.mode || 'agent');
-  const [comps, setComps] = useState(() => loadDraft()?.comps || []);
-  const [selectedIds, setSelectedIds] = useState(() => new Set(loadDraft()?.selectedIds || []));
+  const [comps, setComps] = useState(() => (reopen?.comps_data) || loadDraft()?.comps || []);
+  const [selectedIds, setSelectedIds] = useState(() => new Set(reopen?.comps_data ? reopen.comps_data.map((c) => c.id) : (loadDraft()?.selectedIds || [])));
   const [filename, setFilename] = useState(() => loadDraft()?.filename || '');
-  const [subject, setSubject] = useState(() => loadDraft()?.subject || makeInitialSubject(tx));
-  const [upgrades, setUpgrades] = useState(() => loadDraft()?.upgrades || makeInitialUpgrades(tx));
-  const [marketOverride, setMarketOverride] = useState(() => loadDraft()?.marketOverride || 'auto');
+  const [subject, setSubject] = useState(() => (reopen?.subject) || loadDraft()?.subject || makeInitialSubject(tx));
+  const [upgrades, setUpgrades] = useState(() => (reopen?.upgrades) || loadDraft()?.upgrades || makeInitialUpgrades(tx));
+  const [marketOverride, setMarketOverride] = useState(() => (reopen?.market_override) || loadDraft()?.marketOverride || 'auto');
   const [dragging, setDragging] = useState(false);
   const [filters, setFilters] = useState(() => loadDraft()?.filters || { similarSize: true, timeWindow: '9' });
   const [statusFilter, setStatusFilter] = useState(() => loadDraft()?.statusFilter || { SLD: true, PND: true, ACT: true, EXP: true });
@@ -490,6 +498,40 @@ function CmaTool({ tx, token, currentUser }) {
     }
   };
 
+  // ── Standalone CMA persistence (no transaction yet) ─────────────────────
+  // Used for pre-listing valuations the agent runs before a deal exists.
+  // Saves the structured analysis to /cmas so it can be reopened or turned
+  // into a transaction later. Returns the saved id (or null on failure).
+  const saveStandalone = async () => {
+    if (!token) { setSaveState({ status: 'err', msg: 'Please sign in to save this CMA.' }); return null; }
+    if (!subject.address) { setSaveState({ status: 'err', msg: 'Add the property address before saving.' }); return null; }
+    setSaveState({ status: 'saving', msg: 'Saving CMA…' });
+    try {
+      const headers = { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token };
+      const body = JSON.stringify({ subject, comps: selected, upgrades, marketOverride, analysis });
+      const url = standaloneCmaId ? `${API_BASE}/cmas/${standaloneCmaId}` : `${API_BASE}/cmas`;
+      const r = await fetch(url, { method: standaloneCmaId ? 'PUT' : 'POST', headers, body });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(d.error || 'Save failed');
+      const id = d.cmaId || standaloneCmaId;
+      if (id && id !== standaloneCmaId) setStandaloneCmaId(id);
+      setSaveState({ status: 'ok', msg: 'CMA saved. Find it later under 📊 CMA, or turn it into a transaction.' });
+      return id;
+    } catch (e) {
+      setSaveState({ status: 'err', msg: e?.message || 'Could not save CMA.' });
+      return null;
+    }
+  };
+
+  // Turn this standalone CMA into a real transaction. Saves first (so the
+  // record exists and carries the recommended price), then hands the subject
+  // up to the app, which opens the New Transaction form pre-filled.
+  const convertToTransaction = async () => {
+    if (!subject.address) { setSaveState({ status: 'err', msg: 'Add the property address first.' }); return; }
+    const id = await saveStandalone();
+    if (onConvertToTransaction) onConvertToTransaction({ cmaId: id, subject, analysis });
+  };
+
   // ===== DERIVED STATE (same dependency wiring as the source useMemos) =====
   const filteredComps = useMemo(() => {
     if (!comps.length) return [];
@@ -562,6 +604,19 @@ function CmaTool({ tx, token, currentUser }) {
   const clearAll = () => setSelectedIds(new Set());
   const recommendedTier = analysis?.tiers[1];
 
+  // Standalone-only toolbar: Save the CMA (no transaction needed) and turn it
+  // into a real deal. Reused across the agent + seller headers below.
+  const standaloneBar = standalone ? (
+    <>
+      <button className="btn btn-ghost" onClick={saveStandalone} disabled={saveState?.status === 'saving'}>
+        {saveState?.status === 'saving' ? 'Saving…' : (standaloneCmaId ? '💾 Update CMA' : '💾 Save CMA')}
+      </button>
+      <button className="btn btn-primary" onClick={convertToTransaction} disabled={saveState?.status === 'saving'} title="Create a transaction pre-filled from this CMA">
+        🏠 Create Transaction
+      </button>
+    </>
+  ) : null;
+
   // ===========================================================================
   // AGENT VIEW
   // ===========================================================================
@@ -581,6 +636,7 @@ function CmaTool({ tx, token, currentUser }) {
                   <button className={`mode-btn ${mode === 'seller' ? 'active' : ''}`} onClick={() => setMode('seller')}>Seller Report</button>
                 </div>
               )}
+              {standaloneBar}
               {(comps.length > 0 || subject.address) && <button className="btn-danger" onClick={resetCMA}>+ New CMA</button>}
             </div>
           </div>
@@ -1200,6 +1256,7 @@ function CmaTool({ tx, token, currentUser }) {
                 <button className={`mode-btn ${mode === 'agent' ? 'active' : ''}`} onClick={() => setMode('agent')}>Agent View</button>
                 <button className={`mode-btn ${mode === 'seller' ? 'active' : ''}`} onClick={() => setMode('seller')}>Seller Report</button>
               </div>
+              {standaloneBar}
               {(comps.length > 0 || subject.address) && <button className="btn-danger" onClick={resetCMA}>+ New CMA</button>}
             </div>
           </div>
@@ -1234,9 +1291,12 @@ function CmaTool({ tx, token, currentUser }) {
               <button className={`mode-btn ${mode === 'agent' ? 'active' : ''}`} onClick={() => setMode('agent')}>Agent View</button>
               <button className={`mode-btn ${mode === 'seller' ? 'active' : ''}`} onClick={() => setMode('seller')}>Seller Report</button>
             </div>
-            <button className="btn btn-ghost" onClick={saveToDocuments} disabled={saveState?.status === 'saving'}>
-              {saveState?.status === 'saving' ? 'Saving…' : '⬇ Save to Documents'}
-            </button>
+            {standaloneBar}
+            {!standalone && (
+              <button className="btn btn-ghost" onClick={saveToDocuments} disabled={saveState?.status === 'saving'}>
+                {saveState?.status === 'saving' ? 'Saving…' : '⬇ Save to Documents'}
+              </button>
+            )}
             <button className="btn btn-primary" onClick={printView}>Print / Save PDF</button>
             <button className="btn-danger" onClick={resetCMA}>+ New CMA</button>
           </div>
