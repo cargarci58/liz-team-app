@@ -7619,6 +7619,19 @@ function MainApp({ onLogout, currentUser }) {
       setView("detail");
     }
   }, [transactions]);
+
+  // Deep link: a briefing/email link like ?view=contacts or ?view=popbys opens
+  // that page directly (the morning briefing's "Open today's calls" / "Plan your
+  // pop-by run" buttons). Runs once on mount; safelisted to known pages.
+  const viewLinkedRef = useRef(false);
+  useEffect(() => {
+    if (viewLinkedRef.current) return;
+    const v = new URLSearchParams(window.location.search).get("view");
+    if (v && ["contacts", "popbys", "scripts", "expenses", "forms"].includes(v)) {
+      viewLinkedRef.current = true;
+      setView(v);
+    }
+  }, []);
   const [contacts, setContacts] = useState([]);
   // Freemium: a free guest (invited party) sees every feature but is paywalled on use.
   const [isFreeGuest, setIsFreeGuest] = useState(false);
