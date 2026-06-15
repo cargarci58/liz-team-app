@@ -795,6 +795,11 @@ function PartyCard({ party, txId, onRemove, onEdit, onClick, onInvite, onSendFol
         {party.company && <div style={{ fontSize: 12, color: COLORS.muted }}>{party.company}</div>}
         {party.email && <div style={{ fontSize: 12, color: COLORS.muted }}>{party.email}</div>}
         {party.phone && <div style={{ fontSize: 12, color: COLORS.muted }}>{party.phone}</div>}
+        {party.email && party.role && /buyer|seller/i.test(party.role) && !/agent/i.test(party.role) && (
+          party.lastLoginAt
+            ? <div style={{ fontSize: 11, color: "#1E8449", fontWeight: 700, marginTop: 4 }}>🟢 Viewed portal — last seen {new Date(party.lastLoginAt).toLocaleString([], { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" })}</div>
+            : <div style={{ fontSize: 11, color: "#9A6700", fontWeight: 700, marginTop: 4 }}>⚪ Hasn't logged into portal yet</div>
+        )}
       </div>
       <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
         {onInvite && <button onClick={e => { e.stopPropagation(); onInvite(); }} style={{ background: "none", border: "1px solid #C0392B", borderRadius: 6, cursor: "pointer", color: "#C0392B", fontSize: 11, padding: "2px 8px", fontWeight: 600 }}>Send Invite</button>}
