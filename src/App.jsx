@@ -31,6 +31,7 @@ const CmaTool = lazy(() => import("./cma/CmaTool"));
 const ContactsPage = lazy(() => import("./ContactsPage"));
 const PopBysPage = lazy(() => import("./PopBysPage"));
 const ScriptsPage = lazy(() => import("./ScriptsPage"));
+const GrowthPlanPage = lazy(() => import("./GrowthPlanPage"));
 const ExpensesPage = lazy(() => import('./ExpensesPage'));
 const FormsPage = lazy(() => import('./FormsPage'));
 const SuperuserDashboard = lazy(() => import('./SuperuserDashboard'));
@@ -4058,6 +4059,86 @@ function ActiveFollowups({ txId }) {
   );
 }
 
+// SELLER MARKETING LOG — agent logs what they're doing to sell the home; each
+// entry shows up in the seller's portal "Marketing" feed as proof-of-work.
+// Completed Marketing/Showings milestones already auto-appear there; this is for
+// the extra touches (social posts, open houses, email blasts, price changes).
+const MKT_PRESETS = [
+  { type: "photos", label: "Professional photos taken" },
+  { type: "mls", label: "Listed on the MLS" },
+  { type: "social", label: "Posted on social media" },
+  { type: "openhouse", label: "Open house held" },
+  { type: "email", label: "Emailed to our buyer database" },
+  { type: "signage", label: "Yard sign installed" },
+  { type: "showing", label: "Showing held" },
+  { type: "feature", label: "Featured on real-estate sites" },
+  { type: "price", label: "Price improvement" },
+];
+function MarketingLogPanel({ tx }) {
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [adding, setAdding] = useState(false);
+  const [custom, setCustom] = useState("");
+  const [date, setDate] = useState("");
+  const token = localStorage.getItem("tp_token") || "";
+  const hdrs = { "Content-Type": "application/json", Authorization: "Bearer " + token };
+  const load = async () => {
+    try {
+      const res = await fetch(API + "/transactions/" + tx.id + "/marketing", { headers: hdrs });
+      const d = await res.json();
+      if (d.success) setItems(d.items || []);
+    } catch (e) { /* silent */ }
+    setLoading(false);
+  };
+  useEffect(() => { load(); }, [tx.id]);
+  const add = async (type, label) => {
+    if (!label || !label.trim()) return;
+    setAdding(true);
+    try {
+      const res = await fetch(API + "/transactions/" + tx.id + "/marketing", {
+        method: "POST", headers: hdrs,
+        body: JSON.stringify({ type, label: label.trim(), date: date || undefined }),
+      });
+      const d = await res.json();
+      if (d.success) { setItems(prev => [d.item, ...prev]); setCustom(""); }
+      else alert("Could not save: " + (d.error || "unknown"));
+    } catch (e) { alert("Could not save. Try again."); }
+    setAdding(false);
+  };
+  const remove = async (id) => {
+    if (!window.confirm("Remove this marketing entry? The seller will no longer see it.")) return;
+    try {
+      const res = await fetch(API + "/transactions/" + tx.id + "/marketing/" + id, { method: "DELETE", headers: hdrs });
+      const d = await res.json();
+      if (d.success) setItems(prev => prev.filter(i => i.id !== id));
+    } catch (e) { alert("Could not remove. Try again."); }
+  };
+  return (
+    <div style={{ background: "#fff", border: `1px solid ${COLORS.border}`, borderRadius: 12, padding: 20, marginBottom: 20 }}>
+      <h3 style={{ margin: "0 0 6px", fontSize: 14, color: COLORS.navy, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em" }}>📣 Marketing Log</h3>
+      <div style={{ fontSize: 12, color: COLORS.muted, marginBottom: 12 }}>Tap to log what you're doing to sell this home. Each entry appears in the seller's portal as proof of your work. (Completed marketing milestones show there automatically.)</div>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 12 }}>
+        {MKT_PRESETS.map(p => (
+          <button key={p.type} onClick={() => add(p.type, p.label)} disabled={adding} style={{ background: COLORS.bg, border: `1px solid ${COLORS.border}`, color: COLORS.text, borderRadius: 16, padding: "6px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>+ {p.label}</button>
+        ))}
+      </div>
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginBottom: 16 }}>
+        <input value={custom} onChange={e => setCustom(e.target.value)} placeholder="Something else you did…" style={{ flex: "1 1 200px", fontSize: 14, padding: "9px 12px", border: `1px solid ${COLORS.border}`, borderRadius: 8, fontFamily: "inherit" }} />
+        <input type="date" value={date} onChange={e => setDate(e.target.value)} style={{ fontSize: 13, padding: "9px 10px", border: `1px solid ${COLORS.border}`, borderRadius: 8, fontFamily: "inherit" }} />
+        <button onClick={() => add("action", custom)} disabled={adding || !custom.trim()} style={{ background: COLORS.navy, color: "#fff", border: "none", borderRadius: 8, padding: "10px 16px", fontSize: 13, fontWeight: 700, cursor: custom.trim() ? "pointer" : "default", opacity: custom.trim() ? 1 : 0.5, fontFamily: "inherit" }}>Add</button>
+      </div>
+      {loading ? <div style={{ fontSize: 13, color: COLORS.muted }}>Loading…</div>
+        : items.length === 0 ? <div style={{ fontSize: 13, color: COLORS.muted }}>No marketing logged yet — tap a button above to add the first.</div>
+        : items.map(it => (
+          <div key={it.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, padding: "8px 0", borderTop: `1px solid ${COLORS.bg}` }}>
+            <div><span style={{ fontSize: 14, fontWeight: 600, color: COLORS.text }}>{it.label}</span><span style={{ fontSize: 12, color: COLORS.muted }}> · {formatDate(it.activity_date)}</span></div>
+            <button onClick={() => remove(it.id)} style={{ flexShrink: 0, background: "none", border: "none", color: COLORS.muted, fontSize: 16, cursor: "pointer" }}>✕</button>
+          </div>
+        ))}
+    </div>
+  );
+}
+
 // Shows the full text + downloadable attachments of every reply a party has sent
 // back to one of this deal's automated emails (the inbound_emails table). This is
 // where the Win-the-Day "💬 …replied" card lands.
@@ -4923,6 +5004,9 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
                 {tx.parties.slice(0, 6).map(p => <PartyCard key={p.id} party={p} />)}
               </div>
             </div>
+            {!isGuest && /listing|seller|dual/i.test(tx.transactionType || tx.type || "") && (
+              <MarketingLogPanel tx={tx} />
+            )}
             <div style={{ background: "#fff", border: `1px solid ${COLORS.border}`, borderRadius: 12, padding: 20 }}>
               <h3 style={{ margin: "0 0 10px", fontSize: 14, color: COLORS.navy, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em" }}>Notes</h3>
               <NotesSection value={tx.notes} onChange={v => update({ notes: v })} />
@@ -6247,7 +6331,7 @@ function SettingsMenu({ currentUser, onOpenContactBook, contactCount, onReports,
   );
 }
 
-function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenContactBook, onOpenContacts, onOpenPopBys, onOpenScripts, onOpenExpenses, onOpenForms, contactCount, onLogout, onOpenTeam, onOpenCompliance, onOpenComplianceDash, onOpenTaskTmpls, onOpenContractIntake, onChangePassword, onReports, onGoalPlanner, onHome, onVendors, onCompanySettings, onSuperuser, onAgentProfile, onIntakeLinks, onViewTransactions, onHelp, onFeedback, onSupport, currentUser, isFreeGuest = false }) {
+function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenContactBook, onOpenContacts, onOpenPopBys, onOpenScripts, onOpenGrowthPlan, onOpenExpenses, onOpenForms, contactCount, onLogout, onOpenTeam, onOpenCompliance, onOpenComplianceDash, onOpenTaskTmpls, onOpenContractIntake, onChangePassword, onReports, onGoalPlanner, onHome, onVendors, onCompanySettings, onSuperuser, onAgentProfile, onIntakeLinks, onViewTransactions, onHelp, onFeedback, onSupport, currentUser, isFreeGuest = false }) {
   const [filter, setFilter] = useState("All");
   const [search, setSearch] = useState("");
   // Tenant branding for the navbar — fetched once on mount. A free guest belongs to
@@ -6809,6 +6893,7 @@ function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenCon
             <button data-tour="contacts" onClick={() => onOpenContacts && onOpenContacts()} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "#fff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>📇 Contacts</button>
             <button data-tour="popbys" onClick={() => onOpenPopBys && onOpenPopBys()} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "#fff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>🎁 Pop-Bys</button>
             <button onClick={() => onOpenScripts && onOpenScripts()} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "#fff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>📜 Scripts</button>
+            <button onClick={() => onOpenGrowthPlan && onOpenGrowthPlan()} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "#fff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>🎯 Growth Plan</button>
             <button data-tour="financials" onClick={() => onOpenExpenses && onOpenExpenses()} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "#fff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>💵 Financials</button>
             <WinTheDayButton token={localStorage.getItem("tp_token") || ""} onViewTransactions={onViewTransactions} />
             <PersonalTaskAddButton token={localStorage.getItem("tp_token") || ""} />
@@ -7932,7 +8017,7 @@ function MainApp({ onLogout, currentUser }) {
           onSelect={(id, tab) => { setSelectedId(id); setInitialDetailTab(tab || "overview"); setView("detail"); }}
           onNew={guard("Creating transactions", () => setView("new"))}
           onOpenContactBook={guard("Contacts", () => openContactBook(null))}
-          onOpenContacts={guard("Contacts", () => setView("contacts"))} onOpenPopBys={guard("Pop-Bys", () => setView("popbys"))} onOpenScripts={guard("Scripts", () => setView("scripts"))} onOpenExpenses={guard("Financials", () => setView("expenses"))} onOpenForms={guard("The Forms library", () => setView("forms"))}
+          onOpenContacts={guard("Contacts", () => setView("contacts"))} onOpenPopBys={guard("Pop-Bys", () => setView("popbys"))} onOpenScripts={guard("Scripts", () => setView("scripts"))} onOpenGrowthPlan={guard("Growth Plan", () => setView("growthplan"))} onOpenExpenses={guard("Financials", () => setView("expenses"))} onOpenForms={guard("The Forms library", () => setView("forms"))}
           contactCount={contacts.length}
           onLogout={onLogout}
           onOpenTeam={guard("Team management", () => setShowTeam(true))}
@@ -7971,6 +8056,9 @@ function MainApp({ onLogout, currentUser }) {
       )}
       {view === "scripts" && (
         <ScriptsPage token={localStorage.getItem("tp_token") || ""} onBack={() => setView("dashboard")} currentUser={currentUser} />
+      )}
+      {view === "growthplan" && (
+        <GrowthPlanPage onBack={() => setView("dashboard")} />
       )}
       {showCompliance && (
         <div style={{ position:"fixed", inset:0, background:"#fff", zIndex:200, overflowY:"auto" }}>
