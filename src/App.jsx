@@ -7337,7 +7337,7 @@ function ContactBook({ contacts, onClose, onSelect, onAdd, onEdit, onDelete }) {
 
   const filtered = contacts.filter(c => {
     const matchRole = filterRole === "All" || c.role === filterRole;
-    const matchSearch = !search || c.name.toLowerCase().includes(search.toLowerCase()) || (c.company || "").toLowerCase().includes(search.toLowerCase()) || (c.email || "").toLowerCase().includes(search.toLowerCase());
+    const matchSearch = !search || (c.name || "").toLowerCase().includes(search.toLowerCase()) || (c.company || "").toLowerCase().includes(search.toLowerCase()) || (c.email || "").toLowerCase().includes(search.toLowerCase());
     return matchRole && matchSearch;
   });
 

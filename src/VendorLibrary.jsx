@@ -208,7 +208,7 @@ function ShareVendorModal({ vendor, onClose }) {
     if (!c.email && !c.phone) return false;
     if (!search.trim()) return true;
     const s = search.toLowerCase();
-    return c.name.toLowerCase().includes(s) || (c.email || "").toLowerCase().includes(s) || (c.phone || "").includes(s);
+    return (c.name || "").toLowerCase().includes(s) || (c.email || "").toLowerCase().includes(s) || (c.phone || "").includes(s);
   }).slice(0, 50);
   const dealParties = txId && deals ? ((deals.find(t => String(t.id) === String(txId))?.parties) || []).filter(p => (p.email && p.email.trim()) || (p.phone && p.phone.trim())) : [];
 
