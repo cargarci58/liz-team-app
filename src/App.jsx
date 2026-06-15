@@ -4689,7 +4689,7 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
           <button onClick={() => isGuest ? setPaywallFeature("Reviewing offers") : (setActiveTab("overview"), setTimeout(() => { const el = document.getElementById("pending-offers-panel"); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); }, 60))} style={{ fontSize: 11, padding: "4px 12px", borderRadius: 6, border: "1px solid rgba(255,255,255,0.3)", background: "rgba(255,255,255,0.1)", color: "#fff", fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>📋 Review Offers</button>
         )}
         {tx.status !== "Cancelled" && (
-          <button onClick={() => isGuest ? setPaywallFeature("Cancelling a transaction") : (window.confirm("Cancel this transaction? It will be hidden from your dashboard but not deleted.") && update({ status: "Cancelled" }))} style={{ fontSize: 11, padding: "4px 10px", borderRadius: 6, border: "1px solid rgba(255,100,100,0.5)", background: "rgba(255,100,100,0.15)", color: "#FCA5A5", cursor: "pointer", fontFamily: "inherit" }}>Cancel Transaction</button>
+          <button onClick={() => isGuest ? setPaywallFeature("Cancelling a transaction") : (((window.prompt(`Cancel "${tx.address || "this transaction"}"? It will be HIDDEN from your dashboard (not deleted). Type CANCEL to confirm.`) || "").trim().toUpperCase() === "CANCEL") && update({ status: "Cancelled" }))} style={{ fontSize: 11, padding: "4px 10px", borderRadius: 6, border: "1px solid rgba(255,100,100,0.5)", background: "rgba(255,100,100,0.15)", color: "#FCA5A5", cursor: "pointer", fontFamily: "inherit" }}>Cancel Transaction</button>
         )}
         {tx.status === "Cancelled" && (
           <button onClick={() => isGuest ? setPaywallFeature("Restoring a transaction") : update({ status: "Active" })} style={{ fontSize: 11, padding: "4px 10px", borderRadius: 6, border: "1px solid rgba(100,255,100,0.5)", background: "rgba(100,255,100,0.15)", color: "#6EE7B7", cursor: "pointer", fontFamily: "inherit" }}>Restore Transaction</button>
@@ -4747,7 +4747,7 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
                     </button>
                     <button
                       onClick={async () => {
-                        if (!window.confirm("Mark this lead as Not Pursuing? It will be set to Cancelled and removed from your active list. You can reactivate it later by changing the status.")) return;
+                        if ((window.prompt("Mark this lead as Not Pursuing? It will be set to Cancelled and removed from your active list (you can reactivate it later). Type CANCEL to confirm.") || "").trim().toUpperCase() !== "CANCEL") return;
                         try {
                           const res = await fetch(`${API}/transactions/${tx.id}/status`, { method: "PATCH", headers: { "Content-Type": "application/json", "Authorization": "Bearer " + (localStorage.getItem("tp_token") || "") }, body: JSON.stringify({ status: "Cancelled" }) });
                           if (!res.ok) throw new Error("Failed");
