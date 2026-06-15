@@ -61,7 +61,26 @@ export default function DocumentsTab({ tx }) {
       alert("Couldn't read the contract: " + e.message);
     } finally { setReadingDates(null); }
   };
-  const isContractReadable = (doc) => /pdf$/i.test(doc.mime_type || "") || String(doc.mime_type || "").startsWith("image/");
+  // "Read dates" must ONLY appear on the actual purchase contract — never on
+  // disclosures/addenda. Reading dates off the wrong doc could overwrite good
+  // dates and recompute the whole timeline. A contract package explodes into many
+  // docs (HOA addendum, disclosures, …) all under category "Contract Package", so
+  // we gate on the document TYPE, not the category.
+  const CONTRACT_DOC_TYPES = new Set([
+    "FAR_BAR_Contract", "AS_IS_Contract", "Vacant_Land_Contract",
+    "Commercial_Contract", "Lease_Contract", "original_upload",
+  ]);
+  const isContract = (doc) => {
+    const dt = String(doc.document_type || "");
+    const cat = String(doc.category || "");
+    const nm = String(doc.name || "");
+    return CONTRACT_DOC_TYPES.has(dt) || cat === "Contract" || /\bcontract\b/i.test(nm);
+  };
+  const isContractReadable = (doc) => {
+    const mt = doc.mime_type || "";
+    const fileReadable = /pdf$/i.test(mt) || String(mt).startsWith("image/");
+    return fileReadable && isContract(doc);
+  };
 
   const loadDocs = () =>
     fetch(`${API}/documents/${tx.id}`, { headers })
