@@ -516,7 +516,15 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
 
   useEffect(() => {
     fetchTasks();
-    const handler = () => fetchTasks();
+    // Refreshes from returning to the tab (focus) or an in-app event must NOT
+    // blank the screen. fetchTasks() with the full-screen "Loading your day…"
+    // state unmounts the whole dashboard — including the "View All My
+    // Transactions" button — for the length of the request. If the user taps a
+    // button as they refocus the app, that first tap lands on the loading
+    // screen and is lost ("had to click twice"). Refresh SILENTLY instead: the
+    // content stays on screen and updates in place. Only the first mount load
+    // shows the loading screen.
+    const handler = () => fetchTasks({ silent: true });
     window.addEventListener("wintheday:refresh", handler);
     window.addEventListener("focus", handler);
     return () => {
@@ -529,8 +537,8 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
   // awaitRebuild = the follow-up fetch: ask the server to WAIT for the in-flight
   // rebuild to finish before answering, so we get the complete list. It runs
   // silently (no spinner, current list stays on screen) and never chains another.
-  const fetchTasks = async ({ awaitRebuild = false } = {}) => {
-    const silent = awaitRebuild;
+  const fetchTasks = async ({ awaitRebuild = false, silent: silentOpt = false } = {}) => {
+    const silent = awaitRebuild || silentOpt;
     if (!silent) setLoading(true);
     try {
       const url = API + "/dashboard/tasks" + (awaitRebuild ? "?await=1" : "");
