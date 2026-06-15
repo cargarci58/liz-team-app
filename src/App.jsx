@@ -5431,6 +5431,7 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
                 <button onClick={() => setStatusChangeModal(null)} style={{ padding: "10px 18px", border: "1px solid #CCC", borderRadius: 8, background: "none", cursor: "pointer", fontFamily: "inherit" }}>Cancel</button>
                 <button onClick={() => {
                   const { newStatus, form } = statusChangeModal;
+                  if (newStatus === "Cancelled" && (window.prompt(`Cancel "${tx.address || "this transaction"}"? It will be HIDDEN from your dashboard (not deleted). Type CANCEL to confirm.`) || "").trim().toUpperCase() !== "CANCEL") return;
                   const inspDays = parseInt(form.inspectionDays) || 10;
                   const updates = { status: newStatus };
                   if (form.closingDate) updates.closingDate = form.closingDate;
