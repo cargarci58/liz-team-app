@@ -4516,6 +4516,104 @@ function DealDoctorPanel({ tx }) {
   );
 }
 
+// ── Coordinator teams (sub-accounts) ─────────────────────────────────────────
+const _tcApi = "https://liz-team-server-api-production.up.railway.app";
+const _tcHdrs2 = () => ({ "Content-Type": "application/json", Authorization: "Bearer " + (localStorage.getItem("tp_token") || "") });
+
+// "My Team" — a lead coordinator invites/lists/removes assistant logins.
+function CoordinatorTeamModal({ currentUser, onClose }) {
+  const [data, setData] = useState(null);
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [note, setNote] = useState("");
+  const load = useCallback(() => fetch(`${_tcApi}/tc/team`, { headers: _tcHdrs2() }).then(r => r.json()).then(setData).catch(e => setData({ error: e.message })), []);
+  useEffect(() => { load(); }, [load]);
+  const invite = async () => {
+    setBusy(true); setNote("");
+    try {
+      const r = await fetch(`${_tcApi}/tc/team`, { method: "POST", headers: _tcHdrs2(), body: JSON.stringify({ name, email }) });
+      const d = await r.json(); if (!r.ok) throw new Error(d.error || "Failed");
+      setNote(d.reused ? "✅ Added to your team." : "✅ Invite sent — they'll get a setup link by email.");
+      setName(""); setEmail(""); await load();
+    } catch (e) { alert("⚠️ " + e.message); }
+    setBusy(false);
+  };
+  const remove = async (m) => {
+    if (!window.confirm(`Remove ${m.first_name || m.email} from your team? Any deals assigned to them go back to you.`)) return;
+    try { const r = await fetch(`${_tcApi}/tc/team/${m.id}`, { method: "DELETE", headers: _tcHdrs2() }); const d = await r.json(); if (!r.ok) throw new Error(d.error || "Failed"); await load(); }
+    catch (e) { alert("⚠️ " + e.message); }
+  };
+  const isLead = data?.isLead;
+  return (
+    <Modal title="👥 My Team" onClose={onClose}>
+      {!data && <div style={{ color: COLORS.muted }}>Loading…</div>}
+      {data?.error && <div style={{ color: COLORS.danger }}>⚠️ {data.error}</div>}
+      {data && !data.error && (
+        <>
+          <div style={{ fontSize: 13, color: COLORS.muted, marginBottom: 14, lineHeight: 1.5 }}>
+            {isLead ? "Add assistants who work under you. You can reassign any deal to a teammate from the deal's People tab — they'll see and work just that deal." : "You're a team member. Your lead coordinator assigns deals to you; they show up on your dashboard."}
+          </div>
+          {isLead && (
+            <div style={{ background: COLORS.bg, borderRadius: 10, padding: 12, marginBottom: 14 }}>
+              <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 8 }}>Add a team member</div>
+              <input placeholder="Full name" value={name} onChange={e => setName(e.target.value)} style={{ width: "100%", padding: "9px 11px", borderRadius: 8, border: `1px solid ${COLORS.border}`, fontSize: 14, fontFamily: "inherit", boxSizing: "border-box", marginBottom: 8 }} />
+              <input placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} style={{ width: "100%", padding: "9px 11px", borderRadius: 8, border: `1px solid ${COLORS.border}`, fontSize: 14, fontFamily: "inherit", boxSizing: "border-box", marginBottom: 10 }} />
+              <Btn small onClick={invite} disabled={busy || !email.trim() || !name.trim()}>{busy ? "Adding…" : "Send invite"}</Btn>
+              {note && <div style={{ color: COLORS.success, fontSize: 13, marginTop: 8 }}>{note}</div>}
+            </div>
+          )}
+          {(data.members || []).map(m => (
+            <div key={m.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, padding: "10px 0", borderTop: `1px solid ${COLORS.border}` }}>
+              <div>
+                <div style={{ fontWeight: 600 }}>{`${m.first_name || ""} ${m.last_name || ""}`.trim() || m.email}{m.is_lead && <span style={{ marginLeft: 8, fontSize: 11, fontWeight: 700, color: COLORS.navy, background: "#E5EDFF", padding: "2px 8px", borderRadius: 20 }}>LEAD</span>}</div>
+                <div style={{ fontSize: 12, color: COLORS.muted }}>{m.email}{m.last_login_at ? " · active" : " · invite pending"}</div>
+              </div>
+              {isLead && !m.is_lead && <button onClick={() => remove(m)} style={{ background: "none", border: `1px solid ${COLORS.border}`, color: COLORS.danger, borderRadius: 6, padding: "4px 10px", fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}>Remove</button>}
+            </div>
+          ))}
+        </>
+      )}
+    </Modal>
+  );
+}
+
+// Per-deal "Handled by" control — the lead reassigns the deal to a teammate.
+function CoordinatorAssignControl({ tx, currentUser }) {
+  const asg = tx.coordinatorAssignment || {};
+  const isLead = asg.coordinatorUserId && currentUser && String(asg.coordinatorUserId) === String(currentUser.id);
+  const [team, setTeam] = useState(null);
+  const [handler, setHandler] = useState(asg.handlerUserId || "");
+  const [busy, setBusy] = useState(false);
+  useEffect(() => { if (isLead) fetch(`${_tcApi}/tc/team`, { headers: _tcHdrs2() }).then(r => r.json()).then(d => setTeam(d.members || [])).catch(() => setTeam([])); }, [isLead]);
+  const assign = async (val) => {
+    setBusy(true);
+    try {
+      const r = await fetch(`${_tcApi}/tc/transaction/${tx.id}/handler`, { method: "PATCH", headers: _tcHdrs2(), body: JSON.stringify({ handlerUserId: val || null }) });
+      const d = await r.json(); if (!r.ok) throw new Error(d.error || "Failed");
+      setHandler(val);
+    } catch (e) { alert("⚠️ " + e.message); }
+    setBusy(false);
+  };
+  const members = (team || []).filter(m => !m.is_lead);
+  // Member viewing a deal assigned to them (not the lead): show a read-only note.
+  if (!isLead) {
+    if (!asg.handlerUserId) return null;
+    return <div style={{ marginBottom: 16, fontSize: 12, color: COLORS.muted }}>🧭 Assigned to you by the lead coordinator.</div>;
+  }
+  if (!members.length) return null; // lead with no team yet — nothing to assign
+  return (
+    <div style={{ marginBottom: 16 }}>
+      <div style={{ fontSize: 12, fontWeight: 700, color: COLORS.muted, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 8 }}>Handled by</div>
+      <select value={handler} disabled={busy} onChange={e => assign(e.target.value)}
+        style={{ width: "100%", maxWidth: 320, padding: "10px 12px", borderRadius: 8, border: `1px solid ${COLORS.border}`, fontSize: 14, fontFamily: "inherit" }}>
+        <option value="">Me (lead coordinator)</option>
+        {members.map(m => <option key={m.id} value={m.id}>{`${m.first_name || ""} ${m.last_name || ""}`.trim() || m.email}</option>)}
+      </select>
+    </div>
+  );
+}
+
 // Coordinator's "Send Update" composer — emails parties on the deal in the agent's
 // voice via the money-free /tc message endpoint (the agent SMS panel is tenant-
 // scoped and not the coordinator's to use).
@@ -5182,6 +5280,7 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
                 </div>
               </div>
             )}
+            {isCoordinator && <CoordinatorAssignControl tx={tx} currentUser={currentUser} />}
             {!isGuest && !isCoordinator && <ActiveFollowups txId={tx.id} />}
             {!isGuest && !isCoordinator && <Suspense fallback={null}><CoordinatorPanel txId={tx.id} /></Suspense>}
             {showAssignVendor && (
@@ -6489,6 +6588,7 @@ function DashboardSalesStrip({ onOpen }) {
 function Dashboard({ transactions, coordinatorMode = false, unreadCounts = {}, onSelect, onNew, onOpenContactBook, onOpenContacts, onOpenPopBys, onOpenScripts, onOpenCMA, onOpenGrowthPlan, onOpenExpenses, onOpenForms, contactCount, onLogout, onOpenTeam, onOpenCompliance, onOpenComplianceDash, onOpenTaskTmpls, onOpenContractIntake, onChangePassword, onReports, onGoalPlanner, onHome, onVendors, onCompanySettings, onSuperuser, onAgentProfile, onIntakeLinks, onViewTransactions, onHelp, onFeedback, onSupport, currentUser, isFreeGuest = false }) {
   const [filter, setFilter] = useState("All");
   const [search, setSearch] = useState("");
+  const [showTcTeam, setShowTcTeam] = useState(false);
   // Tenant branding for the navbar — fetched once on mount. A free guest belongs to
   // no single brokerage (they may be on deals from many), so they get NEUTRAL platform
   // branding here; each brokerage's identity shows on its own transaction card instead.
@@ -7046,6 +7146,7 @@ function Dashboard({ transactions, coordinatorMode = false, unreadCounts = {}, o
           <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", justifyContent: "flex-end", flex: "1 1 auto", minWidth: 0 }}>
             {!coordinatorMode && <button data-tour="new" onClick={onNew} style={{ background: "#C0392B", border: "none", color: "#fff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>+ New Transaction</button>}
             <button data-tour="contacts" onClick={() => onOpenContacts && onOpenContacts()} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "#fff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>📇 Contacts</button>
+            {coordinatorMode && <button onClick={() => setShowTcTeam(true)} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "#fff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>👥 Team</button>}
             {!coordinatorMode && <button data-tour="popbys" onClick={() => onOpenPopBys && onOpenPopBys()} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "#fff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>🎁 Pop-Bys</button>}
             {!coordinatorMode && <button onClick={() => onOpenScripts && onOpenScripts()} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "#fff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>📜 Scripts</button>}
             {!coordinatorMode && <button onClick={() => onOpenCMA && onOpenCMA()} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "#fff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>📊 CMA</button>}
@@ -7079,6 +7180,7 @@ function Dashboard({ transactions, coordinatorMode = false, unreadCounts = {}, o
             <button onClick={onLogout} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "rgba(255,255,255,0.88)", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 600, fontFamily: "inherit" }}>Sign Out</button>
           </div>
         </div>
+        {showTcTeam && <CoordinatorTeamModal currentUser={currentUser} onClose={() => setShowTcTeam(false)} />}
         <div data-stats-bar="" style={{ display: "flex", marginTop: 16, borderTop: "1px solid rgba(255,255,255,0.1)", overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
           {(() => { const s = dashStats || stats; const clearAdv = () => { setAgentFilter(""); setPropTypeFilter(""); setTxTypeFilter(""); setDatePreset(""); }; return [["Active Listings", s.active, COLORS.gold, () => { setViewMode("cards"); setFilter("All"); setClosingFrom(""); setClosingTo(""); clearAdv(); }], ["Under Contract", s.underContract, "#93C5FD", () => { setViewMode("cards"); setFilter("Under Contract"); setClosingFrom(""); setClosingTo(""); clearAdv(); }], ["Closing This Month", s.closingSoon, s.closingSoon > 0 ? "#FDE68A" : "rgba(255,255,255,0.4)", () => { const t = new Date(); const last = new Date(t.getFullYear(), t.getMonth() + 1, 0); setViewMode("cards"); setFilter("All"); clearAdv(); setClosingFrom(t.toISOString().split("T")[0]); setClosingTo(last.toISOString().split("T")[0]); }], ["Closed", s.closed, "#6EE7B7", () => { setViewMode("cards"); setFilter("Closed"); setClosingFrom(""); setClosingTo(""); clearAdv(); }], ...(coordinatorMode ? [] : [["Volume", `$${((s.totalVolume || 0) / 1000000).toFixed(2)}M`, COLORS.gold, null], ["Pending Commission", `$${Math.round(s.pendingCommissionGross || 0).toLocaleString()}`, "#FDBA74", null], ["Closed Commission", s.totalCommission > 0 ? `$${Math.round(s.totalCommission).toLocaleString()}` : "$0", "#6EE7B7", null]])]; })().map(([label, value, color, onClick]) => (
             <div key={label} onClick={onClick} style={{ padding: "12px 20px", flex: 1, cursor: onClick ? "pointer" : "default" }}>
@@ -7272,6 +7374,12 @@ function Dashboard({ transactions, coordinatorMode = false, unreadCounts = {}, o
                   </div>
                   <div style={{ color: "#FFFFFF", fontWeight: 700, fontSize: 15, marginBottom: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{tx.address}</div>
                   <div style={{ color: "rgba(255,255,255,0.6)", fontSize: 12 }}>{tx.city}, FL · {tx.county} County</div>
+                  {/* Coordinator: show which brokerage/agent this deal belongs to — they juggle many across firms. */}
+                  {coordinatorMode && tx.owningBrokerageName && (
+                    <div style={{ display: "inline-block", marginTop: 6, color: "#FCD34D", fontSize: 11, fontWeight: 700, background: "rgba(252,211,77,0.15)", border: "1px solid rgba(252,211,77,0.4)", borderRadius: 6, padding: "2px 8px" }}>
+                      🏢 {tx.owningBrokerageName}{tx.assignedAgentName ? " · " + tx.assignedAgentName : ""}
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -7766,6 +7874,7 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
             owningAgentEmail: t.owning_agent_email || null,
             owningAgentPhone: t.owning_agent_phone || null,
             owningAgentTitle: t.owning_agent_title || null,
+            coordinatorAssignment: t.coordinator_assignment || null,
             owningTenantId: t.tenant_id,
             owningBrokerageName: t.brokerage_name,
             owningBrokerageColor: t.brokerage_color,
