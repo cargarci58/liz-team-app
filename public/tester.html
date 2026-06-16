@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <meta name="robots" content="noindex, nofollow" />
-<title>Help Me Test TransactAgent Pro 💛</title>
+<title>Test Every Part of TransactAgent Pro 💛</title>
 <style>
   :root{
     --red:#b8232f; --red-dark:#8e1820; --gold:#c79a3a; --gold-soft:#f3e7c6;
@@ -16,80 +16,78 @@
   html,body{margin:0;padding:0;}
   body{
     font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
-    background:var(--bg); color:var(--ink); line-height:1.5;
-    -webkit-font-smoothing:antialiased;
+    background:var(--bg); color:var(--ink); line-height:1.5; -webkit-font-smoothing:antialiased;
   }
-  .wrap{max-width:680px;margin:0 auto;padding:18px 16px 120px;}
-  /* HERO */
-  .hero{
-    background:linear-gradient(135deg,var(--red),var(--red-dark));
-    color:#fff;border-radius:20px;padding:26px 22px;margin-bottom:18px;
-    box-shadow:0 10px 30px rgba(140,24,32,.25);
-  }
-  .hero h1{margin:0 0 6px;font-size:24px;line-height:1.2;}
-  .hero p{margin:0;opacity:.95;font-size:15px;}
+  .wrap{max-width:680px;margin:0 auto;padding:18px 16px 130px;}
+  .hero{background:linear-gradient(135deg,var(--red),var(--red-dark));color:#fff;border-radius:20px;
+    padding:26px 22px;margin-bottom:16px;box-shadow:0 10px 30px rgba(140,24,32,.25);}
+  .hero h1{margin:0 0 6px;font-size:23px;line-height:1.2;}
+  .hero p{margin:0 0 4px;opacity:.95;font-size:15px;}
   .hero .crown{font-size:30px;display:block;margin-bottom:6px;}
-  /* CARDS */
-  .card{
-    background:var(--card);border:1px solid var(--line);border-radius:16px;
-    padding:18px;margin-bottom:14px;box-shadow:0 2px 8px rgba(0,0,0,.03);
-  }
-  h2.section{font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--gold);margin:24px 4px 10px;font-weight:800;}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px;
+    margin-bottom:14px;box-shadow:0 2px 8px rgba(0,0,0,.03);}
   label{display:block;font-weight:700;font-size:14px;margin:0 0 6px;}
-  input[type=text], textarea, select{
-    width:100%;font-size:16px;padding:12px 13px;border:1.5px solid var(--line);
-    border-radius:11px;font-family:inherit;color:var(--ink);background:#fff;
-  }
-  input:focus,textarea:focus,select:focus{outline:none;border-color:var(--gold);}
-  textarea{resize:vertical;min-height:64px;}
+  input[type=text], textarea{width:100%;font-size:16px;padding:12px 13px;border:1.5px solid var(--line);
+    border-radius:11px;font-family:inherit;color:var(--ink);background:#fff;}
+  input:focus,textarea:focus{outline:none;border-color:var(--gold);}
+  textarea{resize:vertical;min-height:60px;}
   .row{display:flex;gap:10px;flex-wrap:wrap;}
   .row>div{flex:1;min-width:140px;}
-  .btn{
-    display:inline-block;border:none;border-radius:12px;font-size:16px;font-weight:800;
-    padding:14px 18px;cursor:pointer;font-family:inherit;width:100%;
-  }
+  .btn{display:inline-block;border:none;border-radius:12px;font-size:16px;font-weight:800;
+    padding:14px 18px;cursor:pointer;font-family:inherit;width:100%;}
   .btn-primary{background:var(--red);color:#fff;}
   .btn-primary:active{background:var(--red-dark);}
   .btn-ghost{background:var(--gold-soft);color:var(--red-dark);}
   .hint{font-size:13px;color:var(--muted);margin:6px 0 0;}
-  .pill{display:inline-block;background:var(--gold-soft);color:var(--red-dark);font-size:12px;font-weight:800;padding:3px 10px;border-radius:999px;}
+  .callout{background:#fff8ea;border:1px dashed var(--gold);border-radius:12px;padding:12px 14px;font-size:14px;margin:12px 0;}
+
+  /* SECTION ACCORDION */
+  .sec{background:var(--card);border:1px solid var(--line);border-radius:16px;margin-bottom:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.03);}
+  .sec-head{display:flex;align-items:center;gap:10px;padding:16px 16px;cursor:pointer;user-select:none;}
+  .sec-head .ico{font-size:22px;}
+  .sec-head .ttl{flex:1;font-size:16px;font-weight:800;}
+  .sec-head .cnt{font-size:12px;font-weight:800;color:var(--muted);background:var(--gold-soft);padding:3px 9px;border-radius:999px;white-space:nowrap;}
+  .sec-head .cnt.done{background:var(--green-soft);color:var(--green);}
+  .sec-head .chev{font-size:14px;color:var(--muted);transition:transform .2s;}
+  .sec.open .sec-head .chev{transform:rotate(90deg);}
+  .sec-body{display:none;padding:0 16px 8px;}
+  .sec.open .sec-body{display:block;}
+  .sec-intro{font-size:13px;color:var(--muted);margin:-2px 0 12px;}
+
   /* STEP */
-  .step{ border-left:5px solid var(--gold); }
-  .step .num{font-size:12px;font-weight:800;color:var(--gold);letter-spacing:.05em;}
-  .step h3{margin:4px 0 8px;font-size:18px;}
-  .step .do{font-size:15px;margin:0 0 10px;}
-  .step .expect{
-    background:var(--gold-soft);border-radius:10px;padding:10px 12px;font-size:14px;margin:0 0 14px;
-  }
+  .step{border-top:1px solid var(--line);padding:14px 0;}
+  .step:first-child{border-top:none;}
+  .step .num{font-size:11px;font-weight:800;color:var(--gold);letter-spacing:.05em;}
+  .step h3{margin:3px 0 7px;font-size:16px;}
+  .step h3 .opt{font-size:11px;font-weight:800;color:var(--muted);background:#eee;padding:2px 7px;border-radius:999px;vertical-align:middle;margin-left:6px;}
+  .step .do{font-size:14.5px;margin:0 0 9px;}
+  .step .expect{background:var(--gold-soft);border-radius:10px;padding:9px 11px;font-size:13.5px;margin:0 0 12px;}
   .expect b{color:var(--red-dark);}
-  .verdicts{display:flex;gap:8px;margin-bottom:10px;}
-  .verdicts button{
-    flex:1;border:1.5px solid var(--line);background:#fff;border-radius:12px;padding:11px 6px;
-    font-size:14px;font-weight:800;cursor:pointer;font-family:inherit;color:var(--ink);
-    transition:all .12s;line-height:1.25;
-  }
-  .verdicts button .emo{display:block;font-size:22px;margin-bottom:2px;}
+  .verdicts{display:flex;gap:7px;margin-bottom:8px;}
+  .verdicts button{flex:1;border:1.5px solid var(--line);background:#fff;border-radius:11px;padding:10px 4px;
+    font-size:13px;font-weight:800;cursor:pointer;font-family:inherit;color:var(--ink);transition:all .12s;line-height:1.2;}
+  .verdicts button .emo{display:block;font-size:20px;margin-bottom:1px;}
   .verdicts button.sel[data-v=works]{background:var(--green-soft);border-color:var(--green);color:var(--green);}
   .verdicts button.sel[data-v=confusing]{background:var(--amber-soft);border-color:var(--amber);color:var(--amber);}
   .verdicts button.sel[data-v=broken]{background:var(--rose-soft);border-color:var(--rose);color:var(--rose);}
+  .verdicts button.sel[data-v=skipped]{background:#e9e9e9;border-color:#aaa;color:#666;}
   .note-wrap{display:none;}
   .note-wrap.show{display:block;}
-  .saved{font-size:13px;font-weight:700;color:var(--green);display:none;margin-top:8px;}
+  .saved{font-size:12.5px;font-weight:700;color:var(--green);display:none;margin-top:7px;}
   .saved.show{display:block;}
+
   /* PROGRESS */
   .progress-bar{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--line);
-    padding:10px 16px;z-index:50;box-shadow:0 -4px 16px rgba(0,0,0,.06);}
-  .progress-bar .track{height:8px;background:var(--gold-soft);border-radius:999px;overflow:hidden;margin-bottom:6px;}
+    padding:9px 16px;z-index:50;box-shadow:0 -4px 16px rgba(0,0,0,.06);}
+  .progress-bar .track{height:8px;background:var(--gold-soft);border-radius:999px;overflow:hidden;margin-bottom:5px;}
   .progress-bar .fill{height:100%;width:0;background:linear-gradient(90deg,var(--gold),var(--red));transition:width .3s;}
-  .progress-bar .lbl{font-size:13px;font-weight:700;color:var(--muted);text-align:center;}
+  .progress-bar .lbl{font-size:12.5px;font-weight:700;color:var(--muted);text-align:center;}
   .progress-bar .lbl b{color:var(--red-dark);}
-  /* FINISH */
+
   .finish{display:none;text-align:center;}
   .finish.show{display:block;}
   .finish .big{font-size:46px;}
-  a.applink{color:var(--red-dark);font-weight:800;}
-  .callout{background:#fff8ea;border:1px dashed var(--gold);border-radius:12px;padding:12px 14px;font-size:14px;margin:12px 0;}
-  .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:78px;background:var(--ink);color:#fff;
+  .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:80px;background:var(--ink);color:#fff;
     padding:10px 16px;border-radius:999px;font-size:14px;font-weight:700;opacity:0;transition:opacity .25s;z-index:60;pointer-events:none;}
   .toast.show{opacity:1;}
 </style>
@@ -99,51 +97,46 @@
 
   <div class="hero">
     <span class="crown">👑</span>
-    <h1>Thanks for testing my app!</h1>
-    <p>You're doing me a huge favor. This takes about <b>20–30 minutes</b>. Just follow each step, tap a button to tell me how it went, and add a quick note if something looks off. Everything you tap is saved automatically. 💛</p>
+    <h1>Help me test the whole app</h1>
+    <p>This is a <b>complete check-up</b> before launch — every feature, top to bottom. It's long, so do it in chunks: each section saves on its own and remembers where you left off.</p>
+    <p>For each task: do it in the app, then tap <b>👍 Worked</b>, <b>😕 Confusing</b>, <b>🐞 Broken</b>, or <b>⤼ Skip</b>. Add a note if anything's off. Thank you! 💛</p>
   </div>
 
-  <!-- INTRO / IDENTITY -->
   <div class="card" id="introCard">
-    <label for="tester">First, what's your name?</label>
+    <label for="tester">Your name</label>
     <input type="text" id="tester" placeholder="e.g. Maria" autocomplete="name" />
     <div style="height:14px"></div>
-    <label>What are you testing on?</label>
+    <label>Testing on</label>
     <div class="row" style="margin-bottom:4px;">
-      <div><button class="btn btn-ghost" data-device="phone">📱 My phone</button></div>
-      <div><button class="btn btn-ghost" data-device="computer">💻 A computer</button></div>
+      <div><button class="btn btn-ghost" data-device="phone">📱 Phone</button></div>
+      <div><button class="btn btn-ghost" data-device="computer">💻 Computer</button></div>
     </div>
-    <p class="hint" id="deviceHint">Pick one — you can test the other later if you have time.</p>
-    <div style="height:12px"></div>
+    <p class="hint" id="deviceHint">A computer is easier for the full run; the phone is great for the “Feel & Mobile” section.</p>
     <div class="callout">
-      <b>How this works:</b> Open the app in a <u>separate tab</u> and keep this checklist open beside it.
-      For each step, do the action in the app, come back here, and tap <b>👍 Worked</b>, <b>😕 Confusing</b>, or <b>🐞 Broken</b>.
-      Don't worry about breaking anything — that's the whole point!
+      <b>Setup that helps:</b> an email inbox you can check, a sample PDF (any file), and a photo. Open the app in a <u>separate tab</u> and keep this list beside it. Don't worry about breaking things — that's the point!
     </div>
-    <a class="btn btn-primary" href="https://thelizteam.netlify.app" target="_blank" rel="noopener" id="openAppBtn" style="text-decoration:none;text-align:center;">🚀 Open the app in a new tab</a>
-    <p class="hint" style="text-align:center;">Then scroll down here and start at Step 1.</p>
+    <a class="btn btn-primary" href="https://thelizteam.netlify.app" target="_blank" rel="noopener" style="text-decoration:none;text-align:center;">🚀 Open the app in a new tab</a>
+    <p class="hint" style="text-align:center;">Then open Section 1 below and start.</p>
+    <div style="height:6px"></div>
+    <button class="btn btn-ghost" id="expandAll" style="font-size:14px;">⬇︎ Expand all sections</button>
   </div>
 
-  <!-- STEPS GET INJECTED HERE -->
-  <div id="steps"></div>
+  <div id="sections"></div>
 
-  <!-- FINISH -->
   <div class="card finish" id="finishCard">
     <div class="big">🎉</div>
-    <h2 style="margin:6px 0;">You're a legend.</h2>
-    <p>That's everything. Your answers are already saved — I'll read every single one and fix what's broken. Thank you so much for your time!</p>
-    <p class="hint">You can close this tab now. If you thought of anything else, jot it below and tap save.</p>
-    <textarea id="overallNote" placeholder="Any overall thoughts? Things you loved, hated, or got stuck on…"></textarea>
+    <h2 style="margin:6px 0;">You tested the whole thing. You're a legend.</h2>
+    <p>Every answer is saved. I'll read all of it and fix what's broken before launch. Thank you so much!</p>
+    <textarea id="overallNote" placeholder="Any big-picture thoughts? What felt great, what felt off, would you trust it with a real deal?"></textarea>
     <div style="height:10px"></div>
     <button class="btn btn-primary" id="saveOverall">💾 Save my final thoughts</button>
   </div>
 
 </div>
 
-<!-- PROGRESS -->
 <div class="progress-bar">
   <div class="track"><div class="fill" id="fill"></div></div>
-  <div class="lbl"><b id="doneCount">0</b> of <span id="totalCount">0</span> steps answered</div>
+  <div class="lbl"><b id="doneCount">0</b> of <span id="totalCount">0</span> tasks answered</div>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -153,9 +146,251 @@
   "use strict";
   var API = "https://liz-team-server-api-production.up.railway.app";
 
-  // ---- session ----
+  // ===== full feature checklist =====
+  // o:true marks an optional step (shows a "skip if N/A" hint).
+  var SECTIONS = [
+    { ico:"🔑", name:"1 · Account & Login",
+      intro:"Getting into the app for the first time.",
+      steps:[
+        {key:"signup", title:"Create a free trial account", do:"Use the <b>Create Account</b> tab. Make up a brokerage name and your name, use a real email you can check, set <b>State = Florida</b>, password 8+ characters. Submit.", expect:"You land on a dashboard immediately."},
+        {key:"welcome_email", title:"Welcome email arrives", do:"Check the inbox for the email you signed up with.", expect:"A welcome email shows up within a minute or two and looks professional."},
+        {key:"logout_login", title:"Log out, then log back in", do:"Find logout (menu or your name), log out, then sign back in with the same email + password.", expect:"You return to your dashboard with everything intact."},
+        {key:"forgot", title:"Forgot password → reset", do:"Log out. Tap <b>Forgot your password?</b>, enter your email, check inbox, click the reset link, set a new password, then log in with it.", expect:"Reset email arrives, link works, new password logs you in."},
+        {key:"change_pw", title:"Change password inside the app", do:"In your profile/settings, change your password (current + new). Log out and back in with the new one.", expect:"It updates and the old password no longer works."},
+        {key:"consent_gate", title:"Legal / terms consent screen", o:true, do:"If a terms/consent screen appears on first login, read it and accept.", expect:"It accepts and doesn't block you again on later logins."},
+        {key:"onboarding_tour", title:"Onboarding walkthrough / App Tour", o:true, do:"If a welcome walkthrough or 🎬 App Tour appears, click through it.", expect:"Steps are clear and you can finish or dismiss it."}
+      ]},
+
+    { ico:"🏢", name:"2 · Company & Profile Setup",
+      intro:"Setting up your brokerage identity and team.",
+      steps:[
+        {key:"profile", title:"Edit your agent profile", do:"Open your profile. Fill name, phone, email, city, and a photo if offered. Save.", expect:"It saves and your info shows around the app."},
+        {key:"company_logo", title:"Company settings: logo + brand color", do:"Open Company Settings. Upload a logo image and pick a brand color. Save.", expect:"Logo and color save and appear (e.g. in headers / emails)."},
+        {key:"goals", title:"Set your goals", do:"Find Goals / Goal Planner and enter an income or deal goal. Save.", expect:"It saves and shows a plan or target numbers."},
+        {key:"invite_team", title:"Invite a team member", o:true, do:"In settings, invite a teammate by email (use a 2nd email you control).", expect:"Invite sends; the invite email arrives."},
+        {key:"user_mgmt", title:"User management list", o:true, do:"Open the team / users list.", expect:"You see yourself (and any invitees) with roles, no errors."}
+      ]},
+
+    { ico:"🌅", name:"3 · Dashboard & “Win the Day”",
+      intro:"Your daily home screen.",
+      steps:[
+        {key:"dash_load", title:"Dashboard loads cleanly", do:"Land on the main dashboard and read everything.", expect:"Loads fast, makes sense, nothing blank or broken."},
+        {key:"wtd_cards", title:"Win-the-Day to-do cards", do:"Look at the daily task cards. (More appear once you have a deal — that's fine.)", expect:"Tasks are grouped clearly and you understand what to do."},
+        {key:"wtd_done", title:"Mark a task Done", o:true, do:"Mark a Win-the-Day task done.", expect:"It checks off and stays done (doesn't instantly come back)."},
+        {key:"wtd_snooze", title:"“Not Today” snooze", o:true, do:"On a card, tap “Not Today”.", expect:"It hides for today and doesn't keep reappearing."},
+        {key:"call_batch", title:"Daily call list", o:true, do:"If you see a daily list of people to call, look it over.", expect:"A fixed list for today with a progress bar; completed ones stay checked."},
+        {key:"briefing_email", title:"Daily briefing email", o:true, do:"Check your inbox the morning after signing up (or trigger if offered).", expect:"A morning summary email of your deals + next steps."}
+      ]},
+
+    { ico:"📋", name:"4 · Create & Manage a Deal",
+      intro:"The core: transactions / deals.",
+      steps:[
+        {key:"new_buyer", title:"New transaction — buyer side", do:"Tap <b>New Transaction</b>. Enter a pretend address, choose buyer side, add a client name + email, fill the basic fields, save.", expect:"The deal saves and shows as a card."},
+        {key:"new_listing", title:"New transaction — listing/seller side", do:"Create another deal on the seller/listing side, with a listing date + expiration if asked.", expect:"Saves and shows as a listing card."},
+        {key:"new_construction", title:"New construction deal", o:true, do:"Create a deal and mark it New Construction.", expect:"Its timeline shows builder-specific steps."},
+        {key:"commercial_land", title:"Commercial or land deal", o:true, do:"Create a deal with property type Commercial or Vacant Land.", expect:"It gets its own milestone set, not the home steps."},
+        {key:"open_tabs", title:"Open a deal and tour the tabs", do:"Click a deal card. Visit each tab (Overview, Parties, Documents, etc.).", expect:"All tabs open without errors."},
+        {key:"edit_persist", title:"Edit a deal — changes stick", do:"Edit the deal: change a field and clear another field. Save, reload, reopen.", expect:"Changes saved AND the cleared field stays empty."},
+        {key:"assign_agent", title:"Assign an agent", o:true, do:"In edit, use the assigned-agent dropdown and save.", expect:"The chosen agent sticks."},
+        {key:"status", title:"Change deal status", do:"Move a deal through statuses (e.g. Active → Under Contract → Closed).", expect:"Status updates and the card reflects it; no errors."},
+        {key:"lead_confirm", title:"Lead badge + Confirm", o:true, do:"If a deal shows a 🌱 “not yet confirmed” badge, tap Confirm.", expect:"Badge clears and it becomes a normal deal."},
+        {key:"listing_expiry", title:"Listing expiration warning", o:true, do:"On a listing nearing its expiration, look for a warning card.", expect:"A clear heads-up about the listing expiring."}
+      ]},
+
+    { ico:"👥", name:"5 · People on the Deal (Parties)",
+      intro:"Everyone involved in a transaction.",
+      steps:[
+        {key:"add_parties", title:"Add people in different roles", do:"In Parties, add several: co-agent, lender, title/closing, inspector, and an HOA contact.", expect:"Each saves with its role."},
+        {key:"edit_party", title:"Edit a person", do:"Edit one person's details and save.", expect:"Changes save and stick after reload."},
+        {key:"remove_party", title:"Remove a person", o:true, do:"Remove one party.", expect:"They disappear and stay gone."},
+        {key:"welcome_parties", title:"Send welcome emails to parties", o:true, do:"Use the option to email/welcome parties. Review the preview, then send (to addresses you control).", expect:"You can pick recipients; emails arrive in the agent's voice."},
+        {key:"hoa_no_email", title:"HOA is never emailed", o:true, do:"Notice whether the HOA contact gets included in client emails.", expect:"HOA is reference-only — never emailed/invited."}
+      ]},
+
+    { ico:"📄", name:"6 · Documents",
+      intro:"Files attached to a deal.",
+      steps:[
+        {key:"doc_upload", title:"Upload a document", do:"In Documents, upload a PDF (or a photo on phone).", expect:"It uploads and appears in the list."},
+        {key:"doc_reject", title:"Reject a bad file", o:true, do:"Try uploading something odd (e.g. a huge file or wrong type).", expect:"A clear error — not a crash or stuck spinner."},
+        {key:"doc_visibility", title:"Category + client visibility", o:true, do:"Set a document's category and toggle whether the client can see it.", expect:"Setting saves; client-visible flag works."},
+        {key:"doc_download", title:"Download / open a document", do:"Open or download a file you uploaded.", expect:"It opens correctly."},
+        {key:"doc_share", title:"Share a document by email", o:true, do:"Use 📤 Share on a document to email it to a party (or your own email).", expect:"It arrives as an attachment in the agent's branding."},
+        {key:"read_dates", title:"“Read dates” from a contract", o:true, do:"On a contract file, tap 📅 Read dates.", expect:"It pulls contract dates and updates the timeline."},
+        {key:"compliance_docs", title:"Required-docs checklist", o:true, do:"Look for a required-documents / compliance checklist on the deal.", expect:"It lists what's needed and flags gaps."}
+      ]},
+
+    { ico:"🤖", name:"7 · Contract AI Auto-Intake",
+      intro:"Upload a contract, let AI read it.",
+      steps:[
+        {key:"intake_extract", title:"Upload contract → AI extracts → approve", do:"Upload a contract PDF to the auto-intake. Review the AI-extracted fields, then approve.", expect:"Fields are extracted, you can edit them, approve applies them."},
+        {key:"intake_link", title:"No-login upload link", o:true, do:"Generate a shareable upload link and open it in a private/incognito window.", expect:"You can upload without logging in."},
+        {key:"intake_multi", title:"Multi-file contract package", o:true, do:"Upload several files at once as one package.", expect:"All process together."},
+        {key:"intake_clauses", title:"Special clauses surface", o:true, do:"Use a contract with extra terms.", expect:"Special clauses / additional terms are shown for review."}
+      ]},
+
+    { ico:"✨", name:"8 · AI Helpers",
+      intro:"The AI-powered conveniences.",
+      steps:[
+        {key:"ai_receipt", title:"Receipt scan", o:true, do:"Scan/upload a receipt photo where offered (e.g. Expenses).", expect:"AI reads the amount/vendor; you can confirm."},
+        {key:"ai_cma_comps", title:"CMA comp extraction", o:true, do:"In the CMA tool, paste/upload comps for AI to read.", expect:"Comps get pulled into the table."},
+        {key:"ai_preapproval", title:"Pre-approval letter read", o:true, do:"Upload a pre-approval letter where offered.", expect:"Key details extracted."},
+        {key:"deal_doctor", title:"AI Deal Doctor check-up", o:true, do:"Open a deal's Deal Doctor.", expect:"You get a risk read, one move for today, and a ready-to-send draft."}
+      ]},
+
+    { ico:"🗓️", name:"9 · Timeline & Milestones",
+      intro:"The step-by-step of each deal.",
+      steps:[
+        {key:"ms_seeded", title:"Milestones auto-appear", do:"Open a deal and view its timeline.", expect:"A sensible list of steps is already there."},
+        {key:"ms_complete", title:"Mark a milestone complete", do:"Mark a step ✓ Done. Watch the progress bar.", expect:"It checks off and progress updates."},
+        {key:"ms_na", title:"Mark a milestone N/A", o:true, do:"Mark a step as Not Applicable.", expect:"It's set aside without blocking the deal."},
+        {key:"ms_waive", title:"Waive a step with a reason", o:true, do:"Waive a step requiring a doc and type a justification.", expect:"It records the waiver + reason."},
+        {key:"ms_datetime", title:"Schedule a date/time step", o:true, do:"On an appointment step (photos, inspection, appraisal), set a date + time before marking done.", expect:"It asks for date/time and saves it."},
+        {key:"ms_closing", title:"Closing Scheduled", o:true, do:"Use the Closing Scheduled step: enter title/attorney date, time, location, review the email, send to your side.", expect:"Saves and emails only your own client."}
+      ]},
+
+    { ico:"📥", name:"10 · Offers",
+      intro:"Receiving and handling offers.",
+      steps:[
+        {key:"receive_offer", title:"Receive an offer on a listing", do:"On an Active listing, use Receive Offer and upload an offer file.", expect:"It becomes a pending offer (no new deal, no emails yet)."},
+        {key:"multi_offer", title:"Multiple pending offers", o:true, do:"Add a second pending offer to the same listing.", expect:"Both are held and you can compare."},
+        {key:"share_sellers", title:"Share offers with sellers", o:true, do:"Use “Share with Sellers”, open the secure link, and try accept/decline as the seller.", expect:"The link shows a clean compare view; accept/decline works."},
+        {key:"approve_offer", title:"Approve an offer → Under Contract", o:true, do:"Approve an offer.", expect:"Deal goes Under Contract and a welcome-email preview appears before anything sends."},
+        {key:"offer_wizard", title:"Offer Wizard (write an offer)", o:true, do:"If an Offer Wizard is available, walk through building an offer.", expect:"It guides you through and produces an offer."}
+      ]},
+
+    { ico:"📊", name:"11 · CMA & Pricing Tools",
+      intro:"Market analysis and net sheets.",
+      steps:[
+        {key:"cma_deal", title:"Run a CMA inside a deal", do:"Open the CMA tool on a deal, enter the property + comps, generate the report.", expect:"It produces a CMA report/preview without crashing."},
+        {key:"cma_standalone", title:"Standalone CMA (before a deal)", o:true, do:"Use 📊 CMA Tools to run a CMA before any deal exists, then try 🏠 Create Transaction from it.", expect:"CMA runs; Create Transaction prefills a new deal linked to the CMA."},
+        {key:"net_sheet", title:"Buyer / seller net sheet", o:true, do:"Open a net sheet and enter a price.", expect:"It estimates costs and nets out reasonably."},
+        {key:"cma_print", title:"Print / export the CMA report", o:true, do:"Print or export the CMA (seller report and agent report).", expect:"Clean printable report, content intact."}
+      ]},
+
+    { ico:"🏠", name:"12 · Client Portal",
+      intro:"What your buyers & sellers see.",
+      steps:[
+        {key:"portal_magic", title:"Client opens portal via email link + PIN", do:"From a client email, open the portal link; set/enter the 4-digit PIN.", expect:"The link alone never signs in — the PIN is required; then the portal opens."},
+        {key:"portal_pin_lock", title:"Wrong PIN locks out", o:true, do:"Enter a wrong PIN several times.", expect:"After 5 wrong tries it locks for ~15 min with a clear message."},
+        {key:"portal_own_side", title:"Client sees only their own deal", do:"In the portal, confirm what's visible.", expect:"Only the client's own side — no opposing-side notes/financials."},
+        {key:"portal_progress", title:"Progress + closing countdown", do:"Look at the portal home.", expect:"Friendly progress + a closing countdown that matches the deal."},
+        {key:"portal_upload", title:"Client uploads a requested doc", o:true, do:"As the client, upload a requested document.", expect:"Upload works and the agent side sees it."},
+        {key:"portal_calc", title:"Buyer/seller calculators", o:true, do:"Try the calculators in the portal.", expect:"They compute and make sense."},
+        {key:"portal_guide", title:"Buyer guide / seller marketing feed", o:true, do:"Open the buyer 🧭 Guide (loan types, credit tracker) or seller 📣 Marketing feed.", expect:"Helpful, readable, no broken sections."}
+      ]},
+
+    { ico:"💬", name:"13 · Messaging",
+      intro:"Talking with clients & parties.",
+      steps:[
+        {key:"chat_agent", title:"Agent → client message", do:"Send a message to a client from a deal's chat/messages.", expect:"It sends and shows in the thread."},
+        {key:"chat_reply", title:"Client reply + notification", o:true, do:"As the client (portal), reply.", expect:"The reply appears and the agent is notified."},
+        {key:"group_broadcast", title:"Group broadcast (email + text + chat)", o:true, do:"Use the Group message option to send one message to everyone, attaching a file.", expect:"Goes out as email + SMS + posts to chat; clear about who's reachable."}
+      ]},
+
+    { ico:"📑", name:"14 · Forms Library",
+      intro:"Standard forms.",
+      steps:[
+        {key:"forms_browse", title:"Browse the forms library", do:"Open Forms and browse.", expect:"Forms are listed and categorized."},
+        {key:"forms_download", title:"Download a form", do:"Download one.", expect:"It downloads and opens."},
+        {key:"forms_send", title:"Send a form to a party", o:true, do:"Send a form via a shareable link.", expect:"Recipient can open it without logging in."}
+      ]},
+
+    { ico:"🧰", name:"15 · Vendors",
+      intro:"Your preferred vendors.",
+      steps:[
+        {key:"vendor_add", title:"Add a preferred vendor", do:"Add a vendor (name, category, contact).", expect:"Saves to your vendor list."},
+        {key:"vendor_share", title:"Share / request from vendors", o:true, do:"Use 📤 Share on a vendor to send to a contact or deal party.", expect:"It sends via email/text and (if a deal is picked) posts to that deal."}
+      ]},
+
+    { ico:"📇", name:"16 · Contacts / CRM",
+      intro:"Your people and follow-ups.",
+      steps:[
+        {key:"contact_add", title:"Add a contact", do:"In Contacts, add someone with phone/email.", expect:"Saves and is findable."},
+        {key:"contact_call", title:"Log a call → next follow-up", o:true, do:"Log a call on a contact, pick an outcome.", expect:"It sets the next call date based on the cadence."},
+        {key:"contact_prefs", title:"Contact settings (pop-bys / value)", o:true, do:"Toggle a contact's Pop-bys / Items-of-Value settings and save.", expect:"The toggles persist after reload."},
+        {key:"contact_csv", title:"Import contacts from CSV", o:true, do:"Import a small CSV of contacts.", expect:"They import without errors."}
+      ]},
+
+    { ico:"🎁", name:"17 · Pop-Bys",
+      intro:"Gift drop-off planning.",
+      steps:[
+        {key:"popby_setup", title:"Opt in + set tiers/budget", o:true, do:"Open 🎁 Pop-Bys, opt in, set tiers/frequency/budget.", expect:"Settings save."},
+        {key:"popby_ideas", title:"AI gift ideas + note cards", o:true, do:"Generate gift ideas and note-card lines for contacts.", expect:"You get an idea + a note line per contact."},
+        {key:"popby_route", title:"Map a delivery route", o:true, do:"Select nearby contacts and build a route / open in Google Maps.", expect:"A sensible route + working map link."},
+        {key:"popby_mark", title:"Mark purchased / delivered", o:true, do:"Mark gifts purchased then delivered.", expect:"Status updates and history records it."}
+      ]},
+
+    { ico:"📣", name:"18 · Marketing & Scripts",
+      intro:"Outreach content.",
+      steps:[
+        {key:"newsletter", title:"Email newsletter to contacts", o:true, do:"Open the Email Newsletter tool. (It may be inactive until set up — just confirm the screen works.)", expect:"The composer loads; if inactive it says so clearly rather than erroring."},
+        {key:"scripts", title:"Scripts library", o:true, do:"Open 📜 Scripts and read the Listing + Buyer tabs.", expect:"Scripts display cleanly on both tabs."}
+      ]},
+
+    { ico:"💵", name:"19 · Money (Expenses / Budget / P&L)",
+      intro:"The finance section — should be simple for non-accountants.",
+      steps:[
+        {key:"money_simple", title:"Simple “Money” view", do:"Open Expenses/Money. Confirm a plain, guided view (not accountant jargon) by default.", expect:"Beginner-friendly snapshot is the default."},
+        {key:"money_expense", title:"Add an expense", do:"Add an expense (amount, category).", expect:"It saves and shows in totals."},
+        {key:"money_budget", title:"Budget vs actuals", o:true, do:"Set a budget and compare to actuals.", expect:"It shows budget vs spent."},
+        {key:"money_pnl", title:"Profit & Loss report", o:true, do:"Open/print the P&L.", expect:"A clean P&L; closed deals show as income."},
+        {key:"money_bank", title:"Bank statement import", o:true, do:"Import a bank statement for AI to categorize.", expect:"Lines import and get categorized."},
+        {key:"money_advanced", title:"Advanced accountant view toggle", o:true, do:"Switch to the Advanced view and back.", expect:"Toggle works; advanced detail appears."}
+      ]},
+
+    { ico:"📈", name:"20 · Reports & Planning",
+      intro:"Numbers and goals.",
+      steps:[
+        {key:"reports", title:"Reports & call funnel", do:"Open Reports. View activity/conversion and any charts.", expect:"Charts/numbers render, nothing blank or erroring."},
+        {key:"goal_planner", title:"Goal planner back-calc", o:true, do:"Enter an income goal and see the daily-activity plan.", expect:"It back-calculates calls/day etc."},
+        {key:"growth_plan", title:"Growth Plan (1yr + 5yr)", o:true, do:"Open 🎯 Growth Plan.", expect:"Shows a 1-year back-calc and a 5-year ladder."}
+      ]},
+
+    { ico:"🧩", name:"21 · Calendar & Coordinator",
+      intro:"Scheduling and the TC role.",
+      steps:[
+        {key:"calendar", title:"Calendar view", o:true, do:"Open the Calendar.", expect:"Milestones/appointments show on the right dates."},
+        {key:"assign_tc", title:"Assign a transaction coordinator", o:true, do:"On a deal, assign a coordinator (the Coordinator panel).", expect:"The TC is added without errors."},
+        {key:"tc_portal", title:"TC portal access", o:true, do:"If you invited a TC, open their portal link.", expect:"The TC can edit milestones/docs but sees no financials."}
+      ]},
+
+    { ico:"❓", name:"22 · Help & Support",
+      intro:"In-app help.",
+      steps:[
+        {key:"help_center", title:"Help Center tabs", do:"Open Help (floating ? or ⚙️ Menu → Help). Click each tab.", expect:"Start Here, How-To, FAQ, etc. all open."},
+        {key:"ai_support", title:"Ask-AI support chatbot", o:true, do:"In Help, ask the AI assistant a question about the app.", expect:"It answers helpfully."},
+        {key:"feedback_tab", title:"Send feedback", o:true, do:"Use the Feedback tab to send a note.", expect:"It submits and confirms."}
+      ]},
+
+    { ico:"🔒", name:"23 · Admin & Settings (optional)",
+      intro:"Behind-the-scenes controls. Skip any you don't have access to.",
+      steps:[
+        {key:"compliance_dash", title:"Compliance dashboard", o:true, do:"Open the Compliance dashboard/admin.", expect:"It loads with no errors."},
+        {key:"task_templates", title:"Task templates admin", o:true, do:"Open task/checklist templates admin.", expect:"You can view/edit templates."},
+        {key:"tenant_isolation", title:"You can't see other brokerages", o:true, do:"Confirm everything you see is only your own brokerage's data.", expect:"No other company's deals/contacts ever appear."}
+      ]},
+
+    { ico:"🌐", name:"24 · Public Pages",
+      intro:"Pages prospects and clients see without logging in.",
+      steps:[
+        {key:"intake_buyer", title:"Buyer intake page", o:true, do:"Open the public buyer intake form and submit a test entry.", expect:"It submits and (later) shows up as a lead."},
+        {key:"intake_seller", title:"Seller intake page", o:true, do:"Open the public seller intake form and submit a test entry.", expect:"It submits cleanly."},
+        {key:"landing_pages", title:"Marketing / pricing pages", o:true, do:"Open the public landing, features, and pricing pages.", expect:"They look polished and links work."}
+      ]},
+
+    { ico:"📱", name:"25 · Feel, Speed & Mobile",
+      intro:"The overall experience — best done partly on a phone.",
+      steps:[
+        {key:"mobile_fit", title:"Everything fits your screen", do:"Scroll through several pages.", expect:"No sideways scrolling, readable text, easy-to-tap buttons."},
+        {key:"speed", title:"It's fast enough", do:"Reflect on loading/saving across the whole test.", expect:"Pages loaded quickly; you rarely waited or wondered if it froze."},
+        {key:"no_errors", title:"No blank pages or error text", do:"Think back — did any page go blank, show red errors, or get stuck?", expect:"No blank screens, no raw error text, no stuck spinners."},
+        {key:"trust", title:"Would you trust it with a real deal?", do:"Big picture: as a busy agent, does this feel trustworthy and time-saving?", expect:"Yes — solid, clear, and genuinely useful."}
+      ]}
+  ];
+
+  // ===== session =====
   function uid(){ return "t_" + Math.random().toString(36).slice(2,10) + Date.now().toString(36); }
-  var SKEY = "tap_tester_session";
+  var SKEY = "tap_tester_session_v2";
   var session = {};
   try { session = JSON.parse(localStorage.getItem(SKEY) || "{}"); } catch(e){ session = {}; }
   if(!session.session_id){ session.session_id = uid(); }
@@ -163,151 +398,99 @@
   function persist(){ try{ localStorage.setItem(SKEY, JSON.stringify(session)); }catch(e){} }
   persist();
 
-  // ---- the checklist ----
-  var STEPS = [
-    { sec:"Getting in" },
-    { key:"signup", title:"Create a free trial account",
-      do:"On the app tab, use the <b>Create Account</b> tab. Make up a brokerage name, your name, a real email you can check, set <b>State = Florida</b>, and a password of 8+ characters. Submit.",
-      expect:"You land on a dashboard right away, and a welcome email shows up in your inbox within a minute or two." },
-    { key:"login", title:"Log out, then log back in",
-      do:"Find the logout option (usually a menu or your name). Log out, then sign back in with the same email and password.",
-      expect:"You get back to your dashboard with everything still there." },
-    { key:"forgot", title:"Try “Forgot password”",
-      do:"Log out. On the login screen tap <b>Forgot your password?</b> and enter your email. Check your inbox for the reset email (you don't have to actually reset).",
-      expect:"You see a friendly “if an account exists we sent a link” message, and a reset email arrives shortly." },
+  function esc(s){ return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
 
-    { sec:"The dashboard" },
-    { key:"dashboard", title:"Look around the dashboard / “Win the Day”",
-      do:"Back on the main dashboard, read the daily to-do list and any cards or buttons. Just take it in.",
-      expect:"It loads fast, text makes sense, nothing looks broken or empty, and you understand what you're supposed to do." },
-    { key:"menu", title:"Open the menu and click around",
-      do:"Open the main menu (⚙️ Menu or the buttons across the top). Click into 3 or 4 areas — Reports, Contacts, Vendors, Help, whatever you see.",
-      expect:"Every page opens without an error and you can get back to the dashboard easily." },
+  // build a flat title lookup
+  var TITLES = {};
+  SECTIONS.forEach(function(sec){ sec.steps.forEach(function(s){ TITLES[s.key]=s.title; }); });
 
-    { sec:"Create a deal" },
-    { key:"newtx", title:"Create a new transaction (a deal)",
-      do:"Find the <b>New Transaction</b> button. Fill in a pretend property address, pick buyer or seller side, add a client name + email, and save.",
-      expect:"The deal saves and shows up as a card on your dashboard." },
-    { key:"opentx", title:"Open the deal and check the timeline",
-      do:"Click the deal card you just made. Look at the milestones / timeline and the tabs (Overview, Parties, Documents, etc.).",
-      expect:"A step-by-step timeline appears, the tabs all open, and it feels organized." },
-    { key:"milestone", title:"Mark a milestone or task done",
-      do:"In the deal, find a step or task and mark it complete (✓ Mark Done). Watch the progress bar.",
-      expect:"It checks off and the progress updates. No errors." },
-    { key:"upload", title:"Upload a document",
-      do:"Go to the <b>Documents</b> tab in the deal and upload any file (a PDF or even a photo). On your phone you can use a photo from your camera roll.",
-      expect:"The file uploads, shows in the list, and you can open or preview it." },
-    { key:"parties", title:"Add or edit a person on the deal",
-      do:"In the <b>Parties</b> tab, add another contact (like an inspector or the other agent) or edit the client's info, then save.",
-      expect:"It saves and the new person appears. Editing sticks after you reload." },
-
-    { sec:"Client experience" },
-    { key:"portal", title:"Peek at the client portal (if offered)",
-      do:"If you see a way to preview what the client sees, or an invite link, open it. Otherwise skip this one.",
-      expect:"The client view looks clean and friendly, shows the deal's progress, and doesn't expose anything confusing or broken." },
-
-    { sec:"Tools" },
-    { key:"cma", title:"Try a CMA or pricing tool",
-      do:"Find the <b>CMA</b> tool (sometimes 📊 CMA Tools). Start one, type in a property, and see if it generates a report.",
-      expect:"It opens, lets you enter details, and produces a report or preview without crashing." },
-    { key:"contacts", title:"Add a contact",
-      do:"Go to <b>Contacts</b> and add someone (name + phone or email). Save.",
-      expect:"They save to your list and you can find them again." },
-    { key:"reports", title:"Open Reports / Goals",
-      do:"Open the <b>Reports</b> area and look at any charts, goals, or numbers.",
-      expect:"Charts or numbers display, nothing is blank or showing error text." },
-
-    { sec:"Feel & polish" },
-    { key:"mobile", title:"How does it feel on your screen?",
-      do:"Scroll through a few pages. Notice text size, buttons, and whether anything runs off the side of the screen or overlaps.",
-      expect:"Everything fits your screen, text is readable, buttons are easy to tap, no sideways scrolling." },
-    { key:"speed", title:"Was it fast enough?",
-      do:"Think back over the whole test — pages loading, saving, clicking around.",
-      expect:"Things loaded quickly and you rarely waited or wondered if it was stuck." },
-    { key:"overall", title:"Would you trust this with a real deal?",
-      do:"Big picture: if you were a busy real-estate agent, would this feel trustworthy and helpful?",
-      expect:"Yes — it feels solid, clear, and like it would actually save you time." }
-  ];
-
-  // ---- render ----
-  var stepsEl = document.getElementById("steps");
+  // ===== render =====
   var totalSteps = 0;
-  var html = "";
-  var stepIndex = 0;
-  STEPS.forEach(function(s){
-    if(s.sec){
-      html += '<h2 class="section">'+ s.sec +'</h2>';
-      return;
-    }
-    totalSteps++;
-    stepIndex++;
-    var prev = session.answers[s.key] || {};
-    html += ''+
-    '<div class="card step" data-key="'+s.key+'" data-title="'+ esc(s.title) +'">'+
-      '<div class="num">STEP '+ stepIndex +'</div>'+
-      '<h3>'+ s.title +'</h3>'+
-      '<p class="do">'+ s.do +'</p>'+
-      '<div class="expect"><b>✓ You should see:</b> '+ s.expect +'</div>'+
-      '<div class="verdicts">'+
-        vbtn("works","👍","Worked", prev.verdict)+
-        vbtn("confusing","😕","Confusing", prev.verdict)+
-        vbtn("broken","🐞","Broken", prev.verdict)+
-      '</div>'+
-      '<div class="note-wrap '+ (prev.note? 'show':'') +'">'+
-        '<textarea placeholder="Optional: what happened? The more detail, the faster I can fix it.">'+ esc(prev.note||"") +'</textarea>'+
-      '</div>'+
-      '<div class="saved '+ (prev.verdict?'show':'') +'">✓ Saved — thank you!</div>'+
-    '</div>';
-  });
-  stepsEl.innerHTML = html;
+  SECTIONS.forEach(function(s){ totalSteps += s.steps.length; });
   document.getElementById("totalCount").textContent = totalSteps;
 
   function vbtn(v,emo,label,cur){
     return '<button data-v="'+v+'" class="'+(cur===v?'sel':'')+'"><span class="emo">'+emo+'</span>'+label+'</button>';
   }
-  function esc(s){ return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
 
-  // ---- identity wiring ----
+  var secWrap = document.getElementById("sections");
+  var html = "";
+  var n = 0;
+  SECTIONS.forEach(function(sec, si){
+    var stepsHtml = "";
+    sec.steps.forEach(function(s){
+      n++;
+      var prev = session.answers[s.key] || {};
+      stepsHtml += ''+
+        '<div class="step" data-key="'+s.key+'" data-title="'+esc(s.title)+'">'+
+          '<div class="num">TASK '+n+'</div>'+
+          '<h3>'+ s.title + (s.o?'<span class="opt">optional · skip if N/A</span>':'') +'</h3>'+
+          '<p class="do">'+ s.do +'</p>'+
+          '<div class="expect"><b>✓ Should:</b> '+ s.expect +'</div>'+
+          '<div class="verdicts">'+
+            vbtn("works","👍","Worked",prev.verdict)+
+            vbtn("confusing","😕","Confusing",prev.verdict)+
+            vbtn("broken","🐞","Broken",prev.verdict)+
+            vbtn("skipped","⤼","Skip",prev.verdict)+
+          '</div>'+
+          '<div class="note-wrap '+(prev.note?'show':'')+'">'+
+            '<textarea placeholder="Optional note — what happened? Details help me fix it fast.">'+ esc(prev.note||"") +'</textarea>'+
+          '</div>'+
+          '<div class="saved '+(prev.verdict?'show':'')+'">✓ Saved — thank you!</div>'+
+        '</div>';
+    });
+    html += ''+
+      '<div class="sec'+(si===0?' open':'')+'" data-si="'+si+'">'+
+        '<div class="sec-head">'+
+          '<span class="ico">'+ sec.ico +'</span>'+
+          '<span class="ttl">'+ sec.name.replace(/^[0-9]+ · /,'') +'</span>'+
+          '<span class="cnt" data-cnt="'+si+'"></span>'+
+          '<span class="chev">▶</span>'+
+        '</div>'+
+        '<div class="sec-body">'+
+          '<p class="sec-intro">'+ sec.intro +'</p>'+
+          stepsHtml +
+        '</div>'+
+      '</div>';
+  });
+  secWrap.innerHTML = html;
+
+  // ===== identity =====
   var testerInput = document.getElementById("tester");
   testerInput.value = session.tester_name || "";
   testerInput.addEventListener("input", function(){ session.tester_name = testerInput.value.trim(); persist(); });
-
   document.querySelectorAll("[data-device]").forEach(function(b){
     if(session.device === b.getAttribute("data-device")) b.style.outline = "3px solid var(--gold)";
     b.addEventListener("click", function(){
       session.device = b.getAttribute("data-device"); persist();
       document.querySelectorAll("[data-device]").forEach(function(x){ x.style.outline="none"; });
       b.style.outline = "3px solid var(--gold)";
-      document.getElementById("deviceHint").textContent = "Got it — testing on " + (session.device==="phone"?"your phone 📱":"a computer 💻") + ".";
     });
   });
 
-  // ---- verdict + note wiring ----
+  // ===== accordion =====
+  document.querySelectorAll(".sec-head").forEach(function(h){
+    h.addEventListener("click", function(){ h.parentNode.classList.toggle("open"); });
+  });
+  document.getElementById("expandAll").addEventListener("click", function(){
+    var anyClosed = !!document.querySelector(".sec:not(.open)");
+    document.querySelectorAll(".sec").forEach(function(s){ s.classList.toggle("open", anyClosed); });
+    this.textContent = anyClosed ? "⬆︎ Collapse all sections" : "⬇︎ Expand all sections";
+  });
+
+  // ===== save =====
   function send(payload){
     return fetch(API + "/tester/submit", {
-      method:"POST", headers:{ "Content-Type":"application/json" },
-      body: JSON.stringify(payload)
+      method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify(payload)
     }).then(function(r){ return r.ok; }).catch(function(){ return false; });
   }
-
   function saveStep(card, key, title){
     var ans = session.answers[key] || {};
-    session.answers[key] = ans;
-    persist();
-    var saved = card.querySelector(".saved");
-    saved.classList.add("show");
-    send({
-      session_id: session.session_id,
-      tester_name: session.tester_name || "",
-      device: session.device || "",
-      page_url: location.href,
-      step_key: key,
-      step_title: title,
-      verdict: ans.verdict || "",
-      note: ans.note || ""
-    }).then(function(ok){
-      saved.textContent = ok ? "✓ Saved — thank you!" : "✓ Saved on this device (will retry).";
-    });
+    session.answers[key] = ans; persist();
+    var saved = card.querySelector(".saved"); saved.classList.add("show");
+    send({ session_id:session.session_id, tester_name:session.tester_name||"", device:session.device||"",
+      page_url:location.href, step_key:key, step_title:title, verdict:ans.verdict||"", note:ans.note||"" })
+      .then(function(ok){ saved.textContent = ok ? "✓ Saved — thank you!" : "✓ Saved on this device (will retry)."; });
     updateProgress();
   }
 
@@ -316,76 +499,57 @@
     var title = card.getAttribute("data-title");
     var noteWrap = card.querySelector(".note-wrap");
     var ta = card.querySelector("textarea");
-
     card.querySelectorAll(".verdicts button").forEach(function(btn){
       btn.addEventListener("click", function(){
         card.querySelectorAll(".verdicts button").forEach(function(x){ x.classList.remove("sel"); });
         btn.classList.add("sel");
-        var ans = session.answers[key] || {};
-        ans.verdict = btn.getAttribute("data-v");
+        var ans = session.answers[key] || {}; ans.verdict = btn.getAttribute("data-v");
         session.answers[key] = ans;
-        // open the note box, especially for problems
-        noteWrap.classList.add("show");
-        if(ans.verdict !== "works"){ try{ ta.focus(); }catch(e){} }
+        if(ans.verdict==="broken" || ans.verdict==="confusing"){ noteWrap.classList.add("show"); try{ta.focus();}catch(e){} }
         saveStep(card, key, title);
-        toast(ans.verdict==="works" ? "Nice — onto the next!" : "Thanks — noted. A detail below helps!");
+        toast(ans.verdict==="works"?"Nice — next!":(ans.verdict==="skipped"?"Skipped.":"Noted — a detail below helps!"));
       });
     });
-
     var t;
     ta.addEventListener("input", function(){
-      var ans = session.answers[key] || {};
-      ans.note = ta.value.slice(0,4000);
-      session.answers[key] = ans;
-      persist();
-      clearTimeout(t);
-      t = setTimeout(function(){ saveStep(card, key, title); }, 700);
+      var ans = session.answers[key] || {}; ans.note = ta.value.slice(0,4000);
+      session.answers[key] = ans; persist();
+      clearTimeout(t); t = setTimeout(function(){ saveStep(card, key, title); }, 700);
     });
   });
 
-  // ---- progress + finish ----
-  function answeredCount(){
-    var n=0; for(var k in session.answers){ if(session.answers[k] && session.answers[k].verdict) n++; }
-    return n;
-  }
+  // ===== progress =====
+  function answeredCount(){ var c=0; for(var k in session.answers){ if(session.answers[k]&&session.answers[k].verdict) c++; } return c; }
   function updateProgress(){
-    var n = answeredCount();
-    document.getElementById("doneCount").textContent = n;
-    document.getElementById("fill").style.width = Math.round((n/totalSteps)*100) + "%";
-    document.getElementById("finishCard").classList.toggle("show", n >= totalSteps);
+    var done = answeredCount();
+    document.getElementById("doneCount").textContent = done;
+    document.getElementById("fill").style.width = Math.round((done/totalSteps)*100)+"%";
+    document.getElementById("finishCard").classList.toggle("show", done >= totalSteps);
+    // per-section counts
+    SECTIONS.forEach(function(sec, si){
+      var d=0; sec.steps.forEach(function(s){ if(session.answers[s.key]&&session.answers[s.key].verdict) d++; });
+      var el = document.querySelector('[data-cnt="'+si+'"]');
+      if(el){ el.textContent = d+"/"+sec.steps.length; el.classList.toggle("done", d>=sec.steps.length); }
+    });
   }
   updateProgress();
 
-  // overall note
   document.getElementById("saveOverall").addEventListener("click", function(){
     var v = document.getElementById("overallNote").value.trim();
-    send({
-      session_id: session.session_id, tester_name: session.tester_name||"", device: session.device||"",
-      page_url: location.href, step_key:"_overall", step_title:"Overall thoughts",
-      verdict:"", note: v
-    }).then(function(){ toast("Saved — you're the best! 💛"); });
+    send({ session_id:session.session_id, tester_name:session.tester_name||"", device:session.device||"",
+      page_url:location.href, step_key:"_overall", step_title:"Overall thoughts", verdict:"", note:v })
+      .then(function(){ toast("Saved — you're the best! 💛"); });
   });
 
-  // retry any locally-saved answers the server might have missed
-  function retryUnsent(){
-    var items = [];
-    for(var k in session.answers){
-      var a = session.answers[k];
-      if(a && (a.verdict || a.note)){
-        items.push({ step_key:k, step_title:(STEPS.find(function(s){return s.key===k;})||{}).title||k, verdict:a.verdict||"", note:a.note||"" });
-      }
-    }
-    if(!items.length) return;
-    send({ session_id: session.session_id, tester_name: session.tester_name||"", device: session.device||"", page_url: location.href, results: items });
-  }
-  setTimeout(retryUnsent, 4000);
+  // retry unsent on load
+  setTimeout(function(){
+    var items=[]; for(var k in session.answers){ var a=session.answers[k];
+      if(a&&(a.verdict||a.note)) items.push({step_key:k, step_title:TITLES[k]||k, verdict:a.verdict||"", note:a.note||""}); }
+    if(items.length) send({ session_id:session.session_id, tester_name:session.tester_name||"", device:session.device||"", page_url:location.href, results:items });
+  }, 4000);
 
-  // toast
-  var toastEl = document.getElementById("toast"), toastT;
-  function toast(msg){
-    toastEl.textContent = msg; toastEl.classList.add("show");
-    clearTimeout(toastT); toastT = setTimeout(function(){ toastEl.classList.remove("show"); }, 1800);
-  }
+  var toastEl=document.getElementById("toast"), toastT;
+  function toast(m){ toastEl.textContent=m; toastEl.classList.add("show"); clearTimeout(toastT); toastT=setTimeout(function(){toastEl.classList.remove("show");},1700); }
 })();
 </script>
 </body>
