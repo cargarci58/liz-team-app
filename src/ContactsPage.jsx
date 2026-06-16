@@ -288,7 +288,7 @@ function LogCallModal({ contact, token, onClose, onLogged }) {
                 <div key={h.id || i} style={{ paddingBottom: 8, marginBottom: 8, borderBottom: i < history.length - 1 ? "1px solid #EEF2F7" : "none" }}>
                   <div style={{ fontSize: 12, color: "#64748b" }}>
                     {h.created_at ? new Date(h.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : ""} · <span style={{ fontWeight: 700, color: "#334155" }}>{outcomeLabel(h.outcome)}</span>
-                    {h.logged_by_name ? <span style={{ color: "#94a3b8" }}> · by {h.logged_by_name}</span> : null}
+                    {(h.by_first || h.by_last) ? <span style={{ color: "#94a3b8" }}> · by {[h.by_first, h.by_last].filter(Boolean).join(" ")}</span> : null}
                   </div>
                   {h.notes && <div style={{ fontSize: 13, color: "#1f2937", marginTop: 2, lineHeight: 1.45 }}>"{h.notes}"</div>}
                   {h.next_call_scheduled_at && <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 2 }}>↳ next: {new Date(h.next_call_scheduled_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</div>}
@@ -456,6 +456,8 @@ function ContactModal({ contact, token, onClose, onSaved }) {
     wedding_anniversary: (contact && contact.wedding_anniversary ? contact.wedding_anniversary.slice(0,10) : "") || "",
     referred_by: (contact && contact.referred_by) || "",
     popby_address: (contact && contact.popby_address) || "",
+    last_moved_on: (contact && contact.last_moved_on ? contact.last_moved_on.slice(0,10) : "") || "",
+    move_cycle_years: (contact && contact.move_cycle_years) || "",
     groups: (contact && Array.isArray(contact.tags) ? contact.tags : []),
     notes: (contact && contact.notes) || "",
     messagingConsent: !!(contact && contact.messaging_consent),
@@ -499,9 +501,10 @@ function ContactModal({ contact, token, onClose, onSaved }) {
       const payload = { ...form, tags: groups };
       delete payload.groups;
       // Empty date/tier strings must be null (empty string breaks a DATE column).
-      for (const k of ["birthday", "wedding_anniversary", "tier", "spouse_name", "referred_by"]) {
+      for (const k of ["birthday", "wedding_anniversary", "tier", "spouse_name", "referred_by", "last_moved_on"]) {
         if (payload[k] === "") payload[k] = null;
       }
+      payload.move_cycle_years = payload.move_cycle_years === "" || payload.move_cycle_years == null ? null : Math.max(1, parseInt(payload.move_cycle_years) || 0) || null;
       const r = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
@@ -566,6 +569,11 @@ function ContactModal({ contact, token, onClose, onSaved }) {
           <Field label="Birthday"><input type="date" value={form.birthday} onChange={e => update("birthday", e.target.value)} style={inputStyle} /></Field>
           <Field label="Wedding Anniversary"><input type="date" value={form.wedding_anniversary} onChange={e => update("wedding_anniversary", e.target.value)} style={inputStyle} /></Field>
         </div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          <Field label="Last time they moved" hint="When they bought / moved into their current home. We'll remind you to check in as their move cycle comes around."><input type="date" value={form.last_moved_on} onChange={e => update("last_moved_on", e.target.value)} style={inputStyle} /></Field>
+          <Field label="Move cycle (years)" hint="How often this person tends to move. Leave blank to use the default (3)."><input type="number" min="1" max="30" placeholder="3" value={form.move_cycle_years} onChange={e => update("move_cycle_years", e.target.value.replace(/\D/g, "").slice(0,2))} style={inputStyle} /></Field>
+        </div>
+        {!isEdit && <div style={{ fontSize: 11, color: "#9ca3af", marginTop: -8, marginBottom: 4 }}>Tip: birthday, anniversaries, and "last moved" save once you create the contact and reopen it to edit.</div>}
         <Field label="Source" hint="Where did this lead come from? Zillow, Open House, Referral, etc."><input value={form.source} onChange={e => update("source", e.target.value)} style={inputStyle} /></Field>
         <Field label="Groups" hint="Optional — tag where you know them from. Pick any that apply (a contact can be in several, or none).">
           {availableGroups.length === 0 && form.groups.length === 0 ? (
@@ -1002,6 +1010,16 @@ function ImportModal({ token, onClose, onImported, onFillMissing }) {
 function ContactDetailDrawer({ contact, token, onClose, onEdit, onLogged, onArchived, onDeleted }) {
   const [callHistory, setCallHistory] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [moveScore, setMoveScore] = useState(null);
+
+  useEffect(() => {
+    let alive = true;
+    fetch(API + "/contacts/" + contact.id + "/move-score", { headers: { Authorization: "Bearer " + token } })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (alive && d && d.success) setMoveScore(d); })
+      .catch(() => {});
+    return () => { alive = false; };
+  }, [contact.id]);
 
   const load = async () => {
     setLoading(true);
@@ -1072,8 +1090,30 @@ function ContactDetailDrawer({ contact, token, onClose, onEdit, onLogged, onArch
             </div>
           </div>
 
+          {/* Likely to Move — score + why, from move cycle + engagement signals */}
+          {moveScore && (moveScore.lastMovedOn || moveScore.score > 0) && (() => {
+            const s = moveScore.score || 0;
+            const c = s >= 75 ? { bg: "#fef2f2", bd: "#fecaca", fg: "#b91c1c", tag: "🔥 Hot — call now" }
+                    : s >= 50 ? { bg: "#fffbeb", bd: "#fde68a", fg: "#b45309", tag: "👀 Worth a call" }
+                    : { bg: "#f0fdf4", bd: "#bbf7d0", fg: "#15803d", tag: "Keeping an eye on it" };
+            return (
+              <div style={{ background: c.bg, border: `1px solid ${c.bd}`, borderRadius: 8, padding: 14, marginBottom: 16 }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+                  <div style={innerTitle(c.fg)}>🏡 Likely to Move</div>
+                  <div style={{ fontSize: 22, fontWeight: 900, color: c.fg }}>{s}%</div>
+                </div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: c.fg, marginBottom: 6 }}>{c.tag}</div>
+                {moveScore.lastMovedOn && <div style={{ fontSize: 13, marginBottom: 2 }}>🏠 Last moved: {fmtDate(moveScore.lastMovedOn)}{moveScore.yearsSince != null ? ` (~${moveScore.yearsSince} yrs ago)` : ""}</div>}
+                {moveScore.nextMoveDate && <div style={{ fontSize: 13, marginBottom: 4 }}>🔄 Move-cycle mark: {fmtDate(moveScore.nextMoveDate)} (every {moveScore.cycle} yrs)</div>}
+                {Array.isArray(moveScore.reasons) && moveScore.reasons.length > 0 && (
+                  <div style={{ fontSize: 12, color: "#374151", marginTop: 4 }}>Why: {moveScore.reasons.join("; ")}.</div>
+                )}
+              </div>
+            );
+          })()}
+
           {/* Relationship card — tier, spouse, key dates, groups, referred-by, notes */}
-          {(contact.tier || contact.spouse_name || contact.birthday || contact.wedding_anniversary || contact.referred_by || (Array.isArray(contact.tags) && contact.tags.length) || contact.personal_notes || contact.popby_address) && (
+          {(contact.tier || contact.spouse_name || contact.birthday || contact.wedding_anniversary || contact.referred_by || (Array.isArray(contact.tags) && contact.tags.length) || contact.personal_notes || contact.popby_address || contact.last_moved_on) && (
             <div style={{ background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 8, padding: 14, marginBottom: 20 }}>
               <div style={innerTitle("#0c4a6e")}>⭐ Relationship</div>
               {contact.tier && <div style={{ fontSize: 13, marginBottom: 4 }}>Tier: <span style={{ ...tierBadgeStyle(contact.tier) }}>{contact.tier}</span></div>}

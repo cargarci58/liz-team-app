@@ -29,6 +29,7 @@ const TASK_ICONS = {
   chase_opt_out:     "⚠️",
   price_reduction:   "💰",
   buyer_followup:    "🔑",
+  move_anniversary:  "🏡",
 };
 
 // Three ready-to-use scripts to walk a seller toward a price reduction. Shown
