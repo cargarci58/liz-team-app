@@ -19,7 +19,11 @@ const ALLOWED_UPLOAD_TYPES = [
   "text/plain", "text/csv",
 ];
 
-export default function DocumentsTab({ tx }) {
+export default function DocumentsTab({ tx, coordinatorMode = false }) {
+  // Coordinators open files through the money-free /tc view endpoint (the agent
+  // view/download routes are tenant-scoped and 404 cross-tenant). Listing and
+  // uploading already work for them (party-authorized, deal-tenant-tagged).
+  const viewUrlBase = (id) => `${API}${coordinatorMode ? "/tc/documents/" : "/documents/"}${id}/view-url`;
   const [docs, setDocs] = useState([]);
   const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -215,6 +219,15 @@ export default function DocumentsTab({ tx }) {
 
   const handleDownload = async (doc) => {
     try {
+      // Coordinators have no tenant-scoped download route — open the inline view
+      // URL (they can save from there).
+      if (coordinatorMode) {
+        const res = await fetch(viewUrlBase(doc.id), { headers });
+        const data = await res.json();
+        if (data.viewUrl) window.open(data.viewUrl, "_blank");
+        else throw new Error(data.error || "Could not open file");
+        return;
+      }
       const res = await fetch(`${API}/documents/download/${doc.id}`, { headers });
       const data = await res.json();
       if (data.downloadUrl) window.open(data.downloadUrl, "_blank");
@@ -226,7 +239,7 @@ export default function DocumentsTab({ tx }) {
   const openPreview = async (doc) => {
     setPreview({ loading: true, doc });
     try {
-      const res = await fetch(`${API}/documents/${doc.id}/view-url`, { headers });
+      const res = await fetch(viewUrlBase(doc.id), { headers });
       const data = await res.json();
       if (!res.ok || !data.viewUrl) throw new Error(data.error || "Could not load preview");
       const mime = data.mimeType || doc.mime_type || "";

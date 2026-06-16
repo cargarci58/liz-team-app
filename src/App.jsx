@@ -4517,7 +4517,53 @@ function DealDoctorPanel({ tx }) {
   );
 }
 
-function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [], onSaveContact, onOpenContactBook, onDuplicate, currentUser, initialTab = "overview", dashboardUnread = 0, onMilestoneSummary }) {
+// Coordinator's "Send Update" composer — emails parties on the deal in the agent's
+// voice via the money-free /tc message endpoint (the agent SMS panel is tenant-
+// scoped and not the coordinator's to use).
+function CoordinatorSendUpdate({ tx }) {
+  const recipients = (tx.parties || []).filter(p => p.email);
+  const [picked, setPicked] = useState([]);
+  const [subject, setSubject] = useState("");
+  const [message, setMessage] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [done, setDone] = useState("");
+  const toggle = (email) => setPicked(p => p.includes(email) ? p.filter(e => e !== email) : [...p, email]);
+  const send = async () => {
+    setBusy(true); setDone("");
+    try {
+      const r = await fetch(`${API}/tc/transaction/${tx.id}/message`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: "Bearer " + (localStorage.getItem("tp_token") || "") },
+        body: JSON.stringify({ recipientEmails: picked, subject, message }),
+      });
+      const d = await r.json(); if (!r.ok) throw new Error(d.error || "Failed");
+      setDone(`✅ Sent to ${d.sent} recipient${d.sent === 1 ? "" : "s"}.`);
+      setMessage(""); setSubject(""); setPicked([]);
+    } catch (e) { alert("⚠️ " + e.message); }
+    setBusy(false);
+  };
+  return (
+    <div style={{ background: "#fff", border: `1px solid ${COLORS.border}`, borderRadius: 12, padding: 16 }}>
+      <div style={{ fontSize: 12, color: COLORS.muted, marginBottom: 10 }}>Goes out in the agent's name (or co-branded with you, if enabled).</div>
+      <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 6 }}>Send to</div>
+      <div style={{ marginBottom: 12 }}>
+        {recipients.length === 0 && <div style={{ fontSize: 13, color: COLORS.muted }}>No party on this deal has an email.</div>}
+        {recipients.map(p => (
+          <label key={p.id} style={{ display: "flex", gap: 8, alignItems: "center", padding: "5px 0", fontSize: 14 }}>
+            <input type="checkbox" checked={picked.includes(p.email)} onChange={() => toggle(p.email)} />
+            <span>{p.name || p.email} <span style={{ color: COLORS.muted }}>· {p.role}</span></span>
+          </label>
+        ))}
+      </div>
+      <input placeholder="Subject" value={subject} onChange={e => setSubject(e.target.value)} style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: `1px solid ${COLORS.border}`, fontSize: 14, fontFamily: "inherit", boxSizing: "border-box", marginBottom: 8 }} />
+      <textarea placeholder="Your message…" value={message} onChange={e => setMessage(e.target.value)} rows={5} style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: `1px solid ${COLORS.border}`, fontSize: 14, fontFamily: "inherit", boxSizing: "border-box", marginBottom: 10, resize: "vertical" }} />
+      <button onClick={send} disabled={busy || !message.trim() || picked.length === 0} style={{ background: busy || !message.trim() || picked.length === 0 ? "#ccc" : "#C0392B", color: "#fff", border: "none", borderRadius: 8, padding: "10px 16px", fontWeight: 700, fontSize: 14, cursor: "pointer", fontFamily: "inherit" }}>{busy ? "Sending…" : "Send update"}</button>
+      {done && <div style={{ color: "#1E8449", fontSize: 14, marginTop: 10 }}>{done}</div>}
+    </div>
+  );
+}
+
+function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = false, onBack, contacts, onInviteParty = [], onSaveContact, onOpenContactBook, onDuplicate, currentUser, initialTab = "overview", dashboardUnread = 0, onMilestoneSummary }) {
   const [activeTab, setActiveTab] = useState(initialTab);
   const [showAssignAgent, setShowAssignAgent] = useState(false);
   const [showAddParty, setShowAddParty] = useState(false);
@@ -4564,6 +4610,31 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
   const [reminderForm, setReminderForm] = useState({ title: "", date: "", message: "", channels: "both", parties: [] });
 
   const update = changes => onUpdate({ ...tx, ...changes });
+  // Coordinators can't use the whole-tx PUT (blocked + tenant-scoped). Route their
+  // party changes to the dedicated /tc party endpoints and patch local state.
+  const _tcHdrs = () => ({ "Content-Type": "application/json", Authorization: "Bearer " + (localStorage.getItem("tp_token") || "") });
+  const _setParties = (parties) => onLocalUpdate && onLocalUpdate({ ...tx, parties });
+  const coordAddParty = async (np) => {
+    try {
+      const r = await fetch(`${API}/tc/transaction/${tx.id}/party`, { method: "POST", headers: _tcHdrs(), body: JSON.stringify(np) });
+      const d = await r.json(); if (!r.ok) throw new Error(d.error || "Failed");
+      _setParties([...(tx.parties || []), d.party]);
+    } catch (e) { alert("⚠️ " + e.message); }
+  };
+  const coordEditParty = async (ep) => {
+    try {
+      const r = await fetch(`${API}/tc/party/${ep.id}`, { method: "PATCH", headers: _tcHdrs(), body: JSON.stringify(ep) });
+      const d = await r.json(); if (!r.ok) throw new Error(d.error || "Failed");
+      _setParties(tx.parties.map(p => p.id === ep.id ? { ...p, ...ep } : p));
+    } catch (e) { alert("⚠️ " + e.message); }
+  };
+  const coordDeleteParty = async (id) => {
+    try {
+      const r = await fetch(`${API}/tc/party/${id}`, { method: "DELETE", headers: _tcHdrs() });
+      const d = await r.json(); if (!r.ok) throw new Error(d.error || "Failed");
+      _setParties(tx.parties.filter(p => p.id !== id));
+    } catch (e) { alert("⚠️ " + e.message); }
+  };
   const updateTask = updated => update({ tasks: tx.tasks.map(t => t.id === updated.id ? updated : t) });
   const [chatUnread, setChatUnread] = useState(0);
 
@@ -5113,7 +5184,7 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
             {PARTY_ROLES.map(role => {
               const members = tx.parties.filter(p => p.role === role && !p.isVendor && !p.is_vendor);
               if (!members.length) return null;
-              return <div key={role} style={{ marginBottom: 16 }}><div style={{ fontSize: 12, fontWeight: 700, color: COLORS.muted, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 8 }}>{role}</div>{members.map(p => <PartyCard key={p.id} party={p} txId={tx.id} onEdit={isGuest ? () => setPaywallFeature("Editing parties") : () => setEditingParty({ ...p })} onRemove={isGuest ? () => setPaywallFeature("Removing parties") : () => update({ parties: tx.parties.filter(pp => pp.id !== p.id) })} onInvite={isGuest ? () => setPaywallFeature("Inviting parties to the app") : (onInviteParty ? () => onInviteParty(p) : undefined)} onSendFollowup={isGuest ? () => setPaywallFeature("Follow-up reminders") : (party) => setFollowupParty(party)} onSendWelcome={isGuest ? () => setPaywallFeature("Welcome emails") : onSendWelcome} onResetPassword={isGuest ? () => setPaywallFeature("Password resets") : async (p) => {
+              return <div key={role} style={{ marginBottom: 16 }}><div style={{ fontSize: 12, fontWeight: 700, color: COLORS.muted, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 8 }}>{role}</div>{members.map(p => <PartyCard key={p.id} party={p} txId={tx.id} onEdit={isGuest ? () => setPaywallFeature("Editing parties") : () => setEditingParty({ ...p })} onRemove={isGuest ? () => setPaywallFeature("Removing parties") : () => isCoordinator ? coordDeleteParty(p.id) : update({ parties: tx.parties.filter(pp => pp.id !== p.id) })} onInvite={isGuest ? () => setPaywallFeature("Inviting parties to the app") : (isCoordinator ? undefined : (onInviteParty ? () => onInviteParty(p) : undefined))} onSendFollowup={isGuest ? () => setPaywallFeature("Follow-up reminders") : (party) => setFollowupParty(party)} onSendWelcome={isGuest ? () => setPaywallFeature("Welcome emails") : onSendWelcome} onResetPassword={isGuest ? () => setPaywallFeature("Password resets") : async (p) => {
               if (!confirm("Email a password reset link to " + (p.name || p.email) + "?\n\nThe link expires in 1 hour.")) return;
               try {
                 const r = await fetch("https://liz-team-server-api-production.up.railway.app/users/" + encodeURIComponent(p.email) + "/send-reset-link", { method: "POST", headers: { Authorization: "Bearer " + (localStorage.getItem("tp_token") || ""), "Content-Type": "application/json" }, body: JSON.stringify({ email: p.email }) });
@@ -5202,7 +5273,7 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
           </div>
         )}
 
-        {activeTab === "sms" && <SMSPanel tx={tx} onUpdate={onUpdate} />}
+        {activeTab === "sms" && (isCoordinator ? <CoordinatorSendUpdate tx={tx} /> : <SMSPanel tx={tx} onUpdate={onUpdate} />)}
 
         {activeTab === "replies" && <InboundRepliesPanel tx={tx} />}
 
@@ -5226,7 +5297,7 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
           </div>
         )}
 
-        {activeTab === "documents" && <DocumentsTab tx={tx} />}
+        {activeTab === "documents" && <DocumentsTab tx={tx} coordinatorMode={isCoordinator} />}
         {activeTab === "offers" && <OffersTab tx={tx} token={localStorage.getItem("tp_token") || ""} />}
         {activeTab === "calculator" && (
           <div style={{ padding: 20 }}>
@@ -5334,7 +5405,8 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
               // Editing a party ONLY saves — it never emails anyone, not even a
               // prompt. To (re)send a welcome, use the ✉️ Send Welcome button on
               // the party row, which sends to that one person on purpose.
-              await update({ parties: tx.parties.map(p => p.id === editedParty.id ? editedParty : p) });
+              if (isCoordinator) await coordEditParty(editedParty);
+              else await update({ parties: tx.parties.map(p => p.id === editedParty.id ? editedParty : p) });
               setEditingParty(null);
             }}>Save Changes</Btn>
           </div>
@@ -5427,17 +5499,23 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
             <Btn onClick={() => {
               if (partyForm.role && partyForm.name) {
                 const newParty = { ...partyForm, id: genId() };
-                update({ parties: [...tx.parties, newParty] });
-                if (document.getElementById("saveContact")?.checked && onSaveContact) {
-                  onSaveContact({ ...partyForm, id: genId() });
-                }
-                const invitedNow = document.getElementById("sendInvitation")?.checked;
-                if (invitedNow && onInviteParty) {
-                  onInviteParty({ ...newParty });
-                }
-                // Prompt to send invite if email present and not already invited
-                if (!invitedNow && newParty.email && onInviteParty) {
-                  setPendingInviteParty(newParty);
+                if (isCoordinator) {
+                  // Coordinator: save via the /tc party endpoint (no whole-tx PUT,
+                  // no portal-invite flow).
+                  coordAddParty(partyForm);
+                } else {
+                  update({ parties: [...tx.parties, newParty] });
+                  if (document.getElementById("saveContact")?.checked && onSaveContact) {
+                    onSaveContact({ ...partyForm, id: genId() });
+                  }
+                  const invitedNow = document.getElementById("sendInvitation")?.checked;
+                  if (invitedNow && onInviteParty) {
+                    onInviteParty({ ...newParty });
+                  }
+                  // Prompt to send invite if email present and not already invited
+                  if (!invitedNow && newParty.email && onInviteParty) {
+                    setPendingInviteParty(newParty);
+                  }
                 }
                 setPartyForm({ role: "", name: "", email: "", phone: "", company: "" });
                 setPartyFromContactBook(false);
@@ -8055,6 +8133,7 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
           tx={selectedTx}
           coordinatorMode={coordinatorMode}
           onUpdate={updateTransaction}
+          onLocalUpdate={(updated) => setTransactions(txs => txs.map(t => t.id === updated.id ? updated : t))}
           onMilestoneSummary={applyMilestoneSummary}
           onDuplicate={duplicateTransaction}
           currentUser={currentUser}
