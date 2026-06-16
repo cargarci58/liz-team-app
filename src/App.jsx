@@ -2951,7 +2951,7 @@ function MilestonesTab({ tx, token, onSummaryChange, coordinatorMode = false }) 
                     <div style={{ flex: "1 1 100%", fontSize: 11, color: "#555", marginTop: 2 }}>
                       Enter the closing date/time/location & amount the title company or attorney gave you. You'll review &amp; edit the email before it's sent — to your side only.
                     </div>
-                    <button onClick={() => setWaiveModalFor(m)}
+                    <button onClick={() => coordinatorMode ? alert("Waiving a required document is the agent's decision. Mark the milestone done if you have what you need, or ask the agent to waive it.") : setWaiveModalFor(m)}
                       style={{ flex: "1 1 90px", padding: "9px 0", borderRadius: 8,
                         border: "1.5px solid #E5B14A", background: "#FFFBEB",
                         color: "#92400E", fontWeight: 600, fontSize: 12, cursor: "pointer" }}>
@@ -2980,7 +2980,7 @@ function MilestonesTab({ tx, token, onSummaryChange, coordinatorMode = false }) 
                     <div style={{ flex: "1 1 100%", fontSize: 11, color: "#555", marginTop: 2 }}>
                       Enter the date{scheduleSpec.time ? " and time" : ""} the responsible party gave you. It's recorded on the deal so you can follow up, and reminders anchor to it.
                     </div>
-                    <button onClick={() => setWaiveModalFor(m)}
+                    <button onClick={() => coordinatorMode ? alert("Waiving a required document is the agent's decision. Mark the milestone done if you have what you need, or ask the agent to waive it.") : setWaiveModalFor(m)}
                       style={{ flex: "1 1 90px", padding: "9px 0", borderRadius: 8,
                         border: "1.5px solid #E5B14A", background: "#FFFBEB",
                         color: "#92400E", fontWeight: 600, fontSize: 12, cursor: "pointer" }}>
@@ -3024,7 +3024,7 @@ function MilestonesTab({ tx, token, onSummaryChange, coordinatorMode = false }) 
                         {completing === m.id ? "Saving..." : "Mark Complete"}
                       </button>
                     )}
-                    <button onClick={() => setWaiveModalFor(m)}
+                    <button onClick={() => coordinatorMode ? alert("Waiving a required document is the agent's decision. Mark the milestone done if you have what you need, or ask the agent to waive it.") : setWaiveModalFor(m)}
                       style={{ flex: 1, padding: "9px 0", borderRadius: 8,
                         border: "1.5px solid #E5B14A", background: "#FFFBEB",
                         color: "#92400E", fontWeight: 600, fontSize: 12, cursor: "pointer" }}>
