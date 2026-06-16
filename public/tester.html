@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="robots" content="noindex, nofollow" />
+<title>Help Me Test TransactAgent Pro 💛</title>
+<style>
+  :root{
+    --red:#b8232f; --red-dark:#8e1820; --gold:#c79a3a; --gold-soft:#f3e7c6;
+    --ink:#2c2a28; --muted:#6b6560; --bg:#fbf7f0; --card:#ffffff;
+    --green:#1f8a4c; --green-soft:#e4f4ea; --amber:#b9791b; --amber-soft:#fbefd6;
+    --rose:#c0392b; --rose-soft:#fce8e6; --line:#ece4d6;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background:var(--bg); color:var(--ink); line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:680px;margin:0 auto;padding:18px 16px 120px;}
+  /* HERO */
+  .hero{
+    background:linear-gradient(135deg,var(--red),var(--red-dark));
+    color:#fff;border-radius:20px;padding:26px 22px;margin-bottom:18px;
+    box-shadow:0 10px 30px rgba(140,24,32,.25);
+  }
+  .hero h1{margin:0 0 6px;font-size:24px;line-height:1.2;}
+  .hero p{margin:0;opacity:.95;font-size:15px;}
+  .hero .crown{font-size:30px;display:block;margin-bottom:6px;}
+  /* CARDS */
+  .card{
+    background:var(--card);border:1px solid var(--line);border-radius:16px;
+    padding:18px;margin-bottom:14px;box-shadow:0 2px 8px rgba(0,0,0,.03);
+  }
+  h2.section{font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--gold);margin:24px 4px 10px;font-weight:800;}
+  label{display:block;font-weight:700;font-size:14px;margin:0 0 6px;}
+  input[type=text], textarea, select{
+    width:100%;font-size:16px;padding:12px 13px;border:1.5px solid var(--line);
+    border-radius:11px;font-family:inherit;color:var(--ink);background:#fff;
+  }
+  input:focus,textarea:focus,select:focus{outline:none;border-color:var(--gold);}
+  textarea{resize:vertical;min-height:64px;}
+  .row{display:flex;gap:10px;flex-wrap:wrap;}
+  .row>div{flex:1;min-width:140px;}
+  .btn{
+    display:inline-block;border:none;border-radius:12px;font-size:16px;font-weight:800;
+    padding:14px 18px;cursor:pointer;font-family:inherit;width:100%;
+  }
+  .btn-primary{background:var(--red);color:#fff;}
+  .btn-primary:active{background:var(--red-dark);}
+  .btn-ghost{background:var(--gold-soft);color:var(--red-dark);}
+  .hint{font-size:13px;color:var(--muted);margin:6px 0 0;}
+  .pill{display:inline-block;background:var(--gold-soft);color:var(--red-dark);font-size:12px;font-weight:800;padding:3px 10px;border-radius:999px;}
+  /* STEP */
+  .step{ border-left:5px solid var(--gold); }
+  .step .num{font-size:12px;font-weight:800;color:var(--gold);letter-spacing:.05em;}
+  .step h3{margin:4px 0 8px;font-size:18px;}
+  .step .do{font-size:15px;margin:0 0 10px;}
+  .step .expect{
+    background:var(--gold-soft);border-radius:10px;padding:10px 12px;font-size:14px;margin:0 0 14px;
+  }
+  .expect b{color:var(--red-dark);}
+  .verdicts{display:flex;gap:8px;margin-bottom:10px;}
+  .verdicts button{
+    flex:1;border:1.5px solid var(--line);background:#fff;border-radius:12px;padding:11px 6px;
+    font-size:14px;font-weight:800;cursor:pointer;font-family:inherit;color:var(--ink);
+    transition:all .12s;line-height:1.25;
+  }
+  .verdicts button .emo{display:block;font-size:22px;margin-bottom:2px;}
+  .verdicts button.sel[data-v=works]{background:var(--green-soft);border-color:var(--green);color:var(--green);}
+  .verdicts button.sel[data-v=confusing]{background:var(--amber-soft);border-color:var(--amber);color:var(--amber);}
+  .verdicts button.sel[data-v=broken]{background:var(--rose-soft);border-color:var(--rose);color:var(--rose);}
+  .note-wrap{display:none;}
+  .note-wrap.show{display:block;}
+  .saved{font-size:13px;font-weight:700;color:var(--green);display:none;margin-top:8px;}
+  .saved.show{display:block;}
+  /* PROGRESS */
+  .progress-bar{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--line);
+    padding:10px 16px;z-index:50;box-shadow:0 -4px 16px rgba(0,0,0,.06);}
+  .progress-bar .track{height:8px;background:var(--gold-soft);border-radius:999px;overflow:hidden;margin-bottom:6px;}
+  .progress-bar .fill{height:100%;width:0;background:linear-gradient(90deg,var(--gold),var(--red));transition:width .3s;}
+  .progress-bar .lbl{font-size:13px;font-weight:700;color:var(--muted);text-align:center;}
+  .progress-bar .lbl b{color:var(--red-dark);}
+  /* FINISH */
+  .finish{display:none;text-align:center;}
+  .finish.show{display:block;}
+  .finish .big{font-size:46px;}
+  a.applink{color:var(--red-dark);font-weight:800;}
+  .callout{background:#fff8ea;border:1px dashed var(--gold);border-radius:12px;padding:12px 14px;font-size:14px;margin:12px 0;}
+  .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:78px;background:var(--ink);color:#fff;
+    padding:10px 16px;border-radius:999px;font-size:14px;font-weight:700;opacity:0;transition:opacity .25s;z-index:60;pointer-events:none;}
+  .toast.show{opacity:1;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="hero">
+    <span class="crown">👑</span>
+    <h1>Thanks for testing my app!</h1>
+    <p>You're doing me a huge favor. This takes about <b>20–30 minutes</b>. Just follow each step, tap a button to tell me how it went, and add a quick note if something looks off. Everything you tap is saved automatically. 💛</p>
+  </div>
+
+  <!-- INTRO / IDENTITY -->
+  <div class="card" id="introCard">
+    <label for="tester">First, what's your name?</label>
+    <input type="text" id="tester" placeholder="e.g. Maria" autocomplete="name" />
+    <div style="height:14px"></div>
+    <label>What are you testing on?</label>
+    <div class="row" style="margin-bottom:4px;">
+      <div><button class="btn btn-ghost" data-device="phone">📱 My phone</button></div>
+      <div><button class="btn btn-ghost" data-device="computer">💻 A computer</button></div>
+    </div>
+    <p class="hint" id="deviceHint">Pick one — you can test the other later if you have time.</p>
+    <div style="height:12px"></div>
+    <div class="callout">
+      <b>How this works:</b> Open the app in a <u>separate tab</u> and keep this checklist open beside it.
+      For each step, do the action in the app, come back here, and tap <b>👍 Worked</b>, <b>😕 Confusing</b>, or <b>🐞 Broken</b>.
+      Don't worry about breaking anything — that's the whole point!
+    </div>
+    <a class="btn btn-primary" href="https://thelizteam.netlify.app" target="_blank" rel="noopener" id="openAppBtn" style="text-decoration:none;text-align:center;">🚀 Open the app in a new tab</a>
+    <p class="hint" style="text-align:center;">Then scroll down here and start at Step 1.</p>
+  </div>
+
+  <!-- STEPS GET INJECTED HERE -->
+  <div id="steps"></div>
+
+  <!-- FINISH -->
+  <div class="card finish" id="finishCard">
+    <div class="big">🎉</div>
+    <h2 style="margin:6px 0;">You're a legend.</h2>
+    <p>That's everything. Your answers are already saved — I'll read every single one and fix what's broken. Thank you so much for your time!</p>
+    <p class="hint">You can close this tab now. If you thought of anything else, jot it below and tap save.</p>
+    <textarea id="overallNote" placeholder="Any overall thoughts? Things you loved, hated, or got stuck on…"></textarea>
+    <div style="height:10px"></div>
+    <button class="btn btn-primary" id="saveOverall">💾 Save my final thoughts</button>
+  </div>
+
+</div>
+
+<!-- PROGRESS -->
+<div class="progress-bar">
+  <div class="track"><div class="fill" id="fill"></div></div>
+  <div class="lbl"><b id="doneCount">0</b> of <span id="totalCount">0</span> steps answered</div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+  "use strict";
+  var API = "https://liz-team-server-api-production.up.railway.app";
+
+  // ---- session ----
+  function uid(){ return "t_" + Math.random().toString(36).slice(2,10) + Date.now().toString(36); }
+  var SKEY = "tap_tester_session";
+  var session = {};
+  try { session = JSON.parse(localStorage.getItem(SKEY) || "{}"); } catch(e){ session = {}; }
+  if(!session.session_id){ session.session_id = uid(); }
+  session.answers = session.answers || {};
+  function persist(){ try{ localStorage.setItem(SKEY, JSON.stringify(session)); }catch(e){} }
+  persist();
+
+  // ---- the checklist ----
+  var STEPS = [
+    { sec:"Getting in" },
+    { key:"signup", title:"Create a free trial account",
+      do:"On the app tab, use the <b>Create Account</b> tab. Make up a brokerage name, your name, a real email you can check, set <b>State = Florida</b>, and a password of 8+ characters. Submit.",
+      expect:"You land on a dashboard right away, and a welcome email shows up in your inbox within a minute or two." },
+    { key:"login", title:"Log out, then log back in",
+      do:"Find the logout option (usually a menu or your name). Log out, then sign back in with the same email and password.",
+      expect:"You get back to your dashboard with everything still there." },
+    { key:"forgot", title:"Try “Forgot password”",
+      do:"Log out. On the login screen tap <b>Forgot your password?</b> and enter your email. Check your inbox for the reset email (you don't have to actually reset).",
+      expect:"You see a friendly “if an account exists we sent a link” message, and a reset email arrives shortly." },
+
+    { sec:"The dashboard" },
+    { key:"dashboard", title:"Look around the dashboard / “Win the Day”",
+      do:"Back on the main dashboard, read the daily to-do list and any cards or buttons. Just take it in.",
+      expect:"It loads fast, text makes sense, nothing looks broken or empty, and you understand what you're supposed to do." },
+    { key:"menu", title:"Open the menu and click around",
+      do:"Open the main menu (⚙️ Menu or the buttons across the top). Click into 3 or 4 areas — Reports, Contacts, Vendors, Help, whatever you see.",
+      expect:"Every page opens without an error and you can get back to the dashboard easily." },
+
+    { sec:"Create a deal" },
+    { key:"newtx", title:"Create a new transaction (a deal)",
+      do:"Find the <b>New Transaction</b> button. Fill in a pretend property address, pick buyer or seller side, add a client name + email, and save.",
+      expect:"The deal saves and shows up as a card on your dashboard." },
+    { key:"opentx", title:"Open the deal and check the timeline",
+      do:"Click the deal card you just made. Look at the milestones / timeline and the tabs (Overview, Parties, Documents, etc.).",
+      expect:"A step-by-step timeline appears, the tabs all open, and it feels organized." },
+    { key:"milestone", title:"Mark a milestone or task done",
+      do:"In the deal, find a step or task and mark it complete (✓ Mark Done). Watch the progress bar.",
+      expect:"It checks off and the progress updates. No errors." },
+    { key:"upload", title:"Upload a document",
+      do:"Go to the <b>Documents</b> tab in the deal and upload any file (a PDF or even a photo). On your phone you can use a photo from your camera roll.",
+      expect:"The file uploads, shows in the list, and you can open or preview it." },
+    { key:"parties", title:"Add or edit a person on the deal",
+      do:"In the <b>Parties</b> tab, add another contact (like an inspector or the other agent) or edit the client's info, then save.",
+      expect:"It saves and the new person appears. Editing sticks after you reload." },
+
+    { sec:"Client experience" },
+    { key:"portal", title:"Peek at the client portal (if offered)",
+      do:"If you see a way to preview what the client sees, or an invite link, open it. Otherwise skip this one.",
+      expect:"The client view looks clean and friendly, shows the deal's progress, and doesn't expose anything confusing or broken." },
+
+    { sec:"Tools" },
+    { key:"cma", title:"Try a CMA or pricing tool",
+      do:"Find the <b>CMA</b> tool (sometimes 📊 CMA Tools). Start one, type in a property, and see if it generates a report.",
+      expect:"It opens, lets you enter details, and produces a report or preview without crashing." },
+    { key:"contacts", title:"Add a contact",
+      do:"Go to <b>Contacts</b> and add someone (name + phone or email). Save.",
+      expect:"They save to your list and you can find them again." },
+    { key:"reports", title:"Open Reports / Goals",
+      do:"Open the <b>Reports</b> area and look at any charts, goals, or numbers.",
+      expect:"Charts or numbers display, nothing is blank or showing error text." },
+
+    { sec:"Feel & polish" },
+    { key:"mobile", title:"How does it feel on your screen?",
+      do:"Scroll through a few pages. Notice text size, buttons, and whether anything runs off the side of the screen or overlaps.",
+      expect:"Everything fits your screen, text is readable, buttons are easy to tap, no sideways scrolling." },
+    { key:"speed", title:"Was it fast enough?",
+      do:"Think back over the whole test — pages loading, saving, clicking around.",
+      expect:"Things loaded quickly and you rarely waited or wondered if it was stuck." },
+    { key:"overall", title:"Would you trust this with a real deal?",
+      do:"Big picture: if you were a busy real-estate agent, would this feel trustworthy and helpful?",
+      expect:"Yes — it feels solid, clear, and like it would actually save you time." }
+  ];
+
+  // ---- render ----
+  var stepsEl = document.getElementById("steps");
+  var totalSteps = 0;
+  var html = "";
+  var stepIndex = 0;
+  STEPS.forEach(function(s){
+    if(s.sec){
+      html += '<h2 class="section">'+ s.sec +'</h2>';
+      return;
+    }
+    totalSteps++;
+    stepIndex++;
+    var prev = session.answers[s.key] || {};
+    html += ''+
+    '<div class="card step" data-key="'+s.key+'" data-title="'+ esc(s.title) +'">'+
+      '<div class="num">STEP '+ stepIndex +'</div>'+
+      '<h3>'+ s.title +'</h3>'+
+      '<p class="do">'+ s.do +'</p>'+
+      '<div class="expect"><b>✓ You should see:</b> '+ s.expect +'</div>'+
+      '<div class="verdicts">'+
+        vbtn("works","👍","Worked", prev.verdict)+
+        vbtn("confusing","😕","Confusing", prev.verdict)+
+        vbtn("broken","🐞","Broken", prev.verdict)+
+      '</div>'+
+      '<div class="note-wrap '+ (prev.note? 'show':'') +'">'+
+        '<textarea placeholder="Optional: what happened? The more detail, the faster I can fix it.">'+ esc(prev.note||"") +'</textarea>'+
+      '</div>'+
+      '<div class="saved '+ (prev.verdict?'show':'') +'">✓ Saved — thank you!</div>'+
+    '</div>';
+  });
+  stepsEl.innerHTML = html;
+  document.getElementById("totalCount").textContent = totalSteps;
+
+  function vbtn(v,emo,label,cur){
+    return '<button data-v="'+v+'" class="'+(cur===v?'sel':'')+'"><span class="emo">'+emo+'</span>'+label+'</button>';
+  }
+  function esc(s){ return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+
+  // ---- identity wiring ----
+  var testerInput = document.getElementById("tester");
+  testerInput.value = session.tester_name || "";
+  testerInput.addEventListener("input", function(){ session.tester_name = testerInput.value.trim(); persist(); });
+
+  document.querySelectorAll("[data-device]").forEach(function(b){
+    if(session.device === b.getAttribute("data-device")) b.style.outline = "3px solid var(--gold)";
+    b.addEventListener("click", function(){
+      session.device = b.getAttribute("data-device"); persist();
+      document.querySelectorAll("[data-device]").forEach(function(x){ x.style.outline="none"; });
+      b.style.outline = "3px solid var(--gold)";
+      document.getElementById("deviceHint").textContent = "Got it — testing on " + (session.device==="phone"?"your phone 📱":"a computer 💻") + ".";
+    });
+  });
+
+  // ---- verdict + note wiring ----
+  function send(payload){
+    return fetch(API + "/tester/submit", {
+      method:"POST", headers:{ "Content-Type":"application/json" },
+      body: JSON.stringify(payload)
+    }).then(function(r){ return r.ok; }).catch(function(){ return false; });
+  }
+
+  function saveStep(card, key, title){
+    var ans = session.answers[key] || {};
+    session.answers[key] = ans;
+    persist();
+    var saved = card.querySelector(".saved");
+    saved.classList.add("show");
+    send({
+      session_id: session.session_id,
+      tester_name: session.tester_name || "",
+      device: session.device || "",
+      page_url: location.href,
+      step_key: key,
+      step_title: title,
+      verdict: ans.verdict || "",
+      note: ans.note || ""
+    }).then(function(ok){
+      saved.textContent = ok ? "✓ Saved — thank you!" : "✓ Saved on this device (will retry).";
+    });
+    updateProgress();
+  }
+
+  document.querySelectorAll(".step").forEach(function(card){
+    var key = card.getAttribute("data-key");
+    var title = card.getAttribute("data-title");
+    var noteWrap = card.querySelector(".note-wrap");
+    var ta = card.querySelector("textarea");
+
+    card.querySelectorAll(".verdicts button").forEach(function(btn){
+      btn.addEventListener("click", function(){
+        card.querySelectorAll(".verdicts button").forEach(function(x){ x.classList.remove("sel"); });
+        btn.classList.add("sel");
+        var ans = session.answers[key] || {};
+        ans.verdict = btn.getAttribute("data-v");
+        session.answers[key] = ans;
+        // open the note box, especially for problems
+        noteWrap.classList.add("show");
+        if(ans.verdict !== "works"){ try{ ta.focus(); }catch(e){} }
+        saveStep(card, key, title);
+        toast(ans.verdict==="works" ? "Nice — onto the next!" : "Thanks — noted. A detail below helps!");
+      });
+    });
+
+    var t;
+    ta.addEventListener("input", function(){
+      var ans = session.answers[key] || {};
+      ans.note = ta.value.slice(0,4000);
+      session.answers[key] = ans;
+      persist();
+      clearTimeout(t);
+      t = setTimeout(function(){ saveStep(card, key, title); }, 700);
+    });
+  });
+
+  // ---- progress + finish ----
+  function answeredCount(){
+    var n=0; for(var k in session.answers){ if(session.answers[k] && session.answers[k].verdict) n++; }
+    return n;
+  }
+  function updateProgress(){
+    var n = answeredCount();
+    document.getElementById("doneCount").textContent = n;
+    document.getElementById("fill").style.width = Math.round((n/totalSteps)*100) + "%";
+    document.getElementById("finishCard").classList.toggle("show", n >= totalSteps);
+  }
+  updateProgress();
+
+  // overall note
+  document.getElementById("saveOverall").addEventListener("click", function(){
+    var v = document.getElementById("overallNote").value.trim();
+    send({
+      session_id: session.session_id, tester_name: session.tester_name||"", device: session.device||"",
+      page_url: location.href, step_key:"_overall", step_title:"Overall thoughts",
+      verdict:"", note: v
+    }).then(function(){ toast("Saved — you're the best! 💛"); });
+  });
+
+  // retry any locally-saved answers the server might have missed
+  function retryUnsent(){
+    var items = [];
+    for(var k in session.answers){
+      var a = session.answers[k];
+      if(a && (a.verdict || a.note)){
+        items.push({ step_key:k, step_title:(STEPS.find(function(s){return s.key===k;})||{}).title||k, verdict:a.verdict||"", note:a.note||"" });
+      }
+    }
+    if(!items.length) return;
+    send({ session_id: session.session_id, tester_name: session.tester_name||"", device: session.device||"", page_url: location.href, results: items });
+  }
+  setTimeout(retryUnsent, 4000);
+
+  // toast
+  var toastEl = document.getElementById("toast"), toastT;
+  function toast(msg){
+    toastEl.textContent = msg; toastEl.classList.add("show");
+    clearTimeout(toastT); toastT = setTimeout(function(){ toastEl.classList.remove("show"); }, 1800);
+  }
+})();
+</script>
+</body>
+</html>
