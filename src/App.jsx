@@ -4794,7 +4794,7 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
   const tabs = [
     { id: "overview", label: "Overview" },
     { id: "milestones", label: "📅 Timeline" },
-    { id: "parties", label: `People (${tx.parties.length})` },
+    { id: "parties", label: `People (${(isCoordinator ? tx.parties.filter(p => (p.email || "").toLowerCase() !== (currentUser?.email || "").toLowerCase()) : tx.parties).length})` },
     { id: "sms", label: `Messages${smsMsgCount > 0 ? ` (${smsMsgCount})` : ""}` },
     { id: "replies", label: `💬 Replies${unreadReplyCount > 0 ? ` (${unreadReplyCount})` : ""}` },
     { id: "notes", label: "Internal Notes" },
