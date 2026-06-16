@@ -466,6 +466,35 @@ function ContactModal({ contact, token, onClose, onSaved }) {
   const [err, setErr] = useState(null);
   const [availableGroups, setAvailableGroups] = useState([]);
   const [newGroup, setNewGroup] = useState("");
+  // RentCast "look up last sale" (BYOK) state.
+  const [lookupBusy, setLookupBusy] = useState(false);
+  const [lookupMsg, setLookupMsg] = useState(null);   // { kind: 'ok'|'err', text }
+  const [showKeyBox, setShowKeyBox] = useState(false);
+  const [rcKey, setRcKey] = useState("");
+
+  const runLookup = async () => {
+    setLookupBusy(true); setLookupMsg(null);
+    try {
+      const r = await fetch(API + "/contacts/" + contact.id + "/lookup-sale", {
+        method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
+      });
+      const d = await r.json();
+      if (d.error === "no_key" || d.error === "bad_key") { setShowKeyBox(true); setLookupMsg({ kind: "err", text: d.message || "Add your RentCast key." }); }
+      else if (!r.ok) setLookupMsg({ kind: "err", text: d.message || d.error || "Lookup failed." });
+      else if (d.found) { update("last_moved_on", d.lastMovedOn); setLookupMsg({ kind: "ok", text: "Found it! Last sale " + d.lastMovedOn + (d.lastSalePrice ? " for $" + Number(d.lastSalePrice).toLocaleString() : "") }); }
+      else setLookupMsg({ kind: "err", text: d.message || "No sale record found — enter it manually." });
+    } catch (e) { setLookupMsg({ kind: "err", text: "Lookup failed. Try again." }); }
+    finally { setLookupBusy(false); }
+  };
+  const saveKeyThenLookup = async () => {
+    const k = rcKey.trim(); if (!k) return;
+    setLookupBusy(true);
+    try {
+      await fetch(API + "/me/integrations/rentcast", { method: "PUT", headers: { "Content-Type": "application/json", Authorization: "Bearer " + token }, body: JSON.stringify({ apiKey: k }) });
+      setShowKeyBox(false); setRcKey("");
+      await runLookup();
+    } catch (e) { setLookupMsg({ kind: "err", text: "Could not save key." }); setLookupBusy(false); }
+  };
 
   useEffect(() => {
     fetch(API + "/contacts/groups", { headers: { Authorization: "Bearer " + token } })
@@ -573,6 +602,26 @@ function ContactModal({ contact, token, onClose, onSaved }) {
           <Field label="Last time they moved" hint="When they bought / moved into their current home. We'll remind you to check in as their move cycle comes around."><input type="date" value={form.last_moved_on} onChange={e => update("last_moved_on", e.target.value)} style={inputStyle} /></Field>
           <Field label="Move cycle (years)" hint="How often this person tends to move. Leave blank to use the default (3)."><input type="number" min="1" max="30" placeholder="3" value={form.move_cycle_years} onChange={e => update("move_cycle_years", e.target.value.replace(/\D/g, "").slice(0,2))} style={inputStyle} /></Field>
         </div>
+        {isEdit && contact && contact.address && (
+          <div style={{ marginTop: -4, marginBottom: 8 }}>
+            <button type="button" onClick={runLookup} disabled={lookupBusy}
+              style={{ fontSize: 12, fontWeight: 700, color: "#1d4ed8", background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 8, padding: "6px 12px", cursor: lookupBusy ? "default" : "pointer", fontFamily: "inherit" }}>
+              {lookupBusy ? "Looking up…" : "🔍 Look up last sale"}
+            </button>
+            {lookupMsg && <span style={{ fontSize: 12, marginLeft: 10, color: lookupMsg.kind === "ok" ? "#15803d" : "#b91c1c" }}>{lookupMsg.text}</span>}
+            {showKeyBox && (
+              <div style={{ marginTop: 8, background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 8, padding: 10 }}>
+                <div style={{ fontSize: 12, color: "#475569", marginBottom: 6 }}>
+                  Paste your free RentCast API key (one-time). Get one at <a href="https://www.rentcast.io/api" target="_blank" rel="noreferrer" style={{ color: "#1d4ed8" }}>rentcast.io/api</a> — 50 free lookups/month.
+                </div>
+                <div style={{ display: "flex", gap: 6 }}>
+                  <input value={rcKey} onChange={e => setRcKey(e.target.value)} placeholder="RentCast API key" style={{ ...inputStyle, flex: 1 }} />
+                  <button type="button" onClick={saveKeyThenLookup} disabled={lookupBusy || !rcKey.trim()} style={{ fontSize: 12, fontWeight: 700, color: "#fff", background: "#1d4ed8", border: "none", borderRadius: 8, padding: "0 14px", cursor: "pointer", fontFamily: "inherit" }}>Save & look up</button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
         {!isEdit && <div style={{ fontSize: 11, color: "#9ca3af", marginTop: -8, marginBottom: 4 }}>Tip: birthday, anniversaries, and "last moved" save once you create the contact and reopen it to edit.</div>}
         <Field label="Source" hint="Where did this lead come from? Zillow, Open House, Referral, etc."><input value={form.source} onChange={e => update("source", e.target.value)} style={inputStyle} /></Field>
         <Field label="Groups" hint="Optional — tag where you know them from. Pick any that apply (a contact can be in several, or none).">
