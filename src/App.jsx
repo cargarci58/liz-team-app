@@ -5163,12 +5163,27 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
             {/* Welcome emails are sent from the "Preview & Send Welcome Emails" button on the Overview tab (single reviewed flow). */}
             {!isGuest && (
               <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginBottom: 16 }}>
-                <Btn onClick={() => setShowAssignVendor(true)} small>🏆 Assign Vendor</Btn>
+                {!isCoordinator && <Btn onClick={() => setShowAssignVendor(true)} small>🏆 Assign Vendor</Btn>}
                 <Btn onClick={() => setShowAddParty(true)} small>+ Add Party</Btn>
               </div>
             )}
-            {!isGuest && <ActiveFollowups txId={tx.id} />}
-            {!isGuest && <Suspense fallback={null}><CoordinatorPanel txId={tx.id} /></Suspense>}
+            {/* Coordinator: show the agent who owns/sent this deal, with contact info. */}
+            {isCoordinator && (tx.assignedAgentName || tx.owningAgentEmail) && (
+              <div style={{ marginBottom: 16 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: COLORS.muted, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 8 }}>Agent · sent you this deal</div>
+                <div style={{ background: "#fff", border: `1px solid ${COLORS.border}`, borderRadius: 10, padding: "12px 14px", display: "flex", alignItems: "flex-start", gap: 12 }}>
+                  <PartyAvatar party={{ name: tx.assignedAgentName || "Agent", role: "Agent" }} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 600, fontSize: 14, color: COLORS.text }}>{tx.assignedAgentName || "Agent"}</div>
+                    <div style={{ fontSize: 12, color: roleColor("Agent"), fontWeight: 600, marginBottom: 2 }}>{tx.owningAgentTitle || "Agent"}{tx.owningBrokerageName ? " · " + tx.owningBrokerageName : ""}</div>
+                    {tx.owningAgentEmail && <div style={{ fontSize: 12, color: COLORS.muted }}>{tx.owningAgentEmail}</div>}
+                    {tx.owningAgentPhone && <div style={{ fontSize: 12, color: COLORS.muted }}>{tx.owningAgentPhone}</div>}
+                  </div>
+                </div>
+              </div>
+            )}
+            {!isGuest && !isCoordinator && <ActiveFollowups txId={tx.id} />}
+            {!isGuest && !isCoordinator && <Suspense fallback={null}><CoordinatorPanel txId={tx.id} /></Suspense>}
             {showAssignVendor && (
               <AssignVendorPanel
                 tx={tx}
@@ -5181,7 +5196,7 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
               />
             )}
             {PARTY_ROLES.map(role => {
-              const members = tx.parties.filter(p => p.role === role && !p.isVendor && !p.is_vendor);
+              const members = tx.parties.filter(p => p.role === role && !p.isVendor && !p.is_vendor && !(isCoordinator && (p.email || "").toLowerCase() === (currentUser?.email || "").toLowerCase()));
               if (!members.length) return null;
               return <div key={role} style={{ marginBottom: 16 }}><div style={{ fontSize: 12, fontWeight: 700, color: COLORS.muted, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 8 }}>{role}</div>{members.map(p => <PartyCard key={p.id} party={p} txId={tx.id} onEdit={isGuest ? () => setPaywallFeature("Editing parties") : () => setEditingParty({ ...p })} onRemove={isGuest ? () => setPaywallFeature("Removing parties") : () => isCoordinator ? coordDeleteParty(p.id) : update({ parties: tx.parties.filter(pp => pp.id !== p.id) })} onInvite={isGuest ? () => setPaywallFeature("Inviting parties to the app") : (isCoordinator ? undefined : (onInviteParty ? () => onInviteParty(p) : undefined))} onSendFollowup={isGuest ? () => setPaywallFeature("Follow-up reminders") : (party) => setFollowupParty(party)} onSendWelcome={isGuest ? () => setPaywallFeature("Welcome emails") : onSendWelcome} onResetPassword={isGuest ? () => setPaywallFeature("Password resets") : async (p) => {
               if (!confirm("Email a password reset link to " + (p.name || p.email) + "?\n\nThe link expires in 1 hour.")) return;
@@ -5194,7 +5209,7 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
             }} />)}</div>;
             })}
             {(() => {
-              const vendorParties = tx.parties.filter(p => p.isVendor || p.is_vendor || !PARTY_ROLES.includes(p.role));
+              const vendorParties = tx.parties.filter(p => (p.isVendor || p.is_vendor || !PARTY_ROLES.includes(p.role)) && !(isCoordinator && (p.email || "").toLowerCase() === (currentUser?.email || "").toLowerCase()));
               if (!vendorParties.length) return null;
               const vendorGroups = vendorParties.reduce((acc, p) => {
                 const key = p.vendorCategory || p.vendor_category || p.role || "Other";
@@ -7748,6 +7763,9 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
             referralSource: t.referral_source,
             assignedAgentId: t.assigned_agent_id,
             assignedAgentName: t.assigned_agent_name,
+            owningAgentEmail: t.owning_agent_email || null,
+            owningAgentPhone: t.owning_agent_phone || null,
+            owningAgentTitle: t.owning_agent_title || null,
             owningTenantId: t.tenant_id,
             owningBrokerageName: t.brokerage_name,
             owningBrokerageColor: t.brokerage_color,
