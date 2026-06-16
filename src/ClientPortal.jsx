@@ -593,6 +593,37 @@ function MarketingFeedCard({ txId }) {
   );
 }
 
+// ── MORTGAGE RATE CARD — this month's average 30-yr fixed (FRED) ──
+// Shown to buyers (while shopping) and sellers (what buyers are seeing).
+function MortgageRateCard({ isBuyerSide }) {
+  const [rate, setRate] = useState(null);
+  useEffect(() => {
+    const tok = localStorage.getItem("tp_token") || "";
+    fetch(API + "/market/mortgage-rate", { headers: { Authorization: "Bearer " + tok } })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d && d.success && d.configured && (d.monthlyAvg != null || d.rate != null)) setRate(d); })
+      .catch(() => {});
+  }, []);
+  if (!rate) return null;
+  const val = (rate.monthlyAvg ?? rate.rate).toFixed(2);
+  return (
+    <div style={{ background: C.white, borderRadius: 14, padding: 18, marginBottom: 14, boxShadow: "0 1px 4px rgba(0,0,0,0.08)", borderLeft: "4px solid #1A5276", display: "flex", alignItems: "center", gap: 16 }}>
+      <div style={{ textAlign: "center" }}>
+        <div style={{ fontSize: 30, fontWeight: 800, color: "#1A5276", lineHeight: 1 }}>{val}%</div>
+        <div style={{ fontSize: 10, color: C.gray, marginTop: 2 }}>30-yr fixed</div>
+      </div>
+      <div style={{ flex: 1 }}>
+        <div style={{ fontSize: 13, fontWeight: 700, color: C.black }}>📈 {rate.monthLabel || "This month"}'s average mortgage rate</div>
+        <div style={{ fontSize: 12, color: C.gray, lineHeight: 1.5 }}>
+          {isBuyerSide
+            ? "The national average 30-year fixed rate this month. Your actual rate depends on your credit, down payment, and lender — ask yours for a quote."
+            : "What buyers are seeing in the market right now — it shapes how much they can afford for your home."}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── SIDE VALUE CARD — buyer vs seller specific, warm + concrete ──
 function SideValueCard({ tx }) {
   const isBuyer = tx.transactionType && tx.transactionType.includes("Buyer");
@@ -1419,6 +1450,8 @@ export default function ClientPortal({ user, onLogout, previewTxId, onExitPrevie
                 <LatestUpdateCard tx={tx} agentName={agentName} stage={stage} />
                 <WinsCard timeline={timeline} />
                 <ClosingCountdownCard tx={tx} />
+
+                <MortgageRateCard isBuyerSide={isBuyerSide} />
 
                 {/* Key Dates & Financials */}
                 <div style={{ background: C.white, borderRadius: 14, padding: 18, marginBottom: 14,

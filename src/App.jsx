@@ -6653,9 +6653,13 @@ function SettingsMenu({ currentUser, onOpenContactBook, contactCount, onReports,
 // numbers as Reports → Sales Stats; clicking it opens the full report.
 function DashboardSalesStrip({ onOpen }) {
   const [stats, setStats] = useState(null);
+  const [rate, setRate] = useState(null);
   useEffect(() => {
-    fetch(API + "/reports/sales-stats", { headers: { Authorization: "Bearer " + (localStorage.getItem("tp_token") || "") } })
+    const auth = { Authorization: "Bearer " + (localStorage.getItem("tp_token") || "") };
+    fetch(API + "/reports/sales-stats", { headers: auth })
       .then(r => r.ok ? r.json() : null).then(d => setStats(d && d.success ? d.stats : null)).catch(() => {});
+    fetch(API + "/market/mortgage-rate", { headers: auth })
+      .then(r => r.ok ? r.json() : null).then(d => { if (d && d.success && d.configured && (d.monthlyAvg != null || d.rate != null)) setRate(d); }).catch(() => {});
   }, []);
   if (!stats) return null;
   const m = (n) => n == null ? "—" : (n >= 1000000 ? `$${(n/1000000).toFixed(2)}M` : `$${Math.round(n).toLocaleString()}`);
@@ -6668,7 +6672,7 @@ function DashboardSalesStrip({ onOpen }) {
     { label: "Avg Commission", value: m(stats.avgCommissionGross), sub: "12mo" },
   ];
   return (
-    <div onClick={onOpen} title="Open full Sales Stats report" style={{ background: "#fff", borderBottom: `1px solid ${COLORS.border}`, padding: "10px 24px", display: "flex", gap: 22, alignItems: "center", flexWrap: "nowrap", overflowX: "auto", cursor: onOpen ? "pointer" : "default" }}>
+    <div onClick={onOpen} title="Open full Sales Stats report" style={{ background: "#EEF2F7", borderBottom: `1px solid ${COLORS.border}`, padding: "12px 24px", display: "flex", gap: 22, alignItems: "center", flexWrap: "nowrap", overflowX: "auto", cursor: onOpen ? "pointer" : "default" }}>
       <span style={{ fontSize: 11, fontWeight: 800, color: COLORS.muted, textTransform: "uppercase", letterSpacing: "0.05em", flexShrink: 0 }}>📊 My Stats</span>
       {items.map(it => (
         <div key={it.label} style={{ flexShrink: 0, textAlign: "center" }}>
@@ -6676,6 +6680,12 @@ function DashboardSalesStrip({ onOpen }) {
           <div style={{ fontSize: 10, color: COLORS.muted, marginTop: 2, whiteSpace: "nowrap" }}>{it.label}{it.sub ? ` · ${it.sub}` : ""}</div>
         </div>
       ))}
+      {rate && (
+        <div style={{ flexShrink: 0, textAlign: "center", marginLeft: "auto", background: "#fff", border: `1px solid ${COLORS.border}`, borderRadius: 8, padding: "6px 14px" }}>
+          <div style={{ fontSize: 18, fontWeight: 800, color: "#1A5276", lineHeight: 1 }}>{(rate.monthlyAvg ?? rate.rate).toFixed(2)}%</div>
+          <div style={{ fontSize: 10, color: COLORS.muted, marginTop: 2, whiteSpace: "nowrap" }}>📈 30-yr rate{rate.monthLabel ? ` · ${rate.monthLabel} avg` : ""}</div>
+        </div>
+      )}
     </div>
   );
 }
