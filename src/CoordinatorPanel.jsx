@@ -38,6 +38,13 @@ export default function CoordinatorPanel({ txId }) {
   const [makeDefault, setMakeDefault] = useState(false);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
+  const [dir, setDir] = useState(null);       // directory of opt-in coordinators
+  const [showDir, setShowDir] = useState(false);
+  const money = (n) => n == null ? null : "$" + Number(n).toLocaleString("en-US", { maximumFractionDigits: 0 });
+  const openDirectory = async () => {
+    setShowDir(s => !s);
+    if (dir === null) { try { const d = await api("/coordinators/directory"); setDir(d.coordinators || []); } catch { setDir([]); } }
+  };
 
   const load = useCallback(async () => {
     try { const d = await api(`/transactions/${txId}/coordinator`); setCoords(d.coordinators || []); }
@@ -155,6 +162,32 @@ export default function CoordinatorPanel({ txId }) {
               <option value="">— Reuse a saved coordinator —</option>
               {saved.map(s => <option key={s.coordinator_email} value={s.coordinator_email}>{s.coordinator_name || s.coordinator_email}</option>)}
             </select>
+          )}
+
+          <button type="button" onClick={openDirectory} style={{ background: "#fff", border: `1px solid ${L.line}`, borderRadius: 8, padding: "8px 12px", fontSize: 13, fontWeight: 700, cursor: "pointer", marginBottom: 8, fontFamily: "inherit" }}>
+            {showDir ? "▾ Hide coordinator directory" : "🔎 Browse available coordinators"}
+          </button>
+          {showDir && (
+            <div style={{ border: `1px solid ${L.line}`, borderRadius: 8, padding: 8, marginBottom: 10, maxHeight: 260, overflowY: "auto" }}>
+              {dir === null && <div style={{ fontSize: 13, color: L.muted, padding: 6 }}>Loading…</div>}
+              {dir && dir.length === 0 && <div style={{ fontSize: 13, color: L.muted, padding: 6 }}>No coordinators are listed for hire yet.</div>}
+              {dir && dir.map(c => {
+                const nm = `${c.first_name || ""} ${c.last_name || ""}`.trim() || c.email;
+                const picked = email === c.email;
+                return (
+                  <div key={c.id} onClick={() => { setEmail(c.email); setName(nm); refetchAssignable(c.email); }}
+                    style={{ padding: "8px 10px", borderRadius: 8, cursor: "pointer", border: `1px solid ${picked ? "#C0392B" : "transparent"}`, background: picked ? "#FDEDEC" : "transparent" }}>
+                    <div style={{ fontWeight: 700, fontSize: 14 }}>{nm}{c.tc_service_area ? <span style={{ fontWeight: 500, color: L.muted, fontSize: 12 }}> · {c.tc_service_area}</span> : null}</div>
+                    <div style={{ fontSize: 12, color: L.muted, display: "flex", gap: 10, flexWrap: "wrap", marginTop: 2 }}>
+                      {c.tc_fee_listing != null && <span>Listing {money(c.tc_fee_listing)}</span>}
+                      {c.tc_fee_seller != null && <span>Seller {money(c.tc_fee_seller)}</span>}
+                      {c.tc_fee_buyer != null && <span>Buyer {money(c.tc_fee_buyer)}</span>}
+                    </div>
+                    {c.tc_bio && <div style={{ fontSize: 12, color: L.muted, marginTop: 3 }}>{c.tc_bio}</div>}
+                  </div>
+                );
+              })}
+            </div>
           )}
 
           <input placeholder="Coordinator email" value={email} onChange={e => setEmail(e.target.value)} onBlur={e => refetchAssignable(e.target.value)} style={{ ...input, marginBottom: 8 }} />

@@ -4578,6 +4578,101 @@ function CoordinatorTeamModal({ currentUser, onClose }) {
   );
 }
 
+// "My Services" — coordinator sets pricing + availability, shares their intake
+// link, and reviews incoming intake requests.
+function CoordinatorServicesModal({ currentUser, onClose }) {
+  const [tab, setTab] = useState("services");
+  const [f, setF] = useState(null);
+  const [saved, setSaved] = useState(false);
+  const [reqs, setReqs] = useState(null);
+  const [copied, setCopied] = useState(false);
+  const intakeUrl = `${window.location.origin}/tc-intake/${currentUser?.id}`;
+  useEffect(() => {
+    fetch(`${_tcApi}/tc/profile`, { headers: _tcHdrs2() }).then(r => r.json()).then(d => {
+      const p = d.profile || {};
+      setF({ availableForHire: !!p.tc_available_for_hire, feeListing: p.tc_fee_listing ?? "", feeSeller: p.tc_fee_seller ?? "", feeBuyer: p.tc_fee_buyer ?? "", bio: p.tc_bio || "", serviceArea: p.tc_service_area || "" });
+    }).catch(() => setF({ availableForHire: false, feeListing: "", feeSeller: "", feeBuyer: "", bio: "", serviceArea: "" }));
+  }, []);
+  const loadReqs = useCallback(() => fetch(`${_tcApi}/tc/intake-requests`, { headers: _tcHdrs2() }).then(r => r.json()).then(d => setReqs(d.requests || [])).catch(() => setReqs([])), []);
+  useEffect(() => { if (tab === "requests") loadReqs(); }, [tab, loadReqs]);
+  const save = async () => {
+    setSaved(false);
+    try {
+      const r = await fetch(`${_tcApi}/tc/profile`, { method: "PUT", headers: _tcHdrs2(), body: JSON.stringify(f) });
+      if (!r.ok) throw new Error((await r.json()).error || "Failed");
+      setSaved(true); setTimeout(() => setSaved(false), 2500);
+    } catch (e) { alert("⚠️ " + e.message); }
+  };
+  const decide = async (id, decision) => {
+    try { const r = await fetch(`${_tcApi}/tc/intake-requests/${id}/${decision}`, { method: "POST", headers: _tcHdrs2() }); if (!r.ok) throw new Error((await r.json()).error || "Failed"); await loadReqs(); }
+    catch (e) { alert("⚠️ " + e.message); }
+  };
+  const fld = { width: "100%", padding: "9px 11px", borderRadius: 8, border: `1px solid ${COLORS.border}`, fontSize: 14, fontFamily: "inherit", boxSizing: "border-box" };
+  const lab = { fontSize: 12, fontWeight: 700, color: COLORS.muted, display: "block", marginBottom: 4, marginTop: 12 };
+  const pendingCount = (reqs || []).filter(r => r.status === "pending").length;
+  return (
+    <Modal title="💼 My Services" onClose={onClose}>
+      <div style={{ display: "flex", gap: 6, marginBottom: 14 }}>
+        {[["services", "Pricing & Link"], ["requests", `Requests${pendingCount ? ` (${pendingCount})` : ""}`]].map(([id, l]) => (
+          <button key={id} onClick={() => setTab(id)} style={{ padding: "7px 14px", borderRadius: 8, border: `1px solid ${tab === id ? COLORS.navy : COLORS.border}`, background: tab === id ? COLORS.navy : "#fff", color: tab === id ? "#fff" : COLORS.text, fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>{l}</button>
+        ))}
+      </div>
+      {tab === "services" && (!f ? <div style={{ color: COLORS.muted }}>Loading…</div> : (
+        <>
+          <label style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 14, fontWeight: 600, cursor: "pointer" }}>
+            <input type="checkbox" checked={f.availableForHire} onChange={e => setF(p => ({ ...p, availableForHire: e.target.checked }))} style={{ width: 16, height: 16 }} />
+            List me in the coordinator directory (agents can find & hire me)
+          </label>
+          <div style={{ fontSize: 12, color: COLORS.muted, marginTop: 4 }}>Off = private; you only work with agents who invite you directly.</div>
+          <label style={lab}>Listing — put on MLS, full service ($)</label>
+          <input style={fld} type="number" value={f.feeListing} onChange={e => setF(p => ({ ...p, feeListing: e.target.value }))} placeholder="e.g. 595" />
+          <label style={lab}>Seller representation — cash or financed ($)</label>
+          <input style={fld} type="number" value={f.feeSeller} onChange={e => setF(p => ({ ...p, feeSeller: e.target.value }))} placeholder="e.g. 450" />
+          <label style={lab}>Buyer representation ($)</label>
+          <input style={fld} type="number" value={f.feeBuyer} onChange={e => setF(p => ({ ...p, feeBuyer: e.target.value }))} placeholder="e.g. 395" />
+          <label style={lab}>Service area</label>
+          <input style={fld} value={f.serviceArea} onChange={e => setF(p => ({ ...p, serviceArea: e.target.value }))} placeholder="e.g. Central Florida" />
+          <label style={lab}>Short bio (shown to agents & on your intake page)</label>
+          <textarea style={{ ...fld, resize: "vertical" }} rows={3} value={f.bio} onChange={e => setF(p => ({ ...p, bio: e.target.value }))} />
+          <div style={{ display: "flex", gap: 10, alignItems: "center", marginTop: 14 }}>
+            <Btn onClick={save}>Save</Btn>
+            {saved && <span style={{ color: COLORS.success, fontSize: 13, fontWeight: 700 }}>✓ Saved</span>}
+          </div>
+          <div style={{ background: COLORS.bg, borderRadius: 10, padding: 12, marginTop: 16 }}>
+            <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 6 }}>Your intake link</div>
+            <div style={{ fontSize: 12, color: COLORS.muted, marginBottom: 8 }}>Share this with agents or clients so they can submit a deal to you.</div>
+            <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+              <code style={{ fontSize: 12, background: "#fff", border: `1px solid ${COLORS.border}`, borderRadius: 6, padding: "6px 8px", wordBreak: "break-all", flex: "1 1 200px" }}>{intakeUrl}</code>
+              <Btn small variant="secondary" onClick={() => { navigator.clipboard?.writeText(intakeUrl); setCopied(true); setTimeout(() => setCopied(false), 2000); }}>{copied ? "✓ Copied" : "Copy"}</Btn>
+            </div>
+          </div>
+        </>
+      ))}
+      {tab === "requests" && (!reqs ? <div style={{ color: COLORS.muted }}>Loading…</div> : (
+        reqs.length === 0 ? <div style={{ color: COLORS.muted, fontSize: 14 }}>No intake requests yet. Share your link to start receiving deals.</div> : (
+          reqs.map(r => (
+            <div key={r.id} style={{ border: `1px solid ${COLORS.border}`, borderRadius: 10, padding: 12, marginBottom: 10 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
+                <div style={{ fontWeight: 700 }}>{r.submitter_name} <span style={{ fontSize: 11, color: COLORS.muted, fontWeight: 600 }}>· {r.submitter_role}</span></div>
+                <span style={{ fontSize: 11, fontWeight: 700, color: r.status === "pending" ? COLORS.gold : r.status === "accepted" ? COLORS.success : COLORS.muted }}>{r.status}</span>
+              </div>
+              <div style={{ fontSize: 13, color: COLORS.muted, marginTop: 2 }}>{[r.deal_type, r.property_address].filter(Boolean).join(" · ")}</div>
+              <div style={{ fontSize: 12, color: COLORS.muted, marginTop: 2 }}>{[r.submitter_email, r.submitter_phone].filter(Boolean).join(" · ")}</div>
+              {r.details?.notes && <div style={{ fontSize: 13, marginTop: 6 }}>{r.details.notes}</div>}
+              {r.status === "pending" && (
+                <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+                  <Btn small onClick={() => decide(r.id, "accept")}>Accept</Btn>
+                  <Btn small variant="ghost" onClick={() => decide(r.id, "decline")}>Decline</Btn>
+                </div>
+              )}
+            </div>
+          ))
+        )
+      ))}
+    </Modal>
+  );
+}
+
 // Per-deal "Handled by" control — the lead reassigns the deal to a teammate.
 function CoordinatorAssignControl({ tx, currentUser }) {
   const asg = tx.coordinatorAssignment || {};
@@ -6589,6 +6684,7 @@ function Dashboard({ transactions, coordinatorMode = false, unreadCounts = {}, o
   const [filter, setFilter] = useState("All");
   const [search, setSearch] = useState("");
   const [showTcTeam, setShowTcTeam] = useState(false);
+  const [showTcServices, setShowTcServices] = useState(false);
   // Tenant branding for the navbar — fetched once on mount. A free guest belongs to
   // no single brokerage (they may be on deals from many), so they get NEUTRAL platform
   // branding here; each brokerage's identity shows on its own transaction card instead.
@@ -7147,6 +7243,7 @@ function Dashboard({ transactions, coordinatorMode = false, unreadCounts = {}, o
             {!coordinatorMode && <button data-tour="new" onClick={onNew} style={{ background: "#C0392B", border: "none", color: "#fff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>+ New Transaction</button>}
             <button data-tour="contacts" onClick={() => onOpenContacts && onOpenContacts()} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "#fff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>📇 Contacts</button>
             {coordinatorMode && <button onClick={() => setShowTcTeam(true)} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "#fff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>👥 Team</button>}
+            {coordinatorMode && <button onClick={() => setShowTcServices(true)} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "#fff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>💼 My Services</button>}
             {!coordinatorMode && <button data-tour="popbys" onClick={() => onOpenPopBys && onOpenPopBys()} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "#fff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>🎁 Pop-Bys</button>}
             {!coordinatorMode && <button onClick={() => onOpenScripts && onOpenScripts()} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "#fff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>📜 Scripts</button>}
             {!coordinatorMode && <button onClick={() => onOpenCMA && onOpenCMA()} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "#fff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>📊 CMA</button>}
@@ -7181,6 +7278,7 @@ function Dashboard({ transactions, coordinatorMode = false, unreadCounts = {}, o
           </div>
         </div>
         {showTcTeam && <CoordinatorTeamModal currentUser={currentUser} onClose={() => setShowTcTeam(false)} />}
+        {showTcServices && <CoordinatorServicesModal currentUser={currentUser} onClose={() => setShowTcServices(false)} />}
         <div data-stats-bar="" style={{ display: "flex", marginTop: 16, borderTop: "1px solid rgba(255,255,255,0.1)", overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
           {(() => { const s = dashStats || stats; const clearAdv = () => { setAgentFilter(""); setPropTypeFilter(""); setTxTypeFilter(""); setDatePreset(""); }; return [["Active Listings", s.active, COLORS.gold, () => { setViewMode("cards"); setFilter("All"); setClosingFrom(""); setClosingTo(""); clearAdv(); }], ["Under Contract", s.underContract, "#93C5FD", () => { setViewMode("cards"); setFilter("Under Contract"); setClosingFrom(""); setClosingTo(""); clearAdv(); }], ["Closing This Month", s.closingSoon, s.closingSoon > 0 ? "#FDE68A" : "rgba(255,255,255,0.4)", () => { const t = new Date(); const last = new Date(t.getFullYear(), t.getMonth() + 1, 0); setViewMode("cards"); setFilter("All"); clearAdv(); setClosingFrom(t.toISOString().split("T")[0]); setClosingTo(last.toISOString().split("T")[0]); }], ["Closed", s.closed, "#6EE7B7", () => { setViewMode("cards"); setFilter("Closed"); setClosingFrom(""); setClosingTo(""); clearAdv(); }], ...(coordinatorMode ? [] : [["Volume", `$${((s.totalVolume || 0) / 1000000).toFixed(2)}M`, COLORS.gold, null], ["Pending Commission", `$${Math.round(s.pendingCommissionGross || 0).toLocaleString()}`, "#FDBA74", null], ["Closed Commission", s.totalCommission > 0 ? `$${Math.round(s.totalCommission).toLocaleString()}` : "$0", "#6EE7B7", null]])]; })().map(([label, value, color, onClick]) => (
             <div key={label} onClick={onClick} style={{ padding: "12px 20px", flex: 1, cursor: onClick ? "pointer" : "default" }}>
