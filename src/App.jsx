@@ -4708,6 +4708,11 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
   // loads for a guest.
   const isGuest = !!tx.isGuestView;
   const GUEST_ALLOWED_TABS = ["overview", "parties", "documents", "chat"];
+  // Coordinator = the invited TC working the agent's deal. Full coordination
+  // surface, but the agent's money (commission/net-sheets) and sales tools (CMA,
+  // offers) are hidden. Set from the coordinator-view flag on the tx payload.
+  const isCoordinator = !!tx.isCoordinatorView || coordinatorMode;
+  const COORD_HIDDEN_TABS = ["cma", "offers", "calculator", "buyer-net", "seller-calc"];
 
   const tabs = [
     { id: "overview", label: "Overview" },
@@ -4726,7 +4731,7 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
     { id: "tx-forms", label: "📋 Forms" },
     { id: "activity", label: "📋 Activity Log" },
     { id: "reminders", label: "Reminders" },
-  ];
+  ].filter(t => !isCoordinator || !COORD_HIDDEN_TABS.includes(t.id));
   // Tab click handler: a guest opening a non-allowed tab gets the paywall, not the tab.
   const handleTabClick = (t) => {
     if (isGuest && !GUEST_ALLOWED_TABS.includes(t.id)) { setPaywallFeature(t.label.replace(/\s*\(\d+\)\s*$/, "")); return; }
@@ -4744,7 +4749,8 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
         </div>
         {propertyTypeBadge(tx) && <Badge label={propertyTypeBadge(tx).label} color={propertyTypeBadge(tx).color} bg={propertyTypeBadge(tx).bg} />}
         {isGuest && <span style={{ background: "rgba(255,255,255,0.15)", color: "#fff", fontSize: 11, fontWeight: 700, padding: "4px 10px", borderRadius: 6 }}>👤 Shared with you · view only</span>}
-        <>
+        {isCoordinator && <span style={{ background: "rgba(255,255,255,0.15)", color: "#fff", fontSize: 11, fontWeight: 700, padding: "4px 10px", borderRadius: 6 }}>🧭 Coordinator</span>}
+        {!isCoordinator && <>
         <select value={tx.status} onChange={e => {
           if (isGuest) { setPaywallFeature("Changing transaction status"); e.target.value = tx.status; return; }
           const newStatus = e.target.value;
@@ -4783,7 +4789,7 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
         {tx.status === "Cancelled" && (
           <button onClick={() => isGuest ? setPaywallFeature("Restoring a transaction") : update({ status: "Active" })} style={{ fontSize: 11, padding: "4px 10px", borderRadius: 6, border: "1px solid rgba(100,255,100,0.5)", background: "rgba(100,255,100,0.15)", color: "#6EE7B7", cursor: "pointer", fontFamily: "inherit" }}>Restore Transaction</button>
         )}
-        </>
+        </>}
       </div>
 
       <div style={{ background: "#fff", borderBottom: `1px solid ${COLORS.border}`, padding: "12px 24px", display: "flex", gap: 24, overflowX: "auto" }}>
@@ -4956,7 +4962,19 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, marginBottom: 20 }}>
               {[
                 { title: "Property", rows: [["Assigned Agent", tx.assignedAgentName || "—"], ["Referral Source", tx.referralSource || "—"], ["Address", tx.address], ["City/County", `${tx.city}, ${tx.county} County`], ["Zip", tx.zipCode], ["Type", tx.propertyType], ["Transaction", tx.type], ["MLS #", tx.mlsNumber], ["Lockbox Access", tx.propertyAccess || "—"], ["Mail-Away", tx.mailAway || "No"]] },
-                { title: "Financials", rows: (() => {
+                { title: isCoordinator ? "Price & Dates" : "Financials", rows: (() => {
+                    // Coordinator: price + dates only — the agent's commission/splits/
+                    // fees are never shown.
+                    const dateRows = [
+                      ["List Price", tx.listPrice ? `$${Number(tx.listPrice).toLocaleString()}` : "—"],
+                      ["Contract Price", tx.contractPrice ? `$${Number(tx.contractPrice).toLocaleString()}` : "—"],
+                      ["Open Date", formatDate(tx.openDate)],
+                      ["Executed Date", formatDate(tx.executedDate)],
+                      ["Closing Date", formatDate(tx.closingDate)],
+                      ["Days to Close", daysToClose !== null ? `${daysToClose}d` : "—"],
+                      ["Mail-Away", tx.mailAway || "No"],
+                    ];
+                    if (isCoordinator) return dateRows;
                     const price = Number(tx.contractPrice || tx.listPrice || 0);
                     const listComm = tx.commissionListing ? (price * Number(tx.commissionListing) / 100) : 0;
                     const buyerComm = tx.commissionBuyer ? (price * Number(tx.commissionBuyer) / 100) : 0;
@@ -4970,13 +4988,7 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
                     const flatFee = Number(tx.officeFlatFee || 0);
                     const netComm = ourComm + txFee - split - flatFee;
                     return [
-                      ["List Price", tx.listPrice ? `$${Number(tx.listPrice).toLocaleString()}` : "—"],
-                      ["Contract Price", tx.contractPrice ? `$${Number(tx.contractPrice).toLocaleString()}` : "—"],
-                      ["Open Date", formatDate(tx.openDate)],
-                      ["Executed Date", formatDate(tx.executedDate)],
-                      ["Closing Date", formatDate(tx.closingDate)],
-                      ["Days to Close", daysToClose !== null ? `${daysToClose}d` : "—"],
-                      ["Mail-Away", tx.mailAway || "No"],
+                      ...dateRows,
                       [isBuyer ? "Listing Commission (other side — not ours)" : "Listing Commission", tx.commissionListing ? `${tx.commissionListing}% ($${listComm.toLocaleString(undefined,{maximumFractionDigits:0})})` : "—"],
                       [isListing ? "Buyer Commission (other side — not ours)" : "Buyer Commission", tx.commissionBuyer ? `${tx.commissionBuyer}% ($${buyerComm.toLocaleString(undefined,{maximumFractionDigits:0})})` : "—"],
                       ["Transaction Fee", tx.transactionFee ? `$${Number(tx.transactionFee).toLocaleString()}` : "—"],
@@ -5869,7 +5881,7 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
                 <div style={{ fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>Lockbox Access / CBS Code</div>
                 <textarea value={editTxForm.propertyAccess || ""} onChange={e => setEditTxForm(f => ({ ...f, propertyAccess: e.target.value }))} placeholder="Lockbox code, gate code, special instructions..." style={{ width: "100%", padding: "10px 14px", borderRadius: 8, border: "1.5px solid #CCC", fontSize: 14, fontFamily: "inherit", boxSizing: "border-box", minHeight: 60, resize: "vertical" }} />
               </div>
-              <div style={{ background: "#F4F4F4", borderRadius: 10, padding: 16, marginBottom: 16 }}>
+              <div style={{ background: "#F4F4F4", borderRadius: 10, padding: 16, marginBottom: 16, display: isCoordinator ? "none" : "block" }}>
                 <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 12, color: "#111" }}>Commission Details</div>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
                   {[["Listing Agent Commission %", "commissionListing"], ["Buyer Agent Commission %", "commissionBuyer"], ["Transaction Fee", "transactionFee"], ["Brokerage Split %", "brokerageSplit"], ["Office Flat Fee", "officeFlatFee"]].map(([label, field]) => (
@@ -6344,7 +6356,7 @@ function SettingsMenu({ currentUser, onOpenContactBook, contactCount, onReports,
   );
 }
 
-function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenContactBook, onOpenContacts, onOpenPopBys, onOpenScripts, onOpenCMA, onOpenGrowthPlan, onOpenExpenses, onOpenForms, contactCount, onLogout, onOpenTeam, onOpenCompliance, onOpenComplianceDash, onOpenTaskTmpls, onOpenContractIntake, onChangePassword, onReports, onGoalPlanner, onHome, onVendors, onCompanySettings, onSuperuser, onAgentProfile, onIntakeLinks, onViewTransactions, onHelp, onFeedback, onSupport, currentUser, isFreeGuest = false }) {
+function Dashboard({ transactions, coordinatorMode = false, unreadCounts = {}, onSelect, onNew, onOpenContactBook, onOpenContacts, onOpenPopBys, onOpenScripts, onOpenCMA, onOpenGrowthPlan, onOpenExpenses, onOpenForms, contactCount, onLogout, onOpenTeam, onOpenCompliance, onOpenComplianceDash, onOpenTaskTmpls, onOpenContractIntake, onChangePassword, onReports, onGoalPlanner, onHome, onVendors, onCompanySettings, onSuperuser, onAgentProfile, onIntakeLinks, onViewTransactions, onHelp, onFeedback, onSupport, currentUser, isFreeGuest = false }) {
   const [filter, setFilter] = useState("All");
   const [search, setSearch] = useState("");
   // Tenant branding for the navbar — fetched once on mount. A free guest belongs to
@@ -6902,17 +6914,17 @@ function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenCon
             </div>
           </div>
           <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", justifyContent: "flex-end", flex: "1 1 auto", minWidth: 0 }}>
-            <button data-tour="new" onClick={onNew} style={{ background: "#C0392B", border: "none", color: "#fff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>+ New Transaction</button>
+            {!coordinatorMode && <button data-tour="new" onClick={onNew} style={{ background: "#C0392B", border: "none", color: "#fff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>+ New Transaction</button>}
             <button data-tour="contacts" onClick={() => onOpenContacts && onOpenContacts()} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "#fff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>📇 Contacts</button>
-            <button data-tour="popbys" onClick={() => onOpenPopBys && onOpenPopBys()} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "#fff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>🎁 Pop-Bys</button>
-            <button onClick={() => onOpenScripts && onOpenScripts()} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "#fff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>📜 Scripts</button>
-            <button onClick={() => onOpenCMA && onOpenCMA()} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "#fff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>📊 CMA</button>
-            <button onClick={() => onOpenGrowthPlan && onOpenGrowthPlan()} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "#fff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>🎯 Growth Plan</button>
-            <button data-tour="financials" onClick={() => onOpenExpenses && onOpenExpenses()} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "#fff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>💵 Financials</button>
+            {!coordinatorMode && <button data-tour="popbys" onClick={() => onOpenPopBys && onOpenPopBys()} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "#fff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>🎁 Pop-Bys</button>}
+            {!coordinatorMode && <button onClick={() => onOpenScripts && onOpenScripts()} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "#fff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>📜 Scripts</button>}
+            {!coordinatorMode && <button onClick={() => onOpenCMA && onOpenCMA()} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "#fff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>📊 CMA</button>}
+            {!coordinatorMode && <button onClick={() => onOpenGrowthPlan && onOpenGrowthPlan()} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "#fff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>🎯 Growth Plan</button>}
+            <button data-tour="financials" onClick={() => onOpenExpenses && onOpenExpenses()} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "#fff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>💵 {coordinatorMode ? "My Money" : "Financials"}</button>
             <WinTheDayButton token={localStorage.getItem("tp_token") || ""} onViewTransactions={onViewTransactions} />
             <PersonalTaskAddButton token={localStorage.getItem("tp_token") || ""} />
-            <button data-tour="vendors" onClick={onVendors} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "rgba(255,255,255,0.88)", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 600, fontFamily: "inherit" }}>🏆 Vendors</button>
-            <button data-tour="intake" onClick={onIntakeLinks} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "rgba(255,255,255,0.88)", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 600, fontFamily: "inherit" }}>🔗 New Buyer/Seller Intake</button>
+            {!coordinatorMode && <button data-tour="vendors" onClick={onVendors} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "rgba(255,255,255,0.88)", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 600, fontFamily: "inherit" }}>🏆 Vendors</button>}
+            {!coordinatorMode && <button data-tour="intake" onClick={onIntakeLinks} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "rgba(255,255,255,0.88)", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 600, fontFamily: "inherit" }}>🔗 New Buyer/Seller Intake</button>}
             {/* "Receive Offer" now lives inside each Active listing (open a listing → 📥 Receive Offer). Receiving an offer only applies to listings. */}
             <SettingsMenu
               currentUser={currentUser}
@@ -6938,7 +6950,7 @@ function Dashboard({ transactions, unreadCounts = {}, onSelect, onNew, onOpenCon
           </div>
         </div>
         <div data-stats-bar="" style={{ display: "flex", marginTop: 16, borderTop: "1px solid rgba(255,255,255,0.1)", overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
-          {(() => { const s = dashStats || stats; const clearAdv = () => { setAgentFilter(""); setPropTypeFilter(""); setTxTypeFilter(""); setDatePreset(""); }; return [["Active Listings", s.active, COLORS.gold, () => { setViewMode("cards"); setFilter("All"); setClosingFrom(""); setClosingTo(""); clearAdv(); }], ["Under Contract", s.underContract, "#93C5FD", () => { setViewMode("cards"); setFilter("Under Contract"); setClosingFrom(""); setClosingTo(""); clearAdv(); }], ["Closing This Month", s.closingSoon, s.closingSoon > 0 ? "#FDE68A" : "rgba(255,255,255,0.4)", () => { const t = new Date(); const last = new Date(t.getFullYear(), t.getMonth() + 1, 0); setViewMode("cards"); setFilter("All"); clearAdv(); setClosingFrom(t.toISOString().split("T")[0]); setClosingTo(last.toISOString().split("T")[0]); }], ["Closed", s.closed, "#6EE7B7", () => { setViewMode("cards"); setFilter("Closed"); setClosingFrom(""); setClosingTo(""); clearAdv(); }], ["Volume", `$${((s.totalVolume || 0) / 1000000).toFixed(2)}M`, COLORS.gold, null], ["Pending Commission", `$${Math.round(s.pendingCommissionGross || 0).toLocaleString()}`, "#FDBA74", null], ["Closed Commission", s.totalCommission > 0 ? `$${Math.round(s.totalCommission).toLocaleString()}` : "$0", "#6EE7B7", null]]; })().map(([label, value, color, onClick]) => (
+          {(() => { const s = dashStats || stats; const clearAdv = () => { setAgentFilter(""); setPropTypeFilter(""); setTxTypeFilter(""); setDatePreset(""); }; return [["Active Listings", s.active, COLORS.gold, () => { setViewMode("cards"); setFilter("All"); setClosingFrom(""); setClosingTo(""); clearAdv(); }], ["Under Contract", s.underContract, "#93C5FD", () => { setViewMode("cards"); setFilter("Under Contract"); setClosingFrom(""); setClosingTo(""); clearAdv(); }], ["Closing This Month", s.closingSoon, s.closingSoon > 0 ? "#FDE68A" : "rgba(255,255,255,0.4)", () => { const t = new Date(); const last = new Date(t.getFullYear(), t.getMonth() + 1, 0); setViewMode("cards"); setFilter("All"); clearAdv(); setClosingFrom(t.toISOString().split("T")[0]); setClosingTo(last.toISOString().split("T")[0]); }], ["Closed", s.closed, "#6EE7B7", () => { setViewMode("cards"); setFilter("Closed"); setClosingFrom(""); setClosingTo(""); clearAdv(); }], ...(coordinatorMode ? [] : [["Volume", `$${((s.totalVolume || 0) / 1000000).toFixed(2)}M`, COLORS.gold, null], ["Pending Commission", `$${Math.round(s.pendingCommissionGross || 0).toLocaleString()}`, "#FDBA74", null], ["Closed Commission", s.totalCommission > 0 ? `$${Math.round(s.totalCommission).toLocaleString()}` : "$0", "#6EE7B7", null]])]; })().map(([label, value, color, onClick]) => (
             <div key={label} onClick={onClick} style={{ padding: "12px 20px", flex: 1, cursor: onClick ? "pointer" : "default" }}>
               <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>{label}{onClick && " ↗"}</div>
               <div style={{ color, fontSize: 22, fontWeight: 800, marginTop: 2 }}>{value}</div>
@@ -7504,7 +7516,7 @@ function TenantSwitcher({ currentUser }) {
   );
 }
 
-function MainApp({ onLogout, currentUser }) {
+function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
   const [transactions, setTransactions] = useState([]);
   const [txLoading, setTxLoading] = useState(true);
   const [unreadCounts, setUnreadCounts] = useState({});
@@ -7585,7 +7597,7 @@ function MainApp({ onLogout, currentUser }) {
   // populates and recently-closed deals don't vanish from the dashboard.
   // Backend caps at LIMIT 500, so this is safe at brokerage scale.
   useEffect(() => {
-    fetch(`${API}/transactions?includeClosed=true`, { headers: authHeaders })
+    fetch(`${API}/${coordinatorMode ? "tc/pipeline" : "transactions"}?includeClosed=true`, { headers: authHeaders })
       .then(r => r.json())
       .then(data => {
         if (data.transactions) {
@@ -7630,6 +7642,7 @@ function MainApp({ onLogout, currentUser }) {
             nextMilestone: t.next_milestone || null,
             isGuestView: t.is_guest_view || false,
             guestSide: t.guest_side || null,
+            isCoordinatorView: t.is_coordinator_view || false,
             reminders: (t.reminders || []).filter(Boolean).map(r => ({ id: r.id, title: r.title, date: r.date, message: r.message, channels: r.channels, parties: r.parties || [], sent: r.sent })),
             needsFirstContact: t.needs_first_contact || false,
             submittedVia: t.submitted_via || null,
@@ -8033,6 +8046,7 @@ function MainApp({ onLogout, currentUser }) {
           initialTab={initialDetailTab}
           dashboardUnread={unreadCounts[selectedId] || 0}
           tx={selectedTx}
+          coordinatorMode={coordinatorMode}
           onUpdate={updateTransaction}
           onMilestoneSummary={applyMilestoneSummary}
           onDuplicate={duplicateTransaction}
@@ -8057,6 +8071,7 @@ function MainApp({ onLogout, currentUser }) {
       {!showReports && !showCalendar && view === "dashboard" && (
         <Dashboard
           transactions={transactions}
+          coordinatorMode={coordinatorMode}
           unreadCounts={unreadCounts}
           onViewTransactions={() => { setShowReports(false); setShowCalendar(false); setView("dashboard"); }}
           onSelect={(id, tab) => { setSelectedId(id); setInitialDetailTab(tab || "overview"); setView("detail"); }}
@@ -8284,22 +8299,12 @@ function AuthGate() {
     );
   }
 
-  // Transaction coordinators get their own cross-brokerage portal (not the agent app).
-  if (authUser.role === "tc") {
-    return (
-      <Suspense fallback={<LazyLoading />}>
-        <TCPortal user={authUser} onLogout={() => {
-          localStorage.removeItem("tp_token");
-          localStorage.removeItem("tp_user");
-          setAuthUser(null);
-        }} />
-      </Suspense>
-    );
-  }
-
+  // Transaction coordinators get the SAME agent app, in coordinator mode: scoped
+  // to the deals they're invited to, agent financials hidden, agent-sales tools
+  // hidden. (Was a separate slim portal; Carlos wants the full app experience.)
   return (
     <>
-      <MainApp currentUser={authUser} onLogout={() => {
+      <MainApp currentUser={authUser} coordinatorMode={authUser.role === "tc"} onLogout={() => {
         localStorage.removeItem("tp_token");
         localStorage.removeItem("tp_user");
         setAuthUser(null);
