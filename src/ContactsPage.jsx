@@ -282,16 +282,19 @@ function LogCallModal({ contact, token, onClose, onLogged }) {
 
         {step === 1 && history && history.length > 0 && (
           <div style={{ background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 10, padding: 12, marginBottom: 16 }}>
-            <div style={{ fontSize: 11, fontWeight: 800, color: "#475569", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 8 }}>🕑 Last time you talked</div>
-            {history.slice(0, 3).map((h, i) => (
-              <div key={h.id || i} style={{ paddingBottom: 8, marginBottom: 8, borderBottom: i < Math.min(3, history.length) - 1 ? "1px solid #EEF2F7" : "none" }}>
-                <div style={{ fontSize: 12, color: "#64748b" }}>
-                  {h.created_at ? new Date(h.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : ""} · <span style={{ fontWeight: 700, color: "#334155" }}>{outcomeLabel(h.outcome)}</span>
+            <div style={{ fontSize: 11, fontWeight: 800, color: "#475569", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 8 }}>🕑 Your full history ({history.length} interaction{history.length === 1 ? "" : "s"})</div>
+            <div style={{ maxHeight: 240, overflowY: "auto", paddingRight: 4 }}>
+              {history.map((h, i) => (
+                <div key={h.id || i} style={{ paddingBottom: 8, marginBottom: 8, borderBottom: i < history.length - 1 ? "1px solid #EEF2F7" : "none" }}>
+                  <div style={{ fontSize: 12, color: "#64748b" }}>
+                    {h.created_at ? new Date(h.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : ""} · <span style={{ fontWeight: 700, color: "#334155" }}>{outcomeLabel(h.outcome)}</span>
+                    {h.logged_by_name ? <span style={{ color: "#94a3b8" }}> · by {h.logged_by_name}</span> : null}
+                  </div>
+                  {h.notes && <div style={{ fontSize: 13, color: "#1f2937", marginTop: 2, lineHeight: 1.45 }}>"{h.notes}"</div>}
+                  {h.next_call_scheduled_at && <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 2 }}>↳ next: {new Date(h.next_call_scheduled_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</div>}
                 </div>
-                {h.notes && <div style={{ fontSize: 13, color: "#1f2937", marginTop: 2, lineHeight: 1.45 }}>"{h.notes}"</div>}
-              </div>
-            ))}
-            {history.length > 3 && <div style={{ fontSize: 11, color: "#94a3b8" }}>+ {history.length - 3} earlier call{history.length - 3 === 1 ? "" : "s"}</div>}
+              ))}
+            </div>
           </div>
         )}
         {step === 1 && history === null && (
