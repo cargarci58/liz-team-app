@@ -1105,6 +1105,9 @@ function ContactDetailDrawer({ contact, token, onClose, onEdit, onLogged, onArch
                 <div style={{ fontSize: 12, fontWeight: 700, color: c.fg, marginBottom: 6 }}>{c.tag}</div>
                 {moveScore.lastMovedOn && <div style={{ fontSize: 13, marginBottom: 2 }}>🏠 Last moved: {fmtDate(moveScore.lastMovedOn)}{moveScore.yearsSince != null ? ` (~${moveScore.yearsSince} yrs ago)` : ""}</div>}
                 {moveScore.nextMoveDate && <div style={{ fontSize: 13, marginBottom: 4 }}>🔄 Move-cycle mark: {fmtDate(moveScore.nextMoveDate)} (every {moveScore.cycle} yrs)</div>}
+                {moveScore.engagement && (moveScore.engagement.clicks90 > 0 || moveScore.engagement.opens90 > 0) && (
+                  <div style={{ fontSize: 13, marginBottom: 4 }}>📬 Newsletter (90d): opened {moveScore.engagement.opens90}, <strong>clicked {moveScore.engagement.clicks90}</strong></div>
+                )}
                 {Array.isArray(moveScore.reasons) && moveScore.reasons.length > 0 && (
                   <div style={{ fontSize: 12, color: "#374151", marginTop: 4 }}>Why: {moveScore.reasons.join("; ")}.</div>
                 )}
