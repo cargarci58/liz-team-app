@@ -6441,6 +6441,37 @@ function SettingsMenu({ currentUser, onOpenContactBook, contactCount, onReports,
   );
 }
 
+// Compact at-a-glance sales-stats strip for the dashboard. Pulls the same
+// numbers as Reports → Sales Stats; clicking it opens the full report.
+function DashboardSalesStrip({ onOpen }) {
+  const [stats, setStats] = useState(null);
+  useEffect(() => {
+    fetch(API + "/reports/sales-stats", { headers: { Authorization: "Bearer " + (localStorage.getItem("tp_token") || "") } })
+      .then(r => r.ok ? r.json() : null).then(d => setStats(d && d.success ? d.stats : null)).catch(() => {});
+  }, []);
+  if (!stats) return null;
+  const m = (n) => n == null ? "—" : (n >= 1000000 ? `$${(n/1000000).toFixed(2)}M` : `$${Math.round(n).toLocaleString()}`);
+  const items = [
+    { label: "Active Listings", value: stats.activeListings ?? 0 },
+    { label: "Active Buyers", value: stats.activeBuyers ?? 0 },
+    { label: "Avg Sale Price", value: m(stats.avgSalePrice), sub: "12mo" },
+    { label: "Sale-to-List", value: stats.saleToListPct == null ? "—" : `${Number(stats.saleToListPct).toFixed(0)}%`, sub: "12mo" },
+    { label: "Avg Days to Close", value: stats.avgDaysToClose == null ? "—" : `${stats.avgDaysToClose}d`, sub: "12mo" },
+    { label: "Avg Commission", value: m(stats.avgCommissionGross), sub: "12mo" },
+  ];
+  return (
+    <div onClick={onOpen} title="Open full Sales Stats report" style={{ background: "#fff", borderBottom: `1px solid ${COLORS.border}`, padding: "10px 24px", display: "flex", gap: 22, alignItems: "center", flexWrap: "nowrap", overflowX: "auto", cursor: onOpen ? "pointer" : "default" }}>
+      <span style={{ fontSize: 11, fontWeight: 800, color: COLORS.muted, textTransform: "uppercase", letterSpacing: "0.05em", flexShrink: 0 }}>📊 My Stats</span>
+      {items.map(it => (
+        <div key={it.label} style={{ flexShrink: 0, textAlign: "center" }}>
+          <div style={{ fontSize: 18, fontWeight: 800, color: COLORS.navy, lineHeight: 1 }}>{it.value}</div>
+          <div style={{ fontSize: 10, color: COLORS.muted, marginTop: 2, whiteSpace: "nowrap" }}>{it.label}{it.sub ? ` · ${it.sub}` : ""}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function Dashboard({ transactions, coordinatorMode = false, unreadCounts = {}, onSelect, onNew, onOpenContactBook, onOpenContacts, onOpenPopBys, onOpenScripts, onOpenCMA, onOpenGrowthPlan, onOpenExpenses, onOpenForms, contactCount, onLogout, onOpenTeam, onOpenCompliance, onOpenComplianceDash, onOpenTaskTmpls, onOpenContractIntake, onChangePassword, onReports, onGoalPlanner, onHome, onVendors, onCompanySettings, onSuperuser, onAgentProfile, onIntakeLinks, onViewTransactions, onHelp, onFeedback, onSupport, currentUser, isFreeGuest = false }) {
   const [filter, setFilter] = useState("All");
   const [search, setSearch] = useState("");
@@ -7061,6 +7092,7 @@ function Dashboard({ transactions, coordinatorMode = false, unreadCounts = {}, o
           </div>
         </div>
       )}
+      {!isFreeGuest && !coordinatorMode && <DashboardSalesStrip onOpen={onReports} />}
       <div data-toolbar="" style={{ background: "#fff", borderBottom: `1px solid ${COLORS.border}`, padding: "12px 24px", display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
         <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search address, city, MLS #..." style={{ flex: 1, maxWidth: 340, padding: "8px 14px", borderRadius: 8, border: `1px solid ${COLORS.border}`, fontSize: 14, fontFamily: "inherit" }} />
         <select value={filter} onChange={e => setFilter(e.target.value)}

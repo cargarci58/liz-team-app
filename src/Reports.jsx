@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 
 const API = "https://liz-team-server-api-production.up.railway.app";
 
@@ -495,12 +495,154 @@ function GoalPlannerTab({ transactions }) {
 // ════════════════════════════════════════════════════════════════
 // MAIN
 // ════════════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════════════
+// TAB — MY SALES STATS (current pipeline + last-12-month production)
+// ════════════════════════════════════════════════════════════════
+function SalesStatsTab() {
+  const [stats, setStats] = useState(null);
+  const [err, setErr] = useState(false);
+  useEffect(() => {
+    authFetch("/reports/sales-stats").then(d => setStats(d.stats || {})).catch(() => setErr(true));
+  }, []);
+  if (err) return <div style={{ color: COLORS.gray }}>Could not load sales stats.</div>;
+  if (!stats) return <div style={{ color: COLORS.gray }}>Loading…</div>;
+  const m = (n) => n == null ? "—" : fmt(n);
+  const p = (n) => n == null ? "—" : `${Number(n).toFixed(n < 10 ? 1 : 0)}%`;
+  const cards = [
+    { label: "Active Listings", value: stats.activeListings ?? 0, sub: "right now", color: COLORS.red },
+    { label: "Active Buyers", value: stats.activeBuyers ?? 0, sub: "right now", color: COLORS.navy },
+    { label: "Avg. List Price", value: m(stats.avgListPrice), sub: "last 12 mo", color: COLORS.navy },
+    { label: "Sale-to-List Price", value: p(stats.saleToListPct), sub: "last 12 mo", color: COLORS.green },
+    { label: "Avg. Sales Price", value: m(stats.avgSalePrice), sub: "last 12 mo", color: COLORS.navy },
+    { label: "Avg. Days to Close", value: stats.avgDaysToClose == null ? "—" : `${stats.avgDaysToClose} days`, sub: "list → closing, last 12 mo", color: COLORS.gold },
+    { label: "Avg. Commission", value: p(stats.avgCommissionPct), sub: "last 12 mo", color: COLORS.green },
+    { label: "Avg. Commission Gross", value: m(stats.avgCommissionGross), sub: "per deal, last 12 mo", color: COLORS.green },
+  ];
+  return (
+    <div>
+      <div style={{ fontSize: 20, fontWeight: 800, color: COLORS.navy, marginBottom: 4 }}>My Sales Stats</div>
+      <div style={{ fontSize: 13, color: COLORS.gray, marginBottom: 16 }}>Your live pipeline plus your real production averages over the last 12 months ({stats.closed12mo ?? 0} closed deal{stats.closed12mo === 1 ? "" : "s"}).</div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 14 }}>
+        {cards.map(c => <StatCard key={c.label} label={c.label} value={c.value} sub={c.sub} color={c.color} />)}
+      </div>
+    </div>
+  );
+}
+
+// ════════════════════════════════════════════════════════════════
+// TAB — ACTIVITIES REPORT (Calls/Conversations/Appointments/Pop-bys)
+// ════════════════════════════════════════════════════════════════
+function ActivitiesReportTab() {
+  const nowYear = new Date().getFullYear();
+  const [year, setYear] = useState(nowYear);
+  const [period, setPeriod] = useState("month");
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const load = () => {
+    setLoading(true);
+    authFetch(`/reports/activities-report?year=${year}&period=${period}`)
+      .then(d => setData(d)).catch(() => setData(null)).finally(() => setLoading(false));
+  };
+  useEffect(() => { load(); /* eslint-disable-next-line */ }, [year, period]);
+
+  const cols = data?.columns || [];
+  const exportCsv = () => {
+    if (!data) return;
+    const head = ["Period"];
+    cols.forEach(c => head.push(`${c.label} Actual`, `${c.label} Goal`, `${c.label} %`));
+    const lines = [head.join(",")];
+    const cellVals = (row) => { const o = [row.label]; cols.forEach(c => { const cell = row[c.key] || {}; o.push(cell.actual ?? "", cell.goal ?? "", cell.pct == null ? "" : cell.pct + "%"); }); return o.join(","); };
+    data.rows.forEach(r => lines.push(cellVals(r)));
+    lines.push(cellVals({ ...data.totals, label: "TOTAL" }));
+    if (data.lastYearTotal) { const o = ["Last Year (total)"]; cols.forEach(c => o.push(data.lastYearTotal[c.key] ?? "", "", "")); lines.push(o.join(",")); }
+    const blob = new Blob([lines.join("\n")], { type: "text/csv" });
+    const a = document.createElement("a"); a.href = URL.createObjectURL(blob);
+    a.download = `activities-report-${year}-${period}.csv`; a.click(); URL.revokeObjectURL(a.href);
+  };
+
+  const th = { padding: "8px 10px", fontSize: 11, fontWeight: 700, color: COLORS.navy, textTransform: "uppercase", letterSpacing: "0.04em", borderBottom: `2px solid ${COLORS.border}`, textAlign: "center" };
+  const td = { padding: "8px 10px", fontSize: 13, textAlign: "center", borderBottom: `1px solid ${COLORS.light}` };
+  const pctColor = (p) => p == null ? COLORS.gray : p >= 100 ? COLORS.green : p >= 70 ? COLORS.gold : COLORS.red;
+
+  return (
+    <div>
+      <div className="no-print" style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", marginBottom: 16 }}>
+        <div style={{ fontSize: 20, fontWeight: 800, color: COLORS.navy, marginRight: "auto" }}>Activities Report</div>
+        <select value={year} onChange={e => setYear(Number(e.target.value))} style={{ padding: "8px 10px", borderRadius: 8, border: `1px solid ${COLORS.border}`, fontFamily: "inherit", fontSize: 13 }}>
+          {[nowYear, nowYear - 1, nowYear - 2].map(y => <option key={y} value={y}>{y}</option>)}
+        </select>
+        <div style={{ display: "flex", borderRadius: 8, overflow: "hidden", border: `1px solid ${COLORS.border}` }}>
+          {["month", "week"].map(pp => (
+            <button key={pp} onClick={() => setPeriod(pp)} style={{ padding: "8px 14px", border: "none", cursor: "pointer", fontSize: 13, fontWeight: 700, fontFamily: "inherit", textTransform: "capitalize", background: period === pp ? COLORS.navy : "#fff", color: period === pp ? "#fff" : COLORS.gray }}>{pp}</button>
+          ))}
+        </div>
+        <button onClick={exportCsv} style={{ background: "#fff", border: `1px solid ${COLORS.border}`, borderRadius: 8, padding: "8px 14px", cursor: "pointer", fontSize: 13, fontWeight: 700, fontFamily: "inherit" }}>⬇ Export Data</button>
+      </div>
+      <div style={{ fontSize: 12, color: COLORS.gray, marginBottom: 12 }}>Pulled automatically from the calls you log in Win-the-Day and the pop-bys you deliver. Goals come from your income plan.</div>
+
+      {loading ? <div style={{ color: COLORS.gray }}>Loading…</div> : !data ? <div style={{ color: COLORS.gray }}>Could not load report.</div> : (
+        <div style={{ overflowX: "auto", background: "#fff", border: `1px solid ${COLORS.border}`, borderRadius: 12 }}>
+          <table style={{ borderCollapse: "collapse", width: "100%", minWidth: 720 }}>
+            <thead>
+              <tr>
+                <th style={{ ...th, textAlign: "left" }}>{period === "month" ? "Month" : "Week of"}</th>
+                {cols.map(c => <th key={c.key} style={th} colSpan={3}>{c.label}</th>)}
+              </tr>
+              <tr>
+                <th style={th}></th>
+                {cols.map(c => <React.Fragment key={c.key}><th style={{ ...th, fontSize: 10 }}>Actual</th><th style={{ ...th, fontSize: 10 }}>Goal</th><th style={{ ...th, fontSize: 10 }}>%</th></React.Fragment>)}
+              </tr>
+            </thead>
+            <tbody>
+              {data.rows.map((row, i) => (
+                <tr key={i}>
+                  <td style={{ ...td, textAlign: "left", fontWeight: 600 }}>{row.label}</td>
+                  {cols.map(c => { const cell = row[c.key] || {}; return (
+                    <React.Fragment key={c.key}>
+                      <td style={{ ...td, fontWeight: 700 }}>{cell.actual ?? 0}</td>
+                      <td style={{ ...td, color: COLORS.gray }}>{cell.goal ?? "—"}</td>
+                      <td style={{ ...td, fontWeight: 700, color: pctColor(cell.pct) }}>{cell.pct == null ? "—" : cell.pct + "%"}</td>
+                    </React.Fragment>
+                  ); })}
+                </tr>
+              ))}
+              <tr style={{ background: COLORS.light }}>
+                <td style={{ ...td, textAlign: "left", fontWeight: 800 }}>TOTAL</td>
+                {cols.map(c => { const cell = data.totals[c.key] || {}; return (
+                  <React.Fragment key={c.key}>
+                    <td style={{ ...td, fontWeight: 800 }}>{cell.actual ?? 0}</td>
+                    <td style={{ ...td, color: COLORS.gray, fontWeight: 700 }}>{cell.goal ?? "—"}</td>
+                    <td style={{ ...td, fontWeight: 800, color: pctColor(cell.pct) }}>{cell.pct == null ? "—" : cell.pct + "%"}</td>
+                  </React.Fragment>
+                ); })}
+              </tr>
+              {data.lastYearTotal && (
+                <tr>
+                  <td style={{ ...td, textAlign: "left", fontStyle: "italic", color: COLORS.gray }}>Last Year (total)</td>
+                  {cols.map(c => (
+                    <React.Fragment key={c.key}>
+                      <td style={{ ...td, color: COLORS.gray }}>{data.lastYearTotal[c.key] ?? 0}</td>
+                      <td style={td}></td><td style={td}></td>
+                    </React.Fragment>
+                  ))}
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function Reports({ transactions, onBack, currentUser, initialTab = "overview" }) {
   const [tab, setTab] = useState(initialTab);
   const isAdmin = ["admin", "superadmin"].includes(currentUser?.role);
 
   const TABS = [
     { id: "overview", label: "📊 Overview" },
+    { id: "sales-stats", label: "🏆 Sales Stats" },
+    { id: "activities", label: "✅ Activities Report" },
     { id: "activity", label: "📞 Activity & Conversion" },
     { id: "goals", label: "🎯 Goal Planner" },
   ];
@@ -529,6 +671,8 @@ export default function Reports({ transactions, onBack, currentUser, initialTab 
 
       <div id="reports-printable" style={{ padding: 24, maxWidth: 1100, margin: "0 auto" }}>
         {tab === "overview" && <OverviewTab transactions={transactions} />}
+        {tab === "sales-stats" && <SalesStatsTab />}
+        {tab === "activities" && <ActivitiesReportTab />}
         {tab === "activity" && <ActivityTab isAdmin={isAdmin} />}
         {tab === "goals" && <GoalPlannerTab transactions={transactions} />}
       </div>

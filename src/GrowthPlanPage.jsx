@@ -25,15 +25,18 @@ const C = {
 };
 const money = (n) => "$" + Math.round(Number(n) || 0).toLocaleString();
 
-// Mirrors the server funnel so the numbers update instantly as you type.
-const RATES = { dialToConv: 0.12, convToAppt: 0.20, apptToContract: 0.45, contractToClose: 0.90 };
-function calcFunnel(incomeGoal, avgNet) {
+// Mirrors the server funnel so the numbers update instantly as you type. The
+// rates come from the server (the agent's MEASURED rates when available, else an
+// estimate) — see ratesBasis.
+const RATES = { dialToConv: 0.35, convToAppt: 0.25, apptToContract: 0.60, contractToClose: 0.90 };
+function calcFunnel(incomeGoal, avgNet, rates) {
+  const R = rates || RATES;
   const ceil = (n) => (isFinite(n) && n > 0 ? Math.ceil(n) : 0);
   const closings = ceil(incomeGoal / (avgNet || 1));
-  const contracts = ceil(closings / RATES.contractToClose);
-  const appointments = ceil(contracts / RATES.apptToContract);
-  const conversations = ceil(appointments / RATES.convToAppt);
-  const dials = ceil(conversations / RATES.dialToConv);
+  const contracts = ceil(closings / (R.contractToClose || 0.9));
+  const appointments = ceil(contracts / (R.apptToContract || 0.5));
+  const conversations = ceil(appointments / (R.convToAppt || 0.2));
+  const dials = ceil(conversations / (R.dialToConv || 0.2));
   return {
     closings, appointments, conversations,
     closingsPerMonth: Math.round((closings / 12) * 10) / 10,
@@ -118,6 +121,9 @@ export default function GrowthPlanPage({ onBack }) {
   const [why, setWhy] = useState("");
   const [checklist, setChecklist] = useState({});
   const [goalSource, setGoalSource] = useState("default");
+  const [rates, setRates] = useState(RATES);
+  const [ratesBasis, setRatesBasis] = useState("default");
+  const [ratesSample, setRatesSample] = useState(null);
   const hydrated = useRef(false);
   const saveTimer = useRef(null);
 
@@ -132,6 +138,9 @@ export default function GrowthPlanPage({ onBack }) {
           setChecklist(d.plan.year1Checklist || {});
           setGoalSource(d.plan.goalSource || "default");
         }
+        if (d.rates) setRates(d.rates);
+        if (d.ratesBasis) setRatesBasis(d.ratesBasis);
+        if (d.ratesSample) setRatesSample(d.ratesSample);
       })
       .catch(() => {})
       .finally(() => { setLoading(false); setTimeout(() => { hydrated.current = true; }, 0); });
@@ -162,8 +171,18 @@ export default function GrowthPlanPage({ onBack }) {
 
   const toggle = (id) => setChecklist(c => ({ ...c, [id]: !c[id] }));
 
-  const oneYear = calcFunnel(Number(incomeGoal) || 0, Number(avgNet) || 0);
+  const oneYear = calcFunnel(Number(incomeGoal) || 0, Number(avgNet) || 0, rates);
   const ladder = LADDERS[track] || LADDERS.solo;
+  const basisLabel = (() => {
+    if (ratesBasis === "measured") {
+      const s = ratesSample;
+      return s ? `📈 Based on YOUR last 12 months — ${s.dials} calls → ${s.conversations} conversations → ${s.appointments} appointments → ${s.closings} closings.`
+               : "📈 Based on your real numbers from the last 12 months.";
+    }
+    if (ratesBasis === "your-settings") return "⚙️ Based on the conversion rates you set in Goal Planner.";
+    if (ratesBasis && ratesBasis.startsWith("preset:")) return `📊 Industry estimate for your lead source (${ratesBasis.split(":")[1]}). Log calls in Win-the-Day and this switches to your real numbers.`;
+    return "📊 Industry estimate for now. As you log calls in Win-the-Day and close deals, this switches to YOUR measured rates.";
+  })();
   const allItems = Q_CHECKLIST.flatMap(q => q.items);
   const doneCount = allItems.filter(i => checklist[i.id]).length;
   const pct = Math.round((doneCount / allItems.length) * 100);
@@ -220,8 +239,11 @@ export default function GrowthPlanPage({ onBack }) {
           <StatCard big={oneYear.conversations} label="real conversations" sub={`~${oneYear.conversationsPerWeek}/week`} color={C.blue} />
           <StatCard big={oneYear.dialsPerDay} label="outreach/day" sub={`~${oneYear.dialsPerWeek}/week`} color={C.green} />
         </div>
-        <div style={{ fontSize: 12, color: C.gray, background: C.bg, borderRadius: 8, padding: "8px 12px" }}>
-          💡 The big idea: <b>{oneYear.dialsPerDay} meaningful outreach touches a day</b> (calls, texts, DMs, door-knocks) feeds the whole plan. Fine-tune the conversion rates anytime in <b>Reports → Goal Planner</b>.
+        <div style={{ fontSize: 12, color: C.gray, background: C.bg, borderRadius: 8, padding: "8px 12px", marginBottom: 8 }}>
+          💡 The big idea: <b>{oneYear.dialsPerDay} meaningful outreach touches a day</b> (calls, texts, DMs, door-knocks) feeds the whole plan.
+        </div>
+        <div style={{ fontSize: 12, color: ratesBasis === "measured" ? C.green : C.gray, background: ratesBasis === "measured" ? "#EAF7EF" : C.bg, borderRadius: 8, padding: "8px 12px", lineHeight: 1.5 }}>
+          <b>Where these numbers come from:</b> {basisLabel} Fine-tune the conversion rates anytime in <b>Reports → Goal Planner</b>.
         </div>
       </div>
 
