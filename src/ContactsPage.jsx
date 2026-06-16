@@ -612,7 +612,7 @@ function ContactModal({ contact, token, onClose, onSaved }) {
             {showKeyBox && (
               <div style={{ marginTop: 8, background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 8, padding: 10 }}>
                 <div style={{ fontSize: 12, color: "#475569", marginBottom: 6 }}>
-                  Paste your free RentCast API key (one-time). Get one at <a href="https://www.rentcast.io/api" target="_blank" rel="noreferrer" style={{ color: "#1d4ed8" }}>rentcast.io/api</a> — 50 free lookups/month.
+                  Paste your free RentCast key <b>once</b> — it's saved to your account and works for <b>all</b> contacts (also editable in My Profile). Get one at <a href="https://www.rentcast.io/api" target="_blank" rel="noreferrer" style={{ color: "#1d4ed8" }}>rentcast.io/api</a> — 50 free lookups/month.
                 </div>
                 <div style={{ display: "flex", gap: 6 }}>
                   <input value={rcKey} onChange={e => setRcKey(e.target.value)} placeholder="RentCast API key" style={{ ...inputStyle, flex: 1 }} />

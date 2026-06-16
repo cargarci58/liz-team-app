@@ -66,6 +66,23 @@ export default function AgentProfile({ onClose, currentUser }) {
     setSaving(false);
   };
 
+  // RentCast key (one per agent, works for ALL their contacts' "Look up last sale").
+  const [rc, setRc] = useState({ hasKey: false, last4: null, input: "", saving: false, msg: "" });
+  useEffect(() => {
+    fetch(API + "/me/integrations/rentcast", { headers })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d && d.success) setRc(s => ({ ...s, hasKey: d.hasKey, last4: d.last4 })); })
+      .catch(() => {});
+  }, []);
+  const saveRc = async (clear) => {
+    setRc(s => ({ ...s, saving: true, msg: "" }));
+    try {
+      const r = await fetch(API + "/me/integrations/rentcast", { method: "PUT", headers, body: JSON.stringify({ apiKey: clear ? "" : rc.input.trim() }) });
+      const d = await r.json();
+      setRc(s => ({ ...s, saving: false, hasKey: !!d.hasKey, last4: clear ? null : s.input.trim().slice(-4), input: "", msg: clear ? "Removed." : "Saved ✓" }));
+    } catch { setRc(s => ({ ...s, saving: false, msg: "Could not save." })); }
+  };
+
   const inp = { width: "100%", padding: "10px 14px", borderRadius: 8, border: "1.5px solid #CCC", fontSize: 14, fontFamily: "inherit", boxSizing: "border-box" };
   const lbl = { fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", letterSpacing: "0.06em", display: "block", marginBottom: 6 };
 
@@ -158,6 +175,28 @@ export default function AgentProfile({ onClose, currentUser }) {
               </div>
               <input value={form.photoUrl} onChange={e => setForm(f => ({ ...f, photoUrl: e.target.value }))} style={inp} placeholder="https://yoursite.com/photo.jpg" />
               <div style={{ fontSize: 11, color: "#888", marginTop: 6 }}>Max 5MB. JPG, PNG, or GIF. This appears in your email signatures.</div>
+            </div>
+
+            {/* RentCast integration — one key, all contacts */}
+            <div style={{ marginBottom: 20, padding: 16, background: "#F0F7FF", borderRadius: 10, border: "1px solid #BFD9F2" }}>
+              <label style={lbl}>🔍 Property Lookup (RentCast)</label>
+              <div style={{ fontSize: 12, color: "#555", marginBottom: 10, lineHeight: 1.5 }}>
+                Add your free RentCast key <b>once here</b> — it powers the "Look up last sale" button on <b>every</b> contact. Get a free key at <a href="https://www.rentcast.io/api" target="_blank" rel="noreferrer" style={{ color: "#1d4ed8", fontWeight: 600 }}>rentcast.io/api</a> (50 free lookups/month).
+              </div>
+              {rc.hasKey ? (
+                <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: "#1E8449", marginRight: 4 }}>✓ Connected (••••{rc.last4})</span>
+                  <input value={rc.input} onChange={e => setRc(s => ({ ...s, input: e.target.value }))} style={{ ...inp, flex: 1, minWidth: 150, width: "auto" }} placeholder="Paste a new key to replace" />
+                  <button onClick={() => saveRc(false)} disabled={rc.saving || !rc.input.trim()} style={{ padding: "9px 14px", background: "#111", color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>Update</button>
+                  <button onClick={() => saveRc(true)} disabled={rc.saving} style={{ padding: "9px 14px", background: "none", color: "#C0392B", border: "1px solid #C0392B", borderRadius: 8, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>Remove</button>
+                </div>
+              ) : (
+                <div style={{ display: "flex", gap: 8 }}>
+                  <input value={rc.input} onChange={e => setRc(s => ({ ...s, input: e.target.value }))} style={{ ...inp, flex: 1, width: "auto" }} placeholder="RentCast API key" />
+                  <button onClick={() => saveRc(false)} disabled={rc.saving || !rc.input.trim()} style={{ padding: "9px 16px", background: "#1d4ed8", color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>{rc.saving ? "Saving…" : "Save key"}</button>
+                </div>
+              )}
+              {rc.msg && <div style={{ fontSize: 12, fontWeight: 600, color: rc.msg.startsWith("Could") ? "#C0392B" : "#1E8449", marginTop: 8 }}>{rc.msg}</div>}
             </div>
 
             {/* Email Signature Preview */}
