@@ -2345,11 +2345,6 @@ function ScheduleClosingModal({ tx, token, milestone, onClose, onDone }) {
 // MILESTONES TAB
 // ═══════════════════════════════════════════════════════════════
 function MilestonesTab({ tx, token, onSummaryChange, coordinatorMode = false }) {
-  // Coordinators act through the dedicated /tc/* endpoints (cross-brokerage,
-  // money-free). Agents use the standard endpoints. Only the verified core
-  // actions (complete/reopen/schedule) have a /tc route; agent-only structural
-  // actions (generate/reset/waive/snooze) are hidden for coordinators below.
-  const mBase = coordinatorMode ? API + "/tc/milestones/" : API + "/milestones/";
   const [milestones, setMilestones] = useState([]);
   const [compliance, setCompliance] = useState({});
   const [availableDocs, setAvailableDocs] = useState([]);
@@ -2454,6 +2449,10 @@ function MilestonesTab({ tx, token, onSummaryChange, coordinatorMode = false }) 
   const [scheduleTimes, setScheduleTimes] = useState({});
 
   const API = "https://liz-team-server-api-production.up.railway.app";
+  // Coordinators act through the dedicated /tc/* endpoints (cross-brokerage,
+  // money-free); only complete/reopen/schedule have a /tc route. Defined AFTER the
+  // local `const API` above to avoid a temporal-dead-zone crash at render.
+  const mBase = coordinatorMode ? API + "/tc/milestones/" : API + "/milestones/";
 
   useEffect(() => { fetchMilestones(); }, [tx.id]);
 
