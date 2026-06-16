@@ -2344,7 +2344,12 @@ function ScheduleClosingModal({ tx, token, milestone, onClose, onDone }) {
 // ═══════════════════════════════════════════════════════════════
 // MILESTONES TAB
 // ═══════════════════════════════════════════════════════════════
-function MilestonesTab({ tx, token, onSummaryChange }) {
+function MilestonesTab({ tx, token, onSummaryChange, coordinatorMode = false }) {
+  // Coordinators act through the dedicated /tc/* endpoints (cross-brokerage,
+  // money-free). Agents use the standard endpoints. Only the verified core
+  // actions (complete/reopen/schedule) have a /tc route; agent-only structural
+  // actions (generate/reset/waive/snooze) are hidden for coordinators below.
+  const mBase = coordinatorMode ? API + "/tc/milestones/" : API + "/milestones/";
   const [milestones, setMilestones] = useState([]);
   const [compliance, setCompliance] = useState({});
   const [availableDocs, setAvailableDocs] = useState([]);
@@ -2518,7 +2523,7 @@ function MilestonesTab({ tx, token, onSummaryChange }) {
   const handleComplete = async (milestoneId) => {
     setCompleting(milestoneId);
     try {
-      await fetch(API + "/milestones/" + milestoneId + "/complete", {
+      await fetch(mBase + milestoneId + "/complete", {
         method: "PATCH",
         headers: { Authorization: "Bearer " + token }
       });
@@ -2534,7 +2539,7 @@ function MilestonesTab({ tx, token, onSummaryChange }) {
     if (!window.confirm("Reopen this step? It goes back to pending and reminders resume.")) return;
     setCompleting(milestoneId);
     try {
-      const r = await fetch(API + "/milestones/" + milestoneId + "/reopen", {
+      const r = await fetch(mBase + milestoneId + "/reopen", {
         method: "PATCH",
         headers: { Authorization: "Bearer " + token }
       });
@@ -2553,7 +2558,7 @@ function MilestonesTab({ tx, token, onSummaryChange }) {
     if (!date) { alert("Pick the scheduled date first."); return; }
     setCompleting(milestoneId);
     try {
-      const r = await fetch(API + "/milestones/" + milestoneId + "/schedule", {
+      const r = await fetch(mBase + milestoneId + "/schedule", {
         method: "PATCH",
         headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
         body: JSON.stringify({ date, time: time || null, complete: true })
@@ -2794,6 +2799,7 @@ function MilestonesTab({ tx, token, onSummaryChange }) {
             background: progress === 100 ? "#1E8449" : "#C0392B",
             borderRadius: 20, transition: "width 0.4s ease" }} />
         </div>
+        {!coordinatorMode && (
         <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 10 }}>
           <button onClick={handleReset} disabled={resetting}
             style={{ fontSize: 11, fontWeight: 600, color: "#555", background: "#F9FAFB",
@@ -2802,6 +2808,7 @@ function MilestonesTab({ tx, token, onSummaryChange }) {
             {resetting ? "Rebuilding…" : "🔄 Reset & Rebuild Checklist"}
           </button>
         </div>
+        )}
       </div>
 
       {orderedPhases.map((phaseKey) => {
@@ -5030,7 +5037,7 @@ function TransactionDetail({ tx, onUpdate, onBack, contacts, onInviteParty = [],
         )}
 
         {activeTab === "milestones" && (
-            <MilestonesTab tx={tx} token={localStorage.getItem("tp_token") || ""} onSummaryChange={onMilestoneSummary} />
+            <MilestonesTab tx={tx} token={localStorage.getItem("tp_token") || ""} onSummaryChange={onMilestoneSummary} coordinatorMode={isCoordinator} />
           )}
           {activeTab === "tasks" && (
           <div>
