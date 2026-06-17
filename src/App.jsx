@@ -3833,7 +3833,7 @@ function WelcomeEmailPreview({ txId, onClose }) {
 
 // Pending offers received on a listing. Several can sit here at once; the agent
 // reviews them and approves one (which auto-rejects the rest on the server).
-function ListingOffers({ txId, onReview, onReceiveOffer }) {
+function ListingOffers({ txId, refreshKey, onReview, onReceiveOffer }) {
   const [offers, setOffers] = useState([]);
   const [loading, setLoading] = useState(true);
   const hdrs = { "Authorization": "Bearer " + (localStorage.getItem("tp_token") || "") };
@@ -3851,7 +3851,7 @@ function ListingOffers({ txId, onReview, onReceiveOffer }) {
       .catch(e => console.error("Load offers failed:", e))
       .finally(() => setLoading(false));
   };
-  useEffect(() => { load(); }, [txId]);
+  useEffect(() => { load(); }, [txId, refreshKey]);
 
   const [shareUrl, setShareUrl] = useState("");
   const [sharing, setSharing] = useState(false);
@@ -4850,6 +4850,10 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
   const [editTxForm, setEditTxForm] = useState({});
   const [showReceiveOffer, setShowReceiveOffer] = useState(false);
   const [reviewOfferId, setReviewOfferId] = useState(null);
+  // Bumped whenever the Receive Offer / review modal closes so the Pending Offers
+  // panel (which stays mounted behind the modal) reloads — without this, a freshly
+  // received/saved offer never appears and looks like it didn't save.
+  const [offersRefresh, setOffersRefresh] = useState(0);
   const [showEmailPreview, setShowEmailPreview] = useState(false);
 
   // Pre-fill helper — used everywhere the Edit modal opens.
@@ -5128,7 +5132,7 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
             )}
             {!isGuest && tx.type !== "Buyer Representation" && !["Closed", "Cancelled"].includes(tx.status) && (
               <div id="pending-offers-panel" style={{ marginBottom: 20, scrollMarginTop: 80 }}>
-                <ListingOffers txId={tx.id} onReview={(id) => setReviewOfferId(id)} onReceiveOffer={() => setShowReceiveOffer(true)} />
+                <ListingOffers txId={tx.id} refreshKey={offersRefresh} onReview={(id) => setReviewOfferId(id)} onReceiveOffer={() => setShowReceiveOffer(true)} />
               </div>
             )}
             {(showReceiveOffer || reviewOfferId) && (
@@ -5139,8 +5143,8 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
                   existingTransactionId={tx.id}
                   reviewUploadId={reviewOfferId || undefined}
                   currentStatus={tx.status}
-                  onBack={() => { setShowReceiveOffer(false); setReviewOfferId(null); }}
-                  onApproved={() => { setShowReceiveOffer(false); setReviewOfferId(null); setShowEmailPreview(true); }}
+                  onBack={() => { setShowReceiveOffer(false); setReviewOfferId(null); setOffersRefresh(n => n + 1); }}
+                  onApproved={() => { setShowReceiveOffer(false); setReviewOfferId(null); setOffersRefresh(n => n + 1); setShowEmailPreview(true); }}
                 />
               </div>
             )}
