@@ -333,6 +333,14 @@ const STATUS_CONFIG = {
 // ("Commercial", "Vacant Land" vs "Land", "Lease" vs "Rental").
 const COMMERCIAL_ACCENT = "#0E7490"; // teal — distinct from every status color
 function propertyTypeBadge(tx) {
+  // RENTAL is keyed off the TRANSACTION type (Lease — Landlord/Tenant), not the
+  // property type — a rental of a single-family home is still a single-family
+  // property. Takes precedence so every card/list/table view instantly reads as
+  // a rental (purple) vs a resale listing. Side shown in the label.
+  if (isLeaseType(tx?.type || tx?.transaction_type)) {
+    const tenant = /tenant/i.test(tx?.type || tx?.transaction_type || "");
+    return { label: tenant ? "🔑 RENTAL · Tenant" : "🔑 RENTAL · Landlord", color: "#6D28D9", bg: "#EDE9FE" };
+  }
   // Match the backend's deal-"world" detection: read EITHER property type OR
   // construction type, so a deal marked commercial/land in just one field still
   // shows the right badge (and lines up with its commercial/land timeline + docs).
