@@ -13,6 +13,7 @@ const SERVICES = [
   { key: "frontend", label: "Frontend (Netlify)" },
   { key: "storage", label: "Document Storage (R2)" },
   { key: "email", label: "Email (SendGrid)" },
+  { key: "email_credits", label: "Email Credits (SendGrid)" },
   { key: "sms", label: "SMS (Telnyx/Twilio)" },
   { key: "ai_anthropic", label: "AI — Anthropic" },
 ];
@@ -52,13 +53,13 @@ function fmtDateTime(d) {
 function statusColor(status) {
   if (status === "ok") return STATUS.ok;
   if (status === "down") return STATUS.down;
-  if (status === "unconfigured") return STATUS.attn;
+  if (status === "unconfigured" || status === "warn") return STATUS.attn;
   return COLORS.muted; // loading / unknown
 }
 
 function statusDot(status) {
   const c = statusColor(status);
-  const glow = status === "ok" || status === "down" || status === "unconfigured";
+  const glow = status === "ok" || status === "down" || status === "unconfigured" || status === "warn";
   return <span style={{ display: "inline-block", width: 14, height: 14, borderRadius: "50%", background: c, flexShrink: 0, boxShadow: glow ? `0 0 8px ${c}, 0 0 3px ${c}` : "none" }} />;
 }
 
@@ -159,11 +160,12 @@ function SuperuserDashboard({ onClose, token }) {
             const c = (health && health[svc.key]) || null;
             const status = c?.status || (healthLoading ? "loading" : "unknown");
             const accent = statusColor(status);
-            const detailColor = status === "down" ? COLORS.danger : status === "unconfigured" ? "#B59A00" : COLORS.muted;
+            const detailColor = status === "down" ? COLORS.danger : (status === "unconfigured" || status === "warn") ? "#B59A00" : COLORS.muted;
             const detailText = healthLoading ? "checking…"
               : !c ? "no data"
               : c.status === "ok" ? (c.detail || "OK")
               : c.status === "down" ? "DOWN — " + (c.detail || "")
+              : c.status === "warn" ? "⚠ " + (c.detail || "needs attention")
               : c.status === "unconfigured" ? "Not configured — " + (c.detail || "")
               : (c.detail || c.status);
             return (
