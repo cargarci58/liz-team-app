@@ -4802,6 +4802,8 @@ function LeaseDocsModal({ tx, onClose, onGenerated }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [done, setDone] = useState(null);
+  const [appResults, setAppResults] = useState([]);
+  const [uploadingApp, setUploadingApp] = useState(false);
   useEffect(() => {
     (async () => {
       try {
@@ -4846,6 +4848,30 @@ function LeaseDocsModal({ tx, onClose, onGenerated }) {
     } catch (e) { setError(e.message || "Could not generate the documents."); }
     finally { setBusy(false); }
   };
+  const uploadApplications = async (fileList) => {
+    const files = Array.from(fileList || []);
+    if (!files.length) return;
+    setUploadingApp(true); setError("");
+    for (const file of files) {
+      try {
+        const base64 = await new Promise((resolve, reject) => {
+          const r = new FileReader();
+          r.onload = () => resolve(String(r.result).split(",")[1]);
+          r.onerror = reject; r.readAsDataURL(file);
+        });
+        const res = await fetch(`${API}/transactions/${tx.id}/rental-applications`, {
+          method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + tok },
+          body: JSON.stringify({ fileName: file.name, fileType: file.type, base64 }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Upload failed");
+        setAppResults(prev => [...prev, data.applicant]);
+        // Reflect the updated tenant roster in the lease answers.
+        if (data.tenants) setAnswers(a => ({ ...a, tenant_names: data.tenants.map(t => t.name).filter(Boolean).join(" & ") }));
+      } catch (e) { setAppResults(prev => [...prev, { name: file.name, error: e.message || "Failed" }]); }
+    }
+    setUploadingApp(false);
+  };
   const inp = { width: "100%", padding: "8px 10px", borderRadius: 7, border: "1.5px solid #CCC", fontSize: 14, fontFamily: "inherit", boxSizing: "border-box" };
   return (
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 1000, display: "flex", alignItems: "flex-start", justifyContent: "center", padding: 16, overflowY: "auto" }}>
@@ -4867,6 +4893,22 @@ function LeaseDocsModal({ tx, onClose, onGenerated }) {
            </div>
          ) : (
            <div>
+             <div style={{ fontWeight: 700, fontSize: 13, color: COLORS.navy, marginBottom: 6 }}>Tenant applications</div>
+             <div style={{ fontSize: 12, color: COLORS.muted, marginBottom: 8 }}>Upload each applicant's rental application. Anyone <strong>18 or older</strong> is added to the lease automatically; under-18 applicants are recorded as occupants only.</div>
+             <label style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "8px 14px", border: `1.5px dashed ${COLORS.border}`, borderRadius: 8, cursor: uploadingApp ? "default" : "pointer", marginBottom: 10, background: "#FAFAFA" }}>
+               <input type="file" accept=".pdf,image/*" multiple disabled={uploadingApp} style={{ display: "none" }} onChange={e => { uploadApplications(e.target.files); e.target.value = ""; }} />
+               <span style={{ fontSize: 13, fontWeight: 700, color: COLORS.navy }}>{uploadingApp ? "Reading applications…" : "📎 Upload application(s)"}</span>
+             </label>
+             {appResults.length > 0 && (
+               <div style={{ marginBottom: 14 }}>
+                 {appResults.map((r, i) => (
+                   <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, padding: "5px 8px", borderRadius: 6, background: r.error ? "#FEF2F2" : r.addedToLease ? "#ECFDF5" : "#FEF9E7", marginBottom: 4 }}>
+                     {r.error ? <span>⚠️ {r.name} — {r.error}</span>
+                      : <span>{r.addedToLease ? "✓" : r.isAdult ? "•" : "🚸"} <strong>{r.name || "Applicant"}</strong>{r.age != null ? ` (age ${r.age})` : ""} — {r.addedToLease ? "added to lease" : r.isAdult ? "already on lease" : "under 18 · occupant only"}</span>}
+                   </div>
+                 ))}
+               </div>
+             )}
              <div style={{ fontWeight: 700, fontSize: 13, color: COLORS.navy, marginBottom: 8 }}>Forms to generate</div>
              <div style={{ marginBottom: 18 }}>
                {forms.map(f => (
