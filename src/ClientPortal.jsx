@@ -1412,14 +1412,21 @@ export default function ClientPortal({ user, onLogout, previewTxId, onExitPrevie
 
   const isBuyerSide = tx && (tx.type === "Buyer Representation" || tx.type === "Dual Agency" || (tx.transactionType && tx.transactionType.includes("Buyer")));
   const isSellerSide = tx && (tx.type === "Listing (Seller)" || tx.type === "Dual Agency" || (tx.transactionType && (tx.transactionType.includes("Listing") || tx.transactionType.includes("Seller"))));
-  // Greet the CLIENT. In agent preview the logged-in user is the agent, so pull
-  // the own-side client's first name from the parties instead of showing the agent.
-  const ownClientParty = tx ? (tx.parties || []).find(p => {
+  // Greet the CLIENT by the name set on THIS deal — NOT the first name on the
+  // account that owns the email. Shared/duplicate emails meant a seller named
+  // here as "seller1" got greeted by the account holder's name ("Adrian"). Prefer
+  // the own-side party whose email IS the logged-in person; fall back to any
+  // own-side party, then the account name. In agent preview there's no logged-in
+  // client, so the own-side party name is the only correct source.
+  const myEmail = (user && user.email ? String(user.email) : "").trim().toLowerCase();
+  const isOwnSideRole = (p) => {
     const r = (p.role || "").toLowerCase();
     return isSellerSide ? /^(co[- ]?)?seller$/.test(r) : /^(co[- ]?)?buyer$/.test(r);
-  }) : null;
+  };
+  const ownSideParties = tx ? (tx.parties || []).filter(isOwnSideRole) : [];
+  const ownClientParty = ownSideParties.find(p => myEmail && (p.email || "").trim().toLowerCase() === myEmail) || ownSideParties[0] || null;
   const clientFirstName = ownClientParty && ownClientParty.name ? ownClientParty.name.trim().split(/\s+/)[0] : "";
-  const greetName = isPreview ? (clientFirstName || "there") : (user.firstName || clientFirstName || "there");
+  const greetName = clientFirstName || user.firstName || "there";
 
   // Hide the OPPOSITE side's agent from "My Team" so a client never sees (and
   // can't cold-call) the other side's agent. Seller-side clients don't see the
