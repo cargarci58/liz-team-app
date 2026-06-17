@@ -454,22 +454,24 @@ function SellerOffersCard({ offers, context, headers, agentName, onDecided }) {
                 </div>
               );
             })()}
-            {decided ? (
-              <div style={{ marginTop: 10, fontSize: 13, fontWeight: 700, color: decided === "accepted" ? C.success : C.red }}>
-                {decided === "accepted" ? "✓ You chose this offer — your agent has been notified." : "✕ You declined this offer."}
-              </div>
-            ) : (
-              <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
-                <button onClick={() => decide(o.id, "accepted")} disabled={busyId === o.id}
-                  style={{ flex: 1, minWidth: 130, background: C.success, color: "#fff", border: "none", borderRadius: 8, padding: "10px 14px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
-                  {busyId === o.id ? "Saving…" : "✓ Accept this offer"}
-                </button>
-                <button onClick={() => decide(o.id, "declined")} disabled={busyId === o.id}
-                  style={{ background: C.white, color: C.red, border: "1px solid " + C.red, borderRadius: 8, padding: "10px 14px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
-                  Decline
-                </button>
+            {/* Decision is never terminal — the seller can always accept, change
+                their mind, or decline. The current choice is highlighted; the
+                agent does the final binding Approve. */}
+            {decided && (
+              <div style={{ marginTop: 12, fontSize: 13, fontWeight: 700, color: decided === "accepted" ? C.success : C.red }}>
+                {decided === "accepted" ? "✓ You've chosen this offer — your agent has been notified. You can still change your choice below." : "✕ You've declined this offer. You can change your choice below."}
               </div>
             )}
+            <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
+              <button onClick={() => decide(o.id, "accepted")} disabled={busyId === o.id}
+                style={{ flex: 1, minWidth: 130, background: decided === "accepted" ? C.success : C.white, color: decided === "accepted" ? "#fff" : C.success, border: "2px solid " + C.success, borderRadius: 8, padding: "10px 14px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                {busyId === o.id ? "Saving…" : (decided === "accepted" ? "✓ Accepted" : "✓ Accept this offer")}
+              </button>
+              <button onClick={() => decide(o.id, "declined")} disabled={busyId === o.id}
+                style={{ background: decided === "declined" ? C.red : C.white, color: decided === "declined" ? "#fff" : C.red, border: "2px solid " + C.red, borderRadius: 8, padding: "10px 14px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                {decided === "declined" ? "✕ Declined" : "Decline"}
+              </button>
+            </div>
           </div>
         );
       })}
