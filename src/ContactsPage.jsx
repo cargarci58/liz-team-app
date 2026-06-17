@@ -1734,6 +1734,26 @@ export default function ContactsPage({ token, onBack }) {
 
   useEffect(() => { load(); }, [filter.temperature, filter.type, filter.due, filter.missing, filter.group, filter.tier, sortBy.col, sortBy.dir]);
 
+  const [bulkBusy, setBulkBusy] = useState(false);
+  const bulkLookup = async () => {
+    if (bulkBusy) return;
+    if (!window.confirm("Look up the last sale date for your contacts that have an address but no move date yet?\n\nThis uses your RentCast lookups (free tier = 50/month). It runs in batches — you can click again to continue.")) return;
+    setBulkBusy(true);
+    try {
+      const r = await fetch(API + "/contacts/lookup-sale/bulk", { method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + token } });
+      const d = await r.json();
+      if (d.error === "no_key") { alert("Add your free RentCast API key first — open ⚙️ Menu → 👤 My Profile → Property Lookup."); return; }
+      if (!r.ok) { alert(d.message || d.error || "Bulk lookup failed."); return; }
+      let msg = `Found & filled ${d.found} date${d.found === 1 ? "" : "s"}.`;
+      if (d.notFound) msg += ` ${d.notFound} had no record.`;
+      if (d.remaining) msg += `\n${d.remaining} contact${d.remaining === 1 ? "" : "s"} still without a date — click again to continue (this run did up to ${d.cap}).`;
+      if (d.stopped) msg += `\n\n⚠️ Stopped early: ${d.stopped}`;
+      alert(msg);
+      load();
+    } catch (e) { alert("Bulk lookup failed. Try again."); }
+    finally { setBulkBusy(false); }
+  };
+
   const loadGroups = async () => {
     try {
       const r = await fetch(API + "/contacts/groups", { headers: { Authorization: "Bearer " + token } });
@@ -1946,6 +1966,7 @@ export default function ContactsPage({ token, onBack }) {
                 <div style={{ position: "absolute", right: 0, top: "calc(100% + 6px)", zIndex: 50, background: "white", border: "1px solid #e5e7eb", borderRadius: 10, boxShadow: "0 8px 24px rgba(0,0,0,0.12)", padding: 6, minWidth: 220 }}>
                   {[
                     { label: "📣 Email Newsletter", on: () => setShowCampaign(true), hint: "mass email" },
+                    { label: bulkBusy ? "🔍 Looking up…" : "🔍 Look up last sale (all)", on: bulkLookup, hint: "RentCast" },
                     { label: "👥 Manage Groups", on: () => setShowGroups(true) },
                     { label: "📥 Import from CSV", on: () => setShowImport(true) },
                     { label: "📤 Export to CSV", on: exportCsv, hint: `${contacts.length} shown` },
