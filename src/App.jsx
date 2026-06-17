@@ -6591,11 +6591,11 @@ function NewTransactionForm({ onSave, onCancel, prefill = null, cmaId = null }) 
         <div style={{ background: "#fff", border: `1px solid ${COLORS.border}`, borderRadius: 14, padding: 28, marginBottom: 20 }}>
           <h3 style={{ margin: "0 0 20px", fontSize: 15, color: COLORS.navy, fontWeight: 700 }}>Pricing & Dates</h3>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}><Input label={isLeaseType(form.type) ? "Monthly Rent ($)" : "List Price ($)"} value={form.listPrice} onChange={f("listPrice")} type="number" /><Input label={isLeaseType(form.type) ? "Security Deposit ($)" : "Contract Price ($)"} value={form.contractPrice} onChange={f("contractPrice")} type="number" /></div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}><Input label={/listing|seller/i.test(form.type) ? "Listing Agreement Start Date" : "Open Date"} value={form.openDate} onChange={f("openDate")} type="date" /><Input label="Closing Date" value={form.closingDate} onChange={f("closingDate")} type="date" /></div>
-          {/listing|seller/i.test(form.type) && (
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}><Input label={isLeaseType(form.type) ? "Lease / Listing Start Date" : /listing|seller/i.test(form.type) ? "Listing Agreement Start Date" : "Open Date"} value={form.openDate} onChange={f("openDate")} type="date" /><Input label={isLeaseType(form.type) ? "Lease End Date" : "Closing Date"} value={form.closingDate} onChange={f("closingDate")} type="date" /></div>
+          {(/listing|seller/i.test(form.type) || form.type === "Lease — Landlord") && (
             <>
-              <Input label="Listing Agreement Expiration" value={form.representationExpiresOn} onChange={f("representationExpiresOn")} type="date" />
-              <div style={{ fontSize: 11, color: COLORS.muted, marginTop: -8 }}>When the listing agreement expires (and the listing drops off the MLS). We'll warn you 14, 7, and 1 days before so it doesn't lapse.</div>
+              <Input label={form.type === "Lease — Landlord" ? "Listing Period Expiration (Exclusive Right to Lease)" : "Listing Agreement Expiration"} value={form.representationExpiresOn} onChange={f("representationExpiresOn")} type="date" />
+              <div style={{ fontSize: 11, color: COLORS.muted, marginTop: -8 }}>When the {form.type === "Lease — Landlord" ? "exclusive-right-to-lease listing period" : "listing agreement"} expires. We'll warn you 14, 7, and 1 days before so it doesn't lapse.</div>
             </>
           )}
           <Input label="Executed Date" value={form.executedDate} onChange={f("executedDate")} type="date" />
@@ -6615,8 +6615,8 @@ function NewTransactionForm({ onSave, onCancel, prefill = null, cmaId = null }) 
         <div style={{ background: "#fff", border: `1px solid ${COLORS.border}`, borderRadius: 14, padding: 28, marginBottom: 20 }}>
           <h3 style={{ margin: "0 0 20px", fontSize: 15, color: COLORS.navy, fontWeight: 700 }}>Commission Details</h3>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-            <Input label="Listing Commission (%)" value={form.commissionListing} onChange={f("commissionListing")} type="number" />
-            <Input label="Buyer Commission (%)" value={form.commissionBuyer} onChange={f("commissionBuyer")} type="number" />
+            <Input label={isLeaseType(form.type) ? "Leasing Commission (% or mo. rent)" : "Listing Commission (%)"} value={form.commissionListing} onChange={f("commissionListing")} type="number" />
+            <Input label={isLeaseType(form.type) ? "Co-Broke / Tenant Agent (%)" : "Buyer Commission (%)"} value={form.commissionBuyer} onChange={f("commissionBuyer")} type="number" />
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
             <Input label="Transaction Fee ($)" value={form.transactionFee} onChange={f("transactionFee")} type="number" />
