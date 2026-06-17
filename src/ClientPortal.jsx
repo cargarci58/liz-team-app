@@ -320,7 +320,19 @@ function winLabel(name) {
 // the seller telling their agent "yes, go with this one" — not a binding action.
 function SellerOffersCard({ offers, headers, agentName, onDecided }) {
   const [busyId, setBusyId] = useState(null);
+  const [docBusyId, setDocBusyId] = useState(null);
   const money = (v) => (v || v === 0) ? "$" + Number(v).toLocaleString() : "—";
+
+  const viewDoc = async (offerId) => {
+    setDocBusyId(offerId);
+    try {
+      const r = await fetch(API + "/client/offers/" + offerId + "/view-url", { headers });
+      const d = await r.json();
+      if (!d.success || !d.viewUrl) throw new Error(d.error || "Could not open document");
+      window.open(d.viewUrl, "_blank", "noopener");
+    } catch (e) { alert("Could not open the offer document: " + e.message); }
+    finally { setDocBusyId(null); }
+  };
 
   const decide = async (offerId, decision) => {
     const verb = decision === "accepted" ? "ACCEPT" : "decline";
@@ -347,22 +359,38 @@ function SellerOffersCard({ offers, headers, agentName, onDecided }) {
         const decided = o.sellerDecision;
         return (
           <div key={o.id} style={{ border: "1px solid " + C.border, borderRadius: 12, padding: 14, marginBottom: i < offers.length - 1 ? 12 : 0, background: decided === "accepted" ? C.successBg : decided === "declined" ? "#FDEDEC" : C.white }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", flexWrap: "wrap", gap: 6 }}>
-              <div style={{ fontSize: 18, fontWeight: 800, color: C.black }}>{money(o.contractPrice)}</div>
-              {o.buyerName && <div style={{ fontSize: 13, color: C.gray, fontWeight: 600 }}>from {o.buyerName}</div>}
-            </div>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: "4px 16px", marginTop: 8, fontSize: 12.5, color: C.gray }}>
-              <span>💵 {o.isCash ? "Cash" : (o.loanType ? o.loanType + " financing" : "Financed")}</span>
-              {o.closingDate && <span>📅 Close {formatDate(o.closingDate)}</span>}
-              {(o.earnestMoney || o.earnestMoney === 0) && <span>🤝 {money(o.earnestMoney)} earnest</span>}
-              {o.inspectionPeriodDays ? <span>🔍 {o.inspectionPeriodDays}-day inspection</span> : null}
-            </div>
-            {(o.financingContingency || o.appraisalContingency) && (
-              <div style={{ fontSize: 12, color: C.gray, marginTop: 4 }}>
-                Contingencies: {[o.financingContingency && "financing", o.appraisalContingency && "appraisal"].filter(Boolean).join(", ")}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", flexWrap: "wrap", gap: 6, marginBottom: 4 }}>
+              <div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: C.gray, textTransform: "uppercase", letterSpacing: 0.5 }}>Offer price</div>
+                <div style={{ fontSize: 22, fontWeight: 800, color: C.black, lineHeight: 1.1 }}>{money(o.contractPrice)}</div>
               </div>
-            )}
-            {o.additionalTerms && <div style={{ fontSize: 12, color: C.gray, marginTop: 4, fontStyle: "italic" }}>“{o.additionalTerms}”</div>}
+              {o.buyerName && (
+                <div style={{ textAlign: "right" }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: C.gray, textTransform: "uppercase", letterSpacing: 0.5 }}>Buyer</div>
+                  <div style={{ fontSize: 14, color: C.black, fontWeight: 700 }}>{o.buyerName}</div>
+                </div>
+              )}
+            </div>
+            {/* Clean labeled rows instead of a cramped run-on line */}
+            <div style={{ borderTop: "1px solid " + C.lightGray, marginTop: 8, paddingTop: 4 }}>
+              {[
+                ["Financing", o.isCash ? "💵 Cash — no loan" : (o.loanType ? o.loanType + " loan" : "Financed (loan)")],
+                ["Proposed closing", o.closingDate ? "📅 " + formatDate(o.closingDate) : null],
+                ["Earnest money (deposit)", (o.earnestMoney || o.earnestMoney === 0) ? "🤝 " + money(o.earnestMoney) : null],
+                ["Inspection period", o.inspectionPeriodDays ? "🔍 " + o.inspectionPeriodDays + " days to inspect" : null],
+                ["Contingencies", [o.financingContingency && "financing", o.appraisalContingency && "appraisal"].filter(Boolean).join(", ") || (o.isCash ? "None" : null)],
+              ].filter(([, v]) => v).map(([label, value], r) => (
+                <div key={r} style={{ display: "flex", justifyContent: "space-between", gap: 12, padding: "6px 0", borderBottom: "1px solid " + C.lightGray, fontSize: 13 }}>
+                  <span style={{ color: C.gray, fontWeight: 600 }}>{label}</span>
+                  <span style={{ color: C.black, fontWeight: 700, textAlign: "right" }}>{value}</span>
+                </div>
+              ))}
+            </div>
+            {o.additionalTerms && <div style={{ fontSize: 12.5, color: C.gray, marginTop: 8, fontStyle: "italic" }}>Note from buyer: “{o.additionalTerms}”</div>}
+            <button onClick={() => viewDoc(o.id)} disabled={docBusyId === o.id}
+              style={{ marginTop: 12, width: "100%", background: C.lightGray, color: C.black, border: "1px solid " + C.border, borderRadius: 8, padding: "10px 14px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+              {docBusyId === o.id ? "Opening…" : "📄 View the full offer document"}
+            </button>
             {decided ? (
               <div style={{ marginTop: 10, fontSize: 13, fontWeight: 700, color: decided === "accepted" ? C.success : C.red }}>
                 {decided === "accepted" ? "✓ You chose this offer — your agent has been notified." : "✕ You declined this offer."}
