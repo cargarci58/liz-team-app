@@ -4,8 +4,43 @@ import SellerCalculator from "./components/SellerCalculator";
 import TransactionChat from "./TransactionChat";
 // Liability-critical client-facing claim logic lives in one tested module.
 import { deriveStage, strongClaimFor } from "./portalClaims";
+import { flTaxRate, deedDocStampPer100 } from "./lib/flTaxRates";
 
 const API = "https://liz-team-server-api-production.up.railway.app";
+
+// FL seller net-sheet estimate for ONE offer — same math as the full Seller
+// Net Proceeds calculator, grounded in the offer's price + closing date and the
+// deal's real commission/county where known. Defaults to FL norms otherwise so
+// the seller always sees a ballpark. Estimate only; title co. issues the official sheet.
+function estimateSellerNet(offer, context) {
+  const price = Number(offer.contractPrice) || 0;
+  if (price <= 0) return null;
+  const county = context?.county || undefined;
+  const commissionPct = (context?.commissionPct != null) ? Number(context.commissionPct) : 6; // FL norm
+  const commission = price * (Math.max(0, commissionPct) / 100);
+  const docStamps = Math.ceil(price / 100) * deedDocStampPer100(county);
+  const titleIns = price <= 100000 ? price * 0.00575 : 100000 * 0.00575 + (price - 100000) * 0.00500;
+  const recording = 30;
+  const titleFees = 575 + 400 + 499; // settlement + search/lien + processing (calculator defaults)
+  // Prorated taxes (paid in arrears) — seller credits buyer Jan 1 → closing.
+  let proratedTaxes = 0;
+  if (offer.closingDate) {
+    const cd = new Date(offer.closingDate + (offer.closingDate.length <= 10 ? "T00:00:00" : ""));
+    if (!isNaN(cd)) {
+      const daysOwned = Math.max(0, Math.round((cd - new Date(cd.getFullYear(), 0, 1)) / 86400000));
+      const rate = flTaxRate(undefined, county).rate;
+      proratedTaxes = price * (rate / 100) * (daysOwned / 365);
+    }
+  }
+  const totalCosts = commission + docStamps + titleIns + recording + titleFees + proratedTaxes;
+  return {
+    price, commission, commissionPct, docStamps, titleIns, recording, titleFees, proratedTaxes,
+    totalCosts,
+    netProceeds: price - totalCosts,
+    commissionKnown: context?.commissionPct != null,
+    countyKnown: !!context?.county,
+  };
+}
 
 const C = {
   red: "#C0392B", black: "#111111", gray: "#555555",
@@ -318,7 +353,7 @@ function winLabel(name) {
 // The seller sees each offer's key terms and can record a decision. The agent
 // still does the final Approve (which moves the deal Under Contract), so this is
 // the seller telling their agent "yes, go with this one" — not a binding action.
-function SellerOffersCard({ offers, headers, agentName, onDecided }) {
+function SellerOffersCard({ offers, context, headers, agentName, onDecided }) {
   const [busyId, setBusyId] = useState(null);
   const [docBusyId, setDocBusyId] = useState(null);
   const money = (v) => (v || v === 0) ? "$" + Number(v).toLocaleString() : "—";
@@ -391,6 +426,34 @@ function SellerOffersCard({ offers, headers, agentName, onDecided }) {
               style={{ marginTop: 12, width: "100%", background: C.lightGray, color: C.black, border: "1px solid " + C.border, borderRadius: 8, padding: "10px 14px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
               {docBusyId === o.id ? "Opening…" : "📄 View the full offer document"}
             </button>
+            {(() => {
+              const net = estimateSellerNet(o, context);
+              if (!net) return null;
+              return (
+                <div style={{ marginTop: 12, background: "#F0F7FB", border: "1px solid #BFDBEF", borderRadius: 10, padding: 14 }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "#0c4a6e", textTransform: "uppercase", letterSpacing: 0.5 }}>Estimated net proceeds at this price</div>
+                  <div style={{ fontSize: 26, fontWeight: 800, color: "#0c4a6e", lineHeight: 1.2, margin: "2px 0 8px" }}>{money(net.netProceeds)}</div>
+                  <details>
+                    <summary style={{ cursor: "pointer", fontSize: 12.5, fontWeight: 700, color: "#0c4a6e" }}>See how this is calculated</summary>
+                    <table style={{ width: "100%", marginTop: 8, fontSize: 12.5, color: C.gray }}>
+                      <tbody>
+                        <tr><td style={{ padding: "3px 0" }}>Offer price</td><td style={{ textAlign: "right", fontWeight: 700, color: C.black }}>{money(net.price)}</td></tr>
+                        <tr><td style={{ padding: "3px 0" }}>− Agent commission ({net.commissionPct}%)</td><td style={{ textAlign: "right", fontWeight: 600 }}>−{money(net.commission)}</td></tr>
+                        <tr><td style={{ padding: "3px 0" }}>− FL doc stamps on deed</td><td style={{ textAlign: "right", fontWeight: 600 }}>−{money(net.docStamps)}</td></tr>
+                        <tr><td style={{ padding: "3px 0" }}>− Owner's title insurance</td><td style={{ textAlign: "right", fontWeight: 600 }}>−{money(net.titleIns)}</td></tr>
+                        <tr><td style={{ padding: "3px 0" }}>− Title & closing fees (est.)</td><td style={{ textAlign: "right", fontWeight: 600 }}>−{money(net.titleFees)}</td></tr>
+                        <tr><td style={{ padding: "3px 0" }}>− Prorated property taxes</td><td style={{ textAlign: "right", fontWeight: 600 }}>−{money(net.proratedTaxes)}</td></tr>
+                        <tr><td style={{ padding: "3px 0" }}>− Recording fees</td><td style={{ textAlign: "right", fontWeight: 600 }}>−{money(net.recording)}</td></tr>
+                        <tr style={{ borderTop: "1px solid #BFDBEF" }}><td style={{ padding: "5px 0", fontWeight: 800, color: C.black }}>Estimated net to you</td><td style={{ textAlign: "right", fontWeight: 800, color: "#0c4a6e" }}>{money(net.netProceeds)}</td></tr>
+                      </tbody>
+                    </table>
+                    <div style={{ fontSize: 11, color: C.gray, marginTop: 6, lineHeight: 1.4 }}>
+                      Does not include your mortgage payoff{net.commissionKnown ? "" : ", and assumes a 6% commission"}. {net.countyKnown ? "" : "Tax estimate uses a statewide average. "}This is an estimate — your title company's net sheet is the official figure.
+                    </div>
+                  </details>
+                </div>
+              );
+            })()}
             {decided ? (
               <div style={{ marginTop: 10, fontSize: 13, fontWeight: 700, color: decided === "accepted" ? C.success : C.red }}>
                 {decided === "accepted" ? "✓ You chose this offer — your agent has been notified." : "✕ You declined this offer."}
@@ -1125,6 +1188,7 @@ export default function ClientPortal({ user, onLogout, previewTxId, onExitPrevie
   const [chatUnread, setChatUnread] = useState(0);
   const [timeline, setTimeline] = useState(null);
   const [offers, setOffers] = useState([]);
+  const [offersContext, setOffersContext] = useState(null);
   const [offersReload, setOffersReload] = useState(0);
   const activeTabRef = useRef(activeTab);
   const tok = localStorage.getItem("tp_token") || "";
@@ -1144,8 +1208,8 @@ export default function ClientPortal({ user, onLogout, previewTxId, onExitPrevie
     if (!tx?.id) { setOffers([]); return; }
     fetch(API + "/client/offers/" + tx.id, { headers })
       .then(r => r.ok ? r.json() : null)
-      .then(d => setOffers(d && d.success ? (d.offers || []) : []))
-      .catch(() => setOffers([]));
+      .then(d => { setOffers(d && d.success ? (d.offers || []) : []); setOffersContext(d && d.success ? (d.context || null) : null); })
+      .catch(() => { setOffers([]); setOffersContext(null); });
   }, [tx?.id, offersReload]);
 
   useEffect(() => {
@@ -1512,7 +1576,7 @@ export default function ClientPortal({ user, onLogout, previewTxId, onExitPrevie
                 <JourneyHero tx={tx} stage={stage} />
                 <AgentCard name={agentName} title={agentTitle} brokerage={brokerage} phone={agentPhone} email={agentEmail} photo={agentPhoto} brand={brand} />
                 {isSellerSide && offers.length > 0 && (
-                  <SellerOffersCard offers={offers} headers={headers} agentName={agentName}
+                  <SellerOffersCard offers={offers} context={offersContext} headers={headers} agentName={agentName}
                     onDecided={() => setOffersReload(n => n + 1)} />
                 )}
                 {timeline && timeline.total > 0 && (() => {
