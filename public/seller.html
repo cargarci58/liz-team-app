@@ -341,6 +341,14 @@
       </div>
     </div>
 
+    <!-- SMS consent (A2P 10DLC opt-in — optional, never a condition of service) -->
+    <div style="margin:18px 0 6px;padding:14px 16px;background:#f8f5f0;border:1px solid #e5e0d8;border-radius:10px">
+      <label style="display:flex;gap:10px;align-items:flex-start;cursor:pointer;font-size:13px;line-height:1.55;color:#444">
+        <input type="checkbox" id="smsConsent" style="width:18px;height:18px;flex-shrink:0;margin-top:1px;accent-color:#C0392B">
+        <span id="smsConsentText">I agree to receive transaction-related text messages (appointment reminders, milestone status updates, and document requests) from my real estate agent and their brokerage at the cell number provided above. Message frequency varies. Message and data rates may apply. Reply STOP to unsubscribe or HELP for help. Consent is not a condition of any purchase or service. See the <a href="https://transactagentpro.com/privacy" target="_blank" rel="noopener" style="color:#C0392B">SMS Terms &amp; Privacy Policy</a>.</span>
+      </label>
+    </div>
+
     <button class="submit-btn" id="submitBtn" onclick="submitForm()">Submit Seller Information →</button>
     <p style="text-align:center;font-size:12px;color:#888;margin-top:12px">Your information is encrypted and securely transmitted to your real estate agent.</p>
   </div>
@@ -514,7 +522,10 @@ async function submitForm() {
         // Previously collected but dropped — now persisted
         hoa, hoaName: document.getElementById('hoaName').value || null,
         occupied, closingTimeline: document.getElementById('closingTimeline').value || null,
-        mailingAddress: document.getElementById('mailingAddress').value || null
+        mailingAddress: document.getElementById('mailingAddress').value || null,
+        // SMS opt-in (A2P 10DLC) — only true when the client checks the box.
+        smsConsent: document.getElementById('smsConsent').checked,
+        smsConsentText: document.getElementById('smsConsent').checked ? document.getElementById('smsConsentText').textContent.trim() : null
       })
     });
 
