@@ -1661,25 +1661,46 @@ export default function ClientPortal({ user, onLogout, previewTxId, onExitPrevie
                   ))}
                 </div>
 
-                {/* What's coming up — the deal's REAL upcoming milestones (not a
-                    hardcoded, buyer-centric list). Shown as "what's happening",
-                    never as tasks we're piling on the client. */}
-                {stage.upcoming && stage.upcoming.length > 0 && (
-                  <div style={{ background: C.white, borderRadius: 14, padding: 18, marginBottom: 14,
-                    boxShadow: "0 1px 4px rgba(0,0,0,0.08)" }}>
-                    <div style={{ fontSize: 12, fontWeight: 700, color: C.gray,
-                      textTransform: "uppercase", letterSpacing: 1, marginBottom: 4 }}>
-                      WHAT'S COMING UP
-                    </div>
-                    <div style={{ fontSize: 12, color: C.gray, marginBottom: 12 }}>Here's what's still ahead — your agent handles most of this for you.</div>
-                    {stage.upcoming.map((m, i) => (
-                      <div key={m.id || i} style={{ display: "flex", gap: 12, alignItems: "flex-start", marginBottom: 12 }}>
-                        <span style={{ width: 26, height: 26, borderRadius: "50%", background: C.lightGray, color: C.gray, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, flexShrink: 0 }}>{i + 1}</span>
-                        <span style={{ flex: 1, fontSize: 14, color: C.black, fontWeight: 600, lineHeight: 1.5 }}>{comingUpLabel(m.name)}</span>
+                {/* What's coming up — the deal's REAL upcoming milestones (phase-
+                    gated, so a pre-contract listing never shows post-contract steps).
+                    When there are no in-phase milestones to list (e.g. listing is
+                    done and an offer is on the table), fall back to a TRUE, phase-
+                    appropriate "what's next" so the section never just vanishes. */}
+                {(() => {
+                  const preContract = stage.effectiveStatus === "Active";
+                  let items = (stage.upcoming || []).map(m => comingUpLabel(m.name));
+                  if (items.length === 0) {
+                    if (preContract && isSellerSide && offers.length > 0) {
+                      items = [
+                        "Review the offer above with your agent",
+                        "Decide together whether to accept, counter, or decline",
+                        "When you accept, your home goes under contract and we begin inspection & appraisal",
+                      ];
+                    } else if (preContract && isSellerSide) {
+                      items = [
+                        "Your agent keeps actively marketing your home",
+                        "We'll reach out the moment an offer comes in to review it together",
+                      ];
+                    }
+                  }
+                  if (items.length === 0) return null;
+                  return (
+                    <div style={{ background: C.white, borderRadius: 14, padding: 18, marginBottom: 14,
+                      boxShadow: "0 1px 4px rgba(0,0,0,0.08)" }}>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: C.gray,
+                        textTransform: "uppercase", letterSpacing: 1, marginBottom: 4 }}>
+                        WHAT'S COMING UP
                       </div>
-                    ))}
-                  </div>
-                )}
+                      <div style={{ fontSize: 12, color: C.gray, marginBottom: 12 }}>Here's what's still ahead — your agent handles most of this for you.</div>
+                      {items.map((text, i) => (
+                        <div key={i} style={{ display: "flex", gap: 12, alignItems: "flex-start", marginBottom: 12 }}>
+                          <span style={{ width: 26, height: 26, borderRadius: "50%", background: C.lightGray, color: C.gray, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, flexShrink: 0 }}>{i + 1}</span>
+                          <span style={{ flex: 1, fontSize: 14, color: C.black, fontWeight: 600, lineHeight: 1.5 }}>{text}</span>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()}
               </div>
             )}
 
