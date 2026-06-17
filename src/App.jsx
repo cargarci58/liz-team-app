@@ -73,7 +73,17 @@ function LazyLoading() {
   );
 }
 
-const TRANSACTION_TYPES = ["Listing (Seller)", "Buyer Representation", "Dual Agency"];
+const TRANSACTION_TYPES = ["Listing (Seller)", "Buyer Representation", "Dual Agency", "Lease — Landlord", "Lease — Tenant"];
+// Lease deals run their own milestone tracks but reuse the buyer/listing "side"
+// model: a landlord lease is listing-side (own-side client = the owner, a seller
+// role), a tenant lease is buyer-side (own-side client = the tenant, a buyer role).
+const isLeaseType = (type) => type === "Lease — Landlord" || type === "Lease — Tenant";
+const isBuyerSideType = (type) => type === "Buyer Representation" || type === "Dual Agency" || type === "Lease — Tenant";
+// Short label + icon for a transaction type, lease-aware.
+const txTypeShort = (type) => type === "Lease — Landlord" ? "Rental — Landlord"
+  : type === "Lease — Tenant" ? "Rental — Tenant"
+  : type === "Buyer Representation" ? "Buyer" : "Listing";
+const txTypeIcon = (type) => isLeaseType(type) ? "🔑" : type === "Buyer Representation" ? "🏡" : "🏠";
 const PROPERTY_TYPES = ["Single Family", "Condo/Townhouse", "Multi-Family", "Land", "Commercial"];
 const REFERRAL_SOURCES = ["Past Client", "Referral", "Zillow", "Realtor.com", "Open House", "Sign Call", "Social Media", "Website", "Other"];
 const OCCUPANCY_OPTIONS = ["Owner Occupied", "Tenant Occupied", "Vacant"];
@@ -373,8 +383,8 @@ function PipelineCard({ tx, onSelect }) {
       onMouseLeave={e => e.currentTarget.style.boxShadow = "0 1px 2px rgba(0,0,0,0.04)"}>
       <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
         <span title={health.t} style={{ width: 9, height: 9, borderRadius: "50%", background: health.c, flexShrink: 0, display: "inline-block" }} />
-        <span style={{ fontSize: 14 }}>{tx.type === "Buyer Representation" ? "🏡" : "🏠"}</span>
-        <span style={{ fontSize: 9, fontWeight: 700, color: COLORS.muted, textTransform: "uppercase", letterSpacing: "0.06em" }}>{tx.type === "Buyer Representation" ? "Buyer" : "Listing"}</span>
+        <span style={{ fontSize: 14 }}>{txTypeIcon(tx.type)}</span>
+        <span style={{ fontSize: 9, fontWeight: 700, color: COLORS.muted, textTransform: "uppercase", letterSpacing: "0.06em" }}>{txTypeShort(tx.type)}</span>
         {propertyTypeBadge(tx) && <span title={`${propertyTypeBadge(tx).label.replace(/^\S+\s/, "")} property`} style={{ background: propertyTypeBadge(tx).bg, color: propertyTypeBadge(tx).color, fontSize: 9, fontWeight: 700, padding: "1px 6px", borderRadius: 8 }}>{propertyTypeBadge(tx).label}</span>}
         {tx.constructionType === "New Construction" && <span title="New Construction" style={{ background: "#FEF9E7", color: "#B7770D", fontSize: 9, fontWeight: 700, padding: "1px 6px", borderRadius: 8 }}>🏗️ NC</span>}
         {overdue > 0 && <span title={`${overdue} overdue item(s)`} style={{ marginLeft: "auto", background: COLORS.dangerBg, color: COLORS.danger, fontSize: 9, fontWeight: 700, padding: "1px 6px", borderRadius: 8 }}>⚠ {overdue}</span>}
@@ -663,7 +673,7 @@ function TransactionListView({ transactions, sortKey, sortDir, toggleSort, onSel
                       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                         <span style={{ fontSize: 20 }}>🔔</span>
                         <div>
-                          <div style={{ fontWeight: 700, color: "#991b1b", fontSize: 13 }}>{tx.type === "Buyer Representation" ? "NEW BUYER INQUIRY" : "NEW SELLER LEAD"} — Action Required</div>
+                          <div style={{ fontWeight: 700, color: "#991b1b", fontSize: 13 }}>{isBuyerSideType(tx.type) ? "NEW BUYER INQUIRY" : "NEW SELLER LEAD"} — Action Required</div>
                           <div style={{ fontSize: 12, color: "#7f1d1d" }}>{tx.address} · {tx.city}, FL · Contact within 24 hours</div>
                         </div>
                       </div>
@@ -707,7 +717,7 @@ function TransactionListView({ transactions, sortKey, sortDir, toggleSort, onSel
                         <span style={{ fontSize: 11, color: COLORS.muted, minWidth: 32, textAlign: "right" }}>{progress}%</span>
                       </div>
                     </td>
-                    <td style={{ padding: "12px 14px", color: COLORS.muted, fontSize: 11 }}>{tx.type === "Buyer Representation" ? "Buyer" : "Listing"}</td>
+                    <td style={{ padding: "12px 14px", color: COLORS.muted, fontSize: 11 }}>{txTypeShort(tx.type)}</td>
                   </tr>
                 );
               })}
@@ -742,13 +752,13 @@ function TransactionListView({ transactions, sortKey, sortDir, toggleSort, onSel
               )}
               {tx.assignedAgentId && !tx.needsReview && tx.needsFirstContact && (
                 <div style={{ background: "#c8102e", color: "white", borderRadius: 6, padding: "4px 10px", fontSize: 11, fontWeight: 700, marginBottom: 8, display: "inline-block" }}>
-                  🔔 {tx.type === "Buyer Representation" ? "NEW BUYER INQUIRY" : "NEW SELLER LEAD"} — Contact Within 24hrs
+                  🔔 {isBuyerSideType(tx.type) ? "NEW BUYER INQUIRY" : "NEW SELLER LEAD"} — Contact Within 24hrs
                 </div>
               )}
               {tx.assignedAgentId && !tx.needsReview && tx.leadConverted === false && (
                 <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 8 }}>
                   <span style={{ background: "#FEF9E7", color: "#B7860B", border: "1px solid #F1C40F", borderRadius: 6, padding: "4px 10px", fontSize: 11, fontWeight: 700 }}>
-                    🌱 {tx.type === "Buyer Representation" ? "INQUIRY" : "LEAD"} — not yet confirmed
+                    🌱 {isBuyerSideType(tx.type) ? "INQUIRY" : "LEAD"} — not yet confirmed
                   </span>
                   {onLeadAction && <button onClick={e => { e.stopPropagation(); onLeadAction(tx.id, "confirm"); }} style={{ background: "#B7860B", color: "#fff", border: "none", borderRadius: 6, padding: "4px 10px", fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>✓ Confirm</button>}
                   {onLeadAction && <button onClick={e => { e.stopPropagation(); onLeadAction(tx.id, "cancel"); }} style={{ background: "transparent", color: "#B7860B", border: "1px solid #C9A227", borderRadius: 6, padding: "4px 10px", fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>✕ Not Pursuing</button>}
@@ -760,7 +770,7 @@ function TransactionListView({ transactions, sortKey, sortDir, toggleSort, onSel
                     <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{tx.address}</span>
                     {propertyTypeBadge(tx) && <span style={{ background: propertyTypeBadge(tx).bg, color: propertyTypeBadge(tx).color, fontSize: 9, fontWeight: 700, padding: "1px 6px", borderRadius: 8, whiteSpace: "nowrap", flexShrink: 0 }}>{propertyTypeBadge(tx).label}</span>}
                   </div>
-                  <div style={{ fontSize: 11, color: COLORS.muted, marginTop: 2 }}>{tx.city}, FL · {tx.type === "Buyer Representation" ? "Buyer" : "Listing"}</div>
+                  <div style={{ fontSize: 11, color: COLORS.muted, marginTop: 2 }}>{tx.city}, FL · {txTypeShort(tx.type)}</div>
                 </div>
                 <span style={{ display: "inline-block", padding: "2px 8px", borderRadius: 10, background: cfg.bg, color: cfg.color, fontWeight: 700, fontSize: 10, whiteSpace: "nowrap" }}>{tx.status}</span>
               </div>
@@ -3458,7 +3468,7 @@ function AssignAgentModal({ tx, token, onClose, onAssigned, currentUser }) {
           <div style={{ background: "#fef3c7", border: "1px solid #fde68a", borderRadius: 8, padding: 14, marginBottom: 18 }}>
             <div style={{ fontSize: 13, color: "#78350f", fontWeight: 700, marginBottom: 4 }}>Lead Details</div>
             <div style={{ fontSize: 14, color: "#1a2332" }}>{tx.address}</div>
-            <div style={{ fontSize: 12, color: "#6b7280", marginTop: 2 }}>{isBuyer ? "Buyer Representation" : "Listing (Seller)"} · {tx.parties && tx.parties[0] ? tx.parties[0].name : "Party info in transaction"}</div>
+            <div style={{ fontSize: 12, color: "#6b7280", marginTop: 2 }}>{tx.type || (isBuyer ? "Buyer Representation" : "Listing (Seller)")} · {tx.parties && tx.parties[0] ? tx.parties[0].name : "Party info in transaction"}</div>
           </div>
 
           {/* What / Why / What proves */}
@@ -4756,6 +4766,104 @@ function CoordinatorSendUpdate({ tx }) {
   );
 }
 
+// Lease document generator — fills the agent's official FL lease forms (ERL,
+// lease, flood, lead-paint) from the deal + a short questionnaire, then saves
+// each filled PDF to the deal's Documents tab. Forms render server-side.
+function LeaseDocsModal({ tx, onClose, onGenerated }) {
+  const tok = localStorage.getItem("tp_token") || "";
+  const [loading, setLoading] = useState(true);
+  const [forms, setForms] = useState([]);
+  const [questions, setQuestions] = useState([]);
+  const [selected, setSelected] = useState({});
+  const [answers, setAnswers] = useState({});
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [done, setDone] = useState(null);
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch(`${API}/transactions/${tx.id}/lease-docs`, { headers: { Authorization: "Bearer " + tok } });
+        if (!res.ok) throw new Error("Could not load");
+        const data = await res.json();
+        setForms(data.forms || []);
+        setSelected(Object.fromEntries((data.forms || []).map(f => [f.docType, true])));
+        setQuestions(data.questions || []);
+        const init = {};
+        (data.questions || []).forEach(q => { init[q.key] = q.type === "date" ? String(q.value || "").slice(0, 10) : (q.value || ""); });
+        setAnswers(init);
+      } catch (e) { setError("Could not load the form data. Try again."); }
+      finally { setLoading(false); }
+    })();
+  }, [tx.id]);
+  const groups = [...new Set(questions.map(q => q.group))];
+  const generate = async () => {
+    setBusy(true); setError("");
+    try {
+      const docTypes = Object.keys(selected).filter(k => selected[k]);
+      if (!docTypes.length) { setError("Pick at least one form."); setBusy(false); return; }
+      const res = await fetch(`${API}/transactions/${tx.id}/lease-docs/generate`, {
+        method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + tok },
+        body: JSON.stringify({ docTypes, answers }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed");
+      setDone(data.documents || []);
+    } catch (e) { setError(e.message || "Could not generate the documents."); }
+    finally { setBusy(false); }
+  };
+  const inp = { width: "100%", padding: "8px 10px", borderRadius: 7, border: "1.5px solid #CCC", fontSize: 14, fontFamily: "inherit", boxSizing: "border-box" };
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 1000, display: "flex", alignItems: "flex-start", justifyContent: "center", padding: 16, overflowY: "auto" }}>
+      <div style={{ background: "#fff", borderRadius: 12, maxWidth: 640, width: "100%", margin: "auto", padding: 24, boxShadow: "0 10px 40px rgba(0,0,0,0.25)" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+          <h2 style={{ margin: 0, fontSize: 19, color: COLORS.navy }}>📄 Generate Lease Documents</h2>
+          <button onClick={onClose} style={{ background: "none", border: "none", fontSize: 22, cursor: "pointer", color: COLORS.muted }}>×</button>
+        </div>
+        <div style={{ fontSize: 13, color: COLORS.muted, marginBottom: 16 }}>{tx.address} · {tx.type}. The app fills your official Florida Realtors forms; sign them in your e-sign tool.</div>
+        {loading ? <div style={{ padding: 30, textAlign: "center", color: COLORS.muted }}>Loading deal data…</div>
+         : done ? (
+           <div>
+             <div style={{ background: "#ECFDF5", border: "1px solid #6EE7B7", borderRadius: 10, padding: 16, marginBottom: 16 }}>
+               <div style={{ fontWeight: 800, color: "#065F46", marginBottom: 8 }}>✓ Generated {done.length} document{done.length !== 1 ? "s" : ""}</div>
+               <ul style={{ margin: 0, paddingLeft: 18, color: "#065F46", fontSize: 13 }}>{done.map(d => <li key={d.id}>{d.name}</li>)}</ul>
+             </div>
+             <div style={{ fontSize: 13, color: COLORS.muted, marginBottom: 16 }}>They're saved to the <strong>Documents</strong> tab, ready to review and send for signature.</div>
+             <button onClick={onGenerated} style={{ width: "100%", background: COLORS.navy, color: "#fff", border: "none", borderRadius: 8, padding: "12px", fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>Open Documents →</button>
+           </div>
+         ) : (
+           <div>
+             <div style={{ fontWeight: 700, fontSize: 13, color: COLORS.navy, marginBottom: 8 }}>Forms to generate</div>
+             <div style={{ marginBottom: 18 }}>
+               {forms.map(f => (
+                 <label key={f.docType} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 10px", border: `1px solid ${COLORS.border}`, borderRadius: 8, marginBottom: 6, cursor: "pointer" }}>
+                   <input type="checkbox" checked={!!selected[f.docType]} onChange={e => setSelected(s => ({ ...s, [f.docType]: e.target.checked }))} />
+                   <span style={{ fontSize: 14 }}>{f.label}</span>
+                 </label>
+               ))}
+             </div>
+             {groups.map(g => (
+               <div key={g} style={{ marginBottom: 16 }}>
+                 <div style={{ fontWeight: 700, fontSize: 13, color: COLORS.navy, marginBottom: 8 }}>{g}</div>
+                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }} data-keep-grid>
+                   {questions.filter(q => q.group === g).map(q => (
+                     <div key={q.key}>
+                       <div style={{ fontSize: 11, fontWeight: 600, color: COLORS.muted, marginBottom: 3 }}>{q.label}</div>
+                       <input type={q.type === "date" ? "date" : "text"} inputMode={q.type === "money" ? "decimal" : undefined}
+                         value={answers[q.key] || ""} onChange={e => setAnswers(a => ({ ...a, [q.key]: e.target.value }))} style={inp} />
+                     </div>
+                   ))}
+                 </div>
+               </div>
+             ))}
+             {error && <div style={{ color: COLORS.danger, fontSize: 13, marginBottom: 12 }}>{error}</div>}
+             <button disabled={busy} onClick={generate} style={{ width: "100%", background: busy ? "#9CA3AF" : "#6D28D9", color: "#fff", border: "none", borderRadius: 8, padding: "12px", fontSize: 15, fontWeight: 700, cursor: busy ? "default" : "pointer", fontFamily: "inherit" }}>{busy ? "Generating…" : "Generate & Save to Documents"}</button>
+           </div>
+         )}
+      </div>
+    </div>
+  );
+}
+
 function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = false, onBack, contacts, onInviteParty = [], onCopyLoginLink, onSaveContact, onOpenContactBook, onDuplicate, currentUser, initialTab = "overview", dashboardUnread = 0, onMilestoneSummary }) {
   const [activeTab, setActiveTab] = useState(initialTab);
   const [showAssignAgent, setShowAssignAgent] = useState(false);
@@ -4851,6 +4959,7 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
   const [editTxForm, setEditTxForm] = useState({});
   const [showReceiveOffer, setShowReceiveOffer] = useState(false);
   const [reviewOfferId, setReviewOfferId] = useState(null);
+  const [showLeaseDocs, setShowLeaseDocs] = useState(false);
   // Bumped whenever the Receive Offer / review modal closes so the Pending Offers
   // panel (which stays mounted behind the modal) reloads — without this, a freshly
   // received/saved offer never appears and looks like it didn't save.
@@ -4973,8 +5082,8 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
   const sortedTaskCategories = Object.entries(tasksByCategory).sort(([a], [b]) => { const ai = CATEGORY_ORDER.indexOf(a); const bi = CATEGORY_ORDER.indexOf(b); return (ai === -1 ? 999 : ai) - (bi === -1 ? 999 : bi); });
   const smsMsgCount = Object.values(tx.smsThreads || {}).reduce((a, t) => a + t.length, 0);
 
-  const isBuyerSideTx = tx.type === "Buyer Representation" || tx.type === "Dual Agency";
-  const isListingSideTx = tx.type === "Listing (Seller)" || tx.type === "Dual Agency";
+  const isBuyerSideTx = tx.type === "Buyer Representation" || tx.type === "Dual Agency" || tx.type === "Lease — Tenant";
+  const isListingSideTx = tx.type === "Listing (Seller)" || tx.type === "Dual Agency" || tx.type === "Lease — Landlord";
   // Guest = the opposing-side agent / vendor (not the paying agent). The server
   // flags this on the transaction payload (is_guest_view). Guests see ALL tab titles
   // (full capability showcase); the ones they can actually open are GUEST_ALLOWED_TABS
@@ -5070,6 +5179,9 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
         {tx.type !== "Buyer Representation" && !["Closed", "Cancelled"].includes(tx.status) && (
           <button onClick={() => isGuest ? setPaywallFeature("Reviewing offers") : (setActiveTab("overview"), setTimeout(() => { const el = document.getElementById("pending-offers-panel"); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); }, 60))} style={{ fontSize: 11, padding: "4px 12px", borderRadius: 6, border: "1px solid rgba(255,255,255,0.3)", background: "rgba(255,255,255,0.1)", color: "#fff", fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>📋 Review Offers</button>
         )}
+        {!isGuest && isLeaseType(tx.type) && !["Closed", "Cancelled"].includes(tx.status) && (
+          <button onClick={() => setShowLeaseDocs(true)} style={{ fontSize: 11, padding: "4px 12px", borderRadius: 6, border: "none", background: "#6D28D9", color: "#fff", fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>📄 Generate Lease Docs</button>
+        )}
         {tx.status !== "Cancelled" && (
           <button onClick={() => isGuest ? setPaywallFeature("Cancelling a transaction") : (((window.prompt(`Cancel "${tx.address || "this transaction"}"? It will be HIDDEN from your dashboard (not deleted). Type CANCEL to confirm.`) || "").trim().toUpperCase() === "CANCEL") && update({ status: "Cancelled" }))} style={{ fontSize: 11, padding: "4px 10px", borderRadius: 6, border: "1px solid rgba(255,100,100,0.5)", background: "rgba(255,100,100,0.15)", color: "#FCA5A5", cursor: "pointer", fontFamily: "inherit" }}>Cancel Transaction</button>
         )}
@@ -5112,7 +5224,7 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
                 <div style={{ display: "flex", alignItems: "flex-start", gap: 12, flexWrap: "wrap" }}>
                   <span style={{ fontSize: 24 }}>🌱</span>
                   <div style={{ flex: 1, minWidth: 220 }}>
-                    <div style={{ fontWeight: 800, color: "#7A5C00", fontSize: 15, marginBottom: 4 }}>This is still a {tx.type === "Buyer Representation" ? "buyer inquiry" : "seller lead"} — not yet confirmed</div>
+                    <div style={{ fontWeight: 800, color: "#7A5C00", fontSize: 15, marginBottom: 4 }}>This is still a {isBuyerSideType(tx.type) ? "buyer inquiry" : "seller lead"} — not yet confirmed</div>
                     <div style={{ fontSize: 13, color: "#7A5C00", lineHeight: 1.5 }}>It came in from your intake link and hasn't been worked into a real deal yet. <strong>Confirm</strong> it to keep working it, or <strong>Not Pursuing</strong> if it went nowhere. (You can also set any status from the selector at the top.)</div>
                   </div>
                   <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -5646,6 +5758,9 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
           onAssigned={(agentId) => onUpdate({ ...tx, assignedAgentId: agentId })}
         />
       )}
+      {showLeaseDocs && (
+        <LeaseDocsModal tx={tx} onClose={() => setShowLeaseDocs(false)} onGenerated={() => { setShowLeaseDocs(false); setActiveTab("documents"); }} />
+      )}
       {showPortalPreview && (
         <div style={{ position: "fixed", inset: 0, zIndex: 9998, background: COLORS.bg, overflowY: "auto" }}>
           <Suspense fallback={<div style={{ padding: 60, textAlign: "center", color: COLORS.muted }}>Loading the client's view…</div>}>
@@ -6175,7 +6290,7 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
                 </div>
               </div>
               <div style={{ marginBottom: 14 }}><div style={{ fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", marginBottom: 6 }}>Construction Type</div><select value={editTxForm.constructionType || "Resale"} onChange={e => setEditTxForm(f => ({ ...f, constructionType: e.target.value }))} style={{ width: "100%", padding: "10px 14px", borderRadius: 8, border: "1.5px solid #CCC", fontSize: 15, fontFamily: "inherit" }}>{["Resale","New Construction","Vacant Land","Commercial"].map(t => <option key={t}>{t}</option>)}</select></div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 14 }}><div><div style={{ fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", marginBottom: 6 }}>Transaction Type</div><select value={editTxForm.type || ""} onChange={e => setEditTxForm(f => ({ ...f, type: e.target.value }))} style={{ width: "100%", padding: "10px 14px", borderRadius: 8, border: "1.5px solid #CCC", fontSize: 15, fontFamily: "inherit" }}>{["Listing (Seller)","Buyer Representation","Dual Agency"].map(t => <option key={t}>{t}</option>)}</select></div><div><div style={{ fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", marginBottom: 6 }}>List Price ($)</div><input type="number" value={editTxForm.listPrice || ""} onChange={e => setEditTxForm(f => ({ ...f, listPrice: e.target.value }))} placeholder="450000" style={{ width: "100%", padding: "10px 14px", borderRadius: 8, border: "1.5px solid #CCC", fontSize: 15, fontFamily: "inherit", boxSizing: "border-box" }} /></div></div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 14 }}><div><div style={{ fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", marginBottom: 6 }}>Transaction Type</div><select value={editTxForm.type || ""} onChange={e => setEditTxForm(f => ({ ...f, type: e.target.value }))} style={{ width: "100%", padding: "10px 14px", borderRadius: 8, border: "1.5px solid #CCC", fontSize: 15, fontFamily: "inherit" }}>{TRANSACTION_TYPES.map(t => <option key={t}>{t}</option>)}</select></div><div><div style={{ fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", marginBottom: 6 }}>{isLeaseType(editTxForm.type) ? "Monthly Rent ($)" : "List Price ($)"}</div><input type="number" value={editTxForm.listPrice || ""} onChange={e => setEditTxForm(f => ({ ...f, listPrice: e.target.value }))} placeholder="450000" style={{ width: "100%", padding: "10px 14px", borderRadius: 8, border: "1.5px solid #CCC", fontSize: 15, fontFamily: "inherit", boxSizing: "border-box" }} /></div></div>
               <div style={{ fontSize: 13, fontWeight: 700, color: "#C0392B", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 12, paddingBottom: 8, borderBottom: "1px solid #EEE", marginTop: 8 }}>Transaction Details</div>
               {teamMembers.length > 0 && (
                 <div style={{ marginBottom: 16 }}>
@@ -6475,7 +6590,7 @@ function NewTransactionForm({ onSave, onCancel, prefill = null, cmaId = null }) 
         </div>
         <div style={{ background: "#fff", border: `1px solid ${COLORS.border}`, borderRadius: 14, padding: 28, marginBottom: 20 }}>
           <h3 style={{ margin: "0 0 20px", fontSize: 15, color: COLORS.navy, fontWeight: 700 }}>Pricing & Dates</h3>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}><Input label="List Price ($)" value={form.listPrice} onChange={f("listPrice")} type="number" /><Input label="Contract Price ($)" value={form.contractPrice} onChange={f("contractPrice")} type="number" /></div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}><Input label={isLeaseType(form.type) ? "Monthly Rent ($)" : "List Price ($)"} value={form.listPrice} onChange={f("listPrice")} type="number" /><Input label={isLeaseType(form.type) ? "Security Deposit ($)" : "Contract Price ($)"} value={form.contractPrice} onChange={f("contractPrice")} type="number" /></div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}><Input label={/listing|seller/i.test(form.type) ? "Listing Agreement Start Date" : "Open Date"} value={form.openDate} onChange={f("openDate")} type="date" /><Input label="Closing Date" value={form.closingDate} onChange={f("closingDate")} type="date" /></div>
           {/listing|seller/i.test(form.type) && (
             <>
@@ -7464,12 +7579,12 @@ function Dashboard({ transactions, coordinatorMode = false, unreadCounts = {}, o
               )}
               {tx.assignedAgentId && !tx.needsReview && tx.needsFirstContact && (
                 <div style={{ background: "#c8102e", color: "white", padding: "8px 14px", fontSize: 12, fontWeight: 700, letterSpacing: 0.5 }}>
-                  🔔 {tx.type === "Buyer Representation" ? "NEW BUYER INQUIRY" : "NEW SELLER LEAD"} — Contact Within 24hrs
+                  🔔 {isBuyerSideType(tx.type) ? "NEW BUYER INQUIRY" : "NEW SELLER LEAD"} — Contact Within 24hrs
                 </div>
               )}
               {tx.assignedAgentId && !tx.needsReview && tx.leadConverted === false && (
                 <div style={{ background: "#FEF9E7", color: "#B7860B", padding: "8px 14px", fontSize: 12, fontWeight: 700, letterSpacing: 0.5, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, flexWrap: "wrap" }}>
-                  <span>🌱 {tx.type === "Buyer Representation" ? "INQUIRY" : "LEAD"} — not yet confirmed</span>
+                  <span>🌱 {isBuyerSideType(tx.type) ? "INQUIRY" : "LEAD"} — not yet confirmed</span>
                   <span style={{ display: "flex", gap: 6 }}>
                     <button onClick={e => { e.stopPropagation(); onLeadAction(tx.id, "confirm"); }} style={{ background: "#B7860B", color: "#fff", border: "none", borderRadius: 6, padding: "4px 10px", fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>✓ Confirm</button>
                     <button onClick={e => { e.stopPropagation(); onLeadAction(tx.id, "cancel"); }} style={{ background: "#fff", color: "#B7860B", border: "1px solid #C9A227", borderRadius: 6, padding: "4px 10px", fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>✕ Not Pursuing</button>
@@ -7485,7 +7600,7 @@ function Dashboard({ transactions, coordinatorMode = false, unreadCounts = {}, o
               }}>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
-                    <span style={{ fontSize: 13 }}>{tx.type === "Buyer Representation" ? "🏡" : "🏠"}</span>
+                    <span style={{ fontSize: 13 }}>{txTypeIcon(tx.type)}</span>
                     <span style={{
                       fontSize: 10, fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase",
                       color: tx.type === "Buyer Representation" ? "#60A5FA" : "#F87171",
