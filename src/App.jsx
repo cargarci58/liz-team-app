@@ -788,7 +788,7 @@ function PartyAvatar({ party, size = 40 }) {
   return <div style={{ width: size, height: size, borderRadius: "50%", background: color + "22", color, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: size * 0.35, flexShrink: 0 }}>{initials}</div>;
 }
 
-function PartyCard({ party, txId, onRemove, onEdit, onClick, onInvite, onSendFollowup, onSendWelcome, onResetPassword }) {
+function PartyCard({ party, txId, onRemove, onEdit, onClick, onInvite, onCopyLoginLink, onSendFollowup, onSendWelcome, onResetPassword }) {
   return (
     <div onClick={onClick} style={{ background: "#fff", border: `1px solid ${COLORS.border}`, borderRadius: 10, padding: "12px 14px", display: "flex", alignItems: "flex-start", gap: 12, marginBottom: 8, cursor: onClick ? "pointer" : "default" }}>
       <PartyAvatar party={party} />
@@ -807,6 +807,7 @@ function PartyCard({ party, txId, onRemove, onEdit, onClick, onInvite, onSendFol
       </div>
       <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
         {onInvite && <button onClick={e => { e.stopPropagation(); onInvite(); }} style={{ background: "none", border: "1px solid #C0392B", borderRadius: 6, cursor: "pointer", color: "#C0392B", fontSize: 11, padding: "2px 8px", fontWeight: 600 }}>Send Invite</button>}
+        {onCopyLoginLink && party.email && party.role && /buyer|seller/i.test(party.role) && !/agent/i.test(party.role) && <button onClick={e => { e.stopPropagation(); onCopyLoginLink(); }} title="Get a portal login link to text or share directly — useful if the invite email didn't arrive. They still set their own PIN." style={{ background: "none", border: "1px solid #1E8449", borderRadius: 6, cursor: "pointer", color: "#1E8449", fontSize: 11, padding: "2px 8px", fontWeight: 600 }}>🔗 Login Link</button>}
         {onSendFollowup && (party.email || party.phone) && <button onClick={e => { e.stopPropagation(); onSendFollowup(party); }} style={{ background: "#C0392B", border: "1px solid #C0392B", borderRadius: 6, cursor: "pointer", color: "#fff", fontSize: 11, padding: "2px 8px", fontWeight: 600 }}>Follow Up</button>}
         {onSendWelcome && party.email && <button onClick={e => { e.stopPropagation(); onSendWelcome(party); }} title="Send (or re-send) the role-specific welcome email with key dates, financial summary, parties roster, and the contract document package. Use this when you've added or corrected this party's email after the initial Under Contract send." style={{ background: "#1E8449", border: "1px solid #1E8449", borderRadius: 6, cursor: "pointer", color: "#fff", fontSize: 11, padding: "2px 8px", fontWeight: 600 }}>✉️ Send Welcome</button>}
         {onResetPassword && party.email && <button onClick={e => { e.stopPropagation(); onResetPassword(party); }} title="Email a one-time secure link so this party can set a new password. The link expires in 1 hour. Use this when a party calls saying they can't log in." style={{ background: "#7c3aed", border: "1px solid #7c3aed", borderRadius: 6, cursor: "pointer", color: "#fff", fontSize: 11, padding: "2px 8px", fontWeight: 600 }}>🔐 Reset PW</button>}
@@ -4755,7 +4756,7 @@ function CoordinatorSendUpdate({ tx }) {
   );
 }
 
-function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = false, onBack, contacts, onInviteParty = [], onSaveContact, onOpenContactBook, onDuplicate, currentUser, initialTab = "overview", dashboardUnread = 0, onMilestoneSummary }) {
+function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = false, onBack, contacts, onInviteParty = [], onCopyLoginLink, onSaveContact, onOpenContactBook, onDuplicate, currentUser, initialTab = "overview", dashboardUnread = 0, onMilestoneSummary }) {
   const [activeTab, setActiveTab] = useState(initialTab);
   const [showAssignAgent, setShowAssignAgent] = useState(false);
   const [showAddParty, setShowAddParty] = useState(false);
@@ -5396,7 +5397,7 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
             {PARTY_ROLES.map(role => {
               const members = tx.parties.filter(p => p.role === role && !p.isVendor && !p.is_vendor && !(isCoordinator && (p.email || "").toLowerCase() === (currentUser?.email || "").toLowerCase()));
               if (!members.length) return null;
-              return <div key={role} style={{ marginBottom: 16 }}><div style={{ fontSize: 12, fontWeight: 700, color: COLORS.muted, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 8 }}>{role}</div>{members.map(p => <PartyCard key={p.id} party={p} txId={tx.id} onEdit={isGuest ? () => setPaywallFeature("Editing parties") : () => setEditingParty({ ...p })} onRemove={isGuest ? () => setPaywallFeature("Removing parties") : () => isCoordinator ? coordDeleteParty(p.id) : update({ parties: tx.parties.filter(pp => pp.id !== p.id) })} onInvite={isGuest ? () => setPaywallFeature("Inviting parties to the app") : (isCoordinator ? undefined : (onInviteParty ? () => onInviteParty(p) : undefined))} onSendFollowup={isGuest ? () => setPaywallFeature("Follow-up reminders") : (party) => setFollowupParty(party)} onSendWelcome={isGuest ? () => setPaywallFeature("Welcome emails") : onSendWelcome} onResetPassword={isGuest ? () => setPaywallFeature("Password resets") : async (p) => {
+              return <div key={role} style={{ marginBottom: 16 }}><div style={{ fontSize: 12, fontWeight: 700, color: COLORS.muted, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 8 }}>{role}</div>{members.map(p => <PartyCard key={p.id} party={p} txId={tx.id} onEdit={isGuest ? () => setPaywallFeature("Editing parties") : () => setEditingParty({ ...p })} onRemove={isGuest ? () => setPaywallFeature("Removing parties") : () => isCoordinator ? coordDeleteParty(p.id) : update({ parties: tx.parties.filter(pp => pp.id !== p.id) })} onInvite={isGuest ? () => setPaywallFeature("Inviting parties to the app") : (isCoordinator ? undefined : (onInviteParty ? () => onInviteParty(p) : undefined))} onCopyLoginLink={isGuest ? () => setPaywallFeature("Sharing portal login links") : (isCoordinator ? undefined : (onCopyLoginLink ? () => onCopyLoginLink(p) : undefined))} onSendFollowup={isGuest ? () => setPaywallFeature("Follow-up reminders") : (party) => setFollowupParty(party)} onSendWelcome={isGuest ? () => setPaywallFeature("Welcome emails") : onSendWelcome} onResetPassword={isGuest ? () => setPaywallFeature("Password resets") : async (p) => {
               if (!confirm("Email a password reset link to " + (p.name || p.email) + "?\n\nThe link expires in 1 hour.")) return;
               try {
                 const r = await fetch("https://liz-team-server-api-production.up.railway.app/users/" + encodeURIComponent(p.email) + "/send-reset-link", { method: "POST", headers: { Authorization: "Bearer " + (localStorage.getItem("tp_token") || ""), "Content-Type": "application/json" }, body: JSON.stringify({ email: p.email }) });
@@ -8338,6 +8339,29 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
     } catch (e) { alert("Error: " + e.message); }
   };
 
+  // Get a portal login LINK to share manually (text/WhatsApp/phone) when email
+  // isn't reliable. Ensures the account exists, then copies the link to the
+  // clipboard. The link still needs their private PIN, so it's safe to send.
+  const copyPartyLoginLink = async (party, tx) => {
+    if (!party.email) { alert("This party has no email address. Add one first."); return; }
+    const tok = localStorage.getItem("tp_token") || "";
+    try {
+      const res = await fetch(API + "/transactions/" + tx.id + "/party-login-link", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": "Bearer " + tok },
+        body: JSON.stringify({ email: party.email }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.link) throw new Error(data.error || "Could not create link");
+      if (data.staff) { alert(data.message || "This is a staff account — they sign in with email and password."); return; }
+      try { await navigator.clipboard.writeText(data.link); } catch { /* clipboard may be blocked; still show it below */ }
+      window.prompt(
+        `Login link for ${party.name || party.email} — copied to your clipboard. Text or email it to them.\n\nThey'll set a private 4-digit PIN the first time (the link alone can't sign anyone in).`,
+        data.link
+      );
+    } catch (e) { alert("Could not create login link: " + e.message); }
+  };
+
   const openTransactionMilestones = (txId, tab = "documents") => {
     if (!txId) return;
     const t = transactions.find(t => t.id === txId);
@@ -8412,6 +8436,7 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
           onSaveContact={addContact}
           onOpenContactBook={openContactBook}
           onInviteParty={(party) => invitePartyToPortal(party, selectedTx)}
+          onCopyLoginLink={(party) => copyPartyLoginLink(party, selectedTx)}
         />
       )}
       {!showReports && view === "home" && (
