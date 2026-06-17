@@ -314,6 +314,78 @@ function winLabel(name) {
   return strongClaimFor(name) || humanizeForClient(name).label;
 }
 
+// ── SELLER OFFERS CARD — review pending offers & accept/decline in-portal ──
+// The seller sees each offer's key terms and can record a decision. The agent
+// still does the final Approve (which moves the deal Under Contract), so this is
+// the seller telling their agent "yes, go with this one" — not a binding action.
+function SellerOffersCard({ offers, headers, agentName, onDecided }) {
+  const [busyId, setBusyId] = useState(null);
+  const money = (v) => (v || v === 0) ? "$" + Number(v).toLocaleString() : "—";
+
+  const decide = async (offerId, decision) => {
+    const verb = decision === "accepted" ? "ACCEPT" : "decline";
+    if (!window.confirm(`Let ${agentName || "your agent"} know you'd like to ${verb} this offer?\n\nYour agent will follow up to finalize — this notifies them of your choice.`)) return;
+    setBusyId(offerId);
+    try {
+      const r = await fetch(API + "/client/offers/" + offerId + "/decision", {
+        method: "POST", headers, body: JSON.stringify({ decision }),
+      });
+      const d = await r.json();
+      if (!d.success) throw new Error(d.error || "Could not save");
+      onDecided && onDecided();
+    } catch (e) { alert("Could not save your decision: " + e.message); }
+    finally { setBusyId(null); }
+  };
+
+  return (
+    <div style={{ background: C.white, borderRadius: 14, padding: 18, marginBottom: 14, boxShadow: "0 1px 4px rgba(0,0,0,0.08)", border: "2px solid " + C.warning }}>
+      <div style={{ fontSize: 16, fontWeight: 800, color: C.black, marginBottom: 4 }}>📥 Offers on your home ({offers.length})</div>
+      <div style={{ fontSize: 13, color: C.gray, marginBottom: 14 }}>
+        Review the offers below and tell {agentName || "your agent"} which one you'd like to move forward with. They'll handle the paperwork from there.
+      </div>
+      {offers.map((o, i) => {
+        const decided = o.sellerDecision;
+        return (
+          <div key={o.id} style={{ border: "1px solid " + C.border, borderRadius: 12, padding: 14, marginBottom: i < offers.length - 1 ? 12 : 0, background: decided === "accepted" ? C.successBg : decided === "declined" ? "#FDEDEC" : C.white }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", flexWrap: "wrap", gap: 6 }}>
+              <div style={{ fontSize: 18, fontWeight: 800, color: C.black }}>{money(o.contractPrice)}</div>
+              {o.buyerName && <div style={{ fontSize: 13, color: C.gray, fontWeight: 600 }}>from {o.buyerName}</div>}
+            </div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "4px 16px", marginTop: 8, fontSize: 12.5, color: C.gray }}>
+              <span>💵 {o.isCash ? "Cash" : (o.loanType ? o.loanType + " financing" : "Financed")}</span>
+              {o.closingDate && <span>📅 Close {formatDate(o.closingDate)}</span>}
+              {(o.earnestMoney || o.earnestMoney === 0) && <span>🤝 {money(o.earnestMoney)} earnest</span>}
+              {o.inspectionPeriodDays ? <span>🔍 {o.inspectionPeriodDays}-day inspection</span> : null}
+            </div>
+            {(o.financingContingency || o.appraisalContingency) && (
+              <div style={{ fontSize: 12, color: C.gray, marginTop: 4 }}>
+                Contingencies: {[o.financingContingency && "financing", o.appraisalContingency && "appraisal"].filter(Boolean).join(", ")}
+              </div>
+            )}
+            {o.additionalTerms && <div style={{ fontSize: 12, color: C.gray, marginTop: 4, fontStyle: "italic" }}>“{o.additionalTerms}”</div>}
+            {decided ? (
+              <div style={{ marginTop: 10, fontSize: 13, fontWeight: 700, color: decided === "accepted" ? C.success : C.red }}>
+                {decided === "accepted" ? "✓ You chose this offer — your agent has been notified." : "✕ You declined this offer."}
+              </div>
+            ) : (
+              <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
+                <button onClick={() => decide(o.id, "accepted")} disabled={busyId === o.id}
+                  style={{ flex: 1, minWidth: 130, background: C.success, color: "#fff", border: "none", borderRadius: 8, padding: "10px 14px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                  {busyId === o.id ? "Saving…" : "✓ Accept this offer"}
+                </button>
+                <button onClick={() => decide(o.id, "declined")} disabled={busyId === o.id}
+                  style={{ background: C.white, color: C.red, border: "1px solid " + C.red, borderRadius: 8, padding: "10px 14px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                  Decline
+                </button>
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 // ── WINS CARD — "look how far we've come" (momentum) ──────────
 function WinsCard({ timeline }) {
   if (!timeline || !Array.isArray(timeline.milestones)) return null;
@@ -1024,6 +1096,8 @@ export default function ClientPortal({ user, onLogout, previewTxId, onExitPrevie
   const [activeTab, setActiveTab] = useState("home");
   const [chatUnread, setChatUnread] = useState(0);
   const [timeline, setTimeline] = useState(null);
+  const [offers, setOffers] = useState([]);
+  const [offersReload, setOffersReload] = useState(0);
   const activeTabRef = useRef(activeTab);
   const tok = localStorage.getItem("tp_token") || "";
   const headers = { "Content-Type": "application/json", "Authorization": "Bearer " + tok };
@@ -1036,6 +1110,15 @@ export default function ClientPortal({ user, onLogout, previewTxId, onExitPrevie
       .then(d => setTimeline(d && d.success ? d : null))
       .catch(() => setTimeline(null));
   }, [tx?.id]);
+
+  // Seller portal: pending offers the seller can review & accept/decline.
+  useEffect(() => {
+    if (!tx?.id) { setOffers([]); return; }
+    fetch(API + "/client/offers/" + tx.id, { headers })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => setOffers(d && d.success ? (d.offers || []) : []))
+      .catch(() => setOffers([]));
+  }, [tx?.id, offersReload]);
 
   useEffect(() => {
     activeTabRef.current = activeTab;
@@ -1400,6 +1483,10 @@ export default function ClientPortal({ user, onLogout, previewTxId, onExitPrevie
               <div>
                 <JourneyHero tx={tx} stage={stage} />
                 <AgentCard name={agentName} title={agentTitle} brokerage={brokerage} phone={agentPhone} email={agentEmail} photo={agentPhoto} brand={brand} />
+                {isSellerSide && offers.length > 0 && (
+                  <SellerOffersCard offers={offers} headers={headers} agentName={agentName}
+                    onDecided={() => setOffersReload(n => n + 1)} />
+                )}
                 {timeline && timeline.total > 0 && (() => {
                   // A seller listing that isn't under contract yet is in the
                   // PREP/launch stage — framing its progress as "% to closing" is
