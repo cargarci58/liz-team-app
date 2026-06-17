@@ -93,3 +93,32 @@ describe("portal stage never overclaims past the real transaction status", () =>
     expect(deriveStage({ milestones: [] }, tx).effectiveStatus).toBe("Closed");
   });
 });
+
+describe("'what's coming up' is phase-gated to the real deal phase", () => {
+  // A pre-contract listing (reviewing offers, still Active) seeds its contract-
+  // and closing-phase milestones, but they are NOT what's happening next.
+  const PHASED = {
+    milestones: [
+      { name: "Showing Instructions Set", phase: "active", status: "Pending", sort_order: 1 },
+      { name: "Price-Reduction Check-In (if no offers)", phase: "active", status: "Pending", sort_order: 2 },
+      { name: "Inspection Period Ends", phase: "contract", status: "Pending", sort_order: 10 },
+      { name: "Appraisal Received", phase: "contract", status: "Pending", sort_order: 11 },
+      { name: "Final Walk-Through", phase: "closing", status: "Pending", sort_order: 20 },
+    ],
+  };
+
+  it("an Active listing never shows contract/closing steps as upcoming", () => {
+    const stage = deriveStage(PHASED, { status: "Active", transactionType: "Listing (Seller)" });
+    const names = stage.upcoming.map(m => m.name);
+    expect(names).not.toContain("Inspection Period Ends");
+    expect(names).not.toContain("Appraisal Received");
+    expect(names).not.toContain("Final Walk-Through");
+    expect(names).toContain("Showing Instructions Set");
+  });
+
+  it("once Under Contract, contract-phase steps become upcoming", () => {
+    const stage = deriveStage(PHASED, { status: "Under Contract", transactionType: "Listing (Seller)" });
+    const names = stage.upcoming.map(m => m.name);
+    expect(names).toContain("Inspection Period Ends");
+  });
+});

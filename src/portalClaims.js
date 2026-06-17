@@ -84,7 +84,17 @@ export function deriveStage(timeline, tx) {
   const derivedIdx = dbIdx >= 1 ? STAGE_ORDER.indexOf(derived) : 0;
   const effectiveStatus = STAGE_ORDER[Math.max(dbIdx, derivedIdx)];
   const meaningful = (m) => !/communication|weekly|thank|review request|compliance|reminder|set up|generate/i.test(m.name || "");
+  // PHASE GATE: "What's coming up" must reflect the deal's REAL phase. A listing
+  // that isn't under contract yet (still reviewing offers) is in the LISTING
+  // phase — its contract/closing milestones (inspection, appraisal, walk-through)
+  // are NOT what's happening next and must not be shown as upcoming. Only once the
+  // deal is genuinely under contract do those phases unlock. Mirrors the backend's
+  // unlockedPhasesForStatus so the portal, briefing, and Deal Doctor agree.
+  const allowedPhases = STAGE_ORDER.indexOf(effectiveStatus) >= 1
+    ? ["active", "contract", "closing"]
+    : ["active"];
+  const inPhase = (m) => { const p = (m.phase || "").toLowerCase(); return !p || allowedPhases.includes(p); };
   const lastDone = [...done].filter(meaningful).sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0)).slice(-1)[0] || null;
-  const upcoming = [...open].filter(meaningful).sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0)).slice(0, 4);
+  const upcoming = [...open].filter(m => meaningful(m) && inPhase(m)).sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0)).slice(0, 4);
   return { effectiveStatus, lastDone, upcoming };
 }
