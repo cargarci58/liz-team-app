@@ -1268,8 +1268,14 @@ export default function ClientPortal({ user, onLogout, previewTxId, onExitPrevie
           .sort((a, b) => statusRank(a.status) - statusRank(b.status));
         setAllTx(list);
         if (list.length > 0) {
-          setTx(list[0]);
-          return fetch(API + "/client/documents/" + list[0].id, { headers });
+          // If the agent shared a link for a SPECIFIC deal (?tx=… → stored at
+          // login), open that one; otherwise fall back to the highest-ranked.
+          // One-shot: clear the flag so later visits use the normal default.
+          let focusId = null;
+          try { focusId = localStorage.getItem("tp_portal_focus_tx"); localStorage.removeItem("tp_portal_focus_tx"); } catch { /* no-op */ }
+          const chosen = (focusId && list.find(t => t.id === focusId)) || list[0];
+          setTx(chosen);
+          return fetch(API + "/client/documents/" + chosen.id, { headers });
         }
       })
       .then(r => r && r.json())

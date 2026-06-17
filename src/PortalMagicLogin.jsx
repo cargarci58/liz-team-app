@@ -53,6 +53,13 @@ export default function PortalMagicLogin({ urlToken }) {
       if (!res.ok || !data.success) throw new Error(data.error || "That didn't work — try again.");
       localStorage.setItem("tp_token", data.token);
       localStorage.setItem("tp_user", JSON.stringify(data.user));
+      // If the link was generated from a specific deal (?tx=…), remember it so the
+      // portal opens THAT property — a client on multiple deals would otherwise
+      // land on whichever ranks highest, not the one their agent shared.
+      try {
+        const focusTx = new URLSearchParams(window.location.search).get("tx");
+        if (focusTx) localStorage.setItem("tp_portal_focus_tx", focusTx);
+      } catch { /* no-op */ }
       window.location.href = "/";
     } catch (e) {
       setNotice(e.message);
