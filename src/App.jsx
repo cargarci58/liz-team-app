@@ -79,6 +79,21 @@ const TRANSACTION_TYPES = ["Listing (Seller)", "Buyer Representation", "Dual Age
 // role), a tenant lease is buyer-side (own-side client = the tenant, a buyer role).
 const isLeaseType = (type) => type === "Lease — Landlord" || type === "Lease — Tenant";
 const isBuyerSideType = (type) => type === "Buyer Representation" || type === "Dual Agency" || type === "Lease — Tenant";
+// Lease term options + end-date math. A 12-month lease that begins on a date
+// ends the day BEFORE that date a year later (e.g. 07/01/2026 → 06/30/2027).
+const LEASE_TERMS = ["1 Year", "6 Months", "Month-to-Month", "Custom"];
+function computeLeaseEnd(start, term) {
+  if (!start) return "";
+  const p = String(start).slice(0, 10).split("-");
+  if (p.length !== 3) return "";
+  const d = new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2]));
+  if (isNaN(d.getTime())) return "";
+  if (term === "6 Months") d.setMonth(d.getMonth() + 6);
+  else if (term === "1 Year") d.setFullYear(d.getFullYear() + 1);
+  else return ""; // Month-to-Month / Custom → no fixed end
+  d.setDate(d.getDate() - 1);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
 // Short label + icon for a transaction type, lease-aware.
 const txTypeShort = (type) => type === "Lease — Landlord" ? "Rental — Landlord"
   : type === "Lease — Tenant" ? "Rental — Tenant"
@@ -4798,12 +4813,24 @@ function LeaseDocsModal({ tx, onClose, onGenerated }) {
         setQuestions(data.questions || []);
         const init = {};
         (data.questions || []).forEach(q => { init[q.key] = q.type === "date" ? String(q.value || "").slice(0, 10) : (q.value || ""); });
+        // If no end date came from the deal, derive it from the term + start.
+        if (!init.term_end && (init.lease_term === "1 Year" || init.lease_term === "6 Months")) {
+          init.term_end = computeLeaseEnd(init.term_begin, init.lease_term);
+        }
         setAnswers(init);
       } catch (e) { setError("Could not load the form data. Try again."); }
       finally { setLoading(false); }
     })();
   }, [tx.id]);
   const groups = [...new Set(questions.map(q => q.group))];
+  // Update an answer; if the lease term or start date changes, recompute the
+  // end date for a fixed-length term.
+  const setAnswer = (key, value) => setAnswers(a => {
+    const next = { ...a, [key]: value };
+    if (key === "lease_term") next.term_end = (value === "1 Year" || value === "6 Months") ? computeLeaseEnd(a.term_begin, value) : (value === "Month-to-Month" ? "" : a.term_end);
+    else if (key === "term_begin" && (a.lease_term === "1 Year" || a.lease_term === "6 Months")) next.term_end = computeLeaseEnd(value, a.lease_term);
+    return next;
+  });
   const generate = async () => {
     setBusy(true); setError("");
     try {
@@ -4856,8 +4883,14 @@ function LeaseDocsModal({ tx, onClose, onGenerated }) {
                    {questions.filter(q => q.group === g).map(q => (
                      <div key={q.key}>
                        <div style={{ fontSize: 11, fontWeight: 600, color: COLORS.muted, marginBottom: 3 }}>{q.label}</div>
-                       <input type={q.type === "date" ? "date" : "text"} inputMode={q.type === "money" ? "decimal" : undefined}
-                         value={answers[q.key] || ""} onChange={e => setAnswers(a => ({ ...a, [q.key]: e.target.value }))} style={inp} />
+                       {q.type === "select" ? (
+                         <select value={answers[q.key] || ""} onChange={e => setAnswer(q.key, e.target.value)} style={inp}>
+                           {(q.options || []).map(o => <option key={o} value={o}>{o}</option>)}
+                         </select>
+                       ) : (
+                         <input type={q.type === "date" ? "date" : "text"} inputMode={q.type === "money" ? "decimal" : undefined}
+                           value={answers[q.key] || ""} onChange={e => setAnswer(q.key, e.target.value)} style={inp} />
+                       )}
                      </div>
                    ))}
                  </div>
@@ -6509,7 +6542,7 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
 
 // --- NEW TRANSACTION ──────────────────────────────────────────
 function NewTransactionForm({ onSave, onCancel, prefill = null, cmaId = null }) {
-  const [form, setForm] = useState({ address: "", city: "", county: "Osceola", zipCode: "", type: "Listing (Seller)", propertyType: "Single Family", constructionType: "Resale", listPrice: "", contractPrice: "", mlsNumber: "", openDate: today(), closingDate: "", executedDate: "", representationExpiresOn: "", notes: "", status: "Active", assignedAgent: "", referralSource: "", occupancyStatus: "", propertyAccess: "", commissionListing: "", commissionBuyer: "", transactionFee: "", brokerageSplit: "", officeFlatFee: "", commissionNotes: "", ...(prefill || {}) });
+  const [form, setForm] = useState({ address: "", city: "", county: "Osceola", zipCode: "", type: "Listing (Seller)", propertyType: "Single Family", constructionType: "Resale", listPrice: "", contractPrice: "", mlsNumber: "", openDate: today(), closingDate: "", executedDate: "", representationExpiresOn: "", leaseTerm: "1 Year", notes: "", status: "Active", assignedAgent: "", referralSource: "", occupancyStatus: "", propertyAccess: "", commissionListing: "", commissionBuyer: "", transactionFee: "", brokerageSplit: "", officeFlatFee: "", commissionNotes: "", ...(prefill || {}) });
   const [teamAgents, setTeamAgents] = useState([]);
   useEffect(() => { const tok = localStorage.getItem("tp_token") || ""; fetch(API + "/users", { headers: { "Authorization": "Bearer " + tok } }).then(r => r.json()).then(d => { if (d.users) setTeamAgents(d.users.filter(u => u.role === "agent" || u.role === "admin" || u.role === "superadmin")); }).catch(e => console.error("[bg]", e && e.message ? e.message : e)); }, []);
   const [useFLTemplates, setUseFLTemplates] = useState(true);
@@ -6599,7 +6632,25 @@ function NewTransactionForm({ onSave, onCancel, prefill = null, cmaId = null }) 
         <div style={{ background: "#fff", border: `1px solid ${COLORS.border}`, borderRadius: 14, padding: 28, marginBottom: 20 }}>
           <h3 style={{ margin: "0 0 20px", fontSize: 15, color: COLORS.navy, fontWeight: 700 }}>Pricing & Dates</h3>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}><Input label={isLeaseType(form.type) ? "Monthly Rent ($)" : "List Price ($)"} value={form.listPrice} onChange={f("listPrice")} type="number" /><Input label={isLeaseType(form.type) ? "Security Deposit ($)" : "Contract Price ($)"} value={form.contractPrice} onChange={f("contractPrice")} type="number" /></div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}><Input label={isLeaseType(form.type) ? "Lease / Listing Start Date" : /listing|seller/i.test(form.type) ? "Listing Agreement Start Date" : "Open Date"} value={form.openDate} onChange={f("openDate")} type="date" /><Input label={isLeaseType(form.type) ? "Lease End Date" : "Closing Date"} value={form.closingDate} onChange={f("closingDate")} type="date" /></div>
+          {isLeaseType(form.type) ? (
+            <>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+                <Input label="Lease Start Date" value={form.openDate} type="date"
+                  onChange={v => setForm(s => ({ ...s, openDate: v, closingDate: computeLeaseEnd(v, s.leaseTerm) || s.closingDate }))} />
+                <Input label="Lease Term" value={form.leaseTerm} options={LEASE_TERMS}
+                  onChange={v => setForm(s => ({ ...s, leaseTerm: v, closingDate: v === "Month-to-Month" ? "" : (computeLeaseEnd(s.openDate, v) || s.closingDate) }))} />
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+                <Input label="Lease End Date" value={form.closingDate} onChange={f("closingDate")} type="date" />
+                <div />
+              </div>
+              {(form.leaseTerm === "1 Year" || form.leaseTerm === "6 Months") && form.openDate && (
+                <div style={{ fontSize: 11, color: COLORS.muted, marginTop: -8 }}>End date auto-calculated from a {form.leaseTerm.toLowerCase()} term — edit it if your lease differs.</div>
+              )}
+            </>
+          ) : (
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}><Input label={/listing|seller/i.test(form.type) ? "Listing Agreement Start Date" : "Open Date"} value={form.openDate} onChange={f("openDate")} type="date" /><Input label="Closing Date" value={form.closingDate} onChange={f("closingDate")} type="date" /></div>
+          )}
           {(/listing|seller/i.test(form.type) || form.type === "Lease — Landlord") && (
             <>
               <Input label={form.type === "Lease — Landlord" ? "Listing Period Expiration (Exclusive Right to Lease)" : "Listing Agreement Expiration"} value={form.representationExpiresOn} onChange={f("representationExpiresOn")} type="date" />
