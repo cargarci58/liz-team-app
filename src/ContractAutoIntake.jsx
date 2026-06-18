@@ -428,6 +428,17 @@ function ReviewStep({ token, uploadId, user, currentStatus, onApproved, onBack }
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [vendors, setVendors] = useState([]);
+
+  // Load the agent's saved Preferred Vendors so the closing-agent prompt can
+  // offer one-tap picks (the title company / attorney they use all the time)
+  // instead of re-typing it on every deal.
+  useEffect(() => {
+    fetch(API + "/vendors", { headers: { "Authorization": "Bearer " + token } })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => setVendors(d && d.success ? (d.vendors || []) : []))
+      .catch(() => setVendors([]));
+  }, [token]);
 
   useEffect(() => {
     fetch(API + "/contracts/uploads/" + uploadId, {
@@ -478,6 +489,19 @@ function ReviewStep({ token, uploadId, user, currentStatus, onApproved, onBack }
   // quick-add buttons), so the agent just fills in the name/email right here.
   const addPartyRole = (role) => {
     setEdited({ ...edited, parties: [...edited.parties, { role, name: "", email: "", phone: "", company: "" }] });
+  };
+  // Add a party PRE-FILLED from a saved Preferred Vendor (the title company /
+  // attorney the agent uses every deal). Maps the vendor's category to a party
+  // role so the timeline/emails treat it correctly.
+  const addPartyFromVendor = (vendor) => {
+    const role = /attorney/i.test(vendor.category || vendor.role || "") ? "Attorney" : "Title Company";
+    setEdited({ ...edited, parties: [...edited.parties, {
+      role,
+      name: vendor.name || vendor.company || "",
+      company: vendor.company || "",
+      email: vendor.email || "",
+      phone: vendor.phone || "",
+    }] });
   };
 
   const handleSaveDraft = async () => {
@@ -697,9 +721,27 @@ function ReviewStep({ token, uploadId, user, currentStatus, onApproved, onBack }
               <div style={{ fontSize: 12.5, color: "#78350f", marginBottom: 10, lineHeight: 1.5 }}>
                 In Florida the closing is handled by a title company or a real estate attorney. Add them here so they're included in the transaction and receive the welcome email. (You can fill in their name and email below after adding.)
               </div>
+              {/* One-tap picks from saved Preferred Vendors (title companies /
+                  attorneys the agent uses on every deal) — pre-fills the row. */}
+              {(() => {
+                const saved = vendors.filter(v => /title|attorney|escrow/i.test(v.category || v.role || ""));
+                if (saved.length === 0) return null;
+                return (
+                  <div style={{ marginBottom: 10 }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: "#78350f", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 6 }}>Your saved vendors</div>
+                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                      {saved.map(v => (
+                        <button key={v.id} onClick={() => addPartyFromVendor(v)} title={[v.company || v.name, v.email, v.phone].filter(Boolean).join(" · ")} style={{ background: "#fff", border: "1px solid " + COLORS.navy, color: COLORS.navy, borderRadius: 20, padding: "6px 14px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                          {/attorney/i.test(v.category || v.role || "") ? "⚖️" : "📋"} {v.company || v.name}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()}
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                <button onClick={() => addPartyRole("Title Company")} style={{ background: COLORS.navy, border: "none", color: "#fff", borderRadius: 6, padding: "7px 14px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>+ Add Title Company</button>
-                <button onClick={() => addPartyRole("Attorney")} style={{ background: "white", border: "1px solid " + COLORS.navy, color: COLORS.navy, borderRadius: 6, padding: "7px 14px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>+ Add Closing Attorney</button>
+                <button onClick={() => addPartyRole("Title Company")} style={{ background: COLORS.navy, border: "none", color: "#fff", borderRadius: 6, padding: "7px 14px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>+ Add New Title Company</button>
+                <button onClick={() => addPartyRole("Attorney")} style={{ background: "white", border: "1px solid " + COLORS.navy, color: COLORS.navy, borderRadius: 6, padding: "7px 14px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>+ Add New Closing Attorney</button>
               </div>
             </div>
           )}
