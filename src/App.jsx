@@ -3913,14 +3913,13 @@ function ListingOffers({ txId, txStatus, refreshKey, onReview, onReceiveOffer })
       if (!d.success) throw new Error(d.error || "Upload failed");
       load();
       // A signed contract IS the executed agreement — so this is the moment to
-      // start the transaction. If the listing isn't under contract yet, walk the
-      // agent straight into Review & Accept (confirm parties incl. title company,
-      // move to Under Contract, then send welcome emails) instead of just filing
-      // the file silently. Pre-contract statuses only — never re-prompt later.
+      // start the transaction. On a pre-contract listing, AUTOMATICALLY open the
+      // Review & Accept flow (no skippable prompt): the agent confirms every date,
+      // amount, and party — adding the title company, lender, etc. — then Approve
+      // moves the listing to Under Contract and the welcome-email step picks the
+      // recipients. Already under contract → just file the replacement copy.
       const preContract = ["Active", "Coming Soon", "New"].includes(txStatus);
-      if (preContract && window.confirm(
-        "✓ Signed contract saved.\n\nThis offer is signed — accept it now to start the transaction?\n\nYou'll confirm who's involved (title company, lender, and any other parties), move the listing to Under Contract, and send the welcome emails."
-      )) {
+      if (preContract) {
         onReview(offerId);
       } else {
         alert("Signed copy saved to this offer's folder in Documents.");
