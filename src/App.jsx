@@ -3867,7 +3867,7 @@ function WelcomeEmailPreview({ txId, onClose }) {
 
 // Pending offers received on a listing. Several can sit here at once; the agent
 // reviews them and approves one (which auto-rejects the rest on the server).
-function ListingOffers({ txId, refreshKey, onReview, onReceiveOffer }) {
+function ListingOffers({ txId, txStatus, refreshKey, onReview, onReceiveOffer }) {
   const [offers, setOffers] = useState([]);
   const [loading, setLoading] = useState(true);
   const hdrs = { "Authorization": "Bearer " + (localStorage.getItem("tp_token") || "") };
@@ -3911,8 +3911,20 @@ function ListingOffers({ txId, refreshKey, onReview, onReceiveOffer }) {
       });
       const d = await r.json();
       if (!d.success) throw new Error(d.error || "Upload failed");
-      alert("Signed copy saved to this offer's folder in Documents.");
       load();
+      // A signed contract IS the executed agreement — so this is the moment to
+      // start the transaction. If the listing isn't under contract yet, walk the
+      // agent straight into Review & Accept (confirm parties incl. title company,
+      // move to Under Contract, then send welcome emails) instead of just filing
+      // the file silently. Pre-contract statuses only — never re-prompt later.
+      const preContract = ["Active", "Coming Soon", "New"].includes(txStatus);
+      if (preContract && window.confirm(
+        "✓ Signed contract saved.\n\nThis offer is signed — accept it now to start the transaction?\n\nYou'll confirm who's involved (title company, lender, and any other parties), move the listing to Under Contract, and send the welcome emails."
+      )) {
+        onReview(offerId);
+      } else {
+        alert("Signed copy saved to this offer's folder in Documents.");
+      }
     } catch (e) { alert("Could not upload signed copy: " + e.message); }
     finally { setSigningId(null); }
   };
@@ -5340,7 +5352,7 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
             )}
             {!isGuest && tx.type !== "Buyer Representation" && !["Closed", "Cancelled"].includes(tx.status) && (
               <div id="pending-offers-panel" style={{ marginBottom: 20, scrollMarginTop: 80 }}>
-                <ListingOffers txId={tx.id} refreshKey={offersRefresh} onReview={(id) => setReviewOfferId(id)} onReceiveOffer={() => setShowReceiveOffer(true)} />
+                <ListingOffers txId={tx.id} txStatus={tx.status} refreshKey={offersRefresh} onReview={(id) => setReviewOfferId(id)} onReceiveOffer={() => setShowReceiveOffer(true)} />
               </div>
             )}
             {(showReceiveOffer || reviewOfferId) && (
