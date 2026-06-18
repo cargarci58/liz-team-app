@@ -474,6 +474,11 @@ function ReviewStep({ token, uploadId, user, currentStatus, onApproved, onBack }
   const addParty = () => {
     setEdited({ ...edited, parties: [...edited.parties, { role: "Other", name: "", email: "", phone: "", company: "" }] });
   };
+  // Add a party with its role pre-set (used by the "add your closing agent"
+  // quick-add buttons), so the agent just fills in the name/email right here.
+  const addPartyRole = (role) => {
+    setEdited({ ...edited, parties: [...edited.parties, { role, name: "", email: "", phone: "", company: "" }] });
+  };
 
   const handleSaveDraft = async () => {
     setSaving(true);
@@ -506,25 +511,6 @@ function ReviewStep({ token, uploadId, user, currentStatus, onApproved, onBack }
         `Only do this if you're intentionally switching to this offer. Continue?`
       );
       if (!ok) return;
-    }
-    // Closing-party nudge. In Florida a closing runs through a title company OR a
-    // real estate attorney — they normally receive the welcome email and
-    // coordinate the closing. The extracted offer only carries buyer/seller/
-    // agents, so prompt the agent to add the closing party before approving
-    // (otherwise the welcome emails go out without them). Drops in a blank row to
-    // fill; if they choose to approve without, we don't nag again.
-    const hasClosingParty = (edited.parties || []).some(p => /title|attorney|escrow|closing/i.test(p.role || ""));
-    if (!hasClosingParty) {
-      const approveWithout = window.confirm(
-        "No title company or closing attorney is listed for this deal yet.\n\n" +
-        "In Florida the closing is handled by a title company OR a real estate attorney — they normally get the welcome email and coordinate the closing.\n\n" +
-        "• OK — approve without one\n" +
-        "• Cancel — add them now"
-      );
-      if (!approveWithout) {
-        setEdited(prev => ({ ...prev, parties: [...(prev.parties || []), { role: "Title Company", name: "", email: "", phone: "", company: "" }] }));
-        return; // stay on the review screen so the agent fills in the closing party
-      }
     }
     setSaving(true);
     setError("");
@@ -700,6 +686,23 @@ function ReviewStep({ token, uploadId, user, currentStatus, onApproved, onBack }
             <h3 style={{ margin: 0, color: COLORS.navy, fontSize: 16 }}>👥 Parties ({parties.length})</h3>
             <button onClick={addParty} style={{ background: "white", border: "1px solid " + COLORS.border, borderRadius: 6, padding: "6px 12px", fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>+ Add Party</button>
           </div>
+          {/* The uploaded offer only carries buyer/seller/agents. In Florida the
+              closing runs through a title company OR a real estate attorney, who
+              gets the welcome email and coordinates closing — so prompt to add
+              them RIGHT HERE before approving, with one tap. Banner disappears
+              once a closing party is on the list. */}
+          {!parties.some(p => /title|attorney|escrow|closing/i.test(p.role || "")) && (
+            <div style={{ background: "#FEF9E7", border: "1px solid #FCD34D", borderRadius: 8, padding: 12, marginBottom: 12 }}>
+              <div style={{ fontSize: 13, fontWeight: 800, color: "#92400E", marginBottom: 4 }}>🏛️ Add your closing agent</div>
+              <div style={{ fontSize: 12.5, color: "#78350f", marginBottom: 10, lineHeight: 1.5 }}>
+                In Florida the closing is handled by a title company or a real estate attorney. Add them here so they're included in the transaction and receive the welcome email. (You can fill in their name and email below after adding.)
+              </div>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                <button onClick={() => addPartyRole("Title Company")} style={{ background: COLORS.navy, border: "none", color: "#fff", borderRadius: 6, padding: "7px 14px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>+ Add Title Company</button>
+                <button onClick={() => addPartyRole("Attorney")} style={{ background: "white", border: "1px solid " + COLORS.navy, color: COLORS.navy, borderRadius: 6, padding: "7px 14px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>+ Add Closing Attorney</button>
+              </div>
+            </div>
+          )}
           {parties.map((p, i) => (
             <div key={i} style={{ background: "#f9fafb", borderRadius: 8, padding: 12, marginBottom: 8 }}>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr auto", gap: 8, alignItems: "end" }}>
