@@ -1,5 +1,6 @@
 /test /test.html 200
 /tester /tester.html 200
 /tester-results /tester-results.html 200
+/sms-opt-in /sms-opt-in.html 200
 /upload/* /index.html 200
 /* /index.html 200
