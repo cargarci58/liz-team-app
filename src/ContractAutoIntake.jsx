@@ -507,6 +507,25 @@ function ReviewStep({ token, uploadId, user, currentStatus, onApproved, onBack }
       );
       if (!ok) return;
     }
+    // Closing-party nudge. In Florida a closing runs through a title company OR a
+    // real estate attorney — they normally receive the welcome email and
+    // coordinate the closing. The extracted offer only carries buyer/seller/
+    // agents, so prompt the agent to add the closing party before approving
+    // (otherwise the welcome emails go out without them). Drops in a blank row to
+    // fill; if they choose to approve without, we don't nag again.
+    const hasClosingParty = (edited.parties || []).some(p => /title|attorney|escrow|closing/i.test(p.role || ""));
+    if (!hasClosingParty) {
+      const approveWithout = window.confirm(
+        "No title company or closing attorney is listed for this deal yet.\n\n" +
+        "In Florida the closing is handled by a title company OR a real estate attorney — they normally get the welcome email and coordinate the closing.\n\n" +
+        "• OK — approve without one\n" +
+        "• Cancel — add them now"
+      );
+      if (!approveWithout) {
+        setEdited(prev => ({ ...prev, parties: [...(prev.parties || []), { role: "Title Company", name: "", email: "", phone: "", company: "" }] }));
+        return; // stay on the review screen so the agent fills in the closing party
+      }
+    }
     setSaving(true);
     setError("");
     try {
