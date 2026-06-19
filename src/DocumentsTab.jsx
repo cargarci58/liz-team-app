@@ -280,8 +280,12 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
     return "📎";
   };
 
-  const reqItems = required.filter(i => i.required);
-  const recItems = required.filter(i => !i.required);
+  // Show uploaded (on-file) items at the top, then still-missing, then waived
+  // last — testers expected the done ones surfaced first. Stable within each group.
+  const checklistRank = (i) => i.waived ? 2 : (i.present ? 0 : 1);
+  const byUploadedFirst = (a, b) => checklistRank(a) - checklistRank(b);
+  const reqItems = required.filter(i => i.required).slice().sort(byUploadedFirst);
+  const recItems = required.filter(i => !i.required).slice().sort(byUploadedFirst);
   const pct = reqSummary && reqSummary.requiredTotal > 0
     ? Math.round((reqSummary.requiredPresent / reqSummary.requiredTotal) * 100) : 100;
   const allIn = reqSummary && reqSummary.requiredMissing === 0;
