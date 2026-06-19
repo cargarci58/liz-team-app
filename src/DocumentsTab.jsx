@@ -442,6 +442,23 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
         </div>
       ) : (
         <div>
+          {/* Surface "Read dates" at the top when a contract is on file — it was
+              easy to miss buried in a document's button row. (tester #17) */}
+          {(() => {
+            const c = docs.find(isContractReadable);
+            if (!c) return null;
+            return (
+              <div style={{ background: "#FCF6E3", border: "1px solid #C9A84C", borderRadius: 10, padding: "12px 14px", marginBottom: 14, display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+                <div style={{ flex: 1, minWidth: 200, fontSize: 13, color: "#7A5C00" }}>
+                  📅 <b>Contract on file.</b> Let AI read it and auto-fill this deal's key dates (inspection, financing, closing) and timeline.
+                </div>
+                <button onClick={() => readContractDates(c)} disabled={readingDates === c.id}
+                  style={{ padding: "8px 16px", borderRadius: 8, border: "1px solid #C9A84C", background: readingDates === c.id ? "#F5F5F5" : "#fff", cursor: readingDates === c.id ? "default" : "pointer", fontSize: 13, color: "#7A5C00", fontWeight: 700 }}>
+                  {readingDates === c.id ? "Reading…" : "📅 Read dates from contract"}
+                </button>
+              </div>
+            );
+          })()}
           <div style={{ fontWeight: 700, marginBottom: 4, fontSize: 14 }}>{docs.length} document{docs.length !== 1 ? "s" : ""}</div>
           <div style={{ fontSize: 12, color: COLORS.muted, marginBottom: 12, background: "#F6F8FA", border: "1px solid #E5E7EB", borderRadius: 8, padding: "7px 10px" }}>
             💡 Each file has a <b>👁 Client can view</b> / <b>🔒 Hidden</b> button — tap it to control whether your client sees that file in their portal. New uploads are <b>Hidden</b> by default.
