@@ -6696,7 +6696,10 @@ function NewTransactionForm({ onSave, onCancel, prefill = null, cmaId = null }) 
     <div style={{ fontFamily: "'Segoe UI', system-ui, sans-serif", background: COLORS.bg, minHeight: "100vh" }}>
       <div style={{ background: COLORS.navy, padding: "16px 24px", display: "flex", alignItems: "center", gap: 16 }}>
         <button onClick={onCancel} style={{ background: "none", border: "none", color: "#fff", cursor: "pointer", fontSize: 22, opacity: 0.7 }}>←</button>
-        <div style={{ color: "#fff", fontWeight: 700, fontSize: 17 }}>New Transaction</div>
+        <div>
+          <div style={{ color: "#fff", fontWeight: 700, fontSize: 17 }}>New Transaction</div>
+          <div style={{ color: "rgba(255,255,255,0.7)", fontSize: 12, marginTop: 1 }}>Also called a "deal" — the property you're buying, selling, or leasing for a client.</div>
+        </div>
       </div>
       <div style={{ maxWidth: 680, margin: "32px auto", padding: "0 24px" }}>
         <div style={{ background: "#fff", border: `1px solid ${COLORS.border}`, borderRadius: 14, padding: 28, marginBottom: 20 }}>
