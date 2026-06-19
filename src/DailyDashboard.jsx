@@ -473,6 +473,9 @@ function EmptyState({ firstName }) {
         No tasks need your attention right now.{" "}
         Check back tomorrow morning for your next briefing.
       </div>
+      <div style={{ color:COLORS.gray, fontSize:13, lineHeight:1.6, marginTop:14, maxWidth:440, marginLeft:"auto", marginRight:"auto" }}>
+        📞 Tip: your <b>daily call list</b> shows up here too — it builds itself from your <b>Contacts</b>. Add people and set follow-ups (<b>⚙️ Menu → Contacts</b>) and the right ones appear each morning.
+      </div>
     </div>
   );
 }
@@ -901,6 +904,18 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* No calls today — explain where the daily call list comes from so it's
+          discoverable (testers couldn't find it on a fresh account). Only when the
+          agent has other activity; a fully-empty day shows EmptyState instead. */}
+      {callsDue.length === 0 && totalVisible > 0 && (
+        <div style={{ marginBottom: 16 }}>
+          <SectionHeader label={"📞 CALLS DUE TODAY"} count={"0"} color={"#0c4a6e"} />
+          <div style={{ background: "#eff6ff", border: "1px solid #93c5fd", borderRadius: 8, padding: "10px 12px", fontSize: 12, color: "#1e3a8a" }}>
+            No calls scheduled for today. Your daily call list builds itself from your <b>Contacts</b> — add people and set follow-ups (<b>⚙️ Menu → Contacts</b>) and the right ones appear here each morning.
+          </div>
         </div>
       )}
 
