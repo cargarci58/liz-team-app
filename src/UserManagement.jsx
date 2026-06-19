@@ -20,6 +20,8 @@ export default function UserManagement({ onClose }) {
   const [inviting, setInviting] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [invitedCreds, setInvitedCreds] = useState(null); // { name, email, tempPassword, loginUrl, existing }
+  const [copied, setCopied] = useState(false);
   const [form, setForm] = useState({ firstName: "", lastName: "", email: "", phone: "", role: "agent" });
 
   const tok = localStorage.getItem("tp_token") || "";
@@ -35,17 +37,34 @@ export default function UserManagement({ onClose }) {
 
   const handleInvite = async (e) => {
     e.preventDefault();
-    setError(""); setInviting(true);
+    setError(""); setSuccess(""); setInvitedCreds(null); setCopied(false); setInviting(true);
     try {
       const res = await fetch(`${API}/auth/invite`, { method: "POST", headers, body: JSON.stringify(form) });
       const data = await res.json();
       if (!res.ok) { setError(data.error || "Invite failed"); return; }
       setUsers(prev => [...prev, { ...data.user, is_active: true, created_at: new Date().toISOString() }]);
-      setSuccess(`Invite sent to ${form.email}! They'll receive their login credentials by email.`);
+      // Show the login details so they can be shared directly — the email send is
+      // best-effort and can fail, so the invite must never depend on it alone.
+      setInvitedCreds({
+        name: `${form.firstName} ${form.lastName}`.trim(),
+        email: form.email,
+        tempPassword: data.tempPassword || "",
+        loginUrl: data.loginUrl || "https://thelizteam.netlify.app",
+        existing: !!data.existing,
+      });
       setForm({ firstName: "", lastName: "", email: "", phone: "", role: "agent" });
       setShowInvite(false);
     } catch { setError("Could not send invite. Try again."); }
     finally { setInviting(false); }
+  };
+
+  const inviteShareText = (c) => c.existing
+    ? `You've been added to TransactPro.\n\nLog in at: ${c.loginUrl}\nEmail: ${c.email}\nUse your existing TransactPro password.`
+    : `You've been invited to TransactPro.\n\nLog in at: ${c.loginUrl}\nEmail: ${c.email}\nTemporary password: ${c.tempPassword}\n\nPlease change your password after your first login.`;
+
+  const copyInvite = async (c) => {
+    try { await navigator.clipboard.writeText(inviteShareText(c)); setCopied(true); setTimeout(() => setCopied(false), 2000); }
+    catch { setError("Couldn't copy automatically — select the details and copy manually."); }
   };
 
   const toggleActive = async (user) => {
@@ -91,6 +110,34 @@ export default function UserManagement({ onClose }) {
         {/* Success/Error */}
         {success && <div style={{ background: C.successBg, color: C.success, padding: "12px 24px", fontSize: 13 }}>✅ {success}</div>}
         {error && <div style={{ background: C.lightRed, color: C.darkRed, padding: "12px 24px", fontSize: 13 }}>⚠️ {error}</div>}
+
+        {/* Invite credentials — shown after a successful invite so they can be
+            shared directly (text/WhatsApp/in person) even if the email doesn't land. */}
+        {invitedCreds && (
+          <div style={{ background: "#FFF9E6", border: `1px solid #F1C40F`, margin: "12px 24px", borderRadius: 10, padding: 16 }}>
+            <div style={{ fontWeight: 800, fontSize: 14, color: C.black, marginBottom: 4 }}>
+              ✅ {invitedCreds.name || invitedCreds.email} added to your team
+            </div>
+            <div style={{ fontSize: 12, color: C.gray, marginBottom: 12 }}>
+              We also emailed them these login details. In case the email doesn't arrive, you can copy and send them directly:
+            </div>
+            <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 8, padding: 12, fontSize: 13, lineHeight: 1.7 }}>
+              <div><strong>Login link:</strong> {invitedCreds.loginUrl}</div>
+              <div><strong>Email:</strong> {invitedCreds.email}</div>
+              {invitedCreds.existing
+                ? <div><strong>Password:</strong> their existing TransactPro password</div>
+                : <div><strong>Temporary password:</strong> <span style={{ fontFamily: "monospace", background: C.lightGray, padding: "1px 6px", borderRadius: 4 }}>{invitedCreds.tempPassword}</span></div>}
+            </div>
+            <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+              <button onClick={() => copyInvite(invitedCreds)} style={{ padding: "8px 16px", background: C.red, color: C.white, border: "none", borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>
+                {copied ? "✓ Copied!" : "📋 Copy login details"}
+              </button>
+              <button onClick={() => setInvitedCreds(null)} style={{ padding: "8px 16px", background: "none", border: `1px solid ${C.midGray}`, borderRadius: 8, cursor: "pointer", fontFamily: "inherit", fontSize: 13 }}>
+                Done
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Invite Form */}
         {showInvite && (
