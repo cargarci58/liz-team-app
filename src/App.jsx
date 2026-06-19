@@ -5827,7 +5827,10 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
 
       {editingParty && (
         <Modal title="Edit Party" onClose={() => setEditingParty(null)}>
-          <Input label="Role" value={editingParty.role} onChange={v => setEditingParty(p => ({ ...p, role: v }))} options={PARTY_ROLES} required />
+          <Input label="Role" value={PARTY_ROLES.includes(editingParty.role) ? editingParty.role : "Other"} onChange={v => setEditingParty(p => ({ ...p, role: v }))} options={PARTY_ROLES} required />
+          {(editingParty.role === "Other" || (editingParty.role && !PARTY_ROLES.includes(editingParty.role))) && (
+            <Input label="Specify role" value={editingParty.role === "Other" ? "" : editingParty.role} onChange={v => setEditingParty(p => ({ ...p, role: v.trim() ? v : "Other" }))} placeholder="e.g. Notary, Surveyor, Co-buyer" />
+          )}
           <Input label="Full Name" value={editingParty.name} onChange={v => setEditingParty(p => ({ ...p, name: v }))} required />
           <Input label="Company / Brokerage" value={editingParty.company || ""} onChange={v => setEditingParty(p => ({ ...p, company: v }))} />
           <Input label="Email" value={editingParty.email || ""} onChange={v => setEditingParty(p => ({ ...p, email: v }))} type="email" />
@@ -5909,7 +5912,10 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
               <span style={{ fontSize: 12, color: COLORS.muted, marginLeft: 10 }}>(transaction-party shortcuts)</span>
             </div>
           )}
-          <Input label="Role" value={partyForm.role} onChange={v => setPartyForm(f => ({ ...f, role: v }))} options={PARTY_ROLES} required />
+          <Input label="Role" value={PARTY_ROLES.includes(partyForm.role) ? partyForm.role : "Other"} onChange={v => setPartyForm(f => ({ ...f, role: v }))} options={PARTY_ROLES} required />
+          {(partyForm.role === "Other" || (partyForm.role && !PARTY_ROLES.includes(partyForm.role))) && (
+            <Input label="Specify role" value={partyForm.role === "Other" ? "" : partyForm.role} onChange={v => setPartyForm(f => ({ ...f, role: v.trim() ? v : "Other" }))} placeholder="e.g. Notary, Surveyor, Co-buyer" />
+          )}
           <Input label="Full Name" value={partyForm.name} onChange={v => setPartyForm(f => ({ ...f, name: v }))} required />
           <Input label="Company / Brokerage" value={partyForm.company} onChange={v => setPartyForm(f => ({ ...f, company: v }))} />
           <Input label="Email" value={partyForm.email} onChange={v => setPartyForm(f => ({ ...f, email: v }))} type="email" />
@@ -8040,7 +8046,10 @@ function ContactBook({ contacts, onClose, onSelect, onAdd, onEdit, onDelete }) {
             <div style={{ fontSize: 13, fontWeight: 700, color: COLORS.navy, marginBottom: 12 }}>{editingContact ? "Edit Contact" : "New Contact"}</div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, "data-form-grid": "" }}>
               <Input label="Full Name" value={form.name} onChange={f("name")} required />
-              <Input label="Role" value={form.role} onChange={f("role")} options={PARTY_ROLES} required />
+              <Input label="Role" value={PARTY_ROLES.includes(form.role) ? form.role : "Other"} onChange={f("role")} options={PARTY_ROLES} required />
+              {(form.role === "Other" || (form.role && !PARTY_ROLES.includes(form.role))) && (
+                <Input label="Specify role" value={form.role === "Other" ? "" : form.role} onChange={v => f("role")(v.trim() ? v : "Other")} placeholder="e.g. Notary, Surveyor, Co-buyer" />
+              )}
               <Input label="Company / Brokerage" value={form.company} onChange={f("company")} />
               <Input label="Email" value={form.email} onChange={f("email")} type="email" />
               <Input label="Cell Phone" value={form.phone} onChange={f("phone")} type="tel" />
