@@ -802,7 +802,7 @@ function AddExpenseModal({ categories, expense, allExpenses, onClose, onSaved })
           value={notes}
           onChange={e => setNotes(e.target.value)}
           rows={3}
-          placeholder="e.g. Client lunch with the Garcias re: 123 Oak Dr listing"
+          placeholder="e.g. Client lunch with the Smiths re: 123 Oak Dr listing"
           style={{ ...inputStyle, fontFamily: 'inherit', resize: 'vertical' }}
         />
       </Field>

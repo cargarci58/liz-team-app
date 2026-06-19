@@ -175,9 +175,9 @@ export default function LoginScreen({ onLogin }) {
               <label style={lbl}>Brokerage / Business Name</label>
               <input name="brokerageName" type="text" required style={inp} placeholder="ABC Realty or Your Name Realty" />
               <label style={lbl}>Your First Name</label>
-              <input name="firstName" type="text" required style={inp} placeholder="Carlos" />
+              <input name="firstName" type="text" required style={inp} placeholder="Jane" />
               <label style={lbl}>Your Last Name</label>
-              <input name="lastName" type="text" required style={inp} placeholder="Garcia" />
+              <input name="lastName" type="text" required style={inp} placeholder="Smith" />
               <label style={lbl}>Email</label>
               <input name="email" type="email" autoComplete="email" required style={inp} placeholder="you@youremail.com" />
               <label style={lbl}>Phone</label>

@@ -189,7 +189,7 @@ export default function CompanySettings({ onClose, onChangePassword }) {
           <div style={{ display: "grid", gridTemplateColumns: "1fr 80px 120px", gap: 12, marginBottom: 16 }}>
             <div>
               <label style={lbl}>City</label>
-              <input value={form.city || ""} onChange={e => f("city")(e.target.value)} placeholder="Orlando" style={inp} />
+              <input value={form.city || ""} onChange={e => f("city")(e.target.value)} placeholder="City" style={inp} />
             </div>
             <div>
               <label style={lbl}>State</label>
@@ -197,7 +197,7 @@ export default function CompanySettings({ onClose, onChangePassword }) {
             </div>
             <div>
               <label style={lbl}>ZIP</label>
-              <input value={form.zip || ""} onChange={e => f("zip")(e.target.value)} placeholder="32801" style={inp} />
+              <input value={form.zip || ""} onChange={e => f("zip")(e.target.value)} placeholder="ZIP code" style={inp} />
             </div>
           </div>
 

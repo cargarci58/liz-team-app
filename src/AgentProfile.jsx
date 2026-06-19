@@ -119,11 +119,11 @@ export default function AgentProfile({ onClose, currentUser }) {
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16 }}>
               <div>
                 <label style={lbl}>First Name</label>
-                <input value={form.firstName} onChange={e => setForm(f => ({ ...f, firstName: e.target.value }))} style={inp} placeholder="Carlos" />
+                <input value={form.firstName} onChange={e => setForm(f => ({ ...f, firstName: e.target.value }))} style={inp} placeholder="Jane" />
               </div>
               <div>
                 <label style={lbl}>Last Name</label>
-                <input value={form.lastName} onChange={e => setForm(f => ({ ...f, lastName: e.target.value }))} style={inp} placeholder="Garcia" />
+                <input value={form.lastName} onChange={e => setForm(f => ({ ...f, lastName: e.target.value }))} style={inp} placeholder="Smith" />
               </div>
             </div>
 
@@ -145,11 +145,11 @@ export default function AgentProfile({ onClose, currentUser }) {
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 8 }}>
               <div>
                 <label style={lbl}>City</label>
-                <input value={form.city} onChange={e => setForm(f => ({ ...f, city: e.target.value }))} style={inp} placeholder="Orlando" />
+                <input value={form.city} onChange={e => setForm(f => ({ ...f, city: e.target.value }))} style={inp} placeholder="City" />
               </div>
               <div>
                 <label style={lbl}>County</label>
-                <input value={form.county} onChange={e => setForm(f => ({ ...f, county: e.target.value }))} style={inp} placeholder="Orange" />
+                <input value={form.county} onChange={e => setForm(f => ({ ...f, county: e.target.value }))} style={inp} placeholder="County" />
               </div>
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 18 }}>
@@ -159,7 +159,7 @@ export default function AgentProfile({ onClose, currentUser }) {
               </div>
               <div>
                 <label style={lbl}>Zip</label>
-                <input value={form.zip} onChange={e => setForm(f => ({ ...f, zip: e.target.value }))} style={inp} placeholder="32801" />
+                <input value={form.zip} onChange={e => setForm(f => ({ ...f, zip: e.target.value }))} style={inp} placeholder="ZIP code" />
               </div>
             </div>
             <div style={{ fontSize: 11, color: "#888", marginTop: -8, marginBottom: 16 }}>Your home market — used to default the property-tax rate on net sheets.</div>
