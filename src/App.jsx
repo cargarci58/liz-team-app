@@ -6595,7 +6595,7 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
 
 // --- NEW TRANSACTION ──────────────────────────────────────────
 function NewTransactionForm({ onSave, onCancel, prefill = null, cmaId = null }) {
-  const [form, setForm] = useState({ address: "", city: "", county: "Osceola", zipCode: "", type: "Listing (Seller)", propertyType: "Single Family", constructionType: "Resale", listPrice: "", contractPrice: "", mlsNumber: "", openDate: today(), closingDate: "", executedDate: "", representationExpiresOn: "", leaseTerm: "1 Year", notes: "", status: "Active", assignedAgent: "", referralSource: "", occupancyStatus: "", propertyAccess: "", commissionListing: "", commissionBuyer: "", transactionFee: "", brokerageSplit: "", officeFlatFee: "", commissionNotes: "", ...(prefill || {}) });
+  const [form, setForm] = useState({ address: "", city: "", county: "Osceola", zipCode: "", type: "Listing (Seller)", propertyType: "Single Family", constructionType: "Resale", listPrice: "", contractPrice: "", mlsNumber: "", openDate: today(), closingDate: "", executedDate: "", representationExpiresOn: "", leaseTerm: "1 Year", notes: "", status: "Active", assignedAgent: "", referralSource: "", occupancyStatus: "", propertyAccess: "", commissionListing: "", commissionBuyer: "", transactionFee: "", brokerageSplit: "", officeFlatFee: "", commissionNotes: "", clientName: "", clientEmail: "", clientPhone: "", ...(prefill || {}) });
   const [teamAgents, setTeamAgents] = useState([]);
   useEffect(() => { const tok = localStorage.getItem("tp_token") || ""; fetch(API + "/users", { headers: { "Authorization": "Bearer " + tok } }).then(r => r.json()).then(d => { if (d.users) setTeamAgents(d.users.filter(u => u.role === "agent" || u.role === "admin" || u.role === "superadmin")); }).catch(e => console.error("[bg]", e && e.message ? e.message : e)); }, []);
   const [useFLTemplates, setUseFLTemplates] = useState(true);
@@ -6616,12 +6616,26 @@ function NewTransactionForm({ onSave, onCancel, prefill = null, cmaId = null }) 
     if (!form.inHoa) { alert("Please answer whether the property is in an HOA or condo association — it determines whether the HOA disclosure is required."); return; }
     const contractDate = form.executedDate || form.openDate;
     const tasks = useFLTemplates ? taskTemplates.filter(t => t.phase === "active").map(t => ({ id: genId(), name: t.task_name, category: t.category, assignTo: t.default_assignee_role, dueDate: null, status: "Pending", notes: "", phase: "active" })) : [];
+    // If the agent entered their client up front, seed them as the first party
+    // with the role implied by the side of the deal. Optional — a blank client
+    // just creates the deal with no parties (added later in the Parties tab).
+    const clientRole = /buyer/i.test(form.type) ? "Buyer"
+      : form.type === "Lease — Tenant" ? "Tenant"
+      : form.type === "Lease — Landlord" ? "Landlord"
+      : "Seller";
+    const initialParties = (form.clientName || form.clientEmail) ? [{
+      role: clientRole,
+      name: (form.clientName || "").trim(),
+      email: (form.clientEmail || "").trim(),
+      phone: (form.clientPhone || "").trim(),
+      company: "",
+    }] : [];
     const tok = localStorage.getItem("tp_token") || "";
     try {
       const res = await fetch(API + "/transactions", {
         method: "POST",
         headers: { "Content-Type": "application/json", "Authorization": "Bearer " + tok },
-        body: JSON.stringify({ ...form, parties: [], tasks, reminders: [], smsThreads: {} }),
+        body: JSON.stringify({ ...form, parties: initialParties, tasks, reminders: [], smsThreads: {} }),
       });
       const data = await res.json();
       if (data.success && data.transaction) {
@@ -6655,7 +6669,7 @@ function NewTransactionForm({ onSave, onCancel, prefill = null, cmaId = null }) 
           brokerageSplit: t.brokerage_split || form.brokerageSplit,
           officeFlatFee: t.office_flat_fee || form.officeFlatFee,
           commissionNotes: t.commission_notes || form.commissionNotes,
-          smsThreads: {}, parties: [], tasks, messages: [], reminders: [],
+          smsThreads: {}, parties: initialParties, tasks, messages: [], reminders: [],
         });
       } else {
         alert("Failed to save transaction: " + (data.error || "Unknown error"));
@@ -6681,6 +6695,15 @@ function NewTransactionForm({ onSave, onCancel, prefill = null, cmaId = null }) 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}><Input label="Construction Type" value={form.constructionType} onChange={f("constructionType")} options={["Resale","New Construction","Vacant Land","Commercial"]} /><Input label="Occupancy Status" value={form.occupancyStatus} onChange={f("occupancyStatus")} options={OCCUPANCY_OPTIONS} required /></div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}><Input label="Year Built" value={form.yearBuilt} onChange={f("yearBuilt")} type="number" placeholder="e.g. 1998" required /><Input label="In an HOA / Condo Association?" value={form.inHoa} onChange={f("inHoa")} options={["", "Yes", "No"]} required /></div>
           <div style={{ fontSize: 11, color: COLORS.muted, marginTop: -8 }}>Required — set which disclosures apply (lead-based paint on pre-1978 homes; HOA disclosure when in an association).</div>
+        </div>
+        <div style={{ background: "#fff", border: `1px solid ${COLORS.border}`, borderRadius: 14, padding: 28, marginBottom: 20 }}>
+          <h3 style={{ margin: "0 0 6px", fontSize: 15, color: COLORS.navy, fontWeight: 700 }}>Your Client {/buyer/i.test(form.type) ? "(Buyer)" : form.type === "Lease — Tenant" ? "(Tenant)" : form.type === "Lease — Landlord" ? "(Landlord)" : "(Seller)"}</h3>
+          <div style={{ fontSize: 12, color: COLORS.muted, margin: "0 0 16px" }}>Add the person you represent now so they're on the deal and ready for the welcome email. Optional — you can also add or change clients later in the Parties tab.</div>
+          <Input label="Client Name" value={form.clientName} onChange={f("clientName")} placeholder="e.g. Jane Smith" />
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+            <Input label="Client Email" value={form.clientEmail} onChange={f("clientEmail")} placeholder="jane@email.com" />
+            <Input label="Client Phone" value={form.clientPhone} onChange={f("clientPhone")} placeholder="(407) 555-0100" />
+          </div>
         </div>
         <div style={{ background: "#fff", border: `1px solid ${COLORS.border}`, borderRadius: 14, padding: 28, marginBottom: 20 }}>
           <h3 style={{ margin: "0 0 20px", fontSize: 15, color: COLORS.navy, fontWeight: 700 }}>Pricing & Dates</h3>
