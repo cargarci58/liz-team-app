@@ -2862,22 +2862,24 @@ function MilestonesTab({ tx, token, onSummaryChange, coordinatorMode = false }) 
             background: progress === 100 ? "#1E8449" : "#C0392B",
             borderRadius: 20, transition: "width 0.4s ease" }} />
         </div>
-        {!coordinatorMode && (
         <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
+          {/* Recalculate Dates is coordination, not financial — available to the
+              coordinator too. Reset & Rebuild stays agent-only. */}
           <button onClick={handleRecalc} disabled={recalcing}
             style={{ fontSize: 11, fontWeight: 600, color: "#0c4a6e", background: "#E0F2FE",
               border: "1px solid #7DD3FC", borderRadius: 8, padding: "5px 12px", cursor: "pointer" }}
             title="Recalculate every milestone due date from the contract (executed) date, and show the dates. Keeps your progress — only dates change.">
             {recalcing ? "Recalculating…" : "🔧 Recalculate Dates"}
           </button>
+          {!coordinatorMode && (
           <button onClick={handleReset} disabled={resetting}
             style={{ fontSize: 11, fontWeight: 600, color: "#555", background: "#F9FAFB",
               border: "1px solid #E5E7EB", borderRadius: 8, padding: "5px 12px", cursor: "pointer" }}
             title="Clear and rebuild this deal's full timeline from the latest template. Documents and parties are not touched.">
             {resetting ? "Rebuilding…" : "🔄 Reset & Rebuild Checklist"}
           </button>
+          )}
         </div>
-        )}
       </div>
 
       {orderedPhases.map((phaseKey) => {
