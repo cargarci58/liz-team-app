@@ -422,7 +422,8 @@ function GoalPlannerTab({ transactions }) {
           <div style={{ fontWeight: 700, fontSize: 15, color: COLORS.navy, marginBottom: 16 }}>Your Targets</div>
 
           <label style={labelStyle}>Net income goal (per year)</label>
-          <input type="number" value={incomeGoal} onChange={e => setIncomeGoal(Number(e.target.value))} style={{ ...inputStyle, marginBottom: 16 }} />
+          {/* step=1000 so the up/down arrows jump by $1,000 instead of $1 (tester #14) */}
+          <input type="number" step="1000" min="0" value={incomeGoal} onChange={e => setIncomeGoal(Number(e.target.value))} style={{ ...inputStyle, marginBottom: 16 }} />
 
           <label style={labelStyle}>Lead-generation method</label>
           <select value={method} onChange={e => changeMethod(e.target.value)} style={{ ...inputStyle, marginBottom: 16 }}>
@@ -430,7 +431,8 @@ function GoalPlannerTab({ transactions }) {
           </select>
 
           <label style={labelStyle}>Avg net commission per closing</label>
-          <input type="number" value={avgNet} onChange={e => setAvgNet(Number(e.target.value))} style={{ ...inputStyle, marginBottom: 4 }} />
+          {/* step=500 so the arrows move by $500 rather than $1 (tester #14) */}
+          <input type="number" step="500" min="0" value={avgNet} onChange={e => setAvgNet(Number(e.target.value))} style={{ ...inputStyle, marginBottom: 4 }} />
           <div style={{ fontSize: 11, color: COLORS.gray, marginBottom: 16 }}>
             {closedAvgNet ? `Your closed-deal average: ${fmt(closedAvgNet)}` : "No closed deals yet — using an estimate."}
           </div>
