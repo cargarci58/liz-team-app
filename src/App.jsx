@@ -6545,7 +6545,11 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
                   // and let empty strings through — otherwise clearing a field silently
                   // saves the old value. Also: the form writes to `assignedAgent` but
                   // updateTransaction reads `assignedAgentId` — map the new value over.
-                  const updated = { ...tx, ...editTxForm, assignedAgentId: editTxForm.assignedAgent };
+                  // Also map the new agent's NAME so the deal/card updates immediately
+                  // instead of showing the old name until a manual reload. (tester #10)
+                  const _assignedMember = teamMembers.find(m => String(m.id) === String(editTxForm.assignedAgent));
+                  const updated = { ...tx, ...editTxForm, assignedAgentId: editTxForm.assignedAgent,
+                    assignedAgentName: _assignedMember ? `${_assignedMember.first_name} ${_assignedMember.last_name}` : (editTxForm.assignedAgent ? tx.assignedAgentName : "") };
                   // Recompute contract-phase task deadlines whenever ANY of the basis
                   // dates change (closing, executed, open). These are legal deadlines
                   // — if the contract is re-executed, inspection-period and EMD
