@@ -1209,7 +1209,10 @@ function SMSPanel({ tx, onUpdate, currentUser }) {
   };
 
   // ── Group send (pick who — some, all, or type in others) ──────
-  const gContactable = tx.parties.filter(p => (p.email && p.email.trim()) || (p.phone && p.phone.trim()));
+  // HOA managers are reference-only — never messaged/emailed/invited (matches the
+  // welcome-email + invite rules elsewhere). Exclude them so they can't be picked,
+  // and so "Select all" never includes them. (tester finding #12)
+  const gContactable = tx.parties.filter(p => ((p.email && p.email.trim()) || (p.phone && p.phone.trim())) && !/hoa/i.test(p.role || ""));
   // null = everyone (default); otherwise the explicit subset the agent ticked.
   const gSelectedSet = gSelectedIds === null ? new Set(gContactable.map(p => p.id)) : gSelectedIds;
   const isRecipientOn = (id) => gSelectedSet.has(id);
