@@ -4282,7 +4282,21 @@ function InboundRepliesPanel({ tx }) {
               <span style={{ fontSize: 12, color: COLORS.gray }}>{when}</span>
             </div>
             {m.subject && <div style={{ fontWeight: 600, color: COLORS.navy, marginBottom: 6 }}>{m.subject}</div>}
-            <div style={{ whiteSpace: "pre-wrap", color: "#333", fontSize: 14, lineHeight: 1.5 }}>{m.body_text || m.snippet || ""}</div>
+            {(m.body_text || m.snippet)
+              ? <div style={{ whiteSpace: "pre-wrap", color: "#333", fontSize: 14, lineHeight: 1.5 }}>{m.body_text || m.snippet}</div>
+              : (
+                <div style={{ fontSize: 13, color: COLORS.gray }}>
+                  <span style={{ fontStyle: "italic" }}>No readable text was extracted from this reply.</span>{" "}
+                  <button onClick={async () => {
+                    try {
+                      const r = await fetch(`${API}/inbound-emails/${m.id}/raw`, { headers: { Authorization: "Bearer " + tok } });
+                      const d = await r.json();
+                      if (d.hasRaw && (d.readable || d.raw)) alert("Original reply:\n\n" + (d.readable || d.raw));
+                      else alert("The original content wasn't saved for this reply (it arrived before we started keeping a copy). Ask the sender to resend, or check any attachment above.");
+                    } catch (e) { alert("Could not load the original: " + e.message); }
+                  }} style={{ background: "none", border: "none", color: COLORS.navy, textDecoration: "underline", cursor: "pointer", fontSize: 13, fontWeight: 600, padding: 0 }}>View original email</button>
+                </div>
+              )}
             {atts.length > 0 && (
               <div style={{ marginTop: 12, borderTop: `1px solid ${COLORS.border}`, paddingTop: 10 }}>
                 <div style={{ fontSize: 12, fontWeight: 700, color: COLORS.gray, marginBottom: 6 }}>📎 Attachments</div>

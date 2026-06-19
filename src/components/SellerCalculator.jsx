@@ -292,9 +292,13 @@ export default function SellerCalculator({ transactionId, token, county } = {}) 
         </div>
       </details>
 
-      <div style={{ background: "linear-gradient(135deg, #0c4a6e, #075985)", color: "white", padding: 20, borderRadius: 12 }}>
-        <div style={{ fontSize: 13, opacity: 0.9, marginBottom: 4 }}>Estimated Net Proceeds</div>
-        <div style={{ fontSize: 36, fontWeight: 800 }}>{money(result.netProceeds)}</div>
+      {/* Net can be NEGATIVE (underwater payoff / heavy concessions) — the seller
+          would BRING cash to closing, not receive it. Flip label + color so it's
+          never a confusing "-$X you receive". */}
+      <div style={{ background: result.netProceeds < 0 ? "linear-gradient(135deg, #991B1B, #7F1D1D)" : "linear-gradient(135deg, #0c4a6e, #075985)", color: "white", padding: 20, borderRadius: 12 }}>
+        <div style={{ fontSize: 13, opacity: 0.9, marginBottom: 4 }}>{result.netProceeds < 0 ? "Estimated Cash to Bring to Closing" : "Estimated Net Proceeds"}</div>
+        <div style={{ fontSize: 36, fontWeight: 800 }}>{money(Math.abs(result.netProceeds))}</div>
+        {result.netProceeds < 0 && <div style={{ fontSize: 12.5, opacity: 0.95, marginTop: 4 }}>Costs exceed proceeds at this price — the seller brings this amount to closing.</div>}
         <div style={{ fontSize: 13, opacity: 0.95, marginTop: 12, borderTop: "1px solid rgba(255,255,255,0.3)", paddingTop: 12, lineHeight: 1.8 }}>
           <div>Sale Price: <strong>{money(salePrice)}</strong></div>
           <div>− Mortgage Payoff: <strong>{money(mortgagePayoff)}</strong></div>

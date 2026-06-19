@@ -429,10 +429,15 @@ function SellerOffersCard({ offers, context, headers, agentName, onDecided }) {
             {(() => {
               const net = estimateSellerNet(o, context);
               if (!net) return null;
+              // Net can be NEGATIVE (underwater payoff / heavy concessions) — the
+              // seller would have to BRING cash to closing, not receive it. Flip
+              // the wording so it's never a confusing "-$X you receive".
+              const owes = net.netProceeds < 0;
               return (
-                <div style={{ marginTop: 12, background: "#F0F7FB", border: "1px solid #BFDBEF", borderRadius: 10, padding: 14 }}>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: "#0c4a6e", textTransform: "uppercase", letterSpacing: 0.5 }}>Estimated net proceeds at this price</div>
-                  <div style={{ fontSize: 26, fontWeight: 800, color: "#0c4a6e", lineHeight: 1.2, margin: "2px 0 8px" }}>{money(net.netProceeds)}</div>
+                <div style={{ marginTop: 12, background: owes ? "#FEF2F2" : "#F0F7FB", border: "1px solid " + (owes ? "#FCA5A5" : "#BFDBEF"), borderRadius: 10, padding: 14 }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: owes ? "#991B1B" : "#0c4a6e", textTransform: "uppercase", letterSpacing: 0.5 }}>{owes ? "Estimated cash to bring to closing" : "Estimated net proceeds at this price"}</div>
+                  <div style={{ fontSize: 26, fontWeight: 800, color: owes ? "#991B1B" : "#0c4a6e", lineHeight: 1.2, margin: "2px 0 8px" }}>{money(Math.abs(net.netProceeds))}</div>
+                  {owes && <div style={{ fontSize: 12, color: "#991B1B", marginTop: -4, marginBottom: 8, lineHeight: 1.4 }}>At this price the costs exceed the proceeds, so you'd need to bring this amount to closing. Your agent can walk you through options.</div>}
                   <details>
                     <summary style={{ cursor: "pointer", fontSize: 12.5, fontWeight: 700, color: "#0c4a6e" }}>See how this is calculated</summary>
                     <table style={{ width: "100%", marginTop: 8, fontSize: 12.5, color: C.gray }}>
@@ -444,7 +449,7 @@ function SellerOffersCard({ offers, context, headers, agentName, onDecided }) {
                         <tr><td style={{ padding: "3px 0" }}>− Title & closing fees (est.)</td><td style={{ textAlign: "right", fontWeight: 600 }}>−{money(net.titleFees)}</td></tr>
                         <tr><td style={{ padding: "3px 0" }}>− Prorated property taxes</td><td style={{ textAlign: "right", fontWeight: 600 }}>−{money(net.proratedTaxes)}</td></tr>
                         <tr><td style={{ padding: "3px 0" }}>− Recording fees</td><td style={{ textAlign: "right", fontWeight: 600 }}>−{money(net.recording)}</td></tr>
-                        <tr style={{ borderTop: "1px solid #BFDBEF" }}><td style={{ padding: "5px 0", fontWeight: 800, color: C.black }}>Estimated net to you</td><td style={{ textAlign: "right", fontWeight: 800, color: "#0c4a6e" }}>{money(net.netProceeds)}</td></tr>
+                        <tr style={{ borderTop: "1px solid #BFDBEF" }}><td style={{ padding: "5px 0", fontWeight: 800, color: C.black }}>{owes ? "Cash to bring to closing" : "Estimated net to you"}</td><td style={{ textAlign: "right", fontWeight: 800, color: owes ? "#991B1B" : "#0c4a6e" }}>{money(Math.abs(net.netProceeds))}</td></tr>
                       </tbody>
                     </table>
                     <div style={{ fontSize: 11, color: C.gray, marginTop: 6, lineHeight: 1.4 }}>
