@@ -2556,6 +2556,33 @@ function MilestonesTab({ tx, token, onSummaryChange, coordinatorMode = false }) 
     setResetting(false);
   };
 
+  // Recalculate every milestone due date from the deal's contract (executed) date
+  // and refresh Win-the-Day. Shows the resulting dates so you can SEE what's set —
+  // the definitive fix + diagnostic for any "dates look wrong" situation. Keeps
+  // your progress (only dates change), unlike Reset & Rebuild.
+  const [recalcing, setRecalcing] = useState(false);
+  const handleRecalc = async () => {
+    setRecalcing(true);
+    try {
+      const res = await fetch(API + "/transactions/" + tx.id + "/recalculate-dates", {
+        method: "POST", headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" }
+      });
+      const d = await res.json();
+      if (!res.ok || !d.success) throw new Error(d.error || "Failed");
+      await fetchMilestones();
+      const lines = (d.milestones || []).slice(0, 30).map(m => `• ${m.name}: ${m.due || "no date yet"}`).join("\n");
+      alert(
+        `Dates recalculated from the contract date.\n\n` +
+        `Contract (executed) date: ${d.executedDate || "NOT SET"}\n` +
+        `Closing date: ${d.closingDate || "not set"}\n` +
+        `Status: ${d.status}\n` +
+        `Updated ${d.changed} date${d.changed === 1 ? "" : "s"}.\n\n` +
+        `Timeline now:\n${lines}`
+      );
+    } catch (e) { alert("Could not recalculate: " + e.message); }
+    setRecalcing(false);
+  };
+
   const handleComplete = async (milestoneId) => {
     setCompleting(milestoneId);
     try {
@@ -2836,7 +2863,13 @@ function MilestonesTab({ tx, token, onSummaryChange, coordinatorMode = false }) 
             borderRadius: 20, transition: "width 0.4s ease" }} />
         </div>
         {!coordinatorMode && (
-        <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 10 }}>
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
+          <button onClick={handleRecalc} disabled={recalcing}
+            style={{ fontSize: 11, fontWeight: 600, color: "#0c4a6e", background: "#E0F2FE",
+              border: "1px solid #7DD3FC", borderRadius: 8, padding: "5px 12px", cursor: "pointer" }}
+            title="Recalculate every milestone due date from the contract (executed) date, and show the dates. Keeps your progress — only dates change.">
+            {recalcing ? "Recalculating…" : "🔧 Recalculate Dates"}
+          </button>
           <button onClick={handleReset} disabled={resetting}
             style={{ fontSize: 11, fontWeight: 600, color: "#555", background: "#F9FAFB",
               border: "1px solid #E5E7EB", borderRadius: 8, padding: "5px 12px", cursor: "pointer" }}
