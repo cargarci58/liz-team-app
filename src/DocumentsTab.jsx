@@ -442,7 +442,10 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
         </div>
       ) : (
         <div>
-          <div style={{ fontWeight: 700, marginBottom: 12, fontSize: 14 }}>{docs.length} document{docs.length !== 1 ? "s" : ""}</div>
+          <div style={{ fontWeight: 700, marginBottom: 4, fontSize: 14 }}>{docs.length} document{docs.length !== 1 ? "s" : ""}</div>
+          <div style={{ fontSize: 12, color: COLORS.muted, marginBottom: 12, background: "#F6F8FA", border: "1px solid #E5E7EB", borderRadius: 8, padding: "7px 10px" }}>
+            💡 Each file has a <b>👁 Client can view</b> / <b>🔒 Hidden</b> button — tap it to control whether your client sees that file in their portal. New uploads are <b>Hidden</b> by default.
+          </div>
           {(() => {
             // Group into folders: an offer's docs carry a `folder` (e.g. "Offer — John Doe");
             // everything else groups under its category.
@@ -473,8 +476,9 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
                     </div>
                     <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
                       <button onClick={() => toggleVisibility(doc)}
-                        style={{ padding: "4px 8px", borderRadius: 6, border: "1px solid #DDDDDD", background: doc.is_visible_to_client ? "#D5F5E3" : "#F5F5F5", cursor: "pointer", fontSize: 11 }}>
-                        {doc.is_visible_to_client ? "👁 Client" : "🔒 Private"}
+                        title={doc.is_visible_to_client ? "Your client CAN see this file in their portal. Click to hide it." : "Your client CANNOT see this file. Click to share it to their portal."}
+                        style={{ padding: "4px 8px", borderRadius: 6, border: doc.is_visible_to_client ? "1px solid #1E8449" : "1px solid #DDDDDD", background: doc.is_visible_to_client ? "#D5F5E3" : "#F5F5F5", cursor: "pointer", fontSize: 11, fontWeight: 600 }}>
+                        {doc.is_visible_to_client ? "👁 Client can view" : "🔒 Hidden"}
                       </button>
                       <button onClick={() => openPreview(doc)} title="Preview"
                         style={{ padding: "4px 10px", borderRadius: 6, border: "1px solid #DDDDDD", background: "#fff", cursor: "pointer", fontSize: 12, color: COLORS.info }}>
