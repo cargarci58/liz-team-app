@@ -252,7 +252,7 @@ function cleanItemTitle(title, address) {
 // One task line inside a deal's grouped card. No outer card chrome / address —
 // the parent DealGroupCard supplies those. `bucket` carries the NOW/TODAY/SOON
 // label + colors for this specific line.
-function TaskItem({ task, bucket, token, onResolve, onComplete, onSnooze, onOpenModal, onStartChase, onOpenTransactionMilestones, onOpenInboundReply, onInboundReply }) {
+function TaskItem({ task, bucket, token, onResolve, onComplete, onSnooze, onOpenModal, onStartChase, onOpenTransactionMilestones, onOpenInboundReply, onInboundReply, onReschedule }) {
   const cfg = bucket || PRIORITY_CONFIG[task.priority] || PRIORITY_CONFIG.normal;
   const icon = TASK_ICONS[task.task_type] || "📌";
   const isSellerUpdate = task.task_type === "seller_update";
@@ -271,6 +271,10 @@ function TaskItem({ task, bucket, token, onResolve, onComplete, onSnooze, onOpen
   const scriptSet = task.task_type === "price_reduction" ? PRICE_REDUCTION_SCRIPTS
     : task.task_type === "buyer_followup" ? BUYER_FOLLOWUP_SCRIPTS : null;
   const [showScripts, setShowScripts] = useState(false);
+  // A milestone-backed line can be rescheduled right here when the date moves.
+  const canReschedule = !!onReschedule && !!task.target_ref_id && /^milestone_/.test(task.task_type || "");
+  const [reschedOpen, setReschedOpen] = useState(false);
+  const [reschedDate, setReschedDate] = useState("");
 
   return (
     <div style={{ paddingTop:2 }}>
@@ -391,12 +395,30 @@ function TaskItem({ task, bucket, token, onResolve, onComplete, onSnooze, onOpen
           </button>
         )}
         <button onClick={() => onSnooze(task.id)}
-          style={{ flex:"1 1 100%", padding:"10px 0", borderRadius:10, marginTop:4,
+          style={{ flex: canReschedule ? "1 1 45%" : "1 1 100%", padding:"10px 0", borderRadius:10, marginTop:4,
             border:"1.5px solid "+COLORS.border, background:COLORS.white,
             color:COLORS.gray, fontWeight:600, fontSize:13, cursor:"pointer" }}>
           ⏰ Not Today
         </button>
+        {canReschedule && (
+          <button onClick={() => setReschedOpen(o => !o)}
+            style={{ flex:"1 1 45%", padding:"10px 0", borderRadius:10, marginTop:4,
+              border:"1.5px solid "+COLORS.border, background:COLORS.white,
+              color:COLORS.gray, fontWeight:600, fontSize:13, cursor:"pointer" }}>
+            📅 Reschedule
+          </button>
+        )}
       </div>
+      {canReschedule && reschedOpen && (
+        <div style={{ display:"flex", gap:8, marginTop:8, alignItems:"center", flexWrap:"wrap" }}>
+          <input type="date" value={reschedDate} onChange={e => setReschedDate(e.target.value)}
+            style={{ padding:"8px 10px", border:"1px solid "+COLORS.border, borderRadius:8, fontSize:14, fontFamily:"inherit" }} />
+          <button disabled={!reschedDate} onClick={() => { onReschedule(task, reschedDate); setReschedOpen(false); }}
+            style={{ padding:"8px 16px", borderRadius:8, border:"none", background: reschedDate ? "#0F6E56" : COLORS.border, color:"#fff", fontWeight:700, fontSize:13, cursor: reschedDate ? "pointer" : "default", fontFamily:"inherit" }}>
+            Set new date
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -413,7 +435,7 @@ const BUCKETS = [
 // One card per TRANSACTION. All of that deal's items are grouped here as lines,
 // most-urgent first — instead of scattering 3-5 separate cards across the page.
 // The card's left bar + header badge reflect the single most-urgent item.
-function DealGroupCard({ deal, token, onResolve, onComplete, onSnooze, onOpenModal, onStartChase, onOpenTransactionMilestones, onOpenInboundReply, onInboundReply, onOpenTransaction }) {
+function DealGroupCard({ deal, token, onResolve, onComplete, onSnooze, onOpenModal, onStartChase, onOpenTransactionMilestones, onOpenInboundReply, onInboundReply, onOpenTransaction, onReschedule }) {
   const top = BUCKETS[deal.rank] || BUCKETS[3];
   return (
     <div style={{ background:COLORS.white, borderRadius:14, padding:16, marginBottom:12,
@@ -442,7 +464,8 @@ function DealGroupCard({ deal, token, onResolve, onComplete, onSnooze, onOpenMod
             onResolve={onResolve} onComplete={onComplete} onSnooze={onSnooze}
             onOpenModal={onOpenModal} onStartChase={onStartChase}
             onOpenTransactionMilestones={onOpenTransactionMilestones}
-            onOpenInboundReply={onOpenInboundReply} onInboundReply={onInboundReply} />
+            onOpenInboundReply={onOpenInboundReply} onInboundReply={onInboundReply}
+            onReschedule={onReschedule} />
         </div>
       ))}
     </div>
@@ -497,7 +520,7 @@ function telHref(raw) {
 }
 
 // ── MAIN DASHBOARD ────────────────────────────────────────────
-export default function DailyDashboard({ token, user, onViewTransactions, onOpenTransactionMilestones, onOpenInboundReply, onOpenPopBys }) {
+export default function DailyDashboard({ token, user, onViewTransactions, onOpenTransactionMilestones, onOpenInboundReply, onOpenPopBys, coordinatorMode = false }) {
   const [tasks, setTasks] = useState({ overdue:[], dueToday:[], upcoming:[] });
   const [personal, setPersonal] = useState({ overdue:[], dueToday:[], upcoming:[] });
   const [callsDue, setCallsDue] = useState([]);
@@ -594,6 +617,23 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
       // Refresh so any downstream changes (compliance badge, progress) show.
       window.dispatchEvent(new Event("wintheday:refresh"));
     } catch (e) {}
+  };
+
+  // Reschedule a milestone-backed line right from Win-the-Day (the date moved).
+  // Routes to /tc/* for a coordinator, /milestones/* for an agent.
+  const handleReschedule = async (task, date) => {
+    if (!task.target_ref_id || !date) return;
+    const base = coordinatorMode ? API + "/tc/milestones/" : API + "/milestones/";
+    try {
+      const r = await fetch(base + task.target_ref_id + "/schedule", {
+        method: "PATCH", headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
+        body: JSON.stringify({ date }),
+      });
+      const d = await r.json();
+      if (!r.ok || !d.success) throw new Error(d.error || "Couldn't reschedule");
+      window.dispatchEvent(new Event("wintheday:refresh"));
+      fetchTasks({ silent: true });
+    } catch (e) { alert("Could not reschedule: " + e.message); }
   };
 
   const handleSnooze = async (taskId) => {
@@ -966,7 +1006,8 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
               onOpenModal={setActiveModal} onStartChase={handleStartChase}
               onOpenTransaction={onOpenTransactionMilestones}
               onOpenTransactionMilestones={onOpenTransactionMilestones}
-              onOpenInboundReply={onOpenInboundReply} onInboundReply={handleInboundReply} />
+              onOpenInboundReply={onOpenInboundReply} onInboundReply={handleInboundReply}
+              onReschedule={handleReschedule} />
           ))}
         </div>
       )}

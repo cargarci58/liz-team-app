@@ -8810,6 +8810,7 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
           <DailyDashboard
             token={localStorage.getItem("tp_token") || ""}
             user={currentUser}
+            coordinatorMode={coordinatorMode}
             onViewTransactions={() => { setShowReports(false); setShowCalendar(false); setView("dashboard"); }}
             onOpenTransactionMilestones={openTransactionMilestones}
             onOpenInboundReply={(txId) => openTransactionMilestones(txId, "replies")}
