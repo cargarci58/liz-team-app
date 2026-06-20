@@ -275,6 +275,26 @@ function TaskItem({ task, bucket, token, onResolve, onComplete, onSnooze, onOpen
   const canReschedule = !!onReschedule && !!task.target_ref_id && /^milestone_/.test(task.task_type || "");
   const [reschedOpen, setReschedOpen] = useState(false);
   const [reschedDate, setReschedDate] = useState("");
+  // REAL ACTION per card — sends the outreach the card is asking for, one tap.
+  const actCfg = task.task_type === "compliance_gap" ? { label: "✉️ Request it" }
+    : task.task_type === "price_reduction" ? { label: "✉️ Email seller" }
+    : (/^milestone_/.test(task.task_type || "") || /^custom_task_/.test(task.task_type || "")) ? { label: "✉️ Send request" }
+    : null;
+  const [sending, setSending] = useState(false);
+  const [sent, setSent] = useState(null);
+  const [actErr, setActErr] = useState("");
+  const doAct = async () => {
+    setSending(true); setActErr("");
+    try {
+      const r = await fetch(API + "/dashboard/tasks/" + task.id + "/act", {
+        method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
+      });
+      const d = await r.json();
+      if (!r.ok || !d.success) throw new Error(d.error || "Couldn't send that");
+      setSent({ to: d.to });
+    } catch (e) { setActErr(e.message); }
+    setSending(false);
+  };
 
   return (
     <div style={{ paddingTop:2 }}>
@@ -417,6 +437,29 @@ function TaskItem({ task, bucket, token, onResolve, onComplete, onSnooze, onOpen
             style={{ padding:"8px 16px", borderRadius:8, border:"none", background: reschedDate ? "#0F6E56" : COLORS.border, color:"#fff", fontWeight:700, fontSize:13, cursor: reschedDate ? "pointer" : "default", fontFamily:"inherit" }}>
             Set new date
           </button>
+        </div>
+      )}
+      {/* REAL ACTION row — take care of the task without leaving the screen. */}
+      {actCfg && (
+        <div style={{ display:"flex", gap:8, marginTop:8, flexWrap:"wrap", alignItems:"center" }}>
+          {!sent && (
+            <button disabled={sending} onClick={doAct}
+              style={{ padding:"9px 16px", borderRadius:10, border:"none",
+                background:"#0F6E56", color:COLORS.white, fontWeight:700, fontSize:13,
+                cursor: sending ? "wait" : "pointer", fontFamily:"inherit" }}>
+              {sending ? "Sending…" : actCfg.label}
+            </button>
+          )}
+          {sent && <span style={{ fontSize:13, color:"#1E8449", fontWeight:700 }}>✓ Sent to {sent.to || "the right party"}</span>}
+          {task.task_type !== "compliance_gap" && task.transaction_id && (
+            <button onClick={() => onOpenTransactionMilestones && onOpenTransactionMilestones(task.transaction_id)}
+              style={{ padding:"9px 16px", borderRadius:10, border:"1.5px solid "+COLORS.border,
+                background:COLORS.white, color:COLORS.gray, fontWeight:600, fontSize:13,
+                cursor:"pointer", fontFamily:"inherit" }}>
+              Open deal →
+            </button>
+          )}
+          {actErr && <span style={{ fontSize:12, color:"#B91C1C", flexBasis:"100%" }}>{actErr}</span>}
         </div>
       )}
     </div>
