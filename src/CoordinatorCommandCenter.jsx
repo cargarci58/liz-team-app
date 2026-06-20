@@ -18,6 +18,9 @@ export default function CoordinatorCommandCenter({ token, onOpenTransaction }) {
   const [planMsg, setPlanMsg] = useState(null);
 
   const load = () => {
+    // The per-deal cards live in the Win-the-Day list below this banner — tell it
+    // to reload too, so Refresh visibly updates the whole screen, not just here.
+    try { window.dispatchEvent(new Event("wintheday:refresh")); } catch (e) {}
     fetch(API + "/tc/command-center", { headers: { Authorization: "Bearer " + token } })
       .then(r => r.ok ? r.json() : null)
       .then(d => { setData(d && d.success ? d : null); setLoading(false); })

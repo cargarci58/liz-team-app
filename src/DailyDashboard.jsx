@@ -666,7 +666,7 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
     // screen and is lost ("had to click twice"). Refresh SILENTLY instead: the
     // content stays on screen and updates in place. Only the first mount load
     // shows the loading screen.
-    const handler = () => fetchTasks({ silent: true });
+    const handler = () => { fetchTasks({ silent: true }); loadCc(); };
     window.addEventListener("wintheday:refresh", handler);
     window.addEventListener("focus", handler);
     return () => {
