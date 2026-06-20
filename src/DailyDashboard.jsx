@@ -478,14 +478,28 @@ const BUCKETS = [
 // One card per TRANSACTION. All of that deal's items are grouped here as lines,
 // most-urgent first — instead of scattering 3-5 separate cards across the page.
 // The card's left bar + header badge reflect the single most-urgent item.
-function DealGroupCard({ deal, token, onResolve, onComplete, onSnooze, onOpenModal, onStartChase, onOpenTransactionMilestones, onOpenInboundReply, onInboundReply, onOpenTransaction, onReschedule }) {
+function DealGroupCard({ deal, token, coordinatorMode = false, meta = null, onSendAiDraft, aiBusy, onResolve, onComplete, onSnooze, onOpenModal, onStartChase, onOpenTransactionMilestones, onOpenInboundReply, onInboundReply, onOpenTransaction, onReschedule }) {
   const top = BUCKETS[deal.rank] || BUCKETS[3];
+  // Coordinator card accent reflects the AI health read when we have one.
+  const healthColor = meta && meta.health === "red" ? "#DC2626" : meta && meta.health === "yellow" ? "#D97706" : meta && meta.health === "green" ? "#16A34A" : null;
+  const accent = (coordinatorMode && healthColor) || top.color;
+  // A plain-English history line so the TC knows where the deal stands at a glance.
+  const historyBits = [];
+  if (meta) {
+    if (meta.status) historyBits.push(meta.status);
+    if (meta.msTotal) historyBits.push(`${meta.msDone}/${meta.msTotal} steps done`);
+    if (meta.daysSinceActivity != null) historyBits.push(meta.daysSinceActivity === 0 ? "active today" : `last activity ${meta.daysSinceActivity}d ago`);
+    if (meta.closingDate) historyBits.push(`closing ${meta.closingDate}`);
+  }
   return (
     <div style={{ background:COLORS.white, borderRadius:14, padding:16, marginBottom:12,
-      boxShadow:"0 1px 4px rgba(0,0,0,0.08)", borderLeft:"4px solid "+top.color }}>
+      boxShadow:"0 1px 4px rgba(0,0,0,0.08)", borderLeft:"4px solid "+accent }}>
       {/* Deal header — address once, with the deal's most-urgent badge */}
       <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:4, flexWrap:"wrap" }}>
-        {top.label && (
+        {coordinatorMode && healthColor && (
+          <span title={meta.health + " — AI health read"} style={{ width:11, height:11, borderRadius:"50%", background:healthColor, flexShrink:0 }} />
+        )}
+        {!coordinatorMode && top.label && (
           <span style={{ fontSize:10, fontWeight:800, color:COLORS.white,
             background:top.color, padding:"2px 8px", borderRadius:20 }}>{top.label}</span>
         )}
@@ -500,6 +514,28 @@ function DealGroupCard({ deal, token, onResolve, onComplete, onSnooze, onOpenMod
           {deal.tasks.length} item{deal.tasks.length === 1 ? "" : "s"}
         </span>
       </div>
+      {/* COORDINATOR: history + the AI's read & recommended move, in one place */}
+      {coordinatorMode && meta && (
+        <div style={{ marginBottom:10 }}>
+          {historyBits.length > 0 && (
+            <div style={{ fontSize:12, color:COLORS.gray }}>{historyBits.join(" · ")}</div>
+          )}
+          {meta.reason && (
+            <div style={{ fontSize:13, color:COLORS.black, fontWeight:600, marginTop:3 }}>⚠️ {meta.reason}</div>
+          )}
+          {meta.aiMove && (
+            <div style={{ fontSize:12.5, color:"#1E40AF", marginTop:3 }}>🤖 Next: {meta.aiMove}</div>
+          )}
+          {meta.hasDraft && (
+            <button disabled={aiBusy === deal.transaction_id} onClick={() => onSendAiDraft && onSendAiDraft(deal.transaction_id)}
+              style={{ marginTop:8, padding:"8px 14px", borderRadius:8, border:"none",
+                background:"#0F6E56", color:COLORS.white, fontWeight:700, fontSize:13,
+                cursor: aiBusy === deal.transaction_id ? "wait" : "pointer", fontFamily:"inherit" }}>
+              {aiBusy === deal.transaction_id ? "Sending…" : `✉️ Send the recommended message to the ${meta.draftToRole}`}
+            </button>
+          )}
+        </div>
+      )}
       {deal.tasks.map((task, i) => (
         <div key={task.id} style={{ marginTop: i === 0 ? 8 : 14,
           paddingTop: i === 0 ? 0 : 14, borderTop: i === 0 ? "none" : "1px solid "+COLORS.lightGray }}>
@@ -583,6 +619,42 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
   const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
 
   const regenTimer = useRef(null);
+
+  // COORDINATOR: pull the command-center read so each deal card can show its
+  // health, progress, history and the AI's recommended move — making it ONE
+  // comprehensive card per transaction (no separate Command Center list).
+  const [ccMeta, setCcMeta] = useState({});       // txId -> { health, reason, score, msDone, msTotal, daysSinceActivity, closingDate, status, aiMove, hasDraft, draftToRole }
+  const [onTrackDeals, setOnTrackDeals] = useState([]);
+  const [showOnTrack, setShowOnTrack] = useState(false);
+  const [aiBusy, setAiBusy] = useState(null);
+  const loadCc = () => {
+    if (!coordinatorMode) return;
+    fetch(API + "/tc/command-center", { headers: { Authorization: "Bearer " + token } })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => {
+        if (!d || !d.success) return;
+        const map = {};
+        (d.needsYou || []).forEach(x => { if (x.txId) map[x.txId] = x; });
+        (d.onTrack || []).forEach(x => { if (x.txId) map[x.txId] = x; });
+        setCcMeta(map);
+        setOnTrackDeals(d.onTrack || []);
+      }).catch(() => {});
+  };
+  useEffect(() => { loadCc(); /* eslint-disable-next-line */ }, [coordinatorMode]);
+  // Send the AI's recommended message (Deal Doctor draft) for a deal, one tap.
+  const sendAiDraft = async (txId) => {
+    setAiBusy(txId);
+    try {
+      const r = await fetch(API + "/tc/transaction/" + txId + "/send-deal-doctor-draft", {
+        method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
+      });
+      const d = await r.json();
+      if (!r.ok || !d.success) throw new Error(d.error || "Couldn't send");
+      alert("✅ Sent to " + (d.to || "the right party"));
+      loadCc();
+    } catch (e) { alert("Could not send: " + e.message); }
+    setAiBusy(null);
+  };
 
   useEffect(() => {
     fetchTasks();
@@ -849,6 +921,13 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
   dealGroups.sort((a, b) => a.rank - b.rank ||
     (a.tasks[0]?.due_date || "9999").localeCompare(b.tasks[0]?.due_date || "9999") ||
     String(a.address || "").localeCompare(String(b.address || "")));
+  // Coordinator view: rank by the command-center risk score (most urgent first)
+  // so a TC watching hundreds always sees the deals that need them at the top.
+  if (coordinatorMode) {
+    dealGroups.sort((a, b) =>
+      ((ccMeta[b.transaction_id]?.score || 0) - (ccMeta[a.transaction_id]?.score || 0)) ||
+      a.rank - b.rank);
+  }
 
   if (loading) {
     return (
@@ -1042,9 +1121,11 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
       {/* ONE CARD PER TRANSACTION — all of a deal's items grouped, urgent first */}
       {dealGroups.length > 0 && (
         <div>
-          <SectionHeader label="WHAT NEEDS YOU TODAY" count={dealGroups.length} color={COLORS.red} />
+          {!coordinatorMode && <SectionHeader label="WHAT NEEDS YOU TODAY" count={dealGroups.length} color={COLORS.red} />}
           {dealGroups.map(deal => (
             <DealGroupCard key={deal.transaction_id || deal.tasks[0]?.id} deal={deal} token={token}
+              coordinatorMode={coordinatorMode} meta={ccMeta[deal.transaction_id]}
+              onSendAiDraft={sendAiDraft} aiBusy={aiBusy}
               onResolve={handleResolve} onComplete={handleComplete} onSnooze={handleSnooze}
               onOpenModal={setActiveModal} onStartChase={handleStartChase}
               onOpenTransaction={onOpenTransactionMilestones}
@@ -1052,6 +1133,33 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
               onOpenInboundReply={onOpenInboundReply} onInboundReply={handleInboundReply}
               onReschedule={handleReschedule} />
           ))}
+        </div>
+      )}
+
+      {/* COORDINATOR: on-track deals, collapsed — the app's got these. */}
+      {coordinatorMode && onTrackDeals.length > 0 && (
+        <div style={{ marginTop: 16 }}>
+          <button onClick={() => setShowOnTrack(s => !s)}
+            style={{ width:"100%", textAlign:"left", background:"#F0FDF4", border:"1px solid #BBF7D0",
+              borderRadius:12, padding:"12px 14px", fontSize:14, fontWeight:700, color:"#166534",
+              cursor:"pointer", fontFamily:"inherit" }}>
+            ✅ {onTrackDeals.length} on track &amp; handled {showOnTrack ? "▲" : "▼"}
+          </button>
+          {showOnTrack && (
+            <div style={{ marginTop: 8 }}>
+              {onTrackDeals.map(d => (
+                <div key={d.txId} onClick={() => onOpenTransactionMilestones && onOpenTransactionMilestones(d.txId)}
+                  style={{ display:"flex", alignItems:"center", gap:8, padding:"8px 12px",
+                    borderBottom:"1px solid "+COLORS.lightGray, cursor:"pointer", fontSize:13 }}>
+                  <span style={{ width:9, height:9, borderRadius:"50%", flexShrink:0,
+                    background: d.health === "red" ? "#DC2626" : d.health === "yellow" ? "#D97706" : d.health === "green" ? "#16A34A" : "#CBD5E1" }} />
+                  <span style={{ fontWeight:600, color:COLORS.black }}>{d.address}</span>
+                  <span style={{ color:COLORS.gray }}>· {d.status}</span>
+                  {d.closingDate && <span style={{ marginLeft:"auto", color:COLORS.gray, fontSize:12 }}>Closing {d.closingDate}</span>}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
