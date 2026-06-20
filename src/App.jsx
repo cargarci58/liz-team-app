@@ -8,6 +8,7 @@ import FormDownloadPage from './FormDownloadPage';
 import ContractUploadPublic from "./ContractUploadPublic";
 import TransactionChat from "./TransactionChat";
 import DailyDashboard from "./DailyDashboard";
+import CoordinatorCommandCenter from "./CoordinatorCommandCenter";
 import ChangePassword from "./ChangePassword";
 import LegalConsentGate from "./LegalConsentGate";
 import FaqHelpButton from "./components/FaqHelpButton";
@@ -8797,14 +8798,24 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
         />
       )}
       {!showReports && view === "home" && (
-        <DailyDashboard
-          token={localStorage.getItem("tp_token") || ""}
-          user={currentUser}
-          onViewTransactions={() => { setShowReports(false); setShowCalendar(false); setView("dashboard"); }}
-          onOpenTransactionMilestones={openTransactionMilestones}
-          onOpenInboundReply={(txId) => openTransactionMilestones(txId, "replies")}
-          onOpenPopBys={() => setView("popbys")}
-        />
+        <>
+          {/* Coordinator's exception command center sits ABOVE Win-the-Day: the
+              ranked "needs you" view across all their deals, AI-handled rest collapsed. */}
+          {coordinatorMode && (
+            <CoordinatorCommandCenter
+              token={localStorage.getItem("tp_token") || ""}
+              onOpenTransaction={openTransactionMilestones}
+            />
+          )}
+          <DailyDashboard
+            token={localStorage.getItem("tp_token") || ""}
+            user={currentUser}
+            onViewTransactions={() => { setShowReports(false); setShowCalendar(false); setView("dashboard"); }}
+            onOpenTransactionMilestones={openTransactionMilestones}
+            onOpenInboundReply={(txId) => openTransactionMilestones(txId, "replies")}
+            onOpenPopBys={() => setView("popbys")}
+          />
+        </>
       )}
       {!showReports && !showCalendar && view === "dashboard" && (
         <Dashboard
