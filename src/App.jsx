@@ -8317,8 +8317,8 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
   // includeClosed=true so the Pipeline view's "Closed" column actually
   // populates and recently-closed deals don't vanish from the dashboard.
   // Backend caps at LIMIT 500, so this is safe at brokerage scale.
-  useEffect(() => {
-    fetch(`${API}/${coordinatorMode ? "tc/pipeline" : "transactions"}?includeClosed=true`, { headers: authHeaders })
+  const loadTransactions = () => {
+    return fetch(`${API}/${coordinatorMode ? "tc/pipeline" : "transactions"}?includeClosed=true`, { headers: authHeaders })
       .then(r => r.json())
       .then(data => {
         if (data.transactions) {
@@ -8423,11 +8423,14 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
             return bNew - aNew;
           });
           setTransactions(sorted);
+          return sorted;
         }
+        return [];
       })
-      .catch(e => console.error("Failed to load transactions:", e))
+      .catch(e => { console.error("Failed to load transactions:", e); return []; })
       .finally(() => setTxLoading(false));
-  }, []);
+  };
+  useEffect(() => { loadTransactions(); }, []);
 
   // Load contacts from database
   useEffect(() => {
@@ -8731,18 +8734,24 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
     } catch (e) { alert("Could not create login link: " + e.message); }
   };
 
-  const openTransactionMilestones = (txId, tab = "documents") => {
+  const openTransactionMilestones = async (txId, tab = "documents") => {
     if (!txId) return;
-    const t = transactions.find(t => t.id === txId);
+    let t = transactions.find(t => t.id === txId);
+    if (!t) {
+      // Not in the loaded list (stale/empty pipeline, or a deal just assigned).
+      // Refresh the pipeline once and look again — don't dump the user to the
+      // list (or a blank detail) when the deal really does exist.
+      console.warn("[openTransactionMilestones] tx not loaded, refreshing:", txId);
+      const fresh = await loadTransactions();
+      t = (fresh || []).find(x => x.id === txId);
+    }
     if (t) {
       setSelectedId(txId);
       setInitialDetailTab(tab); // default Documents (where they upload); inbound cards land on Replies
       setView("detail");
     } else {
-      // Tx not in the loaded list (cap/filter/stale) — go to the transactions list
-      // instead of silently no-opping back to the dashboard home.
-      console.error("[openTransactionMilestones] tx not loaded:", txId);
-      setView("dashboard");
+      console.error("[openTransactionMilestones] tx still not found after refresh:", txId);
+      alert("Couldn't open that transaction — it may have been moved or you no longer have access. Try refreshing.");
     }
   };
 
@@ -8807,6 +8816,16 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
           onInviteParty={(party) => invitePartyToPortal(party, selectedTx)}
           onCopyLoginLink={(party) => copyPartyLoginLink(party, selectedTx)}
         />
+      )}
+      {/* Never blank: detail requested but the deal isn't loaded yet. */}
+      {!showReports && !showCalendar && view === "detail" && !selectedTx && (
+        <div style={{ maxWidth: 680, margin: "0 auto", padding: "48px 24px", textAlign: "center" }}>
+          <div style={{ color: "#64748B", fontSize: 15, marginBottom: 16 }}>Loading this transaction…</div>
+          <button onClick={() => setView(coordinatorMode ? "home" : "dashboard")}
+            style={{ background: "#fff", border: "1px solid #E5E7EB", borderRadius: 10, padding: "10px 20px", fontWeight: 700, fontSize: 14, cursor: "pointer", fontFamily: "inherit" }}>
+            ← Back
+          </button>
+        </div>
       )}
       {!showReports && view === "home" && (
         <>
