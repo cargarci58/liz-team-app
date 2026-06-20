@@ -252,7 +252,7 @@ function cleanItemTitle(title, address) {
 // One task line inside a deal's grouped card. No outer card chrome / address —
 // the parent DealGroupCard supplies those. `bucket` carries the NOW/TODAY/SOON
 // label + colors for this specific line.
-function TaskItem({ task, bucket, token, onResolve, onComplete, onSnooze, onOpenModal, onStartChase, onOpenTransactionMilestones, onOpenInboundReply, onInboundReply, onReschedule }) {
+function TaskItem({ task, bucket, token, onResolve, onComplete, onSnooze, onOpenModal, onStartChase, onOpenTransactionMilestones, onOpenInboundReply, onInboundReply, onReschedule, onActPreview }) {
   const cfg = bucket || PRIORITY_CONFIG[task.priority] || PRIORITY_CONFIG.normal;
   const icon = TASK_ICONS[task.task_type] || "📌";
   const isSellerUpdate = task.task_type === "seller_update";
@@ -280,20 +280,10 @@ function TaskItem({ task, bucket, token, onResolve, onComplete, onSnooze, onOpen
     : task.task_type === "price_reduction" ? { label: "✉️ Email seller" }
     : (/^milestone_/.test(task.task_type || "") || /^custom_task_/.test(task.task_type || "")) ? { label: "✉️ Send request" }
     : null;
-  const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(null);
-  const [actErr, setActErr] = useState("");
-  const doAct = async () => {
-    setSending(true); setActErr("");
-    try {
-      const r = await fetch(API + "/dashboard/tasks/" + task.id + "/act", {
-        method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
-      });
-      const d = await r.json();
-      if (!r.ok || !d.success) throw new Error(d.error || "Couldn't send that");
-      setSent({ to: d.to });
-    } catch (e) { setActErr(e.message); }
-    setSending(false);
+  // Approve-first: open the review modal (parent) instead of sending immediately.
+  const doAct = () => {
+    if (onActPreview) onActPreview(task, (res) => setSent({ to: res.to }));
   };
 
   return (
@@ -443,11 +433,11 @@ function TaskItem({ task, bucket, token, onResolve, onComplete, onSnooze, onOpen
       {actCfg && (
         <div style={{ display:"flex", gap:8, marginTop:8, flexWrap:"wrap", alignItems:"center" }}>
           {!sent && (
-            <button disabled={sending} onClick={doAct}
+            <button onClick={doAct}
               style={{ padding:"9px 16px", borderRadius:10, border:"none",
                 background:"#0F6E56", color:COLORS.white, fontWeight:700, fontSize:13,
-                cursor: sending ? "wait" : "pointer", fontFamily:"inherit" }}>
-              {sending ? "Sending…" : actCfg.label}
+                cursor: "pointer", fontFamily:"inherit" }}>
+              {actCfg.label}
             </button>
           )}
           {sent && <span style={{ fontSize:13, color:"#1E8449", fontWeight:700 }}>✓ Sent to {sent.to || "the right party"}</span>}
@@ -459,7 +449,6 @@ function TaskItem({ task, bucket, token, onResolve, onComplete, onSnooze, onOpen
               Open deal →
             </button>
           )}
-          {actErr && <span style={{ fontSize:12, color:"#B91C1C", flexBasis:"100%" }}>{actErr}</span>}
         </div>
       )}
     </div>
@@ -478,7 +467,7 @@ const BUCKETS = [
 // One card per TRANSACTION. All of that deal's items are grouped here as lines,
 // most-urgent first — instead of scattering 3-5 separate cards across the page.
 // The card's left bar + header badge reflect the single most-urgent item.
-function DealGroupCard({ deal, token, coordinatorMode = false, meta = null, onSendAiDraft, aiBusy, onDealAction, onResolve, onComplete, onSnooze, onOpenModal, onStartChase, onOpenTransactionMilestones, onOpenInboundReply, onInboundReply, onOpenTransaction, onReschedule }) {
+function DealGroupCard({ deal, token, coordinatorMode = false, meta = null, onSendAiDraft, aiBusy, onDealAction, onActPreview, onResolve, onComplete, onSnooze, onOpenModal, onStartChase, onOpenTransactionMilestones, onOpenInboundReply, onInboundReply, onOpenTransaction, onReschedule }) {
   const top = BUCKETS[deal.rank] || BUCKETS[3];
   // Coordinator card accent reflects the AI health read when we have one.
   const healthColor = meta && meta.health === "red" ? "#DC2626" : meta && meta.health === "yellow" ? "#D97706" : meta && meta.health === "green" ? "#16A34A" : null;
@@ -544,7 +533,7 @@ function DealGroupCard({ deal, token, coordinatorMode = false, meta = null, onSe
             onOpenModal={onOpenModal} onStartChase={onStartChase}
             onOpenTransactionMilestones={onOpenTransactionMilestones}
             onOpenInboundReply={onOpenInboundReply} onInboundReply={onInboundReply}
-            onReschedule={onReschedule} />
+            onReschedule={onReschedule} onActPreview={onActPreview} />
         </div>
       ))}
       {/* Header-only coordinator card (flagged deal whose item cards haven't
@@ -626,6 +615,42 @@ function telHref(raw) {
   return cleaned;
 }
 
+// ── SEND PREVIEW MODAL ────────────────────────────────────────
+// Approve-first: show exactly what's going out — to whom, how, the editable
+// subject + body — before anything sends. Nothing leaves until "Approve & send".
+function SendPreviewModal({ preview, busy, onCancel, onSend }) {
+  const [subject, setSubject] = useState(preview.subject || "");
+  const [body, setBody] = useState(preview.body || "");
+  return (
+    <div onClick={onCancel} style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.5)", zIndex:1000,
+      display:"flex", alignItems:"flex-start", justifyContent:"center", overflowY:"auto", padding:"24px 12px" }}>
+      <div onClick={e => e.stopPropagation()} style={{ background:COLORS.white, borderRadius:14, width:"100%",
+        maxWidth:520, margin:"auto", padding:20, boxShadow:"0 10px 40px rgba(0,0,0,0.2)" }}>
+        <div style={{ fontSize:17, fontWeight:800, color:COLORS.black, marginBottom:4 }}>Review before sending</div>
+        <div style={{ fontSize:13, color:COLORS.gray, marginBottom:14 }}>Nothing sends until you approve. Edit anything below.</div>
+        <div style={{ background:COLORS.lightGray, borderRadius:8, padding:"10px 12px", marginBottom:12, fontSize:13, lineHeight:1.6 }}>
+          <div><b>To:</b> {preview.to}{preview.role ? ` (${preview.role})` : ""}</div>
+          <div><b>How:</b> {preview.channel === "email" ? "📧 Email" : preview.channel}</div>
+          {preview.fromName && <div><b>From:</b> {preview.fromName} (your agent's voice)</div>}
+        </div>
+        <label style={{ fontSize:12, fontWeight:700, color:COLORS.gray }}>Subject</label>
+        <input value={subject} onChange={e => setSubject(e.target.value)}
+          style={{ width:"100%", padding:"10px 12px", border:"1px solid "+COLORS.border, borderRadius:8, fontSize:14, fontFamily:"inherit", marginTop:4, marginBottom:12, boxSizing:"border-box" }} />
+        <label style={{ fontSize:12, fontWeight:700, color:COLORS.gray }}>Message</label>
+        <textarea value={body} onChange={e => setBody(e.target.value)} rows={10}
+          style={{ width:"100%", padding:"10px 12px", border:"1px solid "+COLORS.border, borderRadius:8, fontSize:14, fontFamily:"inherit", marginTop:4, resize:"vertical", boxSizing:"border-box" }} />
+        <div style={{ display:"flex", gap:10, marginTop:16, justifyContent:"flex-end", flexWrap:"wrap" }}>
+          <button onClick={onCancel} style={{ padding:"10px 18px", borderRadius:10, border:"1.5px solid "+COLORS.border, background:COLORS.white, color:COLORS.gray, fontWeight:600, fontSize:14, cursor:"pointer", fontFamily:"inherit" }}>Cancel</button>
+          <button disabled={busy || !subject.trim() || !body.trim()} onClick={() => onSend(subject, body)}
+            style={{ padding:"10px 20px", borderRadius:10, border:"none", background:"#0F6E56", color:COLORS.white, fontWeight:700, fontSize:14, cursor: busy ? "wait" : "pointer", fontFamily:"inherit" }}>
+            {busy ? "Sending…" : "✅ Approve & send"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── MAIN DASHBOARD ────────────────────────────────────────────
 export default function DailyDashboard({ token, user, onViewTransactions, onOpenTransactionMilestones, onOpenInboundReply, onOpenPopBys, coordinatorMode = false }) {
   const [tasks, setTasks] = useState({ overdue:[], dueToday:[], upcoming:[] });
@@ -673,35 +698,55 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
   // Deal-level action for a flagged deal that has no per-item task lines yet.
   const dealAction = async (txId, kind) => {
     if (kind === "replies") { onOpenTransactionMilestones && onOpenTransactionMilestones(txId, "replies"); return; }
+    if (kind === "doc") { requestPreview("/tc/transaction/" + txId + "/request-document"); return; }
+    // "remind" = today's milestone reminder ladder; the approve-first banner plan
+    // already governs that batch, so it sends directly here.
     setAiBusy(txId);
     try {
-      const path = kind === "doc" ? "/tc/transaction/" + txId + "/request-document" : "/tc/action-plan/execute";
-      const r = await fetch(API + path, {
+      const r = await fetch(API + "/tc/action-plan/execute", {
         method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
-        body: kind === "remind" ? JSON.stringify({ txIds: [txId] }) : "{}",
+        body: JSON.stringify({ txIds: [txId] }),
       });
       const d = await r.json();
       if (!r.ok || !d.success) throw new Error(d.error || "Couldn't do that");
-      alert("✅ " + (kind === "doc" ? "Requested the document" : "Sent reminders"));
+      alert("✅ Sent reminders");
       loadCc(); window.dispatchEvent(new Event("wintheday:refresh"));
     } catch (e) { alert("Could not: " + e.message); }
     setAiBusy(null);
   };
   useEffect(() => { loadCc(); /* eslint-disable-next-line */ }, [coordinatorMode]);
-  // Send the AI's recommended message (Deal Doctor draft) for a deal, one tap.
-  const sendAiDraft = async (txId) => {
-    setAiBusy(txId);
+  // Approve-first preview engine: any send action first fetches a preview (to /
+  // how / subject / body) and opens the review modal; nothing leaves until the
+  // coordinator approves. `pendingPreview` holds the preview + the send fn.
+  const [pendingPreview, setPendingPreview] = useState(null);
+  const [previewBusy, setPreviewBusy] = useState(false);
+  const post = (path, bodyObj) => fetch(API + path, {
+    method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
+    body: JSON.stringify(bodyObj || {}),
+  }).then(async r => { const d = await r.json(); if (!r.ok || !d.success) throw new Error(d.error || "Something went wrong"); return d; });
+  const requestPreview = async (path, onSent) => {
     try {
-      const r = await fetch(API + "/tc/transaction/" + txId + "/send-deal-doctor-draft", {
-        method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
+      const d = await post(path, { preview: true });
+      if (!d.preview) { onSent && onSent(d); return; } // endpoint can't preview → already done
+      setPendingPreview({
+        data: d,
+        send: async (subject, body) => {
+          setPreviewBusy(true);
+          try {
+            const r = await post(path, { subject, body });
+            setPendingPreview(null);
+            onSent && onSent(r);
+            window.dispatchEvent(new Event("wintheday:refresh")); loadCc();
+          } catch (e) { alert("Could not send: " + e.message); }
+          setPreviewBusy(false);
+        },
       });
-      const d = await r.json();
-      if (!r.ok || !d.success) throw new Error(d.error || "Couldn't send");
-      alert("✅ Sent to " + (d.to || "the right party"));
-      loadCc();
-    } catch (e) { alert("Could not send: " + e.message); }
-    setAiBusy(null);
+    } catch (e) { alert(e.message); }
   };
+  // Send the AI's recommended message (Deal Doctor draft) — with preview/approve.
+  const sendAiDraft = (txId) => requestPreview("/tc/transaction/" + txId + "/send-deal-doctor-draft");
+  // Per-card action preview (Win-the-Day line: request doc / send request / email seller).
+  const actPreview = (task, onSent) => requestPreview("/dashboard/tasks/" + task.id + "/act", onSent);
 
   useEffect(() => {
     fetchTasks();
@@ -1182,7 +1227,7 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
           {dealGroups.map(deal => (
             <DealGroupCard key={deal.transaction_id || deal.tasks[0]?.id} deal={deal} token={token}
               coordinatorMode={coordinatorMode} meta={ccMeta[deal.transaction_id]}
-              onSendAiDraft={sendAiDraft} aiBusy={aiBusy} onDealAction={dealAction}
+              onSendAiDraft={sendAiDraft} aiBusy={aiBusy} onDealAction={dealAction} onActPreview={actPreview}
               onResolve={handleResolve} onComplete={handleComplete} onSnooze={handleSnooze}
               onOpenModal={setActiveModal} onStartChase={handleStartChase}
               onOpenTransaction={onOpenTransactionMilestones}
@@ -1227,6 +1272,16 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
           color:COLORS.black, fontWeight:700, fontSize:15, cursor:"pointer" }}>
         📋 View All My Transactions
       </button>
+
+      {/* Approve-first review modal — shared by every send action */}
+      {pendingPreview && (
+        <SendPreviewModal
+          preview={pendingPreview.data}
+          busy={previewBusy}
+          onCancel={() => setPendingPreview(null)}
+          onSend={pendingPreview.send}
+        />
+      )}
 
       {/* Seller Update Modal */}
       {activeModal && (
