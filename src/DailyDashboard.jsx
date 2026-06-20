@@ -299,6 +299,11 @@ function TaskItem({ task, bucket, token, onResolve, onComplete, onSnooze, onOpen
               </span>
             </div>
           )}
+          {task.tc_handled && (
+            <div style={{ display:"inline-block", marginBottom:6, fontSize:11, fontWeight:700, color:"#0F6E56", background:"#E7F5EF", border:"1px solid #BBE3D2", borderRadius:6, padding:"2px 8px" }}>
+              🧭 Your TC is on this — flagged for your eyes
+            </div>
+          )}
           <div style={{ fontWeight:700, fontSize:15, color:COLORS.black, marginBottom:4 }}>{cleanItemTitle(task.title, task.address)}</div>
           {task.description && (
             <div style={{ fontSize:13, color:COLORS.gray, lineHeight:1.5 }}>{task.description}</div>

@@ -83,10 +83,42 @@ export function CoordinatorSummaryPanel({ txId, token }) {
   );
 }
 
+// A deal "needs a look" when something is off or imminent — overdue, an unhealthy
+// AI read, or a deadline due today/tomorrow. Everything else is on track.
+const deskNeedsLook = (d) => d.overdue > 0 || d.health === "red" || d.health === "yellow" ||
+  (d.nextWhen && /today|tomorrow/.test(d.nextWhen));
+
+function DeskRow({ d, onOpenTransaction }) {
+  return (
+    <div onClick={() => onOpenTransaction && onOpenTransaction(d.txId)}
+      style={{ background: C.card, border: "1px solid " + C.border, borderLeft: "4px solid " + healthColor(d.health), borderRadius: 12, padding: 14, marginBottom: 10, cursor: "pointer" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+        {dot(d.health)}
+        <span style={{ fontWeight: 800, fontSize: 15, color: C.navy }}>{d.address}</span>
+        <span style={{ fontSize: 12, color: C.gray }}>· {d.status}</span>
+        <span style={{ marginLeft: "auto", fontSize: 12, color: C.gray }}>{d.msDone}/{d.msTotal} done</span>
+      </div>
+      <div style={{ display: "flex", gap: 6, marginTop: 8, flexWrap: "wrap", alignItems: "center" }}>
+        {d.overdue > 0 && <span style={{ fontSize: 11, fontWeight: 700, color: "#fff", background: C.red, borderRadius: 20, padding: "2px 9px" }}>{d.overdue} overdue</span>}
+        {d.nextName && <span style={{ fontSize: 12, color: "#1a2332" }}>Next: <b>{d.nextName}</b>{d.nextWhen ? " · " + d.nextWhen : ""}</span>}
+        {d.closingDate && <span style={{ fontSize: 12, color: C.gray }}>· closing {d.closingDate}</span>}
+      </div>
+      {d.lastTcAction && (
+        <div style={{ fontSize: 12, color: C.gray, marginTop: 6 }}>
+          Last: {actionVerb(d.lastTcAction.action)}{d.lastTcAction.details ? " — " + d.lastTcAction.details : ""} · {ago(d.lastTcAction.at)}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── COORDINATOR DESK (agent home roll-up of every TC-handled deal) ────────────
+// Oversight, not action: collapsed by default, surfaces only the deals that need
+// a look, and tucks the on-track ones behind a count. Sits BELOW the agent's day.
 export function AgentCoordinatorDesk({ token, onOpenTransaction }) {
   const [data, setData] = useState(null);
-  const [open, setOpen] = useState(true);
+  const [open, setOpen] = useState(false);
+  const [showOk, setShowOk] = useState(false);
   const load = () => {
     fetch(API + "/agent/coordinator-desk", { headers: { Authorization: "Bearer " + token } })
       .then(r => r.ok ? r.json() : null)
@@ -95,36 +127,30 @@ export function AgentCoordinatorDesk({ token, onOpenTransaction }) {
   };
   useEffect(() => { load(); const h = () => load(); window.addEventListener("focus", h); return () => window.removeEventListener("focus", h); }, []);
   if (!data || data.total === 0) return null; // no TC-handled deals → hide entirely
+  const needLook = data.deals.filter(deskNeedsLook);
+  const onTrack = data.deals.filter(d => !deskNeedsLook(d));
   return (
-    <div style={{ maxWidth: 920, margin: "0 auto", padding: "8px 16px 0" }}>
-      <button onClick={() => setOpen(o => !o)} style={{ width: "100%", textAlign: "left", background: "none", border: "none", padding: 0, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "baseline", gap: 8, marginBottom: 8 }}>
-        <span style={{ fontSize: 18, fontWeight: 800, color: C.navy }}>🧭 Coordinator Desk</span>
-        <span style={{ fontSize: 13, color: C.gray }}>{data.total} deal{data.total === 1 ? "" : "s"} your coordinator is running</span>
+    <div style={{ maxWidth: 920, margin: "16px auto 0", padding: "0 16px" }}>
+      <button onClick={() => setOpen(o => !o)} style={{ width: "100%", textAlign: "left", background: "#F8FAFC", border: "1px solid " + C.border, borderRadius: 12, padding: "12px 14px", cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 8 }}>
+        <span style={{ fontSize: 15, fontWeight: 800, color: C.navy }}>🧭 Coordinator Desk</span>
+        <span style={{ fontSize: 13, color: C.gray }}>
+          {data.total} deal{data.total === 1 ? "" : "s"} with your TC · {needLook.length > 0 ? <b style={{ color: C.red }}>{needLook.length} need a look</b> : "all on track ✅"}
+        </span>
         <span style={{ marginLeft: "auto", fontSize: 13, color: C.gray }}>{open ? "▲" : "▼"}</span>
       </button>
-      {open && data.deals.map(d => {
-        const pct = d.msTotal > 0 ? Math.round(d.msDone / d.msTotal * 100) : 0;
-        return (
-          <div key={d.txId} onClick={() => onOpenTransaction && onOpenTransaction(d.txId)}
-            style={{ background: C.card, border: "1px solid " + C.border, borderLeft: "4px solid " + healthColor(d.health), borderRadius: 12, padding: 14, marginBottom: 10, cursor: "pointer" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-              {dot(d.health)}
-              <span style={{ fontWeight: 800, fontSize: 15, color: C.navy }}>{d.address}</span>
-              <span style={{ fontSize: 12, color: C.gray }}>· {d.status}</span>
-              {d.coordinatorName && <span style={{ fontSize: 11, fontWeight: 700, color: "#0F6E56", background: "#E7F5EF", border: "1px solid #BBE3D2", borderRadius: 6, padding: "1px 7px" }}>🧭 {d.coordinatorName}</span>}
-              <span style={{ marginLeft: "auto", fontSize: 12, color: C.gray }}>{d.msDone}/{d.msTotal} done</span>
-            </div>
-            <div style={{ display: "flex", gap: 6, marginTop: 8, flexWrap: "wrap" }}>
-              {d.overdue > 0 && <span style={{ fontSize: 11, fontWeight: 700, color: "#fff", background: C.red, borderRadius: 20, padding: "2px 9px" }}>{d.overdue} overdue</span>}
-              {d.nextName && <span style={{ fontSize: 12, color: "#1a2332" }}>Next: <b>{d.nextName}</b>{d.nextWhen ? " · " + d.nextWhen : ""}</span>}
-              {d.closingDate && <span style={{ fontSize: 12, color: C.gray }}>· closing {d.closingDate}</span>}
-            </div>
-            <div style={{ fontSize: 12, color: C.gray, marginTop: 6 }}>
-              {d.lastTcAction ? <>Last: {actionVerb(d.lastTcAction.action)}{d.lastTcAction.details ? " — " + d.lastTcAction.details : ""} · {ago(d.lastTcAction.at)}</> : "No coordinator activity yet."}
-            </div>
-          </div>
-        );
-      })}
+      {open && (
+        <div style={{ marginTop: 10 }}>
+          {needLook.map(d => <DeskRow key={d.txId} d={d} onOpenTransaction={onOpenTransaction} />)}
+          {onTrack.length > 0 && (
+            <>
+              <button onClick={() => setShowOk(s => !s)} style={{ width: "100%", textAlign: "left", background: "#F0FDF4", border: "1px solid #BBF7D0", borderRadius: 12, padding: "10px 14px", fontSize: 13, fontWeight: 700, color: "#166534", cursor: "pointer", fontFamily: "inherit" }}>
+                ✅ {onTrack.length} on track & handled by your TC {showOk ? "▲" : "▼"}
+              </button>
+              {showOk && <div style={{ marginTop: 10 }}>{onTrack.map(d => <DeskRow key={d.txId} d={d} onOpenTransaction={onOpenTransaction} />)}</div>}
+            </>
+          )}
+        </div>
+      )}
     </div>
   );
 }

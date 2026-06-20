@@ -8865,13 +8865,6 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
               onOpenTransaction={openTransactionMilestones}
             />
           )}
-          {/* Agent oversight: roll-up of every deal a TC is running for them. */}
-          {!coordinatorMode && (
-            <AgentCoordinatorDesk
-              token={localStorage.getItem("tp_token") || ""}
-              onOpenTransaction={openTransactionMilestones}
-            />
-          )}
           <DailyDashboard
             token={localStorage.getItem("tp_token") || ""}
             user={currentUser}
@@ -8881,6 +8874,14 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
             onOpenInboundReply={(txId) => openTransactionMilestones(txId, "replies")}
             onOpenPopBys={() => setView("popbys")}
           />
+          {/* Agent oversight: roll-up of every deal a TC is running — BELOW the
+              agent's own day (calls + tasks). Collapsed; oversight, not action. */}
+          {!coordinatorMode && (
+            <AgentCoordinatorDesk
+              token={localStorage.getItem("tp_token") || ""}
+              onOpenTransaction={openTransactionMilestones}
+            />
+          )}
         </>
       )}
       {!showReports && !showCalendar && view === "dashboard" && (
