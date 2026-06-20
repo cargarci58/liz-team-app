@@ -745,11 +745,17 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
     ...visibleToday.map(t => ({ ...t, _rank: 1 })),
     ...visibleUpcoming.map(t => ({ ...t, _rank: t.due_date ? 2 : 3 })),
   ];
+  // Group by PROPERTY ADDRESS (normalized) so two transaction records for the
+  // same home collapse into ONE card — a safety net against duplicate deals.
+  // Falls back to transaction_id, then task id, when there's no address.
+  const normAddr = (a) => String(a || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
   const dealMap = new Map();
   for (const t of rankedTasks) {
-    const key = t.transaction_id || t.id;
+    const key = (t.address && normAddr(t.address)) ? "addr:" + normAddr(t.address) : (t.transaction_id || t.id);
     let deal = dealMap.get(key);
     if (!deal) { deal = { transaction_id: t.transaction_id, address: t.address, tasks: [], rank: 9 }; dealMap.set(key, deal); }
+    // If records got merged by address, keep a real transaction_id for the "open" action.
+    if (!deal.transaction_id && t.transaction_id) deal.transaction_id = t.transaction_id;
     deal.tasks.push(t);
     if (t._rank < deal.rank) deal.rank = t._rank;
   }
