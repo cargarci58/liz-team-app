@@ -5848,13 +5848,21 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
             {(tx.reminders || []).length === 0 && <div style={{ textAlign: "center", color: COLORS.muted, padding: 40 }}>No reminders set.</div>}
             {(tx.reminders || []).map(r => {
               const d = daysUntil(r.date);
-              const bumpToTomorrow = () => {
+              const _remHdrs = { "Content-Type": "application/json", Authorization: "Bearer " + (localStorage.getItem("tp_token") || "") };
+              // Reminders live in their own table — the whole-tx PUT doesn't persist
+              // them, so Done/Snooze MUST hit the dedicated reminders endpoints or
+              // they reappear on reload.
+              const bumpToTomorrow = async () => {
                 const next = new Date();
                 next.setDate(next.getDate() + 1);
                 const iso = next.toISOString().slice(0, 10);
+                try { await fetch(`${API}/reminders/save`, { method: "POST", headers: _remHdrs, body: JSON.stringify({ id: r.id, transactionId: tx.id, title: r.title, message: r.message, date: iso, channels: r.channels, parties: r.parties }) }); } catch {}
                 update({ reminders: (tx.reminders || []).map(rr => rr.id === r.id ? { ...rr, date: iso } : rr) });
               };
-              const removeReminder = () => update({ reminders: (tx.reminders || []).filter(rr => rr.id !== r.id) });
+              const removeReminder = async () => {
+                try { await fetch(`${API}/reminders/${r.id}`, { method: "DELETE", headers: _remHdrs }); } catch {}
+                update({ reminders: (tx.reminders || []).filter(rr => rr.id !== r.id) });
+              };
               return (
                 <div key={r.id} style={{ background: "#fff", border: `1px solid ${COLORS.border}`, borderLeft: `3px solid ${COLORS.gold}`, borderRadius: 10, padding: "14px 16px", marginBottom: 10, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
                   <div style={{ flex: 1 }}>
