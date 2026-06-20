@@ -1867,7 +1867,7 @@ function PersonalTaskAddButton({ token }) {
   );
 }
 
-function WinTheDayButton({ token, onViewTransactions }) {
+function WinTheDayButton({ token, onViewTransactions, coordinatorMode = false, onOpenTransaction }) {
   const [taskCount, setTaskCount] = useState(0);
   const [showModal, setShowModal] = useState(false);
   const API = "https://liz-team-server-api-production.up.railway.app";
@@ -1961,12 +1961,23 @@ function WinTheDayButton({ token, onViewTransactions }) {
               </button>
             </div>
 
+            {/* Coordinator: show the exception Command Center here too, so the
+                ⚡ popup matches the home view (it was missing before — you had to
+                refresh to see it). */}
+            {coordinatorMode && (
+              <CoordinatorCommandCenter
+                token={token}
+                onOpenTransaction={(txId, tab) => { setShowModal(false); onOpenTransaction && onOpenTransaction(txId, tab); }}
+              />
+            )}
             {/* Dashboard content */}
             <DailyDashboard
               token={token}
               user={null}
+              coordinatorMode={coordinatorMode}
               onViewTransactions={() => { setShowModal(false); onViewTransactions && onViewTransactions(); }}
-              onOpenTransactionMilestones={(txId) => { setShowModal(false); }}
+              onOpenTransactionMilestones={(txId, tab) => { setShowModal(false); onOpenTransaction && onOpenTransaction(txId, tab); }}
+              onOpenInboundReply={(txId) => { setShowModal(false); onOpenTransaction && onOpenTransaction(txId, "replies"); }}
             />
           </div>
         </div>
@@ -7600,7 +7611,7 @@ function Dashboard({ transactions, coordinatorMode = false, unreadCounts = {}, o
             {!coordinatorMode && <button onClick={() => onOpenCMA && onOpenCMA()} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "#fff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>📊 CMA</button>}
             {!coordinatorMode && <button onClick={() => onOpenGrowthPlan && onOpenGrowthPlan()} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "#fff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>🎯 Growth Plan</button>}
             <button data-tour="financials" onClick={() => onOpenExpenses && onOpenExpenses()} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "#fff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>💵 {coordinatorMode ? "My Money" : "Financials"}</button>
-            <WinTheDayButton token={localStorage.getItem("tp_token") || ""} onViewTransactions={onViewTransactions} />
+            <WinTheDayButton token={localStorage.getItem("tp_token") || ""} onViewTransactions={onViewTransactions} coordinatorMode={coordinatorMode} onOpenTransaction={onSelect} />
             <PersonalTaskAddButton token={localStorage.getItem("tp_token") || ""} />
             {!coordinatorMode && <button data-tour="vendors" onClick={onVendors} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "rgba(255,255,255,0.88)", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 600, fontFamily: "inherit" }}>🏆 Vendors</button>}
             {!coordinatorMode && <button data-tour="intake" onClick={onIntakeLinks} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "rgba(255,255,255,0.88)", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 600, fontFamily: "inherit" }}>🔗 New Buyer/Seller Intake</button>}
