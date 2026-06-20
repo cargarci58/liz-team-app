@@ -621,6 +621,19 @@ function telHref(raw) {
 function SendPreviewModal({ preview, busy, onCancel, onSend }) {
   const [subject, setSubject] = useState(preview.subject || "");
   const [body, setBody] = useState(preview.body || "");
+  const [pickedDocIds, setPickedDocIds] = useState([]);     // attach from the transaction
+  const [uploads, setUploads] = useState([]);                // attach from computer
+  const availableDocs = preview.availableDocs || [];
+  const toggleDoc = (id) => setPickedDocIds(ids => ids.includes(id) ? ids.filter(x => x !== id) : [...ids, id]);
+  const onFiles = (fileList) => {
+    Array.from(fileList || []).forEach(file => {
+      if (file.size > 12 * 1024 * 1024) { alert(`"${file.name}" is too large to email (12MB max).`); return; }
+      const reader = new FileReader();
+      reader.onload = () => setUploads(u => [...u, { name: file.name, dataBase64: reader.result, mimeType: file.type }]);
+      reader.readAsDataURL(file);
+    });
+  };
+  const totalAttached = pickedDocIds.length + uploads.length;
   return (
     <div onClick={onCancel} style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.5)", zIndex:1000,
       display:"flex", alignItems:"flex-start", justifyContent:"center", overflowY:"auto", padding:"24px 12px" }}>
@@ -637,13 +650,53 @@ function SendPreviewModal({ preview, busy, onCancel, onSend }) {
         <input value={subject} onChange={e => setSubject(e.target.value)}
           style={{ width:"100%", padding:"10px 12px", border:"1px solid "+COLORS.border, borderRadius:8, fontSize:14, fontFamily:"inherit", marginTop:4, marginBottom:12, boxSizing:"border-box" }} />
         <label style={{ fontSize:12, fontWeight:700, color:COLORS.gray }}>Message</label>
-        <textarea value={body} onChange={e => setBody(e.target.value)} rows={10}
+        <textarea value={body} onChange={e => setBody(e.target.value)} rows={9}
           style={{ width:"100%", padding:"10px 12px", border:"1px solid "+COLORS.border, borderRadius:8, fontSize:14, fontFamily:"inherit", marginTop:4, resize:"vertical", boxSizing:"border-box" }} />
+
+        {/* ATTACH — send a document (e.g. to get it signed): from the transaction
+            or from the computer. Only shown when the action supports it. */}
+        {preview.canAttach && (
+          <div style={{ marginTop:14, border:"1px solid "+COLORS.border, borderRadius:10, padding:12 }}>
+            <div style={{ fontSize:13, fontWeight:700, color:COLORS.black, marginBottom:6 }}>
+              📎 Attach a document to send for signature {totalAttached > 0 ? `(${totalAttached})` : "(optional)"}
+            </div>
+            {availableDocs.length > 0 && (
+              <div style={{ marginBottom:10 }}>
+                <div style={{ fontSize:11, fontWeight:700, color:COLORS.gray, marginBottom:4 }}>From this transaction</div>
+                <div style={{ maxHeight:140, overflowY:"auto" }}>
+                  {availableDocs.map(d => (
+                    <label key={d.id} style={{ display:"flex", alignItems:"center", gap:8, padding:"5px 0", fontSize:13, cursor:"pointer" }}>
+                      <input type="checkbox" checked={pickedDocIds.includes(d.id)} onChange={() => toggleDoc(d.id)} />
+                      <span style={{ color:COLORS.black }}>{d.name}</span>
+                      {d.category && <span style={{ color:COLORS.gray, fontSize:11 }}>· {d.category}</span>}
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
+            <label style={{ display:"inline-block", padding:"7px 12px", border:"1.5px solid "+COLORS.border, borderRadius:8, fontSize:12.5, fontWeight:600, color:COLORS.gray, cursor:"pointer" }}>
+              ⬆️ Upload from computer
+              <input type="file" multiple style={{ display:"none" }} onChange={e => { onFiles(e.target.files); e.target.value = ""; }} />
+            </label>
+            {uploads.length > 0 && (
+              <div style={{ marginTop:8 }}>
+                {uploads.map((u, i) => (
+                  <div key={i} style={{ display:"flex", alignItems:"center", gap:8, fontSize:12.5, padding:"3px 0" }}>
+                    <span style={{ color:COLORS.black }}>📄 {u.name}</span>
+                    <button onClick={() => setUploads(us => us.filter((_, j) => j !== i))}
+                      style={{ marginLeft:"auto", background:"none", border:"none", color:COLORS.gray, cursor:"pointer", fontSize:12, textDecoration:"underline", fontFamily:"inherit" }}>remove</button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
         <div style={{ display:"flex", gap:10, marginTop:16, justifyContent:"flex-end", flexWrap:"wrap" }}>
           <button onClick={onCancel} style={{ padding:"10px 18px", borderRadius:10, border:"1.5px solid "+COLORS.border, background:COLORS.white, color:COLORS.gray, fontWeight:600, fontSize:14, cursor:"pointer", fontFamily:"inherit" }}>Cancel</button>
-          <button disabled={busy || !subject.trim() || !body.trim()} onClick={() => onSend(subject, body)}
+          <button disabled={busy || !subject.trim() || !body.trim()} onClick={() => onSend(subject, body, { attachDocIds: pickedDocIds, uploadedFiles: uploads })}
             style={{ padding:"10px 20px", borderRadius:10, border:"none", background:"#0F6E56", color:COLORS.white, fontWeight:700, fontSize:14, cursor: busy ? "wait" : "pointer", fontFamily:"inherit" }}>
-            {busy ? "Sending…" : "✅ Approve & send"}
+            {busy ? "Sending…" : (totalAttached > 0 ? `✅ Approve & send (${totalAttached} attached)` : "✅ Approve & send")}
           </button>
         </div>
       </div>
@@ -730,10 +783,10 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
       if (!d.preview) { onSent && onSent(d); return; } // endpoint can't preview → already done
       setPendingPreview({
         data: d,
-        send: async (subject, body) => {
+        send: async (subject, body, extras) => {
           setPreviewBusy(true);
           try {
-            const r = await post(path, { subject, body });
+            const r = await post(path, { subject, body, ...(extras || {}) });
             setPendingPreview(null);
             onSent && onSent(r);
             window.dispatchEvent(new Event("wintheday:refresh")); loadCc();
