@@ -405,7 +405,7 @@ function TaskItem({ task, bucket, token, onResolve, onComplete, onSnooze, onOpen
             style={{ flex:"1 1 45%", padding:"10px 0", borderRadius:10, marginTop:4,
               border:"1.5px solid "+COLORS.border, background:COLORS.white,
               color:COLORS.gray, fontWeight:600, fontSize:13, cursor:"pointer" }}>
-            📅 Reschedule
+            📅 {task.task_type === "milestone_checklist" ? "Set date" : "Reschedule"}
           </button>
         )}
       </div>
