@@ -478,7 +478,7 @@ const BUCKETS = [
 // One card per TRANSACTION. All of that deal's items are grouped here as lines,
 // most-urgent first — instead of scattering 3-5 separate cards across the page.
 // The card's left bar + header badge reflect the single most-urgent item.
-function DealGroupCard({ deal, token, coordinatorMode = false, meta = null, onSendAiDraft, aiBusy, onResolve, onComplete, onSnooze, onOpenModal, onStartChase, onOpenTransactionMilestones, onOpenInboundReply, onInboundReply, onOpenTransaction, onReschedule }) {
+function DealGroupCard({ deal, token, coordinatorMode = false, meta = null, onSendAiDraft, aiBusy, onDealAction, onResolve, onComplete, onSnooze, onOpenModal, onStartChase, onOpenTransactionMilestones, onOpenInboundReply, onInboundReply, onOpenTransaction, onReschedule }) {
   const top = BUCKETS[deal.rank] || BUCKETS[3];
   // Coordinator card accent reflects the AI health read when we have one.
   const healthColor = meta && meta.health === "red" ? "#DC2626" : meta && meta.health === "yellow" ? "#D97706" : meta && meta.health === "green" ? "#16A34A" : null;
@@ -547,6 +547,34 @@ function DealGroupCard({ deal, token, coordinatorMode = false, meta = null, onSe
             onReschedule={onReschedule} />
         </div>
       ))}
+      {/* Header-only coordinator card (flagged deal whose item cards haven't
+          regenerated yet) — give it deal-level actions so it's still workable. */}
+      {coordinatorMode && deal._ccOnly && meta && (
+        <div style={{ display:"flex", gap:8, marginTop:10, flexWrap:"wrap" }}>
+          {meta.docGaps > 0 && (
+            <button disabled={aiBusy === deal.transaction_id} onClick={() => onDealAction && onDealAction(deal.transaction_id, "doc")}
+              style={{ padding:"9px 14px", borderRadius:10, border:"none", background:"#0F6E56", color:COLORS.white, fontWeight:700, fontSize:13, cursor:"pointer", fontFamily:"inherit" }}>
+              {aiBusy === deal.transaction_id ? "…" : "✉️ Request document"}
+            </button>
+          )}
+          {(meta.overdue > 0 || meta.dueNext7 > 0) && !meta.hasDraft && (
+            <button disabled={aiBusy === deal.transaction_id} onClick={() => onDealAction && onDealAction(deal.transaction_id, "remind")}
+              style={{ padding:"9px 14px", borderRadius:10, border:"none", background:"#0F6E56", color:COLORS.white, fontWeight:700, fontSize:13, cursor:"pointer", fontFamily:"inherit" }}>
+              {aiBusy === deal.transaction_id ? "…" : "Send reminder"}
+            </button>
+          )}
+          {meta.unreadReplies > 0 && (
+            <button onClick={() => onDealAction && onDealAction(deal.transaction_id, "replies")}
+              style={{ padding:"9px 14px", borderRadius:10, border:"1.5px solid "+COLORS.border, background:COLORS.white, color:COLORS.gray, fontWeight:600, fontSize:13, cursor:"pointer", fontFamily:"inherit" }}>
+              Read &amp; reply
+            </button>
+          )}
+          <button onClick={() => onOpenTransaction && onOpenTransaction(deal.transaction_id)}
+            style={{ padding:"9px 14px", borderRadius:10, border:"1.5px solid "+COLORS.border, background:COLORS.white, color:COLORS.gray, fontWeight:600, fontSize:13, cursor:"pointer", fontFamily:"inherit" }}>
+            Open deal →
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -624,6 +652,7 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
   // health, progress, history and the AI's recommended move — making it ONE
   // comprehensive card per transaction (no separate Command Center list).
   const [ccMeta, setCcMeta] = useState({});       // txId -> { health, reason, score, msDone, msTotal, daysSinceActivity, closingDate, status, aiMove, hasDraft, draftToRole }
+  const [needsYouDeals, setNeedsYouDeals] = useState([]); // flagged deals (may lack generated tasks)
   const [onTrackDeals, setOnTrackDeals] = useState([]);
   const [showOnTrack, setShowOnTrack] = useState(false);
   const [aiBusy, setAiBusy] = useState(null);
@@ -637,8 +666,26 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
         (d.needsYou || []).forEach(x => { if (x.txId) map[x.txId] = x; });
         (d.onTrack || []).forEach(x => { if (x.txId) map[x.txId] = x; });
         setCcMeta(map);
+        setNeedsYouDeals(d.needsYou || []);
         setOnTrackDeals(d.onTrack || []);
       }).catch(() => {});
+  };
+  // Deal-level action for a flagged deal that has no per-item task lines yet.
+  const dealAction = async (txId, kind) => {
+    if (kind === "replies") { onOpenTransactionMilestones && onOpenTransactionMilestones(txId, "replies"); return; }
+    setAiBusy(txId);
+    try {
+      const path = kind === "doc" ? "/tc/transaction/" + txId + "/request-document" : "/tc/action-plan/execute";
+      const r = await fetch(API + path, {
+        method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
+        body: kind === "remind" ? JSON.stringify({ txIds: [txId] }) : "{}",
+      });
+      const d = await r.json();
+      if (!r.ok || !d.success) throw new Error(d.error || "Couldn't do that");
+      alert("✅ " + (kind === "doc" ? "Requested the document" : "Sent reminders"));
+      loadCc(); window.dispatchEvent(new Event("wintheday:refresh"));
+    } catch (e) { alert("Could not: " + e.message); }
+    setAiBusy(null);
   };
   useEffect(() => { loadCc(); /* eslint-disable-next-line */ }, [coordinatorMode]);
   // Send the AI's recommended message (Deal Doctor draft) for a deal, one tap.
@@ -921,9 +968,19 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
   dealGroups.sort((a, b) => a.rank - b.rank ||
     (a.tasks[0]?.due_date || "9999").localeCompare(b.tasks[0]?.due_date || "9999") ||
     String(a.address || "").localeCompare(String(b.address || "")));
-  // Coordinator view: rank by the command-center risk score (most urgent first)
-  // so a TC watching hundreds always sees the deals that need them at the top.
+  // Coordinator view: every deal the command center flags must SHOW — even if its
+  // per-item task cards haven't regenerated yet (e.g. a deal that just went under
+  // contract awaiting EMD). Add those as header-only cards so nothing is hidden.
   if (coordinatorMode) {
+    const have = new Set(dealGroups.map(d => d.transaction_id).filter(Boolean));
+    for (const nd of needsYouDeals) {
+      if (nd.txId && !have.has(nd.txId)) {
+        dealGroups.push({ transaction_id: nd.txId, address: nd.address, tasks: [], rank: 0, _ccOnly: true });
+        have.add(nd.txId);
+      }
+    }
+    // Rank by the command-center risk score (most urgent first) so a TC watching
+    // hundreds always sees the deals that need them at the top.
     dealGroups.sort((a, b) =>
       ((ccMeta[b.transaction_id]?.score || 0) - (ccMeta[a.transaction_id]?.score || 0)) ||
       a.rank - b.rank);
@@ -1125,7 +1182,7 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
           {dealGroups.map(deal => (
             <DealGroupCard key={deal.transaction_id || deal.tasks[0]?.id} deal={deal} token={token}
               coordinatorMode={coordinatorMode} meta={ccMeta[deal.transaction_id]}
-              onSendAiDraft={sendAiDraft} aiBusy={aiBusy}
+              onSendAiDraft={sendAiDraft} aiBusy={aiBusy} onDealAction={dealAction}
               onResolve={handleResolve} onComplete={handleComplete} onSnooze={handleSnooze}
               onOpenModal={setActiveModal} onStartChase={handleStartChase}
               onOpenTransaction={onOpenTransactionMilestones}
