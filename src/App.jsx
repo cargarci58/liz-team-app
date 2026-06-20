@@ -9,6 +9,7 @@ import ContractUploadPublic from "./ContractUploadPublic";
 import TransactionChat from "./TransactionChat";
 import DailyDashboard from "./DailyDashboard";
 import CoordinatorCommandCenter from "./CoordinatorCommandCenter";
+import { CoordinatorSummaryPanel, AgentCoordinatorDesk } from "./AgentCoordinatorViews";
 import ChangePassword from "./ChangePassword";
 import LegalConsentGate from "./LegalConsentGate";
 import FaqHelpButton from "./components/FaqHelpButton";
@@ -5377,6 +5378,11 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
         {activeTab === "overview" && (
           <div>
             {!isGuest && <DealDoctorPanel tx={tx} />}
+            {/* Agent oversight: when a TC runs this deal, show what's done / left /
+                what the TC has done, so the agent can answer a client cold. */}
+            {!isGuest && !coordinatorMode && tx.coordinatorName && (
+              <CoordinatorSummaryPanel txId={tx.id} token={localStorage.getItem("tp_token") || ""} />
+            )}
             {!isGuest && tx.assignedAgentId && !tx.needsReview && tx.leadConverted === false && (
               <div style={{ background: "#FEF9E7", border: "1px solid #F1C40F", borderRadius: 12, padding: 16, marginBottom: 20 }}>
                 <div style={{ display: "flex", alignItems: "flex-start", gap: 12, flexWrap: "wrap" }}>
@@ -7083,6 +7089,8 @@ function Dashboard({ transactions, coordinatorMode = false, unreadCounts = {}, o
   const [agentFilter, setAgentFilter] = useState(initFilters.assignedAgent);
   const [propTypeFilter, setPropTypeFilter] = useState(initFilters.propertyType);
   const [txTypeFilter, setTxTypeFilter] = useState(initFilters.transactionType);
+  // Agent oversight: "" all, "yes" run by a coordinator, "no" handled by me alone.
+  const [coordFilter, setCoordFilter] = useState("");
   const [datePreset, setDatePreset] = useState(initFilters.datePreset);
   const [closingFrom, setClosingFrom] = useState(initFilters.closingDateFrom);
   const [closingTo, setClosingTo] = useState(initFilters.closingDateTo);
@@ -7186,6 +7194,7 @@ function Dashboard({ transactions, coordinatorMode = false, unreadCounts = {}, o
     if (txTypeFilter) params.set("transactionType", txTypeFilter);
     if (closingFrom) params.set("closingDateFrom", closingFrom);
     if (closingTo) params.set("closingDateTo", closingTo);
+    if (coordFilter) params.set("coordinated", coordFilter);
     return API + "/transactions/paged?" + params.toString();
   };
 
@@ -7210,7 +7219,7 @@ function Dashboard({ transactions, coordinatorMode = false, unreadCounts = {}, o
       .catch(e => { if (!cancelled) { setPagedError(e.message); setPagedTxs([]); } })
       .finally(() => { if (!cancelled) setPagedLoading(false); });
     return () => { cancelled = true; };
-  }, [debouncedSearch, filter, sortKey, sortDir, agentFilter, propTypeFilter, txTypeFilter, closingFrom, closingTo]);
+  }, [debouncedSearch, filter, sortKey, sortDir, agentFilter, propTypeFilter, txTypeFilter, closingFrom, closingTo, coordFilter]);
 
   const loadMore = () => {
     if (pagedLoading || !pagedHasMore) return;
@@ -7417,6 +7426,7 @@ function Dashboard({ transactions, coordinatorMode = false, unreadCounts = {}, o
     tasks: (t.tasks || []).filter(Boolean).map(tk => ({ id: tk.id, name: tk.name, status: tk.status, dueDate: tk.dueDate, category: tk.category, assignTo: tk.assignTo })),
     milestoneSummary: t.milestone_summary || null,
     nextMilestone: t.next_milestone || null,
+    coordinatorName: t.coordinator_name || null,
     isGuestView: t.is_guest_view || false,
     guestSide: t.guest_side || null,
     reminders: (t.reminders || []).filter(Boolean),
@@ -7683,6 +7693,17 @@ function Dashboard({ transactions, coordinatorMode = false, unreadCounts = {}, o
           <option value="On Hold">⏸️ On Hold</option>
           <option value="Cancelled">❌ Cancelled</option>
         </select>
+        {!coordinatorMode && (
+          <select value={coordFilter} onChange={e => setCoordFilter(e.target.value)}
+            title="Who's handling these deals"
+            style={{ padding: "7px 14px", borderRadius: 8, border: `1px solid ${COLORS.border}`,
+              background: "#fff", color: "#111", fontSize: 13, fontWeight: 600,
+              cursor: "pointer", fontFamily: "inherit", minWidth: 170 }}>
+            <option value="">👥 Anyone handling</option>
+            <option value="yes">🧭 With my coordinator</option>
+            <option value="no">🙋 Just mine</option>
+          </select>
+        )}
         <div style={{ marginLeft: "auto", display: "flex", gap: 6, position: "relative" }}>
           <button onClick={() => setShowViewsMenu(v => !v)} title="Layout & saved views" style={{ padding: "7px 12px", borderRadius: 8, border: `1px solid ${COLORS.border}`, background: "#fff", color: COLORS.text, fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 6 }}>📋 Views {savedViews.length > 0 && <span style={{ background: COLORS.bg, color: COLORS.muted, borderRadius: 10, padding: "1px 7px", fontSize: 11, fontWeight: 700 }}>{savedViews.length}</span>} <span style={{ fontSize: 9 }}>▾</span></button>
           {showViewsMenu && (
@@ -7849,6 +7870,12 @@ function Dashboard({ transactions, coordinatorMode = false, unreadCounts = {}, o
                   {coordinatorMode && tx.owningBrokerageName && (
                     <div style={{ display: "inline-block", marginTop: 6, color: "#FCD34D", fontSize: 11, fontWeight: 700, background: "rgba(252,211,77,0.15)", border: "1px solid rgba(252,211,77,0.4)", borderRadius: 6, padding: "2px 8px" }}>
                       🏢 {tx.owningBrokerageName}{tx.assignedAgentName ? " · " + tx.assignedAgentName : ""}
+                    </div>
+                  )}
+                  {/* Agent view: this deal is run by a transaction coordinator. */}
+                  {!coordinatorMode && tx.coordinatorName && (
+                    <div style={{ display: "inline-block", marginTop: 6, color: "#A7F3D0", fontSize: 11, fontWeight: 700, background: "rgba(16,110,86,0.25)", border: "1px solid rgba(16,185,129,0.5)", borderRadius: 6, padding: "2px 8px" }}>
+                      🧭 Coordinated by {tx.coordinatorName}
                     </div>
                   )}
                 </div>
@@ -8365,6 +8392,7 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
             tasks: (t.tasks || []).filter(Boolean).map(tk => ({ id: tk.id, name: tk.name, status: tk.status, dueDate: tk.dueDate, category: tk.category, assignTo: tk.assignTo })),
             milestoneSummary: t.milestone_summary || null,
             nextMilestone: t.next_milestone || null,
+            coordinatorName: t.coordinator_name || null,
             isGuestView: t.is_guest_view || false,
             guestSide: t.guest_side || null,
             isCoordinatorView: t.is_coordinator_view || false,
@@ -8833,6 +8861,13 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
               ranked "needs you" view across all their deals, AI-handled rest collapsed. */}
           {coordinatorMode && (
             <CoordinatorCommandCenter
+              token={localStorage.getItem("tp_token") || ""}
+              onOpenTransaction={openTransactionMilestones}
+            />
+          )}
+          {/* Agent oversight: roll-up of every deal a TC is running for them. */}
+          {!coordinatorMode && (
+            <AgentCoordinatorDesk
               token={localStorage.getItem("tp_token") || ""}
               onOpenTransaction={openTransactionMilestones}
             />

@@ -1,0 +1,130 @@
+import { useState, useEffect } from "react";
+
+const API = "https://liz-team-server-api-production.up.railway.app";
+
+const C = { card: "#fff", border: "#E5E7EB", navy: "#0F2044", gray: "#64748B", green: "#16A34A", red: "#DC2626", amber: "#D97706" };
+const healthColor = (h) => h === "red" ? C.red : h === "yellow" ? C.amber : h === "green" ? C.green : "#CBD5E1";
+const dot = (h) => <span style={{ display: "inline-block", width: 10, height: 10, borderRadius: "50%", background: healthColor(h), flexShrink: 0 }} title={h || "no health read yet"} />;
+function ago(d) {
+  if (!d) return "";
+  const s = Math.max(0, (Date.now() - new Date(d).getTime()) / 1000);
+  if (s < 3600) return Math.round(s / 60) + "m ago";
+  if (s < 86400) return Math.round(s / 3600) + "h ago";
+  return Math.round(s / 86400) + "d ago";
+}
+// Human label for a coordinator activity-log row (kept generic — actions vary).
+const actionVerb = (a) => ({
+  document_requested: "📎 Requested a document",
+  coordinator_message: "✉️ Emailed a party",
+  coordinator_autopilot: "✅ Sent today's reminders",
+  milestone_completed: "✔️ Completed a step",
+  milestone_reopened: "↩️ Reopened a step",
+  document_uploaded: "📄 Uploaded a document",
+  party_added: "👤 Added a party",
+  party_updated: "✏️ Updated a party",
+}[a] || "🧭 Took an action");
+
+// ── PER-DEAL SUMMARY (agent's Overview tab, for a TC-handled deal) ────────────
+export function CoordinatorSummaryPanel({ txId, token }) {
+  const [d, setD] = useState(null);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    let stop = false;
+    fetch(API + "/transactions/" + txId + "/coordinator-summary", { headers: { Authorization: "Bearer " + token } })
+      .then(r => r.ok ? r.json() : null)
+      .then(j => { if (!stop) { setD(j && j.success ? j : null); setLoading(false); } })
+      .catch(() => { if (!stop) setLoading(false); });
+    return () => { stop = true; };
+  }, [txId]);
+  if (loading) return null;
+  if (!d || !d.coordinatorName) return null; // not coordinated → nothing to show
+  const pct = d.progress.total > 0 ? Math.round(d.progress.done / d.progress.total * 100) : 0;
+  return (
+    <div style={{ background: C.card, border: "1px solid " + C.border, borderLeft: "4px solid " + healthColor(d.health), borderRadius: 12, padding: 16, marginBottom: 16 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 10 }}>
+        {dot(d.health)}
+        <span style={{ fontSize: 15, fontWeight: 800, color: C.navy }}>🧭 Handled by your coordinator</span>
+        <span style={{ fontSize: 13, color: C.gray }}>· {d.coordinatorName}</span>
+        <span style={{ marginLeft: "auto", fontSize: 12, color: C.gray }}>{d.progress.done} of {d.progress.total} steps done</span>
+      </div>
+      <div style={{ height: 8, background: "#EEF2F6", borderRadius: 6, overflow: "hidden", marginBottom: 14 }}>
+        <div style={{ width: pct + "%", height: "100%", background: C.green }} />
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }} data-keep-grid="">
+        <div>
+          <div style={{ fontSize: 12, fontWeight: 800, color: C.gray, textTransform: "uppercase", letterSpacing: 0.4, marginBottom: 6 }}>✅ Done recently</div>
+          {d.doneRecently.length === 0 ? <div style={{ fontSize: 13, color: C.gray }}>Nothing completed yet.</div> :
+            d.doneRecently.map((m, i) => (
+              <div key={i} style={{ fontSize: 13, color: "#1a2332", padding: "3px 0" }}>✓ {m.name}{m.completedAt ? <span style={{ color: C.gray }}> · {ago(m.completedAt)}</span> : null}</div>
+            ))}
+        </div>
+        <div>
+          <div style={{ fontSize: 12, fontWeight: 800, color: C.gray, textTransform: "uppercase", letterSpacing: 0.4, marginBottom: 6 }}>⏳ What's left / next</div>
+          {d.upcoming.length === 0 ? <div style={{ fontSize: 13, color: C.gray }}>Nothing outstanding.</div> :
+            d.upcoming.map((m, i) => (
+              <div key={i} style={{ fontSize: 13, color: "#1a2332", padding: "3px 0" }}>• {m.name}{m.dueDate ? <span style={{ color: C.gray }}> · due {m.dueDate}</span> : <span style={{ color: C.gray }}> · no date</span>}</div>
+            ))}
+        </div>
+      </div>
+
+      <div style={{ marginTop: 14 }}>
+        <div style={{ fontSize: 12, fontWeight: 800, color: C.gray, textTransform: "uppercase", letterSpacing: 0.4, marginBottom: 6 }}>🧭 What {d.coordinatorName} has done</div>
+        {d.tcActivity.length === 0 ? <div style={{ fontSize: 13, color: C.gray }}>No coordinator activity logged yet.</div> :
+          d.tcActivity.map((a, i) => (
+            <div key={i} style={{ display: "flex", gap: 8, fontSize: 13, color: "#1a2332", padding: "4px 0", borderTop: i ? "1px solid #F1F5F9" : "none" }}>
+              <span>{actionVerb(a.action)}</span>
+              {a.details && <span style={{ color: C.gray, flex: 1, minWidth: 0 }}>— {a.details}</span>}
+              <span style={{ color: C.gray, marginLeft: "auto", whiteSpace: "nowrap" }}>{ago(a.at)}</span>
+            </div>
+          ))}
+      </div>
+    </div>
+  );
+}
+
+// ── COORDINATOR DESK (agent home roll-up of every TC-handled deal) ────────────
+export function AgentCoordinatorDesk({ token, onOpenTransaction }) {
+  const [data, setData] = useState(null);
+  const [open, setOpen] = useState(true);
+  const load = () => {
+    fetch(API + "/agent/coordinator-desk", { headers: { Authorization: "Bearer " + token } })
+      .then(r => r.ok ? r.json() : null)
+      .then(j => setData(j && j.success ? j : null))
+      .catch(() => {});
+  };
+  useEffect(() => { load(); const h = () => load(); window.addEventListener("focus", h); return () => window.removeEventListener("focus", h); }, []);
+  if (!data || data.total === 0) return null; // no TC-handled deals → hide entirely
+  return (
+    <div style={{ maxWidth: 920, margin: "0 auto", padding: "8px 16px 0" }}>
+      <button onClick={() => setOpen(o => !o)} style={{ width: "100%", textAlign: "left", background: "none", border: "none", padding: 0, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "baseline", gap: 8, marginBottom: 8 }}>
+        <span style={{ fontSize: 18, fontWeight: 800, color: C.navy }}>🧭 Coordinator Desk</span>
+        <span style={{ fontSize: 13, color: C.gray }}>{data.total} deal{data.total === 1 ? "" : "s"} your coordinator is running</span>
+        <span style={{ marginLeft: "auto", fontSize: 13, color: C.gray }}>{open ? "▲" : "▼"}</span>
+      </button>
+      {open && data.deals.map(d => {
+        const pct = d.msTotal > 0 ? Math.round(d.msDone / d.msTotal * 100) : 0;
+        return (
+          <div key={d.txId} onClick={() => onOpenTransaction && onOpenTransaction(d.txId)}
+            style={{ background: C.card, border: "1px solid " + C.border, borderLeft: "4px solid " + healthColor(d.health), borderRadius: 12, padding: 14, marginBottom: 10, cursor: "pointer" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+              {dot(d.health)}
+              <span style={{ fontWeight: 800, fontSize: 15, color: C.navy }}>{d.address}</span>
+              <span style={{ fontSize: 12, color: C.gray }}>· {d.status}</span>
+              {d.coordinatorName && <span style={{ fontSize: 11, fontWeight: 700, color: "#0F6E56", background: "#E7F5EF", border: "1px solid #BBE3D2", borderRadius: 6, padding: "1px 7px" }}>🧭 {d.coordinatorName}</span>}
+              <span style={{ marginLeft: "auto", fontSize: 12, color: C.gray }}>{d.msDone}/{d.msTotal} done</span>
+            </div>
+            <div style={{ display: "flex", gap: 6, marginTop: 8, flexWrap: "wrap" }}>
+              {d.overdue > 0 && <span style={{ fontSize: 11, fontWeight: 700, color: "#fff", background: C.red, borderRadius: 20, padding: "2px 9px" }}>{d.overdue} overdue</span>}
+              {d.nextName && <span style={{ fontSize: 12, color: "#1a2332" }}>Next: <b>{d.nextName}</b>{d.nextWhen ? " · " + d.nextWhen : ""}</span>}
+              {d.closingDate && <span style={{ fontSize: 12, color: C.gray }}>· closing {d.closingDate}</span>}
+            </div>
+            <div style={{ fontSize: 12, color: C.gray, marginTop: 6 }}>
+              {d.lastTcAction ? <>Last: {actionVerb(d.lastTcAction.action)}{d.lastTcAction.details ? " — " + d.lastTcAction.details : ""} · {ago(d.lastTcAction.at)}</> : "No coordinator activity yet."}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
