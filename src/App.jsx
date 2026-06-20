@@ -7763,6 +7763,17 @@ function Dashboard({ transactions, coordinatorMode = false, unreadCounts = {}, o
           const progress = total > 0 ? Math.round(completed / total * 100) : 0;
           const cfg = STATUS_CONFIG[tx.status] || STATUS_CONFIG["Active"];
           const smsMsgCount = Object.values(tx.smsThreads || {}).reduce((a, t) => a + t.length, 0);
+          // At-a-glance commission for this deal (agent view only). Net = our gross
+          // commission + transaction fee − brokerage split − office flat fee.
+          const cardNetComm = (() => {
+            const price = Number(tx.contractPrice || tx.listPrice || 0);
+            const listComm = tx.commissionListing ? price * Number(tx.commissionListing) / 100 : 0;
+            const buyerComm = tx.commissionBuyer ? price * Number(tx.commissionBuyer) / 100 : 0;
+            const our = tx.type === "Listing (Seller)" ? listComm : tx.type === "Buyer Representation" ? buyerComm : tx.type === "Dual Agency" ? listComm + buyerComm : 0;
+            if (!our) return 0;
+            const split = tx.brokerageSplit ? our * Number(tx.brokerageSplit) / 100 : 0;
+            return our + Number(tx.transactionFee || 0) - split - Number(tx.officeFlatFee || 0);
+          })();
           return (
             <div key={tx.id} onClick={() => onSelect(tx.id)} style={{ background: "#fff", border: !tx.assignedAgentId ? "3px solid #f59e0b" : tx.needsReview ? "3px solid #2563eb" : tx.needsFirstContact ? "3px solid #c8102e" : `1px solid ${COLORS.border}`, borderRadius: 12, cursor: "pointer", overflow: "hidden" }}
               onMouseEnter={e => e.currentTarget.style.boxShadow = "0 6px 20px rgba(0,0,0,0.12)"}
@@ -7848,6 +7859,14 @@ function Dashboard({ transactions, coordinatorMode = false, unreadCounts = {}, o
                     )}
                   </div>
                 </div>
+
+                {/* Commission at a glance (agent view only) */}
+                {!coordinatorMode && cardNetComm > 0 && (
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "#EAF7EF", border: "1px solid #BBE6CC", borderRadius: 8, padding: "7px 12px", marginBottom: 12 }}>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: "#1E8449", textTransform: "uppercase", letterSpacing: "0.05em" }}>💵 Est. Commission</span>
+                    <span style={{ fontSize: 16, fontWeight: 800, color: "#1E8449" }}>${Math.round(cardNetComm).toLocaleString()}</span>
+                  </div>
+                )}
 
                 {/* Notification badges */}
                 {(smsMsgCount > 0 || unreadCounts[tx.id] > 0) && (
