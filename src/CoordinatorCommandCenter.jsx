@@ -9,17 +9,51 @@ export default function CoordinatorCommandCenter({ token, onOpenTransaction }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showOnTrack, setShowOnTrack] = useState(false);
+  // Approve-first plan: the app shows what it will send; the TC presses "Do it".
+  const [plan, setPlan] = useState([]);          // grouped by deal: {txId, address, lines:[]}
+  const [skip, setSkip] = useState({});           // txId -> true means "don't send this one"
+  const [doing, setDoing] = useState(false);
+  const [planMsg, setPlanMsg] = useState(null);
 
   const load = () => {
     fetch(API + "/tc/command-center", { headers: { Authorization: "Bearer " + token } })
       .then(r => r.ok ? r.json() : null)
       .then(d => { setData(d && d.success ? d : null); setLoading(false); })
       .catch(() => { setLoading(false); });
+    fetch(API + "/tc/action-plan", { headers: { Authorization: "Bearer " + token } })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => {
+        const byDeal = new Map();
+        (d && d.actions || []).forEach(a => {
+          if (!byDeal.has(a.txId)) byDeal.set(a.txId, { txId: a.txId, address: a.address, lines: [] });
+          byDeal.get(a.txId).lines.push(`${a.summary} — ${a.detail}`);
+        });
+        setPlan(Array.from(byDeal.values()));
+      })
+      .catch(() => setPlan([]));
   };
   useEffect(() => { load(); /* refresh when the tab regains focus */
     const h = () => load(); window.addEventListener("focus", h);
     return () => window.removeEventListener("focus", h);
   }, []);
+
+  const approvedTxIds = plan.filter(p => !skip[p.txId]).map(p => p.txId);
+  const doIt = async () => {
+    if (approvedTxIds.length === 0) return;
+    setDoing(true); setPlanMsg(null);
+    try {
+      const r = await fetch(API + "/tc/action-plan/execute", {
+        method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
+        body: JSON.stringify({ txIds: approvedTxIds }),
+      });
+      const d = await r.json();
+      if (!r.ok || !d.success) throw new Error(d.error || "Failed");
+      setPlanMsg(`✅ Done — sent ${d.emails} email${d.emails === 1 ? "" : "s"} across ${d.deals} deal${d.deals === 1 ? "" : "s"}.`);
+      setPlan([]); setSkip({});
+      setTimeout(load, 800);
+    } catch (e) { setPlanMsg("⚠️ " + e.message); }
+    setDoing(false);
+  };
 
   if (loading) return <div style={{ padding: 20, color: "#64748B", fontSize: 14 }}>Loading your command center…</div>;
   if (!data) return null;
@@ -45,6 +79,32 @@ export default function CoordinatorCommandCenter({ token, onOpenTransaction }) {
           ? `All ${data.total} of your transactions are on track — the app is handling them. Nothing needs you right now. ✅`
           : `${data.needsYouCount} of your ${data.total} transactions need a look. The other ${data.onTrackCount} are on track and handled.`}
       </div>
+
+      {/* APPROVE-FIRST PLAN — the app shows what it'll send; you press "Do it". */}
+      {plan.length > 0 && (
+        <div style={{ background: "#EFF6FF", border: "1px solid #BFDBFE", borderRadius: 12, padding: 16, marginBottom: 16 }}>
+          <div style={{ fontSize: 15, fontWeight: 800, color: "#1E3A8A", marginBottom: 4 }}>🤖 Here's what I'll send today</div>
+          <div style={{ fontSize: 12.5, color: "#1E40AF", marginBottom: 12 }}>Review and tap “Do it” — I'll handle the outreach for you. Uncheck any deal you want to hold.</div>
+          {plan.map(p => (
+            <div key={p.txId} style={{ display: "flex", gap: 10, alignItems: "flex-start", padding: "8px 0", borderTop: "1px solid #DBEAFE" }}>
+              <input type="checkbox" checked={!skip[p.txId]} onChange={e => setSkip(s => ({ ...s, [p.txId]: !e.target.checked }))} style={{ marginTop: 3, width: 18, height: 18, flexShrink: 0 }} />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontWeight: 700, fontSize: 14, color: "#1a2332" }}>{p.address}</div>
+                {p.lines.map((l, i) => <div key={i} style={{ fontSize: 12.5, color: "#475569", marginTop: 2 }}>• {l}</div>)}
+              </div>
+            </div>
+          ))}
+          <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 12, flexWrap: "wrap" }}>
+            <button onClick={doIt} disabled={doing || approvedTxIds.length === 0}
+              style={{ background: doing || approvedTxIds.length === 0 ? "#93C5FD" : "#1E8449", color: "#fff", border: "none", borderRadius: 10, padding: "11px 22px", fontSize: 15, fontWeight: 800, cursor: doing ? "wait" : "pointer", fontFamily: "inherit" }}>
+              {doing ? "Sending…" : `✅ Okay, do it (${approvedTxIds.length} deal${approvedTxIds.length === 1 ? "" : "s"})`}
+            </button>
+            <span style={{ fontSize: 12, color: "#1E40AF" }}>Nothing goes out until you approve.</span>
+          </div>
+          {planMsg && <div style={{ marginTop: 10, fontSize: 13, fontWeight: 700, color: planMsg.startsWith("✅") ? "#166534" : "#991B1B" }}>{planMsg}</div>}
+        </div>
+      )}
+      {planMsg && plan.length === 0 && <div style={{ marginBottom: 14, fontSize: 13, fontWeight: 700, color: planMsg.startsWith("✅") ? "#166534" : "#991B1B" }}>{planMsg}</div>}
 
       {/* NEEDS YOU — ranked exception queue */}
       {data.needsYou.map(d => {
