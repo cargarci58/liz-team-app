@@ -9,7 +9,7 @@ import ContractUploadPublic from "./ContractUploadPublic";
 import TransactionChat from "./TransactionChat";
 import DailyDashboard from "./DailyDashboard";
 import CoordinatorCommandCenter from "./CoordinatorCommandCenter";
-import { CoordinatorSummaryPanel, AgentCoordinatorDesk } from "./AgentCoordinatorViews";
+import { CoordinatorSummaryPanel } from "./AgentCoordinatorViews";
 import ChangePassword from "./ChangePassword";
 import LegalConsentGate from "./LegalConsentGate";
 import FaqHelpButton from "./components/FaqHelpButton";
@@ -8874,14 +8874,6 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
             onOpenInboundReply={(txId) => openTransactionMilestones(txId, "replies")}
             onOpenPopBys={() => setView("popbys")}
           />
-          {/* Agent oversight: roll-up of every deal a TC is running — BELOW the
-              agent's own day (calls + tasks). Collapsed; oversight, not action. */}
-          {!coordinatorMode && (
-            <AgentCoordinatorDesk
-              token={localStorage.getItem("tp_token") || ""}
-              onOpenTransaction={openTransactionMilestones}
-            />
-          )}
         </>
       )}
       {!showReports && !showCalendar && view === "dashboard" && (

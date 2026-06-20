@@ -468,15 +468,29 @@ const BUCKETS = [
   { label:"",       color:COLORS.gray,    bg:COLORS.lightGray },
 ];
 
+// Short plain-English label for a TC activity-log action (agent's TC section).
+const tcVerb = (a) => ({
+  document_requested: "requested a document",
+  coordinator_message: "emailed a party",
+  coordinator_autopilot: "sent reminders",
+  milestone_completed: "completed a step",
+  milestone_reopened: "reopened a step",
+  document_uploaded: "uploaded a document",
+  party_added: "added a party",
+  party_updated: "updated a party",
+}[a] || "took an action");
+
 // ── DEAL GROUP CARD ───────────────────────────────────────────
 // One card per TRANSACTION. All of that deal's items are grouped here as lines,
 // most-urgent first — instead of scattering 3-5 separate cards across the page.
 // The card's left bar + header badge reflect the single most-urgent item.
-function DealGroupCard({ deal, token, coordinatorMode = false, meta = null, onSendAiDraft, aiBusy, onDealAction, onActPreview, onResolve, onComplete, onSnooze, onOpenModal, onStartChase, onOpenTransactionMilestones, onOpenInboundReply, onInboundReply, onOpenTransaction, onReschedule }) {
+function DealGroupCard({ deal, token, coordinatorMode = false, meta = null, agentTc = null, onSendAiDraft, aiBusy, onDealAction, onActPreview, onResolve, onComplete, onSnooze, onOpenModal, onStartChase, onOpenTransactionMilestones, onOpenInboundReply, onInboundReply, onOpenTransaction, onReschedule }) {
   const top = BUCKETS[deal.rank] || BUCKETS[3];
   // Coordinator card accent reflects the AI health read when we have one.
   const healthColor = meta && meta.health === "red" ? "#DC2626" : meta && meta.health === "yellow" ? "#D97706" : meta && meta.health === "green" ? "#16A34A" : null;
-  const accent = (coordinatorMode && healthColor) || top.color;
+  // Agent card with a TC: accent by the TC's health read.
+  const tcHealthColor = agentTc && agentTc.health === "red" ? "#DC2626" : agentTc && agentTc.health === "yellow" ? "#D97706" : agentTc && agentTc.health === "green" ? "#16A34A" : null;
+  const accent = (coordinatorMode && healthColor) || (!coordinatorMode && tcHealthColor) || top.color;
   // A plain-English history line so the TC knows where the deal stands at a glance.
   const historyBits = [];
   if (meta) {
@@ -566,6 +580,39 @@ function DealGroupCard({ deal, token, coordinatorMode = false, meta = null, onSe
           <button onClick={() => onOpenTransaction && onOpenTransaction(deal.transaction_id)}
             style={{ padding:"9px 14px", borderRadius:10, border:"1.5px solid "+COLORS.border, background:COLORS.white, color:COLORS.gray, fontWeight:600, fontSize:13, cursor:"pointer", fontFamily:"inherit" }}>
             Open deal →
+          </button>
+        </div>
+      )}
+
+      {/* AGENT view: what the TC is taking care of on THIS deal — folded into the
+          same card so the agent sees their part + the TC's part in one place. */}
+      {!coordinatorMode && agentTc && (
+        <div style={{ marginTop: deal.tasks.length ? 12 : 2, paddingTop: 12, borderTop: "1px solid "+COLORS.lightGray }}>
+          <div style={{ display:"flex", alignItems:"center", gap:8, flexWrap:"wrap", marginBottom:6 }}>
+            <span style={{ fontSize:13, fontWeight:800, color:"#0F6E56" }}>🧭 Your TC{agentTc.coordinatorName ? " · " + agentTc.coordinatorName : ""} is handling this</span>
+            {agentTc.msTotal > 0 && <span style={{ marginLeft:"auto", fontSize:12, color:COLORS.gray }}>{agentTc.msDone}/{agentTc.msTotal} done</span>}
+          </div>
+          {deal._tcOnly && (
+            <div style={{ fontSize:13, color:"#1E8449", fontWeight:600, marginBottom:6 }}>✓ Nothing needs you here right now — your TC is on it.</div>
+          )}
+          {agentTc.overdue > 0 && (
+            <div style={{ fontSize:12.5, color:"#B91C1C", fontWeight:700, marginBottom:4 }}>⚠️ {agentTc.overdue} overdue — your TC is working it</div>
+          )}
+          {agentTc.upcoming && agentTc.upcoming.length > 0 && (
+            <div style={{ fontSize:12.5, color:COLORS.gray, marginBottom:4 }}>
+              <b style={{ color:COLORS.black }}>TC's next steps:</b> {agentTc.upcoming.map(u => u.name + (u.dueDate ? " (" + u.dueDate + ")" : "")).join(" · ")}
+            </div>
+          )}
+          {agentTc.recentTc && agentTc.recentTc.length > 0 ? (
+            <div style={{ fontSize:12.5, color:COLORS.gray }}>
+              <b style={{ color:COLORS.black }}>TC recently:</b> {agentTc.recentTc.map(a => tcVerb(a.action)).join(" · ")}
+            </div>
+          ) : (
+            <div style={{ fontSize:12, color:COLORS.gray }}>No TC activity logged yet.</div>
+          )}
+          <button onClick={() => onOpenTransaction && onOpenTransaction(deal.transaction_id)}
+            style={{ marginTop:8, padding:"7px 12px", borderRadius:8, border:"1.5px solid "+COLORS.border, background:COLORS.white, color:COLORS.gray, fontWeight:600, fontSize:12.5, cursor:"pointer", fontFamily:"inherit" }}>
+            See full coordinator detail →
           </button>
         </div>
       )}
@@ -739,19 +786,34 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
   const [onTrackDeals, setOnTrackDeals] = useState([]);
   const [showOnTrack, setShowOnTrack] = useState(false);
   const [aiBusy, setAiBusy] = useState(null);
+  // AGENT side: every TC-handled deal's status, so each deal card can show what
+  // the TC is taking care of right alongside what the agent needs to do.
+  const [agentTcMap, setAgentTcMap] = useState({});   // txId -> desk info
+  const [agentTcDeals, setAgentTcDeals] = useState([]);
   const loadCc = () => {
-    if (!coordinatorMode) return;
-    fetch(API + "/tc/command-center", { headers: { Authorization: "Bearer " + token } })
-      .then(r => r.ok ? r.json() : null)
-      .then(d => {
-        if (!d || !d.success) return;
-        const map = {};
-        (d.needsYou || []).forEach(x => { if (x.txId) map[x.txId] = x; });
-        (d.onTrack || []).forEach(x => { if (x.txId) map[x.txId] = x; });
-        setCcMeta(map);
-        setNeedsYouDeals(d.needsYou || []);
-        setOnTrackDeals(d.onTrack || []);
-      }).catch(() => {});
+    if (coordinatorMode) {
+      fetch(API + "/tc/command-center", { headers: { Authorization: "Bearer " + token } })
+        .then(r => r.ok ? r.json() : null)
+        .then(d => {
+          if (!d || !d.success) return;
+          const map = {};
+          (d.needsYou || []).forEach(x => { if (x.txId) map[x.txId] = x; });
+          (d.onTrack || []).forEach(x => { if (x.txId) map[x.txId] = x; });
+          setCcMeta(map);
+          setNeedsYouDeals(d.needsYou || []);
+          setOnTrackDeals(d.onTrack || []);
+        }).catch(() => {});
+    } else {
+      fetch(API + "/agent/coordinator-desk", { headers: { Authorization: "Bearer " + token } })
+        .then(r => r.ok ? r.json() : null)
+        .then(d => {
+          if (!d || !d.success) return;
+          const map = {};
+          (d.deals || []).forEach(x => { if (x.txId) map[x.txId] = x; });
+          setAgentTcMap(map);
+          setAgentTcDeals(d.deals || []);
+        }).catch(() => {});
+    }
   };
   // Deal-level action for a flagged deal that has no per-item task lines yet.
   const dealAction = async (txId, kind) => {
@@ -773,6 +835,7 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
     setAiBusy(null);
   };
   useEffect(() => { loadCc(); /* eslint-disable-next-line */ }, [coordinatorMode]);
+  useEffect(() => { const h = () => loadCc(); window.addEventListener("wintheday:refresh", h); return () => window.removeEventListener("wintheday:refresh", h); /* eslint-disable-next-line */ }, []);
   // Approve-first preview engine: any send action first fetches a preview (to /
   // how / subject / body) and opens the review modal; nothing leaves until the
   // coordinator approves. `pendingPreview` holds the preview + the send fn.
@@ -1088,6 +1151,19 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
       ((ccMeta[b.transaction_id]?.score || 0) - (ccMeta[a.transaction_id]?.score || 0)) ||
       a.rank - b.rank);
   }
+  // AGENT view: fold the Coordinator Desk INTO the deal cards — every TC-handled
+  // deal becomes ONE card showing the agent's part AND the TC's part. Deals the
+  // TC runs that have no agent task still appear (header + TC section), so the
+  // agent never goes back and forth between a list and a separate desk.
+  if (!coordinatorMode) {
+    const have = new Set(dealGroups.map(d => d.transaction_id).filter(Boolean));
+    for (const td of agentTcDeals) {
+      if (td.txId && !have.has(td.txId)) {
+        dealGroups.push({ transaction_id: td.txId, address: td.address, tasks: [], rank: 4, _tcOnly: true });
+        have.add(td.txId);
+      }
+    }
+  }
 
   if (loading) {
     return (
@@ -1281,10 +1357,11 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
       {/* ONE CARD PER TRANSACTION — all of a deal's items grouped, urgent first */}
       {dealGroups.length > 0 && (
         <div>
-          {!coordinatorMode && <SectionHeader label="WHAT NEEDS YOU TODAY" count={dealGroups.length} color={COLORS.red} />}
+          {!coordinatorMode && <SectionHeader label="YOUR DEALS TODAY" count={dealGroups.length} color={COLORS.red} />}
           {dealGroups.map(deal => (
             <DealGroupCard key={deal.transaction_id || deal.tasks[0]?.id} deal={deal} token={token}
               coordinatorMode={coordinatorMode} meta={ccMeta[deal.transaction_id]}
+              agentTc={!coordinatorMode ? agentTcMap[deal.transaction_id] : null}
               onSendAiDraft={sendAiDraft} aiBusy={aiBusy} onDealAction={dealAction} onActPreview={actPreview}
               onResolve={handleResolve} onComplete={handleComplete} onSnooze={handleSnooze}
               onOpenModal={setActiveModal} onStartChase={handleStartChase}
