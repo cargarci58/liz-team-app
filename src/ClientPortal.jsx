@@ -1686,7 +1686,12 @@ export default function ClientPortal({ user, onLogout, previewTxId, onExitPrevie
                     appropriate "what's next" so the section never just vanishes. */}
                 {(() => {
                   const preContract = stage.effectiveStatus === "Active";
-                  let items = (stage.upcoming || []).map(m => comingUpLabel(m.name));
+                  // Several distinct milestones can map to the SAME friendly phrase
+                  // (e.g. "Inspection Scheduled" + "Inspection Period Ends" +
+                  // "Repairs Negotiated" all → "The home inspection wraps up"), which
+                  // showed the same line 3x. De-dupe by the final wording (keep first
+                  // occurrence / order) and cap the list so it stays a clean preview.
+                  let items = [...new Set((stage.upcoming || []).map(m => comingUpLabel(m.name)))].slice(0, 5);
                   if (items.length === 0) {
                     if (preContract && isSellerSide && offers.length > 0) {
                       items = [
