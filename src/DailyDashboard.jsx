@@ -854,7 +854,7 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
         send: async (subject, body, extras) => {
           setPreviewBusy(true);
           try {
-            const r = await post(path, { subject, body, ...(extras || {}) });
+            const r = await post(path, { confirm: true, subject, body, ...(extras || {}) });
             setPendingPreview(null);
             onSent && onSent(r);
             window.dispatchEvent(new Event("wintheday:refresh")); loadCc();
