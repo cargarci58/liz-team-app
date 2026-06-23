@@ -109,7 +109,17 @@ export default function FormsPage({ user, onBack }) {
         <div style={{ textAlign: 'center', padding: 40, color: '#6b7280' }}>Loading forms...</div>
       ) : filtered.length === 0 ? (
         <div style={{ textAlign: 'center', padding: 40, color: '#6b7280', background: '#f9fafb', borderRadius: 8 }}>
-          No forms match your filters.
+          {forms.length === 0 ? (
+            <>
+              <div style={{ fontSize: 32, marginBottom: 8 }}>📋</div>
+              <div style={{ fontWeight: 700, color: '#374151', marginBottom: 6 }}>No forms here yet</div>
+              <div style={{ fontSize: 13, lineHeight: 1.6 }}>
+                {isAdmin
+                  ? 'Add your brokerage’s forms with the ➕ Add Form button above, then upload each licensed PDF so your agents can use them.'
+                  : 'Your brokerage hasn’t added any forms yet. An admin uploads the licensed PDFs here — check back once they have.'}
+              </div>
+            </>
+          ) : 'No forms match your filters.'}
         </div>
       ) : (
         Object.keys(grouped).sort().map(cat => (

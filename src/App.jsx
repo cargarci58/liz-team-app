@@ -48,6 +48,7 @@ const Reports = lazy(() => import("./Reports"));
 const VendorLibrary = lazy(() => import("./VendorLibrary"));
 const CompanySettings = lazy(() => import("./CompanySettings"));
 const AgentProfile = lazy(() => import("./AgentProfile"));
+const CalendarView = lazy(() => import("./CalendarView"));
 const ClientPortal = lazy(() => import("./ClientPortal"));
 const TCPortal = lazy(() => import("./TCPortal"));
 const CoordinatorPanel = lazy(() => import("./CoordinatorPanel"));
@@ -5277,9 +5278,11 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
     { id: "replies", label: `💬 Replies${unreadReplyCount > 0 ? ` (${unreadReplyCount})` : ""}` },
     { id: "notes", label: "Internal Notes" },
     { id: "documents", label: "📎 Documents" },
-    // Group chat now lives inside the Messages tab (Group mode) for staff. Guests
-    // still get it as a standalone tab — it's one of their few allowed views.
-    ...(isGuest ? [{ id: "chat", label: (chatUnread > 0 || dashboardUnread > 0) ? `💬 Group Chat (${Math.max(chatUnread, dashboardUnread)})` : "💬 Group Chat" }] : []),
+    // Group chat lives inside the Messages tab (Group mode) for the AGENT, but the
+    // coordinator's Messages tab is the client-update sender — so the TC needs the
+    // in-app chat as its own tab to see/reply to the agent's internal messages.
+    // Guests also get it (one of their few allowed views).
+    ...((isGuest || isCoordinator) ? [{ id: "chat", label: (chatUnread > 0 || dashboardUnread > 0) ? `💬 Chat (${Math.max(chatUnread, dashboardUnread)})` : "💬 Chat" }] : []),
     { id: "cma", label: "📊 CMA" },
     ...(isBuyerSideTx ? [{ id: "offers", label: "📝 Create Offer" }, { id: "calculator", label: "🧮 Buyers Calculator" }, { id: "buyer-net", label: "💰 Buyer's Net Sheet" }] : []),
     ...(isListingSideTx ? [{ id: "seller-calc", label: "💰 Seller's Net Sheet" }] : []),
@@ -7048,7 +7051,7 @@ function DashboardSalesStrip({ onOpen }) {
   );
 }
 
-function Dashboard({ transactions, coordinatorMode = false, unreadCounts = {}, onSelect, onNew, onOpenContactBook, onOpenContacts, onOpenPopBys, onOpenScripts, onOpenCMA, onOpenGrowthPlan, onOpenExpenses, onOpenForms, contactCount, onLogout, onOpenTeam, onOpenCompliance, onOpenComplianceDash, onOpenTaskTmpls, onOpenContractIntake, onChangePassword, onReports, onGoalPlanner, onHome, onVendors, onCompanySettings, onSuperuser, onAgentProfile, onIntakeLinks, onViewTransactions, onHelp, onFeedback, onSupport, currentUser, isFreeGuest = false }) {
+function Dashboard({ transactions, coordinatorMode = false, unreadCounts = {}, onSelect, onNew, onOpenContactBook, onOpenContacts, onOpenPopBys, onOpenScripts, onOpenCMA, onOpenGrowthPlan, onOpenExpenses, onOpenForms, contactCount, onLogout, onOpenTeam, onOpenCompliance, onOpenComplianceDash, onOpenTaskTmpls, onOpenContractIntake, onChangePassword, onReports, onGoalPlanner, onHome, onVendors, onCalendar, onCompanySettings, onSuperuser, onAgentProfile, onIntakeLinks, onViewTransactions, onHelp, onFeedback, onSupport, currentUser, isFreeGuest = false }) {
   const [filter, setFilter] = useState("All");
   const [search, setSearch] = useState("");
   const [showTcTeam, setShowTcTeam] = useState(false);
@@ -8907,7 +8910,17 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
           isFreeGuest={isFreeGuest}
           onHome={() => setView("home")}
           onVendors={guard("The Vendor library", () => setShowVendorLibrary(true))}
+          onCalendar={guard("Calendar", () => setShowCalendar(true))}
         />
+      )}
+      {showCalendar && (
+        <Suspense fallback={<LazyLoading />}>
+          <CalendarView
+            transactions={transactions}
+            onBack={() => setShowCalendar(false)}
+            onSelectTx={(id) => { setShowCalendar(false); setSelectedId(id); setView("detail"); }}
+          />
+        </Suspense>
       )}
       {showTeam && <UserManagement onClose={() => setShowTeam(false)} />}
       {view === "expenses" && (
