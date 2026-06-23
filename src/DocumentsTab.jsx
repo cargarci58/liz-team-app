@@ -176,40 +176,50 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
     } finally { setSlotUploading(null); }
   };
 
+  const readAsBase64 = (file) => new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result).split(",")[1]);
+    reader.onerror = () => reject(new Error("Could not read file"));
+    reader.readAsDataURL(file);
+  });
+
   const handleUpload = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    if (file.size > MAX_UPLOAD_BYTES) {
-      alert(`File too large. Maximum is 50 MB, this file is ${(file.size / 1024 / 1024).toFixed(1)} MB.`);
-      e.target.value = "";
-      return;
-    }
-    if (file.type && !ALLOWED_UPLOAD_TYPES.includes(file.type)) {
-      alert(`File type "${file.type}" not allowed. Please upload PDFs, images, Word, Excel, or text files.`);
-      e.target.value = "";
-      return;
-    }
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
     setUploading(true);
+    const ok = [], failed = [];
     try {
-      // Read the file as base64 and upload through the server (server-proxied).
-      // The old browser→R2 presigned PUT failed CORS ("Failed to fetch").
-      const base64 = await new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(String(reader.result).split(",")[1]);
-        reader.onerror = () => reject(new Error("Could not read file"));
-        reader.readAsDataURL(file);
-      });
-      const res = await fetch(`${API}/documents/upload`, {
-        method: "POST", headers,
-        body: JSON.stringify({ transactionId: tx.id, fileName: file.name, fileType: file.type, category, base64 }),
-      });
-      const data = await res.json();
-      if (!res.ok || !data.success) throw new Error(data.error || ("Upload failed (" + res.status + ")"));
+      // Upload each selected file (sequentially, so a big batch can't hammer the
+      // server). Skip + report oversized / unsupported files instead of aborting
+      // the whole batch. Refresh the list once at the end.
+      for (const file of files) {
+        if (file.size > MAX_UPLOAD_BYTES) {
+          failed.push(`${file.name} (over 50 MB)`); continue;
+        }
+        if (file.type && !ALLOWED_UPLOAD_TYPES.includes(file.type)) {
+          failed.push(`${file.name} (unsupported type)`); continue;
+        }
+        try {
+          const base64 = await readAsBase64(file);
+          const res = await fetch(`${API}/documents/upload`, {
+            method: "POST", headers,
+            body: JSON.stringify({ transactionId: tx.id, fileName: file.name, fileType: file.type, category, base64 }),
+          });
+          const data = await res.json();
+          if (!res.ok || !data.success) throw new Error(data.error || ("Upload failed (" + res.status + ")"));
+          ok.push(file.name);
+        } catch (err) {
+          failed.push(`${file.name} (${err.message})`);
+        }
+      }
+      // Refresh once after the batch.
       const docsRes = await fetch(`${API}/documents/${tx.id}`, { headers });
       const docsData = await docsRes.json();
       if (docsData.documents) setDocs(docsData.documents);
       loadRequired();
-      alert("✅ Document uploaded!");
+      if (ok.length && !failed.length) alert(`✅ ${ok.length} document${ok.length === 1 ? "" : "s"} uploaded!`);
+      else if (ok.length && failed.length) alert(`✅ ${ok.length} uploaded.\n\n⚠️ Couldn't upload:\n- ${failed.join("\n- ")}`);
+      else alert(`⚠️ Couldn't upload:\n- ${failed.join("\n- ")}`);
     } catch (e) {
       console.error("Upload failed:", e);
       alert("Upload failed: " + e.message);
@@ -421,15 +431,15 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
       <div style={{ background: "#F8F9FA", border: "2px dashed #DDDDDD", borderRadius: 12, padding: 24, marginBottom: 24, textAlign: "center" }}>
         <div style={{ fontSize: 32, marginBottom: 8 }}>📎</div>
         <div style={{ fontWeight: 700, marginBottom: 4, color: COLORS.text }}>Upload Document</div>
-        <div style={{ fontSize: 13, color: COLORS.muted, marginBottom: 16 }}>PDF, Word, Excel, Images up to 50MB</div>
+        <div style={{ fontSize: 13, color: COLORS.muted, marginBottom: 16 }}>PDF, Word, Excel, Images up to 50MB — you can pick several at once</div>
         <div style={{ display: "flex", gap: 8, justifyContent: "center", alignItems: "center", flexWrap: "wrap" }}>
           <select value={category} onChange={e => setCategory(e.target.value)}
             style={{ padding: "8px 12px", borderRadius: 8, border: "1px solid #DDDDDD", fontSize: 13, fontFamily: "inherit" }}>
             {CATEGORIES.map(c => <option key={c}>{c}</option>)}
           </select>
           <label style={{ padding: "8px 20px", background: "#C0392B", color: "#fff", borderRadius: 8, cursor: uploading ? "not-allowed" : "pointer", fontWeight: 600, fontSize: 13, opacity: uploading ? 0.7 : 1 }}>
-            {uploading ? "Uploading..." : "Choose File"}
-            <input type="file" onChange={handleUpload} disabled={uploading} style={{ display: "none" }}
+            {uploading ? "Uploading..." : "Choose Files"}
+            <input type="file" multiple onChange={handleUpload} disabled={uploading} style={{ display: "none" }}
               accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg,.gif,.txt" />
           </label>
         </div>
