@@ -8839,6 +8839,24 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
 
   return (
     <Suspense fallback={<LazyLoading />}>
+      {/* GLOBAL NEW-MESSAGE ALERT — pulsing, fixed, shows on EVERY screen so a new
+          chat/message is never missed while the user is working elsewhere. Clears
+          itself once the messages are read. */}
+      {(() => {
+        const entries = Object.entries(unreadCounts || {}).filter(([, n]) => n > 0);
+        const total = entries.reduce((a, [, n]) => a + n, 0);
+        if (total === 0) return null;
+        const go = () => { if (entries.length === 1) openTransactionMilestones(entries[0][0], "chat"); else { setShowReports(false); setShowCalendar(false); setView("home"); } };
+        return (
+          <>
+            <style>{`@keyframes mpulse{0%,100%{transform:scale(1)}50%{transform:scale(1.07)}}`}</style>
+            <div onClick={go} title="You have new messages — tap to read"
+              style={{ position: "fixed", bottom: 18, left: 18, zIndex: 9998, background: "#C0392B", color: "#fff", borderRadius: 30, padding: "13px 20px", boxShadow: "0 8px 26px rgba(192,57,43,0.55)", cursor: "pointer", fontWeight: 800, fontSize: 15, display: "flex", alignItems: "center", gap: 10, animation: "mpulse 1.6s ease-in-out infinite", maxWidth: "calc(100vw - 36px)", fontFamily: "'Segoe UI', system-ui, sans-serif" }}>
+              🔔 {total} new message{total === 1 ? "" : "s"}{entries.length > 1 ? ` · ${entries.length} deals` : ""} <span style={{ textDecoration: "underline", whiteSpace: "nowrap" }}>Read →</span>
+            </div>
+          </>
+        );
+      })()}
       {paywallFeature && (
         <div onClick={() => setPaywallFeature(null)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)", zIndex: 99999, display: "flex", alignItems: "flex-start", justifyContent: "center", padding: 16, overflowY: "auto" }}>
           <div onClick={e => e.stopPropagation()} style={{ background: "#fff", borderRadius: 16, padding: 28, maxWidth: 420, width: "100%", textAlign: "center", boxShadow: "0 20px 60px rgba(0,0,0,0.3)", fontFamily: "'Segoe UI', system-ui, sans-serif", margin: "auto" }}>
