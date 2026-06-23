@@ -280,38 +280,40 @@ export default function TransactionChat({ transactionId, user, parties = [], sty
       </div>
 
       {pickerOpen && (
-        <div style={{ background: "#FAFBFC", borderTop: "1px solid #E5E7EB", padding: "10px 16px", maxHeight: 220, overflowY: "auto" }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: "#666", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.06em" }}>Notify only:</div>
+        <div style={{ background: "#FAFBFC", borderTop: "1px solid #E5E7EB", padding: "10px 16px", maxHeight: 260, overflowY: "auto" }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: "#666", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.06em" }}>Who should get this message?</div>
+          {/* Everyone (whole group) — the default */}
+          <label style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px", cursor: "pointer", fontSize: 13, fontWeight: 700, background: selectedEmails.length === 0 ? "#E7F1FB" : "transparent", borderRadius: 8 }}>
+            <input type="checkbox" checked={selectedEmails.length === 0} onChange={() => setSelectedEmails([])} />
+            <span>👥 Everyone on the deal</span>
+          </label>
+          <div style={{ fontSize: 11, color: "#888", margin: "8px 0 2px" }}>…or send to specific people only:</div>
           {parties.filter(p => p.email).length === 0 ? (
             <div style={{ fontSize: 12, color: "#888", fontStyle: "italic" }}>No parties with emails on this transaction.</div>
           ) : parties.filter(p => p.email).map(p => {
             const checked = selectedEmails.includes(p.email.toLowerCase());
             return (
-              <label key={p.id || p.email} style={{ display: "flex", alignItems: "center", gap: 8, padding: "5px 0", cursor: "pointer", fontSize: 13 }}>
+              <label key={p.id || p.email} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 8px", cursor: "pointer", fontSize: 13, background: checked ? "#E7F1FB" : "transparent", borderRadius: 8 }}>
                 <input type="checkbox" checked={checked} onChange={e => {
                   const em = p.email.toLowerCase();
-                  setSelectedEmails(prev => e.target.checked ? [...prev, em] : prev.filter(x => x !== em));
+                  setSelectedEmails(prev => e.target.checked ? [...prev.filter(x => x !== em), em] : prev.filter(x => x !== em));
                 }} />
                 <span style={{ color: "#111" }}>{p.name}</span>
                 <span style={{ color: "#888", fontSize: 11 }}>· {p.role}</span>
               </label>
             );
           })}
-          {selectedEmails.length > 0 && (
-            <div style={{ marginTop: 6, fontSize: 11, color: "#888" }}>
-              {selectedEmails.length} selected. Leave empty = notify everyone.
-            </div>
-          )}
+          <div style={{ marginTop: 10, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <span style={{ fontSize: 11, color: "#888" }}>{selectedEmails.length === 0 ? "Goes to the whole group." : `Only ${selectedEmails.length} selected will get it.`}</span>
+            <button onClick={() => setPickerOpen(false)} style={{ background: "#1A5276", color: "#fff", border: "none", borderRadius: 8, padding: "6px 16px", fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}>Done</button>
+          </div>
         </div>
       )}
       <div style={{ padding: "12px 16px", background: "#fff", borderTop: "1px solid #DDD", display: "flex", gap: 8, alignItems: "center" }}>
-        {!simple && (
-          <button onClick={() => setPickerOpen(!pickerOpen)} title="Choose who to notify"
-            style={{ width: 40, height: 40, borderRadius: "50%", background: pickerOpen || selectedEmails.length > 0 ? "#1A5276" : "#E0E0E0", color: "#fff", border: "none", cursor: "pointer", fontSize: 16, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, position: "relative" }}>
-            👥
-            {selectedEmails.length > 0 && (
-              <span style={{ position: "absolute", top: -3, right: -3, background: "#C0392B", color: "#fff", borderRadius: "50%", width: 18, height: 18, fontSize: 10, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", border: "2px solid #fff" }}>{selectedEmails.length}</span>
-            )}
+        {!simple && !directTo && (
+          <button onClick={() => setPickerOpen(!pickerOpen)} title="Choose who gets this message"
+            style={{ flexShrink: 0, maxWidth: 170, padding: "9px 12px", borderRadius: 20, border: "1.5px solid " + (selectedEmails.length > 0 ? "#1A5276" : "#CBD5E1"), background: selectedEmails.length > 0 ? "#1A5276" : "#fff", color: selectedEmails.length > 0 ? "#fff" : "#1A5276", fontWeight: 700, fontSize: 12.5, cursor: "pointer", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", fontFamily: "inherit" }}>
+            📤 To: {selectedEmails.length === 0 ? "Everyone" : (selectedEmails.length === 1 ? "1 person" : `${selectedEmails.length} people`)} ▾
           </button>
         )}
         <input value={newMsg} onChange={e => setNewMsg(e.target.value)}
