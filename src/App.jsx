@@ -5661,9 +5661,14 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
 
         {activeTab === "parties" && (
           <div>
-            {/* Welcome emails are sent from the "Preview & Send Welcome Emails" button on the Overview tab (single reviewed flow). */}
             {!isGuest && (
-              <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginBottom: 16 }}>
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
+                {/* Full preview + Send All for welcome emails — same modal the offer-accept
+                    flow uses. Surfaced here (and not just buried in Overview/per-party) so
+                    agents get the full email preview and can send everyone at once. */}
+                {!isCoordinator && tx.parties.some(p => p.email && p.email.trim()) && (
+                  <Btn onClick={() => setShowEmailPreview(true)} small>✉️ Preview &amp; Send Welcome Emails</Btn>
+                )}
                 {!isCoordinator && <Btn onClick={() => setShowAssignVendor(true)} small>🏆 Assign Vendor</Btn>}
                 <Btn onClick={() => setShowAddParty(true)} small>+ Add Party</Btn>
               </div>
