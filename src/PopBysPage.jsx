@@ -221,33 +221,43 @@ export default function PopBysPage({ token, onBack }) {
   // entirely — they get their own section below.
   const nearDue = (data?.due || []).filter(c => !c.far);
   const farDue = (data?.due || []).filter(c => c.far);
-  const selectedList = nearDue.filter(c => selected.has(c.id));
-  // "The run" = your selection if you made one, otherwise everyone nearby.
-  const runList = selectedList.length ? selectedList : nearDue;
-  const ordered = routeOrder(runList, data?.start);
-
-  // "Near me right now" — use the device's LIVE GPS (not the profile address) and
-  // select every due contact within the slider radius of where the agent is now.
-  // Different from the area chips, which group contacts near EACH OTHER.
+  // "Near me right now" — live GPS, select due contacts within the slider radius
+  // of where the agent IS (distinct from the chips, which group contacts near each
+  // other). Declared before runList because the run honors the near-me filter.
   const [locMsg, setLocMsg] = useState("");
   const [locBusy, setLocBusy] = useState(false);
+  const [myLoc, setMyLoc] = useState(null);            // {lat,lng} from live GPS
+  const [nearMeApplied, setNearMeApplied] = useState(false);
+
+  const selectedList = nearDue.filter(c => selected.has(c.id));
+  // The run = your active pick. After a "near me" filter the run is EXACTLY those
+  // (even if zero) — it must NEVER silently fall back to everyone (that made a
+  // 2-mile filter show all 134). With no pick at all, the default is everyone.
+  const runList = nearMeApplied ? selectedList : (selectedList.length ? selectedList : nearDue);
+  const ordered = routeOrder(runList, data?.start);
+
   const selectNearMe = () => {
-    if (!navigator.geolocation) { setLocMsg("This device can't share its location."); return; }
+    if (!navigator.geolocation) { setLocMsg("This device can't share its location — use your phone."); return; }
     setLocBusy(true); setLocMsg("📍 Getting your location…");
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         const me = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-        const near = nearDue.filter(c => c.hasCoords && (() => { const d = miles(me, c); return d != null && d <= clusterMi; })());
+        setMyLoc(me); setNearMeApplied(true);
+        const near = nearDue.filter(c => { if (!c.hasCoords) return false; const d = miles(me, c); return d != null && d <= clusterMi; });
         setSelected(new Set(near.map(c => c.id)));
-        setLocMsg(near.length
-          ? `✅ Selected ${near.length} contact${near.length === 1 ? "" : "s"} within ${clusterMi} mi of you right now.`
-          : `No one due is within ${clusterMi} mi of you right now — widen the radius and tap again.`);
+        const accMi = pos.coords.accuracy ? pos.coords.accuracy / 1609 : null;
+        let msg = near.length
+          ? `✅ ${near.length} within ${clusterMi} mi of you — that's your run below.`
+          : `No one due is within ${clusterMi} mi of where your device places you. Widen the radius and tap again.`;
+        if (accMi && accMi > 1.5) msg += ` ⚠️ Your location is only accurate to ~${accMi < 10 ? accMi.toFixed(0) : Math.round(accMi)} mi (a computer guesses by Wi-Fi). For a real run, open this on your phone with GPS on.`;
+        setLocMsg(msg);
         setLocBusy(false);
       },
       () => { setLocMsg("Couldn't get your location — allow location access for this site, then tap again."); setLocBusy(false); },
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
     );
   };
+  const clearNearMe = () => { setNearMeApplied(false); setMyLoc(null); setSelected(new Set()); setLocMsg(""); };
 
   // Group due contacts into areas where everyone is within ~clusterMi of someone
   // else in the group — so each chip is a tight, gas-saving run. Radius is
@@ -490,7 +500,9 @@ export default function PopBysPage({ token, onBack }) {
                         <button onClick={selectNearMe} disabled={locBusy} style={btn("#0F6E56", "white")}>
                           {locBusy ? "📍 Locating…" : `📍 Pick people within ${clusterMi} mi of me now`}
                         </button>
-                        <span style={{ fontSize: 12, color: "#166534" }}>Uses your phone's current location.</span>
+                        {nearMeApplied
+                          ? <button onClick={clearNearMe} style={btn("#e5e7eb", "#374151")}>Show everyone instead</button>
+                          : <span style={{ fontSize: 12, color: "#166534" }}>Best on your phone (uses GPS).</span>}
                       </div>
                       {locMsg && <div style={{ fontSize: 12.5, color: "#166534", marginTop: 8, fontWeight: 600 }}>{locMsg}</div>}
                     </div>
@@ -505,7 +517,7 @@ export default function PopBysPage({ token, onBack }) {
                         <div style={{ fontSize: 12, fontWeight: 700, color: "#3730a3", marginBottom: 6 }}>👥 Groups of contacts near each other (within ~{clusterMi} mi):</div>
                         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
                           {areaClusters.map((cl, i) => (
-                            <button key={i} onClick={() => setSelected(new Set(cl.members.map(m => m.id)))} style={btn("#e0e7ff", "#3730a3")}>
+                            <button key={i} onClick={() => { setNearMeApplied(false); setMyLoc(null); setLocMsg(""); setSelected(new Set(cl.members.map(m => m.id))); }} style={btn("#e0e7ff", "#3730a3")}>
                               {cl.label} ({cl.members.length})
                             </button>
                           ))}
@@ -515,9 +527,13 @@ export default function PopBysPage({ token, onBack }) {
                       <div style={{ fontSize: 12, color: "#9ca3af", marginBottom: 10 }}>No clusters at {clusterMi} mi — slide right to widen the group, or pick people below.</div>
                     )}
                     <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 10, alignItems: "center" }}>
-                      <button onClick={() => setSelected(new Set(nearDue.map(c => c.id)))} style={btn("#e5e7eb", "#374151")}>Select all</button>
-                      {selected.size > 0 && <button onClick={() => setSelected(new Set())} style={btn("#e5e7eb", "#374151")}>Clear</button>}
-                      <span style={{ fontSize: 13, fontWeight: 700, color: "#0c4a6e" }}>{selectedList.length > 0 ? `${selectedList.length} on this run` : `all ${nearDue.length} included`}</span>
+                      <button onClick={() => { setNearMeApplied(false); setMyLoc(null); setLocMsg(""); setSelected(new Set(nearDue.map(c => c.id))); }} style={btn("#e5e7eb", "#374151")}>Select all</button>
+                      {(selected.size > 0 || nearMeApplied) && <button onClick={clearNearMe} style={btn("#e5e7eb", "#374151")}>Clear</button>}
+                      <span style={{ fontSize: 13, fontWeight: 700, color: "#0c4a6e" }}>
+                        {nearMeApplied ? `${selectedList.length} near you on this run`
+                          : selectedList.length > 0 ? `${selectedList.length} on this run`
+                          : `all ${nearDue.length} included`}
+                      </span>
                     </div>
                     <div style={{ display: "grid", gap: 8 }}>
                       {nearDue.map(c => (
@@ -525,7 +541,7 @@ export default function PopBysPage({ token, onBack }) {
                           <input type="checkbox" checked={selected.has(c.id)} onChange={() => toggle(c.id)} style={{ width: 18, height: 18, cursor: "pointer" }} />
                           <div style={{ flex: 1, minWidth: 0 }}>
                             <div style={{ fontWeight: 700 }}>{c.firstName} {c.lastName} <span style={{ fontSize: 11, background: "#0c4a6e", color: "#fff", borderRadius: 6, padding: "1px 6px", marginLeft: 4 }}>{c.tier}</span></div>
-                            <div style={{ fontSize: 12, color: "#6b7280" }}>{c.fullAddress}{!c.hasCoords && (data.geocoding > 0 ? <span style={{ color: "#2563eb" }}> · 📍 locating…</span> : <span style={{ color: "#b45309" }}> · ⚠️ couldn't pinpoint — still included; check the address spelling</span>)}</div>
+                            <div style={{ fontSize: 12, color: "#6b7280" }}>{c.fullAddress}{myLoc && c.hasCoords && (() => { const d = miles(myLoc, c); return d != null ? <span style={{ color: "#166534", fontWeight: 700 }}> · {d < 0.1 ? "<0.1" : d.toFixed(1)} mi from you</span> : null; })()}{!c.hasCoords && (data.geocoding > 0 ? <span style={{ color: "#2563eb" }}> · 📍 locating…</span> : <span style={{ color: "#b45309" }}> · ⚠️ couldn't pinpoint — still included; check the address spelling</span>)}</div>
                           </div>
                         </div>
                       ))}
