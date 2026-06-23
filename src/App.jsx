@@ -9,6 +9,7 @@ import ContractUploadPublic from "./ContractUploadPublic";
 import TransactionChat from "./TransactionChat";
 import DailyDashboard from "./DailyDashboard";
 import CoordinatorCommandCenter from "./CoordinatorCommandCenter";
+import UnreadMessagesInbox from "./UnreadMessagesInbox";
 import { CoordinatorSummaryPanel } from "./AgentCoordinatorViews";
 import ChangePassword from "./ChangePassword";
 import LegalConsentGate from "./LegalConsentGate";
@@ -5290,8 +5291,10 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
          { id: "replies", label: `💬 Replies${unreadReplyCount > 0 ? ` (${unreadReplyCount})` : ""}` }]),
     { id: "notes", label: "Internal Notes" },
     { id: "documents", label: "📎 Documents" },
-    // Group chat is a standalone tab only for guests (agent uses Messages>Group).
-    ...(isGuest ? [{ id: "chat", label: (chatUnread > 0 || dashboardUnread > 0) ? `💬 Group Chat (${Math.max(chatUnread, dashboardUnread)})` : "💬 Group Chat" }] : []),
+    // Standalone in-app chat tab for the agent ("💬 Chat") and guests ("Group
+    // Chat") — so the new-message inbox lands on a real, navigable tab. The
+    // coordinator's chat lives in their merged Messages hub instead.
+    ...(!isCoordinator ? [{ id: "chat", label: (chatUnread > 0 || dashboardUnread > 0) ? `💬 ${isGuest ? "Group Chat" : "Chat"} (${Math.max(chatUnread, dashboardUnread)})` : `💬 ${isGuest ? "Group Chat" : "Chat"}` }] : []),
     { id: "cma", label: "📊 CMA" },
     ...(isBuyerSideTx ? [{ id: "offers", label: "📝 Create Offer" }, { id: "calculator", label: "🧮 Buyers Calculator" }, { id: "buyer-net", label: "💰 Buyer's Net Sheet" }] : []),
     ...(isListingSideTx ? [{ id: "seller-calc", label: "💰 Seller's Net Sheet" }] : []),
@@ -8898,6 +8901,10 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
       )}
       {!showReports && view === "home" && (
         <>
+          {/* NEW-MESSAGES ALERT — top of the home for BOTH agent and coordinator, so a
+              new chat is impossible to miss across many deal cards. Driven by the
+              unread counts MainApp already polls. */}
+          <UnreadMessagesInbox unreadCounts={unreadCounts} transactions={transactions} onOpen={openTransactionMilestones} />
           {/* Coordinator's exception command center sits ABOVE Win-the-Day: the
               ranked "needs you" view across all their deals, AI-handled rest collapsed. */}
           {coordinatorMode && (
