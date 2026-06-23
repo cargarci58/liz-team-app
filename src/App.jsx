@@ -8316,7 +8316,8 @@ function TenantSwitcher({ currentUser }) {
 function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
   const [transactions, setTransactions] = useState([]);
   const [txLoading, setTxLoading] = useState(true);
-  const [unreadCounts, setUnreadCounts] = useState({});
+  const [unreadCounts, setUnreadCounts] = useState({});       // in-app chat, per tx
+  const [inboundCounts, setInboundCounts] = useState({});     // client email replies, per tx
   const [initialDetailTab, setInitialDetailTab] = useState("overview");
   const token = localStorage.getItem("tp_token") || "";
   const authHeaders = { "Content-Type": "application/json", "Authorization": `Bearer ${token}` };
@@ -8366,14 +8367,20 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
     };
     const fetchCounts = async () => {
       try {
-        const res = await fetch(`${API}/chat/unread/counts`, { headers: { "Authorization": `Bearer ${token}` } });
-        const data = await res.json();
-        if (stopped || !data.success) return;
-        const counts = data.counts || {};
-        const total = Object.values(counts).reduce((a, b) => a + b, 0);
+        // Poll BOTH channels — in-app chat AND inbound client replies — so the
+        // alert covers "any message received."
+        const [chatRes, inboundRes] = await Promise.all([
+          fetch(`${API}/chat/unread/counts`, { headers: { "Authorization": `Bearer ${token}` } }).then(r => r.json()).catch(() => null),
+          fetch(`${API}/inbound/unread/counts`, { headers: { "Authorization": `Bearer ${token}` } }).then(r => r.json()).catch(() => null),
+        ]);
+        if (stopped) return;
+        const chat = (chatRes && chatRes.success && chatRes.counts) || {};
+        const inbound = (inboundRes && inboundRes.success && inboundRes.counts) || {};
+        const total = Object.values(chat).reduce((a, b) => a + b, 0) + Object.values(inbound).reduce((a, b) => a + b, 0);
         if (prevTotalRef.current !== null && total > prevTotalRef.current) playDashboardAlert();
         prevTotalRef.current = total;
-        setUnreadCounts(counts);
+        setUnreadCounts(chat);
+        setInboundCounts(inbound);
       } catch {}
     };
     fetchCounts();
@@ -8848,13 +8855,17 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
           chat/message is never missed while the user is working elsewhere. Clears
           itself once the messages are read. */}
       {(() => {
-        // Only deals in the loaded list — so the badge always resolves to a real,
-        // openable deal (no "A transaction / couldn't open").
+        // ANY message — in-app chat OR an inbound client reply — fires the alert.
+        // Only deals in the loaded list, so it always opens cleanly.
         const known = new Set((transactions || []).map(t => t.id));
-        const entries = Object.entries(unreadCounts || {}).filter(([id, n]) => n > 0 && known.has(id));
+        const merged = {};
+        for (const [id, n] of Object.entries(unreadCounts || {})) if (n > 0 && known.has(id)) merged[id] = (merged[id] || 0) + n;
+        for (const [id, n] of Object.entries(inboundCounts || {})) if (n > 0 && known.has(id)) merged[id] = (merged[id] || 0) + n;
+        const entries = Object.entries(merged);
         const total = entries.reduce((a, [, n]) => a + n, 0);
         if (total === 0) return null;
-        const go = () => { if (entries.length === 1) openTransactionMilestones(entries[0][0], "chat"); else { setShowReports(false); setShowCalendar(false); setView("home"); } };
+        const kindFor = (id) => ((inboundCounts || {})[id] > 0 ? "replies" : "chat");
+        const go = () => { if (entries.length === 1) openTransactionMilestones(entries[0][0], kindFor(entries[0][0])); else { setShowReports(false); setShowCalendar(false); setView("home"); } };
         return (
           <>
             <style>{`@keyframes mpulse{0%,100%{transform:scale(1)}50%{transform:scale(1.07)}}`}</style>
@@ -8930,7 +8941,7 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
           {/* NEW-MESSAGES ALERT — top of the home for BOTH agent and coordinator, so a
               new chat is impossible to miss across many deal cards. Driven by the
               unread counts MainApp already polls. */}
-          <UnreadMessagesInbox unreadCounts={unreadCounts} transactions={transactions} onOpen={openTransactionMilestones} />
+          <UnreadMessagesInbox unreadCounts={unreadCounts} inboundCounts={inboundCounts} transactions={transactions} onOpen={openTransactionMilestones} />
           {/* Coordinator's exception command center sits ABOVE Win-the-Day: the
               ranked "needs you" view across all their deals, AI-handled rest collapsed. */}
           {coordinatorMode && (
