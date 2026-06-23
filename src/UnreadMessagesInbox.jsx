@@ -4,9 +4,11 @@
 export default function UnreadMessagesInbox({ unreadCounts, transactions, onOpen }) {
   const addr = {};
   (transactions || []).forEach(t => { addr[t.id] = t.address; });
+  // Only deals that are in the loaded list — so every row resolves to a real
+  // address and opens cleanly (no unopenable "A transaction").
   const inbox = Object.entries(unreadCounts || {})
-    .filter(([, n]) => n > 0)
-    .map(([txId, n]) => ({ txId, n, address: addr[txId] || "A transaction" }))
+    .filter(([txId, n]) => n > 0 && addr[txId])
+    .map(([txId, n]) => ({ txId, n, address: addr[txId] }))
     .sort((a, b) => b.n - a.n);
   if (inbox.length === 0) return null;
   const total = inbox.reduce((s, x) => s + x.n, 0);

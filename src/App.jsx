@@ -8848,7 +8848,10 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
           chat/message is never missed while the user is working elsewhere. Clears
           itself once the messages are read. */}
       {(() => {
-        const entries = Object.entries(unreadCounts || {}).filter(([, n]) => n > 0);
+        // Only deals in the loaded list — so the badge always resolves to a real,
+        // openable deal (no "A transaction / couldn't open").
+        const known = new Set((transactions || []).map(t => t.id));
+        const entries = Object.entries(unreadCounts || {}).filter(([id, n]) => n > 0 && known.has(id));
         const total = entries.reduce((a, [, n]) => a + n, 0);
         if (total === 0) return null;
         const go = () => { if (entries.length === 1) openTransactionMilestones(entries[0][0], "chat"); else { setShowReports(false); setShowCalendar(false); setView("home"); } };
