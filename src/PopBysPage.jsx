@@ -7,6 +7,7 @@ const TIER_LABEL = { aplus: "A+ only", aplus_a: "A+ and A", aplus_a_b: "A+, A an
 const FREQ_LABEL = { 30: "Every month", 90: "Every 3 months", 180: "Every 6 months" };
 
 const btn = (bg, color) => ({ background: bg, color, border: "none", borderRadius: 8, padding: "8px 14px", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit" });
+const linkBtn = { background: "none", border: "none", color: "#0c4a6e", textDecoration: "underline", cursor: "pointer", fontSize: 13, fontWeight: 700, fontFamily: "inherit", marginLeft: 6, padding: 0 };
 const input = { padding: "9px 12px", borderRadius: 8, border: "1.5px solid #cbd5e1", fontSize: 15, fontFamily: "inherit" };
 const lbl = { display: "block", fontSize: 12, fontWeight: 700, color: "#374151", textTransform: "uppercase", letterSpacing: "0.03em", marginBottom: 4 };
 const stepBox = { background: "#fff", border: "1px solid #e5e7eb", borderRadius: 12, padding: 16, marginTop: 14 };
@@ -122,13 +123,11 @@ export default function PopBysPage({ token, onBack }) {
   const [showLog, setShowLog] = useState(false);   // manual "log a pop-by" modal
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState("run");           // run | history
-  const [selected, setSelected] = useState(new Set());
   const [showGuide, setShowGuide] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [form, setForm] = useState({ popByTiers: "aplus", popByFrequencyDays: 90, popByBudget: 10 });
   const [busy, setBusy] = useState(false);
   const [savedMsg, setSavedMsg] = useState(false);
-  const [clusterMi, setClusterMi] = useState(5);   // nearby-group radius (1-10 mi)
   const [batchGift, setBatchGift] = useState({ gift: "", note: "", price: null, whereToBuy: "", stores: [] });
   const [rejectedGifts, setRejectedGifts] = useState([]);
   const [suggestingBatch, setSuggestingBatch] = useState(false);
@@ -180,8 +179,6 @@ export default function PopBysPage({ token, onBack }) {
     finally { setBusy(false); }
   };
 
-  const toggle = (id) => setSelected(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
-
   // ONE gift for the whole run (same gift for everyone — buy N of them).
   // "Suggest another" remembers what you rejected so it never repeats.
   const suggestBatch = async () => {
@@ -213,7 +210,6 @@ export default function PopBysPage({ token, onBack }) {
       const r = await fetch(API + "/popbys/" + c.id + "/delivered", { method: "POST", headers, body: JSON.stringify({ gift: batchGift.gift, note: batchGift.note }) });
       if (!r.ok) { const d = await r.json(); throw new Error(d.error || "Failed"); }
       setData(prev => ({ ...prev, due: prev.due.filter(x => x.id !== c.id) }));
-      setSelected(prev => { const n = new Set(prev); n.delete(c.id); return n; });
     } catch (e) { alert("Error: " + e.message); }
   };
 
@@ -221,111 +217,50 @@ export default function PopBysPage({ token, onBack }) {
   // entirely — they get their own section below.
   const nearDue = (data?.due || []).filter(c => !c.far);
   const farDue = (data?.due || []).filter(c => c.far);
-  // "Near me right now" — live GPS, select due contacts within the slider radius
-  // of where the agent IS (distinct from the chips, which group contacts near each
-  // other). Declared before runList because the run honors the near-me filter.
-  const [locMsg, setLocMsg] = useState("");
-  const [locBusy, setLocBusy] = useState(false);
-  const [myLoc, setMyLoc] = useState(null);            // {lat,lng} reference point (GPS or office)
-  const [refLabel, setRefLabel] = useState("");        // human label of the point being used
-  const [nearMeApplied, setNearMeApplied] = useState(false);
-  const [browseAll, setBrowseAll] = useState(false);   // opt-in: show the full list to pick by hand
+  // ── WHO'S ON THE RUN — foolproof. Defaults to "near your office"; one tap
+  // changes the distance. The run is DERIVED from (reference point + distance),
+  // so nothing needs re-applying and nothing goes stale. ──
+  const [refMode, setRefMode] = useState("office");    // 'office' | 'gps'
+  const [radius, setRadius] = useState(5);             // miles, or 'all'
+  const [gpsLoc, setGpsLoc] = useState(null);
+  const [gpsBusy, setGpsBusy] = useState(false);
+  const [gpsNote, setGpsNote] = useState("");
+  const [excluded, setExcluded] = useState(new Set()); // people the agent unchecks
+  const toggleExclude = (id) => setExcluded(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
 
-  const selectedList = nearDue.filter(c => selected.has(c.id));
-  // The run is whatever the agent has actively chosen — it does NOT pre-load
-  // everyone. Empty until they pick a distance, a group, browse-all, or check
-  // people. (Carlos: "shouldn't preview every contact from the beginning.")
-  const runList = nearMeApplied ? selectedList
-    : selectedList.length ? selectedList
-    : browseAll ? nearDue
-    : [];
+  const officeLoc = (data && data.start && data.start.lat != null) ? { lat: data.start.lat, lng: data.start.lng } : null;
+  const officeAddr = (data && data.start && data.start.address) || "";
+  const refPoint = refMode === "gps" ? gpsLoc : officeLoc;
+  const refReady = !!refPoint;
+
+  // Everyone due within the chosen distance of the reference point, nearest first.
+  const inRadius = (() => {
+    let list;
+    if (radius === "all") list = nearDue.slice();
+    else if (refPoint) list = nearDue.filter(c => { if (!c.hasCoords) return false; const d = miles(refPoint, c); return d != null && d <= radius; });
+    else list = [];
+    if (refPoint) list.sort((a, b) => { const da = miles(refPoint, a), db = miles(refPoint, b); return (da == null ? 1e9 : da) - (db == null ? 1e9 : db); });
+    return list;
+  })();
+  const displayContacts = inRadius;
+  const runList = inRadius.filter(c => !excluded.has(c.id));
+  const selectedList = runList;                         // back-compat alias
   const ordered = routeOrder(runList, data?.start);
 
-  // Shared: select everyone within the radius of a reference point + label it.
-  const applyNear = (loc, label) => {
-    setMyLoc(loc); setRefLabel(label); setNearMeApplied(true);
-    const near = nearDue.filter(c => { if (!c.hasCoords) return false; const d = miles(loc, c); return d != null && d <= clusterMi; });
-    setSelected(new Set(near.map(c => c.id)));
-    return near.length;
-  };
-  // Live GPS (best on a phone).
-  const selectNearMe = () => {
-    if (!navigator.geolocation) { setLocMsg("This device can't share its location — try the office-address option."); return; }
-    setLocBusy(true); setLocMsg("📍 Getting your location…");
+  const useMyLocation = () => {
+    if (!navigator.geolocation) { setGpsNote("This device can't share its location — staying on your office address."); return; }
+    setGpsBusy(true); setGpsNote("📍 Getting your location…");
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        const me = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-        const n = applyNear(me, "📍 your current location (GPS)");
+        setGpsLoc({ lat: pos.coords.latitude, lng: pos.coords.longitude }); setRefMode("gps");
         const accMi = pos.coords.accuracy ? pos.coords.accuracy / 1609 : null;
-        let msg = n ? `✅ ${n} within ${clusterMi} mi — that's your run below.` : `No one due is within ${clusterMi} mi of where your device places you. Widen the radius and tap again.`;
-        if (accMi && accMi > 1.5) msg += ` ⚠️ Your location is only accurate to ~${accMi < 10 ? accMi.toFixed(0) : Math.round(accMi)} mi (a computer guesses by Wi-Fi). On a desktop, use “my office address” instead.`;
-        setLocMsg(msg); setLocBusy(false);
+        setGpsNote(accMi && accMi > 1.5 ? `Using your live location (approximate, ±${accMi < 10 ? accMi.toFixed(0) : Math.round(accMi)} mi on this device).` : "Using your live location.");
+        setGpsBusy(false);
       },
-      () => { setLocMsg("Couldn't get your location — allow location access, or use “my office address” below."); setLocBusy(false); },
+      () => { setGpsNote("Couldn't get your location — staying on your office address."); setGpsBusy(false); },
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
     );
   };
-  // Profile/office address (reliable on a desktop — no GPS needed).
-  const selectNearOffice = () => {
-    const start = data?.start;
-    if (!start || start.lat == null) { setLocMsg("Add your office/home address in My Profile first — then I can use it here."); return; }
-    const n = applyNear({ lat: start.lat, lng: start.lng }, "🏠 " + (start.address || "your office address"));
-    setLocMsg(n ? `✅ ${n} within ${clusterMi} mi of your office address — that's your run below.` : `No one due is within ${clusterMi} mi of your office address — widen the radius and tap again.`);
-  };
-  const clearNearMe = () => { setNearMeApplied(false); setMyLoc(null); setRefLabel(""); setSelected(new Set()); setLocMsg(""); };
-
-  // Live radius: once a "near" filter is on, moving the slider re-applies it
-  // immediately from the SAME point — no need to re-tap the button.
-  useEffect(() => {
-    if (!nearMeApplied || !myLoc) return;
-    const near = nearDue.filter(c => { if (!c.hasCoords) return false; const d = miles(myLoc, c); return d != null && d <= clusterMi; });
-    setSelected(new Set(near.map(c => c.id)));
-    const place = refLabel ? refLabel.replace(/^📍 |^🏠 /, "") : "you";
-    setLocMsg(near.length
-      ? `✅ ${near.length} within ${clusterMi} mi of ${place} — that's your run below.`
-      : `No one due is within ${clusterMi} mi of ${place}. Widen the radius.`);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [clusterMi]);
-
-  // What the contact list SHOWS. When a near-me/office filter is on, show ONLY the
-  // matching contacts (so far-away homes don't appear and confuse). Sort nearest-
-  // first whenever we have a reference point.
-  const displayContacts = (() => {
-    let list;
-    if (nearMeApplied) list = selectedList;          // near filter → only those
-    else if (browseAll) list = nearDue;               // browsing → keep full list to pick from
-    else if (selectedList.length) list = selectedList; // a group picked
-    else list = [];                                   // nothing chosen → show nothing
-    if (myLoc) list = [...list].sort((a, b) => { const da = miles(myLoc, a), db = miles(myLoc, b); return (da == null ? 1e9 : da) - (db == null ? 1e9 : db); });
-    return list;
-  })();
-
-  // Group due contacts into areas where everyone is within ~clusterMi of someone
-  // else in the group — so each chip is a tight, gas-saving run. Radius is
-  // agent-controlled (1-10 mi slider). Labeled by most-common city; singletons hidden.
-  const CLUSTER_MI = clusterMi;
-  const areaClusters = (() => {
-    const unused = nearDue.filter(c => c.hasCoords);
-    const clusters = [];
-    while (unused.length) {
-      const members = [unused.shift()];
-      let grew = true;
-      while (grew) {
-        grew = false;
-        for (let i = unused.length - 1; i >= 0; i--) {
-          if (members.some(m => { const d = miles(m, unused[i]); return d != null && d <= CLUSTER_MI; })) {
-            members.push(unused.splice(i, 1)[0]);
-            grew = true;
-          }
-        }
-      }
-      const cityCount = {};
-      members.forEach(m => { const city = (m.city || "").trim(); if (city) cityCount[city] = (cityCount[city] || 0) + 1; });
-      const top = Object.entries(cityCount).sort((a, b) => b[1] - a[1]);
-      clusters.push({ label: top.length ? top[0][0] : "Area", members });
-    }
-    return clusters.filter(c => c.members.length >= 2).sort((a, b) => b.members.length - a.members.length).slice(0, 8);
-  })();
 
   const openMaps = () => {
     const stops = ordered.filter(c => c.fullAddress);
@@ -533,82 +468,56 @@ export default function PopBysPage({ token, onBack }) {
                   {/* ── STEP 3 — pick who / which area ── */}
                   <div style={stepBox}>
                     <div style={stepTitle}><span style={stepNum}>3</span> Pick who's on today's run</div>
-                    <div style={{ fontSize: 13, color: "#6b7280", marginBottom: 10 }}>Pick people <strong>near you right now</strong>, tap a <strong>nearby group</strong>, or check people one by one. Skip this step to do everyone.</div>
 
-                    {/* Near ME right now — uses live GPS, selects within the radius of where I am. */}
-                    <div style={{ background: "#F0FDF4", border: "1px solid #BBF7D0", borderRadius: 10, padding: 12, marginBottom: 12 }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                        <button onClick={selectNearMe} disabled={locBusy} style={btn("#0F6E56", "white")}>
-                          {locBusy ? "📍 Locating…" : `📍 Within ${clusterMi} mi of me now (GPS)`}
-                        </button>
-                        <button onClick={selectNearOffice} style={btn("#0c4a6e", "white")}>
-                          🏠 Within {clusterMi} mi of my office address
-                        </button>
-                        {nearMeApplied && <button onClick={clearNearMe} style={btn("#e5e7eb", "#374151")}>Show everyone instead</button>}
-                      </div>
-                      <div style={{ fontSize: 12, color: "#166534", marginTop: 6 }}>
-                        GPS is best on your phone. On a computer, use your <strong>office address</strong>.
-                      </div>
-                      {nearMeApplied && refLabel && (
-                        <div style={{ fontSize: 12.5, color: "#0c4a6e", marginTop: 8, fontWeight: 700, background: "#fff", border: "1px solid #BBE3D2", borderRadius: 8, padding: "7px 10px" }}>
-                          Measuring distance from: {refLabel}
-                        </div>
-                      )}
-                      {locMsg && <div style={{ fontSize: 12.5, color: "#166534", marginTop: 8, fontWeight: 600 }}>{locMsg}</div>}
+                    {/* WHERE we measure from — defaults to the office address (works on
+                        a desktop, no GPS). One link switches to live location on a phone. */}
+                    <div style={{ fontSize: 13.5, color: "#374151", marginBottom: 8, lineHeight: 1.6 }}>
+                      Showing people near <strong>{refMode === "gps" ? "📍 your current location" : (officeAddr ? "🏠 " + officeAddr : "🏠 your office")}</strong>.
+                      {refMode === "gps"
+                        ? <button onClick={() => { setRefMode("office"); setGpsNote(""); }} style={linkBtn}>Use office instead</button>
+                        : <button onClick={useMyLocation} disabled={gpsBusy} style={linkBtn}>{gpsBusy ? "📍 locating…" : "📍 I'm out delivering — use my location"}</button>}
                     </div>
-
-                    <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", marginBottom: 10 }}>
-                      <span style={{ fontSize: 13, fontWeight: 700, color: "#374151" }}>Radius:</span>
-                      <input type="range" min={1} max={10} step={1} value={clusterMi} onChange={e => setClusterMi(parseInt(e.target.value, 10))} style={{ flex: 1, minWidth: 140, maxWidth: 260, accentColor: "#0c4a6e", cursor: "pointer" }} />
-                      <span style={{ fontSize: 13, fontWeight: 700, color: "#0c4a6e", whiteSpace: "nowrap" }}>within {clusterMi} mi</span>
-                    </div>
-                    {areaClusters.length > 0 ? (
-                      <div style={{ marginBottom: 10 }}>
-                        <div style={{ fontSize: 12, fontWeight: 700, color: "#3730a3", marginBottom: 6 }}>👥 Groups of contacts near each other (within ~{clusterMi} mi):</div>
-                        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-                          {areaClusters.map((cl, i) => (
-                            <button key={i} onClick={() => { setNearMeApplied(false); setMyLoc(null); setLocMsg(""); setBrowseAll(false); setSelected(new Set(cl.members.map(m => m.id))); }} style={btn("#e0e7ff", "#3730a3")}>
-                              {cl.label} ({cl.members.length})
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    ) : (
-                      <div style={{ fontSize: 12, color: "#9ca3af", marginBottom: 10 }}>No clusters at {clusterMi} mi — slide right to widen the group, or pick people below.</div>
-                    )}
-                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 10, alignItems: "center" }}>
-                      <button onClick={() => { setNearMeApplied(false); setMyLoc(null); setLocMsg(""); setBrowseAll(true); setSelected(new Set(nearDue.map(c => c.id))); }} style={btn("#e5e7eb", "#374151")}>Select all {nearDue.length}</button>
-                      {!nearMeApplied && !selectedList.length && !browseAll && (
-                        <button onClick={() => setBrowseAll(true)} style={btn("#e5e7eb", "#374151")}>Browse all {nearDue.length} to pick by hand</button>
-                      )}
-                      {(selected.size > 0 || nearMeApplied || browseAll) && <button onClick={() => { clearNearMe(); setBrowseAll(false); }} style={btn("#e5e7eb", "#374151")}>Clear</button>}
-                      <span style={{ fontSize: 13, fontWeight: 700, color: "#0c4a6e" }}>
-                        {nearMeApplied ? `${selectedList.length} near you on this run`
-                          : selectedList.length > 0 ? `${selectedList.length} on this run`
-                          : browseAll ? `pick people below (all ${nearDue.length} shown)`
-                          : `nobody picked yet`}
-                      </span>
-                    </div>
-                    {!nearMeApplied && !browseAll && !selectedList.length && (
-                      <div style={{ fontSize: 13, color: "#6b7280", background: "#f9fafb", border: "1px dashed #d1d5db", borderRadius: 8, padding: 14, marginBottom: 8 }}>
-                        👆 Pick a <strong>distance</strong> (📍 near me / 🏠 office) or a <strong>group</strong> above to see who's on your run — or <strong>Browse all</strong> to choose by hand.
+                    {gpsNote && <div style={{ fontSize: 12, color: "#166534", marginBottom: 8 }}>{gpsNote}</div>}
+                    {!refReady && radius !== "all" && (
+                      <div style={{ fontSize: 13, color: "#b45309", background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 8, padding: 10, marginBottom: 10 }}>
+                        Add your office address in <strong>My Profile</strong> so we can find who's nearby — or tap <strong>📍 use my location</strong> above, or pick <strong>Everyone</strong> below.
                       </div>
                     )}
-                    {nearMeApplied && displayContacts.length === 0 && (
+
+                    {/* HOW FAR — one tap, no slider */}
+                    <div style={{ fontSize: 13, fontWeight: 700, color: "#374151", marginBottom: 6 }}>How far do you want to drive?</div>
+                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 14 }}>
+                      {[1, 3, 5, 10].map(r => (
+                        <button key={r} onClick={() => setRadius(r)} style={btn(radius === r ? "#0F6E56" : "#eef2f7", radius === r ? "white" : "#374151")}>{r} miles</button>
+                      ))}
+                      <button onClick={() => setRadius("all")} style={btn(radius === "all" ? "#0F6E56" : "#eef2f7", radius === "all" ? "white" : "#374151")}>Everyone</button>
+                    </div>
+
+                    <div style={{ fontSize: 15, fontWeight: 800, color: "#0c4a6e", marginBottom: 8 }}>
+                      {radius === "all" ? `Everyone due (${runList.length})`
+                        : refReady ? `${runList.length} ${runList.length === 1 ? "person" : "people"} within ${radius} miles`
+                        : "Pick a starting point above"}
+                      {runList.length > 0 && <span style={{ fontSize: 12, fontWeight: 600, color: "#6b7280" }}> · nearest first · uncheck anyone to skip</span>}
+                    </div>
+                    {refReady && radius !== "all" && displayContacts.length === 0 && (
                       <div style={{ fontSize: 13, color: "#b45309", background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 8, padding: 12, marginBottom: 8 }}>
-                        No one due is within {clusterMi} mi of {refLabel || "that point"}. Widen the radius above and tap again.
+                        No one due within {radius} miles. Tap a bigger distance above.
                       </div>
                     )}
                     <div style={{ display: "grid", gap: 8 }}>
-                      {displayContacts.map(c => (
-                        <div key={c.id} style={{ display: "flex", gap: 12, alignItems: "center", background: "#fff", border: "1px solid " + (selected.has(c.id) ? "#0c4a6e" : "#e5e7eb"), borderRadius: 10, padding: 12 }}>
-                          <input type="checkbox" checked={selected.has(c.id)} onChange={() => toggle(c.id)} style={{ width: 18, height: 18, cursor: "pointer" }} />
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ fontWeight: 700 }}>{c.firstName} {c.lastName} <span style={{ fontSize: 11, background: "#0c4a6e", color: "#fff", borderRadius: 6, padding: "1px 6px", marginLeft: 4 }}>{c.tier}</span></div>
-                            <div style={{ fontSize: 12, color: "#6b7280" }}>{c.fullAddress}{myLoc && c.hasCoords && (() => { const d = miles(myLoc, c); return d != null ? <span style={{ color: "#166534", fontWeight: 700 }}> · {d < 0.1 ? "<0.1" : d.toFixed(1)} mi from you</span> : null; })()}{!c.hasCoords && (data.geocoding > 0 ? <span style={{ color: "#2563eb" }}> · 📍 locating…</span> : <span style={{ color: "#b45309" }}> · ⚠️ couldn't pinpoint — still included; check the address spelling</span>)}</div>
+                      {displayContacts.map(c => {
+                        const skipped = excluded.has(c.id);
+                        const dist = refPoint && c.hasCoords ? miles(refPoint, c) : null;
+                        return (
+                          <div key={c.id} style={{ display: "flex", gap: 12, alignItems: "center", background: skipped ? "#f9fafb" : "#fff", border: "1px solid " + (skipped ? "#e5e7eb" : "#0c4a6e"), borderRadius: 10, padding: 12, opacity: skipped ? 0.55 : 1 }}>
+                            <input type="checkbox" checked={!skipped} onChange={() => toggleExclude(c.id)} style={{ width: 18, height: 18, cursor: "pointer" }} />
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ fontWeight: 700 }}>{c.firstName} {c.lastName} <span style={{ fontSize: 11, background: "#0c4a6e", color: "#fff", borderRadius: 6, padding: "1px 6px", marginLeft: 4 }}>{c.tier}</span></div>
+                              <div style={{ fontSize: 12, color: "#6b7280" }}>{c.fullAddress}{dist != null && <span style={{ color: "#166534", fontWeight: 700 }}> · {dist < 0.1 ? "<0.1" : dist.toFixed(1)} mi</span>}{!c.hasCoords && (data.geocoding > 0 ? <span style={{ color: "#2563eb" }}> · 📍 locating…</span> : <span style={{ color: "#b45309" }}> · ⚠️ couldn't pinpoint</span>)}</div>
+                            </div>
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
 
