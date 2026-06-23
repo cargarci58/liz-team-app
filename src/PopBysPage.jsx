@@ -270,6 +270,15 @@ export default function PopBysPage({ token, onBack }) {
   };
   const clearNearMe = () => { setNearMeApplied(false); setMyLoc(null); setRefLabel(""); setSelected(new Set()); setLocMsg(""); };
 
+  // What the contact list SHOWS. When a near-me/office filter is on, show ONLY the
+  // matching contacts (so far-away homes don't appear and confuse). Sort nearest-
+  // first whenever we have a reference point.
+  const displayContacts = (() => {
+    let list = nearMeApplied ? selectedList : nearDue;
+    if (myLoc) list = [...list].sort((a, b) => { const da = miles(myLoc, a), db = miles(myLoc, b); return (da == null ? 1e9 : da) - (db == null ? 1e9 : db); });
+    return list;
+  })();
+
   // Group due contacts into areas where everyone is within ~clusterMi of someone
   // else in the group — so each chip is a tight, gas-saving run. Radius is
   // agent-controlled (1-10 mi slider). Labeled by most-common city; singletons hidden.
@@ -555,8 +564,13 @@ export default function PopBysPage({ token, onBack }) {
                           : `all ${nearDue.length} included`}
                       </span>
                     </div>
+                    {nearMeApplied && displayContacts.length === 0 && (
+                      <div style={{ fontSize: 13, color: "#b45309", background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 8, padding: 12, marginBottom: 8 }}>
+                        No one due is within {clusterMi} mi of {refLabel || "that point"}. Widen the radius above and tap again.
+                      </div>
+                    )}
                     <div style={{ display: "grid", gap: 8 }}>
-                      {nearDue.map(c => (
+                      {displayContacts.map(c => (
                         <div key={c.id} style={{ display: "flex", gap: 12, alignItems: "center", background: "#fff", border: "1px solid " + (selected.has(c.id) ? "#0c4a6e" : "#e5e7eb"), borderRadius: 10, padding: 12 }}>
                           <input type="checkbox" checked={selected.has(c.id)} onChange={() => toggle(c.id)} style={{ width: 18, height: 18, cursor: "pointer" }} />
                           <div style={{ flex: 1, minWidth: 0 }}>
