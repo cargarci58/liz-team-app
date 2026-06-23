@@ -270,6 +270,19 @@ export default function PopBysPage({ token, onBack }) {
   };
   const clearNearMe = () => { setNearMeApplied(false); setMyLoc(null); setRefLabel(""); setSelected(new Set()); setLocMsg(""); };
 
+  // Live radius: once a "near" filter is on, moving the slider re-applies it
+  // immediately from the SAME point — no need to re-tap the button.
+  useEffect(() => {
+    if (!nearMeApplied || !myLoc) return;
+    const near = nearDue.filter(c => { if (!c.hasCoords) return false; const d = miles(myLoc, c); return d != null && d <= clusterMi; });
+    setSelected(new Set(near.map(c => c.id)));
+    const place = refLabel ? refLabel.replace(/^📍 |^🏠 /, "") : "you";
+    setLocMsg(near.length
+      ? `✅ ${near.length} within ${clusterMi} mi of ${place} — that's your run below.`
+      : `No one due is within ${clusterMi} mi of ${place}. Widen the radius.`);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [clusterMi]);
+
   // What the contact list SHOWS. When a near-me/office filter is on, show ONLY the
   // matching contacts (so far-away homes don't appear and confuse). Sort nearest-
   // first whenever we have a reference point.
