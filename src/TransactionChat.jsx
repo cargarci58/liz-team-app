@@ -75,6 +75,7 @@ export default function TransactionChat({ transactionId, user, parties = [], sty
   const [accessError, setAccessError] = useState(null);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [selectedEmails, setSelectedEmails] = useState([]);
+  const [confirmAll, setConfirmAll] = useState(false); // guard before blasting everyone
   const socketRef = useRef(null);
   const endRef = useRef(null);
   const tok = localStorage.getItem("tp_token") || "";
@@ -152,7 +153,8 @@ export default function TransactionChat({ transactionId, user, parties = [], sty
 
   const directEmail = (directTo?.email || "").trim().toLowerCase();
 
-  const sendMessage = () => {
+  const partyEmails = parties.filter(p => p.email);
+  const doSend = () => {
     if (!newMsg.trim() || !socketRef.current) return;
     const payload = { transactionId, message: newMsg.trim() };
     if (directEmail) payload.notifyEmails = [directEmail];
@@ -162,6 +164,18 @@ export default function TransactionChat({ transactionId, user, parties = [], sty
     setNewMsg("");
     setSelectedEmails([]);
     setPickerOpen(false);
+    setConfirmAll(false);
+  };
+  const sendMessage = () => {
+    if (!newMsg.trim() || !socketRef.current) return;
+    // Guard against the easy mistake: blasting the WHOLE group when you meant one
+    // person. "Everyone" (no specific pick) on a multi-party deal must confirm
+    // first. A specific pick (1+ selected) sends straight through.
+    if (!directEmail && !clientView && !simple && selectedEmails.length === 0 && partyEmails.length > 1) {
+      setConfirmAll(true);
+      return;
+    }
+    doSend();
   };
 
   // Private view: only the directed traffic between me and this party — my
@@ -306,6 +320,17 @@ export default function TransactionChat({ transactionId, user, parties = [], sty
           <div style={{ marginTop: 10, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <span style={{ fontSize: 11, color: "#888" }}>{selectedEmails.length === 0 ? "Goes to the whole group." : `Only ${selectedEmails.length} selected will get it.`}</span>
             <button onClick={() => setPickerOpen(false)} style={{ background: "#1A5276", color: "#fff", border: "none", borderRadius: 8, padding: "6px 16px", fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}>Done</button>
+          </div>
+        </div>
+      )}
+      {/* Safety confirm before sending to the WHOLE group */}
+      {confirmAll && (
+        <div style={{ background: "#FEF3C7", borderTop: "1px solid #FCD34D", padding: "12px 16px" }}>
+          <div style={{ fontSize: 13, fontWeight: 800, color: "#92400e", marginBottom: 4 }}>⚠️ Send to EVERYONE on this deal? ({partyEmails.length} people)</div>
+          <div style={{ fontSize: 12, color: "#7c2d12", marginBottom: 10 }}>{partyEmails.map(p => p.name).join(", ")}</div>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <button onClick={doSend} style={{ background: "#C0392B", color: "#fff", border: "none", borderRadius: 8, padding: "8px 14px", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>Yes, send to all {partyEmails.length}</button>
+            <button onClick={() => { setConfirmAll(false); setPickerOpen(true); }} style={{ background: "#fff", color: "#92400e", border: "1.5px solid #FCD34D", borderRadius: 8, padding: "8px 14px", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>No — pick specific people</button>
           </div>
         </div>
       )}
