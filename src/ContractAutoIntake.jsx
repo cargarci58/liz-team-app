@@ -363,12 +363,19 @@ function UploadStep({ token, existingTransactionId, onBack, onUploaded }) {
 // ───────────────────────────────────────────────────────────────
 function ProcessingStep({ token, uploadId, onReady, onFailed }) {
   const [error, setError] = useState("");
+  const [slow, setSlow] = useState(false); // true once it's taking unusually long
   // Hold callbacks in refs so the parent re-rendering (and creating new
   // function identities for onReady/onFailed) doesn't tear down and
   // restart the polling effect.
   const onReadyRef = useRef(onReady);
   const onFailedRef = useRef(onFailed);
   useEffect(() => { onReadyRef.current = onReady; onFailedRef.current = onFailed; }, [onReady, onFailed]);
+
+  // If extraction stalls, don't spin forever — surface a way out after 75s.
+  useEffect(() => {
+    const slowTimer = setTimeout(() => setSlow(true), 75000);
+    return () => clearTimeout(slowTimer);
+  }, [uploadId]);
 
   useEffect(() => {
     let cancelled = false;
@@ -413,6 +420,17 @@ function ProcessingStep({ token, uploadId, onReady, onFailed }) {
           <div style={{ display: "inline-block", width: 40, height: 40, border: `4px solid ${COLORS.border}`, borderTop: `4px solid ${COLORS.red}`, borderRadius: "50%", animation: "spin 1s linear infinite" }} />
         </div>
         {error && <div style={{ color: COLORS.red, marginTop: 20, fontSize: 14 }}>{error}</div>}
+        {slow && !error && (
+          <div style={{ marginTop: 24, fontSize: 14, color: COLORS.muted, lineHeight: 1.6 }}>
+            This is taking longer than usual. It may still finish in a moment — or something may have stalled.
+            <div style={{ marginTop: 14 }}>
+              <button onClick={() => onFailedRef.current("Extraction is taking too long")}
+                style={{ background: COLORS.red, color: "#fff", border: "none", borderRadius: 8, padding: "10px 20px", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                Go back &amp; try again
+              </button>
+            </div>
+          </div>
+        )}
         <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
       </div>
     </div>
