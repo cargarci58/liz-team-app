@@ -53,14 +53,26 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
         : d.signatureStatus === "partially_signed" ? `⚠️ Not fully signed yet${d.missingSignatures ? " — " + d.missingSignatures : "."}`
         : d.signatureStatus === "unsigned" ? "⚠️ This copy looks unsigned."
         : "";
-      alert(
-        `📅 Dates read from "${doc.name}"\n\n` +
-        `${d.milestonesDated} milestone${d.milestonesDated === 1 ? "" : "s"} dated on your timeline.\n` +
-        (d.executedDate ? `Executed: ${d.executedDate}\n` : "") +
-        (d.closingDate ? `Closing: ${d.closingDate}\n` : "") +
-        (sigLine ? `\n${sigLine}\n` : "") +
-        (d.notes ? `\nNote: ${d.notes}` : "")
-      );
+      // No dates found is the common "it isn't working" case — usually an unsigned
+      // offer or a doc without firm dates. Say so clearly instead of "0 milestones".
+      if (!d.milestonesDated && !d.executedDate && !d.closingDate) {
+        alert(
+          `📅 No firm dates found in "${doc.name}".\n\n` +
+          `This usually means it's an unsigned offer, or the contract dates (executed date, closing date) aren't filled in yet. ` +
+          `"Read dates" works best on the fully-signed contract.\n` +
+          (sigLine ? `\n${sigLine}\n` : "") +
+          (d.notes ? `\nNote: ${d.notes}` : "")
+        );
+      } else {
+        alert(
+          `📅 Dates read from "${doc.name}"\n\n` +
+          `${d.milestonesDated} milestone${d.milestonesDated === 1 ? "" : "s"} dated on your timeline.\n` +
+          (d.executedDate ? `Executed: ${d.executedDate}\n` : "") +
+          (d.closingDate ? `Closing: ${d.closingDate}\n` : "") +
+          (sigLine ? `\n${sigLine}\n` : "") +
+          (d.notes ? `\nNote: ${d.notes}` : "")
+        );
+      }
     } catch (e) {
       alert("Couldn't read the contract: " + e.message);
     } finally { setReadingDates(null); }
