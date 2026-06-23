@@ -300,7 +300,14 @@ function CmaTool({ tx, token, currentUser, standalone = false, initialCma = null
           .filter((c) => c.address && c.sqft && (c.currentPrice || c.effectivePsf));
         setComps(parsed);
         setSelectedIds(new Set());
+        // Don't fail silently: a wrong/empty export looks like "nothing happened".
+        if (parsed.length === 0) {
+          setSaveState({ status: 'err', msg: `Couldn't read any comps from "${file.name}". Make sure it's a comma-delimited MLS export (.csv) with Address, Heated/Living Sqft, and a Price column. See the "Required CSV Export Columns" guide above.` });
+        } else {
+          setSaveState({ status: 'ok', msg: `Loaded ${parsed.length} comp${parsed.length === 1 ? '' : 's'} from ${file.name}.` });
+        }
       },
+      error: (err) => setSaveState({ status: 'err', msg: `Could not read that file: ${err?.message || 'unknown error'}. Make sure it's a .csv MLS export.` }),
     });
   };
 
@@ -527,7 +534,15 @@ function CmaTool({ tx, token, currentUser, standalone = false, initialCma = null
   // record exists and carries the recommended price), then hands the subject
   // up to the app, which opens the New Transaction form pre-filled.
   const convertToTransaction = async () => {
-    if (!subject.address) { setSaveState({ status: 'err', msg: 'Add the property address first.' }); return; }
+    if (!subject.address) {
+      // The Subject section (incl. the address field) only appears AFTER comps are
+      // imported, so guide the user to the right step instead of failing silently.
+      const msg = comps.length === 0
+        ? 'First import your MLS comps in Section 01 below — the Subject details (including the property address) appear right after. Then tap Create Transaction.'
+        : 'Add the property address in the Subject section below, then tap Create Transaction.';
+      setSaveState({ status: 'err', msg });
+      return;
+    }
     const id = await saveStandalone();
     if (onConvertToTransaction) onConvertToTransaction({ cmaId: id, subject, analysis });
   };
@@ -614,6 +629,15 @@ function CmaTool({ tx, token, currentUser, standalone = false, initialCma = null
       <button className="btn btn-primary" onClick={convertToTransaction} disabled={saveState?.status === 'saving'} title="Create a transaction pre-filled from this CMA">
         🏠 Create Transaction
       </button>
+      {/* Show save/validation feedback right next to the buttons — it also renders
+          lower down, but a user clicking Create Transaction at the top never saw
+          a bottom-of-page message and thought the button did nothing. (tester: CMA) */}
+      {saveState && saveState.status !== 'saving' && (
+        <div style={{ flexBasis: '100%', marginTop: 6, fontSize: 13, fontWeight: 600,
+          color: saveState.status === 'ok' ? '#1E8449' : '#B8232F' }}>
+          {saveState.status === 'ok' ? '✓ ' : '⚠ '}{saveState.msg}
+        </div>
+      )}
     </>
   ) : null;
 
