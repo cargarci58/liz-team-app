@@ -7627,6 +7627,7 @@ function Dashboard({ transactions, coordinatorMode = false, unreadCounts = {}, o
             <WinTheDayButton token={localStorage.getItem("tp_token") || ""} onViewTransactions={onViewTransactions} coordinatorMode={coordinatorMode} onOpenTransaction={onSelect} />
             <PersonalTaskAddButton token={localStorage.getItem("tp_token") || ""} />
             {!coordinatorMode && <button data-tour="vendors" onClick={onVendors} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "rgba(255,255,255,0.88)", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 600, fontFamily: "inherit" }}>🏆 Vendors</button>}
+            {onCalendar && <button onClick={onCalendar} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "rgba(255,255,255,0.88)", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 600, fontFamily: "inherit" }}>📅 Calendar</button>}
             {!coordinatorMode && <button data-tour="intake" onClick={onIntakeLinks} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "rgba(255,255,255,0.88)", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 600, fontFamily: "inherit" }}>🔗 New Buyer/Seller Intake</button>}
             {/* "Receive Offer" now lives inside each Active listing (open a listing → 📥 Receive Offer). Receiving an offer only applies to listings. */}
             <SettingsMenu
