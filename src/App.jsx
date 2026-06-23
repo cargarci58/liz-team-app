@@ -1037,7 +1037,7 @@ function TaskReminderModal({ task, tx, onClose }) {
     </div>
   );
 }
-function SMSPanel({ tx, onUpdate, currentUser }) {
+function SMSPanel({ tx, onUpdate, currentUser, sendOnly = false }) {
   const [companyName, setCompanyName] = useState("");
   const [agentPhone, setAgentPhone] = useState("");
   const [agentFullName, setAgentFullName] = useState("");
@@ -1363,14 +1363,18 @@ function SMSPanel({ tx, onUpdate, currentUser }) {
             ))}
           </div>
         </div>
-        <div style={{ textAlign: "right" }}>
-          <div style={{ fontSize: 13, fontWeight: 800, color: "#0F2044", marginBottom: 5 }}>2. Select how to send it:</div>
-          <div style={{ display: "inline-flex", background: "#F3F4F6", borderRadius: 8, padding: 3, gap: 2, border: "1.5px solid #0F2044" }}>
-            {[["send", "📨 Email / Text"], ["chat", "💬 Chat in the app"]].map(([v, label]) => (
-              <button key={v} onClick={() => setSurface(v)} style={{ padding: "8px 18px", borderRadius: 6, border: "none", background: surface === v ? "#0F2044" : "transparent", color: surface === v ? "#fff" : "#374151", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>{label}</button>
-            ))}
+        {/* In the merged Messages hub the in-app chat is its own section, so this
+            sender is email/text only (sendOnly hides the chat-surface toggle). */}
+        {!sendOnly && (
+          <div style={{ textAlign: "right" }}>
+            <div style={{ fontSize: 13, fontWeight: 800, color: "#0F2044", marginBottom: 5 }}>2. Select how to send it:</div>
+            <div style={{ display: "inline-flex", background: "#F3F4F6", borderRadius: 8, padding: 3, gap: 2, border: "1.5px solid #0F2044" }}>
+              {[["send", "📨 Email / Text"], ["chat", "💬 Chat in the app"]].map(([v, label]) => (
+                <button key={v} onClick={() => setSurface(v)} style={{ padding: "8px 18px", borderRadius: 6, border: "none", background: surface === v ? "#0F2044" : "transparent", color: surface === v ? "#fff" : "#374151", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>{label}</button>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
       </div>
       <input ref={fileInputRef} type="file" style={{ display: "none" }} onChange={e => { const f = e.target.files?.[0]; if (f) uploadFromComputer(f); e.target.value = ""; }} />
 
@@ -5026,11 +5030,12 @@ function LeaseDocsModal({ tx, onClose, onGenerated }) {
 }
 
 function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = false, onBack, contacts, onInviteParty = [], onCopyLoginLink, onSaveContact, onOpenContactBook, onDuplicate, currentUser, initialTab = "overview", dashboardUnread = 0, onMilestoneSummary }) {
-  // Coordinator's comms tabs are merged into one "messages" hub, so a deep-link to
-  // chat/replies/sms opens the hub on the right section.
-  const _isCoordInit = !!tx.isCoordinatorView || coordinatorMode;
+  // Staff (agent + coordinator) comms tabs are merged into one "messages" hub, so
+  // a deep-link to chat/replies/sms opens the hub on the right section. Guests keep
+  // their standalone chat tab.
+  const _isStaffInit = !tx.isGuestView;
   const [activeTab, setActiveTab] = useState(
-    (_isCoordInit && ["chat", "replies", "sms"].includes(initialTab)) ? "messages" : initialTab
+    (_isStaffInit && ["chat", "replies", "sms"].includes(initialTab)) ? "messages" : initialTab
   );
   const [msgSection, setMsgSection] = useState(
     initialTab === "replies" ? "replies" : initialTab === "sms" ? "send" : "chat"
@@ -5283,18 +5288,15 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
     { id: "overview", label: "Overview" },
     { id: "milestones", label: "📅 Timeline" },
     { id: "parties", label: `People (${(isCoordinator ? tx.parties.filter(p => (p.email || "").toLowerCase() !== (currentUser?.email || "").toLowerCase()) : tx.parties).length})` },
-    // Coordinator: ONE "💬 Messages" hub (Agent chat · Client replies · Send update)
-    // instead of three near-identical tabs. Agent keeps the separate tabs.
-    ...(isCoordinator
+    // ONE "💬 Messages" hub for ALL staff (agent + coordinator): Chat · Client
+    // replies · Send — instead of three near-identical tabs. Guests get only the
+    // standalone group chat (one of their few allowed views).
+    ...(!isGuest
       ? [{ id: "messages", label: (chatUnread > 0 || dashboardUnread > 0 || unreadReplyCount > 0) ? `💬 Messages (${Math.max(chatUnread, dashboardUnread) + unreadReplyCount})` : "💬 Messages" }]
-      : [{ id: "sms", label: `Messages${smsMsgCount > 0 ? ` (${smsMsgCount})` : ""}` },
-         { id: "replies", label: `💬 Replies${unreadReplyCount > 0 ? ` (${unreadReplyCount})` : ""}` }]),
+      : []),
     { id: "notes", label: "Internal Notes" },
     { id: "documents", label: "📎 Documents" },
-    // Standalone in-app chat tab for the agent ("💬 Chat") and guests ("Group
-    // Chat") — so the new-message inbox lands on a real, navigable tab. The
-    // coordinator's chat lives in their merged Messages hub instead.
-    ...(!isCoordinator ? [{ id: "chat", label: (chatUnread > 0 || dashboardUnread > 0) ? `💬 ${isGuest ? "Group Chat" : "Chat"} (${Math.max(chatUnread, dashboardUnread)})` : `💬 ${isGuest ? "Group Chat" : "Chat"}` }] : []),
+    ...(isGuest ? [{ id: "chat", label: (chatUnread > 0 || dashboardUnread > 0) ? `💬 Group Chat (${Math.max(chatUnread, dashboardUnread)})` : "💬 Group Chat" }] : []),
     { id: "cma", label: "📊 CMA" },
     ...(isBuyerSideTx ? [{ id: "offers", label: "📝 Create Offer" }, { id: "calculator", label: "🧮 Buyers Calculator" }, { id: "buyer-net", label: "💰 Buyer's Net Sheet" }] : []),
     ...(isListingSideTx ? [{ id: "seller-calc", label: "💰 Seller's Net Sheet" }] : []),
@@ -5798,14 +5800,15 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
 
         {activeTab === "replies" && <InboundRepliesPanel tx={tx} />}
 
-        {/* Coordinator MESSAGES HUB — three channels in one tab, clearly separated. */}
-        {activeTab === "messages" && isCoordinator && (
+        {/* MESSAGES HUB — one tab, three clearly-separated channels. Same for the
+            agent and the coordinator (the only difference is the "Send" tool). */}
+        {activeTab === "messages" && !isGuest && (
           <div>
             <div style={{ display: "flex", gap: 8, padding: "12px 12px 0", flexWrap: "wrap" }}>
               {[
                 ["chat", "💬 Group chat", chatUnread > 0 ? chatUnread : 0],
                 ["replies", "📥 Client replies", unreadReplyCount > 0 ? unreadReplyCount : 0],
-                ["send", "📤 Send client an update", 0],
+                ["send", "📤 Send a message", 0],
               ].map(([id, label, n]) => (
                 <button key={id} onClick={() => setMsgSection(id)}
                   style={{ padding: "9px 14px", borderRadius: 10, border: "none", cursor: "pointer", fontFamily: "inherit",
@@ -5816,13 +5819,13 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
               ))}
             </div>
             <div style={{ fontSize: 12, color: "#6b7280", padding: "8px 14px 0" }}>
-              {msgSection === "chat" && "The deal's group chat — you, the agent, and any parties on it (e.g. the photographer, title, lender)."}
+              {msgSection === "chat" && "The deal's group chat — everyone on it (you, the agent/coordinator, and any parties like the photographer, title, lender)."}
               {msgSection === "replies" && "Replies the clients sent back — approve any milestone updates."}
-              {msgSection === "send" && "Send the client an email/text update in the agent's voice."}
+              {msgSection === "send" && (isCoordinator ? "Send the client an email/text update in the agent's voice." : "Send an email or text to a party (or the whole group).")}
             </div>
             {msgSection === "chat" && <div style={{ padding: 12, height: 500 }}><TransactionChat transactionId={tx.id} user={null} parties={tx.parties || []} style={{ height: "100%" }} unreadCount={chatUnread} onUnreadChange={() => {}} /></div>}
             {msgSection === "replies" && <InboundRepliesPanel tx={tx} />}
-            {msgSection === "send" && <CoordinatorSendUpdate tx={tx} />}
+            {msgSection === "send" && (isCoordinator ? <CoordinatorSendUpdate tx={tx} /> : <SMSPanel tx={tx} onUpdate={onUpdate} sendOnly />)}
           </div>
         )}
 

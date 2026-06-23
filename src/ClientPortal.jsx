@@ -1473,6 +1473,18 @@ export default function ClientPortal({ user, onLogout, previewTxId, onExitPrevie
     <div style={{ minHeight: "100vh", background: C.lightGray,
       fontFamily: "system-ui, sans-serif", paddingBottom: 80 }}>
 
+      {/* NEW-MESSAGE ALERT — pulsing badge so the client never misses a message
+          from their agent, on any tab. Tap → opens Messages. */}
+      {chatUnread > 0 && activeTab !== "chat" && (
+        <>
+          <style>{`@keyframes cpulse{0%,100%{transform:scale(1)}50%{transform:scale(1.07)}}`}</style>
+          <div onClick={() => setActiveTab("chat")} title="New message from your agent"
+            style={{ position: "fixed", bottom: 18, left: 18, zIndex: 9998, background: C.red, color: "#fff", borderRadius: 30, padding: "13px 20px", boxShadow: "0 8px 26px rgba(0,0,0,0.3)", cursor: "pointer", fontWeight: 800, fontSize: 15, display: "flex", alignItems: "center", gap: 10, animation: "cpulse 1.6s ease-in-out infinite", maxWidth: "calc(100vw - 36px)" }}>
+            🔔 {chatUnread} new message{chatUnread === 1 ? "" : "s"} from your agent <span style={{ textDecoration: "underline", whiteSpace: "nowrap" }}>Read →</span>
+          </div>
+        </>
+      )}
+
       {/* Preview banner — agent is viewing the client's portal */}
       {isPreview && (
         <div style={{ background: "#B7770D", color: "#fff", padding: "10px 16px",
