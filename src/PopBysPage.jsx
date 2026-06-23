@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import PopByLogModal from "./PopByLogModal";
 
 const API = "https://liz-team-server-api-production.up.railway.app";
 
@@ -118,6 +119,7 @@ function storeSearchUrl(store, gift) {
 
 export default function PopBysPage({ token, onBack }) {
   const [data, setData] = useState(null);          // /popbys/due response
+  const [showLog, setShowLog] = useState(false);   // manual "log a pop-by" modal
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState("run");           // run | history
   const [selected, setSelected] = useState(new Set());
@@ -319,11 +321,17 @@ export default function PopBysPage({ token, onBack }) {
           <div style={{ fontSize: 26, fontWeight: 800 }}>🎁 Pop-Bys</div>
           <div style={{ fontSize: 13, color: "#6b7280" }}>Hand-deliver a small gift to your best clients — the #1 way to earn referrals.</div>
         </div>
-        <div style={{ display: "flex", gap: 8 }}>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <button onClick={() => setShowLog(true)} style={btn("#0F6E56", "white")}>➕ Log a Pop-By</button>
           <button onClick={() => setShowGuide(g => !g)} style={btn("#fef3c7", "#92400e")}>📖 How it works</button>
           <button onClick={() => setShowSettings(s => !s)} style={btn("#e5e7eb", "#374151")}>⚙ Settings</button>
         </div>
       </div>
+
+      {showLog && (
+        <PopByLogModal token={token} onClose={() => setShowLog(false)}
+          onSaved={() => { setShowLog(false); load(); loadHistory(); }} />
+      )}
 
       {showGuide && (
         <div style={{ background: "#fffbeb", border: "1px solid #fcd34d", borderRadius: 10, padding: 16, marginTop: 12, fontSize: 14, color: "#78350f", lineHeight: 1.6 }}>

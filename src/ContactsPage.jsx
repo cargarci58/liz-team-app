@@ -1,5 +1,6 @@
 import React from 'react';
 import { useState, useEffect, useRef } from "react";
+import PopByLogModal from "./PopByLogModal";
 
 const API = "https://liz-team-server-api-production.up.railway.app";
 
@@ -1060,6 +1061,7 @@ function ContactDetailDrawer({ contact, token, onClose, onEdit, onLogged, onArch
   const [callHistory, setCallHistory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [moveScore, setMoveScore] = useState(null);
+  const [showPopBy, setShowPopBy] = useState(false);
 
   useEffect(() => {
     let alive = true;
@@ -1073,11 +1075,11 @@ function ContactDetailDrawer({ contact, token, onClose, onEdit, onLogged, onArch
   const load = async () => {
     setLoading(true);
     try {
-      const r = await fetch(API + "/contacts/" + contact.id + "/calls", {
+      const r = await fetch(API + "/contacts/" + contact.id + "/history", {
         headers: { Authorization: "Bearer " + token }
       });
       const data = await r.json();
-      setCallHistory(data.calls || []);
+      setCallHistory(data.history || []);
     } catch (e) { console.error(e); }
     finally { setLoading(false); }
   };
@@ -1258,43 +1260,62 @@ function ContactDetailDrawer({ contact, token, onClose, onEdit, onLogged, onArch
             </button>
           </div>
 
-          {/* Call history */}
+          {/* Log a pop-by for this contact */}
+          <button onClick={() => setShowPopBy(true)}
+            style={{ width: "100%", marginBottom: 16, background: "#fff", color: "#0F6E56", border: "2px solid #0F6E56", borderRadius: 8, padding: "11px 18px", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+            🎁 Log a Pop-By
+          </button>
+
+          {/* Activity history — calls + pop-bys in one timeline */}
           <div style={sectionTitle}>
-            📋 Call History
+            📋 Activity History
             <span style={{ fontSize: 13, color: "#6b7280", fontWeight: 600, marginLeft: 4 }}>({callHistory.length})</span>
           </div>
 
           {loading && <div style={{ fontSize: 13, color: "#6b7280", textAlign: "center", padding: 20 }}>Loading...</div>}
           {!loading && callHistory.length === 0 && (
             <div style={{ background: "#f9fafb", border: "1px dashed #d1d5db", borderRadius: 8, padding: 20, textAlign: "center", color: "#6b7280", fontSize: 13 }}>
-              No calls logged yet. Tap <strong>📞 Log Call</strong> above to record your first contact.
+              Nothing logged yet. Tap <strong>📞 Log Call</strong> or <strong>🎁 Log a Pop-By</strong> above to start the history.
             </div>
           )}
-          {!loading && callHistory.map(call => {
-            const o = outcomeMeta[call.outcome] || { label: call.outcome, color: "#6b7280" };
-            const by = [call.by_first, call.by_last].filter(Boolean).join(" ");
+          {!loading && callHistory.map(item => {
+            const when = new Date(item.at).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" });
+            if (item.kind === "pop_by") {
+              return (
+                <div key={"p" + item.id} style={{ background: "white", border: "1px solid #e5e7eb", borderLeft: "4px solid #0F6E56", borderRadius: 8, padding: 14, marginBottom: 12, boxShadow: "0 1px 2px rgba(0,0,0,0.04)" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8, gap: 8, flexWrap: "wrap" }}>
+                    <span style={{ fontSize: 14, fontWeight: 800, color: "#0F6E56" }}>🎁 Pop-by delivered</span>
+                    <span style={{ fontSize: 12, color: "#374151", fontWeight: 600 }}>{when}</span>
+                  </div>
+                  {item.gift && <div style={{ fontSize: 14, color: "#1f2937" }}>{item.gift}</div>}
+                  {item.note && <div style={{ fontSize: 13, color: "#1f2937", marginTop: 6, padding: 10, background: "#f9fafb", borderRadius: 6, whiteSpace: "pre-wrap", lineHeight: 1.5 }}>{item.note}</div>}
+                </div>
+              );
+            }
+            const o = outcomeMeta[item.outcome] || { label: item.outcome, color: "#6b7280" };
             return (
-              <div key={call.id} style={{ background: "white", border: "1px solid #e5e7eb", borderLeft: `4px solid ${o.color}`, borderRadius: 8, padding: 14, marginBottom: 12, boxShadow: "0 1px 2px rgba(0,0,0,0.04)" }}>
+              <div key={"c" + item.id} style={{ background: "white", border: "1px solid #e5e7eb", borderLeft: `4px solid ${o.color}`, borderRadius: 8, padding: 14, marginBottom: 12, boxShadow: "0 1px 2px rgba(0,0,0,0.04)" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8, gap: 8, flexWrap: "wrap" }}>
                   <span style={{ fontSize: 14, fontWeight: 800, color: o.color }}>{o.label}</span>
-                  <span style={{ fontSize: 12, color: "#374151", fontWeight: 600 }}>
-                    {new Date(call.created_at).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" })}
-                  </span>
+                  <span style={{ fontSize: 12, color: "#374151", fontWeight: 600 }}>{when}</span>
                 </div>
-                {call.notes && (
+                {item.notes && (
                   <div style={{ fontSize: 14, color: "#1f2937", marginTop: 6, padding: 10, background: "#f9fafb", borderRadius: 6, whiteSpace: "pre-wrap", lineHeight: 1.5 }}>
-                    {call.notes}
+                    {item.notes}
                   </div>
                 )}
                 <div style={{ fontSize: 12, color: "#6b7280", marginTop: 8, paddingTop: 8, borderTop: "1px dashed #e5e7eb" }}>
-                  {by && "Logged by " + by + " · "}
-                  {call.next_call_scheduled_at ? "📅 Next call: " + new Date(call.next_call_scheduled_at).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" }) : "No follow-up scheduled"}
+                  {item.by && "Logged by " + item.by + " · "}
+                  {item.nextCallScheduledAt ? "📅 Next call: " + new Date(item.nextCallScheduledAt).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" }) : "No follow-up scheduled"}
                 </div>
               </div>
             );
           })}
         </div>
       </div>
+      {showPopBy && (
+        <PopByLogModal token={token} contact={contact} onClose={() => setShowPopBy(false)} onSaved={() => { setShowPopBy(false); load(); onLogged && onLogged(); }} />
+      )}
     </div>
   );
 }
