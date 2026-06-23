@@ -835,7 +835,8 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
     setAiBusy(null);
   };
   useEffect(() => { loadCc(); /* eslint-disable-next-line */ }, [coordinatorMode]);
-  useEffect(() => { const h = () => loadCc(); window.addEventListener("wintheday:refresh", h); return () => window.removeEventListener("wintheday:refresh", h); /* eslint-disable-next-line */ }, []);
+  // NOTE: loadCc is also called by the main wintheday:refresh handler below, so we
+  // don't register a second listener here (that double-fetched the desk every refresh).
   // Approve-first preview engine: any send action first fetches a preview (to /
   // how / subject / body) and opens the review modal; nothing leaves until the
   // coordinator approves. `pendingPreview` holds the preview + the send fn.
