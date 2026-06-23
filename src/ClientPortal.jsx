@@ -1459,7 +1459,7 @@ export default function ClientPortal({ user, onLogout, previewTxId, onExitPrevie
   const tabs = [
     { id: "home", label: "🏠 My Transaction" },
     { id: "documents", label: "📎 Documents" },
-    { id: "chat", label: chatUnread > 0 ? "💬 Chat (" + chatUnread + ")" : "💬 Chat" },
+    { id: "chat", label: chatUnread > 0 ? "💬 Messages (" + chatUnread + ")" : "💬 Messages" },
     { id: "team", label: "👥 My Team" },
     ...(isBuyerSide ? [{ id: "buyer-guide", label: "🧭 Buyer Guide" }] : []),
     ...(isSellerSide ? [{ id: "marketing", label: "📣 Marketing" }] : []),
@@ -1794,9 +1794,14 @@ export default function ClientPortal({ user, onLogout, previewTxId, onExitPrevie
 
             {/* CHAT TAB */}
             {activeTab === "chat" && (
-              <div style={{ height: 500 }}>
-                <TransactionChat transactionId={tx?.id} user={null} clientView={true}
-                  style={{ height: "100%" }} unreadCount={chatUnread} onUnreadChange={() => {}} />
+              <div>
+                <div style={{ fontSize: 13, color: C.gray, background: "#F6F8FA", border: "1px solid #E5E7EB", borderRadius: 8, padding: "9px 12px", marginBottom: 10 }}>
+                  💬 This is your direct line to your agent — send a message here anytime and they'll get it right away. (Replying to an email from them also reaches them.)
+                </div>
+                <div style={{ height: 500 }}>
+                  <TransactionChat transactionId={tx?.id} user={null} clientView={true}
+                    style={{ height: "100%" }} unreadCount={chatUnread} onUnreadChange={() => {}} />
+                </div>
               </div>
             )}
 
