@@ -880,12 +880,21 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
     // screen and is lost ("had to click twice"). Refresh SILENTLY instead: the
     // content stays on screen and updates in place. Only the first mount load
     // shows the loading screen.
-    const handler = () => { fetchTasks({ silent: true }); loadCc(); };
-    window.addEventListener("wintheday:refresh", handler);
-    window.addEventListener("focus", handler);
+    // Refresh discipline to stop the refetch storm (was reloading the home's data
+    // on EVERY window focus + every in-app event → constant churn/jank while
+    // clicking). In-app action events are debounced (a burst coalesces into one
+    // refresh); window focus is throttled to at most once a minute.
+    const doRefresh = () => { fetchTasks({ silent: true }); loadCc(); };
+    let debounceT = null;
+    const onEvent = () => { clearTimeout(debounceT); debounceT = setTimeout(doRefresh, 400); };
+    let focusLast = 0;
+    const onFocus = () => { const now = Date.now(); if (now - focusLast < 60000) return; focusLast = now; doRefresh(); };
+    window.addEventListener("wintheday:refresh", onEvent);
+    window.addEventListener("focus", onFocus);
     return () => {
-      window.removeEventListener("wintheday:refresh", handler);
-      window.removeEventListener("focus", handler);
+      window.removeEventListener("wintheday:refresh", onEvent);
+      window.removeEventListener("focus", onFocus);
+      clearTimeout(debounceT);
       if (regenTimer.current) clearTimeout(regenTimer.current);
     };
   }, []);
