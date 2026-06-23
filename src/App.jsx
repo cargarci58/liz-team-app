@@ -5798,7 +5798,7 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
           <div>
             <div style={{ display: "flex", gap: 8, padding: "12px 12px 0", flexWrap: "wrap" }}>
               {[
-                ["chat", "💬 Agent chat", chatUnread > 0 ? chatUnread : 0],
+                ["chat", "💬 Group chat", chatUnread > 0 ? chatUnread : 0],
                 ["replies", "📥 Client replies", unreadReplyCount > 0 ? unreadReplyCount : 0],
                 ["send", "📤 Send client an update", 0],
               ].map(([id, label, n]) => (
@@ -5811,7 +5811,7 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
               ))}
             </div>
             <div style={{ fontSize: 12, color: "#6b7280", padding: "8px 14px 0" }}>
-              {msgSection === "chat" && "Private in-app chat with the agent on this deal."}
+              {msgSection === "chat" && "The deal's group chat — you, the agent, and any parties on it (e.g. the photographer, title, lender)."}
               {msgSection === "replies" && "Replies the clients sent back — approve any milestone updates."}
               {msgSection === "send" && "Send the client an email/text update in the agent's voice."}
             </div>
