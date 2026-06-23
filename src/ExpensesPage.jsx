@@ -4,6 +4,32 @@ const API_URL = import.meta.env.VITE_API_URL || 'https://liz-team-server-api-pro
 
 const getToken = () => localStorage.getItem('tp_token');
 
+// Decode an image File (incl. iPhone HEIC, where the browser can decode it) and
+// re-encode it as a JPEG File via canvas — so the AI vision model can read it.
+// Rejects if the browser can't decode the source (caller shows a help message).
+function imageFileToJpeg(file) {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      try {
+        const canvas = document.createElement('canvas');
+        canvas.width = img.naturalWidth;
+        canvas.height = img.naturalHeight;
+        canvas.getContext('2d').drawImage(img, 0, 0);
+        canvas.toBlob((blob) => {
+          URL.revokeObjectURL(url);
+          if (!blob) { reject(new Error('Could not convert image')); return; }
+          const base = (file.name || 'receipt').replace(/\.[^.]+$/, '');
+          resolve(new File([blob], base + '.jpg', { type: 'image/jpeg' }));
+        }, 'image/jpeg', 0.9);
+      } catch (e) { URL.revokeObjectURL(url); reject(e); }
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Could not decode image')); };
+    img.src = url;
+  });
+}
+
 // Normalize a bank/card vendor string so the SAME recurring merchant matches
 // across statements even when the text varies — strips leading dates
 // ("05/04 "), punctuation, and any token containing a digit (transaction codes
@@ -568,6 +594,19 @@ function AddExpenseModal({ categories, expense, allExpenses, onClose, onSaved })
     setError(null);
     setOcrPreview(null);
     try {
+      // iPhone photos default to HEIC, which the AI vision model can't read.
+      // Convert HEIC/HEIF to JPEG in the browser first (works where the browser
+      // can decode HEIC — i.e. iPhone Safari, the common case). If it can't be
+      // decoded, give a clear, actionable message instead of a cryptic failure.
+      const isHeic = /heic|heif/i.test(file.type || '') || /\.(heic|heif)$/i.test(file.name || '');
+      if (isHeic) {
+        setOcrStatus('Converting iPhone photo…');
+        try {
+          file = await imageFileToJpeg(file);
+        } catch {
+          throw new Error("This looks like an iPhone HEIC photo, which can't be read here. Take a screenshot of the receipt and upload that, or set your iPhone Camera to 'Most Compatible' (Settings → Camera → Formats).");
+        }
+      }
       // Server-proxied upload (browser→R2 presigned PUT fails CORS).
       setOcrStatus('Uploading receipt...');
       const base64 = await new Promise((resolve, reject) => {
