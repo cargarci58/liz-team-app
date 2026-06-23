@@ -226,7 +226,8 @@ export default function PopBysPage({ token, onBack }) {
   // other). Declared before runList because the run honors the near-me filter.
   const [locMsg, setLocMsg] = useState("");
   const [locBusy, setLocBusy] = useState(false);
-  const [myLoc, setMyLoc] = useState(null);            // {lat,lng} from live GPS
+  const [myLoc, setMyLoc] = useState(null);            // {lat,lng} reference point (GPS or office)
+  const [refLabel, setRefLabel] = useState("");        // human label of the point being used
   const [nearMeApplied, setNearMeApplied] = useState(false);
 
   const selectedList = nearDue.filter(c => selected.has(c.id));
@@ -236,28 +237,38 @@ export default function PopBysPage({ token, onBack }) {
   const runList = nearMeApplied ? selectedList : (selectedList.length ? selectedList : nearDue);
   const ordered = routeOrder(runList, data?.start);
 
+  // Shared: select everyone within the radius of a reference point + label it.
+  const applyNear = (loc, label) => {
+    setMyLoc(loc); setRefLabel(label); setNearMeApplied(true);
+    const near = nearDue.filter(c => { if (!c.hasCoords) return false; const d = miles(loc, c); return d != null && d <= clusterMi; });
+    setSelected(new Set(near.map(c => c.id)));
+    return near.length;
+  };
+  // Live GPS (best on a phone).
   const selectNearMe = () => {
-    if (!navigator.geolocation) { setLocMsg("This device can't share its location — use your phone."); return; }
+    if (!navigator.geolocation) { setLocMsg("This device can't share its location — try the office-address option."); return; }
     setLocBusy(true); setLocMsg("📍 Getting your location…");
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         const me = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-        setMyLoc(me); setNearMeApplied(true);
-        const near = nearDue.filter(c => { if (!c.hasCoords) return false; const d = miles(me, c); return d != null && d <= clusterMi; });
-        setSelected(new Set(near.map(c => c.id)));
+        const n = applyNear(me, "📍 your current location (GPS)");
         const accMi = pos.coords.accuracy ? pos.coords.accuracy / 1609 : null;
-        let msg = near.length
-          ? `✅ ${near.length} within ${clusterMi} mi of you — that's your run below.`
-          : `No one due is within ${clusterMi} mi of where your device places you. Widen the radius and tap again.`;
-        if (accMi && accMi > 1.5) msg += ` ⚠️ Your location is only accurate to ~${accMi < 10 ? accMi.toFixed(0) : Math.round(accMi)} mi (a computer guesses by Wi-Fi). For a real run, open this on your phone with GPS on.`;
-        setLocMsg(msg);
-        setLocBusy(false);
+        let msg = n ? `✅ ${n} within ${clusterMi} mi — that's your run below.` : `No one due is within ${clusterMi} mi of where your device places you. Widen the radius and tap again.`;
+        if (accMi && accMi > 1.5) msg += ` ⚠️ Your location is only accurate to ~${accMi < 10 ? accMi.toFixed(0) : Math.round(accMi)} mi (a computer guesses by Wi-Fi). On a desktop, use “my office address” instead.`;
+        setLocMsg(msg); setLocBusy(false);
       },
-      () => { setLocMsg("Couldn't get your location — allow location access for this site, then tap again."); setLocBusy(false); },
+      () => { setLocMsg("Couldn't get your location — allow location access, or use “my office address” below."); setLocBusy(false); },
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
     );
   };
-  const clearNearMe = () => { setNearMeApplied(false); setMyLoc(null); setSelected(new Set()); setLocMsg(""); };
+  // Profile/office address (reliable on a desktop — no GPS needed).
+  const selectNearOffice = () => {
+    const start = data?.start;
+    if (!start || start.lat == null) { setLocMsg("Add your office/home address in My Profile first — then I can use it here."); return; }
+    const n = applyNear({ lat: start.lat, lng: start.lng }, "🏠 " + (start.address || "your office address"));
+    setLocMsg(n ? `✅ ${n} within ${clusterMi} mi of your office address — that's your run below.` : `No one due is within ${clusterMi} mi of your office address — widen the radius and tap again.`);
+  };
+  const clearNearMe = () => { setNearMeApplied(false); setMyLoc(null); setRefLabel(""); setSelected(new Set()); setLocMsg(""); };
 
   // Group due contacts into areas where everyone is within ~clusterMi of someone
   // else in the group — so each chip is a tight, gas-saving run. Radius is
@@ -496,14 +507,23 @@ export default function PopBysPage({ token, onBack }) {
 
                     {/* Near ME right now — uses live GPS, selects within the radius of where I am. */}
                     <div style={{ background: "#F0FDF4", border: "1px solid #BBF7D0", borderRadius: 10, padding: 12, marginBottom: 12 }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                         <button onClick={selectNearMe} disabled={locBusy} style={btn("#0F6E56", "white")}>
-                          {locBusy ? "📍 Locating…" : `📍 Pick people within ${clusterMi} mi of me now`}
+                          {locBusy ? "📍 Locating…" : `📍 Within ${clusterMi} mi of me now (GPS)`}
                         </button>
-                        {nearMeApplied
-                          ? <button onClick={clearNearMe} style={btn("#e5e7eb", "#374151")}>Show everyone instead</button>
-                          : <span style={{ fontSize: 12, color: "#166534" }}>Best on your phone (uses GPS).</span>}
+                        <button onClick={selectNearOffice} style={btn("#0c4a6e", "white")}>
+                          🏠 Within {clusterMi} mi of my office address
+                        </button>
+                        {nearMeApplied && <button onClick={clearNearMe} style={btn("#e5e7eb", "#374151")}>Show everyone instead</button>}
                       </div>
+                      <div style={{ fontSize: 12, color: "#166534", marginTop: 6 }}>
+                        GPS is best on your phone. On a computer, use your <strong>office address</strong>.
+                      </div>
+                      {nearMeApplied && refLabel && (
+                        <div style={{ fontSize: 12.5, color: "#0c4a6e", marginTop: 8, fontWeight: 700, background: "#fff", border: "1px solid #BBE3D2", borderRadius: 8, padding: "7px 10px" }}>
+                          Measuring distance from: {refLabel}
+                        </div>
+                      )}
                       {locMsg && <div style={{ fontSize: 12.5, color: "#166534", marginTop: 8, fontWeight: 600 }}>{locMsg}</div>}
                     </div>
 
