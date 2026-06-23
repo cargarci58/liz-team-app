@@ -226,6 +226,29 @@ export default function PopBysPage({ token, onBack }) {
   const runList = selectedList.length ? selectedList : nearDue;
   const ordered = routeOrder(runList, data?.start);
 
+  // "Near me right now" — use the device's LIVE GPS (not the profile address) and
+  // select every due contact within the slider radius of where the agent is now.
+  // Different from the area chips, which group contacts near EACH OTHER.
+  const [locMsg, setLocMsg] = useState("");
+  const [locBusy, setLocBusy] = useState(false);
+  const selectNearMe = () => {
+    if (!navigator.geolocation) { setLocMsg("This device can't share its location."); return; }
+    setLocBusy(true); setLocMsg("📍 Getting your location…");
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const me = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        const near = nearDue.filter(c => c.hasCoords && (() => { const d = miles(me, c); return d != null && d <= clusterMi; })());
+        setSelected(new Set(near.map(c => c.id)));
+        setLocMsg(near.length
+          ? `✅ Selected ${near.length} contact${near.length === 1 ? "" : "s"} within ${clusterMi} mi of you right now.`
+          : `No one due is within ${clusterMi} mi of you right now — widen the radius and tap again.`);
+        setLocBusy(false);
+      },
+      () => { setLocMsg("Couldn't get your location — allow location access for this site, then tap again."); setLocBusy(false); },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+    );
+  };
+
   // Group due contacts into areas where everyone is within ~clusterMi of someone
   // else in the group — so each chip is a tight, gas-saving run. Radius is
   // agent-controlled (1-10 mi slider). Labeled by most-common city; singletons hidden.
@@ -459,15 +482,27 @@ export default function PopBysPage({ token, onBack }) {
                   {/* ── STEP 3 — pick who / which area ── */}
                   <div style={stepBox}>
                     <div style={stepTitle}><span style={stepNum}>3</span> Pick who's on today's run</div>
-                    <div style={{ fontSize: 13, color: "#6b7280", marginBottom: 10 }}>Tap a <strong>nearby group</strong> below to knock out a tight, gas-saving run today — or check people one by one. Skip this step to do everyone.</div>
+                    <div style={{ fontSize: 13, color: "#6b7280", marginBottom: 10 }}>Pick people <strong>near you right now</strong>, tap a <strong>nearby group</strong>, or check people one by one. Skip this step to do everyone.</div>
+
+                    {/* Near ME right now — uses live GPS, selects within the radius of where I am. */}
+                    <div style={{ background: "#F0FDF4", border: "1px solid #BBF7D0", borderRadius: 10, padding: 12, marginBottom: 12 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                        <button onClick={selectNearMe} disabled={locBusy} style={btn("#0F6E56", "white")}>
+                          {locBusy ? "📍 Locating…" : `📍 Pick people within ${clusterMi} mi of me now`}
+                        </button>
+                        <span style={{ fontSize: 12, color: "#166534" }}>Uses your phone's current location.</span>
+                      </div>
+                      {locMsg && <div style={{ fontSize: 12.5, color: "#166534", marginTop: 8, fontWeight: 600 }}>{locMsg}</div>}
+                    </div>
+
                     <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", marginBottom: 10 }}>
-                      <span style={{ fontSize: 13, fontWeight: 700, color: "#374151" }}>Group size:</span>
+                      <span style={{ fontSize: 13, fontWeight: 700, color: "#374151" }}>Radius:</span>
                       <input type="range" min={1} max={10} step={1} value={clusterMi} onChange={e => setClusterMi(parseInt(e.target.value, 10))} style={{ flex: 1, minWidth: 140, maxWidth: 260, accentColor: "#0c4a6e", cursor: "pointer" }} />
                       <span style={{ fontSize: 13, fontWeight: 700, color: "#0c4a6e", whiteSpace: "nowrap" }}>within {clusterMi} mi</span>
                     </div>
                     {areaClusters.length > 0 ? (
                       <div style={{ marginBottom: 10 }}>
-                        <div style={{ fontSize: 12, fontWeight: 700, color: "#3730a3", marginBottom: 6 }}>📍 Nearby groups (within ~{clusterMi} mi):</div>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: "#3730a3", marginBottom: 6 }}>👥 Groups of contacts near each other (within ~{clusterMi} mi):</div>
                         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
                           {areaClusters.map((cl, i) => (
                             <button key={i} onClick={() => setSelected(new Set(cl.members.map(m => m.id)))} style={btn("#e0e7ff", "#3730a3")}>
