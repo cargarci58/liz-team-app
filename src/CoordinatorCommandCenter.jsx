@@ -16,11 +16,16 @@ export default function CoordinatorCommandCenter({ token, onOpenTransaction }) {
   const [skip, setSkip] = useState({});           // txId -> true means "don't send this one"
   const [doing, setDoing] = useState(false);
   const [planMsg, setPlanMsg] = useState(null);
+  const [unread, setUnread] = useState({});       // txId -> unread message count
 
   const load = () => {
     // The per-deal cards live in the Win-the-Day list below this banner — tell it
     // to reload too, so Refresh visibly updates the whole screen, not just here.
     try { window.dispatchEvent(new Event("wintheday:refresh")); } catch (e) {}
+    fetch(API + "/chat/unread/counts", { headers: { Authorization: "Bearer " + token } })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => setUnread((d && d.counts) || {}))
+      .catch(() => {});
     fetch(API + "/tc/command-center", { headers: { Authorization: "Bearer " + token } })
       .then(r => r.ok ? r.json() : null)
       .then(d => { setData(d && d.success ? d : null); setLoading(false); })
@@ -80,6 +85,33 @@ export default function CoordinatorCommandCenter({ token, onOpenTransaction }) {
           ? `All ${data.total} of your transactions are on track — the app is handling them. Nothing needs you right now. ✅`
           : `${data.needsYouCount} of your ${data.total} transactions need a look. The other ${data.onTrackCount} are on track and handled.`}
       </div>
+
+      {/* 💬 NEW MESSAGES INBOX — one place to see every deal with an unread chat,
+          so the TC never has to scan each card. */}
+      {(() => {
+        const addr = {};
+        [...(data.needsYou || []), ...(data.onTrack || [])].forEach(d => { if (d.txId) addr[d.txId] = d.address; });
+        const inbox = Object.entries(unread).filter(([, n]) => n > 0)
+          .map(([txId, n]) => ({ txId, n, address: addr[txId] || "A transaction" }))
+          .sort((a, b) => b.n - a.n);
+        const total = inbox.reduce((s, x) => s + x.n, 0);
+        if (inbox.length === 0) return null;
+        return (
+          <div style={{ background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: 12, padding: 16, marginBottom: 16 }}>
+            <div style={{ fontSize: 16, fontWeight: 800, color: "#B91C1C", marginBottom: 10 }}>
+              💬 New messages — {total} unread across {inbox.length} deal{inbox.length === 1 ? "" : "s"}
+            </div>
+            {inbox.map(item => (
+              <div key={item.txId} onClick={() => onOpenTransaction && onOpenTransaction(item.txId, "chat")}
+                style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", background: "#fff", border: "1px solid #FECACA", borderRadius: 10, marginBottom: 8, cursor: "pointer" }}>
+                <span style={{ background: "#C0392B", color: "#fff", borderRadius: 20, minWidth: 24, height: 24, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 800, padding: "0 7px" }}>{item.n}</span>
+                <span style={{ flex: 1, minWidth: 0, fontWeight: 700, color: "#1a2332" }}>{item.address}</span>
+                <span style={{ fontSize: 13, fontWeight: 700, color: "#B91C1C" }}>Open chat →</span>
+              </div>
+            ))}
+          </div>
+        );
+      })()}
 
       {/* APPROVE-FIRST PLAN — the app shows what it'll send; you press "Do it". */}
       {plan.length > 0 && (

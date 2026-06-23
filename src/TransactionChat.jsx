@@ -56,6 +56,17 @@ function ensureNotificationPermission() {
 // `directTo` = a party {name, email}: PRIVATE chat — only shows the directed
 // messages between you and them, and everything you send is visible to them
 // alone (notify_emails). Guests/clients (standalone or portal) keep the picker.
+// Turn raw URLs in a chat message into clickable links (attachments shared via
+// broadcast/vendor-share arrive as links — testers couldn't click them).
+function linkifyMessage(text, mine) {
+  if (!text) return text;
+  return String(text).split(/(https?:\/\/[^\s]+)/g).map((part, i) =>
+    /^https?:\/\//.test(part)
+      ? <a key={i} href={part} target="_blank" rel="noopener noreferrer" style={{ color: mine ? "#fff" : "#1A5276", textDecoration: "underline", wordBreak: "break-all", fontWeight: 600 }}>{part}</a>
+      : part
+  );
+}
+
 export default function TransactionChat({ transactionId, user, parties = [], style, onUnreadChange, unreadCount = 0, clientView = false, simple = false, directTo = null }) {
   const [messages, setMessages] = useState([]);
   const [newMsg, setNewMsg] = useState("");
@@ -246,8 +257,8 @@ export default function TransactionChat({ transactionId, user, parties = [], sty
                       {msg.sender_name} · {msg.sender_role}
                     </div>
                   )}
-                  <div style={{ background: mine ? "#C0392B" : unread ? "#FFF3CD" : "#fff", color: mine ? "#fff" : "#111", padding: "10px 14px", borderRadius: mine ? "14px 14px 4px 14px" : "14px 14px 14px 4px", fontSize: 14, lineHeight: 1.5, boxShadow: "0 1px 3px rgba(0,0,0,0.1)", border: mine ? "none" : unread ? "2px solid #F0C040" : "1px solid #E5E7EB" }}>
-                    {msg.message}
+                  <div style={{ background: mine ? "#C0392B" : unread ? "#FFF3CD" : "#fff", color: mine ? "#fff" : "#111", padding: "10px 14px", borderRadius: mine ? "14px 14px 4px 14px" : "14px 14px 14px 4px", fontSize: 14, lineHeight: 1.5, boxShadow: "0 1px 3px rgba(0,0,0,0.1)", border: mine ? "none" : unread ? "2px solid #F0C040" : "1px solid #E5E7EB", whiteSpace: "pre-wrap" }}>
+                    {linkifyMessage(msg.message, mine)}
                   </div>
                   {!clientView && !directTo && Array.isArray(msg.notify_emails) && msg.notify_emails.length > 0 && (
                     <div style={{ fontSize: 11, fontWeight: 700, color: mine ? "#fff" : "#1A5276", marginTop: 4, textAlign: mine ? "right" : "left", padding: "4px 10px", borderRadius: 10, background: mine ? "rgba(0,0,0,0.35)" : "#D6E4F0", display: "inline-block", border: mine ? "1px solid rgba(255,255,255,0.3)" : "1px solid #A9C5DC" }}>

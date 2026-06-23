@@ -5025,7 +5025,15 @@ function LeaseDocsModal({ tx, onClose, onGenerated }) {
 }
 
 function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = false, onBack, contacts, onInviteParty = [], onCopyLoginLink, onSaveContact, onOpenContactBook, onDuplicate, currentUser, initialTab = "overview", dashboardUnread = 0, onMilestoneSummary }) {
-  const [activeTab, setActiveTab] = useState(initialTab);
+  // Coordinator's comms tabs are merged into one "messages" hub, so a deep-link to
+  // chat/replies/sms opens the hub on the right section.
+  const _isCoordInit = !!tx.isCoordinatorView || coordinatorMode;
+  const [activeTab, setActiveTab] = useState(
+    (_isCoordInit && ["chat", "replies", "sms"].includes(initialTab)) ? "messages" : initialTab
+  );
+  const [msgSection, setMsgSection] = useState(
+    initialTab === "replies" ? "replies" : initialTab === "sms" ? "send" : "chat"
+  );
   const [showAssignAgent, setShowAssignAgent] = useState(false);
   const [showAddParty, setShowAddParty] = useState(false);
   const [paywallFeature, setPaywallFeature] = useState(null);  // guest taps a paid feature
@@ -5274,15 +5282,16 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
     { id: "overview", label: "Overview" },
     { id: "milestones", label: "📅 Timeline" },
     { id: "parties", label: `People (${(isCoordinator ? tx.parties.filter(p => (p.email || "").toLowerCase() !== (currentUser?.email || "").toLowerCase()) : tx.parties).length})` },
-    { id: "sms", label: `Messages${smsMsgCount > 0 ? ` (${smsMsgCount})` : ""}` },
-    { id: "replies", label: `💬 Replies${unreadReplyCount > 0 ? ` (${unreadReplyCount})` : ""}` },
+    // Coordinator: ONE "💬 Messages" hub (Agent chat · Client replies · Send update)
+    // instead of three near-identical tabs. Agent keeps the separate tabs.
+    ...(isCoordinator
+      ? [{ id: "messages", label: (chatUnread > 0 || dashboardUnread > 0 || unreadReplyCount > 0) ? `💬 Messages (${Math.max(chatUnread, dashboardUnread) + unreadReplyCount})` : "💬 Messages" }]
+      : [{ id: "sms", label: `Messages${smsMsgCount > 0 ? ` (${smsMsgCount})` : ""}` },
+         { id: "replies", label: `💬 Replies${unreadReplyCount > 0 ? ` (${unreadReplyCount})` : ""}` }]),
     { id: "notes", label: "Internal Notes" },
     { id: "documents", label: "📎 Documents" },
-    // Group chat lives inside the Messages tab (Group mode) for the AGENT, but the
-    // coordinator's Messages tab is the client-update sender — so the TC needs the
-    // in-app chat as its own tab to see/reply to the agent's internal messages.
-    // Guests also get it (one of their few allowed views).
-    ...((isGuest || isCoordinator) ? [{ id: "chat", label: (chatUnread > 0 || dashboardUnread > 0) ? `💬 Chat (${Math.max(chatUnread, dashboardUnread)})` : "💬 Chat" }] : []),
+    // Group chat is a standalone tab only for guests (agent uses Messages>Group).
+    ...(isGuest ? [{ id: "chat", label: (chatUnread > 0 || dashboardUnread > 0) ? `💬 Group Chat (${Math.max(chatUnread, dashboardUnread)})` : "💬 Group Chat" }] : []),
     { id: "cma", label: "📊 CMA" },
     ...(isBuyerSideTx ? [{ id: "offers", label: "📝 Create Offer" }, { id: "calculator", label: "🧮 Buyers Calculator" }, { id: "buyer-net", label: "💰 Buyer's Net Sheet" }] : []),
     ...(isListingSideTx ? [{ id: "seller-calc", label: "💰 Seller's Net Sheet" }] : []),
@@ -5780,6 +5789,34 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
         {activeTab === "sms" && (isCoordinator ? <CoordinatorSendUpdate tx={tx} /> : <SMSPanel tx={tx} onUpdate={onUpdate} />)}
 
         {activeTab === "replies" && <InboundRepliesPanel tx={tx} />}
+
+        {/* Coordinator MESSAGES HUB — three channels in one tab, clearly separated. */}
+        {activeTab === "messages" && isCoordinator && (
+          <div>
+            <div style={{ display: "flex", gap: 8, padding: "12px 12px 0", flexWrap: "wrap" }}>
+              {[
+                ["chat", "💬 Agent chat", chatUnread > 0 ? chatUnread : 0],
+                ["replies", "📥 Client replies", unreadReplyCount > 0 ? unreadReplyCount : 0],
+                ["send", "📤 Send client an update", 0],
+              ].map(([id, label, n]) => (
+                <button key={id} onClick={() => setMsgSection(id)}
+                  style={{ padding: "9px 14px", borderRadius: 10, border: "none", cursor: "pointer", fontFamily: "inherit",
+                    fontWeight: 700, fontSize: 13,
+                    background: msgSection === id ? "#0F2044" : "#eef2f7", color: msgSection === id ? "#fff" : "#374151" }}>
+                  {label}{n > 0 ? ` (${n})` : ""}
+                </button>
+              ))}
+            </div>
+            <div style={{ fontSize: 12, color: "#6b7280", padding: "8px 14px 0" }}>
+              {msgSection === "chat" && "Private in-app chat with the agent on this deal."}
+              {msgSection === "replies" && "Replies the clients sent back — approve any milestone updates."}
+              {msgSection === "send" && "Send the client an email/text update in the agent's voice."}
+            </div>
+            {msgSection === "chat" && <div style={{ padding: 12, height: 500 }}><TransactionChat transactionId={tx.id} user={null} parties={tx.parties || []} style={{ height: "100%" }} unreadCount={chatUnread} onUnreadChange={() => {}} /></div>}
+            {msgSection === "replies" && <InboundRepliesPanel tx={tx} />}
+            {msgSection === "send" && <CoordinatorSendUpdate tx={tx} />}
+          </div>
+        )}
 
         {activeTab === "notes" && (
           <div>
