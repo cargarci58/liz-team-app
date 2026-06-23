@@ -229,12 +229,16 @@ export default function PopBysPage({ token, onBack }) {
   const [myLoc, setMyLoc] = useState(null);            // {lat,lng} reference point (GPS or office)
   const [refLabel, setRefLabel] = useState("");        // human label of the point being used
   const [nearMeApplied, setNearMeApplied] = useState(false);
+  const [browseAll, setBrowseAll] = useState(false);   // opt-in: show the full list to pick by hand
 
   const selectedList = nearDue.filter(c => selected.has(c.id));
-  // The run = your active pick. After a "near me" filter the run is EXACTLY those
-  // (even if zero) — it must NEVER silently fall back to everyone (that made a
-  // 2-mile filter show all 134). With no pick at all, the default is everyone.
-  const runList = nearMeApplied ? selectedList : (selectedList.length ? selectedList : nearDue);
+  // The run is whatever the agent has actively chosen — it does NOT pre-load
+  // everyone. Empty until they pick a distance, a group, browse-all, or check
+  // people. (Carlos: "shouldn't preview every contact from the beginning.")
+  const runList = nearMeApplied ? selectedList
+    : selectedList.length ? selectedList
+    : browseAll ? nearDue
+    : [];
   const ordered = routeOrder(runList, data?.start);
 
   // Shared: select everyone within the radius of a reference point + label it.
@@ -287,7 +291,11 @@ export default function PopBysPage({ token, onBack }) {
   // matching contacts (so far-away homes don't appear and confuse). Sort nearest-
   // first whenever we have a reference point.
   const displayContacts = (() => {
-    let list = nearMeApplied ? selectedList : nearDue;
+    let list;
+    if (nearMeApplied) list = selectedList;          // near filter → only those
+    else if (browseAll) list = nearDue;               // browsing → keep full list to pick from
+    else if (selectedList.length) list = selectedList; // a group picked
+    else list = [];                                   // nothing chosen → show nothing
     if (myLoc) list = [...list].sort((a, b) => { const da = miles(myLoc, a), db = miles(myLoc, b); return (da == null ? 1e9 : da) - (db == null ? 1e9 : db); });
     return list;
   })();
@@ -559,7 +567,7 @@ export default function PopBysPage({ token, onBack }) {
                         <div style={{ fontSize: 12, fontWeight: 700, color: "#3730a3", marginBottom: 6 }}>👥 Groups of contacts near each other (within ~{clusterMi} mi):</div>
                         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
                           {areaClusters.map((cl, i) => (
-                            <button key={i} onClick={() => { setNearMeApplied(false); setMyLoc(null); setLocMsg(""); setSelected(new Set(cl.members.map(m => m.id))); }} style={btn("#e0e7ff", "#3730a3")}>
+                            <button key={i} onClick={() => { setNearMeApplied(false); setMyLoc(null); setLocMsg(""); setBrowseAll(false); setSelected(new Set(cl.members.map(m => m.id))); }} style={btn("#e0e7ff", "#3730a3")}>
                               {cl.label} ({cl.members.length})
                             </button>
                           ))}
@@ -569,14 +577,23 @@ export default function PopBysPage({ token, onBack }) {
                       <div style={{ fontSize: 12, color: "#9ca3af", marginBottom: 10 }}>No clusters at {clusterMi} mi — slide right to widen the group, or pick people below.</div>
                     )}
                     <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 10, alignItems: "center" }}>
-                      <button onClick={() => { setNearMeApplied(false); setMyLoc(null); setLocMsg(""); setSelected(new Set(nearDue.map(c => c.id))); }} style={btn("#e5e7eb", "#374151")}>Select all</button>
-                      {(selected.size > 0 || nearMeApplied) && <button onClick={clearNearMe} style={btn("#e5e7eb", "#374151")}>Clear</button>}
+                      <button onClick={() => { setNearMeApplied(false); setMyLoc(null); setLocMsg(""); setBrowseAll(true); setSelected(new Set(nearDue.map(c => c.id))); }} style={btn("#e5e7eb", "#374151")}>Select all {nearDue.length}</button>
+                      {!nearMeApplied && !selectedList.length && !browseAll && (
+                        <button onClick={() => setBrowseAll(true)} style={btn("#e5e7eb", "#374151")}>Browse all {nearDue.length} to pick by hand</button>
+                      )}
+                      {(selected.size > 0 || nearMeApplied || browseAll) && <button onClick={() => { clearNearMe(); setBrowseAll(false); }} style={btn("#e5e7eb", "#374151")}>Clear</button>}
                       <span style={{ fontSize: 13, fontWeight: 700, color: "#0c4a6e" }}>
                         {nearMeApplied ? `${selectedList.length} near you on this run`
                           : selectedList.length > 0 ? `${selectedList.length} on this run`
-                          : `all ${nearDue.length} included`}
+                          : browseAll ? `pick people below (all ${nearDue.length} shown)`
+                          : `nobody picked yet`}
                       </span>
                     </div>
+                    {!nearMeApplied && !browseAll && !selectedList.length && (
+                      <div style={{ fontSize: 13, color: "#6b7280", background: "#f9fafb", border: "1px dashed #d1d5db", borderRadius: 8, padding: 14, marginBottom: 8 }}>
+                        👆 Pick a <strong>distance</strong> (📍 near me / 🏠 office) or a <strong>group</strong> above to see who's on your run — or <strong>Browse all</strong> to choose by hand.
+                      </div>
+                    )}
                     {nearMeApplied && displayContacts.length === 0 && (
                       <div style={{ fontSize: 13, color: "#b45309", background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 8, padding: 12, marginBottom: 8 }}>
                         No one due is within {clusterMi} mi of {refLabel || "that point"}. Widen the radius above and tap again.
