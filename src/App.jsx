@@ -1622,7 +1622,13 @@ function SMSPanel({ tx, onUpdate, currentUser, sendOnly = false }) {
                     <div style={{ fontWeight: 700, fontSize: 15 }}>{selectedParty.name}</div>
                     <div style={{ fontSize: 11, color: "#6B7280" }}>{selectedParty.phone && `📱 ${selectedParty.phone}`}{selectedParty.phone && selectedParty.email && " · "}{selectedParty.email && `📧 ${selectedParty.email}`}</div>
                   </div>
+                </div>
+                {/* Prominent, required channel choice — full width so it can't be missed */}
+                <div style={{ padding: "12px 18px", borderBottom: "1px solid #E5E7EB", background: channel ? "#F7F8FA" : "#FFF7ED" }}>
                   <ChannelPicker value={channel} onChange={setChannel} />
+                  {selectedParty && !selectedParty.phone && (channel === "sms" || channel === "both") && (
+                    <div style={{ fontSize: 12, color: "#C0392B", marginTop: 6, fontWeight: 600 }}>⚠️ No phone on file for {selectedParty.name} — add one in the People tab to text them.</div>
+                  )}
                 </div>
                 <div style={{ flex: 1, minHeight: 140, overflowY: "auto", padding: "16px 18px", display: "flex", flexDirection: "column", gap: 10 }}>
                   {getThread(selectedParty).length === 0 && <div style={{ textAlign: "center", color: "#6B7280", fontSize: 13, marginTop: 40 }}>No messages yet. Select SMS, Email, or both above then type below.</div>}
