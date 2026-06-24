@@ -191,8 +191,11 @@ function UploadStep({ token, existingTransactionId, onBack, onUploaded }) {
       <div style={{ maxWidth: 720, margin: "0 auto" }}>
         <button onClick={onBack} style={{ background: "none", border: "none", color: COLORS.muted, fontSize: 14, cursor: "pointer", marginBottom: 16 }}>← Back</button>
         <h1 style={{ margin: 0, color: COLORS.navy, fontSize: 26 }}>📄 Upload Executed Contract</h1>
-        <p style={{ color: COLORS.muted, marginTop: 6, marginBottom: 24 }}>
+        <p style={{ color: COLORS.muted, marginTop: 6, marginBottom: 8 }}>
           Drop your contract package below. We'll read it, identify every document and addendum, and pull out all the key fields automatically.
+        </p>
+        <p style={{ color: COLORS.muted, marginTop: 0, marginBottom: 24, fontSize: 13 }}>
+          Two ways: <strong>upload it yourself</strong>, or <strong>send your client a no-login link</strong> so they can upload it for you.
         </p>
 
         <div style={{ display: "flex", gap: 8, marginBottom: 24 }}>
@@ -206,7 +209,7 @@ function UploadStep({ token, existingTransactionId, onBack, onUploaded }) {
             onClick={() => setMode("link")}
             style={{ flex: 1, padding: "12px", borderRadius: 8, border: `2px solid ${mode === "link" ? COLORS.red : COLORS.border}`, background: mode === "link" ? "#fef2f2" : "white", color: mode === "link" ? COLORS.red : COLORS.text, fontWeight: 600, fontSize: 14, cursor: "pointer", fontFamily: "inherit" }}
           >
-            🔗 Send Shareable Link
+            🔗 Send Client a Link (no login)
           </button>
         </div>
 
