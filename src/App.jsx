@@ -1623,15 +1623,8 @@ function SMSPanel({ tx, onUpdate, currentUser, sendOnly = false }) {
                     <div style={{ fontSize: 11, color: "#6B7280" }}>{selectedParty.phone && `📱 ${selectedParty.phone}`}{selectedParty.phone && selectedParty.email && " · "}{selectedParty.email && `📧 ${selectedParty.email}`}</div>
                   </div>
                 </div>
-                {/* Prominent, required channel choice — full width so it can't be missed */}
-                <div style={{ padding: "12px 18px", borderBottom: "1px solid #E5E7EB", background: channel ? "#F7F8FA" : "#FFF7ED" }}>
-                  <ChannelPicker value={channel} onChange={setChannel} />
-                  {selectedParty && !selectedParty.phone && (channel === "sms" || channel === "both") && (
-                    <div style={{ fontSize: 12, color: "#C0392B", marginTop: 6, fontWeight: 600 }}>⚠️ No phone on file for {selectedParty.name} — add one in the People tab to text them.</div>
-                  )}
-                </div>
                 <div style={{ flex: 1, minHeight: 140, overflowY: "auto", padding: "16px 18px", display: "flex", flexDirection: "column", gap: 10 }}>
-                  {getThread(selectedParty).length === 0 && <div style={{ textAlign: "center", color: "#6B7280", fontSize: 13, marginTop: 40 }}>No messages yet. Select SMS, Email, or both above then type below.</div>}
+                  {getThread(selectedParty).length === 0 && <div style={{ textAlign: "center", color: "#6B7280", fontSize: 13, marginTop: 40 }}>No messages yet. Choose 📧 Email or 📱 Text below, then type your message.</div>}
                   {getThread(selectedParty).map(m => {
                     const isOut = m.direction === "outbound";
                     return (
@@ -1691,8 +1684,15 @@ function SMSPanel({ tx, onUpdate, currentUser, sendOnly = false }) {
                     <div style={{ fontSize: 11, color: "#6B7280", marginBottom: 4 }}>Texts get a secure download link (files can't attach to a text).</div>
                   )}
                 </div>
+                {/* Required channel choice — sits right above the box you type in + Send, so it can't be missed */}
+                <div style={{ padding: "12px 18px", borderTop: "1px solid #E5E7EB", background: channel ? "#fff" : "#FFF7ED" }}>
+                  <ChannelPicker value={channel} onChange={setChannel} />
+                  {selectedParty && !selectedParty.phone && (channel === "sms" || channel === "both") && (
+                    <div style={{ fontSize: 12, color: "#C0392B", marginTop: 6, fontWeight: 600 }}>⚠️ No phone on file for {selectedParty.name} — add one in the People tab to text them.</div>
+                  )}
+                </div>
                 <div style={{ padding: "12px 18px", borderTop: "1px solid #E5E7EB", display: "flex", gap: 10, alignItems: "flex-end", flexWrap: "wrap" }}>
-                  <textarea value={message} onChange={e => setMessage(e.target.value)} onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey && channel === "sms") { e.preventDefault(); sendMessage(); } }} placeholder={channel === "sms" ? "Type message... (Shift+Enter for new line)" : "Write your email..."} rows={channel === "sms" ? 3 : 8} style={{ flex: "1 1 100%", padding: "12px 16px", borderRadius: 10, border: "1px solid #E5E7EB", fontSize: 15, lineHeight: 1.55, fontFamily: "inherit", resize: "vertical", minHeight: channel === "sms" ? 70 : 200, boxSizing: "border-box" }} />
+                  <textarea value={message} onChange={e => setMessage(e.target.value)} onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey && channel === "sms") { e.preventDefault(); sendMessage(); } }} placeholder={!channel ? "Pick Email or Text above first…" : channel === "sms" ? "Type message... (Shift+Enter for new line)" : "Write your email..."} rows={channel === "sms" ? 3 : 8} style={{ flex: "1 1 100%", padding: "12px 16px", borderRadius: 10, border: "1px solid #E5E7EB", fontSize: 15, lineHeight: 1.55, fontFamily: "inherit", resize: "vertical", minHeight: channel === "sms" ? 70 : 200, boxSizing: "border-box" }} />
                   <button onClick={sendMessage} disabled={!channel || !message.trim() || sending} title={!channel ? "Pick Email or Text first" : ""} style={{ height: 44, minWidth: 70, borderRadius: 8, border: "none", background: "#15803D", color: "#fff", fontWeight: 600, fontSize: 14, cursor: "pointer", fontFamily: "inherit", opacity: (!channel || !message.trim() || sending) ? 0.5 : 1 }}>{sending ? "..." : "Send"}</button>
                 </div>
                 <div style={{ margin: "0 18px 12px", padding: "10px 14px", borderTop: "2px solid #C0392B", background: "#F9FAFB", borderRadius: "0 0 8px 8px", display: "flex", alignItems: "center", gap: 10 }}>
