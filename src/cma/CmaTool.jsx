@@ -714,7 +714,11 @@ function CmaTool({ tx, token, currentUser, standalone = false, initialCma = null
           <section className="section no-print">
             <div className="section-num">01 · DATA</div>
             <h2 className="section-title">Import MLS comp data</h2>
-            <p className="section-sub">Export sold + active + pending + expired comps from MLS as CSV. Click the MLS Search Setup guide above for exact parameters.</p>
+            <p className="section-sub">
+              A <strong>comp</strong> is a comparable, recently-sold home near your property. In your MLS, search nearby
+              sold (plus active/pending) listings, <strong>export the results as a CSV file</strong>, and drop it below.
+              New to this? Open <strong>📋 MLS Search Setup</strong> above for the exact search settings and the columns to include.
+            </p>
             {comps.length === 0 ? (
               <div
                 className={`upload-zone ${dragging ? 'drag' : ''}`}
@@ -726,8 +730,8 @@ function CmaTool({ tx, token, currentUser, standalone = false, initialCma = null
                 <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" />
                 </svg>
-                <div className="primary">Drop MLS CSV export here</div>
-                <div className="secondary">or click to browse</div>
+                <div className="primary">Drop your MLS CSV export here</div>
+                <div className="secondary">or click to choose the .csv file from your computer</div>
                 <input ref={fileInputRef} type="file" accept=".csv" onChange={(e) => handleFile(e.target.files[0])} />
               </div>
             ) : (
