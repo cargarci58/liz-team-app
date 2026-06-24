@@ -5627,7 +5627,16 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
         )}
 
         {activeTab === "milestones" && (
+          <div>
+            {/* Pre-contract deals only show the active-phase steps; testers thought the
+                inspection/closing-scheduling steps were "missing". Explain they unlock. */}
+            {["Active", "New"].includes(tx.status) && !isCoordinator && (
+              <div style={{ background: "#EFF6FF", border: "1px solid #BFDBFE", borderRadius: 10, padding: "10px 14px", marginBottom: 14, fontSize: 13, color: "#1E3A8A" }}>
+                📅 You're seeing the <strong>active / pre-contract</strong> steps. Contract &amp; closing steps — inspection dates, appraisal, scheduling the closing — <strong>unlock automatically once this deal goes Under Contract</strong>.
+              </div>
+            )}
             <MilestonesTab tx={tx} token={localStorage.getItem("tp_token") || ""} onSummaryChange={onMilestoneSummary} coordinatorMode={isCoordinator} />
+          </div>
           )}
           {activeTab === "tasks" && (
           <div>
