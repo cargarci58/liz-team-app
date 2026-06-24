@@ -7044,6 +7044,10 @@ function SettingsMenu({ currentUser, onOpenContactBook, contactCount, onReports,
   if (onHelp) items.push({ icon: "❓", label: "Help & Guides", onClick: onHelp });
   if (onFeedback) items.push({ icon: "📣", label: "Send Feedback", onClick: onFeedback });
   if (onSupport) items.push({ icon: "✉️", label: "Contact Support", onClick: onSupport });
+  // Public marketing/pricing pages live on the website, not in the app — link them
+  // so they're reachable (testers couldn't find them). Relative path: Netlify serves
+  // the static file directly, on whatever domain the user is on.
+  items.push({ icon: "🌐", label: "Features & Pricing (web)", onClick: () => window.open("/features.html", "_blank", "noopener") });
   items.push({ icon: "📒", label: `Address Book${contactCount > 0 ? ` (${contactCount})` : ""}`, onClick: onOpenContactBook });
   items.push({ icon: "📊", label: "Reports", onClick: onReports });
   if (onGoalPlanner) items.push({ icon: "🎯", label: "Goal Planner", onClick: onGoalPlanner });
