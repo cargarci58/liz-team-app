@@ -4574,7 +4574,7 @@ function DealDoctorPanel({ tx }) {
   return (
     <div style={{ border: `1px solid ${dd ? t.bar : "#E5E7EB"}`, borderLeft: `5px solid ${dd ? t.bar : "#94A3B8"}`, background: dd ? t.bg : "#F8FAFC", borderRadius: 12, padding: 16, marginBottom: 20 }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
-        <div style={{ fontWeight: 800, fontSize: 15, color: "#1A2B4A" }}>🩺 Deal Doctor {dd && <span style={{ fontSize: 16 }}>{t.dot}</span>}</div>
+        <div style={{ fontWeight: 800, fontSize: 15, color: "#1A2B4A" }}>🩺 Transaction Check {dd && <span style={{ fontSize: 16 }}>{t.dot}</span>}</div>
         <button onClick={run} disabled={running}
           style={{ background: running ? "#9CA3AF" : "#1A2B4A", color: "#fff", border: "none", borderRadius: 8, padding: "7px 14px", fontSize: 13, fontWeight: 700, cursor: running ? "default" : "pointer", fontFamily: "inherit" }}>
           {running ? "Checking…" : dd ? "↻ Re-check" : snoozedFuture ? "↻ Check now" : "Run check-up"}
