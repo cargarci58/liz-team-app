@@ -1058,7 +1058,7 @@ function SMSPanel({ tx, onUpdate, currentUser, sendOnly = false }) {
   const [selectedParty, setSelectedParty] = useState(null);
   const [message, setMessage] = useState("");
   const [subject, setSubject] = useState("");
-  const [channel, setChannel] = useState("email");
+  const [channel, setChannel] = useState("");   // "" = not chosen yet (force a deliberate pick)
   const [sending, setSending] = useState(false);
   const [showReminderSMS, setShowReminderSMS] = useState(false);
   const [reminderTask, setReminderTask] = useState("");
@@ -1074,7 +1074,7 @@ function SMSPanel({ tx, onUpdate, currentUser, sendOnly = false }) {
   const [chatPosting, setChatPosting] = useState(false);
   const [gSubject, setGSubject] = useState("");
   const [gMessage, setGMessage] = useState("");
-  const [gChannel, setGChannel] = useState("email");
+  const [gChannel, setGChannel] = useState("");   // "" = not chosen yet (force a deliberate pick)
   const [gAttach, setGAttach] = useState([]); // [{ id, name }]
   const [gSending, setGSending] = useState(false);
   const [gResult, setGResult] = useState(null);
@@ -1138,15 +1138,21 @@ function SMSPanel({ tx, onUpdate, currentUser, sendOnly = false }) {
   };
 
   const ChannelPicker = ({ value, onChange }) => (
-    <div style={{ display: "flex", background: "#F3F4F6", borderRadius: 8, padding: 3, gap: 2, overflowX: "auto", WebkitOverflowScrolling: "touch", flexShrink: 0 }}>
-      {[["sms", "SMS"], ["email", "Email"], ["both", "SMS+Email"]].map(([v, label]) => (
-        <button key={v} onClick={() => onChange(v)} style={{ padding: "4px 8px", borderRadius: 6, border: "none", background: value === v ? "#0F2044" : "transparent", color: value === v ? "#fff" : "#6B7280", fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>{label}</button>
-      ))}
+    <div>
+      <div style={{ fontSize: 12, fontWeight: 800, color: "#0F2044", marginBottom: 5 }}>
+        How should this go out? {!value && <span style={{ color: "#C0392B" }}>👉 pick one</span>}
+      </div>
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+        {[["email", "📧 Email"], ["sms", "📱 Text"], ["both", "📧 + 📱 Both"]].map(([v, label]) => (
+          <button key={v} onClick={() => onChange(v)} style={{ padding: "10px 16px", borderRadius: 10, border: "2px solid " + (value === v ? "#0F2044" : "#D1D5DB"), background: value === v ? "#0F2044" : "#fff", color: value === v ? "#fff" : "#374151", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>{label}</button>
+        ))}
+      </div>
     </div>
   );
 
   const sendMessage = async () => {
     if (!selectedParty || !message.trim() || !serverOnline) return;
+    if (!channel) { alert("Pick how to send it first — 📧 Email or 📱 Text."); return; }
     setSending(true);
     try {
       const isSMS = channel === "sms" || channel === "both";
@@ -1253,6 +1259,7 @@ function SMSPanel({ tx, onUpdate, currentUser, sendOnly = false }) {
 
   const sendGroup = async () => {
     if (!gMessage.trim()) return;
+    if (!gChannel) { alert("Pick how to send it first — 📧 Email, 📱 Text, or Both."); return; }
     setGSending(true);
     try {
       const res = await fetch(`${SMS_SERVER}/transactions/${tx.id}/broadcast`, {
@@ -1477,8 +1484,7 @@ function SMSPanel({ tx, onUpdate, currentUser, sendOnly = false }) {
                 </div>
               </div>
 
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-                <div style={{ fontSize: 12, fontWeight: 700, color: "#6B7280", textTransform: "uppercase" }}>Send via</div>
+              <div style={{ marginBottom: 12 }}>
                 <ChannelPicker value={gChannel} onChange={setGChannel} />
               </div>
 
@@ -1533,7 +1539,7 @@ function SMSPanel({ tx, onUpdate, currentUser, sendOnly = false }) {
                 </div>
               )}
 
-              <button onClick={sendGroup} disabled={!gMessage.trim() || gSending || gReachable === 0} style={{ width: "100%", padding: "11px", borderRadius: 8, border: "none", background: "#15803D", color: "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer", fontFamily: "inherit", opacity: (!gMessage.trim() || gSending || gReachable === 0) ? 0.5 : 1 }}>{gSending ? "Sending..." : `Send to ${gReachable} recipient${gReachable === 1 ? "" : "s"}`}</button>
+              <button onClick={sendGroup} disabled={!gChannel || !gMessage.trim() || gSending || gReachable === 0} style={{ width: "100%", padding: "11px", borderRadius: 8, border: "none", background: "#15803D", color: "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer", fontFamily: "inherit", opacity: (!gChannel || !gMessage.trim() || gSending || gReachable === 0) ? 0.5 : 1 }}>{gSending ? "Sending..." : !gChannel ? "Pick Email or Text above" : `Send to ${gReachable} recipient${gReachable === 1 ? "" : "s"}`}</button>
             </div>
         </div>
       )}
@@ -1681,7 +1687,7 @@ function SMSPanel({ tx, onUpdate, currentUser, sendOnly = false }) {
                 </div>
                 <div style={{ padding: "12px 18px", borderTop: "1px solid #E5E7EB", display: "flex", gap: 10, alignItems: "flex-end", flexWrap: "wrap" }}>
                   <textarea value={message} onChange={e => setMessage(e.target.value)} onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey && channel === "sms") { e.preventDefault(); sendMessage(); } }} placeholder={channel === "sms" ? "Type message... (Shift+Enter for new line)" : "Write your email..."} rows={channel === "sms" ? 3 : 8} style={{ flex: "1 1 100%", padding: "12px 16px", borderRadius: 10, border: "1px solid #E5E7EB", fontSize: 15, lineHeight: 1.55, fontFamily: "inherit", resize: "vertical", minHeight: channel === "sms" ? 70 : 200, boxSizing: "border-box" }} />
-                  <button onClick={sendMessage} disabled={!message.trim() || sending} style={{ height: 44, minWidth: 70, borderRadius: 8, border: "none", background: "#15803D", color: "#fff", fontWeight: 600, fontSize: 14, cursor: "pointer", fontFamily: "inherit", opacity: (!message.trim() || sending) ? 0.5 : 1 }}>{sending ? "..." : "Send"}</button>
+                  <button onClick={sendMessage} disabled={!channel || !message.trim() || sending} title={!channel ? "Pick Email or Text first" : ""} style={{ height: 44, minWidth: 70, borderRadius: 8, border: "none", background: "#15803D", color: "#fff", fontWeight: 600, fontSize: 14, cursor: "pointer", fontFamily: "inherit", opacity: (!channel || !message.trim() || sending) ? 0.5 : 1 }}>{sending ? "..." : "Send"}</button>
                 </div>
                 <div style={{ margin: "0 18px 12px", padding: "10px 14px", borderTop: "2px solid #C0392B", background: "#F9FAFB", borderRadius: "0 0 8px 8px", display: "flex", alignItems: "center", gap: 10 }}>
                     <div style={{ fontSize: 10, color: "#999", textTransform: "uppercase", fontWeight: 700, marginRight: 4 }}>Signature:</div>
@@ -4831,25 +4837,31 @@ function CoordinatorAssignControl({ tx, currentUser }) {
 function CoordinatorSendUpdate({ tx }) {
   const recipients = (tx.parties || []).filter(p => p.email);
   const [picked, setPicked] = useState([]);
+  const [channel, setChannel] = useState("");   // "" = must pick (email / sms / both)
   const [subject, setSubject] = useState("");
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState("");
   const toggle = (email) => setPicked(p => p.includes(email) ? p.filter(e => e !== email) : [...p, email]);
+  const wantEmail = channel === "email" || channel === "both";
   const send = async () => {
+    if (!channel) { alert("Pick how to send it first — 📧 Email or 📱 Text."); return; }
     setBusy(true); setDone("");
     try {
       const r = await fetch(`${API}/tc/transaction/${tx.id}/message`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: "Bearer " + (localStorage.getItem("tp_token") || "") },
-        body: JSON.stringify({ recipientEmails: picked, subject, message }),
+        body: JSON.stringify({ recipientEmails: picked, subject, message, channel }),
       });
       const d = await r.json(); if (!r.ok) throw new Error(d.error || "Failed");
       setDone(`✅ Sent to ${d.sent} recipient${d.sent === 1 ? "" : "s"}.`);
-      setMessage(""); setSubject(""); setPicked([]);
+      setMessage(""); setSubject(""); setPicked([]); setChannel("");
     } catch (e) { alert("⚠️ " + e.message); }
     setBusy(false);
   };
+  const chanBtn = (v, label) => (
+    <button key={v} onClick={() => setChannel(v)} style={{ padding: "10px 16px", borderRadius: 10, border: "2px solid " + (channel === v ? "#0F2044" : "#D1D5DB"), background: channel === v ? "#0F2044" : "#fff", color: channel === v ? "#fff" : "#374151", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>{label}</button>
+  );
   return (
     <div style={{ background: "#fff", border: `1px solid ${COLORS.border}`, borderRadius: 12, padding: 16 }}>
       <div style={{ fontSize: 12, color: COLORS.muted, marginBottom: 10 }}>Goes out in the agent's name (or co-branded with you, if enabled).</div>
@@ -4863,9 +4875,14 @@ function CoordinatorSendUpdate({ tx }) {
           </label>
         ))}
       </div>
-      <input placeholder="Subject" value={subject} onChange={e => setSubject(e.target.value)} style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: `1px solid ${COLORS.border}`, fontSize: 14, fontFamily: "inherit", boxSizing: "border-box", marginBottom: 8 }} />
+      {/* Explicit channel choice — no silent default */}
+      <div style={{ fontSize: 12, fontWeight: 800, color: "#0F2044", marginBottom: 5 }}>How should this go out? {!channel && <span style={{ color: "#C0392B" }}>👉 pick one</span>}</div>
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
+        {chanBtn("email", "📧 Email")}{chanBtn("sms", "📱 Text")}{chanBtn("both", "📧 + 📱 Both")}
+      </div>
+      {wantEmail && <input placeholder="Subject (for the email)" value={subject} onChange={e => setSubject(e.target.value)} style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: `1px solid ${COLORS.border}`, fontSize: 14, fontFamily: "inherit", boxSizing: "border-box", marginBottom: 8 }} />}
       <textarea placeholder="Your message…" value={message} onChange={e => setMessage(e.target.value)} rows={5} style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: `1px solid ${COLORS.border}`, fontSize: 14, fontFamily: "inherit", boxSizing: "border-box", marginBottom: 10, resize: "vertical" }} />
-      <button onClick={send} disabled={busy || !message.trim() || picked.length === 0} style={{ background: busy || !message.trim() || picked.length === 0 ? "#ccc" : "#C0392B", color: "#fff", border: "none", borderRadius: 8, padding: "10px 16px", fontWeight: 700, fontSize: 14, cursor: "pointer", fontFamily: "inherit" }}>{busy ? "Sending…" : "Send update"}</button>
+      <button onClick={send} disabled={busy || !channel || !message.trim() || picked.length === 0} style={{ background: (busy || !channel || !message.trim() || picked.length === 0) ? "#ccc" : "#C0392B", color: "#fff", border: "none", borderRadius: 8, padding: "10px 16px", fontWeight: 700, fontSize: 14, cursor: "pointer", fontFamily: "inherit" }}>{busy ? "Sending…" : !channel ? "Pick Email or Text above" : channel === "sms" ? "Send text" : channel === "both" ? "Send text + email" : "Send email"}</button>
       {done && <div style={{ color: "#1E8449", fontSize: 14, marginTop: 10 }}>{done}</div>}
     </div>
   );
@@ -5808,7 +5825,7 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
               {[
                 ["chat", "💬 Group chat", chatUnread > 0 ? chatUnread : 0],
                 ["replies", "📥 Client replies", unreadReplyCount > 0 ? unreadReplyCount : 0],
-                ["send", "📤 Send a message", 0],
+                ["send", "📤 Send a text or email", 0],
               ].map(([id, label, n]) => (
                 <button key={id} onClick={() => setMsgSection(id)}
                   style={{ padding: "9px 14px", borderRadius: 10, border: "none", cursor: "pointer", fontFamily: "inherit",
@@ -7664,6 +7681,7 @@ function Dashboard({ transactions, coordinatorMode = false, unreadCounts = {}, o
           </div>
           <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", justifyContent: "flex-end", flex: "1 1 auto", minWidth: 0 }}>
             {!coordinatorMode && <button data-tour="new" onClick={onNew} style={{ background: "#C0392B", border: "none", color: "#fff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>+ New Transaction</button>}
+            {!coordinatorMode && onOpenContractIntake && <button data-tour="contract-intake" onClick={() => onOpenContractIntake()} title="Upload an executed contract — AI reads it and builds the deal for you to approve" style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "#fff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>🤖 Read a Contract</button>}
             <button data-tour="contacts" onClick={() => onOpenContacts && onOpenContacts()} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "#fff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>📇 Contacts</button>
             {coordinatorMode && <button onClick={() => setShowTcTeam(true)} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "#fff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>👥 Team</button>}
             {coordinatorMode && <button onClick={() => setShowTcServices(true)} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "#fff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>💼 My Services</button>}
