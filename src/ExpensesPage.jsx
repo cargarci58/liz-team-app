@@ -595,17 +595,28 @@ function AddExpenseModal({ categories, expense, allExpenses, onClose, onSaved })
     setOcrPreview(null);
     try {
       // iPhone photos default to HEIC, which the AI vision model can't read.
-      // Convert HEIC/HEIF to JPEG in the browser first (works where the browser
-      // can decode HEIC — i.e. iPhone Safari, the common case). If it can't be
-      // decoded, give a clear, actionable message instead of a cryptic failure.
+      // Convert HEIC/HEIF to JPEG first. Browsers that decode HEIC natively
+      // (iPhone Safari) use the fast canvas path; everywhere else (desktop
+      // Chrome/Firefox/Edge) we lazy-load the heic2any (libheif WASM) decoder so
+      // raw iPhone files "just work" too. Only loads when a HEIC is detected.
       const isHeic = /heic|heif/i.test(file.type || '') || /\.(heic|heif)$/i.test(file.name || '');
       if (isHeic) {
         setOcrStatus('Converting iPhone photo…');
+        let converted = null;
         try {
-          file = await imageFileToJpeg(file);
+          converted = await imageFileToJpeg(file); // native decode (Safari) — fast
         } catch {
-          throw new Error("This looks like an iPhone HEIC photo, which can't be read here. Take a screenshot of the receipt and upload that, or set your iPhone Camera to 'Most Compatible' (Settings → Camera → Formats).");
+          try {
+            const heic2any = (await import('heic2any')).default;
+            const blob = await heic2any({ blob: file, toType: 'image/jpeg', quality: 0.9 });
+            const out = Array.isArray(blob) ? blob[0] : blob;
+            const base = (file.name || 'receipt').replace(/\.[^.]+$/, '');
+            converted = new File([out], base + '.jpg', { type: 'image/jpeg' });
+          } catch {
+            throw new Error("Couldn't read that iPhone HEIC photo. Take a screenshot of the receipt and upload that, or set your iPhone Camera to 'Most Compatible' (Settings → Camera → Formats).");
+          }
         }
+        file = converted;
       }
       // Server-proxied upload (browser→R2 presigned PUT fails CORS).
       setOcrStatus('Uploading receipt...');
