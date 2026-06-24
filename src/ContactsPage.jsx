@@ -2006,6 +2006,9 @@ export default function ContactsPage({ token, onBack }) {
               </>
             )}
           </div>
+          {/* Surfaced as its own button — it was buried in the Tools menu and testers
+              couldn't find it. (round-2: contacts CSV import) */}
+          <button onClick={() => setShowImport(true)} style={btnStyle("#e5e7eb", "#374151")}>📥 Import CSV</button>
           <button onClick={() => setShowAdd(true)} style={btnStyle("#0c4a6e", "white")}>+ Add Contact</button>
         </div>
       </div>
