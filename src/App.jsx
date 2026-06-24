@@ -4028,7 +4028,7 @@ function ListingOffers({ txId, txStatus, refreshKey, onReview, onReceiveOffer })
   if (offers.length === 0) {
     return (
       <div style={{ background: "#F9FAFB", border: "1px dashed " + COLORS.border, borderRadius: 12, padding: 16, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-        <span style={{ fontSize: 13, color: COLORS.muted }}>No pending offers on this listing right now.</span>
+        <span style={{ fontSize: 13, color: COLORS.muted }}>No pending offers on this listing yet. When a buyer's agent sends one, tap <strong>Receive Offer</strong> to log it here. <em>(You write offers on a buyer deal — not on your own listing.)</em></span>
         <button onClick={onReceiveOffer} style={{ background: "#1E8449", border: "none", color: "#fff", borderRadius: 6, padding: "7px 14px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>📥 Receive Offer</button>
       </div>
     );

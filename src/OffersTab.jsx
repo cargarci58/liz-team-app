@@ -123,7 +123,7 @@ export default function OffersTab({ tx, token }) {
         <div>
           <div style={{ fontSize: 22, fontWeight: 800 }}>📝 Create Offer</div>
           <div style={{ fontSize: 13, color: "#6b7280", marginTop: 2 }}>
-            Build buyer offers (FAR/BAR AS-IS), assemble the packet, send to the listing agent.
+            The offer wizard — write/build your buyer's offer (FAR/BAR AS-IS), assemble the packet, and send it to the listing agent.
           </div>
         </div>
         <button onClick={createOffer} disabled={creating}
