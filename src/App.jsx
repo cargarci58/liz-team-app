@@ -8895,12 +8895,16 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
           chat/message is never missed while the user is working elsewhere. Clears
           itself once the messages are read. */}
       {(() => {
-        // ANY message — in-app chat OR an inbound client reply — fires the alert.
-        // Only deals in the loaded list, so it always opens cleanly.
-        const known = new Set((transactions || []).map(t => t.id));
+        // ANY message — in-app chat OR an inbound client reply — fires the alert,
+        // for the agent AND the TC alike. We do NOT filter to the currently-loaded
+        // deal list: the server already scopes these counts to deals the user can
+        // access, and filtering here silently swallowed real alerts when a reply
+        // landed on a deal not in the in-memory snapshot (just-assigned, closed,
+        // or loaded after the count). Clicking resolves cleanly because
+        // openTransactionMilestones refreshes-on-miss.
         const merged = {};
-        for (const [id, n] of Object.entries(unreadCounts || {})) if (n > 0 && known.has(id)) merged[id] = (merged[id] || 0) + n;
-        for (const [id, n] of Object.entries(inboundCounts || {})) if (n > 0 && known.has(id)) merged[id] = (merged[id] || 0) + n;
+        for (const [id, n] of Object.entries(unreadCounts || {})) if (n > 0) merged[id] = (merged[id] || 0) + n;
+        for (const [id, n] of Object.entries(inboundCounts || {})) if (n > 0) merged[id] = (merged[id] || 0) + n;
         const entries = Object.entries(merged);
         const total = entries.reduce((a, [, n]) => a + n, 0);
         if (total === 0) return null;

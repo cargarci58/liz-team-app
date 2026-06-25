@@ -4,13 +4,15 @@
 export default function UnreadMessagesInbox({ unreadCounts, inboundCounts = {}, transactions, onOpen }) {
   const addr = {};
   (transactions || []).forEach(t => { addr[t.id] = t.address; });
-  // ANY message — in-app chat OR an inbound client reply. Only deals in the loaded
-  // list, so every row resolves to a real address and opens cleanly.
+  // ANY message — in-app chat OR an inbound client reply. Don't drop a deal just
+  // because it isn't in the loaded snapshot: the count is already access-scoped
+  // server-side, and opening refreshes-on-miss. Fall back to a generic label so a
+  // real unread is never silently hidden.
   const merged = {};
-  for (const [id, n] of Object.entries(unreadCounts || {})) if (n > 0 && addr[id]) merged[id] = (merged[id] || 0) + n;
-  for (const [id, n] of Object.entries(inboundCounts || {})) if (n > 0 && addr[id]) merged[id] = (merged[id] || 0) + n;
+  for (const [id, n] of Object.entries(unreadCounts || {})) if (n > 0) merged[id] = (merged[id] || 0) + n;
+  for (const [id, n] of Object.entries(inboundCounts || {})) if (n > 0) merged[id] = (merged[id] || 0) + n;
   const inbox = Object.entries(merged)
-    .map(([txId, n]) => ({ txId, n, address: addr[txId], kind: (inboundCounts || {})[txId] > 0 ? "replies" : "chat" }))
+    .map(([txId, n]) => ({ txId, n, address: addr[txId] || "Open transaction", kind: (inboundCounts || {})[txId] > 0 ? "replies" : "chat" }))
     .sort((a, b) => b.n - a.n);
   if (inbox.length === 0) return null;
   const total = inbox.reduce((s, x) => s + x.n, 0);
