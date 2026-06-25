@@ -4272,6 +4272,11 @@ function InboundRepliesPanel({ tx, coordinatorMode = false }) {
   const [replyText, setReplyText] = useState("");
   const [sending, setSending] = useState(false);
   const [sentNote, setSentNote] = useState({});   // msgId -> "✅ Sent"
+  const [attach, setAttach] = useState([]);        // [{id,name}] to send with the reply
+  const [uploading, setUploading] = useState(false);
+  const [docPicker, setDocPicker] = useState(false);
+  const [docList, setDocList] = useState(null);    // null = not loaded yet
+  const replyFileRef = useRef(null);
   const tok = localStorage.getItem("tp_token") || "";
   const API = "https://liz-team-server-api-production.up.railway.app";
   useEffect(() => {
@@ -4292,6 +4297,29 @@ function InboundRepliesPanel({ tx, coordinatorMode = false }) {
     } catch { alert("Could not open that attachment."); }
   };
 
+  // Attach an existing deal document.
+  const openDocPicker = () => {
+    setDocPicker(true);
+    if (docList === null) {
+      fetch(`${API}/documents/${tx.id}`, { headers: { Authorization: "Bearer " + tok } })
+        .then(r => r.json()).then(d => setDocList(d.documents || [])).catch(() => setDocList([]));
+    }
+  };
+  const toggleAttach = (doc) => setAttach(prev => prev.find(a => a.id === doc.id) ? prev.filter(a => a.id !== doc.id) : [...prev, { id: doc.id, name: doc.name }]);
+  // Upload from the computer → saved to the deal's Documents (server-proxied), then attached.
+  const uploadFromComputer = async (file) => {
+    if (!file) return;
+    setUploading(true);
+    try {
+      const base64 = await new Promise((resolve, reject) => { const fr = new FileReader(); fr.onload = () => resolve(fr.result.split(",")[1]); fr.onerror = reject; fr.readAsDataURL(file); });
+      const res = await fetch(`${API}/documents/upload`, { method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + tok }, body: JSON.stringify({ transactionId: tx.id, fileName: file.name, fileType: file.type, category: "Email Attachments", base64 }) });
+      const d = await res.json();
+      if (d.success && d.docId) { setAttach(prev => [...prev, { id: d.docId, name: file.name }]); setDocList(null); }
+      else alert("Upload failed: " + (d.error || "unknown error"));
+    } catch (e) { alert("Upload error: " + e.message); }
+    setUploading(false);
+  };
+
   // Reply by email to the party who wrote in. Reuses the tested /broadcast path,
   // which sends in the agent's voice and threads the reply so THEIR next reply
   // comes back here too.
@@ -4305,17 +4333,18 @@ function InboundRepliesPanel({ tx, coordinatorMode = false }) {
       const url = coordinatorMode
         ? `${API}/tc/transaction/${tx.id}/message`
         : `${API}/transactions/${tx.id}/broadcast`;
+      const attachDocIds = attach.map(a => a.id);
       const body = coordinatorMode
-        ? { channel: "email", subject: "Re: " + (m.subject || "your message"), message: replyText.trim(), recipientEmails: [m.from_email] }
-        : { channel: "email", subject: "Re: " + (m.subject || "your message"), message: replyText.trim(), recipients: [{ name: m.from_name || m.from_email, email: m.from_email, role: m.party_role || "" }] };
+        ? { channel: "email", subject: "Re: " + (m.subject || "your message"), message: replyText.trim(), recipientEmails: [m.from_email], attachDocIds }
+        : { channel: "email", subject: "Re: " + (m.subject || "your message"), message: replyText.trim(), recipients: [{ name: m.from_name || m.from_email, email: m.from_email, role: m.party_role || "" }], attachDocIds };
       const r = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: "Bearer " + tok },
         body: JSON.stringify(body),
       });
       const d = await r.json(); if (!r.ok) throw new Error(d.error || "Failed to send");
-      setSentNote(prev => ({ ...prev, [m.id]: "✅ Reply sent" }));
-      setReplyTo(null); setReplyText("");
+      setSentNote(prev => ({ ...prev, [m.id]: "✅ Reply sent" + (attach.length ? ` with ${attach.length} attachment${attach.length === 1 ? "" : "s"}` : "") }));
+      setReplyTo(null); setReplyText(""); setAttach([]);
     } catch (e) { alert("⚠️ " + e.message); }
     setSending(false);
   };
@@ -4387,12 +4416,53 @@ function InboundRepliesPanel({ tx, coordinatorMode = false }) {
                   </div>
                   <textarea value={replyText} onChange={e => setReplyText(e.target.value)} rows={4} autoFocus placeholder={`Write your reply to ${m.from_name || "them"}…`}
                     style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: `1px solid ${COLORS.border}`, fontSize: 14, fontFamily: "inherit", boxSizing: "border-box", resize: "vertical", marginBottom: 8 }} />
+
+                  {/* Attach: from the deal's Documents, or upload from this computer */}
+                  <input ref={replyFileRef} type="file" style={{ display: "none" }} onChange={e => { const f = e.target.files?.[0]; if (f) uploadFromComputer(f); e.target.value = ""; }} />
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: attach.length ? 8 : 10 }}>
+                    <button onClick={openDocPicker} style={{ fontSize: 12, padding: "6px 12px", borderRadius: 8, border: `1px solid ${COLORS.navy}`, background: "#fff", color: COLORS.navy, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>📎 Attach from Documents</button>
+                    <button onClick={() => replyFileRef.current?.click()} disabled={uploading} style={{ fontSize: 12, padding: "6px 12px", borderRadius: 8, border: `1px solid ${COLORS.navy}`, background: "#fff", color: COLORS.navy, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", opacity: uploading ? 0.5 : 1 }}>{uploading ? "Uploading…" : "💻 Upload from computer"}</button>
+                  </div>
+                  {attach.length > 0 && (
+                    <div style={{ marginBottom: 10 }}>
+                      {attach.map(a => (
+                        <span key={a.id} style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "#F0F4FF", border: "1px solid #C7D2FE", borderRadius: 6, padding: "4px 8px", fontSize: 12, color: COLORS.navy, marginRight: 6, marginBottom: 6 }}>
+                          📄 {a.name}
+                          <button onClick={() => setAttach(prev => prev.filter(x => x.id !== a.id))} style={{ background: "none", border: "none", cursor: "pointer", color: COLORS.gray, fontSize: 14, lineHeight: 1 }}>×</button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
+                  {docPicker && (
+                    <div onClick={() => setDocPicker(false)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 1000, display: "flex", alignItems: "flex-start", justifyContent: "center", padding: 16, overflowY: "auto" }}>
+                      <div onClick={e => e.stopPropagation()} style={{ background: "#fff", borderRadius: 12, maxWidth: 520, width: "100%", margin: "auto", padding: 20, boxShadow: "0 10px 40px rgba(0,0,0,0.25)" }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                          <div style={{ fontWeight: 800, fontSize: 16, color: COLORS.navy }}>📎 Attach from Documents</div>
+                          <button onClick={() => setDocPicker(false)} style={{ background: "none", border: "none", fontSize: 22, cursor: "pointer", color: COLORS.gray }}>×</button>
+                        </div>
+                        {docList === null ? <div style={{ padding: 20, textAlign: "center", color: COLORS.gray }}>Loading documents…</div>
+                         : docList.length === 0 ? <div style={{ padding: 20, textAlign: "center", color: COLORS.gray }}>No documents on this deal yet. Use “Upload from computer” instead.</div>
+                         : docList.map(doc => {
+                          const on = !!attach.find(a => a.id === doc.id);
+                          return (
+                            <label key={doc.id} style={{ display: "flex", gap: 10, alignItems: "center", padding: "8px 6px", borderBottom: `1px solid ${COLORS.border}`, cursor: "pointer", fontSize: 14 }}>
+                              <input type="checkbox" checked={on} onChange={() => toggleAttach(doc)} />
+                              <span>📄 {doc.name}{doc.category ? <span style={{ color: COLORS.gray }}> · {doc.category}</span> : null}</span>
+                            </label>
+                          );
+                        })}
+                        <button onClick={() => setDocPicker(false)} style={{ marginTop: 14, width: "100%", background: COLORS.navy, color: "#fff", border: "none", borderRadius: 8, padding: "10px", fontWeight: 700, fontSize: 14, cursor: "pointer", fontFamily: "inherit" }}>Done</button>
+                      </div>
+                    </div>
+                  )}
+
                   <div style={{ display: "flex", gap: 8 }}>
                     <button onClick={() => sendReply(m)} disabled={sending || !replyText.trim() || !m.from_email}
                       style={{ background: (sending || !replyText.trim() || !m.from_email) ? "#ccc" : "#15803D", color: "#fff", border: "none", borderRadius: 8, padding: "9px 16px", fontWeight: 700, fontSize: 14, cursor: "pointer", fontFamily: "inherit" }}>
                       {sending ? "Sending…" : "📧 Send reply"}
                     </button>
-                    <button onClick={() => { setReplyTo(null); setReplyText(""); }}
+                    <button onClick={() => { setReplyTo(null); setReplyText(""); setAttach([]); }}
                       style={{ background: "#fff", color: COLORS.gray, border: `1px solid ${COLORS.border}`, borderRadius: 8, padding: "9px 16px", fontWeight: 600, fontSize: 14, cursor: "pointer", fontFamily: "inherit" }}>
                       Cancel
                     </button>
