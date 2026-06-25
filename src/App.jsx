@@ -4396,13 +4396,18 @@ function InboundRepliesPanel({ tx, coordinatorMode = false, onInboundRead }) {
     <div style={{ background: "#fff", border: `1px solid ${COLORS.border}`, borderRadius: 12, padding: 28, textAlign: "center", color: COLORS.gray }}>
       <div style={{ fontSize: 34, marginBottom: 8 }}>💬</div>
       <div style={{ fontWeight: 700, color: COLORS.navy, marginBottom: 4 }}>No replies yet</div>
-      <div style={{ fontSize: 13 }}>When a party replies to one of your automated emails, their full message and any attachments show up here.</div>
+      <div style={{ fontSize: 13 }}>When a party replies to one of your automated emails or texts, their message shows up here.</div>
     </div>
   );
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
       {messages.map(m => {
+        // Treat as SMS if channel is 'sms', OR if only a phone (no email) is present —
+        // handles records stored before the channel column was reliably set.
+        const isSmsMsg = m.channel === "sms" || (!!m.from_phone && !m.from_email);
+        const mWithChannel = { ...m, channel: isSmsMsg ? "sms" : "email" };
+        m = mWithChannel;
         const atts = Array.isArray(m.attachments) ? m.attachments : [];
         const when = m.created_at ? new Date(m.created_at).toLocaleString() : "";
         return (
