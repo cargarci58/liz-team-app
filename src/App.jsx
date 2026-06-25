@@ -4265,7 +4265,7 @@ function MarketingLogPanel({ tx }) {
 // Shows the full text + downloadable attachments of every reply a party has sent
 // back to one of this deal's automated emails (the inbound_emails table). This is
 // where the Win-the-Day "💬 …replied" card lands.
-function InboundRepliesPanel({ tx, coordinatorMode = false }) {
+function InboundRepliesPanel({ tx, coordinatorMode = false, onInboundRead }) {
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [replyTo, setReplyTo] = useState(null);   // message id being replied to
@@ -4283,7 +4283,13 @@ function InboundRepliesPanel({ tx, coordinatorMode = false }) {
     let alive = true;
     fetch(`${API}/transactions/${tx.id}/inbound-emails`, { headers: { Authorization: "Bearer " + tok } })
       .then(r => r.json())
-      .then(d => { if (alive) { setMessages(Array.isArray(d.messages) ? d.messages : []); setLoading(false); } })
+      .then(d => {
+        if (!alive) return;
+        setMessages(Array.isArray(d.messages) ? d.messages : []);
+        setLoading(false);
+        // The server marks these read on fetch; clear the global 🔔 now too.
+        if (typeof onInboundRead === "function") onInboundRead(tx.id);
+      })
       .catch(() => { if (alive) setLoading(false); });
     return () => { alive = false; };
   }, [tx.id]);
@@ -5972,7 +5978,7 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
 
         {activeTab === "sms" && (isCoordinator ? <CoordinatorSendUpdate tx={tx} /> : <SMSPanel tx={tx} onUpdate={onUpdate} />)}
 
-        {activeTab === "replies" && <InboundRepliesPanel tx={tx} coordinatorMode={coordinatorMode} />}
+        {activeTab === "replies" && <InboundRepliesPanel tx={tx} coordinatorMode={coordinatorMode} onInboundRead={onInboundRead} />}
 
         {/* MESSAGES HUB — one tab, three clearly-separated channels. Same for the
             agent and the coordinator (the only difference is the "Send" tool). */}
@@ -5998,7 +6004,7 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
               {msgSection === "send" && (isCoordinator ? "Send the client an email/text update in the agent's voice." : "Send an email or text to a party (or the whole group).")}
             </div>
             {msgSection === "chat" && <div style={{ padding: 12, height: 500 }}><TransactionChat transactionId={tx.id} user={null} parties={tx.parties || []} style={{ height: "100%" }} unreadCount={chatUnread} onUnreadChange={() => {}} /></div>}
-            {msgSection === "replies" && <InboundRepliesPanel tx={tx} coordinatorMode={coordinatorMode} />}
+            {msgSection === "replies" && <InboundRepliesPanel tx={tx} coordinatorMode={coordinatorMode} onInboundRead={onInboundRead} />}
             {msgSection === "send" && (isCoordinator ? <CoordinatorSendUpdate tx={tx} /> : <SMSPanel tx={tx} onUpdate={onUpdate} sendOnly />)}
           </div>
         )}
