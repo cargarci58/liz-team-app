@@ -4326,33 +4326,69 @@ function InboundRepliesPanel({ tx, coordinatorMode = false, onInboundRead }) {
     setUploading(false);
   };
 
-  // Reply by email to the party who wrote in. Reuses the tested /broadcast path,
-  // which sends in the agent's voice and threads the reply so THEIR next reply
-  // comes back here too.
+  // Reply to whoever wrote in, on the SAME channel they used (text → text,
+  // email → email). Reuses the tested /broadcast path (agent) or the /tc message
+  // endpoint (cross-tenant TC); both thread the reply so their next reply comes
+  // back here too.
   const sendReply = async (m) => {
     if (!replyText.trim()) return;
-    if (!m.from_email) { alert("This reply has no email address to respond to."); return; }
+    const isSms = m.channel === "sms";
+    const toPhone = m.from_phone;
+    const toEmail = m.from_email;
+    if (isSms ? !toPhone : !toEmail) { alert(isSms ? "No phone number to text back." : "No email address to respond to."); return; }
     setSending(true);
     try {
-      // Agent uses the owner-scoped /broadcast; a cross-tenant TC can't, so route
-      // its reply through the money-free /tc message endpoint instead.
-      const url = coordinatorMode
-        ? `${API}/tc/transaction/${tx.id}/message`
-        : `${API}/transactions/${tx.id}/broadcast`;
       const attachDocIds = attach.map(a => a.id);
-      const body = coordinatorMode
-        ? { channel: "email", subject: "Re: " + (m.subject || "your message"), message: replyText.trim(), recipientEmails: [m.from_email], attachDocIds }
-        : { channel: "email", subject: "Re: " + (m.subject || "your message"), message: replyText.trim(), recipients: [{ name: m.from_name || m.from_email, email: m.from_email, role: m.party_role || "" }], attachDocIds };
+      const subject = "Re: " + (m.subject || "your message");
+      let url, body;
+      if (coordinatorMode) {
+        url = `${API}/tc/transaction/${tx.id}/message`;
+        body = isSms
+          ? { channel: "sms", subject, message: replyText.trim(), recipientPhones: [toPhone], attachDocIds }
+          : { channel: "email", subject, message: replyText.trim(), recipientEmails: [toEmail], attachDocIds };
+      } else {
+        url = `${API}/transactions/${tx.id}/broadcast`;
+        body = {
+          channel: isSms ? "sms" : "email", subject, message: replyText.trim(), expectsReply: true, attachDocIds,
+          recipients: [isSms
+            ? { name: m.from_name || toPhone, phone: toPhone, role: m.party_role || "" }
+            : { name: m.from_name || toEmail, email: toEmail, role: m.party_role || "" }],
+        };
+      }
       const r = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: "Bearer " + tok },
         body: JSON.stringify(body),
       });
       const d = await r.json(); if (!r.ok) throw new Error(d.error || "Failed to send");
-      setSentNote(prev => ({ ...prev, [m.id]: "✅ Reply sent" + (attach.length ? ` with ${attach.length} attachment${attach.length === 1 ? "" : "s"}` : "") }));
+      setSentNote(prev => ({ ...prev, [m.id]: (isSms ? "✅ Text sent" : "✅ Reply sent") + (attach.length ? ` with ${attach.length} attachment${attach.length === 1 ? "" : "s"}` : "") }));
       setReplyTo(null); setReplyText(""); setAttach([]);
     } catch (e) { alert("⚠️ " + e.message); }
     setSending(false);
+  };
+
+  // Re-assign a (mis-routed) reply to the correct deal — for shared-number texts
+  // where the sender is on 2+ deals. Loads the deal list on demand.
+  const [reassignFor, setReassignFor] = useState(null);
+  const [dealList, setDealList] = useState(null);
+  const openReassign = (msgId) => {
+    setReassignFor(msgId);
+    if (dealList === null) {
+      fetch(`${API}/transactions`, { headers: { Authorization: "Bearer " + tok } })
+        .then(r => r.json()).then(d => setDealList((d.transactions || d || []).map(t => ({ id: t.id, address: t.address })))).catch(() => setDealList([]));
+    }
+  };
+  const reassign = async (msgId, transactionId) => {
+    try {
+      const r = await fetch(`${API}/inbound-emails/${msgId}/reassign`, {
+        method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + tok },
+        body: JSON.stringify({ transactionId }),
+      });
+      const d = await r.json(); if (!r.ok) throw new Error(d.error || "Failed");
+      setReassignFor(null);
+      setMessages(prev => prev.filter(x => x.id !== msgId));  // moved off this deal
+      alert("Moved to the selected deal.");
+    } catch (e) { alert("⚠️ " + e.message); }
   };
 
   if (loading) return <div style={{ padding: 24, color: COLORS.gray }}>Loading replies…</div>;
@@ -4374,12 +4410,31 @@ function InboundRepliesPanel({ tx, coordinatorMode = false, onInboundRead }) {
             <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 6, marginBottom: 8 }}>
               <div>
                 {!m.read_at && m.status === "received" && <span style={{ marginRight: 8, fontSize: 11, fontWeight: 800, background: "#C0392B", color: "#fff", padding: "2px 8px", borderRadius: 20 }}>● NEW</span>}
-                <span style={{ fontWeight: 700, color: COLORS.navy }}>{m.from_name || m.from_email || "A party"}</span>
+                <span style={{ marginRight: 8, fontSize: 11, fontWeight: 700, background: m.channel === "sms" ? "#E0F2FE" : "#F3F4F6", color: m.channel === "sms" ? "#0369A1" : "#374151", padding: "2px 8px", borderRadius: 6 }}>{m.channel === "sms" ? "📱 Text" : "📧 Email"}</span>
+                <span style={{ fontWeight: 700, color: COLORS.navy }}>{m.from_name || m.from_phone || m.from_email || "A party"}</span>
                 {m.party_role && <span style={{ marginLeft: 8, fontSize: 12, background: COLORS.bg, color: COLORS.gray, padding: "2px 8px", borderRadius: 6 }}>{m.party_role}</span>}
               </div>
               <span style={{ fontSize: 12, color: COLORS.gray }}>{when}</span>
             </div>
-            {m.subject && <div style={{ fontWeight: 600, color: COLORS.navy, marginBottom: 6 }}>{m.subject}</div>}
+
+            {/* Shared-number guess flag: this person is on 2+ deals — let the agent move it */}
+            {m.ambiguous && (
+              <div style={{ background: "#FFF7ED", border: "1px solid #FED7AA", borderRadius: 8, padding: "8px 10px", marginBottom: 8, fontSize: 13, color: "#9A3412" }}>
+                ⚠️ This person is on more than one of your deals — we filed this text here as our best guess.{" "}
+                <button onClick={() => openReassign(m.id)} style={{ background: "none", border: "none", color: COLORS.navy, textDecoration: "underline", cursor: "pointer", fontWeight: 700, fontSize: 13, padding: 0 }}>Move to another deal</button>
+                {reassignFor === m.id && (
+                  <div style={{ marginTop: 8 }}>
+                    {dealList === null ? <span style={{ color: COLORS.gray }}>Loading your deals…</span>
+                     : <select defaultValue="" onChange={e => e.target.value && reassign(m.id, e.target.value)} style={{ padding: "8px 10px", borderRadius: 8, border: `1px solid ${COLORS.border}`, fontSize: 14, fontFamily: "inherit", maxWidth: "100%" }}>
+                         <option value="" disabled>Pick the right deal…</option>
+                         {dealList.filter(d => d.id !== tx.id).map(d => <option key={d.id} value={d.id}>{d.address}</option>)}
+                       </select>}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {m.subject && m.channel !== "sms" && <div style={{ fontWeight: 600, color: COLORS.navy, marginBottom: 6 }}>{m.subject}</div>}
             {(m.body_text || m.snippet)
               ? <div style={{ whiteSpace: "pre-wrap", color: "#333", fontSize: 14, lineHeight: 1.5 }}>{m.body_text || m.snippet}</div>
               : (
@@ -4418,7 +4473,9 @@ function InboundRepliesPanel({ tx, coordinatorMode = false, onInboundRead }) {
               {replyTo === m.id ? (
                 <div>
                   <div style={{ fontSize: 12, color: COLORS.gray, marginBottom: 6 }}>
-                    Replying by email to <b style={{ color: COLORS.navy }}>{m.from_name || m.from_email}</b> {m.from_email ? `· ${m.from_email}` : ""}
+                    {m.channel === "sms"
+                      ? <>Replying by <b style={{ color: "#0369A1" }}>📱 text</b> to <b style={{ color: COLORS.navy }}>{m.from_name || m.from_phone}</b> {m.from_phone ? `· ${m.from_phone}` : ""}</>
+                      : <>Replying by <b style={{ color: COLORS.navy }}>📧 email</b> to <b style={{ color: COLORS.navy }}>{m.from_name || m.from_email}</b> {m.from_email ? `· ${m.from_email}` : ""}</>}
                   </div>
                   <textarea value={replyText} onChange={e => setReplyText(e.target.value)} rows={4} autoFocus placeholder={`Write your reply to ${m.from_name || "them"}…`}
                     style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: `1px solid ${COLORS.border}`, fontSize: 14, fontFamily: "inherit", boxSizing: "border-box", resize: "vertical", marginBottom: 8 }} />
@@ -4464,21 +4521,22 @@ function InboundRepliesPanel({ tx, coordinatorMode = false, onInboundRead }) {
                   )}
 
                   <div style={{ display: "flex", gap: 8 }}>
-                    <button onClick={() => sendReply(m)} disabled={sending || !replyText.trim() || !m.from_email}
-                      style={{ background: (sending || !replyText.trim() || !m.from_email) ? "#ccc" : "#15803D", color: "#fff", border: "none", borderRadius: 8, padding: "9px 16px", fontWeight: 700, fontSize: 14, cursor: "pointer", fontFamily: "inherit" }}>
-                      {sending ? "Sending…" : "📧 Send reply"}
-                    </button>
+                    {(() => { const canReply = m.channel === "sms" ? !!m.from_phone : !!m.from_email; return (
+                    <button onClick={() => sendReply(m)} disabled={sending || !replyText.trim() || !canReply}
+                      style={{ background: (sending || !replyText.trim() || !canReply) ? "#ccc" : "#15803D", color: "#fff", border: "none", borderRadius: 8, padding: "9px 16px", fontWeight: 700, fontSize: 14, cursor: "pointer", fontFamily: "inherit" }}>
+                      {sending ? "Sending…" : m.channel === "sms" ? "📱 Send text" : "📧 Send reply"}
+                    </button> ); })()}
                     <button onClick={() => { setReplyTo(null); setReplyText(""); setAttach([]); }}
                       style={{ background: "#fff", color: COLORS.gray, border: `1px solid ${COLORS.border}`, borderRadius: 8, padding: "9px 16px", fontWeight: 600, fontSize: 14, cursor: "pointer", fontFamily: "inherit" }}>
                       Cancel
                     </button>
                   </div>
-                  {!m.from_email && <div style={{ fontSize: 12, color: "#C0392B", marginTop: 6 }}>No email address on this reply to respond to.</div>}
+                  {(m.channel === "sms" ? !m.from_phone : !m.from_email) && <div style={{ fontSize: 12, color: "#C0392B", marginTop: 6 }}>No {m.channel === "sms" ? "phone number" : "email address"} on this reply to respond to.</div>}
                 </div>
               ) : (
                 <button onClick={() => { setReplyTo(m.id); setReplyText(""); }}
                   style={{ background: "#fff", color: COLORS.navy, border: `1px solid ${COLORS.navy}`, borderRadius: 8, padding: "8px 16px", fontWeight: 700, fontSize: 14, cursor: "pointer", fontFamily: "inherit" }}>
-                  ↩️ Reply by email
+                  {m.channel === "sms" ? "↩️ Reply by text" : "↩️ Reply by email"}
                 </button>
               )}
             </div>
