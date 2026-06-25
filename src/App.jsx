@@ -4265,9 +4265,13 @@ function MarketingLogPanel({ tx }) {
 // Shows the full text + downloadable attachments of every reply a party has sent
 // back to one of this deal's automated emails (the inbound_emails table). This is
 // where the Win-the-Day "💬 …replied" card lands.
-function InboundRepliesPanel({ tx }) {
+function InboundRepliesPanel({ tx, coordinatorMode = false }) {
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [replyTo, setReplyTo] = useState(null);   // message id being replied to
+  const [replyText, setReplyText] = useState("");
+  const [sending, setSending] = useState(false);
+  const [sentNote, setSentNote] = useState({});   // msgId -> "✅ Sent"
   const tok = localStorage.getItem("tp_token") || "";
   const API = "https://liz-team-server-api-production.up.railway.app";
   useEffect(() => {
@@ -4286,6 +4290,34 @@ function InboundRepliesPanel({ tx }) {
       if (d.url) window.open(d.url, "_blank");
       else alert("Could not open that attachment.");
     } catch { alert("Could not open that attachment."); }
+  };
+
+  // Reply by email to the party who wrote in. Reuses the tested /broadcast path,
+  // which sends in the agent's voice and threads the reply so THEIR next reply
+  // comes back here too.
+  const sendReply = async (m) => {
+    if (!replyText.trim()) return;
+    if (!m.from_email) { alert("This reply has no email address to respond to."); return; }
+    setSending(true);
+    try {
+      // Agent uses the owner-scoped /broadcast; a cross-tenant TC can't, so route
+      // its reply through the money-free /tc message endpoint instead.
+      const url = coordinatorMode
+        ? `${API}/tc/transaction/${tx.id}/message`
+        : `${API}/transactions/${tx.id}/broadcast`;
+      const body = coordinatorMode
+        ? { channel: "email", subject: "Re: " + (m.subject || "your message"), message: replyText.trim(), recipientEmails: [m.from_email] }
+        : { channel: "email", subject: "Re: " + (m.subject || "your message"), message: replyText.trim(), recipients: [{ name: m.from_name || m.from_email, email: m.from_email, role: m.party_role || "" }] };
+      const r = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: "Bearer " + tok },
+        body: JSON.stringify(body),
+      });
+      const d = await r.json(); if (!r.ok) throw new Error(d.error || "Failed to send");
+      setSentNote(prev => ({ ...prev, [m.id]: "✅ Reply sent" }));
+      setReplyTo(null); setReplyText("");
+    } catch (e) { alert("⚠️ " + e.message); }
+    setSending(false);
   };
 
   if (loading) return <div style={{ padding: 24, color: COLORS.gray }}>Loading replies…</div>;
@@ -4344,6 +4376,36 @@ function InboundRepliesPanel({ tx }) {
             {atts.length === 0 && m.attachment_count > 0 && (
               <div style={{ marginTop: 10, fontSize: 12, color: COLORS.gray }}>📎 {m.attachment_count} attachment(s) were sent before attachment saving was enabled — ask the sender to resend if you still need them.</div>
             )}
+
+            {/* Reply by email to whoever wrote in */}
+            <div style={{ marginTop: 14, borderTop: `1px solid ${COLORS.border}`, paddingTop: 12 }}>
+              {sentNote[m.id] && <div style={{ color: "#1E8449", fontSize: 13, fontWeight: 700, marginBottom: 8 }}>{sentNote[m.id]}</div>}
+              {replyTo === m.id ? (
+                <div>
+                  <div style={{ fontSize: 12, color: COLORS.gray, marginBottom: 6 }}>
+                    Replying by email to <b style={{ color: COLORS.navy }}>{m.from_name || m.from_email}</b> {m.from_email ? `· ${m.from_email}` : ""}
+                  </div>
+                  <textarea value={replyText} onChange={e => setReplyText(e.target.value)} rows={4} autoFocus placeholder={`Write your reply to ${m.from_name || "them"}…`}
+                    style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: `1px solid ${COLORS.border}`, fontSize: 14, fontFamily: "inherit", boxSizing: "border-box", resize: "vertical", marginBottom: 8 }} />
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <button onClick={() => sendReply(m)} disabled={sending || !replyText.trim() || !m.from_email}
+                      style={{ background: (sending || !replyText.trim() || !m.from_email) ? "#ccc" : "#15803D", color: "#fff", border: "none", borderRadius: 8, padding: "9px 16px", fontWeight: 700, fontSize: 14, cursor: "pointer", fontFamily: "inherit" }}>
+                      {sending ? "Sending…" : "📧 Send reply"}
+                    </button>
+                    <button onClick={() => { setReplyTo(null); setReplyText(""); }}
+                      style={{ background: "#fff", color: COLORS.gray, border: `1px solid ${COLORS.border}`, borderRadius: 8, padding: "9px 16px", fontWeight: 600, fontSize: 14, cursor: "pointer", fontFamily: "inherit" }}>
+                      Cancel
+                    </button>
+                  </div>
+                  {!m.from_email && <div style={{ fontSize: 12, color: "#C0392B", marginTop: 6 }}>No email address on this reply to respond to.</div>}
+                </div>
+              ) : (
+                <button onClick={() => { setReplyTo(m.id); setReplyText(""); }}
+                  style={{ background: "#fff", color: COLORS.navy, border: `1px solid ${COLORS.navy}`, borderRadius: 8, padding: "8px 16px", fontWeight: 700, fontSize: 14, cursor: "pointer", fontFamily: "inherit" }}>
+                  ↩️ Reply by email
+                </button>
+              )}
+            </div>
           </div>
         );
       })}
@@ -5052,7 +5114,7 @@ function LeaseDocsModal({ tx, onClose, onGenerated }) {
   );
 }
 
-function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = false, onBack, contacts, onInviteParty = [], onCopyLoginLink, onSaveContact, onOpenContactBook, onDuplicate, currentUser, initialTab = "overview", dashboardUnread = 0, onMilestoneSummary }) {
+function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = false, onBack, contacts, onInviteParty = [], onCopyLoginLink, onSaveContact, onOpenContactBook, onDuplicate, currentUser, initialTab = "overview", dashboardUnread = 0, onMilestoneSummary, onInboundRead }) {
   // Staff (agent + coordinator) comms tabs are merged into one "messages" hub, so
   // a deep-link to chat/replies/sms opens the hub on the right section. Guests keep
   // their standalone chat tab.
@@ -5146,11 +5208,18 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
       .then(r => r.json()).then(d => setUnreadReplyCount(d.count || 0)).catch(() => {});
   }, [tx.id]);
   useEffect(() => {
-    if (activeTab !== "replies" || unreadReplyCount === 0) return;
+    // The agent is "viewing replies" either on the legacy standalone tab OR the
+    // merged Messages hub (activeTab "messages" + the Replies section). The old
+    // check only matched the standalone tab, so in the hub replies never got
+    // marked read and the 🔔 alert never cleared.
+    const viewingReplies = activeTab === "replies" || (activeTab === "messages" && msgSection === "replies");
+    if (!viewingReplies || unreadReplyCount === 0) return;
     const tok = localStorage.getItem("tp_token") || "";
-    fetch(`https://liz-team-server-api-production.up.railway.app/transactions/${tx.id}/inbound-emails/mark-read`, { method: "POST", headers: { Authorization: "Bearer " + tok } }).catch(() => {});
+    fetch(`https://liz-team-server-api-production.up.railway.app/transactions/${tx.id}/inbound-emails/mark-read`, { method: "POST", headers: { Authorization: "Bearer " + tok } })
+      .then(() => { if (typeof onInboundRead === "function") onInboundRead(tx.id); })  // clear the global badge now, don't wait for the 15s poll
+      .catch(() => {});
     setUnreadReplyCount(0);
-  }, [activeTab]);
+  }, [activeTab, msgSection]);
   const [showEditTx, setShowEditTx] = useState(false);
   const [showPortalPreview, setShowPortalPreview] = useState(false);
   const [editTxForm, setEditTxForm] = useState({});
@@ -5830,7 +5899,7 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
 
         {activeTab === "sms" && (isCoordinator ? <CoordinatorSendUpdate tx={tx} /> : <SMSPanel tx={tx} onUpdate={onUpdate} />)}
 
-        {activeTab === "replies" && <InboundRepliesPanel tx={tx} />}
+        {activeTab === "replies" && <InboundRepliesPanel tx={tx} coordinatorMode={coordinatorMode} />}
 
         {/* MESSAGES HUB — one tab, three clearly-separated channels. Same for the
             agent and the coordinator (the only difference is the "Send" tool). */}
@@ -5856,7 +5925,7 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
               {msgSection === "send" && (isCoordinator ? "Send the client an email/text update in the agent's voice." : "Send an email or text to a party (or the whole group).")}
             </div>
             {msgSection === "chat" && <div style={{ padding: 12, height: 500 }}><TransactionChat transactionId={tx.id} user={null} parties={tx.parties || []} style={{ height: "100%" }} unreadCount={chatUnread} onUnreadChange={() => {}} /></div>}
-            {msgSection === "replies" && <InboundRepliesPanel tx={tx} />}
+            {msgSection === "replies" && <InboundRepliesPanel tx={tx} coordinatorMode={coordinatorMode} />}
             {msgSection === "send" && (isCoordinator ? <CoordinatorSendUpdate tx={tx} /> : <SMSPanel tx={tx} onUpdate={onUpdate} sendOnly />)}
           </div>
         )}
@@ -8436,6 +8505,13 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
     } catch {}
   };
 
+  // Clear the inbound-reply count for a deal the moment the agent views its
+  // Replies section (the server mark-read already ran in the detail view) — so the
+  // global 🔔 alert disappears immediately instead of lingering until the next poll.
+  const markInboundRead = (transactionId) => {
+    setInboundCounts(prev => { const n = { ...prev }; delete n[transactionId]; return n; });
+  };
+
   // Load transactions from database on mount.
   // includeClosed=true so the Pipeline view's "Closed" column actually
   // populates and recently-closed deals don't vanish from the dashboard.
@@ -8960,6 +9036,7 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
           onUpdate={updateTransaction}
           onLocalUpdate={(updated) => setTransactions(txs => txs.map(t => t.id === updated.id ? updated : t))}
           onMilestoneSummary={applyMilestoneSummary}
+          onInboundRead={markInboundRead}
           onDuplicate={duplicateTransaction}
           currentUser={currentUser}
           onBack={() => setView("dashboard")}
