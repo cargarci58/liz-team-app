@@ -5219,7 +5219,10 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
       .then(() => { if (typeof onInboundRead === "function") onInboundRead(tx.id); })  // clear the global badge now, don't wait for the 15s poll
       .catch(() => {});
     setUnreadReplyCount(0);
-  }, [activeTab, msgSection]);
+    // unreadReplyCount MUST be a dep: when the deal opens straight into Replies,
+    // this effect first runs before the count has loaded (count=0 → bails); it has
+    // to re-run once the count arrives, or the messages never get marked read.
+  }, [activeTab, msgSection, unreadReplyCount]);
   const [showEditTx, setShowEditTx] = useState(false);
   const [showPortalPreview, setShowPortalPreview] = useState(false);
   const [editTxForm, setEditTxForm] = useState({});
