@@ -4403,9 +4403,10 @@ function InboundRepliesPanel({ tx, coordinatorMode = false, onInboundRead }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
       {messages.map(m => {
-        // Treat as SMS if channel is 'sms', OR if only a phone (no email) is present —
-        // handles records stored before the channel column was reliably set.
-        const isSmsMsg = m.channel === "sms" || (!!m.from_phone && !m.from_email);
+        // Treat as SMS if channel is 'sms', OR if from_phone is set —
+        // inbound emails never carry a phone number, so presence of from_phone
+        // is a reliable signal regardless of what the channel column says.
+        const isSmsMsg = m.channel === "sms" || !!m.from_phone;
         const mWithChannel = { ...m, channel: isSmsMsg ? "sms" : "email" };
         m = mWithChannel;
         const atts = Array.isArray(m.attachments) ? m.attachments : [];
