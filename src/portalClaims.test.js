@@ -92,6 +92,24 @@ describe("portal stage never overclaims past the real transaction status", () =>
     const tx = { status: "Closed", transactionType: "Listing (Seller)" };
     expect(deriveStage({ milestones: [] }, tx).effectiveStatus).toBe("Closed");
   });
+
+  it("CD review / settlement statement / final walk do NOT announce Clear to Close", () => {
+    // The lender's all-clear ("Clear to Close") is still open; only closing-phase
+    // paperwork is done. The portal must NOT tell the seller they're clear to close.
+    const tx = { status: "Under Contract", transactionType: "Listing (Seller)" };
+    const stage = deriveStage(
+      completedAll(["Send Fully Executed Contract", "Appraisal Received", "CD / Settlement Statement Review", "Final Walk-Through"]),
+      tx
+    );
+    expect(stage.effectiveStatus).not.toBe("Clear to Close");
+    expect(stage.effectiveStatus).toBe("Appraisal");
+  });
+
+  it("Clear to Close fires once the real lender milestone is done", () => {
+    const tx = { status: "Under Contract", transactionType: "Listing (Seller)" };
+    const stage = deriveStage(completedAll(["Send Fully Executed Contract", "Clear to Close"]), tx);
+    expect(stage.effectiveStatus).toBe("Clear to Close");
+  });
 });
 
 describe("'what's coming up' is phase-gated to the real deal phase", () => {

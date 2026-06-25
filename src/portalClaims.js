@@ -69,7 +69,14 @@ export function deriveStage(timeline, tx) {
   const open = ms.filter(m => m.status !== "Completed" && m.status !== "Waived" && m.is_na !== true);
   const doneHas = (re) => done.some(m => re.test(m.name || ""));
   let derived = "Active";
-  if (doneHas(/clear to close|cd review|closing disclosure|final walk|settlement statement/i)) derived = "Clear to Close";
+  // "Clear to Close" is a LENDER event — the loan is fully approved with all
+  // conditions cleared. It may derive ONLY from that exact milestone (or explicit
+  // loan-cleared phrasing). It must NOT fire from closing-phase paperwork that
+  // happens before the all-clear — CD / Settlement Statement Review, "CD Review",
+  // Closing Disclosure, or the Final Walk-Through — or the portal tells a seller
+  // "you're clear to close!" while the lender's all-clear is still pending (which
+  // is exactly what happened on a live deal whose CD review was done first).
+  if (doneHas(/clear to close|cleared to close|clear-to-close|loan (cleared|fully approved)/i)) derived = "Clear to Close";
   else if (doneHas(/appraisal received|appraisal report|financing (approved|commitment|secured)|loan (approved|commitment|cleared)/i)) derived = "Appraisal";
   else if (doneHas(/inspection period|inspection (complete|done|cleared)|repair (request|negotiation)|wdo|termite/i)) derived = "Inspection";
   else if (doneHas(/executed|under contract|emd|earnest|fully executed/i)) derived = "Under Contract";
