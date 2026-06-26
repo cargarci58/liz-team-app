@@ -98,6 +98,8 @@ const ratioTxt = (r) => (r == null ? "—" : r.toFixed(1));
 // TAB 1 — OVERVIEW (original report)
 // ════════════════════════════════════════════════════════════════
 function OverviewTab({ transactions }) {
+  // SALES only — rentals/leases have rent (not a sale price) and would skew volume.
+  const isSaleDeal = (t) => !/lease|rental/i.test(t.type || t.transactionType || t.transaction_type || "");
   const active = transactions.filter(t => t.status === "Active");
   const underContract = transactions.filter(t => t.status === "Under Contract");
   const closed = transactions.filter(t => t.status === "Closed");
@@ -106,7 +108,7 @@ function OverviewTab({ transactions }) {
   const projectedNet = [...active, ...underContract].reduce((acc, tx) => acc + calcComm(tx).net, 0);
   const closedGross = closed.reduce((acc, tx) => acc + calcComm(tx).gross, 0);
   const closedNet = closed.reduce((acc, tx) => acc + calcComm(tx).net, 0);
-  const totalVolume = transactions.filter(t => t.status !== "Cancelled").reduce((acc, tx) => acc + Number(tx.contractPrice || tx.listPrice || 0), 0);
+  const totalVolume = transactions.filter(t => t.status !== "Cancelled" && isSaleDeal(t)).reduce((acc, tx) => acc + Number(tx.contractPrice || tx.listPrice || 0), 0);
 
   const months = [];
   for (let i = 5; i >= 0; i--) {
@@ -114,7 +116,7 @@ function OverviewTab({ transactions }) {
     const label = d.toLocaleString("en-US", { month: "short" });
     const yr = d.getFullYear(), mo = d.getMonth();
     const vol = closed.filter(tx => {
-      if (!tx.closingDate) return false;
+      if (!tx.closingDate || !isSaleDeal(tx)) return false;
       const cd = new Date(tx.closingDate);
       return cd.getFullYear() === yr && cd.getMonth() === mo;
     }).reduce((acc, tx) => acc + Number(tx.contractPrice || tx.listPrice || 0), 0);

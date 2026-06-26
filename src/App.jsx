@@ -7858,7 +7858,7 @@ function Dashboard({ transactions, coordinatorMode = false, unreadCounts = {}, o
         return cd >= today && cd <= endOfMonth;
       }).length;
     })(),
-    totalVolume: transactions.filter(t => t.status !== "Cancelled").reduce((a, t) => a + (Number(t.contractPrice) || Number(t.listPrice) || 0), 0),
+    totalVolume: transactions.filter(t => t.status !== "Cancelled" && !/lease|rental/i.test(t.type || t.transactionType || t.transaction_type || "")).reduce((a, t) => a + (Number(t.contractPrice) || Number(t.listPrice) || 0), 0),
     pendingCommissionGross: transactions.filter(t => !["Closed", "Cancelled", "On Hold"].includes(t.status)).reduce((acc, t) => {
       const price = Number(t.contractPrice || t.listPrice || 0);
       const isListing = t.type === "Listing (Seller)";
