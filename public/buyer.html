@@ -361,15 +361,23 @@ function showUploaded(input, labelId) {
 async function uploadFile(file, transactionId, uploadToken, category) {
   if (!file) return null;
   try {
-    const res = await fetch(API + '/documents/public-upload-url', {
+    // Server-proxied (base64 → server → R2). The old presigned-PUT path failed
+    // browser CORS, so the file never reached storage even though a document row
+    // was created — the agent then saw a NoSuchKey error trying to view it.
+    const base64 = await new Promise(function (resolve, reject) {
+      const fr = new FileReader();
+      fr.onload = function () { resolve(String(fr.result).split(',')[1]); };
+      fr.onerror = reject;
+      fr.readAsDataURL(file);
+    });
+    const res = await fetch(API + '/documents/public-upload', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ transactionId, fileName: file.name, fileType: file.type, category, uploadToken })
+      body: JSON.stringify({ transactionId, fileName: file.name, fileType: file.type, category, uploadToken, base64 })
     });
     const data = await res.json();
-    if (!data.uploadUrl) return null;
-    await fetch(data.uploadUrl, { method: 'PUT', body: file, headers: { 'Content-Type': file.type } });
+    if (!res.ok || !data.success) { console.error('Upload failed:', data && data.error); return null; }
     return data.key;
-  } catch (e) { return null; }
+  } catch (e) { console.error('Upload error:', e); return null; }
 }
 
 async function submitForm() {
