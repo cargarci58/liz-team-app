@@ -6094,7 +6094,7 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
         )}
 
         {activeTab === "documents" && <DocumentsTab tx={tx} coordinatorMode={isCoordinator} />}
-        {activeTab === "offers" && <OffersTab tx={tx} token={localStorage.getItem("tp_token") || ""} />}
+        {activeTab === "offers" && <OffersTab tx={tx} token={localStorage.getItem("tp_token") || ""} currentUser={currentUser} />}
         {activeTab === "calculator" && (
           <div style={{ padding: 20 }}>
             <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 8, padding: 12, marginBottom: 16, fontSize: 13, color: "#7f1d1d" }}>

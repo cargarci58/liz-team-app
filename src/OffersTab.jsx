@@ -25,12 +25,13 @@ function fmtDate(d) {
   return new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 }
 
-export default function OffersTab({ tx, token }) {
+export default function OffersTab({ tx, token, currentUser }) {
   const [offers, setOffers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState(null);
   const [wizardOfferId, setWizardOfferId] = useState(null);
+  const [sendModal, setSendModal] = useState(null);   // offer being sent to listing agent
 
   const load = async () => {
     setLoading(true);
@@ -133,24 +134,13 @@ export default function OffersTab({ tx, token }) {
     } catch (e) { alert("Error: " + e.message); }
   };
 
-  // Email the offer to the listing agent (attaches the signed offer, else the packet).
-  const sendToListing = async (o) => {
-    const d = o.offer_data || {};
-    let toEmail = d.listing_agent_email || "";
-    if (!toEmail) { toEmail = (prompt("Listing agent's email to send this offer to:") || "").trim(); if (!toEmail) return; }
-    const what = o.signed_doc_id ? "The buyer-signed offer will be attached."
-      : o.packet_pdf_key ? "The offer packet will be attached."
-      : "⚠️ No signed offer or packet yet — open the offer to generate the packet, or upload the signed offer first.";
-    if (!confirm("Send this offer to the listing agent?\n\nTo: " + toEmail + "\n" + what)) return;
-    try {
-      const r = await fetch(API + "/offers/" + o.id + "/send-to-listing-agent", {
-        method: "POST", headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
-        body: JSON.stringify({ toEmail }),
-      });
-      const data = await r.json(); if (!r.ok) throw new Error(data.error || "Send failed");
-      alert("✅ Sent to " + data.sentTo + (data.attached ? " (" + data.attached + " attached)" : "") + ".\n\nReplies show in the deal's Replies. When the seller accepts, click Accepted to start the transaction.");
-      await load();
-    } catch (e) { alert("Error: " + e.message); }
+  // Open the approve-and-attach modal to send the offer to the listing agent.
+  const sendToListing = (o) => {
+    if (!o.signed_doc_id && !o.packet_pdf_key) {
+      alert("Nothing to send yet — open the offer to generate the packet, or upload the signed offer first.");
+      return;
+    }
+    setSendModal(o);
   };
 
   const setOfferStatus = async (offerId, status, label) => {
@@ -272,6 +262,14 @@ export default function OffersTab({ tx, token }) {
       <input ref={fileRef} type="file" accept=".pdf,image/*" style={{ display: "none" }}
         onChange={e => { const f = e.target.files && e.target.files[0]; if (f) uploadSigned(f); e.target.value = ""; }} />
 
+      {sendModal && (
+        <SendOfferModal
+          offer={sendModal} tx={tx} token={token} currentUser={currentUser}
+          onClose={() => setSendModal(null)}
+          onSent={() => { setSendModal(null); load(); }}
+        />
+      )}
+
       {wizardOfferId && (
         <OfferWizard
           offerId={wizardOfferId}
@@ -280,6 +278,141 @@ export default function OffersTab({ tx, token }) {
           onSaved={() => load()}
         />
       )}
+    </div>
+  );
+}
+
+// Approve-and-attach send: review/edit the email to the listing agent, add more
+// documents (from the deal or your computer), then send. The signed offer (or the
+// packet) is always attached; the listing agent's reply is captured on the deal so
+// the AI reads whether it was accepted/countered/rejected.
+function SendOfferModal({ offer, tx, token, currentUser, onClose, onSent }) {
+  const d = offer.offer_data || {};
+  const addr = [d.property_address || tx.address, d.property_city || tx.city].filter(Boolean).join(", ");
+  const price = d.purchase_price ? "$" + Number(d.purchase_price).toLocaleString() : "";
+  const agentName = currentUser ? [currentUser.firstName, currentUser.lastName].filter(Boolean).join(" ") : "";
+  const firstName = (d.listing_agent_name || "there").split(" ")[0];
+  const [toEmail, setToEmail] = useState(d.listing_agent_email || "");
+  const [toName, setToName] = useState(d.listing_agent_name || "Listing Agent");
+  const [subject, setSubject] = useState(`Offer — ${addr || "your listing"}${price ? " — " + price : ""}`);
+  const [message, setMessage] = useState(
+    `Hi ${firstName},\n\nPlease find attached my buyer's offer on ${addr || "your listing"}${price ? " at " + price : ""}. I'd appreciate you presenting it to your seller. Happy to discuss any terms — just reply to this email.\n\nThank you,\n${agentName}`.trim()
+  );
+  const [attach, setAttach] = useState([]);      // extra docs [{id,name}]
+  const [docList, setDocList] = useState(null);
+  const [docPicker, setDocPicker] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [sending, setSending] = useState(false);
+  const fileRef = useRef(null);
+
+  const baseAttach = offer.signed_doc_id ? "Buyer-signed offer" : offer.packet_pdf_key ? "Offer packet" : null;
+
+  const openDocPicker = () => {
+    setDocPicker(true);
+    if (docList === null) {
+      fetch(API + "/documents/" + tx.id, { headers: { Authorization: "Bearer " + token } })
+        .then(r => r.json()).then(dd => setDocList(dd.documents || dd || [])).catch(() => setDocList([]));
+    }
+  };
+  const toggleAttach = (doc) => setAttach(prev => prev.find(a => a.id === doc.id) ? prev.filter(a => a.id !== doc.id) : [...prev, { id: doc.id, name: doc.name }]);
+  const uploadFromComputer = async (file) => {
+    if (!file) return;
+    setUploading(true);
+    try {
+      const base64 = await new Promise((res, rej) => { const fr = new FileReader(); fr.onload = () => res(String(fr.result).split(",")[1]); fr.onerror = rej; fr.readAsDataURL(file); });
+      const r = await fetch(API + "/documents/upload", {
+        method: "POST", headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
+        body: JSON.stringify({ transactionId: tx.id, fileName: file.name, fileType: file.type, category: "Offer", base64 }),
+      });
+      const dd = await r.json();
+      if (dd.success && dd.docId) { setAttach(prev => [...prev, { id: dd.docId, name: file.name }]); setDocList(null); }
+      else alert("Upload failed: " + (dd.error || "unknown error"));
+    } catch (e) { alert("Upload error: " + e.message); }
+    setUploading(false);
+  };
+
+  const send = async () => {
+    if (!toEmail.trim() || !/.+@.+\..+/.test(toEmail.trim())) { alert("Enter the listing agent's email."); return; }
+    if (!message.trim()) { alert("Write a message."); return; }
+    setSending(true);
+    try {
+      const r = await fetch(API + "/offers/" + offer.id + "/send-to-listing-agent", {
+        method: "POST", headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
+        body: JSON.stringify({ toEmail: toEmail.trim(), toName: toName.trim(), subject, message, attachDocIds: attach.map(a => a.id) }),
+      });
+      const data = await r.json(); if (!r.ok) throw new Error(data.error || "Send failed");
+      const attached = Array.isArray(data.attached) ? data.attached.join(", ") : data.attached;
+      alert("✅ Sent to " + data.sentTo + (attached ? "\nAttached: " + attached : "") + ".\n\nThe listing agent's reply will appear in this deal's Replies, and the AI will flag whether it's an acceptance. When the seller accepts, click ✅ Accepted to start the transaction.");
+      onSent();
+    } catch (e) { alert("Error: " + e.message); }
+    setSending(false);
+  };
+
+  const lbl = { fontSize: 12, fontWeight: 700, color: "#374151", margin: "10px 0 4px" };
+  const inp = { width: "100%", padding: "9px 11px", borderRadius: 8, border: "1px solid #d1d5db", fontSize: 14, fontFamily: "inherit", boxSizing: "border-box" };
+
+  return (
+    <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 4000, display: "flex", alignItems: "flex-start", justifyContent: "center", padding: 16, overflowY: "auto" }}>
+      <div onClick={e => e.stopPropagation()} style={{ background: "#fff", borderRadius: 14, maxWidth: 560, width: "100%", margin: "auto", boxShadow: "0 10px 40px rgba(0,0,0,0.25)", overflow: "hidden" }}>
+        <div style={{ background: "#0c4a6e", padding: "16px 20px", color: "#fff", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div style={{ fontWeight: 800, fontSize: 16 }}>📧 Send offer to listing agent</div>
+          <button onClick={onClose} style={{ background: "none", border: "none", color: "rgba(255,255,255,0.7)", fontSize: 22, cursor: "pointer" }}>×</button>
+        </div>
+        <div style={{ padding: 20 }}>
+          <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 8 }}>Review and approve before it goes out. {baseAttach ? <><b>{baseAttach}</b> is attached automatically.</> : "⚠️ No signed offer or packet on this offer yet."}</div>
+
+          <div style={lbl}>To (listing agent)</div>
+          <div style={{ display: "flex", gap: 8 }}>
+            <input value={toName} onChange={e => setToName(e.target.value)} placeholder="Name" style={{ ...inp, flex: "0 0 40%" }} />
+            <input value={toEmail} onChange={e => setToEmail(e.target.value)} placeholder="email@brokerage.com" style={{ ...inp, flex: 1 }} />
+          </div>
+
+          <div style={lbl}>Subject</div>
+          <input value={subject} onChange={e => setSubject(e.target.value)} style={inp} />
+
+          <div style={lbl}>Message</div>
+          <textarea value={message} onChange={e => setMessage(e.target.value)} rows={7} style={{ ...inp, resize: "vertical" }} />
+
+          {/* Attachments */}
+          <div style={lbl}>Attachments</div>
+          <div style={{ fontSize: 13, color: "#374151", marginBottom: 8 }}>
+            {baseAttach && <div>📎 {baseAttach} <span style={{ color: "#16a34a" }}>(included)</span></div>}
+            {attach.map(a => (
+              <div key={a.id} style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "#F0F4FF", border: "1px solid #C7D2FE", borderRadius: 6, padding: "3px 8px", fontSize: 12, color: "#0c4a6e", marginRight: 6, marginTop: 6 }}>
+                📄 {a.name}
+                <button onClick={() => setAttach(prev => prev.filter(x => x.id !== a.id))} style={{ background: "none", border: "none", cursor: "pointer", color: "#6b7280", fontSize: 14, lineHeight: 1 }}>×</button>
+              </div>
+            ))}
+          </div>
+          <input ref={fileRef} type="file" style={{ display: "none" }} onChange={e => { const f = e.target.files && e.target.files[0]; if (f) uploadFromComputer(f); e.target.value = ""; }} />
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <button onClick={openDocPicker} style={{ fontSize: 12, padding: "6px 12px", borderRadius: 8, border: "1px solid #0c4a6e", background: "#fff", color: "#0c4a6e", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>📎 Attach from Documents</button>
+            <button onClick={() => fileRef.current && fileRef.current.click()} disabled={uploading} style={{ fontSize: 12, padding: "6px 12px", borderRadius: 8, border: "1px solid #0c4a6e", background: "#fff", color: "#0c4a6e", fontWeight: 600, cursor: "pointer", fontFamily: "inherit", opacity: uploading ? 0.5 : 1 }}>{uploading ? "Uploading…" : "💻 Upload from computer"}</button>
+          </div>
+
+          {docPicker && (
+            <div style={{ marginTop: 10, border: "1px solid #e5e7eb", borderRadius: 8, padding: 10, maxHeight: 220, overflowY: "auto" }}>
+              {docList === null ? <div style={{ color: "#6b7280", fontSize: 13 }}>Loading documents…</div>
+               : docList.length === 0 ? <div style={{ color: "#6b7280", fontSize: 13 }}>No documents on this deal yet.</div>
+               : docList.map(doc => {
+                const on = !!attach.find(a => a.id === doc.id);
+                return (
+                  <label key={doc.id} style={{ display: "flex", gap: 8, alignItems: "center", padding: "5px 2px", fontSize: 13, cursor: "pointer" }}>
+                    <input type="checkbox" checked={on} onChange={() => toggleAttach(doc)} />
+                    <span>📄 {doc.name}{doc.category ? <span style={{ color: "#9ca3af" }}> · {doc.category}</span> : null}</span>
+                  </label>
+                );
+              })}
+              <button onClick={() => setDocPicker(false)} style={{ marginTop: 8, width: "100%", background: "#0c4a6e", color: "#fff", border: "none", borderRadius: 8, padding: "8px", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>Done</button>
+            </div>
+          )}
+
+          <div style={{ display: "flex", gap: 10, marginTop: 18 }}>
+            <button onClick={send} disabled={sending} style={{ flex: 1, background: sending ? "#9ca3af" : "#16a34a", color: "#fff", border: "none", borderRadius: 8, padding: "12px", fontWeight: 800, fontSize: 15, cursor: sending ? "wait" : "pointer", fontFamily: "inherit" }}>{sending ? "Sending…" : "📧 Approve & Send"}</button>
+            <button onClick={onClose} style={{ background: "#fff", color: "#374151", border: "1px solid #d1d5db", borderRadius: 8, padding: "12px 18px", fontWeight: 700, fontSize: 14, cursor: "pointer", fontFamily: "inherit" }}>Cancel</button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
