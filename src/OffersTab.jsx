@@ -115,20 +115,21 @@ export default function OffersTab({ tx, token }) {
   // Upload the buyer-signed offer (server-proxied), then it attaches when sending.
   const fileRef = useRef(null);
   const [signTarget, setSignTarget] = useState(null);
-  const pickSigned = (offerId) => { setSignTarget(offerId); setTimeout(() => fileRef.current && fileRef.current.click(), 0); };
+  const pickSigned = (o) => { setSignTarget(o); setTimeout(() => fileRef.current && fileRef.current.click(), 0); };
   const uploadSigned = async (file) => {
-    const offerId = signTarget;
+    const o = signTarget;
     setSignTarget(null);
-    if (!file || !offerId) return;
+    if (!file || !o) return;
     try {
       const base64 = await new Promise((res, rej) => { const fr = new FileReader(); fr.onload = () => res(String(fr.result).split(",")[1]); fr.onerror = rej; fr.readAsDataURL(file); });
-      const r = await fetch(API + "/offers/" + offerId + "/upload-signed", {
+      const r = await fetch(API + "/offers/" + o.id + "/upload-signed", {
         method: "POST", headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
         body: JSON.stringify({ fileName: file.name, fileType: file.type, base64 }),
       });
       const data = await r.json(); if (!r.ok) throw new Error(data.error || "Upload failed");
-      alert("✅ Signed offer uploaded. It'll be attached when you send to the listing agent.");
       await load();
+      // Chain straight into sending — no separate button to hunt for.
+      await sendToListing({ ...o, signed_doc_id: data.docId });
     } catch (e) { alert("Error: " + e.message); }
   };
 
@@ -250,8 +251,8 @@ export default function OffersTab({ tx, token }) {
                           <div style={{ display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "flex-end" }}>
                             {btn("Open", () => setWizardOfferId(o.id), "#e5e7eb", "#374151")}
                             {o.packet_pdf_key && btn("📄 Packet", () => viewPacket(o.id), "#e0f2fe", "#075985")}
-                            {active && btn(o.signed_doc_id ? "✓ Signed ↑" : "⬆️ Signed", () => pickSigned(o.id), "#ede9fe", "#5b21b6")}
-                            {active && btn("📧 Send to listing agent", () => sendToListing(o), "#0c4a6e", "#fff")}
+                            {active && btn("📤 Upload Signed Offer", () => pickSigned(o), "#0c4a6e", "#fff")}
+                            {active && o.signed_doc_id && btn(o.status === "sent" ? "📧 Re-send to listing agent" : "📧 Send to listing agent", () => sendToListing(o), "#ede9fe", "#5b21b6")}
                             {(o.status === "ready" || o.status === "sent" || o.status === "countered") && btn("✅ Accepted", () => acceptOffer(o.id), "#16a34a", "#fff")}
                             {(o.status === "sent" || o.status === "countered") && btn("Declined", () => setOfferStatus(o.id, "rejected", "DECLINED by the seller"), "#fee2e2", "#7f1d1d")}
                             {o.status === "accepted" && btn("Undo acceptance", () => unacceptOffer(o.id), "#fef3c7", "#92400e")}
