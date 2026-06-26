@@ -103,6 +103,21 @@ const txTypeShort = (type) => type === "Lease — Landlord" ? "Rental — Landlo
   : type === "Lease — Tenant" ? "Rental — Tenant"
   : type === "Buyer Representation" ? "Buyer" : "Listing";
 const txTypeIcon = (type) => isLeaseType(type) ? "🔑" : type === "Buyer Representation" ? "🏡" : "🏠";
+// The agent's CLIENT on a deal — the buyer (buyer-side) or seller (listing). Shown
+// on every card under the address so it's obvious who the customer is. Excludes
+// agents (a "Buyer's Agent" is not the buyer). Returns "" if none on file.
+const clientNameForTx = (tx) => {
+  const parties = (tx && tx.parties) || [];
+  const type = (tx && (tx.type || tx.transactionType || tx.transaction_type)) || "";
+  const want = isBuyerSideType(type) ? /buyer|tenant/i : /seller|landlord/i;
+  const names = parties
+    .filter(p => p && p.role && want.test(p.role) && !/agent/i.test(p.role))
+    .map(p => (p.name || "").trim())
+    .filter(Boolean);
+  // de-dupe (same person listed twice) and join co-clients with " & "
+  return [...new Set(names)].join(" & ");
+};
+const clientLabelForTx = (tx) => (isBuyerSideType(tx && (tx.type || tx.transactionType)) ? "Buyer" : "Seller");
 const PROPERTY_TYPES = ["Single Family", "Condo/Townhouse", "Multi-Family", "Land", "Commercial"];
 const REFERRAL_SOURCES = ["Past Client", "Referral", "Zillow", "Realtor.com", "Open House", "Sign Call", "Social Media", "Website", "Other"];
 const OCCUPANCY_OPTIONS = ["Owner Occupied", "Tenant Occupied", "Vacant"];
@@ -417,6 +432,7 @@ function PipelineCard({ tx, onSelect }) {
         {overdue > 0 && <span title={`${overdue} overdue item(s)`} style={{ marginLeft: "auto", background: COLORS.dangerBg, color: COLORS.danger, fontSize: 9, fontWeight: 700, padding: "1px 6px", borderRadius: 8 }}>⚠ {overdue}</span>}
       </div>
       <div style={{ fontWeight: 700, fontSize: 13, color: COLORS.navy, marginBottom: 2, lineHeight: 1.3 }}>{tx.address}</div>
+      {clientNameForTx(tx) && <div style={{ fontSize: 11.5, fontWeight: 600, color: COLORS.text, marginBottom: 1 }}>👤 {clientLabelForTx(tx)}: {clientNameForTx(tx)}</div>}
       <div style={{ fontSize: 11, color: COLORS.muted, marginBottom: 6 }}>{tx.city}, FL</div>
       {price && <div style={{ fontSize: 13, fontWeight: 700, color: COLORS.navy, marginBottom: 4 }}>${Number(price).toLocaleString()}</div>}
       {tx.closingDate && <div style={{ fontSize: 11, color: dtc !== null && dtc < 7 && dtc >= 0 ? COLORS.danger : COLORS.muted, marginBottom: 6 }}>📅 {tx.closingDate}{dtc !== null ? ` (${dtc < 0 ? "past" : dtc + "d"})` : ""}</div>}
@@ -8170,6 +8186,9 @@ function Dashboard({ transactions, coordinatorMode = false, unreadCounts = {}, o
                     {propertyTypeBadge(tx) && <Badge label={propertyTypeBadge(tx).label} color={propertyTypeBadge(tx).color} bg={propertyTypeBadge(tx).bg} />}
                   </div>
                   <div style={{ color: "#FFFFFF", fontWeight: 700, fontSize: 15, marginBottom: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{tx.address}</div>
+                  {clientNameForTx(tx) && (
+                    <div style={{ color: "rgba(255,255,255,0.92)", fontSize: 12.5, fontWeight: 600, marginBottom: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>👤 {clientLabelForTx(tx)}: {clientNameForTx(tx)}</div>
+                  )}
                   <div style={{ color: "rgba(255,255,255,0.6)", fontSize: 12 }}>{tx.city}, FL · {tx.county} County</div>
                   {/* Coordinator: show which brokerage/agent this deal belongs to — they juggle many across firms. */}
                   {coordinatorMode && tx.owningBrokerageName && (
