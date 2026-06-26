@@ -9043,11 +9043,11 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
       });
       const data = await res.json();
       if (res.ok && data.existing) {
-        alert(party.email + " already has an account. They've been added to your brokerage and notified by email.");
+        alert(party.email + " already has a portal account — we just re-sent their one-tap login link by email.\n\nIf they still don't see it (check spam), use the 🔗 Login Link button to copy the link and text it to them directly.");
       } else if (res.ok) {
-        alert("Invitation sent to " + party.email + "! They will receive an email with portal access and transaction details.");
+        alert("Invitation sent to " + party.email + "! They'll get an email with a one-tap link to their portal (they set a 4-digit PIN on first use).");
       } else if (data.error === "Email already registered") {
-        alert(party.email + " is already registered. They've been notified.");
+        alert(party.email + " is already registered — we re-sent their login link by email. If it doesn't arrive, use 🔗 Login Link to share it directly.");
       } else {
         alert("Failed: " + (data.error || "Unknown error"));
       }
