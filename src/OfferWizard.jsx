@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { getWizard } from "./config/offerWizardSchema";
 
 const API = "https://liz-team-server-api-production.up.railway.app";
@@ -287,6 +287,37 @@ export default function OfferWizard({ offerId, token, onClose, onSaved }) {
     if (id === "closing_date") setClosingDateAck(false); // re-warn if the date changes
     setData(d => ({ ...d, [id]: val }));
   };
+
+  // Auto-calculate down payment ($) and loan amount from the offer PRICE and the
+  // down-payment % (read from the pre-approval — e.g. FHA 3.5% — or inferred from
+  // the program). The agent can still type a custom down payment or loan amount;
+  // once they do, we stop overwriting it (we only auto-fill values we computed).
+  const financeAutoRef = useRef({ dp: null, loan: null });
+  useEffect(() => {
+    const price = Number(data.purchase_price) || 0;
+    const ft = String(data.financing_type || "");
+    if (ft === "Cash") return; // cash: no loan/down math
+    let pct = (data.down_payment_pct === "" || data.down_payment_pct == null) ? null : Number(data.down_payment_pct);
+    if (pct == null || isNaN(pct)) {
+      if (ft === "FHA") pct = 3.5;
+      else if (ft === "VA" || ft === "USDA") pct = 0;
+    }
+    if (!price || pct == null || isNaN(pct)) return;
+    const dp = Math.round(price * pct / 100);
+    const loan = Math.max(0, price - dp);
+    setData(d => {
+      const prev = financeAutoRef.current;
+      const dpManual = d.down_payment !== "" && d.down_payment != null && Number(d.down_payment) !== (prev.dp ?? -1);
+      const loanManual = d.loan_amount !== "" && d.loan_amount != null && Number(d.loan_amount) !== (prev.loan ?? -1);
+      const next = { ...d };
+      if ((d.down_payment_pct === "" || d.down_payment_pct == null) && pct != null) next.down_payment_pct = pct;
+      if (!dpManual) next.down_payment = dp;
+      if (!loanManual) next.loan_amount = loan;
+      return next;
+    });
+    financeAutoRef.current = { dp, loan };
+    // eslint-disable-next-line
+  }, [data.purchase_price, data.down_payment_pct, data.financing_type]);
 
   // Auto-include condition-driven addenda when the agent reaches the addenda step,
   // so required riders (FHA/VA→E, appraisal→F, condo→A, HOA→B, pre-1978→P, etc.)
