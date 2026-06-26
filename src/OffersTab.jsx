@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import OfferWizard from "./OfferWizard";
 
 const API = "https://liz-team-server-api-production.up.railway.app";
@@ -102,6 +102,68 @@ export default function OffersTab({ tx, token }) {
     }
   };
 
+  // View the generated offer packet PDF.
+  const viewPacket = async (offerId) => {
+    try {
+      const r = await fetch(API + "/offers/" + offerId + "/packet-url", { headers: { Authorization: "Bearer " + token } });
+      const data = await r.json();
+      if (!r.ok || !data.url) throw new Error(data.error || "No packet yet — open the offer and finish the wizard to generate it.");
+      window.open(data.url, "_blank");
+    } catch (e) { alert(e.message); }
+  };
+
+  // Upload the buyer-signed offer (server-proxied), then it attaches when sending.
+  const fileRef = useRef(null);
+  const [signTarget, setSignTarget] = useState(null);
+  const pickSigned = (offerId) => { setSignTarget(offerId); setTimeout(() => fileRef.current && fileRef.current.click(), 0); };
+  const uploadSigned = async (file) => {
+    const offerId = signTarget;
+    setSignTarget(null);
+    if (!file || !offerId) return;
+    try {
+      const base64 = await new Promise((res, rej) => { const fr = new FileReader(); fr.onload = () => res(String(fr.result).split(",")[1]); fr.onerror = rej; fr.readAsDataURL(file); });
+      const r = await fetch(API + "/offers/" + offerId + "/upload-signed", {
+        method: "POST", headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
+        body: JSON.stringify({ fileName: file.name, fileType: file.type, base64 }),
+      });
+      const data = await r.json(); if (!r.ok) throw new Error(data.error || "Upload failed");
+      alert("✅ Signed offer uploaded. It'll be attached when you send to the listing agent.");
+      await load();
+    } catch (e) { alert("Error: " + e.message); }
+  };
+
+  // Email the offer to the listing agent (attaches the signed offer, else the packet).
+  const sendToListing = async (o) => {
+    const d = o.offer_data || {};
+    let toEmail = d.listing_agent_email || "";
+    if (!toEmail) { toEmail = (prompt("Listing agent's email to send this offer to:") || "").trim(); if (!toEmail) return; }
+    const what = o.signed_doc_id ? "The buyer-signed offer will be attached."
+      : o.packet_pdf_key ? "The offer packet will be attached."
+      : "⚠️ No signed offer or packet yet — open the offer to generate the packet, or upload the signed offer first.";
+    if (!confirm("Send this offer to the listing agent?\n\nTo: " + toEmail + "\n" + what)) return;
+    try {
+      const r = await fetch(API + "/offers/" + o.id + "/send-to-listing-agent", {
+        method: "POST", headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
+        body: JSON.stringify({ toEmail }),
+      });
+      const data = await r.json(); if (!r.ok) throw new Error(data.error || "Send failed");
+      alert("✅ Sent to " + data.sentTo + (data.attached ? " (" + data.attached + " attached)" : "") + ".\n\nReplies show in the deal's Replies. When the seller accepts, click Accepted to start the transaction.");
+      await load();
+    } catch (e) { alert("Error: " + e.message); }
+  };
+
+  const setOfferStatus = async (offerId, status, label) => {
+    if (!confirm("Mark this offer " + label + "?")) return;
+    try {
+      const r = await fetch(API + "/offers/" + offerId + "/status", {
+        method: "PATCH", headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
+        body: JSON.stringify({ status }),
+      });
+      const data = await r.json(); if (!r.ok) throw new Error(data.error || "Failed");
+      await load();
+    } catch (e) { alert("Error: " + e.message); }
+  };
+
   const unacceptOffer = async (offerId) => {
     if (!confirm("Undo this acceptance?\n\nThe transaction will revert to its prior status and the other offers will be restored.\n\nNote: welcome emails already sent CANNOT be recalled.")) return;
     try {
@@ -178,29 +240,25 @@ export default function OffersTab({ tx, token }) {
                     </td>
                     <td style={{ padding: "10px 12px", color: "#6b7280" }}>{o.current_step}/12</td>
                     <td style={{ padding: "10px 12px", color: "#6b7280" }}>{fmtDate(o.updated_at)}</td>
-                    <td style={{ padding: "10px 12px", textAlign: "right", whiteSpace: "nowrap" }}>
-                      <button onClick={() => setWizardOfferId(o.id)}
-                        style={{ background: "#e5e7eb", color: "#374151", border: "none", padding: "4px 10px", borderRadius: 4, fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", marginRight: 6 }}>
-                        Open
-                      </button>
-                      {(o.status === "ready" || o.status === "sent" || o.status === "countered") && (
-                        <button onClick={() => acceptOffer(o.id)}
-                          style={{ background: "#16a34a", color: "white", border: "none", padding: "4px 10px", borderRadius: 4, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", marginRight: 6 }}>
-                          Accepted
-                        </button>
-                      )}
-                      {o.status === "accepted" && (
-                        <button onClick={() => unacceptOffer(o.id)}
-                          style={{ background: "#fef3c7", color: "#92400e", border: "none", padding: "4px 10px", borderRadius: 4, fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", marginRight: 6 }}>
-                          Undo acceptance
-                        </button>
-                      )}
-                      {(o.status === "draft" || o.status === "ready") && (
-                        <button onClick={() => deleteOffer(o.id)}
-                          style={{ background: "#fee2e2", color: "#7f1d1d", border: "none", padding: "4px 10px", borderRadius: 4, fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
-                          Delete
-                        </button>
-                      )}
+                    <td style={{ padding: "10px 12px" }}>
+                      {(() => {
+                        const btn = (label, onClick, bg, color) => (
+                          <button onClick={onClick} style={{ background: bg, color, border: "none", padding: "4px 10px", borderRadius: 4, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>{label}</button>
+                        );
+                        const active = !["accepted", "rejected", "withdrawn"].includes(o.status);
+                        return (
+                          <div style={{ display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "flex-end" }}>
+                            {btn("Open", () => setWizardOfferId(o.id), "#e5e7eb", "#374151")}
+                            {o.packet_pdf_key && btn("📄 Packet", () => viewPacket(o.id), "#e0f2fe", "#075985")}
+                            {active && btn(o.signed_doc_id ? "✓ Signed ↑" : "⬆️ Signed", () => pickSigned(o.id), "#ede9fe", "#5b21b6")}
+                            {active && btn("📧 Send to listing agent", () => sendToListing(o), "#0c4a6e", "#fff")}
+                            {(o.status === "ready" || o.status === "sent" || o.status === "countered") && btn("✅ Accepted", () => acceptOffer(o.id), "#16a34a", "#fff")}
+                            {(o.status === "sent" || o.status === "countered") && btn("Declined", () => setOfferStatus(o.id, "rejected", "DECLINED by the seller"), "#fee2e2", "#7f1d1d")}
+                            {o.status === "accepted" && btn("Undo acceptance", () => unacceptOffer(o.id), "#fef3c7", "#92400e")}
+                            {(o.status === "draft" || o.status === "ready") && btn("Delete", () => deleteOffer(o.id), "#fee2e2", "#7f1d1d")}
+                          </div>
+                        );
+                      })()}
                     </td>
                   </tr>
                 );
@@ -209,6 +267,9 @@ export default function OffersTab({ tx, token }) {
           </table>
         </div>
       )}
+
+      <input ref={fileRef} type="file" accept=".pdf,image/*" style={{ display: "none" }}
+        onChange={e => { const f = e.target.files && e.target.files[0]; if (f) uploadSigned(f); e.target.value = ""; }} />
 
       {wizardOfferId && (
         <OfferWizard
