@@ -5365,6 +5365,7 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
   }, [activeTab, msgSection, unreadReplyCount]);
   const [showEditTx, setShowEditTx] = useState(false);
   const [showPortalPreview, setShowPortalPreview] = useState(false);
+  const [offerCreateSignal, setOfferCreateSignal] = useState(0);  // header "Create Offer" → OffersTab creates
   const [editTxForm, setEditTxForm] = useState({});
   const [showReceiveOffer, setShowReceiveOffer] = useState(false);
   const [reviewOfferId, setReviewOfferId] = useState(null);
@@ -5582,7 +5583,7 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
         <button onClick={() => isGuest ? setPaywallFeature("Editing a transaction") : openEditTx()} style={{ fontSize: 11, padding: "4px 10px", borderRadius: 6, border: "1px solid rgba(255,255,255,0.3)", background: "rgba(255,255,255,0.1)", color: "#fff", cursor: "pointer", fontFamily: "inherit" }}>✏️ Edit</button>
         <button onClick={() => isGuest ? setPaywallFeature("Printing") : window.print()} style={{ fontSize: 11, padding: "4px 10px", borderRadius: 6, border: "1px solid rgba(255,255,255,0.3)", background: "rgba(255,255,255,0.1)", color: "#fff", cursor: "pointer", fontFamily: "inherit" }}>🖨️ Print</button>
         {!isGuest && tx.type === "Buyer Representation" && !["Closed", "Cancelled"].includes(tx.status) && (
-          <button onClick={() => setActiveTab("offers")} title="Build and send your buyer's offer to the listing agent" style={{ fontSize: 11, padding: "4px 12px", borderRadius: 6, border: "none", background: "#1E8449", color: "#fff", fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>📝 Create Offer</button>
+          <button onClick={() => { setActiveTab("offers"); setOfferCreateSignal(n => n + 1); }} title="Build and send your buyer's offer to the listing agent" style={{ fontSize: 11, padding: "4px 12px", borderRadius: 6, border: "none", background: "#1E8449", color: "#fff", fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>📝 Create Offer</button>
         )}
         {!isGuest && (
           <button onClick={() => setShowPortalPreview(true)} title="See exactly what your buyer/seller sees in their portal" style={{ fontSize: 11, padding: "4px 12px", borderRadius: 6, border: "1px solid rgba(255,255,255,0.3)", background: "rgba(255,255,255,0.1)", color: "#fff", fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>👁 Preview Client Portal</button>
@@ -6097,7 +6098,7 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
         )}
 
         {activeTab === "documents" && <DocumentsTab tx={tx} coordinatorMode={isCoordinator} />}
-        {activeTab === "offers" && <OffersTab tx={tx} token={localStorage.getItem("tp_token") || ""} currentUser={currentUser} />}
+        {activeTab === "offers" && <OffersTab tx={tx} token={localStorage.getItem("tp_token") || ""} currentUser={currentUser} createSignal={offerCreateSignal} />}
         {activeTab === "calculator" && (
           <div style={{ padding: 20 }}>
             <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 8, padding: 12, marginBottom: 16, fontSize: 13, color: "#7f1d1d" }}>

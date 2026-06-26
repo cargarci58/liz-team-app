@@ -25,7 +25,7 @@ function fmtDate(d) {
   return new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 }
 
-export default function OffersTab({ tx, token, currentUser }) {
+export default function OffersTab({ tx, token, currentUser, createSignal = 0 }) {
   const [offers, setOffers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
@@ -51,6 +51,13 @@ export default function OffersTab({ tx, token, currentUser }) {
   };
 
   useEffect(() => { load(); /* eslint-disable-next-line */ }, [tx.id]);
+
+  // The toolbar "📝 Create Offer" button (in the transaction header) drives offer
+  // creation now — when it's clicked it bumps createSignal and we create here.
+  useEffect(() => {
+    if (createSignal > 0) createOffer();
+    /* eslint-disable-next-line */
+  }, [createSignal]);
 
   const createOffer = async () => {
     setCreating(true);
@@ -172,17 +179,11 @@ export default function OffersTab({ tx, token, currentUser }) {
 
   return (
     <div style={{ padding: 24 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 12 }}>
-        <div>
-          <div style={{ fontSize: 22, fontWeight: 800 }}>📝 Create Offer</div>
-          <div style={{ fontSize: 13, color: "#6b7280", marginTop: 2 }}>
-            The offer wizard — write/build your buyer's offer (FAR/BAR AS-IS), assemble the packet, and send it to the listing agent.
-          </div>
+      <div style={{ marginBottom: 16 }}>
+        <div style={{ fontSize: 22, fontWeight: 800 }}>📝 Offers</div>
+        <div style={{ fontSize: 13, color: "#6b7280", marginTop: 2 }}>
+          {creating ? "Creating your offer…" : "Build your buyer's offer (FAR/BAR AS-IS), assemble the packet, and send it to the listing agent. Use the 📝 Create Offer button at the top to start a new one."}
         </div>
-        <button onClick={createOffer} disabled={creating}
-          style={{ background: creating ? "#9ca3af" : "#0c4a6e", color: "white", border: "none", padding: "10px 18px", borderRadius: 6, fontSize: 14, fontWeight: 700, cursor: creating ? "wait" : "pointer", fontFamily: "inherit" }}>
-          {creating ? "Creating..." : "Create Offer"}
-        </button>
       </div>
 
       {error && (
@@ -197,7 +198,7 @@ export default function OffersTab({ tx, token, currentUser }) {
         <div style={{ background: "#f9fafb", border: "2px dashed #d1d5db", borderRadius: 8, padding: 40, textAlign: "center", color: "#6b7280" }}>
           <div style={{ fontSize: 32, marginBottom: 8 }}>📝</div>
           <div style={{ fontWeight: 700, color: "#374151", marginBottom: 4 }}>No offers yet</div>
-          <div style={{ fontSize: 13 }}>Click "Create Offer" to build your first offer for this buyer.</div>
+          <div style={{ fontSize: 13 }}>Use the 📝 Create Offer button at the top of this transaction to build your first offer.</div>
         </div>
       ) : (
         <div style={{ background: "white", border: "1px solid #e5e7eb", borderRadius: 8, overflow: "hidden" }}>
