@@ -5534,7 +5534,7 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
     { id: "documents", label: "📎 Documents" },
     ...(isGuest ? [{ id: "chat", label: (chatUnread > 0 || dashboardUnread > 0) ? `💬 Group Chat (${Math.max(chatUnread, dashboardUnread)})` : "💬 Group Chat" }] : []),
     { id: "cma", label: "📊 CMA" },
-    ...(isBuyerSideTx ? [{ id: "offers", label: "📝 Create Offer" }, { id: "calculator", label: "🧮 Buyers Calculator" }, { id: "buyer-net", label: "💰 Buyer's Net Sheet" }] : []),
+    ...(isBuyerSideTx ? [{ id: "offers", label: "📝 Offers" }, { id: "calculator", label: "🧮 Buyers Calculator" }, { id: "buyer-net", label: "💰 Buyer's Net Sheet" }] : []),
     ...(isListingSideTx ? [{ id: "seller-calc", label: "💰 Seller's Net Sheet" }] : []),
     { id: "tx-forms", label: "📋 Forms" },
     { id: "activity", label: "📋 Activity Log" },
