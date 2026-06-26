@@ -708,6 +708,7 @@ export default function OfferWizard({ offerId, token, onClose, onSaved }) {
                 <div style={{ fontWeight: 700, color: "#111", marginBottom: 8 }}>📋 Offer summary</div>
                 <div><strong>Property:</strong> {data.property_address || "—"}</div>
                 <div><strong>Buyer:</strong> {data.buyer_names || "—"}</div>
+                <div><strong>Seller (owner):</strong> {data.seller_names || "—"}</div>
                 <div><strong>Price:</strong> {data.purchase_price ? "$" + Number(data.purchase_price).toLocaleString() : "—"}</div>
                 <div><strong>EMD:</strong> {data.initial_emd ? "$" + Number(data.initial_emd).toLocaleString() : "—"}</div>
                 <div><strong>Closing date:</strong> {data.closing_date || "—"}</div>
