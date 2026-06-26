@@ -295,8 +295,32 @@ function SendOfferModal({ offer, tx, token, currentUser, onClose, onSent }) {
   const [toEmail, setToEmail] = useState(d.listing_agent_email || "");
   const [toName, setToName] = useState(d.listing_agent_name || "Listing Agent");
   const [subject, setSubject] = useState(`Offer — ${addr || "your listing"}${price ? " — " + price : ""}`);
+  // Build a clean summary of the offer terms for the email body.
+  const termsLines = (() => {
+    const L = [];
+    if (d.purchase_price) L.push("• Purchase Price: " + fmtMoney(d.purchase_price));
+    if (d.initial_emd) L.push("• Earnest Money: " + fmtMoney(d.initial_emd) + (d.initial_emd_deadline_days ? " (within " + d.initial_emd_deadline_days + " business days)" : ""));
+    if (d.additional_emd) L.push("• Additional Deposit: " + fmtMoney(d.additional_emd));
+    const ft = d.financing_type || "";
+    if (ft === "Cash") L.push("• Financing: Cash — no financing contingency");
+    else if (ft) {
+      let fin = "• Financing: " + ft;
+      if (d.down_payment_pct) fin += " — " + d.down_payment_pct + "% down";
+      if (d.down_payment || d.loan_amount) fin += " (" + [d.down_payment ? fmtMoney(d.down_payment) + " down" : null, d.loan_amount ? fmtMoney(d.loan_amount) + " loan" : null].filter(Boolean).join(", ") + ")";
+      L.push(fin);
+      L.push("• Financing Contingency: Yes");
+    }
+    if (d.appraisal_contingency) L.push("• Appraisal Contingency: " + (/^\s*no/i.test(d.appraisal_contingency) ? "Waived" : "Yes"));
+    if (d.inspection_period_days) L.push("• Inspection Period: " + d.inspection_period_days + " days");
+    if (Number(d.closing_costs_paid_by) > 0) L.push("• Seller Credit to Buyer's Closing Costs: " + fmtMoney(d.closing_costs_paid_by));
+    if (d.closing_date) L.push("• Closing Date: " + fmtDate(d.closing_date));
+    if (d.occupancy_type) L.push("• Possession: " + d.occupancy_type);
+    if (d.offer_effective_date) L.push("• Offer Expires (seller to accept by): " + fmtDate(d.offer_effective_date));
+    return L;
+  })();
+  const termsBlock = termsLines.length ? "\n\nSUMMARY OF KEY TERMS:\n" + termsLines.join("\n") + "\n" : "";
   const [message, setMessage] = useState(
-    `Hi ${firstName},\n\nPlease find attached my buyer's offer on ${addr || "your listing"}${price ? " at " + price : ""}. I'd appreciate you presenting it to your seller. Happy to discuss any terms — just reply to this email.\n\nThank you,\n${agentName}`.trim()
+    `Hi ${firstName},\n\nPlease find attached my buyer's offer on ${addr || "your listing"}${price ? " at " + price : ""}.${termsBlock}\nThe full offer is attached. I'd appreciate you presenting it to your seller — happy to discuss any terms, just reply to this email.\n\nThank you,\n${agentName}`.trim()
   );
   const [attach, setAttach] = useState([]);      // extra docs [{id,name}]
   const [docList, setDocList] = useState(null);
