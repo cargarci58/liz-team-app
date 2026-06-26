@@ -320,7 +320,7 @@ function SendOfferModal({ offer, tx, token, currentUser, onClose, onSent }) {
   })();
   const termsBlock = termsLines.length ? "\n\nSUMMARY OF KEY TERMS:\n" + termsLines.join("\n") + "\n" : "";
   const [message, setMessage] = useState(
-    `Hi ${firstName},\n\nPlease find attached my buyer's offer on ${addr || "your listing"}${price ? " at " + price : ""}.${termsBlock}\nThe full offer is attached. I'd appreciate you presenting it to your seller — happy to discuss any terms, just reply to this email.\n\nThank you,\n${agentName}`.trim()
+    `Hi ${firstName},\n\nPlease find attached my buyer's offer on ${addr || "your listing"}${price ? " at " + price : ""}.${termsBlock}\nThe full offer is attached. I'd appreciate you presenting it to your seller.\n\nThank you,\n${agentName}\n\nP.S. Please reply to this email with your seller's response or any questions — that keeps everything for this offer in one place.`.trim()
   );
   const [attach, setAttach] = useState([]);      // extra docs [{id,name}]
   const [docList, setDocList] = useState(null);
