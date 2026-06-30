@@ -9138,15 +9138,16 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
           itself once the messages are read. */}
       {(() => {
         // ANY message — in-app chat OR an inbound client reply — fires the alert,
-        // for the agent AND the TC alike. We do NOT filter to the currently-loaded
-        // deal list: the server already scopes these counts to deals the user can
-        // access, and filtering here silently swallowed real alerts when a reply
-        // landed on a deal not in the in-memory snapshot (just-assigned, closed,
-        // or loaded after the count). Clicking resolves cleanly because
-        // openTransactionMilestones refreshes-on-miss.
+        // for the agent AND the TC alike. Only count deals that are in the loaded
+        // pipeline so the alert can always OPEN cleanly — otherwise an unread on a
+        // deal the user can't open (e.g. a TC who's a party but not the coordinator
+        // on a closed deal) created a dead-end "couldn't open that transaction" with
+        // no way to clear it. The server already scopes counts to accessible deals;
+        // this just keeps the badge to ones we can actually navigate to.
+        const known = new Set((transactions || []).map(t => t.id));
         const merged = {};
-        for (const [id, n] of Object.entries(unreadCounts || {})) if (n > 0) merged[id] = (merged[id] || 0) + n;
-        for (const [id, n] of Object.entries(inboundCounts || {})) if (n > 0) merged[id] = (merged[id] || 0) + n;
+        for (const [id, n] of Object.entries(unreadCounts || {})) if (n > 0 && known.has(id)) merged[id] = (merged[id] || 0) + n;
+        for (const [id, n] of Object.entries(inboundCounts || {})) if (n > 0 && known.has(id)) merged[id] = (merged[id] || 0) + n;
         const entries = Object.entries(merged);
         const total = entries.reduce((a, [, n]) => a + n, 0);
         if (total === 0) return null;
