@@ -254,7 +254,7 @@ function cleanItemTitle(title, address) {
 // One task line inside a deal's grouped card. No outer card chrome / address —
 // the parent DealGroupCard supplies those. `bucket` carries the NOW/TODAY/SOON
 // label + colors for this specific line.
-function TaskItem({ task, bucket, token, onResolve, onComplete, onSnooze, onOpenModal, onStartChase, onOpenTransactionMilestones, onOpenInboundReply, onInboundReply, onReschedule, onActPreview }) {
+function TaskItem({ task, bucket, token, onResolve, onComplete, onSnooze, onOpenModal, onStartChase, onOpenTransactionMilestones, onOpenInboundReply, onInboundReply, onReschedule, onActPreview, onUpdateSent }) {
   const cfg = bucket || PRIORITY_CONFIG[task.priority] || PRIORITY_CONFIG.normal;
   const icon = TASK_ICONS[task.task_type] || "📌";
   const isSellerUpdate = task.task_type === "seller_update";
@@ -348,7 +348,7 @@ function TaskItem({ task, bucket, token, onResolve, onComplete, onSnooze, onOpen
                 background:COLORS.red, color:COLORS.white, fontWeight:700, fontSize:14, cursor:"pointer" }}>
               Do It Now →
             </button>
-            <button onClick={() => onResolve(task.id)}
+            <button onClick={() => (onUpdateSent ? onUpdateSent(task) : onResolve(task.id))}
               style={{ flex:"1 1 30%", padding:"11px 0", borderRadius:10,
                 border:"1.5px solid "+COLORS.border, background:COLORS.white,
                 color:COLORS.gray, fontWeight:600, fontSize:13, cursor:"pointer" }}>
@@ -486,7 +486,7 @@ const tcVerb = (a) => ({
 // One card per TRANSACTION. All of that deal's items are grouped here as lines,
 // most-urgent first — instead of scattering 3-5 separate cards across the page.
 // The card's left bar + header badge reflect the single most-urgent item.
-function DealGroupCard({ deal, token, coordinatorMode = false, meta = null, agentTc = null, onSendAiDraft, aiBusy, onDealAction, onActPreview, onResolve, onComplete, onSnooze, onOpenModal, onStartChase, onOpenTransactionMilestones, onOpenInboundReply, onInboundReply, onOpenTransaction, onReschedule }) {
+function DealGroupCard({ deal, token, coordinatorMode = false, meta = null, agentTc = null, onSendAiDraft, aiBusy, onDealAction, onActPreview, onResolve, onComplete, onSnooze, onOpenModal, onStartChase, onOpenTransactionMilestones, onOpenInboundReply, onInboundReply, onOpenTransaction, onReschedule, onUpdateSent }) {
   const top = BUCKETS[deal.rank] || BUCKETS[3];
   // Coordinator card accent reflects the AI health read when we have one.
   const healthColor = meta && meta.health === "red" ? "#DC2626" : meta && meta.health === "yellow" ? "#D97706" : meta && meta.health === "green" ? "#16A34A" : null;
@@ -554,7 +554,7 @@ function DealGroupCard({ deal, token, coordinatorMode = false, meta = null, agen
             onOpenModal={onOpenModal} onStartChase={onStartChase}
             onOpenTransactionMilestones={onOpenTransactionMilestones}
             onOpenInboundReply={onOpenInboundReply} onInboundReply={onInboundReply}
-            onReschedule={onReschedule} onActPreview={onActPreview} />
+            onReschedule={onReschedule} onActPreview={onActPreview} onUpdateSent={onUpdateSent} />
         </div>
       ))}
       {/* Header-only coordinator card (flagged deal whose item cards haven't
@@ -943,6 +943,19 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
         method: "PATCH", headers: { Authorization: "Bearer " + token }
       });
       setResolvedIds(prev => new Set([...prev, taskId]));
+    } catch (e) {}
+  };
+
+  // "Already Sent" on a seller/buyer-update card — LOG the update so the clock
+  // actually resets (otherwise it keeps saying "N days since your last update").
+  const handleMarkUpdateSent = async (task) => {
+    setResolvedIds(prev => new Set([...prev, task.id]));  // hide immediately
+    try {
+      await fetch(API + "/transactions/" + task.transaction_id + "/mark-update-sent", {
+        method: "POST", headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
+        body: JSON.stringify({ type: task.task_type === "buyer_update" ? "buyer" : "seller" }),
+      });
+      window.dispatchEvent(new Event("wintheday:refresh"));
     } catch (e) {}
   };
 
@@ -1376,6 +1389,7 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
               agentTc={!coordinatorMode ? agentTcMap[deal.transaction_id] : null}
               onSendAiDraft={sendAiDraft} aiBusy={aiBusy} onDealAction={dealAction} onActPreview={actPreview}
               onResolve={handleResolve} onComplete={handleComplete} onSnooze={handleSnooze}
+              onUpdateSent={handleMarkUpdateSent}
               onOpenModal={setActiveModal} onStartChase={handleStartChase}
               onOpenTransaction={onOpenTransactionMilestones}
               onOpenTransactionMilestones={onOpenTransactionMilestones}
