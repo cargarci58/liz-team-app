@@ -208,7 +208,9 @@ function PersonalTaskCard({ task, token, onChange }) {
     setBusy(false);
   };
 
-  const today = new Date().toISOString().slice(0, 10);
+  // Eastern (Florida) date, not UTC — otherwise in the evening a task due today
+  // wrongly shows "Overdue" and one due tomorrow shows up under "due today".
+  const today = new Date().toLocaleDateString("en-CA", { timeZone: "America/New_York" });
   const overdue = task.due_date && task.due_date < today;
 
   return (
