@@ -5270,7 +5270,7 @@ function LeaseDocsModal({ tx, onClose, onGenerated }) {
   );
 }
 
-function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = false, onBack, contacts, onInviteParty = [], onCopyLoginLink, onSaveContact, onOpenContactBook, onDuplicate, currentUser, initialTab = "overview", dashboardUnread = 0, onMilestoneSummary, onInboundRead }) {
+function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = false, onBack, contacts, onInviteParty = [], onCopyLoginLink, onSaveContact, onOpenContactBook, onDuplicate, currentUser, initialTab = "overview", navSignal = 0, dashboardUnread = 0, onMilestoneSummary, onInboundRead }) {
   // Staff (agent + coordinator) comms tabs are merged into one "messages" hub, so
   // a deep-link to chat/replies/sms opens the hub on the right section. Guests keep
   // their standalone chat tab.
@@ -5281,6 +5281,20 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
   const [msgSection, setMsgSection] = useState(
     initialTab === "replies" ? "replies" : initialTab === "sms" ? "send" : "chat"
   );
+  // Re-route to the requested tab whenever the parent bumps navSignal — this fires
+  // even if we're ALREADY mounted on this deal (clicking the floating new-message
+  // alert while standing on the deal). Skip the initial render (navSignal 0) so we
+  // don't override a tab the user manually picked.
+  const _navFirst = useRef(true);
+  useEffect(() => {
+    if (_navFirst.current) { _navFirst.current = false; return; }
+    if (_isStaffInit && ["chat", "replies", "sms"].includes(initialTab)) {
+      setActiveTab("messages");
+      setMsgSection(initialTab === "replies" ? "replies" : initialTab === "sms" ? "send" : "chat");
+    } else {
+      setActiveTab(initialTab);
+    }
+  }, [navSignal]);
   const [showAssignAgent, setShowAssignAgent] = useState(false);
   const [showAddParty, setShowAddParty] = useState(false);
   const [paywallFeature, setPaywallFeature] = useState(null);  // guest taps a paid feature
@@ -8594,6 +8608,11 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
   const [unreadCounts, setUnreadCounts] = useState({});       // in-app chat, per tx
   const [inboundCounts, setInboundCounts] = useState({});     // client email replies, per tx
   const [initialDetailTab, setInitialDetailTab] = useState("overview");
+  // Bumped on every openTransactionMilestones() call so the detail view re-routes
+  // to the requested tab EVEN WHEN you're already viewing that same deal (e.g. you
+  // click the floating "new message" alert while standing on the deal — without a
+  // changing signal the tab state never re-applies and nothing appears to happen).
+  const [detailNavSignal, setDetailNavSignal] = useState(0);
   const token = localStorage.getItem("tp_token") || "";
   const authHeaders = { "Content-Type": "application/json", "Authorization": `Bearer ${token}` };
 
@@ -9114,6 +9133,7 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
     if (t) {
       setSelectedId(txId);
       setInitialDetailTab(tab); // default Documents (where they upload); inbound cards land on Replies
+      setDetailNavSignal(n => n + 1); // force the tab to re-route even if already on this deal
       setView("detail");
     } else {
       console.error("[openTransactionMilestones] tx still not found after refresh:", txId);
@@ -9197,6 +9217,7 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
       {!showReports && !showCalendar && view === "detail" && selectedTx && (
         <TransactionDetail
           initialTab={initialDetailTab}
+          navSignal={detailNavSignal}
           dashboardUnread={unreadCounts[selectedId] || 0}
           tx={selectedTx}
           coordinatorMode={coordinatorMode}
