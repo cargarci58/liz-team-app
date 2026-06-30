@@ -5808,15 +5808,27 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
             {tx.assignedAgentId && tx.needsFirstContact && (
               <BuyerIntakeChecklist tx={tx} token={localStorage.getItem("tp_token") || ""} onContactLogged={() => onUpdate({ ...tx, needsFirstContact: false })} />
             )}
+            {(tx.isCash || /cash/i.test(tx.financingType || "")) && (
+              <div style={{ background: "#ECFDF5", border: "1px solid #6EE7B7", borderRadius: 10, padding: "10px 14px", marginBottom: 16, display: "flex", alignItems: "center", gap: 8, fontSize: 14, fontWeight: 700, color: "#065F46" }}>
+                💵 Cash deal — no lender or financing. No loan application, lender appraisal, or financing contingency applies.
+              </div>
+            )}
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, marginBottom: 20 }}>
               {[
                 { title: "Property", rows: [["Assigned Agent", tx.assignedAgentName || "—"], ["Referral Source", tx.referralSource || "—"], ["Address", tx.address], ["City/County", `${tx.city}, ${tx.county} County`], ["Zip", tx.zipCode], ["Type", tx.propertyType], ["Transaction", tx.type], ["MLS #", tx.mlsNumber], ["Lockbox Access", tx.propertyAccess || "—"], ["Mail-Away", tx.mailAway || "No"]] },
                 { title: isCoordinator ? "Price & Dates" : "Financials", rows: (() => {
                     // Coordinator: price + dates only — the agent's commission/splits/
                     // fees are never shown.
+                    const _isCashDeal = tx.isCash || /cash/i.test(tx.financingType || "");
+                    const _financingLabel = _isCashDeal
+                      ? "💵 Cash — no lender"
+                      : (tx.financingType
+                          ? `${tx.financingType}${tx.financingContingency && tx.financingContingencyDays ? ` · ${tx.financingContingencyDays}d contingency` : ""}`
+                          : (tx.financingContingency ? `Financed${tx.financingContingencyDays ? ` · ${tx.financingContingencyDays}d contingency` : ""}` : "—"));
                     const dateRows = [
                       ["List Price", tx.listPrice ? `$${Number(tx.listPrice).toLocaleString()}` : "—"],
                       ["Contract Price", tx.contractPrice ? `$${Number(tx.contractPrice).toLocaleString()}` : "—"],
+                      ["Financing", _financingLabel],
                       ["Open Date", formatDate(tx.openDate)],
                       ["Executed Date", formatDate(tx.executedDate)],
                       ["Closing Date", formatDate(tx.closingDate)],
