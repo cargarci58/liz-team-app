@@ -1373,7 +1373,7 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
       )}
       {personal.upcoming.length > 0 && (
         <div style={{ marginBottom: 24 }}>
-          <SectionHeader label="📝 GENERAL TASKS — UPCOMING & UNDATED" count={personal.upcoming.length} color="#1E8449" />
+          <SectionHeader label="📝 GENERAL TASKS — NEXT 2 DAYS & UNDATED" count={personal.upcoming.length} color="#1E8449" />
           {personal.upcoming.map(t => (
             <PersonalTaskCard key={t.id} task={t} token={token} onChange={fetchTasks} />
           ))}
