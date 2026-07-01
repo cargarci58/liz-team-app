@@ -597,40 +597,56 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
   );
 }
 
-// ── Share an existing document with a party ──────────────────────────────────
-// Pick a party already on the transaction (or type any email), add an optional
-// note, and the server emails the file as an attachment in the agent's voice.
+// ── Share an existing document with one or MORE parties ──────────────────────
+// Check any parties on the transaction (and/or type an extra email), add an
+// optional note; the server emails each recipient the file as an attachment in
+// the agent's voice (one send per recipient — the endpoint is per-recipient).
 function ShareModal({ tx, doc, headers, onClose }) {
   const parties = (tx.parties || []).filter(p => p.email && !/hoa/i.test(p.role || ""));
-  const [picked, setPicked] = useState(parties[0] ? String(parties[0].id || parties[0].email) : "custom");
-  const [email, setEmail] = useState(parties[0]?.email || "");
-  const [name, setName] = useState(parties[0]?.name || "");
-  const [role, setRole] = useState(parties[0]?.role || "");
+  // Checked recipients, keyed by party id/email. First party pre-checked (the
+  // old modal pre-selected them, so one-recipient sharing stays one tap).
+  const [checked, setChecked] = useState(() => {
+    const init = {};
+    if (parties[0]) init[String(parties[0].id || parties[0].email)] = true;
+    return init;
+  });
+  const [extraOn, setExtraOn] = useState(false);
+  const [email, setEmail] = useState("");
+  const [name, setName] = useState("");
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
-  const [done, setDone] = useState(false);
+  const [done, setDone] = useState(null); // { ok: [names], failed: ["name (reason)"] }
   const [error, setError] = useState(null);
 
-  const onPick = (val) => {
-    setPicked(val);
-    if (val === "custom") { setEmail(""); setName(""); setRole(""); return; }
-    const p = parties.find(x => String(x.id || x.email) === val);
-    if (p) { setEmail(p.email || ""); setName(p.name || ""); setRole(p.role || ""); }
-  };
+  const toggle = (key) => setChecked(c => ({ ...c, [key]: !c[key] }));
+  const pickedParties = parties.filter(p => checked[String(p.id || p.email)]);
+  const nRecipients = pickedParties.length + (extraOn && email.trim() ? 1 : 0);
 
   const send = async () => {
-    if (!email || !/.+@.+\..+/.test(email)) { setError("Enter a valid email address."); return; }
+    const recipients = pickedParties.map(p => ({ toEmail: p.email.trim(), toName: p.name || "", toRole: p.role || "" }));
+    if (extraOn && email.trim()) {
+      if (!/.+@.+\..+/.test(email.trim())) { setError("The extra email address doesn't look valid."); return; }
+      recipients.push({ toEmail: email.trim(), toName: name.trim(), toRole: "" });
+    }
+    if (recipients.length === 0) { setError("Check at least one person (or add an email)."); return; }
     setError(null); setBusy(true);
-    try {
-      const res = await fetch(`${API}/documents/${doc.id}/share`, {
-        method: "POST", headers,
-        body: JSON.stringify({ toEmail: email.trim(), toName: name.trim(), toRole: role, message }),
-      });
-      const data = await res.json();
-      if (!res.ok || !data.success) throw new Error(data.error || "Could not send.");
-      setDone(true);
-    } catch (e) { setError(e.message); }
-    finally { setBusy(false); }
+    const ok = [], failed = [];
+    // Sequential so a batch can't hammer the server; each recipient gets their
+    // own email (privacy — recipients never see each other's addresses).
+    for (const r of recipients) {
+      try {
+        const res = await fetch(`${API}/documents/${doc.id}/share`, {
+          method: "POST", headers,
+          body: JSON.stringify({ ...r, message }),
+        });
+        const data = await res.json();
+        if (!res.ok || !data.success) throw new Error(data.error || "Could not send.");
+        ok.push(r.toName || r.toEmail);
+      } catch (e) { failed.push(`${r.toName || r.toEmail} (${e.message})`); }
+    }
+    setBusy(false);
+    if (failed.length && !ok.length) { setError("Couldn't send: " + failed.join(", ")); return; }
+    setDone({ ok, failed });
   };
 
   const inp = { width: "100%", padding: "9px 11px", borderRadius: 8, border: "1px solid " + COLORS.border, fontSize: 14, fontFamily: "inherit", boxSizing: "border-box" };
@@ -650,21 +666,39 @@ function ShareModal({ tx, doc, headers, onClose }) {
 
           {done ? (
             <div style={{ textAlign: "center", padding: "16px 0" }}>
-              <div style={{ fontSize: 40, marginBottom: 8 }}>✅</div>
-              <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 4 }}>Sent to {name || email}</div>
-              <div style={{ fontSize: 13, color: COLORS.muted, marginBottom: 18 }}>The document is on its way and is now visible in their portal.</div>
+              <div style={{ fontSize: 40, marginBottom: 8 }}>{done.failed.length ? "⚠️" : "✅"}</div>
+              <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 4 }}>
+                Sent to {done.ok.join(", ")}
+              </div>
+              {done.failed.length > 0 && (
+                <div style={{ fontSize: 13, color: COLORS.danger, marginBottom: 6 }}>Couldn't send to: {done.failed.join(", ")}</div>
+              )}
+              <div style={{ fontSize: 13, color: COLORS.muted, marginBottom: 18 }}>Each person got their own email with the document attached, and it's now visible in their portal.</div>
               <button onClick={onClose} style={{ background: COLORS.gold, color: "#fff", border: "none", padding: "10px 22px", borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: "pointer" }}>Done</button>
             </div>
           ) : (
             <>
               <div style={{ marginBottom: 14 }}>
-                <label style={lbl}>Send to</label>
-                <select value={picked} onChange={e => onPick(e.target.value)} style={inp}>
-                  {parties.map(p => <option key={String(p.id || p.email)} value={String(p.id || p.email)}>{p.name || p.email} — {p.role}</option>)}
-                  <option value="custom">✏️ Other email…</option>
-                </select>
+                <label style={lbl}>Send to — check everyone who should get it</label>
+                <div style={{ border: "1px solid " + COLORS.border, borderRadius: 8, maxHeight: 190, overflowY: "auto" }}>
+                  {parties.map(p => {
+                    const key = String(p.id || p.email);
+                    return (
+                      <label key={key} style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 11px", borderBottom: "1px solid " + COLORS.bg, cursor: "pointer", fontSize: 14 }}>
+                        <input type="checkbox" checked={!!checked[key]} onChange={() => toggle(key)} />
+                        <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          <b>{p.name || p.email}</b> <span style={{ color: COLORS.muted }}>— {p.role}</span>
+                        </span>
+                      </label>
+                    );
+                  })}
+                  <label style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 11px", cursor: "pointer", fontSize: 14 }}>
+                    <input type="checkbox" checked={extraOn} onChange={() => setExtraOn(v => !v)} />
+                    <span>✏️ Someone else (type their email)</span>
+                  </label>
+                </div>
               </div>
-              {picked === "custom" && (
+              {extraOn && (
                 <div style={{ display: "flex", gap: 10, marginBottom: 14 }}>
                   <div style={{ flex: 1 }}>
                     <label style={lbl}>Name</label>
@@ -686,7 +720,7 @@ function ShareModal({ tx, doc, headers, onClose }) {
               <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
                 <button onClick={onClose} disabled={busy} style={{ background: "#fff", color: COLORS.muted, border: "1px solid " + COLORS.border, padding: "10px 16px", borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: "pointer" }}>Cancel</button>
                 <button onClick={send} disabled={busy} style={{ background: COLORS.gold, color: "#fff", border: "none", padding: "10px 20px", borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: busy ? "default" : "pointer", opacity: busy ? 0.6 : 1 }}>
-                  {busy ? "Sending…" : "📤 Send"}
+                  {busy ? "Sending…" : `📤 Send${nRecipients > 1 ? ` to ${nRecipients} people` : ""}`}
                 </button>
               </div>
             </>
