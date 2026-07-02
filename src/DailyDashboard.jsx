@@ -283,6 +283,36 @@ function TaskItem({ task, bucket, token, onResolve, onComplete, onSnooze, onOpen
     : (/^milestone_/.test(task.task_type || "") || /^custom_task_/.test(task.task_type || "")) ? { label: "✉️ Send request" }
     : null;
   const [sent, setSent] = useState(null);
+  // Compliance-gap: upload the missing document RIGHT HERE on the card (file
+  // picker → server-proxied upload linked to the milestone) instead of dumping
+  // the user on the deal page to hunt for an upload spot. target_ref_id is the
+  // milestone id, so the server marks document_uploaded and the gap closes.
+  const gapFileRef = useRef(null);
+  const [gapBusy, setGapBusy] = useState(false);
+  const onGapFile = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    if (file.size > 50 * 1024 * 1024) { alert("File too large (50MB max)"); return; }
+    setGapBusy(true);
+    try {
+      const base64 = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result).split(",")[1]);
+        reader.onerror = () => reject(new Error("Could not read file"));
+        reader.readAsDataURL(file);
+      });
+      const r = await fetch(API + "/documents/upload", {
+        method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
+        body: JSON.stringify({ transactionId: task.transaction_id, milestoneId: task.target_ref_id, fileName: file.name, fileType: file.type || "application/octet-stream", base64 }),
+      });
+      const d = await r.json();
+      if (!r.ok || !d.success) throw new Error(d.error || "Upload failed");
+      alert("✅ Document uploaded and filed — gap closed.");
+      onResolve(task.id);
+    } catch (err) { alert("Upload failed: " + err.message); }
+    setGapBusy(false);
+  };
   // Approve-first: open the review modal (parent) instead of sending immediately.
   const doAct = () => {
     if (onActPreview) onActPreview(task, (res) => setSent({ to: res.to }));
@@ -357,10 +387,17 @@ function TaskItem({ task, bucket, token, onResolve, onComplete, onSnooze, onOpen
           </>
         ) : isComplianceGap ? (
           <>
+            <input ref={gapFileRef} type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg,.heic" style={{ display: "none" }} onChange={onGapFile} />
+            <button disabled={gapBusy} onClick={() => gapFileRef.current && gapFileRef.current.click()}
+              style={{ flex:"2 1 60%", padding:"11px 0", borderRadius:10, border:"none",
+                background:COLORS.red, color:COLORS.white, fontWeight:700, fontSize:14, cursor: gapBusy ? "default" : "pointer", opacity: gapBusy ? 0.6 : 1 }}>
+              {gapBusy ? "Uploading…" : "📎 Upload It Here"}
+            </button>
             <button onClick={() => onOpenTransactionMilestones && onOpenTransactionMilestones(task.transaction_id)}
-              style={{ flex:"2 1 100%", padding:"11px 0", borderRadius:10, border:"none",
-                background:COLORS.red, color:COLORS.white, fontWeight:700, fontSize:14, cursor:"pointer" }}>
-              📎 Open & Upload Document
+              style={{ flex:"1 1 30%", padding:"11px 0", borderRadius:10,
+                border:"1.5px solid "+COLORS.border, background:COLORS.white,
+                color:COLORS.gray, fontWeight:600, fontSize:13, cursor:"pointer" }}>
+              Open deal →
             </button>
           </>
         ) : isChaseable ? (
