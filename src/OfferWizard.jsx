@@ -675,31 +675,44 @@ export default function OfferWizard({ offerId, token, onClose, onSaved }) {
             </div>
           )}
 
-          {/* Pre-approval upload — only on Step 10 (the preapproval step) */}
-          {step.fields && step.fields.some(f => f.type === "preapproval_picker") && (
+          {/* Pre-approval: upload a new letter OR pick one already on file —
+              ONE box, two clearly-labeled ways (the split layout confused
+              users: "Choose File" above, an unexplained dropdown below). */}
+          {step.fields && step.fields.some(f => f.type === "preapproval_picker") && (() => {
+            const pickerField = step.fields.find(f => f.type === "preapproval_picker");
+            return (
             <div style={{ background: "#eff6ff", border: "1px solid #93c5fd", borderRadius: 8, padding: 16, marginBottom: 20 }}>
               <div style={{ fontWeight: 700, color: "#1e3a8a", marginBottom: 6, fontSize: 14 }}>
-                📎 Upload the pre-approval letter (or proof of funds)
+                📎 Pre-approval letter (or proof of funds)
               </div>
               <div style={{ fontSize: 12, color: "#1e40af", marginBottom: 12 }}>
-                Upload a PDF or photo of the buyer's lender pre-approval. It will be saved to this transaction's documents and linked to this offer.
+                Two ways — upload the buyer's lender letter now, <strong>or</strong> pick one that's already in this deal's Documents. Either way it gets linked to this offer.
               </div>
-              <label style={{ display: "inline-block" }}>
-                <input type="file" accept=".pdf,.png,.jpg,.jpeg,.webp"
-                  disabled={preapUploading}
-                  onChange={e => onPreapUpload(e.target.files && e.target.files[0])}
-                  style={{ display: "none" }} />
-                <span style={{ display: "inline-block", background: preapUploading ? "#9ca3af" : "#1e40af", color: "white", padding: "8px 16px", borderRadius: 6, fontSize: 13, fontWeight: 700, cursor: preapUploading ? "wait" : "pointer" }}>
-                  {preapUploading ? "Uploading…" : "📎 Choose File"}
-                </span>
-              </label>
+              <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+                <label style={{ display: "inline-block" }}>
+                  <input type="file" accept=".pdf,.png,.jpg,.jpeg,.webp"
+                    disabled={preapUploading}
+                    onChange={e => onPreapUpload(e.target.files && e.target.files[0])}
+                    style={{ display: "none" }} />
+                  <span style={{ display: "inline-block", background: preapUploading ? "#9ca3af" : "#1e40af", color: "white", padding: "8px 16px", borderRadius: 6, fontSize: 13, fontWeight: 700, cursor: preapUploading ? "wait" : "pointer" }}>
+                    {preapUploading ? "Uploading…" : "📎 Upload New File"}
+                  </span>
+                </label>
+                <span style={{ fontSize: 12, fontWeight: 700, color: "#1e40af" }}>— or —</span>
+                {pickerField && (
+                  <div style={{ flex: "1 1 260px", minWidth: 220 }}>
+                    <FieldRenderer field={pickerField} value={data[pickerField.id]} onChange={(val) => setField(pickerField.id, val)} documents={documents} />
+                  </div>
+                )}
+              </div>
               {preapMsg && (
                 <div style={{ marginTop: 12, background: "#d1fae5", border: "1px solid #6ee7b7", borderRadius: 6, padding: 10, fontSize: 12, color: "#065f46" }}>
                   {preapMsg}
                 </div>
               )}
             </div>
-          )}
+            );
+          })()}
 
           {/* MLS upload + AI extraction — on the property step */}
           {visibleFields.some(f => f.id === "property_address") && (
@@ -847,7 +860,7 @@ export default function OfferWizard({ offerId, token, onClose, onSaved }) {
             </div>
           )}
           <div style={{ display: "grid", gap: 18 }}>
-            {visibleFields.map(f => {
+            {visibleFields.filter(f => f.type !== "preapproval_picker").map(f => {
               const common = COMMON_FIELDS.has(f.id);
               return (
               <div key={f.id} style={common ? { borderLeft: "3px solid #16a34a", paddingLeft: 12, background: "#f0fdf4", borderRadius: 6, padding: "10px 12px" } : {}}>
