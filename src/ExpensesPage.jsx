@@ -2499,6 +2499,42 @@ function ReconcileCells({ imp, onSaved }) {
   );
 }
 
+// Last 24 statement months as labels ("June 2026"…), newest first — used by the
+// upload form and the per-row period editor so periods are always consistent.
+function statementMonthOptions() {
+  const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const out = [];
+  const d = new Date();
+  for (let i = 0; i < 24; i++) {
+    out.push(`${MONTHS[d.getMonth()]} ${d.getFullYear()}`);
+    d.setMonth(d.getMonth() - 1);
+  }
+  return out;
+}
+
+// Inline month editor for an imported statement's period — fix a mistake without
+// deleting and re-importing. Saves on change via PATCH /bank-import/:id.
+function PeriodEditCell({ imp, onSaved }) {
+  const [saving, setSaving] = useState(false);
+  const current = (imp.period_label || '').trim();
+  const opts = statementMonthOptions();
+  if (current && !opts.includes(current)) opts.unshift(current); // keep odd legacy labels selectable
+  const save = async (val) => {
+    setSaving(true);
+    try { await authFetch(`/bank-import/${imp.id}`, { method: 'PATCH', body: JSON.stringify({ periodLabel: val }) }); onSaved && onSaved(); }
+    catch (e) { alert('Could not update: ' + e.message); }
+    finally { setSaving(false); }
+  };
+  return (
+    <select value={current} onChange={e => save(e.target.value)} disabled={saving}
+      title="Statement month — change it here if the wrong one was picked"
+      style={{ padding: '4px 6px', fontSize: 12, border: '1px solid #d1d5db', borderRadius: 6, background: 'white', maxWidth: 130, color: current ? '#1f2937' : '#9ca3af' }}>
+      <option value="">{imp.file_name ? `— (${String(imp.file_name).slice(0, 18)})` : '— pick month —'}</option>
+      {opts.map(m => <option key={m} value={m}>{m}</option>)}
+    </select>
+  );
+}
+
 function ImportTab({ categories, onCommitted }) {
   const [accountType, setAccountType] = useState('checking');
   const [periodLabel, setPeriodLabel] = useState('');
@@ -2630,7 +2666,12 @@ function ImportTab({ categories, onCommitted }) {
                 <option value="credit_card">Credit Card</option>
               </select>
             </Field>
-            <Field label="Statement period" hint="optional"><input value={periodLabel} onChange={e => setPeriodLabel(e.target.value)} placeholder="e.g. May 2026" style={inputStyle} /></Field>
+            <Field label="Statement period" hint="optional — AI reads it off the statement if left blank">
+              <select value={periodLabel} onChange={e => setPeriodLabel(e.target.value)} style={inputStyle}>
+                <option value="">— let AI read it —</option>
+                {statementMonthOptions().map(m => <option key={m} value={m}>{m}</option>)}
+              </select>
+            </Field>
           </div>
           <input ref={fileRef} type="file" accept=".csv,.txt,.tsv,.ofx,.qfx,application/pdf,image/*" style={{ display: 'none' }} onChange={e => handleUpload(e.target.files?.[0])} />
           <button onClick={() => fileRef.current?.click()} disabled={busy} style={{ ...primaryBtn('#3b82f6'), opacity: busy ? 0.6 : 1 }}>
@@ -2646,7 +2687,7 @@ function ImportTab({ categories, onCommitted }) {
         return (
         <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 12, padding: '14px 18px', marginBottom: 16 }}>
           <div style={{ fontWeight: 700, color: '#1f2937', marginBottom: 4 }}>📋 {acctLabel} statements you've imported</div>
-          <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 12 }}>Showing your <strong>{acctLabel.toLowerCase()}</strong> statements (switch “Account type” above to see the other kind). Remove any that's wrong or a duplicate — its transactions come back out automatically. <strong>To reconcile</strong>, type each statement's beginning and ending balance — a ✓ means every transaction is accounted for.</div>
+          <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 12 }}>Showing your <strong>{acctLabel.toLowerCase()}</strong> statements (switch “Account type” above to see the other kind). Picked the wrong month? Fix it right in the <strong>Statement period</strong> column. Remove any that's wrong or a duplicate — its transactions come back out automatically. <strong>Reconciling is automatic:</strong> AI reads each statement's beginning and ending balance, and ✓ means every transaction is accounted for — you can adjust the Begin/End numbers if the statement was hard to read.</div>
           {shown.length === 0 ? (
             <div style={{ fontSize: 13, color: '#6b7280', padding: '8px 2px' }}>No {acctLabel.toLowerCase()} statements imported yet.</div>
           ) : (
@@ -2661,7 +2702,7 @@ function ImportTab({ categories, onCommitted }) {
                   return (
                     <tr key={imp.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
                       <Td>{imp.account_type === 'credit_card' ? '💳 Credit card' : '🏦 Checking'}</Td>
-                      <Td>{(imp.period_label || '').trim() || <span style={{ color: '#9ca3af' }}>{imp.file_name || '—'}</span>}</Td>
+                      <Td><PeriodEditCell imp={imp} onSaved={loadHistory} /></Td>
                       <Td align="center">
                         {saved
                           ? <span style={{ background: '#ecfdf5', color: '#065f46', borderRadius: 6, padding: '2px 8px', fontSize: 12, fontWeight: 600 }}>Saved</span>
