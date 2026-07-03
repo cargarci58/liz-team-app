@@ -556,11 +556,28 @@ const LOAN_TYPES = [
 
 function LoanTypesCard() {
   const [open, setOpen] = useState("conv");
+  // Live market anchor for the loan cards — this month's average 30-yr fixed
+  // (same FRED endpoint the agent + seller views use). Falls back to the
+  // "ask your lender" note when the feed isn't configured.
+  const [mkt, setMkt] = useState(null);
+  useEffect(() => {
+    const tok = localStorage.getItem("tp_token") || "";
+    fetch(API + "/market/mortgage-rate", { headers: { Authorization: "Bearer " + tok } })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d && d.success && d.configured && (d.monthlyAvg != null || d.rate != null)) setMkt(d); })
+      .catch(() => {});
+  }, []);
   return (
     <div style={{ background: C.white, borderRadius: 14, padding: 18, marginBottom: 14, boxShadow: "0 1px 4px rgba(0,0,0,0.08)", borderLeft: "4px solid #1A5276" }}>
       <div style={{ fontSize: 12, fontWeight: 800, color: C.gray, textTransform: "uppercase", letterSpacing: 1, marginBottom: 4 }}>💰 Loan Types — What's Available</div>
       <div style={{ fontSize: 12, color: C.gray, marginBottom: 4 }}>Tap any loan to learn how it works. Your lender confirms which fits you best.</div>
-      <div style={{ fontSize: 11, color: "#1A5276", background: "#EAF2F8", borderRadius: 8, padding: "6px 10px", marginBottom: 12 }}>📅 Live daily rates are coming soon — for now, ask your lender for today's rate on each loan.</div>
+      {mkt ? (
+        <div style={{ fontSize: 12, color: "#1A5276", background: "#EAF2F8", borderRadius: 8, padding: "8px 10px", marginBottom: 12 }}>
+          📈 <b>{(mkt.monthlyAvg ?? mkt.rate).toFixed(2)}%</b> — {mkt.monthLabel || "this month"}'s average 30-yr fixed rate. Each loan below prices a bit differently (FHA/VA often slightly lower, jumbo slightly higher) and your credit + down payment set your exact rate — ask your lender for today's quote.
+        </div>
+      ) : (
+        <div style={{ fontSize: 11, color: "#1A5276", background: "#EAF2F8", borderRadius: 8, padding: "6px 10px", marginBottom: 12 }}>📅 Ask your lender for today's rate on each loan.</div>
+      )}
       {LOAN_TYPES.map((l) => {
         const isOpen = open === l.key;
         return (
@@ -1742,6 +1759,7 @@ export default function ClientPortal({ user, onLogout, previewTxId, onExitPrevie
             {/* BUYER GUIDE TAB — loans, credit, first-time roadmap */}
             {activeTab === "buyer-guide" && isBuyerSide && (
               <div>
+                <MortgageRateCard isBuyerSide={true} />
                 <LoanTypesCard />
                 <CreditCoachCard txId={tx.id} />
                 <FirstTimeRoadmapCard />
