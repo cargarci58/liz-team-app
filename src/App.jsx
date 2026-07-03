@@ -9153,6 +9153,15 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
     }
   };
 
+  // The Win-the-Day monthly-financials card lives in DailyDashboard (which has
+  // no navigation props for app-level pages) — it asks for the Financials page
+  // via this event.
+  useEffect(() => {
+    const h = () => setView("expenses");
+    window.addEventListener("tp:open-financials", h);
+    return () => window.removeEventListener("tp:open-financials", h);
+  }, []);
+
   // Public upload route — no auth required
   if (window.location.pathname.startsWith("/form-download/")) {
     const token = window.location.pathname.split("/form-download/")[1];

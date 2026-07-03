@@ -30,6 +30,7 @@ const TASK_ICONS = {
   price_reduction:   "💰",
   buyer_followup:    "🔑",
   move_anniversary:  "🏡",
+  monthly_financials: "🧾",
 };
 
 // Three ready-to-use scripts to walk a seller toward a price reduction. Shown
@@ -1170,11 +1171,15 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
   // One card per deal (not one per item). Tag each task with its urgency rank
   // (0 overdue · 1 today · 2 due-soon · 3 no date), bucket by transaction, then
   // sort deals by their most-urgent item. Within a deal, lines are urgent-first.
-  const rankedTasks = [
+  const rankedTasksAll = [
     ...visibleOverdue.map(t => ({ ...t, _rank: 0 })),
     ...visibleToday.map(t => ({ ...t, _rank: 1 })),
     ...visibleUpcoming.map(t => ({ ...t, _rank: t.due_date ? 2 : 3 })),
   ];
+  // Monthly money check isn't tied to a deal — render it as its own card, not
+  // inside a deal group (its transaction_id is NULL so it has no address).
+  const financialsCards = rankedTasksAll.filter(t => t.task_type === 'monthly_financials');
+  const rankedTasks = rankedTasksAll.filter(t => t.task_type !== 'monthly_financials');
   // Group by PROPERTY ADDRESS (normalized) so two transaction records for the
   // same home collapse into ONE card — a safety net against duplicate deals.
   // Falls back to transaction_id, then task id, when there's no address.
@@ -1398,6 +1403,28 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
           </button>
         </div>
       )}
+
+      {/* MONTHLY MONEY CHECK — once a month, close out last month's books */}
+      {!coordinatorMode && financialsCards.map(t => (
+        <div key={t.id} style={{ background: "linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)", border: "1.5px solid #10b981", borderRadius: 14, padding: 16, marginBottom: 18 }}>
+          <div style={{ fontWeight: 800, fontSize: 15, color: "#065f46", marginBottom: 6 }}>🧾 {t.title.replace(/^🧾\s*/, "")}</div>
+          <div style={{ fontSize: 13.5, color: "#047857", lineHeight: 1.5, marginBottom: 12 }}>{t.description}</div>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <button onClick={() => window.dispatchEvent(new CustomEvent("tp:open-financials"))}
+              style={{ flex: "2 1 55%", padding: "11px 0", borderRadius: 10, border: "none", background: "#059669", color: "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer" }}>
+              💵 Open Financials →
+            </button>
+            <button onClick={() => handleResolve(t.id)}
+              style={{ flex: "1 1 20%", padding: "11px 0", borderRadius: 10, border: "1.5px solid #10b981", background: "#fff", color: "#065f46", fontWeight: 600, fontSize: 13, cursor: "pointer" }}>
+              ✓ Done
+            </button>
+            <button onClick={() => handleSnooze(t.id)}
+              style={{ flex: "1 1 20%", padding: "11px 0", borderRadius: 10, border: "1.5px solid #d1d5db", background: "#fff", color: "#6b7280", fontWeight: 600, fontSize: 13, cursor: "pointer" }}>
+              ⏰ Not Today
+            </button>
+          </div>
+        </div>
+      ))}
 
       {/* OVERDUE / URGENT */}
             {(personal.overdue.length > 0 || personal.dueToday.length > 0) && (
