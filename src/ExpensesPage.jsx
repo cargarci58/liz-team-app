@@ -1984,6 +1984,11 @@ function BudgetModal({ item, categories, onClose, onSaved }) {
 // ============================================================
 function PnLTab() {
   const [year, setYear] = useState(new Date().getFullYear());
+  // Report window: full year (default), a single month of the picked year, this/
+  // last month, this quarter, or year-to-date — agents close their books monthly,
+  // not just at tax time.
+  const [period, setPeriod] = useState('year');
+  const [monthIdx, setMonthIdx] = useState(new Date().getMonth()); // for period='month'
   const [pnl, setPnl] = useState(null);
   const [company, setCompany] = useState(null);
   const [profile, setProfile] = useState(null);
@@ -1991,12 +1996,30 @@ function PnLTab() {
   const [error, setError] = useState(null);
   const [showDeals, setShowDeals] = useState(false);
 
+  const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const pad = (n) => String(n).padStart(2, '0');
+  const monthRange = (y, m) => { // m = 0-11 → {from,to} covering that whole month
+    const last = new Date(y, m + 1, 0).getDate();
+    return { from: `${y}-${pad(m + 1)}-01`, to: `${y}-${pad(m + 1)}-${pad(last)}` };
+  };
+  // The active window + human label (drives the query, the header, and the print).
+  const rangeInfo = () => {
+    const now = new Date();
+    if (period === 'this_month') { const r = monthRange(now.getFullYear(), now.getMonth()); return { ...r, label: `${MONTH_NAMES[now.getMonth()]} ${now.getFullYear()}` }; }
+    if (period === 'last_month') { const d = new Date(now.getFullYear(), now.getMonth() - 1, 1); const r = monthRange(d.getFullYear(), d.getMonth()); return { ...r, label: `${MONTH_NAMES[d.getMonth()]} ${d.getFullYear()}` }; }
+    if (period === 'this_quarter') { const q = Math.floor(now.getMonth() / 3); const from = monthRange(now.getFullYear(), q * 3).from; const to = monthRange(now.getFullYear(), q * 3 + 2).to; return { from, to, label: `Q${q + 1} ${now.getFullYear()}` }; }
+    if (period === 'ytd') { return { from: `${now.getFullYear()}-01-01`, to: `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`, label: `${now.getFullYear()} year-to-date` }; }
+    if (period === 'month') { const r = monthRange(year, monthIdx); return { ...r, label: `${MONTH_NAMES[monthIdx]} ${year}` }; }
+    return { from: `${year}-01-01`, to: `${year}-12-31`, label: `Tax year ${year}` };
+  };
+  const range = rangeInfo();
+
   const load = async () => {
     setLoading(true); setError(null);
     try {
       // Company + profile are best-effort letterhead info — don't fail the P&L if they error
       const [data, comp, prof] = await Promise.all([
-        authFetch(`/finance/pnl?from=${year}-01-01&to=${year}-12-31`),
+        authFetch(`/finance/pnl?from=${range.from}&to=${range.to}`),
         authFetch('/settings/company').catch(() => null),
         authFetch('/profile').catch(() => null),
       ]);
@@ -2005,7 +2028,7 @@ function PnLTab() {
       setProfile(prof?.profile || null);
     } catch (e) { setError(e.message); } finally { setLoading(false); }
   };
-  useEffect(() => { load(); /* eslint-disable-next-line */ }, [year]);
+  useEffect(() => { load(); /* eslint-disable-next-line */ }, [year, period, monthIdx]);
 
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
@@ -2035,14 +2058,14 @@ function PnLTab() {
         <div style="text-align:right">${logoHtml}</div>
       </div>`;
 
-    const html = `<!doctype html><html><head><title>Profit & Loss ${year} — ${brokerName}</title>
+    const html = `<!doctype html><html><head><title>Profit & Loss ${range.label} — ${brokerName}</title>
       <style>body{font-family:-apple-system,Segoe UI,Roboto,sans-serif;color:#1f2937;max-width:760px;margin:30px auto;padding:0 20px;font-size:17px;line-height:1.4}
       h1{color:${accent};margin:14px 0 0;font-size:30px}h2{border-bottom:2px solid ${accent};padding-bottom:6px;margin-top:28px;font-size:22px}
       table{width:100%;border-collapse:collapse;font-size:17px}td{padding:9px 12px}.tot{font-weight:700;border-top:2px solid #e5e7eb;font-size:18px}
       .net{font-size:26px;font-weight:800;padding:18px;border-radius:8px;margin-top:22px;text-align:center}</style></head><body>
       ${letterhead}
       <h1>Profit &amp; Loss Statement</h1>
-      <div style="color:#6b7280">Tax year ${year} &nbsp;•&nbsp; generated ${fmtDate(todayISO())}</div>
+      <div style="color:#6b7280">${esc(range.label)} &nbsp;•&nbsp; generated ${fmtDate(todayISO())}</div>
       ${agentLine ? `<div style="color:#6b7280;margin-top:2px">${agentLine}</div>` : ''}
       <h2>Income</h2><table>
         <tr><td style="padding:6px 12px">Commission income (closed deals)</td><td style="padding:6px 12px;text-align:right;color:#059669">${fmtCurrency(pnl.income.commission_total)}</td></tr>
@@ -2072,7 +2095,7 @@ function PnLTab() {
     const rows = [];
     rows.push([q('Profit & Loss Statement'), '']);
     rows.push([q(company?.name || 'My Real Estate Business'), '']);
-    rows.push([q('Tax Year'), q(year)]);
+    rows.push([q('Period'), q(range.label)]);
     rows.push([q('Generated'), q(fmtDate(todayISO()))]);
     rows.push(['', '']);
     rows.push([q('INCOME'), q('Amount')]);
@@ -2089,18 +2112,37 @@ function PnLTab() {
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = `profit_and_loss_${year}.csv`;
+    a.download = `profit_and_loss_${range.label.replace(/[^a-z0-9]+/gi, '_').toLowerCase()}.csv`;
     document.body.appendChild(a); a.click(); document.body.removeChild(a);
   };
 
   return (
     <div style={{ padding: '20px 24px' }}>
       <div style={{ display: 'flex', gap: 12, alignItems: 'end', flexWrap: 'wrap', marginBottom: 16 }}>
-        <Field label="Tax Year">
-          <select value={year} onChange={e => setYear(Number(e.target.value))} style={{ ...inputStyle, maxWidth: 160 }}>
-            {[0, 1, 2, 3].map(i => { const y = new Date().getFullYear() - i; return <option key={y} value={y}>{y}</option>; })}
+        <Field label="Period">
+          <select value={period} onChange={e => setPeriod(e.target.value)} style={{ ...inputStyle, maxWidth: 180 }}>
+            <option value="year">Full year</option>
+            <option value="this_month">This month</option>
+            <option value="last_month">Last month</option>
+            <option value="this_quarter">This quarter</option>
+            <option value="ytd">Year to date</option>
+            <option value="month">Pick a month…</option>
           </select>
         </Field>
+        {period === 'month' && (
+          <Field label="Month">
+            <select value={monthIdx} onChange={e => setMonthIdx(Number(e.target.value))} style={{ ...inputStyle, maxWidth: 150 }}>
+              {MONTH_NAMES.map((m, i) => <option key={m} value={i}>{m}</option>)}
+            </select>
+          </Field>
+        )}
+        {(period === 'year' || period === 'month') && (
+          <Field label="Year">
+            <select value={year} onChange={e => setYear(Number(e.target.value))} style={{ ...inputStyle, maxWidth: 120 }}>
+              {[0, 1, 2, 3].map(i => { const y = new Date().getFullYear() - i; return <option key={y} value={y}>{y}</option>; })}
+            </select>
+          </Field>
+        )}
         <button onClick={printPnL} disabled={!pnl} style={primaryBtn('#3b82f6')}>🖨️ Print P&L</button>
         <button onClick={exportExcel} disabled={!pnl} style={primaryBtn('#10b981')}>⬇️ Export to Excel</button>
       </div>
@@ -2115,7 +2157,7 @@ function PnLTab() {
               <div>
                 <div style={{ fontSize: 18, fontWeight: 800, color: company?.primaryColor || '#059669' }}>{company?.name || 'My Real Estate Business'}</div>
                 <div style={{ fontSize: 12, color: '#6b7280' }}>
-                  Profit &amp; Loss — {year}
+                  Profit &amp; Loss — {range.label}
                   {profile ? ` • ${[profile.firstName, profile.lastName].filter(Boolean).join(' ')}` : ''}
                 </div>
               </div>
@@ -2123,8 +2165,8 @@ function PnLTab() {
             </div>
           )}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px,1fr))', gap: 12, marginBottom: 20 }}>
-            <SummaryCard label="Total Income" value={fmtCurrency(pnl.income.total)} sub={`${year}`} color="#10b981" />
-            <SummaryCard label="Total Expenses" value={fmtCurrency(pnl.expenses.total)} sub={`${year}`} color="#dc2626" />
+            <SummaryCard label="Total Income" value={fmtCurrency(pnl.income.total)} sub={range.label} color="#10b981" />
+            <SummaryCard label="Total Expenses" value={fmtCurrency(pnl.expenses.total)} sub={range.label} color="#dc2626" />
             <SummaryCard label={pnl.net_profit >= 0 ? 'Net Profit' : 'Net Loss'} value={fmtCurrency(pnl.net_profit)} sub="income − expenses" color={pnl.net_profit >= 0 ? '#059669' : '#dc2626'} />
           </div>
 
