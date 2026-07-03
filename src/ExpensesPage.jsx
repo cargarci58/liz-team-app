@@ -2078,6 +2078,7 @@ function PnLTab() {
       </table>
       <div class="net" style="background:${pnl.net_profit >= 0 ? '#ecfdf5' : '#fef2f2'};color:${pnl.net_profit >= 0 ? '#065f46' : '#dc2626'}">
         Net ${pnl.net_profit >= 0 ? 'Profit' : 'Loss'}: ${fmtCurrency(pnl.net_profit)}</div>
+      ${Number(pnl.income.total) > 0 ? `<div style="text-align:center;color:#4b5563;font-size:15px;margin-top:10px">Expense ratio: ${Math.round((Number(pnl.expenses.total) / Number(pnl.income.total)) * 100)}% of income &nbsp;•&nbsp; Profit margin: ${Math.round(100 - (Number(pnl.expenses.total) / Number(pnl.income.total)) * 100)}% <span style="color:#9ca3af">(typical agent: 30–40% expenses)</span></div>` : ''}
       <p style="font-size:12px;color:#9ca3af;margin-top:24px">Commission income is computed from your closed transactions (net of brokerage split & fees). Not tax advice — confirm with your CPA.</p>
       </body></html>`;
     const w = window.open('', '_blank');
@@ -2108,6 +2109,12 @@ function PnLTab() {
     rows.push([q('Total Expenses'), money(pnl.expenses.total)]);
     rows.push(['', '']);
     rows.push([q(pnl.net_profit >= 0 ? 'NET PROFIT' : 'NET LOSS'), money(pnl.net_profit)]);
+    if (Number(pnl.income.total) > 0) {
+      const pct = Math.round((Number(pnl.expenses.total) / Number(pnl.income.total)) * 100);
+      rows.push(['', '']);
+      rows.push([q('Expense ratio (expenses ÷ income)'), q(pct + '%')]);
+      rows.push([q('Profit margin'), q((100 - pct) + '%')]);
+    }
     const csv = '﻿' + rows.map(r => r.join(',')).join('\r\n'); // BOM so Excel reads UTF-8
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const a = document.createElement('a');
@@ -2168,6 +2175,23 @@ function PnLTab() {
             <SummaryCard label="Total Income" value={fmtCurrency(pnl.income.total)} sub={range.label} color="#10b981" />
             <SummaryCard label="Total Expenses" value={fmtCurrency(pnl.expenses.total)} sub={range.label} color="#dc2626" />
             <SummaryCard label={pnl.net_profit >= 0 ? 'Net Profit' : 'Net Loss'} value={fmtCurrency(pnl.net_profit)} sub="income − expenses" color={pnl.net_profit >= 0 ? '#059669' : '#dc2626'} />
+            {/* Expense ratio vs the typical agent business model. Benchmark: a
+                healthy solo agent runs ~30-40% of gross income on expenses;
+                40-50% is about average, above that spending needs a look. */}
+            {(() => {
+              const inc = Number(pnl.income.total || 0), exp = Number(pnl.expenses.total || 0);
+              if (inc <= 0) return <SummaryCard label="Expense Ratio" value="—" sub={exp > 0 ? 'Spending, but no income in this period yet' : 'No activity in this period'} color="#6b7280" />;
+              const pct = Math.round((exp / inc) * 100);
+              const margin = 100 - pct;
+              const color = pct <= 40 ? '#059669' : pct <= 50 ? '#d97706' : '#dc2626';
+              const word = pct <= 30 ? 'Excellent — leaner than the typical 30–40%'
+                : pct <= 40 ? 'Healthy — right in the typical 30–40% range'
+                : pct <= 50 ? 'A bit above the typical 30–40% — keep an eye on it'
+                : pct <= 100 ? 'High — most agents run 30–40%; worth reviewing spending'
+                : 'Spending more than you earn this period';
+              return <SummaryCard label="Expense Ratio" value={`${pct}% of income`}
+                sub={`${word} (${margin}% profit margin)`} color={color} />;
+            })()}
           </div>
 
           {/* Income */}
