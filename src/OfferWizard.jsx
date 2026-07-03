@@ -293,31 +293,51 @@ export default function OfferWizard({ offerId, token, onClose, onSaved }) {
   // the program). The agent can still type a custom down payment or loan amount;
   // once they do, we stop overwriting it (we only auto-fill values we computed).
   const financeAutoRef = useRef({ dp: null, loan: null });
-  useEffect(() => {
-    const price = Number(data.purchase_price) || 0;
+  // "$405,000" / "405,000" → 405000 (extraction + old drafts store formatted strings)
+  const moneyNum = (x) => { const n = Number(String(x ?? "").replace(/[^0-9.-]/g, "")); return isNaN(n) ? 0 : n; };
+  const financeCalc = () => {
+    const price = moneyNum(data.purchase_price);
     const ft = String(data.financing_type || "");
-    if (ft === "Cash") return; // cash: no loan/down math
+    if (ft === "Cash" || !price) return null;
     let pct = (data.down_payment_pct === "" || data.down_payment_pct == null) ? null : Number(data.down_payment_pct);
     if (pct == null || isNaN(pct)) {
       if (ft === "FHA") pct = 3.5;
       else if (ft === "VA" || ft === "USDA") pct = 0;
     }
-    if (!price || pct == null || isNaN(pct)) return;
-    const dp = Math.round(price * pct / 100);
-    const loan = Math.max(0, price - dp);
+    if (pct == null || isNaN(pct)) return null;
+    return { price, pct, dp: Math.round(price * pct / 100), loan: Math.max(0, price - Math.round(price * pct / 100)) };
+  };
+  useEffect(() => {
+    const calc = financeCalc();
+    if (!calc) return;
+    const { pct, dp, loan } = calc;
     setData(d => {
       const prev = financeAutoRef.current;
-      const dpManual = d.down_payment !== "" && d.down_payment != null && Number(d.down_payment) !== (prev.dp ?? -1);
-      const loanManual = d.loan_amount !== "" && d.loan_amount != null && Number(d.loan_amount) !== (prev.loan ?? -1);
+      // A value counts as MANUAL only if it's a real nonzero number that isn't
+      // the current computed value and isn't what we auto-filled last time.
+      // Blank, 0, and stale auto-fills all get recalculated — a draft carrying
+      // a junk "0" down payment used to lock the calculator out entirely.
+      const isManual = (val, computed, prevAuto) => {
+        const n = moneyNum(val);
+        return val !== "" && val != null && n !== 0 && n !== computed && (prevAuto == null || n !== prevAuto);
+      };
       const next = { ...d };
       if ((d.down_payment_pct === "" || d.down_payment_pct == null) && pct != null) next.down_payment_pct = pct;
-      if (!dpManual) next.down_payment = dp;
-      if (!loanManual) next.loan_amount = loan;
+      if (!isManual(d.down_payment, dp, prev.dp)) next.down_payment = dp;
+      if (!isManual(d.loan_amount, loan, prev.loan)) next.loan_amount = loan;
       return next;
     });
     financeAutoRef.current = { dp, loan };
     // eslint-disable-next-line
   }, [data.purchase_price, data.down_payment_pct, data.financing_type]);
+  // One-tap override: force down payment + loan from price × program %, no
+  // matter what's in the boxes (the escape hatch when a draft has junk values).
+  const applyFinanceCalc = () => {
+    const calc = financeCalc();
+    if (!calc) return;
+    setData(d => ({ ...d, down_payment_pct: calc.pct, down_payment: calc.dp, loan_amount: calc.loan }));
+    financeAutoRef.current = { dp: calc.dp, loan: calc.loan };
+  };
 
   // Auto-include condition-driven addenda when the agent reaches the addenda step,
   // so required riders (FHA/VA→E, appraisal→F, condo→A, HOA→B, pre-1978→P, etc.)
@@ -711,6 +731,26 @@ export default function OfferWizard({ offerId, token, onClose, onSaved }) {
                 </div>
               )}
             </div>
+            );
+          })()}
+
+          {/* Financing math strip — shows the program's down/loan split computed
+              from the offer price and applies it in one tap. */}
+          {visibleFields.some(f => f.id === "loan_amount") && String(data.financing_type || "") !== "Cash" && (() => {
+            const calc = financeCalc();
+            if (!calc) return null;
+            const inSync = moneyNum(data.down_payment) === calc.dp && moneyNum(data.loan_amount) === calc.loan;
+            return (
+              <div style={{ background: "#f0fdf4", border: "1px solid #86efac", borderRadius: 8, padding: "12px 16px", marginBottom: 20, display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+                <div style={{ fontSize: 13, color: "#166534", flex: "1 1 300px" }}>
+                  🧮 <strong>{data.financing_type}</strong> with <strong>{calc.pct}%</strong> down on ${calc.price.toLocaleString()} = <strong>${calc.dp.toLocaleString()} down</strong> / <strong>${calc.loan.toLocaleString()} loan</strong>
+                </div>
+                {inSync
+                  ? <span style={{ fontSize: 12, fontWeight: 700, color: "#15803d" }}>✓ applied below</span>
+                  : <button onClick={applyFinanceCalc} style={{ background: "#16a34a", color: "#fff", border: "none", borderRadius: 6, padding: "8px 14px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
+                      Use these numbers
+                    </button>}
+              </div>
             );
           })()}
 
