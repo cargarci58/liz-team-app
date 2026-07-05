@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import OfferWizard from "./OfferWizard";
+import { WelcomeEmailPreview } from "./App"; // review-gated welcome emails after Accept (safe: OffersTab is lazy-loaded)
 
 const API = "https://liz-team-server-api-production.up.railway.app";
 
@@ -96,7 +97,7 @@ export default function OffersTab({ tx, token, currentUser, createSignal = 0 }) 
   };
 
   const acceptOffer = async (offerId) => {
-    if (!confirm("Mark this offer ACCEPTED?\n\nThis will:\n• Move the transaction to UNDER CONTRACT\n• Copy the offer's price, closing date, and terms onto the transaction\n• Withdraw any other offers on this transaction\n• Send the welcome emails to ALL assigned parties\n\nMake sure every party (buyer, seller, title, lender…) is assigned with a valid email first.")) return;
+    if (!confirm("Mark this offer ACCEPTED?\n\nThis will:\n• Move the transaction to UNDER CONTRACT\n• Copy the offer's price, closing date, and terms onto the transaction\n• Withdraw any other offers on this transaction\n\nNOTHING is emailed yet — next you'll REVIEW the welcome emails and choose exactly what goes out.")) return;
     try {
       const r = await fetch(API + "/offers/" + offerId + "/accept", {
         method: "POST", headers: { Authorization: "Bearer " + token },
@@ -104,7 +105,9 @@ export default function OffersTab({ tx, token, currentUser, createSignal = 0 }) 
       const data = await r.json();
       if (!r.ok) throw new Error(data.error || "Accept failed");
       await load();
-      alert("✅ Accepted. Transaction is now Under Contract.\nWelcome emails sent: " + (data.emailsSent || 0) + (data.emailsFailed ? " (" + data.emailsFailed + " failed)" : ""));
+      // Review-gated welcome emails: open the preview so the agent approves
+      // each email before anything is sent (accept itself sends nothing).
+      setShowWelcomePreview(true);
     } catch (e) {
       alert("Error: " + e.message);
     }
@@ -122,6 +125,7 @@ export default function OffersTab({ tx, token, currentUser, createSignal = 0 }) 
 
   // Upload the buyer-signed offer (server-proxied), then it attaches when sending.
   const fileRef = useRef(null);
+  const [showWelcomePreview, setShowWelcomePreview] = useState(false);
   const [signTarget, setSignTarget] = useState(null);
   const pickSigned = (o) => { setSignTarget(o); setTimeout(() => fileRef.current && fileRef.current.click(), 0); };
   const uploadSigned = async (file) => {
@@ -318,6 +322,10 @@ export default function OffersTab({ tx, token, currentUser, createSignal = 0 }) 
           </div>
         );
       })()}
+
+      {showWelcomePreview && (
+        <WelcomeEmailPreview txId={tx.id} onClose={() => setShowWelcomePreview(false)} />
+      )}
 
       {sendModal && (
         <SendOfferModal

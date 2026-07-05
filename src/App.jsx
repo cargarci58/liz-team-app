@@ -3762,7 +3762,9 @@ function NotesSection({ value, onChange }) {
 // After an offer is accepted, preview every welcome/initial email before sending.
 // The agent reviews each rendered email and clicks Send per recipient (or Send All).
 // HOA + no-email parties are listed as skipped (never emailed).
-function WelcomeEmailPreview({ txId, onClose }) {
+// Exported: OffersTab opens this after ✅ Accepted (review-gated — accept itself
+// never sends anything).
+export function WelcomeEmailPreview({ txId, onClose }) {
   const hdrs = { "Authorization": "Bearer " + (localStorage.getItem("tp_token") || "") };
   const [previews, setPreviews] = useState([]);
   const [skipped, setSkipped] = useState([]);
