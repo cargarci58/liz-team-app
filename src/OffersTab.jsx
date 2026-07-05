@@ -317,6 +317,7 @@ export default function OffersTab({ tx, token, currentUser, createSignal = 0 }) 
               {v.closingDate && <div><b>Closing date:</b> {fmtDate(v.closingDate)}</div>}
               {v.contractPrice && <div><b>Contract price:</b> {fmtMoney(v.contractPrice)}</div>}
               {v.applied && v.applied.length > 0 && <div><b>Applied to the deal:</b> {v.applied.length} field{v.applied.length === 1 ? "" : "s"} (dates, contingencies) — the timeline recomputed automatically.</div>}
+              {v.partiesAdded > 0 && <div><b>People added from the contract:</b> {v.partiesAdded} (title company, lender, etc.) — check the People tab.</div>}
               {v.notes && <div style={{ color: "#6b7280", marginTop: 4 }}>{v.notes}</div>}
             </div>
           </div>
