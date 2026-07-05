@@ -5876,8 +5876,21 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
             )}
             <div style={{ background: "#fff", border: `1px solid ${COLORS.border}`, borderRadius: 12, padding: 20, marginBottom: 20 }}>
               <h3 style={{ margin: "0 0 14px", fontSize: 14, color: COLORS.navy, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em" }}>Key Parties</h3>
+              {/* ALL parties, clients first then agents then vendors — the old
+                  first-6 cap silently hid the title company / HOA on full deals. */}
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 10 }}>
-                {tx.parties.slice(0, 6).map(p => <PartyCard key={p.id} party={p} />)}
+                {[...tx.parties].sort((a, b) => {
+                  const rank = (p) => {
+                    const r = (p.role || "").toLowerCase();
+                    if (/^buyer$|^seller$/.test(r)) return 0;
+                    if (/agent/.test(r)) return 1;
+                    if (/title/.test(r)) return 2;
+                    if (/lender|loan/.test(r)) return 3;
+                    if (/hoa/.test(r)) return 4;
+                    return 5;
+                  };
+                  return rank(a) - rank(b) || String(a.role || "").localeCompare(String(b.role || ""));
+                }).map(p => <PartyCard key={p.id} party={p} />)}
               </div>
             </div>
             {!isGuest && /listing|seller|dual/i.test(tx.transactionType || tx.type || "") && (
