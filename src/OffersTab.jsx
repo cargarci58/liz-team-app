@@ -4,6 +4,44 @@ import { WelcomeEmailPreview } from "./App"; // review-gated welcome emails afte
 
 const API = "https://liz-team-server-api-production.up.railway.app";
 
+// The contract only shows SIGNATURE dates — FL FAR/BAR says the clock starts when
+// the fully-signed copy is DELIVERED to all parties, which only the agent knows.
+// Ask, defaulting to what was read; applying recomputes the whole timeline.
+function EffectiveDateConfirm({ txId, token, readDate }) {
+  const [date, setDate] = useState((readDate || "").slice(0, 10) || new Date().toISOString().slice(0, 10));
+  const [busy, setBusy] = useState(false);
+  const [done, setDone] = useState(null);
+  const apply = async () => {
+    setBusy(true);
+    try {
+      const r = await fetch(API + "/transactions/" + txId + "/effective-date", {
+        method: "POST", headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
+        body: JSON.stringify({ date }),
+      });
+      const d = await r.json(); if (!r.ok || !d.success) throw new Error(d.error || "Could not save");
+      setDone(date);
+    } catch (e) { alert("Error: " + e.message); }
+    setBusy(false);
+  };
+  if (done) return <div style={{ color: "#065f46", fontWeight: 600 }}>✓ Effective date set to {fmtDate(done)} — deadlines and timeline recomputed.</div>;
+  return (
+    <div style={{ background: "#fffbeb", border: "1px solid #fcd34d", borderRadius: 8, padding: "10px 12px", margin: "6px 0" }}>
+      <div style={{ fontWeight: 700, color: "#92400e", marginBottom: 4 }}>⚠️ Confirm the effective date</div>
+      <div style={{ fontSize: 12.5, color: "#78350f", marginBottom: 8 }}>
+        The contract's last signature is dated <b>{readDate ? fmtDate(readDate) : "—"}</b>, but under FL FAR/BAR the contract becomes effective when <b>all parties receive the fully-signed copy</b>. When was that?
+      </div>
+      <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+        <input type="date" value={date} onChange={e => setDate(e.target.value)}
+          style={{ padding: "7px 10px", border: "1px solid #d1d5db", borderRadius: 6, fontSize: 13 }} />
+        <button onClick={apply} disabled={busy || !date}
+          style={{ background: "#b45309", color: "#fff", border: "none", borderRadius: 6, padding: "8px 14px", fontSize: 13, fontWeight: 700, cursor: "pointer", opacity: busy ? 0.6 : 1 }}>
+          {busy ? "Saving…" : "✓ Set effective date"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 const STATUS_META = {
   draft:      { label: "Draft",      color: "#92400e", bg: "#fef3c7" },
   ready:      { label: "Ready",      color: "#065f46", bg: "#d1fae5" },
@@ -313,7 +351,8 @@ export default function OffersTab({ tx, token, currentUser, createSignal = 0 }) 
             </div>
             <div style={{ fontSize: 13, color: "#374151", lineHeight: 1.7 }}>
               <div><b>Signatures:</b> {v.signatureStatus || "unknown"}{v.missingSignatures ? ` — missing: ${v.missingSignatures}` : ""}</div>
-              {v.executedDate && <div><b>Executed date:</b> {fmtDate(v.executedDate)}</div>}
+              {v.executedDate && !v.effectiveDateUncertain && <div><b>Effective date:</b> {fmtDate(v.executedDate)}</div>}
+              {v.effectiveDateUncertain && <EffectiveDateConfirm txId={tx.id} token={token} readDate={v.executedDate} />}
               {v.closingDate && <div><b>Closing date:</b> {fmtDate(v.closingDate)}</div>}
               {v.contractPrice && <div><b>Contract price:</b> {fmtMoney(v.contractPrice)}</div>}
               {v.applied && v.applied.length > 0 && <div><b>Applied to the deal:</b> {v.applied.length} field{v.applied.length === 1 ? "" : "s"} (dates, contingencies) — the timeline recomputed automatically.</div>}
