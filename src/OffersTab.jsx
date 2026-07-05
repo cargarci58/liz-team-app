@@ -141,6 +141,31 @@ export default function OffersTab({ tx, token, currentUser, createSignal = 0 }) 
     } catch (e) { alert("Error: " + e.message); }
   };
 
+  // Upload the FULLY-EXECUTED contract on an accepted offer; the server has AI
+  // re-read it (terms + dates applied, timeline rebuilt) and verify signatures.
+  const execRef = useRef(null);
+  const [execTarget, setExecTarget] = useState(null);
+  const [execBusy, setExecBusy] = useState(false);
+  const [execResult, setExecResult] = useState(null); // { offerId, verify }
+  const pickExecuted = (o) => { setExecTarget(o); setTimeout(() => execRef.current && execRef.current.click(), 0); };
+  const uploadExecuted = async (file) => {
+    const o = execTarget;
+    setExecTarget(null);
+    if (!file || !o) return;
+    setExecBusy(true); setExecResult(null);
+    try {
+      const base64 = await new Promise((res, rej) => { const fr = new FileReader(); fr.onload = () => res(String(fr.result).split(",")[1]); fr.onerror = rej; fr.readAsDataURL(file); });
+      const r = await fetch(API + "/offers/" + o.id + "/upload-executed", {
+        method: "POST", headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
+        body: JSON.stringify({ fileName: file.name, fileType: file.type, base64 }),
+      });
+      const data = await r.json(); if (!r.ok) throw new Error(data.error || "Upload failed");
+      setExecResult({ offerId: o.id, verify: data.verify || null });
+      await load();
+    } catch (e) { alert("Error: " + e.message); }
+    setExecBusy(false);
+  };
+
   // Open the approve-and-attach modal to send the offer to the listing agent.
   const sendToListing = (o) => {
     if (!o.signed_doc_id && !o.packet_pdf_key) {
@@ -246,6 +271,7 @@ export default function OffersTab({ tx, token, currentUser, createSignal = 0 }) 
                             {active && o.signed_doc_id && btn(o.status === "sent" ? "📧 Re-send to listing agent" : "📧 Send to listing agent", () => sendToListing(o), "#ede9fe", "#5b21b6")}
                             {(o.status === "ready" || o.status === "sent" || o.status === "countered") && btn("✅ Accepted", () => acceptOffer(o.id), "#16a34a", "#fff")}
                             {(o.status === "sent" || o.status === "countered") && btn("Declined", () => setOfferStatus(o.id, "rejected", "DECLINED by the seller"), "#fee2e2", "#7f1d1d")}
+                            {o.status === "accepted" && btn(execBusy && execTarget?.id === o.id ? "Uploading…" : o.executed_doc_id ? "✅ Executed contract on file — replace" : "📜 Upload Executed Contract", () => pickExecuted(o), "#065f46", "#fff")}
                             {o.status === "accepted" && btn("Undo acceptance", () => unacceptOffer(o.id), "#fef3c7", "#92400e")}
                             {(o.status === "draft" || o.status === "ready") && btn("Delete", () => deleteOffer(o.id), "#fee2e2", "#7f1d1d")}
                           </div>
@@ -262,6 +288,36 @@ export default function OffersTab({ tx, token, currentUser, createSignal = 0 }) 
 
       <input ref={fileRef} type="file" accept=".pdf,image/*" style={{ display: "none" }}
         onChange={e => { const f = e.target.files && e.target.files[0]; if (f) uploadSigned(f); e.target.value = ""; }} />
+      <input ref={execRef} type="file" accept=".pdf,image/*" style={{ display: "none" }}
+        onChange={e => { const f = e.target.files && e.target.files[0]; if (f) uploadExecuted(f); e.target.value = ""; }} />
+
+      {execBusy && (
+        <div style={{ background: "#eff6ff", border: "1px solid #93c5fd", borderRadius: 10, padding: 14, marginTop: 14, fontSize: 13, color: "#1e40af" }}>
+          🤖 AI is reading the executed contract — checking terms, dates, and signatures. This can take up to a minute…
+        </div>
+      )}
+      {execResult && execResult.verify && (() => {
+        const v = execResult.verify;
+        if (v.error) return (
+          <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 10, padding: 14, marginTop: 14, fontSize: 13, color: "#991b1b" }}>⚠️ {v.error}</div>
+        );
+        const signedOk = /fully|all.*signed|complete/i.test(String(v.signatureStatus || ""));
+        return (
+          <div style={{ background: signedOk ? "#ecfdf5" : "#fffbeb", border: `1px solid ${signedOk ? "#6ee7b7" : "#fcd34d"}`, borderRadius: 10, padding: 16, marginTop: 14 }}>
+            <div style={{ fontWeight: 800, fontSize: 14, color: signedOk ? "#065f46" : "#92400e", marginBottom: 8 }}>
+              {signedOk ? "✅ Executed contract verified — signed properly" : "⚠️ Executed contract read — check the signatures"}
+            </div>
+            <div style={{ fontSize: 13, color: "#374151", lineHeight: 1.7 }}>
+              <div><b>Signatures:</b> {v.signatureStatus || "unknown"}{v.missingSignatures ? ` — missing: ${v.missingSignatures}` : ""}</div>
+              {v.executedDate && <div><b>Executed date:</b> {fmtDate(v.executedDate)}</div>}
+              {v.closingDate && <div><b>Closing date:</b> {fmtDate(v.closingDate)}</div>}
+              {v.contractPrice && <div><b>Contract price:</b> {fmtMoney(v.contractPrice)}</div>}
+              {v.applied && v.applied.length > 0 && <div><b>Applied to the deal:</b> {v.applied.length} field{v.applied.length === 1 ? "" : "s"} (dates, contingencies) — the timeline recomputed automatically.</div>}
+              {v.notes && <div style={{ color: "#6b7280", marginTop: 4 }}>{v.notes}</div>}
+            </div>
+          </div>
+        );
+      })()}
 
       {sendModal && (
         <SendOfferModal
