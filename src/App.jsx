@@ -5725,12 +5725,6 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
                 />
               </div>
             )}
-            {showEmailPreview && (
-              <WelcomeEmailPreview
-                txId={tx.id}
-                onClose={() => { setShowEmailPreview(false); window.location.reload(); }}
-              />
-            )}
             {!isGuest && ["Under Contract", "Inspection", "Appraisal", "Clear to Close", "Closed"].includes(tx.status) && (
               <div style={{ background: "#fff", border: `1px solid ${COLORS.border}`, borderRadius: 12, padding: 16, marginBottom: 20, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
                 <div style={{ fontSize: 13, color: COLORS.muted }}>Send the welcome &amp; intro emails to all parties — you can preview each before it goes out.</div>
@@ -6307,6 +6301,14 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
             <div style={{ marginTop: 12 }}><button onClick={() => setPaywallFeature(null)} style={{ background: "none", border: "none", color: COLORS.muted, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>Maybe later</button></div>
           </div>
         </div>
+      )}
+      {/* Tab-independent: opened from Overview AND the People tab (rendering it
+          inside the overview block made the People-tab button do nothing). */}
+      {showEmailPreview && (
+        <WelcomeEmailPreview
+          txId={tx.id}
+          onClose={() => { setShowEmailPreview(false); window.location.reload(); }}
+        />
       )}
       {showAddParty && (
         <Modal title="Add Party" onClose={() => { setShowAddParty(false); setPartyFromContactBook(false); }}>
