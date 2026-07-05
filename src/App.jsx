@@ -5817,7 +5817,11 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
             )}
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, marginBottom: 20 }}>
               {[
-                { title: "Property", rows: [["Assigned Agent", tx.assignedAgentName || "—"], ["Referral Source", tx.referralSource || "—"], ["Address", tx.address], ["City/County", `${tx.city}, ${tx.county} County`], ["Zip", tx.zipCode], ["Type", tx.propertyType], ["Transaction", tx.type], ["MLS #", tx.mlsNumber], ["Lockbox Access", tx.propertyAccess || "—"], ["Mail-Away", tx.mailAway || "No"]] },
+                { title: "Property", rows: [["Assigned Agent", tx.assignedAgentName || "—"], ["Referral Source", tx.referralSource || "—"], ["Address", tx.address], ["City/County", `${tx.city}, ${tx.county} County`], ["Zip", tx.zipCode], ["Type", tx.propertyType], ["Transaction", tx.type], ["MLS #", tx.mlsNumber],
+                  ["Year Built", tx.yearBuilt || "—"],
+                  ["HOA", tx.inHoa === "yes" ? `Yes${tx.hoaFeeMonthly ? ` · $${Number(tx.hoaFeeMonthly).toLocaleString()}/mo` : ""}` : tx.inHoa === "no" ? "No" : "—"],
+                  ["Flood Zone", tx.floodZone || "—"],
+                  ["Lockbox Access", tx.propertyAccess || "—"], ["Mail-Away", tx.mailAway || "No"]] },
                 { title: isCoordinator ? "Price & Dates" : "Financials", rows: (() => {
                     // Coordinator: price + dates only — the agent's commission/splits/
                     // fees are never shown.
@@ -7803,6 +7807,7 @@ function Dashboard({ transactions, coordinatorMode = false, unreadCounts = {}, o
     sellerIsForeign: t.seller_is_foreign || false,
     isCoastal: t.is_coastal || false,
     inHoa: t.in_hoa === true ? "yes" : t.in_hoa === false ? "no" : "",
+    hoaFeeMonthly: t.hoa_fee_monthly || "",
     financingType: t.financing_type || "",
     sellerPaysBuyerBroker: t.seller_pays_buyer_broker || false,
     isShortSale: t.is_short_sale || false,
@@ -8793,6 +8798,7 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
     sellerIsForeign: t.seller_is_foreign || false,
     isCoastal: t.is_coastal || false,
     inHoa: t.in_hoa === true ? "yes" : t.in_hoa === false ? "no" : "",
+    hoaFeeMonthly: t.hoa_fee_monthly || "",
     financingType: t.financing_type || "",
     sellerPaysBuyerBroker: t.seller_pays_buyer_broker || false,
     isShortSale: t.is_short_sale || false,
