@@ -204,12 +204,14 @@ function ShareVendorModal({ vendor, onClose }) {
   const inp = { width: "100%", padding: "9px 11px", borderRadius: 8, border: "1.5px solid " + COLORS.border, fontSize: 14, fontFamily: "inherit", boxSizing: "border-box" };
   const srcBtn = (on) => ({ flex: 1, padding: "8px", borderRadius: 8, border: "1.5px solid " + (on ? COLORS.red : COLORS.border), background: on ? COLORS.red : "#fff", color: on ? "#fff" : COLORS.gray, fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit" });
 
-  const filteredContacts = (contacts || []).filter(c => {
+  const _matchingContacts = (contacts || []).filter(c => {
     if (!c.email && !c.phone) return false;
     if (!search.trim()) return true;
     const s = search.toLowerCase();
     return (c.name || "").toLowerCase().includes(s) || (c.email || "").toLowerCase().includes(s) || (c.phone || "").includes(s);
-  }).slice(0, 50);
+  });
+  const filteredContacts = _matchingContacts.slice(0, 50);
+  const contactsHidden = _matchingContacts.length - filteredContacts.length; // shown when >0 so the cap is never silent
   const dealParties = txId && deals ? ((deals.find(t => String(t.id) === String(txId))?.parties) || []).filter(p => (p.email && p.email.trim()) || (p.phone && p.phone.trim())) : [];
 
   return (
@@ -258,7 +260,8 @@ function ShareVendorModal({ vendor, onClose }) {
                 <div style={{ maxHeight: 200, overflowY: "auto", border: "1px solid " + COLORS.border, borderRadius: 8 }}>
                   {contacts === null ? <div style={{ padding: 14, color: COLORS.gray, fontSize: 13 }}>Loading…</div> :
                     filteredContacts.length === 0 ? <div style={{ padding: 14, color: COLORS.gray, fontSize: 13 }}>No contacts with an email or phone.</div> :
-                    filteredContacts.map(c => {
+                    <>
+                    {filteredContacts.map(c => {
                       const key = "contact:" + c.id;
                       return (
                         <div key={key} onClick={() => has(key) ? remove(key) : add({ key, name: c.name, email: c.email, phone: c.phone, source: "contacts" })}
@@ -268,6 +271,12 @@ function ShareVendorModal({ vendor, onClose }) {
                         </div>
                       );
                     })}
+                    {contactsHidden > 0 && (
+                      <div style={{ padding: "8px 12px", fontSize: 12, color: COLORS.gray, fontStyle: "italic" }}>
+                        …and {contactsHidden} more match{contactsHidden === 1 ? "" : "es"} — type more of the name to narrow it down
+                      </div>
+                    )}
+                    </>}
                 </div>
               </div>
             )}

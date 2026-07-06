@@ -25,7 +25,7 @@ export default function PopByLogModal({ token, contact: presetContact, onClose, 
     tRef.current = setTimeout(() => {
       fetch(API + "/contacts?search=" + encodeURIComponent(search.trim()), { headers: { Authorization: "Bearer " + token } })
         .then(r => r.ok ? r.json() : null)
-        .then(d => setResults(((d && d.contacts) || []).slice(0, 8)))
+        .then(d => { const all = (d && d.contacts) || []; setResults(all.slice(0, 8).concat(all.length > 8 ? [{ id: "__more__", _more: all.length - 8 }] : [])); })
         .catch(() => {});
     }, 250);
     return () => clearTimeout(tRef.current);
@@ -65,7 +65,11 @@ export default function PopByLogModal({ token, contact: presetContact, onClose, 
             <input autoFocus value={search} onChange={e => setSearch(e.target.value)} placeholder="Search a contact by name…" style={inp} />
             {results.length > 0 && (
               <div style={{ border: "1px solid #e5e7eb", borderRadius: 8, marginTop: 4, maxHeight: 220, overflowY: "auto" }}>
-                {results.map(c => (
+                {results.map(c => c._more ? (
+                  <div key="__more__" style={{ padding: "8px 12px", fontSize: 12, color: "#9ca3af", fontStyle: "italic" }}>
+                    …and {c._more} more match{c._more === 1 ? "" : "es"} — keep typing to narrow it down
+                  </div>
+                ) : (
                   <div key={c.id} onClick={() => { setContact(c); setResults([]); }} style={{ padding: "9px 12px", cursor: "pointer", borderBottom: "1px solid #f1f5f9", fontSize: 14 }}>
                     {cname(c)}{c.phone && <span style={{ color: "#9ca3af", fontSize: 12 }}> · {c.phone}</span>}
                   </div>

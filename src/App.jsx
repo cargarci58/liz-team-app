@@ -613,8 +613,8 @@ if (typeof document !== "undefined" && !document.getElementById("lizteam-mobile"
 }
 
 function genId() { return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, c => { const r = Math.random() * 16 | 0; return (c === "x" ? r : (r & 0x3 | 0x8)).toString(16); }); }
-function today() { return new Date().toISOString().split("T")[0]; }
-function addDays(date, days) { const d = new Date(date); d.setDate(d.getDate() + days); return d.toISOString().split("T")[0]; }
+function today() { return new Date().toLocaleDateString("en-CA", { timeZone: "America/New_York" }); } // EASTERN day — UTC rolled a day forward every evening
+function addDays(date, days) { const clean = String(date).includes("T") ? String(date).split("T")[0] : String(date); const d = new Date(clean + "T00:00:00"); d.setDate(d.getDate() + days); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; }
 function formatDate(s) { if (!s) return "—"; const clean = String(s).includes("T") ? String(s).split("T")[0] : String(s); const d = new Date(clean + "T00:00:00"); return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }); }
 function daysUntil(s) { if (!s) return null; const clean = String(s).includes("T") ? String(s).split("T")[0] : String(s); const diff = new Date(clean + "T00:00:00") - new Date(today() + "T00:00:00"); return Math.round(diff / 86400000); }
 function formatTime(iso) { return new Date(iso).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }); }
@@ -1799,11 +1799,12 @@ function PersonalTaskAddButton({ token }) {
   ];
 
   const setPreset = (days) => {
-    const d = new Date(); d.setDate(d.getDate() + days);
-    setDueDate(d.toISOString().slice(0, 10));
+    const d = new Date(new Date().toLocaleDateString("en-CA", { timeZone: "America/New_York" }) + "T00:00:00");
+    d.setDate(d.getDate() + days);
+    setDueDate(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`);
   };
 
-  const today = new Date().toISOString().slice(0, 10);
+  const today = new Date().toLocaleDateString("en-CA", { timeZone: "America/New_York" });
   const selectedDays = dueDate ? Math.round((new Date(dueDate + "T00:00:00") - new Date(today + "T00:00:00")) / 86400000) : null;
 
   const save = async () => {
@@ -2549,9 +2550,9 @@ function MilestonesTab({ tx, token, onSummaryChange, coordinatorMode = false }) 
     const active = milestones.filter(m => m.is_na !== true);
     const total = active.length;
     const done = active.filter(m => m.status === "Completed" || m.status === "Waived").length;
-    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const todayStr = new Date().toLocaleDateString("en-CA", { timeZone: "America/New_York" });
     const overdue = active.filter(m =>
-      m.status !== "Completed" && m.status !== "Waived" && m.due_date && new Date(m.due_date) < today
+      m.status !== "Completed" && m.status !== "Waived" && m.due_date && String(m.due_date).slice(0, 10) < todayStr
     ).length;
     const next = milestones.find(m => m.status !== "Completed" && m.status !== "Waived" && m.is_na !== true) || null;
     onSummaryChange(tx.id, { total, done, overdue }, next ? { name: next.name, dueDate: next.due_date } : null);
@@ -2729,8 +2730,8 @@ function MilestonesTab({ tx, token, onSummaryChange, coordinatorMode = false }) 
     setWaiving(false);
   };
 
-  const today = new Date().toISOString().split("T")[0];
-  const daysUntil = (d) => d ? Math.round((new Date(d) - new Date(today)) / 86400000) : null;
+  const today = new Date().toLocaleDateString("en-CA", { timeZone: "America/New_York" });
+  const daysUntil = (d) => d ? Math.round((new Date(String(d).slice(0, 10) + "T00:00:00") - new Date(today + "T00:00:00")) / 86400000) : null;
 
   const getMilestoneStatus = (m) => {
     if (m.status === "Completed") return "completed";
@@ -4697,6 +4698,11 @@ function DealDoctorSendModal({ tx, draft, onClose, onSent }) {
                     </button>
                   );
                 })}
+                {docs.length > 30 && (
+                  <span style={{ fontSize: 12, color: "#94A3B8", fontStyle: "italic", alignSelf: "center" }}>
+                    …and {docs.length - 30} more in the Documents tab (showing the 30 newest)
+                  </span>
+                )}
               </div>
             )}
             <label style={{ display: "inline-block", background: "#fff", border: "1px dashed #CBD5E1", borderRadius: 8, padding: "8px 14px", fontSize: 12.5, fontWeight: 600, color: "#475569", cursor: "pointer" }}>
