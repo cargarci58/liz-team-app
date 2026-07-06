@@ -6074,15 +6074,7 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
                   if (!r.ok || !d.success) throw new Error(d.error || "Reset failed");
                   alert(`✅ PIN cleared for ${p2.name}. Tell them to open their portal link again — it will ask them to CREATE a new 4-digit PIN.`);
                 } catch (e) { alert("Could not reset PIN: " + e.message); }
-              } : undefined} onSendWelcome={isGuest ? () => setPaywallFeature("Welcome emails") : onSendWelcome} onResetPassword={isGuest ? () => setPaywallFeature("Password resets") : async (p) => {
-              if (!confirm("Email a password reset link to " + (p.name || p.email) + "?\n\nThe link expires in 1 hour.")) return;
-              try {
-                const r = await fetch("https://liz-team-server-api-production.up.railway.app/users/" + encodeURIComponent(p.email) + "/send-reset-link", { method: "POST", headers: { Authorization: "Bearer " + (localStorage.getItem("tp_token") || ""), "Content-Type": "application/json" }, body: JSON.stringify({ email: p.email }) });
-                const data = await r.json();
-                if (!r.ok) throw new Error(data.error || "Failed");
-                alert("✅ Reset link sent to " + p.email);
-              } catch (e) { alert("⚠️ " + e.message); }
-            }} />)}</div>;
+              } : undefined} onSendWelcome={isGuest ? () => setPaywallFeature("Welcome emails") : onSendWelcome} onResetPassword={undefined /* password login retired for clients — portal is link+PIN; staff resets live in Team settings */} />)}</div>;
             })}
             {(() => {
               const vendorParties = tx.parties.filter(p => (p.isVendor || p.is_vendor || !PARTY_ROLES.includes(p.role)) && !(isCoordinator && (p.email || "").toLowerCase() === (currentUser?.email || "").toLowerCase()));
@@ -6114,15 +6106,7 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
                         onUpdate({ ...tx, parties: tx.parties.filter(pp => pp.id !== p.id) });
                       }}
                         onInvite={isGuest ? () => setPaywallFeature("Inviting parties to the app") : (onInviteParty && isOwnSideClientRole(p.role) ? () => onInviteParty(p) : undefined)}
-                        onSendWelcome={isGuest ? () => setPaywallFeature("Welcome emails") : onSendWelcome} onResetPassword={isGuest ? () => setPaywallFeature("Password resets") : async (p) => {
-              if (!confirm("Email a password reset link to " + (p.name || p.email) + "?\n\nThe link expires in 1 hour.")) return;
-              try {
-                const r = await fetch("https://liz-team-server-api-production.up.railway.app/users/" + encodeURIComponent(p.email) + "/send-reset-link", { method: "POST", headers: { Authorization: "Bearer " + (localStorage.getItem("tp_token") || ""), "Content-Type": "application/json" }, body: JSON.stringify({ email: p.email }) });
-                const data = await r.json();
-                if (!r.ok) throw new Error(data.error || "Failed");
-                alert("✅ Reset link sent to " + p.email);
-              } catch (e) { alert("⚠️ " + e.message); }
-            }} />
+                        onSendWelcome={isGuest ? () => setPaywallFeature("Welcome emails") : onSendWelcome} onResetPassword={undefined /* password login retired for clients — portal is link+PIN; staff resets live in Team settings */} />
                       {(p.vendorStatus === "selected" || p.vendor_status === "selected") && (
                         <div style={{ display: "flex", alignItems: "center", gap: 10,
                           padding: "8px 12px", background: "#D5F5E3", borderRadius: 8,
