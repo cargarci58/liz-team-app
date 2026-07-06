@@ -1127,6 +1127,23 @@ function SMSPanel({ tx, onUpdate, currentUser, sendOnly = false }) {
       .then(r => r.json()).then(d => { if (d && d.success) setLogged(d.messages || []); }).catch(() => {});
   };
   useEffect(() => { loadLogged(); }, [tx.id]);
+  // Opening a conversation = those messages are read. Server first (so it holds
+  // across devices/reloads), then clear locally so the badge drops instantly.
+  const markThreadRead = (party) => {
+    const tok = localStorage.getItem("tp_token") || "";
+    fetch(`${SMS_SERVER}/transactions/${tx.id}/thread-read`, {
+      method: "PATCH", headers: { "Content-Type": "application/json", Authorization: "Bearer " + tok },
+      body: JSON.stringify({ email: party.email || "", phone: party.phone || "" }),
+    }).catch(() => {});
+    const pe = (party.email || "").toLowerCase();
+    const pp = (party.phone || "").replace(/[^0-9]/g, "").slice(-10);
+    setLogged(prev => prev.map(m => {
+      if ((m.direction || "outbound") !== "inbound" || m.read_at) return m;
+      const me = (m.to_email || "").toLowerCase();
+      const mp = (m.to_phone || "").replace(/[^0-9]/g, "").slice(-10);
+      return ((pe && me === pe) || (pp && mp === pp)) ? { ...m, read_at: new Date().toISOString() } : m;
+    }));
+  };
 
   // SMS inbound polling removed - using message_log instead
 
@@ -1146,7 +1163,7 @@ function SMSPanel({ tx, onUpdate, currentUser, sendOnly = false }) {
     const fromLog = (logged || []).filter(m =>
       (partyEmail && (m.to_email || "").toLowerCase() === partyEmail) ||
       (partyPhone && m.to_phone && normalizePhone(m.to_phone) === partyPhone)
-    ).map(m => ({ id: m.id, body: m.body, subject: m.subject, direction: m.direction || "outbound", channel: m.channel, timestamp: m.created_at, status: "sent" }));
+    ).map(m => ({ id: m.id, body: m.body, subject: m.subject, direction: m.direction || "outbound", channel: m.channel, timestamp: m.created_at, status: "sent", read_at: m.read_at || null }));
     // Dedupe by id (optimistic push reuses the server msg id), then sort.
     const seen = new Set();
     return [...phoneThread, ...emailThread, ...fromLog]
@@ -1601,10 +1618,12 @@ function SMSPanel({ tx, onUpdate, currentUser, sendOnly = false }) {
               {partiesWithContact.map(party => {
                 const thread = getThread(party);
                 const last = thread[thread.length - 1];
-                const inbound = thread.filter(m => m.direction === "inbound").length;
+                // TRUE unread (was a lifetime total that never cleared): inbound
+                // rows without read_at. Opening the conversation marks them read.
+                const inbound = thread.filter(m => m.direction === "inbound" && !m.read_at).length;
                 const isSelected = selectedParty?.id === party.id;
                 return (
-                  <div key={party.id} onClick={() => setSelectedParty(party)} style={{ padding: "12px 14px", borderBottom: "1px solid #E5E7EB", cursor: "pointer", background: isSelected ? "#F0F4FF" : "#fff", borderLeft: `3px solid ${isSelected ? "#0F2044" : "transparent"}` }}>
+                  <div key={party.id} onClick={() => { setSelectedParty(party); if (inbound > 0) markThreadRead(party); }} style={{ padding: "12px 14px", borderBottom: "1px solid #E5E7EB", cursor: "pointer", background: isSelected ? "#F0F4FF" : "#fff", borderLeft: `3px solid ${isSelected ? "#0F2044" : "transparent"}` }}>
                     <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
                       <div style={{ width: 36, height: 36, borderRadius: "50%", background: "#1D4ED822", color: "#1D4ED8", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 13, flexShrink: 0 }}>{party.name.split(" ").map(w => w[0]).join("").toUpperCase().substr(0, 2)}</div>
                       <div style={{ flex: 1, minWidth: 0 }}>
