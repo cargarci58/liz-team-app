@@ -3760,6 +3760,48 @@ function NotesSection({ value, onChange }) {
   );
 }
 
+// Every outbound email + text this deal has sent (message_log), newest first —
+// the audit trail an agent checks when a party says "I never got it."
+function SentHistoryPanel({ txId }) {
+  const [rows, setRows] = useState(null);
+  const [openId, setOpenId] = useState(null);
+  useEffect(() => {
+    const tok = localStorage.getItem("tp_token") || "";
+    fetch(`${API}/client/messages/${txId}`, { headers: { Authorization: "Bearer " + tok } })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => setRows(((d && d.messages) || []).filter(m => (m.direction || "outbound") === "outbound").reverse()))
+      .catch(() => setRows([]));
+  }, [txId]);
+  if (rows === null) return <div style={{ padding: 24, color: COLORS.muted, fontSize: 13 }}>Loading sent history…</div>;
+  if (rows.length === 0) return <div style={{ padding: 24, color: COLORS.muted, fontSize: 13 }}>Nothing sent on this deal yet — welcome emails, reminders, and updates will show here the moment they go out.</div>;
+  return (
+    <div style={{ padding: 12 }}>
+      {rows.map(m => {
+        const isOpen = openId === m.id;
+        const when = m.created_at ? new Date(m.created_at).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) : "";
+        return (
+          <div key={m.id} onClick={() => setOpenId(isOpen ? null : m.id)}
+            style={{ border: "1px solid " + COLORS.border, borderRadius: 10, padding: "10px 14px", marginBottom: 8, cursor: "pointer", background: "#fff" }}>
+            <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+              <span style={{ fontSize: 15 }}>{m.channel === "sms" ? "📱" : "📧"}</span>
+              <span style={{ fontWeight: 700, fontSize: 13, color: COLORS.text }}>{m.to_name || m.to_email || m.to_phone || "—"}</span>
+              <span style={{ fontSize: 12, color: COLORS.muted, flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: isOpen ? "normal" : "nowrap" }}>{m.subject || (m.body || "").slice(0, 80)}</span>
+              <span style={{ fontSize: 11, color: COLORS.muted, whiteSpace: "nowrap" }}>{when}</span>
+              <span style={{ fontSize: 11, color: COLORS.muted }}>{isOpen ? "▲" : "▼"}</span>
+            </div>
+            {isOpen && (
+              <div style={{ marginTop: 10, paddingTop: 10, borderTop: "1px solid " + COLORS.bg, fontSize: 13, color: COLORS.text, whiteSpace: "pre-wrap", lineHeight: 1.55 }}>
+                {(m.to_email || m.to_phone) && <div style={{ fontSize: 12, color: COLORS.muted, marginBottom: 6 }}>To: {[m.to_email, m.to_phone].filter(Boolean).join(" · ")}</div>}
+                {m.body || "(no message body recorded)"}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 // After an offer is accepted, preview every welcome/initial email before sending.
 // The agent reviews each rendered email and clicks Send per recipient (or Send All).
 // HOA + no-email parties are listed as skipped (never emailed).
@@ -3868,7 +3910,9 @@ export function WelcomeEmailPreview({ txId, onClose, onlyPartyId = null }) {
 
   const cur = previews[sel];
   const overlay = { position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 400, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 };
-  const box = { background: "#fff", borderRadius: 12, width: "100%", maxWidth: 960, maxHeight: "90vh", display: "flex", flexDirection: "column", overflow: "hidden" };
+  // Near-full-screen: agents review the ENTIRE rendered email here before it
+  // sends — a short box forced scrolling inside a tiny iframe and hid content.
+  const box = { background: "#fff", borderRadius: 12, width: "100%", maxWidth: 1240, height: "94vh", maxHeight: "94vh", display: "flex", flexDirection: "column", overflow: "hidden" };
 
   return (
     <div style={overlay}>
@@ -6021,7 +6065,7 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
             {PARTY_ROLES.map(role => {
               const members = tx.parties.filter(p => p.role === role && !p.isVendor && !p.is_vendor && !(isCoordinator && (p.email || "").toLowerCase() === (currentUser?.email || "").toLowerCase()));
               if (!members.length) return null;
-              return <div key={role} style={{ marginBottom: 16 }}><div style={{ fontSize: 12, fontWeight: 700, color: COLORS.muted, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 8 }}>{role}</div>{members.map(p => <PartyCard key={p.id} party={p} txId={tx.id} onEdit={isGuest ? () => setPaywallFeature("Editing parties") : () => setEditingParty({ ...p })} onRemove={isGuest ? () => setPaywallFeature("Removing parties") : () => isCoordinator ? coordDeleteParty(p.id) : update({ parties: tx.parties.filter(pp => pp.id !== p.id) })} onInvite={isGuest ? () => setPaywallFeature("Inviting parties to the app") : (isCoordinator ? undefined : (onInviteParty ? () => onInviteParty(p) : undefined))} onCopyLoginLink={isGuest ? () => setPaywallFeature("Sharing portal login links") : (isCoordinator ? undefined : (onCopyLoginLink && isOwnSideClientRole(p.role) ? () => onCopyLoginLink(p) : undefined))} onSendFollowup={isGuest ? () => setPaywallFeature("Follow-up reminders") : (party) => setFollowupParty(party)} onSendWelcome={isGuest ? () => setPaywallFeature("Welcome emails") : onSendWelcome} onResetPassword={isGuest ? () => setPaywallFeature("Password resets") : async (p) => {
+              return <div key={role} style={{ marginBottom: 16 }}><div style={{ fontSize: 12, fontWeight: 700, color: COLORS.muted, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 8 }}>{role}</div>{members.map(p => <PartyCard key={p.id} party={p} txId={tx.id} onEdit={isGuest ? () => setPaywallFeature("Editing parties") : () => setEditingParty({ ...p })} onRemove={isGuest ? () => setPaywallFeature("Removing parties") : () => isCoordinator ? coordDeleteParty(p.id) : update({ parties: tx.parties.filter(pp => pp.id !== p.id) })} onInvite={isGuest ? () => setPaywallFeature("Inviting parties to the app") : (isCoordinator ? undefined : (onInviteParty && isOwnSideClientRole(p.role) ? () => onInviteParty(p) : undefined))} onCopyLoginLink={isGuest ? () => setPaywallFeature("Sharing portal login links") : (isCoordinator ? undefined : (onCopyLoginLink && isOwnSideClientRole(p.role) ? () => onCopyLoginLink(p) : undefined))} onSendFollowup={isGuest ? () => setPaywallFeature("Follow-up reminders") : (party) => setFollowupParty(party)} onSendWelcome={isGuest ? () => setPaywallFeature("Welcome emails") : onSendWelcome} onResetPassword={isGuest ? () => setPaywallFeature("Password resets") : async (p) => {
               if (!confirm("Email a password reset link to " + (p.name || p.email) + "?\n\nThe link expires in 1 hour.")) return;
               try {
                 const r = await fetch("https://liz-team-server-api-production.up.railway.app/users/" + encodeURIComponent(p.email) + "/send-reset-link", { method: "POST", headers: { Authorization: "Bearer " + (localStorage.getItem("tp_token") || ""), "Content-Type": "application/json" }, body: JSON.stringify({ email: p.email }) });
@@ -6060,7 +6104,7 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
                         } catch(e) {}
                         onUpdate({ ...tx, parties: tx.parties.filter(pp => pp.id !== p.id) });
                       }}
-                        onInvite={isGuest ? () => setPaywallFeature("Inviting parties to the app") : (onInviteParty ? () => onInviteParty(p) : undefined)}
+                        onInvite={isGuest ? () => setPaywallFeature("Inviting parties to the app") : (onInviteParty && isOwnSideClientRole(p.role) ? () => onInviteParty(p) : undefined)}
                         onSendWelcome={isGuest ? () => setPaywallFeature("Welcome emails") : onSendWelcome} onResetPassword={isGuest ? () => setPaywallFeature("Password resets") : async (p) => {
               if (!confirm("Email a password reset link to " + (p.name || p.email) + "?\n\nThe link expires in 1 hour.")) return;
               try {
@@ -6123,6 +6167,7 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
                 ["chat", "💬 Group chat", chatUnread > 0 ? chatUnread : 0],
                 ["replies", "📥 Client replies", unreadReplyCount > 0 ? unreadReplyCount : 0],
                 ["send", "📤 Send a text or email", 0],
+                ["sent", "🧾 Sent history", 0],
               ].map(([id, label, n]) => (
                 <button key={id} onClick={() => setMsgSection(id)}
                   style={{ padding: "9px 14px", borderRadius: 10, border: "none", cursor: "pointer", fontFamily: "inherit",
@@ -6136,10 +6181,12 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
               {msgSection === "chat" && "The deal's group chat — everyone on it (you, the agent/coordinator, and any parties like the photographer, title, lender)."}
               {msgSection === "replies" && "Replies the clients sent back — approve any milestone updates."}
               {msgSection === "send" && (isCoordinator ? "Send the client an email/text update in the agent's voice." : "Send an email or text to a party (or the whole group).")}
+              {msgSection === "sent" && "Every email and text this deal has sent — welcome emails, reminders, updates — newest first."}
             </div>
             {msgSection === "chat" && <div style={{ padding: 12, height: 500 }}><TransactionChat transactionId={tx.id} user={null} parties={tx.parties || []} style={{ height: "100%" }} unreadCount={chatUnread} onUnreadChange={() => {}} /></div>}
             {msgSection === "replies" && <InboundRepliesPanel tx={tx} coordinatorMode={coordinatorMode} onInboundRead={onInboundRead} />}
             {msgSection === "send" && (isCoordinator ? <CoordinatorSendUpdate tx={tx} /> : <SMSPanel tx={tx} onUpdate={onUpdate} sendOnly />)}
+            {msgSection === "sent" && <SentHistoryPanel txId={tx.id} />}
           </div>
         )}
 
@@ -6407,12 +6454,15 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
                   if (document.getElementById("saveContact")?.checked && onSaveContact) {
                     onSaveContact({ ...partyForm, id: genId() });
                   }
-                  const invitedNow = document.getElementById("sendInvitation")?.checked;
+                  // Portals are for the agent's OWN client only (buyer on a buyer-rep
+                  // deal, seller on a listing) + the TC — never title/lender/co-op/etc.
+                  const invitable = isOwnSideClientRole(newParty.role);
+                  const invitedNow = invitable && document.getElementById("sendInvitation")?.checked;
                   if (invitedNow && onInviteParty) {
                     onInviteParty({ ...newParty });
                   }
                   // Prompt to send invite if email present and not already invited
-                  if (!invitedNow && newParty.email && onInviteParty) {
+                  if (invitable && !invitedNow && newParty.email && onInviteParty) {
                     setPendingInviteParty(newParty);
                   }
                 }
