@@ -3765,7 +3765,7 @@ function NotesSection({ value, onChange }) {
 // HOA + no-email parties are listed as skipped (never emailed).
 // Exported: OffersTab opens this after ✅ Accepted (review-gated — accept itself
 // never sends anything).
-export function WelcomeEmailPreview({ txId, onClose }) {
+export function WelcomeEmailPreview({ txId, onClose, onlyPartyId = null }) {
   const hdrs = { "Authorization": "Bearer " + (localStorage.getItem("tp_token") || "") };
   const [previews, setPreviews] = useState([]);
   const [skipped, setSkipped] = useState([]);
@@ -3796,9 +3796,13 @@ export function WelcomeEmailPreview({ txId, onClose }) {
       .then(r => r.json())
       .then(d => {
         if (!d.success) throw new Error(d.error || "Could not build previews");
-        const pv = d.previews || [];
+        // Single-party mode (✉️ Send Welcome on one person's card): show only
+        // that recipient's email — same preview + attachments, scoped down.
+        let pv = d.previews || [];
+        if (onlyPartyId) pv = pv.filter(p => String(p.partyId) === String(onlyPartyId));
         setPreviews(pv);
-        setSkipped(d.skipped || []);
+        setSkipped(onlyPartyId ? [] : (d.skipped || []));
+        if (onlyPartyId && pv.length === 0) throw new Error("Couldn't build a preview for this person — check they have a valid email, then try again.");
         // Default attachments to the MAIN contract only — pre-exclude addenda/
         // disclosures; the agent opts them back in with "undo". Only seed once.
         if (seedDefaults) {
@@ -5313,29 +5317,15 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
   const [followupParty, setFollowupParty] = useState(null);
   const [followupForm, setFollowupForm] = useState({ subject: "", message: "" });
   const [followupSubmitting, setFollowupSubmitting] = useState(false);
-  const [sendingWelcomeFor, setSendingWelcomeFor] = useState(null);
-  const onSendWelcome = async (party) => {
+  const [sendingWelcomeFor, setSendingWelcomeFor] = useState(null); // kept for PartyCard prop compat
+  // Per-party welcome send is REVIEW-GATED like everything else: opens the full
+  // preview (rendered email + attachments you can add/remove) scoped to this one
+  // person — never a blind confirm-and-send. Works for agents and coordinators.
+  const [welcomePreviewPartyId, setWelcomePreviewPartyId] = useState(null);
+  const onSendWelcome = (party) => {
     if (!party || !party.id) return;
     if (!party.email) { alert(`${party.name || "This party"} has no email address. Add one in Edit, then try again.`); return; }
-    const isResend = (party.welcome_email_sent_at || party.welcomeEmailSentAt) ? true : false;
-    const verb = isResend ? "RE-SEND" : "SEND";
-    const confirmMsg = `${verb} the role-specific welcome email to ${party.name} (${party.role}) at ${party.email}?\n\nThis email includes:\n• Key dates (loan, appraisal, inspection, HOA, closing)\n• Financial summary (price, EMD, loan type)\n• Parties roster (filtered for their role)\n• Contract document package (if applicable to their role)\n\nWhy this matters: the welcome email is the agent's formal handoff. It tells this party what they need to do, when, and gives them the documents proving the deal is real.`;
-    if (!window.confirm(confirmMsg)) return;
-    setSendingWelcomeFor(party.id);
-    try {
-      const tok = localStorage.getItem("tp_token") || "";
-      const res = await fetch(`https://liz-team-server-api-production.up.railway.app/transactions/${tx.id}/parties/${party.id}/send-welcome`, {
-        method: "POST",
-        headers: { Authorization: "Bearer " + tok, "Content-Type": "application/json" }
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Send failed");
-      alert(`✅ Welcome email sent to ${party.name} at ${party.email}.\n\nIf they don't see it in 1–2 minutes, ask them to check spam.`);
-    } catch (e) {
-      alert(`❌ Could not send welcome email: ${e.message}`);
-    } finally {
-      setSendingWelcomeFor(null);
-    }
+    setWelcomePreviewPartyId(party.id);
   };
   const [showContractWizard, setShowContractWizard] = useState(false);
   const [contractWizardForm, setContractWizardForm] = useState({});
@@ -6327,6 +6317,14 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
         <WelcomeEmailPreview
           txId={tx.id}
           onClose={() => { setShowEmailPreview(false); window.location.reload(); }}
+        />
+      )}
+      {/* Single-party variant: the ✉️ Send Welcome button on a person's card. */}
+      {welcomePreviewPartyId && (
+        <WelcomeEmailPreview
+          txId={tx.id}
+          onlyPartyId={welcomePreviewPartyId}
+          onClose={() => setWelcomePreviewPartyId(null)}
         />
       )}
       {showAddParty && (
