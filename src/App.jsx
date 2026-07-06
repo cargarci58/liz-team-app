@@ -3948,6 +3948,21 @@ export function WelcomeEmailPreview({ txId, onClose, onlyPartyId = null }) {
                 <button onClick={() => fileRef.current && fileRef.current.click()} disabled={attaching} style={{ marginLeft: "auto", background: "#fff", color: "#1E8449", border: "1px solid #1E8449", borderRadius: 6, padding: "5px 12px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>{attaching ? "Attaching…" : "+ Attach another file"}</button>
               </div>
               <div style={{ padding: "4px 16px", fontSize: 11, color: COLORS.muted, borderBottom: "1px solid " + COLORS.border, background: "#F9FAFB" }}>Removing an attachment (×) applies to everyone — it won't be sent to any party.</div>
+              {/* Loud guard: this is the deal's INTRO email — sending it to a
+                  contract-eligible role with the contract missing is exactly how
+                  the title company ended up without the executed contract. */}
+              {(() => {
+                const all = cur?.attachments || [];
+                const active = all.filter(a => !excludedDocs[a.id]);
+                const roleGetsDocs = cur && !/inspector|hoa/i.test(cur.role || "");
+                const contractAttached = active.some(a => a.isBaseContract);
+                if (!roleGetsDocs || contractAttached) return null;
+                return (
+                  <div style={{ padding: "8px 16px", fontSize: 12.5, fontWeight: 700, color: "#991B1B", background: "#FEF2F2", borderBottom: "1px solid #FECACA" }}>
+                    ⚠️ The executed contract is NOT attached to this email{all.some(a => a.isBaseContract) ? " — click “undo” above to add it back" : " — upload it to Documents (Contract Package) or use “+ Attach another file”"}. This recipient likely needs the contract.
+                  </div>
+                );
+              })()}
               <iframe title="email-preview" srcDoc={cur?.html || ""} style={{ flex: 1, width: "100%", border: "none", background: "#fff" }} />
             </div>
           </div>
