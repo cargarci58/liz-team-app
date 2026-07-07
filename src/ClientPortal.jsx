@@ -1327,7 +1327,8 @@ export default function ClientPortal({ user, onLogout, previewTxId, onExitPrevie
     const poll = async () => {
       if (activeTabRef.current === "chat") return;
       try {
-        const r = await fetch(API + "/chat/" + tx.id, { headers: { "Authorization": "Bearer " + tok } });
+        const _va = isPreview ? (((tx?.parties || []).find(p => /^(co[- ]?)?(buyer|seller)$/i.test((p.role || "").trim()) && p.email) || {}).email || "__preview__") : "";
+        const r = await fetch(API + "/chat/" + tx.id + (_va ? "?viewAs=" + encodeURIComponent(_va) : ""), { headers: { "Authorization": "Bearer " + tok } });
         const d = await r.json();
         if (d.messages) {
           const others = d.messages.filter(m => m.user_id !== myId);
@@ -1830,6 +1831,7 @@ export default function ClientPortal({ user, onLogout, previewTxId, onExitPrevie
                 </div>
                 <div style={{ height: 500 }}>
                   <TransactionChat transactionId={tx?.id} user={null} clientView={true}
+                    viewAsEmail={isPreview ? (((tx?.parties || []).find(p => /^(co[- ]?)?(buyer|seller)$/i.test((p.role || "").trim()) && p.email) || {}).email || "__preview__") : null}
                     style={{ height: "100%" }} unreadCount={chatUnread} onUnreadChange={() => {}} />
                 </div>
               </div>

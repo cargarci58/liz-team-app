@@ -67,7 +67,7 @@ function linkifyMessage(text, mine) {
   );
 }
 
-export default function TransactionChat({ transactionId, user, parties = [], style, onUnreadChange, unreadCount = 0, clientView = false, simple = false, directTo = null }) {
+export default function TransactionChat({ transactionId, user, parties = [], style, onUnreadChange, unreadCount = 0, clientView = false, simple = false, directTo = null, viewAsEmail = null }) {
   const [messages, setMessages] = useState([]);
   const [newMsg, setNewMsg] = useState("");
   const [connected, setConnected] = useState(false);
@@ -120,11 +120,21 @@ export default function TransactionChat({ transactionId, user, parties = [], sty
         reconnectionDelayMax: 10000,
         timeout: 20000,
       });
-      socket.on("connect", () => { setConnected(true); socket.emit("join_transaction", transactionId); });
+      socket.on("connect", () => { setConnected(true); socket.emit("join_transaction", viewAsEmail ? { transactionId, viewAs: viewAsEmail } : transactionId); });
       socket.on("disconnect", () => setConnected(false));
       socket.on("chat_history", msgs => { setMessages(msgs); setLoading(false); markAsRead(); });
       socket.on("chat_error", err => { setAccessError(err?.error || "Access denied"); setConnected(false); });
       socket.on("new_message", msg => {
+        // Preview-as-client: hide live messages the previewed client wouldn't see
+        // (directed to others, or staff broadcasts not addressed to them).
+        if (viewAsEmail) {
+          let n = msg.notify_emails;
+          if (typeof n === "string") { try { n = JSON.parse(n); } catch { n = null; } }
+          const mine = Array.isArray(n) && n.length > 0
+            ? n.map(x => String(x).toLowerCase()).includes(String(viewAsEmail).toLowerCase())
+            : !["agent", "tc", "admin", "superadmin", "system"].includes((msg.sender_role || "").toLowerCase());
+          if (!mine) return;
+        }
         setMessages(prev => prev.find(m => m.id === msg.id) ? prev : [...prev, msg]);
         if (msg.user_id !== getMyId()) {
           playSound();
