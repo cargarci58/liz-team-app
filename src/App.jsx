@@ -6176,6 +6176,7 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
                         onUpdate({ ...tx, parties: tx.parties.filter(pp => pp.id !== p.id) });
                       }}
                         onInvite={isGuest ? () => setPaywallFeature("Inviting parties to the app") : (onInviteParty && isOwnSideClientRole(p.role) ? () => onInviteParty(p) : undefined)}
+                        onSendFollowup={isGuest ? () => setPaywallFeature("Follow-up reminders") : (party) => setFollowupParty(party)}
                         onSendWelcome={isGuest ? () => setPaywallFeature("Welcome emails") : onSendWelcome} onResetPassword={undefined /* password login retired for clients — portal is link+PIN; staff resets live in Team settings */} />
                       {(p.vendorStatus === "selected" || p.vendor_status === "selected") && (
                         <div style={{ display: "flex", alignItems: "center", gap: 10,
@@ -6835,6 +6836,45 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
             {followupParty.phone && <div>📱 {followupParty.phone}</div>}
             <div style={{ marginTop:4 }}><strong>Property:</strong> {tx.address}</div>
           </div>
+          {(() => {
+            // Role-smart quick asks — one tap prefills subject + message, editable after.
+            const fn = (followupParty.name || "").split(" ")[0] || "there";
+            const SUGG = {
+              lender: [
+                ["Loan application status", `Hi ${fn} — quick check on ${tx.address}: has the buyer's loan application been received and is anything outstanding from them?`],
+                ["Appraisal ordered?", `Hi ${fn} — has the appraisal been ordered for ${tx.address}? Any ETA on the appointment?`],
+                ["Loan approval / commitment ETA", `Hi ${fn} — where do we stand on loan approval for ${tx.address}? Our financing deadline is coming up and I want to stay ahead of it.`],
+                ["Closing Disclosure timing", `Hi ${fn} — closing on ${tx.address} is approaching. Will the CD be out at least 3 business days before closing?`],
+              ],
+              title: [
+                ["EMD received?", `Hi ${fn} — can you confirm the earnest money deposit for ${tx.address} was received, and send the receipt?`],
+                ["Title commitment status", `Hi ${fn} — any update on the title commitment for ${tx.address}?`],
+                ["Closing time & wire instructions", `Hi ${fn} — can we confirm the closing time for ${tx.address}, and get the wire/cash-to-close instructions (my client will verify by phone)?`],
+              ],
+              inspector: [
+                ["Inspection report ETA", `Hi ${fn} — when should we expect the inspection report for ${tx.address}?`],
+              ],
+              hoa: [
+                ["Estoppel / approval status", `Hi ${fn} — checking on the estoppel and any HOA approval requirements for ${tx.address}.`],
+              ],
+            };
+            const r = (followupParty.role || "").toLowerCase();
+            const list = /lender|loan/.test(r) ? SUGG.lender : /title/.test(r) ? SUGG.title : /inspector/.test(r) ? SUGG.inspector : /hoa/.test(r) ? SUGG.hoa : null;
+            if (!list) return null;
+            return (
+              <div style={{ marginBottom: 12 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: COLORS.muted, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6 }}>Quick asks for a {followupParty.role}</div>
+                <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                  {list.map(([label, msg]) => (
+                    <button key={label} onClick={() => setFollowupForm({ subject: label + " — " + tx.address, message: msg })}
+                      style={{ background: "#EFF6FF", border: "1px solid #93C5FD", color: "#1E40AF", borderRadius: 8, padding: "6px 10px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            );
+          })()}
           <Input label="Subject (what's this about?)" value={followupForm.subject} onChange={v => setFollowupForm(f => ({ ...f, subject: v }))} required />
           <Input label="Message" value={followupForm.message} onChange={v => setFollowupForm(f => ({ ...f, message: v }))} type="textarea" />
           <div style={{ background:"#EFF6FF", borderRadius:8, padding:10, marginBottom:12, fontSize:11, color:"#1E3A8A", lineHeight:1.5 }}>
