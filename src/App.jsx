@@ -2585,6 +2585,7 @@ function MilestonesTab({ tx, token, onSummaryChange, coordinatorMode = false }) 
   const [generating, setGenerating] = useState(false);
   const [completing, setCompleting] = useState(null);
   const [scheduleDates, setScheduleDates] = useState({});
+  const [scheduleAccess, setScheduleAccess] = useState({}); // mid -> { who, code } (inspection access details)
   const [scheduleTimes, setScheduleTimes] = useState({});
 
   const API = "https://liz-team-server-api-production.up.railway.app";
@@ -2719,19 +2720,19 @@ function MilestonesTab({ tx, token, onSummaryChange, coordinatorMode = false }) 
 
   // Scheduling-type milestone (e.g. "Inspection Scheduled"): record the date the
   // buyer's agent gave us and mark it done — no document needed.
-  const handleSchedule = async (milestoneId, date, time) => {
+  const handleSchedule = async (milestoneId, date, time, access) => {
     if (!date) { alert("Pick the scheduled date first."); return; }
     setCompleting(milestoneId);
     try {
       const r = await fetch(mBase + milestoneId + "/schedule", {
         method: "PATCH",
         headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
-        body: JSON.stringify({ date, time: time || null, complete: true })
+        body: JSON.stringify({ date, time: time || null, complete: true, accessWho: access?.who || null, accessCode: access?.code || null })
       });
       const d = await r.json();
       if (!r.ok || !d.success) throw new Error(d.error || "Failed");
       setMilestones(prev => prev.map(m =>
-        m.id === milestoneId ? { ...m, status: "Completed", completed_at: new Date().toISOString(), scheduled_date: date, scheduled_time: time || null } : m
+        m.id === milestoneId ? { ...m, status: "Completed", completed_at: new Date().toISOString(), scheduled_date: date, scheduled_time: time || null, notes: d.milestone?.notes ?? m.notes } : m
       ));
     } catch (e) { alert("Error saving scheduled date: " + e.message); }
     setCompleting(null);
@@ -3043,6 +3044,9 @@ function MilestonesTab({ tx, token, onSummaryChange, coordinatorMode = false }) 
                     {m.scheduled_date && (
                       <div style={{ fontSize: 12, color: "#1E8449", fontWeight: 700, marginTop: 2 }}>📅 Scheduled: {m.scheduled_date}{m.scheduled_time ? " · " + fmtTime(m.scheduled_time) : ""}</div>
                     )}
+                    {m.notes && (
+                      <div style={{ fontSize: 12, color: "#0e7490", marginTop: 2 }}>🔑 {m.notes}</div>
+                    )}
                     {m.requires_document && !m.document_uploaded && !isClosed && m.status !== "Waived" && (
                       <div style={{ fontSize: 11, color: "#B7770D", marginTop: 2 }}>📎 Document required</div>
                     )}
@@ -3136,6 +3140,9 @@ function MilestonesTab({ tx, token, onSummaryChange, coordinatorMode = false }) 
                 {!isClosed && isScheduling && (() => {
                   const dVal = scheduleDates[m.id] ?? (m.scheduled_date || "");
                   const tVal = scheduleTimes[m.id] ?? (m.scheduled_time || "");
+                  const isInspection = /inspection|wdo|termite/i.test(m.name || "");
+                  const aVal = scheduleAccess[m.id] || { who: "", code: "" };
+                  const setA = (patch) => setScheduleAccess(sa => ({ ...sa, [m.id]: { ...aVal, ...patch } }));
                   return (
                   <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap", alignItems: "center" }}>
                     <input type="date" value={dVal}
@@ -3146,7 +3153,17 @@ function MilestonesTab({ tx, token, onSummaryChange, coordinatorMode = false }) 
                         onChange={e => setScheduleTimes(s => ({ ...s, [m.id]: e.target.value }))}
                         style={{ flex: "1 1 110px", padding: "9px 10px", borderRadius: 8, border: "1.5px solid #D1D5DB", fontSize: 13, fontFamily: "inherit" }} />
                     )}
-                    <button onClick={() => handleSchedule(m.id, dVal, tVal)} disabled={completing === m.id || !dVal}
+                    {isInspection && (
+                      <>
+                        <input type="text" value={aVal.who} placeholder="Who lets the inspector in? (lockbox / listing agent / seller home)"
+                          onChange={e => setA({ who: e.target.value })}
+                          style={{ flex: "2 1 240px", padding: "9px 10px", borderRadius: 8, border: "1.5px solid #D1D5DB", fontSize: 13, fontFamily: "inherit" }} />
+                        <input type="text" value={aVal.code} placeholder="Door / lockbox code (optional)"
+                          onChange={e => setA({ code: e.target.value })}
+                          style={{ flex: "1 1 160px", padding: "9px 10px", borderRadius: 8, border: "1.5px solid #D1D5DB", fontSize: 13, fontFamily: "inherit" }} />
+                      </>
+                    )}
+                    <button onClick={() => handleSchedule(m.id, dVal, tVal, isInspection ? aVal : null)} disabled={completing === m.id || !dVal}
                       style={{ flex: "2 1 220px", padding: "10px 0", borderRadius: 8, border: "none",
                         background: dVal ? "#1E8449" : "#9CA3AF", color: "#fff", fontWeight: 700, fontSize: 13, cursor: dVal ? "pointer" : "not-allowed" }}>
                       {completing === m.id ? "Saving..." : "✓ Confirm Date" + (scheduleSpec.time ? " & Time" : "") + " & Mark Done"}
