@@ -188,6 +188,20 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
     } finally { setSlotUploading(null); }
   };
 
+  // Picked the wrong file for a slot? Un-assign it (that slot only — the doc
+  // keeps any other slots it satisfies).
+  const unassignExisting = async (documentType, docId, docName, slotLabel) => {
+    if (!window.confirm(`Remove "${docName}" from the ${slotLabel} slot?\n\nThe file stays in Documents — this only un-fills this checklist item so you can pick the right one.`)) return;
+    setSlotUploading(documentType);
+    try {
+      const res = await fetch(`${API}/documents/${docId}/document-type/${encodeURIComponent(documentType)}`, { method: "DELETE", headers });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || "Remove failed");
+      await Promise.all([loadDocs(), loadRequired()]);
+    } catch (err) { alert("Remove failed: " + err.message); }
+    finally { setSlotUploading(null); }
+  };
+
   const readAsBase64 = (file) => new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(String(reader.result).split(",")[1]);
@@ -352,6 +366,11 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
               <button onClick={() => openPreview({ id: d.id, name: d.name, mime_type: d.mimeType })}
                 style={{ padding: "3px 8px", borderRadius: 6, border: "1px solid #A7E0BE", background: "#fff", color: "#1E8449", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>
                 👁 View
+              </button>
+              <button onClick={() => unassignExisting(item.documentType, d.id, d.name, item.label)} disabled={!!slotUploading}
+                title="Wrong file? Remove it from this slot (the file itself stays in Documents)"
+                style={{ padding: "3px 7px", borderRadius: 6, border: "1px solid #FECACA", background: "#fff", color: "#B91C1C", fontSize: 11, fontWeight: 800, cursor: "pointer" }}>
+                ✕
               </button>
             </div>
           ))}
