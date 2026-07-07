@@ -205,7 +205,9 @@ export default function TransactionChat({ transactionId, user, parties = [], sty
     : messages;
 
   const myId = getMyId();
-  const isMe = msg => msg.user_id === myId;
+  // Previewing AS the client: the agent's own id must NOT make staff messages
+  // render as the client's outgoing bubbles — show everything with sender labels.
+  const isMe = msg => !viewAsEmail && msg.user_id === myId;
   const unreadCutoff = messages.length - unreadCount;
   const isUnread = (msg, idx) => !isMe(msg) && idx >= unreadCutoff && unreadCount > 0;
 
@@ -238,7 +240,7 @@ export default function TransactionChat({ transactionId, user, parties = [], sty
 
       <div style={{ background: "#FEF9E7", borderBottom: "1px solid #F9E79F", padding: "8px 16px", display: "flex", alignItems: "center", gap: 8 }}>
         <span>{directTo ? "🔒" : "👀"}</span>
-        <span style={{ fontSize: 12, color: "#7D6608" }}>{directTo ? `Only you and ${directTo.name} can see this conversation. They get an email if they're not in the app.` : simple ? "Everyone on this deal can see this chat. For a private message, switch to 👤 One person above." : "All parties on this transaction can see messages here. Offline parties receive email notifications."}</span>
+        <span style={{ fontSize: 12, color: "#7D6608" }}>{directTo ? `Only you and ${directTo.name} can see this conversation. They get an email if they're not in the app.` : simple ? "Everyone on this deal can see this chat. For a private message, switch to 👤 One person above." : clientView ? "Messages your agent shares with you (and your own) appear here. Your agent also has separate side-conversations with the other agent and vendors — those aren't shown." : "Visible to everyone unless you pick a recipient with To: — pick one for a private side message. Offline parties receive email notifications."}</span>
       </div>
 
       <div style={{ flex: 1, overflowY: "auto", padding: 16, display: "flex", flexDirection: "column", gap: 8 }}>
@@ -278,9 +280,24 @@ export default function TransactionChat({ transactionId, user, parties = [], sty
                 <div style={{ maxWidth: "75%" }}>
                   {!mine && (
                     <div style={{ fontSize: 11, color: roleColor, fontWeight: 700, marginBottom: 2, paddingLeft: 4 }}>
-                      {msg.sender_name} · {msg.sender_role}
+                      {msg.sender_name} · {msg.sender_role}{(() => {
+                        const n = notifyList(msg);
+                        if (n.length === 0) return null;
+                        const names = n.map(e => { const p = parties.find(pp => (pp.email || "").toLowerCase() === e); return p ? (p.name || e).split(" ")[0] : e; });
+                        return <span style={{ color: "#92400E", fontWeight: 600 }}> · 🔒 to {names.join(", ")}</span>;
+                      })()}
                     </div>
                   )}
+                  {mine && !clientView && (() => {
+                    const n = notifyList(msg);
+                    return (
+                      <div style={{ fontSize: 10.5, color: n.length ? "#92400E" : "#9CA3AF", fontWeight: 700, marginBottom: 2, textAlign: "right", paddingRight: 4 }}>
+                        {n.length
+                          ? "🔒 to " + n.map(e => { const p = parties.find(pp => (pp.email || "").toLowerCase() === e); return p ? (p.name || e).split(" ")[0] : e; }).join(", ")
+                          : "👥 to everyone"}
+                      </div>
+                    );
+                  })()}
                   <div style={{ background: mine ? "#C0392B" : unread ? "#FFF3CD" : "#fff", color: mine ? "#fff" : "#111", padding: "10px 14px", borderRadius: mine ? "14px 14px 4px 14px" : "14px 14px 14px 4px", fontSize: 14, lineHeight: 1.5, boxShadow: "0 1px 3px rgba(0,0,0,0.1)", border: mine ? "none" : unread ? "2px solid #F0C040" : "1px solid #E5E7EB", whiteSpace: "pre-wrap" }}>
                     {linkifyMessage(msg.message, mine)}
                   </div>
