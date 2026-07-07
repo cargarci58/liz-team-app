@@ -47,6 +47,7 @@ const DocumentsTab = lazy(() => import("./DocumentsTab"));
 const OffersTab = lazy(() => import("./OffersTab"));
 const Reports = lazy(() => import("./Reports"));
 const VendorLibrary = lazy(() => import("./VendorLibrary"));
+const ShareVendorModalLazy = lazy(() => import("./VendorLibrary").then(m => ({ default: m.ShareVendorModal })));
 const CompanySettings = lazy(() => import("./CompanySettings"));
 const AgentProfile = lazy(() => import("./AgentProfile"));
 const CalendarView = lazy(() => import("./CalendarView"));
@@ -2086,6 +2087,14 @@ function AssignVendorPanel({ tx, token, onClose, onAssigned }) {
     fetchVendors();
   }, []);
 
+  // After assigning, offer to SHARE the vendor with the agent's client right
+  // away (text/email/both) — the assignment completes either way; onAssigned
+  // fires when the agent finishes so the panel doesn't unmount mid-share.
+  const [assigned, setAssigned] = useState(null); // { vendor, party }
+  const [showShare, setShowShare] = useState(false);
+  const clientRecipients = (tx.parties || [])
+    .filter(p => /^(co[- ]?)?(buyer|seller)$/i.test((p.role || "").trim()) && (p.email || p.phone))
+    .map(p => ({ key: "party:" + p.id, name: p.name || p.email || p.phone, email: p.email || "", phone: p.phone || "", source: "deal" }));
   const handleAssign = async (vendor) => {
     setAssigning(vendor.id);
     try {
@@ -2096,7 +2105,7 @@ function AssignVendorPanel({ tx, token, onClose, onAssigned }) {
       });
       const data = await res.json();
       if (data.success) {
-        onAssigned(data.party);
+        setAssigned({ vendor, party: data.party });
       } else {
         alert(data.error || "Error assigning vendor");
       }
@@ -2116,7 +2125,29 @@ function AssignVendorPanel({ tx, token, onClose, onAssigned }) {
           fontSize: 20, cursor: "pointer", color: "#555" }}>✕</button>
       </div>
 
-      {loading ? (
+      {assigned ? (
+        <div style={{ textAlign: "center", padding: 20 }}>
+          <div style={{ fontSize: 34, marginBottom: 8 }}>✅</div>
+          <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 4 }}>{assigned.vendor.name} is on this deal</div>
+          <div style={{ fontSize: 13, color: "#555", marginBottom: 16 }}>Want to share their contact card with your client right now — by text, email, or both?</div>
+          <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
+            <button onClick={() => setShowShare(true)}
+              style={{ background: "#C0392B", color: "#fff", border: "none", borderRadius: 10, padding: "11px 20px", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+              📤 Share with client (text / email)
+            </button>
+            <button onClick={() => onAssigned(assigned.party)}
+              style={{ background: "#fff", color: "#555", border: "1.5px solid #D1D5DB", borderRadius: 10, padding: "11px 20px", fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
+              Done — no share
+            </button>
+          </div>
+          {showShare && (
+            <Suspense fallback={null}>
+              <ShareVendorModalLazy vendor={assigned.vendor} presetTxId={tx.id} presetRecipients={clientRecipients}
+                onClose={() => { setShowShare(false); onAssigned(assigned.party); }} />
+            </Suspense>
+          )}
+        </div>
+      ) : loading ? (
         <div style={{ textAlign: "center", padding: 20, color: "#555" }}>Loading vendors...</div>
       ) : vendors.length === 0 ? (
         <div style={{ textAlign: "center", padding: 20, color: "#555" }}>

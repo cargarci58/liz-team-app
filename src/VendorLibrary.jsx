@@ -130,11 +130,14 @@ function VendorForm({ vendor, onSave, onCancel }) {
 
 // Share a vendor with people — typed-in recipients, your contacts, and/or a
 // deal's parties — by email and/or text (and into the deal's in-app chat).
-function ShareVendorModal({ vendor, onClose }) {
-  const [chosen, setChosen] = useState([]);            // [{ key, name, email, phone, source }]
+export function ShareVendorModal({ vendor, onClose, presetTxId = "", presetRecipients = null }) {
+  // presetTxId/presetRecipients: opened straight from "Assign Vendor" on a deal —
+  // the deal is locked in and the agent's client is preselected, so sharing the
+  // vendor with the buyer/seller by text + email is one Send away.
+  const [chosen, setChosen] = useState(presetRecipients || []); // [{ key, name, email, phone, source }]
   const [channel, setChannel] = useState("email");     // "email" | "sms" | "both"
   const [message, setMessage] = useState("");
-  const [txId, setTxId] = useState("");                // chosen deal → also posts to its in-app chat
+  const [txId, setTxId] = useState(presetTxId);        // chosen deal → also posts to its in-app chat
   const [source, setSource] = useState(null);          // "contacts" | "deal" | null
   const [contacts, setContacts] = useState(null);
   const [deals, setDeals] = useState(null);
