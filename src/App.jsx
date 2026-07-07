@@ -2071,11 +2071,14 @@ function AssignVendorPanel({ tx, token, onClose, onAssigned }) {
         });
         const data = await res.json();
         if (data.success) {
-          // Filter out vendors already on this transaction
-          const existingEmails = tx.parties.map(p => (p.email || "").toLowerCase());
-          setVendors((data.vendors || []).filter(v =>
-            !existingEmails.includes((v.email || "").toLowerCase())
-          ));
+          // Hide vendors already on this transaction — but ONLY on a real email
+          // match. Parties without an email produced "" here, which "matched"
+          // every email-less vendor and silently hid them all from the list.
+          const existingEmails = new Set(tx.parties.map(p => (p.email || "").toLowerCase().trim()).filter(Boolean));
+          setVendors((data.vendors || []).filter(v => {
+            const ve = (v.email || "").toLowerCase().trim();
+            return !(ve && existingEmails.has(ve));
+          }));
         }
       } catch (e) { console.error(e); }
       setLoading(false);
@@ -2124,8 +2127,8 @@ function AssignVendorPanel({ tx, token, onClose, onAssigned }) {
       ) : (
         <>
           {/* Category filter */}
-          <div style={{ display: "flex", gap: 6, overflowX: "auto", marginBottom: 12,
-            paddingBottom: 4, scrollbarWidth: "none" }}>
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 12,
+            paddingBottom: 4 }}>
             {categories.map(cat => (
               <button key={cat} onClick={() => setSelectedCategory(cat)}
                 style={{ padding: "5px 12px", borderRadius: 20, border: "none",
