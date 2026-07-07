@@ -135,7 +135,7 @@ export function ShareVendorModal({ vendor, onClose, presetTxId = "", presetRecip
   // the deal is locked in and the agent's client is preselected, so sharing the
   // vendor with the buyer/seller by text + email is one Send away.
   const [chosen, setChosen] = useState(presetRecipients || []); // [{ key, name, email, phone, source }]
-  const [channel, setChannel] = useState("email");     // "email" | "sms" | "both"
+  const [channel, setChannel] = useState("");          // "" until the agent PICKS email | sms | both (never silently defaults)
   const [message, setMessage] = useState("");
   const [txId, setTxId] = useState(presetTxId);        // chosen deal → also posts to its in-app chat
   const [source, setSource] = useState(null);          // "contacts" | "deal" | null
@@ -184,7 +184,13 @@ export function ShareVendorModal({ vendor, onClose, presetTxId = "", presetRecip
   };
 
   const send = async () => {
+    if (!channel) { alert("Pick how to send it first — 📧 Email, 📱 Text, or Both."); return; }
     if (chosen.length === 0 && !txId) { alert("Add at least one recipient."); return; }
+    if (chosen.length === 0 && txId) {
+      // A deal alone only posts to its in-app chat — nobody gets a text/email.
+      // That surprised users ("I thought it was going to send by text and email").
+      if (!window.confirm("No recipients are selected — this will ONLY post the vendor in the deal's in-app chat. Nobody gets a text or email.\n\nContinue with chat-only?")) return;
+    }
     setSending(true);
     try {
       const res = await fetch(API + "/vendors/" + vendor.id + "/share", {
@@ -230,8 +236,11 @@ export function ShareVendorModal({ vendor, onClose, presetTxId = "", presetRecip
             <div style={{ background: COLORS.successBg, border: "1px solid #86EFAC", borderRadius: 10, padding: "12px 14px", fontSize: 13 }}>
               <div style={{ fontWeight: 700, color: COLORS.success, marginBottom: 6 }}>Shared ✓</div>
               {result.map((r, i) => (
-                <div key={i} style={{ color: "#374151" }}>{r.name}: {r.chat ? "💬 posted in chat" : ""}{r.email === true ? " 📧" : ""}{r.sms === true ? " 📱" : ""}{r.email === false ? " email failed" : ""}{r.sms === false ? " text failed" : ""}</div>
+                <div key={i} style={{ color: "#374151" }}>{r.name}: {r.chat ? "💬 posted in chat" : ""}{r.email === true ? " ✅ emailed" : ""}{r.sms === true ? " ✅ texted" : ""}{r.email === false ? " ❌ email failed" : ""}{r.sms === false ? " ❌ text failed" : ""}{r.smsNote ? ` (${r.smsNote})` : ""}</div>
               ))}
+              {result.length === 0 && (
+                <div style={{ color: "#92400E" }}>💬 Posted in the deal's chat only — no texts or emails were sent (no recipients were selected).</div>
+              )}
             </div>
             <button onClick={onClose} style={{ marginTop: 16, width: "100%", padding: 12, borderRadius: 10, border: "none", background: COLORS.black, color: "#fff", fontWeight: 700, fontSize: 15, cursor: "pointer" }}>Done</button>
           </div>
@@ -320,10 +329,12 @@ export function ShareVendorModal({ vendor, onClose, presetTxId = "", presetRecip
               </div>
             )}
 
-            {/* channel */}
-            <div style={{ fontSize: 12, fontWeight: 700, color: COLORS.gray, textTransform: "uppercase", marginBottom: 6 }}>Send via</div>
+            {/* channel — explicit pick required, same rule as everywhere else */}
+            <div style={{ fontSize: 12, fontWeight: 700, color: COLORS.gray, textTransform: "uppercase", marginBottom: 6 }}>
+              Send via {!channel && <span style={{ color: COLORS.red }}>👉 pick one</span>}
+            </div>
             <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
-              {[["email", "📧 Email"], ["sms", "📱 Text"], ["both", "Both"]].map(([v, label]) => (
+              {[["email", "📧 Email"], ["sms", "📱 Text"], ["both", "📧 + 📱 Both"]].map(([v, label]) => (
                 <button key={v} onClick={() => setChannel(v)} style={srcBtn(channel === v)}>{label}</button>
               ))}
             </div>
