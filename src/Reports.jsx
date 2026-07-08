@@ -137,7 +137,7 @@ function OverviewTab({ transactions }) {
 
   // Ordered by stage first (Active → Under Contract), then biggest commission —
   // pure commission-size sort interleaved the statuses and read as random.
-  const STAGE_RANK = { "Active": 0, "Under Contract": 1, "Inspection": 1, "Appraisal": 1, "Clear to Close": 1, "Closed": 2 };
+  const STAGE_RANK = { "Active": 0, "Under Contract": 1, "Inspection": 2, "Appraisal": 3, "Clear to Close": 4, "Closed": 5 };
   const pipeline = [...active, ...underContract].map(tx => ({
     ...tx, gross: calcComm(tx).gross, net: calcComm(tx).net,
   })).filter(tx => tx.gross > 0)
