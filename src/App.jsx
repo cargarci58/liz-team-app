@@ -9412,7 +9412,22 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
         const total = entries.reduce((a, [, n]) => a + n, 0);
         if (total === 0) return null;
         const kindFor = (id) => ((inboundCounts || {})[id] > 0 ? "replies" : "chat");
-        const go = () => { if (entries.length === 1) openTransactionMilestones(entries[0][0], kindFor(entries[0][0])); else { setShowReports(false); setShowCalendar(false); setView("home"); } };
+        const go = () => {
+          if (entries.length === 1) { openTransactionMilestones(entries[0][0], kindFor(entries[0][0])); return; }
+          // Multiple deals → the New Messages inbox at the top of Home. If we're
+          // ALREADY on Home the view switch is invisible — scroll the inbox into
+          // view and flash it so the click always visibly does something.
+          setShowReports(false); setShowCalendar(false); setView("home");
+          setTimeout(() => {
+            const el = document.getElementById("unread-inbox");
+            if (el) {
+              el.scrollIntoView({ behavior: "smooth", block: "center" });
+              el.style.transition = "box-shadow 0.3s";
+              el.style.boxShadow = "0 0 0 4px rgba(192,57,43,0.55)";
+              setTimeout(() => { el.style.boxShadow = "none"; }, 1600);
+            }
+          }, 200);
+        };
         return (
           <>
             <style>{`@keyframes mpulse{0%,100%{transform:scale(1)}50%{transform:scale(1.07)}}`}</style>

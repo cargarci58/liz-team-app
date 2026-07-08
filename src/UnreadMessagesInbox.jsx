@@ -18,7 +18,7 @@ export default function UnreadMessagesInbox({ unreadCounts, inboundCounts = {}, 
   const total = inbox.reduce((s, x) => s + x.n, 0);
   return (
     <div style={{ maxWidth: 480, margin: "0 auto", padding: "8px 16px 0" }}>
-      <div style={{ background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: 12, padding: 16 }}>
+      <div id="unread-inbox" style={{ background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: 12, padding: 16 }}>
         <div style={{ fontSize: 16, fontWeight: 800, color: "#B91C1C", marginBottom: 10 }}>
           💬 New messages — {total} unread across {inbox.length} deal{inbox.length === 1 ? "" : "s"}
         </div>
