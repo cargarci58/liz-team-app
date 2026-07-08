@@ -56,6 +56,9 @@ export default function ContractAutoIntake({ token, user, existingTransactionId,
 // STEP 1: UPLOAD
 // ───────────────────────────────────────────────────────────────
 function UploadStep({ token, existingTransactionId, onBack, onUploaded }) {
+  // On a listing this is a buyer's OFFER coming in (seller hasn't signed yet);
+  // standalone it's importing a fully-signed contract for a deal not in the app.
+  const isOffer = !!existingTransactionId;
   const [mode, setMode] = useState("self"); // "self" or "link"
   const [files, setFiles] = useState([]);
   const [dragging, setDragging] = useState(false);
@@ -190,12 +193,14 @@ function UploadStep({ token, existingTransactionId, onBack, onUploaded }) {
     <div style={{ fontFamily: "'Segoe UI', system-ui, sans-serif", background: COLORS.bg, minHeight: "100vh", padding: "24px" }}>
       <div style={{ maxWidth: 720, margin: "0 auto" }}>
         <button onClick={onBack} style={{ background: "none", border: "none", color: COLORS.muted, fontSize: 14, cursor: "pointer", marginBottom: 16 }}>← Back</button>
-        <h1 style={{ margin: 0, color: COLORS.navy, fontSize: 26 }}>📄 Upload Executed Contract</h1>
+        <h1 style={{ margin: 0, color: COLORS.navy, fontSize: 26 }}>{isOffer ? "📥 Upload Offer" : "📄 Import a Signed Contract"}</h1>
         <p style={{ color: COLORS.muted, marginTop: 6, marginBottom: 8 }}>
-          Drop your contract package below. We'll read it, identify every document and addendum, and pull out all the key fields automatically.
+          {isOffer
+            ? "Drop the buyer's offer below (signed by the buyer — your seller hasn't signed yet, and nothing here accepts it). We'll read it, identify every document and addendum, and pull out the price, buyer, dates, and terms automatically."
+            : "Drop the fully-signed contract package below. We'll read it, identify every document and addendum, and pull out all the key fields automatically."}
         </p>
         <p style={{ color: COLORS.muted, marginTop: 0, marginBottom: 24, fontSize: 13 }}>
-          Two ways: <strong>upload it yourself</strong>, or <strong>send your client a no-login link</strong> so they can upload it for you.
+          Two ways: <strong>upload it yourself</strong>, or <strong>send {isOffer ? "the other agent" : "your client"} a no-login link</strong> so they can upload it for you.
         </p>
 
         <div style={{ display: "flex", gap: 8, marginBottom: 24 }}>
