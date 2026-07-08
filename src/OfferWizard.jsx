@@ -127,7 +127,8 @@ function FieldRenderer({ field, value, onChange, documents, formLibrary, onUploa
     };
     // Per-rider form availability from the Form Library: fills automatically,
     // official form attaches, or missing (upload it once, right here).
-    const lib = formLibrary || {};
+    const lib = (formLibrary && formLibrary.byLetter) || {};
+    const specials = (formLibrary && formLibrary.specials) || [];
     const badgeBase = { fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 10, marginLeft: 6, whiteSpace: "nowrap" };
     const badge = (a) => {
       const info = lib[a.id];
@@ -163,6 +164,30 @@ function FieldRenderer({ field, value, onChange, documents, formLibrary, onUploa
             <span>{a.label}{badge(a)}</span>
           </label>
         ))}
+        {specials.length > 0 && (
+          <div style={{ marginTop: 10, borderTop: "1px dashed #d1d5db", paddingTop: 10 }}>
+            <div style={{ fontSize: 12, fontWeight: 800, color: "#0c4a6e", textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 6 }}>
+              📌 Included with every offer
+            </div>
+            {specials.map(s => (
+              <div key={s.letter} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14, color: "#374151", flexWrap: "wrap", marginBottom: 4 }}>
+                <span>✔️</span>
+                <span>{s.label.replace(/ \(included with every offer\)/i, "")}
+                  {s.source === "uploaded"
+                    ? <span style={{ ...badgeBase, background: "#dcfce7", color: "#15803d" }}>✅ on file — attaches to every packet</span>
+                    : <span style={{ ...badgeBase, background: "#fef3c7", color: "#92400e" }}>⚠️ not uploaded yet</span>}
+                  {onUploadRiderForm && (
+                    <button type="button"
+                      onClick={(e) => { e.preventDefault(); setPendingRider(s.letter); riderFileRef.current && riderFileRef.current.click(); }}
+                      style={{ marginLeft: 6, fontSize: 10, fontWeight: 700, color: "#075985", background: "none", border: "1px solid #7dd3fc", borderRadius: 10, padding: "2px 7px", cursor: "pointer", fontFamily: "inherit" }}>
+                      {riderUploadBusy === s.letter ? "Uploading…" : (s.source === "uploaded" ? "Replace" : "⬆ Upload your broker's form")}
+                    </button>
+                  )}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     );
   }
@@ -276,7 +301,7 @@ export default function OfferWizard({ offerId, token, onClose, onSaved }) {
       const b = await r.json();
       const map = {};
       for (const row of (b.riders || [])) map[row.letter] = row;
-      setFormLibrary(map);
+      setFormLibrary({ byLetter: map, specials: b.specials || [] });
     } catch { /* badges are progressive enhancement — picker works without them */ }
   };
   useEffect(() => { loadFormLibrary(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -299,7 +324,9 @@ export default function OfferWizard({ offerId, token, onClose, onSaved }) {
       const b = await r.json();
       if (!r.ok) throw new Error(b.error || "Upload failed");
       await loadFormLibrary();
-      alert("✅ " + letter + " rider saved. It will be attached to this and every future offer packet, with the buyer/seller/property stamped on automatically.");
+      alert(letter.length > 2
+        ? "✅ Saved. This form now goes out with EVERY offer packet, with the buyer's name filled in automatically."
+        : "✅ " + letter + " rider saved. It will be attached to this and every future offer packet, with the buyer/seller/property stamped on automatically.");
     } catch (e) {
       alert("⚠️ " + (e.message || "Upload failed"));
     } finally {
