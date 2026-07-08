@@ -1,4 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+
+const API = "https://liz-team-server-api-production.up.railway.app";
 
 // Agent scripts library. Two sides — these are for the PAYING agent, whichever
 // side they're representing (buyer-rep or listing/seller). Brackets like
@@ -136,6 +138,32 @@ function ScriptBlock({ s, idx }) {
 export default function ScriptsPage({ token, onBack, currentUser }) {
   const [side, setSide] = useState("listing");
   const lib = SCRIPT_LIBRARY[side];
+  // The agent's OWN scripts — private, editable, shown above the built-ins.
+  const [mine, setMine] = useState([]);
+  const [editing, setEditing] = useState(null); // {} = new, {id,...} = edit
+  const [saving, setSaving] = useState(false);
+  const hdrs = { "Content-Type": "application/json", Authorization: "Bearer " + (token || "") };
+  const loadMine = () => fetch(API + "/scripts", { headers: hdrs }).then(r => r.json())
+    .then(d => { if (d.success) setMine(d.scripts || []); }).catch(() => {});
+  useEffect(() => { loadMine(); }, []);
+  const saveScript = async () => {
+    if (!editing.body || !editing.body.trim()) { alert("Write the script text first."); return; }
+    setSaving(true);
+    try {
+      const url = editing.id ? API + "/scripts/" + editing.id : API + "/scripts";
+      const r = await fetch(url, { method: editing.id ? "PUT" : "POST", headers: hdrs,
+        body: JSON.stringify({ side, situation: editing.situation || "", title: editing.title || "", body: editing.body }) });
+      const d = await r.json();
+      if (!r.ok || !d.success) throw new Error(d.error || "Save failed");
+      setEditing(null); loadMine();
+    } catch (e) { alert("Could not save: " + e.message); }
+    setSaving(false);
+  };
+  const deleteScript = async (sc) => {
+    if (!window.confirm(`Delete your script "${sc.title || "Untitled"}"?`)) return;
+    try { await fetch(API + "/scripts/" + sc.id, { method: "DELETE", headers: hdrs }); loadMine(); } catch {}
+  };
+  const myScripts = mine.filter(m => m.side === side);
 
   return (
     <div style={{ fontFamily: "'Segoe UI', system-ui, sans-serif", background: C.bg, minHeight: "100vh" }}>
@@ -166,6 +194,53 @@ export default function ScriptsPage({ token, onBack, currentUser }) {
 
         <div style={{ fontSize: 12, color: C.muted, marginBottom: 16, lineHeight: 1.5 }}>
           These are for you — the agent who owns this account. Fill in the <b>[brackets]</b> with the deal’s details, then make it a conversation, not a pitch.
+        </div>
+
+        {/* MY SCRIPTS — the agent's own, above the built-in library */}
+        <div style={{ background: C.white, border: `2px dashed ${C.red}`, borderRadius: 12, padding: "16px 18px", marginBottom: 14 }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, flexWrap: "wrap" }}>
+            <div>
+              <div style={{ fontSize: 15, fontWeight: 800, color: C.navy }}>⭐ My Scripts</div>
+              <div style={{ fontSize: 12, color: C.muted, marginTop: 3 }}>Your own words, saved for reuse — only you see these.</div>
+            </div>
+            <button onClick={() => setEditing({ situation: "", title: "", body: "" })}
+              style={{ background: C.red, color: "#fff", border: "none", borderRadius: 8, padding: "9px 16px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+              ➕ Add a script
+            </button>
+          </div>
+          {myScripts.length === 0 && !editing && (
+            <div style={{ fontSize: 13, color: C.muted, marginTop: 12, fontStyle: "italic" }}>Nothing saved yet — add the lines that work for YOU and they'll live here on both phone and desktop.</div>
+          )}
+          {myScripts.map((sc, i) => (
+            <div key={sc.id}>
+              {sc.situation && <div style={{ fontSize: 12, fontWeight: 700, color: C.muted, marginTop: 12 }}>{sc.situation}</div>}
+              <ScriptBlock s={sc} idx={i} />
+              <div style={{ display: "flex", gap: 8, marginTop: 4, justifyContent: "flex-end" }}>
+                <button onClick={() => setEditing({ ...sc })} style={{ background: "none", border: `1px solid ${C.border}`, borderRadius: 6, padding: "3px 10px", fontSize: 11, fontWeight: 600, color: C.gray, cursor: "pointer", fontFamily: "inherit" }}>✏️ Edit</button>
+                <button onClick={() => deleteScript(sc)} style={{ background: "none", border: "1px solid #FECACA", borderRadius: 6, padding: "3px 10px", fontSize: 11, fontWeight: 600, color: "#B91C1C", cursor: "pointer", fontFamily: "inherit" }}>🗑 Delete</button>
+              </div>
+            </div>
+          ))}
+          {editing && (
+            <div style={{ marginTop: 14, background: C.lightGray, borderRadius: 10, padding: 14 }}>
+              <div style={{ fontSize: 13, fontWeight: 800, color: C.navy, marginBottom: 8 }}>{editing.id ? "Edit script" : "New script"} · {lib.label}</div>
+              <input value={editing.situation || ""} onChange={e => setEditing(v => ({ ...v, situation: e.target.value }))}
+                placeholder="Situation (optional) — e.g. Seller wants to overprice"
+                style={{ width: "100%", boxSizing: "border-box", padding: "9px 11px", borderRadius: 8, border: `1.5px solid ${C.border}`, fontSize: 13, fontFamily: "inherit", marginBottom: 8 }} />
+              <input value={editing.title || ""} onChange={e => setEditing(v => ({ ...v, title: e.target.value }))}
+                placeholder="Short name — e.g. The 90-day math"
+                style={{ width: "100%", boxSizing: "border-box", padding: "9px 11px", borderRadius: 8, border: `1.5px solid ${C.border}`, fontSize: 13, fontFamily: "inherit", marginBottom: 8 }} />
+              <textarea value={editing.body || ""} onChange={e => setEditing(v => ({ ...v, body: e.target.value }))} rows={5}
+                placeholder="The script itself. Use [brackets] for the parts you'll customize per deal."
+                style={{ width: "100%", boxSizing: "border-box", padding: "9px 11px", borderRadius: 8, border: `1.5px solid ${C.border}`, fontSize: 14, fontFamily: "inherit", resize: "vertical", marginBottom: 10 }} />
+              <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+                <button onClick={() => setEditing(null)} style={{ background: "none", border: `1px solid ${C.border}`, borderRadius: 8, padding: "8px 14px", fontSize: 13, fontWeight: 600, color: C.gray, cursor: "pointer", fontFamily: "inherit" }}>Cancel</button>
+                <button onClick={saveScript} disabled={saving} style={{ background: "#1E8449", color: "#fff", border: "none", borderRadius: 8, padding: "8px 18px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", opacity: saving ? 0.6 : 1 }}>
+                  {saving ? "Saving…" : "💾 Save script"}
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         {lib.groups.map((g, gi) => (
