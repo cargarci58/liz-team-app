@@ -356,9 +356,10 @@
   <!-- Success -->
   <div id="success-container" class="card success">
     <div class="checkmark">✅</div>
-    <h2>Thank You!</h2>
-    <p>Your seller information has been received. Your agent will be in touch shortly to discuss your listing.</p>
-    <p style="margin-top:16px">A confirmation has been sent to your email address.</p>
+    <h2>You're all set!</h2>
+    <p>Your information has been received. We're opening your private seller portal now — you'll set a quick 4-digit PIN, and that's all you'll ever need to get back in.</p>
+    <p style="margin-top:18px"><a id="portal-link" href="#" style="display:inline-block;background:#C0392B;color:#fff;text-decoration:none;padding:12px 22px;border-radius:8px;font-weight:700;font-size:15px">Open my portal →</a></p>
+    <p id="portal-fallback" style="margin-top:14px;font-size:13px;color:#777"></p>
   </div>
 </div>
 
@@ -437,14 +438,22 @@ document.addEventListener('change', (e) => {
 async function uploadFile(file, transactionId, uploadToken, category) {
   if (!file) return null;
   try {
-    const res = await fetch(API + '/documents/public-upload-url', {
+    // Server-proxied (base64 → server → R2). The old presigned-PUT path failed
+    // browser CORS, so the file never reached storage even though a document row
+    // was created — the agent then saw a NoSuchKey error trying to view it.
+    const base64 = await new Promise(function (resolve, reject) {
+      const fr = new FileReader();
+      fr.onload = function () { resolve(String(fr.result).split(',')[1]); };
+      fr.onerror = reject;
+      fr.readAsDataURL(file);
+    });
+    const res = await fetch(API + '/documents/public-upload', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ transactionId, fileName: file.name, fileType: file.type, category, uploadToken })
+      body: JSON.stringify({ transactionId, fileName: file.name, fileType: file.type, category, uploadToken, base64 })
     });
     const data = await res.json();
-    if (!data.uploadUrl) return null;
-    await fetch(data.uploadUrl, { method: 'PUT', body: file, headers: { 'Content-Type': file.type } });
+    if (!res.ok || !data.success) { console.error('Upload failed:', data && data.error); return null; }
     return data.key;
   } catch (e) { console.error('Upload error:', e); return null; }
 }
@@ -545,6 +554,16 @@ async function submitForm() {
 
     document.getElementById('form-container').style.display = 'none';
     document.getElementById('success-container').style.display = 'block';
+    // Take them straight into their portal (one-tap magic link → set a PIN).
+    if (data.portalUrl) {
+      const link = document.getElementById('portal-link');
+      link.href = data.portalUrl;
+      document.getElementById('portal-fallback').textContent = "If it doesn't open automatically, tap the button above. We also emailed you this link.";
+      setTimeout(function () { window.location.href = data.portalUrl; }, 2500);
+    } else {
+      document.getElementById('portal-link').style.display = 'none';
+      document.getElementById('portal-fallback').textContent = "Your agent will be in touch shortly. A confirmation was sent to your email.";
+    }
   } catch (e) {
     alert('Error: ' + e.message + '\nPlease try again or contact your agent directly.');
     btn.disabled = false;
