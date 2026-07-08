@@ -67,7 +67,11 @@ export function deriveStage(timeline, tx) {
   const ms = (timeline && Array.isArray(timeline.milestones)) ? timeline.milestones : [];
   const done = ms.filter(m => m.status === "Completed" || m.status === "Waived");
   const open = ms.filter(m => m.status !== "Completed" && m.status !== "Waived" && m.is_na !== true);
-  const doneHas = (re) => done.some(m => re.test(m.name || ""));
+  // STAGE derivation counts only steps that actually HAPPENED. Waived / N/A
+  // means "doesn't apply" — a cash deal's waived 'Clear to Close' lit the
+  // portal's Clear-to-Close stage green while the deal was mid-inspection.
+  const achieved = ms.filter(m => m.status === "Completed" && m.is_na !== true);
+  const doneHas = (re) => achieved.some(m => re.test(m.name || ""));
   let derived = "Active";
   // "Clear to Close" is a LENDER event — the loan is fully approved with all
   // conditions cleared. It may derive ONLY from that exact milestone (or explicit

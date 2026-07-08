@@ -102,7 +102,20 @@ describe("portal stage never overclaims past the real transaction status", () =>
       tx
     );
     expect(stage.effectiveStatus).not.toBe("Clear to Close");
-    expect(stage.effectiveStatus).toBe("Appraisal");
+  });
+
+  it("WAIVED Clear to Close (cash deal) does not announce Clear to Close", () => {
+    // Cash deal: financing steps are waived/N-A — 'doesn't apply' is not 'achieved'.
+    const timeline = { milestones: [
+      { name: "Executed Contract Distributed", status: "Completed" },
+      { name: "Complete Inspection", status: "Pending" },
+      { name: "Appraisal Received", status: "Waived" },
+      { name: "Clear to Close", status: "Waived" },
+    ] };
+    const stage = deriveStage(timeline, { status: "Under Contract" });
+    expect(stage.effectiveStatus).not.toBe("Clear to Close");
+    expect(stage.effectiveStatus).not.toBe("Appraisal");
+    expect(stage.effectiveStatus).toBe("Under Contract");
   });
 
   it("Clear to Close fires once the real lender milestone is done", () => {

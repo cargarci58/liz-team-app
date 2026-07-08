@@ -402,7 +402,29 @@ const TASK_STATUS = {
 };
 
 // ===== Pipeline View (read-only) =====
-const PIPELINE_COLUMNS = ["Active", "Under Contract", "Inspection", "Appraisal", "Clear to Close", "Closed"];
+// Columns are DERIVED from the timeline, not the manual status: contract-phase
+// deals sort by what work is still OPEN (inspection → financing → clear-to-close),
+// and Active splits for-sale listings from buyer searches. "Under Contract" stays
+// only for deals with no timeline yet.
+const PIPELINE_COLUMNS = ["Active Listings", "Buyer Searches", "Under Contract", "Inspection", "Financing / Appraisal", "Clear to Close", "Closed"];
+const PIPELINE_COLUMN_STYLE = {
+  "Active Listings": "Active", "Buyer Searches": "Active", "Financing / Appraisal": "Appraisal",
+};
+function pipelineStageFor(t) {
+  const st = t.status;
+  if (st === "Active" || st === "New") {
+    const type = t.type || t.transactionType || "";
+    return (/buyer/i.test(type) && !/listing|seller|dual/i.test(type)) ? "Buyer Searches" : "Active Listings";
+  }
+  if (["Under Contract", "Inspection", "Appraisal", "Clear to Close"].includes(st)) {
+    const ms = t.milestoneSummary || {};
+    if (!ms.total) return "Under Contract";                       // no timeline yet
+    if ((ms.openInspection || 0) > 0) return "Inspection";
+    if ((ms.openFinancing || 0) > 0) return "Financing / Appraisal";
+    return "Clear to Close";                                      // all gates done or N/A
+  }
+  return st; // Closed (Cancelled filtered out upstream)
+}
 
 function PipelineCard({ tx, onSelect }) {
   // Progress reflects the Auto-TC timeline (milestones) ONLY. The legacy tasks
@@ -430,16 +452,16 @@ function PipelineCard({ tx, onSelect }) {
         <span style={{ fontSize: 9, fontWeight: 700, color: COLORS.muted, textTransform: "uppercase", letterSpacing: "0.06em" }}>{txTypeShort(tx.type)}</span>
         {propertyTypeBadge(tx) && <span title={`${propertyTypeBadge(tx).label.replace(/^\S+\s/, "")} property`} style={{ background: propertyTypeBadge(tx).bg, color: propertyTypeBadge(tx).color, fontSize: 9, fontWeight: 700, padding: "1px 6px", borderRadius: 8 }}>{propertyTypeBadge(tx).label}</span>}
         {tx.constructionType === "New Construction" && <span title="New Construction" style={{ background: "#FEF9E7", color: "#B7770D", fontSize: 9, fontWeight: 700, padding: "1px 6px", borderRadius: 8 }}>🏗️ NC</span>}
-        {overdue > 0 && <span title={`${overdue} overdue item(s)`} style={{ marginLeft: "auto", background: COLORS.dangerBg, color: COLORS.danger, fontSize: 9, fontWeight: 700, padding: "1px 6px", borderRadius: 8 }}>⚠ {overdue}</span>}
+        {overdue > 0 && tx.status !== "Closed" && <span title={`${overdue} overdue item(s)`} style={{ marginLeft: "auto", background: COLORS.dangerBg, color: COLORS.danger, fontSize: 9, fontWeight: 700, padding: "1px 6px", borderRadius: 8 }}>⚠ {overdue}</span>}
       </div>
       <div style={{ fontWeight: 700, fontSize: 13, color: COLORS.navy, marginBottom: 2, lineHeight: 1.3 }}>{tx.address}</div>
       {clientNameForTx(tx) && <div style={{ fontSize: 11.5, fontWeight: 600, color: COLORS.text, marginBottom: 1 }}>👤 {clientLabelForTx(tx)}: {clientNameForTx(tx)}</div>}
       <div style={{ fontSize: 11, color: COLORS.muted, marginBottom: 6 }}>{tx.city}, FL</div>
       {price && <div style={{ fontSize: 13, fontWeight: 700, color: COLORS.navy, marginBottom: 4 }}>${Number(price).toLocaleString()}</div>}
-      {tx.closingDate && <div style={{ fontSize: 11, color: dtc !== null && dtc < 7 && dtc >= 0 ? COLORS.danger : COLORS.muted, marginBottom: 6 }}>📅 {tx.closingDate}{dtc !== null ? ` (${dtc < 0 ? "past" : dtc + "d"})` : ""}</div>}
-      {next && next.name && (
+      {tx.closingDate && <div style={{ fontSize: 11, color: dtc !== null && dtc < 7 && dtc >= 0 ? COLORS.danger : COLORS.muted, marginBottom: 6 }}>📅 {formatDate(tx.closingDate)}{dtc !== null ? ` (${dtc < 0 ? "past" : dtc + "d"})` : ""}</div>}
+      {next && next.name && tx.status !== "Closed" && (
         <div style={{ fontSize: 11, color: COLORS.navy, marginBottom: 6, background: "#F8FAFC", borderRadius: 6, padding: "4px 8px" }} title="Next action on this deal">
-          ⏭️ <b>Next:</b> {next.name}{next.dueDate ? ` · ${next.dueDate}` : ""}
+          ⏭️ <b>Next:</b> {next.name}{next.dueDate ? ` · ${formatDate(next.dueDate)}` : ""}
         </div>
       )}
       {total > 0 && (
@@ -457,7 +479,7 @@ function PipelineCard({ tx, onSelect }) {
 }
 
 function PipelineColumn({ status, transactions, onSelect }) {
-  const cfg = STATUS_CONFIG[status] || STATUS_CONFIG["Active"];
+  const cfg = STATUS_CONFIG[status] || STATUS_CONFIG[PIPELINE_COLUMN_STYLE[status]] || STATUS_CONFIG["Active"];
   return (
     <div style={{ minWidth: 260, width: 260, background: COLORS.bg, borderRadius: 8, padding: 10, display: "flex", flexDirection: "column", maxHeight: "calc(100vh - 280px)" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10, paddingBottom: 8, borderBottom: `2px solid ${cfg.color}` }}>
@@ -477,7 +499,7 @@ function PipelineColumn({ status, transactions, onSelect }) {
 }
 
 function PipelineBoard({ transactions, onSelect }) {
-  const grouped = PIPELINE_COLUMNS.reduce((acc, s) => { acc[s] = transactions.filter(t => t.status === s); return acc; }, {});
+  const grouped = PIPELINE_COLUMNS.reduce((acc, s) => { acc[s] = transactions.filter(t => pipelineStageFor(t) === s); return acc; }, {});
   return (
     <div style={{ padding: 16, display: "flex", gap: 12, overflowX: "auto", overflowY: "hidden" }}>
       {PIPELINE_COLUMNS.map(s => <PipelineColumn key={s} status={s} transactions={grouped[s]} onSelect={onSelect} />)}
@@ -8535,7 +8557,7 @@ function Dashboard({ transactions, coordinatorMode = false, unreadCounts = {}, o
       )}
       <div ref={sentinelRef} style={{ height: 1 }} />
       {pagedLoading && <div style={{ textAlign: "center", padding: 16, color: COLORS.muted, fontSize: 13 }}>Loading…</div>}
-      {!pagedHasMore && hydratedPagedTxs.length > 0 && pagedTotal > 0 && <div style={{ textAlign: "center", padding: 16, color: COLORS.muted, fontSize: 12 }}>Showing all {pagedTotal} transactions</div>}
+      {!pagedHasMore && hydratedPagedTxs.length > 0 && pagedTotal > 0 && <div style={{ textAlign: "center", padding: 16, color: COLORS.muted, fontSize: 12 }}>Showing all {viewMode === "pipeline" ? transactions.filter(t => t.status !== "Cancelled").length : pagedTotal} transactions</div>}
 
       {showFilters && (
         <Modal title="Filter Transactions" onClose={() => setShowFilters(false)}>
