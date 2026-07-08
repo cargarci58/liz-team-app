@@ -7,6 +7,7 @@ import ResetPasswordPage from './ResetPasswordPage.jsx'
 import FormDownloadPage from './FormDownloadPage'
 import ContractUploadPublic from './ContractUploadPublic'
 import OfferReviewPublic from './OfferReviewPublic'
+import OfferSignPublic from './OfferSignPublic'
 import MilestoneActionPublic from './MilestoneActionPublic'
 import PortalMagicLogin from './PortalMagicLogin'
 import TcIntakePublic from './TcIntakePublic'
@@ -74,6 +75,9 @@ else if (path.startsWith('/form-download/')) {
 } else if (path.startsWith('/review-offers/')) {
   const token = path.split('/review-offers/')[1];
   Root = <OfferReviewPublic urlToken={token} />;
+} else if (path.startsWith('/sign-offer/')) {
+  const token = path.split('/sign-offer/')[1];
+  Root = <OfferSignPublic urlToken={token} />;
 } else if (path.startsWith('/milestone-action/')) {
   const token = path.split('/milestone-action/')[1];
   Root = <MilestoneActionPublic urlToken={token} />;

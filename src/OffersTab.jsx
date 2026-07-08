@@ -71,6 +71,7 @@ export default function OffersTab({ tx, token, currentUser, createSignal = 0 }) 
   const [error, setError] = useState(null);
   const [wizardOfferId, setWizardOfferId] = useState(null);
   const [sendModal, setSendModal] = useState(null);   // offer being sent to listing agent
+  const [signModal, setSignModal] = useState(null);   // offer being sent for buyer e-signature
 
   const load = async () => {
     setLoading(true);
@@ -290,6 +291,12 @@ export default function OffersTab({ tx, token, currentUser, createSignal = 0 }) 
                       <span style={{ background: meta.bg, color: meta.color, padding: "2px 8px", borderRadius: 12, fontSize: 11, fontWeight: 700 }}>
                         {meta.label}
                       </span>
+                      {o.signing_status === "out_for_signature" && (
+                        <div style={{ fontSize: 10, fontWeight: 700, color: "#86198f", marginTop: 4 }}>✍️ awaiting buyer signature(s)</div>
+                      )}
+                      {o.signing_status === "signed" && (
+                        <div style={{ fontSize: 10, fontWeight: 700, color: "#15803d", marginTop: 4 }}>✍️ signed in-app</div>
+                      )}
                     </td>
                     <td style={{ padding: "10px 12px", color: "#374151" }}>
                       {data.property_address || tx.address || "—"}
@@ -309,6 +316,8 @@ export default function OffersTab({ tx, token, currentUser, createSignal = 0 }) 
                           <div style={{ display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "flex-end" }}>
                             {btn("Open", () => setWizardOfferId(o.id), "#e5e7eb", "#374151")}
                             {o.packet_pdf_key && btn("📄 Packet", () => viewPacket(o.id), "#e0f2fe", "#075985")}
+                            {active && o.packet_pdf_key && !o.signed_doc_id &&
+                              btn(o.signing_status === "out_for_signature" ? "✍️ Signature status" : "✍️ Get buyer signatures", () => setSignModal(o), "#86198f", "#fff")}
                             {active && btn("📤 Upload Signed Offer", () => pickSigned(o), "#0c4a6e", "#fff")}
                             {active && o.signed_doc_id && btn(o.status === "sent" ? "📧 Re-send to listing agent" : "📧 Send to listing agent", () => sendToListing(o), "#ede9fe", "#5b21b6")}
                             {(o.status === "ready" || o.status === "sent" || o.status === "countered") && btn("✅ Accepted", () => acceptOffer(o.id), "#16a34a", "#fff")}
@@ -373,6 +382,13 @@ export default function OffersTab({ tx, token, currentUser, createSignal = 0 }) 
           offer={sendModal} tx={tx} token={token} currentUser={currentUser}
           onClose={() => setSendModal(null)}
           onSent={() => { setSendModal(null); load(); }}
+        />
+      )}
+
+      {signModal && (
+        <BuyerSignaturesModal
+          offer={signModal} token={token}
+          onClose={(changed) => { setSignModal(null); if (changed) load(); }}
         />
       )}
 
@@ -541,6 +557,164 @@ function SendOfferModal({ offer, tx, token, currentUser, onClose, onSent }) {
             <button onClick={send} disabled={sending} style={{ flex: 1, background: sending ? "#9ca3af" : "#16a34a", color: "#fff", border: "none", borderRadius: 8, padding: "12px", fontWeight: 800, fontSize: 15, cursor: sending ? "wait" : "pointer", fontFamily: "inherit" }}>{sending ? "Sending…" : "📧 Approve & Send"}</button>
             <button onClick={onClose} style={{ background: "#fff", color: "#374151", border: "1px solid #d1d5db", borderRadius: 8, padding: "12px 18px", fontWeight: 700, fontSize: 14, cursor: "pointer", fontFamily: "inherit" }}>Cancel</button>
           </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ────────────────────────────────────────────────────────────
+// BUYER E-SIGNATURE MODAL — send private signing links to the buyer(s),
+// watch who has signed, cancel a round. When the last buyer signs, the
+// server stamps the packet + certificate and the offer shows "signed
+// in-app" with the Send-to-Listing-Agent button ready.
+// ────────────────────────────────────────────────────────────
+function BuyerSignaturesModal({ offer, token, onClose }) {
+  const [info, setInfo] = useState(null);        // { signers, suggested, signingStatus, ... }
+  const [rows, setRows] = useState([]);          // editable signer rows for a new round
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState(null);
+  const [changed, setChanged] = useState(false);
+
+  const loadInfo = async () => {
+    try {
+      const r = await fetch(API + "/offers/" + offer.id + "/signatures", { headers: { Authorization: "Bearer " + token } });
+      const b = await r.json();
+      if (!r.ok) throw new Error(b.error || "Couldn't load signature status");
+      setInfo(b);
+      if (!(b.signers || []).length) {
+        const sug = (b.suggested || []).slice(0, 4);
+        setRows(sug.length ? sug : [{ name: "", email: "" }]);
+      }
+      // Server self-heals a missed finalize on this fetch — reflect it.
+      if (b.signingStatus === "signed") setChanged(true);
+    } catch (e) { setErr(e.message); }
+  };
+  useEffect(() => { loadInfo(); /* eslint-disable-next-line */ }, [offer.id]);
+
+  const setRow = (i, k, v) => setRows(rs => rs.map((r, j) => j === i ? { ...r, [k]: v } : r));
+
+  const send = async () => {
+    setErr(null);
+    const clean = rows.map(r => ({ name: (r.name || "").trim(), email: (r.email || "").trim() })).filter(r => r.name || r.email);
+    if (!clean.length || clean.some(r => !r.name || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(r.email))) {
+      setErr("Every signer needs a name and a valid email."); return;
+    }
+    setBusy(true);
+    try {
+      const r = await fetch(API + "/offers/" + offer.id + "/request-signatures", {
+        method: "POST",
+        headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
+        body: JSON.stringify({ signers: clean }),
+      });
+      const b = await r.json();
+      if (!r.ok) throw new Error(b.error || "Couldn't send signing links");
+      setChanged(true);
+      await loadInfo();
+      alert("✍️ Signing links sent to " + clean.map(s => s.name).join(" and ") + ".\n\nYou'll get an email the moment everyone has signed — then just click 📧 Send to listing agent.");
+    } catch (e) { setErr(e.message); } finally { setBusy(false); }
+  };
+
+  const cancel = async () => {
+    if (!confirm("Cancel the outstanding signing links?\n\nThe buyers' links will stop working. You can send a fresh round any time.")) return;
+    setBusy(true);
+    try {
+      const r = await fetch(API + "/offers/" + offer.id + "/cancel-signatures", {
+        method: "POST", headers: { Authorization: "Bearer " + token },
+      });
+      const b = await r.json();
+      if (!r.ok) throw new Error(b.error || "Couldn't cancel");
+      setChanged(true);
+      setInfo(null);
+      await loadInfo();
+    } catch (e) { setErr(e.message); } finally { setBusy(false); }
+  };
+
+  const pending = (info?.signers || []).filter(s => s.status === "pending");
+  const signedRows = (info?.signers || []).filter(s => s.status === "signed");
+  const roundOut = (info?.signers || []).length > 0 && info?.signingStatus !== "signed";
+
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.55)", zIndex: 60, display: "flex", alignItems: "flex-start", justifyContent: "center", overflowY: "auto", padding: "40px 12px" }}
+      onClick={() => onClose(changed)}>
+      <div style={{ background: "#fff", borderRadius: 14, width: "100%", maxWidth: 560, boxShadow: "0 20px 60px rgba(2,6,23,0.35)" }} onClick={e => e.stopPropagation()}>
+        <div style={{ background: "#86198f", color: "#fff", borderRadius: "14px 14px 0 0", padding: "16px 22px" }}>
+          <div style={{ fontSize: 17, fontWeight: 800 }}>✍️ Buyer signatures — no DocuSign needed</div>
+          <div style={{ fontSize: 12.5, opacity: 0.9, marginTop: 3 }}>Each buyer gets a private link to review the package and sign on their phone or computer.</div>
+        </div>
+        <div style={{ padding: 22 }}>
+          {!info && !err && <div style={{ color: "#64748b", fontSize: 14 }}>Loading…</div>}
+          {err && <div style={{ background: "#fee2e2", border: "1px solid #fca5a5", borderRadius: 8, padding: 10, fontSize: 13, color: "#7f1d1d", marginBottom: 12 }}>⚠️ {err}</div>}
+
+          {info && info.signingStatus === "signed" && (
+            <div style={{ background: "#dcfce7", border: "1px solid #86efac", borderRadius: 10, padding: 14, fontSize: 14, color: "#14532d", marginBottom: 6 }}>
+              ✅ <b>All signed!</b> The signed package (with its signature certificate) is on this offer — close this and click <b>📧 Send to listing agent</b>.
+            </div>
+          )}
+
+          {info && roundOut && (
+            <div style={{ marginBottom: 14 }}>
+              <div style={{ fontSize: 13, fontWeight: 800, color: "#374151", marginBottom: 8 }}>Signing round in progress</div>
+              {(info.signers || []).map(s => (
+                <div key={s.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 10px", background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 8, marginBottom: 6, fontSize: 13 }}>
+                  <span style={{ color: "#111" }}>{s.signer_name} <span style={{ color: "#64748b" }}>({s.signer_email})</span></span>
+                  {s.status === "signed"
+                    ? <span style={{ color: "#15803d", fontWeight: 700 }}>✅ Signed {s.signed_at ? new Date(s.signed_at).toLocaleDateString() : ""}</span>
+                    : <span style={{ color: "#92400e", fontWeight: 700 }}>⏳ Waiting</span>}
+                </div>
+              ))}
+              {pending.length > 0 && (
+                <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+                  <button onClick={cancel} disabled={busy}
+                    style={{ padding: "8px 16px", background: "#fee2e2", color: "#7f1d1d", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                    Cancel signing links
+                  </button>
+                </div>
+              )}
+              {signedRows.length > 0 && pending.length === 0 && info.signingStatus !== "signed" && (
+                <div style={{ fontSize: 12.5, color: "#92400e", marginTop: 8 }}>Finalizing the signed package… reopen this window in a moment if it doesn't complete.</div>
+              )}
+            </div>
+          )}
+
+          {info && !roundOut && info.signingStatus !== "signed" && (
+            <div>
+              {!info.hasPacket && (
+                <div style={{ background: "#fef3c7", border: "1px solid #fcd34d", borderRadius: 8, padding: 10, fontSize: 13, color: "#78350f", marginBottom: 12 }}>
+                  ⚠️ Generate the offer packet first (open the offer → Review step → Generate) — the buyers sign the final package.
+                </div>
+              )}
+              <div style={{ fontSize: 13, fontWeight: 800, color: "#374151", marginBottom: 8 }}>Who needs to sign?</div>
+              {rows.map((r, i) => (
+                <div key={i} style={{ display: "flex", gap: 8, marginBottom: 8 }}>
+                  <input value={r.name} onChange={e => setRow(i, "name", e.target.value)} placeholder="Buyer full name"
+                    style={{ flex: 1, padding: "9px 10px", border: "1px solid #cbd5e1", borderRadius: 8, fontSize: 13, fontFamily: "inherit", minWidth: 0 }} />
+                  <input value={r.email} onChange={e => setRow(i, "email", e.target.value)} placeholder="Email"
+                    style={{ flex: 1, padding: "9px 10px", border: "1px solid #cbd5e1", borderRadius: 8, fontSize: 13, fontFamily: "inherit", minWidth: 0 }} />
+                  {rows.length > 1 && (
+                    <button onClick={() => setRows(rs => rs.filter((_, j) => j !== i))}
+                      style={{ background: "none", border: "none", color: "#7f1d1d", fontSize: 16, cursor: "pointer" }}>✕</button>
+                  )}
+                </div>
+              ))}
+              {rows.length < 4 && (
+                <button onClick={() => setRows(rs => [...rs, { name: "", email: "" }])}
+                  style={{ background: "none", border: "1px dashed #94a3b8", color: "#475569", borderRadius: 8, padding: "6px 14px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", marginBottom: 12 }}>
+                  + Add another signer
+                </button>
+              )}
+              <button onClick={send} disabled={busy || !info.hasPacket}
+                style={{ width: "100%", padding: "12px 0", background: busy || !info.hasPacket ? "#94a3b8" : "#86198f", color: "#fff", border: "none", borderRadius: 10, fontSize: 15, fontWeight: 800, cursor: busy || !info.hasPacket ? "default" : "pointer", fontFamily: "inherit", marginTop: 4 }}>
+                {busy ? "Sending links…" : "Send signing links ✍️"}
+              </button>
+              <div style={{ fontSize: 11.5, color: "#64748b", marginTop: 8, textAlign: "center" }}>
+                Signatures are stamped onto the contract, riders, and disclosures automatically, with a signature certificate attached.
+              </div>
+            </div>
+          )}
+        </div>
+        <div style={{ padding: "12px 22px", borderTop: "1px solid #e5e7eb", textAlign: "right" }}>
+          <button onClick={() => onClose(changed)} style={{ padding: "8px 18px", background: "#e5e7eb", color: "#374151", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>Close</button>
         </div>
       </div>
     </div>
