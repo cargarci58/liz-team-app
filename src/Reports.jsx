@@ -135,9 +135,13 @@ function OverviewTab({ transactions }) {
     monthlyComm.push({ label, value: Math.round(comm) });
   }
 
+  // Ordered by stage first (Active → Under Contract), then biggest commission —
+  // pure commission-size sort interleaved the statuses and read as random.
+  const STAGE_RANK = { "Active": 0, "Under Contract": 1, "Inspection": 1, "Appraisal": 1, "Clear to Close": 1, "Closed": 2 };
   const pipeline = [...active, ...underContract].map(tx => ({
     ...tx, gross: calcComm(tx).gross, net: calcComm(tx).net,
-  })).filter(tx => tx.gross > 0).sort((a, b) => b.gross - a.gross);
+  })).filter(tx => tx.gross > 0)
+    .sort((a, b) => (STAGE_RANK[a.status] ?? 9) - (STAGE_RANK[b.status] ?? 9) || b.gross - a.gross);
 
   return (
     <>
@@ -211,7 +215,9 @@ function OverviewTab({ transactions }) {
             </tr>
           </thead>
           <tbody>
-            {transactions.filter(t => t.status !== "Cancelled").map((tx, i) => {
+            {[...transactions].filter(t => t.status !== "Cancelled")
+              .sort((a, b) => ((STAGE_RANK[a.status] ?? 9) - (STAGE_RANK[b.status] ?? 9)) || String(a.closingDate || "9999").localeCompare(String(b.closingDate || "9999")))
+              .map((tx, i) => {
               const { net } = calcComm(tx);
               const statusColors = { Active: "#FEF9E7", "Under Contract": "#DBEAFE", Closed: "#F0FFF4", "On Hold": "#F3F4F6" };
               const statusText = { Active: COLORS.gold, "Under Contract": "#1D4ED8", Closed: COLORS.green, "On Hold": COLORS.gray };
