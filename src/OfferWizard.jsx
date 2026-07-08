@@ -69,7 +69,11 @@ const inputStyle = {
   boxSizing: "border-box",
 };
 
-function FieldRenderer({ field, value, onChange, documents }) {
+function FieldRenderer({ field, value, onChange, documents, formLibrary, onUploadRiderForm, riderUploadBusy }) {
+  // Hidden file input for uploading an official rider form straight from the
+  // addenda picker (hooks stay at the top — FieldRenderer branches below).
+  const riderFileRef = useRef(null);
+  const [pendingRider, setPendingRider] = useState(null);
   const v = value != null ? value : (field.default != null ? field.default : "");
 
   if (field.type === "textarea") {
@@ -121,12 +125,42 @@ function FieldRenderer({ field, value, onChange, documents }) {
       const next = selected.includes(id) ? selected.filter(x => x !== id) : [...selected, id];
       onChange(next);
     };
+    // Per-rider form availability from the Form Library: fills automatically,
+    // official form attaches, or missing (upload it once, right here).
+    const lib = formLibrary || {};
+    const badgeBase = { fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 10, marginLeft: 6, whiteSpace: "nowrap" };
+    const badge = (a) => {
+      const info = lib[a.id];
+      if (!info) return null;
+      if (info.source === "fillable") return <span style={{ ...badgeBase, background: "#dcfce7", color: "#15803d" }}>✍️ fills automatically</span>;
+      if (info.source === "uploaded") return <span style={{ ...badgeBase, background: "#e0f2fe", color: "#075985" }}>📎 your form attaches</span>;
+      if (info.source === "static") return <span style={{ ...badgeBase, background: "#e0f2fe", color: "#075985" }}>📎 official form attaches</span>;
+      return (
+        <span style={{ whiteSpace: "nowrap" }}>
+          <span style={{ ...badgeBase, background: "#fef3c7", color: "#92400e" }}>⚠️ form not installed</span>
+          {onUploadRiderForm && (
+            <button type="button"
+              onClick={(e) => { e.preventDefault(); setPendingRider(a.id); riderFileRef.current && riderFileRef.current.click(); }}
+              style={{ marginLeft: 6, fontSize: 10, fontWeight: 700, color: "#075985", background: "none", border: "1px solid #7dd3fc", borderRadius: 10, padding: "2px 7px", cursor: "pointer", fontFamily: "inherit" }}>
+              {riderUploadBusy === a.id ? "Uploading…" : "⬆ Upload official form"}
+            </button>
+          )}
+        </span>
+      );
+    };
     return (
       <div style={{ display: "grid", gap: 8 }}>
+        <input ref={riderFileRef} type="file" accept=".pdf" style={{ display: "none" }}
+          onChange={(e) => {
+            const f = e.target.files && e.target.files[0];
+            e.target.value = "";
+            if (f && pendingRider && onUploadRiderForm) onUploadRiderForm(pendingRider, f);
+            setPendingRider(null);
+          }} />
         {STANDARD_ADDENDA.map(a => (
-          <label key={a.id} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14, color: "#374151", cursor: "pointer" }}>
+          <label key={a.id} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14, color: "#374151", cursor: "pointer", flexWrap: "wrap" }}>
             <input type="checkbox" checked={selected.includes(a.id)} onChange={() => toggle(a.id)} />
-            {a.label}
+            <span>{a.label}{badge(a)}</span>
           </label>
         ))}
       </div>
@@ -195,6 +229,11 @@ function buildWizardData(offer) {
 }
 
 function fieldVisible(field, data) {
+  // Rider-specific blanks only appear when that rider is checked in the picker.
+  if (field.showIfAddendum) {
+    const sel = Array.isArray(data.selected_addenda) ? data.selected_addenda : [];
+    if (!sel.includes(field.showIfAddendum)) return false;
+  }
   if (!field.showIf) return true;
   for (const [key, allowed] of Object.entries(field.showIf)) {
     const val = data[key];
@@ -225,6 +264,48 @@ export default function OfferWizard({ offerId, token, onClose, onSaved }) {
   const [packetReady, setPacketReady] = useState(false);
   // Weekend closing-date override
   const [closingDateAck, setClosingDateAck] = useState(false);
+  // Form Library: per-rider form availability (letter → {source, file_name, …})
+  // drives the badges on the addenda picker + the upload-official-form button.
+  const [formLibrary, setFormLibrary] = useState(null);
+  const [riderUploadBusy, setRiderUploadBusy] = useState(null);
+
+  const loadFormLibrary = async () => {
+    try {
+      const r = await fetch(API + "/form-library/riders", { headers: { Authorization: "Bearer " + token } });
+      if (!r.ok) return;
+      const b = await r.json();
+      const map = {};
+      for (const row of (b.riders || [])) map[row.letter] = row;
+      setFormLibrary(map);
+    } catch { /* badges are progressive enhancement — picker works without them */ }
+  };
+  useEffect(() => { loadFormLibrary(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const uploadRiderForm = async (letter, file) => {
+    if (file.size > 15 * 1024 * 1024) { alert("⚠️ That PDF is over 15 MB — export a smaller copy and try again."); return; }
+    setRiderUploadBusy(letter);
+    try {
+      const base64 = await new Promise((resolve, reject) => {
+        const fr = new FileReader();
+        fr.onload = () => resolve(String(fr.result).split(",")[1]);
+        fr.onerror = reject;
+        fr.readAsDataURL(file);
+      });
+      const r = await fetch(API + "/form-library/riders/" + letter, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
+        body: JSON.stringify({ fileName: file.name, base64 }),
+      });
+      const b = await r.json();
+      if (!r.ok) throw new Error(b.error || "Upload failed");
+      await loadFormLibrary();
+      alert("✅ " + letter + " rider saved. It will be attached to this and every future offer packet, with the buyer/seller/property stamped on automatically.");
+    } catch (e) {
+      alert("⚠️ " + (e.message || "Upload failed"));
+    } finally {
+      setRiderUploadBusy(null);
+    }
+  };
 
   const wizard = getWizard(offer?.base_contract_type || "as_is");
   const steps = wizard.steps;
@@ -908,7 +989,8 @@ export default function OfferWizard({ offerId, token, onClose, onSaved }) {
                   {f.label} {f.required && <span style={{ color: "#dc2626" }}>*</span>}
                   {common && <span style={{ fontSize: 10, fontWeight: 700, color: "#16a34a", marginLeft: 6, textTransform: "uppercase", letterSpacing: "0.04em" }}>• commonly filled</span>}
                 </label>
-                <FieldRenderer field={f} value={data[f.id]} onChange={(val) => setField(f.id, val)} documents={documents} />
+                <FieldRenderer field={f} value={data[f.id]} onChange={(val) => setField(f.id, val)} documents={documents}
+                  formLibrary={formLibrary} onUploadRiderForm={uploadRiderForm} riderUploadBusy={riderUploadBusy} />
                 {f.hint && <div style={{ fontSize: 11, color: "#6b7280", marginTop: 4 }}>{f.hint}</div>}
                 {f.why && <div style={{ fontSize: 11, color: "#92400e", marginTop: 2, fontStyle: "italic" }}>{f.why}</div>}
               </div>
