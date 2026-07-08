@@ -662,6 +662,12 @@ export default function OfferWizard({ offerId, token, onClose, onSaved }) {
       const body = await r.json();
       if (!r.ok) throw new Error(body.error || "Packet generation failed");
       setPacketReady(true);
+      // Every packet must carry the pre-approval + the broker's always-attach
+      // forms — call out loudly when one didn't make it in.
+      const warns = [];
+      if (body.preapprovalAttached === false) warns.push("• The PRE-APPROVAL LETTER could not be attached. Check Step 1 — it must be a PDF or photo (JPG/PNG).");
+      if (body.brokerFormsAttached === 0) warns.push("• Your BROKER'S BUYER DISCLOSURE isn't on file yet. Upload it once on the Addenda step under '📌 Included with every offer'.");
+      if (warns.length) alert("⚠️ Packet generated, but it's missing:\n\n" + warns.join("\n\n") + "\n\nFix and click Generate again before sending.");
       // Trigger download immediately
       const u = await fetch(API + "/offers/" + offerId + "/packet-url", { headers: { Authorization: "Bearer " + token } });
       const ub = await u.json();
