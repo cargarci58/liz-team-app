@@ -7238,7 +7238,7 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
 }
 
 // --- NEW TRANSACTION ──────────────────────────────────────────
-function NewTransactionForm({ onSave, onCancel, prefill = null, cmaId = null }) {
+function NewTransactionForm({ onSave, onCancel, prefill = null, cmaId = null, onImportContract = null }) {
   const [form, setForm] = useState({ address: "", city: "", county: "Osceola", zipCode: "", type: "Listing (Seller)", propertyType: "Single Family", constructionType: "Resale", listPrice: "", contractPrice: "", mlsNumber: "", openDate: today(), closingDate: "", executedDate: "", representationExpiresOn: "", leaseTerm: "1 Year", notes: "", status: "Active", assignedAgent: "", referralSource: "", occupancyStatus: "", propertyAccess: "", commissionListing: "", commissionBuyer: "", transactionFee: "", brokerageSplit: "", officeFlatFee: "", commissionNotes: "", clientName: "", clientEmail: "", clientPhone: "", ...(prefill || {}) });
   const [teamAgents, setTeamAgents] = useState([]);
   useEffect(() => { const tok = localStorage.getItem("tp_token") || ""; fetch(API + "/users", { headers: { "Authorization": "Bearer " + tok } }).then(r => r.json()).then(d => { if (d.users) setTeamAgents(d.users.filter(u => u.role === "agent" || u.role === "admin" || u.role === "superadmin")); }).catch(e => console.error("[bg]", e && e.message ? e.message : e)); }, []);
@@ -7325,6 +7325,15 @@ function NewTransactionForm({ onSave, onCancel, prefill = null, cmaId = null }) 
   };
   return (
     <div style={{ fontFamily: "'Segoe UI', system-ui, sans-serif", background: COLORS.bg, minHeight: "100vh" }}>
+      {onImportContract && (
+        <div onClick={onImportContract} style={{ maxWidth: 900, margin: "0 auto 14px", background: "#EFF6FF", border: "1.5px dashed #3B82F6", borderRadius: 12, padding: "12px 16px", cursor: "pointer", display: "flex", alignItems: "center", gap: 12 }}>
+          <span style={{ fontSize: 22 }}>📥</span>
+          <div>
+            <div style={{ fontWeight: 800, fontSize: 14, color: "#1E40AF" }}>Already have a signed contract? Import it instead</div>
+            <div style={{ fontSize: 12.5, color: "#1E3A8A" }}>Upload the executed contract — AI reads it and builds this whole transaction for you (you review before it saves). Skip the form below.</div>
+          </div>
+        </div>
+      )}
       <div style={{ background: COLORS.navy, padding: "16px 24px", display: "flex", alignItems: "center", gap: 16 }}>
         <button onClick={onCancel} style={{ background: "none", border: "none", color: "#fff", cursor: "pointer", fontSize: 22, opacity: 0.7 }}>←</button>
         <div>
@@ -8176,7 +8185,9 @@ function Dashboard({ transactions, coordinatorMode = false, unreadCounts = {}, o
           </div>
           <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", justifyContent: "flex-end", flex: "1 1 auto", minWidth: 0 }}>
             {!coordinatorMode && <button data-tour="new" onClick={onNew} style={{ background: "#C0392B", border: "none", color: "#fff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>+ New Transaction</button>}
-            {!coordinatorMode && onOpenContractIntake && <button data-tour="contract-intake" onClick={() => onOpenContractIntake()} title="Received an offer on one of YOUR LISTINGS? Upload the signed offer here — AI reads it (price, buyer, dates, terms), matches it to the listing, and stages it for your review. Nothing is accepted or sent automatically." style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "#fff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>📥 Upload Received Offer</button>}
+            {/* Contract intake moved out of the header: offers on a listing → the
+                listing's own 📥 Receive Offer; contracts for deals not in the app
+                yet → "+ New Transaction" → Import from a signed contract. */}
             <button data-tour="contacts" onClick={() => onOpenContacts && onOpenContacts()} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "#fff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>📇 Contacts</button>
             {coordinatorMode && <button onClick={() => setShowTcTeam(true)} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "#fff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>👥 Team</button>}
             {coordinatorMode && <button onClick={() => setShowTcServices(true)} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "#fff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>💼 My Services</button>}
@@ -9459,6 +9470,7 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
           cmaId={cmaConvert?.cmaId || null}
           onSave={(tx) => { setCmaConvert(null); addTransaction(tx); }}
           onCancel={() => { setCmaConvert(null); setView(cmaConvert ? "cma" : "home"); }}
+          onImportContract={() => { setCmaConvert(null); setView("home"); setShowContractIntake(true); }}
         />
       )}
       {view === "cma" && (
