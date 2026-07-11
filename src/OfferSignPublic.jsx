@@ -95,6 +95,7 @@ function GuidedPacketViewer({ token, stops, applied, current, sigDataUrl, signer
 
   useEffect(() => {
     let cancelled = false;
+    setPages([]);
     (async () => {
       try {
         const pdfjs = await import("pdfjs-dist/build/pdf.min.mjs");
@@ -103,17 +104,32 @@ function GuidedPacketViewer({ token, stops, applied, current, sigDataUrl, signer
         const resp = await fetch(API + "/public/offer-sign/" + token + "/packet.pdf");
         if (!resp.ok) throw new Error("Couldn't load the package for viewing.");
         const bytes = new Uint8Array(await resp.arrayBuffer());
-        const doc = await pdfjs.getDocument({ data: bytes }).promise;
+        // The packet's flattened forms reference non-embedded standard fonts —
+        // pdf.js needs standardFontDataUrl or those pages stall silently.
+        const doc = await pdfjs.getDocument({
+          data: bytes,
+          useSystemFonts: true,
+          standardFontDataUrl: "/pdf-fonts/",
+        }).promise;
         const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        const withTimeout = (p, ms) => Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error("timeout")), ms))]);
         for (let i = 1; i <= doc.numPages && !cancelled; i++) {
-          const page = await doc.getPage(i);
-          const base = page.getViewport({ scale: 1 });
-          const scale = (900 / base.width) * dpr * 0.75; // crisp but memory-sane
-          const vp = page.getViewport({ scale });
-          const canvas = document.createElement("canvas");
-          canvas.width = vp.width; canvas.height = vp.height;
-          await page.render({ canvasContext: canvas.getContext("2d"), viewport: vp }).promise;
-          const entry = { num: i, width: base.width, height: base.height, dataUrl: canvas.toDataURL("image/jpeg", 0.85) };
+          let entry;
+          try {
+            const page = await withTimeout(doc.getPage(i), 15000);
+            const base = page.getViewport({ scale: 1 });
+            const scale = (900 / base.width) * dpr * 0.75; // crisp but memory-sane
+            const vp = page.getViewport({ scale });
+            const canvas = document.createElement("canvas");
+            canvas.width = vp.width; canvas.height = vp.height;
+            await withTimeout(page.render({ canvasContext: canvas.getContext("2d"), viewport: vp }).promise, 15000);
+            entry = { num: i, width: base.width, height: base.height, dataUrl: canvas.toDataURL("image/jpeg", 0.85) };
+          } catch (pageErr) {
+            // One bad page must never block the rest — show a placeholder;
+            // the full-package link is always available for review.
+            console.error("[sign-viewer] page " + i + " failed: " + pageErr.message);
+            entry = { num: i, width: PAGE_W, height: 792, dataUrl: null };
+          }
           if (!cancelled) setPages(prev => [...prev, entry]);
         }
       } catch (e) { if (!cancelled) setRenderErr(e.message); }
@@ -152,7 +168,11 @@ function GuidedPacketViewer({ token, stops, applied, current, sigDataUrl, signer
         const scale = cssWidth / p.width;
         return (
           <div key={p.num} style={{ position: "relative", marginBottom: 12, boxShadow: "0 2px 10px rgba(2,6,23,0.12)", borderRadius: 6, overflow: "hidden" }}>
-            <img src={p.dataUrl} alt={"Page " + p.num} style={{ display: "block", width: "100%" }} />
+            {p.dataUrl
+              ? <img src={p.dataUrl} alt={"Page " + p.num} style={{ display: "block", width: "100%" }} />
+              : <div style={{ width: "100%", height: (p.height / p.width) * cssWidth, background: "#f8fafc", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, color: "#64748b" }}>
+                  Page {p.num} preview unavailable — use "Open full package" above to review it
+                </div>}
             {(stopsByPage[p.num] || []).map(s => {
               const isApplied = applied.has(s.idx);
               const isCurrent = s.idx === current;
@@ -334,8 +354,12 @@ export default function OfferSignPublic({ urlToken }) {
   const sigCount = stops.filter(s => s.kind === "signature").length;
   return shell(
     <div>
-      <div style={{ fontSize: 13.5, color: "#374151", lineHeight: 1.55, marginBottom: 12 }}>
-        Review the package below. Tap each <span style={{ background: "#fef08a", padding: "1px 6px", borderRadius: 4, fontWeight: 700 }}>yellow marker</span> to place your {sigCount ? "signature or initials" : "initials"} — we'll take you to each one in order.
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10, marginBottom: 12, flexWrap: "wrap" }}>
+        <div style={{ fontSize: 13.5, color: "#374151", lineHeight: 1.55, flex: 1, minWidth: 220 }}>
+          Review the package below. Tap each <span style={{ background: "#fef08a", padding: "1px 6px", borderRadius: 4, fontWeight: 700 }}>yellow marker</span> to place your {sigCount ? "signature or initials" : "initials"} — we'll take you to each one in order.
+        </div>
+        <a href={API + "/public/offer-sign/" + urlToken + "/packet.pdf"} target="_blank" rel="noreferrer"
+          style={{ fontSize: 12, fontWeight: 700, color: "#075985", whiteSpace: "nowrap" }}>Open full package ↗</a>
       </div>
       <GuidedPacketViewer token={urlToken} stops={stops} applied={applied} current={current}
         sigDataUrl={sigDataUrl} signerName={data.signerName} onApply={applyStop} />
