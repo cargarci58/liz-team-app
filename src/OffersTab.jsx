@@ -152,6 +152,16 @@ export default function OffersTab({ tx, token, currentUser, createSignal = 0 }) 
     }
   };
 
+  // Preview the SIGNED offer package (signatures + certificate) before sending.
+  const viewSignedDoc = async (docId) => {
+    try {
+      const r = await fetch(API + "/documents/" + docId + "/view-url", { headers: { Authorization: "Bearer " + token } });
+      const data = await r.json();
+      if (!r.ok || !data.viewUrl) throw new Error(data.error || "Signed offer not available yet");
+      window.open(data.viewUrl, "_blank");
+    } catch (e) { alert(e.message); }
+  };
+
   // View the generated offer packet PDF.
   const viewPacket = async (offerId) => {
     try {
@@ -316,6 +326,7 @@ export default function OffersTab({ tx, token, currentUser, createSignal = 0 }) 
                           <div style={{ display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "flex-end" }}>
                             {btn("Open", () => setWizardOfferId(o.id), "#e5e7eb", "#374151")}
                             {o.packet_pdf_key && btn("📄 Packet", () => viewPacket(o.id), "#e0f2fe", "#075985")}
+                            {o.signed_doc_id && btn("👀 View signed offer", () => viewSignedDoc(o.signed_doc_id), "#dcfce7", "#166534")}
                             {active && o.packet_pdf_key && !o.signed_doc_id &&
                               btn(o.signing_status === "out_for_signature" ? "✍️ Signature status" : "✍️ Get buyer signatures", () => setSignModal(o), "#86198f", "#fff")}
                             {active && btn("📤 Upload Signed Offer", () => pickSigned(o), "#0c4a6e", "#fff")}

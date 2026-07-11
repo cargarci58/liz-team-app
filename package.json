@@ -19,6 +19,7 @@
     "html2pdf.js": "^0.10.2",
     "jspdf": "^2.5.2",
     "papaparse": "^5.4.1",
+    "pdfjs-dist": "^4.10.38",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "socket.io-client": "^4.8.3"
