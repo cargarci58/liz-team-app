@@ -120,7 +120,7 @@ function SignaturePad({ onChange, typedName, mode }) {
 
 // In-page PDF viewer with guided stop markers. Renders every page via pdf.js
 // (loaded on demand so the main app bundle stays small).
-function GuidedPacketViewer({ token, stops, applied, current, sigDataUrl, signerName, onApply }) {
+function GuidedPacketViewer({ token, base, stops, applied, current, sigDataUrl, signerName, onApply }) {
   const [pages, setPages] = useState([]); // [{num, width, height, dataUrl}]
   const [renderErr, setRenderErr] = useState(null);
   const wrapRefs = useRef({});
@@ -135,7 +135,7 @@ function GuidedPacketViewer({ token, stops, applied, current, sigDataUrl, signer
         const pdfjs = await import("pdfjs-dist/build/pdf.min.mjs");
         const worker = await import("pdfjs-dist/build/pdf.worker.min.mjs?url");
         pdfjs.GlobalWorkerOptions.workerSrc = worker.default;
-        const resp = await fetch(API + "/public/offer-sign/" + token + "/packet.pdf");
+        const resp = await fetch(API + "/public/" + base + "/" + token + "/packet.pdf");
         if (!resp.ok) throw new Error("Couldn't load the package for viewing.");
         const bytes = new Uint8Array(await resp.arrayBuffer());
         // The packet's flattened forms reference non-embedded standard fonts —
@@ -151,13 +151,13 @@ function GuidedPacketViewer({ token, stops, applied, current, sigDataUrl, signer
           let entry;
           try {
             const page = await withTimeout(doc.getPage(i), 15000);
-            const base = page.getViewport({ scale: 1 });
-            const scale = (900 / base.width) * dpr * 0.75; // crisp but memory-sane
+            const vp0 = page.getViewport({ scale: 1 });
+            const scale = (900 / vp0.width) * dpr * 0.75; // crisp but memory-sane
             const vp = page.getViewport({ scale });
             const canvas = document.createElement("canvas");
             canvas.width = vp.width; canvas.height = vp.height;
             await withTimeout(page.render({ canvasContext: canvas.getContext("2d"), viewport: vp }).promise, 15000);
-            entry = { num: i, width: base.width, height: base.height, dataUrl: canvas.toDataURL("image/jpeg", 0.85) };
+            entry = { num: i, width: vp0.width, height: vp0.height, dataUrl: canvas.toDataURL("image/jpeg", 0.85) };
           } catch (pageErr) {
             // One bad page must never block the rest — show a placeholder;
             // the full-package link is always available for review.
@@ -169,7 +169,7 @@ function GuidedPacketViewer({ token, stops, applied, current, sigDataUrl, signer
       } catch (e) { if (!cancelled) setRenderErr(e.message); }
     })();
     return () => { cancelled = true; };
-  }, [token]);
+  }, [token, base]);
 
   useEffect(() => {
     const measure = () => { if (containerRef.current) setCssWidth(containerRef.current.offsetWidth); };
@@ -188,7 +188,7 @@ function GuidedPacketViewer({ token, stops, applied, current, sigDataUrl, signer
 
   if (renderErr) return (
     <div style={{ fontSize: 13, color: "#7f1d1d", padding: 12 }}>
-      ⚠️ {renderErr} <a href={API + "/public/offer-sign/" + token + "/packet.pdf"} target="_blank" rel="noreferrer">Open the package in a new tab</a> to review it, then continue below.
+      ⚠️ {renderErr} <a href={API + "/public/" + base + "/" + token + "/packet.pdf"} target="_blank" rel="noreferrer">Open the package in a new tab</a> to review it, then continue below.
     </div>
   );
 
@@ -245,7 +245,10 @@ function GuidedPacketViewer({ token, stops, applied, current, sigDataUrl, signer
   );
 }
 
-export default function OfferSignPublic({ urlToken }) {
+export default function OfferSignPublic({ urlToken, kind = "offer" }) {
+  // Same page signs OFFER PACKETS and standalone DOCUMENTS (net sheets etc.);
+  // only the API base differs.
+  const base = kind === "doc" ? "doc-sign" : "offer-sign";
   const [data, setData] = useState(null);
   const [loadErr, setLoadErr] = useState(null);
   const [phase, setPhase] = useState("adopt"); // adopt → guide → done
@@ -261,13 +264,13 @@ export default function OfferSignPublic({ urlToken }) {
   useEffect(() => {
     (async () => {
       try {
-        const r = await fetch(API + "/public/offer-sign/" + urlToken);
+        const r = await fetch(API + "/public/" + base + "/" + urlToken);
         const b = await r.json();
         if (!r.ok) throw new Error(b.error || "This signing link isn't valid.");
         setData(b);
       } catch (e) { setLoadErr(e.message); }
     })();
-  }, [urlToken]);
+  }, [urlToken, base]);
 
   const stops = (data && data.stops) || [];
 
@@ -298,7 +301,7 @@ export default function OfferSignPublic({ urlToken }) {
     if (!sigDataUrl) { setError("Adopt your signature first."); setPhase("adopt"); return; }
     setSubmitting(true);
     try {
-      const r = await fetch(API + "/public/offer-sign/" + urlToken, {
+      const r = await fetch(API + "/public/" + base + "/" + urlToken, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ consent: true, signatureDataUrl: sigDataUrl, kind: mode === "type" ? "typed" : "drawn" }),
@@ -314,7 +317,8 @@ export default function OfferSignPublic({ urlToken }) {
       <div style={{ maxWidth: wide ? 760 : 720, margin: "0 auto" }}>
         <div style={{ background: "#0c4a6e", color: "#fff", borderRadius: "14px 14px 0 0", padding: "18px 24px" }}>
           <div style={{ fontSize: 12, opacity: 0.85, textTransform: "uppercase", letterSpacing: "0.06em" }}>Electronic signature</div>
-          <div style={{ fontSize: 20, fontWeight: 800 }}>{data?.propertyAddress ? "Offer — " + data.propertyAddress : "Your offer package"}</div>
+          <div style={{ fontSize: 20, fontWeight: 800 }}>{data?.docName ? data.docName : (data?.propertyAddress ? "Offer — " + data.propertyAddress : "Your offer package")}</div>
+          {data?.docName && data?.propertyAddress && <div style={{ fontSize: 13, opacity: 0.85, marginTop: 2 }}>{data.propertyAddress}</div>}
           {data?.agentName && <div style={{ fontSize: 13, opacity: 0.85, marginTop: 2 }}>Prepared by {data.agentName}</div>}
         </div>
         <div style={{ background: "#fff", borderRadius: "0 0 14px 14px", padding: 22, boxShadow: "0 8px 30px rgba(2,6,23,0.08)" }}>{inner}</div>
@@ -330,8 +334,8 @@ export default function OfferSignPublic({ urlToken }) {
       <div style={{ fontSize: 46 }}>🎉</div>
       <div style={{ fontSize: 20, fontWeight: 800, color: "#15803d", marginTop: 8 }}>You're all set{data.signerName ? ", " + data.signerName.split(" ")[0] : ""}!</div>
       <div style={{ fontSize: 14, color: "#374151", marginTop: 10, lineHeight: 1.6 }}>
-        Your signature and initials have been applied to the offer package.<br />
-        {data.agentName || "Your agent"} will send the offer to the listing side and keep you posted.
+        {kind === "doc" ? "Your signature has been applied to the document." : "Your signature and initials have been applied to the offer package."}<br />
+        {kind === "doc" ? (data.agentName || "Your agent") + " has been notified and has the signed copy." : (data.agentName || "Your agent") + " will send the offer to the listing side and keep you posted."}
       </div>
     </div>
   );
@@ -340,7 +344,7 @@ export default function OfferSignPublic({ urlToken }) {
   if (phase === "adopt") return shell(
     <div>
       <div style={{ fontSize: 14, color: "#374151", lineHeight: 1.6, marginBottom: 16 }}>
-        Hi <strong>{data.signerName}</strong> — your offer package is ready to sign. Two quick steps:
+        Hi <strong>{data.signerName}</strong> — {kind === "doc" ? "this document is ready for your signature." : "your offer package is ready to sign."} Two quick steps:
         first adopt your signature, then we'll walk you through <strong>each place</strong> it goes — {stops.length > 0 ? <strong>{stops.filter(s => s.kind === "signature").length} signature{stops.filter(s => s.kind === "signature").length === 1 ? "" : "s"} and {stops.filter(s => s.kind === "initials").length} initial spot{stops.filter(s => s.kind === "initials").length === 1 ? "" : "s"}</strong> : "every signature and initial spot"} — one at a time.
       </div>
       <div style={{ marginBottom: 18 }}>
@@ -392,10 +396,10 @@ export default function OfferSignPublic({ urlToken }) {
         <div style={{ fontSize: 13.5, color: "#374151", lineHeight: 1.55, flex: 1, minWidth: 220 }}>
           Review the package below. Tap each <span style={{ background: "#fef08a", padding: "1px 6px", borderRadius: 4, fontWeight: 700 }}>yellow marker</span> to place your {sigCount ? "signature or initials" : "initials"} — we'll take you to each one in order.
         </div>
-        <a href={API + "/public/offer-sign/" + urlToken + "/packet.pdf"} target="_blank" rel="noreferrer"
+        <a href={API + "/public/" + base + "/" + urlToken + "/packet.pdf"} target="_blank" rel="noreferrer"
           style={{ fontSize: 12, fontWeight: 700, color: "#075985", whiteSpace: "nowrap" }}>Open full package ↗</a>
       </div>
-      <GuidedPacketViewer token={urlToken} stops={stops} applied={applied} current={current}
+      <GuidedPacketViewer token={urlToken} base={base} stops={stops} applied={applied} current={current}
         sigDataUrl={sigDataUrl} signerName={data.signerName} onApply={applyStop} />
       {error && <div style={{ background: "#fee2e2", border: "1px solid #fca5a5", borderRadius: 8, padding: 12, fontSize: 13, color: "#7f1d1d", margin: "12px 0" }}>⚠️ {error}</div>}
       {/* Sticky action bar */}

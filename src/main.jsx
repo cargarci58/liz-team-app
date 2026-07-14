@@ -78,6 +78,9 @@ else if (path.startsWith('/form-download/')) {
 } else if (path.startsWith('/sign-offer/')) {
   const token = path.split('/sign-offer/')[1];
   Root = <OfferSignPublic urlToken={token} />;
+} else if (path.startsWith('/sign-doc/')) {
+  const token = path.split('/sign-doc/')[1];
+  Root = <OfferSignPublic urlToken={token} kind="doc" />;
 } else if (path.startsWith('/milestone-action/')) {
   const token = path.split('/milestone-action/')[1];
   Root = <MilestoneActionPublic urlToken={token} />;

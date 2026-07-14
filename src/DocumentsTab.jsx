@@ -34,6 +34,7 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
   const [slotUploading, setSlotUploading] = useState(null); // documentType currently uploading
   const [preview, setPreview] = useState(null); // { loading, doc, url, mime }
   const [share, setShare] = useState(null); // { doc } — share-with-party modal
+  const [signDoc, setSignDoc] = useState(null); // { doc } — request e-signature modal
   const [showLOI, setShowLOI] = useState(false); // Letter of Intent generator (commercial only)
   const isCommercial = /commercial/i.test(`${tx.propertyType || ""} ${tx.constructionType || ""}`);
   const tok = localStorage.getItem("tp_token") || "";
@@ -557,6 +558,12 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
                         style={{ padding: "4px 10px", borderRadius: 6, border: "1px solid #DDDDDD", background: "#fff", cursor: "pointer", fontSize: 12, color: COLORS.info }}>
                         📤 Share
                       </button>
+                      {/pdf$/i.test(doc.mime_type || "") && !coordinatorMode && (
+                        <button onClick={() => setSignDoc({ doc })} title="Email a private e-signing link — the signed copy (with a signature certificate) files back here"
+                          style={{ padding: "4px 10px", borderRadius: 6, border: "1px solid #d8b4fe", background: "#faf5ff", cursor: "pointer", fontSize: 12, color: "#86198f", fontWeight: 600 }}>
+                          ✍️ Get signature
+                        </button>
+                      )}
                       <button onClick={() => handleDownload(doc)} title="Download"
                         style={{ padding: "4px 10px", borderRadius: 6, border: "1px solid #DDDDDD", background: "#fff", cursor: "pointer", fontSize: 12, color: COLORS.info }}>
                         ↓
@@ -606,6 +613,10 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
             </div>
           </div>
         </div>
+      )}
+
+      {signDoc && (
+        <DocSignModal tx={tx} doc={signDoc.doc} headers={headers} onClose={() => setSignDoc(null)} />
       )}
 
       {/* Share-with-party modal */}
@@ -1147,6 +1158,141 @@ function LetterOfIntentModal({ tx, headers, onClose, onSaved }) {
           <button onClick={handleSave} disabled={busy} style={{ background: "#0E7490", color: "#fff", border: "none", padding: "10px 18px", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: busy ? "default" : "pointer", opacity: busy ? 0.6 : 1 }}>
             {busy ? "Saving…" : "Save Word to Documents"}
           </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Request an e-signature on any PDF document ───────────────────────────────
+// Sellers/buyers get a private signing link (same flow buyers use for offers);
+// when everyone signs, the signed copy — with a signature certificate — files
+// back into Documents automatically as "✍️ Signed — <name>".
+function DocSignModal({ tx, doc, headers, onClose }) {
+  const [info, setInfo] = useState(null);
+  const [rows, setRows] = useState([]);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState(null);
+
+  const loadInfo = async () => {
+    try {
+      const r = await fetch(`${API}/documents/${doc.id}/signatures`, { headers });
+      const b = await r.json();
+      if (!r.ok) throw new Error(b.error || "Couldn't load signature status");
+      setInfo(b);
+      if (!(b.signers || []).length) {
+        const sug = (b.suggested || []).slice(0, 4).map(s => ({ name: s.name || "", email: s.email || "" }));
+        setRows(sug.length ? sug : [{ name: "", email: "" }]);
+      }
+    } catch (e) { setErr(e.message); }
+  };
+  useEffect(() => { loadInfo(); /* eslint-disable-next-line */ }, [doc.id]);
+
+  const setRow = (i, k, v) => setRows(rs => rs.map((r, j) => j === i ? { ...r, [k]: v } : r));
+
+  const send = async () => {
+    setErr(null);
+    const clean = rows.map(r => ({ name: (r.name || "").trim(), email: (r.email || "").trim() })).filter(r => r.name || r.email);
+    if (!clean.length || clean.some(r => !r.name || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(r.email))) {
+      setErr("Every signer needs a name and a valid email."); return;
+    }
+    setBusy(true);
+    try {
+      const r = await fetch(`${API}/documents/${doc.id}/request-signatures`, {
+        method: "POST",
+        headers: { ...headers, "Content-Type": "application/json" },
+        body: JSON.stringify({ signers: clean }),
+      });
+      const b = await r.json();
+      if (!r.ok) throw new Error(b.error || "Couldn't send signing links");
+      alert("✍️ Signing link sent to " + clean.map(s => s.name).join(" and ") + ".\n\nWhen everyone has signed, the signed copy (with its signature certificate) appears here in Documents as \"✍️ Signed — " + (doc.name || "document") + "\" — and you'll get an email.");
+      onClose();
+    } catch (e) { setErr(e.message); } finally { setBusy(false); }
+  };
+
+  const cancel = async () => {
+    if (!confirm("Cancel the outstanding signing links for this document?")) return;
+    setBusy(true);
+    try {
+      const r = await fetch(`${API}/documents/${doc.id}/cancel-signatures`, { method: "POST", headers });
+      const b = await r.json();
+      if (!r.ok) throw new Error(b.error || "Couldn't cancel");
+      setInfo(null);
+      await loadInfo();
+    } catch (e) { setErr(e.message); } finally { setBusy(false); }
+  };
+
+  const pending = (info?.signers || []).filter(s => s.status === "pending");
+  const roundOut = (info?.signers || []).length > 0;
+
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.55)", zIndex: 60, display: "flex", alignItems: "flex-start", justifyContent: "center", overflowY: "auto", padding: "40px 12px" }}
+      onClick={onClose}>
+      <div style={{ background: "#fff", borderRadius: 14, width: "100%", maxWidth: 540, boxShadow: "0 20px 60px rgba(2,6,23,0.35)" }} onClick={e => e.stopPropagation()}>
+        <div style={{ background: "#86198f", color: "#fff", borderRadius: "14px 14px 0 0", padding: "16px 22px" }}>
+          <div style={{ fontSize: 17, fontWeight: 800 }}>✍️ Get this signed — {doc.name}</div>
+          <div style={{ fontSize: 12.5, opacity: 0.9, marginTop: 3 }}>Each signer gets a private email link to review and sign on their phone or computer. No DocuSign needed.</div>
+        </div>
+        <div style={{ padding: 22 }}>
+          {!info && !err && <div style={{ color: "#64748b", fontSize: 14 }}>Loading…</div>}
+          {err && <div style={{ background: "#fee2e2", border: "1px solid #fca5a5", borderRadius: 8, padding: 10, fontSize: 13, color: "#7f1d1d", marginBottom: 12 }}>⚠️ {err}</div>}
+
+          {info && roundOut && (
+            <div style={{ marginBottom: 14 }}>
+              <div style={{ fontSize: 13, fontWeight: 800, color: "#374151", marginBottom: 8 }}>Signing round in progress</div>
+              {(info.signers || []).map(s => (
+                <div key={s.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 10px", background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 8, marginBottom: 6, fontSize: 13 }}>
+                  <span>{s.signer_name} <span style={{ color: "#64748b" }}>({s.signer_email})</span></span>
+                  {s.status === "signed"
+                    ? <span style={{ color: "#15803d", fontWeight: 700 }}>✅ Signed</span>
+                    : <span style={{ color: "#92400e", fontWeight: 700 }}>⏳ Waiting</span>}
+                </div>
+              ))}
+              {pending.length > 0 && (
+                <button onClick={cancel} disabled={busy}
+                  style={{ marginTop: 8, padding: "8px 16px", background: "#fee2e2", color: "#7f1d1d", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                  Cancel signing links
+                </button>
+              )}
+              {pending.length === 0 && (
+                <div style={{ fontSize: 12.5, color: "#15803d", marginTop: 8 }}>✅ Everyone signed — look for "✍️ Signed — {doc.name}" in Documents.</div>
+              )}
+            </div>
+          )}
+
+          {info && !roundOut && (
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 800, color: "#374151", marginBottom: 8 }}>Who needs to sign?</div>
+              {rows.map((r, i) => (
+                <div key={i} style={{ display: "flex", gap: 8, marginBottom: 8 }}>
+                  <input value={r.name} onChange={e => setRow(i, "name", e.target.value)} placeholder="Full name"
+                    style={{ flex: 1, padding: "9px 10px", border: "1px solid #cbd5e1", borderRadius: 8, fontSize: 13, fontFamily: "inherit", minWidth: 0 }} />
+                  <input value={r.email} onChange={e => setRow(i, "email", e.target.value)} placeholder="Email"
+                    style={{ flex: 1, padding: "9px 10px", border: "1px solid #cbd5e1", borderRadius: 8, fontSize: 13, fontFamily: "inherit", minWidth: 0 }} />
+                  {rows.length > 1 && (
+                    <button onClick={() => setRows(rs => rs.filter((_, j) => j !== i))}
+                      style={{ background: "none", border: "none", color: "#7f1d1d", fontSize: 16, cursor: "pointer" }}>✕</button>
+                  )}
+                </div>
+              ))}
+              {rows.length < 4 && (
+                <button onClick={() => setRows(rs => [...rs, { name: "", email: "" }])}
+                  style={{ background: "none", border: "1px dashed #94a3b8", color: "#475569", borderRadius: 8, padding: "6px 14px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", marginBottom: 12 }}>
+                  + Add another signer
+                </button>
+              )}
+              <button onClick={send} disabled={busy}
+                style={{ width: "100%", padding: "12px 0", background: busy ? "#94a3b8" : "#86198f", color: "#fff", border: "none", borderRadius: 10, fontSize: 15, fontWeight: 800, cursor: busy ? "default" : "pointer", fontFamily: "inherit", marginTop: 4 }}>
+                {busy ? "Sending links…" : "Send signing link ✍️"}
+              </button>
+              <div style={{ fontSize: 11.5, color: "#64748b", marginTop: 8, textAlign: "center" }}>
+                The signed copy files back here automatically, with a signature certificate (who signed, when, from where) attached.
+              </div>
+            </div>
+          )}
+        </div>
+        <div style={{ padding: "12px 22px", borderTop: "1px solid #e5e7eb", textAlign: "right" }}>
+          <button onClick={onClose} style={{ padding: "8px 18px", background: "#e5e7eb", color: "#374151", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>Close</button>
         </div>
       </div>
     </div>
