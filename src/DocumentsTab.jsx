@@ -1196,14 +1196,23 @@ function LetterOfIntentModal({ tx, headers, onClose, onSaved }) {
 }
 
 // ── Request an e-signature on any PDF document ───────────────────────────────
-// Sellers/buyers get a private signing link (same flow buyers use for offers);
-// when everyone signs, the signed copy — with a signature certificate — files
+// Signers get a private signing link (same flow buyers use for offers). The
+// agent can TAP-TO-PLACE signature blocks anywhere on the pages (DocuSign-style)
+// — those exact spots become the signer's guided markers and where the ink is
+// stamped. No blocks placed → the app auto-detects "Signature" lines; if none
+// exist, signatures appear on the attached certificate page. Signed copy files
 // back into Documents automatically as "✍️ Signed — <name>".
 function DocSignModal({ tx, doc, headers, onClose }) {
   const [info, setInfo] = useState(null);
   const [rows, setRows] = useState([]);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState(null);
+  // Tap-to-place state
+  const [placing, setPlacing] = useState(false);
+  const [pdfPages, setPdfPages] = useState([]);   // [{num,width,height,dataUrl}]
+  const [pdfErr, setPdfErr] = useState(null);
+  const [activeSigner, setActiveSigner] = useState(1);
+  const [placements, setPlacements] = useState([]); // [{signer,page,x,y}] PDF pts, bottom-left origin
 
   const loadInfo = async () => {
     try {
@@ -1219,7 +1228,52 @@ function DocSignModal({ tx, doc, headers, onClose }) {
   };
   useEffect(() => { loadInfo(); /* eslint-disable-next-line */ }, [doc.id]);
 
+  // Load + render the PDF the first time the agent opens tap-to-place.
+  useEffect(() => {
+    if (!placing || pdfPages.length || pdfErr) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const pdfjs = await import("pdfjs-dist/build/pdf.min.mjs");
+        const worker = await import("pdfjs-dist/build/pdf.worker.min.mjs?url");
+        pdfjs.GlobalWorkerOptions.workerSrc = worker.default;
+        const resp = await fetch(`${API}/documents/${doc.id}/file.pdf`, { headers });
+        if (!resp.ok) throw new Error("Couldn't load the document preview.");
+        const bytes = new Uint8Array(await resp.arrayBuffer());
+        const pdf = await pdfjs.getDocument({ data: bytes, useSystemFonts: true, standardFontDataUrl: "/pdf-fonts/" }).promise;
+        const withTimeout = (pr, ms) => Promise.race([pr, new Promise((_, rej) => setTimeout(() => rej(new Error("timeout")), ms))]);
+        for (let i = 1; i <= pdf.numPages && !cancelled; i++) {
+          let entry;
+          try {
+            const page = await withTimeout(pdf.getPage(i), 15000);
+            const vp0 = page.getViewport({ scale: 1 });
+            const vp = page.getViewport({ scale: 1.4 });
+            const canvas = document.createElement("canvas");
+            canvas.width = vp.width; canvas.height = vp.height;
+            await withTimeout(page.render({ canvasContext: canvas.getContext("2d"), viewport: vp }).promise, 15000);
+            entry = { num: i, width: vp0.width, height: vp0.height, dataUrl: canvas.toDataURL("image/jpeg", 0.85) };
+          } catch {
+            entry = { num: i, width: 612, height: 792, dataUrl: null };
+          }
+          if (!cancelled) setPdfPages(prev => [...prev, entry]);
+        }
+      } catch (e) { if (!cancelled) setPdfErr(e.message); }
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [placing]);
+
   const setRow = (i, k, v) => setRows(rs => rs.map((r, j) => j === i ? { ...r, [k]: v } : r));
+  const signerNames = rows.map(r => (r.name || "").trim()).filter(Boolean);
+
+  const placeAt = (pg, e) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const scale = rect.width / pg.width;
+    const x = Math.max(0, Math.min(pg.width - 10, (e.clientX - rect.left) / scale));
+    const yTop = (e.clientY - rect.top) / scale;
+    const y = Math.max(4, Math.min(pg.height - 10, pg.height - yTop));
+    setPlacements(ps => [...ps, { signer: activeSigner, page: pg.num, x: Math.round(x * 10) / 10, y: Math.round(y * 10) / 10 }]);
+  };
 
   const send = async () => {
     setErr(null);
@@ -1232,11 +1286,13 @@ function DocSignModal({ tx, doc, headers, onClose }) {
       const r = await fetch(`${API}/documents/${doc.id}/request-signatures`, {
         method: "POST",
         headers: { ...headers, "Content-Type": "application/json" },
-        body: JSON.stringify({ signers: clean }),
+        body: JSON.stringify({ signers: clean, placements }),
       });
       const b = await r.json();
       if (!r.ok) throw new Error(b.error || "Couldn't send signing links");
-      alert("✍️ Signing link sent to " + clean.map(s => s.name).join(" and ") + ".\n\nWhen everyone has signed, the signed copy (with its signature certificate) appears here in Documents as \"✍️ Signed — " + (doc.name || "document") + "\" — and you'll get an email.");
+      alert("✍️ Signing link sent to " + clean.map(s => s.name).join(" and ") + "." +
+        (placements.length ? "\n\nThey'll be guided to the exact spot" + (placements.length > 1 ? "s" : "") + " you placed." : "") +
+        "\n\nWhen everyone has signed, the signed copy (with its signature certificate) appears here in Documents — and you'll get a pop-up.");
       onClose();
     } catch (e) { setErr(e.message); } finally { setBusy(false); }
   };
@@ -1255,11 +1311,12 @@ function DocSignModal({ tx, doc, headers, onClose }) {
 
   const pending = (info?.signers || []).filter(s => s.status === "pending");
   const roundOut = (info?.signers || []).length > 0;
+  const SIGNER_COLORS = ["#86198f", "#0c4a6e", "#b45309", "#166534"];
 
   return (
     <div style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.55)", zIndex: 60, display: "flex", alignItems: "flex-start", justifyContent: "center", overflowY: "auto", padding: "40px 12px" }}
       onClick={onClose}>
-      <div style={{ background: "#fff", borderRadius: 14, width: "100%", maxWidth: 540, boxShadow: "0 20px 60px rgba(2,6,23,0.35)" }} onClick={e => e.stopPropagation()}>
+      <div style={{ background: "#fff", borderRadius: 14, width: "100%", maxWidth: placing ? 760 : 540, boxShadow: "0 20px 60px rgba(2,6,23,0.35)" }} onClick={e => e.stopPropagation()}>
         <div style={{ background: "#86198f", color: "#fff", borderRadius: "14px 14px 0 0", padding: "16px 22px" }}>
           <div style={{ fontSize: 17, fontWeight: 800 }}>✍️ Get this signed — {doc.name}</div>
           <div style={{ fontSize: 12.5, opacity: 0.9, marginTop: 3 }}>Each signer gets a private email link to review and sign on their phone or computer. No DocuSign needed.</div>
@@ -1301,17 +1358,74 @@ function DocSignModal({ tx, doc, headers, onClose }) {
                   <input value={r.email} onChange={e => setRow(i, "email", e.target.value)} placeholder="Email"
                     style={{ flex: 1, padding: "9px 10px", border: "1px solid #cbd5e1", borderRadius: 8, fontSize: 13, fontFamily: "inherit", minWidth: 0 }} />
                   {rows.length > 1 && (
-                    <button onClick={() => setRows(rs => rs.filter((_, j) => j !== i))}
+                    <button onClick={() => { setRows(rs => rs.filter((_, j) => j !== i)); setPlacements(ps => ps.filter(p => p.signer !== i + 1).map(p => p.signer > i + 1 ? { ...p, signer: p.signer - 1 } : p)); }}
                       style={{ background: "none", border: "none", color: "#7f1d1d", fontSize: 16, cursor: "pointer" }}>✕</button>
                   )}
                 </div>
               ))}
               {rows.length < 4 && (
                 <button onClick={() => setRows(rs => [...rs, { name: "", email: "" }])}
-                  style={{ background: "none", border: "1px dashed #94a3b8", color: "#475569", borderRadius: 8, padding: "6px 14px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", marginBottom: 12 }}>
+                  style={{ background: "none", border: "1px dashed #94a3b8", color: "#475569", borderRadius: 8, padding: "6px 14px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", marginBottom: 10 }}>
                   + Add another signer
                 </button>
               )}
+
+              {/* Tap-to-place signature blocks */}
+              <div style={{ margin: "6px 0 12px" }}>
+                <button onClick={() => setPlacing(p => !p)}
+                  style={{ padding: "8px 16px", background: placing ? "#86198f" : "#faf5ff", color: placing ? "#fff" : "#86198f", border: "1px solid #d8b4fe", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                  📍 {placing ? "Hide pages" : "Place signature blocks on the pages (optional)"}
+                </button>
+                {!placing && placements.length > 0 && (
+                  <span style={{ marginLeft: 8, fontSize: 12, color: "#15803d", fontWeight: 700 }}>✅ {placements.length} block{placements.length > 1 ? "s" : ""} placed</span>
+                )}
+                {!placing && placements.length === 0 && (
+                  <div style={{ fontSize: 11.5, color: "#64748b", marginTop: 6 }}>
+                    No blocks placed → the app finds printed "Signature" lines automatically; if there are none, signatures appear on the attached certificate page.
+                  </div>
+                )}
+              </div>
+
+              {placing && (
+                <div style={{ marginBottom: 12 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 8 }}>
+                    <span style={{ fontSize: 12.5, fontWeight: 700, color: "#374151" }}>Tap a page where</span>
+                    {(signerNames.length ? signerNames : ["Signer 1"]).map((n, i) => (
+                      <button key={i} onClick={() => setActiveSigner(i + 1)}
+                        style={{ padding: "5px 12px", borderRadius: 14, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", border: "2px solid " + SIGNER_COLORS[i % 4], background: activeSigner === i + 1 ? SIGNER_COLORS[i % 4] : "#fff", color: activeSigner === i + 1 ? "#fff" : SIGNER_COLORS[i % 4] }}>
+                        {n || `Signer ${i + 1}`}
+                      </button>
+                    ))}
+                    <span style={{ fontSize: 12.5, fontWeight: 700, color: "#374151" }}>should sign. Tap a block to remove it.</span>
+                  </div>
+                  {pdfErr && <div style={{ fontSize: 13, color: "#7f1d1d" }}>⚠️ {pdfErr}</div>}
+                  {!pdfErr && pdfPages.length === 0 && <div style={{ fontSize: 13, color: "#64748b", padding: 10 }}>Loading pages…</div>}
+                  <div style={{ maxHeight: 460, overflowY: "auto", border: "1px solid #e2e8f0", borderRadius: 10, padding: 8, background: "#f1f5f9" }}>
+                    {pdfPages.map(pg => (
+                      <div key={pg.num} style={{ position: "relative", marginBottom: 10, cursor: "crosshair" }}
+                        onClick={(e) => placeAt(pg, e)}>
+                        {pg.dataUrl
+                          ? <img src={pg.dataUrl} alt={"Page " + pg.num} style={{ display: "block", width: "100%", borderRadius: 4, boxShadow: "0 1px 6px rgba(2,6,23,0.15)" }} draggable={false} />
+                          : <div style={{ width: "100%", height: 300, background: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, color: "#64748b" }}>Page {pg.num} preview unavailable</div>}
+                        <div style={{ position: "absolute", top: 4, left: 6, fontSize: 10, fontWeight: 700, color: "#64748b", background: "rgba(255,255,255,0.85)", borderRadius: 4, padding: "1px 6px" }}>p.{pg.num}</div>
+                        {placements.filter(p => p.page === pg.num).map((p, pi) => {
+                          const idx = placements.indexOf(p);
+                          const color = SIGNER_COLORS[(p.signer - 1) % 4];
+                          return (
+                            <div key={pi}
+                              onClick={(e) => { e.stopPropagation(); setPlacements(ps => ps.filter((_, j) => j !== idx)); }}
+                              title="Tap to remove"
+                              style={{ position: "absolute", left: (p.x / pg.width * 100) + "%", bottom: (p.y / pg.height * 100) + "%", width: (170 / pg.width * 100) + "%", height: 26, border: "2px dashed " + color, background: color + "22", borderRadius: 4, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
+                              <span style={{ fontSize: 10, fontWeight: 800, color, whiteSpace: "nowrap", overflow: "hidden" }}>✍️ {(signerNames[p.signer - 1] || `Signer ${p.signer}`).split(" ")[0]} signs here ✕</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <button onClick={send} disabled={busy}
                 style={{ width: "100%", padding: "12px 0", background: busy ? "#94a3b8" : "#86198f", color: "#fff", border: "none", borderRadius: 10, fontSize: 15, fontWeight: 800, cursor: busy ? "default" : "pointer", fontFamily: "inherit", marginTop: 4 }}>
                 {busy ? "Sending links…" : "Send signing link ✍️"}
