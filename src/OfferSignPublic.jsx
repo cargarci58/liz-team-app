@@ -17,7 +17,41 @@ const API = "https://liz-team-server-api-production.up.railway.app";
 const PAGE_W = 612; // letter-size PDF points; stop coords are in this space
 
 function initialsOf(name) {
-  return String(name || "").trim().split(/\s+/).map(w => w[0]).filter(Boolean).slice(0, 3).join(".").toUpperCase() + ".";
+  // First + last initial only — matches the server's stamping and fits the
+  // small initials boxes on the contract footer.
+  const parts = String(name || "").trim().split(/\s+/).filter(Boolean);
+  if (!parts.length) return "";
+  const chars = parts.length === 1 ? [parts[0][0]] : [parts[0][0], parts[parts.length - 1][0]];
+  return chars.join(".").toUpperCase() + ".";
+}
+
+// Crop a signature canvas to its ink bounding box (+ padding) so the PNG has
+// no dead whitespace — otherwise the stamped signature floats above the
+// signature line because the image bottom is padding, not ink.
+function trimmedSignature(canvas) {
+  const ctx = canvas.getContext("2d");
+  const W = canvas.width, H = canvas.height;
+  let img;
+  try { img = ctx.getImageData(0, 0, W, H); } catch { return canvas.toDataURL("image/png"); }
+  let minX = W, minY = H, maxX = -1, maxY = -1;
+  for (let y = 0; y < H; y++) {
+    for (let x = 0; x < W; x++) {
+      if (img.data[(y * W + x) * 4 + 3] > 10) {
+        if (x < minX) minX = x;
+        if (x > maxX) maxX = x;
+        if (y < minY) minY = y;
+        if (y > maxY) maxY = y;
+      }
+    }
+  }
+  if (maxX < 0) return null; // blank canvas
+  const pad = 8;
+  minX = Math.max(0, minX - pad); minY = Math.max(0, minY - pad);
+  maxX = Math.min(W - 1, maxX + pad); maxY = Math.min(H - 1, maxY + pad);
+  const out = document.createElement("canvas");
+  out.width = maxX - minX + 1; out.height = maxY - minY + 1;
+  out.getContext("2d").drawImage(canvas, minX, minY, out.width, out.height, 0, 0, out.width, out.height);
+  return out.toDataURL("image/png");
 }
 
 // Signature pad: plain canvas + pointer events (finger, stylus, mouse).
@@ -53,7 +87,7 @@ function SignaturePad({ onChange, typedName, mode }) {
       ctx.textBaseline = "middle";
       ctx.fillText(typedName, 14, 85);
       dirty.current = true;
-      onChange(c.toDataURL("image/png"));
+      onChange(trimmedSignature(c));
     } else {
       dirty.current = false;
       onChange(null);
@@ -66,7 +100,7 @@ function SignaturePad({ onChange, typedName, mode }) {
   };
   const down = (e) => { if (mode !== "draw") return; e.preventDefault(); drawing.current = true; const ctx = canvasRef.current.getContext("2d"); const p = pos(e); ctx.beginPath(); ctx.moveTo(p.x, p.y); };
   const move = (e) => { if (mode !== "draw" || !drawing.current) return; e.preventDefault(); const ctx = canvasRef.current.getContext("2d"); const p = pos(e); ctx.lineTo(p.x, p.y); ctx.stroke(); dirty.current = true; };
-  const up = () => { if (mode !== "draw" || !drawing.current) return; drawing.current = false; if (dirty.current) onChange(canvasRef.current.toDataURL("image/png")); };
+  const up = () => { if (mode !== "draw" || !drawing.current) return; drawing.current = false; if (dirty.current) onChange(trimmedSignature(canvasRef.current)); };
   const clear = () => { const c = canvasRef.current; const dpr = window.devicePixelRatio || 1; c.getContext("2d").clearRect(0, 0, c.width / dpr, c.height / dpr); dirty.current = false; onChange(null); };
 
   return (
