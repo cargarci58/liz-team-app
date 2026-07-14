@@ -55,6 +55,15 @@ const GUIDE_SECTIONS = [
           'The Timeline tab is your step-by-step checklist for that deal.',
         ],
       },
+      {
+        title: 'Get ALL deal emails into the app (even ones sent to your personal inbox)',
+        steps: [
+          'Every email the app sends already carries the deal\'s tracked address — when anyone hits Reply or Reply All, their message files itself to the deal automatically. No setup needed.',
+          'Each deal also has its own email address: open the deal → Messages → Replies and copy it from the green box. Give it to the title company, lender, or the other agent — anything they send to it lands on that deal.',
+          'For emails people send straight to YOUR inbox: go to ⚙️ Menu → 👤 My Profile → "Catch deal emails sent to your personal inbox" and follow the one-time Gmail/Outlook forwarding steps.',
+          'Anything the app can\'t place automatically shows up on Win the Day under "📥 Mail to file" — file it to the right deal in one tap.',
+        ],
+      },
     ],
   },
   {

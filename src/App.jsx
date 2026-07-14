@@ -4478,6 +4478,35 @@ function InboundRepliesPanel({ tx, coordinatorMode = false, onInboundRead }) {
     } catch { alert("Could not open that attachment."); }
   };
 
+  // The deal's own email address — give it to any third party (title, lender,
+  // the other agent). Anything sent or Reply-All'd to it files itself here.
+  const [captureAddr, setCaptureAddr] = useState(null);
+  const [copied, setCopied] = useState(false);
+  useEffect(() => {
+    let alive = true;
+    fetch(`${API}/transactions/${tx.id}/capture-address`, { headers: { Authorization: "Bearer " + tok } })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (alive && d && d.address) setCaptureAddr(d.address); })
+      .catch(() => {});
+    return () => { alive = false; };
+  }, [tx.id]);
+  const copyCaptureAddr = () => {
+    try { navigator.clipboard.writeText(captureAddr); setCopied(true); setTimeout(() => setCopied(false), 2000); }
+    catch { alert(captureAddr); }
+  };
+  const captureBanner = captureAddr ? (
+    <div style={{ background: "#F0FDF4", border: "1px solid #BBF7D0", borderRadius: 12, padding: "12px 14px", marginBottom: 4 }}>
+      <div style={{ fontSize: 12, fontWeight: 800, color: "#166534", marginBottom: 4 }}>📧 THIS DEAL'S EMAIL ADDRESS</div>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+        <code style={{ fontSize: 13, color: "#14532D", wordBreak: "break-all" }}>{captureAddr}</code>
+        <button onClick={copyCaptureAddr} style={{ fontSize: 12, padding: "4px 10px", borderRadius: 8, border: "1px solid #166534", background: "#fff", color: "#166534", fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>{copied ? "✅ Copied" : "Copy"}</button>
+      </div>
+      <div style={{ fontSize: 12, color: "#166534", marginTop: 6, lineHeight: 1.5 }}>
+        Give this to the title company, lender, or anyone on the deal — or CC it on any email about this property. Every message sent to it lands here automatically, so the AI always has the full picture.
+      </div>
+    </div>
+  ) : null;
+
   // Attach an existing deal document.
   const openDocPicker = () => {
     setDocPicker(true);
@@ -4568,15 +4597,19 @@ function InboundRepliesPanel({ tx, coordinatorMode = false, onInboundRead }) {
 
   if (loading) return <div style={{ padding: 24, color: COLORS.gray }}>Loading replies…</div>;
   if (!messages.length) return (
-    <div style={{ background: "#fff", border: `1px solid ${COLORS.border}`, borderRadius: 12, padding: 28, textAlign: "center", color: COLORS.gray }}>
-      <div style={{ fontSize: 34, marginBottom: 8 }}>💬</div>
-      <div style={{ fontWeight: 700, color: COLORS.navy, marginBottom: 4 }}>No replies yet</div>
-      <div style={{ fontSize: 13 }}>When a party replies to one of your automated emails or texts, their message shows up here.</div>
+    <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+      {captureBanner}
+      <div style={{ background: "#fff", border: `1px solid ${COLORS.border}`, borderRadius: 12, padding: 28, textAlign: "center", color: COLORS.gray }}>
+        <div style={{ fontSize: 34, marginBottom: 8 }}>💬</div>
+        <div style={{ fontWeight: 700, color: COLORS.navy, marginBottom: 4 }}>No replies yet</div>
+        <div style={{ fontSize: 13 }}>When a party replies to one of your automated emails or texts, their message shows up here.</div>
+      </div>
     </div>
   );
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+      {captureBanner}
       {messages.map(m => {
         // Treat as SMS if channel is 'sms', OR if from_phone is set —
         // inbound emails never carry a phone number, so presence of from_phone

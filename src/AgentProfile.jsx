@@ -83,6 +83,16 @@ export default function AgentProfile({ onClose, currentUser }) {
     } catch { setRc(s => ({ ...s, saving: false, msg: "Could not save." })); }
   };
 
+  // Personal forward-capture address (the inbox forwarding safety net).
+  const [fwAddr, setFwAddr] = useState(null);
+  const [fwCopied, setFwCopied] = useState(false);
+  useEffect(() => {
+    fetch(API + "/me/forward-address", { headers })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d && d.address) setFwAddr(d.address); })
+      .catch(() => {});
+  }, []);
+
   const inp = { width: "100%", padding: "10px 14px", borderRadius: 8, border: "1.5px solid #CCC", fontSize: 14, fontFamily: "inherit", boxSizing: "border-box" };
   const lbl = { fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", letterSpacing: "0.06em", display: "block", marginBottom: 6 };
 
@@ -198,6 +208,27 @@ export default function AgentProfile({ onClose, currentUser }) {
               )}
               {rc.msg && <div style={{ fontSize: 12, fontWeight: 600, color: rc.msg.startsWith("Could") ? "#C0392B" : "#1E8449", marginTop: 8 }}>{rc.msg}</div>}
             </div>
+
+            {/* Email capture — the personal forwarding safety net */}
+            {fwAddr && (
+              <div style={{ marginBottom: 20, padding: 16, background: "#F0FDF4", borderRadius: 10, border: "1px solid #BBF7D0" }}>
+                <label style={lbl}>📥 Catch deal emails sent to your personal inbox</label>
+                <div style={{ fontSize: 12, color: "#555", marginBottom: 10, lineHeight: 1.5 }}>
+                  Title companies, lenders, and other agents often email <b>you</b> directly instead of the app — so the app never sees those messages. Set up a <b>one-time forwarding rule</b> in your email and every deal-related message files itself to the right transaction automatically. Anything the app can't place shows up on your Win the Day page under <b>📥 Mail to file</b>.
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 10 }}>
+                  <code style={{ fontSize: 13, fontWeight: 700, color: "#14532D", wordBreak: "break-all", background: "#fff", padding: "6px 10px", borderRadius: 8, border: "1px solid #BBF7D0" }}>{fwAddr}</code>
+                  <button onClick={() => { try { navigator.clipboard.writeText(fwAddr); setFwCopied(true); setTimeout(() => setFwCopied(false), 2000); } catch { alert(fwAddr); } }}
+                    style={{ padding: "8px 14px", background: "#166534", color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", fontSize: 13 }}>
+                    {fwCopied ? "✅ Copied" : "Copy address"}
+                  </button>
+                </div>
+                <div style={{ fontSize: 12, color: "#555", lineHeight: 1.6 }}>
+                  <b>Gmail:</b> Settings ⚙️ → See all settings → <b>Forwarding and POP/IMAP</b> → Add a forwarding address → paste the address above. Gmail sends a confirmation email — it appears in <b>📥 Mail to file</b> on your Win the Day page; open it and click the confirmation link. Then choose "Forward a copy… and keep Gmail's copy."<br />
+                  <b>Outlook:</b> Settings ⚙️ → Mail → <b>Forwarding</b> → paste the address above and check "Keep a copy."
+                </div>
+              </div>
+            )}
 
             {/* Email Signature Preview */}
             <div style={{ marginBottom: 20, padding: 16, background: "#F8F9FA", borderRadius: 10, border: "1px solid #DDD" }}>

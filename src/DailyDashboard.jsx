@@ -691,6 +691,99 @@ function EmptyState({ firstName }) {
   );
 }
 
+// ── UNMATCHED MAIL ────────────────────────────────────────────
+// Emails captured by the agent's inbox forwarding rule (or sent to the parse
+// domain) that couldn't be safely filed to a deal. The agent files each one to
+// the right deal in one tap, or dismisses it (newsletter/spam). Renders nothing
+// when the inbox is empty — most days it should be invisible.
+function UnmatchedMailPanel({ token }) {
+  const [items, setItems] = useState([]);
+  const [dealList, setDealList] = useState(null);
+  const [assignFor, setAssignFor] = useState(null);
+  const [busy, setBusy] = useState(null);
+  useEffect(() => {
+    let alive = true;
+    fetch(API + "/inbound-emails/unmatched", { headers: { Authorization: "Bearer " + token } })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (alive && d) setItems(Array.isArray(d.messages) ? d.messages : []); })
+      .catch(() => {});
+    return () => { alive = false; };
+  }, [token]);
+  const openAssign = (id) => {
+    setAssignFor(id);
+    if (dealList === null) {
+      fetch(API + "/transactions", { headers: { Authorization: "Bearer " + token } })
+        .then(r => r.json())
+        .then(d => setDealList((d.transactions || d || []).map(t => ({ id: t.id, address: t.address }))))
+        .catch(() => setDealList([]));
+    }
+  };
+  const assign = async (id, transactionId) => {
+    setBusy(id);
+    try {
+      const r = await fetch(API + "/inbound-emails/" + id + "/reassign", {
+        method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
+        body: JSON.stringify({ transactionId }),
+      });
+      const d = await r.json(); if (!r.ok) throw new Error(d.error || "Failed");
+      setItems(prev => prev.filter(x => x.id !== id)); setAssignFor(null);
+    } catch (e) { alert("Could not file it: " + e.message); }
+    setBusy(null);
+  };
+  const dismiss = async (id) => {
+    setBusy(id);
+    try {
+      const r = await fetch(API + "/inbound-emails/" + id + "/dismiss", {
+        method: "POST", headers: { Authorization: "Bearer " + token },
+      });
+      const d = await r.json(); if (!r.ok) throw new Error(d.error || "Failed");
+      setItems(prev => prev.filter(x => x.id !== id));
+    } catch (e) { alert("Could not dismiss it: " + e.message); }
+    setBusy(null);
+  };
+  if (!items.length) return null;
+  return (
+    <div style={{ marginBottom: 16 }}>
+      <SectionHeader label={"📥 MAIL TO FILE"} count={items.length} color={"#92400E"} />
+      <div style={{ fontSize: 12.5, color: COLORS.gray, margin: "0 0 8px" }}>
+        These emails reached the app but we weren't sure which deal they belong to. File each one so nothing is lost.
+      </div>
+      {items.map(m => (
+        <div key={m.id} style={{ background: COLORS.white, border: "1px solid " + COLORS.lightGray, borderRadius: 12, padding: 14, marginBottom: 10 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 6 }}>
+            <span style={{ fontWeight: 700, color: COLORS.black, fontSize: 14 }}>{m.from_name || m.from_email || "Unknown sender"}</span>
+            <span style={{ fontSize: 12, color: COLORS.gray }}>{m.created_at ? new Date(m.created_at).toLocaleDateString() : ""}</span>
+          </div>
+          {m.from_name && m.from_email && <div style={{ fontSize: 12, color: COLORS.gray }}>{m.from_email}</div>}
+          {m.subject && <div style={{ fontWeight: 600, fontSize: 13.5, color: COLORS.black, marginTop: 6 }}>{m.subject}</div>}
+          {(m.snippet || m.body_text) && <div style={{ fontSize: 13, color: COLORS.gray, marginTop: 4, whiteSpace: "pre-wrap" }}>{String(m.snippet || m.body_text).slice(0, 200)}</div>}
+          {m.attachment_count > 0 && <div style={{ fontSize: 12, color: COLORS.gray, marginTop: 4 }}>📎 {m.attachment_count} attachment(s) — they follow the email to whichever deal you file it on.</div>}
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 10 }}>
+            <button disabled={busy === m.id} onClick={() => openAssign(m.id)}
+              style={{ padding: "8px 14px", borderRadius: 8, border: "none", background: "#0F6E56", color: COLORS.white, fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>
+              📂 File to a deal
+            </button>
+            <button disabled={busy === m.id} onClick={() => dismiss(m.id)}
+              style={{ padding: "8px 14px", borderRadius: 8, border: "1.5px solid " + COLORS.lightGray, background: COLORS.white, color: COLORS.gray, fontWeight: 600, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>
+              Not deal-related
+            </button>
+          </div>
+          {assignFor === m.id && (
+            <div style={{ marginTop: 8 }}>
+              {dealList === null ? <span style={{ fontSize: 13, color: COLORS.gray }}>Loading your deals…</span>
+               : <select defaultValue="" onChange={e => e.target.value && assign(m.id, e.target.value)}
+                   style={{ padding: "8px 10px", borderRadius: 8, border: "1px solid " + COLORS.lightGray, fontSize: 14, fontFamily: "inherit", maxWidth: "100%" }}>
+                   <option value="" disabled>Pick the deal…</option>
+                   {dealList.map(d => <option key={d.id} value={d.id}>{d.address}</option>)}
+                 </select>}
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 // Pull ONE dialable number out of a phone field that may hold two numbers, an
 // extension, or formatting — otherwise tel: gets a 14+ digit blob and won't dial.
 function telHref(raw) {
@@ -1259,6 +1352,9 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
             : `You have ${totalVisible} task${totalVisible === 1 ? "" : "s"}${callsDue.length > 0 ? ` and ${callsDue.length} call${callsDue.length === 1 ? "" : "s"}` : ""} that need your attention.`}
         </div>
       </div>
+
+      {/* Captured emails that need a human to say which deal they belong to. */}
+      {!coordinatorMode && <UnmatchedMailPanel token={token} />}
 
       {totalVisible === 0 && callsDue.length === 0 && <EmptyState firstName={firstName} />}
 
