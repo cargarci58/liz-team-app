@@ -8881,6 +8881,7 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
   const [txLoading, setTxLoading] = useState(true);
   const [unreadCounts, setUnreadCounts] = useState({});       // in-app chat, per tx
   const [inboundCounts, setInboundCounts] = useState({});     // client email replies, per tx
+  const [signAlerts, setSignAlerts] = useState([]);           // pop-up notifications (e-sign events)
   const [initialDetailTab, setInitialDetailTab] = useState("overview");
   // Bumped on every openTransactionMilestones() call so the detail view re-routes
   // to the requested tab EVEN WHEN you're already viewing that same deal (e.g. you
@@ -8937,18 +8938,22 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
       try {
         // Poll BOTH channels — in-app chat AND inbound client replies — so the
         // alert covers "any message received."
-        const [chatRes, inboundRes] = await Promise.all([
+        const [chatRes, inboundRes, notifRes] = await Promise.all([
           fetch(`${API}/chat/unread/counts`, { headers: { "Authorization": `Bearer ${token}` } }).then(r => r.json()).catch(() => null),
           fetch(`${API}/inbound/unread/counts`, { headers: { "Authorization": `Bearer ${token}` } }).then(r => r.json()).catch(() => null),
+          // E-sign pop-ups ("Oscar just signed…") ride the same 15s poll + chime.
+          fetch(`${API}/notifications/unseen`, { headers: { "Authorization": `Bearer ${token}` } }).then(r => r.json()).catch(() => null),
         ]);
         if (stopped) return;
         const chat = (chatRes && chatRes.success && chatRes.counts) || {};
         const inbound = (inboundRes && inboundRes.success && inboundRes.counts) || {};
-        const total = Object.values(chat).reduce((a, b) => a + b, 0) + Object.values(inbound).reduce((a, b) => a + b, 0);
+        const notifs = (notifRes && notifRes.success && notifRes.notifications) || [];
+        const total = Object.values(chat).reduce((a, b) => a + b, 0) + Object.values(inbound).reduce((a, b) => a + b, 0) + notifs.length;
         if (prevTotalRef.current !== null && total > prevTotalRef.current) playDashboardAlert();
         prevTotalRef.current = total;
         setUnreadCounts(chat);
         setInboundCounts(inbound);
+        setSignAlerts(notifs);
       } catch {}
     };
     fetchCounts();
@@ -9437,6 +9442,38 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
 
   return (
     <Suspense fallback={<LazyLoading />}>
+      {/* E-SIGN POP-UPS — fixed toast stack, every screen: "✍️ Oscar just signed…" /
+          "✅ All buyers signed". Click opens the deal; ✕ dismisses (marks seen). */}
+      {signAlerts.length > 0 && (
+        <div style={{ position: "fixed", top: 70, right: 14, zIndex: 9998, display: "flex", flexDirection: "column", gap: 8, maxWidth: 340 }}>
+          {signAlerts.slice(0, 3).map(n => {
+            const dismiss = (e) => {
+              if (e) e.stopPropagation();
+              setSignAlerts(prev => prev.filter(a => a.id !== n.id));
+              fetch(`${API}/notifications/seen`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+                body: JSON.stringify({ ids: [n.id] }),
+              }).catch(() => {});
+            };
+            return (
+              <div key={n.id}
+                onClick={() => { dismiss(); if (n.transaction_id) openTransactionMilestones(n.transaction_id); }}
+                style={{ background: "#fff", border: "2px solid #86198f", borderRadius: 12, padding: "12px 14px", boxShadow: "0 10px 30px rgba(2,6,23,0.25)", cursor: n.transaction_id ? "pointer" : "default", animation: "signAlertIn 0.35s ease" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
+                  <div style={{ fontSize: 13.5, fontWeight: 800, color: "#86198f", lineHeight: 1.35 }}>{n.title}</div>
+                  <button onClick={dismiss} title="Dismiss"
+                    style={{ background: "none", border: "none", color: "#9ca3af", fontSize: 16, cursor: "pointer", lineHeight: 1, padding: 0 }}>×</button>
+                </div>
+                {n.body && <div style={{ fontSize: 12, color: "#374151", marginTop: 4, lineHeight: 1.4 }}>{n.body}</div>}
+                {n.transaction_id && <div style={{ fontSize: 11, color: "#86198f", marginTop: 6, fontWeight: 700 }}>Tap to open the deal →</div>}
+              </div>
+            );
+          })}
+          <style>{"@keyframes signAlertIn { from { transform: translateX(30px); opacity: 0; } to { transform: none; opacity: 1; } }"}</style>
+        </div>
+      )}
+
       {/* GLOBAL NEW-MESSAGE ALERT — pulsing, fixed, shows on EVERY screen so a new
           chat/message is never missed while the user is working elsewhere. Clears
           itself once the messages are read. */}
