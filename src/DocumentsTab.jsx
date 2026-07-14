@@ -35,6 +35,7 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
   const [preview, setPreview] = useState(null); // { loading, doc, url, mime }
   const [share, setShare] = useState(null); // { doc } — share-with-party modal
   const [signDoc, setSignDoc] = useState(null); // { doc } — request e-signature modal
+  const [signStatus, setSignStatus] = useState({}); // docId → {pending, signed}
   const [showLOI, setShowLOI] = useState(false); // Letter of Intent generator (commercial only)
   const isCommercial = /commercial/i.test(`${tx.propertyType || ""} ${tx.constructionType || ""}`);
   const tok = localStorage.getItem("tp_token") || "";
@@ -111,9 +112,18 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
       .then(d => { if (d.success && !d.guest) { setRequired(d.items || []); setReqSummary(d.summary || null); } })
       .catch(e => console.error("Load required docs failed:", e));
 
+  // Per-document e-sign status ({docId: {pending, signed}}) → row badges, so
+  // the agent can SEE a signing round is out without reopening the modal.
+  const loadSignStatus = () =>
+    fetch(`${API}/transactions/${tx.id}/doc-signature-status`, { headers })
+      .then(r => r.json())
+      .then(d => { if (d.byDoc) setSignStatus(d.byDoc); })
+      .catch(() => { /* badges are progressive enhancement */ });
+
   useEffect(() => {
     loadDocs().finally(() => setLoading(false));
     loadRequired();
+    loadSignStatus();
   }, [tx.id]);
 
   // Upload a file straight into a checklist slot — tagged with the canonical
@@ -558,12 +568,32 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
                         style={{ padding: "4px 10px", borderRadius: 6, border: "1px solid #DDDDDD", background: "#fff", cursor: "pointer", fontSize: 12, color: COLORS.info }}>
                         📤 Share
                       </button>
-                      {/pdf$/i.test(doc.mime_type || "") && !coordinatorMode && (
-                        <button onClick={() => setSignDoc({ doc })} title="Email a private e-signing link — the signed copy (with a signature certificate) files back here"
-                          style={{ padding: "4px 10px", borderRadius: 6, border: "1px solid #d8b4fe", background: "#faf5ff", cursor: "pointer", fontSize: 12, color: "#86198f", fontWeight: 600 }}>
-                          ✍️ Get signature
-                        </button>
-                      )}
+                      {/pdf$/i.test(doc.mime_type || "") && !coordinatorMode && (() => {
+                        const ss = signStatus[doc.id];
+                        const waiting = ss && ss.pending > 0;
+                        const allSigned = ss && ss.pending === 0 && ss.signed > 0;
+                        return (
+                          <>
+                            {waiting && (
+                              <span title={`${ss.signed} of ${ss.pending + ss.signed} signed so far`}
+                                style={{ padding: "4px 8px", borderRadius: 6, background: "#fef3c7", fontSize: 11, fontWeight: 700, color: "#92400e" }}>
+                                ⏳ Awaiting signature{ss.pending + ss.signed > 1 ? ` (${ss.signed}/${ss.pending + ss.signed})` : ""}
+                              </span>
+                            )}
+                            {allSigned && (
+                              <span title="Everyone signed — the signed copy is filed in this list"
+                                style={{ padding: "4px 8px", borderRadius: 6, background: "#d5f5e3", fontSize: 11, fontWeight: 700, color: "#1e8449" }}>
+                                ✅ Signed
+                              </span>
+                            )}
+                            <button onClick={() => setSignDoc({ doc })}
+                              title={waiting ? "See who has signed, or cancel the signing links" : "Email a private e-signing link — the signed copy (with a signature certificate) files back here"}
+                              style={{ padding: "4px 10px", borderRadius: 6, border: "1px solid #d8b4fe", background: "#faf5ff", cursor: "pointer", fontSize: 12, color: "#86198f", fontWeight: 600 }}>
+                              {waiting ? "✍️ Signature status" : "✍️ Get signature"}
+                            </button>
+                          </>
+                        );
+                      })()}
                       <button onClick={() => handleDownload(doc)} title="Download"
                         style={{ padding: "4px 10px", borderRadius: 6, border: "1px solid #DDDDDD", background: "#fff", cursor: "pointer", fontSize: 12, color: COLORS.info }}>
                         ↓
@@ -616,7 +646,8 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
       )}
 
       {signDoc && (
-        <DocSignModal tx={tx} doc={signDoc.doc} headers={headers} onClose={() => setSignDoc(null)} />
+        <DocSignModal tx={tx} doc={signDoc.doc} headers={headers}
+          onClose={() => { setSignDoc(null); loadSignStatus(); loadDocs(); }} />
       )}
 
       {/* Share-with-party modal */}
