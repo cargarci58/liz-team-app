@@ -7275,10 +7275,16 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
 }
 
 // --- NEW TRANSACTION ──────────────────────────────────────────
-function NewTransactionForm({ onSave, onCancel, prefill = null, cmaId = null, onImportContract = null }) {
+function NewTransactionForm({ onSave, onCancel, prefill = null, cmaId = null, onImportContract = null, currentUser = null }) {
+  const [step, setStep] = useState(1); // 1 property · 2 client · 3 price & source
   const [form, setForm] = useState({ address: "", city: "", county: "Osceola", zipCode: "", type: "Listing (Seller)", propertyType: "Single Family", constructionType: "Resale", listPrice: "", contractPrice: "", mlsNumber: "", openDate: today(), closingDate: "", executedDate: "", representationExpiresOn: "", leaseTerm: "1 Year", notes: "", status: "Active", assignedAgent: "", referralSource: "", occupancyStatus: "", propertyAccess: "", commissionListing: "", commissionBuyer: "", transactionFee: "", brokerageSplit: "", officeFlatFee: "", commissionNotes: "", clientName: "", clientEmail: "", clientPhone: "", ...(prefill || {}) });
   const [teamAgents, setTeamAgents] = useState([]);
   useEffect(() => { const tok = localStorage.getItem("tp_token") || ""; fetch(API + "/users", { headers: { "Authorization": "Bearer " + tok } }).then(r => r.json()).then(d => { if (d.users) setTeamAgents(d.users.filter(u => u.role === "agent" || u.role === "admin" || u.role === "superadmin")); }).catch(e => console.error("[bg]", e && e.message ? e.message : e)); }, []);
+  // Rookie default: assign the deal to YOURSELF — nobody should fail to create
+  // a deal because they didn't know what "Assigned Agent" meant.
+  useEffect(() => {
+    if (currentUser?.id) setForm(p => (p.assignedAgent ? p : { ...p, assignedAgent: currentUser.id }));
+  }, [currentUser]);
   const [useFLTemplates, setUseFLTemplates] = useState(true);
   const [taskTemplates, setTaskTemplates] = useState([]);
   useEffect(() => {
@@ -7290,11 +7296,17 @@ function NewTransactionForm({ onSave, onCancel, prefill = null, cmaId = null, on
     }).catch(e => console.error("[bg]", e && e.message ? e.message : e));
   }, [form.type]);
   const f = k => v => setForm(p => ({ ...p, [k]: v }));
+  const isListingSide = /listing|landlord/i.test(form.type);
   const handleSave = async () => {
-    if (!form.address || !form.city || !form.assignedAgent || !form.referralSource || !form.occupancyStatus) { alert("Please fill all required fields: Address, City, Assigned Agent, Referral Source, and Occupancy Status."); return; }
-    const ybNum = parseInt(form.yearBuilt, 10);
-    if (!form.yearBuilt || !Number.isFinite(ybNum) || ybNum < 1800 || ybNum > 2100) { alert("Please enter the Year Built (a valid 4-digit year). It's required to determine which disclosures this deal needs — for example, lead-based paint applies only to homes built before 1978."); return; }
-    if (!form.inHoa) { alert("Please answer whether the property is in an HOA or condo association — it determines whether the HOA disclosure is required."); return; }
+    if (!form.address || !form.city) { alert("Please enter the property address and city."); return; }
+    if (!form.assignedAgent) { alert("Pick which agent this deal belongs to."); return; }
+    if (!form.referralSource) { alert("Pick where this client came from — it powers your reports."); return; }
+    if (isListingSide) {
+      const ybNum = parseInt(form.yearBuilt, 10);
+      if (!form.yearBuilt || !Number.isFinite(ybNum) || ybNum < 1800 || ybNum > 2100) { alert("Please enter the Year Built (4 digits) — it decides which disclosures this listing needs (e.g. lead paint before 1978)."); return; }
+      if (!form.inHoa) { alert("Please answer whether the property is in an HOA / condo association."); return; }
+      if (!form.occupancyStatus) { alert("Please pick who lives in the property right now."); return; }
+    }
     const contractDate = form.executedDate || form.openDate;
     const tasks = useFLTemplates ? taskTemplates.filter(t => t.phase === "active").map(t => ({ id: genId(), name: t.task_name, category: t.category, assignTo: t.default_assignee_role, dueDate: null, status: "Pending", notes: "", phase: "active" })) : [];
     // If the agent entered their client up front, seed them as the first party
@@ -7360,124 +7372,201 @@ function NewTransactionForm({ onSave, onCancel, prefill = null, cmaId = null, on
       alert("Could not save transaction. Check your connection.");
     }
   };
+  // ── 3-STEP WIZARD (rookie-first). Step gating replaces alert()-validation:
+  // Next stays disabled until the step is complete, with a plain hint why.
+  const yearOk = () => { const n = parseInt(form.yearBuilt, 10); return Number.isFinite(n) && n >= 1800 && n <= 2100; };
+  const step1Ok = form.address.trim() && form.city.trim() && (!isListingSide || (yearOk() && form.inHoa && form.occupancyStatus));
+  const step3Ok = !!form.referralSource && !!form.assignedAgent;
+  const SOURCES = ["Referral", "Past client / Sphere", "Sign call", "Online (Zillow, etc.)", "Open house", "Social media", "Other"];
+  const inputBig = { width: "100%", padding: "12px 14px", borderRadius: 10, border: "1px solid #d1d5db", fontSize: 16, fontFamily: "inherit", boxSizing: "border-box" };
+  const chip = (on) => ({ padding: "10px 16px", borderRadius: 20, border: on ? "2px solid #0F2044" : "1px solid #d1d5db", background: on ? "#0F2044" : "#fff", color: on ? "#fff" : "#374151", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" });
+  const lblW = { fontSize: 14, fontWeight: 700, color: "#374151", marginBottom: 6, display: "block" };
+  const [moreTypes, setMoreTypes] = useState(false);
   return (
     <div style={{ fontFamily: "'Segoe UI', system-ui, sans-serif", background: COLORS.bg, minHeight: "100vh" }}>
-      {onImportContract && (
-        <div onClick={onImportContract} style={{ maxWidth: 900, margin: "0 auto 14px", background: "#EFF6FF", border: "1.5px dashed #3B82F6", borderRadius: 12, padding: "12px 16px", cursor: "pointer", display: "flex", alignItems: "center", gap: 12 }}>
-          <span style={{ fontSize: 22 }}>📥</span>
-          <div>
-            <div style={{ fontWeight: 800, fontSize: 14, color: "#1E40AF" }}>Already have a signed contract? Import it instead</div>
-            <div style={{ fontSize: 12.5, color: "#1E3A8A" }}>Upload the executed contract — AI reads it and builds this whole transaction for you (you review before it saves). Skip the form below.</div>
-          </div>
-        </div>
-      )}
       <div style={{ background: COLORS.navy, padding: "16px 24px", display: "flex", alignItems: "center", gap: 16 }}>
         <button onClick={onCancel} style={{ background: "none", border: "none", color: "#fff", cursor: "pointer", fontSize: 22, opacity: 0.7 }}>←</button>
         <div>
-          <div style={{ color: "#fff", fontWeight: 700, fontSize: 17 }}>New Transaction</div>
-          <div style={{ color: "rgba(255,255,255,0.7)", fontSize: 12, marginTop: 1 }}>Also called a "deal" — the property you're buying, selling, or leasing for a client.</div>
+          <div style={{ color: "#fff", fontWeight: 700, fontSize: 17 }}>➕ New Deal</div>
+          <div style={{ color: "rgba(255,255,255,0.7)", fontSize: 12, marginTop: 1 }}>Three quick steps — about a minute. You can add details later.</div>
         </div>
       </div>
-      <div style={{ maxWidth: 680, margin: "32px auto", padding: "0 24px" }}>
-        <div style={{ background: "#fff", border: `1px solid ${COLORS.border}`, borderRadius: 14, padding: 28, marginBottom: 20 }}>
-          <h3 style={{ margin: "0 0 20px", fontSize: 15, color: COLORS.navy, fontWeight: 700 }}>Property Information</h3>
-          <Input label="Street Address" value={form.address} onChange={f("address")} required />
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}><Input label="City" value={form.city} onChange={f("city")} required /><Input label="County" value={form.county} onChange={f("county")} options={COUNTIES} /></div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}><Input label="Zip Code" value={form.zipCode} onChange={f("zipCode")} /><Input label="MLS Number" value={form.mlsNumber} onChange={f("mlsNumber")} placeholder="O6..." /></div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}><Input label="Transaction Type" value={form.type} onChange={f("type")} options={TRANSACTION_TYPES} /><Input label="Property Type" value={form.propertyType} onChange={f("propertyType")} options={PROPERTY_TYPES} /></div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}><Input label="Construction Type" value={form.constructionType} onChange={f("constructionType")} options={["Resale","New Construction","Vacant Land","Commercial"]} /><Input label="Occupancy Status" value={form.occupancyStatus} onChange={f("occupancyStatus")} options={OCCUPANCY_OPTIONS} required /></div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}><Input label="Year Built" value={form.yearBuilt} onChange={f("yearBuilt")} type="number" placeholder="e.g. 1998" required /><Input label="In an HOA / Condo Association?" value={form.inHoa} onChange={f("inHoa")} options={["", "Yes", "No"]} required /></div>
-          <div style={{ fontSize: 11, color: COLORS.muted, marginTop: -8 }}>Required — set which disclosures apply (lead-based paint on pre-1978 homes; HOA disclosure when in an association).</div>
-        </div>
-        <div style={{ background: "#fff", border: `1px solid ${COLORS.border}`, borderRadius: 14, padding: 28, marginBottom: 20 }}>
-          <h3 style={{ margin: "0 0 6px", fontSize: 15, color: COLORS.navy, fontWeight: 700 }}>Your Client {/buyer/i.test(form.type) ? "(Buyer)" : form.type === "Lease — Tenant" ? "(Tenant)" : form.type === "Lease — Landlord" ? "(Landlord)" : "(Seller)"}</h3>
-          <div style={{ fontSize: 12, color: COLORS.muted, margin: "0 0 16px" }}>Add the person you represent now so they're on the deal and ready for the welcome email. Optional — you can also add or change clients later in the Parties tab.</div>
-          <Input label="Client Name" value={form.clientName} onChange={f("clientName")} placeholder="e.g. Jane Smith" />
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-            <Input label="Client Email" value={form.clientEmail} onChange={f("clientEmail")} placeholder="jane@email.com" />
-            <Input label="Client Phone" value={form.clientPhone} onChange={f("clientPhone")} placeholder="(407) 555-0100" />
+      <div style={{ maxWidth: 640, margin: "0 auto", padding: "20px 16px 60px" }}>
+        {onImportContract && step === 1 && (
+          <div onClick={onImportContract} style={{ marginBottom: 14, background: "#EFF6FF", border: "1.5px dashed #3B82F6", borderRadius: 12, padding: "12px 16px", cursor: "pointer", display: "flex", alignItems: "center", gap: 12 }}>
+            <span style={{ fontSize: 22 }}>📥</span>
+            <div>
+              <div style={{ fontWeight: 800, fontSize: 14, color: "#1E40AF" }}>Already have a signed contract? Import it instead</div>
+              <div style={{ fontSize: 12.5, color: "#1E3A8A" }}>Upload it — AI reads it and builds the whole deal for you.</div>
+            </div>
           </div>
+        )}
+
+        {/* Progress: Step X of 3 */}
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 18 }}>
+          {[["1", "Property"], ["2", "Client"], ["3", "Price"]].map(([n, label], i) => (
+            <div key={n} style={{ display: "flex", alignItems: "center", gap: 8, flex: i < 2 ? "0 0 auto" : "0 0 auto" }}>
+              <div style={{ width: 30, height: 30, borderRadius: "50%", background: step > i ? "#0F2044" : "#E5E7EB", color: step > i ? "#fff" : "#6B7280", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 14 }}>{n}</div>
+              <span style={{ fontSize: 13, fontWeight: 700, color: step > i ? "#0F2044" : "#9CA3AF" }}>{label}</span>
+              {i < 2 && <div style={{ width: 28, height: 2, background: step > i + 1 ? "#0F2044" : "#E5E7EB" }} />}
+            </div>
+          ))}
         </div>
-        <div style={{ background: "#fff", border: `1px solid ${COLORS.border}`, borderRadius: 14, padding: 28, marginBottom: 20 }}>
-          <h3 style={{ margin: "0 0 20px", fontSize: 15, color: COLORS.navy, fontWeight: 700 }}>Pricing & Dates</h3>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}><Input label={isLeaseType(form.type) ? "Monthly Rent ($)" : "List Price ($)"} value={form.listPrice} onChange={f("listPrice")} type="number" /><Input label={isLeaseType(form.type) ? "Security Deposit ($)" : "Contract Price ($)"} value={form.contractPrice} onChange={f("contractPrice")} type="number" /></div>
-          {isLeaseType(form.type) ? (
-            <>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-                <Input label="Lease Start Date" value={form.openDate} type="date"
-                  onChange={v => setForm(s => ({ ...s, openDate: v, closingDate: computeLeaseEnd(v, s.leaseTerm) || s.closingDate }))} />
-                <Input label="Lease Term" value={form.leaseTerm} options={LEASE_TERMS}
-                  onChange={v => setForm(s => ({ ...s, leaseTerm: v, closingDate: v === "Month-to-Month" ? "" : (computeLeaseEnd(s.openDate, v) || s.closingDate) }))} />
+
+        <div style={{ background: "#fff", borderRadius: 14, padding: 22, boxShadow: "0 2px 12px rgba(15,32,68,0.08)" }}>
+          {step === 1 && (
+            <div>
+              <div style={{ fontSize: 19, fontWeight: 800, color: "#0F2044", marginBottom: 14 }}>Which side are you on?</div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 8 }} data-keep-grid="">
+                <button type="button" onClick={() => f("type")("Listing (Seller)")}
+                  style={{ padding: "18px 12px", borderRadius: 12, border: /listing/i.test(form.type) ? "2.5px solid #0F2044" : "1px solid #d1d5db", background: /listing/i.test(form.type) ? "#F0F4FA" : "#fff", cursor: "pointer", fontFamily: "inherit", textAlign: "center" }}>
+                  <div style={{ fontSize: 28 }}>🏠</div>
+                  <div style={{ fontWeight: 800, fontSize: 15, color: "#0F2044", marginTop: 4 }}>I'm SELLING it</div>
+                  <div style={{ fontSize: 12, color: "#6B7280" }}>A listing — I represent the seller</div>
+                </button>
+                <button type="button" onClick={() => f("type")("Buyer Representation")}
+                  style={{ padding: "18px 12px", borderRadius: 12, border: /buyer/i.test(form.type) && !/dual/i.test(form.type) ? "2.5px solid #0F2044" : "1px solid #d1d5db", background: /buyer/i.test(form.type) && !/dual/i.test(form.type) ? "#F0F4FA" : "#fff", cursor: "pointer", fontFamily: "inherit", textAlign: "center" }}>
+                  <div style={{ fontSize: 28 }}>🔑</div>
+                  <div style={{ fontWeight: 800, fontSize: 15, color: "#0F2044", marginTop: 4 }}>I'm helping someone BUY</div>
+                  <div style={{ fontSize: 12, color: "#6B7280" }}>I represent the buyer</div>
+                </button>
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-                <Input label="Lease End Date" value={form.closingDate} onChange={f("closingDate")} type="date" />
-                <div />
-              </div>
-              {(form.leaseTerm === "1 Year" || form.leaseTerm === "6 Months") && form.openDate && (
-                <div style={{ fontSize: 11, color: COLORS.muted, marginTop: -8 }}>End date auto-calculated from a {form.leaseTerm.toLowerCase()} term — edit it if your lease differs.</div>
+              <button type="button" onClick={() => setMoreTypes(m => !m)} style={{ background: "none", border: "none", color: "#6B7280", fontSize: 12.5, cursor: "pointer", fontFamily: "inherit", padding: 0, marginBottom: 12 }}>
+                {moreTypes ? "▴ Hide other types" : "▾ It's a lease or dual agency"}
+              </button>
+              {moreTypes && (
+                <select value={form.type} onChange={e => f("type")(e.target.value)} style={{ ...inputBig, marginBottom: 12 }}>
+                  {["Listing (Seller)", "Buyer Representation", "Dual Agency", "Lease — Landlord", "Lease — Tenant"].map(t => <option key={t} value={t}>{t}</option>)}
+                </select>
               )}
-            </>
-          ) : (
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}><Input label={/listing|seller/i.test(form.type) ? "Listing Agreement Start Date" : "Open Date"} value={form.openDate} onChange={f("openDate")} type="date" /><Input label="Closing Date" value={form.closingDate} onChange={f("closingDate")} type="date" /></div>
+
+              <label style={lblW}>{isListingSide ? "Property address *" : "Address (or the area they're searching) *"}</label>
+              <input value={form.address} onChange={e => f("address")(e.target.value)} placeholder={isListingSide ? "123 Main St" : "e.g. Lake Nona area, or an address"} style={{ ...inputBig, marginBottom: 12 }} />
+              <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 10, marginBottom: 12 }} data-keep-grid="">
+                <div>
+                  <label style={lblW}>City *</label>
+                  <input value={form.city} onChange={e => f("city")(e.target.value)} placeholder="Orlando" style={inputBig} />
+                </div>
+                <div>
+                  <label style={lblW}>ZIP</label>
+                  <input value={form.zipCode} onChange={e => f("zipCode")(e.target.value)} style={inputBig} />
+                </div>
+              </div>
+
+              {isListingSide && (
+                <>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 12 }} data-keep-grid="">
+                    <div>
+                      <label style={lblW}>Year built *</label>
+                      <input value={form.yearBuilt || ""} onChange={e => f("yearBuilt")(e.target.value.replace(/\D/g, "").slice(0, 4))} placeholder="e.g. 1998" style={inputBig} />
+                      <div style={{ fontSize: 11.5, color: "#6B7280", marginTop: 3 }}>Decides which disclosures you need (lead paint = before 1978).</div>
+                    </div>
+                    <div>
+                      <label style={lblW}>HOA or condo association? *</label>
+                      <div style={{ display: "flex", gap: 8 }}>
+                        <button type="button" onClick={() => f("inHoa")("yes")} style={chip(form.inHoa === "yes")}>Yes</button>
+                        <button type="button" onClick={() => f("inHoa")("no")} style={chip(form.inHoa === "no")}>No</button>
+                      </div>
+                    </div>
+                  </div>
+                  <label style={lblW}>Who lives there right now? *</label>
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 4 }}>
+                    {[["Owner Occupied", "🏠 The owner"], ["Tenant Occupied", "👥 A tenant"], ["Vacant", "📭 Nobody — vacant"]].map(([v, label]) => (
+                      <button key={v} type="button" onClick={() => f("occupancyStatus")(v)} style={chip(form.occupancyStatus === v)}>{label}</button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
           )}
-          {(/listing|seller/i.test(form.type) || form.type === "Lease — Landlord") && (
-            <>
-              <Input label={form.type === "Lease — Landlord" ? "Listing Period Expiration (Exclusive Right to Lease)" : "Listing Agreement Expiration"} value={form.representationExpiresOn} onChange={f("representationExpiresOn")} type="date" />
-              <div style={{ fontSize: 11, color: COLORS.muted, marginTop: -8 }}>When the {form.type === "Lease — Landlord" ? "exclusive-right-to-lease listing period" : "listing agreement"} expires. We'll warn you 14, 7, and 1 days before so it doesn't lapse.</div>
-            </>
+
+          {step === 2 && (
+            <div>
+              <div style={{ fontSize: 19, fontWeight: 800, color: "#0F2044", marginBottom: 4 }}>Who is your client?</div>
+              <div style={{ fontSize: 13, color: "#6B7280", marginBottom: 16 }}>Optional — you can add or change this later under the deal's People. Adding an email now lets the app send them updates automatically.</div>
+              <label style={lblW}>{/buyer|tenant/i.test(form.type) ? "Buyer's name" : "Seller's name"}</label>
+              <input value={form.clientName} onChange={e => f("clientName")(e.target.value)} placeholder="First and last name" style={{ ...inputBig, marginBottom: 12 }} />
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }} data-keep-grid="">
+                <div>
+                  <label style={lblW}>Phone</label>
+                  <input value={form.clientPhone} onChange={e => f("clientPhone")(e.target.value)} placeholder="(407) 555-0100" style={inputBig} />
+                </div>
+                <div>
+                  <label style={lblW}>Email</label>
+                  <input value={form.clientEmail} onChange={e => f("clientEmail")(e.target.value)} placeholder="name@email.com" style={inputBig} />
+                </div>
+              </div>
+            </div>
           )}
-          <Input label="Executed Date" value={form.executedDate} onChange={f("executedDate")} type="date" />
-          <Input label="Status" value={form.status} onChange={f("status")} options={Object.keys(STATUS_CONFIG)} />
-        </div>
-        <div style={{ background: "#fff", border: `1px solid ${COLORS.border}`, borderRadius: 14, padding: 28, marginBottom: 20 }}>
-          <h3 style={{ margin: "0 0 20px", fontSize: 15, color: COLORS.navy, fontWeight: 700 }}>Assignment & Source</h3>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-            <Input label="Assigned Agent" value={form.assignedAgent} onChange={f("assignedAgent")} options={teamAgents.map(a => ({ value: a.id, label: `${a.first_name} ${a.last_name}` }))} required />
-            <Input label="Referral Source" value={form.referralSource} onChange={f("referralSource")} options={REFERRAL_SOURCES} required />
+
+          {step === 3 && (
+            <div>
+              <div style={{ fontSize: 19, fontWeight: 800, color: "#0F2044", marginBottom: 14 }}>{/lease/i.test(form.type) ? "Rent & source" : "Price & source"}</div>
+              <label style={lblW}>{/lease/i.test(form.type) ? "Monthly rent ($)" : (isListingSide ? "List price ($)" : "Their budget — top end ($)")}</label>
+              <input value={form.listPrice} onChange={e => f("listPrice")(e.target.value.replace(/[^0-9.]/g, ""))} placeholder={isListingSide ? "e.g. 450000" : "e.g. 400000"} style={{ ...inputBig, marginBottom: 4 }} />
+              <div style={{ fontSize: 11.5, color: "#6B7280", marginBottom: 14 }}>A rough number is fine — you can change it anytime.</div>
+              {isListingSide && !/lease/i.test(form.type) && (
+                <div style={{ marginBottom: 14 }}>
+                  <label style={lblW}>Listing agreement expires (optional)</label>
+                  <input type="date" value={form.representationExpiresOn} onChange={e => f("representationExpiresOn")(e.target.value)} style={inputBig} />
+                  <div style={{ fontSize: 11.5, color: "#6B7280", marginTop: 3 }}>The app will remind you before it runs out.</div>
+                </div>
+              )}
+              <label style={lblW}>Where did this client come from? *</label>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 14 }}>
+                {SOURCES.map(src => (
+                  <button key={src} type="button" onClick={() => f("referralSource")(src)} style={chip(form.referralSource === src)}>{src}</button>
+                ))}
+              </div>
+              {teamAgents.length > 1 && (
+                <div style={{ marginBottom: 4 }}>
+                  <label style={lblW}>Whose deal is this?</label>
+                  <select value={form.assignedAgent} onChange={e => f("assignedAgent")(e.target.value)} style={inputBig}>
+                    <option value="">— pick an agent —</option>
+                    {teamAgents.map(a => <option key={a.id} value={a.id}>{a.first_name} {a.last_name}</option>)}
+                  </select>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Footer: Back / Next / Create */}
+          <div style={{ display: "flex", gap: 10, marginTop: 22 }}>
+            {step > 1 && (
+              <button type="button" onClick={() => setStep(v => v - 1)} style={{ flex: 1, padding: "13px 0", borderRadius: 10, border: "1px solid #d1d5db", background: "#fff", color: "#374151", fontWeight: 700, fontSize: 15, cursor: "pointer", fontFamily: "inherit" }}>← Back</button>
+            )}
+            {step < 3 && (
+              <button type="button" disabled={step === 1 && !step1Ok} onClick={() => setStep(v => v + 1)}
+                style={{ flex: 2, padding: "13px 0", borderRadius: 10, border: "none", background: (step === 1 && !step1Ok) ? "#9CA3AF" : "#0F2044", color: "#fff", fontWeight: 800, fontSize: 15, cursor: (step === 1 && !step1Ok) ? "not-allowed" : "pointer", fontFamily: "inherit" }}>
+                Next →
+              </button>
+            )}
+            {step === 3 && (
+              <button type="button" disabled={!step3Ok} onClick={handleSave}
+                style={{ flex: 2, padding: "13px 0", borderRadius: 10, border: "none", background: !step3Ok ? "#9CA3AF" : "#1E8449", color: "#fff", fontWeight: 800, fontSize: 15, cursor: !step3Ok ? "not-allowed" : "pointer", fontFamily: "inherit" }}>
+                ✓ Create Deal
+              </button>
+            )}
           </div>
-        </div>
-        <div style={{ background: "#fff", border: `1px solid ${COLORS.border}`, borderRadius: 14, padding: 28, marginBottom: 20 }}>
-          <h3 style={{ margin: "0 0 20px", fontSize: 15, color: COLORS.navy, fontWeight: 700 }}>Property Access</h3>
-          <Input label="Lockbox / Gate / Alarm Codes & Access Notes" value={form.propertyAccess} onChange={f("propertyAccess")} type="textarea" placeholder="Lockbox code: 1234. Gate code: 5678. Alarm: disarm with..." />
-        </div>
-        <div style={{ background: "#fff", border: `1px solid ${COLORS.border}`, borderRadius: 14, padding: 28, marginBottom: 20 }}>
-          <h3 style={{ margin: "0 0 20px", fontSize: 15, color: COLORS.navy, fontWeight: 700 }}>Commission Details</h3>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-            <Input label={isLeaseType(form.type) ? "Leasing Commission (% or mo. rent)" : "Listing Commission (%)"} value={form.commissionListing} onChange={f("commissionListing")} type="number" />
-            <Input label={isLeaseType(form.type) ? "Co-Broke / Tenant Agent (%)" : "Buyer Commission (%)"} value={form.commissionBuyer} onChange={f("commissionBuyer")} type="number" />
-          </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-            <Input label="Transaction Fee ($)" value={form.transactionFee} onChange={f("transactionFee")} type="number" />
-            <Input label="Brokerage Split (%)" value={form.brokerageSplit} onChange={f("brokerageSplit")} type="number" />
-          </div>
-          <Input label="Office Flat Fee ($)" value={form.officeFlatFee} onChange={f("officeFlatFee")} type="number" />
-          <Input label="Commission Notes" value={form.commissionNotes} onChange={f("commissionNotes")} type="textarea" />
-        </div>
-        <div style={{ background: "#fff", border: `1px solid ${COLORS.border}`, borderRadius: 14, padding: 28, marginBottom: 20 }}>
-          <h3 style={{ margin: "0 0 12px", fontSize: 15, color: COLORS.navy, fontWeight: 700 }}>Florida Task Templates</h3>
-          <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", marginBottom: 12 }}>
-            <input type="checkbox" checked={useFLTemplates} onChange={e => setUseFLTemplates(e.target.checked)} style={{ width: 16, height: 16 }} />
-            <span style={{ fontSize: 14 }}>Auto-load Florida FR/Bar checklist for <strong>{form.type}</strong></span>
-          </label>
-          {useFLTemplates && <div style={{ background: COLORS.infoBg, borderRadius: 8, padding: 12, fontSize: 12, color: COLORS.info }}><strong>{taskTemplates.length} workflow tasks</strong> will be created. Compliance milestones (EMD, BINSR, Loan, Title, Closing, etc.) are tracked separately and will appear in the Milestones tab.</div>}
-        </div>
-        <Input label="Notes" value={form.notes} onChange={f("notes")} type="textarea" />
-        <div style={{ display: "flex", gap: 12, justifyContent: "flex-end" }}>
-          <Btn variant="secondary" onClick={onCancel}>Cancel</Btn>
-          <Btn onClick={handleSave} disabled={!form.address || !form.city || !form.assignedAgent || !form.referralSource || !form.occupancyStatus || !form.yearBuilt || !form.inHoa}>Create Transaction</Btn>
+          {step === 1 && !step1Ok && (
+            <div style={{ fontSize: 12, color: "#9CA3AF", marginTop: 8, textAlign: "center" }}>
+              {!form.address.trim() || !form.city.trim() ? "Enter the address and city to continue." : "Answer year built, HOA, and who lives there — they decide which disclosures this listing needs."}
+            </div>
+          )}
+          {step === 3 && !step3Ok && (
+            <div style={{ fontSize: 12, color: "#9CA3AF", marginTop: 8, textAlign: "center" }}>Pick where this client came from{teamAgents.length > 1 ? " and whose deal it is" : ""} to finish.</div>
+          )}
+          {step === 3 && (
+            <div style={{ fontSize: 12, color: "#6B7280", marginTop: 12, background: "#F0FDF4", border: "1px solid #BBF7D0", borderRadius: 8, padding: 10 }}>
+              ✅ When you tap Create, the app builds the deal's timeline, checklist, and reminders for you. Commission details, MLS number, and everything else can be added later from the deal.
+            </div>
+          )}
         </div>
       </div>
     </div>
   );
 }
 
-// ─── DASHBOARD ────────────────────────────────────────────────
-
-
-// ═══════════════════════════════════════════════════════════════
-// ContactAutocomplete — search-as-you-type dropdown for CRM contacts
-// Fires onSelect(contact) when a result is picked.
-// ═══════════════════════════════════════════════════════════════
 function ContactAutocomplete({ token, onSelect }) {
   const [q, setQ] = useState("");
   const [results, setResults] = useState([]);
@@ -9596,6 +9685,7 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
 
       {!showReports && view === "new" && (
         <NewTransactionForm
+          currentUser={currentUser}
           prefill={cmaConvert?.prefill || null}
           cmaId={cmaConvert?.cmaId || null}
           onSave={(tx) => { setCmaConvert(null); addTransaction(tx); }}
