@@ -5471,6 +5471,50 @@ function LeaseDocsModal({ tx, onClose, onGenerated }) {
   );
 }
 
+// ── "WHAT'S NEXT" STRIP — the one thing a rookie needs on every deal screen:
+// the single next step, in plain words, always visible, tap → timeline.
+function NextStepStrip({ txId, coordinatorMode, onOpenTimeline }) {
+  const [next, setNext] = useState(null);
+  useEffect(() => {
+    let dead = false;
+    const tok = localStorage.getItem("tp_token") || "";
+    const base = coordinatorMode ? API + "/tc/milestones/" : API + "/milestones/";
+    fetch(base + txId, { headers: { Authorization: "Bearer " + tok } })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => {
+        if (dead) return;
+        const ms = (d && (d.milestones || d)) || [];
+        const dstr = (x) => (typeof x === "string" ? x.split("T")[0] : x ? new Date(x).toISOString().split("T")[0] : null);
+        const open = (Array.isArray(ms) ? ms : []).filter(m => !["Completed", "Waived"].includes(m.status) && !m.is_na);
+        const today = new Date().toLocaleDateString("en-CA", { timeZone: "America/New_York" });
+        const overdue = open.filter(m => dstr(m.due_date) && dstr(m.due_date) < today)
+          .sort((a, b) => (dstr(a.due_date) < dstr(b.due_date) ? -1 : 1));
+        const upcoming = open.filter(m => !overdue.includes(m)).sort((a, b) => {
+          const da = dstr(a.due_date) || "9999", db = dstr(b.due_date) || "9999";
+          return da === db ? (a.sort_order || 0) - (b.sort_order || 0) : (da < db ? -1 : 1);
+        });
+        setNext(overdue[0] || upcoming[0] || null);
+      })
+      .catch(() => {});
+    return () => { dead = true; };
+  }, [txId, coordinatorMode]);
+  if (!next) return null;
+  const today = new Date().toLocaleDateString("en-CA", { timeZone: "America/New_York" });
+  const due = typeof next.due_date === "string" ? next.due_date.split("T")[0] : next.due_date ? new Date(next.due_date).toISOString().split("T")[0] : null;
+  const isOverdue = due && due < today;
+  const dueLabel = !due ? "" : isOverdue ? ` — was due ${formatDate(due)}` : due === today ? " — due TODAY" : ` — due ${formatDate(due)}`;
+  return (
+    <div onClick={onOpenTimeline}
+      style={{ background: isOverdue ? "#FEF2F2" : "#F0FDF4", borderBottom: `1px solid ${isOverdue ? "#FECACA" : "#BBF7D0"}`, padding: "10px 24px", display: "flex", alignItems: "center", gap: 10, cursor: "pointer", flexWrap: "wrap" }}>
+      <span style={{ fontSize: 16 }}>{isOverdue ? "⚠️" : "👉"}</span>
+      <span style={{ fontSize: 13.5, color: isOverdue ? "#7F1D1D" : "#14532D" }}>
+        <b>{isOverdue ? "Behind: " : "Next step: "}</b>{next.name}{dueLabel}
+      </span>
+      <span style={{ marginLeft: "auto", fontSize: 12.5, fontWeight: 800, color: isOverdue ? "#B91C1C" : "#166534" }}>Open the timeline →</span>
+    </div>
+  );
+}
+
 function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = false, onBack, contacts, onInviteParty = [], onCopyLoginLink, onSaveContact, onOpenContactBook, onDuplicate, currentUser, initialTab = "overview", navSignal = 0, dashboardUnread = 0, onMilestoneSummary, onInboundRead }) {
   // Staff (agent + coordinator) comms tabs are merged into one "messages" hub, so
   // a deep-link to chat/replies/sms opens the hub on the right section. Guests keep
@@ -5859,6 +5903,9 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
         ))}
       </div>
 
+      {!isGuest && activeTab !== "milestones" && (
+        <NextStepStrip txId={tx.id} coordinatorMode={coordinatorMode} onOpenTimeline={() => setActiveTab("milestones")} />
+      )}
       <div style={{ background: "#fff", borderBottom: `1px solid ${COLORS.border}`, display: "flex", overflowX: "auto" }}>
         {primaryTabs.map(t => (
           <button key={t.id} onClick={() => handleTabClick(t)} style={{ padding: "12px 20px", background: "none", border: "none", borderBottom: `3px solid ${activeTab === t.id ? COLORS.navy : "transparent"}`, color: activeTab === t.id ? COLORS.navy : COLORS.muted, fontWeight: activeTab === t.id ? 700 : 500, fontSize: 13, cursor: "pointer", flexShrink: 0, fontFamily: "inherit" }}>{t.label}{isGuest && !GUEST_ALLOWED_TABS.includes(t.id) ? " 🔒" : ""}</button>
