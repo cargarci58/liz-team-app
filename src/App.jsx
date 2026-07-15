@@ -5476,6 +5476,8 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
   // a deep-link to chat/replies/sms opens the hub on the right section. Guests keep
   // their standalone chat tab.
   const _isStaffInit = !tx.isGuestView;
+  const [showTxMore, setShowTxMore] = useState(false);      // header ⋯ menu
+  const [showMoreTabs, setShowMoreTabs] = useState(false);   // 'More ▾' tab dropdown
   const [activeTab, setActiveTab] = useState(
     (_isStaffInit && ["chat", "replies", "sms"].includes(initialTab)) ? "messages" : initialTab
   );
@@ -5737,26 +5739,28 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
   const isCoordinator = !!tx.isCoordinatorView || coordinatorMode;
   const COORD_HIDDEN_TABS = ["cma", "offers", "calculator", "buyer-net", "seller-calc"];
 
-  const tabs = [
+  // Rookie rule: FIVE tabs you actually live in; everything else under "More ▾".
+  const primaryTabs = [
     { id: "overview", label: "Overview" },
     { id: "milestones", label: "📅 Timeline" },
+    ...(isBuyerSideTx && !isGuest ? [{ id: "offers", label: "📝 Offers" }] : []),
+    { id: "documents", label: "📎 Documents" },
     { id: "parties", label: `People (${(isCoordinator ? tx.parties.filter(p => (p.email || "").toLowerCase() !== (currentUser?.email || "").toLowerCase()) : tx.parties).length})` },
-    // ONE "💬 Messages" hub for ALL staff (agent + coordinator): Chat · Client
-    // replies · Send — instead of three near-identical tabs. Guests get only the
-    // standalone group chat (one of their few allowed views).
     ...(!isGuest
       ? [{ id: "messages", label: (chatUnread > 0 || dashboardUnread > 0 || unreadReplyCount > 0) ? `💬 Messages (${Math.max(chatUnread, dashboardUnread) + unreadReplyCount})` : "💬 Messages" }]
       : []),
-    { id: "notes", label: "Internal Notes" },
-    { id: "documents", label: "📎 Documents" },
     ...(isGuest ? [{ id: "chat", label: (chatUnread > 0 || dashboardUnread > 0) ? `💬 Group Chat (${Math.max(chatUnread, dashboardUnread)})` : "💬 Group Chat" }] : []),
-    { id: "cma", label: "📊 CMA" },
-    ...(isBuyerSideTx ? [{ id: "offers", label: "📝 Offers" }, { id: "calculator", label: "🧮 Buyers Calculator" }, { id: "buyer-net", label: "💰 Buyer's Net Sheet" }] : []),
-    ...(isListingSideTx ? [{ id: "seller-calc", label: "💰 Seller's Net Sheet" }] : []),
-    { id: "tx-forms", label: "📋 Forms" },
-    { id: "activity", label: "📋 Activity Log" },
-    { id: "reminders", label: "Reminders" },
   ].filter(t => !isCoordinator || !COORD_HIDDEN_TABS.includes(t.id));
+  const moreTabs = [
+    ...(isListingSideTx ? [{ id: "seller-calc", label: "💰 Seller's Net Sheet" }] : []),
+    ...(isBuyerSideTx ? [{ id: "buyer-net", label: "💰 Buyer's Net Sheet" }, { id: "calculator", label: "🧮 Buyers Calculator" }] : []),
+    { id: "cma", label: "📊 CMA (pricing)" },
+    { id: "tx-forms", label: "📄 Blank Forms" },
+    { id: "notes", label: "🗒 Internal Notes" },
+    { id: "reminders", label: "⏰ Reminders" },
+    { id: "activity", label: "🕓 Activity Log" },
+  ].filter(t => !isCoordinator || !COORD_HIDDEN_TABS.includes(t.id));
+  const tabs = [...primaryTabs, ...moreTabs];
   // Tab click handler: a guest opening a non-allowed tab gets the paywall, not the tab.
   const handleTabClick = (t) => {
     if (isGuest && !GUEST_ALLOWED_TABS.includes(t.id)) { setPaywallFeature(t.label.replace(/\s*\(\d+\)\s*$/, "")); return; }
@@ -5796,30 +5800,44 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
         }} style={{ fontSize: 12, padding: "4px 8px", borderRadius: 6, border: "none", fontFamily: "inherit", background: "rgba(255,255,255,0.15)", color: "#fff", cursor: "pointer" }}>
           {Object.keys(STATUS_CONFIG).map(s => <option key={s} style={{ color: COLORS.text, background: "#fff" }}>{s}</option>)}
         </select>
-        <button onClick={() => isGuest ? setPaywallFeature("Duplicating a transaction") : (onDuplicate && onDuplicate(tx))} style={{ fontSize: 11, padding: "4px 10px", borderRadius: 6, border: "1px solid rgba(255,255,255,0.3)", background: "rgba(255,255,255,0.1)", color: "#fff", cursor: "pointer", fontFamily: "inherit" }}>⧉ Duplicate</button>
-        <button onClick={() => isGuest ? setPaywallFeature("Editing a transaction") : openEditTx()} style={{ fontSize: 11, padding: "4px 10px", borderRadius: 6, border: "1px solid rgba(255,255,255,0.3)", background: "rgba(255,255,255,0.1)", color: "#fff", cursor: "pointer", fontFamily: "inherit" }}>✏️ Edit</button>
-        <button onClick={() => isGuest ? setPaywallFeature("Printing") : window.print()} style={{ fontSize: 11, padding: "4px 10px", borderRadius: 6, border: "1px solid rgba(255,255,255,0.3)", background: "rgba(255,255,255,0.1)", color: "#fff", cursor: "pointer", fontFamily: "inherit" }}>🖨️ Print</button>
+        {/* ONE green action per side; Edit; everything else under ⋯ */}
         {!isGuest && tx.type === "Buyer Representation" && !["Closed", "Cancelled"].includes(tx.status) && (
-          <button onClick={() => { setActiveTab("offers"); setOfferCreateSignal(n => n + 1); }} title="Build and send your buyer's offer to the listing agent" style={{ fontSize: 11, padding: "4px 12px", borderRadius: 6, border: "none", background: "#1E8449", color: "#fff", fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>📝 Create Offer</button>
-        )}
-        {!isGuest && (
-          <button onClick={() => setShowPortalPreview(true)} title="See exactly what your buyer/seller sees in their portal" style={{ fontSize: 11, padding: "4px 12px", borderRadius: 6, border: "1px solid rgba(255,255,255,0.3)", background: "rgba(255,255,255,0.1)", color: "#fff", fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>👁 Preview Client Portal</button>
+          <button onClick={() => { setActiveTab("offers"); setOfferCreateSignal(n => n + 1); }} title="Build and send your buyer's offer to the listing agent" style={{ fontSize: 12, padding: "6px 14px", borderRadius: 6, border: "none", background: "#1E8449", color: "#fff", fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>📝 Create Offer</button>
         )}
         {tx.type !== "Buyer Representation" && !["Closed", "Cancelled"].includes(tx.status) && (
-          <button onClick={() => isGuest ? setPaywallFeature("Receiving offers") : (setActiveTab("overview"), setShowReceiveOffer(true))} style={{ fontSize: 11, padding: "4px 12px", borderRadius: 6, border: "none", background: "#1E8449", color: "#fff", fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>📥 Receive Offer</button>
+          <button onClick={() => isGuest ? setPaywallFeature("Receiving offers") : (setActiveTab("overview"), setShowReceiveOffer(true))} style={{ fontSize: 12, padding: "6px 14px", borderRadius: 6, border: "none", background: "#1E8449", color: "#fff", fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>📥 Receive Offer</button>
         )}
-        {tx.type !== "Buyer Representation" && !["Closed", "Cancelled"].includes(tx.status) && (
-          <button onClick={() => isGuest ? setPaywallFeature("Reviewing offers") : (setActiveTab("overview"), setTimeout(() => { const el = document.getElementById("pending-offers-panel"); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); }, 60))} style={{ fontSize: 11, padding: "4px 12px", borderRadius: 6, border: "1px solid rgba(255,255,255,0.3)", background: "rgba(255,255,255,0.1)", color: "#fff", fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>📋 Review Offers</button>
-        )}
-        {!isGuest && isLeaseType(tx.type) && !["Closed", "Cancelled"].includes(tx.status) && (
-          <button onClick={() => setShowLeaseDocs(true)} style={{ fontSize: 11, padding: "4px 12px", borderRadius: 6, border: "none", background: "#6D28D9", color: "#fff", fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>📄 Generate Lease Docs</button>
-        )}
-        {tx.status !== "Cancelled" && (
-          <button onClick={() => isGuest ? setPaywallFeature("Cancelling a transaction") : (((window.prompt(`Cancel "${tx.address || "this transaction"}"? It will be HIDDEN from your dashboard (not deleted). Type CANCEL to confirm.`) || "").trim().toUpperCase() === "CANCEL") && update({ status: "Cancelled" }))} style={{ fontSize: 11, padding: "4px 10px", borderRadius: 6, border: "1px solid rgba(255,100,100,0.5)", background: "rgba(255,100,100,0.15)", color: "#FCA5A5", cursor: "pointer", fontFamily: "inherit" }}>Cancel Transaction</button>
-        )}
-        {tx.status === "Cancelled" && (
-          <button onClick={() => isGuest ? setPaywallFeature("Restoring a transaction") : update({ status: "Active" })} style={{ fontSize: 11, padding: "4px 10px", borderRadius: 6, border: "1px solid rgba(100,255,100,0.5)", background: "rgba(100,255,100,0.15)", color: "#6EE7B7", cursor: "pointer", fontFamily: "inherit" }}>Restore Transaction</button>
-        )}
+        <button onClick={() => isGuest ? setPaywallFeature("Editing a transaction") : openEditTx()} style={{ fontSize: 12, padding: "6px 14px", borderRadius: 6, border: "1px solid rgba(255,255,255,0.35)", background: "rgba(255,255,255,0.12)", color: "#fff", fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>✏️ Edit</button>
+        <div style={{ position: "relative" }}>
+          <button onClick={() => setShowTxMore(v => !v)} title="More actions" style={{ fontSize: 15, padding: "5px 12px", borderRadius: 6, border: "1px solid rgba(255,255,255,0.35)", background: "rgba(255,255,255,0.12)", color: "#fff", cursor: "pointer", fontFamily: "inherit", fontWeight: 700 }}>⋯</button>
+          {showTxMore && (
+            <>
+              <div onClick={() => setShowTxMore(false)} style={{ position: "fixed", inset: 0, zIndex: 200 }} />
+              <div style={{ position: "absolute", right: 0, top: "100%", marginTop: 4, background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, boxShadow: "0 8px 24px rgba(0,0,0,0.18)", zIndex: 201, minWidth: 230, padding: 4 }}>
+                {[
+                  !isGuest && { icon: "👁", label: "Preview Client Portal", fn: () => setShowPortalPreview(true) },
+                  tx.type !== "Buyer Representation" && !["Closed", "Cancelled"].includes(tx.status) && { icon: "📋", label: "Review Offers Received", fn: () => { setActiveTab("overview"); setTimeout(() => { const el = document.getElementById("pending-offers-panel"); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); }, 60); } },
+                  !isGuest && isLeaseType(tx.type) && !["Closed", "Cancelled"].includes(tx.status) && { icon: "📄", label: "Generate Lease Docs", fn: () => setShowLeaseDocs(true) },
+                  { icon: "🖨️", label: "Print", fn: () => isGuest ? setPaywallFeature("Printing") : window.print() },
+                  { icon: "🧬", label: "Copy this deal (duplicate)", fn: () => isGuest ? setPaywallFeature("Duplicating a transaction") : (onDuplicate && onDuplicate(tx)) },
+                  { divider: true },
+                  tx.status !== "Cancelled" && { icon: "🚫", label: "Cancel this deal…", danger: true, fn: () => isGuest ? setPaywallFeature("Cancelling a transaction") : (((window.prompt(`Cancel "${tx.address || "this transaction"}"? It will be HIDDEN from your dashboard (not deleted). Type CANCEL to confirm.`) || "").trim().toUpperCase() === "CANCEL") && update({ status: "Cancelled" })) },
+                  tx.status === "Cancelled" && { icon: "♻️", label: "Restore this deal", fn: () => isGuest ? setPaywallFeature("Restoring a transaction") : update({ status: "Active" }) },
+                ].filter(Boolean).map((it, i) => it.divider ? (
+                  <div key={i} style={{ height: 1, background: "#e5e7eb", margin: "6px 8px" }} />
+                ) : (
+                  <button key={i} onClick={() => { setShowTxMore(false); it.fn(); }}
+                    style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", padding: "10px 14px", background: "none", border: "none", borderRadius: 6, fontSize: 13, color: it.danger ? "#B91C1C" : "#1f2937", cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}
+                    onMouseEnter={e => e.currentTarget.style.background = it.danger ? "#FEF2F2" : "#f3f4f6"}
+                    onMouseLeave={e => e.currentTarget.style.background = "none"}>
+                    <span style={{ fontSize: 15 }}>{it.icon}</span>
+                    <span>{it.label}</span>
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
         </>}
       </div>
 
@@ -5842,9 +5860,34 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
       </div>
 
       <div style={{ background: "#fff", borderBottom: `1px solid ${COLORS.border}`, display: "flex", overflowX: "auto" }}>
-        {tabs.map(t => (
+        {primaryTabs.map(t => (
           <button key={t.id} onClick={() => handleTabClick(t)} style={{ padding: "12px 20px", background: "none", border: "none", borderBottom: `3px solid ${activeTab === t.id ? COLORS.navy : "transparent"}`, color: activeTab === t.id ? COLORS.navy : COLORS.muted, fontWeight: activeTab === t.id ? 700 : 500, fontSize: 13, cursor: "pointer", flexShrink: 0, fontFamily: "inherit" }}>{t.label}{isGuest && !GUEST_ALLOWED_TABS.includes(t.id) ? " 🔒" : ""}</button>
         ))}
+        {moreTabs.length > 0 && (
+          <div style={{ position: "relative", flexShrink: 0 }}>
+            {(() => { const activeMore = moreTabs.find(t => t.id === activeTab); return (
+              <button onClick={() => setShowMoreTabs(v => !v)}
+                style={{ padding: "12px 20px", background: "none", border: "none", borderBottom: `3px solid ${activeMore ? COLORS.navy : "transparent"}`, color: activeMore ? COLORS.navy : COLORS.muted, fontWeight: activeMore ? 700 : 500, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>
+                {activeMore ? activeMore.label : "More"} ▾
+              </button>
+            ); })()}
+            {showMoreTabs && (
+              <>
+                <div onClick={() => setShowMoreTabs(false)} style={{ position: "fixed", inset: 0, zIndex: 90 }} />
+                <div style={{ position: "absolute", left: 0, top: "100%", zIndex: 95, background: "#fff", border: `1px solid ${COLORS.border}`, borderRadius: 10, boxShadow: "0 8px 24px rgba(0,0,0,0.14)", minWidth: 210, padding: 4 }}>
+                  {moreTabs.map(t => (
+                    <button key={t.id} onClick={() => { setShowMoreTabs(false); handleTabClick(t); }}
+                      style={{ display: "block", width: "100%", textAlign: "left", padding: "10px 14px", background: activeTab === t.id ? "#F0F4FA" : "none", border: "none", borderRadius: 6, fontSize: 13, fontWeight: activeTab === t.id ? 700 : 500, color: "#1f2937", cursor: "pointer", fontFamily: "inherit" }}
+                      onMouseEnter={e => e.currentTarget.style.background = "#f3f4f6"}
+                      onMouseLeave={e => e.currentTarget.style.background = activeTab === t.id ? "#F0F4FA" : "none"}>
+                      {t.label}{isGuest && !GUEST_ALLOWED_TABS.includes(t.id) ? " 🔒" : ""}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+        )}
       </div>
 
       <div style={{ padding: 24, maxWidth: 940, margin: "0 auto" }}>
