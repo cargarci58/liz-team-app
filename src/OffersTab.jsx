@@ -460,6 +460,7 @@ function SendOfferModal({ offer, tx, token, currentUser, onClose, onSent }) {
   const [docPicker, setDocPicker] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [sending, setSending] = useState(false);
+  const [ccSelf, setCcSelf] = useState(true);   // "Send me a copy" — CC, never the To field
   const fileRef = useRef(null);
 
   const baseAttach = offer.signed_doc_id ? "Buyer-signed offer" : offer.packet_pdf_key ? "Offer packet" : null;
@@ -490,12 +491,13 @@ function SendOfferModal({ offer, tx, token, currentUser, onClose, onSent }) {
 
   const send = async () => {
     if (!toEmail.trim() || !/.+@.+\..+/.test(toEmail.trim())) { alert("Enter the listing agent's email."); return; }
+    if (/[,;]/.test(toEmail)) { alert("Put only the LISTING AGENT's email in the To field — the deal's People syncs to it.\n\nTo get a copy yourself, leave the 'Send me a copy' box checked instead."); return; }
     if (!message.trim()) { alert("Write a message."); return; }
     setSending(true);
     try {
       const r = await fetch(API + "/offers/" + offer.id + "/send-to-listing-agent", {
         method: "POST", headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
-        body: JSON.stringify({ toEmail: toEmail.trim(), toName: toName.trim(), subject, message, attachDocIds: attach.map(a => a.id) }),
+        body: JSON.stringify({ toEmail: toEmail.trim(), toName: toName.trim(), subject, message, attachDocIds: attach.map(a => a.id), ccSelf }),
       });
       const data = await r.json(); if (!r.ok) throw new Error(data.error || "Send failed");
       const attached = Array.isArray(data.attached) ? data.attached.join(", ") : data.attached;
@@ -523,6 +525,10 @@ function SendOfferModal({ offer, tx, token, currentUser, onClose, onSent }) {
             <input value={toName} onChange={e => setToName(e.target.value)} placeholder="Name" style={{ ...inp, flex: "0 0 40%" }} />
             <input value={toEmail} onChange={e => setToEmail(e.target.value)} placeholder="email@brokerage.com" style={{ ...inp, flex: 1 }} />
           </div>
+          <label style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 12.5, color: "#374151", marginTop: 8, cursor: "pointer" }}>
+            <input type="checkbox" checked={ccSelf} onChange={e => setCcSelf(e.target.checked)} />
+            📩 Send me a copy (don&apos;t type your own email in the To field — that changes the listing agent&apos;s contact info)
+          </label>
 
           <div style={lbl}>Subject</div>
           <input value={subject} onChange={e => setSubject(e.target.value)} style={inp} />
