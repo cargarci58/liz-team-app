@@ -2878,7 +2878,7 @@ function MilestonesTab({ tx, token, onSummaryChange, coordinatorMode = false }) 
     if (/inspection/.test(n) && !/period|binsr/.test(n)) return { time: true };
     if (/professional photos/.test(n)) return { time: true };
     if (/walk-?through/.test(n)) return { time: true };
-    if (/appraisal ordered/.test(n)) return { time: true };
+    if (/appraisal (ordered|scheduled)/.test(n)) return { time: true };
     if (/showings?|property tours?/.test(n)) return { time: true };
     if (/wdo|termite/.test(n)) return { time: true };
     return null;
