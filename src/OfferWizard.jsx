@@ -336,6 +336,27 @@ export default function OfferWizard({ offerId, token, onClose, onSaved }) {
 
   const wizard = getWizard(offer?.base_contract_type || "as_is");
   const steps = wizard.steps;
+  // ⚡ EXPRESS MODE — 4 answers + standard Florida terms, then jump straight
+  // to Review. Every value it sets is visible/EDITABLE on the review screen
+  // and in the full wizard; nothing is hidden.
+  const [express, setExpress] = useState(false);
+  const [xp, setXp] = useState({ price: "", emd: "", closing: "", financing: "" });
+  const applyExpress = () => {
+    if (!xp.price || !xp.closing || !xp.financing) { alert("Answer the price, closing date, and how they're paying."); return; }
+    const todayEt = new Date(new Date().toLocaleDateString("en-CA", { timeZone: "America/New_York" }) + "T00:00:00");
+    const exp = new Date(todayEt); exp.setDate(exp.getDate() + 2);
+    const expStr = `${exp.getFullYear()}-${String(exp.getMonth() + 1).padStart(2, "0")}-${String(exp.getDate()).padStart(2, "0")}`;
+    setData(d => applyWizardDefaults(wizard, {
+      ...d,
+      purchase_price: xp.price,
+      initial_emd: xp.emd || String(Math.max(1000, Math.round(Number(xp.price) * 0.01 / 500) * 500)),
+      closing_date: xp.closing,
+      financing_type: xp.financing,
+      offer_effective_date: d.offer_effective_date || expStr,
+    }));
+    setExpress(false);
+    setStepIdx(steps.length - 1); // straight to Review
+  };
   const step = steps[stepIdx];
   const isLast = stepIdx === steps.length - 1;
 
@@ -806,6 +827,59 @@ export default function OfferWizard({ offerId, token, onClose, onSaved }) {
           {step.why && (
             <div style={{ background: "#fef3c7", border: "1px solid #fcd34d", borderRadius: 6, padding: 12, fontSize: 13, color: "#78350f", marginBottom: 20 }}>
               💡 <strong>Why this matters:</strong> {step.why}
+            </div>
+          )}
+
+          {/* ⚡ EXPRESS — 4 answers + standard Florida terms, review at the end. */}
+          {stepIdx === 0 && (
+            <div style={{ border: "2px solid #F1C40F", background: "#FFFBEB", borderRadius: 12, padding: 14, marginBottom: 20 }}>
+              {!express ? (
+                <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+                  <span style={{ fontSize: 22 }}>⚡</span>
+                  <div style={{ flex: 1, minWidth: 220 }}>
+                    <div style={{ fontWeight: 800, color: "#7A5C00", fontSize: 14 }}>In a hurry? Express offer</div>
+                    <div style={{ fontSize: 12.5, color: "#7A5C00", lineHeight: 1.5 }}>Answer 4 questions — the app fills everything else with standard Florida terms (15-day inspection, deposit due in 3 days, seller pays deed stamps, possession at closing…). You review it all before anything is sent.</div>
+                  </div>
+                  <button type="button" onClick={() => setExpress(true)}
+                    style={{ background: "#B7791F", color: "#fff", border: "none", borderRadius: 8, padding: "10px 16px", fontSize: 13, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>
+                    ⚡ Use Express
+                  </button>
+                </div>
+              ) : (
+                <div>
+                  <div style={{ fontWeight: 800, color: "#7A5C00", fontSize: 14, marginBottom: 10 }}>⚡ Express offer — 4 quick answers</div>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 }} data-keep-grid="">
+                    <div>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: "#7A5C00", marginBottom: 4 }}>1 · Offer price ($)</div>
+                      <input type="number" value={xp.price} onChange={e => setXp(x => ({ ...x, price: e.target.value }))} placeholder="e.g. 450000" style={inputStyle} />
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: "#7A5C00", marginBottom: 4 }}>2 · Deposit ($) <span style={{ fontWeight: 400 }}>(blank = ~1%)</span></div>
+                      <input type="number" value={xp.emd} onChange={e => setXp(x => ({ ...x, emd: e.target.value }))} placeholder="auto" style={inputStyle} />
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: "#7A5C00", marginBottom: 4 }}>3 · Closing date</div>
+                      <input type="date" value={xp.closing} onChange={e => setXp(x => ({ ...x, closing: e.target.value }))} style={inputStyle} />
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: "#7A5C00", marginBottom: 4 }}>4 · How are they paying?</div>
+                      <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                        {["Cash", "Conventional", "FHA", "VA"].map(ft => (
+                          <button key={ft} type="button" onClick={() => setXp(x => ({ ...x, financing: ft }))}
+                            style={{ padding: "8px 12px", borderRadius: 16, border: xp.financing === ft ? "2px solid #7A5C00" : "1px solid #d1d5db", background: xp.financing === ft ? "#7A5C00" : "#fff", color: xp.financing === ft ? "#fff" : "#374151", fontSize: 12.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                            {ft}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                  <div style={{ fontSize: 11.5, color: "#7A5C00", marginBottom: 10 }}>Tip: upload the MLS sheet on the next screen (or before sending) so the property, seller, and listing agent fill in automatically.</div>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <button type="button" onClick={() => setExpress(false)} style={{ padding: "9px 16px", borderRadius: 8, border: "1px solid #d1d5db", background: "#fff", color: "#374151", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>Never mind</button>
+                    <button type="button" onClick={applyExpress} style={{ flex: 1, padding: "9px 16px", borderRadius: 8, border: "none", background: "#1E8449", color: "#fff", fontSize: 13, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>Apply & jump to Review →</button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
