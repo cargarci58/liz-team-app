@@ -758,6 +758,31 @@ function UnmatchedMailPanel({ token }) {
           {m.subject && <div style={{ fontWeight: 600, fontSize: 13.5, color: COLORS.black, marginTop: 6 }}>{m.subject}</div>}
           {(m.snippet || m.body_text) && <div style={{ fontSize: 13, color: COLORS.gray, marginTop: 4, whiteSpace: "pre-wrap" }}>{String(m.snippet || m.body_text).slice(0, 200)}</div>}
           {m.attachment_count > 0 && <div style={{ fontSize: 12, color: COLORS.gray, marginTop: 4 }}>📎 {m.attachment_count} attachment(s) — they follow the email to whichever deal you file it on.</div>}
+          {/* Mail-provider forwarding confirmation: this is the one-time approval
+              step that actually switches the agent's inbox forwarding ON. */}
+          {m.forwarding ? (
+            <div style={{ background: "#F0FDF4", border: "1px solid #BBF7D0", borderRadius: 10, padding: 12, marginTop: 10 }}>
+              <div style={{ fontSize: 13, fontWeight: 800, color: "#166534", marginBottom: 4 }}>✅ Turn on email forwarding</div>
+              <div style={{ fontSize: 12.5, color: "#166534", lineHeight: 1.5, marginBottom: 8 }}>
+                This confirms the forwarding rule you set up in {m.forwarding.provider === "gmail" ? "Gmail" : "Outlook"}. Until you approve it, none of your deal email forwards into the app. Approve it once and you're done.
+              </div>
+              {m.forwarding.link && (
+                <a href={m.forwarding.link} target="_blank" rel="noreferrer"
+                  style={{ display: "inline-block", padding: "9px 16px", borderRadius: 8, background: "#166534", color: COLORS.white, fontWeight: 700, fontSize: 13, textDecoration: "none", marginBottom: m.forwarding.code ? 8 : 0 }}>
+                  Confirm forwarding →
+                </a>
+              )}
+              {m.forwarding.code && (
+                <div style={{ fontSize: 12.5, color: "#166534" }}>
+                  {m.forwarding.link ? "…or enter" : "Enter"} this confirmation code in {m.forwarding.provider === "gmail" ? "Gmail → Settings → Forwarding" : "Outlook forwarding settings"}:{" "}
+                  <code style={{ fontWeight: 800, background: COLORS.white, padding: "2px 8px", borderRadius: 6, border: "1px solid #BBF7D0" }}>{m.forwarding.code}</code>
+                </div>
+              )}
+              {!m.forwarding.link && !m.forwarding.code && (
+                <div style={{ fontSize: 12.5, color: "#166534" }}>Open this email in {m.forwarding.provider === "gmail" ? "Gmail" : "Outlook"} to click the confirmation link.</div>
+              )}
+            </div>
+          ) : null}
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 10 }}>
             <button disabled={busy === m.id} onClick={() => openAssign(m.id)}
               style={{ padding: "8px 14px", borderRadius: 8, border: "none", background: "#0F6E56", color: COLORS.white, fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>
@@ -765,7 +790,7 @@ function UnmatchedMailPanel({ token }) {
             </button>
             <button disabled={busy === m.id} onClick={() => dismiss(m.id)}
               style={{ padding: "8px 14px", borderRadius: 8, border: "1.5px solid " + COLORS.lightGray, background: COLORS.white, color: COLORS.gray, fontWeight: 600, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>
-              Not deal-related
+              {m.forwarding ? "Dismiss" : "Not deal-related"}
             </button>
           </div>
           {assignFor === m.id && (
