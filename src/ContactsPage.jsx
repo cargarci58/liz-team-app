@@ -546,7 +546,7 @@ function ContactModal({ contact, token, onClose, onSaved }) {
               {TYPE_OPTIONS.map(t => <option key={t} value={t}>{t.replace("_", " ")}</option>)}
             </select>
           </Field>
-          <Field label="Temp (opportunity heat)">
+          <Field label="How hot is this lead? 🔥">
             <select value={TEMP_SELECTABLE.includes(form.temperature) ? form.temperature : "warm"} onChange={e => update("temperature", e.target.value)} style={inputStyle}>
               {TEMP_SELECTABLE.map(k => (
                 <option key={k} value={k}>{TEMP_META[k].emoji} {TEMP_META[k].label}</option>
@@ -555,7 +555,7 @@ function ContactModal({ contact, token, onClose, onSaved }) {
           </Field>
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-          <Field label="Tier (A–D priority)">
+          <Field label="How important to your business? (A–D)">
             <select value={form.tier} onChange={e => update("tier", e.target.value)} style={inputStyle}>
               <option value="">— none —</option>
               {["A+","A","B","C","D"].map(t => <option key={t} value={t}>{t}</option>)}
@@ -571,7 +571,7 @@ function ContactModal({ contact, token, onClose, onSaved }) {
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
           <Field label="Last time they moved" hint="When they bought / moved into their current home. We'll remind you to check in as their move cycle comes around."><input type="date" value={form.last_moved_on} onChange={e => update("last_moved_on", e.target.value)} style={inputStyle} /></Field>
-          <Field label="Move cycle (years)" hint="How often this person tends to move. Leave blank to use the default (3)."><input type="number" min="1" max="30" placeholder="3" value={form.move_cycle_years} onChange={e => update("move_cycle_years", e.target.value.replace(/\D/g, "").slice(0,2))} style={inputStyle} /></Field>
+          <Field label="Moves about every ___ years" hint="Most people move every few years — the app reminds you to check in as their time gets close. Leave blank for the default (3)."><input type="number" min="1" max="30" placeholder="3" value={form.move_cycle_years} onChange={e => update("move_cycle_years", e.target.value.replace(/\D/g, "").slice(0,2))} style={inputStyle} /></Field>
         </div>
         {!isEdit && <div style={{ fontSize: 11, color: "#9ca3af", marginTop: -8, marginBottom: 4 }}>Tip: birthday, anniversaries, and "last moved" save once you create the contact and reopen it to edit.</div>}
         <Field label="Source" hint="Where did this lead come from? Zillow, Open House, Referral, etc."><input value={form.source} onChange={e => update("source", e.target.value)} style={inputStyle} /></Field>

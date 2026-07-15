@@ -5850,7 +5850,7 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
           { label: "Days to Close", value: daysToClose !== null ? `${daysToClose}d` : "—", highlight: daysToClose !== null && daysToClose <= 7 },
           { label: "Progress", value: `${progress}%` },
           { label: "Overdue", value: overdueTasks, highlight: overdueTasks > 0 },
-          { label: "SMS Sent", value: smsMsgCount },
+          { label: "Texts Sent", value: smsMsgCount },
         ].map(s => (
           <div key={s.label} style={{ textAlign: "center", flexShrink: 0 }}>
             <div style={{ fontSize: 11, color: COLORS.muted, textTransform: "uppercase", letterSpacing: "0.05em", fontWeight: 600 }}>{s.label}</div>
@@ -6043,7 +6043,7 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
                   ["Year Built", tx.yearBuilt || "—"],
                   ["HOA", tx.inHoa === "yes" ? `Yes${tx.hoaFeeMonthly ? ` · $${Number(tx.hoaFeeMonthly).toLocaleString()}/mo` : ""}` : tx.inHoa === "no" ? "No" : "—"],
                   ["Flood Zone", tx.floodZone || "—"],
-                  ["Lockbox Access", tx.propertyAccess || "—"], ["Mail-Away", tx.mailAway || "No"]] },
+                  ["Lockbox / Gate Codes", tx.propertyAccess || "—"], ["Remote Closing", tx.mailAway || "No"]] },
                 { title: isCoordinator ? "Price & Dates" : "Financials", rows: (() => {
                     // Coordinator: price + dates only — the agent's commission/splits/
                     // fees are never shown.
@@ -6061,7 +6061,7 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
                       ["Executed Date", formatDate(tx.executedDate)],
                       ["Closing Date", formatDate(tx.closingDate)],
                       ["Days to Close", daysToClose !== null ? `${daysToClose}d` : "—"],
-                      ["Mail-Away", tx.mailAway || "No"],
+                      ["Remote Closing", tx.mailAway || "No"],
                     ];
                     if (isCoordinator) return dateRows;
                     const price = Number(tx.contractPrice || tx.listPrice || 0);
@@ -6594,7 +6594,7 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
             <Input label="Preferred Communication" value={partyForm.preferredComm} onChange={v => setPartyForm(f => ({ ...f, preferredComm: v }))} options={["Email", "Phone", "Text"]} />
             <Input label="Checks Email Frequently?" value={partyForm.checksEmail} onChange={v => setPartyForm(f => ({ ...f, checksEmail: v }))} options={["Yes", "No"]} />
             {partyForm.role === "Buyer" && <Input label="Primary Residence?" value={partyForm.primaryResidence} onChange={v => setPartyForm(f => ({ ...f, primaryResidence: v }))} options={["Yes", "No"]} />}
-            <Input label="Mail-Away / Mobile Closing?" value={partyForm.mailAway} onChange={v => setPartyForm(f => ({ ...f, mailAway: v }))} options={["Yes", "No"]} />
+            <Input label="Closing remotely? (mail-away / mobile notary)" value={partyForm.mailAway} onChange={v => setPartyForm(f => ({ ...f, mailAway: v }))} options={["Yes", "No"]} />
           </>)}
           {!partyFromContactBook && (
             <label style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12, cursor: "pointer", fontSize: 13, color: COLORS.muted }}>
@@ -7059,7 +7059,7 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
                 const isListing = !/buyer/i.test(editTxForm.type || "");
                 const rows = [
                   [isListing ? "Listing Agreement Start Date" : "Open Date", "openDate", "date"],
-                  [isListing ? "Listing Agreement Expiration" : "Rep. Expires", "representationExpiresOn", "date"],
+                  [isListing ? "Listing agreement expires" : "Buyer agreement expires", "representationExpiresOn", "date"],
                   ["Closing Date", "closingDate", "date"],
                   ["Executed Date", "executedDate", "date"],
                   ["Contract Price", "contractPrice", "number"],
@@ -7117,7 +7117,7 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
                 </div>
               )}
               <div style={{ marginBottom: 16 }}>
-                <div style={{ fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>Lockbox Access / CBS Code</div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>Lockbox / Gate / Alarm Codes</div>
                 <textarea value={editTxForm.propertyAccess || ""} onChange={e => setEditTxForm(f => ({ ...f, propertyAccess: e.target.value }))} placeholder="Lockbox code, gate code, special instructions..." style={{ width: "100%", padding: "10px 14px", borderRadius: 8, border: "1.5px solid #CCC", fontSize: 14, fontFamily: "inherit", boxSizing: "border-box", minHeight: 60, resize: "vertical" }} />
               </div>
               <div style={{ background: "#F4F4F4", borderRadius: 10, padding: 16, marginBottom: 16, display: isCoordinator ? "none" : "block" }}>
@@ -7130,7 +7130,7 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
                     </div>
                   ))}
                   <div>
-                    <div style={{ fontSize: 11, fontWeight: 700, color: "#555", textTransform: "uppercase", marginBottom: 4 }}>Mail-Away Closing?</div>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: "#555", textTransform: "uppercase", marginBottom: 4 }}>Closing remotely? (mail-away)</div>
                     <select value={editTxForm.mailAway || "No"} onChange={e => setEditTxForm(f => ({ ...f, mailAway: e.target.value }))} style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: "1.5px solid #CCC", fontSize: 13, fontFamily: "inherit" }}>
                       <option>No</option><option>Yes</option>
                     </select>
@@ -7154,7 +7154,7 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
                       <input type="number" value={editTxForm.earnestMoneyAmount || ""} onChange={e => setEditTxForm(f => ({ ...f, earnestMoneyAmount: e.target.value }))} placeholder="5000" style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: "1.5px solid #CCC", fontSize: 14, fontFamily: "inherit", boxSizing: "border-box" }} />
                     </div>
                     <div>
-                      <div style={{ fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", marginBottom: 6 }}>EMD Deadline</div>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", marginBottom: 6 }}>Deposit deadline (earnest money)</div>
                       <input type="date" value={editTxForm.emdDeadline ? String(editTxForm.emdDeadline).slice(0,10) : ""} onChange={e => setEditTxForm(f => ({ ...f, emdDeadline: e.target.value }))} style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: "1.5px solid #CCC", fontSize: 14, fontFamily: "inherit", boxSizing: "border-box" }} />
                     </div>
                   </div>
@@ -7197,6 +7197,7 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
                   <div style={{ marginBottom: 14 }}>
                     <div style={{ fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", marginBottom: 6 }}>Flood Zone</div>
                     <input value={editTxForm.floodZone || ""} onChange={e => setEditTxForm(f => ({ ...f, floodZone: e.target.value }))} placeholder="e.g. AE, X" style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: "1.5px solid #CCC", fontSize: 14, fontFamily: "inherit", boxSizing: "border-box" }} />
+                    <div style={{ fontSize: 11.5, color: "#888", marginTop: 4 }}>From the flood map (your title company or realtor MLS sheet has it). X = low risk. AE or A = flood insurance likely required — the app adds the flood addendum.</div>
                   </div>
                   {/* Compliance-checklist triggers the app can't infer */}
                   <div style={{ display: "flex", gap: 20, marginBottom: 14, flexWrap: "wrap" }}>
