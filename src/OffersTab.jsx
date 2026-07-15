@@ -72,6 +72,7 @@ export default function OffersTab({ tx, token, currentUser, createSignal = 0 }) 
   const [wizardOfferId, setWizardOfferId] = useState(null);
   const [sendModal, setSendModal] = useState(null);   // offer being sent to listing agent
   const [signModal, setSignModal] = useState(null);   // offer being sent for buyer e-signature
+  const [offerMenu, setOfferMenu] = useState(null);    // offer id whose ⋯ menu is open
 
   const load = async () => {
     setLoading(true);
@@ -276,6 +277,10 @@ export default function OffersTab({ tx, token, currentUser, createSignal = 0 }) 
         <div style={{ background: "#f9fafb", border: "2px dashed #d1d5db", borderRadius: 8, padding: 40, textAlign: "center", color: "#6b7280" }}>
           <div style={{ fontSize: 32, marginBottom: 8 }}>📝</div>
           <div style={{ fontWeight: 700, color: "#374151", marginBottom: 4 }}>No offers yet</div>
+          <button onClick={createOffer} disabled={creating}
+            style={{ margin: "12px auto 0", display: "block", padding: "12px 26px", background: "#1E8449", color: "#fff", border: "none", borderRadius: 10, fontSize: 15, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>
+            {creating ? "Creating…" : "➕ Start an offer"}
+          </button>
           <div style={{ fontSize: 13 }}>Use the 📝 Create Offer button at the top of this transaction to build your first offer.</div>
         </div>
       ) : (
@@ -318,24 +323,54 @@ export default function OffersTab({ tx, token, currentUser, createSignal = 0 }) 
                     <td style={{ padding: "10px 12px", color: "#6b7280" }}>{fmtDate(o.updated_at)}</td>
                     <td style={{ padding: "10px 12px" }}>
                       {(() => {
-                        const btn = (label, onClick, bg, color) => (
-                          <button onClick={onClick} style={{ background: bg, color, border: "none", padding: "4px 10px", borderRadius: 4, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>{label}</button>
+                        const btn = (label, onClick, bg, color, big) => (
+                          <button onClick={onClick} style={{ background: bg, color, border: "none", padding: big ? "7px 14px" : "4px 10px", borderRadius: 6, fontSize: big ? 12.5 : 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>{label}</button>
                         );
                         const active = !["accepted", "rejected", "withdrawn"].includes(o.status);
+                        // ONE obvious next step per offer; everything else under ⋯.
+                        let primary = null;
+                        if (o.status === "draft") primary = ["✏️ Open & finish", () => setWizardOfferId(o.id), "#0c4a6e"];
+                        else if (active && o.signing_status === "out_for_signature") primary = ["✍️ Signature status", () => setSignModal(o), "#86198f"];
+                        else if (active && o.packet_pdf_key && !o.signed_doc_id) primary = ["✍️ Get buyer signatures", () => setSignModal(o), "#86198f"];
+                        else if (active && o.signed_doc_id && o.status !== "sent" && o.status !== "countered") primary = ["📧 Send to listing agent", () => sendToListing(o), "#1E8449"];
+                        else if (o.status === "accepted" && !o.executed_doc_id) primary = [execBusy && execTarget?.id === o.id ? "Uploading…" : "📜 Upload Executed Contract", () => pickExecuted(o), "#065f46"];
+                        const menuItems = [
+                          { label: "✏️ Open the offer", fn: () => setWizardOfferId(o.id) },
+                          o.packet_pdf_key && { label: "📄 View the packet", fn: () => viewPacket(o.id) },
+                          o.signed_doc_id && { label: "👀 View signed offer", fn: () => viewSignedDoc(o.signed_doc_id) },
+                          active && { label: "📤 Upload a signed copy (from DocuSign etc.)", fn: () => pickSigned(o) },
+                          active && o.signed_doc_id && (o.status === "sent" || o.status === "countered") && { label: "📧 Re-send to listing agent", fn: () => sendToListing(o) },
+                          o.status === "accepted" && o.executed_doc_id && { label: "📜 Replace executed contract", fn: () => pickExecuted(o) },
+                          o.status === "accepted" && { label: "↩️ Undo acceptance", fn: () => unacceptOffer(o.id) },
+                          (o.status === "draft" || o.status === "ready") && { label: "🗑 Delete this offer…", danger: true, fn: () => deleteOffer(o.id) },
+                        ].filter(Boolean);
                         return (
-                          <div style={{ display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "flex-end" }}>
-                            {btn("Open", () => setWizardOfferId(o.id), "#e5e7eb", "#374151")}
-                            {o.packet_pdf_key && btn("📄 Packet", () => viewPacket(o.id), "#e0f2fe", "#075985")}
-                            {o.signed_doc_id && btn("👀 View signed offer", () => viewSignedDoc(o.signed_doc_id), "#dcfce7", "#166534")}
-                            {active && o.packet_pdf_key && !o.signed_doc_id &&
-                              btn(o.signing_status === "out_for_signature" ? "✍️ Signature status" : "✍️ Get buyer signatures", () => setSignModal(o), "#86198f", "#fff")}
-                            {active && btn("📤 Upload Signed Offer", () => pickSigned(o), "#0c4a6e", "#fff")}
-                            {active && o.signed_doc_id && btn(o.status === "sent" ? "📧 Re-send to listing agent" : "📧 Send to listing agent", () => sendToListing(o), "#ede9fe", "#5b21b6")}
-                            {(o.status === "ready" || o.status === "sent" || o.status === "countered") && btn("✅ Accepted", () => acceptOffer(o.id), "#16a34a", "#fff")}
-                            {(o.status === "sent" || o.status === "countered") && btn("Declined", () => setOfferStatus(o.id, "rejected", "DECLINED by the seller"), "#fee2e2", "#7f1d1d")}
-                            {o.status === "accepted" && btn(execBusy && execTarget?.id === o.id ? "Uploading…" : o.executed_doc_id ? "✅ Executed contract on file — replace" : "📜 Upload Executed Contract", () => pickExecuted(o), "#065f46", "#fff")}
-                            {o.status === "accepted" && btn("Undo acceptance", () => unacceptOffer(o.id), "#fef3c7", "#92400e")}
-                            {(o.status === "draft" || o.status === "ready") && btn("Delete", () => deleteOffer(o.id), "#fee2e2", "#7f1d1d")}
+                          <div style={{ display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "flex-end", alignItems: "center" }}>
+                            {(o.status === "sent" || o.status === "countered") && (
+                              <span style={{ fontSize: 11.5, color: "#92400e", fontWeight: 700 }}>⏳ Waiting on the seller —</span>
+                            )}
+                            {primary && btn(primary[0], primary[1], primary[2], "#fff", true)}
+                            {(o.status === "ready" || o.status === "sent" || o.status === "countered") && btn("✅ Seller accepted", () => acceptOffer(o.id), "#16a34a", "#fff", true)}
+                            {(o.status === "sent" || o.status === "countered") && btn("❌ Declined", () => setOfferStatus(o.id, "rejected", "DECLINED by the seller"), "#fee2e2", "#7f1d1d")}
+                            <div style={{ position: "relative" }}>
+                              <button onClick={() => setOfferMenu(offerMenu === o.id ? null : o.id)} title="More actions"
+                                style={{ background: "#fff", color: "#374151", border: "1px solid #d1d5db", padding: "5px 10px", borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>⋯</button>
+                              {offerMenu === o.id && (
+                                <>
+                                  <div onClick={() => setOfferMenu(null)} style={{ position: "fixed", inset: 0, zIndex: 60 }} />
+                                  <div style={{ position: "absolute", right: 0, top: "100%", marginTop: 4, background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, boxShadow: "0 8px 24px rgba(0,0,0,0.16)", zIndex: 61, minWidth: 250, padding: 4, textAlign: "left" }}>
+                                    {menuItems.map((it, ii) => (
+                                      <button key={ii} onClick={() => { setOfferMenu(null); it.fn(); }}
+                                        style={{ display: "block", width: "100%", padding: "9px 13px", background: "none", border: "none", borderRadius: 6, fontSize: 13, color: it.danger ? "#B91C1C" : "#1f2937", cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}
+                                        onMouseEnter={e => e.currentTarget.style.background = it.danger ? "#FEF2F2" : "#f3f4f6"}
+                                        onMouseLeave={e => e.currentTarget.style.background = "none"}>
+                                        {it.label}
+                                      </button>
+                                    ))}
+                                  </div>
+                                </>
+                              )}
+                            </div>
                           </div>
                         );
                       })()}
