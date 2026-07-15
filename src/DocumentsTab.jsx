@@ -38,6 +38,8 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
   const [signStatus, setSignStatus] = useState({}); // docId → {pending, signed}
   const [showLOI, setShowLOI] = useState(false); // Letter of Intent generator (commercial only)
   const isCommercial = /commercial/i.test(`${tx.propertyType || ""} ${tx.constructionType || ""}`);
+  const isBuyerDeal = /buyer|dual/i.test(tx.transaction_type || tx.transactionType || tx.type || "");
+  const [waiverBusy, setWaiverBusy] = useState(false); // generating the inspection waiver
   const tok = localStorage.getItem("tp_token") || "";
   const headers = { "Content-Type": "application/json", "Authorization": "Bearer " + tok };
   const [readingDates, setReadingDates] = useState(null); // doc.id being read
@@ -414,8 +416,37 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
     );
   };
 
+  const generateInspectionWaiver = async () => {
+    if (waiverBusy) return;
+    setWaiverBusy(true);
+    try {
+      const r = await fetch(`${API}/transactions/${tx.id}/inspection-waiver/generate`, { method: "POST", headers });
+      const d = await r.json();
+      if (!r.ok || !d.success) throw new Error(d.error || "Could not generate the waiver");
+      await Promise.all([loadDocs(), loadRequired()]);
+      alert(`✅ "${d.name}" is in this deal's Documents below.\n\nNext: find it in the list and click "✍️ Get signature" to email it to the buyer to sign. The signed copy files back here automatically.`);
+    } catch (e) { alert("⚠️ " + e.message); }
+    setWaiverBusy(false);
+  };
+
   return (
     <div style={{ padding: 24 }}>
+      {/* Home-inspection waiver — buyer deals only */}
+      {isBuyerDeal && !coordinatorMode && (
+        <div style={{ background: "#FFFBEB", border: "1px solid #FDE68A", borderRadius: 12, padding: 16, marginBottom: 20,
+          display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+          <div style={{ minWidth: 220, flex: 1 }}>
+            <div style={{ fontWeight: 800, fontSize: 15, color: "#92400E" }}>🏠 Buyer declining a home inspection?</div>
+            <div style={{ fontSize: 12.5, color: "#78350F", marginTop: 3, lineHeight: 1.45 }}>
+              Generate a Home Inspection Waiver — it records that you recommended an inspection and the buyer chose to decline, which protects you. Then click <b>✍️ Get signature</b> on it below to have the buyer sign.
+            </div>
+          </div>
+          <button onClick={generateInspectionWaiver} disabled={waiverBusy}
+            style={{ background: "#B45309", color: "#fff", border: "none", padding: "10px 18px", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: waiverBusy ? "default" : "pointer", whiteSpace: "nowrap", opacity: waiverBusy ? 0.6 : 1 }}>
+            {waiverBusy ? "Generating…" : "Generate Waiver"}
+          </button>
+        </div>
+      )}
       {/* Letter of Intent generator — commercial deals only */}
       {isCommercial && (
         <div style={{ background: "#ECFEFF", border: "1px solid #67E8F9", borderRadius: 12, padding: 16, marginBottom: 20,
