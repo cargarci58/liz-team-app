@@ -702,31 +702,86 @@ function CreditCoachCard({ txId }) {
   );
 }
 
-const ROADMAP_STEPS = [
-  { n: 1, t: "Get pre-approved", d: "A lender checks your income, credit, and savings and tells you what you can spend. This makes your offers real to sellers." },
-  { n: 2, t: "Go shopping", d: "Tour homes with your agent. Tell them what you love and hate — it helps them find 'the one' faster." },
-  { n: 3, t: "Make an offer", d: "Your agent prepares the offer and negotiates price and terms. You'll put down an earnest-money deposit to show you're serious." },
-  { n: 4, t: "Under contract", d: "Offer accepted! Now the clock starts: inspections, appraisal, and your loan move forward together." },
-  { n: 5, t: "Inspections & appraisal", d: "An inspector checks the home's condition; the lender's appraiser confirms it's worth the price. Your agent guides any repair requests." },
-  { n: 6, t: "Loan approval", d: "Your lender finalizes everything. Keep your finances steady — this is the danger zone for surprises (see Don'ts)." },
-  { n: 7, t: "Final walk-through", d: "You see the home one last time to confirm it's in the agreed condition before closing." },
-  { n: 8, t: "Closing day 🎉", d: "You sign, funds transfer, and you get the keys. Welcome home!" },
+// The six stages every purchase moves through — the SAME stages the buyer sees
+// light up in their progress tracker (statusKey ties each to the deal status),
+// written for someone who has never bought before. Mirrors the shareable Buyer
+// Journey guide.
+const JOURNEY_STAGES = [
+  { statusKey: "Active", n: 1, icon: "🔍", title: "Finding the one", tag: "Searching",
+    happening: "You tour homes — in person and online — until one feels right. Your agent lines up showings and shares new listings.",
+    doText: "Get your pre-approval in hand, share your must-haves and budget, and go see homes. Tell your agent what you loved and hated after each one.",
+    howLong: "A few weeks to a few months — you set the pace here.",
+    note: "It's okay to walk away from a home you're unsure about. The right one won't require you to talk yourself into it." },
+  { statusKey: "Under Contract", n: 2, icon: "🤝", title: "Making an offer & going under contract", tag: "Contract",
+    happening: "Your agent writes up your offer and negotiates with the seller. When both sides sign, you're “under contract.”",
+    doText: "Decide your offer with your agent, then put down earnest money — a good-faith deposit held safely in escrow and credited back to you at closing.",
+    howLong: "Offer to acceptance is often 1–3 days of back-and-forth.",
+    note: "Being under contract still gives you real chances to check the home and step back if something's wrong." },
+  { statusKey: "Inspection", n: 3, icon: "🔎", title: "Inspection & due diligence", tag: "Inspection",
+    happening: "A professional inspector examines the home top to bottom so you know exactly what you're buying.",
+    doText: "Attend if you can, read the report with your agent, and decide what to ask the seller to fix — or, if it's serious, cancel within your inspection window.",
+    howLong: "Usually the first ~10–15 days after going under contract.",
+    note: "No home is perfect — not even new ones. The inspection isn't about a flawless house; it's about no surprises." },
+  { statusKey: "Appraisal", n: 4, icon: "🏦", title: "Financing & the appraisal", tag: "Financing",
+    happening: "Your lender processes your loan and a neutral appraiser confirms the home is worth what you're paying.",
+    doText: "Send your lender whatever they ask for quickly — fast replies keep your closing on schedule. Don't open new credit or make big purchases right now.",
+    howLong: "Runs in the background for a few weeks.",
+    note: "If a lender request feels like a lot, it's routine — they verify everything to protect your loan, not because anything's wrong." },
+  { statusKey: "Clear to Close", n: 5, icon: "✅", title: "Clear to close", tag: "Almost there",
+    happening: "Your loan is fully approved — “clear to close.” You do a final walk-through and review the exact numbers for closing day.",
+    doText: "Walk the home one last time, review your closing statement, and confirm wiring instructions by phone with a number you trust — wire fraud is the one scam to guard against.",
+    howLong: "The last few days before closing.",
+    note: "Seeing the real closing numbers can be a gut-check. Your agent will walk every line with you — ask about anything." },
+  { statusKey: "Closed", n: 6, icon: "🗝️", title: "Closing day — the keys are yours", tag: "Closed",
+    happening: "You sign the final paperwork, your funds and loan are delivered, the sale is recorded — and the home is officially yours.",
+    doText: "Bring your ID and any required funds, sign (there's a lot of it — that's normal), and collect your keys. Then breathe.",
+    howLong: "The signing itself is about an hour.",
+    note: "That's it. You did the hard thing most people are scared to even start. Welcome home." },
 ];
+const JOURNEY_ORDER = ["Active", "Under Contract", "Inspection", "Appraisal", "Clear to Close", "Closed"];
 const DOS = ["Stay in steady, documented employment", "Keep paying every bill on time", "Save your pay stubs and bank statements", "Keep money in your existing accounts", "Answer your lender's requests fast", "Ask your agent any question — there are no dumb ones"];
 const DONTS = ["Don't open new credit cards or finance a car", "Don't change jobs without telling your lender", "Don't make large deposits you can't explain", "Don't co-sign a loan for anyone", "Don't max out or close credit cards", "Don't furniture-shop on credit before closing"];
 
-function FirstTimeRoadmapCard() {
+function FirstTimeRoadmapCard({ tx }) {
+  const NAVY = "#1A5276";
+  const currentIndex = Math.max(0, JOURNEY_ORDER.indexOf(tx?.status));
   return (
-    <div style={{ background: C.white, borderRadius: 14, padding: 18, marginBottom: 14, boxShadow: "0 1px 4px rgba(0,0,0,0.08)", borderLeft: "4px solid #1A5276" }}>
-      <div style={{ fontSize: 12, fontWeight: 800, color: C.gray, textTransform: "uppercase", letterSpacing: 1, marginBottom: 4 }}>🧭 Your Home-Buying Roadmap</div>
-      <div style={{ fontSize: 12, color: C.gray, marginBottom: 14 }}>Never bought before? Here's exactly what happens, start to finish — so nothing catches you off guard.</div>
-      {ROADMAP_STEPS.map((s, i) => (
-        <div key={s.n} style={{ display: "flex", gap: 12, alignItems: "flex-start", marginBottom: i < ROADMAP_STEPS.length - 1 ? 14 : 4 }}>
-          <span style={{ width: 26, height: 26, borderRadius: "50%", background: "#1A5276", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 800, flexShrink: 0 }}>{s.n}</span>
-          <div style={{ flex: 1 }}><div style={{ fontSize: 14, fontWeight: 700, color: C.black }}>{s.t}</div><div style={{ fontSize: 12.5, color: C.gray, lineHeight: 1.55 }}>{s.d}</div></div>
-        </div>
-      ))}
-      <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 8 }}>
+    <div style={{ background: C.white, borderRadius: 14, padding: 18, marginBottom: 14, boxShadow: "0 1px 4px rgba(0,0,0,0.08)", borderLeft: "4px solid " + NAVY }}>
+      <div style={{ fontSize: 12, fontWeight: 800, color: C.gray, textTransform: "uppercase", letterSpacing: 1, marginBottom: 4 }}>🧭 Your Home-Buying Journey</div>
+      <div style={{ fontSize: 12, color: C.gray, marginBottom: 16 }}>Never bought before? Here's exactly what happens, start to finish — so nothing catches you off guard. The highlighted step is where you are right now.</div>
+      {JOURNEY_STAGES.map((s, i) => {
+        const stageIdx = JOURNEY_ORDER.indexOf(s.statusKey);
+        const isDone = stageIdx < currentIndex;
+        const isCurrent = stageIdx === currentIndex;
+        return (
+          <div key={s.n} style={{
+            display: "flex", gap: 12, alignItems: "flex-start",
+            padding: isCurrent ? 12 : "12px 0",
+            borderRadius: isCurrent ? 12 : 0,
+            background: isCurrent ? "#EAF2F8" : "transparent",
+            border: isCurrent ? "1px solid #AED6F1" : "none",
+            borderBottom: !isCurrent && i < JOURNEY_STAGES.length - 1 ? "1px solid " + C.lightGray : (isCurrent ? "1px solid #AED6F1" : "none"),
+            marginBottom: i < JOURNEY_STAGES.length - 1 ? 8 : 4,
+            opacity: isDone ? 0.62 : 1,
+          }}>
+            <span style={{ width: 30, height: 30, borderRadius: "50%", background: isDone ? C.success : NAVY, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 800, flexShrink: 0 }}>
+              {isDone ? "✓" : s.n}
+            </span>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap" }}>
+                <span style={{ fontSize: 16 }}>{s.icon}</span>
+                <span style={{ fontSize: 14, fontWeight: 700, color: C.black }}>{s.title}</span>
+                {isCurrent && <span style={{ fontSize: 10, fontWeight: 800, color: "#fff", background: NAVY, borderRadius: 20, padding: "2px 8px", letterSpacing: 0.5 }}>YOU'RE HERE</span>}
+              </div>
+              <div style={{ fontSize: 12.5, color: C.black, lineHeight: 1.55, marginTop: 5 }}>{s.happening}</div>
+              <div style={{ fontSize: 12.5, color: C.gray, lineHeight: 1.55, marginTop: 6 }}><b style={{ color: NAVY }}>What you'll do:</b> {s.doText}</div>
+              <div style={{ fontSize: 12, color: C.gray, lineHeight: 1.5, marginTop: 4 }}><b style={{ color: NAVY }}>How long:</b> {s.howLong}</div>
+              <div style={{ fontSize: 12, color: "#1E6B47", background: C.successBg, borderRadius: 9, padding: "8px 10px", marginTop: 8, lineHeight: 1.5 }}>💛 {s.note}</div>
+            </div>
+          </div>
+        );
+      })}
+      <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 14 }}>
         <div style={{ flex: "1 1 150px", background: C.successBg, borderRadius: 12, padding: 14 }}>
           <div style={{ fontSize: 13, fontWeight: 800, color: C.success, marginBottom: 8 }}>✅ DO</div>
           {DOS.map((d, i) => <div key={i} style={{ fontSize: 12.5, color: C.black, lineHeight: 1.5, marginBottom: 6 }}>• {d}</div>)}
@@ -1760,10 +1815,10 @@ export default function ClientPortal({ user, onLogout, previewTxId, onExitPrevie
             {/* BUYER GUIDE TAB — loans, credit, first-time roadmap */}
             {activeTab === "buyer-guide" && isBuyerSide && (
               <div>
+                <FirstTimeRoadmapCard tx={tx} />
                 <MortgageRateCard isBuyerSide={true} />
                 <LoanTypesCard />
                 <CreditCoachCard txId={tx.id} />
-                <FirstTimeRoadmapCard />
               </div>
             )}
 
