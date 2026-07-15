@@ -35,6 +35,7 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
   const [preview, setPreview] = useState(null); // { loading, doc, url, mime }
   const [share, setShare] = useState(null); // { doc } — share-with-party modal
   const [signDoc, setSignDoc] = useState(null); // { doc } — request e-signature modal
+  const [rowMenu, setRowMenu] = useState(null);  // doc.id whose ⋯ menu is open
   const [signStatus, setSignStatus] = useState({}); // docId → {pending, signed}
   const [showLOI, setShowLOI] = useState(false); // Letter of Intent generator (commercial only)
   const isCommercial = /commercial/i.test(`${tx.propertyType || ""} ${tx.constructionType || ""}`);
@@ -578,28 +579,15 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
                       <div style={{ fontWeight: 600, fontSize: 14, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{doc.name}</div>
                       <div style={{ fontSize: 11, color: COLORS.muted, marginTop: 2 }}>{doc.category} · {new Date(doc.created_at).toLocaleDateString()}</div>
                     </div>
-                    <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
-                      <button onClick={() => toggleVisibility(doc)}
-                        title={doc.is_visible_to_client ? "Your client CAN see this file in their portal. Click to hide it." : "Your client CANNOT see this file. Click to share it to their portal."}
-                        style={{ padding: "4px 8px", borderRadius: 6, border: doc.is_visible_to_client ? "1px solid #1E8449" : "1px solid #DDDDDD", background: doc.is_visible_to_client ? "#D5F5E3" : "#F5F5F5", cursor: "pointer", fontSize: 11, fontWeight: 600 }}>
-                        {doc.is_visible_to_client ? "👁 Client can view" : "🔒 Hidden"}
-                      </button>
-                      <button onClick={() => openPreview(doc)} title="Preview"
-                        style={{ padding: "4px 10px", borderRadius: 6, border: "1px solid #DDDDDD", background: "#fff", cursor: "pointer", fontSize: 12, color: COLORS.info }}>
-                        👁 View
-                      </button>
-                      {isContractReadable(doc) && (
-                        <button onClick={() => readContractDates(doc)} disabled={readingDates === doc.id}
-                          title="Have AI read this contract and fill in the deal's dates + timeline"
-                          style={{ padding: "4px 10px", borderRadius: 6, border: "1px solid #C9A84C", background: readingDates === doc.id ? "#F5F5F5" : "#FCF6E3", cursor: readingDates === doc.id ? "default" : "pointer", fontSize: 12, color: "#7A5C00", fontWeight: 600 }}>
-                          {readingDates === doc.id ? "Reading…" : "📅 Read dates"}
-                        </button>
+                    <div style={{ display: "flex", gap: 6, flexShrink: 0, alignItems: "center" }}>
+                      {/* Rookie rule: two buttons per file — View and Get signature.
+                          Everything else (share, download, hide, AI dates, delete)
+                          lives under ⋯ so the row stops shouting. */}
+                      {doc.is_visible_to_client && (
+                        <span title="Your client can see this file in their portal (change under ⋯)"
+                          style={{ padding: "4px 8px", borderRadius: 6, background: "#D5F5E3", fontSize: 11, fontWeight: 700, color: "#1E8449" }}>👁 Client</span>
                       )}
-                      <button onClick={() => setShare({ doc })} title="Email this file to a party in the transaction"
-                        style={{ padding: "4px 10px", borderRadius: 6, border: "1px solid #DDDDDD", background: "#fff", cursor: "pointer", fontSize: 12, color: COLORS.info }}>
-                        📤 Share
-                      </button>
-                      {/pdf$/i.test(doc.mime_type || "") && !coordinatorMode && (() => {
+                      {(() => {
                         const ss = signStatus[doc.id];
                         const waiting = ss && ss.pending > 0;
                         const allSigned = ss && ss.pending === 0 && ss.signed > 0;
@@ -613,26 +601,51 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
                             )}
                             {allSigned && (
                               <span title="Everyone signed — the signed copy is filed in this list"
-                                style={{ padding: "4px 8px", borderRadius: 6, background: "#d5f5e3", fontSize: 11, fontWeight: 700, color: "#1e8449" }}>
-                                ✅ Signed
-                              </span>
+                                style={{ padding: "4px 8px", borderRadius: 6, background: "#d5f5e3", fontSize: 11, fontWeight: 700, color: "#1e8449" }}>✅ Signed</span>
                             )}
-                            <button onClick={() => setSignDoc({ doc })}
-                              title={waiting ? "See who has signed, or cancel the signing links" : "Email a private e-signing link — the signed copy (with a signature certificate) files back here"}
-                              style={{ padding: "4px 10px", borderRadius: 6, border: "1px solid #d8b4fe", background: "#faf5ff", cursor: "pointer", fontSize: 12, color: "#86198f", fontWeight: 600 }}>
-                              {waiting ? "✍️ Signature status" : "✍️ Get signature"}
+                            <button onClick={() => openPreview(doc)} title="Open and read this file"
+                              style={{ padding: "5px 12px", borderRadius: 6, border: "1px solid #DDDDDD", background: "#fff", cursor: "pointer", fontSize: 12, color: COLORS.info, fontWeight: 600 }}>
+                              👁 View
                             </button>
+                            {/pdf$/i.test(doc.mime_type || "") && !coordinatorMode && (
+                              <button onClick={() => setSignDoc({ doc })}
+                                title={waiting ? "See who has signed, or cancel the signing links" : "Email a private e-signing link — the signed copy files back here"}
+                                style={{ padding: "5px 12px", borderRadius: 6, border: "1px solid #d8b4fe", background: "#faf5ff", cursor: "pointer", fontSize: 12, color: "#86198f", fontWeight: 600 }}>
+                                {waiting ? "✍️ Status" : "✍️ Get signature"}
+                              </button>
+                            )}
                           </>
                         );
                       })()}
-                      <button onClick={() => handleDownload(doc)} title="Download"
-                        style={{ padding: "4px 10px", borderRadius: 6, border: "1px solid #DDDDDD", background: "#fff", cursor: "pointer", fontSize: 12, color: COLORS.info }}>
-                        ↓
-                      </button>
-                      <button onClick={() => handleDelete(doc)}
-                        style={{ padding: "4px 8px", borderRadius: 6, border: "1px solid #FCA5A5", background: "#fff", cursor: "pointer", fontSize: 12, color: COLORS.danger }}>
-                        🗑
-                      </button>
+                      <div style={{ position: "relative" }}>
+                        <button onClick={() => setRowMenu(rowMenu === doc.id ? null : doc.id)} title="More actions"
+                          style={{ padding: "5px 10px", borderRadius: 6, border: "1px solid #DDDDDD", background: "#fff", cursor: "pointer", fontSize: 13, fontWeight: 700, color: COLORS.text }}>⋯</button>
+                        {rowMenu === doc.id && (
+                          <>
+                            <div onClick={() => setRowMenu(null)} style={{ position: "fixed", inset: 0, zIndex: 60 }} />
+                            <div style={{ position: "absolute", right: 0, top: "100%", marginTop: 4, background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, boxShadow: "0 8px 24px rgba(0,0,0,0.16)", zIndex: 61, minWidth: 230, padding: 4 }}>
+                              {[
+                                { icon: "📤", label: "Email to someone on the deal", fn: () => setShare({ doc }) },
+                                { icon: doc.is_visible_to_client ? "🔒" : "👁", label: doc.is_visible_to_client ? "Hide from client's portal" : "Show in client's portal", fn: () => toggleVisibility(doc) },
+                                isContractReadable(doc) && { icon: "📅", label: readingDates === doc.id ? "Reading…" : "AI: read dates from this contract", fn: () => readContractDates(doc) },
+                                { icon: "⬇️", label: "Download", fn: () => handleDownload(doc) },
+                                { divider: true },
+                                { icon: "🗑", label: "Delete…", danger: true, fn: () => handleDelete(doc) },
+                              ].filter(Boolean).map((it, ii) => it.divider ? (
+                                <div key={ii} style={{ height: 1, background: "#e5e7eb", margin: "6px 8px" }} />
+                              ) : (
+                                <button key={ii} onClick={() => { setRowMenu(null); it.fn(); }}
+                                  style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", padding: "9px 13px", background: "none", border: "none", borderRadius: 6, fontSize: 13, color: it.danger ? "#B91C1C" : "#1f2937", cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}
+                                  onMouseEnter={e => e.currentTarget.style.background = it.danger ? "#FEF2F2" : "#f3f4f6"}
+                                  onMouseLeave={e => e.currentTarget.style.background = "none"}>
+                                  <span style={{ fontSize: 15 }}>{it.icon}</span>
+                                  <span>{it.label}</span>
+                                </button>
+                              ))}
+                            </div>
+                          </>
+                        )}
+                      </div>
                     </div>
                   </div>
                 ))}
