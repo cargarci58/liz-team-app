@@ -443,6 +443,7 @@ export function LogCallButton({ contact, token, onLogged, compact, large, autoOp
 // ============================================================
 function ContactModal({ contact, token, onClose, onSaved }) {
   const isEdit = !!(contact && contact.id);
+  const [showMoreFields, setShowMoreFields] = useState(isEdit); // quick add = 4 fields; details fold open when editing
   const [form, setForm] = useState({
     firstName: (contact && contact.first_name) || "",
     lastName: (contact && contact.last_name) || "",
@@ -540,6 +541,30 @@ function ContactModal({ contact, token, onClose, onSaved }) {
           </label>
         )}
 
+        <Field label="How important is this person to your business?" hint="This decides how often the app reminds you to stay in touch. You can always change it.">
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            {[["A", "⭐ VIP", "past clients & referrers"], ["B", "👍 Regular", "stay in touch"], ["C", "🌱 Just met", "new connection"]].map(([t, label, sub]) => {
+              const on = form.tier === t || (t === "A" && form.tier === "A+");
+              return (
+                <button type="button" key={t} onClick={() => update("tier", t)}
+                  style={{ padding: "10px 14px", borderRadius: 10, border: on ? "2px solid #0c4a6e" : "1px solid #d1d5db", background: on ? "#0c4a6e" : "#fff", color: on ? "#fff" : "#374151", cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}>
+                  <div style={{ fontSize: 13.5, fontWeight: 800 }}>{label}</div>
+                  <div style={{ fontSize: 10.5, opacity: 0.75 }}>{sub}</div>
+                </button>
+              );
+            })}
+          </div>
+        </Field>
+        <Field label="Where do you know them from?" hint="e.g. Referral, open house, Zillow, church, gym…"><input value={form.source} onChange={e => update("source", e.target.value)} style={inputStyle} /></Field>
+
+        {!showMoreFields && (
+          <button type="button" onClick={() => setShowMoreFields(true)}
+            style={{ width: "100%", padding: "10px 0", background: "#f8fafc", border: "1px dashed #cbd5e1", borderRadius: 8, color: "#475569", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", marginBottom: 12 }}>
+            ▾ More details (optional) — birthday, spouse, groups, lead heat…
+          </button>
+        )}
+        {showMoreFields && (<>
+
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
           <Field label="Type">
             <select value={form.contactType} onChange={e => update("contactType", e.target.value)} style={inputStyle}>
@@ -555,7 +580,7 @@ function ContactModal({ contact, token, onClose, onSaved }) {
           </Field>
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-          <Field label="How important to your business? (A–D)">
+          <Field label="Precise grade (optional)" hint="Fine-tune the importance you picked above (A+ = top referrers, D = rarely contact).">
             <select value={form.tier} onChange={e => update("tier", e.target.value)} style={inputStyle}>
               <option value="">— none —</option>
               {["A+","A","B","C","D"].map(t => <option key={t} value={t}>{t}</option>)}
@@ -574,7 +599,6 @@ function ContactModal({ contact, token, onClose, onSaved }) {
           <Field label="Moves about every ___ years" hint="Most people move every few years — the app reminds you to check in as their time gets close. Leave blank for the default (3)."><input type="number" min="1" max="30" placeholder="3" value={form.move_cycle_years} onChange={e => update("move_cycle_years", e.target.value.replace(/\D/g, "").slice(0,2))} style={inputStyle} /></Field>
         </div>
         {!isEdit && <div style={{ fontSize: 11, color: "#9ca3af", marginTop: -8, marginBottom: 4 }}>Tip: birthday, anniversaries, and "last moved" save once you create the contact and reopen it to edit.</div>}
-        <Field label="Source" hint="Where did this lead come from? Zillow, Open House, Referral, etc."><input value={form.source} onChange={e => update("source", e.target.value)} style={inputStyle} /></Field>
         <Field label="Groups" hint="Optional — tag where you know them from. Pick any that apply (a contact can be in several, or none).">
           {availableGroups.length === 0 && form.groups.length === 0 ? (
             <div style={{ fontSize: 12, color: "#9ca3af", marginBottom: 6 }}>No groups yet — create one below or in "Manage Groups".</div>
@@ -600,6 +624,7 @@ function ContactModal({ contact, token, onClose, onSaved }) {
           </div>
         </Field>
         <Field label="Notes"><textarea value={form.notes} onChange={e => update("notes", e.target.value)} rows={3} style={{ ...inputStyle, resize: "vertical" }} /></Field>
+        </>)}
 
         {err && <div style={{ color: "#b91c1c", fontSize: 13, marginBottom: 8 }}>⚠️ {err}</div>}
 
@@ -1918,7 +1943,6 @@ export default function ContactsPage({ token, onBack }) {
                   {[
                     { label: "📣 Email Newsletter", on: () => setShowCampaign(true), hint: "mass email" },
                     { label: "👥 Manage Groups", on: () => setShowGroups(true) },
-                    { label: "📥 Import from CSV", on: () => setShowImport(true) },
                     { label: "📤 Export to CSV", on: exportCsv, hint: `${contacts.length} shown` },
                     { label: "🏷 Print Mailing Labels", on: () => printLabels(contacts), hint: "Avery 5160" },
                     { label: "⚙ Settings", on: () => setShowSettings(true) },
