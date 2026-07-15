@@ -1253,6 +1253,133 @@ function FaqTab({ agentPhone }) {
   );
 }
 
+// ════════════════════════════════════════════════════════════════
+// PORTAL EXPERIENCE FEEDBACK — a gentle, occasional slide-up asking the client
+// what they like and don't like about the portal. Sends straight to the agent.
+// Self-throttles with localStorage so it never nags: dismiss = quiet 30 days,
+// "maybe later" = 7 days, submitted = quiet 45 days (and the server won't re-ask).
+// ════════════════════════════════════════════════════════════════
+function PortalFeedbackPrompt({ tx, isSellerSide, disabled }) {
+  const [show, setShow] = useState(false);
+  const [rating, setRating] = useState(0);
+  const [hover, setHover] = useState(0);
+  const [liked, setLiked] = useState("");
+  const [disliked, setDisliked] = useState("");
+  const [sending, setSending] = useState(false);
+  const [done, setDone] = useState(false);
+  const txId = tx?.id;
+  const doneKey = "pf_done_" + txId;
+  const snoozeKey = "pf_snooze_" + txId;
+
+  useEffect(() => {
+    if (disabled || !txId) return;
+    let alive = true;
+    const now = Date.now();
+    try {
+      if (localStorage.getItem(doneKey)) return;
+      const snoozeUntil = parseInt(localStorage.getItem(snoozeKey) || "0", 10);
+      if (snoozeUntil && now < snoozeUntil) return;
+    } catch { /* ignore storage errors */ }
+    const tok = localStorage.getItem("tp_token") || "";
+    fetch(API + "/client/feedback-status/" + txId, { headers: { Authorization: "Bearer " + tok } })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => {
+        if (!alive || !d || !d.success) return;
+        if (d.recentlyGave) { try { localStorage.setItem(doneKey, "1"); } catch {} return; }
+        // Ease it in after the client has had a moment on the page.
+        setTimeout(() => { if (alive) setShow(true); }, 14000);
+      })
+      .catch(() => {});
+    return () => { alive = false; };
+  }, [txId, disabled]);
+
+  const snooze = (days) => {
+    try { localStorage.setItem(snoozeKey, String(Date.now() + days * 86400000)); } catch {}
+    setShow(false);
+  };
+  const submit = async () => {
+    if (!rating && !liked.trim() && !disliked.trim()) return;
+    setSending(true);
+    try {
+      const tok = localStorage.getItem("tp_token") || "";
+      const r = await fetch(API + "/client/feedback/" + txId, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: "Bearer " + tok },
+        body: JSON.stringify({ rating, liked: liked.trim(), disliked: disliked.trim() }),
+      });
+      const d = await r.json();
+      if (!r.ok || !d.success) throw new Error(d.error || "Could not send");
+      try { localStorage.setItem(doneKey, "1"); } catch {}
+      setDone(true);
+      setTimeout(() => setShow(false), 2600);
+    } catch (e) { alert("Sorry — " + e.message + ". Please try again."); }
+    setSending(false);
+  };
+
+  if (!show) return null;
+  const role = isSellerSide ? "selling" : "buying";
+  const field = { width: "100%", padding: "9px 11px", borderRadius: 9, border: "1px solid " + C.border, fontSize: 13.5, fontFamily: "inherit", boxSizing: "border-box", resize: "vertical", color: C.black, background: "#fff" };
+  return (
+    <>
+      <style>{`@keyframes pfup{from{transform:translate(-50%,120%);opacity:0}to{transform:translate(-50%,0);opacity:1}}`}</style>
+      <div style={{ position: "fixed", left: "50%", bottom: 16, zIndex: 9999, width: "calc(100vw - 24px)", maxWidth: 460,
+        transform: "translateX(-50%)", background: "#fff", borderRadius: 16, boxShadow: "0 14px 44px rgba(0,0,0,0.28)",
+        border: "1px solid " + C.border, overflow: "hidden", animation: "pfup .45s cubic-bezier(.2,.8,.2,1)" }}>
+        <div style={{ height: 5, background: C.red }} />
+        <div style={{ padding: "16px 18px 18px" }}>
+          {done ? (
+            <div style={{ textAlign: "center", padding: "14px 6px" }}>
+              <div style={{ fontSize: 30, marginBottom: 6 }}>💛</div>
+              <div style={{ fontSize: 16, fontWeight: 800, color: C.black, marginBottom: 4 }}>Thank you!</div>
+              <div style={{ fontSize: 13, color: C.gray, lineHeight: 1.5 }}>Your agent will see this right away. It really helps.</div>
+            </div>
+          ) : (
+            <>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10 }}>
+                <div style={{ fontSize: 15.5, fontWeight: 800, color: C.black, lineHeight: 1.3 }}>How's your {role} experience so far?</div>
+                <button onClick={() => snooze(30)} aria-label="Dismiss" style={{ border: "none", background: "transparent", color: C.gray, fontSize: 20, cursor: "pointer", lineHeight: 1, padding: 0, marginTop: -2 }}>×</button>
+              </div>
+              <div style={{ fontSize: 12.5, color: C.gray, margin: "5px 0 12px", lineHeight: 1.5 }}>
+                A quick note goes straight to your agent — tell them what's working and what would make this portal better for you.
+              </div>
+
+              {/* Stars */}
+              <div style={{ display: "flex", gap: 6, marginBottom: 14 }} onMouseLeave={() => setHover(0)}>
+                {[1, 2, 3, 4, 5].map(n => (
+                  <button key={n} onMouseEnter={() => setHover(n)} onClick={() => setRating(n)}
+                    aria-label={n + " star" + (n > 1 ? "s" : "")}
+                    style={{ border: "none", background: "transparent", cursor: "pointer", fontSize: 30, lineHeight: 1, padding: 0, color: (hover || rating) >= n ? "#E6A817" : "#D6D3CE", transition: "color .1s" }}>
+                    ★
+                  </button>
+                ))}
+              </div>
+
+              <div style={{ marginBottom: 10 }}>
+                <label style={{ fontSize: 12, fontWeight: 700, color: C.black, display: "block", marginBottom: 4 }}>👍 What do you like about it?</label>
+                <textarea value={liked} onChange={e => setLiked(e.target.value)} rows={2} placeholder="e.g. I always know what's happening next…" style={field} />
+              </div>
+              <div style={{ marginBottom: 14 }}>
+                <label style={{ fontSize: 12, fontWeight: 700, color: C.black, display: "block", marginBottom: 4 }}>💡 What would make it better?</label>
+                <textarea value={disliked} onChange={e => setDisliked(e.target.value)} rows={2} placeholder="Anything confusing or missing?" style={field} />
+              </div>
+
+              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                <button onClick={submit} disabled={sending || (!rating && !liked.trim() && !disliked.trim())}
+                  style={{ flex: 1, padding: "11px 0", borderRadius: 10, border: "none", background: (!rating && !liked.trim() && !disliked.trim()) ? "#C7B7B4" : C.red, color: "#fff", fontWeight: 800, fontSize: 14, cursor: sending ? "wait" : "pointer", fontFamily: "inherit" }}>
+                  {sending ? "Sending…" : "Send to my agent"}
+                </button>
+                <button onClick={() => snooze(7)} style={{ padding: "11px 14px", borderRadius: 10, border: "1px solid " + C.border, background: "#fff", color: C.gray, fontWeight: 600, fontSize: 13, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>
+                  Maybe later
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    </>
+  );
+}
+
 // ── MAIN CLIENT PORTAL ────────────────────────────────────────
 // previewTxId (optional): agent "Preview client portal" mode — loads ONE deal
 // via the owner-gated preview endpoint and shows exactly what the client sees.
@@ -1545,6 +1672,10 @@ export default function ClientPortal({ user, onLogout, previewTxId, onExitPrevie
   return (
     <div style={{ minHeight: "100vh", background: C.lightGray,
       fontFamily: "system-ui, sans-serif", paddingBottom: 80 }}>
+
+      {/* Gentle, occasional "how's your experience?" prompt → routes to the agent.
+          Never shows in agent preview mode. */}
+      {tx && <PortalFeedbackPrompt tx={tx} isSellerSide={isSellerSide} disabled={isPreview} />}
 
       {/* NEW-MESSAGE ALERT — pulsing badge so the client never misses a message
           from their agent, on any tab. Tap → opens Messages. */}
