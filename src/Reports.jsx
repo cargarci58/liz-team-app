@@ -645,6 +645,82 @@ function ActivitiesReportTab() {
   );
 }
 
+// ── CLIENT FEEDBACK TAB ──────────────────────────────────────────────────
+// What buyers & sellers said about their portal experience, newest first.
+function Stars({ n }) {
+  if (!n) return null;
+  return (
+    <span style={{ color: "#E6A817", fontSize: 15, letterSpacing: 1 }}>
+      {"★".repeat(n)}<span style={{ color: "#D6D3CE" }}>{"★".repeat(5 - n)}</span>
+    </span>
+  );
+}
+function ClientFeedbackTab() {
+  const [data, setData] = useState(null);
+  const [err, setErr] = useState(false);
+  useEffect(() => {
+    authFetch("/portal-feedback")
+      .then(d => setData(d.feedback || []))
+      .catch(() => setErr(true));
+  }, []);
+  const fmt = (d) => d ? new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "";
+  const rated = (data || []).filter(f => f.rating);
+  const avg = rated.length ? (rated.reduce((a, f) => a + f.rating, 0) / rated.length) : null;
+
+  return (
+    <div>
+      <div style={{ display: "flex", alignItems: "baseline", gap: 12, flexWrap: "wrap", marginBottom: 4 }}>
+        <div style={{ fontSize: 20, fontWeight: 800, color: COLORS.navy }}>What your clients say</div>
+        {avg != null && (
+          <div style={{ fontSize: 13, color: COLORS.gray }}>
+            <Stars n={Math.round(avg)} /> <b style={{ color: COLORS.navy }}>{avg.toFixed(1)}</b> average · {data.length} response{data.length === 1 ? "" : "s"}
+          </div>
+        )}
+      </div>
+      <div style={{ fontSize: 13, color: COLORS.gray, marginBottom: 18 }}>
+        Straight from your buyers and sellers, in their own words — what they like about their portal, and what would make it better.
+      </div>
+
+      {err && <div style={{ background: "#FDEDEC", color: COLORS.red, borderRadius: 10, padding: 14, fontSize: 13 }}>Couldn't load feedback right now. Try again in a moment.</div>}
+      {!err && data === null && <div style={{ color: COLORS.gray, fontSize: 14 }}>Loading…</div>}
+      {!err && data !== null && data.length === 0 && (
+        <div style={{ background: "#fff", border: "1px solid " + COLORS.border, borderRadius: 12, padding: 28, textAlign: "center", color: COLORS.gray }}>
+          <div style={{ fontSize: 32, marginBottom: 8 }}>💬</div>
+          <div style={{ fontWeight: 700, color: COLORS.navy, marginBottom: 4 }}>No feedback yet</div>
+          <div style={{ fontSize: 13 }}>When your buyers and sellers rate their portal, their comments show up here.</div>
+        </div>
+      )}
+      {!err && (data || []).map(f => (
+        <div key={f.id} style={{ background: "#fff", border: "1px solid " + COLORS.border, borderRadius: 12, padding: 16, marginBottom: 12 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", flexWrap: "wrap", gap: 8 }}>
+            <div style={{ fontWeight: 700, color: COLORS.navy }}>
+              {f.party_name || "A client"}
+              {f.party_role && <span style={{ fontSize: 12, fontWeight: 600, color: COLORS.gray, background: COLORS.light, borderRadius: 6, padding: "2px 8px", marginLeft: 8 }}>{f.party_role}</span>}
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <Stars n={f.rating} />
+              <span style={{ fontSize: 12, color: COLORS.gray }}>{fmt(f.created_at)}</span>
+            </div>
+          </div>
+          {f.address && <div style={{ fontSize: 12, color: COLORS.gray, marginTop: 2 }}>{f.address}</div>}
+          {f.liked && (
+            <div style={{ marginTop: 10, background: "#EAF7EF", borderRadius: 9, padding: "9px 11px" }}>
+              <div style={{ fontSize: 11, fontWeight: 800, color: COLORS.green, marginBottom: 2 }}>👍 LIKES</div>
+              <div style={{ fontSize: 13.5, color: "#1D3A2A", lineHeight: 1.5 }}>{f.liked}</div>
+            </div>
+          )}
+          {f.disliked && (
+            <div style={{ marginTop: 8, background: "#FEF6E7", borderRadius: 9, padding: "9px 11px" }}>
+              <div style={{ fontSize: 11, fontWeight: 800, color: COLORS.gold, marginBottom: 2 }}>💡 WANTS BETTER</div>
+              <div style={{ fontSize: 13.5, color: "#5A4213", lineHeight: 1.5 }}>{f.disliked}</div>
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function Reports({ transactions, onBack, currentUser, initialTab = "overview" }) {
   const [tab, setTab] = useState(initialTab);
   const isAdmin = ["admin", "superadmin"].includes(currentUser?.role);
@@ -655,6 +731,7 @@ export default function Reports({ transactions, onBack, currentUser, initialTab 
     { id: "activities", label: "✅ Activities Report" },
     { id: "activity", label: "📞 Activity & Conversion" },
     { id: "goals", label: "🎯 Goal Planner" },
+    { id: "feedback", label: "💬 Client Feedback" },
   ];
 
   return (
@@ -687,6 +764,7 @@ export default function Reports({ transactions, onBack, currentUser, initialTab 
         {tab === "activities" && <ActivitiesReportTab />}
         {tab === "activity" && <ActivityTab isAdmin={isAdmin} />}
         {tab === "goals" && <GoalPlannerTab transactions={transactions} />}
+        {tab === "feedback" && <ClientFeedbackTab />}
       </div>
     </div>
   );

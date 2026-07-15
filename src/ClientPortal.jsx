@@ -796,6 +796,87 @@ function FirstTimeRoadmapCard({ tx }) {
 }
 
 // ════════════════════════════════════════════════════════════════
+// SELLING JOURNEY — the seller's six stages, tied to the deal status (same
+// JOURNEY_ORDER keys as the buyer journey), written plainly for anyone selling
+// for the first time. Current stage highlighted.
+// ════════════════════════════════════════════════════════════════
+const SELLER_JOURNEY_STAGES = [
+  { statusKey: "Active", icon: "🏡", title: "On the market", tag: "Listed",
+    happening: "Your home is live and being marketed. Buyers tour it — in person and online — and submit offers.",
+    doText: "Keep the home show-ready, stay flexible with showing times, and review each offer with your agent as it comes in.",
+    howLong: "Varies by market — anywhere from a few days to a few weeks.",
+    note: "Showings are disruptive, no way around it — but each one is a shot at your buyer. It only takes one." },
+  { statusKey: "Under Contract", icon: "🤝", title: "Offer accepted — under contract", tag: "Contract",
+    happening: "You've accepted an offer. The buyer places their earnest money into escrow and the closing timeline begins.",
+    doText: "Sign the contract, save the key dates your agent gives you, and start planning your move.",
+    howLong: "Offer to signed contract is usually a day or two.",
+    note: "Accepting an offer is a big exhale — a few checkpoints remain before it's final, and your agent guides each one." },
+  { statusKey: "Inspection", icon: "🔎", title: "Buyer's inspection", tag: "Inspection",
+    happening: "The buyer has the home professionally inspected and may ask for repairs or a credit.",
+    doText: "Review any requests with your agent and decide what to repair, credit, or decline — it's a negotiation, not a demand.",
+    howLong: "Usually the first ~10–15 days after going under contract.",
+    note: "Repair requests are normal and negotiable. Your agent helps you respond in a way that keeps the deal together." },
+  { statusKey: "Appraisal", icon: "🏦", title: "Buyer's financing & appraisal", tag: "Financing",
+    happening: "The buyer's lender processes their loan and an appraiser confirms your home's value.",
+    doText: "Make the home available for the appraiser, then sit tight while the lender does its work.",
+    howLong: "A few weeks, mostly behind the scenes.",
+    note: "If the appraisal comes in low, there are several ways to bridge the gap — it's rarely the end of a deal." },
+  { statusKey: "Clear to Close", icon: "✅", title: "Clear to close", tag: "Almost there",
+    happening: "The buyer's loan is fully approved. You review your final numbers and get ready to hand over the keys.",
+    doText: "Review your seller's net sheet, schedule your move-out, and confirm any wiring instructions by phone to protect your proceeds.",
+    howLong: "The last few days before closing.",
+    note: "Seeing your net proceeds in black and white is a good moment — your agent will walk every line with you." },
+  { statusKey: "Closed", icon: "🎉", title: "Sold — closing day", tag: "Sold",
+    happening: "You sign the final paperwork, the sale is recorded, and your proceeds are on their way to you.",
+    doText: "Bring your ID, sign, hand over the keys and any garage remotes, and take a breath.",
+    howLong: "The signing itself is about an hour.",
+    note: "It's done. Congratulations on your sale — and on whatever comes next." },
+];
+
+function HomeSellingJourneyCard({ tx }) {
+  const NAVY = "#1A5276";
+  const currentIndex = Math.max(0, JOURNEY_ORDER.indexOf(tx?.status));
+  return (
+    <div style={{ background: C.white, borderRadius: 14, padding: 18, marginBottom: 14, boxShadow: "0 1px 4px rgba(0,0,0,0.08)", borderLeft: "4px solid " + NAVY }}>
+      <div style={{ fontSize: 12, fontWeight: 800, color: C.gray, textTransform: "uppercase", letterSpacing: 1, marginBottom: 4 }}>🧭 Your Home-Selling Journey</div>
+      <div style={{ fontSize: 12, color: C.gray, marginBottom: 16 }}>First time selling? Here's exactly what happens, start to finish. The highlighted step is where you are right now.</div>
+      {SELLER_JOURNEY_STAGES.map((s, i) => {
+        const stageIdx = JOURNEY_ORDER.indexOf(s.statusKey);
+        const isDone = stageIdx < currentIndex;
+        const isCurrent = stageIdx === currentIndex;
+        return (
+          <div key={s.statusKey} style={{
+            display: "flex", gap: 12, alignItems: "flex-start",
+            padding: isCurrent ? 12 : "12px 0",
+            borderRadius: isCurrent ? 12 : 0,
+            background: isCurrent ? "#EAF2F8" : "transparent",
+            border: isCurrent ? "1px solid #AED6F1" : "none",
+            borderBottom: !isCurrent && i < SELLER_JOURNEY_STAGES.length - 1 ? "1px solid " + C.lightGray : (isCurrent ? "1px solid #AED6F1" : "none"),
+            marginBottom: i < SELLER_JOURNEY_STAGES.length - 1 ? 8 : 0,
+            opacity: isDone ? 0.62 : 1,
+          }}>
+            <span style={{ width: 30, height: 30, borderRadius: "50%", background: isDone ? C.success : NAVY, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 800, flexShrink: 0 }}>
+              {isDone ? "✓" : i + 1}
+            </span>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap" }}>
+                <span style={{ fontSize: 16 }}>{s.icon}</span>
+                <span style={{ fontSize: 14, fontWeight: 700, color: C.black }}>{s.title}</span>
+                {isCurrent && <span style={{ fontSize: 10, fontWeight: 800, color: "#fff", background: NAVY, borderRadius: 20, padding: "2px 8px", letterSpacing: 0.5 }}>YOU'RE HERE</span>}
+              </div>
+              <div style={{ fontSize: 12.5, color: C.black, lineHeight: 1.55, marginTop: 5 }}>{s.happening}</div>
+              <div style={{ fontSize: 12.5, color: C.gray, lineHeight: 1.55, marginTop: 6 }}><b style={{ color: NAVY }}>What you'll do:</b> {s.doText}</div>
+              <div style={{ fontSize: 12, color: C.gray, lineHeight: 1.5, marginTop: 4 }}><b style={{ color: NAVY }}>How long:</b> {s.howLong}</div>
+              <div style={{ fontSize: 12, color: "#1E6B47", background: C.successBg, borderRadius: 9, padding: "8px 10px", marginTop: 8, lineHeight: 1.5 }}>💛 {s.note}</div>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ════════════════════════════════════════════════════════════════
 // SELLER MARKETING FEED — proof of the work being done to sell the home.
 // Merges agent-logged actions with auto-detected marketing milestones.
 // ════════════════════════════════════════════════════════════════
@@ -1864,6 +1945,7 @@ export default function ClientPortal({ user, onLogout, previewTxId, onExitPrevie
                 <SideValueCard tx={tx} />
                 <LatestUpdateCard tx={tx} agentName={agentName} stage={stage} />
                 <WinsCard timeline={timeline} />
+                {isSellerSide && <HomeSellingJourneyCard tx={tx} />}
                 <ClosingCountdownCard tx={tx} />
 
                 <MortgageRateCard isBuyerSide={isBuyerSide} />
