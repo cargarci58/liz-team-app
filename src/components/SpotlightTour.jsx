@@ -19,14 +19,12 @@ const PAD = 6;          // breathing room around the highlighted button
 const TIP_W = 320;      // tooltip width
 
 const STEPS = [
-  { key: 'new', emoji: '➕', title: 'Start a deal here', body: 'Click "+ New Transaction" to start a listing or a buyer. Your timeline, checklist, and client reminders build themselves automatically.' },
-  { key: 'contacts', emoji: '📇', title: 'Your contacts', body: 'Everyone you work with — clients, vendors, anyone you email. Add them once and reuse them everywhere.' },
-  { key: 'winday', emoji: '🏆', title: 'Win the Day', body: "Your daily to-do list. The app tells you exactly what needs attention today so nothing slips." },
-  { key: 'popbys', emoji: '🎁', title: 'Pop-Bys', body: 'Plan gift drop-offs to past clients — the app suggests a gift, writes a note, and maps your route.' },
-  { key: 'financials', emoji: '💵', title: 'Financials', body: 'Track expenses, see a simple P&L, and import a bank statement. Closed-deal commission flows in on its own.' },
-  { key: 'vendors', emoji: '🏆', title: 'Vendors', body: 'Your preferred vendor list (lenders, inspectors, title…). Share them with a client in one tap.' },
-  { key: 'intake', emoji: '🔗', title: 'New Buyer/Seller Intake', body: 'Text or email a link to a new client. When they fill it out, a fresh lead lands in your pipeline.' },
-  { key: 'menu', emoji: '⚙️', title: 'Everything else is in the Menu', body: 'Reports & Goal Planner, your Profile, Company Settings, Forms — and this Help — all live under ⚙️ Menu. That\'s the tour!' },
+  { key: 'home', emoji: '🏠', title: 'Today — start here every morning', body: 'This always brings you back to your daily list. The app tells you exactly what needs attention today, deal by deal — just work top to bottom.' },
+  { key: 'deals', emoji: '📋', title: 'My Deals', body: 'Every listing and buyer you have, in one place. Tap any deal to see its timeline, documents, and people.' },
+  { key: 'new', emoji: '➕', title: 'Start a new deal', body: 'Three quick steps: the address, your client, the price. The timeline, checklist, and client reminders build themselves.' },
+  { key: 'contacts', emoji: '📇', title: 'Your contacts', body: 'Everyone you know — clients, leads, vendors. Add them once and the app reminds you when to reach out.' },
+  { key: 'tools', emoji: '🧰', title: 'Tools', body: 'Everything else lives here: your money, pricing a home (CMA), pop-bys, scripts, vendors, calendar, and intake links.' },
+  { key: 'menu', emoji: '⚙️', title: 'Menu', body: 'Reports, your profile, forms, help, and Sign Out. That is the whole app — five buttons and this menu!' },
 ];
 
 export default function SpotlightTour({ onClose, onCreateFirst }) {

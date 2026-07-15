@@ -1823,8 +1823,10 @@ function SMSPanel({ tx, onUpdate, currentUser, sendOnly = false }) {
 // ═══════════════════════════════════════════════════════════════
 // WIN THE DAY BUTTON + MODAL
 // ═══════════════════════════════════════════════════════════════
-function PersonalTaskAddButton({ token }) {
+function PersonalTaskAddButton({ token, hideTrigger = false, forceOpen = false, onCloseExternal }) {
   const [open, setOpen] = useState(false);
+  const isOpen = open || forceOpen;
+  const closeAll = () => { setOpen(false); if (onCloseExternal) onCloseExternal(); };
   const [title, setTitle] = useState("");
   const [notes, setNotes] = useState("");
   const [dueDate, setDueDate] = useState("");
@@ -1861,20 +1863,22 @@ function PersonalTaskAddButton({ token }) {
       });
       if (!r.ok) { const e = await r.json(); alert("Failed: " + (e.error || "unknown")); setSaving(false); return; }
       window.dispatchEvent(new Event("wintheday:refresh"));
-      setTitle(""); setNotes(""); setDueDate(""); setCategory(""); setOpen(false);
+      setTitle(""); setNotes(""); setDueDate(""); setCategory(""); closeAll();
     } catch (e) { alert("Error: " + e.message); }
     setSaving(false);
   };
 
   return (
     <>
-      <button onClick={() => setOpen(true)}
-        style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "#fff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}
-        title="Add a general task — not tied to any transaction">
-        📝 + Task
-      </button>
-      {open && (
-        <div onClick={() => !saving && setOpen(false)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)", zIndex: 9999, display: "flex", alignItems: "flex-start", justifyContent: "center", padding: 16, overflowY: "auto" }}>
+      {!hideTrigger && (
+        <button onClick={() => setOpen(true)}
+          style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "#fff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}
+          title="Add a general task — not tied to any transaction">
+          📝 + Task
+        </button>
+      )}
+      {isOpen && (
+        <div onClick={() => !saving && closeAll()} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)", zIndex: 9999, display: "flex", alignItems: "flex-start", justifyContent: "center", padding: 16, overflowY: "auto" }}>
           <div onClick={e => e.stopPropagation()} style={{ background: "#fff", borderRadius: 14, padding: 22, maxWidth: 520, width: "100%", maxHeight: "90vh", overflowY: "auto", margin: "auto" }}>
             <div style={{ fontSize: 20, fontWeight: 800, color: "#1a2332", marginBottom: 6 }}>📝 Add General Task</div>
             <div style={{ background: "#EFF6FF", border: "1px solid #BFDBFE", borderRadius: 8, padding: 10, marginBottom: 14, fontSize: 12, color: "#1E3A8A", lineHeight: 1.5 }}>
@@ -1930,7 +1934,7 @@ function PersonalTaskAddButton({ token }) {
             </div>
 
             <div style={{ display: "flex", gap: 10 }}>
-              <button onClick={() => !saving && setOpen(false)} disabled={saving}
+              <button onClick={() => !saving && closeAll()} disabled={saving}
                 style={{ flex: 1, padding: 11, borderRadius: 8, border: "1px solid #d1d5db", background: "#fff", color: "#374151", fontWeight: 600, fontSize: 14, cursor: saving ? "not-allowed" : "pointer" }}>
                 Cancel
               </button>
@@ -7551,7 +7555,122 @@ function ContactAutocomplete({ token, onSelect }) {
 // ═══════════════════════════════════════════════════════════════
 // SettingsMenu — dropdown that consolidates 6+ buttons into one
 // ═══════════════════════════════════════════════════════════════
-function SettingsMenu({ currentUser, onOpenContactBook, contactCount, onReports, onGoalPlanner, onAgentProfile, onOpenComplianceDash, onOpenCompliance, onOpenTaskTmpls, onCompanySettings, onChangePassword, onOpenForms, onOpenTeam, onOpenSuperuser, onHelp, onFeedback, onSupport }) {
+
+// ── TOOLS MENU — everything that isn't daily-critical lives one tap away.
+// Keeps the header at five buttons so a brand-new agent is never overwhelmed.
+function ToolsMenu({ coordinatorMode, onOpenPopBys, onOpenScripts, onOpenCMA, onOpenGrowthPlan, onOpenExpenses, onVendors, onCalendar, onIntakeLinks, onAddTask, onTcTeam, onTcServices }) {
+  const [open, setOpen] = useState(false);
+  const items = coordinatorMode ? [
+    ["💵", "My Money", onOpenExpenses],
+    ["👥", "Team", onTcTeam],
+    ["💼", "My Services", onTcServices],
+    ["📅", "Calendar", onCalendar],
+    ["📝", "Add a Task", onAddTask],
+  ] : [
+    ["💵", "My Money", onOpenExpenses],
+    ["📊", "Price a Home (CMA)", onOpenCMA],
+    ["🔗", "Buyer/Seller Intake Links", onIntakeLinks],
+    ["🎁", "Pop-Bys", onOpenPopBys],
+    ["📜", "Scripts", onOpenScripts],
+    ["🎯", "Growth Plan", onOpenGrowthPlan],
+    ["🤝", "Vendors", onVendors],
+    ["📅", "Calendar", onCalendar],
+    ["📝", "Add a Task", onAddTask],
+  ];
+  return (
+    <div style={{ position: "relative" }} data-tour="tools">
+      <button onClick={() => setOpen(!open)} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "#fff", borderRadius: 8, padding: "8px 14px", cursor: "pointer", fontSize: 13, fontWeight: 700, fontFamily: "inherit" }}>
+        🧰 Tools {open ? "▴" : "▾"}
+      </button>
+      {open && (
+        <>
+          <div onClick={() => setOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 200 }} />
+          <div style={{ position: "absolute", right: 0, top: "100%", marginTop: 4, background: "white", border: "1px solid #e5e7eb", borderRadius: 8, boxShadow: "0 8px 24px rgba(0,0,0,0.18)", zIndex: 201, minWidth: 230, padding: 4 }}>
+            {items.filter(it => it[2]).map(([icon, label, fn], i) => (
+              <button key={i} onClick={() => { setOpen(false); fn(); }}
+                style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", padding: "10px 14px", background: "none", border: "none", borderRadius: 4, fontSize: 13, color: "#1f2937", cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}
+                onMouseEnter={e => e.currentTarget.style.background = "#f3f4f6"}
+                onMouseLeave={e => e.currentTarget.style.background = "none"}>
+                <span style={{ fontSize: 16 }}>{icon}</span>
+                <span>{label}</span>
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+// ── APP HEADER — the one navigation bar (home + pipeline). Five buttons, always
+// the same: Today, My Deals, New Deal, Contacts, Tools (+ the gear menu). The
+// logo and 🏠 both go home, so a new agent is never lost.
+function AppHeader(props) {
+  const { view, coordinatorMode, currentUser, isFreeGuest, onHome, onDeals, onNew, onOpenContacts, onLogout } = props;
+  const [brand, setBrand] = useState({ name: "", logoUrl: "" });
+  useEffect(() => {
+    if (isFreeGuest) return;
+    const tok = localStorage.getItem("tp_token") || "";
+    fetch(API + "/settings/company", { headers: { "Authorization": "Bearer " + tok } })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d?.company) setBrand({ name: d.company.name || "", logoUrl: d.company.logoUrl || "" }); })
+      .catch(() => {});
+  }, [isFreeGuest]);
+  const btn = (active) => ({ background: active ? "rgba(255,255,255,0.3)" : "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "#fff", borderRadius: 8, padding: "8px 14px", cursor: "pointer", fontSize: 13, fontWeight: 700, fontFamily: "inherit" });
+  return (
+    <div style={{ background: COLORS.navy, padding: "12px 24px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10 }}>
+      <div onClick={onHome} title="Back to Today" style={{ display: "flex", alignItems: "center", gap: 12, flexShrink: 0, cursor: "pointer" }}>
+        {brand.logoUrl ? (
+          <img src={brand.logoUrl} alt={brand.name || "Logo"} style={{ height: 40, maxWidth: 140, objectFit: "contain", background: "#fff", borderRadius: 6, padding: 4 }} onError={e => { e.target.style.display = "none"; }} />
+        ) : (
+          <div style={{ width: 36, height: 36, borderRadius: 8, background: COLORS.gold, display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <span style={{ color: "#fff", fontSize: 18, fontWeight: 900 }}>T</span>
+          </div>
+        )}
+        <div>
+          <div style={{ color: "#fff", fontSize: 17, fontWeight: 800 }}>{brand.name || "TransactPro"}</div>
+          <div style={{ color: "rgba(255,255,255,0.6)", fontSize: 11 }}>{brand.name ? "Powered by TransactPro" : "Real Estate Transaction Management"}</div>
+        </div>
+      </div>
+      <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", justifyContent: "flex-end" }}>
+        <button data-tour="home" onClick={onHome} style={btn(view === "home")} title="Your daily list — what needs attention today">🏠 Today</button>
+        <button data-tour="deals" onClick={onDeals} style={btn(view === "dashboard")} title="All your listings and buyers">📋 My Deals</button>
+        {!coordinatorMode && <button data-tour="new" onClick={onNew} style={{ ...btn(false), background: "#C0392B", border: "none" }}>➕ New Deal</button>}
+        <button data-tour="contacts" onClick={onOpenContacts} style={btn(false)}>📇 Contacts</button>
+        <ToolsMenu
+          coordinatorMode={coordinatorMode}
+          onOpenPopBys={props.onOpenPopBys} onOpenScripts={props.onOpenScripts} onOpenCMA={props.onOpenCMA}
+          onOpenGrowthPlan={props.onOpenGrowthPlan} onOpenExpenses={props.onOpenExpenses} onVendors={props.onVendors}
+          onCalendar={props.onCalendar} onIntakeLinks={props.onIntakeLinks} onAddTask={props.onAddTask}
+          onTcTeam={props.onTcTeam} onTcServices={props.onTcServices}
+        />
+        <SettingsMenu
+          currentUser={currentUser}
+          onOpenContactBook={props.onOpenContactBook}
+          contactCount={props.contactCount}
+          onReports={props.onReports}
+          onGoalPlanner={props.onGoalPlanner}
+          onAgentProfile={props.onAgentProfile}
+          onOpenComplianceDash={props.onOpenComplianceDash}
+          onOpenCompliance={props.onOpenCompliance}
+          onOpenTaskTmpls={props.onOpenTaskTmpls}
+          onCompanySettings={props.onCompanySettings}
+          onOpenSuperuser={props.onSuperuser}
+          onOpenForms={props.onOpenForms}
+          onChangePassword={props.onChangePassword}
+          onOpenTeam={props.onOpenTeam}
+          onHelp={props.onHelp}
+          onFeedback={props.onFeedback}
+          onSupport={props.onSupport}
+          onLogout={onLogout}
+        />
+        <TenantSwitcher currentUser={currentUser} />
+      </div>
+    </div>
+  );
+}
+
+function SettingsMenu({ currentUser, onOpenContactBook, contactCount, onReports, onGoalPlanner, onAgentProfile, onOpenComplianceDash, onOpenCompliance, onOpenTaskTmpls, onCompanySettings, onChangePassword, onOpenForms, onOpenTeam, onOpenSuperuser, onHelp, onFeedback, onSupport, onLogout }) {
   const [open, setOpen] = useState(false);
   const isAdmin = ["admin", "superadmin"].includes(currentUser?.role);
   const items = [];
@@ -7580,6 +7699,10 @@ function SettingsMenu({ currentUser, onOpenContactBook, contactCount, onReports,
   if ((currentUser?.email || "").toLowerCase() === SUPERUSER_EMAIL && onOpenSuperuser) {
     items.push({ divider: true });
     items.push({ icon: "👑", label: "Superuser Dashboard", onClick: onOpenSuperuser });
+  }
+  if (onLogout) {
+    items.push({ divider: true });
+    items.push({ icon: "🚪", label: "Sign Out", onClick: onLogout });
   }
 
   return (
@@ -8192,74 +8315,8 @@ function Dashboard({ transactions, coordinatorMode = false, unreadCounts = {}, o
   return (
     <div style={{ fontFamily: "'Segoe UI', system-ui, sans-serif", background: COLORS.bg, minHeight: "100vh" }}>
       <div style={{ background: COLORS.navy, padding: "0 24px" }}>
-        <div data-dash-header="" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: 20, paddingBottom: 8, flexWrap: "wrap", gap: 12 }}>
-          <div data-dash-logo="" style={{ display: "flex", alignItems: "center", gap: 12, flexShrink: 0 }}>
-            {tenantBrand.logoUrl ? (
-              <img src={tenantBrand.logoUrl} alt={tenantBrand.name || "Logo"} style={{ height: 40, maxWidth: 140, objectFit: "contain", background: "#fff", borderRadius: 6, padding: 4 }} onError={e => { e.target.style.display = "none"; }} />
-            ) : (
-              <div style={{ width: 36, height: 36, borderRadius: 8, background: COLORS.gold, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <span style={{ color: "#fff", fontSize: 18, fontWeight: 900 }}>T</span>
-              </div>
-            )}
-            <div>
-              <div style={{ color: "#fff", fontSize: 18, fontWeight: 800 }}>{tenantBrand.name || "TransactPro"}</div>
-              {tenantBrand.name ? (
-                <div style={{ color: "rgba(255,255,255,0.8)", fontSize: 11, display: "flex", alignItems: "center", gap: 5, marginTop: 2 }}>
-                  <span>Powered by</span>
-                  <span style={{ width: 14, height: 14, borderRadius: 3, background: COLORS.gold, display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
-                    <span style={{ color: "#fff", fontSize: 9, fontWeight: 900, lineHeight: 1 }}>T</span>
-                  </span>
-                  <strong style={{ color: "#fff", fontWeight: 700 }}>TransactPro</strong>
-                </div>
-              ) : (
-                <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 11 }}>Real Estate Transaction Management</div>
-              )}
-            </div>
-          </div>
-          <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", justifyContent: "flex-end", flex: "1 1 auto", minWidth: 0 }}>
-            {!coordinatorMode && <button data-tour="new" onClick={onNew} style={{ background: "#C0392B", border: "none", color: "#fff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>+ New Transaction</button>}
-            {/* Contract intake moved out of the header: offers on a listing → the
-                listing's own 📥 Receive Offer; contracts for deals not in the app
-                yet → "+ New Transaction" → Import from a signed contract. */}
-            <button data-tour="contacts" onClick={() => onOpenContacts && onOpenContacts()} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "#fff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>📇 Contacts</button>
-            {coordinatorMode && <button onClick={() => setShowTcTeam(true)} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "#fff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>👥 Team</button>}
-            {coordinatorMode && <button onClick={() => setShowTcServices(true)} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "#fff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>💼 My Services</button>}
-            {!coordinatorMode && <button data-tour="popbys" onClick={() => onOpenPopBys && onOpenPopBys()} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "#fff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>🎁 Pop-Bys</button>}
-            {!coordinatorMode && <button onClick={() => onOpenScripts && onOpenScripts()} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "#fff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>📜 Scripts</button>}
-            {!coordinatorMode && <button onClick={() => onOpenCMA && onOpenCMA()} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "#fff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>📊 CMA</button>}
-            {!coordinatorMode && <button onClick={() => onOpenGrowthPlan && onOpenGrowthPlan()} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "#fff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>🎯 Growth Plan</button>}
-            <button data-tour="financials" onClick={() => onOpenExpenses && onOpenExpenses()} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "#fff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>💵 {coordinatorMode ? "My Money" : "Financials"}</button>
-            <WinTheDayButton token={localStorage.getItem("tp_token") || ""} onViewTransactions={onViewTransactions} coordinatorMode={coordinatorMode} onOpenTransaction={onSelect} />
-            <PersonalTaskAddButton token={localStorage.getItem("tp_token") || ""} />
-            {!coordinatorMode && <button data-tour="vendors" onClick={onVendors} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "rgba(255,255,255,0.88)", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 600, fontFamily: "inherit" }}>🏆 Vendors</button>}
-            {onCalendar && <button onClick={onCalendar} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "rgba(255,255,255,0.88)", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 600, fontFamily: "inherit" }}>📅 Calendar</button>}
-            {!coordinatorMode && <button data-tour="intake" onClick={onIntakeLinks} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "rgba(255,255,255,0.88)", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 600, fontFamily: "inherit" }}>🔗 New Buyer/Seller Intake</button>}
-            {/* "Receive Offer" now lives inside each Active listing (open a listing → 📥 Receive Offer). Receiving an offer only applies to listings. */}
-            <SettingsMenu
-              currentUser={currentUser}
-              onOpenContactBook={onOpenContactBook}
-              contactCount={contactCount}
-              onReports={onReports}
-              onGoalPlanner={onGoalPlanner}
-              onAgentProfile={onAgentProfile}
-              onOpenComplianceDash={onOpenComplianceDash}
-              onOpenCompliance={onOpenCompliance}
-              onOpenTaskTmpls={onOpenTaskTmpls}
-              onCompanySettings={onCompanySettings}
-              onOpenSuperuser={onSuperuser}
-              onOpenForms={onOpenForms}
-              onChangePassword={onChangePassword}
-              onOpenTeam={onOpenTeam}
-              onHelp={onHelp}
-              onFeedback={onFeedback}
-              onSupport={onSupport}
-            />
-            <TenantSwitcher currentUser={currentUser} />
-            <button onClick={onLogout} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "rgba(255,255,255,0.88)", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 600, fontFamily: "inherit" }}>Sign Out</button>
-          </div>
-        </div>
-        {showTcTeam && <CoordinatorTeamModal currentUser={currentUser} onClose={() => setShowTcTeam(false)} />}
-        {showTcServices && <CoordinatorServicesModal currentUser={currentUser} onClose={() => setShowTcServices(false)} />}
+        {/* Header lives in AppHeader now (one nav bar for the whole app). */}
+        <div style={{ height: 12 }} />
         <div data-stats-bar="" style={{ display: "flex", marginTop: 16, borderTop: "1px solid rgba(255,255,255,0.1)", overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
           {(() => { const s = dashStats || stats; const clearAdv = () => { setAgentFilter(""); setPropTypeFilter(""); setTxTypeFilter(""); setDatePreset(""); }; return [["Active Listings", s.active, COLORS.gold, () => { setViewMode("cards"); setFilter("Active"); setClosingFrom(""); setClosingTo(""); clearAdv(); }], ["Under Contract", s.underContract, "#93C5FD", () => { setViewMode("cards"); setFilter("Under Contract"); setClosingFrom(""); setClosingTo(""); clearAdv(); }], ["Closing This Month", s.closingSoon, s.closingSoon > 0 ? "#FDE68A" : "rgba(255,255,255,0.4)", () => { const t = new Date(); const last = new Date(t.getFullYear(), t.getMonth() + 1, 0); setViewMode("cards"); setFilter("All"); clearAdv(); setClosingFrom(t.toISOString().split("T")[0]); setClosingTo(last.toISOString().split("T")[0]); }], ["Closed", s.closed, "#6EE7B7", () => { setViewMode("cards"); setFilter("Closed"); setClosingFrom(""); setClosingTo(""); clearAdv(); }], ...(coordinatorMode ? [] : [["Volume", `$${((s.totalVolume || 0) / 1000000).toFixed(2)}M`, COLORS.gold, null], ["Pending Commission", `$${Math.round(s.pendingCommissionGross || 0).toLocaleString()}`, "#FDBA74", null], ["Under Contract Commission", `$${Math.round(s.underContractCommissionGross || 0).toLocaleString()}`, "#93C5FD", null], ["Closed Commission", s.totalCommission > 0 ? `$${Math.round(s.totalCommission).toLocaleString()}` : "$0", "#6EE7B7", null]])]; })().map(([label, value, color, onClick]) => (
             <div key={label} onClick={onClick} style={{ padding: "12px 20px", flex: 1, cursor: onClick ? "pointer" : "default" }}>
@@ -8882,6 +8939,9 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
   const [unreadCounts, setUnreadCounts] = useState({});       // in-app chat, per tx
   const [inboundCounts, setInboundCounts] = useState({});     // client email replies, per tx
   const [signAlerts, setSignAlerts] = useState([]);           // pop-up notifications (e-sign events)
+  const [showAddTask, setShowAddTask] = useState(false);      // "Add a Task" from the Tools menu
+  const [showTcTeamG, setShowTcTeamG] = useState(false);      // coordinator Team modal (Tools menu)
+  const [showTcServicesG, setShowTcServicesG] = useState(false);
   const [initialDetailTab, setInitialDetailTab] = useState("overview");
   // Bumped on every openTransactionMilestones() call so the detail view re-routes
   // to the requested tab EVEN WHEN you're already viewing that same deal (e.g. you
@@ -9582,6 +9642,53 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
           </button>
         </div>
       )}
+      {/* ONE header for the whole app (home + deals). Every other screen has a
+          back button; the logo and 🏠 always return to Today. */}
+      {!showReports && !showCalendar && (view === "home" || view === "dashboard") && (
+        <AppHeader
+          view={view}
+          coordinatorMode={coordinatorMode}
+          currentUser={currentUser}
+          isFreeGuest={isFreeGuest}
+          contactCount={contacts.length}
+          onHome={() => { setShowReports(false); setShowCalendar(false); setView("home"); }}
+          onDeals={() => { setShowReports(false); setShowCalendar(false); setView("dashboard"); }}
+          onNew={guard("Creating transactions", () => setView("new"))}
+          onOpenContacts={guard("Contacts", () => setView("contacts"))}
+          onOpenPopBys={guard("Pop-Bys", () => setView("popbys"))}
+          onOpenScripts={guard("Scripts", () => setView("scripts"))}
+          onOpenCMA={guard("CMA", () => setView("cma"))}
+          onOpenGrowthPlan={guard("Growth Plan", () => setView("growthplan"))}
+          onOpenExpenses={guard("Financials", () => setView("expenses"))}
+          onVendors={guard("The Vendor library", () => setShowVendorLibrary(true))}
+          onCalendar={guard("Calendar", () => setShowCalendar(true))}
+          onIntakeLinks={guard("My Intake Links", () => setShowIntakeLinks(true))}
+          onAddTask={() => setShowAddTask(true)}
+          onTcTeam={() => setShowTcTeamG(true)}
+          onTcServices={() => setShowTcServicesG(true)}
+          onOpenContactBook={guard("Contacts", () => openContactBook(null))}
+          onReports={guard("Reports", () => openReports("overview"))}
+          onGoalPlanner={guard("Goal Planner", () => openReports("goals"))}
+          onAgentProfile={() => setShowAgentProfile(true)}
+          onOpenComplianceDash={guard("The Compliance dashboard", () => setShowComplianceDash(true))}
+          onOpenCompliance={guard("Compliance tools", () => setShowCompliance(true))}
+          onOpenTaskTmpls={guard("Task templates", () => setShowTaskTmpls(true))}
+          onCompanySettings={guard("Company settings", () => setShowCompanySettings(true))}
+          onChangePassword={() => setShowChangePassword(true)}
+          onOpenForms={guard("The Forms library", () => setView("forms"))}
+          onOpenTeam={guard("Team management", () => setShowTeam(true))}
+          onSuperuser={() => setShowSuperuser(true)}
+          onHelp={() => setHelpSignal(n => n + 1)}
+          onFeedback={() => setFeedbackSignal(n => n + 1)}
+          onSupport={() => setSupportSignal(n => n + 1)}
+          onLogout={onLogout}
+        />
+      )}
+      {showAddTask && (
+        <PersonalTaskAddButton token={localStorage.getItem("tp_token") || ""} hideTrigger forceOpen onCloseExternal={() => setShowAddTask(false)} />
+      )}
+      {showTcTeamG && <CoordinatorTeamModal currentUser={currentUser} onClose={() => setShowTcTeamG(false)} />}
+      {showTcServicesG && <CoordinatorServicesModal currentUser={currentUser} onClose={() => setShowTcServicesG(false)} />}
       {!showReports && view === "home" && (
         <>
           {/* NEW-MESSAGES ALERT — top of the home for BOTH agent and coordinator, so a
