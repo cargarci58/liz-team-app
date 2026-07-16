@@ -19,6 +19,24 @@ const ALLOWED_UPLOAD_TYPES = [
   "text/plain", "text/csv",
 ];
 
+// One-time 1-2-3 explainer for this screen (per browser, dismissible).
+function DocsFirstTimeTip() {
+  const [hidden, setHidden] = useState(() => { try { return localStorage.getItem("tp_tip_docs") === "1"; } catch { return false; } });
+  if (hidden) return null;
+  return (
+    <div style={{ background: "#EFF6FF", border: "1px solid #BFDBFE", borderRadius: 12, padding: "12px 16px", marginBottom: 16, display: "flex", gap: 12, alignItems: "flex-start" }}>
+      <span style={{ fontSize: 20 }}>👋</span>
+      <div style={{ flex: 1, fontSize: 13, color: "#1E3A8A", lineHeight: 1.6 }}>
+        <b>Paperwork, handled — 1, 2, 3:</b> ① The <b>checklist below</b> tells you exactly which documents this deal still needs. ② <b>Upload</b> straight into a checklist slot (or use the general upload). ③ Need it signed? <b>✍️ Get signature</b> emails a private signing link and files the signed copy back here by itself.
+      </div>
+      <button onClick={() => { setHidden(true); try { localStorage.setItem("tp_tip_docs", "1"); } catch {} }}
+        style={{ background: "#1E40AF", color: "#fff", border: "none", borderRadius: 8, padding: "7px 14px", fontSize: 12, fontWeight: 800, cursor: "pointer", fontFamily: "inherit", flexShrink: 0 }}>
+        Got it
+      </button>
+    </div>
+  );
+}
+
 export default function DocumentsTab({ tx, coordinatorMode = false }) {
   // Coordinators open files through the money-free /tc view endpoint (the agent
   // view/download routes are tenant-scoped and 404 cross-tenant). Listing and
@@ -432,6 +450,7 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
 
   return (
     <div style={{ padding: 24 }}>
+      {!coordinatorMode && <DocsFirstTimeTip />}
       {/* Home-inspection waiver — buyer deals only */}
       {isBuyerDeal && !coordinatorMode && (
         <div style={{ background: "#FFFBEB", border: "1px solid #FDE68A", borderRadius: 12, padding: 16, marginBottom: 20,

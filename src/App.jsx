@@ -5475,6 +5475,23 @@ function LeaseDocsModal({ tx, onClose, onGenerated }) {
   );
 }
 
+// ── FIRST-TIME TIP — a one-time 1-2-3 explainer for a heavy screen. Shows
+// until dismissed (per browser); never comes back after "Got it".
+function FirstTimeTip({ tipKey, children }) {
+  const [hidden, setHidden] = useState(() => { try { return localStorage.getItem("tp_tip_" + tipKey) === "1"; } catch { return false; } });
+  if (hidden) return null;
+  return (
+    <div style={{ background: "#EFF6FF", border: "1px solid #BFDBFE", borderRadius: 12, padding: "12px 16px", margin: "0 0 16px", display: "flex", gap: 12, alignItems: "flex-start" }}>
+      <span style={{ fontSize: 20 }}>👋</span>
+      <div style={{ flex: 1, fontSize: 13, color: "#1E3A8A", lineHeight: 1.6 }}>{children}</div>
+      <button onClick={() => { setHidden(true); try { localStorage.setItem("tp_tip_" + tipKey, "1"); } catch {} }}
+        style={{ background: "#1E40AF", color: "#fff", border: "none", borderRadius: 8, padding: "7px 14px", fontSize: 12, fontWeight: 800, cursor: "pointer", fontFamily: "inherit", flexShrink: 0 }}>
+        Got it
+      </button>
+    </div>
+  );
+}
+
 // ── "WHAT'S NEXT" STRIP — the one thing a rookie needs on every deal screen:
 // the single next step, in plain words, always visible, tap → timeline.
 function NextStepStrip({ txId, coordinatorMode, onOpenTimeline }) {
@@ -5944,6 +5961,11 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
       <div style={{ padding: 24, maxWidth: 940, margin: "0 auto" }}>
         {activeTab === "overview" && (
           <div>
+            {!isGuest && (
+              <FirstTimeTip tipKey="deal">
+                <b>This is your deal's home base.</b> ① The green strip up top always shows your <b>next step</b>. ② <b>📅 Timeline</b> is every deadline — the app watches them for you. ③ <b>📎 Documents</b> holds the paperwork and gets things signed. That's 90% of what you'll use.
+              </FirstTimeTip>
+            )}
             {!isGuest && <DealDoctorPanel tx={tx} />}
             {/* Agent oversight: when a TC runs this deal, show what's done / left /
                 what the TC has done, so the agent can answer a client cold. */}
@@ -7867,15 +7889,15 @@ function SettingsMenu({ currentUser, onOpenContactBook, contactCount, onReports,
   // the static file directly, on whatever domain the user is on.
   items.push({ icon: "🌐", label: "Features & Pricing (web)", onClick: () => window.open("/features.html", "_blank", "noopener") });
   items.push({ icon: "📒", label: `Address Book${contactCount > 0 ? ` (${contactCount})` : ""}`, onClick: onOpenContactBook });
-  items.push({ icon: "📊", label: "Reports", onClick: onReports });
+  items.push({ icon: "📈", label: "Reports", onClick: onReports });
   if (onGoalPlanner) items.push({ icon: "🎯", label: "Goal Planner", onClick: onGoalPlanner });
   items.push({ icon: "👤", label: "My Profile", onClick: onAgentProfile });
-  if (onOpenForms) items.push({ icon: "📋", label: "Forms Library", onClick: onOpenForms });
+  if (onOpenForms) items.push({ icon: "📄", label: "Forms Library", onClick: onOpenForms });
   items.push({ icon: "🔒", label: "Change Password", onClick: onChangePassword });
   if (isAdmin) {
     items.push({ divider: true });
     if (onOpenTeam) items.push({ icon: "👥", label: "Team Members / Invite", onClick: onOpenTeam });
-    items.push({ icon: "📊", label: "Compliance Dashboard", onClick: onOpenComplianceDash });
+    items.push({ icon: "🛡️", label: "Compliance Dashboard", onClick: onOpenComplianceDash });
     items.push({ icon: "⚖️", label: "Doc Requirements", onClick: onOpenCompliance });
     items.push({ icon: "📝", label: "Task Templates", onClick: onOpenTaskTmpls });
     items.push({ icon: "⚙️", label: "Company Settings", onClick: onCompanySettings });
@@ -8555,7 +8577,7 @@ function Dashboard({ transactions, coordinatorMode = false, unreadCounts = {}, o
           </select>
         )}
         <div style={{ marginLeft: "auto", display: "flex", gap: 6, position: "relative" }}>
-          <button onClick={() => setShowViewsMenu(v => !v)} title="Layout & saved views" style={{ padding: "7px 12px", borderRadius: 8, border: `1px solid ${COLORS.border}`, background: "#fff", color: COLORS.text, fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 6 }}>📋 Views {savedViews.length > 0 && <span style={{ background: COLORS.bg, color: COLORS.muted, borderRadius: 10, padding: "1px 7px", fontSize: 11, fontWeight: 700 }}>{savedViews.length}</span>} <span style={{ fontSize: 9 }}>▾</span></button>
+          <button onClick={() => setShowViewsMenu(v => !v)} title="Layout & saved views" style={{ padding: "7px 12px", borderRadius: 8, border: `1px solid ${COLORS.border}`, background: "#fff", color: COLORS.text, fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 6 }}>🗂 Views {savedViews.length > 0 && <span style={{ background: COLORS.bg, color: COLORS.muted, borderRadius: 10, padding: "1px 7px", fontSize: 11, fontWeight: 700 }}>{savedViews.length}</span>} <span style={{ fontSize: 9 }}>▾</span></button>
           {showViewsMenu && (
             <>
               <div onClick={() => setShowViewsMenu(false)} style={{ position: "fixed", inset: 0, zIndex: 100 }} />
