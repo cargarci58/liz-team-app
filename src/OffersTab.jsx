@@ -73,6 +73,7 @@ export default function OffersTab({ tx, token, currentUser, createSignal = 0 }) 
   const [sendModal, setSendModal] = useState(null);   // offer being sent to listing agent
   const [signModal, setSignModal] = useState(null);   // offer being sent for buyer e-signature
   const [offerMenu, setOfferMenu] = useState(null);    // offer id whose ⋯ menu is open
+  const [offerMenuPos, setOfferMenuPos] = useState({ top: 0, left: 0 }); // fixed anchor (table wrapper clips absolute children)
 
   const load = async () => {
     setLoading(true);
@@ -353,12 +354,13 @@ export default function OffersTab({ tx, token, currentUser, createSignal = 0 }) 
                             {(o.status === "ready" || o.status === "sent" || o.status === "countered") && btn("✅ Seller accepted", () => acceptOffer(o.id), "#16a34a", "#fff", true)}
                             {(o.status === "sent" || o.status === "countered") && btn("❌ Declined", () => setOfferStatus(o.id, "rejected", "DECLINED by the seller"), "#fee2e2", "#7f1d1d")}
                             <div style={{ position: "relative" }}>
-                              <button onClick={() => setOfferMenu(offerMenu === o.id ? null : o.id)} title="More actions"
+                              <button onClick={(e) => { const r = e.currentTarget.getBoundingClientRect(); setOfferMenuPos({ top: r.bottom + 4, left: Math.max(8, r.right - 250) }); setOfferMenu(offerMenu === o.id ? null : o.id); }} title="More actions"
                                 style={{ background: "#fff", color: "#374151", border: "1px solid #d1d5db", padding: "5px 10px", borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>⋯</button>
                               {offerMenu === o.id && (
                                 <>
-                                  <div onClick={() => setOfferMenu(null)} style={{ position: "fixed", inset: 0, zIndex: 60 }} />
-                                  <div style={{ position: "absolute", right: 0, top: "100%", marginTop: 4, background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, boxShadow: "0 8px 24px rgba(0,0,0,0.16)", zIndex: 61, minWidth: 250, padding: 4, textAlign: "left" }}>
+                                  <div onClick={() => setOfferMenu(null)} style={{ position: "fixed", inset: 0, zIndex: 499 }} />
+                                  {/* FIXED position — the table wrapper has overflow:hidden and clips absolute children. */}
+                                  <div style={{ position: "fixed", left: offerMenuPos.left, top: offerMenuPos.top, background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, boxShadow: "0 8px 24px rgba(0,0,0,0.16)", zIndex: 500, minWidth: 250, padding: 4, textAlign: "left" }}>
                                     {menuItems.map((it, ii) => (
                                       <button key={ii} onClick={() => { setOfferMenu(null); it.fn(); }}
                                         style={{ display: "block", width: "100%", padding: "9px 13px", background: "none", border: "none", borderRadius: 6, fontSize: 13, color: it.danger ? "#B91C1C" : "#1f2937", cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}

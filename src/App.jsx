@@ -5543,6 +5543,7 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
   const _isStaffInit = !tx.isGuestView;
   const [showTxMore, setShowTxMore] = useState(false);      // header ⋯ menu
   const [showMoreTabs, setShowMoreTabs] = useState(false);   // 'More ▾' tab dropdown
+  const [moreTabsPos, setMoreTabsPos] = useState({ top: 0, left: 0 }); // fixed-position anchor (the tab bar clips absolute children)
   const [activeTab, setActiveTab] = useState(
     (_isStaffInit && ["chat", "replies", "sms"].includes(initialTab)) ? "messages" : initialTab
   );
@@ -5934,15 +5935,18 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
         {moreTabs.length > 0 && (
           <div style={{ position: "relative", flexShrink: 0 }}>
             {(() => { const activeMore = moreTabs.find(t => t.id === activeTab); return (
-              <button onClick={() => setShowMoreTabs(v => !v)}
+              <button onClick={(e) => { const r = e.currentTarget.getBoundingClientRect(); setMoreTabsPos({ top: r.bottom + 4, left: Math.max(8, Math.min(r.left, window.innerWidth - 230)) }); setShowMoreTabs(v => !v); }}
                 style={{ padding: "12px 20px", background: "none", border: "none", borderBottom: `3px solid ${activeMore ? COLORS.navy : "transparent"}`, color: activeMore ? COLORS.navy : COLORS.muted, fontWeight: activeMore ? 700 : 500, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>
                 {activeMore ? activeMore.label : "More"} ▾
               </button>
             ); })()}
             {showMoreTabs && (
               <>
-                <div onClick={() => setShowMoreTabs(false)} style={{ position: "fixed", inset: 0, zIndex: 90 }} />
-                <div style={{ position: "absolute", left: 0, top: "100%", zIndex: 95, background: "#fff", border: `1px solid ${COLORS.border}`, borderRadius: 10, boxShadow: "0 8px 24px rgba(0,0,0,0.14)", minWidth: 210, padding: 4 }}>
+                <div onClick={() => setShowMoreTabs(false)} style={{ position: "fixed", inset: 0, zIndex: 299 }} />
+                {/* FIXED position: the tab bar scrolls horizontally (overflowX:auto),
+                    which CLIPS absolutely-positioned children — the menu opened but
+                    was invisible. Anchored to the button's viewport rect instead. */}
+                <div style={{ position: "fixed", left: moreTabsPos.left, top: moreTabsPos.top, zIndex: 300, background: "#fff", border: `1px solid ${COLORS.border}`, borderRadius: 10, boxShadow: "0 8px 24px rgba(0,0,0,0.14)", minWidth: 210, padding: 4 }}>
                   {moreTabs.map(t => (
                     <button key={t.id} onClick={() => { setShowMoreTabs(false); handleTabClick(t); }}
                       style={{ display: "block", width: "100%", textAlign: "left", padding: "10px 14px", background: activeTab === t.id ? "#F0F4FA" : "none", border: "none", borderRadius: 6, fontSize: 13, fontWeight: activeTab === t.id ? 700 : 500, color: "#1f2937", cursor: "pointer", fontFamily: "inherit" }}
