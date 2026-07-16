@@ -288,6 +288,33 @@ function CmaTool({ tx, token, currentUser, standalone = false, initialCma = null
     }
   };
 
+  // ── MANUAL COMPS (no-CSV fallback) ─────────────────────────────────────────
+  // Rows are shaped exactly like a CSV export row and run through the SAME
+  // normalizeCompRow pipeline — the frozen analysis math is untouched.
+  const [manualOpen, setManualOpen] = useState(false);
+  const emptyManualRow = { address: '', status: 'Sold', price: '', sqft: '', closeDate: '', beds: '', baths: '', yearBuilt: '' };
+  const [manualRows, setManualRows] = useState([{ ...emptyManualRow }, { ...emptyManualRow }, { ...emptyManualRow }]);
+  const applyManualComps = () => {
+    const rows = manualRows
+      .filter(r => r.address.trim() && r.price && r.sqft)
+      .map(r => ({
+        'Address': r.address.trim(),
+        'City': subject.city || '',
+        'Status': r.status,
+        'Current Price': r.price,
+        'Heated Area': r.sqft,
+        'Close Date': r.status === 'Sold' ? r.closeDate : '',
+        'Beds': r.beds, 'Full Baths': r.baths, 'Year Built': r.yearBuilt,
+      }));
+    if (rows.length < 3) { setSaveState({ status: 'err', msg: 'Enter at least 3 comps (address, price, and heated sqft each) — more comps = a stronger CMA.' }); return; }
+    const parsed = rows.map((row, idx) => normalizeCompRow(row, idx)).filter(c => c.address && c.sqft && (c.currentPrice || c.effectivePsf));
+    setComps(parsed);
+    setSelectedIds(new Set(parsed.map(c => c.id)));
+    setFilename('typed by hand');
+    setManualOpen(false);
+    setSaveState({ status: 'ok', msg: `Loaded ${parsed.length} hand-typed comp${parsed.length === 1 ? '' : 's'}. They're pre-selected below.` });
+  };
+
   const handleFile = (file) => {
     if (!file) return;
     setFilename(file.name);
@@ -733,6 +760,47 @@ function CmaTool({ tx, token, currentUser, standalone = false, initialCma = null
                 <div className="primary">Drop your MLS CSV export here</div>
                 <div className="secondary">or click to choose the .csv file from your computer</div>
                 <input ref={fileInputRef} type="file" accept=".csv" onChange={(e) => handleFile(e.target.files[0])} />
+              </div>
+            ) : null}
+            {comps.length === 0 ? (
+              <div style={{ marginTop: 12 }}>
+                {!manualOpen ? (
+                  <button onClick={() => setManualOpen(true)}
+                    style={{ background: 'none', border: '1px dashed #b8a26b', color: '#7A5C00', borderRadius: 8, padding: '10px 18px', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+                    ✍️ No spreadsheet? Type 3–8 comps by hand instead
+                  </button>
+                ) : (
+                  <div style={{ background: '#fff', border: '1px solid var(--rule)', borderRadius: 8, padding: 16 }}>
+                    <div style={{ fontWeight: 800, fontSize: 14, marginBottom: 4 }}>✍️ Type your comps</div>
+                    <div style={{ fontSize: 12, color: '#777', marginBottom: 12 }}>Pull recently-sold homes near the property from your MLS app or Realtor.com — address, sold price, and heated sqft are all that's required. 3 minimum; 5–8 is better.</div>
+                    <div style={{ overflowX: 'auto' }}>
+                      <table style={{ borderCollapse: 'collapse', width: '100%', fontSize: 12.5 }}>
+                        <thead><tr>{['Address *', 'Status', 'Price ($) *', 'Heated sqft *', 'Sold date', 'Beds', 'Baths', 'Year built'].map(h => <th key={h} style={{ textAlign: 'left', padding: '4px 6px', color: '#777', fontWeight: 700, whiteSpace: 'nowrap' }}>{h}</th>)}</tr></thead>
+                        <tbody>
+                          {manualRows.map((r, i) => (
+                            <tr key={i}>
+                              <td style={{ padding: 3 }}><input value={r.address} onChange={e => setManualRows(rs => rs.map((x, j) => j === i ? { ...x, address: e.target.value } : x))} placeholder="123 Oak St" style={{ width: 170, padding: 6, border: '1px solid #ddd', borderRadius: 4, fontFamily: 'inherit' }} /></td>
+                              <td style={{ padding: 3 }}><select value={r.status} onChange={e => setManualRows(rs => rs.map((x, j) => j === i ? { ...x, status: e.target.value } : x))} style={{ padding: 6, border: '1px solid #ddd', borderRadius: 4, fontFamily: 'inherit' }}><option>Sold</option><option>Active</option><option>Pending</option></select></td>
+                              <td style={{ padding: 3 }}><input value={r.price} onChange={e => setManualRows(rs => rs.map((x, j) => j === i ? { ...x, price: e.target.value.replace(/[^0-9.]/g, '') } : x))} placeholder="450000" style={{ width: 82, padding: 6, border: '1px solid #ddd', borderRadius: 4, fontFamily: 'inherit' }} /></td>
+                              <td style={{ padding: 3 }}><input value={r.sqft} onChange={e => setManualRows(rs => rs.map((x, j) => j === i ? { ...x, sqft: e.target.value.replace(/[^0-9]/g, '') } : x))} placeholder="1850" style={{ width: 66, padding: 6, border: '1px solid #ddd', borderRadius: 4, fontFamily: 'inherit' }} /></td>
+                              <td style={{ padding: 3 }}><input type="date" value={r.closeDate} onChange={e => setManualRows(rs => rs.map((x, j) => j === i ? { ...x, closeDate: e.target.value } : x))} disabled={r.status !== 'Sold'} style={{ padding: 5, border: '1px solid #ddd', borderRadius: 4, fontFamily: 'inherit', opacity: r.status !== 'Sold' ? 0.4 : 1 }} /></td>
+                              <td style={{ padding: 3 }}><input value={r.beds} onChange={e => setManualRows(rs => rs.map((x, j) => j === i ? { ...x, beds: e.target.value.replace(/[^0-9]/g, '') } : x))} style={{ width: 40, padding: 6, border: '1px solid #ddd', borderRadius: 4, fontFamily: 'inherit' }} /></td>
+                              <td style={{ padding: 3 }}><input value={r.baths} onChange={e => setManualRows(rs => rs.map((x, j) => j === i ? { ...x, baths: e.target.value.replace(/[^0-9]/g, '') } : x))} style={{ width: 40, padding: 6, border: '1px solid #ddd', borderRadius: 4, fontFamily: 'inherit' }} /></td>
+                              <td style={{ padding: 3 }}><input value={r.yearBuilt} onChange={e => setManualRows(rs => rs.map((x, j) => j === i ? { ...x, yearBuilt: e.target.value.replace(/[^0-9]/g, '').slice(0, 4) } : x))} style={{ width: 56, padding: 6, border: '1px solid #ddd', borderRadius: 4, fontFamily: 'inherit' }} /></td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
+                      {manualRows.length < 8 && (
+                        <button onClick={() => setManualRows(rs => [...rs, { ...emptyManualRow }])} style={{ background: 'none', border: '1px dashed #ccc', color: '#666', borderRadius: 6, padding: '7px 14px', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>+ Add another comp</button>
+                      )}
+                      <button onClick={() => setManualOpen(false)} style={{ background: 'none', border: '1px solid #ddd', color: '#666', borderRadius: 6, padding: '7px 14px', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>Cancel</button>
+                      <button onClick={applyManualComps} style={{ background: 'var(--green, #1E8449)', border: 'none', color: '#fff', borderRadius: 6, padding: '7px 18px', fontSize: 12.5, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit' }}>✓ Use these comps</button>
+                    </div>
+                  </div>
+                )}
               </div>
             ) : (
               <div style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '16px 20px', background: 'white', border: '1px solid var(--rule)', borderRadius: 2 }}>
