@@ -788,14 +788,14 @@ function TransactionListView({ transactions, sortKey, sortDir, toggleSort, onSel
                 );
               })}
               {transactions.length === 0 && (
-                <tr><td colSpan="7" style={{ padding: 40, textAlign: "center", color: COLORS.muted }}>No transactions found.</td></tr>
+                <tr><td colSpan="7" style={{ padding: 40, textAlign: "center", color: COLORS.muted }}>Nothing here — if you have a search or filter on, clear it up top. Otherwise tap ➕ New Deal to start one.</td></tr>
               )}
             </tbody>
           </table>
         </div>
       </div>
       <div className="tx-list-mobile">
-        {transactions.length === 0 && <div style={{ padding: 40, textAlign: "center", color: COLORS.muted, background: "#fff", borderRadius: 10, border: `1px solid ${COLORS.border}` }}>No transactions found.</div>}
+        {transactions.length === 0 && <div style={{ padding: 40, textAlign: "center", color: COLORS.muted, background: "#fff", borderRadius: 10, border: `1px solid ${COLORS.border}` }}>Nothing here — if you have a search or filter on, clear it up top. Otherwise tap ➕ New Deal to start one.</div>}
         {transactions.map(tx => {
           // Progress = Auto-TC timeline (milestones), not the legacy tasks table.
           const ms = tx.milestoneSummary;
@@ -1098,7 +1098,7 @@ function SMSPanel({ tx, onUpdate, currentUser, sendOnly = false }) {
   const [selectedParty, setSelectedParty] = useState(null);
   const [message, setMessage] = useState("");
   const [subject, setSubject] = useState("");
-  const [channel, setChannel] = useState("");   // "" = not chosen yet (force a deliberate pick)
+  const [channel, setChannel] = useState(() => localStorage.getItem("tp_last_channel") || "");   // remembers last choice; "" = never chosen
   const [sending, setSending] = useState(false);
   const [showReminderSMS, setShowReminderSMS] = useState(false);
   const [reminderTask, setReminderTask] = useState("");
@@ -1114,7 +1114,7 @@ function SMSPanel({ tx, onUpdate, currentUser, sendOnly = false }) {
   const [chatPosting, setChatPosting] = useState(false);
   const [gSubject, setGSubject] = useState("");
   const [gMessage, setGMessage] = useState("");
-  const [gChannel, setGChannel] = useState("");   // "" = not chosen yet (force a deliberate pick)
+  const [gChannel, setGChannel] = useState(() => localStorage.getItem("tp_last_channel") || "");   // remembers last choice; "" = never chosen
   const [gAttach, setGAttach] = useState([]); // [{ id, name }]
   const [gSending, setGSending] = useState(false);
   const [gResult, setGResult] = useState(null);
@@ -1194,7 +1194,10 @@ function SMSPanel({ tx, onUpdate, currentUser, sendOnly = false }) {
       .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
   };
 
-  const ChannelPicker = ({ value, onChange }) => (
+  const rememberChannel = (v) => { try { localStorage.setItem("tp_last_channel", v); } catch {} };
+  const ChannelPicker = ({ value, onChange: onChangeRaw }) => {
+    const onChange = (v) => { rememberChannel(v); onChangeRaw(v); };
+    return (
     <div>
       <div style={{ fontSize: 12, fontWeight: 800, color: "#0F2044", marginBottom: 5 }}>
         How should this go out? {!value && <span style={{ color: "#C0392B" }}>👉 pick one</span>}
@@ -1205,7 +1208,8 @@ function SMSPanel({ tx, onUpdate, currentUser, sendOnly = false }) {
         ))}
       </div>
     </div>
-  );
+    );
+  };
 
   const sendMessage = async () => {
     if (!selectedParty || !message.trim() || !serverOnline) return;
@@ -8833,7 +8837,26 @@ function Dashboard({ transactions, coordinatorMode = false, unreadCounts = {}, o
             </div>
           );
         })}
-        {hydratedPagedTxs.length === 0 && !pagedLoading && <div style={{ gridColumn: "1/-1", textAlign: "center", padding: 60, color: COLORS.muted }}><div style={{ fontSize: 40, marginBottom: 12 }}>🏠</div><div style={{ fontSize: 18, fontWeight: 700, color: COLORS.navy, marginBottom: 6 }}>No transactions found</div><div>Click "+ New Transaction" to get started.</div></div>}
+        {hydratedPagedTxs.length === 0 && !pagedLoading && (
+          (search || filter !== "All" || activeFilterCount > 0) ? (
+            <div style={{ gridColumn: "1/-1", textAlign: "center", padding: 60, color: COLORS.muted }}>
+              <div style={{ fontSize: 40, marginBottom: 12 }}>🔍</div>
+              <div style={{ fontSize: 18, fontWeight: 700, color: COLORS.navy, marginBottom: 6 }}>Nothing matches your search or filters</div>
+              <div style={{ marginBottom: 14 }}>Your deals are still here — they're just hidden by the current filter.</div>
+              <button onClick={() => { setSearch(""); setFilter("All"); clearAllFilters(); }}
+                style={{ padding: "11px 22px", background: COLORS.navy, color: "#fff", border: "none", borderRadius: 10, fontSize: 14, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>
+                Show all my deals
+              </button>
+            </div>
+          ) : (
+            <div style={{ gridColumn: "1/-1", textAlign: "center", padding: 60, color: COLORS.muted }}>
+              <div style={{ fontSize: 40, marginBottom: 12 }}>🏠</div>
+              <div style={{ fontSize: 18, fontWeight: 700, color: COLORS.navy, marginBottom: 6 }}>No deals yet — let's start your first one</div>
+              <div style={{ marginBottom: 14 }}>Tap <b>➕ New Deal</b> up top: the address, your client, the price — about a minute.</div>
+              {!coordinatorMode && <button onClick={onNew} style={{ padding: "11px 22px", background: "#C0392B", color: "#fff", border: "none", borderRadius: 10, fontSize: 14, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>➕ Start my first deal</button>}
+            </div>
+          )
+        )}
       </div>
       )}
       <div ref={sentinelRef} style={{ height: 1 }} />
