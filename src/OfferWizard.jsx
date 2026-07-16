@@ -791,7 +791,7 @@ export default function OfferWizard({ offerId, token, onClose, onSaved }) {
   if (ft === "FHA" || ft === "VA") requiredLetters.push("E");
   if (String(data.appraisal_contingency || "").startsWith("Yes")) requiredLetters.push("F");
   if (data.is_condo) requiredLetters.push("A");
-  if (data.has_hoa) requiredLetters.push("B");
+  if (data.has_hoa && !data.is_condo) requiredLetters.push("B"); // condo assn is NOT an HOA — Rider A covers condos
   if (data.year_built && Number(data.year_built) < 1978) requiredLetters.push("P");
   if (ft === "Seller Financing") requiredLetters.push("C");
   if (String(data.special_financing_method || "").startsWith("Assumption")) requiredLetters.push("D");
@@ -801,6 +801,7 @@ export default function OfferWizard({ offerId, token, onClose, onSaved }) {
   const complianceConflicts = [];
   if (sel.includes("E") && ft && ft !== "FHA" && ft !== "VA") complianceConflicts.push("E. FHA/VA Financing is selected, but this is a " + ft + " loan — uncheck it unless the loan is FHA or VA.");
   if (sel.includes("C") && ft !== "Seller Financing") complianceConflicts.push("C. Seller Financing is selected, but the financing type isn't Seller Financing.");
+  if (sel.includes("B") && data.is_condo && !data.has_hoa) complianceConflicts.push("B. Homeowners' Assn. is checked, but this is a CONDO — the condo association is covered by Rider A, not B. Uncheck B unless there is a separate HOA too.");
 
   return (
     <div style={overlayStyle} onClick={onClose}>
