@@ -344,6 +344,7 @@ function GoalPlannerTab({ transactions }) {
   const [method, setMethod] = useState("sphere");
   const [avgNet, setAvgNet] = useState(closedAvgNet ? Math.round(closedAvgNet) : 9000);
   const [weeks, setWeeks] = useState(50);
+  const [showRates, setShowRates] = useState(false); // conversion %s are advanced — defaults per method are fine
   const preset = LEAD_GEN_PRESETS[method];
   const [rates, setRates] = useState({ ...preset });
   const [activity, setActivity] = useState(null);
@@ -448,18 +449,27 @@ function GoalPlannerTab({ transactions }) {
           <label style={labelStyle}>Working weeks per year</label>
           <input type="number" min="1" max="52" value={weeks} onChange={e => setWeeks(Number(e.target.value))} style={{ ...inputStyle, marginBottom: 20 }} />
 
-          <div style={{ borderTop: "1px solid #EEE", paddingTop: 16 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: COLORS.navy }}>Conversion assumptions</div>
-              <button onClick={useMyNumbers} disabled={!hasRealRatios} title={hasRealRatios ? "" : "Need logged calls + closings first"}
-                style={{ fontSize: 11, fontWeight: 600, padding: "5px 10px", borderRadius: 6, border: "1px solid " + (hasRealRatios ? COLORS.green : "#CCC"), background: hasRealRatios ? "#F0FFF4" : "#F4F4F4", color: hasRealRatios ? COLORS.green : "#AAA", cursor: hasRealRatios ? "pointer" : "not-allowed" }}>
-                Use my actual numbers
-              </button>
-            </div>
-            <RateRow k="dialToConv" label="Dials → Conversation" />
-            <RateRow k="convToAppt" label="Conversation → Appointment" />
-            <RateRow k="apptToContract" label="Appointment → Contract" />
-            <RateRow k="contractToClose" label="Contract → Closing" />
+          <div style={{ borderTop: "1px solid #EEE", paddingTop: 12 }}>
+            <button onClick={() => setShowRates(v => !v)}
+              style={{ background: "none", border: "none", padding: 0, fontSize: 12.5, fontWeight: 700, color: "#888", cursor: "pointer", fontFamily: "inherit" }}>
+              {showRates ? "▴ Hide" : "▾ Advanced"}: conversion assumptions (optional — good defaults are already set)
+            </button>
+            {showRates && (
+              <div style={{ marginTop: 12 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: COLORS.navy }}>Conversion assumptions</div>
+                  <button onClick={useMyNumbers} disabled={!hasRealRatios} title={hasRealRatios ? "" : "Need logged calls + closings first"}
+                    style={{ fontSize: 11, fontWeight: 600, padding: "5px 10px", borderRadius: 6, border: "1px solid " + (hasRealRatios ? COLORS.green : "#CCC"), background: hasRealRatios ? "#F0FFF4" : "#F4F4F4", color: hasRealRatios ? COLORS.green : "#AAA", cursor: hasRealRatios ? "pointer" : "not-allowed" }}>
+                    Use my actual numbers
+                  </button>
+                </div>
+                {!hasRealRatios && <div style={{ fontSize: 11, color: "#AAA", marginBottom: 10 }}>("Use my actual numbers" unlocks after you've logged calls and closed deals in the app.)</div>}
+                <RateRow k="dialToConv" label="Dials → Conversation" />
+                <RateRow k="convToAppt" label="Conversation → Appointment" />
+                <RateRow k="apptToContract" label="Appointment → Contract" />
+                <RateRow k="contractToClose" label="Contract → Closing" />
+              </div>
+            )}
           </div>
 
           <button onClick={save} style={{ width: "100%", marginTop: 18, padding: "12px", borderRadius: 8, border: "none", background: COLORS.green, color: "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer", fontFamily: "inherit" }}>

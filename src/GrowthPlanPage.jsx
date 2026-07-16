@@ -202,6 +202,11 @@ export default function GrowthPlanPage({ onBack }) {
         </div>
       </div>
 
+      {/* First-time intro — lands on money inputs otherwise, with no explanation */}
+      <div style={{ background: "#FFF8E7", border: "1px solid #E8D5A0", borderRadius: 12, padding: "12px 16px", margin: "0 0 16px", fontSize: 13, color: "#7A5C00", lineHeight: 1.55 }}>
+        <b>How this works — 1, 2, 3:</b> ① Type the income you want this year. ② The app turns it into deals-per-month and daily calls. ③ Check off the quarterly actions below — they're the plan. Everything saves automatically.
+      </div>
+
       {/* THE NUMBER */}
       <div style={{ background: C.navy, color: C.white, borderRadius: 16, padding: 22, marginBottom: 18 }}>
         <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", opacity: 0.8 }}>Start with one number</div>

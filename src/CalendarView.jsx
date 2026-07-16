@@ -84,7 +84,7 @@ export default function CalendarView({ transactions, onBack, onSelectTx }) {
     task: { bg: "#B7860B", text: "#fff", dot: "#B7860B" },
   };
 
-  const typeLabels = { closing: "🏠 Closing", open: "📋 Open", task: "✅ Task" };
+  const typeLabels = { closing: "🏠 Closing day", open: "📋 Deal started", task: "✅ Task due" };
 
   const prevMonth = () => setCurrentDate(new Date(year, month - 1, 1));
   const nextMonth = () => setCurrentDate(new Date(year, month + 1, 1));
@@ -146,6 +146,7 @@ export default function CalendarView({ transactions, onBack, onSelectTx }) {
             {label}
           </div>
         ))}
+        <div style={{ marginLeft: "auto", fontSize: 12, color: "#888" }}>💡 Tap any day to see what's happening</div>
       </div>
 
       <div style={{ padding: 16, maxWidth: 1100, margin: "0 auto" }}>
