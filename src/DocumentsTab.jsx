@@ -1773,6 +1773,7 @@ function ListingPackageModal({ tx, headers, onClose, onDone }) {
     arbitration: "sellers", personalProperty: "", additionalTerms: "",
     legalDescription: "", communityName: "", associationName: "", aaInterestDesc: "",
     hoaFee: "", hoaFeePeriod: "month",
+    lockbox: true, withholdVerbal: false, withholdAll: false, noAvm: false, noComments: false,
     finCash: true, finConventional: true, finVa: false, finFha: false,
   });
   const set = (patch) => setF(prev => ({ ...prev, ...patch }));
@@ -1967,6 +1968,22 @@ function ListingPackageModal({ tx, headers, onClose, onDone }) {
               <div style={{ marginBottom: 12 }}>
                 <label style={lbl}>Additional terms (optional)</label>
                 <textarea value={f.additionalTerms} onChange={e => set({ additionalTerms: e.target.value })} rows={2} style={{ ...inp, resize: "vertical" }} />
+              </div>
+
+              <div style={{ background: "#FBFBFB", border: "1px solid #EEE", borderRadius: 10, padding: 12, marginBottom: 12 }}>
+                <label style={lbl}>Listing agreement options (paragraph 6)</label>
+                {[
+                  ["lockbox", "Use a lock box system to show and access the Property"],
+                  ["withholdVerbal", "Withhold verbal offers"],
+                  ["withholdAll", "Withhold all offers once Seller accepts a sales contract"],
+                  ["noAvm", "Seller does NOT authorize automated value estimates (AVM) next to the listing"],
+                  ["noComments", "Seller does NOT authorize third-party comments/reviews on the listing"],
+                ].map(([k, label]) => (
+                  <label key={k} style={{ display: "flex", gap: 8, alignItems: "flex-start", fontSize: 13, padding: "4px 0", cursor: "pointer", lineHeight: 1.45 }}>
+                    <input type="checkbox" checked={!!f[k]} onChange={e => set({ [k]: e.target.checked })} style={{ marginTop: 2 }} />
+                    {label}
+                  </label>
+                ))}
               </div>
 
               <div style={{ background: "#FBFBFB", border: "1px solid #EEE", borderRadius: 10, padding: 12, marginBottom: 12 }}>
