@@ -53,6 +53,7 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
   const [preview, setPreview] = useState(null); // { loading, doc, url, mime }
   const [share, setShare] = useState(null); // { doc } — share-with-party modal
   const [signDoc, setSignDoc] = useState(null); // { doc } — request e-signature modal
+  const [showAddendum, setShowAddendum] = useState(false); // ACSP-4 New Addendum modal
   const [rowMenu, setRowMenu] = useState(null);  // doc.id whose ⋯ menu is open
   const [signStatus, setSignStatus] = useState({}); // docId → {pending, signed}
   const [showLOI, setShowLOI] = useState(false); // Letter of Intent generator (commercial only)
@@ -535,6 +536,11 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
             <input type="file" multiple onChange={handleUpload} disabled={uploading} style={{ display: "none" }}
               accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg,.gif,.txt" />
           </label>
+          <button onClick={() => setShowAddendum(true)}
+            title="Fill out an Addendum to Contract (ACSP-4): type any terms, then send it for signatures"
+            style={{ padding: "8px 16px", background: "#fff", color: "#86198f", border: "1px solid #d8b4fe", borderRadius: 8, cursor: "pointer", fontWeight: 700, fontSize: 13, fontFamily: "inherit" }}>
+            📝 New Addendum
+          </button>
         </div>
       </div>
 
@@ -711,6 +717,13 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
       {signDoc && (
         <DocSignModal tx={tx} doc={signDoc.doc} allDocs={docs} headers={headers}
           onClose={() => { setSignDoc(null); loadSignStatus(); loadDocs(); }} />
+      )}
+
+      {/* New Addendum (ACSP-4) modal */}
+      {showAddendum && (
+        <AddendumModal tx={tx} headers={headers}
+          onCreated={(doc) => { setShowAddendum(false); loadDocs(); setSignDoc({ doc }); }}
+          onClose={() => setShowAddendum(false)} />
       )}
 
       {/* Share-with-party modal */}
@@ -1265,6 +1278,93 @@ function LetterOfIntentModal({ tx, headers, onClose, onSaved }) {
 // stamped. No blocks placed → the app auto-detects "Signature" lines; if none
 // exist, signatures appear on the attached certificate page. Signed copy files
 // back into Documents automatically as "✍️ Signed — <name>".
+// New Addendum (ACSP-4): the app fills the official form's header and flows
+// the agent's free-typed terms into the body; then jumps straight into the
+// Get-Signature flow for the freshly created document.
+function AddendumModal({ tx, headers, onCreated, onClose }) {
+  const [f, setF] = useState(null); // {addendumNo, effectiveDate, sellerNames, buyerNames, propertyDesc, terms}
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState(null);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const r = await fetch(`${API}/transactions/${tx.id}/addendum-prefill`, { headers });
+        const b = await r.json();
+        if (!r.ok) throw new Error(b.error || "Couldn't load the deal's details");
+        setF({ addendumNo: String(b.nextNo || 1), effectiveDate: b.effectiveDate || "", sellerNames: b.sellerNames || "", buyerNames: b.buyerNames || "", propertyDesc: b.propertyDesc || "", terms: "" });
+      } catch (e) { setErr(e.message); setF({ addendumNo: "1", effectiveDate: "", sellerNames: "", buyerNames: "", propertyDesc: "", terms: "" }); }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tx.id]);
+
+  const set = (k) => (e) => setF(v => ({ ...v, [k]: e.target.value }));
+  const input = (k, label, props = {}) => (
+    <div style={{ marginBottom: 10, ...(props.half ? { flex: 1, minWidth: 140 } : {}) }}>
+      <div style={{ fontSize: 12, fontWeight: 700, color: "#374151", marginBottom: 4 }}>{label}</div>
+      <input value={f[k]} onChange={set(k)} placeholder={props.placeholder || ""}
+        style={{ width: "100%", boxSizing: "border-box", padding: "9px 10px", border: "1px solid #cbd5e1", borderRadius: 8, fontSize: 13, fontFamily: "inherit" }} />
+    </div>
+  );
+
+  const create = async () => {
+    setErr(null);
+    if (!(f.terms || "").trim()) { setErr("Type the terms of the addendum first — that's the whole point 🙂"); return; }
+    setBusy(true);
+    try {
+      const r = await fetch(`${API}/transactions/${tx.id}/addendum`, {
+        method: "POST", headers: { ...headers, "Content-Type": "application/json" }, body: JSON.stringify(f),
+      });
+      const b = await r.json();
+      if (!r.ok) throw new Error(b.error || "Couldn't create the addendum");
+      onCreated(b.document);
+    } catch (e) { setErr(e.message); setBusy(false); }
+  };
+
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.55)", zIndex: 60, display: "flex", alignItems: "flex-start", justifyContent: "center", overflowY: "auto", padding: "40px 12px" }}
+      onClick={onClose}>
+      <div style={{ background: "#fff", borderRadius: 14, width: "100%", maxWidth: 620, boxShadow: "0 20px 60px rgba(2,6,23,0.35)" }} onClick={e => e.stopPropagation()}>
+        <div style={{ background: "#86198f", color: "#fff", borderRadius: "14px 14px 0 0", padding: "16px 22px" }}>
+          <div style={{ fontSize: 17, fontWeight: 800 }}>📝 New Addendum to Contract</div>
+          <div style={{ fontSize: 12.5, opacity: 0.9, marginTop: 3 }}>The official ACSP-4 form, filled for you — just type the terms. Next step: signatures.</div>
+        </div>
+        <div style={{ padding: 22 }}>
+          {!f && <div style={{ color: "#64748b", fontSize: 14 }}>Loading…</div>}
+          {f && (
+            <div>
+              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                {input("addendumNo", "Addendum No.", { half: true })}
+                {input("effectiveDate", "Contract effective date", { half: true, placeholder: "MM/DD/YYYY" })}
+              </div>
+              {input("sellerNames", "Seller(s)")}
+              {input("buyerNames", "Buyer(s)")}
+              {input("propertyDesc", "Property (address + legal description if you have it)")}
+              <div style={{ marginBottom: 10 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: "#374151", marginBottom: 4 }}>Terms of this addendum</div>
+                <textarea value={f.terms} onChange={set("terms")} rows={8}
+                  placeholder={"Type anything the parties are agreeing to, e.g.\n1. Closing date is extended to July 31, 2026.\n2. Seller to credit Buyer $2,500 toward closing costs.\n\nLong text automatically continues on an attached page."}
+                  style={{ width: "100%", boxSizing: "border-box", padding: "10px 12px", border: "1px solid #cbd5e1", borderRadius: 8, fontSize: 13, fontFamily: "inherit", lineHeight: 1.5, resize: "vertical" }} />
+              </div>
+              {err && <div style={{ background: "#fee2e2", border: "1px solid #fca5a5", borderRadius: 8, padding: 10, fontSize: 13, color: "#7f1d1d", marginBottom: 12 }}>⚠️ {err}</div>}
+              <button onClick={create} disabled={busy}
+                style={{ width: "100%", padding: "12px 0", background: busy ? "#94a3b8" : "#86198f", color: "#fff", border: "none", borderRadius: 10, fontSize: 15, fontWeight: 800, cursor: busy ? "default" : "pointer", fontFamily: "inherit" }}>
+                {busy ? "Creating…" : "Create addendum →"}
+              </button>
+              <div style={{ fontSize: 11.5, color: "#64748b", marginTop: 8, textAlign: "center" }}>
+                It files into Documents, then the signature window opens so you can send it for signing right away.
+              </div>
+            </div>
+          )}
+        </div>
+        <div style={{ padding: "12px 22px", borderTop: "1px solid #e5e7eb", textAlign: "right" }}>
+          <button onClick={onClose} style={{ padding: "8px 18px", background: "#e5e7eb", color: "#374151", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>Cancel</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function DocSignModal({ tx, doc, allDocs = [], headers, onClose }) {
   const [info, setInfo] = useState(null);
   const [rows, setRows] = useState([]);
