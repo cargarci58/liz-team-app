@@ -1875,6 +1875,8 @@ function ListingPackageModal({ tx, headers, dealDocs = [], onClose, onDone }) {
     && /net\s?sheet/i.test((d.name || "") + " " + (d.category || ""))
     && !/^✍️ Signed|^📦/.test(d.name || ""));
   const [includeNetSheet, setIncludeNetSheet] = useState(true);
+  // "✏️ Adjust spots" — fine-tune a generated doc's pre-placed signing spots.
+  const [adjustDoc, setAdjustDoc] = useState(null);
 
   // Extra deal PDFs the agent bundles into the SAME signing round (e.g. a
   // combined attachments file or a custom disclosure). Signature spots on them
@@ -2094,6 +2096,8 @@ function ListingPackageModal({ tx, headers, dealDocs = [], onClose, onDone }) {
                 <div key={d.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, padding: "10px 12px", border: "1px solid #EEE", borderRadius: 10, marginBottom: 8 }}>
                   <div style={{ fontSize: 13.5, fontWeight: 600, color: "#222" }}>📄 {d.name}</div>
                   <button onClick={() => preview(d.id)} style={{ padding: "6px 14px", borderRadius: 8, border: "1px solid #C0392B", background: "#fff", color: "#C0392B", fontWeight: 700, fontSize: 12.5, cursor: "pointer", whiteSpace: "nowrap" }}>👀 Review PDF</button>
+                  <button onClick={() => setAdjustDoc(d)} title="Move, resize, remove, or add signature/initial spots on this document"
+                    style={{ padding: "6px 14px", borderRadius: 8, border: "1px solid #334155", background: "#fff", color: "#334155", fontWeight: 700, fontSize: 12.5, cursor: "pointer", whiteSpace: "nowrap" }}>✏️ Adjust spots</button>
                 </div>
               ))}
               {netSheetDoc ? (
@@ -2151,6 +2155,19 @@ function ListingPackageModal({ tx, headers, dealDocs = [], onClose, onDone }) {
           )}
         </div>
       </div>
+      {adjustDoc && gen && (
+        <AdjustSpotsModal doc={adjustDoc} headers={headers}
+          signerNames={gen.signers.map(s => s.name)}
+          initial={gen.placements.filter(p => String(p.docId) === String(adjustDoc.id)).map(({ docId, ...p }) => p)}
+          onSave={(newPs) => setGen(g => ({
+            ...g,
+            placements: [
+              ...g.placements.filter(p => String(p.docId) !== String(adjustDoc.id)),
+              ...newPs.map(p => ({ ...p, docId: String(adjustDoc.id) })),
+            ],
+          }))}
+          onClose={() => setAdjustDoc(null)} />
+      )}
     </div>
   );
 }
@@ -2213,6 +2230,179 @@ function CombinePdfsModal({ tx, docs, headers, onClose, onDone }) {
             style={{ width: "100%", padding: "12px 0", borderRadius: 10, border: "none", background: busy || picked.length < 2 ? "#9CB4BC" : "#0E7490", color: "#fff", fontWeight: 800, fontSize: 14, cursor: busy ? "wait" : "pointer", fontFamily: "inherit" }}>
             {busy ? "Combining…" : `Combine ${picked.length || ""} PDF${picked.length === 1 ? "" : "s"}`}
           </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ════════════════════════════════════════════════════════════════
+// ADJUST SPOTS — fine-tune the listing package's pre-placed signature/initial
+// spots on one document before sending: DRAG a block to move it, drag the ●
+// corner to resize, tap a block to remove it, tap the page to add a new one.
+// Same coordinate model as DocSignModal (PDF pts, bottom-left origin).
+// ════════════════════════════════════════════════════════════════
+function AdjustSpotsModal({ doc, signerNames, initial, headers, onSave, onClose }) {
+  const [placements, setPlacements] = useState(initial);
+  const [pages, setPages] = useState([]);
+  const [loadErr, setLoadErr] = useState(null);
+  const [activeSigner, setActiveSigner] = useState(1);
+  const [placeKind, setPlaceKind] = useState("signature");
+  const alive = useRef(true);
+  useEffect(() => () => { alive.current = false; }, []);
+  useEffect(() => {
+    (async () => {
+      try {
+        const pdfjs = await import("pdfjs-dist/build/pdf.min.mjs");
+        const worker = await import("pdfjs-dist/build/pdf.worker.min.mjs?url");
+        pdfjs.GlobalWorkerOptions.workerSrc = worker.default;
+        const resp = await fetch(`${API}/documents/${doc.id}/file.pdf`, { headers });
+        if (!resp.ok) throw new Error("Couldn't load the document preview.");
+        const bytes = new Uint8Array(await resp.arrayBuffer());
+        const pdf = await pdfjs.getDocument({ data: bytes, useSystemFonts: true, standardFontDataUrl: "/pdf-fonts/" }).promise;
+        for (let i = 1; i <= pdf.numPages && alive.current; i++) {
+          let entry;
+          try {
+            const page = await pdf.getPage(i);
+            const vp0 = page.getViewport({ scale: 1 });
+            const vp = page.getViewport({ scale: 1.8 });
+            const canvas = document.createElement("canvas");
+            canvas.width = vp.width; canvas.height = vp.height;
+            await page.render({ canvasContext: canvas.getContext("2d"), viewport: vp }).promise;
+            entry = { num: i, width: vp0.width, height: vp0.height, dataUrl: canvas.toDataURL("image/jpeg", 0.85) };
+          } catch { entry = { num: i, width: 612, height: 792, dataUrl: null }; }
+          if (alive.current) setPages(prev => [...prev, entry]);
+        }
+      } catch (e) { if (alive.current) setLoadErr(e.message); }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [doc.id]);
+
+  // Drag-to-move + click-to-remove on the same chip: <4px of movement = a tap.
+  const dragRef = useRef(null);
+  const startDrag = (idx, pg) => (e) => {
+    if (e.target.dataset.handle) return; // the resize handle owns its own drag
+    e.stopPropagation(); e.preventDefault();
+    const pageDiv = e.currentTarget.closest("[data-adjust-page]");
+    dragRef.current = { idx, startX: e.clientX, startY: e.clientY, x0: placements[idx].x, y0: placements[idx].y,
+      scale: pageDiv ? pageDiv.clientWidth / pg.width : 1, pg, moved: false };
+    try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* older browsers */ }
+  };
+  const moveDrag = (e) => {
+    const r = dragRef.current;
+    if (!r) return;
+    const dx = (e.clientX - r.startX) / (r.scale || 1);
+    const dy = (e.clientY - r.startY) / (r.scale || 1);
+    if (Math.abs(e.clientX - r.startX) + Math.abs(e.clientY - r.startY) > 4) r.moved = true;
+    setPlacements(ps => ps.map((p, j) => j === r.idx
+      ? { ...p, x: Math.round(Math.max(0, Math.min(r.pg.width - 12, r.x0 + dx)) * 10) / 10,
+              y: Math.round(Math.max(2, Math.min(r.pg.height - 12, r.y0 - dy)) * 10) / 10 }
+      : p));
+  };
+  const endDrag = (idx) => () => {
+    const r = dragRef.current;
+    dragRef.current = null;
+    if (r && !r.moved) setPlacements(ps => ps.filter((_, j) => j !== idx)); // it was a tap → remove
+  };
+  // Corner-handle resize (signatures + initials).
+  const resizeRef = useRef(null);
+  const startResize = (idx, pg) => (e) => {
+    e.stopPropagation(); e.preventDefault();
+    const pageDiv = e.currentTarget.closest("[data-adjust-page]");
+    resizeRef.current = { idx, startX: e.clientX, startW: placements[idx].w || (placements[idx].kind === "initials" ? 40 : 170),
+      scale: pageDiv ? pageDiv.clientWidth / pg.width : 1, kind: placements[idx].kind };
+    try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* older browsers */ }
+  };
+  const moveResize = (e) => {
+    const r = resizeRef.current;
+    if (!r) return;
+    const dw = (e.clientX - r.startX) / (r.scale || 1);
+    const [min, max] = r.kind === "initials" ? [16, 140] : [60, 400];
+    const w = Math.round(Math.min(max, Math.max(min, r.startW + dw)));
+    setPlacements(ps => ps.map((p, j) => j === r.idx ? { ...p, w } : p));
+  };
+  const endResize = () => { resizeRef.current = null; };
+
+  const placeAt = (pg, e) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const scale = rect.width / pg.width;
+    const x = Math.max(0, Math.min(pg.width - 10, (e.clientX - rect.left) / scale));
+    const y = Math.max(4, Math.min(pg.height - 10, pg.height - (e.clientY - rect.top) / scale));
+    const w = placeKind === "signature" ? 170 : placeKind === "initials" ? 40 : placeKind === "checkbox" ? 13 : undefined;
+    setPlacements(ps => [...ps, { signer: activeSigner, page: pg.num, x: Math.round(x * 10) / 10, y: Math.round(y * 10) / 10, kind: placeKind, w,
+      ...(placeKind === "checkbox" ? { x: Math.round((x - 6) * 10) / 10, y: Math.round((y - 6) * 10) / 10 } : {}) }]);
+  };
+
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 1300, display: "flex", alignItems: "flex-start", justifyContent: "center", overflowY: "auto", padding: "20px 8px" }}>
+      <div style={{ background: "#fff", borderRadius: 14, width: "100%", maxWidth: "min(97vw, 900px)", overflow: "hidden", boxShadow: "0 20px 60px rgba(0,0,0,0.4)" }}>
+        <div style={{ background: "#334155", padding: "12px 18px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
+          <div style={{ color: "#fff", fontWeight: 800, fontSize: 15, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>✏️ Adjust signing spots — {doc.name}</div>
+          <button onClick={onClose} style={{ background: "none", border: "none", color: "#fff", fontSize: 22, cursor: "pointer", lineHeight: 1 }}>×</button>
+        </div>
+        <div style={{ padding: 14 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", marginBottom: 8 }}>
+            {(signerNames.length ? signerNames : ["Signer 1"]).map((n, i) => (
+              <button key={i} onClick={() => setActiveSigner(i + 1)}
+                style={{ padding: "5px 12px", borderRadius: 14, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", border: "2px solid " + SIGNER_COLORS[i % 4], background: activeSigner === i + 1 ? SIGNER_COLORS[i % 4] : "#fff", color: activeSigner === i + 1 ? "#fff" : SIGNER_COLORS[i % 4] }}>
+                {n || `Signer ${i + 1}`}
+              </button>
+            ))}
+            {[["signature", "✍️"], ["initials", "🔤"], ["date", "📅"], ["checkbox", "☑️"]].map(([k, label]) => (
+              <button key={k} onClick={() => setPlaceKind(k)} title={k}
+                style={{ padding: "5px 10px", borderRadius: 14, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", border: "2px solid #64748b", background: placeKind === k ? "#334155" : "#fff", color: placeKind === k ? "#fff" : "#334155" }}>
+                {label}
+              </button>
+            ))}
+          </div>
+          <div style={{ fontSize: 12, color: "#475569", marginBottom: 8, lineHeight: 1.5 }}>
+            <b>Drag</b> a block to move it · drag the <b>● corner</b> to resize · <b>tap</b> a block to remove it · tap the page to add a new one for the selected signer.
+          </div>
+          {loadErr && <div style={{ fontSize: 13, color: "#7f1d1d", padding: 6 }}>⚠️ {loadErr}</div>}
+          {!loadErr && pages.length === 0 && <div style={{ fontSize: 13, color: "#64748b", padding: 10 }}>Loading pages…</div>}
+          <div style={{ maxHeight: "68vh", overflowY: "auto", border: "1px solid #e2e8f0", borderRadius: 10, padding: 8, background: "#f1f5f9" }}>
+            {pages.map(pg => (
+              <div key={pg.num} data-adjust-page="1" style={{ position: "relative", marginBottom: 10, cursor: "crosshair" }} onClick={(e) => placeAt(pg, e)}>
+                {pg.dataUrl
+                  ? <img src={pg.dataUrl} alt={"Page " + pg.num} style={{ display: "block", width: "100%", borderRadius: 4, boxShadow: "0 1px 6px rgba(2,6,23,0.15)" }} draggable={false} />
+                  : <div style={{ width: "100%", height: 300, background: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, color: "#64748b" }}>Page {pg.num} preview unavailable</div>}
+                <div style={{ position: "absolute", top: 4, left: 6, fontSize: 10, fontWeight: 700, color: "#64748b", background: "rgba(255,255,255,0.85)", borderRadius: 4, padding: "1px 6px" }}>p.{pg.num}</div>
+                {placements.map((p, idx) => ({ p, idx })).filter(({ p }) => p.page === pg.num).map(({ p, idx }) => {
+                  const color = SIGNER_COLORS[((p.signer || 1) - 1) % 4];
+                  const kindOf = p.kind || "signature";
+                  const widthPt = kindOf === "signature" ? (p.w || 170) : kindOf === "initials" ? (p.w || 40) : kindOf === "date" ? 70 : (kindOf === "checkbox" || kindOf === "choice") ? 14 : 110;
+                  const heightPt = kindOf === "signature" ? Math.max(14, widthPt * 26 / 170) : kindOf === "initials" ? Math.max(11, widthPt / 2.4) : (kindOf === "checkbox" || kindOf === "choice") ? 14 : 14;
+                  const resizable = kindOf === "signature" || kindOf === "initials";
+                  const label = kindOf === "signature" ? "✍️" : kindOf === "initials" ? "🔤" : kindOf === "date" ? "📅" : kindOf === "choice" ? "☑" : kindOf === "checkbox" ? "X" : "💬";
+                  return (
+                    <div key={idx}
+                      onPointerDown={startDrag(idx, pg)} onPointerMove={moveDrag} onPointerUp={endDrag(idx)} onPointerCancel={endDrag(idx)}
+                      onClick={(e) => e.stopPropagation()}
+                      title={`Signer ${p.signer || 1} · drag to move, tap to remove`}
+                      style={{ position: "absolute", left: (p.x / pg.width * 100) + "%", bottom: (p.y / pg.height * 100) + "%", width: (widthPt / pg.width * 100) + "%", height: (heightPt / pg.height * 100) + "%", minHeight: 11,
+                        border: "2px dashed " + color, background: color + "22", borderRadius: 4, display: "flex", alignItems: "center", justifyContent: "center", cursor: "grab", overflow: "visible", boxSizing: "border-box", touchAction: "none" }}>
+                      <span style={{ fontSize: 10, fontWeight: 800, color, whiteSpace: "nowrap", pointerEvents: "none" }}>{label}</span>
+                      {resizable && (
+                        <div data-handle="1" onPointerDown={startResize(idx, pg)} onPointerMove={moveResize} onPointerUp={endResize} onPointerCancel={endResize}
+                          title="Drag to resize"
+                          style={{ position: "absolute", right: -10, bottom: -10, width: 20, height: 20, borderRadius: 10, background: color, border: "2.5px solid #fff", boxShadow: "0 1px 5px rgba(2,6,23,0.4)", cursor: "nwse-resize", touchAction: "none" }} />
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            ))}
+          </div>
+          <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+            <button onClick={() => { onSave(placements); onClose(); }}
+              style={{ flex: 2, padding: "12px 0", borderRadius: 10, border: "none", background: "#1E8449", color: "#fff", fontWeight: 800, fontSize: 14, cursor: "pointer", fontFamily: "inherit" }}>
+              💾 Save these spots
+            </button>
+            <button onClick={onClose}
+              style={{ flex: 1, padding: "12px 0", borderRadius: 10, border: "1.5px solid #CBD5E1", background: "#fff", color: "#475569", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>
+              Cancel
+            </button>
+          </div>
         </div>
       </div>
     </div>
