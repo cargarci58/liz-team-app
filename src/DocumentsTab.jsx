@@ -1886,6 +1886,9 @@ function ListingPackageModal({ tx, headers, dealDocs = [], onClose, onDone }) {
           alsoDocIds: [...rest.map(d => d.id), ...extraIds],
           signers: gen.signers.filter(s => s.email),
           placements: gen.placements,
+          // Don't ask anyone to sign a document they have no lines on (e.g. the
+          // agent isn't a party to the Brokers Seller Disclosure).
+          skipSignerlessDocs: true,
         }),
       });
       const d = await r.json();
