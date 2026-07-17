@@ -1876,8 +1876,8 @@ function ListingPackageModal({ tx, headers, onClose, onDone }) {
     try {
       const r = await fetch(`${API}/documents/${docId}/view-url`, { headers });
       const d = await r.json();
-      if (d.url) window.open(d.url, "_blank"); else alert("Could not open preview.");
-    } catch { alert("Could not open preview."); }
+      if (d.viewUrl) window.open(d.viewUrl, "_blank"); else alert("Could not open preview: " + (d.error || "unknown error"));
+    } catch (e) { alert("Could not open preview: " + e.message); }
   };
 
   const inp = { width: "100%", padding: "9px 11px", borderRadius: 8, border: "1.5px solid #D5D8DC", fontSize: 13.5, fontFamily: "inherit", boxSizing: "border-box" };
