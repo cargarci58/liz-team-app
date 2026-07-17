@@ -1772,6 +1772,7 @@ function ListingPackageModal({ tx, headers, onClose, onDone }) {
     bbcMode: "from_seller", bbcPct: "", protectionDays: "30", retainedDepositsPct: "50",
     arbitration: "sellers", personalProperty: "", additionalTerms: "",
     legalDescription: "", communityName: "", associationName: "", aaInterestDesc: "",
+    hoaFee: "", hoaFeePeriod: "month",
     finCash: true, finConventional: true, finVa: false, finFha: false,
   });
   const set = (patch) => setF(prev => ({ ...prev, ...patch }));
@@ -1991,7 +1992,18 @@ function ListingPackageModal({ tx, headers, onClose, onDone }) {
                 ))}
               </div>
               {forms["cr7b-hoa"] && (
-                <div style={{ marginBottom: 10 }}><label style={lbl}>HOA / community name</label><input value={f.communityName} onChange={e => set({ communityName: e.target.value })} style={inp} /></div>
+                <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 10 }}>
+                  <div style={{ flex: "2 1 220px" }}><label style={lbl}>HOA / community name</label><input value={f.communityName} onChange={e => set({ communityName: e.target.value })} style={inp} /></div>
+                  <div style={{ flex: "1 1 110px" }}><label style={lbl}>HOA fee ($)</label><input value={f.hoaFee} onChange={e => set({ hoaFee: e.target.value })} placeholder="e.g. 250" style={inp} /></div>
+                  <div style={{ flex: "1 1 110px" }}>
+                    <label style={lbl}>Per</label>
+                    <select value={f.hoaFeePeriod} onChange={e => set({ hoaFeePeriod: e.target.value })} style={inp}>
+                      <option value="month">month</option>
+                      <option value="quarter">quarter</option>
+                      <option value="year">year</option>
+                    </select>
+                  </div>
+                </div>
               )}
               {forms["cr7a-condo"] && (
                 <div style={{ marginBottom: 10 }}><label style={lbl}>Condominium association name</label><input value={f.associationName} onChange={e => set({ associationName: e.target.value })} style={inp} /></div>
