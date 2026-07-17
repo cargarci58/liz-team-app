@@ -1773,6 +1773,7 @@ function ListingPackageModal({ tx, headers, onClose, onDone }) {
     arbitration: "sellers", personalProperty: "", additionalTerms: "",
     legalDescription: "", communityName: "", associationName: "", aaInterestDesc: "",
     hoaFee: "", hoaFeePeriod: "month",
+    hoaContactName: "", hoaContactPhone: "", hoaContactEmail: "", hoaWebsite: "",
     lockbox: true, withholdVerbal: false, withholdAll: false, noAvm: false, noComments: false,
     finCash: true, finConventional: true, finVa: false, finFha: false,
   });
@@ -2009,18 +2010,27 @@ function ListingPackageModal({ tx, headers, onClose, onDone }) {
                 ))}
               </div>
               {forms["cr7b-hoa"] && (
-                <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 10 }}>
-                  <div style={{ flex: "2 1 220px" }}><label style={lbl}>HOA / community name</label><input value={f.communityName} onChange={e => set({ communityName: e.target.value })} style={inp} /></div>
-                  <div style={{ flex: "1 1 110px" }}><label style={lbl}>HOA fee ($)</label><input value={f.hoaFee} onChange={e => set({ hoaFee: e.target.value })} placeholder="e.g. 250" style={inp} /></div>
-                  <div style={{ flex: "1 1 110px" }}>
-                    <label style={lbl}>Per</label>
-                    <select value={f.hoaFeePeriod} onChange={e => set({ hoaFeePeriod: e.target.value })} style={inp}>
-                      <option value="month">month</option>
-                      <option value="quarter">quarter</option>
-                      <option value="year">year</option>
-                    </select>
+                <>
+                  <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 8 }}>
+                    <div style={{ flex: "2 1 220px" }}><label style={lbl}>HOA / community name</label><input value={f.communityName} onChange={e => set({ communityName: e.target.value })} style={inp} /></div>
+                    <div style={{ flex: "1 1 110px" }}><label style={lbl}>HOA fee ($)</label><input value={f.hoaFee} onChange={e => set({ hoaFee: e.target.value })} placeholder="e.g. 250" style={inp} /></div>
+                    <div style={{ flex: "1 1 110px" }}>
+                      <label style={lbl}>Per</label>
+                      <select value={f.hoaFeePeriod} onChange={e => set({ hoaFeePeriod: e.target.value })} style={inp}>
+                        <option value="month">month</option>
+                        <option value="quarter">quarter</option>
+                        <option value="year">year</option>
+                      </select>
+                    </div>
                   </div>
-                </div>
+                  <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 4 }}>
+                    <div style={{ flex: "1 1 160px" }}><label style={lbl}>HOA contact person</label><input value={f.hoaContactName} onChange={e => set({ hoaContactName: e.target.value })} placeholder="auto from People (HOA)" style={inp} /></div>
+                    <div style={{ flex: "1 1 130px" }}><label style={lbl}>HOA phone</label><input value={f.hoaContactPhone} onChange={e => set({ hoaContactPhone: e.target.value })} placeholder="auto from People" style={inp} /></div>
+                    <div style={{ flex: "1 1 170px" }}><label style={lbl}>HOA email</label><input value={f.hoaContactEmail} onChange={e => set({ hoaContactEmail: e.target.value })} placeholder="auto from People" style={inp} /></div>
+                    <div style={{ flex: "1 1 160px" }}><label style={lbl}>HOA website</label><input value={f.hoaWebsite} onChange={e => set({ hoaWebsite: e.target.value })} placeholder="eaglecreekhoa.com" style={inp} /></div>
+                  </div>
+                  <div style={{ fontSize: 11.5, color: "#78350F", marginBottom: 10 }}>💡 Contact fields left blank fill automatically from the HOA manager on this deal's People tab.</div>
+                </>
               )}
               {forms["cr7a-condo"] && (
                 <div style={{ marginBottom: 10 }}><label style={lbl}>Condominium association name</label><input value={f.associationName} onChange={e => set({ associationName: e.target.value })} style={inp} /></div>
