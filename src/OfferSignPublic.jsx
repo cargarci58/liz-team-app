@@ -59,23 +59,38 @@ function SignaturePad({ onChange, typedName, mode }) {
   const canvasRef = useRef(null);
   const drawing = useRef(false);
   const dirty = useRef(false);
+  // The canvas can mount BEFORE layout settles (offsetWidth ≈ 0) — sizing it
+  // then leaves a sliver-wide canvas where nothing registers. Measure until
+  // layout gives a real width, and size only then.
+  const [cw, setCw] = useState(0);
 
   useEffect(() => {
     const c = canvasRef.current;
     if (!c) return;
+    let raf;
+    const measure = () => {
+      const w = c.offsetWidth;
+      if (w > 40) setCw(w); else raf = requestAnimationFrame(measure);
+    };
+    measure();
+    return () => cancelAnimationFrame(raf);
+  }, []);
+
+  useEffect(() => {
+    const c = canvasRef.current;
+    if (!c || !cw) return;
     const dpr = window.devicePixelRatio || 1;
-    const w = c.offsetWidth, h = 170;
-    c.width = w * dpr; c.height = h * dpr;
+    c.width = cw * dpr; c.height = 170 * dpr;
     const ctx = c.getContext("2d");
     ctx.scale(dpr, dpr);
     ctx.lineWidth = 2.4;
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
     ctx.strokeStyle = "#1e2a5a";
-  }, []);
+  }, [cw]);
 
   useEffect(() => {
-    if (mode !== "type") return;
+    if (mode !== "type" || !cw) return;
     const c = canvasRef.current;
     if (!c) return;
     const ctx = c.getContext("2d");
@@ -92,7 +107,7 @@ function SignaturePad({ onChange, typedName, mode }) {
       dirty.current = false;
       onChange(null);
     }
-  }, [typedName, mode]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [typedName, mode, cw]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const pos = (e) => {
     const r = canvasRef.current.getBoundingClientRect();
