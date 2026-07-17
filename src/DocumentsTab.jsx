@@ -1867,14 +1867,24 @@ function ListingPackageModal({ tx, headers, dealDocs = [], onClose, onDone }) {
     setBusy(false);
   };
 
+  // The Seller's Net Sheet must be SIGNED at listing (brokerage policy) — if the
+  // deal has one, it rides the signing round by default (its Seller/Co-Seller/
+  // Listing Agent lines are label-detected per signer); if not, the wizard tells
+  // the agent to create it first.
+  const netSheetDoc = dealDocs.find(d => /pdf$/i.test(d.mime_type || "")
+    && /net\s?sheet/i.test((d.name || "") + " " + (d.category || ""))
+    && !/^✍️ Signed|^📦/.test(d.name || ""));
+  const [includeNetSheet, setIncludeNetSheet] = useState(true);
+
   // Extra deal PDFs the agent bundles into the SAME signing round (e.g. a
   // combined attachments file or a custom disclosure). Signature spots on them
   // are label-detected automatically; docs with none still ride along for review.
   const [extraIds, setExtraIds] = useState([]);
   const extraCandidates = dealDocs.filter(d => /pdf$/i.test(d.mime_type || "")
     && !(gen?.documents || []).some(g => g.id === d.id)
-    && !/^✍️ Signed/.test(d.name || ""));
-  const maxExtras = gen ? Math.max(0, 12 - gen.documents.length) : 0;
+    && !/^✍️ Signed|^📦/.test(d.name || "")
+    && !(netSheetDoc && d.id === netSheetDoc.id));
+  const maxExtras = gen ? Math.max(0, 12 - gen.documents.length - (includeNetSheet && netSheetDoc ? 1 : 0)) : 0;
 
   const send = async () => {
     setErr(""); setBusy(true);
@@ -1883,7 +1893,7 @@ function ListingPackageModal({ tx, headers, dealDocs = [], onClose, onDone }) {
       const r = await fetch(`${API}/documents/${first.id}/request-signatures`, {
         method: "POST", headers,
         body: JSON.stringify({
-          alsoDocIds: [...rest.map(d => d.id), ...extraIds],
+          alsoDocIds: [...rest.map(d => d.id), ...(includeNetSheet && netSheetDoc ? [netSheetDoc.id] : []), ...extraIds],
           signers: gen.signers.filter(s => s.email),
           placements: gen.placements,
           // Don't ask anyone to sign a document they have no lines on (e.g. the
@@ -2053,12 +2063,12 @@ function ListingPackageModal({ tx, headers, dealDocs = [], onClose, onDone }) {
                     </div>
                   </div>
                   <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 4 }}>
-                    <div style={{ flex: "1 1 160px" }}><label style={lbl}>HOA contact person</label><input value={f.hoaContactName} onChange={e => set({ hoaContactName: e.target.value })} placeholder="auto from People (HOA)" style={inp} /></div>
-                    <div style={{ flex: "1 1 130px" }}><label style={lbl}>HOA phone</label><input value={f.hoaContactPhone} onChange={e => set({ hoaContactPhone: e.target.value })} placeholder="auto from People" style={inp} /></div>
-                    <div style={{ flex: "1 1 170px" }}><label style={lbl}>HOA email</label><input value={f.hoaContactEmail} onChange={e => set({ hoaContactEmail: e.target.value })} placeholder="auto from People" style={inp} /></div>
+                    <div style={{ flex: "1 1 160px" }}><label style={lbl}>HOA mgmt / contact</label><input value={f.hoaContactName} onChange={e => set({ hoaContactName: e.target.value })} placeholder="e.g. Evergreen Mgmt — Zayriliann" style={inp} /></div>
+                    <div style={{ flex: "1 1 130px" }}><label style={lbl}>HOA phone</label><input value={f.hoaContactPhone} onChange={e => set({ hoaContactPhone: e.target.value })} style={inp} /></div>
+                    <div style={{ flex: "1 1 170px" }}><label style={lbl}>HOA email</label><input value={f.hoaContactEmail} onChange={e => set({ hoaContactEmail: e.target.value })} style={inp} /></div>
                     <div style={{ flex: "1 1 160px" }}><label style={lbl}>HOA website</label><input value={f.hoaWebsite} onChange={e => set({ hoaWebsite: e.target.value })} placeholder="eaglecreekhoa.com" style={inp} /></div>
                   </div>
-                  <div style={{ fontSize: 11.5, color: "#78350F", marginBottom: 10 }}>💡 Contact fields left blank fill automatically from the HOA manager on this deal's People tab.</div>
+                  <div style={{ fontSize: 11.5, color: "#78350F", marginBottom: 10 }}>💡 Upload the broker synopsis above and these fill from the sheet. Anything left blank stays <b>blank on the form</b> for you to complete — never guessed from other contacts.</div>
                 </>
               )}
               {forms["cr7a-condo"] && (
@@ -2086,6 +2096,18 @@ function ListingPackageModal({ tx, headers, dealDocs = [], onClose, onDone }) {
                   <button onClick={() => preview(d.id)} style={{ padding: "6px 14px", borderRadius: 8, border: "1px solid #C0392B", background: "#fff", color: "#C0392B", fontWeight: 700, fontSize: 12.5, cursor: "pointer", whiteSpace: "nowrap" }}>👀 Review PDF</button>
                 </div>
               ))}
+              {netSheetDoc ? (
+                <label style={{ display: "flex", gap: 8, alignItems: "flex-start", background: "#F0FDF4", border: "1px solid #BBF7D0", borderRadius: 10, padding: 12, marginTop: 10, cursor: "pointer" }}>
+                  <input type="checkbox" checked={includeNetSheet} onChange={e => setIncludeNetSheet(e.target.checked)} style={{ marginTop: 2 }} />
+                  <span style={{ fontSize: 13, color: "#14532D", lineHeight: 1.5 }}>
+                    <b>💰 Include the Seller's Net Sheet</b> ("{netSheetDoc.name}") in this signing round — your brokerage requires it signed at listing. Seller, co-seller, and your signature lines are placed automatically.
+                  </span>
+                </label>
+              ) : (
+                <div style={{ background: "#FFFBEB", border: "1px solid #FDE68A", borderRadius: 10, padding: 12, marginTop: 10, fontSize: 12.5, color: "#78350F", lineHeight: 1.5 }}>
+                  ⚠️ <b>No Seller's Net Sheet on this deal yet.</b> Your brokerage requires a SIGNED net sheet at listing — create it under <b>💰 Money → Seller's Net Sheet</b>, then reopen this package to include it (or send it separately with ✍️ Get signature).
+                </div>
+              )}
               {extraCandidates.length > 0 && (
                 <div style={{ background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 10, padding: 12, marginTop: 10 }}>
                   <div style={{ fontSize: 12, fontWeight: 800, color: "#334155", textTransform: "uppercase", letterSpacing: 0.4, marginBottom: 6 }}>➕ Include more documents in this signing round (optional)</div>
