@@ -225,20 +225,21 @@ function GuidedPacketViewer({ token, base, stops, applied, current, sigDataUrl, 
               // "auto" stops need nothing from the signer — dates fill in with
               // the signing date, pre-written text stamps as the agent wrote it.
               if (s.auto) {
-                const ah = 18 * scale, aw = (s.kind === "date" ? 90 : 140) * scale;
+                const ah = (s.kind === "checkbox" ? 14 : 18) * scale;
+                const aw = (s.kind === "checkbox" ? 14 : s.kind === "date" ? 90 : 140) * scale;
                 return (
                   <div key={s.idx}
-                    style={{ position: "absolute", left: s.x * scale, top: (p.height - s.y) * scale - ah, width: aw, height: ah, display: "flex", alignItems: "flex-end", border: "1.5px dashed #94a3b8", background: "rgba(241,245,249,0.7)", borderRadius: 4, boxSizing: "border-box" }}>
-                    <span style={{ fontSize: Math.max(8, 9 * scale * 1.3), fontWeight: 700, color: "#475569", padding: 2, lineHeight: 1, whiteSpace: "nowrap", overflow: "hidden" }}>
-                      {s.kind === "date" ? "📅 dated when you sign" : s.text}
+                    style={{ position: "absolute", left: s.x * scale, top: (p.height - s.y) * scale - ah, width: aw, height: ah, display: "flex", alignItems: s.kind === "checkbox" ? "center" : "flex-end", justifyContent: s.kind === "checkbox" ? "center" : "flex-start", border: "1.5px dashed #94a3b8", background: "rgba(241,245,249,0.7)", borderRadius: 4, boxSizing: "border-box" }}>
+                    <span style={{ fontSize: Math.max(8, 9 * scale * 1.3), fontWeight: 700, color: "#475569", padding: s.kind === "checkbox" ? 0 : 2, lineHeight: 1, whiteSpace: "nowrap", overflow: "hidden" }}>
+                      {s.kind === "date" ? "📅 dated when you sign" : s.kind === "checkbox" ? "X" : s.text}
                     </span>
                   </div>
                 );
               }
               const isApplied = applied.has(s.idx);
               const isCurrent = s.idx === current;
-              const h = (s.kind === "signature" ? (s.h || 24) + 6 : s.kind === "text" ? 20 : 16) * scale;
-              const w = (s.kind === "signature" ? 170 : s.kind === "text" ? 140 : 34) * scale;
+              const h = (s.kind === "signature" ? (s.h || 24) + 6 : s.kind === "text" ? 20 : (s.h || 16)) * scale;
+              const w = (s.w || (s.kind === "signature" ? 170 : s.kind === "text" ? 140 : 34)) * scale;
               const left = s.x * scale;
               const top = (p.height - s.y) * scale - h;
               return (
@@ -257,7 +258,7 @@ function GuidedPacketViewer({ token, base, stops, applied, current, sigDataUrl, 
                       ? <img src={sigDataUrl} alt="signature" style={{ height: "100%", maxWidth: "100%", objectFit: "contain", objectPosition: "left bottom" }} />
                       : s.kind === "text"
                         ? <span title="Tap to change" style={{ fontWeight: 700, color: "#1e2a5a", fontSize: Math.max(9, 10 * scale * 1.4), lineHeight: 1, whiteSpace: "nowrap", overflow: "hidden" }}>{textMap[s.idx] || ""}</span>
-                        : <span style={{ fontFamily: "'Snell Roundhand','Brush Script MT',cursive", fontStyle: "italic", fontWeight: 700, color: "#1e2a5a", fontSize: Math.max(10, 12 * scale * 1.6), lineHeight: 1 }}>{s.kind === "signature" ? signerName : initialsOf(signerName)}</span>
+                        : <span style={{ fontFamily: "'Snell Roundhand','Brush Script MT',cursive", fontStyle: "italic", fontWeight: 700, color: "#1e2a5a", fontSize: Math.max(10, (s.kind === "initials" ? (s.h || 16) * 1.2 : 12 * 1.6) * scale), lineHeight: 1 }}>{s.kind === "signature" ? signerName : initialsOf(signerName)}</span>
                   ) : (
                     <span style={{ fontSize: Math.max(8, 9 * scale * 1.4), fontWeight: 800, color: "#854d0e", padding: 2, lineHeight: 1 }}>
                       {s.kind === "signature" ? "✍️ SIGN" : s.kind === "text" ? "💬 TYPE" : "INITIAL"}

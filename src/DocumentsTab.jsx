@@ -1454,8 +1454,34 @@ function DocSignModal({ tx, doc, allDocs = [], headers, onClose }) {
       if (t === null) return; // cancelled
       text = t.trim().slice(0, 120);
     }
-    setPlacements(ps => [...ps, { signer: activeSigner, docId, page: pg.num, x: Math.round(x * 10) / 10, y: Math.round(y * 10) / 10, kind: placeKind, text }]);
+    const w = placeKind === "signature" ? 170 : placeKind === "initials" ? 48 : placeKind === "checkbox" ? 13 : undefined;
+    // Check marks anchor on their center so the X lands where the finger tapped.
+    const px = placeKind === "checkbox" ? Math.max(0, x - 6) : x;
+    const py = placeKind === "checkbox" ? Math.max(4, y - 6) : y;
+    setPlacements(ps => [...ps, { signer: activeSigner, docId, page: pg.num, x: Math.round(px * 10) / 10, y: Math.round(py * 10) / 10, kind: placeKind, w, text }]);
   };
+  // Drag the corner handle of a placed signature/initials block to resize it.
+  const resizeRef = useRef(null);
+  const startResize = (idx, pg) => (e) => {
+    e.stopPropagation(); e.preventDefault();
+    const pageDiv = e.currentTarget.closest("[data-sign-page]");
+    resizeRef.current = {
+      idx, startX: e.clientX,
+      startW: placements[idx].w || (placements[idx].kind === "initials" ? 48 : 170),
+      scale: pageDiv ? pageDiv.clientWidth / pg.width : 1,
+      kind: placements[idx].kind,
+    };
+    try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* older browsers */ }
+  };
+  const moveResize = (e) => {
+    const r = resizeRef.current;
+    if (!r) return;
+    const dw = (e.clientX - r.startX) / (r.scale || 1);
+    const [min, max] = r.kind === "initials" ? [20, 140] : [60, 400];
+    const w = Math.round(Math.min(max, Math.max(min, r.startW + dw)));
+    setPlacements(ps => ps.map((p, j) => j === r.idx ? { ...p, w } : p));
+  };
+  const endResize = () => { resizeRef.current = null; };
   const initialsShort = (n) => {
     const parts = String(n || "").trim().split(/\s+/).filter(Boolean);
     return parts.length ? (parts[0][0] + (parts.length > 1 ? "." + parts[parts.length - 1][0] : "")).toUpperCase() + "." : "A.B.";
@@ -1607,7 +1633,7 @@ function DocSignModal({ tx, doc, allDocs = [], headers, onClose }) {
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", marginBottom: 8 }}>
                     <span style={{ fontSize: 12.5, fontWeight: 700, color: "#374151" }}>Block type:</span>
-                    {[["signature", "✍️ Signature"], ["initials", "🔤 Initials"], ["date", "📅 Date signed"], ["text", "💬 Text"]].map(([k, label]) => (
+                    {[["signature", "✍️ Signature"], ["initials", "🔤 Initials"], ["date", "📅 Date signed"], ["text", "💬 Text"], ["checkbox", "☑️ Check mark"]].map(([k, label]) => (
                       <button key={k} onClick={() => setPlaceKind(k)}
                         style={{ padding: "5px 12px", borderRadius: 14, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", border: "2px solid #64748b", background: placeKind === k ? "#334155" : "#fff", color: placeKind === k ? "#fff" : "#334155" }}>
                         {label}
@@ -1615,6 +1641,8 @@ function DocSignModal({ tx, doc, allDocs = [], headers, onClose }) {
                     ))}
                     {placeKind === "date" && <span style={{ fontSize: 11.5, color: "#64748b" }}>Fills in the date they sign, automatically.</span>}
                     {placeKind === "text" && <span style={{ fontSize: 11.5, color: "#64748b" }}>You type it now — or leave it blank and the signer types it.</span>}
+                    {placeKind === "checkbox" && <span style={{ fontSize: 11.5, color: "#64748b" }}>Puts an X in a little box on the form, automatically.</span>}
+                    {(placeKind === "signature" || placeKind === "initials") && <span style={{ fontSize: 11.5, color: "#64748b" }}>Drag the ● corner of a placed block to make it bigger or smaller.</span>}
                   </div>
                   <div style={{ maxHeight: 460, overflowY: "auto", border: "1px solid #e2e8f0", borderRadius: 10, padding: 8, background: "#f1f5f9" }}>
                     {selDocs.map(d => { const entry = pagesByDoc[d.id] || { pages: [], err: null }; return (
@@ -1625,7 +1653,7 @@ function DocSignModal({ tx, doc, allDocs = [], headers, onClose }) {
                       {entry.err && <div style={{ fontSize: 13, color: "#7f1d1d", padding: 6 }}>⚠️ {entry.err}</div>}
                       {!entry.err && entry.pages.length === 0 && <div style={{ fontSize: 13, color: "#64748b", padding: 10 }}>Loading pages…</div>}
                       {entry.pages.map(pg => (
-                      <div key={d.id + "-" + pg.num} style={{ position: "relative", marginBottom: 10, cursor: "crosshair" }}
+                      <div key={d.id + "-" + pg.num} data-sign-page="1" style={{ position: "relative", marginBottom: 10, cursor: "crosshair" }}
                         onClick={(e) => placeAt(d.id, pg, e)}>
                         {pg.dataUrl
                           ? <img src={pg.dataUrl} alt={"Page " + pg.num} style={{ display: "block", width: "100%", borderRadius: 4, boxShadow: "0 1px 6px rgba(2,6,23,0.15)" }} draggable={false} />
@@ -1636,17 +1664,26 @@ function DocSignModal({ tx, doc, allDocs = [], headers, onClose }) {
                           const color = SIGNER_COLORS[(p.signer - 1) % 4];
                           const first = (signerNames[p.signer - 1] || `Signer ${p.signer}`).split(" ")[0];
                           const kindOf = p.kind || "signature";
-                          const widthPt = kindOf === "signature" ? 170 : kindOf === "initials" ? 48 : kindOf === "date" ? 80 : 130;
+                          const widthPt = kindOf === "signature" ? (p.w || 170) : kindOf === "initials" ? (p.w || 48) : kindOf === "date" ? 80 : kindOf === "checkbox" ? 13 : 130;
+                          const heightPt = kindOf === "signature" ? Math.max(14, widthPt * 26 / 170) : kindOf === "initials" ? Math.max(12, widthPt / 2.4) : kindOf === "checkbox" ? 13 : 15;
+                          const resizable = kindOf === "signature" || kindOf === "initials";
                           const label = kindOf === "signature" ? `✍️ ${first} signs here ✕`
-                            : kindOf === "initials" ? `🔤 ${initialsShort(signerNames[p.signer - 1])} ✕`
+                            : kindOf === "initials" ? `${initialsShort(signerNames[p.signer - 1])} ✕`
                             : kindOf === "date" ? "📅 date ✕"
+                            : kindOf === "checkbox" ? "X"
                             : `💬 ${p.text || first + " types"} ✕`;
                           return (
                             <div key={pi}
                               onClick={(e) => { e.stopPropagation(); setPlacements(ps => ps.filter((_, j) => j !== idx)); }}
                               title="Tap to remove"
-                              style={{ position: "absolute", left: (p.x / pg.width * 100) + "%", bottom: (p.y / pg.height * 100) + "%", width: (widthPt / pg.width * 100) + "%", height: kindOf === "signature" ? 26 : 20, border: "2px dashed " + color, background: color + "22", borderRadius: 4, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
+                              style={{ position: "absolute", left: (p.x / pg.width * 100) + "%", bottom: (p.y / pg.height * 100) + "%", width: (widthPt / pg.width * 100) + "%", height: (heightPt / pg.height * 100) + "%", minHeight: 12, border: "2px dashed " + color, background: color + "22", borderRadius: 4, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", overflow: "visible", boxSizing: "border-box" }}>
                               <span style={{ fontSize: 10, fontWeight: 800, color, whiteSpace: "nowrap", overflow: "hidden" }}>{label}</span>
+                              {resizable && (
+                                <div onPointerDown={startResize(idx, pg)} onPointerMove={moveResize} onPointerUp={endResize} onPointerCancel={endResize}
+                                  onClick={(e) => e.stopPropagation()}
+                                  title="Drag to resize"
+                                  style={{ position: "absolute", right: -11, bottom: -11, width: 22, height: 22, borderRadius: 11, background: color, border: "2.5px solid #fff", boxShadow: "0 1px 5px rgba(2,6,23,0.4)", cursor: "nwse-resize", touchAction: "none" }} />
+                              )}
                             </div>
                           );
                         })}
