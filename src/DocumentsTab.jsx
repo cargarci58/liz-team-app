@@ -1275,7 +1275,8 @@ function DocSignModal({ tx, doc, headers, onClose }) {
   const [pdfPages, setPdfPages] = useState([]);   // [{num,width,height,dataUrl}]
   const [pdfErr, setPdfErr] = useState(null);
   const [activeSigner, setActiveSigner] = useState(1);
-  const [placements, setPlacements] = useState([]); // [{signer,page,x,y}] PDF pts, bottom-left origin
+  const [placeKind, setPlaceKind] = useState("signature"); // signature | initials | date | text
+  const [placements, setPlacements] = useState([]); // [{signer,page,x,y,kind,text}] PDF pts, bottom-left origin
 
   const loadInfo = async () => {
     try {
@@ -1335,7 +1336,17 @@ function DocSignModal({ tx, doc, headers, onClose }) {
     const x = Math.max(0, Math.min(pg.width - 10, (e.clientX - rect.left) / scale));
     const yTop = (e.clientY - rect.top) / scale;
     const y = Math.max(4, Math.min(pg.height - 10, pg.height - yTop));
-    setPlacements(ps => [...ps, { signer: activeSigner, page: pg.num, x: Math.round(x * 10) / 10, y: Math.round(y * 10) / 10 }]);
+    let text = "";
+    if (placeKind === "text") {
+      const t = prompt("What should this text box say?\n\nLeave it EMPTY to let the signer type it in when they sign.");
+      if (t === null) return; // cancelled
+      text = t.trim().slice(0, 120);
+    }
+    setPlacements(ps => [...ps, { signer: activeSigner, page: pg.num, x: Math.round(x * 10) / 10, y: Math.round(y * 10) / 10, kind: placeKind, text }]);
+  };
+  const initialsShort = (n) => {
+    const parts = String(n || "").trim().split(/\s+/).filter(Boolean);
+    return parts.length ? (parts[0][0] + (parts.length > 1 ? "." + parts[parts.length - 1][0] : "")).toUpperCase() + "." : "A.B.";
   };
 
   const send = async () => {
@@ -1437,7 +1448,7 @@ function DocSignModal({ tx, doc, headers, onClose }) {
               <div style={{ margin: "6px 0 12px" }}>
                 <button onClick={() => setPlacing(p => !p)}
                   style={{ padding: "8px 16px", background: placing ? "#86198f" : "#faf5ff", color: placing ? "#fff" : "#86198f", border: "1px solid #d8b4fe", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
-                  📍 {placing ? "Hide pages" : "Place signature blocks on the pages (optional)"}
+                  📍 {placing ? "Hide pages" : "Place signature, initials, date & text blocks (optional)"}
                 </button>
                 {!placing && placements.length > 0 && (
                   <span style={{ marginLeft: 8, fontSize: 12, color: "#15803d", fontWeight: 700 }}>✅ {placements.length} block{placements.length > 1 ? "s" : ""} placed</span>
@@ -1461,6 +1472,17 @@ function DocSignModal({ tx, doc, headers, onClose }) {
                     ))}
                     <span style={{ fontSize: 12.5, fontWeight: 700, color: "#374151" }}>should sign. Tap a block to remove it.</span>
                   </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", marginBottom: 8 }}>
+                    <span style={{ fontSize: 12.5, fontWeight: 700, color: "#374151" }}>Block type:</span>
+                    {[["signature", "✍️ Signature"], ["initials", "🔤 Initials"], ["date", "📅 Date signed"], ["text", "💬 Text"]].map(([k, label]) => (
+                      <button key={k} onClick={() => setPlaceKind(k)}
+                        style={{ padding: "5px 12px", borderRadius: 14, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", border: "2px solid #64748b", background: placeKind === k ? "#334155" : "#fff", color: placeKind === k ? "#fff" : "#334155" }}>
+                        {label}
+                      </button>
+                    ))}
+                    {placeKind === "date" && <span style={{ fontSize: 11.5, color: "#64748b" }}>Fills in the date they sign, automatically.</span>}
+                    {placeKind === "text" && <span style={{ fontSize: 11.5, color: "#64748b" }}>You type it now — or leave it blank and the signer types it.</span>}
+                  </div>
                   {pdfErr && <div style={{ fontSize: 13, color: "#7f1d1d" }}>⚠️ {pdfErr}</div>}
                   {!pdfErr && pdfPages.length === 0 && <div style={{ fontSize: 13, color: "#64748b", padding: 10 }}>Loading pages…</div>}
                   <div style={{ maxHeight: 460, overflowY: "auto", border: "1px solid #e2e8f0", borderRadius: 10, padding: 8, background: "#f1f5f9" }}>
@@ -1474,12 +1496,19 @@ function DocSignModal({ tx, doc, headers, onClose }) {
                         {placements.filter(p => p.page === pg.num).map((p, pi) => {
                           const idx = placements.indexOf(p);
                           const color = SIGNER_COLORS[(p.signer - 1) % 4];
+                          const first = (signerNames[p.signer - 1] || `Signer ${p.signer}`).split(" ")[0];
+                          const kindOf = p.kind || "signature";
+                          const widthPt = kindOf === "signature" ? 170 : kindOf === "initials" ? 48 : kindOf === "date" ? 80 : 130;
+                          const label = kindOf === "signature" ? `✍️ ${first} signs here ✕`
+                            : kindOf === "initials" ? `🔤 ${initialsShort(signerNames[p.signer - 1])} ✕`
+                            : kindOf === "date" ? "📅 date ✕"
+                            : `💬 ${p.text || first + " types"} ✕`;
                           return (
                             <div key={pi}
                               onClick={(e) => { e.stopPropagation(); setPlacements(ps => ps.filter((_, j) => j !== idx)); }}
                               title="Tap to remove"
-                              style={{ position: "absolute", left: (p.x / pg.width * 100) + "%", bottom: (p.y / pg.height * 100) + "%", width: (170 / pg.width * 100) + "%", height: 26, border: "2px dashed " + color, background: color + "22", borderRadius: 4, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
-                              <span style={{ fontSize: 10, fontWeight: 800, color, whiteSpace: "nowrap", overflow: "hidden" }}>✍️ {(signerNames[p.signer - 1] || `Signer ${p.signer}`).split(" ")[0]} signs here ✕</span>
+                              style={{ position: "absolute", left: (p.x / pg.width * 100) + "%", bottom: (p.y / pg.height * 100) + "%", width: (widthPt / pg.width * 100) + "%", height: kindOf === "signature" ? 26 : 20, border: "2px dashed " + color, background: color + "22", borderRadius: 4, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
+                              <span style={{ fontSize: 10, fontWeight: 800, color, whiteSpace: "nowrap", overflow: "hidden" }}>{label}</span>
                             </div>
                           );
                         })}

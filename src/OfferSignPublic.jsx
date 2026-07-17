@@ -120,7 +120,7 @@ function SignaturePad({ onChange, typedName, mode }) {
 
 // In-page PDF viewer with guided stop markers. Renders every page via pdf.js
 // (loaded on demand so the main app bundle stays small).
-function GuidedPacketViewer({ token, base, stops, applied, current, sigDataUrl, signerName, onApply }) {
+function GuidedPacketViewer({ token, base, stops, applied, current, sigDataUrl, signerName, onApply, textMap = {} }) {
   const [pages, setPages] = useState([]); // [{num, width, height, dataUrl}]
   const [renderErr, setRenderErr] = useState(null);
   const wrapRefs = useRef({});
@@ -208,18 +208,31 @@ function GuidedPacketViewer({ token, base, stops, applied, current, sigDataUrl, 
                   Page {p.num} preview unavailable — use "Open full package" above to review it
                 </div>}
             {(stopsByPage[p.num] || []).map(s => {
+              // "auto" stops need nothing from the signer — dates fill in with
+              // the signing date, pre-written text stamps as the agent wrote it.
+              if (s.auto) {
+                const ah = 18 * scale, aw = (s.kind === "date" ? 90 : 140) * scale;
+                return (
+                  <div key={s.idx}
+                    style={{ position: "absolute", left: s.x * scale, top: (p.height - s.y) * scale - ah, width: aw, height: ah, display: "flex", alignItems: "flex-end", border: "1.5px dashed #94a3b8", background: "rgba(241,245,249,0.7)", borderRadius: 4, boxSizing: "border-box" }}>
+                    <span style={{ fontSize: Math.max(8, 9 * scale * 1.3), fontWeight: 700, color: "#475569", padding: 2, lineHeight: 1, whiteSpace: "nowrap", overflow: "hidden" }}>
+                      {s.kind === "date" ? "📅 dated when you sign" : s.text}
+                    </span>
+                  </div>
+                );
+              }
               const isApplied = applied.has(s.idx);
               const isCurrent = s.idx === current;
-              const h = (s.kind === "signature" ? (s.h || 24) + 6 : 16) * scale;
-              const w = (s.kind === "signature" ? 170 : 34) * scale;
+              const h = (s.kind === "signature" ? (s.h || 24) + 6 : s.kind === "text" ? 20 : 16) * scale;
+              const w = (s.kind === "signature" ? 170 : s.kind === "text" ? 140 : 34) * scale;
               const left = s.x * scale;
               const top = (p.height - s.y) * scale - h;
               return (
                 <div key={s.idx} ref={el => { wrapRefs.current["stop-" + s.idx] = el; }}
-                  onClick={() => !isApplied && onApply(s.idx)}
+                  onClick={() => onApply(s.idx)}
                   style={{
                     position: "absolute", left, top, width: w, height: h,
-                    display: "flex", alignItems: "flex-end", cursor: isApplied ? "default" : "pointer",
+                    display: "flex", alignItems: "flex-end", cursor: (isApplied && s.kind !== "text") ? "default" : "pointer",
                     border: isApplied ? "none" : (isCurrent ? "2px solid #ca8a04" : "2px dashed #ca8a04"),
                     background: isApplied ? "transparent" : (isCurrent ? "rgba(254,240,138,0.75)" : "rgba(254,240,138,0.4)"),
                     borderRadius: 4, boxSizing: "border-box",
@@ -228,10 +241,12 @@ function GuidedPacketViewer({ token, base, stops, applied, current, sigDataUrl, 
                   {isApplied ? (
                     s.kind === "signature" && sigDataUrl
                       ? <img src={sigDataUrl} alt="signature" style={{ height: "100%", maxWidth: "100%", objectFit: "contain", objectPosition: "left bottom" }} />
-                      : <span style={{ fontFamily: "'Snell Roundhand','Brush Script MT',cursive", fontStyle: "italic", fontWeight: 700, color: "#1e2a5a", fontSize: Math.max(10, 12 * scale * 1.6), lineHeight: 1 }}>{s.kind === "signature" ? signerName : initialsOf(signerName)}</span>
+                      : s.kind === "text"
+                        ? <span title="Tap to change" style={{ fontWeight: 700, color: "#1e2a5a", fontSize: Math.max(9, 10 * scale * 1.4), lineHeight: 1, whiteSpace: "nowrap", overflow: "hidden" }}>{textMap[s.idx] || ""}</span>
+                        : <span style={{ fontFamily: "'Snell Roundhand','Brush Script MT',cursive", fontStyle: "italic", fontWeight: 700, color: "#1e2a5a", fontSize: Math.max(10, 12 * scale * 1.6), lineHeight: 1 }}>{s.kind === "signature" ? signerName : initialsOf(signerName)}</span>
                   ) : (
                     <span style={{ fontSize: Math.max(8, 9 * scale * 1.4), fontWeight: 800, color: "#854d0e", padding: 2, lineHeight: 1 }}>
-                      {s.kind === "signature" ? "✍️ SIGN" : "INITIAL"}
+                      {s.kind === "signature" ? "✍️ SIGN" : s.kind === "text" ? "💬 TYPE" : "INITIAL"}
                     </span>
                   )}
                 </div>
@@ -273,38 +288,59 @@ export default function OfferSignPublic({ urlToken, kind = "offer" }) {
   }, [urlToken, base]);
 
   const stops = (data && data.stops) || [];
+  // "auto" stops (dates, agent-pre-written text) fill themselves — the signer
+  // only works through the interactive ones.
+  const interactiveCount = stops.filter(s => !s.auto).length;
+  const [textMap, setTextMap] = useState({}); // stop index → signer-typed text
 
   const applyStop = useCallback((idx) => {
+    const s = stops[idx];
+    if (!s || s.auto) return;
+    if (s.kind === "text") {
+      const v = window.prompt("Type what should go in this box:", textMap[idx] || "");
+      if (v === null) return;
+      const t = v.trim().slice(0, 120);
+      if (!t) return;
+      setTextMap(m => ({ ...m, [idx]: t }));
+    }
     setApplied(prev => {
       const next = new Set(prev);
       next.add(idx);
       return next;
     });
-    // advance to the next un-applied stop (wrapping back to any skipped ones)
+    // advance to the next un-applied interactive stop (wrapping back to skipped ones)
     setCurrent(() => {
       let nxt = -1;
-      for (let i = idx + 1; i < stops.length; i++) if (!applied.has(i)) { nxt = i; break; }
-      if (nxt === -1) for (let i = 0; i < stops.length; i++) if (i !== idx && !applied.has(i)) { nxt = i; break; }
+      for (let i = idx + 1; i < stops.length; i++) if (!stops[i].auto && !applied.has(i)) { nxt = i; break; }
+      if (nxt === -1) for (let i = 0; i < stops.length; i++) if (i !== idx && !stops[i].auto && !applied.has(i)) { nxt = i; break; }
       return nxt === -1 ? idx : nxt;
     });
-  }, [stops.length, applied]);
+  }, [stops, applied, textMap]);
 
   const applyAll = () => {
-    setApplied(new Set(stops.map((_, i) => i)));
-    setCurrent(stops.length - 1);
+    // Text boxes still need typing — everything else applies in one go.
+    setApplied(prev => {
+      const next = new Set(prev);
+      stops.forEach((s, i) => { if (!s.auto && (s.kind !== "text" || textMap[i])) next.add(i); });
+      return next;
+    });
+    const firstText = stops.findIndex((s, i) => !s.auto && s.kind === "text" && !textMap[i]);
+    setCurrent(firstText >= 0 ? firstText : stops.length - 1);
   };
 
-  const allApplied = stops.length === 0 || applied.size >= stops.length;
+  const allApplied = interactiveCount === 0 || applied.size >= interactiveCount;
 
   const submit = async () => {
     setError(null);
     if (!sigDataUrl) { setError("Adopt your signature first."); setPhase("adopt"); return; }
     setSubmitting(true);
     try {
+      const textValues = {};
+      stops.forEach((s, i) => { if (s.kind === "text" && !s.auto && textMap[i]) textValues[s.id] = textMap[i]; });
       const r = await fetch(API + "/public/" + base + "/" + urlToken, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ consent: true, signatureDataUrl: sigDataUrl, kind: mode === "type" ? "typed" : "drawn" }),
+        body: JSON.stringify({ consent: true, signatureDataUrl: sigDataUrl, kind: mode === "type" ? "typed" : "drawn", textValues }),
       });
       const b = await r.json();
       if (!r.ok) throw new Error(b.error || "Couldn't save your signature.");
@@ -345,7 +381,11 @@ export default function OfferSignPublic({ urlToken, kind = "offer" }) {
     <div>
       <div style={{ fontSize: 14, color: "#374151", lineHeight: 1.6, marginBottom: 16 }}>
         Hi <strong>{data.signerName}</strong> — {kind === "doc" ? "this document is ready for your signature." : "your offer package is ready to sign."} Two quick steps:
-        first adopt your signature, then we'll walk you through <strong>each place</strong> it goes — {stops.length > 0 ? <strong>{stops.filter(s => s.kind === "signature").length} signature{stops.filter(s => s.kind === "signature").length === 1 ? "" : "s"} and {stops.filter(s => s.kind === "initials").length} initial spot{stops.filter(s => s.kind === "initials").length === 1 ? "" : "s"}</strong> : "every signature and initial spot"} — one at a time.
+        first adopt your signature, then we'll walk you through <strong>each place</strong> it goes — {interactiveCount > 0 ? <strong>{[
+          [stops.filter(s => !s.auto && s.kind === "signature").length, "signature", "signatures"],
+          [stops.filter(s => !s.auto && s.kind === "initials").length, "initial spot", "initial spots"],
+          [stops.filter(s => !s.auto && s.kind === "text").length, "box to fill in", "boxes to fill in"],
+        ].filter(([n]) => n > 0).map(([n, one, many]) => n + " " + (n === 1 ? one : many)).join(" and ")}</strong> : "every signature and initial spot"} — one at a time.
       </div>
       <div style={{ marginBottom: 18 }}>
         <div style={{ fontSize: 13, fontWeight: 800, color: "#0c4a6e", textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 8 }}>1 · Agree to sign electronically</div>
@@ -380,7 +420,7 @@ export default function OfferSignPublic({ urlToken, kind = "offer" }) {
           if (!consent) { setError("Please check the consent box first."); return; }
           if (!sigDataUrl) { setError(mode === "draw" ? "Please sign in the box first." : "Please type your name first."); return; }
           setPhase("guide");
-          setCurrent(0);
+          setCurrent(Math.max(0, stops.findIndex(s => !s.auto)));
         }}
         style={{ width: "100%", padding: "14px 0", background: "#0c4a6e", color: "#fff", border: "none", borderRadius: 10, fontSize: 16, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>
         Start signing →
@@ -400,18 +440,18 @@ export default function OfferSignPublic({ urlToken, kind = "offer" }) {
           style={{ fontSize: 12, fontWeight: 700, color: "#075985", whiteSpace: "nowrap" }}>Open full package ↗</a>
       </div>
       <GuidedPacketViewer token={urlToken} base={base} stops={stops} applied={applied} current={current}
-        sigDataUrl={sigDataUrl} signerName={data.signerName} onApply={applyStop} />
+        sigDataUrl={sigDataUrl} signerName={data.signerName} onApply={applyStop} textMap={textMap} />
       {error && <div style={{ background: "#fee2e2", border: "1px solid #fca5a5", borderRadius: 8, padding: 12, fontSize: 13, color: "#7f1d1d", margin: "12px 0" }}>⚠️ {error}</div>}
       {/* Sticky action bar */}
       <div style={{ position: "sticky", bottom: 8, background: "#0f172a", color: "#fff", borderRadius: 12, padding: "12px 16px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, boxShadow: "0 8px 30px rgba(2,6,23,0.45)", marginTop: 12, flexWrap: "wrap" }}>
         <div style={{ fontSize: 13, fontWeight: 700 }}>
-          {allApplied ? "✅ All spots signed" : `${applied.size} of ${stops.length} placed`}
+          {allApplied ? "✅ All spots signed" : `${applied.size} of ${interactiveCount} placed`}
         </div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           {!allApplied && (
             <button type="button" onClick={() => applyStop(current)}
               style={{ padding: "9px 16px", background: "#fef08a", color: "#713f12", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>
-              {stops[current] && stops[current].kind === "signature" ? "✍️ Sign here" : "Place initials"} ({applied.size + 1}/{stops.length})
+              {stops[current] && stops[current].kind === "signature" ? "✍️ Sign here" : stops[current] && stops[current].kind === "text" ? "💬 Type text" : "Place initials"} ({applied.size + 1}/{interactiveCount})
             </button>
           )}
           {!allApplied && applied.size > 0 && (
