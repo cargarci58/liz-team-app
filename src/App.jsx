@@ -2900,6 +2900,16 @@ function MilestonesTab({ tx, token, onSummaryChange, coordinatorMode = false }) 
   }, {});
   const orderedPhases = Object.keys(grouped).sort((a, b) => (PHASE_META[a]?.order ?? 9) - (PHASE_META[b]?.order ?? 9));
 
+  // COMPLIANCE GATE (listings): the signed listing package is what authorizes the
+  // agent to market the home, so the launch actions (photos, MLS go-live, sign,
+  // showings) stay LOCKED until "Listing Package Signed & Executed" is done.
+  const isListingDeal = /listing|seller/i.test(tx?.transaction_type || tx?.transactionType || tx?.type || "");
+  const listingGateMs = milestones.find(m => /listing package signed/i.test(m.name || ""));
+  const listingGateSatisfied = !listingGateMs || ["completed", "waived"].includes(getMilestoneStatus(listingGateMs));
+  const isLaunchLocked = (m) => isListingDeal && !listingGateSatisfied
+    && /^(Marketing|Access)$/.test(m.category || "")
+    && !/listing package signed/i.test(m.name || "");
+
   const completed = milestones.filter(m => m.status === "Completed" || m.status === "Waived").length;
   const total = milestones.length;
   const progress = total > 0 ? Math.round(completed / total * 100) : 0;
@@ -3038,6 +3048,7 @@ function MilestonesTab({ tx, token, onSummaryChange, coordinatorMode = false }) 
             const isClosingSchedule = /closing scheduled/i.test(m.name || "");
             const scheduleSpec = milestoneScheduleSpec(m.name);
             const isScheduling = !!scheduleSpec;
+            const launchLocked = isLaunchLocked(m);
             return (
               <div key={m.id} style={{ background: "#fff", borderRadius: 12, padding: 14,
                 marginBottom: 8, boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
@@ -3149,7 +3160,16 @@ function MilestonesTab({ tx, token, onSummaryChange, coordinatorMode = false }) 
                     <span style={{ fontSize: 11, color: "#999", marginLeft: 8 }}>Clicked done by mistake? Put it back.</span>
                   </div>
                 )}
-                {!isClosed && isClosingSchedule && (
+                {!isClosed && launchLocked && (
+                  <div style={{ display: "flex", alignItems: "flex-start", gap: 8, marginTop: 12,
+                    background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: 8, padding: "10px 12px" }}>
+                    <span style={{ fontSize: 16 }}>🔒</span>
+                    <div style={{ fontSize: 12, color: "#991B1B", lineHeight: 1.5 }}>
+                      Locked until the <b>listing package is signed</b>. Florida requires the signed listing agreement and disclosures before you market the home — complete <b>“Listing Package Signed &amp; Executed”</b> at the top to unlock this.
+                    </div>
+                  </div>
+                )}
+                {!isClosed && !launchLocked && isClosingSchedule && (
                   <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap", alignItems: "center" }}>
                     <button onClick={() => setClosingModalFor(m)}
                       style={{ flex: "2 1 240px", padding: "11px 0", borderRadius: 8, border: "none",
@@ -3167,7 +3187,7 @@ function MilestonesTab({ tx, token, onSummaryChange, coordinatorMode = false }) 
                     </button>
                   </div>
                 )}
-                {!isClosed && isScheduling && (() => {
+                {!isClosed && !launchLocked && isScheduling && (() => {
                   const dVal = scheduleDates[m.id] ?? (m.scheduled_date || "");
                   const tVal = scheduleTimes[m.id] ?? (m.scheduled_time || "");
                   const isInspection = /inspection|wdo|termite/i.test(m.name || "");
@@ -3210,7 +3230,7 @@ function MilestonesTab({ tx, token, onSummaryChange, coordinatorMode = false }) 
                   </div>
                   );
                 })()}
-                {!isClosed && !isScheduling && !isClosingSchedule && (
+                {!isClosed && !launchLocked && !isScheduling && !isClosingSchedule && (
                   <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
                     {compliance[m.id]?.documentRequired && tx.constructionType !== "New Construction" ? (
                       <>
