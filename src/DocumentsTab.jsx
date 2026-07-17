@@ -449,9 +449,35 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
     setWaiverBusy(false);
   };
 
+  const isListingDeal = /listing|seller/i.test(tx.transaction_type || tx.transactionType || tx.type || "");
+  const [showPackage, setShowPackage] = useState(false);
+  const hasPackageDocs = docs.some(d => (d.category || "") === "Listing Package");
+
   return (
     <div style={{ padding: 24 }}>
       {!coordinatorMode && <DocsFirstTimeTip />}
+      {/* Listing package — the compliance-first step on every listing */}
+      {isListingDeal && !coordinatorMode && (
+        <div style={{ background: "#FDF2F2", border: "1.5px solid #C0392B", borderRadius: 12, padding: 16, marginBottom: 20,
+          display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+          <div style={{ minWidth: 220, flex: 1 }}>
+            <div style={{ fontWeight: 800, fontSize: 15, color: "#7B241C" }}>📦 Listing Package — step 1 of every listing</div>
+            <div style={{ fontSize: 12.5, color: "#7B241C", marginTop: 3, lineHeight: 1.45 }}>
+              {hasPackageDocs
+                ? "Package generated — watch the ⏳/✅ badges below for signing progress. The listing unlocks automatically when everything is signed."
+                : "Fills the official Florida forms (listing agreement, disclosures, riders) with this deal's details and sends them to your seller to e-sign in one round. Photos, sign, and MLS stay locked until it's signed."}
+            </div>
+          </div>
+          <button onClick={() => setShowPackage(true)}
+            style={{ background: "#C0392B", color: "#fff", border: "none", padding: "10px 18px", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap" }}>
+            {hasPackageDocs ? "Regenerate / Resend" : "Prepare & Send Package"}
+          </button>
+        </div>
+      )}
+      {showPackage && (
+        <ListingPackageModal tx={tx} headers={headers} onClose={() => setShowPackage(false)}
+          onDone={() => { setShowPackage(false); loadDocs(); loadRequired(); }} />
+      )}
       {/* Home-inspection waiver — buyer deals only */}
       {isBuyerDeal && !coordinatorMode && (
         <div style={{ background: "#FFFBEB", border: "1px solid #FDE68A", borderRadius: 12, padding: 16, marginBottom: 20,
@@ -1719,6 +1745,248 @@ function DocSignModal({ tx, doc, allDocs = [], headers, onClose }) {
         </div>
         <div style={{ padding: "12px 22px", borderTop: "1px solid #e5e7eb", textAlign: "right" }}>
           <button onClick={onClose} style={{ padding: "8px 18px", background: "#e5e7eb", color: "#374151", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>Close</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ════════════════════════════════════════════════════════════════
+// LISTING PACKAGE WIZARD — fills the official FL listing forms with this deal's
+// data (server-side overlay onto the licensed templates — the forms themselves
+// are never altered), files them under Documents, then sends ONE bundled e-sign
+// round to the seller(s) + agent with every signature/initial pre-placed.
+// When the last signature lands, the server auto-completes the "Listing Package
+// Signed & Executed" gate and the listing's launch steps unlock.
+// ════════════════════════════════════════════════════════════════
+function ListingPackageModal({ tx, headers, onClose, onDone }) {
+  const [pre, setPre] = useState(null);        // prefill payload
+  const [err, setErr] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [step, setStep] = useState("form");     // form → review → sent
+  const [gen, setGen] = useState(null);         // {documents, signers, placements}
+  const [forms, setForms] = useState({});       // formId -> bool
+  const [sellers, setSellers] = useState([]);   // [{name,email}]
+  const [f, setF] = useState({
+    beginDate: "", terminationDate: "", price: "", commissionPct: "",
+    bbcMode: "from_seller", bbcPct: "", protectionDays: "30", retainedDepositsPct: "50",
+    arbitration: "sellers", personalProperty: "", additionalTerms: "",
+    legalDescription: "", communityName: "", associationName: "", aaInterestDesc: "",
+    finCash: true, finConventional: true, finVa: false, finFha: false,
+  });
+  const set = (patch) => setF(prev => ({ ...prev, ...patch }));
+
+  useEffect(() => {
+    fetch(`${API}/transactions/${tx.id}/listing-package/prefill`, { headers })
+      .then(r => r.json())
+      .then(d => {
+        if (!d.success) { setErr(d.error || "Could not load"); return; }
+        setPre(d);
+        setSellers((d.sellers || []).map(s => ({ name: s.name || "", email: s.email || "" })));
+        const fm = {}; (d.forms || []).forEach(x => { fm[x.formId] = !!x.suggested; });
+        setForms(fm);
+        setF(prev => ({ ...prev,
+          beginDate: d.defaults.beginDate || "", terminationDate: d.defaults.terminationDate || "",
+          price: d.defaults.price || "", commissionPct: d.defaults.commissionPct || "",
+          protectionDays: d.defaults.protectionDays || "30",
+          retainedDepositsPct: d.defaults.retainedDepositsPct || "50",
+          legalDescription: d.defaults.legalDescription || "",
+        }));
+      })
+      .catch(e => setErr(e.message));
+  }, [tx.id]);
+
+  const generate = async () => {
+    setErr("");
+    if (!sellers.length || sellers.some(s => !s.name.trim())) { setErr("Add the seller name(s) under People first."); return; }
+    if (sellers.some(s => !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(s.email))) { setErr("Every seller needs a valid email — that's where their signing link goes."); return; }
+    setBusy(true);
+    try {
+      const r = await fetch(`${API}/transactions/${tx.id}/listing-package/generate`, {
+        method: "POST", headers,
+        body: JSON.stringify({ formIds: Object.keys(forms).filter(k => forms[k]), arbitration: f.arbitration, fields: f }),
+      });
+      const d = await r.json();
+      if (!r.ok || !d.success) throw new Error(d.error || "Could not generate the package");
+      // Keep the seller emails the agent may have edited in this modal.
+      setGen({ ...d, signers: d.signers.map((s, i) => i < sellers.length ? { ...s, email: sellers[i].email } : s) });
+      setStep("review");
+    } catch (e) { setErr(e.message); }
+    setBusy(false);
+  };
+
+  const send = async () => {
+    setErr(""); setBusy(true);
+    try {
+      const [first, ...rest] = gen.documents;
+      const r = await fetch(`${API}/documents/${first.id}/request-signatures`, {
+        method: "POST", headers,
+        body: JSON.stringify({
+          alsoDocIds: rest.map(d => d.id),
+          signers: gen.signers.filter(s => s.email),
+          placements: gen.placements,
+        }),
+      });
+      const d = await r.json();
+      if (!r.ok || !d.success) throw new Error(d.error || "Could not send");
+      setStep("sent");
+    } catch (e) { setErr(e.message); }
+    setBusy(false);
+  };
+
+  const preview = async (docId) => {
+    try {
+      const r = await fetch(`${API}/documents/${docId}/view-url`, { headers });
+      const d = await r.json();
+      if (d.url) window.open(d.url, "_blank"); else alert("Could not open preview.");
+    } catch { alert("Could not open preview."); }
+  };
+
+  const inp = { width: "100%", padding: "9px 11px", borderRadius: 8, border: "1.5px solid #D5D8DC", fontSize: 13.5, fontFamily: "inherit", boxSizing: "border-box" };
+  const lbl = { fontSize: 11, fontWeight: 800, color: "#555", textTransform: "uppercase", letterSpacing: 0.4, display: "block", marginBottom: 4 };
+  const row = { display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 12 };
+  const col = (w) => ({ flex: `1 1 ${w}px`, minWidth: w });
+
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)", zIndex: 1200, display: "flex", alignItems: "flex-start", justifyContent: "center", overflowY: "auto", padding: "30px 12px" }} onClick={onClose}>
+      <div onClick={e => e.stopPropagation()} style={{ background: "#fff", borderRadius: 14, width: "100%", maxWidth: 720, boxShadow: "0 20px 60px rgba(0,0,0,0.35)", overflow: "hidden" }}>
+        <div style={{ background: "#7B241C", padding: "14px 20px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div style={{ color: "#fff", fontWeight: 800, fontSize: 16 }}>📦 Listing Package{tx.address ? " — " + tx.address : ""}</div>
+          <button onClick={onClose} style={{ background: "none", border: "none", color: "#fff", fontSize: 22, cursor: "pointer", lineHeight: 1 }}>×</button>
+        </div>
+        <div style={{ padding: 20 }}>
+          {err && <div style={{ background: "#FDEDEC", border: "1px solid #F5B7B1", color: "#943126", borderRadius: 8, padding: "10px 12px", fontSize: 13, marginBottom: 14 }}>⚠️ {err}</div>}
+
+          {step === "form" && !pre && !err && <div style={{ color: "#666", fontSize: 14 }}>Loading this deal's details…</div>}
+
+          {step === "form" && pre && (
+            <>
+              <div style={{ fontSize: 12.5, color: "#555", lineHeight: 1.5, marginBottom: 14 }}>
+                Review the terms below — they fill the <b>official Florida forms</b> (the forms themselves are never modified). Then you'll preview each PDF before anything is sent to your seller.
+              </div>
+
+              <div style={{ ...lbl }}>Seller(s) — each gets a private e-signing link</div>
+              {sellers.map((s, i) => (
+                <div key={i} style={{ ...row, marginBottom: 8 }}>
+                  <input value={s.name} readOnly title="Edit names under the People tab" style={{ ...inp, ...col(180), background: "#F8F9F9", color: "#555" }} />
+                  <input value={s.email} placeholder="seller@email.com" onChange={e => setSellers(prev => prev.map((x, j) => j === i ? { ...x, email: e.target.value } : x))} style={{ ...inp, ...col(200) }} />
+                </div>
+              ))}
+              {!sellers.length && <div style={{ fontSize: 13, color: "#943126", marginBottom: 10 }}>No sellers found on this deal — add them under the People tab first.</div>}
+              {pre.agentName && <div style={{ fontSize: 12, color: "#555", margin: "2px 0 12px" }}>✍️ You ({pre.agentName}) sign too — you'll get your own signing link for the broker lines.</div>}
+
+              <div style={row}>
+                <div style={col(140)}><label style={lbl}>Listing begins</label><input value={f.beginDate} onChange={e => set({ beginDate: e.target.value })} placeholder="MM/DD/YYYY" style={inp} /></div>
+                <div style={col(140)}><label style={lbl}>Ends (termination)</label><input value={f.terminationDate} onChange={e => set({ terminationDate: e.target.value })} placeholder="MM/DD/YYYY" style={inp} /></div>
+                <div style={col(140)}><label style={lbl}>List price ($)</label><input value={f.price} onChange={e => set({ price: e.target.value })} placeholder="e.g. 560000" style={inp} /></div>
+              </div>
+              <div style={row}>
+                <div style={col(120)}><label style={lbl}>Commission %</label><input value={f.commissionPct} onChange={e => set({ commissionPct: e.target.value })} placeholder="e.g. 5" style={inp} /></div>
+                <div style={col(160)}>
+                  <label style={lbl}>Buyer's broker comp</label>
+                  <select value={f.bbcMode} onChange={e => set({ bbcMode: e.target.value })} style={inp}>
+                    <option value="from_seller">From Seller</option>
+                    <option value="from_broker">From Broker's fee</option>
+                    <option value="none">None offered</option>
+                  </select>
+                </div>
+                {f.bbcMode !== "none" && <div style={col(100)}><label style={lbl}>Their %</label><input value={f.bbcPct} onChange={e => set({ bbcPct: e.target.value })} placeholder="e.g. 2.5" style={inp} /></div>}
+              </div>
+              <div style={row}>
+                <div style={col(120)}><label style={lbl}>Protection (days)</label><input value={f.protectionDays} onChange={e => set({ protectionDays: e.target.value })} style={inp} /></div>
+                <div style={col(140)}><label style={lbl}>Retained deposits %</label><input value={f.retainedDepositsPct} onChange={e => set({ retainedDepositsPct: e.target.value })} style={inp} /></div>
+                <div style={col(200)}>
+                  <label style={lbl}>Financing seller will consider</label>
+                  <div style={{ display: "flex", gap: 10, flexWrap: "wrap", paddingTop: 6 }}>
+                    {[["finCash","Cash"],["finConventional","Conv."],["finVa","VA"],["finFha","FHA"]].map(([k, label]) => (
+                      <label key={k} style={{ fontSize: 13, display: "flex", gap: 4, alignItems: "center", cursor: "pointer" }}>
+                        <input type="checkbox" checked={!!f[k]} onChange={e => set({ [k]: e.target.checked })} />{label}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              <div style={row}>
+                <div style={col(300)}><label style={lbl}>Legal description (optional)</label><input value={f.legalDescription} onChange={e => set({ legalDescription: e.target.value })} style={inp} /></div>
+                <div style={col(300)}><label style={lbl}>Personal property included (optional)</label><input value={f.personalProperty} onChange={e => set({ personalProperty: e.target.value })} placeholder="e.g. refrigerator, washer, dryer" style={inp} /></div>
+              </div>
+              <div style={{ marginBottom: 12 }}>
+                <label style={lbl}>Additional terms (optional)</label>
+                <textarea value={f.additionalTerms} onChange={e => set({ additionalTerms: e.target.value })} rows={2} style={{ ...inp, resize: "vertical" }} />
+              </div>
+
+              <div style={{ background: "#FBFBFB", border: "1px solid #EEE", borderRadius: 10, padding: 12, marginBottom: 12 }}>
+                <label style={lbl}>Section 13 — Arbitration initials</label>
+                <label style={{ fontSize: 13, display: "flex", gap: 6, alignItems: "center", cursor: "pointer", marginBottom: 4 }}>
+                  <input type="radio" checked={f.arbitration === "sellers"} onChange={() => set({ arbitration: "sellers" })} />
+                  Assign arbitration initials (default) — seller & you initial Section 13
+                </label>
+                <label style={{ fontSize: 13, display: "flex", gap: 6, alignItems: "center", cursor: "pointer" }}>
+                  <input type="radio" checked={f.arbitration === "no_one"} onChange={() => set({ arbitration: "no_one" })} />
+                  No one — leave the arbitration initials blank
+                </label>
+              </div>
+
+              <div style={{ marginBottom: 6 }}>
+                <label style={lbl}>Forms in this package</label>
+                {(pre.forms || []).map(fm => (
+                  <label key={fm.formId} style={{ display: "flex", gap: 8, alignItems: "center", fontSize: 13.5, padding: "5px 0", cursor: "pointer" }}>
+                    <input type="checkbox" checked={!!forms[fm.formId]} onChange={e => setForms(prev => ({ ...prev, [fm.formId]: e.target.checked }))} />
+                    {fm.label}
+                    {fm.suggested && fm.condition !== "always" && <span style={{ fontSize: 10, fontWeight: 800, background: "#FDEBD0", color: "#9C640C", borderRadius: 10, padding: "1px 7px" }}>AUTO — applies to this deal</span>}
+                  </label>
+                ))}
+              </div>
+              {forms["cr7b-hoa"] && (
+                <div style={{ marginBottom: 10 }}><label style={lbl}>HOA / community name</label><input value={f.communityName} onChange={e => set({ communityName: e.target.value })} style={inp} /></div>
+              )}
+              {forms["cr7a-condo"] && (
+                <div style={{ marginBottom: 10 }}><label style={lbl}>Condominium association name</label><input value={f.associationName} onChange={e => set({ associationName: e.target.value })} style={inp} /></div>
+              )}
+              {forms["rider-aa"] && (
+                <div style={{ marginBottom: 10 }}><label style={lbl}>Your interest in the property (Rider AA)</label><input value={f.aaInterestDesc} onChange={e => set({ aaInterestDesc: e.target.value })} placeholder="e.g. Seller is licensee's parent" style={inp} /></div>
+              )}
+
+              <button onClick={generate} disabled={busy}
+                style={{ width: "100%", padding: "13px 0", borderRadius: 10, border: "none", background: busy ? "#B3B6B7" : "#C0392B", color: "#fff", fontWeight: 800, fontSize: 15, cursor: busy ? "wait" : "pointer", fontFamily: "inherit", marginTop: 6 }}>
+                {busy ? "Filling the official forms…" : "Generate package →"}
+              </button>
+            </>
+          )}
+
+          {step === "review" && gen && (
+            <>
+              <div style={{ fontSize: 13.5, color: "#333", lineHeight: 1.55, marginBottom: 14 }}>
+                <b>Review before sending.</b> Open each filled form and check every blank — nothing goes to your seller until you hit Send.
+              </div>
+              {gen.documents.map(d => (
+                <div key={d.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, padding: "10px 12px", border: "1px solid #EEE", borderRadius: 10, marginBottom: 8 }}>
+                  <div style={{ fontSize: 13.5, fontWeight: 600, color: "#222" }}>📄 {d.name}</div>
+                  <button onClick={() => preview(d.id)} style={{ padding: "6px 14px", borderRadius: 8, border: "1px solid #C0392B", background: "#fff", color: "#C0392B", fontWeight: 700, fontSize: 12.5, cursor: "pointer", whiteSpace: "nowrap" }}>👀 Review PDF</button>
+                </div>
+              ))}
+              <div style={{ fontSize: 12.5, color: "#555", margin: "12px 0", lineHeight: 1.5 }}>
+                ✍️ Signing links go to: {gen.signers.filter(s => s.email).map(s => `${s.name} (${s.email})`).join(", ")}. Every signature and initial line is pre-placed — including the page-bottom initials on every page.
+              </div>
+              <div style={{ display: "flex", gap: 10 }}>
+                <button onClick={() => setStep("form")} disabled={busy} style={{ flex: 1, padding: "12px 0", borderRadius: 10, border: "1.5px solid #CCC", background: "#fff", color: "#555", fontWeight: 700, fontSize: 14, cursor: "pointer", fontFamily: "inherit" }}>← Back</button>
+                <button onClick={send} disabled={busy} style={{ flex: 2, padding: "12px 0", borderRadius: 10, border: "none", background: busy ? "#B3B6B7" : "#1E8449", color: "#fff", fontWeight: 800, fontSize: 15, cursor: busy ? "wait" : "pointer", fontFamily: "inherit" }}>
+                  {busy ? "Sending…" : "✉️ Send for signature"}
+                </button>
+              </div>
+            </>
+          )}
+
+          {step === "sent" && (
+            <div style={{ textAlign: "center", padding: "18px 6px" }}>
+              <div style={{ fontSize: 40, marginBottom: 8 }}>🎉</div>
+              <div style={{ fontSize: 17, fontWeight: 800, color: "#1E8449", marginBottom: 6 }}>Listing package sent!</div>
+              <div style={{ fontSize: 13.5, color: "#555", lineHeight: 1.6, maxWidth: 440, margin: "0 auto 16px" }}>
+                Your seller(s) — and you — each got a private signing link by email. Track progress with the ⏳ badges under Documents. The moment everyone has signed, the signed copies file back here and your listing's launch steps (photos, sign, MLS) unlock automatically.
+              </div>
+              <button onClick={onDone} style={{ padding: "11px 26px", borderRadius: 10, border: "none", background: "#C0392B", color: "#fff", fontWeight: 800, fontSize: 14, cursor: "pointer", fontFamily: "inherit" }}>Done</button>
+            </div>
+          )}
         </div>
       </div>
     </div>
