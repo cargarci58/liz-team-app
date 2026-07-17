@@ -1796,6 +1796,44 @@ function ListingPackageModal({ tx, headers, onClose, onDone }) {
       .catch(e => setErr(e.message));
   }, [tx.id]);
 
+  // Upload a broker synopsis / old MLS printout / tax record → AI reads it and
+  // fills the wizard. Suggestion-only: every value stays editable before Generate.
+  const [reading, setReading] = useState(false);
+  const [readNote, setReadNote] = useState("");
+  const synopsisRef = useRef(null);
+  const readSynopsis = async (file) => {
+    if (!file) return;
+    setReading(true); setReadNote(""); setErr("");
+    try {
+      const base64 = await new Promise((resolve, reject) => {
+        const fr = new FileReader();
+        fr.onload = () => resolve(String(fr.result).split(",")[1]);
+        fr.onerror = reject; fr.readAsDataURL(file);
+      });
+      const r = await fetch(`${API}/transactions/${tx.id}/listing-package/read-synopsis`, {
+        method: "POST", headers,
+        body: JSON.stringify({ base64, fileName: file.name, fileType: file.type }),
+      });
+      const d = await r.json();
+      if (!r.ok || !d.success) throw new Error(d.error || "Couldn't read that file");
+      const found = d.fields || {};
+      const filled = Object.keys(found).filter(k => found[k]);
+      if (filled.length) setF(prev => ({ ...prev, ...found }));
+      const ex = d.extracted || {};
+      // Flip the conditional riders on when the sheet reveals HOA/condo/pre-1978.
+      setForms(prev => ({
+        ...prev,
+        ...(ex.in_hoa === true ? { "cr7b-hoa": true } : {}),
+        ...(ex.is_condo === true ? { "cr7a-condo": true } : {}),
+        ...(ex.year_built && Number(ex.year_built) < 1978 ? { "rider-p-listing": true } : {}),
+      }));
+      setReadNote(filled.length
+        ? `✅ Filled ${filled.length} field${filled.length === 1 ? "" : "s"} from "${file.name}" — review everything below before generating.`
+        : `Read "${file.name}" but didn't find fillable listing fields — enter them below.`);
+    } catch (e) { setErr(e.message); }
+    setReading(false);
+  };
+
   const generate = async () => {
     setErr("");
     if (!sellers.length || sellers.some(s => !s.name.trim())) { setErr("Add the seller name(s) under People first."); return; }
@@ -1863,6 +1901,21 @@ function ListingPackageModal({ tx, headers, onClose, onDone }) {
             <>
               <div style={{ fontSize: 12.5, color: "#555", lineHeight: 1.5, marginBottom: 14 }}>
                 Review the terms below — they fill the <b>official Florida forms</b> (the forms themselves are never modified). Then you'll preview each PDF before anything is sent to your seller.
+              </div>
+
+              {/* Skip the typing: read an old MLS sheet / broker synopsis */}
+              <div style={{ background: "#EAF2F8", border: "1px solid #AED6F1", borderRadius: 10, padding: 12, marginBottom: 14 }}>
+                <div style={{ fontSize: 13, fontWeight: 800, color: "#1A5276", marginBottom: 3 }}>📄 Skip the typing — upload a broker synopsis or old MLS sheet</div>
+                <div style={{ fontSize: 12, color: "#1A5276", lineHeight: 1.5, marginBottom: 8 }}>
+                  Drop in a prior MLS printout, broker synopsis, or tax record (PDF or photo) and the AI fills price, legal description, HOA/condo details, and more. You review everything before any form is generated.
+                </div>
+                <input ref={synopsisRef} type="file" accept=".pdf,.png,.jpg,.jpeg,.webp" style={{ display: "none" }}
+                  onChange={e => { const file = e.target.files?.[0]; if (file) readSynopsis(file); e.target.value = ""; }} />
+                <button onClick={() => synopsisRef.current?.click()} disabled={reading}
+                  style={{ padding: "8px 16px", borderRadius: 8, border: "none", background: reading ? "#85929E" : "#1A5276", color: "#fff", fontWeight: 700, fontSize: 13, cursor: reading ? "wait" : "pointer", fontFamily: "inherit" }}>
+                  {reading ? "Reading the sheet…" : "📎 Upload & auto-fill"}
+                </button>
+                {readNote && <div style={{ fontSize: 12.5, color: "#1E8449", fontWeight: 600, marginTop: 8 }}>{readNote}</div>}
               </div>
 
               <div style={{ ...lbl }}>Seller(s) — each gets a private e-signing link</div>
