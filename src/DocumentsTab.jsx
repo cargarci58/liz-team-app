@@ -451,6 +451,7 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
 
   const isListingDeal = /listing|seller/i.test(tx.transaction_type || tx.transactionType || tx.type || "");
   const [showPackage, setShowPackage] = useState(false);
+  const [showCombine, setShowCombine] = useState(false);
   const hasPackageDocs = docs.some(d => (d.category || "") === "Listing Package");
 
   return (
@@ -475,7 +476,7 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
         </div>
       )}
       {showPackage && (
-        <ListingPackageModal tx={tx} headers={headers} onClose={() => setShowPackage(false)}
+        <ListingPackageModal tx={tx} headers={headers} dealDocs={docs} onClose={() => setShowPackage(false)}
           onDone={() => { setShowPackage(false); loadDocs(); loadRequired(); }} />
       )}
       {/* Home-inspection waiver — buyer deals only */}
@@ -567,8 +568,18 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
             style={{ padding: "8px 16px", background: "#fff", color: "#86198f", border: "1px solid #d8b4fe", borderRadius: 8, cursor: "pointer", fontWeight: 700, fontSize: 13, fontFamily: "inherit" }}>
             📝 New Addendum
           </button>
+          <button onClick={() => setShowCombine(true)}
+            title="Merge several PDFs into one file (originals stay untouched)"
+            style={{ padding: "8px 16px", background: "#fff", color: "#0E7490", border: "1px solid #67E8F9", borderRadius: 8, cursor: "pointer", fontWeight: 700, fontSize: 13, fontFamily: "inherit" }}>
+            🧷 Combine PDFs
+          </button>
         </div>
       </div>
+      {showCombine && (
+        <CombinePdfsModal tx={tx} docs={docs} headers={headers}
+          onClose={() => setShowCombine(false)}
+          onDone={() => { setShowCombine(false); loadDocs(); }} />
+      )}
 
       {/* Documents list */}
       {loading ? (
@@ -1759,7 +1770,7 @@ function DocSignModal({ tx, doc, allDocs = [], headers, onClose }) {
 // When the last signature lands, the server auto-completes the "Listing Package
 // Signed & Executed" gate and the listing's launch steps unlock.
 // ════════════════════════════════════════════════════════════════
-function ListingPackageModal({ tx, headers, onClose, onDone }) {
+function ListingPackageModal({ tx, headers, dealDocs = [], onClose, onDone }) {
   const [pre, setPre] = useState(null);        // prefill payload
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
@@ -1856,6 +1867,15 @@ function ListingPackageModal({ tx, headers, onClose, onDone }) {
     setBusy(false);
   };
 
+  // Extra deal PDFs the agent bundles into the SAME signing round (e.g. a
+  // combined attachments file or a custom disclosure). Signature spots on them
+  // are label-detected automatically; docs with none still ride along for review.
+  const [extraIds, setExtraIds] = useState([]);
+  const extraCandidates = dealDocs.filter(d => /pdf$/i.test(d.mime_type || "")
+    && !(gen?.documents || []).some(g => g.id === d.id)
+    && !/^✍️ Signed/.test(d.name || ""));
+  const maxExtras = gen ? Math.max(0, 12 - gen.documents.length) : 0;
+
   const send = async () => {
     setErr(""); setBusy(true);
     try {
@@ -1863,7 +1883,7 @@ function ListingPackageModal({ tx, headers, onClose, onDone }) {
       const r = await fetch(`${API}/documents/${first.id}/request-signatures`, {
         method: "POST", headers,
         body: JSON.stringify({
-          alsoDocIds: rest.map(d => d.id),
+          alsoDocIds: [...rest.map(d => d.id), ...extraIds],
           signers: gen.signers.filter(s => s.email),
           placements: gen.placements,
         }),
@@ -2057,6 +2077,25 @@ function ListingPackageModal({ tx, headers, onClose, onDone }) {
                   <button onClick={() => preview(d.id)} style={{ padding: "6px 14px", borderRadius: 8, border: "1px solid #C0392B", background: "#fff", color: "#C0392B", fontWeight: 700, fontSize: 12.5, cursor: "pointer", whiteSpace: "nowrap" }}>👀 Review PDF</button>
                 </div>
               ))}
+              {extraCandidates.length > 0 && (
+                <div style={{ background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 10, padding: 12, marginTop: 10 }}>
+                  <div style={{ fontSize: 12, fontWeight: 800, color: "#334155", textTransform: "uppercase", letterSpacing: 0.4, marginBottom: 6 }}>➕ Include more documents in this signing round (optional)</div>
+                  <div style={{ maxHeight: 150, overflowY: "auto" }}>
+                    {extraCandidates.map(d => {
+                      const on = extraIds.includes(d.id);
+                      return (
+                        <label key={d.id} style={{ display: "flex", gap: 8, alignItems: "center", fontSize: 13, padding: "4px 0", cursor: "pointer", opacity: !on && extraIds.length >= maxExtras ? 0.45 : 1 }}>
+                          <input type="checkbox" checked={on}
+                            disabled={!on && extraIds.length >= maxExtras}
+                            onChange={() => setExtraIds(prev => on ? prev.filter(x => x !== d.id) : [...prev, d.id])} />
+                          <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{d.name}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                  <div style={{ fontSize: 11.5, color: "#64748B", marginTop: 4 }}>They ride the same signing session. Signature lines are detected automatically; use ✍️ Get signature separately if a doc needs precise placement.</div>
+                </div>
+              )}
               <div style={{ fontSize: 12.5, color: "#555", margin: "12px 0", lineHeight: 1.5 }}>
                 ✍️ Signing links go to: {gen.signers.filter(s => s.email).map(s => `${s.name} (${s.email})`).join(", ")}. Every signature and initial line is pre-placed — including the page-bottom initials on every page.
               </div>
@@ -2079,6 +2118,69 @@ function ListingPackageModal({ tx, headers, onClose, onDone }) {
               <button onClick={onDone} style={{ padding: "11px 26px", borderRadius: 10, border: "none", background: "#C0392B", color: "#fff", fontWeight: 800, fontSize: 14, cursor: "pointer", fontFamily: "inherit" }}>Done</button>
             </div>
           )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ════════════════════════════════════════════════════════════════
+// COMBINE PDFs — pick several of the deal's PDFs (in order) → the server merges
+// them into ONE new document. Originals untouched.
+// ════════════════════════════════════════════════════════════════
+function CombinePdfsModal({ tx, docs, headers, onClose, onDone }) {
+  const pdfs = docs.filter(d => /pdf$/i.test(d.mime_type || ""));
+  const [picked, setPicked] = useState([]);   // doc ids in pick order
+  const [name, setName] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+  const toggle = (id) => setPicked(prev => prev.includes(id) ? prev.filter(x => x !== id) : (prev.length >= 15 ? prev : [...prev, id]));
+  const combine = async () => {
+    if (picked.length < 2) { setErr("Pick at least two PDFs — they merge in the order you check them."); return; }
+    setBusy(true); setErr("");
+    try {
+      const r = await fetch(`${API}/transactions/${tx.id}/documents/combine`, {
+        method: "POST", headers,
+        body: JSON.stringify({ docIds: picked, name: name.trim() }),
+      });
+      const d = await r.json();
+      if (!r.ok || !d.success) throw new Error(d.error || "Could not combine");
+      alert(`✅ "${d.name}" created${d.skipped && d.skipped.length ? `\n(Skipped non-PDF/unreadable: ${d.skipped.join(", ")})` : ""}`);
+      onDone();
+    } catch (e) { setErr(e.message); }
+    setBusy(false);
+  };
+  return (
+    <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)", zIndex: 1200, display: "flex", alignItems: "flex-start", justifyContent: "center", overflowY: "auto", padding: "40px 12px" }}>
+      <div onClick={e => e.stopPropagation()} style={{ background: "#fff", borderRadius: 14, width: "100%", maxWidth: 560, overflow: "hidden", boxShadow: "0 20px 60px rgba(0,0,0,0.35)" }}>
+        <div style={{ background: "#0E7490", padding: "14px 20px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div style={{ color: "#fff", fontWeight: 800, fontSize: 16 }}>🧷 Combine PDFs into one file</div>
+          <button onClick={onClose} style={{ background: "none", border: "none", color: "#fff", fontSize: 22, cursor: "pointer", lineHeight: 1 }}>×</button>
+        </div>
+        <div style={{ padding: 20 }}>
+          <div style={{ fontSize: 12.5, color: "#555", marginBottom: 12, lineHeight: 1.5 }}>
+            Check the PDFs in the order you want them merged — the number shows their position. The combined file is saved as a new document; the originals stay put.
+          </div>
+          {err && <div style={{ background: "#FDEDEC", border: "1px solid #F5B7B1", color: "#943126", borderRadius: 8, padding: "9px 11px", fontSize: 13, marginBottom: 10 }}>⚠️ {err}</div>}
+          <div style={{ maxHeight: 300, overflowY: "auto", border: "1px solid #EEE", borderRadius: 10, padding: "6px 10px", marginBottom: 12 }}>
+            {pdfs.length === 0 && <div style={{ fontSize: 13, color: "#777", padding: 8 }}>No PDFs on this deal yet.</div>}
+            {pdfs.map(d => {
+              const pos = picked.indexOf(d.id);
+              return (
+                <label key={d.id} style={{ display: "flex", gap: 8, alignItems: "center", fontSize: 13, padding: "6px 0", cursor: "pointer", borderBottom: "1px solid #F5F5F5" }}>
+                  <input type="checkbox" checked={pos >= 0} onChange={() => toggle(d.id)} />
+                  {pos >= 0 && <span style={{ fontSize: 11, fontWeight: 800, background: "#0E7490", color: "#fff", borderRadius: 10, padding: "1px 7px" }}>{pos + 1}</span>}
+                  <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{d.name}</span>
+                </label>
+              );
+            })}
+          </div>
+          <input value={name} onChange={e => setName(e.target.value)} placeholder='Name for the combined file (e.g. "MLS attachments package")'
+            style={{ width: "100%", padding: "9px 11px", borderRadius: 8, border: "1.5px solid #D5D8DC", fontSize: 13.5, fontFamily: "inherit", boxSizing: "border-box", marginBottom: 12 }} />
+          <button onClick={combine} disabled={busy || picked.length < 2}
+            style={{ width: "100%", padding: "12px 0", borderRadius: 10, border: "none", background: busy || picked.length < 2 ? "#9CB4BC" : "#0E7490", color: "#fff", fontWeight: 800, fontSize: 14, cursor: busy ? "wait" : "pointer", fontFamily: "inherit" }}>
+            {busy ? "Combining…" : `Combine ${picked.length || ""} PDF${picked.length === 1 ? "" : "s"}`}
+          </button>
         </div>
       </div>
     </div>
