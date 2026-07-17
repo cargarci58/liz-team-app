@@ -9202,6 +9202,7 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
 
   // Poll unread chat counts every 15s across the whole app (not just dashboard)
   const prevTotalRef = useRef(null);
+  const pollSigRef = useRef("");   // last poll payload signature — skip no-change re-renders
   const audioCtxRef = useRef(null);
   useEffect(() => {
     // Unlock audio on first user interaction (required by Chrome/Safari autoplay policy).
@@ -9260,9 +9261,17 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
         const total = Object.values(chat).reduce((a, b) => a + b, 0) + Object.values(inbound).reduce((a, b) => a + b, 0) + notifs.length;
         if (prevTotalRef.current !== null && total > prevTotalRef.current) playDashboardAlert();
         prevTotalRef.current = total;
-        setUnreadCounts(chat);
-        setInboundCounts(inbound);
-        setSignAlerts(notifs);
+        // Only touch state when the payload actually CHANGED. Unconditional
+        // setState here re-rendered the ENTIRE app every 15s with fresh object
+        // identities — and any click mid-render could be swallowed ("I have to
+        // click everything twice"). Same-data polls are now no-ops.
+        const sig = JSON.stringify([chat, inbound, notifs.map(n => n.id)]);
+        if (pollSigRef.current !== sig) {
+          pollSigRef.current = sig;
+          setUnreadCounts(chat);
+          setInboundCounts(inbound);
+          setSignAlerts(notifs);
+        }
       } catch {}
     };
     fetchCounts();
