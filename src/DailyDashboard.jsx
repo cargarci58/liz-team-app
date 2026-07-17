@@ -56,6 +56,11 @@ const BUYER_FOLLOWUP_SCRIPTS = [
 
 // ── SELLER UPDATE MODAL ───────────────────────────────────────
 function SellerUpdateModal({ task, token, onClose, onDone }) {
+  // Serves BOTH update cards: seller_update (showings + interest) and
+  // buyer_update (homes toured; the server adds the deal's live
+  // handled/coming-up digest). The buyer card used to open the seller
+  // composer — Carlos caught it 2026-07-17.
+  const isBuyer = task.task_type === "buyer_update";
   const [showings, setShowings] = useState(0);
   const [interest, setInterest] = useState("medium");
   const [note, setNote] = useState("");
@@ -65,6 +70,13 @@ function SellerUpdateModal({ task, token, onClose, onDone }) {
   const interestLabels = { low: "moderate", medium: "good", high: "strong" };
 
   const previewText = () => {
+    if (isBuyer) {
+      return "Hi [Buyer],\n\n" +
+        (showings > 0 ? "This week we toured " + (showings == 1 ? "1 home" : showings + " homes") + " together.\n\n" : "") +
+        (note ? note + "\n\n" : "") +
+        "Handled for you recently + what's coming up next — pulled automatically from this deal's timeline.\n\n" +
+        "I'm staying on top of every step and deadline — nothing is needed from you unless I reach out.";
+    }
     const showText = showings == 0 ? "focused on marketing your property across all platforms"
       : showings == 1 ? "had 1 showing this week with " + interestLabels[interest] + " buyer interest"
       : "had " + showings + " showings this week with " + interestLabels[interest] + " buyer interest";
@@ -76,10 +88,12 @@ function SellerUpdateModal({ task, token, onClose, onDone }) {
   const handleSend = async () => {
     setSending(true);
     try {
-      await fetch(API + "/seller-update/" + task.transaction_id, {
+      await fetch(API + (isBuyer ? "/buyer-update/" : "/seller-update/") + task.transaction_id, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
-        body: JSON.stringify({ showingsCount: showings, interestLevel: interest, agentNote: note }),
+        body: JSON.stringify(isBuyer
+          ? { homesShown: showings === "5+" ? 5 : showings, agentNote: note }
+          : { showingsCount: showings, interestLevel: interest, agentNote: note }),
       });
       onDone(task.id);
     } catch (e) { alert("Error sending update"); }
@@ -91,7 +105,7 @@ function SellerUpdateModal({ task, token, onClose, onDone }) {
       <div style={{ background:COLORS.white, borderRadius:"20px 20px 0 0", width:"100%", maxWidth:480, padding:24, paddingBottom:40 }}>
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:20 }}>
           <div>
-            <div style={{ fontWeight:700, fontSize:17 }}>Seller Weekly Update</div>
+            <div style={{ fontWeight:700, fontSize:17 }}>{isBuyer ? "Buyer Weekly Update" : "Seller Weekly Update"}</div>
             <div style={{ color:COLORS.gray, fontSize:13, marginTop:2 }}>{task.address}</div>
           </div>
           <button onClick={onClose} style={{ background:"none", border:"none", fontSize:22, cursor:"pointer", color:COLORS.gray }}>✕</button>
@@ -100,7 +114,7 @@ function SellerUpdateModal({ task, token, onClose, onDone }) {
         {!preview ? (
           <>
             <div style={{ marginBottom:20 }}>
-              <div style={{ fontSize:13, fontWeight:600, color:COLORS.gray, marginBottom:10 }}>SHOWINGS THIS WEEK</div>
+              <div style={{ fontSize:13, fontWeight:600, color:COLORS.gray, marginBottom:10 }}>{isBuyer ? "HOMES TOURED THIS WEEK (0 IS FINE)" : "SHOWINGS THIS WEEK"}</div>
               <div style={{ display:"flex", gap:8 }}>
                 {[0,1,2,3,4,"5+"].map(n => (
                   <button key={n} onClick={() => setShowings(n)}
@@ -115,6 +129,7 @@ function SellerUpdateModal({ task, token, onClose, onDone }) {
               </div>
             </div>
 
+            {!isBuyer && (
             <div style={{ marginBottom:20 }}>
               <div style={{ fontSize:13, fontWeight:600, color:COLORS.gray, marginBottom:10 }}>BUYER INTEREST LEVEL</div>
               <div style={{ display:"flex", gap:8 }}>
@@ -130,11 +145,18 @@ function SellerUpdateModal({ task, token, onClose, onDone }) {
                 ))}
               </div>
             </div>
+            )}
+
+            {isBuyer && (
+              <div style={{ background:"#f0f9ff", border:"1px solid #bae6fd", borderRadius:10, padding:"10px 12px", fontSize:12.5, color:"#0c4a6e", marginBottom:20 }}>
+                ✨ The email automatically includes what you've handled recently and what's coming up next, straight from this deal's timeline.
+              </div>
+            )}
 
             <div style={{ marginBottom:24 }}>
               <div style={{ fontSize:13, fontWeight:600, color:COLORS.gray, marginBottom:8 }}>ONE THING TO SHARE <span style={{fontWeight:400}}>(optional)</span></div>
               <textarea value={note} onChange={e => setNote(e.target.value)}
-                placeholder="e.g. Great feedback on the kitchen and backyard..."
+                placeholder={isBuyer ? "e.g. The lender confirmed we're on track for closing..." : "e.g. Great feedback on the kitchen and backyard..."}
                 style={{ width:"100%", height:80, padding:12, borderRadius:10, border:"1.5px solid "+COLORS.border,
                   fontSize:14, fontFamily:"inherit", resize:"none", boxSizing:"border-box" }} />
             </div>
@@ -167,7 +189,7 @@ function SellerUpdateModal({ task, token, onClose, onDone }) {
               <button onClick={handleSend} disabled={sending}
                 style={{ flex:1, padding:14, borderRadius:10, border:"none",
                   background:COLORS.red, color:COLORS.white, fontWeight:700, fontSize:15, cursor:"pointer" }}>
-                {sending ? "Sending..." : "Send to Seller ✓"}
+                {sending ? "Sending..." : (isBuyer ? "Send to Buyer ✓" : "Send to Seller ✓")}
               </button>
             </div>
           </>
