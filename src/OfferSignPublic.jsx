@@ -135,7 +135,7 @@ function SignaturePad({ onChange, typedName, mode }) {
 
 // In-page PDF viewer with guided stop markers. Renders every page via pdf.js
 // (loaded on demand so the main app bundle stays small).
-function GuidedPacketViewer({ token, base, stops, applied, current, sigDataUrl, signerName, onApply, textMap = {}, fileQuery = "" }) {
+function GuidedPacketViewer({ token, base, stops, applied, current, sigDataUrl, signerName, onApply, textMap = {}, choiceMap = {}, fileQuery = "" }) {
   const [pages, setPages] = useState([]); // [{num, width, height, dataUrl}]
   const [renderErr, setRenderErr] = useState(null);
   const wrapRefs = useRef({});
@@ -236,12 +236,34 @@ function GuidedPacketViewer({ token, base, stops, applied, current, sigDataUrl, 
                   </div>
                 );
               }
-              const isApplied = applied.has(s.idx);
+              // CHECK-ONE choice: options sharing a `group` are radio boxes the
+              // signer answers — selected = the group's chosen stop.
+              const isChoice = s.kind === "choice";
+              const gk = isChoice ? s.docIdx + ":" + s.group : null;
+              const isApplied = isChoice ? choiceMap[gk] === s.idx : applied.has(s.idx);
               const isCurrent = s.idx === current;
-              const h = (s.kind === "signature" ? (s.h || 24) + 6 : s.kind === "text" ? 20 : (s.h || 16)) * scale;
-              const w = (s.w || (s.kind === "signature" ? 170 : s.kind === "text" ? 140 : 34)) * scale;
-              const left = s.x * scale;
-              const top = (p.height - s.y) * scale - h;
+              const h = (s.kind === "signature" ? (s.h || 24) + 6 : s.kind === "text" ? 20 : isChoice ? 19 : (s.h || 16)) * scale;
+              const w = (isChoice ? 19 : (s.w || (s.kind === "signature" ? 170 : s.kind === "text" ? 140 : 34))) * scale;
+              const left = (isChoice ? s.x - 3 : s.x) * scale;
+              const top = (p.height - s.y) * scale - h + (isChoice ? 4 * scale : 0);
+              if (isChoice) {
+                return (
+                  <div key={s.idx} id={"sign-stop-" + s.idx} ref={el => { wrapRefs.current["stop-" + s.idx] = el; }}
+                    onClick={() => onApply(s.idx)} title={s.label || "Pick one"}
+                    style={{
+                      position: "absolute", left, top, width: w, height: h,
+                      display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer",
+                      border: isApplied ? "2px solid #1e40af" : (isCurrent ? "2px solid #ca8a04" : "2px dashed #ca8a04"),
+                      background: isApplied ? "rgba(219,234,254,0.85)" : (isCurrent ? "rgba(254,240,138,0.85)" : "rgba(254,240,138,0.45)"),
+                      borderRadius: 4, boxSizing: "border-box",
+                      animation: isCurrent && !isApplied && choiceMap[gk] === undefined ? "signpulse 1.2s ease-in-out infinite" : "none",
+                    }}>
+                    <span style={{ fontSize: Math.max(9, 12 * scale), fontWeight: 900, color: isApplied ? "#1e40af" : "#854d0e", lineHeight: 1 }}>
+                      {isApplied ? "X" : "?"}
+                    </span>
+                  </div>
+                );
+              }
               return (
                 <div key={s.idx} ref={el => { wrapRefs.current["stop-" + s.idx] = el; }}
                   onClick={() => onApply(s.idx)}
@@ -313,13 +335,23 @@ export default function OfferSignPublic({ urlToken, kind = "offer" }) {
     ...s, docIdx: di, textKey: (d.docId ? d.docId + ":" : "") + s.id,
   }))).map((s, i) => ({ ...s, gidx: i }));
   // "auto" stops (dates, agent-pre-written text) fill themselves — the signer
-  // only works through the interactive ones.
-  const interactiveCount = stops.filter(s => !s.auto).length;
+  // only works through the interactive ones. CHECK-ONE choices count as one
+  // required answer per GROUP (the options share a `group`; signer picks one).
+  const groupKeyOf = (s) => (s.kind === "choice" && s.group ? s.docIdx + ":" + s.group : null);
+  const choiceGroups = [...new Set(stops.map(groupKeyOf).filter(Boolean))];
+  const [choiceMap, setChoiceMap] = useState({}); // groupKey → chosen stop gidx
+  const nonChoiceInteractive = stops.filter(s => !s.auto && s.kind !== "choice").length;
+  const interactiveCount = nonChoiceInteractive + choiceGroups.length;
   const [textMap, setTextMap] = useState({}); // stop gidx → signer-typed text
 
   const applyStop = useCallback((idx) => {
     const s = stops[idx];
     if (!s || s.auto) return;
+    let nextChoice = choiceMap;
+    if (s.kind === "choice") {
+      nextChoice = { ...choiceMap, [groupKeyOf(s)]: idx };
+      setChoiceMap(nextChoice);
+    }
     if (s.kind === "text") {
       const v = window.prompt("Type what should go in this box:", textMap[idx] || "");
       if (v === null) return;
@@ -327,32 +359,42 @@ export default function OfferSignPublic({ urlToken, kind = "offer" }) {
       if (!t) return;
       setTextMap(m => ({ ...m, [idx]: t }));
     }
-    setApplied(prev => {
-      const next = new Set(prev);
-      next.add(idx);
-      return next;
-    });
-    // advance to the next un-applied interactive stop (wrapping back to skipped ones)
+    if (s.kind !== "choice") {
+      setApplied(prev => {
+        const next = new Set(prev);
+        next.add(idx);
+        return next;
+      });
+    }
+    // advance to the next unfinished interactive stop (wrapping back to skipped ones)
+    const done = (i) => {
+      const st = stops[i];
+      if (st.kind === "choice") return nextChoice[groupKeyOf(st)] !== undefined;
+      return applied.has(i) || i === idx;
+    };
     setCurrent(() => {
       let nxt = -1;
-      for (let i = idx + 1; i < stops.length; i++) if (!stops[i].auto && !applied.has(i)) { nxt = i; break; }
-      if (nxt === -1) for (let i = 0; i < stops.length; i++) if (i !== idx && !stops[i].auto && !applied.has(i)) { nxt = i; break; }
+      for (let i = idx + 1; i < stops.length; i++) if (!stops[i].auto && !done(i)) { nxt = i; break; }
+      if (nxt === -1) for (let i = 0; i < stops.length; i++) if (i !== idx && !stops[i].auto && !done(i)) { nxt = i; break; }
       return nxt === -1 ? idx : nxt;
     });
-  }, [stops, applied, textMap]);
+  }, [stops, applied, textMap, choiceMap]);
 
   const applyAll = () => {
-    // Text boxes still need typing — everything else applies in one go.
+    // Text boxes still need typing and choices still need the seller's answer —
+    // everything else applies in one go.
     setApplied(prev => {
       const next = new Set(prev);
-      stops.forEach((s, i) => { if (!s.auto && (s.kind !== "text" || textMap[i])) next.add(i); });
+      stops.forEach((s, i) => { if (!s.auto && s.kind !== "choice" && (s.kind !== "text" || textMap[i])) next.add(i); });
       return next;
     });
-    const firstText = stops.findIndex((s, i) => !s.auto && s.kind === "text" && !textMap[i]);
-    setCurrent(firstText >= 0 ? firstText : stops.length - 1);
+    const firstOpen = stops.findIndex((s, i) => !s.auto &&
+      ((s.kind === "text" && !textMap[i]) || (s.kind === "choice" && choiceMap[groupKeyOf(s)] === undefined)));
+    setCurrent(firstOpen >= 0 ? firstOpen : stops.length - 1);
   };
 
-  const allApplied = interactiveCount === 0 || applied.size >= interactiveCount;
+  const doneUnits = applied.size + Object.keys(choiceMap).length;
+  const allApplied = interactiveCount === 0 || doneUnits >= interactiveCount;
 
   const submit = async () => {
     setError(null);
@@ -361,10 +403,12 @@ export default function OfferSignPublic({ urlToken, kind = "offer" }) {
     try {
       const textValues = {};
       stops.forEach((s) => { if (s.kind === "text" && !s.auto && textMap[s.gidx]) textValues[s.textKey] = textMap[s.gidx]; });
+      const choices = {};
+      Object.values(choiceMap).forEach((gidx) => { const s = stops[gidx]; if (s) choices[s.textKey] = true; });
       const r = await fetch(API + "/public/" + base + "/" + urlToken, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ consent: true, signatureDataUrl: sigDataUrl, kind: mode === "type" ? "typed" : "drawn", textValues }),
+        body: JSON.stringify({ consent: true, signatureDataUrl: sigDataUrl, kind: mode === "type" ? "typed" : "drawn", textValues, choices }),
       });
       const b = await r.json();
       if (!r.ok) throw new Error(b.error || "Couldn't save your signature.");
@@ -409,6 +453,7 @@ export default function OfferSignPublic({ urlToken, kind = "offer" }) {
           [stops.filter(s => !s.auto && s.kind === "signature").length, "signature", "signatures"],
           [stops.filter(s => !s.auto && s.kind === "initials").length, "initial spot", "initial spots"],
           [stops.filter(s => !s.auto && s.kind === "text").length, "box to fill in", "boxes to fill in"],
+          [choiceGroups.length, "choice to answer", "choices to answer"],
         ].filter(([n]) => n > 0).map(([n, one, many]) => n + " " + (n === 1 ? one : many)).join(" and ")}</strong> : "every signature and initial spot"} — one at a time.
       </div>
       <div style={{ marginBottom: 18 }}>
@@ -472,7 +517,7 @@ export default function OfferSignPublic({ urlToken, kind = "offer" }) {
             </div>
           )}
           <GuidedPacketViewer token={urlToken} base={base} stops={stops.filter(s => s.docIdx === di)} applied={applied} current={current}
-            sigDataUrl={sigDataUrl} signerName={data.signerName} onApply={applyStop} textMap={textMap}
+            sigDataUrl={sigDataUrl} signerName={data.signerName} onApply={applyStop} textMap={textMap} choiceMap={choiceMap}
             fileQuery={d.docId ? "?doc=" + d.docId : ""} />
         </div>
       ))}
@@ -480,16 +525,29 @@ export default function OfferSignPublic({ urlToken, kind = "offer" }) {
       {/* Sticky action bar */}
       <div style={{ position: "sticky", bottom: 8, background: "#0f172a", color: "#fff", borderRadius: 12, padding: "12px 16px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, boxShadow: "0 8px 30px rgba(2,6,23,0.45)", marginTop: 12, flexWrap: "wrap" }}>
         <div style={{ fontSize: 13, fontWeight: 700 }}>
-          {allApplied ? "✅ All spots signed" : `${applied.size} of ${interactiveCount} placed`}
+          {allApplied ? "✅ All spots signed" : `${doneUnits} of ${interactiveCount} placed`}
         </div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           {!allApplied && (
-            <button type="button" onClick={() => applyStop(current)}
+            <button type="button"
+              onClick={() => {
+                // A CHECK-ONE choice is the signer's decision — never auto-apply
+                // it from the bar; scroll them to the boxes so THEY tap one.
+                if (stops[current] && stops[current].kind === "choice") {
+                  const el = document.getElementById("sign-stop-" + current);
+                  if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+                  return;
+                }
+                applyStop(current);
+              }}
               style={{ padding: "9px 16px", background: "#fef08a", color: "#713f12", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>
-              {stops[current] && stops[current].kind === "signature" ? "✍️ Sign here" : stops[current] && stops[current].kind === "text" ? "💬 Type text" : "Place initials"} ({applied.size + 1}/{interactiveCount})
+              {stops[current] && stops[current].kind === "signature" ? "✍️ Sign here"
+                : stops[current] && stops[current].kind === "text" ? "💬 Type text"
+                : stops[current] && stops[current].kind === "choice" ? "☑️ Answer the choice — tap one box"
+                : "Place initials"} ({doneUnits + 1}/{interactiveCount})
             </button>
           )}
-          {!allApplied && applied.size > 0 && (
+          {!allApplied && doneUnits > 0 && (
             <button type="button" onClick={applyAll}
               style={{ padding: "9px 14px", background: "transparent", color: "#e2e8f0", border: "1px solid #475569", borderRadius: 8, fontSize: 12.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
               Apply to all remaining
