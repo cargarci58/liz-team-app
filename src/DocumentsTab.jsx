@@ -709,7 +709,7 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
       )}
 
       {signDoc && (
-        <DocSignModal tx={tx} doc={signDoc.doc} headers={headers}
+        <DocSignModal tx={tx} doc={signDoc.doc} allDocs={docs} headers={headers}
           onClose={() => { setSignDoc(null); loadSignStatus(); loadDocs(); }} />
       )}
 
@@ -1265,18 +1265,22 @@ function LetterOfIntentModal({ tx, headers, onClose, onSaved }) {
 // stamped. No blocks placed → the app auto-detects "Signature" lines; if none
 // exist, signatures appear on the attached certificate page. Signed copy files
 // back into Documents automatically as "✍️ Signed — <name>".
-function DocSignModal({ tx, doc, headers, onClose }) {
+function DocSignModal({ tx, doc, allDocs = [], headers, onClose }) {
   const [info, setInfo] = useState(null);
   const [rows, setRows] = useState([]);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState(null);
+  // Bundle: more documents signed in the SAME round (one email, one link).
+  const [extraIds, setExtraIds] = useState([]);
+  const extraChoices = allDocs.filter(d =>
+    d.id !== doc.id && /pdf$/i.test(d.mime_type || "") && !/^✍️ Signed/.test(d.name || ""));
+  const selDocs = [doc, ...extraIds.map(id => extraChoices.find(d => d.id === id)).filter(Boolean)];
   // Tap-to-place state
   const [placing, setPlacing] = useState(false);
-  const [pdfPages, setPdfPages] = useState([]);   // [{num,width,height,dataUrl}]
-  const [pdfErr, setPdfErr] = useState(null);
+  const [pagesByDoc, setPagesByDoc] = useState({}); // docId → {pages:[{num,width,height,dataUrl}], err}
   const [activeSigner, setActiveSigner] = useState(1);
   const [placeKind, setPlaceKind] = useState("signature"); // signature | initials | date | text
-  const [placements, setPlacements] = useState([]); // [{signer,page,x,y,kind,text}] PDF pts, bottom-left origin
+  const [placements, setPlacements] = useState([]); // [{signer,docId,page,x,y,kind,text}] PDF pts, bottom-left origin
 
   const loadInfo = async () => {
     try {
@@ -1292,45 +1296,53 @@ function DocSignModal({ tx, doc, headers, onClose }) {
   };
   useEffect(() => { loadInfo(); /* eslint-disable-next-line */ }, [doc.id]);
 
-  // Load + render the PDF the first time the agent opens tap-to-place.
+  // Load + render each selected document the first time it's needed in
+  // tap-to-place. Loads survive re-renders (checking another box mid-load
+  // must not abort the first document) — only unmount stops updates.
+  const loadingDocs = useRef(new Set());
+  const alive = useRef(true);
+  useEffect(() => () => { alive.current = false; }, []);
   useEffect(() => {
-    if (!placing || pdfPages.length || pdfErr) return;
-    let cancelled = false;
+    if (!placing) return;
     (async () => {
-      try {
-        const pdfjs = await import("pdfjs-dist/build/pdf.min.mjs");
-        const worker = await import("pdfjs-dist/build/pdf.worker.min.mjs?url");
-        pdfjs.GlobalWorkerOptions.workerSrc = worker.default;
-        const resp = await fetch(`${API}/documents/${doc.id}/file.pdf`, { headers });
-        if (!resp.ok) throw new Error("Couldn't load the document preview.");
-        const bytes = new Uint8Array(await resp.arrayBuffer());
-        const pdf = await pdfjs.getDocument({ data: bytes, useSystemFonts: true, standardFontDataUrl: "/pdf-fonts/" }).promise;
-        const withTimeout = (pr, ms) => Promise.race([pr, new Promise((_, rej) => setTimeout(() => rej(new Error("timeout")), ms))]);
-        for (let i = 1; i <= pdf.numPages && !cancelled; i++) {
-          let entry;
-          try {
-            const page = await withTimeout(pdf.getPage(i), 15000);
-            const vp0 = page.getViewport({ scale: 1 });
-            const vp = page.getViewport({ scale: 1.4 });
-            const canvas = document.createElement("canvas");
-            canvas.width = vp.width; canvas.height = vp.height;
-            await withTimeout(page.render({ canvasContext: canvas.getContext("2d"), viewport: vp }).promise, 15000);
-            entry = { num: i, width: vp0.width, height: vp0.height, dataUrl: canvas.toDataURL("image/jpeg", 0.85) };
-          } catch {
-            entry = { num: i, width: 612, height: 792, dataUrl: null };
+      const pdfjs = await import("pdfjs-dist/build/pdf.min.mjs");
+      const worker = await import("pdfjs-dist/build/pdf.worker.min.mjs?url");
+      pdfjs.GlobalWorkerOptions.workerSrc = worker.default;
+      const withTimeout = (pr, ms) => Promise.race([pr, new Promise((_, rej) => setTimeout(() => rej(new Error("timeout")), ms))]);
+      for (const d of selDocs) {
+        if (!alive.current || loadingDocs.current.has(d.id)) continue;
+        loadingDocs.current.add(d.id);
+        setPagesByDoc(prev => prev[d.id] ? prev : { ...prev, [d.id]: { pages: [], err: null } });
+        try {
+          const resp = await fetch(`${API}/documents/${d.id}/file.pdf`, { headers });
+          if (!resp.ok) throw new Error("Couldn't load the document preview.");
+          const bytes = new Uint8Array(await resp.arrayBuffer());
+          const pdf = await pdfjs.getDocument({ data: bytes, useSystemFonts: true, standardFontDataUrl: "/pdf-fonts/" }).promise;
+          for (let i = 1; i <= pdf.numPages && alive.current; i++) {
+            let entry;
+            try {
+              const page = await withTimeout(pdf.getPage(i), 15000);
+              const vp0 = page.getViewport({ scale: 1 });
+              const vp = page.getViewport({ scale: 1.4 });
+              const canvas = document.createElement("canvas");
+              canvas.width = vp.width; canvas.height = vp.height;
+              await withTimeout(page.render({ canvasContext: canvas.getContext("2d"), viewport: vp }).promise, 15000);
+              entry = { num: i, width: vp0.width, height: vp0.height, dataUrl: canvas.toDataURL("image/jpeg", 0.85) };
+            } catch {
+              entry = { num: i, width: 612, height: 792, dataUrl: null };
+            }
+            if (alive.current) setPagesByDoc(prev => ({ ...prev, [d.id]: { pages: [...(prev[d.id]?.pages || []), entry], err: null } }));
           }
-          if (!cancelled) setPdfPages(prev => [...prev, entry]);
-        }
-      } catch (e) { if (!cancelled) setPdfErr(e.message); }
+        } catch (e) { if (alive.current) setPagesByDoc(prev => ({ ...prev, [d.id]: { pages: [], err: e.message } })); }
+      }
     })();
-    return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [placing]);
+  }, [placing, extraIds.join(",")]);
 
   const setRow = (i, k, v) => setRows(rs => rs.map((r, j) => j === i ? { ...r, [k]: v } : r));
   const signerNames = rows.map(r => (r.name || "").trim()).filter(Boolean);
 
-  const placeAt = (pg, e) => {
+  const placeAt = (docId, pg, e) => {
     const rect = e.currentTarget.getBoundingClientRect();
     const scale = rect.width / pg.width;
     const x = Math.max(0, Math.min(pg.width - 10, (e.clientX - rect.left) / scale));
@@ -1342,7 +1354,7 @@ function DocSignModal({ tx, doc, headers, onClose }) {
       if (t === null) return; // cancelled
       text = t.trim().slice(0, 120);
     }
-    setPlacements(ps => [...ps, { signer: activeSigner, page: pg.num, x: Math.round(x * 10) / 10, y: Math.round(y * 10) / 10, kind: placeKind, text }]);
+    setPlacements(ps => [...ps, { signer: activeSigner, docId, page: pg.num, x: Math.round(x * 10) / 10, y: Math.round(y * 10) / 10, kind: placeKind, text }]);
   };
   const initialsShort = (n) => {
     const parts = String(n || "").trim().split(/\s+/).filter(Boolean);
@@ -1360,13 +1372,14 @@ function DocSignModal({ tx, doc, headers, onClose }) {
       const r = await fetch(`${API}/documents/${doc.id}/request-signatures`, {
         method: "POST",
         headers: { ...headers, "Content-Type": "application/json" },
-        body: JSON.stringify({ signers: clean, placements }),
+        body: JSON.stringify({ signers: clean, placements, alsoDocIds: extraIds }),
       });
       const b = await r.json();
       if (!r.ok) throw new Error(b.error || "Couldn't send signing links");
       alert("✍️ Signing link sent to " + clean.map(s => s.name).join(" and ") + "." +
+        (selDocs.length > 1 ? `\n\nOne link covers all ${selDocs.length} documents — they sign everything in one sitting.` : "") +
         (placements.length ? "\n\nThey'll be guided to the exact spot" + (placements.length > 1 ? "s" : "") + " you placed." : "") +
-        "\n\nWhen everyone has signed, the signed copy (with its signature certificate) appears here in Documents — and you'll get a pop-up.");
+        "\n\nWhen everyone has signed, each signed copy (with its signature certificate) appears here in Documents — and you'll get a pop-up.");
       onClose();
     } catch (e) { setErr(e.message); } finally { setBusy(false); }
   };
@@ -1444,6 +1457,26 @@ function DocSignModal({ tx, doc, headers, onClose }) {
                 </button>
               )}
 
+              {/* Bundle more documents into the same round */}
+              {extraChoices.length > 0 && (
+                <div style={{ margin: "4px 0 12px", background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 10, padding: "10px 12px" }}>
+                  <div style={{ fontSize: 13, fontWeight: 800, color: "#374151", marginBottom: 6 }}>📚 Sign more documents in the same round <span style={{ fontWeight: 400, color: "#64748b" }}>(optional)</span></div>
+                  <div style={{ fontSize: 11.5, color: "#64748b", marginBottom: 8 }}>One email, one link — they sign everything in one sitting. Each document still files back as its own signed copy.</div>
+                  <div style={{ maxHeight: 150, overflowY: "auto" }}>
+                    {extraChoices.map(d => (
+                      <label key={d.id} style={{ display: "flex", gap: 8, alignItems: "center", fontSize: 13, color: "#374151", padding: "4px 0", cursor: "pointer" }}>
+                        <input type="checkbox" checked={extraIds.includes(d.id)}
+                          onChange={e => {
+                            if (e.target.checked) { setExtraIds(ids => ids.length < 7 ? [...ids, d.id] : ids); }
+                            else { setExtraIds(ids => ids.filter(x => x !== d.id)); setPlacements(ps => ps.filter(p => p.docId !== d.id)); }
+                          }} />
+                        <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>📄 {d.name}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Tap-to-place signature blocks */}
               <div style={{ margin: "6px 0 12px" }}>
                 <button onClick={() => setPlacing(p => !p)}
@@ -1483,17 +1516,22 @@ function DocSignModal({ tx, doc, headers, onClose }) {
                     {placeKind === "date" && <span style={{ fontSize: 11.5, color: "#64748b" }}>Fills in the date they sign, automatically.</span>}
                     {placeKind === "text" && <span style={{ fontSize: 11.5, color: "#64748b" }}>You type it now — or leave it blank and the signer types it.</span>}
                   </div>
-                  {pdfErr && <div style={{ fontSize: 13, color: "#7f1d1d" }}>⚠️ {pdfErr}</div>}
-                  {!pdfErr && pdfPages.length === 0 && <div style={{ fontSize: 13, color: "#64748b", padding: 10 }}>Loading pages…</div>}
                   <div style={{ maxHeight: 460, overflowY: "auto", border: "1px solid #e2e8f0", borderRadius: 10, padding: 8, background: "#f1f5f9" }}>
-                    {pdfPages.map(pg => (
-                      <div key={pg.num} style={{ position: "relative", marginBottom: 10, cursor: "crosshair" }}
-                        onClick={(e) => placeAt(pg, e)}>
+                    {selDocs.map(d => { const entry = pagesByDoc[d.id] || { pages: [], err: null }; return (
+                    <div key={d.id}>
+                      {selDocs.length > 1 && (
+                        <div style={{ fontSize: 12, fontWeight: 800, color: "#334155", background: "#e2e8f0", borderRadius: 6, padding: "5px 10px", margin: "2px 0 8px" }}>📄 {d.name}</div>
+                      )}
+                      {entry.err && <div style={{ fontSize: 13, color: "#7f1d1d", padding: 6 }}>⚠️ {entry.err}</div>}
+                      {!entry.err && entry.pages.length === 0 && <div style={{ fontSize: 13, color: "#64748b", padding: 10 }}>Loading pages…</div>}
+                      {entry.pages.map(pg => (
+                      <div key={d.id + "-" + pg.num} style={{ position: "relative", marginBottom: 10, cursor: "crosshair" }}
+                        onClick={(e) => placeAt(d.id, pg, e)}>
                         {pg.dataUrl
                           ? <img src={pg.dataUrl} alt={"Page " + pg.num} style={{ display: "block", width: "100%", borderRadius: 4, boxShadow: "0 1px 6px rgba(2,6,23,0.15)" }} draggable={false} />
                           : <div style={{ width: "100%", height: 300, background: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, color: "#64748b" }}>Page {pg.num} preview unavailable</div>}
                         <div style={{ position: "absolute", top: 4, left: 6, fontSize: 10, fontWeight: 700, color: "#64748b", background: "rgba(255,255,255,0.85)", borderRadius: 4, padding: "1px 6px" }}>p.{pg.num}</div>
-                        {placements.filter(p => p.page === pg.num).map((p, pi) => {
+                        {placements.filter(p => p.docId === d.id && p.page === pg.num).map((p, pi) => {
                           const idx = placements.indexOf(p);
                           const color = SIGNER_COLORS[(p.signer - 1) % 4];
                           const first = (signerNames[p.signer - 1] || `Signer ${p.signer}`).split(" ")[0];
@@ -1513,7 +1551,9 @@ function DocSignModal({ tx, doc, headers, onClose }) {
                           );
                         })}
                       </div>
-                    ))}
+                      ))}
+                    </div>
+                    ); })}
                   </div>
                 </div>
               )}

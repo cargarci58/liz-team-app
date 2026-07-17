@@ -120,7 +120,7 @@ function SignaturePad({ onChange, typedName, mode }) {
 
 // In-page PDF viewer with guided stop markers. Renders every page via pdf.js
 // (loaded on demand so the main app bundle stays small).
-function GuidedPacketViewer({ token, base, stops, applied, current, sigDataUrl, signerName, onApply, textMap = {} }) {
+function GuidedPacketViewer({ token, base, stops, applied, current, sigDataUrl, signerName, onApply, textMap = {}, fileQuery = "" }) {
   const [pages, setPages] = useState([]); // [{num, width, height, dataUrl}]
   const [renderErr, setRenderErr] = useState(null);
   const wrapRefs = useRef({});
@@ -135,7 +135,7 @@ function GuidedPacketViewer({ token, base, stops, applied, current, sigDataUrl, 
         const pdfjs = await import("pdfjs-dist/build/pdf.min.mjs");
         const worker = await import("pdfjs-dist/build/pdf.worker.min.mjs?url");
         pdfjs.GlobalWorkerOptions.workerSrc = worker.default;
-        const resp = await fetch(API + "/public/" + base + "/" + token + "/packet.pdf");
+        const resp = await fetch(API + "/public/" + base + "/" + token + "/packet.pdf" + fileQuery);
         if (!resp.ok) throw new Error("Couldn't load the package for viewing.");
         const bytes = new Uint8Array(await resp.arrayBuffer());
         // The packet's flattened forms reference non-embedded standard fonts —
@@ -169,7 +169,7 @@ function GuidedPacketViewer({ token, base, stops, applied, current, sigDataUrl, 
       } catch (e) { if (!cancelled) setRenderErr(e.message); }
     })();
     return () => { cancelled = true; };
-  }, [token, base]);
+  }, [token, base, fileQuery]);
 
   useEffect(() => {
     const measure = () => { if (containerRef.current) setCssWidth(containerRef.current.offsetWidth); };
@@ -178,10 +178,9 @@ function GuidedPacketViewer({ token, base, stops, applied, current, sigDataUrl, 
     return () => window.removeEventListener("resize", measure);
   }, []);
 
-  // Auto-scroll to the current stop whenever it changes.
+  // Auto-scroll to the current stop whenever it changes (the element only
+  // exists in the viewer that owns the stop — other viewers no-op).
   useEffect(() => {
-    const stop = stops[current];
-    if (!stop) return;
     const el = wrapRefs.current["stop-" + current];
     if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
   }, [current, stops, pages.length]);
@@ -193,7 +192,7 @@ function GuidedPacketViewer({ token, base, stops, applied, current, sigDataUrl, 
   );
 
   const stopsByPage = {};
-  stops.forEach((s, i) => { (stopsByPage[s.page] = stopsByPage[s.page] || []).push({ ...s, idx: i }); });
+  stops.forEach((s, i) => { (stopsByPage[s.page] = stopsByPage[s.page] || []).push({ ...s, idx: s.gidx != null ? s.gidx : i }); });
 
   return (
     <div ref={containerRef}>
@@ -287,11 +286,20 @@ export default function OfferSignPublic({ urlToken, kind = "offer" }) {
     })();
   }, [urlToken, base]);
 
-  const stops = (data && data.stops) || [];
+  // A doc-signing link may cover SEVERAL documents (bundled round). Offers are
+  // always a single packet. Stops are flattened across documents; gidx is each
+  // stop's global position so the guided walk runs straight through the bundle.
+  const docsArr = !data ? []
+    : kind === "doc"
+      ? (Array.isArray(data.docs) && data.docs.length ? data.docs : [{ docId: null, name: data.docName, stops: data.stops || [] }])
+      : [{ docId: null, name: null, stops: data.stops || [] }];
+  const stops = docsArr.flatMap((d, di) => (d.stops || []).map(s => ({
+    ...s, docIdx: di, textKey: (d.docId ? d.docId + ":" : "") + s.id,
+  }))).map((s, i) => ({ ...s, gidx: i }));
   // "auto" stops (dates, agent-pre-written text) fill themselves — the signer
   // only works through the interactive ones.
   const interactiveCount = stops.filter(s => !s.auto).length;
-  const [textMap, setTextMap] = useState({}); // stop index → signer-typed text
+  const [textMap, setTextMap] = useState({}); // stop gidx → signer-typed text
 
   const applyStop = useCallback((idx) => {
     const s = stops[idx];
@@ -336,7 +344,7 @@ export default function OfferSignPublic({ urlToken, kind = "offer" }) {
     setSubmitting(true);
     try {
       const textValues = {};
-      stops.forEach((s, i) => { if (s.kind === "text" && !s.auto && textMap[i]) textValues[s.id] = textMap[i]; });
+      stops.forEach((s) => { if (s.kind === "text" && !s.auto && textMap[s.gidx]) textValues[s.textKey] = textMap[s.gidx]; });
       const r = await fetch(API + "/public/" + base + "/" + urlToken, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -370,8 +378,8 @@ export default function OfferSignPublic({ urlToken, kind = "offer" }) {
       <div style={{ fontSize: 46 }}>🎉</div>
       <div style={{ fontSize: 20, fontWeight: 800, color: "#15803d", marginTop: 8 }}>You're all set{data.signerName ? ", " + data.signerName.split(" ")[0] : ""}!</div>
       <div style={{ fontSize: 14, color: "#374151", marginTop: 10, lineHeight: 1.6 }}>
-        {kind === "doc" ? "Your signature has been applied to the document." : "Your signature and initials have been applied to the offer package."}<br />
-        {kind === "doc" ? (data.agentName || "Your agent") + " has been notified and has the signed copy." : (data.agentName || "Your agent") + " will send the offer to the listing side and keep you posted."}
+        {kind === "doc" ? (docsArr.length > 1 ? "Your signature has been applied to all " + docsArr.length + " documents." : "Your signature has been applied to the document.") : "Your signature and initials have been applied to the offer package."}<br />
+        {kind === "doc" ? (data.agentName || "Your agent") + " has been notified and has the signed " + (docsArr.length > 1 ? "copies." : "copy.") : (data.agentName || "Your agent") + " will send the offer to the listing side and keep you posted."}
       </div>
     </div>
   );
@@ -380,7 +388,7 @@ export default function OfferSignPublic({ urlToken, kind = "offer" }) {
   if (phase === "adopt") return shell(
     <div>
       <div style={{ fontSize: 14, color: "#374151", lineHeight: 1.6, marginBottom: 16 }}>
-        Hi <strong>{data.signerName}</strong> — {kind === "doc" ? "this document is ready for your signature." : "your offer package is ready to sign."} Two quick steps:
+        Hi <strong>{data.signerName}</strong> — {kind === "doc" ? (docsArr.length > 1 ? "these " + docsArr.length + " documents are ready for your signature." : "this document is ready for your signature.") : "your offer package is ready to sign."} Two quick steps:
         first adopt your signature, then we'll walk you through <strong>each place</strong> it goes — {interactiveCount > 0 ? <strong>{[
           [stops.filter(s => !s.auto && s.kind === "signature").length, "signature", "signatures"],
           [stops.filter(s => !s.auto && s.kind === "initials").length, "initial spot", "initial spots"],
@@ -439,8 +447,19 @@ export default function OfferSignPublic({ urlToken, kind = "offer" }) {
         <a href={API + "/public/" + base + "/" + urlToken + "/packet.pdf"} target="_blank" rel="noreferrer"
           style={{ fontSize: 12, fontWeight: 700, color: "#075985", whiteSpace: "nowrap" }}>Open full package ↗</a>
       </div>
-      <GuidedPacketViewer token={urlToken} base={base} stops={stops} applied={applied} current={current}
-        sigDataUrl={sigDataUrl} signerName={data.signerName} onApply={applyStop} textMap={textMap} />
+      {docsArr.map((d, di) => (
+        <div key={d.docId || di}>
+          {docsArr.length > 1 && (
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, background: "#e0f2fe", border: "1px solid #bae6fd", borderRadius: 8, padding: "8px 12px", margin: di === 0 ? "0 0 8px" : "16px 0 8px" }}>
+              <span style={{ fontSize: 13, fontWeight: 800, color: "#0c4a6e" }}>📄 Document {di + 1} of {docsArr.length} — {d.name}</span>
+              <a href={API + "/public/" + base + "/" + urlToken + "/packet.pdf" + (d.docId ? "?doc=" + d.docId : "")} target="_blank" rel="noreferrer" style={{ fontSize: 11.5, fontWeight: 700, color: "#075985", whiteSpace: "nowrap" }}>Open ↗</a>
+            </div>
+          )}
+          <GuidedPacketViewer token={urlToken} base={base} stops={stops.filter(s => s.docIdx === di)} applied={applied} current={current}
+            sigDataUrl={sigDataUrl} signerName={data.signerName} onApply={applyStop} textMap={textMap}
+            fileQuery={d.docId ? "?doc=" + d.docId : ""} />
+        </div>
+      ))}
       {error && <div style={{ background: "#fee2e2", border: "1px solid #fca5a5", borderRadius: 8, padding: 12, fontSize: 13, color: "#7f1d1d", margin: "12px 0" }}>⚠️ {error}</div>}
       {/* Sticky action bar */}
       <div style={{ position: "sticky", bottom: 8, background: "#0f172a", color: "#fff", borderRadius: 12, padding: "12px 16px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, boxShadow: "0 8px 30px rgba(2,6,23,0.45)", marginTop: 12, flexWrap: "wrap" }}>
