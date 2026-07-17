@@ -1423,7 +1423,7 @@ function DocSignModal({ tx, doc, allDocs = [], headers, onClose }) {
             try {
               const page = await withTimeout(pdf.getPage(i), 15000);
               const vp0 = page.getViewport({ scale: 1 });
-              const vp = page.getViewport({ scale: 1.4 });
+              const vp = page.getViewport({ scale: 1.8 }); // crisp in the enlarged placement window
               const canvas = document.createElement("canvas");
               canvas.width = vp.width; canvas.height = vp.height;
               await withTimeout(page.render({ canvasContext: canvas.getContext("2d"), viewport: vp }).promise, 15000);
@@ -1529,7 +1529,7 @@ function DocSignModal({ tx, doc, allDocs = [], headers, onClose }) {
   return (
     <div style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.55)", zIndex: 60, display: "flex", alignItems: "flex-start", justifyContent: "center", overflowY: "auto", padding: "40px 12px" }}
       onClick={onClose}>
-      <div style={{ background: "#fff", borderRadius: 14, width: "100%", maxWidth: placing ? 760 : 540, boxShadow: "0 20px 60px rgba(2,6,23,0.35)" }} onClick={e => e.stopPropagation()}>
+      <div style={{ background: "#fff", borderRadius: 14, width: "100%", maxWidth: placing ? "min(1100px, 97vw)" : 540, boxShadow: "0 20px 60px rgba(2,6,23,0.35)" }} onClick={e => e.stopPropagation()}>
         <div style={{ background: "#86198f", color: "#fff", borderRadius: "14px 14px 0 0", padding: "16px 22px" }}>
           <div style={{ fontSize: 17, fontWeight: 800 }}>✍️ Get this signed — {doc.name}</div>
           <div style={{ fontSize: 12.5, opacity: 0.9, marginTop: 3 }}>Each signer gets a private email link to review and sign on their phone or computer. No DocuSign needed.</div>
@@ -1577,10 +1577,22 @@ function DocSignModal({ tx, doc, allDocs = [], headers, onClose }) {
                 </div>
               ))}
               {rows.length < 4 && (
-                <button onClick={() => setRows(rs => [...rs, { name: "", email: "" }])}
-                  style={{ background: "none", border: "1px dashed #94a3b8", color: "#475569", borderRadius: 8, padding: "6px 14px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", marginBottom: 10 }}>
-                  + Add another signer
-                </button>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 10 }}>
+                  <button onClick={() => setRows(rs => [...rs, { name: "", email: "" }])}
+                    style={{ background: "none", border: "1px dashed #94a3b8", color: "#475569", borderRadius: 8, padding: "6px 14px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                    + Add another signer
+                  </button>
+                  {info?.me?.email && !rows.some(r => (r.email || "").toLowerCase() === info.me.email.toLowerCase()) && (
+                    <button onClick={() => setRows(rs => {
+                      const blank = rs.findIndex(r => !(r.name || "").trim() && !(r.email || "").trim());
+                      const mine = { name: info.me.name, email: info.me.email };
+                      return blank >= 0 ? rs.map((r, j) => j === blank ? mine : r) : [...rs, mine];
+                    })}
+                      style={{ background: "#faf5ff", border: "1px solid #d8b4fe", color: "#86198f", borderRadius: 8, padding: "6px 14px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                      ✍️ I sign too — add me
+                    </button>
+                  )}
+                </div>
               )}
 
               {/* Bundle more documents into the same round */}
@@ -1644,7 +1656,7 @@ function DocSignModal({ tx, doc, allDocs = [], headers, onClose }) {
                     {placeKind === "checkbox" && <span style={{ fontSize: 11.5, color: "#64748b" }}>Puts an X in a little box on the form, automatically.</span>}
                     {(placeKind === "signature" || placeKind === "initials") && <span style={{ fontSize: 11.5, color: "#64748b" }}>Drag the ● corner of a placed block to make it bigger or smaller.</span>}
                   </div>
-                  <div style={{ maxHeight: 460, overflowY: "auto", border: "1px solid #e2e8f0", borderRadius: 10, padding: 8, background: "#f1f5f9" }}>
+                  <div style={{ maxHeight: "72vh", overflowY: "auto", border: "1px solid #e2e8f0", borderRadius: 10, padding: 8, background: "#f1f5f9" }}>
                     {selDocs.map(d => { const entry = pagesByDoc[d.id] || { pages: [], err: null }; return (
                     <div key={d.id}>
                       {selDocs.length > 1 && (
