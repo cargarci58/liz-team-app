@@ -1912,11 +1912,17 @@ function ListingPackageModal({ tx, headers, dealDocs = [], onClose, onDone }) {
   const col = (w) => ({ flex: `1 1 ${w}px`, minWidth: w });
 
   return (
-    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)", zIndex: 1200, display: "flex", alignItems: "flex-start", justifyContent: "center", overflowY: "auto", padding: "30px 12px" }} onClick={onClose}>
-      <div onClick={e => e.stopPropagation()} style={{ background: "#fff", borderRadius: 14, width: "100%", maxWidth: 720, boxShadow: "0 20px 60px rgba(0,0,0,0.35)", overflow: "hidden" }}>
+    // NO backdrop-click close: a stray click outside the window must never throw
+    // away everything the agent typed. Close = the × only (confirmed mid-work).
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)", zIndex: 1200, display: "flex", alignItems: "flex-start", justifyContent: "center", overflowY: "auto", padding: "30px 12px" }}>
+      <div style={{ background: "#fff", borderRadius: 14, width: "100%", maxWidth: 720, boxShadow: "0 20px 60px rgba(0,0,0,0.35)", overflow: "hidden" }}>
         <div style={{ background: "#7B241C", padding: "14px 20px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div style={{ color: "#fff", fontWeight: 800, fontSize: 16 }}>📦 Listing Package{tx.address ? " — " + tx.address : ""}</div>
-          <button onClick={onClose} style={{ background: "none", border: "none", color: "#fff", fontSize: 22, cursor: "pointer", lineHeight: 1 }}>×</button>
+          <button onClick={() => {
+            if (step === "sent") { onDone(); return; }
+            if (step === "review" || busy) { if (window.confirm("Close the listing package? Your generated forms stay under Documents — nothing has been sent yet.")) onClose(); return; }
+            onClose();
+          }} style={{ background: "none", border: "none", color: "#fff", fontSize: 22, cursor: "pointer", lineHeight: 1 }}>×</button>
         </div>
         <div style={{ padding: 20 }}>
           {err && <div style={{ background: "#FDEDEC", border: "1px solid #F5B7B1", color: "#943126", borderRadius: 8, padding: "10px 12px", fontSize: 13, marginBottom: 14 }}>⚠️ {err}</div>}
@@ -2154,8 +2160,9 @@ function CombinePdfsModal({ tx, docs, headers, onClose, onDone }) {
     setBusy(false);
   };
   return (
-    <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)", zIndex: 1200, display: "flex", alignItems: "flex-start", justifyContent: "center", overflowY: "auto", padding: "40px 12px" }}>
-      <div onClick={e => e.stopPropagation()} style={{ background: "#fff", borderRadius: 14, width: "100%", maxWidth: 560, overflow: "hidden", boxShadow: "0 20px 60px rgba(0,0,0,0.35)" }}>
+    // No backdrop-click close — a stray click must not wipe the pick order.
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)", zIndex: 1200, display: "flex", alignItems: "flex-start", justifyContent: "center", overflowY: "auto", padding: "40px 12px" }}>
+      <div style={{ background: "#fff", borderRadius: 14, width: "100%", maxWidth: 560, overflow: "hidden", boxShadow: "0 20px 60px rgba(0,0,0,0.35)" }}>
         <div style={{ background: "#0E7490", padding: "14px 20px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div style={{ color: "#fff", fontWeight: 800, fontSize: 16 }}>🧷 Combine PDFs into one file</div>
           <button onClick={onClose} style={{ background: "none", border: "none", color: "#fff", fontSize: 22, cursor: "pointer", lineHeight: 1 }}>×</button>
