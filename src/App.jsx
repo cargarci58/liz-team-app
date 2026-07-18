@@ -1670,7 +1670,10 @@ function SMSPanel({ tx, onUpdate, currentUser, sendOnly = false }) {
             <button onClick={() => setShowReminderSMS(true)} style={{ margin: 10, padding: "8px 12px", borderRadius: 8, border: "1px solid #E5E7EB", background: "#F9FAFB", color: "#0F2044", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>⏰ Send a deadline reminder</button>
           </div>
 
-          <div style={{ background: "#fff", border: "1px solid #E5E7EB", borderRadius: 12, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+          {/* overflowY auto (not hidden): with the thread holding a real reading
+              height, a short laptop screen must scroll the pane — never clip the
+              composer's Send button out of reach. */}
+          <div style={{ background: "#fff", border: "1px solid #E5E7EB", borderRadius: 12, display: "flex", flexDirection: "column", overflowY: "auto", overflowX: "hidden" }}>
             {!selectedParty ? (
               <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", color: "#6B7280", flexDirection: "column", gap: 8, padding: 20, textAlign: "center" }}>
                 <div style={{ fontSize: 40 }}>📧</div>
@@ -1686,7 +1689,9 @@ function SMSPanel({ tx, onUpdate, currentUser, sendOnly = false }) {
                     <div style={{ fontSize: 11, color: "#6B7280" }}>{selectedParty.phone && `📱 ${selectedParty.phone}`}{selectedParty.phone && selectedParty.email && " · "}{selectedParty.email && `📧 ${selectedParty.email}`}</div>
                   </div>
                 </div>
-                <div style={{ flex: 1, minHeight: 140, overflowY: "auto", padding: "16px 18px", display: "flex", flexDirection: "column", gap: 10 }}>
+                {/* The conversation needs a REAL reading pane — at 140px a single
+                    bubble showed as an unreadable sliver above the composer. */}
+                <div style={{ flex: 1, minHeight: 300, overflowY: "auto", padding: "16px 18px", display: "flex", flexDirection: "column", gap: 10 }}>
                   {getThread(selectedParty).length === 0 && <div style={{ textAlign: "center", color: "#6B7280", fontSize: 13, marginTop: 40 }}>No messages yet. Choose 📧 Email or 📱 Text below, then type your message.</div>}
                   {getThread(selectedParty).map(m => {
                     const isOut = m.direction === "outbound";
