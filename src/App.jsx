@@ -9664,10 +9664,13 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
       const res = await fetch(API + "/auth/invite", {
         method: "POST",
         headers: { "Content-Type": "application/json", "Authorization": "Bearer " + tok },
+        // trim + split on runs of whitespace: a party saved as " Gilberto Colon"
+        // (leading space) used to produce an EMPTY first name → "Name and email
+        // required" even though the dialog showed a perfectly good name.
         body: JSON.stringify({
-          email: party.email,
-          firstName: party.name.split(" ")[0],
-          lastName: party.name.split(" ").slice(1).join(" ") || ".",
+          email: String(party.email || "").trim(),
+          firstName: String(party.name || "").trim().split(/\s+/)[0],
+          lastName: String(party.name || "").trim().split(/\s+/).slice(1).join(" ") || ".",
           role: ["Transaction Coordinator", "Listing Agent", "Buyer's Agent", "Co-Agent"].includes(party.role) ? "agent" : "client",
           phone: party.phone || "",
           partyRole: party.role,
