@@ -2249,7 +2249,7 @@ function CombinePdfsModal({ tx, docs, headers, onClose, onDone }) {
 // corner to resize, tap a block to remove it, tap the page to add a new one.
 // Same coordinate model as DocSignModal (PDF pts, bottom-left origin).
 // ════════════════════════════════════════════════════════════════
-function AdjustSpotsModal({ doc, signerNames, initial, headers, onSave, onClose }) {
+export function AdjustSpotsModal({ doc, signerNames, initial, headers, onSave, onClose }) {
   const [placements, setPlacements] = useState(initial);
   const [pages, setPages] = useState([]);
   const [loadErr, setLoadErr] = useState(null);
@@ -2335,8 +2335,15 @@ function AdjustSpotsModal({ doc, signerNames, initial, headers, onSave, onClose 
     const scale = rect.width / pg.width;
     const x = Math.max(0, Math.min(pg.width - 10, (e.clientX - rect.left) / scale));
     const y = Math.max(4, Math.min(pg.height - 10, pg.height - (e.clientY - rect.top) / scale));
+    let text;
+    if (placeKind === "text") {
+      const t = prompt("What should this text box say?\n\nLeave it EMPTY to let the signer type it in when they sign.");
+      if (t === null) return;
+      text = t.trim().slice(0, 120);
+    }
     const w = placeKind === "signature" ? 170 : placeKind === "initials" ? 40 : placeKind === "checkbox" ? 13 : undefined;
     setPlacements(ps => [...ps, { signer: activeSigner, page: pg.num, x: Math.round(x * 10) / 10, y: Math.round(y * 10) / 10, kind: placeKind, w,
+      ...(placeKind === "text" ? { text } : {}),
       ...(placeKind === "checkbox" ? { x: Math.round((x - 6) * 10) / 10, y: Math.round((y - 6) * 10) / 10 } : {}) }]);
   };
 
@@ -2355,7 +2362,7 @@ function AdjustSpotsModal({ doc, signerNames, initial, headers, onSave, onClose 
                 {n || `Signer ${i + 1}`}
               </button>
             ))}
-            {[["signature", "✍️"], ["initials", "🔤"], ["date", "📅"], ["checkbox", "☑️"]].map(([k, label]) => (
+            {[["signature", "✍️"], ["initials", "🔤"], ["date", "📅"], ["checkbox", "☑️"], ["text", "💬"]].map(([k, label]) => (
               <button key={k} onClick={() => setPlaceKind(k)} title={k}
                 style={{ padding: "5px 10px", borderRadius: 14, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", border: "2px solid #64748b", background: placeKind === k ? "#334155" : "#fff", color: placeKind === k ? "#fff" : "#334155" }}>
                 {label}
@@ -2380,7 +2387,7 @@ function AdjustSpotsModal({ doc, signerNames, initial, headers, onSave, onClose 
                   const widthPt = kindOf === "signature" ? (p.w || 170) : kindOf === "initials" ? (p.w || 40) : kindOf === "date" ? 70 : (kindOf === "checkbox" || kindOf === "choice") ? 14 : 110;
                   const heightPt = kindOf === "signature" ? Math.max(14, widthPt * 26 / 170) : kindOf === "initials" ? Math.max(11, widthPt / 2.4) : (kindOf === "checkbox" || kindOf === "choice") ? 14 : 14;
                   const resizable = kindOf === "signature" || kindOf === "initials";
-                  const label = kindOf === "signature" ? "✍️" : kindOf === "initials" ? "🔤" : kindOf === "date" ? "📅" : kindOf === "choice" ? "☑" : kindOf === "checkbox" ? "X" : "💬";
+                  const label = kindOf === "signature" ? "✍️" : kindOf === "initials" ? "🔤" : kindOf === "date" ? "📅" : kindOf === "choice" ? "☑" : kindOf === "checkbox" ? "X" : ("💬" + (p.text ? " " + p.text : ""));
                   return (
                     <div key={idx}
                       onPointerDown={startDrag(idx, pg)} onPointerMove={moveDrag} onPointerUp={endDrag(idx)} onPointerCancel={endDrag(idx)}

@@ -44,6 +44,8 @@ const TaskTemplatesAdmin = lazy(() => import("./TaskTemplatesAdmin"));
 const ContractAutoIntake = lazy(() => import("./ContractAutoIntake"));
 const ComplianceDashboard = lazy(() => import("./ComplianceDashboard"));
 const DocumentsTab = lazy(() => import("./DocumentsTab"));
+// The spot editor is shared with the lease package (same chunk as DocumentsTab).
+const AdjustSpotsModal = lazy(() => import("./DocumentsTab").then(m => ({ default: m.AdjustSpotsModal })));
 const OffersTab = lazy(() => import("./OffersTab"));
 const Reports = lazy(() => import("./Reports"));
 const VendorLibrary = lazy(() => import("./VendorLibrary"));
@@ -5363,6 +5365,8 @@ function LeaseDocsModal({ tx, onClose, onGenerated }) {
   const [sigRows, setSigRows] = useState([]);
   const [sending, setSending] = useState(false);
   const [sentTo, setSentTo] = useState(null);
+  // "✏️ Adjust spots" — move/resize/add blocks on a generated doc before sending.
+  const [adjustDoc, setAdjustDoc] = useState(null);
   useEffect(() => {
     (async () => {
       try {
@@ -5465,6 +5469,18 @@ function LeaseDocsModal({ tx, onClose, onGenerated }) {
                <div style={{ background: "#FAF5FF", border: "1px solid #D8B4FE", borderRadius: 10, padding: 14, marginBottom: 16 }}>
                  <div style={{ fontWeight: 800, fontSize: 13.5, color: "#86198F", marginBottom: 4 }}>✍️ Send for signatures — one tap</div>
                  <div style={{ fontSize: 12, color: COLORS.muted, marginBottom: 10 }}>Signature, initials and date spots are already placed on every form. Check the emails and send — landlords, tenants and you each sign only the pages that need you.</div>
+                 <div style={{ marginBottom: 10 }}>
+                   {signPack.documents.map(d => (
+                     <div key={d.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, fontSize: 12.5, padding: "4px 0" }}>
+                       <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>📄 {d.name}</span>
+                       <button onClick={() => setAdjustDoc(d)}
+                         title="Move, resize, remove or add signature/initials/date/text/check-mark blocks on this form"
+                         style={{ flexShrink: 0, padding: "4px 10px", borderRadius: 7, border: "1px solid #CBD5E1", background: "#fff", color: "#334155", fontSize: 11.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                         ✏️ Adjust spots
+                       </button>
+                     </div>
+                   ))}
+                 </div>
                  {sigRows.map((s, i) => (
                    <div key={i} style={{ display: "flex", gap: 8, marginBottom: 6 }}>
                      <input value={s.name} onChange={e => setSigRows(rs => rs.map((r, j) => j === i ? { ...r, name: e.target.value } : r))} placeholder="Name"
@@ -5483,6 +5499,18 @@ function LeaseDocsModal({ tx, onClose, onGenerated }) {
              )}
              {error && <div style={{ background: "#FEF2F2", border: "1px solid #FCA5A5", borderRadius: 8, padding: 10, fontSize: 13, color: "#7F1D1D", marginBottom: 12 }}>⚠️ {error}</div>}
              <button onClick={onGenerated} style={{ width: "100%", background: COLORS.navy, color: "#fff", border: "none", borderRadius: 8, padding: "12px", fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>Open Documents →</button>
+             {adjustDoc && signPack && (
+               <Suspense fallback={null}>
+                 <AdjustSpotsModal doc={adjustDoc} headers={{ Authorization: "Bearer " + tok }}
+                   signerNames={sigRows.map(s => s.name)}
+                   initial={signPack.placements.filter(p => String(p.docId) === String(adjustDoc.id)).map(({ docId, ...p }) => p)}
+                   onSave={(newPs) => setSignPack(g => ({ ...g, placements: [
+                     ...g.placements.filter(p => String(p.docId) !== String(adjustDoc.id)),
+                     ...newPs.map(p => ({ ...p, docId: String(adjustDoc.id) })),
+                   ] }))}
+                   onClose={() => setAdjustDoc(null)} />
+               </Suspense>
+             )}
            </div>
          ) : (
            <div>
