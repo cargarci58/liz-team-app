@@ -5357,6 +5357,11 @@ function LeaseDocsModal({ tx, onClose, onGenerated }) {
   const [done, setDone] = useState(null);
   const [appResults, setAppResults] = useState([]);
   const [uploadingApp, setUploadingApp] = useState(false);
+  // Ready-made signing round returned by generate (signers + pre-placed stops).
+  const [signPack, setSignPack] = useState(null);
+  const [sigRows, setSigRows] = useState([]);
+  const [sending, setSending] = useState(false);
+  const [sentTo, setSentTo] = useState(null);
   useEffect(() => {
     (async () => {
       try {
@@ -5398,8 +5403,42 @@ function LeaseDocsModal({ tx, onClose, onGenerated }) {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed");
       setDone(data.documents || []);
+      if (Array.isArray(data.signers) && Array.isArray(data.placements) && data.placements.length) {
+        setSignPack(data);
+        setSigRows(data.signers.map(s => ({ name: s.name || "", email: s.email || "" })));
+      }
     } catch (e) { setError(e.message || "Could not generate the documents."); }
     finally { setBusy(false); }
+  };
+  // One tap sends every generated form for signature — stops pre-placed on the
+  // right lines. Signers WITHOUT an email are dropped and the remaining stop
+  // indexes are renumbered so nobody inherits someone else's lines.
+  const sendForSignatures = async () => {
+    setSending(true); setError("");
+    try {
+      const kept = [];
+      sigRows.forEach((s, i) => { if ((s.email || "").trim() && (s.name || "").trim()) kept.push(i); });
+      if (!kept.length) throw new Error("Add an email for at least one signer.");
+      const idxMap = {};
+      kept.forEach((oldI, newI) => { idxMap[oldI + 1] = newI + 1; });
+      const placements = (signPack.placements || [])
+        .filter(p => idxMap[p.signer])
+        .map(p => ({ ...p, signer: idxMap[p.signer] }));
+      const [first, ...rest] = signPack.documents;
+      const res = await fetch(`${API}/documents/${first.id}/request-signatures`, {
+        method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + tok },
+        body: JSON.stringify({
+          alsoDocIds: rest.map(d => d.id),
+          signers: kept.map(i => ({ name: sigRows[i].name.trim(), email: sigRows[i].email.trim() })),
+          placements,
+          skipSignerlessDocs: true,
+        }),
+      });
+      const d = await res.json();
+      if (!res.ok || !d.success) throw new Error(d.error || "Could not send the signing links");
+      setSentTo(kept.map(i => sigRows[i].name.trim()).join(", "));
+    } catch (e) { setError(e.message || "Could not send the signing links."); }
+    finally { setSending(false); }
   };
   const uploadApplications = async (fileList) => {
     const files = Array.from(fileList || []);
@@ -5433,7 +5472,7 @@ function LeaseDocsModal({ tx, onClose, onGenerated }) {
           <h2 style={{ margin: 0, fontSize: 19, color: COLORS.navy }}>📄 Generate Lease Documents</h2>
           <button onClick={onClose} style={{ background: "none", border: "none", fontSize: 22, cursor: "pointer", color: COLORS.muted }}>×</button>
         </div>
-        <div style={{ fontSize: 13, color: COLORS.muted, marginBottom: 16 }}>{tx.address} · {tx.type}. The app fills your official Florida Realtors forms; sign them in your e-sign tool.</div>
+        <div style={{ fontSize: 13, color: COLORS.muted, marginBottom: 16 }}>{tx.address} · {tx.type}. The app fills your official Florida Realtors forms — then everyone signs in-app with one link each.</div>
         {loading ? <div style={{ padding: 30, textAlign: "center", color: COLORS.muted }}>Loading deal data…</div>
          : done ? (
            <div>
@@ -5441,7 +5480,31 @@ function LeaseDocsModal({ tx, onClose, onGenerated }) {
                <div style={{ fontWeight: 800, color: "#065F46", marginBottom: 8 }}>✓ Generated {done.length} document{done.length !== 1 ? "s" : ""}</div>
                <ul style={{ margin: 0, paddingLeft: 18, color: "#065F46", fontSize: 13 }}>{done.map(d => <li key={d.id}>{d.name}</li>)}</ul>
              </div>
-             <div style={{ fontSize: 13, color: COLORS.muted, marginBottom: 16 }}>They're saved to the <strong>Documents</strong> tab, ready to review and send for signature.</div>
+             {sentTo ? (
+               <div style={{ background: "#F0F9FF", border: "1px solid #BAE6FD", borderRadius: 10, padding: 14, marginBottom: 16, fontSize: 13.5, color: "#0C4A6E" }}>
+                 ✍️ Signing links sent to <strong>{sentTo}</strong>. Each person signs everything in one sitting; every signed copy files back into Documents with its certificate, and you'll get a pop-up.
+               </div>
+             ) : signPack ? (
+               <div style={{ background: "#FAF5FF", border: "1px solid #D8B4FE", borderRadius: 10, padding: 14, marginBottom: 16 }}>
+                 <div style={{ fontWeight: 800, fontSize: 13.5, color: "#86198F", marginBottom: 4 }}>✍️ Send for signatures — one tap</div>
+                 <div style={{ fontSize: 12, color: COLORS.muted, marginBottom: 10 }}>Signature, initials and date spots are already placed on every form. Check the emails and send — landlords, tenants and you each sign only the pages that need you.</div>
+                 {sigRows.map((s, i) => (
+                   <div key={i} style={{ display: "flex", gap: 8, marginBottom: 6 }}>
+                     <input value={s.name} onChange={e => setSigRows(rs => rs.map((r, j) => j === i ? { ...r, name: e.target.value } : r))} placeholder="Name"
+                       style={{ flex: 1, minWidth: 0, padding: "8px 10px", borderRadius: 7, border: "1.5px solid #CCC", fontSize: 13, fontFamily: "inherit" }} />
+                     <input value={s.email} onChange={e => setSigRows(rs => rs.map((r, j) => j === i ? { ...r, email: e.target.value } : r))} placeholder="Email"
+                       style={{ flex: 1.2, minWidth: 0, padding: "8px 10px", borderRadius: 7, border: "1.5px solid " + ((s.email || "").trim() ? "#CCC" : "#F5B7B1"), fontSize: 13, fontFamily: "inherit" }} />
+                   </div>
+                 ))}
+                 <button onClick={sendForSignatures} disabled={sending}
+                   style={{ width: "100%", marginTop: 6, background: sending ? "#94A3B8" : "#86198F", color: "#fff", border: "none", borderRadius: 8, padding: "11px", fontSize: 14, fontWeight: 800, cursor: sending ? "default" : "pointer", fontFamily: "inherit" }}>
+                   {sending ? "Sending links…" : "Send signing links ✍️"}
+                 </button>
+               </div>
+             ) : (
+               <div style={{ fontSize: 13, color: COLORS.muted, marginBottom: 16 }}>They're saved to the <strong>Documents</strong> tab, ready to review and send for signature.</div>
+             )}
+             {error && <div style={{ background: "#FEF2F2", border: "1px solid #FCA5A5", borderRadius: 8, padding: 10, fontSize: 13, color: "#7F1D1D", marginBottom: 12 }}>⚠️ {error}</div>}
              <button onClick={onGenerated} style={{ width: "100%", background: COLORS.navy, color: "#fff", border: "none", borderRadius: 8, padding: "12px", fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>Open Documents →</button>
            </div>
          ) : (

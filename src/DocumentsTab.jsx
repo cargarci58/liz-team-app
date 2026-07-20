@@ -1893,12 +1893,18 @@ function ListingPackageModal({ tx, headers, dealDocs = [], onClose, onDone }) {
     setErr(""); setBusy(true);
     try {
       const [first, ...rest] = gen.documents;
+      // Drop signers without an email and RENUMBER the stops — otherwise the
+      // next signer would inherit the dropped signer's lines.
+      const kept = [];
+      gen.signers.forEach((s, i) => { if ((s.email || "").trim()) kept.push(i); });
+      const idxMap = {};
+      kept.forEach((oldI, newI) => { idxMap[oldI + 1] = newI + 1; });
       const r = await fetch(`${API}/documents/${first.id}/request-signatures`, {
         method: "POST", headers,
         body: JSON.stringify({
           alsoDocIds: [...rest.map(d => d.id), ...(includeNetSheet && netSheetDoc ? [netSheetDoc.id] : []), ...extraIds],
-          signers: gen.signers.filter(s => s.email),
-          placements: gen.placements,
+          signers: kept.map(i => gen.signers[i]),
+          placements: (gen.placements || []).filter(p => idxMap[p.signer]).map(p => ({ ...p, signer: idxMap[p.signer] })),
           // Don't ask anyone to sign a document they have no lines on (e.g. the
           // agent isn't a party to the Brokers Seller Disclosure).
           skipSignerlessDocs: true,
