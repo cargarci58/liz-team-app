@@ -8,6 +8,8 @@ const COLORS = {
 };
 
 const CATEGORIES = ["General", "Contract", "Inspection", "Title", "Loan", "Closing", "Other"];
+// One color per signer across every place-blocks UI (DocSignModal + AdjustSpotsModal).
+const SIGNER_COLORS = ["#86198f", "#0c4a6e", "#b45309", "#166534", "#9f1239", "#3730a3"];
 const MAX_UPLOAD_BYTES = 50 * 1024 * 1024; // 50 MB matches the UI hint
 const ALLOWED_UPLOAD_TYPES = [
   "application/pdf",
@@ -1561,7 +1563,6 @@ function DocSignModal({ tx, doc, allDocs = [], headers, onClose }) {
 
   const pending = (info?.signers || []).filter(s => s.status === "pending");
   const roundOut = (info?.signers || []).length > 0;
-  const SIGNER_COLORS = ["#86198f", "#0c4a6e", "#b45309", "#166534"];
 
   return (
     <div style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.55)", zIndex: 60, display: "flex", alignItems: "flex-start", justifyContent: "center", overflowY: "auto", padding: "40px 12px" }}
@@ -1613,7 +1614,7 @@ function DocSignModal({ tx, doc, allDocs = [], headers, onClose }) {
                   )}
                 </div>
               ))}
-              {rows.length < 4 && (
+              {rows.length < 6 && (
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 10 }}>
                   <button onClick={() => setRows(rs => [...rs, { name: "", email: "" }])}
                     style={{ background: "none", border: "1px dashed #94a3b8", color: "#475569", borderRadius: 8, padding: "6px 14px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
@@ -1674,7 +1675,7 @@ function DocSignModal({ tx, doc, allDocs = [], headers, onClose }) {
                     <span style={{ fontSize: 12.5, fontWeight: 700, color: "#374151" }}>Tap a page where</span>
                     {(signerNames.length ? signerNames : ["Signer 1"]).map((n, i) => (
                       <button key={i} onClick={() => setActiveSigner(i + 1)}
-                        style={{ padding: "5px 12px", borderRadius: 14, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", border: "2px solid " + SIGNER_COLORS[i % 4], background: activeSigner === i + 1 ? SIGNER_COLORS[i % 4] : "#fff", color: activeSigner === i + 1 ? "#fff" : SIGNER_COLORS[i % 4] }}>
+                        style={{ padding: "5px 12px", borderRadius: 14, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", border: "2px solid " + SIGNER_COLORS[i % SIGNER_COLORS.length], background: activeSigner === i + 1 ? SIGNER_COLORS[i % SIGNER_COLORS.length] : "#fff", color: activeSigner === i + 1 ? "#fff" : SIGNER_COLORS[i % SIGNER_COLORS.length] }}>
                         {n || `Signer ${i + 1}`}
                       </button>
                     ))}
@@ -1710,7 +1711,7 @@ function DocSignModal({ tx, doc, allDocs = [], headers, onClose }) {
                         <div style={{ position: "absolute", top: 4, left: 6, fontSize: 10, fontWeight: 700, color: "#64748b", background: "rgba(255,255,255,0.85)", borderRadius: 4, padding: "1px 6px" }}>p.{pg.num}</div>
                         {placements.filter(p => p.docId === d.id && p.page === pg.num).map((p, pi) => {
                           const idx = placements.indexOf(p);
-                          const color = SIGNER_COLORS[(p.signer - 1) % 4];
+                          const color = SIGNER_COLORS[(p.signer - 1) % SIGNER_COLORS.length];
                           const first = (signerNames[p.signer - 1] || `Signer ${p.signer}`).split(" ")[0];
                           const kindOf = p.kind || "signature";
                           const widthPt = kindOf === "signature" ? (p.w || 170) : kindOf === "initials" ? (p.w || 48) : kindOf === "date" ? 80 : kindOf === "checkbox" ? 13 : 130;
@@ -2344,7 +2345,7 @@ function AdjustSpotsModal({ doc, signerNames, initial, headers, onSave, onClose 
           <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", marginBottom: 8 }}>
             {(signerNames.length ? signerNames : ["Signer 1"]).map((n, i) => (
               <button key={i} onClick={() => setActiveSigner(i + 1)}
-                style={{ padding: "5px 12px", borderRadius: 14, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", border: "2px solid " + SIGNER_COLORS[i % 4], background: activeSigner === i + 1 ? SIGNER_COLORS[i % 4] : "#fff", color: activeSigner === i + 1 ? "#fff" : SIGNER_COLORS[i % 4] }}>
+                style={{ padding: "5px 12px", borderRadius: 14, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", border: "2px solid " + SIGNER_COLORS[i % SIGNER_COLORS.length], background: activeSigner === i + 1 ? SIGNER_COLORS[i % SIGNER_COLORS.length] : "#fff", color: activeSigner === i + 1 ? "#fff" : SIGNER_COLORS[i % SIGNER_COLORS.length] }}>
                 {n || `Signer ${i + 1}`}
               </button>
             ))}
@@ -2368,7 +2369,7 @@ function AdjustSpotsModal({ doc, signerNames, initial, headers, onSave, onClose 
                   : <div style={{ width: "100%", height: 300, background: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, color: "#64748b" }}>Page {pg.num} preview unavailable</div>}
                 <div style={{ position: "absolute", top: 4, left: 6, fontSize: 10, fontWeight: 700, color: "#64748b", background: "rgba(255,255,255,0.85)", borderRadius: 4, padding: "1px 6px" }}>p.{pg.num}</div>
                 {placements.map((p, idx) => ({ p, idx })).filter(({ p }) => p.page === pg.num).map(({ p, idx }) => {
-                  const color = SIGNER_COLORS[((p.signer || 1) - 1) % 4];
+                  const color = SIGNER_COLORS[((p.signer || 1) - 1) % SIGNER_COLORS.length];
                   const kindOf = p.kind || "signature";
                   const widthPt = kindOf === "signature" ? (p.w || 170) : kindOf === "initials" ? (p.w || 40) : kindOf === "date" ? 70 : (kindOf === "checkbox" || kindOf === "choice") ? 14 : 110;
                   const heightPt = kindOf === "signature" ? Math.max(14, widthPt * 26 / 170) : kindOf === "initials" ? Math.max(11, widthPt / 2.4) : (kindOf === "checkbox" || kindOf === "choice") ? 14 : 14;
