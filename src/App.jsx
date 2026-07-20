@@ -6100,7 +6100,8 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
                 </div>
               </div>
             )}
-            {!isGuest && tx.type !== "Buyer Representation" && !["Closed", "Cancelled"].includes(tx.status) && (
+            {/* Rentals take applications, not offers — no offers panel on lease deals. */}
+            {!isGuest && tx.type !== "Buyer Representation" && !isLeaseType(tx.type) && !["Closed", "Cancelled"].includes(tx.status) && (
               <div id="pending-offers-panel" style={{ marginBottom: 20, scrollMarginTop: 80 }}>
                 <ListingOffers txId={tx.id} txStatus={tx.status} refreshKey={offersRefresh} onReview={(id) => setReviewOfferId(id)} onReceiveOffer={() => setShowReceiveOffer(true)} />
               </div>
@@ -7506,6 +7507,23 @@ function NewTransactionForm({ onSave, onCancel, prefill = null, cmaId = null, on
   }, [form.type]);
   const f = k => v => setForm(p => ({ ...p, [k]: v }));
   const isListingSide = /listing|landlord/i.test(form.type);
+  // Step 2 contact picker: search the agent's Contacts and fill the client
+  // fields with one tap (Carlos 7/20: "doesn't let me choose from contacts").
+  const [contactSearch, setContactSearch] = useState("");
+  const [contactHits, setContactHits] = useState([]);
+  useEffect(() => {
+    const q = contactSearch.trim();
+    if (q.length < 2) { setContactHits([]); return; }
+    const t = setTimeout(async () => {
+      try {
+        const tok = localStorage.getItem("tp_token") || "";
+        const r = await fetch(API + "/contacts?search=" + encodeURIComponent(q), { headers: { Authorization: "Bearer " + tok } });
+        const d = await r.json();
+        setContactHits((d.contacts || []).slice(0, 6));
+      } catch { setContactHits([]); }
+    }, 250);
+    return () => clearTimeout(t);
+  }, [contactSearch]);
   const handleSave = async () => {
     if (!form.address || !form.city) { alert("Please enter the property address and city."); return; }
     if (!form.assignedAgent) { alert("Pick which agent this deal belongs to."); return; }
@@ -7721,6 +7739,23 @@ function NewTransactionForm({ onSave, onCancel, prefill = null, cmaId = null, on
             <div>
               <div style={{ fontSize: 19, fontWeight: 800, color: "#0F2044", marginBottom: 4 }}>Who is your client?</div>
               <div style={{ fontSize: 13, color: "#6B7280", marginBottom: 16 }}>Optional — you can add or change this later under the deal's People. Adding an email now lets the app send them updates automatically.</div>
+              <label style={lblW}>📇 Pick from your Contacts</label>
+              <input value={contactSearch} onChange={e => setContactSearch(e.target.value)} placeholder="Start typing a name, email or phone…" style={{ ...inputBig, marginBottom: contactHits.length ? 4 : 12 }} />
+              {contactHits.length > 0 && (
+                <div style={{ border: "1px solid #d1d5db", borderRadius: 10, marginBottom: 12, overflow: "hidden" }}>
+                  {contactHits.map(c => {
+                    const nm = [c.first_name, c.last_name].filter(Boolean).join(" ");
+                    return (
+                      <button key={c.id} type="button"
+                        onClick={() => { setForm(v => ({ ...v, clientName: nm, clientEmail: c.email || "", clientPhone: c.phone || "" })); setContactSearch(""); setContactHits([]); }}
+                        style={{ display: "block", width: "100%", textAlign: "left", padding: "10px 12px", background: "#fff", border: "none", borderBottom: "1px solid #F3F4F6", cursor: "pointer", fontFamily: "inherit" }}>
+                        <span style={{ fontWeight: 700, fontSize: 14, color: "#0F2044" }}>{nm || c.email || c.phone}</span>
+                        <span style={{ fontSize: 12, color: "#6B7280", marginLeft: 8 }}>{[c.email, c.phone].filter(Boolean).join(" · ")}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
               <label style={lblW}>{/buyer|tenant/i.test(form.type) ? "Buyer's name" : "Seller's name"}</label>
               <input value={form.clientName} onChange={e => f("clientName")(e.target.value)} placeholder="First and last name" style={{ ...inputBig, marginBottom: 12 }} />
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }} data-keep-grid="">
