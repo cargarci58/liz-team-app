@@ -2915,8 +2915,11 @@ function MilestonesTab({ tx, token, onSummaryChange, coordinatorMode = false }) 
     && /^(Marketing|Access)$/.test(m.category || "")
     && !/listing package signed/i.test(m.name || "");
 
-  const completed = milestones.filter(m => m.status === "Completed" || m.status === "Waived").length;
-  const total = milestones.length;
+  // N/A items (e.g. appraisal steps on a cash deal) don't count against
+  // progress — a finished deal must read 100%, not 96%.
+  const countable = milestones.filter(m => m.is_na !== true);
+  const completed = countable.filter(m => m.status === "Completed" || m.status === "Waived").length;
+  const total = countable.length;
   const progress = total > 0 ? Math.round(completed / total * 100) : 0;
 
   if (loading) return (
@@ -5859,7 +5862,14 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
   const overdueTasks = tx.tasks.filter(t => { const d = daysUntil(t.dueDate); return d !== null && d < 0 && t.status !== "Completed" && t.status !== "Waived"; }).length;
   const daysToClose = daysUntil(tx.closingDate);
   const statusCfg = STATUS_CONFIG[tx.status] || STATUS_CONFIG["Active"];
-  const progress = tx.tasks.length > 0 ? Math.round(completedTasks / tx.tasks.length * 100) : 0;
+  // Header Progress = the Auto-TC timeline (same source as the deal cards).
+  // The legacy tasks list drove this before — its ARCHIVED rows padded the
+  // denominator, so a fully-done deal read 88% (Carlos, Budworth 7/17).
+  const msSum = tx.milestoneSummary || tx.milestone_summary || null;
+  const activeTasks = tx.tasks.filter(t => t.status !== "Archived");
+  const progress = msSum && msSum.total > 0
+    ? Math.min(100, Math.round((msSum.done || 0) / msSum.total * 100))
+    : activeTasks.length > 0 ? Math.round(activeTasks.filter(t => t.status === "Completed").length / activeTasks.length * 100) : 0;
   const CATEGORY_ORDER = ["Pre-Listing", "Consultation", "Showing", "Contract", "Disclosure", "Marketing", "Escrow", "Inspection", "HOA", "Appraisal", "Insurance", "Title", "Financing", "Closing", "Post-Closing", "Commission Disbursement", "General"];
   const tasksByCategory = tx.tasks.filter(t => t.status !== "Archived").reduce((acc, t) => { acc[t.category] = acc[t.category] || []; acc[t.category].push(t); return acc; }, {});
   const sortedTaskCategories = Object.entries(tasksByCategory).sort(([a], [b]) => { const ai = CATEGORY_ORDER.indexOf(a); const bi = CATEGORY_ORDER.indexOf(b); return (ai === -1 ? 999 : ai) - (bi === -1 ? 999 : bi); });
