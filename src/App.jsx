@@ -7564,6 +7564,10 @@ function NewTransactionForm({ onSave, onCancel, prefill = null, cmaId = null, on
           assignedAgentId: t.assigned_agent || form.assignedAgent,
           referralSource: t.referral_source || form.referralSource,
           occupancyStatus: t.occupancy_status || form.occupancyStatus,
+          // These two were missing here — Edit opened blank on a freshly
+          // created deal until a full reload (Carlos 7/20, lease deal).
+          yearBuilt: t.year_built || form.yearBuilt || "",
+          inHoa: t.in_hoa === true ? "yes" : t.in_hoa === false ? "no" : (form.inHoa || ""),
           propertyAccess: t.property_access || form.propertyAccess,
           commissionListing: t.commission_listing || form.commissionListing,
           commissionBuyer: t.commission_buyer || form.commissionBuyer,
