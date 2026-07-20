@@ -5968,8 +5968,13 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
         {!isGuest && tx.type === "Buyer Representation" && !["Closed", "Cancelled"].includes(tx.status) && (
           <button onClick={() => { setActiveTab("offers"); setOfferCreateSignal(n => n + 1); }} title="Build and send your buyer's offer to the listing agent" style={{ fontSize: 12, padding: "6px 14px", borderRadius: 6, border: "none", background: "#1E8449", color: "#fff", fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>📝 Create Offer</button>
         )}
-        {tx.type !== "Buyer Representation" && !["Closed", "Cancelled"].includes(tx.status) && (
+        {tx.type !== "Buyer Representation" && !isLeaseType(tx.type) && !["Closed", "Cancelled"].includes(tx.status) && (
           <button onClick={() => isGuest ? setPaywallFeature("Receiving offers") : (setActiveTab("overview"), setShowReceiveOffer(true))} style={{ fontSize: 12, padding: "6px 14px", borderRadius: 6, border: "none", background: "#1E8449", color: "#fff", fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>📥 Receive Offer</button>
+        )}
+        {/* Lease deals: the ONE green action is the lease package (ERL, lease,
+            disclosures — filled + sent for signatures in one flow). */}
+        {!isGuest && isLeaseType(tx.type) && !["Closed", "Cancelled"].includes(tx.status) && (
+          <button onClick={() => setShowLeaseDocs(true)} title="Fill the lease listing forms (ERL, lease, flood, lead-paint) and send them for signatures" style={{ fontSize: 12, padding: "6px 14px", borderRadius: 6, border: "none", background: "#1E8449", color: "#fff", fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>📦 Lease Package</button>
         )}
         <button onClick={() => isGuest ? setPaywallFeature("Editing a transaction") : openEditTx()} style={{ fontSize: 12, padding: "6px 14px", borderRadius: 6, border: "1px solid rgba(255,255,255,0.35)", background: "rgba(255,255,255,0.12)", color: "#fff", fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>✏️ Edit</button>
         <div style={{ position: "relative" }}>
@@ -5981,7 +5986,6 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
                 {[
                   !isGuest && { icon: "👁", label: "Preview Client Portal", fn: () => setShowPortalPreview(true) },
                   tx.type !== "Buyer Representation" && !["Closed", "Cancelled"].includes(tx.status) && { icon: "📋", label: "Review Offers Received", fn: () => { setActiveTab("overview"); setTimeout(() => { const el = document.getElementById("pending-offers-panel"); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); }, 60); } },
-                  !isGuest && isLeaseType(tx.type) && !["Closed", "Cancelled"].includes(tx.status) && { icon: "📄", label: "Generate Lease Docs", fn: () => setShowLeaseDocs(true) },
                   { icon: "🖨️", label: "Print", fn: () => isGuest ? setPaywallFeature("Printing") : window.print() },
                   { icon: "🧬", label: "Copy this deal (duplicate)", fn: () => isGuest ? setPaywallFeature("Duplicating a transaction") : (onDuplicate && onDuplicate(tx)) },
                   { divider: true },
