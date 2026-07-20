@@ -7625,28 +7625,52 @@ function NewTransactionForm({ onSave, onCancel, prefill = null, cmaId = null, on
         <div style={{ background: "#fff", borderRadius: 14, padding: 22, boxShadow: "0 2px 12px rgba(15,32,68,0.08)" }}>
           {step === 1 && (
             <div>
-              <div style={{ fontSize: 19, fontWeight: 800, color: "#0F2044", marginBottom: 14 }}>Which side are you on?</div>
+              <div style={{ fontSize: 19, fontWeight: 800, color: "#0F2044", marginBottom: 14 }}>What kind of deal is this?</div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 8 }} data-keep-grid="">
                 <button type="button" onClick={() => f("type")("Listing (Seller)")}
-                  style={{ padding: "18px 12px", borderRadius: 12, border: /listing/i.test(form.type) ? "2.5px solid #0F2044" : "1px solid #d1d5db", background: /listing/i.test(form.type) ? "#F0F4FA" : "#fff", cursor: "pointer", fontFamily: "inherit", textAlign: "center" }}>
-                  <div style={{ fontSize: 28 }}>🏠</div>
-                  <div style={{ fontWeight: 800, fontSize: 15, color: "#0F2044", marginTop: 4 }}>I'm SELLING it</div>
+                  style={{ padding: "16px 12px", borderRadius: 12, border: /^listing/i.test(form.type) ? "2.5px solid #0F2044" : "1px solid #d1d5db", background: /^listing/i.test(form.type) ? "#F0F4FA" : "#fff", cursor: "pointer", fontFamily: "inherit", textAlign: "center" }}>
+                  <div style={{ fontSize: 26 }}>🏠</div>
+                  <div style={{ fontWeight: 800, fontSize: 14.5, color: "#0F2044", marginTop: 4 }}>I'm SELLING it</div>
                   <div style={{ fontSize: 12, color: "#6B7280" }}>A listing — I represent the seller</div>
                 </button>
                 <button type="button" onClick={() => f("type")("Buyer Representation")}
-                  style={{ padding: "18px 12px", borderRadius: 12, border: /buyer/i.test(form.type) && !/dual/i.test(form.type) ? "2.5px solid #0F2044" : "1px solid #d1d5db", background: /buyer/i.test(form.type) && !/dual/i.test(form.type) ? "#F0F4FA" : "#fff", cursor: "pointer", fontFamily: "inherit", textAlign: "center" }}>
-                  <div style={{ fontSize: 28 }}>🔑</div>
-                  <div style={{ fontWeight: 800, fontSize: 15, color: "#0F2044", marginTop: 4 }}>I'm helping someone BUY</div>
+                  style={{ padding: "16px 12px", borderRadius: 12, border: /^buyer/i.test(form.type) ? "2.5px solid #0F2044" : "1px solid #d1d5db", background: /^buyer/i.test(form.type) ? "#F0F4FA" : "#fff", cursor: "pointer", fontFamily: "inherit", textAlign: "center" }}>
+                  <div style={{ fontSize: 26 }}>🏡</div>
+                  <div style={{ fontWeight: 800, fontSize: 14.5, color: "#0F2044", marginTop: 4 }}>I'm helping someone BUY</div>
                   <div style={{ fontSize: 12, color: "#6B7280" }}>I represent the buyer</div>
+                </button>
+                <button type="button" onClick={() => f("type")("Lease — Landlord")}
+                  style={{ padding: "16px 12px", borderRadius: 12, border: form.type === "Lease — Landlord" ? "2.5px solid #6D28D9" : "1px solid #d1d5db", background: form.type === "Lease — Landlord" ? "#EDE9FE" : "#fff", cursor: "pointer", fontFamily: "inherit", textAlign: "center" }}>
+                  <div style={{ fontSize: 26 }}>🔑</div>
+                  <div style={{ fontWeight: 800, fontSize: 14.5, color: "#0F2044", marginTop: 4 }}>I'm LEASING it out</div>
+                  <div style={{ fontSize: 12, color: "#6B7280" }}>A rental listing — I represent the owner</div>
+                </button>
+                <button type="button" onClick={() => f("type")("Lease — Tenant")}
+                  style={{ padding: "16px 12px", borderRadius: 12, border: form.type === "Lease — Tenant" ? "2.5px solid #6D28D9" : "1px solid #d1d5db", background: form.type === "Lease — Tenant" ? "#EDE9FE" : "#fff", cursor: "pointer", fontFamily: "inherit", textAlign: "center" }}>
+                  <div style={{ fontSize: 26 }}>🧳</div>
+                  <div style={{ fontWeight: 800, fontSize: 14.5, color: "#0F2044", marginTop: 4 }}>Helping someone RENT</div>
+                  <div style={{ fontSize: 12, color: "#6B7280" }}>I represent the tenant</div>
                 </button>
               </div>
               <button type="button" onClick={() => setMoreTypes(m => !m)} style={{ background: "none", border: "none", color: "#6B7280", fontSize: 12.5, cursor: "pointer", fontFamily: "inherit", padding: 0, marginBottom: 12 }}>
-                {moreTypes ? "▴ Hide other types" : "▾ It's a lease or dual agency"}
+                {moreTypes ? "▴ Hide other types" : "▾ It's dual agency"}
               </button>
               {moreTypes && (
                 <select value={form.type} onChange={e => f("type")(e.target.value)} style={{ ...inputBig, marginBottom: 12 }}>
                   {["Listing (Seller)", "Buyer Representation", "Dual Agency", "Lease — Landlord", "Lease — Tenant"].map(t => <option key={t} value={t}>{t}</option>)}
                 </select>
+              )}
+              {/* Commercial + land get their own timelines and doc sets — one tap here
+                  routes the deal onto the right track (detected via propertyType). */}
+              {!/lease/i.test(form.type) && (
+                <div style={{ marginBottom: 12 }}>
+                  <label style={lblW}>What kind of property?</label>
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    <button type="button" onClick={() => f("propertyType")("Single Family")} style={chip(!/commercial|land/i.test(form.propertyType || ""))}>🏠 Residential</button>
+                    <button type="button" onClick={() => f("propertyType")("Commercial")} style={chip(/commercial/i.test(form.propertyType || ""))}>🏢 Commercial</button>
+                    <button type="button" onClick={() => f("propertyType")("Vacant Land")} style={chip(/land/i.test(form.propertyType || ""))}>🟩 Vacant Land</button>
+                  </div>
+                </div>
               )}
 
               <label style={lblW}>{isListingSide ? "Property address *" : "Address (or the area they're searching) *"}</label>
@@ -7917,7 +7941,7 @@ function AppHeader(props) {
   const btn = (active) => ({ background: active ? "rgba(255,255,255,0.3)" : "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "#fff", borderRadius: 8, padding: "8px 14px", cursor: "pointer", fontSize: 13, fontWeight: 700, fontFamily: "inherit" });
   return (
     <div style={{ background: COLORS.navy, padding: "12px 24px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10 }}>
-      <div onClick={onHome} title="Back to Today" style={{ display: "flex", alignItems: "center", gap: 12, flexShrink: 0, cursor: "pointer" }}>
+      <div onClick={onHome} title="Back to Win The Day" style={{ display: "flex", alignItems: "center", gap: 12, flexShrink: 0, cursor: "pointer" }}>
         {brand.logoUrl ? (
           <img src={brand.logoUrl} alt={brand.name || "Logo"} style={{ height: 40, maxWidth: 140, objectFit: "contain", background: "#fff", borderRadius: 6, padding: 4 }} onError={e => { e.target.style.display = "none"; }} />
         ) : (
@@ -7931,7 +7955,7 @@ function AppHeader(props) {
         </div>
       </div>
       <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", justifyContent: "flex-end" }}>
-        <button data-tour="home" onClick={onHome} style={btn(view === "home")} title="Your daily list — what needs attention today">🏠 Today</button>
+        <button data-tour="home" onClick={onHome} style={btn(view === "home")} title="Your daily list — what needs attention today">🏆 Win The Day</button>
         <button data-tour="deals" onClick={onDeals} style={btn(view === "dashboard")} title="All your listings and buyers">📋 My Deals</button>
         {!coordinatorMode && <button data-tour="new" onClick={onNew} style={{ ...btn(false), background: "#C0392B", border: "none" }}>➕ New Deal</button>}
         <button data-tour="contacts" onClick={onOpenContacts} style={btn(false)}>📇 Contacts</button>
