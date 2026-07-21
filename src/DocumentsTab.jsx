@@ -1580,11 +1580,35 @@ function DocSignModal({ tx, doc, allDocs = [], headers, onClose }) {
             <div style={{ marginBottom: 14 }}>
               <div style={{ fontSize: 13, fontWeight: 800, color: "#374151", marginBottom: 8 }}>Signing round in progress</div>
               {(info.signers || []).map(s => (
-                <div key={s.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 10px", background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 8, marginBottom: 6, fontSize: 13 }}>
-                  <span>{s.signer_name} <span style={{ color: "#64748b" }}>({s.signer_email})</span></span>
+                <div key={s.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, padding: "8px 10px", background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 8, marginBottom: 6, fontSize: 13, flexWrap: "wrap" }}>
+                  <span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis" }}>{s.signer_name} <span style={{ color: "#64748b" }}>({s.signer_email})</span></span>
                   {s.status === "signed"
                     ? <span style={{ color: "#15803d", fontWeight: 700 }}>✅ Signed</span>
-                    : <span style={{ color: "#92400e", fontWeight: 700 }}>⏳ Waiting</span>}
+                    : (
+                      <span style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+                        <span style={{ color: "#92400e", fontWeight: 700 }}>⏳ Waiting</span>
+                        <button disabled={busy}
+                          onClick={async () => {
+                            const em = prompt("Send " + (s.signer_name || "this signer") + "'s signing link to which email?\n\n(Change it here if it was wrong — same link, nothing to redo.)", s.signer_email || "");
+                            if (em === null || !em.trim()) return;
+                            setBusy(true); setErr(null);
+                            try {
+                              const r = await fetch(`${API}/documents/${doc.id}/resend-signature`, {
+                                method: "POST", headers: { ...headers, "Content-Type": "application/json" },
+                                body: JSON.stringify({ signerId: s.id, email: em.trim() }),
+                              });
+                              const b = await r.json();
+                              if (!r.ok) throw new Error(b.error || "Couldn't resend");
+                              alert("📧 Signing link sent to " + b.email + ".");
+                              await loadInfo();
+                            } catch (e) { setErr(e.message); } finally { setBusy(false); }
+                          }}
+                          title="Re-email this signer their link — fix the email address here if it was wrong"
+                          style={{ padding: "4px 10px", borderRadius: 7, border: "1px solid #d8b4fe", background: "#faf5ff", color: "#86198f", fontSize: 11.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                          📧 Resend / fix email
+                        </button>
+                      </span>
+                    )}
                 </div>
               ))}
               {pending.length > 0 && (
