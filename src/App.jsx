@@ -6614,6 +6614,7 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
               // Reminders live in their own table — the whole-tx PUT doesn't persist
               // them, so Done/Snooze MUST hit the dedicated reminders endpoints or
               // they reappear on reload.
+              const isDone = !!r.doneAt;
               const bumpToTomorrow = async () => {
                 const next = new Date();
                 next.setDate(next.getDate() + 1);
@@ -6621,20 +6622,39 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
                 try { await fetch(`${API}/reminders/save`, { method: "POST", headers: _remHdrs, body: JSON.stringify({ id: r.id, transactionId: tx.id, title: r.title, message: r.message, date: iso, channels: r.channels, parties: r.parties }) }); } catch {}
                 update({ reminders: (tx.reminders || []).map(rr => rr.id === r.id ? { ...rr, date: iso } : rr) });
               };
+              const markDone = async () => {
+                try { await fetch(`${API}/reminders/${r.id}/done`, { method: "POST", headers: _remHdrs }); } catch {}
+                update({ reminders: (tx.reminders || []).map(rr => rr.id === r.id ? { ...rr, doneAt: new Date().toISOString() } : rr) });
+              };
+              const reopenReminder = async () => {
+                try { await fetch(`${API}/reminders/${r.id}/reopen`, { method: "POST", headers: _remHdrs }); } catch {}
+                update({ reminders: (tx.reminders || []).map(rr => rr.id === r.id ? { ...rr, doneAt: null } : rr) });
+              };
               const removeReminder = async () => {
                 try { await fetch(`${API}/reminders/${r.id}`, { method: "DELETE", headers: _remHdrs }); } catch {}
                 update({ reminders: (tx.reminders || []).filter(rr => rr.id !== r.id) });
               };
               return (
-                <div key={r.id} style={{ background: "#fff", border: `1px solid ${COLORS.border}`, borderLeft: `3px solid ${COLORS.gold}`, borderRadius: 10, padding: "14px 16px", marginBottom: 10, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
+                <div key={r.id} style={{ background: isDone ? "#F8FAF8" : "#fff", border: `1px solid ${COLORS.border}`, borderLeft: `3px solid ${isDone ? "#1E8449" : COLORS.gold}`, borderRadius: 10, padding: "14px 16px", marginBottom: 10, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, opacity: isDone ? 0.75 : 1 }}>
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: 700, fontSize: 14 }}>{r.title}</div>
-                    <div style={{ fontSize: 12, color: COLORS.muted, marginTop: 3 }}>{formatDate(r.date)} {d !== null && <span style={{ color: d < 0 ? COLORS.danger : d <= 3 ? COLORS.warning : COLORS.muted }}>({d === 0 ? "Today" : d > 0 ? `in ${d}d` : `${Math.abs(d)}d ago`})</span>}</div>
+                    <div style={{ fontWeight: 700, fontSize: 14, textDecoration: isDone ? "line-through" : "none", color: isDone ? "#6B7280" : COLORS.text }}>{r.title}</div>
+                    <div style={{ fontSize: 12, color: COLORS.muted, marginTop: 3 }}>
+                      {formatDate(r.date)}{" "}
+                      {isDone
+                        ? <span style={{ color: "#1E8449", fontWeight: 700 }}>✅ Done {formatDate(r.doneAt)}</span>
+                        : d !== null && <span style={{ color: d < 0 ? COLORS.danger : d <= 3 ? COLORS.warning : COLORS.muted }}>({d === 0 ? "Today" : d > 0 ? `in ${d}d` : `${Math.abs(d)}d ago`})</span>}
+                    </div>
                     {r.message && <div style={{ fontSize: 13, marginTop: 4, fontStyle: "italic" }}>{r.message}</div>}
                   </div>
                   <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
-                    <button onClick={removeReminder} title="Mark this reminder done — removes it from the list" style={{ background: "#1E8449", border: "none", color: "#fff", borderRadius: 6, padding: "6px 10px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>✓ Done</button>
-                    <button onClick={bumpToTomorrow} title="Snooze 1 day — reappears tomorrow" style={{ background: "#fff", border: `1px solid ${COLORS.border}`, color: COLORS.muted, borderRadius: 6, padding: "6px 10px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>⏰ Not Today</button>
+                    {isDone ? (
+                      <button onClick={reopenReminder} title="Not actually done? Bring it back — it returns to Win The Day too" style={{ background: "#fff", border: `1px solid ${COLORS.border}`, color: COLORS.text, borderRadius: 6, padding: "6px 10px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>↩️ Reopen</button>
+                    ) : (
+                      <>
+                        <button onClick={markDone} title="Mark done — stays here for the record, stops all nagging" style={{ background: "#1E8449", border: "none", color: "#fff", borderRadius: 6, padding: "6px 10px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>✓ Done</button>
+                        <button onClick={bumpToTomorrow} title="Snooze 1 day — reappears tomorrow" style={{ background: "#fff", border: `1px solid ${COLORS.border}`, color: COLORS.muted, borderRadius: 6, padding: "6px 10px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>⏰ Not Today</button>
+                      </>
+                    )}
                     <button onClick={removeReminder} title="Delete reminder" style={{ background: "none", border: "none", cursor: "pointer", color: COLORS.muted, fontSize: 18, padding: "0 6px" }}>×</button>
                   </div>
                 </div>
@@ -9481,7 +9501,7 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
             isGuestView: t.is_guest_view || false,
             guestSide: t.guest_side || null,
             isCoordinatorView: t.is_coordinator_view || false,
-            reminders: (t.reminders || []).filter(Boolean).map(r => ({ id: r.id, title: r.title, date: r.date, message: r.message, channels: r.channels, parties: r.parties || [], sent: r.sent })),
+            reminders: (t.reminders || []).filter(Boolean).map(r => ({ id: r.id, title: r.title, date: r.date, message: r.message, channels: r.channels, parties: r.parties || [], sent: r.sent, doneAt: r.doneAt || null })),
             needsFirstContact: t.needs_first_contact || false,
             submittedVia: t.submitted_via || null,
             leadConverted: t.lead_converted !== false,
