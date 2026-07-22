@@ -1612,10 +1612,32 @@ function DocSignModal({ tx, doc, allDocs = [], headers, onClose }) {
                 </div>
               ))}
               {pending.length > 0 && (
-                <button onClick={cancel} disabled={busy}
-                  style={{ marginTop: 8, padding: "8px 16px", background: "#fee2e2", color: "#7f1d1d", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
-                  Cancel signing links
-                </button>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 8, alignItems: "center" }}>
+                  {(info?.signers || []).some(s => s.status === "signed") && (
+                    <button disabled={busy}
+                      onClick={async () => {
+                        try {
+                          const r = await fetch(`${API}/documents/${doc.id}/partial-signed.pdf`, { headers });
+                          if (!r.ok) throw new Error("Couldn't build the print copy.");
+                          const blob = await r.blob();
+                          window.open(URL.createObjectURL(blob), "_blank");
+                        } catch (e) { alert("⚠️ " + e.message); }
+                      }}
+                      title="Opens the document with the completed signatures stamped on it — print it, get the remaining signature by hand, then upload the scan into Documents"
+                      style={{ padding: "8px 16px", background: "#EFF6FF", color: "#1D4ED8", border: "1px solid #BFDBFE", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                      🖨️ Print with signatures so far
+                    </button>
+                  )}
+                  <button onClick={cancel} disabled={busy}
+                    style={{ padding: "8px 16px", background: "#fee2e2", color: "#7f1d1d", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                    Cancel signing links
+                  </button>
+                  {(info?.signers || []).some(s => s.status === "signed") && (
+                    <div style={{ flex: "1 1 100%", fontSize: 11.5, color: "#555", lineHeight: 1.5 }}>
+                      Signer can't use a computer? Print the copy above, have them sign by hand, upload the scan into Documents, then cancel their remaining link.
+                    </div>
+                  )}
+                </div>
               )}
               {pending.length === 0 && (
                 <div style={{ fontSize: 12.5, color: "#15803d", marginTop: 8 }}>✅ Everyone signed — look for "✍️ Signed — {doc.name}" in Documents.</div>
