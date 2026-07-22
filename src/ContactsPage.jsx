@@ -505,9 +505,10 @@ function ContactModal({ contact, token, onClose, onSaved }) {
       if (pending && !groups.includes(pending)) groups.push(pending);
       const payload = { ...form, tags: groups };
       delete payload.groups;
-      // The CREATE endpoint reads camelCase zipCode; the UPDATE endpoint reads
-      // snake_case zip_code — send both so ZIP survives either path.
-      payload.zipCode = payload.zip_code;
+      // CREATE reads camelCase zipCode; UPDATE reads snake_case zip_code.
+      // Send exactly ONE — both at once makes the UPDATE set the same column
+      // twice, which Postgres rejects ("Internal error", Carlos 7/22).
+      if (!isEdit) { payload.zipCode = payload.zip_code; delete payload.zip_code; }
       // Empty date/tier strings must be null (empty string breaks a DATE column).
       for (const k of ["birthday", "wedding_anniversary", "tier", "spouse_name", "referred_by", "last_moved_on"]) {
         if (payload[k] === "") payload[k] = null;
