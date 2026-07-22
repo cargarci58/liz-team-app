@@ -170,22 +170,30 @@ function GuidedPacketViewer({ token, base, stops, applied, current, sigDataUrl, 
         }).promise;
         const dpr = Math.min(window.devicePixelRatio || 1, 2);
         const withTimeout = (p, ms) => Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error("timeout")), ms))]);
+        const renderPage = async (i, scaleMult) => {
+          const page = await withTimeout(doc.getPage(i), 30000);
+          const vp0 = page.getViewport({ scale: 1 });
+          const vp = page.getViewport({ scale: (900 / vp0.width) * scaleMult });
+          const canvas = document.createElement("canvas");
+          canvas.width = vp.width; canvas.height = vp.height;
+          await withTimeout(page.render({ canvasContext: canvas.getContext("2d"), viewport: vp }).promise, 30000);
+          return { num: i, width: vp0.width, height: vp0.height, dataUrl: canvas.toDataURL("image/jpeg", 0.85) };
+        };
         for (let i = 1; i <= doc.numPages && !cancelled; i++) {
           let entry;
           try {
-            const page = await withTimeout(doc.getPage(i), 30000);
-            const vp0 = page.getViewport({ scale: 1 });
-            const scale = (900 / vp0.width) * dpr * 0.75; // crisp but memory-sane
-            const vp = page.getViewport({ scale });
-            const canvas = document.createElement("canvas");
-            canvas.width = vp.width; canvas.height = vp.height;
-            await withTimeout(page.render({ canvasContext: canvas.getContext("2d"), viewport: vp }).promise, 30000);
-            entry = { num: i, width: vp0.width, height: vp0.height, dataUrl: canvas.toDataURL("image/jpeg", 0.85) };
+            entry = await renderPage(i, dpr * 0.75); // crisp but memory-sane
           } catch (pageErr) {
-            // One bad page must never block the rest — show a placeholder;
-            // the full-package link is always available for review.
-            console.error("[sign-viewer] page " + i + " failed: " + pageErr.message);
-            entry = { num: i, width: PAGE_W, height: 792, dataUrl: null };
+            // Weak devices can choke at full scale — retry once, smaller/lighter.
+            try {
+              console.error("[sign-viewer] page " + i + " retrying smaller: " + pageErr.message);
+              entry = await renderPage(i, 1);
+            } catch (retryErr) {
+              // One bad page must never block the rest — show a placeholder;
+              // the full-package link is always available for review.
+              console.error("[sign-viewer] page " + i + " failed: " + retryErr.message);
+              entry = { num: i, width: PAGE_W, height: 792, dataUrl: null };
+            }
           }
           if (!cancelled) setPages(prev => [...prev, entry]);
         }
@@ -227,8 +235,12 @@ function GuidedPacketViewer({ token, base, stops, applied, current, sigDataUrl, 
           <div key={p.num} style={{ position: "relative", marginBottom: 12, boxShadow: "0 2px 10px rgba(2,6,23,0.12)", borderRadius: 6, overflow: "hidden" }}>
             {p.dataUrl
               ? <img src={p.dataUrl} alt={"Page " + p.num} style={{ display: "block", width: "100%" }} />
-              : <div style={{ width: "100%", height: (p.height / p.width) * cssWidth, background: "#f8fafc", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, color: "#64748b" }}>
-                  Page {p.num} preview unavailable — use "Open full package" above to review it
+              : <div style={{ width: "100%", height: (p.height / p.width) * cssWidth, background: "#f8fafc", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8, border: "2px dashed #cbd5e1", boxSizing: "border-box", padding: 16 }}>
+                  <div style={{ fontSize: 34 }}>📄</div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: "#334155", textAlign: "center" }}>Page {p.num} preview couldn't load on this device</div>
+                  <div style={{ fontSize: 12.5, color: "#64748b", textAlign: "center", maxWidth: 420 }}>
+                    Tap "Open ↗" at the top of this document to read it — then come back and tap the <span style={{ background: "#fef08a", padding: "1px 6px", borderRadius: 4, fontWeight: 700 }}>yellow markers</span> right here to sign. Your signature still lands in exactly the right spots.
+                  </div>
                 </div>}
             {(stopsByPage[p.num] || []).map(s => {
               // "auto" stops need nothing from the signer — dates fill in with
