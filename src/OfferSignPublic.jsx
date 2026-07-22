@@ -133,6 +133,13 @@ function SignaturePad({ onChange, typedName, mode }) {
   );
 }
 
+// Bundled rounds mount one viewer PER document — rendering them all at once
+// overwhelmed the tab and every page hit its 15s timeout, leaving the signer a
+// BLANK package ("app is not giving him anything to sign", Carlos 7/21,
+// verified live on Ronald's link). One global queue = documents render one at
+// a time, top to bottom, and the timeout got head-room.
+let signViewerQueue = Promise.resolve();
+
 // In-page PDF viewer with guided stop markers. Renders every page via pdf.js
 // (loaded on demand so the main app bundle stays small).
 function GuidedPacketViewer({ token, base, stops, applied, current, sigDataUrl, signerName, onApply, textMap = {}, choiceMap = {}, fileQuery = "" }) {
@@ -145,7 +152,8 @@ function GuidedPacketViewer({ token, base, stops, applied, current, sigDataUrl, 
   useEffect(() => {
     let cancelled = false;
     setPages([]);
-    (async () => {
+    const run = async () => {
+      if (cancelled) return;
       try {
         const pdfjs = await import("pdfjs-dist/build/pdf.min.mjs");
         const worker = await import("pdfjs-dist/build/pdf.worker.min.mjs?url");
@@ -165,13 +173,13 @@ function GuidedPacketViewer({ token, base, stops, applied, current, sigDataUrl, 
         for (let i = 1; i <= doc.numPages && !cancelled; i++) {
           let entry;
           try {
-            const page = await withTimeout(doc.getPage(i), 15000);
+            const page = await withTimeout(doc.getPage(i), 30000);
             const vp0 = page.getViewport({ scale: 1 });
             const scale = (900 / vp0.width) * dpr * 0.75; // crisp but memory-sane
             const vp = page.getViewport({ scale });
             const canvas = document.createElement("canvas");
             canvas.width = vp.width; canvas.height = vp.height;
-            await withTimeout(page.render({ canvasContext: canvas.getContext("2d"), viewport: vp }).promise, 15000);
+            await withTimeout(page.render({ canvasContext: canvas.getContext("2d"), viewport: vp }).promise, 30000);
             entry = { num: i, width: vp0.width, height: vp0.height, dataUrl: canvas.toDataURL("image/jpeg", 0.85) };
           } catch (pageErr) {
             // One bad page must never block the rest — show a placeholder;
@@ -182,7 +190,8 @@ function GuidedPacketViewer({ token, base, stops, applied, current, sigDataUrl, 
           if (!cancelled) setPages(prev => [...prev, entry]);
         }
       } catch (e) { if (!cancelled) setRenderErr(e.message); }
-    })();
+    };
+    signViewerQueue = signViewerQueue.then(run, run);
     return () => { cancelled = true; };
   }, [token, base, fileQuery]);
 
