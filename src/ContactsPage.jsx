@@ -457,6 +457,10 @@ function ContactModal({ contact, token, onClose, onSaved }) {
     birthday: (contact && contact.birthday ? contact.birthday.slice(0,10) : "") || "",
     wedding_anniversary: (contact && contact.wedding_anniversary ? contact.wedding_anniversary.slice(0,10) : "") || "",
     referred_by: (contact && contact.referred_by) || "",
+    address: (contact && contact.address) || "",
+    city: (contact && contact.city) || "",
+    state: (contact && contact.state) || "FL",
+    zip_code: (contact && contact.zip_code) || "",
     popby_address: (contact && contact.popby_address) || "",
     last_moved_on: (contact && contact.last_moved_on ? contact.last_moved_on.slice(0,10) : "") || "",
     move_cycle_years: (contact && contact.move_cycle_years) || "",
@@ -501,6 +505,9 @@ function ContactModal({ contact, token, onClose, onSaved }) {
       if (pending && !groups.includes(pending)) groups.push(pending);
       const payload = { ...form, tags: groups };
       delete payload.groups;
+      // The CREATE endpoint reads camelCase zipCode; the UPDATE endpoint reads
+      // snake_case zip_code — send both so ZIP survives either path.
+      payload.zipCode = payload.zip_code;
       // Empty date/tier strings must be null (empty string breaks a DATE column).
       for (const k of ["birthday", "wedding_anniversary", "tier", "spouse_name", "referred_by", "last_moved_on"]) {
         if (payload[k] === "") payload[k] = null;
@@ -589,6 +596,12 @@ function ContactModal({ contact, token, onClose, onSaved }) {
           <Field label="Referred By"><input value={form.referred_by} onChange={e => update("referred_by", e.target.value)} style={inputStyle} /></Field>
         </div>
         <Field label="Spouse / Partner Name"><input value={form.spouse_name} onChange={e => update("spouse_name", e.target.value)} style={inputStyle} /></Field>
+        <Field label="Home address"><input value={form.address} onChange={e => update("address", e.target.value)} placeholder="123 Main St" style={inputStyle} /></Field>
+        <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr", gap: 12 }}>
+          <Field label="City"><input value={form.city} onChange={e => update("city", e.target.value)} style={inputStyle} /></Field>
+          <Field label="State"><input value={form.state} onChange={e => update("state", e.target.value)} style={inputStyle} /></Field>
+          <Field label="ZIP"><input value={form.zip_code} onChange={e => update("zip_code", e.target.value)} style={inputStyle} /></Field>
+        </div>
         <Field label="Pop-by address (if different from above)" hint="Where to drop off pop-by gifts. Leave blank to use the main address."><input value={form.popby_address} onChange={e => update("popby_address", e.target.value)} style={inputStyle} /></Field>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
           <Field label="Birthday"><input type="date" value={form.birthday} onChange={e => update("birthday", e.target.value)} style={inputStyle} /></Field>
