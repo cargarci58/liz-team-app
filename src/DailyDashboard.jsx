@@ -1,6 +1,16 @@
 import { useState, useEffect, useRef } from "react";
 import { LogCallButton } from "./ContactsPage";
 
+// Whole days from today (ET) to a date: negative = overdue. ET on purpose —
+// UTC comparisons flip a day after ~8pm Florida time.
+const daysUntil = (d) => {
+  if (!d) return null;
+  const todayET = new Date().toLocaleDateString("en-CA", { timeZone: "America/New_York" });
+  const dd = String(d).split("T")[0];
+  const n = Math.round((new Date(dd + "T00:00:00") - new Date(todayET + "T00:00:00")) / 86400000);
+  return Number.isFinite(n) ? n : null;
+};
+
 const API = "https://liz-team-server-api-production.up.railway.app";
 
 const COLORS = {
@@ -942,6 +952,7 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
   const [personal, setPersonal] = useState({ overdue:[], dueToday:[], upcoming:[] });
   const [callsDue, setCallsDue] = useState([]);
   const [occasions, setOccasions] = useState([]);
+  const [recentAlerts, setRecentAlerts] = useState([]); // 🔔 last 14 days of pop-ups
   const [popByDueCount, setPopByDueCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [activeModal, setActiveModal] = useState(null);
@@ -1087,10 +1098,15 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
     if (!silent) setLoading(true);
     try {
       const url = API + "/dashboard/tasks" + (awaitRebuild ? "?await=1" : "");
-      const [tasksRes, callsRes] = await Promise.all([
+      const [tasksRes, callsRes, alertsRes] = await Promise.all([
         fetch(url, { headers: { Authorization: "Bearer " + token } }),
         fetch(API + "/contacts/due-today", { headers: { Authorization: "Bearer " + token } }).catch(() => null),
+        fetch(API + "/notifications/recent", { headers: { Authorization: "Bearer " + token } }).catch(() => null),
       ]);
+      if (alertsRes && alertsRes.ok) {
+        const ad = await alertsRes.json();
+        setRecentAlerts(ad.notifications || []);
+      }
       const data = await tasksRes.json();
       if (data.success) {
         setTasks({ overdue: data.overdue || [], dueToday: data.dueToday || [], upcoming: data.upcoming || [] });
@@ -1319,7 +1335,10 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
   // Monthly money check isn't tied to a deal — render it as its own card, not
   // inside a deal group (its transaction_id is NULL so it has no address).
   const financialsCards = rankedTasksAll.filter(t => t.task_type === 'monthly_financials');
-  const rankedTasks = rankedTasksAll.filter(t => t.task_type !== 'monthly_financials');
+  // Agent-set reminders get their OWN eye-catching section (Carlos 7/22) —
+  // pulled out of the per-deal cards so they can't hide inside a group.
+  const reminderCards = rankedTasksAll.filter(t => t.task_type === 'reminder');
+  const rankedTasks = rankedTasksAll.filter(t => t.task_type !== 'monthly_financials' && t.task_type !== 'reminder');
   // Group by PROPERTY ADDRESS (normalized) so two transaction records for the
   // same home collapse into ONE card — a safety net against duplicate deals.
   // Falls back to transaction_id, then task id, when there's no address.
@@ -1515,6 +1534,86 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
                     : (o.email || "")}</div>
                 </div>
                 <LogCallButton contact={o} token={token} onLogged={fetchTasks} compact />
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* 🔔 ALERTS — the last 2 weeks of pop-ups, permanent until "Got it".
+          Dismissing a bubble is never the end of it anymore (Carlos 7/22). */}
+      {!coordinatorMode && recentAlerts.length > 0 && (
+        <div style={{ marginBottom: 24 }}>
+          <SectionHeader label={"🔔 ALERTS"} count={recentAlerts.filter(a => !a.seen_at).length || recentAlerts.length} color={"#7c3aed"} />
+          {recentAlerts.map(a => (
+            <div key={a.id} style={{ background: a.seen_at ? "#fafafa" : "#f5f3ff", border: "1px solid " + (a.seen_at ? "#e5e7eb" : "#c4b5fd"), borderRadius: 8, padding: 12, marginBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10, opacity: a.seen_at ? 0.75 : 1 }}>
+              <div style={{ flex: 1, minWidth: 0, cursor: a.transaction_id ? "pointer" : "default" }}
+                onClick={() => a.transaction_id && onOpenTransactionMilestones && onOpenTransactionMilestones(a.transaction_id)}>
+                <div style={{ fontWeight: 700, fontSize: 13.5, color: "#111" }}>{a.title}</div>
+                {a.body && <div style={{ fontSize: 12.5, color: "#4b5563", marginTop: 2, whiteSpace: "pre-line" }}>{a.body}</div>}
+                <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 3 }}>{new Date(a.created_at).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}{a.transaction_id ? " · tap to open the deal" : ""}</div>
+              </div>
+              {!a.seen_at && (
+                <button onClick={async () => {
+                  try { await fetch(API + "/notifications/seen", { method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + token }, body: JSON.stringify({ ids: [a.id] }) }); } catch { /* refetch fixes it */ }
+                  setRecentAlerts(list => list.map(x => x.id === a.id ? { ...x, seen_at: new Date().toISOString() } : x));
+                }}
+                  style={{ flexShrink: 0, padding: "6px 12px", borderRadius: 8, border: "1px solid #c4b5fd", background: "#fff", color: "#6d28d9", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                  Got it
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* ⏰ REMINDERS — the agent's own reminders, in their own loud section.
+          3+ days overdue = acknowledgment mode: Done or a new date, nothing else. */}
+      {!coordinatorMode && reminderCards.length > 0 && (
+        <div style={{ marginBottom: 24 }}>
+          <SectionHeader label={"⏰ YOUR REMINDERS"} count={reminderCards.length} color={"#b45309"} />
+          {reminderCards.map(t => {
+            const du = daysUntil(t.due_date);
+            const late = du !== null && du < 0 ? Math.abs(du) : 0;
+            const needsAck = late >= 3;
+            const pickNewDate = async () => {
+              const suggestion = new Date(); suggestion.setDate(suggestion.getDate() + 1);
+              const v = prompt("Move this reminder to which date? (YYYY-MM-DD)", suggestion.toISOString().slice(0, 10));
+              if (!v) return;
+              try {
+                const r = await fetch(API + "/reminders/" + t.target_ref_id + "/reschedule", {
+                  method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
+                  body: JSON.stringify({ date: v.trim() }),
+                });
+                const d = await r.json();
+                if (!r.ok) throw new Error(d.error || "Couldn't reschedule");
+                fetchTasks();
+              } catch (e) { alert(e.message); }
+            };
+            return (
+              <div key={t.id} style={{ background: needsAck ? "#fef2f2" : "#fffbeb", border: "1.5px solid " + (needsAck ? "#fca5a5" : "#fcd34d"), borderLeft: "5px solid " + (needsAck ? "#dc2626" : "#d97706"), borderRadius: 10, padding: "14px 16px", marginBottom: 10 }}>
+                <div style={{ fontWeight: 800, fontSize: 14.5, color: needsAck ? "#7f1d1d" : "#78350f" }}>{String(t.title || "").replace(/^⏰\s*/, "⏰ ")}</div>
+                {t.description && <div style={{ fontSize: 12.5, color: needsAck ? "#991b1b" : "#92400e", marginTop: 3 }}>{t.description}</div>}
+                <div style={{ fontSize: 12, fontWeight: 700, color: needsAck ? "#dc2626" : "#b45309", marginTop: 4 }}>
+                  {late > 0 ? `⚠️ Waiting ${late} day${late === 1 ? "" : "s"}` : du === 0 ? "Due today" : du === 1 ? "Due tomorrow" : `Due in ${du} days`}
+                  {needsAck && " — mark it done or pick a new date"}
+                </div>
+                <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
+                  <button onClick={() => handleResolve(t.id)}
+                    style={{ flex: "2 1 40%", padding: "10px 0", borderRadius: 9, border: "none", background: "#1E8449", color: "#fff", fontWeight: 700, fontSize: 13.5, cursor: "pointer", fontFamily: "inherit" }}>
+                    ✓ Done
+                  </button>
+                  <button onClick={pickNewDate}
+                    style={{ flex: "2 1 35%", padding: "10px 0", borderRadius: 9, border: "1.5px solid " + (needsAck ? "#dc2626" : "#d97706"), background: "#fff", color: needsAck ? "#dc2626" : "#b45309", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>
+                    📅 New date
+                  </button>
+                  {!needsAck && (
+                    <button onClick={() => handleSnooze(t.id)}
+                      style={{ flex: "1 1 20%", padding: "10px 0", borderRadius: 9, border: "1.5px solid #d1d5db", background: "#fff", color: "#6b7280", fontWeight: 600, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>
+                      ⏰ Not Today
+                    </button>
+                  )}
+                </div>
               </div>
             );
           })}
