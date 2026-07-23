@@ -953,6 +953,7 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
   const [callsDue, setCallsDue] = useState([]);
   const [occasions, setOccasions] = useState([]);
   const [recentAlerts, setRecentAlerts] = useState([]); // 🔔 last 14 days of pop-ups
+  const [showActivity, setShowActivity] = useState(false); // 📰 FYI drawer open?
   const [popByDueCount, setPopByDueCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [activeModal, setActiveModal] = useState(null);
@@ -1540,33 +1541,55 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
         </div>
       )}
 
-      {/* 🔔 ALERTS — the last 2 weeks of pop-ups, permanent until "Got it".
-          Dismissing a bubble is never the end of it anymore (Carlos 7/22). */}
-      {!coordinatorMode && recentAlerts.length > 0 && (
-        <div style={{ marginBottom: 24 }}>
-          <SectionHeader label={"🔔 ALERTS"} count={recentAlerts.filter(a => !a.seen_at).length || recentAlerts.length} color={"#7c3aed"} />
-          {recentAlerts.map(a => (
-            <div key={a.id} style={{ background: a.seen_at ? "#fafafa" : "#f5f3ff", border: "1px solid " + (a.seen_at ? "#e5e7eb" : "#c4b5fd"), borderRadius: 8, padding: 12, marginBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10, opacity: a.seen_at ? 0.75 : 1 }}>
-              <div style={{ flex: 1, minWidth: 0, cursor: a.transaction_id ? "pointer" : "default" }}
-                onClick={() => a.transaction_id && onOpenTransactionMilestones && onOpenTransactionMilestones(a.transaction_id)}>
-                <div style={{ fontWeight: 700, fontSize: 13.5, color: "#111" }}>{a.title}</div>
-                {a.body && <div style={{ fontSize: 12.5, color: "#4b5563", marginTop: 2, whiteSpace: "pre-line" }}>{a.body}</div>}
-                <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 3 }}>{new Date(a.created_at).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}{a.transaction_id ? " · tap to open the deal" : ""}</div>
-              </div>
-              {!a.seen_at && (
-                <button onClick={async () => {
-                  try { await fetch(API + "/notifications/seen", { method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + token }, body: JSON.stringify({ ids: [a.id] }) }); } catch { /* refetch fixes it */ }
-                  setRecentAlerts(list => list.map(x => x.id === a.id ? { ...x, seen_at: new Date().toISOString() } : x));
-                }}
-                  style={{ flexShrink: 0, padding: "6px 12px", borderRadius: 8, border: "1px solid #c4b5fd", background: "#fff", color: "#6d28d9", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
-                  Got it
-                </button>
-              )}
+      {/* 🚨 ALERTS = only things that DEMAND attention (Carlos 7/23: "alerts
+          should be extremely past due… the green-checkmark ones aren't alerts").
+          FYI notices (signed docs, feedback) live in a collapsed drawer below. */}
+      {!coordinatorMode && recentAlerts.length > 0 && (() => {
+        const ALERT_KINDS = new Set(["reminder_overdue"]);
+        const critical = [], fyi = [];
+        for (const a of recentAlerts) (ALERT_KINDS.has(a.kind) ? critical : fyi).push(a);
+        // Each morning supersedes yesterday's overdue-reminders alert — show the newest only.
+        const seenKinds = new Set();
+        const alerts = critical.filter(a => (seenKinds.has(a.kind) ? false : (seenKinds.add(a.kind), true)));
+        const renderRow = (a, red) => (
+          <div key={a.id} style={{ background: red ? "#fef2f2" : (a.seen_at ? "#fafafa" : "#f5f3ff"), border: "1px solid " + (red ? "#fca5a5" : a.seen_at ? "#e5e7eb" : "#c4b5fd"), borderLeft: red ? "5px solid #dc2626" : undefined, borderRadius: 8, padding: 12, marginBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10, opacity: !red && a.seen_at ? 0.75 : 1 }}>
+            <div style={{ flex: 1, minWidth: 0, cursor: a.transaction_id ? "pointer" : "default" }}
+              onClick={() => a.transaction_id && onOpenTransactionMilestones && onOpenTransactionMilestones(a.transaction_id)}>
+              <div style={{ fontWeight: red ? 800 : 700, fontSize: 13.5, color: red ? "#7f1d1d" : "#111" }}>{a.title}</div>
+              {a.body && <div style={{ fontSize: 12.5, color: red ? "#991b1b" : "#4b5563", marginTop: 2, whiteSpace: "pre-line" }}>{a.body}</div>}
+              <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 3 }}>{new Date(a.created_at).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}{a.transaction_id ? " · tap to open the deal" : ""}</div>
             </div>
-          ))}
-        </div>
-      )}
-
+            {!a.seen_at && !red && (
+              <button onClick={async () => {
+                try { await fetch(API + "/notifications/seen", { method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + token }, body: JSON.stringify({ ids: [a.id] }) }); } catch { /* refetch fixes it */ }
+                setRecentAlerts(list => list.map(x => x.id === a.id ? { ...x, seen_at: new Date().toISOString() } : x));
+              }}
+                style={{ flexShrink: 0, padding: "6px 12px", borderRadius: 8, border: "1px solid #c4b5fd", background: "#fff", color: "#6d28d9", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                Got it
+              </button>
+            )}
+          </div>
+        );
+        return (
+          <div style={{ marginBottom: 24 }}>
+            {alerts.length > 0 && (
+              <>
+                <SectionHeader label={"🚨 ALERTS — NEEDS YOUR ATTENTION"} count={alerts.length} color={"#dc2626"} />
+                {alerts.map(a => renderRow(a, true))}
+              </>
+            )}
+            {fyi.length > 0 && (
+              <>
+                <button onClick={() => setShowActivity(v => !v)}
+                  style={{ width: "100%", textAlign: "left", background: "#fafafa", border: "1px solid #e5e7eb", borderRadius: 10, padding: "10px 14px", fontSize: 13, fontWeight: 700, color: "#4b5563", cursor: "pointer", fontFamily: "inherit", marginBottom: 8 }}>
+                  {showActivity ? "▾" : "▸"} 📰 Recent activity ({fyi.length}) — signings, feedback &amp; other good news
+                </button>
+                {showActivity && fyi.map(a => renderRow(a, false))}
+              </>
+            )}
+          </div>
+        );
+      })()}
       {/* ⏰ REMINDERS — the agent's own reminders, in their own loud section.
           3+ days overdue = acknowledgment mode: Done or a new date, nothing else. */}
       {!coordinatorMode && reminderCards.length > 0 && (
