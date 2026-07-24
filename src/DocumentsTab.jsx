@@ -7,7 +7,7 @@ const COLORS = {
   border: "#DDDDDD", danger: "#C0392B", info: "#1A5276",
 };
 
-const CATEGORIES = ["General", "Contract", "Inspection", "Title", "Loan", "Closing", "Other"];
+const CATEGORIES = ["General", "Offer / Contract", "Contract", "Inspection", "Title", "Loan", "Closing", "Other"];
 // One color per signer across every place-blocks UI (DocSignModal + AdjustSpotsModal).
 const SIGNER_COLORS = ["#86198f", "#0c4a6e", "#b45309", "#166534", "#9f1239", "#3730a3"];
 const MAX_UPLOAD_BYTES = 50 * 1024 * 1024; // 50 MB matches the UI hint
@@ -623,7 +623,7 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
             const CONTRACT_TYPES = /purchase_contract|as_is_contract|builder_purchase_contract|executed_contract|far_bar_contract|fully_executed_contract/i;
             const isOfferDoc = (d) => /^(offer|received)/i.test(d.folder || "")
               || CONTRACT_TYPES.test(d.document_type || "")
-              || /purchase_contract|contract package/i.test(d.category || "")
+              || /purchase_contract|contract package|offer ?\/ ?contract/i.test(d.category || "")
               || /contract for sale|repair.*addendum|inspection.*addendum/i.test(d.name || "");
             const NEW_MS = 2 * 24 * 60 * 60 * 1000;
             const isNew = (d) => d.created_at && (Date.now() - new Date(d.created_at).getTime()) < NEW_MS;
@@ -738,9 +738,8 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
             const offers = docs.filter(isOfferDoc);
             const listing = docs.filter(d => !isOfferDoc(d));
             const isListingDeal = /listing|seller/i.test(tx?.transaction_type || tx?.type || "");
-            // Only split into two sections once a listing actually HAS an offer.
-            // Buyer deals and offerless listings keep the simple single flow.
-            if (!isListingDeal || offers.length === 0) {
+            // Buyer/other deals keep the simple single flow.
+            if (!isListingDeal) {
               return subGroups(docs).map(([folder, arr]) => (
                 <div key={folder} style={{ marginBottom: 14 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "0 0 8px 2px" }}>
@@ -752,9 +751,26 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
                 </div>
               ));
             }
+            // On a LISTING the "Offers & Contract" section ALWAYS shows — even
+            // empty — so an offer (received automatically OR uploaded by hand)
+            // has a home waiting for it (Carlos 7/24). Empty → a clear hint.
+            const offersSection = offers.length > 0
+              ? section("Offers & Contract", "📥", offers, "#1d4ed8")
+              : (
+                <div style={{ marginBottom: 22 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "0 0 10px 0", paddingBottom: 6, borderBottom: "2px solid #1d4ed8" }}>
+                    <span style={{ fontSize: 17 }}>📥</span>
+                    <span style={{ fontWeight: 800, fontSize: 14, color: "#1d4ed8", textTransform: "uppercase", letterSpacing: 0.4 }}>Offers &amp; Contract</span>
+                    <span style={{ fontSize: 11, color: COLORS.muted }}>(0)</span>
+                  </div>
+                  <div style={{ marginLeft: 14, background: "#eff6ff", border: "1px dashed #93c5fd", borderRadius: 10, padding: "12px 14px", fontSize: 12.5, color: "#1e3a8a" }}>
+                    Offers land here automatically when a buyer's agent uploads through your <b>Receive Offer</b> link. Got a contract in hand? Use <b>📎 Choose Files</b> above and pick the <b>“Offer / Contract”</b> category — it'll show up here.
+                  </div>
+                </div>
+              );
             return (
               <>
-                {section("Offers & Contract", "📥", offers, "#1d4ed8")}
+                {offersSection}
                 {section("Listing & Property Documents", "📁", listing, "#166534")}
               </>
             );
