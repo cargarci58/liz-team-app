@@ -206,6 +206,25 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
   };
 
   // Point an already-uploaded document at a checklist slot (no re-upload).
+  // Move a document between the two Documents-tab sections by re-tagging its
+  // category. Used by the ⋯ menu when something lands in the wrong place.
+  const moveToCategory = async (doc, category) => {
+    try {
+      const res = await fetch(`${API}/documents/${doc.id}/category`, {
+        method: "PATCH", headers: { ...headers, "Content-Type": "application/json" },
+        body: JSON.stringify({ category }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || "Move failed");
+      await loadDocs();
+    } catch (err) { alert("Couldn't move it: " + err.message); }
+  };
+  // Same rule the section-split uses, so the menu offers the RIGHT direction.
+  const docIsOffer = (d) => /^(offer|received)/i.test(d.folder || "")
+    || /purchase_contract|as_is_contract|builder_purchase_contract|executed_contract|far_bar_contract|fully_executed_contract/i.test(d.document_type || "")
+    || /purchase_contract|contract package|offer ?\/ ?contract/i.test(d.category || "")
+    || /contract for sale|repair.*addendum|inspection.*addendum/i.test(d.name || "");
+
   const assignExisting = async (documentType, docId) => {
     if (!docId) return;
     setSlotUploading(documentType);
@@ -694,6 +713,9 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
                               {[
                                 { icon: "📤", label: "Email to someone on the deal", fn: () => setShare({ doc }) },
                                 { icon: doc.is_visible_to_client ? "🔒" : "👁", label: doc.is_visible_to_client ? "Hide from client's portal" : "Show in client's portal", fn: () => toggleVisibility(doc) },
+                                /listing|seller/i.test(tx?.transaction_type || tx?.type || "") && (docIsOffer(doc)
+                                  ? { icon: "📁", label: "Move to Listing & Property Documents", fn: () => moveToCategory(doc, "General") }
+                                  : { icon: "📥", label: "Move to Offers & Contract", fn: () => moveToCategory(doc, "Offer / Contract") }),
                                 isContractReadable(doc) && { icon: "📅", label: readingDates === doc.id ? "Reading…" : "AI: read dates from this contract", fn: () => readContractDates(doc) },
                                 { icon: "⬇️", label: "Download", fn: () => handleDownload(doc) },
                                 { divider: true },
