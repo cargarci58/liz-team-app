@@ -728,13 +728,13 @@ function ReviewStep({ token, uploadId, user, currentStatus, onApproved, onBack }
           ) : (
             <>
               <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 8, lineHeight: 1.5 }}>
-                No custom clauses detected. If the contract has an "Additional Terms" or "Special Clauses" section that the AI missed, paste it here.
+                ✓ No additional terms or special clauses in this contract — nothing to review here. Leave it blank. (Only type something if the contract has an "Additional Terms" section the AI missed.)
               </div>
               <textarea
                 value={edited.transaction?.additional_terms || ""}
                 onChange={(e) => setEdited(prev => ({ ...prev, transaction: { ...prev.transaction, additional_terms: e.target.value } }))}
-                placeholder="e.g. Seller to credit buyer $5,000 at closing. Refrigerator stays. Closing contingent on buyer's sale of 123 Main St..."
-                style={{ width: "100%", minHeight: 80, padding: 10, borderRadius: 6, border: "1px solid #d1d5db", fontSize: 13, fontFamily: "monospace", lineHeight: 1.5, boxSizing: "border-box", background: "white" }}
+                placeholder="(blank — no additional terms)"
+                style={{ width: "100%", minHeight: 60, padding: 10, borderRadius: 6, border: "1px solid #d1d5db", fontSize: 13, fontFamily: "inherit", lineHeight: 1.5, boxSizing: "border-box", background: "white" }}
               />
             </>
           )}
