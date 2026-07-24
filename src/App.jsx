@@ -3950,6 +3950,32 @@ export function WelcomeEmailPreview({ txId, onClose, onlyPartyId = null }) {
   const [attaching, setAttaching] = useState(false);
   const [excludedDocs, setExcludedDocs] = useState({}); // docId -> true (removed by agent)
   const fileRef = useRef(null);
+  // "Attach another file" → pick from the deal's own documents (Carlos 7/24:
+  // the full executed contract is already here; don't make me re-upload it).
+  const [showDocPicker, setShowDocPicker] = useState(false);
+  const [dealDocs, setDealDocs] = useState([]);
+  const loadDealDocs = async () => {
+    try {
+      const r = await fetch(`${API}/documents/${txId}`, { headers: hdrs });
+      const d = await r.json();
+      setDealDocs((d.documents || []).filter(x => /pdf$/i.test(x.mime_type || "")));
+    } catch { setDealDocs([]); }
+  };
+  // Attaching an existing doc = tag it "Offer / Contract" so it becomes a
+  // shareable contract attachment, then refresh the previews.
+  const attachExisting = async (docId) => {
+    setAttaching(true);
+    try {
+      await fetch(`${API}/documents/${docId}/category`, {
+        method: "PATCH", headers: { ...hdrs, "Content-Type": "application/json" },
+        body: JSON.stringify({ category: "Contract Package" }),
+      });
+      setExcludedDocs(s => { const n = { ...s }; delete n[docId]; return n; });
+      await loadPreviews();
+      setShowDocPicker(false);
+    } catch (e) { alert("Could not attach: " + e.message); }
+    finally { setAttaching(false); }
+  };
 
   const removeAttachment = (docId) => setExcludedDocs(s => ({ ...s, [docId]: true }));
   const restoreAttachment = (docId) => setExcludedDocs(s => { const n = { ...s }; delete n[docId]; return n; });
@@ -4120,8 +4146,31 @@ export function WelcomeEmailPreview({ txId, onClose, onlyPartyId = null }) {
                   );
                 })()}
                 <input ref={fileRef} type="file" style={{ display: "none" }} onChange={e => attachFile(e.target.files && e.target.files[0])} />
-                <button onClick={() => fileRef.current && fileRef.current.click()} disabled={attaching} style={{ marginLeft: "auto", background: "#fff", color: "#1E8449", border: "1px solid #1E8449", borderRadius: 6, padding: "5px 12px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>{attaching ? "Attaching…" : "+ Attach another file"}</button>
+                <div style={{ marginLeft: "auto", display: "flex", gap: 6 }}>
+                  <button onClick={() => { setShowDocPicker(true); loadDealDocs(); }} disabled={attaching} style={{ background: "#fff", color: "#1E8449", border: "1px solid #1E8449", borderRadius: 6, padding: "5px 12px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>📁 From this deal</button>
+                  <button onClick={() => fileRef.current && fileRef.current.click()} disabled={attaching} style={{ background: "#fff", color: "#1E8449", border: "1px solid #1E8449", borderRadius: 6, padding: "5px 12px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>{attaching ? "Attaching…" : "📤 Upload"}</button>
+                </div>
               </div>
+              {showDocPicker && (
+                <div style={{ padding: "10px 16px", borderBottom: "1px solid " + COLORS.border, background: "#fff" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                    <span style={{ fontSize: 12.5, fontWeight: 800, color: COLORS.navy }}>Pick a document already on this deal</span>
+                    <button onClick={() => setShowDocPicker(false)} style={{ background: "none", border: "none", color: COLORS.muted, fontSize: 16, cursor: "pointer" }}>✕</button>
+                  </div>
+                  <div style={{ maxHeight: 220, overflowY: "auto" }}>
+                    {dealDocs.length === 0 ? (
+                      <div style={{ fontSize: 12, color: COLORS.muted, padding: "4px 0" }}>Loading…</div>
+                    ) : dealDocs.map(d => (
+                      <button key={d.id} disabled={attaching} onClick={() => attachExisting(d.id)}
+                        style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, width: "100%", textAlign: "left", padding: "8px 10px", marginBottom: 4, borderRadius: 7, border: "1px solid " + COLORS.border, background: "#fff", cursor: attaching ? "default" : "pointer", fontFamily: "inherit" }}>
+                        <span style={{ fontSize: 12.5, color: COLORS.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>📄 {d.name}</span>
+                        <span style={{ flexShrink: 0, fontSize: 11.5, fontWeight: 700, color: "#1E8449" }}>Attach →</span>
+                      </button>
+                    ))}
+                  </div>
+                  <div style={{ fontSize: 11, color: COLORS.muted, marginTop: 6 }}>Tip: pick <b>“Fully Executed Contract”</b> to attach the complete signed package.</div>
+                </div>
+              )}
               <div style={{ padding: "4px 16px", fontSize: 11, color: COLORS.muted, borderBottom: "1px solid " + COLORS.border, background: "#F9FAFB" }}>Removing an attachment (×) applies to everyone — it won't be sent to any party.</div>
               {/* Loud guard: this is the deal's INTRO email — sending it to a
                   contract-eligible role with the contract missing is exactly how
