@@ -455,6 +455,15 @@ function ReviewStep({ token, uploadId, user, currentStatus, onApproved, onBack }
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [vendors, setVendors] = useState([]);
+  // The actual uploaded PDFs (contract + attachments) — reviewable BEFORE
+  // accepting; the AI summary alone is not enough (Carlos 7/23).
+  const [offerFiles, setOfferFiles] = useState([]);
+  useEffect(() => {
+    fetch(API + "/contracts/uploads/" + uploadId + "/files", { headers: { "Authorization": "Bearer " + token } })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => setOfferFiles(d && d.success ? (d.files || []) : []))
+      .catch(() => setOfferFiles([]));
+  }, [uploadId, token]);
 
   // Load the agent's saved Preferred Vendors so the closing-agent prompt can
   // offer one-tap picks (the title company / attorney they use all the time)
@@ -611,6 +620,21 @@ function ReviewStep({ token, uploadId, user, currentStatus, onApproved, onBack }
         <p style={{ color: COLORS.muted, marginTop: 6, marginBottom: 20 }}>
           Verify everything below is correct. Edit any field that's wrong. Click <strong>Approve Offer</strong> when ready — this accepts the offer, moves the listing to Under Contract, adds the parties, and sets up the timeline and tasks.
         </p>
+
+        {offerFiles.length > 0 && (
+          <div style={{ background: "#eff6ff", border: "1.5px solid #93c5fd", borderRadius: 10, padding: "14px 16px", marginBottom: 16 }}>
+            <div style={{ fontWeight: 800, fontSize: 14, color: "#1e3a8a", marginBottom: 8 }}>📄 Read the actual documents first</div>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              {offerFiles.map((f, i) => (
+                <button key={i} onClick={() => window.open(f.url, "_blank")}
+                  style={{ padding: "9px 14px", borderRadius: 8, border: "1px solid #93c5fd", background: "#fff", color: "#1d4ed8", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", maxWidth: 320, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  👁 {f.name}
+                </button>
+              ))}
+            </div>
+            <div style={{ fontSize: 11.5, color: "#3730a3", marginTop: 6 }}>Each opens in a new tab. The summary below is only what the AI read — the documents are the source of truth.</div>
+          </div>
+        )}
 
         <div style={{ background: "#fef3c7", border: "1px solid #fcd34d", borderRadius: 8, padding: "12px 16px", marginBottom: 20, fontSize: 13, color: "#78350f" }}>
           ⚠️ <strong>Agent responsibility:</strong> As the agent, you are legally responsible for verifying all extracted data is accurate before approval.
