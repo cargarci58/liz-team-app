@@ -72,7 +72,7 @@ function UploadStep({ token, existingTransactionId, onBack, onUploaded }) {
   const [linkCopied, setLinkCopied] = useState(false);
   // "Pick an existing document" — an offer signed in-app is already on the deal.
   const [dealDocs, setDealDocs] = useState([]);
-  const [pickBusy, setPickBusy] = useState(false);
+  const [pickingId, setPickingId] = useState(null); // the ONE doc being read
   useEffect(() => {
     if (!existingTransactionId) return;
     fetch(API + "/documents/" + existingTransactionId, { headers: { Authorization: "Bearer " + token } })
@@ -81,7 +81,8 @@ function UploadStep({ token, existingTransactionId, onBack, onUploaded }) {
       .catch(() => setDealDocs([]));
   }, [existingTransactionId, token]);
   const useExistingDoc = async (docId) => {
-    setPickBusy(true); setError("");
+    if (pickingId) return; // one at a time
+    setPickingId(docId); setError("");
     try {
       const r = await fetch(API + "/contracts/from-document/" + docId, {
         method: "POST", headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
@@ -89,7 +90,7 @@ function UploadStep({ token, existingTransactionId, onBack, onUploaded }) {
       const d = await r.json();
       if (!r.ok || !d.success) throw new Error(d.error || "Couldn't read that document");
       onUploaded(d.uploadId);
-    } catch (e) { setError(e.message); setPickBusy(false); }
+    } catch (e) { setError(e.message); setPickingId(null); }
   };
 
   const generateShareableLink = async () => {
@@ -257,13 +258,17 @@ function UploadStep({ token, existingTransactionId, onBack, onUploaded }) {
               <div style={{ fontSize: 13, color: COLORS.muted, padding: "8px 0" }}>No PDF documents on this deal yet — use <strong>Upload Myself</strong> instead.</div>
             ) : (
               <div style={{ maxHeight: 320, overflowY: "auto" }}>
-                {dealDocs.map(d => (
-                  <button key={d.id} disabled={pickBusy} onClick={() => useExistingDoc(d.id)}
-                    style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, width: "100%", textAlign: "left", padding: "11px 12px", marginBottom: 6, borderRadius: 8, border: "1px solid " + COLORS.border, background: "#fff", cursor: pickBusy ? "default" : "pointer", fontFamily: "inherit" }}>
+                {dealDocs.map(d => {
+                  const isThis = pickingId === d.id;
+                  const dimmed = pickingId && !isThis;
+                  return (
+                  <button key={d.id} disabled={!!pickingId} onClick={() => useExistingDoc(d.id)}
+                    style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, width: "100%", textAlign: "left", padding: "11px 12px", marginBottom: 6, borderRadius: 8, border: "1px solid " + (isThis ? COLORS.red : COLORS.border), background: isThis ? "#fef2f2" : "#fff", cursor: pickingId ? "default" : "pointer", fontFamily: "inherit", opacity: dimmed ? 0.5 : 1 }}>
                     <span style={{ fontSize: 13.5, fontWeight: 600, color: COLORS.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>📄 {d.name}</span>
-                    <span style={{ flexShrink: 0, fontSize: 12, fontWeight: 700, color: COLORS.red }}>{pickBusy ? "Reading…" : "Read this →"}</span>
+                    <span style={{ flexShrink: 0, fontSize: 12, fontWeight: 700, color: COLORS.red }}>{isThis ? "Reading…" : "Read this →"}</span>
                   </button>
-                ))}
+                  );
+                })}
               </div>
             )}
             {error && <div style={{ marginTop: 10, background: "#FEF2F2", border: "1px solid #FCA5A5", borderRadius: 8, padding: 10, fontSize: 13, color: "#7F1D1D" }}>⚠️ {error}</div>}
