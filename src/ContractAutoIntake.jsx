@@ -70,6 +70,27 @@ function UploadStep({ token, existingTransactionId, onBack, onUploaded }) {
   const [generatedLink, setGeneratedLink] = useState("");
   const [generatingLink, setGeneratingLink] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
+  // "Pick an existing document" — an offer signed in-app is already on the deal.
+  const [dealDocs, setDealDocs] = useState([]);
+  const [pickBusy, setPickBusy] = useState(false);
+  useEffect(() => {
+    if (!existingTransactionId) return;
+    fetch(API + "/documents/" + existingTransactionId, { headers: { Authorization: "Bearer " + token } })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => setDealDocs((d?.documents || []).filter(x => /pdf$/i.test(x.mime_type || ""))))
+      .catch(() => setDealDocs([]));
+  }, [existingTransactionId, token]);
+  const useExistingDoc = async (docId) => {
+    setPickBusy(true); setError("");
+    try {
+      const r = await fetch(API + "/contracts/from-document/" + docId, {
+        method: "POST", headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
+      });
+      const d = await r.json();
+      if (!r.ok || !d.success) throw new Error(d.error || "Couldn't read that document");
+      onUploaded(d.uploadId);
+    } catch (e) { setError(e.message); setPickBusy(false); }
+  };
 
   const generateShareableLink = async () => {
     setGeneratingLink(true);
@@ -203,20 +224,51 @@ function UploadStep({ token, existingTransactionId, onBack, onUploaded }) {
           Two ways: <strong>upload it yourself</strong>, or <strong>send {isOffer ? "the other agent" : "your client"} a no-login link</strong> so they can upload it for you.
         </p>
 
-        <div style={{ display: "flex", gap: 8, marginBottom: 24 }}>
+        <div style={{ display: "flex", gap: 8, marginBottom: 24, flexWrap: "wrap" }}>
+          {isOffer && (
+            <button
+              onClick={() => setMode("existing")}
+              style={{ flex: "1 1 30%", padding: "12px", borderRadius: 8, border: `2px solid ${mode === "existing" ? COLORS.red : COLORS.border}`, background: mode === "existing" ? "#fef2f2" : "white", color: mode === "existing" ? COLORS.red : COLORS.text, fontWeight: 600, fontSize: 14, cursor: "pointer", fontFamily: "inherit" }}
+            >
+              📁 Already on this deal
+            </button>
+          )}
           <button
             onClick={() => setMode("self")}
-            style={{ flex: 1, padding: "12px", borderRadius: 8, border: `2px solid ${mode === "self" ? COLORS.red : COLORS.border}`, background: mode === "self" ? "#fef2f2" : "white", color: mode === "self" ? COLORS.red : COLORS.text, fontWeight: 600, fontSize: 14, cursor: "pointer", fontFamily: "inherit" }}
+            style={{ flex: "1 1 30%", padding: "12px", borderRadius: 8, border: `2px solid ${mode === "self" ? COLORS.red : COLORS.border}`, background: mode === "self" ? "#fef2f2" : "white", color: mode === "self" ? COLORS.red : COLORS.text, fontWeight: 600, fontSize: 14, cursor: "pointer", fontFamily: "inherit" }}
           >
             📤 Upload Myself
           </button>
           <button
             onClick={() => setMode("link")}
-            style={{ flex: 1, padding: "12px", borderRadius: 8, border: `2px solid ${mode === "link" ? COLORS.red : COLORS.border}`, background: mode === "link" ? "#fef2f2" : "white", color: mode === "link" ? COLORS.red : COLORS.text, fontWeight: 600, fontSize: 14, cursor: "pointer", fontFamily: "inherit" }}
+            style={{ flex: "1 1 30%", padding: "12px", borderRadius: 8, border: `2px solid ${mode === "link" ? COLORS.red : COLORS.border}`, background: mode === "link" ? "#fef2f2" : "white", color: mode === "link" ? COLORS.red : COLORS.text, fontWeight: 600, fontSize: 14, cursor: "pointer", fontFamily: "inherit" }}
           >
-            🔗 Send Client a Link (no login)
+            🔗 Send a Link (no login)
           </button>
         </div>
+
+        {mode === "existing" && (
+          <div style={{ background: "white", border: "1px solid " + COLORS.border, borderRadius: 12, padding: 20, marginBottom: 24 }}>
+            <h3 style={{ margin: "0 0 6px 0", color: COLORS.navy, fontSize: 16 }}>Pick the offer/contract already on this deal</h3>
+            <p style={{ color: COLORS.muted, fontSize: 13, marginTop: 0, marginBottom: 14 }}>
+              Signed the offer in-app? It's already here. Pick it and the AI reads it — no re-uploading.
+            </p>
+            {dealDocs.length === 0 ? (
+              <div style={{ fontSize: 13, color: COLORS.muted, padding: "8px 0" }}>No PDF documents on this deal yet — use <strong>Upload Myself</strong> instead.</div>
+            ) : (
+              <div style={{ maxHeight: 320, overflowY: "auto" }}>
+                {dealDocs.map(d => (
+                  <button key={d.id} disabled={pickBusy} onClick={() => useExistingDoc(d.id)}
+                    style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, width: "100%", textAlign: "left", padding: "11px 12px", marginBottom: 6, borderRadius: 8, border: "1px solid " + COLORS.border, background: "#fff", cursor: pickBusy ? "default" : "pointer", fontFamily: "inherit" }}>
+                    <span style={{ fontSize: 13.5, fontWeight: 600, color: COLORS.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>📄 {d.name}</span>
+                    <span style={{ flexShrink: 0, fontSize: 12, fontWeight: 700, color: COLORS.red }}>{pickBusy ? "Reading…" : "Read this →"}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+            {error && <div style={{ marginTop: 10, background: "#FEF2F2", border: "1px solid #FCA5A5", borderRadius: 8, padding: 10, fontSize: 13, color: "#7F1D1D" }}>⚠️ {error}</div>}
+          </div>
+        )}
 
         {mode === "link" && (
           <div style={{ background: "white", border: "1px solid " + COLORS.border, borderRadius: 12, padding: 24, marginBottom: 24 }}>
