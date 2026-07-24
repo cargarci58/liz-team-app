@@ -616,31 +616,34 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
             💡 Each file has a <b>👁 Client can view</b> / <b>🔒 Hidden</b> button — tap it to control whether your client sees that file in their portal. New uploads are <b>Hidden</b> by default.
           </div>
           {(() => {
-            // Group into folders: an offer's docs carry a `folder` (e.g. "Offer — John Doe");
-            // everything else groups under its category.
-            const groups = {};
-            for (const doc of docs) {
-              const key = doc.folder || doc.category || "General";
-              (groups[key] = groups[key] || []).push(doc);
-            }
-            // Offer folders first, then the rest alphabetically.
-            const names = Object.keys(groups).sort((a, b) => {
-              const ao = /^offer/i.test(a), bo = /^offer/i.test(b);
-              if (ao !== bo) return ao ? -1 : 1;
-              return a.localeCompare(b);
-            });
-            return names.map(folder => (
-              <div key={folder} style={{ marginBottom: 18 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "0 0 8px 2px" }}>
-                  <span style={{ fontSize: 15 }}>{/^offer/i.test(folder) ? "📥" : "📁"}</span>
-                  <span style={{ fontWeight: 700, fontSize: 13, color: COLORS.navy }}>{folder}</span>
-                  <span style={{ fontSize: 11, color: COLORS.muted }}>({groups[folder].length})</span>
-                </div>
-                {groups[folder].map(doc => (
-                  <div key={doc.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", background: "#fff", border: "1px solid #DDDDDD", borderRadius: 10, marginBottom: 8, marginLeft: 14, flexWrap: "wrap" }}>
+            // TWO top-level buckets on a listing (Carlos 7/24): OFFERS &
+            // CONTRACTS kept apart from LISTING & PROPERTY paperwork, each
+            // still sub-grouped by per-offer folder / category. A NEW badge
+            // flags anything uploaded in the last 2 days.
+            const CONTRACT_TYPES = /purchase_contract|as_is_contract|builder_purchase_contract|executed_contract|far_bar_contract|fully_executed_contract/i;
+            const isOfferDoc = (d) => /^(offer|received)/i.test(d.folder || "")
+              || CONTRACT_TYPES.test(d.document_type || "")
+              || /purchase_contract|contract package/i.test(d.category || "")
+              || /contract for sale|repair.*addendum|inspection.*addendum/i.test(d.name || "");
+            const NEW_MS = 2 * 24 * 60 * 60 * 1000;
+            const isNew = (d) => d.created_at && (Date.now() - new Date(d.created_at).getTime()) < NEW_MS;
+            const subGroups = (list) => {
+              const g = {};
+              for (const doc of list) { const k = doc.folder || doc.category || "General"; (g[k] = g[k] || []).push(doc); }
+              return Object.keys(g).sort((a, b) => {
+                const ao = /^(offer|received)/i.test(a), bo = /^(offer|received)/i.test(b);
+                if (ao !== bo) return ao ? -1 : 1;
+                return a.localeCompare(b);
+              }).map(k => [k, g[k]]);
+            };
+            const renderDoc = (doc) => (
+                  <div key={doc.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", background: "#fff", border: "1px solid " + (isNew(doc) ? "#93c5fd" : "#DDDDDD"), borderRadius: 10, marginBottom: 8, marginLeft: 14, flexWrap: "wrap" }}>
                     <div style={{ fontSize: 24, flexShrink: 0 }}>{getIcon(doc.mime_type)}</div>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontWeight: 600, fontSize: 14, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{doc.name}</div>
+                      <div style={{ fontWeight: 600, fontSize: 14, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                        {isNew(doc) && <span style={{ fontSize: 9.5, fontWeight: 800, color: "#fff", background: "#2563eb", borderRadius: 6, padding: "1px 6px", marginRight: 6, verticalAlign: "middle" }}>NEW</span>}
+                        {doc.name}
+                      </div>
                       <div style={{ fontSize: 11, color: COLORS.muted, marginTop: 2 }}>{doc.category} · {new Date(doc.created_at).toLocaleDateString()}</div>
                     </div>
                     <div style={{ display: "flex", gap: 6, flexShrink: 0, alignItems: "center" }}>
@@ -712,9 +715,49 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
                       </div>
                     </div>
                   </div>
+            );
+            const section = (title, emoji, list, accent) => list.length === 0 ? null : (
+              <div style={{ marginBottom: 22 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "0 0 10px 0", paddingBottom: 6, borderBottom: "2px solid " + accent }}>
+                  <span style={{ fontSize: 17 }}>{emoji}</span>
+                  <span style={{ fontWeight: 800, fontSize: 14, color: accent, textTransform: "uppercase", letterSpacing: 0.4 }}>{title}</span>
+                  <span style={{ fontSize: 11, color: COLORS.muted }}>({list.length})</span>
+                </div>
+                {subGroups(list).map(([folder, arr]) => (
+                  <div key={folder} style={{ marginBottom: 12 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "0 0 6px 2px" }}>
+                      <span style={{ fontSize: 14 }}>{/^(offer|received)/i.test(folder) ? "📥" : "📁"}</span>
+                      <span style={{ fontWeight: 700, fontSize: 12.5, color: COLORS.navy }}>{folder}</span>
+                      <span style={{ fontSize: 11, color: COLORS.muted }}>({arr.length})</span>
+                    </div>
+                    {arr.map(renderDoc)}
+                  </div>
                 ))}
               </div>
-            ));
+            );
+            const offers = docs.filter(isOfferDoc);
+            const listing = docs.filter(d => !isOfferDoc(d));
+            const isListingDeal = /listing|seller/i.test(tx?.transaction_type || tx?.type || "");
+            // Only split into two sections once a listing actually HAS an offer.
+            // Buyer deals and offerless listings keep the simple single flow.
+            if (!isListingDeal || offers.length === 0) {
+              return subGroups(docs).map(([folder, arr]) => (
+                <div key={folder} style={{ marginBottom: 14 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "0 0 8px 2px" }}>
+                    <span style={{ fontSize: 15 }}>{/^(offer|received)/i.test(folder) ? "📥" : "📁"}</span>
+                    <span style={{ fontWeight: 700, fontSize: 13, color: COLORS.navy }}>{folder}</span>
+                    <span style={{ fontSize: 11, color: COLORS.muted }}>({arr.length})</span>
+                  </div>
+                  {arr.map(renderDoc)}
+                </div>
+              ));
+            }
+            return (
+              <>
+                {section("Offers & Contract", "📥", offers, "#1d4ed8")}
+                {section("Listing & Property Documents", "📁", listing, "#166534")}
+              </>
+            );
           })()}
         </div>
       )}
