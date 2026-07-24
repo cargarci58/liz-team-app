@@ -4061,6 +4061,12 @@ export function WelcomeEmailPreview({ txId, onClose, onlyPartyId = null }) {
       (d.sent || []).forEach(s => { const m = previews.find(p => p.email === s.email); if (m) done[m.partyId] = true; });
       setSentIds(prev => ({ ...prev, ...done }));
       if (d.emailsFailed) alert(`${d.emailsSent} sent, ${d.emailsFailed} failed. Check the ones still marked unsent.`);
+      else {
+        // All sent — close the screen (Carlos 7/24: staying open after Send All
+        // made it look like something was still pending).
+        alert(`✅ All ${d.emailsSent} welcome email(s) sent.`);
+        onClose();
+      }
     } catch (e) { alert("Send all failed: " + e.message); }
     finally { setBusy(false); }
   };

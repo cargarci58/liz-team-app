@@ -49,14 +49,23 @@ const C = {
   warning: "#B7770D", warningBg: "#FEF9E7",
 };
 
+// DATE-ONLY values (closing date etc.) arrive as midnight-UTC ISO strings; parsing
+// them directly shows the PREVIOUS day in Florida (Aug 17 became "Aug 16" on the
+// seller portal — Carlos 7/24). Take the calendar date part and render it as-is.
+function asLocalDay(d) {
+  const s = String(d);
+  const m = s.match(/^(\d{4}-\d{2}-\d{2})/);
+  return m ? new Date(m[1] + "T00:00:00") : new Date(d);
+}
 function formatDate(d) {
   if (!d) return "TBD";
-  return new Date(d).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+  return asLocalDay(d).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
 }
 
 function daysUntil(d) {
   if (!d) return null;
-  return Math.round((new Date(d) - new Date()) / 86400000);
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  return Math.round((asLocalDay(d) - today) / 86400000);
 }
 
 // Plain-English, client-facing milestone labels (+ why it matters). A seller
