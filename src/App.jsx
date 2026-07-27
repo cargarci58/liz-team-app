@@ -524,10 +524,23 @@ if (typeof document !== "undefined" && !document.getElementById("lizteam-mobile"
     #root { max-width: 100vw; overflow-x: hidden; }
     input, textarea, select { font-size: 16px !important; }
     img, video { max-width: 100% !important; height: auto; }
+    input, textarea, select { max-width: 100%; }
     @media (max-width: 768px) {
       /* Universal: collapse any inline multi-column grid to a single column on phones.
          Opt out per-element with data-keep-grid="" (e.g. the month calendar). */
       [style*="grid-template-columns"]:not([data-keep-grid]) { grid-template-columns: 1fr !important; }
+      /* Universal: button clusters / flex rows WRAP on phones instead of running
+         off the right edge (body clips h-scroll, so overflow = unreachable —
+         "have to turn the phone sideways", Carlos 7/27). Documents checklist
+         actions, People row buttons, etc. Opt out with data-no-wrap="". */
+      div[style*="display: flex"][style*="gap"]:not([data-no-wrap]) { flex-wrap: wrap !important; }
+      /* Floating ? help button: smaller + bottom-LEFT so it stops covering the
+         action buttons phones put bottom-right. */
+      .help-fab {
+        width: 40px !important; height: 40px !important; font-size: 17px !important;
+        bottom: 10px !important; left: 10px !important; right: auto !important;
+        opacity: 0.75;
+      }
       /* Stats bar: 2-col grid on mobile, no horizontal scroll */
       [data-stats-bar] {
         display: grid !important;

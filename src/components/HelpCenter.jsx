@@ -296,6 +296,7 @@ export default function HelpCenter({ apiBase, token, onGoals, onProfile, onCompa
         onClick={() => setOpen(true)}
         aria-label="Open Help"
         title="Help — guides & FAQs"
+        className="help-fab"
         style={{ position: 'fixed', bottom: 24, right: 24, width: 56, height: 56, borderRadius: '50%', background: RED, color: '#fff', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.2)', cursor: 'pointer', fontSize: 24, fontWeight: 'bold', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
       >?</button>
 
