@@ -1100,7 +1100,10 @@ function SMSPanel({ tx, onUpdate, currentUser, sendOnly = false }) {
   const [selectedParty, setSelectedParty] = useState(null);
   const [message, setMessage] = useState("");
   const [subject, setSubject] = useState("");
-  const [channel, setChannel] = useState(() => localStorage.getItem("tp_last_channel") || "");   // remembers last choice; "" = never chosen
+  // Remembers the last choice — but NEVER auto-restores "both": a remembered
+  // Both silently double-sent a plain text as text+email days later (Carlos
+  // 7/27). Email/Text carry over; Both must be an explicit pick every time.
+  const [channel, setChannel] = useState(() => { const v = localStorage.getItem("tp_last_channel") || ""; return v === "both" ? "" : v; });
   const [sending, setSending] = useState(false);
   const [showReminderSMS, setShowReminderSMS] = useState(false);
   const [reminderTask, setReminderTask] = useState("");
@@ -1191,9 +1194,24 @@ function SMSPanel({ tx, onUpdate, currentUser, sendOnly = false }) {
     ).map(m => ({ id: m.id, body: m.body, subject: m.subject, direction: m.direction || "outbound", channel: m.channel, timestamp: m.created_at, status: "sent", read_at: m.read_at || null }));
     // Dedupe by id (optimistic push reuses the server msg id), then sort.
     const seen = new Set();
-    return [...phoneThread, ...emailThread, ...fromLog]
+    const list = [...phoneThread, ...emailThread, ...fromLog]
       .filter(x => { const k = x.id || (x.timestamp + "|" + (x.body || "")); if (seen.has(k)) return false; seen.add(k); return true; })
       .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+    // A "Both" send is ONE message delivered two ways — show ONE bubble tagged
+    // both channels, not two identical bubbles (read as an accidental double
+    // send — Carlos 7/27). Merge same-body outbound sms+email within 2 minutes.
+    const out = [];
+    for (const m of list) {
+      const prev = out[out.length - 1];
+      if (prev && m.direction === "outbound" && prev.direction === "outbound"
+          && (m.body || "") === (prev.body || "") && m.channel !== prev.channel
+          && Math.abs(new Date(m.timestamp) - new Date(prev.timestamp)) < 120000) {
+        prev.channel = "both";
+        continue;
+      }
+      out.push({ ...m });
+    }
+    return out;
   };
 
   const rememberChannel = (v) => { try { localStorage.setItem("tp_last_channel", v); } catch {} };
@@ -1700,7 +1718,7 @@ function SMSPanel({ tx, onUpdate, currentUser, sendOnly = false }) {
                     return (
                       <div key={m.id} style={{ display: "flex", justifyContent: isOut ? "flex-end" : "flex-start" }}>
                         <div style={{ maxWidth: "82%" }}>
-                          <div style={{ fontSize: 12, color: "#4B5563", marginBottom: 4, textAlign: isOut ? "right" : "left", fontWeight: 600 }}>{isOut ? "You" : selectedParty.name} · {formatTime(m.timestamp)} {m.channel === "email" ? "📧 Email" : "📱 Text"}</div>
+                          <div style={{ fontSize: 12, color: "#4B5563", marginBottom: 4, textAlign: isOut ? "right" : "left", fontWeight: 600 }}>{isOut ? "You" : selectedParty.name} · {formatTime(m.timestamp)} {m.channel === "both" ? "📧 + 📱 Both" : m.channel === "email" ? "📧 Email" : "📱 Text"}</div>
                           <div style={{ background: isOut ? "#0F2044" : "#F3F4F6", color: isOut ? "#fff" : "#1A1A2E", padding: "12px 16px", borderRadius: isOut ? "14px 14px 4px 14px" : "14px 14px 14px 4px", fontSize: 15.5, lineHeight: 1.6, whiteSpace: "pre-wrap" }}>
                             {m.channel === "email" && m.subject && <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 6, opacity: 0.92, borderBottom: isOut ? "1px solid rgba(255,255,255,0.25)" : "1px solid #D1D5DB", paddingBottom: 6 }}>{m.subject}</div>}
                             {m.body}
