@@ -4735,7 +4735,7 @@ function InboundRepliesPanel({ tx, coordinatorMode = false, onInboundRead }) {
             <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 6, marginBottom: 8 }}>
               <div>
                 {!m.read_at && m.status === "received" && <span style={{ marginRight: 8, fontSize: 11, fontWeight: 800, background: "#C0392B", color: "#fff", padding: "2px 8px", borderRadius: 20 }}>● NEW</span>}
-                <span style={{ marginRight: 8, fontSize: 11, fontWeight: 700, background: m.channel === "sms" ? "#E0F2FE" : "#F3F4F6", color: m.channel === "sms" ? "#0369A1" : "#374151", padding: "2px 8px", borderRadius: 6 }}>{m.channel === "sms" ? "📱 Text" : "📧 Email"}</span>
+                <span style={{ marginRight: 8, fontSize: 11, fontWeight: 700, background: m.channel === "sms" ? "#E0F2FE" : m.channel === "chat" ? "#EDE9FE" : "#F3F4F6", color: m.channel === "sms" ? "#0369A1" : m.channel === "chat" ? "#6D28D9" : "#374151", padding: "2px 8px", borderRadius: 6 }}>{m.channel === "sms" ? "📱 Text" : m.channel === "chat" ? "💬 Chat" : "📧 Email"}</span>
                 <span style={{ fontWeight: 700, color: COLORS.navy }}>{m.from_name || m.from_phone || m.from_email || "A party"}</span>
                 {m.party_role && <span style={{ marginLeft: 8, fontSize: 12, background: COLORS.bg, color: COLORS.gray, padding: "2px 8px", borderRadius: 6 }}>{m.party_role}</span>}
               </div>
