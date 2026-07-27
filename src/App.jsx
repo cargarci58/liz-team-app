@@ -533,7 +533,10 @@ if (typeof document !== "undefined" && !document.getElementById("lizteam-mobile"
          off the right edge (body clips h-scroll, so overflow = unreachable —
          "have to turn the phone sideways", Carlos 7/27). Documents checklist
          actions, People row buttons, etc. Opt out with data-no-wrap="". */
-      div[style*="display: flex"][style*="gap"]:not([data-no-wrap]) { flex-wrap: wrap !important; }
+      div[style*="display: flex"]:not([data-no-wrap]) { flex-wrap: wrap !important; }
+      /* Button clusters marked flex-shrink:0 must still give way on a phone —
+         otherwise they poke past the right edge no matter what wraps. */
+      div[style*="flex-shrink: 0"][style*="gap"]:not([data-no-wrap]) { flex-shrink: 1 !important; min-width: 0 !important; }
       /* Floating ? help button: smaller + bottom-LEFT so it stops covering the
          action buttons phones put bottom-right. */
       .help-fab {
