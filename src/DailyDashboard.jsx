@@ -953,6 +953,31 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
   const [callsDue, setCallsDue] = useState([]);
   const [occasions, setOccasions] = useState([]);
   const [recentAlerts, setRecentAlerts] = useState([]); // 🔔 last 14 days of pop-ups
+  const [unmatchedEmails, setUnmatchedEmails] = useState([]); // 📥 emails needing filing
+  const [showFiling, setShowFiling] = useState(false);
+  const [filingDeals, setFilingDeals] = useState(null);   // deal list for the picker
+  const openFiling = () => {
+    setShowFiling(true);
+    if (filingDeals === null) {
+      fetch(API + "/transactions", { headers: { Authorization: "Bearer " + token } })
+        .then(r => r.json())
+        .then(d => setFilingDeals((d.transactions || d || []).map(t => ({ id: t.id, address: t.address }))))
+        .catch(() => setFilingDeals([]));
+    }
+  };
+  const fileEmailTo = async (emailId, txId) => {
+    try {
+      const r = await fetch(API + `/inbound-emails/${emailId}/reassign`, { method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + token }, body: JSON.stringify({ transactionId: txId }) });
+      if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || "Could not file it");
+      setUnmatchedEmails(list => list.filter(m => m.id !== emailId));
+    } catch (e) { alert("⚠️ " + e.message); }
+  };
+  const dismissUnmatched = async (emailId) => {
+    try {
+      await fetch(API + `/inbound-emails/${emailId}/unmatched`, { method: "DELETE", headers: { Authorization: "Bearer " + token } });
+      setUnmatchedEmails(list => list.filter(m => m.id !== emailId));
+    } catch { /* refetch fixes */ }
+  };
   const [showActivity, setShowActivity] = useState(false); // 📰 FYI drawer open?
   const [popByDueCount, setPopByDueCount] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -1099,14 +1124,19 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
     if (!silent) setLoading(true);
     try {
       const url = API + "/dashboard/tasks" + (awaitRebuild ? "?await=1" : "");
-      const [tasksRes, callsRes, alertsRes] = await Promise.all([
+      const [tasksRes, callsRes, alertsRes, filingRes] = await Promise.all([
         fetch(url, { headers: { Authorization: "Bearer " + token } }),
         fetch(API + "/contacts/due-today", { headers: { Authorization: "Bearer " + token } }).catch(() => null),
         fetch(API + "/notifications/recent", { headers: { Authorization: "Bearer " + token } }).catch(() => null),
+        fetch(API + "/inbound-emails/unmatched", { headers: { Authorization: "Bearer " + token } }).catch(() => null),
       ]);
       if (alertsRes && alertsRes.ok) {
         const ad = await alertsRes.json();
         setRecentAlerts(ad.notifications || []);
+      }
+      if (filingRes && filingRes.ok) {
+        const fd = await filingRes.json();
+        setUnmatchedEmails(fd.messages || []);
       }
       const data = await tasksRes.json();
       if (data.success) {
@@ -1544,22 +1574,50 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
       {/* 🚨 ALERTS = only things that DEMAND attention (Carlos 7/23: "alerts
           should be extremely past due… the green-checkmark ones aren't alerts").
           FYI notices (signed docs, feedback) live in a collapsed drawer below. */}
-      {!coordinatorMode && recentAlerts.length > 0 && (() => {
-        const ALERT_KINDS = new Set(["reminder_overdue"]);
+      {!coordinatorMode && (recentAlerts.length > 0 || unmatchedEmails.length > 0) && (() => {
+        const ALERT_KINDS = new Set(["reminder_overdue", "email_needs_filing"]);
         const critical = [], fyi = [];
         for (const a of recentAlerts) (ALERT_KINDS.has(a.kind) ? critical : fyi).push(a);
-        // Each morning supersedes yesterday's overdue-reminders alert — show the newest only.
-        const seenKinds = new Set();
-        const alerts = critical.filter(a => (seenKinds.has(a.kind) ? false : (seenKinds.add(a.kind), true)));
-        const renderRow = (a, red) => (
-          <div key={a.id} style={{ background: red ? "#fef2f2" : (a.seen_at ? "#fafafa" : "#f5f3ff"), border: "1px solid " + (red ? "#fca5a5" : a.seen_at ? "#e5e7eb" : "#c4b5fd"), borderLeft: red ? "5px solid #dc2626" : undefined, borderRadius: 8, padding: 12, marginBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10, opacity: !red && a.seen_at ? 0.75 : 1 }}>
+        // EVERY unacknowledged critical alert gets ITS OWN box with explicit
+        // buttons (Carlos 7/28: no grouping, each alert individually actionable,
+        // acknowledged alerts drop out once marked Done).
+        const alerts = critical.filter(a => !a.seen_at).slice(0, 10);
+        const ackAlert = async (a) => {
+          try { await fetch(API + "/notifications/seen", { method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + token }, body: JSON.stringify({ ids: [a.id] }) }); } catch { /* refetch fixes it */ }
+          setRecentAlerts(list => list.map(x => x.id === a.id ? { ...x, seen_at: new Date().toISOString() } : x));
+        };
+        const goTo = (a) => {
+          if (a.kind === "email_needs_filing") { openFiling(); return; }
+          if (a.transaction_id && onOpenTransactionMilestones) onOpenTransactionMilestones(a.transaction_id);
+        };
+        const renderCritical = (a) => (
+          <div key={a.id} style={{ background: "#fef2f2", border: "1px solid #fca5a5", borderLeft: "5px solid #dc2626", borderRadius: 8, padding: 12, marginBottom: 8 }}>
+            <div style={{ fontWeight: 800, fontSize: 13.5, color: "#7f1d1d" }}>{a.title}</div>
+            {a.body && <div style={{ fontSize: 12.5, color: "#991b1b", marginTop: 2, whiteSpace: "pre-line" }}>{a.body}</div>}
+            <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 3 }}>{new Date(a.created_at).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</div>
+            <div style={{ display: "flex", gap: 8, marginTop: 9, flexWrap: "wrap" }}>
+              {(a.transaction_id || a.kind === "email_needs_filing") && (
+                <button onClick={() => goTo(a)}
+                  style={{ padding: "7px 14px", borderRadius: 8, border: "none", background: "#dc2626", color: "#fff", fontSize: 12.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>
+                  → Take me there
+                </button>
+              )}
+              <button onClick={() => ackAlert(a)}
+                style={{ padding: "7px 14px", borderRadius: 8, border: "1px solid #fca5a5", background: "#fff", color: "#b91c1c", fontSize: 12.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>
+                ✓ Done — clear this alert
+              </button>
+            </div>
+          </div>
+        );
+        const renderFyi = (a) => (
+          <div key={a.id} style={{ background: a.seen_at ? "#fafafa" : "#f5f3ff", border: "1px solid " + (a.seen_at ? "#e5e7eb" : "#c4b5fd"), borderRadius: 8, padding: 12, marginBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10, opacity: a.seen_at ? 0.75 : 1 }}>
             <div style={{ flex: 1, minWidth: 0, cursor: a.transaction_id ? "pointer" : "default" }}
               onClick={() => a.transaction_id && onOpenTransactionMilestones && onOpenTransactionMilestones(a.transaction_id)}>
-              <div style={{ fontWeight: red ? 800 : 700, fontSize: 13.5, color: red ? "#7f1d1d" : "#111" }}>{a.title}</div>
-              {a.body && <div style={{ fontSize: 12.5, color: red ? "#991b1b" : "#4b5563", marginTop: 2, whiteSpace: "pre-line" }}>{a.body}</div>}
+              <div style={{ fontWeight: 700, fontSize: 13.5, color: "#111" }}>{a.title}</div>
+              {a.body && <div style={{ fontSize: 12.5, color: "#4b5563", marginTop: 2, whiteSpace: "pre-line" }}>{a.body}</div>}
               <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 3 }}>{new Date(a.created_at).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}{a.transaction_id ? " · tap to open the deal" : ""}</div>
             </div>
-            {!a.seen_at && !red && (
+            {!a.seen_at && (
               <button onClick={async () => {
                 try { await fetch(API + "/notifications/seen", { method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + token }, body: JSON.stringify({ ids: [a.id] }) }); } catch { /* refetch fixes it */ }
                 setRecentAlerts(list => list.map(x => x.id === a.id ? { ...x, seen_at: new Date().toISOString() } : x));
@@ -1572,10 +1630,20 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
         );
         return (
           <div style={{ marginBottom: 24 }}>
-            {alerts.length > 0 && (
+            {(alerts.length > 0 || unmatchedEmails.length > 0) && (
               <>
-                <SectionHeader label={"🚨 ALERTS — NEEDS YOUR ATTENTION"} count={alerts.length} color={"#dc2626"} />
-                {alerts.map(a => renderRow(a, true))}
+                <SectionHeader label={"🚨 ALERTS — NEEDS YOUR ATTENTION"} count={alerts.length + (unmatchedEmails.length ? 1 : 0)} color={"#dc2626"} />
+                {unmatchedEmails.length > 0 && (
+                  <div style={{ background: "#fff7ed", border: "1px solid #fdba74", borderLeft: "5px solid #ea580c", borderRadius: 8, padding: 12, marginBottom: 8 }}>
+                    <div style={{ fontWeight: 800, fontSize: 13.5, color: "#7c2d12" }}>📥 {unmatchedEmails.length} email{unmatchedEmails.length === 1 ? "" : "s"} need{unmatchedEmails.length === 1 ? "s" : ""} filing</div>
+                    <div style={{ fontSize: 12.5, color: "#9a3412", marginTop: 2 }}>The app received {unmatchedEmails.length === 1 ? "an email" : "emails"} it couldn't match to a deal — file {unmatchedEmails.length === 1 ? "it" : "them"} so nothing is lost.</div>
+                    <button onClick={openFiling}
+                      style={{ marginTop: 9, padding: "7px 14px", borderRadius: 8, border: "none", background: "#ea580c", color: "#fff", fontSize: 12.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>
+                      → Open Needs Filing
+                    </button>
+                  </div>
+                )}
+                {alerts.map(renderCritical)}
               </>
             )}
             {fyi.length > 0 && (
@@ -1584,12 +1652,49 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
                   style={{ width: "100%", textAlign: "left", background: "#fafafa", border: "1px solid #e5e7eb", borderRadius: 10, padding: "10px 14px", fontSize: 13, fontWeight: 700, color: "#4b5563", cursor: "pointer", fontFamily: "inherit", marginBottom: 8 }}>
                   {showActivity ? "▾" : "▸"} 📰 Recent activity ({fyi.length}) — signings, feedback &amp; other good news
                 </button>
-                {showActivity && fyi.map(a => renderRow(a, false))}
+                {showActivity && fyi.map(renderFyi)}
               </>
             )}
           </div>
         );
       })()}
+      {/* 📥 NEEDS FILING modal — every unmatched email with its own deal picker. */}
+      {showFiling && (
+        <div onMouseDown={e => { if (e.target === e.currentTarget) e.currentTarget.dataset.down = "1"; }}
+          onClick={e => { if (e.target === e.currentTarget && e.currentTarget.dataset.down === "1") setShowFiling(false); }}
+          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)", zIndex: 4000, display: "flex", alignItems: "flex-start", justifyContent: "center", padding: 16, overflowY: "auto" }}>
+          <div style={{ background: "#fff", borderRadius: 14, width: "100%", maxWidth: 640, margin: "24px auto", padding: 0, overflow: "hidden" }}>
+            <div style={{ background: "#7c2d12", color: "#fff", padding: "14px 18px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div style={{ fontWeight: 800, fontSize: 16 }}>📥 Needs filing</div>
+              <button onClick={() => setShowFiling(false)} style={{ background: "none", border: "none", color: "rgba(255,255,255,0.8)", fontSize: 22, cursor: "pointer", lineHeight: 1 }}>×</button>
+            </div>
+            <div style={{ padding: 16, maxHeight: "70vh", overflowY: "auto" }}>
+              {unmatchedEmails.length === 0 && <div style={{ textAlign: "center", color: "#6b7280", padding: 30 }}>🎉 Nothing needs filing.</div>}
+              {unmatchedEmails.map(m => (
+                <div key={m.id} style={{ border: "1px solid #e5e7eb", borderRadius: 10, padding: 14, marginBottom: 10 }}>
+                  <div style={{ fontWeight: 700, fontSize: 13.5 }}>{m.from_name || m.from_email || "Unknown sender"} <span style={{ color: "#6b7280", fontWeight: 400 }}>&lt;{m.from_email}&gt;</span></div>
+                  <div style={{ fontSize: 13, color: "#111", marginTop: 3, fontWeight: 600 }}>{m.subject || "(no subject)"}</div>
+                  {m.snippet && <div style={{ fontSize: 12.5, color: "#4b5563", marginTop: 3 }}>{m.snippet}</div>}
+                  <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 3 }}>{new Date(m.created_at).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}{m.attachment_count ? ` · 📎 ${m.attachment_count} attachment(s)` : ""}</div>
+                  <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap", alignItems: "center" }}>
+                    {filingDeals === null ? <span style={{ fontSize: 12, color: "#6b7280" }}>Loading deals…</span> : (
+                      <select defaultValue="" onChange={e => e.target.value && fileEmailTo(m.id, e.target.value)}
+                        style={{ padding: "8px 10px", borderRadius: 8, border: "1px solid #d1d5db", fontSize: 13, fontFamily: "inherit", maxWidth: 280 }}>
+                        <option value="" disabled>📁 File to a deal…</option>
+                        {filingDeals.map(d => <option key={d.id} value={d.id}>{d.address}</option>)}
+                      </select>
+                    )}
+                    <button onClick={() => dismissUnmatched(m.id)}
+                      style={{ padding: "8px 12px", borderRadius: 8, border: "1px solid #e5e7eb", background: "#fff", color: "#6b7280", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                      Not deal-related — dismiss
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
       {/* ⏰ REMINDERS — the agent's own reminders, in their own loud section.
           3+ days overdue = acknowledgment mode: Done or a new date, nothing else. */}
       {!coordinatorMode && reminderCards.length > 0 && (

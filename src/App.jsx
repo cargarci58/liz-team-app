@@ -9428,6 +9428,7 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
   const [unreadCounts, setUnreadCounts] = useState({});       // in-app chat, per tx
   const [inboundCounts, setInboundCounts] = useState({});     // client email replies, per tx
   const [signAlerts, setSignAlerts] = useState([]);           // pop-up notifications (e-sign events)
+  const [floatHiddenSig, setFloatHiddenSig] = useState("");   // ✕-hidden chip signature (re-shows on NEW alerts)
   const [showAddTask, setShowAddTask] = useState(false);      // "Add a Task" from the Tools menu
   const [showTcTeamG, setShowTcTeamG] = useState(false);      // coordinator Team modal (Tools menu)
   const [showTcServicesG, setShowTcServicesG] = useState(false);
@@ -10009,34 +10010,26 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
 
   return (
     <Suspense fallback={<LazyLoading />}>
-      {/* E-SIGN POP-UPS — fixed toast stack, every screen: "✍️ Oscar just signed…" /
-          "✅ All buyers signed". Click opens the deal; ✕ dismisses (marks seen). */}
-      {signAlerts.length > 0 && (
-        <div style={{ position: "fixed", top: 70, right: 14, zIndex: 9998, display: "flex", flexDirection: "column", gap: 8, maxWidth: 340 }}>
-          {signAlerts.slice(0, 3).map(n => {
-            const dismiss = (e) => {
-              if (e) e.stopPropagation();
-              setSignAlerts(prev => prev.filter(a => a.id !== n.id));
-              fetch(`${API}/notifications/seen`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
-                body: JSON.stringify({ ids: [n.id] }),
-              }).catch(() => {});
-            };
-            return (
-              <div key={n.id}
-                onClick={() => { dismiss(); if (n.transaction_id) openTransactionMilestones(n.transaction_id); }}
-                style={{ background: "#fff", border: "2px solid #86198f", borderRadius: 12, padding: "12px 14px", boxShadow: "0 10px 30px rgba(2,6,23,0.25)", cursor: n.transaction_id ? "pointer" : "default", animation: "signAlertIn 0.35s ease" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
-                  <div style={{ fontSize: 13.5, fontWeight: 800, color: "#86198f", lineHeight: 1.35 }}>{n.title}</div>
-                  <button onClick={dismiss} title="Dismiss"
-                    style={{ background: "none", border: "none", color: "#9ca3af", fontSize: 16, cursor: "pointer", lineHeight: 1, padding: 0 }}>×</button>
-                </div>
-                {n.body && <div style={{ fontSize: 12, color: "#374151", marginTop: 4, lineHeight: 1.4 }}>{n.body}</div>}
-                {n.transaction_id && <div style={{ fontSize: 11, color: "#86198f", marginTop: 6, fontWeight: 700 }}>Tap to open the deal →</div>}
+      {/* FLOATING ALERT CHIP — one generic, persistent pointer (Carlos 7/28:
+          individual pop-ups vanished on click and the alert was gone). Clicking
+          it NEVER dismisses anything — it opens Win The Day, where every alert
+          has its own box with Done / Take-me-there. ✕ only hides the chip until
+          new alerts arrive; the alerts themselves stay until acknowledged. */}
+      {signAlerts.length > 0 && floatHiddenSig !== signAlerts.map(n => n.id).join(",") && (
+        <div style={{ position: "fixed", top: 70, right: 14, zIndex: 9998, maxWidth: 320 }}>
+          <div
+            onClick={() => { setView("dashboard"); setSelectedId(null); }}
+            style={{ background: "#fff", border: "2px solid #dc2626", borderRadius: 12, padding: "12px 14px", boxShadow: "0 10px 30px rgba(2,6,23,0.25)", cursor: "pointer", animation: "signAlertIn 0.35s ease" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
+              <div style={{ fontSize: 13.5, fontWeight: 800, color: "#b91c1c", lineHeight: 1.35 }}>
+                🔔 You have {signAlerts.length} new alert{signAlerts.length === 1 ? "" : "s"}
               </div>
-            );
-          })}
+              <button onClick={(e) => { e.stopPropagation(); setFloatHiddenSig(signAlerts.map(n => n.id).join(",")); }} title="Hide (alerts stay on Win The Day)"
+                style={{ background: "none", border: "none", color: "#9ca3af", fontSize: 16, cursor: "pointer", lineHeight: 1, padding: 0 }}>×</button>
+            </div>
+            <div style={{ fontSize: 12, color: "#374151", marginTop: 4, lineHeight: 1.4 }}>{signAlerts[0].title}{signAlerts.length > 1 ? ` (+${signAlerts.length - 1} more)` : ""}</div>
+            <div style={{ fontSize: 11, color: "#b91c1c", marginTop: 6, fontWeight: 700 }}>Tap to open Win The Day →</div>
+          </div>
           <style>{"@keyframes signAlertIn { from { transform: translateX(30px); opacity: 0; } to { transform: none; opacity: 1; } }"}</style>
         </div>
       )}
