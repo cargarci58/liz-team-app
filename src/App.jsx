@@ -9831,6 +9831,12 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
     // Capture the prior tx so we can roll back if the server rejects the save.
     let previous = null;
     setTransactions(txs => { previous = txs.find(t => t.id === updated.id) || null; return txs.map(t => t.id === updated.id ? updated : t); });
+    // Coordinators: keep the local state change but NEVER fire the full-tx PUT —
+    // the server blocks it for TCs (by design), and every TC-allowed action
+    // (reminder done/snooze, docs, milestones) already persists via its own
+    // endpoint. Firing it anyway popped "Save failed. Coordinators update deals
+    // through the coordination tools…" after a successful Done (Carlos 7/28).
+    try { if ((JSON.parse(localStorage.getItem("tp_user") || "{}").role || "") === "tc") return; } catch {}
     const freshTok = localStorage.getItem("tp_token") || "";
     const freshH = { "Content-Type": "application/json", "Authorization": "Bearer " + freshTok };
     const rollback = () => { if (previous) setTransactions(txs => txs.map(t => t.id === updated.id ? previous : t)); };
