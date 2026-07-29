@@ -1586,6 +1586,14 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
           try { await fetch(API + "/notifications/seen", { method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + token }, body: JSON.stringify({ ids: [a.id] }) }); } catch { /* refetch fixes it */ }
           setRecentAlerts(list => list.map(x => x.id === a.id ? { ...x, seen_at: new Date().toISOString() } : x));
         };
+        // Done on a reminder alert marks THE REMINDER done (not just the alert) —
+        // it never comes back tomorrow (Carlos 7/29).
+        const doneReminderAlert = async (a) => {
+          if (a.target_id) {
+            try { await fetch(API + "/reminders/" + a.target_id + "/done", { method: "POST", headers: { Authorization: "Bearer " + token } }); } catch { /* ack still clears the alert */ }
+          }
+          await ackAlert(a);
+        };
         const goTo = (a) => {
           if (a.kind === "email_needs_filing") { openFiling(); return; }
           if (a.transaction_id && onOpenTransactionMilestones) onOpenTransactionMilestones(a.transaction_id);
@@ -1602,10 +1610,17 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
                   → Take me there
                 </button>
               )}
-              <button onClick={() => ackAlert(a)}
-                style={{ padding: "7px 14px", borderRadius: 8, border: "1px solid #fca5a5", background: "#fff", color: "#b91c1c", fontSize: 12.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>
-                ✓ Done — clear this alert
-              </button>
+              {a.kind === "reminder_overdue" && a.target_id ? (
+                <button onClick={() => doneReminderAlert(a)}
+                  style={{ padding: "7px 14px", borderRadius: 8, border: "1px solid #86efac", background: "#f0fdf4", color: "#166534", fontSize: 12.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>
+                  ✓ Done — mark this reminder done
+                </button>
+              ) : (
+                <button onClick={() => ackAlert(a)}
+                  style={{ padding: "7px 14px", borderRadius: 8, border: "1px solid #fca5a5", background: "#fff", color: "#b91c1c", fontSize: 12.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>
+                  ✓ Done — clear this alert
+                </button>
+              )}
             </div>
           </div>
         );
@@ -1629,7 +1644,7 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
           </div>
         );
         return (
-          <div style={{ marginBottom: 24 }}>
+          <div id="wtd-alerts" style={{ marginBottom: 24 }}>
             {(alerts.length > 0 || unmatchedEmails.length > 0) && (
               <>
                 <SectionHeader label={"🚨 ALERTS — NEEDS YOUR ATTENTION"} count={alerts.length + (unmatchedEmails.length ? 1 : 0)} color={"#dc2626"} />

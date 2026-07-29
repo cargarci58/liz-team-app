@@ -10018,7 +10018,14 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
       {signAlerts.length > 0 && floatHiddenSig !== signAlerts.map(n => n.id).join(",") && (
         <div style={{ position: "fixed", top: 70, right: 14, zIndex: 9998, maxWidth: 320 }}>
           <div
-            onClick={() => { setView("dashboard"); setSelectedId(null); }}
+            onClick={() => {
+              // Taking you there IS the dismissal — the chip goes away, the
+              // alerts wait in their own boxes (Carlos 7/29: clicking the float
+              // must clear it AND land you on the alert).
+              setFloatHiddenSig(signAlerts.map(n => n.id).join(","));
+              setView("dashboard"); setSelectedId(null);
+              setTimeout(() => { const el = document.getElementById("wtd-alerts"); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); }, 700);
+            }}
             style={{ background: "#fff", border: "2px solid #dc2626", borderRadius: 12, padding: "12px 14px", boxShadow: "0 10px 30px rgba(2,6,23,0.25)", cursor: "pointer", animation: "signAlertIn 0.35s ease" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
               <div style={{ fontSize: 13.5, fontWeight: 800, color: "#b91c1c", lineHeight: 1.35 }}>
