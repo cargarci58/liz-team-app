@@ -1369,6 +1369,17 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
   // Agent-set reminders get their OWN eye-catching section (Carlos 7/22) —
   // pulled out of the per-deal cards so they can't hide inside a group.
   const reminderCards = rankedTasksAll.filter(t => t.task_type === 'reminder');
+  // Alert notifications for reminders that are ALREADY shown as reminder cards
+  // get auto-acknowledged — otherwise the floating chip counts alerts the
+  // alerts section (correctly) hides as duplicates.
+  useEffect(() => {
+    const cardIds = new Set(reminderCards.map(t => String(t.target_ref_id || "")));
+    const dupIds = recentAlerts.filter(a => !a.seen_at && a.kind === "reminder_overdue" && a.target_id && cardIds.has(String(a.target_id))).map(a => a.id);
+    if (!dupIds.length) return;
+    fetch(API + "/notifications/seen", { method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + token }, body: JSON.stringify({ ids: dupIds }) }).catch(() => {});
+    setRecentAlerts(list => list.map(x => dupIds.includes(x.id) ? { ...x, seen_at: x.seen_at || new Date().toISOString() } : x));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [recentAlerts.length, reminderCards.length]);
   const rankedTasks = rankedTasksAll.filter(t => t.task_type !== 'monthly_financials' && t.task_type !== 'reminder');
   // Group by PROPERTY ADDRESS (normalized) so two transaction records for the
   // same home collapse into ONE card — a safety net against duplicate deals.
@@ -1576,8 +1587,16 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
           FYI notices (signed docs, feedback) live in a collapsed drawer below. */}
       {!coordinatorMode && (recentAlerts.length > 0 || unmatchedEmails.length > 0) && (() => {
         const ALERT_KINDS = new Set(["reminder_overdue", "email_needs_filing"]);
+        // A reminder that already has its own card in ⏰ YOUR REMINDERS below
+        // must not ALSO show as an alert box — same reminder twice on one screen
+        // (Carlos 7/30, Belfry). The reminder card is the richer one (Done /
+        // New date / acknowledgment), so the alert defers to it.
+        const reminderCardIds = new Set(reminderCards.map(t => String(t.target_ref_id || "")));
         const critical = [], fyi = [];
-        for (const a of recentAlerts) (ALERT_KINDS.has(a.kind) ? critical : fyi).push(a);
+        for (const a of recentAlerts) {
+          if (a.kind === "reminder_overdue" && a.target_id && reminderCardIds.has(String(a.target_id))) continue;
+          (ALERT_KINDS.has(a.kind) ? critical : fyi).push(a);
+        }
         // EVERY unacknowledged critical alert gets ITS OWN box with explicit
         // buttons (Carlos 7/28: no grouping, each alert individually actionable,
         // acknowledged alerts drop out once marked Done).
