@@ -2603,6 +2603,9 @@ function PeriodEditCell({ imp, onSaved }) {
 
 function ImportTab({ categories, onCommitted }) {
   const [accountType, setAccountType] = useState('checking');
+  // Rookie-first walkthrough shown every time a statement opens for review —
+  // agents aren't accountants (Carlos 7/31): tell them exactly what to do.
+  const [showImportGuide, setShowImportGuide] = useState(false);
   const [periodLabel, setPeriodLabel] = useState('');
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState('');
@@ -2640,7 +2643,7 @@ function ImportTab({ categories, onCommitted }) {
       setAccountType(imp.account_type || 'checking');
       setPeriodLabel((imp.period_label || '').trim());
       setImportId(imp.id);
-      setLines((data.lines || []).map(toReviewLine));
+      setLines((data.lines || []).map(toReviewLine)); setShowImportGuide(true);
       setStatus('');
       if (!data.lines || data.lines.length === 0) setError('This statement has no reviewable transactions. You can remove it.');
     } catch (e) { setError(e.message); setStatus(''); }
@@ -2683,7 +2686,7 @@ function ImportTab({ categories, onCommitted }) {
       setStatus('Loading transactions...');
       const data = await authFetch(`/bank-import/${enq.importId}`);
       setImportId(enq.importId);
-      setLines((data.lines || []).map(toReviewLine));
+      setLines((data.lines || []).map(toReviewLine)); setShowImportGuide(true);
       if (!data.lines || data.lines.length === 0) setError('No transactions were found in that file. Try a CSV export from your bank, or a clearer PDF.');
       setStatus('');
     } catch (e) { setError(e.message); setStatus(''); } finally { setBusy(false); }
@@ -2809,6 +2812,25 @@ function ImportTab({ categories, onCommitted }) {
 
       {lines.length > 0 && (
         <>
+          {showImportGuide && (
+            <div style={{ background: '#eff6ff', border: '2px solid #3b82f6', borderRadius: 12, padding: '16px 18px', marginBottom: 14 }}>
+              <div style={{ fontWeight: 800, fontSize: 15, color: '#1e3a8a', marginBottom: 8 }}>📋 Before you hit Import — a quick 3-step review</div>
+              <div style={{ fontSize: 13.5, color: '#1e3a8a', lineHeight: 1.65 }}>
+                <div style={{ marginBottom: 6 }}><strong>1. Uncheck anything that isn't real income or a real business expense.</strong>{' '}
+                  {accountType === 'credit_card'
+                    ? 'On a credit-card statement, a PAYMENT to the card is NOT income — it\u2019s just you paying the bill. The real expenses are the charges. We already unchecked the payments we spotted (look for the ⚠️ notes) — give them a quick glance to confirm.'
+                    : 'Transfers between your own accounts and credit-card bill payments are NOT income or expenses. Commission deposits from your closed deals are already counted by the app — importing them again would double-count. We unchecked what we spotted (look for the ⚠️ notes) — give them a quick glance.'}
+                </div>
+                <div style={{ marginBottom: 6 }}><strong>2. Check the Type on each line</strong> — money in should say <span style={{ color: '#059669', fontWeight: 700 }}>Income</span>, money out should say <span style={{ color: '#dc2626', fontWeight: 700 }}>Expense</span>.</div>
+                <div style={{ marginBottom: 6 }}><strong>3. Check each Category.</strong> The AI took its best guess — fix any that look wrong, because the category is what shows on your P&amp;L and at tax time.</div>
+                <div style={{ color: '#3730a3' }}>Then tap <strong>✅ Import selected</strong>. Nothing is saved until you do — and you can always remove an import later.</div>
+              </div>
+              <button onClick={() => setShowImportGuide(false)}
+                style={{ marginTop: 10, padding: '8px 16px', borderRadius: 8, border: 'none', background: '#3b82f6', color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+                Got it — let's review
+              </button>
+            </div>
+          )}
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center', marginBottom: 12 }}>
             <SummaryCard label="Will add — Expenses" value={fmtCurrency(includedExp)} sub={`${lines.filter(l => l.include && l.direction === 'expense').length} items`} color="#dc2626" />
             <SummaryCard label="Will add — Income" value={fmtCurrency(includedInc)} sub={`${lines.filter(l => l.include && l.direction === 'income').length} items`} color="#10b981" />
