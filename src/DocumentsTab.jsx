@@ -693,7 +693,7 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
                               style={{ padding: "5px 12px", borderRadius: 6, border: "1px solid #DDDDDD", background: "#fff", cursor: "pointer", fontSize: 12, color: COLORS.info, fontWeight: 600 }}>
                               👁 View
                             </button>
-                            {/pdf$/i.test(doc.mime_type || "") && !coordinatorMode && (
+                            {/pdf$/i.test(doc.mime_type || "") && (
                               <button onClick={() => setSignDoc({ doc })}
                                 title={waiting ? "See who has signed, or cancel the signing links" : "Email a private e-signing link — the signed copy files back here"}
                                 style={{ padding: "5px 12px", borderRadius: 6, border: "1px solid #d8b4fe", background: "#faf5ff", cursor: "pointer", fontSize: 12, color: "#86198f", fontWeight: 600 }}>

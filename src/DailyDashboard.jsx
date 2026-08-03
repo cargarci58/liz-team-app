@@ -1585,7 +1585,7 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
       {/* 🚨 ALERTS = only things that DEMAND attention (Carlos 7/23: "alerts
           should be extremely past due… the green-checkmark ones aren't alerts").
           FYI notices (signed docs, feedback) live in a collapsed drawer below. */}
-      {!coordinatorMode && (recentAlerts.length > 0 || unmatchedEmails.length > 0) && (() => {
+      {(recentAlerts.length > 0 || unmatchedEmails.length > 0) && (() => {
         const ALERT_KINDS = new Set(["reminder_overdue", "email_needs_filing"]);
         // A reminder that already has its own card in ⏰ YOUR REMINDERS below
         // must not ALSO show as an alert box — same reminder twice on one screen
