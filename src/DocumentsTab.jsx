@@ -1941,6 +1941,8 @@ function ListingPackageModal({ tx, headers, dealDocs = [], onClose, onDone }) {
           hoaContactPhone: prev.hoaContactPhone || d.defaults.hoaContactPhone || "",
           hoaContactEmail: prev.hoaContactEmail || d.defaults.hoaContactEmail || "",
           bbcPct: prev.bbcPct || d.defaults.buyerBrokerComp || "",
+          hoaWebsite: prev.hoaWebsite || d.defaults.hoaWebsite || "",
+          hoaFeePeriod: prev.hoaFeePeriod !== "month" ? prev.hoaFeePeriod : (d.defaults.hoaFeePeriod || "month"),
         }));
       })
       .catch(e => setErr(e.message));
@@ -2130,10 +2132,15 @@ function ListingPackageModal({ tx, headers, dealDocs = [], onClose, onDone }) {
                       if (!f.terminationDate) fields.push("terminationDate");
                       if (!f.personalProperty) fields.push("personalProperty");
                       if (!f.additionalTerms) fields.push("additionalTerms");
+                      if (!f.beginDate) fields.push("beginDate");
+                      if (!f.legalDescription) fields.push("legalDescription");
                       if (tx.inHoa !== false && tx.in_hoa !== false) {
                         if (!f.communityName) fields.push("communityName");
                         if (!f.hoaFee) fields.push("hoaFee");
                         if (!f.hoaContactName) fields.push("hoaContactName");
+                        if (!f.hoaContactPhone) fields.push("hoaContactPhone");
+                        if (!f.hoaContactEmail) fields.push("hoaContactEmail");
+                        if (!f.hoaWebsite) fields.push("hoaWebsite");
                       }
                       const r = await fetch(`${API}/transactions/${tx.id}/request-info`, { method: "POST", headers: { ...headers, "Content-Type": "application/json" }, body: JSON.stringify({ fields }) });
                       const d = await r.json();
