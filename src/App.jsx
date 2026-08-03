@@ -5686,6 +5686,15 @@ function NextStepStrip({ txId, coordinatorMode, onOpenTimeline }) {
     return () => { dead = true; };
   }, [txId, coordinatorMode]);
   if (!next) return null;
+  // Raw milestone names mislead here: "Closing Scheduled — due Aug 10" read as
+  // "closing happens Aug 10" when it means BOOK the appointment (Carlos 8/3).
+  const stripLabel = (nm) => {
+    const n = String(nm || "");
+    if (/closing scheduled/i.test(n)) return "Book the closing appointment (date, time & place)";
+    if (/appraisal received/i.test(n)) return "Appraisal report back from the lender";
+    if (/appraisal ordered/i.test(n)) return "Lender orders the appraisal";
+    return n;
+  };
   const today = new Date().toLocaleDateString("en-CA", { timeZone: "America/New_York" });
   const due = typeof next.due_date === "string" ? next.due_date.split("T")[0] : next.due_date ? new Date(next.due_date).toISOString().split("T")[0] : null;
   const isOverdue = due && due < today;
@@ -5695,7 +5704,7 @@ function NextStepStrip({ txId, coordinatorMode, onOpenTimeline }) {
       style={{ background: isOverdue ? "#FEF2F2" : "#F0FDF4", borderBottom: `1px solid ${isOverdue ? "#FECACA" : "#BBF7D0"}`, padding: "10px 24px", display: "flex", alignItems: "center", gap: 10, cursor: "pointer", flexWrap: "wrap" }}>
       <span style={{ fontSize: 16 }}>{isOverdue ? "⚠️" : "👉"}</span>
       <span style={{ fontSize: 13.5, color: isOverdue ? "#7F1D1D" : "#14532D" }}>
-        <b>{isOverdue ? "Behind: " : "Next step: "}</b>{next.name}{dueLabel}
+        <b>{isOverdue ? "Behind: " : "Next step: "}</b>{stripLabel(next.name)}{dueLabel}
       </span>
       <span style={{ marginLeft: "auto", fontSize: 12.5, fontWeight: 800, color: isOverdue ? "#B91C1C" : "#166534" }}>Open the timeline →</span>
     </div>
