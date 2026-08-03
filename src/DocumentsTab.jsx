@@ -708,7 +708,7 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
                           style={{ padding: "5px 10px", borderRadius: 6, border: "1px solid #DDDDDD", background: "#fff", cursor: "pointer", fontSize: 13, fontWeight: 700, color: COLORS.text }}>⋯</button>
                         {rowMenu === doc.id && (
                           <>
-                            <div onClick={() => setRowMenu(null)} style={{ position: "fixed", inset: 0, zIndex: 60 }} />
+                            <div onMouseDown={e => { if (e.target === e.currentTarget) e.currentTarget.dataset.dob = "1"; else delete e.currentTarget.dataset.dob; }} onClick={e => { if (e.target === e.currentTarget && e.currentTarget.dataset.dob === "1") setRowMenu(null); delete e.currentTarget.dataset.dob; }} style={{ position: "fixed", inset: 0, zIndex: 60 }} />
                             <div style={{ position: "absolute", right: 0, top: "100%", marginTop: 4, background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, boxShadow: "0 8px 24px rgba(0,0,0,0.16)", zIndex: 61, minWidth: 230, padding: 4 }}>
                               {[
                                 { icon: "📤", label: "Email to someone on the deal", fn: () => setShare({ doc }) },
@@ -802,7 +802,7 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
 
       {/* Preview modal */}
       {preview && (
-        <div onClick={() => setPreview(null)}
+        <div onMouseDown={e => { if (e.target === e.currentTarget) e.currentTarget.dataset.dob = "1"; else delete e.currentTarget.dataset.dob; }} onClick={e => { if (e.target === e.currentTarget && e.currentTarget.dataset.dob === "1") setPreview(null); delete e.currentTarget.dataset.dob; }}
           style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", zIndex: 1000, display: "flex", flexDirection: "column", padding: 24 }}>
           <div onClick={(e) => e.stopPropagation()}
             style={{ background: "#fff", borderRadius: 12, flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", maxWidth: 1000, width: "100%", margin: "0 auto" }}>

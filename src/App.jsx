@@ -4839,7 +4839,7 @@ function InboundRepliesPanel({ tx, coordinatorMode = false, onInboundRead }) {
                   )}
 
                   {docPicker && (
-                    <div onClick={() => setDocPicker(false)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 1000, display: "flex", alignItems: "flex-start", justifyContent: "center", padding: 16, overflowY: "auto" }}>
+                    <div onMouseDown={e => { if (e.target === e.currentTarget) e.currentTarget.dataset.dob = "1"; else delete e.currentTarget.dataset.dob; }} onClick={e => { if (e.target === e.currentTarget && e.currentTarget.dataset.dob === "1") setDocPicker(false); delete e.currentTarget.dataset.dob; }} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 1000, display: "flex", alignItems: "flex-start", justifyContent: "center", padding: 16, overflowY: "auto" }}>
                       <div onClick={e => e.stopPropagation()} style={{ background: "#fff", borderRadius: 12, maxWidth: 520, width: "100%", margin: "auto", padding: 20, boxShadow: "0 10px 40px rgba(0,0,0,0.25)" }}>
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
                           <div style={{ fontWeight: 800, fontSize: 16, color: COLORS.navy }}>📎 Attach from Documents</div>
@@ -6056,7 +6056,7 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
           <button onClick={() => setShowTxMore(v => !v)} title="More actions" style={{ fontSize: 15, padding: "5px 12px", borderRadius: 6, border: "1px solid rgba(255,255,255,0.35)", background: "rgba(255,255,255,0.12)", color: "#fff", cursor: "pointer", fontFamily: "inherit", fontWeight: 700 }}>⋯</button>
           {showTxMore && (
             <>
-              <div onClick={() => setShowTxMore(false)} style={{ position: "fixed", inset: 0, zIndex: 200 }} />
+              <div onMouseDown={e => { if (e.target === e.currentTarget) e.currentTarget.dataset.dob = "1"; else delete e.currentTarget.dataset.dob; }} onClick={e => { if (e.target === e.currentTarget && e.currentTarget.dataset.dob === "1") setShowTxMore(false); delete e.currentTarget.dataset.dob; }} style={{ position: "fixed", inset: 0, zIndex: 200 }} />
               <div style={{ position: "absolute", right: 0, top: "100%", marginTop: 4, background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, boxShadow: "0 8px 24px rgba(0,0,0,0.18)", zIndex: 201, minWidth: 230, padding: 4 }}>
                 {[
                   !isGuest && { icon: "👁", label: "Preview Client Portal", fn: () => setShowPortalPreview(true) },
@@ -6119,7 +6119,7 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
             ); })()}
             {showMoreTabs && (
               <>
-                <div onClick={() => setShowMoreTabs(false)} style={{ position: "fixed", inset: 0, zIndex: 299 }} />
+                <div onMouseDown={e => { if (e.target === e.currentTarget) e.currentTarget.dataset.dob = "1"; else delete e.currentTarget.dataset.dob; }} onClick={e => { if (e.target === e.currentTarget && e.currentTarget.dataset.dob === "1") setShowMoreTabs(false); delete e.currentTarget.dataset.dob; }} style={{ position: "fixed", inset: 0, zIndex: 299 }} />
                 {/* FIXED position: the tab bar scrolls horizontally (overflowX:auto),
                     which CLIPS absolutely-positioned children — the menu opened but
                     was invisible. Anchored to the button's viewport rect instead. */}
@@ -6802,7 +6802,7 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
         </div>
       )}
       {paywallFeature && (
-        <div onClick={() => setPaywallFeature(null)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)", zIndex: 9999, display: "flex", alignItems: "flex-start", justifyContent: "center", padding: 16, overflowY: "auto" }}>
+        <div onMouseDown={e => { if (e.target === e.currentTarget) e.currentTarget.dataset.dob = "1"; else delete e.currentTarget.dataset.dob; }} onClick={e => { if (e.target === e.currentTarget && e.currentTarget.dataset.dob === "1") setPaywallFeature(null); delete e.currentTarget.dataset.dob; }} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)", zIndex: 9999, display: "flex", alignItems: "flex-start", justifyContent: "center", padding: 16, overflowY: "auto" }}>
           <div onClick={e => e.stopPropagation()} style={{ background: "#fff", borderRadius: 16, padding: 28, maxWidth: 420, width: "100%", textAlign: "center", boxShadow: "0 20px 60px rgba(0,0,0,0.3)", margin: "auto" }}>
             <div style={{ fontSize: 44, marginBottom: 10 }}>✨</div>
             <div style={{ fontSize: 19, fontWeight: 800, color: COLORS.navy, marginBottom: 8 }}>{paywallFeature} is a paid feature</div>
@@ -7996,7 +7996,7 @@ function ContactAutocomplete({ token, onSelect }) {
       />
       {open && results.length > 0 && (
         <>
-          <div onClick={() => setOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 200 }} />
+          <div onMouseDown={e => { if (e.target === e.currentTarget) e.currentTarget.dataset.dob = "1"; else delete e.currentTarget.dataset.dob; }} onClick={e => { if (e.target === e.currentTarget && e.currentTarget.dataset.dob === "1") setOpen(false); delete e.currentTarget.dataset.dob; }} style={{ position: "fixed", inset: 0, zIndex: 200 }} />
           <div style={{ position: "absolute", top: "100%", left: 0, right: 0, marginTop: 2, background: "white", border: "1px solid #d1d5db", borderRadius: 6, boxShadow: "0 6px 18px rgba(0,0,0,0.18)", zIndex: 201, maxHeight: 280, overflowY: "auto" }}>
             {results.map(c => {
               const name = [c.first_name, c.last_name].filter(Boolean).join(" ") || c.email || c.phone || "(no name)";
@@ -8054,7 +8054,7 @@ function ToolsMenu({ coordinatorMode, onOpenPopBys, onOpenScripts, onOpenCMA, on
       </button>
       {open && (
         <>
-          <div onClick={() => setOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 200 }} />
+          <div onMouseDown={e => { if (e.target === e.currentTarget) e.currentTarget.dataset.dob = "1"; else delete e.currentTarget.dataset.dob; }} onClick={e => { if (e.target === e.currentTarget && e.currentTarget.dataset.dob === "1") setOpen(false); delete e.currentTarget.dataset.dob; }} style={{ position: "fixed", inset: 0, zIndex: 200 }} />
           <div style={{ position: "absolute", right: 0, top: "100%", marginTop: 4, background: "white", border: "1px solid #e5e7eb", borderRadius: 8, boxShadow: "0 8px 24px rgba(0,0,0,0.18)", zIndex: 201, minWidth: 230, padding: 4 }}>
             {items.filter(it => it[2]).map(([icon, label, fn], i) => (
               <button key={i} onClick={() => { setOpen(false); fn(); }}
@@ -8182,7 +8182,7 @@ function SettingsMenu({ currentUser, onOpenContactBook, contactCount, onReports,
       </button>
       {open && (
         <>
-          <div onClick={() => setOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 200 }} />
+          <div onMouseDown={e => { if (e.target === e.currentTarget) e.currentTarget.dataset.dob = "1"; else delete e.currentTarget.dataset.dob; }} onClick={e => { if (e.target === e.currentTarget && e.currentTarget.dataset.dob === "1") setOpen(false); delete e.currentTarget.dataset.dob; }} style={{ position: "fixed", inset: 0, zIndex: 200 }} />
           <div style={{ position: "absolute", right: 0, top: "100%", marginTop: 4, background: "white", border: "1px solid #e5e7eb", borderRadius: 8, boxShadow: "0 8px 24px rgba(0,0,0,0.18)", zIndex: 201, minWidth: 240, padding: 4 }}>
             {items.map((it, i) => it.divider ? (
               <div key={i} style={{ height: 1, background: "#e5e7eb", margin: "6px 8px" }} />
@@ -8844,7 +8844,7 @@ function Dashboard({ transactions, coordinatorMode = false, unreadCounts = {}, o
           <button onClick={() => setShowViewsMenu(v => !v)} title="Layout & saved views" style={{ padding: "7px 12px", borderRadius: 8, border: `1px solid ${COLORS.border}`, background: "#fff", color: COLORS.text, fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 6 }}>🗂 Views {savedViews.length > 0 && <span style={{ background: COLORS.bg, color: COLORS.muted, borderRadius: 10, padding: "1px 7px", fontSize: 11, fontWeight: 700 }}>{savedViews.length}</span>} <span style={{ fontSize: 9 }}>▾</span></button>
           {showViewsMenu && (
             <>
-              <div onClick={() => setShowViewsMenu(false)} style={{ position: "fixed", inset: 0, zIndex: 100 }} />
+              <div onMouseDown={e => { if (e.target === e.currentTarget) e.currentTarget.dataset.dob = "1"; else delete e.currentTarget.dataset.dob; }} onClick={e => { if (e.target === e.currentTarget && e.currentTarget.dataset.dob === "1") setShowViewsMenu(false); delete e.currentTarget.dataset.dob; }} style={{ position: "fixed", inset: 0, zIndex: 100 }} />
               <div style={{ position: "absolute", top: "calc(100% + 6px)", right: 0, background: "#fff", border: `1px solid ${COLORS.border}`, borderRadius: 10, boxShadow: "0 8px 24px rgba(0,0,0,0.15)", minWidth: 280, maxWidth: 360, zIndex: 101, maxHeight: 400, overflowY: "auto" }}>
                 <div style={{ padding: "10px 14px", borderBottom: `1px solid ${COLORS.border}`, fontSize: 11, fontWeight: 700, color: COLORS.muted, textTransform: "uppercase", letterSpacing: "0.06em" }}>Layout</div>
                 {[["cards", "▦ Cards"], ["list", "☰ List"], ["kanban", "⋮⋮ Pipeline"]].map(([mode, label]) => (
@@ -9400,7 +9400,7 @@ function TenantSwitcher({ currentUser }) {
       </button>
       {open && (
         <>
-          <div onClick={() => setOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 998 }} />
+          <div onMouseDown={e => { if (e.target === e.currentTarget) e.currentTarget.dataset.dob = "1"; else delete e.currentTarget.dataset.dob; }} onClick={e => { if (e.target === e.currentTarget && e.currentTarget.dataset.dob === "1") setOpen(false); delete e.currentTarget.dataset.dob; }} style={{ position: "fixed", inset: 0, zIndex: 998 }} />
           <div style={{ position: "absolute", top: "calc(100% + 6px)", right: 0, background: "#fff", border: "1px solid #DDD", borderRadius: 10, boxShadow: "0 8px 24px rgba(0,0,0,0.15)", minWidth: 240, zIndex: 999, overflow: "hidden" }}>
             <div style={{ padding: "10px 14px", fontSize: 11, color: "#888", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", borderBottom: "1px solid #EEE" }}>Switch Brokerage</div>
             {memberships.map(m => {
@@ -10087,7 +10087,7 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
         );
       })()}
       {paywallFeature && (
-        <div onClick={() => setPaywallFeature(null)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)", zIndex: 99999, display: "flex", alignItems: "flex-start", justifyContent: "center", padding: 16, overflowY: "auto" }}>
+        <div onMouseDown={e => { if (e.target === e.currentTarget) e.currentTarget.dataset.dob = "1"; else delete e.currentTarget.dataset.dob; }} onClick={e => { if (e.target === e.currentTarget && e.currentTarget.dataset.dob === "1") setPaywallFeature(null); delete e.currentTarget.dataset.dob; }} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)", zIndex: 99999, display: "flex", alignItems: "flex-start", justifyContent: "center", padding: 16, overflowY: "auto" }}>
           <div onClick={e => e.stopPropagation()} style={{ background: "#fff", borderRadius: 16, padding: 28, maxWidth: 420, width: "100%", textAlign: "center", boxShadow: "0 20px 60px rgba(0,0,0,0.3)", fontFamily: "'Segoe UI', system-ui, sans-serif", margin: "auto" }}>
             <div style={{ fontSize: 44, marginBottom: 10 }}>✨</div>
             <div style={{ fontSize: 19, fontWeight: 800, color: "#1a2332", marginBottom: 8 }}>{paywallFeature} is a paid feature</div>
