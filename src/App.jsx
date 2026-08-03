@@ -5804,9 +5804,17 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
   useEffect(() => {
     if (tx.isGuestView) return;
     const tok = localStorage.getItem("tp_token") || "";
-    fetch(`https://liz-team-server-api-production.up.railway.app/transactions/${tx.id}/inbound-emails/unread-count`, { headers: { Authorization: "Bearer " + tok } })
+    const load = () => fetch(`https://liz-team-server-api-production.up.railway.app/transactions/${tx.id}/inbound-emails/unread-count`, { headers: { Authorization: "Bearer " + tok } })
       .then(r => r.json()).then(d => setUnreadReplyCount(d.count || 0)).catch(() => {});
-  }, [tx.id]);
+    load();
+    // Keep polling while the deal is open: a reply that lands WHILE the agent is
+    // sitting on Client replies must still flow count>0 → mark-read → clear the
+    // global 🔔 chip. The one-shot fetch left the count stale at 0, so mark-read
+    // never fired and the chip looked dead when clicked (Carlos 8/3). navSignal
+    // dep = clicking the chip re-fetches instantly instead of waiting 15s.
+    const iv = setInterval(load, 15000);
+    return () => clearInterval(iv);
+  }, [tx.id, navSignal]);
   useEffect(() => {
     // The agent is "viewing replies" either on the legacy standalone tab OR the
     // merged Messages hub (activeTab "messages" + the Replies section). The old
