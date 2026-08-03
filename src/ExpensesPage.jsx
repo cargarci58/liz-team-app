@@ -337,7 +337,16 @@ export default function ExpensesPage({ onBack }) {
 
       {activeTab === 'income' && <IncomeTab />}
       {activeTab === 'budget' && <BudgetTab categories={categories} />}
-      {activeTab === 'pnl' && <PnLTab />}
+      {activeTab === 'pnl' && (
+        <>
+          {/* Obvious manual-entry doors on the full-details screen (Carlos 7/31). */}
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 14 }}>
+            <button onClick={() => setActiveTab('income')} style={secondaryBtn}>➕ Enter manually money I made</button>
+            <button onClick={() => setActiveTab('expenses')} style={secondaryBtn}>➖ Enter manually money I spent</button>
+          </div>
+          <PnLTab />
+        </>
+      )}
       {activeTab === 'balance' && <BalanceSheetTab />}
       {activeTab === 'import' && <ImportTab categories={categories} onCommitted={() => loadExpenses()} />}
       {activeTab === '1099' && <Contractors1099Tab />}
@@ -838,11 +847,13 @@ function AddExpenseModal({ categories, expense, allExpenses, onClose, onSaved })
           <input type="date" value={occurredAt} onChange={e => setOccurredAt(e.target.value)} style={inputStyle} />
         </Field>
         <Field label="Category">
-          <select value={category} onChange={e => setCategory(e.target.value)} style={inputStyle}>
+          <select value={category} onChange={async e => { const v = e.target.value; if (v === '__add_new_category__') { const n = await promptNewCategory(); if (n) setCategory(n); } else setCategory(v); }} style={inputStyle}>
             <option value="">— pick one —</option>
+            {category && !categories.some(c => c.name === category) && <option value={category}>{category}</option>}
             {categories.map(c => (
               <option key={c.id} value={c.name}>{c.name}</option>
             ))}
+            <option value="__add_new_category__">➕ New category…</option>
           </select>
         </Field>
       </div>
@@ -1125,8 +1136,8 @@ function SimpleMoneyView({ categories, goAdvanced }) {
                 <div style={{ fontSize: 13, color: '#6b7280', marginBottom: 8 }}>The easiest way is to upload a bank statement — we'll sort it for you. Or add things one at a time.</div>
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                   <button onClick={() => goAdvanced('import')} style={primaryBtn('#3b82f6')}>🏦 Upload a bank statement</button>
-                  <button onClick={() => setShowAddIncome(true)} style={secondaryBtn}>➕ Money I made</button>
-                  <button onClick={() => setShowAddExpense(true)} style={secondaryBtn}>➖ Money I spent</button>
+                  <button onClick={() => setShowAddIncome(true)} style={secondaryBtn}>➕ Enter money I made (one at a time)</button>
+                  <button onClick={() => setShowAddExpense(true)} style={secondaryBtn}>➖ Enter money I spent (one at a time)</button>
                 </div>
               </Step>
 
@@ -1213,8 +1224,8 @@ function SimpleMoneyView({ categories, goAdvanced }) {
 
           {/* QUICK ACTIONS */}
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center' }}>
-            <button onClick={() => setShowAddIncome(true)} style={primaryBtn('#10b981')}>➕ Money I made</button>
-            <button onClick={() => setShowAddExpense(true)} style={primaryBtn('#dc2626')}>➖ Money I spent</button>
+            {/* Manual entry moved BEHIND "See the full details" (Carlos 7/31:
+                the first screen was confusing — keep it to two clear choices). */}
             <button onClick={() => goAdvanced('import')} style={primaryBtn('#3b82f6')}>🏦 Upload a bank statement</button>
             <button onClick={() => goAdvanced('pnl')} style={secondaryBtn}>📈 See the full details</button>
           </div>
@@ -1348,6 +1359,19 @@ function BillsSetupModal({ existing, onClose, onSaved }) {
 // INCOME TAB — manual / other (non-commission) income
 // ============================================================
 const INCOME_CATEGORIES = ['Commission (manual)', 'Referral Fee', 'Rental Income', 'BPO / Valuation', 'Bonus', 'Sign / Lockbox Rebate', 'Other Income'];
+
+// "➕ New category…" on the spot (Carlos 7/31: wanted "Owner's Withdrawal", no
+// way to add it). Prompts, saves it to the brokerage's category list, returns
+// the name (or null if cancelled). Works from any category dropdown.
+async function promptNewCategory() {
+  const name = (window.prompt("Name the new category (e.g. Owner's Withdrawal):") || "").trim();
+  if (!name) return null;
+  try {
+    await authFetch('/expenses/categories', { method: 'POST', body: JSON.stringify({ name }) });
+  } catch { /* even if saving the list fails, the name still works on this item */ }
+  return name;
+}
+
 
 function IncomeTab() {
   const [rows, setRows] = useState([]);
@@ -1500,8 +1524,10 @@ function IncomeModal({ entry, onClose, onSaved }) {
         <Field label="Date *"><input type="date" value={occurredAt} onChange={e => setOccurredAt(e.target.value)} style={inputStyle} /></Field>
         <Field label="Source" hint="Who paid you"><input value={source} onChange={e => setSource(e.target.value)} placeholder="e.g. ABC Realty referral" style={inputStyle} /></Field>
         <Field label="Category">
-          <select value={category} onChange={e => setCategory(e.target.value)} style={inputStyle}>
+          <select value={category} onChange={async e => { const v = e.target.value; if (v === '__add_new_category__') { const n = await promptNewCategory(); if (n) setCategory(n); } else setCategory(v); }} style={inputStyle}>
+            {category && !INCOME_CATEGORIES.includes(category) && <option value={category}>{category}</option>}
             {INCOME_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+            <option value="__add_new_category__">➕ New category…</option>
           </select>
         </Field>
       </div>
@@ -2865,9 +2891,10 @@ function ImportTab({ categories, onCommitted }) {
                       </select>
                     </Td>
                     <Td>
-                      <select value={l.category} onChange={e => updateLine(l.id, { category: e.target.value })} style={{ ...inputStyle, padding: '4px 6px', fontSize: 12, minWidth: 130 }}>
+                      <select value={l.category} onChange={async e => { const v = e.target.value; if (v === '__add_new_category__') { const n = await promptNewCategory(); if (n) updateLine(l.id, { category: n }); } else updateLine(l.id, { category: v }); }} style={{ ...inputStyle, padding: '4px 6px', fontSize: 12, minWidth: 130 }}>
                         {!allCatOptions.includes(l.category) && <option value={l.category}>{l.category}</option>}
                         {allCatOptions.map(c => <option key={c} value={c}>{c}</option>)}
+                        <option value="__add_new_category__">➕ New category…</option>
                       </select>
                     </Td>
                     <Td align="right"><input type="number" step="0.01" value={l.amount} onChange={e => updateLine(l.id, { amount: e.target.value })} style={{ ...inputStyle, padding: '4px 6px', fontSize: 12, maxWidth: 100, textAlign: 'right', fontWeight: 600 }} /></Td>
