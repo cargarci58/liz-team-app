@@ -146,6 +146,14 @@ export default function ExpensesPage({ onBack }) {
       console.error('Load categories failed:', e);
     }
   };
+  // A category added on the spot (➕ New category…) must appear in EVERY open
+  // dropdown immediately — not after a page reload (Carlos 8/3).
+  useEffect(() => {
+    const onChanged = () => loadCategories();
+    window.addEventListener('tp:categories-changed', onChanged);
+    return () => window.removeEventListener('tp:categories-changed', onChanged);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const loadExpenses = async () => {
     setLoading(true);
@@ -1393,6 +1401,7 @@ async function promptNewCategory() {
   if (!name) return null;
   try {
     await authFetch('/expenses/categories', { method: 'POST', body: JSON.stringify({ name }) });
+    window.dispatchEvent(new Event('tp:categories-changed'));
   } catch { /* even if saving the list fails, the name still works on this item */ }
   return name;
 }
