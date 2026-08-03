@@ -1913,6 +1913,7 @@ function ListingPackageModal({ tx, headers, dealDocs = [], onClose, onDone }) {
     legalDescription: "", communityName: "", associationName: "", aaInterestDesc: "",
     hoaFee: "", hoaFeePeriod: "month",
     hoaContactName: "", hoaContactPhone: "", hoaContactEmail: "", hoaWebsite: "",
+    occupiedByTenant: "no", leaseExpires: "",
     lockbox: true, withholdVerbal: false, withholdAll: false, noAvm: false, noComments: false,
     finCash: true, finConventional: true, finVa: false, finFha: false,
   });
@@ -1943,6 +1944,8 @@ function ListingPackageModal({ tx, headers, dealDocs = [], onClose, onDone }) {
           bbcPct: prev.bbcPct || d.defaults.buyerBrokerComp || "",
           hoaWebsite: prev.hoaWebsite || d.defaults.hoaWebsite || "",
           hoaFeePeriod: prev.hoaFeePeriod !== "month" ? prev.hoaFeePeriod : (d.defaults.hoaFeePeriod || "month"),
+          occupiedByTenant: d.defaults.occupiedByTenant || prev.occupiedByTenant,
+          leaseExpires: prev.leaseExpires || d.defaults.leaseExpires || "",
         }));
       })
       .catch(e => setErr(e.message));
@@ -2133,6 +2136,7 @@ function ListingPackageModal({ tx, headers, dealDocs = [], onClose, onDone }) {
                       if (!f.personalProperty) fields.push("personalProperty");
                       if (!f.additionalTerms) fields.push("additionalTerms");
                       if (!f.beginDate) fields.push("beginDate");
+                      if (f.occupiedByTenant === "yes" && !f.leaseExpires) fields.push("leaseExpires");
                       if (!f.legalDescription) fields.push("legalDescription");
                       if (tx.inHoa !== false && tx.in_hoa !== false) {
                         if (!f.communityName) fields.push("communityName");
@@ -2187,6 +2191,14 @@ function ListingPackageModal({ tx, headers, dealDocs = [], onClose, onDone }) {
               <div style={row}>
                 <div style={col(300)}><label style={lbl}>Legal description (optional)</label><input value={f.legalDescription} onChange={e => set({ legalDescription: e.target.value })} style={inp} /></div>
                 <div style={col(300)}><label style={lbl}>Personal property included (optional)</label><input value={f.personalProperty} onChange={e => set({ personalProperty: e.target.value })} placeholder="e.g. refrigerator, washer, dryer" style={inp} /></div>
+                <div style={col(190)}>
+                  <label style={lbl}>Currently occupied by a tenant?</label>
+                  <select value={f.occupiedByTenant} onChange={e => set({ occupiedByTenant: e.target.value })} style={inp}>
+                    <option value="no">No — vacant / owner-occupied</option>
+                    <option value="yes">Yes — tenant occupied</option>
+                  </select>
+                </div>
+                {f.occupiedByTenant === "yes" && <div style={col(150)}><label style={lbl}>Lease term expires</label><input value={f.leaseExpires} onChange={e => set({ leaseExpires: e.target.value })} placeholder="MM/DD/YYYY" style={inp} /></div>}
               </div>
               <div style={{ marginBottom: 12 }}>
                 <label style={lbl}>Additional terms (optional)</label>
