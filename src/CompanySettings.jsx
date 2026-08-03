@@ -158,6 +158,14 @@ export default function CompanySettings({ onClose, onChangePassword }) {
           {field("MLS ID (Broker)", "mlsId", "text", "e.g. 270000-1")}
           {field("NAR Member ID", "narMemberId", "text", "Optional")}
 
+          {/* Listing defaults — pre-fill every new listing's business terms so
+              the listing package opens ready (agents just confirm). */}
+          <div style={{ fontSize: 13, fontWeight: 700, color: "#C0392B", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6, marginTop: 8 }}>Listing Defaults</div>
+          <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 14 }}>Every new listing starts with these (always editable per deal). Set once, stop retyping.</div>
+          {field("Standard listing commission (%)", "defaultCommissionListing", "number", "e.g. 6")}
+          {field("Standard listing term (months)", "defaultListingTermMonths", "number", "e.g. 6")}
+          {field("Standard buyer-broker compensation (%)", "defaultBuyerBrokerComp", "number", "e.g. 2.5")}
+
           {/* Tax / Entity Info — needed for W-9 generation */}
           <div style={{ fontSize: 13, fontWeight: 700, color: "#C0392B", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 16, marginTop: 8 }}>Tax & Entity Info</div>
           <div style={{ marginBottom: 16 }}>

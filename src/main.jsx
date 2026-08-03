@@ -11,6 +11,7 @@ import OfferSignPublic from './OfferSignPublic'
 import MilestoneActionPublic from './MilestoneActionPublic'
 import PortalMagicLogin from './PortalMagicLogin'
 import TcIntakePublic from './TcIntakePublic'
+import FillInfoPublic from './FillInfoPublic'
 
 // Stale-deploy self-heal: after a new Netlify build, the hashed JS chunks
 // change. A tab that was already open (or one served the SPA index.html
@@ -49,7 +50,7 @@ window.fetch = async function patchedFetch(input, init) {
       const isPublicPath = path.startsWith('/upload/') || path.startsWith('/reset-password') ||
                            path.startsWith('/form-download/') || path.startsWith('/upload-contract/') ||
                            path.startsWith('/review-offers/') || path.startsWith('/milestone-action/') ||
-                           path.startsWith('/tc-intake/') || path.startsWith('/portal/');
+                           path.startsWith('/tc-intake/') || path.startsWith('/portal/') || path.startsWith('/fill-info/');
       if (!isPublicPath) {
         __reloadingForAuth = true;
         try { localStorage.removeItem('tp_token'); localStorage.removeItem('tp_user'); } catch (_) {}
@@ -87,6 +88,8 @@ else if (path.startsWith('/form-download/')) {
 } else if (path.startsWith('/portal/')) {
   const token = path.split('/portal/')[1];
   Root = <PortalMagicLogin urlToken={token} />;
+} else if (path.startsWith('/fill-info/')) {
+  Root = <FillInfoPublic token={path.split('/fill-info/')[1]} />;
 } else if (path.startsWith('/tc-intake/')) {
   const tcUserId = path.split('/tc-intake/')[1];
   Root = <TcIntakePublic tcUserId={tcUserId} />;

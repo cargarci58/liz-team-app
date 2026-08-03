@@ -1933,6 +1933,11 @@ function ListingPackageModal({ tx, headers, dealDocs = [], onClose, onDone }) {
           protectionDays: d.defaults.protectionDays || "30",
           retainedDepositsPct: d.defaults.retainedDepositsPct || "50",
           legalDescription: d.defaults.legalDescription || "",
+          communityName: prev.communityName || d.defaults.communityName || "",
+          hoaFee: prev.hoaFee || d.defaults.hoaFee || "",
+          hoaContactName: prev.hoaContactName || d.defaults.hoaContactName || "",
+          hoaContactPhone: prev.hoaContactPhone || d.defaults.hoaContactPhone || "",
+          hoaContactEmail: prev.hoaContactEmail || d.defaults.hoaContactEmail || "",
         }));
       })
       .catch(e => setErr(e.message));
@@ -2106,6 +2111,30 @@ function ListingPackageModal({ tx, headers, dealDocs = [], onClose, onDone }) {
               {!sellers.length && <div style={{ fontSize: 13, color: "#943126", marginBottom: 10 }}>No sellers found on this deal — add them under the People tab first.</div>}
               {pre.agentName && <div style={{ fontSize: 12, color: "#555", margin: "2px 0 12px" }}>✍️ You ({pre.agentName}) sign too — you'll get your own signing link for the broker lines.</div>}
 
+              {/* Assistant/TC delegation: business terms missing → one tap asks
+                  the AGENT via a phone-friendly magic form (Carlos 8/3). */}
+              {(!f.commissionPct || !f.price) && (
+                <div style={{ background: "#fffbeb", border: "1px solid #fcd34d", borderRadius: 10, padding: "10px 14px", marginBottom: 12, display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                  <span style={{ fontSize: 13, color: "#92400e", flex: 1, minWidth: 200 }}>
+                    Missing {[!f.price && "list price", !f.commissionPct && "commission %"].filter(Boolean).join(" and ")}? If the agent has these, ask them — they'll get a 1-minute form on their phone.
+                  </span>
+                  <button onClick={async () => {
+                    try {
+                      const fields = [];
+                      if (!f.price) fields.push("price");
+                      if (!f.commissionPct) fields.push("commissionPct");
+                      if (!f.terminationDate) fields.push("terminationDate");
+                      const r = await fetch(`${API}/transactions/${tx.id}/request-info`, { method: "POST", headers: { ...headers, "Content-Type": "application/json" }, body: JSON.stringify({ fields }) });
+                      const d = await r.json();
+                      if (!d.success) throw new Error(d.error || "Could not send");
+                      alert("📨 Sent! The agent got a text + email with a 1-minute form. You'll be notified when they answer — then reopen this wizard and the values fill in.");
+                    } catch (e2) { alert("⚠️ " + e2.message); }
+                  }}
+                    style={{ padding: "8px 14px", borderRadius: 8, border: "none", background: "#d97706", color: "#fff", fontSize: 12.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>
+                    📨 Ask the agent
+                  </button>
+                </div>
+              )}
               <div style={row}>
                 <div style={col(140)}><label style={lbl}>Listing begins</label><input value={f.beginDate} onChange={e => set({ beginDate: e.target.value })} placeholder="MM/DD/YYYY" style={inp} /></div>
                 <div style={col(140)}><label style={lbl}>Ends (termination)</label><input value={f.terminationDate} onChange={e => set({ terminationDate: e.target.value })} placeholder="MM/DD/YYYY" style={inp} /></div>
