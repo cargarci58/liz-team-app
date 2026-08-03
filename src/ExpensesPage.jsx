@@ -268,7 +268,7 @@ export default function ExpensesPage({ onBack }) {
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <div style={{ display: 'flex', background: 'rgba(255,255,255,0.2)', borderRadius: 20, padding: 3 }}>
-              {[['simple', 'Simple'], ['advanced', 'Accountant view']].map(([k, l]) => (
+              {[['simple', '📸 Quick Snapshot'], ['advanced', '📊 Accountant view']].map(([k, l]) => (
                 <button key={k} onClick={() => setViewMode(k)} style={{
                   border: 'none', cursor: 'pointer', padding: '6px 14px', borderRadius: 18, fontSize: 13, fontWeight: 600,
                   background: viewMode === k ? 'white' : 'transparent', color: viewMode === k ? '#059669' : 'white',
