@@ -570,6 +570,8 @@ export default function ExpensesPage({ onBack }) {
 // ADD / EDIT EXPENSE MODAL
 // ============================================================
 function AddExpenseModal({ categories, expense, allExpenses, onClose, onSaved }) {
+  // "Move the look-alikes too?" — asked with real Yes/No buttons, not Cancel/OK.
+  const [similarPrompt, setSimilarPrompt] = useState(null);
   const isEdit = !!expense;
   const [vendor, setVendor] = useState(expense?.vendor || '');
   const [amount, setAmount] = useState(expense?.amount || '');
@@ -719,15 +721,12 @@ function AddExpenseModal({ categories, expense, allExpenses, onClose, onSaved })
               body: JSON.stringify({ vendor: vend, excludeId: expense.id, category: newCat })
             });
             if (sim && sim.count > 0) {
-              const inCats = (sim.otherCategories || []).filter(Boolean);
-              const where = inCats.length ? `\n\nThey're currently under: ${inCats.join(', ')}.` : '';
-              const ok = window.confirm(`You have ${sim.count} other expense${sim.count === 1 ? '' : 's'} that look like the same merchant${vend ? ` (“${vend}”)` : ''}.${where}\n\nMove them all to “${newCat}” too?`);
-              if (ok) {
-                await authFetch('/expenses/recategorize-by-vendor', {
-                  method: 'POST',
-                  body: JSON.stringify({ ids: sim.matches.map(m => m.id), category: newCat })
-                });
-              }
+              // A clear in-app YES/NO window — the browser's Cancel/OK dialog
+              // was confusing (Carlos 8/3). The single edit is ALREADY saved;
+              // this only asks about the look-alikes.
+              setSaving(false);
+              setSimilarPrompt({ count: sim.count, vendor: vend, newCat, otherCategories: (sim.otherCategories || []).filter(Boolean), ids: sim.matches.map(m => m.id) });
+              return; // onSaved fires from the prompt's buttons
             }
           } catch (e) { /* non-fatal — the single edit already saved */ }
         }
@@ -746,6 +745,32 @@ function AddExpenseModal({ categories, expense, allExpenses, onClose, onSaved })
 
   return (
     <ModalShell onClose={onClose} title={isEdit ? '✏️ Edit Expense' : '➕ Add Expense'} width={620}>
+      {similarPrompt && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 6000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+          <div style={{ background: '#fff', borderRadius: 14, maxWidth: 480, width: '100%', padding: 22 }}>
+            <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 10 }}>Found {similarPrompt.count} more from the same merchant</div>
+            <div style={{ fontSize: 14, color: '#374151', lineHeight: 1.6 }}>
+              This one is saved under <strong>{similarPrompt.newCat}</strong>. You have {similarPrompt.count} other expense{similarPrompt.count === 1 ? '' : 's'} that look{similarPrompt.count === 1 ? 's' : ''} like the same merchant
+              {similarPrompt.vendor ? <> (<em>{similarPrompt.vendor}</em>)</> : null}
+              {similarPrompt.otherCategories.length ? <> — currently under <strong>{similarPrompt.otherCategories.join(', ')}</strong></> : null}.
+              <div style={{ marginTop: 8 }}>Move {similarPrompt.count === 1 ? 'it' : 'them all'} to <strong>{similarPrompt.newCat}</strong> too?</div>
+            </div>
+            <div style={{ display: 'flex', gap: 10, marginTop: 16, justifyContent: 'flex-end' }}>
+              <button onClick={() => { setSimilarPrompt(null); onSaved(); }}
+                style={{ padding: '10px 18px', borderRadius: 8, border: '1px solid #d1d5db', background: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', color: '#374151' }}>
+                No — just this one
+              </button>
+              <button onClick={async () => {
+                try { await authFetch('/expenses/recategorize-by-vendor', { method: 'POST', body: JSON.stringify({ ids: similarPrompt.ids, category: similarPrompt.newCat }) }); } catch { /* single edit already saved */ }
+                setSimilarPrompt(null); onSaved();
+              }}
+                style={{ padding: '10px 18px', borderRadius: 8, border: 'none', background: '#10b981', color: '#fff', fontSize: 14, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit' }}>
+                ✓ Yes — move {similarPrompt.count === 1 ? 'it' : 'them all'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {/* Receipt OCR */}
       {!isEdit && (
         <div style={{
