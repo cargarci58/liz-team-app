@@ -1934,10 +1934,13 @@ function ListingPackageModal({ tx, headers, dealDocs = [], onClose, onDone }) {
           retainedDepositsPct: d.defaults.retainedDepositsPct || "50",
           legalDescription: d.defaults.legalDescription || "",
           communityName: prev.communityName || d.defaults.communityName || "",
+          personalProperty: prev.personalProperty || d.defaults.personalProperty || "",
+          additionalTerms: prev.additionalTerms || d.defaults.additionalTerms || "",
           hoaFee: prev.hoaFee || d.defaults.hoaFee || "",
           hoaContactName: prev.hoaContactName || d.defaults.hoaContactName || "",
           hoaContactPhone: prev.hoaContactPhone || d.defaults.hoaContactPhone || "",
           hoaContactEmail: prev.hoaContactEmail || d.defaults.hoaContactEmail || "",
+          bbcPct: prev.bbcPct || d.defaults.buyerBrokerComp || "",
         }));
       })
       .catch(e => setErr(e.message));
@@ -2113,17 +2116,25 @@ function ListingPackageModal({ tx, headers, dealDocs = [], onClose, onDone }) {
 
               {/* Assistant/TC delegation: business terms missing → one tap asks
                   the AGENT via a phone-friendly magic form (Carlos 8/3). */}
-              {(!f.commissionPct || !f.price) && (
+              {(!f.commissionPct || !f.price || !f.personalProperty || !f.additionalTerms || !f.bbcPct) && (
                 <div style={{ background: "#fffbeb", border: "1px solid #fcd34d", borderRadius: 10, padding: "10px 14px", marginBottom: 12, display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
                   <span style={{ fontSize: 13, color: "#92400e", flex: 1, minWidth: 200 }}>
-                    Missing {[!f.price && "list price", !f.commissionPct && "commission %"].filter(Boolean).join(" and ")}? If the agent has these, ask them — they'll get a 1-minute form on their phone.
+                    Missing details? One tap asks the agent for EVERYTHING still blank — commission (both sides), included appliances, additional terms, HOA info — in a 2-minute form on their phone.
                   </span>
                   <button onClick={async () => {
                     try {
                       const fields = [];
                       if (!f.price) fields.push("price");
                       if (!f.commissionPct) fields.push("commissionPct");
+                      if (f.bbcMode !== "none" && !f.bbcPct) fields.push("buyerBrokerComp");
                       if (!f.terminationDate) fields.push("terminationDate");
+                      if (!f.personalProperty) fields.push("personalProperty");
+                      if (!f.additionalTerms) fields.push("additionalTerms");
+                      if (tx.inHoa !== false && tx.in_hoa !== false) {
+                        if (!f.communityName) fields.push("communityName");
+                        if (!f.hoaFee) fields.push("hoaFee");
+                        if (!f.hoaContactName) fields.push("hoaContactName");
+                      }
                       const r = await fetch(`${API}/transactions/${tx.id}/request-info`, { method: "POST", headers: { ...headers, "Content-Type": "application/json" }, body: JSON.stringify({ fields }) });
                       const d = await r.json();
                       if (!d.success) throw new Error(d.error || "Could not send");
