@@ -2955,7 +2955,12 @@ function ModalShell({ children, onClose, title, width = 560 }) {
 
   return (
     <div
-      onClick={onClose}
+      // Close ONLY on a true backdrop click: press AND release both on the
+      // backdrop. A drag that starts inside a field and drifts out (or a text
+      // selection) must never close the window (Carlos 8/3 — same fix as the
+      // Contacts modals).
+      onMouseDown={e => { if (e.target === e.currentTarget) e.currentTarget.dataset.downOnBackdrop = "1"; else delete e.currentTarget.dataset.downOnBackdrop; }}
+      onClick={e => { if (e.target === e.currentTarget && e.currentTarget.dataset.downOnBackdrop === "1") onClose(); delete e.currentTarget.dataset.downOnBackdrop; }}
       style={{
         position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
         display: 'flex', alignItems: 'flex-start', justifyContent: 'center',
