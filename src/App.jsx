@@ -10043,7 +10043,10 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
               // scrolling to a collapsed drawer looked like "takes me nowhere"
               // (Carlos 8/4).
               setFloatHiddenSig(signAlerts.map(n => n.id).join(","));
-              setView("dashboard"); setSelectedId(null);
+              // Win The Day lives on view "home" — "dashboard" is the
+              // transactions screen (Carlos 8/4: chip dumped him on the deal
+              // list instead of the alerts).
+              setShowReports(false); setShowCalendar(false); setSelectedId(null); setView("home");
               setTimeout(() => window.dispatchEvent(new Event("wintheday:show-alerts")), 400);
             }}
             style={{ background: "#C0392B", color: "#fff", borderRadius: 12, padding: "12px 14px", boxShadow: "0 8px 26px rgba(192,57,43,0.55)", cursor: "pointer", animation: "signAlertIn 0.35s ease, mpulse2 1.6s ease-in-out infinite" }}>
