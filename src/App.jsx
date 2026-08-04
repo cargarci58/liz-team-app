@@ -8,6 +8,7 @@ import FormDownloadPage from './FormDownloadPage';
 import ContractUploadPublic from "./ContractUploadPublic";
 import TransactionChat from "./TransactionChat";
 import DailyDashboard from "./DailyDashboard";
+import ListingInfoModal, { ListingInfoCard } from "./ListingInfoModal";
 import CoordinatorCommandCenter from "./CoordinatorCommandCenter";
 import UnreadMessagesInbox from "./UnreadMessagesInbox";
 import { CoordinatorSummaryPanel } from "./AgentCoordinatorViews";
@@ -6165,6 +6166,11 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
               </FirstTimeTip>
             )}
             {!isGuest && <DealDoctorPanel tx={tx} />}
+            {/* Listing deals: agreement answers still blank → one-tap in-app form
+                (Carlos 8/4 — the agent shouldn't have to text themselves the link). */}
+            {!isGuest && /listing|seller/i.test(tx.type || tx.transaction_type || "") && !/lease/i.test(tx.type || tx.transaction_type || "") && (
+              <ListingInfoCard txId={tx.id} />
+            )}
             {/* Agent oversight: when a TC runs this deal, show what's done / left /
                 what the TC has done, so the agent can answer a client cold. */}
             {!isGuest && !coordinatorMode && tx.coordinatorName && (
@@ -7721,6 +7727,12 @@ function NewTransactionForm({ onSave, onCancel, prefill = null, cmaId = null, on
           commissionNotes: t.commission_notes || form.commissionNotes,
           smsThreads: {}, parties: initialParties, tasks, messages: [], reminders: [],
         });
+        // Listing deals: offer the listing-agreement questions RIGHT after
+        // creation (Carlos 8/4, option 1) — skippable, and the same form stays
+        // available on the deal's Overview (option 2).
+        if (isListingSide && !/lease/i.test(form.type)) {
+          setTimeout(() => window.dispatchEvent(new CustomEvent("tp:listing-info-prompt", { detail: { txId: t.id } })), 600);
+        }
       } else {
         alert("Failed to save transaction: " + (data.error || "Unknown error"));
       }
@@ -10015,6 +10027,15 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
     return () => window.removeEventListener("tp:open-financials", h);
   }, []);
 
+  // A freshly created listing asks for the listing-agreement answers right away
+  // (skippable — the same form lives on the deal's Overview afterwards).
+  const [listingInfoTxId, setListingInfoTxId] = useState(null);
+  useEffect(() => {
+    const h = (e) => { if (e.detail?.txId) setListingInfoTxId(e.detail.txId); };
+    window.addEventListener("tp:listing-info-prompt", h);
+    return () => window.removeEventListener("tp:listing-info-prompt", h);
+  }, []);
+
   // Public upload route — no auth required
   if (window.location.pathname.startsWith("/form-download/")) {
     const token = window.location.pathname.split("/form-download/")[1];
@@ -10109,6 +10130,7 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
           </>
         );
       })()}
+      {listingInfoTxId && <ListingInfoModal txId={listingInfoTxId} onClose={() => setListingInfoTxId(null)} />}
       {paywallFeature && (
         <div onMouseDown={e => { if (e.target === e.currentTarget) e.currentTarget.dataset.dob = "1"; else delete e.currentTarget.dataset.dob; }} onClick={e => { if (e.target === e.currentTarget && e.currentTarget.dataset.dob === "1") setPaywallFeature(null); delete e.currentTarget.dataset.dob; }} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)", zIndex: 99999, display: "flex", alignItems: "flex-start", justifyContent: "center", padding: 16, overflowY: "auto" }}>
           <div onClick={e => e.stopPropagation()} style={{ background: "#fff", borderRadius: 16, padding: 28, maxWidth: 420, width: "100%", textAlign: "center", boxShadow: "0 20px 60px rgba(0,0,0,0.3)", fontFamily: "'Segoe UI', system-ui, sans-serif", margin: "auto" }}>
