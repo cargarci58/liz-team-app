@@ -979,6 +979,24 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
     } catch { /* refetch fixes */ }
   };
   const [showActivity, setShowActivity] = useState(false); // 📰 FYI drawer open?
+  // The floating 🔔 alerts chip lands here: OPEN the drawer (its alerts are
+  // usually FYI ones living inside it) and flash the section so the tap
+  // visibly arrives somewhere (Carlos 8/4: collapsed drawer = "takes me nowhere").
+  useEffect(() => {
+    const h = () => {
+      setShowActivity(true);
+      setTimeout(() => {
+        const el = document.getElementById("wtd-alerts");
+        if (!el) return;
+        el.scrollIntoView({ behavior: "smooth", block: "start" });
+        el.style.transition = "box-shadow 0.3s";
+        el.style.boxShadow = "0 0 0 4px rgba(192,57,43,0.55)";
+        setTimeout(() => { el.style.boxShadow = "none"; }, 1800);
+      }, 150);
+    };
+    window.addEventListener("wintheday:show-alerts", h);
+    return () => window.removeEventListener("wintheday:show-alerts", h);
+  }, []);
   const [popByDueCount, setPopByDueCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [activeModal, setActiveModal] = useState(null);

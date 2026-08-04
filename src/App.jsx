@@ -10038,23 +10038,26 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
             onClick={() => {
               // Taking you there IS the dismissal — the chip goes away, the
               // alerts wait in their own boxes (Carlos 7/29: clicking the float
-              // must clear it AND land you on the alert).
+              // must clear it AND land you on the alert). The event tells Win
+              // The Day to EXPAND the Recent-activity drawer and flash it —
+              // scrolling to a collapsed drawer looked like "takes me nowhere"
+              // (Carlos 8/4).
               setFloatHiddenSig(signAlerts.map(n => n.id).join(","));
               setView("dashboard"); setSelectedId(null);
-              setTimeout(() => { const el = document.getElementById("wtd-alerts"); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); }, 700);
+              setTimeout(() => window.dispatchEvent(new Event("wintheday:show-alerts")), 400);
             }}
-            style={{ background: "#fff", border: "2px solid #dc2626", borderRadius: 12, padding: "12px 14px", boxShadow: "0 10px 30px rgba(2,6,23,0.25)", cursor: "pointer", animation: "signAlertIn 0.35s ease" }}>
+            style={{ background: "#C0392B", color: "#fff", borderRadius: 12, padding: "12px 14px", boxShadow: "0 8px 26px rgba(192,57,43,0.55)", cursor: "pointer", animation: "signAlertIn 0.35s ease, mpulse2 1.6s ease-in-out infinite" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
-              <div style={{ fontSize: 13.5, fontWeight: 800, color: "#b91c1c", lineHeight: 1.35 }}>
+              <div style={{ fontSize: 13.5, fontWeight: 800, lineHeight: 1.35 }}>
                 🔔 You have {signAlerts.length} new alert{signAlerts.length === 1 ? "" : "s"}
               </div>
               <button onClick={(e) => { e.stopPropagation(); setFloatHiddenSig(signAlerts.map(n => n.id).join(",")); }} title="Hide (alerts stay on Win The Day)"
-                style={{ background: "none", border: "none", color: "#9ca3af", fontSize: 16, cursor: "pointer", lineHeight: 1, padding: 0 }}>×</button>
+                style={{ background: "none", border: "none", color: "rgba(255,255,255,0.75)", fontSize: 16, cursor: "pointer", lineHeight: 1, padding: 0 }}>×</button>
             </div>
-            <div style={{ fontSize: 12, color: "#374151", marginTop: 4, lineHeight: 1.4 }}>{signAlerts[0].title}{signAlerts.length > 1 ? ` (+${signAlerts.length - 1} more)` : ""}</div>
-            <div style={{ fontSize: 11, color: "#b91c1c", marginTop: 6, fontWeight: 700 }}>Tap to open Win The Day →</div>
+            <div style={{ fontSize: 12, color: "rgba(255,255,255,0.92)", marginTop: 4, lineHeight: 1.4 }}>{signAlerts[0].title}{signAlerts.length > 1 ? ` (+${signAlerts.length - 1} more)` : ""}</div>
+            <div style={{ fontSize: 11, marginTop: 6, fontWeight: 800, textDecoration: "underline" }}>Tap to see them on Win The Day →</div>
           </div>
-          <style>{"@keyframes signAlertIn { from { transform: translateX(30px); opacity: 0; } to { transform: none; opacity: 1; } }"}</style>
+          <style>{"@keyframes signAlertIn { from { transform: translateX(30px); opacity: 0; } to { transform: none; opacity: 1; } } @keyframes mpulse2 { 0%,100%{transform:scale(1)} 50%{transform:scale(1.04)} }"}</style>
         </div>
       )}
 
