@@ -64,6 +64,14 @@ window.fetch = async function patchedFetch(input, init) {
 
 // Public routes — no login required (must be checked BEFORE the App auth gate)
 const path = window.location.pathname;
+// "Review & Approve" email deep link: stash the upload id, let the normal app
+// (and its login) load, then App opens the right deal's offer review directly —
+// this URL previously fell through to the home screen (Carlos 8/9).
+if (path.startsWith('/contract-review/')) {
+  const uploadId = path.split('/contract-review/')[1].split(/[/?#]/)[0];
+  if (uploadId) sessionStorage.setItem('tp_pending_review_upload', uploadId);
+  window.history.replaceState({}, '', '/');
+}
 let Root;
 if (path.startsWith('/upload/')) Root = <PartyUploadPage />;
 else if (path.startsWith('/reset-password')) Root = <ResetPasswordPage />;

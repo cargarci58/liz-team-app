@@ -64,9 +64,25 @@ function fmtDate(d) {
   return new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 }
 
-export default function OffersTab({ tx, token, currentUser, createSignal = 0 }) {
+export default function OffersTab({ tx, token, currentUser, createSignal = 0, onReviewReceived = null }) {
   const [offers, setOffers] = useState([]);
   const [loading, setLoading] = useState(true);
+  // RECEIVED offers waiting for review live on the Overview's Pending Offers
+  // panel — but agents naturally look here on the Offers tab (Carlos 8/9,
+  // Belfry: "we don't see it in there"). Count them and point the way.
+  const [receivedPending, setReceivedPending] = useState(0);
+  useEffect(() => {
+    const isListingSide = !/buyer/i.test(tx.type || tx.transaction_type || "");
+    if (!isListingSide) return;
+    fetch(API + "/contracts/uploads", { headers: { Authorization: "Bearer " + token } })
+      .then(r => r.json())
+      .then(d => setReceivedPending((d.uploads || []).filter(u =>
+        u.existing_transaction_id === tx.id &&
+        ["pending", "extracting", "ready_for_review"].includes(u.status) &&
+        !(u.upload_source === "shareable_link" && u.original_filename === "pending-upload")
+      ).length))
+      .catch(() => {});
+  }, [tx.id]);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState(null);
   const [wizardOfferId, setWizardOfferId] = useState(null);
@@ -259,6 +275,20 @@ export default function OffersTab({ tx, token, currentUser, createSignal = 0 }) 
 
   return (
     <div style={{ padding: 24 }}>
+      {receivedPending > 0 && (
+        <div style={{ background: "#fef2f2", border: "1px solid #fca5a5", borderLeft: "5px solid #dc2626", borderRadius: 10, padding: "12px 14px", marginBottom: 16, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+          <div style={{ flex: "1 1 240px" }}>
+            <div style={{ fontWeight: 800, fontSize: 14, color: "#7f1d1d" }}>📥 {receivedPending} received offer{receivedPending === 1 ? "" : "s"} waiting for your review</div>
+            <div style={{ fontSize: 12.5, color: "#991b1b", marginTop: 2 }}>Offers that came IN on this listing are reviewed from the deal's Overview.</div>
+          </div>
+          {onReviewReceived && (
+            <button onClick={onReviewReceived}
+              style={{ padding: "10px 18px", borderRadius: 8, border: "none", background: "#dc2626", color: "#fff", fontSize: 13.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit", flexShrink: 0 }}>
+              → Review received offers
+            </button>
+          )}
+        </div>
+      )}
       <div style={{ marginBottom: 16 }}>
         <div style={{ fontSize: 22, fontWeight: 800 }}>📝 Offers</div>
         <div style={{ fontSize: 13, color: "#6b7280", marginTop: 2 }}>

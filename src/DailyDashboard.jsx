@@ -1619,7 +1619,7 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
           should be extremely past due… the green-checkmark ones aren't alerts").
           FYI notices (signed docs, feedback) live in a collapsed drawer below. */}
       {(recentAlerts.length > 0 || unmatchedEmails.length > 0) && (() => {
-        const ALERT_KINDS = new Set(["reminder_overdue", "email_needs_filing"]);
+        const ALERT_KINDS = new Set(["reminder_overdue", "email_needs_filing", "offer_received"]);
         // A reminder that already has its own card in ⏰ YOUR REMINDERS below
         // must not ALSO show as an alert box — same reminder twice on one screen
         // (Carlos 7/30, Belfry). The reminder card is the richer one (Done /
@@ -1648,6 +1648,11 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
         };
         const goTo = (a) => {
           if (a.kind === "email_needs_filing") { openFiling(); return; }
+          // Received offer → land directly ON the review screen for that upload
+          // (the deal detail picks the stash up and pops the review).
+          if (a.kind === "offer_received" && a.target_id && a.transaction_id) {
+            sessionStorage.setItem("tp_open_review_on_deal", JSON.stringify({ uploadId: a.target_id, txId: a.transaction_id }));
+          }
           if (a.transaction_id && onOpenTransactionMilestones) onOpenTransactionMilestones(a.transaction_id);
         };
         const renderCritical = (a) => (

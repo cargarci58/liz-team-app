@@ -5838,6 +5838,19 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
   const [editTxForm, setEditTxForm] = useState({});
   const [showReceiveOffer, setShowReceiveOffer] = useState(false);
   const [reviewOfferId, setReviewOfferId] = useState(null);
+  // Email "Review & Approve" deep link: MainApp stashed which upload to open
+  // on which deal — pop the review screen the moment that deal is on screen.
+  useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem("tp_open_review_on_deal");
+      if (!raw) return;
+      const p = JSON.parse(raw);
+      if (p && p.txId === tx.id && p.uploadId) {
+        sessionStorage.removeItem("tp_open_review_on_deal");
+        setReviewOfferId(p.uploadId);
+      }
+    } catch { /* ignore malformed stash */ }
+  }, [tx.id]);
   const [showLeaseDocs, setShowLeaseDocs] = useState(false);
   // Bumped whenever the Receive Offer / review modal closes so the Pending Offers
   // panel (which stays mounted behind the modal) reloads — without this, a freshly
@@ -6655,7 +6668,8 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
         )}
 
         {activeTab === "documents" && <DocumentsTab tx={tx} coordinatorMode={isCoordinator} />}
-        {activeTab === "offers" && <OffersTab tx={tx} token={localStorage.getItem("tp_token") || ""} currentUser={currentUser} createSignal={offerCreateSignal} />}
+        {activeTab === "offers" && <OffersTab tx={tx} token={localStorage.getItem("tp_token") || ""} currentUser={currentUser} createSignal={offerCreateSignal}
+          onReviewReceived={() => { setActiveTab("overview"); setTimeout(() => { const el = document.getElementById("pending-offers-panel"); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); }, 60); }} />}
         {activeTab === "calculator" && (
           <div style={{ padding: 20 }}>
             <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 8, padding: 12, marginBottom: 16, fontSize: 13, color: "#7f1d1d" }}>
@@ -10035,6 +10049,27 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
     window.addEventListener("tp:listing-info-prompt", h);
     return () => window.removeEventListener("tp:listing-info-prompt", h);
   }, []);
+
+  // Email "Review & Approve" deep link (stashed by main.jsx): find which deal
+  // the uploaded offer belongs to, open it, and let the detail view pop the
+  // review screen for exactly that upload.
+  useEffect(() => {
+    const uploadId = sessionStorage.getItem("tp_pending_review_upload");
+    if (!uploadId || !transactions.length) return;
+    sessionStorage.removeItem("tp_pending_review_upload");
+    (async () => {
+      try {
+        const tok = localStorage.getItem("tp_token") || "";
+        const d = await (await fetch(`${API}/contracts/uploads`, { headers: { Authorization: "Bearer " + tok } })).json();
+        const up = (d.uploads || []).find(u => u.id === uploadId);
+        if (!up) return;
+        if (up.existing_transaction_id) {
+          sessionStorage.setItem("tp_open_review_on_deal", JSON.stringify({ uploadId, txId: up.existing_transaction_id }));
+          openTransactionMilestones(up.existing_transaction_id, "overview");
+        }
+      } catch { /* fall back to normal home */ }
+    })();
+  }, [transactions.length]);
 
   // Public upload route — no auth required
   if (window.location.pathname.startsWith("/form-download/")) {
