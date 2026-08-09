@@ -77,7 +77,15 @@ function UploadStep({ token, existingTransactionId, onBack, onUploaded }) {
     if (!existingTransactionId) return;
     fetch(API + "/documents/" + existingTransactionId, { headers: { Authorization: "Bearer " + token } })
       .then(r => r.ok ? r.json() : null)
-      .then(d => setDealDocs((d?.documents || []).filter(x => /pdf$/i.test(x.mime_type || ""))))
+      .then(d => setDealDocs((d?.documents || []).filter(x =>
+        /pdf$/i.test(x.mime_type || "") &&
+        // The deal's OWN listing paperwork is never an incoming offer — offering
+        // it here let the signed listing package get "received" as an offer by
+        // mistake (Carlos 8/9, Belfry).
+        !/^listing_pkg_/.test(x.document_type || "") &&
+        (x.category || "") !== "Listing Package" &&
+        !/signed package|listing agreement|ers-21|spdr|flood disclosure|hoa.*disclosure|wire fraud/i.test(x.name || "")
+      )))
       .catch(() => setDealDocs([]));
   }, [existingTransactionId, token]);
   const useExistingDoc = async (docId) => {

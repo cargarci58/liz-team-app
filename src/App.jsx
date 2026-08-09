@@ -4386,6 +4386,11 @@ function ListingOffers({ txId, txStatus, refreshKey, onReview, onReceiveOffer })
                   ) : (o.original_filename || "Offer")
                 )}
               </div>
+              {o.created_at && (
+                <div style={{ marginTop: 4, fontSize: 11, fontWeight: 700, color: "#0c4a6e" }}>
+                  📥 Received {new Date(o.created_at).toLocaleString("en-US", { timeZone: "America/New_York", month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" })} ET
+                </div>
+              )}
               {(() => {
                 const dl = t.offer_acceptance_deadline;
                 if (!dl) return null;

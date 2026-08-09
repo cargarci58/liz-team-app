@@ -90,6 +90,7 @@ export default function OfferReviewPublic({ token: urlToken }) {
             return (
               <div key={o.id} style={{ background: "#fff", border: "1px solid " + COLORS.border, borderRadius: 12, padding: 18, borderTop: `4px solid ${decided === "accepted" ? COLORS.green : decided === "declined" ? COLORS.red : COLORS.amber}` }}>
                 <div style={{ fontSize: 12, color: COLORS.muted, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>Offer {i + 1}{o.buyerName ? " · " + o.buyerName : ""}</div>
+                {o.receivedAt && <div style={{ fontSize: 11, color: COLORS.muted, marginTop: 2 }}>📥 Received {new Date(o.receivedAt).toLocaleString("en-US", { timeZone: "America/New_York", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })} ET</div>}
                 <div style={{ fontSize: 26, fontWeight: 800, color: COLORS.navy, margin: "6px 0 12px" }}>{money(o.contractPrice)}</div>
                 <table style={{ width: "100%", fontSize: 13, color: COLORS.text, borderCollapse: "collapse" }}>
                   <tbody>
