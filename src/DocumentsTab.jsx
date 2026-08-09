@@ -663,7 +663,7 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
                         {isNew(doc) && <span style={{ fontSize: 9.5, fontWeight: 800, color: "#fff", background: "#2563eb", borderRadius: 6, padding: "1px 6px", marginRight: 6, verticalAlign: "middle" }}>NEW</span>}
                         {doc.name}
                       </div>
-                      <div style={{ fontSize: 11, color: COLORS.muted, marginTop: 2 }}>{doc.category} · {new Date(doc.created_at).toLocaleDateString()}</div>
+                      <div style={{ fontSize: 11, color: COLORS.muted, marginTop: 2 }}>{doc.category} · {new Date(doc.created_at).toLocaleString("en-US", { timeZone: "America/New_York", month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" })} ET</div>
                     </div>
                     <div style={{ display: "flex", gap: 6, flexShrink: 0, alignItems: "center" }}>
                       {/* Rookie rule: two buttons per file — View and Get signature.

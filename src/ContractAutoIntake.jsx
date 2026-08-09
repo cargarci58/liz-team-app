@@ -518,6 +518,7 @@ function ReviewStep({ token, uploadId, user, currentStatus, onApproved, onBack }
   const [edited, setEdited] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [needsSigPrompt, setNeedsSigPrompt] = useState(null); // signature-gate Yes/No
   const [error, setError] = useState("");
   const [vendors, setVendors] = useState([]);
   // The actual uploaded PDFs (contract + attachments) — reviewable BEFORE
@@ -657,12 +658,32 @@ function ReviewStep({ token, uploadId, user, currentStatus, onApproved, onBack }
         });
         d = await r.json();
       }
+      // Signature gate: a deal can't go Under Contract without a fully signed
+      // contract. Ask (Yes/No) whether the agent already holds the signed copy.
+      if (r.status === 409 && d.error === "needs_signatures") {
+        setNeedsSigPrompt(d.message || "This contract isn't fully signed yet.");
+        setSaving(false);
+        return;
+      }
       if (!d.success) throw new Error(d.error || "Approval failed");
       onApproved(d.transaction_id);
     } catch (e) {
       setError(e.message);
       setSaving(false);
     }
+  };
+  const approveConfirmedSigned = async () => {
+    setNeedsSigPrompt(null); setSaving(true); setError("");
+    try {
+      const r = await fetch(API + "/contracts/uploads/" + uploadId + "/approve", {
+        method: "POST",
+        headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
+        body: JSON.stringify({ approved_data: edited, confirmSigned: true })
+      });
+      const d = await r.json();
+      if (!d.success) throw new Error(d.error || "Approval failed");
+      onApproved(d.transaction_id);
+    } catch (e) { setError(e.message); setSaving(false); }
   };
 
   if (loading) return <div style={{ padding: 40, textAlign: "center", color: COLORS.muted }}>Loading...</div>;
@@ -679,6 +700,28 @@ function ReviewStep({ token, uploadId, user, currentStatus, onApproved, onBack }
 
   return (
     <div style={{ fontFamily: "'Segoe UI', system-ui, sans-serif", background: COLORS.bg, minHeight: "100vh", padding: "24px" }}>
+      {needsSigPrompt && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)", zIndex: 10060, display: "flex", alignItems: "flex-start", justifyContent: "center", padding: 16, overflowY: "auto" }}>
+          <div style={{ background: "#fff", borderRadius: 14, maxWidth: 460, width: "100%", margin: "60px auto", padding: 24 }}>
+            <div style={{ fontSize: 17, fontWeight: 800, color: "#7f1d1d", marginBottom: 8 }}>✍️ Signatures first</div>
+            <div style={{ fontSize: 14, color: "#374151", lineHeight: 1.6, marginBottom: 6 }}>{needsSigPrompt}</div>
+            <div style={{ fontSize: 13.5, color: "#374151", lineHeight: 1.6, marginBottom: 16 }}>
+              <b>Do you already have the fully-signed contract in hand</b> (signed outside the app)?
+              If not: the offer stays pending — the offer's documents are in the deal's <b>Documents</b> tab, where you can 📤 share them with the sellers or ✍️ send them for e-signature, then approve once everyone has signed.
+            </div>
+            <div style={{ display: "flex", gap: 10 }}>
+              <button onClick={() => setNeedsSigPrompt(null)}
+                style={{ flex: 1, padding: "12px 0", borderRadius: 10, border: "1px solid #d1d5db", background: "#fff", color: "#374151", fontWeight: 700, fontSize: 14, cursor: "pointer", fontFamily: "inherit" }}>
+                No — wait for signatures
+              </button>
+              <button onClick={approveConfirmedSigned}
+                style={{ flex: 1, padding: "12px 0", borderRadius: 10, border: "none", background: "#1E8449", color: "#fff", fontWeight: 800, fontSize: 14, cursor: "pointer", fontFamily: "inherit" }}>
+                Yes — it's fully signed, approve
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       <div style={{ maxWidth: 920, margin: "0 auto" }}>
         <button onClick={onBack} style={{ background: "none", border: "none", color: COLORS.muted, fontSize: 14, cursor: "pointer", marginBottom: 16 }}>← Back</button>
         <h1 style={{ margin: 0, color: COLORS.navy, fontSize: 26 }}>📋 Review Extracted Contract Data</h1>
