@@ -5167,8 +5167,27 @@ function DealDoctorPanel({ tx }) {
           )}
           <div style={{ marginTop: 12 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+              {/* When the Doctor's move is literally "mark X complete", this
+                  button completes it ON THE TIMELINE — not just the card. */}
+              {dd.completeMilestoneId && (
+                <button
+                  onClick={async () => {
+                    setErr("");
+                    try {
+                      const r = await fetch(`${API}/milestones/${dd.completeMilestoneId}/complete`, { method: "PATCH", headers: hdrs });
+                      if (!r.ok) { const b = await r.json().catch(() => ({})); throw new Error(b.error || "Could not complete the step"); }
+                      window.dispatchEvent(new Event("wintheday:refresh"));
+                      await clear();
+                      alert(`✅ "${dd.completeMilestoneName}" is marked complete on the timeline.`);
+                    } catch (e) { setErr(e.message); }
+                  }}
+                  title={`Marks "${dd.completeMilestoneName}" complete on this deal's timeline`}
+                  style={{ background: "#1E3A8A", color: "#fff", border: "none", borderRadius: 8, padding: "7px 14px", fontSize: 13, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>
+                  ✅ Complete "{dd.completeMilestoneName}" on the timeline
+                </button>
+              )}
               <button onClick={clear} title="I've handled this — clear it. Tonight's check-up will flag anything still outstanding."
-                style={{ background: "#1E8449", color: "#fff", border: "none", borderRadius: 8, padding: "7px 14px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                style={{ background: dd.completeMilestoneId ? "#fff" : "#1E8449", color: dd.completeMilestoneId ? "#475569" : "#fff", border: dd.completeMilestoneId ? "1px solid #CBD5E1" : "none", borderRadius: 8, padding: "7px 14px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
                 ✓ Mark handled
               </button>
               <button onClick={() => setSnoozeOpen(o => !o)} title="Set this aside for a bit — I'll keep it quiet, then bring it back."
