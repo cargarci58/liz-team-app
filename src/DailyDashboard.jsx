@@ -1437,19 +1437,10 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
       ((ccMeta[b.transaction_id]?.score || 0) - (ccMeta[a.transaction_id]?.score || 0)) ||
       a.rank - b.rank);
   }
-  // AGENT view: fold the Coordinator Desk INTO the deal cards — every TC-handled
-  // deal becomes ONE card showing the agent's part AND the TC's part. Deals the
-  // TC runs that have no agent task still appear (header + TC section), so the
-  // agent never goes back and forth between a list and a separate desk.
-  if (!coordinatorMode) {
-    const have = new Set(dealGroups.map(d => d.transaction_id).filter(Boolean));
-    for (const td of agentTcDeals) {
-      if (td.txId && !have.has(td.txId)) {
-        dealGroups.push({ transaction_id: td.txId, address: td.address, tasks: [], rank: 4, _tcOnly: true });
-        have.add(td.txId);
-      }
-    }
-  }
+  // AGENT view: TC-handled deals with NO agent task stay OFF Win The Day
+  // (Carlos 8/10: "I want them off" — a card saying 'nothing needs you' is
+  // clutter on a needs-you screen). Deals where the agent HAS a task still
+  // show their card with the TC status strip inside.
 
   if (loading) {
     return (
