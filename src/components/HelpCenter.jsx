@@ -287,6 +287,7 @@ export default function HelpCenter({ apiBase, token, onGoals, onProfile, onCompa
   const setupBase = [];
   if (isAdmin && onCompany) setupBase.push({ emoji: '⚙️', title: 'Set up company settings', desc: 'Add your brokerage name, logo, and branding — it shows on everything your clients see.', where: '⚙️ Menu → ⚙️ Company Settings', go: onCompany });
   setupBase.push({ emoji: '👤', title: 'Set up your profile', desc: 'Add your photo, signature, and contact info — used on every email and form.', where: '⚙️ Menu → 👤 My Profile', go: onProfile });
+  setupBase.push({ emoji: '📥', title: 'Catch every deal email (2 min, once)', desc: 'Turn on email forwarding so messages sent straight to your inbox file themselves to the right deal automatically.', where: '⚙️ Menu → 👤 My Profile → 📥 Catch deal emails', go: onProfile });
   setupBase.push({ emoji: '🎯', title: 'Set up your goals', desc: 'Tell the app your income target so it can plan your day.', where: '⚙️ Menu → 🎯 Goal Planner', go: onGoals });
   const setupSteps = setupBase.map((s, i) => ({ ...s, n: i + 1 }));
 

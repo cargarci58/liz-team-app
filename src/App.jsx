@@ -9841,6 +9841,7 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
   const onboardSteps = [];
   if (isAdminUser) onboardSteps.push({ key: "company", emoji: "⚙️", title: "Set up company settings", desc: "Add your brokerage name, logo, and branding — it shows on everything your clients see.", where: "⚙️ Menu → ⚙️ Company Settings", go: () => setShowCompanySettings(true) });
   onboardSteps.push({ key: "profile", emoji: "👤", title: "Set up your profile", desc: "Add your photo, signature, and contact info — used on every email and form you send.", where: "⚙️ Menu → 👤 My Profile", go: () => setShowAgentProfile(true) });
+  onboardSteps.push({ key: "emailcapture", emoji: "📥", title: "Catch every deal email (2 min, once)", desc: "Turn on email forwarding so messages that title companies and lenders send straight to your inbox file themselves to the right deal — no more copy-pasting into the app, ever.", where: "⚙️ Menu → 👤 My Profile → 📥 Catch deal emails", go: () => setShowAgentProfile(true) });
   onboardSteps.push({ key: "goals", emoji: "🎯", title: "Set up your goals", desc: "Tell the app your income target so it can plan your day for you.", where: "⚙️ Menu → 🎯 Goal Planner", go: () => openReports("goals") });
   onboardSteps.push({ key: "tour", tour: true, emoji: "🎬", title: "Take the 60-second tour", desc: "A quick look at what every button does — then you're ready to roll." });
   const onboardTakeMeThere = (step) => {
