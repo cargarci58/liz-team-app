@@ -19,7 +19,9 @@ const ROLE_LABELS = {
 
 // Each guide: { title, where (one-liner on where to find it), steps: [..] }
 // `cta` (optional) wires a "Take me there" button to a real screen.
-const GUIDE_SECTIONS = [
+// Exported: the AI Assistant (AssistantPanel) answers "how do I…" questions
+// from this same library, so help content has ONE source of truth.
+export const GUIDE_SECTIONS = [
   {
     heading: 'Daily use',
     items: [

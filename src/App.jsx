@@ -16,6 +16,7 @@ import ChangePassword from "./ChangePassword";
 import LegalConsentGate from "./LegalConsentGate";
 import FaqHelpButton from "./components/FaqHelpButton";
 import HelpCenter from "./components/HelpCenter";
+import AssistantPanel from "./components/AssistantPanel";
 import OnboardingGuide from "./components/OnboardingGuide";
 import AppTour from "./components/AppTour";
 import SpotlightTour from "./components/SpotlightTour";
@@ -10479,6 +10480,32 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
           onAdd={addContact}
           onEdit={editContact}
           onDelete={deleteContact}
+        />
+      )}
+
+      {/* App-wide AI Assistant — floating 🎙 button (stacked above the ? Help
+          button). Type or talk: "dial Maria", "what's due today?", "open Palm
+          Ave", "how do I upload a bank statement?". Brain = POST {API}/assistant
+          (Claude, see reference/server/assistant-route.js); falls back to the
+          in-browser router (src/lib/assistantLocal.js) when that endpoint
+          isn't deployed, so the button always works. */}
+      {!isFreeGuest && (
+        <AssistantPanel
+          token={localStorage.getItem("tp_token") || ""}
+          contacts={contacts}
+          transactions={transactions}
+          currentView={showCalendar ? "calendar" : showReports ? "reports" : view}
+          currentDealAddress={view === "detail" ? (selectedTx?.address || "") : ""}
+          onOpenDeal={(id, tab) => openTransactionMilestones(id, tab || "overview")}
+          onNavigate={(target) => {
+            setShowReports(false); setShowCalendar(false);
+            if (target === "calendar") setShowCalendar(true);
+            else if (target === "reports") openReports("overview");
+            else if (target === "help") setHelpSignal(n => n + 1);
+            else if (target === "vendors") setShowVendorLibrary(true);
+            else if (["home", "dashboard", "contacts", "popbys", "scripts", "cma", "expenses", "forms", "growthplan", "new"].includes(target)) setView(target);
+            else setView("home");
+          }}
         />
       )}
 
