@@ -185,9 +185,19 @@
             <label class="radio-btn" onclick="selectRadio(this,'hoa','unknown')"><input type="radio" name="hoa" value="unknown"> Not sure</label>
           </div>
         </div>
-        <div class="field" id="hoa-name-field" style="display:none">
-          <label>HOA Name & Monthly Fee</label>
-          <input type="text" id="hoaName" placeholder="Eagle Creek HOA — $250/month">
+        <div id="hoa-name-field" style="display:none">
+          <div class="field">
+            <label>HOA / Community Name</label>
+            <input type="text" id="hoaName" placeholder="Eagle Creek HOA">
+          </div>
+          <div class="field">
+            <label>HOA Fee & How Often</label>
+            <input type="text" id="hoaFee" placeholder="$250 / month">
+          </div>
+          <div class="field">
+            <label>HOA / Management Company Contact (if you have it)</label>
+            <input type="text" id="hoaContact" placeholder="Management company, phone or email">
+          </div>
         </div>
         <div class="field">
           <label>Is the property currently occupied?</label>
@@ -530,6 +540,8 @@ async function submitForm() {
         upgrades,
         // Previously collected but dropped — now persisted
         hoa, hoaName: document.getElementById('hoaName').value || null,
+        hoaFee: document.getElementById('hoaFee').value || null,
+        hoaContact: document.getElementById('hoaContact').value || null,
         occupied, closingTimeline: document.getElementById('closingTimeline').value || null,
         mailingAddress: document.getElementById('mailingAddress').value || null,
         // SMS opt-in (A2P 10DLC) — only true when the client checks the box.
