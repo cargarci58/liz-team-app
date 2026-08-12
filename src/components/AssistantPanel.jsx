@@ -277,6 +277,11 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
   const silenceTimerRef = useRef(null);   // auto-send after a real pause
   const finishRef = useRef(null);         // ends the current listen session and sends
   const listenRef = useRef(null);         // current listen session { final, interim, sent }
+  // Hands-free conversation: one mic tap starts it, and after each spoken
+  // reply the mic re-opens by itself — until the agent says they're done
+  // (server sets end_conversation), types instead, closes the panel, or a
+  // listen comes back empty.
+  const convoRef = useRef(false);
   // Short-term context: what the last answer showed, so follow-ups like
   // "text her instead" / "which one?" / "open it" resolve without repeating.
   const memoryRef = useRef({ contacts: [], deals: [], choices: [], tasks: [] });
@@ -324,6 +329,7 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
 
   const closePanel = () => {
     setOpen(false);
+    convoRef.current = false;
     stopSpeaking();
     cancelListening();
     stopRecording();
@@ -388,8 +394,11 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
     if (!SR) return;
     // Re-entrancy guard: a second tap while the mic is still opening used to
     // start a SECOND recognizer (Chrome then throws, and the two sessions
-    // fight). One voice flow at a time.
+    // fight). One voice flow at a time. (Ref check too — this can be called
+    // from a speech-end callback whose state snapshot is stale.)
     if (micStarting || listening || recording) return;
+    if (listenRef.current && !listenRef.current.sent) return;
+    convoRef.current = true;
     stopSpeaking();
     setMicNote(null);
     setMicStarting(true);
@@ -437,7 +446,10 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
         try { rec.stop(); } catch {}
         const text = heardText();
         if (text) send(text, { voice: true });
-        else setMicNote("I didn't hear anything — tap the mic and try again.");
+        else {
+          convoRef.current = false;  // quiet room — don't loop the mic forever
+          setMicNote("I didn't hear anything — tap the mic and try again.");
+        }
       };
       finishRef.current = finish;
       // Pause timer: ~3s of quiet after the last words = the thought is done.
@@ -616,6 +628,7 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
   const send = async (raw, { voice = false } = {}) => {
     const text = String(raw || "").trim();
     if (!text || busy) return;
+    if (!voice) convoRef.current = false;  // typing = taking over manually
     stopSpeaking();
     setMicNote(null);
     setInput("");
@@ -623,6 +636,7 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
     setMsgs(prev => [...prev, { role: "user", text, cards: [] }]);
 
     let out = null;
+    let fromServer = false;
     try {
       const history = msgs.slice(-8).map(m => ({ role: m.role, text: m.text }));
       // The server brain may do several lookups for a hard question, but the
@@ -637,7 +651,7 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
         body: JSON.stringify({
           message: text,
           history,
-          context: { screen: currentView || "", dealAddress: currentDealAddress || "" },
+          context: { screen: currentView || "", dealAddress: currentDealAddress || "", voice: !!voice },
           snapshot: buildSnapshot(),
           guides: GUIDES,
         }),
@@ -645,7 +659,8 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
       if (r.ok) {
         const d = await r.json();
         if (d && (d.reply || (d.cards && d.cards.length))) {
-          out = { reply: d.reply || "", speak: d.speak || d.reply || "", cards: Array.isArray(d.cards) ? d.cards : [] };
+          out = { reply: d.reply || "", speak: d.speak || d.reply || "", cards: Array.isArray(d.cards) ? d.cards : [], end_conversation: !!d.end_conversation };
+          fromServer = true;
         }
       }
     } catch {}
@@ -677,7 +692,20 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
 
     setMsgs(prev => [...prev, { role: "assistant", text: out.reply, cards: out.cards }]);
     setBusy(false);
-    if ((voice || speakOn) && openRef.current) speak(out.speak);
+
+    // Hands-free loop: when a VOICE question finishes being answered aloud,
+    // re-open the mic for the next one — unless the conversation is over.
+    // The server decides "over" (end_conversation) so a "no" answering a
+    // clarifying question doesn't hang up; in offline mode a plain closing
+    // phrase ends it.
+    const saidDone = /^(no+|nope|no,?\s?(thanks|thank you)|that'?s\s?(all|it)|nothing(\s?else)?|i'?m\s?(good|done|all\s?set)|all\s?set|we'?re\s?done|goodbye|bye)[.!\s]*$/i.test(text);
+    const endConvo = !!out.end_conversation || (!fromServer && saidDone);
+    if (endConvo) convoRef.current = false;
+    if ((voice || speakOn) && openRef.current) {
+      speak(out.speak, () => {
+        if (voice && convoRef.current && openRef.current) startListening();
+      });
+    }
   };
 
   const spokenConfirm = (text) => { if (speakOn) speak(text); };
