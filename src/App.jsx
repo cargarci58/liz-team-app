@@ -9730,7 +9730,18 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
       .then(r => r.json())
       .then(data => {
         if (data.contacts) {
-          setContacts(data.contacts.map(c => ({ id: c.id, role: c.role, name: c.name, email: c.email, phone: c.phone, company: c.company, notes: c.notes })));
+          // The contacts table stores first_name/last_name — there is NO name
+          // column, so c.name is always undefined here. Build the display name,
+          // or every consumer (assistant, contact book) gets nameless contacts.
+          setContacts(data.contacts.map(c => ({
+            id: c.id,
+            role: c.role || c.contact_type || "",
+            name: c.name || [c.first_name, c.last_name].filter(Boolean).join(" ").trim(),
+            email: c.email,
+            phone: c.phone,
+            company: c.company || "",
+            notes: c.notes,
+          })));
         }
       })
       .catch(e => console.error("Failed to load contacts:", e));
