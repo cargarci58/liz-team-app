@@ -288,8 +288,12 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
     setInterim("");
   };
 
-  const MIC_BLOCKED_NOTE =
-    "Your browser is blocking the microphone. Tap the 🔒 (or AA) icon next to the address bar → Microphone → Allow, then try the mic again. Tip: the mic key on your phone's keyboard also dictates straight into the text box.";
+  // Unblock instructions differ by device — phones show a 🔒/AA icon, desktop
+  // Chrome hides it behind the "tune" icon at the left end of the address bar.
+  const IS_TOUCH = typeof navigator !== "undefined" && (navigator.maxTouchPoints > 0 || /iPhone|iPad|Android/i.test(navigator.userAgent));
+  const MIC_BLOCKED_NOTE = IS_TOUCH
+    ? "Your browser is blocking the microphone. Tap the 🔒 (or AA) icon next to the address bar → Microphone → Allow, then reload and try the mic again. Tip: the mic key on your phone's keyboard also dictates straight into the text box."
+    : "Your browser is blocking the microphone. Click the small icon at the LEFT end of the address bar (before the site name) → turn Microphone on, or open “Site settings” → Microphone → Allow. Then reload this page and try again. On a Mac, also check System Settings → Privacy & Security → Microphone → allow your browser.";
 
   const startListening = async () => {
     if (!SR) return;
