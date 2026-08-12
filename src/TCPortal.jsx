@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import AssistantPanel from "./components/AssistantPanel";
 
 // ── Transaction Coordinator portal ──────────────────────────────────────────
 // One cross-brokerage home for an independent coordinator. Two sides:
@@ -48,6 +49,21 @@ export default function TCPortal({ user, onLogout }) {
   const [nav, setNav] = useState("dashboard"); // dashboard | deals | business
   const [openId, setOpenId] = useState(null);
 
+  // Deal list for the AI assistant's snapshot (TC parity: same 🎙 button as
+  // the agent app). Shapes normalized to what AssistantPanel expects; the
+  // server-side lookup tools are TC-scoped by the token's role, so the AI
+  // only ever sees this coordinator's assigned deals.
+  const [assistTx, setAssistTx] = useState([]);
+  useEffect(() => {
+    api("/tc/transactions").then(d => setAssistTx((d.transactions || []).map(t => ({
+      id: t.id, address: t.address, status: t.status,
+      closingDate: t.closing_date || "",
+      price: t.contract_price || t.list_price || "",
+      type: t.transaction_type || "",
+      next_milestone: t.next_milestone ? { name: t.next_milestone.name, dueDate: t.next_milestone.due_date } : null,
+    })))).catch(() => {});
+  }, []);
+
   const NAVS = [
     { id: "dashboard", label: "🏠 Dashboard" },
     { id: "deals", label: "📁 Deals" },
@@ -80,6 +96,19 @@ export default function TCPortal({ user, onLogout }) {
           : nav === "deals" ? <Deals onOpen={setOpenId} />
           : <Business user={user} />}
       </div>
+
+      <AssistantPanel
+        token={tok()}
+        contacts={[]}
+        transactions={assistTx}
+        currentView={openId ? "deal" : nav}
+        currentDealAddress={openId ? (assistTx.find(t => String(t.id) === String(openId))?.address || "") : ""}
+        onOpenDeal={(id) => { setOpenId(id); }}
+        onNavigate={(target) => {
+          setOpenId(null);
+          setNav(target === "reports" || target === "expenses" ? "business" : target === "dashboard" || target === "home" ? "dashboard" : "deals");
+        }}
+      />
     </div>
   );
 }

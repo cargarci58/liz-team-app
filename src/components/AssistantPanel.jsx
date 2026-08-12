@@ -536,7 +536,17 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
     const tasks = tasksRef.current || {};
     return {
       contacts: (contacts || []).slice(0, 400).map(c => ({ id: c.id, name: c.name, phone: c.phone, email: c.email, role: c.role, company: c.company })),
-      deals: (transactions || []).slice(0, 150).map(t => ({ id: t.id, address: t.address, status: t.status, closingDate: t.closingDate || t.closing_date || "", price: t.listPrice || t.price || "", type: t.type || "" })),
+      // Per deal: include the people (title company, lender, ...) and the next
+      // open step — the list endpoint already ships them, and "who is the title
+      // company on X?" should never need a server lookup. Dates trimmed to
+      // YYYY-MM-DD so the voice reply never reads an ISO timestamp aloud.
+      deals: (transactions || []).slice(0, 150).map(t => ({
+        id: t.id, address: t.address, status: t.status,
+        closingDate: String(t.closingDate || t.closing_date || "").slice(0, 10),
+        price: t.listPrice || t.price || "", type: t.type || "",
+        parties: (t.parties || []).slice(0, 14).map(p => ({ role: p.role, name: p.name, company: p.company, phone: p.phone, email: p.email })),
+        nextStep: t.next_milestone ? { name: t.next_milestone.name, due: t.next_milestone.dueDate || t.next_milestone.due_date || "" } : undefined,
+      })),
       tasks: {
         overdue: (tasks.overdue || []).slice(0, 40),
         dueToday: (tasks.dueToday || []).slice(0, 40),
