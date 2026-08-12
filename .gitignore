@@ -2,3 +2,6 @@ src/App.jsx.bak
 src/App.jsx.bak.*
 src/*.bak
 src/*.bak.*
+
+# Vite/vitest cache — machine-generated, churns on every dev/test run
+node_modules/.vite/
