@@ -34,7 +34,7 @@ const RED = "#C0392B";
 
 // Bumped on every assistant change — shown in the panel header so "which
 // version am I actually running?" is answerable at a glance (cache issues).
-const BUILD_TAG = "v5";
+const BUILD_TAG = "v6";
 
 const GREETING = "How can I help you today?";
 const CHIPS = [
@@ -414,7 +414,10 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
         session.final = finalText;
         session.interim = interimText;
         setInterim(heardText());
-        armSilence(3000);
+        // 7s: people compose thoughts out loud with real pauses — "um…,
+        // let me see…" — and getting cut off feels far worse than waiting.
+        // In-a-hurry agents tap ⏹ and it sends instantly.
+        armSilence(7000);
       };
       rec.onerror = (e) => {
         const code = (e && e.error) || "";
@@ -453,9 +456,9 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
       };
       rec.start();
       setListening(true);
-      armSilence(12000);
+      armSilence(15000);
       // Absolute cap so a mic left open in a noisy room can't run forever.
-      setTimeout(finish, 90000);
+      setTimeout(finish, 120000);
     } catch {
       setListening(false);
       if (CAN_RECORD) startRecording();
@@ -668,9 +671,10 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
               ))}
               {busy && <div style={{ fontSize: 13, color: "#6b7280", padding: "4px 2px" }}>Thinking…</div>}
               {listening && (
-                <div style={{ fontSize: 13, color: RED, fontWeight: 700, padding: "4px 2px" }}>
-                  ● Listening — take your time. I'll send it when you pause, or tap ⏹.
-                  {interim && <span style={{ color: "#6b7280", fontWeight: 400 }}> “{interim}”</span>}
+                <div style={{ background: "#FFF7ED", border: "1px solid #FED7AA", borderRadius: 10, padding: "10px 12px", marginTop: 4 }}>
+                  <div style={{ fontSize: 13, color: RED, fontWeight: 700 }}>● Listening — take all the time you need.</div>
+                  <div style={{ fontSize: 12, color: "#9A3412", marginTop: 2 }}>Tap <b>⏹ to send</b> the moment you're done — otherwise I'll send after a long pause.</div>
+                  {interim && <div style={{ fontSize: 12.5, color: "#374151", marginTop: 6, fontStyle: "italic" }}>“{interim}”</div>}
                 </div>
               )}
               {recording && (
