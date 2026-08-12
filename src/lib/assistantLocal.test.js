@@ -162,3 +162,44 @@ describe("task replies name the work, not just count it", () => {
     expect(r.reply).toMatch(/Order survey/);
   });
 });
+
+describe("follow-up memory", () => {
+  it("answering a pending choices question by name runs the choice", () => {
+    const memory = { choices: [
+      { label: "Maria Gonzalez (Buyer)", send: "call Maria Gonzalez" },
+      { label: "Maria Lopez (Lender)", send: "call Maria Lopez" },
+    ], contacts: [], deals: [], tasks: [] };
+    const r = routeLocal("gonzalez", CTX, memory);
+    expect(r.cards[0].type).toBe("contact");
+    expect(r.cards[0].contact.id).toBe("c1");
+  });
+
+  it("'text her instead' re-aims at the last shown contact", () => {
+    const memory = { choices: [], contacts: [CONTACTS[0]], deals: [], tasks: [] };
+    const r = routeLocal("text her instead", CTX, memory);
+    expect(r.cards[0].type).toBe("contact");
+    expect(r.reply).toMatch(/tap to text/);
+  });
+
+  it("'which one?' after a task answer spells the tasks out", () => {
+    const memory = { choices: [], contacts: [], deals: [], tasks: [
+      { title: "Order survey", due: "2026-08-08", where: "123 Palm Ave" },
+    ] };
+    const r = routeLocal("which one?", CTX, memory);
+    expect(r.reply).toMatch(/Order survey for 123 Palm Ave/);
+  });
+
+  it("'open it' after a single deal was shown opens that deal", () => {
+    const memory = { choices: [], contacts: [], deals: [DEALS[1]], tasks: [] };
+    const r = routeLocal("open it", CTX, memory);
+    expect(r.cards[0].type).toBe("deal");
+    expect(r.cards[0].deal.id).toBe("t2");
+  });
+
+  it("without memory these follow-ups still fall through gracefully", () => {
+    // "open it" with no remembered deal → polite miss, not a crash
+    expect(routeLocal("open it", CTX).reply).toMatch(/couldn't find/i);
+    // verb-only follow-up with no remembered contact → falls through to null
+    expect(routeLocal("text her instead", CTX, { choices: [], contacts: [], deals: [], tasks: [] })).toBeNull();
+  });
+});

@@ -34,7 +34,7 @@ const RED = "#C0392B";
 
 // Bumped on every assistant change — shown in the panel header so "which
 // version am I actually running?" is answerable at a glance (cache issues).
-const BUILD_TAG = "v3";
+const BUILD_TAG = "v4";
 
 const GREETING = "How can I help you today?";
 const CHIPS = [
@@ -258,6 +258,12 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
   const [recording, setRecording] = useState(false);     // MediaRecorder fallback active
   const [transcribing, setTranscribing] = useState(false);
   const [micStarting, setMicStarting] = useState(false);  // instant tap feedback while the mic opens
+  const silenceTimerRef = useRef(null);   // auto-send after a real pause
+  const finishRef = useRef(null);         // ends the current listen session and sends
+  const listenRef = useRef(null);         // current listen session { final, interim, sent }
+  // Short-term context: what the last answer showed, so follow-ups like
+  // "text her instead" / "which one?" / "open it" resolve without repeating.
+  const memoryRef = useRef({ contacts: [], deals: [], choices: [], tasks: [] });
   const mediaRecRef = useRef(null);
   const chunksRef = useRef([]);
   const recTimerRef = useRef(null);
@@ -303,12 +309,24 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
   const closePanel = () => {
     setOpen(false);
     stopSpeaking();
-    stopListening();
+    cancelListening();
     stopRecording();
   };
 
   // ——— Voice input ———
+  // Tapping ⏹ SENDS what was heard so far (people tap it meaning "I'm done
+  // talking", not "throw that away").
   const stopListening = () => {
+    if (finishRef.current) { finishRef.current(); return; }
+    try { recRef.current && recRef.current.stop(); } catch {}
+    setListening(false);
+    setInterim("");
+  };
+
+  // Closing the panel mid-listen DISCARDS instead of sending.
+  const cancelListening = () => {
+    if (listenRef.current) listenRef.current.sent = true;
+    if (silenceTimerRef.current) { clearTimeout(silenceTimerRef.current); silenceTimerRef.current = null; }
     try { recRef.current && recRef.current.stop(); } catch {}
     setListening(false);
     setInterim("");
@@ -354,27 +372,52 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
       const rec = new SR();
       recRef.current = rec;
       rec.lang = "en-US";
+      rec.continuous = true;       // do NOT cut off at the first brief pause
       rec.interimResults = true;   // show words as they're heard — proof it's working
       rec.maxAlternatives = 1;
+
+      const session = { final: "", interim: "", sent: false };
+      listenRef.current = session;
+      const finish = () => {
+        if (session.sent) return;
+        session.sent = true;
+        if (silenceTimerRef.current) { clearTimeout(silenceTimerRef.current); silenceTimerRef.current = null; }
+        finishRef.current = null;
+        setListening(false);
+        setInterim("");
+        try { rec.stop(); } catch {}
+        const text = (session.final + " " + session.interim).replace(/\s+/g, " ").trim();
+        if (text) send(text, { voice: true });
+      };
+      finishRef.current = finish;
+      // Send ~2.5s after the last words heard: long enough to breathe
+      // mid-thought, short enough to feel responsive. Before anything is
+      // heard, allow a generous 10s to start talking.
+      const armSilence = (ms) => {
+        if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+        silenceTimerRef.current = setTimeout(finish, ms);
+      };
+
       rec.onresult = (e) => {
         let finalText = "", interimText = "";
         for (let i = 0; i < e.results.length; i++) {
           if (e.results[i].isFinal) finalText += e.results[i][0].transcript;
           else interimText += e.results[i][0].transcript;
         }
-        if (finalText.trim()) {
-          setListening(false);
-          setInterim("");
-          try { rec.stop(); } catch {}
-          send(finalText.trim(), { voice: true });
-        } else {
-          setInterim(interimText);
-        }
+        session.final = finalText;
+        session.interim = interimText;
+        setInterim((finalText + " " + interimText).replace(/\s+/g, " ").trim());
+        armSilence(2500);
       };
       rec.onerror = (e) => {
+        const code = (e && e.error) || "";
+        const heardSomething = !!(session.final + session.interim).trim();
+        if (heardSomething && code !== "aborted") { finish(); return; }  // salvage what we got
+        session.sent = true;
+        if (silenceTimerRef.current) { clearTimeout(silenceTimerRef.current); silenceTimerRef.current = null; }
+        finishRef.current = null;
         setListening(false);
         setInterim("");
-        const code = (e && e.error) || "";
         if (code === "not-allowed" || code === "service-not-allowed") setMicNote(MIC_BLOCKED_NOTE);
         else if (code === "no-speech") setMicNote("I didn't hear anything — tap the mic and start talking right away.");
         else if (code === "audio-capture") setMicNote("No working microphone was found on this device.");
@@ -386,9 +429,10 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
           else setMicNote("Voice input didn't start. Tip: the mic key on your phone's keyboard dictates straight into the text box.");
         }
       };
-      rec.onend = () => { setListening(false); setInterim(""); };
+      rec.onend = () => { finish(); };   // recognizer self-ended — send whatever was heard
       rec.start();
       setListening(true);
+      armSilence(10000);
     } catch {
       setListening(false);
       if (CAN_RECORD) startRecording();
@@ -517,12 +561,29 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
       }
     } catch {}
 
-    // Server brain unreachable → offline router.
+    // Server brain unreachable → offline router (with short-term memory so
+    // follow-ups like "text her instead" / "which one?" resolve).
     if (!out) {
-      const local = routeLocal(text, localCtx());
+      const local = routeLocal(text, localCtx(), memoryRef.current);
       out = local
         ? { reply: local.reply, speak: local.speak || local.reply, cards: local.cards || [] }
         : { reply: "I didn't catch that. " + OFFLINE_HINT, speak: "I didn't catch that — try asking me to dial a contact, show your tasks, or open a deal.", cards: [] };
+    }
+
+    // Remember what this answer showed, for the next follow-up.
+    {
+      const cards = out.cards || [];
+      const mem = memoryRef.current;
+      const shownContacts = cards.filter(c => c.type === "contact").map(c => c.contact).filter(Boolean);
+      const shownDeals = cards.filter(c => c.type === "deal").map(c => c.deal).filter(Boolean);
+      const shownTasks = cards.filter(c => c.type === "tasks").flatMap(c => c.items || []);
+      memoryRef.current = {
+        contacts: shownContacts.length ? shownContacts : mem.contacts,
+        deals: shownDeals.length ? shownDeals : mem.deals,
+        tasks: shownTasks.length ? shownTasks : mem.tasks,
+        // choices are only "pending" for one turn — answered or abandoned.
+        choices: cards.filter(c => c.type === "choices").flatMap(c => c.options || []),
+      };
     }
 
     setMsgs(prev => [...prev, { role: "assistant", text: out.reply, cards: out.cards }]);
@@ -585,7 +646,8 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
               {busy && <div style={{ fontSize: 13, color: "#6b7280", padding: "4px 2px" }}>Thinking…</div>}
               {listening && (
                 <div style={{ fontSize: 13, color: RED, fontWeight: 700, padding: "4px 2px" }}>
-                  ● Listening — go ahead…{interim && <span style={{ color: "#6b7280", fontWeight: 400 }}> “{interim}”</span>}
+                  ● Listening — take your time. I'll send it when you pause, or tap ⏹.
+                  {interim && <span style={{ color: "#6b7280", fontWeight: 400 }}> “{interim}”</span>}
                 </div>
               )}
               {recording && (

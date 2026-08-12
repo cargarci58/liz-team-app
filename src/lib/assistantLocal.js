@@ -143,10 +143,50 @@ export function searchGuides(guides, query) {
 
 // The offline router. Returns { reply, cards } or null when it can't tell
 // what was asked (the caller shows the capabilities hint).
-export function routeLocal(inputRaw, ctx = {}) {
+//
+// `memory` is the panel's short-term context — what the LAST answer showed
+// ({ contacts, deals, choices, tasks }) — so follow-ups like "text her
+// instead", "which one?", "open it", or answering a choices question by
+// just saying the name, resolve against it.
+export function routeLocal(inputRaw, ctx = {}, memory = null) {
   const { contacts = [], deals = [], tasks = null, guides = [], now = new Date() } = ctx;
   const input = norm(inputRaw);
   if (!input) return null;
+
+  if (memory) {
+    // Spoken answer to a pending choices question ("Gonzalez") — if it
+    // singles out one option, run that option's command.
+    const pending = memory.choices || [];
+    if (pending.length) {
+      const hits = pending.filter(o => norm(o.label).includes(input) || norm(o.send).includes(input));
+      if (hits.length === 1) return routeLocal(hits[0].send, ctx);
+    }
+
+    // "text her instead" / "email them" / bare "call" — re-aim at the last
+    // single contact shown.
+    let fm = input.match(/^(?:no,? |actually,? |ok,? )?(call|dial|phone|text|sms|email)(?: (?:her|him|them|it))?(?: instead)?$/);
+    if (fm && (memory.contacts || []).length === 1) {
+      const c = memory.contacts[0];
+      const how = fm[1] === "email" ? "email" : fm[1] === "text" || fm[1] === "sms" ? "text" : "call";
+      return { reply: `Here's ${c.name} — tap to ${how}.`, cards: [{ type: "contact", contact: c }] };
+    }
+
+    // "which one?" / "what is it?" after a task answer — spell the tasks out.
+    if (/^(which (one|ones)( is (it|that))?|what (is|are) (it|they|those|the tasks?)|tell me more|more details?|like what)\??$/.test(input) && (memory.tasks || []).length) {
+      const items = memory.tasks;
+      const spoken = items.slice(0, 5).map(t => t.title + (t.where ? ` for ${t.where}` : "") + (t.due ? `, due ${t.due}` : "")).join("; ");
+      return {
+        reply: `${spoken}.`,
+        cards: [{ type: "tasks", title: `📋 The details (${items.length})`, items }],
+      };
+    }
+
+    // "open it" / "open that one" after a single deal was shown.
+    if (/^(open|show)( up)? (it|that|this|that one)$/.test(input) && (memory.deals || []).length === 1) {
+      const d = memory.deals[0];
+      return { reply: dealCardSummary(d), cards: [{ type: "deal", deal: d }] };
+    }
+  }
 
   // ---- Contact: call / dial / text / email <name> -------------------------
   let m = input.match(/^(?:can you |please |i need to |i want to )?(call|dial|phone|text|sms|email)\s+(.+)$/);
