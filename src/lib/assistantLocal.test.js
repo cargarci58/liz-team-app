@@ -199,7 +199,9 @@ describe("follow-up memory", () => {
   it("without memory these follow-ups still fall through gracefully", () => {
     // "open it" with no remembered deal → polite miss, not a crash
     expect(routeLocal("open it", CTX).reply).toMatch(/couldn't find/i);
-    // verb-only follow-up with no remembered contact → falls through to null
-    expect(routeLocal("text her instead", CTX, { choices: [], contacts: [], deals: [], tasks: [] })).toBeNull();
+    // pronoun follow-up with no remembered contact → asks who, doesn't
+    // search for a contact literally named "her instead"
+    const r = routeLocal("text her instead", CTX, { choices: [], contacts: [], deals: [], tasks: [] });
+    expect(r.reply).toMatch(/Who would you like to text/);
   });
 });

@@ -192,11 +192,14 @@ export function routeLocal(inputRaw, ctx = {}, memory = null) {
   let m = input.match(/^(?:can you |please |i need to |i want to )?(call|dial|phone|text|sms|email)\s+(.+)$/);
   if (m) {
     const verb = m[1];
-    const name = stripDuePhrase(m[2].replace(/\b(please|now|for me)\b/g, "").trim());
+    const how = verb === "email" ? "email" : verb === "text" || verb === "sms" ? "text" : "call";
+    const name = stripDuePhrase(m[2].replace(/\b(please|now|for me|her|him|them|it|instead)\b/g, "").trim());
+    // "text her instead" with nobody in recent context — ask, don't search
+    // for a contact literally named "her instead".
+    if (!name) return { reply: `Who would you like to ${how}? Say the name.`, cards: [] };
     const matches = findContacts(contacts, name);
     if (matches.length === 1) {
       const c = matches[0];
-      const how = verb === "email" ? "email" : verb === "text" || verb === "sms" ? "text" : "call";
       return {
         reply: `Here's ${c.name} — tap to ${how}.`,
         cards: [{ type: "contact", contact: c }],
