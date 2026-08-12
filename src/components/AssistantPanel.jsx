@@ -234,6 +234,8 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const [listening, setListening] = useState(false);
+  const [interim, setInterim] = useState("");   // live transcript while talking
+  const [micNote, setMicNote] = useState(null); // mic error/help text
   const [speakOn, setSpeakOn] = useState(() => localStorage.getItem("tp_assist_speak") !== "off");
   const tasksRef = useRef(null);              // /dashboard/tasks snapshot (fetched on open)
   const recRef = useRef(null);
@@ -283,27 +285,67 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
   const stopListening = () => {
     try { recRef.current && recRef.current.stop(); } catch {}
     setListening(false);
+    setInterim("");
   };
 
-  const startListening = () => {
+  const MIC_BLOCKED_NOTE =
+    "Your browser is blocking the microphone. Tap the 🔒 (or AA) icon next to the address bar → Microphone → Allow, then try the mic again. Tip: the mic key on your phone's keyboard also dictates straight into the text box.";
+
+  const startListening = async () => {
     if (!SR) return;
     stopSpeaking();
+    setMicNote(null);
+    // Ask for the mic explicitly BEFORE starting recognition: this forces the
+    // browser's permission prompt to appear now, and lets us explain when
+    // it's blocked — the recognizer alone fails silently on many phones
+    // (the original "I click the mic and nothing happens" bug).
+    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        stream.getTracks().forEach(t => t.stop());
+      } catch {
+        setMicNote(MIC_BLOCKED_NOTE);
+        return;
+      }
+    }
     try {
       const rec = new SR();
       recRef.current = rec;
       rec.lang = "en-US";
-      rec.interimResults = false;
+      rec.interimResults = true;   // show words as they're heard — proof it's working
       rec.maxAlternatives = 1;
       rec.onresult = (e) => {
-        const text = e.results?.[0]?.[0]?.transcript || "";
-        setListening(false);
-        if (text.trim()) send(text.trim(), { voice: true });
+        let finalText = "", interimText = "";
+        for (let i = 0; i < e.results.length; i++) {
+          if (e.results[i].isFinal) finalText += e.results[i][0].transcript;
+          else interimText += e.results[i][0].transcript;
+        }
+        if (finalText.trim()) {
+          setListening(false);
+          setInterim("");
+          try { rec.stop(); } catch {}
+          send(finalText.trim(), { voice: true });
+        } else {
+          setInterim(interimText);
+        }
       };
-      rec.onerror = () => setListening(false);
-      rec.onend = () => setListening(false);
+      rec.onerror = (e) => {
+        setListening(false);
+        setInterim("");
+        const code = (e && e.error) || "";
+        if (code === "not-allowed" || code === "service-not-allowed") setMicNote(MIC_BLOCKED_NOTE);
+        else if (code === "no-speech") setMicNote("I didn't hear anything — tap the mic and start talking right away.");
+        else if (code === "audio-capture") setMicNote("No working microphone was found on this device.");
+        else if (code === "network") setMicNote("Voice recognition couldn't reach its service — check your connection, or use the mic key on your keyboard to dictate into the text box.");
+        else if (code !== "aborted") setMicNote("Voice input didn't start. Tip: the mic key on your phone's keyboard dictates straight into the text box.");
+      };
+      rec.onend = () => { setListening(false); setInterim(""); };
       rec.start();
       setListening(true);
-    } catch { setListening(false); }
+    } catch {
+      setListening(false);
+      setMicNote("Voice input isn't available in this browser. Tip: the mic key on your phone's keyboard dictates straight into the text box.");
+    }
   };
 
   // ——— Snapshot the server brain reasons over ———
@@ -335,6 +377,7 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
     const text = String(raw || "").trim();
     if (!text || busy) return;
     stopSpeaking();
+    setMicNote(null);
     setInput("");
     setBusy(true);
     setMsgs(prev => [...prev, { role: "user", text, cards: [] }]);
@@ -427,7 +470,16 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
                 </div>
               ))}
               {busy && <div style={{ fontSize: 13, color: "#6b7280", padding: "4px 2px" }}>Thinking…</div>}
-              {listening && <div style={{ fontSize: 13, color: RED, fontWeight: 700, padding: "4px 2px" }}>● Listening — go ahead…</div>}
+              {listening && (
+                <div style={{ fontSize: 13, color: RED, fontWeight: 700, padding: "4px 2px" }}>
+                  ● Listening — go ahead…{interim && <span style={{ color: "#6b7280", fontWeight: 400 }}> “{interim}”</span>}
+                </div>
+              )}
+              {micNote && (
+                <div style={{ background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: 10, padding: "10px 12px", fontSize: 12.5, color: "#7F1D1D", lineHeight: 1.5, marginTop: 4 }}>
+                  🎤 {micNote}
+                </div>
+              )}
             </div>
 
             {/* Suggestion chips */}
