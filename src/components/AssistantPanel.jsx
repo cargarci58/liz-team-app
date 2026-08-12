@@ -74,24 +74,40 @@ function blobToBase64(blob) {
 }
 
 function speak(text, onDone) {
-  try {
-    if (!window.speechSynthesis || !text) { if (onDone) onDone(); return; }
-    window.speechSynthesis.cancel();
-    const u = new SpeechSynthesisUtterance(text);
-    u.rate = 1.04;
-    // Prefer a natural-sounding en-US voice when the device has one.
-    const voices = window.speechSynthesis.getVoices() || [];
-    const preferred =
-      voices.find(v => /en[-_]US/i.test(v.lang) && /natural|premium|enhanced|neural|samantha|google us/i.test(v.name)) ||
-      voices.find(v => /en[-_]US/i.test(v.lang));
-    if (preferred) u.voice = preferred;
-    if (onDone) { u.onend = onDone; u.onerror = onDone; }
-    window.speechSynthesis.speak(u);
-  } catch { if (onDone) onDone(); }
+  // Deferred: speechSynthesis.speak()/cancel() on macOS Chrome can hang the
+  // tab for many seconds (long-standing Chromium bug, worst with the local
+  // "Enhanced/Premium/Samantha" voices). Running it after a tick means the
+  // click that triggered speech always paints first — the panel opens, the
+  // mic indicator updates — even if the speech engine then stalls.
+  setTimeout(() => {
+    try {
+      if (!window.speechSynthesis || !text) { if (onDone) onDone(); return; }
+      if (window.speechSynthesis.speaking || window.speechSynthesis.pending) window.speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      u.rate = 1.04;
+      // Prefer Google's en-US voice (Chrome, streamed, doesn't trigger the
+      // hang), else the plain system default. NEVER pick the Enhanced/
+      // Premium/Samantha local voices — they're the ones that freeze.
+      const voices = window.speechSynthesis.getVoices() || [];
+      const preferred =
+        voices.find(v => /en[-_]US/i.test(v.lang) && /google/i.test(v.name)) ||
+        voices.find(v => /en[-_]US/i.test(v.lang) && v.default) ||
+        voices.find(v => /en[-_]US/i.test(v.lang) && !/enhanced|premium|natural|neural|samantha/i.test(v.name));
+      if (preferred) u.voice = preferred;
+      if (onDone) { u.onend = onDone; u.onerror = onDone; }
+      window.speechSynthesis.speak(u);
+    } catch { if (onDone) onDone(); }
+  }, 0);
 }
 
 function stopSpeaking() {
-  try { window.speechSynthesis && window.speechSynthesis.cancel(); } catch {}
+  // cancel() while idle is what wedges some Chrome/macOS combos — only
+  // cancel when something is actually queued or speaking.
+  try {
+    if (window.speechSynthesis && (window.speechSynthesis.speaking || window.speechSynthesis.pending)) {
+      window.speechSynthesis.cancel();
+    }
+  } catch {}
 }
 
 // ————— Card renderers ———————————————————————————————————————————
@@ -340,14 +356,40 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
     : "Your browser is blocking the microphone. Click the small icon at the LEFT end of the address bar (before the site name) → turn Microphone on, or open “Site settings” → Microphone → Allow. Then reload this page and try again. On a Mac, also check System Settings → Privacy & Security → Microphone → allow your browser.";
 
   // getUserMedia can HANG (mic held by Zoom/FaceTime, flaky hardware) — race
-  // it against a timeout so the tap always resolves to visible feedback.
-  const getMicStream = () => Promise.race([
-    navigator.mediaDevices.getUserMedia({ audio: true }),
-    new Promise((_, rej) => setTimeout(() => rej(new Error("mic-timeout")), 8000)),
-  ]);
+  // it against a timeout so the tap always resolves to visible feedback. If
+  // the stream arrives AFTER we gave up, release it, or the mic stays
+  // captured (red-dot on, and the next attempt can wedge).
+  const getMicStream = () => new Promise((resolve, reject) => {
+    let timedOut = false;
+    const timer = setTimeout(() => { timedOut = true; reject(new Error("mic-timeout")); }, 8000);
+    navigator.mediaDevices.getUserMedia({ audio: true }).then(
+      stream => {
+        if (timedOut) { try { stream.getTracks().forEach(t => t.stop()); } catch {} return; }
+        clearTimeout(timer);
+        resolve(stream);
+      },
+      err => { if (!timedOut) { clearTimeout(timer); reject(err); } }
+    );
+  });
+
+  // A stuck "Starting the microphone…" must always self-clear: whatever path
+  // hangs (browser bug, wedged device), the watchdog resets the UI so the
+  // panel never looks dead.
+  useEffect(() => {
+    if (!micStarting) return;
+    const t = setTimeout(() => {
+      setMicStarting(false);
+      setMicNote("The microphone is taking too long to start. Reload the page and try again — and check nothing else (Zoom, FaceTime) is holding the mic. You can always type your question.");
+    }, 12000);
+    return () => clearTimeout(t);
+  }, [micStarting]);
 
   const startListening = async () => {
     if (!SR) return;
+    // Re-entrancy guard: a second tap while the mic is still opening used to
+    // start a SECOND recognizer (Chrome then throws, and the two sessions
+    // fight). One voice flow at a time.
+    if (micStarting || listening || recording) return;
     stopSpeaking();
     setMicNote(null);
     setMicStarting(true);
@@ -475,6 +517,10 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
   };
 
   const startRecording = async () => {
+    // Guard double-taps (recording/micStarting), but NOT on `listening` — the
+    // recognizer's error path hands off to this fallback in the same tick it
+    // clears listening, and that state value is still stale here.
+    if (recording || micStarting) return;
     stopSpeaking();
     setMicNote(null);
     setMicStarting(true);
@@ -578,9 +624,15 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
     let out = null;
     try {
       const history = msgs.slice(-8).map(m => ({ role: m.role, text: m.text }));
+      // The server brain may do several lookups for a hard question, but the
+      // panel must never hang on "Thinking…" — after 60s we abort and the
+      // offline router answers what it can.
+      const abort = new AbortController();
+      const abortTimer = setTimeout(() => abort.abort(), 60000);
       const r = await fetch(API + "/assistant", {
         method: "POST",
         headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
+        signal: abort.signal,
         body: JSON.stringify({
           message: text,
           history,
@@ -588,7 +640,7 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
           snapshot: buildSnapshot(),
           guides: GUIDES,
         }),
-      });
+      }).finally(() => clearTimeout(abortTimer));
       if (r.ok) {
         const d = await r.json();
         if (d && (d.reply || (d.cards && d.cards.length))) {
