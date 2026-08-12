@@ -32,6 +32,10 @@ const API = "https://liz-team-server-api-production.up.railway.app";
 const NAVY = "#1a2332";
 const RED = "#C0392B";
 
+// Bumped on every assistant change — shown in the panel header so "which
+// version am I actually running?" is answerable at a glance (cache issues).
+const BUILD_TAG = "v3";
+
 const GREETING = "How can I help you today?";
 const CHIPS = [
   { label: "📞 Dial someone", send: "" , fill: "call " },
@@ -253,6 +257,7 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
   const [micNote, setMicNote] = useState(null); // mic error/help text
   const [recording, setRecording] = useState(false);     // MediaRecorder fallback active
   const [transcribing, setTranscribing] = useState(false);
+  const [micStarting, setMicStarting] = useState(false);  // instant tap feedback while the mic opens
   const mediaRecRef = useRef(null);
   const chunksRef = useRef([]);
   const recTimerRef = useRef(null);
@@ -316,23 +321,35 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
     ? "Your browser is blocking the microphone. Tap the 🔒 (or AA) icon next to the address bar → Microphone → Allow, then reload and try the mic again. Tip: the mic key on your phone's keyboard also dictates straight into the text box."
     : "Your browser is blocking the microphone. Click the small icon at the LEFT end of the address bar (before the site name) → turn Microphone on, or open “Site settings” → Microphone → Allow. Then reload this page and try again. On a Mac, also check System Settings → Privacy & Security → Microphone → allow your browser.";
 
+  // getUserMedia can HANG (mic held by Zoom/FaceTime, flaky hardware) — race
+  // it against a timeout so the tap always resolves to visible feedback.
+  const getMicStream = () => Promise.race([
+    navigator.mediaDevices.getUserMedia({ audio: true }),
+    new Promise((_, rej) => setTimeout(() => rej(new Error("mic-timeout")), 8000)),
+  ]);
+
   const startListening = async () => {
     if (!SR) return;
     stopSpeaking();
     setMicNote(null);
+    setMicStarting(true);
     // Ask for the mic explicitly BEFORE starting recognition: this forces the
     // browser's permission prompt to appear now, and lets us explain when
     // it's blocked — the recognizer alone fails silently on many phones
     // (the original "I click the mic and nothing happens" bug).
     if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const stream = await getMicStream();
         stream.getTracks().forEach(t => t.stop());
-      } catch {
-        setMicNote(MIC_BLOCKED_NOTE);
+      } catch (err) {
+        setMicStarting(false);
+        setMicNote(err && err.message === "mic-timeout"
+          ? "The microphone didn't respond — another app (Zoom, FaceTime, Teams?) may be using it. Close that app or restart the browser, then try again."
+          : MIC_BLOCKED_NOTE);
         return;
       }
     }
+    setMicStarting(false);
     try {
       const rec = new SR();
       recRef.current = rec;
@@ -390,13 +407,18 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
   const startRecording = async () => {
     stopSpeaking();
     setMicNote(null);
+    setMicStarting(true);
     let stream;
     try {
-      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    } catch {
-      setMicNote(MIC_BLOCKED_NOTE);
+      stream = await getMicStream();
+    } catch (err) {
+      setMicStarting(false);
+      setMicNote(err && err.message === "mic-timeout"
+        ? "The microphone didn't respond — another app (Zoom, FaceTime, Teams?) may be using it. Close that app or restart the browser, then try again."
+        : MIC_BLOCKED_NOTE);
       return;
     }
+    setMicStarting(false);
     try {
       const mime = ["audio/webm;codecs=opus", "audio/webm", "audio/mp4", "audio/ogg"]
         .find(m => window.MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(m)) || "";
@@ -532,7 +554,7 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
               <div style={{ fontSize: 20 }}>🎙️</div>
               <div style={{ flex: 1 }}>
                 <div style={{ color: "#fff", fontWeight: 800, fontSize: 15 }}>Assistant</div>
-                <div style={{ color: "rgba(255,255,255,0.65)", fontSize: 11 }}>Type or talk — I can dial, show, and explain</div>
+                <div style={{ color: "rgba(255,255,255,0.65)", fontSize: 11 }}>Type or talk — I can dial, show, and explain · {BUILD_TAG}</div>
               </div>
               <button onClick={toggleSpeak} title={speakOn ? "Voice replies ON — tap to mute" : "Voice replies OFF — tap to unmute"}
                 style={{ background: "rgba(255,255,255,0.12)", border: "none", borderRadius: 8, padding: "6px 9px", fontSize: 16, cursor: "pointer" }}>
@@ -572,6 +594,7 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
                 </div>
               )}
               {transcribing && <div style={{ fontSize: 13, color: "#6b7280", padding: "4px 2px" }}>Writing down what you said…</div>}
+              {micStarting && <div style={{ fontSize: 13, color: "#6b7280", padding: "4px 2px" }}>Starting the microphone…</div>}
               {micNote && (
                 <div style={{ background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: 10, padding: "10px 12px", fontSize: 12.5, color: "#7F1D1D", lineHeight: 1.5, marginTop: 4 }}>
                   🎤 {micNote}
