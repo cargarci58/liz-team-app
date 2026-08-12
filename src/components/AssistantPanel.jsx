@@ -34,7 +34,7 @@ const RED = "#C0392B";
 
 // Bumped on every assistant change — shown in the panel header so "which
 // version am I actually running?" is answerable at a glance (cache issues).
-const BUILD_TAG = "v4";
+const BUILD_TAG = "v5";
 
 const GREETING = "How can I help you today?";
 const CHIPS = [
@@ -376,8 +376,15 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
       rec.interimResults = true;   // show words as they're heard — proof it's working
       rec.maxAlternatives = 1;
 
-      const session = { final: "", interim: "", sent: false };
+      // The browser's recognizer ends ITSELF at small pauses, mid-sentence —
+      // that was the "cuts me off too fast" bug. So the recognizer is treated
+      // as disposable: whenever it self-ends while the agent is still mid-
+      // turn, it is silently RESTARTED and the words keep accumulating in
+      // `base`. The ONLY things that end the turn are OUR pause timer
+      // (~3s after the last words heard), the ⏹ tap, or the 90s cap.
+      const session = { base: "", final: "", interim: "", sent: false };
       listenRef.current = session;
+      const heardText = () => (session.base + " " + session.final + " " + session.interim).replace(/\s+/g, " ").trim();
       const finish = () => {
         if (session.sent) return;
         session.sent = true;
@@ -386,13 +393,13 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
         setListening(false);
         setInterim("");
         try { rec.stop(); } catch {}
-        const text = (session.final + " " + session.interim).replace(/\s+/g, " ").trim();
+        const text = heardText();
         if (text) send(text, { voice: true });
+        else setMicNote("I didn't hear anything — tap the mic and try again.");
       };
       finishRef.current = finish;
-      // Send ~2.5s after the last words heard: long enough to breathe
-      // mid-thought, short enough to feel responsive. Before anything is
-      // heard, allow a generous 10s to start talking.
+      // Pause timer: ~3s of quiet after the last words = the thought is done.
+      // Before the first words, a generous 12s to start talking.
       const armSilence = (ms) => {
         if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
         silenceTimerRef.current = setTimeout(finish, ms);
@@ -406,22 +413,23 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
         }
         session.final = finalText;
         session.interim = interimText;
-        setInterim((finalText + " " + interimText).replace(/\s+/g, " ").trim());
-        armSilence(2500);
+        setInterim(heardText());
+        armSilence(3000);
       };
       rec.onerror = (e) => {
         const code = (e && e.error) || "";
-        const heardSomething = !!(session.final + session.interim).trim();
-        if (heardSomething && code !== "aborted") { finish(); return; }  // salvage what we got
+        // no-speech just means a quiet stretch — onend will restart us; the
+        // pause/12s timers decide when the turn is really over.
+        if (code === "no-speech" || code === "aborted") return;
+        if (heardText()) { finish(); return; }  // salvage what we already got
         session.sent = true;
         if (silenceTimerRef.current) { clearTimeout(silenceTimerRef.current); silenceTimerRef.current = null; }
         finishRef.current = null;
         setListening(false);
         setInterim("");
         if (code === "not-allowed" || code === "service-not-allowed") setMicNote(MIC_BLOCKED_NOTE);
-        else if (code === "no-speech") setMicNote("I didn't hear anything — tap the mic and start talking right away.");
         else if (code === "audio-capture") setMicNote("No working microphone was found on this device.");
-        else if (code !== "aborted") {
+        else {
           // Recognizer broke for a non-permission reason (e.g. its speech
           // service is unreachable in this browser). Hand off to the
           // record-and-transcribe fallback instead of giving up.
@@ -429,10 +437,25 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
           else setMicNote("Voice input didn't start. Tip: the mic key on your phone's keyboard dictates straight into the text box.");
         }
       };
-      rec.onend = () => { finish(); };   // recognizer self-ended — send whatever was heard
+      rec.onend = () => {
+        if (session.sent) return;
+        // Self-ended mid-turn: bank the finalized words, restart, keep going.
+        session.base = (session.base + " " + session.final + " " + session.interim).replace(/\s+/g, " ").trim();
+        session.final = "";
+        session.interim = "";
+        try { rec.start(); }
+        catch {
+          setTimeout(() => {
+            if (session.sent) return;
+            try { rec.start(); } catch { finish(); }
+          }, 150);
+        }
+      };
       rec.start();
       setListening(true);
-      armSilence(10000);
+      armSilence(12000);
+      // Absolute cap so a mic left open in a noisy room can't run forever.
+      setTimeout(finish, 90000);
     } catch {
       setListening(false);
       if (CAN_RECORD) startRecording();
