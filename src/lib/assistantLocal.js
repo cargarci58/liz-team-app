@@ -220,6 +220,33 @@ export function routeLocal(inputRaw, ctx = {}, memory = null) {
     return { reply: `I couldn't find a contact named “${name}”. You can add them from the Contacts page.`, cards: [{ type: "navigate", label: "📇 Open Contacts", target: "contacts" }] };
   }
 
+  // ---- Schedule: "do I have anything tomorrow?" / "what's on my calendar
+  // today?" — answer from tasks + closings, don't just point at the calendar.
+  const schedDay = input.match(/\b(today|tomorrow)\b/);
+  if (schedDay && /(schedule|calendar|appointment|agenda|planned|going on|have anything|anything (for|on|scheduled|planned|happening))/.test(input)) {
+    const et = new Date(now.toLocaleDateString("en-CA", { timeZone: "America/New_York" }) + "T00:00:00");
+    if (schedDay[1] === "tomorrow") et.setDate(et.getDate() + 1);
+    const dateStr = `${et.getFullYear()}-${String(et.getMonth() + 1).padStart(2, "0")}-${String(et.getDate()).padStart(2, "0")}`;
+    const dayTasks = (schedDay[1] === "today"
+      ? taskItems(tasks?.dueToday).concat(taskItems(tasks?.personal?.dueToday, "General"))
+      : taskItems(tasks?.upcoming).concat(taskItems(tasks?.personal?.upcoming, "General")).filter(t => t.due === dateStr)
+    );
+    const closings = (deals || []).filter(d => d.closingDate === dateStr)
+      .map(d => ({ title: "🔑 Closing", due: dateStr, where: d.address }));
+    const items = closings.concat(dayTasks);
+    // Tasks don't carry times of day — say so when they asked for one.
+    const timeNote = /\b(morning|afternoon|evening|tonight)\b/.test(input)
+      ? " (heads up: the app doesn't track times of day, so this is the whole day)"
+      : "";
+    const reply = items.length
+      ? `Here's ${schedDay[1]}${timeNote}: ${nameList(items)}.`
+      : `Nothing on the books for ${schedDay[1]} — no closings and no tasks due${timeNote}.`;
+    const cards = [];
+    if (items.length) cards.push({ type: "tasks", title: `📅 ${schedDay[1] === "today" ? "Today" : "Tomorrow"} (${items.length})`, items });
+    cards.push({ type: "navigate", label: "📅 Open the Calendar", target: "calendar" });
+    return { reply, cards };
+  }
+
   // ---- Tasks: what's due today / overdue ---------------------------------
   if (/\b(task|tasks|to do|todo|to-do)\b/.test(input) || /what.*(today|do i need)/.test(input) || /\boverdue\b/.test(input)) {
     if (/^(add|create|new|remind)/.test(input) === false) {

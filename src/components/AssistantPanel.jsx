@@ -34,7 +34,7 @@ const RED = "#C0392B";
 
 // Bumped on every assistant change — shown in the panel header so "which
 // version am I actually running?" is answerable at a glance (cache issues).
-const BUILD_TAG = "v6";
+const BUILD_TAG = "v7";
 
 const GREETING = "How can I help you today?";
 const CHIPS = [

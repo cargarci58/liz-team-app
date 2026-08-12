@@ -205,3 +205,35 @@ describe("follow-up memory", () => {
     expect(r.reply).toMatch(/Who would you like to text/);
   });
 });
+
+describe("schedule questions get spoken answers, not a calendar link", () => {
+  const TASKS_SCHED = {
+    overdue: [], dueToday: [{ name: "Send welcome email", dueDate: "2026-08-11", address: "456 Ocean Drive" }],
+    upcoming: [{ name: "Home inspection", dueDate: "2026-08-12", address: "456 Ocean Drive" }],
+    personal: { overdue: [], dueToday: [], upcoming: [{ title: "Renew license", due_date: "2026-08-12" }] },
+  };
+  const DEALS_SCHED = [{ id: "t9", address: "77 Sunset Blvd", status: "Closing", closingDate: "2026-08-12" }];
+  const CTX2 = { contacts: [], deals: DEALS_SCHED, tasks: TASKS_SCHED, guides: [], now: new Date("2026-08-11T15:00:00Z") };
+
+  it("answers 'anything tomorrow afternoon' with the actual items and a whole-day note", () => {
+    const r = routeLocal("check my schedule to see if i have anything tomorrow in the afternoon", CTX2);
+    expect(r.reply).toMatch(/Closing \(77 Sunset Blvd\)/);
+    expect(r.reply).toMatch(/Home inspection/);
+    expect(r.reply).toMatch(/doesn't track times of day/);
+  });
+
+  it("says 'nothing on the books' plainly when the day is empty", () => {
+    const empty = { ...CTX2, deals: [], tasks: { overdue: [], dueToday: [], upcoming: [], personal: { overdue: [], dueToday: [], upcoming: [] } } };
+    const r = routeLocal("do i have anything tomorrow", empty);
+    expect(r.reply).toMatch(/Nothing on the books for tomorrow/);
+  });
+
+  it("'what's on my calendar today' answers from today's buckets", () => {
+    const r = routeLocal("what's on my calendar today", CTX2);
+    expect(r.reply).toMatch(/Send welcome email/);
+  });
+
+  it("plain 'calendar' still navigates", () => {
+    expect(routeLocal("calendar", CTX2).cards[0].target).toBe("calendar");
+  });
+});
