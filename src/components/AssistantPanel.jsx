@@ -456,10 +456,11 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
         session.final = finalText;
         session.interim = interimText;
         setInterim(heardText());
-        // 7s: people compose thoughts out loud with real pauses — "um…,
-        // let me see…" — and getting cut off feels far worse than waiting.
-        // In-a-hurry agents tap ⏹ and it sends instantly.
-        armSilence(7000);
+        // 3.5s of quiet = the thought is done. (Was 7s — that read as the
+        // assistant "waiting too long to respond" after you stop talking.)
+        // Mid-thought pausers still have the ⏹ hint, and a cut-off send
+        // just becomes a follow-up question.
+        armSilence(3500);
       };
       rec.onerror = (e) => {
         const code = (e && e.error) || "";
