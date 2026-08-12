@@ -294,6 +294,12 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
   const scrollRef = useRef(null);
   const openRef = useRef(false);
   openRef.current = open;
+  // Read at call time, not closure time: the hands-free loop calls send()
+  // through callbacks created during the PREVIOUS exchange, whose captured
+  // `msgs` is stale — follow-ups like "can you walk me through?" were sent
+  // with history that didn't include the answer they refer to.
+  const msgsRef = useRef([]);
+  msgsRef.current = msgs;
 
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
@@ -638,7 +644,7 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
     let out = null;
     let fromServer = false;
     try {
-      const history = msgs.slice(-8).map(m => ({ role: m.role, text: m.text }));
+      const history = msgsRef.current.slice(-8).map(m => ({ role: m.role, text: m.text }));
       // The server brain may do several lookups for a hard question, but the
       // panel must never hang on "Thinking…" — after 60s we abort and the
       // offline router answers what it can.
