@@ -108,10 +108,17 @@ function dealCardSummary(d) {
 
 function taskItems(list, where) {
   return (list || []).map(t => ({
-    title: t.title || t.name || t.task || "Task",
+    title: t.title || t.name || t.task || t.taskName || t.milestone || t.description || "Task",
     due: t.due_date || t.dueDate || "",
-    where: t.address || t.transactionAddress || t.txAddress || where || "",
+    where: t.address || t.transactionAddress || t.txAddress || t.transaction_address || t.property_address || where || "",
   }));
+}
+
+// "Order survey (123 Palm Ave), Send welcome email and 2 more" — so the
+// spoken/text reply NAMES the work instead of just counting it.
+function nameList(items) {
+  const named = items.slice(0, 3).map(t => t.title + (t.where ? ` (${t.where})` : ""));
+  return named.join(", ") + (items.length > 3 ? ` and ${items.length - 3} more` : "");
 }
 
 // Search the Help Center guides for the best match to a "how do I…" question.
@@ -184,11 +191,16 @@ export function routeLocal(inputRaw, ctx = {}) {
         cards.push({ type: "tasks", title: `📅 Due today (${dueToday.length})`, items: dueToday });
       }
       const total = (wantOverdueOnly ? overdue.length : overdue.length + dueToday.length);
-      const reply = total === 0
-        ? "You're all caught up — nothing urgent right now. 🎉"
-        : wantOverdueOnly
-          ? `You have ${overdue.length} overdue task${overdue.length === 1 ? "" : "s"}.`
-          : `You have ${dueToday.length} due today${overdue.length ? ` and ${overdue.length} overdue` : ""}.`;
+      let reply;
+      if (total === 0) {
+        reply = "You're all caught up — nothing urgent right now. 🎉";
+      } else if (wantOverdueOnly) {
+        reply = `You have ${overdue.length} overdue task${overdue.length === 1 ? "" : "s"}: ${nameList(overdue)}.`;
+      } else {
+        reply = `You have ${dueToday.length} due today${overdue.length ? ` and ${overdue.length} overdue` : ""}.`;
+        if (overdue.length) reply += ` Overdue: ${nameList(overdue)}.`;
+        if (dueToday.length) reply += ` Due today: ${nameList(dueToday)}.`;
+      }
       cards.push({ type: "navigate", label: "☀️ Open Win the Day", target: "home" });
       return { reply, cards };
     }

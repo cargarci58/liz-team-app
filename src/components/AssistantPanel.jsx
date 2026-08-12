@@ -54,6 +54,21 @@ const GUIDES = GUIDE_SECTIONS.map(sec => ({
 
 const SR = typeof window !== "undefined" ? (window.SpeechRecognition || window.webkitSpeechRecognition) : null;
 
+// Universal fallback: browsers with no native speech recognition (Firefox,
+// Brave, some Android WebViews) — or where it errors — record audio with
+// MediaRecorder and let the server transcribe it (POST /assistant/transcribe).
+const CAN_RECORD = typeof window !== "undefined" && typeof window.MediaRecorder !== "undefined" &&
+  !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+
+function blobToBase64(blob) {
+  return new Promise((resolve, reject) => {
+    const fr = new FileReader();
+    fr.onload = () => resolve(String(fr.result).split(",")[1] || "");
+    fr.onerror = reject;
+    fr.readAsDataURL(blob);
+  });
+}
+
 function speak(text, onDone) {
   try {
     if (!window.speechSynthesis || !text) { if (onDone) onDone(); return; }
@@ -236,6 +251,11 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
   const [listening, setListening] = useState(false);
   const [interim, setInterim] = useState("");   // live transcript while talking
   const [micNote, setMicNote] = useState(null); // mic error/help text
+  const [recording, setRecording] = useState(false);     // MediaRecorder fallback active
+  const [transcribing, setTranscribing] = useState(false);
+  const mediaRecRef = useRef(null);
+  const chunksRef = useRef([]);
+  const recTimerRef = useRef(null);
   const [speakOn, setSpeakOn] = useState(() => localStorage.getItem("tp_assist_speak") !== "off");
   const tasksRef = useRef(null);              // /dashboard/tasks snapshot (fetched on open)
   const recRef = useRef(null);
@@ -279,6 +299,7 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
     setOpen(false);
     stopSpeaking();
     stopListening();
+    stopRecording();
   };
 
   // ——— Voice input ———
@@ -340,15 +361,81 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
         if (code === "not-allowed" || code === "service-not-allowed") setMicNote(MIC_BLOCKED_NOTE);
         else if (code === "no-speech") setMicNote("I didn't hear anything — tap the mic and start talking right away.");
         else if (code === "audio-capture") setMicNote("No working microphone was found on this device.");
-        else if (code === "network") setMicNote("Voice recognition couldn't reach its service — check your connection, or use the mic key on your keyboard to dictate into the text box.");
-        else if (code !== "aborted") setMicNote("Voice input didn't start. Tip: the mic key on your phone's keyboard dictates straight into the text box.");
+        else if (code !== "aborted") {
+          // Recognizer broke for a non-permission reason (e.g. its speech
+          // service is unreachable in this browser). Hand off to the
+          // record-and-transcribe fallback instead of giving up.
+          if (CAN_RECORD) startRecording();
+          else setMicNote("Voice input didn't start. Tip: the mic key on your phone's keyboard dictates straight into the text box.");
+        }
       };
       rec.onend = () => { setListening(false); setInterim(""); };
       rec.start();
       setListening(true);
     } catch {
       setListening(false);
-      setMicNote("Voice input isn't available in this browser. Tip: the mic key on your phone's keyboard dictates straight into the text box.");
+      if (CAN_RECORD) startRecording();
+      else setMicNote("Voice input isn't available in this browser. Tip: the mic key on your phone's keyboard dictates straight into the text box.");
+    }
+  };
+
+  // ——— Record-and-transcribe fallback (works in every modern browser) ———
+  const stopRecording = () => {
+    if (recTimerRef.current) { clearTimeout(recTimerRef.current); recTimerRef.current = null; }
+    try {
+      if (mediaRecRef.current && mediaRecRef.current.state !== "inactive") mediaRecRef.current.stop();
+    } catch {}
+  };
+
+  const startRecording = async () => {
+    stopSpeaking();
+    setMicNote(null);
+    let stream;
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    } catch {
+      setMicNote(MIC_BLOCKED_NOTE);
+      return;
+    }
+    try {
+      const mime = ["audio/webm;codecs=opus", "audio/webm", "audio/mp4", "audio/ogg"]
+        .find(m => window.MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(m)) || "";
+      const mr = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
+      mediaRecRef.current = mr;
+      chunksRef.current = [];
+      mr.ondataavailable = (e) => { if (e.data && e.data.size) chunksRef.current.push(e.data); };
+      mr.onstop = async () => {
+        stream.getTracks().forEach(t => t.stop());
+        setRecording(false);
+        const blob = new Blob(chunksRef.current, { type: mr.mimeType || "audio/webm" });
+        if (blob.size < 1500) { setMicNote("I didn't catch any audio — tap the mic, speak, then tap it again when you're done."); return; }
+        setTranscribing(true);
+        try {
+          const audio = await blobToBase64(blob);
+          const r = await fetch(API + "/assistant/transcribe", {
+            method: "POST",
+            headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
+            body: JSON.stringify({ audio, mime: blob.type }),
+          });
+          const d = r.ok ? await r.json() : null;
+          setTranscribing(false);
+          if (d && d.success && d.text && d.text.trim()) {
+            send(d.text.trim(), { voice: true });
+          } else {
+            setMicNote("Voice isn't fully set up for this browser yet. You can still type, or dictate with the mic key on your keyboard.");
+          }
+        } catch {
+          setTranscribing(false);
+          setMicNote("Couldn't reach the voice service — check your connection, or type your question.");
+        }
+      };
+      mr.start();
+      setRecording(true);
+      // Hard stop at 30s so a forgotten mic never records indefinitely.
+      recTimerRef.current = setTimeout(stopRecording, 30000);
+    } catch {
+      try { stream.getTracks().forEach(t => t.stop()); } catch {}
+      setMicNote("Voice input isn't available in this browser. You can still type, or dictate with the mic key on your keyboard.");
     }
   };
 
@@ -479,6 +566,12 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
                   ● Listening — go ahead…{interim && <span style={{ color: "#6b7280", fontWeight: 400 }}> “{interim}”</span>}
                 </div>
               )}
+              {recording && (
+                <div style={{ fontSize: 13, color: RED, fontWeight: 700, padding: "4px 2px" }}>
+                  ● Recording — speak, then tap the mic again when you're done…
+                </div>
+              )}
+              {transcribing && <div style={{ fontSize: 13, color: "#6b7280", padding: "4px 2px" }}>Writing down what you said…</div>}
               {micNote && (
                 <div style={{ background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: 10, padding: "10px 12px", fontSize: 12.5, color: "#7F1D1D", lineHeight: 1.5, marginTop: 4 }}>
                   🎤 {micNote}
@@ -499,10 +592,17 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
 
             {/* Input row */}
             <div style={{ display: "flex", gap: 8, padding: "8px 12px 12px", alignItems: "center", flexShrink: 0 }}>
-              {SR && (
-                <button onClick={listening ? stopListening : startListening} title={listening ? "Stop listening" : "Talk instead of typing"}
-                  style={{ width: 44, height: 44, borderRadius: "50%", flexShrink: 0, background: listening ? RED : "#fff", color: listening ? "#fff" : NAVY, border: listening ? "none" : "1.5px solid " + NAVY, fontSize: 18, cursor: "pointer" }}>
-                  🎤
+              {(SR || CAN_RECORD) && (
+                <button
+                  onClick={() => {
+                    if (listening) stopListening();
+                    else if (recording) stopRecording();
+                    else if (SR) startListening();
+                    else startRecording();
+                  }}
+                  title={listening || recording ? "Stop" : "Talk instead of typing"}
+                  style={{ width: 44, height: 44, borderRadius: "50%", flexShrink: 0, background: listening || recording ? RED : "#fff", color: listening || recording ? "#fff" : NAVY, border: listening || recording ? "none" : "1.5px solid " + NAVY, fontSize: 18, cursor: "pointer" }}>
+                  {listening || recording ? "⏹" : "🎤"}
                 </button>
               )}
               <input

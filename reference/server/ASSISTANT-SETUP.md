@@ -42,11 +42,24 @@ In Railway → Variables, add:
 ```
 ANTHROPIC_API_KEY = sk-ant-...        (from console.anthropic.com)
 ASSISTANT_MODEL   = claude-sonnet-5   (optional — this is the default)
+OPENAI_API_KEY    = sk-...            (optional — see "Voice on every browser")
 ```
 
 Deploy. The app detects the endpoint automatically — no frontend change or
 redeploy needed. (While the endpoint is missing or erroring, the panel
 silently falls back to offline mode, so shipping this is zero-risk.)
+
+## Voice on every browser (optional)
+
+Chrome, Edge, and Safari have speech recognition built in — voice works
+there with no server help. Firefox, Brave, and a few Android browsers
+don't; for those, the app records the audio and sends it to
+`POST /assistant/transcribe` (included in this route file), which uses
+OpenAI Whisper (~$0.006 per minute of audio) to turn it into text.
+
+To enable it, add `OPENAI_API_KEY` (from platform.openai.com) in Railway.
+Without the key, agents on those browsers are told to type or use their
+keyboard's dictation — everything else still works.
 
 ## How it works / security properties
 

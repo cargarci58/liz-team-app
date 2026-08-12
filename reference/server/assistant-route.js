@@ -212,5 +212,48 @@ module.exports = function assistantRoute({ apiKey = process.env.ANTHROPIC_API_KE
     }
   });
 
+  // ————— Voice transcription fallback —————————————————————————————
+  // Browsers without built-in speech recognition (Firefox, Brave, some
+  // Android WebViews) record audio in the app and send it here to be
+  // turned into text. Uses OpenAI Whisper (the industry-standard cheap
+  // STT API, ~$0.006/min) via OPENAI_API_KEY. Optional: without the key
+  // this returns 503 and the app tells the agent to type instead —
+  // nothing breaks.
+  router.post("/assistant/transcribe", express.json({ limit: "12mb" }), async (req, res) => {
+    try {
+      const sttKey = process.env.OPENAI_API_KEY;
+      if (!sttKey) return res.status(503).json({ success: false, error: "transcription not configured" });
+      if (!req.headers.authorization) return res.status(401).json({ success: false, error: "auth required" });
+
+      const { audio, mime } = req.body || {};
+      if (!audio || typeof audio !== "string" || audio.length > 12 * 1024 * 1024) {
+        return res.status(400).json({ success: false, error: "audio (base64) required" });
+      }
+
+      const buf = Buffer.from(audio, "base64");
+      const ext = /mp4/.test(mime || "") ? "mp4" : /ogg/.test(mime || "") ? "ogg" : "webm";
+      const fd = new FormData();
+      fd.append("file", new Blob([buf], { type: mime || "audio/webm" }), "voice." + ext);
+      fd.append("model", "whisper-1");
+      fd.append("language", "en");
+
+      const r = await fetch("https://api.openai.com/v1/audio/transcriptions", {
+        method: "POST",
+        headers: { Authorization: "Bearer " + sttKey },
+        body: fd,
+      });
+      if (!r.ok) {
+        const errText = await r.text().catch(() => "");
+        console.error("[assistant/transcribe] STT error", r.status, errText.slice(0, 300));
+        return res.status(502).json({ success: false, error: "transcription service error" });
+      }
+      const d = await r.json();
+      return res.json({ success: true, text: d.text || "" });
+    } catch (e) {
+      console.error("[assistant/transcribe] error:", e.message);
+      return res.status(500).json({ success: false, error: "transcription failed" });
+    }
+  });
+
   return router;
 };

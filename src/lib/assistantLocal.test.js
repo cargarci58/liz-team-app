@@ -150,3 +150,15 @@ describe("navigation and fallback", () => {
     expect(routeLocal("purple monkey dishwasher", CTX)).toBeNull();
   });
 });
+
+describe("task replies name the work, not just count it", () => {
+  it("includes overdue and due-today task names in the reply text", () => {
+    const r = routeLocal("what are my tasks today", CTX);
+    expect(r.reply).toMatch(/Order survey \(123 Palm Ave\)/);
+    expect(r.reply).toMatch(/Send welcome email/);
+  });
+  it("overdue-only reply names the overdue item", () => {
+    const r = routeLocal("what's overdue", CTX);
+    expect(r.reply).toMatch(/Order survey/);
+  });
+});
