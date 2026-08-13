@@ -209,6 +209,20 @@ export default function HelpCenter({ apiBase, token, onGoals, onProfile, onCompa
   const [search, setSearch] = useState('');
   const [expanded, setExpanded] = useState(new Set());
 
+  // How-To guides: the full library lives on the server (single source of
+  // truth shared with the AI assistant and Ask AI). The built-in
+  // GUIDE_SECTIONS above stay as the offline/error fallback.
+  const [guideSections, setGuideSections] = useState(GUIDE_SECTIONS);
+  const [guidesLoaded, setGuidesLoaded] = useState(false);
+  useEffect(() => {
+    if (!open || guidesLoaded) return;
+    setGuidesLoaded(true);
+    fetch(`${apiBase}/help/guides`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => (r.ok ? r.json() : null))
+      .then(d => { if (d && Array.isArray(d.sections) && d.sections.length) setGuideSections(d.sections); })
+      .catch(() => {});
+  }, [open, guidesLoaded, apiBase, token]);
+
   // FAQs (role-based, loaded lazily when the FAQs tab is first opened)
   const [faqLoading, setFaqLoading] = useState(false);
   const [faqError, setFaqError] = useState(null);
@@ -235,7 +249,7 @@ export default function HelpCenter({ apiBase, token, onGoals, onProfile, onCompa
   const matches = (txt) => !search.trim() || txt.toLowerCase().includes(search.toLowerCase());
 
   // Filter how-to guides by search
-  const filteredSections = GUIDE_SECTIONS.map(sec => ({
+  const filteredSections = guideSections.map(sec => ({
     ...sec,
     items: sec.items.filter(it => matches(it.title) || it.steps.some(matches)),
   })).filter(sec => sec.items.length > 0);

@@ -49,12 +49,9 @@ const CHIPS = [
 const OFFLINE_HINT =
   "I can dial a contact (“call Maria”), show your tasks (“what's due today?”), open a deal (“open Palm Ave”), add a reminder (“remind me to call the lender tomorrow”), or explain the app (“how do I share a document?”).";
 
-// Condensed Help Center guides — sent to the server brain and used by the
-// offline router. Static, computed once.
-const GUIDES = GUIDE_SECTIONS.map(sec => ({
-  heading: sec.heading,
-  items: (sec.items || []).map(g => ({ title: g.title, steps: g.steps || [] })),
-}));
+// The server brain now owns the full help library (routes/app-knowledge.js
+// + its search_help tool) — guides are no longer shipped with each request.
+// GUIDE_SECTIONS stays imported for the OFFLINE router only.
 
 const SR = typeof window !== "undefined" ? (window.SpeechRecognition || window.webkitSpeechRecognition) : null;
 
@@ -227,6 +224,135 @@ function CreateTaskCard({ card, token, onSpokenConfirm }) {
   );
 }
 
+// Shared shell for proposal cards: amber "review & confirm" box with
+// Cancel + confirm buttons, mirroring CreateTaskCard's states.
+function ProposalCard({ badge, confirmLabel, doneText, spokenText, body, doAction, onSpokenConfirm }) {
+  const [state, setState] = useState("idle"); // idle | saving | done | cancelled | error
+  if (state === "done") {
+    return <div style={{ background: "#F0FDF4", border: "1px solid #BBF7D0", borderRadius: 12, padding: 12, marginTop: 8, fontSize: 13, fontWeight: 700, color: "#166534" }}>✓ {doneText}</div>;
+  }
+  if (state === "cancelled") {
+    return <div style={{ background: "#F9FAFB", border: "1px solid #E5E7EB", borderRadius: 12, padding: 12, marginTop: 8, fontSize: 13, color: "#6b7280" }}>Discarded.</div>;
+  }
+  const run = async () => {
+    setState("saving");
+    try {
+      await doAction();
+      setState("done");
+      if (onSpokenConfirm) onSpokenConfirm(spokenText);
+    } catch { setState("error"); }
+  };
+  return (
+    <div style={{ background: "#FFFBEB", border: "1px solid #FDE68A", borderRadius: 12, padding: 14, marginTop: 8 }}>
+      <div style={{ fontSize: 11, fontWeight: 800, color: "#92400E", textTransform: "uppercase", letterSpacing: "0.04em" }}>{badge}</div>
+      {body}
+      {state === "error" && <div style={{ fontSize: 12, color: RED, marginTop: 6 }}>Couldn't do that — try again.</div>}
+      <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+        <button onClick={() => setState("cancelled")} disabled={state === "saving"} style={{ flex: 1, background: "#fff", color: "#374151", border: "1px solid #D1D5DB", borderRadius: 8, padding: "9px 10px", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>
+          Cancel
+        </button>
+        <button onClick={run} disabled={state === "saving"} style={{ flex: 2, background: "#1E8449", color: "#fff", border: "none", borderRadius: 8, padding: "9px 10px", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>
+          {state === "saving" ? "Working…" : confirmLabel}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// draft_email — the FULL draft is shown (recipient, subject, body) and
+// NOTHING sends until the agent taps Send.
+function DraftEmailCard({ card, token, onSpokenConfirm }) {
+  const e = card.email || {};
+  if (!e.toEmail || !e.message) return null;
+  return (
+    <ProposalCard
+      badge="Email draft — review, then send"
+      confirmLabel="✉️ Send email"
+      doneText={`Sent to ${e.toName || e.toEmail}.`}
+      spokenText="Email sent."
+      onSpokenConfirm={onSpokenConfirm}
+      body={
+        <>
+          <div style={{ fontSize: 12, color: "#6b7280", marginTop: 6 }}>To: <b style={{ color: "#111" }}>{e.toName || ""}</b> {e.toEmail}</div>
+          <div style={{ fontWeight: 700, fontSize: 13, color: NAVY, marginTop: 4 }}>{e.subject || "(no subject)"}</div>
+          <div style={{ fontSize: 12.5, color: "#374151", marginTop: 6, whiteSpace: "pre-wrap", background: "#fff", border: "1px solid #F3E8C8", borderRadius: 8, padding: 10, maxHeight: 180, overflowY: "auto" }}>{e.message}</div>
+        </>
+      }
+      doAction={async () => {
+        const r = await fetch(API + "/email/send", {
+          method: "POST",
+          headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
+          body: JSON.stringify({ transactionId: e.transactionId || null, toEmail: e.toEmail, toName: e.toName || "", toRole: e.toRole || "", subject: e.subject || "", message: e.message }),
+        });
+        if (!r.ok) throw new Error("send failed");
+      }}
+    />
+  );
+}
+
+// start_chase — recurring polite follow-up until resolved; agent confirms.
+function StartChaseCard({ card, token, onSpokenConfirm }) {
+  const c = card.chase || {};
+  if (!c.transactionId || !c.targetEmail) return null;
+  return (
+    <ProposalCard
+      badge="Follow-up chase — confirm to start"
+      confirmLabel="🔁 Start follow-up"
+      doneText={`Chasing ${c.targetName || c.targetEmail} until it's done.`}
+      spokenText="Follow-up started."
+      onSpokenConfirm={onSpokenConfirm}
+      body={
+        <>
+          <div style={{ fontWeight: 700, fontSize: 14, color: NAVY, marginTop: 6 }}>{c.subject || "Follow-up"}</div>
+          <div style={{ fontSize: 12, color: "#6b7280", marginTop: 2 }}>Nags {c.targetName || c.targetEmail} politely until resolved — stop it anytime from the deal's Active Follow-Ups.</div>
+          {c.message && <div style={{ fontSize: 12.5, color: "#374151", marginTop: 6, whiteSpace: "pre-wrap", background: "#fff", border: "1px solid #F3E8C8", borderRadius: 8, padding: 10, maxHeight: 140, overflowY: "auto" }}>{c.message}</div>}
+        </>
+      }
+      doAction={async () => {
+        const r = await fetch(API + "/chases/start", {
+          method: "POST",
+          headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
+          body: JSON.stringify({ transactionId: c.transactionId, targetType: "general", targetEmail: c.targetEmail, subject: c.subject || "", customMessage: c.message || "" }),
+        });
+        if (!r.ok) throw new Error("chase failed");
+      }}
+    />
+  );
+}
+
+// log_call — records a call outcome on a contact (drives their cadence).
+const CALL_OUTCOME_LABELS = {
+  spoke_interested: "Spoke — interested", spoke_not_now: "Spoke — not now", left_vm: "Left voicemail",
+  no_answer: "No answer", wrong_number: "Wrong number", meeting_set: "Meeting set", text_sent: "Text sent", dnc: "Do not contact",
+};
+function LogCallCard({ card, token, onSpokenConfirm }) {
+  const c = card.call || {};
+  if (!c.contactId || !c.outcome) return null;
+  return (
+    <ProposalCard
+      badge="Log this call — confirm"
+      confirmLabel="📞 Log call"
+      doneText={`Call logged for ${c.contactName || "contact"}.`}
+      spokenText="Call logged."
+      onSpokenConfirm={onSpokenConfirm}
+      body={
+        <>
+          <div style={{ fontWeight: 700, fontSize: 14, color: NAVY, marginTop: 6 }}>{c.contactName || "Contact"} — {CALL_OUTCOME_LABELS[c.outcome] || c.outcome}</div>
+          {c.notes && <div style={{ fontSize: 12.5, color: "#374151", marginTop: 4 }}>{c.notes}</div>}
+        </>
+      }
+      doAction={async () => {
+        const r = await fetch(API + "/contacts/" + c.contactId + "/log-call", {
+          method: "POST",
+          headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
+          body: JSON.stringify({ outcome: c.outcome, notes: c.notes || "" }),
+        });
+        if (!r.ok) throw new Error("log failed");
+      }}
+    />
+  );
+}
+
 function Card({ card, token, onOpenDeal, onNavigate, onSend, onSpokenConfirm }) {
   if (!card || !card.type) return null;
   switch (card.type) {
@@ -254,6 +380,12 @@ function Card({ card, token, onOpenDeal, onNavigate, onSend, onSpokenConfirm }) 
       );
     case "create_task":
       return <CreateTaskCard card={card} token={token} onSpokenConfirm={onSpokenConfirm} />;
+    case "draft_email":
+      return <DraftEmailCard card={card} token={token} onSpokenConfirm={onSpokenConfirm} />;
+    case "start_chase":
+      return <StartChaseCard card={card} token={token} onSpokenConfirm={onSpokenConfirm} />;
+    case "log_call":
+      return <LogCallCard card={card} token={token} onSpokenConfirm={onSpokenConfirm} />;
     case "help":
       return <HelpCard card={card} onNavigate={onNavigate} />;
     default:
@@ -659,7 +791,6 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
           history,
           context: { screen: currentView || "", dealAddress: currentDealAddress || "", voice: !!voice },
           snapshot: buildSnapshot(),
-          guides: GUIDES,
         }),
       }).finally(() => clearTimeout(abortTimer));
       if (r.ok) {

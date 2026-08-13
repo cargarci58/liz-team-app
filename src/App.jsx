@@ -10514,6 +10514,9 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
             else if (target === "reports") openReports("overview");
             else if (target === "help") setHelpSignal(n => n + 1);
             else if (target === "vendors") setShowVendorLibrary(true);
+            else if (target === "intake") setShowIntakeLinks(true);
+            else if (target === "team") setShowTeam(true);
+            else if (target === "settings") setShowCompanySettings(true);
             else if (["home", "dashboard", "contacts", "popbys", "scripts", "cma", "expenses", "forms", "growthplan", "new"].includes(target)) setView(target);
             else setView("home");
           }}
