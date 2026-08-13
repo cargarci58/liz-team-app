@@ -40,6 +40,7 @@ const TASK_ICONS = {
   price_reduction:   "💰",
   buyer_followup:    "🔑",
   lender_update:     "🏦",
+  signature_pending: "✍️",
   move_anniversary:  "🏡",
   monthly_financials: "🧾",
 };
