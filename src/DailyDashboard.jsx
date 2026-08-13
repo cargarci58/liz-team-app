@@ -39,6 +39,7 @@ const TASK_ICONS = {
   chase_opt_out:     "⚠️",
   price_reduction:   "💰",
   buyer_followup:    "🔑",
+  lender_update:     "🏦",
   move_anniversary:  "🏡",
   monthly_financials: "🧾",
 };
