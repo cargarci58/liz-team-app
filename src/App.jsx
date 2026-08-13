@@ -5737,6 +5737,165 @@ function NextStepStrip({ txId, coordinatorMode, onOpenTimeline }) {
   );
 }
 
+// ── Contract fell through: one confirmed action archives the whole contract
+// (people, timeline, terms, docs list, offer) for compliance, files its
+// documents into a "Last contract" folder, clears the other side's people,
+// resets the deal to Active with a fresh timeline, and hands back backup
+// offers + a review-gated reassurance draft. Messages are untouched.
+function FallThroughModal({ tx, onClose, onDone }) {
+  const [phase, setPhase] = useState("confirm"); // confirm | working | result | error
+  const [reason, setReason] = useState("financing");
+  const [notes, setNotes] = useState("");
+  const [result, setResult] = useState(null);
+  const [err, setErr] = useState("");
+  const [emailState, setEmailState] = useState("idle"); // idle | sending | sent | failed
+  const [draft, setDraft] = useState(null);
+  const tok = localStorage.getItem("tp_token") || "";
+
+  const REASONS = [
+    ["financing", "💰 Financing fell apart"], ["inspection", "🔍 Inspection issues"],
+    ["appraisal", "📉 Appraisal came in low"], ["buyer_cold_feet", "🥶 Buyer walked / cold feet"],
+    ["seller_side", "🏠 Seller side"], ["insurance", "☂️ Insurance"], ["title", "📜 Title problem"], ["other", "Other"],
+  ];
+
+  const run = async () => {
+    setPhase("working");
+    try {
+      const r = await fetch(`${API}/transactions/${tx.id}/fall-through`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: "Bearer " + tok },
+        body: JSON.stringify({ reason, notes }),
+      });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok || !d.success) { setErr(d.error || "Something went wrong — nothing was changed."); setPhase("error"); return; }
+      setResult(d);
+      setDraft(d.draftEmail || null);
+      setPhase("result");
+      if (onDone) onDone(d);
+    } catch {
+      setErr("Couldn't reach the server — nothing was changed."); setPhase("error");
+    }
+  };
+
+  const sendDraft = async () => {
+    if (!draft) return;
+    setEmailState("sending");
+    try {
+      const r = await fetch(`${API}/email/send`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: "Bearer " + tok },
+        body: JSON.stringify({ transactionId: tx.id, toEmail: draft.toEmail, toName: draft.toName, toRole: draft.toRole, subject: draft.subject, message: draft.message }),
+      });
+      if (!r.ok) throw new Error();
+      setEmailState("sent");
+    } catch { setEmailState("failed"); }
+  };
+
+  const box = { background: "#fff", borderRadius: 14, maxWidth: 560, width: "100%", padding: 22, boxShadow: "0 18px 60px rgba(0,0,0,0.35)" };
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)", zIndex: 4000, display: "flex", alignItems: "flex-start", justifyContent: "center", overflowY: "auto", padding: "40px 14px" }} onClick={e => { if (e.target === e.currentTarget && phase !== "working") onClose(); }}>
+      <div style={box}>
+        {phase === "confirm" && (
+          <>
+            <div style={{ fontSize: 17, fontWeight: 800, color: "#111" }}>💔 Contract fell through — {tx.address}</div>
+            <div style={{ fontSize: 13, color: "#374151", margin: "10px 0 4px", fontWeight: 700 }}>What happened?</div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }} data-keep-grid>
+              {REASONS.map(([val, label]) => (
+                <button key={val} onClick={() => setReason(val)} style={{ padding: "7px 11px", borderRadius: 16, fontSize: 12.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", border: reason === val ? "2px solid #C0392B" : "1px solid #D1D5DB", background: reason === val ? "#FDEDEC" : "#fff", color: reason === val ? "#C0392B" : "#374151" }}>{label}</button>
+              ))}
+            </div>
+            <textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="Optional notes for the record (e.g. lender name, what fell apart)…" style={{ width: "100%", boxSizing: "border-box", marginTop: 10, minHeight: 60, padding: 10, borderRadius: 10, border: "1px solid #D1D5DB", fontSize: 13, fontFamily: "inherit" }} />
+            <div style={{ background: "#F9FAFB", border: "1px solid #E5E7EB", borderRadius: 10, padding: "10px 12px", marginTop: 10, fontSize: 12.5, color: "#374151", lineHeight: 1.6 }}>
+              One tap does all of this — nothing is lost:
+              <br />🗄️ <b>Everything archived for compliance</b> — people, timeline, contract terms, offer — viewable anytime under "💔 Past contracts".
+              <br />📁 Contract documents file into a <b>"Last contract (fell through)"</b> folder.
+              <br />👥 The other side's people come off the deal (your client{tx.type === "Dual Agency" ? "s" : ""} and your TC stay). 💬 Messages stay.
+              <br />🔄 Status returns to <b>Active</b> with a fresh timeline; contract dates clear; follow-up chases stop.
+              <br />📥 Any backup offers resurface, and you'll get a client email draft to review.
+            </div>
+            <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
+              <button onClick={onClose} style={{ flex: 1, padding: "11px 10px", borderRadius: 9, border: "1px solid #D1D5DB", background: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>Never mind</button>
+              <button onClick={run} style={{ flex: 2, padding: "11px 10px", borderRadius: 9, border: "none", background: "#C0392B", color: "#fff", fontWeight: 800, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>💔 Yes — contract fell through</button>
+            </div>
+          </>
+        )}
+        {phase === "working" && <div style={{ padding: 30, textAlign: "center", fontSize: 14, color: "#374151" }}>Archiving the contract and resetting the deal…</div>}
+        {phase === "error" && (
+          <>
+            <div style={{ fontSize: 15, fontWeight: 800, color: "#B91C1C" }}>⚠️ {err}</div>
+            <button onClick={onClose} style={{ marginTop: 14, width: "100%", padding: "11px 10px", borderRadius: 9, border: "1px solid #D1D5DB", background: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>Close</button>
+          </>
+        )}
+        {phase === "result" && result && (
+          <>
+            <div style={{ fontSize: 17, fontWeight: 800, color: "#166534" }}>✓ Back on market — the record is safe</div>
+            <div style={{ fontSize: 13, color: "#374151", marginTop: 8, lineHeight: 1.7 }}>
+              🗄️ Archived {result.archived.parties} people, {result.archived.milestones} timeline steps, {result.archived.documents} documents.
+              <br />📁 {result.docsFiled.count} document(s) filed to <b>"{result.docsFiled.folder}"</b>.
+              <br />👥 Removed: {result.removedParties.length ? result.removedParties.map(p => `${p.name || p.role}`).join(", ") : "no one"}. Kept: {result.keptParties.map(p => p.name || p.role).join(", ") || "—"}.
+              <br />🔄 Timeline rebuilt with {result.timeline.rebuilt} fresh steps · {result.chasesStopped} chase(s) stopped · cleanup task added (MLS + deposit).
+              {result.backupOffers.length > 0 && <><br />📥 <b>{result.backupOffers.length} backup offer(s) still on the table</b> — open "Review Offers Received" to re-share them with your seller.</>}
+            </div>
+            {draft && emailState !== "sent" && (
+              <div style={{ marginTop: 12, border: "1px solid #FDE68A", background: "#FFFBEB", borderRadius: 10, padding: 12 }}>
+                <div style={{ fontSize: 11, fontWeight: 800, color: "#92400E", textTransform: "uppercase" }}>Reassurance email — review, edit, then send (or skip)</div>
+                <div style={{ fontSize: 12, color: "#6b7280", marginTop: 6 }}>To: <b style={{ color: "#111" }}>{draft.toName}</b> ({draft.toEmail})</div>
+                <input value={draft.subject} onChange={e => setDraft({ ...draft, subject: e.target.value })} style={{ width: "100%", boxSizing: "border-box", marginTop: 6, padding: 8, borderRadius: 8, border: "1px solid #E5E7EB", fontSize: 13, fontWeight: 700, fontFamily: "inherit" }} />
+                <textarea value={draft.message} onChange={e => setDraft({ ...draft, message: e.target.value })} style={{ width: "100%", boxSizing: "border-box", marginTop: 6, minHeight: 150, padding: 10, borderRadius: 8, border: "1px solid #E5E7EB", fontSize: 13, fontFamily: "inherit", lineHeight: 1.5 }} />
+                {emailState === "failed" && <div style={{ fontSize: 12, color: "#B91C1C", marginTop: 4 }}>Couldn't send — try again.</div>}
+                <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+                  <button onClick={() => setDraft(null)} style={{ flex: 1, padding: "9px 10px", borderRadius: 8, border: "1px solid #D1D5DB", background: "#fff", fontWeight: 700, fontSize: 12.5, cursor: "pointer", fontFamily: "inherit" }}>Skip</button>
+                  <button onClick={sendDraft} disabled={emailState === "sending"} style={{ flex: 2, padding: "9px 10px", borderRadius: 8, border: "none", background: "#1E8449", color: "#fff", fontWeight: 800, fontSize: 12.5, cursor: "pointer", fontFamily: "inherit" }}>{emailState === "sending" ? "Sending…" : "✉️ Send to " + (draft.toName || "client").split(" ")[0]}</button>
+                </div>
+              </div>
+            )}
+            {emailState === "sent" && <div style={{ marginTop: 12, background: "#F0FDF4", border: "1px solid #BBF7D0", borderRadius: 10, padding: 10, fontSize: 13, fontWeight: 700, color: "#166534" }}>✓ Email sent.</div>}
+            <button onClick={onClose} style={{ marginTop: 14, width: "100%", padding: "11px 10px", borderRadius: 9, border: "none", background: "#1A5276", color: "#fff", fontWeight: 800, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>Done</button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// Viewer for the permanent fall-through archives on a deal.
+function PastContractsModal({ tx, onClose }) {
+  const [rows, setRows] = useState(null);
+  useEffect(() => {
+    fetch(`${API}/transactions/${tx.id}/failed-contracts`, { headers: { Authorization: "Bearer " + (localStorage.getItem("tp_token") || "") } })
+      .then(r => r.ok ? r.json() : null).then(d => setRows((d && d.archives) || [])).catch(() => setRows([]));
+  }, [tx.id]);
+  const fmt = (d) => { try { return new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }); } catch { return String(d || ""); } };
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)", zIndex: 4000, display: "flex", alignItems: "flex-start", justifyContent: "center", overflowY: "auto", padding: "40px 14px" }} onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+      <div style={{ background: "#fff", borderRadius: 14, maxWidth: 620, width: "100%", padding: 22, boxShadow: "0 18px 60px rgba(0,0,0,0.35)" }}>
+        <div style={{ fontSize: 17, fontWeight: 800, color: "#111" }}>💔 Past contracts — {tx.address}</div>
+        {rows === null && <div style={{ padding: 16, color: "#6b7280", fontSize: 13 }}>Loading…</div>}
+        {rows && rows.length === 0 && <div style={{ padding: 16, color: "#6b7280", fontSize: 13 }}>No fall-through archives on this deal. 🎉</div>}
+        {(rows || []).map(a => {
+          const s = a.snapshot || {};
+          const c = s.contract || {};
+          return (
+            <div key={a.id} style={{ border: "1px solid #E5E7EB", borderRadius: 10, padding: 12, marginTop: 10 }}>
+              <div style={{ fontWeight: 800, fontSize: 14, color: "#111" }}>Fell through {fmt(a.created_at)} — {(a.reason || "other").replace(/_/g, " ")}</div>
+              {a.notes && <div style={{ fontSize: 12.5, color: "#374151", marginTop: 3 }}>{a.notes}</div>}
+              <div style={{ fontSize: 12.5, color: "#374151", marginTop: 6, lineHeight: 1.6 }}>
+                {c.contract_price && <>Contract price: <b>${Number(c.contract_price).toLocaleString()}</b> · </>}
+                {c.executed_date && <>Executed {String(c.executed_date).slice(0, 10)} · </>}
+                {c.closing_date && <>was closing {String(c.closing_date).slice(0, 10)}</>}
+                <br />👥 {(s.parties || []).map(p => `${p.name || "?"} (${p.role})`).join(", ") || "—"}
+                <br />📋 Timeline: {(s.milestones || []).filter(m => /completed|waived/i.test(m.status || "")).length} of {(s.milestones || []).length} steps were done
+                {s.documents_moved_to_folder && s.documents_moved_to_folder.ids && s.documents_moved_to_folder.ids.length > 0 && <><br />📁 {s.documents_moved_to_folder.ids.length} document(s) in "{s.documents_moved_to_folder.folder}" (Documents tab)</>}
+              </div>
+            </div>
+          );
+        })}
+        <button onClick={onClose} style={{ marginTop: 14, width: "100%", padding: "11px 10px", borderRadius: 9, border: "1px solid #D1D5DB", background: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>Close</button>
+      </div>
+    </div>
+  );
+}
+
 function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = false, onBack, contacts, onInviteParty = [], onCopyLoginLink, onSaveContact, onOpenContactBook, onDuplicate, currentUser, initialTab = "overview", navSignal = 0, dashboardUnread = 0, onMilestoneSummary, onInboundRead }) {
   // Staff (agent + coordinator) comms tabs are merged into one "messages" hub, so
   // a deep-link to chat/replies/sms opens the hub on the right section. Guests keep
@@ -5862,6 +6021,8 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
   const [offerCreateSignal, setOfferCreateSignal] = useState(0);  // header "Create Offer" → OffersTab creates
   const [editTxForm, setEditTxForm] = useState({});
   const [showReceiveOffer, setShowReceiveOffer] = useState(false);
+  const [showFallThrough, setShowFallThrough] = useState(false);
+  const [showPastContracts, setShowPastContracts] = useState(false);
   const [reviewOfferId, setReviewOfferId] = useState(null);
   // Email "Review & Approve" deep link: MainApp stashed which upload to open
   // on which deal — pop the review screen the moment that deal is on screen.
@@ -6119,7 +6280,9 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
                   tx.type !== "Buyer Representation" && !["Closed", "Cancelled"].includes(tx.status) && { icon: "📋", label: "Review Offers Received", fn: () => { setActiveTab("overview"); setTimeout(() => { const el = document.getElementById("pending-offers-panel"); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); }, 60); } },
                   { icon: "🖨️", label: "Print", fn: () => isGuest ? setPaywallFeature("Printing") : window.print() },
                   { icon: "🧬", label: "Copy this deal (duplicate)", fn: () => isGuest ? setPaywallFeature("Duplicating a transaction") : (onDuplicate && onDuplicate(tx)) },
+                  !isGuest && { icon: "💔", label: "Past contracts (archives)", fn: () => setShowPastContracts(true) },
                   { divider: true },
+                  !isGuest && !["Closed", "Cancelled"].includes(tx.status) && { icon: "💔", label: "Contract fell through…", danger: true, fn: () => setShowFallThrough(true) },
                   tx.status !== "Cancelled" && { icon: "🚫", label: "Cancel this deal…", danger: true, fn: () => isGuest ? setPaywallFeature("Cancelling a transaction") : (((window.prompt(`Cancel "${tx.address || "this transaction"}"? It will be HIDDEN from your dashboard (not deleted). Type CANCEL to confirm.`) || "").trim().toUpperCase() === "CANCEL") && update({ status: "Cancelled" })) },
                   tx.status === "Cancelled" && { icon: "♻️", label: "Restore this deal", fn: () => isGuest ? setPaywallFeature("Restoring a transaction") : update({ status: "Active" }) },
                 ].filter(Boolean).map((it, i) => it.divider ? (
@@ -6256,6 +6419,27 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
                 <ListingOffers txId={tx.id} txStatus={tx.status} refreshKey={offersRefresh} onReview={(id) => setReviewOfferId(id)} onReceiveOffer={() => setShowReceiveOffer(true)} />
               </div>
             )}
+            {showFallThrough && (
+              <FallThroughModal
+                tx={tx}
+                onClose={() => setShowFallThrough(false)}
+                onDone={(d) => {
+                  // Refresh LOCAL state only — the server already made every
+                  // change; a full onUpdate would PUT the stale contract
+                  // fields right back onto the cleaned deal.
+                  const removedIds = new Set((d.removedParties || []).map(p => String(p.id)));
+                  onLocalUpdate && onLocalUpdate({
+                    ...tx,
+                    status: "Active",
+                    executedDate: null, executed_date: null,
+                    contractPrice: null, contract_price: null,
+                    closingDate: null, closing_date: null,
+                    parties: (tx.parties || []).filter(p => !removedIds.has(String(p.id))),
+                  });
+                }}
+              />
+            )}
+            {showPastContracts && <PastContractsModal tx={tx} onClose={() => setShowPastContracts(false)} />}
             {(showReceiveOffer || reviewOfferId) && (
               <div style={{ position: "fixed", inset: 0, background: "#fff", zIndex: 300, overflowY: "auto" }}>
                 <ContractAutoIntake

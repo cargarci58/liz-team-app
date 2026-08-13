@@ -317,6 +317,13 @@ function ActivityTab({ isAdmin }) {
               <FunnelStage label="Contracts" value={f.contracts} color={COLORS.green} rate={r.closeRate} rateLabel="→ close" />
               <FunnelStage label="Closings" value={f.closings} color={COLORS.green} />
             </div>
+            {data.fallThroughs && data.fallThroughs.total > 0 && (
+              <div style={{ marginTop: 12, background: "#FDF2F2", border: "1px solid #FADBD8", borderRadius: 8, padding: "10px 12px", fontSize: 12.5, color: "#7B241C" }}>
+                💔 <b>{data.fallThroughs.total}</b> contract{data.fallThroughs.total === 1 ? "" : "s"} fell through in this period
+                {" — "}{data.fallThroughs.byReason.map(x => `${x.reason.replace(/_/g, " ")}: ${x.n}`).join(" · ")}.
+                {" "}Each one's full record is archived on its deal under "💔 Past contracts".
+              </div>
+            )}
             <div style={{ fontSize: 11, color: COLORS.gray, marginTop: 12, lineHeight: 1.5 }}>
               <b>Dials</b> = every logged call · <b>Conversations</b> = reached a person (Interested, Not Now, or Meeting Set) · <b>Appointments</b> = Meeting Set ·
               <b> Contracts</b> = deals that reached Under Contract or beyond · <b>Closings</b> = closed deals.

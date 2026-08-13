@@ -266,6 +266,22 @@ function DealView({ txId, onBack }) {
         {(tx.owning_agent_email || tx.owning_agent_phone) && (
           <div style={{ fontSize: 12, opacity: 0.7, marginTop: 4 }}>{[tx.owning_agent_email, tx.owning_agent_phone].filter(Boolean).join(" · ")}</div>
         )}
+        {/* TC parity with the agent app's fall-through flow: archives the whole
+            contract for compliance, files docs to a "Last contract" folder,
+            clears the other side's people, resets the deal to Active. */}
+        {/under contract|inspection|appraisal|clear to close|pending/i.test(tx.status || "") && (
+          <button
+            disabled={!!busy}
+            onClick={() => act(async () => {
+              const reason = (window.prompt('Contract fell through?\n\nThis archives the FULL contract record (people, timeline, terms, documents list), files its documents to a "Last contract" folder, removes the other side\'s people, and resets the deal to Active with a fresh timeline. Messages stay.\n\nType the reason: financing, inspection, appraisal, buyer_cold_feet, seller_side, insurance, title, or other') || "").trim().toLowerCase();
+              if (!reason) return;
+              await api(`/transactions/${txId}/fall-through`, { method: "POST", body: JSON.stringify({ reason }) });
+              alert("✓ Contract archived and deal reset to Active. The archive is on the deal's record; let the agent know about MLS + deposit release.");
+            })}
+            style={{ ...btn(false), marginTop: 10, background: "transparent", color: "#fff", borderColor: "rgba(255,255,255,0.4)", fontSize: 13 }}>
+            💔 Contract fell through…
+          </button>
+        )}
       </div>
 
       <div style={{ display: "flex", gap: 6, overflowX: "auto", marginBottom: 12 }}>

@@ -325,11 +325,16 @@ function JourneyHero({ tx, stage }) {
   const isBuyer = tx.transactionType && tx.transactionType.includes("Buyer");
   const eff = (stage && stage.effectiveStatus) || tx.status;
   const celebrate = eff === "Closed" || eff === "Clear to Close";
-  const headline = eff === "Closed" ? (isBuyer ? "🎉 You're officially a homeowner!" : "🎉 Your home is sold — congratulations!")
+  // A contract recently fell through and the home is back on market — say it
+  // honestly and warmly instead of letting the progress bar silently rewind.
+  const backOnMarket = !!(tx.backOnMarket || tx.back_on_market) && !isBuyer;
+  const headline = backOnMarket ? "🔄 Back on the market — and we have a plan"
+    : eff === "Closed" ? (isBuyer ? "🎉 You're officially a homeowner!" : "🎉 Your home is sold — congratulations!")
     : eff === "Clear to Close" ? "🏁 You're clear to close — the finish line!"
     : days !== null && days >= 0 && days <= 45 ? (days === 0 ? "🔑 Closing is today!" : `🔑 ${days} day${days === 1 ? "" : "s"} to closing`)
     : isBuyer ? "🏡 Your home purchase is on track" : "🏡 Your home sale is on track";
-  const sub = eff === "Closed" ? "Thank you for trusting us with this milestone."
+  const sub = backOnMarket ? "The previous buyer's contract fell through — it happens, and it's recoverable. Your listing and marketing are still working, and your agent is on it. Reach out anytime."
+    : eff === "Closed" ? "Thank you for trusting us with this milestone."
     : isBuyer ? "We're handling every detail to get you to the closing table." : "We're working hard to get you sold and closed.";
   return (
     <div style={{ position: "relative", borderRadius: 16, padding: 22, marginBottom: 14, color: "#fff",
@@ -1523,6 +1528,7 @@ export default function ClientPortal({ user, onLogout, previewTxId, onExitPrevie
     contractPrice: t.contract_price,
     openDate: t.open_date,
     closingDate: t.closing_date,
+    backOnMarket: t.back_on_market,
     propertyType: t.property_type,
     transactionType: t.transaction_type,
     parties: (t.parties || []).filter(Boolean),
