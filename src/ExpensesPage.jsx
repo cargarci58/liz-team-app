@@ -1643,20 +1643,25 @@ function BudgetTab({ categories }) {
   const incomeItems = items.filter(i => i.kind === 'income');
 
   // Set/replace the budget for a category to a single amount in the CURRENT
-  // period (month → monthly line, year → annual line). Keeps one budget line
-  // per category so the inline number and the table stay in sync.
+  // period. Keeps one budget line per category so the inline number and the
+  // table stay in sync.
   const saveCategoryBudget = async (cat, value) => {
     const entered = Number(value);
     const existing = expenseItems.find(i => (i.category || 'Uncategorized') === cat);
-    // Always store as a MONTHLY line so the number stays consistent whether the
-    // table is viewed by month or by year. A year-view entry is the annual total.
-    const monthly = period === 'year' ? entered / 12 : entered;
+    // Keep the line's existing frequency — a Yearly line stays Yearly. Only
+    // brand-new lines default to monthly. Convert the entered number from the
+    // current view (month/year) into the line's own frequency so the total is
+    // unchanged either way.
+    const freq = existing?.frequency === 'annual' || existing?.frequency === 'one_time' ? existing.frequency : 'monthly';
+    const amount = freq === 'monthly'
+      ? (period === 'year' ? entered / 12 : entered)
+      : (period === 'year' ? entered : entered * 12);
     setSavingCat(cat);
     try {
       if (!entered || entered <= 0) {
         if (existing) { await authFetch(`/budget/${existing.id}`, { method: 'DELETE' }); }
       } else {
-        const payload = { kind: 'expense', label: existing?.label || cat, category: cat, amount: Math.round(monthly * 100) / 100, frequency: 'monthly', dueMonth: null, notes: existing?.notes || null };
+        const payload = { kind: 'expense', label: existing?.label || cat, category: cat, amount: Math.round(amount * 100) / 100, frequency: freq, dueMonth: existing?.due_month ?? null, notes: existing?.notes || null };
         if (existing) await authFetch(`/budget/${existing.id}`, { method: 'PUT', body: JSON.stringify(payload) });
         else await authFetch('/budget', { method: 'POST', body: JSON.stringify(payload) });
       }
