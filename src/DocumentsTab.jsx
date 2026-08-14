@@ -59,6 +59,10 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
   const [rowMenu, setRowMenu] = useState(null);  // doc.id whose ⋯ menu is open
   const [signStatus, setSignStatus] = useState({}); // docId → {pending, signed}
   const [showLOI, setShowLOI] = useState(false); // Letter of Intent generator (commercial only)
+  const [folders, setFolders] = useState([]);    // agent-created folders (may be empty of files)
+  const [dragDocId, setDragDocId] = useState(null); // doc.id being dragged
+  const [dragOverFolder, setDragOverFolder] = useState(null); // folder name under the drag
+  const [moveDoc, setMoveDoc] = useState(null);  // doc for the tap-based "Move to folder" picker
   const isCommercial = /commercial/i.test(`${tx.propertyType || ""} ${tx.constructionType || ""}`);
   const isBuyerDeal = /buyer|dual/i.test(tx.transaction_type || tx.transactionType || tx.type || "");
   const [waiverBusy, setWaiverBusy] = useState(false); // generating the inspection waiver
@@ -127,7 +131,7 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
   const loadDocs = () =>
     fetch(`${API}/documents/${tx.id}`, { headers })
       .then(r => r.json())
-      .then(d => { if (d.documents) setDocs(d.documents); })
+      .then(d => { if (d.documents) setDocs(d.documents); if (Array.isArray(d.folders)) setFolders(d.folders); })
       .catch(e => console.error("Load docs failed:", e));
 
   const loadRequired = () =>
@@ -218,6 +222,71 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
       if (!res.ok || !data.success) throw new Error(data.error || "Move failed");
       await loadDocs();
     } catch (err) { alert("Couldn't move it: " + err.message); }
+  };
+  // ── Folders: create / rename / delete-empty / move files (drag OR tap) ──
+  // A "folder" here is whatever groups files in this list: doc.folder, else
+  // doc.category, else "General". Moving a file into a group just stamps its
+  // `folder` to the group's name, so it always lands where it was dropped.
+  const docGroupKey = (d) => d.folder || d.category || "General";
+  const createFolder = async () => {
+    const name = (window.prompt("New folder name:", "") || "").trim();
+    if (!name) return;
+    try {
+      const res = await fetch(`${API}/transactions/${tx.id}/document-folders`, {
+        method: "POST", headers, body: JSON.stringify({ name }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || "Could not create folder");
+      setFolders(f => f.includes(data.name) ? f : [...f, data.name].sort());
+      return data.name;
+    } catch (err) { alert("Couldn't create the folder: " + err.message); }
+  };
+  const renameFolder = async (from) => {
+    const to = (window.prompt(`Rename folder "${from}" to:`, from) || "").trim();
+    if (!to || to === from) return;
+    try {
+      const res = await fetch(`${API}/transactions/${tx.id}/document-folders/rename`, {
+        method: "PATCH", headers, body: JSON.stringify({ from, to }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || "Rename failed");
+      setFolders(f => f.map(n => (n === from ? to : n)));
+      await loadDocs();
+    } catch (err) { alert("Couldn't rename the folder: " + err.message); }
+  };
+  const deleteEmptyFolder = async (name) => {
+    if (!window.confirm(`Remove the empty folder "${name}"?`)) return;
+    try {
+      const res = await fetch(`${API}/transactions/${tx.id}/document-folders/${encodeURIComponent(name)}`, {
+        method: "DELETE", headers,
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || "Delete failed");
+      setFolders(f => f.filter(n => n !== name));
+    } catch (err) { alert("Couldn't remove the folder: " + err.message); }
+  };
+  const moveDocToFolder = async (doc, folderName) => {
+    if (!doc || docGroupKey(doc) === folderName) return; // already there
+    try {
+      const res = await fetch(`${API}/documents/${doc.id}/folder`, {
+        method: "PATCH", headers, body: JSON.stringify({ folder: folderName }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || "Move failed");
+      await loadDocs();
+    } catch (err) { alert("Couldn't move the file: " + err.message); }
+  };
+  const renameFile = async (doc) => {
+    const name = (window.prompt("Rename file to:", doc.name || "") || "").trim();
+    if (!name || name === doc.name) return;
+    try {
+      const res = await fetch(`${API}/documents/${doc.id}/name`, {
+        method: "PATCH", headers, body: JSON.stringify({ name }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || "Rename failed");
+      await loadDocs();
+    } catch (err) { alert("Couldn't rename the file: " + err.message); }
   };
   // Same rule the section-split uses, so the menu offers the RIGHT direction.
   const docIsOffer = (d) => /^(offer|received)/i.test(d.folder || "")
@@ -594,12 +663,58 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
             style={{ padding: "8px 16px", background: "#fff", color: "#0E7490", border: "1px solid #67E8F9", borderRadius: 8, cursor: "pointer", fontWeight: 700, fontSize: 13, fontFamily: "inherit" }}>
             🧷 Combine PDFs
           </button>
+          <button onClick={createFolder}
+            title="Create a folder to organize this deal's files — then drag files in, or use a file's ⋯ menu → Move to folder"
+            style={{ padding: "8px 16px", background: "#fff", color: "#92400E", border: "1px solid #FCD34D", borderRadius: 8, cursor: "pointer", fontWeight: 700, fontSize: 13, fontFamily: "inherit" }}>
+            📁 New Folder
+          </button>
         </div>
       </div>
       {showCombine && (
         <CombinePdfsModal tx={tx} docs={docs} headers={headers}
           onClose={() => setShowCombine(false)}
           onDone={() => { setShowCombine(false); loadDocs(); }} />
+      )}
+
+      {/* Move-to-folder picker — the tap path (drag needs a mouse; phones use this). */}
+      {moveDoc && (
+        <div onClick={e => { if (e.target === e.currentTarget) setMoveDoc(null); }}
+          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 90, display: "flex", alignItems: "flex-start", justifyContent: "center", overflowY: "auto", padding: "40px 16px" }}>
+          <div style={{ background: "#fff", borderRadius: 14, width: "100%", maxWidth: 420, padding: 20, boxShadow: "0 12px 40px rgba(0,0,0,0.25)" }}>
+            <div style={{ fontWeight: 800, fontSize: 15, marginBottom: 2 }}>📁 Move to folder</div>
+            <div style={{ fontSize: 12.5, color: COLORS.muted, marginBottom: 12, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{moveDoc.name}</div>
+            {(() => {
+              const groups = new Set(folders);
+              for (const d of docs) groups.add(docGroupKey(d));
+              const list = [...groups].sort((a, b) => {
+                const ao = /^(offer|received)/i.test(a), bo = /^(offer|received)/i.test(b);
+                if (ao !== bo) return ao ? -1 : 1;
+                return a.localeCompare(b);
+              });
+              const current = docGroupKey(moveDoc);
+              return list.map(name => (
+                <button key={name} disabled={name === current}
+                  onClick={async () => { const d = moveDoc; setMoveDoc(null); await moveDocToFolder(d, name); }}
+                  style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", padding: "11px 13px", background: name === current ? "#f3f4f6" : "none", border: "none", borderRadius: 8, fontSize: 13.5, color: name === current ? COLORS.muted : "#1f2937", cursor: name === current ? "default" : "pointer", fontFamily: "inherit", textAlign: "left" }}
+                  onMouseEnter={e => { if (name !== current) e.currentTarget.style.background = "#f3f4f6"; }}
+                  onMouseLeave={e => { if (name !== current) e.currentTarget.style.background = "none"; }}>
+                  <span>{/^(offer|received)/i.test(name) ? "📥" : "📁"}</span>
+                  <span style={{ flex: 1 }}>{name}</span>
+                  {name === current && <span style={{ fontSize: 11, fontWeight: 700 }}>current</span>}
+                </button>
+              ));
+            })()}
+            <div style={{ height: 1, background: "#e5e7eb", margin: "8px 0" }} />
+            <button onClick={async () => { const d = moveDoc; const name = await createFolder(); if (name) { setMoveDoc(null); await moveDocToFolder(d, name); } }}
+              style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", padding: "11px 13px", background: "none", border: "none", borderRadius: 8, fontSize: 13.5, color: "#92400E", cursor: "pointer", fontFamily: "inherit", textAlign: "left", fontWeight: 700 }}>
+              <span>➕</span><span>New folder…</span>
+            </button>
+            <button onClick={() => setMoveDoc(null)}
+              style={{ width: "100%", marginTop: 8, padding: "10px 0", borderRadius: 8, border: "1px solid #DDDDDD", background: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", color: COLORS.text }}>
+              Cancel
+            </button>
+          </div>
+        </div>
       )}
 
       {/* Documents list */}
@@ -646,17 +761,61 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
               || /contract for sale|repair.*addendum|inspection.*addendum/i.test(d.name || "");
             const NEW_MS = 2 * 24 * 60 * 60 * 1000;
             const isNew = (d) => d.created_at && (Date.now() - new Date(d.created_at).getTime()) < NEW_MS;
-            const subGroups = (list) => {
+            const subGroups = (list, extraFolders = []) => {
               const g = {};
               for (const doc of list) { const k = doc.folder || doc.category || "General"; (g[k] = g[k] || []).push(doc); }
+              // Agent-created folders show even while empty — they're drop targets.
+              for (const name of extraFolders) { if (!g[name]) g[name] = []; }
               return Object.keys(g).sort((a, b) => {
                 const ao = /^(offer|received)/i.test(a), bo = /^(offer|received)/i.test(b);
                 if (ao !== bo) return ao ? -1 : 1;
                 return a.localeCompare(b);
               }).map(k => [k, g[k]]);
             };
+            // One folder block used by every layout below: header (drop target +
+            // ✏️ rename, 🗑 when empty) + its files.
+            const folderGroup = (folder, arr, big = false) => {
+              const over = dragOverFolder === folder && dragDocId;
+              return (
+                <div key={folder} style={{ marginBottom: big ? 14 : 12, borderRadius: 10, outline: over ? "2px dashed #2563eb" : "none", outlineOffset: 2, background: over ? "#eff6ff" : "transparent", transition: "background .12s" }}
+                  onDragOver={e => { if (dragDocId) { e.preventDefault(); if (dragOverFolder !== folder) setDragOverFolder(folder); } }}
+                  onDragLeave={e => { if (!e.currentTarget.contains(e.relatedTarget)) setDragOverFolder(f => (f === folder ? null : f)); }}
+                  onDrop={e => {
+                    e.preventDefault(); setDragOverFolder(null);
+                    const id = e.dataTransfer.getData("text/plain") || dragDocId;
+                    const d = docs.find(x => x.id === id);
+                    setDragDocId(null);
+                    if (d) moveDocToFolder(d, folder);
+                  }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, margin: big ? "0 0 8px 2px" : "0 0 6px 2px" }}>
+                    <span style={{ fontSize: big ? 15 : 14 }}>{/^(offer|received)/i.test(folder) ? "📥" : "📁"}</span>
+                    <span style={{ fontWeight: 700, fontSize: big ? 13 : 12.5, color: COLORS.navy }}>{folder}</span>
+                    <span style={{ fontSize: 11, color: COLORS.muted }}>({arr.length})</span>
+                    <button onClick={() => renameFolder(folder)} title="Rename this folder"
+                      style={{ border: "none", background: "none", cursor: "pointer", fontSize: 12, padding: "2px 4px", opacity: 0.55 }}>✏️</button>
+                    {arr.length === 0 && folders.includes(folder) && (
+                      <button onClick={() => deleteEmptyFolder(folder)} title="Remove this empty folder"
+                        style={{ border: "none", background: "none", cursor: "pointer", fontSize: 12, padding: "2px 4px", opacity: 0.55 }}>🗑</button>
+                    )}
+                  </div>
+                  {arr.length === 0 ? (
+                    <div style={{ marginLeft: 14, border: "1.5px dashed #d1d5db", borderRadius: 10, padding: "10px 14px", fontSize: 12, color: COLORS.muted, background: "#fafafa" }}>
+                      Empty — drag a file here, or use a file's ⋯ menu → 📁 Move to folder.
+                    </div>
+                  ) : arr.map(renderDoc)}
+                </div>
+              );
+            };
+            // Empty custom folders split between the two listing buckets by name.
+            const customEmpty = folders.filter(n => !docs.some(d => docGroupKey(d) === n));
+            const customEmptyOffers = customEmpty.filter(n => /^(offer|received)/i.test(n));
+            const customEmptyListing = customEmpty.filter(n => !/^(offer|received)/i.test(n));
             const renderDoc = (doc) => (
-                  <div key={doc.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", background: "#fff", border: "1px solid " + (isNew(doc) ? "#93c5fd" : "#DDDDDD"), borderRadius: 10, marginBottom: 8, marginLeft: 14, flexWrap: "wrap" }}>
+                  <div key={doc.id} draggable
+                    onDragStart={e => { e.dataTransfer.setData("text/plain", doc.id); e.dataTransfer.effectAllowed = "move"; setDragDocId(doc.id); }}
+                    onDragEnd={() => { setDragDocId(null); setDragOverFolder(null); }}
+                    title="Drag onto a folder name to move this file"
+                    style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", background: "#fff", border: "1px solid " + (isNew(doc) ? "#93c5fd" : "#DDDDDD"), borderRadius: 10, marginBottom: 8, marginLeft: 14, flexWrap: "wrap", cursor: "grab", opacity: dragDocId === doc.id ? 0.45 : 1 }}>
                     <div style={{ fontSize: 24, flexShrink: 0 }}>{getIcon(doc.mime_type)}</div>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontWeight: 600, fontSize: 14, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
@@ -712,6 +871,8 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
                             <div style={{ position: "absolute", right: 0, top: "100%", marginTop: 4, background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, boxShadow: "0 8px 24px rgba(0,0,0,0.16)", zIndex: 61, minWidth: 230, padding: 4 }}>
                               {[
                                 { icon: "📤", label: "Email to someone on the deal", fn: () => setShare({ doc }) },
+                                { icon: "📁", label: "Move to folder…", fn: () => setMoveDoc(doc) },
+                                { icon: "✏️", label: "Rename file…", fn: () => renameFile(doc) },
                                 { icon: doc.is_visible_to_client ? "🔒" : "👁", label: doc.is_visible_to_client ? "Hide from client's portal" : "Show in client's portal", fn: () => toggleVisibility(doc) },
                                 /listing|seller/i.test(tx?.transaction_type || tx?.type || "") && (docIsOffer(doc)
                                   ? { icon: "📁", label: "Move to Listing & Property Documents", fn: () => moveToCategory(doc, "General") }
@@ -738,23 +899,14 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
                     </div>
                   </div>
             );
-            const section = (title, emoji, list, accent) => list.length === 0 ? null : (
+            const section = (title, emoji, list, accent, extraFolders = []) => (list.length === 0 && extraFolders.length === 0) ? null : (
               <div style={{ marginBottom: 22 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "0 0 10px 0", paddingBottom: 6, borderBottom: "2px solid " + accent }}>
                   <span style={{ fontSize: 17 }}>{emoji}</span>
                   <span style={{ fontWeight: 800, fontSize: 14, color: accent, textTransform: "uppercase", letterSpacing: 0.4 }}>{title}</span>
                   <span style={{ fontSize: 11, color: COLORS.muted }}>({list.length})</span>
                 </div>
-                {subGroups(list).map(([folder, arr]) => (
-                  <div key={folder} style={{ marginBottom: 12 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "0 0 6px 2px" }}>
-                      <span style={{ fontSize: 14 }}>{/^(offer|received)/i.test(folder) ? "📥" : "📁"}</span>
-                      <span style={{ fontWeight: 700, fontSize: 12.5, color: COLORS.navy }}>{folder}</span>
-                      <span style={{ fontSize: 11, color: COLORS.muted }}>({arr.length})</span>
-                    </div>
-                    {arr.map(renderDoc)}
-                  </div>
-                ))}
+                {subGroups(list, extraFolders).map(([folder, arr]) => folderGroup(folder, arr))}
               </div>
             );
             const offers = docs.filter(isOfferDoc);
@@ -762,22 +914,13 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
             const isListingDeal = /listing|seller/i.test(tx?.transaction_type || tx?.type || "");
             // Buyer/other deals keep the simple single flow.
             if (!isListingDeal) {
-              return subGroups(docs).map(([folder, arr]) => (
-                <div key={folder} style={{ marginBottom: 14 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "0 0 8px 2px" }}>
-                    <span style={{ fontSize: 15 }}>{/^(offer|received)/i.test(folder) ? "📥" : "📁"}</span>
-                    <span style={{ fontWeight: 700, fontSize: 13, color: COLORS.navy }}>{folder}</span>
-                    <span style={{ fontSize: 11, color: COLORS.muted }}>({arr.length})</span>
-                  </div>
-                  {arr.map(renderDoc)}
-                </div>
-              ));
+              return subGroups(docs, customEmpty).map(([folder, arr]) => folderGroup(folder, arr, true));
             }
             // On a LISTING the "Offers & Contract" section ALWAYS shows — even
             // empty — so an offer (received automatically OR uploaded by hand)
             // has a home waiting for it (Carlos 7/24). Empty → a clear hint.
-            const offersSection = offers.length > 0
-              ? section("Offers & Contract", "📥", offers, "#1d4ed8")
+            const offersSection = (offers.length > 0 || customEmptyOffers.length > 0)
+              ? section("Offers & Contract", "📥", offers, "#1d4ed8", customEmptyOffers)
               : (
                 <div style={{ marginBottom: 22 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "0 0 10px 0", paddingBottom: 6, borderBottom: "2px solid #1d4ed8" }}>
@@ -793,7 +936,7 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
             return (
               <>
                 {offersSection}
-                {section("Listing & Property Documents", "📁", listing, "#166534")}
+                {section("Listing & Property Documents", "📁", listing, "#166534", customEmptyListing)}
               </>
             );
           })()}
