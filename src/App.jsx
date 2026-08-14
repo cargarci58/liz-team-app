@@ -5861,10 +5861,24 @@ function FallThroughModal({ tx, onClose, onDone }) {
 // Viewer for the permanent fall-through archives on a deal.
 function PastContractsModal({ tx, onClose }) {
   const [rows, setRows] = useState(null);
+  const [restoreState, setRestoreState] = useState("idle"); // idle | working | done | failed
+  const [restoredCount, setRestoredCount] = useState(0);
   useEffect(() => {
     fetch(`${API}/transactions/${tx.id}/failed-contracts`, { headers: { Authorization: "Bearer " + (localStorage.getItem("tp_token") || "") } })
       .then(r => r.ok ? r.json() : null).then(d => setRows((d && d.archives) || [])).catch(() => setRows([]));
   }, [tx.id]);
+  const restore = async () => {
+    setRestoreState("working");
+    try {
+      const r = await fetch(`${API}/transactions/${tx.id}/failed-contracts/restore-pre-contract`, {
+        method: "POST", headers: { Authorization: "Bearer " + (localStorage.getItem("tp_token") || "") },
+      });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok || !d.success) throw new Error();
+      setRestoredCount(d.restored || 0);
+      setRestoreState("done");
+    } catch { setRestoreState("failed"); }
+  };
   const fmt = (d) => { try { return new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }); } catch { return String(d || ""); } };
   return (
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)", zIndex: 4000, display: "flex", alignItems: "flex-start", justifyContent: "center", overflowY: "auto", padding: "40px 14px" }} onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
@@ -5890,6 +5904,21 @@ function PastContractsModal({ tx, onClose }) {
             </div>
           );
         })}
+        {rows && rows.length > 0 && (
+          <div style={{ marginTop: 12, background: "#F0F9FF", border: "1px solid #BAE6FD", borderRadius: 10, padding: 12 }}>
+            <div style={{ fontSize: 12.5, color: "#0C4A6E", lineHeight: 1.5 }}>
+              Pre-contract checkmarks missing after the reset? Restore them from the archive — it only re-completes listing-phase steps that were done before; it never un-checks anything.
+            </div>
+            {restoreState === "done" ? (
+              <div style={{ marginTop: 8, fontSize: 13, fontWeight: 700, color: "#166534" }}>✓ Restored {restoredCount} checkmark(s). Reopen the Timeline tab to see them.</div>
+            ) : (
+              <button onClick={restore} disabled={restoreState === "working"} style={{ marginTop: 8, padding: "9px 12px", borderRadius: 8, border: "none", background: "#0369A1", color: "#fff", fontWeight: 700, fontSize: 12.5, cursor: "pointer", fontFamily: "inherit" }}>
+                {restoreState === "working" ? "Restoring…" : "↩ Restore pre-contract checkmarks"}
+              </button>
+            )}
+            {restoreState === "failed" && <div style={{ marginTop: 6, fontSize: 12, color: "#B91C1C" }}>Couldn't restore — try again.</div>}
+          </div>
+        )}
         <button onClick={onClose} style={{ marginTop: 14, width: "100%", padding: "11px 10px", borderRadius: 9, border: "1px solid #D1D5DB", background: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>Close</button>
       </div>
     </div>
