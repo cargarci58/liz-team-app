@@ -6305,7 +6305,10 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
           e.target.value = tx.status;
         }} style={{ fontSize: 12, padding: "4px 8px", borderRadius: 6, border: "none", fontFamily: "inherit", background: "rgba(255,255,255,0.15)", color: "#fff", cursor: "pointer" }}>
           {Object.keys(STATUS_CONFIG).map(s => <option key={s} style={{ color: COLORS.text, background: "#fff" }}>{s}</option>)}
-          {!isGuest && ["Under Contract","Inspection","Appraisal","Clear to Close"].includes(tx.status) && (
+          {/* Always findable where agents actually look: on any open deal —
+              including one already flipped back to Active (the server checks
+              there was really a contract and refuses politely otherwise). */}
+          {!isGuest && !["Closed", "Cancelled"].includes(tx.status) && (
             <option value="__fell_through" style={{ color: "#B91C1C", background: "#fff", fontWeight: 700 }}>💔 Contract fell through…</option>
           )}
         </select>
