@@ -5808,7 +5808,7 @@ function FallThroughModal({ tx, onClose, onDone }) {
             <div style={{ background: "#F9FAFB", border: "1px solid #E5E7EB", borderRadius: 10, padding: "10px 12px", marginTop: 10, fontSize: 12.5, color: "#374151", lineHeight: 1.6 }}>
               One tap does all of this — nothing is lost:
               <br />🗄️ <b>Everything archived for compliance</b> — people, timeline, contract terms, offer — viewable anytime under "💔 Past contracts".
-              <br />📁 Contract documents file into a <b>"Last contract (fell through)"</b> folder.
+              <br />📁 Contract documents file into a <b>"Fell through — (buyer's name)"</b> folder.
               <br />👥 The other side's people come off the deal (your client{tx.type === "Dual Agency" ? "s" : ""} and your TC stay). 💬 Messages stay.
               <br />🔄 Status returns to <b>Active</b> with a fresh timeline; contract dates clear; follow-up chases stop.
               <br />📥 Any backup offers resurface, and you'll get a client email draft to review.
