@@ -6240,7 +6240,28 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
           if (isGuest) { setPaywallFeature("Changing transaction status"); e.target.value = tx.status; return; }
           const newStatus = e.target.value;
           if (newStatus === tx.status) return;
-          if (["Under Contract","Closed","On Hold","Cancelled"].includes(tx.status) && newStatus === "Active") {
+          // Dedicated dropdown entry: run the full fall-through cleanup
+          // (archive → docs folder → clear other side → fresh timeline).
+          if (newStatus === "__fell_through") {
+            e.target.value = tx.status;
+            setShowFallThrough(true);
+            return;
+          }
+          // Flipping a contract straight to Active loses the cleanup — offer
+          // the proper flow first, but never force it.
+          if (["Under Contract","Inspection","Appraisal","Clear to Close"].includes(tx.status) && newStatus === "Active") {
+            const useFlow = window.confirm("Did the contract fall through?\n\nOK = run the full Fall-Through cleanup (recommended): archives the whole contract record for compliance, files its documents to a \"Last contract\" folder, clears the other side's people, and resets the timeline.\n\nCancel = just switch to Active (keeps all the people and checkmarks).");
+            e.target.value = tx.status;
+            if (useFlow) { setShowFallThrough(true); return; }
+            const clearedTasks = tx.tasks.map(t => {
+              const tmpl = (FLORIDA_TASK_TEMPLATES[tx.type] || []).find(tmp => tmp.name === t.name);
+              if (tmpl && tmpl.phase === "contract") return { ...t, dueDate: null, status: "Pending" };
+              return t;
+            });
+            update({ status: newStatus, tasks: clearedTasks, closingDate: null, executedDate: null, contractPrice: null, commissionListing: null, commissionBuyer: null, transactionFee: null, brokerageSplit: null, officeFlatFee: null, commissionNotes: null });
+            return;
+          }
+          if (["Closed","On Hold","Cancelled"].includes(tx.status) && newStatus === "Active") {
             const confirmed = window.confirm("Change back to Active?\n\nAll contract task due dates will be cleared and tasks reset to Pending.");
             if (!confirmed) { e.target.value = tx.status; return; }
             const clearedTasks = tx.tasks.map(t => {
@@ -6255,6 +6276,9 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
           e.target.value = tx.status;
         }} style={{ fontSize: 12, padding: "4px 8px", borderRadius: 6, border: "none", fontFamily: "inherit", background: "rgba(255,255,255,0.15)", color: "#fff", cursor: "pointer" }}>
           {Object.keys(STATUS_CONFIG).map(s => <option key={s} style={{ color: COLORS.text, background: "#fff" }}>{s}</option>)}
+          {!isGuest && ["Under Contract","Inspection","Appraisal","Clear to Close"].includes(tx.status) && (
+            <option value="__fell_through" style={{ color: "#B91C1C", background: "#fff", fontWeight: 700 }}>💔 Contract fell through…</option>
+          )}
         </select>
         {/* ONE green action per side; Edit; everything else under ⋯ */}
         {!isGuest && tx.type === "Buyer Representation" && !["Closed", "Cancelled"].includes(tx.status) && (
