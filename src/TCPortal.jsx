@@ -431,15 +431,39 @@ function PartyForm({ initial, busy, onCancel, onSave }) {
 function HealthTab({ txId }) {
   const [d, setD] = useState(null);
   const [busy, setBusy] = useState(false);
+  // Fall-through archives (TC parity with the agent app's "Past contracts").
+  const [fails, setFails] = useState([]);
+  const [restoreMsg, setRestoreMsg] = useState("");
   const load = useCallback(() => api(`/tc/transaction/${txId}/deal-doctor`).then(setD).catch(() => setD({ dealDoctor: null })), [txId]);
   useEffect(() => { load(); }, [load]);
+  useEffect(() => { api(`/transactions/${txId}/failed-contracts`).then(x => setFails(x.archives || [])).catch(() => {}); }, [txId]);
   const run = async () => { setBusy(true); try { setD(await api(`/tc/transaction/${txId}/deal-doctor`, { method: "POST" })); } catch (e) { alert("⚠️ " + e.message); } setBusy(false); };
+  const restore = async () => {
+    setRestoreMsg("Working…");
+    try {
+      const r = await api(`/transactions/${txId}/failed-contracts/restore-pre-contract`, { method: "POST" });
+      setRestoreMsg(`✓ Restored ${r.restored} checkmark(s), closed ${r.remindersClosed || 0} stale reminder(s).`);
+    } catch (e) { setRestoreMsg("⚠️ " + e.message); }
+  };
 
   if (!d) return <div style={{ ...card, color: C.muted }}>Loading…</div>;
   const dd = d.dealDoctor;
   const hc = { green: C.green, yellow: C.amber, red: C.red };
   return (
     <div>
+      {fails.length > 0 && (
+        <div style={{ ...card, borderColor: C.soft }}>
+          <div style={{ fontWeight: 800, marginBottom: 6 }}>💔 Past contracts on this deal</div>
+          {fails.map(f => (
+            <div key={f.id} style={{ fontSize: 13, color: C.muted, padding: "4px 0" }}>
+              Fell through {fmtDate(f.created_at)} — {(f.reason || "other").replace(/_/g, " ")}
+              {(f.snapshot?.parties || []).length ? ` · ${(f.snapshot.parties || []).map(p => p.name).filter(Boolean).slice(0, 4).join(", ")}` : ""}
+            </div>
+          ))}
+          <button style={{ ...btn(false), marginTop: 8 }} onClick={restore}>↩ Restore pre-contract checkmarks / clear stale reminders</button>
+          {restoreMsg && <div style={{ fontSize: 12.5, marginTop: 6, color: restoreMsg.startsWith("✓") ? C.green : C.red }}>{restoreMsg}</div>}
+        </div>
+      )}
       <button style={{ ...btn(true), marginBottom: 12 }} disabled={busy} onClick={run}>{busy ? "Checking…" : "🩺 Run check-up"}</button>
       {!dd && <div style={{ ...card, color: C.muted }}>No check-up yet — tap “Run check-up” for a quick read on this deal's risk and the next move.</div>}
       {dd && (
@@ -530,15 +554,27 @@ function DocsTab({ txId, documents, milestones, canUpload, onChange }) {
         </div>
       )}
       {documents.length === 0 && <div style={{ ...card, color: C.muted }}>No documents on file yet.</div>}
-      {documents.map(doc => (
-        <div key={doc.id} style={{ ...card, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
-          <div>
-            <div style={{ fontWeight: 700 }}>{doc.name}</div>
-            <div style={{ fontSize: 12, color: C.muted }}>{[doc.category, fmtDate(doc.created_at)].filter(Boolean).join(" · ")}</div>
+      {/* Grouped by folder like the agent app — fall-through archives land in
+          a "Fell through — (buyer)" folder that must be visible here too. */}
+      {(() => {
+        const groups = {};
+        for (const doc of documents) { const k = doc.folder || ""; (groups[k] = groups[k] || []).push(doc); }
+        const keys = Object.keys(groups).sort((a, b) => (a === "") - (b === "") || a.localeCompare(b));
+        return keys.map(k => (
+          <div key={k || "root"}>
+            {k && <div style={{ fontWeight: 800, fontSize: 13, color: C.ink, margin: "10px 0 6px" }}>📁 {k}</div>}
+            {groups[k].map(doc => (
+              <div key={doc.id} style={{ ...card, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
+                <div>
+                  <div style={{ fontWeight: 700 }}>{doc.name}</div>
+                  <div style={{ fontSize: 12, color: C.muted }}>{[doc.category, fmtDate(doc.created_at)].filter(Boolean).join(" · ")}</div>
+                </div>
+                <button style={btn(false)} onClick={() => view(doc.id)}>View</button>
+              </div>
+            ))}
           </div>
-          <button style={btn(false)} onClick={() => view(doc.id)}>View</button>
-        </div>
-      ))}
+        ));
+      })()}
     </div>
   );
 }
