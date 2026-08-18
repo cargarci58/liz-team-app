@@ -158,6 +158,17 @@ function tierBadgeStyle(tier) {
   return { background: c.bg, color: c.color, padding: "2px 9px", borderRadius: 12, fontSize: 12, fontWeight: 800, minWidth: 22, display: "inline-block", textAlign: "center" };
 }
 
+// What each letter actually MEANS. Shown inline wherever an agent is asked to
+// pick a tier (incl. the Log Call window) so nobody has to remember the scale
+// mid-call — "he hasn't answered in 3 tries, so what do I move him to?"
+const TIER_OPTIONS = [
+  { key: "A+", label: "Top referrer",  desc: "Sends you business regularly. Never let these go cold.", cadence: "Touch every ~30 days" },
+  { key: "A",  label: "VIP",           desc: "Past client or raving fan — would refer you if asked.",   cadence: "Touch every ~60 days" },
+  { key: "B",  label: "Regular",       desc: "Real relationship, but not sending referrals yet.",        cadence: "Touch every ~90 days" },
+  { key: "C",  label: "Just met",      desc: "New connection or lukewarm lead. Still earning trust.",    cadence: "Touch every ~6 months" },
+  { key: "D",  label: "Rarely contact", desc: "Not engaging — no answer repeatedly, or not a fit right now.", cadence: "Touch ~1×/year" },
+];
+
 function Field({ label, hint, children }) {
   return (
     <div style={{ marginBottom: 12 }}>
@@ -179,6 +190,8 @@ function LogCallModal({ contact, token, onClose, onLogged }) {
   const [noFollowUp, setNoFollowUp] = useState(false);
   const [notes, setNotes] = useState("");
   const [newTemp, setNewTemp] = useState(contact.temperature || "warm");
+  const [newTier, setNewTier] = useState((contact.tier || "").toUpperCase());
+  const [showTierGuide, setShowTierGuide] = useState(false);
   const [nextReason, setNextReason] = useState("");
   const [saving, setSaving] = useState(false);
   const [history, setHistory] = useState(null); // null = loading, [] = none
@@ -241,12 +254,16 @@ function LogCallModal({ contact, token, onClose, onLogged }) {
     if (!outcome) return;
     setSaving(true);
     try {
-      // Temperature update first if changed
-      if (newTemp !== contact.temperature) {
+      // Temperature / tier update first if either changed. One PUT for both —
+      // the contact PUT is a partial update, so we only send what moved.
+      const patch = {};
+      if (newTemp !== contact.temperature) patch.temperature = newTemp;
+      if (tierChanged) patch.tier = newTier || null;
+      if (Object.keys(patch).length > 0) {
         await fetch(API + "/contacts/" + contact.id, {
           method: "PUT",
           headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
-          body: JSON.stringify({ temperature: newTemp })
+          body: JSON.stringify(patch)
         });
       }
       const body = { outcome: outcome.id, notes: notes || null, nextCallReason: nextReason || null };
@@ -272,6 +289,8 @@ function LogCallModal({ contact, token, onClose, onLogged }) {
 
   const contactName = [contact.first_name, contact.last_name].filter(Boolean).join(" ") || contact.email || contact.phone || "Contact";
   const m = TEMP_META[newTemp] || TEMP_META.warm;
+  const currentTier = (contact.tier || "").toUpperCase();
+  const tierChanged = newTier !== currentTier;
 
   return (
     <div style={{ position: "fixed", inset: 0, zIndex: 4500, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "flex-start", justifyContent: "center", padding: 16, overflowY: "auto" }} onMouseDown={e => { if (e.target === e.currentTarget) e.currentTarget.dataset.downOnBackdrop = "1"; else delete e.currentTarget.dataset.downOnBackdrop; }} onClick={e => { const ok = e.target === e.currentTarget && e.currentTarget.dataset.downOnBackdrop; delete e.currentTarget.dataset.downOnBackdrop; if (ok) onClose(); }}>
@@ -399,6 +418,54 @@ function LogCallModal({ contact, token, onClose, onLogged }) {
                 ))}
               </select>
             </Field>
+
+            {/* ⭐ TIER — change the letter right here after the call. Each option
+                spells out what the letter means so nobody has to remember the
+                scale mid-call (e.g. "3 no-answers in a row → drop them to D"). */}
+            <div style={{ marginBottom: 12 }}>
+              <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 2 }}>
+                ⭐ Tier — how likely they are to send you business
+              </label>
+              <div style={{ fontSize: 11, color: "#6b7280", marginBottom: 8 }}>
+                {tierChanged
+                  ? <span style={{ color: "#b45309", fontWeight: 700 }}>Changing {currentTier || "no tier"} → {newTier || "no tier"} when you save. This changes how often they show up on your call list.</span>
+                  : <>Currently <strong>{currentTier || "not set"}</strong>. Tap a letter to change it based on how this call went.</>}
+              </div>
+              <div style={{ display: "grid", gap: 6 }}>
+                {TIER_OPTIONS.map(t => {
+                  const on = newTier === t.key;
+                  return (
+                    <button type="button" key={t.key} onClick={() => setNewTier(on ? "" : t.key)}
+                      style={{
+                        display: "flex", alignItems: "flex-start", gap: 10, textAlign: "left", width: "100%",
+                        padding: "9px 11px", borderRadius: 8, cursor: "pointer", fontFamily: "inherit",
+                        border: on ? "2px solid #0c4a6e" : "1px solid #e5e7eb",
+                        background: on ? "#f0f9ff" : "#fff",
+                      }}>
+                      <span style={{ ...tierBadgeStyle(t.key), flexShrink: 0, marginTop: 1 }}>{t.key}</span>
+                      <span style={{ minWidth: 0 }}>
+                        <span style={{ display: "block", fontSize: 13, fontWeight: 800, color: "#111" }}>
+                          {t.label}{currentTier === t.key ? <span style={{ fontSize: 10.5, fontWeight: 700, color: "#6b7280" }}> · current</span> : null}
+                        </span>
+                        <span style={{ display: "block", fontSize: 11.5, color: "#4b5563", lineHeight: 1.35 }}>{t.desc}</span>
+                        <span style={{ display: "block", fontSize: 10.5, color: "#9ca3af", marginTop: 1 }}>{t.cadence}</span>
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+              <button type="button" onClick={() => setShowTierGuide(v => !v)}
+                style={{ background: "none", border: "none", padding: "6px 0 0", fontSize: 11, fontWeight: 700, color: "#0c4a6e", cursor: "pointer", fontFamily: "inherit" }}>
+                {showTierGuide ? "▾ Hide" : "▸ When should I change someone's letter?"}
+              </button>
+              {showTierGuide && (
+                <div style={{ marginTop: 6, background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 8, padding: 10, fontSize: 11.5, color: "#334155", lineHeight: 1.5 }}>
+                  <div style={{ marginBottom: 4 }}><strong>Move them up</strong> when they refer you someone, say they're ready to buy or sell, or the relationship clearly warmed up on this call.</div>
+                  <div style={{ marginBottom: 4 }}><strong>Move them down</strong> when they've gone quiet — e.g. no answer 3+ calls in a row, or they said "not right now." Dropping to <strong>D</strong> keeps them in your database but stops them crowding out your daily call list.</div>
+                  <div>Leave it alone if nothing changed — most calls don't need a tier change.</div>
+                </div>
+              )}
+            </div>
 
             <div style={{ display: "flex", gap: 8, justifyContent: "space-between", marginTop: 20 }}>
               <button onClick={() => setStep(1)} style={btnStyle("#e5e7eb", "#374151")}>← Back</button>
