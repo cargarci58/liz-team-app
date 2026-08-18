@@ -169,6 +169,107 @@ const TIER_OPTIONS = [
   { key: "D",  label: "Rarely contact", desc: "Not engaging — no answer repeatedly, or not a fit right now.", cadence: "Touch ~1×/year" },
 ];
 
+// Tier picker used inside the Log Call window — compact on the outcome screen
+// (so the letters are visible the moment the window opens) and full on the
+// wrap-up screen, where each letter spells out what it means and how often that
+// tier gets called. Tapping the selected letter again clears the tier.
+function TierPicker({ value, currentTier, onChange, compact }) {
+  const [showGuide, setShowGuide] = useState(false);
+  const changed = value !== currentTier;
+  const sel = TIER_OPTIONS.find(t => t.key === value);
+  const pick = (key) => onChange(value === key ? "" : key);
+
+  const status = changed
+    ? <span style={{ color: "#b45309", fontWeight: 700 }}>Changing {currentTier || "no tier"} → {value || "no tier"} when you save. This changes how often they show up on your call list.</span>
+    : <>Currently <strong>{currentTier || "not set"}</strong>. Tap a letter to change it based on how this call went.</>;
+
+  const guideToggle = (
+    <>
+      <button type="button" onClick={() => setShowGuide(v => !v)}
+        style={{ background: "none", border: "none", padding: "6px 0 0", fontSize: 11, fontWeight: 700, color: "#0c4a6e", cursor: "pointer", fontFamily: "inherit" }}>
+        {showGuide ? "▾ Hide" : "▸ What do the letters mean / when should I change one?"}
+      </button>
+      {showGuide && (
+        <div style={{ marginTop: 6, background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 8, padding: 10, fontSize: 11.5, color: "#334155", lineHeight: 1.5 }}>
+          {compact && TIER_OPTIONS.map(t => (
+            <div key={t.key} style={{ marginBottom: 4 }}>
+              <span style={{ ...tierBadgeStyle(t.key), marginRight: 6 }}>{t.key}</span>
+              <strong>{t.label}</strong> — {t.desc} <span style={{ color: "#94a3b8" }}>({t.cadence})</span>
+            </div>
+          ))}
+          <div style={{ marginBottom: 4, marginTop: compact ? 8 : 0 }}><strong>Move them up</strong> when they refer you someone, say they're ready to buy or sell, or the relationship clearly warmed up on this call.</div>
+          <div style={{ marginBottom: 4 }}><strong>Move them down</strong> when they've gone quiet — e.g. no answer 3+ calls in a row, or they said "not right now." Dropping to <strong>D</strong> keeps them in your database but stops them crowding out your daily call list.</div>
+          <div>Leave it alone if nothing changed — most calls don't need a tier change.</div>
+        </div>
+      )}
+    </>
+  );
+
+  if (compact) {
+    return (
+      <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, padding: 12, marginBottom: 16 }}>
+        <div style={{ fontSize: 12, fontWeight: 700, color: "#374151", marginBottom: 6 }}>
+          ⭐ Tier — how likely they are to send you business
+        </div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 6 }}>
+          {TIER_OPTIONS.map(t => {
+            const on = value === t.key;
+            return (
+              <button type="button" key={t.key} onClick={() => pick(t.key)} title={t.label + " — " + t.desc}
+                style={{
+                  display: "flex", flexDirection: "column", alignItems: "center", gap: 2, cursor: "pointer",
+                  padding: "6px 10px", borderRadius: 8, fontFamily: "inherit", background: on ? "#f0f9ff" : "#fff",
+                  border: on ? "2px solid #0c4a6e" : "1px solid #e5e7eb",
+                }}>
+                <span style={tierBadgeStyle(t.key)}>{t.key}</span>
+                <span style={{ fontSize: 10, fontWeight: 700, color: "#4b5563", whiteSpace: "nowrap" }}>{t.label}</span>
+              </button>
+            );
+          })}
+        </div>
+        <div style={{ fontSize: 11, color: "#6b7280" }}>
+          {sel ? <><strong>{sel.key} = {sel.label}</strong> — {sel.desc} <span style={{ color: "#94a3b8" }}>({sel.cadence})</span></> : status}
+        </div>
+        {sel && changed && <div style={{ fontSize: 11, marginTop: 4 }}>{status}</div>}
+        {guideToggle}
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ marginBottom: 12 }}>
+      <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 2 }}>
+        ⭐ Tier — how likely they are to send you business
+      </label>
+      <div style={{ fontSize: 11, color: "#6b7280", marginBottom: 8 }}>{status}</div>
+      <div style={{ display: "grid", gap: 6 }}>
+        {TIER_OPTIONS.map(t => {
+          const on = value === t.key;
+          return (
+            <button type="button" key={t.key} onClick={() => pick(t.key)}
+              style={{
+                display: "flex", alignItems: "flex-start", gap: 10, textAlign: "left", width: "100%",
+                padding: "9px 11px", borderRadius: 8, cursor: "pointer", fontFamily: "inherit",
+                border: on ? "2px solid #0c4a6e" : "1px solid #e5e7eb",
+                background: on ? "#f0f9ff" : "#fff",
+              }}>
+              <span style={{ ...tierBadgeStyle(t.key), flexShrink: 0, marginTop: 1 }}>{t.key}</span>
+              <span style={{ minWidth: 0 }}>
+                <span style={{ display: "block", fontSize: 13, fontWeight: 800, color: "#111" }}>
+                  {t.label}{currentTier === t.key ? <span style={{ fontSize: 10.5, fontWeight: 700, color: "#6b7280" }}> · current</span> : null}
+                </span>
+                <span style={{ display: "block", fontSize: 11.5, color: "#4b5563", lineHeight: 1.35 }}>{t.desc}</span>
+                <span style={{ display: "block", fontSize: 10.5, color: "#9ca3af", marginTop: 1 }}>{t.cadence}</span>
+              </span>
+            </button>
+          );
+        })}
+      </div>
+      {guideToggle}
+    </div>
+  );
+}
+
 function Field({ label, hint, children }) {
   return (
     <div style={{ marginBottom: 12 }}>
@@ -191,7 +292,6 @@ function LogCallModal({ contact, token, onClose, onLogged }) {
   const [notes, setNotes] = useState("");
   const [newTemp, setNewTemp] = useState(contact.temperature || "warm");
   const [newTier, setNewTier] = useState((contact.tier || "").toUpperCase());
-  const [showTierGuide, setShowTierGuide] = useState(false);
   const [nextReason, setNextReason] = useState("");
   const [saving, setSaving] = useState(false);
   const [history, setHistory] = useState(null); // null = loading, [] = none
@@ -321,6 +421,12 @@ function LogCallModal({ contact, token, onClose, onLogged }) {
           <div style={{ fontSize: 12, color: "#94a3b8", marginBottom: 12 }}>Loading past conversations…</div>
         )}
 
+        {/* Tier sits on BOTH screens: right here so it's visible the second the
+            window opens, and again (fully explained) on the wrap-up screen. */}
+        {step === 1 && (
+          <TierPicker value={newTier} currentTier={currentTier} onChange={setNewTier} compact />
+        )}
+
         {step === 1 && (
           <div style={{ display: "grid", gap: 6 }}>
             {OUTCOMES.map(o => (
@@ -419,53 +525,7 @@ function LogCallModal({ contact, token, onClose, onLogged }) {
               </select>
             </Field>
 
-            {/* ⭐ TIER — change the letter right here after the call. Each option
-                spells out what the letter means so nobody has to remember the
-                scale mid-call (e.g. "3 no-answers in a row → drop them to D"). */}
-            <div style={{ marginBottom: 12 }}>
-              <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 2 }}>
-                ⭐ Tier — how likely they are to send you business
-              </label>
-              <div style={{ fontSize: 11, color: "#6b7280", marginBottom: 8 }}>
-                {tierChanged
-                  ? <span style={{ color: "#b45309", fontWeight: 700 }}>Changing {currentTier || "no tier"} → {newTier || "no tier"} when you save. This changes how often they show up on your call list.</span>
-                  : <>Currently <strong>{currentTier || "not set"}</strong>. Tap a letter to change it based on how this call went.</>}
-              </div>
-              <div style={{ display: "grid", gap: 6 }}>
-                {TIER_OPTIONS.map(t => {
-                  const on = newTier === t.key;
-                  return (
-                    <button type="button" key={t.key} onClick={() => setNewTier(on ? "" : t.key)}
-                      style={{
-                        display: "flex", alignItems: "flex-start", gap: 10, textAlign: "left", width: "100%",
-                        padding: "9px 11px", borderRadius: 8, cursor: "pointer", fontFamily: "inherit",
-                        border: on ? "2px solid #0c4a6e" : "1px solid #e5e7eb",
-                        background: on ? "#f0f9ff" : "#fff",
-                      }}>
-                      <span style={{ ...tierBadgeStyle(t.key), flexShrink: 0, marginTop: 1 }}>{t.key}</span>
-                      <span style={{ minWidth: 0 }}>
-                        <span style={{ display: "block", fontSize: 13, fontWeight: 800, color: "#111" }}>
-                          {t.label}{currentTier === t.key ? <span style={{ fontSize: 10.5, fontWeight: 700, color: "#6b7280" }}> · current</span> : null}
-                        </span>
-                        <span style={{ display: "block", fontSize: 11.5, color: "#4b5563", lineHeight: 1.35 }}>{t.desc}</span>
-                        <span style={{ display: "block", fontSize: 10.5, color: "#9ca3af", marginTop: 1 }}>{t.cadence}</span>
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-              <button type="button" onClick={() => setShowTierGuide(v => !v)}
-                style={{ background: "none", border: "none", padding: "6px 0 0", fontSize: 11, fontWeight: 700, color: "#0c4a6e", cursor: "pointer", fontFamily: "inherit" }}>
-                {showTierGuide ? "▾ Hide" : "▸ When should I change someone's letter?"}
-              </button>
-              {showTierGuide && (
-                <div style={{ marginTop: 6, background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 8, padding: 10, fontSize: 11.5, color: "#334155", lineHeight: 1.5 }}>
-                  <div style={{ marginBottom: 4 }}><strong>Move them up</strong> when they refer you someone, say they're ready to buy or sell, or the relationship clearly warmed up on this call.</div>
-                  <div style={{ marginBottom: 4 }}><strong>Move them down</strong> when they've gone quiet — e.g. no answer 3+ calls in a row, or they said "not right now." Dropping to <strong>D</strong> keeps them in your database but stops them crowding out your daily call list.</div>
-                  <div>Leave it alone if nothing changed — most calls don't need a tier change.</div>
-                </div>
-              )}
-            </div>
+            <TierPicker value={newTier} currentTier={currentTier} onChange={setNewTier} />
 
             <div style={{ display: "flex", gap: 8, justifyContent: "space-between", marginTop: 20 }}>
               <button onClick={() => setStep(1)} style={btnStyle("#e5e7eb", "#374151")}>← Back</button>
