@@ -5750,6 +5750,7 @@ function FallThroughModal({ tx, onClose, onDone }) {
   const [err, setErr] = useState("");
   const [emailState, setEmailState] = useState("idle"); // idle | sending | sent | failed
   const [draft, setDraft] = useState(null);
+  const [autoRestored, setAutoRestored] = useState(null); // null = not run | number = re-checked | "failed"
   const tok = localStorage.getItem("tp_token") || "";
 
   const REASONS = [
@@ -5771,6 +5772,20 @@ function FallThroughModal({ tx, onClose, onDone }) {
       setResult(d);
       setDraft(d.draftEmail || null);
       setPhase("result");
+      // The rebuilt timeline comes back with the listing-phase steps un-checked,
+      // so work already done before the contract (sign + lockbox, photos…) lands
+      // back on Win the Day as if it never happened (Carlos 8/19: "it doesn't
+      // need to install a sign or lockbox"). Re-check them straight away — the
+      // same repair the Past-contracts button runs, just not left to memory.
+      // Never fatal: the deal IS reset either way, and restore only re-completes
+      // steps that were already done, so a retry from the button is harmless.
+      try {
+        const rr = await fetch(`${API}/transactions/${tx.id}/failed-contracts/restore-pre-contract`, {
+          method: "POST", headers: { Authorization: "Bearer " + tok },
+        });
+        const rd = await rr.json().catch(() => ({}));
+        setAutoRestored(rr.ok && rd.success ? (rd.restored || 0) : "failed");
+      } catch { setAutoRestored("failed"); }
       if (onDone) onDone(d);
     } catch {
       setErr("Couldn't reach the server — nothing was changed."); setPhase("error");
@@ -5834,8 +5849,16 @@ function FallThroughModal({ tx, onClose, onDone }) {
               <br />📁 {result.docsFiled.count} document(s) filed to <b>"{result.docsFiled.folder}"</b>.
               <br />👥 Removed: {result.removedParties.length ? result.removedParties.map(p => `${p.name || p.role}`).join(", ") : "no one"}. Kept: {result.keptParties.map(p => p.name || p.role).join(", ") || "—"}.
               <br />🔄 Timeline rebuilt with {result.timeline.rebuilt} fresh steps · {result.chasesStopped} chase(s) stopped · cleanup task added (MLS + deposit).
+              {typeof autoRestored === "number" && autoRestored > 0 && (
+                <><br />↩ Re-checked <b>{autoRestored} listing step(s)</b> you'd already done before the contract — no chasing a sign that's already in the yard.</>
+              )}
               {result.backupOffers.length > 0 && <><br />📥 <b>{result.backupOffers.length} backup offer(s) still on the table</b> — open "Review Offers Received" to re-share them with your seller.</>}
             </div>
+            {autoRestored === "failed" && (
+              <div style={{ marginTop: 10, background: "#FFFBEB", border: "1px solid #FDE68A", borderRadius: 10, padding: 10, fontSize: 12.5, color: "#92400E", lineHeight: 1.5 }}>
+                ⚠️ Couldn't re-check your pre-contract steps just now — the deal itself reset fine. If listing work you already finished (sign, lockbox, photos) shows up as to-do again, open <b>⋯ → 💔 Past contracts</b> and hit <b>↩ Restore pre-contract checkmarks</b>.
+              </div>
+            )}
             {draft && emailState !== "sent" && (
               <div style={{ marginTop: 12, border: "1px solid #FDE68A", background: "#FFFBEB", borderRadius: 10, padding: 12 }}>
                 <div style={{ fontSize: 11, fontWeight: 800, color: "#92400E", textTransform: "uppercase" }}>Reassurance email — review, edit, then send (or skip)</div>
