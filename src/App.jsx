@@ -3899,15 +3899,32 @@ function NotesField({ value, onChange }) {
 
 // Notes section on the Overview tab: an "Add Note" composer that prepends a
 // dated note on top, leaving any auto-captured intake notes intact below.
-function NotesSection({ value, onChange }) {
+function NotesSection({ txId, value, onChange }) {
   const [draft, setDraft] = useState("");
-  const addNote = () => {
+  const [saving, setSaving] = useState(false);
+  // Saved through POST /transactions/:id/deal-note — one statement on the
+  // server, same path the AI assistant uses. Building the new text here and
+  // sending it back through the whole-deal PUT meant two people (or you and
+  // the assistant) adding notes minutes apart could erase each other.
+  const addNote = async () => {
     const t = draft.trim();
-    if (!t) return;
-    const stamp = new Date().toLocaleString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" });
-    const entry = `[${stamp}] ${t}`;
-    onChange(value && value.trim() ? entry + "\n\n" + value : entry);
-    setDraft("");
+    if (!t || saving) return;
+    setSaving(true);
+    try {
+      const API = "https://liz-team-server-api-production.up.railway.app";
+      const tok = localStorage.getItem("tp_token") || "";
+      const r = await fetch(`${API}/transactions/${txId}/deal-note`, {
+        method: "POST",
+        headers: { Authorization: "Bearer " + tok, "Content-Type": "application/json" },
+        body: JSON.stringify({ text: t }),
+      });
+      const d = await r.json();
+      if (!r.ok || !d.success) throw new Error(d.error || "save failed");
+      onChange(d.notes, { savedRemotely: true });
+      setDraft("");
+    } catch {
+      alert("Couldn't save that note — check your connection and try again.");
+    } finally { setSaving(false); }
   };
   return (
     <div>
@@ -3920,7 +3937,7 @@ function NotesSection({ value, onChange }) {
           placeholder="Add a new note… it'll be added on top of the notes below"
           style={{ flex: 1, border: `1px solid ${COLORS.border}`, borderRadius: 8, padding: "10px 12px", fontFamily: "inherit", fontSize: 14, resize: "vertical", boxSizing: "border-box" }}
         />
-        <Btn onClick={addNote} small>+ Add Note</Btn>
+        <Btn onClick={addNote} small disabled={saving}>{saving ? "Saving…" : "+ Add Note"}</Btn>
       </div>
       <NotesField value={value} onChange={onChange} />
     </div>
@@ -6554,10 +6571,11 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
               </FirstTimeTip>
             )}
             {!isGuest && <DealDoctorPanel tx={tx} />}
-            {/* Internal notes on the deal's home page. They used to live ONLY
-                under More ▾ → 🗒 Internal Notes, so a note added from the AI
-                assistant looked like it had vanished (Carlos 8/19). */}
-            {!isGuest && <InternalNotesPanel txId={tx.id} compact onSeeAll={() => setActiveTab("notes")} />}
+            {/* NOTE: there is exactly ONE notes box on this tab — the Notes
+                section further down, which the AI assistant writes into too.
+                A second "Internal Notes" panel used to sit here and having two
+                places for notes was worse than the problem it solved. The
+                older internal notes are still under More ▾ → 🗒 Internal Notes. */}
             {/* Listing deals: agreement answers still blank → one-tap in-app form
                 (Carlos 8/4 — the agent shouldn't have to text themselves the link). */}
             {!isGuest && /listing|seller/i.test(tx.type || tx.transaction_type || "") && !/lease/i.test(tx.type || tx.transaction_type || "") && (
@@ -6817,7 +6835,17 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
             )}
             <div style={{ background: "#fff", border: `1px solid ${COLORS.border}`, borderRadius: 12, padding: 20 }}>
               <h3 style={{ margin: "0 0 10px", fontSize: 14, color: COLORS.navy, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em" }}>Notes</h3>
-              <NotesSection value={tx.notes} onChange={v => update({ notes: v })} />
+              <NotesSection
+                txId={tx.id}
+                value={tx.notes}
+                onChange={(v, opts) => {
+                  // Already written by the server (+ Add Note) — just catch the
+                  // screen up; re-saving it through the whole-deal PUT is what
+                  // used to overwrite notes added since this screen loaded.
+                  if (opts && opts.savedRemotely) onLocalUpdate({ ...tx, notes: v });
+                  else update({ notes: v });
+                }}
+              />
             </div>
           </div>
         )}
