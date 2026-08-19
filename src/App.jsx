@@ -5948,6 +5948,106 @@ function PastContractsModal({ tx, onClose }) {
   );
 }
 
+// Internal notes, read straight from the server for THIS deal. Rendering them
+// out of the transaction list loaded at sign-in meant a note written anywhere
+// else — the AI assistant's confirm card, a second device — stayed invisible
+// until a full reload, which read as "my note didn't save".
+function InternalNotesPanel({ txId, seed = [], compact = false, onSeeAll }) {
+  const API = "https://liz-team-server-api-production.up.railway.app";
+  const [notes, setNotes] = useState(seed);
+  const [loading, setLoading] = useState(true);
+  const [text, setText] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState(null);
+
+  const load = React.useCallback(() => {
+    const tok = localStorage.getItem("tp_token") || "";
+    setLoading(true);
+    fetch(`${API}/transactions/${txId}/notes`, { headers: { Authorization: "Bearer " + tok } })
+      .then(r => r.json())
+      .then(d => { if (d && d.success) { setNotes(d.notes || []); setError(null); } else setError(d?.error || "Couldn't load notes"); })
+      .catch(() => setError("Couldn't reach the server"))
+      .finally(() => setLoading(false));
+  }, [txId]);
+
+  useEffect(() => { load(); }, [load]);
+  // Assistant confirm cards fire this after a write.
+  useEffect(() => {
+    const h = () => load();
+    window.addEventListener("deals:refresh", h);
+    return () => window.removeEventListener("deals:refresh", h);
+  }, [load]);
+
+  const save = async () => {
+    const body = text.trim();
+    if (!body || saving) return;
+    setSaving(true);
+    try {
+      const tok = localStorage.getItem("tp_token") || "";
+      const r = await fetch(`${API}/transactions/${txId}/notes`, {
+        method: "POST",
+        headers: { Authorization: "Bearer " + tok, "Content-Type": "application/json" },
+        body: JSON.stringify({ text: body }),
+      });
+      if (!r.ok) throw new Error("save failed");
+      setText("");
+      load();
+    } catch { setError("Couldn't save that note — try again."); }
+    finally { setSaving(false); }
+  };
+
+  const shown = compact ? notes.slice(-3).reverse() : notes;
+
+  if (compact) {
+    if (loading || !notes.length) return null;
+    return (
+      <div style={{ background: "#fff", border: `1px solid ${COLORS.border}`, borderRadius: 12, padding: 16, marginBottom: 20 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+          <div style={{ fontWeight: 800, fontSize: 14, color: COLORS.navy, flex: 1 }}>🗒 Internal Notes ({notes.length})</div>
+          {onSeeAll && (
+            <button onClick={onSeeAll} style={{ background: "none", border: "none", color: COLORS.navy, fontWeight: 700, fontSize: 12, textDecoration: "underline", cursor: "pointer", padding: 0 }}>
+              See all / add one
+            </button>
+          )}
+        </div>
+        {shown.map(m => (
+          <div key={m.id} style={{ borderTop: `1px solid ${COLORS.border}`, paddingTop: 8, marginTop: 8 }}>
+            <div style={{ fontSize: 11, color: COLORS.muted, marginBottom: 2 }}>
+              {m.sender} · {new Date(m.timestamp).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
+            </div>
+            <div style={{ fontSize: 13.5, color: COLORS.text, lineHeight: 1.45 }}>{m.text}</div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <div style={{ background: "#fff", border: `1px solid ${COLORS.border}`, borderRadius: 12, padding: 20, marginBottom: 16, minHeight: 300, maxHeight: 500, overflowY: "auto" }}>
+        {loading && <div style={{ textAlign: "center", color: COLORS.muted, padding: 40 }}>Loading notes…</div>}
+        {!loading && error && <div style={{ textAlign: "center", color: "#B91C1C", padding: 40 }}>{error}</div>}
+        {!loading && !error && shown.length === 0 && <div style={{ textAlign: "center", color: COLORS.muted, padding: 40 }}>No internal notes yet.</div>}
+        {!loading && shown.map(m => (
+          <div key={m.id} style={{ marginBottom: 14 }}>
+            <div style={{ fontSize: 11, color: COLORS.muted, marginBottom: 3 }}>
+              {m.sender} · {new Date(m.timestamp).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
+            </div>
+            <div style={{ background: "#F3F4F6", color: COLORS.text, padding: "10px 14px", borderRadius: 10, fontSize: 14, lineHeight: 1.5 }}>{m.text}</div>
+          </div>
+        ))}
+      </div>
+      <div style={{ display: "flex", gap: 10 }}>
+        <input value={text} onChange={e => setText(e.target.value)}
+          onKeyDown={e => { if (e.key === "Enter") save(); }}
+          placeholder="Internal note (Enter to save)..."
+          style={{ flex: 1, padding: "10px 14px", borderRadius: 8, border: `1px solid ${COLORS.border}`, fontSize: 14, fontFamily: "inherit" }} />
+        <Btn onClick={save} disabled={saving}>{saving ? "Saving…" : "Save"}</Btn>
+      </div>
+    </div>
+  );
+}
+
 function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = false, onBack, contacts, onInviteParty = [], onCopyLoginLink, onSaveContact, onOpenContactBook, onDuplicate, currentUser, initialTab = "overview", navSignal = 0, dashboardUnread = 0, onMilestoneSummary, onInboundRead }) {
   // Staff (agent + coordinator) comms tabs are merged into one "messages" hub, so
   // a deep-link to chat/replies/sms opens the hub on the right section. Guests keep
@@ -6446,28 +6546,10 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
               </FirstTimeTip>
             )}
             {!isGuest && <DealDoctorPanel tx={tx} />}
-            {/* Internal notes on the home page of the deal. They used to live
-                ONLY under More ▾ → 🗒 Internal Notes, so a note added from the
-                AI assistant looked like it had vanished (Carlos 8/19). */}
-            {!isGuest && (tx.messages || []).length > 0 && (
-              <div style={{ background: "#fff", border: `1px solid ${COLORS.border}`, borderRadius: 12, padding: 16, marginBottom: 20 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-                  <div style={{ fontWeight: 800, fontSize: 14, color: COLORS.navy, flex: 1 }}>🗒 Internal Notes ({(tx.messages || []).length})</div>
-                  <button onClick={() => setActiveTab("notes")}
-                    style={{ background: "none", border: "none", color: COLORS.navy, fontWeight: 700, fontSize: 12, textDecoration: "underline", cursor: "pointer", padding: 0 }}>
-                    See all / add one
-                  </button>
-                </div>
-                {(tx.messages || []).slice(-3).reverse().map(m => (
-                  <div key={m.id} style={{ borderTop: `1px solid ${COLORS.border}`, paddingTop: 8, marginTop: 8 }}>
-                    <div style={{ fontSize: 11, color: COLORS.muted, marginBottom: 2 }}>
-                      {m.sender} · {new Date(m.timestamp).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
-                    </div>
-                    <div style={{ fontSize: 13.5, color: COLORS.text, lineHeight: 1.45 }}>{m.text}</div>
-                  </div>
-                ))}
-              </div>
-            )}
+            {/* Internal notes on the deal's home page. They used to live ONLY
+                under More ▾ → 🗒 Internal Notes, so a note added from the AI
+                assistant looked like it had vanished (Carlos 8/19). */}
+            {!isGuest && <InternalNotesPanel txId={tx.id} seed={tx.messages || []} compact onSeeAll={() => setActiveTab("notes")} />}
             {/* Listing deals: agreement answers still blank → one-tap in-app form
                 (Carlos 8/4 — the agent shouldn't have to text themselves the link). */}
             {!isGuest && /listing|seller/i.test(tx.type || tx.transaction_type || "") && !/lease/i.test(tx.type || tx.transaction_type || "") && (
@@ -6957,89 +7039,8 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
           </div>
         )}
 
-        {activeTab === "notes" && (
-          <div>
-            <div style={{ background: "#fff", border: `1px solid ${COLORS.border}`, borderRadius: 12, padding: 20, marginBottom: 16, minHeight: 300, maxHeight: 500, overflowY: "auto" }}>
-              {(tx.messages || []).length === 0 && <div style={{ textAlign: "center", color: COLORS.muted, padding: 40 }}>No internal notes yet.</div>}
-              {(tx.messages || []).map(m => (
-                <div key={m.id} style={{ display: "flex", justifyContent: m.sender === "The Liz Team" ? "flex-end" : "flex-start", marginBottom: 14 }}>
-                  <div style={{ maxWidth: "75%" }}>
-                    <div style={{ fontSize: 11, color: COLORS.muted, marginBottom: 3, textAlign: m.sender === "The Liz Team" ? "right" : "left" }}>{m.sender} · {new Date(m.timestamp).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</div>
-                    <div style={{ background: m.sender === "The Liz Team" ? COLORS.navy : "#F3F4F6", color: m.sender === "The Liz Team" ? "#fff" : COLORS.text, padding: "10px 14px", borderRadius: 10, fontSize: 14 }}>{m.text}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-            <div style={{ display: "flex", gap: 10 }}>
-              <input value={newMessage} onChange={e => setNewMessage(e.target.value)} onKeyDown={e => { if (e.key === "Enter" && newMessage.trim()) { update({ messages: [...(tx.messages || []), { id: genId(), sender: "The Liz Team", role: "Agent", text: newMessage.trim(), timestamp: new Date().toISOString() }] }); setNewMessage(""); } }} placeholder="Internal note (Enter to save)..." style={{ flex: 1, padding: "10px 14px", borderRadius: 8, border: `1px solid ${COLORS.border}`, fontSize: 14, fontFamily: "inherit" }} />
-              <Btn onClick={() => { if (newMessage.trim()) { update({ messages: [...(tx.messages || []), { id: genId(), sender: "The Liz Team", role: "Agent", text: newMessage.trim(), timestamp: new Date().toISOString() }] }); setNewMessage(""); } }}>Save</Btn>
-            </div>
-          </div>
-        )}
+        {activeTab === "notes" && <InternalNotesPanel txId={tx.id} seed={tx.messages || []} />}
 
-        {activeTab === "documents" && <DocumentsTab tx={tx} coordinatorMode={isCoordinator} />}
-        {activeTab === "offers" && <OffersTab tx={tx} token={localStorage.getItem("tp_token") || ""} currentUser={currentUser} createSignal={offerCreateSignal}
-          onReviewReceived={() => { setActiveTab("overview"); setTimeout(() => { const el = document.getElementById("pending-offers-panel"); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); }, 60); }} />}
-        {activeTab === "calculator" && (
-          <div style={{ padding: 20 }}>
-            <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 8, padding: 12, marginBottom: 16, fontSize: 13, color: "#7f1d1d" }}>
-              <strong>🎓 Why this matters:</strong> Use this with your buyer to set realistic expectations on price, monthly payment, and cash-to-close BEFORE writing offers. Florida's doc stamps, intangible tax, and insurance costs surprise most first-time buyers.
-            </div>
-            <BuyerCalculator transactionId={tx.id} token={localStorage.getItem("tp_token") || ""} county={tx.county} />
-          </div>
-        )}
-
-        {activeTab === "buyer-net" && (
-          <div style={{ padding: 20 }}>
-            <div style={{ background: "#f0fdf4", border: "1px solid #86efac", borderRadius: 8, padding: 12, marginBottom: 16, fontSize: 13, color: "#14532d" }}>
-              <strong>🎓 Why this matters:</strong> Give your buyer a clear estimate of the cash they'll need at closing, then generate a branded English or Spanish net sheet and save it to Documents.
-            </div>
-            <BuyerCalculator mode="net" transactionId={tx.id} token={localStorage.getItem("tp_token") || ""} county={tx.county} />
-          </div>
-        )}
-
-        {activeTab === "cma" && (
-          <CmaTool tx={tx} token={localStorage.getItem("tp_token") || ""} currentUser={currentUser} />
-        )}
-
-        {activeTab === "seller-calc" && (
-          <div style={{ padding: 20 }}>
-            <div style={{ background: "#e0f2fe", border: "1px solid #7dd3fc", borderRadius: 8, padding: 12, marginBottom: 16, fontSize: 13, color: "#0c4a6e" }}>
-              <strong>🎓 Why this matters:</strong> Sellers want to know what they'll walk away with. Use this BEFORE the listing appointment to set realistic expectations on commission, FL doc stamps (~0.7%), title fees, and mortgage payoff. Avoids "I thought I was getting more" at closing.
-            </div>
-            <SellerCalculator transactionId={tx.id} token={localStorage.getItem("tp_token") || ""} county={tx.county} />
-          </div>
-        )}
-
-        {activeTab === "tx-forms" && (
-          <TxFormsTab tx={tx} side={isListingSideTx ? "listing" : "buyer"} isAdmin={false} />
-        )}
-
-        {activeTab === "activity" && (() => {
-          if (!activitiesLoaded) {
-            const tok = localStorage.getItem("tp_token") || "";
-            fetch(API + "/activity/" + tx.id, { headers: { "Authorization": "Bearer " + tok } })
-              .then(r => r.json()).then(d => { if (d.activities) setActivities(d.activities); setActivitiesLoaded(true); }).catch(e => console.error("[bg]", e && e.message ? e.message : e));
-          }
-          const icons = { transaction_created: "🏠", status_changed: "🔄", party_added: "👤", document_uploaded: "📎", email_sent: "📧", sms_sent: "📱", task_completed: "✅" };
-          return (
-            <div style={{ padding: 20, overflowY: "auto", maxHeight: 500 }}>
-              <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 16, color: COLORS.navy }}>Transaction Activity Log</div>
-              {activities.length === 0 ? (
-                <div style={{ textAlign: "center", color: COLORS.muted, padding: 40 }}>No activity recorded yet.</div>
-              ) : activities.map(a => (
-                <div key={a.id} style={{ display: "flex", gap: 12, marginBottom: 16, paddingBottom: 16, borderBottom: `1px solid ${COLORS.border}` }}>
-                  <div style={{ fontSize: 20, flexShrink: 0 }}>{icons[a.action] || "📌"}</div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: COLORS.text }}>{a.details}</div>
-                    <div style={{ fontSize: 11, color: COLORS.muted, marginTop: 2 }}>{a.user_name} · {new Date(a.created_at).toLocaleString()}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          );
-        })()}
-        {activeTab === "chat" && <div style={{ padding: 20, height: 500 }}><TransactionChat transactionId={tx.id} user={null} parties={tx.parties || []} style={{ height: "100%" }} unreadCount={chatUnread} onUnreadChange={() => {}} /></div>}
         {activeTab === "reminders" && (
           <div>
             <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 16 }}><Btn onClick={() => setShowAddReminder(true)} small>+ Add Reminder</Btn></div>
