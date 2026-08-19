@@ -3902,6 +3902,47 @@ function NotesField({ value, onChange }) {
 function NotesSection({ txId, value, onChange }) {
   const [draft, setDraft] = useState("");
   const [saving, setSaving] = useState(false);
+  // Editing the notes text: typed into local state and saved ~1s after you
+  // stop, through an endpoint that writes this one column. It used to send the
+  // WHOLE transaction on every keystroke — dozens of overlapping saves that
+  // raced, failed, and stacked up "Save failed" alerts behind each other.
+  const [text, setText] = useState(value || "");
+  const [editState, setEditState] = useState("");   // "", "saving", "saved", "error"
+  const dirty = useRef(false);
+  const timer = useRef(null);
+
+  // Take server updates only while the agent isn't mid-edit.
+  useEffect(() => { if (!dirty.current) setText(value || ""); }, [value]);
+  useEffect(() => () => { if (timer.current) clearTimeout(timer.current); }, []);
+
+  const saveText = async (next) => {
+    setEditState("saving");
+    try {
+      const API = "https://liz-team-server-api-production.up.railway.app";
+      const tok = localStorage.getItem("tp_token") || "";
+      const r = await fetch(`${API}/transactions/${txId}/notes-text`, {
+        method: "PATCH",
+        headers: { Authorization: "Bearer " + tok, "Content-Type": "application/json" },
+        body: JSON.stringify({ text: next }),
+      });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok || !d.success) throw new Error(d.error || "save failed");
+      dirty.current = false;
+      setEditState("saved");
+      onChange(next, { savedRemotely: true });
+      setTimeout(() => setEditState(s => (s === "saved" ? "" : s)), 2000);
+    } catch {
+      setEditState("error");   // shown inline — never an alert box per keystroke
+    }
+  };
+
+  const onTextChange = (next) => {
+    setText(next);
+    dirty.current = true;
+    setEditState("saving");
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = setTimeout(() => saveText(next), 1000);
+  };
   // Saved through POST /transactions/:id/deal-note — one statement on the
   // server, same path the AI assistant uses. Building the new text here and
   // sending it back through the whole-deal PUT meant two people (or you and
@@ -3920,6 +3961,8 @@ function NotesSection({ txId, value, onChange }) {
       });
       const d = await r.json();
       if (!r.ok || !d.success) throw new Error(d.error || "save failed");
+      dirty.current = false;
+      setText(d.notes);                     // show it in the box right away
       onChange(d.notes, { savedRemotely: true });
       setDraft("");
     } catch {
@@ -3939,7 +3982,12 @@ function NotesSection({ txId, value, onChange }) {
         />
         <Btn onClick={addNote} small disabled={saving}>{saving ? "Saving…" : "+ Add Note"}</Btn>
       </div>
-      <NotesField value={value} onChange={onChange} />
+      <NotesField value={text} onChange={onTextChange} />
+      <div style={{ minHeight: 16, fontSize: 11.5, marginTop: 4, color: editState === "error" ? "#B91C1C" : COLORS.muted }}>
+        {editState === "saving" && "Saving…"}
+        {editState === "saved" && "Saved ✓"}
+        {editState === "error" && "Couldn't save your edit — check your connection; your text is still here."}
+      </div>
     </div>
   );
 }
@@ -10303,6 +10351,16 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
   const selectedTx = transactions.find(t => t.id === selectedId);
   const tok = localStorage.getItem("tp_token") || "";
   const aH = { "Content-Type": "application/json", "Authorization": "Bearer " + tok };
+  // One save-failure alert at a time. When several saves fail together (they
+  // used to fire per keystroke), each alert queued behind the last and tapping
+  // OK looked like it did nothing — the next one was already waiting.
+  const alertShownAt = useRef(0);
+  const saveAlert = (msg) => {
+    const now = Date.now();
+    if (now - alertShownAt.current < 8000) return;
+    alertShownAt.current = now;
+    alert(msg);
+  };
   const updateTransaction = useCallback(async (updated) => {
     // Capture the prior tx so we can roll back if the server rejects the save.
     let previous = null;
@@ -10324,12 +10382,12 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
         const e = await r.json().catch(() => ({}));
         console.error("Save error:", e);
         rollback();
-        alert("Save failed: " + (e.error || "Please try again."));
+        saveAlert("Save failed: " + (e.error || "Please try again."));
       }
     } catch (e) {
       console.error("Save failed:", e);
       rollback();
-      alert("Save failed. Check your connection and try again.");
+      saveAlert("Save failed. Check your connection and try again.");
     }
   }, []);
   // Live-update the pipeline card's progress when timeline milestones change.
