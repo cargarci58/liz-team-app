@@ -34,7 +34,7 @@ const RED = "#C0392B";
 
 // Bumped on every assistant change — shown in the panel header so "which
 // version am I actually running?" is answerable at a glance (cache issues).
-const BUILD_TAG = "v16";
+const BUILD_TAG = "v17";
 
 const GREETING = "How can I help you today?";
 // Set if holding the mic stream ever breaks the recognizer on this device
@@ -490,7 +490,11 @@ function AppActionCard({ card, token, onSpokenConfirm }) {
           body: JSON.stringify(card.body || {}),
         });
         if (!r.ok) throw new Error("action failed");
+        // Both: the task counter, and the loaded deals — a confirmed action
+        // changes the database, and the screen behind this panel is still
+        // showing what it loaded earlier.
         window.dispatchEvent(new Event("wintheday:refresh"));
+        window.dispatchEvent(new Event("deals:refresh"));
       }}
     />
   );

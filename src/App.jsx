@@ -9987,6 +9987,16 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
   };
   useEffect(() => { loadTransactions(); }, []);
 
+  // Anything that changes a deal from OUTSIDE the deal screen — the AI
+  // assistant's confirm cards above all — fires this so the loaded deals catch
+  // up. Without it the write lands in the database and the screen keeps
+  // rendering the copy it loaded at sign-in ("I added a note and don't see it").
+  useEffect(() => {
+    const handler = () => { loadTransactions(); };
+    window.addEventListener("deals:refresh", handler);
+    return () => window.removeEventListener("deals:refresh", handler);
+  }, [coordinatorMode]);
+
   // Load contacts from database
   useEffect(() => {
     fetch(`${API}/contacts`, { headers: authHeaders })
