@@ -34,7 +34,7 @@ const RED = "#C0392B";
 
 // Bumped on every assistant change — shown in the panel header so "which
 // version am I actually running?" is answerable at a glance (cache issues).
-const BUILD_TAG = "v20";
+const BUILD_TAG = "v21";
 
 const GREETING = "How can I help you today?";
 // Set if holding the mic stream ever breaks the recognizer on this device
