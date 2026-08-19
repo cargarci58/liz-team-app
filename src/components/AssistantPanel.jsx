@@ -34,7 +34,7 @@ const RED = "#C0392B";
 
 // Bumped on every assistant change — shown in the panel header so "which
 // version am I actually running?" is answerable at a glance (cache issues).
-const BUILD_TAG = "v13";
+const BUILD_TAG = "v14";
 
 const GREETING = "How can I help you today?";
 // Set if holding the mic stream ever breaks the recognizer on this device
@@ -173,12 +173,20 @@ function speak(text, onDone, { queue = false } = {}) {
         // onend does NOT always fire (Chrome drops it when the tab is
         // backgrounded, or when the engine stalls). Everything downstream —
         // re-opening the mic for the next question — hangs on it, so back it
-        // with a timer sized to the sentence and take whichever lands first.
+        // with a timer and take whichever lands first.
+        //
+        // That timer MUST start when this sentence starts SPEAKING, not when
+        // it was queued: sentence 3 of a streamed answer is queued seconds
+        // before it plays, and a timer started at queue time expired while
+        // sentence 1 was still talking — the panel thought the reply was over,
+        // re-opened the mic, and cut the assistant off mid-answer.
         let done = false;
         const finish = () => { if (done) return; done = true; onDone(); };
         u.onend = finish;
         u.onerror = finish;
-        setTimeout(finish, Math.min(30000, 1200 + text.length * 75));
+        u.onstart = () => setTimeout(finish, Math.min(60000, 2000 + text.length * 90));
+        // Backstop for an utterance that never starts at all (engine wedged).
+        setTimeout(finish, 180000);
       }
       window.speechSynthesis.speak(u);
     } catch { if (onDone) onDone(); }
@@ -615,6 +623,19 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
     const t = ttsRef.current;
     t.seq += 1; t.pending = 0; t.closed = false; t.onDone = onDone || null;
   };
+  // Fire the turn's onDone only once the browser has ACTUALLY stopped
+  // speaking. Re-opening the mic runs stopSpeaking(), so firing a moment early
+  // silences the end of the answer.
+  const ttsDrain = (seq, tries = 0) => {
+    const t = ttsRef.current;
+    if (t.seq !== seq || !t.onDone) return;
+    let talking = false;
+    try { talking = !!(window.speechSynthesis && (window.speechSynthesis.speaking || window.speechSynthesis.pending)); } catch {}
+    if (talking && tries < 240) { setTimeout(() => ttsDrain(seq, tries + 1), 250); return; }
+    const f = t.onDone;
+    t.onDone = null;
+    f();
+  };
   const ttsSay = (text) => {
     const t = ttsRef.current;
     const seq = t.seq;
@@ -624,13 +645,13 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
       const cur = ttsRef.current;
       if (cur.seq !== seq) return;         // a newer turn took over
       cur.pending -= 1;
-      if (cur.closed && cur.pending <= 0 && cur.onDone) { const f = cur.onDone; cur.onDone = null; f(); }
+      if (cur.closed && cur.pending <= 0 && cur.onDone) ttsDrain(seq);
     }, { queue: true });
   };
   const ttsEnd = () => {
     const t = ttsRef.current;
     t.closed = true;
-    if (t.pending <= 0 && t.onDone) { const f = t.onDone; t.onDone = null; f(); }
+    if (t.pending <= 0 && t.onDone) ttsDrain(t.seq);
   };
 
   const refreshTasks = () => {
