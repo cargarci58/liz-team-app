@@ -179,6 +179,7 @@ function LogCallModal({ contact, token, onClose, onLogged }) {
   const [noFollowUp, setNoFollowUp] = useState(false);
   const [notes, setNotes] = useState("");
   const [newTemp, setNewTemp] = useState(contact.temperature || "warm");
+  const [newTier, setNewTier] = useState(contact.tier || ""); // A+/A/B/C/D letter grade, editable right here (Carlos 8/19)
   const [nextReason, setNextReason] = useState("");
   const [saving, setSaving] = useState(false);
   const [history, setHistory] = useState(null); // null = loading, [] = none
@@ -241,12 +242,15 @@ function LogCallModal({ contact, token, onClose, onLogged }) {
     if (!outcome) return;
     setSaving(true);
     try {
-      // Temperature update first if changed
-      if (newTemp !== contact.temperature) {
+      // Temperature / letter-grade update first if changed
+      const changes = {};
+      if (newTemp !== contact.temperature) changes.temperature = newTemp;
+      if ((newTier || "") !== (contact.tier || "")) changes.tier = newTier || null;
+      if (Object.keys(changes).length) {
         await fetch(API + "/contacts/" + contact.id, {
           method: "PUT",
           headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
-          body: JSON.stringify({ temperature: newTemp })
+          body: JSON.stringify(changes)
         });
       }
       const body = { outcome: outcome.id, notes: notes || null, nextCallReason: nextReason || null };
@@ -398,6 +402,26 @@ function LogCallModal({ contact, token, onClose, onLogged }) {
                   <option key={k} value={k}>{TEMP_META[k].emoji} {TEMP_META[k].label}</option>
                 ))}
               </select>
+            </Field>
+
+            {/* Letter grade, right where the call ends — no detour through Edit
+                Contact to demote an A to B/C/D after a call (Carlos 8/19). */}
+            <Field label={"⭐ Grade — " + (newTier || "not set")}
+              hint="A = your best advocates, down to D = rarely contact. The letter sets their call rhythm: A+/A monthly, B every 3 months, C twice a year, D once a year. Tap the current letter to clear it.">
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                {["A+", "A", "B", "C", "D"].map(t => {
+                  const on = newTier === t;
+                  const badge = tierBadgeStyle(t);
+                  return (
+                    <button type="button" key={t} onClick={() => setNewTier(on ? "" : t)}
+                      style={{ padding: "7px 14px", borderRadius: 8, fontSize: 13, fontWeight: 800, cursor: "pointer", fontFamily: "inherit",
+                        border: on ? "2px solid " + badge.background : "1.5px solid #d1d5db",
+                        background: on ? badge.background : "#fff", color: on ? badge.color : "#374151" }}>
+                      {on ? "✓ " : ""}{t}
+                    </button>
+                  );
+                })}
+              </div>
             </Field>
 
             <div style={{ display: "flex", gap: 8, justifyContent: "space-between", marginTop: 20 }}>
