@@ -34,7 +34,7 @@ const RED = "#C0392B";
 
 // Bumped on every assistant change — shown in the panel header so "which
 // version am I actually running?" is answerable at a glance (cache issues).
-const BUILD_TAG = "v17";
+const BUILD_TAG = "v18";
 
 const GREETING = "How can I help you today?";
 // Set if holding the mic stream ever breaks the recognizer on this device
@@ -478,7 +478,7 @@ function AppActionCard({ card, token, onSpokenConfirm }) {
     <ProposalCard
       badge={card.danger ? "Confirm this change" : "Confirm to do this"}
       confirmLabel={card.confirmLabel || "✓ Do it"}
-      doneText="Done."
+      doneText={card.doneText || "Done."}
       spokenText="Done."
       danger={!!card.danger}
       onSpokenConfirm={onSpokenConfirm}

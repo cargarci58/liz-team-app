@@ -6446,6 +6446,28 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
               </FirstTimeTip>
             )}
             {!isGuest && <DealDoctorPanel tx={tx} />}
+            {/* Internal notes on the home page of the deal. They used to live
+                ONLY under More ▾ → 🗒 Internal Notes, so a note added from the
+                AI assistant looked like it had vanished (Carlos 8/19). */}
+            {!isGuest && (tx.messages || []).length > 0 && (
+              <div style={{ background: "#fff", border: `1px solid ${COLORS.border}`, borderRadius: 12, padding: 16, marginBottom: 20 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+                  <div style={{ fontWeight: 800, fontSize: 14, color: COLORS.navy, flex: 1 }}>🗒 Internal Notes ({(tx.messages || []).length})</div>
+                  <button onClick={() => setActiveTab("notes")}
+                    style={{ background: "none", border: "none", color: COLORS.navy, fontWeight: 700, fontSize: 12, textDecoration: "underline", cursor: "pointer", padding: 0 }}>
+                    See all / add one
+                  </button>
+                </div>
+                {(tx.messages || []).slice(-3).reverse().map(m => (
+                  <div key={m.id} style={{ borderTop: `1px solid ${COLORS.border}`, paddingTop: 8, marginTop: 8 }}>
+                    <div style={{ fontSize: 11, color: COLORS.muted, marginBottom: 2 }}>
+                      {m.sender} · {new Date(m.timestamp).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
+                    </div>
+                    <div style={{ fontSize: 13.5, color: COLORS.text, lineHeight: 1.45 }}>{m.text}</div>
+                  </div>
+                ))}
+              </div>
+            )}
             {/* Listing deals: agreement answers still blank → one-tap in-app form
                 (Carlos 8/4 — the agent shouldn't have to text themselves the link). */}
             {!isGuest && /listing|seller/i.test(tx.type || tx.transaction_type || "") && !/lease/i.test(tx.type || tx.transaction_type || "") && (
