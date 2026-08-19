@@ -34,7 +34,7 @@ const RED = "#C0392B";
 
 // Bumped on every assistant change — shown in the panel header so "which
 // version am I actually running?" is answerable at a glance (cache issues).
-const BUILD_TAG = "v9";
+const BUILD_TAG = "v10";
 
 const GREETING = "How can I help you today?";
 const CHIPS = [
@@ -271,7 +271,7 @@ function CreateTaskCard({ card, token, onSpokenConfirm }) {
 
 // Shared shell for proposal cards: amber "review & confirm" box with
 // Cancel + confirm buttons, mirroring CreateTaskCard's states.
-function ProposalCard({ badge, confirmLabel, doneText, spokenText, body, doAction, onSpokenConfirm }) {
+function ProposalCard({ badge, confirmLabel, doneText, spokenText, body, doAction, onSpokenConfirm, danger = false }) {
   const [state, setState] = useState("idle"); // idle | saving | done | cancelled | error
   if (state === "done") {
     return <div style={{ background: "#F0FDF4", border: "1px solid #BBF7D0", borderRadius: 12, padding: 12, marginTop: 8, fontSize: 13, fontWeight: 700, color: "#166534" }}>✓ {doneText}</div>;
@@ -296,7 +296,7 @@ function ProposalCard({ badge, confirmLabel, doneText, spokenText, body, doActio
         <button onClick={() => setState("cancelled")} disabled={state === "saving"} style={{ flex: 1, background: "#fff", color: "#374151", border: "1px solid #D1D5DB", borderRadius: 8, padding: "9px 10px", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>
           Cancel
         </button>
-        <button onClick={run} disabled={state === "saving"} style={{ flex: 2, background: "#1E8449", color: "#fff", border: "none", borderRadius: 8, padding: "9px 10px", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>
+        <button onClick={run} disabled={state === "saving"} style={{ flex: 2, background: danger ? RED : "#1E8449", color: "#fff", border: "none", borderRadius: 8, padding: "9px 10px", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>
           {state === "saving" ? "Working…" : confirmLabel}
         </button>
       </div>
@@ -398,6 +398,34 @@ function LogCallCard({ card, token, onSpokenConfirm }) {
   );
 }
 
+// app_action — a server-validated catalog action (add note, complete a step,
+// schedule, waive, reminder, status change…). The server already resolved
+// method/path/body from its whitelist; we show the plain-language summary
+// and execute only on the confirm tap.
+function AppActionCard({ card, token, onSpokenConfirm }) {
+  if (!card.method || !card.path || !card.summary) return null;
+  return (
+    <ProposalCard
+      badge={card.danger ? "Confirm this change" : "Confirm to do this"}
+      confirmLabel={card.confirmLabel || "✓ Do it"}
+      doneText="Done."
+      spokenText="Done."
+      danger={!!card.danger}
+      onSpokenConfirm={onSpokenConfirm}
+      body={<div style={{ fontWeight: 700, fontSize: 14, color: NAVY, marginTop: 6 }}>{card.summary}</div>}
+      doAction={async () => {
+        const r = await fetch(API + card.path, {
+          method: card.method,
+          headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
+          body: JSON.stringify(card.body || {}),
+        });
+        if (!r.ok) throw new Error("action failed");
+        window.dispatchEvent(new Event("wintheday:refresh"));
+      }}
+    />
+  );
+}
+
 function Card({ card, token, onOpenDeal, onNavigate, onSend, onSpokenConfirm }) {
   if (!card || !card.type) return null;
   switch (card.type) {
@@ -431,6 +459,8 @@ function Card({ card, token, onOpenDeal, onNavigate, onSend, onSpokenConfirm }) 
       return <StartChaseCard card={card} token={token} onSpokenConfirm={onSpokenConfirm} />;
     case "log_call":
       return <LogCallCard card={card} token={token} onSpokenConfirm={onSpokenConfirm} />;
+    case "app_action":
+      return <AppActionCard card={card} token={token} onSpokenConfirm={onSpokenConfirm} />;
     case "help":
       return <HelpCard card={card} onNavigate={onNavigate} />;
     default:
