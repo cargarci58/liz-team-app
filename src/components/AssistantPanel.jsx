@@ -34,9 +34,12 @@ const RED = "#C0392B";
 
 // Bumped on every assistant change — shown in the panel header so "which
 // version am I actually running?" is answerable at a glance (cache issues).
-const BUILD_TAG = "v10";
+const BUILD_TAG = "v12";
 
 const GREETING = "How can I help you today?";
+// Nothing heard for this long and the mic closes itself, out loud.
+const QUIET_CLOSE_MS = 8000;
+const SIGN_OFF = "I didn't hear anything, so I'm closing the mic. Tap it whenever you need me.";
 const CHIPS = [
   { label: "📞 Dial someone", send: "" , fill: "call " },
   { label: "✅ Today's tasks", send: "What are my tasks today?" },
@@ -607,10 +610,14 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
     // starts, so greeting-then-mic would cut itself off), then greet. What the
     // open mic picks up from our own speaker is thrown away, see speakingRef.
     if (autoMicRef.current && SR) {
+      if (speakOn) speakingRef.current = true;   // set BEFORE the mic opens
       armMic();
       if (speakOn) {
-        speakingRef.current = true;
-        speak(GREETING, () => { speakingRef.current = false; });
+        speak(GREETING, () => {
+          speakingRef.current = false;
+          const live = listenRef.current;
+          if (live && !live.sent && live.restart) live.restart();
+        });
       }
       return;
     }
@@ -727,7 +734,12 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
       // turn, it is silently RESTARTED and the words keep accumulating in
       // `base`. The ONLY things that end the turn are OUR pause timer
       // (~3s after the last words heard), the ⏹ tap, or the 90s cap.
-      const session = { base: "", final: "", interim: "", sent: false, skip: 0 };
+      // `muted` = the greeting is still playing through the speaker, so
+      // ignore everything the mic hears; when it finishes we RESTART the
+      // recognizer, which is the only reliable way to drop what it already
+      // transcribed (result indexes keep growing into the user's own speech,
+      // so skipping by index swallowed the first thing they said).
+      const session = { base: "", final: "", interim: "", sent: false, muted: !!speakingRef.current, wipe: false, startedAt: Date.now() };
       listenRef.current = session;
       const heardText = () => (session.base + " " + session.final + " " + session.interim).replace(/\s+/g, " ").trim();
       const finish = () => {
@@ -740,14 +752,34 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
         try { rec.stop(); } catch {}
         const text = heardText();
         if (text) send(text, { voice: true });
-        else {
-          convoRef.current = false;  // quiet room — don't loop the mic forever
-          setMicNote("I didn't hear anything — tap the mic and try again.");
+        else if (Date.now() - session.startedAt < 4000) {
+          // Nothing heard within a blink of opening: that is a bug or a
+          // stumble, not a quiet room. Keep listening instead of scolding.
+          session.sent = false;
+          setListening(true);
+          try { rec.start(); } catch {}
+          armSilence(QUIET_CLOSE_MS);
+        } else {
+          // Quiet room — say so out loud and let go of the mic, instead of
+          // leaving it open (and the recording light on) indefinitely.
+          convoRef.current = false;
+          setMicNote("I didn't hear anything, so I closed the mic — tap 🎤 whenever you need me.");
+          if (speakOn) speak(SIGN_OFF);
         }
       };
       finishRef.current = finish;
-      // Pause timer: ~3s of quiet after the last words = the thought is done.
-      // Before the first words, a generous 12s to start talking.
+      // Called when the greeting stops playing: throw away everything the mic
+      // picked up of it and listen again from scratch.
+      session.restart = () => {
+        if (session.sent) return;
+        session.wipe = true;
+        setInterim("");
+        armSilence(QUIET_CLOSE_MS);
+        try { rec.stop(); } catch { session.muted = false; }
+      };
+      // Pause timer: a short beat after the last words = the thought is done.
+      // With nothing heard at all, the mic closes itself after QUIET_CLOSE_MS
+      // rather than sitting open on a room that isn't talking to it.
       const armSilence = (ms) => {
         if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
         silenceTimerRef.current = setTimeout(finish, ms);
@@ -755,16 +787,14 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
 
       rec.onresult = (e) => {
         let finalText = "", interimText = "";
-        // Our own greeting coming back through the speaker: skip past those
-        // results for good and keep waiting for the actual question.
-        if (speakingRef.current) {
-          session.skip = e.results.length;
+        // Still our own voice playing — hear nothing, keep the long timer.
+        if (session.muted) {
           session.base = "";
           setInterim("");
-          armSilence(15000);
+          armSilence(QUIET_CLOSE_MS);
           return;
         }
-        for (let i = session.skip || 0; i < e.results.length; i++) {
+        for (let i = 0; i < e.results.length; i++) {
           if (e.results[i].isFinal) finalText += e.results[i][0].transcript;
           else interimText += e.results[i][0].transcript;
         }
@@ -802,11 +832,18 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
       };
       rec.onend = () => {
         if (session.sent) return;
-        // Self-ended mid-turn: bank the finalized words, restart, keep going.
-        session.base = (session.base + " " + session.final + " " + session.interim).replace(/\s+/g, " ").trim();
+        if (session.wipe) {
+          // Restart after the greeting: keep nothing, and un-mute — from here
+          // on the only voice the mic hears is the agent's.
+          session.wipe = false;
+          session.muted = false;
+          session.base = "";
+        } else {
+          // Self-ended mid-turn: bank the finalized words, restart, keep going.
+          session.base = (session.base + " " + session.final + " " + session.interim).replace(/\s+/g, " ").trim();
+        }
         session.final = "";
         session.interim = "";
-        session.skip = 0;   // a restarted recognizer numbers its results from 0 again
         try { rec.start(); }
         catch {
           setTimeout(() => {
@@ -817,7 +854,7 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
       };
       rec.start();
       setListening(true);
-      armSilence(15000);
+      armSilence(QUIET_CLOSE_MS);
       // Absolute cap so a mic left open in a noisy room can't run forever.
       setTimeout(finish, 120000);
     } catch {
