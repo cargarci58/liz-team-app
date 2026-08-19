@@ -34,7 +34,7 @@ const RED = "#C0392B";
 
 // Bumped on every assistant change — shown in the panel header so "which
 // version am I actually running?" is answerable at a glance (cache issues).
-const BUILD_TAG = "v7";
+const BUILD_TAG = "v8";
 
 const GREETING = "How can I help you today?";
 const CHIPS = [
@@ -421,6 +421,12 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
   const chunksRef = useRef([]);
   const recTimerRef = useRef(null);
   const [speakOn, setSpeakOn] = useState(() => localStorage.getItem("tp_assist_speak") !== "off");
+  // Hands-free by default: opening the panel opens the mic, so the agent can
+  // just start talking. The 🎤/🤐 header button turns that off for people who
+  // would rather tap the mic themselves (setting sticks per device).
+  const [autoMic, setAutoMic] = useState(() => localStorage.getItem("tp_assist_automic") !== "off");
+  const autoMicRef = useRef(true);
+  autoMicRef.current = autoMic;
   const tasksRef = useRef(null);              // /dashboard/tasks snapshot (fetched on open)
   const recRef = useRef(null);
   const scrollRef = useRef(null);
@@ -449,6 +455,31 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
     });
   };
 
+  // Auto-listen off = the mic never opens by itself (and closes right now if
+  // it's open). Turning it back on while the panel is open starts listening.
+  const toggleAutoMic = () => {
+    const next = !autoMic;
+    setAutoMic(next);
+    autoMicRef.current = next;
+    localStorage.setItem("tp_assist_automic", next ? "on" : "off");
+    if (!next) {
+      convoRef.current = false;
+      cancelListening();
+      stopRecording();
+    } else if (openRef.current && !busy) {
+      armMic();
+    }
+  };
+
+  // Open the mic for a hands-free turn. Native recognizer ONLY: it hears the
+  // pause and sends by itself, while the record-and-transcribe fallback runs
+  // until it's tapped — auto-starting THAT would leave a hot mic on a panel
+  // nobody is talking to. Fallback browsers tap 🎤 as before.
+  const armMic = () => {
+    if (!autoMicRef.current || !openRef.current || !SR) return;
+    startListening();
+  };
+
   const refreshTasks = () => {
     fetch(API + "/dashboard/tasks", { headers: { Authorization: "Bearer " + token } })
       .then(r => (r.ok ? r.json() : null))
@@ -458,11 +489,15 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
 
   const openPanel = () => {
     setOpen(true);
+    openRef.current = true;   // armMic() runs before the next render
     refreshTasks();
     if (msgs.length === 0) {
       setMsgs([{ role: "assistant", text: GREETING, cards: [] }]);
     }
-    if (speakOn) speak(GREETING);
+    // Mic opens by itself — but AFTER the greeting finishes playing, or the
+    // recognizer hears the app's own voice through the speakers.
+    if (speakOn) speak(GREETING, armMic);
+    else armMic();
   };
 
   const closePanel = () => {
@@ -606,11 +641,13 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
         session.final = finalText;
         session.interim = interimText;
         setInterim(heardText());
-        // 3.5s of quiet = the thought is done. (Was 7s — that read as the
-        // assistant "waiting too long to respond" after you stop talking.)
-        // Mid-thought pausers still have the ⏹ hint, and a cut-off send
-        // just becomes a follow-up question.
-        armSilence(3500);
+        // How long to wait before deciding the thought is done. The browser
+        // only FINALIZES a phrase once it hears you stop, so a finalized
+        // result with nothing still pending means we can send almost
+        // immediately — that flat 3.5s wait was most of the "why is it taking
+        // so long to answer me" delay. Words still being transcribed
+        // (interim) get a longer beat so mid-sentence pauses don't cut in.
+        armSilence(interimText.trim() ? 1800 : 800);
       };
       rec.onerror = (e) => {
         const code = (e && e.error) || "";
@@ -871,6 +908,13 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
                 <div style={{ color: "#fff", fontWeight: 800, fontSize: 15 }}>Assistant</div>
                 <div style={{ color: "rgba(255,255,255,0.65)", fontSize: 11 }}>Type or talk — I can dial, show, and explain · {BUILD_TAG}</div>
               </div>
+              {(SR || CAN_RECORD) && (
+                <button onClick={toggleAutoMic}
+                  title={autoMic ? "Mic opens automatically — tap to turn auto-listen off" : "Auto-listen OFF — tap to have the mic open by itself"}
+                  style={{ background: autoMic ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.25)", border: "none", borderRadius: 8, padding: "6px 9px", fontSize: 16, cursor: "pointer" }}>
+                  {autoMic ? "🎤" : "🤐"}
+                </button>
+              )}
               <button onClick={toggleSpeak} title={speakOn ? "Voice replies ON — tap to mute" : "Voice replies OFF — tap to unmute"}
                 style={{ background: "rgba(255,255,255,0.12)", border: "none", borderRadius: 8, padding: "6px 9px", fontSize: 16, cursor: "pointer" }}>
                 {speakOn ? "🔊" : "🔇"}
@@ -901,7 +945,7 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
               {listening && (
                 <div style={{ background: "#FFF7ED", border: "1px solid #FED7AA", borderRadius: 10, padding: "10px 12px", marginTop: 4 }}>
                   <div style={{ fontSize: 13, color: RED, fontWeight: 700 }}>● Listening — take all the time you need.</div>
-                  <div style={{ fontSize: 12, color: "#9A3412", marginTop: 2 }}>Tap <b>⏹ to send</b> the moment you're done — otherwise I'll send after a long pause.</div>
+                  <div style={{ fontSize: 12, color: "#9A3412", marginTop: 2 }}>I'll answer as soon as you stop talking — or tap <b>⏹ to send</b> right away.</div>
                   {interim && <div style={{ fontSize: 12.5, color: "#374151", marginTop: 6, fontStyle: "italic" }}>“{interim}”</div>}
                 </div>
               )}
