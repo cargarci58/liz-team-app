@@ -34,9 +34,18 @@ const RED = "#C0392B";
 
 // Bumped on every assistant change — shown in the panel header so "which
 // version am I actually running?" is answerable at a glance (cache issues).
-const BUILD_TAG = "v7";
+const BUILD_TAG = "v15";
 
 const GREETING = "How can I help you today?";
+// Set if holding the mic stream ever breaks the recognizer on this device
+// (some Android builds refuse a second capture) — from then on, timers only.
+let METER_OFF = false;
+// Nothing heard for this long and the mic closes itself, out loud.
+const QUIET_CLOSE_MS = 8000;
+const IS_IOS = typeof navigator !== "undefined" &&
+  (/iPhone|iPad|iPod/i.test(navigator.userAgent) ||
+   (/Mac/i.test(navigator.userAgent) && navigator.maxTouchPoints > 1));
+const SIGN_OFF = "I didn't hear anything, so I'm closing the mic. Tap it whenever you need me.";
 const CHIPS = [
   { label: "📞 Dial someone", send: "" , fill: "call " },
   { label: "✅ Today's tasks", send: "What are my tasks today?" },
@@ -61,6 +70,75 @@ const SR = typeof window !== "undefined" ? (window.SpeechRecognition || window.w
 const CAN_RECORD = typeof window !== "undefined" && typeof window.MediaRecorder !== "undefined" &&
   !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
 
+// Reads the streaming answer (POST /assistant/stream, server-sent events) and
+// hands each piece of text over the moment it arrives, so the panel can start
+// speaking before the full answer — cards and all — finishes generating.
+async function readAnswerStream(res, onDelta) {
+  const reader = res.body.getReader();
+  const dec = new TextDecoder();
+  let buf = "", answer = null, err = null;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buf += dec.decode(value, { stream: true });
+    let cut;
+    while ((cut = buf.indexOf("\n\n")) !== -1) {
+      const block = buf.slice(0, cut);
+      buf = buf.slice(cut + 2);
+      const ev = /^event: (.*)$/m.exec(block);
+      const dl = /^data: (.*)$/m.exec(block);
+      if (!ev || !dl) continue;
+      let data;
+      try { data = JSON.parse(dl[1]); } catch { continue; }
+      if (ev[1] === "delta") { if (data.text) onDelta(data.text); }
+      else if (ev[1] === "done") answer = data;
+      else if (ev[1] === "error") err = data.error || "error";
+    }
+  }
+  if (!answer) throw new Error(err || "stream ended with no answer");
+  return answer;
+}
+
+// Trailing abbreviations that end in a period but not a sentence.
+const SENTENCE_ABBR = /(?:^|[\s(])(?:st|ave|rd|dr|blvd|ct|ln|pkwy|hwy|apt|ste|mr|mrs|ms|jr|sr|no|vs|approx|est|e\.g|i\.e)\.$/i;
+
+// ————— Voice activity meter ————————————————————————————————————
+// The recognizer "finalizes" a phrase at ordinary mid-sentence pauses, so a
+// timer started from its output cuts people off while they're still thinking.
+// This watches the microphone's actual level instead, so the turn can only end
+// after the room has genuinely gone quiet. Falls back to timers alone if
+// WebAudio isn't available.
+function startVoiceMeter(stream) {
+  try {
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    if (!Ctx || !stream) return null;
+    const ctx = new Ctx();
+    const src = ctx.createMediaStreamSource(stream);
+    const an = ctx.createAnalyser();
+    an.fftSize = 1024;
+    an.smoothingTimeConstant = 0.2;
+    src.connect(an);
+    const buf = new Float32Array(an.fftSize);
+    const meter = { lastVoiceAt: Date.now(), floor: 0.01, stop: null };
+    const id = setInterval(() => {
+      an.getFloatTimeDomainData(buf);
+      let sum = 0;
+      for (let i = 0; i < buf.length; i++) sum += buf[i] * buf[i];
+      const rms = Math.sqrt(sum / buf.length);
+      // Noise floor tracks the room: drops instantly to a new quiet level,
+      // creeps up slowly, so a humming office doesn't read as speech.
+      meter.floor = rms < meter.floor ? rms : meter.floor * 0.995 + rms * 0.005;
+      if (rms > Math.max(0.011, meter.floor * 2.5)) meter.lastVoiceAt = Date.now();
+    }, 80);
+    meter.stop = () => {
+      clearInterval(id);
+      try { src.disconnect(); } catch {}
+      try { ctx.close(); } catch {}
+    };
+    return meter;
+  } catch { return null; }
+}
+
 function blobToBase64(blob) {
   return new Promise((resolve, reject) => {
     const fr = new FileReader();
@@ -70,7 +148,10 @@ function blobToBase64(blob) {
   });
 }
 
-function speak(text, onDone) {
+// `queue: true` adds this sentence BEHIND whatever is already playing instead
+// of cutting it off — that's what lets a streamed answer start out loud on
+// sentence one while sentence two is still being written.
+function speak(text, onDone, { queue = false } = {}) {
   // Deferred: speechSynthesis.speak()/cancel() on macOS Chrome can hang the
   // tab for many seconds (long-standing Chromium bug, worst with the local
   // "Enhanced/Premium/Samantha" voices). Running it after a tick means the
@@ -79,7 +160,7 @@ function speak(text, onDone) {
   setTimeout(() => {
     try {
       if (!window.speechSynthesis || !text) { if (onDone) onDone(); return; }
-      if (window.speechSynthesis.speaking || window.speechSynthesis.pending) window.speechSynthesis.cancel();
+      if (!queue && (window.speechSynthesis.speaking || window.speechSynthesis.pending)) window.speechSynthesis.cancel();
       const u = new SpeechSynthesisUtterance(text);
       u.rate = 1.04;
       // Prefer Google's en-US voice (Chrome, streamed, doesn't trigger the
@@ -91,7 +172,25 @@ function speak(text, onDone) {
         voices.find(v => /en[-_]US/i.test(v.lang) && v.default) ||
         voices.find(v => /en[-_]US/i.test(v.lang) && !/enhanced|premium|natural|neural|samantha/i.test(v.name));
       if (preferred) u.voice = preferred;
-      if (onDone) { u.onend = onDone; u.onerror = onDone; }
+      if (onDone) {
+        // onend does NOT always fire (Chrome drops it when the tab is
+        // backgrounded, or when the engine stalls). Everything downstream —
+        // re-opening the mic for the next question — hangs on it, so back it
+        // with a timer and take whichever lands first.
+        //
+        // That timer MUST start when this sentence starts SPEAKING, not when
+        // it was queued: sentence 3 of a streamed answer is queued seconds
+        // before it plays, and a timer started at queue time expired while
+        // sentence 1 was still talking — the panel thought the reply was over,
+        // re-opened the mic, and cut the assistant off mid-answer.
+        let done = false;
+        const finish = () => { if (done) return; done = true; onDone(); };
+        u.onend = finish;
+        u.onerror = finish;
+        u.onstart = () => setTimeout(finish, Math.min(60000, 2000 + text.length * 90));
+        // Backstop for an utterance that never starts at all (engine wedged).
+        setTimeout(finish, 180000);
+      }
       window.speechSynthesis.speak(u);
     } catch { if (onDone) onDone(); }
   }, 0);
@@ -226,7 +325,7 @@ function CreateTaskCard({ card, token, onSpokenConfirm }) {
 
 // Shared shell for proposal cards: amber "review & confirm" box with
 // Cancel + confirm buttons, mirroring CreateTaskCard's states.
-function ProposalCard({ badge, confirmLabel, doneText, spokenText, body, doAction, onSpokenConfirm }) {
+function ProposalCard({ badge, confirmLabel, doneText, spokenText, body, doAction, onSpokenConfirm, danger = false }) {
   const [state, setState] = useState("idle"); // idle | saving | done | cancelled | error
   if (state === "done") {
     return <div style={{ background: "#F0FDF4", border: "1px solid #BBF7D0", borderRadius: 12, padding: 12, marginTop: 8, fontSize: 13, fontWeight: 700, color: "#166534" }}>✓ {doneText}</div>;
@@ -251,7 +350,7 @@ function ProposalCard({ badge, confirmLabel, doneText, spokenText, body, doActio
         <button onClick={() => setState("cancelled")} disabled={state === "saving"} style={{ flex: 1, background: "#fff", color: "#374151", border: "1px solid #D1D5DB", borderRadius: 8, padding: "9px 10px", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>
           Cancel
         </button>
-        <button onClick={run} disabled={state === "saving"} style={{ flex: 2, background: "#1E8449", color: "#fff", border: "none", borderRadius: 8, padding: "9px 10px", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>
+        <button onClick={run} disabled={state === "saving"} style={{ flex: 2, background: danger ? RED : "#1E8449", color: "#fff", border: "none", borderRadius: 8, padding: "9px 10px", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>
           {state === "saving" ? "Working…" : confirmLabel}
         </button>
       </div>
@@ -353,6 +452,34 @@ function LogCallCard({ card, token, onSpokenConfirm }) {
   );
 }
 
+// app_action — a server-validated catalog action (add note, complete a step,
+// schedule, waive, reminder, status change…). The server already resolved
+// method/path/body from its whitelist; we show the plain-language summary
+// and execute only on the confirm tap.
+function AppActionCard({ card, token, onSpokenConfirm }) {
+  if (!card.method || !card.path || !card.summary) return null;
+  return (
+    <ProposalCard
+      badge={card.danger ? "Confirm this change" : "Confirm to do this"}
+      confirmLabel={card.confirmLabel || "✓ Do it"}
+      doneText="Done."
+      spokenText="Done."
+      danger={!!card.danger}
+      onSpokenConfirm={onSpokenConfirm}
+      body={<div style={{ fontWeight: 700, fontSize: 14, color: NAVY, marginTop: 6 }}>{card.summary}</div>}
+      doAction={async () => {
+        const r = await fetch(API + card.path, {
+          method: card.method,
+          headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
+          body: JSON.stringify(card.body || {}),
+        });
+        if (!r.ok) throw new Error("action failed");
+        window.dispatchEvent(new Event("wintheday:refresh"));
+      }}
+    />
+  );
+}
+
 function Card({ card, token, onOpenDeal, onNavigate, onSend, onSpokenConfirm }) {
   if (!card || !card.type) return null;
   switch (card.type) {
@@ -386,6 +513,8 @@ function Card({ card, token, onOpenDeal, onNavigate, onSend, onSpokenConfirm }) 
       return <StartChaseCard card={card} token={token} onSpokenConfirm={onSpokenConfirm} />;
     case "log_call":
       return <LogCallCard card={card} token={token} onSpokenConfirm={onSpokenConfirm} />;
+    case "app_action":
+      return <AppActionCard card={card} token={token} onSpokenConfirm={onSpokenConfirm} />;
     case "help":
       return <HelpCard card={card} onNavigate={onNavigate} />;
     default:
@@ -406,6 +535,20 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
   const [recording, setRecording] = useState(false);     // MediaRecorder fallback active
   const [transcribing, setTranscribing] = useState(false);
   const [micStarting, setMicStarting] = useState(false);  // instant tap feedback while the mic opens
+  const [streamText, setStreamText] = useState("");      // answer text as it streams in
+  // iOS asks for the mic once per visit no matter what the page does — the
+  // only way to stop it is Safari's own per-site setting, so say so once.
+  const [iosTip, setIosTip] = useState(() => IS_IOS && localStorage.getItem("tp_assist_iostip") !== "off");
+  // Sentence queue for the streamed answer: each finished sentence is spoken
+  // while the next is still arriving, and `onDone` (re-open the mic) fires
+  // only once the LAST one has finished playing.
+  const ttsRef = useRef({ seq: 0, pending: 0, closed: true, onDone: null });
+  // True while the app's OWN voice is playing with the mic already open (the
+  // greeting). Anything the mic hears in that window is our speaker, not the
+  // agent, so it gets discarded.
+  const speakingRef = useRef(false);
+  const meterRef = useRef(null);        // live microphone level
+  const micStreamRef = useRef(null);    // the stream the meter reads
   const silenceTimerRef = useRef(null);   // auto-send after a real pause
   const finishRef = useRef(null);         // ends the current listen session and sends
   const listenRef = useRef(null);         // current listen session { final, interim, sent }
@@ -421,6 +564,12 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
   const chunksRef = useRef([]);
   const recTimerRef = useRef(null);
   const [speakOn, setSpeakOn] = useState(() => localStorage.getItem("tp_assist_speak") !== "off");
+  // Hands-free by default: opening the panel opens the mic, so the agent can
+  // just start talking. The 🎤/🤐 header button turns that off for people who
+  // would rather tap the mic themselves (setting sticks per device).
+  const [autoMic, setAutoMic] = useState(() => localStorage.getItem("tp_assist_automic") !== "off");
+  const autoMicRef = useRef(true);
+  autoMicRef.current = autoMic;
   const tasksRef = useRef(null);              // /dashboard/tasks snapshot (fetched on open)
   const recRef = useRef(null);
   const scrollRef = useRef(null);
@@ -435,7 +584,7 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
 
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-  }, [msgs, busy]);
+  }, [msgs, busy, streamText]);
 
   // Chrome loads speechSynthesis voices async — warm the list.
   useEffect(() => { try { window.speechSynthesis && window.speechSynthesis.getVoices(); } catch {} }, []);
@@ -449,6 +598,69 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
     });
   };
 
+  // Auto-listen off = the mic never opens by itself (and closes right now if
+  // it's open). Turning it back on while the panel is open starts listening.
+  const toggleAutoMic = () => {
+    const next = !autoMic;
+    setAutoMic(next);
+    autoMicRef.current = next;
+    localStorage.setItem("tp_assist_automic", next ? "on" : "off");
+    if (!next) {
+      convoRef.current = false;
+      ttsRef.current.onDone = null;   // don't let a finishing reply re-open it
+      cancelListening();
+      stopRecording();
+      releaseMicStream();
+    } else if (openRef.current && !busy) {
+      armMic();
+    }
+  };
+
+  // Open the mic for a hands-free turn. Native recognizer ONLY: it hears the
+  // pause and sends by itself, while the record-and-transcribe fallback runs
+  // until it's tapped — auto-starting THAT would leave a hot mic on a panel
+  // nobody is talking to. Fallback browsers tap 🎤 as before.
+  const armMic = () => {
+    if (!autoMicRef.current || !openRef.current || !SR) return;
+    startListening();
+  };
+
+  const ttsStart = (onDone) => {
+    stopSpeaking();
+    const t = ttsRef.current;
+    t.seq += 1; t.pending = 0; t.closed = false; t.onDone = onDone || null;
+  };
+  // Fire the turn's onDone only once the browser has ACTUALLY stopped
+  // speaking. Re-opening the mic runs stopSpeaking(), so firing a moment early
+  // silences the end of the answer.
+  const ttsDrain = (seq, tries = 0) => {
+    const t = ttsRef.current;
+    if (t.seq !== seq || !t.onDone) return;
+    let talking = false;
+    try { talking = !!(window.speechSynthesis && (window.speechSynthesis.speaking || window.speechSynthesis.pending)); } catch {}
+    if (talking && tries < 240) { setTimeout(() => ttsDrain(seq, tries + 1), 250); return; }
+    const f = t.onDone;
+    t.onDone = null;
+    f();
+  };
+  const ttsSay = (text) => {
+    const t = ttsRef.current;
+    const seq = t.seq;
+    if (!text || !text.trim()) return;
+    t.pending += 1;
+    speak(text, () => {
+      const cur = ttsRef.current;
+      if (cur.seq !== seq) return;         // a newer turn took over
+      cur.pending -= 1;
+      if (cur.closed && cur.pending <= 0 && cur.onDone) ttsDrain(seq);
+    }, { queue: true });
+  };
+  const ttsEnd = () => {
+    const t = ttsRef.current;
+    t.closed = true;
+    if (t.pending <= 0 && t.onDone) ttsDrain(t.seq);
+  };
+
   const refreshTasks = () => {
     fetch(API + "/dashboard/tasks", { headers: { Authorization: "Bearer " + token } })
       .then(r => (r.ok ? r.json() : null))
@@ -458,19 +670,41 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
 
   const openPanel = () => {
     setOpen(true);
+    openRef.current = true;   // armMic() runs before the next render
     refreshTasks();
     if (msgs.length === 0) {
       setMsgs([{ role: "assistant", text: GREETING, cards: [] }]);
+    }
+    // Auto-listen opens the mic in THIS tap, and the greeting plays over the
+    // top of it — armMic() FIRST (startListening cancels any speech as it
+    // starts, so greeting-then-mic would cut itself off), then greet. What the
+    // open mic picks up from our own speaker is thrown away, see speakingRef.
+    if (autoMicRef.current && SR) {
+      if (speakOn) speakingRef.current = true;   // set BEFORE the mic opens
+      armMic();
+      if (speakOn) {
+        speak(GREETING, () => {
+          speakingRef.current = false;
+          const live = listenRef.current;
+          if (live && !live.sent && live.restart) live.restart();
+        });
+      }
+      return;
     }
     if (speakOn) speak(GREETING);
   };
 
   const closePanel = () => {
     setOpen(false);
+    openRef.current = false;
+    setMicStarting(false);   // else a mid-open close blocks the NEXT open
     convoRef.current = false;
+    ttsRef.current.seq += 1;          // orphan the streamed speech queue
+    ttsRef.current.onDone = null;
     stopSpeaking();
     cancelListening();
     stopRecording();
+    releaseMicStream();   // panel closed = mic goes cold, recording dot off
   };
 
   // ——— Voice input ———
@@ -485,6 +719,7 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
 
   // Closing the panel mid-listen DISCARDS instead of sending.
   const cancelListening = () => {
+    releaseMic();
     if (listenRef.current) listenRef.current.sent = true;
     if (silenceTimerRef.current) { clearTimeout(silenceTimerRef.current); silenceTimerRef.current = null; }
     try { recRef.current && recRef.current.stop(); } catch {}
@@ -528,6 +763,34 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
     return () => clearTimeout(t);
   }, [micStarting]);
 
+  // Between turns we stop the LEVEL METER but keep the microphone stream open.
+  // Asking for the mic again is what makes iOS Safari re-prompt ("would like
+  // to access the microphone") — once per question is unusable, so one grant
+  // has to cover the whole conversation.
+  const releaseMic = () => {
+    try { meterRef.current && meterRef.current.stop(); } catch {}
+    meterRef.current = null;
+  };
+
+  // Full release — the mic actually goes cold (and the phone's recording dot
+  // goes out). Only when the panel closes or voice is switched off.
+  const releaseMicStream = () => {
+    releaseMic();
+    try { micStreamRef.current && micStreamRef.current.getTracks().forEach(t => t.stop()); } catch {}
+    micStreamRef.current = null;
+  };
+
+  // The one grant, reused. Re-asks only if the tracks died (tab backgrounded,
+  // device switched, another app took the mic).
+  const acquireMic = async () => {
+    const held = micStreamRef.current;
+    if (held && held.getTracks().some(t => t.readyState === "live")) return held;
+    if (held) releaseMicStream();
+    const stream = await getMicStream();
+    micStreamRef.current = stream;
+    return stream;
+  };
+
   const startListening = async () => {
     if (!SR) return;
     // Re-entrancy guard: a second tap while the mic is still opening used to
@@ -544,10 +807,15 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
     // browser's permission prompt to appear now, and lets us explain when
     // it's blocked — the recognizer alone fails silently on many phones
     // (the original "I click the mic and nothing happens" bug).
+    releaseMic();
     if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
       try {
-        const stream = await getMicStream();
-        stream.getTracks().forEach(t => t.stop());
+        // Kept open across the whole conversation (see acquireMic): the level
+        // meter reads this stream to tell "still talking" from "finished
+        // talking". The recognizer captures separately and is unaffected.
+        const stream = await acquireMic();
+        if (METER_OFF) releaseMicStream();   // device refused sharing — hand it straight back
+        else meterRef.current = startVoiceMeter(stream);
       } catch (err) {
         setMicStarting(false);
         setMicNote(err && err.message === "mic-timeout"
@@ -571,7 +839,12 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
       // turn, it is silently RESTARTED and the words keep accumulating in
       // `base`. The ONLY things that end the turn are OUR pause timer
       // (~3s after the last words heard), the ⏹ tap, or the 90s cap.
-      const session = { base: "", final: "", interim: "", sent: false };
+      // `muted` = the greeting is still playing through the speaker, so
+      // ignore everything the mic hears; when it finishes we RESTART the
+      // recognizer, which is the only reliable way to drop what it already
+      // transcribed (result indexes keep growing into the user's own speech,
+      // so skipping by index swallowed the first thing they said).
+      const session = { base: "", final: "", interim: "", sent: false, muted: !!speakingRef.current, wipe: false, startedAt: Date.now() };
       listenRef.current = session;
       const heardText = () => (session.base + " " + session.final + " " + session.interim).replace(/\s+/g, " ").trim();
       const finish = () => {
@@ -582,23 +855,75 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
         setListening(false);
         setInterim("");
         try { rec.stop(); } catch {}
+        releaseMic();
         const text = heardText();
         if (text) send(text, { voice: true });
-        else {
-          convoRef.current = false;  // quiet room — don't loop the mic forever
-          setMicNote("I didn't hear anything — tap the mic and try again.");
+        else if (Date.now() - session.startedAt < 4000) {
+          // Nothing heard within a blink of opening: that is a bug or a
+          // stumble, not a quiet room. Keep listening instead of scolding.
+          session.sent = false;
+          setListening(true);
+          try { rec.start(); } catch {}
+          armSilence(QUIET_CLOSE_MS);
+          if (!meterRef.current && !METER_OFF && navigator.mediaDevices) {
+            acquireMic().then(st => {
+              if (session.sent) return;
+              meterRef.current = startVoiceMeter(st);
+            }).catch(() => {});
+          }
+        } else {
+          // Quiet room — say so out loud and let go of the mic, instead of
+          // leaving it open (and the recording light on) indefinitely.
+          convoRef.current = false;
+          setMicNote("I didn't hear anything, so I closed the mic — tap 🎤 whenever you need me.");
+          if (speakOn) speak(SIGN_OFF);
         }
       };
       finishRef.current = finish;
-      // Pause timer: ~3s of quiet after the last words = the thought is done.
-      // Before the first words, a generous 12s to start talking.
-      const armSilence = (ms) => {
+      // Called when the greeting stops playing: throw away everything the mic
+      // picked up of it and listen again from scratch.
+      session.restart = () => {
+        if (session.sent) return;
+        session.wipe = true;
+        setInterim("");
+        armSilence(QUIET_CLOSE_MS);
+        try { rec.stop(); } catch { session.muted = false; }
+      };
+      // Ending the turn takes TWO things: the recognizer has been quiet for a
+      // beat, AND the microphone itself has gone silent. The timer alone used
+      // to cut people off mid-sentence, because the recognizer finalizes a
+      // phrase at every ordinary thinking pause.
+      const schedule = (ms) => {
         if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
-        silenceTimerRef.current = setTimeout(finish, ms);
+        silenceTimerRef.current = setTimeout(tick, ms);
+      };
+      function tick() {
+        const m = meterRef.current;
+        const need = session.needQuiet || 0;
+        if (m && need) {
+          const quietFor = Date.now() - m.lastVoiceAt;
+          // Still making sound — they're mid-thought. Keep listening, up to a
+          // ceiling so a noisy room can't hold the turn open forever.
+          if (quietFor < need && Date.now() - (session.waitStart || 0) < 10000) { schedule(200); return; }
+        }
+        finish();
+      }
+      // ms of quiet required before the turn ends.
+      const armSilence = (ms, needQuiet = 0) => {
+        session.needQuiet = needQuiet;
+        session.waitStart = Date.now();
+        schedule(ms);
       };
 
       rec.onresult = (e) => {
         let finalText = "", interimText = "";
+        // Still our own voice playing — hear nothing, keep the long timer.
+        if (session.muted) {
+          session.base = "";
+          setInterim("");
+          armSilence(QUIET_CLOSE_MS);
+          return;
+        }
         for (let i = 0; i < e.results.length; i++) {
           if (e.results[i].isFinal) finalText += e.results[i][0].transcript;
           else interimText += e.results[i][0].transcript;
@@ -606,11 +931,16 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
         session.final = finalText;
         session.interim = interimText;
         setInterim(heardText());
-        // 3.5s of quiet = the thought is done. (Was 7s — that read as the
-        // assistant "waiting too long to respond" after you stop talking.)
-        // Mid-thought pausers still have the ⏹ hint, and a cut-off send
-        // just becomes a follow-up question.
-        armSilence(3500);
+        // How long to wait before deciding the thought is done. The browser
+        // only FINALIZES a phrase once it hears you stop, so a finalized
+        // result with nothing still pending means we can send almost
+        // immediately — that flat 3.5s wait was most of the "why is it taking
+        // so long to answer me" delay. Words still being transcribed
+        // (interim) get a longer beat so mid-sentence pauses don't cut in.
+        // Finalized phrase with nothing pending: a short beat is enough — but
+        // only counted from when the mic actually falls silent. Words still
+        // being transcribed get a longer one.
+        armSilence(interimText.trim() ? 1400 : 900, interimText.trim() ? 1400 : 900);
       };
       rec.onerror = (e) => {
         const code = (e && e.error) || "";
@@ -624,7 +954,15 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
         setListening(false);
         setInterim("");
         if (code === "not-allowed" || code === "service-not-allowed") setMicNote(MIC_BLOCKED_NOTE);
-        else if (code === "audio-capture") setMicNote("No working microphone was found on this device.");
+        else if (code === "audio-capture") {
+          // Holding the stream for the level meter can starve the recognizer
+          // on some devices — give it the mic back and try once more.
+          if (meterRef.current && !METER_OFF) {
+            METER_OFF = true;
+            releaseMicStream();   // hand the device back before retrying
+            setTimeout(() => { if (openRef.current) startListening(); }, 250);
+          } else setMicNote("No working microphone was found on this device.");
+        }
         else {
           // Recognizer broke for a non-permission reason (e.g. its speech
           // service is unreachable in this browser). Hand off to the
@@ -635,8 +973,16 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
       };
       rec.onend = () => {
         if (session.sent) return;
-        // Self-ended mid-turn: bank the finalized words, restart, keep going.
-        session.base = (session.base + " " + session.final + " " + session.interim).replace(/\s+/g, " ").trim();
+        if (session.wipe) {
+          // Restart after the greeting: keep nothing, and un-mute — from here
+          // on the only voice the mic hears is the agent's.
+          session.wipe = false;
+          session.muted = false;
+          session.base = "";
+        } else {
+          // Self-ended mid-turn: bank the finalized words, restart, keep going.
+          session.base = (session.base + " " + session.final + " " + session.interim).replace(/\s+/g, " ").trim();
+        }
         session.final = "";
         session.interim = "";
         try { rec.start(); }
@@ -649,7 +995,7 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
       };
       rec.start();
       setListening(true);
-      armSilence(15000);
+      armSilence(QUIET_CLOSE_MS);
       // Absolute cap so a mic left open in a noisy room can't run forever.
       setTimeout(finish, 120000);
     } catch {
@@ -677,7 +1023,7 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
     setMicStarting(true);
     let stream;
     try {
-      stream = await getMicStream();
+      stream = await acquireMic();
     } catch (err) {
       setMicStarting(false);
       setMicNote(err && err.message === "mic-timeout"
@@ -694,8 +1040,7 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
       chunksRef.current = [];
       mr.ondataavailable = (e) => { if (e.data && e.data.size) chunksRef.current.push(e.data); };
       mr.onstop = async () => {
-        stream.getTracks().forEach(t => t.stop());
-        setRecording(false);
+        setRecording(false);   // stream stays open — re-asking re-prompts on iOS
         const blob = new Blob(chunksRef.current, { type: mr.mimeType || "audio/webm" });
         if (blob.size < 1500) { setMicNote("I didn't catch any audio — tap the mic, speak, then tap it again when you're done."); return; }
         setTranscribing(true);
@@ -723,7 +1068,7 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
       // Hard stop at 30s so a forgotten mic never records indefinitely.
       recTimerRef.current = setTimeout(stopRecording, 30000);
     } catch {
-      try { stream.getTracks().forEach(t => t.stop()); } catch {}
+      releaseMicStream();
       setMicNote("Voice input isn't available in this browser. You can still type, or dictate with the mic key on your keyboard.");
     }
   };
@@ -775,32 +1120,89 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
 
     let out = null;
     let fromServer = false;
+    let spokenLive = false;   // the streamed answer was already read aloud
+    // Reply aloud when the agent talked to us, or whenever voice replies are on.
+    const wantSpeech = voice || speakOn;
+    const history = msgsRef.current.slice(-8).map(m => ({ role: m.role, text: m.text }));
+    const body = JSON.stringify({
+      message: text,
+      history,
+      context: { screen: currentView || "", dealAddress: currentDealAddress || "", voice: !!voice },
+      snapshot: buildSnapshot(),
+    });
+    const headers = { Authorization: "Bearer " + token, "Content-Type": "application/json" };
+    // The server brain may do several lookups for a hard question, but the
+    // panel must never hang on "Thinking…" — after 60s we abort and the
+    // offline router answers what it can.
+    const abort = new AbortController();
+    const abortTimer = setTimeout(() => abort.abort(), 60000);
+
+    // ——— Streamed answer: speak each sentence as it lands ———
     try {
-      const history = msgsRef.current.slice(-8).map(m => ({ role: m.role, text: m.text }));
-      // The server brain may do several lookups for a hard question, but the
-      // panel must never hang on "Thinking…" — after 60s we abort and the
-      // offline router answers what it can.
-      const abort = new AbortController();
-      const abortTimer = setTimeout(() => abort.abort(), 60000);
-      const r = await fetch(API + "/assistant", {
-        method: "POST",
-        headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
-        signal: abort.signal,
-        body: JSON.stringify({
-          message: text,
-          history,
-          context: { screen: currentView || "", dealAddress: currentDealAddress || "", voice: !!voice },
-          snapshot: buildSnapshot(),
-        }),
-      }).finally(() => clearTimeout(abortTimer));
-      if (r.ok) {
-        const d = await r.json();
-        if (d && (d.reply || (d.cards && d.cards.length))) {
-          out = { reply: d.reply || "", speak: d.speak || d.reply || "", cards: Array.isArray(d.cards) ? d.cards : [], end_conversation: !!d.end_conversation };
-          fromServer = true;
-        }
+      const r = await fetch(API + "/assistant/stream", { method: "POST", headers, signal: abort.signal, body });
+      if (!r.ok || !r.body) throw new Error("no stream");
+      let acc = "";        // everything received
+      let spoken = 0;      // how much of it has been handed to the voice
+      if (wantSpeech) {
+        spokenLive = true;
+        ttsStart(() => { if (voice && convoRef.current && openRef.current) startListening(); });
       }
-    } catch {}
+      // Speak only COMPLETE sentences — the trailing fragment waits for the
+      // next chunk so the voice never stops mid-word. Address abbreviations
+      // ("123 Main St. is Friday") are NOT sentence ends; splitting there
+      // makes the voice pause in the middle of a thought.
+      const flush = (last) => {
+        if (!wantSpeech) return;
+        const tail = acc.slice(spoken);
+        if (!tail) return;
+        if (last) { spoken += tail.length; ttsSay(tail); return; }
+        const re = /[.!?…](?=[\s"')\]]|$)/g;
+        let m, cut = -1;
+        while ((m = re.exec(tail))) {
+          if (SENTENCE_ABBR.test(tail.slice(0, m.index + 1))) continue;
+          cut = m.index + 1;
+        }
+        if (cut < 0) return;
+        const chunk = tail.slice(0, cut);
+        if (!chunk.trim()) return;
+        spoken += chunk.length;
+        ttsSay(chunk);
+      };
+      const d = await readAnswerStream(r, (piece) => {
+        acc += piece;
+        setStreamText(acc);
+        flush(false);
+      });
+      if (d && (d.reply || (d.cards && d.cards.length))) {
+        // Speak whatever the last sentence-boundary left behind, then close
+        // the queue so the mic re-opens after the final word.
+        if (wantSpeech) {
+          if (d.reply && d.reply.length > acc.length) { acc = d.reply; setStreamText(acc); }
+          flush(true);
+          ttsEnd();
+        }
+        out = { reply: d.reply || acc || "", speak: d.speak || d.reply || "", cards: Array.isArray(d.cards) ? d.cards : [], end_conversation: !!d.end_conversation };
+        fromServer = true;
+      } else if (wantSpeech) { ttsEnd(); }
+    } catch {
+      if (spokenLive) { stopSpeaking(); ttsRef.current.seq += 1; ttsRef.current.onDone = null; spokenLive = false; }
+    }
+    setStreamText("");
+
+    // ——— Streaming unavailable (old build, proxy that buffers) → plain POST ———
+    if (!out) {
+      try {
+        const r = await fetch(API + "/assistant", { method: "POST", headers, signal: abort.signal, body });
+        if (r.ok) {
+          const d = await r.json();
+          if (d && (d.reply || (d.cards && d.cards.length))) {
+            out = { reply: d.reply || "", speak: d.speak || d.reply || "", cards: Array.isArray(d.cards) ? d.cards : [], end_conversation: !!d.end_conversation };
+            fromServer = true;
+          }
+        }
+      } catch {}
+    }
+    clearTimeout(abortTimer);
 
     // Server brain unreachable → offline router (with short-term memory so
     // follow-ups like "text her instead" / "which one?" resolve).
@@ -838,7 +1240,11 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
     const saidDone = /^(no+|nope|no,?\s?(thanks|thank you)|that'?s\s?(all|it)|nothing(\s?else)?|i'?m\s?(good|done|all\s?set)|all\s?set|we'?re\s?done|goodbye|bye)[.!\s]*$/i.test(text);
     const endConvo = !!out.end_conversation || (!fromServer && saidDone);
     if (endConvo) convoRef.current = false;
-    if ((voice || speakOn) && openRef.current) {
+    if (spokenLive) {
+      // Already read aloud while it streamed — the mic re-opens from the
+      // speech queue's own finish callback.
+      if (endConvo) { ttsRef.current.onDone = null; }
+    } else if (wantSpeech && openRef.current) {
       speak(out.speak, () => {
         if (voice && convoRef.current && openRef.current) startListening();
       });
@@ -871,6 +1277,13 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
                 <div style={{ color: "#fff", fontWeight: 800, fontSize: 15 }}>Assistant</div>
                 <div style={{ color: "rgba(255,255,255,0.65)", fontSize: 11 }}>Type or talk — I can dial, show, and explain · {BUILD_TAG}</div>
               </div>
+              {(SR || CAN_RECORD) && (
+                <button onClick={toggleAutoMic}
+                  title={autoMic ? "Mic opens automatically — tap to turn auto-listen off" : "Auto-listen OFF — tap to have the mic open by itself"}
+                  style={{ background: autoMic ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.25)", border: "none", borderRadius: 8, padding: "6px 9px", fontSize: 16, cursor: "pointer" }}>
+                  {autoMic ? "🎤" : "🤐"}
+                </button>
+              )}
               <button onClick={toggleSpeak} title={speakOn ? "Voice replies ON — tap to mute" : "Voice replies OFF — tap to unmute"}
                 style={{ background: "rgba(255,255,255,0.12)", border: "none", borderRadius: 8, padding: "6px 9px", fontSize: 16, cursor: "pointer" }}>
                 {speakOn ? "🔊" : "🔇"}
@@ -897,11 +1310,18 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
                   ))}
                 </div>
               ))}
-              {busy && <div style={{ fontSize: 13, color: "#6b7280", padding: "4px 2px" }}>Thinking…</div>}
+              {streamText && (
+                <div style={{ marginBottom: 12, display: "flex", flexDirection: "column", alignItems: "flex-start" }}>
+                  <div style={{ maxWidth: "88%", borderRadius: 14, padding: "9px 13px", fontSize: 14, lineHeight: 1.45, background: "#fff", color: "#111", border: "1px solid #E5E7EB" }}>
+                    {streamText}
+                  </div>
+                </div>
+              )}
+              {busy && !streamText && <div style={{ fontSize: 13, color: "#6b7280", padding: "4px 2px" }}>Thinking…</div>}
               {listening && (
                 <div style={{ background: "#FFF7ED", border: "1px solid #FED7AA", borderRadius: 10, padding: "10px 12px", marginTop: 4 }}>
                   <div style={{ fontSize: 13, color: RED, fontWeight: 700 }}>● Listening — take all the time you need.</div>
-                  <div style={{ fontSize: 12, color: "#9A3412", marginTop: 2 }}>Tap <b>⏹ to send</b> the moment you're done — otherwise I'll send after a long pause.</div>
+                  <div style={{ fontSize: 12, color: "#9A3412", marginTop: 2 }}>I'll answer as soon as you stop talking — or tap <b>⏹ to send</b> right away.</div>
                   {interim && <div style={{ fontSize: 12.5, color: "#374151", marginTop: 6, fontStyle: "italic" }}>“{interim}”</div>}
                 </div>
               )}
@@ -912,6 +1332,15 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
               )}
               {transcribing && <div style={{ fontSize: 13, color: "#6b7280", padding: "4px 2px" }}>Writing down what you said…</div>}
               {micStarting && <div style={{ fontSize: 13, color: "#6b7280", padding: "4px 2px" }}>Starting the microphone…</div>}
+              {iosTip && (
+                <div style={{ display: "flex", gap: 8, alignItems: "flex-start", background: "#F1F5F9", border: "1px solid #E2E8F0", borderRadius: 10, padding: "9px 11px", fontSize: 12, color: "#475569", lineHeight: 1.5, marginTop: 4 }}>
+                  <div style={{ flex: 1 }}>
+                    📱 iPhone asks for the microphone once each visit. To stop it asking: tap <b>AA</b> in the address bar → <b>Website Settings</b> → <b>Microphone</b> → <b>Allow</b>.
+                  </div>
+                  <button onClick={() => { setIosTip(false); localStorage.setItem("tp_assist_iostip", "off"); }}
+                    style={{ background: "none", border: "none", color: "#94A3B8", fontSize: 16, cursor: "pointer", padding: 0, lineHeight: 1 }}>×</button>
+                </div>
+              )}
               {micNote && (
                 <div style={{ background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: 10, padding: "10px 12px", fontSize: 12.5, color: "#7F1D1D", lineHeight: 1.5, marginTop: 4 }}>
                   🎤 {micNote}

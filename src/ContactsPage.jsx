@@ -253,7 +253,7 @@ function LogCallModal({ contact, token, onClose, onLogged }) {
   const [noFollowUp, setNoFollowUp] = useState(false);
   const [notes, setNotes] = useState("");
   const [newTemp, setNewTemp] = useState(contact.temperature || "warm");
-  const [newTier, setNewTier] = useState((contact.tier || "").toUpperCase());
+  const [newTier, setNewTier] = useState((contact.tier || "").toUpperCase()); // A+/A/B/C/D letter grade, editable right here (Carlos 8/19)
   const [nextReason, setNextReason] = useState("");
   const [saving, setSaving] = useState(false);
   const [history, setHistory] = useState(null); // null = loading, [] = none
@@ -316,8 +316,8 @@ function LogCallModal({ contact, token, onClose, onLogged }) {
     if (!outcome) return;
     setSaving(true);
     try {
-      // Temperature / tier update first if either changed. One PUT for both —
-      // the contact PUT is a partial update, so we only send what moved.
+      // Temperature / letter-grade update first if either changed. One PUT for
+      // both — the contact PUT is a partial update, so we only send what moved.
       const patch = {};
       if (newTemp !== contact.temperature) patch.temperature = newTemp;
       if (tierChanged) patch.tier = newTier || null;
