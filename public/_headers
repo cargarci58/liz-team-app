@@ -3,3 +3,15 @@
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
   Permissions-Policy: camera=(), microphone=(self), payment=()
+
+# index.html must never be served from cache: it is the file that names the
+# current JS bundle. Safari (iPhone especially) held onto it for hours, so a
+# deployed fix kept looking like it had not shipped — three times in one day.
+/index.html
+  Cache-Control: public, max-age=0, must-revalidate
+/
+  Cache-Control: public, max-age=0, must-revalidate
+
+# The bundles themselves are content-hashed, so they can be cached forever.
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable

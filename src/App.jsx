@@ -5997,17 +5997,27 @@ function InternalNotesPanel({ txId, compact = false, onSeeAll }) {
   };
 
   if (compact) {
-    if (loading || !notes.length) return null;
+    // ALWAYS renders — including while loading, on error, and with no notes.
+    // Returning null on those states meant "my note isn't showing" and "this
+    // panel isn't in your build" looked identical on screen, which cost days.
     return (
       <div style={{ background: "#fff", border: `1px solid ${COLORS.border}`, borderRadius: 12, padding: 16, marginBottom: 20 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-          <div style={{ fontWeight: 800, fontSize: 14, color: COLORS.navy, flex: 1 }}>🗒 Internal Notes ({notes.length})</div>
+          <div style={{ fontWeight: 800, fontSize: 14, color: COLORS.navy, flex: 1 }}>
+            🗒 Internal Notes {loading ? "…" : `(${notes.length})`}
+          </div>
+          <button onClick={load} title="Re-check for notes"
+            style={{ background: "none", border: "none", color: COLORS.muted, fontSize: 13, cursor: "pointer", padding: 0 }}>⟳</button>
           {onSeeAll && (
             <button onClick={onSeeAll} style={{ background: "none", border: "none", color: COLORS.navy, fontWeight: 700, fontSize: 12, textDecoration: "underline", cursor: "pointer", padding: 0 }}>
               See all / add one
             </button>
           )}
         </div>
+        {!loading && error && <div style={{ fontSize: 12.5, color: "#B91C1C", paddingTop: 6 }}>Couldn't load notes: {error}</div>}
+        {!loading && !error && notes.length === 0 && (
+          <div style={{ fontSize: 12.5, color: COLORS.muted, paddingTop: 6 }}>No notes on this deal yet. Ask the assistant to add one, or use “See all / add one”.</div>
+        )}
         {notes.slice(-3).reverse().map(m => (
           <div key={m.id} style={{ borderTop: `1px solid ${COLORS.border}`, paddingTop: 8, marginTop: 8 }}>
             <div style={{ fontSize: 11, color: COLORS.muted, marginBottom: 2 }}>
