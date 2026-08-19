@@ -34,7 +34,7 @@ const RED = "#C0392B";
 
 // Bumped on every assistant change — shown in the panel header so "which
 // version am I actually running?" is answerable at a glance (cache issues).
-const BUILD_TAG = "v8";
+const BUILD_TAG = "v9";
 
 const GREETING = "How can I help you today?";
 const CHIPS = [
@@ -61,6 +61,38 @@ const SR = typeof window !== "undefined" ? (window.SpeechRecognition || window.w
 const CAN_RECORD = typeof window !== "undefined" && typeof window.MediaRecorder !== "undefined" &&
   !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
 
+// Reads the streaming answer (POST /assistant/stream, server-sent events) and
+// hands each piece of text over the moment it arrives, so the panel can start
+// speaking before the full answer — cards and all — finishes generating.
+async function readAnswerStream(res, onDelta) {
+  const reader = res.body.getReader();
+  const dec = new TextDecoder();
+  let buf = "", answer = null, err = null;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buf += dec.decode(value, { stream: true });
+    let cut;
+    while ((cut = buf.indexOf("\n\n")) !== -1) {
+      const block = buf.slice(0, cut);
+      buf = buf.slice(cut + 2);
+      const ev = /^event: (.*)$/m.exec(block);
+      const dl = /^data: (.*)$/m.exec(block);
+      if (!ev || !dl) continue;
+      let data;
+      try { data = JSON.parse(dl[1]); } catch { continue; }
+      if (ev[1] === "delta") { if (data.text) onDelta(data.text); }
+      else if (ev[1] === "done") answer = data;
+      else if (ev[1] === "error") err = data.error || "error";
+    }
+  }
+  if (!answer) throw new Error(err || "stream ended with no answer");
+  return answer;
+}
+
+// Trailing abbreviations that end in a period but not a sentence.
+const SENTENCE_ABBR = /(?:^|[\s(])(?:st|ave|rd|dr|blvd|ct|ln|pkwy|hwy|apt|ste|mr|mrs|ms|jr|sr|no|vs|approx|est|e\.g|i\.e)\.$/i;
+
 function blobToBase64(blob) {
   return new Promise((resolve, reject) => {
     const fr = new FileReader();
@@ -70,7 +102,10 @@ function blobToBase64(blob) {
   });
 }
 
-function speak(text, onDone) {
+// `queue: true` adds this sentence BEHIND whatever is already playing instead
+// of cutting it off — that's what lets a streamed answer start out loud on
+// sentence one while sentence two is still being written.
+function speak(text, onDone, { queue = false } = {}) {
   // Deferred: speechSynthesis.speak()/cancel() on macOS Chrome can hang the
   // tab for many seconds (long-standing Chromium bug, worst with the local
   // "Enhanced/Premium/Samantha" voices). Running it after a tick means the
@@ -79,7 +114,7 @@ function speak(text, onDone) {
   setTimeout(() => {
     try {
       if (!window.speechSynthesis || !text) { if (onDone) onDone(); return; }
-      if (window.speechSynthesis.speaking || window.speechSynthesis.pending) window.speechSynthesis.cancel();
+      if (!queue && (window.speechSynthesis.speaking || window.speechSynthesis.pending)) window.speechSynthesis.cancel();
       const u = new SpeechSynthesisUtterance(text);
       u.rate = 1.04;
       // Prefer Google's en-US voice (Chrome, streamed, doesn't trigger the
@@ -91,7 +126,17 @@ function speak(text, onDone) {
         voices.find(v => /en[-_]US/i.test(v.lang) && v.default) ||
         voices.find(v => /en[-_]US/i.test(v.lang) && !/enhanced|premium|natural|neural|samantha/i.test(v.name));
       if (preferred) u.voice = preferred;
-      if (onDone) { u.onend = onDone; u.onerror = onDone; }
+      if (onDone) {
+        // onend does NOT always fire (Chrome drops it when the tab is
+        // backgrounded, or when the engine stalls). Everything downstream —
+        // re-opening the mic for the next question — hangs on it, so back it
+        // with a timer sized to the sentence and take whichever lands first.
+        let done = false;
+        const finish = () => { if (done) return; done = true; onDone(); };
+        u.onend = finish;
+        u.onerror = finish;
+        setTimeout(finish, Math.min(30000, 1200 + text.length * 75));
+      }
       window.speechSynthesis.speak(u);
     } catch { if (onDone) onDone(); }
   }, 0);
@@ -406,6 +451,11 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
   const [recording, setRecording] = useState(false);     // MediaRecorder fallback active
   const [transcribing, setTranscribing] = useState(false);
   const [micStarting, setMicStarting] = useState(false);  // instant tap feedback while the mic opens
+  const [streamText, setStreamText] = useState("");      // answer text as it streams in
+  // Sentence queue for the streamed answer: each finished sentence is spoken
+  // while the next is still arriving, and `onDone` (re-open the mic) fires
+  // only once the LAST one has finished playing.
+  const ttsRef = useRef({ seq: 0, pending: 0, closed: true, onDone: null });
   const silenceTimerRef = useRef(null);   // auto-send after a real pause
   const finishRef = useRef(null);         // ends the current listen session and sends
   const listenRef = useRef(null);         // current listen session { final, interim, sent }
@@ -441,7 +491,7 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
 
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-  }, [msgs, busy]);
+  }, [msgs, busy, streamText]);
 
   // Chrome loads speechSynthesis voices async — warm the list.
   useEffect(() => { try { window.speechSynthesis && window.speechSynthesis.getVoices(); } catch {} }, []);
@@ -464,6 +514,7 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
     localStorage.setItem("tp_assist_automic", next ? "on" : "off");
     if (!next) {
       convoRef.current = false;
+      ttsRef.current.onDone = null;   // don't let a finishing reply re-open it
       cancelListening();
       stopRecording();
     } else if (openRef.current && !busy) {
@@ -480,6 +531,29 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
     startListening();
   };
 
+  const ttsStart = (onDone) => {
+    stopSpeaking();
+    const t = ttsRef.current;
+    t.seq += 1; t.pending = 0; t.closed = false; t.onDone = onDone || null;
+  };
+  const ttsSay = (text) => {
+    const t = ttsRef.current;
+    const seq = t.seq;
+    if (!text || !text.trim()) return;
+    t.pending += 1;
+    speak(text, () => {
+      const cur = ttsRef.current;
+      if (cur.seq !== seq) return;         // a newer turn took over
+      cur.pending -= 1;
+      if (cur.closed && cur.pending <= 0 && cur.onDone) { const f = cur.onDone; cur.onDone = null; f(); }
+    }, { queue: true });
+  };
+  const ttsEnd = () => {
+    const t = ttsRef.current;
+    t.closed = true;
+    if (t.pending <= 0 && t.onDone) { const f = t.onDone; t.onDone = null; f(); }
+  };
+
   const refreshTasks = () => {
     fetch(API + "/dashboard/tasks", { headers: { Authorization: "Bearer " + token } })
       .then(r => (r.ok ? r.json() : null))
@@ -494,15 +568,19 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
     if (msgs.length === 0) {
       setMsgs([{ role: "assistant", text: GREETING, cards: [] }]);
     }
-    // Mic opens by itself — but AFTER the greeting finishes playing, or the
-    // recognizer hears the app's own voice through the speakers.
-    if (speakOn) speak(GREETING, armMic);
-    else armMic();
+    // Auto-listen opens the mic in THIS tap — no spoken greeting first.
+    // Waiting for "How can I help you today?" to play put a ~2s gap between
+    // the tap and being able to talk, and the greeting is on screen anyway.
+    if (autoMicRef.current && SR) { armMic(); return; }
+    if (speakOn) speak(GREETING);
   };
 
   const closePanel = () => {
     setOpen(false);
+    openRef.current = false;
     convoRef.current = false;
+    ttsRef.current.seq += 1;          // orphan the streamed speech queue
+    ttsRef.current.onDone = null;
     stopSpeaking();
     cancelListening();
     stopRecording();
@@ -647,7 +725,7 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
         // immediately — that flat 3.5s wait was most of the "why is it taking
         // so long to answer me" delay. Words still being transcribed
         // (interim) get a longer beat so mid-sentence pauses don't cut in.
-        armSilence(interimText.trim() ? 1800 : 800);
+        armSilence(interimText.trim() ? 1500 : 600);
       };
       rec.onerror = (e) => {
         const code = (e && e.error) || "";
@@ -812,32 +890,89 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
 
     let out = null;
     let fromServer = false;
+    let spokenLive = false;   // the streamed answer was already read aloud
+    // Reply aloud when the agent talked to us, or whenever voice replies are on.
+    const wantSpeech = voice || speakOn;
+    const history = msgsRef.current.slice(-8).map(m => ({ role: m.role, text: m.text }));
+    const body = JSON.stringify({
+      message: text,
+      history,
+      context: { screen: currentView || "", dealAddress: currentDealAddress || "", voice: !!voice },
+      snapshot: buildSnapshot(),
+    });
+    const headers = { Authorization: "Bearer " + token, "Content-Type": "application/json" };
+    // The server brain may do several lookups for a hard question, but the
+    // panel must never hang on "Thinking…" — after 60s we abort and the
+    // offline router answers what it can.
+    const abort = new AbortController();
+    const abortTimer = setTimeout(() => abort.abort(), 60000);
+
+    // ——— Streamed answer: speak each sentence as it lands ———
     try {
-      const history = msgsRef.current.slice(-8).map(m => ({ role: m.role, text: m.text }));
-      // The server brain may do several lookups for a hard question, but the
-      // panel must never hang on "Thinking…" — after 60s we abort and the
-      // offline router answers what it can.
-      const abort = new AbortController();
-      const abortTimer = setTimeout(() => abort.abort(), 60000);
-      const r = await fetch(API + "/assistant", {
-        method: "POST",
-        headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
-        signal: abort.signal,
-        body: JSON.stringify({
-          message: text,
-          history,
-          context: { screen: currentView || "", dealAddress: currentDealAddress || "", voice: !!voice },
-          snapshot: buildSnapshot(),
-        }),
-      }).finally(() => clearTimeout(abortTimer));
-      if (r.ok) {
-        const d = await r.json();
-        if (d && (d.reply || (d.cards && d.cards.length))) {
-          out = { reply: d.reply || "", speak: d.speak || d.reply || "", cards: Array.isArray(d.cards) ? d.cards : [], end_conversation: !!d.end_conversation };
-          fromServer = true;
-        }
+      const r = await fetch(API + "/assistant/stream", { method: "POST", headers, signal: abort.signal, body });
+      if (!r.ok || !r.body) throw new Error("no stream");
+      let acc = "";        // everything received
+      let spoken = 0;      // how much of it has been handed to the voice
+      if (wantSpeech) {
+        spokenLive = true;
+        ttsStart(() => { if (voice && convoRef.current && openRef.current) startListening(); });
       }
-    } catch {}
+      // Speak only COMPLETE sentences — the trailing fragment waits for the
+      // next chunk so the voice never stops mid-word. Address abbreviations
+      // ("123 Main St. is Friday") are NOT sentence ends; splitting there
+      // makes the voice pause in the middle of a thought.
+      const flush = (last) => {
+        if (!wantSpeech) return;
+        const tail = acc.slice(spoken);
+        if (!tail) return;
+        if (last) { spoken += tail.length; ttsSay(tail); return; }
+        const re = /[.!?…](?=[\s"')\]]|$)/g;
+        let m, cut = -1;
+        while ((m = re.exec(tail))) {
+          if (SENTENCE_ABBR.test(tail.slice(0, m.index + 1))) continue;
+          cut = m.index + 1;
+        }
+        if (cut < 0) return;
+        const chunk = tail.slice(0, cut);
+        if (!chunk.trim()) return;
+        spoken += chunk.length;
+        ttsSay(chunk);
+      };
+      const d = await readAnswerStream(r, (piece) => {
+        acc += piece;
+        setStreamText(acc);
+        flush(false);
+      });
+      if (d && (d.reply || (d.cards && d.cards.length))) {
+        // Speak whatever the last sentence-boundary left behind, then close
+        // the queue so the mic re-opens after the final word.
+        if (wantSpeech) {
+          if (d.reply && d.reply.length > acc.length) { acc = d.reply; setStreamText(acc); }
+          flush(true);
+          ttsEnd();
+        }
+        out = { reply: d.reply || acc || "", speak: d.speak || d.reply || "", cards: Array.isArray(d.cards) ? d.cards : [], end_conversation: !!d.end_conversation };
+        fromServer = true;
+      } else if (wantSpeech) { ttsEnd(); }
+    } catch {
+      if (spokenLive) { stopSpeaking(); ttsRef.current.seq += 1; ttsRef.current.onDone = null; spokenLive = false; }
+    }
+    setStreamText("");
+
+    // ——— Streaming unavailable (old build, proxy that buffers) → plain POST ———
+    if (!out) {
+      try {
+        const r = await fetch(API + "/assistant", { method: "POST", headers, signal: abort.signal, body });
+        if (r.ok) {
+          const d = await r.json();
+          if (d && (d.reply || (d.cards && d.cards.length))) {
+            out = { reply: d.reply || "", speak: d.speak || d.reply || "", cards: Array.isArray(d.cards) ? d.cards : [], end_conversation: !!d.end_conversation };
+            fromServer = true;
+          }
+        }
+      } catch {}
+    }
+    clearTimeout(abortTimer);
 
     // Server brain unreachable → offline router (with short-term memory so
     // follow-ups like "text her instead" / "which one?" resolve).
@@ -875,7 +1010,11 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
     const saidDone = /^(no+|nope|no,?\s?(thanks|thank you)|that'?s\s?(all|it)|nothing(\s?else)?|i'?m\s?(good|done|all\s?set)|all\s?set|we'?re\s?done|goodbye|bye)[.!\s]*$/i.test(text);
     const endConvo = !!out.end_conversation || (!fromServer && saidDone);
     if (endConvo) convoRef.current = false;
-    if ((voice || speakOn) && openRef.current) {
+    if (spokenLive) {
+      // Already read aloud while it streamed — the mic re-opens from the
+      // speech queue's own finish callback.
+      if (endConvo) { ttsRef.current.onDone = null; }
+    } else if (wantSpeech && openRef.current) {
       speak(out.speak, () => {
         if (voice && convoRef.current && openRef.current) startListening();
       });
@@ -941,7 +1080,14 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
                   ))}
                 </div>
               ))}
-              {busy && <div style={{ fontSize: 13, color: "#6b7280", padding: "4px 2px" }}>Thinking…</div>}
+              {streamText && (
+                <div style={{ marginBottom: 12, display: "flex", flexDirection: "column", alignItems: "flex-start" }}>
+                  <div style={{ maxWidth: "88%", borderRadius: 14, padding: "9px 13px", fontSize: 14, lineHeight: 1.45, background: "#fff", color: "#111", border: "1px solid #E5E7EB" }}>
+                    {streamText}
+                  </div>
+                </div>
+              )}
+              {busy && !streamText && <div style={{ fontSize: 13, color: "#6b7280", padding: "4px 2px" }}>Thinking…</div>}
               {listening && (
                 <div style={{ background: "#FFF7ED", border: "1px solid #FED7AA", borderRadius: 10, padding: "10px 12px", marginTop: 4 }}>
                   <div style={{ fontSize: 13, color: RED, fontWeight: 700 }}>● Listening — take all the time you need.</div>
