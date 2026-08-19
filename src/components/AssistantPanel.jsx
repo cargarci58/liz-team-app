@@ -34,7 +34,7 @@ const RED = "#C0392B";
 
 // Bumped on every assistant change — shown in the panel header so "which
 // version am I actually running?" is answerable at a glance (cache issues).
-const BUILD_TAG = "v14";
+const BUILD_TAG = "v15";
 
 const GREETING = "How can I help you today?";
 // Set if holding the mic stream ever breaks the recognizer on this device
@@ -42,6 +42,9 @@ const GREETING = "How can I help you today?";
 let METER_OFF = false;
 // Nothing heard for this long and the mic closes itself, out loud.
 const QUIET_CLOSE_MS = 8000;
+const IS_IOS = typeof navigator !== "undefined" &&
+  (/iPhone|iPad|iPod/i.test(navigator.userAgent) ||
+   (/Mac/i.test(navigator.userAgent) && navigator.maxTouchPoints > 1));
 const SIGN_OFF = "I didn't hear anything, so I'm closing the mic. Tap it whenever you need me.";
 const CHIPS = [
   { label: "📞 Dial someone", send: "" , fill: "call " },
@@ -533,6 +536,9 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
   const [transcribing, setTranscribing] = useState(false);
   const [micStarting, setMicStarting] = useState(false);  // instant tap feedback while the mic opens
   const [streamText, setStreamText] = useState("");      // answer text as it streams in
+  // iOS asks for the mic once per visit no matter what the page does — the
+  // only way to stop it is Safari's own per-site setting, so say so once.
+  const [iosTip, setIosTip] = useState(() => IS_IOS && localStorage.getItem("tp_assist_iostip") !== "off");
   // Sentence queue for the streamed answer: each finished sentence is spoken
   // while the next is still arriving, and `onDone` (re-open the mic) fires
   // only once the LAST one has finished playing.
@@ -604,6 +610,7 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
       ttsRef.current.onDone = null;   // don't let a finishing reply re-open it
       cancelListening();
       stopRecording();
+      releaseMicStream();
     } else if (openRef.current && !busy) {
       armMic();
     }
@@ -697,6 +704,7 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
     stopSpeaking();
     cancelListening();
     stopRecording();
+    releaseMicStream();   // panel closed = mic goes cold, recording dot off
   };
 
   // ——— Voice input ———
@@ -755,13 +763,32 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
     return () => clearTimeout(t);
   }, [micStarting]);
 
-  // Everything the listen session holds onto: the level meter and the raw mic
-  // stream it reads from. Always released together.
+  // Between turns we stop the LEVEL METER but keep the microphone stream open.
+  // Asking for the mic again is what makes iOS Safari re-prompt ("would like
+  // to access the microphone") — once per question is unusable, so one grant
+  // has to cover the whole conversation.
   const releaseMic = () => {
     try { meterRef.current && meterRef.current.stop(); } catch {}
     meterRef.current = null;
+  };
+
+  // Full release — the mic actually goes cold (and the phone's recording dot
+  // goes out). Only when the panel closes or voice is switched off.
+  const releaseMicStream = () => {
+    releaseMic();
     try { micStreamRef.current && micStreamRef.current.getTracks().forEach(t => t.stop()); } catch {}
     micStreamRef.current = null;
+  };
+
+  // The one grant, reused. Re-asks only if the tracks died (tab backgrounded,
+  // device switched, another app took the mic).
+  const acquireMic = async () => {
+    const held = micStreamRef.current;
+    if (held && held.getTracks().some(t => t.readyState === "live")) return held;
+    if (held) releaseMicStream();
+    const stream = await getMicStream();
+    micStreamRef.current = stream;
+    return stream;
   };
 
   const startListening = async () => {
@@ -783,13 +810,12 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
     releaseMic();
     if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
       try {
-        // Held open (not stopped) for the whole turn: the level meter reads
-        // this stream to tell "still talking" from "finished talking". The
-        // recognizer captures separately and is unaffected.
-        const stream = await getMicStream();
-        micStreamRef.current = stream;
-        if (!METER_OFF) meterRef.current = startVoiceMeter(stream);
-        if (!meterRef.current) { stream.getTracks().forEach(t => t.stop()); micStreamRef.current = null; }
+        // Kept open across the whole conversation (see acquireMic): the level
+        // meter reads this stream to tell "still talking" from "finished
+        // talking". The recognizer captures separately and is unaffected.
+        const stream = await acquireMic();
+        if (METER_OFF) releaseMicStream();   // device refused sharing — hand it straight back
+        else meterRef.current = startVoiceMeter(stream);
       } catch (err) {
         setMicStarting(false);
         setMicNote(err && err.message === "mic-timeout"
@@ -840,9 +866,8 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
           try { rec.start(); } catch {}
           armSilence(QUIET_CLOSE_MS);
           if (!meterRef.current && !METER_OFF && navigator.mediaDevices) {
-            getMicStream().then(st => {
-              if (session.sent) { st.getTracks().forEach(t => t.stop()); return; }
-              micStreamRef.current = st;
+            acquireMic().then(st => {
+              if (session.sent) return;
               meterRef.current = startVoiceMeter(st);
             }).catch(() => {});
           }
@@ -934,7 +959,7 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
           // on some devices — give it the mic back and try once more.
           if (meterRef.current && !METER_OFF) {
             METER_OFF = true;
-            releaseMic();
+            releaseMicStream();   // hand the device back before retrying
             setTimeout(() => { if (openRef.current) startListening(); }, 250);
           } else setMicNote("No working microphone was found on this device.");
         }
@@ -998,7 +1023,7 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
     setMicStarting(true);
     let stream;
     try {
-      stream = await getMicStream();
+      stream = await acquireMic();
     } catch (err) {
       setMicStarting(false);
       setMicNote(err && err.message === "mic-timeout"
@@ -1015,8 +1040,7 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
       chunksRef.current = [];
       mr.ondataavailable = (e) => { if (e.data && e.data.size) chunksRef.current.push(e.data); };
       mr.onstop = async () => {
-        stream.getTracks().forEach(t => t.stop());
-        setRecording(false);
+        setRecording(false);   // stream stays open — re-asking re-prompts on iOS
         const blob = new Blob(chunksRef.current, { type: mr.mimeType || "audio/webm" });
         if (blob.size < 1500) { setMicNote("I didn't catch any audio — tap the mic, speak, then tap it again when you're done."); return; }
         setTranscribing(true);
@@ -1044,7 +1068,7 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
       // Hard stop at 30s so a forgotten mic never records indefinitely.
       recTimerRef.current = setTimeout(stopRecording, 30000);
     } catch {
-      try { stream.getTracks().forEach(t => t.stop()); } catch {}
+      releaseMicStream();
       setMicNote("Voice input isn't available in this browser. You can still type, or dictate with the mic key on your keyboard.");
     }
   };
@@ -1308,6 +1332,15 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
               )}
               {transcribing && <div style={{ fontSize: 13, color: "#6b7280", padding: "4px 2px" }}>Writing down what you said…</div>}
               {micStarting && <div style={{ fontSize: 13, color: "#6b7280", padding: "4px 2px" }}>Starting the microphone…</div>}
+              {iosTip && (
+                <div style={{ display: "flex", gap: 8, alignItems: "flex-start", background: "#F1F5F9", border: "1px solid #E2E8F0", borderRadius: 10, padding: "9px 11px", fontSize: 12, color: "#475569", lineHeight: 1.5, marginTop: 4 }}>
+                  <div style={{ flex: 1 }}>
+                    📱 iPhone asks for the microphone once each visit. To stop it asking: tap <b>AA</b> in the address bar → <b>Website Settings</b> → <b>Microphone</b> → <b>Allow</b>.
+                  </div>
+                  <button onClick={() => { setIosTip(false); localStorage.setItem("tp_assist_iostip", "off"); }}
+                    style={{ background: "none", border: "none", color: "#94A3B8", fontSize: 16, cursor: "pointer", padding: 0, lineHeight: 1 }}>×</button>
+                </div>
+              )}
               {micNote && (
                 <div style={{ background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: 10, padding: "10px 12px", fontSize: 12.5, color: "#7F1D1D", lineHeight: 1.5, marginTop: 4 }}>
                   🎤 {micNote}
