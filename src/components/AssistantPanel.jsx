@@ -34,7 +34,7 @@ const RED = "#C0392B";
 
 // Bumped on every assistant change — shown in the panel header so "which
 // version am I actually running?" is answerable at a glance (cache issues).
-const BUILD_TAG = "v15";
+const BUILD_TAG = "v16";
 
 const GREETING = "How can I help you today?";
 // Set if holding the mic stream ever breaks the recognizer on this device
@@ -194,6 +194,22 @@ function speak(text, onDone, { queue = false } = {}) {
       window.speechSynthesis.speak(u);
     } catch { if (onDone) onDone(); }
   }, 0);
+}
+
+// Safari (iOS especially) ignores speechSynthesis.speak() unless the page has
+// already spoken once from a real tap. Burn that one inside the click handler
+// with a silent utterance, so later speech — the greeting, the answers — is
+// allowed to play.
+let speechUnlocked = false;
+function unlockSpeech() {
+  if (speechUnlocked) return;
+  try {
+    if (!window.speechSynthesis) return;
+    const u = new SpeechSynthesisUtterance(" ");
+    u.volume = 0;
+    window.speechSynthesis.speak(u);
+    speechUnlocked = true;
+  } catch {}
 }
 
 function stopSpeaking() {
@@ -620,9 +636,9 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
   // pause and sends by itself, while the record-and-transcribe fallback runs
   // until it's tapped — auto-starting THAT would leave a hot mic on a panel
   // nobody is talking to. Fallback browsers tap 🎤 as before.
-  const armMic = () => {
+  const armMic = (opts) => {
     if (!autoMicRef.current || !openRef.current || !SR) return;
-    startListening();
+    startListening(opts);
   };
 
   const ttsStart = (onDone) => {
@@ -680,15 +696,22 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
     // starts, so greeting-then-mic would cut itself off), then greet. What the
     // open mic picks up from our own speaker is thrown away, see speakingRef.
     if (autoMicRef.current && SR) {
-      if (speakOn) speakingRef.current = true;   // set BEFORE the mic opens
-      armMic();
-      if (speakOn) {
-        speak(GREETING, () => {
-          speakingRef.current = false;
+      // iOS only lets a page speak if speech was started from a tap, and the
+      // greeting now plays from an async callback — so claim that right here,
+      // inside the click, with a silent utterance.
+      unlockSpeech();
+      armMic({
+        onReady: () => {
+          if (!speakOn || !openRef.current) return;
           const live = listenRef.current;
-          if (live && !live.sent && live.restart) live.restart();
-        });
-      }
+          speakingRef.current = true;
+          if (live) live.muted = true;      // deaf while we greet
+          speak(GREETING, () => {
+            speakingRef.current = false;
+            if (live && !live.sent && live.restart) live.restart();
+          });
+        },
+      });
       return;
     }
     if (speakOn) speak(GREETING);
@@ -791,7 +814,7 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
     return stream;
   };
 
-  const startListening = async () => {
+  const startListening = async ({ onReady } = {}) => {
     if (!SR) return;
     // Re-entrancy guard: a second tap while the mic is still opening used to
     // start a SECOND recognizer (Chrome then throws, and the two sessions
@@ -995,6 +1018,10 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
       };
       rec.start();
       setListening(true);
+      // The mic is granted and live — safe to talk now. (Speaking BEFORE this
+      // point means the permission dialog interrupts our own voice: iOS pauses
+      // the page while it is up and the greeting is lost mid-word.)
+      if (onReady) onReady();
       armSilence(QUIET_CLOSE_MS);
       // Absolute cap so a mic left open in a noisy room can't run forever.
       setTimeout(finish, 120000);
@@ -1335,7 +1362,7 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
               {iosTip && (
                 <div style={{ display: "flex", gap: 8, alignItems: "flex-start", background: "#F1F5F9", border: "1px solid #E2E8F0", borderRadius: 10, padding: "9px 11px", fontSize: 12, color: "#475569", lineHeight: 1.5, marginTop: 4 }}>
                   <div style={{ flex: 1 }}>
-                    📱 iPhone asks for the microphone once each visit. To stop it asking: tap <b>AA</b> in the address bar → <b>Website Settings</b> → <b>Microphone</b> → <b>Allow</b>.
+                    📱 iPhone asks for the microphone once each visit. To stop it asking, open the iPhone <b>Settings</b> app → <b>Safari</b> → scroll down to <b>Microphone</b> → <b>Allow</b>. (Newer iPhones: Settings → Apps → Safari.)
                   </div>
                   <button onClick={() => { setIosTip(false); localStorage.setItem("tp_assist_iostip", "off"); }}
                     style={{ background: "none", border: "none", color: "#94A3B8", fontSize: 16, cursor: "pointer", padding: 0, lineHeight: 1 }}>×</button>
@@ -1364,6 +1391,7 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
               {(SR || CAN_RECORD) && (
                 <button
                   onClick={() => {
+                    unlockSpeech();   // claim Safari's speak-from-a-tap right
                     if (listening) stopListening();
                     else if (recording) stopRecording();
                     else if (SR) startListening();
@@ -1381,7 +1409,7 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
                 placeholder='Try “dial Maria” or “what’s due today?”'
                 style={{ flex: 1, padding: "11px 14px", borderRadius: 22, border: "1px solid #D1D5DB", fontSize: 14, fontFamily: "inherit", outline: "none", background: "#fff" }}
               />
-              <button onClick={() => send(input)} disabled={!input.trim() || busy}
+              <button onClick={() => { unlockSpeech(); send(input); }} disabled={!input.trim() || busy}
                 style={{ width: 44, height: 44, borderRadius: "50%", flexShrink: 0, background: input.trim() && !busy ? "#1E8449" : "#D1D5DB", color: "#fff", border: "none", fontSize: 17, cursor: input.trim() && !busy ? "pointer" : "default" }}>
                 ➤
               </button>
