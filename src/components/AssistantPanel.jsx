@@ -34,9 +34,12 @@ const RED = "#C0392B";
 
 // Bumped on every assistant change — shown in the panel header so "which
 // version am I actually running?" is answerable at a glance (cache issues).
-const BUILD_TAG = "v12";
+const BUILD_TAG = "v13";
 
 const GREETING = "How can I help you today?";
+// Set if holding the mic stream ever breaks the recognizer on this device
+// (some Android builds refuse a second capture) — from then on, timers only.
+let METER_OFF = false;
 // Nothing heard for this long and the mic closes itself, out loud.
 const QUIET_CLOSE_MS = 8000;
 const SIGN_OFF = "I didn't hear anything, so I'm closing the mic. Tap it whenever you need me.";
@@ -95,6 +98,43 @@ async function readAnswerStream(res, onDelta) {
 
 // Trailing abbreviations that end in a period but not a sentence.
 const SENTENCE_ABBR = /(?:^|[\s(])(?:st|ave|rd|dr|blvd|ct|ln|pkwy|hwy|apt|ste|mr|mrs|ms|jr|sr|no|vs|approx|est|e\.g|i\.e)\.$/i;
+
+// ————— Voice activity meter ————————————————————————————————————
+// The recognizer "finalizes" a phrase at ordinary mid-sentence pauses, so a
+// timer started from its output cuts people off while they're still thinking.
+// This watches the microphone's actual level instead, so the turn can only end
+// after the room has genuinely gone quiet. Falls back to timers alone if
+// WebAudio isn't available.
+function startVoiceMeter(stream) {
+  try {
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    if (!Ctx || !stream) return null;
+    const ctx = new Ctx();
+    const src = ctx.createMediaStreamSource(stream);
+    const an = ctx.createAnalyser();
+    an.fftSize = 1024;
+    an.smoothingTimeConstant = 0.2;
+    src.connect(an);
+    const buf = new Float32Array(an.fftSize);
+    const meter = { lastVoiceAt: Date.now(), floor: 0.01, stop: null };
+    const id = setInterval(() => {
+      an.getFloatTimeDomainData(buf);
+      let sum = 0;
+      for (let i = 0; i < buf.length; i++) sum += buf[i] * buf[i];
+      const rms = Math.sqrt(sum / buf.length);
+      // Noise floor tracks the room: drops instantly to a new quiet level,
+      // creeps up slowly, so a humming office doesn't read as speech.
+      meter.floor = rms < meter.floor ? rms : meter.floor * 0.995 + rms * 0.005;
+      if (rms > Math.max(0.011, meter.floor * 2.5)) meter.lastVoiceAt = Date.now();
+    }, 80);
+    meter.stop = () => {
+      clearInterval(id);
+      try { src.disconnect(); } catch {}
+      try { ctx.close(); } catch {}
+    };
+    return meter;
+  } catch { return null; }
+}
 
 function blobToBase64(blob) {
   return new Promise((resolve, reject) => {
@@ -493,6 +533,8 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
   // greeting). Anything the mic hears in that window is our speaker, not the
   // agent, so it gets discarded.
   const speakingRef = useRef(false);
+  const meterRef = useRef(null);        // live microphone level
+  const micStreamRef = useRef(null);    // the stream the meter reads
   const silenceTimerRef = useRef(null);   // auto-send after a real pause
   const finishRef = useRef(null);         // ends the current listen session and sends
   const listenRef = useRef(null);         // current listen session { final, interim, sent }
@@ -648,6 +690,7 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
 
   // Closing the panel mid-listen DISCARDS instead of sending.
   const cancelListening = () => {
+    releaseMic();
     if (listenRef.current) listenRef.current.sent = true;
     if (silenceTimerRef.current) { clearTimeout(silenceTimerRef.current); silenceTimerRef.current = null; }
     try { recRef.current && recRef.current.stop(); } catch {}
@@ -691,6 +734,15 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
     return () => clearTimeout(t);
   }, [micStarting]);
 
+  // Everything the listen session holds onto: the level meter and the raw mic
+  // stream it reads from. Always released together.
+  const releaseMic = () => {
+    try { meterRef.current && meterRef.current.stop(); } catch {}
+    meterRef.current = null;
+    try { micStreamRef.current && micStreamRef.current.getTracks().forEach(t => t.stop()); } catch {}
+    micStreamRef.current = null;
+  };
+
   const startListening = async () => {
     if (!SR) return;
     // Re-entrancy guard: a second tap while the mic is still opening used to
@@ -707,10 +759,16 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
     // browser's permission prompt to appear now, and lets us explain when
     // it's blocked — the recognizer alone fails silently on many phones
     // (the original "I click the mic and nothing happens" bug).
+    releaseMic();
     if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
       try {
+        // Held open (not stopped) for the whole turn: the level meter reads
+        // this stream to tell "still talking" from "finished talking". The
+        // recognizer captures separately and is unaffected.
         const stream = await getMicStream();
-        stream.getTracks().forEach(t => t.stop());
+        micStreamRef.current = stream;
+        if (!METER_OFF) meterRef.current = startVoiceMeter(stream);
+        if (!meterRef.current) { stream.getTracks().forEach(t => t.stop()); micStreamRef.current = null; }
       } catch (err) {
         setMicStarting(false);
         setMicNote(err && err.message === "mic-timeout"
@@ -750,6 +808,7 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
         setListening(false);
         setInterim("");
         try { rec.stop(); } catch {}
+        releaseMic();
         const text = heardText();
         if (text) send(text, { voice: true });
         else if (Date.now() - session.startedAt < 4000) {
@@ -759,6 +818,13 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
           setListening(true);
           try { rec.start(); } catch {}
           armSilence(QUIET_CLOSE_MS);
+          if (!meterRef.current && !METER_OFF && navigator.mediaDevices) {
+            getMicStream().then(st => {
+              if (session.sent) { st.getTracks().forEach(t => t.stop()); return; }
+              micStreamRef.current = st;
+              meterRef.current = startVoiceMeter(st);
+            }).catch(() => {});
+          }
         } else {
           // Quiet room — say so out loud and let go of the mic, instead of
           // leaving it open (and the recording light on) indefinitely.
@@ -777,12 +843,30 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
         armSilence(QUIET_CLOSE_MS);
         try { rec.stop(); } catch { session.muted = false; }
       };
-      // Pause timer: a short beat after the last words = the thought is done.
-      // With nothing heard at all, the mic closes itself after QUIET_CLOSE_MS
-      // rather than sitting open on a room that isn't talking to it.
-      const armSilence = (ms) => {
+      // Ending the turn takes TWO things: the recognizer has been quiet for a
+      // beat, AND the microphone itself has gone silent. The timer alone used
+      // to cut people off mid-sentence, because the recognizer finalizes a
+      // phrase at every ordinary thinking pause.
+      const schedule = (ms) => {
         if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
-        silenceTimerRef.current = setTimeout(finish, ms);
+        silenceTimerRef.current = setTimeout(tick, ms);
+      };
+      function tick() {
+        const m = meterRef.current;
+        const need = session.needQuiet || 0;
+        if (m && need) {
+          const quietFor = Date.now() - m.lastVoiceAt;
+          // Still making sound — they're mid-thought. Keep listening, up to a
+          // ceiling so a noisy room can't hold the turn open forever.
+          if (quietFor < need && Date.now() - (session.waitStart || 0) < 10000) { schedule(200); return; }
+        }
+        finish();
+      }
+      // ms of quiet required before the turn ends.
+      const armSilence = (ms, needQuiet = 0) => {
+        session.needQuiet = needQuiet;
+        session.waitStart = Date.now();
+        schedule(ms);
       };
 
       rec.onresult = (e) => {
@@ -807,7 +891,10 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
         // immediately — that flat 3.5s wait was most of the "why is it taking
         // so long to answer me" delay. Words still being transcribed
         // (interim) get a longer beat so mid-sentence pauses don't cut in.
-        armSilence(interimText.trim() ? 1500 : 600);
+        // Finalized phrase with nothing pending: a short beat is enough — but
+        // only counted from when the mic actually falls silent. Words still
+        // being transcribed get a longer one.
+        armSilence(interimText.trim() ? 1400 : 900, interimText.trim() ? 1400 : 900);
       };
       rec.onerror = (e) => {
         const code = (e && e.error) || "";
@@ -821,7 +908,15 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
         setListening(false);
         setInterim("");
         if (code === "not-allowed" || code === "service-not-allowed") setMicNote(MIC_BLOCKED_NOTE);
-        else if (code === "audio-capture") setMicNote("No working microphone was found on this device.");
+        else if (code === "audio-capture") {
+          // Holding the stream for the level meter can starve the recognizer
+          // on some devices — give it the mic back and try once more.
+          if (meterRef.current && !METER_OFF) {
+            METER_OFF = true;
+            releaseMic();
+            setTimeout(() => { if (openRef.current) startListening(); }, 250);
+          } else setMicNote("No working microphone was found on this device.");
+        }
         else {
           // Recognizer broke for a non-permission reason (e.g. its speech
           // service is unreachable in this browser). Hand off to the
