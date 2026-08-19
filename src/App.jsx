@@ -5952,20 +5952,20 @@ function PastContractsModal({ tx, onClose }) {
 // out of the transaction list loaded at sign-in meant a note written anywhere
 // else — the AI assistant's confirm card, a second device — stayed invisible
 // until a full reload, which read as "my note didn't save".
-function InternalNotesPanel({ txId, seed = [], compact = false, onSeeAll }) {
+function InternalNotesPanel({ txId, compact = false, onSeeAll }) {
   const API = "https://liz-team-server-api-production.up.railway.app";
-  const [notes, setNotes] = useState(seed);
+  const [notes, setNotes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [text, setText] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
 
-  const load = React.useCallback(() => {
+  const load = useCallback(() => {
     const tok = localStorage.getItem("tp_token") || "";
     setLoading(true);
     fetch(`${API}/transactions/${txId}/notes`, { headers: { Authorization: "Bearer " + tok } })
       .then(r => r.json())
-      .then(d => { if (d && d.success) { setNotes(d.notes || []); setError(null); } else setError(d?.error || "Couldn't load notes"); })
+      .then(d => { if (d && d.success) { setNotes(d.notes || []); setError(null); } else setError((d && d.error) || "Couldn't load notes"); })
       .catch(() => setError("Couldn't reach the server"))
       .finally(() => setLoading(false));
   }, [txId]);
@@ -5996,8 +5996,6 @@ function InternalNotesPanel({ txId, seed = [], compact = false, onSeeAll }) {
     finally { setSaving(false); }
   };
 
-  const shown = compact ? notes.slice(-3).reverse() : notes;
-
   if (compact) {
     if (loading || !notes.length) return null;
     return (
@@ -6010,7 +6008,7 @@ function InternalNotesPanel({ txId, seed = [], compact = false, onSeeAll }) {
             </button>
           )}
         </div>
-        {shown.map(m => (
+        {notes.slice(-3).reverse().map(m => (
           <div key={m.id} style={{ borderTop: `1px solid ${COLORS.border}`, paddingTop: 8, marginTop: 8 }}>
             <div style={{ fontSize: 11, color: COLORS.muted, marginBottom: 2 }}>
               {m.sender} · {new Date(m.timestamp).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
@@ -6027,8 +6025,8 @@ function InternalNotesPanel({ txId, seed = [], compact = false, onSeeAll }) {
       <div style={{ background: "#fff", border: `1px solid ${COLORS.border}`, borderRadius: 12, padding: 20, marginBottom: 16, minHeight: 300, maxHeight: 500, overflowY: "auto" }}>
         {loading && <div style={{ textAlign: "center", color: COLORS.muted, padding: 40 }}>Loading notes…</div>}
         {!loading && error && <div style={{ textAlign: "center", color: "#B91C1C", padding: 40 }}>{error}</div>}
-        {!loading && !error && shown.length === 0 && <div style={{ textAlign: "center", color: COLORS.muted, padding: 40 }}>No internal notes yet.</div>}
-        {!loading && shown.map(m => (
+        {!loading && !error && notes.length === 0 && <div style={{ textAlign: "center", color: COLORS.muted, padding: 40 }}>No internal notes yet.</div>}
+        {!loading && notes.map(m => (
           <div key={m.id} style={{ marginBottom: 14 }}>
             <div style={{ fontSize: 11, color: COLORS.muted, marginBottom: 3 }}>
               {m.sender} · {new Date(m.timestamp).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
@@ -6549,7 +6547,7 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
             {/* Internal notes on the deal's home page. They used to live ONLY
                 under More ▾ → 🗒 Internal Notes, so a note added from the AI
                 assistant looked like it had vanished (Carlos 8/19). */}
-            {!isGuest && <InternalNotesPanel txId={tx.id} seed={tx.messages || []} compact onSeeAll={() => setActiveTab("notes")} />}
+            {!isGuest && <InternalNotesPanel txId={tx.id} compact onSeeAll={() => setActiveTab("notes")} />}
             {/* Listing deals: agreement answers still blank → one-tap in-app form
                 (Carlos 8/4 — the agent shouldn't have to text themselves the link). */}
             {!isGuest && /listing|seller/i.test(tx.type || tx.transaction_type || "") && !/lease/i.test(tx.type || tx.transaction_type || "") && (
@@ -7039,8 +7037,71 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
           </div>
         )}
 
-        {activeTab === "notes" && <InternalNotesPanel txId={tx.id} seed={tx.messages || []} />}
+        {activeTab === "notes" && <InternalNotesPanel txId={tx.id} />}
 
+        {activeTab === "documents" && <DocumentsTab tx={tx} coordinatorMode={isCoordinator} />}
+        {activeTab === "offers" && <OffersTab tx={tx} token={localStorage.getItem("tp_token") || ""} currentUser={currentUser} createSignal={offerCreateSignal}
+          onReviewReceived={() => { setActiveTab("overview"); setTimeout(() => { const el = document.getElementById("pending-offers-panel"); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); }, 60); }} />}
+        {activeTab === "calculator" && (
+          <div style={{ padding: 20 }}>
+            <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 8, padding: 12, marginBottom: 16, fontSize: 13, color: "#7f1d1d" }}>
+              <strong>🎓 Why this matters:</strong> Use this with your buyer to set realistic expectations on price, monthly payment, and cash-to-close BEFORE writing offers. Florida's doc stamps, intangible tax, and insurance costs surprise most first-time buyers.
+            </div>
+            <BuyerCalculator transactionId={tx.id} token={localStorage.getItem("tp_token") || ""} county={tx.county} />
+          </div>
+        )}
+
+        {activeTab === "buyer-net" && (
+          <div style={{ padding: 20 }}>
+            <div style={{ background: "#f0fdf4", border: "1px solid #86efac", borderRadius: 8, padding: 12, marginBottom: 16, fontSize: 13, color: "#14532d" }}>
+              <strong>🎓 Why this matters:</strong> Give your buyer a clear estimate of the cash they'll need at closing, then generate a branded English or Spanish net sheet and save it to Documents.
+            </div>
+            <BuyerCalculator mode="net" transactionId={tx.id} token={localStorage.getItem("tp_token") || ""} county={tx.county} />
+          </div>
+        )}
+
+        {activeTab === "cma" && (
+          <CmaTool tx={tx} token={localStorage.getItem("tp_token") || ""} currentUser={currentUser} />
+        )}
+
+        {activeTab === "seller-calc" && (
+          <div style={{ padding: 20 }}>
+            <div style={{ background: "#e0f2fe", border: "1px solid #7dd3fc", borderRadius: 8, padding: 12, marginBottom: 16, fontSize: 13, color: "#0c4a6e" }}>
+              <strong>🎓 Why this matters:</strong> Sellers want to know what they'll walk away with. Use this BEFORE the listing appointment to set realistic expectations on commission, FL doc stamps (~0.7%), title fees, and mortgage payoff. Avoids "I thought I was getting more" at closing.
+            </div>
+            <SellerCalculator transactionId={tx.id} token={localStorage.getItem("tp_token") || ""} county={tx.county} />
+          </div>
+        )}
+
+        {activeTab === "tx-forms" && (
+          <TxFormsTab tx={tx} side={isListingSideTx ? "listing" : "buyer"} isAdmin={false} />
+        )}
+
+        {activeTab === "activity" && (() => {
+          if (!activitiesLoaded) {
+            const tok = localStorage.getItem("tp_token") || "";
+            fetch(API + "/activity/" + tx.id, { headers: { "Authorization": "Bearer " + tok } })
+              .then(r => r.json()).then(d => { if (d.activities) setActivities(d.activities); setActivitiesLoaded(true); }).catch(e => console.error("[bg]", e && e.message ? e.message : e));
+          }
+          const icons = { transaction_created: "🏠", status_changed: "🔄", party_added: "👤", document_uploaded: "📎", email_sent: "📧", sms_sent: "📱", task_completed: "✅" };
+          return (
+            <div style={{ padding: 20, overflowY: "auto", maxHeight: 500 }}>
+              <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 16, color: COLORS.navy }}>Transaction Activity Log</div>
+              {activities.length === 0 ? (
+                <div style={{ textAlign: "center", color: COLORS.muted, padding: 40 }}>No activity recorded yet.</div>
+              ) : activities.map(a => (
+                <div key={a.id} style={{ display: "flex", gap: 12, marginBottom: 16, paddingBottom: 16, borderBottom: `1px solid ${COLORS.border}` }}>
+                  <div style={{ fontSize: 20, flexShrink: 0 }}>{icons[a.action] || "📌"}</div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: COLORS.text }}>{a.details}</div>
+                    <div style={{ fontSize: 11, color: COLORS.muted, marginTop: 2 }}>{a.user_name} · {new Date(a.created_at).toLocaleString()}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          );
+        })()}
+        {activeTab === "chat" && <div style={{ padding: 20, height: 500 }}><TransactionChat transactionId={tx.id} user={null} parties={tx.parties || []} style={{ height: "100%" }} unreadCount={chatUnread} onUnreadChange={() => {}} /></div>}
         {activeTab === "reminders" && (
           <div>
             <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 16 }}><Btn onClick={() => setShowAddReminder(true)} small>+ Add Reminder</Btn></div>
