@@ -486,6 +486,10 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
   // while the next is still arriving, and `onDone` (re-open the mic) fires
   // only once the LAST one has finished playing.
   const ttsRef = useRef({ seq: 0, pending: 0, closed: true, onDone: null });
+  // True while the app's OWN voice is playing with the mic already open (the
+  // greeting). Anything the mic hears in that window is our speaker, not the
+  // agent, so it gets discarded.
+  const speakingRef = useRef(false);
   const silenceTimerRef = useRef(null);   // auto-send after a real pause
   const finishRef = useRef(null);         // ends the current listen session and sends
   const listenRef = useRef(null);         // current listen session { final, interim, sent }
@@ -598,16 +602,25 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
     if (msgs.length === 0) {
       setMsgs([{ role: "assistant", text: GREETING, cards: [] }]);
     }
-    // Auto-listen opens the mic in THIS tap — no spoken greeting first.
-    // Waiting for "How can I help you today?" to play put a ~2s gap between
-    // the tap and being able to talk, and the greeting is on screen anyway.
-    if (autoMicRef.current && SR) { armMic(); return; }
+    // Auto-listen opens the mic in THIS tap, and the greeting plays over the
+    // top of it — armMic() FIRST (startListening cancels any speech as it
+    // starts, so greeting-then-mic would cut itself off), then greet. What the
+    // open mic picks up from our own speaker is thrown away, see speakingRef.
+    if (autoMicRef.current && SR) {
+      armMic();
+      if (speakOn) {
+        speakingRef.current = true;
+        speak(GREETING, () => { speakingRef.current = false; });
+      }
+      return;
+    }
     if (speakOn) speak(GREETING);
   };
 
   const closePanel = () => {
     setOpen(false);
     openRef.current = false;
+    setMicStarting(false);   // else a mid-open close blocks the NEXT open
     convoRef.current = false;
     ttsRef.current.seq += 1;          // orphan the streamed speech queue
     ttsRef.current.onDone = null;
@@ -714,7 +727,7 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
       // turn, it is silently RESTARTED and the words keep accumulating in
       // `base`. The ONLY things that end the turn are OUR pause timer
       // (~3s after the last words heard), the ⏹ tap, or the 90s cap.
-      const session = { base: "", final: "", interim: "", sent: false };
+      const session = { base: "", final: "", interim: "", sent: false, skip: 0 };
       listenRef.current = session;
       const heardText = () => (session.base + " " + session.final + " " + session.interim).replace(/\s+/g, " ").trim();
       const finish = () => {
@@ -742,7 +755,16 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
 
       rec.onresult = (e) => {
         let finalText = "", interimText = "";
-        for (let i = 0; i < e.results.length; i++) {
+        // Our own greeting coming back through the speaker: skip past those
+        // results for good and keep waiting for the actual question.
+        if (speakingRef.current) {
+          session.skip = e.results.length;
+          session.base = "";
+          setInterim("");
+          armSilence(15000);
+          return;
+        }
+        for (let i = session.skip || 0; i < e.results.length; i++) {
           if (e.results[i].isFinal) finalText += e.results[i][0].transcript;
           else interimText += e.results[i][0].transcript;
         }
@@ -784,6 +806,7 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
         session.base = (session.base + " " + session.final + " " + session.interim).replace(/\s+/g, " ").trim();
         session.final = "";
         session.interim = "";
+        session.skip = 0;   // a restarted recognizer numbers its results from 0 again
         try { rec.start(); }
         catch {
           setTimeout(() => {
