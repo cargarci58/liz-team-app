@@ -1,6 +1,6 @@
 const API = "https://liz-team-server-api-production.up.railway.app";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 function ForgotPasswordModal({ onClose }) {
   const [email, setEmail] = useState("");
@@ -110,11 +110,11 @@ export default function LoginScreen({ onLogin }) {
     if (f.password.value.length < 8) { err.textContent = "Password must be at least 8 characters"; return; }
     btn.textContent = "Creating..."; btn.disabled = true; err.textContent = "";
     try {
-      const res = await fetch(API + "/auth/register", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ brokerageName: f.brokerageName.value, firstName: f.firstName.value, lastName: f.lastName.value, email: f.email.value, phone: f.phone.value, password: f.password.value, accountType: f.accountType.value, state: f.state.value }) });
+      const res = await fetch(API + "/auth/register", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ brokerageName: f.brokerageName.value, firstName: f.firstName.value, lastName: f.lastName.value, email: f.email.value, phone: f.phone.value, password: f.password.value, accountType: f.accountType.value, state: f.state.value, inviteCode: f.inviteCode.value.trim() }) });
       const data = await res.json();
-      if (!res.ok) { err.textContent = data.error || "Registration failed"; btn.textContent = "Start Free Trial"; btn.disabled = false; return; }
+      if (!res.ok) { err.textContent = data.error || "Registration failed"; btn.textContent = "Create My Account"; btn.disabled = false; return; }
       onLogin(data.user, data.token);
-    } catch { err.textContent = "Cannot connect. Try again."; btn.textContent = "Start Free Trial"; btn.disabled = false; }
+    } catch { err.textContent = "Cannot connect. Try again."; btn.textContent = "Create My Account"; btn.disabled = false; }
   };
 
   const showTab = (tab) => {
@@ -123,6 +123,12 @@ export default function LoginScreen({ onLogin }) {
     document.getElementById("tab-login").style.borderBottom = tab === "login" ? "3px solid #C0392B" : "3px solid transparent";
     document.getElementById("tab-register").style.borderBottom = tab === "register" ? "3px solid #C0392B" : "3px solid transparent";
   };
+
+  // Personal invite link (…/?invite=LIZ-XXXXX): prefill the code, open the
+  // Create Account tab, and swap the trial pitch for the founding-tester
+  // welcome — an invited agent must never see "14-day trial" and smell a catch.
+  const inviteCode = (typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("invite") : null) || "";
+  useEffect(() => { if (inviteCode) showTab("register"); /* eslint-disable-next-line */ }, []);
 
   const inp = { width: "100%", padding: "12px 14px", borderRadius: 8, border: "1.5px solid #CCC", fontSize: 16, fontFamily: "inherit", boxSizing: "border-box", display: "block", marginBottom: 16 };
   const lbl = { fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", letterSpacing: "0.06em", display: "block", marginBottom: 6 };
@@ -167,6 +173,17 @@ export default function LoginScreen({ onLogin }) {
           <div id="register-form" style={{ display: "none" }}>
             <div id="reg-error" style={{ color: "#C0392B", fontSize: 13, marginBottom: 12, minHeight: 20 }}></div>
             <form onSubmit={handleRegister}>
+              {inviteCode ? (
+                <div style={{ background: "#F0FFF4", border: "1.5px solid #1E8449", borderRadius: 10, padding: 14, marginBottom: 16, fontSize: 13.5, color: "#14532D", lineHeight: 1.55 }}>
+                  🎁 <b>You've been personally invited as a founding tester.</b> Full access, completely free — no trial clock, no credit card, no catch. Your invite code is filled in below.
+                </div>
+              ) : (
+                <div style={{ background: "#FFFBEB", border: "1px solid #FDE68A", borderRadius: 10, padding: 12, marginBottom: 16, fontSize: 12.5, color: "#78350F", lineHeight: 1.5 }}>
+                  TransactAgent Pro is <b>invite-only</b> during early access. Enter the invite code you were given below.
+                </div>
+              )}
+              <label style={lbl}>Invite Code</label>
+              <input name="inviteCode" type="text" required defaultValue={inviteCode} readOnly={!!inviteCode} style={{ ...inp, background: inviteCode ? "#F0FFF4" : "#fff", fontWeight: 700, letterSpacing: "0.05em" }} placeholder="LIZ-XXXXXX" />
               <label style={lbl}>Account Type</label>
               <select name="accountType" required style={inp}>
                 <option value="solo">Solo Agent — Just me managing my transactions</option>
@@ -200,9 +217,9 @@ export default function LoginScreen({ onLogin }) {
               <label style={lbl}>Confirm Password</label>
               <PwInput name="confirmPassword" autoComplete="new-password" required inputStyle={inp} placeholder="Repeat password" />
               <div style={{ background: "#F0FFF4", border: "1px solid #1E8449", borderRadius: 8, padding: 12, marginBottom: 14, fontSize: 12, color: "#1E8449" }}>
-                14-day free trial. No credit card required.
+                {inviteCode ? "Founding tester — free access. No credit card, ever." : "No credit card required."}
               </div>
-              <button id="reg-btn" type="submit" style={sbtn}>Start Free Trial</button>
+              <button id="reg-btn" type="submit" style={sbtn}>{inviteCode ? "Create My Free Account" : "Create My Account"}</button>
             </form>
           </div>
         </div>

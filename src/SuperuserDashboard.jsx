@@ -119,7 +119,37 @@ function SuperuserDashboard({ onClose, token }) {
     setFbBusyId(null);
   };
 
-  useEffect(() => { loadHealth(); loadReviews(); loadFeedback(); }, []);
+  // 🎟️ Invite codes — early-access signups are invite-only; each code is
+  // single-use and shows who redeemed it.
+  const [codes, setCodes] = useState(null);
+  const [inviteBase, setInviteBase] = useState("");
+  const [codeNote, setCodeNote] = useState("");
+  const [codeBusy, setCodeBusy] = useState(false);
+  const [copiedCode, setCopiedCode] = useState("");
+  const loadCodes = () => {
+    fetch(API + "/admin/superuser/invite-codes", { headers })
+      .then(r => r.json())
+      .then(d => { setCodes(d.codes || []); setInviteBase(d.inviteBase || ""); })
+      .catch(() => setCodes([]));
+  };
+  const createCode = async () => {
+    setCodeBusy(true);
+    try {
+      const r = await fetch(API + "/admin/superuser/invite-codes", { method: "POST", headers, body: JSON.stringify({ note: codeNote.trim() }) });
+      const d = await r.json();
+      if (!r.ok || !d.success) throw new Error(d.error || "Could not create the code");
+      setCodeNote("");
+      loadCodes();
+      try { navigator.clipboard.writeText(d.inviteLink); setCopiedCode(d.code); setTimeout(() => setCopiedCode(""), 4000); } catch { /* show below */ }
+    } catch (e) { alert("⚠️ " + e.message); }
+    setCodeBusy(false);
+  };
+  const copyLink = (code) => {
+    try { navigator.clipboard.writeText(inviteBase + code); setCopiedCode(code); setTimeout(() => setCopiedCode(""), 3000); }
+    catch { alert(inviteBase + code); }
+  };
+
+  useEffect(() => { loadHealth(); loadReviews(); loadFeedback(); loadCodes(); }, []);
   useEffect(() => { loadFeedback(fbFilter); }, [fbFilter]);
 
   const markReviewed = async (key) => {
@@ -148,6 +178,45 @@ function SuperuserDashboard({ onClose, token }) {
           <button onClick={onClose} style={{ background: "none", border: `1px solid ${COLORS.border}`, borderRadius: 8, padding: "8px 16px", cursor: "pointer", fontSize: 14, color: COLORS.muted, fontFamily: "inherit" }}>Close</button>
         </div>
         <div style={{ fontSize: 13, color: COLORS.muted, marginBottom: 24 }}>Platform health and quarterly data-freshness checks. Visible only to you.</div>
+
+        {/* 🎟️ INVITE CODES — signups are invite-only during early access */}
+        <div style={{ background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 12, padding: 16, marginBottom: 24 }}>
+          <div style={{ fontSize: 15, fontWeight: 800, color: COLORS.navy, marginBottom: 4 }}>🎟️ Invite Codes</div>
+          <div style={{ fontSize: 12.5, color: COLORS.muted, marginBottom: 12, lineHeight: 1.5 }}>
+            Signup is invite-only. Each code works <b>once</b> — generate one per person, send them the personal link, and this list shows who redeemed it. Invited signups are tagged <b>founding tester</b> (never billed).
+          </div>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
+            <input value={codeNote} onChange={e => setCodeNote(e.target.value)} placeholder='Who is this for? (e.g. "John Smith — tester #2")'
+              style={{ flex: "1 1 240px", padding: "9px 12px", borderRadius: 8, border: "1.5px solid #CBD5E1", fontSize: 13.5, fontFamily: "inherit" }} />
+            <button onClick={createCode} disabled={codeBusy}
+              style={{ padding: "9px 18px", borderRadius: 8, border: "none", background: codeBusy ? "#94A3B8" : "#1E8449", color: "#fff", fontWeight: 800, fontSize: 13, cursor: codeBusy ? "wait" : "pointer", fontFamily: "inherit" }}>
+              {codeBusy ? "Creating…" : "➕ New code (copies the link)"}
+            </button>
+          </div>
+          {codes === null ? (
+            <div style={{ fontSize: 13, color: COLORS.muted }}>Loading…</div>
+          ) : codes.length === 0 ? (
+            <div style={{ fontSize: 13, color: COLORS.muted }}>No codes yet — create your first above.</div>
+          ) : (
+            <div style={{ maxHeight: 260, overflowY: "auto" }}>
+              {codes.map(c => (
+                <div key={c.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 0", borderBottom: "1px solid #EEF2F7", flexWrap: "wrap" }}>
+                  <code style={{ fontWeight: 800, fontSize: 13.5, color: c.used_at ? "#94A3B8" : COLORS.navy, textDecoration: c.used_at ? "line-through" : "none" }}>{c.code}</code>
+                  {c.note && <span style={{ fontSize: 12.5, color: "#475569" }}>{c.note}</span>}
+                  <span style={{ marginLeft: "auto", fontSize: 12, color: c.used_at ? "#1E8449" : "#B7770D", fontWeight: 700 }}>
+                    {c.used_at ? `✓ used by ${c.used_by_email} · ${fmtDate(c.used_at)}` : "unused"}
+                  </span>
+                  {!c.used_at && (
+                    <button onClick={() => copyLink(c.code)}
+                      style={{ padding: "4px 12px", borderRadius: 7, border: "1px solid #1E8449", background: "#fff", color: "#1E8449", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                      {copiedCode === c.code ? "✅ Link copied" : "🔗 Copy invite link"}
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
 
         {/* ── Service Health ── */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
