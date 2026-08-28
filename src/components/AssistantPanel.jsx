@@ -154,7 +154,15 @@ function blobToBase64(blob) {
 // `queue: true` adds this sentence BEHIND whatever is already playing instead
 // of cutting it off — that's what lets a streamed answer start out loud on
 // sentence one while sentence two is still being written.
-function speak(text, onDone, { queue = false } = {}) {
+// `onSilent(reason)` fires when the browser TOOK the utterance and never played
+// it. Chrome's TTS process can die and then report speaking=true forever, so
+// every later utterance queues behind a phantom one and never starts — verified
+// on a real machine: paused=false speaking=true, nothing audible, every voice
+// affected, cancel()+resume() clears the flags and the next utterance dies too.
+// Nothing in this file can revive that (only a browser restart can), but it must
+// never again fail with NO explanation. These listeners are passive: they only
+// observe the utterance and cannot change whether it plays.
+function speak(text, onDone, { queue = false, onSilent } = {}) {
   // Deferred: speechSynthesis.speak()/cancel() on macOS Chrome can hang the
   // tab for many seconds (long-standing Chromium bug, worst with the local
   // "Enhanced/Premium/Samantha" voices). Running it after a tick means the
@@ -204,6 +212,20 @@ function speak(text, onDone, { queue = false } = {}) {
         // Backstop for an utterance that never starts at all (engine wedged).
         setTimeout(finish, 180000);
       }
+      // Watch whether it ACTUALLY starts. Purely observational.
+      if (onSilent) {
+        let started = false;
+        u.addEventListener("start", () => { started = true; });
+        u.addEventListener("error", e => {
+          // "canceled"/"interrupted" are normal — we cut speech off on purpose.
+          const why = e && e.error ? String(e.error) : "error";
+          if (!started && !/cancel|interrupt/i.test(why)) onSilent(why);
+        });
+        setTimeout(() => { if (!started) onSilent("never-started"); }, 2500);
+      }
+      // A merely PAUSED engine is the one stuck state a page can fix itself.
+      // Guarded on .paused so this is a no-op on a healthy engine.
+      try { if (window.speechSynthesis.paused) window.speechSynthesis.resume(); } catch { /* ignore */ }
       window.speechSynthesis.speak(u);
     } catch { if (onDone) onDone(); }
   }, 0);
@@ -565,6 +587,10 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
   const [listening, setListening] = useState(false);
   const [interim, setInterim] = useState("");   // live transcript while talking
   const [micNote, setMicNote] = useState(null); // mic error/help text
+  // Why you can't HEAR me. Set only when the browser accepted the words and
+  // played nothing. Six rounds of "I still can't hear it" happened because this
+  // failure had no symptom at all beyond silence.
+  const [voiceNote, setVoiceNote] = useState(null);
   const [recording, setRecording] = useState(false);     // MediaRecorder fallback active
   const [transcribing, setTranscribing] = useState(false);
   const [micStarting, setMicStarting] = useState(false);  // instant tap feedback while the mic opens
@@ -703,6 +729,7 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
 
   const openPanel = () => {
     setOpen(true);
+    setVoiceNote(null);   // re-check each open
     openRef.current = true;   // armMic() runs before the next render
     refreshTasks();
     if (msgs.length === 0) {
@@ -726,12 +753,12 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
           speak(GREETING, () => {
             speakingRef.current = false;
             if (live && !live.sent && live.restart) live.restart();
-          });
+          }, { onSilent: why => { speakingRef.current = false; setVoiceNote(why); } });
         },
       });
       return;
     }
-    if (speakOn) speak(GREETING);
+    if (speakOn) speak(GREETING, null, { onSilent: why => setVoiceNote(why) });
   };
 
   const closePanel = () => {
@@ -1402,6 +1429,22 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
               {micNote && (
                 <div style={{ background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: 10, padding: "10px 12px", fontSize: 12.5, color: "#7F1D1D", lineHeight: 1.5, marginTop: 4 }}>
                   🎤 {micNote}
+                </div>
+              )}
+              {/* The browser took the words and played nothing. Say so, and give
+                  the one remedy that actually works — a page cannot revive a
+                  dead TTS process, but chrome://restart keeps every tab. */}
+              {voiceNote && (
+                <div style={{ background: "#F1F5F9", border: "1px solid #E2E8F0", borderRadius: 10, padding: "10px 12px", fontSize: 12.5, color: "#334155", lineHeight: 1.5, marginTop: 4 }}>
+                  🔈 <b>Your browser's voice has stopped responding.</b> Everything
+                  I say is still here in writing — you're not missing anything.
+                  <div style={{ marginTop: 6 }}>
+                    To get the voice back, paste <b>chrome://restart</b> into your
+                    address bar. Chrome reopens with all your tabs still there.
+                  </div>
+                  <div style={{ marginTop: 6, fontSize: 11, color: "#64748B" }}>
+                    ({voiceNote} — your Mac's speech is fine, this is the browser.)
+                  </div>
                 </div>
               )}
             </div>
