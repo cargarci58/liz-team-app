@@ -167,13 +167,23 @@ function speak(text, onDone, { queue = false } = {}) {
       const u = new SpeechSynthesisUtterance(text);
       u.rate = 1.04;
       // Prefer Google's en-US voice (Chrome, streamed, doesn't trigger the
-      // hang), else the plain system default. NEVER pick the Enhanced/
-      // Premium/Samantha local voices — they're the ones that freeze.
+      // hang). A plain Mac has no Google voice at all, so the fallback has to
+      // NAME the voices we trust:
+      //   - the system default on macOS is Samantha, and Samantha is one of
+      //     the voices that freezes the tab — "default" can never be the rule;
+      //   - "first en-US voice that isn't Samantha" lands on a novelty voice,
+      //     because macOS ships Albert / Bad News / Bahh / Bells / Boing /
+      //     Bubbles / Cellos as en-US.
+      // So: walk a short list of known-good plain voices in order, skipping
+      // the Enhanced/Premium/Natural/Neural variants that hang. If this
+      // machine has none of them, leave u.voice UNSET and let the browser
+      // pick — an unset voice is always safer than a guessed one.
       const voices = window.speechSynthesis.getVoices() || [];
+      const enUS = voices.filter(v => /en[-_]US/i.test(v.lang) && !/enhanced|premium|natural|neural/i.test(v.name));
+      const GOOD = ['alex', 'allison', 'susan', 'tom', 'nicky', 'joelle', 'fred', 'victoria'];
       const preferred =
-        voices.find(v => /en[-_]US/i.test(v.lang) && /google/i.test(v.name)) ||
-        voices.find(v => /en[-_]US/i.test(v.lang) && v.default) ||
-        voices.find(v => /en[-_]US/i.test(v.lang) && !/enhanced|premium|natural|neural|samantha/i.test(v.name));
+        enUS.find(v => /google/i.test(v.name)) ||
+        GOOD.reduce((hit, name) => hit || enUS.find(v => new RegExp('^' + name + '\\b', 'i').test(v.name)), null);
       if (preferred) u.voice = preferred;
       if (onDone) {
         // onend does NOT always fire (Chrome drops it when the tab is

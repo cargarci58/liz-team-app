@@ -89,6 +89,26 @@
     <div class="verdict" id="v-mic"></div>
   </div>
 
+  <div class="card" style="border:2px solid var(--red)">
+    <h2><span class="step">5</span>Wake the speech engine back up</h2>
+    <p>Chrome's speech engine can get stuck in a paused state — once it does, every
+       voice on the machine goes silent and stays silent, in every tab, until it's
+       woken up or Chrome is fully quit. That matches exactly what tests 1–4 show.
+       This tries to unstick it.</p>
+    <button class="go" onclick="unstick()">▶ Try to wake it up</button>
+    <div class="row hidden" id="ask-wake">
+      <span style="font-size:14px;font-weight:700">Did you hear it?</span>
+      <button class="yes" onclick="answer('wake',true)">Yes</button>
+      <button class="no" onclick="answer('wake',false)">No</button>
+    </div>
+    <div class="verdict" id="v-wake"></div>
+    <p style="margin-top:12px;font-size:13px">
+      If that didn't do it: <b>fully quit Chrome</b> — Cmd+Q, not just closing the
+      window — then reopen and run test 1 again. That clears the stuck engine in
+      almost every case.
+    </p>
+  </div>
+
   <div class="card">
     <h2>Results to send back</h2>
     <p>Tap the button, then paste it into the chat.</p>
@@ -179,6 +199,26 @@ function testWithMic() {
   });
 }
 
+function engineState() {
+  try {
+    return 'paused=' + synth.paused + ' speaking=' + synth.speaking + ' pending=' + synth.pending;
+  } catch (e) { return 'unreadable'; }
+}
+
+// Chrome's speechSynthesis can be left PAUSED — then speak() queues forever and
+// 'start' never fires, for every voice, in every tab. resume() is the documented
+// way out; cancel() first clears whatever is stuck in the queue behind it.
+function unstick() {
+  document.getElementById('ask-wake').classList.remove('hidden');
+  R.notes.push('before wake: ' + engineState());
+  try { synth.cancel(); } catch (e) {}
+  try { synth.resume(); } catch (e) {}
+  setTimeout(function () {
+    R.notes.push('after wake: ' + engineState());
+    speakOnce('wake', 'Test five. If you can hear this, the speech engine is awake again.');
+  }, 250);
+}
+
 function answer(kind, heard) { R.heard[kind] = heard; show(kind, heard, null); render(); }
 
 function show(kind, ok, msg) {
@@ -198,7 +238,9 @@ function render() {
   });
   if (vs.length > 14) lines.push('  …and ' + (vs.length - 14) + ' more');
   lines.push('');
-  ['default', 'google', 'local', 'mic'].forEach(function (k) {
+  lines.push('engine: ' + engineState());
+  lines.push('');
+  ['default', 'google', 'local', 'mic', 'wake'].forEach(function (k) {
     var h = R.heard[k];
     lines.push(k.toUpperCase() + ': ' + (R.events[k] || 'not run') +
       ' | heard: ' + (h === undefined ? '—' : (h ? 'YES' : 'NO')));
