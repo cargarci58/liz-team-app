@@ -223,9 +223,11 @@ function speak(text, onDone, { queue = false, onSilent } = {}) {
         });
         setTimeout(() => { if (!started) onSilent("never-started"); }, 2500);
       }
-      // A merely PAUSED engine is the one stuck state a page can fix itself.
-      // Guarded on .paused so this is a no-op on a healthy engine.
-      try { if (window.speechSynthesis.paused) window.speechSynthesis.resume(); } catch { /* ignore */ }
+      // NOTE: a `resume()`-when-paused call lived here briefly. It is the
+      // documented fix for a paused engine, but Carlos went silent again right
+      // after it shipped and it was the ONLY line in that change that touched
+      // the speech engine — so it's gone. Everything else here is passive
+      // observation. Do not reintroduce it without a reproduction.
       window.speechSynthesis.speak(u);
     } catch { if (onDone) onDone(); }
   }, 0);
