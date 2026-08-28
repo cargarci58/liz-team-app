@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Voice check — TransactPro</title>
+<style>
+  :root { --red:#C0392B; --navy:#1A2B4A; --ink:#1F2937; --muted:#6B7280; --line:#E5E7EB; --ok:#1E8449; --bad:#B91C1C; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { font-family:'Segoe UI',system-ui,-apple-system,sans-serif; color:var(--ink); background:#F5F7FA;
+         line-height:1.55; padding:24px 16px 64px; }
+  .wrap { max-width:640px; margin:0 auto; }
+  h1 { font-size:24px; font-weight:800; color:var(--navy); margin-bottom:6px; }
+  .sub { color:var(--muted); font-size:15px; margin-bottom:22px; }
+  .card { background:#fff; border:1px solid var(--line); border-radius:14px; padding:18px 20px; margin-bottom:14px; }
+  .card h2 { font-size:16px; font-weight:800; margin-bottom:4px; }
+  .card p { font-size:14px; color:var(--muted); margin-bottom:12px; }
+  button { font-family:inherit; font-weight:700; border:none; border-radius:9px; cursor:pointer; font-size:14px; padding:11px 18px; }
+  .go { background:var(--navy); color:#fff; }
+  .yes { background:var(--ok); color:#fff; margin-right:8px; }
+  .no  { background:var(--bad); color:#fff; }
+  .row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-top:10px; }
+  .verdict { font-size:14px; font-weight:700; margin-top:10px; }
+  .verdict.ok { color:var(--ok); }
+  .verdict.bad { color:var(--bad); }
+  .hidden { display:none; }
+  pre { background:#0F172A; color:#E2E8F0; border-radius:10px; padding:14px; font-size:12px;
+        overflow-x:auto; white-space:pre-wrap; word-break:break-word; margin-top:12px; }
+  .copy { background:var(--red); color:#fff; margin-top:12px; }
+  .step { display:inline-block; width:26px; height:26px; border-radius:50%; background:var(--red); color:#fff;
+          font-size:13px; font-weight:800; text-align:center; line-height:26px; margin-right:8px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Voice check</h1>
+  <p class="sub">Four quick tests to find out why the assistant isn't talking on this computer.
+     Turn your volume up, then work down the page. Each test takes a couple of seconds.</p>
+
+  <div class="card">
+    <h2><span class="step">1</span>Your computer's default voice</h2>
+    <p>The plainest possible test — no special voice chosen.</p>
+    <button class="go" onclick="test('default')">▶ Play test 1</button>
+    <div class="row hidden" id="ask-default">
+      <span style="font-size:14px;font-weight:700">Did you hear it?</span>
+      <button class="yes" onclick="answer('default',true)">Yes</button>
+      <button class="no" onclick="answer('default',false)">No</button>
+    </div>
+    <div class="verdict" id="v-default"></div>
+  </div>
+
+  <div class="card">
+    <h2><span class="step">2</span>The voice the app picks</h2>
+    <p>The app prefers a Google voice. Those are streamed over the internet, and they can report
+       success while playing nothing at all — this test tells us if that's what's happening.</p>
+    <button class="go" onclick="test('google')">▶ Play test 2</button>
+    <div class="row hidden" id="ask-google">
+      <span style="font-size:14px;font-weight:700">Did you hear it?</span>
+      <button class="yes" onclick="answer('google',true)">Yes</button>
+      <button class="no" onclick="answer('google',false)">No</button>
+    </div>
+    <div class="verdict" id="v-google"></div>
+  </div>
+
+  <div class="card">
+    <h2><span class="step">3</span>A built-in Mac voice</h2>
+    <p>A voice installed on your machine, nothing streamed.</p>
+    <button class="go" onclick="test('local')">▶ Play test 3</button>
+    <div class="row hidden" id="ask-local">
+      <span style="font-size:14px;font-weight:700">Did you hear it?</span>
+      <button class="yes" onclick="answer('local',true)">Yes</button>
+      <button class="no" onclick="answer('local',false)">No</button>
+    </div>
+    <div class="verdict" id="v-local"></div>
+  </div>
+
+  <div class="card">
+    <h2><span class="step">4</span>Talking while the microphone is on</h2>
+    <p>This is exactly what the assistant does: it opens the microphone, then talks.
+       Your browser may ask for microphone permission — allow it. This is the test that
+       matters most, because it's the one thing your phone never does.</p>
+    <button class="go" onclick="testWithMic()">▶ Play test 4</button>
+    <div class="row hidden" id="ask-mic">
+      <span style="font-size:14px;font-weight:700">Did you hear it?</span>
+      <button class="yes" onclick="answer('mic',true)">Yes</button>
+      <button class="no" onclick="answer('mic',false)">No</button>
+    </div>
+    <div class="verdict" id="v-mic"></div>
+  </div>
+
+  <div class="card">
+    <h2>Results to send back</h2>
+    <p>Tap the button, then paste it into the chat.</p>
+    <button class="copy" onclick="copyOut()">📋 Copy results</button>
+    <span id="copied" style="font-size:13px;color:var(--ok);font-weight:700;margin-left:10px"></span>
+    <pre id="out">Run the tests above…</pre>
+  </div>
+</div>
+
+<script>
+var R = { heard:{}, events:{}, notes:[] };
+var synth = window.speechSynthesis;
+
+function voices() { try { return synth.getVoices() || []; } catch (e) { return []; } }
+
+function pick(kind) {
+  var vs = voices();
+  if (kind === 'google') {
+    return vs.find(function (v) { return /en[-_]US/i.test(v.lang) && /google/i.test(v.name); }) || null;
+  }
+  if (kind === 'local') {
+    return vs.find(function (v) {
+      return /en[-_]US/i.test(v.lang) && v.localService &&
+             !/enhanced|premium|natural|neural/i.test(v.name);
+    }) || vs.find(function (v) { return v.localService; }) || null;
+  }
+  return null; // browser default
+}
+
+function speakOnce(kind, text, done) {
+  var v = pick(kind);
+  if (kind !== 'default' && !v) {
+    R.events[kind] = 'no such voice available';
+    show(kind, false, 'No ' + kind + ' voice exists on this computer.');
+    if (done) done();
+    return;
+  }
+  var u = new SpeechSynthesisUtterance(text);
+  if (v) u.voice = v;
+  R.events[kind] = 'queued (voice: ' + (v ? v.name + (v.localService ? ' [on this Mac]' : ' [streamed]') : 'browser default') + ')';
+  var started = false;
+  u.onstart = function () { started = true; R.events[kind] = 'STARTED (' + (v ? v.name : 'default') + ')'; render(); };
+  u.onerror = function (e) { R.events[kind] = 'ERROR: ' + (e && e.error ? e.error : 'unknown'); render(); if (done) done(); };
+  u.onend = function () { R.events[kind] += ' → finished'; render(); if (done) done(); };
+  setTimeout(function () {
+    if (!started) { R.events[kind] += ' → NEVER STARTED'; render(); if (done) done(); }
+  }, 3000);
+  try { synth.speak(u); } catch (e) { R.events[kind] = 'threw: ' + e.message; }
+  render();
+}
+
+function test(kind) {
+  document.getElementById('ask-' + kind).classList.remove('hidden');
+  speakOnce(kind, 'Test ' + (kind === 'default' ? 'one' : kind === 'google' ? 'two' : 'three') + '. Can you hear this?');
+}
+
+var micStream = null;
+function testWithMic() {
+  document.getElementById('ask-mic').classList.remove('hidden');
+  var go = function () {
+    speakOnce('mic', 'Test four. Can you hear this while the microphone is on?', function () {
+      if (micStream) { micStream.getTracks().forEach(function (t) { t.stop(); }); micStream = null; }
+    });
+  };
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { R.notes.push('no getUserMedia'); go(); return; }
+  navigator.mediaDevices.getUserMedia({ audio: true }).then(function (s) {
+    micStream = s;
+    R.notes.push('microphone opened OK');
+    // Also start the recognizer, exactly like the app does.
+    var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (SR) {
+      try { var r = new SR(); r.lang = 'en-US'; r.continuous = true; r.interimResults = true; r.start();
+            R.notes.push('speech recognizer started'); setTimeout(function () { try { r.stop(); } catch (e) {} }, 6000); }
+      catch (e) { R.notes.push('recognizer failed: ' + e.message); }
+    } else { R.notes.push('no speech recognizer in this browser'); }
+    setTimeout(go, 400);
+  }).catch(function (e) {
+    R.notes.push('microphone BLOCKED: ' + (e && e.name ? e.name : 'unknown'));
+    go();
+  });
+}
+
+function answer(kind, heard) { R.heard[kind] = heard; show(kind, heard, null); render(); }
+
+function show(kind, ok, msg) {
+  var el = document.getElementById('v-' + kind);
+  el.className = 'verdict ' + (ok ? 'ok' : 'bad');
+  el.textContent = msg || (ok ? '✓ Heard it.' : '✗ Nothing.');
+}
+
+function render() {
+  var vs = voices();
+  var lines = [];
+  lines.push('VOICE CHECK');
+  lines.push('browser: ' + navigator.userAgent);
+  lines.push('voices available: ' + vs.length);
+  vs.slice(0, 14).forEach(function (v) {
+    lines.push('  - ' + v.name + ' | ' + v.lang + (v.localService ? ' | on this Mac' : ' | streamed') + (v.default ? ' | DEFAULT' : ''));
+  });
+  if (vs.length > 14) lines.push('  …and ' + (vs.length - 14) + ' more');
+  lines.push('');
+  ['default', 'google', 'local', 'mic'].forEach(function (k) {
+    var h = R.heard[k];
+    lines.push(k.toUpperCase() + ': ' + (R.events[k] || 'not run') +
+      ' | heard: ' + (h === undefined ? '—' : (h ? 'YES' : 'NO')));
+  });
+  if (R.notes.length) { lines.push(''); lines.push('notes: ' + R.notes.join(' · ')); }
+  document.getElementById('out').textContent = lines.join('\n');
+}
+
+function copyOut() {
+  var t = document.getElementById('out').textContent;
+  navigator.clipboard.writeText(t).then(function () {
+    document.getElementById('copied').textContent = 'Copied — paste it in the chat.';
+  }).catch(function () {
+    document.getElementById('copied').textContent = 'Select the text below and copy it.';
+  });
+}
+
+if (synth && synth.addEventListener) synth.addEventListener('voiceschanged', render);
+setTimeout(render, 400);
+render();
+</script>
+</body>
+</html>

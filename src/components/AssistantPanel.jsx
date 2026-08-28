@@ -204,6 +204,9 @@ function speak(text, onDone, { queue = false, onSilent } = {}) {
       // Prefer Google's en-US voice (Chrome, streamed, doesn't trigger the
       // hang), else the plain system default. NEVER pick the Enhanced/
       // Premium/Samantha local voices — they're the ones that freeze.
+      // (Briefly reordered to prefer local voices; that was a guess, it changed
+      // known-good behaviour, and it's reverted. /voice-check.html is the way
+      // to settle which voice actually plays on a given machine.)
       const voices = window.speechSynthesis.getVoices() || [];
       const preferred =
         voices.find(v => /en[-_]US/i.test(v.lang) && /google/i.test(v.name)) ||
@@ -247,12 +250,13 @@ function speak(text, onDone, { queue = false, onSilent } = {}) {
 // Net effect was an assistant that greeted fine on a phone, where the mic came
 // up and the greeting ran hundreds of ms later with nothing left pending, and
 // was stone silent on a desktop where the greeting ran immediately.
-const NEEDS_SPEECH_UNLOCK = IS_IOS ||
-  (typeof navigator !== "undefined" &&
-   /^((?!chrome|android|crios|fxios).)*safari/i.test(navigator.userAgent));
+// NOTE: runs on EVERY browser, deliberately. It was briefly gated to Safari/iOS
+// on the theory that the pending silent utterance was what wedged macOS Chrome.
+// That theory was wrong and the gate broke desktop Chrome, where this call was
+// evidently also priming the engine. Don't re-gate it without a reproduction.
 let speechUnlocked = false;
 function unlockSpeech() {
-  if (speechUnlocked || !NEEDS_SPEECH_UNLOCK) return;
+  if (speechUnlocked) return;
   try {
     if (!window.speechSynthesis) return;
     const u = new SpeechSynthesisUtterance(" ");
@@ -745,11 +749,13 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
       // queue:true so the greeting never calls speechSynthesis.cancel(). It's
       // the first thing said on open — nothing legitimate to interrupt — and
       // cancel() is what wedges macOS Chrome (see unlockSpeech/stopSpeaking).
+      // queue:false — the ORIGINAL behaviour, restored. Speaking with queue:true
+      // stopped the greeting clearing a stuck speaking/pending state, which is
+      // the one thing cancel() was there to do.
       speak(GREETING, () => {
         speakingRef.current = false;
         if (live && !live.sent && live.restart) live.restart();
       }, {
-        queue: true,
         onSilent: (why) => { speakingRef.current = false; setVoiceNote(why); },
       });
     });
