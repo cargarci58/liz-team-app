@@ -954,25 +954,27 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
   const [personal, setPersonal] = useState({ overdue:[], dueToday:[], upcoming:[] });
   const [callsDue, setCallsDue] = useState([]);
   const [callBacklog, setCallBacklog] = useState(0);   // follow-ups waiting beyond today's list
-  const [pullingMore, setPullingMore] = useState(false);
-  const pullMoreCalls = async () => {
-    setPullingMore(true);
+  const [rhythmBacklog, setRhythmBacklog] = useState(0); // tier-cadence contacts waiting beyond today's 15
+  const [pullingMore, setPullingMore] = useState(null); // which list is loading: "followup" | "rhythm" | null
+  const pullMoreCalls = async (kind) => {
+    setPullingMore(kind);
     try {
       const r = await fetch(API + "/contacts/due-today/pull-more", {
         method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
-        body: JSON.stringify({ count: 10 }),
+        body: JSON.stringify({ count: 10, kind }),
       });
       const d = await r.json();
       if (!r.ok || !d.success) throw new Error(d.error || "Could not load more");
-      // Refresh the calls list (and the waiting count) with the pulled-in batch.
+      // Refresh the calls list (and the waiting counts) with the pulled-in batch.
       const cr = await fetch(API + "/contacts/due-today", { headers: { Authorization: "Bearer " + token } });
       if (cr.ok) {
         const cd = await cr.json();
         setCallsDue(cd.calls || []);
         setCallBacklog(cd.backlogCount || 0);
+        setRhythmBacklog(cd.rhythmBacklogCount || 0);
       }
     } catch (e) { alert("⚠️ " + e.message); }
-    setPullingMore(false);
+    setPullingMore(null);
   };
   const [occasions, setOccasions] = useState([]);
   const [recentAlerts, setRecentAlerts] = useState([]); // 🔔 last 14 days of pop-ups
@@ -1188,6 +1190,7 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
         const callsData = await callsRes.json();
         setCallsDue(callsData.calls || []);
         setCallBacklog(callsData.backlogCount || 0);
+        setRhythmBacklog(callsData.rhythmBacklogCount || 0);
         setOccasions(callsData.occasions || []);
         setPopByDueCount(callsData.popByDueCount || 0);
       }
@@ -1591,25 +1594,27 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
         };
         const followUps = callsDue.filter(c => c.batch_kind === "followup");
         const rhythm = callsDue.filter(c => c.batch_kind !== "followup");
+        // The waiting queues are VISIBLE and workable — agent pulls 10 at a
+        // time by choice; the day's target never grows on its own.
+        const pullMoreBanner = (count, kind, message) => count > 0 && (
+          <div style={{ background: "#FFFBEB", border: "1px solid #FDE68A", borderRadius: 10, padding: "12px 14px", marginBottom: 14, display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+            <div style={{ flex: "1 1 220px", fontSize: 13, color: "#78350F", lineHeight: 1.45 }}>
+              🔄 <b>{message(count)}</b>
+            </div>
+            <button onClick={() => pullMoreCalls(kind)} disabled={!!pullingMore}
+              style={{ padding: "9px 16px", borderRadius: 8, border: "none", background: pullingMore ? "#B45309aa" : "#B45309", color: "#fff", fontWeight: 800, fontSize: 13, cursor: pullingMore ? "wait" : "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>
+              {pullingMore === kind ? "Loading…" : `Show ${Math.min(10, count)} more`}
+            </button>
+          </div>
+        );
         return (
           <>
             {renderCallSection(followUps, "🔁 FOLLOW-UPS YOU PROMISED", "#7c2d12",
               <>These are follow-up calls you scheduled — knock these out first, then keep going with today's list below.</>)}
-            {/* The waiting queue is VISIBLE and workable — agent pulls 10 at a
-                time by choice; the day's target never grows on its own. */}
-            {callBacklog > 0 && (
-              <div style={{ background: "#FFFBEB", border: "1px solid #FDE68A", borderRadius: 10, padding: "12px 14px", marginBottom: 14, display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-                <div style={{ flex: "1 1 220px", fontSize: 13, color: "#78350F", lineHeight: 1.45 }}>
-                  🔄 <b>You have {callBacklog} more follow-up{callBacklog === 1 ? "" : "s"} due</b> beyond today's list — promises waiting past their date.
-                </div>
-                <button onClick={pullMoreCalls} disabled={pullingMore}
-                  style={{ padding: "9px 16px", borderRadius: 8, border: "none", background: pullingMore ? "#B45309aa" : "#B45309", color: "#fff", fontWeight: 800, fontSize: 13, cursor: pullingMore ? "wait" : "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>
-                  {pullingMore ? "Loading…" : `Show ${Math.min(10, callBacklog)} more`}
-                </button>
-              </div>
-            )}
+            {pullMoreBanner(callBacklog, "followup", n => <>You have {n} more follow-up{n === 1 ? "" : "s"} due beyond today's list — promises waiting past their date.</>)}
             {renderCallSection(rhythm, "📞 CALLS DUE TODAY", "#0c4a6e",
               <>Tap <b>Call</b> to dial — then log the outcome.</>)}
+            {pullMoreBanner(rhythmBacklog, "rhythm", n => <>You have {n} more contact{n === 1 ? "" : "s"} due for a call beyond today's list.</>)}
           </>
         );
       })()}
