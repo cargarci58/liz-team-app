@@ -154,7 +154,27 @@ function blobToBase64(blob) {
 // `queue: true` adds this sentence BEHIND whatever is already playing instead
 // of cutting it off — that's what lets a streamed answer start out loud on
 // sentence one while sentence two is still being written.
-function speak(text, onDone, { queue = false } = {}) {
+// Chrome fills speechSynthesis.getVoices() ASYNCHRONOUSLY. Call speak() before
+// that list arrives and Chrome can accept the utterance and simply never play
+// it — silently. Wait for the list (or a short timeout) before the first words.
+function whenVoicesReady(cb) {
+  try {
+    if (!window.speechSynthesis) { cb(); return; }
+    const have = (window.speechSynthesis.getVoices() || []).length > 0;
+    if (have) { cb(); return; }
+    let done = false;
+    const go = () => { if (done) return; done = true; cb(); };
+    window.speechSynthesis.addEventListener
+      ? window.speechSynthesis.addEventListener("voiceschanged", go, { once: true })
+      : (window.speechSynthesis.onvoiceschanged = go);
+    setTimeout(go, 1200);   // never block the greeting on an event that may not come
+  } catch { cb(); }
+}
+
+// `onSilent` fires when the utterance was handed to the browser but never
+// actually started speaking — a wedged engine, a muted tab, no audio output.
+// Without it every one of those failures looks identical to "working fine".
+function speak(text, onDone, { queue = false, onSilent } = {}) {
   // Deferred: speechSynthesis.speak()/cancel() on macOS Chrome can hang the
   // tab for many seconds (long-standing Chromium bug, worst with the local
   // "Enhanced/Premium/Samantha" voices). Running it after a tick means the
@@ -162,10 +182,25 @@ function speak(text, onDone, { queue = false } = {}) {
   // mic indicator updates — even if the speech engine then stalls.
   setTimeout(() => {
     try {
-      if (!window.speechSynthesis || !text) { if (onDone) onDone(); return; }
+      if (!window.speechSynthesis || !text) {
+        if (onSilent) onSilent("no-engine");
+        if (onDone) onDone();
+        return;
+      }
       if (!queue && (window.speechSynthesis.speaking || window.speechSynthesis.pending)) window.speechSynthesis.cancel();
       const u = new SpeechSynthesisUtterance(text);
       u.rate = 1.04;
+      // Did it ACTUALLY start talking? A browser that accepts the utterance and
+      // then plays nothing (wedged engine, muted tab, no output device) is the
+      // failure mode users report as "I clicked it and nothing happened".
+      if (onSilent) {
+        let started = false;
+        u.addEventListener("start", () => { started = true; });
+        u.addEventListener("error", (e) => {
+          if (!started) onSilent((e && e.error) ? String(e.error) : "error");
+        });
+        setTimeout(() => { if (!started) onSilent("never-started"); }, 2500);
+      }
       // Prefer Google's en-US voice (Chrome, streamed, doesn't trigger the
       // hang), else the plain system default. NEVER pick the Enhanced/
       // Premium/Samantha local voices — they're the ones that freeze.
@@ -575,6 +610,11 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
   const [listening, setListening] = useState(false);
   const [interim, setInterim] = useState("");   // live transcript while talking
   const [micNote, setMicNote] = useState(null); // mic error/help text
+  // Why you can't HEAR the assistant. Speech failed silently in three different
+  // ways (muted per-device, Chrome's voice list not loaded, engine accepted the
+  // words and played nothing) and every one of them looked identical from the
+  // outside: an assistant that just doesn't talk. Now it says which.
+  const [voiceNote, setVoiceNote] = useState(null);
   const [recording, setRecording] = useState(false);     // MediaRecorder fallback active
   const [transcribing, setTranscribing] = useState(false);
   const [micStarting, setMicStarting] = useState(false);  // instant tap feedback while the mic opens
@@ -686,18 +726,33 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
   // `live` is the open recognizer session when there IS one: we mute it while
   // we talk so the assistant doesn't hear itself, then hand the mic back.
   const greetedRef = useRef(false);
-  const greet = (live = null) => {
+  // `force` skips the muted check for the one caller that has JUST unmuted:
+  // setSpeakOn(true) doesn't update the `speakOn` this closure captured until
+  // the next render, so without it the unmute button re-reported "muted" and
+  // stayed silent.
+  const greet = (live = null, { force = false } = {}) => {
     if (greetedRef.current) return;
     greetedRef.current = true;
-    if (!speakOn || !openRef.current) return;
+    if (!openRef.current) return;
+    // Muted is a CHOICE, but it's stored per-device in this browser — so an
+    // agent who tapped the speaker once on this machine got permanent silence
+    // with nothing on screen to explain it. Say so, and make it one tap to fix.
+    if (!speakOn && !force) { setVoiceNote("muted"); return; }
     if (live) { speakingRef.current = true; live.muted = true; }
-    // queue:true so the greeting never calls speechSynthesis.cancel(). It's the
-    // first thing said on open — there is nothing legitimate to interrupt — and
-    // cancel() is what wedges macOS Chrome (see unlockSpeech and stopSpeaking).
-    speak(GREETING, () => {
-      speakingRef.current = false;
-      if (live && !live.sent && live.restart) live.restart();
-    }, { queue: true });
+    // Wait for Chrome's async voice list: speaking before it lands is accepted
+    // and then silently never played.
+    whenVoicesReady(() => {
+      // queue:true so the greeting never calls speechSynthesis.cancel(). It's
+      // the first thing said on open — nothing legitimate to interrupt — and
+      // cancel() is what wedges macOS Chrome (see unlockSpeech/stopSpeaking).
+      speak(GREETING, () => {
+        speakingRef.current = false;
+        if (live && !live.sent && live.restart) live.restart();
+      }, {
+        queue: true,
+        onSilent: (why) => { speakingRef.current = false; setVoiceNote(why); },
+      });
+    });
   };
 
   const ttsStart = (onDone) => {
@@ -756,6 +811,7 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
     // inside the click, with a silent utterance. (Harmless everywhere else.)
     unlockSpeech();
     greetedRef.current = false;   // one greeting per open
+    setVoiceNote(null);           // re-diagnose each open
 
     // Auto-listen opens the mic in THIS tap and the greeting plays over the top
     // of it — armMic() FIRST (startListening cancels any speech as it starts,
@@ -1449,6 +1505,40 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
               {micNote && (
                 <div style={{ background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: 10, padding: "10px 12px", fontSize: 12.5, color: "#7F1D1D", lineHeight: 1.5, marginTop: 4 }}>
                   🎤 {micNote}
+                </div>
+              )}
+              {/* Why you can't hear me. Silence used to be the only symptom. */}
+              {voiceNote && (
+                <div style={{ background: "#F1F5F9", border: "1px solid #E2E8F0", borderRadius: 10, padding: "10px 12px", fontSize: 12.5, color: "#334155", lineHeight: 1.5, marginTop: 4 }}>
+                  {voiceNote === "muted" ? (
+                    <>
+                      🔇 <b>Voice replies are off on this device.</b> You'll still get
+                      every answer in writing.
+                      <div style={{ marginTop: 8 }}>
+                        <button
+                          onClick={() => {
+                            setVoiceNote(null);
+                            setSpeakOn(true);
+                            try { localStorage.setItem("tp_assist_speak", "on"); } catch { /* private mode */ }
+                            greetedRef.current = false;
+                            greet(null, { force: true });
+                          }}
+                          style={{ background: NAVY, color: "#fff", border: "none", borderRadius: 8, padding: "6px 12px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                          🔊 Turn the voice on
+                        </button>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      🔈 <b>I can't get your browser to play sound.</b> The words are
+                      all here — but if you want to hear them: check this tab isn't
+                      muted (right-click the tab → Unmute), check your Mac's volume,
+                      then reload. Chrome and Edge are the most reliable for this.
+                      <div style={{ marginTop: 6, fontSize: 11, color: "#64748B" }}>
+                        Technical detail, in case you tell support: speech-synthesis {voiceNote}.
+                      </div>
+                    </>
+                  )}
                 </div>
               )}
             </div>
