@@ -949,12 +949,184 @@ function SendPreviewModal({ preview, busy, onCancel, onSend }) {
 }
 
 // ── MAIN DASHBOARD ────────────────────────────────────────────
+// ── Follow-Up Review: flip through EVERY due promise one card at a time —
+//    call it, keep it (new date), or stop following up. List shrinks as the
+//    agent works it; closing and reopening picks up where it left off because
+//    only un-actioned promises remain due.
+function FollowupReviewModal({ token, isMobile, onClose }) {
+  const [list, setList] = useState(null);        // null = loading
+  const [pos, setPos] = useState(0);
+  const [initialTotal, setInitialTotal] = useState(0);
+  const [reviewed, setReviewed] = useState(0);
+  const [staleCount, setStaleCount] = useState(0);
+  const [busy, setBusy] = useState(false);
+  const [calledId, setCalledId] = useState(null); // mobile: reveal Log after dialing
+
+  const load = async (fresh) => {
+    try {
+      const r = await fetch(API + "/contacts/followups/review", { headers: { Authorization: "Bearer " + token } });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error || "Could not load follow-ups");
+      setList(d.contacts || []);
+      setStaleCount(d.staleCount || 0);
+      if (fresh) { setInitialTotal(d.count || 0); setReviewed(0); setPos(0); }
+    } catch (e) { alert("⚠️ " + e.message); setList([]); }
+  };
+  useEffect(() => { load(true); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const current = list && list.length > 0 ? list[Math.min(pos, list.length - 1)] : null;
+  const removeCurrent = () => {
+    setList(l => l.filter(c => c.id !== current.id));
+    setReviewed(n => n + 1);
+    setPos(p => Math.min(p, Math.max(0, (list?.length || 1) - 2)));
+    setCalledId(null);
+  };
+  const stopFollowup = async () => {
+    setBusy(true);
+    try {
+      const r = await fetch(API + "/contacts/" + current.id + "/stop-followup", {
+        method: "POST", headers: { Authorization: "Bearer " + token },
+      });
+      const d = await r.json();
+      if (!r.ok || !d.success) throw new Error(d.error || "Could not stop follow-up");
+      removeCurrent();
+    } catch (e) { alert("⚠️ " + e.message); }
+    setBusy(false);
+  };
+  const keepFor = async (days) => {
+    setBusy(true);
+    try {
+      const d0 = new Date(); d0.setDate(d0.getDate() + days);
+      const r = await fetch(API + "/contacts/" + current.id + "/reschedule-followup", {
+        method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
+        body: JSON.stringify({ date: d0.toISOString() }),
+      });
+      const d = await r.json();
+      if (!r.ok || !d.success) throw new Error(d.error || "Could not reschedule");
+      removeCurrent();
+    } catch (e) { alert("⚠️ " + e.message); }
+    setBusy(false);
+  };
+  const stopStale = async () => {
+    if (!window.confirm(`Stop ALL ${staleCount} follow-ups older than 6 months?\n\nThe contacts stay in your database with their grades — only the old follow-up reminders are cleared. This cannot be undone in one tap.`)) return;
+    setBusy(true);
+    try {
+      const r = await fetch(API + "/contacts/followups/stop-stale", {
+        method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
+        body: JSON.stringify({ olderThanDays: 180 }),
+      });
+      const d = await r.json();
+      if (!r.ok || !d.success) throw new Error(d.error || "Could not stop stale follow-ups");
+      setReviewed(n => n + (d.stopped || 0));
+      await load(false);
+      setPos(0);
+    } catch (e) { alert("⚠️ " + e.message); }
+    setBusy(false);
+  };
+
+  const btn = (bg, extra = {}) => ({ padding: "11px 14px", borderRadius: 9, border: "none", background: bg, color: "#fff", fontWeight: 800, fontSize: 13.5, cursor: busy ? "wait" : "pointer", fontFamily: "inherit", opacity: busy ? 0.6 : 1, ...extra });
+  const name = current ? ([current.first_name, current.last_name].filter(Boolean).join(" ") || current.email || current.phone || "(no name)") : "";
+  const overdueDays = current?.next_call_due_at ? -(daysUntil(current.next_call_due_at) ?? 0) : 0;
+  const pct = initialTotal > 0 ? Math.round((reviewed / initialTotal) * 100) : 0;
+
+  return (
+    // Deliberate: no backdrop-click close — a stray tap must not lose the agent's place.
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)", zIndex: 3000, display: "flex", alignItems: "flex-start", justifyContent: "center", overflowY: "auto", padding: "24px 12px" }}>
+      <div style={{ background: "#fff", borderRadius: 14, width: "100%", maxWidth: 480, boxShadow: "0 10px 40px rgba(0,0,0,0.25)", overflow: "hidden" }}>
+        <div style={{ background: "#7c2d12", color: "#fff", padding: "14px 16px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
+          <div style={{ fontWeight: 800, fontSize: 15 }}>🔁 Follow-Up Review</div>
+          <button onClick={onClose} style={{ background: "rgba(255,255,255,0.15)", border: "none", color: "#fff", borderRadius: 8, padding: "5px 12px", fontWeight: 800, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>✕ Done</button>
+        </div>
+
+        {initialTotal > 0 && (
+          <div style={{ padding: "10px 16px 0" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, fontWeight: 700, color: "#7c2d12", marginBottom: 4 }}>
+              <span>{reviewed} of {initialTotal} reviewed</span><span>{pct}%</span>
+            </div>
+            <div style={{ height: 7, background: "#fde68a", borderRadius: 4 }}>
+              <div style={{ height: 7, width: pct + "%", background: "#b45309", borderRadius: 4, transition: "width .25s" }} />
+            </div>
+          </div>
+        )}
+
+        {list === null ? (
+          <div style={{ padding: 40, textAlign: "center", color: "#6b7280", fontSize: 14 }}>Loading follow-ups…</div>
+        ) : !current ? (
+          <div style={{ padding: 40, textAlign: "center" }}>
+            <div style={{ fontSize: 34 }}>🎉</div>
+            <div style={{ fontWeight: 800, fontSize: 16, color: "#166534", marginTop: 6 }}>All caught up!</div>
+            <div style={{ fontSize: 13, color: "#6b7280", marginTop: 4 }}>No follow-ups waiting for a decision.</div>
+            <button onClick={onClose} style={{ ...btn("#166534"), marginTop: 16 }}>Close</button>
+          </div>
+        ) : (
+          <div style={{ padding: 16 }}>
+            <div style={{ background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 10, padding: 14 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
+                <div style={{ fontWeight: 800, fontSize: 17, color: "#111" }}>
+                  {name}
+                  {current.tier && <span style={{ marginLeft: 7, fontSize: 11, fontWeight: 800, color: "#fff", background: "#0c4a6e", borderRadius: 10, padding: "1px 8px", verticalAlign: "middle" }}>{current.tier}</span>}
+                </div>
+                {overdueDays > 0 && <span style={{ fontSize: 11.5, fontWeight: 800, color: "#b91c1c", background: "#fee2e2", borderRadius: 8, padding: "3px 8px", whiteSpace: "nowrap" }}>{overdueDays} day{overdueDays === 1 ? "" : "s"} overdue</span>}
+              </div>
+              {current.next_call_reason && (
+                <div style={{ fontSize: 13.5, color: "#7c2d12", fontWeight: 700, marginTop: 7 }}>🎯 You promised: {current.next_call_reason}</div>
+              )}
+              <div style={{ fontSize: 12.5, color: "#6b7280", marginTop: 7, lineHeight: 1.6 }}>
+                {current.phone && <div>📞 {isMobile ? <a href={`tel:${telHref(current.phone)}`} onClick={() => setCalledId(current.id)} style={{ color: "#0c4a6e", fontWeight: 700 }}>{current.phone}</a> : current.phone}</div>}
+                {current.next_call_due_at && <div>📅 Was due {new Date(current.next_call_due_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</div>}
+                {current.last_contacted_at && <div>🕐 Last talked {new Date(current.last_contacted_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</div>}
+                {current.notes && <div style={{ fontStyle: "italic", marginTop: 3 }}>"{String(current.notes).slice(0, 160)}"</div>}
+              </div>
+            </div>
+
+            <div style={{ display: "grid", gap: 8, marginTop: 12 }}>
+              <div style={{ display: "flex", gap: 8 }}>
+                {isMobile && current.phone && (
+                  <a href={`tel:${telHref(current.phone)}`} onClick={() => setCalledId(current.id)}
+                    style={{ ...btn("#15803d"), flex: 1, textAlign: "center", textDecoration: "none", display: "block" }}>📞 Call now</a>
+                )}
+                <div style={{ flex: 1, display: "flex" }}>
+                  <LogCallButton key={current.id} contact={current} token={token} onLogged={removeCurrent} autoOpen={isMobile && calledId === current.id} />
+                </div>
+              </div>
+              <div>
+                <div style={{ fontSize: 11.5, fontWeight: 800, color: "#0c4a6e", marginBottom: 5 }}>📅 KEEP — CALL ME BACK:</div>
+                <div style={{ display: "flex", gap: 7 }}>
+                  <button disabled={busy} onClick={() => keepFor(7)} style={{ ...btn("#0c4a6e"), flex: 1, padding: "9px 6px", fontSize: 12.5 }}>Next week</button>
+                  <button disabled={busy} onClick={() => keepFor(30)} style={{ ...btn("#0c4a6e"), flex: 1, padding: "9px 6px", fontSize: 12.5 }}>Next month</button>
+                  <button disabled={busy} onClick={() => keepFor(90)} style={{ ...btn("#0c4a6e"), flex: 1, padding: "9px 6px", fontSize: 12.5 }}>In 3 months</button>
+                </div>
+              </div>
+              <button disabled={busy} onClick={stopFollowup} style={btn("#b91c1c")}>🛑 Stop following up</button>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span style={{ fontSize: 11.5, color: "#9ca3af" }}>Stopping keeps the contact + grade — only the reminder is cleared.</span>
+                {list.length > 1 && (
+                  <button disabled={busy} onClick={() => { setPos(p => (p + 1) % list.length); setCalledId(null); }}
+                    style={{ background: "none", border: "none", color: "#6b7280", fontWeight: 800, fontSize: 12.5, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>Skip →</button>
+                )}
+              </div>
+            </div>
+
+            {staleCount > 0 && (
+              <button disabled={busy} onClick={stopStale}
+                style={{ marginTop: 14, width: "100%", padding: "9px 12px", borderRadius: 9, border: "1px dashed #fca5a5", background: "#fef2f2", color: "#b91c1c", fontWeight: 800, fontSize: 12.5, cursor: busy ? "wait" : "pointer", fontFamily: "inherit" }}>
+                🛑 Stop all {staleCount} follow-ups older than 6 months
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function DailyDashboard({ token, user, onViewTransactions, onOpenTransactionMilestones, onOpenInboundReply, onOpenPopBys, coordinatorMode = false }) {
   const [tasks, setTasks] = useState({ overdue:[], dueToday:[], upcoming:[] });
   const [personal, setPersonal] = useState({ overdue:[], dueToday:[], upcoming:[] });
   const [callsDue, setCallsDue] = useState([]);
   const [callBacklog, setCallBacklog] = useState(0);   // follow-ups waiting beyond today's list
   const [rhythmBacklog, setRhythmBacklog] = useState(0); // tier-cadence contacts waiting beyond today's 15
+  const [reviewOpen, setReviewOpen] = useState(false);   // 🔁 Follow-Up Review modal
   const [pullingMore, setPullingMore] = useState(null); // which list is loading: "followup" | "rhythm" | null
   const pullMoreCalls = async (kind) => {
     setPullingMore(kind);
@@ -1596,7 +1768,7 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
         const rhythm = callsDue.filter(c => c.batch_kind !== "followup");
         // The waiting queues are VISIBLE and workable — agent pulls 10 at a
         // time by choice; the day's target never grows on its own.
-        const pullMoreBanner = (count, kind, message) => count > 0 && (
+        const pullMoreBanner = (count, kind, message, extraBtn) => count > 0 && (
           <div style={{ background: "#FFFBEB", border: "1px solid #FDE68A", borderRadius: 10, padding: "12px 14px", marginBottom: 14, display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
             <div style={{ flex: "1 1 220px", fontSize: 13, color: "#78350F", lineHeight: 1.45 }}>
               🔄 <b>{message(count)}</b>
@@ -1605,16 +1777,27 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
               style={{ padding: "9px 16px", borderRadius: 8, border: "none", background: pullingMore ? "#B45309aa" : "#B45309", color: "#fff", fontWeight: 800, fontSize: 13, cursor: pullingMore ? "wait" : "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>
               {pullingMore === kind ? "Loading…" : `Show ${Math.min(10, count)} more`}
             </button>
+            {extraBtn}
           </div>
+        );
+        const reviewBtn = (
+          <button onClick={() => setReviewOpen(true)}
+            style={{ padding: "9px 16px", borderRadius: 8, border: "1px solid #B45309", background: "#fff", color: "#B45309", fontWeight: 800, fontSize: 13, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>
+            📋 Review all
+          </button>
         );
         return (
           <>
             {renderCallSection(followUps, "🔁 FOLLOW-UPS YOU PROMISED", "#7c2d12",
               <>These are follow-up calls you scheduled — knock these out first, then keep going with today's list below.</>)}
-            {pullMoreBanner(callBacklog, "followup", n => <>You have {n} more follow-up{n === 1 ? "" : "s"} due beyond today's list — promises waiting past their date.</>)}
+            {pullMoreBanner(callBacklog, "followup", n => <>You have {n} more follow-up{n === 1 ? "" : "s"} due beyond today's list — promises waiting past their date.</>, reviewBtn)}
+            {callBacklog === 0 && followUps.length > 0 && (
+              <div style={{ display: "flex", justifyContent: "flex-end", marginTop: -6, marginBottom: 12 }}>{reviewBtn}</div>
+            )}
             {renderCallSection(rhythm, "📞 CALLS DUE TODAY", "#0c4a6e",
               <>Tap <b>Call</b> to dial — then log the outcome.</>)}
             {pullMoreBanner(rhythmBacklog, "rhythm", n => <>You have {n} more contact{n === 1 ? "" : "s"} due for a call beyond today's list.</>)}
+            {reviewOpen && <FollowupReviewModal token={token} isMobile={isMobile} onClose={() => { setReviewOpen(false); fetchTasks(); }} />}
           </>
         );
       })()}
