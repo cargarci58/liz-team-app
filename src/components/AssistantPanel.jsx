@@ -53,8 +53,8 @@ const CHIPS = [
   { label: "🏠 Deal status", send: "", fill: "what's the status of " },
   { label: "💬 Unread messages", send: "Do I have unread messages?" },
   { label: "📝 Add a task", send: "", fill: "remind me to " },
-  // The Help Center panel is no longer a floating button of its own — this chip
-  // (and ⚙️ Menu → ❓ Help & Guides) is how you get to the full guide library.
+  // The Help Center is no longer a floating button of its own — this chip (and
+  // ⚙️ Menu → ❓ Help & Guides) is how you reach the full guide library.
   { label: "📖 Browse all guides", nav: "help" },
 ];
 
@@ -154,27 +154,7 @@ function blobToBase64(blob) {
 // `queue: true` adds this sentence BEHIND whatever is already playing instead
 // of cutting it off — that's what lets a streamed answer start out loud on
 // sentence one while sentence two is still being written.
-// Chrome fills speechSynthesis.getVoices() ASYNCHRONOUSLY. Call speak() before
-// that list arrives and Chrome can accept the utterance and simply never play
-// it — silently. Wait for the list (or a short timeout) before the first words.
-function whenVoicesReady(cb) {
-  try {
-    if (!window.speechSynthesis) { cb(); return; }
-    const have = (window.speechSynthesis.getVoices() || []).length > 0;
-    if (have) { cb(); return; }
-    let done = false;
-    const go = () => { if (done) return; done = true; cb(); };
-    window.speechSynthesis.addEventListener
-      ? window.speechSynthesis.addEventListener("voiceschanged", go, { once: true })
-      : (window.speechSynthesis.onvoiceschanged = go);
-    setTimeout(go, 1200);   // never block the greeting on an event that may not come
-  } catch { cb(); }
-}
-
-// `onSilent` fires when the utterance was handed to the browser but never
-// actually started speaking — a wedged engine, a muted tab, no audio output.
-// Without it every one of those failures looks identical to "working fine".
-function speak(text, onDone, { queue = false, onSilent } = {}) {
+function speak(text, onDone, { queue = false } = {}) {
   // Deferred: speechSynthesis.speak()/cancel() on macOS Chrome can hang the
   // tab for many seconds (long-standing Chromium bug, worst with the local
   // "Enhanced/Premium/Samantha" voices). Running it after a tick means the
@@ -182,31 +162,13 @@ function speak(text, onDone, { queue = false, onSilent } = {}) {
   // mic indicator updates — even if the speech engine then stalls.
   setTimeout(() => {
     try {
-      if (!window.speechSynthesis || !text) {
-        if (onSilent) onSilent("no-engine");
-        if (onDone) onDone();
-        return;
-      }
+      if (!window.speechSynthesis || !text) { if (onDone) onDone(); return; }
       if (!queue && (window.speechSynthesis.speaking || window.speechSynthesis.pending)) window.speechSynthesis.cancel();
       const u = new SpeechSynthesisUtterance(text);
       u.rate = 1.04;
-      // Did it ACTUALLY start talking? A browser that accepts the utterance and
-      // then plays nothing (wedged engine, muted tab, no output device) is the
-      // failure mode users report as "I clicked it and nothing happened".
-      if (onSilent) {
-        let started = false;
-        u.addEventListener("start", () => { started = true; });
-        u.addEventListener("error", (e) => {
-          if (!started) onSilent((e && e.error) ? String(e.error) : "error");
-        });
-        setTimeout(() => { if (!started) onSilent("never-started"); }, 2500);
-      }
       // Prefer Google's en-US voice (Chrome, streamed, doesn't trigger the
       // hang), else the plain system default. NEVER pick the Enhanced/
       // Premium/Samantha local voices — they're the ones that freeze.
-      // (Briefly reordered to prefer local voices; that was a guess, it changed
-      // known-good behaviour, and it's reverted. /voice-check.html is the way
-      // to settle which voice actually plays on a given machine.)
       const voices = window.speechSynthesis.getVoices() || [];
       const preferred =
         voices.find(v => /en[-_]US/i.test(v.lang) && /google/i.test(v.name)) ||
@@ -241,19 +203,6 @@ function speak(text, onDone, { queue = false, onSilent } = {}) {
 // already spoken once from a real tap. Burn that one inside the click handler
 // with a silent utterance, so later speech — the greeting, the answers — is
 // allowed to play.
-//
-// SAFARI/iOS ONLY, deliberately. On desktop Chrome speech needs no unlocking,
-// and this silent utterance was actively harmful there: it leaves an utterance
-// PENDING, and the very next thing that runs (stopSpeaking(), or speak() with
-// queue:false) sees pending and calls speechSynthesis.cancel() — the exact call
-// that wedges the macOS Chrome speech engine for the rest of the page load.
-// Net effect was an assistant that greeted fine on a phone, where the mic came
-// up and the greeting ran hundreds of ms later with nothing left pending, and
-// was stone silent on a desktop where the greeting ran immediately.
-// NOTE: runs on EVERY browser, deliberately. It was briefly gated to Safari/iOS
-// on the theory that the pending silent utterance was what wedged macOS Chrome.
-// That theory was wrong and the gate broke desktop Chrome, where this call was
-// evidently also priming the engine. Don't re-gate it without a reproduction.
 let speechUnlocked = false;
 function unlockSpeech() {
   if (speechUnlocked) return;
@@ -601,24 +550,11 @@ function Card({ card, token, onOpenDeal, onNavigate, onSend, onSpokenConfirm }) 
 export default function AssistantPanel({ token, contacts, transactions, currentView, currentDealAddress, onOpenDeal, onNavigate }) {
   const [open, setOpen] = useState(false);
   const [msgs, setMsgs] = useState([]);      // { role: "user"|"assistant", text, cards }
-  // First-login coach bubble for the one help button (see the launcher below).
-  const [showCoach, setShowCoach] = useState(() => {
-    try { return localStorage.getItem("tp_assist_coach") !== "seen"; } catch { return false; }
-  });
-  const dismissCoach = () => {
-    setShowCoach(false);
-    try { localStorage.setItem("tp_assist_coach", "seen"); } catch { /* private mode */ }
-  };
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const [listening, setListening] = useState(false);
   const [interim, setInterim] = useState("");   // live transcript while talking
   const [micNote, setMicNote] = useState(null); // mic error/help text
-  // Why you can't HEAR the assistant. Speech failed silently in three different
-  // ways (muted per-device, Chrome's voice list not loaded, engine accepted the
-  // words and played nothing) and every one of them looked identical from the
-  // outside: an assistant that just doesn't talk. Now it says which.
-  const [voiceNote, setVoiceNote] = useState(null);
   const [recording, setRecording] = useState(false);     // MediaRecorder fallback active
   const [transcribing, setTranscribing] = useState(false);
   const [micStarting, setMicStarting] = useState(false);  // instant tap feedback while the mic opens
@@ -708,57 +644,8 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
   // until it's tapped — auto-starting THAT would leave a hot mic on a panel
   // nobody is talking to. Fallback browsers tap 🎤 as before.
   const armMic = (opts) => {
-    if (!autoMicRef.current || !openRef.current || !SR) {
-      // Auto-mic off, or no recognizer in this browser — still greet. Talking
-      // and listening are separate abilities; see greet() below.
-      if (opts && opts.onUnavailable) opts.onUnavailable();
-      return;
-    }
+    if (!autoMicRef.current || !openRef.current || !SR) return;
     startListening(opts);
-  };
-
-  // Say hello. Idempotent per panel-open (greetedRef), so it doesn't matter how
-  // many paths call it — exactly one greeting comes out.
-  //
-  // This used to live INSIDE the mic's onReady callback, which meant the
-  // greeting only played if the microphone came up. On a desktop where the mic
-  // is blocked, absent, or held by another app (Zoom, Teams, FaceTime), every
-  // failure path returned early and the assistant opened in total silence,
-  // while the same account greeted normally on a phone where the mic was
-  // granted. Speaking does not depend on listening — greet either way.
-  //
-  // `live` is the open recognizer session when there IS one: we mute it while
-  // we talk so the assistant doesn't hear itself, then hand the mic back.
-  const greetedRef = useRef(false);
-  // `force` skips the muted check for the one caller that has JUST unmuted:
-  // setSpeakOn(true) doesn't update the `speakOn` this closure captured until
-  // the next render, so without it the unmute button re-reported "muted" and
-  // stayed silent.
-  const greet = (live = null, { force = false } = {}) => {
-    if (greetedRef.current) return;
-    greetedRef.current = true;
-    if (!openRef.current) return;
-    // Muted is a CHOICE, but it's stored per-device in this browser — so an
-    // agent who tapped the speaker once on this machine got permanent silence
-    // with nothing on screen to explain it. Say so, and make it one tap to fix.
-    if (!speakOn && !force) { setVoiceNote("muted"); return; }
-    if (live) { speakingRef.current = true; live.muted = true; }
-    // Wait for Chrome's async voice list: speaking before it lands is accepted
-    // and then silently never played.
-    whenVoicesReady(() => {
-      // queue:true so the greeting never calls speechSynthesis.cancel(). It's
-      // the first thing said on open — nothing legitimate to interrupt — and
-      // cancel() is what wedges macOS Chrome (see unlockSpeech/stopSpeaking).
-      // queue:false — the ORIGINAL behaviour, restored. Speaking with queue:true
-      // stopped the greeting clearing a stuck speaking/pending state, which is
-      // the one thing cancel() was there to do.
-      speak(GREETING, () => {
-        speakingRef.current = false;
-        if (live && !live.sent && live.restart) live.restart();
-      }, {
-        onSilent: (why) => { speakingRef.current = false; setVoiceNote(why); },
-      });
-    });
   };
 
   const ttsStart = (onDone) => {
@@ -806,30 +693,35 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
 
   const openPanel = () => {
     setOpen(true);
-    dismissCoach();
     openRef.current = true;   // armMic() runs before the next render
     refreshTasks();
     if (msgs.length === 0) {
       setMsgs([{ role: "assistant", text: GREETING, cards: [] }]);
     }
-    // iOS only lets a page speak if speech was started from a real tap, and the
-    // greeting can play from an async callback — so claim that right here,
-    // inside the click, with a silent utterance. (Harmless everywhere else.)
-    unlockSpeech();
-    greetedRef.current = false;   // one greeting per open
-    setVoiceNote(null);           // re-diagnose each open
-
-    // Auto-listen opens the mic in THIS tap and the greeting plays over the top
-    // of it — armMic() FIRST (startListening cancels any speech as it starts,
-    // so greeting-then-mic would cut itself off), then greet. What the open mic
-    // picks up from our own speaker is thrown away, see speakingRef.
-    //
-    // onUnavailable is the whole point: if the mic can't come up, we STILL
-    // greet. Whichever fires first wins; greet() ignores the second.
-    armMic({
-      onReady: () => greet(listenRef.current),
-      onUnavailable: () => greet(),
-    });
+    // Auto-listen opens the mic in THIS tap, and the greeting plays over the
+    // top of it — armMic() FIRST (startListening cancels any speech as it
+    // starts, so greeting-then-mic would cut itself off), then greet. What the
+    // open mic picks up from our own speaker is thrown away, see speakingRef.
+    if (autoMicRef.current && SR) {
+      // iOS only lets a page speak if speech was started from a tap, and the
+      // greeting now plays from an async callback — so claim that right here,
+      // inside the click, with a silent utterance.
+      unlockSpeech();
+      armMic({
+        onReady: () => {
+          if (!speakOn || !openRef.current) return;
+          const live = listenRef.current;
+          speakingRef.current = true;
+          if (live) live.muted = true;      // deaf while we greet
+          speak(GREETING, () => {
+            speakingRef.current = false;
+            if (live && !live.sent && live.restart) live.restart();
+          });
+        },
+      });
+      return;
+    }
+    if (speakOn) speak(GREETING);
   };
 
   const closePanel = () => {
@@ -929,17 +821,14 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
     return stream;
   };
 
-  const startListening = async ({ onReady, onUnavailable } = {}) => {
-    // Every early exit below must fire onUnavailable, or whatever the caller was
-    // going to do once the mic was live (greet, above) silently never happens.
-    const bail = () => { if (onUnavailable) onUnavailable(); };
-    if (!SR) { bail(); return; }
+  const startListening = async ({ onReady } = {}) => {
+    if (!SR) return;
     // Re-entrancy guard: a second tap while the mic is still opening used to
     // start a SECOND recognizer (Chrome then throws, and the two sessions
     // fight). One voice flow at a time. (Ref check too — this can be called
     // from a speech-end callback whose state snapshot is stale.)
-    if (micStarting || listening || recording) { bail(); return; }
-    if (listenRef.current && !listenRef.current.sent) { bail(); return; }
+    if (micStarting || listening || recording) return;
+    if (listenRef.current && !listenRef.current.sent) return;
     convoRef.current = true;
     stopSpeaking();
     setMicNote(null);
@@ -962,7 +851,6 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
         setMicNote(err && err.message === "mic-timeout"
           ? "The microphone didn't respond — another app (Zoom, FaceTime, Teams?) may be using it. Close that app or restart the browser, then try again."
           : MIC_BLOCKED_NOTE);
-        bail();   // blocked/busy mic must not also cost the user the greeting
         return;
       }
     }
@@ -1148,7 +1036,6 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
       setListening(false);
       if (CAN_RECORD) startRecording();
       else setMicNote("Voice input isn't available in this browser. Tip: the mic key on your phone's keyboard dictates straight into the text box.");
-      bail();   // recognizer refused to start — still greet
     }
   };
 
@@ -1403,14 +1290,18 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
   // ——— Render ———
   return (
     <>
-      {/* THE ONE help button. Was two floating buttons — this 🎙 stacked above a
-          red "?" Help FAB — which split help in two (and on phones the "?" moved
-          to the OPPOSITE corner). The assistant already answers every how-do-I
-          from the same server guide library the Help Center uses (search_help),
-          AND it can act, so it's the one that stays. It wears a "?" because a
-          microphone reads as "record something", not "get help"; the little mic
-          badge says you can talk to it. The Help Center panel itself lives on,
-          reachable from ⚙️ Menu → ❓ Help & Guides and from the chip below. */}
+      {/* THE one help button. There used to be two FABs — this one and a red "?"
+          Help button below it — which split help in half, and on phones a CSS
+          rule threw the "?" to the opposite corner. The Help Center lost its
+          floating button; this is the only one now, so it wears a "?" (a
+          microphone reads as "record something", not "get help") with a small
+          mic badge to show you can also talk to it.
+
+          APPEARANCE ONLY. Everything below this button — openPanel, the mic,
+          speak() — is the version that was working; three speculative "fixes"
+          to that logic broke both the voice and the mic on desktop and have
+          been reverted wholesale. Don't change behaviour here without a
+          reproduction; use /voice-check.html to measure first. */}
       {!open && (
         <button
           onClick={openPanel}
@@ -1421,16 +1312,6 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
           ?
           <span aria-hidden="true" style={{ position: "absolute", right: -1, bottom: -1, width: 22, height: 22, borderRadius: "50%", background: "#fff", border: `2px solid ${NAVY}`, fontSize: 11, display: "flex", alignItems: "center", justifyContent: "center", lineHeight: 1 }}>🎤</span>
         </button>
-      )}
-
-      {/* One-time coach bubble — a new agent has no idea the "?" also talks, or
-          that it can do the thing instead of just explaining it. Shows once. */}
-      {!open && showCoach && (
-        <div className="assist-coach" style={{ position: "fixed", bottom: 92, right: 24, zIndex: 1000, maxWidth: 232, background: "#fff", border: "1px solid #E5E7EB", borderRadius: 14, boxShadow: "0 10px 30px rgba(0,0,0,0.20)", padding: "12px 14px", fontFamily: "system-ui, sans-serif" }}>
-          <div style={{ fontSize: 13.5, fontWeight: 700, color: "#111", lineHeight: 1.4 }}>Stuck? Ask me anything.</div>
-          <div style={{ fontSize: 12.5, color: "#4B5563", marginTop: 3, lineHeight: 1.45 }}>Type it or say it — and I can do most of it for you.</div>
-          <button onClick={dismissCoach} style={{ marginTop: 8, background: NAVY, color: "#fff", border: "none", borderRadius: 8, padding: "6px 12px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>Got it</button>
-        </div>
       )}
 
       {open && (
@@ -1511,40 +1392,6 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
               {micNote && (
                 <div style={{ background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: 10, padding: "10px 12px", fontSize: 12.5, color: "#7F1D1D", lineHeight: 1.5, marginTop: 4 }}>
                   🎤 {micNote}
-                </div>
-              )}
-              {/* Why you can't hear me. Silence used to be the only symptom. */}
-              {voiceNote && (
-                <div style={{ background: "#F1F5F9", border: "1px solid #E2E8F0", borderRadius: 10, padding: "10px 12px", fontSize: 12.5, color: "#334155", lineHeight: 1.5, marginTop: 4 }}>
-                  {voiceNote === "muted" ? (
-                    <>
-                      🔇 <b>Voice replies are off on this device.</b> You'll still get
-                      every answer in writing.
-                      <div style={{ marginTop: 8 }}>
-                        <button
-                          onClick={() => {
-                            setVoiceNote(null);
-                            setSpeakOn(true);
-                            try { localStorage.setItem("tp_assist_speak", "on"); } catch { /* private mode */ }
-                            greetedRef.current = false;
-                            greet(null, { force: true });
-                          }}
-                          style={{ background: NAVY, color: "#fff", border: "none", borderRadius: 8, padding: "6px 12px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
-                          🔊 Turn the voice on
-                        </button>
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      🔈 <b>I can't get your browser to play sound.</b> The words are
-                      all here — but if you want to hear them: check this tab isn't
-                      muted (right-click the tab → Unmute), check your Mac's volume,
-                      then reload. Chrome and Edge are the most reliable for this.
-                      <div style={{ marginTop: 6, fontSize: 11, color: "#64748B" }}>
-                        Technical detail, in case you tell support: speech-synthesis {voiceNote}.
-                      </div>
-                    </>
-                  )}
                 </div>
               )}
             </div>

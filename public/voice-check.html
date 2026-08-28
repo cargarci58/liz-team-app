@@ -120,7 +120,9 @@ function pick(kind) {
 
 function speakOnce(kind, text, done) {
   var v = pick(kind);
-  if (kind !== 'default' && !v) {
+  // 'mic' and 'default' both mean "browser default voice" — only google/local
+  // name a specific voice that might genuinely be missing.
+  if ((kind === 'google' || kind === 'local') && !v) {
     R.events[kind] = 'no such voice available';
     show(kind, false, 'No ' + kind + ' voice exists on this computer.');
     if (done) done();
@@ -153,7 +155,13 @@ function testWithMic() {
       if (micStream) { micStream.getTracks().forEach(function (t) { t.stop(); }); micStream = null; }
     });
   };
-  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { R.notes.push('no getUserMedia'); go(); return; }
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    R.notes.push('NO MICROPHONE ACCESS IN THIS BROWSER — test 4 is meaningless here, open this page in the browser you actually use for the app');
+    document.getElementById('v-mic').className = 'verdict bad';
+    document.getElementById('v-mic').textContent =
+      '⚠️ This browser gives no microphone access at all, so this test proves nothing. Open this page in Chrome (the browser you use for the app) and run test 4 there.';
+    go(); return;
+  }
   navigator.mediaDevices.getUserMedia({ audio: true }).then(function (s) {
     micStream = s;
     R.notes.push('microphone opened OK');
