@@ -17,6 +17,7 @@ import LegalConsentGate from "./LegalConsentGate";
 import FaqHelpButton from "./components/FaqHelpButton";
 import HelpCenter from "./components/HelpCenter";
 import AssistantPanel from "./components/AssistantPanel";
+import UpdateNudge from "./components/UpdateNudge";
 import OnboardingGuide from "./components/OnboardingGuide";
 import AppTour from "./components/AppTour";
 import SpotlightTour from "./components/SpotlightTour";
@@ -10979,6 +10980,9 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
           }}
         />
       )}
+
+      {/* "New version ready" toast — deploys reach long-open tabs. */}
+      <UpdateNudge />
 
       {/* App-wide Help — floating ? button + ⚙️ Menu → ❓ Help */}
       {!isFreeGuest && (
