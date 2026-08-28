@@ -652,8 +652,37 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
   // until it's tapped — auto-starting THAT would leave a hot mic on a panel
   // nobody is talking to. Fallback browsers tap 🎤 as before.
   const armMic = (opts) => {
-    if (!autoMicRef.current || !openRef.current || !SR) return;
+    if (!autoMicRef.current || !openRef.current || !SR) {
+      // Auto-mic off, or no recognizer in this browser — still greet. Talking
+      // and listening are separate abilities; see greet() below.
+      if (opts && opts.onUnavailable) opts.onUnavailable();
+      return;
+    }
     startListening(opts);
+  };
+
+  // Say hello. Idempotent per panel-open (greetedRef), so it doesn't matter how
+  // many paths call it — exactly one greeting comes out.
+  //
+  // This used to live INSIDE the mic's onReady callback, which meant the
+  // greeting only played if the microphone came up. On a desktop where the mic
+  // is blocked, absent, or held by another app (Zoom, Teams, FaceTime), every
+  // failure path returned early and the assistant opened in total silence,
+  // while the same account greeted normally on a phone where the mic was
+  // granted. Speaking does not depend on listening — greet either way.
+  //
+  // `live` is the open recognizer session when there IS one: we mute it while
+  // we talk so the assistant doesn't hear itself, then hand the mic back.
+  const greetedRef = useRef(false);
+  const greet = (live = null) => {
+    if (greetedRef.current) return;
+    greetedRef.current = true;
+    if (!speakOn || !openRef.current) return;
+    if (live) { speakingRef.current = true; live.muted = true; }
+    speak(GREETING, () => {
+      speakingRef.current = false;
+      if (live && !live.sent && live.restart) live.restart();
+    });
   };
 
   const ttsStart = (onDone) => {
@@ -707,30 +736,23 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
     if (msgs.length === 0) {
       setMsgs([{ role: "assistant", text: GREETING, cards: [] }]);
     }
-    // Auto-listen opens the mic in THIS tap, and the greeting plays over the
-    // top of it — armMic() FIRST (startListening cancels any speech as it
-    // starts, so greeting-then-mic would cut itself off), then greet. What the
-    // open mic picks up from our own speaker is thrown away, see speakingRef.
-    if (autoMicRef.current && SR) {
-      // iOS only lets a page speak if speech was started from a tap, and the
-      // greeting now plays from an async callback — so claim that right here,
-      // inside the click, with a silent utterance.
-      unlockSpeech();
-      armMic({
-        onReady: () => {
-          if (!speakOn || !openRef.current) return;
-          const live = listenRef.current;
-          speakingRef.current = true;
-          if (live) live.muted = true;      // deaf while we greet
-          speak(GREETING, () => {
-            speakingRef.current = false;
-            if (live && !live.sent && live.restart) live.restart();
-          });
-        },
-      });
-      return;
-    }
-    if (speakOn) speak(GREETING);
+    // iOS only lets a page speak if speech was started from a real tap, and the
+    // greeting can play from an async callback — so claim that right here,
+    // inside the click, with a silent utterance. (Harmless everywhere else.)
+    unlockSpeech();
+    greetedRef.current = false;   // one greeting per open
+
+    // Auto-listen opens the mic in THIS tap and the greeting plays over the top
+    // of it — armMic() FIRST (startListening cancels any speech as it starts,
+    // so greeting-then-mic would cut itself off), then greet. What the open mic
+    // picks up from our own speaker is thrown away, see speakingRef.
+    //
+    // onUnavailable is the whole point: if the mic can't come up, we STILL
+    // greet. Whichever fires first wins; greet() ignores the second.
+    armMic({
+      onReady: () => greet(listenRef.current),
+      onUnavailable: () => greet(),
+    });
   };
 
   const closePanel = () => {
@@ -830,14 +852,17 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
     return stream;
   };
 
-  const startListening = async ({ onReady } = {}) => {
-    if (!SR) return;
+  const startListening = async ({ onReady, onUnavailable } = {}) => {
+    // Every early exit below must fire onUnavailable, or whatever the caller was
+    // going to do once the mic was live (greet, above) silently never happens.
+    const bail = () => { if (onUnavailable) onUnavailable(); };
+    if (!SR) { bail(); return; }
     // Re-entrancy guard: a second tap while the mic is still opening used to
     // start a SECOND recognizer (Chrome then throws, and the two sessions
     // fight). One voice flow at a time. (Ref check too — this can be called
     // from a speech-end callback whose state snapshot is stale.)
-    if (micStarting || listening || recording) return;
-    if (listenRef.current && !listenRef.current.sent) return;
+    if (micStarting || listening || recording) { bail(); return; }
+    if (listenRef.current && !listenRef.current.sent) { bail(); return; }
     convoRef.current = true;
     stopSpeaking();
     setMicNote(null);
@@ -860,6 +885,7 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
         setMicNote(err && err.message === "mic-timeout"
           ? "The microphone didn't respond — another app (Zoom, FaceTime, Teams?) may be using it. Close that app or restart the browser, then try again."
           : MIC_BLOCKED_NOTE);
+        bail();   // blocked/busy mic must not also cost the user the greeting
         return;
       }
     }
@@ -1045,6 +1071,7 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
       setListening(false);
       if (CAN_RECORD) startRecording();
       else setMicNote("Voice input isn't available in this browser. Tip: the mic key on your phone's keyboard dictates straight into the text box.");
+      bail();   // recognizer refused to start — still greet
     }
   };
 
