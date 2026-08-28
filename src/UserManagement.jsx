@@ -58,9 +58,15 @@ export default function UserManagement({ onClose }) {
     finally { setInviting(false); }
   };
 
+  // This is the blurb that gets TEXTED — most invites are relayed by hand, not
+  // read from the automatic email. It used to be login details and nothing else,
+  // so an agent who'd never heard of TransactPro had no reason to tap the link.
+  // One hook line and a "what it does" link; the credentials stay last. Kept
+  // short on purpose — a text message is not the place for the full pitch.
+  const featuresUrl = "https://transactagentpro.com/features.html";
   const inviteShareText = (c) => c.existing
     ? `You've been added to TransactPro.\n\nLog in at: ${c.loginUrl}\nEmail: ${c.email}\nUse your existing TransactPro password.`
-    : `You've been invited to TransactPro.\n\nLog in at: ${c.loginUrl}\nEmail: ${c.email}\nTemporary password: ${c.tempPassword}\n\nPlease change your password after your first login.`;
+    : `You've been invited to TransactPro — it writes your Florida contracts for you, and when an offer comes in it reads it and builds the whole deal. Replaces about 9 apps.\n\nWhat it does: ${featuresUrl}\n\nLog in at: ${c.loginUrl}\nEmail: ${c.email}\nTemporary password: ${c.tempPassword}\n\nYou'll pick your own password the first time you sign in.`;
 
   const copyInvite = async (c) => {
     try { await navigator.clipboard.writeText(inviteShareText(c)); setCopied(true); setTimeout(() => setCopied(false), 2000); }

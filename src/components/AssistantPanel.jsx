@@ -203,9 +203,21 @@ function speak(text, onDone, { queue = false } = {}) {
 // already spoken once from a real tap. Burn that one inside the click handler
 // with a silent utterance, so later speech — the greeting, the answers — is
 // allowed to play.
+//
+// SAFARI/iOS ONLY, deliberately. On desktop Chrome speech needs no unlocking,
+// and this silent utterance was actively harmful there: it leaves an utterance
+// PENDING, and the very next thing that runs (stopSpeaking(), or speak() with
+// queue:false) sees pending and calls speechSynthesis.cancel() — the exact call
+// that wedges the macOS Chrome speech engine for the rest of the page load.
+// Net effect was an assistant that greeted fine on a phone, where the mic came
+// up and the greeting ran hundreds of ms later with nothing left pending, and
+// was stone silent on a desktop where the greeting ran immediately.
+const NEEDS_SPEECH_UNLOCK = IS_IOS ||
+  (typeof navigator !== "undefined" &&
+   /^((?!chrome|android|crios|fxios).)*safari/i.test(navigator.userAgent));
 let speechUnlocked = false;
 function unlockSpeech() {
-  if (speechUnlocked) return;
+  if (speechUnlocked || !NEEDS_SPEECH_UNLOCK) return;
   try {
     if (!window.speechSynthesis) return;
     const u = new SpeechSynthesisUtterance(" ");
@@ -679,10 +691,13 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
     greetedRef.current = true;
     if (!speakOn || !openRef.current) return;
     if (live) { speakingRef.current = true; live.muted = true; }
+    // queue:true so the greeting never calls speechSynthesis.cancel(). It's the
+    // first thing said on open — there is nothing legitimate to interrupt — and
+    // cancel() is what wedges macOS Chrome (see unlockSpeech and stopSpeaking).
     speak(GREETING, () => {
       speakingRef.current = false;
       if (live && !live.sent && live.restart) live.restart();
-    });
+    }, { queue: true });
   };
 
   const ttsStart = (onDone) => {
