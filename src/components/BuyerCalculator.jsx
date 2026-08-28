@@ -751,7 +751,7 @@ function CashToCloseTab({ transactionId, token, showGenerate, county } = {}) {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed");
-      setGenMsg({ type: "success", text: (lang === "es" ? "Hoja neta del comprador guardada como " : "Buyer Net Sheet saved as ") + "\"" + data.filename + "\". Download or print it from the Documents tab." });
+      setGenMsg({ type: "success", text: (lang === "es" ? "Hoja neta del comprador guardada como " : "Buyer's Costs & Cash to Close saved as ") + "\"" + data.filename + "\". Download or print it from the Documents tab." });
     } catch (err) {
       setGenMsg({ type: "error", text: err.message || "Generation failed" });
     } finally {
@@ -1003,7 +1003,7 @@ function CashToCloseTab({ transactionId, token, showGenerate, county } = {}) {
 
       {showGenerate && transactionId && (
         <div style={{ marginTop: 20, padding: 16, background: "#f0fdf4", border: "1px solid #86efac", borderRadius: 8 }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: "#14532d", marginBottom: 6 }}>📄 Generate Buyer's Net Sheet</div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: "#14532d", marginBottom: 6 }}>📄 Generate Buyer's Costs &amp; Cash to Close</div>
           <div style={{ fontSize: 12, color: "#14532d", marginBottom: 10, lineHeight: 1.5 }}>
             Generate a branded estimated buyer's net sheet (cash to close) and save it to this transaction's Documents.
           </div>
@@ -1049,7 +1049,7 @@ export default function BuyerCalculator({ transactionId, token, mode, county } =
     return (
       <div style={{ maxWidth: 720, margin: "0 auto", padding: 16, fontFamily: "system-ui, sans-serif" }}>
         <div style={{ marginBottom: 16 }}>
-          <h2 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: "#1f2937" }}>Buyer's Net Sheet</h2>
+          <h2 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: "#1f2937" }}>Buyer's Costs &amp; Cash to Close</h2>
           <p style={{ margin: "4px 0 0", fontSize: 13, color: "#6b7280" }}>
             Florida-specific estimated cash to close. Generate a branded English or Spanish PDF below.
           </p>

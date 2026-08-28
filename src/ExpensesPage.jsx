@@ -307,20 +307,36 @@ export default function ExpensesPage({ onBack }) {
           set apart on the right so the menu reads cleaner. */}
       <div style={{ background: 'white', borderBottom: '1px solid #e5e7eb', padding: '0 24px', display: 'flex', alignItems: 'center', gap: 2, overflowX: 'auto' }}>
         {(() => {
-          const tabBtn = ([key, label]) => (
+          // Second line says what the accounting word MEANS. An agent who isn't
+          // an accountant reads "P&L" / "Balance Sheet" / "1099s" as three things
+          // they're probably doing wrong; the plain-English line under each is
+          // the whole difference between using this tab and avoiding it.
+          const tabBtn = ([key, label, plain]) => (
             <button
               key={key}
               onClick={() => setActiveTab(key)}
               style={{
-                background: 'none', border: 'none', cursor: 'pointer',
-                padding: '14px 13px', fontSize: 14, fontWeight: 600, whiteSpace: 'nowrap',
+                background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left',
+                padding: '10px 13px', fontSize: 14, fontWeight: 600, whiteSpace: 'nowrap',
                 color: activeTab === key ? '#059669' : '#6b7280',
                 borderBottom: activeTab === key ? '3px solid #10b981' : '3px solid transparent',
+                fontFamily: 'inherit',
               }}
-            >{label}</button>
+            >
+              <div>{label}</div>
+              {plain && <div style={{ fontSize: 10.5, fontWeight: 500, color: activeTab === key ? '#10b981' : '#9ca3af', marginTop: 2 }}>{plain}</div>}
+            </button>
           );
-          const everyday = [['expenses', '💵 Expenses'], ['income', '💰 Income'], ['budget', '🎯 Budget'], ['pnl', '📈 P&L']];
-          const reports = [['balance', '🏦 Balance Sheet'], ['1099', '🧾 1099s']];
+          const everyday = [
+            ['expenses', '💵 Expenses', 'what you spent'],
+            ['income', '💰 Income', 'what you made'],
+            ['budget', '🎯 Budget', 'what you planned to spend'],
+            ['pnl', '📈 P&L', 'made minus spent'],
+          ];
+          const reports = [
+            ['balance', '🏦 Balance Sheet', 'what you own vs. owe'],
+            ['1099', '🧾 1099s', 'for your tax preparer'],
+          ];
           return (
             <>
               {everyday.map(tabBtn)}

@@ -373,6 +373,9 @@ const STATUS_CONFIG = {
 // ("Commercial", "Vacant Land" vs "Land", "Lease" vs "Rental").
 const COMMERCIAL_ACCENT = "#0E7490"; // teal — distinct from every status color
 function propertyTypeBadge(tx) {
+  // The demo deal wins over every other badge — in a list of cards it must never
+  // be mistaken for a real one. (It's also flagged with a full banner inside.)
+  if (tx?.isSample) return { label: "👀 SAMPLE", color: "#92400E", bg: "#FEF3C7" };
   // RENTAL is keyed off the TRANSACTION type (Lease — Landlord/Tenant), not the
   // property type — a rental of a single-family home is still a single-family
   // property. Takes precedence so every card/list/table view instantly reads as
@@ -540,13 +543,20 @@ if (typeof document !== "undefined" && !document.getElementById("lizteam-mobile"
       /* Button clusters marked flex-shrink:0 must still give way on a phone —
          otherwise they poke past the right edge no matter what wraps. */
       div[style*="flex-shrink: 0"][style*="gap"]:not([data-no-wrap]) { flex-shrink: 1 !important; min-width: 0 !important; }
-      /* Floating ? help button: smaller + bottom-LEFT so it stops covering the
-         action buttons phones put bottom-right. */
-      .help-fab {
-        width: 40px !important; height: 40px !important; font-size: 17px !important;
-        bottom: 10px !important; left: 10px !important; right: auto !important;
-        opacity: 0.75;
+      /* THE one help button. It used to be two FABs, and this rule shoved the
+         red "?" to the bottom-LEFT on phones — so help lived in two opposite
+         corners. Now there's a single button and it stays bottom-RIGHT on every
+         device; just a touch smaller and tucked in so it clears content. */
+      .assist-fab {
+        width: 50px !important; height: 50px !important; font-size: 22px !important;
+        bottom: 14px !important; right: 14px !important;
       }
+      .assist-coach {
+        bottom: 74px !important; right: 14px !important; max-width: 210px !important;
+      }
+      /* Header: keep Win The Day · My Deals · New Deal visible on a phone.
+         Contacts moves into 🧰 Tools at this width (see ToolsMenu). */
+      .hdr-contacts { display: none !important; }
       /* Stats bar: 2-col grid on mobile, no horizontal scroll */
       [data-stats-bar] {
         display: grid !important;
@@ -6122,7 +6132,7 @@ function InternalNotesPanel({ txId, compact = false, onSeeAll }) {
   );
 }
 
-function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = false, onBack, contacts, onInviteParty = [], onCopyLoginLink, onSaveContact, onOpenContactBook, onDuplicate, currentUser, initialTab = "overview", navSignal = 0, dashboardUnread = 0, onMilestoneSummary, onInboundRead }) {
+function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = false, onBack, contacts, onInviteParty = [], onCopyLoginLink, onSaveContact, onOpenContactBook, onDuplicate, onDeleteSample, currentUser, initialTab = "overview", navSignal = 0, dashboardUnread = 0, onMilestoneSummary, onInboundRead }) {
   // Staff (agent + coordinator) comms tabs are merged into one "messages" hub, so
   // a deep-link to chat/replies/sms opens the hub on the right section. Guests keep
   // their standalone chat tab.
@@ -6435,7 +6445,10 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
   ].filter(t => !isCoordinator || !COORD_HIDDEN_TABS.includes(t.id));
   const moreTabs = [
     ...(isListingSideTx ? [{ id: "seller-calc", label: "💰 Seller's Net Sheet" }] : []),
-    ...(isBuyerSideTx ? [{ id: "buyer-net", label: "💰 Buyer's Net Sheet" }, { id: "calculator", label: "🧮 Buyers Calculator" }] : []),
+    // "Buyer's Net Sheet" was a made-up term — sellers net, buyers BRING money —
+    // and sitting next to the real seller's net sheet it read as its mirror image
+    // when it's the opposite. Name it what the number actually is.
+    ...(isBuyerSideTx ? [{ id: "buyer-net", label: "💰 Buyer's Costs & Cash to Close" }, { id: "calculator", label: "🧮 Buyers Calculator" }] : []),
     { id: "cma", label: "📊 CMA (pricing)" },
     { id: "tx-forms", label: "📄 Blank Forms" },
     { id: "notes", label: "🗒 Internal Notes" },
@@ -6574,7 +6587,31 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
         ))}
       </div>
 
-      {!isGuest && activeTab !== "milestones" && (
+      {/* Sample deal: say so loudly and on every tab. A demo that can be mistaken
+          for a real deal is worse than no demo at all. */}
+      {tx.isSample && (
+        <div style={{ background: "#FEF3C7", borderBottom: "2px solid #F59E0B", padding: "11px 24px", display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+          <span style={{ fontSize: 18 }}>👀</span>
+          <div style={{ flex: 1, minWidth: 220, fontSize: 13, color: "#78350F", lineHeight: 1.5 }}>
+            <b>This is a sample deal — none of it is real.</b> Click around all you
+            like: nobody on it has an email address or a phone number, so nothing
+            here can send a message to anyone. It disappears on its own once you
+            add a real deal.
+          </div>
+          {onDeleteSample && (
+            <button
+              onClick={async () => {
+                if (!window.confirm("Delete the sample deal?\n\nIt's only a demo — you can create it again any time from Win The Day.")) return;
+                try { await onDeleteSample(); } catch (e) { alert(e.message || "Could not delete the sample deal."); }
+              }}
+              style={{ flexShrink: 0, background: "#fff", color: "#78350F", border: "1px solid #F59E0B", borderRadius: 8, padding: "7px 14px", fontSize: 12.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+              🗑 Delete sample deal
+            </button>
+          )}
+        </div>
+      )}
+
+      {!isGuest && !tx.isSample && activeTab !== "milestones" && (
         <NextStepStrip txId={tx.id} coordinatorMode={coordinatorMode} onOpenTimeline={() => setActiveTab("milestones")} />
       )}
       <div style={{ background: "#fff", borderBottom: `1px solid ${COLORS.border}`, display: "flex", overflowX: "auto" }}>
@@ -8532,9 +8569,21 @@ function ContactAutocomplete({ token, onSelect }) {
 
 // ── TOOLS MENU — everything that isn't daily-critical lives one tap away.
 // Keeps the header at five buttons so a brand-new agent is never overwhelmed.
-function ToolsMenu({ coordinatorMode, onOpenPopBys, onOpenScripts, onOpenCMA, onOpenGrowthPlan, onOpenExpenses, onVendors, onCalendar, onIntakeLinks, onAddTask, onTcTeam, onTcServices }) {
+function ToolsMenu({ coordinatorMode, onOpenPopBys, onOpenScripts, onOpenCMA, onOpenGrowthPlan, onOpenExpenses, onVendors, onCalendar, onIntakeLinks, onAddTask, onTcTeam, onTcServices, onOpenContacts }) {
   const [open, setOpen] = useState(false);
-  const items = coordinatorMode ? [
+  // On phones the header's 📇 Contacts button is hidden (seven navy controls
+  // wrapped the bar onto three rows), so Tools carries it at that width.
+  const [isPhone, setIsPhone] = useState(() =>
+    typeof window !== "undefined" && typeof window.matchMedia === "function"
+      ? window.matchMedia("(max-width: 768px)").matches : false);
+  useEffect(() => {
+    if (typeof window === "undefined" || typeof window.matchMedia !== "function") return;
+    const mq = window.matchMedia("(max-width: 768px)");
+    const onChange = e => setIsPhone(e.matches);
+    mq.addEventListener ? mq.addEventListener("change", onChange) : mq.addListener(onChange);
+    return () => { mq.removeEventListener ? mq.removeEventListener("change", onChange) : mq.removeListener(onChange); };
+  }, []);
+  const base = coordinatorMode ? [
     ["💵", "My Money", onOpenExpenses],
     ["👥", "Team", onTcTeam],
     ["💼", "My Services", onTcServices],
@@ -8551,6 +8600,7 @@ function ToolsMenu({ coordinatorMode, onOpenPopBys, onOpenScripts, onOpenCMA, on
     ["📅", "Calendar", onCalendar],
     ["📝", "Add a Task", onAddTask],
   ];
+  const items = isPhone ? [["📇", "Contacts", onOpenContacts], ...base] : base;
   return (
     <div style={{ position: "relative" }} data-tour="tools">
       <button onClick={() => setOpen(!open)} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "#fff", borderRadius: 8, padding: "8px 14px", cursor: "pointer", fontSize: 13, fontWeight: 700, fontFamily: "inherit" }}>
@@ -8610,9 +8660,13 @@ function AppHeader(props) {
         <button data-tour="home" onClick={onHome} style={btn(view === "home")} title="Your daily list — what needs attention today">🏆 Win The Day</button>
         <button data-tour="deals" onClick={onDeals} style={btn(view === "dashboard")} title="All your listings and buyers">📋 My Deals</button>
         {!coordinatorMode && <button data-tour="new" onClick={onNew} style={{ ...btn(false), background: "#C0392B", border: "none" }}>➕ New Deal</button>}
-        <button data-tour="contacts" onClick={onOpenContacts} style={btn(false)}>📇 Contacts</button>
+        {/* Hidden on phones — seven navy controls wrapped into three rows before
+            any content appeared. Contacts is the one that folds, because Tools
+            carries it there instead (see ToolsMenu). */}
+        <button data-tour="contacts" className="hdr-contacts" onClick={onOpenContacts} style={btn(false)}>📇 Contacts</button>
         <ToolsMenu
           coordinatorMode={coordinatorMode}
+          onOpenContacts={onOpenContacts}
           onOpenPopBys={props.onOpenPopBys} onOpenScripts={props.onOpenScripts} onOpenCMA={props.onOpenCMA}
           onOpenGrowthPlan={props.onOpenGrowthPlan} onOpenExpenses={props.onOpenExpenses} onVendors={props.onVendors}
           onCalendar={props.onCalendar} onIntakeLinks={props.onIntakeLinks} onAddTask={props.onAddTask}
@@ -8656,9 +8710,15 @@ function SettingsMenu({ currentUser, onOpenContactBook, contactCount, onReports,
   // so they're reachable (testers couldn't find them). Relative path: Netlify serves
   // the static file directly, on whatever domain the user is on.
   items.push({ icon: "🌐", label: "Features & Pricing (web)", onClick: () => window.open("/features.html", "_blank", "noopener") });
-  items.push({ icon: "📒", label: `Address Book${contactCount > 0 ? ` (${contactCount})` : ""}`, onClick: onOpenContactBook });
+  // "📒 Address Book" USED to live here: a modal over the exact same contacts the
+  // 📇 Contacts button in the header opens as a full page. Two names for one list
+  // taught new agents that their people lived in two places. One front door now —
+  // the header button. (The modal itself is still the in-deal contact picker.)
   items.push({ icon: "📈", label: "Reports", onClick: onReports });
-  if (onGoalPlanner) items.push({ icon: "🎯", label: "Goal Planner", onClick: onGoalPlanner });
+  // "🎯 Goal Planner" USED to live here too. The income goal is ONE shared number
+  // (Tools → Growth Plan, this menu, and Money → Budget all wrote the same field),
+  // so three doors read as three unfinished features. Growth Plan is the one door
+  // now — it's the only one that also back-calculates the daily activity.
   items.push({ icon: "👤", label: "My Profile", onClick: onAgentProfile });
   if (onOpenForms) items.push({ icon: "📄", label: "Forms Library", onClick: onOpenForms });
   items.push({ icon: "🔒", label: "Change Password", onClick: onChangePassword });
@@ -10143,6 +10203,7 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
             hasGolfView: t.has_golf_view || false,
             propertyCondition: t.property_condition || "",
             intakeDetails: t.intake_details || null,
+            isSample: t.is_sample === true,
           }));
           // Pin buyer/seller intake transactions needing first contact to top
           const sorted = [...rawTxs].sort((a, b) => {
@@ -10318,8 +10379,12 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
   const onboardSteps = [];
   if (isAdminUser) onboardSteps.push({ key: "company", emoji: "⚙️", title: "Set up company settings", desc: "Add your brokerage name, logo, and branding — it shows on everything your clients see.", where: "⚙️ Menu → ⚙️ Company Settings", go: () => setShowCompanySettings(true) });
   onboardSteps.push({ key: "profile", emoji: "👤", title: "Set up your profile", desc: "Add your photo, signature, and contact info — used on every email and form you send.", where: "⚙️ Menu → 👤 My Profile", go: () => setShowAgentProfile(true) });
+  // The whole checklist used to be housekeeping — an agent could finish every
+  // step and never once see a timeline, which is the thing they actually bought.
+  // Ask for a deal early, right after the profile, and let the rest wait.
+  onboardSteps.push({ key: "firstdeal", emoji: "🏡", title: "Add your first deal", desc: "Drop in a contract you're already working and watch the app read it and build the whole timeline — or start one from scratch in three steps. This is the part that makes everything else turn on.", where: "🏆 Win The Day, or ➕ New Deal up top", go: () => { setShowReports(false); setShowCalendar(false); setView("home"); } });
   onboardSteps.push({ key: "emailcapture", emoji: "📥", title: "Catch every deal email (2 min, once)", desc: "Turn on email forwarding so messages that title companies and lenders send straight to your inbox file themselves to the right deal — no more copy-pasting into the app, ever.", where: "⚙️ Menu → 👤 My Profile → 📥 Catch deal emails", go: () => setShowAgentProfile(true) });
-  onboardSteps.push({ key: "goals", emoji: "🎯", title: "Set up your goals", desc: "Tell the app your income target so it can plan your day for you.", where: "⚙️ Menu → 🎯 Goal Planner", go: () => openReports("goals") });
+  onboardSteps.push({ key: "goals", emoji: "🎯", title: "Set up your goals", desc: "Tell the app what you want to earn this year and it works backwards to the calls you need to make each day.", where: "🧰 Tools → 🎯 Growth Plan", go: () => { setShowReports(false); setShowCalendar(false); setView("growthplan"); } });
   onboardSteps.push({ key: "tour", tour: true, emoji: "🎬", title: "Take the 60-second tour", desc: "A quick look at what every button does — then you're ready to roll." });
   const onboardTakeMeThere = (step) => {
     const nextDone = new Set(onboard.done); nextDone.add(step.key);
@@ -10400,6 +10465,40 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
       : t));
   }, []);
   const addTransaction = tx => { setTransactions(txs => [tx, ...txs]); setSelectedId(tx.id); setView("detail"); };
+
+  // Spin up (or re-open) the demo deal so a brand-new agent can walk a real,
+  // populated timeline before they trust the app with a real one. Everyone on
+  // the sample deal is deliberately created with no email and no phone, so
+  // nothing on it can reach a real person. See POST /transactions/sample.
+  const [sampleBusy, setSampleBusy] = useState(false);
+  const openSampleDeal = async () => {
+    if (sampleBusy) return;
+    setSampleBusy(true);
+    try {
+      const tok = localStorage.getItem("tp_token") || "";
+      const res = await fetch(API + "/transactions/sample", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": "Bearer " + tok },
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || "Could not create the sample deal.");
+      await loadTransactions();
+      openTransactionMilestones(data.transaction.id, "milestones");
+    } catch (e) {
+      alert(e.message || "Could not open the sample deal. Please try again.");
+    } finally { setSampleBusy(false); }
+  };
+
+  const deleteSampleDeal = async () => {
+    const tok = localStorage.getItem("tp_token") || "";
+    const res = await fetch(API + "/transactions/sample", {
+      method: "DELETE", headers: { "Authorization": "Bearer " + tok },
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data.success) throw new Error(data.error || "Could not delete the sample deal.");
+    await loadTransactions();
+    setView("home");
+  };
 
   const duplicateTransaction = async (tx) => {
     const newAddr = window.prompt("Enter address for the new transaction:", tx.address + " (Copy)");
@@ -10696,6 +10795,7 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
       )}
       {!showReports && !showCalendar && view === "detail" && selectedTx && (
         <TransactionDetail
+          onDeleteSample={deleteSampleDeal}
           initialTab={initialDetailTab}
           navSignal={detailNavSignal}
           dashboardUnread={unreadCounts[selectedId] || 0}
@@ -10794,6 +10894,19 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
             onOpenTransactionMilestones={openTransactionMilestones}
             onOpenInboundReply={(txId) => openTransactionMilestones(txId, "replies")}
             onOpenPopBys={() => setView("popbys")}
+            /* null while the pipeline is still loading — otherwise an agent with
+               20 deals gets a flash of "let's get your first deal in".
+               The sample deal doesn't count: someone who has only looked at the
+               demo still needs to be asked for a real one. */
+            dealCount={txLoading ? null : transactions.filter(t => !t.isSample).length}
+            onNewDeal={() => setView("new")}
+            onUploadContract={() => setShowContractIntake(true)}
+            hasSample={transactions.some(t => t.isSample)}
+            onSampleDeal={openSampleDeal}
+            onOpenSample={() => {
+              const s = transactions.find(t => t.isSample);
+              if (s) openTransactionMilestones(s.id, "milestones");
+            }}
           />
         </>
       )}
@@ -10993,7 +11106,9 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
           feedbackSignal={feedbackSignal}
           supportSignal={supportSignal}
           isAdmin={isAdminUser}
-          onGoals={() => openReports("goals")}
+          /* Growth Plan is the ONE place the income goal gets set — see SettingsMenu. */
+          onGoals={() => { setShowReports(false); setShowCalendar(false); setView("growthplan"); }}
+          onFirstDeal={transactions.length === 0 ? () => { setShowReports(false); setShowCalendar(false); setView("home"); } : null}
           onProfile={() => setShowAgentProfile(true)}
           onCompany={isAdminUser ? () => setShowCompanySettings(true) : null}
           onRestartTour={restartTour}
@@ -11005,7 +11120,10 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
       {onboard.active && !isFreeGuest && !showTour && !showAgentProfile && !showCompanySettings && !showReports && (
         <OnboardingGuide
           steps={onboardSteps}
-          doneKeys={onboard.done}
+          /* Every other step is ticked by tapping "Take me there" — an intention.
+             "Add your first deal" is ticked by ACTUALLY having a deal, so the
+             checklist can't be finished without the one step that matters. */
+          doneKeys={transactions.length > 0 ? new Set([...onboard.done, "firstdeal"]) : onboard.done}
           onTakeMeThere={onboardTakeMeThere}
           onStartTour={onboardStartTour}
           onDismiss={() => persistOnboard(false, onboard.done, { dismissed: true })}

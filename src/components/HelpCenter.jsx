@@ -149,7 +149,7 @@ export const GUIDE_SECTIONS = [
   },
 ];
 
-export default function HelpCenter({ apiBase, token, onGoals, onProfile, onCompany, onRestartTour, onTour, isAdmin, openSignal, feedbackSignal, supportSignal }) {
+export default function HelpCenter({ apiBase, token, onGoals, onProfile, onCompany, onFirstDeal, onRestartTour, onTour, isAdmin, openSignal, feedbackSignal, supportSignal }) {
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState('start'); // start | guides | faqs | feedback
 
@@ -303,20 +303,21 @@ export default function HelpCenter({ apiBase, token, onGoals, onProfile, onCompa
   const setupBase = [];
   if (isAdmin && onCompany) setupBase.push({ emoji: '⚙️', title: 'Set up company settings', desc: 'Add your brokerage name, logo, and branding — it shows on everything your clients see.', where: '⚙️ Menu → ⚙️ Company Settings', go: onCompany });
   setupBase.push({ emoji: '👤', title: 'Set up your profile', desc: 'Add your photo, signature, and contact info — used on every email and form.', where: '⚙️ Menu → 👤 My Profile', go: onProfile });
+  // The list used to be pure housekeeping. The first deal is the step that makes
+  // every other screen turn on, so it sits right after the profile.
+  if (onFirstDeal) setupBase.push({ emoji: '🏡', title: 'Add your first deal', desc: "Drop in a contract you're already working and watch the app read it and build the timeline — or start one from scratch in three steps.", where: '🏆 Win The Day, or ➕ New Deal up top', go: onFirstDeal });
   setupBase.push({ emoji: '📥', title: 'Catch every deal email (2 min, once)', desc: 'Turn on email forwarding so messages sent straight to your inbox file themselves to the right deal automatically.', where: '⚙️ Menu → 👤 My Profile → 📥 Catch deal emails', go: onProfile });
-  setupBase.push({ emoji: '🎯', title: 'Set up your goals', desc: 'Tell the app your income target so it can plan your day.', where: '⚙️ Menu → 🎯 Goal Planner', go: onGoals });
+  setupBase.push({ emoji: '🎯', title: 'Set up your goals', desc: 'Tell the app what you want to earn this year and it works backwards to the calls you need to make each day.', where: '🧰 Tools → 🎯 Growth Plan', go: onGoals });
   const setupSteps = setupBase.map((s, i) => ({ ...s, n: i + 1 }));
 
   return (
     <>
-      <button
-        onClick={() => setOpen(true)}
-        aria-label="Open Help"
-        title="Help — guides & FAQs"
-        className="help-fab"
-        style={{ position: 'fixed', bottom: 24, right: 24, width: 56, height: 56, borderRadius: '50%', background: RED, color: '#fff', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.2)', cursor: 'pointer', fontSize: 24, fontWeight: 'bold', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-      >?</button>
-
+      {/* NO floating button any more. There is exactly ONE help affordance in the
+          app — the assistant's "?" bubble (AssistantPanel) — because two of them
+          split help in half, and on phones the old red "?" was pushed to the far
+          corner from the other one. This panel still opens from ⚙️ Menu → ❓ Help
+          & Guides, and from the assistant's "📖 Browse all guides" chip; both
+          bump `openSignal`. */}
       {open && (
         <div onClick={() => setOpen(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1001, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: 20, overflowY: 'auto' }}>
           <div onClick={(e) => e.stopPropagation()} style={{ background: '#fff', borderRadius: 12, width: '100%', maxWidth: 720, maxHeight: '88vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', margin: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}>
@@ -329,7 +330,9 @@ export default function HelpCenter({ apiBase, token, onGoals, onProfile, onCompa
             {/* Tabs */}
             <div style={{ display: 'flex', background: '#f5f5f5', borderBottom: '1px solid #eee' }}>
               {tabBtn('start', '🚀 Start Here')}
-              {tabBtn('ai', '🤖 Ask AI')}
+              {/* '🤖 Ask AI' removed — it was a SECOND AI chat answering from the
+                  very same server guide library as the "?" assistant, so a stuck
+                  agent had to choose between two chat boxes. One brain now. */}
               {tabBtn('guides', '📖 Guides')}
               {tabBtn('faqs', '💬 FAQs')}
               {tabBtn('feedback', '📣 Feedback')}
@@ -347,7 +350,7 @@ export default function HelpCenter({ apiBase, token, onGoals, onProfile, onCompa
               {tab === 'start' && (
                 <div>
                   <div style={{ fontSize: 14, color: '#333', marginBottom: 16, lineHeight: 1.5 }}>
-                    New here? Do these three things first. Each button takes you straight to the right screen.
+                    New here? Work down this list. Each button takes you straight to the right screen.
                   </div>
                   {setupSteps.map(s => (
                     <div key={s.n} style={{ display: 'flex', gap: 12, alignItems: 'flex-start', padding: 14, border: '1px solid #eee', borderRadius: 12, marginBottom: 12 }}>

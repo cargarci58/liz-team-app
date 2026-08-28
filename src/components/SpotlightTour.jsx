@@ -19,7 +19,10 @@ const PAD = 6;          // breathing room around the highlighted button
 const TIP_W = 320;      // tooltip width
 
 const STEPS = [
-  { key: 'home', emoji: '🏠', title: 'Today — start here every morning', body: 'This always brings you back to your daily list. The app tells you exactly what needs attention today, deal by deal — just work top to bottom.' },
+  // Titles MUST match the real button labels — a rookie who's told this screen is
+  // called "Today" then can't find "Today" anywhere, and the help guides all say
+  // "Win The Day".
+  { key: 'home', emoji: '🏆', title: 'Win The Day — start here every morning', body: 'This always brings you back to your daily list. The app tells you exactly what needs attention today, deal by deal — just work top to bottom.' },
   { key: 'deals', emoji: '📋', title: 'My Deals', body: 'Every listing and buyer you have, in one place. Tap any deal to see its timeline, documents, and people.' },
   { key: 'new', emoji: '➕', title: 'Start a new deal', body: 'Three quick steps: the address, your client, the price. The timeline, checklist, and client reminders build themselves.' },
   { key: 'contacts', emoji: '📇', title: 'Your contacts', body: 'Everyone you know — clients, leads, vendors. Add them once and the app reminds you when to reach out.' },

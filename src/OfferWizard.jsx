@@ -838,7 +838,7 @@ export default function OfferWizard({ offerId, token, onClose, onSaved }) {
                 <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
                   <span style={{ fontSize: 22 }}>⚡</span>
                   <div style={{ flex: 1, minWidth: 220 }}>
-                    <div style={{ fontWeight: 800, color: "#7A5C00", fontSize: 14 }}>In a hurry? Express offer</div>
+                    <div style={{ fontWeight: 800, color: "#7A5C00", fontSize: 14 }}>First offer? Start here — Express offer (4 questions)</div>
                     <div style={{ fontSize: 12.5, color: "#7A5C00", lineHeight: 1.5 }}>Answer 4 questions — the app fills everything else with standard Florida terms (15-day inspection, deposit due in 3 days, seller pays deed stamps, possession at closing…). You review it all before anything is sent.</div>
                   </div>
                   <button type="button" onClick={() => setExpress(true)}
@@ -1114,7 +1114,10 @@ export default function OfferWizard({ offerId, token, onClose, onSaved }) {
         <div style={{ padding: "16px 28px", borderTop: "1px solid #e5e7eb", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, background: "#f9fafb", borderRadius: "0 0 12px 12px" }}>
           <button onClick={onClose} style={btnSecondary}>Close</button>
           <div style={{ display: "flex", gap: 8 }}>
-            <button onClick={onSaveDraft} disabled={saving} style={btnGhost}>{saving ? "Saving…" : "Save Draft"}</button>
+            {/* "Save Draft" didn't read as an escape hatch — a rookie four steps
+                into a twelve-step contract needs to be told they can walk away
+                without losing it. */}
+            <button onClick={onSaveDraft} disabled={saving} style={btnGhost}>{saving ? "Saving…" : "Save & finish later"}</button>
             {stepIdx > 0 && <button onClick={onBack} disabled={saving} style={btnSecondary}>← Back</button>}
             {!isLast && <button onClick={onNext} disabled={saving} style={btnPrimary}>{saving ? "Saving…" : "Next →"}</button>}
             {isLast && <button onClick={onSubmit} disabled={submitting} style={btnPrimary}>{submitting ? "Submitting…" : "Mark Ready ✓"}</button>}

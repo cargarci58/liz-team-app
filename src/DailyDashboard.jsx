@@ -706,7 +706,109 @@ function SectionHeader({ label, count, color }) {
   );
 }
 
+// ── DAY-ONE STATE ─────────────────────────────────────────────
+// A brand-new agent has NO deals, so they have no tasks, so the "all caught up"
+// checkmark below used to be the very first thing they ever saw — an app telling
+// them to come back tomorrow, thirty seconds after they paid for it. When the
+// pipeline is genuinely empty (not "quiet today" — empty), ask for the first deal
+// instead. This screen is what makes the rest of the app turn on.
+export function DayOneState({ firstName, onNew, onUploadContract, onSampleDeal, onOpenSample, hasSample }) {
+  const card = {
+    flex: "1 1 220px", background: COLORS.white, border: "1px solid " + COLORS.border,
+    borderRadius: 14, padding: "18px 18px 20px", textAlign: "left", cursor: "pointer",
+    boxShadow: "0 1px 3px rgba(0,0,0,0.06)", fontFamily: "inherit",
+  };
+  return (
+    <div style={{ padding: "20px 0 24px" }}>
+      <div style={{ textAlign: "center", marginBottom: 22 }}>
+        <div style={{ fontSize: 44, marginBottom: 12 }}>🏡</div>
+        <div style={{ fontWeight: 800, fontSize: 21, color: COLORS.black, marginBottom: 8 }}>
+          Let's get your first deal in{firstName ? ", " + firstName : ""}
+        </div>
+        <div style={{ color: COLORS.gray, fontSize: 15, lineHeight: 1.6, maxWidth: 380, margin: "0 auto" }}>
+          This screen fills itself once you have a deal — every deadline, call, and
+          document that needs you, in the order it needs you. Start it either way:
+        </div>
+      </div>
+
+      <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+        {onUploadContract && (
+          <div onClick={onUploadContract} style={{ ...card, borderColor: COLORS.red, borderWidth: 2 }}>
+            <div style={{ fontSize: 26, marginBottom: 8 }}>📄</div>
+            <div style={{ fontWeight: 800, fontSize: 15, color: COLORS.black, marginBottom: 5 }}>
+              Upload a signed contract
+            </div>
+            <div style={{ fontSize: 13.5, color: COLORS.gray, lineHeight: 1.5, marginBottom: 12 }}>
+              Drop in a deal you're already working. The app reads the price, the dates,
+              the deposits and everyone's contact info, then builds the timeline for you.
+            </div>
+            <span style={{ display: "inline-block", background: COLORS.red, color: COLORS.white,
+              borderRadius: 8, padding: "9px 16px", fontSize: 13, fontWeight: 800 }}>
+              Upload a contract →
+            </span>
+            <div style={{ fontSize: 11.5, color: COLORS.gray, marginTop: 9, fontStyle: "italic" }}>
+              Fastest way to see what this thing does.
+            </div>
+          </div>
+        )}
+        {onNew && (
+          <div onClick={onNew} style={card}>
+            <div style={{ fontSize: 26, marginBottom: 8 }}>➕</div>
+            <div style={{ fontWeight: 800, fontSize: 15, color: COLORS.black, marginBottom: 5 }}>
+              Start a deal from scratch
+            </div>
+            <div style={{ fontSize: 13.5, color: COLORS.gray, lineHeight: 1.5, marginBottom: 12 }}>
+              Three quick steps — the address, your client, the price. A new listing or
+              a buyer you just signed. The checklist builds itself.
+            </div>
+            <span style={{ display: "inline-block", background: COLORS.white, color: COLORS.black,
+              border: "1px solid " + COLORS.border, borderRadius: 8, padding: "9px 16px",
+              fontSize: 13, fontWeight: 800 }}>
+              New deal →
+            </span>
+          </div>
+        )}
+      </div>
+
+      {/* Third door: look before you leap. Some agents won't put a real deal in
+          an app they've never used — this gives them a fully-populated one to
+          walk through. Nobody on it has an email address or a phone number, so
+          it can't send anything, and it deletes itself the moment a real deal
+          exists. Deliberately quieter than the two real doors above. */}
+      {(onSampleDeal || (hasSample && onOpenSample)) && (
+        <div style={{ marginTop: 18, background: COLORS.lightGray, border: "1px solid " + COLORS.border,
+          borderRadius: 12, padding: "14px 16px", display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
+          <div style={{ fontSize: 22 }}>👀</div>
+          <div style={{ flex: 1, minWidth: 200 }}>
+            <div style={{ fontWeight: 700, fontSize: 14, color: COLORS.black }}>
+              {hasSample ? "Your sample deal is waiting" : "Rather look around first?"}
+            </div>
+            <div style={{ fontSize: 13, color: COLORS.gray, lineHeight: 1.5, marginTop: 2 }}>
+              Open a finished demo deal — real timeline, real documents tab, real
+              people list. Nothing on it can send an email, and you can delete it
+              in one tap.
+            </div>
+          </div>
+          <button
+            onClick={hasSample ? onOpenSample : onSampleDeal}
+            style={{ background: COLORS.white, color: COLORS.black, border: "1px solid " + COLORS.border,
+              borderRadius: 8, padding: "9px 16px", fontSize: 13, fontWeight: 800, cursor: "pointer",
+              fontFamily: "inherit", flexShrink: 0 }}>
+            {hasSample ? "Open sample deal →" : "Show me a sample deal →"}
+          </button>
+        </div>
+      )}
+
+      <div style={{ color: COLORS.gray, fontSize: 13, lineHeight: 1.6, marginTop: 20, textAlign: "center" }}>
+        Not ready yet? Tap the <b>?</b> button in the corner and ask it anything —
+        type it or just talk.
+      </div>
+    </div>
+  );
+}
+
 // ── EMPTY STATE ───────────────────────────────────────────────
+// The "quiet day" state: the agent HAS deals, nothing needs them right now.
 function EmptyState({ firstName }) {
   return (
     <div style={{ textAlign:"center", padding:"48px 24px" }}>
@@ -1120,7 +1222,7 @@ function FollowupReviewModal({ token, isMobile, onClose }) {
   );
 }
 
-export default function DailyDashboard({ token, user, onViewTransactions, onOpenTransactionMilestones, onOpenInboundReply, onOpenPopBys, coordinatorMode = false }) {
+export default function DailyDashboard({ token, user, onViewTransactions, onOpenTransactionMilestones, onOpenInboundReply, onOpenPopBys, onNewDeal, onUploadContract, onSampleDeal, onOpenSample, hasSample = false, dealCount = null, coordinatorMode = false }) {
   const [tasks, setTasks] = useState({ overdue:[], dueToday:[], upcoming:[] });
   const [personal, setPersonal] = useState({ overdue:[], dueToday:[], upcoming:[] });
   const [callsDue, setCallsDue] = useState([]);
@@ -1664,7 +1766,9 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
         </div>
         <div style={{ color:COLORS.gray, fontSize:14, marginTop:4 }}>
           {totalVisible === 0
-            ? (callsDue.length > 0 ? `${callsDue.length} call${callsDue.length === 1 ? "" : "s"} to make today.` : "You are all caught up today.")
+            ? (callsDue.length > 0 ? `${callsDue.length} call${callsDue.length === 1 ? "" : "s"} to make today.`
+              : (!coordinatorMode && dealCount === 0) ? "Welcome aboard — here's where your day will live."
+              : "You are all caught up today.")
             : `You have ${totalVisible} task${totalVisible === 1 ? "" : "s"}${callsDue.length > 0 ? ` and ${callsDue.length} call${callsDue.length === 1 ? "" : "s"}` : ""} that need your attention.`}
         </div>
       </div>
@@ -1672,7 +1776,14 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
       {/* Captured emails that need a human to say which deal they belong to. */}
       {!coordinatorMode && <UnmatchedMailPanel token={token} />}
 
-      {totalVisible === 0 && callsDue.length === 0 && <EmptyState firstName={firstName} />}
+      {/* Nothing to do AND no deals at all = day one, not a quiet day. A TC is
+          invited onto other people's deals, so they never get the "start one". */}
+      {totalVisible === 0 && callsDue.length === 0 && (
+        (!coordinatorMode && dealCount === 0)
+          ? <DayOneState firstName={firstName} onNew={onNewDeal} onUploadContract={onUploadContract}
+              onSampleDeal={hasSample ? null : onSampleDeal} onOpenSample={onOpenSample} hasSample={hasSample} />
+          : <EmptyState firstName={firstName} />
+      )}
 
       {/* CALLS DUE TODAY (from CRM-lite) — a FIXED daily batch the agent can finish.
           Completed calls stay on the list with a ✓ and sink to the bottom; the list does

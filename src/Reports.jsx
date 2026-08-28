@@ -428,6 +428,14 @@ function GoalPlannerTab({ transactions }) {
 
   return (
     <div>
+      {/* The income goal is ONE number shared with 🧰 Tools → 🎯 Growth Plan and
+          💵 My Money → Budget. Growth Plan is the front door we point agents at
+          (it's the one that also lays out the 5-year picture); this tab is the
+          same math with the conversion rates exposed for agents who want to tune
+          them. Say so plainly, or it reads as a second, competing goal feature. */}
+      <div style={{ background: "#EEF4FB", border: "1px solid #C9DCF0", borderRadius: 12, padding: "12px 16px", marginBottom: 14, fontSize: 13, color: "#1A3A5C", lineHeight: 1.5 }}>
+        🎯 This is the <b>same income goal</b> you set in <b>🧰 Tools → 🎯 Growth Plan</b> — change it in either place and both update. This page just lets you fine-tune the conversion rates behind it.
+      </div>
       <div style={{ background: "#FFF8E1", border: "1px solid #F0E0A0", borderRadius: 12, padding: "14px 18px", marginBottom: 20, fontSize: 13, color: "#7A5C00", lineHeight: 1.5 }}>
         🎯 <b>The conversation to have with every agent:</b> "How much do you want to make?" We work backward from that number — to closings, contracts, appointments, and the <b>phone calls per day</b> it takes to get there with your lead-gen method.
       </div>

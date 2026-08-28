@@ -47,12 +47,15 @@ const IS_IOS = typeof navigator !== "undefined" &&
    (/Mac/i.test(navigator.userAgent) && navigator.maxTouchPoints > 1));
 const SIGN_OFF = "I didn't hear anything, so I'm closing the mic. Tap it whenever you need me.";
 const CHIPS = [
+  { label: "❓ How do I…", send: "", fill: "how do I " },
   { label: "📞 Dial someone", send: "" , fill: "call " },
   { label: "✅ Today's tasks", send: "What are my tasks today?" },
   { label: "🏠 Deal status", send: "", fill: "what's the status of " },
   { label: "💬 Unread messages", send: "Do I have unread messages?" },
   { label: "📝 Add a task", send: "", fill: "remind me to " },
-  { label: "❓ How do I…", send: "", fill: "how do I " },
+  // The Help Center panel is no longer a floating button of its own — this chip
+  // (and ⚙️ Menu → ❓ Help & Guides) is how you get to the full guide library.
+  { label: "📖 Browse all guides", nav: "help" },
 ];
 
 const OFFLINE_HINT =
@@ -547,6 +550,14 @@ function Card({ card, token, onOpenDeal, onNavigate, onSend, onSpokenConfirm }) 
 export default function AssistantPanel({ token, contacts, transactions, currentView, currentDealAddress, onOpenDeal, onNavigate }) {
   const [open, setOpen] = useState(false);
   const [msgs, setMsgs] = useState([]);      // { role: "user"|"assistant", text, cards }
+  // First-login coach bubble for the one help button (see the launcher below).
+  const [showCoach, setShowCoach] = useState(() => {
+    try { return localStorage.getItem("tp_assist_coach") !== "seen"; } catch { return false; }
+  });
+  const dismissCoach = () => {
+    setShowCoach(false);
+    try { localStorage.setItem("tp_assist_coach", "seen"); } catch { /* private mode */ }
+  };
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const [listening, setListening] = useState(false);
@@ -690,6 +701,7 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
 
   const openPanel = () => {
     setOpen(true);
+    dismissCoach();
     openRef.current = true;   // armMic() runs before the next render
     refreshTasks();
     if (msgs.length === 0) {
@@ -1287,14 +1299,34 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
   // ——— Render ———
   return (
     <>
-      {/* Floating launcher — sits ABOVE the red "?" Help button (bottom 24). */}
+      {/* THE ONE help button. Was two floating buttons — this 🎙 stacked above a
+          red "?" Help FAB — which split help in two (and on phones the "?" moved
+          to the OPPOSITE corner). The assistant already answers every how-do-I
+          from the same server guide library the Help Center uses (search_help),
+          AND it can act, so it's the one that stays. It wears a "?" because a
+          microphone reads as "record something", not "get help"; the little mic
+          badge says you can talk to it. The Help Center panel itself lives on,
+          reachable from ⚙️ Menu → ❓ Help & Guides and from the chip below. */}
       {!open && (
         <button
           onClick={openPanel}
-          title="Ask the AI assistant — type or talk"
-          style={{ position: "fixed", bottom: 92, right: 24, width: 56, height: 56, borderRadius: "50%", background: `linear-gradient(135deg, ${NAVY}, #34506e)`, color: "#fff", border: "none", boxShadow: "0 4px 14px rgba(0,0,0,0.28)", cursor: "pointer", fontSize: 24, zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center" }}>
-          🎙️
+          className="assist-fab"
+          aria-label="Get help — ask the assistant"
+          title="Stuck? Ask me anything — type it or say it"
+          style={{ position: "fixed", bottom: 24, right: 24, width: 58, height: 58, borderRadius: "50%", background: `linear-gradient(135deg, ${NAVY}, #34506e)`, color: "#fff", border: "none", boxShadow: "0 6px 18px rgba(0,0,0,0.30)", cursor: "pointer", fontSize: 25, fontWeight: 800, zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "inherit" }}>
+          ?
+          <span aria-hidden="true" style={{ position: "absolute", right: -1, bottom: -1, width: 22, height: 22, borderRadius: "50%", background: "#fff", border: `2px solid ${NAVY}`, fontSize: 11, display: "flex", alignItems: "center", justifyContent: "center", lineHeight: 1 }}>🎤</span>
         </button>
+      )}
+
+      {/* One-time coach bubble — a new agent has no idea the "?" also talks, or
+          that it can do the thing instead of just explaining it. Shows once. */}
+      {!open && showCoach && (
+        <div className="assist-coach" style={{ position: "fixed", bottom: 92, right: 24, zIndex: 1000, maxWidth: 232, background: "#fff", border: "1px solid #E5E7EB", borderRadius: 14, boxShadow: "0 10px 30px rgba(0,0,0,0.20)", padding: "12px 14px", fontFamily: "system-ui, sans-serif" }}>
+          <div style={{ fontSize: 13.5, fontWeight: 700, color: "#111", lineHeight: 1.4 }}>Stuck? Ask me anything.</div>
+          <div style={{ fontSize: 12.5, color: "#4B5563", marginTop: 3, lineHeight: 1.45 }}>Type it or say it — and I can do most of it for you.</div>
+          <button onClick={dismissCoach} style={{ marginTop: 8, background: NAVY, color: "#fff", border: "none", borderRadius: 8, padding: "6px 12px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>Got it</button>
+        </div>
       )}
 
       {open && (
@@ -1383,7 +1415,7 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
             <div style={{ display: "flex", gap: 6, overflowX: "auto", padding: "8px 12px 4px", flexShrink: 0 }}>
               {CHIPS.map(ch => (
                 <button key={ch.label}
-                  onClick={() => { if (ch.send) send(ch.send); else setInput(ch.fill); }}
+                  onClick={() => { if (ch.nav) { closePanel(); onNavigate(ch.nav); } else if (ch.send) send(ch.send); else setInput(ch.fill); }}
                   style={{ whiteSpace: "nowrap", background: "#fff", border: "1px solid #D1D5DB", borderRadius: 16, padding: "6px 11px", fontSize: 12, fontWeight: 600, color: "#374151", cursor: "pointer", fontFamily: "inherit" }}>
                   {ch.label}
                 </button>
