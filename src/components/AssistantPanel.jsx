@@ -34,7 +34,7 @@ const RED = "#C0392B";
 
 // Bumped on every assistant change — shown in the panel header so "which
 // version am I actually running?" is answerable at a glance (cache issues).
-const BUILD_TAG = "v27";
+const BUILD_TAG = "v28";
 
 const GREETING = "How can I help you today?";
 // Set if holding the mic stream ever breaks the recognizer on this device
@@ -187,14 +187,26 @@ function browserSpeak(text, onDone, { queue = false, onSilent } = {}) {
       // machine has none of them, leave u.voice UNSET and let the browser
       // pick — an unset voice is always safer than a guessed one.
       const voices = window.speechSynthesis.getVoices() || [];
-      const enUS = voices.filter(v => /en[-_]US/i.test(v.lang) && !/enhanced|premium|natural|neural/i.test(v.name));
-      // Female voices first (Carlos: "a female voice, easy to understand") —
-      // Alex/Fred/Tom stay only as last resorts. Same safety rules as above:
-      // plain variants only, never Samantha.
-      const GOOD = ['allison', 'susan', 'nicky', 'joelle', 'victoria', 'alex', 'fred', 'tom'];
+      const plain = voices.filter(v => !/enhanced|premium|natural|neural/i.test(v.name));
+      const enUS = plain.filter(v => /en[-_]US/i.test(v.lang));
+      const enAny = plain.filter(v => /^en([-_]|$)/i.test(v.lang));
+      // Female voices only, in preference order (Carlos: "a female voice,
+      // easy to understand"). Names differ per platform — iPhones have
+      // Samantha/Nicky/Zoe but NOT the Mac names, which is how phones fell
+      // through to Fred (extremely robotic male). Samantha is the standard
+      // female voice everywhere EXCEPT macOS Chrome, where she is one of
+      // the voices that hangs the tab (see above) — so she's skipped only
+      // there. Male voices are a true last resort, and Fred never.
+      const macChrome = /Macintosh/.test(navigator.userAgent) && /Chrome\//.test(navigator.userAgent);
+      const FEMALE = (macChrome ? [] : ['samantha']).concat(
+        ['allison', 'susan', 'nicky', 'joelle', 'victoria', 'ava', 'zoe', 'martha', 'karen', 'moira', 'tessa']);
+      const MALE_LAST = ['alex', 'tom'];
+      const pick = (names, pool) => names.reduce((hit, name) => hit || pool.find(v => new RegExp('^' + name + '\\b', 'i').test(v.name)), null);
       const preferred =
-        enUS.find(v => /google/i.test(v.name)) ||
-        GOOD.reduce((hit, name) => hit || enUS.find(v => new RegExp('^' + name + '\\b', 'i').test(v.name)), null);
+        enUS.find(v => /google/i.test(v.name) && !/male/i.test(v.name)) ||   // Chrome's Google US voice (female)
+        pick(FEMALE, enUS) || pick(FEMALE, enAny) ||
+        enAny.find(v => /female/i.test(v.name)) ||                            // Android names them "... Female"
+        pick(MALE_LAST, enUS);
       if (preferred) u.voice = preferred;
       if (onDone) {
         // onend does NOT always fire (Chrome drops it when the tab is
