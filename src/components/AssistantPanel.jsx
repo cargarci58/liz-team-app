@@ -34,7 +34,7 @@ const RED = "#C0392B";
 
 // Bumped on every assistant change — shown in the panel header so "which
 // version am I actually running?" is answerable at a glance (cache issues).
-const BUILD_TAG = "v25";
+const BUILD_TAG = "v26";
 
 const GREETING = "How can I help you today?";
 // Set if holding the mic stream ever breaks the recognizer on this device
@@ -173,7 +173,7 @@ function speak(text, onDone, { queue = false, onSilent } = {}) {
       if (!window.speechSynthesis || !text) { if (onDone) onDone(); return; }
       if (!queue && (window.speechSynthesis.speaking || window.speechSynthesis.pending)) window.speechSynthesis.cancel();
       const u = new SpeechSynthesisUtterance(text);
-      u.rate = 1.04;
+      u.rate = 1.0;   // measured pace — agents found faster speech hard to follow
       // Prefer Google's en-US voice (Chrome, streamed, doesn't trigger the
       // hang). A plain Mac has no Google voice at all, so the fallback has to
       // NAME the voices we trust:
@@ -188,7 +188,10 @@ function speak(text, onDone, { queue = false, onSilent } = {}) {
       // pick — an unset voice is always safer than a guessed one.
       const voices = window.speechSynthesis.getVoices() || [];
       const enUS = voices.filter(v => /en[-_]US/i.test(v.lang) && !/enhanced|premium|natural|neural/i.test(v.name));
-      const GOOD = ['alex', 'allison', 'susan', 'tom', 'nicky', 'joelle', 'fred', 'victoria'];
+      // Female voices first (Carlos: "a female voice, easy to understand") —
+      // Alex/Fred/Tom stay only as last resorts. Same safety rules as above:
+      // plain variants only, never Samantha.
+      const GOOD = ['allison', 'susan', 'nicky', 'joelle', 'victoria', 'alex', 'fred', 'tom'];
       const preferred =
         enUS.find(v => /google/i.test(v.name)) ||
         GOOD.reduce((hit, name) => hit || enUS.find(v => new RegExp('^' + name + '\\b', 'i').test(v.name)), null);
