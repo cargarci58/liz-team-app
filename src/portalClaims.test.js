@@ -20,7 +20,7 @@ const ALL_MILESTONE_NAMES = [
   "HOA Estoppel Received", "HOA Approval", "Appraisal Ordered", "Appraisal Received",
   "Appraisal Gap Resolution (if low)", "Financing Deadline", "Clear to Close",
   // Seller — closing
-  "CD / Settlement Statement Review", "Verify Wire Instructions (Fraud Check)", "Seller Utilities / Move-Out",
+  "CD / Settlement Statement Review", "Verify Seller's Proceeds Wire Instructions (Fraud Check)", "Seller Utilities / Move-Out",
   "Final Walk-Through", "Closing / Funding / Recording", "Commission Disbursement",
   "Keys / Remotes / Garage Openers", "Change MLS Status to Closed", "Compliance Audit (File Complete)",
   "Send the Seller a Thank-You Note & Ask for a Review",
@@ -36,7 +36,8 @@ const ALL_MILESTONE_NAMES = [
   "Flood Insurance Bound", "Wind Mitigation / 4-Point Inspection",
   "Title Commitment Reviewed / Objection Deadline",
   // Buyer — closing
-  "CD Review", "Cash to Close Confirmed", "Utilities Transfer", "Keys / Possession",
+  "CD Review", "Cash to Close Confirmed", "Verify Cash-to-Close Wire Instructions (Fraud Check)",
+  "Utilities Transfer", "Keys / Possession",
 ];
 
 // The ONLY milestones allowed to produce each strong (legally-meaningful) claim.

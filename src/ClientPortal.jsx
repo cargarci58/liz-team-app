@@ -1008,7 +1008,13 @@ function ActionNeededCard({ tx }) {
       return { icon: "🔍", text: "Review inspection results with your agent carefully. You typically have a limited window to request repairs." };
     }
     if (tx.status === "Clear to Close") {
-      return { icon: "🏦", text: "Confirm wire transfer instructions directly with the title company by phone. Never wire money based on email instructions alone." };
+      // Both sides face wire fraud, but from opposite directions — the buyer
+      // sends cash to close, the seller receives proceeds. Telling a seller
+      // "never wire money" is advice for a payment they never make, and it
+      // buries the scam that does target them: a swapped payout account.
+      return tx.transactionType && tx.transactionType.includes("Buyer")
+        ? { icon: "🏦", text: "Confirm wire transfer instructions directly with the title company by phone. Never wire money based on email instructions alone." }
+        : { icon: "🏦", text: "Confirm with the title company by phone — using a number you look up yourself — that they have the right bank account for your sale proceeds. Never send account changes by email alone." };
     }
     if (tx.status === "Closed") {
       return { icon: "🎉", text: "Welcome! Remember to update your address with the post office, bank, and utilities. Keep all closing documents in a safe place." };
