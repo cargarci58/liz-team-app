@@ -34,7 +34,7 @@ const RED = "#C0392B";
 
 // Bumped on every assistant change — shown in the panel header so "which
 // version am I actually running?" is answerable at a glance (cache issues).
-const BUILD_TAG = "v26";
+const BUILD_TAG = "v27";
 
 const GREETING = "How can I help you today?";
 // Set if holding the mic stream ever breaks the recognizer on this device
@@ -162,7 +162,7 @@ function blobToBase64(blob) {
 // Nothing in this file can revive that (only a browser restart can), but it must
 // never again fail with NO explanation. These listeners are passive: they only
 // observe the utterance and cannot change whether it plays.
-function speak(text, onDone, { queue = false, onSilent } = {}) {
+function browserSpeak(text, onDone, { queue = false, onSilent } = {}) {
   // Deferred: speechSynthesis.speak()/cancel() on macOS Chrome can hang the
   // tab for many seconds (long-standing Chromium bug, worst with the local
   // "Enhanced/Premium/Samantha" voices). Running it after a tick means the
@@ -252,7 +252,96 @@ function unlockSpeech() {
   } catch {}
 }
 
+// ─── Natural voice (server TTS) ──────────────────────────────────────
+// POST /assistant/speak returns real human-sounding speech (a warm female
+// voice) as an mp3. Sentences are fetched as they stream in and PLAYED IN
+// ORDER through a queue, so the streamed-answer experience is unchanged —
+// just with a human voice. The first failure (key not configured, endpoint
+// missing, network) flips naturalDown and everything falls back to
+// browserSpeak for the rest of the session — same contract, no double cost.
+let naturalDown = false;
+let naturalQ = [];        // [{ text, onDone, onSilent, ready, failed, el, done }]
+let naturalPlaying = null;
+
+function naturalBusy() { return !!naturalPlaying || naturalQ.length > 0; }
+
+function stopNatural() {
+  naturalQ.splice(0).forEach(i => { i.done = true; });
+  if (naturalPlaying) {
+    try { naturalPlaying.el && (naturalPlaying.el.onended = null, naturalPlaying.el.pause()); } catch {}
+    naturalPlaying.done = true;
+    naturalPlaying = null;
+  }
+}
+
+function drainNatural() {
+  if (naturalPlaying || !naturalQ.length) return;
+  const head = naturalQ[0];
+  if (!head.ready) return;               // still fetching — re-drained when it lands
+  naturalQ.shift();
+  if (head.done) { drainNatural(); return; }
+  if (head.failed || !head.el) {
+    // This chunk couldn't be fetched — say it with the browser voice so no
+    // words are lost, then keep draining.
+    browserSpeak(head.text, () => { if (head.onDone) head.onDone(); drainNatural(); }, { queue: true, onSilent: head.onSilent });
+    return;
+  }
+  naturalPlaying = head;
+  const finish = () => {
+    if (head.done) return;
+    head.done = true;
+    if (naturalPlaying === head) naturalPlaying = null;
+    if (head.onDone) head.onDone();
+    drainNatural();
+  };
+  head.el.onended = finish;
+  head.el.onerror = finish;
+  head.el.play().then(() => {
+    // Backstop in case onended never fires (tab backgrounded etc.).
+    setTimeout(finish, Math.min(120000, 4000 + head.text.length * 120));
+  }).catch(() => {
+    // Autoplay refused this element — browser voice for this chunk.
+    if (head.done) return;
+    head.done = true;
+    if (naturalPlaying === head) naturalPlaying = null;
+    browserSpeak(head.text, head.onDone, { queue: true, onSilent: head.onSilent });
+    drainNatural();
+  });
+}
+
+function speakNatural(text, onDone, { queue = false, onSilent } = {}) {
+  if (!queue) stopSpeaking();
+  const item = { text, onDone, onSilent, ready: false, failed: false, el: null, done: false };
+  naturalQ.push(item);
+  fetch(API + "/assistant/speak", {
+    method: "POST",
+    headers: { Authorization: "Bearer " + (localStorage.getItem("tp_token") || ""), "Content-Type": "application/json" },
+    body: JSON.stringify({ text: String(text).slice(0, 600) }),
+  })
+    .then(r => (r.ok ? r.blob() : Promise.reject(new Error("tts " + r.status))))
+    .then(blob => {
+      item.el = new Audio(URL.createObjectURL(blob));
+      item.ready = true;
+      drainNatural();
+    })
+    .catch(() => {
+      naturalDown = true;    // browser voice for the rest of the session
+      item.failed = true;
+      item.ready = true;
+      drainNatural();
+    });
+}
+
+// The one speech entry point the panel uses. Natural voice when the server
+// offers it; the browser's best female voice otherwise.
+function speak(text, onDone, opts = {}) {
+  if (!text) { if (onDone) onDone(); return; }
+  if (!naturalDown) { speakNatural(text, onDone, opts); return; }
+  browserSpeak(text, onDone, opts);
+}
+
 function stopSpeaking() {
+  stopNatural();
   // cancel() while idle is what wedges some Chrome/macOS combos — only
   // cancel when something is actually queued or speaking.
   try {
@@ -701,7 +790,7 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
     const t = ttsRef.current;
     if (t.seq !== seq || !t.onDone) return;
     let talking = false;
-    try { talking = !!(window.speechSynthesis && (window.speechSynthesis.speaking || window.speechSynthesis.pending)); } catch {}
+    try { talking = naturalBusy() || !!(window.speechSynthesis && (window.speechSynthesis.speaking || window.speechSynthesis.pending)); } catch {}
     if (talking && tries < 240) { setTimeout(() => ttsDrain(seq, tries + 1), 250); return; }
     const f = t.onDone;
     t.onDone = null;
