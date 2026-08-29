@@ -34,7 +34,7 @@ const RED = "#C0392B";
 
 // Bumped on every assistant change — shown in the panel header so "which
 // version am I actually running?" is answerable at a glance (cache issues).
-const BUILD_TAG = "v30";
+const BUILD_TAG = "v25";
 
 const GREETING = "How can I help you today?";
 // Set if holding the mic stream ever breaks the recognizer on this device
@@ -154,15 +154,7 @@ function blobToBase64(blob) {
 // `queue: true` adds this sentence BEHIND whatever is already playing instead
 // of cutting it off — that's what lets a streamed answer start out loud on
 // sentence one while sentence two is still being written.
-// `onSilent(reason)` fires when the browser TOOK the utterance and never played
-// it. Chrome's TTS process can die and then report speaking=true forever, so
-// every later utterance queues behind a phantom one and never starts — verified
-// on a real machine: paused=false speaking=true, nothing audible, every voice
-// affected, cancel()+resume() clears the flags and the next utterance dies too.
-// Nothing in this file can revive that (only a browser restart can), but it must
-// never again fail with NO explanation. These listeners are passive: they only
-// observe the utterance and cannot change whether it plays.
-function browserSpeak(text, onDone, { queue = false, onSilent } = {}) {
+function speak(text, onDone, { queue = false } = {}) {
   // Deferred: speechSynthesis.speak()/cancel() on macOS Chrome can hang the
   // tab for many seconds (long-standing Chromium bug, worst with the local
   // "Enhanced/Premium/Samantha" voices). Running it after a tick means the
@@ -173,40 +165,15 @@ function browserSpeak(text, onDone, { queue = false, onSilent } = {}) {
       if (!window.speechSynthesis || !text) { if (onDone) onDone(); return; }
       if (!queue && (window.speechSynthesis.speaking || window.speechSynthesis.pending)) window.speechSynthesis.cancel();
       const u = new SpeechSynthesisUtterance(text);
-      u.rate = 1.0;   // measured pace — agents found faster speech hard to follow
+      u.rate = 1.04;
       // Prefer Google's en-US voice (Chrome, streamed, doesn't trigger the
-      // hang). A plain Mac has no Google voice at all, so the fallback has to
-      // NAME the voices we trust:
-      //   - the system default on macOS is Samantha, and Samantha is one of
-      //     the voices that freezes the tab — "default" can never be the rule;
-      //   - "first en-US voice that isn't Samantha" lands on a novelty voice,
-      //     because macOS ships Albert / Bad News / Bahh / Bells / Boing /
-      //     Bubbles / Cellos as en-US.
-      // So: walk a short list of known-good plain voices in order, skipping
-      // the Enhanced/Premium/Natural/Neural variants that hang. If this
-      // machine has none of them, leave u.voice UNSET and let the browser
-      // pick — an unset voice is always safer than a guessed one.
+      // hang), else the plain system default. NEVER pick the Enhanced/
+      // Premium/Samantha local voices — they're the ones that freeze.
       const voices = window.speechSynthesis.getVoices() || [];
-      const plain = voices.filter(v => !/enhanced|premium|natural|neural/i.test(v.name));
-      const enUS = plain.filter(v => /en[-_]US/i.test(v.lang));
-      const enAny = plain.filter(v => /^en([-_]|$)/i.test(v.lang));
-      // Female voices only, in preference order (Carlos: "a female voice,
-      // easy to understand"). Names differ per platform — iPhones have
-      // Samantha/Nicky/Zoe but NOT the Mac names, which is how phones fell
-      // through to Fred (extremely robotic male). Samantha is the standard
-      // female voice everywhere EXCEPT macOS Chrome, where she is one of
-      // the voices that hangs the tab (see above) — so she's skipped only
-      // there. Male voices are a true last resort, and Fred never.
-      const macChrome = /Macintosh/.test(navigator.userAgent) && /Chrome\//.test(navigator.userAgent);
-      const FEMALE = (macChrome ? [] : ['samantha']).concat(
-        ['allison', 'susan', 'nicky', 'joelle', 'victoria', 'ava', 'zoe', 'martha', 'karen', 'moira', 'tessa']);
-      const MALE_LAST = ['alex', 'tom'];
-      const pick = (names, pool) => names.reduce((hit, name) => hit || pool.find(v => new RegExp('^' + name + '\\b', 'i').test(v.name)), null);
       const preferred =
-        enUS.find(v => /google/i.test(v.name) && !/male/i.test(v.name)) ||   // Chrome's Google US voice (female)
-        pick(FEMALE, enUS) || pick(FEMALE, enAny) ||
-        enAny.find(v => /female/i.test(v.name)) ||                            // Android names them "... Female"
-        pick(MALE_LAST, enUS);
+        voices.find(v => /en[-_]US/i.test(v.lang) && /google/i.test(v.name)) ||
+        voices.find(v => /en[-_]US/i.test(v.lang) && v.default) ||
+        voices.find(v => /en[-_]US/i.test(v.lang) && !/enhanced|premium|natural|neural|samantha/i.test(v.name));
       if (preferred) u.voice = preferred;
       if (onDone) {
         // onend does NOT always fire (Chrome drops it when the tab is
@@ -227,22 +194,6 @@ function browserSpeak(text, onDone, { queue = false, onSilent } = {}) {
         // Backstop for an utterance that never starts at all (engine wedged).
         setTimeout(finish, 180000);
       }
-      // Watch whether it ACTUALLY starts. Purely observational.
-      if (onSilent) {
-        let started = false;
-        u.addEventListener("start", () => { started = true; });
-        u.addEventListener("error", e => {
-          // "canceled"/"interrupted" are normal — we cut speech off on purpose.
-          const why = e && e.error ? String(e.error) : "error";
-          if (!started && !/cancel|interrupt/i.test(why)) onSilent(why);
-        });
-        setTimeout(() => { if (!started) onSilent("never-started"); }, 2500);
-      }
-      // NOTE: a `resume()`-when-paused call lived here briefly. It is the
-      // documented fix for a paused engine, but Carlos went silent again right
-      // after it shipped and it was the ONLY line in that change that touched
-      // the speech engine — so it's gone. Everything else here is passive
-      // observation. Do not reintroduce it without a reproduction.
       window.speechSynthesis.speak(u);
     } catch { if (onDone) onDone(); }
   }, 0);
@@ -264,157 +215,7 @@ function unlockSpeech() {
   } catch {}
 }
 
-// ─── Natural voice (server TTS) ──────────────────────────────────────
-// POST /assistant/speak returns real human-sounding speech (a warm female
-// voice) as an mp3. Sentences are fetched as they stream in and PLAYED IN
-// ORDER through a queue, so the streamed-answer experience is unchanged —
-// just with a human voice. The first failure (key not configured, endpoint
-// missing, network) flips naturalDown and everything falls back to
-// browserSpeak for the rest of the session — same contract, no double cost.
-let naturalDown = false;
-let naturalQ = [];        // [{ text, onDone, onSilent, ready, failed, el, done }]
-let naturalPlaying = null;
-
-function naturalBusy() { return !!naturalPlaying || naturalQ.length > 0; }
-
-function stopNatural() {
-  naturalQ.splice(0).forEach(i => { i.done = true; });
-  if (naturalPlaying) {
-    try { naturalPlaying.el && (naturalPlaying.el.onended = null, naturalPlaying.el.pause()); } catch {}
-    naturalPlaying.done = true;
-    naturalPlaying = null;
-  }
-}
-
-function drainNatural() {
-  if (naturalPlaying || !naturalQ.length) return;
-  const head = naturalQ[0];
-  if (!head.ready) return;               // still fetching — re-drained when it lands
-  naturalQ.shift();
-  if (head.done) { drainNatural(); return; }
-  if (head.failed || !head.el) {
-    // This chunk couldn't be fetched — say it with the browser voice so no
-    // words are lost, then keep draining.
-    browserSpeak(head.text, () => { if (head.onDone) head.onDone(); drainNatural(); }, { queue: true, onSilent: head.onSilent });
-    return;
-  }
-  naturalPlaying = head;
-  const finish = () => {
-    if (head.done) return;
-    head.done = true;
-    if (naturalPlaying === head) naturalPlaying = null;
-    if (head.onDone) head.onDone();
-    drainNatural();
-  };
-  head.el.onended = finish;
-  head.el.onerror = finish;
-  head.el.play().then(() => {
-    // Backstop in case onended never fires (tab backgrounded etc.).
-    setTimeout(finish, Math.min(120000, 4000 + head.text.length * 120));
-  }).catch(() => {
-    // Autoplay refused this element — browser voice for this chunk.
-    if (head.done) return;
-    head.done = true;
-    if (naturalPlaying === head) naturalPlaying = null;
-    browserSpeak(head.text, head.onDone, { queue: true, onSilent: head.onSilent });
-    drainNatural();
-  });
-}
-
-// Cache generated speech by text (blob URLs). Repeated phrases — the
-// greeting, the mic sign-off, confirmations — play INSTANTLY after the
-// first time, which removes most of the felt TTS delay. Entries also hold
-// the in-flight Promise so a prewarm and a real speak of the same phrase
-// share one request.
-const ttsCache = new Map();   // text → blobURL string | Promise<blobURL>
-
-function fetchTTS(text) {
-  const cached = ttsCache.get(text);
-  if (cached) return Promise.resolve(cached);
-  const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), 6000);   // a slow sentence must never stall the whole reply
-  const p = fetch(API + "/assistant/speak", {
-    method: "POST",
-    signal: ctrl.signal,
-    headers: { Authorization: "Bearer " + (localStorage.getItem("tp_token") || ""), "Content-Type": "application/json" },
-    body: JSON.stringify({ text: String(text).slice(0, 600) }),
-  })
-    .then(r => {
-      if (!r.ok) { naturalDown = true; throw new Error("tts " + r.status); }  // not configured — browser voice from here on
-      return r.blob();
-    })
-    .then(blob => {
-      const url = URL.createObjectURL(blob);
-      if (ttsCache.size > 40) { const oldest = ttsCache.keys().next().value; ttsCache.delete(oldest); }
-      ttsCache.set(text, url);
-      return url;
-    })
-    .catch(e => { ttsCache.delete(text); throw e; })     // timeouts stay retryable; naturalDown set above only on HTTP errors
-    .finally(() => clearTimeout(timer));
-  ttsCache.set(text, p);
-  return p;
-}
-
-// Generate common phrases ahead of need, so they're on hand the instant
-// they're spoken (greeting when the panel opens, sign-off when the mic
-// closes). Failing here just flips the fallback earlier — no harm.
-function prewarmTTS(phrases) {
-  if (naturalDown) return;
-  phrases.forEach(t => { try { fetchTTS(t).catch(() => {}); } catch {} });
-}
-
-function speakNatural(text, onDone, { queue = false, onSilent } = {}) {
-  if (!queue) stopSpeaking();
-  const item = { text, onDone, onSilent, ready: false, failed: false, el: null, done: false };
-  naturalQ.push(item);
-  fetchTTS(text)
-    .then(url => {
-      item.el = new Audio(url);
-      item.ready = true;
-      drainNatural();
-    })
-    .catch(() => {
-      item.failed = true;    // this chunk falls back to the browser voice
-      item.ready = true;
-      drainNatural();
-    });
-}
-
-// The one speech entry point the panel uses. Natural voice when the server
-// offers it; the browser's best female voice otherwise.
-function speak(text, onDone, opts = {}) {
-  if (!text) { if (onDone) onDone(); return; }
-  if (!naturalDown) { speakNatural(text, onDone, opts); return; }
-  browserSpeak(text, onDone, opts);
-}
-
-// Soft "got it" chirp the instant a question is sent — the brain takes a
-// couple of seconds to answer, and silence in that gap reads as "it didn't
-// hear me" (especially hands-free). Two quick gentle notes, generated
-// locally (no network, no delay). Same AudioContext pattern as the
-// dashboard's new-message chime.
-let cueCtx = null;
-function playThinkingCue() {
-  try {
-    cueCtx = cueCtx || new (window.AudioContext || window.webkitAudioContext)();
-    if (cueCtx.state === "suspended") cueCtx.resume();
-    [[520, 0], [700, 0.09]].forEach(([freq, at]) => {
-      const osc = cueCtx.createOscillator();
-      const gain = cueCtx.createGain();
-      osc.connect(gain); gain.connect(cueCtx.destination);
-      osc.type = "sine";
-      osc.frequency.setValueAtTime(freq, cueCtx.currentTime + at);
-      gain.gain.setValueAtTime(0.0001, cueCtx.currentTime + at);
-      gain.gain.exponentialRampToValueAtTime(0.12, cueCtx.currentTime + at + 0.02);
-      gain.gain.exponentialRampToValueAtTime(0.0001, cueCtx.currentTime + at + 0.12);
-      osc.start(cueCtx.currentTime + at);
-      osc.stop(cueCtx.currentTime + at + 0.14);
-    });
-  } catch {}
-}
-
 function stopSpeaking() {
-  stopNatural();
   // cancel() while idle is what wedges some Chrome/macOS combos — only
   // cancel when something is actually queued or speaking.
   try {
@@ -754,10 +555,6 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
   const [listening, setListening] = useState(false);
   const [interim, setInterim] = useState("");   // live transcript while talking
   const [micNote, setMicNote] = useState(null); // mic error/help text
-  // Why you can't HEAR me. Set only when the browser accepted the words and
-  // played nothing. Six rounds of "I still can't hear it" happened because this
-  // failure had no symptom at all beyond silence.
-  const [voiceNote, setVoiceNote] = useState(null);
   const [recording, setRecording] = useState(false);     // MediaRecorder fallback active
   const [transcribing, setTranscribing] = useState(false);
   const [micStarting, setMicStarting] = useState(false);  // instant tap feedback while the mic opens
@@ -812,14 +609,8 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
   }, [msgs, busy, streamText]);
 
-  // Chrome loads speechSynthesis voices async — warm the list. Also
-  // pre-generate the natural-voice audio for the fixed phrases, so the
-  // greeting speaks the instant the panel opens instead of after a
-  // synthesis round trip.
-  useEffect(() => {
-    try { window.speechSynthesis && window.speechSynthesis.getVoices(); } catch {}
-    prewarmTTS([GREETING, SIGN_OFF]);
-  }, []);
+  // Chrome loads speechSynthesis voices async — warm the list.
+  useEffect(() => { try { window.speechSynthesis && window.speechSynthesis.getVoices(); } catch {} }, []);
 
   const toggleSpeak = () => {
     setSpeakOn(prev => {
@@ -869,7 +660,7 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
     const t = ttsRef.current;
     if (t.seq !== seq || !t.onDone) return;
     let talking = false;
-    try { talking = naturalBusy() || !!(window.speechSynthesis && (window.speechSynthesis.speaking || window.speechSynthesis.pending)); } catch {}
+    try { talking = !!(window.speechSynthesis && (window.speechSynthesis.speaking || window.speechSynthesis.pending)); } catch {}
     if (talking && tries < 240) { setTimeout(() => ttsDrain(seq, tries + 1), 250); return; }
     const f = t.onDone;
     t.onDone = null;
@@ -902,7 +693,6 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
 
   const openPanel = () => {
     setOpen(true);
-    setVoiceNote(null);   // re-check each open
     openRef.current = true;   // armMic() runs before the next render
     refreshTasks();
     if (msgs.length === 0) {
@@ -926,12 +716,12 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
           speak(GREETING, () => {
             speakingRef.current = false;
             if (live && !live.sent && live.restart) live.restart();
-          }, { onSilent: why => { speakingRef.current = false; setVoiceNote(why); } });
+          });
         },
       });
       return;
     }
-    if (speakOn) speak(GREETING, null, { onSilent: why => setVoiceNote(why) });
+    if (speakOn) speak(GREETING);
   };
 
   const closePanel = () => {
@@ -1367,9 +1157,6 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
     let spokenLive = false;   // the streamed answer was already read aloud
     // Reply aloud when the agent talked to us, or whenever voice replies are on.
     const wantSpeech = voice || speakOn;
-    // Immediate "got it" chirp — fills the thinking gap so hands-free never
-    // wonders whether it heard.
-    if (wantSpeech) playThinkingCue();
     const history = msgsRef.current.slice(-8).map(m => ({ role: m.role, text: m.text }));
     const body = JSON.stringify({
       message: text,
@@ -1605,22 +1392,6 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
               {micNote && (
                 <div style={{ background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: 10, padding: "10px 12px", fontSize: 12.5, color: "#7F1D1D", lineHeight: 1.5, marginTop: 4 }}>
                   🎤 {micNote}
-                </div>
-              )}
-              {/* The browser took the words and played nothing. Say so, and give
-                  the one remedy that actually works — a page cannot revive a
-                  dead TTS process, but chrome://restart keeps every tab. */}
-              {voiceNote && (
-                <div style={{ background: "#F1F5F9", border: "1px solid #E2E8F0", borderRadius: 10, padding: "10px 12px", fontSize: 12.5, color: "#334155", lineHeight: 1.5, marginTop: 4 }}>
-                  🔈 <b>Your browser's voice has stopped responding.</b> Everything
-                  I say is still here in writing — you're not missing anything.
-                  <div style={{ marginTop: 6 }}>
-                    To get the voice back, paste <b>chrome://restart</b> into your
-                    address bar. Chrome reopens with all your tabs still there.
-                  </div>
-                  <div style={{ marginTop: 6, fontSize: 11, color: "#64748B" }}>
-                    ({voiceNote} — your Mac's speech is fine, this is the browser.)
-                  </div>
                 </div>
               )}
             </div>
