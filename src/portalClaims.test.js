@@ -20,7 +20,8 @@ const ALL_MILESTONE_NAMES = [
   "HOA Estoppel Received", "HOA Approval", "Appraisal Ordered", "Appraisal Received",
   "Appraisal Gap Resolution (if low)", "Financing Deadline", "Clear to Close",
   // Seller — closing
-  "CD / Settlement Statement Review", "Verify Seller's Proceeds Wire Instructions (Fraud Check)", "Seller Utilities / Move-Out",
+  // No wire-instruction step on the listing side — it's buyer-only now.
+  "CD / Settlement Statement Review", "Seller Utilities / Move-Out",
   "Final Walk-Through", "Closing / Funding / Recording", "Commission Disbursement",
   "Keys / Remotes / Garage Openers", "Change MLS Status to Closed", "Compliance Audit (File Complete)",
   "Send the Seller a Thank-You Note & Ask for a Review",
