@@ -34,7 +34,7 @@ const RED = "#C0392B";
 
 // Bumped on every assistant change — shown in the panel header so "which
 // version am I actually running?" is answerable at a glance (cache issues).
-const BUILD_TAG = "v28";
+const BUILD_TAG = "v29";
 
 const GREETING = "How can I help you today?";
 // Set if holding the mic stream ever breaks the recognizer on this device
@@ -321,24 +321,60 @@ function drainNatural() {
   });
 }
 
+// Cache generated speech by text (blob URLs). Repeated phrases — the
+// greeting, the mic sign-off, confirmations — play INSTANTLY after the
+// first time, which removes most of the felt TTS delay. Entries also hold
+// the in-flight Promise so a prewarm and a real speak of the same phrase
+// share one request.
+const ttsCache = new Map();   // text → blobURL string | Promise<blobURL>
+
+function fetchTTS(text) {
+  const cached = ttsCache.get(text);
+  if (cached) return Promise.resolve(cached);
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 6000);   // a slow sentence must never stall the whole reply
+  const p = fetch(API + "/assistant/speak", {
+    method: "POST",
+    signal: ctrl.signal,
+    headers: { Authorization: "Bearer " + (localStorage.getItem("tp_token") || ""), "Content-Type": "application/json" },
+    body: JSON.stringify({ text: String(text).slice(0, 600) }),
+  })
+    .then(r => {
+      if (!r.ok) { naturalDown = true; throw new Error("tts " + r.status); }  // not configured — browser voice from here on
+      return r.blob();
+    })
+    .then(blob => {
+      const url = URL.createObjectURL(blob);
+      if (ttsCache.size > 40) { const oldest = ttsCache.keys().next().value; ttsCache.delete(oldest); }
+      ttsCache.set(text, url);
+      return url;
+    })
+    .catch(e => { ttsCache.delete(text); throw e; })     // timeouts stay retryable; naturalDown set above only on HTTP errors
+    .finally(() => clearTimeout(timer));
+  ttsCache.set(text, p);
+  return p;
+}
+
+// Generate common phrases ahead of need, so they're on hand the instant
+// they're spoken (greeting when the panel opens, sign-off when the mic
+// closes). Failing here just flips the fallback earlier — no harm.
+function prewarmTTS(phrases) {
+  if (naturalDown) return;
+  phrases.forEach(t => { try { fetchTTS(t).catch(() => {}); } catch {} });
+}
+
 function speakNatural(text, onDone, { queue = false, onSilent } = {}) {
   if (!queue) stopSpeaking();
   const item = { text, onDone, onSilent, ready: false, failed: false, el: null, done: false };
   naturalQ.push(item);
-  fetch(API + "/assistant/speak", {
-    method: "POST",
-    headers: { Authorization: "Bearer " + (localStorage.getItem("tp_token") || ""), "Content-Type": "application/json" },
-    body: JSON.stringify({ text: String(text).slice(0, 600) }),
-  })
-    .then(r => (r.ok ? r.blob() : Promise.reject(new Error("tts " + r.status))))
-    .then(blob => {
-      item.el = new Audio(URL.createObjectURL(blob));
+  fetchTTS(text)
+    .then(url => {
+      item.el = new Audio(url);
       item.ready = true;
       drainNatural();
     })
     .catch(() => {
-      naturalDown = true;    // browser voice for the rest of the session
-      item.failed = true;
+      item.failed = true;    // this chunk falls back to the browser voice
       item.ready = true;
       drainNatural();
     });
@@ -751,8 +787,14 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
   }, [msgs, busy, streamText]);
 
-  // Chrome loads speechSynthesis voices async — warm the list.
-  useEffect(() => { try { window.speechSynthesis && window.speechSynthesis.getVoices(); } catch {} }, []);
+  // Chrome loads speechSynthesis voices async — warm the list. Also
+  // pre-generate the natural-voice audio for the fixed phrases, so the
+  // greeting speaks the instant the panel opens instead of after a
+  // synthesis round trip.
+  useEffect(() => {
+    try { window.speechSynthesis && window.speechSynthesis.getVoices(); } catch {}
+    prewarmTTS([GREETING, SIGN_OFF]);
+  }, []);
 
   const toggleSpeak = () => {
     setSpeakOn(prev => {
