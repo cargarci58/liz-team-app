@@ -45,6 +45,13 @@ const QUIET_CLOSE_MS = 8000;
 const IS_IOS = typeof navigator !== "undefined" &&
   (/iPhone|iPad|iPod/i.test(navigator.userAgent) ||
    (/Mac/i.test(navigator.userAgent) && navigator.maxTouchPoints > 1));
+// WebKit (iOS, and Safari on the desktop) refuses to speak unless speech was
+// first started from inside a real tap. No other engine has that rule — and on
+// Chrome, paying it anyway is what broke the voice. See unlockSpeech().
+const IS_SAFARI = typeof navigator !== "undefined" &&
+  /safari/i.test(navigator.userAgent) &&
+  !/chrome|chromium|crios|fxios|edg|opr|android/i.test(navigator.userAgent);
+const NEEDS_SPEECH_UNLOCK = IS_IOS || IS_SAFARI;
 const SIGN_OFF = "I didn't hear anything, so I'm closing the mic. Tap it whenever you need me.";
 const CHIPS = [
   { label: "❓ How do I…", send: "", fill: "how do I " },
@@ -206,6 +213,17 @@ function speak(text, onDone, { queue = false } = {}) {
 let speechUnlocked = false;
 function unlockSpeech() {
   if (speechUnlocked) return;
+  // THIS IS THE BUG THAT MADE THE DESKTOP SILENT. Only WebKit needs the
+  // speak-from-a-tap claim; running it everywhere cost Carlos his voice for
+  // two weeks. On Chrome the silent utterance leaves the engine `pending`,
+  // and the very next thing openPanel() does is armMic() -> startListening(),
+  // which opens with stopSpeaking() — that cancels *because* something is
+  // pending, and speechSynthesis.cancel() wedges the macOS Chrome speech
+  // engine BROWSER-WIDE until Chrome restarts. Every panel open re-wedged it,
+  // which is why restarting "fixed" it and why it always came straight back.
+  // Confirmed on his Mac 2026-08-29: with this path skipped, the voice works
+  // and stays working. Do not make this unconditional again.
+  if (!NEEDS_SPEECH_UNLOCK) { speechUnlocked = true; return; }
   try {
     if (!window.speechSynthesis) return;
     const u = new SpeechSynthesisUtterance(" ");
