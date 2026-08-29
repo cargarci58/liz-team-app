@@ -551,12 +551,10 @@ if (typeof document !== "undefined" && !document.getElementById("lizteam-mobile"
         width: 50px !important; height: 50px !important; font-size: 22px !important;
         bottom: 14px !important; right: 14px !important;
       }
-      .assist-coach {
-        bottom: 74px !important; right: 14px !important; max-width: 210px !important;
-      }
-      /* Header: keep Win The Day · My Deals · New Deal visible on a phone.
-         Contacts moves into 🧰 Tools at this width (see ToolsMenu). */
-      .hdr-contacts { display: none !important; }
+      /* NOTE: 📇 Contacts stays in the header at EVERY width. It was briefly
+         hidden on phones (folded into 🧰 Tools) to keep the navy bar on fewer
+         rows — Carlos wants it on the main screen, where it's one tap instead
+         of two. The bar wrapping is the acceptable cost. */
       /* Stats bar: 2-col grid on mobile, no horizontal scroll */
       [data-stats-bar] {
         display: grid !important;
@@ -8569,21 +8567,9 @@ function ContactAutocomplete({ token, onSelect }) {
 
 // ── TOOLS MENU — everything that isn't daily-critical lives one tap away.
 // Keeps the header at five buttons so a brand-new agent is never overwhelmed.
-function ToolsMenu({ coordinatorMode, onOpenPopBys, onOpenScripts, onOpenCMA, onOpenGrowthPlan, onOpenExpenses, onVendors, onCalendar, onIntakeLinks, onAddTask, onTcTeam, onTcServices, onOpenContacts }) {
+function ToolsMenu({ coordinatorMode, onOpenPopBys, onOpenScripts, onOpenCMA, onOpenGrowthPlan, onOpenExpenses, onVendors, onCalendar, onIntakeLinks, onAddTask, onTcTeam, onTcServices }) {
   const [open, setOpen] = useState(false);
-  // On phones the header's 📇 Contacts button is hidden (seven navy controls
-  // wrapped the bar onto three rows), so Tools carries it at that width.
-  const [isPhone, setIsPhone] = useState(() =>
-    typeof window !== "undefined" && typeof window.matchMedia === "function"
-      ? window.matchMedia("(max-width: 768px)").matches : false);
-  useEffect(() => {
-    if (typeof window === "undefined" || typeof window.matchMedia !== "function") return;
-    const mq = window.matchMedia("(max-width: 768px)");
-    const onChange = e => setIsPhone(e.matches);
-    mq.addEventListener ? mq.addEventListener("change", onChange) : mq.addListener(onChange);
-    return () => { mq.removeEventListener ? mq.removeEventListener("change", onChange) : mq.removeListener(onChange); };
-  }, []);
-  const base = coordinatorMode ? [
+  const items = coordinatorMode ? [
     ["💵", "My Money", onOpenExpenses],
     ["👥", "Team", onTcTeam],
     ["💼", "My Services", onTcServices],
@@ -8600,7 +8586,6 @@ function ToolsMenu({ coordinatorMode, onOpenPopBys, onOpenScripts, onOpenCMA, on
     ["📅", "Calendar", onCalendar],
     ["📝", "Add a Task", onAddTask],
   ];
-  const items = isPhone ? [["📇", "Contacts", onOpenContacts], ...base] : base;
   return (
     <div style={{ position: "relative" }} data-tour="tools">
       <button onClick={() => setOpen(!open)} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "#fff", borderRadius: 8, padding: "8px 14px", cursor: "pointer", fontSize: 13, fontWeight: 700, fontFamily: "inherit" }}>
@@ -8660,13 +8645,9 @@ function AppHeader(props) {
         <button data-tour="home" onClick={onHome} style={btn(view === "home")} title="Your daily list — what needs attention today">🏆 Win The Day</button>
         <button data-tour="deals" onClick={onDeals} style={btn(view === "dashboard")} title="All your listings and buyers">📋 My Deals</button>
         {!coordinatorMode && <button data-tour="new" onClick={onNew} style={{ ...btn(false), background: "#C0392B", border: "none" }}>➕ New Deal</button>}
-        {/* Hidden on phones — seven navy controls wrapped into three rows before
-            any content appeared. Contacts is the one that folds, because Tools
-            carries it there instead (see ToolsMenu). */}
-        <button data-tour="contacts" className="hdr-contacts" onClick={onOpenContacts} style={btn(false)}>📇 Contacts</button>
+        <button data-tour="contacts" onClick={onOpenContacts} style={btn(false)}>📇 Contacts</button>
         <ToolsMenu
           coordinatorMode={coordinatorMode}
-          onOpenContacts={onOpenContacts}
           onOpenPopBys={props.onOpenPopBys} onOpenScripts={props.onOpenScripts} onOpenCMA={props.onOpenCMA}
           onOpenGrowthPlan={props.onOpenGrowthPlan} onOpenExpenses={props.onOpenExpenses} onVendors={props.onVendors}
           onCalendar={props.onCalendar} onIntakeLinks={props.onIntakeLinks} onAddTask={props.onAddTask}
