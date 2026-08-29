@@ -34,7 +34,7 @@ const RED = "#C0392B";
 
 // Bumped on every assistant change — shown in the panel header so "which
 // version am I actually running?" is answerable at a glance (cache issues).
-const BUILD_TAG = "v29";
+const BUILD_TAG = "v30";
 
 const GREETING = "How can I help you today?";
 // Set if holding the mic stream ever breaks the recognizer on this device
@@ -386,6 +386,31 @@ function speak(text, onDone, opts = {}) {
   if (!text) { if (onDone) onDone(); return; }
   if (!naturalDown) { speakNatural(text, onDone, opts); return; }
   browserSpeak(text, onDone, opts);
+}
+
+// Soft "got it" chirp the instant a question is sent — the brain takes a
+// couple of seconds to answer, and silence in that gap reads as "it didn't
+// hear me" (especially hands-free). Two quick gentle notes, generated
+// locally (no network, no delay). Same AudioContext pattern as the
+// dashboard's new-message chime.
+let cueCtx = null;
+function playThinkingCue() {
+  try {
+    cueCtx = cueCtx || new (window.AudioContext || window.webkitAudioContext)();
+    if (cueCtx.state === "suspended") cueCtx.resume();
+    [[520, 0], [700, 0.09]].forEach(([freq, at]) => {
+      const osc = cueCtx.createOscillator();
+      const gain = cueCtx.createGain();
+      osc.connect(gain); gain.connect(cueCtx.destination);
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(freq, cueCtx.currentTime + at);
+      gain.gain.setValueAtTime(0.0001, cueCtx.currentTime + at);
+      gain.gain.exponentialRampToValueAtTime(0.12, cueCtx.currentTime + at + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, cueCtx.currentTime + at + 0.12);
+      osc.start(cueCtx.currentTime + at);
+      osc.stop(cueCtx.currentTime + at + 0.14);
+    });
+  } catch {}
 }
 
 function stopSpeaking() {
@@ -1342,6 +1367,9 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
     let spokenLive = false;   // the streamed answer was already read aloud
     // Reply aloud when the agent talked to us, or whenever voice replies are on.
     const wantSpeech = voice || speakOn;
+    // Immediate "got it" chirp — fills the thinking gap so hands-free never
+    // wonders whether it heard.
+    if (wantSpeech) playThinkingCue();
     const history = msgsRef.current.slice(-8).map(m => ({ role: m.role, text: m.text }));
     const body = JSON.stringify({
       message: text,
