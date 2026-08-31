@@ -155,8 +155,17 @@ const makeInitialUpgrades = (tx) => {
 // Seed the subject from the transaction. Property specs are captured at intake
 // (seller form) and re-saved each time a CMA is run, so the Subject tab
 // pre-fills. The agent can still edit anything.
-const makeInitialSubject = (tx) => ({
+// Same vocabulary as App.jsx PROPERTY_TYPES — a CMA and its transaction must
+// never disagree about what the property is.
+export const PROPERTY_TYPES = ["Single Family", "Condo/Townhouse", "Multi-Family", "Land", "Commercial"];
+// Condos and townhouses have no lot of their own. Lot Size is display-only, but
+// Lot Quality feeds a real ±5-7% swing in the frozen math, so it must never be
+// left reachable on a property that has no lot to judge.
+export const hasOwnLot = (t) => !/condo|townhouse/i.test(String(t || ''));
+
+export const makeInitialSubject = (tx) => ({
   address: tx?.address || '',
+  propertyType: tx?.propertyType || 'Single Family',
   sqft: tx?.sqft != null && tx?.sqft !== '' ? String(tx.sqft) : '',
   beds: tx?.beds != null && tx?.beds !== '' ? String(tx.beds) : '',
   baths: tx?.baths != null && tx?.baths !== '' ? String(tx.baths) : '',
@@ -824,10 +833,25 @@ function CmaTool({ tx, token, currentUser, standalone = false, initialCma = null
                 <div className="form-card-title">Property basics</div>
                 <div className="form-grid">
                   <div className="field"><label className="field-label">Address</label><input type="text" placeholder="13346 Alderley Dr" value={subject.address} onChange={(e) => setSubject({ ...subject, address: e.target.value })} /></div>
+                  <div className="field">
+                    <label className="field-label">Property Type</label>
+                    <select value={subject.propertyType} onChange={(e) => {
+                      const next = e.target.value;
+                      // Switching to a lot-less type clears the lot inputs so a
+                      // leftover Lot Quality can't quietly move a condo's price.
+                      setSubject(sub => hasOwnLot(next)
+                        ? { ...sub, propertyType: next }
+                        : { ...sub, propertyType: next, lotSize: '', lotQuality: 'standard' });
+                    }}>
+                      {PROPERTY_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                    </select>
+                  </div>
                   <div className="field"><label className="field-label">Heated Sqft <span className="opt">required</span></label><input type="number" placeholder="3170" value={subject.sqft} onChange={(e) => setSubject({ ...subject, sqft: e.target.value })} /></div>
                   <div className="field"><label className="field-label">Beds</label><input type="number" placeholder="4" value={subject.beds} onChange={(e) => setSubject({ ...subject, beds: e.target.value })} /></div>
                   <div className="field"><label className="field-label">Year Built</label><input type="number" placeholder="2019" value={subject.yearBuilt} onChange={(e) => setSubject({ ...subject, yearBuilt: e.target.value })} /></div>
+                  {hasOwnLot(subject.propertyType) && (
                   <div className="field"><label className="field-label">Lot Size (acres)</label><input type="number" step="0.01" placeholder="0.20" value={subject.lotSize} onChange={(e) => setSubject({ ...subject, lotSize: e.target.value })} /></div>
+                  )}
                 </div>
               </div>
 
@@ -845,6 +869,7 @@ function CmaTool({ tx, token, currentUser, standalone = false, initialCma = null
                       <option value="major_updates">Major Updates Needed (−17%)</option>
                     </select>
                   </div>
+                  {hasOwnLot(subject.propertyType) && (
                   <div className="field">
                     <label className="field-label">Lot Quality</label>
                     <select value={subject.lotQuality} onChange={(e) => setSubject({ ...subject, lotQuality: e.target.value })}>
@@ -855,6 +880,7 @@ function CmaTool({ tx, token, currentUser, standalone = false, initialCma = null
                       <option value="problem">Problem Lot (−7%)</option>
                     </select>
                   </div>
+                  )}
                 </div>
                 <div style={{ marginTop: 14, fontSize: 12, color: 'var(--muted)', lineHeight: 1.5 }}>
                   <strong style={{ color: 'var(--accent)' }}>Tip:</strong> If you have photos of the kitchen, baths, flooring, and living spaces, upload them to a chat with Claude and ask "What condition tier?" for a second opinion before selecting.
@@ -1422,6 +1448,7 @@ function CmaTool({ tx, token, currentUser, standalone = false, initialCma = null
             <div className="sr-property-label">Prepared for the home at</div>
             <div className="sr-property-addr">{subject.address || 'Subject Property'}</div>
             <div className="sr-property-details">
+              {subject.propertyType && `${subject.propertyType} · `}
               {subject.sqft && `${parseInt(subject.sqft).toLocaleString()} sqft`}
               {subject.beds && ` · ${subject.beds} bedrooms`}
               {subject.yearBuilt && ` · Built ${subject.yearBuilt}`}
