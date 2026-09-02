@@ -9210,7 +9210,26 @@ function Dashboard({ transactions, coordinatorMode = false, unreadCounts = {}, o
   const [showOverdue, setShowOverdue] = useState(false);
   const [remindingTask, setRemindingTask] = useState(null);
   const [remindingTx, setRemindingTx] = useState(null);
-  const filtered = transactions.filter(tx => ((filter === "All" ? (tx.status !== "Cancelled" && tx.status !== "Closed") : tx.status === filter)) && (!search || (tx.address || "").toLowerCase().includes(search.toLowerCase()) || (tx.city || "").toLowerCase().includes(search.toLowerCase()) || (tx.mlsNumber || "").toLowerCase().includes(search.toLowerCase()) || (tx.parties || []).some(p => p && p.name && p.name.toLowerCase().includes(search.toLowerCase()))));
+  // "📂 Read All (default)" is the everyday working list — the deals that are
+  // actually live and want attention. Closed and Cancelled were already out;
+  // On Hold now is too (Carlos 8/31): a deal you deliberately parked shouldn't
+  // sit in the list you scan every morning. It stays one click away under
+  // "⏸️ On Hold", which is the only view that shows it.
+  const HIDDEN_FROM_READ_ALL = ["Cancelled", "Closed", "On Hold"];
+  // "🌱 New Leads & Inquiries" is NOT a status — nothing in the app is ever
+  // status "Leads", so this option used to match nothing and the list came up
+  // empty every time. A lead is an intake that still needs first contact, which
+  // is the same flag that pins them to the top of the list below.
+  const matchesFilter = (tx) =>
+    filter === "All"   ? !HIDDEN_FROM_READ_ALL.includes(tx.status)
+    : filter === "Leads" ? !!tx.needsFirstContact
+    : tx.status === filter;
+  const matchesSearch = (tx) => !search
+    || (tx.address || "").toLowerCase().includes(search.toLowerCase())
+    || (tx.city || "").toLowerCase().includes(search.toLowerCase())
+    || (tx.mlsNumber || "").toLowerCase().includes(search.toLowerCase())
+    || (tx.parties || []).some(p => p && p.name && p.name.toLowerCase().includes(search.toLowerCase()));
+  const filtered = transactions.filter(tx => matchesFilter(tx) && matchesSearch(tx));
   const sorted = [...filtered].sort((a, b) => {
     const dir = sortDir === "asc" ? 1 : -1;
     let av, bv;
@@ -9678,6 +9697,29 @@ function Dashboard({ transactions, coordinatorMode = false, unreadCounts = {}, o
                 style={{ padding: "11px 22px", background: COLORS.navy, color: "#fff", border: "none", borderRadius: 10, fontSize: 14, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>
                 Show all my deals
               </button>
+            </div>
+          ) : transactions.length > 0 ? (
+            // They HAVE deals — every one is parked, closed or cancelled, and
+            // Read All hides all three. Without this branch they'd be told
+            // "No deals yet", which is simply untrue and alarming.
+            <div style={{ gridColumn: "1/-1", textAlign: "center", padding: 60, color: COLORS.muted }}>
+              <div style={{ fontSize: 40, marginBottom: 12 }}>🗂️</div>
+              <div style={{ fontSize: 18, fontWeight: 700, color: COLORS.navy, marginBottom: 6 }}>Nothing live right now</div>
+              <div style={{ marginBottom: 14 }}>
+                Your other deals are still here — <b>Read All</b> only shows what's active.
+              </div>
+              <div style={{ display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap" }}>
+                {[["On Hold", "⏸️ On Hold"], ["Closed", "✅ Closed"], ["Cancelled", "❌ Cancelled"]]
+                  .map(([st, label]) => {
+                    const n = transactions.filter(t => t.status === st).length;
+                    return n === 0 ? null : (
+                      <button key={st} onClick={() => setFilter(st)}
+                        style={{ padding: "10px 18px", background: "#fff", color: COLORS.navy, border: `1px solid ${COLORS.border}`, borderRadius: 10, fontSize: 13, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>
+                        {label} ({n})
+                      </button>
+                    );
+                  })}
+              </div>
             </div>
           ) : (
             <div style={{ gridColumn: "1/-1", textAlign: "center", padding: 60, color: COLORS.muted }}>
