@@ -6185,6 +6185,8 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
   const [remindingTask, setRemindingTask] = useState(null);
   const [newMessage, setNewMessage] = useState("");
   const [partyForm, setPartyForm] = useState({ role: "", name: "", email: "", phone: "", company: "", mailingAddress: "", preferredComm: "Email", checksEmail: "Yes", primaryResidence: "Yes", mailAway: "No" });
+  // Why "Add Party" refused. It used to just... not fire, with nothing on screen.
+  const [partyError, setPartyError] = useState(null);
   const [taskForm, setTaskForm] = useState({ name: "", category: "Contract", assignTo: "", dueDate: "", notes: "" });
   const [reminderForm, setReminderForm] = useState({ title: "", date: "", message: "", channels: "both", parties: [] });
 
@@ -7286,7 +7288,8 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
 
       {editingParty && (
         <Modal title="Edit Party" onClose={() => setEditingParty(null)}>
-          <Input label="Role" value={PARTY_ROLES.includes(editingParty.role) ? editingParty.role : "Other"} onChange={v => setEditingParty(p => ({ ...p, role: v }))} options={PARTY_ROLES} required />
+          {/* Same rule as Add Party: an empty role must show "Select…", not "Other". */}
+          <Input label="Role" value={!editingParty.role ? "" : (PARTY_ROLES.includes(editingParty.role) ? editingParty.role : "Other")} onChange={v => setEditingParty(p => ({ ...p, role: v }))} options={PARTY_ROLES} required />
           {(editingParty.role === "Other" || (editingParty.role && !PARTY_ROLES.includes(editingParty.role))) && (
             <Input label="Specify role" value={editingParty.role === "Other" ? "" : editingParty.role} onChange={v => setEditingParty(p => ({ ...p, role: v.trim() ? v : "Other" }))} placeholder="e.g. Notary, Surveyor, Co-buyer" />
           )}
@@ -7387,7 +7390,14 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
               <span style={{ fontSize: 12, color: COLORS.muted, marginLeft: 10 }}>(transaction-party shortcuts)</span>
             </div>
           )}
-          <Input label="Role" value={PARTY_ROLES.includes(partyForm.role) ? partyForm.role : "Other"} onChange={v => setPartyForm(f => ({ ...f, role: v }))} options={PARTY_ROLES} required />
+          {/* The displayed value MUST track the real one. This used to fall back to
+              "Other" whenever the role wasn't a known role — including when it was
+              still EMPTY, which is how every party starts. So the box read "Other"
+              while the state held "", the submit guard below saw a falsy role and
+              silently did nothing, and re-picking "Other" fired no change event
+              because the select already displayed it. "Other" was a dead end you
+              could not click your way out of. Empty now shows "Select…". */}
+          <Input label="Role" value={partyForm.role === "" ? "" : (PARTY_ROLES.includes(partyForm.role) ? partyForm.role : "Other")} onChange={v => { setPartyForm(f => ({ ...f, role: v })); setPartyError(null); }} options={PARTY_ROLES} required />
           {(partyForm.role === "Other" || (partyForm.role && !PARTY_ROLES.includes(partyForm.role))) && (
             <Input label="Specify role" value={partyForm.role === "Other" ? "" : partyForm.role} onChange={v => setPartyForm(f => ({ ...f, role: v.trim() ? v : "Other" }))} placeholder="e.g. Notary, Surveyor, Co-buyer" />
           )}
@@ -7412,10 +7422,29 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
             <input type="checkbox" id="sendInvitation" style={{ width: 15, height: 15 }} />
             Send portal invitation to this party
           </label>
+          {partyError && (
+            <div style={{ background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: 8, padding: "10px 12px", marginBottom: 12, fontSize: 13, color: "#7F1D1D", fontWeight: 600 }}>
+              {partyError}
+            </div>
+          )}
           <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
-            <Btn variant="ghost" onClick={() => setShowAddParty(false)}>Cancel</Btn>
+            <Btn variant="ghost" onClick={() => { setPartyError(null); setShowAddParty(false); }}>Cancel</Btn>
             <Btn onClick={() => {
-              if (partyForm.role && partyForm.name) {
+              // A button that does nothing when a field is missing is
+              // indistinguishable from a broken button. Say which field.
+              const roleOk = String(partyForm.role || "").trim();
+              const nameOk = String(partyForm.name || "").trim();
+              if (!roleOk || !nameOk) {
+                setPartyError(
+                  !roleOk && !nameOk ? "Pick a role and enter a name for this person."
+                  : !roleOk ? "Pick a role for this person — use the Role dropdown above."
+                  : "Enter this person's full name."
+                );
+                return;
+              }
+              setPartyError(null);
+              {
+                // (block kept so the body below is unchanged from the guarded version)
                 const newParty = { ...partyForm, id: genId() };
                 if (isCoordinator) {
                   // Coordinator: save via the /tc party endpoint (no whole-tx PUT,
@@ -9849,7 +9878,8 @@ function ContactBook({ contacts, onClose, onSelect, onAdd, onEdit, onDelete }) {
   const [showAddContact, setShowAddContact] = useState(false);
   const [editingContact, setEditingContact] = useState(null);
   const [form, setForm] = useState({ role: "", name: "", company: "", email: "", phone: "", notes: "" });
-  const f = k => v => setForm(p => ({ ...p, [k]: v }));
+  const [contactError, setContactError] = useState(null);   // why Save refused
+  const f = k => v => { setForm(p => ({ ...p, [k]: v })); setContactError(null); };
 
   const filtered = contacts.filter(c => {
     const matchRole = filterRole === "All" || c.role === filterRole;
@@ -9858,7 +9888,14 @@ function ContactBook({ contacts, onClose, onSelect, onAdd, onEdit, onDelete }) {
   });
 
   const handleSave = async () => {
-    if (!form.name || !form.role) return;
+    // Was a bare `return` — the Save button simply did nothing and said nothing.
+    if (!String(form.name || "").trim() || !String(form.role || "").trim()) {
+      setContactError(!String(form.role || "").trim()
+        ? "Pick a role for this contact — use the Role dropdown."
+        : "Enter this contact's name.");
+      return;
+    }
+    setContactError(null);
     const tok = localStorage.getItem("tp_token") || "";
     const headers = { "Content-Type": "application/json", "Authorization": "Bearer " + tok };
     try {
@@ -9909,7 +9946,10 @@ function ContactBook({ contacts, onClose, onSelect, onAdd, onEdit, onDelete }) {
             <div style={{ fontSize: 13, fontWeight: 700, color: COLORS.navy, marginBottom: 12 }}>{editingContact ? "Edit Contact" : "New Contact"}</div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, "data-form-grid": "" }}>
               <Input label="Full Name" value={form.name} onChange={f("name")} required />
-              <Input label="Role" value={PARTY_ROLES.includes(form.role) ? form.role : "Other"} onChange={f("role")} options={PARTY_ROLES} required />
+              {/* Same rule again — a NEW contact starts with an empty role, so this
+                  box read "Other" while the value was "", Save returned silently,
+                  and re-picking "Other" fired no change event. */}
+              <Input label="Role" value={!form.role ? "" : (PARTY_ROLES.includes(form.role) ? form.role : "Other")} onChange={f("role")} options={PARTY_ROLES} required />
               {(form.role === "Other" || (form.role && !PARTY_ROLES.includes(form.role))) && (
                 <Input label="Specify role" value={form.role === "Other" ? "" : form.role} onChange={v => f("role")(v.trim() ? v : "Other")} placeholder="e.g. Notary, Surveyor, Co-buyer" />
               )}
@@ -9918,6 +9958,9 @@ function ContactBook({ contacts, onClose, onSelect, onAdd, onEdit, onDelete }) {
               <Input label="Cell Phone" value={form.phone} onChange={f("phone")} type="tel" />
               <Input label="Notes" value={form.notes} onChange={f("notes")} />
             </div>
+            {contactError && (
+              <div style={{ background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: 8, padding: "9px 12px", marginBottom: 10, fontSize: 13, color: "#7F1D1D", fontWeight: 600 }}>{contactError}</div>
+            )}
             <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 4 }}>
               <Btn variant="ghost" small onClick={() => { setShowAddContact(false); setEditingContact(null); }}>Cancel</Btn>
               <Btn small onClick={handleSave} disabled={!form.name || !form.role}>{editingContact ? "Save Changes" : "Add Contact"}</Btn>
