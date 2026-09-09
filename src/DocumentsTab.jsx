@@ -1890,6 +1890,30 @@ function DocSignModal({ tx, doc, allDocs = [], headers, onClose }) {
                     style={{ background: "none", border: "1px dashed #94a3b8", color: "#475569", borderRadius: 8, padding: "6px 14px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
                     + Add another signer
                   </button>
+                  {/* Anyone else on the deal — one tap, no retyping. The server
+                      only PRE-FILLS principals (seller/buyer/tenant/landlord) so a
+                      photographer is never auto-added as a contract signer, but a
+                      party saved as "Other" — a notary, a co-buyer, a power of
+                      attorney — still has to be reachable. */}
+                  {(info?.others || []).filter(o => o.email && !rows.some(r => (r.email || "").toLowerCase() === o.email.toLowerCase())).length > 0 && (
+                    <select
+                      value=""
+                      onChange={e => {
+                        const pick = (info.others || []).find(o => o.email === e.target.value);
+                        if (!pick) return;
+                        setRows(rs => {
+                          const blank = rs.findIndex(r => !(r.name || "").trim() && !(r.email || "").trim());
+                          const row = { name: pick.name || "", email: pick.email || "" };
+                          return blank >= 0 ? rs.map((r, j) => j === blank ? row : r) : [...rs, row];
+                        });
+                      }}
+                      style={{ background: "#f0f9ff", border: "1px solid #7dd3fc", color: "#075985", borderRadius: 8, padding: "6px 10px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                      <option value="">+ Someone else on this deal…</option>
+                      {(info.others || [])
+                        .filter(o => o.email && !rows.some(r => (r.email || "").toLowerCase() === o.email.toLowerCase()))
+                        .map(o => <option key={o.email} value={o.email}>{o.name || o.email}{o.role ? ` — ${o.role}` : ""}</option>)}
+                    </select>
+                  )}
                   {info?.me?.email && !rows.some(r => (r.email || "").toLowerCase() === info.me.email.toLowerCase()) && (
                     <button onClick={() => setRows(rs => {
                       const blank = rs.findIndex(r => !(r.name || "").trim() && !(r.email || "").trim());
