@@ -1652,7 +1652,9 @@ function DocSignModal({ tx, doc, allDocs = [], headers, onClose }) {
       if (!r.ok) throw new Error(b.error || "Couldn't load signature status");
       setInfo(b);
       if (!(b.signers || []).length) {
-        const sug = (b.suggested || []).slice(0, 4).map(s => ({ name: s.name || "", email: s.email || "" }));
+        // Cap matches the 6-signer ceiling the UI enforces, not 4 — a 5th
+        // principal used to be dropped here with no way to add them back.
+        const sug = (b.suggested || []).slice(0, 6).map(s => ({ name: s.name || "", email: s.email || "" }));
         setRows(sug.length ? sug : [{ name: "", email: "" }]);
       }
     } catch (e) { setErr(e.message); }
@@ -1785,6 +1787,21 @@ function DocSignModal({ tx, doc, allDocs = [], headers, onClose }) {
     } catch (e) { setErr(e.message); } finally { setBusy(false); }
   };
 
+  // Everyone on the deal who could still be added: has an email, isn't already
+  // typed into a signer row, and hasn't already been sent a link this round.
+  const pickableSigners = (() => {
+    const taken = new Set();
+    rows.forEach(r => { if (r.email) taken.add(r.email.toLowerCase().trim()); });
+    (info?.signers || []).forEach(sg => { if (sg.signer_email) taken.add(sg.signer_email.toLowerCase().trim()); });
+    const seen = new Set();
+    return (info?.others || []).filter(o => {
+      const e = (o.email || "").toLowerCase().trim();
+      if (!e || taken.has(e) || seen.has(e)) return false;
+      seen.add(e);
+      return true;
+    });
+  })();
+
   const pending = (info?.signers || []).filter(s => s.status === "pending");
   const roundOut = (info?.signers || []).length > 0;
 
@@ -1890,16 +1907,17 @@ function DocSignModal({ tx, doc, allDocs = [], headers, onClose }) {
                     style={{ background: "none", border: "1px dashed #94a3b8", color: "#475569", borderRadius: 8, padding: "6px 14px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
                     + Add another signer
                   </button>
-                  {/* Anyone else on the deal — one tap, no retyping. The server
-                      only PRE-FILLS principals (seller/buyer/tenant/landlord) so a
-                      photographer is never auto-added as a contract signer, but a
-                      party saved as "Other" — a notary, a co-buyer, a power of
-                      attorney — still has to be reachable. */}
-                  {(info?.others || []).filter(o => o.email && !rows.some(r => (r.email || "").toLowerCase() === o.email.toLowerCase())).length > 0 && (
+                  {/* Anyone on the deal not already listed above — one tap, no
+                      retyping. The server pre-fills only principals so a
+                      photographer is never auto-queued to sign a contract, but
+                      EVERY party with an email is offered here, principals
+                      included: the pre-fill misses them whenever the document
+                      already has signers, or the party was added later. */}
+                  {pickableSigners.length > 0 && (
                     <select
                       value=""
                       onChange={e => {
-                        const pick = (info.others || []).find(o => o.email === e.target.value);
+                        const pick = pickableSigners.find(o => o.email === e.target.value);
                         if (!pick) return;
                         setRows(rs => {
                           const blank = rs.findIndex(r => !(r.name || "").trim() && !(r.email || "").trim());
@@ -1908,10 +1926,10 @@ function DocSignModal({ tx, doc, allDocs = [], headers, onClose }) {
                         });
                       }}
                       style={{ background: "#f0f9ff", border: "1px solid #7dd3fc", color: "#075985", borderRadius: 8, padding: "6px 10px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
-                      <option value="">+ Someone else on this deal…</option>
-                      {(info.others || [])
-                        .filter(o => o.email && !rows.some(r => (r.email || "").toLowerCase() === o.email.toLowerCase()))
-                        .map(o => <option key={o.email} value={o.email}>{o.name || o.email}{o.role ? ` — ${o.role}` : ""}</option>)}
+                      <option value="">+ Add someone from this deal…</option>
+                      {pickableSigners.map(o => (
+                        <option key={o.email} value={o.email}>{o.name || o.email}{o.role ? ` — ${o.role}` : ""}</option>
+                      ))}
                     </select>
                   )}
                   {info?.me?.email && !rows.some(r => (r.email || "").toLowerCase() === info.me.email.toLowerCase()) && (
