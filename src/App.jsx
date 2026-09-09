@@ -131,7 +131,13 @@ const COUNTIES = ["Orange", "Osceola", "Seminole", "Polk", "Brevard", "Lake", "V
 const PARTY_ROLES = [
   "Listing Agent", "Buyer's Agent", "Transaction Coordinator",
   "Builder", "Title Company", "Loan Officer/Lender", "Inspector", "Appraiser",
-  "HOA Manager", "Seller", "Buyer", "Attorney", "Insurance Agent", "Referral",
+  // Landlord/Tenant are the rental equivalents of Seller/Buyer and are treated
+  // as such everywhere that matters — portal access (isOwnSideClientRole here,
+  // OWN_SIDE_CLIENT_SQL on the server), the invite whitelist, and the milestone
+  // /welcome email recipients (ROLE_TO_PARTY). Don't add a client-ish role here
+  // without teaching those four the synonym, or the party joins the deal and is
+  // then silently skipped by every email and locked out of the portal.
+  "HOA Manager", "Seller", "Buyer", "Landlord", "Tenant", "Attorney", "Insurance Agent", "Referral",
   "Photographer", "Handyman", "Plumber", "Electrician", "General Contractor",
   "Roofer", "HVAC", "Other"
 ];
@@ -6420,8 +6426,9 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
   const isOwnSideClientRole = (role) => {
     const r = (role || "").toLowerCase().trim();
     if (tx.type === "Dual Agency") return /^(co[- ]?)?(buyer|seller)$/.test(r);
-    if (isListingSideTx) return /^(co[- ]?)?seller$/.test(r);
-    if (isBuyerSideTx) return /^(co[- ]?)?buyer$/.test(r);
+    // Landlord ≡ seller and Tenant ≡ buyer: a rental's own-side client.
+    if (isListingSideTx) return /^(co[- ]?)?(seller|landlord)$/.test(r);
+    if (isBuyerSideTx) return /^(co[- ]?)?(buyer|tenant)$/.test(r);
     return false;
   };
   const GUEST_ALLOWED_TABS = ["overview", "parties", "documents", "chat"];
