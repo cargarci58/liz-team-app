@@ -30,9 +30,11 @@ import { useState } from "react";
 const NAVY = "#1A2B4A";
 const RED = "#C0392B";
 // The guide's own colour — used NOWHERE else in the app as a panel, on purpose
-// (Carlos 9/20: it has to stand out so a new agent notices it immediately).
-const GUIDE = "#4C1D95";        // deep violet panel
-const GUIDE_LABEL = "#C4B5FD"; // light violet for the three row labels
+// (Carlos 9/20: it has to stand out so a new agent notices it immediately, but
+// the first violet was "too bright" — a calmer medium blue, kept clearly
+// lighter than the navy header so the two never read as one thing).
+const GUIDE = "#1E40AF";        // medium blue panel
+const GUIDE_LABEL = "#BFDBFE"; // light blue for the three row labels
 const GUIDE_GOLD = "#FBBF24";  // the action button — the one thing to press
 
 const storeKey = (userId, pageKey) => `tp_tip_seen:${userId || "anon"}:${pageKey}`;
@@ -73,7 +75,7 @@ export default function FirstTimeHere({ pageKey, tip, userId, onAction, onShowHo
 
   return (
     <div data-tour="tips" style={{ padding: compact ? "10px 24px 0" : "14px 24px 0" }}>
-      <div style={{ background: GUIDE, borderLeft: `6px solid ${GUIDE_GOLD}`, borderRadius: 12, padding: "13px 18px 14px 16px", display: "flex", flexDirection: "column", gap: 9, boxShadow: "0 6px 18px rgba(76,29,149,0.28)", fontFamily: "'Segoe UI', system-ui, sans-serif" }}>
+      <div style={{ background: GUIDE, borderLeft: `6px solid ${GUIDE_GOLD}`, borderRadius: 12, padding: "13px 18px 14px 16px", display: "flex", flexDirection: "column", gap: 9, boxShadow: "0 6px 18px rgba(30,64,175,0.25)", fontFamily: "'Segoe UI', system-ui, sans-serif" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <span style={{ fontSize: 16 }}>💡</span>
           <span style={{ fontSize: 14, fontWeight: 800, color: "#fff", flex: 1, letterSpacing: "0.01em" }}>First time here?</span>
