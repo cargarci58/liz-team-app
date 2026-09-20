@@ -14,19 +14,20 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700;800&family=Zilla+Slab:wght@500;600&display=swap">
 <style>
   :root{
-    --paper:#0F1420; --ink:#F1F4F8; --muted:#94A0B2; --hair:#28324A;
-    --navy:#1A2B4A; --brick:#C0392B; --gold:#FBBF24; --green:#1E8449; --guide:#1E40AF;
+    /* the app's palette (App.jsx COLORS): black header, brand red, light grey */
+    --paper:#F4F4F4; --ink:#111111; --muted:#666666; --hair:#DDDDDD; --surface:#FFFFFF;
+    --navy:#111111; --brick:#C0392B; --gold:#FBBF24; --green:#1E8449; --guide:#1E40AF; --bar:#222222;
     --f:'Source Sans 3',system-ui,sans-serif; --cap:'Zilla Slab',Georgia,serif;
   }
   body{background:var(--paper);color:var(--ink);font-family:var(--f);margin:0;-webkit-font-smoothing:antialiased}
   .wrap{max-width:62rem;margin:0 auto;padding:2rem 1rem 3rem}
-  .kicker{font-size:.72rem;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--gold)}
+  .kicker{font-size:.72rem;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--brick)}
   h1{font-family:var(--cap);font-weight:600;font-size:clamp(1.6rem,4vw,2.2rem);margin:.3rem 0 .2rem;text-wrap:balance}
   .sub{color:var(--muted);font-size:1rem;margin:0 0 1.2rem}
 
   /* ── the player ─────────────────────────────────── */
-  .player{background:#000;border-radius:14px;overflow:hidden;box-shadow:0 30px 80px rgba(0,0,0,.6);border:1px solid var(--hair)}
-  .stagebox{position:relative;width:100%;aspect-ratio:16/9;overflow:hidden;background:#F4F5F7}
+  .player{background:#111;border-radius:14px;overflow:hidden;box-shadow:0 20px 50px rgba(0,0,0,.25);border:1px solid var(--hair)}
+  .stagebox{position:relative;width:100%;aspect-ratio:16/9;overflow:hidden;background:#F4F4F4;cursor:pointer}
   .stage{position:absolute;left:0;top:0;width:960px;height:540px;transform-origin:0 0;font-family:var(--f);color:#1F2937}
   .scene{position:absolute;inset:0;opacity:0;transition:opacity .45s ease;pointer-events:none}
   .scene.on{opacity:1}
@@ -34,7 +35,7 @@
 
   /* mock app chrome, in the app's real palette */
   .hdr{background:var(--navy);height:52px;display:flex;align-items:center;padding:0 22px;gap:10px;color:#fff}
-  .logo{width:28px;height:28px;border-radius:6px;background:#B7860B;display:grid;place-items:center;font-weight:900;font-size:15px}
+  .logo{width:28px;height:28px;border-radius:6px;background:var(--brick);display:grid;place-items:center;font-weight:900;font-size:15px}
   .brand{font-weight:800;font-size:15px}
   .nav{margin-left:auto;display:flex;gap:6px}
   .nav b{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.22);border-radius:7px;padding:6px 11px;font-size:12px;font-weight:700}
@@ -76,28 +77,29 @@
   @media (prefers-reduced-motion:reduce){.ring.on,.clickfx.go{animation:none}.cur{transition:none}}
 
   /* title cards */
-  .title{position:absolute;inset:0;background:linear-gradient(135deg,#1A2B4A,#0F1A30);color:#fff;display:flex;flex-direction:column;justify-content:center;padding:0 80px}
+  .title{position:absolute;inset:0;background:linear-gradient(135deg,#111111,#2A2A2A);color:#fff;display:flex;flex-direction:column;justify-content:center;padding:0 80px}
   .title .big{font-family:var(--cap);font-size:44px;font-weight:600;line-height:1.15;text-wrap:balance;max-width:720px}
-  .title .small{font-size:18px;color:#B8C4D6;margin-top:14px;max-width:640px;line-height:1.45}
+  .title .small{font-size:18px;color:#CCCCCC;margin-top:14px;max-width:640px;line-height:1.45}
   .apps{display:flex;gap:8px;flex-wrap:wrap;margin-top:22px;max-width:700px}
   .apps span{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);border-radius:8px;padding:6px 11px;font-size:13px;font-weight:600;transition:opacity .6s,transform .6s}
   .apps.gone span{opacity:.18;transform:scale(.94)}
-  .one{position:absolute;right:80px;top:50%;transform:translateY(-50%);width:200px;height:200px;border-radius:24px;background:#B7860B;display:grid;place-items:center;font-weight:900;font-size:110px;box-shadow:0 30px 60px rgba(0,0,0,.4)}
+  .one{position:absolute;right:80px;top:50%;transform:translateY(-50%);width:200px;height:200px;border-radius:24px;background:var(--brick);display:grid;place-items:center;font-weight:900;font-size:110px;box-shadow:0 30px 60px rgba(0,0,0,.4)}
 
   /* caption + controls */
-  .caption{background:#0B0F19;color:#fff;padding:14px 22px;display:flex;align-items:center;gap:14px;min-height:64px;border-top:1px solid var(--hair)}
-  .caption .n{font-family:var(--f);font-size:.7rem;font-weight:800;color:var(--gold);letter-spacing:.1em;flex:none;min-width:2.6rem}
+  .caption{background:#111;color:#fff;padding:14px 22px;display:flex;align-items:center;gap:14px;min-height:64px;border-top:1px solid #333}
+  .caption .n{font-family:var(--f);font-size:.7rem;font-weight:800;color:#F1948A;letter-spacing:.1em;flex:none;min-width:2.6rem}
   .caption .txt{font-family:var(--cap);font-size:1.12rem;line-height:1.35;flex:1}
-  .ctrl{display:flex;align-items:center;gap:12px;padding:10px 16px;background:#0B0F19}
-  .ctrl button{font-family:inherit;font-weight:700;font-size:.85rem;border:1px solid var(--hair);background:#141B2B;color:#fff;border-radius:8px;padding:7px 13px;cursor:pointer}
+  .ctrl{display:flex;align-items:center;gap:12px;padding:10px 16px;background:var(--bar)}
+  .ctrl button{font-family:inherit;font-weight:700;font-size:.85rem;border:1px solid rgba(255,255,255,.22);background:rgba(255,255,255,.12);color:#fff;border-radius:8px;padding:7px 13px;cursor:pointer}
+  .ctrl #play{background:var(--brick);border-color:transparent}
   .ctrl button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
   .dots{display:flex;gap:6px;flex:1}
-  .dots i{flex:1;height:5px;border-radius:3px;background:#28324A;overflow:hidden;position:relative;cursor:pointer}
-  .dots i b{position:absolute;left:0;top:0;bottom:0;width:0;background:var(--gold)}
+  .dots i{flex:1;height:5px;border-radius:3px;background:#444;overflow:hidden;position:relative;cursor:pointer}
+  .dots i b{position:absolute;left:0;top:0;bottom:0;width:0;background:var(--brick)}
   .dots i.done b{width:100%}
-  .time{font-variant-numeric:tabular-nums;color:var(--muted);font-size:.8rem;min-width:3.2rem;text-align:right}
-  .gate{position:absolute;inset:0;z-index:20;display:grid;place-items:center;background:rgba(15,20,32,.55);backdrop-filter:blur(2px)}
-  .gate button{font-family:var(--f);font-size:1.15rem;font-weight:800;color:#1A2B4A;background:var(--gold);border:none;border-radius:999px;padding:16px 30px;cursor:pointer;box-shadow:0 12px 30px rgba(0,0,0,.4)}
+  .time{font-variant-numeric:tabular-nums;color:#bbb;font-size:.8rem;min-width:3.2rem;text-align:right}
+  .gate{position:absolute;inset:0;z-index:20;display:grid;place-items:center;background:rgba(17,17,17,.55);backdrop-filter:blur(2px);cursor:default}
+  .gate button{font-family:var(--f);font-size:1.15rem;font-weight:800;color:#fff;background:var(--brick);border:none;border-radius:999px;padding:16px 30px;cursor:pointer;box-shadow:0 12px 30px rgba(0,0,0,.4)}
   .gate small{display:block;color:#fff;margin-top:12px;font-size:.85rem;opacity:.85;text-align:center}
   .gate button:focus-visible{outline:3px solid #fff;outline-offset:3px}
 
@@ -116,7 +118,7 @@
   .assist .ah{background:var(--navy);color:#fff;padding:10px 14px;font-weight:800;font-size:13px}
   .bub{max-width:88%;border-radius:14px;padding:8px 12px;font-size:12.5px;line-height:1.4;margin:8px 12px}
   .bub.me{background:var(--navy);color:#fff;margin-left:auto}.bub.ai{background:#fff;border:1px solid #E5E7EB}
-  .fab{position:absolute;right:24px;bottom:24px;width:58px;height:58px;border-radius:50%;background:linear-gradient(135deg,#1A2B4A,#34506e);color:#fff;display:grid;place-items:center;font-weight:800;font-size:25px;box-shadow:0 6px 18px rgba(0,0,0,.3)}
+  .fab{position:absolute;right:24px;bottom:24px;width:58px;height:58px;border-radius:50%;background:linear-gradient(135deg,#111111,#333333);color:#fff;display:grid;place-items:center;font-weight:800;font-size:25px;box-shadow:0 6px 18px rgba(0,0,0,.3)}
   /* below the player */
   h2{font-family:var(--cap);font-weight:600;font-size:1.25rem;margin:2.2rem 0 .5rem}
   p{color:var(--muted);line-height:1.6;margin:0 0 .8rem;max-width:44rem}
@@ -128,23 +130,24 @@
 </style><style>
   /* ── added for the app page: chapters, end card, embed mode, phones ── */
   #chapters{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 12px}
-  #chapters button{font-family:inherit;font-weight:700;font-size:.78rem;border:1px solid var(--hair);background:#141B2B;color:#C9D2DF;border-radius:999px;padding:6px 11px;cursor:pointer}
-  #chapters button.on{background:var(--gold);color:#111;border-color:var(--gold)}
+  #chapters button{font-family:inherit;font-weight:700;font-size:.78rem;border:1px solid var(--hair);background:#fff;color:#333;border-radius:999px;padding:6px 11px;cursor:pointer}
+  #chapters button.on{background:var(--brick);color:#fff;border-color:var(--brick)}
   #chapters button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
-  .endcard{position:absolute;inset:0;background:rgba(15,20,32,.92);color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;text-align:center;padding:24px;z-index:20}
+  .endcard{position:absolute;inset:0;background:rgba(17,17,17,.93);cursor:default;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;text-align:center;padding:24px;z-index:20}
   .endcard[hidden]{display:none}
   .endcard .big{font-family:var(--cap);font-size:clamp(1.3rem,3.5vw,2rem);font-weight:600}
   .endcard .acts{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
-  .endcard a,.endcard button{font-family:inherit;font-weight:800;font-size:.9rem;border-radius:9px;padding:10px 16px;text-decoration:none;cursor:pointer;border:1px solid var(--hair);background:#141B2B;color:#fff}
+  .endcard a,.endcard button{font-family:inherit;font-weight:800;font-size:.9rem;border-radius:9px;padding:10px 16px;text-decoration:none;cursor:pointer;border:1px solid rgba(255,255,255,.3);background:rgba(255,255,255,.12);color:#fff}
   .endcard a.primary{background:var(--brick);border-color:transparent}
   .endcard .emb{display:none}
+  .embed body,.embed{background:#111}
   .embed .wrap{max-width:none;padding:0}
   .embed .top,.embed .below{display:none}
   .embed .player{border-radius:0;border:none;box-shadow:none}
   .embed .endcard .emb{display:inline-block}
   .embed .endcard .site{display:none}
   .below{margin-top:1.4rem;color:var(--muted);font-size:.95rem}
-  .below a{color:var(--gold);font-weight:700;text-decoration:none}
+  .below a{color:var(--brick);font-weight:700;text-decoration:none}
   @media (max-width:600px){.caption .txt{font-size:.95rem}.caption{min-height:56px;padding:10px 14px}.ctrl{flex-wrap:wrap;gap:8px}.ctrl button{font-size:.78rem;padding:6px 10px}.time{min-width:0}}
 </style>
 <style>
@@ -153,24 +156,24 @@
   .value h2{font-family:var(--cap);font-weight:600;font-size:1.5rem;margin:0 0 .3rem}
   .value .lead{color:var(--muted);margin:0 0 1.1rem;max-width:44rem}
   .repl{display:grid;grid-template-columns:repeat(auto-fit,minmax(15rem,1fr));gap:.6rem;margin-bottom:2rem}
-  .repl div{background:#141B2B;border:1px solid var(--hair);border-radius:10px;padding:.8rem .95rem;font-size:.92rem;line-height:1.4}
-  .repl b{display:block;color:#fff;font-size:1rem;margin-bottom:.15rem}
+  .repl div{background:#fff;border:1px solid var(--hair);border-radius:10px;padding:.8rem .95rem;font-size:.92rem;line-height:1.4}
+  .repl b{display:block;color:#111;font-size:1rem;margin-bottom:.15rem}
   .repl s{color:var(--muted);font-weight:400}
-  .repl em{font-style:normal;color:var(--gold);font-weight:700}
+  .repl em{font-style:normal;color:var(--brick);font-weight:700}
   .repl small{display:block;color:var(--muted);margin-top:.25rem}
   .does{display:grid;grid-template-columns:repeat(auto-fit,minmax(17rem,1fr));gap:.7rem}
-  .does div{background:#141B2B;border:1px solid var(--hair);border-left:4px solid var(--gold);border-radius:10px;padding:.85rem 1rem}
-  .does b{display:block;color:#fff;font-size:1rem;margin-bottom:.35rem}
-  .does ul{margin:0;padding-left:1.1rem;color:#C9D2DF;font-size:.92rem;line-height:1.5}
-  .does li::marker{color:var(--gold)}
-  .save{background:#141B2B;border:1px solid var(--hair);border-radius:12px;padding:1rem 1.1rem;margin:0 0 2.2rem}
+  .does div{background:#fff;border:1px solid var(--hair);border-left:4px solid var(--brick);border-radius:10px;padding:.85rem 1rem}
+  .does b{display:block;color:#111;font-size:1rem;margin-bottom:.35rem}
+  .does ul{margin:0;padding-left:1.1rem;color:#333;font-size:.92rem;line-height:1.5}
+  .does li::marker{color:var(--brick)}
+  .save{background:#fff;border:1px solid var(--hair);border-radius:12px;padding:1rem 1.1rem;margin:0 0 2.2rem}
   .save table{width:100%;border-collapse:collapse;font-size:.92rem}
   .save th{text-align:left;color:var(--muted);font-weight:700;font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;padding:.35rem .4rem;border-bottom:1px solid var(--hair)}
-  .save td{padding:.45rem .4rem;border-bottom:1px solid #1E2738;vertical-align:top;color:#C9D2DF}
-  .save td:first-child{color:#fff;font-weight:700}
+  .save td{padding:.45rem .4rem;border-bottom:1px solid #EEE;vertical-align:top;color:#333}
+  .save td:first-child{color:#111;font-weight:700}
   .save td.c{white-space:nowrap;color:var(--muted)}
-  .save tr.tot td{border-bottom:none;padding-top:.7rem;font-size:1rem;color:#fff}
-  .save tr.tot td.c{color:var(--gold);font-weight:800;white-space:normal}
+  .save tr.tot td{border-bottom:none;padding-top:.7rem;font-size:1rem;color:#111}
+  .save tr.tot td.c{color:var(--brick);font-weight:800;white-space:normal}
   .save .fine{color:var(--muted);font-size:.8rem;margin:.6rem 0 0}
   @media (max-width:40rem){.save td.c{white-space:normal}}
   .embed .value{display:none}
@@ -206,7 +209,7 @@
             <div class="apps" id="svapps" style="max-width:560px">
               <span>Follow Up Boss · $69+/mo</span><span>DocuSign · $15–45/mo</span><span>QuickBooks · $35+/mo</span><span>Transaction coordinator · $300–500/deal</span><span>A coach · $200+/mo</span><span>Forms · $40/mo</span><span>CMA tool · $30–60/mo</span><span>Texting + email · $25–55/mo</span>
             </div>
-            <div class="small rv" id="svsum" style="color:#fff;font-size:22px;margin-top:24px"><s style="color:#8B97AB">$600–1,000+ a month, plus $300–500 a deal</s><br>One app. A fraction of the cost. It does the work for you.</div>
+            <div class="small rv" id="svsum" style="color:#fff;font-size:22px;margin-top:24px"><s style="color:#999">$600–1,000+ a month, plus $300–500 a deal</s><br>One app. A fraction of the cost. It does the work for you.</div>
             <div class="one rv" id="svone">T</div>
           </div>
         </div>
@@ -236,14 +239,14 @@
               <div class="row"><span class="chk"></span>Call Dana Whitfield — promised a follow-up</div>
             </div>
             <div class="card rv" id="s3done" style="position:relative;margin-top:10px;padding:10px 14px;border-color:#1E8449;background:#F0FDF4"><span class="t" style="color:#1E8449">✓ Done.</span> <span class="s">The buyer's agent and the seller were told. Nothing for you to send.</span></div>
-            <div class="card rv" id="s3snooze" style="position:relative;margin-top:10px;padding:10px 14px;border-color:#B7860B;background:#FFFBEB"><span class="t" style="color:#92400E">⏰ Not today.</span> <span class="s">"Call Dana Whitfield" moved to tomorrow — it comes back on its own.</span></div>
+            <div class="card rv" id="s3snooze" style="position:relative;margin-top:10px;padding:10px 14px;border-color:#C0392B;background:#FFFBEB"><span class="t" style="color:#92400E">⏰ Not today.</span> <span class="s">"Call Dana Whitfield" moved to tomorrow — it comes back on its own.</span></div>
           </div>
         </div>
 
         <!-- ── SCENE 4 · offer in four answers ── -->
         <div class="scene" id="s4">
           <div class="hdr" style="height:60px"><div style="color:#fff;font-size:18px;opacity:.7">←</div><div><div style="color:#fff;font-weight:700;font-size:14px">12904 Sunstone Ave</div><div style="color:rgba(255,255,255,.8);font-size:11px">Orlando, FL 32827 · Orange County · Buyer Representation</div></div></div>
-          <div style="position:absolute;left:0;right:0;top:60px;background:#fff;border-bottom:1px solid #DDE2E8;display:flex;font-size:12px;font-weight:600;color:#6B7280"><span style="padding:11px 16px;">Overview</span><span style="padding:11px 16px;">📅 Timeline</span><span style="padding:11px 16px;color:#1A2B4A;font-weight:800;border-bottom:3px solid #1A2B4A">📝 Offers</span><span style="padding:11px 16px;">📎 Documents</span><span style="padding:11px 16px;">People (4)</span><span style="padding:11px 16px;">💬 Messages</span></div>
+          <div style="position:absolute;left:0;right:0;top:60px;background:#fff;border-bottom:1px solid #DDE2E8;display:flex;font-size:12px;font-weight:600;color:#6B7280"><span style="padding:11px 16px;">Overview</span><span style="padding:11px 16px;">📅 Timeline</span><span style="padding:11px 16px;color:#111111;font-weight:800;border-bottom:3px solid #111111">📝 Offers</span><span style="padding:11px 16px;">📎 Documents</span><span style="padding:11px 16px;">People (4)</span><span style="padding:11px 16px;">💬 Messages</span></div>
           <div class="card" style="left:120px;top:126px;width:330px;padding:14px">
             <div class="t">Write an offer</div><div class="s" style="margin:4px 0 10px">Express — four answers, standard Florida terms.</div>
             <div class="btn" id="s4btn">⚡ New offer — Express</div>
@@ -263,14 +266,14 @@
 
         <!-- ── SCENE 5 · the client's own page ── -->
         <div class="scene" id="s5">
-          <div style="position:absolute;inset:0;background:linear-gradient(135deg,#1A2B4A,#0F1A30)"></div>
+          <div style="position:absolute;inset:0;background:linear-gradient(135deg,#111111,#2A2A2A)"></div>
           <div class="phone"><div class="scr">
             <div style="background:var(--navy);color:#fff;padding:14px 14px 10px"><div style="font-size:10px;opacity:.7">YOUR HOME PURCHASE</div><div style="font-weight:800;font-size:14px">12904 Sunstone Ave</div></div>
             <div style="padding:12px 0 6px"><div class="track"><div class="ok"></div><div class="ok"></div><div class="ok"></div><div class="now"></div><div></div><div></div></div>
             <div style="display:flex;justify-content:space-between;padding:6px 14px 0;font-size:10px;color:#6B7280"><span>Contract ✓</span><span>Inspection ✓</span><span style="color:var(--gold);font-weight:800">Appraisal</span><span>Closing Sep 30</span></div></div>
             <div style="margin:10px 14px;padding:10px;border-radius:10px;background:#FEF3C7;border:1px solid #F5D77A"><div style="font-weight:800;font-size:11px;color:#92400E">WE NEED FROM YOU</div><div style="margin-top:3px">Upload your homeowner's insurance quote</div></div>
             <div style="margin:10px 14px;padding:10px;border-radius:10px;background:#F0FDF4;border:1px solid #BBF7D0"><div style="font-weight:800;font-size:11px;color:#166534">WHAT HAPPENS NEXT</div><div style="margin-top:3px">The appraiser visits Thursday. You don't need to be there.</div></div>
-            <div style="margin:10px 14px;display:flex;gap:10px;align-items:center;padding:10px;border:1px solid #E5E7EB;border-radius:10px"><div style="width:34px;height:34px;border-radius:50%;background:#B7860B"></div><div><div style="font-weight:800">Maria Lopez, your agent</div><div style="color:#6B7280">(407) 555-0142 · Text me anytime</div></div></div>
+            <div style="margin:10px 14px;display:flex;gap:10px;align-items:center;padding:10px;border:1px solid #E5E7EB;border-radius:10px"><div style="width:34px;height:34px;border-radius:50%;background:#C0392B"></div><div><div style="font-weight:800">Maria Lopez, your agent</div><div style="color:#6B7280">(407) 555-0142 · Text me anytime</div></div></div>
           </div></div>
           <div class="rv" id="s5cap" style="position:absolute;left:660px;top:200px;width:240px;color:#fff;font-family:var(--cap);font-size:22px;line-height:1.3">Where the deal stands. What's needed. What's next.</div>
         </div>
@@ -278,7 +281,7 @@
         <!-- ── SCENE 6 · get it signed ── -->
         <div class="scene" id="s6">
           <div class="hdr" style="height:60px"><div style="color:#fff;font-size:18px;opacity:.7">←</div><div><div style="color:#fff;font-weight:700;font-size:14px">12904 Sunstone Ave</div><div style="color:rgba(255,255,255,.8);font-size:11px">Orlando, FL 32827 · Orange County · Buyer Representation</div></div></div>
-          <div style="position:absolute;left:0;right:0;top:60px;background:#fff;border-bottom:1px solid #DDE2E8;display:flex;font-size:12px;font-weight:600;color:#6B7280"><span style="padding:11px 16px;">Overview</span><span style="padding:11px 16px;">📅 Timeline</span><span style="padding:11px 16px;">📝 Offers</span><span style="padding:11px 16px;color:#1A2B4A;font-weight:800;border-bottom:3px solid #1A2B4A">📎 Documents</span><span style="padding:11px 16px;">People (4)</span><span style="padding:11px 16px;">💬 Messages</span></div>
+          <div style="position:absolute;left:0;right:0;top:60px;background:#fff;border-bottom:1px solid #DDE2E8;display:flex;font-size:12px;font-weight:600;color:#6B7280"><span style="padding:11px 16px;">Overview</span><span style="padding:11px 16px;">📅 Timeline</span><span style="padding:11px 16px;">📝 Offers</span><span style="padding:11px 16px;color:#111111;font-weight:800;border-bottom:3px solid #111111">📎 Documents</span><span style="padding:11px 16px;">People (4)</span><span style="padding:11px 16px;">💬 Messages</span></div>
           <div class="card" style="left:120px;top:126px;width:720px;padding:0">
             <div class="doc"><div class="ico"></div><div style="flex:1"><b>Executed Contract.pdf</b><div class="s">Signed · Sep 12</div></div><span class="pill" style="background:#D5F5E3;color:#1E8449">SIGNED</span></div>
             <div class="doc" id="s6row"><div class="ico"></div><div style="flex:1"><b>Seller's Property Disclosure.pdf</b><div class="s">Needs the buyer's signature</div></div><div class="btn" style="background:#86198f" id="s6btn">✍️ Get signature</div></div>
@@ -316,9 +319,9 @@
           <div style="position:absolute;left:0;right:0;top:52px;background:linear-gradient(135deg,#10b981,#059669);color:#fff;padding:14px 24px;font-weight:700;font-size:20px">💵 My Money</div>
           <div class="btn" id="s8btn" style="position:absolute;left:24px;top:124px;background:#3b82f6">🏦 Upload a bank statement</div>
           <div class="card rv" id="s8sort" style="left:24px;top:170px;width:400px;padding:0">
-            <div class="row"><span style="flex:1">SHELL #2231 · $48.10</span><span class="pill" style="background:#EEF2F7;color:#1A2B4A">Gas / Mileage</span></div>
-            <div class="row"><span style="flex:1">MFRMLS DUES · $185.00</span><span class="pill" style="background:#EEF2F7;color:#1A2B4A">MLS Fees</span></div>
-            <div class="row"><span style="flex:1">COSTCO · $63.40</span><span class="pill" style="background:#EEF2F7;color:#1A2B4A">Closing Gifts</span></div>
+            <div class="row"><span style="flex:1">SHELL #2231 · $48.10</span><span class="pill" style="background:#EEF2F7;color:#111111">Gas / Mileage</span></div>
+            <div class="row"><span style="flex:1">MFRMLS DUES · $185.00</span><span class="pill" style="background:#EEF2F7;color:#111111">MLS Fees</span></div>
+            <div class="row"><span style="flex:1">COSTCO · $63.40</span><span class="pill" style="background:#EEF2F7;color:#111111">Closing Gifts</span></div>
             <div class="row"><span style="flex:1">COMMISSION — SUNSTONE · $12,075</span><span class="pill" style="background:#D5F5E3;color:#1E8449">Income</span></div>
           </div>
           <div class="card rv" id="s8n1" style="left:460px;top:170px;width:180px;padding:14px"><div class="s">💰 Money you made</div><div class="t" style="font-size:22px;color:#059669">$61,400</div></div>
@@ -407,7 +410,7 @@
       <tr><td>Newsletter + document storage</td><td class="c">$40–50 / mo</td><td>Marketing email lane; folders and a required-docs checklist</td></tr>
       <tr><td>A coach or goal program</td><td class="c">$200+ / mo</td><td>Growth Plan, scripts, reports, an assistant you can ask anything</td></tr>
       <tr><td>Lead-gen tools</td><td class="c">$100+ / mo</td><td>Intake links, leads flagged to call, pop-bys planned</td></tr>
-      <tr class="tot"><td>All of it</td><td class="c">$600–1,000+ / mo, plus $300–500 per deal</td><td>One AI-powered app, everything included — <a href="/pricing.html" style="color:var(--gold);font-weight:800;text-decoration:none">see the price →</a></td></tr>
+      <tr class="tot"><td>All of it</td><td class="c">$600–1,000+ / mo, plus $300–500 per deal</td><td>One AI-powered app, everything included — <a href="/pricing.html" style="color:var(--brick);font-weight:800;text-decoration:none">see the price →</a></td></tr>
     </table>
     <p class="fine">Typical published prices for the tiers a solo agent uses; your stack may cost more or less. What no line above shows: the hours. Every one of these jobs — the reminders, the follow-ups, the filing, the bookkeeping — happens in TransactPro without you doing it.</p></div>
     <h2>What it does for you, start to finish</h2>
@@ -485,22 +488,43 @@
   // rendered once on the server side). Same voice for everyone, everywhere.
   const AUDIO = '/tour/audio/';
   const ID_OF = {}; Object.entries(LINES).forEach(([id, txt]) => { ID_OF[txt.trim()] = id; });
+  const DBG = Q.get('debug') ? (window.__tourLog = []) : null;
   let voiceOn = true, talking = 0, current = null, gen = 0;   // gen: bumps on every scene change so a stale clip can't steer the caption
   const estimate = txt => 900 + (txt || '').length * 58;   // used when the voice is off
+  // ONE <audio> element, created and unlocked by the play tap, reused for every
+  // line (src swap). iOS Safari only lets an element play if a tap started it —
+  // a fresh new Audio() per line went silent after the first few, which sounded
+  // like "the audio cuts off". Lines are queued and played back to back with a
+  // short breath between them.
+  const player = document.createElement('audio'); player.preload = 'auto';
+  const queue = [];
+  let busy = false;
+  const GAP = 350;
+  const pump = () => {
+    if (busy || paused) return;
+    const next = queue.shift(); if (!next) return;
+    busy = true; next.start();
+  };
   const say = (text, onEnd) => {
     const id = ID_OF[(text || '').trim()], myGen = gen;
     if (!voiceOn || !id) { if (onEnd) timers.push(setTimeout(onEnd, voiceOn ? 800 : estimate(text))); return; }
-    const a = new Audio(AUDIO + id + '.mp3');
+    const a = player;
     talking++;
     let done = false;
-    const fin = () => { if (done) return; done = true; if (myGen === gen) { talking = Math.max(0, talking - 1); if (current === a) current = null; if (onEnd && !paused) onEnd(); } };
-    a.onended = fin; a.onerror = fin;
-    setTimeout(fin, 30000);                    // backstop: a clip can never hold the tour hostage
-    const start = () => { current = a; a.play().catch(fin); };
-    // Don't talk over the previous line — wait for it, then start.
-    if (current && !current.ended) { current.addEventListener('ended', start, { once: true }); } else start();
+    const fin = (why) => { if (done) return; done = true; if (DBG) DBG.push({ id, why: typeof why === 'string' ? why : (why && why.type) || '?', at: Math.round(a.currentTime * 10) / 10, dur: Math.round(a.duration * 10) / 10, ended: a.ended, t: Math.round(performance.now() / 100) / 10 }); if (myGen === gen) { talking = Math.max(0, talking - 1); if (current === a) current = null; if (onEnd && !paused) onEnd(); } };
+    const finish = (why) => { fin(why); busy = false; timers.push(setTimeout(pump, GAP)); };
+    const start = () => {
+      if (myGen !== gen) { finish('stale'); return; }          // scene moved on while this line waited
+      current = a; a.onended = () => finish('ended'); a.onerror = () => finish('error');
+      a.src = AUDIO + id + '.mp3';
+      if (DBG) DBG.push({ id, why: 'start', t: Math.round(performance.now() / 100) / 10 });
+      a.play().catch(e => finish('play-rejected:' + (e && e.name)));
+    };
+    setTimeout(() => { if (!done) finish('backstop'); }, 45000);  // a line can never hold the tour hostage
+    queue.push({ start }); pump();
   };
-  const preload = ids => ids.forEach(id => { const a = new Audio(); a.preload = 'auto'; a.src = AUDIO + id + '.mp3'; });
+  // Warm the browser cache for the next lines (fetch only — no extra elements).
+  const preload = ids => ids.forEach(id => { try { fetch(AUDIO + id + '.mp3', { cache: 'force-cache' }).catch(() => {}); } catch {} });
   const cap = $('#cap'), capn = $('#capn'), dots = $('#dots'), time = $('#time'), playBtn = $('#play');
   const setCap = (s, onEnd) => { cap.textContent = s; say(s, onEnd); };
   const setCapSilent = s => { cap.textContent = s; };
@@ -548,7 +572,7 @@
   // card of rows that reveal in order, and the pointer ring on the row to tap.
   const NAV = [['home','🏆 Win The Day'],['deals','📋 My Deals'],['new','➕ New Deal'],['contacts','📇 Contacts'],['tools','🧰 Tools ▾'],['menu','⚙️ Menu']];
   const TABS = ['Overview','📅 Timeline','📝 Offers','📎 Documents','People (5)','💬 Messages','More ▾'];
-  const PC = { red:'background:#FADBD8;color:#B03A2E', green:'background:#D5F5E3;color:#1E8449', gold:'background:#FEF3C7;color:#92400E', navy:'background:#EEF2F7;color:#1A2B4A', blue:'background:#DBEAFE;color:#1E40AF' };
+  const PC = { red:'background:#FADBD8;color:#B03A2E', green:'background:#D5F5E3;color:#1E8449', gold:'background:#FEF3C7;color:#92400E', navy:'background:#EEF2F7;color:#111111', blue:'background:#DBEAFE;color:#1E40AF' };
   const BC = { red:'', green:'background:var(--green)', ghost:'background:#fff;color:#111;border:1px solid #D1D5DB', navy:'background:var(--navy)', purple:'background:#86198f', blue:'background:#3b82f6' };
   const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;');
   let gid = 0;
@@ -574,7 +598,7 @@
     let html = '';
     if (spec.deal) {
       html += `<div class="hdr" style="height:60px"><div style="color:#fff;font-size:18px;opacity:.7">←</div><div><div style="color:#fff;font-weight:700;font-size:14px">${esc(spec.addr || '12904 Sunstone Ave')}</div><div style="color:rgba(255,255,255,.8);font-size:11px">${esc(spec.sub || 'Orlando, FL 32827 · Orange County · Buyer Representation')}</div></div>${spec.status ? `<span class="pill" style="margin-left:auto;${PC[spec.statusc || 'green']}">${esc(spec.status)}</span>` : ''}</div>
-        <div style="position:absolute;left:0;right:0;top:60px;background:#fff;border-bottom:1px solid #DDE2E8;display:flex;font-size:12px;font-weight:600;color:#6B7280">${TABS.map(t => `<span style="padding:11px 14px;${t.replace(/^\S+ /, '') === spec.deal || t === spec.deal ? 'color:#1A2B4A;font-weight:800;border-bottom:3px solid #1A2B4A' : ''}">${t}</span>`).join('')}</div>`;
+        <div style="position:absolute;left:0;right:0;top:60px;background:#fff;border-bottom:1px solid #DDE2E8;display:flex;font-size:12px;font-weight:600;color:#6B7280">${TABS.map(t => `<span style="padding:11px 14px;${t.replace(/^\S+ /, '') === spec.deal || t === spec.deal ? 'color:#111111;font-weight:800;border-bottom:3px solid #111111' : ''}">${t}</span>`).join('')}</div>`;
     } else {
       html += `<div class="hdr"><div class="logo">T</div><div class="brand">TransactPro</div><div class="nav">${NAV.map(([k, l]) => `<b class="${k === spec.nav ? 'hot' : k === 'new' ? 'red' : ''}"${k === spec.nav ? ` id="${sid}nav"` : ''}>${l}</b>`).join('')}</div></div>`;
     }
@@ -740,6 +764,8 @@
   const go = (i) => {
     timers.forEach(clearTimeout); timers = [];
     gen++;
+    if (DBG) DBG.push({ scene: i, why: 'go', talking, cur: current ? Math.round(current.currentTime * 10) / 10 + '/' + Math.round(current.duration * 10) / 10 : null, t: Math.round(performance.now() / 100) / 10 });
+    queue.length = 0; busy = false;
     if (current) { try { current.pause(); } catch {} current = null; talking = 0; }
     if (idx >= 0) $('#' + SCENES[idx].id).classList.remove('on');
     idx = i; const sc = SCENES[i];
@@ -788,7 +814,7 @@
     } else if (idx >= SCENES.length - 1 && pausedAt === 0) { const e = $('#endcard'); if (e) e.hidden = true; go(0); }
     else {
       const sc = SCENES[idx]; paused = false; t0 = performance.now() - pausedAt;
-      if (current) { try { current.play(); } catch {} }
+      if (current) { try { current.play().catch(() => {}); } catch {} } else pump();
       const speed = reduced ? 0.6 : 1;
       sc.steps.filter(st => st.t * speed > pausedAt).forEach(st => timers.push(setTimeout(st.run, st.t * speed - pausedAt)));
       armEnd(sc, idx, pausedAt);
@@ -796,6 +822,9 @@
     }
   };
   $('#replay').onclick = () => { pausedAt = 0; const e = $('#endcard'); if (e) e.hidden = true; go(0); };
+  // tap/click the picture or press space = pause / resume, like any video
+  box.addEventListener('click', (e) => { if (e.target.closest('#gate, #endcard')) return; playBtn.onclick(); });
+  addEventListener('keydown', (e) => { if (e.code === 'Space' && !e.target.closest('button, a, input')) { e.preventDefault(); playBtn.onclick(); } });
   $('#mute').onclick = (e) => { voiceOn = !voiceOn; e.currentTarget.textContent = voiceOn ? '🔊 Voice on' : '🔇 Voice off'; e.currentTarget.setAttribute('aria-label', voiceOn ? 'Mute narration' : 'Unmute narration'); };
   const endClose = $('#endclose'); if (endClose) endClose.onclick = () => { try { if (parent !== window) parent.postMessage({ type: 'tour:close' }, '*'); } catch {} };
 
@@ -810,7 +839,7 @@
   if (PAGE) { gateBtn.textContent = '▶ Play'; $('#gatesmall').textContent = 'About ' + (PAGE.length > 1 ? PAGE.length + ' minutes' : 'a minute') + ' · ' + PAGE.map(s => s.title).join(' · '); }
   else if (CUT === 'full') { $('#gatesmall').textContent = 'About five minutes · every feature'; }
   else if (CUT === 'learn') { const c = CH[chapterOf(startAt)]; gateBtn.textContent = '▶ Play' + (startAt > 0 ? ' chapter ' + (chapterOf(startAt) + 1) : ' with voice'); $('#gatesmall').textContent = startAt > 0 ? c.title : 'About 8 minutes · 9 chapters · tap any chapter to jump'; }
-  gateBtn.onclick = () => { $('#gate').remove(); go(startAt); };
+  gateBtn.onclick = () => { try { player.muted = true; player.play().catch(() => {}); player.pause(); player.muted = false; } catch {} $('#gate').remove(); go(startAt); };
   preload(SCENES[startAt].capB ? [ID_OF[SCENES[startAt].cap.trim()], ID_OF[SCENES[startAt].capB.trim()]] : [ID_OF[SCENES[startAt].cap.trim()]]);
   tick();
 })();

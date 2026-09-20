@@ -29,7 +29,7 @@ export default function TourModal({ cut = 'marketing', chapter, scenes, onClose 
   const src = `/tour/index.html?${qs.toString()}`;
 
   return (
-    <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 10050, background: 'rgba(11,15,25,0.92)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 12 }}>
+    <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 10050, background: 'rgba(17,17,17,0.92)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 12 }}>
       <div onClick={(e) => e.stopPropagation()} style={{ width: 'min(1100px, 100%)', maxHeight: '100%', display: 'flex', flexDirection: 'column', gap: 8 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: '#fff' }}>
           <div style={{ fontWeight: 800, fontSize: 15 }}>
@@ -40,12 +40,15 @@ export default function TourModal({ cut = 'marketing', chapter, scenes, onClose 
           </button>
         </div>
         {/* 16:9 stage + caption + controls ≈ 16:11.5; the frame gets that ratio so nothing inside scrolls. */}
-        <div style={{ position: 'relative', width: '100%', aspectRatio: '16 / 11.6', maxHeight: 'calc(100vh - 70px)', borderRadius: 12, overflow: 'hidden', background: '#0B0F19', border: '1px solid #28324A' }}>
+        {/* Width is derived from the available HEIGHT too, so on a laptop the
+            caption + Pause bar are never pushed below the screen edge (Carlos
+            9/20: "you cannot pause the video" — the controls were clipped). */}
+        <div style={{ position: 'relative', width: 'min(1100px, 100%, calc((100vh - 90px) * 16 / 11.6))', margin: '0 auto', aspectRatio: '16 / 11.6', borderRadius: 12, overflow: 'hidden', background: '#111', border: '1px solid #333' }}>
           <iframe
             title={cut === 'learn' ? 'Learn TransactPro, chapter by chapter' : 'The 2-minute TransactPro tour'}
             src={src}
             allow="autoplay"
-            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', border: 'none', background: '#0B0F19' }}
+            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', border: 'none', background: '#111' }}
           />
         </div>
       </div>
