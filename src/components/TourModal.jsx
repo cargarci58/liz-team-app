@@ -11,9 +11,10 @@ import { useEffect } from 'react';
 //   cut = 'marketing'  → the 2-minute tour (10 scenes)
 //   cut = 'learn'      → every screen and feature, 9 chapters (40 scenes)
 //   chapter            → start the learn cut at that chapter (1-based)
+//   scenes             → play ONLY these learn scenes (e.g. ['3.3','3.4']) — the per-page clip
 // The page posts {type:'tour:close'} when its end-card Close is tapped.
 // ═══════════════════════════════════════════════════════════════
-export default function TourModal({ cut = 'marketing', chapter, onClose }) {
+export default function TourModal({ cut = 'marketing', chapter, scenes, onClose }) {
   useEffect(() => {
     const onMsg = (e) => { if (e.data && e.data.type === 'tour:close') onClose(); };
     const onKey = (e) => { if (e.key === 'Escape') onClose(); };
@@ -24,6 +25,7 @@ export default function TourModal({ cut = 'marketing', chapter, onClose }) {
 
   const qs = new URLSearchParams({ cut, embed: '1' });
   if (cut === 'learn' && chapter) qs.set('chapter', String(chapter));
+  if (cut === 'learn' && scenes && scenes.length) qs.set('scenes', scenes.join(','));
   const src = `/tour/index.html?${qs.toString()}`;
 
   return (
@@ -31,7 +33,7 @@ export default function TourModal({ cut = 'marketing', chapter, onClose }) {
       <div onClick={(e) => e.stopPropagation()} style={{ width: 'min(1100px, 100%)', maxHeight: '100%', display: 'flex', flexDirection: 'column', gap: 8 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: '#fff' }}>
           <div style={{ fontWeight: 800, fontSize: 15 }}>
-            {cut === 'learn' ? '📚 Learn the app, chapter by chapter' : '🎬 The 2-minute tour'}
+            {cut === 'learn' ? (scenes && scenes.length ? '🎬 How this page works' : '📚 Learn the app, chapter by chapter') : '🎬 The 2-minute tour'}
           </div>
           <button onClick={onClose} aria-label="Close the tour" style={{ background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.25)', color: '#fff', borderRadius: 8, padding: '6px 12px', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
             ✕ Close

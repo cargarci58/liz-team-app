@@ -160,6 +160,41 @@ export const PAGE_TIPS = {
 };
 
 // Pick the right tip for a deal tab, with a listing-specific variant where one exists.
+// ── Which scenes of the narrated walkthrough explain which page ─────────────
+// Scene numbers are the "learn the app" cut in public/tour/index.html
+// (chapter.scene). The "First time here?" bar plays exactly these, in order,
+// then stops — a one-minute clip about THIS page, in Kristen's voice, instead
+// of three lines of text. Add a scene here when you add one to the tour.
+export const PAGE_SCENES = {
+  home: ["1.1", "1.2"],
+  dashboard: ["1.3"],
+  new: ["2.2"],
+  contacts: ["5.1", "5.2"],
+  expenses: ["6.1", "6.2"],
+  popbys: ["5.3"],
+  scripts: ["5.4"],
+  growthplan: ["6.3"],
+  cma: ["2.4"],
+  forms: ["9.3"],
+  reports: ["6.4"],
+  "tx:overview": ["3.1"],
+  "tx:overview:listing": ["3.1", "4.2"],
+  "tx:milestones": ["3.2", "7.1"],
+  "tx:documents": ["3.3", "3.4", "4.4"],
+  "tx:documents:listing": ["3.3", "3.4", "4.3", "4.4"],
+  "tx:offers": ["4.1"],
+  "tx:offers:listing": ["4.2"],
+  "tx:parties": ["3.5", "3.6"],
+  "tx:messages": ["3.7", "7.4"],
+  "tx:seller-calc": ["3.8"],
+  "tx:buyer-net": ["3.8"],
+  "tx:cma": ["2.4"],
+};
+export function dealTabScenes(tabId, { isListingSide } = {}) {
+  if (isListingSide && PAGE_SCENES["tx:" + tabId + ":listing"]) return PAGE_SCENES["tx:" + tabId + ":listing"];
+  return PAGE_SCENES["tx:" + tabId] || null;
+}
+
 export function dealTabTip(tabId, { isListingSide } = {}) {
   if (tabId === "overview" && isListingSide && PAGE_TIPS["tx:overview:listing"]) return PAGE_TIPS["tx:overview:listing"];
   return PAGE_TIPS["tx:" + tabId] || null;

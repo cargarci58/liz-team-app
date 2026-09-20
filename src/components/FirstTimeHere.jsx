@@ -25,6 +25,11 @@ import { useState } from "react";
 //   onAction  — (key) => void, resolves tip.action.key to a real handler
 //   onShowHow — (guideQuery) => void, opens the Help Center pre-searched
 //   compact   — true inside a deal (tighter padding under the tab strip)
+//   scenes    — walkthrough scene numbers for this page (config/pageTips PAGE_SCENES)
+//   onWatch   — (scenes) => void, plays just those scenes in Kristen's voice.
+//               When BOTH are given the strip is the one-line "▶ Watch" bar
+//               instead of the three lines (Carlos 9/20: replace the banner
+//               with a short clip that explains the page and walks them through it).
 // ═══════════════════════════════════════════════════════════════
 
 const NAVY = "#1A2B4A";
@@ -39,11 +44,12 @@ const GUIDE_GOLD = "#FBBF24";  // the action button — the one thing to press
 
 const storeKey = (userId, pageKey) => `tp_tip_seen:${userId || "anon"}:${pageKey}`;
 
-export default function FirstTimeHere({ pageKey, tip, userId, onAction, onShowHow, compact = false }) {
+export default function FirstTimeHere({ pageKey, tip, userId, onAction, onShowHow, compact = false, scenes = null, onWatch = null }) {
   const [open, setOpen] = useState(() => {
     try { return localStorage.getItem(storeKey(userId, pageKey)) !== "1"; } catch { return true; }
   });
   if (!tip) return null;
+  const hasClip = !!(onWatch && scenes && scenes.length);
 
   const dismiss = () => {
     setOpen(false);
@@ -57,8 +63,31 @@ export default function FirstTimeHere({ pageKey, tip, userId, onAction, onShowHo
       <div data-tour="tips" style={{ display: "flex", justifyContent: "flex-end", padding: compact ? "6px 24px 0" : "8px 24px 0" }}>
         <button onClick={reopen}
           style={{ background: GUIDE, border: "none", color: "#fff", borderRadius: 999, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", padding: "5px 12px" }}>
-          💡 First time here?
+          {hasClip ? "🎬" : "💡"} First time here?
         </button>
+      </div>
+    );
+  }
+
+  // The clip version: one line + a play button. The narration explains the
+  // page and walks through it, so the three text rows aren't repeated here.
+  if (hasClip) {
+    return (
+      <div data-tour="tips" style={{ padding: compact ? "10px 24px 0" : "14px 24px 0" }}>
+        <div style={{ background: GUIDE, borderLeft: `6px solid ${GUIDE_GOLD}`, borderRadius: 12, padding: "11px 14px 11px 16px", display: "flex", flexWrap: "wrap", alignItems: "center", gap: "8px 14px", boxShadow: "0 6px 18px rgba(30,64,175,0.25)", fontFamily: "'Segoe UI', system-ui, sans-serif" }}>
+          <button onClick={() => onWatch(scenes)}
+            style={{ background: GUIDE_GOLD, color: "#2E1065", border: "none", borderRadius: 999, padding: "9px 16px", fontSize: 13.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap", flex: "0 0 auto" }}>
+            ▶ Watch how this page works
+          </button>
+          <div style={{ flex: "1 1 220px", minWidth: 0 }}>
+            <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: "0.06em", textTransform: "uppercase", color: GUIDE_LABEL }}>First time here? · about {scenes.length > 1 ? scenes.length : "1"} minute{scenes.length > 1 ? "s" : ""}</div>
+            <div style={{ fontSize: 14, color: "#fff", lineHeight: 1.45 }}>{tip.what}</div>
+          </div>
+          <button onClick={dismiss} aria-label="Got it, hide this"
+            style={{ background: "rgba(255,255,255,0.14)", border: "1px solid rgba(255,255,255,0.35)", color: "#fff", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", padding: "4px 10px", flex: "0 0 auto" }}>
+            Got it ×
+          </button>
+        </div>
       </div>
     );
   }

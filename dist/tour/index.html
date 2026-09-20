@@ -577,7 +577,10 @@
   L('9.4', 'Help, feedback, and "First time here?"', { nav: 'deals', clips: ['w9_4a', 'w9_4b'], guide: '<em>What this is</em>Every deal you\'re working, as cards. <br><em>Do first</em>Tap a card to open it. <br><em>Why</em>The next step is always at the top of a deal. <span class="btn" style="margin-left:10px;font-size:11px;padding:5px 10px;background:var(--gold);color:#111" id="g94how">📖 Show me how</span>', big: { t: '📣 Send Feedback', s: '"The Money page should remember my last tab." → Sent. We read every one.' }, bigDy: 120, bigc: 'var(--brick)' });
   reuse('9.5', 's10', ['w9_5a', 'w9_5b'], [ { t: 800, run: () => ringOn($('#s10btn')) }, { t: 1200, run: () => moveTo($('#s10btn')) }, { t: 5200, run: () => { ringOff(); show('#s10end'); } } ], 9000, 'Start your first deal');
 
-  const SCENES = CUT === 'learn' ? LEARN : MARKETING;
+  // ?scenes=3.3,3.4 → just those walkthrough scenes (the per-page "First time here?" clip)
+  const ONLY = CUT === 'learn' && Q.get('scenes') ? Q.get('scenes').split(',').map(x => x.trim()).filter(Boolean) : null;
+  const PAGE = ONLY ? ONLY.map(n => LEARN.find(s => s.n === n)).filter(Boolean) : null;
+  const SCENES = PAGE && PAGE.length ? PAGE : (CUT === 'learn' ? LEARN : MARKETING);
   const total = SCENES.reduce((a, s) => a + s.dur, 0);
   const fmt = ms => { const s = Math.round(ms / 1000); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); };
   const chapterOf = i => { let c = 0; CH.forEach((ch, k) => { if (i >= ch.from) c = k; }); return c; };
@@ -585,11 +588,11 @@
   // dots (one per scene) + chapter chips (learn cut only)
   SCENES.forEach((sc, i) => { const d = document.createElement('i'); d.innerHTML = '<b></b>'; d.title = (sc.n ? sc.n + ' · ' : 'Scene ' + (i + 1) + ' · ') + (sc.title || ''); d.onclick = () => go(i); dots.appendChild(d); });
   const chips = $('#chapters');
-  if (CUT === 'learn') {
+  if (CUT === 'learn' && !PAGE) {
     CH.forEach((ch, k) => { const b = document.createElement('button'); b.textContent = (k + 1) + ' · ' + ch.title; b.title = ch.sub; b.onclick = () => go(ch.from); chips.appendChild(b); });
     chips.hidden = false;
   }
-  const markChapter = i => { if (CUT !== 'learn') return; const c = chapterOf(i); [...chips.children].forEach((b, k) => b.classList.toggle('on', k === c)); };
+  const markChapter = i => { if (CUT !== 'learn' || PAGE) return; const c = chapterOf(i); [...chips.children].forEach((b, k) => b.classList.toggle('on', k === c)); };
 
   let idx = -1, t0 = 0, elapsedBefore = 0, timers = [], paused = false, pausedAt = 0, raf;
 
@@ -674,12 +677,14 @@
 
   // Start scene: ?chapter=N (learn cut) or ?scene=N
   let startAt = 0;
-  if (CUT === 'learn' && Q.get('chapter')) { const c = CH[Math.max(0, Math.min(CH.length - 1, parseInt(Q.get('chapter'), 10) - 1))]; if (c) startAt = c.from; }
+  if (CUT === 'learn' && !PAGE && Q.get('chapter')) { const c = CH[Math.max(0, Math.min(CH.length - 1, parseInt(Q.get('chapter'), 10) - 1))]; if (c) startAt = c.from; }
   if (Q.get('scene')) { const k = SCENES.findIndex(s => s.n === Q.get('scene')); if (k >= 0) startAt = k; }
+  if (PAGE) { $('#h1').textContent = 'How this page works'; $('#endbig').textContent = 'That\'s this page.'; $('#endother').textContent = 'Learn the whole app, chapter by chapter →'; $('#endother').href = '?cut=learn'; }
   // Show the first scene at rest behind the gate; nothing plays or speaks until the tap.
   $('#' + SCENES[startAt].id).classList.add('on'); setCapSilent(SCENES[startAt].cap); capn.textContent = SCENES[startAt].n || ('1 / ' + SCENES.length); markChapter(startAt);
   const gateBtn = $('#start');
-  if (CUT === 'learn') { const c = CH[chapterOf(startAt)]; gateBtn.textContent = '▶ Play' + (startAt > 0 ? ' chapter ' + (chapterOf(startAt) + 1) : ' with voice'); $('#gatesmall').textContent = startAt > 0 ? c.title : 'About 8 minutes · 9 chapters · tap any chapter to jump'; }
+  if (PAGE) { gateBtn.textContent = '▶ Play'; $('#gatesmall').textContent = 'About ' + (PAGE.length > 1 ? PAGE.length + ' minutes' : 'a minute') + ' · ' + PAGE.map(s => s.title).join(' · '); }
+  else if (CUT === 'learn') { const c = CH[chapterOf(startAt)]; gateBtn.textContent = '▶ Play' + (startAt > 0 ? ' chapter ' + (chapterOf(startAt) + 1) : ' with voice'); $('#gatesmall').textContent = startAt > 0 ? c.title : 'About 8 minutes · 9 chapters · tap any chapter to jump'; }
   gateBtn.onclick = () => { $('#gate').remove(); go(startAt); };
   preload(SCENES[startAt].capB ? [ID_OF[SCENES[startAt].cap.trim()], ID_OF[SCENES[startAt].capB.trim()]] : [ID_OF[SCENES[startAt].cap.trim()]]);
   tick();

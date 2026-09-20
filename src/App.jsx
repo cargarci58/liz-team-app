@@ -23,7 +23,7 @@ import AppTour from "./components/AppTour";
 import SpotlightTour from "./components/SpotlightTour";
 import TourModal from "./components/TourModal";
 import FirstTimeHere from "./components/FirstTimeHere";
-import { PAGE_TIPS, dealTabTip } from "./config/pageTips";
+import { PAGE_TIPS, PAGE_SCENES, dealTabTip, dealTabScenes } from "./config/pageTips";
 
 const API = "https://liz-team-server-api-production.up.railway.app";
 // Platform developer account — only this email sees the Superuser Dashboard.
@@ -6129,7 +6129,7 @@ function InternalNotesPanel({ txId, compact = false, onSeeAll }) {
   );
 }
 
-function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = false, onBack, contacts, onInviteParty = [], onCopyLoginLink, onSaveContact, onOpenContactBook, onDuplicate, onDeleteSample, onOpenGuide, currentUser, initialTab = "overview", navSignal = 0, dashboardUnread = 0, onMilestoneSummary, onInboundRead }) {
+function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = false, onBack, contacts, onInviteParty = [], onCopyLoginLink, onSaveContact, onOpenContactBook, onDuplicate, onDeleteSample, onOpenGuide, onWatchScenes, currentUser, initialTab = "overview", navSignal = 0, dashboardUnread = 0, onMilestoneSummary, onInboundRead }) {
   // Staff (agent + coordinator) comms tabs are merged into one "messages" hub, so
   // a deep-link to chat/replies/sms opens the hub on the right section. Guests keep
   // their standalone chat tab.
@@ -6663,6 +6663,8 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
             else if (key === "addParty") { setActiveTab("parties"); setShowAddParty(true); }
           }}
           onShowHow={onOpenGuide}
+          scenes={dealTabScenes(activeTab, { isListingSide: isListingSideTx })}
+          onWatch={onWatchScenes}
         />
       )}
 
@@ -10433,6 +10435,8 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
   // 🎬 Narrated video tour (public/tour, Kristen's voice): { cut: "marketing"|"learn", chapter? } or null.
   // Opened from the day-one screen, the welcome splash and the Help Center.
   const [tourVideo, setTourVideo] = useState(null);
+  // "First time here?" → play just this page's scenes of the walkthrough.
+  const watchScenes = (scenes) => setTourVideo({ cut: "learn", scenes });
 
   // First-time onboarding walkthrough -------------------------------------
   const isAdminUser = ["admin", "superadmin"].includes(currentUser?.role);
@@ -10866,11 +10870,11 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
           </div>
         </div>
       )}
-      {showReports && <Reports transactions={transactions} onBack={() => setShowReports(false)} currentUser={currentUser} initialTab={reportsTab} onOpenGuide={openGuide} />}
+      {showReports && <Reports transactions={transactions} onBack={() => setShowReports(false)} currentUser={currentUser} initialTab={reportsTab} onOpenGuide={openGuide} onWatchScenes={watchScenes} />}
 
       {!showReports && view === "new" && (
         <>
-        <FirstTimeHere pageKey="new" tip={PAGE_TIPS.new} userId={currentUser?.id} onAction={tipAction} onShowHow={openGuide} />
+        <FirstTimeHere pageKey="new" tip={PAGE_TIPS.new} userId={currentUser?.id} onAction={tipAction} onShowHow={openGuide}  scenes={PAGE_SCENES.new} onWatch={watchScenes} />
         <NewTransactionForm
           currentUser={currentUser}
           prefill={cmaConvert?.prefill || null}
@@ -10883,7 +10887,7 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
       )}
       {view === "cma" && (
         <>
-        <FirstTimeHere pageKey="cma" tip={PAGE_TIPS.cma} userId={currentUser?.id} onAction={tipAction} onShowHow={openGuide} />
+        <FirstTimeHere pageKey="cma" tip={PAGE_TIPS.cma} userId={currentUser?.id} onAction={tipAction} onShowHow={openGuide}  scenes={PAGE_SCENES.cma} onWatch={watchScenes} />
         <StandaloneCmaPage
           token={localStorage.getItem("tp_token") || ""}
           currentUser={currentUser}
@@ -10896,6 +10900,7 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
         <TransactionDetail
           onDeleteSample={deleteSampleDeal}
           onOpenGuide={openGuide}
+          onWatchScenes={watchScenes}
           initialTab={initialDetailTab}
           navSignal={detailNavSignal}
           dashboardUnread={unreadCounts[selectedId] || 0}
@@ -10986,7 +10991,7 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
               onOpenTransaction={openTransactionMilestones}
             />
           )}
-          <FirstTimeHere pageKey="home" tip={PAGE_TIPS.home} userId={currentUser?.id} onAction={tipAction} onShowHow={openGuide} />
+          <FirstTimeHere pageKey="home" tip={PAGE_TIPS.home} userId={currentUser?.id} onAction={tipAction} onShowHow={openGuide}  scenes={PAGE_SCENES.home} onWatch={watchScenes} />
           <DailyDashboard
             token={localStorage.getItem("tp_token") || ""}
             user={currentUser}
@@ -11014,7 +11019,7 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
       )}
       {!showReports && !showCalendar && view === "dashboard" && (
         <>
-        <FirstTimeHere pageKey="dashboard" tip={PAGE_TIPS.dashboard} userId={currentUser?.id} onAction={tipAction} onShowHow={openGuide} />
+        <FirstTimeHere pageKey="dashboard" tip={PAGE_TIPS.dashboard} userId={currentUser?.id} onAction={tipAction} onShowHow={openGuide}  scenes={PAGE_SCENES.dashboard} onWatch={watchScenes} />
         <Dashboard
           transactions={transactions}
           coordinatorMode={coordinatorMode}
@@ -11061,37 +11066,37 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
       {showTeam && <UserManagement onClose={() => setShowTeam(false)} />}
       {view === "expenses" && (
         <>
-        <FirstTimeHere pageKey="expenses" tip={PAGE_TIPS.expenses} userId={currentUser?.id} onAction={tipAction} onShowHow={openGuide} />
+        <FirstTimeHere pageKey="expenses" tip={PAGE_TIPS.expenses} userId={currentUser?.id} onAction={tipAction} onShowHow={openGuide}  scenes={PAGE_SCENES.expenses} onWatch={watchScenes} />
         <ExpensesPage onBack={() => setView("dashboard")} />
         </>
       )}
       {view === "forms" && (
         <>
-        <FirstTimeHere pageKey="forms" tip={PAGE_TIPS.forms} userId={currentUser?.id} onAction={tipAction} onShowHow={openGuide} />
+        <FirstTimeHere pageKey="forms" tip={PAGE_TIPS.forms} userId={currentUser?.id} onAction={tipAction} onShowHow={openGuide}  scenes={PAGE_SCENES.forms} onWatch={watchScenes} />
         <FormsPage user={currentUser} onBack={() => setView("dashboard")} />
         </>
       )}
       {view === "contacts" && (
         <>
-        <FirstTimeHere pageKey="contacts" tip={PAGE_TIPS.contacts} userId={currentUser?.id} onAction={tipAction} onShowHow={openGuide} />
+        <FirstTimeHere pageKey="contacts" tip={PAGE_TIPS.contacts} userId={currentUser?.id} onAction={tipAction} onShowHow={openGuide}  scenes={PAGE_SCENES.contacts} onWatch={watchScenes} />
         <ContactsPage token={localStorage.getItem("tp_token") || ""} onBack={() => setView("dashboard")} />
         </>
       )}
       {view === "popbys" && (
         <>
-        <FirstTimeHere pageKey="popbys" tip={PAGE_TIPS.popbys} userId={currentUser?.id} onAction={tipAction} onShowHow={openGuide} />
+        <FirstTimeHere pageKey="popbys" tip={PAGE_TIPS.popbys} userId={currentUser?.id} onAction={tipAction} onShowHow={openGuide}  scenes={PAGE_SCENES.popbys} onWatch={watchScenes} />
         <PopBysPage token={localStorage.getItem("tp_token") || ""} onBack={() => setView("dashboard")} />
         </>
       )}
       {view === "scripts" && (
         <>
-        <FirstTimeHere pageKey="scripts" tip={PAGE_TIPS.scripts} userId={currentUser?.id} onAction={tipAction} onShowHow={openGuide} />
+        <FirstTimeHere pageKey="scripts" tip={PAGE_TIPS.scripts} userId={currentUser?.id} onAction={tipAction} onShowHow={openGuide}  scenes={PAGE_SCENES.scripts} onWatch={watchScenes} />
         <ScriptsPage token={localStorage.getItem("tp_token") || ""} onBack={() => setView("dashboard")} currentUser={currentUser} />
         </>
       )}
       {view === "growthplan" && (
         <>
-        <FirstTimeHere pageKey="growthplan" tip={PAGE_TIPS.growthplan} userId={currentUser?.id} onAction={tipAction} onShowHow={openGuide} />
+        <FirstTimeHere pageKey="growthplan" tip={PAGE_TIPS.growthplan} userId={currentUser?.id} onAction={tipAction} onShowHow={openGuide}  scenes={PAGE_SCENES.growthplan} onWatch={watchScenes} />
         <GrowthPlanPage onBack={() => setView("dashboard")} />
         </>
       )}
@@ -11259,7 +11264,7 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
 
       {/* 🎬 Narrated video tour — day-one screen, welcome splash, Help Center */}
       {tourVideo && (
-        <TourModal cut={tourVideo.cut} chapter={tourVideo.chapter} onClose={() => setTourVideo(null)} />
+        <TourModal cut={tourVideo.cut} chapter={tourVideo.chapter} scenes={tourVideo.scenes} onClose={() => setTourVideo(null)} />
       )}
 
       {/* 🎬 App Tour — from onboarding step 4 or Help Center */}

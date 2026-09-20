@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import FirstTimeHere from "./components/FirstTimeHere";
-import { PAGE_TIPS } from "./config/pageTips";
+import { PAGE_TIPS, PAGE_SCENES } from "./config/pageTips";
 
 const API = "https://liz-team-server-api-production.up.railway.app";
 
@@ -748,7 +748,7 @@ function ClientFeedbackTab() {
   );
 }
 
-export default function Reports({ transactions, onBack, currentUser, initialTab = "overview", onOpenGuide }) {
+export default function Reports({ transactions, onBack, currentUser, initialTab = "overview", onOpenGuide, onWatchScenes }) {
   const [tab, setTab] = useState(initialTab);
   const isAdmin = ["admin", "superadmin"].includes(currentUser?.role);
 
@@ -786,7 +786,7 @@ export default function Reports({ transactions, onBack, currentUser, initialTab 
       </div>
 
       <div className="no-print">
-        <FirstTimeHere pageKey="reports" tip={PAGE_TIPS.reports} userId={currentUser?.id} onShowHow={onOpenGuide} />
+        <FirstTimeHere pageKey="reports" tip={PAGE_TIPS.reports} userId={currentUser?.id} onShowHow={onOpenGuide} scenes={PAGE_SCENES.reports} onWatch={onWatchScenes} />
       </div>
       <div id="reports-printable" style={{ padding: 24, maxWidth: 1100, margin: "0 auto" }}>
         {tab === "overview" && <OverviewTab transactions={transactions} />}
