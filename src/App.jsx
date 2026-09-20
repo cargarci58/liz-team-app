@@ -21,6 +21,7 @@ import UpdateNudge from "./components/UpdateNudge";
 import OnboardingGuide from "./components/OnboardingGuide";
 import AppTour from "./components/AppTour";
 import SpotlightTour from "./components/SpotlightTour";
+import TourModal from "./components/TourModal";
 import FirstTimeHere from "./components/FirstTimeHere";
 import { PAGE_TIPS, dealTabTip } from "./config/pageTips";
 
@@ -10429,6 +10430,9 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
   const [supportSignal, setSupportSignal] = useState(0);
   // 🎬 App Tour — replayable swipe-through (last onboarding step + Help Center).
   const [showTour, setShowTour] = useState(false);
+  // 🎬 Narrated video tour (public/tour, Kristen's voice): { cut: "marketing"|"learn", chapter? } or null.
+  // Opened from the day-one screen, the welcome splash and the Help Center.
+  const [tourVideo, setTourVideo] = useState(null);
 
   // First-time onboarding walkthrough -------------------------------------
   const isAdminUser = ["admin", "superadmin"].includes(currentUser?.role);
@@ -11000,6 +11004,7 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
             onUploadContract={() => setShowContractIntake(true)}
             hasSample={transactions.some(t => t.isSample)}
             onSampleDeal={openSampleDeal}
+            onWatchTour={() => setTourVideo({ cut: "marketing" })}
             onOpenSample={() => {
               const s = transactions.find(t => t.isSample);
               if (s) openTransactionMilestones(s.id, "milestones");
@@ -11232,6 +11237,7 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
           onCompany={isAdminUser ? () => setShowCompanySettings(true) : null}
           onRestartTour={restartTour}
           onTour={() => { setView("dashboard"); setShowTour(true); }}
+          onVideo={(cut, chapter) => setTourVideo({ cut: cut || "marketing", chapter })}
         />
       )}
 
@@ -11245,9 +11251,15 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
           doneKeys={transactions.length > 0 ? new Set([...onboard.done, "firstdeal"]) : onboard.done}
           onTakeMeThere={onboardTakeMeThere}
           onStartTour={onboardStartTour}
+          onWatchTour={() => setTourVideo({ cut: "marketing" })}
           onDismiss={() => persistOnboard(false, onboard.done, { dismissed: true })}
           onFinish={() => persistOnboard(false, onboard.done, { finished: true })}
         />
+      )}
+
+      {/* 🎬 Narrated video tour — day-one screen, welcome splash, Help Center */}
+      {tourVideo && (
+        <TourModal cut={tourVideo.cut} chapter={tourVideo.chapter} onClose={() => setTourVideo(null)} />
       )}
 
       {/* 🎬 App Tour — from onboarding step 4 or Help Center */}

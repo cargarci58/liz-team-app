@@ -149,7 +149,7 @@ export const GUIDE_SECTIONS = [
   },
 ];
 
-export default function HelpCenter({ apiBase, token, onGoals, onProfile, onCompany, onFirstDeal, onRestartTour, onTour, isAdmin, openSignal, feedbackSignal, supportSignal, guideQuery }) {
+export default function HelpCenter({ apiBase, token, onGoals, onProfile, onCompany, onFirstDeal, onRestartTour, onTour, onVideo, isAdmin, openSignal, feedbackSignal, supportSignal, guideQuery }) {
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState('start'); // start | guides | faqs | feedback
 
@@ -371,8 +371,17 @@ export default function HelpCenter({ apiBase, token, onGoals, onProfile, onCompa
                       </div>
                     </div>
                   ))}
+                  {/* Narrated video tours (public/tour): the 2-minute overview and the
+                      chapter-by-chapter walkthrough of every screen. Same pre-rendered
+                      voice everywhere — nothing depends on this device's speech engine. */}
+                  {onVideo && (
+                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 6, marginBottom: 8 }}>
+                      <button onClick={() => { setOpen(false); onVideo('marketing'); }} style={{ flex: '1 1 200px', background: RED, border: 'none', borderRadius: 8, padding: '11px 16px', fontSize: 13, fontWeight: 700, color: '#fff', cursor: 'pointer', fontFamily: 'inherit' }}>▶ Watch the 2-minute tour</button>
+                      <button onClick={() => { setOpen(false); onVideo('learn'); }} style={{ flex: '1 1 200px', background: '#1A2B4A', border: 'none', borderRadius: 8, padding: '11px 16px', fontSize: 13, fontWeight: 700, color: '#fff', cursor: 'pointer', fontFamily: 'inherit' }}>📚 Learn the app, chapter by chapter</button>
+                    </div>
+                  )}
                   {onTour && (
-                    <button onClick={() => { setOpen(false); onTour(); }} style={{ marginTop: 6, marginBottom: 8, background: '#111', border: 'none', borderRadius: 8, padding: '11px 16px', fontSize: 13, fontWeight: 700, color: '#fff', cursor: 'pointer', fontFamily: 'inherit', width: '100%' }}>🎬 Take the 60-second app tour</button>
+                    <button onClick={() => { setOpen(false); onTour(); }} style={{ marginBottom: 8, background: '#111', border: 'none', borderRadius: 8, padding: '11px 16px', fontSize: 13, fontWeight: 700, color: '#fff', cursor: 'pointer', fontFamily: 'inherit', width: '100%' }}>🎬 Point out the buttons on my screen (60 seconds)</button>
                   )}
                   {onRestartTour && (
                     <button onClick={() => { setOpen(false); onRestartTour(); }} style={{ background: 'none', border: '1px solid #ddd', borderRadius: 8, padding: '9px 16px', fontSize: 13, fontWeight: 600, color: '#444', cursor: 'pointer', fontFamily: 'inherit', width: '100%' }}>↻ Replay the welcome walkthrough</button>

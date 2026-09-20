@@ -1,0 +1,690 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TransactPro — the 2-minute tour</title>
+<meta name="description" content="See what TransactPro does for a Florida real-estate agent, in two minutes.">
+<meta property="og:title" content="TransactPro — the 2-minute tour">
+<meta property="og:description" content="Nine apps, one login. Watch the deal build itself.">
+<meta name="robots" content="index,follow">
+<link rel="icon" type="image/png" href="/favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700;800&family=Zilla+Slab:wght@500;600&display=swap">
+<style>
+  :root{
+    --paper:#0F1420; --ink:#F1F4F8; --muted:#94A0B2; --hair:#28324A;
+    --navy:#1A2B4A; --brick:#C0392B; --gold:#FBBF24; --green:#1E8449; --guide:#1E40AF;
+    --f:'Source Sans 3',system-ui,sans-serif; --cap:'Zilla Slab',Georgia,serif;
+  }
+  body{background:var(--paper);color:var(--ink);font-family:var(--f);margin:0;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:62rem;margin:0 auto;padding:2rem 1rem 3rem}
+  .kicker{font-size:.72rem;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--gold)}
+  h1{font-family:var(--cap);font-weight:600;font-size:clamp(1.6rem,4vw,2.2rem);margin:.3rem 0 .2rem;text-wrap:balance}
+  .sub{color:var(--muted);font-size:1rem;margin:0 0 1.2rem}
+
+  /* ── the player ─────────────────────────────────── */
+  .player{background:#000;border-radius:14px;overflow:hidden;box-shadow:0 30px 80px rgba(0,0,0,.6);border:1px solid var(--hair)}
+  .stagebox{position:relative;width:100%;aspect-ratio:16/9;overflow:hidden;background:#F4F5F7}
+  .stage{position:absolute;left:0;top:0;width:960px;height:540px;transform-origin:0 0;font-family:var(--f);color:#1F2937}
+  .scene{position:absolute;inset:0;opacity:0;transition:opacity .45s ease;pointer-events:none}
+  .scene.on{opacity:1}
+  @media (prefers-reduced-motion:reduce){.scene{transition:none}}
+
+  /* mock app chrome, in the app's real palette */
+  .hdr{background:var(--navy);height:52px;display:flex;align-items:center;padding:0 22px;gap:10px;color:#fff}
+  .logo{width:28px;height:28px;border-radius:6px;background:#B7860B;display:grid;place-items:center;font-weight:900;font-size:15px}
+  .brand{font-weight:800;font-size:15px}
+  .nav{margin-left:auto;display:flex;gap:6px}
+  .nav b{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.22);border-radius:7px;padding:6px 11px;font-size:12px;font-weight:700}
+  .nav b.red{background:var(--brick);border-color:transparent}
+  .nav b.hot{background:rgba(255,255,255,.32)}
+
+  .card{position:absolute;background:#fff;border:1px solid #DDE2E8;border-radius:12px;box-shadow:0 2px 6px rgba(0,0,0,.05)}
+  .t{font-weight:800;font-size:14px;color:#111}
+  .s{font-size:12px;color:#6B7280}
+  .pill{display:inline-block;font-size:10px;font-weight:800;padding:2px 8px;border-radius:999px}
+  .btn{display:inline-block;font-size:12px;font-weight:800;padding:8px 14px;border-radius:8px;color:#fff;background:var(--brick)}
+  .btn.green{background:var(--green)}
+  .btn.ghost{background:#fff;color:#111;border:1px solid #D1D5DB}
+  .row{display:flex;align-items:center;gap:8px;padding:9px 12px;border-bottom:1px solid #EEF1F4;font-size:12.5px}
+  .row:last-child{border-bottom:none}
+  .chk{width:15px;height:15px;border-radius:4px;border:2px solid #CBD5E1;flex:none}
+  .chk.on{background:var(--green);border-color:var(--green);position:relative}
+  .chk.on::after{content:"";position:absolute;left:4px;top:1px;width:4px;height:8px;border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg)}
+  .bar{height:8px;border-radius:4px;background:#E5E7EB;overflow:hidden}
+  .bar i{display:block;height:100%;background:var(--green);width:0;transition:width 1.2s ease}
+  .guide{position:absolute;background:var(--guide);color:#fff;border-left:6px solid var(--gold);border-radius:12px;padding:12px 16px 12px 14px;font-size:12.5px;line-height:1.45}
+  .guide b{display:block;font-size:12px;margin-bottom:4px}
+  .guide em{font-style:normal;color:#BFDBFE;font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;margin-right:8px}
+
+  /* reveal-able bits inside a scene */
+  .rv{opacity:0;transform:translateY(6px);transition:opacity .4s ease,transform .4s ease}
+  .rv.in{opacity:1;transform:none}
+  @media (prefers-reduced-motion:reduce){.rv{transition:none}}
+
+  /* the cursor + click ring + "click here" ring */
+  .cur{position:absolute;width:22px;height:22px;z-index:9;transition:left .7s cubic-bezier(.4,0,.2,1),top .7s cubic-bezier(.4,0,.2,1);left:480px;top:300px;pointer-events:none}
+  .cur svg{display:block;filter:drop-shadow(0 2px 3px rgba(0,0,0,.35))}
+  .ring{position:absolute;border:3px solid var(--gold);border-radius:12px;box-shadow:0 0 0 6px rgba(251,191,36,.25);opacity:0;transition:opacity .3s;pointer-events:none;z-index:8}
+  .ring.on{opacity:1;animation:pulse 1.2s ease-in-out infinite}
+  @keyframes pulse{0%,100%{box-shadow:0 0 0 6px rgba(251,191,36,.25)}50%{box-shadow:0 0 0 12px rgba(251,191,36,.08)}}
+  .clickfx{position:absolute;width:40px;height:40px;border-radius:50%;border:3px solid var(--gold);transform:translate(-50%,-50%) scale(.3);opacity:0;pointer-events:none;z-index:9}
+  .clickfx.go{animation:click .5s ease-out}
+  @keyframes click{0%{opacity:.9;transform:translate(-50%,-50%) scale(.3)}100%{opacity:0;transform:translate(-50%,-50%) scale(1.4)}}
+  @media (prefers-reduced-motion:reduce){.ring.on,.clickfx.go{animation:none}.cur{transition:none}}
+
+  /* title cards */
+  .title{position:absolute;inset:0;background:linear-gradient(135deg,#1A2B4A,#0F1A30);color:#fff;display:flex;flex-direction:column;justify-content:center;padding:0 80px}
+  .title .big{font-family:var(--cap);font-size:44px;font-weight:600;line-height:1.15;text-wrap:balance;max-width:720px}
+  .title .small{font-size:18px;color:#B8C4D6;margin-top:14px;max-width:640px;line-height:1.45}
+  .apps{display:flex;gap:8px;flex-wrap:wrap;margin-top:22px;max-width:700px}
+  .apps span{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);border-radius:8px;padding:6px 11px;font-size:13px;font-weight:600;transition:opacity .6s,transform .6s}
+  .apps.gone span{opacity:.18;transform:scale(.94)}
+  .one{position:absolute;right:80px;top:50%;transform:translateY(-50%);width:200px;height:200px;border-radius:24px;background:#B7860B;display:grid;place-items:center;font-weight:900;font-size:110px;box-shadow:0 30px 60px rgba(0,0,0,.4)}
+
+  /* caption + controls */
+  .caption{background:#0B0F19;color:#fff;padding:14px 22px;display:flex;align-items:center;gap:14px;min-height:64px;border-top:1px solid var(--hair)}
+  .caption .n{font-family:var(--f);font-size:.7rem;font-weight:800;color:var(--gold);letter-spacing:.1em;flex:none;min-width:2.6rem}
+  .caption .txt{font-family:var(--cap);font-size:1.12rem;line-height:1.35;flex:1}
+  .ctrl{display:flex;align-items:center;gap:12px;padding:10px 16px;background:#0B0F19}
+  .ctrl button{font-family:inherit;font-weight:700;font-size:.85rem;border:1px solid var(--hair);background:#141B2B;color:#fff;border-radius:8px;padding:7px 13px;cursor:pointer}
+  .ctrl button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+  .dots{display:flex;gap:6px;flex:1}
+  .dots i{flex:1;height:5px;border-radius:3px;background:#28324A;overflow:hidden;position:relative;cursor:pointer}
+  .dots i b{position:absolute;left:0;top:0;bottom:0;width:0;background:var(--gold)}
+  .dots i.done b{width:100%}
+  .time{font-variant-numeric:tabular-nums;color:var(--muted);font-size:.8rem;min-width:3.2rem;text-align:right}
+  .gate{position:absolute;inset:0;z-index:20;display:grid;place-items:center;background:rgba(15,20,32,.55);backdrop-filter:blur(2px)}
+  .gate button{font-family:var(--f);font-size:1.15rem;font-weight:800;color:#1A2B4A;background:var(--gold);border:none;border-radius:999px;padding:16px 30px;cursor:pointer;box-shadow:0 12px 30px rgba(0,0,0,.4)}
+  .gate small{display:block;color:#fff;margin-top:12px;font-size:.85rem;opacity:.85;text-align:center}
+  .gate button:focus-visible{outline:3px solid #fff;outline-offset:3px}
+
+  /* new-scene bits */
+  .phone{position:absolute;left:330px;top:70px;width:300px;height:440px;border-radius:34px;background:#111;padding:12px;box-shadow:0 30px 60px rgba(0,0,0,.35)}
+  .phone .scr{background:#fff;border-radius:24px;height:100%;overflow:hidden;font-size:12px}
+  .track{display:flex;gap:6px;padding:0 14px}
+  .track div{flex:1;height:6px;border-radius:3px;background:#E5E7EB}
+  .track div.ok{background:var(--green)}.track div.now{background:var(--gold)}
+  .field{display:flex;justify-content:space-between;align-items:center;padding:9px 12px;border:1px solid #E5E7EB;border-radius:8px;margin-bottom:8px;font-size:12.5px;background:#fff}
+  .field b{color:#111}.field span{color:#9CA3AF}
+  .field.on span{color:#111;font-weight:700}
+  .doc{display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid #EEF1F4;font-size:12.5px}
+  .doc .ico{width:26px;height:32px;border-radius:4px;background:#E5E7EB;flex:none}
+  .assist{position:absolute;right:24px;bottom:24px;width:340px;background:#F8F9FA;border:1px solid #E5E7EB;border-radius:16px;box-shadow:0 12px 48px rgba(0,0,0,.3);overflow:hidden}
+  .assist .ah{background:var(--navy);color:#fff;padding:10px 14px;font-weight:800;font-size:13px}
+  .bub{max-width:88%;border-radius:14px;padding:8px 12px;font-size:12.5px;line-height:1.4;margin:8px 12px}
+  .bub.me{background:var(--navy);color:#fff;margin-left:auto}.bub.ai{background:#fff;border:1px solid #E5E7EB}
+  .fab{position:absolute;right:24px;bottom:24px;width:58px;height:58px;border-radius:50%;background:linear-gradient(135deg,#1A2B4A,#34506e);color:#fff;display:grid;place-items:center;font-weight:800;font-size:25px;box-shadow:0 6px 18px rgba(0,0,0,.3)}
+  /* below the player */
+  h2{font-family:var(--cap);font-weight:600;font-size:1.25rem;margin:2.2rem 0 .5rem}
+  p{color:var(--muted);line-height:1.6;margin:0 0 .8rem;max-width:44rem}
+  .shots{display:grid;grid-template-columns:repeat(auto-fit,minmax(15rem,1fr));gap:.6rem}
+  .shot{background:#141B2B;border:1px solid var(--hair);border-radius:10px;padding:.8rem 1rem;font-size:.9rem}
+  .shot b{display:block;color:#fff;margin-bottom:.15rem}
+  .shot i{color:var(--gold);font-style:normal;font-size:.75rem;font-weight:800;margin-right:.4rem}
+  .shot.here{border-color:var(--gold)}
+</style><style>
+  /* ── added for the app page: chapters, end card, embed mode, phones ── */
+  #chapters{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 12px}
+  #chapters button{font-family:inherit;font-weight:700;font-size:.78rem;border:1px solid var(--hair);background:#141B2B;color:#C9D2DF;border-radius:999px;padding:6px 11px;cursor:pointer}
+  #chapters button.on{background:var(--gold);color:#111;border-color:var(--gold)}
+  #chapters button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+  .endcard{position:absolute;inset:0;background:rgba(15,20,32,.92);color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;text-align:center;padding:24px;z-index:20}
+  .endcard[hidden]{display:none}
+  .endcard .big{font-family:var(--cap);font-size:clamp(1.3rem,3.5vw,2rem);font-weight:600}
+  .endcard .acts{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+  .endcard a,.endcard button{font-family:inherit;font-weight:800;font-size:.9rem;border-radius:9px;padding:10px 16px;text-decoration:none;cursor:pointer;border:1px solid var(--hair);background:#141B2B;color:#fff}
+  .endcard a.primary{background:var(--brick);border-color:transparent}
+  .endcard .emb{display:none}
+  .embed .wrap{max-width:none;padding:0}
+  .embed .top,.embed .below{display:none}
+  .embed .player{border-radius:0;border:none;box-shadow:none}
+  .embed .endcard .emb{display:inline-block}
+  .embed .endcard .site{display:none}
+  .below{margin-top:1.4rem;color:var(--muted);font-size:.95rem}
+  .below a{color:var(--gold);font-weight:700;text-decoration:none}
+  @media (max-width:600px){.caption .txt{font-size:.95rem}.caption{min-height:56px;padding:10px 14px}.ctrl{flex-wrap:wrap;gap:8px}.ctrl button{font-size:.78rem;padding:6px 10px}.time{min-width:0}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div class="kicker" id="kick">TransactPro · 2-minute tour</div>
+    <h1 id="h1">See what TransactPro does for you</h1>
+    <p class="sub" id="sub">Tap play. Same voice, same tour, on every device.</p>
+  </div>
+  <div id="chapters" hidden></div>
+
+  <div class="player">
+    <div class="stagebox" id="box">
+      <div class="stage" id="stage">
+
+        <!-- ── SCENE 1 · title ── -->
+        <div class="scene" id="s1">
+          <div class="title">
+            <div class="big">You're paying nine apps to do one job.</div>
+            <div class="small">Forms. E-sign. CRM. Reminders. Bookkeeping. Texting. Doc storage. A CMA tool. A newsletter.</div>
+            <div class="apps" id="apps"><span>Forms app</span><span>E-sign</span><span>CRM</span><span>Reminders</span><span>Bookkeeping</span><span>Texting</span><span>Doc storage</span><span>CMA tool</span><span>Newsletter</span></div>
+            <div class="one rv" id="one">T</div>
+          </div>
+        </div>
+
+        <!-- ── SCENE 2 · upload a contract ── -->
+        <div class="scene" id="s2">
+          <div class="hdr"><div class="logo">T</div><div class="brand">TransactPro</div><div class="nav"><b class="hot">🏆 Win The Day</b><b class="">📋 My Deals</b><b class="red">➕ New Deal</b><b class="">📇 Contacts</b><b class="">🧰 Tools ▾</b></div></div>
+          <div style="position:absolute;left:0;right:0;top:52px;text-align:center;padding-top:30px"><div style="font-size:40px">🏡</div><div class="t" style="font-size:20px;margin-top:6px">Let's get your first deal in, Maria</div><div class="s" style="font-size:13px;margin-top:4px">This screen fills itself once you have a deal.</div></div>
+          <div class="card" style="left:190px;top:190px;width:280px;padding:16px;border:2px solid var(--brick)"><div style="font-size:22px">📄</div><div class="t" style="margin-top:6px">Upload a signed contract</div><div class="s" style="margin-top:4px;line-height:1.45">Drop in a deal you're already working. The app reads it and builds the timeline.</div><div class="btn" style="margin-top:12px" id="s2btn">Upload a contract →</div></div>
+          <div class="card" style="left:492px;top:190px;width:280px;padding:16px"><div style="font-size:22px">➕</div><div class="t" style="margin-top:6px">Start a deal from scratch</div><div class="s" style="margin-top:4px;line-height:1.45">Three quick steps — address, client, price.</div><div class="btn ghost" style="margin-top:12px">New deal →</div></div>
+          <div class="card rv" id="s2res" style="left:120px;top:112px;width:720px;padding:18px 20px;box-shadow:0 20px 50px rgba(0,0,0,.25)">
+            <div style="display:flex;align-items:center;gap:10px"><span class="pill" style="background:#D5F5E3;color:#1E8449">READ IN 41 SECONDS</span><span class="t">1420 Lake Nona Blvd · Under Contract</span></div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px;margin-top:12px"><div><div class="s">Price</div><div class="t">$478,000</div></div><div><div class="s">Effective date</div><div class="t">Sep 12</div></div><div><div class="s">Inspection ends</div><div class="t">Sep 22</div></div><div><div class="s">Closing</div><div class="t">Oct 14</div></div></div>
+            <div style="margin-top:14px" class="s">Timeline built · 23 steps · reminders scheduled · 6 people added</div><div class="bar" style="margin-top:6px"><i id="s2bar"></i></div>
+          </div>
+        </div>
+
+        <!-- ── SCENE 3 · Win The Day ── -->
+        <div class="scene" id="s3">
+          <div class="hdr"><div class="logo">T</div><div class="brand">TransactPro</div><div class="nav"><b class="hot" id="s3nav">🏆 Win The Day</b><b class="">📋 My Deals</b><b class="red">➕ New Deal</b><b class="">📇 Contacts</b><b class="">🧰 Tools ▾</b></div></div>
+          <div style="position:absolute;left:250px;top:74px;width:460px">
+            <div class="t" style="font-size:20px">Good morning, Maria! ☀️</div><div class="s" style="font-size:13px">You have 3 tasks and 2 calls that need your attention.</div>
+            <div class="card" style="position:relative;margin-top:14px;padding:0;width:460px">
+              <div class="row" style="background:#FADBD8;border-radius:12px 12px 0 0"><span class="pill" style="background:var(--brick);color:#fff">NOW</span><b style="font-size:13px">1420 Lake Nona Blvd</b></div>
+              <div class="row"><span class="chk" id="c1"></span>Inspection period ends <b>tomorrow</b> — confirm the buyer's decision</div>
+              <div class="row"><span class="chk"></span>Send the appraisal to the lender</div>
+              <div class="row"><span class="chk"></span>Call Dana Whitfield — promised a follow-up</div>
+            </div>
+            <div class="card rv" id="s3done" style="position:relative;margin-top:10px;padding:10px 14px;border-color:#1E8449;background:#F0FDF4"><span class="t" style="color:#1E8449">✓ Done.</span> <span class="s">The buyer's agent and the seller were told. Nothing for you to send.</span></div>
+            <div class="card rv" id="s3snooze" style="position:relative;margin-top:10px;padding:10px 14px;border-color:#B7860B;background:#FFFBEB"><span class="t" style="color:#92400E">⏰ Not today.</span> <span class="s">"Call Dana Whitfield" moved to tomorrow — it comes back on its own.</span></div>
+          </div>
+        </div>
+
+        <!-- ── SCENE 4 · offer in four answers ── -->
+        <div class="scene" id="s4">
+          <div class="hdr" style="height:60px"><div style="color:#fff;font-size:18px;opacity:.7">←</div><div><div style="color:#fff;font-weight:700;font-size:14px">12904 Sunstone Ave</div><div style="color:rgba(255,255,255,.8);font-size:11px">Orlando, FL 32827 · Orange County · Buyer Representation</div></div></div>
+          <div style="position:absolute;left:0;right:0;top:60px;background:#fff;border-bottom:1px solid #DDE2E8;display:flex;font-size:12px;font-weight:600;color:#6B7280"><span style="padding:11px 16px;">Overview</span><span style="padding:11px 16px;">📅 Timeline</span><span style="padding:11px 16px;color:#1A2B4A;font-weight:800;border-bottom:3px solid #1A2B4A">📝 Offers</span><span style="padding:11px 16px;">📎 Documents</span><span style="padding:11px 16px;">People (4)</span><span style="padding:11px 16px;">💬 Messages</span></div>
+          <div class="card" style="left:120px;top:126px;width:330px;padding:14px">
+            <div class="t">Write an offer</div><div class="s" style="margin:4px 0 10px">Express — four answers, standard Florida terms.</div>
+            <div class="btn" id="s4btn">⚡ New offer — Express</div>
+            <div style="margin-top:12px">
+              <div class="field" id="f1"><b>Price</b><span>—</span></div>
+              <div class="field" id="f2"><b>Deposit</b><span>—</span></div>
+              <div class="field" id="f3"><b>Financing</b><span>—</span></div>
+              <div class="field" id="f4"><b>Closing date</b><span>—</span></div>
+            </div>
+          </div>
+          <div class="card rv" id="s4doc" style="left:490px;top:126px;width:340px;padding:0;overflow:hidden;box-shadow:0 20px 50px rgba(0,0,0,.25)">
+            <div style="background:#0c4a6e;color:#fff;padding:10px 14px;font-size:11px;font-weight:800;letter-spacing:.05em">FAR/BAR "AS IS" RESIDENTIAL CONTRACT</div>
+            <div style="padding:12px 14px;font-size:11.5px;line-height:1.7;color:#374151"><b style="color:#111">12904 Sunstone Ave, Orlando FL 32827</b><br>Purchase price <b>$805,000</b> · Deposit <b>$25,000</b> within 3 days<br>Conventional · 30-yr fixed · Closing <b>Sep 30</b><br><span class="s">Riders attached: E · GG · AA · HOA</span></div>
+            <div style="padding:0 14px 12px"><span class="pill" style="background:#D5F5E3;color:#1E8449">✓ READY TO SIGN</span></div>
+          </div>
+        </div>
+
+        <!-- ── SCENE 5 · the client's own page ── -->
+        <div class="scene" id="s5">
+          <div style="position:absolute;inset:0;background:linear-gradient(135deg,#1A2B4A,#0F1A30)"></div>
+          <div class="phone"><div class="scr">
+            <div style="background:var(--navy);color:#fff;padding:14px 14px 10px"><div style="font-size:10px;opacity:.7">YOUR HOME PURCHASE</div><div style="font-weight:800;font-size:14px">12904 Sunstone Ave</div></div>
+            <div style="padding:12px 0 6px"><div class="track"><div class="ok"></div><div class="ok"></div><div class="ok"></div><div class="now"></div><div></div><div></div></div>
+            <div style="display:flex;justify-content:space-between;padding:6px 14px 0;font-size:10px;color:#6B7280"><span>Contract ✓</span><span>Inspection ✓</span><span style="color:var(--gold);font-weight:800">Appraisal</span><span>Closing Sep 30</span></div></div>
+            <div style="margin:10px 14px;padding:10px;border-radius:10px;background:#FEF3C7;border:1px solid #F5D77A"><div style="font-weight:800;font-size:11px;color:#92400E">WE NEED FROM YOU</div><div style="margin-top:3px">Upload your homeowner's insurance quote</div></div>
+            <div style="margin:10px 14px;padding:10px;border-radius:10px;background:#F0FDF4;border:1px solid #BBF7D0"><div style="font-weight:800;font-size:11px;color:#166534">WHAT HAPPENS NEXT</div><div style="margin-top:3px">The appraiser visits Thursday. You don't need to be there.</div></div>
+            <div style="margin:10px 14px;display:flex;gap:10px;align-items:center;padding:10px;border:1px solid #E5E7EB;border-radius:10px"><div style="width:34px;height:34px;border-radius:50%;background:#B7860B"></div><div><div style="font-weight:800">Maria Lopez, your agent</div><div style="color:#6B7280">(407) 555-0142 · Text me anytime</div></div></div>
+          </div></div>
+          <div class="rv" id="s5cap" style="position:absolute;left:660px;top:200px;width:240px;color:#fff;font-family:var(--cap);font-size:22px;line-height:1.3">Where the deal stands. What's needed. What's next.</div>
+        </div>
+
+        <!-- ── SCENE 6 · get it signed ── -->
+        <div class="scene" id="s6">
+          <div class="hdr" style="height:60px"><div style="color:#fff;font-size:18px;opacity:.7">←</div><div><div style="color:#fff;font-weight:700;font-size:14px">12904 Sunstone Ave</div><div style="color:rgba(255,255,255,.8);font-size:11px">Orlando, FL 32827 · Orange County · Buyer Representation</div></div></div>
+          <div style="position:absolute;left:0;right:0;top:60px;background:#fff;border-bottom:1px solid #DDE2E8;display:flex;font-size:12px;font-weight:600;color:#6B7280"><span style="padding:11px 16px;">Overview</span><span style="padding:11px 16px;">📅 Timeline</span><span style="padding:11px 16px;">📝 Offers</span><span style="padding:11px 16px;color:#1A2B4A;font-weight:800;border-bottom:3px solid #1A2B4A">📎 Documents</span><span style="padding:11px 16px;">People (4)</span><span style="padding:11px 16px;">💬 Messages</span></div>
+          <div class="card" style="left:120px;top:126px;width:720px;padding:0">
+            <div class="doc"><div class="ico"></div><div style="flex:1"><b>Executed Contract.pdf</b><div class="s">Signed · Sep 12</div></div><span class="pill" style="background:#D5F5E3;color:#1E8449">SIGNED</span></div>
+            <div class="doc" id="s6row"><div class="ico"></div><div style="flex:1"><b>Seller's Property Disclosure.pdf</b><div class="s">Needs the buyer's signature</div></div><div class="btn" style="background:#86198f" id="s6btn">✍️ Get signature</div></div>
+            <div class="doc"><div class="ico"></div><div style="flex:1"><b>Inspection Report.pdf</b><div class="s">Uploaded · Sep 20</div></div></div>
+            <div class="doc rv" id="s6signed"><div class="ico" style="background:#D5F5E3"></div><div style="flex:1"><b>✍️ Signed — Seller's Property Disclosure.pdf</b><div class="s">Signed by Priya Raman on her phone · certificate attached</div></div><span class="pill" style="background:#D5F5E3;color:#1E8449">SIGNED</span></div>
+          </div>
+          <div class="card rv" id="s6pick" style="left:300px;top:200px;width:360px;padding:16px;box-shadow:0 20px 50px rgba(0,0,0,.25)"><div class="t">Who signs?</div>
+            <div class="field on" style="margin-top:10px"><b>Priya Raman</b><span>Buyer · pre-filled</span></div>
+            <div class="btn" id="s6send" style="margin-top:6px">Send signing links →</div></div>
+        </div>
+
+        <!-- ── SCENE 7 · never lose a lead ── -->
+        <div class="scene" id="s7">
+          <div class="hdr"><div class="logo">T</div><div class="brand">TransactPro</div><div class="nav"><b class="">🏆 Win The Day</b><b class="">📋 My Deals</b><b class="red">➕ New Deal</b><b class="hot">📇 Contacts</b><b class="">🧰 Tools ▾</b></div></div>
+          <div class="card" id="s7list" style="left:120px;top:90px;width:720px;padding:0">
+            <div class="row" style="background:#F4F4F4;font-weight:800;border-radius:12px 12px 0 0">📇 Contacts</div>
+            <div class="row"><b style="min-width:150px">Dana Whitfield</b><span class="s">Past client · closed 2 years ago</span></div>
+            <div class="row"><b style="min-width:150px">Tom &amp; Ana Reyes</b><span class="s">Met at the open house · Sep 14</span></div>
+            <div class="row"><b style="min-width:150px">Marcus Bell</b><span class="s">Renter, lease ends in March</span></div>
+            <div class="row"><b style="min-width:150px">Luis Ortega</b><span class="s">Promised a follow-up call</span></div>
+          </div>
+          <div class="card rv" id="s7calls" style="left:120px;top:90px;width:720px;padding:0;box-shadow:0 20px 50px rgba(0,0,0,.25)">
+            <div class="row" style="background:#FADBD8;font-weight:800;border-radius:12px 12px 0 0">📞 Calls today · Tuesday</div>
+            <div class="row"><b style="min-width:150px">Luis Ortega</b><span class="s">You promised a follow-up on Friday</span></div>
+            <div class="row"><b style="min-width:150px">Dana Whitfield</b><span class="s">2-year home anniversary this week</span></div>
+            <div class="row"><b style="min-width:150px">Marcus Bell</b><span class="s">Lease ends in 6 months — time to talk buying</span></div>
+            <div class="row"><b style="min-width:150px">Tom &amp; Ana Reyes</b><span class="s">Met a week ago, no call yet</span></div>
+            <div class="row"><b style="min-width:150px">Kim Nakamura</b><span class="s">Closed 1 year ago — check-in</span></div>
+          </div>
+        </div>
+
+        <!-- ── SCENE 8 · money ── -->
+        <div class="scene" id="s8">
+          <div class="hdr"><div class="logo">T</div><div class="brand">TransactPro</div><div class="nav"><b class="">🏆 Win The Day</b><b class="">📋 My Deals</b><b class="red">➕ New Deal</b><b class="">📇 Contacts</b><b class="hot">🧰 Tools ▾</b></div></div>
+          <div style="position:absolute;left:0;right:0;top:52px;background:linear-gradient(135deg,#10b981,#059669);color:#fff;padding:14px 24px;font-weight:700;font-size:20px">💵 My Money</div>
+          <div class="btn" id="s8btn" style="position:absolute;left:24px;top:124px;background:#3b82f6">🏦 Upload a bank statement</div>
+          <div class="card rv" id="s8sort" style="left:24px;top:170px;width:400px;padding:0">
+            <div class="row"><span style="flex:1">SHELL #2231 · $48.10</span><span class="pill" style="background:#EEF2F7;color:#1A2B4A">Gas / Mileage</span></div>
+            <div class="row"><span style="flex:1">MFRMLS DUES · $185.00</span><span class="pill" style="background:#EEF2F7;color:#1A2B4A">MLS Fees</span></div>
+            <div class="row"><span style="flex:1">COSTCO · $63.40</span><span class="pill" style="background:#EEF2F7;color:#1A2B4A">Closing Gifts</span></div>
+            <div class="row"><span style="flex:1">COMMISSION — SUNSTONE · $12,075</span><span class="pill" style="background:#D5F5E3;color:#1E8449">Income</span></div>
+          </div>
+          <div class="card rv" id="s8n1" style="left:460px;top:170px;width:180px;padding:14px"><div class="s">💰 Money you made</div><div class="t" style="font-size:22px;color:#059669">$61,400</div></div>
+          <div class="card rv" id="s8n2" style="left:660px;top:170px;width:180px;padding:14px"><div class="s">💸 Money you spent</div><div class="t" style="font-size:22px;color:#dc2626">$18,930</div></div>
+          <div class="card rv" id="s8n3" style="left:460px;top:270px;width:380px;padding:14px;border-top:4px solid #059669"><div class="s">✅ Money you kept</div><div class="t" style="font-size:30px;color:#059669">$42,470</div><div class="s">out of every dollar, you keep about 69¢</div></div>
+        </div>
+
+        <!-- ── SCENE 9 · ask it anything ── -->
+        <div class="scene" id="s9">
+          <div class="hdr"><div class="logo">T</div><div class="brand">TransactPro</div><div class="nav"><b class="hot">🏆 Win The Day</b><b class="">📋 My Deals</b><b class="red">➕ New Deal</b><b class="">📇 Contacts</b><b class="">🧰 Tools ▾</b></div></div>
+          <div style="position:absolute;left:250px;top:74px;width:460px"><div class="t" style="font-size:20px">Good morning, Maria! ☀️</div><div class="s" style="font-size:13px">You have 3 tasks and 2 calls that need your attention.</div></div>
+          <div class="fab" id="s9fab">?</div>
+          <div class="assist rv" id="s9panel">
+            <div class="ah">Assistant <span style="font-weight:400;opacity:.7;font-size:11px">· type or talk</span></div>
+            <div class="bub ai">How can I help you today?</div>
+            <div class="bub me rv" id="s9q">what's due on Sandy Shore this week?</div>
+            <div class="bub ai rv" id="s9a">Two things: the appraisal is due Thursday, and Manuel still needs to sign the disclosure.<div class="btn" style="margin-top:8px;font-size:11px;padding:6px 10px;background:var(--navy)">Open 3112 Sandy Shore →</div></div>
+            <div style="padding:8px 12px 12px;display:flex;gap:8px"><div style="flex:1;border:1px solid #D1D5DB;border-radius:20px;padding:8px 12px;font-size:12px;color:#9CA3AF">Try "dial Maria" or "what's due today?"</div></div>
+          </div>
+        </div>
+
+        <!-- ── SCENE 10 · start your first deal ── -->
+        <div class="scene" id="s10">
+          <div class="hdr"><div class="logo">T</div><div class="brand">TransactPro</div><div class="nav"><b class="hot">🏆 Win The Day</b><b class="">📋 My Deals</b><b class="red">➕ New Deal</b><b class="">📇 Contacts</b><b class="">🧰 Tools ▾</b></div></div>
+          <div style="position:absolute;left:0;right:0;top:52px;text-align:center;padding-top:30px"><div style="font-size:40px">🏡</div><div class="t" style="font-size:20px;margin-top:6px">Let's get your first deal in</div><div class="s" style="font-size:13px;margin-top:4px">This screen fills itself once you have a deal.</div></div>
+          <div class="card" style="left:190px;top:190px;width:280px;padding:16px;border:2px solid var(--brick)"><div style="font-size:22px">📄</div><div class="t" style="margin-top:6px">Upload a signed contract</div><div class="s" style="margin-top:4px;line-height:1.45">Drop in a deal you're already working.</div><div class="btn" style="margin-top:12px" id="s10btn">Upload a contract →</div></div>
+          <div class="card" style="left:492px;top:190px;width:280px;padding:16px"><div style="font-size:22px">➕</div><div class="t" style="margin-top:6px">Start a deal from scratch</div><div class="s" style="margin-top:4px;line-height:1.45">Three quick steps.</div><div class="btn ghost" style="margin-top:12px">New deal →</div></div>
+          <div class="title rv" id="s10end"><div class="one" style="position:static;transform:none;width:120px;height:120px;font-size:64px;border-radius:18px">T</div><div class="big" style="margin-top:22px">That's TransactPro.</div><div class="small">transactagentpro.com</div></div>
+        </div>
+
+        
+        <!-- overlays shared by all scenes -->
+        <div class="ring" id="ring"></div>
+        <div class="clickfx" id="fx"></div>
+        <div class="cur" id="cur"><svg viewBox="0 0 24 24" width="22" height="22"><path d="M5 3l14 8-6 2-3 6z" fill="#fff" stroke="#111" stroke-width="1.6" stroke-linejoin="round"/></svg></div>
+      </div>
+      <div class="gate" id="gate"><div><button id="start">▶ Play with voice</button><small id="gatesmall">About two minutes</small></div></div>
+      <div class="endcard" id="endcard" hidden>
+        <div class="big" id="endbig">That's TransactPro.</div>
+        <div class="acts">
+          <button class="emb" id="endclose">Close</button>
+          <a class="site primary" id="endsite" href="https://transactagentpro.com">Start your first deal →</a>
+          <a class="site" id="endother" href="?cut=learn">Learn the app, chapter by chapter →</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="caption"><span class="n" id="capn">1</span><span class="txt" id="cap"></span></div>
+    <div class="ctrl">
+      <button id="play" aria-label="Pause">⏸ Pause</button>
+      <button id="replay">↻ Replay</button>
+      <button id="mute" aria-label="Mute narration">🔊 Voice on</button>
+      <div class="dots" id="dots"></div>
+      <span class="time" id="time">0:00</span>
+    </div>
+  </div>
+  <p class="below" id="below"></p>
+</div>
+
+<script>const LINES = {"m1a": "You're paying nine apps to do one job.", "m1b": "TransactPro is all of them, in one login — built by an agent, for the way we actually work.", "m2a": "Have a signed contract? Don't type it. Upload it — and watch the whole deal build itself.", "m2b": "Price, dates, deposits, everyone's contact info — read in under a minute. Every step to closing, already on the calendar.", "m3a": "Every morning, open Win The Day. It reads all your deals and puts what needs you at the top.", "m3b": "Tap it done, and the app tells everyone who needed to know. You never write that email.", "m4a": "Writing an offer? Answer four questions.", "m4b": "The app fills the official Florida contract, attaches the right riders, and has it ready to sign — no blank PDFs, no retyping the address for the sixth time.", "m5a": "Your buyers and sellers get their own private page — where the deal stands, what's needed from them, and what happens next.", "m5b": "That's most of the calls you take in a week, answered before they call.", "m6a": "Need a signature? Tap Get signature, pick who, send.", "m6b": "They sign on their phone, and the signed copy files itself back onto the deal. No DocuSign, no chasing.", "m7a": "Put the people you know in Contacts — name and phone is enough.", "m7b": "Each morning the app picks a few and puts them on your call list, with the reason to call. That list is where your next deal comes from.", "m8a": "Upload one bank statement and the app sorts every line for you.", "m8b": "Made, spent, and what you actually kept — every month, not just at tax time. And it's exactly what your tax preparer will ask for.", "m9a": "Stuck? Tap the question mark and ask — type it or say it.", "m9b": "It answers in plain English, and most of the time it can just do it for you.", "m10a": "Ten minutes is all it takes to see it. Upload a contract from a deal you're already working, and watch the timeline build itself.", "m10b": "That's TransactPro.", "w1_1a": "Every morning, start here. The app reads all your deals and puts what needs you at the top.", "w1_1b": "Tap it done and the right people are told. Not today? Push it — it comes back tomorrow.", "w1_2a": "Under your tasks is a short call list, picked for you each morning, with the reason to call.", "w1_2b": "Work it top to bottom. When the list is done, the day is won.", "w1_3a": "Every deal you're working, as cards.", "w1_3b": "Read All shows what's live; use the dropdown for on-hold or closed. Tap any card to open it.", "w1_4a": "Calendar shows every deadline from every deal on one page.", "w1_4b": "And if something's yours alone — pick up a lockbox, drop off a gift — add a task and it shows up on Win The Day like everything else.", "w2_1a": "Have a signed contract? Don't type it.", "w2_1b": "Upload it — the app reads the price, the dates, the deposits and everyone's contact info, and builds the whole timeline in under a minute.", "w2_2a": "No contract yet? New Deal is three questions: the address, your client, the price.", "w2_2b": "The timeline, the checklist and the client emails build themselves.", "w2_3a": "Text a new buyer or seller your intake link.", "w2_3b": "They answer a few questions on their phone, and a lead lands on your deals list — flagged so you call them within the day.", "w2_4a": "Going on a listing appointment? Price the home first, right here — no deal needed.", "w2_4b": "If you win it, one tap turns the CMA into the deal.", "w3_1a": "Every deal opens on its Overview, and the one line that matters is at the top: the next step.", "w3_1b": "You don't have to remember the timeline. The app does. Your job is just the next step.", "w3_2a": "The Timeline is every step from here to closing, with its date. Mark a step done when it's done.", "w3_2b": "Appointments ask for a date and time — and then remind everyone who needs to be there.", "w3_3a": "Every paper on the deal, in one place. Drag a file in and it files itself. The checklist at the top tells you what's still missing for a clean file.", "w3_3b": "Share sends a document to your client, in your name, and it appears in their portal.", "w3_4a": "Need a signature? Tap Get signature, pick who, send. They sign on their phone.", "w3_4b": "The signed copy files itself back here with a certificate — no DocuSign, and if they stall, the app chases them for you.", "w3_5a": "Everyone on the deal goes here — your client, the other agent, the lender, title, the inspector.", "w3_5b": "Add them once. Welcome emails go out in your name, and you see every one before it sends.", "w3_6a": "Your buyer or seller gets their own private page: where the deal stands, what's needed from them, what happens next, and you one tap away.", "w3_6b": "It's most of the calls you take in a week, answered before they call.", "w3_7a": "Message anyone on the deal from here — email, text, or both, in one send.", "w3_7b": "When they reply, it lands on the deal, and the app reads it and suggests the update. You just approve.", "w3_8a": "Under More: the net sheet — what your seller actually walks away with, or what your buyer needs to bring — plus notes only you see, your own reminders, and a log of everything that's happened on the deal.", "w4_1a": "Answer four questions — price, deposit, financing, closing — and the app fills the official Florida contract with the right riders.", "w4_1b": "Need to change a term? Every field is right there. Then send it for signature without leaving the page.", "w4_2a": "When an offer comes in, upload it. The app reads it and parks it as pending — nothing sends yet. Two offers?", "w4_2b": "Your seller compares them side by side in their portal. Approve the winner and the deal goes under contract with its timeline built.", "w4_3a": "Taking a listing?", "w4_3b": "The listing package fills the official forms from what the deal already knows — brokerage, commission, term, your license — and drops them into Documents ready to sign.", "w4_4a": "Dates changed in an addendum? Tap Read dates on any document.", "w4_4b": "The app finds the new dates, shows you what moved, and updates the timeline when you say so.", "w4_5a": "Deals fall apart. Choose Contract fell through and the app archives everything for your file, clears the other side, and puts the listing back on the market with a fresh timeline.", "w4_5b": "Backup offers are right there.", "w4_6a": "If your buyer waives the inspection, one tap makes the release — it records that you recommended one and they declined — and sends it for signature.", "w4_6b": "That protects you.", "w5_1a": "Put the people you know in Contacts — name and phone is enough, or import your spreadsheet.", "w5_1b": "Each morning the app picks a few and puts them on your call list with the reason to call. That list is where your next deal comes from.", "w5_2a": "The app watches for the signs someone's about to move — how long they've owned, what they've opened, what they've asked — and tells you who to call before they call another agent.", "w5_3a": "A pop-by is a small gift on a past client's doorstep — the reason they call you, not the billboard, when their sister wants to sell.", "w5_3b": "Pick three people; the app picks the gift, writes the card, and plans the drive.", "w5_4a": "Scripts give you the words for the hard conversations. Vendors lets you hand a client your trusted plumber in one tap.", "w5_4b": "And when a lead turns into a closed deal, the app asks you to confirm the win — so your numbers stay honest.", "w6_1a": "Upload one bank statement and the app sorts every line for you.", "w6_1b": "Made, spent, and what you actually kept — every month, not just at tax time. Closed deals add their commission on their own.", "w6_2a": "When your tax preparer asks, flip to the accountant view: a printable profit and loss, a budget against actuals, and your 1099s — all from the same numbers you already entered.", "w6_3a": "Type what you want to earn this year. The app works backwards to how many people you need to talk to each day.", "w6_3b": "\"I want a hundred and twenty thousand\" isn't a plan. \"Six conversations a day\" is — and you can do that today.", "w6_4a": "Reports show where people drop off between \"talked to\" and \"closed\".", "w6_4b": "If forty calls became one contract, the problem's the call, not the market — and now you can see it.", "w7_1a": "Every deadline reminds the right people a week out, three days, one day, and on the day — in your name, with a button they can tap to mark it done without logging in.", "w7_1b": "You didn't write any of it.", "w7_2a": "Before you're up, an email tells you where every deal stands.", "w7_2b": "And each night the Deal Doctor looks at every deal for the one thing most likely to go wrong — and writes the email that fixes it. You just press send.", "w7_3a": "Someone not responding? The app keeps nudging until you tell it to stop. Unsigned documents get chased daily.", "w7_3b": "And a listing agreement about to expire shows up two weeks early — not the day after.", "w7_4a": "Replies to anything the app sends file themselves to the deal.", "w7_4b": "Turn on the two-minute forwarding and emails sent straight to your inbox do too. Anything it can't place waits on Win The Day for one tap.", "w8_1a": "Stuck? Tap the question mark and ask — type it or say it.", "w8_1b": "It answers in plain English from your own deals, and most of the time it can just do it: dial someone, open a deal, add a reminder, or walk you through the steps.", "w9_1a": "Set up your profile once — photo, signature, phone — and it's on every email and every form you send.", "w9_1b": "Your brokerage's name and logo go on everything your clients see.", "w9_2a": "Invite your team in a minute.", "w9_2b": "And if you use a transaction coordinator, hand them the deal — they get their own view of exactly that deal, and nothing else.", "w9_3a": "Every Florida form and rider, already carrying your brokerage and license.", "w9_3b": "And for brokers, one page shows every deal's file and exactly what's still missing before it's clean.", "w9_4a": "Every page starts with a blue box: what it's for, what to do first, and why. Show me how opens the step-by-step.", "w9_4b": "And if something's wrong, Send Feedback goes straight to us — we read every one.", "w9_5a": "Ten minutes is all it takes to see it.", "w9_5b": "Upload a contract from a deal you're already working, and watch the timeline build itself. That's TransactPro."};</script>
+
+<script>
+(() => {
+  const $ = s => document.querySelector(s);
+  const stage = $('#stage'), box = $('#box'), cur = $('#cur'), ring = $('#ring'), fx = $('#fx');
+  const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const Q = new URLSearchParams(location.search);
+  const CUT = Q.get('cut') === 'learn' ? 'learn' : 'marketing';
+  const EMBED = Q.get('embed') === '1';
+  if (EMBED) document.documentElement.classList.add('embed');
+  if (CUT === 'learn') {
+    $('#kick').textContent = 'TransactPro · learn the app · 40 scenes · 9 chapters';
+    $('#h1').textContent = 'Learn TransactPro, chapter by chapter';
+    $('#sub').textContent = 'Every screen and every feature, in the order you\'ll meet them. Tap a chapter to jump straight to it.';
+    $('#endbig').textContent = 'That\'s every screen in the app.';
+    $('#endsite').textContent = 'Open TransactPro →'; $('#endsite').href = 'https://transactagentpro.com';
+    $('#endother').textContent = 'Play the 2-minute tour →'; $('#endother').href = '?cut=marketing';
+    $('#below').innerHTML = 'Just want the short version? <a href="?cut=marketing">Play the 2-minute tour →</a>';
+    document.title = 'TransactPro — learn the app';
+  } else {
+    $('#below').innerHTML = 'Want every screen and feature? <a href="?cut=learn">Learn the app, chapter by chapter →</a> (about 8 minutes)';
+  }
+
+  // Fit the fixed 960×540 stage to whatever width the player has.
+  const fit = () => { stage.style.transform = `scale(${box.clientWidth / 960})`; };
+  fit(); addEventListener('resize', fit);
+
+  // Position helpers work in stage coordinates (960×540).
+  const moveTo = (el, dx = 0, dy = 0) => {
+    if (!el) return;
+    const r = el.getBoundingClientRect(), s = stage.getBoundingClientRect(), k = box.clientWidth / 960;
+    const x = (r.left - s.left) / k + r.width / k / 2 + dx, y = (r.top - s.top) / k + r.height / k / 2 + dy;
+    cur.style.left = x + 'px'; cur.style.top = y + 'px';
+    return { x, y, w: r.width / k, h: r.height / k, left: (r.left - s.left) / k, top: (r.top - s.top) / k };
+  };
+  const ringOn = (el, pad = 6) => {
+    if (!el) return;
+    const p = moveTo(el);
+    Object.assign(ring.style, { left: (p.left - pad) + 'px', top: (p.top - pad) + 'px', width: (p.w + pad * 2) + 'px', height: (p.h + pad * 2) + 'px' });
+    ring.classList.add('on');
+  };
+  const ringOff = () => ring.classList.remove('on');
+  const click = () => {
+    fx.style.left = cur.style.left; fx.style.top = cur.style.top;
+    fx.classList.remove('go'); void fx.offsetWidth; fx.classList.add('go');
+  };
+  const show = sel => { const e = $(sel); if (e) e.classList.add('in'); };
+  const fill = (sel, val) => { const f = $(sel); f.classList.add('on'); f.querySelector('span').textContent = val; };
+
+  // ── narration: one pre-rendered MP3 per line (Kristen — Friendly & Casual,
+  // rendered once on the server side). Same voice for everyone, everywhere.
+  const AUDIO = '/tour/audio/';
+  const ID_OF = {}; Object.entries(LINES).forEach(([id, txt]) => { ID_OF[txt.trim()] = id; });
+  let voiceOn = true, talking = 0, current = null, gen = 0;   // gen: bumps on every scene change so a stale clip can't steer the caption
+  const estimate = txt => 900 + (txt || '').length * 58;   // used when the voice is off
+  const say = (text, onEnd) => {
+    const id = ID_OF[(text || '').trim()], myGen = gen;
+    if (!voiceOn || !id) { if (onEnd) timers.push(setTimeout(onEnd, voiceOn ? 800 : estimate(text))); return; }
+    const a = new Audio(AUDIO + id + '.mp3');
+    talking++;
+    let done = false;
+    const fin = () => { if (done) return; done = true; if (myGen === gen) { talking = Math.max(0, talking - 1); if (current === a) current = null; if (onEnd && !paused) onEnd(); } };
+    a.onended = fin; a.onerror = fin;
+    setTimeout(fin, 30000);                    // backstop: a clip can never hold the tour hostage
+    const start = () => { current = a; a.play().catch(fin); };
+    // Don't talk over the previous line — wait for it, then start.
+    if (current && !current.ended) { current.addEventListener('ended', start, { once: true }); } else start();
+  };
+  const preload = ids => ids.forEach(id => { const a = new Audio(); a.preload = 'auto'; a.src = AUDIO + id + '.mp3'; });
+  const cap = $('#cap'), capn = $('#capn'), dots = $('#dots'), time = $('#time'), playBtn = $('#play');
+  const setCap = (s, onEnd) => { cap.textContent = s; say(s, onEnd); };
+  const setCapSilent = s => { cap.textContent = s; };
+
+  // ═══ CUT 1 — the marketing tour (10 hand-built scenes) ═══════════════════
+  const MARKETING = [
+    { id: 's1', dur: 8500, cap: LINES.m1a,
+      steps: [ { t: 2800, run: () => setCap(LINES.m1b) }, { t: 3200, run: () => $('#apps').classList.add('gone') }, { t: 3600, run: () => show('#one') } ] },
+    { id: 's2', dur: 13000, cap: LINES.m2a,
+      steps: [ { t: 800, run: () => ringOn($('#s2btn')) }, { t: 1200, run: () => moveTo($('#s2btn')) }, { t: 2100, run: () => click() },
+               { t: 2500, run: () => { ringOff(); show('#s2res'); } }, { t: 3000, run: () => { $('#s2bar').style.width = '100%'; } },
+               { t: 5600, run: () => setCap(LINES.m2b) } ] },
+    { id: 's3', dur: 11500, cap: LINES.m3a,
+      steps: [ { t: 600, run: () => ringOn($('#s3nav')) }, { t: 3600, run: () => { ringOff(); moveTo($('#c1')); } },
+               { t: 4400, run: () => { click(); $('#c1').classList.add('on'); } },
+               { t: 4900, run: () => { show('#s3done'); setCap(LINES.m3b); } } ] },
+    { id: 's4', dur: 13000, cap: LINES.m4a,
+      steps: [ { t: 500, run: () => ringOn($('#s4btn')) }, { t: 900, run: () => moveTo($('#s4btn')) }, { t: 1700, run: () => { click(); ringOff(); } },
+               { t: 2300, run: () => fill('#f1','$805,000') }, { t: 3100, run: () => fill('#f2','$25,000') }, { t: 3900, run: () => fill('#f3','Conventional, 30-yr') }, { t: 4700, run: () => fill('#f4','Sep 30') },
+               { t: 5400, run: () => { show('#s4doc'); setCap(LINES.m4b); } } ] },
+    { id: 's5', dur: 12000, cap: LINES.m5a,
+      steps: [ { t: 1500, run: () => show('#s5cap') }, { t: 6200, run: () => setCap(LINES.m5b) } ] },
+    { id: 's6', dur: 11500, cap: LINES.m6a,
+      steps: [ { t: 500, run: () => ringOn($('#s6btn')) }, { t: 900, run: () => moveTo($('#s6btn')) }, { t: 1700, run: () => { click(); ringOff(); show('#s6pick'); } },
+               { t: 2600, run: () => moveTo($('#s6send')) }, { t: 3300, run: () => { click(); $('#s6pick').classList.remove('in'); } },
+               { t: 3900, run: () => { show('#s6signed'); setCap(LINES.m6b); } } ] },
+    { id: 's7', dur: 12500, cap: LINES.m7a,
+      steps: [ { t: 4200, run: () => { show('#s7calls'); setCap(LINES.m7b); } } ] },
+    { id: 's8', dur: 12500, cap: LINES.m8a,
+      steps: [ { t: 500, run: () => ringOn($('#s8btn')) }, { t: 900, run: () => moveTo($('#s8btn')) }, { t: 1700, run: () => { click(); ringOff(); show('#s8sort'); } },
+               { t: 3600, run: () => { show('#s8n1'); show('#s8n2'); } }, { t: 4300, run: () => { show('#s8n3'); setCap(LINES.m8b); } } ] },
+    { id: 's9', dur: 11500, cap: LINES.m9a,
+      steps: [ { t: 500, run: () => ringOn($('#s9fab'), 8) }, { t: 1000, run: () => moveTo($('#s9fab')) }, { t: 1800, run: () => { click(); ringOff(); $('#s9fab').style.opacity = 0; show('#s9panel'); } },
+               { t: 2800, run: () => show('#s9q') }, { t: 4200, run: () => { show('#s9a'); setCap(LINES.m9b); } } ] },
+    { id: 's10', dur: 11000, cap: LINES.m10a,
+      steps: [ { t: 800, run: () => ringOn($('#s10btn')) }, { t: 1200, run: () => moveTo($('#s10btn')) },
+               { t: 6800, run: () => { ringOff(); show('#s10end'); setCap(LINES.m10b); } } ] },
+  ];
+
+  // ═══ CUT 2 — learn the app, chapter by chapter (40 scenes) ══════════════
+  // Most walkthrough screens are built from a small spec so every feature gets
+  // a real-looking screen with motion: a header (or a deal's tab strip), a
+  // card of rows that reveal in order, and the pointer ring on the row to tap.
+  const NAV = [['home','🏆 Win The Day'],['deals','📋 My Deals'],['new','➕ New Deal'],['contacts','📇 Contacts'],['tools','🧰 Tools ▾'],['menu','⚙️ Menu']];
+  const TABS = ['Overview','📅 Timeline','📝 Offers','📎 Documents','People (5)','💬 Messages','More ▾'];
+  const PC = { red:'background:#FADBD8;color:#B03A2E', green:'background:#D5F5E3;color:#1E8449', gold:'background:#FEF3C7;color:#92400E', navy:'background:#EEF2F7;color:#1A2B4A', blue:'background:#DBEAFE;color:#1E40AF' };
+  const BC = { red:'', green:'background:var(--green)', ghost:'background:#fff;color:#111;border:1px solid #D1D5DB', navy:'background:var(--navy)', purple:'background:#86198f', blue:'background:#3b82f6' };
+  const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;');
+  let gid = 0;
+  const rowHtml = (r, sid) => {
+    if (r.h) return `<div class="row" style="background:${r.hc || '#F4F4F4'};font-weight:800;border-radius:12px 12px 0 0">${esc(r.h)}</div>`;
+    const id = r.id ? ` id="${sid}${r.id}"` : '';
+    const cls = 'row' + (r.rv ? ' rv' : '');
+    const chk = r.chk != null ? `<span class="chk${r.chk ? ' on' : ''}"${r.tick ? ` id="${sid}tick"` : ''}></span>` : '';
+    const pill = r.pill ? `<span class="pill" style="${PC[r.pc || 'navy']}">${esc(r.pill)}</span>` : '';
+    const btn = r.btn ? `<span class="btn" style="margin-left:auto;font-size:11px;padding:6px 10px;${BC[r.bc || 'red']}"${r.ring ? ` id="${sid}ring"` : ''}>${esc(r.btn)}</span>` : '';
+    const main = `<div style="flex:1;min-width:0"><b style="font-size:12.5px">${esc(r.t || '')}</b>${r.s ? `<div class="s">${esc(r.s)}</div>` : ''}</div>`;
+    return `<div class="${cls}"${id}${r.ring && !r.btn ? ` data-ring="1"` : ''}>${chk}${pill}${main}${btn}</div>`;
+  };
+  const cardHtml = (rows, sid, style) => `<div class="card" style="padding:0;${style}">${rows.map(r => rowHtml(r, sid)).join('')}</div>`;
+  const phoneHtml = (p, sid) => `<div style="position:absolute;right:56px;top:36px;width:236px;height:470px;border-radius:30px;background:#111;padding:10px;box-shadow:0 30px 60px rgba(0,0,0,.35)"><div style="background:#fff;border-radius:22px;height:100%;overflow:hidden;font-size:11.5px">
+      <div style="background:var(--navy);color:#fff;padding:12px 12px 9px"><div style="font-size:9.5px;opacity:.7">${esc(p.k || '')}</div><div style="font-weight:800;font-size:13px">${esc(p.t || '')}</div></div>
+      ${(p.items || []).map((it, i) => `<div class="rv" id="${sid}p${i}" style="margin:9px 12px;padding:9px;border-radius:9px;background:${it.bg || '#F8F9FA'};border:1px solid ${it.bd || '#E5E7EB'}"><div style="font-weight:800;font-size:10px;color:${it.c || '#374151'}">${esc(it.k)}</div><div style="margin-top:2px;line-height:1.35">${esc(it.t)}</div></div>`).join('')}
+    </div></div>`;
+  // build one generic scene element from its spec; returns the element id
+  const build = spec => {
+    const sid = 'g' + (++gid);
+    const el = document.createElement('div'); el.className = 'scene'; el.id = sid;
+    let html = '';
+    if (spec.deal) {
+      html += `<div class="hdr" style="height:60px"><div style="color:#fff;font-size:18px;opacity:.7">←</div><div><div style="color:#fff;font-weight:700;font-size:14px">${esc(spec.addr || '12904 Sunstone Ave')}</div><div style="color:rgba(255,255,255,.8);font-size:11px">${esc(spec.sub || 'Orlando, FL 32827 · Orange County · Buyer Representation')}</div></div>${spec.status ? `<span class="pill" style="margin-left:auto;${PC[spec.statusc || 'green']}">${esc(spec.status)}</span>` : ''}</div>
+        <div style="position:absolute;left:0;right:0;top:60px;background:#fff;border-bottom:1px solid #DDE2E8;display:flex;font-size:12px;font-weight:600;color:#6B7280">${TABS.map(t => `<span style="padding:11px 14px;${t.replace(/^\S+ /, '') === spec.deal || t === spec.deal ? 'color:#1A2B4A;font-weight:800;border-bottom:3px solid #1A2B4A' : ''}">${t}</span>`).join('')}</div>`;
+    } else {
+      html += `<div class="hdr"><div class="logo">T</div><div class="brand">TransactPro</div><div class="nav">${NAV.map(([k, l]) => `<b class="${k === spec.nav ? 'hot' : k === 'new' ? 'red' : ''}"${k === spec.nav ? ` id="${sid}nav"` : ''}>${l}</b>`).join('')}</div></div>`;
+    }
+    const top = spec.deal ? 100 : 52;
+    if (spec.title) html += `<div style="position:absolute;left:0;right:0;top:${top}px;padding:12px 24px;background:${spec.tbg || '#fff'};border-bottom:1px solid #E5E7EB;font-weight:800;font-size:16px;color:${spec.tc || '#111'}">${esc(spec.title)}</div>`;
+    const cardTop = top + (spec.title ? 62 : 22);
+    const wide = !spec.side && !spec.phone;
+    if (spec.rows) html += cardHtml(spec.rows, sid, `left:${wide ? 120 : 40}px;top:${cardTop}px;width:${wide ? 720 : 420}px`);
+    if (spec.side) html += cardHtml(spec.side, sid + 's', `left:490px;top:${cardTop + (spec.sideDy || 0)}px;width:430px;${spec.sideRv ? '' : ''}`);
+    if (spec.phone) html += phoneHtml(spec.phone, sid);
+    if (spec.guide) html += `<div class="guide rv" id="${sid}guide" style="left:120px;top:${cardTop}px;width:720px"><b>💡 First time here?</b>${spec.guide}</div>`;
+    if (spec.big) html += `<div class="card rv" id="${sid}big" style="left:120px;top:${cardTop + (spec.bigDy || 0)}px;width:720px;padding:18px 20px;border-top:4px solid ${spec.bigc || 'var(--green)'};box-shadow:0 20px 50px rgba(0,0,0,.2)"><div class="t" style="font-size:16px">${esc(spec.big.t)}</div><div class="s" style="margin-top:4px;line-height:1.5">${esc(spec.big.s)}</div></div>`;
+    el.innerHTML = html; stage.insertBefore(el, ring);
+    if (spec.side && spec.sideRv) el.querySelectorAll('.card')[1].classList.add('rv');
+    return sid;
+  };
+  // Turn a spec into a scene entry: caption A, then B when A finishes; rows
+  // marked rv reveal one by one; ring + click on the marked row; ticks tick.
+  const learnScene = (n, spec) => {
+    const sid = build(spec);
+    const [a, b] = spec.clips.map(id => LINES[id]);
+    const steps = [];
+    let t = 700;
+    const ringEl = () => $('#' + sid + 'ring') || $('#' + sid + ' [data-ring]') || $('#' + sid + 'nav');
+    if (spec.nav || spec.rows || spec.side) { steps.push({ t, run: () => ringOn(ringEl()) }); t += 1500; steps.push({ t, run: () => { const e = ringEl(); moveTo(e); } }); t += 800; steps.push({ t, run: () => { click(); ringOff(); const k = $('#' + sid + 'tick'); if (k) k.classList.add('on'); } }); t += 500; }
+    const rvs = () => [...document.querySelectorAll('#' + sid + ' .rv')];
+    const count = (spec.rows || []).filter(r => r.rv).length + (spec.side ? (spec.sideRv ? 1 : spec.side.filter(r => r.rv).length) : 0) + (spec.phone ? (spec.phone.items || []).length : 0) + (spec.guide ? 1 : 0) + (spec.big ? 1 : 0);
+    for (let i = 0; i < count; i++) { const k = i; steps.push({ t, run: () => { const e = rvs()[k]; if (e) e.classList.add('in'); } }); t += 850; }
+    const dur = Math.max(t + 1200, 6000);
+    return { id: sid, dur, cap: a, capB: b, steps, n, title: spec.t0 };
+  };
+  const w = (n, ...clips) => clips;   // readability only
+  const CH = [];                       // [{title, sub, from}]
+  const LEARN = [];
+  const chapter = (title, sub) => CH.push({ title, sub, from: LEARN.length });
+  const add = sc => { LEARN.push(sc); return sc; };
+  const reuse = (n, id, clips, steps, dur, title) => add({ id, dur, cap: LINES[clips[0]], capB: LINES[clips[1]], steps, n, title, reuse: true });
+  const L = (n, title, spec) => add(learnScene(n, { ...spec, t0: title }));
+
+  chapter('Your day', 'The four buttons you\'ll use every morning.');
+  reuse('1.1', 's3', ['w1_1a', 'w1_1b'], [ { t: 600, run: () => ringOn($('#s3nav')) }, { t: 3200, run: () => { ringOff(); moveTo($('#c1')); } }, { t: 4000, run: () => { click(); $('#c1').classList.add('on'); } }, { t: 4500, run: () => show('#s3done') }, { t: 7200, run: () => show('#s3snooze') } ], 9500, 'Win The Day');
+  L('1.2', 'Calls today', { nav: 'home', clips: ['w1_2a', 'w1_2b'], rows: [ { h: '📞 Calls today · Tuesday', hc: '#FADBD8' }, { t: 'Luis Ortega', s: 'You promised a follow-up on Friday', btn: '📞 Call', ring: 1 }, { t: 'Dana Whitfield', s: '2-year home anniversary this week', btn: '📞 Call' }, { t: 'Marcus Bell', s: 'Lease ends in 6 months — time to talk buying', btn: '📞 Call' }, { t: 'Tom & Ana Reyes', s: 'Met a week ago, no call yet', btn: '📞 Call' }, { t: '✓ Luis Ortega — called, note saved', s: '"Wants to see the Lake Nona listing Saturday"', rv: 1, pill: 'DONE', pc: 'green' } ] });
+  L('1.3', 'My Deals', { nav: 'deals', clips: ['w1_3a', 'w1_3b'], rows: [ { h: '📋 My Deals · Read All ▾  ·  cards | list' }, { t: '1420 Lake Nona Blvd', s: 'Buyer · closing Oct 14 · 62% done', pill: 'UNDER CONTRACT', pc: 'green', ring: 1 }, { t: '3112 Sandy Shore Ln', s: 'Listing · 2 offers pending', pill: 'ACTIVE', pc: 'gold' }, { t: '12904 Sunstone Ave', s: 'Buyer · inspection Thursday', pill: 'UNDER CONTRACT', pc: 'green' }, { t: '88 Palm Court', s: 'Listing · appraisal ordered', pill: 'UNDER CONTRACT', pc: 'green' }, { t: '📂 On Hold and Closed deals live in the dropdown', s: 'Read All only shows what\'s live', rv: 1 } ] });
+  L('1.4', 'Calendar & a quick task', { nav: 'tools', clips: ['w1_4a', 'w1_4b'], title: '📆 Calendar · September', rows: [ { t: 'Mon 22 · Inspection period ends', s: '1420 Lake Nona Blvd', pill: 'DEADLINE', pc: 'red' }, { t: 'Thu 25 · Appraisal visit 10:00', s: '12904 Sunstone Ave', pill: 'APPT', pc: 'blue' }, { t: 'Fri 26 · Financing deadline', s: '88 Palm Court', pill: 'DEADLINE', pc: 'red' }, { t: 'Tue 14 Oct · Closing 2:00', s: '1420 Lake Nona Blvd', pill: 'CLOSING', pc: 'green' } ], side: [ { h: '➕ Add a Task' }, { t: 'Pick up lockbox at Sunstone', s: 'Just for me · Thursday', ring: 1, btn: 'Save', bc: 'green' }, { t: '✓ Added — it\'s on Win The Day tomorrow', rv: 1, pill: 'SAVED', pc: 'green' } ] });
+
+  chapter('Starting a deal', 'Four ways in. The fastest is an upload.');
+  reuse('2.1', 's2', ['w2_1a', 'w2_1b'], [ { t: 800, run: () => ringOn($('#s2btn')) }, { t: 1200, run: () => moveTo($('#s2btn')) }, { t: 2100, run: () => click() }, { t: 2500, run: () => { ringOff(); show('#s2res'); } }, { t: 3000, run: () => { $('#s2bar').style.width = '100%'; } } ], 9000, 'Upload a contract');
+  L('2.2', 'New deal from scratch', { nav: 'new', clips: ['w2_2a', 'w2_2b'], title: '➕ New Deal — three quick steps', rows: [ { t: '1 · Address', s: '3112 Sandy Shore Ln, Orlando FL 32827', pill: '✓', pc: 'green' }, { t: '2 · Your client', s: 'Manuel Escolastico · from Contacts', pill: '✓', pc: 'green' }, { t: '3 · Price', s: '$540,000 · Listing', pill: '✓', pc: 'green' }, { t: 'Save & build the timeline', btn: 'Save →', ring: 1 }, { t: '✓ Deal created', s: '21 steps · checklist ready · client welcome email waiting for your OK', rv: 1, pill: 'BUILT', pc: 'green' } ] });
+  L('2.3', 'Intake links for new buyers and sellers', { nav: 'tools', clips: ['w2_3a', 'w2_3b'], rows: [ { h: '🔗 Buyer & Seller intake links' }, { t: 'Buyer intake link', s: 'transactagentpro.com/intake/buyer/maria', btn: 'Copy', bc: 'ghost', ring: 1 }, { t: 'Seller intake link', s: 'transactagentpro.com/intake/seller/maria', btn: 'Copy', bc: 'ghost' }, { t: '🌱 New lead — Tom & Ana Reyes', s: 'Buyer · pre-approved $450k · needs first contact today', rv: 1, pill: 'LEAD', pc: 'gold' } ], phone: { k: 'MARIA LOPEZ · BUYER INTAKE', t: 'Tell me about your move', items: [ { k: 'WHERE', t: 'Lake Nona or Hunter\'s Creek' }, { k: 'BUDGET', t: 'Up to $450,000 · pre-approved' }, { k: 'WHEN', t: 'Next 3 months' }, { k: 'SENT ✓', t: 'Maria will call you today.', bg: '#F0FDF4', bd: '#BBF7D0', c: '#166534' } ] } });
+  L('2.4', 'Price a home before there\'s a deal', { nav: 'tools', clips: ['w2_4a', 'w2_4b'], title: '📊 Price a Home (CMA)', rows: [ { t: 'Subject · 88 Palm Court', s: '4 bd · 3 ba · 2,410 sf · pool', pill: 'SUBJECT', pc: 'navy' }, { t: 'Comp · 91 Palm Court', s: 'Sold $612,000 · 0.1 mi · 34 days ago', pill: 'COMP', pc: 'blue' }, { t: 'Comp · 14 Cypress Way', s: 'Sold $598,500 · 0.4 mi · 61 days ago', pill: 'COMP', pc: 'blue' }, { t: 'Comp · 7 Marsh Bend', s: 'Sold $625,000 · 0.6 mi · 18 days ago', pill: 'COMP', pc: 'blue' }, { t: 'Suggested range $604,000 – $618,000', s: 'Seller report ready to print', rv: 1, pill: 'VALUE', pc: 'green' }, { t: 'Won the listing?', btn: 'Create Transaction →', bc: 'green', ring: 1 } ] });
+
+  chapter('Inside a deal', 'Five tabs you live in. Everything else is under More.');
+  L('3.1', 'Overview and the Next step', { deal: 'Overview', addr: '1420 Lake Nona Blvd', sub: 'Orlando, FL 32827 · Buyer Representation', status: 'UNDER CONTRACT', clips: ['w3_1a', 'w3_1b'], rows: [ { h: '👉 NEXT STEP · Inspection period ends tomorrow — confirm the buyer\'s decision', hc: '#FEF3C7' }, { t: 'Price $478,000', s: 'Effective Sep 12 · Closing Oct 14 · 62% done', ring: 1 }, { t: 'Notes', s: 'Buyer wants the fridge included — ask the listing agent', pill: 'NOTES', pc: 'navy' }, { t: '🩺 Deal Doctor · last checked 5:00 AM', s: 'Biggest risk: appraisal not yet ordered · 9 days to the financing deadline', rv: 1, pill: 'WATCH', pc: 'gold' } ] });
+  L('3.2', 'Timeline — mark it done, or schedule it', { deal: 'Timeline', addr: '1420 Lake Nona Blvd', sub: 'Orlando, FL 32827 · Buyer Representation', clips: ['w3_2a', 'w3_2b'], rows: [ { chk: 1, t: 'Contract executed', s: 'Sep 12' }, { chk: 1, t: 'Deposit delivered', s: 'Sep 15' }, { chk: 0, tick: 1, t: 'Inspection scheduled', s: 'Thu Sep 18 · 10:00 AM · reminders go to buyer + inspector', ring: 1 }, { chk: 0, t: 'Inspection period ends', s: 'Sep 22' }, { chk: 0, t: 'Appraisal ordered', s: 'Sep 24' }, { chk: 0, t: 'Financing deadline', s: 'Oct 3' }, { t: '✓ Scheduled — the buyer and the inspector were told', rv: 1, pill: 'DONE', pc: 'green' } ] });
+  L('3.3', 'Documents — upload, folders, share', { deal: 'Documents', addr: '1420 Lake Nona Blvd', sub: 'Orlando, FL 32827 · Buyer Representation', clips: ['w3_3a', 'w3_3b'], rows: [ { h: '📋 Required for a clean file · 5 of 6 on file', hc: '#F0FDF4' }, { chk: 1, t: 'Executed contract', s: 'Contract folder · Sep 12' }, { chk: 1, t: 'Deposit receipt', s: 'Money folder · Sep 15' }, { chk: 0, t: 'Seller\'s property disclosure', s: 'Missing', pill: 'MISSING', pc: 'gold' }, { chk: 1, t: 'Inspection report', s: 'Inspection folder · just now — filed itself', rv: 1, btn: '📤 Share', bc: 'navy', ring: 1 }, { t: '✓ Shared with Priya Raman', s: 'Sent in your name · now in her portal', rv: 1, pill: 'SENT', pc: 'green' } ] });
+  reuse('3.4', 's6', ['w3_4a', 'w3_4b'], [ { t: 500, run: () => ringOn($('#s6btn')) }, { t: 900, run: () => moveTo($('#s6btn')) }, { t: 1700, run: () => { click(); ringOff(); show('#s6pick'); } }, { t: 2600, run: () => moveTo($('#s6send')) }, { t: 3300, run: () => { click(); $('#s6pick').classList.remove('in'); } }, { t: 3900, run: () => show('#s6signed') } ], 9000, 'Get it signed');
+  L('3.5', 'People — add a party, send welcomes', { deal: 'People (5)', addr: '1420 Lake Nona Blvd', sub: 'Orlando, FL 32827 · Buyer Representation', clips: ['w3_5a', 'w3_5b'], rows: [ { t: 'Priya Raman', s: 'Buyer · your client · portal on', pill: 'BUYER', pc: 'green' }, { t: 'Jordan Wells', s: 'Listing agent · Sunbelt Realty', pill: 'AGENT', pc: 'navy' }, { t: 'First Coast Title', s: 'Title company', pill: 'TITLE', pc: 'navy' }, { t: 'Sam Ortiz', s: 'Lender · Lake Mortgage', pill: 'LENDER', pc: 'navy' } ], side: [ { h: '➕ Add Party' }, { t: 'Role', s: 'Inspector ▾  (Seller · Buyer · Lender · Title · Landlord · Tenant…)' }, { t: 'Name · Email · Phone', s: 'Ray Delgado · ray@… · (407) 555-0198' }, { t: 'Save', btn: 'Add →', ring: 1 }, { t: '✉️ Preview & send welcome emails', s: 'You see every one before it sends', rv: 1, btn: 'Approve & send', bc: 'green' } ] });
+  reuse('3.6', 's5', ['w3_6a', 'w3_6b'], [ { t: 1500, run: () => show('#s5cap') } ], 8000, 'Your client\'s portal');
+  L('3.7', 'Messages — one send, every channel', { deal: 'Messages', addr: '1420 Lake Nona Blvd', sub: 'Orlando, FL 32827 · Buyer Representation', clips: ['w3_7a', 'w3_7b'], rows: [ { h: '💬 Messages · Direct | Group ●', hc: '#EEF2F7' }, { chk: 1, t: 'Priya Raman (buyer)', s: 'email + text' }, { chk: 1, t: 'Jordan Wells (listing agent)', s: 'email' }, { chk: 1, t: 'First Coast Title', s: 'email' }, { t: '"Inspection is Thursday at 10 — I\'ll send the report same day."', btn: 'Send', ring: 1 }, { t: '✓ Sent · email + text + deal chat', rv: 1, pill: 'SENT', pc: 'green' } ], side: [ { h: '📥 Replies' }, { t: 'Jordan Wells · 2:14 PM', s: '"Seller accepted the repair list, we\'re good."' }, { t: '🤖 Suggested update', s: 'Mark "Repairs agreed" done?', rv: 1, btn: 'Approve', bc: 'green' } ] });
+  L('3.8', 'More — net sheets, notes, reminders, activity', { deal: 'More ▾', addr: '88 Palm Court', sub: 'Orlando, FL 32827 · Listing', clips: ['w3_8a', 'w3_8b'], rows: [ { h: 'More ▾', hc: '#EEF2F7' }, { t: '💵 Seller\'s Net Sheet', s: 'What your seller walks away with', ring: 1 }, { t: '🧮 Buyer\'s Costs & Cash to Close' }, { t: '📊 CMA' }, { t: '🔒 Internal Notes', s: 'Only you see these' }, { t: '⏰ Reminders' }, { t: '📜 Activity Log' } ], side: [ { h: '💵 Seller\'s Net Sheet · 88 Palm Court' }, { t: 'Sale price', s: '$612,000' }, { t: 'Payoff · commission · title · taxes', s: '− $398,210' }, { t: 'Seller walks away with', s: '$213,790', pill: 'NET', pc: 'green', btn: 'Print', bc: 'ghost' } ], sideRv: true });
+
+  chapter('Offers & contracts', 'The part that replaces the most apps.');
+  reuse('4.1', 's4', ['w4_1a', 'w4_1b'], [ { t: 500, run: () => ringOn($('#s4btn')) }, { t: 900, run: () => moveTo($('#s4btn')) }, { t: 1700, run: () => { click(); ringOff(); } }, { t: 2300, run: () => fill('#f1','$805,000') }, { t: 3100, run: () => fill('#f2','$25,000') }, { t: 3900, run: () => fill('#f3','Conventional, 30-yr') }, { t: 4700, run: () => fill('#f4','Sep 30') }, { t: 5400, run: () => show('#s4doc') } ], 10000, 'Write an offer in four answers');
+  L('4.2', 'Receive an offer on your listing', { deal: 'Offers', addr: '3112 Sandy Shore Ln', sub: 'Orlando, FL 32827 · Listing', status: 'ACTIVE', statusc: 'gold', clips: ['w4_2a', 'w4_2b'], rows: [ { h: '📥 Pending offers · 2', hc: '#FEF3C7' }, { t: 'Offer 1 · $532,000', s: 'Conventional · closes Oct 30 · Buyer\'s agent: K. Patel', pill: 'READ ✓', pc: 'green' }, { t: 'Offer 2 · $545,000', s: 'Cash · closes Oct 17 · Buyer\'s agent: R. Chen', pill: 'READ ✓', pc: 'green', rv: 1 }, { t: 'Let your seller compare them side by side', btn: 'Share with sellers', bc: 'navy', ring: 1 }, { t: '✓ Seller chose Offer 2 → Approve', s: 'Status → Under Contract · timeline built', rv: 1, btn: 'Approve', bc: 'green' } ] });
+  L('4.3', 'Listing paperwork in one click', { deal: 'Documents', addr: '3112 Sandy Shore Ln', sub: 'Orlando, FL 32827 · Listing', clips: ['w4_3a', 'w4_3b'], rows: [ { h: '🏡 Listing Package · filled from what the deal already knows', hc: '#EEF2F7' }, { chk: 1, t: 'Exclusive Right of Sale Listing Agreement', s: 'Brokerage · 6% · 6 months · your license — filled' }, { chk: 1, t: 'Seller\'s Property Disclosure' }, { chk: 1, t: 'Lead-Based Paint Disclosure', s: 'Built before 1978 — added automatically' }, { chk: 1, t: 'Wire Fraud Notice' }, { t: 'Generate the package', btn: 'Generate →', ring: 1 }, { t: '✓ 4 filled PDFs in Documents — ready to sign', rv: 1, pill: 'READY', pc: 'green' } ] });
+  L('4.4', 'Re-read the dates on any document', { deal: 'Documents', addr: '1420 Lake Nona Blvd', sub: 'Orlando, FL 32827 · Buyer Representation', clips: ['w4_4a', 'w4_4b'], rows: [ { t: 'Addendum #2 — inspection extension.pdf', s: 'Uploaded just now', btn: '📅 Read dates', bc: 'navy', ring: 1 }, { t: 'Inspection period now ends Sep 25', s: 'was Sep 22 · found on page 1', rv: 1, pill: 'MOVED', pc: 'gold' }, { t: 'Closing date unchanged · Oct 14', rv: 1, pill: 'SAME', pc: 'navy' }, { t: 'Update the timeline?', rv: 1, btn: 'Apply', bc: 'green' }, { t: '✓ Timeline shifted · reminders rescheduled', rv: 1, pill: 'DONE', pc: 'green' } ] });
+  L('4.5', 'When a contract falls through', { deal: 'Overview', addr: '3112 Sandy Shore Ln', sub: 'Orlando, FL 32827 · Listing', status: 'UNDER CONTRACT', clips: ['w4_5a', 'w4_5b'], rows: [ { h: 'Status ▾ → 💔 Contract fell through…', hc: '#FADBD8' }, { t: 'Here\'s what happens', s: 'Nothing is deleted — everything is archived for your file' }, { chk: 1, t: 'Contract + timeline snapshot archived', rv: 1 }, { chk: 1, t: 'Documents filed to a "Fell through" folder', rv: 1 }, { chk: 1, t: 'Buyer side removed · listing back to Active', rv: 1 }, { chk: 1, t: 'Fresh timeline · backup offer #1 ready to approve', rv: 1 }, { t: 'Confirm', btn: 'Yes, it fell through', ring: 1 } ] });
+  L('4.6', 'Buyer declines the inspection', { deal: 'Documents', addr: '12904 Sunstone Ave', clips: ['w4_6a', 'w4_6b'], rows: [ { t: 'Buyer declining the inspection?', s: 'Make the release — it records that you recommended one', btn: 'Make the waiver', bc: 'purple', ring: 1 }, { t: 'Home Inspection Waiver — Priya Raman.pdf', s: 'Generated · sent for signature', rv: 1, pill: 'SENT', pc: 'gold' }, { t: '✍️ Signed — Home Inspection Waiver.pdf', s: 'Signed on her phone · certificate attached · filed', rv: 1, pill: 'SIGNED', pc: 'green' } ] });
+
+  chapter('Contacts & growing your business', 'The whole method, in four screens.');
+  reuse('5.1', 's7', ['w5_1a', 'w5_1b'], [ { t: 4200, run: () => show('#s7calls') } ], 8500, 'Contacts and the daily list');
+  L('5.2', 'Who\'s likely to move', { nav: 'contacts', clips: ['w5_2a', 'w5_2b'], rows: [ { t: 'Dana Whitfield', s: 'Past client · Hunter\'s Creek', pill: '🏠 LIKELY TO MOVE · 78', pc: 'gold', ring: 1 }, { t: '7 years in the home', s: 'Most owners move between years 7 and 10', rv: 1, chk: 1 }, { t: 'Opened your CMA email twice', s: 'Last Tuesday', rv: 1, chk: 1 }, { t: 'Asked about rates', s: 'Texted you 3 weeks ago', rv: 1, chk: 1 }, { t: '🏆 Win The Day: "Call Dana this week"', s: 'Before she calls another agent', rv: 1, pill: 'NUDGE', pc: 'red' } ] });
+  L('5.3', 'Pop-Bys', { nav: 'tools', clips: ['w5_3a', 'w5_3b'], title: '🎁 Pop-Bys · Saturday run', rows: [ { t: 'Dana Whitfield', s: 'Hunter\'s Creek · 🎁 Fall candle · "Thinking of you this season"', pill: 'STOP 1', pc: 'navy' }, { t: 'Kim Nakamura', s: 'Lake Nona · 🎁 Cookie tin · "Happy 1-year home-iversary!"', pill: 'STOP 2', pc: 'navy' }, { t: 'Luis Ortega', s: 'Dr. Phillips · 🎁 Car wash card · "Enjoy the shine"', pill: 'STOP 3', pc: 'navy' }, { t: 'Route · 14.2 mi · 41 min', s: 'Note cards ready to print', rv: 1, btn: 'Mark delivered', bc: 'green', ring: 1 } ] });
+  L('5.4', 'Scripts, Vendors, and the 🌱 lead', { nav: 'tools', clips: ['w5_4a', 'w5_4b'], rows: [ { h: '📜 Scripts' }, { t: 'The price-reduction conversation', s: '"I\'d rather tell you the truth than tell you what you want to hear…"', ring: 1 }, { t: 'Following up after an open house' }, { t: 'Asking for a referral' } ], side: [ { h: '🔧 Vendors' }, { t: 'Pete\'s Plumbing', s: '(407) 555-0177 · used on 4 deals', btn: '📤 Share', bc: 'navy' }, { t: '🌱 Tom & Ana Reyes → closed', s: 'This lead became a deal — confirm the win?', rv: 1, btn: 'Confirm won', bc: 'green' } ] });
+
+  chapter('Money & your numbers', 'Plain numbers first; the accountant view only if you want it.');
+  reuse('6.1', 's8', ['w6_1a', 'w6_1b'], [ { t: 500, run: () => ringOn($('#s8btn')) }, { t: 900, run: () => moveTo($('#s8btn')) }, { t: 1700, run: () => { click(); ringOff(); show('#s8sort'); } }, { t: 3600, run: () => { show('#s8n1'); show('#s8n2'); } }, { t: 4300, run: () => show('#s8n3') } ], 9000, 'My Money — made, spent, kept');
+  L('6.2', 'Accountant view and the P&L', { nav: 'tools', clips: ['w6_2a'], title: '💵 My Money · Accountant view', tbg: '#059669', tc: '#fff', rows: [ { h: 'Expenses · Income · Budget · P&L · 1099s', hc: '#F0FDF4' }, { t: 'Income (money you made)', s: 'Commissions from closed deals add themselves', pill: '$61,400', pc: 'green' }, { t: 'Expenses (money you spent)', s: '14 categories · from your bank statements', pill: '$18,930', pc: 'red' }, { t: 'Profit & Loss (made minus spent)', s: 'Jan – Sep', pill: '$42,470', pc: 'green', btn: 'Print P&L', bc: 'ghost', ring: 1 }, { t: 'Budget vs actuals · 3 categories over', s: 'Marketing is 22% over plan', rv: 1, pill: 'WATCH', pc: 'gold' }, { t: '1099s · 2 vendors over $600', s: 'Ready for your tax preparer', rv: 1, pill: 'READY', pc: 'navy' } ] });
+  L('6.3', 'Growth Plan — the goal becomes a daily number', { nav: 'tools', clips: ['w6_3a', 'w6_3b'], title: '📈 Growth Plan', rows: [ { t: 'What do you want to earn this year?', s: '$120,000', pill: 'GOAL', pc: 'navy', ring: 1 }, { t: '→ 14 closings', s: 'at your average commission', rv: 1 }, { t: '→ 19 contracts', s: 'some fall through', rv: 1 }, { t: '→ 38 appointments', s: 'half turn into contracts', rv: 1 }, { t: '→ 6 conversations a day', s: 'That\'s the plan. You can do six today.', rv: 1, pill: 'DAILY', pc: 'green' } ] });
+  L('6.4', 'Reports', { nav: 'menu', clips: ['w6_4a', 'w6_4b'], title: '📊 Reports · Call funnel · this month', rows: [ { t: '40 calls', pill: '100%', pc: 'navy', ring: 1 }, { t: '12 conversations', s: '30% picked up and talked', pill: '30%', pc: 'navy', rv: 1 }, { t: '3 appointments', s: '1 in 4 conversations', pill: '8%', pc: 'gold', rv: 1 }, { t: '1 contract', s: '1 in 3 appointments', pill: '2.5%', pc: 'green', rv: 1 }, { t: 'Where people drop off: the call → conversation step', s: 'The problem\'s the call, not the market', rv: 1, pill: 'INSIGHT', pc: 'red' } ] });
+
+  chapter('What runs by itself', 'The part they never see happening, which is the point.');
+  L('7.1', 'Reminders that send themselves', { deal: 'Timeline', addr: '1420 Lake Nona Blvd', sub: 'Orlando, FL 32827 · Buyer Representation', clips: ['w7_1a', 'w7_1b'], rows: [ { chk: 0, t: 'Financing deadline · Oct 3', s: 'Lender + buyer\'s agent get reminded', ring: 1 } ], side: [ { h: '⏰ Reminder ladder · Financing deadline' }, { t: '7 days before · Sep 26', s: '→ Sam Ortiz (lender), Priya Raman', rv: 1, pill: 'SENT', pc: 'green' }, { t: '3 days before · Sep 30', s: '→ Sam Ortiz (lender)', rv: 1, pill: 'SCHEDULED', pc: 'navy' }, { t: '1 day before · Oct 2', rv: 1, pill: 'SCHEDULED', pc: 'navy' }, { t: 'Due day + overdue', s: 'In your name · with a "Mark done" button — no login', rv: 1, pill: 'SCHEDULED', pc: 'navy' } ], sideDy: 0 });
+  L('7.2', 'The morning email and the Deal Doctor', { deal: 'Overview', addr: '1420 Lake Nona Blvd', sub: 'Orlando, FL 32827 · Buyer Representation', clips: ['w7_2a', 'w7_2b'], rows: [ { h: '🩺 Deal Doctor · checked 5:00 AM', hc: '#FEF3C7' }, { t: 'Biggest risk', s: 'Appraisal not ordered · 9 days to the financing deadline', pill: 'RISK', pc: 'red' }, { t: 'One move today', s: 'Call the lender', rv: 1, pill: 'DO', pc: 'gold' }, { t: 'Drafted for you · to Sam Ortiz', s: '"Hi Sam — quick check: has the appraisal been ordered on Lake Nona? Financing deadline is Oct 3…"', rv: 1, btn: 'Send', bc: 'green', ring: 1 } ], phone: { k: '5:05 AM · TRANSACTPRO', t: 'Your morning briefing', items: [ { k: '1420 LAKE NONA · UNDER CONTRACT', t: 'Blocker: appraisal not ordered. Next: call the lender.' }, { k: '3112 SANDY SHORE · ACTIVE', t: '2 offers pending — seller reviewing today.' }, { k: '88 PALM COURT · UNDER CONTRACT', t: 'On track. Closing in 12 days.', bg: '#F0FDF4', bd: '#BBF7D0', c: '#166534' } ] } });
+  L('7.3', 'Chases, unsigned requests, expiring listings', { nav: 'home', clips: ['w7_3a', 'w7_3b'], rows: [ { h: '🔁 Active follow-ups', hc: '#EEF2F7' }, { t: 'First Coast Title — title commitment', s: '3 nudges sent · last one yesterday', pill: 'CHASING', pc: 'gold', btn: 'Stop', bc: 'ghost', ring: 1 }, { t: '✍️ Unsigned 2 days — Priya Raman', s: 'Seller\'s disclosure · chased daily until it\'s signed', rv: 1, pill: 'URGENT', pc: 'red' }, { t: '📄 Listing agreement expires in 12 days', s: '88 Palm Court · renew before it lapses', rv: 1, pill: 'SOON', pc: 'gold', btn: 'Renew', bc: 'navy' } ] });
+  L('7.4', 'Every deal email, captured', { deal: 'Messages', addr: '1420 Lake Nona Blvd', sub: 'Orlando, FL 32827 · Buyer Representation', clips: ['w7_4a', 'w7_4b'], rows: [ { h: '💬 Messages · filed automatically', hc: '#EEF2F7' }, { t: 'First Coast Title · "Title commitment attached"', s: 'Arrived in your Gmail → filed here · 📎 1 attachment', rv: 1, pill: 'FILED', pc: 'green' }, { t: 'Sam Ortiz · "Appraisal ordered for Thursday"', s: 'Reply to the app\'s reminder → filed here', rv: 1, pill: 'FILED', pc: 'green' } ], side: [ { h: '📥 Mail to file · 1' }, { t: 'HOA docs — "Estoppel letter"', s: 'Couldn\'t tell which deal', rv: 1, btn: 'File to…', bc: 'navy', ring: 1 } ] });
+
+  chapter('Talk to it', '');
+  reuse('8.1', 's9', ['w8_1a', 'w8_1b'], [ { t: 500, run: () => ringOn($('#s9fab'), 8) }, { t: 1000, run: () => moveTo($('#s9fab')) }, { t: 1800, run: () => { click(); ringOff(); $('#s9fab').style.opacity = 0; show('#s9panel'); } }, { t: 2800, run: () => show('#s9q') }, { t: 4200, run: () => show('#s9a') } ], 9000, 'The ? assistant');
+
+  chapter('Setup, your team, and help', 'Once, on day one — and where to go when something\'s wrong.');
+  L('9.1', 'Your profile and your brokerage', { nav: 'menu', clips: ['w9_1a', 'w9_1b'], rows: [ { h: '👤 My Profile' }, { t: 'Photo · Maria Lopez', s: 'Shows on every client email and portal', chk: 1 }, { t: 'Signature', s: 'Drawn once · on every form you send', chk: 1 }, { t: 'Phone · (407) 555-0142', chk: 1, ring: 1 } ], side: [ { h: '🏢 Company Settings (admins)' }, { t: 'Brokerage · Sunbelt Realty', s: 'On every email and form your clients see' }, { t: 'Logo uploaded', s: 'Top of the app · client emails · portals', rv: 1, pill: 'LIVE', pc: 'green' } ] });
+  L('9.2', 'Invite your team, hand a deal to a coordinator', { nav: 'menu', clips: ['w9_2a', 'w9_2b'], rows: [ { h: '👥 Team Members · Invite' }, { t: 'Nina Park · nina@sunbelt…', s: 'Role: Transaction Coordinator', btn: 'Send invite', ring: 1 }, { t: '✓ Invite sent — she gets her own login', rv: 1, pill: 'SENT', pc: 'green' } ], side: [ { h: '1420 Lake Nona Blvd · ➕ Add coordinator' }, { t: 'Nina Park', s: 'Sees exactly this deal — and nothing else', rv: 1, pill: 'TC', pc: 'navy' }, { chk: 1, t: 'Edit timeline', rv: 1 }, { chk: 1, t: 'Upload documents', rv: 1 } ] });
+  L('9.3', 'Forms Library and the compliance dashboard', { nav: 'menu', clips: ['w9_3a', 'w9_3b'], rows: [ { h: '📚 Forms Library · Florida' }, { t: 'FAR/BAR "AS IS" Contract', s: 'Brokerage + license pre-filled', ring: 1 }, { t: 'Riders · E · GG · AA · HOA · Lead paint' }, { t: 'Listing agreement · Disclosures · Wire fraud notice' } ], side: [ { h: '✅ Compliance Dashboard (brokers)' }, { t: '1420 Lake Nona Blvd', s: 'All required documents on file', pill: 'CLEAN', pc: 'green' }, { t: '3112 Sandy Shore Ln', s: 'Missing: seller\'s disclosure', pill: '1 GAP', pc: 'gold', rv: 1 }, { t: '88 Palm Court', s: 'All required documents on file', pill: 'CLEAN', pc: 'green', rv: 1 } ] });
+  L('9.4', 'Help, feedback, and "First time here?"', { nav: 'deals', clips: ['w9_4a', 'w9_4b'], guide: '<em>What this is</em>Every deal you\'re working, as cards. <br><em>Do first</em>Tap a card to open it. <br><em>Why</em>The next step is always at the top of a deal. <span class="btn" style="margin-left:10px;font-size:11px;padding:5px 10px;background:var(--gold);color:#111" id="g94how">📖 Show me how</span>', big: { t: '📣 Send Feedback', s: '"The Money page should remember my last tab." → Sent. We read every one.' }, bigDy: 120, bigc: 'var(--brick)' });
+  reuse('9.5', 's10', ['w9_5a', 'w9_5b'], [ { t: 800, run: () => ringOn($('#s10btn')) }, { t: 1200, run: () => moveTo($('#s10btn')) }, { t: 5200, run: () => { ringOff(); show('#s10end'); } } ], 9000, 'Start your first deal');
+
+  const SCENES = CUT === 'learn' ? LEARN : MARKETING;
+  const total = SCENES.reduce((a, s) => a + s.dur, 0);
+  const fmt = ms => { const s = Math.round(ms / 1000); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); };
+  const chapterOf = i => { let c = 0; CH.forEach((ch, k) => { if (i >= ch.from) c = k; }); return c; };
+
+  // dots (one per scene) + chapter chips (learn cut only)
+  SCENES.forEach((sc, i) => { const d = document.createElement('i'); d.innerHTML = '<b></b>'; d.title = (sc.n ? sc.n + ' · ' : 'Scene ' + (i + 1) + ' · ') + (sc.title || ''); d.onclick = () => go(i); dots.appendChild(d); });
+  const chips = $('#chapters');
+  if (CUT === 'learn') {
+    CH.forEach((ch, k) => { const b = document.createElement('button'); b.textContent = (k + 1) + ' · ' + ch.title; b.title = ch.sub; b.onclick = () => go(ch.from); chips.appendChild(b); });
+    chips.hidden = false;
+  }
+  const markChapter = i => { if (CUT !== 'learn') return; const c = chapterOf(i); [...chips.children].forEach((b, k) => b.classList.toggle('on', k === c)); };
+
+  let idx = -1, t0 = 0, elapsedBefore = 0, timers = [], paused = false, pausedAt = 0, raf;
+
+  const reset = sc => {
+    document.querySelectorAll('#' + sc.id + ' .rv').forEach(e => e.classList.remove('in'));
+    document.querySelectorAll('#' + sc.id + ' .chk[id$="tick"]').forEach(e => e.classList.remove('on'));
+    if (sc.id === 's1') $('#apps').classList.remove('gone');
+    if (sc.id === 's2') $('#s2bar').style.width = '0';
+    if (sc.id === 's3') $('#c1').classList.remove('on');
+    if (sc.id === 's4') ['#f1','#f2','#f3','#f4'].forEach(s => { const f = $(s); f.classList.remove('on'); f.querySelector('span').textContent = '—'; });
+    if (sc.id === 's9') $('#s9fab').style.opacity = 1;
+    ringOff();
+  };
+
+  const armEnd = (sc, i, offset) => {
+    const speed = reduced ? 0.6 : 1;
+    let dur = sc.dur * speed;
+    if (!voiceOn && sc.capB) dur = Math.max(dur, estimate(sc.cap) + estimate(sc.capB));
+    timers.push(setTimeout(() => waitVoiceThen(() => { if (i + 1 < SCENES.length) go(i + 1); else end(); }), Math.max(0, dur - offset)));
+  };
+  const go = (i) => {
+    timers.forEach(clearTimeout); timers = [];
+    gen++;
+    if (current) { try { current.pause(); } catch {} current = null; talking = 0; }
+    if (idx >= 0) $('#' + SCENES[idx].id).classList.remove('on');
+    idx = i; const sc = SCENES[i];
+    reset(sc);
+    $('#' + sc.id).classList.add('on');
+    // caption B (and its clip) follows caption A the moment A's clip finishes
+    setCap(sc.cap, sc.capB ? () => setCap(sc.capB) : null);
+    capn.textContent = sc.n ? sc.n : (i + 1) + ' / ' + SCENES.length;
+    markChapter(i);
+    [...dots.children].forEach((d, k) => { d.classList.toggle('done', k < i); if (k >= i) d.firstChild.style.width = '0'; });
+    elapsedBefore = SCENES.slice(0, i).reduce((a, s) => a + s.dur, 0);
+    t0 = performance.now(); paused = false; playBtn.textContent = '⏸ Pause'; playBtn.setAttribute('aria-label', 'Pause');
+    const speed = reduced ? 0.6 : 1;
+    sc.steps.forEach(st => timers.push(setTimeout(st.run, st.t * speed)));
+    armEnd(sc, i, 0);
+    const nx = SCENES[i + 1]; if (nx) preload([ID_OF[(nx.cap || '').trim()], ID_OF[(nx.capB || '').trim()]].filter(Boolean));
+  };
+  // Hold the scene until the narration has finished (backstop so a stuck clip
+  // can never freeze the tour), then continue.
+  const waitVoiceThen = (fn, waited = 0) => {
+    if (paused) return;
+    if (talking > 0 && waited < 30000) { timers.push(setTimeout(() => waitVoiceThen(fn, waited + 200), 200)); return; }
+    fn();
+  };
+  const end = () => {
+    paused = true; playBtn.textContent = '▶ Play again'; playBtn.setAttribute('aria-label', 'Play again'); [...dots.children].forEach(d => d.classList.add('done'));
+    const e = $('#endcard'); if (e) e.hidden = false;
+    try { if (EMBED && parent !== window) parent.postMessage({ type: 'tour:end', cut: CUT }, '*'); } catch {}
+  };
+
+  const tick = () => {
+    if (idx >= 0 && !paused) {
+      const e = performance.now() - t0, sc = SCENES[idx];
+      dots.children[idx].firstChild.style.width = Math.min(100, e / sc.dur * 100) + '%';
+      time.textContent = fmt(elapsedBefore + Math.min(e, sc.dur)) + ' / ' + fmt(total);
+    }
+    raf = requestAnimationFrame(tick);
+  };
+
+  // Pause = freeze the scene where it is (clear pending steps, remember offset).
+  playBtn.onclick = () => {
+    if (!paused) {
+      paused = true; pausedAt = performance.now() - t0; timers.forEach(clearTimeout); timers = [];
+      if (current) { try { current.pause(); } catch {} }
+      playBtn.textContent = '▶ Play'; playBtn.setAttribute('aria-label', 'Play');
+    } else if (idx >= SCENES.length - 1 && pausedAt === 0) { const e = $('#endcard'); if (e) e.hidden = true; go(0); }
+    else {
+      const sc = SCENES[idx]; paused = false; t0 = performance.now() - pausedAt;
+      if (current) { try { current.play(); } catch {} }
+      const speed = reduced ? 0.6 : 1;
+      sc.steps.filter(st => st.t * speed > pausedAt).forEach(st => timers.push(setTimeout(st.run, st.t * speed - pausedAt)));
+      armEnd(sc, idx, pausedAt);
+      pausedAt = 0; playBtn.textContent = '⏸ Pause'; playBtn.setAttribute('aria-label', 'Pause');
+    }
+  };
+  $('#replay').onclick = () => { pausedAt = 0; const e = $('#endcard'); if (e) e.hidden = true; go(0); };
+  $('#mute').onclick = (e) => { voiceOn = !voiceOn; e.currentTarget.textContent = voiceOn ? '🔊 Voice on' : '🔇 Voice off'; e.currentTarget.setAttribute('aria-label', voiceOn ? 'Mute narration' : 'Unmute narration'); };
+  const endClose = $('#endclose'); if (endClose) endClose.onclick = () => { try { if (parent !== window) parent.postMessage({ type: 'tour:close' }, '*'); } catch {} };
+
+  // Start scene: ?chapter=N (learn cut) or ?scene=N
+  let startAt = 0;
+  if (CUT === 'learn' && Q.get('chapter')) { const c = CH[Math.max(0, Math.min(CH.length - 1, parseInt(Q.get('chapter'), 10) - 1))]; if (c) startAt = c.from; }
+  if (Q.get('scene')) { const k = SCENES.findIndex(s => s.n === Q.get('scene')); if (k >= 0) startAt = k; }
+  // Show the first scene at rest behind the gate; nothing plays or speaks until the tap.
+  $('#' + SCENES[startAt].id).classList.add('on'); setCapSilent(SCENES[startAt].cap); capn.textContent = SCENES[startAt].n || ('1 / ' + SCENES.length); markChapter(startAt);
+  const gateBtn = $('#start');
+  if (CUT === 'learn') { const c = CH[chapterOf(startAt)]; gateBtn.textContent = '▶ Play' + (startAt > 0 ? ' chapter ' + (chapterOf(startAt) + 1) : ' with voice'); $('#gatesmall').textContent = startAt > 0 ? c.title : 'About 8 minutes · 9 chapters · tap any chapter to jump'; }
+  gateBtn.onclick = () => { $('#gate').remove(); go(startAt); };
+  preload(SCENES[startAt].capB ? [ID_OF[SCENES[startAt].cap.trim()], ID_OF[SCENES[startAt].capB.trim()]] : [ID_OF[SCENES[startAt].cap.trim()]]);
+  tick();
+})();
+</script>
+
+</body>
+</html>

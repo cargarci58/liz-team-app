@@ -4,6 +4,15 @@
   Referrer-Policy: strict-origin-when-cross-origin
   Permissions-Policy: camera=(), microphone=(self), payment=()
 
+# The narrated tour (public/tour) is framed by the app's TourModal, so it must
+# be allowed inside our own pages. frame-ancestors wins over X-Frame-Options in
+# every current browser, so this holds even where the DENY above still applies.
+/tour/*
+  X-Frame-Options: SAMEORIGIN
+  Content-Security-Policy: frame-ancestors 'self'
+/tour/audio/*
+  Cache-Control: public, max-age=604800
+
 # index.html must never be served from cache: it is the file that names the
 # current JS bundle. Safari (iPhone especially) held onto it for hours, so a
 # deployed fix kept looking like it had not shipped — three times in one day.

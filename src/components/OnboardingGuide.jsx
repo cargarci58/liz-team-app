@@ -19,7 +19,7 @@ import { useState } from 'react';
 
 const RED = '#C0392B';
 
-export default function OnboardingGuide({ steps, doneKeys, onTakeMeThere, onStartTour, onDismiss, onFinish }) {
+export default function OnboardingGuide({ steps, doneKeys, onTakeMeThere, onStartTour, onWatchTour, onDismiss, onFinish }) {
   // The "current" step = first one not yet done.
   const currentIdx = steps.findIndex(s => !doneKeys.has(s.key));
   const allDone = currentIdx === -1;
@@ -36,6 +36,12 @@ export default function OnboardingGuide({ steps, doneKeys, onTakeMeThere, onStar
             Three quick steps and you're ready to go. We'll walk you through exactly where to click — it takes about 2 minutes.
           </div>
           <button onClick={() => setWelcomed(true)} style={primaryBtn}>Start setup →</button>
+          {/* The narrated tour: what the app does, in two minutes, before any setup. */}
+          {onWatchTour && (
+            <div style={{ marginTop: 10 }}>
+              <button onClick={onWatchTour} style={{ ...primaryBtn, background: '#111' }}>▶ Watch the 2-minute tour</button>
+            </div>
+          )}
           <div>
             <button onClick={onDismiss} style={linkBtn}>I'll do it later</button>
           </div>

@@ -712,7 +712,7 @@ function SectionHeader({ label, count, color }) {
 // them to come back tomorrow, thirty seconds after they paid for it. When the
 // pipeline is genuinely empty (not "quiet today" — empty), ask for the first deal
 // instead. This screen is what makes the rest of the app turn on.
-export function DayOneState({ firstName, onNew, onUploadContract, onSampleDeal, onOpenSample, hasSample }) {
+export function DayOneState({ firstName, onNew, onUploadContract, onSampleDeal, onOpenSample, hasSample, onWatchTour }) {
   const card = {
     flex: "1 1 220px", background: COLORS.white, border: "1px solid " + COLORS.border,
     borderRadius: 14, padding: "18px 18px 20px", textAlign: "left", cursor: "pointer",
@@ -795,6 +795,17 @@ export function DayOneState({ firstName, onNew, onUploadContract, onSampleDeal, 
               borderRadius: 8, padding: "9px 16px", fontSize: 13, fontWeight: 800, cursor: "pointer",
               fontFamily: "inherit", flexShrink: 0 }}>
             {hasSample ? "Open sample deal →" : "Show me a sample deal →"}
+          </button>
+        </div>
+      )}
+
+      {/* The narrated 2-minute tour — same voice for everyone (pre-rendered, public/tour). */}
+      {onWatchTour && (
+        <div style={{ textAlign: "center", marginTop: 18 }}>
+          <button onClick={onWatchTour}
+            style={{ background: COLORS.black, color: COLORS.white, border: "none", borderRadius: 999,
+              padding: "11px 20px", fontSize: 14, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>
+            ▶ Watch the 2-minute tour first
           </button>
         </div>
       )}
@@ -1222,7 +1233,7 @@ function FollowupReviewModal({ token, isMobile, onClose }) {
   );
 }
 
-export default function DailyDashboard({ token, user, onViewTransactions, onOpenTransactionMilestones, onOpenInboundReply, onOpenPopBys, onNewDeal, onUploadContract, onSampleDeal, onOpenSample, hasSample = false, dealCount = null, coordinatorMode = false }) {
+export default function DailyDashboard({ token, user, onViewTransactions, onOpenTransactionMilestones, onOpenInboundReply, onOpenPopBys, onNewDeal, onUploadContract, onSampleDeal, onOpenSample, onWatchTour, hasSample = false, dealCount = null, coordinatorMode = false }) {
   const [tasks, setTasks] = useState({ overdue:[], dueToday:[], upcoming:[] });
   const [personal, setPersonal] = useState({ overdue:[], dueToday:[], upcoming:[] });
   const [callsDue, setCallsDue] = useState([]);
@@ -1781,7 +1792,8 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
       {totalVisible === 0 && callsDue.length === 0 && (
         (!coordinatorMode && dealCount === 0)
           ? <DayOneState firstName={firstName} onNew={onNewDeal} onUploadContract={onUploadContract}
-              onSampleDeal={hasSample ? null : onSampleDeal} onOpenSample={onOpenSample} hasSample={hasSample} />
+              onSampleDeal={hasSample ? null : onSampleDeal} onOpenSample={onOpenSample} hasSample={hasSample}
+              onWatchTour={onWatchTour} />
           : <EmptyState firstName={firstName} />
       )}
 
