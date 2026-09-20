@@ -149,7 +149,7 @@ export const GUIDE_SECTIONS = [
   },
 ];
 
-export default function HelpCenter({ apiBase, token, onGoals, onProfile, onCompany, onFirstDeal, onRestartTour, onTour, isAdmin, openSignal, feedbackSignal, supportSignal }) {
+export default function HelpCenter({ apiBase, token, onGoals, onProfile, onCompany, onFirstDeal, onRestartTour, onTour, isAdmin, openSignal, feedbackSignal, supportSignal, guideQuery }) {
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState('start'); // start | guides | faqs | feedback
 
@@ -207,6 +207,12 @@ export default function HelpCenter({ apiBase, token, onGoals, onProfile, onCompa
   // ⚙️ Menu → ✉️ Contact Support opens the same form pre-set to a support request.
   useEffect(() => { if (supportSignal) { setTab('feedback'); setFbKind('support'); setFbDone(false); setOpen(true); } }, [supportSignal]);
   const [search, setSearch] = useState('');
+  // "📖 Show me how" on a page's First-time-here strip: open straight to the
+  // guide library, pre-searched for that page's topic. `guideQuery` is
+  // { n, q } — n bumps on every request so the same query can fire twice.
+  useEffect(() => {
+    if (guideQuery && guideQuery.n) { setTab('guides'); setSearch(guideQuery.q || ''); setOpen(true); }
+  }, [guideQuery && guideQuery.n]);
   const [expanded, setExpanded] = useState(new Set());
 
   // How-To guides: the full library lives on the server (single source of

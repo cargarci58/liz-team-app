@@ -28,6 +28,10 @@ const STEPS = [
   { key: 'contacts', emoji: '📇', title: 'Your contacts', body: 'Everyone you know — clients, leads, vendors. Add them once and the app reminds you when to reach out.' },
   { key: 'tools', emoji: '🧰', title: 'Tools', body: 'Everything else lives here: your money, pricing a home (CMA), pop-bys, scripts, vendors, calendar, and intake links.' },
   { key: 'menu', emoji: '⚙️', title: 'Menu', body: 'Reports, your profile, forms, help, and Sign Out. That is the whole app — five buttons and this menu!' },
+  // The "First time here?" strip exists on every page. Point at it once so a
+  // rookie knows the explanation is always on the page itself, not hidden in a
+  // help menu. Skipped automatically if the strip isn't on screen.
+  { key: 'tips', emoji: '💡', title: 'Every page explains itself', body: 'See this yellow box? Every screen in the app has one: what the page is for, the one thing to do first, and why it matters. Close it when you know a page — tap "First time here?" to get it back.' },
 ];
 
 export default function SpotlightTour({ onClose, onCreateFirst }) {

@@ -21,6 +21,8 @@ import UpdateNudge from "./components/UpdateNudge";
 import OnboardingGuide from "./components/OnboardingGuide";
 import AppTour from "./components/AppTour";
 import SpotlightTour from "./components/SpotlightTour";
+import FirstTimeHere from "./components/FirstTimeHere";
+import { PAGE_TIPS, dealTabTip } from "./config/pageTips";
 
 const API = "https://liz-team-server-api-production.up.railway.app";
 // Platform developer account — only this email sees the Superuser Dashboard.
@@ -5749,20 +5751,10 @@ function LeaseDocsModal({ tx, onClose, onGenerated }) {
 
 // ── FIRST-TIME TIP — a one-time 1-2-3 explainer for a heavy screen. Shows
 // until dismissed (per browser); never comes back after "Got it".
-function FirstTimeTip({ tipKey, children }) {
-  const [hidden, setHidden] = useState(() => { try { return localStorage.getItem("tp_tip_" + tipKey) === "1"; } catch { return false; } });
-  if (hidden) return null;
-  return (
-    <div style={{ background: "#EFF6FF", border: "1px solid #BFDBFE", borderRadius: 12, padding: "12px 16px", margin: "0 0 16px", display: "flex", gap: 12, alignItems: "flex-start" }}>
-      <span style={{ fontSize: 20 }}>👋</span>
-      <div style={{ flex: 1, fontSize: 13, color: "#1E3A8A", lineHeight: 1.6 }}>{children}</div>
-      <button onClick={() => { setHidden(true); try { localStorage.setItem("tp_tip_" + tipKey, "1"); } catch {} }}
-        style={{ background: "#1E40AF", color: "#fff", border: "none", borderRadius: 8, padding: "7px 14px", fontSize: 12, fontWeight: 800, cursor: "pointer", fontFamily: "inherit", flexShrink: 0 }}>
-        Got it
-      </button>
-    </div>
-  );
-}
+// (FirstTimeTip — the one-off blue "👋 Got it" banner that lived here — was
+// replaced by components/FirstTimeHere, which does the same job on EVERY page
+// and tab with content from config/pageTips.js, per-user dismissal, and a way
+// to bring it back. One system, not two.)
 
 // ── "WHAT'S NEXT" STRIP — the one thing a rookie needs on every deal screen:
 // the single next step, in plain words, always visible, tap → timeline.
@@ -6136,7 +6128,7 @@ function InternalNotesPanel({ txId, compact = false, onSeeAll }) {
   );
 }
 
-function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = false, onBack, contacts, onInviteParty = [], onCopyLoginLink, onSaveContact, onOpenContactBook, onDuplicate, onDeleteSample, currentUser, initialTab = "overview", navSignal = 0, dashboardUnread = 0, onMilestoneSummary, onInboundRead }) {
+function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = false, onBack, contacts, onInviteParty = [], onCopyLoginLink, onSaveContact, onOpenContactBook, onDuplicate, onDeleteSample, onOpenGuide, currentUser, initialTab = "overview", navSignal = 0, dashboardUnread = 0, onMilestoneSummary, onInboundRead }) {
   // Staff (agent + coordinator) comms tabs are merged into one "messages" hub, so
   // a deep-link to chat/replies/sms opens the hub on the right section. Guests keep
   // their standalone chat tab.
@@ -6655,14 +6647,27 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
         )}
       </div>
 
+      {/* "First time here?" for THIS tab. Three lines from config/pageTips.js —
+          what the tab is for, the one thing to do first, why it matters — with a
+          real button where the tab has an obvious first action. Per-user, per-tab
+          dismissal; collapses to a small link rather than vanishing. */}
+      {!isGuest && (
+        <FirstTimeHere
+          pageKey={"tx:" + activeTab}
+          tip={dealTabTip(activeTab, { isListingSide: isListingSideTx })}
+          userId={currentUser?.id}
+          compact
+          onAction={(key) => {
+            if (key === "receiveOffer") { setActiveTab("overview"); setShowReceiveOffer(true); }
+            else if (key === "addParty") { setActiveTab("parties"); setShowAddParty(true); }
+          }}
+          onShowHow={onOpenGuide}
+        />
+      )}
+
       <div style={{ padding: 24, maxWidth: 940, margin: "0 auto" }}>
         {activeTab === "overview" && (
           <div>
-            {!isGuest && (
-              <FirstTimeTip tipKey="deal">
-                <b>This is your deal's home base.</b> ① The green strip up top always shows your <b>next step</b>. ② <b>📅 Timeline</b> is every deadline — the app watches them for you. ③ <b>📎 Documents</b> holds the paperwork and gets things signed. That's 90% of what you'll use.
-              </FirstTimeTip>
-            )}
             {!isGuest && <DealDoctorPanel tx={tx} />}
             {/* NOTE: there is exactly ONE notes box on this tab — the Notes
                 section further down, which the AI assistant writes into too.
@@ -10407,6 +10412,17 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
 
   // Help Center: bump this counter to open it from ⚙️ Menu → ❓ Help.
   const [helpSignal, setHelpSignal] = useState(0);
+  // "📖 Show me how" on any First-time-here strip → Help Center guides, already
+  // searched for that page's topic. `n` bumps every time so the same query can
+  // be asked twice in a row.
+  const [helpQuery, setHelpQuery] = useState({ n: 0, q: "" });
+  const openGuide = (q) => setHelpQuery(h => ({ n: h.n + 1, q: q || "" }));
+  // Action keys from config/pageTips.js → the real handlers. This is the ONLY
+  // place those keys are interpreted, so the content file stays plain words.
+  const tipAction = (key) => {
+    if (key === "uploadContract") setShowContractIntake(true);
+    else if (key === "newDeal") setView("new");
+  };
   // Feedback: bump to open the Help Center straight to the 📣 Feedback tab (⚙️ Menu → 📣 Feedback).
   const [feedbackSignal, setFeedbackSignal] = useState(0);
   // Contact Support: bump to open the Help Center support form (⚙️ Menu → ✉️ Contact Support).
@@ -10846,9 +10862,11 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
           </div>
         </div>
       )}
-      {showReports && <Reports transactions={transactions} onBack={() => setShowReports(false)} currentUser={currentUser} initialTab={reportsTab} />}
+      {showReports && <Reports transactions={transactions} onBack={() => setShowReports(false)} currentUser={currentUser} initialTab={reportsTab} onOpenGuide={openGuide} />}
 
       {!showReports && view === "new" && (
+        <>
+        <FirstTimeHere pageKey="new" tip={PAGE_TIPS.new} userId={currentUser?.id} onAction={tipAction} onShowHow={openGuide} />
         <NewTransactionForm
           currentUser={currentUser}
           prefill={cmaConvert?.prefill || null}
@@ -10857,18 +10875,23 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
           onCancel={() => { setCmaConvert(null); setView(cmaConvert ? "cma" : "home"); }}
           onImportContract={() => { setCmaConvert(null); setView("home"); setShowContractIntake(true); }}
         />
+        </>
       )}
       {view === "cma" && (
+        <>
+        <FirstTimeHere pageKey="cma" tip={PAGE_TIPS.cma} userId={currentUser?.id} onAction={tipAction} onShowHow={openGuide} />
         <StandaloneCmaPage
           token={localStorage.getItem("tp_token") || ""}
           currentUser={currentUser}
           onBack={() => setView("dashboard")}
           onCreateTransactionFromCma={onCreateTransactionFromCma}
         />
+        </>
       )}
       {!showReports && !showCalendar && view === "detail" && selectedTx && (
         <TransactionDetail
           onDeleteSample={deleteSampleDeal}
+          onOpenGuide={openGuide}
           initialTab={initialDetailTab}
           navSignal={detailNavSignal}
           dashboardUnread={unreadCounts[selectedId] || 0}
@@ -10959,6 +10982,7 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
               onOpenTransaction={openTransactionMilestones}
             />
           )}
+          <FirstTimeHere pageKey="home" tip={PAGE_TIPS.home} userId={currentUser?.id} onAction={tipAction} onShowHow={openGuide} />
           <DailyDashboard
             token={localStorage.getItem("tp_token") || ""}
             user={currentUser}
@@ -10984,6 +11008,8 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
         </>
       )}
       {!showReports && !showCalendar && view === "dashboard" && (
+        <>
+        <FirstTimeHere pageKey="dashboard" tip={PAGE_TIPS.dashboard} userId={currentUser?.id} onAction={tipAction} onShowHow={openGuide} />
         <Dashboard
           transactions={transactions}
           coordinatorMode={coordinatorMode}
@@ -11016,6 +11042,7 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
           onVendors={guard("The Vendor library", () => setShowVendorLibrary(true))}
           onCalendar={guard("Calendar", () => setShowCalendar(true))}
         />
+        </>
       )}
       {showCalendar && (
         <Suspense fallback={<LazyLoading />}>
@@ -11028,22 +11055,40 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
       )}
       {showTeam && <UserManagement onClose={() => setShowTeam(false)} />}
       {view === "expenses" && (
+        <>
+        <FirstTimeHere pageKey="expenses" tip={PAGE_TIPS.expenses} userId={currentUser?.id} onAction={tipAction} onShowHow={openGuide} />
         <ExpensesPage onBack={() => setView("dashboard")} />
+        </>
       )}
       {view === "forms" && (
+        <>
+        <FirstTimeHere pageKey="forms" tip={PAGE_TIPS.forms} userId={currentUser?.id} onAction={tipAction} onShowHow={openGuide} />
         <FormsPage user={currentUser} onBack={() => setView("dashboard")} />
+        </>
       )}
       {view === "contacts" && (
+        <>
+        <FirstTimeHere pageKey="contacts" tip={PAGE_TIPS.contacts} userId={currentUser?.id} onAction={tipAction} onShowHow={openGuide} />
         <ContactsPage token={localStorage.getItem("tp_token") || ""} onBack={() => setView("dashboard")} />
+        </>
       )}
       {view === "popbys" && (
+        <>
+        <FirstTimeHere pageKey="popbys" tip={PAGE_TIPS.popbys} userId={currentUser?.id} onAction={tipAction} onShowHow={openGuide} />
         <PopBysPage token={localStorage.getItem("tp_token") || ""} onBack={() => setView("dashboard")} />
+        </>
       )}
       {view === "scripts" && (
+        <>
+        <FirstTimeHere pageKey="scripts" tip={PAGE_TIPS.scripts} userId={currentUser?.id} onAction={tipAction} onShowHow={openGuide} />
         <ScriptsPage token={localStorage.getItem("tp_token") || ""} onBack={() => setView("dashboard")} currentUser={currentUser} />
+        </>
       )}
       {view === "growthplan" && (
+        <>
+        <FirstTimeHere pageKey="growthplan" tip={PAGE_TIPS.growthplan} userId={currentUser?.id} onAction={tipAction} onShowHow={openGuide} />
         <GrowthPlanPage onBack={() => setView("dashboard")} />
+        </>
       )}
       {showCompliance && (
         <div style={{ position:"fixed", inset:0, background:"#fff", zIndex:200, overflowY:"auto" }}>
@@ -11178,6 +11223,7 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
           openSignal={helpSignal}
           feedbackSignal={feedbackSignal}
           supportSignal={supportSignal}
+          guideQuery={helpQuery}
           isAdmin={isAdminUser}
           /* Growth Plan is the ONE place the income goal gets set — see SettingsMenu. */
           onGoals={() => { setShowReports(false); setShowCalendar(false); setView("growthplan"); }}
