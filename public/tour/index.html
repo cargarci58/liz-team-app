@@ -94,8 +94,9 @@
   .ctrl #play{background:var(--brick);border-color:transparent}
   .ctrl button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
   .dots{display:flex;gap:6px;flex:1}
-  .dots i{flex:1;height:5px;border-radius:3px;background:#444;overflow:hidden;position:relative;cursor:pointer}
-  .dots i b{position:absolute;left:0;top:0;bottom:0;width:0;background:var(--brick)}
+  .dots i{flex:1;height:5px;border-radius:3px;background:#444;position:relative;cursor:pointer}
+  .dots i::before{content:"";position:absolute;left:0;right:0;top:-9px;bottom:-9px}   /* a 5px bar is hard to aim at — widen the click target, not the bar */
+  .dots i b{position:absolute;left:0;top:0;bottom:0;width:0;border-radius:3px;background:var(--brick)}
   .dots i.done b{width:100%}
   .time{font-variant-numeric:tabular-nums;color:#bbb;font-size:.8rem;min-width:3.2rem;text-align:right}
   .gate{position:absolute;inset:0;z-index:20;display:grid;place-items:center;background:rgba(17,17,17,.55);backdrop-filter:blur(2px);cursor:default}
@@ -541,10 +542,11 @@ const DUR = {"m1a": 2.8, "m1b": 5.9, "m2a": 6.1, "m2b": 9.3, "m3a": 6.1, "m3b": 
     const next = queue.shift(); if (!next) return;
     busy = true; next.start();
   };
-  const say = (text, onEnd) => {
+  // startAt (seconds): begin the line part-way through — a scrub landed inside it.
+  const say = (text, onEnd, startAt = 0) => {
     const id = ID_OF[(text || '').trim()], myGen = gen;
     if (REC && id) REC.push({ id, at: Math.round(performance.now() - recT0) });
-    if (!voiceOn || !id) { if (onEnd) timers.push(setTimeout(onEnd, voiceOn ? 800 : estimate(text))); return; }
+    if (!voiceOn || !id) { if (onEnd) timers.push(setTimeout(onEnd, voiceOn ? 800 : Math.max(0, estimate(text) - startAt * 1000))); return; }
     const a = player;
     talking++;
     let done = false;
@@ -553,9 +555,13 @@ const DUR = {"m1a": 2.8, "m1b": 5.9, "m2a": 6.1, "m2b": 9.3, "m3a": 6.1, "m3b": 
     const start = () => {
       if (myGen !== gen) { finish('stale'); return; }          // scene moved on while this line waited
       current = a; a.onended = () => finish('ended'); a.onerror = () => finish('error');
+      // A scrub into the middle of a line: jump once the file's length is known
+      // (setting src always reloads, so this fires even for the line already loaded).
+      if (startAt > 0) a.addEventListener('loadedmetadata', () => { try { a.currentTime = startAt; } catch {} }, { once: true });
       a.src = AUDIO + id + '.mp3';
-      if (DBG) DBG.push({ id, why: 'start', t: Math.round(performance.now() / 100) / 10 });
-      a.play().catch(e => finish('play-rejected:' + (e && e.name)));
+      if (DBG) DBG.push({ id, why: 'start', at: startAt || undefined, t: Math.round(performance.now() / 100) / 10 });
+      a.play().then(() => { if (startAt > 0 && a.currentTime < startAt - 0.5) { try { a.currentTime = startAt; } catch {} } })
+        .catch(e => finish('play-rejected:' + (e && e.name)));
     };
     setTimeout(() => { if (!done) finish('backstop'); }, 45000);  // a line can never hold the tour hostage
     queue.push({ start }); pump();
@@ -563,7 +569,7 @@ const DUR = {"m1a": 2.8, "m1b": 5.9, "m2a": 6.1, "m2b": 9.3, "m3a": 6.1, "m3b": 
   // Warm the browser cache for the next lines (fetch only — no extra elements).
   const preload = ids => ids.forEach(id => { try { fetch(AUDIO + id + '.mp3', { cache: 'force-cache' }).catch(() => {}); } catch {} });
   const cap = $('#cap'), capn = $('#capn'), dots = $('#dots'), time = $('#time'), playBtn = $('#play');
-  const setCap = (s, onEnd) => { cap.textContent = s; say(s, onEnd); };
+  const setCap = (s, onEnd, startAt = 0) => { cap.textContent = s; say(s, onEnd, startAt); };
   const setCapSilent = s => { cap.textContent = s; };
 
   // ═══ CUT 1 — the marketing tour (10 hand-built scenes) ═══════════════════
@@ -864,7 +870,22 @@ const DUR = {"m1a": 2.8, "m1b": 5.9, "m2a": 6.1, "m2b": 9.3, "m3a": 6.1, "m3b": 
   const chapterOf = i => { let c = 0; CH.forEach((ch, k) => { if (i >= ch.from) c = k; }); return c; };
 
   // dots (one per scene) + chapter chips (learn cut only)
-  SCENES.forEach((sc, i) => { const d = document.createElement('i'); d.innerHTML = '<b></b>'; d.title = (sc.n ? sc.n.replace(/^o/, '') + ' · ' : 'Scene ' + (i + 1) + ' · ') + (sc.title || ''); d.onclick = () => go(i); dots.appendChild(d); });
+  // Each segment is one scene; a click lands at THAT POINT in the scene (picture,
+  // caption and narration together), like scrubbing a video. It used to restart
+  // the scene from zero — on a page clip of two or three long scenes that felt
+  // like "it just starts at the beginning" (Carlos 9/21).
+  SCENES.forEach((sc, i) => {
+    const d = document.createElement('i'); d.innerHTML = '<b></b>';
+    d.title = (sc.n ? sc.n.replace(/^o/, '') + ' · ' : 'Scene ' + (i + 1) + ' · ') + (sc.title || '');
+    d.onclick = (e) => {
+      const r = d.getBoundingClientRect();
+      const frac = r.width ? Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)) : 0;
+      const ec = $('#endcard'); if (ec) ec.hidden = true;
+      pausedAt = 0;
+      go(i, frac * sc.dur * (reduced ? 0.6 : 1));
+    };
+    dots.appendChild(d);
+  });
   const chips = $('#chapters');
   if (CUT === 'learn' && !PAGE) {
     CH.forEach((ch, k) => { const b = document.createElement('button'); b.textContent = (k + 1) + ' · ' + ch.title; b.title = ch.sub; b.onclick = () => go(ch.from); chips.appendChild(b); });
@@ -892,30 +913,42 @@ const DUR = {"m1a": 2.8, "m1b": 5.9, "m2a": 6.1, "m2b": 9.3, "m3a": 6.1, "m3b": 
     if (!voiceOn && sc.capB) dur = Math.max(dur, estimate(sc.cap) + estimate(sc.capB));
     timers.push(setTimeout(() => waitVoiceThen(() => { if (i + 1 < SCENES.length) go(i + 1); else end(); }), Math.max(0, dur - offset)));
   };
-  const go = (i) => {
+  // go(i)          — start scene i from the top (next scene, replay, chapter jump)
+  // go(i, offset)  — start scene i `offset` ms in (a scrub on the progress bar):
+  //                  steps already due run at once so the picture is where it
+  //                  should be, the rest keep their timing, the clock reads the
+  //                  right time, and narration resumes mid-line.
+  const go = (i, offset = 0) => {
     timers.forEach(clearTimeout); timers = [];
     gen++;
-    if (DBG) DBG.push({ scene: i, why: 'go', talking, cur: current ? Math.round(current.currentTime * 10) / 10 + '/' + Math.round(current.duration * 10) / 10 : null, t: Math.round(performance.now() / 100) / 10 });
+    if (DBG) DBG.push({ scene: i, why: 'go', offset: offset || undefined, talking, cur: current ? Math.round(current.currentTime * 10) / 10 + '/' + Math.round(current.duration * 10) / 10 : null, t: Math.round(performance.now() / 100) / 10 });
     queue.length = 0; busy = false;
     if (current) { try { current.pause(); } catch {} current = null; talking = 0; }
     if (idx >= 0) $('#' + SCENES[idx].id).classList.remove('on');
     idx = i; const sc = SCENES[i];
     reset(sc);
     $('#' + sc.id).classList.add('on');
-    // caption B (and its clip) follows caption A the moment A's clip finishes
     if (sc.head) $('#soc-head').innerHTML = sc.head;
     if (REC) REC.push({ scene: i, at: Math.round(performance.now() - recT0) });
-    setCap(sc.cap, sc.capB ? () => { setCap(sc.capB); if (sc.onB) sc.onB(); } : null);
+    const speed = reduced ? 0.6 : 1;
+    const T = voiceMs(sc);
+    if (sc.paced) sc.dur = Math.max(6000, T);
+    offset = Math.max(0, Math.min(offset, sc.dur * speed - 250));
+    // caption B (and its clip) follows caption A the moment A's clip finishes.
+    // A scrub past line A skips straight into B at the matching point.
+    const lineB = (startAt) => { setCap(sc.capB, null, startAt); if (sc.onB) sc.onB(); };
+    const bStartsAt = estimate(sc.cap) + GAP;
+    if (sc.capB && offset >= bStartsAt) lineB((offset - bStartsAt) / 1000);
+    else setCap(sc.cap, sc.capB ? () => lineB(0) : null, offset / 1000);
     capn.textContent = sc.n ? sc.n.replace(/^o/, '') : (i + 1) + ' / ' + SCENES.length;
     markChapter(i);
     [...dots.children].forEach((d, k) => { d.classList.toggle('done', k < i); if (k >= i) d.firstChild.style.width = '0'; });
     elapsedBefore = SCENES.slice(0, i).reduce((a, s) => a + s.dur, 0);
-    t0 = performance.now(); paused = false; playBtn.textContent = '⏸ Pause'; playBtn.setAttribute('aria-label', 'Pause');
-    const speed = reduced ? 0.6 : 1;
-    const T = voiceMs(sc);
-    if (sc.paced) sc.dur = Math.max(6000, T);
-    sc.steps.forEach(st => { const at = st.t != null ? st.t : st.f * T; timers.push(setTimeout(st.run, at * speed)); });
-    armEnd(sc, i, 0);
+    t0 = performance.now() - offset; paused = false; playBtn.textContent = '⏸ Pause'; playBtn.setAttribute('aria-label', 'Pause');
+    const timed = sc.steps.map(st => ({ ...st, at: (st.t != null ? st.t : st.f * T) * speed }));
+    timed.filter(st => st.at <= offset).forEach(st => { try { st.run(); } catch {} });   // catch the picture up
+    timed.filter(st => st.at > offset).forEach(st => timers.push(setTimeout(st.run, st.at - offset)));
+    armEnd(sc, i, offset);
     const nx = SCENES[i + 1]; if (nx) preload([ID_OF[(nx.cap || '').trim()], ID_OF[(nx.capB || '').trim()]].filter(Boolean));
   };
   // Hold the scene until the narration has finished (backstop so a stuck clip
