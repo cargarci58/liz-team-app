@@ -7208,7 +7208,10 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
             <div style={{ background: "#e0f2fe", border: "1px solid #7dd3fc", borderRadius: 8, padding: 12, marginBottom: 16, fontSize: 13, color: "#0c4a6e" }}>
               <strong>🎓 Why this matters:</strong> Sellers want to know what they'll walk away with. Use this BEFORE the listing appointment to set realistic expectations on commission, FL doc stamps (~0.7%), title fees, and mortgage payoff. Avoids "I thought I was getting more" at closing.
             </div>
-            <SellerCalculator transactionId={tx.id} token={localStorage.getItem("tp_token") || ""} county={tx.county} />
+            <SellerCalculator transactionId={tx.id} token={localStorage.getItem("tp_token") || ""} county={tx.county}
+              initialSalePrice={tx.contractPrice || tx.listPrice}
+              initialCommissionPct={(tx.commissionListing || tx.commissionBuyer) ? (Number(tx.commissionListing) || 0) + (Number(tx.commissionBuyer) || 0) : undefined}
+              initialClosingDate={tx.closingDate} />
           </div>
         )}
 
