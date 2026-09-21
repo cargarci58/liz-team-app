@@ -1532,6 +1532,7 @@ export default function ClientPortal({ user, onLogout, previewTxId, onExitPrevie
     status: t.status,
     listPrice: t.list_price,
     contractPrice: t.contract_price,
+    county: t.county,
     openDate: t.open_date,
     closingDate: t.closing_date,
     backOnMarket: t.back_on_market,
@@ -2146,7 +2147,14 @@ export default function ClientPortal({ user, onLogout, previewTxId, onExitPrevie
                 <div style={{ background: "#e0f2fe", border: "1px solid #7dd3fc", borderRadius: 8, padding: 12, marginBottom: 16, fontSize: 13, color: "#0c4a6e" }}>
                   <strong>🎓 Why this matters:</strong> Estimate the cash you'll walk away with after selling. Florida sellers typically pay agent commission, doc stamps (~0.7%), title insurance, and any negotiated concessions or repairs. This gives you a realistic net.
                 </div>
-                <SellerCalculator />
+                {/* Pre-filled from the deal: contract price once under contract (else
+                    list price), the deal's commission % (same source the offers card
+                    uses), the scheduled closing date and county. All still editable. */}
+                <SellerCalculator
+                  county={tx?.county || offersContext?.county || undefined}
+                  initialSalePrice={tx?.contractPrice || tx?.listPrice}
+                  initialCommissionPct={offersContext?.commissionPct}
+                  initialClosingDate={tx?.closingDate} />
               </div>
             )}
 

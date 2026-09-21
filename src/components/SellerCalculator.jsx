@@ -82,11 +82,32 @@ function SliderRow({ label, value, onChange, min, max, step, prefix, suffix, inf
   );
 }
 
-export default function SellerCalculator({ transactionId, token, county } = {}) {
-  const [salePrice, setSalePrice] = useState(450000);
+// Normalize a preset coming from the transaction. Anything missing/zero/NaN
+// means "no preset" and the calculator falls back to its generic default.
+function presetNumber(v) {
+  if (v == null || v === "") return null;
+  const n = Number(v);
+  return isFinite(n) && n > 0 ? n : null;
+}
+function presetDate(v) {
+  if (!v) return null;
+  const m = String(v).match(/^(\d{4}-\d{2}-\d{2})/);
+  return m ? m[1] : null;
+}
+
+// Presets (salePrice / commissionPct / closingDate) come from the deal so the
+// seller doesn't have to re-type what the agent already entered: list price
+// (or contract price once under contract), the deal's commission %, and the
+// scheduled closing date. Every value stays fully editable.
+export default function SellerCalculator({ transactionId, token, county, initialSalePrice, initialCommissionPct, initialClosingDate } = {}) {
+  const presetPrice = presetNumber(initialSalePrice);
+  const presetCommission = presetNumber(initialCommissionPct);
+  const presetClosing = presetDate(initialClosingDate);
+
+  const [salePrice, setSalePrice] = useState(presetPrice ?? 450000);
   const [mortgagePayoff, setMortgagePayoff] = useState(0);
   const [loanRate, setLoanRate] = useState(6);
-  const [commissionPct, setCommissionPct] = useState(6);
+  const [commissionPct, setCommissionPct] = useState(presetCommission ?? 6);
   const [titleSettlement, setTitleSettlement] = useState(575);
   const [titleSearchFees, setTitleSearchFees] = useState(400);
   const [titleProcessingFee, setTitleProcessingFee] = useState(499);
@@ -96,15 +117,41 @@ export default function SellerCalculator({ transactionId, token, county } = {}) 
   const [taxRate, setTaxRate] = useState(() => flTaxRate(undefined, county).rate);
   const [taxLoc, setTaxLoc] = useState(() => ({ label: county ? `${county} County` : "FL default", source: county ? "county" : "default" }));
   const [closingDate, setClosingDate] = useState(() => {
+    if (presetClosing) return presetClosing;
     const d = new Date();
     d.setDate(d.getDate() + 30);
     return d.toISOString().slice(0, 10);
   });
   const [otherCosts, setOtherCosts] = useState(0);
 
+  // The portal loads the deal's commission/county in a separate request, so a
+  // preset can arrive AFTER mount. Apply it when it lands — but never overwrite
+  // a value the seller has already moved.
+  const userTouchedPrice = useRef(false);
+  const userTouchedCommission = useRef(false);
+  const userTouchedClosing = useRef(false);
+  const onSalePriceChange = (v) => { userTouchedPrice.current = true; setSalePrice(v); };
+  const onCommissionChange = (v) => { userTouchedCommission.current = true; setCommissionPct(v); };
+  const onClosingDateChange = (v) => { userTouchedClosing.current = true; setClosingDate(v); };
+  useEffect(() => { if (presetPrice != null && !userTouchedPrice.current) setSalePrice(presetPrice); }, [presetPrice]);
+  useEffect(() => { if (presetCommission != null && !userTouchedCommission.current) setCommissionPct(presetCommission); }, [presetCommission]);
+  useEffect(() => { if (presetClosing && !userTouchedClosing.current) setClosingDate(presetClosing); }, [presetClosing]);
+  const presetNotes = [
+    presetPrice != null && "sale price",
+    presetCommission != null && "commission %",
+    presetClosing && "closing date",
+  ].filter(Boolean);
+
   // Default the tax rate to the agent's profile city/county (most deals are local).
   const userTouchedRate = useRef(false);
   const onTaxRateChange = (v) => { userTouchedRate.current = true; setTaxRate(v); };
+  // The deal's county can land after mount (portal); follow it unless the
+  // rate was edited. The profile effect below still refines to the city.
+  useEffect(() => {
+    if (!county || userTouchedRate.current) return;
+    setTaxRate(flTaxRate(undefined, county).rate);
+    setTaxLoc({ label: `${county} County`, source: "county" });
+  }, [county]);
   useEffect(() => {
     if (!token) return;
     const API = import.meta.env.VITE_API_URL || "https://liz-team-server-api-production.up.railway.app";
@@ -206,9 +253,15 @@ export default function SellerCalculator({ transactionId, token, county } = {}) 
         <strong>💡 What this tells you:</strong> Your sale price minus mortgage payoff, agent commission, FL doc stamps (~0.7%), title fees, and other closing costs. This is the check you'll receive at closing.
       </div>
 
-      <SliderRow label="Sale Price" value={salePrice} onChange={setSalePrice}
+      {presetNotes.length > 0 && (
+        <div style={{ background: "#f0fdf4", border: "1px solid #86efac", borderRadius: 8, padding: "8px 12px", marginBottom: 16, fontSize: 12.5, color: "#14532d" }}>
+          ✅ Pre-filled from this transaction: <strong>{presetNotes.join(", ")}</strong>. Everything below is still adjustable — move any slider or tap a value to type your own.
+        </div>
+      )}
+
+      <SliderRow label="Sale Price" value={salePrice} onChange={onSalePriceChange}
         min={100000} max={2000000} step={5000} prefix="$"
-        info="The price you sell for. Final amount on the closing statement." />
+        info={presetPrice != null ? "Pre-filled from this transaction (contract price if under contract, otherwise the list price). Adjust to see the net at a different price." : "The price you sell for. Final amount on the closing statement."} />
 
       <SliderRow label="Mortgage Payoff" value={mortgagePayoff} onChange={setMortgagePayoff}
         min={0} max={1500000} step={1000} prefix="$"
@@ -225,9 +278,9 @@ export default function SellerCalculator({ transactionId, token, county } = {}) 
         </div>
       )}
 
-      <SliderRow label="Agent Commission %" value={commissionPct} onChange={setCommissionPct}
+      <SliderRow label="Agent Commission %" value={commissionPct} onChange={onCommissionChange}
         min={1} max={10} step={0.25} suffix="%"
-        info="Total commission paid by seller (typically split between listing and buyer agent). FL average 5-6%. Negotiable. NEW NAR rules: buyer agent commission may now be negotiated separately." />
+        info={(presetCommission != null ? "Pre-filled from this transaction's commission terms. " : "") + "Total commission paid by seller (typically split between listing and buyer agent). FL average 5-6%. Negotiable. NEW NAR rules: buyer agent commission may now be negotiated separately."} />
 
       <SliderRow label="Settlement / Closing Fee" value={titleSettlement} onChange={setTitleSettlement}
         min={0} max={3000} step={50} prefix="$"
@@ -265,7 +318,7 @@ export default function SellerCalculator({ transactionId, token, county } = {}) 
           Estimated Closing Date
           <Info>FL property taxes are paid in arrears. The seller credits the buyer for every day they owned the home this year (Jan 1 → closing). This is how the title company computes prorated taxes.</Info>
         </label>
-        <input type="date" value={closingDate} onChange={(e) => setClosingDate(e.target.value)}
+        <input type="date" value={closingDate} onChange={(e) => onClosingDateChange(e.target.value)}
           style={{ padding: "6px 10px", fontSize: 14, fontWeight: 600, color: "#1f2937", border: "1px solid #d1d5db", borderRadius: 4, fontFamily: "inherit" }} />
       </div>
 

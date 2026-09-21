@@ -532,6 +532,7 @@ const DUR = {"m1a": 2.8, "m1b": 5.9, "m2a": 6.1, "m2b": 9.3, "m3a": 6.1, "m3b": 
   // like "the audio cuts off". Lines are queued and played back to back with a
   // short breath between them.
   const player = document.createElement('audio'); player.preload = 'auto';
+  if (DBG) window.__tourPlayer = player;   // ?debug=1 only — lets a test see muted/paused state
   const queue = [];
   let busy = false;
   const GAP = 350;
@@ -963,7 +964,18 @@ const DUR = {"m1a": 2.8, "m1b": 5.9, "m2a": 6.1, "m2b": 9.3, "m3a": 6.1, "m3b": 
   // tap/click the picture or press space = pause / resume, like any video
   box.addEventListener('click', (e) => { if (e.target.closest('#gate, #endcard')) return; playBtn.onclick(); });
   addEventListener('keydown', (e) => { if (e.code === 'Space' && !e.target.closest('button, a, input')) { e.preventDefault(); playBtn.onclick(); } });
-  $('#mute').onclick = (e) => { voiceOn = !voiceOn; e.currentTarget.textContent = voiceOn ? '🔊 Voice on' : '🔇 Voice off'; e.currentTarget.setAttribute('aria-label', voiceOn ? 'Mute narration' : 'Unmute narration'); };
+  $('#mute').onclick = (e) => {
+    voiceOn = !voiceOn;
+    // voiceOn is only consulted when the NEXT line starts, so on its own the
+    // button let the line already speaking — and the one queued behind it in the
+    // same scene — play on (Carlos 9/21: "it doesn't turn off the voice"). Every
+    // line plays through this one element, so muting it silences all of them
+    // right now. Mute rather than pause: the audio's own clock keeps running,
+    // so the scene still advances on time and the caption stays in step.
+    player.muted = !voiceOn;
+    e.currentTarget.textContent = voiceOn ? '🔊 Voice on' : '🔇 Voice off';
+    e.currentTarget.setAttribute('aria-label', voiceOn ? 'Mute narration' : 'Unmute narration');
+  };
   const endClose = $('#endclose'); if (endClose) endClose.onclick = () => { try { if (parent !== window) parent.postMessage({ type: 'tour:close' }, '*'); } catch {} };
 
   // Start scene: ?chapter=N (learn cut) or ?scene=N
@@ -983,7 +995,8 @@ const DUR = {"m1a": 2.8, "m1b": 5.9, "m2a": 6.1, "m2b": 9.3, "m3a": 6.1, "m3b": 
   let musicOn = true;
   const musicBtn = $('#music'); if (musicBtn && !MUSIC) musicBtn.hidden = true;
   if (musicBtn) musicBtn.onclick = () => { musicOn = !musicOn; if (bed) { if (musicOn) bed.play().catch(() => {}); else bed.pause(); } musicBtn.textContent = musicOn ? '🎵 Music on' : '🎵 Music off'; };
-  gateBtn.onclick = () => { try { player.muted = true; player.play().catch(() => {}); player.pause(); player.muted = false; } catch {} if (bed && musicOn) bed.play().catch(() => {}); $('#gate').remove(); go(startAt); };
+  // (the unlock tap toggles muted on and off; land on whatever the Voice button says)
+  gateBtn.onclick = () => { try { player.muted = true; player.play().catch(() => {}); player.pause(); player.muted = !voiceOn; } catch {} if (bed && musicOn) bed.play().catch(() => {}); $('#gate').remove(); go(startAt); };
   // headless capture: everything stays black until the recorder says go
   window.__start = () => { document.documentElement.classList.add('rolling'); recT0 = performance.now(); go(startAt); };
   if (RECORD) { $('#gate').remove(); }
