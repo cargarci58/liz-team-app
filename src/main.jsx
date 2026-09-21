@@ -53,8 +53,12 @@ window.fetch = async function patchedFetch(input, init) {
                            path.startsWith('/tc-intake/') || path.startsWith('/portal/') || path.startsWith('/fill-info/');
       if (!isPublicPath) {
         __reloadingForAuth = true;
+        // A suspended account gets its own message — "session expired" would send
+        // them back to a login that refuses them.
+        let msg = 'Your session has expired. Please log in again.';
+        try { const b = await res.clone().json(); if (b && b.code === 'account_suspended' && b.error) msg = b.error; } catch (_) {}
         try { localStorage.removeItem('tp_token'); localStorage.removeItem('tp_user'); } catch (_) {}
-        alert('Your session has expired. Please log in again.');
+        alert(msg);
         window.location.href = '/';
       }
     }

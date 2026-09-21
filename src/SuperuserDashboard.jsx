@@ -126,6 +126,8 @@ function SuperuserDashboard({ onClose, token }) {
   const [codeNote, setCodeNote] = useState("");
   const [codeBusy, setCodeBusy] = useState(false);
   const [copiedCode, setCopiedCode] = useState("");
+  const [codeExpiry, setCodeExpiry] = useState("30"); // days an unused code stays valid; "0" = never
+  const [actingId, setActingId] = useState(null);     // row whose revoke/suspend/reactivate is in flight
   const loadCodes = () => {
     fetch(API + "/admin/superuser/invite-codes", { headers })
       .then(r => r.json())
@@ -135,7 +137,7 @@ function SuperuserDashboard({ onClose, token }) {
   const createCode = async () => {
     setCodeBusy(true);
     try {
-      const r = await fetch(API + "/admin/superuser/invite-codes", { method: "POST", headers, body: JSON.stringify({ note: codeNote.trim() }) });
+      const r = await fetch(API + "/admin/superuser/invite-codes", { method: "POST", headers, body: JSON.stringify({ note: codeNote.trim(), expiresInDays: Number(codeExpiry) }) });
       const d = await r.json();
       if (!r.ok || !d.success) throw new Error(d.error || "Could not create the code");
       setCodeNote("");
@@ -148,6 +150,47 @@ function SuperuserDashboard({ onClose, token }) {
     try { navigator.clipboard.writeText(inviteBase + code); setCopiedCode(code); setTimeout(() => setCopiedCode(""), 3000); }
     catch { alert(inviteBase + code); }
   };
+  // One call per row action; reloads the list so the status chip is the truth.
+  const rowAction = async (c, path, body) => {
+    setActingId(c.id);
+    try {
+      const r = await fetch(API + path, { method: "POST", headers, body: JSON.stringify(body || {}) });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok || !d.success) throw new Error(d.error || "That didn't work — try again.");
+      loadCodes();
+    } catch (e) { alert("⚠️ " + e.message); }
+    setActingId(null);
+  };
+  const revokeCode = (c) => {
+    if (!window.confirm(`Cancel code ${c.code}? Nobody will be able to sign up with it.`)) return;
+    rowAction(c, `/admin/superuser/invite-codes/${c.id}/revoke`);
+  };
+  const suspendAccount = (c) => {
+    const reason = window.prompt(
+      `Suspend ${c.brokerage_name || c.used_by_email}?\n\n` +
+      `• They're signed out right away and can't sign back in\n` +
+      `• Their clients' portals close\n` +
+      `• Every automatic email and text on their deals stops\n` +
+      `• Nothing is deleted — Reactivate puts it all back\n\n` +
+      `Reason (optional, only you see it):`, "");
+    if (reason === null) return; // cancelled
+    rowAction(c, `/admin/superuser/tenants/${c.tenant_id}/suspend`, { reason });
+  };
+  const reactivateAccount = (c) => {
+    if (!window.confirm(`Reactivate ${c.brokerage_name || c.used_by_email}? They can sign in again and their automatic emails resume.`)) return;
+    rowAction(c, `/admin/superuser/tenants/${c.tenant_id}/reactivate`);
+  };
+  const CODE_STATUS = {
+    unused:    { label: "Unused",    color: "#B7770D", bg: "#FEF6E7" },
+    active:    { label: "Active",    color: "#1E8449", bg: "#E8F5EC" },
+    suspended: { label: "Suspended", color: "#B3261E", bg: "#FBE9E7" },
+    expired:   { label: "Expired",   color: "#64748B", bg: "#F1F5F9" },
+    revoked:   { label: "Cancelled", color: "#64748B", bg: "#F1F5F9" },
+  };
+  const rowBtn = (color, filled) => ({
+    padding: "4px 12px", borderRadius: 7, border: `1px solid ${color}`, background: filled ? color : "#fff",
+    color: filled ? "#fff" : color, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
+  });
 
   useEffect(() => { loadHealth(); loadReviews(); loadFeedback(); loadCodes(); }, []);
   useEffect(() => { loadFeedback(fbFilter); }, [fbFilter]);
@@ -183,11 +226,18 @@ function SuperuserDashboard({ onClose, token }) {
         <div style={{ background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 12, padding: 16, marginBottom: 24 }}>
           <div style={{ fontSize: 15, fontWeight: 800, color: COLORS.navy, marginBottom: 4 }}>🎟️ Invite Codes</div>
           <div style={{ fontSize: 12.5, color: COLORS.muted, marginBottom: 12, lineHeight: 1.5 }}>
-            Signup is invite-only. Each code works <b>once</b> — generate one per person, send them the personal link, and this list shows who redeemed it. Invited signups are tagged <b>founding tester</b> (never billed).
+            Signup is invite-only. Each code works <b>once</b> — generate one per person and send them the personal link. Once they sign up, their account appears on the code's row: <b>Suspend</b> signs them out and stops everything on their account without deleting anything, and <b>Reactivate</b> puts it all back. Invited signups are tagged <b>founding tester</b> (never billed).
           </div>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
             <input value={codeNote} onChange={e => setCodeNote(e.target.value)} placeholder='Who is this for? (e.g. "John Smith — tester #2")'
               style={{ flex: "1 1 240px", padding: "9px 12px", borderRadius: 8, border: "1.5px solid #CBD5E1", fontSize: 13.5, fontFamily: "inherit" }} />
+            <select value={codeExpiry} onChange={e => setCodeExpiry(e.target.value)} aria-label="Code expires"
+              style={{ padding: "9px 10px", borderRadius: 8, border: "1.5px solid #CBD5E1", fontSize: 13, fontFamily: "inherit", background: "#fff" }}>
+              <option value="7">Expires in 7 days</option>
+              <option value="30">Expires in 30 days</option>
+              <option value="90">Expires in 90 days</option>
+              <option value="0">Never expires</option>
+            </select>
             <button onClick={createCode} disabled={codeBusy}
               style={{ padding: "9px 18px", borderRadius: 8, border: "none", background: codeBusy ? "#94A3B8" : "#1E8449", color: "#fff", fontWeight: 800, fontSize: 13, cursor: codeBusy ? "wait" : "pointer", fontFamily: "inherit" }}>
               {codeBusy ? "Creating…" : "➕ New code (copies the link)"}
@@ -198,22 +248,51 @@ function SuperuserDashboard({ onClose, token }) {
           ) : codes.length === 0 ? (
             <div style={{ fontSize: 13, color: COLORS.muted }}>No codes yet — create your first above.</div>
           ) : (
-            <div style={{ maxHeight: 260, overflowY: "auto" }}>
-              {codes.map(c => (
-                <div key={c.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 0", borderBottom: "1px solid #EEF2F7", flexWrap: "wrap" }}>
-                  <code style={{ fontWeight: 800, fontSize: 13.5, color: c.used_at ? "#94A3B8" : COLORS.navy, textDecoration: c.used_at ? "line-through" : "none" }}>{c.code}</code>
-                  {c.note && <span style={{ fontSize: 12.5, color: "#475569" }}>{c.note}</span>}
-                  <span style={{ marginLeft: "auto", fontSize: 12, color: c.used_at ? "#1E8449" : "#B7770D", fontWeight: 700 }}>
-                    {c.used_at ? `✓ used by ${c.used_by_email} · ${fmtDate(c.used_at)}` : "unused"}
-                  </span>
-                  {!c.used_at && (
-                    <button onClick={() => copyLink(c.code)}
-                      style={{ padding: "4px 12px", borderRadius: 7, border: "1px solid #1E8449", background: "#fff", color: "#1E8449", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
-                      {copiedCode === c.code ? "✅ Link copied" : "🔗 Copy invite link"}
-                    </button>
-                  )}
-                </div>
-              ))}
+            <div style={{ maxHeight: 360, overflowY: "auto" }}>
+              {codes.map(c => {
+                const st = CODE_STATUS[c.status] || CODE_STATUS.unused;
+                const busy = actingId === c.id;
+                const redeemed = c.status === "active" || c.status === "suspended";
+                return (
+                  <div key={c.id} style={{ padding: "10px 0", borderBottom: "1px solid #EEF2F7", opacity: busy ? 0.55 : 1 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                      <code style={{ fontWeight: 800, fontSize: 13.5, color: c.status === "unused" ? COLORS.navy : "#94A3B8" }}>{c.code}</code>
+                      <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: ".04em", textTransform: "uppercase", color: st.color, background: st.bg, padding: "2px 8px", borderRadius: 99 }}>{st.label}</span>
+                      {c.note && <span style={{ fontSize: 12.5, color: "#475569" }}>{c.note}</span>}
+                      <span style={{ marginLeft: "auto", display: "flex", gap: 6, flexWrap: "wrap" }}>
+                        {c.status === "unused" && <>
+                          <button onClick={() => copyLink(c.code)} disabled={busy} style={rowBtn("#1E8449")}>
+                            {copiedCode === c.code ? "✅ Link copied" : "🔗 Copy invite link"}
+                          </button>
+                          <button onClick={() => revokeCode(c)} disabled={busy} style={rowBtn("#64748B")}>Cancel code</button>
+                        </>}
+                        {c.status === "active" && c.tenant_id &&
+                          <button onClick={() => suspendAccount(c)} disabled={busy} style={rowBtn("#B3261E")}>⛔ Suspend</button>}
+                        {c.status === "suspended" && c.tenant_id &&
+                          <button onClick={() => reactivateAccount(c)} disabled={busy} style={rowBtn("#1E8449", true)}>Reactivate</button>}
+                      </span>
+                    </div>
+                    <div style={{ fontSize: 12, color: "#64748B", marginTop: 4, lineHeight: 1.5 }}>
+                      {c.status === "unused" && (c.expires_at ? `Expires ${fmtDate(c.expires_at)}` : "Never expires")}
+                      {c.status === "expired" && `Expired ${fmtDate(c.expires_at)} without being used`}
+                      {c.status === "revoked" && `Cancelled ${fmtDate(c.revoked_at)}`}
+                      {redeemed && <>
+                        <b style={{ color: "#334155" }}>{c.owner_name || c.used_by_email}</b>
+                        {c.brokerage_name ? ` · ${c.brokerage_name}` : ""}
+                        {` · signed up ${fmtDate(c.used_at)}`}
+                        {` · ${c.open_deals || 0} open deal${c.open_deals === 1 ? "" : "s"}`}
+                        {` · ${c.last_login_at ? "last signed in " + fmtDate(c.last_login_at) : "never signed in"}`}
+                        {!c.tenant_id && " · account not found (it may have been removed)"}
+                      </>}
+                      {c.status === "suspended" && (
+                        <div style={{ color: "#B3261E", marginTop: 2 }}>
+                          Suspended {fmtDate(c.suspended_at)}{c.suspended_reason ? ` — ${c.suspended_reason}` : ""}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>
