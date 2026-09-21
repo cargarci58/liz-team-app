@@ -166,32 +166,31 @@ export const PAGE_TIPS = {
 // then stops — a one-minute clip about THIS page, in Kristen's voice, instead
 // of three lines of text. Add a scene here when you add one to the tour.
 export const PAGE_SCENES = {
-  // Chapter 1 is the deep version (every section of Win The Day). The other
-  // pages still play their original scenes ("o" numbers) until their deep
-  // chapter is recorded — swap the ids here as each chapter goes live.
+  // Scene numbers = chapter.scene of the "learn the app" cut (public/tour).
+  // Every page plays its whole chapter — every section of that page explained.
   home: ["1.1", "1.2", "1.3", "1.4", "1.5", "1.6", "1.7", "1.8", "1.9", "1.10", "1.11", "1.12", "1.13"],
-  dashboard: ["o1.3"],
-  new: ["o2.2"],
-  contacts: ["o5.1", "o5.2"],
-  expenses: ["o6.1", "o6.2"],
-  popbys: ["o5.3"],
-  scripts: ["o5.4"],
-  growthplan: ["o6.3"],
-  cma: ["o2.4"],
-  forms: ["o9.3"],
-  reports: ["o6.4"],
-  "tx:overview": ["o3.1"],
-  "tx:overview:listing": ["o3.1", "o4.2"],
-  "tx:milestones": ["o3.2", "o7.1"],
-  "tx:documents": ["o3.3", "o3.4", "o4.4"],
-  "tx:documents:listing": ["o3.3", "o3.4", "o4.3", "o4.4"],
-  "tx:offers": ["o4.1"],
-  "tx:offers:listing": ["o4.2"],
-  "tx:parties": ["o3.5", "o3.6"],
-  "tx:messages": ["o3.7", "o7.4"],
-  "tx:seller-calc": ["o3.8"],
-  "tx:buyer-net": ["o3.8"],
-  "tx:cma": ["o2.4"],
+  dashboard: ["2.1", "2.2"],
+  new: ["3.2", "3.1", "3.3"],
+  contacts: ["11.1", "11.2", "1.5", "1.7"],
+  expenses: ["13.1", "13.2"],
+  popbys: ["12.1", "1.9"],
+  scripts: ["12.2"],
+  growthplan: ["14.1"],
+  cma: ["15.1"],
+  forms: ["15.2"],
+  reports: ["14.2"],
+  "tx:overview": ["4.1", "4.2"],
+  "tx:overview:listing": ["4.1", "4.2", "7.2", "7.3"],
+  "tx:milestones": ["5.1", "5.2"],
+  "tx:documents": ["6.1", "6.2"],
+  "tx:documents:listing": ["6.1", "6.2", "7.3"],
+  "tx:offers": ["7.1"],
+  "tx:offers:listing": ["7.2"],
+  "tx:parties": ["8.1", "8.2"],
+  "tx:messages": ["9.1", "9.2"],
+  "tx:seller-calc": ["10.1"],
+  "tx:buyer-net": ["10.1"],
+  "tx:cma": ["15.1"],
 };
 export function dealTabScenes(tabId, { isListingSide } = {}) {
   if (isListingSide && PAGE_SCENES["tx:" + tabId + ":listing"]) return PAGE_SCENES["tx:" + tabId + ":listing"];
