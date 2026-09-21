@@ -83,7 +83,7 @@ const CAN_RECORD = typeof window !== "undefined" && typeof window.MediaRecorder 
 // Reads the streaming answer (POST /assistant/stream, server-sent events) and
 // hands each piece of text over the moment it arrives, so the panel can start
 // speaking before the full answer — cards and all — finishes generating.
-async function readAnswerStream(res, onDelta) {
+async function readAnswerStream(res, onDelta, onStatus) {
   const reader = res.body.getReader();
   const dec = new TextDecoder();
   let buf = "", answer = null, err = null;
@@ -101,6 +101,7 @@ async function readAnswerStream(res, onDelta) {
       let data;
       try { data = JSON.parse(dl[1]); } catch { continue; }
       if (ev[1] === "delta") { if (data.text) onDelta(data.text); }
+      else if (ev[1] === "status") { if (onStatus && data.text) onStatus(data.text); }   // "Checking your deals…" while a lookup runs
       else if (ev[1] === "done") answer = data;
       else if (ev[1] === "error") err = data.error || "error";
     }
@@ -577,6 +578,7 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
   const [transcribing, setTranscribing] = useState(false);
   const [micStarting, setMicStarting] = useState(false);  // instant tap feedback while the mic opens
   const [streamText, setStreamText] = useState("");      // answer text as it streams in
+  const [statusText, setStatusText] = useState("");      // what the brain is doing before the first word ("Checking your deals…")
   // iOS asks for the mic once per visit no matter what the page does — the
   // only way to stop it is Safari's own per-site setting, so say so once.
   const [iosTip, setIosTip] = useState(() => IS_IOS && localStorage.getItem("tp_assist_iostip") !== "off");
@@ -1224,7 +1226,7 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
         acc += piece;
         setStreamText(acc);
         flush(false);
-      });
+      }, (what) => setStatusText(what));
       if (d && (d.reply || (d.cards && d.cards.length))) {
         // Speak whatever the last sentence-boundary left behind, then close
         // the queue so the mic re-opens after the final word.
@@ -1240,6 +1242,7 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
       if (spokenLive) { stopSpeaking(); ttsRef.current.seq += 1; ttsRef.current.onDone = null; spokenLive = false; }
     }
     setStreamText("");
+    setStatusText("");
 
     // ——— Streaming unavailable (old build, proxy that buffers) → plain POST ———
     if (!out) {
@@ -1383,7 +1386,7 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
                   </div>
                 </div>
               )}
-              {busy && !streamText && <div style={{ fontSize: 13, color: "#6b7280", padding: "4px 2px" }}>Thinking…</div>}
+              {busy && !streamText && <div style={{ fontSize: 13, color: "#6b7280", padding: "4px 2px" }}>{statusText || "Thinking…"}</div>}
               {listening && (
                 <div style={{ background: "#FFF7ED", border: "1px solid #FED7AA", borderRadius: 10, padding: "10px 12px", marginTop: 4 }}>
                   <div style={{ fontSize: 13, color: RED, fontWeight: 700 }}>● Listening — take all the time you need.</div>

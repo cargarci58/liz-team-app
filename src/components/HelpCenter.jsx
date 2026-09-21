@@ -189,15 +189,54 @@ export default function HelpCenter({ apiBase, token, onGoals, onProfile, onCompa
     setAiInput('');
     setAiSending(true);
     setAiError(null);
-    fetch(`${apiBase}/support/chat`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ messages: next }),
-    })
-      .then(r => r.ok ? r.json() : r.json().then(e => Promise.reject(e)))
-      .then(data => setAiMessages(m => [...m, { role: 'assistant', content: data.reply || "Sorry, I didn't catch that — could you rephrase?" }]))
-      .catch(e => setAiError(e?.error || 'Could not reach the assistant. Please try again, or use the 📣 Feedback tab.'))
-      .finally(() => setAiSending(false));
+    // The answer streams in word by word (server-sent events) so the reader
+    // sees it being written instead of staring at "Thinking…" until the whole
+    // thing exists. A server that answers with plain JSON still works.
+    (async () => {
+      try {
+        const r = await fetch(`${apiBase}/support/chat`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Accept: 'text/event-stream', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ messages: next }),
+        });
+        if (!r.ok) throw await r.json().catch(() => ({}));
+        if (!/text\/event-stream/.test(r.headers.get('content-type') || '') || !r.body) {
+          const data = await r.json();
+          setAiMessages(m => [...m, { role: 'assistant', content: data.reply || "Sorry, I didn't catch that — could you rephrase?" }]);
+          return;
+        }
+        let acc = '', started = false;
+        // Decide "first chunk or not" NOW — React runs the updater later, by
+        // which time the flag has flipped, and the answer would overwrite the
+        // reader's own question bubble instead of getting its own.
+        const show = (text) => {
+          const first = !started; started = true;
+          setAiMessages(m => first ? [...m, { role: 'assistant', content: text }] : m.map((x, i) => (i === m.length - 1 ? { ...x, content: text } : x)));
+        };
+        const reader = r.body.getReader();
+        const dec = new TextDecoder();
+        let buf = '', finalReply = null, streamErr = null;
+        for (;;) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buf += dec.decode(value, { stream: true });
+          let cut;
+          while ((cut = buf.indexOf('\n\n')) !== -1) {
+            const block = buf.slice(0, cut); buf = buf.slice(cut + 2);
+            const ev = /^event: (.*)$/m.exec(block), dl = /^data: (.*)$/m.exec(block);
+            if (!ev || !dl) continue;
+            let data = {}; try { data = JSON.parse(dl[1]); } catch {}
+            if (ev[1] === 'delta' && data.text) { acc += data.text; show(acc); }
+            else if (ev[1] === 'done') finalReply = data.reply || acc;
+            else if (ev[1] === 'error') streamErr = data.error;
+          }
+        }
+        if (streamErr && !acc) throw { error: streamErr };
+        show(finalReply || acc || "Sorry, I didn't catch that — could you rephrase?");
+      } catch (e) {
+        setAiError(e?.error || 'Could not reach the assistant. Please try again, or use the 📣 Feedback tab.');
+      } finally { setAiSending(false); }
+    })();
   };
 
   // Allow opening from elsewhere (⚙️ Menu → ❓ Help) by bumping `openSignal`.
