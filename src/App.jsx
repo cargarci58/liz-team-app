@@ -4073,6 +4073,27 @@ export function WelcomeEmailPreview({ txId, onClose, onlyPartyId = null }) {
   // the full executed contract is already here; don't make me re-upload it).
   const [showDocPicker, setShowDocPicker] = useState(false);
   const [dealDocs, setDealDocs] = useState([]);
+  // Commission gate (Carlos 9/24): title's welcome email carries the
+  // commission for the settlement statement — sends stay locked until entered.
+  const [commissionMissing, setCommissionMissing] = useState([]);
+  const [commVals, setCommVals] = useState({});
+  const [savingComm, setSavingComm] = useState(false);
+  const commLocked = commissionMissing.length > 0;
+  const saveCommission = async () => {
+    setSavingComm(true);
+    try {
+      const body = {};
+      commissionMissing.forEach(f => { if (commVals[f] !== undefined && commVals[f] !== "") body[f] = commVals[f]; });
+      if (Object.keys(body).length === 0) throw new Error("Enter the commission percent first.");
+      const r = await fetch(`${API}/transactions/${txId}/commission`, {
+        method: "POST", headers: { ...hdrs, "Content-Type": "application/json" }, body: JSON.stringify(body),
+      });
+      const d = await r.json();
+      if (!d.success) throw new Error(d.error || "Could not save");
+      await loadPreviews();
+    } catch (e) { alert("⚠️ " + e.message); }
+    finally { setSavingComm(false); }
+  };
   const loadDealDocs = async () => {
     try {
       const r = await fetch(`${API}/documents/${txId}`, { headers: hdrs });
@@ -4120,6 +4141,7 @@ export function WelcomeEmailPreview({ txId, onClose, onlyPartyId = null }) {
         if (onlyPartyId) pv = pv.filter(p => String(p.partyId) === String(onlyPartyId));
         setPreviews(pv);
         setSkipped(onlyPartyId ? [] : (d.skipped || []));
+        setCommissionMissing(d.commissionMissing || []);
         if (onlyPartyId && pv.length === 0) throw new Error("Couldn't build a preview for this person — check they have a valid email, then try again.");
         // Default attachments to the MAIN contract only — pre-exclude addenda/
         // disclosures; the agent opts them back in with "undo". Only seed once.
@@ -4205,11 +4227,36 @@ export function WelcomeEmailPreview({ txId, onClose, onlyPartyId = null }) {
             <div style={{ fontSize: 12, color: COLORS.muted }}>Review each email, then Send. Nothing is sent until you click Send.</div>
           </div>
           <div style={{ display: "flex", gap: 8 }}>
-            {previews.length > 0 && <button onClick={sendAll} disabled={busy} style={{ background: "#1E8449", color: "#fff", border: "none", borderRadius: 8, padding: "9px 16px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>Send All</button>}
+            {previews.length > 0 && <button onClick={sendAll} disabled={busy || commLocked} title={commLocked ? "Enter the commission first" : undefined} style={{ background: commLocked ? "#9CA3AF" : "#1E8449", color: "#fff", border: "none", borderRadius: 8, padding: "9px 16px", fontSize: 13, fontWeight: 700, cursor: commLocked ? "not-allowed" : "pointer", fontFamily: "inherit" }}>{commLocked ? "🔒 Send All" : "Send All"}</button>}
             <button onClick={onClose} style={{ background: "#fff", color: COLORS.text, border: "1px solid " + COLORS.border, borderRadius: 8, padding: "9px 16px", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>{Object.keys(sentIds).length > 0 ? "Done" : "Cancel — send later"}</button>
           </div>
         </div>
 
+        {!loading && commLocked && (
+          <div style={{ background: "#FEF2F2", borderBottom: "1px solid #FCA5A5", padding: "12px 20px", display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+            <div style={{ flex: "1 1 260px", fontSize: 13, color: "#991B1B", lineHeight: 1.45 }}>
+              ⚠️ <b>Commission is not entered on this deal.</b> The title company's welcome email includes it for the settlement statement — enter it to unlock Send.
+            </div>
+            {commissionMissing.includes("commission_listing") && (
+              <label style={{ fontSize: 12, fontWeight: 700, color: "#991B1B", display: "flex", alignItems: "center", gap: 6 }}>
+                Listing side %
+                <input type="number" min="0" max="50" step="0.25" value={commVals.commission_listing ?? ""} onChange={e => setCommVals(v => ({ ...v, commission_listing: e.target.value }))}
+                  style={{ width: 74, padding: "7px 8px", borderRadius: 7, border: "1px solid #FCA5A5", fontSize: 14, fontFamily: "inherit" }} />
+              </label>
+            )}
+            {commissionMissing.includes("commission_buyer") && (
+              <label style={{ fontSize: 12, fontWeight: 700, color: "#991B1B", display: "flex", alignItems: "center", gap: 6 }}>
+                Buyer's broker %
+                <input type="number" min="0" max="50" step="0.25" value={commVals.commission_buyer ?? ""} onChange={e => setCommVals(v => ({ ...v, commission_buyer: e.target.value }))}
+                  style={{ width: 74, padding: "7px 8px", borderRadius: 7, border: "1px solid #FCA5A5", fontSize: 14, fontFamily: "inherit" }} />
+              </label>
+            )}
+            <button onClick={saveCommission} disabled={savingComm}
+              style={{ background: "#991B1B", color: "#fff", border: "none", borderRadius: 8, padding: "9px 16px", fontSize: 13, fontWeight: 700, cursor: savingComm ? "wait" : "pointer", fontFamily: "inherit" }}>
+              {savingComm ? "Saving…" : "Save & unlock"}
+            </button>
+          </div>
+        )}
         {loading ? (
           <div style={{ padding: 40, textAlign: "center", color: COLORS.muted }}>Building previews…</div>
         ) : error ? (
@@ -4241,7 +4288,7 @@ export function WelcomeEmailPreview({ txId, onClose, onlyPartyId = null }) {
             <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
               <div style={{ padding: "10px 16px", borderBottom: "1px solid " + COLORS.border, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
                 <div style={{ fontSize: 13, color: COLORS.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}><strong>To:</strong> {cur?.email} &nbsp; <strong>Subj:</strong> {cur?.subject}</div>
-                <button onClick={() => sendOne(cur)} disabled={busy || sentIds[cur?.partyId]} style={{ background: sentIds[cur?.partyId] ? "#9CA3AF" : "#C0392B", color: "#fff", border: "none", borderRadius: 8, padding: "8px 18px", fontSize: 13, fontWeight: 700, cursor: sentIds[cur?.partyId] ? "default" : "pointer", fontFamily: "inherit", flexShrink: 0 }}>{sentIds[cur?.partyId] ? "✓ Sent" : "Send"}</button>
+                <button onClick={() => sendOne(cur)} disabled={busy || commLocked || sentIds[cur?.partyId]} title={commLocked ? "Enter the commission first" : undefined} style={{ background: sentIds[cur?.partyId] || commLocked ? "#9CA3AF" : "#C0392B", color: "#fff", border: "none", borderRadius: 8, padding: "8px 18px", fontSize: 13, fontWeight: 700, cursor: sentIds[cur?.partyId] || commLocked ? "default" : "pointer", fontFamily: "inherit", flexShrink: 0 }}>{sentIds[cur?.partyId] ? "✓ Sent" : commLocked ? "🔒 Send" : "Send"}</button>
               </div>
               {/* attachments for this recipient — click name to preview, X to remove */}
               <div style={{ padding: "8px 16px", borderBottom: "1px solid " + COLORS.border, background: "#F9FAFB", display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
