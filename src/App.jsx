@@ -4080,15 +4080,15 @@ export function WelcomeEmailPreview({ txId, onClose, onlyPartyId = null }) {
       setDealDocs((d.documents || []).filter(x => /pdf$/i.test(x.mime_type || "")));
     } catch { setDealDocs([]); }
   };
-  // Attaching an existing doc = tag it "Offer / Contract" so it becomes a
-  // shareable contract attachment, then refresh the previews.
+  // Attaching an existing doc = mark it as THE executed contract, so the
+  // emails attach it (a category re-tag alone lost to an older executed copy —
+  // Gawsworth 9/24), then refresh the previews.
   const attachExisting = async (docId) => {
     setAttaching(true);
     try {
-      await fetch(`${API}/documents/${docId}/category`, {
-        method: "PATCH", headers: { ...hdrs, "Content-Type": "application/json" },
-        body: JSON.stringify({ category: "Contract Package" }),
-      });
+      const r = await fetch(`${API}/transactions/${txId}/documents/${docId}/use-as-contract`, { method: "POST", headers: hdrs });
+      const d = await r.json();
+      if (!d.success) throw new Error(d.error || "Could not attach");
       setExcludedDocs(s => { const n = { ...s }; delete n[docId]; return n; });
       await loadPreviews();
       setShowDocPicker(false);

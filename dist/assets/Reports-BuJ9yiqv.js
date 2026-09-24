@@ -1,4 +1,4 @@
-import{r as y,j as e,F as te,a as oe,b as ne,R as N}from"./index-VXrUJHIa.js";const se="https://liz-team-server-api-production.up.railway.app",R=async(n,g={})=>{const d=localStorage.getItem("tp_token"),a=await fetch(`${se}${n}`,{...g,headers:{"Content-Type":"application/json",Authorization:`Bearer ${d}`,...g.headers||{}}});if(!a.ok)throw new Error(`${a.status}`);return a.json()},le=`
+import{r as y,j as e,F as te,a as oe,b as ne,R as N}from"./index-PJtiJBRf.js";const se="https://liz-team-server-api-production.up.railway.app",R=async(n,g={})=>{const d=localStorage.getItem("tp_token"),a=await fetch(`${se}${n}`,{...g,headers:{"Content-Type":"application/json",Authorization:`Bearer ${d}`,...g.headers||{}}});if(!a.ok)throw new Error(`${a.status}`);return a.json()},le=`
   @media print {
     body * { visibility: hidden; }
     #reports-printable, #reports-printable * { visibility: visible; }
