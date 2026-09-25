@@ -4101,9 +4101,18 @@ export function WelcomeEmailPreview({ txId, onClose, onlyPartyId = null }) {
       setDealDocs((d.documents || []).filter(x => /pdf$/i.test(x.mime_type || "")));
     } catch { setDealDocs([]); }
   };
-  // Attaching an existing doc = mark it as THE executed contract, so the
-  // emails attach it (a category re-tag alone lost to an older executed copy —
-  // Gawsworth 9/24), then refresh the previews.
+  // Extra files on top of the contract (Carlos 9/25: couldn't attach more than
+  // one — picking a second file REPLACED the contract). docId -> name.
+  const [extraDocs, setExtraDocs] = useState({});
+  const addExtra = (docId, name) => {
+    setExtraDocs(s => ({ ...s, [docId]: name || "document.pdf" }));
+    setExcludedDocs(s => { const n = { ...s }; delete n[docId]; return n; });
+    setShowDocPicker(false);
+  };
+  const removeExtra = (docId) => setExtraDocs(s => { const n = { ...s }; delete n[docId]; return n; });
+  // "Use as the contract" = mark it as THE executed contract, so the emails
+  // attach it in place of the auto-picked one (a category re-tag alone lost to
+  // an older executed copy — Gawsworth 9/24), then refresh the previews.
   const attachExisting = async (docId) => {
     setAttaching(true);
     try {
@@ -4156,8 +4165,8 @@ export function WelcomeEmailPreview({ txId, onClose, onlyPartyId = null }) {
   };
   useEffect(() => { loadPreviews(true); }, [txId]);
 
-  // Attach an extra file: upload it to the transaction as a Contract Package
-  // document so it rides along on the welcome emails, then refresh the preview.
+  // Attach an extra file: upload it to the deal's Documents, then add it to
+  // the emails as an extra (on top of the contract, never replacing it).
   const attachFile = async (file) => {
     if (!file) return;
     if (file.size > 10 * 1024 * 1024) { alert("File too large — max 10 MB so it fits as an email attachment."); return; }
@@ -4171,10 +4180,11 @@ export function WelcomeEmailPreview({ txId, onClose, onlyPartyId = null }) {
       });
       const r = await fetch(`${API}/documents/upload`, {
         method: "POST", headers: { ...hdrs, "Content-Type": "application/json" },
-        body: JSON.stringify({ transactionId: txId, fileName: file.name, fileType: file.type || "application/pdf", category: "Contract Package", base64 })
+        body: JSON.stringify({ transactionId: txId, fileName: file.name, fileType: file.type || "application/pdf", base64 })
       });
       const d = await r.json();
       if (d.error) throw new Error(d.error);
+      if (d.docId) addExtra(d.docId, file.name);
       await loadPreviews();
     } catch (e) { alert("Could not attach: " + e.message); }
     finally { setAttaching(false); if (fileRef.current) fileRef.current.value = ""; }
@@ -4184,7 +4194,7 @@ export function WelcomeEmailPreview({ txId, onClose, onlyPartyId = null }) {
     if (!p.partyId) { alert("This recipient can't be sent individually (missing id). Use Send All."); return; }
     setBusy(true);
     try {
-      const r = await fetch(`${API}/transactions/${txId}/parties/${p.partyId}/send-welcome`, { method: "POST", headers: { ...hdrs, "Content-Type": "application/json" }, body: JSON.stringify({ excludeDocIds: excludeList() }) });
+      const r = await fetch(`${API}/transactions/${txId}/parties/${p.partyId}/send-welcome`, { method: "POST", headers: { ...hdrs, "Content-Type": "application/json" }, body: JSON.stringify({ excludeDocIds: excludeList(), extraDocIds: Object.keys(extraDocs) }) });
       const d = await r.json();
       if (!d.success) throw new Error(d.error || "Email was not sent.");
       setSentIds(s => ({ ...s, [p.partyId]: true }));
@@ -4196,7 +4206,7 @@ export function WelcomeEmailPreview({ txId, onClose, onlyPartyId = null }) {
     if (!window.confirm(`Send all ${previews.length} welcome email(s) now?`)) return;
     setBusy(true);
     try {
-      const r = await fetch(`${API}/transactions/${txId}/send-welcome-emails`, { method: "POST", headers: { ...hdrs, "Content-Type": "application/json" }, body: JSON.stringify({ excludeDocIds: excludeList() }) });
+      const r = await fetch(`${API}/transactions/${txId}/send-welcome-emails`, { method: "POST", headers: { ...hdrs, "Content-Type": "application/json" }, body: JSON.stringify({ excludeDocIds: excludeList(), extraDocIds: Object.keys(extraDocs) }) });
       const d = await r.json();
       const done = {};
       (d.sent || []).forEach(s => { const m = previews.find(p => p.email === s.email); if (m) done[m.partyId] = true; });
@@ -4297,9 +4307,19 @@ export function WelcomeEmailPreview({ txId, onClose, onlyPartyId = null }) {
                   const all = cur?.attachments || [];
                   const active = all.filter(a => !excludedDocs[a.id]);
                   const removed = all.filter(a => excludedDocs[a.id]);
+                  // Inspector/HOA never get documents — the server drops extras for them too.
+                  const extras = cur && !/inspector|hoa/i.test(cur.role || "")
+                    ? Object.entries(extraDocs).filter(([id]) => !all.some(a => String(a.id) === String(id)))
+                    : [];
                   return (
                     <>
-                      {active.length === 0 && removed.length === 0 && (
+                      {extras.map(([id, name]) => (
+                        <span key={"x" + id} style={{ fontSize: 12, color: COLORS.text, background: "#fff", border: "1px solid " + COLORS.border, borderRadius: 6, padding: "3px 6px 3px 8px", display: "inline-flex", alignItems: "center", gap: 6 }}>
+                          <span onClick={() => previewDoc(id)} title="Click to preview" style={{ cursor: "pointer", textDecoration: "underline", textDecorationStyle: "dotted" }}>📄 {name}</span>
+                          <button onClick={() => removeExtra(id)} title="Remove from emails" style={{ background: "none", border: "none", color: "#B91C1C", cursor: "pointer", fontSize: 14, fontWeight: 800, lineHeight: 1, padding: "0 2px" }}>×</button>
+                        </span>
+                      ))}
+                      {active.length === 0 && removed.length === 0 && extras.length === 0 && (
                         <span style={{ fontSize: 12, color: COLORS.muted, fontStyle: "italic" }}>None for this recipient{cur && /inspector|hoa/i.test(cur.role || "") ? " (role gets no documents)" : ""}</span>
                       )}
                       {active.map((a) => (
@@ -4333,14 +4353,19 @@ export function WelcomeEmailPreview({ txId, onClose, onlyPartyId = null }) {
                     {dealDocs.length === 0 ? (
                       <div style={{ fontSize: 12, color: COLORS.muted, padding: "4px 0" }}>Loading…</div>
                     ) : dealDocs.map(d => (
-                      <button key={d.id} disabled={attaching} onClick={() => attachExisting(d.id)}
-                        style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, width: "100%", textAlign: "left", padding: "8px 10px", marginBottom: 4, borderRadius: 7, border: "1px solid " + COLORS.border, background: "#fff", cursor: attaching ? "default" : "pointer", fontFamily: "inherit" }}>
-                        <span style={{ fontSize: 12.5, color: COLORS.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>📄 {d.name}</span>
-                        <span style={{ flexShrink: 0, fontSize: 11.5, fontWeight: 700, color: "#1E8449" }}>Attach →</span>
-                      </button>
+                      <div key={d.id}
+                        style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, width: "100%", padding: "6px 10px", marginBottom: 4, borderRadius: 7, border: "1px solid " + COLORS.border, background: "#fff", boxSizing: "border-box" }}>
+                        <span style={{ fontSize: 12.5, color: COLORS.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>📄 {d.name}</span>
+                        <span style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+                          <button disabled={attaching} onClick={() => attachExisting(d.id)} title="Send this INSTEAD of the current contract file"
+                            style={{ background: "#fff", color: COLORS.muted, border: "1px solid " + COLORS.border, borderRadius: 6, padding: "4px 8px", fontSize: 11, fontWeight: 600, cursor: attaching ? "default" : "pointer", fontFamily: "inherit" }}>Use as the contract</button>
+                          <button disabled={attaching || !!extraDocs[d.id]} onClick={() => addExtra(d.id, d.name)} title="Add this file to the emails (keeps the others)"
+                            style={{ background: extraDocs[d.id] ? "#E5E7EB" : "#1E8449", color: extraDocs[d.id] ? COLORS.muted : "#fff", border: "none", borderRadius: 6, padding: "4px 10px", fontSize: 11.5, fontWeight: 700, cursor: attaching || extraDocs[d.id] ? "default" : "pointer", fontFamily: "inherit" }}>{extraDocs[d.id] ? "✓ Added" : "+ Add"}</button>
+                        </span>
+                      </div>
                     ))}
                   </div>
-                  <div style={{ fontSize: 11, color: COLORS.muted, marginTop: 6 }}>Tip: pick <b>“Fully Executed Contract”</b> to attach the complete signed package.</div>
+                  <div style={{ fontSize: 11, color: COLORS.muted, marginTop: 6 }}><b>+ Add</b> attaches the file along with the others. <b>Use as the contract</b> swaps it in for the contract file (e.g. the “Fully Executed Contract” package).</div>
                 </div>
               )}
               <div style={{ padding: "4px 16px", fontSize: 11, color: COLORS.muted, borderBottom: "1px solid " + COLORS.border, background: "#F9FAFB" }}>Removing an attachment (×) applies to everyone — it won't be sent to any party.</div>
