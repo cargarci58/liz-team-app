@@ -6781,7 +6781,7 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
                         try {
                           const res = await fetch(`${API}/transactions/${tx.id}/confirm-lead`, { method: "POST", headers: { "Content-Type": "application/json", "Authorization": "Bearer " + (localStorage.getItem("tp_token") || "") } });
                           if (!res.ok) throw new Error("Failed");
-                          onUpdate({ ...tx, leadConverted: true });
+                          onUpdate({ ...tx, leadConverted: true, needsFirstContact: false });
                         } catch { alert("Could not confirm — please try again."); }
                       }}
                       style={{ background: "#B7860B", color: "white", border: "none", borderRadius: 8, padding: "10px 16px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>
@@ -6793,7 +6793,7 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
                         try {
                           const res = await fetch(`${API}/transactions/${tx.id}/status`, { method: "PATCH", headers: { "Content-Type": "application/json", "Authorization": "Bearer " + (localStorage.getItem("tp_token") || "") }, body: JSON.stringify({ status: "Cancelled" }) });
                           if (!res.ok) throw new Error("Failed");
-                          onUpdate({ ...tx, status: "Cancelled", leadConverted: true });
+                          onUpdate({ ...tx, status: "Cancelled", leadConverted: true, needsFirstContact: false });
                         } catch { alert("Could not update — please try again."); }
                       }}
                       style={{ background: "transparent", color: "#7A5C00", border: "1px solid #C9A227", borderRadius: 8, padding: "10px 16px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>
@@ -9242,7 +9242,7 @@ function Dashboard({ transactions, coordinatorMode = false, unreadCounts = {}, o
         res = await fetch(`${API}/transactions/${txId}/confirm-lead`, { method: "POST", headers: { "Content-Type": "application/json", "Authorization": "Bearer " + tok } });
       }
       if (!res.ok) throw new Error("Failed");
-      setPagedTxs(prev => prev.map(r => r.id === txId ? { ...r, lead_converted: true, ...(kind === "cancel" ? { status: "Cancelled" } : {}) } : r));
+      setPagedTxs(prev => prev.map(r => r.id === txId ? { ...r, lead_converted: true, needs_first_contact: false, ...(kind === "cancel" ? { status: "Cancelled" } : {}) } : r));
     } catch { alert("Could not update — please try again."); }
   };
 
