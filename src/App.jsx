@@ -4104,8 +4104,16 @@ export function WelcomeEmailPreview({ txId, onClose, onlyPartyId = null }) {
   // Extra files on top of the contract (Carlos 9/25: couldn't attach more than
   // one — picking a second file REPLACED the contract). docId -> name.
   const [extraDocs, setExtraDocs] = useState({});
-  const addExtra = (docId, name) => {
+  // Same test the server uses (isBaseContractDoc) so an added executed
+  // contract clears the "contract NOT attached" warning.
+  const [extraIsContract, setExtraIsContract] = useState({});
+  const looksLikeContract = (name, type) =>
+    ["far_bar_contract", "as_is_contract", "vacant_land_contract", "commercial_contract", "lease_contract",
+     "executed_contract", "fully_executed_contract", "purchase_contract", "combined_pdf"].includes(String(type || "").toLowerCase().replace(/[\s_-]+/g, "_"))
+    || /fully[\s_-]*executed|executed contract/i.test(name || "");
+  const addExtra = (docId, name, type) => {
     setExtraDocs(s => ({ ...s, [docId]: name || "document.pdf" }));
+    setExtraIsContract(s => ({ ...s, [docId]: looksLikeContract(name, type) }));
     setExcludedDocs(s => { const n = { ...s }; delete n[docId]; return n; });
     setShowDocPicker(false);
   };
@@ -4184,7 +4192,7 @@ export function WelcomeEmailPreview({ txId, onClose, onlyPartyId = null }) {
       });
       const d = await r.json();
       if (d.error) throw new Error(d.error);
-      if (d.docId) addExtra(d.docId, file.name);
+      if (d.docId) addExtra(d.docId, file.name, d.documentType);
       await loadPreviews();
     } catch (e) { alert("Could not attach: " + e.message); }
     finally { setAttaching(false); if (fileRef.current) fileRef.current.value = ""; }
@@ -4359,7 +4367,7 @@ export function WelcomeEmailPreview({ txId, onClose, onlyPartyId = null }) {
                         <span style={{ display: "flex", gap: 6, flexShrink: 0 }}>
                           <button disabled={attaching} onClick={() => attachExisting(d.id)} title="Send this INSTEAD of the current contract file"
                             style={{ background: "#fff", color: COLORS.muted, border: "1px solid " + COLORS.border, borderRadius: 6, padding: "4px 8px", fontSize: 11, fontWeight: 600, cursor: attaching ? "default" : "pointer", fontFamily: "inherit" }}>Use as the contract</button>
-                          <button disabled={attaching || !!extraDocs[d.id]} onClick={() => addExtra(d.id, d.name)} title="Add this file to the emails (keeps the others)"
+                          <button disabled={attaching || !!extraDocs[d.id]} onClick={() => addExtra(d.id, d.name, d.document_type)} title="Add this file to the emails (keeps the others)"
                             style={{ background: extraDocs[d.id] ? "#E5E7EB" : "#1E8449", color: extraDocs[d.id] ? COLORS.muted : "#fff", border: "none", borderRadius: 6, padding: "4px 10px", fontSize: 11.5, fontWeight: 700, cursor: attaching || extraDocs[d.id] ? "default" : "pointer", fontFamily: "inherit" }}>{extraDocs[d.id] ? "✓ Added" : "+ Add"}</button>
                         </span>
                       </div>
@@ -4376,7 +4384,7 @@ export function WelcomeEmailPreview({ txId, onClose, onlyPartyId = null }) {
                 const all = cur?.attachments || [];
                 const active = all.filter(a => !excludedDocs[a.id]);
                 const roleGetsDocs = cur && !/inspector|hoa/i.test(cur.role || "");
-                const contractAttached = active.some(a => a.isBaseContract);
+                const contractAttached = active.some(a => a.isBaseContract) || Object.keys(extraDocs).some(id => extraIsContract[id]);
                 if (!roleGetsDocs || contractAttached) return null;
                 return (
                   <div style={{ padding: "8px 16px", fontSize: 12.5, fontWeight: 700, color: "#991B1B", background: "#FEF2F2", borderBottom: "1px solid #FECACA" }}>
