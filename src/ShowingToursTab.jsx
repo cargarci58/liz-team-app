@@ -226,12 +226,13 @@ export default function ShowingToursTab({ tx, onOpenOffer }) {
 
   // 📝 Write an offer: server starts a draft already filled from the MLS report
   // (same fields as the wizard's own MLS upload), then we jump to Offers.
-  const hasOfferDetails = (s) => s.offer_details && Object.values(s.offer_details).some(v => v !== "" && v != null && v !== false);
   const writeOffer = async (s, skipCheck = false) => {
-    // No seller / legal / parcel / HOA on this home yet (added before the app
-    // read them, or the report left them out) → read the report first.
-    if (!skipCheck && s.address && !hasOfferDetails(s)) {
-      if (window.confirm(`${s.address} doesn't have the contract details yet (seller, parcel ID, county, legal description, HOA, title company).\n\nOK = upload its MLS Broker Full report now — the app reads it and fills the offer.\nCancel = start the offer with the basics only.`)) {
+    // Only ask for the report when this home was NEVER read for contract
+    // details (added by hand, or uploaded before the app read them). If the
+    // report was read and simply didn't list seller/parcel/etc., don't ask the
+    // agent to upload the same thing twice (Carlos 9/26: "double input").
+    if (!skipCheck && s.address && s.offer_details == null) {
+      if (window.confirm(`${s.address} was added before the app read contract details from the MLS report (or was typed in by hand), so it doesn't have the seller, parcel ID, county, legal description, HOA or title company yet.\n\nOK = upload its Broker Full report once — the app fills this offer from it.\nCancel = start the offer with the basics only.`)) {
         offerAfterUpload.current = { id: s.id, at: Date.now() };
         if (fileRef.current) fileRef.current.click();
         return;
