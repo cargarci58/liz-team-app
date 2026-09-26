@@ -6,7 +6,7 @@ import TransactionChat from "./TransactionChat";
 import { deriveStage, strongClaimFor } from "./portalClaims";
 import { flTaxRate, deedDocStampPer100 } from "./lib/flTaxRates";
 import { simulate, fmtTime } from "./lib/tourRoute";
-import HomeScorecard, { FavoritesSummary } from "./components/HomeScorecard";
+import HomeScorecard, { FavoritesSummary, ScorecardButton } from "./components/HomeScorecard";
 
 const API = "https://liz-team-server-api-production.up.railway.app";
 
@@ -951,7 +951,7 @@ function ShowingGuideCard() {
           <div style={{ fontSize: 15.5, fontWeight: 800, color: C.black }}>🔎 What to expect at showings</div>
           <div style={{ fontSize: 12.5, color: C.gray, marginTop: 2 }}>Every home needs something — here's how to tell a quick fix from a big deal.</div>
         </div>
-        <span style={{ fontSize: 13, fontWeight: 700, color: C.red, whiteSpace: "nowrap" }}>{open ? "Hide ▲" : "Read ▼"}</span>
+        <span style={{ fontSize: 13, fontWeight: 700, color: C.red, whiteSpace: "nowrap" }}>{open ? "Show less ▲" : "Tap to read more ▼"}</span>
       </button>
       {open && (
         <div>
@@ -974,12 +974,16 @@ function ShowingGuideCard() {
   );
 }
 
-function ShowingToursCard({ txId }) {
+function ShowingToursCard({ txId, preview = false }) {
   const [tours, setTours] = useState(null);
   const [sending, setSending] = useState(null);
+  const [openCard, setOpenCard] = useState(new Set()); // homes whose scorecard is open
+  const toggleCard = (id) => setOpenCard(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
   // Buyer → agent: "I'd like to make an offer on this one" (lands in the agent's
   // Messages + email, and flags the home on the agent's tour).
   const wantOffer = async (s) => {
+    // Agent previewing the portal: this button belongs to the buyer (it messages YOU).
+    if (preview) { alert("Preview: this is your buyer's button — when they tap it, you get a message + email and a ❤️ on this home in your Showings tab."); return; }
     if (!window.confirm(`Tell your agent you'd like to make an offer on ${s.address}?`)) return;
     setSending(s.id);
     try {
@@ -991,10 +995,16 @@ function ShowingToursCard({ txId }) {
   };
   useEffect(() => {
     if (!txId) return;
-    fetch(API + "/client/showing-tours/" + txId, { headers: { "Authorization": "Bearer " + (localStorage.getItem("tp_token") || "") } })
+    const get = (first) => fetch(API + "/client/showing-tours/" + txId, { headers: { "Authorization": "Bearer " + (localStorage.getItem("tp_token") || "") } })
       .then(r => r.ok ? r.json() : null)
-      .then(d => setTours(d && d.success ? d.tours || [] : []))
-      .catch(() => setTours([]));
+      .then(d => { if (d && d.success) setTours(d.tours || []); else if (first) setTours([]); })
+      .catch(() => { if (first) setTours([]); });
+    get(true);
+    // The agent's notes appear when the buyer comes back to the app.
+    const refresh = () => { if (document.visibilityState === "visible") get(false); };
+    window.addEventListener("focus", refresh);
+    document.addEventListener("visibilitychange", refresh);
+    return () => { window.removeEventListener("focus", refresh); document.removeEventListener("visibilitychange", refresh); };
   }, [txId]);
   // Shared scorecard save (the agent sees the same card on their Showings tab).
   const saveFeedback = async (s, patch) => {
@@ -1047,15 +1057,18 @@ function ShowingToursCard({ txId }) {
                   {s.beds ? ` · ${Number(s.beds)} bd` : ""}{s.baths ? ` / ${Number(s.baths)} ba` : ""}
                   {s.sqft ? ` · ${Number(s.sqft).toLocaleString()} sq ft` : ""}{s.year_built ? ` · built ${s.year_built}` : ""}
                 </div>
-                <HomeScorecard stop={s} viewer="buyer" onSave={(patch) => saveFeedback(s, patch)} />
-                {s.buyer_offer_interest_at ? (
-                  <div style={{ marginTop: 6, fontSize: 12.5, fontWeight: 700, color: C.success }}>✓ Your agent knows you'd like to make an offer</div>
-                ) : (
-                  <button onClick={() => wantOffer(s)} disabled={sending === s.id}
-                    style={{ marginTop: 7, background: C.white, color: C.red, border: "1.5px solid " + C.red, borderRadius: 8, padding: "6px 12px", fontSize: 12.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
-                    {sending === s.id ? "Sending…" : "❤️ I'd like to make an offer"}
-                  </button>
-                )}
+                <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center", marginTop: 8 }}>
+                  <ScorecardButton stop={s} open={openCard.has(s.id)} onClick={() => toggleCard(s.id)} />
+                  {s.buyer_offer_interest_at ? (
+                    <div style={{ fontSize: 12.5, fontWeight: 700, color: C.success }}>✓ Your agent knows you'd like to make an offer</div>
+                  ) : (
+                    <button onClick={() => wantOffer(s)} disabled={sending === s.id}
+                      style={{ background: C.white, color: C.red, border: "1.5px solid " + C.red, borderRadius: 8, padding: "7px 12px", fontSize: 12.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                      {sending === s.id ? "Sending…" : "❤️ I'd like to make an offer"}
+                    </button>
+                  )}
+                </div>
+                {openCard.has(s.id) && <HomeScorecard stop={s} viewer="buyer" onSave={(patch) => saveFeedback(s, patch)} />}
               </div>
             </div>
           );
@@ -2198,7 +2211,7 @@ export default function ClientPortal({ user, onLogout, previewTxId, onExitPrevie
             {/* SHOWINGS TAB — homes the agent planned to show the buyer */}
             {activeTab === "showings" && isBuyerSide && (
               <div>
-                <ShowingToursCard txId={tx.id} />
+                <ShowingToursCard txId={tx.id} preview={isPreview} />
               </div>
             )}
 

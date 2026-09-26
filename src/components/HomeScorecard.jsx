@@ -109,6 +109,20 @@ export default function HomeScorecard({ stop, onSave, viewer = "agent" }) {
   );
 }
 
+// The closed state: one button that sits next to the offer buttons. Shows the
+// verdict + how many things were tapped, so a scored home reads at a glance.
+export function ScorecardButton({ stop, open, onClick }) {
+  const v = verdictOf(stop.verdict);
+  const n = (stop.liked_tags || []).length + (stop.disliked_tags || []).length + (stop.liked_notes ? 1 : 0) + (stop.disliked_notes ? 1 : 0);
+  return (
+    <button type="button" onClick={onClick}
+      style={{ background: open ? K.lightRed : K.white, color: K.darkRed, border: `1.5px solid ${open ? K.red : K.border}`, borderRadius: 8,
+        padding: "7px 12px", fontSize: 12.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>
+      📝 Scorecard{v ? ` · ${v.emoji}` : ""}{n ? ` · ${n}` : ""} {open ? "▲" : "▼"}
+    </button>
+  );
+}
+
 function pick(s) {
   return { verdict: s.verdict || null, liked_tags: s.liked_tags || [], disliked_tags: s.disliked_tags || [],
     liked_notes: s.liked_notes || "", disliked_notes: s.disliked_notes || "" };

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { planRoute, simulate, fmtTime, toMin } from "./lib/tourRoute";
 import { telHref } from "./lib/telHref";
-import HomeScorecard, { FavoritesSummary } from "./components/HomeScorecard";
+import HomeScorecard, { FavoritesSummary, ScorecardButton } from "./components/HomeScorecard";
 
 const API = "https://liz-team-server-api-production.up.railway.app";
 
@@ -55,6 +55,8 @@ export default function ShowingToursTab({ tx, onOpenOffer }) {
   const [openInfo, setOpenInfo] = useState(new Set());
   const [copied, setCopied] = useState(false);
   const [offering, setOffering] = useState(null); // stop id while its offer is being created
+  const [openCard, setOpenCard] = useState(new Set()); // stops whose scorecard is open
+  const toggleCard = (id) => setOpenCard(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
   const fileRef = useRef(null);
   const mobile = isMobileDevice();
 
@@ -71,6 +73,18 @@ export default function ShowingToursTab({ tx, onOpenOffer }) {
     } catch (e) { setErr(e.message); setTours([]); }
   };
   useEffect(() => { load(); }, [tx.id]);
+  // Pick up the buyer's scorecard taps: quietly re-fetch whenever the agent
+  // comes back to the app/tab (keeps the selected tour day).
+  useEffect(() => {
+    const refresh = () => {
+      if (document.visibilityState !== "visible") return;
+      fetch(`${API}/transactions/${tx.id}/showing-tours`, { headers: hdrs }).then(r => r.ok ? r.json() : null)
+        .then(d => { if (d && d.success) setTours(d.tours || []); }).catch(() => {});
+    };
+    window.addEventListener("focus", refresh);
+    document.addEventListener("visibilitychange", refresh);
+    return () => { window.removeEventListener("focus", refresh); document.removeEventListener("visibilitychange", refresh); };
+  }, [tx.id]);
 
   const replaceTour = (t) => setTours(prev => (prev || []).map(x => x.id === t.id ? t : x));
 
@@ -390,9 +404,9 @@ export default function ShowingToursTab({ tx, onOpenOffer }) {
                           )}
                         </div>
                       )}
-                      <HomeScorecard stop={s} viewer="agent" onSave={(patch) => saveFeedback(tour, s, patch)} />
                       <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 10 }}>
                         <a href={navUrl(s)} target="_blank" rel="noreferrer" style={{ ...btn(C.blue), textDecoration: "none", padding: "7px 12px", fontSize: 12.5 }}>🧭 Navigate</a>
+                        <ScorecardButton stop={s} open={openCard.has(s.id)} onClick={() => toggleCard(s.id)} />
                         <button onClick={() => writeOffer(s)} disabled={!!busy || offering === s.id} title="Start an offer already filled in from the MLS report"
                           style={{ ...btn(C.red), padding: "7px 12px", fontSize: 12.5 }}>{offering === s.id ? "Starting…" : s.offer_id ? "📝 Open offer" : "📝 Write an offer"}</button>
                         <button onClick={() => startEdit(s)} disabled={!!busy} style={ghost()}>✏️ Edit</button>
@@ -400,6 +414,7 @@ export default function ShowingToursTab({ tx, onOpenOffer }) {
                         <button onClick={() => move(i, 1)} disabled={!!busy || i === stops.length - 1} title="Move later" style={ghost({ opacity: i === stops.length - 1 ? 0.4 : 1 })}>↓</button>
                         <button onClick={() => removeStop(s)} disabled={!!busy} style={ghost({ color: C.darkRed, borderColor: "#FECACA" })}>🗑</button>
                       </div>
+                      {openCard.has(s.id) && <HomeScorecard stop={s} viewer="agent" onSave={(patch) => saveFeedback(tour, s, patch)} />}
                     </div>
                   </div>
                 </div>
