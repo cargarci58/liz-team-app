@@ -115,7 +115,7 @@ export default function ShowingToursTab({ tx, onOpenOffer }) {
   };
 
   const deleteTour = async () => {
-    if (!window.confirm(`Delete the ${fmtDate(tour.tour_date)} tour and its ${stops.length} home(s)?`)) return;
+    if (!window.confirm(stops.length ? `Delete the ${fmtDate(tour.tour_date)} tour day and its ${stops.length} home(s)? Scorecards on those homes are deleted too.` : `Delete the ${fmtDate(tour.tour_date)} tour day?`)) return;
     await fetch(`${API}/showing-tours/${tour.id}`, { method: "DELETE", headers: hdrs }).catch(() => {});
     const rest = (tours || []).filter(t => t.id !== tour.id);
     setTours(rest); setTourId(rest[0] ? rest[0].id : null);
@@ -148,14 +148,35 @@ export default function ShowingToursTab({ tx, onOpenOffer }) {
       if (!r.ok) throw new Error(d.error || "Couldn't read that report");
       const have = new Set(stops.map(keyOf));
       const fresh = (d.listings || []).filter(l => !have.has(keyOf(l)));
-      const skipped = (d.listings || []).length - fresh.length;
+      // A home already on the tour isn't added twice — but anything it was
+      // missing (offer details, a phone, a code…) is filled in from the new read.
+      // Nothing the agent already has is overwritten.
+      const byKey = new Map((d.listings || []).map(l => [keyOf(l), l]));
+      let topped = 0;
+      const merged = stops.map(st => {
+        const l = byKey.get(keyOf(st));
+        if (!l) return st;
+        const out = { ...st };
+        let changed = false;
+        for (const [k, v] of Object.entries(l)) {
+          if (k === "offer_details") {
+            const cur = st.offer_details || {};
+            const od = { ...v, ...Object.fromEntries(Object.entries(cur).filter(([, x]) => x !== "" && x != null)) };
+            if (JSON.stringify(od) !== JSON.stringify(st.offer_details || null)) { out.offer_details = od; changed = true; }
+          } else if ((st[k] == null || st[k] === "") && v !== "" && v != null) { out[k] = v; changed = true; }
+        }
+        if (changed) topped++;
+        return out;
+      });
       const w = [...(d.warnings || [])];
       if (!d.listings || !d.listings.length) w.unshift("No homes were found in that file. Make sure it's the agent/broker full report, not a client report.");
-      if (skipped) w.unshift(`${skipped} home(s) were already on this tour and were skipped.`);
+      if (topped) w.unshift(`${topped} home(s) already on this tour — filled in their missing details (offer info, phones, codes). Nothing you typed was changed.`);
+      else if ((d.listings || []).length > fresh.length) w.unshift(`${(d.listings || []).length - fresh.length} home(s) were already on this tour with nothing new to add.`);
       setWarnings(w);
+      if (topped && !fresh.length) { setBusy("saving"); await save({}, merged); }
       if (fresh.length) {
         setBusy("saving");
-        const saved = await save({}, [...stops, ...fresh]);
+        const saved = await save({}, [...merged, ...fresh]);
         if (saved) {
           const before = new Set(stops.map(s => s.id));
           setJustAdded(new Set(saved.stops.filter(s => !before.has(s.id)).map(s => s.id)));
@@ -290,6 +311,9 @@ export default function ShowingToursTab({ tx, onOpenOffer }) {
               {!tour.start_address && <div style={{ fontSize: 11.5, color: C.muted, marginTop: 3 }}>Without a start address the route begins at the first home.</div>}
               {tour.start_address && tour.start_lat == null && <div style={{ fontSize: 11.5, color: C.darkRed, marginTop: 3 }}>Couldn't find that address on the map — check the spelling.</div>}
             </div>
+            <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 10 }}>
+              <button onClick={deleteTour} disabled={!!busy} style={ghost({ color: C.darkRed, borderColor: "#FECACA" })}>🗑 Delete this tour day</button>
+            </div>
           </div>
 
           {/* ADD HOMES */}
@@ -342,7 +366,6 @@ export default function ShowingToursTab({ tx, onOpenOffer }) {
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 10 }}>
                 <button onClick={copyTimes} style={ghost()}>{copied ? "✓ Copied" : "📋 Copy showing times"}</button>
                 {canWholeRoute && <a href={wholeRouteUrl()} target="_blank" rel="noreferrer" style={{ ...ghost(), color: C.blue, textDecoration: "none" }}>🗺 Open whole route in Google Maps</a>}
-                <button onClick={deleteTour} style={ghost({ color: C.darkRed, borderColor: "#FECACA" })}>🗑 Delete tour</button>
               </div>
             </div>
           )}
