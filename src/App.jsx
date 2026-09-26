@@ -6516,9 +6516,10 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
   const primaryTabs = [
     { id: "overview", label: "Overview" },
     { id: "milestones", label: "📅 Timeline" },
-    ...(isBuyerSideTx && !isGuest ? [{ id: "offers", label: "📝 Offers" }] : []),
     // Plan a day of showings: upload the MLS report → route + codes (agent/TC only).
+    // Showings come before Offers — the order the buyer's journey actually happens.
     ...(isBuyerSideTx && !isGuest ? [{ id: "showings", label: "🏠 Showings" }] : []),
+    ...(isBuyerSideTx && !isGuest ? [{ id: "offers", label: "📝 Offers" }] : []),
     { id: "documents", label: "📎 Documents" },
     { id: "parties", label: `People (${(isCoordinator ? tx.parties.filter(p => (p.email || "").toLowerCase() !== (currentUser?.email || "").toLowerCase()) : tx.parties).length})` },
     ...(!isGuest
