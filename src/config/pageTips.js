@@ -64,7 +64,7 @@ export const PAGE_TIPS = {
     guide: "Pop-Bys",
   },
   scripts: {
-    what: "Word-for-word what to say in the hard conversations — a price reduction, a nervous buyer, a seller who wants to wait.",
+    what: "Word-for-word what to say in the hard conversations — a price reduction, a nervous buyer, a seller who wants to wait — plus phone-call scripts and objection answers (also one tap away on every call screen).",
     doFirst: "Open the one for the conversation you're dreading this week and read it out loud once.",
     why: "The difference between a good agent and a great one is usually what they say in the first thirty seconds of a hard call. These are those thirty seconds, written down.",
     guide: "Scripts",

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { CALL_SCRIPT_GROUPS, CALL_OBJECTIONS } from "./config/callScripts";
 
 const API = "https://liz-team-server-api-production.up.railway.app";
 
@@ -106,6 +107,18 @@ const SCRIPT_LIBRARY = {
       },
     ],
   },
+  // Phone-call scripts — same wording the 📜 Scripts button shows on call
+  // screens. Source of truth: config/callScripts.js.
+  calls: {
+    label: "Phone calls",
+    sub: "Prospecting, follow-ups & objections",
+    icon: "📞",
+    groups: [
+      ...CALL_SCRIPT_GROUPS,
+      { situation: "When they say…", why: "Quick answers to what people say mid-call.",
+        scripts: CALL_OBJECTIONS.map(o => ({ title: o.says, body: o.answer })) },
+    ],
+  },
 };
 
 const C = {
@@ -178,7 +191,7 @@ export default function ScriptsPage({ token, onBack, currentUser }) {
 
       <div style={{ maxWidth: 760, margin: "0 auto", padding: "20px 16px 60px" }}>
         <div style={{ display: "flex", gap: 8, marginBottom: 18 }} data-keep-grid>
-          {["listing", "buyer"].map(s => {
+          {["listing", "buyer", "calls"].map(s => {
             const active = side === s;
             const o = SCRIPT_LIBRARY[s];
             return (

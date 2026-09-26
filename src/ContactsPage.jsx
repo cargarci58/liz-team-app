@@ -1,6 +1,7 @@
 import React from 'react';
 import { useState, useEffect, useRef } from "react";
 import PopByLogModal from "./PopByLogModal";
+import { CallScriptsButton } from "./components/CallScriptPanel";
 
 const API = "https://liz-team-server-api-production.up.railway.app";
 
@@ -357,7 +358,10 @@ function LogCallModal({ contact, token, onClose, onLogged }) {
   return (
     <div style={{ position: "fixed", inset: 0, zIndex: 4500, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "flex-start", justifyContent: "center", padding: 16, overflowY: "auto" }} onMouseDown={e => { if (e.target === e.currentTarget) e.currentTarget.dataset.downOnBackdrop = "1"; else delete e.currentTarget.dataset.downOnBackdrop; }} onClick={e => { const ok = e.target === e.currentTarget && e.currentTarget.dataset.downOnBackdrop; delete e.currentTarget.dataset.downOnBackdrop; if (ok) onClose(); }}>
       <div onClick={e => e.stopPropagation()} style={{ background: "white", borderRadius: 12, maxWidth: 560, width: "100%", maxHeight: "90vh", overflowY: "auto", padding: 24, margin: "auto" }}>
-        <div style={{ fontSize: 18, fontWeight: 800, marginBottom: 4 }}>📞 Log Call · {contactName}</div>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginBottom: 4 }}>
+          <div style={{ fontSize: 18, fontWeight: 800 }}>📞 Log Call · {contactName}</div>
+          <CallScriptsButton contact={contact} token={token} />
+        </div>
         <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 16 }}>
           {step === 1 ? "What was the outcome of this call?" : "What's next with this lead?"}
         </div>
