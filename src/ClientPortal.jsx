@@ -938,6 +938,19 @@ function MarketingFeedCard({ txId }) {
 // ════════════════════════════════════════════════════════════════
 function ShowingToursCard({ txId }) {
   const [tours, setTours] = useState(null);
+  const [sending, setSending] = useState(null);
+  // Buyer → agent: "I'd like to make an offer on this one" (lands in the agent's
+  // Messages + email, and flags the home on the agent's tour).
+  const wantOffer = async (s) => {
+    if (!window.confirm(`Tell your agent you'd like to make an offer on ${s.address}?`)) return;
+    setSending(s.id);
+    try {
+      const r = await fetch(API + "/client/showing-stops/" + s.id + "/offer-interest", { method: "POST", headers: { "Authorization": "Bearer " + (localStorage.getItem("tp_token") || "") } });
+      if (!r.ok) throw new Error();
+      setTours(prev => prev.map(t => ({ ...t, stops: t.stops.map(x => x.id === s.id ? { ...x, buyer_offer_interest_at: new Date().toISOString() } : x) })));
+    } catch { alert("Couldn't send that — please try again, or message your agent."); }
+    setSending(null);
+  };
   useEffect(() => {
     if (!txId) return;
     fetch(API + "/client/showing-tours/" + txId, { headers: { "Authorization": "Bearer " + (localStorage.getItem("tp_token") || "") } })
@@ -979,6 +992,14 @@ function ShowingToursCard({ txId }) {
                   {s.beds ? ` · ${Number(s.beds)} bd` : ""}{s.baths ? ` / ${Number(s.baths)} ba` : ""}
                   {s.sqft ? ` · ${Number(s.sqft).toLocaleString()} sq ft` : ""}{s.year_built ? ` · built ${s.year_built}` : ""}
                 </div>
+                {s.buyer_offer_interest_at ? (
+                  <div style={{ marginTop: 6, fontSize: 12.5, fontWeight: 700, color: C.success }}>✓ Your agent knows you'd like to make an offer</div>
+                ) : (
+                  <button onClick={() => wantOffer(s)} disabled={sending === s.id}
+                    style={{ marginTop: 7, background: C.white, color: C.red, border: "1.5px solid " + C.red, borderRadius: 8, padding: "6px 12px", fontSize: 12.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                    {sending === s.id ? "Sending…" : "❤️ I'd like to make an offer"}
+                  </button>
+                )}
               </div>
             </div>
           );

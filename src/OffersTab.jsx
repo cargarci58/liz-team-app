@@ -64,7 +64,7 @@ function fmtDate(d) {
   return new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 }
 
-export default function OffersTab({ tx, token, currentUser, createSignal = 0, onReviewReceived = null }) {
+export default function OffersTab({ tx, token, currentUser, createSignal = 0, onReviewReceived = null, openOffer = null, onOfferOpened = null }) {
   const [offers, setOffers] = useState([]);
   const [loading, setLoading] = useState(true);
   // RECEIVED offers waiting for review live on the Overview's Pending Offers
@@ -116,6 +116,13 @@ export default function OffersTab({ tx, token, currentUser, createSignal = 0, on
     if (createSignal > 0) createOffer();
     /* eslint-disable-next-line */
   }, [createSignal]);
+
+  // Showings tab "📝 Write an offer" created a pre-filled draft → open it.
+  useEffect(() => {
+    // Consumed once (onOfferOpened clears it) so revisiting the tab doesn't reopen it.
+    if (openOffer && openOffer.id) { load(); setWizardOfferId(openOffer.id); onOfferOpened && onOfferOpened(); }
+    /* eslint-disable-next-line */
+  }, [openOffer && openOffer.n]);
 
   const createOffer = async () => {
     setCreating(true);

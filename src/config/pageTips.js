@@ -120,6 +120,12 @@ export const PAGE_TIPS = {
     why: "No more \"can you resend that?\" Your client sees the documents you share in their own portal, and a signed copy files itself back here.",
     guide: "Share a document",
   },
+  "tx:showings": {
+    what: "Plan a day of home tours. Upload the MLS report and the app reads every home — address, listing agent, door codes — and puts them in the shortest driving order.",
+    doFirst: "Tap \"Plan a new tour\", then in Stellar MLS pick the homes → Broker Full report → save as one PDF → Upload. Check what it read, then \"Plan my route\".",
+    why: "No more driving back and forth across town or digging for lockbox codes in the car. When your buyer loves one, \"Write an offer\" fills the contract from the same report.",
+    guide: "Plan a day of showings",
+  },
   "tx:offers": {
     what: "Write an offer for this buyer. Answer four questions and the full Florida contract comes out filled in.",
     doFirst: "Tap \"New offer\" and choose Express. Price, deposit, financing, closing date — done.",

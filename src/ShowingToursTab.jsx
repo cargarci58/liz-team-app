@@ -40,7 +40,7 @@ const EMPTY_STOP = { address: "", city: "", zip: "", mls_number: "", list_price:
   listing_agent_name: "", listing_agent_phone: "", listing_agent_email: "", listing_office: "", listing_office_phone: "",
   showing_instructions: "", access_info: "", appt_start: "", appt_end: "", occupancy: "", agent_notes: "" };
 
-export default function ShowingToursTab({ tx }) {
+export default function ShowingToursTab({ tx, onOpenOffer }) {
   const token = localStorage.getItem("tp_token") || "";
   const hdrs = { "Content-Type": "application/json", Authorization: "Bearer " + token };
   const [tours, setTours] = useState(null);
@@ -53,6 +53,7 @@ export default function ShowingToursTab({ tx }) {
   const [draft, setDraft] = useState(null);
   const [openInfo, setOpenInfo] = useState(new Set());
   const [copied, setCopied] = useState(false);
+  const [offering, setOffering] = useState(null); // stop id while its offer is being created
   const fileRef = useRef(null);
   const mobile = isMobileDevice();
 
@@ -167,6 +168,20 @@ export default function ShowingToursTab({ tx }) {
     const list = stops.slice(); [list[i], list[j]] = [list[j], list[i]];
     replaceTour({ ...tour, stops: list });
     await save({}, list);
+  };
+
+  // 📝 Write an offer: server starts a draft already filled from the MLS report
+  // (same fields as the wizard's own MLS upload), then we jump to Offers.
+  const writeOffer = async (s) => {
+    setOffering(s.id); setErr("");
+    try {
+      const r = await fetch(`${API}/showing-tours/${tour.id}/stops/${s.id}/offer`, { method: "POST", headers: hdrs });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error || "Couldn't start the offer");
+      replaceTour({ ...tour, stops: stops.map(x => x.id === s.id ? { ...x, offer_id: d.offerId } : x) });
+      if (onOpenOffer) onOpenOffer(d.offerId);
+    } catch (e) { setErr(e.message); }
+    setOffering(null);
   };
 
   const sched = tour ? simulate(stops, opts()) : null;
@@ -328,6 +343,9 @@ export default function ShowingToursTab({ tx }) {
                         {s.list_price ? ` · ${money(s.list_price)}` : ""}{s.beds ? ` · ${Number(s.beds)} bd` : ""}{s.baths ? ` / ${Number(s.baths)} ba` : ""}{s.sqft ? ` · ${Number(s.sqft).toLocaleString()} sf` : ""}
                         {s.occupancy ? ` · ${s.occupancy}` : ""}
                       </div>
+                      {s.buyer_offer_interest_at && (
+                        <div style={{ marginTop: 6, fontSize: 12.5, fontWeight: 800, color: C.darkRed, background: C.lightRed, borderRadius: 8, padding: "4px 9px", display: "inline-block" }}>❤️ Your buyer wants to make an offer on this one</div>
+                      )}
                       {(s.appt_start || s.appt_end) && (
                         <div style={{ display: "inline-block", marginTop: 6, fontSize: 12, fontWeight: 700, color: l.late > 0 ? C.darkRed : C.blue, background: l.late > 0 ? C.lightRed : "#EEF2F7", borderRadius: 8, padding: "3px 8px" }}>
                           🕑 Window {fmtTime(toMin(s.appt_start))}{s.appt_end ? ` – ${fmtTime(toMin(s.appt_end))}` : ""}{l.late > 0 ? ` · ${l.late} min late!` : ""}
@@ -358,6 +376,8 @@ export default function ShowingToursTab({ tx }) {
                       )}
                       <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 10 }}>
                         <a href={navUrl(s)} target="_blank" rel="noreferrer" style={{ ...btn(C.blue), textDecoration: "none", padding: "7px 12px", fontSize: 12.5 }}>🧭 Navigate</a>
+                        <button onClick={() => writeOffer(s)} disabled={!!busy || offering === s.id} title="Start an offer already filled in from the MLS report"
+                          style={{ ...btn(C.red), padding: "7px 12px", fontSize: 12.5 }}>{offering === s.id ? "Starting…" : s.offer_id ? "📝 Open offer" : "📝 Write an offer"}</button>
                         <button onClick={() => startEdit(s)} disabled={!!busy} style={ghost()}>✏️ Edit</button>
                         <button onClick={() => move(i, -1)} disabled={!!busy || i === 0} title="Move earlier" style={ghost({ opacity: i === 0 ? 0.4 : 1 })}>↑</button>
                         <button onClick={() => move(i, 1)} disabled={!!busy || i === stops.length - 1} title="Move later" style={ghost({ opacity: i === stops.length - 1 ? 0.4 : 1 })}>↓</button>
