@@ -374,17 +374,25 @@ export default function ShowingToursTab({ tx, onOpenOffer }) {
                     {fmtTime(sched.legs[0] ? sched.legs[0].begin : null)} → done ~{fmtTime(sched.finish)}{sched.miles > 0 ? ` · ~${Math.round(sched.miles)} mi driving` : ""}
                   </div>
                 </div>
-                {stops.length > 1 && (
-                  <button onClick={() => planAndSave()} disabled={!!busy} style={btn(C.red)}>{busy === "planning" ? "Planning…" : "🧭 Plan my route"}</button>
-                )}
               </div>
               {lateCount > 0 && <div style={{ fontSize: 12.5, color: C.darkRed, fontWeight: 700, marginTop: 8 }}>⚠️ {lateCount} home{lateCount === 1 ? "" : "s"} can't make the appointment window with this plan — start earlier or remove a home.</div>}
               {unmapped > 0 && <div style={{ fontSize: 12.5, color: C.darkRed, marginTop: 6 }}>📍 {unmapped} home{unmapped === 1 ? "" : "s"} couldn't be found on the map — check the address (kept at the end).</div>}
-              <div style={{ fontSize: 11.5, color: C.muted, marginTop: 8 }}>Times are estimates from distance. Google Maps shows real traffic when you navigate.</div>
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 10 }}>
-                <button onClick={copyTimes} style={ghost()}>{copied ? "✓ Copied" : "📋 Copy showing times"}</button>
-                {canWholeRoute && <a href={wholeRouteUrl()} target="_blank" rel="noreferrer" style={{ ...ghost(), color: C.blue, textDecoration: "none" }}>🗺 Open whole route in Google Maps</a>}
+              {/* Each action says what it does for the agent (Carlos 9/26: "doesn't say anything"). */}
+              <div style={{ display: "grid", gap: 10, marginTop: 12 }}>
+                {stops.length > 1 && (
+                  <ActionRow button={<button onClick={() => planAndSave()} disabled={!!busy} style={btn(C.red, "#fff", { minWidth: 190 })}>{busy === "planning" ? "Planning…" : "🧭 Plan my route"}</button>}
+                    text="Puts the homes in the order with the least driving and gives each one an arrival time. It respects any showing windows. Tap it again after you add or remove a home." />
+                )}
+                <ActionRow button={<button onClick={copyTimes} style={ghost({ minWidth: 190 })}>{copied ? "✓ Copied — now paste it" : "📋 Copy showing times"}</button>}
+                  text="Copies each address with its time slot — paste it into ShowingTime or a text to the listing agents when you book the appointments." />
+                {canWholeRoute ? (
+                  <ActionRow button={<a href={wholeRouteUrl()} target="_blank" rel="noreferrer" style={{ ...ghost({ minWidth: 190 }), color: C.blue, textDecoration: "none", textAlign: "center", boxSizing: "border-box" }}>🗺 Open whole route in Google Maps</a>}
+                    text="Opens all the homes as one trip in Google Maps, in this order, so you can see the whole day on a map." />
+                ) : (
+                  <div style={{ fontSize: 12.5, color: C.gray, lineHeight: 1.5 }}>🧭 On tour day, tap <b>Navigate</b> on each home — Google Maps takes you from wherever you are to that house.</div>
+                )}
               </div>
+              <div style={{ fontSize: 11.5, color: C.muted, marginTop: 10 }}>Times are estimates from distance. Google Maps shows real traffic when you navigate.</div>
             </div>
           )}
 
@@ -470,6 +478,16 @@ export default function ShowingToursTab({ tx, onOpenOffer }) {
           )}
         </>
       )}
+    </div>
+  );
+}
+
+// A button with a one-line "what this does for you" next to it (stacks on phones).
+function ActionRow({ button, text }) {
+  return (
+    <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+      {button}
+      <div style={{ flex: "1 1 220px", fontSize: 12.5, color: C.gray, lineHeight: 1.45 }}>{text}</div>
     </div>
   );
 }
