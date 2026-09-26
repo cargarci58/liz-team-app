@@ -6,6 +6,7 @@ import TransactionChat from "./TransactionChat";
 import { deriveStage, strongClaimFor } from "./portalClaims";
 import { flTaxRate, deedDocStampPer100 } from "./lib/flTaxRates";
 import { simulate, fmtTime } from "./lib/tourRoute";
+import HomeScorecard, { FavoritesSummary } from "./components/HomeScorecard";
 
 const API = "https://liz-team-server-api-production.up.railway.app";
 
@@ -936,6 +937,43 @@ function MarketingFeedCard({ txId }) {
 // order with estimated times. Public listing facts only (the server never
 // sends codes, showing instructions, or the listing agent's contact info).
 // ════════════════════════════════════════════════════════════════
+// "What to expect at showings" — sets the buyer's expectations before they tour:
+// every home needs something; tell easy fixes from big-ticket items; what to
+// check in every home. Plain-English, Florida-aware, no dollar promises.
+function ShowingGuideCard() {
+  const [open, setOpen] = useState(false);
+  const H = ({ children }) => <div style={{ fontSize: 14, fontWeight: 800, color: C.black, margin: "14px 0 6px" }}>{children}</div>;
+  const L = ({ items }) => <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13.5, color: C.black, lineHeight: 1.65 }}>{items.map((x, i) => <li key={i}>{x}</li>)}</ul>;
+  return (
+    <div style={{ background: C.white, borderRadius: 14, padding: 16, marginBottom: 14, boxShadow: "0 1px 4px rgba(0,0,0,0.08)", borderLeft: "4px solid " + C.red }}>
+      <button onClick={() => setOpen(o => !o)} style={{ width: "100%", background: "none", border: "none", padding: 0, textAlign: "left", cursor: "pointer", fontFamily: "inherit", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
+        <div>
+          <div style={{ fontSize: 15.5, fontWeight: 800, color: C.black }}>🔎 What to expect at showings</div>
+          <div style={{ fontSize: 12.5, color: C.gray, marginTop: 2 }}>Every home needs something — here's how to tell a quick fix from a big deal.</div>
+        </div>
+        <span style={{ fontSize: 13, fontWeight: 700, color: C.red, whiteSpace: "nowrap" }}>{open ? "Hide ▲" : "Read ▼"}</span>
+      </button>
+      {open && (
+        <div>
+          <H>🏠 Every home needs something</H>
+          <div style={{ fontSize: 13.5, color: C.black, lineHeight: 1.6 }}>Even brand-new homes have a to-do list. The goal today isn't a perfect house — it's to spot which issues are easy weekend fixes and which ones are big-ticket items.</div>
+          <H>✅ Easy fixes — don't let these scare you</H>
+          <L items={["Paint colors and scuffed walls", "Light fixtures, faucets, cabinet handles", "Carpet or flooring in a room or two", "Landscaping and curb appeal", "Caulk, grout, screens, closet doors", "Older appliances (you can replace them one at a time)"]} />
+          <div style={{ fontSize: 12.5, color: C.gray, marginTop: 4 }}>These are usually a handyman visit or a weekend project — and they're great for negotiating a better price.</div>
+          <H>⚠️ Bigger items — look closer</H>
+          <L items={["Roof age and condition — in Florida an older roof can make insurance harder to get or more expensive", "AC / heating system age", "Water heater age", "Water stains on ceilings, under sinks, or around windows (leaks)", "Cracks in walls, floors, or the foundation", "Electrical panel and plumbing", "Windows and doors (storm protection)", "Pool and pool equipment"]} />
+          <H>👀 Check these in every home</H>
+          <L items={["Run the water and flush a toilet", "Open a few windows and doors", "Look UP at the ceilings", "Trust your nose — musty, smoke, or pet smells", "Listen for road, train, or airport noise", "Check your phone signal", "Picture YOUR furniture — ignore the staging", "Drive the neighborhood and your commute"]} />
+          <div style={{ background: C.lightGray, borderRadius: 10, padding: "10px 12px", marginTop: 14, fontSize: 13, color: C.black, lineHeight: 1.55 }}>
+            📝 <b>Score each home before you walk out the door.</b> By the fourth house they all start to blur together. Tap 😍 🤔 👎 and the liked / didn't-like chips — your agent sees your scorecard too (and can fill it in for you).
+          </div>
+          <div style={{ fontSize: 12.5, color: C.gray, marginTop: 10, lineHeight: 1.55 }}>Don't worry about catching everything. Once your offer is accepted, a licensed home inspector checks the house top to bottom, and your agent helps you negotiate any repairs.</div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function ShowingToursCard({ txId }) {
   const [tours, setTours] = useState(null);
   const [sending, setSending] = useState(null);
@@ -958,17 +996,34 @@ function ShowingToursCard({ txId }) {
       .then(d => setTours(d && d.success ? d.tours || [] : []))
       .catch(() => setTours([]));
   }, [txId]);
+  // Shared scorecard save (the agent sees the same card on their Showings tab).
+  const saveFeedback = async (s, patch) => {
+    try {
+      const r = await fetch(API + "/client/showing-stops/" + s.id + "/feedback", { method: "PATCH",
+        headers: { "Content-Type": "application/json", "Authorization": "Bearer " + (localStorage.getItem("tp_token") || "") }, body: JSON.stringify(patch) });
+      const d = await r.json();
+      if (!r.ok || !d.feedback) return null;
+      setTours(prev => prev.map(t => ({ ...t, stops: t.stops.map(x => x.id === s.id ? { ...x, ...d.feedback } : x) })));
+      return d.feedback;
+    } catch { return null; }
+  };
   const todayET = new Date().toLocaleDateString("en-CA", { timeZone: "America/New_York" });
   const dayLabel = (d) => { const x = new Date(String(d).slice(0, 10) + "T12:00:00"); return x.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" }); };
   const mapsUrl = (s) => "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent([s.address, s.city, [s.state || "FL", s.zip].filter(Boolean).join(" ")].filter(Boolean).join(", "));
   if (tours === null) return <div style={{ fontSize: 13, color: C.gray, padding: 14 }}>Loading your showings…</div>;
   if (!tours.length) return (
-    <div style={{ background: C.white, borderRadius: 14, padding: 18, boxShadow: "0 1px 4px rgba(0,0,0,0.08)", borderLeft: "4px solid " + C.red }}>
-      <div style={{ fontSize: 12, fontWeight: 800, color: C.gray, textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>🗺 Your Showings</div>
-      <div style={{ fontSize: 13.5, color: C.gray, lineHeight: 1.6 }}>When your agent plans a day of home tours, the homes and times will show up here.</div>
-    </div>
+    <>
+      <ShowingGuideCard />
+      <div style={{ background: C.white, borderRadius: 14, padding: 18, boxShadow: "0 1px 4px rgba(0,0,0,0.08)", borderLeft: "4px solid " + C.red }}>
+        <div style={{ fontSize: 12, fontWeight: 800, color: C.gray, textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>🗺 Your Showings</div>
+        <div style={{ fontSize: 13.5, color: C.gray, lineHeight: 1.6 }}>When your agent plans a day of home tours, the homes and times will show up here.</div>
+      </div>
+    </>
   );
-  return tours.map(t => {
+  return (<>
+    <ShowingGuideCard />
+    <FavoritesSummary title="⭐ Your favorites so far" stops={tours.flatMap(t => t.stops.map(s => ({ ...s, tour_date: t.tour_date })))} />
+    {tours.map(t => {
     const sched = simulate(t.stops, { start: t.start_lat != null ? { lat: t.start_lat, lng: t.start_lng } : null, startTime: t.start_time || "10:00", minutesPerStop: t.minutes_per_stop || 20 });
     const past = String(t.tour_date || "").slice(0, 10) < todayET;
     return (
@@ -992,6 +1047,7 @@ function ShowingToursCard({ txId }) {
                   {s.beds ? ` · ${Number(s.beds)} bd` : ""}{s.baths ? ` / ${Number(s.baths)} ba` : ""}
                   {s.sqft ? ` · ${Number(s.sqft).toLocaleString()} sq ft` : ""}{s.year_built ? ` · built ${s.year_built}` : ""}
                 </div>
+                <HomeScorecard stop={s} viewer="buyer" onSave={(patch) => saveFeedback(s, patch)} />
                 {s.buyer_offer_interest_at ? (
                   <div style={{ marginTop: 6, fontSize: 12.5, fontWeight: 700, color: C.success }}>✓ Your agent knows you'd like to make an offer</div>
                 ) : (
@@ -1007,7 +1063,8 @@ function ShowingToursCard({ txId }) {
         {!past && <div style={{ fontSize: 11.5, color: C.gray, marginTop: 8, lineHeight: 1.5 }}>Times are estimates — your agent will confirm the exact schedule. Tap an address to see it on the map.</div>}
       </div>
     );
-  });
+  })}
+  </>);
 }
 
 // ── MORTGAGE RATE CARD — this month's average 30-yr fixed (FRED) ──

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { planRoute, simulate, fmtTime, toMin } from "./lib/tourRoute";
 import { telHref } from "./lib/telHref";
+import HomeScorecard, { FavoritesSummary } from "./components/HomeScorecard";
 
 const API = "https://liz-team-server-api-production.up.railway.app";
 
@@ -170,6 +171,18 @@ export default function ShowingToursTab({ tx, onOpenOffer }) {
     await save({}, list);
   };
 
+  // Shared scorecard (buyer sees the same one in their portal). Merges the saved
+  // row into whichever tour holds this home.
+  const saveFeedback = async (t, s, patch) => {
+    try {
+      const r = await fetch(`${API}/showing-tours/${t.id}/stops/${s.id}/feedback`, { method: "PATCH", headers: hdrs, body: JSON.stringify(patch) });
+      const d = await r.json();
+      if (!r.ok || !d.feedback) return null;
+      setTours(prev => (prev || []).map(x => x.id !== t.id ? x : { ...x, stops: (x.stops || []).map(y => y.id === s.id ? { ...y, ...d.feedback } : y) }));
+      return d.feedback;
+    } catch { return null; }
+  };
+
   // 📝 Write an offer: server starts a draft already filled from the MLS report
   // (same fields as the wizard's own MLS upload), then we jump to Offers.
   const writeOffer = async (s) => {
@@ -213,7 +226,7 @@ export default function ShowingToursTab({ tx, onOpenOffer }) {
           <div style={{ fontSize: 17, fontWeight: 800, color: C.navy }}>🏠 Showing Tours</div>
           <div style={{ fontSize: 12.5, color: C.muted, marginTop: 2 }}>Upload the MLS report for the day's homes — the app reads them and plans the shortest route.</div>
         </div>
-        <button onClick={newTour} disabled={!!busy} style={btn(C.red)}>➕ Plan a new tour</button>
+        <button onClick={newTour} disabled={!!busy} style={btn(C.red)}>{tours.length ? "➕ Add another tour day" : "➕ Plan a tour"}</button>
       </div>
 
       {err && <div style={{ background: C.lightRed, color: C.darkRed, borderRadius: 8, padding: "10px 12px", fontSize: 13, fontWeight: 600, marginBottom: 12 }}>⚠️ {err}</div>}
@@ -222,16 +235,19 @@ export default function ShowingToursTab({ tx, onOpenOffer }) {
         <div style={{ background: C.white, border: `2px dashed ${C.border}`, borderRadius: 12, padding: 24, textAlign: "center" }}>
           <div style={{ fontSize: 30 }}>🗺</div>
           <div style={{ fontWeight: 800, fontSize: 15, color: C.navy, marginTop: 6 }}>No showing tours yet</div>
-          <div style={{ fontSize: 13, color: C.muted, marginTop: 4, lineHeight: 1.5 }}>Tap <b>Plan a new tour</b>, upload the Stellar MLS <b>Broker Full</b> report (or screenshots) for the homes you're showing, and the app does the rest.</div>
+          <div style={{ fontSize: 13, color: C.muted, marginTop: 4, lineHeight: 1.5 }}>Tap <b>Plan a tour</b>, upload the Stellar MLS <b>Broker Full</b> report (or screenshots) for the homes you're showing, and the app does the rest.</div>
         </div>
       )}
 
-      {tours.length > 1 && (
-        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 12 }}>
-          {tours.map(t => (
+      <FavoritesSummary stops={tours.flatMap(t => (t.stops || []).map(s => ({ ...s, tour_date: t.tour_date })))} />
+
+      {tours.length > 0 && (
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center", marginBottom: 12 }}>
+          <span style={{ fontSize: 12, fontWeight: 700, color: C.muted }}>Tour days:</span>
+          {[...tours].sort((a, b) => String(a.tour_date).localeCompare(String(b.tour_date))).map((t, di) => (
             <button key={t.id} onClick={() => { setTourId(t.id); setWarnings([]); setJustAdded(new Set()); setEditing(null); }}
               style={{ ...ghost(), border: `1.5px solid ${t.id === tourId ? C.red : C.border}`, background: t.id === tourId ? C.lightRed : C.white, color: t.id === tourId ? C.darkRed : C.gray }}>
-              {fmtDate(t.tour_date)} · {(t.stops || []).length} home{(t.stops || []).length === 1 ? "" : "s"}
+              Day {di + 1} · {fmtDate(t.tour_date)} · {(t.stops || []).length} home{(t.stops || []).length === 1 ? "" : "s"}
             </button>
           ))}
         </div>
@@ -374,6 +390,7 @@ export default function ShowingToursTab({ tx, onOpenOffer }) {
                           )}
                         </div>
                       )}
+                      <HomeScorecard stop={s} viewer="agent" onSave={(patch) => saveFeedback(tour, s, patch)} />
                       <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 10 }}>
                         <a href={navUrl(s)} target="_blank" rel="noreferrer" style={{ ...btn(C.blue), textDecoration: "none", padding: "7px 12px", fontSize: 12.5 }}>🧭 Navigate</a>
                         <button onClick={() => writeOffer(s)} disabled={!!busy || offering === s.id} title="Start an offer already filled in from the MLS report"

@@ -122,8 +122,8 @@ export const PAGE_TIPS = {
   },
   "tx:showings": {
     what: "Plan a day of home tours. Upload the MLS report and the app reads every home — address, listing agent, door codes — and puts them in the shortest driving order.",
-    doFirst: "Tap \"Plan a new tour\", then in Stellar MLS pick the homes → Broker Full report → save as one PDF → Upload. Check what it read, then \"Plan my route\".",
-    why: "No more driving back and forth across town or digging for lockbox codes in the car. When your buyer loves one, \"Write an offer\" fills the contract from the same report.",
+    doFirst: "Tap \"Plan a tour\", then in Stellar MLS pick the homes → Broker Full report → save as one PDF → Upload. Check what it read, then \"Plan my route\". At each home, tap 😍 🤔 👎 and the liked / didn't-like chips.",
+    why: "No driving back and forth, no digging for lockbox codes, and no \"which one had the big kitchen?\" — the scorecard is shared with your buyer's portal and ranks every home. When they pick one, \"Write an offer\" fills the contract from the same report.",
     guide: "Plan a day of showings",
   },
   "tx:offers": {
