@@ -5,6 +5,7 @@ import TransactionChat from "./TransactionChat";
 // Liability-critical client-facing claim logic lives in one tested module.
 import { deriveStage, strongClaimFor } from "./portalClaims";
 import { flTaxRate, deedDocStampPer100 } from "./lib/flTaxRates";
+import { simulate, fmtTime } from "./lib/tourRoute";
 
 const API = "https://liz-team-server-api-production.up.railway.app";
 
@@ -930,6 +931,64 @@ function MarketingFeedCard({ txId }) {
   );
 }
 
+// ════════════════════════════════════════════════════════════════
+// SHOWINGS — the homes the buyer's agent planned to show them, in route
+// order with estimated times. Public listing facts only (the server never
+// sends codes, showing instructions, or the listing agent's contact info).
+// ════════════════════════════════════════════════════════════════
+function ShowingToursCard({ txId }) {
+  const [tours, setTours] = useState(null);
+  useEffect(() => {
+    if (!txId) return;
+    fetch(API + "/client/showing-tours/" + txId, { headers: { "Authorization": "Bearer " + (localStorage.getItem("tp_token") || "") } })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => setTours(d && d.success ? d.tours || [] : []))
+      .catch(() => setTours([]));
+  }, [txId]);
+  const todayET = new Date().toLocaleDateString("en-CA", { timeZone: "America/New_York" });
+  const dayLabel = (d) => { const x = new Date(String(d).slice(0, 10) + "T12:00:00"); return x.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" }); };
+  const mapsUrl = (s) => "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent([s.address, s.city, [s.state || "FL", s.zip].filter(Boolean).join(" ")].filter(Boolean).join(", "));
+  if (tours === null) return <div style={{ fontSize: 13, color: C.gray, padding: 14 }}>Loading your showings…</div>;
+  if (!tours.length) return (
+    <div style={{ background: C.white, borderRadius: 14, padding: 18, boxShadow: "0 1px 4px rgba(0,0,0,0.08)", borderLeft: "4px solid " + C.red }}>
+      <div style={{ fontSize: 12, fontWeight: 800, color: C.gray, textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>🗺 Your Showings</div>
+      <div style={{ fontSize: 13.5, color: C.gray, lineHeight: 1.6 }}>When your agent plans a day of home tours, the homes and times will show up here.</div>
+    </div>
+  );
+  return tours.map(t => {
+    const sched = simulate(t.stops, { start: t.start_lat != null ? { lat: t.start_lat, lng: t.start_lng } : null, startTime: t.start_time || "10:00", minutesPerStop: t.minutes_per_stop || 20 });
+    const past = String(t.tour_date || "").slice(0, 10) < todayET;
+    return (
+      <div key={t.id} style={{ background: C.white, borderRadius: 14, padding: 18, marginBottom: 14, boxShadow: "0 1px 4px rgba(0,0,0,0.08)", borderLeft: "4px solid " + (past ? C.midGray : C.red) }}>
+        <div style={{ fontSize: 12, fontWeight: 800, color: C.gray, textTransform: "uppercase", letterSpacing: 1 }}>🗺 {past ? "Homes you toured" : "Your home tour"}</div>
+        <div style={{ fontSize: 17, fontWeight: 800, color: C.black, marginTop: 4 }}>{t.tour_date ? dayLabel(t.tour_date) : "Upcoming"}</div>
+        <div style={{ fontSize: 12.5, color: C.gray, marginTop: 2, marginBottom: 10 }}>{t.stops.length} home{t.stops.length === 1 ? "" : "s"}{!past && sched.legs[0] ? ` · starting around ${fmtTime(sched.legs[0].begin)}` : ""}</div>
+        {t.stops.map((s, i) => {
+          const l = sched.legs[i] || {};
+          return (
+            <div key={s.id} style={{ display: "flex", gap: 12, alignItems: "flex-start", padding: "10px 0", borderTop: "1px solid " + C.lightGray }}>
+              <div style={{ width: 28, height: 28, borderRadius: "50%", background: past ? C.midGray : C.red, color: "#fff", fontWeight: 800, fontSize: 13, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{i + 1}</div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", gap: 8, flexWrap: "wrap" }}>
+                  <a href={mapsUrl(s)} target="_blank" rel="noreferrer" style={{ fontSize: 14.5, fontWeight: 700, color: C.black, textDecoration: "none", wordBreak: "break-word" }}>{s.address}</a>
+                  {!past && l.begin != null && <div style={{ fontSize: 13, fontWeight: 700, color: C.red, whiteSpace: "nowrap" }}>~{fmtTime(l.begin)}</div>}
+                </div>
+                <div style={{ fontSize: 12.5, color: C.gray, marginTop: 2 }}>
+                  {[s.city, s.zip].filter(Boolean).join(" ")}
+                  {s.list_price ? " · $" + Number(s.list_price).toLocaleString() : ""}
+                  {s.beds ? ` · ${Number(s.beds)} bd` : ""}{s.baths ? ` / ${Number(s.baths)} ba` : ""}
+                  {s.sqft ? ` · ${Number(s.sqft).toLocaleString()} sq ft` : ""}{s.year_built ? ` · built ${s.year_built}` : ""}
+                </div>
+              </div>
+            </div>
+          );
+        })}
+        {!past && <div style={{ fontSize: 11.5, color: C.gray, marginTop: 8, lineHeight: 1.5 }}>Times are estimates — your agent will confirm the exact schedule. Tap an address to see it on the map.</div>}
+      </div>
+    );
+  });
+}
+
 // ── MORTGAGE RATE CARD — this month's average 30-yr fixed (FRED) ──
 // Shown to buyers (while shopping) and sellers (what buyers are seeing).
 function MortgageRateCard({ isBuyerSide }) {
@@ -1764,6 +1823,7 @@ export default function ClientPortal({ user, onLogout, previewTxId, onExitPrevie
     { id: "documents", label: "📎 Documents" },
     { id: "chat", label: chatUnread > 0 ? "💬 Messages (" + chatUnread + ")" : "💬 Messages" },
     { id: "team", label: "👥 My Team" },
+    ...(isBuyerSide ? [{ id: "showings", label: "🗺 Showings" }] : []),
     ...(isBuyerSide ? [{ id: "buyer-guide", label: "🧭 Buyer Guide" }] : []),
     ...(isSellerSide ? [{ id: "marketing", label: "📣 Marketing" }] : []),
     { id: "vendors", label: "🏆 Vendors" },
@@ -2054,6 +2114,13 @@ export default function ClientPortal({ user, onLogout, previewTxId, onExitPrevie
                 <MortgageRateCard isBuyerSide={true} />
                 <LoanTypesCard />
                 <CreditCoachCard txId={tx.id} />
+              </div>
+            )}
+
+            {/* SHOWINGS TAB — homes the agent planned to show the buyer */}
+            {activeTab === "showings" && isBuyerSide && (
+              <div>
+                <ShowingToursCard txId={tx.id} />
               </div>
             )}
 
