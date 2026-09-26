@@ -53,6 +53,7 @@ const DocumentsTab = lazy(() => import("./DocumentsTab"));
 // The spot editor is shared with the lease package (same chunk as DocumentsTab).
 const AdjustSpotsModal = lazy(() => import("./DocumentsTab").then(m => ({ default: m.AdjustSpotsModal })));
 const OffersTab = lazy(() => import("./OffersTab"));
+const ShowingToursTab = lazy(() => import("./ShowingToursTab"));
 const Reports = lazy(() => import("./Reports"));
 const VendorLibrary = lazy(() => import("./VendorLibrary"));
 const ShareVendorModalLazy = lazy(() => import("./VendorLibrary").then(m => ({ default: m.ShareVendorModal })));
@@ -6516,6 +6517,8 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
     { id: "overview", label: "Overview" },
     { id: "milestones", label: "📅 Timeline" },
     ...(isBuyerSideTx && !isGuest ? [{ id: "offers", label: "📝 Offers" }] : []),
+    // Plan a day of showings: upload the MLS report → route + codes (agent/TC only).
+    ...(isBuyerSideTx && !isGuest ? [{ id: "showings", label: "🏠 Showings" }] : []),
     { id: "documents", label: "📎 Documents" },
     { id: "parties", label: `People (${(isCoordinator ? tx.parties.filter(p => (p.email || "").toLowerCase() !== (currentUser?.email || "").toLowerCase()) : tx.parties).length})` },
     ...(!isGuest
@@ -7259,6 +7262,7 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
         {activeTab === "notes" && <InternalNotesPanel txId={tx.id} />}
 
         {activeTab === "documents" && <DocumentsTab tx={tx} coordinatorMode={isCoordinator} />}
+        {activeTab === "showings" && !isGuest && <div style={{ padding: 16 }}><ShowingToursTab tx={tx} /></div>}
         {activeTab === "offers" && <OffersTab tx={tx} token={localStorage.getItem("tp_token") || ""} currentUser={currentUser} createSignal={offerCreateSignal}
           onReviewReceived={() => { setActiveTab("overview"); setTimeout(() => { const el = document.getElementById("pending-offers-panel"); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); }, 60); }} />}
         {activeTab === "calculator" && (
