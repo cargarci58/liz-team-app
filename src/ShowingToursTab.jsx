@@ -58,6 +58,7 @@ export default function ShowingToursTab({ tx, onOpenOffer }) {
   const [openCard, setOpenCard] = useState(new Set()); // stops whose scorecard is open
   const toggleCard = (id) => setOpenCard(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
   const fileRef = useRef(null);
+  const offerAfterUpload = useRef(null); // stop id: "Write an offer" asked for the report first
   const mobile = isMobileDevice();
 
   const tour = (tours || []).find(t => t.id === tourId) || null;
@@ -186,6 +187,11 @@ export default function ShowingToursTab({ tx, onOpenOffer }) {
     } catch (e) { setErr(e.message); }
     setBusy("");
     if (fileRef.current) fileRef.current.value = "";
+    // Came here from "Write an offer" on a home with no contract details →
+    // the report is now read and merged, so start/top-up that offer.
+    const pending = offerAfterUpload.current;
+    offerAfterUpload.current = null;
+    if (pending && Date.now() - pending.at < 10 * 60 * 1000) await writeOffer({ id: pending.id }, true);
   };
 
   const startEdit = (s) => { setEditing(s ? s.id : "new"); setDraft(s ? { ...EMPTY_STOP, ...Object.fromEntries(Object.entries(s).map(([k, v]) => [k, v == null ? "" : v])) } : { ...EMPTY_STOP }); };
@@ -220,13 +226,25 @@ export default function ShowingToursTab({ tx, onOpenOffer }) {
 
   // 📝 Write an offer: server starts a draft already filled from the MLS report
   // (same fields as the wizard's own MLS upload), then we jump to Offers.
-  const writeOffer = async (s) => {
+  const hasOfferDetails = (s) => s.offer_details && Object.values(s.offer_details).some(v => v !== "" && v != null && v !== false);
+  const writeOffer = async (s, skipCheck = false) => {
+    // No seller / legal / parcel / HOA on this home yet (added before the app
+    // read them, or the report left them out) → read the report first.
+    if (!skipCheck && s.address && !hasOfferDetails(s)) {
+      if (window.confirm(`${s.address} doesn't have the contract details yet (seller, parcel ID, county, legal description, HOA, title company).\n\nOK = upload its MLS Broker Full report now — the app reads it and fills the offer.\nCancel = start the offer with the basics only.`)) {
+        offerAfterUpload.current = { id: s.id, at: Date.now() };
+        if (fileRef.current) fileRef.current.click();
+        return;
+      }
+    }
     setOffering(s.id); setErr("");
     try {
       const r = await fetch(`${API}/showing-tours/${tour.id}/stops/${s.id}/offer`, { method: "POST", headers: hdrs });
       const d = await r.json();
       if (!r.ok) throw new Error(d.error || "Couldn't start the offer");
-      replaceTour({ ...tour, stops: stops.map(x => x.id === s.id ? { ...x, offer_id: d.offerId } : x) });
+      // Functional update: this can run right after an upload re-saved the tour,
+      // so never write back a stale copy of the stops (it would drop the new details).
+      setTours(prev => (prev || []).map(t => ({ ...t, stops: (t.stops || []).map(x => x.id === s.id ? { ...x, offer_id: d.offerId } : x) })));
       if (onOpenOffer) onOpenOffer(d.offerId);
     } catch (e) { setErr(e.message); }
     setOffering(null);
