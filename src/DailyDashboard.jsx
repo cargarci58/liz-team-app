@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { LogCallButton } from "./ContactsPage";
 import { CallScriptsButton } from "./components/CallScriptPanel";
+import { telHref } from "./lib/telHref";
 
 // Whole days from today (ET) to a date: negative = overdue. ET on purpose —
 // UTC comparisons flip a day after ~8pm Florida time.
@@ -957,21 +958,6 @@ function UnmatchedMailPanel({ token }) {
   );
 }
 
-// Pull ONE dialable number out of a phone field that may hold two numbers, an
-// extension, or formatting — otherwise tel: gets a 14+ digit blob and won't dial.
-function telHref(raw) {
-  if (!raw) return "";
-  const s = String(raw);
-  // first phone-like run (stops at a delimiter such as "/" "," ";" "or")
-  const m = s.match(/\+?\d[\d().\-\s]{6,}\d/);
-  let cleaned = (m ? m[0] : s).replace(/[^\d+]/g, "");
-  const digits = cleaned.replace(/\D/g, "");
-  if (digits.length > 11) { // two numbers ran together — keep the first
-    const take = digits[0] === "1" ? 11 : 10;
-    cleaned = (cleaned[0] === "+" ? "+" : "") + digits.slice(0, take);
-  }
-  return cleaned;
-}
 
 // ── SEND PREVIEW MODAL ────────────────────────────────────────
 // Approve-first: show exactly what's going out — to whom, how, the editable
@@ -1185,7 +1171,7 @@ function FollowupReviewModal({ token, isMobile, onClose }) {
               {current.next_call_reason && (
                 <div style={{ fontSize: 13.5, color: "#7c2d12", fontWeight: 700, marginTop: 7 }}>🎯 You promised: {current.next_call_reason}</div>
               )}
-              <div style={{ marginTop: 8 }}><CallScriptsButton contact={{ ...current, batch_kind: "followup" }} token={token} /></div>
+              <div style={{ marginTop: 8 }}><CallScriptsButton contact={{ ...current, batch_kind: "followup" }} token={token} onCall={() => setCalledId(current.id)} /></div>
               <div style={{ fontSize: 12.5, color: "#6b7280", marginTop: 7, lineHeight: 1.6 }}>
                 {current.phone && <div>📞 {isMobile ? <a href={`tel:${telHref(current.phone)}`} onClick={() => setCalledId(current.id)} style={{ color: "#0c4a6e", fontWeight: 700 }}>{current.phone}</a> : current.phone}</div>}
                 {current.next_call_due_at && <div>📅 Was due {new Date(current.next_call_due_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</div>}
@@ -1884,7 +1870,7 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
                   // dialog so the outcome screen pops up when they return.
                   <LogCallButton contact={c} token={token} onLogged={fetchTasks} compact autoOpen={isMobile && calledIds.has(c.id)} />
                 )}
-                <CallScriptsButton contact={c} token={token} compact />
+                <CallScriptsButton contact={c} token={token} compact onCall={() => setCalledIds(s => new Set(s).add(c.id))} />
                 </div>
               </div>
             );
