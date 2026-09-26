@@ -277,10 +277,12 @@
  "ns3": "[excited] Offers in four answers. Signatures on their phone. Reminders that send themselves.",
  "ns4": "[excited] Your next deal, your calls, your money — all in one place.",
  "ns5": "[excited] TransactPro. Built by a Florida agent. Try it free at transact agent pro dot com.",
- "d7_4a": "[curious] Six homes in one day… and by house number four, they all blur together? [pause] Not anymore.",
- "d7_4b": "Upload the MLS Broker Full report. The app reads every home — address, listing agent, lockbox codes — and plans the shortest route, with arrival times.",
- "d7_5a": "At each home, tap Scorecard — then Love it, Maybe, or Not for us — and tap what you liked and what you didn't.",
- "d7_5b": "Your buyer sees the same scorecard in their portal, and either of you can fill it in. Favorites ranks every home from every tour day, best first.",
- "d7_6a": "When your buyer taps 'I'd like to make an offer,' a red banner shows up right at the top of this page.",
- "d7_6b": "[excited] Tap Write an offer, and the contract fills in from the same report."
+ "d7_4a": "Here's how to plan a day of showings. First, tap Plan a tour. Set the date, the start time, how many minutes you'll spend in each home, and where you're starting from.",
+ "d7_4b": "Next, in Stellar MLS, select the homes, open the Broker Full report, and save it as one PDF. Back here, tap Upload MLS report and choose that file.",
+ "d7_5a": "The app reads every home — the address, the listing agent's phone, the showing instructions, and the lockbox codes. Look over each home, and tap Edit to fix anything it read wrong.",
+ "d7_5b": "Then tap Plan my route. The homes go in the order with the least driving, each with an arrival time. Tap Copy showing times, and paste them into ShowingTime to book your appointments.",
+ "d7_6a": "On tour day, tap Navigate on each home for directions, and tap Access and instructions for the lockbox code.",
+ "d7_6b": "Inside each home, tap Scorecard. Mark Love it, Maybe, or Not for us, and tap what your buyer liked and didn't like. Your buyer sees the same scorecard in their portal, and either of you can fill it in.",
+ "d7_7a": "When your buyer picks a home, tap Write an offer. The contract fills in from the same report. If your buyer taps 'I'd like to make an offer' in their portal, a red banner shows up at the top of this page.",
+ "d7_7b": "Need another day of showings? Tap Add another tour day."
 }

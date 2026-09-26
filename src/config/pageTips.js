@@ -190,7 +190,7 @@ export const PAGE_SCENES = {
   "tx:milestones": ["5.1", "5.2"],
   "tx:documents": ["6.1", "6.2"],
   "tx:documents:listing": ["6.1", "6.2", "7.3"],
-  "tx:showings": ["7.4", "7.5", "7.6"],
+  "tx:showings": ["7.4", "7.5", "7.6", "7.7"],
   "tx:offers": ["7.1"],
   "tx:offers:listing": ["7.2"],
   "tx:parties": ["8.1", "8.2"],
