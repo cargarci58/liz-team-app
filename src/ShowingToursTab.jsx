@@ -239,7 +239,8 @@ export default function ShowingToursTab({ tx, onOpenOffer }) {
     }
     setOffering(s.id); setErr("");
     try {
-      const r = await fetch(`${API}/showing-tours/${tour.id}/stops/${s.id}/offer`, { method: "POST", headers: hdrs });
+      const owner = (tours || []).find(t => (t.stops || []).some(x => x.id === s.id)) || tour;
+      const r = await fetch(`${API}/showing-tours/${owner.id}/stops/${s.id}/offer`, { method: "POST", headers: hdrs });
       const d = await r.json();
       if (!r.ok) throw new Error(d.error || "Couldn't start the offer");
       // Functional update: this can run right after an upload re-saved the tour,
@@ -249,6 +250,13 @@ export default function ShowingToursTab({ tx, onOpenOffer }) {
     } catch (e) { setErr(e.message); }
     setOffering(null);
   };
+
+  // Agent clears the ❤️ flag (handled it, or it was a preview test).
+  const clearInterest = async (t, s) => {
+    const r = await fetch(`${API}/showing-tours/${t.id}/stops/${s.id}/offer-interest`, { method: "DELETE", headers: hdrs }).catch(() => null);
+    if (r && r.ok) setTours(prev => (prev || []).map(x => ({ ...x, stops: (x.stops || []).map(y => y.id === s.id ? { ...y, buyer_offer_interest_at: null } : y) })));
+  };
+  const wanted = (tours || []).flatMap(t => (t.stops || []).filter(s => s.buyer_offer_interest_at).map(s => ({ t, s })));
 
   const sched = tour ? simulate(stops, opts()) : null;
   const legById = new Map((sched ? sched.legs : []).map(l => [l.id, l]));
@@ -289,6 +297,22 @@ export default function ShowingToursTab({ tx, onOpenOffer }) {
           <div style={{ fontSize: 30 }}>🗺</div>
           <div style={{ fontWeight: 800, fontSize: 15, color: C.navy, marginTop: 6 }}>No showing tours yet</div>
           <div style={{ fontSize: 13, color: C.muted, marginTop: 4, lineHeight: 1.5 }}>Tap <b>Plan a tour</b>, upload the Stellar MLS <b>Broker Full</b> report (or screenshots) for the homes you're showing, and the app does the rest.</div>
+        </div>
+      )}
+
+      {wanted.length > 0 && (
+        <div style={{ background: C.lightRed, border: `2px solid ${C.red}`, borderRadius: 12, padding: 14, marginBottom: 12 }}>
+          <div style={{ fontSize: 15, fontWeight: 800, color: C.darkRed }}>❤️ Your buyer wants to make an offer</div>
+          {wanted.map(({ t, s }) => (
+            <div key={s.id} style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", marginTop: 10, background: C.white, borderRadius: 10, padding: "10px 12px" }}>
+              <div style={{ flex: "1 1 200px", minWidth: 0 }}>
+                <div style={{ fontSize: 14.5, fontWeight: 800, color: C.navy, wordBreak: "break-word" }}>{s.address}</div>
+                <div style={{ fontSize: 12, color: C.muted }}>{[s.city, fmtDate(t.tour_date)].filter(Boolean).join(" · ")} · tapped {new Date(s.buyer_offer_interest_at).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</div>
+              </div>
+              <button onClick={() => writeOffer(s)} disabled={!!busy || offering === s.id} style={btn(C.red)}>{offering === s.id ? "Starting…" : s.offer_id ? "📝 Open offer" : "📝 Write an offer"}</button>
+              <button onClick={() => clearInterest(t, s)} title="Clear this flag" style={ghost({ padding: "7px 10px" })}>✕</button>
+            </div>
+          ))}
         </div>
       )}
 
@@ -423,7 +447,10 @@ export default function ShowingToursTab({ tx, onOpenOffer }) {
                         {s.occupancy ? ` · ${s.occupancy}` : ""}
                       </div>
                       {s.buyer_offer_interest_at && (
-                        <div style={{ marginTop: 6, fontSize: 12.5, fontWeight: 800, color: C.darkRed, background: C.lightRed, borderRadius: 8, padding: "4px 9px", display: "inline-block" }}>❤️ Your buyer wants to make an offer on this one</div>
+                        <div style={{ marginTop: 6, fontSize: 12.5, fontWeight: 800, color: C.darkRed, background: C.lightRed, borderRadius: 8, padding: "4px 4px 4px 9px", display: "inline-flex", alignItems: "center", gap: 6 }}>
+                          ❤️ Your buyer wants to make an offer on this one
+                          <button onClick={() => clearInterest(tour, s)} title="Clear this flag" style={{ background: "none", border: "none", color: C.darkRed, fontWeight: 800, cursor: "pointer", fontSize: 13, padding: "0 4px" }}>✕</button>
+                        </div>
                       )}
                       {(s.appt_start || s.appt_end) && (
                         <div style={{ display: "inline-block", marginTop: 6, fontSize: 12, fontWeight: 700, color: l.late > 0 ? C.darkRed : C.blue, background: l.late > 0 ? C.lightRed : "#EEF2F7", borderRadius: 8, padding: "3px 8px" }}>

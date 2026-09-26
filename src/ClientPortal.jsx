@@ -982,9 +982,11 @@ function ShowingToursCard({ txId, preview = false }) {
   // Buyer → agent: "I'd like to make an offer on this one" (lands in the agent's
   // Messages + email, and flags the home on the agent's tour).
   const wantOffer = async (s) => {
-    // Agent previewing the portal: this button belongs to the buyer (it messages YOU).
-    if (preview) { alert("Preview: this is your buyer's button — when they tap it, you get a message + email and a ❤️ on this home in your Showings tab."); return; }
-    if (!window.confirm(`Tell your agent you'd like to make an offer on ${s.address}?`)) return;
+    // Agent previewing the portal: the tap marks the home (so the agent sees the
+    // ❤️ banner in their Showings tab) but sends no message/email to themselves.
+    if (!window.confirm(preview
+      ? `Preview: mark ${s.address} as "buyer wants to make an offer"?\n\nYou'll see the ❤️ banner in your Showings tab. (In preview nothing is emailed — when your real buyer taps it, you also get a message + email.)`
+      : `Tell your agent you'd like to make an offer on ${s.address}?`)) return;
     setSending(s.id);
     try {
       const r = await fetch(API + "/client/showing-stops/" + s.id + "/offer-interest", { method: "POST", headers: { "Authorization": "Bearer " + (localStorage.getItem("tp_token") || "") } });
