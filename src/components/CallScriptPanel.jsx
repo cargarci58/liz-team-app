@@ -67,8 +67,9 @@ export default function CallScriptPanel({ contact, token, onClose, onCall }) {
       <div style={{ background: "#fff", width: "100%", maxWidth: 440, height: "100%", overflowY: "auto", boxShadow: "-8px 0 30px rgba(0,0,0,0.2)", fontFamily: "inherit" }}>
         <div style={{ position: "sticky", top: 0, zIndex: 1, background: "#C0392B", color: "#fff", padding: "14px 16px", display: "flex", alignItems: "center", gap: 10 }}>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontWeight: 800, fontSize: 15 }}>📜 Call scripts</div>
-            <div style={{ fontSize: 12, opacity: 0.85, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>Calling {name}</div>
+            <div style={{ fontWeight: 700, fontSize: 11, letterSpacing: "0.06em", textTransform: "uppercase", opacity: 0.9 }}>📜 Call scripts · Calling</div>
+            {/* The person's name is the headline — big and bold so it's the first thing the agent sees. */}
+            <div style={{ fontSize: 22, fontWeight: 800, lineHeight: 1.2, marginTop: 2, wordBreak: "break-word" }}>{name}</div>
           </div>
           {canDial && (
             // Deferred onCall so the state change never unmounts the link before it dials.
