@@ -5348,7 +5348,9 @@ function DealDoctorPanel({ tx }) {
 
   const tone = { red: { bar: "#C0392B", bg: "#FDEDEC", dot: "🔴" }, yellow: { bar: "#B7770D", bg: "#FEF9E7", dot: "🟡" }, green: { bar: "#1E8449", bg: "#EAFAF1", dot: "🟢" } };
   const t = dd ? (tone[dd.health] || tone.yellow) : tone.yellow;
-  const draft = dd && dd.draft && dd.draft.channel !== "none" ? dd.draft : null;
+  // Once the drafted message was sent (here or by the TC), show that instead of re-offering it.
+  const draftSent = dd && dd.handled && dd.handled.kind === "sent" ? dd.handled : null;
+  const draft = dd && !draftSent && dd.draft && dd.draft.channel !== "none" ? dd.draft : null;
   const copyDraft = () => {
     if (!draft) return;
     const text = (draft.subject ? `Subject: ${draft.subject}\n\n` : "") + (draft.body || "");
@@ -5384,6 +5386,11 @@ function DealDoctorPanel({ tx }) {
             <div style={{ fontSize: 11, fontWeight: 700, color: "#64748B", letterSpacing: ".04em" }}>✅ DO THIS TODAY</div>
             <div style={{ fontSize: 14, color: "#1a2332", marginTop: 2, fontWeight: 600 }}>{dd.move}</div>
           </div>
+          {draftSent && (
+            <div style={{ marginTop: 12, fontSize: 13, color: "#166534", fontWeight: 600 }}>
+              ✅ The recommended message was sent to the {draftSent.toRole || "party"}{draftSent.at ? ` · ${new Date(draftSent.at).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}` : ""} — waiting on their reply.
+            </div>
+          )}
           {draft && (
             <div style={{ marginTop: 12, background: "#fff", border: "1px solid #E5E7EB", borderRadius: 8, padding: 12 }}>
               <div style={{ fontSize: 11, fontWeight: 700, color: "#64748B", letterSpacing: ".04em", marginBottom: 6 }}>
@@ -5406,7 +5413,13 @@ function DealDoctorPanel({ tx }) {
           )}
           {sendOpen && draft && (
             <DealDoctorSendModal tx={tx} draft={draft} onClose={() => setSendOpen(false)}
-              onSent={(n) => { setSendOpen(false); setSentNote(`✓ Sent to ${n} recipient${n === 1 ? "" : "s"}`); setTimeout(() => setSentNote(""), 6000); }} />
+              onSent={(n) => {
+                setSendOpen(false); setSentNote(`✓ Sent to ${n} recipient${n === 1 ? "" : "s"}`); setTimeout(() => setSentNote(""), 6000);
+                // Record it so the panel (and tonight's check-up) knows it went out.
+                fetch(`${API}/transactions/${tx.id}/deal-doctor/handled`, { method: "POST", headers: { ...hdrs, "Content-Type": "application/json" },
+                  body: JSON.stringify({ kind: "sent", toRole: draft.toRole, subject: draft.subject }) })
+                  .then(r => r.json()).then(d => { if (d && d.dealDoctor) setDd(d.dealDoctor); }).catch(() => {});
+              }} />
           )}
           <div style={{ marginTop: 12 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>

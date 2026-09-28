@@ -641,16 +641,43 @@ function DealGroupCard({ deal, token, coordinatorMode = false, meta = null, agen
           {meta.reason && (
             <div style={{ fontSize:13, color:COLORS.black, fontWeight:600, marginTop:3 }}>⚠️ {meta.reason}</div>
           )}
-          {meta.aiMove && (
+          {/* The recommendation — or what already happened to it (sent / handled /
+              set aside), so a sent message never looks unsent. */}
+          {meta.aiHandled && meta.aiHandled.kind === "sent" && (
+            <div style={{ fontSize:12.5, color:"#166534", marginTop:3, fontWeight:600 }}>
+              ✅ Recommended message sent to the {meta.aiHandled.toRole || "party"}{meta.aiHandled.toName ? ` (${meta.aiHandled.toName})` : ""}
+              {meta.aiHandled.at ? ` · ${new Date(meta.aiHandled.at).toLocaleString("en-US", { month:"short", day:"numeric", hour:"numeric", minute:"2-digit" })}` : ""} — waiting on their reply.
+            </div>
+          )}
+          {meta.aiHandled && meta.aiHandled.kind !== "sent" && (
+            <div style={{ fontSize:12, color:COLORS.gray, marginTop:3 }}>
+              {meta.aiHandled.kind === "done" ? "✓ You marked the recommendation as handled." : "⏸ Recommendation set aside until tomorrow."}{" "}
+              <button onClick={() => onDealAction && onDealAction(deal.transaction_id, "rec_undo")}
+                style={{ background:"none", border:"none", padding:0, color:"#0c4a6e", textDecoration:"underline", cursor:"pointer", fontSize:12, fontFamily:"inherit" }}>Show it again</button>
+            </div>
+          )}
+          {!meta.aiHandled && meta.aiMove && (
             <div style={{ fontSize:12.5, color:"#1E40AF", marginTop:3 }}>🤖 Next: {meta.aiMove}</div>
           )}
-          {meta.hasDraft && (
-            <button disabled={aiBusy === deal.transaction_id} onClick={() => onSendAiDraft && onSendAiDraft(deal.transaction_id)}
-              style={{ marginTop:8, padding:"8px 14px", borderRadius:8, border:"none",
-                background:"#0F6E56", color:COLORS.white, fontWeight:700, fontSize:13,
-                cursor: aiBusy === deal.transaction_id ? "wait" : "pointer", fontFamily:"inherit" }}>
-              {aiBusy === deal.transaction_id ? "Sending…" : `✉️ Send the recommended message to the ${meta.draftToRole}`}
-            </button>
+          {!meta.aiHandled && (meta.hasDraft || meta.aiMove) && (
+            <div style={{ display:"flex", gap:8, marginTop:8, flexWrap:"wrap" }}>
+              {meta.hasDraft && (
+                <button disabled={aiBusy === deal.transaction_id} onClick={() => onSendAiDraft && onSendAiDraft(deal.transaction_id)}
+                  style={{ padding:"8px 14px", borderRadius:8, border:"none",
+                    background:"#0F6E56", color:COLORS.white, fontWeight:700, fontSize:13,
+                    cursor: aiBusy === deal.transaction_id ? "wait" : "pointer", fontFamily:"inherit" }}>
+                  {aiBusy === deal.transaction_id ? "Sending…" : `✉️ Send the recommended message to the ${meta.draftToRole}`}
+                </button>
+              )}
+              <button onClick={() => onDealAction && onDealAction(deal.transaction_id, "rec_not_now")}
+                style={{ padding:"8px 12px", borderRadius:8, border:"1.5px solid "+COLORS.border, background:COLORS.white, color:COLORS.gray, fontWeight:600, fontSize:12.5, cursor:"pointer", fontFamily:"inherit" }}>
+                ⏸ Not now
+              </button>
+              <button onClick={() => onDealAction && onDealAction(deal.transaction_id, "rec_done")}
+                style={{ padding:"8px 12px", borderRadius:8, border:"1.5px solid "+COLORS.border, background:COLORS.white, color:COLORS.gray, fontWeight:600, fontSize:12.5, cursor:"pointer", fontFamily:"inherit" }}>
+                ✓ Already handled
+              </button>
+            </div>
           )}
         </div>
       )}
@@ -1397,6 +1424,14 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
   const dealAction = async (txId, kind) => {
     if (kind === "replies") { onOpenTransactionMilestones && onOpenTransactionMilestones(txId, "replies"); return; }
     if (kind === "doc") { requestPreview("/tc/transaction/" + txId + "/request-document"); return; }
+    // The AI recommendation: set aside until tomorrow / already handled / show again.
+    if (kind === "rec_not_now" || kind === "rec_done" || kind === "rec_undo") {
+      try {
+        await post("/tc/transaction/" + txId + "/recommendation", { action: kind.slice(4) });
+        loadCc();
+      } catch (e) { alert("Could not: " + e.message); }
+      return;
+    }
     // "remind" = today's milestone reminder ladder for this deal. Opens the same
     // approve-first review as the Command Center: every email/text shown, each
     // previewable, editable and holdable — nothing sends straight from the card.
