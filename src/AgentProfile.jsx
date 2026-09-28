@@ -9,7 +9,7 @@ export default function AgentProfile({ onClose, currentUser }) {
   const [loading, setLoading] = useState(true);
   // What the REAL email signature prints under the name (the account's company
   // name) — from the server, so the preview never disagrees with the email.
-  const [sig, setSig] = useState({ tenantName: "", brandColor: "#C0392B", email: "" });
+  const [sig, setSig] = useState({ tenantName: "", brandColor: "#C0392B", email: "", canEditCompanyName: false });
   const tok = localStorage.getItem("tp_token") || "";
   const headers = { "Content-Type": "application/json", "Authorization": "Bearer " + tok };
 
@@ -29,7 +29,7 @@ export default function AgentProfile({ onClose, currentUser }) {
           state: d.profile.state || "FL",
           zip: d.profile.zip || "",
         });
-        if (d.profile) setSig({ tenantName: d.profile.tenantName || "", brandColor: d.profile.brandColor || "#C0392B", email: d.profile.email || "" });
+        if (d.profile) setSig({ tenantName: d.profile.tenantName || "", brandColor: d.profile.brandColor || "#C0392B", email: d.profile.email || "", canEditCompanyName: !!d.profile.canEditCompanyName });
         setLoading(false);
       }).catch(() => setLoading(false));
   }, []);
@@ -64,10 +64,16 @@ export default function AgentProfile({ onClose, currentUser }) {
   const save = async () => {
     setSaving(true);
     try {
-      const res = await fetch(API + "/profile", { method: "PUT", headers, body: JSON.stringify(form) });
+      const body = sig.canEditCompanyName ? { ...form, companyName: sig.tenantName } : form;
+      const res = await fetch(API + "/profile", { method: "PUT", headers, body: JSON.stringify(body) });
       const data = await res.json();
-      if (data.success) { setSaved(true); setTimeout(() => { setSaved(false); onClose(); }, 1500); }
-    } catch {}
+      if (!res.ok || !data.success) { alert(data.error || "Could not save — please try again."); setSaving(false); return; }
+      // Keep the saved session's company name current (header, etc.) without a re-login.
+      if (sig.canEditCompanyName) {
+        try { const u = JSON.parse(localStorage.getItem("tp_user") || "{}"); u.tenantName = sig.tenantName; localStorage.setItem("tp_user", JSON.stringify(u)); } catch {}
+      }
+      setSaved(true); setTimeout(() => { setSaved(false); onClose(); }, 1500);
+    } catch { alert("Could not save — please try again."); }
     setSaving(false);
   };
 
@@ -163,6 +169,13 @@ export default function AgentProfile({ onClose, currentUser }) {
             <div style={{ fontSize: 11, color: "#888", marginTop: -8, marginBottom: 16 }}>Your home market — used to default the property-tax rate on net sheets.</div>
 
             <div style={{ marginBottom: 16 }}>
+              {sig.canEditCompanyName && (
+                <div style={{ marginBottom: 16 }}>
+                  <label style={lbl}>Company Name</label>
+                  <input value={sig.tenantName} onChange={e => setSig(s => ({ ...s, tenantName: e.target.value }))} style={inp} placeholder="Your coordinator company name" />
+                  <div style={{ fontSize: 11, color: "#888", marginTop: 6 }}>Shown under your name in every email you send.</div>
+                </div>
+              )}
               <label style={lbl}>Profile Photo</label>
               <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 8 }}>
                 <label style={{ display: "inline-block", padding: "8px 16px", background: "#111", color: "#fff", borderRadius: 8, cursor: "pointer", fontSize: 13, fontWeight: 600, fontFamily: "inherit" }}>
