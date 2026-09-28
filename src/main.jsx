@@ -9,6 +9,7 @@ import ContractUploadPublic from './ContractUploadPublic'
 import OfferReviewPublic from './OfferReviewPublic'
 import OfferSignPublic from './OfferSignPublic'
 import MilestoneActionPublic from './MilestoneActionPublic'
+import { WelcomeReceivedPublic } from './WelcomeReceipts'
 import PortalMagicLogin from './PortalMagicLogin'
 import TcIntakePublic from './TcIntakePublic'
 import FillInfoPublic from './FillInfoPublic'
@@ -49,7 +50,7 @@ window.fetch = async function patchedFetch(input, init) {
       const path = window.location.pathname;
       const isPublicPath = path.startsWith('/upload/') || path.startsWith('/reset-password') ||
                            path.startsWith('/form-download/') || path.startsWith('/upload-contract/') ||
-                           path.startsWith('/review-offers/') || path.startsWith('/milestone-action/') ||
+                           path.startsWith('/review-offers/') || path.startsWith('/milestone-action/') || path.startsWith('/welcome-received/') ||
                            path.startsWith('/tc-intake/') || path.startsWith('/portal/') || path.startsWith('/fill-info/');
       if (!isPublicPath) {
         __reloadingForAuth = true;
@@ -97,6 +98,8 @@ else if (path.startsWith('/form-download/')) {
 } else if (path.startsWith('/milestone-action/')) {
   const token = path.split('/milestone-action/')[1];
   Root = <MilestoneActionPublic urlToken={token} />;
+} else if (path.startsWith('/welcome-received/')) {
+  Root = <WelcomeReceivedPublic urlToken={path.split('/welcome-received/')[1]} />;
 } else if (path.startsWith('/portal/')) {
   const token = path.split('/portal/')[1];
   Root = <PortalMagicLogin urlToken={token} />;

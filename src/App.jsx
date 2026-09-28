@@ -63,6 +63,7 @@ const CalendarView = lazy(() => import("./CalendarView"));
 const ClientPortal = lazy(() => import("./ClientPortal"));
 const TCPortal = lazy(() => import("./TCPortal"));
 const CoordinatorPanel = lazy(() => import("./CoordinatorPanel"));
+const WelcomeReceiptsPanel = lazy(() => import("./WelcomeReceipts"));
 
 const COLORS = {
   navy: "#111111", gold: "#C0392B", lightGold: "#FADBD8",
@@ -7137,6 +7138,8 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
             {isCoordinator && <CoordinatorAssignControl tx={tx} currentUser={currentUser} />}
             {!isGuest && !isCoordinator && <ActiveFollowups txId={tx.id} />}
             {!isGuest && !isCoordinator && <Suspense fallback={null}><CoordinatorPanel txId={tx.id} /></Suspense>}
+            {/* Who confirmed receiving the welcome email — agent AND coordinator (TC parity). */}
+            {!isGuest && <Suspense fallback={null}><WelcomeReceiptsPanel tx={tx} /></Suspense>}
             {showAssignVendor && (
               <AssignVendorPanel
                 tx={tx}

@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { LogCallButton } from "./ContactsPage";
 import { CallScriptsButton } from "./components/CallScriptPanel";
 import { telHref } from "./lib/telHref";
+import { WelcomeReminderModal, markWelcomeReceiptConfirmed } from "./WelcomeReceipts";
 
 // Whole days from today (ET) to a date: negative = overdue. ET on purpose —
 // UTC comparisons flip a day after ~8pm Florida time.
@@ -43,6 +44,7 @@ const TASK_ICONS = {
   buyer_followup:    "🔑",
   lender_update:     "🏦",
   signature_pending: "✍️",
+  welcome_unconfirmed: "📭",
   move_anniversary:  "🏡",
   monthly_financials: "🧾",
 };
@@ -305,6 +307,11 @@ function TaskItem({ task, bucket, token, onResolve, onComplete, onSnooze, onOpen
   // Undated checklist step: "Done" must COMPLETE the milestone (complete-target),
   // not just silence the reminder for 7 days — otherwise it never saves as done.
   const isChecklist = task.task_type === "milestone_checklist";
+  // Welcome email not confirmed (target_ref_id = the receipt). The reminder to
+  // the party only goes out after the agent reviews it in the modal.
+  const isWelcomeUnconfirmed = task.task_type === "welcome_unconfirmed";
+  const welcomeBounced = isWelcomeUnconfirmed && /BOUNCED/.test(task.title || "");
+  const [remindOpen, setRemindOpen] = useState(false);
   // Scripts cards: listing price-reduction + buyer still-searching. Each carries
   // 3 ready-to-use scripts for the paying agent's side of the deal.
   const scriptSet = task.task_type === "price_reduction" ? PRICE_REDUCTION_SCRIPTS
@@ -450,6 +457,32 @@ function TaskItem({ task, bucket, token, onResolve, onComplete, onSnooze, onOpen
                 color:"#1E8449", fontWeight:600, fontSize:13, cursor:"pointer" }}>
               ✓ Done
             </button>
+          </>
+        ) : isWelcomeUnconfirmed ? (
+          <>
+            {welcomeBounced ? (
+              <button onClick={() => onOpenTransactionMilestones && onOpenTransactionMilestones(task.transaction_id, "parties")}
+                style={{ flex:"2 1 60%", padding:"11px 0", borderRadius:10, border:"none",
+                  background:COLORS.red, color:COLORS.white, fontWeight:700, fontSize:14, cursor:"pointer" }}>
+                ✏️ Fix email in People →
+              </button>
+            ) : (
+              <button onClick={() => setRemindOpen(true)}
+                style={{ flex:"2 1 60%", padding:"11px 0", borderRadius:10, border:"none",
+                  background:COLORS.red, color:COLORS.white, fontWeight:700, fontSize:14, cursor:"pointer" }}>
+                ✉️ Review &amp; send reminder
+              </button>
+            )}
+            <button onClick={async () => { if (task.target_ref_id && await markWelcomeReceiptConfirmed(task.target_ref_id)) onResolve(task.id); }}
+              style={{ flex:"1 1 30%", padding:"11px 0", borderRadius:10,
+                border:"1.5px solid #1E8449", background:COLORS.white,
+                color:"#1E8449", fontWeight:600, fontSize:13, cursor:"pointer" }}>
+              ✓ They got it
+            </button>
+            {remindOpen && task.target_ref_id && (
+              <WelcomeReminderModal receiptId={task.target_ref_id} onClose={() => setRemindOpen(false)}
+                onSent={() => { setRemindOpen(false); onResolve(task.id); }} />
+            )}
           </>
         ) : isChecklist ? (
           <button onClick={() => onComplete(task)}
