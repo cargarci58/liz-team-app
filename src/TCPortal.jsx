@@ -237,7 +237,7 @@ function DealView({ txId, onBack }) {
   if (err) return <div style={{ ...card, color: C.red }}>⚠️ {err} <button style={{ ...btn(false), marginLeft: 10 }} onClick={onBack}>Back</button></div>;
   if (!d) return <div style={{ ...card, color: C.muted }}>Loading…</div>;
 
-  const { transaction: tx, parties, milestones, documents, permissions } = d;
+  const { transaction: tx, parties, milestones, documents, permissions, phases = [] } = d;
   const agent = `${tx.owning_agent_first_name || ""} ${tx.owning_agent_last_name || ""}`.trim();
   const price = tx.contract_price || tx.list_price;
   const tabs = [
@@ -331,7 +331,7 @@ function DealView({ txId, onBack }) {
       )}
 
       {tab === "documents" && (
-        <DocsTab txId={txId} documents={documents} milestones={milestones} canUpload={permissions.docs} onChange={load} />
+        <DocsTab txId={txId} documents={documents} phases={phases} milestones={milestones} canUpload={permissions.docs} onChange={load} />
       )}
 
       {tab === "health" && <HealthTab txId={txId} />}
@@ -501,7 +501,7 @@ function ActivityTab({ txId }) {
   );
 }
 
-function DocsTab({ txId, documents, milestones, canUpload, onChange }) {
+function DocsTab({ txId, documents, phases = [], milestones, canUpload, onChange }) {
   const [busy, setBusy] = useState(false);
   const [msId, setMsId] = useState("");
 
@@ -555,19 +555,27 @@ function DocsTab({ txId, documents, milestones, canUpload, onChange }) {
       )}
       {documents.length === 0 && <div style={{ ...card, color: C.muted }}>No documents on file yet.</div>}
       {/* Grouped by folder like the agent app — fall-through archives land in
-          a "Fell through — (buyer)" folder that must be visible here too. */}
+          an "Under Contract — (buyers) · date (fell through …)" folder that must be visible here too. */}
       {(() => {
         const groups = {};
         for (const doc of documents) { const k = doc.folder || ""; (groups[k] = groups[k] || []).push(doc); }
-        // Same phase order as the agent app: live contract, offers, listing, custom, fell-through last.
-        const rank = (k) => k === "" ? 4 : /^(under contract|closed) — /i.test(k) ? 0 : /^(offer|received)/i.test(k) ? 1
-          : /^(listing|buyer search)$/i.test(k) ? 2 : /^fell through — /i.test(k) ? 9 : 5;
-        const icon = (k) => /^under contract — /i.test(k) ? "📝" : /^closed — /i.test(k) ? "🏁" : /^fell through — /i.test(k) ? "💔"
-          : /^(listing|buyer search)$/i.test(k) ? "📋" : /^(offer|received)/i.test(k) ? "📥" : "📁";
-        const keys = Object.keys(groups).sort((a, b) => (rank(a) - rank(b)) || a.localeCompare(b));
+        // Same PHASE order as the agent app: 📋 Listing first, then each contract
+        // oldest → newest; any other folder (offers, the agent's own) sits right
+        // after the phase that was live when its first file arrived.
+        const pIdx = (k) => phases.findIndex(p => p.folder === k);
+        const phaseOf = (k) => {
+          if (pIdx(k) >= 0) return pIdx(k);
+          const first = Math.min(...groups[k].map(d => new Date(d.created_at).getTime()));
+          let pick = 0;
+          phases.forEach((p, i) => { const st = p.start ? new Date(p.start).getTime() : null, en = p.end ? new Date(p.end).getTime() : null; if ((st == null || first >= st) && (en == null || first <= en)) pick = i; });
+          return pick;
+        };
+        const icon = (k) => { const p = phases.find(x => x.folder === k); if (!p) return /^(offer|received)/i.test(k) ? "📥" : "📁";
+          return p.kind === "listing" ? "📋" : p.status === "fell_through" ? "💔" : p.status === "closed" ? "🏁" : "📝"; };
+        const keys = Object.keys(groups).sort((a, b) => (phaseOf(a) - phaseOf(b)) || ((pIdx(a) >= 0 ? 0 : 1) - (pIdx(b) >= 0 ? 0 : 1)) || a.localeCompare(b));
         return keys.map(k => (
-          <div key={k || "root"}>
-            {k && <div style={{ fontWeight: 800, fontSize: 13, color: C.ink, margin: "10px 0 6px" }}>{icon(k)} {k}</div>}
+          <div key={k || "root"} style={{ marginLeft: k && pIdx(k) < 0 && phases.length ? 16 : 0 }}>
+            {k && <div style={{ fontWeight: 800, fontSize: pIdx(k) >= 0 ? 14 : 13, color: C.ink, margin: "10px 0 6px" }}>{icon(k)} {k}</div>}
             {groups[k].map(doc => (
               <div key={doc.id} style={{ ...card, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
                 <div>

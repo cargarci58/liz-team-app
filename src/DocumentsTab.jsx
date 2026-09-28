@@ -60,6 +60,7 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
   const [signStatus, setSignStatus] = useState({}); // docId → {pending, signed}
   const [showLOI, setShowLOI] = useState(false); // Letter of Intent generator (commercial only)
   const [folders, setFolders] = useState([]);    // agent-created folders (may be empty of files)
+  const [phases, setPhases] = useState([]);      // server's ordered phases: Listing, then each contract
   const [dragDocId, setDragDocId] = useState(null); // doc.id being dragged
   const [dragOverFolder, setDragOverFolder] = useState(null); // folder name under the drag
   const [moveDoc, setMoveDoc] = useState(null);  // doc for the tap-based "Move to folder" picker
@@ -131,7 +132,7 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
   const loadDocs = () =>
     fetch(`${API}/documents/${tx.id}`, { headers })
       .then(r => r.json())
-      .then(d => { if (d.documents) setDocs(d.documents); if (Array.isArray(d.folders)) setFolders(d.folders); })
+      .then(d => { if (d.documents) setDocs(d.documents); if (Array.isArray(d.folders)) setFolders(d.folders); if (Array.isArray(d.phases)) setPhases(d.phases); })
       .catch(e => console.error("Load docs failed:", e));
 
   const loadRequired = () =>
@@ -210,19 +211,6 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
   };
 
   // Point an already-uploaded document at a checklist slot (no re-upload).
-  // Move a document between the two Documents-tab sections by re-tagging its
-  // category. Used by the ⋯ menu when something lands in the wrong place.
-  const moveToCategory = async (doc, category) => {
-    try {
-      const res = await fetch(`${API}/documents/${doc.id}/category`, {
-        method: "PATCH", headers: { ...headers, "Content-Type": "application/json" },
-        body: JSON.stringify({ category }),
-      });
-      const data = await res.json();
-      if (!res.ok || !data.success) throw new Error(data.error || "Move failed");
-      await loadDocs();
-    } catch (err) { alert("Couldn't move it: " + err.message); }
-  };
   // ── Folders: create / rename / delete-empty / move files (drag OR tap) ──
   // A "folder" here is whatever groups files in this list: doc.folder, else
   // doc.category, else "General". Moving a file into a group just stamps its
@@ -288,11 +276,6 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
       await loadDocs();
     } catch (err) { alert("Couldn't rename the file: " + err.message); }
   };
-  // Same rule the section-split uses, so the menu offers the RIGHT direction.
-  const docIsOffer = (d) => /^(offer|received)/i.test(d.folder || "")
-    || /purchase_contract|as_is_contract|builder_purchase_contract|executed_contract|far_bar_contract|fully_executed_contract/i.test(d.document_type || "")
-    || /purchase_contract|contract package|offer ?\/ ?contract/i.test(d.category || "")
-    || /contract for sale|repair.*addendum|inspection.*addendum/i.test(d.name || "");
 
   const assignExisting = async (documentType, docId) => {
     if (!docId) return;
@@ -686,11 +669,9 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
             {(() => {
               const groups = new Set(folders);
               for (const d of docs) groups.add(docGroupKey(d));
-              const list = [...groups].sort((a, b) => {
-                const ao = /^(offer|received)/i.test(a), bo = /^(offer|received)/i.test(b);
-                if (ao !== bo) return ao ? -1 : 1;
-                return a.localeCompare(b);
-              });
+              phases.forEach(p => groups.add(p.folder));
+              const phaseIdx = (n) => { const i = phases.findIndex(p => p.folder === n); return i < 0 ? 999 : i; };
+              const list = [...groups].sort((a, b) => (phaseIdx(a) - phaseIdx(b)) || a.localeCompare(b));
               const current = docGroupKey(moveDoc);
               return list.map(name => (
                 <button key={name} disabled={name === current}
@@ -750,15 +731,8 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
             💡 Each file has a <b>👁 Client can view</b> / <b>🔒 Hidden</b> button — tap it to control whether your client sees that file in their portal. New uploads are <b>Hidden</b> by default.
           </div>
           {(() => {
-            // TWO top-level buckets on a listing (Carlos 7/24): OFFERS &
-            // CONTRACTS kept apart from LISTING & PROPERTY paperwork, each
-            // still sub-grouped by per-offer folder / category. A NEW badge
+            // Folders by deal PHASE (see the phase layout below). A NEW badge
             // flags anything uploaded in the last 2 days.
-            const CONTRACT_TYPES = /purchase_contract|as_is_contract|builder_purchase_contract|executed_contract|far_bar_contract|fully_executed_contract/i;
-            const isOfferDoc = (d) => /^(offer|received)/i.test(d.folder || "")
-              || CONTRACT_TYPES.test(d.document_type || "")
-              || /purchase_contract|contract package|offer ?\/ ?contract/i.test(d.category || "")
-              || /contract for sale|repair.*addendum|inspection.*addendum/i.test(d.name || "");
             const NEW_MS = 2 * 24 * 60 * 60 * 1000;
             const isNew = (d) => d.created_at && (Date.now() - new Date(d.created_at).getTime()) < NEW_MS;
             const subGroups = (list, extraFolders = []) => {
@@ -808,10 +782,8 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
                 </div>
               );
             };
-            // Empty custom folders split between the two listing buckets by name.
+            // Agent-created folders with no files yet (still drop targets).
             const customEmpty = folders.filter(n => !docs.some(d => docGroupKey(d) === n));
-            const customEmptyOffers = customEmpty.filter(n => /^(offer|received)/i.test(n));
-            const customEmptyListing = customEmpty.filter(n => !/^(offer|received)/i.test(n));
             const renderDoc = (doc) => (
                   <div key={doc.id} draggable
                     onDragStart={e => { e.dataTransfer.setData("text/plain", doc.id); e.dataTransfer.effectAllowed = "move"; setDragDocId(doc.id); }}
@@ -876,9 +848,6 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
                                 { icon: "📁", label: "Move to folder…", fn: () => setMoveDoc(doc) },
                                 { icon: "✏️", label: "Rename file…", fn: () => renameFile(doc) },
                                 { icon: doc.is_visible_to_client ? "🔒" : "👁", label: doc.is_visible_to_client ? "Hide from client's portal" : "Show in client's portal", fn: () => toggleVisibility(doc) },
-                                /listing|seller/i.test(tx?.transaction_type || tx?.type || "") && (docIsOffer(doc)
-                                  ? { icon: "📁", label: "Move to Listing & Property Documents", fn: () => moveToCategory(doc, "General") }
-                                  : { icon: "📥", label: "Move to Offers & Contract", fn: () => moveToCategory(doc, "Offer / Contract") }),
                                 isContractReadable(doc) && { icon: "📅", label: readingDates === doc.id ? "Reading…" : "AI: read dates from this contract", fn: () => readContractDates(doc) },
                                 { icon: "⬇️", label: "Download", fn: () => handleDownload(doc) },
                                 { divider: true },
@@ -901,46 +870,74 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
                     </div>
                   </div>
             );
-            const section = (title, emoji, list, accent, extraFolders = []) => (list.length === 0 && extraFolders.length === 0) ? null : (
-              <div style={{ marginBottom: 22 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "0 0 10px 0", paddingBottom: 6, borderBottom: "2px solid " + accent }}>
-                  <span style={{ fontSize: 17 }}>{emoji}</span>
-                  <span style={{ fontWeight: 800, fontSize: 14, color: accent, textTransform: "uppercase", letterSpacing: 0.4 }}>{title}</span>
-                  <span style={{ fontSize: 11, color: COLORS.muted }}>({list.length})</span>
-                </div>
-                {subGroups(list, extraFolders).map(([folder, arr]) => folderGroup(folder, arr))}
-              </div>
-            );
-            const offers = docs.filter(isOfferDoc);
-            const listing = docs.filter(d => !isOfferDoc(d));
-            const isListingDeal = /listing|seller/i.test(tx?.transaction_type || tx?.type || "");
-            // Buyer/other deals keep the simple single flow.
-            if (!isListingDeal) {
+            // PHASE LAYOUT (Carlos 9/28): the top level is ONLY the deal's phases,
+            // in order — 📋 Listing first, then one 📝 "Under Contract — <buyers> ·
+            // <date>" per contract (a dead one marked "fell through"). Every file
+            // lives inside its phase; offers and the agent's own folders nest
+            // inside the phase they happened in. (Server decides the phases.)
+            if (!phases.length) {
               return subGroups(docs, customEmpty).map(([folder, arr]) => folderGroup(folder, arr, true));
             }
-            // On a LISTING the "Offers & Contract" section ALWAYS shows — even
-            // empty — so an offer (received automatically OR uploaded by hand)
-            // has a home waiting for it (Carlos 7/24). Empty → a clear hint.
-            const offersSection = (offers.length > 0 || customEmptyOffers.length > 0)
-              ? section("Offers & Contract", "📥", offers, "#1d4ed8", customEmptyOffers)
-              : (
-                <div style={{ marginBottom: 22 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "0 0 10px 0", paddingBottom: 6, borderBottom: "2px solid #1d4ed8" }}>
-                    <span style={{ fontSize: 17 }}>📥</span>
-                    <span style={{ fontWeight: 800, fontSize: 14, color: "#1d4ed8", textTransform: "uppercase", letterSpacing: 0.4 }}>Offers &amp; Contract</span>
-                    <span style={{ fontSize: 11, color: COLORS.muted }}>(0)</span>
+            const phaseNames = new Set(phases.map(p => p.folder));
+            const inPhase = {}; phases.forEach(p => { inPhase[p.folder] = []; });
+            const others = {};
+            for (const d of docs) { const k = docGroupKey(d); if (phaseNames.has(k)) inPhase[k].push(d); else (others[k] = others[k] || []).push(d); }
+            customEmpty.forEach(n => { if (!phaseNames.has(n) && !others[n]) others[n] = []; });
+            const ms = (x) => x ? new Date(x).getTime() : null;
+            // A nested folder belongs to the phase that was live when its first file
+            // arrived; an empty one to the current (newest) phase.
+            const parentOf = (arr) => {
+              if (!arr.length) return phases[phases.length - 1].folder;
+              const first = Math.min(...arr.map(d => new Date(d.created_at).getTime()));
+              let pick = phases[0].folder;
+              for (const p of phases) { const st = ms(p.start), en = ms(p.end); if ((st == null || first >= st) && (en == null || first <= en)) pick = p.folder; }
+              return pick;
+            };
+            const nest = {};
+            Object.keys(others).sort((a, b) => a.localeCompare(b)).forEach(k => { const par = parentOf(others[k]); (nest[par] = nest[par] || []).push([k, others[k]]); });
+            const phaseStyle = (p) => p.kind === "listing" ? { icon: "📋", accent: "#166534", badge: null }
+              : p.status === "fell_through" ? { icon: "💔", accent: "#922B21", badge: "Fell through" }
+              : p.status === "closed" ? { icon: "🏁", accent: "#0c4a6e", badge: "Closed" }
+              : { icon: "📝", accent: "#1d4ed8", badge: "Current contract" };
+            const phaseSection = (p) => {
+              const own = inPhase[p.folder] || [];
+              const subs = nest[p.folder] || [];
+              const count = own.length + subs.reduce((n, [, a]) => n + a.length, 0);
+              const st = phaseStyle(p);
+              const over = dragOverFolder === p.folder && dragDocId;
+              return (
+                <div key={p.folder} style={{ marginBottom: 22 }}>
+                  <div
+                    onDragOver={e => { if (dragDocId) { e.preventDefault(); if (dragOverFolder !== p.folder) setDragOverFolder(p.folder); } }}
+                    onDragLeave={e => { if (!e.currentTarget.contains(e.relatedTarget)) setDragOverFolder(f => (f === p.folder ? null : f)); }}
+                    onDrop={e => {
+                      e.preventDefault(); setDragOverFolder(null);
+                      const id = e.dataTransfer.getData("text/plain") || dragDocId;
+                      const d = docs.find(x => x.id === id);
+                      setDragDocId(null);
+                      if (d) moveDocToFolder(d, p.folder);
+                    }}
+                    style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", margin: "0 0 10px 0", padding: "4px 4px 6px", borderBottom: "2px solid " + st.accent, borderRadius: 6, outline: over ? "2px dashed #2563eb" : "none", background: over ? "#eff6ff" : "transparent" }}>
+                    <span style={{ fontSize: 17 }}>{st.icon}</span>
+                    <span style={{ fontWeight: 800, fontSize: 14, color: st.accent }}>{p.folder.replace(/ \((fell through [^)]*|closed)\)$/i, "")}</span>
+                    {st.badge && <span style={{ fontSize: 10.5, fontWeight: 800, color: "#fff", background: st.accent, borderRadius: 10, padding: "2px 8px" }}>{p.status === "fell_through" ? (p.folder.match(/\((fell through [^)]*)\)$/i) || [null, st.badge])[1] : st.badge}</span>}
+                    <span style={{ fontSize: 11, color: COLORS.muted }}>({count})</span>
                   </div>
-                  <div style={{ marginLeft: 14, background: "#eff6ff", border: "1px dashed #93c5fd", borderRadius: 10, padding: "12px 14px", fontSize: 12.5, color: "#1e3a8a" }}>
-                    Offers land here automatically when a buyer's agent uploads through your <b>Receive Offer</b> link. Got a contract in hand? Use <b>📎 Choose Files</b> above and pick the <b>“Offer / Contract”</b> category — it'll show up here.
-                  </div>
+                  {own.length === 0 && subs.length === 0 && (
+                    <div style={{ marginLeft: 14, border: "1.5px dashed #d1d5db", borderRadius: 10, padding: "10px 14px", fontSize: 12, color: COLORS.muted, background: "#fafafa" }}>
+                      No files yet — new files for this {p.kind === "listing" ? "listing" : "contract"} land here automatically.
+                    </div>
+                  )}
+                  {own.map(renderDoc)}
+                  {subs.length > 0 && (
+                    <div style={{ marginLeft: 14, marginTop: own.length ? 10 : 0 }}>
+                      {subs.map(([k, arr]) => folderGroup(k, arr))}
+                    </div>
+                  )}
                 </div>
               );
-            return (
-              <>
-                {offersSection}
-                {section("Listing & Property Documents", "📁", listing, "#166534", customEmptyListing)}
-              </>
-            );
+            };
+            return <>{phases.map(phaseSection)}</>;
           })()}
         </div>
       )}
