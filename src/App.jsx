@@ -133,11 +133,15 @@ const REFERRAL_SOURCES = ["Past Client", "Referral", "Zillow", "Realtor.com", "O
 const OCCUPANCY_OPTIONS = ["Owner Occupied", "Tenant Occupied", "Vacant"];
 const COUNTIES = ["Orange", "Osceola", "Seminole", "Polk", "Brevard", "Lake", "Volusia", "Hillsborough", "Other"];
 const PARTY_ROLES = [
-  // Assistants contain "Agent", so every /agent/i gate already treats them as
-  // agent-side (never a client, never portal). The welcome email + roster code
-  // on the server groups each assistant with their agent (isBuyerAgentTeam /
+  // Assistants and side TCs contain "Agent", so every /agent/i gate already
+  // treats them as agent-side (never a client, never portal). The welcome email
+  // + roster code on the server groups each with their agent (isBuyerAgentTeam /
   // isListingAgentTeam). Keep these exact strings in sync with that.
-  "Listing Agent", "Listing Agent Assistant", "Buyer's Agent", "Buyer's Agent Assistant", "Transaction Coordinator",
+  // "Transaction Coordinator" = YOUR TC, linked to the TC portal. "<side> TC"
+  // must never contain the word "coordinator" — every /coordinator/ gate
+  // (portal sync, broadcast CC, "keep the TC in the loop") means YOUR TC.
+  "Listing Agent", "Listing Agent Assistant", "Listing Agent TC",
+  "Buyer's Agent", "Buyer's Agent Assistant", "Buyer's Agent TC", "Transaction Coordinator",
   "Builder", "Title Company", "Loan Officer/Lender", "Inspector", "Appraiser",
   // Landlord/Tenant are the rental equivalents of Seller/Buyer and are treated
   // as such everywhere that matters — portal access (isOwnSideClientRole here,
