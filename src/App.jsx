@@ -4761,6 +4761,10 @@ function InboundRepliesPanel({ tx, coordinatorMode = false, onInboundRead }) {
   const replyFileRef = useRef(null);
   const tok = localStorage.getItem("tp_token") || "";
   const API = "https://liz-team-server-api-production.up.railway.app";
+  const loadMessages = () => fetch(`${API}/transactions/${tx.id}/inbound-emails`, { headers: { Authorization: "Bearer " + tok } })
+    .then(r => r.json())
+    .then(d => { setMessages(Array.isArray(d.messages) ? d.messages : []); setLoading(false); })
+    .catch(() => setLoading(false));
   useEffect(() => {
     let alive = true;
     fetch(`${API}/transactions/${tx.id}/inbound-emails`, { headers: { Authorization: "Bearer " + tok } })
@@ -4775,6 +4779,47 @@ function InboundRepliesPanel({ tx, coordinatorMode = false, onInboundRead }) {
       .catch(() => { if (alive) setLoading(false); });
     return () => { alive = false; };
   }, [tx.id]);
+
+  // Checklist slots for the "File as…" picker on attachments (the app files
+  // them on its own when it can tell what they are; this is the override).
+  const [slots, setSlots] = useState(null);      // checklist slots
+  const [steps, setSteps] = useState([]);        // timeline steps that wait for a document
+  const [filing, setFiling] = useState({});   // `${msgId}:${idx}` → true while saving
+  useEffect(() => {
+    let alive = true;
+    fetch(`${API}/transactions/${tx.id}/required-documents`, { headers: { Authorization: "Bearer " + tok } })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (alive) setSlots(d && Array.isArray(d.items) ? d.items : []); })
+      .catch(() => { if (alive) setSlots([]); });
+    fetch(`${API}/documents/compliance/${tx.id}`, { headers: { Authorization: "Bearer " + tok } })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (alive) setSteps(d && Array.isArray(d.compliance) ? d.compliance.filter(c => c.status !== "Waived" && (c.documentRequired || c.status !== "Completed")) : []); })
+      .catch(() => {});
+    return () => { alive = false; };
+  }, [tx.id]);
+  const slotLabel = (docType) => {
+    const s = (slots || []).find(x => String(x.documentType).toLowerCase() === String(docType || "").toLowerCase());
+    return s ? s.label : String(docType || "").replace(/_/g, " ");
+  };
+  const fileAttachment = async (msgId, idx, target) => {
+    const k = `${msgId}:${idx}`;
+    setFiling(f => ({ ...f, [k]: true }));
+    try {
+      const body = String(target || "").startsWith("ms:") ? { milestoneId: target.slice(3) } : { documentType: target || "" };
+      const r = await fetch(`${API}/inbound-emails/${msgId}/attachments/${idx}/file`, {
+        method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + tok },
+        body: JSON.stringify(body),
+      });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error || "Could not file that attachment.");
+      setSentNote(n => ({ ...n, [msgId]: d.label
+        ? `📎 Filed as ${d.label}${(d.milestonesDone || []).length ? ` — step marked done: ${d.milestonesDone.join(", ")}` : ""}`
+        : "📎 Moved back to General" }));
+      await loadMessages();
+      try { window.dispatchEvent(new CustomEvent("deals:refresh")); } catch { /* ignore */ }
+    } catch (e) { alert(e.message || "Could not file that attachment."); }
+    setFiling(f => ({ ...f, [k]: false }));
+  };
 
   const openAttachment = async (msgId, idx) => {
     try {
@@ -4973,14 +5018,38 @@ function InboundRepliesPanel({ tx, coordinatorMode = false, onInboundRead }) {
               )}
             {atts.length > 0 && (
               <div style={{ marginTop: 12, borderTop: `1px solid ${COLORS.border}`, paddingTop: 10 }}>
-                <div style={{ fontSize: 12, fontWeight: 700, color: COLORS.gray, marginBottom: 6 }}>📎 Attachments</div>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                  {atts.map((a, i) => (
-                    <button key={i} onClick={() => openAttachment(m.id, i)}
-                      style={{ border: `1px solid ${COLORS.border}`, background: COLORS.bg, borderRadius: 8, padding: "8px 12px", cursor: "pointer", fontSize: 13, fontWeight: 600, color: COLORS.navy }}>
-                      📄 {a.filename || `Attachment ${i + 1}`}
-                    </button>
-                  ))}
+                <div style={{ fontSize: 12, fontWeight: 700, color: COLORS.gray, marginBottom: 2 }}>📎 Attachments</div>
+                <div style={{ fontSize: 12, color: COLORS.gray, marginBottom: 8 }}>Saved to this deal's Documents automatically. The app files them to the checklist when it can tell what they are — pick a slot to change it.</div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  {atts.map((a, i) => {
+                    const busy = !!filing[`${m.id}:${i}`];
+                    return (
+                      <div key={i} style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8 }}>
+                        <button onClick={() => openAttachment(m.id, i)}
+                          style={{ border: `1px solid ${COLORS.border}`, background: COLORS.bg, borderRadius: 8, padding: "8px 12px", cursor: "pointer", fontSize: 13, fontWeight: 600, color: COLORS.navy }}>
+                          📄 {a.filename || `Attachment ${i + 1}`}
+                        </button>
+                        {(a.filedAs || a.filedMilestoneId) && (
+                          <span style={{ fontSize: 12, fontWeight: 700, color: "#1E8449", background: "#EAF7EE", padding: "4px 10px", borderRadius: 20 }}>✓ Filed as {a.filedMilestoneId ? (a.filedLabel || "timeline step") : slotLabel(a.filedAs)}</span>
+                        )}
+                        {a.inDocuments === false && a.key && (
+                          <span style={{ fontSize: 12, color: COLORS.gray }}>not in Documents (small image)</span>
+                        )}
+                        <select value="" disabled={busy || slots === null}
+                          onChange={e => { const v = e.target.value; if (v === "__general") fileAttachment(m.id, i, ""); else if (v) fileAttachment(m.id, i, v); }}
+                          style={{ padding: "6px 8px", borderRadius: 8, border: `1px solid ${COLORS.border}`, fontSize: 12, fontFamily: "inherit", maxWidth: "100%", color: COLORS.navy, background: "#fff" }}>
+                          <option value="">{busy ? "Filing…" : (a.filedAs || a.filedMilestoneId) ? "Change…" : "File as…"}</option>
+                          {steps.length > 0 && <optgroup label="Timeline steps waiting for a document">
+                            {steps.map(s => <option key={s.milestoneId} value={"ms:" + s.milestoneId}>{s.milestoneName}{s.documentUploaded ? " (on file)" : ""}</option>)}
+                          </optgroup>}
+                          <optgroup label="Required-documents checklist">
+                            {(slots || []).map(s => <option key={s.documentType} value={s.documentType}>{s.label}{s.present ? " (on file)" : ""}</option>)}
+                          </optgroup>
+                          {(a.filedAs || a.filedMilestoneId) && <option value="__general">Keep as General (no slot)</option>}
+                        </select>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             )}
