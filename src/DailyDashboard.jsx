@@ -963,16 +963,27 @@ function UnmatchedMailPanel({ token }) {
               {!m.forwarding.link && !m.forwarding.code && (
                 <div style={{ fontSize: 12.5, color: "#166534" }}>Open this email in {m.forwarding.provider === "gmail" ? "Gmail" : "Outlook"} to click the confirmation link.</div>
               )}
+              {/* Confirming alone does NOT start forwarding in Gmail — the
+                  "Forward a copy…" choice must be picked and saved (9/28:
+                  Limarys's forward sat unverified for 2½ months). */}
+              {m.forwarding.provider === "gmail" && (
+                <div style={{ fontSize: 12.5, color: "#166534", lineHeight: 1.5, marginTop: 8, borderTop: "1px solid #BBF7D0", paddingTop: 8 }}>
+                  <b>Then, last step:</b> back in Gmail → Settings → <b>Forwarding and POP/IMAP</b> → refresh the page → pick <b>"Forward a copy of incoming mail to fw-…"</b> and <b>"keep … copy in the Inbox"</b> → click <b>Save Changes</b>.
+                </div>
+              )}
             </div>
           ) : null}
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 10 }}>
-            <button disabled={busy === m.id} onClick={() => openAssign(m.id)}
-              style={{ padding: "8px 14px", borderRadius: 8, border: "none", background: "#0F6E56", color: COLORS.white, fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>
-              📂 File to a deal
-            </button>
-            <button disabled={busy === m.id} onClick={() => dismiss(m.id)}
+            {!m.forwarding && (
+              <button disabled={busy === m.id} onClick={() => openAssign(m.id)}
+                style={{ padding: "8px 14px", borderRadius: 8, border: "none", background: "#0F6E56", color: COLORS.white, fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>
+                📂 File to a deal
+              </button>
+            )}
+            <button disabled={busy === m.id}
+              onClick={() => { if (m.forwarding && !window.confirm("Only hide this AFTER you clicked Confirm forwarding and saved the setting in your email.\n\nIf you hide it without confirming, your email will NOT forward into the app.\n\nHide it now?")) return; dismiss(m.id); }}
               style={{ padding: "8px 14px", borderRadius: 8, border: "1.5px solid " + COLORS.lightGray, background: COLORS.white, color: COLORS.gray, fontWeight: 600, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>
-              {m.forwarding ? "Dismiss" : "Not deal-related"}
+              {m.forwarding ? "✓ Done — I confirmed it" : "Not deal-related"}
             </button>
           </div>
           {assignFor === m.id && (

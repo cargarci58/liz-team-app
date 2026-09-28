@@ -203,9 +203,20 @@ export default function AgentProfile({ onClose, currentUser }) {
                     {fwCopied ? "✅ Copied" : "Copy address"}
                   </button>
                 </div>
-                <div style={{ fontSize: 12, color: "#555", lineHeight: 1.6 }}>
-                  <b>Gmail:</b> Settings ⚙️ → See all settings → <b>Forwarding and POP/IMAP</b> → Add a forwarding address → paste the address above. Gmail sends a confirmation email — it appears in <b>📥 Mail to file</b> on your Win the Day page; open it and click the confirmation link. Then choose "Forward a copy… and keep Gmail's copy."<br />
-                  <b>Outlook:</b> Settings ⚙️ → Mail → <b>Forwarding</b> → paste the address above and check "Keep a copy."
+                {/* Every step matters — Limarys's forward sat "Verify…" (OFF) for
+                    2½ months because the confirmation was dismissed and step 5
+                    never happened (Carlos 9/28). */}
+                <div style={{ fontSize: 12.5, color: "#333", lineHeight: 1.6 }}>
+                  <b>Gmail (5 steps, once):</b>
+                  <ol style={{ margin: "4px 0 10px", paddingLeft: 20 }}>
+                    <li>Gmail → Settings ⚙️ → <b>See all settings</b> → <b>Forwarding and POP/IMAP</b> → <b>Add a forwarding address</b> → paste the address above → Next → Proceed.</li>
+                    <li>Gmail sends a confirmation to the app. Open <b>Win the Day → 📥 Mail to file</b> (it can take a minute).</li>
+                    <li>Click the green <b>Confirm forwarding →</b> button, then <b>Confirm</b> on Google's page. <b>Don't hide it before this.</b></li>
+                    <li>Back in Gmail's Forwarding page, <b>refresh</b>. It must no longer say "Verify fw-…".</li>
+                    <li>Select <b>"Forward a copy of incoming mail to fw-…"</b> and <b>"keep … copy in the Inbox"</b> → click <b>Save Changes</b> at the bottom.</li>
+                  </ol>
+                  <b>Outlook:</b> Settings ⚙️ → Mail → <b>Forwarding</b> → Enable forwarding → paste the address above → check <b>"Keep a copy of forwarded messages"</b> → Save.<br />
+                  <span style={{ color: "#888" }}>Gmail says forwarding isn't allowed? Your Google Workspace admin must turn on "Allow users to automatically forward incoming email" (Admin console → Apps → Gmail → End User Access).</span>
                 </div>
               </div>
             )}
