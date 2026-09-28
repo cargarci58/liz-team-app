@@ -43,7 +43,7 @@ const btn = (primary) => ({
 const input = { fontSize: 16, padding: "10px 12px", borderRadius: 10, border: `1px solid ${C.line}`, width: "100%", boxSizing: "border-box" };
 const pill = (bg, fg) => ({ display: "inline-block", fontSize: 12, fontWeight: 700, padding: "3px 9px", borderRadius: 999, background: bg, color: fg });
 
-const ROLE_OPTIONS = ["Buyer", "Seller", "Buyer's Agent", "Listing Agent", "Lender", "Title", "Inspector", "Appraiser", "HOA", "Closing Attorney", "Other"];
+const ROLE_OPTIONS = ["Buyer", "Seller", "Buyer's Agent", "Buyer's Agent Assistant", "Listing Agent", "Listing Agent Assistant", "Lender", "Title", "Inspector", "Appraiser", "HOA", "Closing Attorney", "Other"];
 
 export default function TCPortal({ user, onLogout }) {
   const [nav, setNav] = useState("dashboard"); // dashboard | deals | business
