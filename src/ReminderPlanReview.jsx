@@ -15,6 +15,7 @@ export default function ReminderPlanReview({ token, txId, reloadKey, onSent, onL
   const [view, setView] = useState("email");      // "email" (as they'll see it) | "edit"
   const [sending, setSending] = useState(false);
   const [msg, setMsg] = useState(null);
+  const [skipping, setSkipping] = useState(null);
 
   useEffect(() => {
     let dead = false;
@@ -69,6 +70,23 @@ export default function ReminderPlanReview({ token, txId, reloadKey, onSent, onL
     setSending(false);
   };
 
+  // "Don't send" — drop it from today's plan for good (nothing is sent).
+  const skip = async (a) => {
+    setSkipping(a.key); setMsg(null);
+    try {
+      const r = await fetch(API + "/tc/action-plan/skip", {
+        method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
+        body: JSON.stringify({ keys: [a.key] }),
+      });
+      const d = await r.json();
+      if (!r.ok || !d.success) throw new Error(d.error || "Couldn't skip it");
+      setActions(list => list.filter(x => x.key !== a.key));
+      if (openKey === a.key) setOpenKey(null);
+      setMsg(`✅ Won't send: ${a.summary.replace(/^(Email|Text) /, "")}${a.role && !a.isAgent ? ` (${a.role})` : ""}. Nothing went out.`);
+    } catch (e) { setMsg("⚠️ " + e.message); }
+    setSkipping(null);
+  };
+
   const icon = (a) => a.channel === "sms" ? "💬" : a.isAgent ? "📋" : "📧";
   const box = inModal ? {} : { background: "#EFF6FF", border: "1px solid #BFDBFE", borderRadius: 12, padding: 16, marginBottom: 16 };
   const linkBtn = { background: "none", border: "1px solid #93C5FD", color: "#1E40AF", borderRadius: 8, padding: "4px 10px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" };
@@ -78,7 +96,7 @@ export default function ReminderPlanReview({ token, txId, reloadKey, onSent, onL
     <div style={box}>
       {!inModal && <div style={{ fontSize: 15, fontWeight: 800, color: "#1E3A8A", marginBottom: 4 }}>🤖 Here's what I'll send today</div>}
       <div style={{ fontSize: 12.5, color: "#1E40AF", marginBottom: 12 }}>
-        Tap <b>👀 Preview &amp; edit</b> to read or change any message. Uncheck anything you want to hold — only checked messages go out.
+        Tap <b>👀 Preview &amp; edit</b> to read or change any message. <b>⏸ Not now</b> holds it for later; <b>🚫 Don't send</b> removes it for today. Only messages still checked go out.
       </div>
       {byDeal.map(g => (
         <div key={g.txId} style={{ padding: "8px 0", borderTop: "1px solid #DBEAFE" }}>
@@ -99,16 +117,30 @@ export default function ReminderPlanReview({ token, txId, reloadKey, onSent, onL
                     <div style={{ fontSize: 12.5, color: "#475569", marginTop: 2 }}>
                       {a.channel === "email" ? <>Subject: “{ev.subject}” · {a.detail}</> : a.detail}
                     </div>
-                    <button onClick={() => { setOpenKey(open ? null : a.key); setView("email"); }} style={{ ...linkBtn, marginTop: 6 }}>
-                      {open ? "Close preview" : "👀 Preview & edit"}
-                    </button>
+                    {a.channel !== "sms" && a.fromName && (
+                      <div style={{ fontSize: 12, color: "#64748B", marginTop: 2 }}>From: {a.fromName}{a.ccAgent ? " · agent CC'd" : ""}</div>
+                    )}
+                    <div style={{ display: "flex", gap: 6, marginTop: 6, flexWrap: "wrap" }}>
+                      <button onClick={() => { setOpenKey(open ? null : a.key); setView("email"); }} style={linkBtn}>
+                        {open ? "Close preview" : "👀 Preview & edit"}
+                      </button>
+                      <button onClick={() => setHeld(h => ({ ...h, [a.key]: !h[a.key] }))} style={linkBtn}>
+                        {held[a.key] ? "↩ Include again" : "⏸ Not now"}
+                      </button>
+                      <button disabled={skipping === a.key} onClick={() => skip(a)}
+                        style={{ ...linkBtn, borderColor: "#E6B0AA", color: "#922B21" }}>
+                        {skipping === a.key ? "…" : "🚫 Don't send"}
+                      </button>
+                    </div>
+                    {held[a.key] && <div style={{ fontSize: 11.5, color: "#922B21", marginTop: 4 }}>On hold — won't go out now. It'll be here again next time you open this.</div>}
                   </div>
                 </div>
                 {open && (
                   <div style={{ margin: "8px 0 4px 28px", background: "#fff", border: "1px solid #BFDBFE", borderRadius: 10, padding: 12 }}>
                     <div style={{ fontSize: 12.5, color: "#475569", lineHeight: 1.6, marginBottom: 8 }}>
                       <div><b>To:</b> {a.to}{a.channel === "sms" ? ` · ${a.phone}` : a.toEmail ? ` <${a.toEmail}>` : ""}</div>
-                      {a.fromName && <div><b>From:</b> {a.fromName}</div>}
+                      {a.fromName && <div><b>From:</b> {a.fromName}{a.fromEmail ? ` <${a.fromEmail}>` : ""} — replies come to {a.ccAgent ? "you" : "the agent"}</div>}
+                      {a.ccAgent && <div><b>CC:</b> {a.ccAgent} (the agent)</div>}
                     </div>
                     {a.channel === "sms" ? (
                       <>
@@ -126,7 +158,7 @@ export default function ReminderPlanReview({ token, txId, reloadKey, onSent, onL
                         {view === "email" ? (
                           isEdited(a) ? (
                             <div>
-                              <div style={{ fontSize: 12, color: "#0c4a6e", marginBottom: 6 }}>Your edited version will be sent (with your agent's signature):</div>
+                              <div style={{ fontSize: 12, color: "#0c4a6e", marginBottom: 6 }}>Your edited version will be sent (with {a.fromName ? `${a.fromName}'s` : "your"} signature):</div>
                               <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 4 }}>{ev.subject}</div>
                               <div style={{ whiteSpace: "pre-wrap", fontSize: 13, background: "#F4F4F4", borderRadius: 8, padding: 10 }}>{ev.text}</div>
                             </div>
