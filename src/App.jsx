@@ -5578,14 +5578,15 @@ function CoordinatorAssignControl({ tx, currentUser }) {
   );
 }
 
-// Coordinator's "Send Update" composer — emails parties on the deal in the agent's
-// voice via the money-free /tc message endpoint (the agent SMS panel is tenant-
-// scoped and not the coordinator's to use).
+// Coordinator's "Send Update" composer — emails parties on the deal under the
+// TC's OWN name + signature (agent CC'd) via the /tc message endpoint (the
+// agent SMS panel is tenant-scoped and not the coordinator's to use).
 function CoordinatorSendUpdate({ tx }) {
   const recipients = (tx.parties || []).filter(p => p.email);
   const [picked, setPicked] = useState([]);
   const [channel, setChannel] = useState("");   // "" = must pick (email / sms / both)
-  const [subject, setSubject] = useState("");
+  // Starts filled with the property so every email is identifiable in an inbox.
+  const [subject, setSubject] = useState(tx.address ? `Transaction update — ${tx.address}` : "");
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState("");
@@ -5602,7 +5603,7 @@ function CoordinatorSendUpdate({ tx }) {
       });
       const d = await r.json(); if (!r.ok) throw new Error(d.error || "Failed");
       setDone(`✅ Sent to ${d.sent} recipient${d.sent === 1 ? "" : "s"}.`);
-      setMessage(""); setSubject(""); setPicked([]); setChannel("");
+      setMessage(""); setSubject(tx.address ? `Transaction update — ${tx.address}` : ""); setPicked([]); setChannel("");
     } catch (e) { alert("⚠️ " + e.message); }
     setBusy(false);
   };

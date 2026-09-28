@@ -143,12 +143,8 @@ export default function CoordinatorPanel({ txId }) {
             <label style={chk}><input type="checkbox" checked={c.can_upload_docs} onChange={() => togglePerm(c, "docs")} /> Upload docs</label>
             <label style={chk}><input type="checkbox" checked={c.can_send_reminders} onChange={() => togglePerm(c, "reminders")} /> Send updates</label>
           </div>
-          <div style={{ marginTop: 8, fontSize: 13 }}>
-            <span style={{ color: L.muted }}>Emails sent as:</span>{" "}
-            <select value={c.email_identity} onChange={e => setVoice(c, e.target.value)} style={{ fontSize: 14, padding: "4px 6px", borderRadius: 8, border: `1px solid ${L.line}` }}>
-              <option value="agent">You (agent's voice)</option>
-              <option value="cobrand">Co-branded (you + coordinator)</option>
-            </select>
+          <div style={{ marginTop: 8, fontSize: 12, color: L.muted }}>
+            Emails they send go out under their own name and signature — you're copied.
           </div>
         </div>
       ))}
@@ -199,12 +195,9 @@ export default function CoordinatorPanel({ txId }) {
             <label style={chk}><input type="checkbox" checked={perm.reminders} onChange={e => setPerm({ ...perm, reminders: e.target.checked })} /> Send updates</label>
           </div>
 
-          <div style={{ fontSize: 13, marginBottom: 10 }}>
-            <span style={{ color: L.muted }}>Emails sent as:</span>{" "}
-            <select value={identity} onChange={e => setIdentity(e.target.value)} style={{ fontSize: 14, padding: "4px 6px", borderRadius: 8, border: `1px solid ${L.line}` }}>
-              <option value="agent">You (agent's voice)</option>
-              <option value="cobrand">Co-branded (you + coordinator)</option>
-            </select>
+          {/* Carlos 9/28: a TC sends under their OWN name + signature; you're CC'd. */}
+          <div style={{ fontSize: 12, color: L.muted, marginBottom: 10 }}>
+            Emails your coordinator sends go out under their own name and signature — you're copied on every one.
           </div>
 
           {assignable.length > 0 && (

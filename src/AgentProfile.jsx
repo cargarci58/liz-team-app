@@ -72,7 +72,8 @@ export default function AgentProfile({ onClose, currentUser }) {
       if (sig.canEditCompanyName) {
         try { const u = JSON.parse(localStorage.getItem("tp_user") || "{}"); u.tenantName = sig.tenantName; localStorage.setItem("tp_user", JSON.stringify(u)); } catch {}
       }
-      setSaved(true); setTimeout(() => { setSaved(false); onClose(); }, 1500);
+      // A renamed company shows in the page header — reload so it updates now.
+      setSaved(true); setTimeout(() => { setSaved(false); if (sig.canEditCompanyName) window.location.reload(); else onClose(); }, 1500);
     } catch { alert("Could not save — please try again."); }
     setSaving(false);
   };
