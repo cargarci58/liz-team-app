@@ -7,6 +7,9 @@ export default function AgentProfile({ onClose, currentUser }) {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [loading, setLoading] = useState(true);
+  // What the REAL email signature prints under the name (the account's company
+  // name) — from the server, so the preview never disagrees with the email.
+  const [sig, setSig] = useState({ tenantName: "", brandColor: "#C0392B", email: "" });
   const tok = localStorage.getItem("tp_token") || "";
   const headers = { "Content-Type": "application/json", "Authorization": "Bearer " + tok };
 
@@ -26,6 +29,7 @@ export default function AgentProfile({ onClose, currentUser }) {
           state: d.profile.state || "FL",
           zip: d.profile.zip || "",
         });
+        if (d.profile) setSig({ tenantName: d.profile.tenantName || "", brandColor: d.profile.brandColor || "#C0392B", email: d.profile.email || "" });
         setLoading(false);
       }).catch(() => setLoading(false));
   }, []);
@@ -51,6 +55,7 @@ export default function AgentProfile({ onClose, currentUser }) {
       });
       const data = await res.json();
       if (!res.ok || !data.success) throw new Error(data.error || "Upload failed");
+      // The server saves the photo to the profile immediately.
       setForm(f => ({ ...f, photoUrl: data.photoUrl }));
     } catch (e) { alert("Upload failed: " + e.message); }
     setUploading(false);
@@ -198,9 +203,10 @@ export default function AgentProfile({ onClose, currentUser }) {
                 {form.photoUrl && <img src={form.photoUrl} alt="" style={{ width: 44, height: 44, borderRadius: "50%", objectFit: "cover" }} onError={e => e.target.style.display="none"} />}
                 <div>
                   <div style={{ fontWeight: 700, fontSize: 14 }}>{form.firstName} {form.lastName}</div>
-                  <div style={{ fontSize: 12, color: "#C0392B", fontWeight: 600 }}>{currentUser?.tenantName || "Your Brokerage"}</div>
+                  {form.title && <div style={{ fontSize: 12, color: "#555" }}>{form.title}</div>}
+                  {sig.tenantName && <div style={{ fontSize: 12, color: sig.brandColor, fontWeight: 600 }}>{sig.tenantName}</div>}
                   {form.phone && <div style={{ fontSize: 12, color: "#555" }}>📞 {form.phone}</div>}
-                  <div style={{ fontSize: 12, color: "#555" }}>✉️ {currentUser?.email}</div>
+                  <div style={{ fontSize: 12, color: "#555" }}>✉️ {sig.email || currentUser?.email}</div>
                 </div>
               </div>
             </div>
