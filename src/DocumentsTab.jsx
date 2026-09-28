@@ -766,12 +766,14 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
               for (const doc of list) { const k = doc.folder || doc.category || "General"; (g[k] = g[k] || []).push(doc); }
               // Agent-created folders show even while empty — they're drop targets.
               for (const name of extraFolders) { if (!g[name]) g[name] = []; }
-              return Object.keys(g).sort((a, b) => {
-                const ao = /^(offer|received)/i.test(a), bo = /^(offer|received)/i.test(b);
-                if (ao !== bo) return ao ? -1 : 1;
-                return a.localeCompare(b);
-              }).map(k => [k, g[k]]);
+              // Phase order: the live contract first, then offers on the table, the
+              // listing/search files, the agent's own folders, dead contracts last.
+              const rank = (k) => /^(under contract|closed) — /i.test(k) ? 0 : /^(offer|received)/i.test(k) ? 1
+                : /^(listing|buyer search)$/i.test(k) ? 2 : /^fell through — /i.test(k) ? 9 : 5;
+              return Object.keys(g).sort((a, b) => (rank(a) - rank(b)) || a.localeCompare(b)).map(k => [k, g[k]]);
             };
+            const folderIcon = (k) => /^under contract — /i.test(k) ? "📝" : /^closed — /i.test(k) ? "🏁" : /^fell through — /i.test(k) ? "💔"
+              : /^(listing|buyer search)$/i.test(k) ? "📋" : /^(offer|received)/i.test(k) ? "📥" : "📁";
             // One folder block used by every layout below: header (drop target +
             // ✏️ rename, 🗑 when empty) + its files.
             const folderGroup = (folder, arr, big = false) => {
@@ -788,7 +790,7 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
                     if (d) moveDocToFolder(d, folder);
                   }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 8, margin: big ? "0 0 8px 2px" : "0 0 6px 2px" }}>
-                    <span style={{ fontSize: big ? 15 : 14 }}>{/^(offer|received)/i.test(folder) ? "📥" : "📁"}</span>
+                    <span style={{ fontSize: big ? 15 : 14 }}>{folderIcon(folder)}</span>
                     <span style={{ fontWeight: 700, fontSize: big ? 13 : 12.5, color: COLORS.navy }}>{folder}</span>
                     <span style={{ fontSize: 11, color: COLORS.muted }}>({arr.length})</span>
                     <button onClick={() => renameFolder(folder)} title="Rename this folder"

@@ -559,10 +559,15 @@ function DocsTab({ txId, documents, milestones, canUpload, onChange }) {
       {(() => {
         const groups = {};
         for (const doc of documents) { const k = doc.folder || ""; (groups[k] = groups[k] || []).push(doc); }
-        const keys = Object.keys(groups).sort((a, b) => (a === "") - (b === "") || a.localeCompare(b));
+        // Same phase order as the agent app: live contract, offers, listing, custom, fell-through last.
+        const rank = (k) => k === "" ? 4 : /^(under contract|closed) — /i.test(k) ? 0 : /^(offer|received)/i.test(k) ? 1
+          : /^(listing|buyer search)$/i.test(k) ? 2 : /^fell through — /i.test(k) ? 9 : 5;
+        const icon = (k) => /^under contract — /i.test(k) ? "📝" : /^closed — /i.test(k) ? "🏁" : /^fell through — /i.test(k) ? "💔"
+          : /^(listing|buyer search)$/i.test(k) ? "📋" : /^(offer|received)/i.test(k) ? "📥" : "📁";
+        const keys = Object.keys(groups).sort((a, b) => (rank(a) - rank(b)) || a.localeCompare(b));
         return keys.map(k => (
           <div key={k || "root"}>
-            {k && <div style={{ fontWeight: 800, fontSize: 13, color: C.ink, margin: "10px 0 6px" }}>📁 {k}</div>}
+            {k && <div style={{ fontWeight: 800, fontSize: 13, color: C.ink, margin: "10px 0 6px" }}>{icon(k)} {k}</div>}
             {groups[k].map(doc => (
               <div key={doc.id} style={{ ...card, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
                 <div>
