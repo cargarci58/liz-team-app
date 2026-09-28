@@ -123,6 +123,16 @@ export default function AgentProfile({ onClose, currentUser }) {
               </div>
             </div>
 
+            {/* Company name — first thing a TC who runs their own company sees
+                (it's the name at the top of the app + in every email signature). */}
+            {sig.canEditCompanyName && (
+              <div style={{ marginBottom: 16, padding: 12, background: "#F4F4F4", borderRadius: 10, border: "1px solid #DDD" }}>
+                <label style={lbl}>Company Name</label>
+                <input value={sig.tenantName} onChange={e => setSig(s => ({ ...s, tenantName: e.target.value }))} style={inp} placeholder="Your coordinator company name" />
+                <div style={{ fontSize: 11, color: "#888", marginTop: 6 }}>Shown at the top of the app and under your name in every email you send.</div>
+              </div>
+            )}
+
             {/* Form */}
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16 }}>
               <div>
@@ -173,13 +183,6 @@ export default function AgentProfile({ onClose, currentUser }) {
             <div style={{ fontSize: 11, color: "#888", marginTop: -8, marginBottom: 16 }}>Your home market — used to default the property-tax rate on net sheets.</div>
 
             <div style={{ marginBottom: 16 }}>
-              {sig.canEditCompanyName && (
-                <div style={{ marginBottom: 16 }}>
-                  <label style={lbl}>Company Name</label>
-                  <input value={sig.tenantName} onChange={e => setSig(s => ({ ...s, tenantName: e.target.value }))} style={inp} placeholder="Your coordinator company name" />
-                  <div style={{ fontSize: 11, color: "#888", marginTop: 6 }}>Shown under your name in every email you send.</div>
-                </div>
-              )}
               <label style={lbl}>Profile Photo</label>
               <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 8, flexWrap: "wrap" }}>
                 {form.photoUrl && <img src={form.photoUrl} alt="" style={{ width: 56, height: 56, borderRadius: "50%", objectFit: "cover", border: "2px solid #C0392B" }} onError={e => e.target.style.display = "none"} />}
