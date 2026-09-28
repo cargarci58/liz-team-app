@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import PhotoCropper from "./PhotoCropper";
+import ForwardingSetup from "./ForwardingSetup";
 
 const API = "https://liz-team-server-api-production.up.railway.app";
 
@@ -201,37 +202,8 @@ export default function AgentProfile({ onClose, currentUser }) {
               {cropSrc && <PhotoCropper src={cropSrc} onCancel={() => setCropSrc(null)} onSave={uploadCropped} />}
             </div>
 
-            {/* Email capture — the personal forwarding safety net */}
-            {fwAddr && (
-              <div style={{ marginBottom: 20, padding: 16, background: "#F0FDF4", borderRadius: 10, border: "1px solid #BBF7D0" }}>
-                <label style={lbl}>📥 Catch deal emails sent to your personal inbox</label>
-                <div style={{ fontSize: 12, color: "#555", marginBottom: 10, lineHeight: 1.5 }}>
-                  Title companies, lenders, and other agents often email <b>you</b> directly instead of the app — so the app never sees those messages. Set up a <b>one-time forwarding rule</b> in your email and every deal-related message files itself to the right transaction automatically. Anything the app can't place shows up on your Win the Day page under <b>📥 Mail to file</b>.
-                </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 10 }}>
-                  <code style={{ fontSize: 13, fontWeight: 700, color: "#14532D", wordBreak: "break-all", background: "#fff", padding: "6px 10px", borderRadius: 8, border: "1px solid #BBF7D0" }}>{fwAddr}</code>
-                  <button onClick={() => { try { navigator.clipboard.writeText(fwAddr); setFwCopied(true); setTimeout(() => setFwCopied(false), 2000); } catch { alert(fwAddr); } }}
-                    style={{ padding: "8px 14px", background: "#166534", color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", fontSize: 13 }}>
-                    {fwCopied ? "✅ Copied" : "Copy address"}
-                  </button>
-                </div>
-                {/* Every step matters — Limarys's forward sat "Verify…" (OFF) for
-                    2½ months because the confirmation was dismissed and step 5
-                    never happened (Carlos 9/28). */}
-                <div style={{ fontSize: 12.5, color: "#333", lineHeight: 1.6 }}>
-                  <b>Gmail (5 steps, once):</b>
-                  <ol style={{ margin: "4px 0 10px", paddingLeft: 20 }}>
-                    <li>Gmail → Settings ⚙️ → <b>See all settings</b> → <b>Forwarding and POP/IMAP</b> → <b>Add a forwarding address</b> → paste the address above → Next → Proceed.</li>
-                    <li>Gmail sends a confirmation to the app. Open <b>Win the Day → 📥 Mail to file</b> (it can take a minute).</li>
-                    <li>Click the green <b>Confirm forwarding →</b> button, then <b>Confirm</b> on Google's page. <b>Don't hide it before this.</b></li>
-                    <li>Back in Gmail's Forwarding page, <b>refresh</b>. It must no longer say "Verify fw-…".</li>
-                    <li>Select <b>"Forward a copy of incoming mail to fw-…"</b> and <b>"keep … copy in the Inbox"</b> → click <b>Save Changes</b> at the bottom.</li>
-                  </ol>
-                  <b>Outlook:</b> Settings ⚙️ → Mail → <b>Forwarding</b> → Enable forwarding → paste the address above → check <b>"Keep a copy of forwarded messages"</b> → Save.<br />
-                  <span style={{ color: "#888" }}>Gmail says forwarding isn't allowed? Your Google Workspace admin must turn on "Allow users to automatically forward incoming email" (Admin console → Apps → Gmail → End User Access).</span>
-                </div>
-              </div>
-            )}
+            {/* Email forwarding — provider auto-detected, live status + test (ForwardingSetup.jsx) */}
+            <ForwardingSetup />
 
             {/* Email Signature Preview */}
             <div style={{ marginBottom: 20, padding: 16, background: "#F8F9FA", borderRadius: 10, border: "1px solid #DDD" }}>
