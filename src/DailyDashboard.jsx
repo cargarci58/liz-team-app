@@ -3,6 +3,7 @@ import { LogCallButton } from "./ContactsPage";
 import { CallScriptsButton } from "./components/CallScriptPanel";
 import { telHref } from "./lib/telHref";
 import { WelcomeReminderModal, markWelcomeReceiptConfirmed } from "./WelcomeReceipts";
+import ReminderPlanReview from "./ReminderPlanReview";
 
 // Whole days from today (ET) to a date: negative = overdue. ET on purpose —
 // UTC comparisons flip a day after ~8pm Florida time.
@@ -1396,21 +1397,12 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
   const dealAction = async (txId, kind) => {
     if (kind === "replies") { onOpenTransactionMilestones && onOpenTransactionMilestones(txId, "replies"); return; }
     if (kind === "doc") { requestPreview("/tc/transaction/" + txId + "/request-document"); return; }
-    // "remind" = today's milestone reminder ladder; the approve-first banner plan
-    // already governs that batch, so it sends directly here.
-    setAiBusy(txId);
-    try {
-      const r = await fetch(API + "/tc/action-plan/execute", {
-        method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
-        body: JSON.stringify({ txIds: [txId] }),
-      });
-      const d = await r.json();
-      if (!r.ok || !d.success) throw new Error(d.error || "Couldn't do that");
-      alert("✅ Sent reminders");
-      loadCc(); window.dispatchEvent(new Event("wintheday:refresh"));
-    } catch (e) { alert("Could not: " + e.message); }
-    setAiBusy(null);
+    // "remind" = today's milestone reminder ladder for this deal. Opens the same
+    // approve-first review as the Command Center: every email/text shown, each
+    // previewable, editable and holdable — nothing sends straight from the card.
+    setReminderReviewTx(txId);
   };
+  const [reminderReviewTx, setReminderReviewTx] = useState(null);
   useEffect(() => { loadCc(); /* eslint-disable-next-line */ }, [coordinatorMode]);
   // NOTE: loadCc is also called by the main wintheday:refresh handler below, so we
   // don't register a second listener here (that double-fetched the desk every refresh).
@@ -2318,6 +2310,22 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
           color:COLORS.black, fontWeight:700, fontSize:15, cursor:"pointer" }}>
         📋 View All My Transactions
       </button>
+
+      {/* Per-card "Send reminder" → review exactly what would go out first */}
+      {reminderReviewTx && (
+        <div onClick={() => setReminderReviewTx(null)} style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.5)", zIndex:1000,
+          display:"flex", alignItems:"flex-start", justifyContent:"center", overflowY:"auto", padding:"24px 12px" }}>
+          <div onClick={e => e.stopPropagation()} style={{ background:COLORS.white, borderRadius:14, width:"100%",
+            maxWidth:640, margin:"auto", padding:20, boxShadow:"0 10px 40px rgba(0,0,0,0.2)" }}>
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", gap:10, marginBottom:6 }}>
+              <div style={{ fontSize:17, fontWeight:800, color:COLORS.black }}>Review today's reminders</div>
+              <button onClick={() => setReminderReviewTx(null)} style={{ background:"none", border:"none", fontSize:20, color:COLORS.gray, cursor:"pointer" }}>✕</button>
+            </div>
+            <ReminderPlanReview token={token} txId={reminderReviewTx} inModal
+              onSent={() => { loadCc(); window.dispatchEvent(new Event("wintheday:refresh")); }} />
+          </div>
+        </div>
+      )}
 
       {/* Approve-first review modal — shared by every send action */}
       {pendingPreview && (
