@@ -1578,20 +1578,25 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
   // dismiss it). target_ref_id is the inbound_emails row id.
   const handleInboundReply = async (task, approve) => {
     setResolvedIds(prev => new Set([...prev, task.id]));  // hide immediately
+    // A refused save used to be swallowed: the card vanished, then floated back
+    // on the next visit (tc1 9/28). Un-hide it and say so instead.
+    const failed = () => {
+      setResolvedIds(prev => { const n = new Set(prev); n.delete(task.id); return n; });
+      alert("That didn't save — the card is still open. Please try again.");
+    };
     try {
-      if (task.target_ref_id) {
-        await fetch(API + "/inbound-emails/" + task.target_ref_id + "/resolve", {
-          method: "POST",
-          headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
-          body: JSON.stringify({ approve: !!approve }),
-        });
-      } else {
-        await fetch(API + "/dashboard/tasks/" + task.id + "/resolve", {
-          method: "PATCH", headers: { Authorization: "Bearer " + token }
-        });
-      }
+      const r = task.target_ref_id
+        ? await fetch(API + "/inbound-emails/" + task.target_ref_id + "/resolve", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
+            body: JSON.stringify({ approve: !!approve }),
+          })
+        : await fetch(API + "/dashboard/tasks/" + task.id + "/resolve", {
+            method: "PATCH", headers: { Authorization: "Bearer " + token }
+          });
+      if (!r.ok) { failed(); return; }
       window.dispatchEvent(new Event("wintheday:refresh"));
-    } catch (e) {}
+    } catch (e) { failed(); }
   };
 
   const handleModalDone = (taskId) => {
