@@ -576,7 +576,8 @@ function DocsTab({ txId, documents, phases = [], milestones, canUpload, onChange
         return keys.map(k => (
           <div key={k || "root"} style={{ marginLeft: k && pIdx(k) < 0 && phases.length ? 16 : 0 }}>
             {k && <div style={{ fontWeight: 800, fontSize: pIdx(k) >= 0 ? 14 : 13, color: C.ink, margin: "10px 0 6px" }}>{icon(k)} {k}</div>}
-            {groups[k].map(doc => (
+            {[...groups[k]].sort((x, y) => (x.sort_order != null) !== (y.sort_order != null) ? (x.sort_order != null ? 1 : -1)
+              : x.sort_order != null ? x.sort_order - y.sort_order : new Date(y.created_at) - new Date(x.created_at)).map(doc => (
               <div key={doc.id} style={{ ...card, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
                 <div>
                   <div style={{ fontWeight: 700 }}>{doc.name}</div>

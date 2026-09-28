@@ -63,6 +63,7 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
   const [phases, setPhases] = useState([]);      // server's ordered phases: Listing, then each contract
   const [dragDocId, setDragDocId] = useState(null); // doc.id being dragged
   const [dragOverFolder, setDragOverFolder] = useState(null); // folder name under the drag
+  const [dragOverRow, setDragOverRow] = useState(null); // { id, after } — file the drag hovers (reorder line)
   const [moveDoc, setMoveDoc] = useState(null);  // doc for the tap-based "Move to folder" picker
   const isCommercial = /commercial/i.test(`${tx.propertyType || ""} ${tx.constructionType || ""}`);
   const isBuyerDeal = /buyer|dual/i.test(tx.transaction_type || tx.transactionType || tx.type || "");
@@ -252,6 +253,43 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
       if (!res.ok || !data.success) throw new Error(data.error || "Delete failed");
       setFolders(f => f.filter(n => n !== name));
     } catch (err) { alert("Couldn't remove the folder: " + err.message); }
+  };
+  // ORDER inside a folder (Carlos 9/28: "put them in different orders"). Files the
+  // agent placed keep their saved order; not-yet-placed ones sit on top, newest first.
+  const ordered = (arr) => [...arr].sort((a, b) => {
+    const ap = a.sort_order != null, bp = b.sort_order != null;
+    if (ap !== bp) return ap ? 1 : -1;
+    if (ap) return a.sort_order - b.sort_order;
+    return new Date(b.created_at) - new Date(a.created_at);
+  });
+  // Put `doc` just before/after `target` — same folder = reorder; another folder
+  // = move it there AND place it at that spot. Saves the folder's whole order.
+  const placeDoc = async (doc, target, after) => {
+    if (!doc || !target || doc.id === target.id) return;
+    const group = docGroupKey(target);
+    const list = ordered(docs.filter(d => docGroupKey(d) === group && d.id !== doc.id));
+    const at = list.findIndex(d => d.id === target.id) + (after ? 1 : 0);
+    list.splice(at, 0, doc);
+    const ids = list.map(d => d.id);
+    const moving = docGroupKey(doc) !== group;
+    // Optimistic: show the new order right away.
+    setDocs(ds => ds.map(d => { const i = ids.indexOf(d.id); return i < 0 ? d : { ...d, sort_order: i + 1, ...(d.id === doc.id && moving ? { folder: group } : {}) }; }));
+    try {
+      if (moving) {
+        const r1 = await fetch(`${API}/documents/${doc.id}/folder`, { method: "PATCH", headers, body: JSON.stringify({ folder: group }) });
+        const d1 = await r1.json(); if (!r1.ok || !d1.success) throw new Error(d1.error || "Move failed");
+      }
+      const r2 = await fetch(`${API}/transactions/${tx.id}/document-order`, { method: "PATCH", headers, body: JSON.stringify({ ids }) });
+      const d2 = await r2.json(); if (!r2.ok || !d2.success) throw new Error(d2.error || "Couldn't save the order");
+    } catch (err) { alert("Couldn't move the file: " + err.message); }
+    await loadDocs();
+  };
+  // Phone-friendly: ⋯ → Move up / Move down one spot.
+  const nudgeDoc = (doc, dir) => {
+    const list = ordered(docs.filter(d => docGroupKey(d) === docGroupKey(doc)));
+    const i = list.findIndex(d => d.id === doc.id), j = i + dir;
+    if (i < 0 || j < 0 || j >= list.length) return;
+    placeDoc(doc, list[j], dir > 0);
   };
   const moveDocToFolder = async (doc, folderName) => {
     if (!doc || docGroupKey(doc) === folderName) return; // already there
@@ -778,7 +816,7 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
                     <div style={{ marginLeft: 14, border: "1.5px dashed #d1d5db", borderRadius: 10, padding: "10px 14px", fontSize: 12, color: COLORS.muted, background: "#fafafa" }}>
                       Empty — drag a file here, or use a file's ⋯ menu → 📁 Move to folder.
                     </div>
-                  ) : arr.map(renderDoc)}
+                  ) : ordered(arr).map(renderDoc)}
                 </div>
               );
             };
@@ -787,9 +825,29 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
             const renderDoc = (doc) => (
                   <div key={doc.id} draggable
                     onDragStart={e => { e.dataTransfer.setData("text/plain", doc.id); e.dataTransfer.effectAllowed = "move"; setDragDocId(doc.id); }}
-                    onDragEnd={() => { setDragDocId(null); setDragOverFolder(null); }}
-                    title="Drag onto a folder name to move this file"
-                    style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", background: "#fff", border: "1px solid " + (isNew(doc) ? "#93c5fd" : "#DDDDDD"), borderRadius: 10, marginBottom: 8, marginLeft: 14, flexWrap: "wrap", cursor: "grab", opacity: dragDocId === doc.id ? 0.45 : 1 }}>
+                    onDragEnd={() => { setDragDocId(null); setDragOverFolder(null); setDragOverRow(null); }}
+                    // Dropping ON a file places the dragged one above/below it (a blue
+                    // line shows where) — reorders within a folder, or moves + places.
+                    onDragOver={e => {
+                      if (!dragDocId || dragDocId === doc.id) return;
+                      e.preventDefault(); e.stopPropagation();
+                      const r = e.currentTarget.getBoundingClientRect();
+                      const after = e.clientY > r.top + r.height / 2;
+                      if (!dragOverRow || dragOverRow.id !== doc.id || dragOverRow.after !== after) setDragOverRow({ id: doc.id, after });
+                      if (dragOverFolder) setDragOverFolder(null);
+                    }}
+                    onDragLeave={e => { if (!e.currentTarget.contains(e.relatedTarget)) setDragOverRow(r => (r && r.id === doc.id ? null : r)); }}
+                    onDrop={e => {
+                      if (!dragDocId || dragDocId === doc.id) return;
+                      e.preventDefault(); e.stopPropagation();
+                      const after = dragOverRow && dragOverRow.id === doc.id ? dragOverRow.after : false;
+                      const d = docs.find(x => x.id === (e.dataTransfer.getData("text/plain") || dragDocId));
+                      setDragDocId(null); setDragOverRow(null); setDragOverFolder(null);
+                      if (d) placeDoc(d, doc, after);
+                    }}
+                    title="Drag up or down to reorder, or onto another folder to move it"
+                    style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", background: "#fff", border: "1px solid " + (isNew(doc) ? "#93c5fd" : "#DDDDDD"), borderRadius: 10, marginBottom: 8, marginLeft: 14, flexWrap: "wrap", cursor: "grab", opacity: dragDocId === doc.id ? 0.45 : 1,
+                      boxShadow: dragOverRow && dragOverRow.id === doc.id ? (dragOverRow.after ? "0 4px 0 -1px #2563eb" : "0 -4px 0 -1px #2563eb") : "none" }}>
                     <div style={{ fontSize: 24, flexShrink: 0 }}>{getIcon(doc.mime_type)}</div>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontWeight: 600, fontSize: 14, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
@@ -846,6 +904,8 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
                               {[
                                 { icon: "📤", label: "Email to someone on the deal", fn: () => setShare({ doc }) },
                                 { icon: "📁", label: "Move to folder…", fn: () => setMoveDoc(doc) },
+                                { icon: "⬆️", label: "Move up", fn: () => nudgeDoc(doc, -1) },
+                                { icon: "⬇️", label: "Move down", fn: () => nudgeDoc(doc, 1) },
                                 { icon: "✏️", label: "Rename file…", fn: () => renameFile(doc) },
                                 { icon: doc.is_visible_to_client ? "🔒" : "👁", label: doc.is_visible_to_client ? "Hide from client's portal" : "Show in client's portal", fn: () => toggleVisibility(doc) },
                                 isContractReadable(doc) && { icon: "📅", label: readingDates === doc.id ? "Reading…" : "AI: read dates from this contract", fn: () => readContractDates(doc) },
@@ -933,7 +993,7 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
                       No files yet — new files for this {p.kind === "listing" ? "listing" : "contract"} land here automatically.
                     </div>
                   )}
-                  {own.map(renderDoc)}
+                  {ordered(own).map(renderDoc)}
                   {subs.length > 0 && (
                     <div style={{ marginLeft: 14, marginTop: own.length ? 10 : 0 }}>
                       {subs.map(([k, arr]) => folderGroup(k, arr))}
