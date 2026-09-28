@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import PhotoCropper from "./PhotoCropper";
 
 const API = "https://liz-team-server-api-production.up.railway.app";
 
@@ -36,27 +37,29 @@ export default function AgentProfile({ onClose, currentUser }) {
 
   const [uploading, setUploading] = useState(false);
 
-  const handlePhotoUpload = async (file) => {
+  // Every photo goes through the framing step first (Carlos 9/28: a center
+  // crop cut tc1's head off in the round signature avatar). The cropper hands
+  // back a small 480×480 JPEG, so big phone photos are fine to pick.
+  const [cropSrc, setCropSrc] = useState(null);
+  const handlePhotoUpload = (file) => {
     if (!file) return;
     if (!file.type.startsWith("image/")) { alert("Please select an image file."); return; }
-    if (file.size > 5 * 1024 * 1024) { alert("Photo must be under 5MB."); return; }
+    if (file.size > 25 * 1024 * 1024) { alert("That photo is too large (25MB max)."); return; }
+    setCropSrc(URL.createObjectURL(file));
+  };
+  const uploadCropped = async (base64) => {
     setUploading(true);
     try {
       // Server-proxied upload (browser→R2 presigned PUT fails CORS).
-      const base64 = await new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(String(reader.result).split(",")[1]);
-        reader.onerror = () => reject(new Error("Could not read file"));
-        reader.readAsDataURL(file);
-      });
       const res = await fetch(API + "/profile/photo", {
         method: "POST", headers,
-        body: JSON.stringify({ fileName: file.name, fileType: file.type, base64 })
+        body: JSON.stringify({ fileName: "profile.jpg", fileType: "image/jpeg", base64 })
       });
       const data = await res.json();
       if (!res.ok || !data.success) throw new Error(data.error || "Upload failed");
       // The server saves the photo to the profile immediately.
       setForm(f => ({ ...f, photoUrl: data.photoUrl }));
+      setCropSrc(null);
     } catch (e) { alert("Upload failed: " + e.message); }
     setUploading(false);
   };
@@ -178,15 +181,21 @@ export default function AgentProfile({ onClose, currentUser }) {
                 </div>
               )}
               <label style={lbl}>Profile Photo</label>
-              <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 8 }}>
+              <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 8, flexWrap: "wrap" }}>
+                {form.photoUrl && <img src={form.photoUrl} alt="" style={{ width: 56, height: 56, borderRadius: "50%", objectFit: "cover", border: "2px solid #C0392B" }} onError={e => e.target.style.display = "none"} />}
                 <label style={{ display: "inline-block", padding: "8px 16px", background: "#111", color: "#fff", borderRadius: 8, cursor: "pointer", fontSize: 13, fontWeight: 600, fontFamily: "inherit" }}>
                   {uploading ? "Uploading..." : "📷 Upload Photo"}
-                  <input type="file" accept="image/*" style={{ display: "none" }} onChange={e => handlePhotoUpload(e.target.files[0])} disabled={uploading} />
+                  <input type="file" accept="image/*" style={{ display: "none" }} onChange={e => { handlePhotoUpload(e.target.files[0]); e.target.value = ""; }} disabled={uploading} />
                 </label>
-                <span style={{ fontSize: 12, color: "#888" }}>or paste URL below</span>
+                {form.photoUrl && (
+                  <button type="button" onClick={() => setCropSrc(form.photoUrl)} disabled={uploading}
+                    style={{ padding: "8px 14px", background: "#fff", color: "#0c4a6e", border: "1.5px solid #0c4a6e", borderRadius: 8, cursor: "pointer", fontSize: 13, fontWeight: 600, fontFamily: "inherit" }}>
+                    ✂️ Adjust photo
+                  </button>
+                )}
               </div>
-              <input value={form.photoUrl} onChange={e => setForm(f => ({ ...f, photoUrl: e.target.value }))} style={inp} placeholder="https://yoursite.com/photo.jpg" />
-              <div style={{ fontSize: 11, color: "#888", marginTop: 6 }}>Max 5MB. JPG, PNG, or GIF. This appears in your email signatures.</div>
+              <div style={{ fontSize: 11, color: "#888", marginTop: 2 }}>After you pick a photo you'll drag and zoom it so your face sits right in the circle — exactly how it shows in your email signature.</div>
+              {cropSrc && <PhotoCropper src={cropSrc} onCancel={() => setCropSrc(null)} onSave={uploadCropped} />}
             </div>
 
             {/* Email capture — the personal forwarding safety net */}
