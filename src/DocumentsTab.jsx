@@ -754,10 +754,10 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
               const over = dragOverFolder === folder && dragDocId;
               return (
                 <div key={folder} style={{ marginBottom: big ? 14 : 12, borderRadius: 10, outline: over ? "2px dashed #2563eb" : "none", outlineOffset: 2, background: over ? "#eff6ff" : "transparent", transition: "background .12s" }}
-                  onDragOver={e => { if (dragDocId) { e.preventDefault(); if (dragOverFolder !== folder) setDragOverFolder(folder); } }}
+                  onDragOver={e => { if (dragDocId) { e.preventDefault(); e.stopPropagation(); if (dragOverFolder !== folder) setDragOverFolder(folder); } }}
                   onDragLeave={e => { if (!e.currentTarget.contains(e.relatedTarget)) setDragOverFolder(f => (f === folder ? null : f)); }}
                   onDrop={e => {
-                    e.preventDefault(); setDragOverFolder(null);
+                    e.preventDefault(); e.stopPropagation(); setDragOverFolder(null);
                     const id = e.dataTransfer.getData("text/plain") || dragDocId;
                     const d = docs.find(x => x.id === id);
                     setDragDocId(null);
@@ -905,19 +905,24 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
               const count = own.length + subs.reduce((n, [, a]) => n + a.length, 0);
               const st = phaseStyle(p);
               const over = dragOverFolder === p.folder && dragDocId;
+              // The WHOLE phase block — header, its files, the space around them —
+              // accepts a dropped file (only the header did at first: drops on
+              // the files area did nothing, Carlos 9/28). Nested folders stop the
+              // event so a drop there lands in the nested folder, not the phase.
               return (
-                <div key={p.folder} style={{ marginBottom: 22 }}>
+                <div key={p.folder}
+                  onDragOver={e => { if (dragDocId) { e.preventDefault(); if (dragOverFolder !== p.folder) setDragOverFolder(p.folder); } }}
+                  onDragLeave={e => { if (!e.currentTarget.contains(e.relatedTarget)) setDragOverFolder(f => (f === p.folder ? null : f)); }}
+                  onDrop={e => {
+                    e.preventDefault(); setDragOverFolder(null);
+                    const id = e.dataTransfer.getData("text/plain") || dragDocId;
+                    const d = docs.find(x => x.id === id);
+                    setDragDocId(null);
+                    if (d) moveDocToFolder(d, p.folder);
+                  }}
+                  style={{ marginBottom: 22, padding: 4, borderRadius: 10, outline: over ? "2px dashed #2563eb" : "none", outlineOffset: 2, background: over ? "#eff6ff" : "transparent", transition: "background .12s" }}>
                   <div
-                    onDragOver={e => { if (dragDocId) { e.preventDefault(); if (dragOverFolder !== p.folder) setDragOverFolder(p.folder); } }}
-                    onDragLeave={e => { if (!e.currentTarget.contains(e.relatedTarget)) setDragOverFolder(f => (f === p.folder ? null : f)); }}
-                    onDrop={e => {
-                      e.preventDefault(); setDragOverFolder(null);
-                      const id = e.dataTransfer.getData("text/plain") || dragDocId;
-                      const d = docs.find(x => x.id === id);
-                      setDragDocId(null);
-                      if (d) moveDocToFolder(d, p.folder);
-                    }}
-                    style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", margin: "0 0 10px 0", padding: "4px 4px 6px", borderBottom: "2px solid " + st.accent, borderRadius: 6, outline: over ? "2px dashed #2563eb" : "none", background: over ? "#eff6ff" : "transparent" }}>
+                    style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", margin: "0 0 10px 0", padding: "4px 4px 6px", borderBottom: "2px solid " + st.accent }}>
                     <span style={{ fontSize: 17 }}>{st.icon}</span>
                     <span style={{ fontWeight: 800, fontSize: 14, color: st.accent }}>{p.folder.replace(/ \((fell through [^)]*|closed)\)$/i, "")}</span>
                     {st.badge && <span style={{ fontSize: 10.5, fontWeight: 800, color: "#fff", background: st.accent, borderRadius: 10, padding: "2px 8px" }}>{p.status === "fell_through" ? (p.folder.match(/\((fell through [^)]*)\)$/i) || [null, st.badge])[1] : st.badge}</span>}
