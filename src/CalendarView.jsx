@@ -10,7 +10,6 @@ export default function CalendarView({ transactions, onBack, onSelectTx }) {
   const [selectedDay, setSelectedDay] = useState(null);     // day number in the current month
   const [mode, setMode] = useState("month");                  // "month" | "day"
   const [showPrintOptions, setShowPrintOptions] = useState(false);
-  const [printOptions, setPrintOptions] = useState({ closings: true, openDates: false, tasks: true, allMonths: false });
   const [show, setShow] = useState(() => {
     try { return { ...SHOW_DEFAULT, ...(JSON.parse(localStorage.getItem(SHOW_KEY) || "{}") || {}) }; } catch { return SHOW_DEFAULT; }
   });
@@ -76,47 +75,49 @@ export default function CalendarView({ transactions, onBack, onSelectTx }) {
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
 
+  // Printing uses the same events the calendar shows. Range: one day, the
+  // month on screen, or the next 3 months; include = the same kinds as SHOW
+  // (Carlos 9/30: "Print Options don't let you print just one day").
+  const [printRange, setPrintRange] = useState("month");      // "day" | "month" | "3months"
+  const [printInclude, setPrintInclude] = useState(null);     // null → copy SHOW when the dialog opens
+  const openPrint = () => {
+    setPrintInclude({ ...show });
+    setPrintRange(mode === "day" && selectedDay ? "day" : "month");
+    setShowPrintOptions(true);
+  };
+  const esc = (s) => String(s == null ? "" : s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
   const handlePrint = () => {
-    const printWindow = window.open("", "_blank");
+    const inc = printInclude || show;
+    const keys = Object.keys(allEvents).filter(k => {
+      if (printRange === "day") return k === ymd(year, month, selectedDay || 1);
+      const d = new Date(k + "T00:00:00");
+      const mDiff = (d.getFullYear() - year) * 12 + (d.getMonth() - month);
+      return printRange === "3months" ? mDiff >= 0 && mDiff < 3 : mDiff === 0;
+    }).sort();
+    const title = printRange === "day"
+      ? new Date(year, month, selectedDay || 1).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })
+      : printRange === "3months"
+      ? `${new Date(year, month, 1).toLocaleString("en-US", { month: "long" })} – ${new Date(year, month + 2, 1).toLocaleString("en-US", { month: "long", year: "numeric" })}`
+      : monthName;
     const rows = [];
-    const monthCount = printOptions.allMonths ? 3 : 1;
-    for (let mo = 0; mo < monthCount; mo++) {
-      const d = new Date(year, month + mo, 1);
-      const mn = d.toLocaleString("en-US", { month: "long", year: "numeric" });
-      rows.push("<h2 style='color:#C0392B;margin-top:20px'>" + mn + "</h2>");
-      rows.push("<table border='1' cellpadding='8' cellspacing='0' width='100%' style='border-collapse:collapse;font-family:Arial,sans-serif;font-size:12px'>");
-      rows.push("<tr style='background:#111;color:#fff'><th>Date</th><th>Type</th><th>Property</th><th>Details</th></tr>");
-      const allEvents = [];
-      transactions.filter(tx => tx.status !== "Cancelled").forEach(tx => {
-        if (printOptions.closings && tx.closingDate) {
-          const cd = new Date(tx.closingDate.split("T")[0] + "T00:00:00");
-          if (cd.getFullYear() === d.getFullYear() && cd.getMonth() === d.getMonth()) allEvents.push({ date: tx.closingDate.split("T")[0], type: "Closing", property: tx.address, detail: tx.status, color: "#C0392B" });
-        }
-        if (printOptions.openDates && tx.openDate) {
-          const od = new Date(tx.openDate.split("T")[0] + "T00:00:00");
-          if (od.getFullYear() === d.getFullYear() && od.getMonth() === d.getMonth()) allEvents.push({ date: tx.openDate.split("T")[0], type: "Open Date", property: tx.address, detail: tx.type, color: "#1A5276" });
-        }
-        if (printOptions.tasks) {
-          (tx.tasks || []).filter(t => t.dueDate && t.status !== "Completed").forEach(task => {
-            const td = new Date(task.dueDate.split("T")[0] + "T00:00:00");
-            if (td.getFullYear() === d.getFullYear() && td.getMonth() === d.getMonth()) allEvents.push({ date: task.dueDate.split("T")[0], type: "Task Due", property: tx.address, detail: task.name, color: "#B7860B" });
-          });
-        }
-      });
-      allEvents.sort((a, b) => a.date.localeCompare(b.date));
-      if (allEvents.length === 0) {
-        rows.push("<tr><td colspan='4' style='text-align:center;color:#888;padding:16px'>No events this month</td></tr>");
-      } else {
-        allEvents.forEach(ev => {
-          const dateStr = new Date(ev.date + "T00:00:00").toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
-          rows.push("<tr><td>" + dateStr + "</td><td style='color:" + ev.color + ";font-weight:700'>" + ev.type + "</td><td>" + ev.property + "</td><td>" + ev.detail + "</td></tr>");
-        });
+    for (const k of keys) {
+      const list = (allEvents[k] || []).filter(ev => inc[ev.type]);
+      if (!list.length) continue;
+      const dateStr = new Date(k + "T00:00:00").toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" });
+      rows.push(`<tr><td colspan='4' style='background:#F4F4F4;font-weight:700;padding:8px'>${esc(dateStr)}</td></tr>`);
+      for (const ev of list) {
+        rows.push(`<tr><td style='white-space:nowrap'>${ev.time ? esc(fmtTime(ev.time)) : ""}</td><td style='color:${typeColors[ev.type].bg};font-weight:700;white-space:nowrap'>${esc(typeLabels[ev.type])}</td><td>${esc(ev.label)}</td><td>${esc(ev.address || ev.notes || "")}</td></tr>`);
       }
-      rows.push("</table>");
     }
-    const html = "<!DOCTYPE html><html><head><title>TransactPro Calendar</title><style>body{font-family:Arial,sans-serif;padding:20px}@media print{button{display:none}}</style></head><body><h1>TransactPro Calendar Report</h1><p>Generated: " + new Date().toLocaleDateString() + "</p>" + rows.join("") + "</body></html>";
+    const body = rows.length ? rows.join("") : "<tr><td colspan='4' style='text-align:center;color:#888;padding:16px'>Nothing scheduled</td></tr>";
+    const html = "<!DOCTYPE html><html><head><title>TransactPro Calendar</title><style>body{font-family:Arial,sans-serif;padding:20px}td,th{border:1px solid #DDD;padding:8px;font-size:12px;text-align:left}table{border-collapse:collapse;width:100%}</style></head><body>"
+      + "<h1 style='margin:0 0 4px'>" + esc(title) + "</h1><p style='color:#666;margin:0 0 16px'>TransactPro calendar · printed " + esc(new Date().toLocaleDateString()) + "</p>"
+      + "<table><tr style='background:#111;color:#fff'><th>Time</th><th>Type</th><th>What</th><th>Deal / notes</th></tr>" + body + "</table></body></html>";
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) { alert("Your browser blocked the print window — allow pop-ups for this site and try again."); return; }
     printWindow.document.write(html);
     printWindow.document.close();
+    printWindow.focus();
     printWindow.print();
     setShowPrintOptions(false);
   };
@@ -128,13 +129,14 @@ export default function CalendarView({ transactions, onBack, onSelectTx }) {
   const today = new Date();
   today.setHours(0,0,0,0);
 
-  // Build events map — only the kinds the agent chose to show.
-  const events = {};
+  // Build every event (allEvents, used for printing), then the kinds the agent
+  // chose to show (events, used on screen).
+  const allEvents = {};
   const addEvent = (dateStr, event) => {
-    if (!dateStr || !show[event.type]) return;
+    if (!dateStr) return;
     const key = String(dateStr).split("T")[0];
-    if (!events[key]) events[key] = [];
-    events[key].push(event);
+    if (!allEvents[key]) allEvents[key] = [];
+    allEvents[key].push(event);
   };
 
   transactions.filter(tx => tx.status !== "Cancelled").forEach(tx => {
@@ -152,7 +154,9 @@ export default function CalendarView({ transactions, onBack, onSelectTx }) {
   }
   const undatedTasks = show.mine ? myTasks.filter(t => t && !t.due_date && t.status !== "completed") : [];
   const typeOrder = { closing: 0, deadline: 1, mine: 2, task: 3, open: 4 };
-  for (const k of Object.keys(events)) events[k].sort((a, b) => (typeOrder[a.type] - typeOrder[b.type]) || String(a.time || "").localeCompare(String(b.time || "")));
+  for (const k of Object.keys(allEvents)) allEvents[k].sort((a, b) => (typeOrder[a.type] - typeOrder[b.type]) || String(a.time || "").localeCompare(String(b.time || "")));
+  const events = {};
+  for (const [k, list] of Object.entries(allEvents)) { const f = list.filter(ev => show[ev.type]); if (f.length) events[k] = f; }
 
   const typeColors = {
     closing: { bg: "#C0392B", text: "#fff", dot: "#C0392B" },
@@ -263,7 +267,7 @@ export default function CalendarView({ transactions, onBack, onSelectTx }) {
         <div style={{ color: "#fff", fontWeight: 700, fontSize: 18 }}>📅 Calendar</div>
         <button onClick={() => { setAddOpen(o => !o); if (!newDate) setNewDate(selectedDay ? ymd(year, month, selectedDay) : ymd(today.getFullYear(), today.getMonth(), today.getDate())); }}
           style={{ marginLeft: "auto", background: "#C0392B", border: "none", color: "#fff", borderRadius: 8, padding: "7px 16px", cursor: "pointer", fontSize: 13, fontWeight: 700, fontFamily: "inherit" }}>➕ Add a task</button>
-        <button onClick={() => setShowPrintOptions(true)} style={{ background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.3)", color: "#fff", borderRadius: 8, padding: "7px 16px", cursor: "pointer", fontSize: 13, fontWeight: 600, fontFamily: "inherit" }}>🖨️ Print Options</button>
+        <button onClick={openPrint} style={{ background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.3)", color: "#fff", borderRadius: 8, padding: "7px 16px", cursor: "pointer", fontSize: 13, fontWeight: 600, fontFamily: "inherit" }}>🖨️ Print Options</button>
       </div>
 
       {addOpen && (
@@ -381,10 +385,21 @@ export default function CalendarView({ transactions, onBack, onSelectTx }) {
               <button onClick={() => setShowPrintOptions(false)} style={{ background: "none", border: "none", color: "rgba(255,255,255,0.6)", fontSize: 20, cursor: "pointer" }}>x</button>
             </div>
             <div style={{ padding: 24 }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: "#555", textTransform: "uppercase", marginBottom: 12 }}>Include</div>
-              {[["closings", "Closing Dates"], ["openDates", "Open Dates"], ["tasks", "Pending Task Deadlines"], ["allMonths", "Next 3 months (vs current month only)"]].map(([key, label]) => (
-                <label key={key} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12, cursor: "pointer", fontSize: 15 }}>
-                  <input type="checkbox" checked={printOptions[key]} onChange={e => setPrintOptions(p => ({ ...p, [key]: e.target.checked }))} style={{ width: 18, height: 18 }} />
+              <div style={{ fontSize: 13, fontWeight: 700, color: "#555", textTransform: "uppercase", marginBottom: 10 }}>What to print</div>
+              {[
+                ["day", selectedDay ? `One day — ${new Date(year, month, selectedDay).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}` : "One day (tap a day first)"],
+                ["month", `This month — ${monthName}`],
+                ["3months", "The next 3 months"],
+              ].map(([key, label]) => (
+                <label key={key} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10, cursor: key === "day" && !selectedDay ? "not-allowed" : "pointer", fontSize: 15, opacity: key === "day" && !selectedDay ? 0.5 : 1 }}>
+                  <input type="radio" name="printRange" disabled={key === "day" && !selectedDay} checked={printRange === key} onChange={() => setPrintRange(key)} style={{ width: 18, height: 18 }} />
+                  {label}
+                </label>
+              ))}
+              <div style={{ fontSize: 13, fontWeight: 700, color: "#555", textTransform: "uppercase", margin: "16px 0 10px" }}>Include</div>
+              {Object.entries(typeLabels).map(([key, label]) => (
+                <label key={key} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10, cursor: "pointer", fontSize: 15 }}>
+                  <input type="checkbox" checked={!!(printInclude || show)[key]} onChange={e => setPrintInclude(p => ({ ...(p || show), [key]: e.target.checked }))} style={{ width: 18, height: 18 }} />
                   {label}
                 </label>
               ))}
