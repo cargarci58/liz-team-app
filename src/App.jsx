@@ -11055,7 +11055,7 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
       )}
       {showReports && <Reports transactions={transactions} onBack={() => setShowReports(false)} currentUser={currentUser} initialTab={reportsTab} onOpenGuide={openGuide} onWatchScenes={watchScenes} />}
 
-      {!showReports && view === "new" && (
+      {!showReports && !showCalendar && view === "new" && (
         <>
         <FirstTimeHere pageKey="new" tip={PAGE_TIPS.new} userId={currentUser?.id} onAction={tipAction} onShowHow={openGuide}  scenes={PAGE_SCENES.new} onWatch={watchScenes} />
         <NewTransactionForm
@@ -11160,7 +11160,7 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
       )}
       {showTcTeamG && <CoordinatorTeamModal currentUser={currentUser} onClose={() => setShowTcTeamG(false)} />}
       {showTcServicesG && <CoordinatorServicesModal currentUser={currentUser} onClose={() => setShowTcServicesG(false)} />}
-      {!showReports && view === "home" && (
+      {!showReports && !showCalendar && view === "home" && (
         <>
           {/* NEW-MESSAGES ALERT — top of the home for BOTH agent and coordinator, so a
               new chat is impossible to miss across many deal cards. Driven by the
