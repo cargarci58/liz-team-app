@@ -77,17 +77,23 @@ export default function DealSharingPanel({ txId, onChanged }) {
 
   // PARTNER LINK — for a saved partner with an email who doesn't use the app:
   // review-gated email (draft → edit → Send) or copy the link to text it.
+  // CO-AGENTS WORK the deal (Carlos 10/1: "the co-agent needs to work, not just
+  // watch") → their only option is a TransactPro login. The view-only Partner
+  // link is for REFERRAL partners, who just follow along.
   const partnerActions = (p) => (!p.id || !p.email || p.user_id) ? null : (
     <div style={{ gridColumn: "1 / -1", display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", fontSize: 11.5, color: C.muted }}>
-      Doesn't use TransactPro —
+      {p.kind === "co_agent" ? <>
+        Needs a TransactPro login to work this deal —
       {/* A co-agent WORKS the deal → needs an app login. Free, own account, shared deals only. */}
       {p.kind === "co_agent" && (
         <button onClick={async () => {
           const r = await fetch(API + "/transactions/" + txId + "/partners/" + p.id + "/app-invite", { method: "POST", headers, body: JSON.stringify({}) });
           const x = await r.json(); if (!r.ok || !x.success) { setMsg("⚠️ " + (x.error || "Couldn't draft it")); return; }
           setInvite({ pid: p.id, to: x.to, toEmail: x.toEmail, subject: x.subject, body: x.body, endpoint: "app-invite", existing: x.existing });
-        }} style={{ padding: "4px 10px", borderRadius: 8, border: "none", background: C.red, color: "#fff", fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}>🔑 Give them a free TransactPro login</button>
+        }} style={{ padding: "4px 10px", borderRadius: 8, border: "none", background: C.red, color: "#fff", fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}>🔑 Give them a TransactPro login to work this deal</button>
       )}
+      </> : <>
+        Let them follow the deal (view only) —
       <button onClick={async () => {
         const r = await fetch(API + "/transactions/" + txId + "/partners/" + p.id + "/invite", { method: "POST", headers, body: JSON.stringify({}) });
         const x = await r.json(); if (!r.ok || !x.success) { setMsg("⚠️ " + (x.error || "Couldn't draft it")); return; }
@@ -98,6 +104,7 @@ export default function DealSharingPanel({ txId, onChanged }) {
         const x = await r.json(); if (!r.ok || !x.success) { setMsg("⚠️ " + (x.error || "Couldn't make the link")); return; }
         try { await navigator.clipboard.writeText(x.link); setMsg("✅ Partner link copied — paste it in a text."); } catch { window.prompt("Copy this partner link:", x.link); }
       }} style={{ padding: "4px 10px", borderRadius: 8, border: "1px solid " + C.border, background: "#fff", color: C.text, fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}>🔗 Copy link</button>
+      </>}
     </div>
   );
 

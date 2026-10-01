@@ -95,6 +95,14 @@ export default function PartnerPortal({ urlToken }) {
             </div>
             <span style={{ alignSelf: "flex-start", background: C.blue, color: "#fff", fontSize: 12, fontWeight: 800, padding: "3px 10px", borderRadius: 12 }}>{d.status}</span>
           </div>
+          {/* A co-agent WORKS the deal in the app — this page is only a viewer. */}
+          {d.isCoAgent && (
+            <div style={{ marginTop: 10, background: "#FADBD8", borderRadius: 10, padding: "10px 12px", fontSize: 13, color: C.text }}>
+              {d.hasLogin ? <>To <b>work</b> on this deal — send messages, upload, edit, every tool — log in to TransactPro with this email. It's under <b>My Deals</b>.{" "}
+                <a href="/" style={{ color: C.red, fontWeight: 800 }}>Log in →</a></>
+                : <>To <b>work</b> on this deal you need a TransactPro login. Ask {d.agent.name} to tap <b>🔑 Give them a TransactPro login</b> on this deal — you'll get an email to set your password.</>}
+            </div>
+          )}
           <div style={{ display: "flex", gap: 18, flexWrap: "wrap", marginTop: 10, fontSize: 13 }}>
             <div><div style={{ color: C.muted, fontSize: 11.5 }}>Closing</div><b>{fmtDate(d.closingDate)}</b></div>
             <div><div style={{ color: C.muted, fontSize: 11.5 }}>Timeline</div><b>{done} of {d.timeline.length} steps done</b></div>
