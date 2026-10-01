@@ -22,6 +22,7 @@ export default function DealSharingPanel({ txId, onChanged }) {
   const [form, setForm] = useState(null);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState("");
+  const [invite, setInvite] = useState(null);   // { pid, to, toEmail, subject, body } — review before sending
 
   const load = () => fetch(API + "/transactions/" + txId + "/sharing", { headers }).then(r => r.ok ? r.json() : null).then(x => {
     if (!x || !x.success) { setD(false); return; }
@@ -61,6 +62,24 @@ export default function DealSharingPanel({ txId, onChanged }) {
     setSaving(false);
   };
 
+  // PARTNER LINK — for a saved partner with an email who doesn't use the app:
+  // review-gated email (draft → edit → Send) or copy the link to text it.
+  const partnerActions = (p) => (!p.id || !p.email || p.user_id) ? null : (
+    <div style={{ gridColumn: "1 / -1", display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", fontSize: 11.5, color: C.muted }}>
+      Doesn't use TransactPro —
+      <button onClick={async () => {
+        const r = await fetch(API + "/transactions/" + txId + "/partners/" + p.id + "/invite", { method: "POST", headers, body: JSON.stringify({}) });
+        const x = await r.json(); if (!r.ok || !x.success) { setMsg("⚠️ " + (x.error || "Couldn't draft it")); return; }
+        setInvite({ pid: p.id, to: x.to, toEmail: x.toEmail, subject: x.subject, body: x.body });
+      }} style={{ padding: "4px 10px", borderRadius: 8, border: "1px solid " + C.blue, background: "#fff", color: C.blue, fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}>📨 Send partner link</button>
+      <button onClick={async () => {
+        const r = await fetch(API + "/transactions/" + txId + "/partners/" + p.id + "/link", { method: "POST", headers });
+        const x = await r.json(); if (!r.ok || !x.success) { setMsg("⚠️ " + (x.error || "Couldn't make the link")); return; }
+        try { await navigator.clipboard.writeText(x.link); setMsg("✅ Partner link copied — paste it in a text."); } catch { window.prompt("Copy this partner link:", x.link); }
+      }} style={{ padding: "4px 10px", borderRadius: 8, border: "1px solid " + C.border, background: "#fff", color: C.text, fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}>🔗 Copy link</button>
+    </div>
+  );
+
   const inp = { padding: "8px 10px", border: "1px solid " + C.border, borderRadius: 8, fontSize: 13.5, fontFamily: "inherit", boxSizing: "border-box", width: "100%" };
   const calc = d.commission_calc;
 
@@ -86,6 +105,7 @@ export default function DealSharingPanel({ txId, onChanged }) {
             <input placeholder="Their email" value={form.referral.email || ""} onChange={e => set({ referral: { ...form.referral, email: e.target.value } })} style={inp} />
             <input placeholder="Their brokerage" value={form.referral.brokerage || ""} onChange={e => set({ referral: { ...form.referral, brokerage: e.target.value } })} style={inp} />
             <input placeholder="Referral fee %" type="number" value={form.referral_fee_pct} onChange={e => set({ referral_fee_pct: e.target.value })} style={inp} />
+            {partnerActions({ ...form.referral, user_id: null })}
           </div>
         </div>
       )}
@@ -99,6 +119,7 @@ export default function DealSharingPanel({ txId, onChanged }) {
               <input placeholder="Their brokerage (if different)" value={c.brokerage || ""} onChange={e => setCo(i, { brokerage: e.target.value })} style={inp} />
               <input placeholder="Their share %" type="number" value={c.share_pct ?? ""} onChange={e => setCo(i, { share_pct: e.target.value })} style={inp} />
               <button onClick={() => set({ coAgents: form.coAgents.filter((_, j) => j !== i) })} title="Remove" style={{ border: "none", background: "none", cursor: "pointer", fontSize: 16 }}>✕</button>
+              {partnerActions(c)}
               {c.user_id && <div style={{ gridColumn: "1 / -1", fontSize: 11.5, color: C.blue }}>✓ Uses TransactPro{c.same_brokerage ? " (your brokerage)" : " (another brokerage)"} — this deal shows up in their own app with their own share.</div>}
             </div>
           ))}
@@ -127,6 +148,26 @@ export default function DealSharingPanel({ txId, onChanged }) {
         </button>
         {msg && <span style={{ fontSize: 12.5, fontWeight: 700, color: msg.startsWith("✅") ? "#166534" : C.dark }}>{msg}</span>}
       </div>
+
+      {invite && (
+        <div onClick={() => setInvite(null)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 1000, display: "flex", alignItems: "flex-start", justifyContent: "center", overflowY: "auto", padding: "24px 12px" }}>
+          <div onClick={e => e.stopPropagation()} style={{ background: "#fff", borderRadius: 14, width: "100%", maxWidth: 520, margin: "auto", padding: 20 }}>
+            <div style={{ fontSize: 17, fontWeight: 800, marginBottom: 4 }}>Review before sending</div>
+            <div style={{ fontSize: 13, color: C.muted, marginBottom: 12 }}>To: <b>{invite.to}</b> &lt;{invite.toEmail}&gt; · nothing sends until you press Send.</div>
+            <input value={invite.subject} onChange={e => setInvite(v => ({ ...v, subject: e.target.value }))} style={{ ...inp, marginBottom: 10 }} />
+            <textarea value={invite.body} onChange={e => setInvite(v => ({ ...v, body: e.target.value }))} rows={11} style={{ ...inp, resize: "vertical" }} />
+            <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 12 }}>
+              <button onClick={() => setInvite(null)} style={{ padding: "9px 16px", borderRadius: 8, border: "1px solid " + C.border, background: "#fff", fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>Cancel</button>
+              <button onClick={async () => {
+                const r = await fetch(API + "/transactions/" + txId + "/partners/" + invite.pid + "/invite", { method: "POST", headers, body: JSON.stringify({ confirm: true, subject: invite.subject, body: invite.body }) });
+                const x = await r.json();
+                if (!r.ok || !x.success) { alert(x.error || "Couldn't send"); return; }
+                setInvite(null); setMsg(`✅ Partner link sent to ${invite.to}.`);
+              }} style={{ padding: "9px 18px", borderRadius: 8, border: "none", background: C.red, color: "#fff", fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>✅ Send</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {calc && (
         <div style={{ borderTop: "1px solid " + C.border, paddingTop: 10 }}>

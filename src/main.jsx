@@ -11,6 +11,7 @@ import OfferSignPublic from './OfferSignPublic'
 import MilestoneActionPublic from './MilestoneActionPublic'
 import { WelcomeReceivedPublic } from './WelcomeReceipts'
 import PortalMagicLogin from './PortalMagicLogin'
+import PartnerPortal from './PartnerPortal'
 import TcIntakePublic from './TcIntakePublic'
 import FillInfoPublic from './FillInfoPublic'
 
@@ -51,7 +52,7 @@ window.fetch = async function patchedFetch(input, init) {
       const isPublicPath = path.startsWith('/upload/') || path.startsWith('/reset-password') ||
                            path.startsWith('/form-download/') || path.startsWith('/upload-contract/') ||
                            path.startsWith('/review-offers/') || path.startsWith('/milestone-action/') || path.startsWith('/welcome-received/') ||
-                           path.startsWith('/tc-intake/') || path.startsWith('/portal/') || path.startsWith('/fill-info/');
+                           path.startsWith('/tc-intake/') || path.startsWith('/portal/') || path.startsWith('/fill-info/') || path.startsWith('/partner/');
       if (!isPublicPath) {
         __reloadingForAuth = true;
         // A suspended account gets its own message — "session expired" would send
@@ -103,6 +104,9 @@ else if (path.startsWith('/form-download/')) {
 } else if (path.startsWith('/portal/')) {
   const token = path.split('/portal/')[1];
   Root = <PortalMagicLogin urlToken={token} />;
+} else if (path.startsWith('/partner/')) {
+  // Partner link — outside co-agent / referring agent, shared deals only.
+  Root = <PartnerPortal urlToken={path.split('/partner/')[1]} />;
 } else if (path.startsWith('/fill-info/')) {
   Root = <FillInfoPublic token={path.split('/fill-info/')[1]} />;
 } else if (path.startsWith('/tc-intake/')) {
