@@ -89,7 +89,7 @@ export default function DealSharingPanel({ txId, onChanged }) {
         <button onClick={async () => {
           const r = await fetch(API + "/transactions/" + txId + "/partners/" + p.id + "/app-invite", { method: "POST", headers, body: JSON.stringify({}) });
           const x = await r.json(); if (!r.ok || !x.success) { setMsg("⚠️ " + (x.error || "Couldn't draft it")); return; }
-          setInvite({ pid: p.id, to: x.to, toEmail: x.toEmail, subject: x.subject, body: x.body, endpoint: "app-invite", existing: x.existing });
+          setInvite({ pid: p.id, to: x.to, toEmail: x.toEmail, subject: x.subject, body: x.body, endpoint: "app-invite", existing: x.existing, consent: !!x.consent });
         }} style={{ padding: "4px 10px", borderRadius: 8, border: "none", background: C.red, color: "#fff", fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}>🔑 Give them a TransactPro login to work this deal</button>
       )}
       </> : <>
@@ -185,7 +185,8 @@ export default function DealSharingPanel({ txId, onChanged }) {
           <div onClick={e => e.stopPropagation()} style={{ background: "#fff", borderRadius: 14, width: "100%", maxWidth: 520, margin: "auto", padding: 20 }}>
             <div style={{ fontSize: 17, fontWeight: 800, marginBottom: 4 }}>Review before sending</div>
             <div style={{ fontSize: 13, color: C.muted, marginBottom: 12 }}>To: <b>{invite.to}</b> &lt;{invite.toEmail}&gt; · nothing sends until you press Send.</div>
-            {invite.endpoint === "app-invite" && !invite.existing && <div style={{ fontSize: 12, color: C.blue, background: C.gray, borderRadius: 8, padding: "8px 10px", marginBottom: 10 }}>Sending creates their free login. Keep <b>{"{{SET_PASSWORD_LINK}}"}</b> in the message — it becomes their private set-password link.</div>}
+            {invite.endpoint === "app-invite" && invite.consent && <div style={{ fontSize: 12, color: C.blue, background: C.gray, borderRadius: 8, padding: "8px 10px", marginBottom: 10 }}>This email already has a client login. Nothing changes until <b>they</b> tap their private link and set a password — then the same email also gets an agent login. Keep <b>{"{{ADD_AGENT_LOGIN_LINK}}"}</b> in the message.</div>}
+            {invite.endpoint === "app-invite" && !invite.existing && !invite.consent && <div style={{ fontSize: 12, color: C.blue, background: C.gray, borderRadius: 8, padding: "8px 10px", marginBottom: 10 }}>Sending creates their free login. Keep <b>{"{{SET_PASSWORD_LINK}}"}</b> in the message — it becomes their private set-password link.</div>}
             <input value={invite.subject} onChange={e => setInvite(v => ({ ...v, subject: e.target.value }))} style={{ ...inp, marginBottom: 10 }} />
             <textarea value={invite.body} onChange={e => setInvite(v => ({ ...v, body: e.target.value }))} rows={11} style={{ ...inp, resize: "vertical" }} />
             <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 12 }}>
@@ -195,7 +196,10 @@ export default function DealSharingPanel({ txId, onChanged }) {
                 const x = await r.json();
                 if (!r.ok || !x.success) { alert(x.error || "Couldn't send"); return; }
                 setInvite(null);
-                setMsg(invite.endpoint === "app-invite" ? `✅ ${invite.to} ${x.created ? "has a free TransactPro login — the email with their set-password link is on its way" : "is linked to their TransactPro account"}. The deal opens in their app with full access.` : `✅ Partner link sent to ${invite.to}.`);
+                setMsg(invite.endpoint === "app-invite"
+                  ? (x.consentSent ? `✅ Sent. ${invite.to}'s email already had a client login — when they tap the link and set a password, it gets an agent login too and this deal opens in their app with full access.`
+                    : `✅ ${invite.to} ${x.created ? "has a free TransactPro login — the email with their set-password link is on its way" : "is linked to their TransactPro account"}. The deal opens in their app with full access.`)
+                  : `✅ Partner link sent to ${invite.to}.`);
                 load();
               }} style={{ padding: "9px 18px", borderRadius: 8, border: "none", background: C.red, color: "#fff", fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>✅ Send</button>
             </div>
