@@ -22,6 +22,7 @@ export default function DealSharingPanel({ txId, onChanged }) {
   const [form, setForm] = useState(null);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState("");
+  const [dirty, setDirty] = useState(false);
   const [invite, setInvite] = useState(null);
   const [sugg, setSugg] = useState([]);         // repeat co-agents: past co-agents + your brokerage's agents
   useEffect(() => {
@@ -40,6 +41,7 @@ export default function DealSharingPanel({ txId, onChanged }) {
   const load = () => fetch(API + "/transactions/" + txId + "/sharing", { headers }).then(r => r.ok ? r.json() : null).then(x => {
     if (!x || !x.success) { setD(false); return; }
     setD(x);
+    setDirty(false);
     const ref = x.partners.find(p => p.kind === "referral_in");
     setForm({
       deal_share_type: x.deal_share_type || "standard",
@@ -54,17 +56,19 @@ export default function DealSharingPanel({ txId, onChanged }) {
   if (d === false) return null;        // not the deal's agent/admin → nothing to show
   if (!d || !form) return null;
 
-  const set = (patch) => setForm(f => ({ ...f, ...patch }));
-  const setCo = (i, patch) => setForm(f => ({ ...f, coAgents: f.coAgents.map((c, j) => j === i ? { ...c, ...patch } : c) }));
+  // Any edit marks the box "unsaved" — removing a co-agent on screen without
+  // saving left them with full access (Carlos 10/1).
+  const set = (patch) => { setDirty(true); setForm(f => ({ ...f, ...patch })); };
+  const setCo = (i, patch) => { setDirty(true); setForm(f => ({ ...f, coAgents: f.coAgents.map((c, j) => j === i ? { ...c, ...patch } : c) })); };
   const coTotal = form.coAgents.reduce((n, c) => n + (Number(c.share_pct) || 0), 0);
 
-  const save = async () => {
+  const save = async (f = form) => {
     setSaving(true); setMsg("");
     try {
-      const partners = form.deal_share_type === "co_shared" ? form.coAgents.map(c => ({ ...c, kind: "co_agent" }))
-        : form.deal_share_type === "referral_in" ? [{ ...form.referral, kind: "referral_in" }] : [];
-      const body = { deal_share_type: form.deal_share_type, referral_fee_pct: form.referral_fee_pct, partners };
-      if (d.canOverridePlan) body.commission_plan_id = form.commission_plan_id || null;
+      const partners = f.deal_share_type === "co_shared" ? f.coAgents.map(c => ({ ...c, kind: "co_agent" }))
+        : f.deal_share_type === "referral_in" ? [{ ...f.referral, kind: "referral_in" }] : [];
+      const body = { deal_share_type: f.deal_share_type, referral_fee_pct: f.referral_fee_pct, partners };
+      if (d.canOverridePlan) body.commission_plan_id = f.commission_plan_id || null;
       const r = await fetch(API + "/transactions/" + txId + "/sharing", { method: "PUT", headers, body: JSON.stringify(body) });
       const x = await r.json();
       if (!r.ok || !x.success) throw new Error(x.error || "Could not save");
@@ -163,7 +167,15 @@ export default function DealSharingPanel({ txId, onChanged }) {
               <input placeholder="Their email" value={c.email || ""} onChange={e => setCo(i, { email: e.target.value })} style={inp} />
               <input placeholder="Their brokerage (if different)" value={c.brokerage || ""} onChange={e => setCo(i, { brokerage: e.target.value })} style={inp} />
               <input placeholder="Their share %" type="number" value={c.share_pct ?? ""} onChange={e => setCo(i, { share_pct: e.target.value })} style={inp} />
-              {canEdit ? <button onClick={() => set({ coAgents: form.coAgents.filter((_, j) => j !== i) })} title="Remove" style={{ border: "none", background: "none", cursor: "pointer", fontSize: 16 }}>✕</button> : <span />}
+              {canEdit ? <button onClick={() => {
+                const rest = form.coAgents.filter((_, j) => j !== i);
+                // A saved co-agent is removed for real right away — not left on
+                // screen waiting for "Save sharing" while they keep access.
+                if (!c.id) { set({ coAgents: rest }); return; }
+                if (!window.confirm(`Remove ${c.name || "this co-agent"} as co-agent?\n\nThey lose access to this deal right away.`)) return;
+                const next = { ...form, coAgents: rest, deal_share_type: rest.length ? form.deal_share_type : "standard" };
+                setForm(next); save(next);
+              }} title="Remove" style={{ border: "none", background: "none", cursor: "pointer", fontSize: 16 }}>✕</button> : <span />}
               {coAgentStatus(c)}
             </div>
           ))}
@@ -194,10 +206,11 @@ export default function DealSharingPanel({ txId, onChanged }) {
       )}
 
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
-        {(canEdit || d.canOverridePlan) && <button disabled={saving || coTotal > 100} onClick={save}
+        {(canEdit || d.canOverridePlan) && <button disabled={saving || coTotal > 100} onClick={() => save()}
           style={{ padding: "9px 18px", borderRadius: 8, border: "none", background: C.red, color: "#fff", fontWeight: 700, fontSize: 13.5, cursor: "pointer", fontFamily: "inherit" }}>
           {saving ? "Saving…" : "Save sharing"}
         </button>}
+        {dirty && !saving && (canEdit || d.canOverridePlan) && <span style={{ fontSize: 12.5, fontWeight: 700, color: C.dark }}>● Unsaved changes — tap Save sharing</span>}
         {msg && <span style={{ fontSize: 12.5, fontWeight: 700, color: msg.startsWith("✅") ? "#166534" : C.dark }}>{msg}</span>}
       </div>
 
