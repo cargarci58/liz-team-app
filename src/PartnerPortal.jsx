@@ -100,7 +100,15 @@ export default function PartnerPortal({ urlToken }) {
             <div style={{ marginTop: 10, background: "#FADBD8", borderRadius: 10, padding: "10px 12px", fontSize: 13, color: C.text }}>
               {d.hasLogin ? <>To <b>work</b> on this deal — send messages, upload, edit, every tool — log in to TransactPro with this email. It's under <b>My Deals</b>.{" "}
                 <a href="/" style={{ color: C.red, fontWeight: 800 }}>Log in →</a></>
-                : <>To <b>work</b> on this deal you need a TransactPro login. Ask {d.agent.name} to tap <b>🔑 Give them a TransactPro login</b> on this deal — you'll get an email to set your password.</>}
+                : <>To <b>work</b> on this deal — send messages, upload, edit, every tool — set up your TransactPro agent login. You pick your own password; it takes a minute and it's free.{" "}
+                  <button onClick={async () => {
+                    let ss = null; try { ss = localStorage.getItem(KEY); } catch {}
+                    const r = await fetch(API + "/partner/agent-login-link", { method: "POST", headers: { Authorization: "Bearer " + ss } });
+                    const x = await r.json();
+                    if (x.alreadyAgent) { window.location.href = "/"; return; }
+                    if (!r.ok || !x.url) { alert(x.error || "Couldn't start it — try again."); return; }
+                    window.location.href = x.url;
+                  }} style={{ marginTop: 8, display: "block", padding: "9px 16px", borderRadius: 8, border: "none", background: C.red, color: "#fff", fontWeight: 800, fontSize: 14, cursor: "pointer" }}>🔑 Set up my agent login now</button></>}
             </div>
           )}
           <div style={{ display: "flex", gap: 18, flexWrap: "wrap", marginTop: 10, fontSize: 13 }}>
