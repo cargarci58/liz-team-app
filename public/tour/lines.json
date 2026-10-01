@@ -284,5 +284,13 @@
  "d7_6a": "On tour day, tap Navigate on each home for directions, and tap Access and instructions for the lockbox code.",
  "d7_6b": "Inside each home, tap Scorecard. Mark Love it, Maybe, or Not for us, and tap what your buyer liked and didn't like. Your buyer sees the same scorecard in their portal, and either of you can fill it in.",
  "d7_7a": "When your buyer picks a home, tap Write an offer. The contract fills in from the same report. If your buyer taps 'I'd like to make an offer' in their portal, a red banner shows up at the top of this page.",
- "d7_7b": "Need another day of showings? Tap Add another tour day."
+ "d7_7b": "Need another day of showings? Tap Add another tour day.",
+ "d18_1a": "On the deal's Overview, scroll to Deal Sharing and Commission. Tap Co-shared, then Add co-agent, and type their name, email, and share.",
+ "d18_1b": "Tap Save sharing. Underneath, you'll see each step, your net, and the brokerage's income.",
+ "d18_2a": "If another agent sent you this client, tap Referral In, and enter their name, email, and fee. Tap Save sharing.",
+ "d18_2b": "To let them follow the deal, tap Send partner link, read the email, then tap Send. They'll pick a PIN the first time.",
+ "d18_3a": "Open Company Settings, then Commission Plans. Start from a plan, turn steps on or off, and use the arrows to change the order.",
+ "d18_3b": "Check the example. If it matches how you pay, tap Save plan. Then choose each agent's plan.",
+ "d18_4a": "Open Tools, then Referrals Out, and tap New referral. Add the client, the partner agent, and your fee.",
+ "d18_4b": "Every few weeks, tap Ask for an update. When the fee arrives, tap Mark paid. It goes straight to your P&L."
 }
