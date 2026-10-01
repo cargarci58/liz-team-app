@@ -24,6 +24,7 @@ import SpotlightTour from "./components/SpotlightTour";
 import TourModal from "./components/TourModal";
 import FirstTimeHere from "./components/FirstTimeHere";
 import DealSharingPanel from "./DealSharingPanel";
+import { offerState, StepTracker, NextLine, ThreadLine, CounterModal, ReturnedOfferReview, SellerSigningLauncher, PickReturnedDoc, useOfferCounters } from "./OfferCounterFlow";
 import { PAGE_TIPS, PAGE_SCENES, dealTabTip, dealTabScenes } from "./config/pageTips";
 
 const API = "https://liz-team-server-api-production.up.railway.app";
@@ -828,7 +829,7 @@ function TransactionListView({ transactions, sortKey, sortDir, toggleSort, onSel
                       <div style={{ fontWeight: 600, color: COLORS.navy, display: "flex", alignItems: "center", gap: 6 }}>
                         {tx.address}
                         {propertyTypeBadge(tx) && <span style={{ background: propertyTypeBadge(tx).bg, color: propertyTypeBadge(tx).color, fontSize: 9, fontWeight: 700, padding: "1px 6px", borderRadius: 8, whiteSpace: "nowrap" }}>{propertyTypeBadge(tx).label}</span>}
-                        {shareBadge(tx) && <span style={{ background: shareBadge(tx).bg, color: shareBadge(tx).color, fontSize: 9, fontWeight: 800, padding: "1px 6px", borderRadius: 8, whiteSpace: "nowrap" }}>{shareBadge(tx).label}</span>}
+                        {shareBadge(tx) && <span style={{ background: shareBadge(tx).bg, color: shareBadge(tx).color, fontSize: 9, fontWeight: 800, padding: "1px 6px", borderRadius: 8, whiteSpace: "normal" }}>{shareBadge(tx).label}</span>}
                       </div>
                       <div style={{ fontSize: 11, color: COLORS.muted, marginTop: 2 }}>{tx.city}, FL</div>
                     </td>
@@ -898,7 +899,7 @@ function TransactionListView({ transactions, sortKey, sortDir, toggleSort, onSel
                   <div style={{ fontWeight: 700, color: COLORS.navy, fontSize: 14, overflow: "hidden", textOverflow: "ellipsis", display: "flex", alignItems: "center", gap: 6 }}>
                     <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{tx.address}</span>
                     {propertyTypeBadge(tx) && <span style={{ background: propertyTypeBadge(tx).bg, color: propertyTypeBadge(tx).color, fontSize: 9, fontWeight: 700, padding: "1px 6px", borderRadius: 8, whiteSpace: "nowrap", flexShrink: 0 }}>{propertyTypeBadge(tx).label}</span>}
-                    {shareBadge(tx) && <span style={{ background: shareBadge(tx).bg, color: shareBadge(tx).color, fontSize: 9, fontWeight: 800, padding: "1px 6px", borderRadius: 8, whiteSpace: "nowrap", flexShrink: 0 }}>{shareBadge(tx).label}</span>}
+                    {shareBadge(tx) && <span style={{ background: shareBadge(tx).bg, color: shareBadge(tx).color, fontSize: 9, fontWeight: 800, padding: "1px 6px", borderRadius: 8, whiteSpace: "normal" }}>{shareBadge(tx).label}</span>}
                   </div>
                   <div style={{ fontSize: 11, color: COLORS.muted, marginTop: 2 }}>{tx.city}, FL · {txTypeShort(tx.type)}</div>
                 </div>
@@ -4429,10 +4430,17 @@ export function WelcomeEmailPreview({ txId, onClose, onlyPartyId = null }) {
 
 // Pending offers received on a listing. Several can sit here at once; the agent
 // reviews them and approves one (which auto-rejects the rest on the server).
-function ListingOffers({ txId, txStatus, refreshKey, onReview, onReceiveOffer }) {
+function ListingOffers({ txId, txStatus, txAddress, refreshKey, onReview, onReceiveOffer }) {
   const [offers, setOffers] = useState([]);
   const [loading, setLoading] = useState(true);
   const hdrs = { "Authorization": "Bearer " + (localStorage.getItem("tp_token") || "") };
+  // Counter-offers (OfferCounterFlow.jsx): rounds, step tracker, checks, seller signing.
+  const [{ counters, uploads: counterUploads }, reloadCounters] = useOfferCounters(txId, refreshKey);
+  const [counterFor, setCounterFor] = useState(null);      // upload id being countered
+  const [reviewCounter, setReviewCounter] = useState(null); // counter whose returned offer is being reviewed
+  const [signTarget, setSignTarget] = useState(null);      // {counterId} | {uploadId}
+  const [pickFor, setPickFor] = useState(null);            // counter awaiting a returned file from Documents
+  const [howOpen, setHowOpen] = useState(false);
 
   const load = () => {
     fetch(`${API}/contracts/uploads`, { headers: hdrs })
@@ -4447,7 +4455,54 @@ function ListingOffers({ txId, txStatus, refreshKey, onReview, onReceiveOffer })
       .catch(e => console.error("Load offers failed:", e))
       .finally(() => setLoading(false));
   };
+  const reloadAll = () => { load(); reloadCounters(); };
   useEffect(() => { load(); }, [txId, refreshKey]);
+  // While an offer is being read or a returned offer is being checked, refresh
+  // every 15s so the step moves on by itself.
+  const busyServer = offers.some(o => ["pending", "extracting"].includes(o.status)) ||
+    counters.some(c => ["response_received"].includes(c.status) || (c.responseUploadId && c.checkStatus && c.checkStatus !== "done"));
+  useEffect(() => {
+    if (!busyServer) return;
+    const t = setInterval(reloadAll, 15000);
+    return () => clearInterval(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [busyServer, txId]);
+  const withdraw = async (c) => {
+    if (!window.confirm(c.status === "sent" ? "Withdraw this counter? Let the buyer's agent know — the app doesn't email them about it." : "Delete this unsent counter?")) return;
+    try {
+      const r = await fetch(`${API}/offer-counters/${c.id}/withdraw`, { method: "POST", headers: hdrs });
+      if (!r.ok) throw new Error((await r.json()).error || "Failed");
+      reloadAll();
+    } catch (e) { alert(e.message); }
+  };
+  const counterAgain = async (c) => {
+    try {
+      const r = await fetch(`${API}/offer-counters/${c.id}/counter-again`, { method: "POST", headers: hdrs });
+      const b = await r.json();
+      if (!r.ok) throw new Error(b.error || "Failed");
+      setReviewCounter(null); reloadAll(); setCounterFor(b.uploadId);
+    } catch (e) { alert(e.message); }
+  };
+  // A new offer that came in while a counter is out but wasn't recognized as
+  // the reply (different names on it) — the agent can link it by hand.
+  const openCounters = counters.filter(c => c.status === "sent" || c.status === "expired");
+  const linkAsReply = async (c, uploadId) => {
+    try {
+      const r = await fetch(`${API}/offer-counters/${c.id}/response`, { method: "POST", headers: { ...hdrs, "Content-Type": "application/json" }, body: JSON.stringify({ uploadId }) });
+      const b = await r.json();
+      if (!r.ok) throw new Error(b.error || "Failed");
+      reloadAll();
+    } catch (e) { alert(e.message); }
+  };
+  const modals = (
+    <>
+      {counterFor && <CounterModal uploadId={counterFor} address={txAddress} onClose={() => setCounterFor(null)} onDone={() => reloadAll()} />}
+      {reviewCounter && <ReturnedOfferReview counter={reviewCounter} onClose={() => { setReviewCounter(null); reloadAll(); }} onChanged={() => reloadCounters()}
+        onCounterAgain={counterAgain} onSendToSeller={(c) => { setReviewCounter(null); setSignTarget({ counterId: c.id }); }} />}
+      {signTarget && <SellerSigningLauncher target={signTarget} tx={{ id: txId }} onClose={() => { setSignTarget(null); reloadAll(); }} onSent={() => reloadAll()} />}
+      {pickFor && <PickReturnedDoc counter={pickFor} txId={txId} onClose={() => setPickFor(null)} onLinked={() => reloadAll()} />}
+    </>
+  );
 
   const [shareUrl, setShareUrl] = useState("");
   const [sharing, setSharing] = useState(false);
@@ -6668,10 +6723,10 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
         {shareBadge(tx) && <Badge label={shareBadge(tx).label} color={shareBadge(tx).color} bg={shareBadge(tx).bg} />}
         {isGuest && <span style={{ background: "rgba(255,255,255,0.15)", color: "#fff", fontSize: 11, fontWeight: 700, padding: "4px 10px", borderRadius: 6 }}>👤 Shared with you · view only</span>}
         {isCoordinator && <span style={{ background: "rgba(255,255,255,0.15)", color: "#fff", fontSize: 11, fontWeight: 700, padding: "4px 10px", borderRadius: 6 }}>🧭 Coordinator</span>}
-        {/* CO-AGENT on someone else's deal: works it (timeline, documents,
-            parties) — status and terms belong to the deal's agent. */}
-        {!isCoordinator && tx.isCoAgentView && <span title={`${tx.assignedAgentName || "The deal's agent"} is the deal's agent — they change its status and terms.`} style={{ background: "rgba(255,255,255,0.15)", color: "#fff", fontSize: 11, fontWeight: 700, padding: "4px 10px", borderRadius: 6 }}>🤝 You're a co-agent · {tx.status}</span>}
-        {!isCoordinator && !tx.isCoAgentView && <>
+        {/* CO-AGENT on someone else's deal: full access; only the deal agent's
+            commission terms stay theirs. */}
+        {!isCoordinator && tx.isCoAgentView && <span title={`You share this deal with ${tx.assignedAgentName || "its agent"}. Their commission terms stay theirs.`} style={{ background: "rgba(255,255,255,0.15)", color: "#fff", fontSize: 11, fontWeight: 700, padding: "4px 10px", borderRadius: 6 }}>🤝 You're a co-agent</span>}
+        {!isCoordinator && <>
         <select value={tx.status} onChange={e => {
           if (isGuest) { setPaywallFeature("Changing transaction status"); e.target.value = tx.status; return; }
           const newStatus = e.target.value;
@@ -8182,7 +8237,9 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
                 <div style={{ fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>Lockbox / Gate / Alarm Codes</div>
                 <textarea value={editTxForm.propertyAccess || ""} onChange={e => setEditTxForm(f => ({ ...f, propertyAccess: e.target.value }))} placeholder="Lockbox code, gate code, special instructions..." style={{ width: "100%", padding: "10px 14px", borderRadius: 8, border: "1.5px solid #CCC", fontSize: 14, fontFamily: "inherit", boxSizing: "border-box", minHeight: 60, resize: "vertical" }} />
               </div>
-              <div style={{ background: "#F4F4F4", borderRadius: 10, padding: 16, marginBottom: 16, display: isCoordinator ? "none" : "block" }}>
+              {/* Commission terms are the deal agent's — hidden for coordinators and
+                  co-agents (the server keeps them unchanged on a co-agent's save). */}
+              <div style={{ background: "#F4F4F4", borderRadius: 10, padding: 16, marginBottom: 16, display: isCoordinator || tx.isCoAgentView ? "none" : "block" }}>
                 <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 12, color: "#111" }}>Commission Details</div>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
                   {[["Listing Agent Commission %", "commissionListing"], ["Buyer Agent Commission %", "commissionBuyer"], ["Transaction Fee", "transactionFee"], ["Brokerage Split %", "brokerageSplit"], ["Office Flat Fee", "officeFlatFee"]].map(([label, field]) => (
@@ -9828,8 +9885,14 @@ function Dashboard({ transactions, coordinatorMode = false, unreadCounts = {}, o
                     </span>
                     <Badge label={tx.status} color={cfg.color} bg={cfg.bg} />
                     {propertyTypeBadge(tx) && <Badge label={propertyTypeBadge(tx).label} color={propertyTypeBadge(tx).color} bg={propertyTypeBadge(tx).bg} />}
-                    {shareBadge(tx) && <Badge label={shareBadge(tx).label} color={shareBadge(tx).color} bg={shareBadge(tx).bg} />}
                   </div>
+                  {/* Sharing badge on its OWN line, wrapping — in the pill row it got
+                      cut off ("CO-SHARED · with B…", Carlos 10/1). */}
+                  {shareBadge(tx) && (
+                    <div style={{ marginBottom: 6 }}>
+                      <span style={{ display: "inline-block", background: "#FFFFFF", color: shareBadge(tx).bg, fontSize: 11, fontWeight: 800, padding: "3px 10px", borderRadius: 20, whiteSpace: "normal", lineHeight: 1.35 }}>{shareBadge(tx).label}</span>
+                    </div>
+                  )}
                   <div style={{ color: "#FFFFFF", fontWeight: 700, fontSize: 15, marginBottom: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{tx.address}</div>
                   {clientNameForTx(tx) && (
                     <div style={{ color: "rgba(255,255,255,0.92)", fontSize: 12.5, fontWeight: 600, marginBottom: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>👤 {clientLabelForTx(tx)}: {clientNameForTx(tx)}</div>
@@ -10767,9 +10830,8 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
     // endpoint. Firing it anyway popped "Save failed. Coordinators update deals
     // through the coordination tools…" after a successful Done (Carlos 7/28).
     try { if ((JSON.parse(localStorage.getItem("tp_user") || "{}").role || "") === "tc") return; } catch {}
-    // A co-agent works the deal through its own tools; the full save (the deal's
-    // terms) belongs to the deal's agent — the server refuses it, so don't fire it.
-    if (updated.isCoAgentView) return;
+    // A co-agent saves like the deal's agent; the server keeps the deal agent's
+    // commission terms and assignment unchanged (coAgentPutPrep).
     const freshTok = localStorage.getItem("tp_token") || "";
     const freshH = { "Content-Type": "application/json", "Authorization": "Bearer " + freshTok };
     const rollback = () => { if (previous) setTransactions(txs => txs.map(t => t.id === updated.id ? previous : t)); };
