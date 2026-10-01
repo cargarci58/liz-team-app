@@ -22,7 +22,20 @@ export default function DealSharingPanel({ txId, onChanged }) {
   const [form, setForm] = useState(null);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState("");
-  const [invite, setInvite] = useState(null);   // { pid, to, toEmail, subject, body } — review before sending
+  const [invite, setInvite] = useState(null);
+  const [sugg, setSugg] = useState([]);         // repeat co-agents: past co-agents + your brokerage's agents
+  useEffect(() => {
+    fetch(API + "/co-agents/suggestions", { headers }).then(r => r.ok ? r.json() : null).then(x => { if (x && x.suggestions) setSugg(x.suggestions); }).catch(() => {});
+    // eslint-disable-next-line
+  }, []);
+  // Typing a name and picking a suggestion fills their email + brokerage — the
+  // SAME email every time, so it's the same person's account on every deal.
+  const pickCo = (i, value) => {
+    const m = String(value || "").match(/<([^>]+)>\s*$/);
+    const hit = m && sugg.find(x => x.email === m[1].toLowerCase());
+    if (hit) setCo(i, { name: hit.name, email: hit.email, brokerage: hit.brokerage || "", phone: hit.phone || "" });
+    else setCo(i, { name: value });
+  };   // { pid, to, toEmail, subject, body } — review before sending
 
   const load = () => fetch(API + "/transactions/" + txId + "/sharing", { headers }).then(r => r.ok ? r.json() : null).then(x => {
     if (!x || !x.success) { setD(false); return; }
@@ -122,7 +135,7 @@ export default function DealSharingPanel({ txId, onChanged }) {
         <div style={{ background: C.gray, borderRadius: 10, padding: 12, marginBottom: 12 }}>
           {form.coAgents.map((c, i) => (
             <div key={c.id || i} style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr)) 40px", gap: 8, marginBottom: 8, alignItems: "center" }}>
-              <input placeholder="Co-agent's name" value={c.name || ""} onChange={e => setCo(i, { name: e.target.value })} style={inp} />
+              <input placeholder="Co-agent's name — start typing" list="coagent-suggestions" value={c.name || ""} onChange={e => pickCo(i, e.target.value)} style={inp} />
               <input placeholder="Their email" value={c.email || ""} onChange={e => setCo(i, { email: e.target.value })} style={inp} />
               <input placeholder="Their brokerage (if different)" value={c.brokerage || ""} onChange={e => setCo(i, { brokerage: e.target.value })} style={inp} />
               <input placeholder="Their share %" type="number" value={c.share_pct ?? ""} onChange={e => setCo(i, { share_pct: e.target.value })} style={inp} />
@@ -131,6 +144,9 @@ export default function DealSharingPanel({ txId, onChanged }) {
               {c.user_id && <div style={{ gridColumn: "1 / -1", fontSize: 11.5, color: C.blue }}>✓ Uses TransactPro{c.same_brokerage ? " (your brokerage)" : " (another brokerage)"} — this deal shows up in their own app with their own share.</div>}
             </div>
           ))}
+          <datalist id="coagent-suggestions">
+            {sugg.map(x => <option key={x.email} value={`${x.name} <${x.email}>`}>{x.team ? "Your brokerage" : x.brokerage || "Past co-agent"}</option>)}
+          </datalist>
           <button onClick={() => set({ coAgents: [...form.coAgents, { name: "", email: "", brokerage: "", share_pct: form.coAgents.length ? "" : 50 }] })}
             style={{ padding: "7px 12px", borderRadius: 8, border: "1px dashed " + C.blue, background: "#fff", color: C.blue, fontWeight: 700, fontSize: 12.5, cursor: "pointer", fontFamily: "inherit" }}>➕ Add co-agent</button>
           <div style={{ fontSize: 12, color: coTotal > 100 ? C.dark : C.muted, marginTop: 8 }}>
