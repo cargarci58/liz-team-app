@@ -3,7 +3,7 @@
 // listing's 📥 Pending Offers panel (ListingOffers in App.jsx).
 //
 // The rules this screen teaches (Carlos 10/1):
-//   • The LISTING AGENT counters (the seller only approves the terms).
+//   • The LISTING AGENT counters and sends it — no seller approval step.
 //   • The buyer's side strikes & initials the changes, or resubmits.
 //   • What comes back is checked against the counter; anything that changed
 //     and was NOT in the counter is flagged and locks the seller's signature.
