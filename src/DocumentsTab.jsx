@@ -1692,9 +1692,13 @@ function AddendumModal({ tx, headers, onCreated, onClose }) {
   );
 }
 
-function DocSignModal({ tx, doc, allDocs = [], headers, onClose }) {
+// initialRows / initialPlacements / autoPlace / intro / onSent let another
+// screen open this pre-filled — e.g. the Offers panel's "Send to seller to
+// sign", which brings the sellers and their auto-placed blocks (the agent
+// still previews, moves, removes or adds blocks before sending).
+export function DocSignModal({ tx, doc, allDocs = [], headers, onClose, initialRows = null, initialPlacements = null, autoPlace = false, intro = null, onSent = null }) {
   const [info, setInfo] = useState(null);
-  const [rows, setRows] = useState([]);
+  const [rows, setRows] = useState(initialRows && initialRows.length ? initialRows : []);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState(null);
   // Bundle: more documents signed in the SAME round (one email, one link).
@@ -1703,11 +1707,11 @@ function DocSignModal({ tx, doc, allDocs = [], headers, onClose }) {
     d.id !== doc.id && /pdf$/i.test(d.mime_type || "") && !/^✍️ Signed/.test(d.name || ""));
   const selDocs = [doc, ...extraIds.map(id => extraChoices.find(d => d.id === id)).filter(Boolean)];
   // Tap-to-place state
-  const [placing, setPlacing] = useState(false);
+  const [placing, setPlacing] = useState(!!autoPlace);
   const [pagesByDoc, setPagesByDoc] = useState({}); // docId → {pages:[{num,width,height,dataUrl}], err}
   const [activeSigner, setActiveSigner] = useState(1);
   const [placeKind, setPlaceKind] = useState("signature"); // signature | initials | date | text
-  const [placements, setPlacements] = useState([]); // [{signer,docId,page,x,y,kind,text}] PDF pts, bottom-left origin
+  const [placements, setPlacements] = useState(initialPlacements || []); // [{signer,docId,page,x,y,kind,text}] PDF pts, bottom-left origin
 
   const loadInfo = async () => {
     try {
@@ -1715,7 +1719,7 @@ function DocSignModal({ tx, doc, allDocs = [], headers, onClose }) {
       const b = await r.json();
       if (!r.ok) throw new Error(b.error || "Couldn't load signature status");
       setInfo(b);
-      if (!(b.signers || []).length) {
+      if (!(b.signers || []).length && !(initialRows && initialRows.length)) {
         // Cap matches the 6-signer ceiling the UI enforces, not 4 — a 5th
         // principal used to be dropped here with no way to add them back.
         const sug = (b.suggested || []).slice(0, 6).map(s => ({ name: s.name || "", email: s.email || "" }));
@@ -1835,6 +1839,7 @@ function DocSignModal({ tx, doc, allDocs = [], headers, onClose }) {
         (selDocs.length > 1 ? `\n\nOne link covers all ${selDocs.length} documents — they sign everything in one sitting.` : "") +
         (placements.length ? "\n\nThey'll be guided to the exact spot" + (placements.length > 1 ? "s" : "") + " you placed." : "") +
         "\n\nWhen everyone has signed, each signed copy (with its signature certificate) appears here in Documents — and you'll get a pop-up.");
+      if (typeof onSent === "function") { try { await onSent(doc.id); } catch { /* the round is out; the caller's bookkeeping is best effort */ } }
       onClose();
     } catch (e) { setErr(e.message); } finally { setBusy(false); }
   };
@@ -1878,6 +1883,9 @@ function DocSignModal({ tx, doc, allDocs = [], headers, onClose }) {
           <div style={{ fontSize: 12.5, opacity: 0.9, marginTop: 3 }}>Each signer gets a private email link to review and sign on their phone or computer. No DocuSign needed.</div>
         </div>
         <div style={{ padding: 22 }}>
+          {intro && (
+            <div style={{ background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 10, padding: "10px 12px", marginBottom: 14, fontSize: 13, color: "#0c4a6e", lineHeight: 1.5 }}>{intro}</div>
+          )}
           {!info && !err && <div style={{ color: "#64748b", fontSize: 14 }}>Loading…</div>}
           {err && <div style={{ background: "#fee2e2", border: "1px solid #fca5a5", borderRadius: 8, padding: 10, fontSize: 13, color: "#7f1d1d", marginBottom: 12 }}>⚠️ {err}</div>}
 

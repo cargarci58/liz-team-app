@@ -225,7 +225,7 @@
  "d5_2a": "Tap the check when a step is done. Appointment steps — inspection, appraisal, walkthrough, closing — ask for a date and time first, then remind everyone who needs to be there, the day before.",
  "d5_2b": "Steps that match a document complete themselves when that document is uploaded. A missing document never blocks a step — you can always mark it done. And Reset and Rebuild regenerates the whole timeline if the deal changed shape.",
  "d6_1a": "The checklist at the top is your broker's required list for this deal type. Green is on file; amber is missing — a nudge, never a lock. Below it, everything is in folders. Upload a file and pick its type; it files itself and completes the matching checklist item and timeline step.",
- "d6_1b": "Drag files between folders, make your own, rename anything. Offers get their own folder, and a fallen-through contract's paperwork moves into a folder named after that buyer.",
+ "d6_1b": "Below it, your files sit in folders by phase. Listing comes first. Then each contract gets its own Under Contract folder, with the buyers' names and the date. If one falls through, its folder stays, marked fell through. To move a file, drag it onto a folder. To change the order, drag it up or down.",
  "d6_2a": "Share emails a document in your name and makes it visible in the client's portal. Get signature sends each signer a link with the sign-here stops already placed; you see who has signed; when the last one does, the stamped copy with its certificate files itself here — and if a request sits unsigned past the day it went out, you get a daily reminder and a card until it's done.",
  "d6_2b": "Read dates pulls the dates off any addendum and moves the timeline when you apply. And if your buyer waives the inspection, one button makes the release that records you recommended one, and sends it for signature.",
  "d7_1a": "Express asks four things: price, deposit, financing, closing. Full lets you set every term. Either way the app fills the official Florida AS-IS contract, adds the riders the deal needs — financing, HOA, lead paint on an older home — and builds one packet.",
@@ -284,5 +284,13 @@
  "d7_6a": "On tour day, tap Navigate on each home for directions, and tap Access and instructions for the lockbox code.",
  "d7_6b": "Inside each home, tap Scorecard. Mark Love it, Maybe, or Not for us, and tap what your buyer liked and didn't like. Your buyer sees the same scorecard in their portal, and either of you can fill it in.",
  "d7_7a": "When your buyer picks a home, tap Write an offer. The contract fills in from the same report. If your buyer taps 'I'd like to make an offer' in their portal, a red banner shows up at the top of this page.",
- "d7_7b": "Need another day of showings? Tap Add another tour day."
+ "d7_7b": "Need another day of showings? Tap Add another tour day.",
+ "d18_1a": "On the deal's Overview, scroll to Deal Sharing and Commission. Tap Co-shared, then Add co-agent, and type their name, email, and share.",
+ "d18_1b": "Tap Save sharing. Underneath, you'll see each step, your net, and the brokerage's income.",
+ "d18_2a": "If another agent sent you this client, tap Referral In, and enter their name, email, and fee. Tap Save sharing.",
+ "d18_2b": "To let them follow the deal, tap Send partner link, read the email, then tap Send. They'll pick a PIN the first time.",
+ "d18_3a": "Open Company Settings, then Commission Plans. Start from a plan, turn steps on or off, and use the arrows to change the order.",
+ "d18_3b": "Check the example. If it matches how you pay, tap Save plan. Then choose each agent's plan.",
+ "d18_4a": "Open Tools, then Referrals Out, and tap New referral. Add the client, the partner agent, and your fee.",
+ "d18_4b": "Every few weeks, tap Ask for an update. When the fee arrives, tap Mark paid. It goes straight to your P&L."
 }

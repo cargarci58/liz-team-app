@@ -24,6 +24,7 @@ import SpotlightTour from "./components/SpotlightTour";
 import TourModal from "./components/TourModal";
 import FirstTimeHere from "./components/FirstTimeHere";
 import DealSharingPanel from "./DealSharingPanel";
+import { offerState, StepTracker, NextLine, ThreadLine, CounterModal, ReturnedOfferReview, SellerSigningLauncher, PickReturnedDoc, useOfferCounters } from "./OfferCounterFlow";
 import { PAGE_TIPS, PAGE_SCENES, dealTabTip, dealTabScenes } from "./config/pageTips";
 
 const API = "https://liz-team-server-api-production.up.railway.app";
@@ -4429,10 +4430,17 @@ export function WelcomeEmailPreview({ txId, onClose, onlyPartyId = null }) {
 
 // Pending offers received on a listing. Several can sit here at once; the agent
 // reviews them and approves one (which auto-rejects the rest on the server).
-function ListingOffers({ txId, txStatus, refreshKey, onReview, onReceiveOffer }) {
+function ListingOffers({ txId, txStatus, txAddress, refreshKey, onReview, onReceiveOffer }) {
   const [offers, setOffers] = useState([]);
   const [loading, setLoading] = useState(true);
   const hdrs = { "Authorization": "Bearer " + (localStorage.getItem("tp_token") || "") };
+  // Counter-offers (OfferCounterFlow.jsx): rounds, step tracker, checks, seller signing.
+  const [{ counters, uploads: counterUploads }, reloadCounters] = useOfferCounters(txId, refreshKey);
+  const [counterFor, setCounterFor] = useState(null);      // upload id being countered
+  const [reviewCounter, setReviewCounter] = useState(null); // counter whose returned offer is being reviewed
+  const [signTarget, setSignTarget] = useState(null);      // {counterId} | {uploadId}
+  const [pickFor, setPickFor] = useState(null);            // counter awaiting a returned file from Documents
+  const [howOpen, setHowOpen] = useState(false);
 
   const load = () => {
     fetch(`${API}/contracts/uploads`, { headers: hdrs })
@@ -4447,7 +4455,54 @@ function ListingOffers({ txId, txStatus, refreshKey, onReview, onReceiveOffer })
       .catch(e => console.error("Load offers failed:", e))
       .finally(() => setLoading(false));
   };
+  const reloadAll = () => { load(); reloadCounters(); };
   useEffect(() => { load(); }, [txId, refreshKey]);
+  // While an offer is being read or a returned offer is being checked, refresh
+  // every 15s so the step moves on by itself.
+  const busyServer = offers.some(o => ["pending", "extracting"].includes(o.status)) ||
+    counters.some(c => ["response_received"].includes(c.status) || (c.responseUploadId && c.checkStatus && c.checkStatus !== "done"));
+  useEffect(() => {
+    if (!busyServer) return;
+    const t = setInterval(reloadAll, 15000);
+    return () => clearInterval(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [busyServer, txId]);
+  const withdraw = async (c) => {
+    if (!window.confirm(c.status === "sent" ? "Withdraw this counter? Let the buyer's agent know — the app doesn't email them about it." : "Delete this unsent counter?")) return;
+    try {
+      const r = await fetch(`${API}/offer-counters/${c.id}/withdraw`, { method: "POST", headers: hdrs });
+      if (!r.ok) throw new Error((await r.json()).error || "Failed");
+      reloadAll();
+    } catch (e) { alert(e.message); }
+  };
+  const counterAgain = async (c) => {
+    try {
+      const r = await fetch(`${API}/offer-counters/${c.id}/counter-again`, { method: "POST", headers: hdrs });
+      const b = await r.json();
+      if (!r.ok) throw new Error(b.error || "Failed");
+      setReviewCounter(null); reloadAll(); setCounterFor(b.uploadId);
+    } catch (e) { alert(e.message); }
+  };
+  // A new offer that came in while a counter is out but wasn't recognized as
+  // the reply (different names on it) — the agent can link it by hand.
+  const openCounters = counters.filter(c => c.status === "sent" || c.status === "expired");
+  const linkAsReply = async (c, uploadId) => {
+    try {
+      const r = await fetch(`${API}/offer-counters/${c.id}/response`, { method: "POST", headers: { ...hdrs, "Content-Type": "application/json" }, body: JSON.stringify({ uploadId }) });
+      const b = await r.json();
+      if (!r.ok) throw new Error(b.error || "Failed");
+      reloadAll();
+    } catch (e) { alert(e.message); }
+  };
+  const modals = (
+    <>
+      {counterFor && <CounterModal uploadId={counterFor} address={txAddress} onClose={() => setCounterFor(null)} onDone={() => reloadAll()} />}
+      {reviewCounter && <ReturnedOfferReview counter={reviewCounter} onClose={() => { setReviewCounter(null); reloadAll(); }} onChanged={() => reloadCounters()}
+        onCounterAgain={counterAgain} onSendToSeller={(c) => { setReviewCounter(null); setSignTarget({ counterId: c.id }); }} />}
+      {signTarget && <SellerSigningLauncher target={signTarget} tx={{ id: txId }} onClose={() => { setSignTarget(null); reloadAll(); }} onSent={() => reloadAll()} />}
+      {pickFor && <PickReturnedDoc counter={pickFor} txId={txId} onClose={() => setPickFor(null)} onLinked={() => reloadAll()} />}
+    </>
+  );
 
   const [shareUrl, setShareUrl] = useState("");
   const [sharing, setSharing] = useState(false);
@@ -6977,7 +7032,7 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
             {/* Rentals take applications, not offers — no offers panel on lease deals. */}
             {!isGuest && tx.type !== "Buyer Representation" && !isLeaseType(tx.type) && !["Closed", "Cancelled"].includes(tx.status) && (
               <div id="pending-offers-panel" style={{ marginBottom: 20, scrollMarginTop: 80 }}>
-                <ListingOffers txId={tx.id} txStatus={tx.status} refreshKey={offersRefresh} onReview={(id) => setReviewOfferId(id)} onReceiveOffer={() => setShowReceiveOffer(true)} />
+                <ListingOffers txId={tx.id} txStatus={tx.status} txAddress={tx.address} refreshKey={offersRefresh} onReview={(id) => setReviewOfferId(id)} onReceiveOffer={() => setShowReceiveOffer(true)} />
               </div>
             )}
             {showFallThrough && (
