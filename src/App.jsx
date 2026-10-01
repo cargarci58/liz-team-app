@@ -40,6 +40,7 @@ import { useState, useEffect, useCallback, useRef, lazy, Suspense } from "react"
 const CmaTool = lazy(() => import("./cma/CmaTool"));
 const ContactsPage = lazy(() => import("./ContactsPage"));
 const PopBysPage = lazy(() => import("./PopBysPage"));
+const ReferralsOutPage = lazy(() => import("./ReferralsOutPage"));
 const ScriptsPage = lazy(() => import("./ScriptsPage"));
 const StandaloneCmaPage = lazy(() => import("./StandaloneCmaPage"));
 const GrowthPlanPage = lazy(() => import("./GrowthPlanPage"));
@@ -8835,6 +8836,8 @@ function ToolsMenu({ coordinatorMode, onOpenPopBys, onOpenScripts, onOpenCMA, on
     ["📊", "Price a Home (CMA)", onOpenCMA],
     ["🔗", "Buyer/Seller Intake Links", onIntakeLinks],
     ["🎁", "Pop-Bys", onOpenPopBys],
+    // Opened by event so the menu doesn't need another prop threaded through.
+    ["↗️", "Referrals Out", () => { try { window.dispatchEvent(new CustomEvent("tp:navigate", { detail: "referrals" })); } catch {} }],
     ["📜", "Scripts", onOpenScripts],
     ["🎯", "Growth Plan", onOpenGrowthPlan],
     ["🤝", "Vendors", onVendors],
@@ -10602,10 +10605,16 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
   useEffect(() => {
     if (viewLinkedRef.current) return;
     const v = new URLSearchParams(window.location.search).get("view");
-    if (v && ["contacts", "popbys", "scripts", "expenses", "forms", "cma"].includes(v)) {
+    if (v && ["contacts", "popbys", "scripts", "expenses", "forms", "cma", "referrals"].includes(v)) {
       viewLinkedRef.current = true;
       setView(v);
     }
+  }, []);
+  // In-app navigation by event (Tools → Referrals Out, and future menu items).
+  useEffect(() => {
+    const h = (e) => { const v = e && e.detail; if (["referrals"].includes(v)) setView(v); };
+    window.addEventListener("tp:navigate", h);
+    return () => window.removeEventListener("tp:navigate", h);
   }, []);
   const [contacts, setContacts] = useState([]);
   // Freemium: a free guest (invited party) sees every feature but is paywalled on use.
@@ -11313,6 +11322,12 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
         <ContactsPage token={localStorage.getItem("tp_token") || ""} onBack={() => setView("dashboard")} />
         </>
       )}
+      {view === "referrals" && (
+        <>
+        <FirstTimeHere pageKey="referrals" tip={PAGE_TIPS.referrals} userId={currentUser?.id} onAction={tipAction} onShowHow={openGuide} scenes={PAGE_SCENES.referrals} onWatch={watchScenes} />
+        <Suspense fallback={<div style={{ padding: 20 }}>Loading…</div>}><ReferralsOutPage onBack={() => setView("dashboard")} /></Suspense>
+        </>
+      )}
       {view === "popbys" && (
         <>
         <FirstTimeHere pageKey="popbys" tip={PAGE_TIPS.popbys} userId={currentUser?.id} onAction={tipAction} onShowHow={openGuide}  scenes={PAGE_SCENES.popbys} onWatch={watchScenes} />
@@ -11447,7 +11462,7 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
             else if (target === "intake") setShowIntakeLinks(true);
             else if (target === "team") setShowTeam(true);
             else if (target === "settings") setShowCompanySettings(true);
-            else if (["home", "dashboard", "contacts", "popbys", "scripts", "cma", "expenses", "forms", "growthplan", "new"].includes(target)) setView(target);
+            else if (["home", "dashboard", "contacts", "popbys", "scripts", "cma", "expenses", "forms", "growthplan", "new", "referrals"].includes(target)) setView(target);
             else setView("home");
           }}
         />

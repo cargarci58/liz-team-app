@@ -63,6 +63,12 @@ export const PAGE_TIPS = {
     why: "A $5 gift twice a year is why someone calls you — and not the agent on the billboard — when their sister wants to sell. This page makes it a two-hour afternoon instead of a project.",
     guide: "Pop-Bys",
   },
+  referrals: {
+    what: "Clients you sent to another agent — who has them, what they'll pay you, and where each one stands.",
+    doFirst: "Tap ➕ New referral and add the last client you passed to another agent, with their fee %.",
+    why: "Referral fees are easy money that's easy to lose track of. Here every one stays in front of you until it's paid — and then it lands on your P&L by itself.",
+    guide: "Referral Out",
+  },
   scripts: {
     what: "Word-for-word what to say in the hard conversations — a price reduction, a nervous buyer, a seller who wants to wait — plus phone-call scripts and objection answers (also one tap away on every call screen).",
     doFirst: "Open the one for the conversation you're dreading this week and read it out loud once.",

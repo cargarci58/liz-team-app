@@ -1427,6 +1427,7 @@ function IncomeTab() {
   const [rows, setRows] = useState([]);
   const [commissions, setCommissions] = useState([]);
   const [commissionTotal, setCommissionTotal] = useState(0);
+  const [refExpected, setRefExpected] = useState([]);   // referrals out: closed, not paid
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [from, setFrom] = useState(startOfYearISO());
@@ -1445,6 +1446,7 @@ function IncomeTab() {
       setRows(inc.income || []);
       setCommissions(pnl?.income?.commissions || []);
       setCommissionTotal(Number(pnl?.income?.commission_total || 0));
+      setRefExpected(pnl?.referral_out_expected || []);
     } catch (e) { setError(e.message); } finally { setLoading(false); }
   };
   useEffect(() => { load(); /* eslint-disable-next-line */ }, [from, to]);
@@ -1477,6 +1479,13 @@ function IncomeTab() {
 
       {!loading && !error && (
         <>
+          {/* Referrals out that closed but aren't paid yet — expected, not counted */}
+          {refExpected.length > 0 && (
+            <div style={{ background: '#F4F4F4', borderRadius: 12, padding: '12px 16px', marginBottom: 16, fontSize: 13.5, color: '#1f2937' }}>
+              ↗️ <b>Referral fees expected</b> (closed, not paid yet — not counted until you mark them paid in Tools → Referrals Out):{' '}
+              {refExpected.map(r => `${r.client} → ${r.partner} ${fmtCurrency(r.expected_fee)}`).join(' · ')}
+            </div>
+          )}
           {/* Commission income — auto from closed deals */}
           <div style={{ background: 'white', borderRadius: 12, boxShadow: '0 1px 3px rgba(0,0,0,0.05)', overflow: 'hidden', marginBottom: 20 }}>
             <div style={{ padding: '12px 16px', borderBottom: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
