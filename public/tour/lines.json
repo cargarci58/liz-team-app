@@ -292,5 +292,13 @@
  "d18_3a": "Open Company Settings, then Commission Plans. Start from a plan, turn steps on or off, and use the arrows to change the order.",
  "d18_3b": "Check the example. If it matches how you pay, tap Save plan. Then choose each agent's plan.",
  "d18_4a": "Open Tools, then Referrals Out, and tap New referral. Add the client, the partner agent, and your fee.",
- "d18_4b": "Every few weeks, tap Ask for an update. When the fee arrives, tap Mark paid. It goes straight to your P&L."
+ "d18_4b": "Every few weeks, tap Ask for an update. When the fee arrives, tap Mark paid. It goes straight to your P&L.",
+ "d7_8a": "To counter, open the listing, go to Pending Offers, and tap Counter on the offer. Every term the buyer offered is on the screen. Change only what you want to counter, and set when the counter expires.",
+ "d7_8b": "Tap Next: review the email. The app writes the email to the buyer's agent, listing each change and asking them to strike and initial it, or resubmit. Edit anything you like, then tap Send counter to the buyer's agent. Your seller doesn't sign anything yet.",
+ "d7_9a": "When the buyer's agent replies with the revised offer, it lands on the same offer by itself. If it came to your own inbox, tap Upload the revised offer. The app compares it to the original offer plus only your changes.",
+ "d7_9b": "Tap Review what came back. Green means a change you asked for. Red means something you didn't ask for, a missing change, or missing initials. Yellow means check it by eye. For each one, tap Accept this change, I checked it, or Counter again.",
+ "d7_10a": "When everything is cleared, tap Send to seller to sign. The app places your seller's initials, signature and date for you. Look over each page, add or remove a block if needed, then send.",
+ "d7_10b": "When your seller signs, the signed copy files itself in Documents. Tap Accept and go Under Contract.",
+ "d7_11a": "When the seller counters your buyer's offer, open your buyer's deal, go to Offers, and tap They countered. Pick the listing agent's email, their document, or type what they told you, then tap Read their counter.",
+ "d7_11b": "The app lists every change next to what your buyer signed. Red means it's in their document but not in their email. Tick I see it on each one, then save. Then tap Buyer accepts their counter, Counter back, Buyer initials their copy, or Buyer says no."
 }
