@@ -455,7 +455,7 @@ export default function OffersTab({ tx, token, currentUser, createSignal = 0, on
 
       {execBusy && (
         <div style={{ background: "#eff6ff", border: "1px solid #93c5fd", borderRadius: 10, padding: 14, marginTop: 14, fontSize: 13, color: "#1e40af" }}>
-          🤖 AI is reading the executed contract — checking terms, dates, and signatures. This can take up to a minute…
+          Reading the executed contract — checking terms, dates, and signatures. This can take up to a minute…
         </div>
       )}
       {execResult && execResult.verify && (() => {

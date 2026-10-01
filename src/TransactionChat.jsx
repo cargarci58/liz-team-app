@@ -240,7 +240,7 @@ export default function TransactionChat({ transactionId, user, parties = [], sty
 
       <div style={{ background: "#FEF9E7", borderBottom: "1px solid #F9E79F", padding: "8px 16px", display: "flex", alignItems: "center", gap: 8 }}>
         <span>{directTo ? "🔒" : "👀"}</span>
-        <span style={{ fontSize: 12, color: "#7D6608" }}>{directTo ? `Only you and ${directTo.name} can see this conversation. They get an email if they're not in the app.` : simple ? "Everyone on this deal can see this chat. For a private message, switch to 👤 One person above." : clientView ? "Messages your agent shares with you (and your own) appear here. Your agent also has separate side-conversations with the other agent and vendors — those aren't shown." : "Visible to everyone unless you pick a recipient with To: — pick one for a private side message. Offline parties receive email notifications."}</span>
+        <span style={{ fontSize: 12, color: "#7D6608" }}>{directTo ? `Only you and ${directTo.name} can see this conversation. They get an email if they're not in the app.` : simple ? "Everyone on this deal can see this chat. For a private message, switch to 👤 One person above." : clientView ? "Messages your agent shares with you (and your own) appear here. Your agent also has separate side-conversations with the other agent and vendors — those aren't shown." : "Visible to everyone unless you pick a recipient with To: to send a private message. People who aren't in the app get it by email."}</span>
       </div>
 
       <div style={{ flex: 1, overflowY: "auto", padding: 16, display: "flex", flexDirection: "column", gap: 8 }}>

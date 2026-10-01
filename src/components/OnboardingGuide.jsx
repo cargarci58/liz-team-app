@@ -33,7 +33,7 @@ export default function OnboardingGuide({ steps, doneKeys, onTakeMeThere, onSkip
           <div style={{ fontSize: 44, marginBottom: 8 }}>👋</div>
           <div style={{ fontSize: 22, fontWeight: 800, color: '#111' }}>Welcome! Let's get you set up.</div>
           <div style={{ fontSize: 14, color: '#555', margin: '10px 0 22px', lineHeight: 1.55 }}>
-            Three quick steps and you're ready to go. We'll walk you through exactly where to click — it takes about 2 minutes.
+            A few quick steps and you're ready to go — each one takes just a few minutes. We'll walk you through exactly where to click.
           </div>
           <button onClick={() => setWelcomed(true)} style={primaryBtn}>Start setup →</button>
           {/* The narrated tour: what the app does, in two minutes, before any setup. */}

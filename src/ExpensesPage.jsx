@@ -808,7 +808,7 @@ function AddExpenseModal({ categories, expense, allExpenses, onClose, onSaved })
             📸 Snap a receipt — let AI fill it in
           </div>
           <div style={{ fontSize: 13, color: '#047857', marginBottom: 10 }}>
-            Take a photo or upload a PDF/image. AI extracts vendor, amount, date, and category. You review before saving.
+            Take a photo or upload a PDF/image. We'll fill in the vendor, amount, date, and category. You review before saving.
           </div>
           <input
             ref={cameraInputRef}
@@ -1067,7 +1067,7 @@ function TeachModal({ onClose }) {
 
         <p><strong>What this does:</strong></p>
         <ul style={{ marginLeft: 18 }}>
-          <li><strong>Snap receipts</strong> — AI reads them and auto-fills the form. You confirm.</li>
+          <li><strong>Snap receipts</strong> — we read them and auto-fill the form. You confirm.</li>
           <li><strong>Categorize</strong> — Mileage, marketing, MLS dues, office supplies, client gifts, CE, etc.</li>
           <li><strong>Tag deductible</strong> — Mark which expenses are business (most should be).</li>
           <li><strong>Year-end report</strong> — Hand the summary to your CPA in January.</li>
@@ -2825,7 +2825,7 @@ function ImportTab({ categories, onCommitted }) {
                 <option value="credit_card">Credit Card</option>
               </select>
             </Field>
-            <Field label="Statement period" hint="optional — AI reads it off the statement if left blank">
+            <Field label="Statement period" hint="optional — we'll read it off the statement if left blank">
               <select value={periodLabel} onChange={e => setPeriodLabel(e.target.value)} style={inputStyle}>
                 <option value="">— let AI read it —</option>
                 {statementMonthOptions().map(m => <option key={m} value={m}>{m}</option>)}

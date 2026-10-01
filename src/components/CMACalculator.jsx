@@ -210,7 +210,7 @@ function UploadCompsButton({ transactionId, token, onExtracted, disabled }) {
     <div>
       <label style={{ display: "inline-block", padding: "10px 18px", background: disabled ? "#9ca3af" : "#0c4a6e", color: "white", borderRadius: 6, fontWeight: 700, fontSize: 13, cursor: disabled || uploading ? "wait" : "pointer", fontFamily: "inherit" }}>
         {uploading
-          ? (step === "uploading" ? `Uploading ${progress.done}/${progress.total}...` : "🤖 AI extracting...")
+          ? (step === "uploading" ? `Uploading ${progress.done}/${progress.total}...` : "Reading the files…")
           : "✨ Upload Broker Synopses (AI extracts comps)"}
         <input type="file" accept=".pdf,image/*" multiple disabled={uploading || disabled}
           onChange={e => { handleFiles(e.target.files); e.target.value = ""; }}

@@ -769,7 +769,7 @@ function CashToCloseTab({ transactionId, token, showGenerate, county } = {}) {
         <div style={{ background: "#eef2ff", border: "1px solid #c7d2fe", borderRadius: 8, padding: 12, marginBottom: 16 }}>
           <div style={{ fontSize: 13, fontWeight: 700, color: "#3730a3", marginBottom: 4 }}>🤖 Auto-fill from documents</div>
           <div style={{ fontSize: 12, color: "#3730a3", marginBottom: 10, lineHeight: 1.5 }}>
-            Upload the listing / MLS sheet / BPO and the AI pulls price, taxes &amp; HOA — and reads this transaction's pre-approval letter for loan type, down payment, rate &amp; term. Review the fields before generating.
+            Upload the listing / MLS sheet / BPO and we'll pull the price, taxes &amp; HOA — and read this transaction's pre-approval letter for loan type, down payment, rate &amp; term. Review the fields before generating.
           </div>
           <input ref={autofillInputRef} type="file" accept=".pdf,image/*" style={{ display: "none" }}
             onChange={(e) => { const f = e.target.files && e.target.files[0]; e.target.value = ""; if (f) autofillFromDocs(f); }} />

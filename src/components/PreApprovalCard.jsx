@@ -232,7 +232,7 @@ function UploadModal({ transactionId, onClose, onSaved }) {
       <div style={modalBox} onClick={e => e.stopPropagation()}>
         <h3 style={{ margin: '0 0 8px 0' }}>📤 Upload Pre-Approval Letter</h3>
         <div style={teachBanner}>
-          🎓 The pre-approval letter proves your buyer is financially qualified. Sellers require it with every offer. Upload a PDF and AI will extract the key details for your review.
+          🎓 The pre-approval letter proves your buyer is financially qualified. Sellers require it with every offer. Upload a PDF and we'll pull out the key details for your review.
         </div>
 
         {error && <div style={{ color: '#c00', marginBottom: 10, fontSize: 13 }}>{error}</div>}
@@ -245,7 +245,7 @@ function UploadModal({ transactionId, onClose, onSaved }) {
         )}
 
         {stage === 'uploading' && <div style={statusLine}>⏳ Uploading to secure storage…</div>}
-        {stage === 'extracting' && <div style={statusLine}>🤖 AI is reading the letter…</div>}
+        {stage === 'extracting' && <div style={statusLine}>Reading the letter…</div>}
         {stage === 'saving' && <div style={statusLine}>💾 Saving…</div>}
 
         {stage === 'review' && extracted && (

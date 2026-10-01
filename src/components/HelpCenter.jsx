@@ -347,12 +347,12 @@ export default function HelpCenter({ apiBase, token, userId, onGoals, onProfile,
   // The 1-2-3 "Start Here" setup steps, wired to real screens.
   // Order: Company → Profile → Goals (Company is admin-only, so non-admins start at Profile).
   const setupBase = [];
-  if (isAdmin && onCompany) setupBase.push({ emoji: '⚙️', title: 'Set up company settings', desc: 'Add your brokerage name, logo, and branding — it shows on everything your clients see.', where: '⚙️ Menu → ⚙️ Company Settings', go: onCompany });
-  setupBase.push({ emoji: '👤', title: 'Set up your profile', desc: 'Add your photo, signature, and contact info — used on every email and form.', where: '⚙️ Menu → 👤 My Profile', go: onProfile });
+  if (isAdmin && onCompany) setupBase.push({ emoji: '⚙️', title: 'Set up company settings', desc: 'Add your brokerage name, logo, and branding — it displays on everything your clients see.', where: '⚙️ Menu → ⚙️ Company Settings', go: onCompany });
+  setupBase.push({ emoji: '👤', title: 'Set up your profile', desc: 'Add your photo and contact info — used on every email signature and form you send.', where: '⚙️ Menu → 👤 My Profile', go: onProfile });
   // The list used to be pure housekeeping. The first deal is the step that makes
   // every other screen turn on, so it sits right after the profile.
-  if (onFirstDeal) setupBase.push({ emoji: '🏡', title: 'Add your first deal', desc: "Drop in a contract you're already working and watch the app read it and build the timeline — or start one from scratch in three steps.", where: '🏆 Win The Day, or ➕ New Deal up top', go: onFirstDeal });
-  setupBase.push({ emoji: '📥', title: 'Catch every deal email (2 min, once)', desc: 'Turn on email forwarding so messages sent straight to your inbox file themselves to the right deal automatically.', where: '⚙️ Menu → 👤 My Profile → 📥 Catch deal emails', go: onProfile });
+  if (onFirstDeal) setupBase.push({ emoji: '🏡', title: 'Add your first deal', desc: "Drop in a contract you're already working on and watch the app read it and build the timeline — or start one from scratch in three steps.", where: '🏆 Win The Day, or ➕ New Deal up top', go: onFirstDeal });
+  setupBase.push({ emoji: '📥', title: 'Automatically capture deal emails', desc: 'Set up email forwarding so that messages from title companies and lenders sent to your regular inbox automatically flow into the correct deal — without the need to manually add them to the app.', where: '⚙️ Menu → 👤 My Profile → 📥 Catch deal emails', go: onProfile });
   setupBase.push({ emoji: '🎯', title: 'Set up your goals', desc: 'Tell the app what you want to earn this year and it works backwards to the calls you need to make each day.', where: '🧰 Tools → 🎯 Growth Plan', go: onGoals });
   const setupSteps = setupBase.map((s, i) => ({ ...s, n: i + 1 }));
 
@@ -396,7 +396,7 @@ export default function HelpCenter({ apiBase, token, userId, onGoals, onProfile,
               {tab === 'start' && (
                 <div>
                   <div style={{ fontSize: 14, color: '#333', marginBottom: 16, lineHeight: 1.5 }}>
-                    New here? Work down this list. Each button takes you straight to the right screen.
+                    New here? Work down this list — each step takes just a few minutes. Each button takes you straight to the right screen.
                   </div>
                   {setupSteps.map(s => (
                     <div key={s.n} style={{ display: 'flex', gap: 12, alignItems: 'flex-start', padding: 14, border: '1px solid #eee', borderRadius: 12, marginBottom: 12 }}>

@@ -950,7 +950,7 @@ export default function OfferWizard({ offerId, token, onClose, onSaved }) {
                 📎 Upload the MLS broker synopsis
               </div>
               <div style={{ fontSize: 12, color: "#1e40af", marginBottom: 12 }}>
-                Print the listing detail sheet from your MLS as a PDF and upload it here. AI reads property address, list price, year built, HOA, listing agent contact, and more — so you don't have to type it.
+                Print the listing detail sheet from your MLS as a PDF and upload it here. We'll fill in the property address, list price, year built, HOA, listing agent contact, and more — so you don't have to type it.
               </div>
               <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
                 <label style={{ display: "inline-block" }}>

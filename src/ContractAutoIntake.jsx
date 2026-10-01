@@ -260,7 +260,7 @@ function UploadStep({ token, existingTransactionId, onBack, onUploaded }) {
           <div style={{ background: "white", border: "1px solid " + COLORS.border, borderRadius: 12, padding: 20, marginBottom: 24 }}>
             <h3 style={{ margin: "0 0 6px 0", color: COLORS.navy, fontSize: 16 }}>Pick the offer/contract already on this deal</h3>
             <p style={{ color: COLORS.muted, fontSize: 13, marginTop: 0, marginBottom: 14 }}>
-              Signed the offer in-app? It's already here. Pick it and the AI reads it — no re-uploading.
+              Signed the offer in-app? It's already here. Pick it and we'll read it — no re-uploading.
             </p>
             {dealDocs.length === 0 ? (
               <div style={{ fontSize: 13, color: COLORS.muted, padding: "8px 0" }}>No PDF documents on this deal yet — use <strong>Upload Myself</strong> instead.</div>
@@ -287,7 +287,7 @@ function UploadStep({ token, existingTransactionId, onBack, onUploaded }) {
           <div style={{ background: "white", border: "1px solid " + COLORS.border, borderRadius: 12, padding: 24, marginBottom: 24 }}>
             <h3 style={{ margin: "0 0 8px 0", color: COLORS.navy, fontSize: 16 }}>Generate Upload Link</h3>
             <p style={{ color: COLORS.muted, fontSize: 13, marginTop: 0, marginBottom: 16 }}>
-              Anyone with this link can upload the contract — no login required. The AI will process it and notify you when it's ready to review.
+              Anyone with this link can upload the contract — no login required. Once it's been processed, we'll notify you when it's ready to review.
             </p>
             <div style={{ marginBottom: 16 }}>
               <label style={{ fontSize: 12, color: COLORS.muted, display: "block", marginBottom: 6, fontWeight: 600 }}>LINK EXPIRES IN</label>
@@ -405,13 +405,13 @@ function UploadStep({ token, existingTransactionId, onBack, onUploaded }) {
               ))}
             </div>
             <div style={{ fontSize: 12, color: COLORS.muted, marginBottom: 12 }}>
-              💡 Add the contract and any addenda or disclosures together. AI will read them as one package.
+              💡 Add the contract and any addenda or disclosures together. We'll read them as one package.
             </div>
             <button
               onClick={handleUpload}
               style={{ background: COLORS.red, color: "white", border: "none", borderRadius: 8, padding: "14px 28px", fontSize: 15, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}
             >
-              Upload & Process with AI →
+              Upload & Process →
             </button>
           </div>
         )}
@@ -420,7 +420,7 @@ function UploadStep({ token, existingTransactionId, onBack, onUploaded }) {
           <strong style={{ color: COLORS.text }}>What happens next?</strong>
           <ol style={{ paddingLeft: 20, margin: "8px 0 0 0" }}>
             <li>Your contract is uploaded securely</li>
-            <li>AI reads every page (takes 30-60 seconds)</li>
+            <li>The file processes (takes 30–60 seconds)</li>
             <li>Each document and addendum is identified separately</li>
             <li>You review what was extracted, edit anything wrong, and approve</li>
             <li>On approval, the offer is accepted: the listing moves to Under Contract, parties are added, and the timeline + tasks are created</li>
@@ -487,7 +487,7 @@ function ProcessingStep({ token, uploadId, onReady, onFailed }) {
         <div style={{ fontSize: 64, marginBottom: 24 }}>🤖</div>
         <h2 style={{ margin: 0, color: COLORS.navy, fontSize: 22 }}>Reading your contract...</h2>
         <p style={{ color: COLORS.muted, marginTop: 12, fontSize: 15, lineHeight: 1.6 }}>
-          AI is identifying every document and extracting all the key fields. This usually takes 30-60 seconds.
+          We're identifying every document and pulling out all the key fields. This usually takes 30–60 seconds.
         </p>
         <div style={{ marginTop: 32 }}>
           <div style={{ display: "inline-block", width: 40, height: 40, border: `4px solid ${COLORS.border}`, borderTop: `4px solid ${COLORS.red}`, borderRadius: "50%", animation: "spin 1s linear infinite" }} />

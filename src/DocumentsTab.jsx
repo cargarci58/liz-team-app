@@ -2355,7 +2355,7 @@ function ListingPackageModal({ tx, headers, dealDocs = [], onClose, onDone }) {
               <div style={{ background: "#EAF2F8", border: "1px solid #AED6F1", borderRadius: 10, padding: 12, marginBottom: 14 }}>
                 <div style={{ fontSize: 13, fontWeight: 800, color: "#1A5276", marginBottom: 3 }}>📄 Skip the typing — upload a broker synopsis or old MLS sheet</div>
                 <div style={{ fontSize: 12, color: "#1A5276", lineHeight: 1.5, marginBottom: 8 }}>
-                  Drop in a prior MLS printout, broker synopsis, or tax record (PDF or photo) and the AI fills price, legal description, HOA/condo details, and more. You review everything before any form is generated.
+                  Drop in a prior MLS printout, broker synopsis, or tax record (PDF or photo) and we'll fill in the price, legal description, HOA/condo details, and more. You review everything before any form is generated.
                 </div>
                 <input ref={synopsisRef} type="file" accept=".pdf,.png,.jpg,.jpeg,.webp" style={{ display: "none" }}
                   onChange={e => { const file = e.target.files?.[0]; if (file) readSynopsis(file); e.target.value = ""; }} />

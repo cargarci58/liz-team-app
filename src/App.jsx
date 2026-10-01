@@ -1159,7 +1159,6 @@ function SMSPanel({ tx, onUpdate, currentUser, sendOnly = false }) {
       }).catch(e => console.error("[bg]", e && e.message ? e.message : e));
   }, []);
   const [serverOnline, setServerOnline] = useState(null);
-  const [emailOnline, setEmailOnline] = useState(false);
   const [selectedParty, setSelectedParty] = useState(null);
   const [message, setMessage] = useState("");
   const [subject, setSubject] = useState("");
@@ -1497,12 +1496,9 @@ function SMSPanel({ tx, onUpdate, currentUser, sendOnly = false }) {
 
   return (
     <div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, flexWrap: "wrap", gap: 10 }}>
-        <div style={{ display: "flex", gap: 12 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "#15803D" }}><div style={{ width: 8, height: 8, borderRadius: "50%", background: "#15803D" }} /> SMS Online</div>
-          <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: emailOnline ? "#15803D" : "#DC2626" }}><div style={{ width: 8, height: 8, borderRadius: "50%", background: emailOnline ? "#15803D" : "#DC2626" }} /> Email {emailOnline ? "Online" : "Not configured"}</div>
-        </div>
-      </div>
+      {/* "SMS Online / Email Not configured" dots used to sit here. Neither was a real
+          check (SMS hard-coded green, email state never set → always red), and testers
+          couldn't tell what they meant. Removed; send failures already alert. */}
 
       {/* The two choices the agent must make: WHO (over the conversations list) and HOW (over the messaging window) */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: 10, marginBottom: 12, flexWrap: "wrap" }}>
@@ -4016,13 +4012,14 @@ function NotesSection({ txId, value, onChange }) {
   };
   return (
     <div>
+      <div style={{ fontSize: 12, color: COLORS.muted, marginBottom: 8 }}>Notes appear newest to oldest.</div>
       <div style={{ display: "flex", gap: 8, marginBottom: 12, alignItems: "flex-start" }}>
         <textarea
           value={draft}
           onChange={e => setDraft(e.target.value)}
           onKeyDown={e => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); addNote(); } }}
           rows={2}
-          placeholder="Add a new note… it'll be added on top of the notes below"
+          placeholder="Add a new note…"
           style={{ flex: 1, border: `1px solid ${COLORS.border}`, borderRadius: 8, padding: "10px 12px", fontFamily: "inherit", fontSize: 14, resize: "vertical", boxSizing: "border-box" }}
         />
         <Btn onClick={addNote} small disabled={saving}>{saving ? "Saving…" : "+ Add Note"}</Btn>
@@ -4590,7 +4587,7 @@ function ListingOffers({ txId, txStatus, txAddress, refreshKey, onReview, onRece
     return (
       <div style={{ background: "#F9FAFB", border: "1px dashed " + COLORS.border, borderRadius: 12, padding: 16 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-          <span style={{ fontSize: 13, color: COLORS.muted }}>No pending offers on this listing yet. When a buyer's agent sends one, tap <strong>Receive Offer</strong> to log it here — then counter, or send it to your seller to sign. <em>(You write offers on a buyer deal — not on your own listing.)</em>{" "}
+          <span style={{ fontSize: 13, color: COLORS.muted }}>No pending offers on this listing yet. When a buyer's agent sends one, tap <strong>Receive Offer</strong> to log it here — then counter, or send it to your seller to sign. <em>(Writing an offer for a buyer you represent? Do it from that buyer's deal. Working both sides of this sale? Log the buyer's offer here with Receive Offer.)</em>{" "}
             <button onClick={() => setHowOpen(h => !h)} style={{ background: "none", border: "none", color: "#0c4a6e", textDecoration: "underline", cursor: "pointer", fontSize: 12.5, padding: 0, fontFamily: "inherit" }}>{howOpen ? "Hide" : "How offers & counter-offers work"}</button>
           </span>
           <button onClick={onReceiveOffer} style={{ background: "#1E8449", border: "none", color: "#fff", borderRadius: 6, padding: "7px 14px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>📥 Receive Offer</button>
@@ -4848,7 +4845,7 @@ function MarketingLogPanel({ tx }) {
   return (
     <div style={{ background: "#fff", border: `1px solid ${COLORS.border}`, borderRadius: 12, padding: 20, marginBottom: 20 }}>
       <h3 style={{ margin: "0 0 6px", fontSize: 14, color: COLORS.navy, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em" }}>📣 Marketing Log</h3>
-      <div style={{ fontSize: 12, color: COLORS.muted, marginBottom: 12 }}>Tap to log what you're doing to sell this home. Each entry appears in the seller's portal as proof of your work. (Completed marketing milestones show there automatically.)</div>
+      <div style={{ fontSize: 12, color: COLORS.muted, marginBottom: 12 }}>Tap to log your completed marketing activities for this home. Each entry appears in the seller's portal, giving them a clear record of your work.</div>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 12 }}>
         {MKT_PRESETS.map(p => (
           <button key={p.type} onClick={() => add(p.type, p.label)} disabled={adding} style={{ background: COLORS.bg, border: `1px solid ${COLORS.border}`, color: COLORS.text, borderRadius: 16, padding: "6px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>+ {p.label}</button>
@@ -5505,7 +5502,7 @@ function DealDoctorPanel({ tx }) {
       </div>
       {err && <div style={{ color: "#C0392B", fontSize: 13, marginTop: 8 }}>{err}</div>}
       {!dd && !err && snoozedFuture && <div style={{ fontSize: 13, color: "#64748B", marginTop: 8 }}>😴 Snoozed until <b>{snoozeLabel}</b> — I'll keep this deal quiet until then. Tap “Check now” to look sooner.</div>}
-      {!dd && !err && !snoozedFuture && <div style={{ fontSize: 13, color: "#64748B", marginTop: 8 }}>Tap “Run check-up” and I'll review this deal — the biggest risk right now and the one move to make today.</div>}
+      {!dd && !err && !snoozedFuture && <div style={{ fontSize: 13, color: "#64748B", marginTop: 8 }}>Tap “Run check-up” and I'll review this deal to show the biggest risk right now and the one move to make today.</div>}
       {dd && (
         <div style={{ marginTop: 12 }}>
           <div style={{ marginBottom: 10 }}>
@@ -7483,9 +7480,9 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
               ))}
             </div>
             <div style={{ fontSize: 12, color: "#6b7280", padding: "8px 14px 0" }}>
-              {msgSection === "chat" && "The deal's group chat — everyone on it (you, the agent/coordinator, and any parties like the photographer, title, lender)."}
+              {msgSection === "chat" && "The deal's group chat, with everyone on the deal: you, the agent/coordinator, and any parties like the photographer, title, and lender."}
               {msgSection === "replies" && "Replies the clients sent back — approve any milestone updates."}
-              {msgSection === "send" && (isCoordinator ? "Send the client an email/text update in the agent's voice." : "Send an email or text to a party (or the whole group).")}
+              {msgSection === "send" && (isCoordinator ? "Send the client an email/text update in the agent's voice." : "Send an email or text to an individual or a group.")}
               {msgSection === "sent" && "Every email and text this deal has sent — welcome emails, reminders, updates — newest first."}
             </div>
             {msgSection === "chat" && <div style={{ padding: 12, height: 500 }}><TransactionChat transactionId={tx.id} user={null} parties={tx.parties || []} style={{ height: "100%" }} unreadCount={chatUnread} onUnreadChange={() => {}} /></div>}
@@ -8677,7 +8674,7 @@ function NewTransactionForm({ onSave, onCancel, prefill = null, cmaId = null, on
             <span style={{ fontSize: 22 }}>📥</span>
             <div>
               <div style={{ fontWeight: 800, fontSize: 14, color: "#1E40AF" }}>Already have a signed contract? Import it instead</div>
-              <div style={{ fontSize: 12.5, color: "#1E3A8A" }}>Upload it — AI reads it and builds the whole deal for you.</div>
+              <div style={{ fontSize: 12.5, color: "#1E3A8A" }}>Upload it — we'll read it and build the whole deal for you.</div>
             </div>
           </div>
         )}
@@ -10856,16 +10853,16 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
   };
   // Order: Company → Profile → Goals (Company is admin-only, so non-admins start at Profile), then the App Tour.
   const onboardSteps = [];
-  if (isAdminUser) onboardSteps.push({ key: "company", emoji: "⚙️", title: "Set up company settings", desc: "Add your brokerage name, logo, and branding — it shows on everything your clients see.", where: "⚙️ Menu → ⚙️ Company Settings", go: () => setShowCompanySettings(true) });
-  onboardSteps.push({ key: "profile", emoji: "👤", title: "Set up your profile", desc: "Add your photo, signature, and contact info — used on every email and form you send.", where: "⚙️ Menu → 👤 My Profile", go: () => setShowAgentProfile(true) });
+  if (isAdminUser) onboardSteps.push({ key: "company", emoji: "⚙️", title: "Set up company settings", desc: "Add your brokerage name, logo, and branding — it displays on everything your clients see.", where: "⚙️ Menu → ⚙️ Company Settings", go: () => setShowCompanySettings(true) });
+  onboardSteps.push({ key: "profile", emoji: "👤", title: "Set up your profile", desc: "Add your photo and contact info — used on every email signature and form you send.", where: "⚙️ Menu → 👤 My Profile", go: () => setShowAgentProfile(true) });
   // The whole checklist used to be housekeeping — an agent could finish every
   // step and never once see a timeline, which is the thing they actually bought.
   // Ask for a deal early, right after the profile, and let the rest wait.
   // page:true = opens a full PAGE (not a pop-up), so the walkthrough steps aside
   // and leaves a "Back to setup" pill instead of covering the page.
   // markOnOpen:false = ticked only by the real thing (having a deal), never by tapping.
-  onboardSteps.push({ key: "firstdeal", page: true, markOnOpen: false, emoji: "🏡", title: "Add your first deal", desc: "Drop in a contract you're already working and watch the app read it and build the whole timeline — or start one from scratch in three steps. This is the part that makes everything else turn on.", where: "➕ New Deal up top", go: () => { setShowReports(false); setShowCalendar(false); setView("new"); } });
-  onboardSteps.push({ key: "emailcapture", emoji: "📥", title: "Catch every deal email (2 min, once)", desc: "Turn on email forwarding so messages that title companies and lenders send straight to your inbox file themselves to the right deal — no more copy-pasting into the app, ever.", where: "⚙️ Menu → 👤 My Profile → 📥 Catch deal emails", go: () => setShowAgentProfile(true) });
+  onboardSteps.push({ key: "firstdeal", page: true, markOnOpen: false, emoji: "🏡", title: "Add your first deal", desc: "Drop in a contract you're already working on and watch the app read it and build the whole timeline — or start one from scratch in three steps. This is the part that makes everything else turn on.", where: "➕ New Deal up top", go: () => { setShowReports(false); setShowCalendar(false); setView("new"); } });
+  onboardSteps.push({ key: "emailcapture", emoji: "📥", title: "Automatically capture deal emails", desc: "Set up email forwarding so that messages from title companies and lenders sent to your regular inbox automatically flow into the correct deal — without the need to manually add them to the app.", where: "⚙️ Menu → 👤 My Profile → 📥 Catch deal emails", go: () => setShowAgentProfile(true) });
   onboardSteps.push({ key: "goals", page: true, emoji: "🎯", title: "Set up your goals", desc: "Tell the app what you want to earn this year and it works backwards to the calls you need to make each day.", where: "🧰 Tools → 🎯 Growth Plan", go: () => { setShowReports(false); setShowCalendar(false); setView("growthplan"); } });
   onboardSteps.push({ key: "tour", tour: true, emoji: "🎬", title: "Take the 60-second tour", desc: "A quick look at what every button does — then you're ready to roll." });
   // True while the agent is ON a page a setup step sent them to: the walkthrough
