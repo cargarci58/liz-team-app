@@ -4578,7 +4578,7 @@ function ListingOffers({ txId, txStatus, txAddress, refreshKey, onReview, onRece
       <strong>How offers and counter-offers work here</strong>
       <ol style={{ margin: "6px 0 0 18px", padding: 0 }}>
         <li><strong>Received</strong> — the buyer signed the offer; you log it with Receive Offer and the app reads every term.</li>
-        <li><strong>Counter</strong> — you change the terms your seller wants right on the screen. Your seller approves (portal tap, or you confirm) — no seller signature yet.</li>
+        <li><strong>Counter</strong> — you change the terms right on the screen, review the email to the buyer's agent and send it. No seller approval or signature yet.</li>
         <li><strong>Waiting on the buyer's agent</strong> — they strike &amp; initial your changes or resubmit. Their reply lands here by itself.</li>
         <li><strong>Check what came back</strong> — compared to the original offer plus only your changes. Anything else that changed is flagged red and must be cleared.</li>
         <li><strong>Seller signs last</strong> — the app places the seller's initials and signature; you check them and send.</li>
@@ -4710,7 +4710,7 @@ function ListingOffers({ txId, txStatus, txAddress, refreshKey, onReview, onRece
               <input ref={el => signedRefs.current[o.id] = el} type="file" accept=".pdf,.doc,.docx,image/*" style={{ display: "none" }} onChange={e => uploadSigned(o.id, e.target.files && e.target.files[0])} />
               {ready && st.step === 0 && <button onClick={() => setCounterFor(o.id)} style={smallBtn(true, COLORS.red)}>🔁 Counter</button>}
               {ready && st.step === 0 && <button onClick={() => setSignTarget({ uploadId: o.id })} style={smallBtn(false, "#1E8449")}>✍️ Send to seller to sign (accept as-is)</button>}
-              {st.step === 1 && c && <button onClick={() => setCounterFor(o.id)} style={smallBtn(true, COLORS.red)}>{c.sellerApprovedAt ? "Continue counter → send" : "Open counter"}</button>}
+              {st.step === 1 && c && <button onClick={() => setCounterFor(o.id)} style={smallBtn(true, COLORS.red)}>Continue counter → send</button>}
               {st.step === 1 && c && <button onClick={() => withdraw(c)} style={smallBtn(false, "#555")}>Delete counter</button>}
               {st.step === 2 && c && c.status === "sent" && <button onClick={onReceiveOffer} style={smallBtn(true, "#0c4a6e")}>⤴ Upload the revised offer</button>}
               {st.step === 2 && c && <button onClick={() => setPickFor(c)} style={smallBtn(false, "#0c4a6e")}>📁 It's in Documents — pick it</button>}

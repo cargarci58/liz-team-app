@@ -29,7 +29,7 @@ export const STEPS = ["Received", "Countered", "Waiting on buyer's agent", "Chec
 // Short "how this works" text per step (shown under the step on demand).
 const HOW = {
   0: "Read the offer's terms. If your seller wants changes, tap Counter — you change the terms right on the screen and the app writes the counter to the buyer's agent. If it's good as-is, send it to your seller to sign (the seller signs last).",
-  1: "Your seller approves the counter first — one tap in their portal, or you confirm they told you yes. No seller signature yet. Then you review the email to the buyer's agent and send it.",
+  1: "You change the terms, then review the email to the buyer's agent and send it. No seller approval or signature is needed at this step — the seller signs last, after the buyer accepts.",
   2: "The buyer's agent either strikes and initials your changes or resubmits the offer with the new terms. When they reply, the revised offer lands here by itself. If it went to your own inbox instead, upload it or pick it from Documents.",
   3: "The app compares what came back to the original offer plus ONLY your changes. Anything else that changed is flagged red, and your seller can't be sent the offer to sign until you accept each one or counter again. Spots it couldn't read are yellow — check them by eye.",
   4: "The seller always signs last. The app places the seller's initials and signature for you — you check them before the link goes out. The signed copy files itself in Documents.",
@@ -43,8 +43,7 @@ export function offerState(offer, counters) {
   const reading = ["pending", "extracting"].includes(offer.status);
   if (reading) return { step: 0, tone: "info", line: "Reading the offer… this takes about a minute.", counter: live };
   if (live && live.uploadId === offer.id && live.responseUploadId !== offer.id) {
-    if (live.status === "draft") return { step: 1, tone: "info", line: live.sellerApprovedAt ? "Your seller approved the counter. Review the email to the buyer's agent and send it." : "Your counter is saved but not sent yet.", counter: live };
-    if (live.status === "awaiting_seller") return { step: 1, tone: "wait", line: "Waiting for your seller's OK in their portal. Let them know it's there — you'll get a card when they approve.", counter: live };
+    if (live.status === "draft" || live.status === "awaiting_seller") return { step: 1, tone: "info", line: "Your counter is saved but not sent yet. Review the email to the buyer's agent and send it.", counter: live };
     if (live.status === "sent") return { step: 2, tone: "wait", line: `Sent to ${live.toName || live.toEmail || "the buyer's agent"} ${fmtWhen(live.sentAt)}. Expires ${fmtWhen(live.expiresAt)}. When the initialed or revised offer comes back, it shows up here by itself.`, counter: live };
     if (live.status === "expired") return { step: 2, tone: "bad", line: `Your counter expired ${fmtWhen(live.expiresAt)} with no answer. Follow up, counter again, or reject the offer.`, counter: live };
     if (live.status === "superseded") return { step: 0, tone: "info", line: "Read the terms. Counter, send it to your seller to sign as-is, or reject.", counter: null };
@@ -124,7 +123,6 @@ export function CounterModal({ uploadId, address, onClose, onDone }) {
     const pad = (n) => String(n).padStart(2, "0");
     return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T17:00`;
   });
-  const [approval, setApproval] = useState("");
   const [stage, setStage] = useState("terms");     // terms | email
   const [counter, setCounter] = useState(null);
   const [mail, setMail] = useState({ to: "", toName: "", subject: "", body: "" });
@@ -142,7 +140,6 @@ export function CounterModal({ uploadId, address, onClose, onDone }) {
         setVals(v);
         if (b.draft) {
           if (b.draft.expiresAt) { const d = new Date(b.draft.expiresAt); const pad = (n) => String(n).padStart(2, "0"); setExp(`${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`); }
-          setApproval(b.draft.sellerApproval === "portal" ? "portal" : "agent");
         }
       })
       .catch(e => setErr(e.message));
@@ -161,12 +158,11 @@ export function CounterModal({ uploadId, address, onClose, onDone }) {
   const save = async () => {
     setErr("");
     if (!changedList.length) { setErr("Change at least one term — that's what the counter sends."); return; }
-    if (!approval) { setErr("Choose how your seller approves this counter."); return; }
     setBusy(true);
     try {
       const terms = {}; for (const t of changedList) terms[t.key] = vals[t.key];
       const r = await fetch(`${API}/contracts/uploads/${uploadId}/counters`, {
-        method: "POST", headers: jsonHdrs(), body: JSON.stringify({ terms, expiresAt: new Date(exp).toISOString(), sellerApproval: approval }),
+        method: "POST", headers: jsonHdrs(), body: JSON.stringify({ terms, expiresAt: new Date(exp).toISOString() }),
       });
       const b = await r.json();
       if (!r.ok) throw new Error(b.error || "Couldn't save the counter");
@@ -238,14 +234,8 @@ export function CounterModal({ uploadId, address, onClose, onDone }) {
                   <div style={{ fontSize: 11.5, color: C.muted, marginTop: 4 }}>You get a reminder a day before it lapses.</div>
                 </div>
                 <div>
-                  <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 6 }}>Your seller's OK</div>
-                  <label style={{ display: "flex", gap: 8, fontSize: 13, marginBottom: 6, cursor: "pointer" }}>
-                    <input type="radio" name="appr" checked={approval === "agent"} onChange={() => setApproval("agent")} /> My seller already approved these terms (phone, text, in person)
-                  </label>
-                  <label style={{ display: "flex", gap: 8, fontSize: 13, cursor: "pointer" }}>
-                    <input type="radio" name="appr" checked={approval === "portal"} onChange={() => setApproval("portal")} /> Ask my seller to approve with one tap in their portal
-                  </label>
-                  <div style={{ fontSize: 11.5, color: C.muted, marginTop: 4 }}>The seller approves the terms only — they sign last, after the buyer accepts.</div>
+                  <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 6 }}>Who signs when</div>
+                  <div style={{ fontSize: 12.5, color: C.muted, lineHeight: 1.5 }}>You send the counter. The buyer initials your changes (or resubmits). Your seller signs last — after the buyer accepts.</div>
                 </div>
               </div>
               {changedList.length > 0 && (
@@ -266,11 +256,6 @@ export function CounterModal({ uploadId, address, onClose, onDone }) {
               <div style={{ background: C.blueBg, border: "1px solid #bae6fd", borderRadius: 10, padding: "10px 12px", fontSize: 13, color: C.blue, lineHeight: 1.5, marginBottom: 14 }}>
                 <strong>Step 2 of 2 — review the email to the buyer's agent.</strong> Edit anything you like. It asks them to strike and initial your changes or resubmit, and their reply comes back to this deal automatically. Nothing is sent until you press Send.
               </div>
-              {counter.status === "awaiting_seller" && (
-                <div style={{ background: C.amberBg, border: "1px solid #F5D98B", borderRadius: 10, padding: "10px 12px", fontSize: 13, color: "#7A5C00", marginBottom: 12 }}>
-                  ⏳ Waiting for your seller's OK in their portal. Let them know it's there. You'll get a Win the Day card when they approve — then come back here (deal → Overview → Pending Offers → Continue counter) and send.
-                </div>
-              )}
               <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) minmax(0,1fr)", gap: 10, marginBottom: 10 }}>
                 <label style={{ fontSize: 12.5, fontWeight: 700 }}>To (name)<input value={mail.toName} onChange={e => setMail(m => ({ ...m, toName: e.target.value }))} style={{ width: "100%", padding: "8px 10px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 14, marginTop: 4, boxSizing: "border-box", fontFamily: "inherit" }} /></label>
                 <label style={{ fontSize: 12.5, fontWeight: 700 }}>To (email)<input value={mail.to} onChange={e => setMail(m => ({ ...m, to: e.target.value }))} placeholder="buyer's agent email" style={{ width: "100%", padding: "8px 10px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 14, marginTop: 4, boxSizing: "border-box", fontFamily: "inherit" }} /></label>
@@ -281,8 +266,7 @@ export function CounterModal({ uploadId, address, onClose, onDone }) {
                 <button onClick={() => setStage("terms")} style={btn(false, "#555")}>← Back to the terms</button>
                 <div style={{ display: "flex", gap: 10 }}>
                   <button onClick={() => { onDone && onDone(counter); onClose(); }} style={btn(false, C.blue)}>Save, send later</button>
-                  <button onClick={send} disabled={busy || counter.status === "awaiting_seller"} title={counter.status === "awaiting_seller" ? "Waiting for your seller's OK" : ""}
-                    style={{ ...btn(true), opacity: counter.status === "awaiting_seller" ? 0.5 : 1 }}>{busy ? "Sending…" : "Send counter to the buyer's agent"}</button>
+                  <button onClick={send} disabled={busy} style={btn(true)}>{busy ? "Sending…" : "Send counter to the buyer's agent"}</button>
                 </div>
               </div>
             </>
