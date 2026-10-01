@@ -454,13 +454,15 @@ export function PickReturnedDoc({ counter, txId, onClose, onLinked }) {
 }
 
 export function useOfferCounters(txId, refreshKey) {
-  const [state, setState] = useState({ counters: [], uploads: [] });
+  // `loaded` stays false until the first answer — until then the panel must not
+  // guess an offer's step (it would show "Received" + Counter on a countered offer).
+  const [state, setState] = useState({ counters: [], uploads: [], loaded: false });
   const [tick, setTick] = useState(0);
   useEffect(() => {
     let alive = true;
     fetch(`${API}/transactions/${txId}/offer-counters`, { headers: hdrs() })
-      .then(r => r.ok ? r.json() : null).then(b => { if (alive && b) setState({ counters: b.counters || [], uploads: b.uploads || [] }); })
-      .catch(() => {});
+      .then(r => r.ok ? r.json() : null).then(b => { if (alive) setState(s => b ? { counters: b.counters || [], uploads: b.uploads || [], loaded: true } : { ...s, loaded: true }); })
+      .catch(() => { if (alive) setState(s => ({ ...s, loaded: true })); });
     return () => { alive = false; };
   }, [txId, refreshKey, tick]);
   return [state, () => setTick(t => t + 1)];

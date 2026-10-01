@@ -4435,7 +4435,7 @@ function ListingOffers({ txId, txStatus, txAddress, refreshKey, onReview, onRece
   const [loading, setLoading] = useState(true);
   const hdrs = { "Authorization": "Bearer " + (localStorage.getItem("tp_token") || "") };
   // Counter-offers (OfferCounterFlow.jsx): rounds, step tracker, checks, seller signing.
-  const [{ counters, uploads: counterUploads }, reloadCounters] = useOfferCounters(txId, refreshKey);
+  const [{ counters, uploads: counterUploads, loaded: countersLoaded }, reloadCounters] = useOfferCounters(txId, refreshKey);
   const [counterFor, setCounterFor] = useState(null);      // upload id being countered
   const [reviewCounter, setReviewCounter] = useState(null); // counter whose returned offer is being reviewed
   const [signTarget, setSignTarget] = useState(null);      // {counterId} | {uploadId}
@@ -4698,15 +4698,15 @@ function ListingOffers({ txId, txStatus, txAddress, refreshKey, onReview, onRece
                 <ThreadLine offer={offer} counters={counters} />
               </div>
             </div>
-            <StepTracker step={st.step} tone={st.tone} />
-            <NextLine state={st} />
+            {countersLoaded ? <><StepTracker step={st.step} tone={st.tone} /><NextLine state={st} /></>
+              : <div style={{ marginTop: 8, fontSize: 12, color: COLORS.muted }}>Loading this offer's status…</div>}
             {maybeReply && (
               <div style={{ marginTop: 8, background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 8, padding: "8px 10px", fontSize: 12.5, color: "#0c4a6e" }}>
                 Is this the reply to your counter (round {maybeReply.round})? <button onClick={() => linkAsReply(maybeReply, o.id)} style={{ ...smallBtn(true, "#0c4a6e"), padding: "4px 10px", marginLeft: 6 }}>Yes — check it against my counter</button>
               </div>
             )}
             {/* One main button per step, then the less common actions. */}
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end", marginTop: 10 }}>
+            {countersLoaded && <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end", marginTop: 10 }}>
               <input ref={el => signedRefs.current[o.id] = el} type="file" accept=".pdf,.doc,.docx,image/*" style={{ display: "none" }} onChange={e => uploadSigned(o.id, e.target.files && e.target.files[0])} />
               {ready && st.step === 0 && <button onClick={() => setCounterFor(o.id)} style={smallBtn(true, COLORS.red)}>🔁 Counter</button>}
               {ready && st.step === 0 && <button onClick={() => setSignTarget({ uploadId: o.id })} style={smallBtn(false, "#1E8449")}>✍️ Send to seller to sign (accept as-is)</button>}
@@ -4723,7 +4723,7 @@ function ListingOffers({ txId, txStatus, txAddress, refreshKey, onReview, onRece
               {ready && st.step !== 5 && <button onClick={() => onReview(o.id)} style={smallBtn(false, COLORS.navy)}>Review terms</button>}
               <button onClick={() => signedRefs.current[o.id] && signedRefs.current[o.id].click()} disabled={signingId === o.id} style={smallBtn(false, COLORS.navy)} title="Seller signed outside the app? Upload the signed copy.">{signingId === o.id ? "Uploading…" : ((o.has_signed_copy || o.contract_doc_on_file) ? "Replace signed copy" : "⤴ Upload signed copy")}</button>
               <button onClick={() => reject(o.id)} style={{ background: "#fff", border: "1px solid #E5E7EB", color: "#B91C1C", borderRadius: 6, padding: "7px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Reject</button>
-            </div>
+            </div>}
           </div>
         );
       })}
