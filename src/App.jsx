@@ -24,7 +24,6 @@ import SpotlightTour from "./components/SpotlightTour";
 import TourModal from "./components/TourModal";
 import FirstTimeHere from "./components/FirstTimeHere";
 import DealSharingPanel from "./DealSharingPanel";
-import { offerState, StepTracker, NextLine, ThreadLine, CounterModal, ReturnedOfferReview, SellerSigningLauncher, PickReturnedDoc, useOfferCounters } from "./OfferCounterFlow";
 import { PAGE_TIPS, PAGE_SCENES, dealTabTip, dealTabScenes } from "./config/pageTips";
 
 const API = "https://liz-team-server-api-production.up.railway.app";
@@ -4430,17 +4429,10 @@ export function WelcomeEmailPreview({ txId, onClose, onlyPartyId = null }) {
 
 // Pending offers received on a listing. Several can sit here at once; the agent
 // reviews them and approves one (which auto-rejects the rest on the server).
-function ListingOffers({ txId, txStatus, txAddress, refreshKey, onReview, onReceiveOffer }) {
+function ListingOffers({ txId, txStatus, refreshKey, onReview, onReceiveOffer }) {
   const [offers, setOffers] = useState([]);
   const [loading, setLoading] = useState(true);
   const hdrs = { "Authorization": "Bearer " + (localStorage.getItem("tp_token") || "") };
-  // Counter-offers (OfferCounterFlow.jsx): rounds, step tracker, checks, seller signing.
-  const [{ counters, uploads: counterUploads }, reloadCounters] = useOfferCounters(txId, refreshKey);
-  const [counterFor, setCounterFor] = useState(null);      // upload id being countered
-  const [reviewCounter, setReviewCounter] = useState(null); // counter whose returned offer is being reviewed
-  const [signTarget, setSignTarget] = useState(null);      // {counterId} | {uploadId}
-  const [pickFor, setPickFor] = useState(null);            // counter awaiting a returned file from Documents
-  const [howOpen, setHowOpen] = useState(false);
 
   const load = () => {
     fetch(`${API}/contracts/uploads`, { headers: hdrs })
@@ -4455,54 +4447,7 @@ function ListingOffers({ txId, txStatus, txAddress, refreshKey, onReview, onRece
       .catch(e => console.error("Load offers failed:", e))
       .finally(() => setLoading(false));
   };
-  const reloadAll = () => { load(); reloadCounters(); };
   useEffect(() => { load(); }, [txId, refreshKey]);
-  // While an offer is being read or a returned offer is being checked, refresh
-  // every 15s so the step moves on by itself.
-  const busyServer = offers.some(o => ["pending", "extracting"].includes(o.status)) ||
-    counters.some(c => ["response_received"].includes(c.status) || (c.responseUploadId && c.checkStatus && c.checkStatus !== "done"));
-  useEffect(() => {
-    if (!busyServer) return;
-    const t = setInterval(reloadAll, 15000);
-    return () => clearInterval(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [busyServer, txId]);
-  const withdraw = async (c) => {
-    if (!window.confirm(c.status === "sent" ? "Withdraw this counter? Let the buyer's agent know — the app doesn't email them about it." : "Delete this unsent counter?")) return;
-    try {
-      const r = await fetch(`${API}/offer-counters/${c.id}/withdraw`, { method: "POST", headers: hdrs });
-      if (!r.ok) throw new Error((await r.json()).error || "Failed");
-      reloadAll();
-    } catch (e) { alert(e.message); }
-  };
-  const counterAgain = async (c) => {
-    try {
-      const r = await fetch(`${API}/offer-counters/${c.id}/counter-again`, { method: "POST", headers: hdrs });
-      const b = await r.json();
-      if (!r.ok) throw new Error(b.error || "Failed");
-      setReviewCounter(null); reloadAll(); setCounterFor(b.uploadId);
-    } catch (e) { alert(e.message); }
-  };
-  // A new offer that came in while a counter is out but wasn't recognized as
-  // the reply (different names on it) — the agent can link it by hand.
-  const openCounters = counters.filter(c => c.status === "sent" || c.status === "expired");
-  const linkAsReply = async (c, uploadId) => {
-    try {
-      const r = await fetch(`${API}/offer-counters/${c.id}/response`, { method: "POST", headers: { ...hdrs, "Content-Type": "application/json" }, body: JSON.stringify({ uploadId }) });
-      const b = await r.json();
-      if (!r.ok) throw new Error(b.error || "Failed");
-      reloadAll();
-    } catch (e) { alert(e.message); }
-  };
-  const modals = (
-    <>
-      {counterFor && <CounterModal uploadId={counterFor} address={txAddress} onClose={() => setCounterFor(null)} onDone={() => reloadAll()} />}
-      {reviewCounter && <ReturnedOfferReview counter={reviewCounter} onClose={() => { setReviewCounter(null); reloadAll(); }} onChanged={() => reloadCounters()}
-        onCounterAgain={counterAgain} onSendToSeller={(c) => { setReviewCounter(null); setSignTarget({ counterId: c.id }); }} />}
-      {signTarget && <SellerSigningLauncher target={signTarget} tx={{ id: txId }} onClose={() => { setSignTarget(null); reloadAll(); }} onSent={() => reloadAll()} />}
-      {pickFor && <PickReturnedDoc counter={pickFor} txId={txId} onClose={() => setPickFor(null)} onLinked={() => reloadAll()} />}
-    </>
-  );
 
   const [shareUrl, setShareUrl] = useState("");
   const [sharing, setSharing] = useState(false);
@@ -4573,11 +4518,30 @@ function ListingOffers({ txId, txStatus, txAddress, refreshKey, onReview, onRece
   };
 
   if (loading) return null;
+  const howBlock = (
+    <div style={{ background: "#fff", border: "1px solid " + COLORS.border, borderRadius: 8, padding: "10px 12px", fontSize: 12.5, color: COLORS.text, lineHeight: 1.55, marginTop: 8 }}>
+      <strong>How offers and counter-offers work here</strong>
+      <ol style={{ margin: "6px 0 0 18px", padding: 0 }}>
+        <li><strong>Received</strong> — the buyer signed the offer; you log it with Receive Offer and the app reads every term.</li>
+        <li><strong>Counter</strong> — you change the terms your seller wants right on the screen. Your seller approves (portal tap, or you confirm) — no seller signature yet.</li>
+        <li><strong>Waiting on the buyer's agent</strong> — they strike &amp; initial your changes or resubmit. Their reply lands here by itself.</li>
+        <li><strong>Check what came back</strong> — compared to the original offer plus only your changes. Anything else that changed is flagged red and must be cleared.</li>
+        <li><strong>Seller signs last</strong> — the app places the seller's initials and signature; you check them and send.</li>
+        <li><strong>Accept</strong> — the listing goes Under Contract with the final terms.</li>
+      </ol>
+    </div>
+  );
   if (offers.length === 0) {
     return (
-      <div style={{ background: "#F9FAFB", border: "1px dashed " + COLORS.border, borderRadius: 12, padding: 16, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-        <span style={{ fontSize: 13, color: COLORS.muted }}>No pending offers on this listing yet. When a buyer's agent sends one, tap <strong>Receive Offer</strong> to log it here. <em>(You write offers on a buyer deal — not on your own listing.)</em></span>
-        <button onClick={onReceiveOffer} style={{ background: "#1E8449", border: "none", color: "#fff", borderRadius: 6, padding: "7px 14px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>📥 Receive Offer</button>
+      <div style={{ background: "#F9FAFB", border: "1px dashed " + COLORS.border, borderRadius: 12, padding: 16 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+          <span style={{ fontSize: 13, color: COLORS.muted }}>No pending offers on this listing yet. When a buyer's agent sends one, tap <strong>Receive Offer</strong> to log it here — then counter, or send it to your seller to sign. <em>(You write offers on a buyer deal — not on your own listing.)</em>{" "}
+            <button onClick={() => setHowOpen(h => !h)} style={{ background: "none", border: "none", color: "#0c4a6e", textDecoration: "underline", cursor: "pointer", fontSize: 12.5, padding: 0, fontFamily: "inherit" }}>{howOpen ? "Hide" : "How offers & counter-offers work"}</button>
+          </span>
+          <button onClick={onReceiveOffer} style={{ background: "#1E8449", border: "none", color: "#fff", borderRadius: 6, padding: "7px 14px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>📥 Receive Offer</button>
+        </div>
+        {howOpen && howBlock}
+        {modals}
       </div>
     );
   }
@@ -4587,15 +4551,20 @@ function ListingOffers({ txId, txStatus, txAddress, refreshKey, onReview, onRece
     const accepted = d === "accepted";
     return <span style={{ fontSize: 11, fontWeight: 700, color: "#fff", background: accepted ? "#1E8449" : "#B91C1C", borderRadius: 20, padding: "2px 10px" }}>{accepted ? "✓ Seller accepted" : "Seller declined"}</span>;
   };
+  const smallBtn = (primary, color) => ({ background: primary ? color : "#fff", border: "1px solid " + color, color: primary ? "#fff" : color, borderRadius: 6, padding: "7px 12px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" });
 
   return (
     <div style={{ background: "#FFFBEB", border: "1px solid #FCD34D", borderRadius: 12, padding: 16 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10, gap: 8, flexWrap: "wrap" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6, gap: 8, flexWrap: "wrap" }}>
         <div style={{ fontSize: 14, fontWeight: 800, color: "#92400E" }}>📥 Pending Offers ({offers.length})</div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           <button onClick={shareWithSellers} disabled={sharing} style={{ background: "#fff", border: "1px solid #1E8449", color: "#1E8449", borderRadius: 6, padding: "6px 12px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>{sharing ? "Creating…" : "🔗 Share with Sellers"}</button>
           <button onClick={onReceiveOffer} style={{ background: "#1E8449", border: "none", color: "#fff", borderRadius: 6, padding: "6px 12px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>+ Receive Another Offer</button>
         </div>
+      </div>
+      <div style={{ fontSize: 12, color: "#7A5C00", marginBottom: 10 }}>
+        Each offer shows its step and what to do next. <button onClick={() => setHowOpen(h => !h)} style={{ background: "none", border: "none", color: "#0c4a6e", textDecoration: "underline", cursor: "pointer", fontSize: 12, padding: 0, fontFamily: "inherit" }}>{howOpen ? "Hide" : "How offers & counter-offers work"}</button>
+        {howOpen && howBlock}
       </div>
       {shareUrl && (
         <div style={{ background: "#fff", border: "1px solid #1E8449", borderRadius: 8, padding: 12, marginBottom: 10 }}>
@@ -4613,67 +4582,97 @@ function ListingOffers({ txId, txStatus, txAddress, refreshKey, onReview, onRece
         const buyer = parties.find(p => (p.role || "").toLowerCase() === "buyer");
         const buyerAgent = parties.find(p => (p.role || "").toLowerCase().includes("buyer") && (p.role || "").toLowerCase().includes("agent"));
         const ready = o.status === "ready_for_review";
+        const meta = (counterUploads || []).find(u => u.id === o.id) || {};
+        const offer = { ...o, thread_root_id: meta.threadRootId || o.thread_root_id, seller_signing_doc_id: meta.sellerSigningDocId || o.seller_signing_doc_id, hasSignedCopy: meta.hasSignedCopy || o.has_signed_copy };
+        const st = offerState(offer, counters);
+        const c = st.counter;
+        const isReply = !!(c && c.responseUploadId === o.id) || !!meta.counterParentId;
+        // An offer that arrived while a counter is out, but wasn't recognized as the reply.
+        const maybeReply = !isReply && ready && openCounters.find(oc => oc.uploadId !== o.id && new Date(o.created_at) > new Date(oc.sentAt || oc.createdAt));
         return (
-          <div key={o.id} style={{ background: "#fff", border: "1px solid #FDE68A", borderRadius: 8, padding: "10px 12px", marginBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-            <div style={{ fontSize: 13, color: COLORS.text }}>
-              <div style={{ fontWeight: 700, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                {t.contract_price ? "$" + Number(t.contract_price).toLocaleString() : (ready ? "Price not read" : "Processing…")}
-                {decisionBadge(o.seller_decision)}
-              </div>
-              <div style={{ color: COLORS.muted, fontSize: 12 }}>
-                {!ready ? "reading contract…" : (
-                  buyer?.name || buyerAgent?.name ? (
-                    <>
-                      {buyer?.name && <span><strong>Buyer:</strong> {buyer.name}</span>}
-                      {buyer?.name && buyerAgent?.name && <span> · </span>}
-                      {buyerAgent?.name && <span><strong>Buyer's Agent:</strong> {buyerAgent.name}{buyerAgent.company ? ` (${buyerAgent.company})` : ""}</span>}
-                    </>
-                  ) : (o.original_filename || "Offer")
-                )}
-              </div>
-              {o.created_at && (
-                <div style={{ marginTop: 4, fontSize: 11, fontWeight: 700, color: "#0c4a6e" }}>
-                  📥 Received {new Date(o.created_at).toLocaleString("en-US", { timeZone: "America/New_York", month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" })} ET
+          <div key={o.id} style={{ background: "#fff", border: "1px solid #FDE68A", borderRadius: 8, padding: "10px 12px", marginBottom: 8 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, flexWrap: "wrap" }}>
+              <div style={{ fontSize: 13, color: COLORS.text }}>
+                <div style={{ fontWeight: 700, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                  {t.contract_price ? "$" + Number(t.contract_price).toLocaleString() : (ready ? "Price not read" : "Processing…")}
+                  {isReply && <span style={{ fontSize: 11, fontWeight: 700, color: "#fff", background: "#0c4a6e", borderRadius: 20, padding: "2px 10px" }}>Revised after your counter</span>}
+                  {decisionBadge(o.seller_decision)}
                 </div>
-              )}
-              {(() => {
-                const dl = t.offer_acceptance_deadline;
-                if (!dl) return null;
-                const d = new Date(dl + "T00:00:00");
-                if (isNaN(d)) return null;
-                const today = new Date(); today.setHours(0,0,0,0);
-                const days = Math.round((d - today) / 86400000);
-                const expired = days < 0;
-                const urgent = days <= 2;
-                const label = expired ? `Offer expired ${Math.abs(days)}d ago` : days === 0 ? "Must accept by today" : `Must accept in ${days}d`;
-                return (
-                  <div style={{ marginTop: 4, fontSize: 11, fontWeight: 700, color: expired ? "#B91C1C" : urgent ? "#B7770D" : COLORS.muted }}>
-                    ⏰ {label} <span style={{ fontWeight: 400 }}>({new Date(dl + "T00:00:00").toLocaleDateString()})</span>
+                <div style={{ color: COLORS.muted, fontSize: 12 }}>
+                  {!ready ? "reading contract…" : (
+                    buyer?.name || buyerAgent?.name ? (
+                      <>
+                        {buyer?.name && <span><strong>Buyer:</strong> {buyer.name}</span>}
+                        {buyer?.name && buyerAgent?.name && <span> · </span>}
+                        {buyerAgent?.name && <span><strong>Buyer's Agent:</strong> {buyerAgent.name}{buyerAgent.company ? ` (${buyerAgent.company})` : ""}</span>}
+                      </>
+                    ) : (o.original_filename || "Offer")
+                  )}
+                </div>
+                {o.created_at && (
+                  <div style={{ marginTop: 4, fontSize: 11, fontWeight: 700, color: "#0c4a6e" }}>
+                    📥 Received {new Date(o.created_at).toLocaleString("en-US", { timeZone: "America/New_York", month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" })} ET
                   </div>
-                );
-              })()}
-              {(() => {
-                // Signed copy is satisfied either by the explicit upload OR by an
-                // executed purchase contract already filed in Documents.
-                const signedOnFile = o.has_signed_copy || o.contract_doc_on_file;
-                return (
-                  <div style={{ marginTop: 4, fontSize: 11, fontWeight: 700, color: signedOnFile ? "#1E8449" : COLORS.muted }}>
-                    {o.has_signed_copy ? "✓ Signed copy on file"
-                      : o.contract_doc_on_file ? "✓ Contract on file (in Documents)"
-                      : "✎ Awaiting signed copy"}
-                  </div>
-                );
-              })()}
+                )}
+                {(() => {
+                  const dl = t.offer_acceptance_deadline;
+                  if (!dl) return null;
+                  const d = new Date(dl + "T00:00:00");
+                  if (isNaN(d)) return null;
+                  const today = new Date(); today.setHours(0,0,0,0);
+                  const days = Math.round((d - today) / 86400000);
+                  const expired = days < 0;
+                  const urgent = days <= 2;
+                  const label = expired ? `Offer expired ${Math.abs(days)}d ago` : days === 0 ? "Must accept by today" : `Must accept in ${days}d`;
+                  return (
+                    <div style={{ marginTop: 4, fontSize: 11, fontWeight: 700, color: expired ? "#B91C1C" : urgent ? "#B7770D" : COLORS.muted }}>
+                      ⏰ {label} <span style={{ fontWeight: 400 }}>({new Date(dl + "T00:00:00").toLocaleDateString()})</span>
+                    </div>
+                  );
+                })()}
+                {(() => {
+                  const signedOnFile = o.has_signed_copy || o.contract_doc_on_file;
+                  return (
+                    <div style={{ marginTop: 4, fontSize: 11, fontWeight: 700, color: signedOnFile ? "#1E8449" : COLORS.muted }}>
+                      {o.has_signed_copy ? "✓ Seller's signed copy on file"
+                        : o.contract_doc_on_file ? "✓ Contract on file (in Documents)"
+                        : "✎ Seller hasn't signed yet (the seller signs last)"}
+                    </div>
+                  );
+                })()}
+                <ThreadLine offer={offer} counters={counters} />
+              </div>
             </div>
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
+            <StepTracker step={st.step} tone={st.tone} />
+            <NextLine state={st} />
+            {maybeReply && (
+              <div style={{ marginTop: 8, background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 8, padding: "8px 10px", fontSize: 12.5, color: "#0c4a6e" }}>
+                Is this the reply to your counter (round {maybeReply.round})? <button onClick={() => linkAsReply(maybeReply, o.id)} style={{ ...smallBtn(true, "#0c4a6e"), padding: "4px 10px", marginLeft: 6 }}>Yes — check it against my counter</button>
+              </div>
+            )}
+            {/* One main button per step, then the less common actions. */}
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end", marginTop: 10 }}>
               <input ref={el => signedRefs.current[o.id] = el} type="file" accept=".pdf,.doc,.docx,image/*" style={{ display: "none" }} onChange={e => uploadSigned(o.id, e.target.files && e.target.files[0])} />
-              <button onClick={() => signedRefs.current[o.id] && signedRefs.current[o.id].click()} disabled={signingId === o.id} style={{ background: "#fff", border: "1px solid " + COLORS.navy, color: COLORS.navy, borderRadius: 6, padding: "7px 12px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>{signingId === o.id ? "Uploading…" : ((o.has_signed_copy || o.contract_doc_on_file) ? "Replace Signed Copy" : "⤴ Upload Signed Copy")}</button>
-              {ready && <button onClick={() => onReview(o.id)} style={{ background: "#1E8449", border: "none", color: "#fff", borderRadius: 6, padding: "7px 14px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>Review &amp; Accept</button>}
+              {ready && st.step === 0 && <button onClick={() => setCounterFor(o.id)} style={smallBtn(true, COLORS.red)}>🔁 Counter</button>}
+              {ready && st.step === 0 && <button onClick={() => setSignTarget({ uploadId: o.id })} style={smallBtn(false, "#1E8449")}>✍️ Send to seller to sign (accept as-is)</button>}
+              {st.step === 1 && c && <button onClick={() => setCounterFor(o.id)} style={smallBtn(true, COLORS.red)}>{c.sellerApprovedAt ? "Continue counter → send" : "Open counter"}</button>}
+              {st.step === 1 && c && <button onClick={() => withdraw(c)} style={smallBtn(false, "#555")}>Delete counter</button>}
+              {st.step === 2 && c && c.status === "sent" && <button onClick={onReceiveOffer} style={smallBtn(true, "#0c4a6e")}>⤴ Upload the revised offer</button>}
+              {st.step === 2 && c && <button onClick={() => setPickFor(c)} style={smallBtn(false, "#0c4a6e")}>📁 It's in Documents — pick it</button>}
+              {st.step === 2 && c && c.status === "expired" && <button onClick={() => counterAgain(c)} style={smallBtn(true, COLORS.red)}>🔁 Counter again</button>}
+              {st.step === 2 && c && c.status === "sent" && <button onClick={() => withdraw(c)} style={smallBtn(false, "#555")}>Withdraw counter</button>}
+              {st.step === 3 && c && c.checkStatus === "done" && <button onClick={() => setReviewCounter(c)} style={smallBtn(true, COLORS.red)}>🔎 Review what came back</button>}
+              {st.step === 4 && c && c.status === "checked" && <button onClick={() => setSignTarget({ counterId: c.id })} style={smallBtn(true, "#1E8449")}>✍️ Send to seller to sign</button>}
+              {st.step === 4 && c && c.status === "checked" && <button onClick={() => setReviewCounter(c)} style={smallBtn(false, "#0c4a6e")}>Review what came back</button>}
+              {st.step === 5 && <button onClick={() => onReview(o.id)} style={smallBtn(true, "#1E8449")}>✅ Accept &amp; go Under Contract</button>}
+              {ready && st.step !== 5 && <button onClick={() => onReview(o.id)} style={smallBtn(false, COLORS.navy)}>Review terms</button>}
+              <button onClick={() => signedRefs.current[o.id] && signedRefs.current[o.id].click()} disabled={signingId === o.id} style={smallBtn(false, COLORS.navy)} title="Seller signed outside the app? Upload the signed copy.">{signingId === o.id ? "Uploading…" : ((o.has_signed_copy || o.contract_doc_on_file) ? "Replace signed copy" : "⤴ Upload signed copy")}</button>
               <button onClick={() => reject(o.id)} style={{ background: "#fff", border: "1px solid #E5E7EB", color: "#B91C1C", borderRadius: 6, padding: "7px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Reject</button>
             </div>
           </div>
         );
       })}
+      {modals}
     </div>
   );
 }
