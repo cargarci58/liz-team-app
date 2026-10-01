@@ -82,7 +82,19 @@ export default function PartnerPortal({ urlToken }) {
   const deals = (data && data.deals) || [];
   return shell(<>
     <div style={{ fontSize: 13, color: C.muted, marginBottom: 12 }}>Deals shared with <b>{data.email}</b>. Read-only — questions go to the deal's agent.</div>
-    {deals.length === 0 && <div style={card}>No deals are shared with you right now.</div>}
+    {/* Co-agents work their deals in TransactPro — this page is only for referral partners. */}
+    {(data.coAgentDeals || []).map(c => (
+      <div key={"co" + c.id} style={{ ...card, background: "#FADBD8", border: "1px solid #E6B0AA" }}>
+        <div style={{ fontWeight: 800, fontSize: 15 }}>🤝 {c.address}{c.city ? `, ${c.city}` : ""}</div>
+        <div style={{ fontSize: 13.5, marginTop: 6, lineHeight: 1.5 }}>
+          You're the <b>co-agent</b> on this deal, so you work it in TransactPro — not on this page.{" "}
+          {c.hasLogin ? <>Log in with <b>{data.email}</b> — it's under <b>My Deals</b>. <a href="/" style={{ color: C.red, fontWeight: 800 }}>Log in →</a></>
+            : c.invited ? <>Open the invite email from {c.agentName} ("You're co-agent on {c.address}") and tap its link to pick your password.</>
+            : <>Ask {c.agentName} to tap <b>Invite co-agent</b> on this deal — you'll get an email to pick your password.</>}
+        </div>
+      </div>
+    ))}
+    {deals.length === 0 && !(data.coAgentDeals || []).length && <div style={card}>No deals are shared with you right now.</div>}
     {deals.map(d => {
       const done = d.timeline.filter(m => m.done).length;
       const isOpen = open === d.id;
@@ -95,90 +107,14 @@ export default function PartnerPortal({ urlToken }) {
             </div>
             <span style={{ alignSelf: "flex-start", background: C.blue, color: "#fff", fontSize: 12, fontWeight: 800, padding: "3px 10px", borderRadius: 12 }}>{d.status}</span>
           </div>
-          {/* A co-agent WORKS the deal in the app — this page is only a viewer. */}
-          {d.isCoAgent && (
-            <div style={{ marginTop: 10, background: "#FADBD8", borderRadius: 10, padding: "10px 12px", fontSize: 13, color: C.text }}>
-              {d.hasLogin ? <>To <b>work</b> on this deal — send messages, upload, edit, every tool — log in to TransactPro with this email. It's under <b>My Deals</b>.{" "}
-                <a href="/" style={{ color: C.red, fontWeight: 800 }}>Log in →</a></>
-                : <>To <b>work</b> on this deal — send messages, upload, edit, every tool — set up your TransactPro agent login. You pick your own password; it takes a minute and it's free.{" "}
-                  <button onClick={async () => {
-                    let ss = null; try { ss = localStorage.getItem(KEY); } catch {}
-                    const r = await fetch(API + "/partner/agent-login-link", { method: "POST", headers: { Authorization: "Bearer " + ss } });
-                    const x = await r.json();
-                    if (x.alreadyAgent) { window.location.href = "/"; return; }
-                    if (!r.ok || !x.url) { alert(x.error || "Couldn't start it — try again."); return; }
-                    window.location.href = x.url;
-                  }} style={{ marginTop: 8, display: "block", padding: "9px 16px", borderRadius: 8, border: "none", background: C.red, color: "#fff", fontWeight: 800, fontSize: 14, cursor: "pointer" }}>🔑 Set up my agent login now</button></>}
-            </div>
-          )}
           <div style={{ display: "flex", gap: 18, flexWrap: "wrap", marginTop: 10, fontSize: 13 }}>
             <div><div style={{ color: C.muted, fontSize: 11.5 }}>Closing</div><b>{fmtDate(d.closingDate)}</b></div>
             <div><div style={{ color: C.muted, fontSize: 11.5 }}>Timeline</div><b>{done} of {d.timeline.length} steps done</b></div>
             {d.payout != null && <div><div style={{ color: C.muted, fontSize: 11.5 }}>Your {d.role === "Referring agent" ? "referral fee" : "share"} (estimated)</div><b style={{ color: "#166534" }}>{money(d.payout)}</b></div>}
           </div>
-          {/* Co-agents see the whole deal: tabs. Referral partners: just the timeline. */}
-          {d.people ? (
-            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 12 }}>
-              {[["timeline", "📅 Timeline"], ["people", `👥 People (${d.people.length})`], ["messages", `💬 Messages (${d.messages.length})`], ["documents", `📎 Documents (${d.documents.length})`], ["notes", "🗒 Notes"]].map(([k, l]) => {
-                const on = isOpen && tab === k;
-                return <button key={k} onClick={() => { if (on) setOpen(null); else { setOpen(d.id); setTab(k); } }}
-                  style={{ background: on ? C.blue : "#fff", color: on ? "#fff" : C.blue, border: "1px solid " + (on ? C.blue : C.border), borderRadius: 8, padding: "6px 12px", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>{l}</button>;
-              })}
-            </div>
-          ) : (
-            <button onClick={() => { setOpen(isOpen ? null : d.id); setTab("timeline"); }} style={{ marginTop: 10, background: "none", border: "1px solid " + C.border, borderRadius: 8, padding: "6px 12px", fontSize: 12.5, fontWeight: 700, cursor: "pointer", color: C.blue }}>
-              {isOpen ? "Hide timeline" : "Show timeline"}
-            </button>
-          )}
-          {isOpen && tab === "people" && d.people && (
-            <div style={{ marginTop: 10 }}>
-              {d.people.map((p, i) => (
-                <div key={i} style={{ padding: "8px 0", borderTop: "1px solid " + C.gray, fontSize: 13 }}>
-                  <b>{p.name}</b> <span style={{ color: C.muted }}>· {p.role}{p.company ? ` · ${p.company}` : ""}</span>
-                  <div style={{ color: C.muted, fontSize: 12.5 }}>
-                    {p.email && <a href={"mailto:" + p.email} style={{ color: C.blue }}>{p.email}</a>}{p.email && p.phone ? " · " : ""}{p.phone && <a href={"tel:" + p.phone} style={{ color: C.blue }}>{p.phone}</a>}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-          {isOpen && tab === "messages" && d.messages && (
-            <div style={{ marginTop: 10 }}>
-              {d.messages.length === 0 && <div style={{ color: C.muted, fontSize: 13 }}>No messages yet.</div>}
-              {d.messages.map((m, i) => (
-                <div key={i} style={{ padding: "8px 0", borderTop: "1px solid " + C.gray, fontSize: 13 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", gap: 8, flexWrap: "wrap" }}>
-                    <b>{m.kind === "reply" ? "↩️ Reply from " : m.kind === "chat" ? "💬 " : m.kind === "text" ? "📱 Text to " : "📧 Email to "}{m.who}</b>
-                    <span style={{ color: C.muted, fontSize: 12 }}>{new Date(m.at).toLocaleString("en-US", { timeZone: "America/New_York", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</span>
-                  </div>
-                  {m.subject && <div style={{ fontWeight: 600 }}>{m.subject}</div>}
-                  <div style={{ color: C.text, whiteSpace: "pre-wrap", marginTop: 2 }}>{m.body}</div>
-                </div>
-              ))}
-            </div>
-          )}
-          {isOpen && tab === "documents" && d.documents && (
-            <div style={{ marginTop: 10 }}>
-              {d.documents.length === 0 && <div style={{ color: C.muted, fontSize: 13 }}>No documents yet.</div>}
-              {d.documents.map(doc => (
-                <div key={doc.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, padding: "8px 0", borderTop: "1px solid " + C.gray, fontSize: 13 }}>
-                  <div style={{ minWidth: 0 }}>
-                    <div style={{ fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{doc.name}</div>
-                    <div style={{ color: C.muted, fontSize: 12 }}>{doc.folder || doc.category || ""} · {fmtDate(doc.created_at)}</div>
-                  </div>
-                  <button onClick={async () => {
-                    let s = null; try { s = localStorage.getItem(KEY); } catch {}
-                    const r = await fetch(API + "/partner/doc/" + doc.id, { headers: { Authorization: "Bearer " + s } });
-                    const x = await r.json();
-                    if (x.url) window.open(x.url, "_blank", "noopener"); else alert(x.error || "Couldn't open it");
-                  }} style={{ background: "#fff", border: "1px solid " + C.border, borderRadius: 8, padding: "5px 12px", fontSize: 12.5, fontWeight: 700, cursor: "pointer", color: C.blue, flexShrink: 0 }}>👁 Open</button>
-                </div>
-              ))}
-            </div>
-          )}
-          {isOpen && tab === "notes" && d.people && (
-            <div style={{ marginTop: 10, whiteSpace: "pre-wrap", fontSize: 13, background: C.gray, borderRadius: 8, padding: 12 }}>{d.notes || "No notes yet."}</div>
-          )}
+          <button onClick={() => { setOpen(isOpen ? null : d.id); setTab("timeline"); }} style={{ marginTop: 10, background: "none", border: "1px solid " + C.border, borderRadius: 8, padding: "6px 12px", fontSize: 12.5, fontWeight: 700, cursor: "pointer", color: C.blue }}>
+            {isOpen ? "Hide timeline" : "Show timeline"}
+          </button>
           {isOpen && tab === "timeline" && (
             <div style={{ marginTop: 10 }}>
               {d.timeline.map((m, i) => (

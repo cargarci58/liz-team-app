@@ -77,36 +77,43 @@ export default function DealSharingPanel({ txId, onChanged }) {
 
   // PARTNER LINK — for a saved partner with an email who doesn't use the app:
   // review-gated email (draft → edit → Send) or copy the link to text it.
-  // CO-AGENTS WORK the deal (Carlos 10/1: "the co-agent needs to work, not just
-  // watch") → their only option is a TransactPro login. The view-only Partner
-  // link is for REFERRAL partners, who just follow along.
-  const partnerActions = (p) => (!p.id || !p.email || p.user_id) ? null : (
+  // REFERRAL partners follow along (view-only Partner link).
+  const partnerActions = (p) => (!p.id || !p.email) ? null : (
     <div style={{ gridColumn: "1 / -1", display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", fontSize: 11.5, color: C.muted }}>
-      {p.kind === "co_agent" ? <>
-        Needs a TransactPro login to work this deal —
-      {/* A co-agent WORKS the deal → needs an app login. Free, own account, shared deals only. */}
-      {p.kind === "co_agent" && (
-        <button onClick={async () => {
-          const r = await fetch(API + "/transactions/" + txId + "/partners/" + p.id + "/app-invite", { method: "POST", headers, body: JSON.stringify({}) });
-          const x = await r.json(); if (!r.ok || !x.success) { setMsg("⚠️ " + (x.error || "Couldn't draft it")); return; }
-          setInvite({ pid: p.id, to: x.to, toEmail: x.toEmail, subject: x.subject, body: x.body, endpoint: "app-invite", existing: x.existing, consent: !!x.consent });
-        }} style={{ padding: "4px 10px", borderRadius: 8, border: "none", background: C.red, color: "#fff", fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}>🔑 Give them a TransactPro login to work this deal</button>
-      )}
-      </> : <>
-        Let them follow the deal (view only) —
+      Let them follow the deal (view only) —
       <button onClick={async () => {
         const r = await fetch(API + "/transactions/" + txId + "/partners/" + p.id + "/invite", { method: "POST", headers, body: JSON.stringify({}) });
         const x = await r.json(); if (!r.ok || !x.success) { setMsg("⚠️ " + (x.error || "Couldn't draft it")); return; }
-        setInvite({ pid: p.id, to: x.to, toEmail: x.toEmail, subject: x.subject, body: x.body });
+        setInvite({ kind: "partner", pid: p.id, to: x.to, toEmail: x.toEmail, subject: x.subject, body: x.body });
       }} style={{ padding: "4px 10px", borderRadius: 8, border: "1px solid " + C.blue, background: "#fff", color: C.blue, fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}>📨 Send partner link</button>
       <button onClick={async () => {
         const r = await fetch(API + "/transactions/" + txId + "/partners/" + p.id + "/link", { method: "POST", headers });
         const x = await r.json(); if (!r.ok || !x.success) { setMsg("⚠️ " + (x.error || "Couldn't make the link")); return; }
         try { await navigator.clipboard.writeText(x.link); setMsg("✅ Partner link copied — paste it in a text."); } catch { window.prompt("Copy this partner link:", x.link); }
       }} style={{ padding: "4px 10px", borderRadius: 8, border: "1px solid " + C.border, background: "#fff", color: C.text, fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}>🔗 Copy link</button>
-      </>}
     </div>
   );
+
+  // CO-AGENTS WORK the deal in their own app (Carlos 10/1). One button —
+  // "Invite co-agent" — and a status: not invited → invited (waiting) → working.
+  const coInvite = async (c) => {
+    const r = await fetch(API + "/transactions/" + txId + "/coagents/" + c.id + "/invite", { method: "POST", headers, body: JSON.stringify({}) });
+    const x = await r.json(); if (!r.ok || !x.success) { setMsg("⚠️ " + (x.error || "Couldn't draft it")); return; }
+    setInvite({ kind: "coagent", pid: c.id, mode: x.mode, to: x.to, toEmail: x.toEmail, subject: x.subject, body: x.body });
+  };
+  const coAgentStatus = (c) => {
+    const chip = (txt, bg, col) => <span style={{ fontSize: 11, fontWeight: 800, color: col, background: bg, borderRadius: 10, padding: "2px 8px" }}>{txt}</span>;
+    const btn = (label, primary) => (
+      <button onClick={() => coInvite(c)} style={{ padding: "4px 10px", borderRadius: 8, border: primary ? "none" : "1px solid " + C.blue, background: primary ? C.red : "#fff", color: primary ? "#fff" : C.blue, fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}>{label}</button>
+    );
+    let body;
+    if (!c.id) body = <span>Save sharing, then invite them.</span>;
+    else if (!c.email) body = <span>Add their email and save sharing to invite them.</span>;
+    else if (c.invite_status === "active") body = <>{chip("✓ Working this deal", "#D5F5E3", "#166534")} <span>It's in their TransactPro app{c.same_brokerage ? " (your brokerage)" : ""}.</span> {btn("📨 Email them about it", false)}</>;
+    else if (c.invite_status === "invited") body = <>{chip("Invited · waiting for them", "#FEF3C7", "#92400E")} {c.invited_at && <span>sent {new Date(c.invited_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>} {btn("Resend invite", false)}</>;
+    else body = <>{chip("Not invited yet", C.gray, C.muted)} {btn("📨 Invite co-agent", true)}</>;
+    return <div style={{ gridColumn: "1 / -1", display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", fontSize: 11.5, color: C.muted }}>{body}</div>;
+  };
 
   const inp = { padding: "8px 10px", border: "1px solid " + C.border, borderRadius: 8, fontSize: 13.5, fontFamily: "inherit", boxSizing: "border-box", width: "100%" };
   const calc = d.commission_calc;
@@ -133,7 +140,7 @@ export default function DealSharingPanel({ txId, onChanged }) {
             <input placeholder="Their email" value={form.referral.email || ""} onChange={e => set({ referral: { ...form.referral, email: e.target.value } })} style={inp} />
             <input placeholder="Their brokerage" value={form.referral.brokerage || ""} onChange={e => set({ referral: { ...form.referral, brokerage: e.target.value } })} style={inp} />
             <input placeholder="Referral fee %" type="number" value={form.referral_fee_pct} onChange={e => set({ referral_fee_pct: e.target.value })} style={inp} />
-            {partnerActions({ ...form.referral, user_id: null })}
+            {partnerActions(form.referral)}
           </div>
         </div>
       )}
@@ -147,8 +154,7 @@ export default function DealSharingPanel({ txId, onChanged }) {
               <input placeholder="Their brokerage (if different)" value={c.brokerage || ""} onChange={e => setCo(i, { brokerage: e.target.value })} style={inp} />
               <input placeholder="Their share %" type="number" value={c.share_pct ?? ""} onChange={e => setCo(i, { share_pct: e.target.value })} style={inp} />
               <button onClick={() => set({ coAgents: form.coAgents.filter((_, j) => j !== i) })} title="Remove" style={{ border: "none", background: "none", cursor: "pointer", fontSize: 16 }}>✕</button>
-              {partnerActions(c)}
-              {c.user_id && <div style={{ gridColumn: "1 / -1", fontSize: 11.5, color: C.blue }}>✓ Uses TransactPro{c.same_brokerage ? " (your brokerage)" : " (another brokerage)"} — this deal shows up in their own app with their own share.</div>}
+              {coAgentStatus(c)}
             </div>
           ))}
           <datalist id="coagent-suggestions">
@@ -185,21 +191,24 @@ export default function DealSharingPanel({ txId, onChanged }) {
           <div onClick={e => e.stopPropagation()} style={{ background: "#fff", borderRadius: 14, width: "100%", maxWidth: 520, margin: "auto", padding: 20 }}>
             <div style={{ fontSize: 17, fontWeight: 800, marginBottom: 4 }}>Review before sending</div>
             <div style={{ fontSize: 13, color: C.muted, marginBottom: 12 }}>To: <b>{invite.to}</b> &lt;{invite.toEmail}&gt; · nothing sends until you press Send.</div>
-            {invite.endpoint === "app-invite" && invite.consent && <div style={{ fontSize: 12, color: C.blue, background: C.gray, borderRadius: 8, padding: "8px 10px", marginBottom: 10 }}>This email already has a client login. Nothing changes until <b>they</b> tap their private link and set a password — then the same email also gets an agent login. Keep <b>{"{{ADD_AGENT_LOGIN_LINK}}"}</b> in the message.</div>}
-            {invite.endpoint === "app-invite" && !invite.existing && !invite.consent && <div style={{ fontSize: 12, color: C.blue, background: C.gray, borderRadius: 8, padding: "8px 10px", marginBottom: 10 }}>Sending creates their free login. Keep <b>{"{{SET_PASSWORD_LINK}}"}</b> in the message — it becomes their private set-password link.</div>}
+            {invite.kind === "coagent" && <div style={{ fontSize: 12, color: C.blue, background: C.gray, borderRadius: 8, padding: "8px 10px", marginBottom: 10 }}>
+              {invite.mode === "linked" ? <>They already have a TransactPro agent login — the deal is added to their My Deals as soon as you send this.</>
+                : invite.mode === "add_agent_login" ? <>This email already has a client login. Nothing changes until <b>they</b> open their private link and pick a password — then the same email also has an agent login. Keep <b>{"{{JOIN_LINK}}"}</b> in the message.</>
+                : <>They don't have TransactPro yet. Their private link sets up a free login with a password <b>they</b> pick. Keep <b>{"{{JOIN_LINK}}"}</b> in the message.</>}
+            </div>}
             <input value={invite.subject} onChange={e => setInvite(v => ({ ...v, subject: e.target.value }))} style={{ ...inp, marginBottom: 10 }} />
             <textarea value={invite.body} onChange={e => setInvite(v => ({ ...v, body: e.target.value }))} rows={11} style={{ ...inp, resize: "vertical" }} />
             <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 12 }}>
               <button onClick={() => setInvite(null)} style={{ padding: "9px 16px", borderRadius: 8, border: "1px solid " + C.border, background: "#fff", fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>Cancel</button>
               <button onClick={async () => {
-                const r = await fetch(API + "/transactions/" + txId + "/partners/" + invite.pid + "/" + (invite.endpoint || "invite"), { method: "POST", headers, body: JSON.stringify({ confirm: true, subject: invite.subject, body: invite.body }) });
+                const url = invite.kind === "coagent" ? "/transactions/" + txId + "/coagents/" + invite.pid + "/invite" : "/transactions/" + txId + "/partners/" + invite.pid + "/invite";
+                const r = await fetch(API + url, { method: "POST", headers, body: JSON.stringify({ confirm: true, subject: invite.subject, body: invite.body }) });
                 const x = await r.json();
                 if (!r.ok || !x.success) { alert(x.error || "Couldn't send"); return; }
                 setInvite(null);
-                setMsg(invite.endpoint === "app-invite"
-                  ? (x.consentSent ? `✅ Sent. ${invite.to}'s email already had a client login — when they tap the link and set a password, it gets an agent login too and this deal opens in their app with full access.`
-                    : `✅ ${invite.to} ${x.created ? "has a free TransactPro login — the email with their set-password link is on its way" : "is linked to their TransactPro account"}. The deal opens in their app with full access.`)
-                  : `✅ Partner link sent to ${invite.to}.`);
+                setMsg(invite.kind !== "coagent" ? `✅ Partner link sent to ${invite.to}.`
+                  : x.mode === "linked" ? `✅ ${invite.to} is working this deal — it's in their TransactPro app now.`
+                  : `✅ Invite sent to ${invite.to}. When they open it and pick a password, the deal opens in their app (status changes to "Working this deal").`);
                 load();
               }} style={{ padding: "9px 18px", borderRadius: 8, border: "none", background: C.red, color: "#fff", fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>✅ Send</button>
             </div>
@@ -215,12 +224,16 @@ export default function DealSharingPanel({ txId, onChanged }) {
               fontWeight: l.kind === "result" || l.kind === "brokerage_total" || l.kind === "gross" ? 800 : 500,
               color: l.kind === "result" ? "#166534" : l.kind === "brokerage_total" ? C.blue : l.kind === "info" ? C.muted : C.text,
               borderTop: l.kind === "result" ? "1px solid " + C.border : "none" }}>
-              <span>{l.label}</span><span>{money(l.amount)}</span>
+              {/* A co-agent viewing: "Your net" in the deal's calculation is the deal agent's. */}
+              <span>{l.kind === "result" && d.viewer === "coagent" ? `${d.ownerName || "Deal agent"}'s net` : l.label}</span><span>{money(l.amount)}</span>
             </div>
           ))}
           {(calc.coAgents || []).map((c, i) => (
             <div key={i} style={{ display: "flex", justifyContent: "space-between", fontSize: 12.5, color: C.muted }}><span>{c.name}'s net</span><span>{money(c.net)}</span></div>
           ))}
+          {d.viewer === "coagent" && d.agent_net_mine != null && (
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, fontWeight: 800, color: "#166534", paddingTop: 4 }}><span>Your net</span><span>{money(d.agent_net_mine)}</span></div>
+          )}
         </div>
       )}
     </div>

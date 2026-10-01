@@ -12,7 +12,7 @@ import MilestoneActionPublic from './MilestoneActionPublic'
 import { WelcomeReceivedPublic } from './WelcomeReceipts'
 import PortalMagicLogin from './PortalMagicLogin'
 import PartnerPortal from './PartnerPortal'
-import AddAgentLogin from './AddAgentLogin'
+import CoagentJoin from './CoagentJoin'
 import { ReferralUpdatePublic } from './ReferralsOutPage'
 import TcIntakePublic from './TcIntakePublic'
 import FillInfoPublic from './FillInfoPublic'
@@ -54,7 +54,7 @@ window.fetch = async function patchedFetch(input, init) {
       const isPublicPath = path.startsWith('/upload/') || path.startsWith('/reset-password') ||
                            path.startsWith('/form-download/') || path.startsWith('/upload-contract/') ||
                            path.startsWith('/review-offers/') || path.startsWith('/milestone-action/') || path.startsWith('/welcome-received/') ||
-                           path.startsWith('/tc-intake/') || path.startsWith('/portal/') || path.startsWith('/fill-info/') || path.startsWith('/partner/') || path.startsWith('/referral-update/') || path.startsWith('/add-agent-login/');
+                           path.startsWith('/tc-intake/') || path.startsWith('/portal/') || path.startsWith('/fill-info/') || path.startsWith('/partner/') || path.startsWith('/referral-update/') || path.startsWith('/add-agent-login/') || path.startsWith('/join-deal/');
       if (!isPublicPath) {
         __reloadingForAuth = true;
         // A suspended account gets its own message — "session expired" would send
@@ -106,9 +106,9 @@ else if (path.startsWith('/form-download/')) {
 } else if (path.startsWith('/portal/')) {
   const token = path.split('/portal/')[1];
   Root = <PortalMagicLogin urlToken={token} />;
-} else if (path.startsWith('/add-agent-login/')) {
-  // A co-agent adds an agent login to their own (client) account — consent link.
-  Root = <AddAgentLogin urlToken={path.split('/add-agent-login/')[1]} />;
+} else if (path.startsWith('/join-deal/') || path.startsWith('/add-agent-login/')) {
+  // A co-agent joins the deal from their invite (older /add-agent-login links too).
+  Root = <CoagentJoin urlToken={path.split(/\/(?:join-deal|add-agent-login)\//)[1]} />;
 } else if (path.startsWith('/referral-update/')) {
   // One-tap status update from a referral partner (no login).
   Root = <ReferralUpdatePublic urlToken={path.split('/referral-update/')[1]} />;

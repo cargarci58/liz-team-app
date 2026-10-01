@@ -8291,9 +8291,9 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
                 <div style={{ fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>Lockbox / Gate / Alarm Codes</div>
                 <textarea value={editTxForm.propertyAccess || ""} onChange={e => setEditTxForm(f => ({ ...f, propertyAccess: e.target.value }))} placeholder="Lockbox code, gate code, special instructions..." style={{ width: "100%", padding: "10px 14px", borderRadius: 8, border: "1.5px solid #CCC", fontSize: 14, fontFamily: "inherit", boxSizing: "border-box", minHeight: 60, resize: "vertical" }} />
               </div>
-              {/* Commission terms are the deal agent's — hidden for coordinators and
-                  co-agents (the server keeps them unchanged on a co-agent's save). */}
-              <div style={{ background: "#F4F4F4", borderRadius: 10, padding: 16, marginBottom: 16, display: isCoordinator || tx.isCoAgentView ? "none" : "block" }}>
+              {/* Commission terms — hidden for coordinators only. Co-agents see and
+                  edit them like the deal's agent (Carlos 10/1: "same as owner"). */}
+              <div style={{ background: "#F4F4F4", borderRadius: 10, padding: 16, marginBottom: 16, display: isCoordinator ? "none" : "block" }}>
                 <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 12, color: "#111" }}>Commission Details</div>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
                   {[["Listing Agent Commission %", "commissionListing"], ["Buyer Agent Commission %", "commissionBuyer"], ["Transaction Fee", "transactionFee"], ["Brokerage Split %", "brokerageSplit"], ["Office Flat Fee", "officeFlatFee"]].map(([label, field]) => (
