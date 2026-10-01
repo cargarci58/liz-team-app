@@ -40,6 +40,7 @@ const TASK_ICONS = {
   closing_prep:      "🏠",
   lead_conversion:   "🌱",
   inbound_email_reply: "💬",
+  offer_counter:     "🔁",
   chase_reply_received: "💬",
   chase_opt_out:     "⚠️",
   price_reduction:   "💰",

@@ -268,7 +268,7 @@ export function CounterModal({ uploadId, address, onClose, onDone }) {
               </div>
               {counter.status === "awaiting_seller" && (
                 <div style={{ background: C.amberBg, border: "1px solid #F5D98B", borderRadius: 10, padding: "10px 12px", fontSize: 13, color: "#7A5C00", marginBottom: 12 }}>
-                  ⏳ Waiting for your seller's OK in their portal. Let them know it's there. You'll get a Win the Day card when they approve — then come back here (Offers panel → Continue counter) and send.
+                  ⏳ Waiting for your seller's OK in their portal. Let them know it's there. You'll get a Win the Day card when they approve — then come back here (deal → Overview → Pending Offers → Continue counter) and send.
                 </div>
               )}
               <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) minmax(0,1fr)", gap: 10, marginBottom: 10 }}>

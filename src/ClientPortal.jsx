@@ -365,6 +365,49 @@ function winLabel(name) {
   return strongClaimFor(name) || humanizeForClient(name).label;
 }
 
+// ── SELLER COUNTER APPROVAL — your agent wants to counter an offer ──
+// Approve the terms with one tap. This is NOT a signature: the seller signs
+// last, after the buyer accepts the changes.
+function SellerCounterApprovalCard({ counters, headers, agentName, onDecided }) {
+  const [busy, setBusy] = useState(null);
+  const decide = async (id, decision) => {
+    let note = "";
+    if (decision === "decline") {
+      note = window.prompt(`Tell ${agentName || "your agent"} what you'd change (optional):`) || "";
+    } else if (!window.confirm(`Approve this counter-offer? ${agentName || "Your agent"} will send it to the buyer's agent.\n\nYou are not signing anything yet — you sign last, after the buyer accepts.`)) return;
+    setBusy(id);
+    try {
+      const r = await fetch(API + "/client/offer-counters/" + id + "/approve", { method: "POST", headers, body: JSON.stringify({ decision, note }) });
+      const d = await r.json();
+      if (!d.success) throw new Error(d.error || "Could not save");
+      onDecided && onDecided();
+    } catch (e) { alert("Could not save: " + e.message); } finally { setBusy(null); }
+  };
+  return (
+    <div style={{ background: C.white, borderRadius: 14, padding: 18, marginBottom: 14, boxShadow: "0 1px 4px rgba(0,0,0,0.08)", border: "2px solid " + C.red }}>
+      <div style={{ fontSize: 16, fontWeight: 800, color: C.black, marginBottom: 4 }}>🔁 Your OK on a counter-offer</div>
+      <div style={{ fontSize: 13, color: C.gray, marginBottom: 12 }}>
+        {agentName || "Your agent"} would like to counter with the changes below. Approving lets them send it to the buyer's agent. You're not signing anything yet — you sign last, after the buyer accepts.
+      </div>
+      {counters.map(c => (
+        <div key={c.id} style={{ border: "1px solid " + C.border, borderRadius: 12, padding: 14, marginBottom: 10 }}>
+          <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 6 }}>Offer from {c.buyers && c.buyers.length ? c.buyers.join(" & ") : "the buyer"}</div>
+          {(c.changes || []).map((ch, i) => (
+            <div key={i} style={{ fontSize: 13.5, padding: "4px 0", borderBottom: "1px solid " + C.lightGray }}>
+              <strong>{ch.label}:</strong> {ch.after} <span style={{ color: C.gray }}>(their offer: {ch.before})</span>
+            </div>
+          ))}
+          {c.expiresAt && <div style={{ fontSize: 12, color: C.gray, marginTop: 6 }}>The counter would be good until {new Date(c.expiresAt).toLocaleString("en-US", { timeZone: "America/New_York", weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })} ET.</div>}
+          <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
+            <button onClick={() => decide(c.id, "approve")} disabled={!!busy} style={{ flex: 1, minWidth: 140, background: C.success, color: "#fff", border: "none", borderRadius: 10, padding: "11px 0", fontSize: 14, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>{busy === c.id ? "Saving…" : "✓ Approve the counter"}</button>
+            <button onClick={() => decide(c.id, "decline")} disabled={!!busy} style={{ flex: 1, minWidth: 140, background: "#fff", color: C.red, border: "1px solid " + C.red, borderRadius: 10, padding: "11px 0", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>I'd change something</button>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 // ── SELLER OFFERS CARD — review pending offers & accept/decline in-portal ──
 // The seller sees each offer's key terms and can record a decision. The agent
 // still does the final Approve (which moves the deal Under Contract), so this is
@@ -1671,6 +1714,16 @@ export default function ClientPortal({ user, onLogout, previewTxId, onExitPrevie
       .catch(() => { setOffers([]); setOffersContext(null); });
   }, [tx?.id, offersReload]);
 
+  // Seller portal: a counter-offer the agent wants the seller's OK on (one tap).
+  const [pendingCounters, setPendingCounters] = useState([]);
+  useEffect(() => {
+    if (!tx?.id) { setPendingCounters([]); return; }
+    fetch(API + "/client/offer-counters/" + tx.id, { headers })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => setPendingCounters(d && d.success ? (d.counters || []) : []))
+      .catch(() => setPendingCounters([]));
+  }, [tx?.id, offersReload]);
+
   useEffect(() => {
     activeTabRef.current = activeTab;
     if (activeTab === "chat") setChatUnread(0);
@@ -2067,6 +2120,10 @@ export default function ClientPortal({ user, onLogout, previewTxId, onExitPrevie
               <div>
                 <JourneyHero tx={tx} stage={stage} />
                 <AgentCard name={agentName} title={agentTitle} brokerage={brokerage} phone={agentPhone} email={agentEmail} photo={agentPhoto} brand={brand} />
+                {isSellerSide && pendingCounters.length > 0 && (
+                  <SellerCounterApprovalCard counters={pendingCounters} headers={headers} agentName={agentName}
+                    onDecided={() => setOffersReload(n => n + 1)} />
+                )}
                 {isSellerSide && offers.length > 0 && (
                   <SellerOffersCard offers={offers} context={offersContext} headers={headers} agentName={agentName}
                     onDecided={() => setOffersReload(n => n + 1)} />
