@@ -4809,7 +4809,9 @@ function MarketingLogPanel({ tx }) {
   const [loading, setLoading] = useState(true);
   const [adding, setAdding] = useState(false);
   const [custom, setCustom] = useState("");
-  const [date, setDate] = useState("");
+  // Starts on TODAY (Eastern) and is always visible — the agent can back-date
+  // an entry (photos taken yesterday, logged today).
+  const [date, setDate] = useState(() => today());
   const token = localStorage.getItem("tp_token") || "";
   const hdrs = { "Content-Type": "application/json", Authorization: "Bearer " + token };
   const load = async () => {
@@ -4854,7 +4856,10 @@ function MarketingLogPanel({ tx }) {
       </div>
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginBottom: 16 }}>
         <input value={custom} onChange={e => setCustom(e.target.value)} placeholder="Something else you did…" style={{ flex: "1 1 200px", fontSize: 14, padding: "9px 12px", border: `1px solid ${COLORS.border}`, borderRadius: 8, fontFamily: "inherit" }} />
-        <input type="date" value={date} onChange={e => setDate(e.target.value)} style={{ fontSize: 13, padding: "9px 10px", border: `1px solid ${COLORS.border}`, borderRadius: 8, fontFamily: "inherit" }} />
+        <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: COLORS.muted, fontWeight: 600 }}>
+          Date done
+          <input type="date" value={date} max={today()} onChange={e => setDate(e.target.value)} style={{ fontSize: 13, padding: "9px 10px", border: `1px solid ${COLORS.border}`, borderRadius: 8, fontFamily: "inherit" }} />
+        </label>
         <button onClick={() => add("action", custom)} disabled={adding || !custom.trim()} style={{ background: COLORS.navy, color: "#fff", border: "none", borderRadius: 8, padding: "10px 16px", fontSize: 13, fontWeight: 700, cursor: custom.trim() ? "pointer" : "default", opacity: custom.trim() ? 1 : 0.5, fontFamily: "inherit" }}>Add</button>
       </div>
       {loading ? <div style={{ fontSize: 13, color: COLORS.muted }}>Loading…</div>
@@ -6631,6 +6636,10 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
   });
   const openEditTx = () => { setEditTxForm(buildEditTxForm(tx)); setShowEditTx(true); };
   const [statusChangeModal, setStatusChangeModal] = useState(null);
+  // Contract → Active asks "fell through, or just switch?" in-app. It used to be
+  // a window.confirm whose CANCEL meant "switch to Active and wipe the contract
+  // fields" — so Cancel (or a browser that blocks pop-ups) silently reset the deal.
+  const [toActiveAsk, setToActiveAsk] = useState(false);
   const [selectedTasks, setSelectedTasks] = useState([]);
   const [activities, setActivities] = useState([]);
   const [activitiesLoaded, setActivitiesLoaded] = useState(false);
@@ -6795,15 +6804,8 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
           // Flipping a contract straight to Active loses the cleanup — offer
           // the proper flow first, but never force it.
           if (["Under Contract","Inspection","Appraisal","Clear to Close"].includes(tx.status) && newStatus === "Active") {
-            const useFlow = window.confirm("Did the contract fall through?\n\nOK = run the full Fall-Through cleanup (recommended): archives the whole contract record for compliance, files its documents to a \"Last contract\" folder, clears the other side's people, and resets the timeline.\n\nCancel = just switch to Active (keeps all the people and checkmarks).");
             e.target.value = tx.status;
-            if (useFlow) { setShowFallThrough(true); return; }
-            const clearedTasks = tx.tasks.map(t => {
-              const tmpl = (FLORIDA_TASK_TEMPLATES[tx.type] || []).find(tmp => tmp.name === t.name);
-              if (tmpl && tmpl.phase === "contract") return { ...t, dueDate: null, status: "Pending" };
-              return t;
-            });
-            update({ status: newStatus, tasks: clearedTasks, closingDate: null, executedDate: null, contractPrice: null, commissionListing: null, commissionBuyer: null, transactionFee: null, brokerageSplit: null, officeFlatFee: null, commissionNotes: null });
+            setToActiveAsk(true);   // nothing changes until they pick an option in the box
             return;
           }
           if (["Closed","On Hold","Cancelled"].includes(tx.status) && newStatus === "Active") {
@@ -7827,6 +7829,38 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
             }}>Send Invite Now</Btn>
           </div>
         </Modal>
+      )}
+      {/* Contract → Active. Three explicit choices; closing the box or tapping
+          outside it changes NOTHING. */}
+      {toActiveAsk && (
+        <div onClick={() => setToActiveAsk(false)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 2000, display: "flex", alignItems: "flex-start", justifyContent: "center", padding: 16, fontFamily: "system-ui, sans-serif", overflowY: "auto" }}>
+          <div role="dialog" aria-modal="true" aria-labelledby="to-active-title" onClick={e => e.stopPropagation()} style={{ background: "#fff", borderRadius: 14, width: "100%", maxWidth: 480, boxShadow: "0 8px 40px rgba(0,0,0,0.2)", overflow: "hidden", margin: "auto" }}>
+            <div style={{ background: "#0F2044", padding: "16px 24px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div id="to-active-title" style={{ color: "#fff", fontWeight: 700, fontSize: 16 }}>Move this deal back to Active?</div>
+              <button onClick={() => setToActiveAsk(false)} aria-label="Close — keep the deal as it is" style={{ background: "none", border: "none", color: "rgba(255,255,255,0.8)", fontSize: 24, cursor: "pointer", lineHeight: 1 }}>×</button>
+            </div>
+            <div style={{ padding: 24, display: "flex", flexDirection: "column", gap: 12 }}>
+              <div style={{ fontSize: 15, color: COLORS.text, lineHeight: 1.5 }}>This deal is <strong>{tx.status}</strong>. What happened?</div>
+              <button onClick={() => { setToActiveAsk(false); setShowFallThrough(true); }} style={{ textAlign: "left", background: "#C0392B", color: "#fff", border: "none", borderRadius: 10, padding: "12px 16px", cursor: "pointer", fontFamily: "inherit" }}>
+                <div style={{ fontSize: 15, fontWeight: 800 }}>The contract fell through (recommended)</div>
+                <div style={{ fontSize: 13, opacity: 0.92, marginTop: 3, lineHeight: 1.45 }}>Saves the whole contract record, keeps its documents in that contract's folder marked "fell through", removes the other side's people, and starts a fresh timeline.</div>
+              </button>
+              <button onClick={() => {
+                setToActiveAsk(false);
+                const clearedTasks = tx.tasks.map(t => {
+                  const tmpl = (FLORIDA_TASK_TEMPLATES[tx.type] || []).find(tmp => tmp.name === t.name);
+                  if (tmpl && tmpl.phase === "contract") return { ...t, dueDate: null, status: "Pending" };
+                  return t;
+                });
+                update({ status: "Active", tasks: clearedTasks, closingDate: null, executedDate: null, contractPrice: null, commissionListing: null, commissionBuyer: null, transactionFee: null, brokerageSplit: null, officeFlatFee: null, commissionNotes: null });
+              }} style={{ textAlign: "left", background: "#fff", color: COLORS.text, border: `1px solid ${COLORS.border}`, borderRadius: 10, padding: "12px 16px", cursor: "pointer", fontFamily: "inherit" }}>
+                <div style={{ fontSize: 15, fontWeight: 700 }}>Just switch it to Active</div>
+                <div style={{ fontSize: 13, color: COLORS.muted, marginTop: 3, lineHeight: 1.45 }}>Keeps the people, but clears the contract date, closing date, price and commission, and resets the contract steps.</div>
+              </button>
+              <button onClick={() => setToActiveAsk(false)} style={{ background: "none", border: "none", color: "#0c4a6e", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", padding: "8px 0 0" }}>Never mind — keep it {tx.status}</button>
+            </div>
+          </div>
+        </div>
       )}
       {statusChangeModal && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 2000, display: "flex", alignItems: "flex-start", justifyContent: "center", padding: 16, fontFamily: "system-ui, sans-serif", overflowY: "auto" }}>
@@ -10827,14 +10861,30 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
   // The whole checklist used to be housekeeping — an agent could finish every
   // step and never once see a timeline, which is the thing they actually bought.
   // Ask for a deal early, right after the profile, and let the rest wait.
-  onboardSteps.push({ key: "firstdeal", emoji: "🏡", title: "Add your first deal", desc: "Drop in a contract you're already working and watch the app read it and build the whole timeline — or start one from scratch in three steps. This is the part that makes everything else turn on.", where: "🏆 Win The Day, or ➕ New Deal up top", go: () => { setShowReports(false); setShowCalendar(false); setView("home"); } });
+  // page:true = opens a full PAGE (not a pop-up), so the walkthrough steps aside
+  // and leaves a "Back to setup" pill instead of covering the page.
+  // markOnOpen:false = ticked only by the real thing (having a deal), never by tapping.
+  onboardSteps.push({ key: "firstdeal", page: true, markOnOpen: false, emoji: "🏡", title: "Add your first deal", desc: "Drop in a contract you're already working and watch the app read it and build the whole timeline — or start one from scratch in three steps. This is the part that makes everything else turn on.", where: "➕ New Deal up top", go: () => { setShowReports(false); setShowCalendar(false); setView("new"); } });
   onboardSteps.push({ key: "emailcapture", emoji: "📥", title: "Catch every deal email (2 min, once)", desc: "Turn on email forwarding so messages that title companies and lenders send straight to your inbox file themselves to the right deal — no more copy-pasting into the app, ever.", where: "⚙️ Menu → 👤 My Profile → 📥 Catch deal emails", go: () => setShowAgentProfile(true) });
-  onboardSteps.push({ key: "goals", emoji: "🎯", title: "Set up your goals", desc: "Tell the app what you want to earn this year and it works backwards to the calls you need to make each day.", where: "🧰 Tools → 🎯 Growth Plan", go: () => { setShowReports(false); setShowCalendar(false); setView("growthplan"); } });
+  onboardSteps.push({ key: "goals", page: true, emoji: "🎯", title: "Set up your goals", desc: "Tell the app what you want to earn this year and it works backwards to the calls you need to make each day.", where: "🧰 Tools → 🎯 Growth Plan", go: () => { setShowReports(false); setShowCalendar(false); setView("growthplan"); } });
   onboardSteps.push({ key: "tour", tour: true, emoji: "🎬", title: "Take the 60-second tour", desc: "A quick look at what every button does — then you're ready to roll." });
+  // True while the agent is ON a page a setup step sent them to: the walkthrough
+  // hides and a small "Back to setup" pill stays on screen. (Pop-up steps —
+  // Profile, Company — already hide it while open and bring it back on close.)
+  const [onboardAway, setOnboardAway] = useState(false);
   const onboardTakeMeThere = (step) => {
+    if (step.markOnOpen !== false) {
+      const nextDone = new Set(onboard.done); nextDone.add(step.key);
+      persistOnboard(true, nextDone);
+    }
+    if (step.page) setOnboardAway(true);
+    step.go();
+  };
+  // "Skip this step" — the only way past a step that ticks itself (first deal)
+  // without doing it, short of turning setup off.
+  const onboardSkipStep = (step) => {
     const nextDone = new Set(onboard.done); nextDone.add(step.key);
     persistOnboard(true, nextDone);
-    step.go();
   };
   const onboardStartTour = (step) => {
     const nextDone = new Set(onboard.done); nextDone.add(step.key);
@@ -10842,7 +10892,7 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
     setView("dashboard");   // spotlight tour highlights the dashboard toolbar
     setShowTour(true);
   };
-  const restartTour = () => persistOnboard(true, new Set());
+  const restartTour = () => { setOnboardAway(false); persistOnboard(true, new Set()); };
 
   useEffect(() => {
     // Contacts saved to DB via API
@@ -11592,6 +11642,7 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
         <HelpCenter
           apiBase={API}
           token={localStorage.getItem("tp_token") || ""}
+          userId={currentUser?.id}
           openSignal={helpSignal}
           feedbackSignal={feedbackSignal}
           supportSignal={supportSignal}
@@ -11599,7 +11650,7 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
           isAdmin={isAdminUser}
           /* Growth Plan is the ONE place the income goal gets set — see SettingsMenu. */
           onGoals={() => { setShowReports(false); setShowCalendar(false); setView("growthplan"); }}
-          onFirstDeal={transactions.length === 0 ? () => { setShowReports(false); setShowCalendar(false); setView("home"); } : null}
+          onFirstDeal={transactions.length === 0 ? () => { setShowReports(false); setShowCalendar(false); setView("new"); } : null}
           onProfile={() => setShowAgentProfile(true)}
           onCompany={isAdminUser ? () => setShowCompanySettings(true) : null}
           onRestartTour={restartTour}
@@ -11609,7 +11660,7 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
       )}
 
       {/* First-time welcome walkthrough — hides while a target screen or the tour is open so the user can act */}
-      {onboard.active && !isFreeGuest && !showTour && !showAgentProfile && !showCompanySettings && !showReports && (
+      {onboard.active && !isFreeGuest && !showTour && !showAgentProfile && !showCompanySettings && !showReports && !onboardAway && (
         <OnboardingGuide
           steps={onboardSteps}
           /* Every other step is ticked by tapping "Take me there" — an intention.
@@ -11617,12 +11668,26 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
              checklist can't be finished without the one step that matters. */
           doneKeys={transactions.length > 0 ? new Set([...onboard.done, "firstdeal"]) : onboard.done}
           onTakeMeThere={onboardTakeMeThere}
+          onSkipStep={onboardSkipStep}
           onStartTour={onboardStartTour}
           onWatchTour={() => setTourVideo({ cut: "marketing" })}
           onDismiss={() => persistOnboard(false, onboard.done, { dismissed: true })}
           onFinish={() => persistOnboard(false, onboard.done, { finished: true })}
         />
       )}
+
+      {/* Setup sent them to a page (New Deal, Growth Plan): the walkthrough is
+          out of the way, and this pill brings it back where they left off. */}
+      {onboard.active && onboardAway && !isFreeGuest && !showTour && (() => {
+        const doneNow = transactions.length > 0 ? new Set([...onboard.done, "firstdeal"]) : onboard.done;
+        const idx = onboardSteps.findIndex(s => !doneNow.has(s.key));
+        return (
+          <button onClick={() => setOnboardAway(false)}
+            style={{ position: "fixed", left: 16, bottom: 16, zIndex: 2500, background: "#0c4a6e", color: "#fff", border: "none", borderRadius: 999, padding: "11px 18px", fontSize: 14, fontWeight: 800, cursor: "pointer", fontFamily: "inherit", boxShadow: "0 6px 20px rgba(0,0,0,0.25)" }}>
+            ← Back to setup{idx >= 0 ? ` · step ${idx + 1} of ${onboardSteps.length}` : " · all done"}
+          </button>
+        );
+      })()}
 
       {/* 🎬 Narrated video tour — day-one screen, welcome splash, Help Center */}
       {tourVideo && (

@@ -19,7 +19,7 @@ import { useState } from 'react';
 
 const RED = '#C0392B';
 
-export default function OnboardingGuide({ steps, doneKeys, onTakeMeThere, onStartTour, onWatchTour, onDismiss, onFinish }) {
+export default function OnboardingGuide({ steps, doneKeys, onTakeMeThere, onSkipStep, onStartTour, onWatchTour, onDismiss, onFinish }) {
   // The "current" step = first one not yet done.
   const currentIdx = steps.findIndex(s => !doneKeys.has(s.key));
   const allDone = currentIdx === -1;
@@ -57,7 +57,7 @@ export default function OnboardingGuide({ steps, doneKeys, onTakeMeThere, onStar
           <div style={{ fontSize: 44, marginBottom: 8 }}>🎉</div>
           <div style={{ fontSize: 22, fontWeight: 800, color: '#111' }}>You're all set!</div>
           <div style={{ fontSize: 14, color: '#555', margin: '10px 0 22px', lineHeight: 1.55 }}>
-            Nice work. You can re-open this anytime from the <strong>❓ Help</strong> button (bottom-right) or <strong>⚙️ Menu → ❓ Help</strong>.
+            Nice work. You can re-open this anytime from <strong>⚙️ Menu → ❓ Help &amp; Guides</strong>.
           </div>
           <button onClick={onFinish} style={primaryBtn}>Go to my dashboard →</button>
         </div>
@@ -100,6 +100,11 @@ export default function OnboardingGuide({ steps, doneKeys, onTakeMeThere, onStar
                     👉 Where to click: <strong>{s.where}</strong> (top-right of your screen).
                   </div>
                   <button onClick={() => onTakeMeThere(s)} style={primaryBtn}>Show me — open it now →</button>
+                  {onSkipStep && (
+                    <div>
+                      <button onClick={() => onSkipStep(s)} style={{ ...linkBtn, marginTop: 8, color: '#0c4a6e', textDecoration: 'underline' }}>Skip this step for now</button>
+                    </div>
+                  )}
                 </>
               ))}
             </div>
@@ -108,7 +113,7 @@ export default function OnboardingGuide({ steps, doneKeys, onTakeMeThere, onStar
       })}
 
       <div style={{ fontSize: 12, color: '#999', textAlign: 'center', marginTop: 6 }}>
-        You can turn this off anytime — it'll always be in the ❓ Help button.
+        You can turn this off anytime — it's always in ⚙️ Menu → ❓ Help &amp; Guides → Start Here.
       </div>
     </Overlay>
   );

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 // ═══════════════════════════════════════════════════════════════
 // FirstTimeHere — the three-line "what is this page for" strip.
@@ -44,11 +44,32 @@ const GUIDE_GOLD = "#FBBF24";  // the action button — the one thing to press
 
 const storeKey = (userId, pageKey) => `tp_tip_seen:${userId || "anon"}:${pageKey}`;
 
+// "Hide tips on all pages" — one switch for every strip (testers read the
+// collapsed "First time here?" pill as "Close didn't work"). Turned back on
+// from ⚙️ Menu → ❓ Help & Guides → Start Here. Every mounted strip listens
+// for the change event so they all disappear/reappear at once.
+const allOffKey = (userId) => `tp_tips_off:${userId || "anon"}`;
+const TIPS_EVENT = "tp-page-tips-changed";
+export function pageTipsAreOff(userId) {
+  try { return localStorage.getItem(allOffKey(userId)) === "1"; } catch { return false; }
+}
+export function setPageTipsOff(userId, off) {
+  try { off ? localStorage.setItem(allOffKey(userId), "1") : localStorage.removeItem(allOffKey(userId)); } catch { /* private mode */ }
+  try { window.dispatchEvent(new Event(TIPS_EVENT)); } catch { /* ignore */ }
+}
+
 export default function FirstTimeHere({ pageKey, tip, userId, onAction, onShowHow, compact = false, scenes = null, onWatch = null }) {
   const [open, setOpen] = useState(() => {
     try { return localStorage.getItem(storeKey(userId, pageKey)) !== "1"; } catch { return true; }
   });
-  if (!tip) return null;
+  const [allOff, setAllOff] = useState(() => pageTipsAreOff(userId));
+  useEffect(() => {
+    const sync = () => setAllOff(pageTipsAreOff(userId));
+    sync();
+    window.addEventListener(TIPS_EVENT, sync);
+    return () => window.removeEventListener(TIPS_EVENT, sync);
+  }, [userId]);
+  if (!tip || allOff) return null;
   const hasClip = !!(onWatch && scenes && scenes.length);
 
   const dismiss = () => {
@@ -56,14 +77,25 @@ export default function FirstTimeHere({ pageKey, tip, userId, onAction, onShowHo
     try { localStorage.setItem(storeKey(userId, pageKey), "1"); } catch { /* private mode */ }
   };
   const reopen = () => setOpen(true);
+  const hideAll = () => setPageTipsOff(userId, true);
+  const hideAllBtn = (
+    <button onClick={hideAll}
+      style={{ background: "none", border: "none", color: "rgba(255,255,255,0.85)", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", padding: "4px 2px", textDecoration: "underline", flex: "0 0 auto" }}>
+      Hide tips on all pages
+    </button>
+  );
 
   // Collapsed: a quiet, always-present way back in.
   if (!open) {
     return (
-      <div data-tour="tips" style={{ display: "flex", justifyContent: "flex-end", padding: compact ? "6px 24px 0" : "8px 24px 0" }}>
+      <div data-tour="tips" style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 4, padding: compact ? "6px 24px 0" : "8px 24px 0" }}>
         <button onClick={reopen}
           style={{ background: GUIDE, border: "none", color: "#fff", borderRadius: 999, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", padding: "5px 12px" }}>
           {hasClip ? "🎬" : "💡"} First time here?
+        </button>
+        <button onClick={hideAll} aria-label="Hide tips on all pages" title="Hide tips on all pages"
+          style={{ background: "none", border: "none", color: "#6B7280", fontSize: 16, lineHeight: 1, cursor: "pointer", padding: "4px 6px", fontFamily: "inherit" }}>
+          ×
         </button>
       </div>
     );
@@ -83,6 +115,7 @@ export default function FirstTimeHere({ pageKey, tip, userId, onAction, onShowHo
             <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: "0.06em", textTransform: "uppercase", color: GUIDE_LABEL }}>First time here? · about {scenes.length > 1 ? scenes.length : "1"} minute{scenes.length > 1 ? "s" : ""}</div>
             <div style={{ fontSize: 14, color: "#fff", lineHeight: 1.45 }}>{tip.what}</div>
           </div>
+          {hideAllBtn}
           <button onClick={dismiss} aria-label="Got it, hide this"
             style={{ background: "rgba(255,255,255,0.14)", border: "1px solid rgba(255,255,255,0.35)", color: "#fff", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", padding: "4px 10px", flex: "0 0 auto" }}>
             Got it ×
@@ -108,6 +141,7 @@ export default function FirstTimeHere({ pageKey, tip, userId, onAction, onShowHo
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <span style={{ fontSize: 16 }}>💡</span>
           <span style={{ fontSize: 14, fontWeight: 800, color: "#fff", flex: 1, letterSpacing: "0.01em" }}>First time here?</span>
+          {hideAllBtn}
           <button onClick={dismiss} aria-label="Got it, hide this"
             style={{ background: "rgba(255,255,255,0.14)", border: "1px solid rgba(255,255,255,0.35)", color: "#fff", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", padding: "4px 10px" }}>
             Got it ×

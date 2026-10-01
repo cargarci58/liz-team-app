@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { pageTipsAreOff, setPageTipsOff } from './FirstTimeHere';
 
 // ═══════════════════════════════════════════════════════════════
 // HelpCenter — the app-wide "?" help. Three tabs:
@@ -149,7 +150,7 @@ export const GUIDE_SECTIONS = [
   },
 ];
 
-export default function HelpCenter({ apiBase, token, onGoals, onProfile, onCompany, onFirstDeal, onRestartTour, onTour, onVideo, isAdmin, openSignal, feedbackSignal, supportSignal, guideQuery }) {
+export default function HelpCenter({ apiBase, token, userId, onGoals, onProfile, onCompany, onFirstDeal, onRestartTour, onTour, onVideo, isAdmin, openSignal, feedbackSignal, supportSignal, guideQuery }) {
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState('start'); // start | guides | faqs | feedback
 
@@ -424,6 +425,10 @@ export default function HelpCenter({ apiBase, token, onGoals, onProfile, onCompa
                   )}
                   {onRestartTour && (
                     <button onClick={() => { setOpen(false); onRestartTour(); }} style={{ background: 'none', border: '1px solid #ddd', borderRadius: 8, padding: '9px 16px', fontSize: 13, fontWeight: 600, color: '#444', cursor: 'pointer', fontFamily: 'inherit', width: '100%' }}>↻ Replay the welcome walkthrough</button>
+                  )}
+                  {/* The "First time here?" tips were hidden on every page — one tap brings them back. */}
+                  {pageTipsAreOff(userId) && (
+                    <button onClick={() => { setPageTipsOff(userId, false); setOpen(false); }} style={{ marginTop: 8, background: 'none', border: '1px solid #ddd', borderRadius: 8, padding: '9px 16px', fontSize: 13, fontWeight: 600, color: '#444', cursor: 'pointer', fontFamily: 'inherit', width: '100%' }}>💡 Turn the "First time here?" tips back on</button>
                   )}
                 </div>
               )}
