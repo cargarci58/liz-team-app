@@ -109,8 +109,8 @@ export const PAGE_TIPS = {
   },
   "tx:overview:listing": {
     what: "The deal at a glance — status, key dates, price, and the one thing that needs doing next.",
-    doFirst: "When an offer comes in, tap \"Receive Offer\" and upload it. The app reads it and fills everything in.",
-    why: "An offer you upload becomes a full contract timeline in about a minute. An offer you type in takes an hour, and you'll miss a date.",
+    doFirst: "When an offer comes in, tap \"Receive Offer\" and upload it. Each offer then shows its step and the one thing to do next — Counter, or send it to your seller to sign.",
+    why: "If you counter, the app checks what comes back and flags anything the other side changed that you didn't ask for. Your seller signs last, only after everything matches.",
     guide: "Receive an offer",
     action: { label: "Receive an offer", key: "receiveOffer" },
   },
