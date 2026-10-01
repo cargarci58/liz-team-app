@@ -1,5 +1,6 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, Fragment } from "react";
 import OfferWizard from "./OfferWizard";
+import { TheirCounterModal, BuyerCounterPanel, useTheirCounters, counterForOffer, HOW_BUYER_COUNTERS } from "./BuyerCounterFlow";
 import { WelcomeEmailPreview } from "./App"; // review-gated welcome emails after Accept (safe: OffersTab is lazy-loaded)
 
 const API = "https://liz-team-server-api-production.up.railway.app";
@@ -90,6 +91,11 @@ export default function OffersTab({ tx, token, currentUser, createSignal = 0, on
   const [signModal, setSignModal] = useState(null);   // offer being sent for buyer e-signature
   const [offerMenu, setOfferMenu] = useState(null);    // offer id whose ⋯ menu is open
   const [offerMenuPos, setOfferMenuPos] = useState({ top: 0, left: 0 }); // fixed anchor (table wrapper clips absolute children)
+  // Seller countered our buyer's offer (BuyerCounterFlow.jsx).
+  const [countersKey, setCountersKey] = useState(0);
+  const [{ counters: theirCounters, loaded: countersLoaded }] = useTheirCounters(tx.id, countersKey);
+  const [theirCounterFor, setTheirCounterFor] = useState(null);
+  const [howCounters, setHowCounters] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -101,6 +107,7 @@ export default function OffersTab({ tx, token, currentUser, createSignal = 0, on
       const data = await r.json();
       if (!r.ok) throw new Error(data.error || "Failed to load offers");
       setOffers(data.offers || []);
+      setCountersKey(k => k + 1);
     } catch (e) {
       setError(e.message);
     } finally {
@@ -299,8 +306,10 @@ export default function OffersTab({ tx, token, currentUser, createSignal = 0, on
       <div style={{ marginBottom: 16 }}>
         <div style={{ fontSize: 22, fontWeight: 800 }}>📝 Offers</div>
         <div style={{ fontSize: 13, color: "#6b7280", marginTop: 2 }}>
-          {creating ? "Creating your offer…" : "Build your buyer's offer (FAR/BAR AS-IS), assemble the packet, and send it to the listing agent. Use the 📝 Create Offer button at the top to start a new one."}
+          {creating ? "Creating your offer…" : "Build your buyer's offer (FAR/BAR AS-IS), assemble the packet, and send it to the listing agent. Use the 📝 Create Offer button at the top to start a new one."}{" "}
+          <button onClick={() => setHowCounters(h => !h)} style={{ background: "none", border: "none", color: "#0c4a6e", textDecoration: "underline", cursor: "pointer", fontSize: 13, padding: 0, fontFamily: "inherit" }}>{howCounters ? "Hide" : "What if the seller counters?"}</button>
         </div>
+        {howCounters && HOW_BUYER_COUNTERS}
       </div>
 
       {error && (
@@ -338,8 +347,12 @@ export default function OffersTab({ tx, token, currentUser, createSignal = 0, on
               {offers.map(o => {
                 const meta = STATUS_META[o.status] || STATUS_META.draft;
                 const data = o.offer_data || {};
+                // The seller's counter on this offer (if any) + whether to show the counter panel under the row.
+                const ctr = counterForOffer(o, theirCounters);
+                const showPanel = countersLoaded && (!!ctr || o.status === "sent" || o.status === "countered");
                 return (
-                  <tr key={o.id} style={{ borderBottom: "1px solid #f3f4f6" }}>
+                  <Fragment key={o.id}>
+                  <tr style={{ borderBottom: showPanel ? "none" : "1px solid #f3f4f6" }}>
                     <td style={{ padding: "10px 12px" }}>
                       <span style={{ background: meta.bg, color: meta.color, padding: "2px 8px", borderRadius: 12, fontSize: 11, fontWeight: 700 }}>
                         {meta.label}
@@ -349,6 +362,9 @@ export default function OffersTab({ tx, token, currentUser, createSignal = 0, on
                       )}
                       {o.signing_status === "signed" && (
                         <div style={{ fontSize: 10, fontWeight: 700, color: "#15803d", marginTop: 4 }}>✍️ signed in-app</div>
+                      )}
+                      {o.parent_offer_id && (
+                        <div style={{ fontSize: 10, fontWeight: 700, color: "#0c4a6e", marginTop: 4 }}>🔁 Revision {o.revision_round || 2} — after the seller's counter</div>
                       )}
                     </td>
                     <td style={{ padding: "10px 12px", color: "#374151" }}>
@@ -372,6 +388,8 @@ export default function OffersTab({ tx, token, currentUser, createSignal = 0, on
                         else if (active && o.packet_pdf_key && !o.signed_doc_id) primary = ["✍️ Get buyer signatures", () => setSignModal(o), "#86198f"];
                         else if (active && o.signed_doc_id && o.status !== "sent" && o.status !== "countered") primary = ["📧 Send to listing agent", () => sendToListing(o), "#1E8449"];
                         else if (o.status === "accepted" && !o.executed_doc_id) primary = [execBusy && execTarget?.id === o.id ? "Uploading…" : "📜 Upload Executed Contract", () => pickExecuted(o), "#065f46"];
+                        // The seller countered this offer → the counter panel below drives what's next.
+                        if (ctr && o.status !== "accepted") primary = null;
                         const menuItems = [
                           { label: "✏️ Open the offer", fn: () => setWizardOfferId(o.id) },
                           o.packet_pdf_key && { label: "📄 View the packet", fn: () => viewPacket(o.id) },
@@ -384,12 +402,9 @@ export default function OffersTab({ tx, token, currentUser, createSignal = 0, on
                         ].filter(Boolean);
                         return (
                           <div style={{ display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "flex-end", alignItems: "center" }}>
-                            {(o.status === "sent" || o.status === "countered") && (
-                              <span style={{ fontSize: 11.5, color: "#92400e", fontWeight: 700 }}>⏳ Waiting on the seller —</span>
-                            )}
                             {primary && btn(primary[0], primary[1], primary[2], "#fff", true)}
-                            {(o.status === "ready" || o.status === "sent" || o.status === "countered") && btn("✅ Seller accepted", () => acceptOffer(o.id), "#16a34a", "#fff", true)}
-                            {(o.status === "sent" || o.status === "countered") && btn("❌ Declined", () => setOfferStatus(o.id, "rejected", "DECLINED by the seller"), "#fee2e2", "#7f1d1d")}
+                            {!ctr && (o.status === "ready" || o.status === "sent" || o.status === "countered") && btn("✅ Seller accepted", () => acceptOffer(o.id), "#16a34a", "#fff", true)}
+                            {!ctr && (o.status === "sent" || o.status === "countered") && btn("❌ Declined", () => setOfferStatus(o.id, "rejected", "DECLINED by the seller"), "#fee2e2", "#7f1d1d")}
                             <div style={{ position: "relative" }}>
                               <button onClick={(e) => { const r = e.currentTarget.getBoundingClientRect(); setOfferMenuPos({ top: r.bottom + 4, left: Math.max(8, r.right - 250) }); setOfferMenu(offerMenu === o.id ? null : o.id); }} title="More actions"
                                 style={{ background: "#fff", color: "#374151", border: "1px solid #d1d5db", padding: "5px 10px", borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>⋯</button>
@@ -415,6 +430,17 @@ export default function OffersTab({ tx, token, currentUser, createSignal = 0, on
                       })()}
                     </td>
                   </tr>
+                  {showPanel && (
+                    <tr style={{ borderBottom: "1px solid #f3f4f6" }}>
+                      <td colSpan={6} style={{ padding: "0 12px 12px" }}>
+                        <BuyerCounterPanel offer={o} counter={ctr} tx={tx}
+                          onChanged={() => load()}
+                          onOpenOffer={(id) => { load(); setWizardOfferId(id); }}
+                          onTheyCountered={() => setTheirCounterFor(o)} />
+                      </td>
+                    </tr>
+                  )}
+                  </Fragment>
                 );
               })}
             </tbody>
@@ -453,10 +479,23 @@ export default function OffersTab({ tx, token, currentUser, createSignal = 0, on
               {v.partiesAdded > 0 && <div><b>People added from the contract:</b> {v.partiesAdded} (title company, lender, etc.) — check the People tab.</div>}
               {v.docsFiled > 0 && <div><b>Documents filed:</b> {v.docsFiled} — each contract, rider, and disclosure in the package was split out into Documents (Executed Contract Package folder).</div>}
               {v.notes && <div style={{ color: "#6b7280", marginTop: 4 }}>{v.notes}</div>}
+              {Array.isArray(v.termsCheck) && v.termsCheck.length > 0 && (
+                <div style={{ background: "#FDEDEC", border: "1px solid #F5B7B1", borderRadius: 8, padding: "8px 10px", marginTop: 8, color: "#922B21" }}>
+                  <b>🔴 The executed contract doesn't match what your buyer signed:</b>
+                  {v.termsCheck.map((d, i) => <div key={i}>{d.label}: your buyer signed <b>{d.signed}</b> — the executed contract says <b>{d.executed}</b></div>)}
+                  <div style={{ marginTop: 4 }}>Check with the listing agent before anything else goes out.</div>
+                </div>
+              )}
+              {Array.isArray(v.termsCheck) && v.termsCheck.length === 0 && <div style={{ color: "#1E8449", marginTop: 4 }}>✓ Price, deposit, dates and financing match what your buyer signed.</div>}
             </div>
           </div>
         );
       })()}
+
+      {theirCounterFor && (
+        <TheirCounterModal offer={theirCounterFor} address={(theirCounterFor.offer_data || {}).property_address || tx.address}
+          onClose={() => setTheirCounterFor(null)} onSaved={() => load()} />
+      )}
 
       {showWelcomePreview && (
         <WelcomeEmailPreview txId={tx.id} onClose={() => setShowWelcomePreview(false)} />
