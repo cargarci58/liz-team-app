@@ -99,7 +99,7 @@ export default function DealSharingPanel({ txId, onChanged }) {
               <input placeholder="Their brokerage (if different)" value={c.brokerage || ""} onChange={e => setCo(i, { brokerage: e.target.value })} style={inp} />
               <input placeholder="Their share %" type="number" value={c.share_pct ?? ""} onChange={e => setCo(i, { share_pct: e.target.value })} style={inp} />
               <button onClick={() => set({ coAgents: form.coAgents.filter((_, j) => j !== i) })} title="Remove" style={{ border: "none", background: "none", cursor: "pointer", fontSize: 16 }}>✕</button>
-              {c.user_id && <div style={{ gridColumn: "1 / -1", fontSize: 11.5, color: C.blue }}>✓ Uses TransactPro{c.same_brokerage ? " — in your brokerage" : " — another brokerage"}</div>}
+              {c.user_id && <div style={{ gridColumn: "1 / -1", fontSize: 11.5, color: C.blue }}>✓ Uses TransactPro{c.same_brokerage ? " (your brokerage)" : " (another brokerage)"} — this deal shows up in their own app with their own share.</div>}
             </div>
           ))}
           <button onClick={() => set({ coAgents: [...form.coAgents, { name: "", email: "", brokerage: "", share_pct: form.coAgents.length ? "" : 50 }] })}

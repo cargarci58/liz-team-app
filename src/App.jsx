@@ -6667,7 +6667,10 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
         {shareBadge(tx) && <Badge label={shareBadge(tx).label} color={shareBadge(tx).color} bg={shareBadge(tx).bg} />}
         {isGuest && <span style={{ background: "rgba(255,255,255,0.15)", color: "#fff", fontSize: 11, fontWeight: 700, padding: "4px 10px", borderRadius: 6 }}>👤 Shared with you · view only</span>}
         {isCoordinator && <span style={{ background: "rgba(255,255,255,0.15)", color: "#fff", fontSize: 11, fontWeight: 700, padding: "4px 10px", borderRadius: 6 }}>🧭 Coordinator</span>}
-        {!isCoordinator && <>
+        {/* CO-AGENT on someone else's deal: works it (timeline, documents,
+            parties) — status and terms belong to the deal's agent. */}
+        {!isCoordinator && tx.isCoAgentView && <span title={`${tx.assignedAgentName || "The deal's agent"} is the deal's agent — they change its status and terms.`} style={{ background: "rgba(255,255,255,0.15)", color: "#fff", fontSize: 11, fontWeight: 700, padding: "4px 10px", borderRadius: 6 }}>🤝 You're a co-agent · {tx.status}</span>}
+        {!isCoordinator && !tx.isCoAgentView && <>
         <select value={tx.status} onChange={e => {
           if (isGuest) { setPaywallFeature("Changing transaction status"); e.target.value = tx.status; return; }
           const newStatus = e.target.value;
@@ -9411,6 +9414,7 @@ function Dashboard({ transactions, coordinatorMode = false, unreadCounts = {}, o
     // Commission Plan results — computed + stored by the server (routes/commission.js).
     agentNet: t.agent_net, brokerageIncome: t.brokerage_income, commissionCalc: t.commission_calc,
     dealShareType: t.deal_share_type, referralFeePct: t.referral_fee_pct, sharePartners: t.share_partners,
+    isCoAgentView: !!t.is_co_agent_view,
     assignedAgentId: t.assigned_agent_id,
     assignedAgentName: t.assigned_agent_name,
     owningTenantId: t.tenant_id,
@@ -10434,6 +10438,7 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
             commissionNotes: t.commission_notes,
             agentNet: t.agent_net, brokerageIncome: t.brokerage_income, commissionCalc: t.commission_calc,
             dealShareType: t.deal_share_type, referralFeePct: t.referral_fee_pct, sharePartners: t.share_partners,
+            isCoAgentView: !!t.is_co_agent_view,
             referralSource: t.referral_source,
             assignedAgentId: t.assigned_agent_id,
             assignedAgentName: t.assigned_agent_name,
@@ -10753,6 +10758,9 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
     // endpoint. Firing it anyway popped "Save failed. Coordinators update deals
     // through the coordination tools…" after a successful Done (Carlos 7/28).
     try { if ((JSON.parse(localStorage.getItem("tp_user") || "{}").role || "") === "tc") return; } catch {}
+    // A co-agent works the deal through its own tools; the full save (the deal's
+    // terms) belongs to the deal's agent — the server refuses it, so don't fire it.
+    if (updated.isCoAgentView) return;
     const freshTok = localStorage.getItem("tp_token") || "";
     const freshH = { "Content-Type": "application/json", "Authorization": "Bearer " + freshTok };
     const rollback = () => { if (previous) setTransactions(txs => txs.map(t => t.id === updated.id ? previous : t)); };

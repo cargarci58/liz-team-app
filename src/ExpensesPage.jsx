@@ -1494,7 +1494,7 @@ function IncomeTab() {
                   {commissions.map(d => (
                     <tr key={d.transaction_id} style={{ borderBottom: '1px solid #f3f4f6' }}>
                       <Td>{fmtDate(d.closing_date)}</Td>
-                      <Td><strong>{d.address || 'Property'}</strong>{d.city ? <span style={{ color: '#9ca3af' }}>, {d.city}</span> : ''}</Td>
+                      <Td><strong>{d.address || 'Property'}</strong>{d.city ? <span style={{ color: '#9ca3af' }}>, {d.city}</span> : ''}{d.co_agent ? <span style={{ marginLeft: 6, fontSize: 10.5, fontWeight: 800, color: '#fff', background: '#0c4a6e', borderRadius: 8, padding: '1px 6px' }}>🤝 your co-agent share</span> : ''}</Td>
                       <Td style={{ color: '#6b7280', fontSize: 13 }}>{d.transaction_type || ''}</Td>
                       <Td align="right" style={{ color: '#6b7280' }}>{fmtCurrency(d.price)}</Td>
                       <Td align="right" style={{ fontWeight: 600, color: '#059669' }}>{fmtCurrency(d.net_commission)}</Td>
