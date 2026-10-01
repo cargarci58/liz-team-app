@@ -78,7 +78,7 @@ export default function DealSharingPanel({ txId, onChanged }) {
   // PARTNER LINK — for a saved partner with an email who doesn't use the app:
   // review-gated email (draft → edit → Send) or copy the link to text it.
   // REFERRAL partners follow along (view-only Partner link).
-  const partnerActions = (p) => (!p.id || !p.email) ? null : (
+  const partnerActions = (p) => (!p.id || !p.email || d.canManagePartners === false) ? null : (
     <div style={{ gridColumn: "1 / -1", display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", fontSize: 11.5, color: C.muted }}>
       Let them follow the deal (view only) —
       <button onClick={async () => {
@@ -103,7 +103,7 @@ export default function DealSharingPanel({ txId, onChanged }) {
   };
   const coAgentStatus = (c) => {
     const chip = (txt, bg, col) => <span style={{ fontSize: 11, fontWeight: 800, color: col, background: bg, borderRadius: 10, padding: "2px 8px" }}>{txt}</span>;
-    const btn = (label, primary) => (
+    const btn = (label, primary) => d.canManagePartners === false ? null : (
       <button onClick={() => coInvite(c)} style={{ padding: "4px 10px", borderRadius: 8, border: primary ? "none" : "1px solid " + C.blue, background: primary ? C.red : "#fff", color: primary ? "#fff" : C.blue, fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}>{label}</button>
     );
     let body;
@@ -117,12 +117,22 @@ export default function DealSharingPanel({ txId, onChanged }) {
 
   const inp = { padding: "8px 10px", border: "1px solid " + C.border, borderRadius: 8, fontSize: 13.5, fontFamily: "inherit", boxSizing: "border-box", width: "100%" };
   const calc = d.commission_calc;
+  // ONLY the agent who created the deal changes WHO shares it (Carlos 10/1). The
+  // co-agent (and anyone else) sees it all read-only; they edit commission % and
+  // fees in the deal's Commission Details.
+  const canEdit = d.canManagePartners !== false;
 
   return (
     <div style={{ background: "#fff", border: "1px solid " + C.border, borderRadius: 12, padding: 20, marginBottom: 20 }}>
       <h3 style={{ margin: "0 0 4px", fontSize: 14, color: "#0F2044", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em" }}>Deal Sharing & Commission</h3>
       <div style={{ fontSize: 12, color: C.muted, marginBottom: 12 }}>Is this deal shared with a co-agent or a referral? Your net and the brokerage's income update from your brokerage's Commission Plan.</div>
 
+      {!canEdit && (
+        <div style={{ fontSize: 12.5, color: C.blue, background: C.gray, borderRadius: 8, padding: "8px 10px", marginBottom: 12 }}>
+          Only {d.creatorName || "the agent who created this deal"} can change its co-agent or referral partner. You can edit the commission % and fees in <b>Edit → Commission Details</b>.
+        </div>
+      )}
+      <fieldset disabled={!canEdit} style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}>
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 6 }}>
         {TYPES.map(t => (
           <button key={t.v} onClick={() => set({ deal_share_type: t.v })}
@@ -153,20 +163,25 @@ export default function DealSharingPanel({ txId, onChanged }) {
               <input placeholder="Their email" value={c.email || ""} onChange={e => setCo(i, { email: e.target.value })} style={inp} />
               <input placeholder="Their brokerage (if different)" value={c.brokerage || ""} onChange={e => setCo(i, { brokerage: e.target.value })} style={inp} />
               <input placeholder="Their share %" type="number" value={c.share_pct ?? ""} onChange={e => setCo(i, { share_pct: e.target.value })} style={inp} />
-              <button onClick={() => set({ coAgents: form.coAgents.filter((_, j) => j !== i) })} title="Remove" style={{ border: "none", background: "none", cursor: "pointer", fontSize: 16 }}>✕</button>
+              {canEdit ? <button onClick={() => set({ coAgents: form.coAgents.filter((_, j) => j !== i) })} title="Remove" style={{ border: "none", background: "none", cursor: "pointer", fontSize: 16 }}>✕</button> : <span />}
               {coAgentStatus(c)}
             </div>
           ))}
           <datalist id="coagent-suggestions">
             {sugg.map(x => <option key={x.email} value={`${x.name} <${x.email}>`}>{x.team ? "Your brokerage" : x.brokerage || "Past co-agent"}</option>)}
           </datalist>
-          <button onClick={() => set({ coAgents: [...form.coAgents, { name: "", email: "", brokerage: "", share_pct: form.coAgents.length ? "" : 50 }] })}
-            style={{ padding: "7px 12px", borderRadius: 8, border: "1px dashed " + C.blue, background: "#fff", color: C.blue, fontWeight: 700, fontSize: 12.5, cursor: "pointer", fontFamily: "inherit" }}>➕ Add co-agent</button>
+          {/* ONE co-agent per deal (Carlos 10/1). */}
+          {canEdit && form.coAgents.length === 0 && (
+            <button onClick={() => set({ coAgents: [{ name: "", email: "", brokerage: "", share_pct: 50 }] })}
+              style={{ padding: "7px 12px", borderRadius: 8, border: "1px dashed " + C.blue, background: "#fff", color: C.blue, fontWeight: 700, fontSize: 12.5, cursor: "pointer", fontFamily: "inherit" }}>➕ Add co-agent</button>
+          )}
           <div style={{ fontSize: 12, color: coTotal > 100 ? C.dark : C.muted, marginTop: 8 }}>
             Your share: <b>{Math.max(0, 100 - coTotal)}%</b>{coTotal > 100 ? " — co-agent shares add up to more than 100%" : ""}
           </div>
         </div>
       )}
+
+      </fieldset>
 
       {d.canOverridePlan && d.plans.length > 0 && (
         <label style={{ display: "block", fontSize: 12.5, color: C.text, marginBottom: 12 }}>
@@ -179,10 +194,10 @@ export default function DealSharingPanel({ txId, onChanged }) {
       )}
 
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
-        <button disabled={saving || coTotal > 100} onClick={save}
+        {(canEdit || d.canOverridePlan) && <button disabled={saving || coTotal > 100} onClick={save}
           style={{ padding: "9px 18px", borderRadius: 8, border: "none", background: C.red, color: "#fff", fontWeight: 700, fontSize: 13.5, cursor: "pointer", fontFamily: "inherit" }}>
           {saving ? "Saving…" : "Save sharing"}
-        </button>
+        </button>}
         {msg && <span style={{ fontSize: 12.5, fontWeight: 700, color: msg.startsWith("✅") ? "#166534" : C.dark }}>{msg}</span>}
       </div>
 

@@ -43,6 +43,37 @@ export default function ReferralsOutPage({ onBack }) {
     if (!r.ok || !d.success) { alert(d.error || "Couldn't save"); return; }
     setMsg("✅ Marked paid — it's on your P&L as Referral Fee income."); load();
   };
+  // REFERRAL AGREEMENT — the other brokerage signs it (Carlos 10/1). Create it
+  // from this referral, review it, then send it for e-signature to you + them.
+  const [agree, setAgree] = useState(null);   // { x, docId, signers, busy }
+  const openDoc = async (docId) => {
+    const r = await fetch(API + "/documents/" + docId + "/view-url", { headers });
+    const d = await r.json();
+    if (d.viewUrl) window.open(d.viewUrl, "_blank", "noopener"); else alert(d.error || "Couldn't open it");
+  };
+  const makeAgreement = async (x) => {
+    setAgree({ x, busy: true });
+    const r = await fetch(API + "/referrals-out/" + x.id + "/agreement", { method: "POST", headers });
+    const d = await r.json();
+    if (!r.ok || !d.success) { setAgree(null); alert(d.error || "Couldn't create it"); return; }
+    setAgree({ x, docId: d.docId, signers: d.signers, busy: false });
+    load();
+  };
+  const sendAgreement = async () => {
+    setAgree(a => ({ ...a, busy: true }));
+    const r = await fetch(API + "/documents/" + agree.docId + "/request-signatures", { method: "POST", headers,
+      body: JSON.stringify({ signers: agree.signers.map(s => ({ name: s.name, email: s.email })) }) });
+    const d = await r.json();
+    if (!r.ok || d.success === false) { setAgree(a => ({ ...a, busy: false })); alert(d.error || "Couldn't send it"); return; }
+    setAgree(null); setMsg(`✅ Agreement sent for signature to you and ${agree.x.partner_name}. You'll both get the signed copy by email.`); load();
+  };
+  const agreementLine = (x) => {
+    const a = x.agreement;
+    if (!a) return null;
+    if (a.status === "signed") return <span style={{ fontSize: 12, fontWeight: 800, color: "#166534" }}>✅ Agreement signed · <a href="#" onClick={e => { e.preventDefault(); openDoc(a.signedDocId); }} style={{ color: C.blue }}>open</a></span>;
+    if (a.status === "sent") return <span style={{ fontSize: 12, fontWeight: 800, color: "#92400E" }}>✍️ Agreement out for signature · {a.signed} of {a.signed + a.pending} signed</span>;
+    return <span style={{ fontSize: 12, color: C.muted }}>📝 Agreement drafted, not sent yet</span>;
+  };
   const remove = async (x) => {
     if (!window.confirm(`Stop tracking the referral of ${x.client_name}?`)) return;
     await fetch(API + "/referrals-out/" + x.id, { method: "DELETE", headers }).catch(() => {});
@@ -74,7 +105,9 @@ export default function ReferralsOutPage({ onBack }) {
       </div>
       {x.partner_note && <div style={{ fontSize: 12.5, color: C.text, marginTop: 6, background: C.gray, borderRadius: 8, padding: "6px 10px" }}>💬 {x.partner_name}: {x.partner_note}</div>}
       {x.update_due && <div style={{ fontSize: 12, color: C.dark, marginTop: 6, fontWeight: 700 }}>⏰ No update in 3+ weeks — a good time to check in.</div>}
+      {x.agreement && <div style={{ marginTop: 6 }}>{agreementLine(x)}</div>}
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 10 }}>
+        {(!x.agreement || x.agreement.status === "draft") && <button onClick={() => makeAgreement(x)} style={btn(!x.agreement)}>📝 Referral agreement</button>}
         {!x.paid_at && x.status !== "lost" && <button onClick={() => askUpdate(x)} style={btn(!!x.update_due)}>📨 Ask for an update</button>}
         {x.status === "closed" && !x.paid_at && <button onClick={() => markPaid(x)} style={btn(true)}>💵 Mark paid</button>}
         <button onClick={() => setEdit({ ...x, expected_close: x.expected_close ? String(x.expected_close).slice(0, 10) : "" })} style={btn(false)}>✏️ Edit</button>
@@ -128,6 +161,27 @@ export default function ReferralsOutPage({ onBack }) {
               <button onClick={() => setEdit(null)} style={btn(false)}>Cancel</button>
               <button onClick={save} style={btn(true)}>Save</button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {agree && (
+        <div onClick={() => !agree.busy && setAgree(null)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 1000, display: "flex", alignItems: "flex-start", justifyContent: "center", overflowY: "auto", padding: "24px 12px" }}>
+          <div onClick={e => e.stopPropagation()} style={{ background: "#fff", borderRadius: 14, width: "100%", maxWidth: 520, margin: "auto", padding: 20 }}>
+            <div style={{ fontSize: 17, fontWeight: 800, marginBottom: 4 }}>📝 Referral agreement — {agree.x.client_name}</div>
+            {agree.busy && !agree.docId ? <div style={{ color: C.muted, fontSize: 13.5 }}>Creating the agreement…</div> : <>
+              <div style={{ fontSize: 13, color: C.muted, marginBottom: 12 }}>Filled from this referral: both brokerages, the client, and the {agree.x.fee_pct}% referral fee. Read it first — nothing is sent until you tap Send.</div>
+              <button onClick={() => openDoc(agree.docId)} style={{ ...btn(false), marginBottom: 14 }}>👁 Review the agreement</button>
+              <div style={{ fontSize: 12, fontWeight: 800, color: C.red, marginBottom: 6 }}>WHO SIGNS (in this order)</div>
+              {(agree.signers || []).map((s, i) => (
+                <div key={i} style={{ fontSize: 13.5, padding: "6px 0", borderTop: "1px solid " + C.gray }}>{i + 1}. <b>{s.name}</b> · {s.email} <span style={{ color: C.muted }}>— {s.role}</span></div>
+              ))}
+              <div style={{ fontSize: 12, color: C.muted, marginTop: 8 }}>Each signer gets a private signing link by email. When both have signed, you both receive the signed copy with its certificate.</div>
+              <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 14 }}>
+                <button disabled={agree.busy} onClick={() => setAgree(null)} style={btn(false)}>Not now</button>
+                <button disabled={agree.busy} onClick={sendAgreement} style={btn(true)}>{agree.busy ? "Sending…" : "✍️ Send for signature"}</button>
+              </div>
+            </>}
           </div>
         </div>
       )}
