@@ -86,10 +86,12 @@ function calcComm(tx) {
   if (tx.type === "Listing (Seller)") ourGross = listComm;
   else if (tx.type === "Buyer Representation") ourGross = buyerComm;
   else if (tx.type === "Dual Agency") ourGross = listComm + buyerComm;
-  const txFee = Number(tx.transactionFee || 0);
+  // Net = the server's Commission Plan result (agentNet) when present; the
+  // transaction fee is brokerage income, never the agent's.
+  if (tx.agentNet != null) return { gross: ourGross, net: Number(tx.agentNet) };
   const split = tx.brokerageSplit ? ourGross * Number(tx.brokerageSplit) / 100 : 0;
   const flat = Number(tx.officeFlatFee || 0);
-  return { gross: ourGross, net: ourGross + txFee - split - flat };
+  return { gross: ourGross, net: ourGross - split - flat };
 }
 
 const fmt = (n) => n >= 1000000 ? `$${(n/1000000).toFixed(2)}M` : `$${Math.round(n).toLocaleString()}`;

@@ -23,6 +23,7 @@ import AppTour from "./components/AppTour";
 import SpotlightTour from "./components/SpotlightTour";
 import TourModal from "./components/TourModal";
 import FirstTimeHere from "./components/FirstTimeHere";
+import DealSharingPanel from "./DealSharingPanel";
 import { PAGE_TIPS, PAGE_SCENES, dealTabTip, dealTabScenes } from "./config/pageTips";
 
 const API = "https://liz-team-server-api-production.up.railway.app";
@@ -391,6 +392,17 @@ const STATUS_CONFIG = {
 // so it tolerates the slightly different values the backend stores
 // ("Commercial", "Vacant Land" vs "Land", "Lease" vs "Rental").
 const COMMERCIAL_ACCENT = "#0E7490"; // teal — distinct from every status color
+// DEAL SHARING badge (co-shared / referral) — loud on purpose so a shared deal is
+// never mistaken for a solo one (Carlos 9/30). Names come from the deal's
+// sharing partners; shown on every card/list/pipeline view + the deal header.
+function shareBadge(tx) {
+  const t = tx?.dealShareType || tx?.deal_share_type;
+  const ps = tx?.sharePartners || tx?.share_partners || [];
+  const names = (kind) => ps.filter(p => p && p.kind === kind).map(p => p.name).filter(Boolean);
+  if (t === "co_shared") { const n = names("co_agent"); return { label: `🤝 CO-SHARED${n.length ? " · with " + n.join(", ") : ""}`, color: "#FFFFFF", bg: "#0c4a6e" }; }
+  if (t === "referral_in") { const n = names("referral_in"); return { label: `↘️ REFERRAL IN${n.length ? " · from " + n[0] : ""}`, color: "#FFFFFF", bg: "#922B21" }; }
+  return null;
+}
 function propertyTypeBadge(tx) {
   // The demo deal wins over every other badge — in a list of cards it must never
   // be mistaken for a real one. (It's also flagged with a full banner inside.)
@@ -478,6 +490,7 @@ function PipelineCard({ tx, onSelect }) {
         <span style={{ fontSize: 14 }}>{txTypeIcon(tx.type)}</span>
         <span style={{ fontSize: 9, fontWeight: 700, color: COLORS.muted, textTransform: "uppercase", letterSpacing: "0.06em" }}>{txTypeShort(tx.type)}</span>
         {propertyTypeBadge(tx) && <span title={`${propertyTypeBadge(tx).label.replace(/^\S+\s/, "")} property`} style={{ background: propertyTypeBadge(tx).bg, color: propertyTypeBadge(tx).color, fontSize: 9, fontWeight: 700, padding: "1px 6px", borderRadius: 8 }}>{propertyTypeBadge(tx).label}</span>}
+        {shareBadge(tx) && <span style={{ background: shareBadge(tx).bg, color: shareBadge(tx).color, fontSize: 9, fontWeight: 800, padding: "1px 6px", borderRadius: 8 }}>{shareBadge(tx).label}</span>}
         {tx.constructionType === "New Construction" && <span title="New Construction" style={{ background: "#FEF9E7", color: "#B7770D", fontSize: 9, fontWeight: 700, padding: "1px 6px", borderRadius: 8 }}>🏗️ NC</span>}
         {overdue > 0 && tx.status !== "Closed" && <span title={`${overdue} overdue item(s)`} style={{ marginLeft: "auto", background: COLORS.dangerBg, color: COLORS.danger, fontSize: 9, fontWeight: 700, padding: "1px 6px", borderRadius: 8 }}>⚠ {overdue}</span>}
       </div>
@@ -814,6 +827,7 @@ function TransactionListView({ transactions, sortKey, sortDir, toggleSort, onSel
                       <div style={{ fontWeight: 600, color: COLORS.navy, display: "flex", alignItems: "center", gap: 6 }}>
                         {tx.address}
                         {propertyTypeBadge(tx) && <span style={{ background: propertyTypeBadge(tx).bg, color: propertyTypeBadge(tx).color, fontSize: 9, fontWeight: 700, padding: "1px 6px", borderRadius: 8, whiteSpace: "nowrap" }}>{propertyTypeBadge(tx).label}</span>}
+                        {shareBadge(tx) && <span style={{ background: shareBadge(tx).bg, color: shareBadge(tx).color, fontSize: 9, fontWeight: 800, padding: "1px 6px", borderRadius: 8, whiteSpace: "nowrap" }}>{shareBadge(tx).label}</span>}
                       </div>
                       <div style={{ fontSize: 11, color: COLORS.muted, marginTop: 2 }}>{tx.city}, FL</div>
                     </td>
@@ -883,6 +897,7 @@ function TransactionListView({ transactions, sortKey, sortDir, toggleSort, onSel
                   <div style={{ fontWeight: 700, color: COLORS.navy, fontSize: 14, overflow: "hidden", textOverflow: "ellipsis", display: "flex", alignItems: "center", gap: 6 }}>
                     <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{tx.address}</span>
                     {propertyTypeBadge(tx) && <span style={{ background: propertyTypeBadge(tx).bg, color: propertyTypeBadge(tx).color, fontSize: 9, fontWeight: 700, padding: "1px 6px", borderRadius: 8, whiteSpace: "nowrap", flexShrink: 0 }}>{propertyTypeBadge(tx).label}</span>}
+                    {shareBadge(tx) && <span style={{ background: shareBadge(tx).bg, color: shareBadge(tx).color, fontSize: 9, fontWeight: 800, padding: "1px 6px", borderRadius: 8, whiteSpace: "nowrap", flexShrink: 0 }}>{shareBadge(tx).label}</span>}
                   </div>
                   <div style={{ fontSize: 11, color: COLORS.muted, marginTop: 2 }}>{tx.city}, FL · {txTypeShort(tx.type)}</div>
                 </div>
@@ -6649,6 +6664,7 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
           {isGuest && tx.owningBrokerageName && <div style={{ color: "rgba(255,255,255,0.7)", fontSize: 12, marginTop: 2 }}>🏢 Managed by {tx.owningBrokerageName}</div>}
         </div>
         {propertyTypeBadge(tx) && <Badge label={propertyTypeBadge(tx).label} color={propertyTypeBadge(tx).color} bg={propertyTypeBadge(tx).bg} />}
+        {shareBadge(tx) && <Badge label={shareBadge(tx).label} color={shareBadge(tx).color} bg={shareBadge(tx).bg} />}
         {isGuest && <span style={{ background: "rgba(255,255,255,0.15)", color: "#fff", fontSize: 11, fontWeight: 700, padding: "4px 10px", borderRadius: 6 }}>👤 Shared with you · view only</span>}
         {isCoordinator && <span style={{ background: "rgba(255,255,255,0.15)", color: "#fff", fontSize: 11, fontWeight: 700, padding: "4px 10px", borderRadius: 6 }}>🧭 Coordinator</span>}
         {!isCoordinator && <>
@@ -7059,10 +7075,10 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
                     const isBuyer = tx.type === "Buyer Representation";
                     const isDual = tx.type === "Dual Agency";
                     const ourComm = isListing ? listComm : isBuyer ? buyerComm : isDual ? (listComm + buyerComm) : 0;
-                    const txFee = Number(tx.transactionFee || 0);
                     const split = tx.brokerageSplit ? ourComm * Number(tx.brokerageSplit) / 100 : 0;
                     const flatFee = Number(tx.officeFlatFee || 0);
-                    const netComm = ourComm + txFee - split - flatFee;
+                    const netComm = tx.agentNet != null ? Number(tx.agentNet) : ourComm - split - flatFee;
+                    const cc = tx.commissionCalc || null;
                     return [
                       ...dateRows,
                       [isBuyer ? "Listing Commission (other side — not ours)" : "Listing Commission", tx.commissionListing ? `${tx.commissionListing}% ($${listComm.toLocaleString(undefined,{maximumFractionDigits:0})})` : "—"],
@@ -7071,7 +7087,11 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
                       ["Brokerage Split", tx.brokerageSplit ? `${tx.brokerageSplit}% (-$${split.toLocaleString(undefined,{maximumFractionDigits:0})})` : "—"],
                       ["Office Flat Fee", tx.officeFlatFee ? `-$${Number(tx.officeFlatFee).toLocaleString()}` : "—"],
                       ["Our Gross Commission", ourComm > 0 ? `$${ourComm.toLocaleString(undefined,{maximumFractionDigits:0})}` : "—"],
+                      ...((cc && cc.payouts) || []).map(p => [p.kind === "referral" ? `Referral fee → ${p.to}` : p.kind === "team" ? p.to : `Co-agent → ${p.to}`, `-$${Number(p.amount).toLocaleString(undefined,{maximumFractionDigits:0})}`]),
+                      ...((cc && cc.coAgents) || []).map(c => [`Co-agent ${c.name} (their net)`, `$${Number(c.net).toLocaleString(undefined,{maximumFractionDigits:0})}`]),
                       ["Our Estimated Net", netComm > 0 ? `$${netComm.toLocaleString(undefined,{maximumFractionDigits:0})}` : "—"],
+                      ["Brokerage Income", tx.brokerageIncome != null ? `$${Number(tx.brokerageIncome).toLocaleString(undefined,{maximumFractionDigits:0})}` : "—"],
+                      ...(cc && cc.planName ? [["Commission Plan", cc.planName]] : []),
                     ];
                   })() },
               ].map(({ title, rows }) => (
@@ -7081,6 +7101,11 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
                 </div>
               ))}
             </div>
+            {/* Co-agents / referral + the Commission Plan breakdown. Owner + admin
+                only (the panel hides itself for anyone else); never coordinators. */}
+            {!isCoordinator && !tx.isGuestView && !tx.isSample && (
+              <DealSharingPanel txId={tx.id} onChanged={(x) => onLocalUpdate && onLocalUpdate({ ...tx, agentNet: x.agent_net, brokerageIncome: x.brokerage_income, commissionCalc: x.commission_calc })} />
+            )}
             {overdueTasks > 0 && (
               <div style={{ background: COLORS.dangerBg, border: `1px solid ${COLORS.danger}40`, borderRadius: 10, padding: 16, marginBottom: 20 }}>
                 <div style={{ fontWeight: 700, color: COLORS.danger, marginBottom: 8 }}>⚠ {overdueTasks} Overdue Task{overdueTasks > 1 ? "s" : ""}</div>
@@ -9383,6 +9408,9 @@ function Dashboard({ transactions, coordinatorMode = false, unreadCounts = {}, o
     officeFlatFee: t.office_flat_fee,
     commissionNotes: t.commission_notes,
     referralSource: t.referral_source,
+    // Commission Plan results — computed + stored by the server (routes/commission.js).
+    agentNet: t.agent_net, brokerageIncome: t.brokerage_income, commissionCalc: t.commission_calc,
+    dealShareType: t.deal_share_type, referralFeePct: t.referral_fee_pct, sharePartners: t.share_partners,
     assignedAgentId: t.assigned_agent_id,
     assignedAgentName: t.assigned_agent_name,
     owningTenantId: t.tenant_id,
@@ -9533,10 +9561,12 @@ function Dashboard({ transactions, coordinatorMode = false, unreadCounts = {}, o
       const price = Number(t.contractPrice || t.listPrice || 0);
       const listComm = t.commissionListing ? price * Number(t.commissionListing) / 100 : 0;
       const buyerComm = t.commissionBuyer ? price * Number(t.commissionBuyer) / 100 : 0;
-      const txFee = Number(t.transactionFee || 0);
+      // The server's Commission Plan result when present; the transaction fee is
+      // brokerage income and is never part of the agent's net.
+      if (t.agentNet != null) return acc + Number(t.agentNet);
       const split = t.brokerageSplit ? (listComm + buyerComm) * Number(t.brokerageSplit) / 100 : 0;
       const flatFee = Number(t.officeFlatFee || 0);
-      return acc + (listComm + buyerComm + txFee - split - flatFee);
+      return acc + (listComm + buyerComm - split - flatFee);
     }, 0),
     closingSoon: (() => {
       const today = new Date();
@@ -9566,10 +9596,10 @@ function Dashboard({ transactions, coordinatorMode = false, unreadCounts = {}, o
       const ourListComm = (isListing || isDual) && t.commissionListing ? price * Number(t.commissionListing) / 100 : 0;
       const ourBuyerComm = (isBuyer || isDual) && t.commissionBuyer ? price * Number(t.commissionBuyer) / 100 : 0;
       const ourComm = ourListComm + ourBuyerComm;
-      const txFee = Number(t.transactionFee || 0);
+      if (t.agentNet != null) return acc + Number(t.agentNet);
       const split = t.brokerageSplit ? ourComm * Number(t.brokerageSplit) / 100 : 0;
       const flatFee = Number(t.officeFlatFee || 0);
-      return acc + (ourComm + txFee - split - flatFee);
+      return acc + (ourComm - split - flatFee);
     }, 0),
     pendingCount: transactions.filter(t => !["Closed", "Cancelled", "On Hold"].includes(t.status)).length,
   };
@@ -9731,16 +9761,17 @@ function Dashboard({ transactions, coordinatorMode = false, unreadCounts = {}, o
           const progress = total > 0 ? Math.round(completed / total * 100) : 0;
           const cfg = STATUS_CONFIG[tx.status] || STATUS_CONFIG["Active"];
           const smsMsgCount = Object.values(tx.smsThreads || {}).reduce((a, t) => a + t.length, 0);
-          // At-a-glance commission for this deal (agent view only). Net = our gross
-          // commission + transaction fee − brokerage split − office flat fee.
+          // At-a-glance commission for this deal (agent view only) — the server's
+          // Commission Plan result (agentNet); the inline math is only a fallback.
           const cardNetComm = (() => {
+            if (tx.agentNet != null) return Number(tx.agentNet);
             const price = Number(tx.contractPrice || tx.listPrice || 0);
             const listComm = tx.commissionListing ? price * Number(tx.commissionListing) / 100 : 0;
             const buyerComm = tx.commissionBuyer ? price * Number(tx.commissionBuyer) / 100 : 0;
             const our = tx.type === "Listing (Seller)" ? listComm : tx.type === "Buyer Representation" ? buyerComm : tx.type === "Dual Agency" ? listComm + buyerComm : 0;
             if (!our) return 0;
             const split = tx.brokerageSplit ? our * Number(tx.brokerageSplit) / 100 : 0;
-            return our + Number(tx.transactionFee || 0) - split - Number(tx.officeFlatFee || 0);
+            return our - split - Number(tx.officeFlatFee || 0);
           })();
           return (
             <div key={tx.id} onClick={() => onSelect(tx.id)} style={{ background: "#fff", border: !tx.assignedAgentId ? "3px solid #f59e0b" : tx.needsReview ? "3px solid #2563eb" : tx.needsFirstContact ? "3px solid #c8102e" : `1px solid ${COLORS.border}`, borderRadius: 12, cursor: "pointer", overflow: "hidden" }}
@@ -9790,6 +9821,7 @@ function Dashboard({ transactions, coordinatorMode = false, unreadCounts = {}, o
                     </span>
                     <Badge label={tx.status} color={cfg.color} bg={cfg.bg} />
                     {propertyTypeBadge(tx) && <Badge label={propertyTypeBadge(tx).label} color={propertyTypeBadge(tx).color} bg={propertyTypeBadge(tx).bg} />}
+                    {shareBadge(tx) && <Badge label={shareBadge(tx).label} color={shareBadge(tx).color} bg={shareBadge(tx).bg} />}
                   </div>
                   <div style={{ color: "#FFFFFF", fontWeight: 700, fontSize: 15, marginBottom: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{tx.address}</div>
                   {clientNameForTx(tx) && (
@@ -10400,6 +10432,8 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
             officeFlatFee: t.office_flat_fee,
             mailAway: t.mail_away,
             commissionNotes: t.commission_notes,
+            agentNet: t.agent_net, brokerageIncome: t.brokerage_income, commissionCalc: t.commission_calc,
+            dealShareType: t.deal_share_type, referralFeePct: t.referral_fee_pct, sharePartners: t.share_partners,
             referralSource: t.referral_source,
             assignedAgentId: t.assigned_agent_id,
             assignedAgentName: t.assigned_agent_name,
@@ -10731,6 +10765,12 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
         console.error("Save error:", e);
         rollback();
         saveAlert("Save failed: " + (e.error || "Please try again."));
+      } else {
+        // Commission numbers are recalculated on the server by the brokerage's
+        // Commission Plan — pull the fresh net / brokerage income onto the deal.
+        fetch(API + "/transactions/" + updated.id + "/sharing", { headers: freshH }).then(x => x.ok ? x.json() : null).then(d => {
+          if (d && d.success) setTransactions(txs => txs.map(t => t.id === updated.id ? { ...t, agentNet: d.agent_net, brokerageIncome: d.brokerage_income, commissionCalc: d.commission_calc } : t));
+        }).catch(() => {});
       }
     } catch (e) {
       console.error("Save failed:", e);

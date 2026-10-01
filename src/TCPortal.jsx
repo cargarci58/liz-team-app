@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import AssistantPanel from "./components/AssistantPanel";
+import { ShareBadge } from "./lib/shareBadge";
 
 // ── Transaction Coordinator portal ──────────────────────────────────────────
 // One cross-brokerage home for an independent coordinator. Two sides:
@@ -204,6 +205,7 @@ function Deals({ onOpen }) {
               <div style={{ fontWeight: 800, fontSize: 16 }}>{tx.address || "—"}</div>
               <span style={pill(C.soft, C.red)}>{tx.status}</span>
             </div>
+            {tx.deal_share_type && tx.deal_share_type !== "standard" && <div style={{ marginTop: 4 }}><ShareBadge of={tx} /></div>}
             <div style={{ fontSize: 13, color: C.muted, marginTop: 2 }}>{[tx.city, tx.state].filter(Boolean).join(", ")}</div>
             <div style={{ fontSize: 13, marginTop: 8 }}>
               <strong>Acting for</strong> {agent || "the agent"}{tx.owning_brokerage ? ` · ${tx.owning_brokerage}` : ""}
@@ -256,6 +258,7 @@ function DealView({ txId, onBack }) {
       <button style={{ ...btn(false), marginBottom: 12 }} onClick={onBack}>← All deals</button>
       <div style={{ ...card, background: C.ink, color: "#fff" }}>
         <div style={{ fontWeight: 800, fontSize: 18 }}>{tx.address}</div>
+        {tx.deal_share_type && tx.deal_share_type !== "standard" && <div style={{ marginTop: 6 }}><ShareBadge of={tx} size={11} /></div>}
         <div style={{ fontSize: 13, opacity: 0.85, marginTop: 4 }}>
           Acting for <strong>{agent || "the agent"}</strong>{tx.owning_brokerage ? ` · ${tx.owning_brokerage}` : ""} · {tx.status}
         </div>

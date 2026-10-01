@@ -4,6 +4,7 @@ import { CallScriptsButton } from "./components/CallScriptPanel";
 import { telHref } from "./lib/telHref";
 import { WelcomeReminderModal, markWelcomeReceiptConfirmed } from "./WelcomeReceipts";
 import ReminderPlanReview from "./ReminderPlanReview";
+import { ShareBadge } from "./lib/shareBadge";
 
 // Whole days from today (ET) to a date: negative = overdue. ET on purpose —
 // UTC comparisons flip a day after ~8pm Florida time.
@@ -632,6 +633,7 @@ function DealGroupCard({ deal, token, coordinatorMode = false, meta = null, agen
           {deal.tasks.length} item{deal.tasks.length === 1 ? "" : "s"}
         </span>
       </div>
+      {deal.deal_share_type && deal.deal_share_type !== "standard" && <div style={{ margin:"-2px 0 8px" }}><ShareBadge of={deal} /></div>}
       {/* COORDINATOR: history + the AI's read & recommended move, in one place */}
       {coordinatorMode && meta && (
         <div style={{ marginBottom:10 }}>
@@ -1783,7 +1785,7 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
   for (const t of rankedTasks) {
     const key = (t.address && normAddr(t.address)) ? "addr:" + normAddr(t.address) : (t.transaction_id || t.id);
     let deal = dealMap.get(key);
-    if (!deal) { deal = { transaction_id: t.transaction_id, address: t.address, tasks: [], rank: 9 }; dealMap.set(key, deal); }
+    if (!deal) { deal = { transaction_id: t.transaction_id, address: t.address, tasks: [], rank: 9, deal_share_type: t.deal_share_type, share_partners: t.share_partners }; dealMap.set(key, deal); }
     // If records got merged by address, keep a real transaction_id for the "open" action.
     if (!deal.transaction_id && t.transaction_id) deal.transaction_id = t.transaction_id;
     deal.tasks.push(t);

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import CommissionPlans from "./CommissionPlans";
 
 const API = "https://liz-team-server-api-production.up.railway.app";
 
@@ -165,6 +166,9 @@ export default function CompanySettings({ onClose, onChangePassword }) {
           {field("Standard listing commission (%)", "defaultCommissionListing", "number", "e.g. 6")}
           {field("Standard listing term (months)", "defaultListingTermMonths", "number", "e.g. 6")}
           {field("Standard buyer-broker compensation (%)", "defaultBuyerBrokerComp", "number", "e.g. 2.5")}
+
+          {/* Commission Plans — how this brokerage works out agent net vs brokerage income */}
+          <CommissionPlans />
 
           {/* Tax / Entity Info — needed for W-9 generation */}
           <div style={{ fontSize: 13, fontWeight: 700, color: "#C0392B", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 16, marginTop: 8 }}>Tax & Entity Info</div>
