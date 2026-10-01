@@ -135,7 +135,7 @@ export const PAGE_TIPS = {
   "tx:offers": {
     what: "Write an offer for this buyer. Answer four questions and the full Florida contract comes out filled in.",
     doFirst: "Tap \"New offer\" and choose Express. Price, deposit, financing, closing date — done.",
-    why: "This replaces the form software, the retyping, and the PDF editor. It's the reason the app exists.",
+    why: "This replaces the form software, the retyping, and the PDF editor. If the seller counters, tap \"🔁 They countered\" under the offer — the app lists every change, flags anything they slipped in, and builds the revised offer for your buyer to sign.",
     guide: "Write an offer",
   },
   "tx:parties": {
