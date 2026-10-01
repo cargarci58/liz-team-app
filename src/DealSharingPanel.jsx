@@ -67,6 +67,14 @@ export default function DealSharingPanel({ txId, onChanged }) {
   const partnerActions = (p) => (!p.id || !p.email || p.user_id) ? null : (
     <div style={{ gridColumn: "1 / -1", display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", fontSize: 11.5, color: C.muted }}>
       Doesn't use TransactPro —
+      {/* A co-agent WORKS the deal → needs an app login. Free, own account, shared deals only. */}
+      {p.kind === "co_agent" && (
+        <button onClick={async () => {
+          const r = await fetch(API + "/transactions/" + txId + "/partners/" + p.id + "/app-invite", { method: "POST", headers, body: JSON.stringify({}) });
+          const x = await r.json(); if (!r.ok || !x.success) { setMsg("⚠️ " + (x.error || "Couldn't draft it")); return; }
+          setInvite({ pid: p.id, to: x.to, toEmail: x.toEmail, subject: x.subject, body: x.body, endpoint: "app-invite", existing: x.existing });
+        }} style={{ padding: "4px 10px", borderRadius: 8, border: "none", background: C.red, color: "#fff", fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}>🔑 Give them a free TransactPro login</button>
+      )}
       <button onClick={async () => {
         const r = await fetch(API + "/transactions/" + txId + "/partners/" + p.id + "/invite", { method: "POST", headers, body: JSON.stringify({}) });
         const x = await r.json(); if (!r.ok || !x.success) { setMsg("⚠️ " + (x.error || "Couldn't draft it")); return; }
@@ -154,15 +162,18 @@ export default function DealSharingPanel({ txId, onChanged }) {
           <div onClick={e => e.stopPropagation()} style={{ background: "#fff", borderRadius: 14, width: "100%", maxWidth: 520, margin: "auto", padding: 20 }}>
             <div style={{ fontSize: 17, fontWeight: 800, marginBottom: 4 }}>Review before sending</div>
             <div style={{ fontSize: 13, color: C.muted, marginBottom: 12 }}>To: <b>{invite.to}</b> &lt;{invite.toEmail}&gt; · nothing sends until you press Send.</div>
+            {invite.endpoint === "app-invite" && !invite.existing && <div style={{ fontSize: 12, color: C.blue, background: C.gray, borderRadius: 8, padding: "8px 10px", marginBottom: 10 }}>Sending creates their free login. Keep <b>{"{{SET_PASSWORD_LINK}}"}</b> in the message — it becomes their private set-password link.</div>}
             <input value={invite.subject} onChange={e => setInvite(v => ({ ...v, subject: e.target.value }))} style={{ ...inp, marginBottom: 10 }} />
             <textarea value={invite.body} onChange={e => setInvite(v => ({ ...v, body: e.target.value }))} rows={11} style={{ ...inp, resize: "vertical" }} />
             <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 12 }}>
               <button onClick={() => setInvite(null)} style={{ padding: "9px 16px", borderRadius: 8, border: "1px solid " + C.border, background: "#fff", fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>Cancel</button>
               <button onClick={async () => {
-                const r = await fetch(API + "/transactions/" + txId + "/partners/" + invite.pid + "/invite", { method: "POST", headers, body: JSON.stringify({ confirm: true, subject: invite.subject, body: invite.body }) });
+                const r = await fetch(API + "/transactions/" + txId + "/partners/" + invite.pid + "/" + (invite.endpoint || "invite"), { method: "POST", headers, body: JSON.stringify({ confirm: true, subject: invite.subject, body: invite.body }) });
                 const x = await r.json();
                 if (!r.ok || !x.success) { alert(x.error || "Couldn't send"); return; }
-                setInvite(null); setMsg(`✅ Partner link sent to ${invite.to}.`);
+                setInvite(null);
+                setMsg(invite.endpoint === "app-invite" ? `✅ ${invite.to} ${x.created ? "has a free TransactPro login — the email with their set-password link is on its way" : "is linked to their TransactPro account"}. The deal opens in their app with full access.` : `✅ Partner link sent to ${invite.to}.`);
+                load();
               }} style={{ padding: "9px 18px", borderRadius: 8, border: "none", background: C.red, color: "#fff", fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>✅ Send</button>
             </div>
           </div>
