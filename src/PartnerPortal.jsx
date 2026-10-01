@@ -20,6 +20,7 @@ export default function PartnerPortal({ urlToken }) {
   const [err, setErr] = useState("");
   const [data, setData] = useState(null);
   const [open, setOpen] = useState(null);
+  const [tab, setTab] = useState("timeline");   // timeline | people | messages | documents | notes (co-agents)
 
   const loadDeals = async (session) => {
     const r = await fetch(API + "/partner/deals", { headers: { Authorization: "Bearer " + session } });
@@ -99,10 +100,70 @@ export default function PartnerPortal({ urlToken }) {
             <div><div style={{ color: C.muted, fontSize: 11.5 }}>Timeline</div><b>{done} of {d.timeline.length} steps done</b></div>
             {d.payout != null && <div><div style={{ color: C.muted, fontSize: 11.5 }}>Your {d.role === "Referring agent" ? "referral fee" : "share"} (estimated)</div><b style={{ color: "#166534" }}>{money(d.payout)}</b></div>}
           </div>
-          <button onClick={() => setOpen(isOpen ? null : d.id)} style={{ marginTop: 10, background: "none", border: "1px solid " + C.border, borderRadius: 8, padding: "6px 12px", fontSize: 12.5, fontWeight: 700, cursor: "pointer", color: C.blue }}>
-            {isOpen ? "Hide timeline" : "Show timeline"}
-          </button>
-          {isOpen && (
+          {/* Co-agents see the whole deal: tabs. Referral partners: just the timeline. */}
+          {d.people ? (
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 12 }}>
+              {[["timeline", "📅 Timeline"], ["people", `👥 People (${d.people.length})`], ["messages", `💬 Messages (${d.messages.length})`], ["documents", `📎 Documents (${d.documents.length})`], ["notes", "🗒 Notes"]].map(([k, l]) => {
+                const on = isOpen && tab === k;
+                return <button key={k} onClick={() => { if (on) setOpen(null); else { setOpen(d.id); setTab(k); } }}
+                  style={{ background: on ? C.blue : "#fff", color: on ? "#fff" : C.blue, border: "1px solid " + (on ? C.blue : C.border), borderRadius: 8, padding: "6px 12px", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>{l}</button>;
+              })}
+            </div>
+          ) : (
+            <button onClick={() => { setOpen(isOpen ? null : d.id); setTab("timeline"); }} style={{ marginTop: 10, background: "none", border: "1px solid " + C.border, borderRadius: 8, padding: "6px 12px", fontSize: 12.5, fontWeight: 700, cursor: "pointer", color: C.blue }}>
+              {isOpen ? "Hide timeline" : "Show timeline"}
+            </button>
+          )}
+          {isOpen && tab === "people" && d.people && (
+            <div style={{ marginTop: 10 }}>
+              {d.people.map((p, i) => (
+                <div key={i} style={{ padding: "8px 0", borderTop: "1px solid " + C.gray, fontSize: 13 }}>
+                  <b>{p.name}</b> <span style={{ color: C.muted }}>· {p.role}{p.company ? ` · ${p.company}` : ""}</span>
+                  <div style={{ color: C.muted, fontSize: 12.5 }}>
+                    {p.email && <a href={"mailto:" + p.email} style={{ color: C.blue }}>{p.email}</a>}{p.email && p.phone ? " · " : ""}{p.phone && <a href={"tel:" + p.phone} style={{ color: C.blue }}>{p.phone}</a>}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          {isOpen && tab === "messages" && d.messages && (
+            <div style={{ marginTop: 10 }}>
+              {d.messages.length === 0 && <div style={{ color: C.muted, fontSize: 13 }}>No messages yet.</div>}
+              {d.messages.map((m, i) => (
+                <div key={i} style={{ padding: "8px 0", borderTop: "1px solid " + C.gray, fontSize: 13 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", gap: 8, flexWrap: "wrap" }}>
+                    <b>{m.kind === "reply" ? "↩️ Reply from " : m.kind === "chat" ? "💬 " : m.kind === "text" ? "📱 Text to " : "📧 Email to "}{m.who}</b>
+                    <span style={{ color: C.muted, fontSize: 12 }}>{new Date(m.at).toLocaleString("en-US", { timeZone: "America/New_York", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</span>
+                  </div>
+                  {m.subject && <div style={{ fontWeight: 600 }}>{m.subject}</div>}
+                  <div style={{ color: C.text, whiteSpace: "pre-wrap", marginTop: 2 }}>{m.body}</div>
+                </div>
+              ))}
+            </div>
+          )}
+          {isOpen && tab === "documents" && d.documents && (
+            <div style={{ marginTop: 10 }}>
+              {d.documents.length === 0 && <div style={{ color: C.muted, fontSize: 13 }}>No documents yet.</div>}
+              {d.documents.map(doc => (
+                <div key={doc.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, padding: "8px 0", borderTop: "1px solid " + C.gray, fontSize: 13 }}>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{doc.name}</div>
+                    <div style={{ color: C.muted, fontSize: 12 }}>{doc.folder || doc.category || ""} · {fmtDate(doc.created_at)}</div>
+                  </div>
+                  <button onClick={async () => {
+                    let s = null; try { s = localStorage.getItem(KEY); } catch {}
+                    const r = await fetch(API + "/partner/doc/" + doc.id, { headers: { Authorization: "Bearer " + s } });
+                    const x = await r.json();
+                    if (x.url) window.open(x.url, "_blank", "noopener"); else alert(x.error || "Couldn't open it");
+                  }} style={{ background: "#fff", border: "1px solid " + C.border, borderRadius: 8, padding: "5px 12px", fontSize: 12.5, fontWeight: 700, cursor: "pointer", color: C.blue, flexShrink: 0 }}>👁 Open</button>
+                </div>
+              ))}
+            </div>
+          )}
+          {isOpen && tab === "notes" && d.people && (
+            <div style={{ marginTop: 10, whiteSpace: "pre-wrap", fontSize: 13, background: C.gray, borderRadius: 8, padding: 12 }}>{d.notes || "No notes yet."}</div>
+          )}
+          {isOpen && tab === "timeline" && (
             <div style={{ marginTop: 10 }}>
               {d.timeline.map((m, i) => (
                 <div key={i} style={{ display: "flex", justifyContent: "space-between", gap: 10, padding: "6px 0", borderTop: "1px solid " + C.gray, fontSize: 13 }}>
