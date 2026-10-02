@@ -8612,7 +8612,7 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
 }
 
 // --- NEW TRANSACTION ──────────────────────────────────────────
-function NewTransactionForm({ onSave, onCancel, prefill = null, cmaId = null, onImportContract = null, currentUser = null }) {
+function NewTransactionForm({ onSave, onCancel, prefill = null, cmaId = null, onImportContract = null, currentUser = null, backLabel = null }) {
   const [step, setStep] = useState(1); // 1 property · 2 client · 3 price & source
   const [form, setForm] = useState({ address: "", city: "", county: "Osceola", zipCode: "", type: "Listing (Seller)", propertyType: "Single Family", constructionType: "Resale", listPrice: "", contractPrice: "", mlsNumber: "", openDate: today(), closingDate: "", executedDate: "", representationExpiresOn: "", leaseTerm: "1 Year", notes: "", status: "Active", assignedAgent: "", referralSource: "", occupancyStatus: "", propertyAccess: "", commissionListing: "", commissionBuyer: "", transactionFee: "", brokerageSplit: "", officeFlatFee: "", commissionNotes: "", clientName: "", clientEmail: "", clientPhone: "", ...(prefill || {}) });
   const [teamAgents, setTeamAgents] = useState([]);
@@ -8749,7 +8749,7 @@ function NewTransactionForm({ onSave, onCancel, prefill = null, cmaId = null, on
   return (
     <div style={{ fontFamily: "'Segoe UI', system-ui, sans-serif", background: COLORS.bg, minHeight: "100vh" }}>
       <div style={{ background: COLORS.navy, padding: "16px 24px", display: "flex", alignItems: "center", gap: 16 }}>
-        <BackButton tone="dark" onClick={onCancel} to={cmaId ? "CMA" : "Win The Day"} />
+        <BackButton tone="dark" onClick={onCancel} to={backLabel || (cmaId ? "CMA" : "My Deals")} />
         <div>
           <div style={{ color: "#fff", fontWeight: 700, fontSize: 17 }}>➕ New Deal</div>
           <div style={{ color: "rgba(255,255,255,0.7)", fontSize: 12, marginTop: 1 }}>Three quick steps — about a minute. You can add details later.</div>
@@ -10796,6 +10796,11 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
       .catch(e => console.error("Failed to load contacts:", e));
   }, []);
   const [view, setView] = useState("home");
+  // The page the agent was on before New Deal — its Back returns there
+  // (Carlos 10/2: it always went to Win The Day, even from My Deals).
+  const lastPageRef = useRef("dashboard");
+  useEffect(() => { if (view !== "new") lastPageRef.current = view; }, [view]);
+  const PAGE_LABELS = { home: "Win The Day", dashboard: "My Deals", detail: "the deal", contacts: "Contacts", cma: "CMA", growthplan: "Growth Plan", popbys: "Pop-Bys", scripts: "Scripts", expenses: "My Money", forms: "Forms" };
   // When a standalone CMA is turned into a transaction, the New Transaction form
   // opens pre-filled from the CMA subject; cmaConvert carries that across.
   const [cmaConvert, setCmaConvert] = useState(null); // { prefill, cmaId } | null
@@ -11372,7 +11377,8 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
           prefill={cmaConvert?.prefill || null}
           cmaId={cmaConvert?.cmaId || null}
           onSave={(tx) => { setCmaConvert(null); addTransaction(tx); }}
-          onCancel={() => { setCmaConvert(null); setView(cmaConvert ? "cma" : "home"); }}
+          onCancel={() => { setCmaConvert(null); setView(cmaConvert ? "cma" : (lastPageRef.current || "dashboard")); }}
+          backLabel={cmaConvert ? "CMA" : (PAGE_LABELS[lastPageRef.current] || "Back")}
           onImportContract={() => { setCmaConvert(null); setView("home"); setShowContractIntake(true); }}
         />
         </>
