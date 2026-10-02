@@ -1162,6 +1162,7 @@ function SMSPanel({ tx, onUpdate, currentUser, sendOnly = false }) {
       }).catch(e => console.error("[bg]", e && e.message ? e.message : e));
   }, []);
   const [serverOnline, setServerOnline] = useState(null);
+  const [emailOnline, setEmailOnline] = useState(false);   // from /health (d.email) — REQUIRED: the health callbacks set it
   const [selectedParty, setSelectedParty] = useState(null);
   const [message, setMessage] = useState("");
   const [subject, setSubject] = useState("");
@@ -1499,9 +1500,13 @@ function SMSPanel({ tx, onUpdate, currentUser, sendOnly = false }) {
 
   return (
     <div>
-      {/* "SMS Online / Email Not configured" dots used to sit here. Neither was a real
-          check (SMS hard-coded green, email state never set → always red), and testers
-          couldn't tell what they meant. Removed; send failures already alert. */}
+      {/* Status dots used to sit here ("SMS Online" was hard-coded green). Tester review:
+          only speak up when something is actually wrong — email is checked via /health. */}
+      {!emailOnline && (
+        <div role="alert" style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "#922B21", background: "#FDEDEC", border: "1px solid #F5B7B1", borderRadius: 8, padding: "8px 12px", marginBottom: 16 }}>
+          <span aria-hidden="true">⚠️</span> Email sending isn't available right now — texts still work.
+        </div>
+      )}
 
       {/* The two choices the agent must make: WHO (over the conversations list) and HOW (over the messaging window) */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: 10, marginBottom: 12, flexWrap: "wrap" }}>
