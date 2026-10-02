@@ -94,7 +94,7 @@ export default function PhotoCropper({ src, onCancel, onSave }) {
         {err && <div style={{ color: "#922B21", fontSize: 12.5, marginTop: 8 }}>{err}</div>}
         <div style={{ display: "flex", gap: 8, justifyContent: "center", marginTop: 14 }}>
           <button onClick={onCancel} style={{ padding: "10px 18px", borderRadius: 8, border: "1px solid #D1D5DB", background: "#fff", color: "#374151", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Cancel</button>
-          <button onClick={save} disabled={!nat || busy} style={{ padding: "10px 18px", borderRadius: 8, border: "none", background: "#C0392B", color: "#fff", fontWeight: 700, cursor: nat && !busy ? "pointer" : "default", opacity: nat && !busy ? 1 : 0.6, fontFamily: "inherit" }}>
+          <button onClick={save} disabled={!nat || busy} style={{ padding: "10px 18px", borderRadius: 8, border: "none", background: "#0c4a6e", color: "#fff", fontWeight: 700, cursor: nat && !busy ? "pointer" : "default", opacity: nat && !busy ? 1 : 0.6, fontFamily: "inherit" }}>
             {busy ? "Saving…" : "Save photo"}
           </button>
         </div>

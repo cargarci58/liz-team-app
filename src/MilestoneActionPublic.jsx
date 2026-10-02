@@ -74,7 +74,7 @@ export default function MilestoneActionPublic({ urlToken }) {
       </div>
     ) : (
       <button onClick={() => act("done")} disabled={busy}
-        style={{ width: "100%", background: "#1E8449", color: "#fff", border: "none", borderRadius: 12, padding: "15px 0", fontWeight: 800, fontSize: 17, cursor: "pointer", marginTop: 8 }}>
+        style={{ width: "100%", background: "#0c4a6e", color: "#fff", border: "none", borderRadius: 12, padding: "15px 0", fontWeight: 800, fontSize: 17, cursor: "pointer", marginTop: 8 }}>
         {busy ? "Saving…" : "✓ Yes, this is done"}
       </button>
     )}

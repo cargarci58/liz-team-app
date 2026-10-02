@@ -289,7 +289,7 @@ export default function ShowingToursTab({ tx, onOpenOffer }) {
           <div style={{ fontSize: 17, fontWeight: 800, color: C.navy }}>🏠 Showing Tours</div>
           <div style={{ fontSize: 12.5, color: C.muted, marginTop: 2 }}>Upload the MLS report for the day's homes — the app reads them and plans the shortest route.</div>
         </div>
-        <button onClick={newTour} disabled={!!busy} style={btn(C.red)}>{tours.length ? "➕ Add another tour day" : "➕ Plan a tour"}</button>
+        <button onClick={newTour} disabled={!!busy} style={btn(C.blue)}>{tours.length ? "➕ Add another tour day" : "➕ Plan a tour"}</button>
       </div>
 
       {err && <div style={{ background: C.lightRed, color: C.darkRed, borderRadius: 8, padding: "10px 12px", fontSize: 13, fontWeight: 600, marginBottom: 12 }}>⚠️ {err}</div>}
@@ -311,7 +311,7 @@ export default function ShowingToursTab({ tx, onOpenOffer }) {
                 <div style={{ fontSize: 14.5, fontWeight: 800, color: C.navy, wordBreak: "break-word" }}>{s.address}</div>
                 <div style={{ fontSize: 12, color: C.muted }}>{[s.city, fmtDate(t.tour_date)].filter(Boolean).join(" · ")} · tapped {new Date(s.buyer_offer_interest_at).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</div>
               </div>
-              <button onClick={() => writeOffer(s)} disabled={!!busy || offering === s.id} style={btn(C.red)}>{offering === s.id ? "Starting…" : s.offer_id ? "📝 Open offer" : "📝 Write an offer"}</button>
+              <button onClick={() => writeOffer(s)} disabled={!!busy || offering === s.id} style={btn(C.blue)}>{offering === s.id ? "Starting…" : s.offer_id ? "📝 Open offer" : "📝 Write an offer"}</button>
               <button onClick={() => clearInterest(t, s)} title="Clear this flag" style={ghost({ padding: "7px 10px" })}>✕</button>
             </div>
           ))}
@@ -368,7 +368,7 @@ export default function ShowingToursTab({ tx, onOpenOffer }) {
             </div>
             <input ref={fileRef} type="file" accept="application/pdf,.pdf,image/*" multiple style={{ display: "none" }} onChange={e => onFiles(e.target.files)} />
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 10 }}>
-              <button onClick={() => fileRef.current && fileRef.current.click()} disabled={!!busy} style={btn(C.red)}>
+              <button onClick={() => fileRef.current && fileRef.current.click()} disabled={!!busy} style={btn(C.blue)}>
                 {busy === "reading" ? "📖 Reading the report…" : "⬆️ Upload MLS report"}
               </button>
               <button onClick={() => startEdit(null)} disabled={!!busy} style={ghost()}>➕ Add a home by hand</button>
@@ -406,7 +406,7 @@ export default function ShowingToursTab({ tx, onOpenOffer }) {
               {/* Each action says what it does for the agent (Carlos 9/26: "doesn't say anything"). */}
               <div style={{ display: "grid", gap: 10, marginTop: 12 }}>
                 {stops.length > 1 && (
-                  <ActionRow button={<button onClick={() => planAndSave()} disabled={!!busy} style={btn(C.red, "#fff", { minWidth: 190 })}>{busy === "planning" ? "Planning…" : "🧭 Plan my route"}</button>}
+                  <ActionRow button={<button onClick={() => planAndSave()} disabled={!!busy} style={btn(C.blue, "#fff", { minWidth: 190 })}>{busy === "planning" ? "Planning…" : "🧭 Plan my route"}</button>}
                     text="Puts the homes in the order with the least driving and gives each one an arrival time. It respects any showing windows. Tap it again after you add or remove a home." />
                 )}
                 <ActionRow button={<button onClick={copyTimes} style={ghost({ minWidth: 190 })}>{copied ? "✓ Copied — now paste it" : "📋 Copy showing times"}</button>}
@@ -486,7 +486,7 @@ export default function ShowingToursTab({ tx, onOpenOffer }) {
                         <a href={navUrl(s)} target="_blank" rel="noreferrer" style={{ ...btn(C.blue), textDecoration: "none", padding: "7px 12px", fontSize: 12.5 }}>🧭 Navigate</a>
                         <ScorecardButton stop={s} open={openCard.has(s.id)} onClick={() => toggleCard(s.id)} />
                         <button onClick={() => writeOffer(s)} disabled={!!busy || offering === s.id} title="Start an offer already filled in from the MLS report"
-                          style={{ ...btn(C.red), padding: "7px 12px", fontSize: 12.5 }}>{offering === s.id ? "Starting…" : s.offer_id ? "📝 Open offer" : "📝 Write an offer"}</button>
+                          style={{ ...btn(C.blue), padding: "7px 12px", fontSize: 12.5 }}>{offering === s.id ? "Starting…" : s.offer_id ? "📝 Open offer" : "📝 Write an offer"}</button>
                         <button onClick={() => startEdit(s)} disabled={!!busy} style={ghost()}>✏️ Edit</button>
                         <button onClick={() => move(i, -1)} disabled={!!busy || i === 0} title="Move earlier" style={ghost({ opacity: i === 0 ? 0.4 : 1 })}>↑</button>
                         <button onClick={() => move(i, 1)} disabled={!!busy || i === stops.length - 1} title="Move later" style={ghost({ opacity: i === stops.length - 1 ? 0.4 : 1 })}>↓</button>
@@ -546,7 +546,7 @@ function StopForm({ draft, setDraft, onSave, onCancel, busy, isNew }) {
       </div>
       <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 12 }}>
         <button onClick={onCancel} style={ghost()}>Cancel</button>
-        <button onClick={onSave} disabled={!!busy} style={btn(C.red)}>{busy === "saving" ? "Saving…" : "💾 Save"}</button>
+        <button onClick={onSave} disabled={!!busy} style={btn(C.blue)}>{busy === "saving" ? "Saving…" : "💾 Save"}</button>
       </div>
     </div>
   );

@@ -235,7 +235,7 @@ export default function CalendarView({ transactions, onBack, onSelectTx }) {
         placeholder={placeholder}
         style={{ flex: "1 1 240px", padding: "9px 12px", border: "1px solid #CCC", borderRadius: 8, fontSize: 14, fontFamily: "inherit" }} />
       <button onClick={() => addTask(dateKey)} disabled={adding || !newTitle.trim()}
-        style={{ padding: "9px 16px", background: "#C0392B", color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", opacity: adding || !newTitle.trim() ? 0.6 : 1 }}>{adding ? "Adding…" : "Add"}</button>
+        style={{ padding: "9px 16px", background: "#0c4a6e", color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", opacity: adding || !newTitle.trim() ? 0.6 : 1 }}>{adding ? "Adding…" : "Add"}</button>
     </div>
   );
 
@@ -267,7 +267,7 @@ export default function CalendarView({ transactions, onBack, onSelectTx }) {
         <BackButton tone="dark" onClick={onBack} />
         <div style={{ color: "#fff", fontWeight: 700, fontSize: 18 }}>📅 Calendar</div>
         <button onClick={() => { setAddOpen(o => !o); if (!newDate) setNewDate(selectedDay ? ymd(year, month, selectedDay) : ymd(today.getFullYear(), today.getMonth(), today.getDate())); }}
-          style={{ marginLeft: "auto", background: "#C0392B", border: "none", color: "#fff", borderRadius: 8, padding: "7px 16px", cursor: "pointer", fontSize: 13, fontWeight: 700, fontFamily: "inherit" }}>➕ Add a task</button>
+          style={{ marginLeft: "auto", background: "#fff", border: "none", color: "#0c4a6e", borderRadius: 8, padding: "7px 16px", cursor: "pointer", fontSize: 13, fontWeight: 700, fontFamily: "inherit" }}>➕ Add a task</button>
         <button onClick={openPrint} style={{ background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.3)", color: "#fff", borderRadius: 8, padding: "7px 16px", cursor: "pointer", fontSize: 13, fontWeight: 600, fontFamily: "inherit" }}>🖨️ Print Options</button>
       </div>
 
@@ -279,7 +279,7 @@ export default function CalendarView({ transactions, onBack, onSelectTx }) {
           <input type="date" value={newDate} onChange={e => setNewDate(e.target.value)}
             style={{ padding: "9px 10px", border: "1px solid #CCC", borderRadius: 8, fontSize: 15, fontFamily: "inherit" }} />
           <button onClick={() => addTask(newDate)} disabled={adding || !newTitle.trim()}
-            style={{ padding: "10px 18px", background: "#C0392B", color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", opacity: adding || !newTitle.trim() ? 0.6 : 1 }}>{adding ? "Adding…" : "Add"}</button>
+            style={{ padding: "10px 18px", background: "#0c4a6e", color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", opacity: adding || !newTitle.trim() ? 0.6 : 1 }}>{adding ? "Adding…" : "Add"}</button>
           <button onClick={() => setAddOpen(false)} style={{ padding: "10px 14px", background: "none", border: "1px solid #CCC", borderRadius: 8, cursor: "pointer", fontFamily: "inherit" }}>Cancel</button>
         </div>
       )}
@@ -346,7 +346,7 @@ export default function CalendarView({ transactions, onBack, onSelectTx }) {
                 {undatedTasks.map(t => (
                   <div key={t.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 12px", borderRadius: 8, background: "#F8F9FA", marginBottom: 6, border: "1px solid #EEE" }}>
                     <div style={{ flex: 1, fontSize: 13, fontWeight: 600 }}>{t.title}</div>
-                    <button onClick={() => completeTask(t.id)} style={{ padding: "5px 10px", background: "#fff", border: "1px solid #CCC", borderRadius: 8, cursor: "pointer", fontSize: 12, fontWeight: 700, color: "#1E8449", fontFamily: "inherit" }}>✓ Done</button>
+                    <button onClick={() => completeTask(t.id)} style={{ padding: "5px 10px", background: "#fff", border: "1px solid #CCC", borderRadius: 8, cursor: "pointer", fontSize: 12, fontWeight: 700, color: "#0c4a6e", fontFamily: "inherit" }}>✓ Done</button>
                   </div>
                 ))}
               </div>
@@ -406,7 +406,7 @@ export default function CalendarView({ transactions, onBack, onSelectTx }) {
               ))}
               <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 20 }}>
                 <button onClick={() => setShowPrintOptions(false)} style={{ padding: "10px 18px", border: "1px solid #CCC", borderRadius: 8, background: "none", cursor: "pointer", fontFamily: "inherit" }}>Cancel</button>
-                <button onClick={handlePrint} style={{ padding: "10px 20px", background: "#C0392B", color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>Print Now</button>
+                <button onClick={handlePrint} style={{ padding: "10px 20px", background: "#0c4a6e", color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>Print Now</button>
               </div>
             </div>
           </div>

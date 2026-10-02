@@ -110,7 +110,7 @@ export default function ForwardingSetup() {
       <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
         <code style={{ fontSize: 13, fontWeight: 700, color: "#14532D", wordBreak: "break-all", background: "#fff", padding: "6px 10px", borderRadius: 8, border: "1px solid #BBF7D0" }}>{s.address}</code>
         <button onClick={() => { try { navigator.clipboard.writeText(s.address); setCopied(true); setTimeout(() => setCopied(false), 2000); } catch { alert(s.address); } }}
-          style={{ padding: "8px 14px", background: "#166534", color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", fontSize: 13 }}>
+          style={{ padding: "8px 14px", background: "#0c4a6e", color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", fontSize: 13 }}>
           {copied ? "✅ Copied" : "Copy address"}
         </button>
       </div>

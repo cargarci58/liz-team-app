@@ -17,7 +17,7 @@ const C = {
 };
 const hdrs = () => ({ Authorization: "Bearer " + (localStorage.getItem("tp_token") || "") });
 const jsonHdrs = () => ({ ...hdrs(), "Content-Type": "application/json" });
-const btn = (primary, color = C.red) => ({
+const btn = (primary, color = C.blue) => ({  // blue = normal action; pass C.red only for destructive
   background: primary ? color : "#fff", color: primary ? "#fff" : color, border: `1px solid ${color}`,
   borderRadius: 8, padding: "8px 14px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
 });
@@ -365,7 +365,7 @@ export function ReturnedOfferReview({ counter, onClose, onChanged, onCounterAgai
           </div>
           <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 14, flexWrap: "wrap" }}>
             <button onClick={() => onCounterAgain && onCounterAgain(c)} style={btn(false)}>🔁 Counter again</button>
-            <button onClick={() => onSendToSeller && onSendToSeller(c)} disabled={!!open} style={{ ...btn(true, C.green), opacity: open ? 0.45 : 1 }}>✍️ Send to seller to sign</button>
+            <button onClick={() => onSendToSeller && onSendToSeller(c)} disabled={!!open} style={{ ...btn(true, C.blue), opacity: open ? 0.45 : 1 }}>✍️ Send to seller to sign</button>
           </div>
         </div>
       </div>

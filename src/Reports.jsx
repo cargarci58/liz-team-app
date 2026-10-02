@@ -492,7 +492,7 @@ function GoalPlannerTab({ transactions }) {
             )}
           </div>
 
-          <button onClick={save} style={{ width: "100%", marginTop: 18, padding: "12px", borderRadius: 8, border: "none", background: COLORS.green, color: "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer", fontFamily: "inherit" }}>
+          <button onClick={save} style={{ width: "100%", marginTop: 18, padding: "12px", borderRadius: 8, border: "none", background: "#0c4a6e", color: "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer", fontFamily: "inherit" }}>
             {saved ? "✓ Saved" : "💾 Save my plan"}
           </button>
         </div>

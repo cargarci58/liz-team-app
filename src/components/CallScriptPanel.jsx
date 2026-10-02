@@ -91,7 +91,7 @@ export default function CallScriptPanel({ contact, token, onClose, onCall }) {
                 <button type="button" key={g.key} onClick={() => setGroupKey(g.key)}
                   style={{ padding: "6px 10px", borderRadius: 16, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
                     border: `1.5px solid ${on ? "#C0392B" : sug ? "#C0392B" : "#e5e7eb"}`,
-                    background: on ? "#C0392B" : sug ? "#FADBD8" : "#fff", color: on ? "#fff" : sug ? "#922B21" : "#374151" }}>
+                    background: on ? "#0c4a6e" : sug ? "#FADBD8" : "#fff", color: on ? "#fff" : sug ? "#922B21" : "#374151" }}>
                   {sug ? "⭐ " : ""}{g.situation}
                 </button>
               );

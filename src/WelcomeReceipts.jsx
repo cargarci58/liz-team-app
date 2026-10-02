@@ -64,7 +64,7 @@ export function WelcomeReminderModal({ receiptId, onClose, onSent }) {
         {err && <div style={{ color: C.darkRed, fontSize: 13, marginTop: 10 }}>{err}</div>}
         <div style={{ display: "flex", gap: 8, marginTop: 16, justifyContent: "flex-end", flexWrap: "wrap" }}>
           <button onClick={onClose} style={{ padding: "10px 18px", borderRadius: 8, border: "1px solid " + C.border, background: "#fff", color: C.gray, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Cancel</button>
-          <button onClick={send} disabled={!draft || busy} style={{ padding: "10px 18px", borderRadius: 8, border: "none", background: C.red, color: "#fff", fontWeight: 700, cursor: draft && !busy ? "pointer" : "default", opacity: draft && !busy ? 1 : 0.6, fontFamily: "inherit" }}>
+          <button onClick={send} disabled={!draft || busy} style={{ padding: "10px 18px", borderRadius: 8, border: "none", background: "#0c4a6e", color: "#fff", fontWeight: 700, cursor: draft && !busy ? "pointer" : "default", opacity: draft && !busy ? 1 : 0.6, fontFamily: "inherit" }}>
             {busy ? "Sending…" : "✉️ Send reminder"}
           </button>
         </div>
@@ -107,7 +107,7 @@ export default function WelcomeReceiptsPanel({ tx }) {
             {!r.confirmed_at && (
               <div style={{ display: "flex", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
                 {!r.bounced_at && (
-                  <button onClick={() => setRemindId(r.id)} style={{ padding: "7px 12px", borderRadius: 8, border: "none", background: C.red, color: "#fff", fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}>✉️ Review &amp; send reminder</button>
+                  <button onClick={() => setRemindId(r.id)} style={{ padding: "7px 12px", borderRadius: 8, border: "none", background: "#0c4a6e", color: "#fff", fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}>✉️ Review &amp; send reminder</button>
                 )}
                 <button onClick={async () => { if (await markWelcomeReceiptConfirmed(r.id, r.party_name)) load(); }} style={{ padding: "7px 12px", borderRadius: 8, border: "1px solid " + C.green, background: "#fff", color: C.green, fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}>✓ They told me they got it</button>
                 {r.party_phone && <a href={"tel:" + r.party_phone} style={{ padding: "7px 12px", borderRadius: 8, border: "1px solid " + C.border, color: C.blue, fontWeight: 700, fontSize: 12, textDecoration: "none" }}>📞 Call</a>}
@@ -159,7 +159,7 @@ export function WelcomeReceivedPublic({ urlToken }) {
     <div style={{ fontSize: 13, fontWeight: 700, color: C.gray, letterSpacing: ".05em" }}>WELCOME EMAIL</div>
     <div style={{ fontWeight: 800, fontSize: 20, margin: "8px 0 4px" }}>{info?.address || "Your transaction"}</div>
     <div style={{ color: C.gray, fontSize: 14, marginBottom: 18 }}>{info?.partyName ? `Hi ${info.partyName.split(" ")[0]} — ` : ""}please confirm you received the welcome email{info?.agentName ? ` from ${info.agentName}` : ""}.</div>
-    <button onClick={confirm} disabled={busy} style={{ width: "100%", background: C.green, color: "#fff", border: "none", borderRadius: 12, padding: "15px 0", fontWeight: 800, fontSize: 17, cursor: "pointer" }}>
+    <button onClick={confirm} disabled={busy} style={{ width: "100%", background: "#0c4a6e", color: "#fff", border: "none", borderRadius: 12, padding: "15px 0", fontWeight: 800, fontSize: 17, cursor: "pointer" }}>
       {busy ? "Saving…" : "✅ Yes, I received it"}
     </button>
   </>);

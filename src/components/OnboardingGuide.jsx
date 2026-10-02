@@ -39,7 +39,7 @@ export default function OnboardingGuide({ steps, doneKeys, onTakeMeThere, onSkip
           {/* The narrated tour: what the app does, in two minutes, before any setup. */}
           {onWatchTour && (
             <div style={{ marginTop: 10 }}>
-              <button onClick={onWatchTour} style={{ ...primaryBtn, background: '#111' }}>▶ Watch the 2-minute tour</button>
+              <button onClick={onWatchTour} style={{ ...primaryBtn, background: '#0c4a6e' }}>▶ Watch the 2-minute tour</button>
             </div>
           )}
           <div>
@@ -132,5 +132,5 @@ function Overlay({ children, onBackdrop }) {
   );
 }
 
-const primaryBtn = { background: RED, color: '#fff', border: 'none', borderRadius: 10, padding: '11px 22px', fontSize: 14, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit' };
+const primaryBtn = { background: '#0c4a6e', color: '#fff', border: 'none', borderRadius: 10, padding: '11px 22px', fontSize: 14, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit' };
 const linkBtn = { background: 'none', border: 'none', color: '#666666', fontSize: 13, cursor: 'pointer', marginTop: 14, fontFamily: 'inherit' };

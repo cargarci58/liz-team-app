@@ -106,7 +106,7 @@ export default function UserManagement({ onClose }) {
           </div>
           <div style={{ display: "flex", gap: 8 }}>
             <button onClick={() => { setShowInvite(true); setError(""); setSuccess(""); }}
-              style={{ padding: "8px 16px", background: C.red, color: C.white, border: "none", borderRadius: 8, fontWeight: 600, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>
+              style={{ padding: "8px 16px", background: "#fff", color: "#0c4a6e", border: "none", borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>
               + Invite User
             </button>
             <button onClick={onClose} style={{ background: "rgba(255,255,255,0.1)", border: "none", color: C.white, borderRadius: 8, width: 32, height: 32, cursor: "pointer", fontSize: 18 }}>×</button>
@@ -135,7 +135,7 @@ export default function UserManagement({ onClose }) {
                 : <div><strong>Temporary password:</strong> <span style={{ fontFamily: "monospace", background: C.lightGray, padding: "1px 6px", borderRadius: 4 }}>{invitedCreds.tempPassword}</span></div>}
             </div>
             <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
-              <button onClick={() => copyInvite(invitedCreds)} style={{ padding: "8px 16px", background: C.red, color: C.white, border: "none", borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>
+              <button onClick={() => copyInvite(invitedCreds)} style={{ padding: "8px 16px", background: "#0c4a6e", color: C.white, border: "none", borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>
                 {copied ? "✓ Copied!" : "📋 Copy login details"}
               </button>
               <button onClick={() => setInvitedCreds(null)} style={{ padding: "8px 16px", background: "none", border: `1px solid ${C.midGray}`, borderRadius: 8, cursor: "pointer", fontFamily: "inherit", fontSize: 13 }}>
@@ -177,7 +177,7 @@ export default function UserManagement({ onClose }) {
                 </div>
               </div>
               <div style={{ display: "flex", gap: 8 }}>
-                <button type="submit" disabled={inviting} style={{ padding: "8px 20px", background: C.red, color: C.white, border: "none", borderRadius: 8, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
+                <button type="submit" disabled={inviting} style={{ padding: "8px 20px", background: "#0c4a6e", color: C.white, border: "none", borderRadius: 8, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
                   {inviting ? "Sending..." : "Send Invite"}
                 </button>
                 <button type="button" onClick={() => setShowInvite(false)} style={{ padding: "8px 16px", background: "none", border: `1px solid ${C.midGray}`, borderRadius: 8, cursor: "pointer", fontFamily: "inherit" }}>

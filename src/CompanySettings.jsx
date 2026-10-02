@@ -306,7 +306,7 @@ export default function CompanySettings({ onClose, onChangePassword }) {
           </div>
           <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
             <button onClick={onClose} style={{ padding: "10px 18px", border: "1px solid #CCC", borderRadius: 8, background: "none", cursor: "pointer", fontFamily: "inherit" }}>Cancel</button>
-            <button onClick={save} disabled={saving} style={{ padding: "10px 24px", background: "#C0392B", color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", fontSize: 15 }}>
+            <button onClick={save} disabled={saving} style={{ padding: "10px 24px", background: "#0c4a6e", color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", fontSize: 15 }}>
               {saving ? "Saving..." : "Save Settings"}
             </button>
           </div>

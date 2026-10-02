@@ -162,13 +162,13 @@ function FormCard({ form, isAdmin, onDownload, onEdit, onDelete, onReload }) {
       </div>
       <div style={{ display: 'flex', gap: 6 }}>
         <button onClick={onDownload} title={form.has_file ? 'Download' : 'No file yet'}
-          style={{ background: form.has_file ? '#059669' : '#9ca3af', color: 'white', border: 'none',
+          style={{ background: form.has_file ? '#0c4a6e' : '#9ca3af', color: 'white', border: 'none',
                    padding: '6px 12px', borderRadius: 6, cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>
           ⬇️ Download
         </button>
         {isAdmin && (
           <>
-            <button onClick={onEdit} style={{ background: '#3b82f6', color: 'white', border: 'none', padding: '6px 10px', borderRadius: 6, cursor: 'pointer', fontSize: 13 }}>✏️</button>
+            <button onClick={onEdit} style={{ background: '#0c4a6e', color: 'white', border: 'none', padding: '6px 10px', borderRadius: 6, cursor: 'pointer', fontSize: 13 }}>✏️</button>
             <button onClick={onDelete} style={{ background: '#dc2626', color: 'white', border: 'none', padding: '6px 10px', borderRadius: 6, cursor: 'pointer', fontSize: 13 }}>🗑️</button>
           </>
         )}
@@ -402,5 +402,5 @@ const modalBackdrop = { position:'fixed', inset:0, background:'rgba(0,0,0,0.5)',
 const modalCard = { background:'white', borderRadius:12, padding:24, maxWidth:520, width:'92%', maxHeight:'90vh', overflowY:'auto' };
 const labelStyle = { display:'block', fontSize:13, fontWeight:600, color:'#374151', marginBottom:4, marginTop:10 };
 const inputStyle = { width:'100%', padding:'8px 10px', border:'1px solid #d1d5db', borderRadius:6, fontSize:14, boxSizing:'border-box' };
-const btnPrimary = { background:'linear-gradient(135deg,#6366f1,#8b5cf6)', color:'white', border:'none', padding:'10px 18px', borderRadius:8, cursor:'pointer', fontWeight:600 };
+const btnPrimary = { background:'#0c4a6e', color:'white', border:'none', padding:'10px 18px', borderRadius:8, cursor:'pointer', fontWeight:600 };
 const btnSecondary = { background:'#e5e7eb', color:'#374151', border:'none', padding:'10px 18px', borderRadius:8, cursor:'pointer', fontWeight:600 };

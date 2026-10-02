@@ -99,7 +99,7 @@ export default function StandaloneCmaPage({ token, currentUser, onBack, onCreate
               Run a pricing analysis before a deal exists. Save it, then turn it into a transaction when you win the listing.
             </div>
           </div>
-          <button onClick={openNew} style={{ background: '#C0392B', color: '#fff', border: 'none', borderRadius: 10, padding: '11px 20px', fontWeight: 700, fontSize: 14, cursor: 'pointer', fontFamily: 'inherit' }}>
+          <button onClick={openNew} style={{ background: '#0c4a6e', color: '#fff', border: 'none', borderRadius: 10, padding: '11px 20px', fontWeight: 700, fontSize: 14, cursor: 'pointer', fontFamily: 'inherit' }}>
             ＋ New CMA
           </button>
         </div>
@@ -113,7 +113,7 @@ export default function StandaloneCmaPage({ token, currentUser, onBack, onCreate
             <div style={{ fontSize: 13, color: '#667085', maxWidth: 440, margin: '0 auto 18px' }}>
               Start a pricing analysis for a property you're about to list. You can pull MLS comps, set the recommended price, and save it here — no transaction required.
             </div>
-            <button onClick={openNew} style={{ background: '#C0392B', color: '#fff', border: 'none', borderRadius: 10, padding: '11px 22px', fontWeight: 700, fontSize: 14, cursor: 'pointer', fontFamily: 'inherit' }}>
+            <button onClick={openNew} style={{ background: '#0c4a6e', color: '#fff', border: 'none', borderRadius: 10, padding: '11px 22px', fontWeight: 700, fontSize: 14, cursor: 'pointer', fontFamily: 'inherit' }}>
               ＋ Start your first CMA
             </button>
           </div>
@@ -132,7 +132,7 @@ export default function StandaloneCmaPage({ token, currentUser, onBack, onCreate
                   </div>
                 )}
                 <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
-                  <button onClick={() => openSaved(c.id)} disabled={busy} style={{ flex: 1, background: '#1a2b4a', color: '#fff', border: 'none', borderRadius: 8, padding: '8px 0', fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>Open</button>
+                  <button onClick={() => openSaved(c.id)} disabled={busy} style={{ flex: 1, background: '#0c4a6e', color: '#fff', border: 'none', borderRadius: 8, padding: '8px 0', fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>Open</button>
                   <button onClick={() => deleteSaved(c.id, c.label)} style={{ background: '#fff', color: '#C0392B', border: '1px solid #f0d0cb', borderRadius: 8, padding: '8px 12px', fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>Delete</button>
                 </div>
               </div>

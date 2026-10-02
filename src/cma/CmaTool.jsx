@@ -671,7 +671,7 @@ function CmaTool({ tx, token, currentUser, standalone = false, initialCma = null
           a bottom-of-page message and thought the button did nothing. (tester: CMA) */}
       {saveState && saveState.status !== 'saving' && (
         <div style={{ flexBasis: '100%', marginTop: 6, fontSize: 13, fontWeight: 600,
-          color: saveState.status === 'ok' ? '#1E8449' : '#B8232F' }}>
+          color: saveState.status === 'ok' ? '#0c4a6e' : '#B8232F' }}>
           {saveState.status === 'ok' ? '✓ ' : '⚠ '}{saveState.msg}
         </div>
       )}
@@ -776,7 +776,7 @@ function CmaTool({ tx, token, currentUser, standalone = false, initialCma = null
               <div style={{ marginTop: 12 }}>
                 {!manualOpen ? (
                   <button onClick={() => setManualOpen(true)}
-                    style={{ background: 'none', border: '1px dashed #b8a26b', color: '#7A5C00', borderRadius: 8, padding: '10px 18px', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+                    style={{ background: 'none', border: '1px dashed #b8a26b', color: '#0c4a6e', borderRadius: 8, padding: '10px 18px', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
                     ✍️ No spreadsheet? Type 3–8 comps by hand instead
                   </button>
                 ) : (

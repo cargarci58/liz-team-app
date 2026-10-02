@@ -354,7 +354,7 @@ export function PreApprovalBadge({ transactionId }) {
 const cardStyle = { background: '#fff', border: '1px solid #e0e0e0', borderRadius: 10, padding: 14, marginBottom: 12 };
 const headerStyle = { display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 };
 const lbl = { fontSize: 11, color: '#666666', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 };
-const primaryBtn = { background: '#3b82f6', color: '#fff', border: 'none', borderRadius: 6, padding: '8px 14px', fontWeight: 600, cursor: 'pointer', fontSize: 13 };
+const primaryBtn = { background: '#0c4a6e', color: '#fff', border: 'none', borderRadius: 6, padding: '8px 14px', fontWeight: 600, cursor: 'pointer', fontSize: 13 };
 const secondaryBtn = { background: '#f3f4f6', color: '#333', border: '1px solid #ddd', borderRadius: 6, padding: '7px 12px', fontWeight: 500, cursor: 'pointer', fontSize: 13 };
 const modalBackdrop = { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 };
 const modalBox = { background: '#fff', borderRadius: 12, padding: 24, maxWidth: 480, width: '90%', maxHeight: '90vh', overflow: 'auto' };

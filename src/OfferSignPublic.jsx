@@ -127,7 +127,7 @@ function SignaturePad({ onChange, typedName, mode }) {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 6 }}>
         <span style={{ fontSize: 12, color: "#64748b" }}>{mode === "draw" ? "Sign above with your finger or mouse" : "Your typed signature appears above"}</span>
         {mode === "draw" && (
-          <button type="button" onClick={clear} style={{ fontSize: 12, fontWeight: 700, color: "#7f1d1d", background: "none", border: "1px solid #fca5a5", borderRadius: 8, padding: "4px 12px", cursor: "pointer", fontFamily: "inherit" }}>Clear</button>
+          <button type="button" onClick={clear} style={{ fontSize: 12, fontWeight: 700, color: "#0c4a6e", background: "none", border: "1px solid #fca5a5", borderRadius: 8, padding: "4px 12px", cursor: "pointer", fontFamily: "inherit" }}>Clear</button>
         )}
       </div>
     </div>
@@ -577,7 +577,7 @@ export default function OfferSignPublic({ urlToken, kind = "offer" }) {
           )}
           {allApplied && (
             <button type="button" onClick={submit} disabled={submitting}
-              style={{ padding: "10px 20px", background: submitting ? "#64748b" : "#22c55e", color: "#052e16", border: "none", borderRadius: 8, fontSize: 14, fontWeight: 800, cursor: submitting ? "default" : "pointer", fontFamily: "inherit" }}>
+              style={{ padding: "10px 20px", background: submitting ? "#64748b" : "#0c4a6e", color: "#052e16", border: "none", borderRadius: 8, fontSize: 14, fontWeight: 800, cursor: submitting ? "default" : "pointer", fontFamily: "inherit" }}>
               {submitting ? "Finishing…" : "Finish & submit ✓"}
             </button>
           )}

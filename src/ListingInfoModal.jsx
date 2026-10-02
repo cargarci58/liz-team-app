@@ -81,7 +81,7 @@ export default function ListingInfoModal({ txId, onClose }) {
                   Skip for now
                 </button>
                 <button onClick={save} disabled={busy}
-                  style={{ flex: 2, padding: "12px 0", borderRadius: 10, border: "none", background: "#1E8449", color: "#fff", fontWeight: 800, fontSize: 14, cursor: "pointer", fontFamily: "inherit", opacity: busy ? 0.6 : 1 }}>
+                  style={{ flex: 2, padding: "12px 0", borderRadius: 10, border: "none", background: "#0c4a6e", color: "#fff", fontWeight: 800, fontSize: 14, cursor: "pointer", fontFamily: "inherit", opacity: busy ? 0.6 : 1 }}>
                   {busy ? "Saving…" : "✓ Save answers"}
                 </button>
               </div>
@@ -119,7 +119,7 @@ export function ListingInfoCard({ txId }) {
           <div style={{ fontSize: 12, color: "#92400e", marginTop: 2 }}>Fill these in once and the listing package builds itself from them.</div>
         </div>
         <button onClick={() => setOpen(true)}
-          style={{ padding: "9px 16px", borderRadius: 8, border: "none", background: "#b45309", color: "#fff", fontSize: 13, fontWeight: 800, cursor: "pointer", fontFamily: "inherit", flexShrink: 0 }}>
+          style={{ padding: "9px 16px", borderRadius: 8, border: "none", background: "#0c4a6e", color: "#fff", fontSize: 13, fontWeight: 800, cursor: "pointer", fontFamily: "inherit", flexShrink: 0 }}>
           Complete listing info →
         </button>
       </div>

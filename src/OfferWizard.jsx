@@ -99,7 +99,7 @@ function FieldRenderer({ field, value, onChange, documents, formLibrary, onUploa
           ✓ Yes
         </button>
         <button type="button" onClick={() => onChange(false)}
-          style={{ ...ynBase, background: no ? "#7f1d1d" : "white", color: no ? "white" : "#374151", borderColor: no ? "#7f1d1d" : "#d1d5db" }}>
+          style={{ ...ynBase, background: no ? "#0c4a6e" : "white", color: no ? "white" : "#374151", borderColor: no ? "#0c4a6e" : "#d1d5db" }}>
           ✗ No
         </button>
       </div>
@@ -842,7 +842,7 @@ export default function OfferWizard({ offerId, token, onClose, onSaved }) {
                     <div style={{ fontSize: 12.5, color: "#7A5C00", lineHeight: 1.5 }}>Answer 4 questions — the app fills everything else with standard Florida terms (15-day inspection, deposit due in 3 days, seller pays deed stamps, possession at closing…). You review it all before anything is sent.</div>
                   </div>
                   <button type="button" onClick={() => setExpress(true)}
-                    style={{ background: "#B7791F", color: "#fff", border: "none", borderRadius: 8, padding: "10px 16px", fontSize: 13, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>
+                    style={{ background: "#0c4a6e", color: "#fff", border: "none", borderRadius: 8, padding: "10px 16px", fontSize: 13, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>
                     ⚡ Use Express
                   </button>
                 </div>
@@ -867,7 +867,7 @@ export default function OfferWizard({ offerId, token, onClose, onSaved }) {
                       <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                         {["Cash", "Conventional", "FHA", "VA"].map(ft => (
                           <button key={ft} type="button" onClick={() => setXp(x => ({ ...x, financing: ft }))}
-                            style={{ padding: "8px 12px", borderRadius: 16, border: xp.financing === ft ? "2px solid #7A5C00" : "1px solid #d1d5db", background: xp.financing === ft ? "#7A5C00" : "#fff", color: xp.financing === ft ? "#fff" : "#374151", fontSize: 12.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                            style={{ padding: "8px 12px", borderRadius: 16, border: xp.financing === ft ? "2px solid #0c4a6e" : "1px solid #d1d5db", background: xp.financing === ft ? "#0c4a6e" : "#fff", color: xp.financing === ft ? "#fff" : "#374151", fontSize: 12.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
                             {ft}
                           </button>
                         ))}
@@ -877,7 +877,7 @@ export default function OfferWizard({ offerId, token, onClose, onSaved }) {
                   <div style={{ fontSize: 11.5, color: "#7A5C00", marginBottom: 10 }}>Tip: upload the MLS sheet on the next screen (or before sending) so the property, seller, and listing agent fill in automatically.</div>
                   <div style={{ display: "flex", gap: 8 }}>
                     <button type="button" onClick={() => setExpress(false)} style={{ padding: "9px 16px", borderRadius: 8, border: "1px solid #d1d5db", background: "#fff", color: "#374151", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>Never mind</button>
-                    <button type="button" onClick={applyExpress} style={{ flex: 1, padding: "9px 16px", borderRadius: 8, border: "none", background: "#1E8449", color: "#fff", fontSize: 13, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>Apply & jump to Review →</button>
+                    <button type="button" onClick={applyExpress} style={{ flex: 1, padding: "9px 16px", borderRadius: 8, border: "none", background: "#0c4a6e", color: "#fff", fontSize: 13, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>Apply & jump to Review →</button>
                   </div>
                 </div>
               )}
@@ -936,7 +936,7 @@ export default function OfferWizard({ offerId, token, onClose, onSaved }) {
                 </div>
                 {inSync
                   ? <span style={{ fontSize: 12, fontWeight: 700, color: "#15803d" }}>✓ applied below</span>
-                  : <button onClick={applyFinanceCalc} style={{ background: "#16a34a", color: "#fff", border: "none", borderRadius: 6, padding: "8px 14px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
+                  : <button onClick={applyFinanceCalc} style={{ background: "#0c4a6e", color: "#fff", border: "none", borderRadius: 6, padding: "8px 14px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
                       Use these numbers
                     </button>}
               </div>
@@ -997,12 +997,12 @@ export default function OfferWizard({ offerId, token, onClose, onSaved }) {
                   Builds a PDF with the offer summary + addenda checklist + the buyer's pre-approval letter, all in one file. Download and review before marking the offer Ready.
                 </div>
                 <button onClick={onGeneratePacket} disabled={generating}
-                  style={{ background: generating ? "#9ca3af" : "#1e40af", color: "white", border: "none", padding: "12px 24px", borderRadius: 6, fontSize: 14, fontWeight: 700, cursor: generating ? "wait" : "pointer", fontFamily: "inherit", marginRight: 8 }}>
+                  style={{ background: generating ? "#9ca3af" : "#0c4a6e", color: "white", border: "none", padding: "12px 24px", borderRadius: 6, fontSize: 14, fontWeight: 700, cursor: generating ? "wait" : "pointer", fontFamily: "inherit", marginRight: 8 }}>
                   {generating ? "Generating…" : "📦 Generate Packet"}
                 </button>
                 {(packetReady || (offer && offer.packet_pdf_key)) && (
                   <button onClick={onDownloadPacket}
-                    style={{ background: "#065f46", color: "white", border: "none", padding: "12px 24px", borderRadius: 6, fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                    style={{ background: "#0c4a6e", color: "white", border: "none", padding: "12px 24px", borderRadius: 6, fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
                     ⬇️ Download Again
                   </button>
                 )}

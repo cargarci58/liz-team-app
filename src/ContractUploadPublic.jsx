@@ -171,7 +171,7 @@ export default function ContractUploadPublic({ token: urlToken }) {
               <div style={{ fontSize: 12, color: COLORS.muted, marginBottom: 12 }}>
                 💡 Add the contract and any addenda or disclosures together. Your agent will review them all at once.
               </div>
-              <button onClick={handleUpload} style={{ width: "100%", background: COLORS.red, color: "white", border: "none", borderRadius: 8, padding: "14px", fontSize: 15, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
+              <button onClick={handleUpload} style={{ width: "100%", background: "#0c4a6e", color: "white", border: "none", borderRadius: 8, padding: "14px", fontSize: 15, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
                 Upload Contract →
               </button>
             </div>

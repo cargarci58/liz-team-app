@@ -108,7 +108,7 @@ export default function ReferralsOutPage({ onBack }) {
   };
 
   const inp = { padding: "9px 11px", border: "1px solid " + C.border, borderRadius: 8, fontSize: 14, fontFamily: "inherit", boxSizing: "border-box", width: "100%" };
-  const btn = (primary) => ({ padding: "8px 14px", borderRadius: 8, border: primary ? "none" : "1px solid " + C.border, background: primary ? C.red : "#fff", color: primary ? "#fff" : C.text, fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit" });
+  const btn = (primary) => ({ padding: "8px 14px", borderRadius: 8, border: primary ? "none" : "1px solid " + C.border, background: primary ? C.blue : "#fff", color: primary ? "#fff" : C.text, fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit" });
   const field = (k, label, type = "text") => (
     <label style={{ fontSize: 12, color: C.muted }}>{label}
       <input type={type} value={edit[k] ?? ""} onChange={e => setEdit(f => ({ ...f, [k]: e.target.value }))} style={{ ...inp, marginTop: 3 }} />
@@ -357,7 +357,7 @@ export function ReferralUpdatePublic({ urlToken }) {
         {(info.status === "under_contract" || info.status === "working") && <label style={{ fontSize: 13, color: C.muted, display: "block", marginBottom: 10 }}>Expected closing date (optional)<input type="date" value={f.expectedClose} onChange={e => setF(x => ({ ...x, expectedClose: e.target.value }))} style={inp} /></label>}
         {(info.status === "under_contract" || info.status === "closed") && <label style={{ fontSize: 13, color: C.muted, display: "block", marginBottom: 10 }}>{info.status === "closed" ? "Sold price" : "Contract price"} (optional)<input type="number" value={f.price} onChange={e => setF(x => ({ ...x, price: e.target.value }))} style={inp} /></label>}
         <label style={{ fontSize: 13, color: C.muted, display: "block", marginBottom: 14 }}>Anything to add? (optional)<textarea value={f.note} onChange={e => setF(x => ({ ...x, note: e.target.value }))} rows={3} style={{ ...inp, resize: "vertical" }} /></label>
-        <button onClick={submit} style={{ width: "100%", padding: "12px 0", borderRadius: 10, border: "none", background: C.red, color: "#fff", fontWeight: 800, fontSize: 16, cursor: "pointer" }}>Send update</button>
+        <button onClick={submit} style={{ width: "100%", padding: "12px 0", borderRadius: 10, border: "none", background: "#0c4a6e", color: "#fff", fontWeight: 800, fontSize: 16, cursor: "pointer" }}>Send update</button>
       </div>
     </div>
   );

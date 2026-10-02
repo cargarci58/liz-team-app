@@ -333,7 +333,7 @@ export default function PopBysPage({ token, onBack }) {
           <div style={{ fontSize: 13, color: "#6b7280" }}>Hand-deliver a small gift to your best clients — the #1 way to earn referrals.</div>
         </div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          <button onClick={() => setShowLog(true)} style={btn("#0F6E56", "white")}>➕ Log a Pop-By</button>
+          <button onClick={() => setShowLog(true)} style={btn("#0c4a6e", "white")}>➕ Log a Pop-By</button>
           <button onClick={() => setShowGuide(g => !g)} style={btn("#fef3c7", "#92400e")}>📖 How it works</button>
           <button onClick={() => setShowSettings(s => !s)} style={btn("#e5e7eb", "#374151")}>⚙ Settings</button>
         </div>
@@ -369,7 +369,7 @@ export default function PopBysPage({ token, onBack }) {
         </div>
       )}
 
-      {savedMsg && <div style={{ background: "#dcfce7", border: "1px solid #86efac", color: "#166534", borderRadius: 8, padding: "8px 12px", marginTop: 10, fontSize: 13, fontWeight: 700 }}>✓ Settings saved.</div>}
+      {savedMsg && <div style={{ background: "#E0F2FE", border: "1px solid #7DD3FC", color: "#0c4a6e", borderRadius: 8, padding: "8px 12px", marginTop: 10, fontSize: 13, fontWeight: 700 }}>✓ Settings saved.</div>}
 
       {/* Not enabled yet */}
       {data && !data.enabled && (
@@ -464,7 +464,7 @@ export default function PopBysPage({ token, onBack }) {
                   <div style={stepBox}>
                     <div style={stepTitle}><span style={stepNum}>2</span> Print the note cards</div>
                     <div style={{ fontSize: 13, color: "#6b7280", marginBottom: 10 }}>One card per person, ready to print on letter paper (8 per page) and cut out. Tape one to each gift.</div>
-                    <button onClick={printNotes} style={btn("#e0e7ff", "#3730a3")}>🖨 Print {runList.length} note card{runList.length === 1 ? "" : "s"}</button>
+                    <button onClick={printNotes} style={btn("#E0F2FE", "#0c4a6e")}>🖨 Print {runList.length} note card{runList.length === 1 ? "" : "s"}</button>
                   </div>
 
                   {/* ── STEP 3 — pick who / which area ── */}
@@ -479,7 +479,7 @@ export default function PopBysPage({ token, onBack }) {
                         ? <button onClick={() => { setRefMode("office"); setGpsNote(""); }} style={linkBtn}>Use office instead</button>
                         : <button onClick={useMyLocation} disabled={gpsBusy} style={linkBtn}>{gpsBusy ? "📍 locating…" : "📍 I'm out delivering — use my location"}</button>}
                     </div>
-                    {gpsNote && <div style={{ fontSize: 12, color: "#166534", marginBottom: 8 }}>{gpsNote}</div>}
+                    {gpsNote && <div style={{ fontSize: 12, color: "#0c4a6e", marginBottom: 8 }}>{gpsNote}</div>}
                     {!refReady && radius !== "all" && (
                       <div style={{ fontSize: 13, color: "#b45309", background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 8, padding: 10, marginBottom: 10 }}>
                         Add your office address in <strong>My Profile</strong> so we can find who's nearby — or tap <strong>📍 use my location</strong> above, or pick <strong>Everyone</strong> below.
@@ -490,9 +490,9 @@ export default function PopBysPage({ token, onBack }) {
                     <div style={{ fontSize: 13, fontWeight: 700, color: "#374151", marginBottom: 6 }}>How far do you want to drive?</div>
                     <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 14 }}>
                       {[1, 3, 5, 10].map(r => (
-                        <button key={r} onClick={() => setRadius(r)} style={btn(radius === r ? "#0F6E56" : "#eef2f7", radius === r ? "white" : "#374151")}>{r} miles</button>
+                        <button key={r} onClick={() => setRadius(r)} style={btn(radius === r ? "#0c4a6e" : "#eef2f7", radius === r ? "white" : "#374151")}>{r} miles</button>
                       ))}
-                      <button onClick={() => setRadius("all")} style={btn(radius === "all" ? "#0F6E56" : "#eef2f7", radius === "all" ? "white" : "#374151")}>Everyone</button>
+                      <button onClick={() => setRadius("all")} style={btn(radius === "all" ? "#0c4a6e" : "#eef2f7", radius === "all" ? "white" : "#374151")}>Everyone</button>
                     </div>
 
                     <div style={{ fontSize: 15, fontWeight: 800, color: "#0c4a6e", marginBottom: 8 }}>

@@ -40,7 +40,7 @@ function Info({ children }) {
   return (
     <span style={{ position: "relative", display: "inline-block", marginLeft: 6 }}>
       <button type="button" onClick={() => setOpen(!open)}
-        style={{ background: "#dbeafe", color: "#1e3a8a", border: "none", borderRadius: "50%", width: 16, height: 16, fontSize: 10, fontWeight: 700, cursor: "pointer", lineHeight: "16px", padding: 0 }}>?</button>
+        style={{ background: "#dbeafe", color: "#0c4a6e", border: "none", borderRadius: "50%", width: 16, height: 16, fontSize: 10, fontWeight: 700, cursor: "pointer", lineHeight: "16px", padding: 0 }}>?</button>
       {open && (
         <div onClick={() => setOpen(false)}
           style={{ position: "absolute", top: 20, left: 0, zIndex: 50, background: "#1f2937", color: "white", padding: "8px 12px", borderRadius: 6, fontSize: 11, lineHeight: 1.4, width: 240, boxShadow: "0 4px 12px rgba(0,0,0,0.2)", cursor: "pointer" }}>
@@ -303,7 +303,7 @@ function SubjectTab({ subject, setSubject }) {
           <button onClick={() => removeCustom(i)} style={{ ...btnStyle("#fee2e2", "#7f1d1d"), padding: "4px 8px" }}>✕</button>
         </div>
       ))}
-      <button onClick={addCustom} style={{ ...btnStyle("#e0e7ff", "#3730a3"), fontSize: 12, padding: "6px 12px" }}>+ Add Custom Upgrade</button>
+      <button onClick={addCustom} style={{ ...btnStyle("#E0F2FE", "#0c4a6e"), fontSize: 12, padding: "6px 12px" }}>+ Add Custom Upgrade</button>
     </div>
   );
 }
@@ -527,7 +527,7 @@ export default function CMACalculator({ transactionId, token } = {}) {
               subjectUpgrades={subject.upgrades} />
           ))}
           {comps.length < 6 && (
-            <button onClick={addComp} style={btnStyle("#e0e7ff", "#3730a3")}>+ Add Comp ({6 - comps.length} more allowed)</button>
+            <button onClick={addComp} style={btnStyle("#E0F2FE", "#0c4a6e")}>+ Add Comp ({6 - comps.length} more allowed)</button>
           )}
         </div>
       )}
@@ -535,7 +535,7 @@ export default function CMACalculator({ transactionId, token } = {}) {
       {tab === "result" && (
         <div>
           {!summary || compResults.length === 0 ? (
-            <div style={{ background: "#fee2e2", border: "1px solid #fca5a5", borderRadius: 8, padding: 16, textAlign: "center", color: "#7f1d1d" }}>
+            <div style={{ background: "#fee2e2", border: "1px solid #fca5a5", borderRadius: 8, padding: 16, textAlign: "center", color: "#0c4a6e" }}>
               Add at least one comp with sold price + sqft to see suggested pricing.
             </div>
           ) : (

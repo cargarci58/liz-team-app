@@ -19,7 +19,7 @@ const C = {
 };
 const hdrs = () => ({ Authorization: "Bearer " + (localStorage.getItem("tp_token") || "") });
 const jsonHdrs = () => ({ ...hdrs(), "Content-Type": "application/json" });
-const btn = (primary, color = C.red) => ({
+const btn = (primary, color = C.blue) => ({  // blue = normal action; pass C.red only for destructive
   background: primary ? color : "#fff", color: primary ? "#fff" : color, border: `1px solid ${color}`,
   borderRadius: 8, padding: "8px 14px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
 });
@@ -157,8 +157,8 @@ export function BuyerCounterPanel({ offer, counter, tx, onChanged, onOpenOffer, 
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end", marginTop: 10 }}>
         {st.step === 0 && <button onClick={onTheyCountered} style={btn(true)}>🔁 They countered</button>}
         {counter && counter.status === "recorded" && <>
-          <button onClick={() => resubmit("accept")} disabled={!!busy} style={btn(true, C.green)}>{busy === "accept" ? "Building…" : "✅ Buyer accepts their counter"}</button>
-          <button onClick={() => resubmit("counter_back")} disabled={!!busy} style={btn(false, C.red)}>{busy === "counter_back" ? "Building…" : "↩️ Counter back"}</button>
+          <button onClick={() => resubmit("accept")} disabled={!!busy} style={btn(true, C.blue)}>{busy === "accept" ? "Building…" : "✅ Buyer accepts their counter"}</button>
+          <button onClick={() => resubmit("counter_back")} disabled={!!busy} style={btn(false, C.blue)}>{busy === "counter_back" ? "Building…" : "↩️ Counter back"}</button>
           {counter.source && counter.source.hasPdf && <button onClick={() => setInitialsFor(counter)} disabled={!!busy} style={btn(false, C.blue)}>✍️ Buyer initials their copy</button>}
           <button onClick={decline} disabled={!!busy} style={btn(false, "#555")}>Buyer says no</button>
           <button onClick={reread} disabled={!!busy} style={{ ...btn(false, "#888"), fontWeight: 600 }}>Re-read it</button>

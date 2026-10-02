@@ -121,7 +121,7 @@ function VendorForm({ vendor, onSave, onCancel }) {
         </button>
         <button onClick={handleSave} disabled={saving}
           style={{ flex: 2, padding: 13, borderRadius: 10, border: "none",
-            background: COLORS.red, color: COLORS.white,
+            background: "#0c4a6e", color: COLORS.white,
             fontWeight: 700, fontSize: 15, cursor: "pointer" }}>
           {saving ? "Saving..." : vendor ? "Save Changes" : "Add Vendor"}
         </button>
@@ -244,7 +244,7 @@ export function ShareVendorModal({ vendor, onClose, presetTxId = "", presetRecip
                 <div style={{ color: "#92400E" }}>💬 Posted in the deal's chat only — no texts or emails were sent (no recipients were selected).</div>
               )}
             </div>
-            <button onClick={onClose} style={{ marginTop: 16, width: "100%", padding: 12, borderRadius: 10, border: "none", background: COLORS.black, color: "#fff", fontWeight: 700, fontSize: 15, cursor: "pointer" }}>Done</button>
+            <button onClick={onClose} style={{ marginTop: 16, width: "100%", padding: 12, borderRadius: 10, border: "none", background: "#0c4a6e", color: "#fff", fontWeight: 700, fontSize: 15, cursor: "pointer" }}>Done</button>
           </div>
         ) : (
           <div style={{ padding: 20, maxHeight: "70vh", overflowY: "auto" }}>
@@ -345,7 +345,7 @@ export function ShareVendorModal({ vendor, onClose, presetTxId = "", presetRecip
             <textarea value={message} onChange={e => setMessage(e.target.value)} rows={3} placeholder="Add a personal note (optional)…" style={{ ...inp, resize: "vertical", marginBottom: 6 }} />
             <div style={{ fontSize: 11, color: COLORS.gray, marginBottom: 14 }}>Leave the note blank and a warm intro is added for you. The vendor's name, company, phone, email & description are always included.</div>
 
-            <button onClick={send} disabled={sending || (chosen.length === 0 && !txId)} style={{ width: "100%", padding: 13, borderRadius: 10, border: "none", background: COLORS.success, color: "#fff", fontWeight: 700, fontSize: 15, cursor: "pointer", opacity: (sending || (chosen.length === 0 && !txId)) ? 0.5 : 1 }}>
+            <button onClick={send} disabled={sending || (chosen.length === 0 && !txId)} style={{ width: "100%", padding: 13, borderRadius: 10, border: "none", background: "#0c4a6e", color: "#fff", fontWeight: 700, fontSize: 15, cursor: "pointer", opacity: (sending || (chosen.length === 0 && !txId)) ? 0.5 : 1 }}>
               {sending ? "Sending…" : `Share with ${chosen.length || (txId ? "the deal" : "0")} ${chosen.length === 1 ? "person" : chosen.length ? "people" : ""}`.trim()}
             </button>
           </div>
@@ -387,7 +387,7 @@ function VendorCard({ vendor, onEdit, onDelete, onShare }) {
         <div style={{ display: "flex", flexDirection: "column", gap: 6, flexShrink: 0 }}>
           <button onClick={() => onShare(vendor)}
             style={{ padding: "5px 12px", borderRadius: 6, border: "none",
-              background: COLORS.red, color: "#fff", fontSize: 12,
+              background: "#0c4a6e", color: "#fff", fontSize: 12,
               cursor: "pointer", fontWeight: 700 }}>📤 Share</button>
           <button onClick={() => onEdit(vendor)}
             style={{ padding: "5px 12px", borderRadius: 6, border: "1px solid " + COLORS.border,
@@ -481,8 +481,8 @@ export default function VendorLibrary({ onClose }) {
           </div>
         </div>
         <button onClick={() => { setEditingVendor(null); setShowForm(true); }}
-          style={{ marginLeft: "auto", background: COLORS.red, border: "none",
-            color: "#fff", borderRadius: 10, padding: "8px 16px",
+          style={{ marginLeft: "auto", background: "#fff", border: "none",
+            color: "#0c4a6e", borderRadius: 10, padding: "8px 16px",
             fontWeight: 700, fontSize: 14, cursor: "pointer" }}>
           + Add Vendor
         </button>
@@ -540,7 +540,7 @@ export default function VendorLibrary({ onClose }) {
               You can then assign them to transactions so your clients can choose.
             </div>
             <button onClick={() => setShowForm(true)}
-              style={{ background: COLORS.red, color: "#fff", border: "none",
+              style={{ background: "#0c4a6e", color: "#fff", border: "none",
                 borderRadius: 12, padding: "14px 32px", fontWeight: 700,
                 fontSize: 16, cursor: "pointer" }}>
               + Add Your First Vendor

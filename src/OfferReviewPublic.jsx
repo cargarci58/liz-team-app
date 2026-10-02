@@ -115,7 +115,7 @@ export default function OfferReviewPublic({ token: urlToken }) {
                   </div>
                 ) : null}
                 <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
-                  <button disabled={busyId === o.id} onClick={() => decide(o.id, "accepted")} style={{ flex: 1, background: COLORS.green, color: "#fff", border: "none", borderRadius: 8, padding: "10px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", opacity: busyId === o.id ? 0.6 : 1 }}>✓ Accept</button>
+                  <button disabled={busyId === o.id} onClick={() => decide(o.id, "accepted")} style={{ flex: 1, background: "#0c4a6e", color: "#fff", border: "none", borderRadius: 8, padding: "10px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", opacity: busyId === o.id ? 0.6 : 1 }}>✓ Accept</button>
                   <button disabled={busyId === o.id} onClick={() => decide(o.id, "declined")} style={{ flex: 1, background: "#fff", color: COLORS.red, border: "1px solid " + COLORS.border, borderRadius: 8, padding: "10px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", opacity: busyId === o.id ? 0.6 : 1 }}>Decline</button>
                 </div>
               </div>

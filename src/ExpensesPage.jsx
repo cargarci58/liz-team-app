@@ -337,9 +337,9 @@ export default function ExpensesPage({ onBack }) {
                 style={{
                   display: 'flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap', cursor: 'pointer',
                   margin: '7px 0', padding: '8px 14px', fontSize: 14, fontWeight: 700, borderRadius: 8,
-                  border: activeTab === 'import' ? '1px solid #10b981' : '1px solid #d1d5db',
-                  background: activeTab === 'import' ? '#ecfdf5' : 'white',
-                  color: activeTab === 'import' ? '#065f46' : '#374151',
+                  border: activeTab === 'import' ? '1px solid #0c4a6e' : '1px solid #d1d5db',
+                  background: activeTab === 'import' ? '#E0F2FE' : 'white',
+                  color: activeTab === 'import' ? '#0c4a6e' : '#374151',
                 }}
               >📥 Import Statement</button>
             </>
@@ -377,13 +377,13 @@ export default function ExpensesPage({ onBack }) {
       <div style={{ padding: '16px 24px', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
         <button
           onClick={() => { setEditingExpense(null); setAddModalOpen(true); }}
-          style={primaryBtn('#10b981')}
+          style={primaryBtn('#0c4a6e')}
         >
           ➕ Add Expense
         </button>
         <button
           onClick={() => setReportModalOpen(true)}
-          style={primaryBtn('#3b82f6')}
+          style={primaryBtn('#0c4a6e')}
         >
           📊 Tax Report
         </button>
@@ -450,7 +450,7 @@ export default function ExpensesPage({ onBack }) {
             <div style={{ fontSize: 14, marginTop: 6 }}>Add your first expense or snap a receipt to get started.</div>
             <button
               onClick={() => { setEditingExpense(null); setAddModalOpen(true); }}
-              style={{ ...primaryBtn('#10b981'), marginTop: 16 }}
+              style={{ ...primaryBtn('#0c4a6e'), marginTop: 16 }}
             >
               ➕ Add Your First Expense
             </button>
@@ -776,7 +776,7 @@ function AddExpenseModal({ categories, expense, allExpenses, onClose, onSaved })
                 try { await authFetch('/expenses/recategorize-by-vendor', { method: 'POST', body: JSON.stringify({ ids: similarPrompt.ids, category: similarPrompt.newCat }) }); } catch { /* single edit already saved */ }
                 setSimilarPrompt(null); onSaved();
               }}
-                style={{ padding: '10px 18px', borderRadius: 8, border: 'none', background: '#10b981', color: '#fff', fontSize: 14, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit' }}>
+                style={{ padding: '10px 18px', borderRadius: 8, border: 'none', background: '#0c4a6e', color: '#fff', fontSize: 14, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit' }}>
                 ✓ Yes — move {similarPrompt.count === 1 ? 'it' : 'them all'}
               </button>
             </div>
@@ -817,14 +817,14 @@ function AddExpenseModal({ categories, expense, allExpenses, onClose, onSaved })
             <button
               onClick={() => cameraInputRef.current?.click()}
               disabled={ocrLoading}
-              style={{ ...primaryBtn('#10b981'), opacity: ocrLoading ? 0.6 : 1 }}
+              style={{ ...primaryBtn('#0c4a6e'), opacity: ocrLoading ? 0.6 : 1 }}
             >
               📷 Take Photo
             </button>
             <button
               onClick={() => fileInputRef.current?.click()}
               disabled={ocrLoading}
-              style={{ ...secondaryBtn, opacity: ocrLoading ? 0.6 : 1, borderColor: '#10b981', color: '#065f46' }}
+              style={{ ...secondaryBtn, opacity: ocrLoading ? 0.6 : 1, borderColor: '#0c4a6e', color: '#065f46' }}
             >
               📎 Upload File
             </button>
@@ -919,7 +919,7 @@ function AddExpenseModal({ categories, expense, allExpenses, onClose, onSaved })
 
       <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
         <button onClick={onClose} style={secondaryBtn}>Cancel</button>
-        <button onClick={handleSave} disabled={saving} style={{ ...primaryBtn('#10b981'), opacity: saving ? 0.6 : 1 }}>
+        <button onClick={handleSave} disabled={saving} style={{ ...primaryBtn('#0c4a6e'), opacity: saving ? 0.6 : 1 }}>
           {saving ? 'Saving...' : (isEdit ? 'Save Changes' : 'Add Expense')}
         </button>
       </div>
@@ -1036,7 +1036,7 @@ function ReportModal({ categories, onClose }) {
 
           <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
             <button onClick={onClose} style={secondaryBtn}>Close</button>
-            <button onClick={exportReportCSV} style={primaryBtn('#3b82f6')}>⬇️ Export Report CSV</button>
+            <button onClick={exportReportCSV} style={primaryBtn('#0c4a6e')}>⬇️ Export Report CSV</button>
           </div>
         </>
       )}
@@ -1068,7 +1068,7 @@ function TeachModal({ onClose }) {
         </div>
       </div>
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 16 }}>
-        <button onClick={onClose} style={primaryBtn('#10b981')}>Got it</button>
+        <button onClick={onClose} style={primaryBtn('#0c4a6e')}>Got it</button>
       </div>
     </ModalShell>
   );
@@ -1160,19 +1160,19 @@ function SimpleMoneyView({ categories, goAdvanced }) {
               <Step done={hasGoal} n={1} title="How much do you want to make this year?">
                 {hasGoal
                   ? <div style={{ fontSize: 14, color: '#374151' }}>Your goal: <strong>{fmtCurrency(goal)}</strong> &nbsp;<button onClick={() => setShowGoal(true)} style={linkBtn}>change</button></div>
-                  : <button onClick={() => setShowGoal(true)} style={primaryBtn('#10b981')}>Set my income goal</button>}
+                  : <button onClick={() => setShowGoal(true)} style={primaryBtn('#0c4a6e')}>Set my income goal</button>}
               </Step>
 
               <Step done={hasBills} n={2} title="What do you pay every month to run your business?">
                 {hasBills
                   ? <div style={{ fontSize: 14, color: '#374151' }}>About <strong>{fmtCurrency(monthlyBills)}/mo</strong> in bills &nbsp;<button onClick={() => setShowBills(true)} style={linkBtn}>edit</button></div>
-                  : <button onClick={() => setShowBills(true)} style={primaryBtn('#10b981')}>Add my monthly bills</button>}
+                  : <button onClick={() => setShowBills(true)} style={primaryBtn('#0c4a6e')}>Add my monthly bills</button>}
               </Step>
 
               <Step done={hasActivity} n={3} title="Add what you've made and spent">
                 <div style={{ fontSize: 13, color: '#6b7280', marginBottom: 8 }}>The easiest way is to upload a bank statement — we'll sort it for you. Or add things one at a time.</div>
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                  <button onClick={() => goAdvanced('import')} style={primaryBtn('#3b82f6')}>🏦 Upload a bank statement</button>
+                  <button onClick={() => goAdvanced('import')} style={primaryBtn('#0c4a6e')}>🏦 Upload a bank statement</button>
                   <button onClick={() => setShowAddIncome(true)} style={secondaryBtn}>➕ Enter money I made (one at a time)</button>
                   <button onClick={() => setShowAddExpense(true)} style={secondaryBtn}>➖ Enter money I spent (one at a time)</button>
                 </div>
@@ -1263,7 +1263,7 @@ function SimpleMoneyView({ categories, goAdvanced }) {
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center' }}>
             {/* Manual entry moved BEHIND "See the full details" (Carlos 7/31:
                 the first screen was confusing — keep it to two clear choices). */}
-            <button onClick={() => goAdvanced('import')} style={primaryBtn('#3b82f6')}>🏦 Upload a bank statement</button>
+            <button onClick={() => goAdvanced('import')} style={primaryBtn('#0c4a6e')}>🏦 Upload a bank statement</button>
             <button onClick={() => goAdvanced('pnl')} style={secondaryBtn}>📈 See the full details</button>
           </div>
         </>
@@ -1315,7 +1315,7 @@ function GoalSetupModal({ existing, onClose, onSaved }) {
       {error && <div style={{ background: '#fef2f2', color: '#dc2626', padding: 10, borderRadius: 8, marginBottom: 12, fontSize: 14 }}>{error}</div>}
       <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
         <button onClick={onClose} style={secondaryBtn}>Cancel</button>
-        <button onClick={save} disabled={saving} style={{ ...primaryBtn('#10b981'), opacity: saving ? 0.6 : 1 }}>{saving ? 'Saving...' : 'Save goal'}</button>
+        <button onClick={save} disabled={saving} style={{ ...primaryBtn('#0c4a6e'), opacity: saving ? 0.6 : 1 }}>{saving ? 'Saving...' : 'Save goal'}</button>
       </div>
     </ModalShell>
   );
@@ -1386,7 +1386,7 @@ function BillsSetupModal({ existing, onClose, onSaved }) {
       {error && <div style={{ background: '#fef2f2', color: '#dc2626', padding: 10, borderRadius: 8, margin: '12px 0', fontSize: 14 }}>{error}</div>}
       <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 14 }}>
         <button onClick={onClose} style={secondaryBtn}>Cancel</button>
-        <button onClick={save} disabled={saving} style={{ ...primaryBtn('#10b981'), opacity: saving ? 0.6 : 1 }}>{saving ? 'Saving...' : 'Save my bills'}</button>
+        <button onClick={save} disabled={saving} style={{ ...primaryBtn('#0c4a6e'), opacity: saving ? 0.6 : 1 }}>{saving ? 'Saving...' : 'Save my bills'}</button>
       </div>
     </ModalShell>
   );
@@ -1453,7 +1453,7 @@ function IncomeTab() {
       <div style={{ display: 'flex', gap: 12, alignItems: 'end', flexWrap: 'wrap', marginBottom: 16 }}>
         <Field label="From"><input type="date" value={from} onChange={e => setFrom(e.target.value)} style={inputStyle} /></Field>
         <Field label="To"><input type="date" value={to} onChange={e => setTo(e.target.value)} style={inputStyle} /></Field>
-        <button onClick={() => { setEditing(null); setModalOpen(true); }} style={primaryBtn('#10b981')}>➕ Add Other Income</button>
+        <button onClick={() => { setEditing(null); setModalOpen(true); }} style={primaryBtn('#0c4a6e')}>➕ Add Other Income</button>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px,1fr))', gap: 12, marginBottom: 20 }}>
@@ -1582,7 +1582,7 @@ function IncomeModal({ entry, onClose, onSaved }) {
       {error && <div style={{ background: '#fef2f2', color: '#dc2626', padding: 10, borderRadius: 8, marginBottom: 12, fontSize: 14 }}>{error}</div>}
       <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
         <button onClick={onClose} style={secondaryBtn}>Cancel</button>
-        <button onClick={save} disabled={saving} style={{ ...primaryBtn('#10b981'), opacity: saving ? 0.6 : 1 }}>{saving ? 'Saving...' : (isEdit ? 'Save' : 'Add Income')}</button>
+        <button onClick={save} disabled={saving} style={{ ...primaryBtn('#0c4a6e'), opacity: saving ? 0.6 : 1 }}>{saving ? 'Saving...' : (isEdit ? 'Save' : 'Add Income')}</button>
       </div>
     </ModalShell>
   );
@@ -1725,8 +1725,8 @@ function BudgetTab({ categories }) {
             }}>{l}</button>
           ))}
         </div>
-        <button onClick={() => { setEditing(null); setModalOpen(true); }} style={primaryBtn('#10b981')}>➕ Add Budget Line</button>
-        <button onClick={() => setBuildOpen(true)} style={primaryBtn('#3b82f6')}>✨ Build budget from my expenses</button>
+        <button onClick={() => { setEditing(null); setModalOpen(true); }} style={primaryBtn('#0c4a6e')}>➕ Add Budget Line</button>
+        <button onClick={() => setBuildOpen(true)} style={primaryBtn('#0c4a6e')}>✨ Build budget from my expenses</button>
       </div>
 
       {loading && <div style={{ padding: 40, textAlign: 'center', color: '#6b7280' }}>Loading...</div>}
@@ -1816,7 +1816,7 @@ function BudgetAmountCell({ value, saving, onCommit }) {
           style={{ width: 90, padding: '5px 6px', fontSize: 13, textAlign: 'right', border: '1px solid #3b82f6', borderRadius: 6 }}
         />
         <button onMouseDown={e => e.preventDefault()} onClick={commit} title="Save"
-          style={{ background: '#10b981', border: 'none', color: 'white', borderRadius: 6, width: 26, height: 26, cursor: 'pointer', fontSize: 13, fontWeight: 700 }}>✓</button>
+          style={{ background: '#0c4a6e', border: 'none', color: 'white', borderRadius: 6, width: 26, height: 26, cursor: 'pointer', fontSize: 13, fontWeight: 700 }}>✓</button>
         <button onMouseDown={e => e.preventDefault()} onClick={() => setEditing(false)} title="Cancel"
           style={{ background: 'none', border: '1px solid #d1d5db', color: '#6b7280', borderRadius: 6, width: 26, height: 26, cursor: 'pointer', fontSize: 13 }}>✕</button>
       </span>
@@ -1904,7 +1904,7 @@ function BuildBudgetModal({ existing, onClose, onSaved }) {
             <div style={{ fontSize: 14, color: '#374151' }}>Total planned: <strong>{fmtCurrency(totalMonthly)}/mo</strong></div>
             <div style={{ display: 'flex', gap: 8 }}>
               <button onClick={onClose} style={secondaryBtn}>Cancel</button>
-              <button onClick={apply} disabled={saving} style={{ ...primaryBtn('#10b981'), opacity: saving ? 0.6 : 1 }}>{saving ? 'Saving…' : `Apply ${rows.filter(r => r.include).length} budgets`}</button>
+              <button onClick={apply} disabled={saving} style={{ ...primaryBtn('#0c4a6e'), opacity: saving ? 0.6 : 1 }}>{saving ? 'Saving…' : `Apply ${rows.filter(r => r.include).length} budgets`}</button>
             </div>
           </div>
         </>
@@ -2051,7 +2051,7 @@ function BudgetModal({ item, categories, onClose, onSaved }) {
       {error && <div style={{ background: '#fef2f2', color: '#dc2626', padding: 10, borderRadius: 8, marginBottom: 12, fontSize: 14 }}>{error}</div>}
       <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
         <button onClick={onClose} style={secondaryBtn}>Cancel</button>
-        <button onClick={save} disabled={saving} style={{ ...primaryBtn('#10b981'), opacity: saving ? 0.6 : 1 }}>{saving ? 'Saving...' : (isEdit ? 'Save' : 'Add Line')}</button>
+        <button onClick={save} disabled={saving} style={{ ...primaryBtn('#0c4a6e'), opacity: saving ? 0.6 : 1 }}>{saving ? 'Saving...' : (isEdit ? 'Save' : 'Add Line')}</button>
       </div>
     </ModalShell>
   );
@@ -2228,8 +2228,8 @@ function PnLTab() {
             </select>
           </Field>
         )}
-        <button onClick={printPnL} disabled={!pnl} style={primaryBtn('#3b82f6')}>🖨️ Print P&L</button>
-        <button onClick={exportExcel} disabled={!pnl} style={primaryBtn('#10b981')}>⬇️ Export to Excel</button>
+        <button onClick={printPnL} disabled={!pnl} style={primaryBtn('#0c4a6e')}>🖨️ Print P&L</button>
+        <button onClick={exportExcel} disabled={!pnl} style={primaryBtn('#0c4a6e')}>⬇️ Export to Excel</button>
       </div>
 
       {loading && <div style={{ padding: 40, textAlign: 'center', color: '#6b7280' }}>Loading...</div>}
@@ -2401,7 +2401,7 @@ function BalanceSheetTab() {
             <tr style={{ borderTop: '1px solid #f3f4f6', background: '#f9fafb' }}>
               <Td><input autoFocus value={label} onChange={e => setLabel(e.target.value)} placeholder={kind === 'asset' ? 'e.g. Office equipment, savings' : 'e.g. Auto loan, line of credit'} style={{ ...inputStyle, padding: '5px 8px' }} /></Td>
               <Td align="right"><input type="number" step="0.01" value={amount} onChange={e => setAmount(e.target.value)} placeholder="0.00" style={{ width: 110, padding: '5px 8px', textAlign: 'right', border: '1px solid #d1d5db', borderRadius: 6 }} /></Td>
-              <Td align="right"><button onClick={addItem} style={{ background: '#10b981', border: 'none', color: 'white', borderRadius: 6, padding: '5px 10px', cursor: 'pointer', fontSize: 12, fontWeight: 600 }}>Save</button></Td>
+              <Td align="right"><button onClick={addItem} style={{ background: '#0c4a6e', border: 'none', color: 'white', borderRadius: 6, padding: '5px 10px', cursor: 'pointer', fontSize: 12, fontWeight: 600 }}>Save</button></Td>
             </tr>
           )}
         </tbody>
@@ -2415,7 +2415,7 @@ function BalanceSheetTab() {
         💡 A snapshot of what your business <strong>owns</strong> (assets) minus what it <strong>owes</strong> (liabilities) = your <strong>equity</strong>. Cash comes automatically from your most recently reconciled statement; add anything else (equipment, savings, loans) by hand.
       </div>
       <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
-        <button onClick={exportExcel} disabled={!data} style={primaryBtn('#10b981')}>⬇️ Export to Excel</button>
+        <button onClick={exportExcel} disabled={!data} style={primaryBtn('#0c4a6e')}>⬇️ Export to Excel</button>
       </div>
       {loading && <div style={{ padding: 40, textAlign: 'center', color: '#6b7280' }}>Loading…</div>}
       {error && <div style={{ padding: 20, color: '#dc2626', background: '#fef2f2', borderRadius: 8 }}>Error: {error}</div>}
@@ -2424,7 +2424,7 @@ function BalanceSheetTab() {
           💰 <strong>Year-to-date from your deals ({bsYear}):</strong> {fmtCurrency(ytdIncome)} income · {fmtCurrency(ytdProfit)} profit <span style={{ color: '#1E7B45' }}>(from your P&amp;L)</span>.
           <div style={{ marginTop: 4, color: '#047857' }}>
             This is your earnings over the year — it's tracked on the <strong>P&amp;L</strong>, not here. The balance sheet shows what you <strong>own &amp; owe right now</strong>, so deal income only appears once it's sitting in a bank account you record.
-            {data && data.totalAssets === 0 && <> <button onClick={() => { setAdding('asset'); setLabel('Cash in bank'); setAmount(''); }} style={{ background: '#059669', border: 'none', color: 'white', borderRadius: 6, padding: '4px 10px', cursor: 'pointer', fontSize: 12, fontWeight: 700, marginLeft: 4 }}>+ Add my bank balance</button></>}
+            {data && data.totalAssets === 0 && <> <button onClick={() => { setAdding('asset'); setLabel('Cash in bank'); setAmount(''); }} style={{ background: '#0c4a6e', border: 'none', color: 'white', borderRadius: 6, padding: '4px 10px', cursor: 'pointer', fontSize: 12, fontWeight: 700, marginLeft: 4 }}>+ Add my bank balance</button></>}
           </div>
         </div>
       ) : null}
@@ -2511,11 +2511,11 @@ function Contractors1099Tab() {
         <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: '#374151' }}>
           <input type="checkbox" checked={showAll} onChange={e => setShowAll(e.target.checked)} /> Show every vendor (not just contractors)
         </label>
-        {likelyUntagged.length > 0 && <button onClick={markLikely} style={primaryBtn('#3b82f6')}>✨ Auto-mark likely contractors ({likelyUntagged.length})</button>}
-        <button onClick={exportExcel} disabled={!flagged.length} style={primaryBtn('#10b981')}>⬇️ Export 1099 report</button>
+        {likelyUntagged.length > 0 && <button onClick={markLikely} style={primaryBtn('#0c4a6e')}>✨ Auto-mark likely contractors ({likelyUntagged.length})</button>}
+        <button onClick={exportExcel} disabled={!flagged.length} style={primaryBtn('#0c4a6e')}>⬇️ Export 1099 report</button>
       </div>
       {flagged.length > 0 && missingW9.length > 0 && (
-        <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 8, padding: '10px 14px', marginBottom: 14, fontSize: 13, color: '#92400e' }}>
+        <div style={{ background: '#E0F2FE', border: '1px solid #7DD3FC', borderRadius: 8, padding: '10px 14px', marginBottom: 14, fontSize: 13, color: '#0c4a6e' }}>
           ⚠️ {missingW9.length} contractor{missingW9.length === 1 ? '' : 's'} marked for 1099 still {missingW9.length === 1 ? 'needs' : 'need'} a W-9 (TIN). Click <strong>W-9</strong> to add it.
         </div>
       )}
@@ -2596,7 +2596,7 @@ function W9Modal({ vendor, onClose, onSaved }) {
       <Field label="Address"><textarea value={address} onChange={e => setAddress(e.target.value)} rows={2} style={{ ...inputStyle, resize: 'vertical' }} /></Field>
       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 8 }}>
         <button onClick={onClose} style={secondaryBtn}>Cancel</button>
-        <button onClick={save} disabled={saving} style={{ ...primaryBtn('#10b981'), opacity: saving ? 0.6 : 1 }}>{saving ? 'Saving…' : 'Save W-9'}</button>
+        <button onClick={save} disabled={saving} style={{ ...primaryBtn('#0c4a6e'), opacity: saving ? 0.6 : 1 }}>{saving ? 'Saving…' : 'Save W-9'}</button>
       </div>
     </ModalShell>
   );
@@ -2821,7 +2821,7 @@ function ImportTab({ categories, onCommitted }) {
             </Field>
           </div>
           <input ref={fileRef} type="file" accept=".csv,.txt,.tsv,.ofx,.qfx,application/pdf,image/*" style={{ display: 'none' }} onChange={e => handleUpload(e.target.files?.[0])} />
-          <button onClick={() => fileRef.current?.click()} disabled={busy} style={{ ...primaryBtn('#3b82f6'), opacity: busy ? 0.6 : 1 }}>
+          <button onClick={() => fileRef.current?.click()} disabled={busy} style={{ ...primaryBtn('#0c4a6e'), opacity: busy ? 0.6 : 1 }}>
             {busy ? '⏳ Working...' : '📎 Upload Statement'}
           </button>
           {status && <div style={{ marginTop: 10, fontSize: 13, color: '#1e40af' }}>🔄 {status}</div>}
@@ -2860,7 +2860,7 @@ function ImportTab({ categories, onCommitted }) {
                       <Td align="right">
                         <div style={{ display: 'inline-flex', gap: 6 }}>
                           {!saved && (
-                            <button onClick={() => resumeImport(imp)} style={{ background: '#10b981', border: 'none', color: 'white', borderRadius: 6, padding: '4px 10px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+                            <button onClick={() => resumeImport(imp)} style={{ background: '#0c4a6e', border: 'none', color: 'white', borderRadius: 6, padding: '4px 10px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
                               Review &amp; save
                             </button>
                           )}
@@ -2904,7 +2904,7 @@ function ImportTab({ categories, onCommitted }) {
                 <div style={{ color: '#3730a3' }}>Then tap <strong>✅ Import selected</strong>. Nothing is saved until you do — and you can always remove an import later.</div>
               </div>
               <button onClick={() => setShowImportGuide(false)}
-                style={{ marginTop: 10, padding: '8px 16px', borderRadius: 8, border: 'none', background: '#3b82f6', color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+                style={{ marginTop: 10, padding: '8px 16px', borderRadius: 8, border: 'none', background: '#0c4a6e', color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
                 Got it — let's review
               </button>
             </div>
@@ -2916,7 +2916,7 @@ function ImportTab({ categories, onCommitted }) {
               <button onClick={() => { setLines([]); setImportId(null); setError(null); }} style={secondaryBtn}>← Previous step</button>
               <button onClick={() => setLines(p => p.map(l => ({ ...l, include: true })))} style={secondaryBtn}>Select all</button>
               <button onClick={() => setLines(p => p.map(l => ({ ...l, include: false })))} style={secondaryBtn}>Select none</button>
-              <button onClick={() => commit()} disabled={committing} style={{ ...primaryBtn('#10b981'), opacity: committing ? 0.6 : 1 }}>{committing ? 'Importing...' : `✅ Import ${lines.filter(l => l.include).length} selected`}</button>
+              <button onClick={() => commit()} disabled={committing} style={{ ...primaryBtn('#0c4a6e'), opacity: committing ? 0.6 : 1 }}>{committing ? 'Importing...' : `✅ Import ${lines.filter(l => l.include).length} selected`}</button>
             </div>
           </div>
 

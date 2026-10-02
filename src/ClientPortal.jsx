@@ -695,7 +695,7 @@ function CreditCoachCard({ txId }) {
           <div style={{ fontSize: 11, color: C.gray, marginBottom: 3 }}>Goal (optional)</div>
           <input value={goal} onChange={e => setGoal(e.target.value.replace(/\D/g, "").slice(0, 3))} inputMode="numeric" placeholder="740" style={{ width: 80, fontSize: 16, padding: "8px 10px", border: "1px solid " + C.border, borderRadius: 8 }} />
         </div>
-        <button onClick={save} disabled={saving} style={{ background: "#1A5276", color: "#fff", border: "none", borderRadius: 8, padding: "10px 16px", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>{saving ? "Saving…" : "Log it"}</button>
+        <button onClick={save} disabled={saving} style={{ background: "#0c4a6e", color: "#fff", border: "none", borderRadius: 8, padding: "10px 16px", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>{saving ? "Saving…" : "Log it"}</button>
       </div>
       {err && <div style={{ fontSize: 12, color: C.red, marginBottom: 8 }}>{err}</div>}
       {entries.length > 1 && (
@@ -1255,7 +1255,7 @@ function AddOwnVendorForm({ category, transactionId, token, onDone, onCancel }) 
         </button>
         <button onClick={handleSubmit} disabled={saving}
           style={{ flex: 2, padding: 10, borderRadius: 8, border: "none",
-            background: "#C0392B", color: "#fff", fontWeight: 700, cursor: "pointer" }}>
+            background: "#0c4a6e", color: "#fff", fontWeight: 700, cursor: "pointer" }}>
           {saving ? "Submitting..." : "Submit"}
         </button>
       </div>
@@ -1344,7 +1344,7 @@ function VendorCategorySection({ category, vendors, transactionId, token, onUpda
           {v.phone && <div style={{ fontSize: 13, color: "#555", marginTop: 6 }}>📞 {v.phone}</div>}
           <button onClick={() => handleSelect(v)} disabled={selecting === v.id}
             style={{ width: "100%", marginTop: 12, padding: "11px 0", borderRadius: 8,
-              border: "none", background: "#C0392B", color: "#fff",
+              border: "none", background: "#0c4a6e", color: "#fff",
               fontWeight: 700, fontSize: 14, cursor: "pointer" }}>
             {selecting === v.id ? "Selecting..." : "Select This " + category}
           </button>
@@ -1950,7 +1950,7 @@ export default function ClientPortal({ user, onLogout, previewTxId, onExitPrevie
           display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
           <span style={{ fontSize: 13, fontWeight: 700 }}>👁 Preview — this is exactly what your client sees.</span>
           <button onClick={() => (onExitPreview ? onExitPreview() : onLogout && onLogout())}
-            style={{ background: "#fff", color: "#7A5C00", border: "none", borderRadius: 8,
+            style={{ background: "#fff", color: "#0c4a6e", border: "none", borderRadius: 8,
               padding: "6px 14px", cursor: "pointer", fontSize: 12, fontWeight: 800, fontFamily: "inherit" }}>
             ← Exit Preview
           </button>
@@ -2237,7 +2237,7 @@ export default function ClientPortal({ user, onLogout, previewTxId, onExitPrevie
                   <div style={{ fontSize: 13, color: C.gray, marginBottom: 16 }}>
                     Share documents with your agent securely
                   </div>
-                  <label style={{ display: "inline-block", padding: "10px 24px", background: C.red,
+                  <label style={{ display: "inline-block", padding: "10px 24px", background: "#0c4a6e",
                     color: "#fff", borderRadius: 10, cursor: uploading ? "not-allowed" : "pointer",
                     fontWeight: 700, fontSize: 14 }}>
                     {uploading ? "Uploading..." : "Choose File"}
@@ -2268,7 +2268,7 @@ export default function ClientPortal({ user, onLogout, previewTxId, onExitPrevie
                     <button onClick={() => handleDownload(doc)}
                       style={{ padding: "7px 14px", borderRadius: 8, border: "1px solid " + C.border,
                         background: C.white, cursor: "pointer", fontSize: 12,
-                        fontWeight: 600, color: "#1A5276" }}>
+                        fontWeight: 600, color: "#0c4a6e" }}>
                       Download
                     </button>
                   </div>

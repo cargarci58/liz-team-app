@@ -75,7 +75,7 @@ export default function FaqHelpButton({ transactionId, apiBase, token }) {
           width: '56px',
           height: '56px',
           borderRadius: '50%',
-          background: '#C0392B',
+          background: '#0c4a6e',
           color: 'white',
           border: 'none',
           boxShadow: '0 4px 12px rgba(0,0,0,0.2)',

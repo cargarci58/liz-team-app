@@ -36,7 +36,7 @@ function EffectiveDateConfirm({ txId, token, readDate }) {
         <input type="date" value={date} onChange={e => setDate(e.target.value)}
           style={{ padding: "7px 10px", border: "1px solid #d1d5db", borderRadius: 6, fontSize: 13 }} />
         <button onClick={apply} disabled={busy || !date}
-          style={{ background: "#b45309", color: "#fff", border: "none", borderRadius: 6, padding: "8px 14px", fontSize: 13, fontWeight: 700, cursor: "pointer", opacity: busy ? 0.6 : 1 }}>
+          style={{ background: "#0c4a6e", color: "#fff", border: "none", borderRadius: 6, padding: "8px 14px", fontSize: 13, fontWeight: 700, cursor: "pointer", opacity: busy ? 0.6 : 1 }}>
           {busy ? "Saving…" : "✓ Set effective date"}
         </button>
       </div>
@@ -298,7 +298,7 @@ export default function OffersTab({ tx, token, currentUser, createSignal = 0, on
           </div>
           {onReviewReceived && (
             <button onClick={onReviewReceived}
-              style={{ padding: "10px 18px", borderRadius: 8, border: "none", background: "#dc2626", color: "#fff", fontSize: 13.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit", flexShrink: 0 }}>
+              style={{ padding: "10px 18px", borderRadius: 8, border: "none", background: "#0c4a6e", color: "#fff", fontSize: 13.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit", flexShrink: 0 }}>
               → Review received offers
             </button>
           )}
@@ -326,7 +326,7 @@ export default function OffersTab({ tx, token, currentUser, createSignal = 0, on
           <div style={{ fontSize: 32, marginBottom: 8 }}>📝</div>
           <div style={{ fontWeight: 700, color: "#374151", marginBottom: 4 }}>No offers yet</div>
           <button onClick={createOffer} disabled={creating}
-            style={{ margin: "12px auto 0", display: "block", padding: "12px 26px", background: "#1E8449", color: "#fff", border: "none", borderRadius: 10, fontSize: 15, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>
+            style={{ margin: "12px auto 0", display: "block", padding: "12px 26px", background: "#0c4a6e", color: "#fff", border: "none", borderRadius: 10, fontSize: 15, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>
             {creating ? "Creating…" : "➕ Start an offer"}
           </button>
           <div style={{ fontSize: 13 }}>Use the 📝 Create Offer button at the top of this transaction to build your first offer.</div>
@@ -685,7 +685,7 @@ function SendOfferModal({ offer, tx, token, currentUser, onClose, onSent }) {
           )}
 
           <div style={{ display: "flex", gap: 10, marginTop: 18 }}>
-            <button onClick={send} disabled={sending} style={{ flex: 1, background: sending ? "#9ca3af" : "#16a34a", color: "#fff", border: "none", borderRadius: 8, padding: "12px", fontWeight: 800, fontSize: 15, cursor: sending ? "wait" : "pointer", fontFamily: "inherit" }}>{sending ? "Sending…" : "📧 Approve & Send"}</button>
+            <button onClick={send} disabled={sending} style={{ flex: 1, background: sending ? "#9ca3af" : "#0c4a6e", color: "#fff", border: "none", borderRadius: 8, padding: "12px", fontWeight: 800, fontSize: 15, cursor: sending ? "wait" : "pointer", fontFamily: "inherit" }}>{sending ? "Sending…" : "📧 Approve & Send"}</button>
             <button onClick={onClose} style={{ background: "#fff", color: "#374151", border: "1px solid #d1d5db", borderRadius: 8, padding: "12px 18px", fontWeight: 700, fontSize: 14, cursor: "pointer", fontFamily: "inherit" }}>Cancel</button>
           </div>
         </div>
@@ -797,7 +797,7 @@ function BuyerSignaturesModal({ offer, token, onClose }) {
               {pending.length > 0 && (
                 <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
                   <button onClick={cancel} disabled={busy}
-                    style={{ padding: "8px 16px", background: "#fee2e2", color: "#7f1d1d", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                    style={{ padding: "8px 16px", background: "#fee2e2", color: "#0c4a6e", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
                     Cancel signing links
                   </button>
                 </div>
@@ -824,7 +824,7 @@ function BuyerSignaturesModal({ offer, token, onClose }) {
                     style={{ flex: 1, padding: "9px 10px", border: "1px solid #cbd5e1", borderRadius: 8, fontSize: 13, fontFamily: "inherit", minWidth: 0 }} />
                   {rows.length > 1 && (
                     <button onClick={() => setRows(rs => rs.filter((_, j) => j !== i))}
-                      style={{ background: "none", border: "none", color: "#7f1d1d", fontSize: 16, cursor: "pointer" }}>✕</button>
+                      style={{ background: "none", border: "none", color: "#0c4a6e", fontSize: 16, cursor: "pointer" }}>✕</button>
                   )}
                 </div>
               ))}
@@ -835,7 +835,7 @@ function BuyerSignaturesModal({ offer, token, onClose }) {
                 </button>
               )}
               <button onClick={send} disabled={busy || !info.hasPacket}
-                style={{ width: "100%", padding: "12px 0", background: busy || !info.hasPacket ? "#94a3b8" : "#86198f", color: "#fff", border: "none", borderRadius: 10, fontSize: 15, fontWeight: 800, cursor: busy || !info.hasPacket ? "default" : "pointer", fontFamily: "inherit", marginTop: 4 }}>
+                style={{ width: "100%", padding: "12px 0", background: busy || !info.hasPacket ? "#94a3b8" : "#0c4a6e", color: "#fff", border: "none", borderRadius: 10, fontSize: 15, fontWeight: 800, cursor: busy || !info.hasPacket ? "default" : "pointer", fontFamily: "inherit", marginTop: 4 }}>
                 {busy ? "Sending links…" : "Send signing links ✍️"}
               </button>
               <div style={{ fontSize: 11.5, color: "#64748b", marginTop: 8, textAlign: "center" }}>

@@ -141,7 +141,7 @@ function ScriptBlock({ s, idx }) {
         <div style={{ fontSize: 13, fontWeight: 800, color: C.darkRed }}>Script {idx + 1} · {s.title}</div>
         <button onClick={copy} style={{ flexShrink: 0, background: C.white, border: `1px solid ${C.border}`,
           borderRadius: 6, padding: "4px 10px", fontSize: 11, fontWeight: 700,
-          color: copied ? "#1E8449" : C.gray, cursor: "pointer", fontFamily: "inherit" }}>
+          color: copied ? "#0c4a6e" : C.gray, cursor: "pointer", fontFamily: "inherit" }}>
           {copied ? "✓ Copied" : "📋 Copy"}
         </button>
       </div>
@@ -219,7 +219,7 @@ export default function ScriptsPage({ token, onBack, currentUser }) {
               <div style={{ fontSize: 12, color: C.muted, marginTop: 3 }}>Your own words, saved for reuse — only you see these.</div>
             </div>
             <button onClick={() => setEditing({ situation: "", title: "", body: "" })}
-              style={{ background: C.red, color: "#fff", border: "none", borderRadius: 8, padding: "9px 16px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+              style={{ background: "#0c4a6e", color: "#fff", border: "none", borderRadius: 8, padding: "9px 16px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
               ➕ Add a script
             </button>
           </div>
@@ -250,7 +250,7 @@ export default function ScriptsPage({ token, onBack, currentUser }) {
                 style={{ width: "100%", boxSizing: "border-box", padding: "9px 11px", borderRadius: 8, border: `1.5px solid ${C.border}`, fontSize: 14, fontFamily: "inherit", resize: "vertical", marginBottom: 10 }} />
               <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
                 <button onClick={() => setEditing(null)} style={{ background: "none", border: `1px solid ${C.border}`, borderRadius: 8, padding: "8px 14px", fontSize: 13, fontWeight: 600, color: C.gray, cursor: "pointer", fontFamily: "inherit" }}>Cancel</button>
-                <button onClick={saveScript} disabled={saving} style={{ background: "#1E8449", color: "#fff", border: "none", borderRadius: 8, padding: "8px 18px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", opacity: saving ? 0.6 : 1 }}>
+                <button onClick={saveScript} disabled={saving} style={{ background: "#0c4a6e", color: "#fff", border: "none", borderRadius: 8, padding: "8px 18px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", opacity: saving ? 0.6 : 1 }}>
                   {saving ? "Saving…" : "💾 Save script"}
                 </button>
               </div>

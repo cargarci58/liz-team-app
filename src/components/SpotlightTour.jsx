@@ -165,4 +165,4 @@ export default function SpotlightTour({ onClose, onCreateFirst }) {
   );
 }
 
-const primaryBtn = { background: RED, color: '#fff', border: 'none', borderRadius: 10, padding: '9px 18px', fontSize: 13, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit' };
+const primaryBtn = { background: '#0c4a6e', color: '#fff', border: 'none', borderRadius: 10, padding: '9px 18px', fontSize: 13, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit' };

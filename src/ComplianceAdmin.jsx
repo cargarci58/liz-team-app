@@ -125,7 +125,7 @@ function EditorForm({ form, setForm, onSave, onCancel, isNew }) {
         </button>
         <button onClick={onSave}
           style={{ flex: 2, padding: 11, borderRadius: 8, border: "none",
-            background: COLORS.red, color: COLORS.white, fontWeight: 700, fontSize: 14, cursor: "pointer" }}>
+            background: "#0c4a6e", color: COLORS.white, fontWeight: 700, fontSize: 14, cursor: "pointer" }}>
           {isNew ? "Create" : "Save Changes"}
         </button>
       </div>
@@ -239,7 +239,7 @@ function RequiredDocsManager({ token }) {
       })}
       {!showAdd ? (
         <button onClick={() => setShowAdd(true)}
-          style={{ background: COLORS.success, border: "none", borderRadius: 8, padding: "9px 16px", fontSize: 13, fontWeight: 700, color: "#fff", cursor: "pointer" }}>
+          style={{ background: "#0c4a6e", border: "none", borderRadius: 8, padding: "9px 16px", fontSize: 13, fontWeight: 700, color: "#fff", cursor: "pointer" }}>
           ➕ Add a brokerage-required document
         </button>
       ) : (
@@ -259,7 +259,7 @@ function RequiredDocsManager({ token }) {
               {COND_OPTIONS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
             </select>
             <button onClick={add} disabled={busy}
-              style={{ padding: "9px 16px", borderRadius: 7, border: "none", background: COLORS.success, color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
+              style={{ padding: "9px 16px", borderRadius: 7, border: "none", background: "#0c4a6e", color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
               {busy ? "Adding…" : "Add"}
             </button>
             <button onClick={() => { setShowAdd(false); setLabel(""); setCond(""); }}
@@ -423,7 +423,7 @@ export default function ComplianceAdmin({ token, user }) {
         ))}
         <button onClick={startCreate}
           style={{ marginLeft: "auto", padding: "8px 14px", borderRadius: 20, border: "none",
-            background: COLORS.success, color: COLORS.white, fontWeight: 700, fontSize: 12, cursor: "pointer" }}>
+            background: "#0c4a6e", color: COLORS.white, fontWeight: 700, fontSize: 12, cursor: "pointer" }}>
           ➕ Add Requirement
         </button>
       </div>
@@ -474,7 +474,7 @@ export default function ComplianceAdmin({ token, user }) {
                   {req.needs_attorney_review && (
                     <button onClick={() => approve(req.id)}
                       style={{ padding: "6px 12px", borderRadius: 6, border: "none",
-                        background: COLORS.success, color: COLORS.white, fontWeight: 700, fontSize: 11, cursor: "pointer" }}>
+                        background: "#0c4a6e", color: COLORS.white, fontWeight: 700, fontSize: 11, cursor: "pointer" }}>
                       ✓ Approve
                     </button>
                   )}

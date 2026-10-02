@@ -74,12 +74,12 @@ export default function TxFormsTab({ tx, side, isAdmin }) {
               </div>
               <div style={{ display: 'flex', gap: 6 }}>
                 <button onClick={() => handleDownload(f)} disabled={!f.has_file}
-                  style={{ background: f.has_file ? '#059669' : '#9ca3af', color: 'white', border: 'none',
+                  style={{ background: f.has_file ? '#0c4a6e' : '#9ca3af', color: 'white', border: 'none',
                            padding: '6px 12px', borderRadius: 6, cursor: f.has_file ? 'pointer' : 'not-allowed', fontSize: 13, fontWeight: 600 }}>
                   ⬇️ Download
                 </button>
                 <button onClick={() => setSharing(f)} disabled={!f.has_file}
-                  style={{ background: f.has_file ? '#6366f1' : '#9ca3af', color: 'white', border: 'none',
+                  style={{ background: f.has_file ? '#0c4a6e' : '#9ca3af', color: 'white', border: 'none',
                            padding: '6px 12px', borderRadius: 6, cursor: f.has_file ? 'pointer' : 'not-allowed', fontSize: 13, fontWeight: 600 }}>
                   🔗 Share Link
                 </button>
@@ -153,7 +153,7 @@ function ShareLinkModal({ form, tx, onClose }) {
             <div style={{ display:'flex', gap:6, marginBottom:12 }}>
               <input readOnly value={linkData.url} onClick={e => e.target.select()}
                 style={{ flex:1, padding:'8px 10px', border:'1px solid #d1d5db', borderRadius:6, fontSize:12, fontFamily:'monospace' }} />
-              <button onClick={copyLink} style={{ background: copied ? '#059669' : '#6366f1', color:'white', border:'none', padding:'8px 14px', borderRadius:6, cursor:'pointer', fontWeight:600, fontSize:13 }}>
+              <button onClick={copyLink} style={{ background: copied ? '#059669' : '#0c4a6e', color:'white', border:'none', padding:'8px 14px', borderRadius:6, cursor:'pointer', fontWeight:600, fontSize:13 }}>
                 {copied ? '✓ Copied' : '📋 Copy'}
               </button>
             </div>

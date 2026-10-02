@@ -189,7 +189,7 @@ function SellerUpdateModal({ task, token, onClose, onDone }) {
               </button>
               <button onClick={handleSend} disabled={sending}
                 style={{ flex:1, padding:14, borderRadius:10, border:"none",
-                  background:COLORS.red, color:COLORS.white, fontWeight:700, fontSize:15, cursor:"pointer" }}>
+                  background:"#0c4a6e", color:COLORS.white, fontWeight:700, fontSize:15, cursor:"pointer" }}>
                 {sending ? "Sending..." : "Send Now ✓"}
               </button>
             </div>
@@ -208,7 +208,7 @@ function SellerUpdateModal({ task, token, onClose, onDone }) {
               </button>
               <button onClick={handleSend} disabled={sending}
                 style={{ flex:1, padding:14, borderRadius:10, border:"none",
-                  background:COLORS.red, color:COLORS.white, fontWeight:700, fontSize:15, cursor:"pointer" }}>
+                  background:"#0c4a6e", color:COLORS.white, fontWeight:700, fontSize:15, cursor:"pointer" }}>
                 {sending ? "Sending..." : (isBuyer ? "Send to Buyer ✓" : "Send to Seller ✓")}
               </button>
             </div>
@@ -268,7 +268,7 @@ function PersonalTaskCard({ task, token, onChange }) {
         </div>
       </div>
       <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
-        <button onClick={complete} disabled={busy} style={{ flex: 2, padding: "7px 0", borderRadius: 6, border: "none", background: "#1E8449", color: "#fff", fontWeight: 600, fontSize: 13, cursor: busy ? "wait" : "pointer", fontFamily: "inherit" }}>
+        <button onClick={complete} disabled={busy} style={{ flex: 2, padding: "7px 0", borderRadius: 6, border: "none", background: "#0c4a6e", color: "#fff", fontWeight: 600, fontSize: 13, cursor: busy ? "wait" : "pointer", fontFamily: "inherit" }}>
           ✓ Done
         </button>
         <button onClick={del} disabled={busy} style={{ flex: 1, padding: "7px 0", borderRadius: 6, border: "1px solid #fecaca", background: "#fff", color: "#b91c1c", fontWeight: 600, fontSize: 12, cursor: busy ? "wait" : "pointer", fontFamily: "inherit" }}>
@@ -423,7 +423,7 @@ function TaskItem({ task, bucket, token, onResolve, onComplete, onSnooze, onOpen
           <>
             <button onClick={() => onOpenModal(task)}
               style={{ flex:"2 1 60%", padding:"11px 0", borderRadius:10, border:"none",
-                background:COLORS.red, color:COLORS.white, fontWeight:700, fontSize:14, cursor:"pointer" }}>
+                background:"#0c4a6e", color:COLORS.white, fontWeight:700, fontSize:14, cursor:"pointer" }}>
               Do It Now →
             </button>
             <button onClick={() => (onUpdateSent ? onUpdateSent(task) : onResolve(task.id))}
@@ -438,7 +438,7 @@ function TaskItem({ task, bucket, token, onResolve, onComplete, onSnooze, onOpen
             <input ref={gapFileRef} type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg,.heic" style={{ display: "none" }} onChange={onGapFile} />
             <button disabled={gapBusy} onClick={() => gapFileRef.current && gapFileRef.current.click()}
               style={{ flex:"2 1 60%", padding:"11px 0", borderRadius:10, border:"none",
-                background:COLORS.red, color:COLORS.white, fontWeight:700, fontSize:14, cursor: gapBusy ? "default" : "pointer", opacity: gapBusy ? 0.6 : 1 }}>
+                background:"#0c4a6e", color:COLORS.white, fontWeight:700, fontSize:14, cursor: gapBusy ? "default" : "pointer", opacity: gapBusy ? 0.6 : 1 }}>
               {gapBusy ? "Uploading…" : "📎 Upload It Here"}
             </button>
             <button onClick={() => onOpenTransactionMilestones && onOpenTransactionMilestones(task.transaction_id)}
@@ -452,13 +452,13 @@ function TaskItem({ task, bucket, token, onResolve, onComplete, onSnooze, onOpen
           <>
             <button onClick={() => onStartChase(task)}
               style={{ flex:"2 1 60%", padding:"11px 0", borderRadius:10, border:"none",
-                background:COLORS.red, color:COLORS.white, fontWeight:700, fontSize:14, cursor:"pointer" }}>
+                background:"#0c4a6e", color:COLORS.white, fontWeight:700, fontSize:14, cursor:"pointer" }}>
               Follow Up Now
             </button>
             <button onClick={() => onComplete(task)}
               style={{ flex:"1 1 30%", padding:"11px 0", borderRadius:10,
-                border:"1.5px solid #1E8449", background:COLORS.white,
-                color:"#1E8449", fontWeight:600, fontSize:13, cursor:"pointer" }}>
+                border:"1.5px solid #0c4a6e", background:COLORS.white,
+                color:"#0c4a6e", fontWeight:600, fontSize:13, cursor:"pointer" }}>
               ✓ Done
             </button>
           </>
@@ -467,13 +467,13 @@ function TaskItem({ task, bucket, token, onResolve, onComplete, onSnooze, onOpen
             {welcomeBounced ? (
               <button onClick={() => onOpenTransactionMilestones && onOpenTransactionMilestones(task.transaction_id, "parties")}
                 style={{ flex:"2 1 60%", padding:"11px 0", borderRadius:10, border:"none",
-                  background:COLORS.red, color:COLORS.white, fontWeight:700, fontSize:14, cursor:"pointer" }}>
+                  background:"#0c4a6e", color:COLORS.white, fontWeight:700, fontSize:14, cursor:"pointer" }}>
                 ✏️ Fix email in People →
               </button>
             ) : (
               <button onClick={() => setRemindOpen(true)}
                 style={{ flex:"2 1 60%", padding:"11px 0", borderRadius:10, border:"none",
-                  background:COLORS.red, color:COLORS.white, fontWeight:700, fontSize:14, cursor:"pointer" }}>
+                  background:"#0c4a6e", color:COLORS.white, fontWeight:700, fontSize:14, cursor:"pointer" }}>
                 ✉️ Review &amp; send reminder
               </button>
             )}
@@ -491,7 +491,7 @@ function TaskItem({ task, bucket, token, onResolve, onComplete, onSnooze, onOpen
         ) : isChecklist ? (
           <button onClick={() => onComplete(task)}
             style={{ flex:2, padding:"11px 0", borderRadius:10, border:"none",
-              background:"#1E8449", color:COLORS.white, fontWeight:700, fontSize:14, cursor:"pointer" }}>
+              background:"#0c4a6e", color:COLORS.white, fontWeight:700, fontSize:14, cursor:"pointer" }}>
             ✓ Done
           </button>
         ) : isInboundReply ? (
@@ -499,13 +499,13 @@ function TaskItem({ task, bucket, token, onResolve, onComplete, onSnooze, onOpen
             {inboundHasSuggestion && (
               <button onClick={() => onInboundReply(task, true)}
                 style={{ flex:"2 1 60%", padding:"11px 0", borderRadius:10, border:"none",
-                  background:"#1E8449", color:COLORS.white, fontWeight:700, fontSize:14, cursor:"pointer" }}>
+                  background:"#0c4a6e", color:COLORS.white, fontWeight:700, fontSize:14, cursor:"pointer" }}>
                 ✓ Approve &amp; Update
               </button>
             )}
             <button onClick={() => (onOpenInboundReply || onOpenTransactionMilestones) && (onOpenInboundReply || onOpenTransactionMilestones)(task.transaction_id)}
               style={{ flex: inboundHasSuggestion ? "1 1 30%" : "2 1 60%", padding:"11px 0", borderRadius:10,
-                border:"none", background:COLORS.red, color:COLORS.white, fontWeight:700, fontSize:14, cursor:"pointer" }}>
+                border:"none", background:"#0c4a6e", color:COLORS.white, fontWeight:700, fontSize:14, cursor:"pointer" }}>
               📂 Open
             </button>
             <button onClick={() => onInboundReply(task, false)}
@@ -553,7 +553,7 @@ function TaskItem({ task, bucket, token, onResolve, onComplete, onSnooze, onOpen
           {!sent && (
             <button onClick={doAct}
               style={{ padding:"9px 16px", borderRadius:10, border:"none",
-                background:"#0F6E56", color:COLORS.white, fontWeight:700, fontSize:13,
+                background:"#0c4a6e", color:COLORS.white, fontWeight:700, fontSize:13,
                 cursor: "pointer", fontFamily:"inherit" }}>
               {actCfg.label}
             </button>
@@ -668,7 +668,7 @@ function DealGroupCard({ deal, token, coordinatorMode = false, meta = null, agen
               {meta.hasDraft && (
                 <button disabled={aiBusy === deal.transaction_id} onClick={() => onSendAiDraft && onSendAiDraft(deal.transaction_id)}
                   style={{ padding:"8px 14px", borderRadius:8, border:"none",
-                    background:"#0F6E56", color:COLORS.white, fontWeight:700, fontSize:13,
+                    background:"#0c4a6e", color:COLORS.white, fontWeight:700, fontSize:13,
                     cursor: aiBusy === deal.transaction_id ? "wait" : "pointer", fontFamily:"inherit" }}>
                   {aiBusy === deal.transaction_id ? "Sending…" : `✉️ Send the recommended message to the ${meta.draftToRole}`}
                 </button>
@@ -702,13 +702,13 @@ function DealGroupCard({ deal, token, coordinatorMode = false, meta = null, agen
         <div style={{ display:"flex", gap:8, marginTop:10, flexWrap:"wrap" }}>
           {meta.docGaps > 0 && (
             <button disabled={aiBusy === deal.transaction_id} onClick={() => onDealAction && onDealAction(deal.transaction_id, "doc")}
-              style={{ padding:"9px 14px", borderRadius:10, border:"none", background:"#0F6E56", color:COLORS.white, fontWeight:700, fontSize:13, cursor:"pointer", fontFamily:"inherit" }}>
+              style={{ padding:"9px 14px", borderRadius:10, border:"none", background:"#0c4a6e", color:COLORS.white, fontWeight:700, fontSize:13, cursor:"pointer", fontFamily:"inherit" }}>
               {aiBusy === deal.transaction_id ? "…" : "✉️ Request document"}
             </button>
           )}
           {(meta.overdue > 0 || meta.dueNext7 > 0) && !meta.hasDraft && (
             <button disabled={aiBusy === deal.transaction_id} onClick={() => onDealAction && onDealAction(deal.transaction_id, "remind")}
-              style={{ padding:"9px 14px", borderRadius:10, border:"none", background:"#0F6E56", color:COLORS.white, fontWeight:700, fontSize:13, cursor:"pointer", fontFamily:"inherit" }}>
+              style={{ padding:"9px 14px", borderRadius:10, border:"none", background:"#0c4a6e", color:COLORS.white, fontWeight:700, fontSize:13, cursor:"pointer", fontFamily:"inherit" }}>
               {aiBusy === deal.transaction_id ? "…" : "Send reminder"}
             </button>
           )}
@@ -870,7 +870,7 @@ export function DayOneState({ firstName, onNew, onUploadContract, onSampleDeal, 
       {onWatchTour && (
         <div style={{ textAlign: "center", marginTop: 18 }}>
           <button onClick={onWatchTour}
-            style={{ background: COLORS.black, color: COLORS.white, border: "none", borderRadius: 999,
+            style={{ background: "#0c4a6e", color: COLORS.white, border: "none", borderRadius: 999,
               padding: "11px 20px", fontSize: 14, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>
             ▶ Watch the 2-minute tour first
           </button>
@@ -1008,7 +1008,7 @@ function UnmatchedMailPanel({ token }) {
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 10 }}>
             {!m.forwarding && (
               <button disabled={busy === m.id} onClick={() => openAssign(m.id)}
-                style={{ padding: "8px 14px", borderRadius: 8, border: "none", background: "#0F6E56", color: COLORS.white, fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>
+                style={{ padding: "8px 14px", borderRadius: 8, border: "none", background: "#0c4a6e", color: COLORS.white, fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>
                 📂 File to a deal
               </button>
             )}
@@ -1115,7 +1115,7 @@ function SendPreviewModal({ preview, busy, onCancel, onSend }) {
         <div style={{ display:"flex", gap:10, marginTop:16, justifyContent:"flex-end", flexWrap:"wrap" }}>
           <button onClick={onCancel} style={{ padding:"10px 18px", borderRadius:10, border:"1.5px solid "+COLORS.border, background:COLORS.white, color:COLORS.gray, fontWeight:600, fontSize:14, cursor:"pointer", fontFamily:"inherit" }}>Cancel</button>
           <button disabled={busy || !subject.trim() || !body.trim()} onClick={() => onSend(subject, body, { attachDocIds: pickedDocIds, uploadedFiles: uploads })}
-            style={{ padding:"10px 20px", borderRadius:10, border:"none", background:"#0F6E56", color:COLORS.white, fontWeight:700, fontSize:14, cursor: busy ? "wait" : "pointer", fontFamily:"inherit" }}>
+            style={{ padding:"10px 20px", borderRadius:10, border:"none", background:"#0c4a6e", color:COLORS.white, fontWeight:700, fontSize:14, cursor: busy ? "wait" : "pointer", fontFamily:"inherit" }}>
             {busy ? "Sending…" : (totalAttached > 0 ? `✅ Approve & send (${totalAttached} attached)` : "✅ Approve & send")}
           </button>
         </div>
@@ -1232,7 +1232,7 @@ function FollowupReviewModal({ token, isMobile, onClose }) {
             <div style={{ fontSize: 34 }}>🎉</div>
             <div style={{ fontWeight: 800, fontSize: 16, color: "#166534", marginTop: 6 }}>All caught up!</div>
             <div style={{ fontSize: 13, color: "#6b7280", marginTop: 4 }}>No follow-ups waiting for a decision.</div>
-            <button onClick={onClose} style={{ ...btn("#166534"), marginTop: 16 }}>Close</button>
+            <button onClick={onClose} style={{ ...btn("#0c4a6e"), marginTop: 16 }}>Close</button>
           </div>
         ) : (
           <div style={{ padding: 16 }}>
@@ -1260,7 +1260,7 @@ function FollowupReviewModal({ token, isMobile, onClose }) {
               <div style={{ display: "flex", gap: 8 }}>
                 {isMobile && current.phone && (
                   <a href={`tel:${telHref(current.phone)}`} onClick={() => setCalledId(current.id)}
-                    style={{ ...btn("#15803d"), flex: 1, textAlign: "center", textDecoration: "none", display: "block" }}>📞 Call now</a>
+                    style={{ ...btn("#0c4a6e"), flex: 1, textAlign: "center", textDecoration: "none", display: "block" }}>📞 Call now</a>
                 )}
                 <div style={{ flex: 1, display: "flex" }}>
                   <LogCallButton key={current.id} contact={current} token={token} onLogged={removeCurrent} autoOpen={isMobile && calledId === current.id} />
@@ -1968,7 +1968,7 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
               🔄 <b>{message(count)}</b>
             </div>
             <button onClick={() => pullMoreCalls(kind)} disabled={!!pullingMore}
-              style={{ padding: "9px 16px", borderRadius: 8, border: "none", background: pullingMore ? "#B45309aa" : "#B45309", color: "#fff", fontWeight: 800, fontSize: 13, cursor: pullingMore ? "wait" : "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>
+              style={{ padding: "9px 16px", borderRadius: 8, border: "none", background: pullingMore ? "#0c4a6eaa" : "#0c4a6e", color: "#fff", fontWeight: 800, fontSize: 13, cursor: pullingMore ? "wait" : "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>
               {pullingMore === kind ? "Loading…" : `Show ${Math.min(10, count)} more`}
             </button>
             {extraBtn}
@@ -2073,13 +2073,13 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
             <div style={{ display: "flex", gap: 8, marginTop: 9, flexWrap: "wrap" }}>
               {(a.transaction_id || a.kind === "email_needs_filing") && (
                 <button onClick={() => goTo(a)}
-                  style={{ padding: "7px 14px", borderRadius: 8, border: "none", background: "#dc2626", color: "#fff", fontSize: 12.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>
+                  style={{ padding: "7px 14px", borderRadius: 8, border: "none", background: "#0c4a6e", color: "#fff", fontSize: 12.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>
                   → Take me there
                 </button>
               )}
               {a.kind === "reminder_overdue" && a.target_id ? (
                 <button onClick={() => doneReminderAlert(a)}
-                  style={{ padding: "7px 14px", borderRadius: 8, border: "1px solid #86efac", background: "#f0fdf4", color: "#166534", fontSize: 12.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>
+                  style={{ padding: "7px 14px", borderRadius: 8, border: "1px solid #7DD3FC", background: "#E0F2FE", color: "#0c4a6e", fontSize: 12.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>
                   ✓ Done — mark this reminder done
                 </button>
               ) : (
@@ -2120,7 +2120,7 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
                     <div style={{ fontWeight: 800, fontSize: 13.5, color: "#7c2d12" }}>📥 {unmatchedEmails.length} email{unmatchedEmails.length === 1 ? "" : "s"} need{unmatchedEmails.length === 1 ? "s" : ""} filing</div>
                     <div style={{ fontSize: 12.5, color: "#9a3412", marginTop: 2 }}>The app received {unmatchedEmails.length === 1 ? "an email" : "emails"} it couldn't match to a deal — file {unmatchedEmails.length === 1 ? "it" : "them"} so nothing is lost.</div>
                     <button onClick={openFiling}
-                      style={{ marginTop: 9, padding: "7px 14px", borderRadius: 8, border: "none", background: "#ea580c", color: "#fff", fontSize: 12.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>
+                      style={{ marginTop: 9, padding: "7px 14px", borderRadius: 8, border: "none", background: "#0c4a6e", color: "#fff", fontSize: 12.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>
                       → Open Needs Filing
                     </button>
                   </div>
@@ -2210,7 +2210,7 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
                 </div>
                 <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
                   <button onClick={() => handleResolve(t.id)}
-                    style={{ flex: "2 1 40%", padding: "10px 0", borderRadius: 9, border: "none", background: "#1E8449", color: "#fff", fontWeight: 700, fontSize: 13.5, cursor: "pointer", fontFamily: "inherit" }}>
+                    style={{ flex: "2 1 40%", padding: "10px 0", borderRadius: 9, border: "none", background: "#0c4a6e", color: "#fff", fontWeight: 700, fontSize: 13.5, cursor: "pointer", fontFamily: "inherit" }}>
                     ✓ Done
                   </button>
                   <button onClick={pickNewDate}
@@ -2263,11 +2263,11 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
           <div style={{ fontSize: 13.5, color: "#047857", lineHeight: 1.5, marginBottom: 12 }}>{t.description}</div>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
             <button onClick={() => window.dispatchEvent(new CustomEvent("tp:open-financials"))}
-              style={{ flex: "2 1 55%", padding: "11px 0", borderRadius: 10, border: "none", background: "#059669", color: "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer" }}>
+              style={{ flex: "2 1 55%", padding: "11px 0", borderRadius: 10, border: "none", background: "#0c4a6e", color: "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer" }}>
               💵 Open Financials →
             </button>
             <button onClick={() => handleResolve(t.id)}
-              style={{ flex: "1 1 20%", padding: "11px 0", borderRadius: 10, border: "1.5px solid #10b981", background: "#fff", color: "#065f46", fontWeight: 600, fontSize: 13, cursor: "pointer" }}>
+              style={{ flex: "1 1 20%", padding: "11px 0", borderRadius: 10, border: "1.5px solid #0c4a6e", background: "#fff", color: "#065f46", fontWeight: 600, fontSize: 13, cursor: "pointer" }}>
               ✓ Done
             </button>
             <button onClick={() => handleSnooze(t.id)}
@@ -2319,8 +2319,8 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
       {coordinatorMode && onTrackDeals.length > 0 && (
         <div style={{ marginTop: 16 }}>
           <button onClick={() => setShowOnTrack(s => !s)}
-            style={{ width:"100%", textAlign:"left", background:"#F0FDF4", border:"1px solid #BBF7D0",
-              borderRadius:12, padding:"12px 14px", fontSize:14, fontWeight:700, color:"#166534",
+            style={{ width:"100%", textAlign:"left", background:"#E0F2FE", border:"1px solid #7DD3FC",
+              borderRadius:12, padding:"12px 14px", fontSize:14, fontWeight:700, color:"#0c4a6e",
               cursor:"pointer", fontFamily:"inherit" }}>
             ✅ {onTrackDeals.length} on track &amp; handled {showOnTrack ? "▲" : "▼"}
           </button>
@@ -2463,7 +2463,7 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
               </button>
               <button onClick={submitChase} disabled={chaseSubmitting || previewLoading || (chasePreview && chasePreview.error)}
                 style={{ flex:2, padding:"12px 0", borderRadius:10, border:"none",
-                  background:COLORS.red, color:COLORS.white, fontWeight:700, fontSize:14,
+                  background:"#0c4a6e", color:COLORS.white, fontWeight:700, fontSize:14,
                   cursor: chaseSubmitting ? "wait" : "pointer", opacity: (chaseSubmitting || previewLoading || (chasePreview && chasePreview.error)) ? 0.5 : 1 }}>
                 {chaseSubmitting ? "Sending..." : "Send & Start Follow-Up"}
               </button>

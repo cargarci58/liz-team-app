@@ -406,7 +406,7 @@ export default function HelpCenter({ apiBase, token, userId, onGoals, onProfile,
                         <div style={{ fontSize: 13, color: '#555', margin: '4px 0 6px', lineHeight: 1.45 }}>{s.desc}</div>
                         <div style={{ fontSize: 12, color: '#666666', marginBottom: 10 }}>Find it at: {s.where}</div>
                         {s.go && (
-                          <button onClick={() => { setOpen(false); s.go(); }} style={{ background: RED, color: '#fff', border: 'none', borderRadius: 8, padding: '8px 16px', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>Take me there →</button>
+                          <button onClick={() => { setOpen(false); s.go(); }} style={{ background: "#0c4a6e", color: '#fff', border: 'none', borderRadius: 8, padding: '8px 16px', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>Take me there →</button>
                         )}
                       </div>
                     </div>
@@ -416,12 +416,12 @@ export default function HelpCenter({ apiBase, token, userId, onGoals, onProfile,
                       voice everywhere — nothing depends on this device's speech engine. */}
                   {onVideo && (
                     <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 6, marginBottom: 8 }}>
-                      <button onClick={() => { setOpen(false); onVideo('marketing'); }} style={{ flex: '1 1 200px', background: RED, border: 'none', borderRadius: 8, padding: '11px 16px', fontSize: 13, fontWeight: 700, color: '#fff', cursor: 'pointer', fontFamily: 'inherit' }}>▶ Watch the 2-minute tour</button>
-                      <button onClick={() => { setOpen(false); onVideo('learn'); }} style={{ flex: '1 1 200px', background: '#1A2B4A', border: 'none', borderRadius: 8, padding: '11px 16px', fontSize: 13, fontWeight: 700, color: '#fff', cursor: 'pointer', fontFamily: 'inherit' }}>📚 Learn the app, chapter by chapter</button>
+                      <button onClick={() => { setOpen(false); onVideo('marketing'); }} style={{ flex: '1 1 200px', background: "#0c4a6e", border: 'none', borderRadius: 8, padding: '11px 16px', fontSize: 13, fontWeight: 700, color: '#fff', cursor: 'pointer', fontFamily: 'inherit' }}>▶ Watch the 2-minute tour</button>
+                      <button onClick={() => { setOpen(false); onVideo('learn'); }} style={{ flex: '1 1 200px', background: '#0c4a6e', border: 'none', borderRadius: 8, padding: '11px 16px', fontSize: 13, fontWeight: 700, color: '#fff', cursor: 'pointer', fontFamily: 'inherit' }}>📚 Learn the app, chapter by chapter</button>
                     </div>
                   )}
                   {onTour && (
-                    <button onClick={() => { setOpen(false); onTour(); }} style={{ marginBottom: 8, background: '#111', border: 'none', borderRadius: 8, padding: '11px 16px', fontSize: 13, fontWeight: 700, color: '#fff', cursor: 'pointer', fontFamily: 'inherit', width: '100%' }}>🎬 Point out the buttons on my screen (60 seconds)</button>
+                    <button onClick={() => { setOpen(false); onTour(); }} style={{ marginBottom: 8, background: '#0c4a6e', border: 'none', borderRadius: 8, padding: '11px 16px', fontSize: 13, fontWeight: 700, color: '#fff', cursor: 'pointer', fontFamily: 'inherit', width: '100%' }}>🎬 Point out the buttons on my screen (60 seconds)</button>
                   )}
                   {onRestartTour && (
                     <button onClick={() => { setOpen(false); onRestartTour(); }} style={{ background: 'none', border: '1px solid #ddd', borderRadius: 8, padding: '9px 16px', fontSize: 13, fontWeight: 600, color: '#444', cursor: 'pointer', fontFamily: 'inherit', width: '100%' }}>↻ Replay the welcome walkthrough</button>
@@ -538,7 +538,7 @@ export default function HelpCenter({ apiBase, token, userId, onGoals, onProfile,
                       <div style={{ fontSize: 13.5, color: '#555', lineHeight: 1.5, maxWidth: 380, margin: '0 auto 18px' }}>
                         Your note went straight to the team. We read every single one, and it helps us make the app better for you.
                       </div>
-                      <button onClick={() => { setFbDone(false); setFbKind('bug'); }} style={{ background: RED, color: '#fff', border: 'none', borderRadius: 8, padding: '9px 18px', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>Send another</button>
+                      <button onClick={() => { setFbDone(false); setFbKind('bug'); }} style={{ background: "#0c4a6e", color: '#fff', border: 'none', borderRadius: 8, padding: '9px 18px', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>Send another</button>
                     </div>
                   ) : (
                     <div>

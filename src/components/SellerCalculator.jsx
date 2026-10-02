@@ -419,7 +419,7 @@ export default function SellerCalculator({ transactionId, token, county, initial
               onClick={() => generatePdf("es")}
               disabled={generating}
               style={{
-                background: generating ? "#9ca3af" : "#15803d",
+                background: generating ? "#9ca3af" : "#0c4a6e",
                 color: "white",
                 border: "none",
                 borderRadius: 6,

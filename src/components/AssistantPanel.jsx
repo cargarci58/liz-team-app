@@ -310,7 +310,7 @@ function HelpCard({ card, onNavigate }) {
         ))}
       </ol>
       {card.target && (
-        <button onClick={() => onNavigate(card.target)} style={{ marginTop: 8, background: "#EFF6FF", color: "#1A5276", border: "1px solid #BFDBFE", borderRadius: 8, padding: "8px 12px", fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}>
+        <button onClick={() => onNavigate(card.target)} style={{ marginTop: 8, background: "#EFF6FF", color: "#0c4a6e", border: "1px solid #BFDBFE", borderRadius: 8, padding: "8px 12px", fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}>
           Take me there →
         </button>
       )}
@@ -353,7 +353,7 @@ function CreateTaskCard({ card, token, onSpokenConfirm }) {
         <button onClick={() => setState("cancelled")} disabled={state === "saving"} style={{ flex: 1, background: "#fff", color: "#374151", border: "1px solid #D1D5DB", borderRadius: 8, padding: "9px 10px", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>
           Cancel
         </button>
-        <button onClick={save} disabled={state === "saving"} style={{ flex: 2, background: "#1E8449", color: "#fff", border: "none", borderRadius: 8, padding: "9px 10px", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>
+        <button onClick={save} disabled={state === "saving"} style={{ flex: 2, background: "#0c4a6e", color: "#fff", border: "none", borderRadius: 8, padding: "9px 10px", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>
           {state === "saving" ? "Saving…" : "✓ Add task"}
         </button>
       </div>
@@ -388,7 +388,7 @@ function ProposalCard({ badge, confirmLabel, doneText, spokenText, body, doActio
         <button onClick={() => setState("cancelled")} disabled={state === "saving"} style={{ flex: 1, background: "#fff", color: "#374151", border: "1px solid #D1D5DB", borderRadius: 8, padding: "9px 10px", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>
           Cancel
         </button>
-        <button onClick={run} disabled={state === "saving"} style={{ flex: 2, background: danger ? RED : "#1E8449", color: "#fff", border: "none", borderRadius: 8, padding: "9px 10px", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>
+        <button onClick={run} disabled={state === "saving"} style={{ flex: 2, background: danger ? RED : "#0c4a6e", color: "#fff", border: "none", borderRadius: 8, padding: "9px 10px", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>
           {state === "saving" ? "Working…" : confirmLabel}
         </button>
       </div>

@@ -52,7 +52,7 @@ export default function ChangePassword({ onClose, forceReset }) {
             <input name="confirm" type="password" required style={inp} placeholder="Repeat new password" autoComplete="new-password" />
             <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 8 }}>
               <button type="button" onClick={onClose} style={{ padding: "10px 18px", border: "1px solid #CCC", borderRadius: 8, background: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 14 }}>Cancel</button>
-              <button id="cp-btn" type="submit" style={{ padding: "10px 20px", background: "#C0392B", color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", fontSize: 14 }}>Save Password</button>
+              <button id="cp-btn" type="submit" style={{ padding: "10px 20px", background: "#0c4a6e", color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", fontSize: 14 }}>Save Password</button>
             </div>
           </form>
         </div>

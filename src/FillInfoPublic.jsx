@@ -60,7 +60,7 @@ export default function FillInfoPublic({ token }) {
       ))}
       {err && <div style={{ color: "#b91c1c", marginBottom: 12 }}>⚠️ {err}</div>}
       <button onClick={submit} disabled={busy}
-        style={{ width: "100%", padding: "14px", borderRadius: 12, border: "none", background: "#1E8449", color: "#fff", fontSize: 16, fontWeight: 800, cursor: "pointer", opacity: busy ? 0.6 : 1 }}>
+        style={{ width: "100%", padding: "14px", borderRadius: 12, border: "none", background: "#0c4a6e", color: "#fff", fontSize: 16, fontWeight: 800, cursor: "pointer", opacity: busy ? 0.6 : 1 }}>
         {busy ? "Saving…" : "✅ Save my answers"}
       </button>
     </div>

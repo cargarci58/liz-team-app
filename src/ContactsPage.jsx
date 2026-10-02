@@ -723,7 +723,7 @@ function ContactModal({ contact, token, onClose, onSaved }) {
             <input value={newGroup} onChange={e => setNewGroup(e.target.value)}
               onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); addNewGroup(); } }}
               placeholder="+ New group (e.g. Bunco)" style={{ ...inputStyle, flex: 1, marginBottom: 0 }} />
-            <button type="button" onClick={addNewGroup} style={btnStyle("#e0e7ff", "#3730a3")}>Add</button>
+            <button type="button" onClick={addNewGroup} style={btnStyle("#E0F2FE", "#0c4a6e")}>Add</button>
           </div>
         </Field>
         <Field label="Notes"><textarea value={form.notes} onChange={e => update("notes", e.target.value)} rows={3} style={{ ...inputStyle, resize: "vertical" }} /></Field>
@@ -875,7 +875,7 @@ function FillMissingModal({ token, onClose, onDone }) {
             ))}
             <div style={{ display:"flex", gap:10, marginTop:18 }}>
               <button onClick={() => setStep(1)} disabled={busy} style={{ flex:1, padding:11, borderRadius:8, border:"1px solid #d1d5db", background:"#fff", color:"#374151", fontWeight:600, cursor:"pointer" }}>← Previous step</button>
-              <button onClick={submit} disabled={busy || mapping.email === undefined} style={{ flex:2, padding:11, borderRadius:8, border:"none", background: (busy || mapping.email === undefined) ? "#d1a878" : "#92400e", color:"#fff", fontWeight:700, cursor: busy ? "wait" : "pointer" }}>
+              <button onClick={submit} disabled={busy || mapping.email === undefined} style={{ flex:2, padding:11, borderRadius:8, border:"none", background: (busy || mapping.email === undefined) ? "#9CA3AF" : "#0c4a6e", color:"#fff", fontWeight:700, cursor: busy ? "wait" : "pointer" }}>
                 {busy ? "Filling..." : "🩹 Fill Missing Info"}
               </button>
             </div>
@@ -1498,7 +1498,7 @@ function BulkScheduleModal({ token, contactCount, onClose, onScheduled }) {
 
         {step === 2 && (
           <div>
-            <div style={{ background: "#dbeafe", border: "1px solid #93c5fd", borderRadius: 8, padding: 14, marginBottom: 16, fontSize: 13, color: "#1e3a8a" }}>
+            <div style={{ background: "#dbeafe", border: "1px solid #93c5fd", borderRadius: 8, padding: 14, marginBottom: 16, fontSize: 13, color: "#0c4a6e" }}>
               <strong>📋 Review your plan:</strong>
               <ul style={{ margin: "8px 0 0 0", paddingLeft: 18, lineHeight: 1.7 }}>
                 <li>Filter: <strong>{filter.hasNoFollowUp ? "Only contacts without a follow-up" : "All matching contacts"}</strong>{filter.temperature ? " · " + (TEMP_META[filter.temperature] || {}).label : ""}{filter.type ? " · " + filter.type : ""}</li>
@@ -1523,7 +1523,7 @@ function BulkScheduleModal({ token, contactCount, onClose, onScheduled }) {
 
         {step === 3 && result && (
           <div>
-            <div style={{ background: "#dcfce7", border: "1px solid #86efac", borderRadius: 8, padding: 16, marginBottom: 16 }}>
+            <div style={{ background: "#E0F2FE", border: "1px solid #7DD3FC", borderRadius: 8, padding: 16, marginBottom: 16 }}>
               <div style={{ fontWeight: 800, fontSize: 16, color: "#14532d", marginBottom: 8 }}>✅ Calls Scheduled</div>
               <div style={{ fontSize: 13, color: "#14532d", lineHeight: 1.7 }}>
                 Scheduled: <strong>{result.scheduled} calls</strong><br/>
@@ -1704,7 +1704,7 @@ function CampaignModal({ token, groupList, onClose }) {
                   {Array.from({ length: 28 }, (_, i) => i + 1).map(d => <option key={d} value={d}>{d}</option>)}
                 </select>
                 <span style={{ fontSize: 14, color: "#374151" }}>of every month</span>
-                <button onClick={schedule} disabled={busy} style={{ ...btnStyle("#16a34a", "white"), opacity: busy ? 0.6 : 1 }}>Save Monthly</button>
+                <button onClick={schedule} disabled={busy} style={{ ...btnStyle("#0c4a6e", "white"), opacity: busy ? 0.6 : 1 }}>Save Monthly</button>
               </div>
             </div>
 
@@ -2066,7 +2066,7 @@ export default function ContactsPage({ token, onBack }) {
         </div>
       </div>
 
-      <div style={{ background: "#fef3c7", border: "1px solid #fcd34d", borderRadius: 8, padding: 10, fontSize: 12, color: "#78350f", marginBottom: 10 }}>
+      <div style={{ background: "#E0F2FE", border: "1px solid #7DD3FC", borderRadius: 8, padding: 10, fontSize: 12, color: "#0c4a6e", marginBottom: 10 }}>
         💡 New here, or training an agent? <button onClick={() => setShowGuide(true)} style={{ background: "#0c4a6e", color: "white", border: "none", borderRadius: 6, padding: "5px 12px", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit", marginLeft: 4 }}>📖 How Contacts Work — Start Here</button>
       </div>
       {showPopbyInfo && (
@@ -2121,11 +2121,11 @@ export default function ContactsPage({ token, onBack }) {
       {selected.size > 0 && (
         <div style={{ background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 8, padding: "10px 14px", marginBottom: 10, display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
           <div style={{ fontSize: 13, fontWeight: 700, color: "#1e3a8a" }}>{selected.size} selected</div>
-          <button onClick={bulkSetTier} style={btnStyle("#e0e7ff", "#3730a3")}>⭐ Set Tier</button>
+          <button onClick={bulkSetTier} style={btnStyle("#E0F2FE", "#0c4a6e")}>⭐ Set Tier</button>
           <button onClick={bulkAddToGroup} style={btnStyle("#dcfce7", "#166534")}>👥 Add to Group</button>
           <button onClick={() => printLabels(contacts.filter(c => selected.has(c.id)))} style={btnStyle("#fef9c3", "#854d0e")} title="Print Avery 5160 mailing labels for the selected contacts">🏷 Print Labels</button>
           <button onClick={() => bulkAction("archive")} style={btnStyle("#fef3c7", "#92400e")}>📦 Archive</button>
-          <button onClick={() => bulkAction("unarchive")} style={btnStyle("#e0e7ff", "#3730a3")}>📤 Un-archive</button>
+          <button onClick={() => bulkAction("unarchive")} style={btnStyle("#E0F2FE", "#0c4a6e")}>📤 Un-archive</button>
           <button onClick={() => bulkAction("delete")} style={btnStyle("#fee2e2", "#991b1b")}>🗑 Delete Forever</button>
           <button onClick={() => setSelected(new Set())} style={{ marginLeft: "auto", background: "transparent", border: "none", color: "#6b7280", cursor: "pointer", fontSize: 12, fontWeight: 600 }}>Clear selection</button>
         </div>
@@ -2252,7 +2252,7 @@ export default function ContactsPage({ token, onBack }) {
           <div onClick={e => e.stopPropagation()} style={{ background: "white", borderRadius: 12, maxWidth: 460, width: "100%", maxHeight: "85vh", overflowY: "auto", padding: 24, margin: "auto" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
               <div style={{ fontSize: 18, fontWeight: 800 }}>👥 Manage Groups</div>
-              <button onClick={createGroup} style={btnStyle("#16a34a", "white")}>+ New Group</button>
+              <button onClick={createGroup} style={btnStyle("#0c4a6e", "white")}>+ New Group</button>
             </div>
             <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 14 }}>
               Groups let you tag where contacts came from (Bunco, Church, Open House). Create one here, then add contacts to it from the list or the contact form.

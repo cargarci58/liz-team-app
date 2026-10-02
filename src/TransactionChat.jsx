@@ -346,7 +346,7 @@ export default function TransactionChat({ transactionId, user, parties = [], sty
           })}
           <div style={{ marginTop: 10, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <span style={{ fontSize: 11, color: "#666666" }}>{selectedEmails.length === 0 ? "Goes to the whole group." : `Only ${selectedEmails.length} selected will get it.`}</span>
-            <button onClick={() => setPickerOpen(false)} style={{ background: "#1A5276", color: "#fff", border: "none", borderRadius: 8, padding: "6px 16px", fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}>Done</button>
+            <button onClick={() => setPickerOpen(false)} style={{ background: "#0c4a6e", color: "#fff", border: "none", borderRadius: 8, padding: "6px 16px", fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}>Done</button>
           </div>
         </div>
       )}
@@ -356,7 +356,7 @@ export default function TransactionChat({ transactionId, user, parties = [], sty
           <div style={{ fontSize: 13, fontWeight: 800, color: "#92400e", marginBottom: 4 }}>⚠️ Send to EVERYONE on this deal? ({partyEmails.length} people)</div>
           <div style={{ fontSize: 12, color: "#7c2d12", marginBottom: 10 }}>{partyEmails.map(p => p.name).join(", ")}</div>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            <button onClick={doSend} style={{ background: "#C0392B", color: "#fff", border: "none", borderRadius: 8, padding: "8px 14px", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>Yes, send to all {partyEmails.length}</button>
+            <button onClick={doSend} style={{ background: "#0c4a6e", color: "#fff", border: "none", borderRadius: 8, padding: "8px 14px", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>Yes, send to all {partyEmails.length}</button>
             <button onClick={() => { setConfirmAll(false); setPickerOpen(true); }} style={{ background: "#fff", color: "#92400e", border: "1.5px solid #FCD34D", borderRadius: 8, padding: "8px 14px", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>No — pick specific people</button>
           </div>
         </div>
@@ -364,7 +364,7 @@ export default function TransactionChat({ transactionId, user, parties = [], sty
       <div style={{ padding: "12px 16px", background: "#fff", borderTop: "1px solid #DDD", display: "flex", gap: 8, alignItems: "center" }}>
         {!simple && !directTo && (
           <button onClick={() => setPickerOpen(!pickerOpen)} title="Choose who gets this message"
-            style={{ flexShrink: 0, maxWidth: 170, padding: "9px 12px", borderRadius: 20, border: "1.5px solid " + (selectedEmails.length > 0 ? "#1A5276" : "#CBD5E1"), background: selectedEmails.length > 0 ? "#1A5276" : "#fff", color: selectedEmails.length > 0 ? "#fff" : "#1A5276", fontWeight: 700, fontSize: 12.5, cursor: "pointer", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", fontFamily: "inherit" }}>
+            style={{ flexShrink: 0, maxWidth: 170, padding: "9px 12px", borderRadius: 20, border: "1.5px solid " + (selectedEmails.length > 0 ? "#0c4a6e" : "#CBD5E1"), background: selectedEmails.length > 0 ? "#0c4a6e" : "#fff", color: selectedEmails.length > 0 ? "#fff" : "#0c4a6e", fontWeight: 700, fontSize: 12.5, cursor: "pointer", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", fontFamily: "inherit" }}>
             📤 To: {selectedEmails.length === 0 ? "Everyone" : (selectedEmails.length === 1 ? "1 person" : `${selectedEmails.length} people`)} ▾
           </button>
         )}
@@ -374,7 +374,7 @@ export default function TransactionChat({ transactionId, user, parties = [], sty
           disabled={!connected}
           style={{ flex: 1, padding: "10px 14px", borderRadius: 24, border: "1.5px solid #DDD", fontSize: 14, fontFamily: "inherit", outline: "none", background: connected ? "#fff" : "#F5F5F5" }} />
         <button onClick={sendMessage} disabled={!connected || !newMsg.trim()}
-          style={{ width: 40, height: 40, borderRadius: "50%", background: connected && newMsg.trim() ? "#C0392B" : "#DDD", color: "#fff", border: "none", cursor: connected && newMsg.trim() ? "pointer" : "not-allowed", fontSize: 18, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+          style={{ width: 40, height: 40, borderRadius: "50%", background: connected && newMsg.trim() ? "#0c4a6e" : "#DDD", color: "#fff", border: "none", cursor: connected && newMsg.trim() ? "pointer" : "not-allowed", fontSize: 18, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
           →
         </button>
       </div>

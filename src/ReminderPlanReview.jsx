@@ -188,7 +188,7 @@ export default function ReminderPlanReview({ token, txId, reloadKey, onSent, onL
       ))}
       <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 12, flexWrap: "wrap" }}>
         <button onClick={send} disabled={sending || checked.length === 0}
-          style={{ background: sending || checked.length === 0 ? "#93C5FD" : "#1E8449", color: "#fff", border: "none", borderRadius: 10, padding: "11px 22px", fontSize: 15, fontWeight: 800, cursor: sending ? "wait" : "pointer", fontFamily: "inherit" }}>
+          style={{ background: sending || checked.length === 0 ? "#93C5FD" : "#0c4a6e", color: "#fff", border: "none", borderRadius: 10, padding: "11px 22px", fontSize: 15, fontWeight: 800, cursor: sending ? "wait" : "pointer", fontFamily: "inherit" }}>
           {sending ? "Sending…" : `✅ Send ${checked.length} checked message${checked.length === 1 ? "" : "s"}`}
         </button>
         <span style={{ fontSize: 12, color: "#1E40AF" }}>Nothing goes out until you approve.</span>

@@ -88,7 +88,7 @@ export default function CommissionPlans() {
   });
 
   const inp = { padding: "7px 9px", border: "1px solid " + C.border, borderRadius: 7, fontSize: 13, fontFamily: "inherit", width: 90 };
-  const btn = (primary) => ({ padding: "8px 14px", borderRadius: 8, border: primary ? "none" : "1px solid " + C.border, background: primary ? C.red : "#fff", color: primary ? "#fff" : C.text, fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit" });
+  const btn = (primary) => ({ padding: "8px 14px", borderRadius: 8, border: primary ? "none" : "1px solid " + C.border, background: primary ? C.blue : "#fff", color: primary ? "#fff" : C.text, fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit" });
   const defaultPlan = data.plans.find(p => p.is_default);
 
   return (

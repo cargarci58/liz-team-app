@@ -775,7 +775,7 @@ function CashToCloseTab({ transactionId, token, showGenerate, county } = {}) {
             onChange={(e) => { const f = e.target.files && e.target.files[0]; e.target.value = ""; if (f) autofillFromDocs(f); }} />
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
             <button type="button" onClick={() => autofillInputRef.current && autofillInputRef.current.click()} disabled={autofilling}
-              style={{ background: autofilling ? "#9ca3af" : "#4f46e5", color: "white", border: "none", borderRadius: 6, padding: "9px 16px", fontSize: 13, fontWeight: 700, cursor: autofilling ? "wait" : "pointer", fontFamily: "inherit" }}>
+              style={{ background: autofilling ? "#9ca3af" : "#0c4a6e", color: "white", border: "none", borderRadius: 6, padding: "9px 16px", fontSize: 13, fontWeight: 700, cursor: autofilling ? "wait" : "pointer", fontFamily: "inherit" }}>
               {autofilling ? "Reading documents…" : "📄 Upload listing & auto-fill"}
             </button>
             <button type="button" onClick={() => autofillFromDocs(null)} disabled={autofilling}
@@ -1009,11 +1009,11 @@ function CashToCloseTab({ transactionId, token, showGenerate, county } = {}) {
           </div>
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
             <button type="button" onClick={() => generatePdf("en")} disabled={generating}
-              style={{ background: generating ? "#9ca3af" : "#15803d", color: "white", border: "none", borderRadius: 6, padding: "10px 18px", fontSize: 13, fontWeight: 700, cursor: generating ? "wait" : "pointer", fontFamily: "inherit" }}>
+              style={{ background: generating ? "#9ca3af" : "#0c4a6e", color: "white", border: "none", borderRadius: 6, padding: "10px 18px", fontSize: 13, fontWeight: 700, cursor: generating ? "wait" : "pointer", fontFamily: "inherit" }}>
               {generating ? "Generating PDF..." : "📄 Generate Net Sheet (English)"}
             </button>
             <button type="button" onClick={() => generatePdf("es")} disabled={generating}
-              style={{ background: generating ? "#9ca3af" : "#15803d", color: "white", border: "none", borderRadius: 6, padding: "10px 18px", fontSize: 13, fontWeight: 700, cursor: generating ? "wait" : "pointer", fontFamily: "inherit" }}>
+              style={{ background: generating ? "#9ca3af" : "#0c4a6e", color: "white", border: "none", borderRadius: 6, padding: "10px 18px", fontSize: 13, fontWeight: 700, cursor: generating ? "wait" : "pointer", fontFamily: "inherit" }}>
               {generating ? "Generando PDF..." : "📄 Generar Hoja Neta (Español)"}
             </button>
           </div>

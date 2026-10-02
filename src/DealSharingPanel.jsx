@@ -208,7 +208,7 @@ export default function DealSharingPanel({ txId, onChanged }) {
 
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
         {(canEdit || d.canOverridePlan) && <button disabled={saving || coTotal > 100} onClick={() => save()}
-          style={{ padding: "9px 18px", borderRadius: 8, border: "none", background: C.red, color: "#fff", fontWeight: 700, fontSize: 13.5, cursor: "pointer", fontFamily: "inherit" }}>
+          style={{ padding: "9px 18px", borderRadius: 8, border: "none", background: "#0c4a6e", color: "#fff", fontWeight: 700, fontSize: 13.5, cursor: "pointer", fontFamily: "inherit" }}>
           {saving ? "Saving…" : "Save sharing"}
         </button>}
         {dirty && !saving && (canEdit || d.canOverridePlan) && <span style={{ fontSize: 12.5, fontWeight: 700, color: C.dark }}>● Unsaved changes — tap Save sharing</span>}
@@ -239,7 +239,7 @@ export default function DealSharingPanel({ txId, onChanged }) {
                   : x.mode === "linked" ? `✅ ${invite.to} is working this deal — it's in their TransactPro app now.`
                   : `✅ Invite sent to ${invite.to}. When they open it and pick a password, the deal opens in their app (status changes to "Working this deal").`);
                 load();
-              }} style={{ padding: "9px 18px", borderRadius: 8, border: "none", background: C.red, color: "#fff", fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>✅ Send</button>
+              }} style={{ padding: "9px 18px", borderRadius: 8, border: "none", background: "#0c4a6e", color: "#fff", fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>✅ Send</button>
             </div>
           </div>
         </div>

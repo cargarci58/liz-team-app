@@ -74,7 +74,7 @@ export default function PartnerPortal({ urlToken }) {
       <div style={{ fontSize: 13, color: C.muted, marginBottom: 14 }}>{mode === "setup" ? "You'll use it every time you open this link." : "The 4-digit PIN you picked the first time."}</div>
       <input value={pin} onChange={e => setPin(e.target.value.replace(/\D/g, "").slice(0, 4))} inputMode="numeric" type="password" style={inp} placeholder="••••" />
       {mode === "setup" && <div style={{ marginTop: 10 }}><input value={pin2} onChange={e => setPin2(e.target.value.replace(/\D/g, "").slice(0, 4))} inputMode="numeric" type="password" style={inp} placeholder="again" /></div>}
-      <div><button onClick={submitPin} style={{ marginTop: 14, padding: "11px 26px", borderRadius: 10, border: "none", background: C.red, color: "#fff", fontWeight: 800, fontSize: 15, cursor: "pointer" }}>Open my deals</button></div>
+      <div><button onClick={submitPin} style={{ marginTop: 14, padding: "11px 26px", borderRadius: 10, border: "none", background: "#0c4a6e", color: "#fff", fontWeight: 800, fontSize: 15, cursor: "pointer" }}>Open my deals</button></div>
       {err && <div style={{ color: C.dark, fontWeight: 700, marginTop: 10, fontSize: 13 }}>{err}</div>}
     </div>
   );

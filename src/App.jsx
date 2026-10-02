@@ -741,8 +741,9 @@ function Btn({ children, onClick, variant = "primary", small, disabled, style = 
     secondary: { background: "#fff", color: "#0c4a6e", border: "1px solid #0c4a6e" },
     ghost: { background: "transparent", color: COLORS.muted, border: `1px solid ${COLORS.border}` },
     danger: { background: COLORS.danger, color: "#fff", border: `1px solid ${COLORS.danger}` },
-    gold: { background: COLORS.gold, color: "#fff", border: `1px solid ${COLORS.gold}` },
-    green: { background: COLORS.success, color: "#fff", border: `1px solid ${COLORS.success}` },
+    // gold/green kept as names for old call sites; both are the normal blue action now.
+    gold: { background: "#0c4a6e", color: "#fff", border: "1px solid #0c4a6e" },
+    green: { background: "#0c4a6e", color: "#fff", border: "1px solid #0c4a6e" },
   };
   return <button onClick={onClick} disabled={disabled} style={{ ...styles[variant], padding: small ? "4px 12px" : "8px 18px", borderRadius: 8, fontSize: small ? 12 : 14, fontWeight: 600, cursor: disabled ? "not-allowed" : "pointer", opacity: disabled ? 0.5 : 1, fontFamily: "inherit", ...style }}>{children}</button>;
 }
@@ -811,7 +812,7 @@ function TransactionListView({ transactions, sortKey, sortDir, toggleSort, onSel
                         </div>
                       </div>
                       <div style={{ display: "flex", gap: 8 }}>
-                        <button onClick={e => { e.stopPropagation(); onSelect(tx.id); }} style={{ background: "#c8102e", color: "white", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>View →</button>
+                        <button onClick={e => { e.stopPropagation(); onSelect(tx.id); }} style={{ background: "#0c4a6e", color: "white", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>View →</button>
                       </div>
                     </div>
                   </td>
@@ -894,7 +895,7 @@ function TransactionListView({ transactions, sortKey, sortDir, toggleSort, onSel
                   <span style={{ background: "#FEF9E7", color: "#8A5A00", border: "1px solid #F1C40F", borderRadius: 6, padding: "4px 10px", fontSize: 11, fontWeight: 700 }}>
                     🌱 {isBuyerSideType(tx.type) ? "INQUIRY" : "LEAD"} — not yet confirmed
                   </span>
-                  {onLeadAction && <button onClick={e => { e.stopPropagation(); onLeadAction(tx.id, "confirm"); }} style={{ background: "#B7860B", color: "#fff", border: "none", borderRadius: 6, padding: "4px 10px", fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>✓ Confirm</button>}
+                  {onLeadAction && <button onClick={e => { e.stopPropagation(); onLeadAction(tx.id, "confirm"); }} style={{ background: "#0c4a6e", color: "#fff", border: "none", borderRadius: 6, padding: "4px 10px", fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>✓ Confirm</button>}
                   {onLeadAction && <button onClick={e => { e.stopPropagation(); onLeadAction(tx.id, "cancel"); }} style={{ background: "transparent", color: "#8A5A00", border: "1px solid #C9A227", borderRadius: 6, padding: "4px 10px", fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>✕ Not Pursuing</button>}
                 </div>
               )}
@@ -953,10 +954,10 @@ function PartyCard({ party, txId, onRemove, onEdit, onClick, onInvite, onCopyLog
       <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
         {onInvite && <button onClick={e => { e.stopPropagation(); onInvite(); }} style={{ background: "none", border: "1px solid #C0392B", borderRadius: 6, cursor: "pointer", color: "#C0392B", fontSize: 11, padding: "2px 8px", fontWeight: 600 }}>Send Invite</button>}
         {onCopyLoginLink && party.email && party.role && /buyer|seller/i.test(party.role) && !/agent/i.test(party.role) && <button onClick={e => { e.stopPropagation(); onCopyLoginLink(); }} title="Get a portal login link to text or share directly — useful if the invite email didn't arrive. They still set their own PIN." style={{ background: "none", border: "1px solid #1E8449", borderRadius: 6, cursor: "pointer", color: "#1E8449", fontSize: 11, padding: "2px 8px", fontWeight: 600 }}>🔗 Login Link</button>}
-        {onSendFollowup && (party.email || party.phone) && <button onClick={e => { e.stopPropagation(); onSendFollowup(party); }} style={{ background: "#C0392B", border: "1px solid #C0392B", borderRadius: 6, cursor: "pointer", color: "#fff", fontSize: 11, padding: "2px 8px", fontWeight: 600 }}>Follow Up</button>}
-        {onSendWelcome && party.email && <button onClick={e => { e.stopPropagation(); onSendWelcome(party); }} title="Send (or re-send) the role-specific welcome email with key dates, financial summary, parties roster, and the contract document package. Use this when you've added or corrected this party's email after the initial Under Contract send." style={{ background: "#1E8449", border: "1px solid #1E8449", borderRadius: 6, cursor: "pointer", color: "#fff", fontSize: 11, padding: "2px 8px", fontWeight: 600 }}>✉️ Send Welcome</button>}
-        {onResetPassword && party.email && <button onClick={e => { e.stopPropagation(); onResetPassword(party); }} title="Email a one-time secure link so this party can set a new password. The link expires in 1 hour. Use this when a party calls saying they can't log in." style={{ background: "#7c3aed", border: "1px solid #7c3aed", borderRadius: 6, cursor: "pointer", color: "#fff", fontSize: 11, padding: "2px 8px", fontWeight: 600 }}>🔐 Reset PW</button>}
-        {onResetPin && party.email && <button onClick={e => { e.stopPropagation(); onResetPin(party); }} title="Clear this client's forgotten portal PIN. Next time they open their portal link they'll be asked to CREATE a new PIN — nothing is emailed." style={{ background: "#0e7490", border: "1px solid #0e7490", borderRadius: 6, cursor: "pointer", color: "#fff", fontSize: 11, padding: "2px 8px", fontWeight: 600 }}>🔢 Reset PIN</button>}
+        {onSendFollowup && (party.email || party.phone) && <button onClick={e => { e.stopPropagation(); onSendFollowup(party); }} style={{ background: "#0c4a6e", border: "1px solid #C0392B", borderRadius: 6, cursor: "pointer", color: "#fff", fontSize: 11, padding: "2px 8px", fontWeight: 600 }}>Follow Up</button>}
+        {onSendWelcome && party.email && <button onClick={e => { e.stopPropagation(); onSendWelcome(party); }} title="Send (or re-send) the role-specific welcome email with key dates, financial summary, parties roster, and the contract document package. Use this when you've added or corrected this party's email after the initial Under Contract send." style={{ background: "#0c4a6e", border: "1px solid #1E8449", borderRadius: 6, cursor: "pointer", color: "#fff", fontSize: 11, padding: "2px 8px", fontWeight: 600 }}>✉️ Send Welcome</button>}
+        {onResetPassword && party.email && <button onClick={e => { e.stopPropagation(); onResetPassword(party); }} title="Email a one-time secure link so this party can set a new password. The link expires in 1 hour. Use this when a party calls saying they can't log in." style={{ background: "#0c4a6e", border: "1px solid #7c3aed", borderRadius: 6, cursor: "pointer", color: "#fff", fontSize: 11, padding: "2px 8px", fontWeight: 600 }}>🔐 Reset PW</button>}
+        {onResetPin && party.email && <button onClick={e => { e.stopPropagation(); onResetPin(party); }} title="Clear this client's forgotten portal PIN. Next time they open their portal link they'll be asked to CREATE a new PIN — nothing is emailed." style={{ background: "#0c4a6e", border: "1px solid #0e7490", borderRadius: 6, cursor: "pointer", color: "#fff", fontSize: 11, padding: "2px 8px", fontWeight: 600 }}>🔢 Reset PIN</button>}
         {onEdit && <button onClick={e => { e.stopPropagation(); onEdit(); }} style={{ background: "none", border: `1px solid ${COLORS.border}`, borderRadius: 6, cursor: "pointer", color: COLORS.muted, fontSize: 12, padding: "2px 8px" }}>Edit</button>}
         {onRemove && <button onClick={e => { e.stopPropagation(); onRemove(); }} style={{ background: "none", border: "none", cursor: "pointer", color: COLORS.muted, fontSize: 16 }}>×</button>}
       </div>
@@ -1291,7 +1292,7 @@ function SMSPanel({ tx, onUpdate, currentUser, sendOnly = false }) {
       </div>
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
         {[["email", "📧 Email"], ["sms", "📱 Text"], ["both", "📧 + 📱 Both"]].map(([v, label]) => (
-          <button key={v} onClick={() => onChange(v)} style={{ padding: "10px 16px", borderRadius: 10, border: "2px solid " + (value === v ? "#0F2044" : "#D1D5DB"), background: value === v ? "#0F2044" : "#fff", color: value === v ? "#fff" : "#374151", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>{label}</button>
+          <button key={v} onClick={() => onChange(v)} style={{ padding: "10px 16px", borderRadius: 10, border: "2px solid " + (value === v ? "#0c4a6e" : "#D1D5DB"), background: value === v ? "#0c4a6e" : "#fff", color: value === v ? "#fff" : "#374151", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>{label}</button>
         ))}
       </div>
     </div>
@@ -1447,8 +1448,8 @@ function SMSPanel({ tx, onUpdate, currentUser, sendOnly = false }) {
     const first = chatTarget ? (chatTarget.name || "").split(" ")[0] : null;
     return (
       <div style={{ background: "#fff", border: "1px solid #E5E7EB", borderRadius: 12, padding: "10px 14px", display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-        <button onClick={openDocPicker} style={{ fontSize: 12, padding: "6px 12px", borderRadius: 8, border: "1px solid #0F2044", background: "#fff", color: "#0F2044", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>📎 Attach from Documents</button>
-        <button onClick={() => fileInputRef.current?.click()} disabled={uploading} style={{ fontSize: 12, padding: "6px 12px", borderRadius: 8, border: "1px solid #0F2044", background: "#fff", color: "#0F2044", fontWeight: 600, cursor: "pointer", fontFamily: "inherit", opacity: uploading ? 0.5 : 1 }}>{uploading ? "Uploading..." : "💻 Upload"}</button>
+        <button onClick={openDocPicker} style={{ fontSize: 12, padding: "6px 12px", borderRadius: 8, border: "1px solid #0c4a6e", background: "#fff", color: "#0c4a6e", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>📎 Attach from Documents</button>
+        <button onClick={() => fileInputRef.current?.click()} disabled={uploading} style={{ fontSize: 12, padding: "6px 12px", borderRadius: 8, border: "1px solid #0c4a6e", background: "#fff", color: "#0c4a6e", fontWeight: 600, cursor: "pointer", fontFamily: "inherit", opacity: uploading ? 0.5 : 1 }}>{uploading ? "Uploading..." : "💻 Upload"}</button>
         {gAttach.map(a => (
           <span key={a.id} style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "#F0F4FF", border: "1px solid #C7D2FE", borderRadius: 6, padding: "4px 8px", fontSize: 12, color: "#0F2044" }}>
             📄 {a.name}
@@ -1456,7 +1457,7 @@ function SMSPanel({ tx, onUpdate, currentUser, sendOnly = false }) {
           </span>
         ))}
         {gAttach.length > 0 ? (
-          <button onClick={postFilesToChat} disabled={chatPosting} style={{ fontSize: 12, padding: "6px 14px", borderRadius: 8, border: "none", background: "#15803D", color: "#fff", fontWeight: 700, cursor: "pointer", fontFamily: "inherit", opacity: chatPosting ? 0.5 : 1 }}>{chatPosting ? "Sharing..." : `Share ${gAttach.length} file${gAttach.length > 1 ? "s" : ""} ${first ? `with ${first} only` : "in chat"}`}</button>
+          <button onClick={postFilesToChat} disabled={chatPosting} style={{ fontSize: 12, padding: "6px 14px", borderRadius: 8, border: "none", background: "#0c4a6e", color: "#fff", fontWeight: 700, cursor: "pointer", fontFamily: "inherit", opacity: chatPosting ? 0.5 : 1 }}>{chatPosting ? "Sharing..." : `Share ${gAttach.length} file${gAttach.length > 1 ? "s" : ""} ${first ? `with ${first} only` : "in chat"}`}</button>
         ) : (
           <span style={{ fontSize: 11, color: "#6B7280" }}>{first ? `Files go privately to ${first} as secure download links.` : "Files post into the chat as secure download links."}</span>
         )}
@@ -1515,7 +1516,7 @@ function SMSPanel({ tx, onUpdate, currentUser, sendOnly = false }) {
           <div style={{ fontSize: 13, fontWeight: 800, color: "#0F2044", marginBottom: 5 }}>1. Select who to message:</div>
           <div style={{ display: "inline-flex", background: "#F3F4F6", borderRadius: 8, padding: 3, gap: 2, border: "1.5px solid #C9A84C" }}>
             {[["direct", "👤 One person"], ["group", "👥 Group / several"]].map(([v, label]) => (
-              <button key={v} onClick={() => setMode(v)} style={{ padding: "8px 18px", borderRadius: 6, border: "none", background: mode === v ? "#C9A84C" : "transparent", color: mode === v ? "#fff" : "#374151", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>{label}</button>
+              <button key={v} onClick={() => setMode(v)} style={{ padding: "8px 18px", borderRadius: 6, border: "none", background: mode === v ? "#0c4a6e" : "transparent", color: mode === v ? "#fff" : "#374151", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>{label}</button>
             ))}
           </div>
         </div>
@@ -1526,7 +1527,7 @@ function SMSPanel({ tx, onUpdate, currentUser, sendOnly = false }) {
             <div style={{ fontSize: 13, fontWeight: 800, color: "#0F2044", marginBottom: 5 }}>2. Select how to send it:</div>
             <div style={{ display: "inline-flex", background: "#F3F4F6", borderRadius: 8, padding: 3, gap: 2, border: "1.5px solid #0F2044" }}>
               {[["send", "📨 Email / Text"], ["chat", "💬 Chat in the app"]].map(([v, label]) => (
-                <button key={v} onClick={() => setSurface(v)} style={{ padding: "8px 18px", borderRadius: 6, border: "none", background: surface === v ? "#0F2044" : "transparent", color: surface === v ? "#fff" : "#374151", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>{label}</button>
+                <button key={v} onClick={() => setSurface(v)} style={{ padding: "8px 18px", borderRadius: 6, border: "none", background: surface === v ? "#0c4a6e" : "transparent", color: surface === v ? "#fff" : "#374151", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>{label}</button>
               ))}
             </div>
           </div>
@@ -1595,7 +1596,7 @@ function SMSPanel({ tx, onUpdate, currentUser, sendOnly = false }) {
                   <div style={{ fontSize: 12, fontWeight: 700, color: "#6B7280", textTransform: "uppercase" }}>To ({gChosen.length} selected)</div>
                   {gContactable.length > 0 && (
                     <div style={{ display: "flex", gap: 12 }}>
-                      <button onClick={() => setGSelectedIds(null)} style={{ background: "none", border: "none", color: "#0F2044", fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "inherit", textDecoration: "underline" }}>Select all</button>
+                      <button onClick={() => setGSelectedIds(null)} style={{ background: "none", border: "none", color: "#0c4a6e", fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "inherit", textDecoration: "underline" }}>Select all</button>
                       <button onClick={() => setGSelectedIds(new Set())} style={{ background: "none", border: "none", color: "#6B7280", fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "inherit", textDecoration: "underline" }}>Clear</button>
                     </div>
                   )}
@@ -1629,7 +1630,7 @@ function SMSPanel({ tx, onUpdate, currentUser, sendOnly = false }) {
                 <div style={{ display: "flex", gap: 6, marginTop: 8, flexWrap: "wrap" }}>
                   <input value={gNewName} onChange={e => setGNewName(e.target.value)} placeholder="Name (optional)" style={{ flex: "0 1 130px", padding: "7px 10px", borderRadius: 8, border: "1px solid #E5E7EB", fontSize: 13, fontFamily: "inherit", boxSizing: "border-box" }} />
                   <input value={gNewEmail} onChange={e => setGNewEmail(e.target.value)} onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); addExtraEmail(); } }} placeholder="Add another email…" style={{ flex: "1 1 180px", padding: "7px 10px", borderRadius: 8, border: "1px solid #E5E7EB", fontSize: 13, fontFamily: "inherit", boxSizing: "border-box" }} />
-                  <button onClick={addExtraEmail} style={{ fontSize: 13, padding: "7px 14px", borderRadius: 8, border: "1px solid #0F2044", background: "#fff", color: "#0F2044", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>+ Add</button>
+                  <button onClick={addExtraEmail} style={{ fontSize: 13, padding: "7px 14px", borderRadius: 8, border: "1px solid #0c4a6e", background: "#fff", color: "#0c4a6e", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>+ Add</button>
                 </div>
               </div>
 
@@ -1646,8 +1647,8 @@ function SMSPanel({ tx, onUpdate, currentUser, sendOnly = false }) {
               {/* Attachments */}
               <div style={{ marginBottom: 12 }}>
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: gAttach.length ? 8 : 0 }}>
-                  <button onClick={openDocPicker} style={{ fontSize: 12, padding: "6px 12px", borderRadius: 8, border: "1px solid #0F2044", background: "#fff", color: "#0F2044", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>📎 Attach from Documents</button>
-                  <button onClick={() => fileInputRef.current?.click()} disabled={uploading} style={{ fontSize: 12, padding: "6px 12px", borderRadius: 8, border: "1px solid #0F2044", background: "#fff", color: "#0F2044", fontWeight: 600, cursor: "pointer", fontFamily: "inherit", opacity: uploading ? 0.5 : 1 }}>{uploading ? "Uploading..." : "💻 Upload"}</button>
+                  <button onClick={openDocPicker} style={{ fontSize: 12, padding: "6px 12px", borderRadius: 8, border: "1px solid #0c4a6e", background: "#fff", color: "#0c4a6e", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>📎 Attach from Documents</button>
+                  <button onClick={() => fileInputRef.current?.click()} disabled={uploading} style={{ fontSize: 12, padding: "6px 12px", borderRadius: 8, border: "1px solid #0c4a6e", background: "#fff", color: "#0c4a6e", fontWeight: 600, cursor: "pointer", fontFamily: "inherit", opacity: uploading ? 0.5 : 1 }}>{uploading ? "Uploading..." : "💻 Upload"}</button>
                 </div>
                 {gAttach.map(a => (
                   <div key={a.id} style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "#F0F4FF", border: "1px solid #C7D2FE", borderRadius: 6, padding: "4px 8px", fontSize: 12, color: "#0F2044", marginRight: 6, marginBottom: 6 }}>
@@ -1688,7 +1689,7 @@ function SMSPanel({ tx, onUpdate, currentUser, sendOnly = false }) {
                 </div>
               )}
 
-              <button onClick={sendGroup} disabled={!gChannel || !gMessage.trim() || gSending || gReachable === 0} style={{ width: "100%", padding: "11px", borderRadius: 8, border: "none", background: "#15803D", color: "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer", fontFamily: "inherit", opacity: (!gChannel || !gMessage.trim() || gSending || gReachable === 0) ? 0.5 : 1 }}>{gSending ? "Sending..." : !gChannel ? "Pick Email or Text above" : `Send to ${gReachable} recipient${gReachable === 1 ? "" : "s"}`}</button>
+              <button onClick={sendGroup} disabled={!gChannel || !gMessage.trim() || gSending || gReachable === 0} style={{ width: "100%", padding: "11px", borderRadius: 8, border: "none", background: "#0c4a6e", color: "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer", fontFamily: "inherit", opacity: (!gChannel || !gMessage.trim() || gSending || gReachable === 0) ? 0.5 : 1 }}>{gSending ? "Sending..." : !gChannel ? "Pick Email or Text above" : `Send to ${gReachable} recipient${gReachable === 1 ? "" : "s"}`}</button>
             </div>
         </div>
       )}
@@ -1716,7 +1717,7 @@ function SMSPanel({ tx, onUpdate, currentUser, sendOnly = false }) {
                       );
                     })}
                   <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 8 }}>
-                    <button onClick={() => setDocPickerOpen(false)} style={{ padding: "8px 18px", borderRadius: 8, border: "none", background: "#0F2044", color: "#fff", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Done</button>
+                    <button onClick={() => setDocPickerOpen(false)} style={{ padding: "8px 18px", borderRadius: 8, border: "none", background: "#0c4a6e", color: "#fff", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Done</button>
                   </div>
                 </div>
               </div>
@@ -1755,7 +1756,7 @@ function SMSPanel({ tx, onUpdate, currentUser, sendOnly = false }) {
                 );
               })}
             </div>
-            <button onClick={() => setShowReminderSMS(true)} style={{ margin: 10, padding: "8px 12px", borderRadius: 8, border: "1px solid #E5E7EB", background: "#F9FAFB", color: "#0F2044", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>⏰ Send a deadline reminder</button>
+            <button onClick={() => setShowReminderSMS(true)} style={{ margin: 10, padding: "8px 12px", borderRadius: 8, border: "1px solid #E5E7EB", background: "#F9FAFB", color: "#0c4a6e", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>⏰ Send a deadline reminder</button>
           </div>
 
           {/* overflowY auto (not hidden): with the thread holding a real reading
@@ -1827,8 +1828,8 @@ function SMSPanel({ tx, onUpdate, currentUser, sendOnly = false }) {
                 </div>
                 <div style={{ padding: "10px 18px 0", borderTop: "1px solid #E5E7EB" }}>
                   <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: gAttach.length ? 8 : 0 }}>
-                    <button onClick={openDocPicker} style={{ fontSize: 12, padding: "6px 12px", borderRadius: 8, border: "1px solid #0F2044", background: "#fff", color: "#0F2044", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>📎 Attach from Documents</button>
-                    <button onClick={() => fileInputRef.current?.click()} disabled={uploading} style={{ fontSize: 12, padding: "6px 12px", borderRadius: 8, border: "1px solid #0F2044", background: "#fff", color: "#0F2044", fontWeight: 600, cursor: "pointer", fontFamily: "inherit", opacity: uploading ? 0.5 : 1 }}>{uploading ? "Uploading..." : "💻 Upload"}</button>
+                    <button onClick={openDocPicker} style={{ fontSize: 12, padding: "6px 12px", borderRadius: 8, border: "1px solid #0c4a6e", background: "#fff", color: "#0c4a6e", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>📎 Attach from Documents</button>
+                    <button onClick={() => fileInputRef.current?.click()} disabled={uploading} style={{ fontSize: 12, padding: "6px 12px", borderRadius: 8, border: "1px solid #0c4a6e", background: "#fff", color: "#0c4a6e", fontWeight: 600, cursor: "pointer", fontFamily: "inherit", opacity: uploading ? 0.5 : 1 }}>{uploading ? "Uploading..." : "💻 Upload"}</button>
                   </div>
                   {gAttach.map(a => (
                     <div key={a.id} style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "#F0F4FF", border: "1px solid #C7D2FE", borderRadius: 6, padding: "4px 8px", fontSize: 12, color: "#0F2044", marginRight: 6, marginBottom: 6 }}>
@@ -1849,7 +1850,7 @@ function SMSPanel({ tx, onUpdate, currentUser, sendOnly = false }) {
                 </div>
                 <div style={{ padding: "12px 18px", borderTop: "1px solid #E5E7EB", display: "flex", gap: 10, alignItems: "flex-end", flexWrap: "wrap" }}>
                   <textarea value={message} onChange={e => setMessage(e.target.value)} onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey && channel === "sms") { e.preventDefault(); sendMessage(); } }} placeholder={!channel ? "Pick Email or Text above first…" : channel === "sms" ? "Type message... (Shift+Enter for new line)" : "Write your email..."} rows={channel === "sms" ? 3 : 8} style={{ flex: "1 1 100%", padding: "12px 16px", borderRadius: 10, border: "1px solid #E5E7EB", fontSize: 15, lineHeight: 1.55, fontFamily: "inherit", resize: "vertical", minHeight: channel === "sms" ? 70 : 200, boxSizing: "border-box" }} />
-                  <button onClick={sendMessage} disabled={!channel || !message.trim() || sending} title={!channel ? "Pick Email or Text first" : ""} style={{ height: 44, minWidth: 70, borderRadius: 8, border: "none", background: "#15803D", color: "#fff", fontWeight: 600, fontSize: 14, cursor: "pointer", fontFamily: "inherit", opacity: (!channel || !message.trim() || sending) ? 0.5 : 1 }}>{sending ? "..." : "Send"}</button>
+                  <button onClick={sendMessage} disabled={!channel || !message.trim() || sending} title={!channel ? "Pick Email or Text first" : ""} style={{ height: 44, minWidth: 70, borderRadius: 8, border: "none", background: "#0c4a6e", color: "#fff", fontWeight: 600, fontSize: 14, cursor: "pointer", fontFamily: "inherit", opacity: (!channel || !message.trim() || sending) ? 0.5 : 1 }}>{sending ? "..." : "Send"}</button>
                 </div>
                 <div style={{ margin: "0 18px 12px", padding: "10px 14px", borderTop: "2px solid #C0392B", background: "#F9FAFB", borderRadius: "0 0 8px 8px", display: "flex", alignItems: "center", gap: 10 }}>
                     <div style={{ fontSize: 10, color: "#666666", textTransform: "uppercase", fontWeight: 700, marginRight: 4 }}>Signature:</div>
@@ -1904,7 +1905,7 @@ function SMSPanel({ tx, onUpdate, currentUser, sendOnly = false }) {
               </div>
               <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
                 <button onClick={() => setShowReminderSMS(false)} style={{ padding: "8px 18px", borderRadius: 8, border: "1px solid #E5E7EB", background: "transparent", cursor: "pointer", fontFamily: "inherit" }}>Cancel</button>
-                <button onClick={sendReminder} disabled={!reminderTask || !reminderParties.length || reminderSending} style={{ padding: "8px 18px", borderRadius: 8, border: "none", background: "#0F2044", color: "#fff", fontWeight: 600, cursor: "pointer", fontFamily: "inherit", opacity: reminderSending ? 0.5 : 1 }}>{reminderSending ? "Sending..." : `Send to ${reminderParties.length} parties`}</button>
+                <button onClick={sendReminder} disabled={!reminderTask || !reminderParties.length || reminderSending} style={{ padding: "8px 18px", borderRadius: 8, border: "none", background: "#0c4a6e", color: "#fff", fontWeight: 600, cursor: "pointer", fontFamily: "inherit", opacity: reminderSending ? 0.5 : 1 }}>{reminderSending ? "Sending..." : `Send to ${reminderParties.length} parties`}</button>
               </div>
             </div>
           </div>
@@ -2036,7 +2037,7 @@ function PersonalTaskAddButton({ token, hideTrigger = false, forceOpen = false, 
                 Cancel
               </button>
               <button onClick={save} disabled={saving || !title.trim()}
-                style={{ flex: 2, padding: 11, borderRadius: 8, border: "none", background: (saving || !title.trim()) ? "#9ca3af" : "#1E8449", color: "#fff", fontWeight: 700, fontSize: 14, cursor: (saving || !title.trim()) ? "not-allowed" : "pointer" }}>
+                style={{ flex: 2, padding: 11, borderRadius: 8, border: "none", background: (saving || !title.trim()) ? "#9ca3af" : "#0c4a6e", color: "#fff", fontWeight: 700, fontSize: 14, cursor: (saving || !title.trim()) ? "not-allowed" : "pointer" }}>
                 {saving ? "Saving..." : "Add Task"}
               </button>
             </div>
@@ -2255,7 +2256,7 @@ function AssignVendorPanel({ tx, token, onClose, onAssigned }) {
           <div style={{ fontSize: 13, color: "#555", marginBottom: 16 }}>Want to share their contact card with your client right now — by text, email, or both?</div>
           <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
             <button onClick={() => setShowShare(true)}
-              style={{ background: "#C0392B", color: "#fff", border: "none", borderRadius: 10, padding: "11px 20px", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+              style={{ background: "#0c4a6e", color: "#fff", border: "none", borderRadius: 10, padding: "11px 20px", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
               📤 Share with client (text / email)
             </button>
             <button onClick={() => onAssigned(assigned.party)}
@@ -2287,7 +2288,7 @@ function AssignVendorPanel({ tx, token, onClose, onAssigned }) {
               <button key={cat} onClick={() => setSelectedCategory(cat)}
                 style={{ padding: "5px 12px", borderRadius: 20, border: "none",
                   whiteSpace: "nowrap", fontSize: 12, cursor: "pointer",
-                  background: selectedCategory === cat ? "#C0392B" : "#fff",
+                  background: selectedCategory === cat ? "#0c4a6e" : "#fff",
                   color: selectedCategory === cat ? "#fff" : "#555",
                   fontWeight: selectedCategory === cat ? 700 : 500 }}>
                 {cat === "All" ? "All" : (CATEGORY_ICONS[cat] || "") + " " + cat}
@@ -2307,7 +2308,7 @@ function AssignVendorPanel({ tx, token, onClose, onAssigned }) {
               </div>
               <button onClick={() => handleAssign(v)} disabled={assigning === v.id}
                 style={{ padding: "8px 14px", borderRadius: 8, border: "none",
-                  background: "#C0392B", color: "#fff", fontWeight: 700,
+                  background: "#0c4a6e", color: "#fff", fontWeight: 700,
                   fontSize: 13, cursor: "pointer", flexShrink: 0 }}>
                 {assigning === v.id ? "..." : "Assign"}
               </button>
@@ -2442,7 +2443,7 @@ function BrokerFilePanel({ txId, token }) {
               onClick={() => handleUploadClick(item.documentType)}
               disabled={uploadingType === item.documentType}
               style={{
-                background: "#C0392B", color: "#fff", border: "none",
+                background: "#0c4a6e", color: "#fff", border: "none",
                 borderRadius: 8, padding: "8px 14px", fontWeight: 700,
                 fontSize: 12, cursor: "pointer", whiteSpace: "nowrap"
               }}>
@@ -2586,11 +2587,11 @@ function ScheduleClosingModal({ tx, token, milestone, onClose, onDone }) {
 
         <div style={{ display: "flex", gap: 10, marginTop: 8, flexWrap: "wrap" }}>
           <button onClick={send} disabled={sending}
-            style={{ flex: "2 1 220px", padding: "12px 0", borderRadius: 9, border: "none", background: "#1E3A8A", color: "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer" }}>
+            style={{ flex: "2 1 220px", padding: "12px 0", borderRadius: 9, border: "none", background: "#0c4a6e", color: "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer" }}>
             {sending ? "Sending…" : `📨 Send to ${sideLabel} & Mark Complete`}
           </button>
           <button onClick={saveOnly} disabled={sending}
-            style={{ flex: "1 1 150px", padding: "12px 0", borderRadius: 9, border: "1.5px solid #1E3A8A", background: "#fff", color: "#1E3A8A", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
+            style={{ flex: "1 1 150px", padding: "12px 0", borderRadius: 9, border: "1.5px solid #0c4a6e", background: "#fff", color: "#0c4a6e", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
             Save without emailing
           </button>
           <button onClick={onClose} disabled={sending}
@@ -3033,7 +3034,7 @@ function MilestonesTab({ tx, token, onSummaryChange, coordinatorMode = false }) 
           </div>
         )}
         <button onClick={handleReset} disabled={resetting}
-          style={{ background: "#C0392B", color: "#fff", border: "none", borderRadius: 12,
+          style={{ background: "#0c4a6e", color: "#fff", border: "none", borderRadius: 12,
             padding: "14px 32px", fontWeight: 700, fontSize: 16, cursor: "pointer" }}>
           {resetting ? "Building…" : "🔄 Reset & Rebuild Checklist"}
         </button>
@@ -3240,8 +3241,8 @@ function MilestonesTab({ tx, token, onSummaryChange, coordinatorMode = false }) 
                       </select>
                     )}
                     <button onClick={() => handleUploadClick(m.id)} disabled={uploadingFor === m.id}
-                      style={{ flex: "1 1 160px", padding: "10px 0", borderRadius: 8, border: "1.5px solid #C0392B",
-                        background: "#fff", color: "#C0392B", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
+                      style={{ flex: "1 1 160px", padding: "10px 0", borderRadius: 8, border: "1.5px solid #0c4a6e",
+                        background: "#fff", color: "#0c4a6e", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
                       {uploadingFor === m.id ? "Uploading..." : "📎 Upload Missing Document"}
                     </button>
                   </div>
@@ -3269,7 +3270,7 @@ function MilestonesTab({ tx, token, onSummaryChange, coordinatorMode = false }) 
                   <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap", alignItems: "center" }}>
                     <button onClick={() => setClosingModalFor(m)}
                       style={{ flex: "2 1 240px", padding: "11px 0", borderRadius: 8, border: "none",
-                        background: "#1E3A8A", color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
+                        background: "#0c4a6e", color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
                       🗓️ Set Closing Date & Notify Client
                     </button>
                     <div style={{ flex: "1 1 100%", fontSize: 11, color: "#555", marginTop: 2 }}>
@@ -3429,7 +3430,7 @@ function MilestonesTab({ tx, token, onSummaryChange, coordinatorMode = false }) 
                 Cancel
               </button>
               <button onClick={handleWaive} disabled={waiving || !waiveReason || !waiveConfirm}
-                style={{ flex: 2, padding: "11px 0", borderRadius: 8, border: "none", background: (waiving || !waiveReason || !waiveConfirm) ? "#D1A878" : "#92400E", color: "#fff", fontWeight: 700, fontSize: 14, cursor: (waiving || !waiveReason || !waiveConfirm) ? "not-allowed" : "pointer" }}>
+                style={{ flex: 2, padding: "11px 0", borderRadius: 8, border: "none", background: (waiving || !waiveReason || !waiveConfirm) ? "#9CA3AF" : "#0c4a6e", color: "#fff", fontWeight: 700, fontSize: 14, cursor: (waiving || !waiveReason || !waiveConfirm) ? "not-allowed" : "pointer" }}>
                 {waiving ? "Waiving..." : "⚠️ Waive This Milestone"}
               </button>
             </div>
@@ -3535,7 +3536,7 @@ function BuyerIntakeChecklist({ tx, token, onContactLogged }) {
                   </div>
                   {!isDone && <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 6, lineHeight: 1.5 }}><strong style={{ color: "#92400e" }}>Why:</strong> {step.why}</div>}
                   {!isDone && <div style={{ fontSize: 13, color: "#1a2332", marginBottom: 10, background: "#f9fafb", padding: "6px 10px", borderRadius: 6 }}>📌 {step.action}</div>}
-                  <button onClick={() => toggleStep(step.num)} disabled={isUpdating} style={{ background: isDone ? "white" : "#1e8449", color: isDone ? "#6b7280" : "white", border: isDone ? "1px solid #d1d5db" : "none", borderRadius: 6, padding: "6px 14px", fontSize: 12, fontWeight: 600, cursor: isUpdating ? "wait" : "pointer", fontFamily: "inherit", opacity: isUpdating ? 0.7 : 1 }}>
+                  <button onClick={() => toggleStep(step.num)} disabled={isUpdating} style={{ background: isDone ? "white" : "#0c4a6e", color: isDone ? "#6b7280" : "white", border: isDone ? "1px solid #d1d5db" : "none", borderRadius: 6, padding: "6px 14px", fontSize: 12, fontWeight: 600, cursor: isUpdating ? "wait" : "pointer", fontFamily: "inherit", opacity: isUpdating ? 0.7 : 1 }}>
                     {isUpdating ? "..." : (isDone ? "↺ Undo" : "✓ Mark Complete")}
                   </button>
                 </div>
@@ -3688,7 +3689,7 @@ function ContractReviewChecklist({ tx, token, onCleared, setActiveTab, openEditT
                   {!isDone && step.isPartiesStep && (
                     <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                       <button onClick={(e) => { e.stopPropagation(); step.onCta(); }}
-                        style={{ background: "#2563eb", color: "white", border: "none", borderRadius: 6, padding: "8px 14px", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", alignSelf: "flex-start" }}>
+                        style={{ background: "#0c4a6e", color: "white", border: "none", borderRadius: 6, padding: "8px 14px", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", alignSelf: "flex-start" }}>
                         {step.cta} →
                       </button>
 
@@ -3719,11 +3720,11 @@ function ContractReviewChecklist({ tx, token, onCleared, setActiveTab, openEditT
                   {!isDone && !step.isPartiesStep && (
                     <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                       <button onClick={(e) => { e.stopPropagation(); step.onCta(); }}
-                        style={{ background: "#2563eb", color: "white", border: "none", borderRadius: 6, padding: "6px 14px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
+                        style={{ background: "#0c4a6e", color: "white", border: "none", borderRadius: 6, padding: "6px 14px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
                         {step.cta} →
                       </button>
                       <button onClick={() => toggleStep(step.num)} disabled={isUpdating}
-                        style={{ background: "#1e8449", color: "white", border: "none", borderRadius: 6, padding: "6px 14px", fontSize: 12, fontWeight: 600, cursor: isUpdating ? "wait" : "pointer", fontFamily: "inherit", opacity: isUpdating ? 0.7 : 1 }}>
+                        style={{ background: "#0c4a6e", color: "white", border: "none", borderRadius: 6, padding: "6px 14px", fontSize: 12, fontWeight: 600, cursor: isUpdating ? "wait" : "pointer", fontFamily: "inherit", opacity: isUpdating ? 0.7 : 1 }}>
                         {isUpdating ? "..." : "✓ Mark Verified"}
                       </button>
                     </div>
@@ -3843,7 +3844,7 @@ function AssignAgentModal({ tx, token, onClose, onAssigned, currentUser }) {
               Cancel
             </button>
             <button onClick={handleAssign} disabled={saving || !selectedAgentId}
-              style={{ flex: 2, padding: 13, borderRadius: 10, border: "none", background: selectedAgentId ? "#f59e0b" : "#d1d5db", color: "#fff", fontWeight: 700, fontSize: 14, cursor: saving || !selectedAgentId ? "not-allowed" : "pointer", fontFamily: "inherit" }}>
+              style={{ flex: 2, padding: 13, borderRadius: 10, border: "none", background: selectedAgentId ? "#0c4a6e" : "#d1d5db", color: "#fff", fontWeight: 700, fontSize: 14, cursor: saving || !selectedAgentId ? "not-allowed" : "pointer", fontFamily: "inherit" }}>
               {saving ? "Assigning…" : "👤 Assign Agent & Notify"}
             </button>
           </div>
@@ -4350,7 +4351,7 @@ export function WelcomeEmailPreview({ txId, onClose, onlyPartyId = null }) {
             <div style={{ fontSize: 12, color: COLORS.muted }}>Review each email, then Send. Nothing is sent until you click Send.</div>
           </div>
           <div style={{ display: "flex", gap: 8 }}>
-            {previews.length > 0 && <button onClick={sendAll} disabled={busy || commLocked} title={commLocked ? "Enter the commission first" : undefined} style={{ background: commLocked ? "#9CA3AF" : "#1E8449", color: "#fff", border: "none", borderRadius: 8, padding: "9px 16px", fontSize: 13, fontWeight: 700, cursor: commLocked ? "not-allowed" : "pointer", fontFamily: "inherit" }}>{commLocked ? "🔒 Send All" : "Send All"}</button>}
+            {previews.length > 0 && <button onClick={sendAll} disabled={busy || commLocked} title={commLocked ? "Enter the commission first" : undefined} style={{ background: commLocked ? "#9CA3AF" : "#0c4a6e", color: "#fff", border: "none", borderRadius: 8, padding: "9px 16px", fontSize: 13, fontWeight: 700, cursor: commLocked ? "not-allowed" : "pointer", fontFamily: "inherit" }}>{commLocked ? "🔒 Send All" : "Send All"}</button>}
             <button onClick={onClose} style={{ background: "#fff", color: COLORS.text, border: "1px solid " + COLORS.border, borderRadius: 8, padding: "9px 16px", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>{Object.keys(sentIds).length > 0 ? "Done" : "Cancel — send later"}</button>
           </div>
         </div>
@@ -4375,7 +4376,7 @@ export function WelcomeEmailPreview({ txId, onClose, onlyPartyId = null }) {
               </label>
             )}
             <button onClick={saveCommission} disabled={savingComm}
-              style={{ background: "#991B1B", color: "#fff", border: "none", borderRadius: 8, padding: "9px 16px", fontSize: 13, fontWeight: 700, cursor: savingComm ? "wait" : "pointer", fontFamily: "inherit" }}>
+              style={{ background: "#0c4a6e", color: "#fff", border: "none", borderRadius: 8, padding: "9px 16px", fontSize: 13, fontWeight: 700, cursor: savingComm ? "wait" : "pointer", fontFamily: "inherit" }}>
               {savingComm ? "Saving…" : "Save & unlock"}
             </button>
           </div>
@@ -4411,7 +4412,7 @@ export function WelcomeEmailPreview({ txId, onClose, onlyPartyId = null }) {
             <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
               <div style={{ padding: "10px 16px", borderBottom: "1px solid " + COLORS.border, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
                 <div style={{ fontSize: 13, color: COLORS.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}><strong>To:</strong> {cur?.email} &nbsp; <strong>Subj:</strong> {cur?.subject}</div>
-                <button onClick={() => sendOne(cur)} disabled={busy || commLocked || sentIds[cur?.partyId]} title={commLocked ? "Enter the commission first" : undefined} style={{ background: sentIds[cur?.partyId] || commLocked ? "#9CA3AF" : "#C0392B", color: "#fff", border: "none", borderRadius: 8, padding: "8px 18px", fontSize: 13, fontWeight: 700, cursor: sentIds[cur?.partyId] || commLocked ? "default" : "pointer", fontFamily: "inherit", flexShrink: 0 }}>{sentIds[cur?.partyId] ? "✓ Sent" : commLocked ? "🔒 Send" : "Send"}</button>
+                <button onClick={() => sendOne(cur)} disabled={busy || commLocked || sentIds[cur?.partyId]} title={commLocked ? "Enter the commission first" : undefined} style={{ background: sentIds[cur?.partyId] || commLocked ? "#9CA3AF" : "#0c4a6e", color: "#fff", border: "none", borderRadius: 8, padding: "8px 18px", fontSize: 13, fontWeight: 700, cursor: sentIds[cur?.partyId] || commLocked ? "default" : "pointer", fontFamily: "inherit", flexShrink: 0 }}>{sentIds[cur?.partyId] ? "✓ Sent" : commLocked ? "🔒 Send" : "Send"}</button>
               </div>
               {/* attachments for this recipient — click name to preview, X to remove */}
               <div style={{ padding: "8px 16px", borderBottom: "1px solid " + COLORS.border, background: "#F9FAFB", display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
@@ -4444,7 +4445,7 @@ export function WelcomeEmailPreview({ txId, onClose, onlyPartyId = null }) {
                       {removed.map((a) => (
                         <span key={a.id} style={{ fontSize: 12, color: COLORS.muted, background: "#fff", border: "1px dashed " + COLORS.border, borderRadius: 6, padding: "3px 8px", textDecoration: "line-through", display: "inline-flex", alignItems: "center", gap: 6 }}>
                           {a.name}
-                          <button onClick={() => restoreAttachment(a.id)} title="Add back" style={{ background: "none", border: "none", color: "#1E8449", cursor: "pointer", fontSize: 11, fontWeight: 700, textDecoration: "none" }}>undo</button>
+                          <button onClick={() => restoreAttachment(a.id)} title="Add back" style={{ background: "none", border: "none", color: "#0c4a6e", cursor: "pointer", fontSize: 11, fontWeight: 700, textDecoration: "none" }}>undo</button>
                         </span>
                       ))}
                     </>
@@ -4453,7 +4454,7 @@ export function WelcomeEmailPreview({ txId, onClose, onlyPartyId = null }) {
                 <input ref={fileRef} type="file" style={{ display: "none" }} onChange={e => attachFile(e.target.files && e.target.files[0])} />
                 <div style={{ marginLeft: "auto", display: "flex", gap: 6 }}>
                   <button onClick={() => { setShowDocPicker(true); loadDealDocs(); }} disabled={attaching} style={{ background: "#fff", color: "#1E8449", border: "1px solid #1E8449", borderRadius: 6, padding: "5px 12px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>📁 From this deal</button>
-                  <button onClick={() => fileRef.current && fileRef.current.click()} disabled={attaching} style={{ background: "#fff", color: "#1E8449", border: "1px solid #1E8449", borderRadius: 6, padding: "5px 12px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>{attaching ? "Attaching…" : "📤 Upload"}</button>
+                  <button onClick={() => fileRef.current && fileRef.current.click()} disabled={attaching} style={{ background: "#fff", color: "#0c4a6e", border: "1px solid #0c4a6e", borderRadius: 6, padding: "5px 12px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>{attaching ? "Attaching…" : "📤 Upload"}</button>
                 </div>
               </div>
               {showDocPicker && (
@@ -4473,7 +4474,7 @@ export function WelcomeEmailPreview({ txId, onClose, onlyPartyId = null }) {
                           <button disabled={attaching} onClick={() => attachExisting(d.id)} title="Send this INSTEAD of the current contract file"
                             style={{ background: "#fff", color: COLORS.muted, border: "1px solid " + COLORS.border, borderRadius: 6, padding: "4px 8px", fontSize: 11, fontWeight: 600, cursor: attaching ? "default" : "pointer", fontFamily: "inherit" }}>Use as the contract</button>
                           <button disabled={attaching || !!extraDocs[d.id]} onClick={() => addExtra(d.id, d.name, d.document_type)} title="Add this file to the emails (keeps the others)"
-                            style={{ background: extraDocs[d.id] ? "#E5E7EB" : "#1E8449", color: extraDocs[d.id] ? COLORS.muted : "#fff", border: "none", borderRadius: 6, padding: "4px 10px", fontSize: 11.5, fontWeight: 700, cursor: attaching || extraDocs[d.id] ? "default" : "pointer", fontFamily: "inherit" }}>{extraDocs[d.id] ? "✓ Added" : "+ Add"}</button>
+                            style={{ background: extraDocs[d.id] ? "#E5E7EB" : "#0c4a6e", color: extraDocs[d.id] ? COLORS.muted : "#fff", border: "none", borderRadius: 6, padding: "4px 10px", fontSize: 11.5, fontWeight: 700, cursor: attaching || extraDocs[d.id] ? "default" : "pointer", fontFamily: "inherit" }}>{extraDocs[d.id] ? "✓ Added" : "+ Add"}</button>
                         </span>
                       </div>
                     ))}
@@ -4671,7 +4672,7 @@ function ListingOffers({ txId, txStatus, txAddress, refreshKey, onReview, onRece
           <span style={{ fontSize: 13, color: COLORS.muted }}>No pending offers on this listing yet. When a buyer's agent sends one, tap <strong>Receive Offer</strong> to log it here — then counter, or send it to your seller to sign. <em>(Writing an offer for a buyer you represent? Do it from that buyer's deal. Working both sides of this sale? Log the buyer's offer here with Receive Offer.)</em>{" "}
             <button onClick={() => setHowOpen(h => !h)} style={{ background: "none", border: "none", color: "#0c4a6e", textDecoration: "underline", cursor: "pointer", fontSize: 12.5, padding: 0, fontFamily: "inherit" }}>{howOpen ? "Hide" : "How offers & counter-offers work"}</button>
           </span>
-          <button onClick={onReceiveOffer} style={{ background: "#1E8449", border: "none", color: "#fff", borderRadius: 6, padding: "7px 14px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>📥 Receive Offer</button>
+          <button onClick={onReceiveOffer} style={{ background: "#0c4a6e", border: "none", color: "#fff", borderRadius: 6, padding: "7px 14px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>📥 Receive Offer</button>
         </div>
         {howOpen && howBlock}
         {modals}
@@ -4691,8 +4692,8 @@ function ListingOffers({ txId, txStatus, txAddress, refreshKey, onReview, onRece
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6, gap: 8, flexWrap: "wrap" }}>
         <div style={{ fontSize: 14, fontWeight: 800, color: "#92400E" }}>📥 Pending Offers ({offers.length})</div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          <button onClick={shareWithSellers} disabled={sharing} style={{ background: "#fff", border: "1px solid #1E8449", color: "#1E8449", borderRadius: 6, padding: "6px 12px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>{sharing ? "Creating…" : "🔗 Share with Sellers"}</button>
-          <button onClick={onReceiveOffer} style={{ background: "#1E8449", border: "none", color: "#fff", borderRadius: 6, padding: "6px 12px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>+ Receive Another Offer</button>
+          <button onClick={shareWithSellers} disabled={sharing} style={{ background: "#fff", border: "1px solid #0c4a6e", color: "#0c4a6e", borderRadius: 6, padding: "6px 12px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>{sharing ? "Creating…" : "🔗 Share with Sellers"}</button>
+          <button onClick={onReceiveOffer} style={{ background: "#0c4a6e", border: "none", color: "#fff", borderRadius: 6, padding: "6px 12px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>+ Receive Another Offer</button>
         </div>
       </div>
       <div style={{ fontSize: 12, color: "#7A5C00", marginBottom: 10 }}>
@@ -4938,7 +4939,7 @@ function MarketingLogPanel({ tx }) {
           Date done
           <input type="date" value={date} max={today()} onChange={e => setDate(e.target.value)} style={{ fontSize: 13, padding: "9px 10px", border: `1px solid ${COLORS.border}`, borderRadius: 8, fontFamily: "inherit" }} />
         </label>
-        <button onClick={() => add("action", custom)} disabled={adding || !custom.trim()} style={{ background: COLORS.navy, color: "#fff", border: "none", borderRadius: 8, padding: "10px 16px", fontSize: 13, fontWeight: 700, cursor: custom.trim() ? "pointer" : "default", opacity: custom.trim() ? 1 : 0.5, fontFamily: "inherit" }}>Add</button>
+        <button onClick={() => add("action", custom)} disabled={adding || !custom.trim()} style={{ background: "#0c4a6e", color: "#fff", border: "none", borderRadius: 8, padding: "10px 16px", fontSize: 13, fontWeight: 700, cursor: custom.trim() ? "pointer" : "default", opacity: custom.trim() ? 1 : 0.5, fontFamily: "inherit" }}>Add</button>
       </div>
       {loading ? <div style={{ fontSize: 13, color: COLORS.muted }}>Loading…</div>
         : items.length === 0 ? <div style={{ fontSize: 13, color: COLORS.muted }}>No marketing logged yet — tap a button above to add the first.</div>
@@ -5059,7 +5060,7 @@ function InboundRepliesPanel({ tx, coordinatorMode = false, onInboundRead }) {
       <div style={{ fontSize: 12, fontWeight: 800, color: "#166534", marginBottom: 4 }}>📧 THIS DEAL'S EMAIL ADDRESS</div>
       <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
         <code style={{ fontSize: 13, color: "#14532D", wordBreak: "break-all" }}>{captureAddr}</code>
-        <button onClick={copyCaptureAddr} style={{ fontSize: 12, padding: "4px 10px", borderRadius: 8, border: "1px solid #166534", background: "#fff", color: "#166534", fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>{copied ? "✅ Copied" : "Copy"}</button>
+        <button onClick={copyCaptureAddr} style={{ fontSize: 12, padding: "4px 10px", borderRadius: 8, border: "1px solid #0c4a6e", background: "#fff", color: "#0c4a6e", fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>{copied ? "✅ Copied" : "Copy"}</button>
       </div>
       <div style={{ fontSize: 12, color: "#166534", marginTop: 6, lineHeight: 1.5 }}>
         Give this to the title company, lender, or anyone on the deal — or CC it on any email about this property. Every message sent to it lands here automatically, so the AI always has the full picture.
@@ -5313,7 +5314,7 @@ function InboundRepliesPanel({ tx, coordinatorMode = false, onInboundRead }) {
                             </label>
                           );
                         })}
-                        <button onClick={() => setDocPicker(false)} style={{ marginTop: 14, width: "100%", background: COLORS.navy, color: "#fff", border: "none", borderRadius: 8, padding: "10px", fontWeight: 700, fontSize: 14, cursor: "pointer", fontFamily: "inherit" }}>Done</button>
+                        <button onClick={() => setDocPicker(false)} style={{ marginTop: 14, width: "100%", background: "#0c4a6e", color: "#fff", border: "none", borderRadius: 8, padding: "10px", fontWeight: 700, fontSize: 14, cursor: "pointer", fontFamily: "inherit" }}>Done</button>
                       </div>
                     </div>
                   )}
@@ -5321,7 +5322,7 @@ function InboundRepliesPanel({ tx, coordinatorMode = false, onInboundRead }) {
                   <div style={{ display: "flex", gap: 8 }}>
                     {(() => { const canReply = m.channel === "sms" ? !!m.from_phone : !!m.from_email; return (
                     <button onClick={() => sendReply(m)} disabled={sending || !replyText.trim() || !canReply}
-                      style={{ background: (sending || !replyText.trim() || !canReply) ? "#ccc" : "#15803D", color: "#fff", border: "none", borderRadius: 8, padding: "9px 16px", fontWeight: 700, fontSize: 14, cursor: "pointer", fontFamily: "inherit" }}>
+                      style={{ background: (sending || !replyText.trim() || !canReply) ? "#ccc" : "#0c4a6e", color: "#fff", border: "none", borderRadius: 8, padding: "9px 16px", fontWeight: 700, fontSize: 14, cursor: "pointer", fontFamily: "inherit" }}>
                       {sending ? "Sending…" : m.channel === "sms" ? "📱 Send text" : "📧 Send reply"}
                     </button> ); })()}
                     <button onClick={() => { setReplyTo(null); setReplyText(""); setAttach([]); }}
@@ -5434,7 +5435,7 @@ function DealDoctorSendModal({ tx, draft, onClose, onSent }) {
                 return (
                   <button key={key} disabled={!p.email} onClick={() => setPicked(s => ({ ...s, [key]: !s[key] }))}
                     title={p.email || "No email"}
-                    style={{ border: `1.5px solid ${on ? "#1A2B4A" : "#CBD5E1"}`, background: on ? "#EEF2F7" : "#fff", color: p.email ? "#1a2332" : "#94A3B8", borderRadius: 999, padding: "6px 12px", fontSize: 12.5, fontWeight: 600, cursor: p.email ? "pointer" : "not-allowed", fontFamily: "inherit" }}>
+                    style={{ border: `1.5px solid ${on ? "#0c4a6e" : "#CBD5E1"}`, background: on ? "#EEF2F7" : "#fff", color: p.email ? "#1a2332" : "#94A3B8", borderRadius: 999, padding: "6px 12px", fontSize: 12.5, fontWeight: 600, cursor: p.email ? "pointer" : "not-allowed", fontFamily: "inherit" }}>
                     {on ? "✓ " : ""}{p.name || p.email}{p.role ? ` · ${p.role}` : ""}
                   </button>
                 );
@@ -5466,7 +5467,7 @@ function DealDoctorSendModal({ tx, draft, onClose, onSent }) {
                   const on = !!attach[d.id];
                   return (
                     <button key={d.id} onClick={() => setAttach(a => ({ ...a, [d.id]: !a[d.id] }))}
-                      style={{ border: `1.5px solid ${on ? "#1E8449" : "#CBD5E1"}`, background: on ? "#EAFAF1" : "#fff", color: "#1a2332", borderRadius: 8, padding: "6px 10px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", maxWidth: 220, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      style={{ border: `1.5px solid ${on ? "#0c4a6e" : "#CBD5E1"}`, background: on ? "#E0F2FE" : "#fff", color: "#1a2332", borderRadius: 8, padding: "6px 10px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", maxWidth: 220, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                       {on ? "📎 " : ""}{d.name}
                     </button>
                   );
@@ -5487,7 +5488,7 @@ function DealDoctorSendModal({ tx, draft, onClose, onSent }) {
           <div style={{ display: "flex", justifyContent: "flex-end", gap: 10 }}>
             <button onClick={onClose} style={{ background: "#fff", border: "1px solid #CBD5E1", color: "#475569", borderRadius: 8, padding: "10px 18px", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>Cancel</button>
             <button onClick={send} disabled={sending}
-              style={{ background: sending ? "#9CA3AF" : "#1E8449", color: "#fff", border: "none", borderRadius: 8, padding: "10px 22px", fontSize: 14, fontWeight: 800, cursor: sending ? "default" : "pointer", fontFamily: "inherit" }}>
+              style={{ background: sending ? "#9CA3AF" : "#0c4a6e", color: "#fff", border: "none", borderRadius: 8, padding: "10px 22px", fontSize: 14, fontWeight: 800, cursor: sending ? "default" : "pointer", fontFamily: "inherit" }}>
               {sending ? "Sending…" : "✉️ Send"}
             </button>
           </div>
@@ -5577,7 +5578,7 @@ function DealDoctorPanel({ tx }) {
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
         <div style={{ fontWeight: 800, fontSize: 15, color: "#1A2B4A" }}>🩺 Transaction Check {dd && <span style={{ fontSize: 16 }}>{t.dot}</span>}</div>
         <button onClick={run} disabled={running}
-          style={{ background: running ? "#9CA3AF" : "#1A2B4A", color: "#fff", border: "none", borderRadius: 8, padding: "7px 14px", fontSize: 13, fontWeight: 700, cursor: running ? "default" : "pointer", fontFamily: "inherit" }}>
+          style={{ background: running ? "#9CA3AF" : "#0c4a6e", color: "#fff", border: "none", borderRadius: 8, padding: "7px 14px", fontSize: 13, fontWeight: 700, cursor: running ? "default" : "pointer", fontFamily: "inherit" }}>
           {running ? "Checking…" : dd ? "↻ Re-check" : snoozedFuture ? "↻ Check now" : "Run check-up"}
         </button>
       </div>
@@ -5608,7 +5609,7 @@ function DealDoctorPanel({ tx }) {
               <div style={{ fontSize: 13, color: "#334155", whiteSpace: "pre-wrap", lineHeight: 1.5 }}>{draft.body}</div>
               <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap", alignItems: "center" }}>
                 <button onClick={() => setSendOpen(true)}
-                  style={{ background: "#1E8449", color: "#fff", border: "none", borderRadius: 8, padding: "8px 16px", fontSize: 13, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>
+                  style={{ background: "#0c4a6e", color: "#fff", border: "none", borderRadius: 8, padding: "8px 16px", fontSize: 13, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>
                   ✉️ Send this
                 </button>
                 <button onClick={copyDraft}
@@ -5646,12 +5647,12 @@ function DealDoctorPanel({ tx }) {
                     } catch (e) { setErr(e.message); }
                   }}
                   title={`Marks "${dd.completeMilestoneName}" complete on this deal's timeline`}
-                  style={{ background: "#1E3A8A", color: "#fff", border: "none", borderRadius: 8, padding: "7px 14px", fontSize: 13, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>
+                  style={{ background: "#0c4a6e", color: "#fff", border: "none", borderRadius: 8, padding: "7px 14px", fontSize: 13, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>
                   ✅ Complete "{dd.completeMilestoneName}" on the timeline
                 </button>
               )}
               <button onClick={clear} title="I've handled this — clear it. Tonight's check-up will flag anything still outstanding."
-                style={{ background: dd.completeMilestoneId ? "#fff" : "#1E8449", color: dd.completeMilestoneId ? "#475569" : "#fff", border: dd.completeMilestoneId ? "1px solid #CBD5E1" : "none", borderRadius: 8, padding: "7px 14px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                style={{ background: dd.completeMilestoneId ? "#fff" : "#0c4a6e", color: dd.completeMilestoneId ? "#475569" : "#fff", border: dd.completeMilestoneId ? "1px solid #CBD5E1" : "none", borderRadius: 8, padding: "7px 14px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
                 ✓ Mark handled
               </button>
               <button onClick={() => setSnoozeOpen(o => !o)} title="Set this aside for a bit — I'll keep it quiet, then bring it back."
@@ -5898,7 +5899,7 @@ function CoordinatorSendUpdate({ tx }) {
     setBusy(false);
   };
   const chanBtn = (v, label) => (
-    <button key={v} onClick={() => setChannel(v)} style={{ padding: "10px 16px", borderRadius: 10, border: "2px solid " + (channel === v ? "#0F2044" : "#D1D5DB"), background: channel === v ? "#0F2044" : "#fff", color: channel === v ? "#fff" : "#374151", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>{label}</button>
+    <button key={v} onClick={() => setChannel(v)} style={{ padding: "10px 16px", borderRadius: 10, border: "2px solid " + (channel === v ? "#0c4a6e" : "#D1D5DB"), background: channel === v ? "#0c4a6e" : "#fff", color: channel === v ? "#fff" : "#374151", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>{label}</button>
   );
   return (
     <div style={{ background: "#fff", border: `1px solid ${COLORS.border}`, borderRadius: 12, padding: 16 }}>
@@ -5920,7 +5921,7 @@ function CoordinatorSendUpdate({ tx }) {
       </div>
       {wantEmail && <input placeholder="Subject (for the email)" value={subject} onChange={e => setSubject(e.target.value)} style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: `1px solid ${COLORS.border}`, fontSize: 14, fontFamily: "inherit", boxSizing: "border-box", marginBottom: 8 }} />}
       <textarea placeholder="Your message…" value={message} onChange={e => setMessage(e.target.value)} rows={5} style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: `1px solid ${COLORS.border}`, fontSize: 14, fontFamily: "inherit", boxSizing: "border-box", marginBottom: 10, resize: "vertical" }} />
-      <button onClick={send} disabled={busy || !channel || !message.trim() || picked.length === 0} style={{ background: (busy || !channel || !message.trim() || picked.length === 0) ? "#ccc" : "#C0392B", color: "#fff", border: "none", borderRadius: 8, padding: "10px 16px", fontWeight: 700, fontSize: 14, cursor: "pointer", fontFamily: "inherit" }}>{busy ? "Sending…" : !channel ? "Pick Email or Text above" : channel === "sms" ? "Send text" : channel === "both" ? "Send text + email" : "Send email"}</button>
+      <button onClick={send} disabled={busy || !channel || !message.trim() || picked.length === 0} style={{ background: (busy || !channel || !message.trim() || picked.length === 0) ? "#ccc" : "#0c4a6e", color: "#fff", border: "none", borderRadius: 8, padding: "10px 16px", fontWeight: 700, fontSize: 14, cursor: "pointer", fontFamily: "inherit" }}>{busy ? "Sending…" : !channel ? "Pick Email or Text above" : channel === "sms" ? "Send text" : channel === "both" ? "Send text + email" : "Send email"}</button>
       {done && <div style={{ color: "#1E8449", fontSize: 14, marginTop: 10 }}>{done}</div>}
     </div>
   );
@@ -6069,7 +6070,7 @@ function LeaseDocsModal({ tx, onClose, onGenerated }) {
                    </div>
                  ))}
                  <button onClick={sendForSignatures} disabled={sending}
-                   style={{ width: "100%", marginTop: 6, background: sending ? "#94A3B8" : "#86198F", color: "#fff", border: "none", borderRadius: 8, padding: "11px", fontSize: 14, fontWeight: 800, cursor: sending ? "default" : "pointer", fontFamily: "inherit" }}>
+                   style={{ width: "100%", marginTop: 6, background: sending ? "#94A3B8" : "#0c4a6e", color: "#fff", border: "none", borderRadius: 8, padding: "11px", fontSize: 14, fontWeight: 800, cursor: sending ? "default" : "pointer", fontFamily: "inherit" }}>
                    {sending ? "Sending links…" : "Send signing links ✍️"}
                  </button>
                </div>
@@ -6077,7 +6078,7 @@ function LeaseDocsModal({ tx, onClose, onGenerated }) {
                <div style={{ fontSize: 13, color: COLORS.muted, marginBottom: 16 }}>They're saved to the <strong>Documents</strong> tab, ready to review and send for signature.</div>
              )}
              {error && <div style={{ background: "#FEF2F2", border: "1px solid #FCA5A5", borderRadius: 8, padding: 10, fontSize: 13, color: "#7F1D1D", marginBottom: 12 }}>⚠️ {error}</div>}
-             <button onClick={onGenerated} style={{ width: "100%", background: COLORS.navy, color: "#fff", border: "none", borderRadius: 8, padding: "12px", fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>Open Documents →</button>
+             <button onClick={onGenerated} style={{ width: "100%", background: "#0c4a6e", color: "#fff", border: "none", borderRadius: 8, padding: "12px", fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>Open Documents →</button>
              {adjustDoc && signPack && (
                <Suspense fallback={null}>
                  <AdjustSpotsModal doc={adjustDoc} headers={{ Authorization: "Bearer " + tok }}
@@ -6123,7 +6124,7 @@ function LeaseDocsModal({ tx, onClose, onGenerated }) {
                </div>
              ))}
              {error && <div style={{ color: COLORS.danger, fontSize: 13, marginBottom: 12 }}>{error}</div>}
-             <button disabled={busy} onClick={generate} style={{ width: "100%", background: busy ? "#9CA3AF" : "#6D28D9", color: "#fff", border: "none", borderRadius: 8, padding: "12px", fontSize: 15, fontWeight: 700, cursor: busy ? "default" : "pointer", fontFamily: "inherit" }}>{busy ? "Generating…" : "Generate & Save to Documents"}</button>
+             <button disabled={busy} onClick={generate} style={{ width: "100%", background: busy ? "#9CA3AF" : "#0c4a6e", color: "#fff", border: "none", borderRadius: 8, padding: "12px", fontSize: 15, fontWeight: 700, cursor: busy ? "default" : "pointer", fontFamily: "inherit" }}>{busy ? "Generating…" : "Generate & Save to Documents"}</button>
            </div>
          )}
       </div>
@@ -6322,12 +6323,12 @@ function FallThroughModal({ tx, onClose, onDone }) {
                 {emailState === "failed" && <div style={{ fontSize: 12, color: "#B91C1C", marginTop: 4 }}>Couldn't send — try again.</div>}
                 <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
                   <button onClick={() => setDraft(null)} style={{ flex: 1, padding: "9px 10px", borderRadius: 8, border: "1px solid #D1D5DB", background: "#fff", fontWeight: 700, fontSize: 12.5, cursor: "pointer", fontFamily: "inherit" }}>Skip</button>
-                  <button onClick={sendDraft} disabled={emailState === "sending"} style={{ flex: 2, padding: "9px 10px", borderRadius: 8, border: "none", background: "#1E8449", color: "#fff", fontWeight: 800, fontSize: 12.5, cursor: "pointer", fontFamily: "inherit" }}>{emailState === "sending" ? "Sending…" : "✉️ Send to " + (draft.toName || "client").split(" ")[0]}</button>
+                  <button onClick={sendDraft} disabled={emailState === "sending"} style={{ flex: 2, padding: "9px 10px", borderRadius: 8, border: "none", background: "#0c4a6e", color: "#fff", fontWeight: 800, fontSize: 12.5, cursor: "pointer", fontFamily: "inherit" }}>{emailState === "sending" ? "Sending…" : "✉️ Send to " + (draft.toName || "client").split(" ")[0]}</button>
                 </div>
               </div>
             )}
             {emailState === "sent" && <div style={{ marginTop: 12, background: "#F0FDF4", border: "1px solid #BBF7D0", borderRadius: 10, padding: 10, fontSize: 13, fontWeight: 700, color: "#166534" }}>✓ Email sent.</div>}
-            <button onClick={onClose} style={{ marginTop: 14, width: "100%", padding: "11px 10px", borderRadius: 9, border: "none", background: "#1A5276", color: "#fff", fontWeight: 800, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>Done</button>
+            <button onClick={onClose} style={{ marginTop: 14, width: "100%", padding: "11px 10px", borderRadius: 9, border: "none", background: "#0c4a6e", color: "#fff", fontWeight: 800, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>Done</button>
           </>
         )}
       </div>
@@ -6389,7 +6390,7 @@ function PastContractsModal({ tx, onClose }) {
             {restoreState === "done" ? (
               <div style={{ marginTop: 8, fontSize: 13, fontWeight: 700, color: "#166534" }}>✓ Restored {restoredCount} checkmark(s). Reopen the Timeline tab to see them.</div>
             ) : (
-              <button onClick={restore} disabled={restoreState === "working"} style={{ marginTop: 8, padding: "9px 12px", borderRadius: 8, border: "none", background: "#0369A1", color: "#fff", fontWeight: 700, fontSize: 12.5, cursor: "pointer", fontFamily: "inherit" }}>
+              <button onClick={restore} disabled={restoreState === "working"} style={{ marginTop: 8, padding: "9px 12px", borderRadius: 8, border: "none", background: "#0c4a6e", color: "#fff", fontWeight: 700, fontSize: 12.5, cursor: "pointer", fontFamily: "inherit" }}>
                 {restoreState === "working" ? "Restoring…" : "↩ Restore pre-contract checkmarks"}
               </button>
             )}
@@ -7093,7 +7094,7 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
                           onUpdate({ ...tx, leadConverted: true, needsFirstContact: false });
                         } catch { alert("Could not confirm — please try again."); }
                       }}
-                      style={{ background: "#B7860B", color: "white", border: "none", borderRadius: 8, padding: "10px 16px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>
+                      style={{ background: "#0c4a6e", color: "white", border: "none", borderRadius: 8, padding: "10px 16px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>
                       ✓ Confirm Lead
                     </button>
                     <button
@@ -7155,7 +7156,7 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
             {!isGuest && ["Under Contract", "Inspection", "Appraisal", "Clear to Close", "Closed"].includes(tx.status) && (
               <div style={{ background: "#fff", border: `1px solid ${COLORS.border}`, borderRadius: 12, padding: 16, marginBottom: 20, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
                 <div style={{ fontSize: 13, color: COLORS.muted }}>Send the welcome &amp; intro emails to all parties — you can preview each before it goes out.</div>
-                <button onClick={() => setShowEmailPreview(true)} style={{ background: "#1E8449", color: "#fff", border: "none", borderRadius: 8, padding: "9px 16px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>✉️ Preview &amp; Send Welcome Emails</button>
+                <button onClick={() => setShowEmailPreview(true)} style={{ background: "#0c4a6e", color: "#fff", border: "none", borderRadius: 8, padding: "9px 16px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>✉️ Preview &amp; Send Welcome Emails</button>
               </div>
             )}
             {(tx.transaction_type || tx.type) && /buyer|dual/i.test(tx.transaction_type || tx.type) && (
@@ -7221,7 +7222,7 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
                       <strong>What happens after assigning:</strong> The assigned agent gets an email + SMS. The card turns red with the "Contact Within 24hrs" banner. The 5-step onboarding checklist activates.
                     </div>
                     <button onClick={() => setShowAssignAgent(true)}
-                      style={{ background: "#f59e0b", color: "white", border: "none", borderRadius: 8, padding: "10px 18px", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                      style={{ background: "#0c4a6e", color: "white", border: "none", borderRadius: 8, padding: "10px 18px", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
                       👤 Assign Agent & Notify
                     </button>
                   </div>
@@ -7558,7 +7559,7 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
                 <button key={id} onClick={() => setMsgSection(id)}
                   style={{ padding: "9px 14px", borderRadius: 10, border: "none", cursor: "pointer", fontFamily: "inherit",
                     fontWeight: 700, fontSize: 13,
-                    background: msgSection === id ? "#0F2044" : "#eef2f7", color: msgSection === id ? "#fff" : "#374151" }}>
+                    background: msgSection === id ? "#0c4a6e" : "#eef2f7", color: msgSection === id ? "#fff" : "#374151" }}>
                   {label}{n > 0 ? ` (${n})` : ""}
                 </button>
               ))}
@@ -7692,7 +7693,7 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
                       <button onClick={reopenReminder} title="Not actually done? Bring it back — it returns to Win The Day too" style={{ background: "#fff", border: `1px solid ${COLORS.border}`, color: COLORS.text, borderRadius: 6, padding: "6px 10px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>↩️ Reopen</button>
                     ) : (
                       <>
-                        <button onClick={markDone} title="Mark done — stays here for the record, stops all nagging" style={{ background: "#1E8449", border: "none", color: "#fff", borderRadius: 6, padding: "6px 10px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>✓ Done</button>
+                        <button onClick={markDone} title="Mark done — stays here for the record, stops all nagging" style={{ background: "#0c4a6e", border: "none", color: "#fff", borderRadius: 6, padding: "6px 10px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>✓ Done</button>
                         <button onClick={bumpToTomorrow} title="Snooze 1 day — reappears tomorrow" style={{ background: "#fff", border: `1px solid ${COLORS.border}`, color: COLORS.muted, borderRadius: 6, padding: "6px 10px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>⏰ Not Today</button>
                       </>
                     )}
@@ -7762,7 +7763,7 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
             <div style={{ fontSize: 14, color: COLORS.muted, lineHeight: 1.6, marginBottom: 20 }}>
               You're viewing this transaction as an invited party. {paywallFeature} — along with your own pipeline, automated reminders, documents, and more — is part of a TransactPro subscription.
             </div>
-            <button onClick={() => setPaywallFeature(null)} style={{ background: "#C0392B", color: "#fff", border: "none", borderRadius: 10, padding: "12px 24px", fontWeight: 700, fontSize: 15, cursor: "pointer", fontFamily: "inherit" }}>Subscribe to unlock</button>
+            <button onClick={() => setPaywallFeature(null)} style={{ background: "#0c4a6e", color: "#fff", border: "none", borderRadius: 10, padding: "12px 24px", fontWeight: 700, fontSize: 15, cursor: "pointer", fontFamily: "inherit" }}>Subscribe to unlock</button>
             <div style={{ marginTop: 12 }}><button onClick={() => setPaywallFeature(null)} style={{ background: "none", border: "none", color: COLORS.muted, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>Maybe later</button></div>
           </div>
         </div>
@@ -7977,7 +7978,7 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
                     <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                       {["7", "10", "15", "custom"].map(d => (
                         <button key={d} type="button" onClick={() => setStatusChangeModal(m => ({ ...m, form: { ...m.form, inspectionDays: d === "custom" ? "" : d } }))}
-                          style={{ padding: "8px 16px", borderRadius: 8, border: "1.5px solid " + (statusChangeModal.form.inspectionDays === d ? "#C0392B" : "#CCC"), background: statusChangeModal.form.inspectionDays === d ? "#FEF2F2" : "#fff", color: statusChangeModal.form.inspectionDays === d ? "#C0392B" : "#555", fontWeight: 600, cursor: "pointer", fontFamily: "inherit", fontSize: 13 }}>
+                          style={{ padding: "8px 16px", borderRadius: 8, border: "1.5px solid " + (statusChangeModal.form.inspectionDays === d ? "#0c4a6e" : "#CCC"), background: statusChangeModal.form.inspectionDays === d ? "#E0F2FE" : "#fff", color: statusChangeModal.form.inspectionDays === d ? "#0c4a6e" : "#555", fontWeight: 600, cursor: "pointer", fontFamily: "inherit", fontSize: 13 }}>
                           {d === "custom" ? "Custom" : d + " days"}
                         </button>
                       ))}
@@ -8782,25 +8783,25 @@ function NewTransactionForm({ onSave, onCancel, prefill = null, cmaId = null, on
               <div style={{ fontSize: 19, fontWeight: 800, color: "#0F2044", marginBottom: 14 }}>What kind of deal is this?</div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 8 }} data-keep-grid="">
                 <button type="button" onClick={() => f("type")("Listing (Seller)")}
-                  style={{ padding: "16px 12px", borderRadius: 12, border: /^listing/i.test(form.type) ? "2.5px solid #0F2044" : "1px solid #d1d5db", background: /^listing/i.test(form.type) ? "#F0F4FA" : "#fff", cursor: "pointer", fontFamily: "inherit", textAlign: "center" }}>
+                  style={{ padding: "16px 12px", borderRadius: 12, border: /^listing/i.test(form.type) ? "2.5px solid #0c4a6e" : "1px solid #d1d5db", background: /^listing/i.test(form.type) ? "#F0F4FA" : "#fff", cursor: "pointer", fontFamily: "inherit", textAlign: "center" }}>
                   <div style={{ fontSize: 26 }}>🏠</div>
                   <div style={{ fontWeight: 800, fontSize: 14.5, color: "#0F2044", marginTop: 4 }}>I'm SELLING it</div>
                   <div style={{ fontSize: 12, color: "#6B7280" }}>A listing — I represent the seller</div>
                 </button>
                 <button type="button" onClick={() => f("type")("Buyer Representation")}
-                  style={{ padding: "16px 12px", borderRadius: 12, border: /^buyer/i.test(form.type) ? "2.5px solid #0F2044" : "1px solid #d1d5db", background: /^buyer/i.test(form.type) ? "#F0F4FA" : "#fff", cursor: "pointer", fontFamily: "inherit", textAlign: "center" }}>
+                  style={{ padding: "16px 12px", borderRadius: 12, border: /^buyer/i.test(form.type) ? "2.5px solid #0c4a6e" : "1px solid #d1d5db", background: /^buyer/i.test(form.type) ? "#F0F4FA" : "#fff", cursor: "pointer", fontFamily: "inherit", textAlign: "center" }}>
                   <div style={{ fontSize: 26 }}>🏡</div>
                   <div style={{ fontWeight: 800, fontSize: 14.5, color: "#0F2044", marginTop: 4 }}>I'm helping someone BUY</div>
                   <div style={{ fontSize: 12, color: "#6B7280" }}>I represent the buyer</div>
                 </button>
                 <button type="button" onClick={() => f("type")("Lease — Landlord")}
-                  style={{ padding: "16px 12px", borderRadius: 12, border: form.type === "Lease — Landlord" ? "2.5px solid #6D28D9" : "1px solid #d1d5db", background: form.type === "Lease — Landlord" ? "#EDE9FE" : "#fff", cursor: "pointer", fontFamily: "inherit", textAlign: "center" }}>
+                  style={{ padding: "16px 12px", borderRadius: 12, border: form.type === "Lease — Landlord" ? "2.5px solid #0c4a6e" : "1px solid #d1d5db", background: form.type === "Lease — Landlord" ? "#E0F2FE" : "#fff", cursor: "pointer", fontFamily: "inherit", textAlign: "center" }}>
                   <div style={{ fontSize: 26 }}>🔑</div>
                   <div style={{ fontWeight: 800, fontSize: 14.5, color: "#0F2044", marginTop: 4 }}>I'm LEASING it out</div>
                   <div style={{ fontSize: 12, color: "#6B7280" }}>A rental listing — I represent the owner</div>
                 </button>
                 <button type="button" onClick={() => f("type")("Lease — Tenant")}
-                  style={{ padding: "16px 12px", borderRadius: 12, border: form.type === "Lease — Tenant" ? "2.5px solid #6D28D9" : "1px solid #d1d5db", background: form.type === "Lease — Tenant" ? "#EDE9FE" : "#fff", cursor: "pointer", fontFamily: "inherit", textAlign: "center" }}>
+                  style={{ padding: "16px 12px", borderRadius: 12, border: form.type === "Lease — Tenant" ? "2.5px solid #0c4a6e" : "1px solid #d1d5db", background: form.type === "Lease — Tenant" ? "#E0F2FE" : "#fff", cursor: "pointer", fontFamily: "inherit", textAlign: "center" }}>
                   <div style={{ fontSize: 26 }}>🧳</div>
                   <div style={{ fontWeight: 800, fontSize: 14.5, color: "#0F2044", marginTop: 4 }}>Helping someone RENT</div>
                   <div style={{ fontSize: 12, color: "#6B7280" }}>I represent the tenant</div>
@@ -8869,7 +8870,7 @@ function NewTransactionForm({ onSave, onCancel, prefill = null, cmaId = null, on
 
           {step === 2 && (
             <div>
-              <div style={{ fontSize: 19, fontWeight: 800, color: "#0F2044", marginBottom: 4 }}>Who is your client?</div>
+              <div style={{ fontSize: 19, fontWeight: 800, color: "#0c4a6e", marginBottom: 4 }}>Who is your client?</div>
               <div style={{ fontSize: 13, color: "#6B7280", marginBottom: 16 }}>Optional — you can add or change this later under the deal's People. Adding an email now lets the app send them updates automatically.</div>
               <label style={lblW}>📇 Pick from your Contacts</label>
               <input value={contactSearch} onChange={e => setContactSearch(e.target.value)} placeholder="Start typing a name, email or phone…" style={{ ...inputBig, marginBottom: contactHits.length ? 4 : 12 }} />
@@ -8941,13 +8942,13 @@ function NewTransactionForm({ onSave, onCancel, prefill = null, cmaId = null, on
             )}
             {step < 3 && (
               <button type="button" disabled={step === 1 && !step1Ok} onClick={() => setStep(v => v + 1)}
-                style={{ flex: 2, padding: "13px 0", borderRadius: 10, border: "none", background: (step === 1 && !step1Ok) ? "#9CA3AF" : "#0F2044", color: "#fff", fontWeight: 800, fontSize: 15, cursor: (step === 1 && !step1Ok) ? "not-allowed" : "pointer", fontFamily: "inherit" }}>
+                style={{ flex: 2, padding: "13px 0", borderRadius: 10, border: "none", background: (step === 1 && !step1Ok) ? "#9CA3AF" : "#0c4a6e", color: "#fff", fontWeight: 800, fontSize: 15, cursor: (step === 1 && !step1Ok) ? "not-allowed" : "pointer", fontFamily: "inherit" }}>
                 Next →
               </button>
             )}
             {step === 3 && (
               <button type="button" disabled={!step3Ok} onClick={handleSave}
-                style={{ flex: 2, padding: "13px 0", borderRadius: 10, border: "none", background: !step3Ok ? "#9CA3AF" : "#1E8449", color: "#fff", fontWeight: 800, fontSize: 15, cursor: !step3Ok ? "not-allowed" : "pointer", fontFamily: "inherit" }}>
+                style={{ flex: 2, padding: "13px 0", borderRadius: 10, border: "none", background: !step3Ok ? "#9CA3AF" : "#0c4a6e", color: "#fff", fontWeight: 800, fontSize: 15, cursor: !step3Ok ? "not-allowed" : "pointer", fontFamily: "inherit" }}>
                 ✓ Create Deal
               </button>
             )}
@@ -9130,7 +9131,7 @@ function AppHeader(props) {
       <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", justifyContent: "flex-end" }}>
         <button data-tour="home" onClick={onHome} style={btn(view === "home")} title="Your daily list — what needs attention today">🏆 Win The Day</button>
         <button data-tour="deals" onClick={onDeals} style={btn(view === "dashboard")} title="All your listings and buyers">📋 My Deals</button>
-        {!coordinatorMode && <button data-tour="new" onClick={onNew} style={{ ...btn(false), background: "#C0392B", border: "none" }}>➕ New Deal</button>}
+        {!coordinatorMode && <button data-tour="new" onClick={onNew} style={{ ...btn(false), background: "#fff", color: "#0c4a6e", border: "none", fontWeight: 800 }}>➕ New Deal</button>}
         <button data-tour="contacts" onClick={onOpenContacts} style={btn(false)}>📇 Contacts</button>
         <ToolsMenu
           coordinatorMode={coordinatorMode}
@@ -9865,7 +9866,7 @@ function Dashboard({ transactions, coordinatorMode = false, unreadCounts = {}, o
             </label>
             <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
               <button onClick={() => setShowSaveViewModal(false)} disabled={saveViewLoading} style={{ padding: "8px 16px", borderRadius: 8, border: `1px solid ${COLORS.border}`, background: "#fff", color: COLORS.text, fontSize: 13, fontWeight: 600, cursor: saveViewLoading ? "not-allowed" : "pointer", fontFamily: "inherit", opacity: saveViewLoading ? 0.5 : 1 }}>Cancel</button>
-              <button onClick={handleSaveView} disabled={saveViewLoading || !saveViewName.trim()} style={{ padding: "8px 16px", borderRadius: 8, border: "none", background: COLORS.navy, color: "#fff", fontSize: 13, fontWeight: 600, cursor: (saveViewLoading || !saveViewName.trim()) ? "not-allowed" : "pointer", fontFamily: "inherit", opacity: (saveViewLoading || !saveViewName.trim()) ? 0.5 : 1 }}>{saveViewLoading ? "Saving…" : "Save View"}</button>
+              <button onClick={handleSaveView} disabled={saveViewLoading || !saveViewName.trim()} style={{ padding: "8px 16px", borderRadius: 8, border: "none", background: "#0c4a6e", color: "#fff", fontSize: 13, fontWeight: 600, cursor: (saveViewLoading || !saveViewName.trim()) ? "not-allowed" : "pointer", fontFamily: "inherit", opacity: (saveViewLoading || !saveViewName.trim()) ? 0.5 : 1 }}>{saveViewLoading ? "Saving…" : "Save View"}</button>
             </div>
           </div>
         </div>
@@ -10032,7 +10033,7 @@ function Dashboard({ transactions, coordinatorMode = false, unreadCounts = {}, o
                 <div style={{ background: "#FEF9E7", color: "#8A5A00", padding: "8px 14px", fontSize: 12, fontWeight: 700, letterSpacing: 0.5, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, flexWrap: "wrap" }}>
                   <span>🌱 {isBuyerSideType(tx.type) ? "INQUIRY" : "LEAD"} — not yet confirmed</span>
                   <span style={{ display: "flex", gap: 6 }}>
-                    <button onClick={e => { e.stopPropagation(); onLeadAction(tx.id, "confirm"); }} style={{ background: "#B7860B", color: "#fff", border: "none", borderRadius: 6, padding: "4px 10px", fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>✓ Confirm</button>
+                    <button onClick={e => { e.stopPropagation(); onLeadAction(tx.id, "confirm"); }} style={{ background: "#0c4a6e", color: "#fff", border: "none", borderRadius: 6, padding: "4px 10px", fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>✓ Confirm</button>
                     <button onClick={e => { e.stopPropagation(); onLeadAction(tx.id, "cancel"); }} style={{ background: "#fff", color: "#8A5A00", border: "1px solid #C9A227", borderRadius: 6, padding: "4px 10px", fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>✕ Not Pursuing</button>
                   </span>
                 </div>
@@ -10195,7 +10196,7 @@ function Dashboard({ transactions, coordinatorMode = false, unreadCounts = {}, o
               <div style={{ fontSize: 18, fontWeight: 700, color: COLORS.navy, marginBottom: 6 }}>Nothing matches your search or filters</div>
               <div style={{ marginBottom: 14 }}>Your deals are still here — they're just hidden by the current filter.</div>
               <button onClick={() => { setSearch(""); setFilter("All"); clearAllFilters(); }}
-                style={{ padding: "11px 22px", background: COLORS.navy, color: "#fff", border: "none", borderRadius: 10, fontSize: 14, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>
+                style={{ padding: "11px 22px", background: "#0c4a6e", color: "#fff", border: "none", borderRadius: 10, fontSize: 14, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>
                 Show all my deals
               </button>
             </div>
@@ -10227,7 +10228,7 @@ function Dashboard({ transactions, coordinatorMode = false, unreadCounts = {}, o
               <div style={{ fontSize: 40, marginBottom: 12 }}>🏠</div>
               <div style={{ fontSize: 18, fontWeight: 700, color: COLORS.navy, marginBottom: 6 }}>No deals yet — let's start your first one</div>
               <div style={{ marginBottom: 14 }}>Tap <b>➕ New Deal</b> up top: the address, your client, the price — about a minute.</div>
-              {!coordinatorMode && <button onClick={onNew} style={{ padding: "11px 22px", background: "#C0392B", color: "#fff", border: "none", borderRadius: 10, fontSize: 14, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>➕ Start my first deal</button>}
+              {!coordinatorMode && <button onClick={onNew} style={{ padding: "11px 22px", background: "#0c4a6e", color: "#fff", border: "none", borderRadius: 10, fontSize: 14, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>➕ Start my first deal</button>}
             </div>
           )
         )}
@@ -11356,7 +11357,7 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
             <div style={{ fontSize: 14, color: "#667085", lineHeight: 1.6, marginBottom: 20 }}>
               You're on a free invited-party account. {paywallFeature} — plus your own transaction pipeline, contacts, expense tracking, reminders, intake links, and more — comes with a TransactPro subscription. Feel free to look around!
             </div>
-            <button onClick={() => setPaywallFeature(null)} style={{ background: "#C0392B", color: "#fff", border: "none", borderRadius: 10, padding: "12px 24px", fontWeight: 700, fontSize: 15, cursor: "pointer", fontFamily: "inherit" }}>Subscribe to unlock</button>
+            <button onClick={() => setPaywallFeature(null)} style={{ background: "#0c4a6e", color: "#fff", border: "none", borderRadius: 10, padding: "12px 24px", fontWeight: 700, fontSize: 15, cursor: "pointer", fontFamily: "inherit" }}>Subscribe to unlock</button>
             <div style={{ marginTop: 12 }}><button onClick={() => setPaywallFeature(null)} style={{ background: "none", border: "none", color: "#667085", fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>Maybe later</button></div>
           </div>
         </div>

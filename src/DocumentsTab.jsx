@@ -33,7 +33,7 @@ function DocsFirstTimeTip() {
         <b>Paperwork, handled — 1, 2, 3:</b> ① The <b>checklist below</b> tells you exactly which documents this deal still needs. ② <b>Upload</b> straight into a checklist slot (or use the general upload). ③ Need it signed? <b>✍️ Get signature</b> emails a private signing link and files the signed copy back here by itself.
       </div>
       <button onClick={() => { setHidden(true); try { localStorage.setItem("tp_tip_docs", "1"); } catch {} }}
-        style={{ background: "#1E40AF", color: "#fff", border: "none", borderRadius: 8, padding: "7px 14px", fontSize: 12, fontWeight: 800, cursor: "pointer", fontFamily: "inherit", flexShrink: 0 }}>
+        style={{ background: "#0c4a6e", color: "#fff", border: "none", borderRadius: 8, padding: "7px 14px", fontSize: 12, fontWeight: 800, cursor: "pointer", fontFamily: "inherit", flexShrink: 0 }}>
         Got it
       </button>
     </div>
@@ -509,7 +509,7 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
             <div key={d.id} style={{ display: "flex", alignItems: "center", gap: 6, justifyContent: "flex-end" }}>
               <span title={d.name} style={{ fontSize: 11, color: "#1E8449", fontWeight: 600, maxWidth: 150, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>📄 {d.name}</span>
               <button onClick={() => openPreview({ id: d.id, name: d.name, mime_type: d.mimeType })}
-                style={{ padding: "3px 8px", borderRadius: 6, border: "1px solid #A7E0BE", background: "#fff", color: "#1E8449", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>
+                style={{ padding: "3px 8px", borderRadius: 6, border: "1px solid #A7E0BE", background: "#fff", color: "#0c4a6e", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>
                 👁 View
               </button>
               <button onClick={() => unassignExisting(item.documentType, d.id, d.name, item.label)} disabled={!!slotUploading}
@@ -531,7 +531,7 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
               {docs.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
             </select>
           )}
-          <label style={{ padding: "5px 12px", background: "#C0392B", color: "#fff", borderRadius: 7,
+          <label style={{ padding: "5px 12px", background: "#0c4a6e", color: "#fff", borderRadius: 7,
             cursor: slotUploading ? "not-allowed" : "pointer", fontWeight: 600, fontSize: 12, opacity: slotUploading === item.documentType ? 0.6 : 1 }}>
             {slotUploading === item.documentType ? "Saving…" : "📎 Upload"}
             <input type="file" disabled={!!slotUploading} style={{ display: "none" }}
@@ -582,7 +582,7 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
             </div>
           </div>
           <button onClick={() => setShowPackage(true)}
-            style={{ background: "#C0392B", color: "#fff", border: "none", padding: "10px 18px", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap" }}>
+            style={{ background: "#0c4a6e", color: "#fff", border: "none", padding: "10px 18px", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap" }}>
             {hasPackageDocs ? "Regenerate / Resend" : "Prepare & Send Package"}
           </button>
         </div>
@@ -602,7 +602,7 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
             </div>
           </div>
           <button onClick={generateInspectionWaiver} disabled={waiverBusy}
-            style={{ background: "#B45309", color: "#fff", border: "none", padding: "10px 18px", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: waiverBusy ? "default" : "pointer", whiteSpace: "nowrap", opacity: waiverBusy ? 0.6 : 1 }}>
+            style={{ background: "#0c4a6e", color: "#fff", border: "none", padding: "10px 18px", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: waiverBusy ? "default" : "pointer", whiteSpace: "nowrap", opacity: waiverBusy ? 0.6 : 1 }}>
             {waiverBusy ? "Generating…" : "Generate Waiver"}
           </button>
         </div>
@@ -617,7 +617,7 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
               The standard non-binding first step on a commercial deal. Generate a ready-to-send draft from this deal's details — every clause is pre-written, just confirm the numbers.
             </div>
           </div>
-          <button onClick={() => setShowLOI(true)} style={{ background: "#0E7490", color: "#fff", border: "none",
+          <button onClick={() => setShowLOI(true)} style={{ background: "#0c4a6e", color: "#fff", border: "none",
             padding: "10px 18px", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap" }}>
             Create Letter of Intent
           </button>
@@ -764,7 +764,7 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
                   📅 <b>Contract on file.</b> Let AI read it and auto-fill this deal's key dates (inspection, financing, closing) and timeline.
                 </div>
                 <button onClick={() => readContractDates(c)} disabled={readingDates === c.id}
-                  style={{ padding: "8px 16px", borderRadius: 8, border: "1px solid #C9A84C", background: readingDates === c.id ? "#F5F5F5" : "#fff", cursor: readingDates === c.id ? "default" : "pointer", fontSize: 13, color: "#7A5C00", fontWeight: 700 }}>
+                  style={{ padding: "8px 16px", borderRadius: 8, border: "1px solid #0c4a6e", background: readingDates === c.id ? "#F5F5F5" : "#fff", cursor: readingDates === c.id ? "default" : "pointer", fontSize: 13, color: "#0c4a6e", fontWeight: 700 }}>
                   {readingDates === c.id ? "Reading…" : "📅 Read dates from contract"}
                 </button>
               </div>
@@ -1029,7 +1029,7 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
                   </a>
                 )}
                 <button onClick={() => setPreview(null)}
-                  style={{ padding: "6px 12px", borderRadius: 7, border: "none", background: "#C0392B", color: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
+                  style={{ padding: "6px 12px", borderRadius: 7, border: "1.5px solid #D1D5DB", background: "#fff", color: "#1F2937", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
                   Close ✕
                 </button>
               </div>
@@ -1144,7 +1144,7 @@ function ShareModal({ tx, doc, headers, onClose }) {
                 <div style={{ fontSize: 13, color: COLORS.danger, marginBottom: 6 }}>Couldn't send to: {done.failed.join(", ")}</div>
               )}
               <div style={{ fontSize: 13, color: COLORS.muted, marginBottom: 18 }}>Each person got their own email with the document attached, and it's now visible in their portal.</div>
-              <button onClick={onClose} style={{ background: COLORS.gold, color: "#fff", border: "none", padding: "10px 22px", borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: "pointer" }}>Done</button>
+              <button onClick={onClose} style={{ background: "#0c4a6e", color: "#fff", border: "none", padding: "10px 22px", borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: "pointer" }}>Done</button>
             </div>
           ) : (
             <>
@@ -1189,7 +1189,7 @@ function ShareModal({ tx, doc, headers, onClose }) {
               {error && <div style={{ color: COLORS.danger, fontSize: 13, marginBottom: 12 }}>{error}</div>}
               <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
                 <button onClick={onClose} disabled={busy} style={{ background: "#fff", color: COLORS.muted, border: "1px solid " + COLORS.border, padding: "10px 16px", borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: "pointer" }}>Cancel</button>
-                <button onClick={send} disabled={busy} style={{ background: COLORS.gold, color: "#fff", border: "none", padding: "10px 20px", borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: busy ? "default" : "pointer", opacity: busy ? 0.6 : 1 }}>
+                <button onClick={send} disabled={busy} style={{ background: "#0c4a6e", color: "#fff", border: "none", padding: "10px 20px", borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: busy ? "default" : "pointer", opacity: busy ? 0.6 : 1 }}>
                   {busy ? "Sending…" : `📤 Send${nRecipients > 1 ? ` to ${nRecipients} people` : ""}`}
                 </button>
               </div>
@@ -1475,7 +1475,7 @@ function LetterOfIntentModal({ tx, headers, onClose, onSaved }) {
 
   const tabBtn = (m, label) => (
     <button onClick={() => setMode(m)} style={{ flex: 1, padding: "9px 10px", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer",
-      background: mode === m ? "#0E7490" : "#E5F6F8", color: mode === m ? "#fff" : "#0E7490" }}>{label}</button>
+      background: mode === m ? "#0c4a6e" : "#E5F6F8", color: mode === m ? "#fff" : "#0c4a6e" }}>{label}</button>
   );
 
   return (
@@ -1592,10 +1592,10 @@ function LetterOfIntentModal({ tx, headers, onClose, onSaved }) {
         {/* Actions */}
         <div style={{ position: "sticky", bottom: 0, background: "#fff", borderTop: `1px solid ${COLORS.border}`, padding: "14px 22px", display: "flex", alignItems: "center", gap: 12, justifyContent: "flex-end", flexWrap: "wrap" }}>
           {error && <div style={{ color: COLORS.danger, fontSize: 13, marginRight: "auto" }}>{error}</div>}
-          <button onClick={handleDownload} disabled={busy} style={{ background: "#fff", color: "#0E7490", border: "1px solid #0E7490", padding: "10px 16px", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: busy ? "default" : "pointer", opacity: busy ? 0.6 : 1 }}>
+          <button onClick={handleDownload} disabled={busy} style={{ background: "#fff", color: "#0c4a6e", border: "1px solid #0c4a6e", padding: "10px 16px", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: busy ? "default" : "pointer", opacity: busy ? 0.6 : 1 }}>
             {busy ? "Working…" : "⬇ Download Word (.docx)"}
           </button>
-          <button onClick={handleSave} disabled={busy} style={{ background: "#0E7490", color: "#fff", border: "none", padding: "10px 18px", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: busy ? "default" : "pointer", opacity: busy ? 0.6 : 1 }}>
+          <button onClick={handleSave} disabled={busy} style={{ background: "#0c4a6e", color: "#fff", border: "none", padding: "10px 18px", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: busy ? "default" : "pointer", opacity: busy ? 0.6 : 1 }}>
             {busy ? "Saving…" : "Save Word to Documents"}
           </button>
         </div>
@@ -1681,7 +1681,7 @@ function AddendumModal({ tx, headers, onCreated, onClose }) {
               </div>
               {err && <div style={{ background: "#fee2e2", border: "1px solid #fca5a5", borderRadius: 8, padding: 10, fontSize: 13, color: "#7f1d1d", marginBottom: 12 }}>⚠️ {err}</div>}
               <button onClick={create} disabled={busy}
-                style={{ width: "100%", padding: "12px 0", background: busy ? "#94a3b8" : "#86198f", color: "#fff", border: "none", borderRadius: 10, fontSize: 15, fontWeight: 800, cursor: busy ? "default" : "pointer", fontFamily: "inherit" }}>
+                style={{ width: "100%", padding: "12px 0", background: busy ? "#94a3b8" : "#0c4a6e", color: "#fff", border: "none", borderRadius: 10, fontSize: 15, fontWeight: 800, cursor: busy ? "default" : "pointer", fontFamily: "inherit" }}>
                 {busy ? "Creating…" : "Create addendum →"}
               </button>
               <div style={{ fontSize: 11.5, color: "#64748b", marginTop: 8, textAlign: "center" }}>
@@ -1948,7 +1948,7 @@ export function DocSignModal({ tx, doc, allDocs = [], headers, onClose, initialR
                     </button>
                   )}
                   <button onClick={cancel} disabled={busy}
-                    style={{ padding: "8px 16px", background: "#fee2e2", color: "#7f1d1d", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                    style={{ padding: "8px 16px", background: "#fee2e2", color: "#0c4a6e", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
                     Cancel signing links
                   </button>
                   {(info?.signers || []).some(s => s.status === "signed") && (
@@ -2046,7 +2046,7 @@ export function DocSignModal({ tx, doc, allDocs = [], headers, onClose, initialR
               {/* Tap-to-place signature blocks */}
               <div style={{ margin: "6px 0 12px" }}>
                 <button onClick={() => setPlacing(p => !p)}
-                  style={{ padding: "8px 16px", background: placing ? "#86198f" : "#faf5ff", color: placing ? "#fff" : "#86198f", border: "1px solid #d8b4fe", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                  style={{ padding: "8px 16px", background: placing ? "#0c4a6e" : "#E0F2FE", color: placing ? "#fff" : "#0c4a6e", border: "1px solid #7DD3FC", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
                   📍 {placing ? "Hide pages" : "Place signature, initials, date & text blocks (optional)"}
                 </button>
                 {!placing && placements.length > 0 && (
@@ -2136,7 +2136,7 @@ export function DocSignModal({ tx, doc, allDocs = [], headers, onClose, initialR
               )}
 
               <button onClick={send} disabled={busy}
-                style={{ width: "100%", padding: "12px 0", background: busy ? "#94a3b8" : "#86198f", color: "#fff", border: "none", borderRadius: 10, fontSize: 15, fontWeight: 800, cursor: busy ? "default" : "pointer", fontFamily: "inherit", marginTop: 4 }}>
+                style={{ width: "100%", padding: "12px 0", background: busy ? "#94a3b8" : "#0c4a6e", color: "#fff", border: "none", borderRadius: 10, fontSize: 15, fontWeight: 800, cursor: busy ? "default" : "pointer", fontFamily: "inherit", marginTop: 4 }}>
                 {busy ? "Sending links…" : "Send signing link ✍️"}
               </button>
               <div style={{ fontSize: 11.5, color: "#64748b", marginTop: 8, textAlign: "center" }}>
@@ -2366,7 +2366,7 @@ function ListingPackageModal({ tx, headers, dealDocs = [], onClose, onDone }) {
                 <input ref={synopsisRef} type="file" accept=".pdf,.png,.jpg,.jpeg,.webp" style={{ display: "none" }}
                   onChange={e => { const file = e.target.files?.[0]; if (file) readSynopsis(file); e.target.value = ""; }} />
                 <button onClick={() => synopsisRef.current?.click()} disabled={reading}
-                  style={{ padding: "8px 16px", borderRadius: 8, border: "none", background: reading ? "#85929E" : "#1A5276", color: "#fff", fontWeight: 700, fontSize: 13, cursor: reading ? "wait" : "pointer", fontFamily: "inherit" }}>
+                  style={{ padding: "8px 16px", borderRadius: 8, border: "none", background: reading ? "#85929E" : "#0c4a6e", color: "#fff", fontWeight: 700, fontSize: 13, cursor: reading ? "wait" : "pointer", fontFamily: "inherit" }}>
                   {reading ? "Reading the sheet…" : "📎 Upload & auto-fill"}
                 </button>
                 {readNote && <div style={{ fontSize: 12.5, color: "#1E8449", fontWeight: 600, marginTop: 8 }}>{readNote}</div>}
@@ -2537,7 +2537,7 @@ function ListingPackageModal({ tx, headers, dealDocs = [], onClose, onDone }) {
               )}
 
               <button onClick={generate} disabled={busy}
-                style={{ width: "100%", padding: "13px 0", borderRadius: 10, border: "none", background: busy ? "#B3B6B7" : "#C0392B", color: "#fff", fontWeight: 800, fontSize: 15, cursor: busy ? "wait" : "pointer", fontFamily: "inherit", marginTop: 6 }}>
+                style={{ width: "100%", padding: "13px 0", borderRadius: 10, border: "none", background: busy ? "#B3B6B7" : "#0c4a6e", color: "#fff", fontWeight: 800, fontSize: 15, cursor: busy ? "wait" : "pointer", fontFamily: "inherit", marginTop: 6 }}>
                 {busy ? "Filling the official forms…" : "Generate package →"}
               </button>
             </>
@@ -2551,7 +2551,7 @@ function ListingPackageModal({ tx, headers, dealDocs = [], onClose, onDone }) {
               {gen.documents.map(d => (
                 <div key={d.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, padding: "10px 12px", border: "1px solid #EEE", borderRadius: 10, marginBottom: 8 }}>
                   <div style={{ fontSize: 13.5, fontWeight: 600, color: "#222" }}>📄 {d.name}</div>
-                  <button onClick={() => preview(d.id)} style={{ padding: "6px 14px", borderRadius: 8, border: "1px solid #C0392B", background: "#fff", color: "#C0392B", fontWeight: 700, fontSize: 12.5, cursor: "pointer", whiteSpace: "nowrap" }}>👀 Review PDF</button>
+                  <button onClick={() => preview(d.id)} style={{ padding: "6px 14px", borderRadius: 8, border: "1px solid #0c4a6e", background: "#fff", color: "#0c4a6e", fontWeight: 700, fontSize: 12.5, cursor: "pointer", whiteSpace: "nowrap" }}>👀 Review PDF</button>
                   <button onClick={() => setAdjustDoc(d)} title="Move, resize, remove, or add signature/initial spots on this document"
                     style={{ padding: "6px 14px", borderRadius: 8, border: "1px solid #334155", background: "#fff", color: "#334155", fontWeight: 700, fontSize: 12.5, cursor: "pointer", whiteSpace: "nowrap" }}>✏️ Adjust spots</button>
                 </div>
@@ -2592,7 +2592,7 @@ function ListingPackageModal({ tx, headers, dealDocs = [], onClose, onDone }) {
               </div>
               <div style={{ display: "flex", gap: 10 }}>
                 <button onClick={() => setStep("form")} disabled={busy} style={{ flex: 1, padding: "12px 0", borderRadius: 10, border: "1.5px solid #CCC", background: "#fff", color: "#555", fontWeight: 700, fontSize: 14, cursor: "pointer", fontFamily: "inherit" }}>← Previous step</button>
-                <button onClick={send} disabled={busy} style={{ flex: 2, padding: "12px 0", borderRadius: 10, border: "none", background: busy ? "#B3B6B7" : "#1E8449", color: "#fff", fontWeight: 800, fontSize: 15, cursor: busy ? "wait" : "pointer", fontFamily: "inherit" }}>
+                <button onClick={send} disabled={busy} style={{ flex: 2, padding: "12px 0", borderRadius: 10, border: "none", background: busy ? "#B3B6B7" : "#0c4a6e", color: "#fff", fontWeight: 800, fontSize: 15, cursor: busy ? "wait" : "pointer", fontFamily: "inherit" }}>
                   {busy ? "Sending…" : "✉️ Send for signature"}
                 </button>
               </div>
@@ -2606,7 +2606,7 @@ function ListingPackageModal({ tx, headers, dealDocs = [], onClose, onDone }) {
               <div style={{ fontSize: 13.5, color: "#555", lineHeight: 1.6, maxWidth: 440, margin: "0 auto 16px" }}>
                 Your seller(s) — and you — each got a private signing link by email. Track progress with the ⏳ badges under Documents. The moment everyone has signed, the signed copies file back here and your listing's launch steps (photos, sign, MLS) unlock automatically.
               </div>
-              <button onClick={onDone} style={{ padding: "11px 26px", borderRadius: 10, border: "none", background: "#C0392B", color: "#fff", fontWeight: 800, fontSize: 14, cursor: "pointer", fontFamily: "inherit" }}>Done</button>
+              <button onClick={onDone} style={{ padding: "11px 26px", borderRadius: 10, border: "none", background: "#0c4a6e", color: "#fff", fontWeight: 800, fontSize: 14, cursor: "pointer", fontFamily: "inherit" }}>Done</button>
             </div>
           )}
         </div>
@@ -2683,7 +2683,7 @@ function CombinePdfsModal({ tx, docs, headers, onClose, onDone }) {
           <input value={name} onChange={e => setName(e.target.value)} placeholder='Name for the combined file (e.g. "MLS attachments package")'
             style={{ width: "100%", padding: "9px 11px", borderRadius: 8, border: "1.5px solid #D5D8DC", fontSize: 13.5, fontFamily: "inherit", boxSizing: "border-box", marginBottom: 12 }} />
           <button onClick={combine} disabled={busy || picked.length < 2}
-            style={{ width: "100%", padding: "12px 0", borderRadius: 10, border: "none", background: busy || picked.length < 2 ? "#9CB4BC" : "#0E7490", color: "#fff", fontWeight: 800, fontSize: 14, cursor: busy ? "wait" : "pointer", fontFamily: "inherit" }}>
+            style={{ width: "100%", padding: "12px 0", borderRadius: 10, border: "none", background: busy || picked.length < 2 ? "#9CB4BC" : "#0c4a6e", color: "#fff", fontWeight: 800, fontSize: 14, cursor: busy ? "wait" : "pointer", fontFamily: "inherit" }}>
             {busy ? "Combining…" : `Combine ${picked.length || ""} PDF${picked.length === 1 ? "" : "s"}`}
           </button>
         </div>
@@ -2858,7 +2858,7 @@ export function AdjustSpotsModal({ doc, signerNames, initial, headers, onSave, o
           </div>
           <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
             <button onClick={() => { onSave(placements); onClose(); }}
-              style={{ flex: 2, padding: "12px 0", borderRadius: 10, border: "none", background: "#1E8449", color: "#fff", fontWeight: 800, fontSize: 14, cursor: "pointer", fontFamily: "inherit" }}>
+              style={{ flex: 2, padding: "12px 0", borderRadius: 10, border: "none", background: "#0c4a6e", color: "#fff", fontWeight: 800, fontSize: 14, cursor: "pointer", fontFamily: "inherit" }}>
               💾 Save these spots
             </button>
             <button onClick={onClose}

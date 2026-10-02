@@ -126,7 +126,7 @@ export default function PortalMagicLogin({ urlToken }) {
     {notice && <div style={{ background: "#FEF2F2", border: "1px solid #FECACA", color: "#991B1B",
       borderRadius: 8, padding: "10px 12px", fontSize: 13, marginBottom: 14, textAlign: "left" }}>{notice}</div>}
     <button onClick={submitPin} disabled={busy}
-      style={{ width: "100%", background: busy ? "#9CA3AF" : "#1E8449", color: "#fff", border: "none",
+      style={{ width: "100%", background: busy ? "#9CA3AF" : "#0c4a6e", color: "#fff", border: "none",
         fontWeight: 700, fontSize: 16, padding: "14px 0", borderRadius: 10, cursor: busy ? "default" : "pointer" }}>
       {busy ? "One moment…" : isSetup ? "Save my PIN & open portal" : "Open my portal"}
     </button>

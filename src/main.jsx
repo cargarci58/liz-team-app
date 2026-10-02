@@ -136,7 +136,7 @@ class ErrorBoundary extends Component {
           <div style={{ fontSize: 40 }}>😕</div>
           <div style={{ fontWeight: 700, fontSize: 18, color: '#0F2044' }}>Something went wrong</div>
           <div style={{ fontSize: 14, color: '#555', maxWidth: 420 }}>The page hit an unexpected error. Reloading usually fixes it.</div>
-          <button onClick={() => window.location.reload()} style={{ padding: '12px 28px', background: '#C0392B', color: '#fff', border: 'none', borderRadius: 10, fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>Reload</button>
+          <button onClick={() => window.location.reload()} style={{ padding: '12px 28px', background: '#0c4a6e', color: '#fff', border: 'none', borderRadius: 10, fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>Reload</button>
           <pre style={{ fontSize: 11, color: '#666666', maxWidth: 420, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{String(this.state.err && this.state.err.message || this.state.err)}</pre>
         </div>
       );

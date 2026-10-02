@@ -187,7 +187,7 @@ export default function AgentProfile({ onClose, currentUser }) {
               <label style={lbl}>Profile Photo</label>
               <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 8, flexWrap: "wrap" }}>
                 {form.photoUrl && <img src={form.photoUrl} alt="" style={{ width: 56, height: 56, borderRadius: "50%", objectFit: "cover", border: "2px solid #C0392B" }} onError={e => e.target.style.display = "none"} />}
-                <label style={{ display: "inline-block", padding: "8px 16px", background: "#111", color: "#fff", borderRadius: 8, cursor: "pointer", fontSize: 13, fontWeight: 600, fontFamily: "inherit" }}>
+                <label style={{ display: "inline-block", padding: "8px 16px", background: "#0c4a6e", color: "#fff", borderRadius: 8, cursor: "pointer", fontSize: 13, fontWeight: 600, fontFamily: "inherit" }}>
                   {uploading ? "Uploading..." : "📷 Upload Photo"}
                   <input type="file" accept="image/*" style={{ display: "none" }} onChange={e => { handlePhotoUpload(e.target.files[0]); e.target.value = ""; }} disabled={uploading} />
                 </label>
@@ -224,7 +224,7 @@ export default function AgentProfile({ onClose, currentUser }) {
 
             <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
               <button onClick={onClose} style={{ padding: "10px 18px", border: "1px solid #CCC", borderRadius: 8, background: "none", cursor: "pointer", fontFamily: "inherit" }}>Cancel</button>
-              <button onClick={save} disabled={saving} style={{ padding: "10px 24px", background: "#C0392B", color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+              <button onClick={save} disabled={saving} style={{ padding: "10px 24px", background: "#0c4a6e", color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
                 {saving ? "Saving..." : "Save Profile"}
               </button>
             </div>

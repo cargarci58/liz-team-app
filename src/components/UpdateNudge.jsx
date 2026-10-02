@@ -46,7 +46,7 @@ export default function UpdateNudge() {
   return (
     <div style={{ position: "fixed", bottom: 16, left: "50%", transform: "translateX(-50%)", zIndex: 4000, background: "#1a2332", color: "#fff", borderRadius: 12, boxShadow: "0 8px 30px rgba(0,0,0,0.35)", padding: "12px 16px", display: "flex", alignItems: "center", gap: 12, fontFamily: "system-ui, sans-serif", maxWidth: "calc(100vw - 32px)" }}>
       <span style={{ fontSize: 13.5 }}>✨ A new version of the app is ready.</span>
-      <button onClick={() => window.location.reload()} style={{ background: "#1E8449", color: "#fff", border: "none", borderRadius: 8, padding: "8px 14px", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>
+      <button onClick={() => window.location.reload()} style={{ background: "#0c4a6e", color: "#fff", border: "none", borderRadius: 8, padding: "8px 14px", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>
         Update now
       </button>
       <button onClick={() => setDismissed(freshBundle)} title="Later" style={{ background: "none", border: "none", color: "rgba(255,255,255,0.6)", fontSize: 18, cursor: "pointer", padding: 0 }}>×</button>

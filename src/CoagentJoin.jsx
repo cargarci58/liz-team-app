@@ -60,7 +60,7 @@ export default function CoagentJoin({ urlToken }) {
             <label style={{ fontSize: 13, color: "#6b7280" }}>Password (8+ characters)<input type="password" value={pw} onChange={e => setPw(e.target.value)} style={inp} /></label>
             <label style={{ fontSize: 13, color: "#6b7280" }}>Same password again<input type="password" value={pw2} onChange={e => setPw2(e.target.value)} style={inp} /></label>
           </>}
-          <button disabled={busy} onClick={submit} style={{ width: "100%", padding: "12px 0", borderRadius: 10, border: "none", background: "#C0392B", color: "#fff", fontWeight: 800, fontSize: 16, cursor: "pointer" }}>
+          <button disabled={busy} onClick={submit} style={{ width: "100%", padding: "12px 0", borderRadius: 10, border: "none", background: "#0c4a6e", color: "#fff", fontWeight: 800, fontSize: 16, cursor: "pointer" }}>
             {busy ? "Saving…" : info.mode === "linked" ? "Add the deal to my account" : "Join the deal"}
           </button>
         </>}

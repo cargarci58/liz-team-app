@@ -77,4 +77,4 @@ export default function AppTour({ onClose, onCreateFirst }) {
   );
 }
 
-const primaryBtn = { background: RED, color: '#fff', border: 'none', borderRadius: 10, padding: '11px 22px', fontSize: 14, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit' };
+const primaryBtn = { background: '#0c4a6e', color: '#fff', border: 'none', borderRadius: 10, padding: '11px 22px', fontSize: 14, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit' };

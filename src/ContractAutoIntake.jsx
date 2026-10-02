@@ -308,7 +308,7 @@ function UploadStep({ token, existingTransactionId, onBack, onUploaded }) {
               <button
                 onClick={generateShareableLink}
                 disabled={generatingLink}
-                style={{ background: COLORS.red, color: "white", border: "none", borderRadius: 8, padding: "12px 24px", fontSize: 14, fontWeight: 600, cursor: generatingLink ? "wait" : "pointer", fontFamily: "inherit", opacity: generatingLink ? 0.7 : 1 }}
+                style={{ background: "#0c4a6e", color: "white", border: "none", borderRadius: 8, padding: "12px 24px", fontSize: 14, fontWeight: 600, cursor: generatingLink ? "wait" : "pointer", fontFamily: "inherit", opacity: generatingLink ? 0.7 : 1 }}
               >
                 {generatingLink ? "Generating..." : "Generate Link"}
               </button>
@@ -411,7 +411,7 @@ function UploadStep({ token, existingTransactionId, onBack, onUploaded }) {
             </div>
             <button
               onClick={handleUpload}
-              style={{ background: COLORS.red, color: "white", border: "none", borderRadius: 8, padding: "14px 28px", fontSize: 15, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}
+              style={{ background: "#0c4a6e", color: "white", border: "none", borderRadius: 8, padding: "14px 28px", fontSize: 15, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}
             >
               Upload & Process →
             </button>
@@ -500,7 +500,7 @@ function ProcessingStep({ token, uploadId, onReady, onFailed }) {
             This is taking longer than usual. It may still finish in a moment — or something may have stalled.
             <div style={{ marginTop: 14 }}>
               <button onClick={() => onFailedRef.current("Extraction is taking too long")}
-                style={{ background: COLORS.red, color: "#fff", border: "none", borderRadius: 8, padding: "10px 20px", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                style={{ background: "#0c4a6e", color: "#fff", border: "none", borderRadius: 8, padding: "10px 20px", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
                 Go back &amp; try again
               </button>
             </div>
@@ -718,7 +718,7 @@ function ReviewStep({ token, uploadId, user, currentStatus, onApproved, onBack }
                 No — wait for signatures
               </button>
               <button onClick={approveConfirmedSigned}
-                style={{ flex: 1, padding: "12px 0", borderRadius: 10, border: "none", background: "#1E8449", color: "#fff", fontWeight: 800, fontSize: 14, cursor: "pointer", fontFamily: "inherit" }}>
+                style={{ flex: 1, padding: "12px 0", borderRadius: 10, border: "none", background: "#0c4a6e", color: "#fff", fontWeight: 800, fontSize: 14, cursor: "pointer", fontFamily: "inherit" }}>
                 Yes — it's fully signed, approve
               </button>
             </div>
@@ -901,7 +901,7 @@ function ReviewStep({ token, uploadId, user, currentStatus, onApproved, onBack }
                 );
               })()}
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                <button onClick={() => addPartyRole("Title Company")} style={{ background: COLORS.navy, border: "none", color: "#fff", borderRadius: 6, padding: "7px 14px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>+ Add New Title Company</button>
+                <button onClick={() => addPartyRole("Title Company")} style={{ background: "#0c4a6e", border: "none", color: "#fff", borderRadius: 6, padding: "7px 14px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>+ Add New Title Company</button>
                 <button onClick={() => addPartyRole("Attorney")} style={{ background: "white", border: "1px solid " + COLORS.navy, color: COLORS.navy, borderRadius: 6, padding: "7px 14px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>+ Add New Closing Attorney</button>
               </div>
             </div>
@@ -959,7 +959,7 @@ function ReviewStep({ token, uploadId, user, currentStatus, onApproved, onBack }
         </div>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, marginTop: 4, flexWrap: "wrap" }}>
           <button onClick={handleSaveDraft} disabled={saving} style={{ background: "white", color: COLORS.navy, border: "1px solid " + COLORS.border, borderRadius: 8, padding: "12px 24px", fontSize: 14, fontWeight: 700, cursor: saving ? "wait" : "pointer", fontFamily: "inherit", opacity: saving ? 0.7 : 1 }}>{saving ? "Saving..." : "← Save to Pending Offers"}</button>
-          <button onClick={handleApprove} disabled={saving} style={{ background: COLORS.green, color: "white", border: "none", borderRadius: 8, padding: "12px 28px", fontSize: 14, fontWeight: 600, cursor: saving ? "wait" : "pointer", fontFamily: "inherit", opacity: saving ? 0.7 : 1 }}>
+          <button onClick={handleApprove} disabled={saving} style={{ background: "#0c4a6e", color: "white", border: "none", borderRadius: 8, padding: "12px 28px", fontSize: 14, fontWeight: 600, cursor: saving ? "wait" : "pointer", fontFamily: "inherit", opacity: saving ? 0.7 : 1 }}>
             {saving ? "Approving Offer..." : "✓ Approve Offer (sellers accepted)"}
           </button>
         </div>
@@ -976,7 +976,7 @@ function FailedStep({ onBack, onRetry }) {
         <h2 style={{ margin: 0, color: COLORS.navy, fontSize: 22 }}>Extraction Failed</h2>
         <p style={{ color: COLORS.muted, marginTop: 12 }}>We couldn't process this contract. Try again with a different file or use manual entry.</p>
         <div style={{ marginTop: 24, display: "flex", gap: 12, justifyContent: "center" }}>
-          <button onClick={onRetry} style={{ background: COLORS.red, color: "white", border: "none", borderRadius: 8, padding: "10px 20px", fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Try Another File</button>
+          <button onClick={onRetry} style={{ background: "#0c4a6e", color: "white", border: "none", borderRadius: 8, padding: "10px 20px", fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Try Another File</button>
           <button onClick={onBack} style={{ background: "white", color: COLORS.text, border: "1px solid " + COLORS.border, borderRadius: 8, padding: "10px 20px", fontSize: 14, cursor: "pointer", fontFamily: "inherit" }}>Back</button>
         </div>
       </div>

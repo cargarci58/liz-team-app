@@ -240,7 +240,7 @@ function SuperuserDashboard({ onClose, token }) {
               <option value="0">Never expires</option>
             </select>
             <button onClick={createCode} disabled={codeBusy}
-              style={{ padding: "9px 18px", borderRadius: 8, border: "none", background: codeBusy ? "#94A3B8" : "#1E8449", color: "#fff", fontWeight: 800, fontSize: 13, cursor: codeBusy ? "wait" : "pointer", fontFamily: "inherit" }}>
+              style={{ padding: "9px 18px", borderRadius: 8, border: "none", background: codeBusy ? "#94A3B8" : "#0c4a6e", color: "#fff", fontWeight: 800, fontSize: 13, cursor: codeBusy ? "wait" : "pointer", fontFamily: "inherit" }}>
               {codeBusy ? "Creating…" : "➕ New code (copies the link)"}
             </button>
           </div>
@@ -301,7 +301,7 @@ function SuperuserDashboard({ onClose, token }) {
         {/* ── Service Health ── */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
           <h2 style={{ margin: 0, fontSize: 16, color: COLORS.navy, fontWeight: 700 }}>Service Health</h2>
-          <button onClick={loadHealth} disabled={healthLoading} style={{ background: COLORS.navy, color: "#fff", border: "none", borderRadius: 8, padding: "6px 14px", cursor: healthLoading ? "default" : "pointer", fontSize: 13, fontFamily: "inherit", opacity: healthLoading ? 0.6 : 1 }}>{healthLoading ? "Checking…" : "↻ Refresh"}</button>
+          <button onClick={loadHealth} disabled={healthLoading} style={{ background: "#0c4a6e", color: "#fff", border: "none", borderRadius: 8, padding: "6px 14px", cursor: healthLoading ? "default" : "pointer", fontSize: 13, fontFamily: "inherit", opacity: healthLoading ? 0.6 : 1 }}>{healthLoading ? "Checking…" : "↻ Refresh"}</button>
         </div>
         {healthError && <div style={{ background: "#FDEDEC", border: `1px solid ${COLORS.danger}40`, color: COLORS.danger, borderRadius: 8, padding: "10px 14px", fontSize: 13, marginBottom: 16 }}>Couldn't load health: {healthError}</div>}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 10, marginBottom: 12 }}>
@@ -371,7 +371,7 @@ function SuperuserDashboard({ onClose, token }) {
           <h2 style={{ margin: 0, fontSize: 16, color: COLORS.navy, fontWeight: 700 }}>
             Feedback Inbox{(fbCounts.new || 0) > 0 ? <span style={{ marginLeft: 8, background: COLORS.danger, color: "#fff", borderRadius: 999, padding: "2px 9px", fontSize: 12, fontWeight: 700 }}>{fbCounts.new} new</span> : null}
           </h2>
-          <button onClick={() => loadFeedback()} disabled={fbLoading} style={{ background: COLORS.navy, color: "#fff", border: "none", borderRadius: 8, padding: "6px 14px", cursor: fbLoading ? "default" : "pointer", fontSize: 13, fontFamily: "inherit", opacity: fbLoading ? 0.6 : 1 }}>{fbLoading ? "Loading…" : "↻ Refresh"}</button>
+          <button onClick={() => loadFeedback()} disabled={fbLoading} style={{ background: "#0c4a6e", color: "#fff", border: "none", borderRadius: 8, padding: "6px 14px", cursor: fbLoading ? "default" : "pointer", fontSize: 13, fontFamily: "inherit", opacity: fbLoading ? 0.6 : 1 }}>{fbLoading ? "Loading…" : "↻ Refresh"}</button>
         </div>
         <div style={{ fontSize: 12, color: COLORS.muted, marginBottom: 12 }}>Bugs, ideas, and notes submitted by agents from the in-app 📣 Feedback button.</div>
 
@@ -419,7 +419,7 @@ function SuperuserDashboard({ onClose, token }) {
                       <button onClick={() => updateFeedback(item.id, { status: "in_progress" })} disabled={busy} style={{ background: "#fff", color: COLORS.amber, border: `1px solid ${COLORS.amber}`, borderRadius: 8, padding: "6px 12px", cursor: busy ? "default" : "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit", opacity: busy ? 0.6 : 1 }}>◔ In progress</button>
                     )}
                     {item.status !== "done" && (
-                      <button onClick={() => updateFeedback(item.id, { status: "done" })} disabled={busy} style={{ background: COLORS.green, color: "#fff", border: "none", borderRadius: 8, padding: "6px 12px", cursor: busy ? "default" : "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit", opacity: busy ? 0.6 : 1 }}>✓ Done</button>
+                      <button onClick={() => updateFeedback(item.id, { status: "done" })} disabled={busy} style={{ background: "#0c4a6e", color: "#fff", border: "none", borderRadius: 8, padding: "6px 12px", cursor: busy ? "default" : "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit", opacity: busy ? 0.6 : 1 }}>✓ Done</button>
                     )}
                     {item.status !== "new" && (
                       <button onClick={() => updateFeedback(item.id, { status: "new" })} disabled={busy} style={{ background: "#fff", color: COLORS.muted, border: `1px solid ${COLORS.border}`, borderRadius: 8, padding: "6px 12px", cursor: busy ? "default" : "pointer", fontSize: 12, fontWeight: 600, fontFamily: "inherit", opacity: busy ? 0.6 : 1 }}>↩ Reopen</button>

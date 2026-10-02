@@ -131,7 +131,7 @@ export default function TaskTemplatesAdmin({ token, user }) {
   };
 
   const btnPrimary = {
-    background: COLORS.red, color: "white", border: "none", borderRadius: 6,
+    background: "#0c4a6e", color: "white", border: "none", borderRadius: 6,
     padding: "8px 14px", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit"
   };
 

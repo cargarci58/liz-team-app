@@ -143,7 +143,7 @@ export function AgentCoordinatorDesk({ token, onOpenTransaction }) {
           {needLook.map(d => <DeskRow key={d.txId} d={d} onOpenTransaction={onOpenTransaction} />)}
           {onTrack.length > 0 && (
             <>
-              <button onClick={() => setShowOk(s => !s)} style={{ width: "100%", textAlign: "left", background: "#F0FDF4", border: "1px solid #BBF7D0", borderRadius: 12, padding: "10px 14px", fontSize: 13, fontWeight: 700, color: "#166534", cursor: "pointer", fontFamily: "inherit" }}>
+              <button onClick={() => setShowOk(s => !s)} style={{ width: "100%", textAlign: "left", background: "#E0F2FE", border: "1px solid #7DD3FC", borderRadius: 12, padding: "10px 14px", fontSize: 13, fontWeight: 700, color: "#0c4a6e", cursor: "pointer", fontFamily: "inherit" }}>
                 ✅ {onTrack.length} on track & handled by your TC {showOk ? "▲" : "▼"}
               </button>
               {showOk && <div style={{ marginTop: 10 }}>{onTrack.map(d => <DeskRow key={d.txId} d={d} onOpenTransaction={onOpenTransaction} />)}</div>}
