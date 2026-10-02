@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { getLang } from "./i18n";
 
 const API = "https://liz-team-server-api-production.up.railway.app";
 
@@ -78,6 +79,13 @@ export default function LegalConsentGate({ onAccepted }) {
   return (
     <div style={overlay}>
       <div style={{ ...card, maxWidth: 540 }}>
+        {/* Spanish-preferring clients: the legal text itself stays English until
+            an attorney approves a Spanish version — say so, in Spanish. */}
+        {getLang() === "es" && (
+          <div lang="es" style={{ background: "#F0F9FF", border: "1px solid #BAE6FD", borderRadius: 10, padding: "10px 12px", marginBottom: 12, fontSize: 13.5, color: "#0c4a6e", lineHeight: 1.5 }}>
+            Antes de empezar: los términos legales de abajo están en inglés, que es la versión oficial. Si tiene preguntas sobre ellos, su agente con gusto se los explica. Marque la casilla y toque el botón para continuar a su portal en español.
+          </div>
+        )}
         <h2 style={{ margin: "0 0 6px", color: "#1a2332", fontSize: 22 }}>Before you start</h2>
         <p style={{ color: "#475569", lineHeight: 1.55, marginTop: 0 }}>
           Please review and accept the following to continue. By accepting, you

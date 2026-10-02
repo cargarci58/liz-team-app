@@ -1,4 +1,6 @@
 import { useState, useEffect } from "react";
+import { t, useLang, applyPreferredLang, addSpanish } from "./i18n";
+import LangToggle from "./components/LangToggle";
 
 const API = "https://liz-team-server-api-production.up.railway.app";
 
@@ -18,6 +20,7 @@ function getTokenFromUrl() {
 }
 
 export default function PartyUploadPage() {
+  useLang();
   const token = getTokenFromUrl();
   const [info, setInfo] = useState(null);
   const [error, setError] = useState(null);
@@ -31,6 +34,8 @@ export default function PartyUploadPage() {
     fetch(API + "/party-uploads/info/" + token)
       .then(r => r.json())
       .then(d => {
+        if (d && d.language) applyPreferredLang(d.language);
+        if (d && d.es) addSpanish(d.es);
         if (d.success) setInfo(d);
         else setError(d.error || "Could not load upload link");
         setLoading(false);
@@ -40,7 +45,7 @@ export default function PartyUploadPage() {
 
   const handleUpload = async () => {
     if (!file) return;
-    if (file.size > 50 * 1024 * 1024) { alert("File too large (max 50MB)"); return; }
+    if (file.size > 50 * 1024 * 1024) { alert(t("File too large (max 50MB)")); return; }
     // MIME allowlist — the `accept` attribute on the input is only a UI hint;
     // browsers let users override it, so enforce here.
     const ALLOWED = [
@@ -50,7 +55,7 @@ export default function PartyUploadPage() {
       "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     ];
     if (file.type && !ALLOWED.includes(file.type)) {
-      alert(`File type "${file.type}" not allowed. Please upload a PDF, image, or Word document.`);
+      alert(t("File type \"{type}\" not allowed. Please upload a PDF, image, or Word document.", { type: file.type }));
       return;
     }
     setUploading(true);
@@ -80,27 +85,29 @@ export default function PartyUploadPage() {
 
       setCompleted(true);
     } catch (err) {
-      alert("Upload failed: " + err.message);
+      alert(t("Upload failed: {msg}", { msg: t(err.message) }));
     }
     setUploading(false);
   };
 
   const Card = ({ children }) => (
     <div style={{ background: COLORS.white, borderRadius: 14, padding: 24, maxWidth: 480, margin: "40px auto",
-      boxShadow: "0 4px 20px rgba(0,0,0,0.08)" }}>{children}</div>
+      boxShadow: "0 4px 20px rgba(0,0,0,0.08)" }}>
+      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 6 }}><LangToggle /></div>
+      {children}</div>
   );
 
   if (loading) {
-    return <Card><div style={{ textAlign: "center", color: COLORS.gray }}>Loading...</div></Card>;
+    return <Card><div style={{ textAlign: "center", color: COLORS.gray }}>{t("Loading…")}</div></Card>;
   }
 
   if (error) {
     return (
       <Card>
-        <div style={{ fontSize: 22, fontWeight: 800, color: COLORS.danger, marginBottom: 10 }}>Link unavailable</div>
-        <div style={{ color: COLORS.gray, lineHeight: 1.5 }}>{error}</div>
+        <div style={{ fontSize: 22, fontWeight: 800, color: COLORS.danger, marginBottom: 10 }}>{t("Link unavailable")}</div>
+        <div style={{ color: COLORS.gray, lineHeight: 1.5 }}>{t(error)}</div>
         <div style={{ color: COLORS.gray, fontSize: 12, marginTop: 16, lineHeight: 1.5 }}>
-          This upload link may have expired or already been used. Please contact the agent who sent it for a new link.
+          {t("This upload link may have expired or already been used. Please contact the agent who sent it for a new link.")}
         </div>
       </Card>
     );
@@ -111,14 +118,14 @@ export default function PartyUploadPage() {
       <Card>
         <div style={{ fontSize: 48, textAlign: "center", marginBottom: 12 }}>✅</div>
         <div style={{ fontSize: 22, fontWeight: 800, color: COLORS.success, textAlign: "center", marginBottom: 10 }}>
-          Document received!
+          {t("Document received!")}
         </div>
         <div style={{ color: COLORS.gray, lineHeight: 1.5, textAlign: "center", marginBottom: 16 }}>
-          Thank you, {info.partyName}. {info.agentName} has been notified and the milestone is now marked complete.
+          {t("Thank you, {name}. {agent} has been notified and the milestone is now marked complete.", { name: info.partyName, agent: info.agentName })}
         </div>
         <div style={{ background: "#F3F4F6", borderRadius: 8, padding: 12, fontSize: 13, color: COLORS.gray }}>
-          <div><strong>Property:</strong> {info.address}</div>
-          <div><strong>Document for:</strong> {info.milestoneName}</div>
+          <div><strong>{t("Property:")}</strong> {info.address}</div>
+          <div><strong>{t("Document for:")}</strong> {t(info.milestoneName)}</div>
         </div>
       </Card>
     );
@@ -128,37 +135,37 @@ export default function PartyUploadPage() {
     <Card>
       <div style={{ marginBottom: 16 }}>
         <div style={{ fontSize: 11, fontWeight: 700, color: COLORS.gray, letterSpacing: 0.5, marginBottom: 4 }}>
-          DOCUMENT UPLOAD REQUEST
+          {t("DOCUMENT UPLOAD REQUEST")}
         </div>
         <div style={{ fontSize: 22, fontWeight: 800, color: COLORS.black, marginBottom: 4 }}>
-          Hi {info.partyName ? info.partyName.split(" ")[0] : "there"}
+          {info.partyName ? t("Hi {name}", { name: info.partyName.split(" ")[0] }) : t("Hi there")}
         </div>
         <div style={{ color: COLORS.gray, fontSize: 14, lineHeight: 1.5 }}>
-          {info.agentName} needs a document from you for:
+          {t("{agent} needs a document from you for:", { agent: info.agentName })}
         </div>
       </div>
 
       <div style={{ background: "#F3F4F6", borderRadius: 8, padding: 12, marginBottom: 14 }}>
-        <div style={{ fontSize: 13, color: COLORS.gray, marginBottom: 2 }}>Property</div>
+        <div style={{ fontSize: 13, color: COLORS.gray, marginBottom: 2 }}>{t("Property")}</div>
         <div style={{ fontWeight: 700, marginBottom: 8 }}>{info.address}</div>
-        <div style={{ fontSize: 13, color: COLORS.gray, marginBottom: 2 }}>Required for</div>
-        <div style={{ fontWeight: 700 }}>{info.milestoneName}</div>
+        <div style={{ fontSize: 13, color: COLORS.gray, marginBottom: 2 }}>{t("Required for")}</div>
+        <div style={{ fontWeight: 700 }}>{t(info.milestoneName)}</div>
       </div>
 
       {info.requiredDocType && (
         <div style={{ background: COLORS.warningBg, border: "1px solid " + COLORS.warningBorder, borderRadius: 8, padding: 12, marginBottom: 14 }}>
           <div style={{ fontWeight: 700, color: "#92400E", marginBottom: 4 }}>
-            📎 Document needed: {info.requiredDocType}
+            📎 {t("Document needed:")} {t(info.requiredDocType)}
           </div>
           {info.description && (
-            <div style={{ color: "#78350F", fontSize: 12, lineHeight: 1.5 }}>{info.description}</div>
+            <div style={{ color: "#78350F", fontSize: 12, lineHeight: 1.5 }}>{t(info.description)}</div>
           )}
         </div>
       )}
 
       <div style={{ marginBottom: 14 }}>
         <div style={{ fontSize: 11, fontWeight: 700, color: COLORS.gray, letterSpacing: 0.5, marginBottom: 6 }}>
-          SELECT FILE
+          {t("SELECT FILE")}
         </div>
         <input
           type="file"
@@ -168,7 +175,7 @@ export default function PartyUploadPage() {
         />
         {file && (
           <div style={{ fontSize: 12, color: COLORS.gray, marginTop: 6 }}>
-            Selected: <strong>{file.name}</strong> ({Math.round(file.size / 1024)} KB)
+            {t("Selected:")} <strong>{file.name}</strong> ({Math.round(file.size / 1024)} KB)
           </div>
         )}
       </div>
@@ -177,12 +184,11 @@ export default function PartyUploadPage() {
         style={{ width: "100%", padding: 14, borderRadius: 10, border: "none",
           background: !file ? "#D1D5DB" : COLORS.red, color: COLORS.white,
           fontWeight: 700, fontSize: 15, cursor: !file || uploading ? "not-allowed" : "pointer" }}>
-        {uploading ? "Uploading..." : "Upload Document"}
+        {uploading ? t("Uploading…") : t("Upload Document")}
       </button>
 
       <div style={{ fontSize: 11, color: COLORS.gray, textAlign: "center", marginTop: 14, lineHeight: 1.5 }}>
-        Your document will be securely uploaded and the agent notified immediately.
-        Files are stored privately and only visible to authorized parties in the transaction.
+        {t("Your document will be securely uploaded and the agent notified immediately. Files are stored privately and only visible to authorized parties in the transaction.")}
       </div>
     </Card>
   );

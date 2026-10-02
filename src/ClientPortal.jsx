@@ -8,6 +8,8 @@ import { deriveStage, strongClaimFor } from "./portalClaims";
 import { flTaxRate, deedDocStampPer100 } from "./lib/flTaxRates";
 import { simulate, fmtTime } from "./lib/tourRoute";
 import HomeScorecard, { FavoritesSummary, ScorecardButton } from "./components/HomeScorecard";
+import { t, tn, useLang, getLang, setLang, applyPreferredLang, addSpanish, locale } from "./i18n";
+import LangToggle from "./components/LangToggle";
 
 const API = "https://liz-team-server-api-production.up.railway.app";
 
@@ -61,8 +63,8 @@ function asLocalDay(d) {
   return m ? new Date(m[1] + "T00:00:00") : new Date(d);
 }
 function formatDate(d) {
-  if (!d) return "TBD";
-  return asLocalDay(d).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+  if (!d) return t("TBD");
+  return asLocalDay(d).toLocaleDateString(locale(), { month: "long", day: "numeric", year: "numeric" });
 }
 
 function daysUntil(d) {
@@ -120,6 +122,30 @@ function comingUpLabel(name) {
 
 // STAGE_ORDER + deriveStage now live in ./portalClaims (tested, build-gated).
 
+// "October 2026" (from the rate feed) in the active language.
+function monthName(label) {
+  if (!label || getLang() !== "es") return label;
+  const d = new Date("1 " + label);
+  return isNaN(d) ? label : d.toLocaleDateString(locale(), { month: "long", year: "numeric" });
+}
+
+// Ask the server for Spanish of deal-specific wording the dictionary doesn't
+// cover (milestone/document names, marketing lines). Cached server-side;
+// results feed t() through addSpanish. No-op in English.
+function fetchSpanish(texts) {
+  if (getLang() !== "es") return;
+  const missing = [...new Set(texts)].filter(s => s && typeof s === "string" && t(s) === s).slice(0, 150);
+  if (!missing.length) return;
+  fetch(API + "/client/translate", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: "Bearer " + (localStorage.getItem("tp_token") || "") },
+    body: JSON.stringify({ texts: missing, lang: "es" }),
+  })
+    .then(r => r.ok ? r.json() : null)
+    .then(d => { if (d && d.translations) addSpanish(d.translations); })
+    .catch(() => {});
+}
+
 // ── PROGRESS TRACKER ─────────────────────────────────────────
 function ProgressTracker({ status, transactionType }) {
   const isSeller = transactionType && transactionType.includes("Seller");
@@ -155,7 +181,7 @@ function ProgressTracker({ status, transactionType }) {
     <div style={{ padding: "20px 20px 16px" }}>
       <div style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.5)",
         textTransform: "uppercase", letterSpacing: 1.5, marginBottom: 20 }}>
-        WHERE YOU ARE TODAY
+        {t("WHERE YOU ARE TODAY")}
       </div>
       <div style={{ display: "flex", alignItems: "flex-start" }}>
         {steps.map((step, i) => {
@@ -191,7 +217,7 @@ function ProgressTracker({ status, transactionType }) {
                 lineHeight: 1.3, maxWidth: 60,
                 color: isCurrent ? "#ffffff" : isDone ? "rgba(255,255,255,0.8)" : "rgba(255,255,255,0.45)"
               }}>
-                {step.label}
+                {t(step.label)}
               </div>
             </div>
           );
@@ -222,9 +248,9 @@ function LatestUpdateCard({ tx, agentName, stage }) {
     <div style={{ background: C.white, borderRadius: 14, padding: 18, marginBottom: 14,
       boxShadow: "0 1px 4px rgba(0,0,0,0.08)", borderLeft: "4px solid " + C.red }}>
       <div style={{ fontSize: 11, fontWeight: 700, color: C.gray, textTransform: "uppercase",
-        letterSpacing: 1, marginBottom: 8 }}>LATEST UPDATE</div>
+        letterSpacing: 1, marginBottom: 8 }}>{t("LATEST UPDATE")}</div>
       <div style={{ fontSize: 14, color: C.black, lineHeight: 1.7, marginBottom: 10 }}>
-        {getUpdateMessage()}
+        {t(getUpdateMessage())}
       </div>
       {agentName && (
         <div style={{ fontSize: 12, color: C.gray }}>— {agentName}</div>
@@ -244,7 +270,7 @@ function ClosingCountdownCard({ tx }) {
   if (days === null || days < 0 || days > 30) return null;
   const isBuyer = tx.transactionType && tx.transactionType.includes("Buyer");
   // The day count lives in the welcome card / top pill — not repeated here (tester review).
-  const headline = days === 0 ? "Closing is today! 🎉" : "Get ready for closing day";
+  const headline = days === 0 ? t("Closing is today! 🎉") : t("Get ready for closing day");
   const items = isBuyer ? [
     { icon: "🛡️", text: "Confirm your homeowner's insurance is active starting on closing day." },
     { icon: "👀", text: "Do your final walk-through with your agent to make sure the home is in the agreed condition." },
@@ -261,25 +287,25 @@ function ClosingCountdownCard({ tx }) {
   return (
     <div style={{ background: C.white, borderRadius: 14, padding: 18, marginBottom: 14,
       boxShadow: "0 1px 4px rgba(0,0,0,0.08)", borderLeft: "4px solid " + C.red }}>
-      <div style={{ fontSize: 11, fontWeight: 700, color: C.gray, textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>CLOSING COUNTDOWN</div>
+      <div style={{ fontSize: 11, fontWeight: 700, color: C.gray, textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>{t("CLOSING COUNTDOWN")}</div>
       <div style={{ fontSize: 22, fontWeight: 800, color: C.black, marginBottom: 4 }}>{headline}</div>
-      <div style={{ fontSize: 13, color: C.gray, marginBottom: 14 }}>{formatDate(tx.closingDate)} — here's how to be ready.</div>
+      <div style={{ fontSize: 13, color: C.gray, marginBottom: 14 }}>{t("{date} — here's how to be ready.", { date: formatDate(tx.closingDate) })}</div>
 
       {/* Wire-fraud warning — the most important thing for them to see. */}
       <div style={{ background: "#FDEDEC", border: "1px solid #F1948A", borderRadius: 10, padding: "12px 14px", marginBottom: 14 }}>
-        <div style={{ fontSize: 13, fontWeight: 800, color: "#922B21", marginBottom: 4 }}>⚠️ Protect your money from wire fraud</div>
+        <div style={{ fontSize: 13, fontWeight: 800, color: "#922B21", marginBottom: 4 }}>⚠️ {t("Protect your money from wire fraud")}</div>
         <div style={{ fontSize: 13, color: "#922B21", lineHeight: 1.6 }}>
-          Before sending ANY money, call the title company using a phone number you looked up yourself — never a number or wiring instructions from an email. Wiring instructions in email can be faked. When in doubt, call your agent first.
+          {t("Before sending ANY money, call the title company using a phone number you looked up yourself — never a number or wiring instructions from an email. Wiring instructions in email can be faked. When in doubt, call your agent first.")}
         </div>
       </div>
 
       {items.map((it, i) => (
         <div key={i} style={{ display: "flex", gap: 10, alignItems: "flex-start", paddingBottom: 10, marginBottom: 10, borderBottom: i < items.length - 1 ? "1px solid " + C.lightGray : "none" }}>
           <span style={{ fontSize: 18, flexShrink: 0 }}>{it.icon}</span>
-          <span style={{ fontSize: 14, color: C.black, lineHeight: 1.5 }}>{it.text}</span>
+          <span style={{ fontSize: 14, color: C.black, lineHeight: 1.5 }}>{t(it.text)}</span>
         </div>
       ))}
-      <div style={{ fontSize: 12, color: C.gray, marginTop: 4 }}>Questions about any of these? Just message your agent — that's what they're here for.</div>
+      <div style={{ fontSize: 12, color: C.gray, marginTop: 4 }}>{t("Questions about any of these? Just message your agent — that's what they're here for.")}</div>
     </div>
   );
 }
@@ -294,14 +320,14 @@ function AgentCard({ name, title, brokerage, phone, email, photo, brand }) {
         ? <img src={photo} alt={name} style={{ width: 58, height: 58, borderRadius: "50%", objectFit: "cover", flexShrink: 0, border: `2px solid ${brand}` }} />
         : <div style={{ width: 58, height: 58, borderRadius: "50%", background: brand, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 20, flexShrink: 0 }}>{initials}</div>}
       <div style={{ flex: 1, minWidth: 150 }}>
-        <div style={{ fontSize: 11, fontWeight: 700, color: "#666666", textTransform: "uppercase", letterSpacing: 1 }}>Your Agent</div>
+        <div style={{ fontSize: 11, fontWeight: 700, color: "#666666", textTransform: "uppercase", letterSpacing: 1 }}>{t("Your Agent")}</div>
         <div style={{ fontSize: 17, fontWeight: 800, color: "#111" }}>{name}</div>
         <div style={{ fontSize: 12.5, color: "#666" }}>{[title, brokerage].filter(Boolean).join(" · ")}</div>
       </div>
       <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
-        {phone && <a href={"tel:" + phone} style={{ background: brand, color: "#fff", textDecoration: "none", borderRadius: 10, padding: "9px 14px", fontSize: 13, fontWeight: 700 }}>📞 Call</a>}
-        {phone && <a href={"sms:" + phone} style={{ background: "#fff", color: brand, textDecoration: "none", border: `1.5px solid ${brand}`, borderRadius: 10, padding: "9px 14px", fontSize: 13, fontWeight: 700 }}>💬 Text</a>}
-        {!phone && email && <a href={"mailto:" + email} style={{ background: brand, color: "#fff", textDecoration: "none", borderRadius: 10, padding: "9px 14px", fontSize: 13, fontWeight: 700 }}>✉️ Email</a>}
+        {phone && <a href={"tel:" + phone} style={{ background: brand, color: "#fff", textDecoration: "none", borderRadius: 10, padding: "9px 14px", fontSize: 13, fontWeight: 700 }}>📞 {t("Call")}</a>}
+        {phone && <a href={"sms:" + phone} style={{ background: "#fff", color: brand, textDecoration: "none", border: `1.5px solid ${brand}`, borderRadius: 10, padding: "9px 14px", fontSize: 13, fontWeight: 700 }}>💬 {t("Text")}</a>}
+        {!phone && email && <a href={"mailto:" + email} style={{ background: brand, color: "#fff", textDecoration: "none", borderRadius: 10, padding: "9px 14px", fontSize: 13, fontWeight: 700 }}>✉️ {t("Email")}</a>}
       </div>
     </div>
   );
@@ -332,14 +358,14 @@ function JourneyHero({ tx, stage }) {
   // A contract recently fell through and the home is back on market — say it
   // honestly and warmly instead of letting the progress bar silently rewind.
   const backOnMarket = !!(tx.backOnMarket || tx.back_on_market) && !isBuyer;
-  const headline = backOnMarket ? "🔄 Back on the market — and we have a plan"
-    : eff === "Closed" ? (isBuyer ? "🎉 You're officially a homeowner!" : "🎉 Your home is sold — congratulations!")
-    : eff === "Clear to Close" ? "🏁 You're clear to close — the finish line!"
-    : days !== null && days >= 0 && days <= 45 ? (days === 0 ? "🔑 Closing is today!" : `🔑 ${days} day${days === 1 ? "" : "s"} to closing`)
-    : isBuyer ? "🏡 Your home purchase is on track" : "🏡 Your home sale is on track";
-  const sub = backOnMarket ? "The previous buyer's contract fell through — it happens, and it's recoverable. Your listing and marketing are still working, and your agent is on it. Reach out anytime."
-    : eff === "Closed" ? "Thank you for trusting us with this milestone."
-    : isBuyer ? "We're handling every detail to get you to the closing table." : "We're working hard to get you sold and closed.";
+  const headline = backOnMarket ? t("🔄 Back on the market — and we have a plan")
+    : eff === "Closed" ? (isBuyer ? t("🎉 You're officially a homeowner!") : t("🎉 Your home is sold — congratulations!"))
+    : eff === "Clear to Close" ? t("🏁 You're clear to close — the finish line!")
+    : days !== null && days >= 0 && days <= 45 ? (days === 0 ? t("🔑 Closing is today!") : "🔑 " + tn(days, "{n} day to closing", "{n} days to closing"))
+    : isBuyer ? t("🏡 Your home purchase is on track") : t("🏡 Your home sale is on track");
+  const sub = backOnMarket ? t("The previous buyer's contract fell through — it happens, and it's recoverable. Your listing and marketing are still working, and your agent is on it. Reach out anytime.")
+    : eff === "Closed" ? t("Thank you for trusting us with this milestone.")
+    : isBuyer ? t("We're handling every detail to get you to the closing table.") : t("We're working hard to get you sold and closed.");
   return (
     <div style={{ position: "relative", borderRadius: 16, padding: 22, marginBottom: 14, color: "#fff",
       background: celebrate ? "linear-gradient(135deg,#1E8449,#13502d)" : "linear-gradient(135deg,#1a2332,#34495e)",
@@ -371,7 +397,7 @@ function winLabel(name) {
 function SellerOffersCard({ offers, context, headers, agentName, onDecided }) {
   const [busyId, setBusyId] = useState(null);
   const [docBusyId, setDocBusyId] = useState(null);
-  const money = (v) => (v || v === 0) ? "$" + Number(v).toLocaleString() : "—";
+  const money = (v) => (v || v === 0) ? "$" + Number(v).toLocaleString("en-US") : "—";
 
   const viewDoc = async (offerId) => {
     setDocBusyId(offerId);
@@ -380,13 +406,16 @@ function SellerOffersCard({ offers, context, headers, agentName, onDecided }) {
       const d = await r.json();
       if (!d.success || !d.viewUrl) throw new Error(d.error || "Could not open document");
       window.open(d.viewUrl, "_blank", "noopener");
-    } catch (e) { alert("Could not open the offer document: " + e.message); }
+    } catch (e) { alert(t("Could not open the offer document: {msg}", { msg: t(e.message) })); }
     finally { setDocBusyId(null); }
   };
 
   const decide = async (offerId, decision) => {
-    const verb = decision === "accepted" ? "ACCEPT" : "decline";
-    if (!(await askConfirm(`Let ${agentName || "your agent"} know you'd like to ${verb} this offer?\n\nYour agent will follow up to finalize — this notifies them of your choice.`, { okLabel: decision === "accepted" ? "Yes, tell my agent" : "Yes, decline" }))) return;
+    const who = agentName || t("your agent");
+    const q = decision === "accepted"
+      ? t("Let {agent} know you'd like to ACCEPT this offer?", { agent: who })
+      : t("Let {agent} know you'd like to decline this offer?", { agent: who });
+    if (!(await askConfirm(`${q}\n\n${t("Your agent will follow up to finalize — this notifies them of your choice.")}`, { okLabel: decision === "accepted" ? t("Yes, tell my agent") : t("Yes, decline") }))) return;
     setBusyId(offerId);
     try {
       const r = await fetch(API + "/client/offers/" + offerId + "/decision", {
@@ -395,15 +424,15 @@ function SellerOffersCard({ offers, context, headers, agentName, onDecided }) {
       const d = await r.json();
       if (!d.success) throw new Error(d.error || "Could not save");
       onDecided && onDecided();
-    } catch (e) { alert("Could not save your decision: " + e.message); }
+    } catch (e) { alert(t("Could not save your decision: {msg}", { msg: t(e.message) })); }
     finally { setBusyId(null); }
   };
 
   return (
     <div style={{ background: C.white, borderRadius: 14, padding: 18, marginBottom: 14, boxShadow: "0 1px 4px rgba(0,0,0,0.08)", border: "2px solid " + C.warning }}>
-      <div style={{ fontSize: 16, fontWeight: 800, color: C.black, marginBottom: 4 }}>📥 Offers on your home ({offers.length})</div>
+      <div style={{ fontSize: 16, fontWeight: 800, color: C.black, marginBottom: 4 }}>📥 {t("Offers on your home ({n})", { n: offers.length })}</div>
       <div style={{ fontSize: 13, color: C.gray, marginBottom: 14 }}>
-        Review the offers below and tell {agentName || "your agent"} which one you'd like to move forward with. They'll handle the paperwork from there.
+        {t("Review the offers below and tell {agent} which one you'd like to move forward with. They'll handle the paperwork from there.", { agent: agentName || t("your agent") })}
       </div>
       {offers.map((o, i) => {
         const decided = o.sellerDecision;
@@ -411,12 +440,12 @@ function SellerOffersCard({ offers, context, headers, agentName, onDecided }) {
           <div key={o.id} style={{ border: "1px solid " + C.border, borderRadius: 12, padding: 14, marginBottom: i < offers.length - 1 ? 12 : 0, background: decided === "accepted" ? C.successBg : decided === "declined" ? "#FDEDEC" : C.white }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", flexWrap: "wrap", gap: 6, marginBottom: 4 }}>
               <div>
-                <div style={{ fontSize: 11, fontWeight: 700, color: C.gray, textTransform: "uppercase", letterSpacing: 0.5 }}>Offer price</div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: C.gray, textTransform: "uppercase", letterSpacing: 0.5 }}>{t("Offer price")}</div>
                 <div style={{ fontSize: 22, fontWeight: 800, color: C.black, lineHeight: 1.1 }}>{money(o.contractPrice)}</div>
               </div>
               {o.buyerName && (
                 <div style={{ textAlign: "right" }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: C.gray, textTransform: "uppercase", letterSpacing: 0.5 }}>Buyer</div>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: C.gray, textTransform: "uppercase", letterSpacing: 0.5 }}>{t("Buyer")}</div>
                   <div style={{ fontSize: 14, color: C.black, fontWeight: 700 }}>{o.buyerName}</div>
                 </div>
               )}
@@ -424,11 +453,11 @@ function SellerOffersCard({ offers, context, headers, agentName, onDecided }) {
             {/* Clean labeled rows instead of a cramped run-on line */}
             <div style={{ borderTop: "1px solid " + C.lightGray, marginTop: 8, paddingTop: 4 }}>
               {[
-                ["Financing", o.isCash ? "💵 Cash — no loan" : (o.loanType ? o.loanType + " loan" : "Financed (loan)")],
-                ["Proposed closing", o.closingDate ? "📅 " + formatDate(o.closingDate) : null],
-                ["Earnest money (deposit)", (o.earnestMoney || o.earnestMoney === 0) ? "🤝 " + money(o.earnestMoney) : null],
-                ["Inspection period", o.inspectionPeriodDays ? "🔍 " + o.inspectionPeriodDays + " days to inspect" : null],
-                ["Contingencies", [o.financingContingency && "financing", o.appraisalContingency && "appraisal"].filter(Boolean).join(", ") || (o.isCash ? "None" : null)],
+                [t("Financing"), o.isCash ? "💵 " + t("Cash — no loan") : (o.loanType ? t("{type} loan", { type: t(o.loanType) }) : t("Financed (loan)"))],
+                [t("Proposed closing"), o.closingDate ? "📅 " + formatDate(o.closingDate) : null],
+                [t("Earnest money (deposit)"), (o.earnestMoney || o.earnestMoney === 0) ? "🤝 " + money(o.earnestMoney) : null],
+                [t("Inspection period"), o.inspectionPeriodDays ? "🔍 " + t("{n} days to inspect", { n: o.inspectionPeriodDays }) : null],
+                [t("Contingencies"), [o.financingContingency && t("financing"), o.appraisalContingency && t("appraisal")].filter(Boolean).join(", ") || (o.isCash ? t("None") : null)],
               ].filter(([, v]) => v).map(([label, value], r) => (
                 <div key={r} style={{ display: "flex", justifyContent: "space-between", gap: 12, padding: "6px 0", borderBottom: "1px solid " + C.lightGray, fontSize: 13 }}>
                   <span style={{ color: C.gray, fontWeight: 600 }}>{label}</span>
@@ -436,10 +465,10 @@ function SellerOffersCard({ offers, context, headers, agentName, onDecided }) {
                 </div>
               ))}
             </div>
-            {o.additionalTerms && <div style={{ fontSize: 12.5, color: C.gray, marginTop: 8, fontStyle: "italic" }}>Note from buyer: “{o.additionalTerms}”</div>}
+            {o.additionalTerms && <div style={{ fontSize: 12.5, color: C.gray, marginTop: 8, fontStyle: "italic" }}>{t("Note from buyer:")} “{o.additionalTerms}”</div>}
             <button onClick={() => viewDoc(o.id)} disabled={docBusyId === o.id}
               style={{ marginTop: 12, width: "100%", background: C.lightGray, color: C.black, border: "1px solid " + C.border, borderRadius: 8, padding: "10px 14px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
-              {docBusyId === o.id ? "Opening…" : "📄 View the full offer document"}
+              {docBusyId === o.id ? t("Opening…") : "📄 " + t("View the full offer document")}
             </button>
             {(() => {
               const net = estimateSellerNet(o, context);
@@ -450,25 +479,25 @@ function SellerOffersCard({ offers, context, headers, agentName, onDecided }) {
               const owes = net.netProceeds < 0;
               return (
                 <div style={{ marginTop: 12, background: owes ? "#FEF2F2" : "#F0F7FB", border: "1px solid " + (owes ? "#FCA5A5" : "#BFDBEF"), borderRadius: 10, padding: 14 }}>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: owes ? "#991B1B" : "#0c4a6e", textTransform: "uppercase", letterSpacing: 0.5 }}>{owes ? "Estimated cash to bring to closing" : "Estimated net proceeds at this price"}</div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: owes ? "#991B1B" : "#0c4a6e", textTransform: "uppercase", letterSpacing: 0.5 }}>{owes ? t("Estimated cash to bring to closing") : t("Estimated net proceeds at this price")}</div>
                   <div style={{ fontSize: 26, fontWeight: 800, color: owes ? "#991B1B" : "#0c4a6e", lineHeight: 1.2, margin: "2px 0 8px" }}>{money(Math.abs(net.netProceeds))}</div>
-                  {owes && <div style={{ fontSize: 12, color: "#991B1B", marginTop: -4, marginBottom: 8, lineHeight: 1.4 }}>At this price the costs exceed the proceeds, so you'd need to bring this amount to closing. Your agent can walk you through options.</div>}
+                  {owes && <div style={{ fontSize: 12, color: "#991B1B", marginTop: -4, marginBottom: 8, lineHeight: 1.4 }}>{t("At this price the costs exceed the proceeds, so you'd need to bring this amount to closing. Your agent can walk you through options.")}</div>}
                   <details>
-                    <summary style={{ cursor: "pointer", fontSize: 12.5, fontWeight: 700, color: "#0c4a6e" }}>See how this is calculated</summary>
+                    <summary style={{ cursor: "pointer", fontSize: 12.5, fontWeight: 700, color: "#0c4a6e" }}>{t("See how this is calculated")}</summary>
                     <table style={{ width: "100%", marginTop: 8, fontSize: 12.5, color: C.gray }}>
                       <tbody>
-                        <tr><td style={{ padding: "3px 0" }}>Offer price</td><td style={{ textAlign: "right", fontWeight: 700, color: C.black }}>{money(net.price)}</td></tr>
-                        <tr><td style={{ padding: "3px 0" }}>− Agent commission ({net.commissionPct}%)</td><td style={{ textAlign: "right", fontWeight: 600 }}>−{money(net.commission)}</td></tr>
-                        <tr><td style={{ padding: "3px 0" }}>− FL doc stamps on deed</td><td style={{ textAlign: "right", fontWeight: 600 }}>−{money(net.docStamps)}</td></tr>
-                        <tr><td style={{ padding: "3px 0" }}>− Owner's title insurance</td><td style={{ textAlign: "right", fontWeight: 600 }}>−{money(net.titleIns)}</td></tr>
-                        <tr><td style={{ padding: "3px 0" }}>− Title & closing fees (est.)</td><td style={{ textAlign: "right", fontWeight: 600 }}>−{money(net.titleFees)}</td></tr>
-                        <tr><td style={{ padding: "3px 0" }}>− Prorated property taxes</td><td style={{ textAlign: "right", fontWeight: 600 }}>−{money(net.proratedTaxes)}</td></tr>
-                        <tr><td style={{ padding: "3px 0" }}>− Recording fees</td><td style={{ textAlign: "right", fontWeight: 600 }}>−{money(net.recording)}</td></tr>
-                        <tr style={{ borderTop: "1px solid #BFDBEF" }}><td style={{ padding: "5px 0", fontWeight: 800, color: C.black }}>{owes ? "Cash to bring to closing" : "Estimated net to you"}</td><td style={{ textAlign: "right", fontWeight: 800, color: owes ? "#991B1B" : "#0c4a6e" }}>{money(Math.abs(net.netProceeds))}</td></tr>
+                        <tr><td style={{ padding: "3px 0" }}>{t("Offer price")}</td><td style={{ textAlign: "right", fontWeight: 700, color: C.black }}>{money(net.price)}</td></tr>
+                        <tr><td style={{ padding: "3px 0" }}>− {t("Agent commission ({pct}%)", { pct: net.commissionPct })}</td><td style={{ textAlign: "right", fontWeight: 600 }}>−{money(net.commission)}</td></tr>
+                        <tr><td style={{ padding: "3px 0" }}>− {t("FL doc stamps on deed")}</td><td style={{ textAlign: "right", fontWeight: 600 }}>−{money(net.docStamps)}</td></tr>
+                        <tr><td style={{ padding: "3px 0" }}>− {t("Owner's title insurance")}</td><td style={{ textAlign: "right", fontWeight: 600 }}>−{money(net.titleIns)}</td></tr>
+                        <tr><td style={{ padding: "3px 0" }}>− {t("Title & closing fees (est.)")}</td><td style={{ textAlign: "right", fontWeight: 600 }}>−{money(net.titleFees)}</td></tr>
+                        <tr><td style={{ padding: "3px 0" }}>− {t("Prorated property taxes")}</td><td style={{ textAlign: "right", fontWeight: 600 }}>−{money(net.proratedTaxes)}</td></tr>
+                        <tr><td style={{ padding: "3px 0" }}>− {t("Recording fees")}</td><td style={{ textAlign: "right", fontWeight: 600 }}>−{money(net.recording)}</td></tr>
+                        <tr style={{ borderTop: "1px solid #BFDBEF" }}><td style={{ padding: "5px 0", fontWeight: 800, color: C.black }}>{owes ? t("Cash to bring to closing") : t("Estimated net to you")}</td><td style={{ textAlign: "right", fontWeight: 800, color: owes ? "#991B1B" : "#0c4a6e" }}>{money(Math.abs(net.netProceeds))}</td></tr>
                       </tbody>
                     </table>
                     <div style={{ fontSize: 11, color: C.gray, marginTop: 6, lineHeight: 1.4 }}>
-                      Does not include your mortgage payoff{net.commissionKnown ? "" : ", and assumes a 6% commission"}. {net.countyKnown ? "" : "Tax estimate uses a statewide average. "}This is an estimate — your title company's net sheet is the official figure.
+                      {net.commissionKnown ? t("Does not include your mortgage payoff.") : t("Does not include your mortgage payoff, and assumes a 6% commission.")} {net.countyKnown ? "" : t("Tax estimate uses a statewide average.") + " "}{t("This is an estimate — your title company's net sheet is the official figure.")}
                     </div>
                   </details>
                 </div>
@@ -479,17 +508,17 @@ function SellerOffersCard({ offers, context, headers, agentName, onDecided }) {
                 agent does the final binding Approve. */}
             {decided && (
               <div style={{ marginTop: 12, fontSize: 13, fontWeight: 700, color: decided === "accepted" ? C.success : C.red }}>
-                {decided === "accepted" ? "✓ You've chosen this offer — your agent has been notified. You can still change your choice below." : "✕ You've declined this offer. You can change your choice below."}
+                {decided === "accepted" ? "✓ " + t("You've chosen this offer — your agent has been notified. You can still change your choice below.") : "✕ " + t("You've declined this offer. You can change your choice below.")}
               </div>
             )}
             <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
               <button onClick={() => decide(o.id, "accepted")} disabled={busyId === o.id}
                 style={{ flex: 1, minWidth: 130, background: decided === "accepted" ? C.success : C.white, color: decided === "accepted" ? "#fff" : C.success, border: "2px solid " + C.success, borderRadius: 8, padding: "10px 14px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
-                {busyId === o.id ? "Saving…" : (decided === "accepted" ? "✓ Accepted" : "✓ Accept this offer")}
+                {busyId === o.id ? t("Saving…") : (decided === "accepted" ? "✓ " + t("Accepted") : "✓ " + t("Accept this offer"))}
               </button>
               <button onClick={() => decide(o.id, "declined")} disabled={busyId === o.id}
                 style={{ background: decided === "declined" ? C.red : C.white, color: decided === "declined" ? "#fff" : C.red, border: "2px solid " + C.red, borderRadius: 8, padding: "10px 14px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
-                {decided === "declined" ? "✕ Declined" : "Decline"}
+                {decided === "declined" ? "✕ " + t("Declined") : t("Decline")}
               </button>
             </div>
           </div>
@@ -518,13 +547,13 @@ function WinsCard({ timeline }) {
   return (
     <div style={{ background: "#fff", borderRadius: 14, padding: 18, marginBottom: 14, boxShadow: "0 1px 4px rgba(0,0,0,0.08)" }}>
       <div style={{ fontSize: 12, fontWeight: 800, color: "#555", textTransform: "uppercase", letterSpacing: 1, marginBottom: 2 }}>
-        🎉 Look how far we've come — {done.length} step{done.length === 1 ? "" : "s"} done
+        🎉 {tn(done.length, "Look how far we've come — {n} step done", "Look how far we've come — {n} steps done")}
       </div>
-      <div style={{ fontSize: 12, color: "#666666", marginBottom: 10 }}>Your most recent wins:</div>
+      <div style={{ fontSize: 12, color: "#666666", marginBottom: 10 }}>{t("Your most recent wins:")}</div>
       {recent.map((m, i) => (
         <div key={m.id || i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "7px 0", borderBottom: i < recent.length - 1 ? "1px solid #F4F4F4" : "none" }}>
           <span style={{ color: "#1E8449", fontSize: 16, fontWeight: 800 }}>✓</span>
-          <span style={{ fontSize: 14, color: "#111" }}>{m._label}</span>
+          <span style={{ fontSize: 14, color: "#111" }}>{t(m._label)}</span>
         </div>
       ))}
     </div>
@@ -584,14 +613,14 @@ function LoanTypesCard() {
   }, []);
   return (
     <div style={{ background: C.white, borderRadius: 14, padding: 18, marginBottom: 14, boxShadow: "0 1px 4px rgba(0,0,0,0.08)", borderLeft: "4px solid #1A5276" }}>
-      <div style={{ fontSize: 12, fontWeight: 800, color: C.gray, textTransform: "uppercase", letterSpacing: 1, marginBottom: 4 }}>💰 Loan Types — What's Available</div>
-      <div style={{ fontSize: 12, color: C.gray, marginBottom: 4 }}>Tap any loan to learn how it works. Your lender confirms which fits you best.</div>
+      <div style={{ fontSize: 12, fontWeight: 800, color: C.gray, textTransform: "uppercase", letterSpacing: 1, marginBottom: 4 }}>💰 {t("Loan Types — What's Available")}</div>
+      <div style={{ fontSize: 12, color: C.gray, marginBottom: 4 }}>{t("Tap any loan to learn how it works. Your lender confirms which fits you best.")}</div>
       {mkt ? (
         <div style={{ fontSize: 12, color: "#1A5276", background: "#EAF2F8", borderRadius: 8, padding: "8px 10px", marginBottom: 12 }}>
-          📈 <b>{(mkt.monthlyAvg ?? mkt.rate).toFixed(2)}%</b> — {mkt.monthLabel || "this month"}'s average 30-yr fixed rate. Each loan below prices a bit differently (FHA/VA often slightly lower, jumbo slightly higher) and your credit + down payment set your exact rate — ask your lender for today's quote.
+          📈 <b>{(mkt.monthlyAvg ?? mkt.rate).toFixed(2)}%</b> — {mkt.monthLabel ? t("{month}'s average 30-yr fixed rate.", { month: monthName(mkt.monthLabel) }) : t("this month's average 30-yr fixed rate.")} {t("Each loan below prices a bit differently (FHA/VA often slightly lower, jumbo slightly higher) and your credit + down payment set your exact rate — ask your lender for today's quote.")}
         </div>
       ) : (
-        <div style={{ fontSize: 11, color: "#1A5276", background: "#EAF2F8", borderRadius: 8, padding: "6px 10px", marginBottom: 12 }}>📅 Ask your lender for today's rate on each loan.</div>
+        <div style={{ fontSize: 11, color: "#1A5276", background: "#EAF2F8", borderRadius: 8, padding: "6px 10px", marginBottom: 12 }}>📅 {t("Ask your lender for today's rate on each loan.")}</div>
       )}
       {LOAN_TYPES.map((l) => {
         const isOpen = open === l.key;
@@ -600,23 +629,23 @@ function LoanTypesCard() {
             <div onClick={() => setOpen(isOpen ? "" : l.key)} style={{ display: "flex", alignItems: "center", gap: 10, padding: "11px 0", cursor: "pointer" }}>
               <span style={{ fontSize: 20 }}>{l.emoji}</span>
               <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 14, fontWeight: 700, color: C.black }}>{l.name}</div>
-                <div style={{ fontSize: 12, color: C.gray }}>{l.down}</div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: C.black }}>{t(l.name)}</div>
+                <div style={{ fontSize: 12, color: C.gray }}>{t(l.down)}</div>
               </div>
               <span style={{ fontSize: 13, color: C.gray }}>{isOpen ? "▲" : "▼"}</span>
             </div>
             {isOpen && (
               <div style={{ paddingLeft: 30 }}>
-                <div style={{ fontSize: 13, color: C.black, lineHeight: 1.55, marginBottom: 8 }}><b>Best for:</b> {l.who}</div>
-                <div style={{ fontSize: 13, color: C.gray, lineHeight: 1.55, marginBottom: 8 }}>{l.how}</div>
+                <div style={{ fontSize: 13, color: C.black, lineHeight: 1.55, marginBottom: 8 }}><b>{t("Best for:")}</b> {t(l.who)}</div>
+                <div style={{ fontSize: 13, color: C.gray, lineHeight: 1.55, marginBottom: 8 }}>{t(l.how)}</div>
                 <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                   <div style={{ flex: "1 1 140px" }}>
-                    <div style={{ fontSize: 11, fontWeight: 700, color: C.success, marginBottom: 3 }}>👍 PROS</div>
-                    {l.pros.map((p, i) => <div key={i} style={{ fontSize: 12, color: C.gray, lineHeight: 1.5 }}>• {p}</div>)}
+                    <div style={{ fontSize: 11, fontWeight: 700, color: C.success, marginBottom: 3 }}>👍 {t("PROS")}</div>
+                    {l.pros.map((p, i) => <div key={i} style={{ fontSize: 12, color: C.gray, lineHeight: 1.5 }}>• {t(p)}</div>)}
                   </div>
                   <div style={{ flex: "1 1 140px" }}>
-                    <div style={{ fontSize: 11, fontWeight: 700, color: C.warning, marginBottom: 3 }}>👀 KEEP IN MIND</div>
-                    {l.cons.map((p, i) => <div key={i} style={{ fontSize: 12, color: C.gray, lineHeight: 1.5 }}>• {p}</div>)}
+                    <div style={{ fontSize: 11, fontWeight: 700, color: C.warning, marginBottom: 3 }}>👀 {t("KEEP IN MIND")}</div>
+                    {l.cons.map((p, i) => <div key={i} style={{ fontSize: 12, color: C.gray, lineHeight: 1.5 }}>• {t(p)}</div>)}
                   </div>
                 </div>
               </div>
@@ -658,44 +687,44 @@ function CreditCoachCard({ txId }) {
   const save = async () => {
     setErr("");
     const s = parseInt(score);
-    if (!(s >= 300 && s <= 850)) { setErr("Enter a score between 300 and 850."); return; }
+    if (!(s >= 300 && s <= 850)) { setErr(t("Enter a score between 300 and 850.")); return; }
     setSaving(true);
     try {
       const r = await fetch(API + "/client/credit/" + txId, { method: "POST", headers: hdrs, body: JSON.stringify({ score: s, goalScore: goal ? parseInt(goal) : null }) });
       const d = await r.json();
       if (d.success) { setEntries(e => [...e, d.entry]); setScore(""); }
-      else setErr(d.error || "Could not save.");
-    } catch { setErr("Could not save."); }
+      else setErr(t(d.error || "Could not save."));
+    } catch { setErr(t("Could not save.")); }
     setSaving(false);
   };
-  const band = (s) => s >= 740 ? { t: "Very Good / Excellent", c: C.success } : s >= 670 ? { t: "Good", c: C.success } : s >= 580 ? { t: "Fair — room to grow", c: C.warning } : { t: "Needs work — let's build it", c: C.red };
+  const band = (s) => s >= 740 ? { t: t("Very Good / Excellent"), c: C.success } : s >= 670 ? { t: t("Good"), c: C.success } : s >= 580 ? { t: t("Fair — room to grow"), c: C.warning } : { t: t("Needs work — let's build it"), c: C.red };
   return (
     <div style={{ background: C.white, borderRadius: 14, padding: 18, marginBottom: 14, boxShadow: "0 1px 4px rgba(0,0,0,0.08)", borderLeft: "4px solid #1A5276" }}>
-      <div style={{ fontSize: 12, fontWeight: 800, color: C.gray, textTransform: "uppercase", letterSpacing: 1, marginBottom: 4 }}>📊 Credit Health & Coaching</div>
-      <div style={{ fontSize: 12, color: C.gray, marginBottom: 12 }}>A better score = a better rate = a lower payment. Track yours here and follow the tips to raise it fast.</div>
+      <div style={{ fontSize: 12, fontWeight: 800, color: C.gray, textTransform: "uppercase", letterSpacing: 1, marginBottom: 4 }}>📊 {t("Credit Health & Coaching")}</div>
+      <div style={{ fontSize: 12, color: C.gray, marginBottom: 12 }}>{t("A better score = a better rate = a lower payment. Track yours here and follow the tips to raise it fast.")}</div>
       {latest && (
         <div style={{ display: "flex", alignItems: "center", gap: 16, background: C.lightGray, borderRadius: 12, padding: 14, marginBottom: 12 }}>
           <div style={{ textAlign: "center" }}>
             <div style={{ fontSize: 30, fontWeight: 800, color: band(latest.score).c, lineHeight: 1 }}>{latest.score}</div>
-            <div style={{ fontSize: 10, color: C.gray }}>your score</div>
+            <div style={{ fontSize: 10, color: C.gray }}>{t("your score")}</div>
           </div>
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: band(latest.score).c }}>{band(latest.score).t}</div>
-            {delta !== null && <div style={{ fontSize: 12, color: delta >= 0 ? C.success : C.red }}>{delta >= 0 ? "▲ +" + delta : "▼ " + delta} since you started</div>}
-            {goalScore && <div style={{ fontSize: 12, color: C.gray }}>🎯 Goal: {goalScore}{latest.score >= goalScore ? " — reached! 🎉" : " (" + (goalScore - latest.score) + " to go)"}</div>}
+            {delta !== null && <div style={{ fontSize: 12, color: delta >= 0 ? C.success : C.red }}>{delta >= 0 ? "▲ +" + delta : "▼ " + delta} {t("since you started")}</div>}
+            {goalScore && <div style={{ fontSize: 12, color: C.gray }}>🎯 {t("Goal:")} {goalScore}{latest.score >= goalScore ? " — " + t("reached! 🎉") : " (" + t("{n} to go", { n: goalScore - latest.score }) + ")"}</div>}
           </div>
         </div>
       )}
       <div style={{ display: "flex", gap: 8, alignItems: "flex-end", flexWrap: "wrap", marginBottom: entries.length ? 12 : 0 }}>
         <div>
-          <div style={{ fontSize: 11, color: C.gray, marginBottom: 3 }}>Today's score</div>
+          <div style={{ fontSize: 11, color: C.gray, marginBottom: 3 }}>{t("Today's score")}</div>
           <input value={score} onChange={e => setScore(e.target.value.replace(/\D/g, "").slice(0, 3))} inputMode="numeric" placeholder="720" style={{ width: 80, fontSize: 16, padding: "8px 10px", border: "1px solid " + C.border, borderRadius: 8 }} />
         </div>
         <div>
-          <div style={{ fontSize: 11, color: C.gray, marginBottom: 3 }}>Goal (optional)</div>
+          <div style={{ fontSize: 11, color: C.gray, marginBottom: 3 }}>{t("Goal (optional)")}</div>
           <input value={goal} onChange={e => setGoal(e.target.value.replace(/\D/g, "").slice(0, 3))} inputMode="numeric" placeholder="740" style={{ width: 80, fontSize: 16, padding: "8px 10px", border: "1px solid " + C.border, borderRadius: 8 }} />
         </div>
-        <button onClick={save} disabled={saving} style={{ background: "#0c4a6e", color: "#fff", border: "none", borderRadius: 8, padding: "10px 16px", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>{saving ? "Saving…" : "Log it"}</button>
+        <button onClick={save} disabled={saving} style={{ background: "#0c4a6e", color: "#fff", border: "none", borderRadius: 8, padding: "10px 16px", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>{saving ? t("Saving…") : t("Log it")}</button>
       </div>
       {err && <div style={{ fontSize: 12, color: C.red, marginBottom: 8 }}>{err}</div>}
       {entries.length > 1 && (
@@ -706,11 +735,11 @@ function CreditCoachCard({ txId }) {
           })}
         </div>
       )}
-      <div style={{ fontSize: 11, fontWeight: 700, color: C.gray, textTransform: "uppercase", letterSpacing: 1, margin: "4px 0 8px" }}>Raise your score — fastest first</div>
-      {CREDIT_TIPS.map((t, i) => (
+      <div style={{ fontSize: 11, fontWeight: 700, color: C.gray, textTransform: "uppercase", letterSpacing: 1, margin: "4px 0 8px" }}>{t("Raise your score — fastest first")}</div>
+      {CREDIT_TIPS.map((tip, i) => (
         <div key={i} style={{ display: "flex", gap: 10, alignItems: "flex-start", padding: "8px 0", borderBottom: i < CREDIT_TIPS.length - 1 ? "1px solid " + C.lightGray : "none" }}>
-          <span style={{ fontSize: 16 }}>{t.icon}</span>
-          <div><div style={{ fontSize: 13, fontWeight: 700, color: C.black }}>{t.title}</div><div style={{ fontSize: 12, color: C.gray, lineHeight: 1.5 }}>{t.body}</div></div>
+          <span style={{ fontSize: 16 }}>{tip.icon}</span>
+          <div><div style={{ fontSize: 13, fontWeight: 700, color: C.black }}>{t(tip.title)}</div><div style={{ fontSize: 12, color: C.gray, lineHeight: 1.5 }}>{t(tip.body)}</div></div>
         </div>
       ))}
     </div>
@@ -762,8 +791,8 @@ function FirstTimeRoadmapCard({ tx }) {
   const currentIndex = Math.max(0, JOURNEY_ORDER.indexOf(tx?.status));
   return (
     <div style={{ background: C.white, borderRadius: 14, padding: 18, marginBottom: 14, boxShadow: "0 1px 4px rgba(0,0,0,0.08)", borderLeft: "4px solid " + NAVY }}>
-      <div style={{ fontSize: 12, fontWeight: 800, color: C.gray, textTransform: "uppercase", letterSpacing: 1, marginBottom: 4 }}>🧭 Your Home-Buying Journey</div>
-      <div style={{ fontSize: 12, color: C.gray, marginBottom: 16 }}>Never bought before? Here's exactly what happens, start to finish — so nothing catches you off guard. The highlighted step is where you are right now.</div>
+      <div style={{ fontSize: 12, fontWeight: 800, color: C.gray, textTransform: "uppercase", letterSpacing: 1, marginBottom: 4 }}>🧭 {t("Your Home-Buying Journey")}</div>
+      <div style={{ fontSize: 12, color: C.gray, marginBottom: 16 }}>{t("Never bought before? Here's exactly what happens, start to finish — so nothing catches you off guard. The highlighted step is where you are right now.")}</div>
       {JOURNEY_STAGES.map((s, i) => {
         const stageIdx = JOURNEY_ORDER.indexOf(s.statusKey);
         const isDone = stageIdx < currentIndex;
@@ -785,25 +814,25 @@ function FirstTimeRoadmapCard({ tx }) {
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap" }}>
                 <span style={{ fontSize: 16 }}>{s.icon}</span>
-                <span style={{ fontSize: 14, fontWeight: 700, color: C.black }}>{s.title}</span>
-                {isCurrent && <span style={{ fontSize: 10, fontWeight: 800, color: "#fff", background: NAVY, borderRadius: 20, padding: "2px 8px", letterSpacing: 0.5 }}>YOU'RE HERE</span>}
+                <span style={{ fontSize: 14, fontWeight: 700, color: C.black }}>{t(s.title)}</span>
+                {isCurrent && <span style={{ fontSize: 10, fontWeight: 800, color: "#fff", background: NAVY, borderRadius: 20, padding: "2px 8px", letterSpacing: 0.5 }}>{t("YOU'RE HERE")}</span>}
               </div>
-              <div style={{ fontSize: 12.5, color: C.black, lineHeight: 1.55, marginTop: 5 }}>{s.happening}</div>
-              <div style={{ fontSize: 12.5, color: C.gray, lineHeight: 1.55, marginTop: 6 }}><b style={{ color: NAVY }}>What you'll do:</b> {s.doText}</div>
-              <div style={{ fontSize: 12, color: C.gray, lineHeight: 1.5, marginTop: 4 }}><b style={{ color: NAVY }}>How long:</b> {s.howLong}</div>
-              <div style={{ fontSize: 12.5, color: "#374151", background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 9, padding: "8px 10px", marginTop: 8, lineHeight: 1.5 }}><b style={{ color: NAVY }}>Good to know:</b> {s.note}</div>
+              <div style={{ fontSize: 12.5, color: C.black, lineHeight: 1.55, marginTop: 5 }}>{t(s.happening)}</div>
+              <div style={{ fontSize: 12.5, color: C.gray, lineHeight: 1.55, marginTop: 6 }}><b style={{ color: NAVY }}>{t("What you'll do:")}</b> {t(s.doText)}</div>
+              <div style={{ fontSize: 12, color: C.gray, lineHeight: 1.5, marginTop: 4 }}><b style={{ color: NAVY }}>{t("How long:")}</b> {t(s.howLong)}</div>
+              <div style={{ fontSize: 12.5, color: "#374151", background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 9, padding: "8px 10px", marginTop: 8, lineHeight: 1.5 }}><b style={{ color: NAVY }}>{t("Good to know:")}</b> {t(s.note)}</div>
             </div>
           </div>
         );
       })}
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 14 }}>
         <div style={{ flex: "1 1 150px", background: C.successBg, borderRadius: 12, padding: 14 }}>
-          <div style={{ fontSize: 13, fontWeight: 800, color: C.success, marginBottom: 8 }}>✅ DO</div>
-          {DOS.map((d, i) => <div key={i} style={{ fontSize: 12.5, color: C.black, lineHeight: 1.5, marginBottom: 6 }}>• {d}</div>)}
+          <div style={{ fontSize: 13, fontWeight: 800, color: C.success, marginBottom: 8 }}>✅ {t("DO")}</div>
+          {DOS.map((d, i) => <div key={i} style={{ fontSize: 12.5, color: C.black, lineHeight: 1.5, marginBottom: 6 }}>• {t(d)}</div>)}
         </div>
         <div style={{ flex: "1 1 150px", background: "#FDEDEC", borderRadius: 12, padding: 14 }}>
-          <div style={{ fontSize: 13, fontWeight: 800, color: C.red, marginBottom: 8 }}>🚫 DON'T (until after closing)</div>
-          {DONTS.map((d, i) => <div key={i} style={{ fontSize: 12.5, color: C.black, lineHeight: 1.5, marginBottom: 6 }}>• {d}</div>)}
+          <div style={{ fontSize: 13, fontWeight: 800, color: C.red, marginBottom: 8 }}>🚫 {t("DON'T (until after closing)")}</div>
+          {DONTS.map((d, i) => <div key={i} style={{ fontSize: 12.5, color: C.black, lineHeight: 1.5, marginBottom: 6 }}>• {t(d)}</div>)}
         </div>
       </div>
     </div>
@@ -853,8 +882,8 @@ function HomeSellingJourneyCard({ tx }) {
   const currentIndex = Math.max(0, JOURNEY_ORDER.indexOf(tx?.status));
   return (
     <div style={{ background: C.white, borderRadius: 14, padding: 18, marginBottom: 14, boxShadow: "0 1px 4px rgba(0,0,0,0.08)", borderLeft: "4px solid " + NAVY }}>
-      <div style={{ fontSize: 12, fontWeight: 800, color: C.gray, textTransform: "uppercase", letterSpacing: 1, marginBottom: 4 }}>🧭 Your Home-Selling Journey</div>
-      <div style={{ fontSize: 12, color: C.gray, marginBottom: 16 }}>First time selling? Here's exactly what happens, start to finish. The highlighted step is where you are right now.</div>
+      <div style={{ fontSize: 12, fontWeight: 800, color: C.gray, textTransform: "uppercase", letterSpacing: 1, marginBottom: 4 }}>🧭 {t("Your Home-Selling Journey")}</div>
+      <div style={{ fontSize: 12, color: C.gray, marginBottom: 16 }}>{t("First time selling? Here's exactly what happens, start to finish. The highlighted step is where you are right now.")}</div>
       {SELLER_JOURNEY_STAGES.map((s, i) => {
         const stageIdx = JOURNEY_ORDER.indexOf(s.statusKey);
         const isDone = stageIdx < currentIndex;
@@ -876,13 +905,13 @@ function HomeSellingJourneyCard({ tx }) {
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap" }}>
                 <span style={{ fontSize: 16 }}>{s.icon}</span>
-                <span style={{ fontSize: 14, fontWeight: 700, color: C.black }}>{s.title}</span>
-                {isCurrent && <span style={{ fontSize: 10, fontWeight: 800, color: "#fff", background: NAVY, borderRadius: 20, padding: "2px 8px", letterSpacing: 0.5 }}>YOU'RE HERE</span>}
+                <span style={{ fontSize: 14, fontWeight: 700, color: C.black }}>{t(s.title)}</span>
+                {isCurrent && <span style={{ fontSize: 10, fontWeight: 800, color: "#fff", background: NAVY, borderRadius: 20, padding: "2px 8px", letterSpacing: 0.5 }}>{t("YOU'RE HERE")}</span>}
               </div>
-              <div style={{ fontSize: 12.5, color: C.black, lineHeight: 1.55, marginTop: 5 }}>{s.happening}</div>
-              <div style={{ fontSize: 12.5, color: C.gray, lineHeight: 1.55, marginTop: 6 }}><b style={{ color: NAVY }}>What you'll do:</b> {s.doText}</div>
-              <div style={{ fontSize: 12, color: C.gray, lineHeight: 1.5, marginTop: 4 }}><b style={{ color: NAVY }}>How long:</b> {s.howLong}</div>
-              <div style={{ fontSize: 12.5, color: "#374151", background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 9, padding: "8px 10px", marginTop: 8, lineHeight: 1.5 }}><b style={{ color: NAVY }}>Good to know:</b> {s.note}</div>
+              <div style={{ fontSize: 12.5, color: C.black, lineHeight: 1.55, marginTop: 5 }}>{t(s.happening)}</div>
+              <div style={{ fontSize: 12.5, color: C.gray, lineHeight: 1.55, marginTop: 6 }}><b style={{ color: NAVY }}>{t("What you'll do:")}</b> {t(s.doText)}</div>
+              <div style={{ fontSize: 12, color: C.gray, lineHeight: 1.5, marginTop: 4 }}><b style={{ color: NAVY }}>{t("How long:")}</b> {t(s.howLong)}</div>
+              <div style={{ fontSize: 12.5, color: "#374151", background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 9, padding: "8px 10px", marginTop: 8, lineHeight: 1.5 }}><b style={{ color: NAVY }}>{t("Good to know:")}</b> {t(s.note)}</div>
             </div>
           </div>
         );
@@ -897,6 +926,7 @@ function HomeSellingJourneyCard({ tx }) {
 // ════════════════════════════════════════════════════════════════
 const MKT_ICON = { photos: "📸", mls: "🌐", social: "📱", openhouse: "🚪", email: "✉️", signage: "🪧", price: "🏷️", showing: "👀", feature: "⭐", milestone: "✅", action: "📣" };
 function MarketingFeedCard({ txId }) {
+  const lang = useLang();
   const [data, setData] = useState(null);
   const hdrs = { "Content-Type": "application/json", "Authorization": "Bearer " + (localStorage.getItem("tp_token") || "") };
   useEffect(() => {
@@ -907,21 +937,24 @@ function MarketingFeedCard({ txId }) {
       .catch(() => setData({ items: [] }));
   }, [txId]);
   const items = data?.items || [];
+  useEffect(() => {
+    if (lang === "es" && items.length) fetchSpanish(items.flatMap(it => [it.label, it.detail]));
+  }, [lang, data]);
   return (
     <div style={{ background: C.white, borderRadius: 14, padding: 18, marginBottom: 14, boxShadow: "0 1px 4px rgba(0,0,0,0.08)", borderLeft: "4px solid " + C.red }}>
-      <div style={{ fontSize: 12, fontWeight: 800, color: C.gray, textTransform: "uppercase", letterSpacing: 1, marginBottom: 4 }}>📣 Marketing Your Home</div>
-      <div style={{ fontSize: 12, color: C.gray, marginBottom: 14 }}>Everything we're doing to get your home sold — as it happens.</div>
+      <div style={{ fontSize: 12, fontWeight: 800, color: C.gray, textTransform: "uppercase", letterSpacing: 1, marginBottom: 4 }}>📣 {t("Marketing Your Home")}</div>
+      <div style={{ fontSize: 12, color: C.gray, marginBottom: 14 }}>{t("Everything we're doing to get your home sold — as it happens.")}</div>
       {data === null ? (
-        <div style={{ fontSize: 13, color: C.gray }}>Loading…</div>
+        <div style={{ fontSize: 13, color: C.gray }}>{t("Loading…")}</div>
       ) : items.length === 0 ? (
-        <div style={{ fontSize: 13, color: C.gray, background: C.lightGray, borderRadius: 10, padding: 14 }}>Your marketing campaign is just getting started — check back soon to see everything your agent is doing to sell your home.</div>
+        <div style={{ fontSize: 13, color: C.gray, background: C.lightGray, borderRadius: 10, padding: 14 }}>{t("Your marketing campaign is just getting started — check back soon to see everything your agent is doing to sell your home.")}</div>
       ) : (
         items.map((it, i) => (
           <div key={it.id || i} style={{ display: "flex", gap: 12, alignItems: "flex-start", padding: "10px 0", borderBottom: i < items.length - 1 ? "1px solid " + C.lightGray : "none" }}>
             <span style={{ fontSize: 18 }}>{MKT_ICON[it.type] || "📣"}</span>
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 14, fontWeight: 700, color: C.black }}>{it.label}</div>
-              {it.detail && <div style={{ fontSize: 12.5, color: C.gray, lineHeight: 1.5 }}>{it.detail}</div>}
+              <div style={{ fontSize: 14, fontWeight: 700, color: C.black }}>{t(it.label)}</div>
+              {it.detail && <div style={{ fontSize: 12.5, color: C.gray, lineHeight: 1.5 }}>{t(it.detail)}</div>}
               {it.date && <div style={{ fontSize: 11, color: C.midGray }}>{formatDate(it.date)}</div>}
             </div>
           </div>
@@ -941,32 +974,32 @@ function MarketingFeedCard({ txId }) {
 // check in every home. Plain-English, Florida-aware, no dollar promises.
 function ShowingGuideCard() {
   const [open, setOpen] = useState(false);
-  const H = ({ children }) => <div style={{ fontSize: 14, fontWeight: 800, color: C.black, margin: "14px 0 6px" }}>{children}</div>;
-  const L = ({ items }) => <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13.5, color: C.black, lineHeight: 1.65 }}>{items.map((x, i) => <li key={i}>{x}</li>)}</ul>;
+  const H = ({ children }) => <div style={{ fontSize: 14, fontWeight: 800, color: C.black, margin: "14px 0 6px" }}>{typeof children === "string" ? t(children) : children}</div>;
+  const L = ({ items }) => <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13.5, color: C.black, lineHeight: 1.65 }}>{items.map((x, i) => <li key={i}>{t(x)}</li>)}</ul>;
   return (
     <div style={{ background: C.white, borderRadius: 14, padding: 16, marginBottom: 14, boxShadow: "0 1px 4px rgba(0,0,0,0.08)", borderLeft: "4px solid " + C.red }}>
       <button onClick={() => setOpen(o => !o)} style={{ width: "100%", background: "none", border: "none", padding: 0, textAlign: "left", cursor: "pointer", fontFamily: "inherit", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
         <div>
-          <div style={{ fontSize: 15.5, fontWeight: 800, color: C.black }}>🔎 What to expect at showings</div>
-          <div style={{ fontSize: 12.5, color: C.gray, marginTop: 2 }}>Every home needs something — here's how to tell a quick fix from a big deal.</div>
+          <div style={{ fontSize: 15.5, fontWeight: 800, color: C.black }}>🔎 {t("What to expect at showings")}</div>
+          <div style={{ fontSize: 12.5, color: C.gray, marginTop: 2 }}>{t("Every home needs something — here's how to tell a quick fix from a big deal.")}</div>
         </div>
-        <span style={{ fontSize: 13, fontWeight: 700, color: C.red, whiteSpace: "nowrap" }}>{open ? "Show less ▲" : "Tap to read more ▼"}</span>
+        <span style={{ fontSize: 13, fontWeight: 700, color: C.red, whiteSpace: "nowrap" }}>{open ? t("Show less ▲") : t("Tap to read more ▼")}</span>
       </button>
       {open && (
         <div>
           <H>🏠 Every home needs something</H>
-          <div style={{ fontSize: 13.5, color: C.black, lineHeight: 1.6 }}>Even brand-new homes have a to-do list. The goal today isn't a perfect house — it's to spot which issues are easy weekend fixes and which ones are big-ticket items.</div>
+          <div style={{ fontSize: 13.5, color: C.black, lineHeight: 1.6 }}>{t("Even brand-new homes have a to-do list. The goal today isn't a perfect house — it's to spot which issues are easy weekend fixes and which ones are big-ticket items.")}</div>
           <H>✅ Easy fixes — don't let these scare you</H>
           <L items={["Paint colors and scuffed walls", "Light fixtures, faucets, cabinet handles", "Carpet or flooring in a room or two", "Landscaping and curb appeal", "Caulk, grout, screens, closet doors", "Older appliances (you can replace them one at a time)"]} />
-          <div style={{ fontSize: 12.5, color: C.gray, marginTop: 4 }}>These are usually a handyman visit or a weekend project — and they're great for negotiating a better price.</div>
+          <div style={{ fontSize: 12.5, color: C.gray, marginTop: 4 }}>{t("These are usually a handyman visit or a weekend project — and they're great for negotiating a better price.")}</div>
           <H>⚠️ Bigger items — look closer</H>
           <L items={["Roof age and condition — in Florida an older roof can make insurance harder to get or more expensive", "AC / heating system age", "Water heater age", "Water stains on ceilings, under sinks, or around windows (leaks)", "Cracks in walls, floors, or the foundation", "Electrical panel and plumbing", "Windows and doors (storm protection)", "Pool and pool equipment"]} />
           <H>👀 Check these in every home</H>
           <L items={["Run the water and flush a toilet", "Open a few windows and doors", "Look UP at the ceilings", "Trust your nose — musty, smoke, or pet smells", "Listen for road, train, or airport noise", "Check your phone signal", "Picture YOUR furniture — ignore the staging", "Drive the neighborhood and your commute"]} />
           <div style={{ background: C.lightGray, borderRadius: 10, padding: "10px 12px", marginTop: 14, fontSize: 13, color: C.black, lineHeight: 1.55 }}>
-            📝 <b>Score each home before you walk out the door.</b> By the fourth house they all start to blur together. Tap 😍 🤔 👎 and the liked / didn't-like chips — your agent sees your scorecard too (and can fill it in for you).
+            📝 <b>{t("Score each home before you walk out the door.")}</b> {t("By the fourth house they all start to blur together. Tap 😍 🤔 👎 and the liked / didn't-like chips — your agent sees your scorecard too (and can fill it in for you).")}
           </div>
-          <div style={{ fontSize: 12.5, color: C.gray, marginTop: 10, lineHeight: 1.55 }}>Don't worry about catching everything. Once your offer is accepted, a licensed home inspector checks the house top to bottom, and your agent helps you negotiate any repairs.</div>
+          <div style={{ fontSize: 12.5, color: C.gray, marginTop: 10, lineHeight: 1.55 }}>{t("Don't worry about catching everything. Once your offer is accepted, a licensed home inspector checks the house top to bottom, and your agent helps you negotiate any repairs.")}</div>
         </div>
       )}
     </div>
@@ -985,13 +1018,13 @@ function ShowingToursCard({ txId, preview = false }) {
     // ❤️ banner in their Showings tab) but sends no message/email to themselves.
     if (!(await askConfirm(preview
       ? `Preview: mark ${s.address} as "buyer wants to make an offer"?\n\nYou'll see the ❤️ banner in your Showings tab. (In preview nothing is emailed — when your real buyer taps it, you also get a message + email.)`
-      : `Tell your agent you'd like to make an offer on ${s.address}?`, { okLabel: "Yes, tell my agent" }))) return;
+      : t("Tell your agent you'd like to make an offer on {address}?", { address: s.address }), { okLabel: t("Yes, tell my agent") }))) return;
     setSending(s.id);
     try {
       const r = await fetch(API + "/client/showing-stops/" + s.id + "/offer-interest", { method: "POST", headers: { "Authorization": "Bearer " + (localStorage.getItem("tp_token") || "") } });
       if (!r.ok) throw new Error();
       setTours(prev => prev.map(t => ({ ...t, stops: t.stops.map(x => x.id === s.id ? { ...x, buyer_offer_interest_at: new Date().toISOString() } : x) })));
-    } catch { alert("Couldn't send that — please try again, or message your agent."); }
+    } catch { alert(t("Couldn't send that — please try again, or message your agent.")); }
     setSending(null);
   };
   useEffect(() => {
@@ -1019,30 +1052,30 @@ function ShowingToursCard({ txId, preview = false }) {
     } catch { return null; }
   };
   const todayET = new Date().toLocaleDateString("en-CA", { timeZone: "America/New_York" });
-  const dayLabel = (d) => { const x = new Date(String(d).slice(0, 10) + "T12:00:00"); return x.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" }); };
+  const dayLabel = (d) => { const x = new Date(String(d).slice(0, 10) + "T12:00:00"); return x.toLocaleDateString(locale(), { weekday: "long", month: "long", day: "numeric" }); };
   const mapsUrl = (s) => "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent([s.address, s.city, [s.state || "FL", s.zip].filter(Boolean).join(" ")].filter(Boolean).join(", "));
-  if (tours === null) return <div style={{ fontSize: 13, color: C.gray, padding: 14 }}>Loading your showings…</div>;
+  if (tours === null) return <div style={{ fontSize: 13, color: C.gray, padding: 14 }}>{t("Loading your showings…")}</div>;
   if (!tours.length) return (
     <>
       <ShowingGuideCard />
       <div style={{ background: C.white, borderRadius: 14, padding: 18, boxShadow: "0 1px 4px rgba(0,0,0,0.08)", borderLeft: "4px solid " + C.red }}>
-        <div style={{ fontSize: 12, fontWeight: 800, color: C.gray, textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>🗺 Your Showings</div>
-        <div style={{ fontSize: 13.5, color: C.gray, lineHeight: 1.6 }}>When your agent plans a day of home tours, the homes and times will show up here.</div>
+        <div style={{ fontSize: 12, fontWeight: 800, color: C.gray, textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>🗺 {t("Your Showings")}</div>
+        <div style={{ fontSize: 13.5, color: C.gray, lineHeight: 1.6 }}>{t("When your agent plans a day of home tours, the homes and times will show up here.")}</div>
       </div>
     </>
   );
   return (<>
     <ShowingGuideCard />
-    <FavoritesSummary title="⭐ Your favorites so far" stops={tours.flatMap(t => t.stops.map(s => ({ ...s, tour_date: t.tour_date })))} />
-    {tours.map(t => {
-    const sched = simulate(t.stops, { start: t.start_lat != null ? { lat: t.start_lat, lng: t.start_lng } : null, startTime: t.start_time || "10:00", minutesPerStop: t.minutes_per_stop || 20 });
-    const past = String(t.tour_date || "").slice(0, 10) < todayET;
+    <FavoritesSummary title={"⭐ " + t("Your favorites so far")} stops={tours.flatMap(t => t.stops.map(s => ({ ...s, tour_date: t.tour_date })))} />
+    {tours.map(tour => {
+    const sched = simulate(tour.stops, { start: tour.start_lat != null ? { lat: tour.start_lat, lng: tour.start_lng } : null, startTime: tour.start_time || "10:00", minutesPerStop: tour.minutes_per_stop || 20 });
+    const past = String(tour.tour_date || "").slice(0, 10) < todayET;
     return (
-      <div key={t.id} style={{ background: C.white, borderRadius: 14, padding: 18, marginBottom: 14, boxShadow: "0 1px 4px rgba(0,0,0,0.08)", borderLeft: "4px solid " + (past ? C.midGray : C.red) }}>
-        <div style={{ fontSize: 12, fontWeight: 800, color: C.gray, textTransform: "uppercase", letterSpacing: 1 }}>🗺 {past ? "Homes you toured" : "Your home tour"}</div>
-        <div style={{ fontSize: 17, fontWeight: 800, color: C.black, marginTop: 4 }}>{t.tour_date ? dayLabel(t.tour_date) : "Upcoming"}</div>
-        <div style={{ fontSize: 12.5, color: C.gray, marginTop: 2, marginBottom: 10 }}>{t.stops.length} home{t.stops.length === 1 ? "" : "s"}{!past && sched.legs[0] ? ` · starting around ${fmtTime(sched.legs[0].begin)}` : ""}</div>
-        {t.stops.map((s, i) => {
+      <div key={tour.id} style={{ background: C.white, borderRadius: 14, padding: 18, marginBottom: 14, boxShadow: "0 1px 4px rgba(0,0,0,0.08)", borderLeft: "4px solid " + (past ? C.midGray : C.red) }}>
+        <div style={{ fontSize: 12, fontWeight: 800, color: C.gray, textTransform: "uppercase", letterSpacing: 1 }}>🗺 {past ? t("Homes you toured") : t("Your home tour")}</div>
+        <div style={{ fontSize: 17, fontWeight: 800, color: C.black, marginTop: 4 }}>{tour.tour_date ? dayLabel(tour.tour_date) : t("Upcoming")}</div>
+        <div style={{ fontSize: 12.5, color: C.gray, marginTop: 2, marginBottom: 10 }}>{tn(tour.stops.length, "{n} home", "{n} homes")}{!past && sched.legs[0] ? " · " + t("starting around {time}", { time: fmtTime(sched.legs[0].begin) }) : ""}</div>
+        {tour.stops.map((s, i) => {
           const l = sched.legs[i] || {};
           return (
             <div key={s.id} style={{ display: "flex", gap: 12, alignItems: "flex-start", padding: "10px 0", borderTop: "1px solid " + C.lightGray }}>
@@ -1055,17 +1088,17 @@ function ShowingToursCard({ txId, preview = false }) {
                 <div style={{ fontSize: 12.5, color: C.gray, marginTop: 2 }}>
                   {[s.city, s.zip].filter(Boolean).join(" ")}
                   {s.list_price ? " · $" + Number(s.list_price).toLocaleString() : ""}
-                  {s.beds ? ` · ${Number(s.beds)} bd` : ""}{s.baths ? ` / ${Number(s.baths)} ba` : ""}
-                  {s.sqft ? ` · ${Number(s.sqft).toLocaleString()} sq ft` : ""}{s.year_built ? ` · built ${s.year_built}` : ""}
+                  {s.beds ? " · " + t("{n} bd", { n: Number(s.beds) }) : ""}{s.baths ? " / " + t("{n} ba", { n: Number(s.baths) }) : ""}
+                  {s.sqft ? " · " + t("{n} sq ft", { n: Number(s.sqft).toLocaleString("en-US") }) : ""}{s.year_built ? " · " + t("built {year}", { year: s.year_built }) : ""}
                 </div>
                 <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center", marginTop: 8 }}>
                   <ScorecardButton stop={s} open={openCard.has(s.id)} onClick={() => toggleCard(s.id)} />
                   {s.buyer_offer_interest_at ? (
-                    <div style={{ fontSize: 12.5, fontWeight: 700, color: C.success }}>✓ Your agent knows you'd like to make an offer</div>
+                    <div style={{ fontSize: 12.5, fontWeight: 700, color: C.success }}>✓ {t("Your agent knows you'd like to make an offer")}</div>
                   ) : (
                     <button onClick={() => wantOffer(s)} disabled={sending === s.id}
                       style={{ background: C.white, color: C.red, border: "1.5px solid " + C.red, borderRadius: 8, padding: "7px 12px", fontSize: 12.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
-                      {sending === s.id ? "Sending…" : "❤️ I'd like to make an offer"}
+                      {sending === s.id ? t("Sending…") : "❤️ " + t("I'd like to make an offer")}
                     </button>
                   )}
                 </div>
@@ -1074,7 +1107,7 @@ function ShowingToursCard({ txId, preview = false }) {
             </div>
           );
         })}
-        {!past && <div style={{ fontSize: 11.5, color: C.gray, marginTop: 8, lineHeight: 1.5 }}>Times are estimates — your agent will confirm the exact schedule. Tap an address to see it on the map.</div>}
+        {!past && <div style={{ fontSize: 11.5, color: C.gray, marginTop: 8, lineHeight: 1.5 }}>{t("Times are estimates — your agent will confirm the exact schedule. Tap an address to see it on the map.")}</div>}
       </div>
     );
   })}
@@ -1098,14 +1131,14 @@ function MortgageRateCard({ isBuyerSide }) {
     <div style={{ background: C.white, borderRadius: 14, padding: 18, marginBottom: 14, boxShadow: "0 1px 4px rgba(0,0,0,0.08)", borderLeft: "4px solid #1A5276", display: "flex", alignItems: "center", gap: 16 }}>
       <div style={{ textAlign: "center" }}>
         <div style={{ fontSize: 30, fontWeight: 800, color: "#1A5276", lineHeight: 1 }}>{val}%</div>
-        <div style={{ fontSize: 10, color: C.gray, marginTop: 2 }}>30-yr fixed</div>
+        <div style={{ fontSize: 10, color: C.gray, marginTop: 2 }}>{t("30-yr fixed")}</div>
       </div>
       <div style={{ flex: 1 }}>
-        <div style={{ fontSize: 13, fontWeight: 700, color: C.black }}>📈 {rate.monthLabel || "This month"}'s average mortgage rate</div>
+        <div style={{ fontSize: 13, fontWeight: 700, color: C.black }}>📈 {rate.monthLabel ? t("{month}'s average mortgage rate", { month: monthName(rate.monthLabel) }) : t("This month's average mortgage rate")}</div>
         <div style={{ fontSize: 12, color: C.gray, lineHeight: 1.5 }}>
           {isBuyerSide
-            ? "The national average 30-year fixed rate this month. Your actual rate depends on your credit, down payment, and lender — ask yours for a quote."
-            : "What buyers are seeing in the market right now — it shapes how much they can afford for your home."}
+            ? t("The national average 30-year fixed rate this month. Your actual rate depends on your credit, down payment, and lender — ask yours for a quote.")
+            : t("What buyers are seeing in the market right now — it shapes how much they can afford for your home.")}
         </div>
       </div>
     </div>
@@ -1118,16 +1151,18 @@ function SideValueCard({ tx }) {
   const days = daysUntil(tx.closingDate);
   if (tx.status === "Closed") return null;
   const moveLine = days !== null && days >= 0
-    ? <>You could be {isBuyer ? "moving in" : "handing over the keys"} <b>{days === 0 ? "today" : "in " + days + " day" + (days === 1 ? "" : "s")}</b>. </>
+    ? <>{isBuyer
+        ? (days === 0 ? t("You could be moving in today.") : tn(days, "You could be moving in in {n} day.", "You could be moving in in {n} days."))
+        : (days === 0 ? t("You could be handing over the keys today.") : tn(days, "You could be handing over the keys in {n} day.", "You could be handing over the keys in {n} days."))} </>
     : null;
   if (isBuyer) {
     return (
       <div style={{ background: "#fff", borderRadius: 14, padding: 18, marginBottom: 14, boxShadow: "0 1px 4px rgba(0,0,0,0.08)", borderLeft: "4px solid #1A5276" }}>
-        <div style={{ fontSize: 12, fontWeight: 800, color: "#555", textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>🏡 Your future home</div>
+        <div style={{ fontSize: 12, fontWeight: 800, color: "#555", textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>🏡 {t("Your future home")}</div>
         <div style={{ fontSize: 14, color: "#111", lineHeight: 1.6 }}>
-          {tx.contractPrice ? <>You're under contract at <b>${Number(tx.contractPrice).toLocaleString()}</b>. </> : null}
+          {tx.contractPrice ? <>{t("You're under contract at")} <b>${Number(tx.contractPrice).toLocaleString("en-US")}</b>. </> : null}
           {moveLine}
-          Your agent is handling the financing, inspection, and closing details for you.
+          {t("Your agent is handling the financing, inspection, and closing details for you.")}
         </div>
       </div>
     );
@@ -1135,12 +1170,12 @@ function SideValueCard({ tx }) {
   const atOrAbove = tx.contractPrice && tx.listPrice && Number(tx.contractPrice) >= Number(tx.listPrice);
   return (
     <div style={{ background: "#fff", borderRadius: 14, padding: 18, marginBottom: 14, boxShadow: "0 1px 4px rgba(0,0,0,0.08)", borderLeft: "4px solid #C0392B" }}>
-      <div style={{ fontSize: 12, fontWeight: 800, color: "#555", textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>📣 Your sale</div>
+      <div style={{ fontSize: 12, fontWeight: 800, color: "#555", textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>📣 {t("Your sale")}</div>
       <div style={{ fontSize: 14, color: "#111", lineHeight: 1.6 }}>
-        {tx.contractPrice ? <>You're under contract at <b>${Number(tx.contractPrice).toLocaleString()}</b>{atOrAbove ? " — at or above your asking price! 🎯" : ""}. </>
-          : tx.listPrice ? <>Your home is listed at <b>${Number(tx.listPrice).toLocaleString()}</b>. </> : null}
+        {tx.contractPrice ? <>{t("You're under contract at")} <b>${Number(tx.contractPrice).toLocaleString("en-US")}</b>{atOrAbove ? " — " + t("at or above your asking price! 🎯") : ""}. </>
+          : tx.listPrice ? <>{t("Your home is listed at")} <b>${Number(tx.listPrice).toLocaleString("en-US")}</b>. </> : null}
         {moveLine}
-        Your agent is actively driving the sale toward the closing table.
+        {t("Your agent is actively driving the sale toward the closing table.")}
       </div>
     </div>
   );
@@ -1180,10 +1215,10 @@ function ActionNeededCard({ tx }) {
     <div style={{ background: C.warningBg, borderRadius: 14, padding: 16, marginBottom: 14,
       border: "1px solid #F9CA24" }}>
       <div style={{ fontSize: 11, fontWeight: 700, color: C.warning, textTransform: "uppercase",
-        letterSpacing: 1, marginBottom: 8 }}>GOOD TO KNOW</div>
+        letterSpacing: 1, marginBottom: 8 }}>{t("GOOD TO KNOW")}</div>
       <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
         <span style={{ fontSize: 20 }}>{action.icon}</span>
-        <div style={{ fontSize: 13, color: C.black, lineHeight: 1.6 }}>{action.text}</div>
+        <div style={{ fontSize: 13, color: C.black, lineHeight: 1.6 }}>{t(action.text)}</div>
       </div>
     </div>
   );
@@ -1215,7 +1250,7 @@ function AddOwnVendorForm({ category, transactionId, token, onDone, onCancel }) 
   const API = "https://liz-team-server-api-production.up.railway.app";
 
   const handleSubmit = async () => {
-    if (!form.name) { alert("Please enter a name"); return; }
+    if (!form.name) { alert(t("Please enter a name")); return; }
     setSaving(true);
     try {
       const res = await fetch(API + "/vendors/client-add/" + transactionId, {
@@ -1225,8 +1260,8 @@ function AddOwnVendorForm({ category, transactionId, token, onDone, onCancel }) 
       });
       const data = await res.json();
       if (data.success) onDone(data.party);
-      else alert(data.error || "Error adding vendor");
-    } catch (e) { alert("Error adding vendor"); }
+      else alert(t(data.error || "Error adding vendor"));
+    } catch (e) { alert(t("Error adding vendor")); }
     setSaving(false);
   };
 
@@ -1234,12 +1269,12 @@ function AddOwnVendorForm({ category, transactionId, token, onDone, onCancel }) 
     <div style={{ background: "#FEF9E7", borderRadius: 12, padding: 16,
       border: "1px solid #F9CA24", marginTop: 10 }}>
       <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 12 }}>
-        Add Your Own {category}
+        {t("Add your own {category}", { category: t(category) })}
       </div>
       {[["Name *", "name", "text"], ["Company", "company", "text"],
         ["Phone", "phone", "tel"], ["Email", "email", "email"]].map(([label, key, type]) => (
         <div key={key} style={{ marginBottom: 10 }}>
-          <div style={{ fontSize: 12, fontWeight: 600, color: "#555", marginBottom: 4 }}>{label}</div>
+          <div style={{ fontSize: 12, fontWeight: 600, color: "#555", marginBottom: 4 }}>{t(label)}</div>
           <input type={type} value={form[key]}
             onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))}
             style={{ width: "100%", padding: "9px 12px", borderRadius: 8,
@@ -1251,12 +1286,12 @@ function AddOwnVendorForm({ category, transactionId, token, onDone, onCancel }) 
         <button onClick={onCancel}
           style={{ flex: 1, padding: 10, borderRadius: 8, border: "1px solid #DDD",
             background: "#fff", color: "#555", fontWeight: 600, cursor: "pointer" }}>
-          Cancel
+          {t("Cancel")}
         </button>
         <button onClick={handleSubmit} disabled={saving}
           style={{ flex: 2, padding: 10, borderRadius: 8, border: "none",
             background: "#0c4a6e", color: "#fff", fontWeight: 700, cursor: "pointer" }}>
-          {saving ? "Submitting..." : "Submit"}
+          {saving ? t("Submitting…") : t("Submit")}
         </button>
       </div>
     </div>
@@ -1273,7 +1308,7 @@ function VendorCategorySection({ category, vendors, transactionId, token, onUpda
   const available = vendors.filter(v => v.vendor_status === "available");
 
   const handleSelect = async (vendor) => {
-    if (!(await askConfirm("Select " + vendor.name + " as your " + category + "?", { okLabel: "Select" }))) return;
+    if (!(await askConfirm(t("Select {name} as your {category}?", { name: vendor.name, category: t(category) }), { okLabel: t("Select") }))) return;
     setSelecting(vendor.id);
     try {
       const res = await fetch(API + "/vendors/select/" + transactionId + "/" + vendor.id, {
@@ -1282,8 +1317,8 @@ function VendorCategorySection({ category, vendors, transactionId, token, onUpda
       });
       const data = await res.json();
       if (data.success) onUpdate();
-      else alert(data.error || "Error selecting vendor");
-    } catch (e) { alert("Error selecting vendor"); }
+      else alert(t(data.error || "Error selecting vendor"));
+    } catch (e) { alert(t("Error selecting vendor")); }
     setSelecting(null);
   };
 
@@ -1291,7 +1326,7 @@ function VendorCategorySection({ category, vendors, transactionId, token, onUpda
     <div style={{ marginBottom: 20 }}>
       <div style={{ fontSize: 13, fontWeight: 800, color: "#555",
         textTransform: "uppercase", letterSpacing: 1, marginBottom: 10 }}>
-        {icon} {category}
+        {icon} {t(category)}
       </div>
 
       {/* Selected vendor */}
@@ -1301,7 +1336,7 @@ function VendorCategorySection({ category, vendors, transactionId, token, onUpda
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
             <span style={{ fontSize: 16 }}>✅</span>
             <span style={{ fontSize: 12, fontWeight: 700, color: "#1E8449",
-              textTransform: "uppercase" }}>Your {category}</span>
+              textTransform: "uppercase" }}>{t("Your {category}", { category: t(category) })}</span>
           </div>
           <div style={{ fontWeight: 700, fontSize: 15, color: "#111" }}>{selected.name}</div>
           {selected.company && <div style={{ fontSize: 13, color: "#1E8449", fontWeight: 600 }}>{selected.company}</div>}
@@ -1315,17 +1350,17 @@ function VendorCategorySection({ category, vendors, transactionId, token, onUpda
               <a href={"tel:" + selected.phone}
                 style={{ flex: 1, padding: "8px 0", background: "#111", color: "#fff",
                   borderRadius: 8, textAlign: "center", fontSize: 13,
-                  fontWeight: 600, textDecoration: "none" }}>📞 Call</a>
+                  fontWeight: 600, textDecoration: "none" }}>📞 {t("Call")}</a>
             )}
             {selected.email && (
               <a href={"mailto:" + selected.email}
                 style={{ flex: 1, padding: "8px 0", background: "#F4F4F4", color: "#111",
                   borderRadius: 8, textAlign: "center", fontSize: 13,
-                  fontWeight: 600, textDecoration: "none" }}>✉️ Email</a>
+                  fontWeight: 600, textDecoration: "none" }}>✉️ {t("Email")}</a>
             )}
           </div>
           <div style={{ fontSize: 11, color: "#555", marginTop: 10, textAlign: "center" }}>
-            Need to change? Contact your agent.
+            {t("Need to change? Contact your agent.")}
           </div>
         </div>
       )}
@@ -1346,7 +1381,7 @@ function VendorCategorySection({ category, vendors, transactionId, token, onUpda
             style={{ width: "100%", marginTop: 12, padding: "11px 0", borderRadius: 8,
               border: "none", background: "#0c4a6e", color: "#fff",
               fontWeight: 700, fontSize: 14, cursor: "pointer" }}>
-            {selecting === v.id ? "Selecting..." : "Select This " + category}
+            {selecting === v.id ? t("Selecting…") : t("Select this {category}", { category: t(category) })}
           </button>
         </div>
       ))}
@@ -1359,7 +1394,7 @@ function VendorCategorySection({ category, vendors, transactionId, token, onUpda
               style={{ width: "100%", padding: 13, borderRadius: 10,
                 border: "2px dashed #DDD", background: "#fff",
                 color: "#555", fontWeight: 600, fontSize: 14, cursor: "pointer" }}>
-              + I already have a {category} I want to use
+              + {t("I already have a {category} I want to use", { category: t(category) })}
             </button>
           ) : (
             <AddOwnVendorForm
@@ -1397,7 +1432,7 @@ function VendorsTab({ tx, token, user }) {
 
   if (loading) return (
     <div style={{ textAlign: "center", padding: 40, color: "#555" }}>
-      Loading vendors...
+      {t("Loading vendors…")}
     </div>
   );
 
@@ -1406,11 +1441,10 @@ function VendorsTab({ tx, token, user }) {
       textAlign: "center", boxShadow: "0 1px 4px rgba(0,0,0,0.08)" }}>
       <div style={{ fontSize: 48, marginBottom: 12 }}>🏆</div>
       <div style={{ fontWeight: 700, fontSize: 18, color: "#111", marginBottom: 8 }}>
-        No Vendors Yet
+        {t("No Vendors Yet")}
       </div>
       <div style={{ color: "#555", fontSize: 14, lineHeight: 1.6 }}>
-        Your agent will add preferred vendors here for you to choose from.
-        You can also add your own vendors if you already have someone in mind.
+        {t("Your agent will add preferred vendors here for you to choose from. You can also add your own vendors if you already have someone in mind.")}
       </div>
     </div>
   );
@@ -1425,8 +1459,7 @@ function VendorsTab({ tx, token, user }) {
   return (
     <div>
       <div style={{ fontSize: 13, color: "#555", marginBottom: 16, lineHeight: 1.6 }}>
-        Choose your preferred vendors below. Once selected, they will be
-        added to your transaction team and can communicate through the app.
+        {t("Choose your preferred vendors below. Once selected, they will be added to your transaction team and can communicate through the app.")}
       </div>
       {Object.entries(grouped).map(([category, items]) => (
         <VendorCategorySection
@@ -1469,7 +1502,7 @@ function FaqItem({ item }) {
           display: "flex", justifyContent: "space-between", alignItems: "center",
           gap: 12, fontFamily: "inherit" }}>
         <span style={{ fontWeight: 700, fontSize: 14, color: C.black, lineHeight: 1.4 }}>
-          {item.q}
+          {t(item.q)}
         </span>
         <span style={{ fontSize: 20, color: C.red, flexShrink: 0, fontWeight: 300 }}>
           {open ? "−" : "+"}
@@ -1478,7 +1511,7 @@ function FaqItem({ item }) {
       {open && (
         <div style={{ padding: "0 18px 16px", fontSize: 13, color: C.gray,
           lineHeight: 1.7, borderTop: "1px solid " + C.lightGray, paddingTop: 12 }}>
-          {item.a}
+          {t(item.a)}
         </div>
       )}
     </div>
@@ -1490,14 +1523,14 @@ function FaqTab({ agentPhone }) {
   return (
     <div>
       <div style={{ fontSize: 13, color: C.gray, marginBottom: 16, lineHeight: 1.6 }}>
-        Common questions about your real estate transaction answered simply.
+        {t("Common questions about your real estate transaction answered simply.")}
       </div>
       {FAQ_ITEMS.map((item, i) => <FaqItem key={i} item={item} />)}
       <div style={{ textAlign: "center", padding: "20px 0", fontSize: 13, color: C.gray }}>
-        Have another question?{" "}
+        {t("Have another question?")}{" "}
         {agentPhone && (
           <a href={"tel:" + agentPhone} style={{ color: C.red, fontWeight: 600 }}>
-            Call your agent
+            {t("Call your agent")}
           </a>
         )}
       </div>
@@ -1564,12 +1597,12 @@ function PortalFeedbackPrompt({ tx, isSellerSide, disabled }) {
       try { localStorage.setItem(doneKey, "1"); } catch {}
       setDone(true);
       setTimeout(() => setShow(false), 2600);
-    } catch (e) { alert("Sorry — " + e.message + ". Please try again."); }
+    } catch (e) { alert(t("Sorry — {msg}. Please try again.", { msg: t(e.message) })); }
     setSending(false);
   };
 
   if (!show) return null;
-  const role = isSellerSide ? "selling" : "buying";
+
   const field = { width: "100%", padding: "9px 11px", borderRadius: 9, border: "1px solid " + C.border, fontSize: 13.5, fontFamily: "inherit", boxSizing: "border-box", resize: "vertical", color: C.black, background: "#fff" };
   return (
     <>
@@ -1582,24 +1615,24 @@ function PortalFeedbackPrompt({ tx, isSellerSide, disabled }) {
           {done ? (
             <div style={{ textAlign: "center", padding: "14px 6px" }}>
               <div style={{ fontSize: 30, marginBottom: 6 }}>💛</div>
-              <div style={{ fontSize: 16, fontWeight: 800, color: C.black, marginBottom: 4 }}>Thank you!</div>
-              <div style={{ fontSize: 13, color: C.gray, lineHeight: 1.5 }}>Your agent will see this right away. It really helps.</div>
+              <div style={{ fontSize: 16, fontWeight: 800, color: C.black, marginBottom: 4 }}>{t("Thank you!")}</div>
+              <div style={{ fontSize: 13, color: C.gray, lineHeight: 1.5 }}>{t("Your agent will see this right away. It really helps.")}</div>
             </div>
           ) : (
             <>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10 }}>
-                <div style={{ fontSize: 15.5, fontWeight: 800, color: C.black, lineHeight: 1.3 }}>How's your {role} experience so far?</div>
-                <button onClick={() => snooze(30)} aria-label="Dismiss" style={{ border: "none", background: "transparent", color: C.gray, fontSize: 20, cursor: "pointer", lineHeight: 1, padding: 0, marginTop: -2 }}>×</button>
+                <div style={{ fontSize: 15.5, fontWeight: 800, color: C.black, lineHeight: 1.3 }}>{isSellerSide ? t("How's your selling experience so far?") : t("How's your buying experience so far?")}</div>
+                <button onClick={() => snooze(30)} aria-label={t("Dismiss")} style={{ border: "none", background: "transparent", color: C.gray, fontSize: 20, cursor: "pointer", lineHeight: 1, padding: 0, marginTop: -2 }}>×</button>
               </div>
               <div style={{ fontSize: 12.5, color: C.gray, margin: "5px 0 12px", lineHeight: 1.5 }}>
-                A quick note goes straight to your agent — tell them what's working and what would make this portal better for you.
+                {t("A quick note goes straight to your agent — tell them what's working and what would make this portal better for you.")}
               </div>
 
               {/* Stars */}
               <div style={{ display: "flex", gap: 6, marginBottom: 14 }} onMouseLeave={() => setHover(0)}>
                 {[1, 2, 3, 4, 5].map(n => (
                   <button key={n} onMouseEnter={() => setHover(n)} onClick={() => setRating(n)}
-                    aria-label={n + " star" + (n > 1 ? "s" : "")}
+                    aria-label={tn(n, "{n} star", "{n} stars")}
                     style={{ border: "none", background: "transparent", cursor: "pointer", fontSize: 30, lineHeight: 1, padding: 0, color: (hover || rating) >= n ? "#E6A817" : "#D6D3CE", transition: "color .1s" }}>
                     ★
                   </button>
@@ -1607,21 +1640,21 @@ function PortalFeedbackPrompt({ tx, isSellerSide, disabled }) {
               </div>
 
               <div style={{ marginBottom: 10 }}>
-                <label style={{ fontSize: 12, fontWeight: 700, color: C.black, display: "block", marginBottom: 4 }}>👍 What do you like about it?</label>
-                <textarea value={liked} onChange={e => setLiked(e.target.value)} rows={2} placeholder="e.g. I always know what's happening next…" style={field} />
+                <label style={{ fontSize: 12, fontWeight: 700, color: C.black, display: "block", marginBottom: 4 }}>👍 {t("What do you like about it?")}</label>
+                <textarea value={liked} onChange={e => setLiked(e.target.value)} rows={2} placeholder={t("e.g. I always know what's happening next…")} style={field} />
               </div>
               <div style={{ marginBottom: 14 }}>
-                <label style={{ fontSize: 12, fontWeight: 700, color: C.black, display: "block", marginBottom: 4 }}>💡 What would make it better?</label>
-                <textarea value={disliked} onChange={e => setDisliked(e.target.value)} rows={2} placeholder="Anything confusing or missing?" style={field} />
+                <label style={{ fontSize: 12, fontWeight: 700, color: C.black, display: "block", marginBottom: 4 }}>💡 {t("What would make it better?")}</label>
+                <textarea value={disliked} onChange={e => setDisliked(e.target.value)} rows={2} placeholder={t("Anything confusing or missing?")} style={field} />
               </div>
 
               <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                 <button onClick={submit} disabled={sending || (!rating && !liked.trim() && !disliked.trim())}
                   style={{ flex: 1, padding: "11px 0", borderRadius: 10, border: "none", background: (!rating && !liked.trim() && !disliked.trim()) ? "#C7B7B4" : C.red, color: "#fff", fontWeight: 800, fontSize: 14, cursor: sending ? "wait" : "pointer", fontFamily: "inherit" }}>
-                  {sending ? "Sending…" : "Send to my agent"}
+                  {sending ? t("Sending…") : t("Send to my agent")}
                 </button>
                 <button onClick={() => snooze(7)} style={{ padding: "11px 14px", borderRadius: 10, border: "1px solid " + C.border, background: "#fff", color: C.gray, fontWeight: 600, fontSize: 13, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>
-                  Maybe later
+                  {t("Maybe later")}
                 </button>
               </div>
             </>
@@ -1636,7 +1669,15 @@ function PortalFeedbackPrompt({ tx, isSellerSide, disabled }) {
 // previewTxId (optional): agent "Preview client portal" mode — loads ONE deal
 // via the owner-gated preview endpoint and shows exactly what the client sees.
 export default function ClientPortal({ user, onLogout, previewTxId, onExitPreview }) {
+  const lang = useLang();
   const isPreview = !!previewTxId;
+  // The account's saved language (the client's own pick, or what their agent
+  // set) applies unless they flipped the EN | ES switch on this device.
+  useEffect(() => {
+    if (!isPreview && user && user.preferredLanguage) applyPreferredLang(user.preferredLanguage);
+  }, [isPreview, user && user.preferredLanguage]);
+  // Agent preview: back to English when they leave (their own screens are English).
+  useEffect(() => () => { if (isPreview) setLang("en", { persist: false }); }, [isPreview]);
   const [tx, setTx] = useState(null);
   const [allTx, setAllTx] = useState([]);
   const [docs, setDocs] = useState([]);
@@ -1660,6 +1701,29 @@ export default function ClientPortal({ user, onLogout, previewTxId, onExitPrevie
       .then(d => setTimeline(d && d.success ? d : null))
       .catch(() => setTimeline(null));
   }, [tx?.id]);
+
+  // Spanish for the deal's own wording (milestone / document names, marketing
+  // feed lines) — anything the built-in dictionary doesn't already cover is
+  // translated once by the server (cached) and fed to t().
+  useEffect(() => {
+    if (lang !== "es" || !timeline || !Array.isArray(timeline.milestones)) return;
+    const texts = new Set();
+    for (const m of [...timeline.milestones, ...(timeline.mine || [])]) {
+      if (!m) continue;
+      texts.add(humanizeForClient(m.name).label);
+      texts.add(comingUpLabel(m.name));
+      if (m.document_label) texts.add(m.document_label);
+    }
+    fetchSpanish([...texts]);
+  }, [lang, timeline]);
+
+  // Agent preview shows the portal in the CLIENT's language (their party
+  // setting) — the EN | ES switch still flips it, only on this screen.
+  useEffect(() => {
+    if (!isPreview || !tx) return;
+    const es = (tx.parties || []).some(p => /^(co[- ]?)?(buyer|seller|tenant|landlord)$/i.test((p.role || "").trim()) && p.preferredLanguage === "es");
+    setLang(es ? "es" : "en", { persist: false });
+  }, [isPreview, tx && tx.id]);
 
   // Seller portal: pending offers the seller can review & accept/decline.
   useEffect(() => {
@@ -1794,7 +1858,7 @@ export default function ClientPortal({ user, onLogout, previewTxId, onExitPrevie
     const file = e.target.files[0];
     if (!file || !tx) return;
     if (file.size > 50 * 1024 * 1024) {
-      alert(`File too large. Maximum is 50 MB, this file is ${(file.size / 1024 / 1024).toFixed(1)} MB.`);
+      alert(t("File too large. Maximum is 50 MB, this file is {mb} MB.", { mb: (file.size / 1024 / 1024).toFixed(1) }));
       if (e.target) e.target.value = "";
       return;
     }
@@ -1805,7 +1869,7 @@ export default function ClientPortal({ user, onLogout, previewTxId, onExitPrevie
       "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     ];
     if (file.type && !ALLOWED.includes(file.type)) {
-      alert(`File type "${file.type}" not allowed. Please upload a PDF, image, or Word document.`);
+      alert(t("File type \"{type}\" not allowed. Please upload a PDF, image, or Word document.", { type: file.type }));
       if (e.target) e.target.value = "";
       return;
     }
@@ -1827,9 +1891,9 @@ export default function ClientPortal({ user, onLogout, previewTxId, onExitPrevie
       const docsRes = await fetch(API + "/client/documents/" + tx.id, { headers });
       const docsData = await docsRes.json();
       if (docsData.documents) setDocs(docsData.documents);
-      alert("Document uploaded successfully!");
+      alert(t("Document uploaded successfully!"));
     } catch (err) {
-      alert("Upload failed: " + err.message);
+      alert(t("Upload failed: {msg}", { msg: t(err.message) }));
     }
     finally { setUploading(false); if (e.target) e.target.value = ""; }
   };
@@ -1839,7 +1903,7 @@ export default function ClientPortal({ user, onLogout, previewTxId, onExitPrevie
       const res = await fetch(API + "/documents/download/" + doc.id, { headers });
       const data = await res.json();
       if (data.downloadUrl) window.open(data.downloadUrl, "_blank");
-    } catch { alert("Download failed"); }
+    } catch { alert(t("Download failed")); }
   };
 
   if (loading) return (
@@ -1847,7 +1911,7 @@ export default function ClientPortal({ user, onLogout, previewTxId, onExitPrevie
       justifyContent: "center", background: C.lightGray, fontFamily: "system-ui, sans-serif" }}>
       <div style={{ textAlign: "center" }}>
         <div style={{ fontSize: 48, marginBottom: 12 }}>🏠</div>
-        <div style={{ fontWeight: 600, color: C.gray }}>Loading your transaction...</div>
+        <div style={{ fontWeight: 600, color: C.gray }}>{t("Loading your transaction…")}</div>
       </div>
     </div>
   );
@@ -1885,7 +1949,7 @@ export default function ClientPortal({ user, onLogout, previewTxId, onExitPrevie
   const ownSideParties = tx ? (tx.parties || []).filter(isOwnSideRole) : [];
   const ownClientParty = ownSideParties.find(p => myEmail && (p.email || "").trim().toLowerCase() === myEmail) || ownSideParties[0] || null;
   const clientFirstName = ownClientParty && ownClientParty.name ? ownClientParty.name.trim().split(/\s+/)[0] : "";
-  const greetName = clientFirstName || user.firstName || "there";
+  const greetName = clientFirstName || user.firstName || t("there");
 
   // Hide the OPPOSITE side's agent from "My Team" so a client never sees (and
   // can't cold-call) the other side's agent. Seller-side clients don't see the
@@ -1911,17 +1975,17 @@ export default function ClientPortal({ user, onLogout, previewTxId, onExitPrevie
   ) : [];
 
   const tabs = [
-    { id: "home", label: "🏠 My Transaction" },
-    { id: "documents", label: "📎 Documents" },
-    { id: "chat", label: chatUnread > 0 ? "💬 Messages (" + chatUnread + ")" : "💬 Messages" },
-    { id: "team", label: "👥 My Team" },
-    ...(isBuyerSide ? [{ id: "showings", label: "🗺 Showings" }] : []),
-    ...(isBuyerSide ? [{ id: "buyer-guide", label: "🧭 Buyer Guide" }] : []),
-    ...(isSellerSide ? [{ id: "marketing", label: "📣 Marketing" }] : []),
-    { id: "vendors", label: "🏆 Vendors" },
-    ...(isBuyerSide ? [{ id: "calculator", label: "🧮 Buyer Calc" }] : []),
-    ...(isSellerSide ? [{ id: "seller-calc", label: "💰 Net Proceeds" }] : []),
-    { id: "faq", label: "❓ FAQ" },
+    { id: "home", label: "🏠 " + t("My Transaction") },
+    { id: "documents", label: "📎 " + t("Documents") },
+    { id: "chat", label: chatUnread > 0 ? "💬 " + t("Messages") + " (" + chatUnread + ")" : "💬 " + t("Messages") },
+    { id: "team", label: "👥 " + t("My Team") },
+    ...(isBuyerSide ? [{ id: "showings", label: "🗺 " + t("Showings") }] : []),
+    ...(isBuyerSide ? [{ id: "buyer-guide", label: "🧭 " + t("Buyer Guide") }] : []),
+    ...(isSellerSide ? [{ id: "marketing", label: "📣 " + t("Marketing") }] : []),
+    { id: "vendors", label: "🏆 " + t("Vendors") },
+    ...(isBuyerSide ? [{ id: "calculator", label: "🧮 " + t("Buyer Calc") }] : []),
+    ...(isSellerSide ? [{ id: "seller-calc", label: "💰 " + t("Net Proceeds") }] : []),
+    { id: "faq", label: "❓ " + t("FAQ") },
   ];
 
   return (
@@ -1937,9 +2001,9 @@ export default function ClientPortal({ user, onLogout, previewTxId, onExitPrevie
       {chatUnread > 0 && activeTab !== "chat" && (
         <>
           <style>{`@keyframes cpulse{0%,100%{transform:scale(1)}50%{transform:scale(1.07)}}`}</style>
-          <div onClick={() => setActiveTab("chat")} title="New message from your agent"
+          <div onClick={() => setActiveTab("chat")} title={t("New message from your agent")}
             style={{ position: "fixed", bottom: 18, left: 18, zIndex: 9998, background: C.red, color: "#fff", borderRadius: 30, padding: "13px 20px", boxShadow: "0 8px 26px rgba(0,0,0,0.3)", cursor: "pointer", fontWeight: 800, fontSize: 15, display: "flex", alignItems: "center", gap: 10, animation: "cpulse 1.6s ease-in-out infinite", maxWidth: "calc(100vw - 36px)" }}>
-            🔔 {chatUnread} new message{chatUnread === 1 ? "" : "s"} from your agent <span style={{ textDecoration: "underline", whiteSpace: "nowrap" }}>Read →</span>
+            🔔 {tn(chatUnread, "{n} new message from your agent", "{n} new messages from your agent")} <span style={{ textDecoration: "underline", whiteSpace: "nowrap" }}>{t("Read →")}</span>
           </div>
         </>
       )}
@@ -1969,13 +2033,17 @@ export default function ClientPortal({ user, onLogout, previewTxId, onExitPrevie
               </div>}
           <div>
             <div style={{ color: "#ffffff", fontWeight: 800, fontSize: 16, letterSpacing: "-0.3px" }}>
-              {brokerage || "Your Transaction Portal"}
+              {brokerage || t("Your Transaction Portal")}
             </div>
             <div style={{ color: "rgba(255,255,255,0.78)", fontSize: 12, marginTop: 1, fontWeight: 500 }}>
-              Welcome, {greetName}! 👋
+              {t("Welcome, {name}! 👋", { name: greetName })}
             </div>
           </div>
         </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+        {/* Language switch — in preview it only changes this screen; for a
+            signed-in client it also saves their choice so emails follow it. */}
+        <LangToggle account={!isPreview} persist={!isPreview} style={{ border: "1.5px solid rgba(255,255,255,0.7)" }} />
         {/* In preview the yellow banner above holds the ONE Exit Preview button. */}
         {!isPreview && (
         <button onClick={() => onLogout && onLogout()}
@@ -1983,20 +2051,20 @@ export default function ClientPortal({ user, onLogout, previewTxId, onExitPrevie
             color: "#ffffff", borderRadius: 8, padding: "7px 18px",
             cursor: "pointer", fontSize: 13, fontWeight: 600, fontFamily: "inherit",
             letterSpacing: "0.3px" }}>
-          Sign Out
+          {t("Sign Out")}
         </button>
         )}
+        </div>
       </div>
 
       {!tx ? (
         <div style={{ textAlign: "center", padding: 60 }}>
           <div style={{ fontSize: 48, marginBottom: 16 }}>🏠</div>
           <div style={{ fontSize: 20, fontWeight: 700, color: C.black, marginBottom: 8 }}>
-            No Transaction Found
+            {t("No Transaction Found")}
           </div>
           <div style={{ color: C.gray, fontSize: 15, lineHeight: 1.6 }}>
-            Your agent has not linked a transaction to your account yet.
-            Please contact them directly.
+            {t("Your agent has not linked a transaction to your account yet. Please contact them directly.")}
           </div>
         </div>
       ) : (
@@ -2005,16 +2073,16 @@ export default function ClientPortal({ user, onLogout, previewTxId, onExitPrevie
           <div style={{ background: C.black, padding: "20px 20px 0" }}>
             {allTx.length > 1 && (
               <div style={{ marginBottom: 12 }}>
-                <div style={{ fontSize: 11, color: "rgba(255,255,255,0.5)", fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, marginBottom: 4 }}>Your Properties ({allTx.length})</div>
+                <div style={{ fontSize: 11, color: "rgba(255,255,255,0.5)", fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, marginBottom: 4 }}>{t("Your Properties ({n})", { n: allTx.length })}</div>
                 <select value={tx.id} onChange={e => switchProperty(e.target.value)}
                   style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.25)", background: "rgba(255,255,255,0.1)", color: "#fff", fontSize: 14, fontWeight: 600, fontFamily: "inherit" }}>
-                  {allTx.map(t => <option key={t.id} value={t.id} style={{ color: "#111" }}>{t.address}{t.city ? ", " + t.city : ""} — {t.status}</option>)}
+                  {allTx.map(p => <option key={p.id} value={p.id} style={{ color: "#111" }}>{p.address}{p.city ? ", " + p.city : ""} — {t(p.status)}</option>)}
                 </select>
               </div>
             )}
             <div style={{ fontSize: 11, color: "rgba(255,255,255,0.5)",
               fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, marginBottom: 4 }}>
-              {tx.transactionType || "Your Transaction"}
+              {tx.transactionType ? t(tx.transactionType) : t("Your Transaction")}
             </div>
             <div style={{ fontSize: 22, fontWeight: 800, color: "#fff", marginBottom: 2 }}>
               {tx.address}
@@ -2030,16 +2098,16 @@ export default function ClientPortal({ user, onLogout, previewTxId, onExitPrevie
                 borderRadius: 20, padding: "5px 14px", marginBottom: 4 }}>
                 <span style={{ fontSize: 13 }}>📅</span>
                 <span style={{ fontSize: 13, color: "#fff", fontWeight: 600 }}>
-                  Closing {formatDate(tx.closingDate)}
+                  {t("Closing {date}", { date: formatDate(tx.closingDate) })}
                   {/* Countdown only when the welcome card's headline isn't already showing it. */}
-                  {daysToClose !== null && daysToClose >= 0 && !(daysToClose <= 45 && !(tx.backOnMarket || tx.back_on_market) && !["Closed", "Clear to Close"].includes(stage?.effectiveStatus || tx.status)) && " · " + daysToClose + " days away"}
+                  {daysToClose !== null && daysToClose >= 0 && !(daysToClose <= 45 && !(tx.backOnMarket || tx.back_on_market) && !["Closed", "Clear to Close"].includes(stage?.effectiveStatus || tx.status)) && " · " + tn(daysToClose, "{n} day away", "{n} days away")}
                 </span>
               </div>
             )}
             {tx.status === "Closed" && (
               <div style={{ display: "inline-flex", alignItems: "center", gap: 6,
                 background: "#1E8449", borderRadius: 20, padding: "5px 14px" }}>
-                <span style={{ fontSize: 13, color: "#fff", fontWeight: 700 }}>🎉 Transaction Closed</span>
+                <span style={{ fontSize: 13, color: "#fff", fontWeight: 700 }}>🎉 {t("Transaction Closed")}</span>
               </div>
             )}
 
@@ -2083,31 +2151,33 @@ export default function ClientPortal({ user, onLogout, previewTxId, onExitPrevie
                   const isSellerListing = /listing|seller/i.test(tx.transactionType || "");
                   const preContract = isSellerListing && tx.status === "Active";
                   const progressHeadline = preContract
-                    ? `You're ${timeline.progress}% to launch 🚀`
-                    : `You're ${timeline.progress}% to closing 🎯`;
+                    ? t("You're {pct}% to launch 🚀", { pct: timeline.progress })
+                    : t("You're {pct}% to closing 🎯", { pct: timeline.progress });
                   return (
                   <div style={{ background: C.white, borderRadius: 14, padding: 18, marginBottom: 14, boxShadow: "0 1px 4px rgba(0,0,0,0.08)" }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
                       <div style={{ fontSize: 15, fontWeight: 800, color: C.black }}>{progressHeadline}</div>
-                      <div style={{ fontSize: 12, color: C.gray, fontWeight: 700 }}>{timeline.done}/{timeline.total} steps</div>
+                      <div style={{ fontSize: 12, color: C.gray, fontWeight: 700 }}>{t("{done}/{total} steps", { done: timeline.done, total: timeline.total })}</div>
                     </div>
                     <div style={{ background: C.lightGray, borderRadius: 20, height: 12, overflow: "hidden" }}>
                       <div style={{ width: timeline.progress + "%", height: "100%", background: timeline.progress === 100 ? "#1E8449" : "#1a2332", borderRadius: 20, transition: "width .5s ease" }} />
                     </div>
                     {timeline.mine && timeline.mine.length > 0 && (
                       <div style={{ marginTop: 16 }}>
-                        <div style={{ fontSize: 12, fontWeight: 800, color: C.gray, textTransform: "uppercase", letterSpacing: 1, marginBottom: 2 }}>✅ What we need from you</div>
-                        <div style={{ fontSize: 12, color: C.gray, marginBottom: 10 }}>A few things to take care of as we {preContract ? "get your home ready to list" : "head toward closing"} — no rush unless a date is shown.</div>
+                        <div style={{ fontSize: 12, fontWeight: 800, color: C.gray, textTransform: "uppercase", letterSpacing: 1, marginBottom: 2 }}>✅ {t("What we need from you")}</div>
+                        <div style={{ fontSize: 12, color: C.gray, marginBottom: 10 }}>{preContract
+                          ? t("A few things to take care of as we get your home ready to list — no rush unless a date is shown.")
+                          : t("A few things to take care of as we head toward closing — no rush unless a date is shown.")}</div>
                         {timeline.mine.map((m, i) => {
                           const h = humanizeForClient(m.name);
                           return (
                             <div key={m.id} style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: "10px 0", borderBottom: i < timeline.mine.length - 1 ? "1px solid " + C.lightGray : "none" }}>
                               <span style={{ background: "#1a2332", color: "#fff", borderRadius: "50%", width: 22, height: 22, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, flexShrink: 0 }}>{i + 1}</span>
                               <div style={{ flex: 1 }}>
-                                <div style={{ fontSize: 14, fontWeight: 700, color: C.black }}>{h.label}</div>
-                                {h.why && <div style={{ fontSize: 12.5, color: C.gray, lineHeight: 1.5, marginTop: 2 }}>{h.why}</div>}
-                                {m.due_date && <div style={{ fontSize: 12, color: "#8A5A00", fontWeight: 600, marginTop: 2 }}>📅 by {formatDate(m.due_date)}</div>}
-                                {m.requires_document && <div style={{ fontSize: 11, color: "#8A5A00" }}>📎 Document needed{m.document_label ? `: ${m.document_label}` : ""}</div>}
+                                <div style={{ fontSize: 14, fontWeight: 700, color: C.black }}>{t(h.label)}</div>
+                                {h.why && <div style={{ fontSize: 12.5, color: C.gray, lineHeight: 1.5, marginTop: 2 }}>{t(h.why)}</div>}
+                                {m.due_date && <div style={{ fontSize: 12, color: "#8A5A00", fontWeight: 600, marginTop: 2 }}>📅 {t("by {date}", { date: formatDate(m.due_date) })}</div>}
+                                {m.requires_document && <div style={{ fontSize: 11, color: "#8A5A00" }}>📎 {t("Document needed")}{m.document_label ? ": " + t(m.document_label) : ""}</div>}
                               </div>
                             </div>
                           );
@@ -2115,7 +2185,7 @@ export default function ClientPortal({ user, onLogout, previewTxId, onExitPrevie
                       </div>
                     )}
                     {timeline.mine && timeline.mine.length === 0 && (
-                      <div style={{ marginTop: 12, fontSize: 13, color: C.gray }}>Nothing needed from you right now — we'll let you know the moment something comes up. 👍</div>
+                      <div style={{ marginTop: 12, fontSize: 13, color: C.gray }}>{t("Nothing needed from you right now — we'll let you know the moment something comes up. 👍")}</div>
                     )}
                   </div>
                   );
@@ -2133,17 +2203,17 @@ export default function ClientPortal({ user, onLogout, previewTxId, onExitPrevie
                   boxShadow: "0 1px 4px rgba(0,0,0,0.08)" }}>
                   <div style={{ fontSize: 12, fontWeight: 700, color: C.gray,
                     textTransform: "uppercase", letterSpacing: 1, marginBottom: 12 }}>
-                    KEY DATES & DETAILS
+                    {t("KEY DATES & DETAILS")}
                   </div>
                   {[
-                    { label: "Property", value: tx.address + (tx.city ? ", " + tx.city : "") },
-                    { label: "Property Type", value: tx.propertyType || "—" },
-                    { label: "Transaction Type", value: tx.transactionType || "—" },
-                    { label: "Contract Date", value: formatDate(tx.openDate) },
-                    { label: "Closing Date", value: formatDate(tx.closingDate) },
-                    { label: "Days to Closing", value: daysUntil(tx.closingDate) !== null && daysUntil(tx.closingDate) >= 0 ? daysUntil(tx.closingDate) + " days" : tx.status === "Closed" ? "Closed" : "TBD" },
-                    { label: "Contract Price", value: tx.contractPrice ? "$" + Number(tx.contractPrice).toLocaleString() : "TBD" },
-                    ...(tx.listPrice && tx.listPrice !== tx.contractPrice ? [{ label: "List Price", value: "$" + Number(tx.listPrice).toLocaleString() }] : []),
+                    { label: t("Property"), value: tx.address + (tx.city ? ", " + tx.city : "") },
+                    { label: t("Property Type"), value: tx.propertyType ? t(tx.propertyType) : "—" },
+                    { label: t("Transaction Type"), value: tx.transactionType ? t(tx.transactionType) : "—" },
+                    { label: t("Contract Date"), value: formatDate(tx.openDate) },
+                    { label: t("Closing Date"), value: formatDate(tx.closingDate) },
+                    { label: t("Days to Closing"), value: daysUntil(tx.closingDate) !== null && daysUntil(tx.closingDate) >= 0 ? tn(daysUntil(tx.closingDate), "{n} day", "{n} days") : tx.status === "Closed" ? t("Closed") : t("TBD") },
+                    { label: t("Contract Price"), value: tx.contractPrice ? "$" + Number(tx.contractPrice).toLocaleString("en-US") : t("TBD") },
+                    ...(tx.listPrice && tx.listPrice !== tx.contractPrice ? [{ label: t("List Price"), value: "$" + Number(tx.listPrice).toLocaleString("en-US") }] : []),
                   ].map(({ label, value }) => (
                     <div key={label} style={{ display: "flex", justifyContent: "space-between",
                       alignItems: "center", paddingBottom: 10, marginBottom: 10,
@@ -2188,13 +2258,13 @@ export default function ClientPortal({ user, onLogout, previewTxId, onExitPrevie
                       boxShadow: "0 1px 4px rgba(0,0,0,0.08)" }}>
                       <div style={{ fontSize: 12, fontWeight: 700, color: C.gray,
                         textTransform: "uppercase", letterSpacing: 1, marginBottom: 4 }}>
-                        WHAT'S COMING UP
+                        {t("WHAT'S COMING UP")}
                       </div>
-                      <div style={{ fontSize: 12, color: C.gray, marginBottom: 12 }}>Here's what's still ahead — your agent handles most of this for you.</div>
+                      <div style={{ fontSize: 12, color: C.gray, marginBottom: 12 }}>{t("Here's what's still ahead — your agent handles most of this for you.")}</div>
                       {items.map((text, i) => (
                         <div key={i} style={{ display: "flex", gap: 12, alignItems: "flex-start", marginBottom: 12 }}>
                           <span style={{ width: 26, height: 26, borderRadius: "50%", background: C.lightGray, color: C.gray, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, flexShrink: 0 }}>{i + 1}</span>
-                          <span style={{ flex: 1, fontSize: 14, color: C.black, fontWeight: 600, lineHeight: 1.5 }}>{text}</span>
+                          <span style={{ flex: 1, fontSize: 14, color: C.black, fontWeight: 600, lineHeight: 1.5 }}>{t(text)}</span>
                         </div>
                       ))}
                     </div>
@@ -2233,14 +2303,14 @@ export default function ClientPortal({ user, onLogout, previewTxId, onExitPrevie
                 <div style={{ background: C.white, borderRadius: 14, padding: 20,
                   marginBottom: 14, boxShadow: "0 1px 4px rgba(0,0,0,0.08)", textAlign: "center" }}>
                   <div style={{ fontSize: 32, marginBottom: 8 }}>📤</div>
-                  <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 4 }}>Upload a Document</div>
+                  <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 4 }}>{t("Upload a Document")}</div>
                   <div style={{ fontSize: 13, color: C.gray, marginBottom: 16 }}>
-                    Share documents with your agent securely
+                    {t("Share documents with your agent securely")}
                   </div>
                   <label style={{ display: "inline-block", padding: "10px 24px", background: "#0c4a6e",
                     color: "#fff", borderRadius: 10, cursor: uploading ? "not-allowed" : "pointer",
                     fontWeight: 700, fontSize: 14 }}>
-                    {uploading ? "Uploading..." : "Choose File"}
+                    {uploading ? t("Uploading…") : t("Choose File")}
                     <input type="file" onChange={handleUpload} disabled={uploading}
                       style={{ display: "none" }} />
                   </label>
@@ -2249,7 +2319,7 @@ export default function ClientPortal({ user, onLogout, previewTxId, onExitPrevie
                 {docs.length === 0 ? (
                   <div style={{ textAlign: "center", padding: 40, color: C.gray }}>
                     <div style={{ fontSize: 40, marginBottom: 8 }}>📂</div>
-                    <div>No documents yet</div>
+                    <div>{t("No documents yet")}</div>
                   </div>
                 ) : docs.map(doc => (
                   <div key={doc.id} style={{ display: "flex", alignItems: "center", gap: 12,
@@ -2262,14 +2332,14 @@ export default function ClientPortal({ user, onLogout, previewTxId, onExitPrevie
                         {doc.name}
                       </div>
                       <div style={{ fontSize: 11, color: C.gray }}>
-                        {new Date(doc.created_at).toLocaleDateString()}
+                        {new Date(doc.created_at).toLocaleDateString(locale())}
                       </div>
                     </div>
                     <button onClick={() => handleDownload(doc)}
                       style={{ padding: "7px 14px", borderRadius: 8, border: "1px solid " + C.border,
                         background: C.white, cursor: "pointer", fontSize: 12,
                         fontWeight: 600, color: "#0c4a6e" }}>
-                      Download
+                      {t("Download")}
                     </button>
                   </div>
                 ))}
@@ -2280,7 +2350,7 @@ export default function ClientPortal({ user, onLogout, previewTxId, onExitPrevie
             {activeTab === "chat" && (
               <div>
                 <div style={{ fontSize: 13, color: C.gray, background: "#F6F8FA", border: "1px solid #E5E7EB", borderRadius: 8, padding: "9px 12px", marginBottom: 10 }}>
-                  💬 This is your direct line to your agent — send a message here anytime and they'll get it right away. (Replying to an email from them also reaches them.)
+                  💬 {t("This is your direct line to your agent — send a message here anytime and they'll get it right away. (Replying to an email from them also reaches them.)")}
                 </div>
                 <div style={{ height: 500 }}>
                   <TransactionChat transactionId={tx?.id} user={null} clientView={true}
@@ -2299,7 +2369,7 @@ export default function ClientPortal({ user, onLogout, previewTxId, onExitPrevie
             {activeTab === "calculator" && (
               <div style={{ padding: 16 }}>
                 <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 8, padding: 12, marginBottom: 16, fontSize: 13, color: "#7f1d1d" }}>
-                  <strong>🎓 Why this matters:</strong> Buying a home in Florida has costs many buyers don't expect — doc stamps, intangible tax, insurance. Use these calculators to plan with no surprises at closing.
+                  <strong>🎓 {t("Why this matters:")}</strong> {t("Buying a home in Florida has costs many buyers don't expect — doc stamps, intangible tax, insurance. Use these calculators to plan with no surprises at closing.")}
                 </div>
                 <BuyerCalculator />
               </div>
@@ -2308,7 +2378,7 @@ export default function ClientPortal({ user, onLogout, previewTxId, onExitPrevie
             {activeTab === "seller-calc" && (
               <div style={{ padding: 16 }}>
                 <div style={{ background: "#e0f2fe", border: "1px solid #7dd3fc", borderRadius: 8, padding: 12, marginBottom: 16, fontSize: 13, color: "#0c4a6e" }}>
-                  <strong>🎓 Why this matters:</strong> Estimate the cash you'll walk away with after selling. Florida sellers typically pay agent commission, doc stamps (~0.7%), title insurance, and any negotiated concessions or repairs. This gives you a realistic net.
+                  <strong>🎓 {t("Why this matters:")}</strong> {t("Estimate the cash you'll walk away with after selling. Florida sellers typically pay agent commission, doc stamps (~0.7%), title insurance, and any negotiated concessions or repairs. This gives you a realistic net.")}
                 </div>
                 {/* Pre-filled from the deal: contract price once under contract (else
                     list price), the deal's commission % (same source the offers card
@@ -2329,7 +2399,7 @@ export default function ClientPortal({ user, onLogout, previewTxId, onExitPrevie
             {activeTab === "team" && (
               <div>
                 <div style={{ fontSize: 13, color: C.gray, marginBottom: 16, lineHeight: 1.6 }}>
-                  Your transaction team is here to support you every step of the way.
+                  {t("Your transaction team is here to support you every step of the way.")}
                 </div>
                 {/* Always show agent first */}
                 {agentName && (
@@ -2344,7 +2414,7 @@ export default function ClientPortal({ user, onLogout, previewTxId, onExitPrevie
                     <div style={{ flex: 1 }}>
                       <div style={{ fontWeight: 700, fontSize: 15 }}>{agentName}</div>
                       <div style={{ fontSize: 12, color: C.red, fontWeight: 600, marginBottom: 6 }}>
-                        Your Agent {tx.owningBrokerage ? "· " + tx.owningBrokerage : ""}
+                        {t("Your Agent")} {tx.owningBrokerage ? "· " + tx.owningBrokerage : ""}
                       </div>
                       {agentPhone && (
                         <a href={"tel:" + agentPhone}
@@ -2364,7 +2434,7 @@ export default function ClientPortal({ user, onLogout, previewTxId, onExitPrevie
                 {teamParties.length === 0 && !agentName ? (
                   <div style={{ textAlign: "center", padding: 40, color: C.gray }}>
                     <div style={{ fontSize: 40, marginBottom: 8 }}>👥</div>
-                    <div>No team members listed yet</div>
+                    <div>{t("No team members listed yet")}</div>
                   </div>
                 ) : teamParties.map(p => (
                   <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 14,
@@ -2377,7 +2447,7 @@ export default function ClientPortal({ user, onLogout, previewTxId, onExitPrevie
                     </div>
                     <div style={{ flex: 1 }}>
                       <div style={{ fontWeight: 700, fontSize: 15 }}>{p.name}</div>
-                      <div style={{ fontSize: 12, color: C.red, fontWeight: 600, marginBottom: 6 }}>{p.role}</div>
+                      <div style={{ fontSize: 12, color: C.red, fontWeight: 600, marginBottom: 6 }}>{t(p.role)}</div>
                       {p.email && (
                         <a href={"mailto:" + p.email}
                           style={{ fontSize: 13, color: "#1A5276", display: "block" }}>

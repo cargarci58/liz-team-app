@@ -16,6 +16,7 @@
 import { useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { UI, btn } from "./kit";
+import { t } from "../i18n";
 
 let pushDialog = null;     // set by the mounted host
 const queue = [];          // calls made before the host finished mounting
@@ -81,8 +82,8 @@ function Dialog({ spec, onDone }) {
     return () => { window.removeEventListener("keydown", onKey); try { prev && prev.focus && prev.focus(); } catch { /* ignore */ } };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-  const okLabel = spec.okLabel || "OK";
-  const cancelLabel = spec.cancelLabel || "Cancel";
+  const okLabel = spec.okLabel || t("OK");
+  const cancelLabel = spec.cancelLabel || t("Cancel");
   return (
     <div onClick={cancel}
       style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 100000, display: "flex", alignItems: "flex-start", justifyContent: "center", padding: 16, overflowY: "auto", fontFamily: "system-ui, -apple-system, 'Segoe UI', sans-serif" }}>

@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from "react";
+import { t, useLang } from "../i18n";
 import { flTaxRate, buyerPaysOwnerTitleDefault } from "../lib/flTaxRates";
 
 // ============================================================
@@ -78,7 +79,7 @@ function Info({ children }) {
           lineHeight: "18px",
           padding: 0,
         }}
-        aria-label="What is this?"
+        aria-label={t("What is this?")}
       >
         ?
       </button>
@@ -101,7 +102,7 @@ function Info({ children }) {
             cursor: "pointer",
           }}
         >
-          {children}
+          {typeof children === "string" ? t(children) : children}
         </div>
       )}
     </span>
@@ -138,7 +139,7 @@ function SliderRow({ label, value, onChange, min, max, step, prefix, suffix, inf
     <div style={{ marginBottom: 16 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6, gap: 8 }}>
         <label style={{ fontSize: 14, fontWeight: 600, color: "#374151", flex: 1 }}>
-          {label}
+          {t(label)}
           {info && <Info>{info}</Info>}
         </label>
         {editing ? (
@@ -171,7 +172,7 @@ function SliderRow({ label, value, onChange, min, max, step, prefix, suffix, inf
           <button
             type="button"
             onClick={startEdit}
-            title="Tap to type a value"
+            title={t("Tap to type a value")}
             style={{
               background: "#f3f4f6",
               border: "1px solid #d1d5db",
@@ -199,7 +200,7 @@ function SliderRow({ label, value, onChange, min, max, step, prefix, suffix, inf
       />
       {value > max && (
         <div style={{ fontSize: 11, color: "#6b7280", marginTop: 2, fontStyle: "italic" }}>
-          Typed value exceeds slider range — slider shows max. Tap value to edit.
+          {t("Typed value exceeds slider range — slider shows max. Tap value to edit.")}
         </div>
       )}
     </div>
@@ -250,7 +251,7 @@ function AffordabilityTab() {
   return (
     <div>
       <div style={{ background: "#fef3c7", border: "1px solid #fcd34d", borderRadius: 8, padding: 12, marginBottom: 16, fontSize: 13, color: "#78350f" }}>
-        <strong>💡 What this tells you:</strong> The maximum home price you can likely qualify for based on your income, debts, and down payment. Lenders use a Debt-to-Income (DTI) ratio to decide.
+        <strong>{t("💡 What this tells you:")}</strong> {t("The maximum home price you can likely qualify for based on your income, debts, and down payment. Lenders use a Debt-to-Income (DTI) ratio to decide.")}
       </div>
 
       <SliderRow
@@ -327,17 +328,17 @@ function AffordabilityTab() {
       />
 
       <div style={{ background: "linear-gradient(135deg, #dc2626, #991b1b)", color: "white", padding: 20, borderRadius: 12, marginTop: 20 }}>
-        <div style={{ fontSize: 13, opacity: 0.9, marginBottom: 4 }}>You can likely afford a home up to</div>
+        <div style={{ fontSize: 13, opacity: 0.9, marginBottom: 4 }}>{t("You can likely afford a home up to")}</div>
         <div style={{ fontSize: 36, fontWeight: 800 }}>{money(result.maxPrice)}</div>
         <div style={{ fontSize: 13, opacity: 0.9, marginTop: 12, borderTop: "1px solid rgba(255,255,255,0.3)", paddingTop: 12 }}>
-          Max monthly payment (PITI): <strong>{money(result.maxPITI)}</strong><br/>
-          → Principal & Interest: {money(result.pi)}<br/>
-          → Taxes & Insurance: {money(result.taxIns)}
+          {t("Max monthly payment (PITI):")} <strong>{money(result.maxPITI)}</strong><br/>
+          → {t("Principal & Interest:")} {money(result.pi)}<br/>
+          → {t("Taxes & Insurance:")} {money(result.taxIns)}
         </div>
       </div>
 
       <div style={{ fontSize: 12, color: "#6b7280", marginTop: 12, fontStyle: "italic" }}>
-        ⚠️ This is an estimate. Final approval depends on credit score, employment history, and lender underwriting. Always get pre-approved before shopping.
+        {t("⚠️ This is an estimate. Final approval depends on credit score, employment history, and lender underwriting. Always get pre-approved before shopping.")}
       </div>
     </div>
   );
@@ -377,7 +378,7 @@ function PaymentTab() {
   return (
     <div>
       <div style={{ background: "#dbeafe", border: "1px solid #93c5fd", borderRadius: 8, padding: 12, marginBottom: 16, fontSize: 13, color: "#1e3a8a" }}>
-        <strong>💡 What this tells you:</strong> Your full monthly housing cost (PITI + HOA + PMI) for a specific home price. This is what you'll actually write a check for each month.
+        <strong>{t("💡 What this tells you:")}</strong> {t("Your full monthly housing cost (PITI + HOA + PMI) for a specific home price. This is what you'll actually write a check for each month.")}
       </div>
 
       <SliderRow
@@ -448,16 +449,16 @@ function PaymentTab() {
       )}
 
       <div style={{ background: "linear-gradient(135deg, #2563eb, #1e40af)", color: "white", padding: 20, borderRadius: 12, marginTop: 20 }}>
-        <div style={{ fontSize: 13, opacity: 0.9, marginBottom: 4 }}>Total Monthly Payment</div>
+        <div style={{ fontSize: 13, opacity: 0.9, marginBottom: 4 }}>{t("Total Monthly Payment")}</div>
         <div style={{ fontSize: 36, fontWeight: 800 }}>{money(result.total)}</div>
         <div style={{ fontSize: 13, opacity: 0.95, marginTop: 12, borderTop: "1px solid rgba(255,255,255,0.3)", paddingTop: 12, lineHeight: 1.8 }}>
-          <div>Principal & Interest: <strong>{money(result.pi)}</strong></div>
-          <div>Property Tax: <strong>{money(result.tax)}</strong></div>
-          <div>Insurance: <strong>{money(result.ins)}</strong></div>
-          {result.pmi > 0 && <div>PMI: <strong>{money(result.pmi)}</strong></div>}
-          {hoaMonthly > 0 && <div>HOA: <strong>{money(hoaMonthly)}</strong></div>}
+          <div>{t("Principal & Interest:")} <strong>{money(result.pi)}</strong></div>
+          <div>{t("Property Tax:")} <strong>{money(result.tax)}</strong></div>
+          <div>{t("Insurance:")} <strong>{money(result.ins)}</strong></div>
+          {result.pmi > 0 && <div>{t("PMI:")} <strong>{money(result.pmi)}</strong></div>}
+          {hoaMonthly > 0 && <div>{t("HOA:")} <strong>{money(hoaMonthly)}</strong></div>}
           <div style={{ marginTop: 8, opacity: 0.85, fontSize: 12 }}>
-            Loan amount: {money(result.loan)} · Down: {money(result.downPayment)}
+            {t("Loan amount:")} {money(result.loan)} · {t("Down:")} {money(result.downPayment)}
           </div>
         </div>
       </div>
@@ -762,12 +763,12 @@ function CashToCloseTab({ transactionId, token, showGenerate, county } = {}) {
   return (
     <div>
       <div style={{ background: "#dcfce7", border: "1px solid #86efac", borderRadius: 8, padding: 12, marginBottom: 16, fontSize: 13, color: "#14532d" }}>
-        <strong>💡 What this tells you:</strong> The total cash the buyer needs at closing — down payment PLUS closing costs, minus the property-tax credit from the seller. Florida has specific taxes (doc stamps, intangible tax) most buyers don't know about.
+        <strong>{t("💡 What this tells you:")}</strong> {t("The total cash the buyer needs at closing — down payment PLUS closing costs, minus the property-tax credit from the seller. Florida has specific taxes (doc stamps, intangible tax) most buyers don't know about.")}
       </div>
 
       {transactionId && (
         <div style={{ background: "#eef2ff", border: "1px solid #c7d2fe", borderRadius: 8, padding: 12, marginBottom: 16 }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: "#3730a3", marginBottom: 4 }}>🤖 Auto-fill from documents</div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: "#3730a3", marginBottom: 4 }}>{t("🤖 Auto-fill from documents")}</div>
           <div style={{ fontSize: 12, color: "#3730a3", marginBottom: 10, lineHeight: 1.5 }}>
             Upload the listing / MLS sheet / BPO and we'll pull the price, taxes &amp; HOA — and read this transaction's pre-approval letter for loan type, down payment, rate &amp; term. Review the fields before generating.
           </div>
@@ -780,7 +781,7 @@ function CashToCloseTab({ transactionId, token, showGenerate, county } = {}) {
             </button>
             <button type="button" onClick={() => autofillFromDocs(null)} disabled={autofilling}
               style={{ background: "#fff", color: "#4f46e5", border: "1px solid #c7d2fe", borderRadius: 6, padding: "9px 16px", fontSize: 13, fontWeight: 700, cursor: autofilling ? "wait" : "pointer", fontFamily: "inherit" }}>
-              Read pre-approval only
+              {t("Read pre-approval only")}
             </button>
           </div>
           {autofillMsg && (
@@ -799,14 +800,14 @@ function CashToCloseTab({ transactionId, token, showGenerate, county } = {}) {
 
       <div style={{ marginBottom: 16 }}>
         <label style={{ fontSize: 14, fontWeight: 600, color: "#374151", display: "block", marginBottom: 6 }}>
-          Loan Type
-          <Info>Sets the typical minimum down payment: Conventional 5%, FHA 3.5%, VA 0%. Cash = no loan (skips loan taxes, lender fees, escrow reserves &amp; prepaid interest). FHA/VA upfront fees are normally financed into the loan, not paid in cash.</Info>
+          {t("Loan Type")}
+          <Info>{t("Sets the typical minimum down payment: Conventional 5%, FHA 3.5%, VA 0%. Cash = no loan (skips loan taxes, lender fees, escrow reserves & prepaid interest). FHA/VA upfront fees are normally financed into the loan, not paid in cash.")}</Info>
         </label>
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-          {["Conventional", "FHA", "VA", "Cash"].map((t) => (
-            <button key={t} type="button" onClick={() => selectLoanType(t)}
-              style={{ flex: "1 1 70px", padding: "8px", borderRadius: 6, border: "1px solid " + (loanType === t ? "#16a34a" : "#d1d5db"), background: loanType === t ? "#dcfce7" : "#fff", fontWeight: 700, fontSize: 12, color: loanType === t ? "#14532d" : "#6b7280", cursor: "pointer" }}>
-              {t}
+          {["Conventional", "FHA", "VA", "Cash"].map((lt) => (
+            <button key={lt} type="button" onClick={() => selectLoanType(lt)}
+              style={{ flex: "1 1 70px", padding: "8px", borderRadius: 6, border: "1px solid " + (loanType === lt ? "#16a34a" : "#d1d5db"), background: loanType === lt ? "#dcfce7" : "#fff", fontWeight: 700, fontSize: 12, color: loanType === lt ? "#14532d" : "#6b7280", cursor: "pointer" }}>
+              {t(lt)}
             </button>
           ))}
         </div>
@@ -836,34 +837,34 @@ function CashToCloseTab({ transactionId, token, showGenerate, county } = {}) {
 
       <div style={{ marginBottom: 16 }}>
         <label style={{ fontSize: 14, fontWeight: 600, color: "#374151", display: "block", marginBottom: 6 }}>
-          Who pays the Owner's Title Policy?
-          <Info>FL custom is by county. Orange/Orlando &amp; most of FL: SELLER pays the owner's policy and picks the title company — the buyer pays only the lender's policy (~$25). Miami-Dade, Broward, Sarasota, Collier: BUYER pays.</Info>
+          {t("Who pays the Owner's Title Policy?")}
+          <Info>{t("FL custom is by county. Orange/Orlando & most of FL: SELLER pays the owner's policy and picks the title company — the buyer pays only the lender's policy (~$25). Miami-Dade, Broward, Sarasota, Collier: BUYER pays.")}</Info>
         </label>
         <div style={{ display: "flex", gap: 8 }}>
           <button type="button" onClick={() => setBuyerPaysOwnerTitle(false)}
             style={{ flex: 1, padding: "8px", borderRadius: 6, border: "1px solid " + (!buyerPaysOwnerTitle ? "#16a34a" : "#d1d5db"), background: !buyerPaysOwnerTitle ? "#dcfce7" : "#fff", fontWeight: 700, fontSize: 12, color: !buyerPaysOwnerTitle ? "#14532d" : "#6b7280", cursor: "pointer" }}>
-            Seller pays (most of FL)
+            {t("Seller pays (most of FL)")}
           </button>
           <button type="button" onClick={() => setBuyerPaysOwnerTitle(true)}
             style={{ flex: 1, padding: "8px", borderRadius: 6, border: "1px solid " + (buyerPaysOwnerTitle ? "#16a34a" : "#d1d5db"), background: buyerPaysOwnerTitle ? "#dcfce7" : "#fff", fontWeight: 700, fontSize: 12, color: buyerPaysOwnerTitle ? "#14532d" : "#6b7280", cursor: "pointer" }}>
-            Buyer pays (Miami-Dade, etc.)
+            {t("Buyer pays (Miami-Dade, etc.)")}
           </button>
         </div>
       </div>
 
       <div style={{ marginBottom: 16 }}>
         <label style={{ fontSize: 14, fontWeight: 600, color: "#374151", display: "block", marginBottom: 6 }}>
-          Buyer's Agent Commission
-          <Info>Under the 2024 NAR rules the buyer may pay their agent directly if the seller's offered compensation doesn't cover it. If the seller covers it, choose "Seller pays" — it won't count toward the buyer's cash.</Info>
+          {t("Buyer's Agent Commission")}
+          <Info>{t("Under the 2024 NAR rules the buyer may pay their agent directly if the seller's offered compensation doesn't cover it. If the seller covers it, choose \"Seller pays\" — it won't count toward the buyer's cash.")}</Info>
         </label>
         <div style={{ display: "flex", gap: 8, marginBottom: buyerPaysAgent ? 8 : 0 }}>
           <button type="button" onClick={() => setBuyerPaysAgent(false)}
             style={{ flex: 1, padding: "8px", borderRadius: 6, border: "1px solid " + (!buyerPaysAgent ? "#16a34a" : "#d1d5db"), background: !buyerPaysAgent ? "#dcfce7" : "#fff", fontWeight: 700, fontSize: 12, color: !buyerPaysAgent ? "#14532d" : "#6b7280", cursor: "pointer" }}>
-            Seller pays it
+            {t("Seller pays it")}
           </button>
           <button type="button" onClick={() => setBuyerPaysAgent(true)}
             style={{ flex: 1, padding: "8px", borderRadius: 6, border: "1px solid " + (buyerPaysAgent ? "#16a34a" : "#d1d5db"), background: buyerPaysAgent ? "#dcfce7" : "#fff", fontWeight: 700, fontSize: 12, color: buyerPaysAgent ? "#14532d" : "#6b7280", cursor: "pointer" }}>
-            Buyer pays it
+            {t("Buyer pays it")}
           </button>
         </div>
         {buyerPaysAgent && (
@@ -926,46 +927,46 @@ function CashToCloseTab({ transactionId, token, showGenerate, county } = {}) {
         min={0.3} max={3.0} step={0.005} suffix="%"
         info="Total millage (% of value). Defaulted from your profile city; adjust for the specific property's city/county. Annual tax = price × rate." />
       <div style={{ background: "#f9fafb", border: "1px solid #e5e7eb", borderRadius: 6, padding: "8px 12px", marginBottom: 16, fontSize: 12, color: "#6b7280" }}>
-        Rate from <strong style={{ color: "#374151" }}>{taxLoc.label}</strong>{taxLoc.source === "default" ? " (no city/county on file — adjust above)" : ""}. Est. annual tax: <strong style={{ color: "#374151" }}>{money(result.annualPropertyTax)}</strong>
+        {t("Rate from")} <strong style={{ color: "#374151" }}>{taxLoc.label === "FL default" ? t("FL default") : taxLoc.label}</strong>{taxLoc.source === "default" ? " " + t("(no city/county on file — adjust above)") : ""}. {t("Est. annual tax:")} <strong style={{ color: "#374151" }}>{money(result.annualPropertyTax)}</strong>
       </div>
 
       <div style={{ marginBottom: 16 }}>
         <label style={{ fontSize: 14, fontWeight: 600, color: "#374151", display: "block", marginBottom: 6 }}>
-          Estimated Closing Date
-          <Info>FL taxes are paid in arrears. The seller credits the buyer for the days the seller owned the home this year (Jan 1 → closing), reducing the buyer's cash to close.</Info>
+          {t("Estimated Closing Date")}
+          <Info>{t("FL taxes are paid in arrears. The seller credits the buyer for the days the seller owned the home this year (Jan 1 → closing), reducing the buyer's cash to close.")}</Info>
         </label>
         <input type="date" value={closingDate} onChange={(e) => setClosingDate(e.target.value)}
           style={{ padding: "6px 10px", fontSize: 14, fontWeight: 600, color: "#1f2937", border: "1px solid #d1d5db", borderRadius: 4, fontFamily: "inherit" }} />
       </div>
 
       <div style={{ background: "linear-gradient(135deg, #16a34a, #15803d)", color: "white", padding: 20, borderRadius: 12, marginTop: 20 }}>
-        <div style={{ fontSize: 13, opacity: 0.9, marginBottom: 4 }}>Total Cash Needed</div>
+        <div style={{ fontSize: 13, opacity: 0.9, marginBottom: 4 }}>{t("Total Cash Needed")}</div>
         <div style={{ fontSize: 36, fontWeight: 800 }}>{money(result.totalCash)}</div>
         <div style={{ fontSize: 13, opacity: 0.95, marginTop: 12, borderTop: "1px solid rgba(255,255,255,0.3)", paddingTop: 12, lineHeight: 1.7 }}>
-          <div style={{ fontWeight: 700 }}>Down Payment: {money(result.downPayment)}</div>
-          <div style={{ fontWeight: 700 }}>Closing Costs: {money(result.closingCosts)}</div>
-          {result.taxProrationCredit > 0 && <div>− Property Tax Credit: {money(result.taxProrationCredit)}</div>}
-          {result.sellerConcessions > 0 && <div>− Seller Concessions: {money(result.sellerConcessions)}</div>}
+          <div style={{ fontWeight: 700 }}>{t("Down Payment:")} {money(result.downPayment)}</div>
+          <div style={{ fontWeight: 700 }}>{t("Closing Costs:")} {money(result.closingCosts)}</div>
+          {result.taxProrationCredit > 0 && <div>− {t("Property Tax Credit:")} {money(result.taxProrationCredit)}</div>}
+          {result.sellerConcessions > 0 && <div>− {t("Seller Concessions:")} {money(result.sellerConcessions)}</div>}
           <div style={{ fontSize: 12, opacity: 0.9, marginTop: 8 }}>
-            EMD already paid: {money(result.emd)}<br/>
-            Cash at closing table: <strong>{money(result.cashAtClosing)}</strong>
+            {t("EMD already paid:")} {money(result.emd)}<br/>
+            {t("Cash at closing table:")} <strong>{money(result.cashAtClosing)}</strong>
           </div>
         </div>
       </div>
 
       <div style={{ background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 8, padding: "10px 14px", marginTop: 12, fontSize: 12, color: "#1e3a8a" }}>
-        <strong>Closing costs only: {money(result.fixedCosts)}</strong> — excludes the down payment, escrow reserves &amp; prepaid interest. This is the apples-to-apples number to compare against a title company's "Total Fixed Costs."
+        <strong>{t("Closing costs only:")} {money(result.fixedCosts)}</strong> — {t("excludes the down payment, escrow reserves & prepaid interest. This is the apples-to-apples number to compare against a title company's \"Total Fixed Costs.\"")}
       </div>
 
       <div style={{ background: "linear-gradient(135deg, #1e3a8a, #1e40af)", color: "white", padding: 20, borderRadius: 12, marginTop: 12 }}>
-        <div style={{ fontSize: 13, opacity: 0.9, marginBottom: 4 }}>Estimated Monthly Payment</div>
+        <div style={{ fontSize: 13, opacity: 0.9, marginBottom: 4 }}>{t("Estimated Monthly Payment")}</div>
         <div style={{ fontSize: 32, fontWeight: 800 }}>{money(result.monthlyTotal)}/mo</div>
         <div style={{ fontSize: 13, opacity: 0.95, marginTop: 12, borderTop: "1px solid rgba(255,255,255,0.3)", paddingTop: 12, lineHeight: 1.8 }}>
-          {result.piMonthly > 0 && <div>Principal &amp; Interest: <strong>{money(result.piMonthly)}</strong></div>}
-          <div>Property Taxes: <strong>{money(result.taxMonthly)}</strong></div>
-          <div>Homeowners Insurance: <strong>{money(result.insMonthly)}</strong></div>
-          {result.pmiMonthly > 0 && <div>PMI: <strong>{money(result.pmiMonthly)}</strong></div>}
-          {result.hoaMo > 0 && <div>HOA: <strong>{money(result.hoaMo)}</strong></div>}
+          {result.piMonthly > 0 && <div>{t("Principal & Interest:")} <strong>{money(result.piMonthly)}</strong></div>}
+          <div>{t("Property Taxes:")} <strong>{money(result.taxMonthly)}</strong></div>
+          <div>{t("Homeowners Insurance:")} <strong>{money(result.insMonthly)}</strong></div>
+          {result.pmiMonthly > 0 && <div>{t("PMI:")} <strong>{money(result.pmiMonthly)}</strong></div>}
+          {result.hoaMo > 0 && <div>{t("HOA:")} <strong>{money(result.hoaMo)}</strong></div>}
         </div>
       </div>
 
@@ -975,24 +976,24 @@ function CashToCloseTab({ transactionId, token, showGenerate, county } = {}) {
         </summary>
         <table style={{ width: "100%", marginTop: 12, fontSize: 13 }}>
           <tbody>
-            {buyerPaysOwnerTitle && <tr><td style={{ padding: "4px 0" }}>Owner's Title Insurance <Info>FL promulgated rate: $5.75/$1k up to $100k, then $5.00/$1k.</Info></td><td style={{ textAlign: "right", fontWeight: 600 }}>{money(result.ownerPremium)}</td></tr>}
-            {!result.cash && <tr><td style={{ padding: "4px 0" }}>Lender's Title Policy & Endorsements <Info>Loan title policy + endorsements (Form 9/9.2/8.1/5.1, simultaneous issue) the buyer's loan pays even when the seller covers the owner's policy.</Info></td><td style={{ textAlign: "right", fontWeight: 600 }}>{money(result.lenderTitle)}</td></tr>}
-            {!result.cash && <tr><td style={{ padding: "4px 0" }}>Doc Stamps on Note <Info>FL tax: $0.35 per $100 of loan amount. Buyer pays.</Info></td><td style={{ textAlign: "right", fontWeight: 600 }}>{money(result.docStampsNote)}</td></tr>}
-            {!result.cash && <tr><td style={{ padding: "4px 0" }}>Intangible Tax <Info>FL tax: 0.2% (2 mills) of loan amount. Buyer pays.</Info></td><td style={{ textAlign: "right", fontWeight: 600 }}>{money(result.intangibleTax)}</td></tr>}
-            {result.titleSearch > 0 && <tr><td style={{ padding: "4px 0" }}>Title Search</td><td style={{ textAlign: "right", fontWeight: 600 }}>{money(result.titleSearch)}</td></tr>}
-            <tr><td style={{ padding: "4px 0" }}>Recording Fees</td><td style={{ textAlign: "right", fontWeight: 600 }}>{money(result.recording)}</td></tr>
-            <tr><td style={{ padding: "4px 0" }}>Settlement / Closing Fee</td><td style={{ textAlign: "right", fontWeight: 600 }}>{money(result.settlementFee)}</td></tr>
-            <tr><td style={{ padding: "4px 0" }}>Home Inspection</td><td style={{ textAlign: "right", fontWeight: 600 }}>{money(result.inspectionFee)}</td></tr>
-            {!result.cash && <tr><td style={{ padding: "4px 0" }}>Appraisal</td><td style={{ textAlign: "right", fontWeight: 600 }}>{money(result.effAppraisal)}</td></tr>}
-            {result.origination > 0 && <tr><td style={{ padding: "4px 0" }}>Loan Origination Fee</td><td style={{ textAlign: "right", fontWeight: 600 }}>{money(result.origination)}</td></tr>}
-            {!result.cash && <tr><td style={{ padding: "4px 0" }}>Other Lender Fees</td><td style={{ textAlign: "right", fontWeight: 600 }}>{money(result.effLenderFees)}</td></tr>}
-            <tr><td style={{ padding: "4px 0" }}>Survey</td><td style={{ textAlign: "right", fontWeight: 600 }}>{money(result.surveyFee)}</td></tr>
-            {!result.cash && <tr><td style={{ padding: "4px 0" }}>Prepaid Interest ({result.interestDays} days)</td><td style={{ textAlign: "right", fontWeight: 600 }}>{money(result.prepaidInterest)}</td></tr>}
-            {!result.cash && <tr><td style={{ padding: "4px 0" }}>Escrow Reserves (taxes + insurance)</td><td style={{ textAlign: "right", fontWeight: 600 }}>{money(result.effPrepaids)}</td></tr>}
-            {result.buyerAgentFee > 0 && <tr><td style={{ padding: "4px 0" }}>Buyer's Agent Commission</td><td style={{ textAlign: "right", fontWeight: 600 }}>{money(result.buyerAgentFee)}</td></tr>}
-            <tr style={{ borderTop: "1px solid #d1d5db" }}><td style={{ padding: "6px 0", fontWeight: 700 }}>Total Closing Costs</td><td style={{ textAlign: "right", fontWeight: 700 }}>{money(result.closingCosts)}</td></tr>
-            {result.taxProrationCredit > 0 && <tr><td style={{ padding: "4px 0", color: "#15803d" }}>Property Tax Proration Credit ({result.daysOwned} days)</td><td style={{ textAlign: "right", fontWeight: 600, color: "#15803d" }}>−{money(result.taxProrationCredit)}</td></tr>}
-            {result.sellerConcessions > 0 && <tr><td style={{ padding: "4px 0", color: "#15803d" }}>Seller Concessions</td><td style={{ textAlign: "right", fontWeight: 600, color: "#15803d" }}>−{money(result.sellerConcessions)}</td></tr>}
+            {buyerPaysOwnerTitle && <tr><td style={{ padding: "4px 0" }}>{t("Owner's Title Insurance")} <Info>{t("FL promulgated rate: $5.75/$1k up to $100k, then $5.00/$1k.")}</Info></td><td style={{ textAlign: "right", fontWeight: 600 }}>{money(result.ownerPremium)}</td></tr>}
+            {!result.cash && <tr><td style={{ padding: "4px 0" }}>{t("Lender's Title Policy & Endorsements")} <Info>{t("Loan title policy + endorsements (Form 9/9.2/8.1/5.1, simultaneous issue) the buyer's loan pays even when the seller covers the owner's policy.")}</Info></td><td style={{ textAlign: "right", fontWeight: 600 }}>{money(result.lenderTitle)}</td></tr>}
+            {!result.cash && <tr><td style={{ padding: "4px 0" }}>{t("Doc Stamps on Note")} <Info>{t("FL tax: $0.35 per $100 of loan amount. Buyer pays.")}</Info></td><td style={{ textAlign: "right", fontWeight: 600 }}>{money(result.docStampsNote)}</td></tr>}
+            {!result.cash && <tr><td style={{ padding: "4px 0" }}>{t("Intangible Tax")} <Info>{t("FL tax: 0.2% (2 mills) of loan amount. Buyer pays.")}</Info></td><td style={{ textAlign: "right", fontWeight: 600 }}>{money(result.intangibleTax)}</td></tr>}
+            {result.titleSearch > 0 && <tr><td style={{ padding: "4px 0" }}>{t("Title Search")}</td><td style={{ textAlign: "right", fontWeight: 600 }}>{money(result.titleSearch)}</td></tr>}
+            <tr><td style={{ padding: "4px 0" }}>{t("Recording Fees")}</td><td style={{ textAlign: "right", fontWeight: 600 }}>{money(result.recording)}</td></tr>
+            <tr><td style={{ padding: "4px 0" }}>{t("Settlement / Closing Fee")}</td><td style={{ textAlign: "right", fontWeight: 600 }}>{money(result.settlementFee)}</td></tr>
+            <tr><td style={{ padding: "4px 0" }}>{t("Home Inspection")}</td><td style={{ textAlign: "right", fontWeight: 600 }}>{money(result.inspectionFee)}</td></tr>
+            {!result.cash && <tr><td style={{ padding: "4px 0" }}>{t("Appraisal")}</td><td style={{ textAlign: "right", fontWeight: 600 }}>{money(result.effAppraisal)}</td></tr>}
+            {result.origination > 0 && <tr><td style={{ padding: "4px 0" }}>{t("Loan Origination Fee")}</td><td style={{ textAlign: "right", fontWeight: 600 }}>{money(result.origination)}</td></tr>}
+            {!result.cash && <tr><td style={{ padding: "4px 0" }}>{t("Other Lender Fees")}</td><td style={{ textAlign: "right", fontWeight: 600 }}>{money(result.effLenderFees)}</td></tr>}
+            <tr><td style={{ padding: "4px 0" }}>{t("Survey")}</td><td style={{ textAlign: "right", fontWeight: 600 }}>{money(result.surveyFee)}</td></tr>
+            {!result.cash && <tr><td style={{ padding: "4px 0" }}>{t("Prepaid Interest ({n} days)", { n: result.interestDays })}</td><td style={{ textAlign: "right", fontWeight: 600 }}>{money(result.prepaidInterest)}</td></tr>}
+            {!result.cash && <tr><td style={{ padding: "4px 0" }}>{t("Escrow Reserves (taxes + insurance)")}</td><td style={{ textAlign: "right", fontWeight: 600 }}>{money(result.effPrepaids)}</td></tr>}
+            {result.buyerAgentFee > 0 && <tr><td style={{ padding: "4px 0" }}>{t("Buyer's Agent Commission")}</td><td style={{ textAlign: "right", fontWeight: 600 }}>{money(result.buyerAgentFee)}</td></tr>}
+            <tr style={{ borderTop: "1px solid #d1d5db" }}><td style={{ padding: "6px 0", fontWeight: 700 }}>{t("Total Closing Costs")}</td><td style={{ textAlign: "right", fontWeight: 700 }}>{money(result.closingCosts)}</td></tr>
+            {result.taxProrationCredit > 0 && <tr><td style={{ padding: "4px 0", color: "#15803d" }}>{t("Property Tax Proration Credit ({n} days)", { n: result.daysOwned })}</td><td style={{ textAlign: "right", fontWeight: 600, color: "#15803d" }}>−{money(result.taxProrationCredit)}</td></tr>}
+            {result.sellerConcessions > 0 && <tr><td style={{ padding: "4px 0", color: "#15803d" }}>{t("Seller Concessions")}</td><td style={{ textAlign: "right", fontWeight: 600, color: "#15803d" }}>−{money(result.sellerConcessions)}</td></tr>}
           </tbody>
         </table>
       </details>
@@ -1003,7 +1004,7 @@ function CashToCloseTab({ transactionId, token, showGenerate, county } = {}) {
 
       {showGenerate && transactionId && (
         <div style={{ marginTop: 20, padding: 16, background: "#f0fdf4", border: "1px solid #86efac", borderRadius: 8 }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: "#14532d", marginBottom: 6 }}>📄 Generate Buyer's Costs &amp; Cash to Close</div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: "#14532d", marginBottom: 6 }}>{t("📄 Generate Buyer's Costs & Cash to Close")}</div>
           <div style={{ fontSize: 12, color: "#14532d", marginBottom: 10, lineHeight: 1.5 }}>
             Generate a branded estimated buyer's net sheet (cash to close) and save it to this transaction's Documents.
           </div>
@@ -1035,6 +1036,7 @@ function CashToCloseTab({ transactionId, token, showGenerate, county } = {}) {
 // Main component with tab navigation
 // ============================================================
 export default function BuyerCalculator({ transactionId, token, mode, county } = {}) {
+  useLang();
   const [tab, setTab] = useState("affordability");
 
   const tabs = [
@@ -1049,9 +1051,9 @@ export default function BuyerCalculator({ transactionId, token, mode, county } =
     return (
       <div style={{ maxWidth: 720, margin: "0 auto", padding: 16, fontFamily: "system-ui, sans-serif" }}>
         <div style={{ marginBottom: 16 }}>
-          <h2 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: "#1f2937" }}>Buyer's Costs &amp; Cash to Close</h2>
+          <h2 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: "#1f2937" }}>{t("Buyer's Costs & Cash to Close")}</h2>
           <p style={{ margin: "4px 0 0", fontSize: 13, color: "#6b7280" }}>
-            Florida-specific estimated cash to close. Generate a branded English or Spanish PDF below.
+            {t("Florida-specific estimated cash to close. Generate a branded English or Spanish PDF below.")}
           </p>
         </div>
         <CashToCloseTab transactionId={transactionId} token={token} county={county} showGenerate={true} />
@@ -1062,32 +1064,32 @@ export default function BuyerCalculator({ transactionId, token, mode, county } =
   return (
     <div style={{ maxWidth: 720, margin: "0 auto", padding: 16, fontFamily: "system-ui, sans-serif" }}>
       <div style={{ marginBottom: 20 }}>
-        <h2 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: "#1f2937" }}>Smart Buyer Calculator</h2>
+        <h2 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: "#1f2937" }}>{t("Smart Buyer Calculator")}</h2>
         <p style={{ margin: "4px 0 0", fontSize: 13, color: "#6b7280" }}>
-          Florida-specific. Tap the ❓ icons to learn what each number means.
+          {t("Florida-specific. Tap the ❓ icons to learn what each number means.")}
         </p>
       </div>
 
       <div style={{ display: "flex", gap: 8, marginBottom: 20, borderBottom: "2px solid #e5e7eb" }}>
-        {tabs.map((t) => (
+        {tabs.map((tb) => (
           <button
-            key={t.id}
-            onClick={() => setTab(t.id)}
+            key={tb.id}
+            onClick={() => setTab(tb.id)}
             style={{
               flex: 1,
               padding: "10px 8px",
               background: "transparent",
               border: "none",
-              borderBottom: tab === t.id ? "3px solid #dc2626" : "3px solid transparent",
+              borderBottom: tab === tb.id ? "3px solid #dc2626" : "3px solid transparent",
               cursor: "pointer",
               fontSize: 13,
-              fontWeight: tab === t.id ? 700 : 500,
-              color: tab === t.id ? "#dc2626" : "#6b7280",
+              fontWeight: tab === tb.id ? 700 : 500,
+              color: tab === tb.id ? "#dc2626" : "#6b7280",
               marginBottom: -2,
             }}
           >
-            <div>{t.label}</div>
-            <div style={{ fontSize: 10, fontWeight: 400, marginTop: 2 }}>{t.desc}</div>
+            <div>{t(tb.label)}</div>
+            <div style={{ fontSize: 10, fontWeight: 400, marginTop: 2 }}>{t(tb.desc)}</div>
           </button>
         ))}
       </div>

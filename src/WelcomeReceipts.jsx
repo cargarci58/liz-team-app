@@ -1,5 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { askConfirm } from "./ui/dialogs";
+import { t, useLang, applyPreferredLang } from "./i18n";
+import LangToggle from "./components/LangToggle";
 
 // Welcome-email receipts: did every party (title, lender, co-op agent, clients…)
 // actually get the Under-Contract welcome email? Shown on the People tab (agent
@@ -126,6 +128,7 @@ export default function WelcomeReceiptsPanel({ tx }) {
 // does NOT confirm — the person must press the button (link scanners open
 // every link, so a GET must never count as a receipt).
 export function WelcomeReceivedPublic({ urlToken }) {
+  useLang();
   const token = urlToken || window.location.pathname.split("/welcome-received/")[1];
   const [state, setState] = useState("loading");
   const [info, setInfo] = useState(null);
@@ -134,7 +137,7 @@ export function WelcomeReceivedPublic({ urlToken }) {
     if (!token || token === "preview") { setState(token === "preview" ? "preview" : "expired"); return; }
     fetch(`${API}/public/welcome-receipt/${encodeURIComponent(token)}`)
       .then(r => r.json().then(d => ({ ok: r.ok, d })))
-      .then(({ ok, d }) => { if (!ok || !d.success) return setState("expired"); setInfo(d); setState(d.confirmed ? "done" : "ready"); })
+      .then(({ ok, d }) => { if (d && d.language) applyPreferredLang(d.language); if (!ok || !d.success) return setState("expired"); setInfo(d); setState(d.confirmed ? "done" : "ready"); })
       .catch(() => setState("error"));
   }, [token]);
   const confirm = async () => {
@@ -147,20 +150,25 @@ export function WelcomeReceivedPublic({ urlToken }) {
   };
   const wrap = (children) => (
     <div style={{ minHeight: "100vh", background: C.light, display: "flex", alignItems: "center", justifyContent: "center", padding: 16, fontFamily: "-apple-system,Segoe UI,Roboto,Arial,sans-serif" }}>
-      <div style={{ background: "#fff", borderRadius: 16, boxShadow: "0 10px 40px rgba(0,0,0,0.10)", maxWidth: 440, width: "100%", padding: 28, textAlign: "center", color: C.black }}>{children}</div>
+      <div style={{ background: "#fff", borderRadius: 16, boxShadow: "0 10px 40px rgba(0,0,0,0.10)", maxWidth: 440, width: "100%", padding: 28, textAlign: "center", color: C.black }}><div style={{ display: "flex", justifyContent: "flex-end", marginTop: -12, marginRight: -12, marginBottom: 6 }}><LangToggle /></div>{children}</div>
     </div>
   );
-  if (state === "loading") return wrap(<div style={{ color: C.gray }}>Loading…</div>);
-  if (state === "preview") return wrap(<><div style={{ fontSize: 44 }}>👀</div><div style={{ fontWeight: 800, fontSize: 18, marginTop: 8 }}>Preview only</div><div style={{ color: C.gray, fontSize: 14, marginTop: 6 }}>Each person gets their own personal confirm link when the email is actually sent.</div></>);
-  if (state === "expired") return wrap(<><div style={{ fontSize: 44 }}>🔗</div><div style={{ fontWeight: 800, fontSize: 18, marginTop: 8 }}>This link is no longer valid</div><div style={{ color: C.gray, fontSize: 14, marginTop: 6 }}>Just reply to the email and let your agent know you received it.</div></>);
-  if (state === "error") return wrap(<><div style={{ fontWeight: 800, fontSize: 18 }}>Something went wrong</div><div style={{ color: C.gray, fontSize: 14, marginTop: 6 }}>Please try again, or reply "Received" to the email.</div></>);
-  if (state === "done") return wrap(<><div style={{ fontSize: 52 }}>✅</div><div style={{ fontWeight: 800, fontSize: 20, marginTop: 8 }}>Thank you — confirmed!</div><div style={{ color: C.gray, fontSize: 14, marginTop: 6 }}>{info?.agentName ? `${info.agentName} knows` : "Your agent knows"} you received the welcome email{info?.address ? ` for ${info.address}` : ""}. You can close this page.</div></>);
+  if (state === "loading") return wrap(<div style={{ color: C.gray }}>{t("Loading…")}</div>);
+  if (state === "preview") return wrap(<><div style={{ fontSize: 44 }}>👀</div><div style={{ fontWeight: 800, fontSize: 18, marginTop: 8 }}>{t("Preview only")}</div><div style={{ color: C.gray, fontSize: 14, marginTop: 6 }}>{t("Each person gets their own personal confirm link when the email is actually sent.")}</div></>);
+  if (state === "expired") return wrap(<><div style={{ fontSize: 44 }}>🔗</div><div style={{ fontWeight: 800, fontSize: 18, marginTop: 8 }}>{t("This link is no longer valid")}</div><div style={{ color: C.gray, fontSize: 14, marginTop: 6 }}>{t("Just reply to the email and let your agent know you received it.")}</div></>);
+  if (state === "error") return wrap(<><div style={{ fontWeight: 800, fontSize: 18 }}>{t("Something went wrong")}</div><div style={{ color: C.gray, fontSize: 14, marginTop: 6 }}>{t("Please try again, or reply \"Received\" to the email.")}</div></>);
+  const who = info?.agentName || t("Your agent");
+  if (state === "done") return wrap(<><div style={{ fontSize: 52 }}>✅</div><div style={{ fontWeight: 800, fontSize: 20, marginTop: 8 }}>{t("Thank you — confirmed!")}</div><div style={{ color: C.gray, fontSize: 14, marginTop: 6 }}>{info?.address
+    ? t("{who} knows you received the welcome email for {address}. You can close this page.", { who, address: info.address })
+    : t("{who} knows you received the welcome email. You can close this page.", { who })}</div></>);
   return wrap(<>
-    <div style={{ fontSize: 13, fontWeight: 700, color: C.gray, letterSpacing: ".05em" }}>WELCOME EMAIL</div>
-    <div style={{ fontWeight: 800, fontSize: 20, margin: "8px 0 4px" }}>{info?.address || "Your transaction"}</div>
-    <div style={{ color: C.gray, fontSize: 14, marginBottom: 18 }}>{info?.partyName ? `Hi ${info.partyName.split(" ")[0]} — ` : ""}please confirm you received the welcome email{info?.agentName ? ` from ${info.agentName}` : ""}.</div>
+    <div style={{ fontSize: 13, fontWeight: 700, color: C.gray, letterSpacing: ".05em" }}>{t("WELCOME EMAIL")}</div>
+    <div style={{ fontWeight: 800, fontSize: 20, margin: "8px 0 4px" }}>{info?.address || t("Your transaction")}</div>
+    <div style={{ color: C.gray, fontSize: 14, marginBottom: 18 }}>{info?.partyName ? t("Hi {name} — ", { name: info.partyName.split(" ")[0] }) : ""}{info?.agentName
+      ? t("please confirm you received the welcome email from {agent}.", { agent: info.agentName })
+      : t("please confirm you received the welcome email.")}</div>
     <button onClick={confirm} disabled={busy} style={{ width: "100%", background: "#0c4a6e", color: "#fff", border: "none", borderRadius: 12, padding: "15px 0", fontWeight: 800, fontSize: 17, cursor: "pointer" }}>
-      {busy ? "Saving…" : "✅ Yes, I received it"}
+      {busy ? t("Saving…") : t("✅ Yes, I received it")}
     </button>
   </>);
 }

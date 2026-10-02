@@ -39,6 +39,17 @@ window.addEventListener('vite:preloadError', (e) => {
 // (expired/revoked token), clear stored credentials and force a fresh
 // login instead of leaving the UI silently broken.
 const API_HOST = "liz-team-server-api-production.up.railway.app";
+// LOCAL TESTING ONLY: `VITE_API_URL=http://localhost:4600 npm run dev` sends
+// every API call to a local test server instead of production. Vite strips
+// this whole block from the production build (import.meta.env.DEV is false).
+if (import.meta.env.DEV && import.meta.env.VITE_API_URL) {
+  const __devFetch = window.fetch.bind(window);
+  const __to = String(import.meta.env.VITE_API_URL).replace(/\/$/, "");
+  window.fetch = (input, init) => {
+    if (typeof input === "string" && input.includes(API_HOST)) input = input.replace("https://" + API_HOST, __to);
+    return __devFetch(input, init);
+  };
+}
 const __origFetch = window.fetch.bind(window);
 let __reloadingForAuth = false;
 window.fetch = async function patchedFetch(input, init) {

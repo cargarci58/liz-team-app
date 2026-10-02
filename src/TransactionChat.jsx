@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { io as socketIo } from "socket.io-client";
+import { t, tn, locale } from "./i18n";
 
 const API = "https://liz-team-server-api-production.up.railway.app";
 const WS_URL = "https://liz-team-server-api-production.up.railway.app";
@@ -211,8 +212,8 @@ export default function TransactionChat({ transactionId, user, parties = [], sty
   const unreadCutoff = messages.length - unreadCount;
   const isUnread = (msg, idx) => !isMe(msg) && idx >= unreadCutoff && unreadCount > 0;
 
-  const formatTime = ts => new Date(ts).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
-  const formatDate = ts => new Date(ts).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  const formatTime = ts => new Date(ts).toLocaleTimeString(locale(), { hour: "numeric", minute: "2-digit" });
+  const formatDate = ts => new Date(ts).toLocaleDateString(locale(), { month: "short", day: "numeric" });
   const roleColors = { admin: "#C0392B", superadmin: "#C0392B", agent: "#1A5276", tc: "#B7770D", client: "#1E8449" };
 
   let lastDate = null;
@@ -222,8 +223,8 @@ export default function TransactionChat({ transactionId, user, parties = [], sty
     return (
       <div style={{ padding: 40, textAlign: "center", color: "#666666", ...style }}>
         <div style={{ fontSize: 32, marginBottom: 8 }}>🔒</div>
-        <div style={{ fontWeight: 600, marginBottom: 4 }}>Chat unavailable</div>
-        <div style={{ fontSize: 13 }}>{accessError}</div>
+        <div style={{ fontWeight: 600, marginBottom: 4 }}>{t("Chat unavailable")}</div>
+        <div style={{ fontSize: 13 }}>{t(accessError)}</div>
       </div>
     );
   }
@@ -231,26 +232,26 @@ export default function TransactionChat({ transactionId, user, parties = [], sty
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%", minHeight: 400, background: "#F8F9FA", borderRadius: 12, overflow: "hidden", border: "1px solid #DDD", ...style }}>
       <div style={{ background: "#111", padding: "12px 16px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <div style={{ color: "#fff", fontWeight: 700, fontSize: 14 }}>{directTo ? `🔒 Private chat: ${directTo.name}` : "💬 Group Chat"}</div>
+        <div style={{ color: "#fff", fontWeight: 700, fontSize: 14 }}>{directTo ? "🔒 " + t("Private chat: {name}", { name: directTo.name }) : "💬 " + t("Group Chat")}</div>
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
           <div style={{ width: 8, height: 8, borderRadius: "50%", background: connected ? "#4CAF50" : "#888" }} />
-          <span style={{ color: "rgba(255,255,255,0.6)", fontSize: 11 }}>{connected ? "Live" : "Connecting..."}</span>
+          <span style={{ color: "rgba(255,255,255,0.6)", fontSize: 11 }}>{connected ? t("Live") : t("Connecting…")}</span>
         </div>
       </div>
 
       <div style={{ background: "#FEF9E7", borderBottom: "1px solid #F9E79F", padding: "8px 16px", display: "flex", alignItems: "center", gap: 8 }}>
         <span>{directTo ? "🔒" : "👀"}</span>
-        <span style={{ fontSize: 12, color: "#7D6608" }}>{directTo ? `Only you and ${directTo.name} can see this conversation. They get an email if they're not in the app.` : simple ? "Everyone on this deal can see this chat. For a private message, switch to 👤 One person above." : clientView ? "Messages your agent shares with you (and your own) appear here. Your agent also has separate side-conversations with the other agent and vendors — those aren't shown." : "Visible to everyone unless you pick a recipient with To: to send a private message. People who aren't in the app get it by email."}</span>
+        <span style={{ fontSize: 12, color: "#7D6608" }}>{directTo ? t("Only you and {name} can see this conversation. They get an email if they're not in the app.", { name: directTo.name }) : simple ? t("Everyone on this deal can see this chat. For a private message, switch to 👤 One person above.") : clientView ? t("Messages your agent shares with you (and your own) appear here. Your agent also has separate side-conversations with the other agent and vendors — those aren't shown.") : t("Visible to everyone unless you pick a recipient with To: to send a private message. People who aren't in the app get it by email.")}</span>
       </div>
 
       <div style={{ flex: 1, overflowY: "auto", padding: 16, display: "flex", flexDirection: "column", gap: 8 }}>
         {loading ? (
-          <div style={{ textAlign: "center", color: "#666666", padding: 20 }}>Loading messages...</div>
+          <div style={{ textAlign: "center", color: "#666666", padding: 20 }}>{t("Loading messages…")}</div>
         ) : visibleMessages.length === 0 ? (
           <div style={{ textAlign: "center", color: "#666666", padding: 30 }}>
             <div style={{ fontSize: 32, marginBottom: 8 }}>{directTo ? "🔒" : "💬"}</div>
-            <div style={{ fontWeight: 600 }}>No messages yet</div>
-            <div style={{ fontSize: 12, marginTop: 4 }}>{directTo ? `Start a private conversation — only ${directTo.name} will see it.` : "Start the conversation — everyone on this transaction will be notified."}</div>
+            <div style={{ fontWeight: 600 }}>{t("No messages yet")}</div>
+            <div style={{ fontSize: 12, marginTop: 4 }}>{directTo ? t("Start a private conversation — only {name} will see it.", { name: directTo.name }) : t("Start the conversation — everyone on this transaction will be notified.")}</div>
           </div>
         ) : visibleMessages.map((msg, i) => {
           const msgDate = formatDate(msg.created_at);
@@ -272,7 +273,7 @@ export default function TransactionChat({ transactionId, user, parties = [], sty
               {showNewDivider && (
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
                   <div style={{ flex: 1, height: 1, background: "#E67E22" }} />
-                  <span style={{ fontSize: 11, color: "#8A5A00", fontWeight: 700, whiteSpace: "nowrap" }}>NEW MESSAGES</span>
+                  <span style={{ fontSize: 11, color: "#8A5A00", fontWeight: 700, whiteSpace: "nowrap" }}>{t("NEW MESSAGES")}</span>
                   <div style={{ flex: 1, height: 1, background: "#E67E22" }} />
                 </div>
               )}
@@ -280,11 +281,11 @@ export default function TransactionChat({ transactionId, user, parties = [], sty
                 <div style={{ maxWidth: "75%" }}>
                   {!mine && (
                     <div style={{ fontSize: 11, color: roleColor, fontWeight: 700, marginBottom: 2, paddingLeft: 4 }}>
-                      {msg.sender_name} · {msg.sender_role}{(() => {
+                      {msg.sender_name} · {t(msg.sender_role)}{(() => {
                         const n = notifyList(msg);
                         if (n.length === 0) return null;
                         const names = n.map(e => { const p = parties.find(pp => (pp.email || "").toLowerCase() === e); return p ? (p.name || e).split(" ")[0] : e; });
-                        return <span style={{ color: "#92400E", fontWeight: 600 }}> · 🔒 to {names.join(", ")}</span>;
+                        return <span style={{ color: "#92400E", fontWeight: 600 }}> · 🔒 {t("to {names}", { names: names.join(", ") })}</span>;
                       })()}
                     </div>
                   )}
@@ -322,15 +323,15 @@ export default function TransactionChat({ transactionId, user, parties = [], sty
 
       {pickerOpen && (
         <div style={{ background: "#FAFBFC", borderTop: "1px solid #E5E7EB", padding: "10px 16px", maxHeight: 260, overflowY: "auto" }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: "#666", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.06em" }}>Who should get this message?</div>
+          <div style={{ fontSize: 11, fontWeight: 700, color: "#666", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.06em" }}>{t("Who should get this message?")}</div>
           {/* Everyone (whole group) — the default */}
           <label style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px", cursor: "pointer", fontSize: 13, fontWeight: 700, background: selectedEmails.length === 0 ? "#E7F1FB" : "transparent", borderRadius: 8 }}>
             <input type="checkbox" checked={selectedEmails.length === 0} onChange={() => setSelectedEmails([])} />
-            <span>👥 Everyone on the deal</span>
+            <span>👥 {t("Everyone on the deal")}</span>
           </label>
-          <div style={{ fontSize: 11, color: "#666666", margin: "8px 0 2px" }}>…or send to specific people only:</div>
+          <div style={{ fontSize: 11, color: "#666666", margin: "8px 0 2px" }}>{t("…or send to specific people only:")}</div>
           {parties.filter(p => p.email).length === 0 ? (
-            <div style={{ fontSize: 12, color: "#666666", fontStyle: "italic" }}>No parties with emails on this transaction.</div>
+            <div style={{ fontSize: 12, color: "#666666", fontStyle: "italic" }}>{t("No parties with emails on this transaction.")}</div>
           ) : parties.filter(p => p.email).map(p => {
             const checked = selectedEmails.includes(p.email.toLowerCase());
             return (
@@ -340,37 +341,37 @@ export default function TransactionChat({ transactionId, user, parties = [], sty
                   setSelectedEmails(prev => e.target.checked ? [...prev.filter(x => x !== em), em] : prev.filter(x => x !== em));
                 }} />
                 <span style={{ color: "#111" }}>{p.name}</span>
-                <span style={{ color: "#666666", fontSize: 11 }}>· {p.role}</span>
+                <span style={{ color: "#666666", fontSize: 11 }}>· {t(p.role)}</span>
               </label>
             );
           })}
           <div style={{ marginTop: 10, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <span style={{ fontSize: 11, color: "#666666" }}>{selectedEmails.length === 0 ? "Goes to the whole group." : `Only ${selectedEmails.length} selected will get it.`}</span>
-            <button onClick={() => setPickerOpen(false)} style={{ background: "#0c4a6e", color: "#fff", border: "none", borderRadius: 8, padding: "6px 16px", fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}>Done</button>
+            <span style={{ fontSize: 11, color: "#666666" }}>{selectedEmails.length === 0 ? t("Goes to the whole group.") : t("Only {n} selected will get it.", { n: selectedEmails.length })}</span>
+            <button onClick={() => setPickerOpen(false)} style={{ background: "#0c4a6e", color: "#fff", border: "none", borderRadius: 8, padding: "6px 16px", fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}>{t("Done")}</button>
           </div>
         </div>
       )}
       {/* Safety confirm before sending to the WHOLE group */}
       {confirmAll && (
         <div style={{ background: "#FEF3C7", borderTop: "1px solid #FCD34D", padding: "12px 16px" }}>
-          <div style={{ fontSize: 13, fontWeight: 800, color: "#92400e", marginBottom: 4 }}>⚠️ Send to EVERYONE on this deal? ({partyEmails.length} people)</div>
+          <div style={{ fontSize: 13, fontWeight: 800, color: "#92400e", marginBottom: 4 }}>⚠️ {t("Send to EVERYONE on this deal? ({n} people)", { n: partyEmails.length })}</div>
           <div style={{ fontSize: 12, color: "#7c2d12", marginBottom: 10 }}>{partyEmails.map(p => p.name).join(", ")}</div>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            <button onClick={doSend} style={{ background: "#0c4a6e", color: "#fff", border: "none", borderRadius: 8, padding: "8px 14px", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>Yes, send to all {partyEmails.length}</button>
-            <button onClick={() => { setConfirmAll(false); setPickerOpen(true); }} style={{ background: "#fff", color: "#92400e", border: "1.5px solid #FCD34D", borderRadius: 8, padding: "8px 14px", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>No — pick specific people</button>
+            <button onClick={doSend} style={{ background: "#0c4a6e", color: "#fff", border: "none", borderRadius: 8, padding: "8px 14px", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>{t("Yes, send to all {n}", { n: partyEmails.length })}</button>
+            <button onClick={() => { setConfirmAll(false); setPickerOpen(true); }} style={{ background: "#fff", color: "#92400e", border: "1.5px solid #FCD34D", borderRadius: 8, padding: "8px 14px", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>{t("No — pick specific people")}</button>
           </div>
         </div>
       )}
       <div style={{ padding: "12px 16px", background: "#fff", borderTop: "1px solid #DDD", display: "flex", gap: 8, alignItems: "center" }}>
         {!simple && !directTo && (
-          <button onClick={() => setPickerOpen(!pickerOpen)} title="Choose who gets this message"
+          <button onClick={() => setPickerOpen(!pickerOpen)} title={t("Choose who gets this message")}
             style={{ flexShrink: 0, maxWidth: 170, padding: "9px 12px", borderRadius: 20, border: "1.5px solid " + (selectedEmails.length > 0 ? "#0c4a6e" : "#CBD5E1"), background: selectedEmails.length > 0 ? "#0c4a6e" : "#fff", color: selectedEmails.length > 0 ? "#fff" : "#0c4a6e", fontWeight: 700, fontSize: 12.5, cursor: "pointer", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", fontFamily: "inherit" }}>
-            📤 To: {selectedEmails.length === 0 ? "Everyone" : (selectedEmails.length === 1 ? "1 person" : `${selectedEmails.length} people`)} ▾
+            📤 {t("To:")} {selectedEmails.length === 0 ? t("Everyone") : tn(selectedEmails.length, "{n} person", "{n} people")} ▾
           </button>
         )}
         <input value={newMsg} onChange={e => setNewMsg(e.target.value)}
           onKeyDown={e => e.key === "Enter" && !e.shiftKey && (e.preventDefault(), sendMessage())}
-          placeholder={directTo ? `Message ${(directTo.name || "").split(" ")[0]} privately...` : selectedEmails.length > 0 ? `Notify ${selectedEmails.length} party · type message...` : (connected ? (simple ? "Message everyone..." : "Type a message... (Enter to send)") : "Connecting...")}
+          placeholder={directTo ? t("Message {name} privately…", { name: (directTo.name || "").split(" ")[0] }) : selectedEmails.length > 0 ? t("Notify {n} party · type message…", { n: selectedEmails.length }) : (connected ? (simple ? t("Message everyone…") : t("Type a message… (Enter to send)")) : t("Connecting…"))}
           disabled={!connected}
           style={{ flex: 1, padding: "10px 14px", borderRadius: 24, border: "1.5px solid #DDD", fontSize: 14, fontFamily: "inherit", outline: "none", background: connected ? "#fff" : "#F5F5F5" }} />
         <button onClick={sendMessage} disabled={!connected || !newMsg.trim()}

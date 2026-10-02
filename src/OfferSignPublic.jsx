@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { askText } from "./ui/dialogs";
+import { t, tn, useLang, applyPreferredLang, addSpanish } from "./i18n";
+import LangToggle from "./components/LangToggle";
 
 const API = "https://liz-team-server-api-production.up.railway.app";
 
@@ -125,9 +127,9 @@ function SignaturePad({ onChange, typedName, mode }) {
         style={{ width: "100%", height: 170, background: "#fff", border: "2px dashed #94a3b8", borderRadius: 10, touchAction: "none", cursor: mode === "draw" ? "crosshair" : "default" }}
         onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerLeave={up} />
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 6 }}>
-        <span style={{ fontSize: 12, color: "#64748b" }}>{mode === "draw" ? "Sign above with your finger or mouse" : "Your typed signature appears above"}</span>
+        <span style={{ fontSize: 12, color: "#64748b" }}>{mode === "draw" ? t("Sign above with your finger or mouse") : t("Your typed signature appears above")}</span>
         {mode === "draw" && (
-          <button type="button" onClick={clear} style={{ fontSize: 12, fontWeight: 700, color: "#0c4a6e", background: "none", border: "1px solid #fca5a5", borderRadius: 8, padding: "4px 12px", cursor: "pointer", fontFamily: "inherit" }}>Clear</button>
+          <button type="button" onClick={clear} style={{ fontSize: 12, fontWeight: 700, color: "#0c4a6e", background: "none", border: "1px solid #fca5a5", borderRadius: 8, padding: "4px 12px", cursor: "pointer", fontFamily: "inherit" }}>{t("Clear")}</button>
         )}
       </div>
     </div>
@@ -160,7 +162,7 @@ function GuidedPacketViewer({ token, base, stops, applied, current, sigDataUrl, 
         const worker = await import("pdfjs-dist/build/pdf.worker.min.mjs?url");
         pdfjs.GlobalWorkerOptions.workerSrc = worker.default;
         const resp = await fetch(API + "/public/" + base + "/" + token + "/packet.pdf" + fileQuery);
-        if (!resp.ok) throw new Error("Couldn't load the package for viewing.");
+        if (!resp.ok) throw new Error(t("Couldn't load the package for viewing."));
         const bytes = new Uint8Array(await resp.arrayBuffer());
         // The packet's flattened forms reference non-embedded standard fonts —
         // pdf.js needs standardFontDataUrl or those pages stall silently.
@@ -220,7 +222,7 @@ function GuidedPacketViewer({ token, base, stops, applied, current, sigDataUrl, 
 
   if (renderErr) return (
     <div style={{ fontSize: 13, color: "#7f1d1d", padding: 12 }}>
-      ⚠️ {renderErr} <a href={API + "/public/" + base + "/" + token + "/packet.pdf"} target="_blank" rel="noreferrer">Open the package in a new tab</a> to review it, then continue below.
+      ⚠️ {renderErr} <a href={API + "/public/" + base + "/" + token + "/packet.pdf"} target="_blank" rel="noreferrer">{t("Open the package in a new tab")}</a> {t("to review it, then continue below.")}
     </div>
   );
 
@@ -229,18 +231,18 @@ function GuidedPacketViewer({ token, base, stops, applied, current, sigDataUrl, 
 
   return (
     <div ref={containerRef}>
-      {pages.length === 0 && <div style={{ color: "#64748b", fontSize: 14, padding: 16, textAlign: "center" }}>Loading the package…</div>}
+      {pages.length === 0 && <div style={{ color: "#64748b", fontSize: 14, padding: 16, textAlign: "center" }}>{t("Loading the package…")}</div>}
       {pages.map(p => {
         const scale = cssWidth / p.width;
         return (
           <div key={p.num} style={{ position: "relative", marginBottom: 12, boxShadow: "0 2px 10px rgba(2,6,23,0.12)", borderRadius: 6, overflow: "hidden" }}>
             {p.dataUrl
-              ? <img src={p.dataUrl} alt={"Page " + p.num} style={{ display: "block", width: "100%" }} />
+              ? <img src={p.dataUrl} alt={t("Page {n}", { n: p.num })} style={{ display: "block", width: "100%" }} />
               : <div style={{ width: "100%", height: (p.height / p.width) * cssWidth, background: "#f8fafc", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8, border: "2px dashed #cbd5e1", boxSizing: "border-box", padding: 16 }}>
                   <div style={{ fontSize: 34 }}>📄</div>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: "#334155", textAlign: "center" }}>Page {p.num} preview couldn't load on this device</div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: "#334155", textAlign: "center" }}>{t("Page {n} preview couldn't load on this device", { n: p.num })}</div>
                   <div style={{ fontSize: 12.5, color: "#64748b", textAlign: "center", maxWidth: 420 }}>
-                    Tap "Open ↗" at the top of this document to read it — then come back and tap the <span style={{ background: "#fef08a", padding: "1px 6px", borderRadius: 4, fontWeight: 700 }}>yellow markers</span> right here to sign. Your signature still lands in exactly the right spots.
+                    {t("Tap \"Open ↗\" at the top of this document to read it — then come back and tap the yellow markers right here to sign. Your signature still lands in exactly the right spots.")}
                   </div>
                 </div>}
             {(stopsByPage[p.num] || []).map(s => {
@@ -253,7 +255,7 @@ function GuidedPacketViewer({ token, base, stops, applied, current, sigDataUrl, 
                   <div key={s.idx}
                     style={{ position: "absolute", left: s.x * scale, top: (p.height - s.y) * scale - ah, width: aw, height: ah, display: "flex", alignItems: s.kind === "checkbox" ? "center" : "flex-end", justifyContent: s.kind === "checkbox" ? "center" : "flex-start", border: "1.5px dashed #94a3b8", background: "rgba(241,245,249,0.7)", borderRadius: 4, boxSizing: "border-box" }}>
                     <span style={{ fontSize: Math.max(8, 9 * scale * 1.3), fontWeight: 700, color: "#475569", padding: s.kind === "checkbox" ? 0 : 2, lineHeight: 1, whiteSpace: "nowrap", overflow: "hidden" }}>
-                      {s.kind === "date" ? "📅 dated when you sign" : s.kind === "checkbox" ? "X" : s.text}
+                      {s.kind === "date" ? "📅 " + t("dated when you sign") : s.kind === "checkbox" ? "X" : s.text}
                     </span>
                   </div>
                 );
@@ -271,7 +273,7 @@ function GuidedPacketViewer({ token, base, stops, applied, current, sigDataUrl, 
               if (isChoice) {
                 return (
                   <div key={s.idx} id={"sign-stop-" + s.idx} ref={el => { wrapRefs.current["stop-" + s.idx] = el; }}
-                    onClick={() => onApply(s.idx)} title={s.label || "Pick one"}
+                    onClick={() => onApply(s.idx)} title={s.label || t("Pick one")}
                     style={{
                       position: "absolute", left, top, width: w, height: h,
                       display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer",
@@ -301,11 +303,11 @@ function GuidedPacketViewer({ token, base, stops, applied, current, sigDataUrl, 
                     s.kind === "signature" && sigDataUrl
                       ? <img src={sigDataUrl} alt="signature" style={{ height: "100%", maxWidth: "100%", objectFit: "contain", objectPosition: "left bottom" }} />
                       : s.kind === "text"
-                        ? <span title="Tap to change" style={{ fontWeight: 700, color: "#1e2a5a", fontSize: Math.max(9, 10 * scale * 1.4), lineHeight: 1, whiteSpace: "nowrap", overflow: "hidden" }}>{textMap[s.idx] || ""}</span>
+                        ? <span title={t("Tap to change")} style={{ fontWeight: 700, color: "#1e2a5a", fontSize: Math.max(9, 10 * scale * 1.4), lineHeight: 1, whiteSpace: "nowrap", overflow: "hidden" }}>{textMap[s.idx] || ""}</span>
                         : <span style={{ fontFamily: "'Snell Roundhand','Brush Script MT',cursive", fontStyle: "italic", fontWeight: 700, color: "#1e2a5a", fontSize: Math.max(10, (s.kind === "initials" ? (s.h || 16) * 1.2 : 12 * 1.6) * scale), lineHeight: 1 }}>{s.kind === "signature" ? signerName : initialsOf(signerName)}</span>
                   ) : (
                     <span style={{ fontSize: Math.max(8, 9 * scale * 1.4), fontWeight: 800, color: "#854d0e", padding: 2, lineHeight: 1 }}>
-                      {s.kind === "signature" ? "✍️ SIGN" : s.kind === "text" ? "💬 TYPE" : "INITIAL"}
+                      {s.kind === "signature" ? "✍️ " + t("SIGN") : s.kind === "text" ? "💬 " + t("TYPE") : t("INITIAL")}
                     </span>
                   )}
                 </div>
@@ -322,6 +324,7 @@ function GuidedPacketViewer({ token, base, stops, applied, current, sigDataUrl, 
 export default function OfferSignPublic({ urlToken, kind = "offer" }) {
   // Same page signs OFFER PACKETS and standalone DOCUMENTS (net sheets etc.);
   // only the API base differs.
+  const lang = useLang();
   const base = kind === "doc" ? "doc-sign" : "offer-sign";
   const [data, setData] = useState(null);
   const [loadErr, setLoadErr] = useState(null);
@@ -340,6 +343,8 @@ export default function OfferSignPublic({ urlToken, kind = "offer" }) {
       try {
         const r = await fetch(API + "/public/" + base + "/" + urlToken);
         const b = await r.json();
+        if (b && b.language) applyPreferredLang(b.language);
+        if (b && b.es) addSpanish(b.es);
         if (!r.ok) throw new Error(b.error || "This signing link isn't valid.");
         setData(b);
       } catch (e) { setLoadErr(e.message); }
@@ -375,11 +380,11 @@ export default function OfferSignPublic({ urlToken, kind = "offer" }) {
       setChoiceMap(nextChoice);
     }
     if (s.kind === "text") {
-      const v = await askText("Type what should go in this box:", textMap[idx] || "", { okLabel: "Done" });
+      const v = await askText(t("Type what should go in this box:"), textMap[idx] || "", { okLabel: t("Done") });
       if (v === null) return;
-      const t = v.trim().slice(0, 120);
-      if (!t) return;
-      setTextMap(m => ({ ...m, [idx]: t }));
+      const txt = v.trim().slice(0, 120);
+      if (!txt) return;
+      setTextMap(m => ({ ...m, [idx]: txt }));
     }
     if (s.kind !== "choice") {
       setApplied(prev => {
@@ -441,27 +446,30 @@ export default function OfferSignPublic({ urlToken, kind = "offer" }) {
   const shell = (inner, wide) => (
     <div style={{ minHeight: "100vh", background: "#f1f5f9", padding: "24px 12px", fontFamily: "system-ui, -apple-system, sans-serif" }}>
       <div style={{ maxWidth: wide ? 760 : 720, margin: "0 auto" }}>
+        <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 8 }}><LangToggle /></div>
         <div style={{ background: "#0c4a6e", color: "#fff", borderRadius: "14px 14px 0 0", padding: "18px 24px" }}>
-          <div style={{ fontSize: 12, opacity: 0.85, textTransform: "uppercase", letterSpacing: "0.06em" }}>Electronic signature</div>
-          <div style={{ fontSize: 20, fontWeight: 800 }}>{data?.docName ? data.docName : (data?.propertyAddress ? "Offer — " + data.propertyAddress : "Your offer package")}</div>
+          <div style={{ fontSize: 12, opacity: 0.85, textTransform: "uppercase", letterSpacing: "0.06em" }}>{t("Electronic signature")}</div>
+          <div style={{ fontSize: 20, fontWeight: 800 }}>{data?.docName ? t(data.docName) : (data?.propertyAddress ? t("Offer — {address}", { address: data.propertyAddress }) : t("Your offer package"))}</div>
           {data?.docName && data?.propertyAddress && <div style={{ fontSize: 13, opacity: 0.85, marginTop: 2 }}>{data.propertyAddress}</div>}
-          {data?.agentName && <div style={{ fontSize: 13, opacity: 0.85, marginTop: 2 }}>Prepared by {data.agentName}</div>}
+          {data?.agentName && <div style={{ fontSize: 13, opacity: 0.85, marginTop: 2 }}>{t("Prepared by {agent}", { agent: data.agentName })}</div>}
         </div>
         <div style={{ background: "#fff", borderRadius: "0 0 14px 14px", padding: 22, boxShadow: "0 8px 30px rgba(2,6,23,0.08)" }}>{inner}</div>
       </div>
     </div>
   );
 
-  if (loadErr) return shell(<div style={{ color: "#7f1d1d", fontSize: 15 }}>⚠️ {loadErr}<div style={{ fontSize: 13, color: "#64748b", marginTop: 8 }}>If you think this is a mistake, contact your agent for a fresh link.</div></div>);
-  if (!data) return shell(<div style={{ color: "#64748b", fontSize: 15 }}>Loading your offer package…</div>);
-  if (data.status === "cancelled") return shell(<div style={{ fontSize: 15, color: "#374151" }}>This signing request was cancelled by your agent. If you're still expecting to sign, ask them to send a new link.</div>);
+  if (loadErr) return shell(<div style={{ color: "#7f1d1d", fontSize: 15 }}>⚠️ {t(loadErr)}<div style={{ fontSize: 13, color: "#64748b", marginTop: 8 }}>{t("If you think this is a mistake, contact your agent for a fresh link.")}</div></div>);
+  if (!data) return shell(<div style={{ color: "#64748b", fontSize: 15 }}>{kind === "doc" ? t("Loading your documents…") : t("Loading your offer package…")}</div>);
+  if (data.status === "cancelled") return shell(<div style={{ fontSize: 15, color: "#374151" }}>{t("This signing request was cancelled by your agent. If you're still expecting to sign, ask them to send a new link.")}</div>);
   if (phase === "done" || data.status === "signed") return shell(
     <div style={{ textAlign: "center", padding: "24px 0" }}>
       <div style={{ fontSize: 46 }}>🎉</div>
-      <div style={{ fontSize: 20, fontWeight: 800, color: "#15803d", marginTop: 8 }}>You're all set{data.signerName ? ", " + data.signerName.split(" ")[0] : ""}!</div>
+      <div style={{ fontSize: 20, fontWeight: 800, color: "#15803d", marginTop: 8 }}>{data.signerName ? t("You're all set, {name}!", { name: data.signerName.split(" ")[0] }) : t("You're all set!")}</div>
       <div style={{ fontSize: 14, color: "#374151", marginTop: 10, lineHeight: 1.6 }}>
-        {kind === "doc" ? (docsArr.length > 1 ? "Your signature has been applied to all " + docsArr.length + " documents." : "Your signature has been applied to the document.") : "Your signature and initials have been applied to the offer package."}<br />
-        {kind === "doc" ? (data.agentName || "Your agent") + " has been notified and has the signed " + (docsArr.length > 1 ? "copies." : "copy.") : (data.agentName || "Your agent") + " will send the offer to the listing side and keep you posted."}
+        {kind === "doc" ? (docsArr.length > 1 ? t("Your signature has been applied to all {n} documents.", { n: docsArr.length }) : t("Your signature has been applied to the document.")) : t("Your signature and initials have been applied to the offer package.")}<br />
+        {kind === "doc"
+          ? (docsArr.length > 1 ? t("{agent} has been notified and has the signed copies.", { agent: data.agentName || t("Your agent") }) : t("{agent} has been notified and has the signed copy.", { agent: data.agentName || t("Your agent") }))
+          : t("{agent} will send the offer to the listing side and keep you posted.", { agent: data.agentName || t("Your agent") })}
       </div>
     </div>
   );
@@ -472,29 +480,39 @@ export default function OfferSignPublic({ urlToken, kind = "offer" }) {
       {/* Signing for a company / LLC / trust: say so up front. */}
       {data.signerEntity && (
         <div style={{ background: "#F0F9FF", border: "1px solid #BAE6FD", borderRadius: 10, padding: "10px 12px", fontSize: 14, color: "#0c4a6e", marginBottom: 12, lineHeight: 1.5 }}>
-          🏢 You're signing <strong>on behalf of {data.signerEntity}</strong>{data.signerTitle ? <> as <strong>{data.signerTitle}</strong></> : null}. Sign with your own name — "for {data.signerEntity}{data.signerTitle ? ", " + data.signerTitle : ""}" is printed under your signature.
+          🏢 {data.signerTitle
+            ? t("You're signing on behalf of {entity} as {title}. Sign with your own name — \"for {entity}, {title}\" is printed under your signature.", { entity: data.signerEntity, title: data.signerTitle })
+            : t("You're signing on behalf of {entity}. Sign with your own name — \"for {entity}\" is printed under your signature.", { entity: data.signerEntity })}
         </div>
       )}
       <div style={{ fontSize: 14, color: "#374151", lineHeight: 1.6, marginBottom: 16 }}>
-        Hi <strong>{data.signerName}</strong> — {kind === "doc" ? (docsArr.length > 1 ? "these " + docsArr.length + " documents are ready for your signature." : "this document is ready for your signature.") : "your offer package is ready to sign."} Two quick steps:
-        first adopt your signature, then we'll walk you through <strong>each place</strong> it goes — {interactiveCount > 0 ? <strong>{[
-          [stops.filter(s => !s.auto && s.kind === "signature").length, "signature", "signatures"],
-          [stops.filter(s => !s.auto && s.kind === "initials").length, "initial spot", "initial spots"],
-          [stops.filter(s => !s.auto && s.kind === "text").length, "box to fill in", "boxes to fill in"],
-          [choiceGroups.length, "choice to answer", "choices to answer"],
-        ].filter(([n]) => n > 0).map(([n, one, many]) => n + " " + (n === 1 ? one : many)).join(" and ")}</strong> : "every signature and initial spot"} — one at a time.
+        {t("Hi {name}", { name: data.signerName })} — {kind === "doc" ? (docsArr.length > 1 ? t("these {n} documents are ready for your signature.", { n: docsArr.length }) : t("this document is ready for your signature.")) : t("your offer package is ready to sign.")} {t("Two quick steps: first adopt your signature, then we'll walk you through each place it goes —")} {interactiveCount > 0 ? <strong>{[
+          [stops.filter(s => !s.auto && s.kind === "signature").length, "{n} signature", "{n} signatures"],
+          [stops.filter(s => !s.auto && s.kind === "initials").length, "{n} initial spot", "{n} initial spots"],
+          [stops.filter(s => !s.auto && s.kind === "text").length, "{n} box to fill in", "{n} boxes to fill in"],
+          [choiceGroups.length, "{n} choice to answer", "{n} choices to answer"],
+        ].filter(([n]) => n > 0).map(([n, one, many]) => tn(n, one, many)).join(t(" and "))}</strong> : t("every signature and initial spot")} — {t("one at a time.")}
       </div>
       <div style={{ marginBottom: 18 }}>
-        <div style={{ fontSize: 13, fontWeight: 800, color: "#0c4a6e", textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 8 }}>1 · Agree to sign electronically</div>
+        <div style={{ fontSize: 13, fontWeight: 800, color: "#0c4a6e", textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 8 }}>1 · {t("Agree to sign electronically")}</div>
         <label style={{ display: "flex", gap: 10, alignItems: "flex-start", background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 10, padding: 12, cursor: "pointer" }}>
           <input type="checkbox" checked={consent} onChange={e => setConsent(e.target.checked)} style={{ marginTop: 3, width: 18, height: 18 }} />
-          <span style={{ fontSize: 12.5, color: "#374151", lineHeight: 1.55 }}>{data.consentText}</span>
+          <span style={{ fontSize: 12.5, color: "#374151", lineHeight: 1.55 }}>
+            {data.consentText}
+            {/* Spanish courtesy copy — the English text above is the one recorded with the signature. */}
+            {lang === "es" && data.consentTextEs && (
+              <span lang="es" style={{ display: "block", marginTop: 8, paddingTop: 8, borderTop: "1px dashed #cbd5e1" }}>
+                {data.consentTextEs}
+                <span style={{ display: "block", marginTop: 4, fontSize: 11.5, color: "#64748b", fontStyle: "italic" }}>Traducción de cortesía. El texto en inglés es el que tiene validez legal.</span>
+              </span>
+            )}
+          </span>
         </label>
       </div>
       <div style={{ marginBottom: 18 }}>
-        <div style={{ fontSize: 13, fontWeight: 800, color: "#0c4a6e", textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 8 }}>2 · Adopt your signature</div>
+        <div style={{ fontSize: 13, fontWeight: 800, color: "#0c4a6e", textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 8 }}>2 · {t("Adopt your signature")}</div>
         <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
-          {[["draw", "✍️ Draw"], ["type", "⌨️ Type"]].map(([m, label]) => (
+          {[["draw", "✍️ " + t("Draw")], ["type", "⌨️ " + t("Type")]].map(([m, label]) => (
             <button key={m} type="button" onClick={() => { setMode(m); setSigDataUrl(null); if (m === "type" && !typedName) setTypedName(data.signerName || ""); }}
               style={{ padding: "8px 18px", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", border: "1px solid " + (mode === m ? "#0c4a6e" : "#cbd5e1"), background: mode === m ? "#0c4a6e" : "#fff", color: mode === m ? "#fff" : "#374151" }}>
               {label}
@@ -502,15 +520,15 @@ export default function OfferSignPublic({ urlToken, kind = "offer" }) {
           ))}
         </div>
         {mode === "type" && (
-          <input value={typedName} onChange={e => setTypedName(e.target.value)} placeholder="Type your full legal name"
+          <input value={typedName} onChange={e => setTypedName(e.target.value)} placeholder={t("Type your full legal name")}
             style={{ width: "100%", padding: "10px 12px", border: "1px solid #cbd5e1", borderRadius: 8, fontSize: 15, marginBottom: 10, boxSizing: "border-box", fontFamily: "inherit" }} />
         )}
         <SignaturePad mode={mode} typedName={typedName} onChange={setSigDataUrl} />
         <div style={{ marginTop: 10, fontSize: 12.5, color: "#475569" }}>
-          Your initials will be applied as: <span style={{ fontFamily: "'Snell Roundhand','Brush Script MT',cursive", fontStyle: "italic", fontWeight: 700, fontSize: 17, color: "#1e2a5a" }}>{initialsOf(data.signerName)}</span>
+          {t("Your initials will be applied as:")} <span style={{ fontFamily: "'Snell Roundhand','Brush Script MT',cursive", fontStyle: "italic", fontWeight: 700, fontSize: 17, color: "#1e2a5a" }}>{initialsOf(data.signerName)}</span>
         </div>
       </div>
-      {error && <div style={{ background: "#fee2e2", border: "1px solid #fca5a5", borderRadius: 8, padding: 12, fontSize: 13, color: "#7f1d1d", marginBottom: 14 }}>⚠️ {error}</div>}
+      {error && <div style={{ background: "#fee2e2", border: "1px solid #fca5a5", borderRadius: 8, padding: 12, fontSize: 13, color: "#7f1d1d", marginBottom: 14 }}>⚠️ {t(error)}</div>}
       <button type="button"
         onClick={() => {
           setError(null);
@@ -520,7 +538,7 @@ export default function OfferSignPublic({ urlToken, kind = "offer" }) {
           setCurrent(Math.max(0, stops.findIndex(s => !s.auto)));
         }}
         style={{ width: "100%", padding: "14px 0", background: "#0c4a6e", color: "#fff", border: "none", borderRadius: 10, fontSize: 16, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>
-        Start signing →
+        {t("Start signing →")}
       </button>
     </div>
   );
@@ -531,17 +549,19 @@ export default function OfferSignPublic({ urlToken, kind = "offer" }) {
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10, marginBottom: 12, flexWrap: "wrap" }}>
         <div style={{ fontSize: 13.5, color: "#374151", lineHeight: 1.55, flex: 1, minWidth: 220 }}>
-          Review the package below. Tap each <span style={{ background: "#fef08a", padding: "1px 6px", borderRadius: 4, fontWeight: 700 }}>yellow marker</span> to place your {sigCount ? "signature or initials" : "initials"} — we'll take you to each one in order.
+          {sigCount
+            ? t("Review the package below. Tap each yellow marker to place your signature or initials — we'll take you to each one in order.")
+            : t("Review the package below. Tap each yellow marker to place your initials — we'll take you to each one in order.")}
         </div>
         <a href={API + "/public/" + base + "/" + urlToken + "/packet.pdf"} target="_blank" rel="noreferrer"
-          style={{ fontSize: 12, fontWeight: 700, color: "#075985", whiteSpace: "nowrap" }}>Open full package ↗</a>
+          style={{ fontSize: 12, fontWeight: 700, color: "#075985", whiteSpace: "nowrap" }}>{t("Open full package ↗")}</a>
       </div>
       {docsArr.map((d, di) => (
         <div key={d.docId || di}>
           {docsArr.length > 1 && (
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, background: "#e0f2fe", border: "1px solid #bae6fd", borderRadius: 8, padding: "8px 12px", margin: di === 0 ? "0 0 8px" : "16px 0 8px" }}>
-              <span style={{ fontSize: 13, fontWeight: 800, color: "#0c4a6e" }}>📄 Document {di + 1} of {docsArr.length} — {d.name}</span>
-              <a href={API + "/public/" + base + "/" + urlToken + "/packet.pdf" + (d.docId ? "?doc=" + d.docId : "")} target="_blank" rel="noreferrer" style={{ fontSize: 11.5, fontWeight: 700, color: "#075985", whiteSpace: "nowrap" }}>Open ↗</a>
+              <span style={{ fontSize: 13, fontWeight: 800, color: "#0c4a6e" }}>📄 {t("Document {i} of {n} — {name}", { i: di + 1, n: docsArr.length, name: t(d.name) })}</span>
+              <a href={API + "/public/" + base + "/" + urlToken + "/packet.pdf" + (d.docId ? "?doc=" + d.docId : "")} target="_blank" rel="noreferrer" style={{ fontSize: 11.5, fontWeight: 700, color: "#075985", whiteSpace: "nowrap" }}>{t("Open ↗")}</a>
             </div>
           )}
           <GuidedPacketViewer token={urlToken} base={base} stops={stops.filter(s => s.docIdx === di)} applied={applied} current={current}
@@ -549,11 +569,11 @@ export default function OfferSignPublic({ urlToken, kind = "offer" }) {
             fileQuery={d.docId ? "?doc=" + d.docId : ""} />
         </div>
       ))}
-      {error && <div style={{ background: "#fee2e2", border: "1px solid #fca5a5", borderRadius: 8, padding: 12, fontSize: 13, color: "#7f1d1d", margin: "12px 0" }}>⚠️ {error}</div>}
+      {error && <div style={{ background: "#fee2e2", border: "1px solid #fca5a5", borderRadius: 8, padding: 12, fontSize: 13, color: "#7f1d1d", margin: "12px 0" }}>⚠️ {t(error)}</div>}
       {/* Sticky action bar */}
       <div style={{ position: "sticky", bottom: 8, background: "#0f172a", color: "#fff", borderRadius: 12, padding: "12px 16px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, boxShadow: "0 8px 30px rgba(2,6,23,0.45)", marginTop: 12, flexWrap: "wrap" }}>
         <div style={{ fontSize: 13, fontWeight: 700 }}>
-          {allApplied ? "✅ All spots signed" : `${doneUnits} of ${interactiveCount} placed`}
+          {allApplied ? "✅ " + t("All spots signed") : t("{done} of {total} placed", { done: doneUnits, total: interactiveCount })}
         </div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           {!allApplied && (
@@ -569,28 +589,28 @@ export default function OfferSignPublic({ urlToken, kind = "offer" }) {
                 applyStop(current);
               }}
               style={{ padding: "9px 16px", background: "#fef08a", color: "#713f12", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>
-              {stops[current] && stops[current].kind === "signature" ? "✍️ Sign here"
-                : stops[current] && stops[current].kind === "text" ? "💬 Type text"
-                : stops[current] && stops[current].kind === "choice" ? "☑️ Answer the choice — tap one box"
-                : "Place initials"} ({doneUnits + 1}/{interactiveCount})
+              {stops[current] && stops[current].kind === "signature" ? "✍️ " + t("Sign here")
+                : stops[current] && stops[current].kind === "text" ? "💬 " + t("Type text")
+                : stops[current] && stops[current].kind === "choice" ? "☑️ " + t("Answer the choice — tap one box")
+                : t("Place initials")} ({doneUnits + 1}/{interactiveCount})
             </button>
           )}
           {!allApplied && doneUnits > 0 && (
             <button type="button" onClick={applyAll}
               style={{ padding: "9px 14px", background: "transparent", color: "#e2e8f0", border: "1px solid #475569", borderRadius: 8, fontSize: 12.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
-              Apply to all remaining
+              {t("Apply to all remaining")}
             </button>
           )}
           {allApplied && (
             <button type="button" onClick={submit} disabled={submitting}
               style={{ padding: "10px 20px", background: submitting ? "#64748b" : "#0c4a6e", color: "#052e16", border: "none", borderRadius: 8, fontSize: 14, fontWeight: 800, cursor: submitting ? "default" : "pointer", fontFamily: "inherit" }}>
-              {submitting ? "Finishing…" : "Finish & submit ✓"}
+              {submitting ? t("Finishing…") : t("Finish & submit ✓")}
             </button>
           )}
         </div>
       </div>
       <div style={{ fontSize: 11.5, color: "#64748b", marginTop: 10, textAlign: "center" }}>
-        A record of who signed, when, and from where is attached to the package as a signature certificate.
+        {t("A record of who signed, when, and from where is attached to the package as a signature certificate.")}
       </div>
     </div>,
     true

@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from "react";
+import { t, useLang } from "../i18n";
 import { flTaxRate, deedDocStampPer100 } from "../lib/flTaxRates";
 
 function money(n) {
@@ -26,7 +27,7 @@ function Info({ children }) {
       {open && (
         <div onClick={() => setOpen(false)}
           style={{ position: "absolute", top: 22, left: 0, zIndex: 50, background: "#1f2937", color: "white", padding: "8px 12px", borderRadius: 6, fontSize: 12, lineHeight: 1.4, width: 260, boxShadow: "0 4px 12px rgba(0,0,0,0.2)", cursor: "pointer" }}>
-          {children}
+          {typeof children === "string" ? t(children) : children}
         </div>
       )}
     </span>
@@ -52,7 +53,7 @@ function SliderRow({ label, value, onChange, min, max, step, prefix, suffix, inf
     <div style={{ marginBottom: 16 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6, gap: 8 }}>
         <label style={{ fontSize: 14, fontWeight: 600, color: "#374151", flex: 1 }}>
-          {label}
+          {t(label)}
           {info && <Info>{info}</Info>}
         </label>
         {editing ? (
@@ -64,7 +65,7 @@ function SliderRow({ label, value, onChange, min, max, step, prefix, suffix, inf
             {suffix && <span style={{ fontSize: 14, fontWeight: 700, color: "#1f2937" }}>{suffix}</span>}
           </div>
         ) : (
-          <button type="button" onClick={startEdit} title="Tap to type a value"
+          <button type="button" onClick={startEdit} title={t("Tap to type a value")}
             style={{ background: "#f3f4f6", border: "1px solid #d1d5db", borderRadius: 4, padding: "4px 10px", fontSize: 14, fontWeight: 700, color: "#1f2937", cursor: "pointer", fontFamily: "inherit" }}>
             {prefix}{Number(value).toLocaleString("en-US", { maximumFractionDigits: 2 })}{suffix}
           </button>
@@ -75,7 +76,7 @@ function SliderRow({ label, value, onChange, min, max, step, prefix, suffix, inf
         style={{ width: "100%", accentColor: "#0c4a6e" }} />
       {value > max && (
         <div style={{ fontSize: 11, color: "#6b7280", marginTop: 2, fontStyle: "italic" }}>
-          Typed value exceeds slider range. Tap value to edit.
+          {t("Typed value exceeds slider range. Tap value to edit.")}
         </div>
       )}
     </div>
@@ -115,6 +116,7 @@ export default function SellerCalculator({ transactionId, token, county, initial
   const [sellerConcessions, setSellerConcessions] = useState(0);
   const [repairs, setRepairs] = useState(0);
   const [taxRate, setTaxRate] = useState(() => flTaxRate(undefined, county).rate);
+  useLang();
   const [taxLoc, setTaxLoc] = useState(() => ({ label: county ? `${county} County` : "FL default", source: county ? "county" : "default" }));
   const [closingDate, setClosingDate] = useState(() => {
     if (presetClosing) return presetClosing;
@@ -243,19 +245,19 @@ export default function SellerCalculator({ transactionId, token, county, initial
   return (
     <div style={{ maxWidth: 720, margin: "0 auto", padding: 16, fontFamily: "system-ui, sans-serif" }}>
       <div style={{ marginBottom: 20 }}>
-        <h2 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: "#1f2937" }}>Seller Net Proceeds Calculator</h2>
+        <h2 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: "#1f2937" }}>{t("Seller Net Proceeds Calculator")}</h2>
         <p style={{ margin: "4px 0 0", fontSize: 13, color: "#6b7280" }}>
-          Florida-specific. Estimates the cash you walk away with after selling.
+          {t("Florida-specific. Estimates the cash you walk away with after selling.")}
         </p>
       </div>
 
       <div style={{ background: "#e0f2fe", border: "1px solid #7dd3fc", borderRadius: 8, padding: 12, marginBottom: 16, fontSize: 13, color: "#0c4a6e" }}>
-        <strong>💡 What this tells you:</strong> Your sale price minus mortgage payoff, agent commission, FL doc stamps (~0.7%), title fees, and other closing costs. This is the check you'll receive at closing.
+        <strong>{t("💡 What this tells you:")}</strong> {t("Your sale price minus mortgage payoff, agent commission, FL doc stamps (~0.7%), title fees, and other closing costs. This is the check you'll receive at closing.")}
       </div>
 
       {presetNotes.length > 0 && (
         <div style={{ background: "#f0fdf4", border: "1px solid #86efac", borderRadius: 8, padding: "8px 12px", marginBottom: 16, fontSize: 12.5, color: "#14532d" }}>
-          ✅ Pre-filled from this transaction: <strong>{presetNotes.join(", ")}</strong>. Everything below is still adjustable — move any slider or tap a value to type your own.
+          ✅ {t("Pre-filled from this transaction:")} <strong>{presetNotes.map(x => t(x)).join(", ")}</strong>. {t("Everything below is still adjustable — move any slider or tap a value to type your own.")}
         </div>
       )}
 
@@ -273,14 +275,14 @@ export default function SellerCalculator({ transactionId, token, county, initial
 
       {mortgagePayoff > 0 && (
         <div style={{ background: "#f9fafb", border: "1px solid #e5e7eb", borderRadius: 6, padding: "8px 12px", marginBottom: 16, fontSize: 13, color: "#374151" }}>
-          Estimated Payoff Interest (~1 month): <strong>{money(result.payoffInterest)}</strong>
-          <span style={{ color: "#6b7280" }}> — added to closing costs automatically</span>
+          {t("Estimated Payoff Interest (~1 month):")} <strong>{money(result.payoffInterest)}</strong>
+          <span style={{ color: "#6b7280" }}> {t("— added to closing costs automatically")}</span>
         </div>
       )}
 
       <SliderRow label="Agent Commission %" value={commissionPct} onChange={onCommissionChange}
         min={1} max={10} step={0.25} suffix="%"
-        info={(presetCommission != null ? "Pre-filled from this transaction's commission terms. " : "") + "Total commission paid by seller (typically split between listing and buyer agent). FL average 5-6%. Negotiable. NEW NAR rules: buyer agent commission may now be negotiated separately."} />
+        info={(presetCommission != null ? t("Pre-filled from this transaction's commission terms.") + " " : "") + t("Total commission paid by seller (typically split between listing and buyer agent). FL average 5-6%. Negotiable. NEW NAR rules: buyer agent commission may now be negotiated separately.")} />
 
       <SliderRow label="Settlement / Closing Fee" value={titleSettlement} onChange={setTitleSettlement}
         min={0} max={3000} step={50} prefix="$"
@@ -310,21 +312,21 @@ export default function SellerCalculator({ transactionId, token, county, initial
         min={0.3} max={3.0} step={0.005} suffix="%"
         info="Total millage (% of value). Defaulted from your profile city; adjust for the property's city/county. Annual tax = sale price × rate." />
       <div style={{ background: "#f9fafb", border: "1px solid #e5e7eb", borderRadius: 6, padding: "8px 12px", marginBottom: 16, fontSize: 12, color: "#6b7280" }}>
-        Rate from <strong style={{ color: "#374151" }}>{taxLoc.label}</strong>{taxLoc.source === "default" ? " (no city/county on file — adjust above)" : ""}. Est. annual tax: <strong style={{ color: "#374151" }}>{money(result.annualPropertyTax)}</strong>
+        {t("Rate from")} <strong style={{ color: "#374151" }}>{taxLoc.label === "FL default" ? t("FL default") : taxLoc.label}</strong>{taxLoc.source === "default" ? " " + t("(no city/county on file — adjust above)") : ""}. {t("Est. annual tax:")} <strong style={{ color: "#374151" }}>{money(result.annualPropertyTax)}</strong>
       </div>
 
       <div style={{ marginBottom: 16 }}>
         <label style={{ fontSize: 14, fontWeight: 600, color: "#374151", display: "block", marginBottom: 6 }}>
-          Estimated Closing Date
-          <Info>FL property taxes are paid in arrears. The seller credits the buyer for every day they owned the home this year (Jan 1 → closing). This is how the title company computes prorated taxes.</Info>
+          {t("Estimated Closing Date")}
+          <Info>{t("FL property taxes are paid in arrears. The seller credits the buyer for every day they owned the home this year (Jan 1 → closing). This is how the title company computes prorated taxes.")}</Info>
         </label>
         <input type="date" value={closingDate} onChange={(e) => onClosingDateChange(e.target.value)}
           style={{ padding: "6px 10px", fontSize: 14, fontWeight: 600, color: "#1f2937", border: "1px solid #d1d5db", borderRadius: 4, fontFamily: "inherit" }} />
       </div>
 
       <div style={{ background: "#f9fafb", border: "1px solid #e5e7eb", borderRadius: 6, padding: "8px 12px", marginBottom: 16, fontSize: 13, color: "#374151" }}>
-        Prorated Property Taxes (credit to buyer): <strong>{money(result.proratedTaxes)}</strong>
-        <span style={{ color: "#6b7280" }}> — {result.daysOwned} days owned this year</span>
+        {t("Prorated Property Taxes (credit to buyer):")} <strong>{money(result.proratedTaxes)}</strong>
+        <span style={{ color: "#6b7280" }}> — {t("{n} days owned this year", { n: result.daysOwned })}</span>
       </div>
 
       <SliderRow label="Other Costs (HOA dues, util reads, etc.)" value={otherCosts} onChange={setOtherCosts}
@@ -333,14 +335,14 @@ export default function SellerCalculator({ transactionId, token, county, initial
 
       <details style={{ background: "#f9fafb", border: "1px solid #e5e7eb", borderRadius: 8, padding: 12, marginBottom: 20 }}>
         <summary style={{ cursor: "pointer", fontWeight: 600, fontSize: 14, color: "#374151" }}>
-          📈 Optional: Track equity gain (vs original purchase)
+          {t("📈 Optional: Track equity gain (vs original purchase)")}
         </summary>
         <div style={{ marginTop: 12 }}>
           <SliderRow label="Original Purchase Price" value={originalPurchasePrice} onChange={setOriginalPurchasePrice}
             min={50000} max={2000000} step={5000} prefix="$"
             info="What you paid when you bought the home. Used to calculate equity gain." />
           <div style={{ background: "#f0fdf4", border: "1px solid #86efac", borderRadius: 6, padding: 10, fontSize: 13, color: "#14532d" }}>
-            <strong>Appreciation:</strong> {money(result.equity)} ({result.equityPct.toFixed(1)}%)
+            <strong>{t("Appreciation:")}</strong> {money(result.equity)} ({result.equityPct.toFixed(1)}%)
           </div>
         </div>
       </details>
@@ -349,51 +351,51 @@ export default function SellerCalculator({ transactionId, token, county, initial
           would BRING cash to closing, not receive it. Flip label + color so it's
           never a confusing "-$X you receive". */}
       <div style={{ background: result.netProceeds < 0 ? "linear-gradient(135deg, #991B1B, #7F1D1D)" : "linear-gradient(135deg, #0c4a6e, #075985)", color: "white", padding: 20, borderRadius: 12 }}>
-        <div style={{ fontSize: 13, opacity: 0.9, marginBottom: 4 }}>{result.netProceeds < 0 ? "Estimated Cash to Bring to Closing" : "Estimated Net Proceeds"}</div>
+        <div style={{ fontSize: 13, opacity: 0.9, marginBottom: 4 }}>{result.netProceeds < 0 ? t("Estimated Cash to Bring to Closing") : t("Estimated Net Proceeds")}</div>
         <div style={{ fontSize: 36, fontWeight: 800 }}>{money(Math.abs(result.netProceeds))}</div>
-        {result.netProceeds < 0 && <div style={{ fontSize: 12.5, opacity: 0.95, marginTop: 4 }}>Costs exceed proceeds at this price — the seller brings this amount to closing.</div>}
+        {result.netProceeds < 0 && <div style={{ fontSize: 12.5, opacity: 0.95, marginTop: 4 }}>{t("Costs exceed proceeds at this price — the seller brings this amount to closing.")}</div>}
         <div style={{ fontSize: 13, opacity: 0.95, marginTop: 12, borderTop: "1px solid rgba(255,255,255,0.3)", paddingTop: 12, lineHeight: 1.8 }}>
-          <div>Sale Price: <strong>{money(salePrice)}</strong></div>
-          <div>− Mortgage Payoff: <strong>{money(mortgagePayoff)}</strong></div>
-          <div>− Total Closing Costs: <strong>{money(result.totalCosts)}</strong></div>
+          <div>{t("Sale Price:")} <strong>{money(salePrice)}</strong></div>
+          <div>{t("− Mortgage Payoff:")} <strong>{money(mortgagePayoff)}</strong></div>
+          <div>{t("− Total Closing Costs:")} <strong>{money(result.totalCosts)}</strong></div>
         </div>
       </div>
 
       <details style={{ marginTop: 16, background: "#f9fafb", border: "1px solid #e5e7eb", borderRadius: 8, padding: 12 }}>
         <summary style={{ cursor: "pointer", fontWeight: 600, fontSize: 14, color: "#374151" }}>
-          📋 Closing Costs Breakdown (FL-specific)
+          {t("📋 Closing Costs Breakdown (FL-specific)")}
         </summary>
         <table style={{ width: "100%", marginTop: 12, fontSize: 13 }}>
           <tbody>
-            <tr><td style={{ padding: "4px 0" }}>Agent Commission ({commissionPct}%) <Info>Paid out of seller proceeds at closing. Split between listing and buyer agent per the contract.</Info></td><td style={{ textAlign: "right", fontWeight: 600 }}>{money(result.commission)}</td></tr>
-            <tr><td style={{ padding: "4px 0" }}>FL Doc Stamps on Deed <Info>FL state tax: $0.70 per $100 of sale price. Seller pays in most FL counties (Miami-Dade splits with buyer).</Info></td><td style={{ textAlign: "right", fontWeight: 600 }}>{money(result.docStamps)}</td></tr>
-            <tr><td style={{ padding: "4px 0" }}>Owner's Title Insurance <Info>FL custom: seller usually provides. Promulgated rate $5.75/$1k up to $100k, then $5.00/$1k.</Info></td><td style={{ textAlign: "right", fontWeight: 600 }}>{money(result.titleIns)}</td></tr>
-            <tr><td style={{ padding: "4px 0" }}>Settlement / Closing Fee</td><td style={{ textAlign: "right", fontWeight: 600 }}>{money(titleSettlement)}</td></tr>
-            <tr><td style={{ padding: "4px 0" }}>Title Search & Lien Searches</td><td style={{ textAlign: "right", fontWeight: 600 }}>{money(titleSearchFees)}</td></tr>
-            <tr><td style={{ padding: "4px 0" }}>Title Co. Processing/Transaction Fee</td><td style={{ textAlign: "right", fontWeight: 600 }}>{money(titleProcessingFee)}</td></tr>
-            <tr><td style={{ padding: "4px 0" }}>HOA Estoppel/Transfer</td><td style={{ textAlign: "right", fontWeight: 600 }}>{money(hoaTransferFee)}</td></tr>
-            <tr><td style={{ padding: "4px 0" }}>Seller Concessions</td><td style={{ textAlign: "right", fontWeight: 600 }}>{money(sellerConcessions)}</td></tr>
-            <tr><td style={{ padding: "4px 0" }}>Negotiated Repairs</td><td style={{ textAlign: "right", fontWeight: 600 }}>{money(repairs)}</td></tr>
-            <tr><td style={{ padding: "4px 0" }}>Prorated Taxes</td><td style={{ textAlign: "right", fontWeight: 600 }}>{money(result.proratedTaxes)}</td></tr>
-            <tr><td style={{ padding: "4px 0" }}>Est. Payoff Interest (~1 mo)</td><td style={{ textAlign: "right", fontWeight: 600 }}>{money(result.payoffInterest)}</td></tr>
-            <tr><td style={{ padding: "4px 0" }}>Recording Fees</td><td style={{ textAlign: "right", fontWeight: 600 }}>{money(result.recording)}</td></tr>
-            <tr><td style={{ padding: "4px 0" }}>Other</td><td style={{ textAlign: "right", fontWeight: 600 }}>{money(otherCosts)}</td></tr>
-            <tr style={{ borderTop: "2px solid #d1d5db" }}><td style={{ padding: "8px 0", fontWeight: 700 }}>Total Closing Costs</td><td style={{ textAlign: "right", fontWeight: 700 }}>{money(result.totalCosts)}</td></tr>
+            <tr><td style={{ padding: "4px 0" }}>{t("Agent Commission ({pct}%)", { pct: commissionPct })} <Info>{t("Paid out of seller proceeds at closing. Split between listing and buyer agent per the contract.")}</Info></td><td style={{ textAlign: "right", fontWeight: 600 }}>{money(result.commission)}</td></tr>
+            <tr><td style={{ padding: "4px 0" }}>{t("FL Doc Stamps on Deed")} <Info>{t("FL state tax: $0.70 per $100 of sale price. Seller pays in most FL counties (Miami-Dade splits with buyer).")}</Info></td><td style={{ textAlign: "right", fontWeight: 600 }}>{money(result.docStamps)}</td></tr>
+            <tr><td style={{ padding: "4px 0" }}>{t("Owner's Title Insurance")} <Info>{t("FL custom: seller usually provides. Promulgated rate $5.75/$1k up to $100k, then $5.00/$1k.")}</Info></td><td style={{ textAlign: "right", fontWeight: 600 }}>{money(result.titleIns)}</td></tr>
+            <tr><td style={{ padding: "4px 0" }}>{t("Settlement / Closing Fee")}</td><td style={{ textAlign: "right", fontWeight: 600 }}>{money(titleSettlement)}</td></tr>
+            <tr><td style={{ padding: "4px 0" }}>{t("Title Search & Lien Searches")}</td><td style={{ textAlign: "right", fontWeight: 600 }}>{money(titleSearchFees)}</td></tr>
+            <tr><td style={{ padding: "4px 0" }}>{t("Title Co. Processing/Transaction Fee")}</td><td style={{ textAlign: "right", fontWeight: 600 }}>{money(titleProcessingFee)}</td></tr>
+            <tr><td style={{ padding: "4px 0" }}>{t("HOA Estoppel/Transfer")}</td><td style={{ textAlign: "right", fontWeight: 600 }}>{money(hoaTransferFee)}</td></tr>
+            <tr><td style={{ padding: "4px 0" }}>{t("Seller Concessions")}</td><td style={{ textAlign: "right", fontWeight: 600 }}>{money(sellerConcessions)}</td></tr>
+            <tr><td style={{ padding: "4px 0" }}>{t("Negotiated Repairs")}</td><td style={{ textAlign: "right", fontWeight: 600 }}>{money(repairs)}</td></tr>
+            <tr><td style={{ padding: "4px 0" }}>{t("Prorated Taxes")}</td><td style={{ textAlign: "right", fontWeight: 600 }}>{money(result.proratedTaxes)}</td></tr>
+            <tr><td style={{ padding: "4px 0" }}>{t("Est. Payoff Interest (~1 mo)")}</td><td style={{ textAlign: "right", fontWeight: 600 }}>{money(result.payoffInterest)}</td></tr>
+            <tr><td style={{ padding: "4px 0" }}>{t("Recording Fees")}</td><td style={{ textAlign: "right", fontWeight: 600 }}>{money(result.recording)}</td></tr>
+            <tr><td style={{ padding: "4px 0" }}>{t("Other")}</td><td style={{ textAlign: "right", fontWeight: 600 }}>{money(otherCosts)}</td></tr>
+            <tr style={{ borderTop: "2px solid #d1d5db" }}><td style={{ padding: "8px 0", fontWeight: 700 }}>{t("Total Closing Costs")}</td><td style={{ textAlign: "right", fontWeight: 700 }}>{money(result.totalCosts)}</td></tr>
           </tbody>
         </table>
       </details>
 
       <div style={{ fontSize: 12, color: "#6b7280", marginTop: 12, fontStyle: "italic" }}>
-        ⚠️ Estimate only. Your title company's Seller's Net Sheet (issued before closing) is the official figure. Capital gains tax may apply on profit above $250k (single) / $500k (married) primary residence exclusion.
+        {t("⚠️ Estimate only. Your title company's Seller's Net Sheet (issued before closing) is the official figure. Capital gains tax may apply on profit above $250k (single) / $500k (married) primary residence exclusion.")}
       </div>
 
       {transactionId && (
         <div style={{ marginTop: 20, padding: 16, background: "#fffbeb", border: "1px solid #fcd34d", borderRadius: 8 }}>
           <div style={{ fontSize: 13, fontWeight: 700, color: "#78350f", marginBottom: 6 }}>
-            📄 Generate Compliance PDF
+            {t("📄 Generate Compliance PDF")}
           </div>
           <div style={{ fontSize: 12, color: "#78350f", marginBottom: 10, lineHeight: 1.5 }}>
-            FL listing agents have a fiduciary duty to provide sellers with an estimated net sheet before the listing agreement and when reviewing offers. Generate a branded, signed-ready PDF and save it to this transaction's Documents for the brokerage compliance file.
+            {t("FL listing agents have a fiduciary duty to provide sellers with an estimated net sheet before the listing agreement and when reviewing offers. Generate a branded, signed-ready PDF and save it to this transaction's Documents for the brokerage compliance file.")}
           </div>
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
             <button

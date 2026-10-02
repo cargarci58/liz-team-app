@@ -1,4 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
+import { t, useLang, applyPreferredLang } from "./i18n";
+import LangToggle from "./components/LangToggle";
 
 const API = "https://liz-team-server-api-production.up.railway.app";
 
@@ -7,6 +9,7 @@ const API = "https://liz-team-server-api-production.up.railway.app";
 // Step 2: the client creates (first visit) or enters their 4-digit PIN.
 // Only then does a session start — so a forwarded email alone shows nothing.
 export default function PortalMagicLogin({ urlToken }) {
+  useLang();
   const [phase, setPhase] = useState("loading"); // loading | setup | verify | error
   const [stepToken, setStepToken] = useState(null);
   const [firstName, setFirstName] = useState("");
@@ -26,6 +29,7 @@ export default function PortalMagicLogin({ urlToken }) {
           body: JSON.stringify({ token: urlToken }),
         });
         const data = await res.json();
+        if (data && data.language) applyPreferredLang(data.language);
         if (!res.ok || !data.success) throw new Error(data.error || "Sign-in link didn't work");
         setStepToken(data.stepToken);
         setFirstName(data.firstName || "");
@@ -79,6 +83,7 @@ export default function PortalMagicLogin({ urlToken }) {
         pattern="[0-9]*"
         maxLength={6}
         autoFocus={autoFocus}
+        aria-label={label}
         value={value}
         onChange={(e) => setValue(e.target.value.replace(/\D/g, "").slice(0, 6))}
         onKeyDown={(e) => { if (e.key === "Enter") submitPin(); }}
@@ -92,46 +97,51 @@ export default function PortalMagicLogin({ urlToken }) {
     <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center",
       background: "#F9FAFB", fontFamily: "system-ui, sans-serif", padding: 16 }}>
       <div style={{ background: "#fff", borderRadius: 14, padding: 32, maxWidth: 420, width: "100%",
-        boxShadow: "0 4px 20px rgba(0,0,0,0.08)", textAlign: "center" }}>{children}</div>
+        boxShadow: "0 4px 20px rgba(0,0,0,0.08)", textAlign: "center", position: "relative" }}>
+        <div style={{ display: "flex", justifyContent: "flex-end", marginTop: -16, marginRight: -16, marginBottom: 4 }}><LangToggle /></div>
+        {children}
+      </div>
     </div>
   );
 
   if (phase === "loading") return card(<>
     <div style={{ fontSize: 48, marginBottom: 12 }}>🏠</div>
-    <div style={{ fontWeight: 700, fontSize: 18, color: "#1A2B4A" }}>Opening your portal…</div>
-    <div style={{ fontSize: 13, color: "#6B7280", marginTop: 8 }}>One moment — checking your secure link.</div>
+    <div style={{ fontWeight: 700, fontSize: 18, color: "#1A2B4A" }}>{t("Opening your portal…")}</div>
+    <div style={{ fontSize: 13, color: "#6B7280", marginTop: 8 }}>{t("One moment — checking your secure link.")}</div>
   </>);
 
   if (phase === "error") return card(<>
     <div style={{ fontSize: 44, marginBottom: 12 }}>🔒</div>
-    <div style={{ fontWeight: 700, fontSize: 17, color: "#1A2B4A", marginBottom: 10 }}>We couldn't open your portal</div>
-    <div style={{ fontSize: 14, color: "#374151", lineHeight: 1.6, marginBottom: 20 }}>{error}</div>
+    <div style={{ fontWeight: 700, fontSize: 17, color: "#1A2B4A", marginBottom: 10 }}>{t("We couldn't open your portal")}</div>
+    <div style={{ fontSize: 14, color: "#374151", lineHeight: 1.6, marginBottom: 20 }}>{t(error)}</div>
     <a href="/" style={{ display: "inline-block", background: "#1E8449", color: "#fff", textDecoration: "none",
-      fontWeight: 700, fontSize: 15, padding: "12px 26px", borderRadius: 10 }}>Go to sign-in</a>
+      fontWeight: 700, fontSize: 15, padding: "12px 26px", borderRadius: 10 }}>{t("Go to sign-in")}</a>
   </>);
 
   const isSetup = phase === "setup";
   return card(<>
     <div style={{ fontSize: 44, marginBottom: 10 }}>{isSetup ? "🔐" : "👋"}</div>
     <div style={{ fontWeight: 800, fontSize: 19, color: "#1A2B4A", marginBottom: 6 }}>
-      {isSetup ? `Welcome${firstName ? ", " + firstName : ""}! One quick step` : `Welcome back${firstName ? ", " + firstName : ""}`}
+      {isSetup
+        ? (firstName ? t("Welcome, {name}! One quick step", { name: firstName }) : t("Welcome! One quick step"))
+        : (firstName ? t("Welcome back, {name}", { name: firstName }) : t("Welcome back"))}
     </div>
     <div style={{ fontSize: 14, color: "#374151", lineHeight: 1.6, marginBottom: 18 }}>
       {isSetup
-        ? "Create a 4-digit PIN to protect your transaction details — like a debit-card PIN. It's all you'll ever need to remember."
-        : "Enter your 4-digit PIN to open your portal."}
+        ? t("Create a 4-digit PIN to protect your transaction details — like a debit-card PIN. It's all you'll ever need to remember.")
+        : t("Enter your 4-digit PIN to open your portal.")}
     </div>
-    {pinInput(pin, setPin, pinRef, isSetup ? "Choose your PIN" : "Your PIN", true)}
-    {isSetup && pinInput(pin2, setPin2, null, "Type it once more")}
+    {pinInput(pin, setPin, pinRef, isSetup ? t("Choose your PIN") : t("Your PIN"), true)}
+    {isSetup && pinInput(pin2, setPin2, null, t("Type it once more"))}
     {notice && <div style={{ background: "#FEF2F2", border: "1px solid #FECACA", color: "#991B1B",
-      borderRadius: 8, padding: "10px 12px", fontSize: 13, marginBottom: 14, textAlign: "left" }}>{notice}</div>}
+      borderRadius: 8, padding: "10px 12px", fontSize: 13, marginBottom: 14, textAlign: "left" }}>{t(notice)}</div>}
     <button onClick={submitPin} disabled={busy}
       style={{ width: "100%", background: busy ? "#9CA3AF" : "#0c4a6e", color: "#fff", border: "none",
         fontWeight: 700, fontSize: 16, padding: "14px 0", borderRadius: 10, cursor: busy ? "default" : "pointer" }}>
-      {busy ? "One moment…" : isSetup ? "Save my PIN & open portal" : "Open my portal"}
+      {busy ? t("One moment…") : isSetup ? t("Save my PIN & open portal") : t("Open my portal")}
     </button>
     <div style={{ fontSize: 12, color: "#5F6B7A", marginTop: 14 }}>
-      {isSetup ? "You'll use this PIN every time you open a portal link." : "Forgot your PIN? Reply to any email from your agent and we'll reset it."}
+      {isSetup ? t("You'll use this PIN every time you open a portal link.") : t("Forgot your PIN? Reply to any email from your agent and we'll reset it.")}
     </div>
   </>);
 }

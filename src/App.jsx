@@ -34,6 +34,7 @@ const SUPERUSER_EMAIL = ((import.meta.env && import.meta.env.VITE_SUPERUSER_EMAI
 
 import { useState, useEffect, useCallback, useRef, lazy, Suspense } from "react";
 import { askConfirm, askText } from "./ui/dialogs";
+import { setLang } from "./i18n";
 import BackButton from "./ui/BackButton";
 
 // ── Code-split heavy, route-level screens so the phone only downloads the
@@ -760,6 +761,23 @@ function Input({ label, value, onChange, type = "text", placeholder, required, o
   );
 }
 
+// "Preferred language" on a person in the deal. Español = their automatic
+// emails, texts, portal and signing pages are in Spanish (the agent/TC review
+// screens show the Spanish before anything is sent). Agent screens stay English.
+function PartyLanguageField({ value, onChange }) {
+  return (
+    <div>
+      <Input label="Preferred language" value={value === "es" ? "es" : "en"} onChange={v => onChange(v === "es" ? "es" : "en")}
+        options={[{ value: "en", label: "English" }, { value: "es", label: "Español (Spanish)" }]} />
+      {value === "es" && (
+        <div style={{ fontSize: 12, color: COLORS.muted, marginTop: -8, marginBottom: 14, lineHeight: 1.5 }}>
+          🇪🇸 Their automatic emails, texts, portal and signing pages will be in Spanish. Messages you type yourself go out exactly as you write them.
+        </div>
+      )}
+    </div>
+  );
+}
+
 function Modal({ title, onClose, children, wide }) {
   return (
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 1000, display: "flex", alignItems: "flex-start", justifyContent: "center", padding: 16, overflowY: "auto" }}>
@@ -945,6 +963,7 @@ function PartyCard({ party, txId, onRemove, onEdit, onClick, onInvite, onCopyLog
         {party.company && <div style={{ fontSize: 12, color: COLORS.muted }}>{party.company}</div>}
         {party.email && <div style={{ fontSize: 12, color: COLORS.muted }}>{party.email}</div>}
         {party.phone && <div style={{ fontSize: 12, color: COLORS.muted }}>{party.phone}</div>}
+        {party.preferredLanguage === "es" && <div style={{ fontSize: 11, color: "#0c4a6e", fontWeight: 700, marginTop: 2 }}>🇪🇸 Prefers Spanish — automatic emails &amp; texts go in Spanish</div>}
         {party.email && party.role && /buyer|seller/i.test(party.role) && !/agent/i.test(party.role) && (
           party.lastLoginAt
             ? <div style={{ fontSize: 11, color: "#1E8449", fontWeight: 700, marginTop: 4 }}>🟢 Viewed portal — last seen {new Date(party.lastLoginAt).toLocaleString([], { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" })}</div>
@@ -7717,6 +7736,7 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
           <Input label="Company / Brokerage" value={editingParty.company || ""} onChange={v => setEditingParty(p => ({ ...p, company: v }))} />
           <Input label="Email" value={editingParty.email || ""} onChange={v => setEditingParty(p => ({ ...p, email: v }))} type="email" />
           <Input label="Cell Phone (for SMS)" value={editingParty.phone || ""} onChange={v => setEditingParty(p => ({ ...p, phone: v }))} type="tel" />
+          <PartyLanguageField value={editingParty.preferredLanguage} onChange={v => setEditingParty(p => ({ ...p, preferredLanguage: v }))} />
           <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
             <Btn variant="ghost" onClick={() => setEditingParty(null)}>Cancel</Btn>
             <Btn onClick={async () => {
@@ -7825,6 +7845,7 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
           <Input label="Company / Brokerage" value={partyForm.company} onChange={v => setPartyForm(f => ({ ...f, company: v }))} />
           <Input label="Email" value={partyForm.email} onChange={v => setPartyForm(f => ({ ...f, email: v }))} type="email" />
           <Input label="Cell Phone (for SMS)" value={partyForm.phone} onChange={v => setPartyForm(f => ({ ...f, phone: v }))} type="tel" placeholder="407-555-0100" />
+          <PartyLanguageField value={partyForm.preferredLanguage} onChange={v => setPartyForm(f => ({ ...f, preferredLanguage: v }))} />
           {(partyForm.role === "Buyer" || partyForm.role === "Seller") && (<>
             <Input label="Mailing Address" value={partyForm.mailingAddress} onChange={v => setPartyForm(f => ({ ...f, mailingAddress: v }))} />
             <Input label="Preferred Communication" value={partyForm.preferredComm} onChange={v => setPartyForm(f => ({ ...f, preferredComm: v }))} options={["Email", "Phone", "Text"]} />
@@ -7887,7 +7908,7 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
                     setPendingInviteParty(newParty);
                   }
                 }
-                setPartyForm({ role: "", name: "", email: "", phone: "", company: "" });
+                setPartyForm({ role: "", name: "", email: "", phone: "", company: "", preferredLanguage: "en" });
                 setPartyFromContactBook(false);
                 setShowAddParty(false);
               }
@@ -9653,7 +9674,7 @@ function Dashboard({ transactions, coordinatorMode = false, unreadCounts = {}, o
     owningBrokerageName: t.brokerage_name,
     owningBrokerageColor: t.brokerage_color,
     messages: t.internal_notes || [],
-    parties: (t.parties || []).filter(Boolean).map(p => ({ id: p.id, role: p.role, name: p.name, email: p.email, phone: p.phone, company: p.company, isVendor: p.isVendor || false, vendorStatus: p.vendorStatus || null, vendorCategory: p.vendorCategory || null, vendorDescription: p.vendorDescription || null, lastLoginAt: p.lastLoginAt || null })),
+    parties: (t.parties || []).filter(Boolean).map(p => ({ id: p.id, role: p.role, name: p.name, email: p.email, phone: p.phone, company: p.company, isVendor: p.isVendor || false, vendorStatus: p.vendorStatus || null, vendorCategory: p.vendorCategory || null, vendorDescription: p.vendorDescription || null, preferredLanguage: p.preferredLanguage || null, lastLoginAt: p.lastLoginAt || null })),
     tasks: (t.tasks || []).filter(Boolean).map(tk => ({ id: tk.id, name: tk.name, status: tk.status, dueDate: tk.dueDate, category: tk.category, assignTo: tk.assignTo })),
     milestoneSummary: t.milestone_summary || null,
     nextMilestone: t.next_milestone || null,
@@ -10689,7 +10710,7 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
             owningBrokerageName: t.brokerage_name,
             owningBrokerageColor: t.brokerage_color,
             messages: t.internal_notes || [],
-            parties: (t.parties || []).filter(Boolean).map(p => ({ id: p.id, role: p.role, name: p.name, email: p.email, phone: p.phone, company: p.company, isVendor: p.isVendor || false, vendorStatus: p.vendorStatus || null, vendorCategory: p.vendorCategory || null, vendorDescription: p.vendorDescription || null, lastLoginAt: p.lastLoginAt || null })),
+            parties: (t.parties || []).filter(Boolean).map(p => ({ id: p.id, role: p.role, name: p.name, email: p.email, phone: p.phone, company: p.company, isVendor: p.isVendor || false, vendorStatus: p.vendorStatus || null, vendorCategory: p.vendorCategory || null, vendorDescription: p.vendorDescription || null, preferredLanguage: p.preferredLanguage || null, lastLoginAt: p.lastLoginAt || null })),
             tasks: (t.tasks || []).filter(Boolean).map(tk => ({ id: tk.id, name: tk.name, status: tk.status, dueDate: tk.dueDate, category: tk.category, assignTo: tk.assignTo })),
             milestoneSummary: t.milestone_summary || null,
             nextMilestone: t.next_milestone || null,
@@ -11804,6 +11825,11 @@ function AuthGate() {
     try { return JSON.parse(localStorage.getItem("tp_user")); } catch { return null; }
   });
   const [forcePasswordReset, setForcePasswordReset] = useState(false);
+  // Spanish is for CLIENT screens only (Phase 1): agent / TC / admin screens
+  // always run in English, even on a device a Spanish-speaking client used.
+  useEffect(() => {
+    if (authUser && authUser.role !== "client") setLang("en", { persist: false });
+  }, [authUser && authUser.role]);
 
   if (forcePasswordReset) {
     return <ChangePassword forceReset onClose={() => { setForcePasswordReset(false); }} />;
