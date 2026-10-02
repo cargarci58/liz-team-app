@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, Fragment } from "react";
 import OfferWizard from "./OfferWizard";
 import { TheirCounterModal, BuyerCounterPanel, useTheirCounters, counterForOffer, HOW_BUYER_COUNTERS } from "./BuyerCounterFlow";
 import { WelcomeEmailPreview } from "./App"; // review-gated welcome emails after Accept (safe: OffersTab is lazy-loaded)
+import { askConfirm } from "./ui/dialogs";
 
 const API = "https://liz-team-server-api-production.up.railway.app";
 
@@ -153,7 +154,7 @@ export default function OffersTab({ tx, token, currentUser, createSignal = 0, on
   };
 
   const deleteOffer = async (offerId) => {
-    if (!confirm("Delete this draft offer?")) return;
+    if (!(await askConfirm("Delete this draft offer?", { okLabel: "Delete", danger: true }))) return;
     try {
       const r = await fetch(API + "/offers/" + offerId, {
         method: "DELETE",
@@ -168,7 +169,7 @@ export default function OffersTab({ tx, token, currentUser, createSignal = 0, on
   };
 
   const acceptOffer = async (offerId) => {
-    if (!confirm("Mark this offer ACCEPTED?\n\nThis will:\n• Move the transaction to UNDER CONTRACT\n• Copy the offer's price, closing date, and terms onto the transaction\n• Withdraw any other offers on this transaction\n\nNOTHING is emailed yet — next you'll REVIEW the welcome emails and choose exactly what goes out.")) return;
+    if (!(await askConfirm("Mark this offer ACCEPTED?\n\nThis will:\n• Move the transaction to UNDER CONTRACT\n• Copy the offer's price, closing date, and terms onto the transaction\n• Withdraw any other offers on this transaction\n\nNOTHING is emailed yet — next you'll REVIEW the welcome emails and choose exactly what goes out.", { okLabel: "Yes, mark accepted" }))) return;
     try {
       const r = await fetch(API + "/offers/" + offerId + "/accept", {
         method: "POST", headers: { Authorization: "Bearer " + token },
@@ -261,7 +262,7 @@ export default function OffersTab({ tx, token, currentUser, createSignal = 0, on
   };
 
   const setOfferStatus = async (offerId, status, label) => {
-    if (!confirm("Mark this offer " + label + "?")) return;
+    if (!(await askConfirm("Mark this offer " + label + "?", { okLabel: "Yes, mark it" }))) return;
     try {
       const r = await fetch(API + "/offers/" + offerId + "/status", {
         method: "PATCH", headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
@@ -273,7 +274,7 @@ export default function OffersTab({ tx, token, currentUser, createSignal = 0, on
   };
 
   const unacceptOffer = async (offerId) => {
-    if (!confirm("Undo this acceptance?\n\nThe transaction will revert to its prior status and the other offers will be restored.\n\nNote: welcome emails already sent CANNOT be recalled.")) return;
+    if (!(await askConfirm("Undo this acceptance?\n\nThe transaction will revert to its prior status and the other offers will be restored.\n\nNote: welcome emails already sent CANNOT be recalled.", { okLabel: "Undo acceptance", danger: true }))) return;
     try {
       const r = await fetch(API + "/offers/" + offerId + "/unaccept", {
         method: "POST", headers: { Authorization: "Bearer " + token },
@@ -652,7 +653,7 @@ function SendOfferModal({ offer, tx, token, currentUser, onClose, onSent }) {
           {/* Attachments */}
           <div style={lbl}>Attachments</div>
           <div style={{ fontSize: 13, color: "#374151", marginBottom: 8 }}>
-            {baseAttach && <div>📎 {baseAttach} <span style={{ color: "#16a34a" }}>(included)</span></div>}
+            {baseAttach && <div>📎 {baseAttach} <span style={{ color: "#1E7B45" }}>(included)</span></div>}
             {attach.map(a => (
               <div key={a.id} style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "#F0F4FF", border: "1px solid #C7D2FE", borderRadius: 6, padding: "3px 8px", fontSize: 12, color: "#0c4a6e", marginRight: 6, marginTop: 6 }}>
                 📄 {a.name}
@@ -675,7 +676,7 @@ function SendOfferModal({ offer, tx, token, currentUser, onClose, onSent }) {
                 return (
                   <label key={doc.id} style={{ display: "flex", gap: 8, alignItems: "center", padding: "5px 2px", fontSize: 13, cursor: "pointer" }}>
                     <input type="checkbox" checked={on} onChange={() => toggleAttach(doc)} />
-                    <span>📄 {doc.name}{doc.category ? <span style={{ color: "#9ca3af" }}> · {doc.category}</span> : null}</span>
+                    <span>📄 {doc.name}{doc.category ? <span style={{ color: "#5F6B7A" }}> · {doc.category}</span> : null}</span>
                   </label>
                 );
               })}
@@ -746,7 +747,7 @@ function BuyerSignaturesModal({ offer, token, onClose }) {
   };
 
   const cancel = async () => {
-    if (!confirm("Cancel the outstanding signing links?\n\nThe buyers' links will stop working. You can send a fresh round any time.")) return;
+    if (!(await askConfirm("Cancel the outstanding signing links?\n\nThe buyers' links will stop working. You can send a fresh round any time.", { okLabel: "Cancel links", cancelLabel: "Keep links", danger: true }))) return;
     setBusy(true);
     try {
       const r = await fetch(API + "/offers/" + offer.id + "/cancel-signatures", {

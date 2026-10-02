@@ -1407,7 +1407,7 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
                     📱 iPhone asks for the microphone once each visit. To stop it asking, open the iPhone <b>Settings</b> app → <b>Safari</b> → scroll down to <b>Microphone</b> → <b>Allow</b>. (Newer iPhones: Settings → Apps → Safari.)
                   </div>
                   <button onClick={() => { setIosTip(false); localStorage.setItem("tp_assist_iostip", "off"); }}
-                    style={{ background: "none", border: "none", color: "#94A3B8", fontSize: 16, cursor: "pointer", padding: 0, lineHeight: 1 }}>×</button>
+                    style={{ background: "none", border: "none", color: "#5F6B7A", fontSize: 16, cursor: "pointer", padding: 0, lineHeight: 1 }}>×</button>
                 </div>
               )}
               {micNote && (

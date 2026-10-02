@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { askConfirm } from "./ui/dialogs";
 
 const API = "https://liz-team-server-api-production.up.railway.app";
 
@@ -69,7 +70,7 @@ export default function CommissionPlans() {
     setBusy(false);
   };
   const remove = async (p) => {
-    if (!window.confirm(`Delete the plan "${p.name}"? Agents and deals on it go back to the brokerage default.`)) return;
+    if (!(await askConfirm(`Delete the plan "${p.name}"? Agents and deals on it go back to the brokerage default.`, { okLabel: "Delete", danger: true }))) return;
     await fetch(API + "/commission-plans/" + p.id, { method: "DELETE", headers }).catch(() => {});
     if (editId === p.id) { setEditId(null); setDraft(null); }
     load();

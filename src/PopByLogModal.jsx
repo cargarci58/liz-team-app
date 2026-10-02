@@ -66,12 +66,12 @@ export default function PopByLogModal({ token, contact: presetContact, onClose, 
             {results.length > 0 && (
               <div style={{ border: "1px solid #e5e7eb", borderRadius: 8, marginTop: 4, maxHeight: 220, overflowY: "auto" }}>
                 {results.map(c => c._more ? (
-                  <div key="__more__" style={{ padding: "8px 12px", fontSize: 12, color: "#9ca3af", fontStyle: "italic" }}>
+                  <div key="__more__" style={{ padding: "8px 12px", fontSize: 12, color: "#5F6B7A", fontStyle: "italic" }}>
                     …and {c._more} more match{c._more === 1 ? "" : "es"} — keep typing to narrow it down
                   </div>
                 ) : (
                   <div key={c.id} onClick={() => { setContact(c); setResults([]); }} style={{ padding: "9px 12px", cursor: "pointer", borderBottom: "1px solid #f1f5f9", fontSize: 14 }}>
-                    {cname(c)}{c.phone && <span style={{ color: "#9ca3af", fontSize: 12 }}> · {c.phone}</span>}
+                    {cname(c)}{c.phone && <span style={{ color: "#5F6B7A", fontSize: 12 }}> · {c.phone}</span>}
                   </div>
                 ))}
               </div>

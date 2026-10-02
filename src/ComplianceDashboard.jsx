@@ -125,10 +125,10 @@ export default function ComplianceDashboard({ token, onOpenTransaction }) {
                     <div style={{ fontWeight: 700, marginBottom: 2 }}>Missing:</div>
                     {tx.missingDocs.slice(0, 5).map((d, i) => (
                       <div key={i} style={{ marginLeft: 4 }}>
-                        {d.severity === "critical" ? "[!]" : "-"} {d.docType} <span style={{ color: "#9CA3AF" }}>({d.milestone})</span>
+                        {d.severity === "critical" ? "[!]" : "-"} {d.docType} <span style={{ color: "#5F6B7A" }}>({d.milestone})</span>
                       </div>
                     ))}
-                    {tx.missingDocs.length > 5 && <div style={{ marginLeft: 4, color: "#9CA3AF" }}>...and {tx.missingDocs.length - 5} more</div>}
+                    {tx.missingDocs.length > 5 && <div style={{ marginLeft: 4, color: "#5F6B7A" }}>...and {tx.missingDocs.length - 5} more</div>}
                   </div>
                 )}
               </div>

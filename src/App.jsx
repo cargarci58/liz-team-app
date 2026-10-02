@@ -33,6 +33,7 @@ const API = "https://liz-team-server-api-production.up.railway.app";
 const SUPERUSER_EMAIL = ((import.meta.env && import.meta.env.VITE_SUPERUSER_EMAIL) || "cgarcia@thelizteam.com").toLowerCase();
 
 import { useState, useEffect, useCallback, useRef, lazy, Suspense } from "react";
+import { askConfirm, askText } from "./ui/dialogs";
 
 // ── Code-split heavy, route-level screens so the phone only downloads the
 // ── code for the screen you actually open, instead of one giant bundle up front.
@@ -85,7 +86,7 @@ const SMS_SERVER = API;
 // Fallback shown while a code-split screen's chunk downloads.
 function LazyLoading() {
   return (
-    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "60vh", color: "#888", fontSize: 14, fontFamily: "'Segoe UI', system-ui, sans-serif" }}>
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "60vh", color: "#666666", fontSize: 14, fontFamily: "'Segoe UI', system-ui, sans-serif" }}>
       Loading…
     </div>
   );
@@ -377,7 +378,7 @@ const NEW_CONSTRUCTION_TASKS = [
 
 
 const STATUS_CONFIG = {
-  "Active": { color: "#B7860B", bg: "#FEF9E7" },
+  "Active": { color: "#8A5A00", bg: "#FEF9E7" },
   "Under Contract": { color: "#1D4ED8", bg: "#DBEAFE" },
   "Inspection": { color: "#7C3AED", bg: "#EDE9FE" },
   "Appraisal": { color: "#0F766E", bg: "#CCFBF1" },
@@ -493,7 +494,7 @@ function PipelineCard({ tx, onSelect }) {
         <span style={{ fontSize: 9, fontWeight: 700, color: COLORS.muted, textTransform: "uppercase", letterSpacing: "0.06em" }}>{txTypeShort(tx.type)}</span>
         {propertyTypeBadge(tx) && <span title={`${propertyTypeBadge(tx).label.replace(/^\S+\s/, "")} property`} style={{ background: propertyTypeBadge(tx).bg, color: propertyTypeBadge(tx).color, fontSize: 9, fontWeight: 700, padding: "1px 6px", borderRadius: 8 }}>{propertyTypeBadge(tx).label}</span>}
         {shareBadge(tx) && <span style={{ background: shareBadge(tx).bg, color: shareBadge(tx).color, fontSize: 9, fontWeight: 800, padding: "1px 6px", borderRadius: 8 }}>{shareBadge(tx).label}</span>}
-        {tx.constructionType === "New Construction" && <span title="New Construction" style={{ background: "#FEF9E7", color: "#B7770D", fontSize: 9, fontWeight: 700, padding: "1px 6px", borderRadius: 8 }}>🏗️ NC</span>}
+        {tx.constructionType === "New Construction" && <span title="New Construction" style={{ background: "#FEF9E7", color: "#8A5A00", fontSize: 9, fontWeight: 700, padding: "1px 6px", borderRadius: 8 }}>🏗️ NC</span>}
         {overdue > 0 && tx.status !== "Closed" && <span title={`${overdue} overdue item(s)`} style={{ marginLeft: "auto", background: COLORS.dangerBg, color: COLORS.danger, fontSize: 9, fontWeight: 700, padding: "1px 6px", borderRadius: 8 }}>⚠ {overdue}</span>}
       </div>
       <div style={{ fontWeight: 700, fontSize: 13, color: COLORS.navy, marginBottom: 2, lineHeight: 1.3 }}>{tx.address}</div>
@@ -733,8 +734,9 @@ function Badge({ label, color, bg }) {
 
 function Btn({ children, onClick, variant = "primary", small, disabled, style = {} }) {
   const styles = {
-    primary: { background: COLORS.navy, color: "#fff", border: `1px solid ${COLORS.navy}` },
-    secondary: { background: "#fff", color: COLORS.navy, border: `1px solid ${COLORS.navy}` },
+    // Blue = normal action, red = destructive only (ui/kit.js — tester review 10/1).
+    primary: { background: "#0c4a6e", color: "#fff", border: "1px solid #0c4a6e" },
+    secondary: { background: "#fff", color: "#0c4a6e", border: "1px solid #0c4a6e" },
     ghost: { background: "transparent", color: COLORS.muted, border: `1px solid ${COLORS.border}` },
     danger: { background: COLORS.danger, color: "#fff", border: `1px solid ${COLORS.danger}` },
     gold: { background: COLORS.gold, color: "#fff", border: `1px solid ${COLORS.gold}` },
@@ -887,11 +889,11 @@ function TransactionListView({ transactions, sortKey, sortDir, toggleSort, onSel
               )}
               {tx.assignedAgentId && !tx.needsReview && tx.leadConverted === false && (
                 <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 8 }}>
-                  <span style={{ background: "#FEF9E7", color: "#B7860B", border: "1px solid #F1C40F", borderRadius: 6, padding: "4px 10px", fontSize: 11, fontWeight: 700 }}>
+                  <span style={{ background: "#FEF9E7", color: "#8A5A00", border: "1px solid #F1C40F", borderRadius: 6, padding: "4px 10px", fontSize: 11, fontWeight: 700 }}>
                     🌱 {isBuyerSideType(tx.type) ? "INQUIRY" : "LEAD"} — not yet confirmed
                   </span>
                   {onLeadAction && <button onClick={e => { e.stopPropagation(); onLeadAction(tx.id, "confirm"); }} style={{ background: "#B7860B", color: "#fff", border: "none", borderRadius: 6, padding: "4px 10px", fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>✓ Confirm</button>}
-                  {onLeadAction && <button onClick={e => { e.stopPropagation(); onLeadAction(tx.id, "cancel"); }} style={{ background: "transparent", color: "#B7860B", border: "1px solid #C9A227", borderRadius: 6, padding: "4px 10px", fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>✕ Not Pursuing</button>}
+                  {onLeadAction && <button onClick={e => { e.stopPropagation(); onLeadAction(tx.id, "cancel"); }} style={{ background: "transparent", color: "#8A5A00", border: "1px solid #C9A227", borderRadius: 6, padding: "4px 10px", fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>✕ Not Pursuing</button>}
                 </div>
               )}
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10 }}>
@@ -986,7 +988,7 @@ function TaskRow({ task, onUpdate, onRemind, onRemove }) {
         <select value={task.status} onChange={e => onUpdate({ ...task, status: e.target.value })} style={{ fontSize: 12, padding: "3px 6px", borderRadius: 6, border: `1px solid ${COLORS.border}`, fontFamily: "inherit" }}>
           {Object.keys(TASK_STATUS).map(s => <option key={s}>{s}</option>)}
         </select>
-        {onRemove && <button onClick={() => { if (window.confirm("Delete this task?")) onRemove(task.id); }} style={{ background: "none", border: "none", color: "#CCC", cursor: "pointer", fontSize: 16, padding: "2px 4px", lineHeight: 1 }} title="Delete task">×</button>}
+        {onRemove && <button onClick={async () => { if (await askConfirm("Delete this task?", { okLabel: "Delete", danger: true })) onRemove(task.id); }} style={{ background: "none", border: "none", color: "#CCC", cursor: "pointer", fontSize: 16, padding: "2px 4px", lineHeight: 1 }} title="Delete task">×</button>}
       </div>
     </div>
   );
@@ -1843,7 +1845,7 @@ function SMSPanel({ tx, onUpdate, currentUser, sendOnly = false }) {
                   <button onClick={sendMessage} disabled={!channel || !message.trim() || sending} title={!channel ? "Pick Email or Text first" : ""} style={{ height: 44, minWidth: 70, borderRadius: 8, border: "none", background: "#15803D", color: "#fff", fontWeight: 600, fontSize: 14, cursor: "pointer", fontFamily: "inherit", opacity: (!channel || !message.trim() || sending) ? 0.5 : 1 }}>{sending ? "..." : "Send"}</button>
                 </div>
                 <div style={{ margin: "0 18px 12px", padding: "10px 14px", borderTop: "2px solid #C0392B", background: "#F9FAFB", borderRadius: "0 0 8px 8px", display: "flex", alignItems: "center", gap: 10 }}>
-                    <div style={{ fontSize: 10, color: "#999", textTransform: "uppercase", fontWeight: 700, marginRight: 4 }}>Signature:</div>
+                    <div style={{ fontSize: 10, color: "#666666", textTransform: "uppercase", fontWeight: 700, marginRight: 4 }}>Signature:</div>
                     <div style={{ fontSize: 12, color: "#333", lineHeight: 1.5 }}>
                       <span style={{ fontWeight: 700 }}>{agentFullName || "Your Name"}</span>
                       {companyName ? <span style={{ color: "#C0392B" }}> · {companyName}</span> : <span style={{ color: "#C0392B" }}> · The Liz Team Realty</span>}
@@ -2578,7 +2580,7 @@ function ScheduleClosingModal({ tx, token, milestone, onClose, onDone }) {
         <div style={{ display: "flex", gap: 10, marginTop: 8, flexWrap: "wrap" }}>
           <button onClick={send} disabled={sending}
             style={{ flex: "2 1 220px", padding: "12px 0", borderRadius: 9, border: "none", background: "#1E3A8A", color: "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer" }}>
-            {sending ? "Sending…" : `📨 Send to ${sideLabel} & Mark Done`}
+            {sending ? "Sending…" : `📨 Send to ${sideLabel} & Mark Complete`}
           </button>
           <button onClick={saveOnly} disabled={sending}
             style={{ flex: "1 1 150px", padding: "12px 0", borderRadius: 9, border: "1.5px solid #1E3A8A", background: "#fff", color: "#1E3A8A", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
@@ -2759,7 +2761,7 @@ function MilestonesTab({ tx, token, onSummaryChange, coordinatorMode = false }) 
 
   const [resetting, setResetting] = useState(false);
   const handleReset = async () => {
-    if (!window.confirm("Rebuild this deal's checklist?\n\nThis clears the current items and rebuilds the full start-to-finish timeline for this deal's current stage. Your uploaded documents and parties are NOT touched.")) return;
+    if (!(await askConfirm("Rebuild this deal's checklist?\n\nThis clears the current items and rebuilds the full start-to-finish timeline for this deal's current stage. Your uploaded documents and parties are NOT touched.", { okLabel: "Rebuild checklist", danger: true }))) return;
     setResetting(true);
     try {
       const res = await fetch(API + "/milestones/reset/" + tx.id, {
@@ -2816,7 +2818,7 @@ function MilestonesTab({ tx, token, onSummaryChange, coordinatorMode = false }) 
 
   // Undo an accidental completion — reverts the milestone back to Pending.
   const handleReopen = async (milestoneId) => {
-    if (!window.confirm("Reopen this step? It goes back to pending and reminders resume.")) return;
+    if (!(await askConfirm("Reopen this step? It goes back to pending and reminders resume.", { okLabel: "Reopen step" }))) return;
     setCompleting(milestoneId);
     try {
       const r = await fetch(mBase + milestoneId + "/reopen", {
@@ -2918,7 +2920,7 @@ function MilestonesTab({ tx, token, onSummaryChange, coordinatorMode = false }) 
     waived:    { color: "#92400E", bg: "#FEF3C7", label: "Waived", icon: "⚠️" },
     overdue:   { color: "#C0392B", bg: "#FADBD8", label: "Overdue", icon: "🔴" },
     today:     { color: "#C0392B", bg: "#FADBD8", label: "Due Today", icon: "⚡" },
-    soon:      { color: "#B7770D", bg: "#FEF9E7", label: "Due Soon", icon: "🟡" },
+    soon:      { color: "#8A5A00", bg: "#FEF9E7", label: "Due Soon", icon: "🟡" },
     upcoming:  { color: "#555555", bg: "#F4F4F4", label: "Upcoming", icon: "⏳" },
     pending:   { color: "#555555", bg: "#F4F4F4", label: "Pending", icon: "○" },
   };
@@ -3019,7 +3021,7 @@ function MilestonesTab({ tx, token, onSummaryChange, coordinatorMode = false }) 
         </div>
         {(!tx.openDate && !tx.executedDate) && (
           <div style={{ background: "#FEF9E7", border: "1px solid #F9CA24", borderRadius: 10,
-            padding: 12, marginBottom: 20, fontSize: 13, color: "#B7770D" }}>
+            padding: 12, marginBottom: 20, fontSize: 13, color: "#8A5A00" }}>
             Tip: add a contract date so deadlines and reminders can be calculated. (You can build the list now either way.)
           </div>
         )}
@@ -3149,11 +3151,11 @@ function MilestonesTab({ tx, token, onSummaryChange, coordinatorMode = false }) 
                       {m.name}
                       {m.is_hard_block && !isClosed && tx.constructionType !== "New Construction" && (
                         <span style={{ marginLeft: 8, fontSize: 10, fontWeight: 700,
-                          color: "#C0392B", background: "#FADBD8",
+                          color: "#0c4a6e", background: "#E0F2FE",
                           padding: "2px 7px", borderRadius: 20 }}>REQUIRED</span>
                       )}
                     </div>
-                    <div style={{ fontSize: 11, color: "#777", marginBottom: 2 }}>
+                    <div style={{ fontSize: 11, color: "#666666", marginBottom: 2 }}>
                       {m.category}{m.owner_role && OWNER_LABELS[m.owner_role] ? " · 👤 " + OWNER_LABELS[m.owner_role] : ""}
                     </div>
                     {!isClosed && milestoneHelpText(m.name) && (
@@ -3176,7 +3178,7 @@ function MilestonesTab({ tx, token, onSummaryChange, coordinatorMode = false }) 
                       <div style={{ fontSize: 12, color: "#0e7490", marginTop: 2 }}>🔑 {m.notes}</div>
                     )}
                     {m.requires_document && !m.document_uploaded && !isClosed && m.status !== "Waived" && (
-                      <div style={{ fontSize: 11, color: "#B7770D", marginTop: 2 }}>📎 Document required</div>
+                      <div style={{ fontSize: 11, color: "#8A5A00", marginTop: 2 }}>📎 Document required</div>
                     )}
                     {isCompleted && m.completed_by_name && (
                       <div style={{ fontSize: 11, color: "#555", marginTop: 2 }}>by {m.completed_by_name}</div>
@@ -3189,30 +3191,30 @@ function MilestonesTab({ tx, token, onSummaryChange, coordinatorMode = false }) 
                   </div>
                 </div>
                 {compliance[m.id]?.documentRequired && !isClosed && compliance[m.id]?.status !== "Waived" && (
-                  <div style={{ background: "#FFFBEB", border: "1px solid #FCD34D", borderRadius: 8, padding: 12, marginTop: 10, fontSize: 12, lineHeight: 1.5 }}>
-                    <div style={{ fontWeight: 700, color: "#92400E", marginBottom: 4, fontSize: 13 }}>
-                      📎 Required: {compliance[m.id].requiredDocType}
+                  <div style={{ background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 8, padding: 12, marginTop: 10, fontSize: 12.5, lineHeight: 1.5 }}>
+                    <div style={{ fontWeight: 700, color: "#1F2937", marginBottom: 4, fontSize: 13 }}>
+                      📎 Document needed: {compliance[m.id].requiredDocType}
                     </div>
-                    <div style={{ color: "#78350F", marginBottom: compliance[m.id].legalConsequence ? 8 : 0 }}>
+                    <div style={{ color: "#374151", marginBottom: compliance[m.id].legalConsequence ? 8 : 0 }}>
                       {compliance[m.id].description}
                     </div>
                     {compliance[m.id].legalConsequence && (
-                      <div style={{ borderTop: "1px solid #FCD34D", paddingTop: 8, marginTop: 4 }}>
-                        <div style={{ fontWeight: 700, color: "#92400E", fontSize: 11, letterSpacing: 0.5, marginBottom: 2 }}>
-                          ⚠️ WHY THIS MATTERS
+                      <div style={{ borderTop: "1px solid #E2E8F0", paddingTop: 8, marginTop: 4 }}>
+                        <div style={{ fontWeight: 700, color: "#4B5563", fontSize: 11, letterSpacing: 0.5, marginBottom: 2 }}>
+                          WHY THIS MATTERS
                         </div>
-                        <div style={{ color: "#78350F", fontSize: 12 }}>
+                        <div style={{ color: "#374151", fontSize: 12 }}>
                           {compliance[m.id].legalConsequence}
                         </div>
                         {compliance[m.id].statuteReference && (
-                          <div style={{ color: "#92400E", fontSize: 10, fontStyle: "italic", marginTop: 3 }}>
+                          <div style={{ color: "#4B5563", fontSize: 11, fontStyle: "italic", marginTop: 3 }}>
                             Reference: {compliance[m.id].statuteReference}
                           </div>
                         )}
                       </div>
                     )}
                     {compliance[m.id].isConditional && compliance[m.id].conditionalLogic && (
-                      <div style={{ borderTop: "1px solid #FCD34D", paddingTop: 8, marginTop: 8, color: "#78350F", fontSize: 11, fontStyle: "italic" }}>
+                      <div style={{ borderTop: "1px solid #E2E8F0", paddingTop: 8, marginTop: 8, color: "#4B5563", fontSize: 11.5, fontStyle: "italic" }}>
                         Only applies if: {compliance[m.id].conditionalLogic}
                       </div>
                     )}
@@ -3224,8 +3226,8 @@ function MilestonesTab({ tx, token, onSummaryChange, coordinatorMode = false }) 
                       <select value="" disabled={uploadingFor === m.id}
                         onChange={e => assignExistingToMilestone(m.id, e.target.value)}
                         title="Attach a file already on this deal"
-                        style={{ flex: "1 1 160px", padding: "9px 10px", borderRadius: 8, border: "1.5px solid #C0392B",
-                          fontSize: 13, fontFamily: "inherit", background: "#fff", color: "#C0392B", fontWeight: 600, cursor: "pointer" }}>
+                        style={{ flex: "1 1 160px", padding: "9px 10px", borderRadius: 8, border: "1.5px solid #0c4a6e",
+                          fontSize: 13, fontFamily: "inherit", background: "#fff", color: "#0c4a6e", fontWeight: 600, cursor: "pointer" }}>
                         <option value="">📄 Use existing document…</option>
                         {availableDocs.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
                       </select>
@@ -3244,7 +3246,7 @@ function MilestonesTab({ tx, token, onSummaryChange, coordinatorMode = false }) 
                         background: "#fff", color: "#555", fontWeight: 600, fontSize: 12, cursor: "pointer" }}>
                       {completing === m.id ? "..." : "↩ Reopen (undo)"}
                     </button>
-                    <span style={{ fontSize: 11, color: "#999", marginLeft: 8 }}>Clicked done by mistake? Put it back.</span>
+                    <span style={{ fontSize: 11, color: "#666666", marginLeft: 8 }}>Clicked done by mistake? Put it back.</span>
                   </div>
                 )}
                 {!isClosed && launchLocked && (
@@ -3268,9 +3270,9 @@ function MilestonesTab({ tx, token, onSummaryChange, coordinatorMode = false }) 
                     </div>
                     <button onClick={() => coordinatorMode ? alert("Waiving a required document is the agent's decision. Mark the milestone done if you have what you need, or ask the agent to waive it.") : setWaiveModalFor(m)}
                       style={{ flex: "1 1 90px", padding: "9px 0", borderRadius: 8,
-                        border: "1.5px solid #E5B14A", background: "#FFFBEB",
-                        color: "#92400E", fontWeight: 600, fontSize: 12, cursor: "pointer" }}>
-                      ⚠️ Waive — N/A
+                        border: "1.5px solid #D1D5DB", background: "#fff",
+                        color: "#1F2937", fontWeight: 600, fontSize: 12.5, cursor: "pointer" }}>
+                      Waive (N/A)
                     </button>
                   </div>
                 )}
@@ -3302,17 +3304,17 @@ function MilestonesTab({ tx, token, onSummaryChange, coordinatorMode = false }) 
                     )}
                     <button onClick={() => handleSchedule(m.id, dVal, tVal, isInspection ? aVal : null)} disabled={completing === m.id || !dVal}
                       style={{ flex: "2 1 220px", padding: "10px 0", borderRadius: 8, border: "none",
-                        background: dVal ? "#1E8449" : "#9CA3AF", color: "#fff", fontWeight: 700, fontSize: 13, cursor: dVal ? "pointer" : "not-allowed" }}>
-                      {completing === m.id ? "Saving..." : "✓ Confirm Date" + (scheduleSpec.time ? " & Time" : "") + " & Mark Done"}
+                        background: dVal ? "#0c4a6e" : "#9CA3AF", color: "#fff", fontWeight: 700, fontSize: 13, cursor: dVal ? "pointer" : "not-allowed" }}>
+                      {completing === m.id ? "Saving..." : "✓ Confirm Date" + (scheduleSpec.time ? " & Time" : "") + " & Mark Complete"}
                     </button>
                     <div style={{ flex: "1 1 100%", fontSize: 11, color: "#555", marginTop: 2 }}>
                       Enter the date{scheduleSpec.time ? " and time" : ""} the responsible party gave you. It's recorded on the deal so you can follow up, and reminders anchor to it.
                     </div>
                     <button onClick={() => coordinatorMode ? alert("Waiving a required document is the agent's decision. Mark the milestone done if you have what you need, or ask the agent to waive it.") : setWaiveModalFor(m)}
                       style={{ flex: "1 1 90px", padding: "9px 0", borderRadius: 8,
-                        border: "1.5px solid #E5B14A", background: "#FFFBEB",
-                        color: "#92400E", fontWeight: 600, fontSize: 12, cursor: "pointer" }}>
-                      ⚠️ Waive — N/A
+                        border: "1.5px solid #D1D5DB", background: "#fff",
+                        color: "#1F2937", fontWeight: 600, fontSize: 12.5, cursor: "pointer" }}>
+                      Waive (N/A)
                     </button>
                   </div>
                   );
@@ -3323,40 +3325,40 @@ function MilestonesTab({ tx, token, onSummaryChange, coordinatorMode = false }) 
                       <>
                         <button onClick={() => handleUploadClick(m.id)} disabled={uploadingFor === m.id}
                           style={{ flex: "2 1 200px", padding: "10px 0", borderRadius: 8, border: "none",
-                            background: "#C0392B", color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
+                            background: "#0c4a6e", color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
                           {uploadingFor === m.id ? "Uploading..." : "📎 Upload Document & Complete"}
                         </button>
                         {availableDocs.length > 0 && (
                           <select value="" disabled={uploadingFor === m.id}
                             onChange={e => assignExistingToMilestone(m.id, e.target.value)}
                             title="Attach a file already on this deal"
-                            style={{ flex: "1 1 160px", padding: "9px 10px", borderRadius: 8, border: "1.5px solid #C0392B",
-                              fontSize: 13, fontFamily: "inherit", background: "#fff", color: "#C0392B", fontWeight: 600, cursor: "pointer" }}>
+                            style={{ flex: "1 1 160px", padding: "9px 10px", borderRadius: 8, border: "1.5px solid #0c4a6e",
+                              fontSize: 13, fontFamily: "inherit", background: "#fff", color: "#0c4a6e", fontWeight: 600, cursor: "pointer" }}>
                             <option value="">📄 Use existing document…</option>
                             {availableDocs.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
                           </select>
                         )}
                         <button onClick={() => handleComplete(m.id)} disabled={completing === m.id}
-                          style={{ flex: "1 1 130px", padding: "10px 0", borderRadius: 8, border: "1.5px solid #1E8449",
-                            background: "#fff", color: "#1E8449", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
-                          {completing === m.id ? "Saving..." : "✓ Mark Done"}
+                          style={{ flex: "1 1 130px", padding: "10px 0", borderRadius: 8, border: "1.5px solid #0c4a6e",
+                            background: "#fff", color: "#0c4a6e", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
+                          {completing === m.id ? "Saving..." : "✓ Mark Complete"}
                         </button>
-                        <div style={{ flex: "1 1 100%", fontSize: 11, color: "#92400E", textAlign: "center", marginTop: 2 }}>
+                        <div style={{ flex: "1 1 100%", fontSize: 12, color: "#4B5563", textAlign: "center", marginTop: 2 }}>
                           📎 Already uploaded it? Pick "Use existing document" to file it here — no need to upload twice.
                         </div>
                       </>
                     ) : (
                       <button onClick={() => handleComplete(m.id)} disabled={completing === m.id}
                         style={{ flex: 2, padding: "9px 0", borderRadius: 8, border: "none",
-                          background: "#C0392B", color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
-                        {completing === m.id ? "Saving..." : "Mark Complete"}
+                          background: "#0c4a6e", color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
+                        {completing === m.id ? "Saving..." : "✓ Mark Complete"}
                       </button>
                     )}
                     <button onClick={() => coordinatorMode ? alert("Waiving a required document is the agent's decision. Mark the milestone done if you have what you need, or ask the agent to waive it.") : setWaiveModalFor(m)}
                       style={{ flex: 1, padding: "9px 0", borderRadius: 8,
-                        border: "1.5px solid #E5B14A", background: "#FFFBEB",
-                        color: "#92400E", fontWeight: 600, fontSize: 12, cursor: "pointer" }}>
-                      ⚠️ Waive — N/A
+                        border: "1.5px solid #D1D5DB", background: "#fff",
+                        color: "#1F2937", fontWeight: 600, fontSize: 12.5, cursor: "pointer" }}>
+                      Waive (N/A)
                     </button>
                   </div>
                 )}
@@ -3527,7 +3529,7 @@ function BuyerIntakeChecklist({ tx, token, onContactLogged }) {
                   {!isDone && <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 6, lineHeight: 1.5 }}><strong style={{ color: "#92400e" }}>Why:</strong> {step.why}</div>}
                   {!isDone && <div style={{ fontSize: 13, color: "#1a2332", marginBottom: 10, background: "#f9fafb", padding: "6px 10px", borderRadius: 6 }}>📌 {step.action}</div>}
                   <button onClick={() => toggleStep(step.num)} disabled={isUpdating} style={{ background: isDone ? "white" : "#1e8449", color: isDone ? "#6b7280" : "white", border: isDone ? "1px solid #d1d5db" : "none", borderRadius: 6, padding: "6px 14px", fontSize: 12, fontWeight: 600, cursor: isUpdating ? "wait" : "pointer", fontFamily: "inherit", opacity: isUpdating ? 0.7 : 1 }}>
-                    {isUpdating ? "..." : (isDone ? "↺ Undo" : "✓ Mark Done")}
+                    {isUpdating ? "..." : (isDone ? "↺ Undo" : "✓ Mark Complete")}
                   </button>
                 </div>
               </div>
@@ -3584,7 +3586,7 @@ function ContractReviewChecklist({ tx, token, onCleared, setActiveTab, openEditT
     }
     warning += "\n─── CONFIRM ───\nClick OK only if every party email is correct AND every transaction field is filled in. This action cannot be undone — once sent, recipients have the email.";
 
-    if (!window.confirm(warning)) return;
+    if (!(await askConfirm(warning, { okLabel: "Send welcome emails" }))) return;
     setSendingEmails(true);
     try {
       const r = await fetch("https://liz-team-server-api-production.up.railway.app/transactions/" + tx.id + "/send-welcome-emails", {
@@ -3814,7 +3816,7 @@ function AssignAgentModal({ tx, token, onClose, onAssigned, currentUser }) {
           <div style={{ marginBottom: 20 }}>
             <div style={{ fontSize: 12, fontWeight: 700, color: "#6b7280", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 8 }}>SELECT AGENT</div>
             {loading ? (
-              <div style={{ fontSize: 13, color: "#9ca3af", padding: 12 }}>Loading agents at your brokerage…</div>
+              <div style={{ fontSize: 13, color: "#5F6B7A", padding: 12 }}>Loading agents at your brokerage…</div>
             ) : (
               <select value={selectedAgentId} onChange={e => setSelectedAgentId(e.target.value)}
                 style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: "1.5px solid #d1d5db", fontSize: 14, fontFamily: "inherit", background: "#fff", boxSizing: "border-box" }}>
@@ -3940,6 +3942,71 @@ function NotesField({ value, onChange }) {
 
 // Notes section on the Overview tab: an "Add Note" composer that prepends a
 // dated note on top, leaving any auto-captured intake notes intact below.
+// Notes are ONE text column: entries "[Oct 1, 2026, 9:05 PM] text" joined by a
+// blank line, newest first (POST /deal-note prepends). Shown as one card per
+// entry with Edit / Delete (tester review); saving rebuilds the column and goes
+// through the same PATCH /notes-text as the whole-block editor. Text typed
+// without a stamp (older notes) stays together as one "Earlier notes" card.
+const NOTE_STAMP_RE = /^\[([A-Z][a-z]{2} \d{1,2}, \d{4},?\s\d{1,2}:\d{2}\s?[AP]M)\] ?/;
+function parseNoteEntries(text) {
+  const out = []; let cur = null; const lead = [];
+  String(text || "").split("\n").forEach(line => {
+    const m = NOTE_STAMP_RE.exec(line);
+    if (m) { if (cur) out.push(cur); cur = { stamp: m[1], lines: [line.slice(m[0].length)] }; }
+    else if (cur) cur.lines.push(line);
+    else lead.push(line);
+  });
+  if (cur) out.push(cur);
+  const entries = out.map(e => ({ stamp: e.stamp, body: e.lines.join("\n").trim() }));
+  const leadText = lead.join("\n").trim();
+  return leadText ? [{ stamp: null, body: leadText }, ...entries] : entries;
+}
+function serializeNoteEntries(entries) {
+  return entries.filter(e => e.body.trim()).map(e => (e.stamp ? `[${e.stamp}] ${e.body.trim()}` : e.body.trim())).join("\n\n");
+}
+function NoteEntries({ text, onSave }) {
+  const entries = parseNoteEntries(text);
+  const [editIdx, setEditIdx] = useState(null);
+  const [editVal, setEditVal] = useState("");
+  if (!entries.length) return <div style={{ fontSize: 13, color: COLORS.muted, padding: "8px 2px" }}>No notes yet.</div>;
+  const saveEdit = (i) => {
+    const next = entries.map((e, j) => (j === i ? { ...e, body: editVal } : e));
+    onSave(serializeNoteEntries(next));
+    setEditIdx(null);
+  };
+  const remove = async (i) => {
+    if (!(await askConfirm("Delete this note? This can't be undone.", { okLabel: "Delete", danger: true }))) return;
+    onSave(serializeNoteEntries(entries.filter((_, j) => j !== i)));
+    if (editIdx === i) setEditIdx(null);
+  };
+  const linkBtn = (color) => ({ background: "none", border: "none", color, fontSize: 12.5, fontWeight: 700, cursor: "pointer", padding: "2px 4px", fontFamily: "inherit" });
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+      {entries.map((e, i) => (
+        <div key={i + ":" + (e.stamp || "lead")} style={{ border: `1px solid ${COLORS.border}`, borderRadius: 10, padding: "10px 12px", background: "#fff" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+            <span style={{ fontSize: 12, fontWeight: 700, color: COLORS.muted, flex: 1 }}>{e.stamp || "Earlier notes"}</span>
+            {editIdx !== i && <button onClick={() => { setEditIdx(i); setEditVal(e.body); }} style={linkBtn("#0c4a6e")}>Edit</button>}
+            {editIdx !== i && <button onClick={() => remove(i)} style={linkBtn("#B91C1C")}>Delete</button>}
+          </div>
+          {editIdx === i ? (
+            <div>
+              <textarea value={editVal} onChange={ev => setEditVal(ev.target.value)} rows={Math.min(10, Math.max(3, editVal.split("\n").length + 1))} aria-label="Edit note"
+                style={{ width: "100%", boxSizing: "border-box", border: `1px solid ${COLORS.border}`, borderRadius: 8, padding: "8px 10px", fontFamily: "inherit", fontSize: 14, resize: "vertical" }} />
+              <div style={{ display: "flex", gap: 8, marginTop: 6 }}>
+                <Btn small onClick={() => saveEdit(i)} disabled={!editVal.trim()}>Save</Btn>
+                <Btn small variant="ghost" onClick={() => setEditIdx(null)}>Cancel</Btn>
+              </div>
+            </div>
+          ) : (
+            <div style={{ fontSize: 14, color: COLORS.text, lineHeight: 1.55, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>{e.body}</div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function NotesSection({ txId, value, onChange }) {
   const [draft, setDraft] = useState("");
   const [saving, setSaving] = useState(false);
@@ -3949,6 +4016,7 @@ function NotesSection({ txId, value, onChange }) {
   // raced, failed, and stacked up "Save failed" alerts behind each other.
   const [text, setText] = useState(value || "");
   const [editState, setEditState] = useState("");   // "", "saving", "saved", "error"
+  const [showRaw, setShowRaw] = useState(false);     // whole-block editor (old view) vs. one card per note
   const dirty = useRef(false);
   const timer = useRef(null);
 
@@ -4024,7 +4092,13 @@ function NotesSection({ txId, value, onChange }) {
         />
         <Btn onClick={addNote} small disabled={saving}>{saving ? "Saving…" : "+ Add Note"}</Btn>
       </div>
-      <NotesField value={text} onChange={onTextChange} />
+      {showRaw
+        ? <NotesField value={text} onChange={onTextChange} />
+        : <NoteEntries text={text} onSave={(next) => { setText(next); dirty.current = true; saveText(next); }} />}
+      <button onClick={() => setShowRaw(v => !v)}
+        style={{ background: "none", border: "none", color: "#0c4a6e", textDecoration: "underline", fontSize: 12.5, fontWeight: 600, cursor: "pointer", padding: "6px 0 0", fontFamily: "inherit" }}>
+        {showRaw ? "Show notes as a list" : "Edit all notes as one block of text"}
+      </button>
       <div style={{ minHeight: 16, fontSize: 11.5, marginTop: 4, color: editState === "error" ? "#B91C1C" : COLORS.muted }}>
         {editState === "saving" && "Saving…"}
         {editState === "saved" && "Saved ✓"}
@@ -4235,7 +4309,7 @@ export function WelcomeEmailPreview({ txId, onClose, onlyPartyId = null }) {
   };
 
   const sendAll = async () => {
-    if (!window.confirm(`Send all ${previews.length} welcome email(s) now?`)) return;
+    if (!(await askConfirm(`Send all ${previews.length} welcome email(s) now?`, { okLabel: "Send all" }))) return;
     setBusy(true);
     try {
       const r = await fetch(`${API}/transactions/${txId}/send-welcome-emails`, { method: "POST", headers: { ...hdrs, "Content-Type": "application/json" }, body: JSON.stringify({ excludeDocIds: excludeList(), extraDocIds: Object.keys(extraDocs) }) });
@@ -4465,7 +4539,7 @@ function ListingOffers({ txId, txStatus, txAddress, refreshKey, onReview, onRece
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [busyServer, txId]);
   const withdraw = async (c) => {
-    if (!window.confirm(c.status === "sent" ? "Withdraw this counter? Let the buyer's agent know — the app doesn't email them about it." : "Delete this unsent counter?")) return;
+    if (!(await askConfirm(c.status === "sent" ? "Withdraw this counter? Let the buyer's agent know — the app doesn't email them about it." : "Delete this unsent counter?", { okLabel: c.status === "sent" ? "Withdraw counter" : "Delete", danger: true }))) return;
     try {
       const r = await fetch(`${API}/offer-counters/${c.id}/withdraw`, { method: "POST", headers: hdrs });
       if (!r.ok) throw new Error((await r.json()).error || "Failed");
@@ -4543,7 +4617,7 @@ function ListingOffers({ txId, txStatus, txAddress, refreshKey, onReview, onRece
   };
 
   const reject = async (id) => {
-    if (!window.confirm("Reject this offer? This does not change the listing.")) return;
+    if (!(await askConfirm("Reject this offer? This does not change the listing.", { okLabel: "Reject offer", danger: true }))) return;
     try {
       const r = await fetch(`${API}/contracts/uploads/${id}/reject`, { method: "POST", headers: hdrs });
       const d = await r.json();
@@ -4749,7 +4823,7 @@ function ActiveFollowups({ txId }) {
   useEffect(() => { load(); }, [txId]);
 
   const stop = async (chase) => {
-    if (!window.confirm(`Stop the automated follow-up for "${chase.label}" to ${chase.target_party_name || "this party"}?\n\nNo more reminder emails or texts will be sent for it.`)) return;
+    if (!(await askConfirm(`Stop the automated follow-up for "${chase.label}" to ${chase.target_party_name || "this party"}?\n\nNo more reminder emails or texts will be sent for it.`, { okLabel: "Stop follow-up" }))) return;
     setStopping(chase.id);
     try {
       const res = await fetch(API + "/chases/" + chase.id + "/stop", {
@@ -4835,7 +4909,7 @@ function MarketingLogPanel({ tx }) {
     setAdding(false);
   };
   const remove = async (id) => {
-    if (!window.confirm("Remove this marketing entry? The seller will no longer see it.")) return;
+    if (!(await askConfirm("Remove this marketing entry? The seller will no longer see it.", { okLabel: "Remove", danger: true }))) return;
     try {
       const res = await fetch(API + "/transactions/" + tx.id + "/marketing/" + id, { method: "DELETE", headers: hdrs });
       const d = await res.json();
@@ -5346,7 +5420,7 @@ function DealDoctorSendModal({ tx, draft, onClose, onSent }) {
         <div style={{ padding: 18, maxHeight: "75vh", overflowY: "auto" }}>
           <div style={{ marginBottom: 14 }}>
             <span style={label}>To</span>
-            {parties.length === 0 && <div style={{ fontSize: 13, color: "#94A3B8" }}>No parties with contact info on this deal yet.</div>}
+            {parties.length === 0 && <div style={{ fontSize: 13, color: "#5F6B7A" }}>No parties with contact info on this deal yet.</div>}
             <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
               {parties.map((p, i) => {
                 const key = p.id || i; const on = !!picked[key];
@@ -5365,7 +5439,7 @@ function DealDoctorSendModal({ tx, draft, onClose, onSent }) {
             </div>
             {extraEmails.length > 0 && (
               <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
-                {extraEmails.map(e => <span key={e} style={{ background: "#EEF2F7", borderRadius: 999, padding: "4px 10px", fontSize: 12 }}>{e} <span onClick={() => setExtraEmails(l => l.filter(x => x !== e))} style={{ cursor: "pointer", color: "#94A3B8", marginLeft: 4 }}>×</span></span>)}
+                {extraEmails.map(e => <span key={e} style={{ background: "#EEF2F7", borderRadius: 999, padding: "4px 10px", fontSize: 12 }}>{e} <span onClick={() => setExtraEmails(l => l.filter(x => x !== e))} style={{ cursor: "pointer", color: "#5F6B7A", marginLeft: 4 }}>×</span></span>)}
               </div>
             )}
           </div>
@@ -5391,7 +5465,7 @@ function DealDoctorSendModal({ tx, draft, onClose, onSent }) {
                   );
                 })}
                 {docs.length > 30 && (
-                  <span style={{ fontSize: 12, color: "#94A3B8", fontStyle: "italic", alignSelf: "center" }}>
+                  <span style={{ fontSize: 12, color: "#5F6B7A", fontStyle: "italic", alignSelf: "center" }}>
                     …and {docs.length - 30} more in the Documents tab (showing the 30 newest)
                   </span>
                 )}
@@ -5577,7 +5651,7 @@ function DealDoctorPanel({ tx }) {
                 style={{ background: "#fff", color: "#475569", border: "1px solid #CBD5E1", borderRadius: 8, padding: "7px 14px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
                 😴 Not today
               </button>
-              {ago && <span style={{ fontSize: 11, color: "#94A3B8", marginLeft: "auto" }}>Checked {ago}</span>}
+              {ago && <span style={{ fontSize: 11, color: "#5F6B7A", marginLeft: "auto" }}>Checked {ago}</span>}
             </div>
             {snoozeOpen && (
               <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginTop: 8 }}>
@@ -5618,7 +5692,7 @@ function CoordinatorTeamModal({ currentUser, onClose }) {
     setBusy(false);
   };
   const remove = async (m) => {
-    if (!window.confirm(`Remove ${m.first_name || m.email} from your team? Any deals assigned to them go back to you.`)) return;
+    if (!(await askConfirm(`Remove ${m.first_name || m.email} from your team? Any deals assigned to them go back to you.`, { okLabel: "Remove", danger: true }))) return;
     try { const r = await fetch(`${_tcApi}/tc/team/${m.id}`, { method: "DELETE", headers: _tcHdrs2() }); const d = await r.json(); if (!r.ok) throw new Error(d.error || "Failed"); await load(); }
     catch (e) { alert("⚠️ " + e.message); }
   };
@@ -6806,14 +6880,17 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
             return;
           }
           if (["Closed","On Hold","Cancelled"].includes(tx.status) && newStatus === "Active") {
-            const confirmed = window.confirm("Change back to Active?\n\nAll contract task due dates will be cleared and tasks reset to Pending.");
-            if (!confirmed) { e.target.value = tx.status; return; }
-            const clearedTasks = tx.tasks.map(t => {
-              const tmpl = (FLORIDA_TASK_TEMPLATES[tx.type] || []).find(tmp => tmp.name === t.name);
-              if (tmpl && tmpl.phase === "contract") return { ...t, dueDate: null, status: "Pending" };
-              return t;
-            });
-            update({ status: newStatus, tasks: clearedTasks, closingDate: null, executedDate: null, contractPrice: null, commissionListing: null, commissionBuyer: null, transactionFee: null, brokerageSplit: null, officeFlatFee: null, commissionNotes: null });
+            e.target.value = tx.status;   // nothing changes until they say OK in the box
+            (async () => {
+              const confirmed = await askConfirm("Change back to Active?\n\nAll contract task due dates will be cleared and tasks reset to Pending.", { okLabel: "Change to Active" });
+              if (!confirmed) return;
+              const clearedTasks = tx.tasks.map(t => {
+                const tmpl = (FLORIDA_TASK_TEMPLATES[tx.type] || []).find(tmp => tmp.name === t.name);
+                if (tmpl && tmpl.phase === "contract") return { ...t, dueDate: null, status: "Pending" };
+                return t;
+              });
+              update({ status: newStatus, tasks: clearedTasks, closingDate: null, executedDate: null, contractPrice: null, commissionListing: null, commissionBuyer: null, transactionFee: null, brokerageSplit: null, officeFlatFee: null, commissionNotes: null });
+            })();
             return;
           }
           setStatusChangeModal({ newStatus, form: { executedDate: tx.executedDate || "", closingDate: tx.closingDate || "", inspectionDays: "10", note: "" } });
@@ -6827,17 +6904,17 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
             <option value="__fell_through" style={{ color: "#B91C1C", background: "#fff", fontWeight: 700 }}>💔 Contract fell through…</option>
           )}
         </select>
-        {/* ONE green action per side; Edit; everything else under ⋯ */}
+        {/* ONE main action per side (white on the dark header — green is reserved for "done"); Edit; everything else under ⋯ */}
         {!isGuest && tx.type === "Buyer Representation" && !["Closed", "Cancelled"].includes(tx.status) && (
-          <button onClick={() => { setActiveTab("offers"); setOfferCreateSignal(n => n + 1); }} title="Build and send your buyer's offer to the listing agent" style={{ fontSize: 12, padding: "6px 14px", borderRadius: 6, border: "none", background: "#1E8449", color: "#fff", fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>📝 Create Offer</button>
+          <button onClick={() => { setActiveTab("offers"); setOfferCreateSignal(n => n + 1); }} title="Build and send your buyer's offer to the listing agent" style={{ fontSize: 12, padding: "6px 14px", borderRadius: 6, border: "none", background: "#fff", color: "#0c4a6e", fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>📝 Create Offer</button>
         )}
         {tx.type !== "Buyer Representation" && !isLeaseType(tx.type) && !["Closed", "Cancelled"].includes(tx.status) && (
-          <button onClick={() => isGuest ? setPaywallFeature("Receiving offers") : (setActiveTab("overview"), setShowReceiveOffer(true))} style={{ fontSize: 12, padding: "6px 14px", borderRadius: 6, border: "none", background: "#1E8449", color: "#fff", fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>📥 Receive Offer</button>
+          <button onClick={() => isGuest ? setPaywallFeature("Receiving offers") : (setActiveTab("overview"), setShowReceiveOffer(true))} style={{ fontSize: 12, padding: "6px 14px", borderRadius: 6, border: "none", background: "#fff", color: "#0c4a6e", fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>📥 Receive Offer</button>
         )}
         {/* Lease deals: the ONE green action is the lease package (ERL, lease,
             disclosures — filled + sent for signatures in one flow). */}
         {!isGuest && isLeaseType(tx.type) && !["Closed", "Cancelled"].includes(tx.status) && (
-          <button onClick={() => setShowLeaseDocs(true)} title="Fill the lease listing forms (ERL, lease, flood, lead-paint) and send them for signatures" style={{ fontSize: 12, padding: "6px 14px", borderRadius: 6, border: "none", background: "#1E8449", color: "#fff", fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>📦 Lease Package</button>
+          <button onClick={() => setShowLeaseDocs(true)} title="Fill the lease listing forms (ERL, lease, flood, lead-paint) and send them for signatures" style={{ fontSize: 12, padding: "6px 14px", borderRadius: 6, border: "none", background: "#fff", color: "#0c4a6e", fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>📦 Lease Package</button>
         )}
         <button onClick={() => isGuest ? setPaywallFeature("Editing a transaction") : openEditTx()} style={{ fontSize: 12, padding: "6px 14px", borderRadius: 6, border: "1px solid rgba(255,255,255,0.35)", background: "rgba(255,255,255,0.12)", color: "#fff", fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>✏️ Edit</button>
         <div style={{ position: "relative" }}>
@@ -6853,8 +6930,8 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
                   { icon: "🧬", label: "Copy this deal (duplicate)", fn: () => isGuest ? setPaywallFeature("Duplicating a transaction") : (onDuplicate && onDuplicate(tx)) },
                   !isGuest && { icon: "💔", label: "Past contracts (archives)", fn: () => setShowPastContracts(true) },
                   { divider: true },
-                  !isGuest && !["Closed", "Cancelled"].includes(tx.status) && { icon: "💔", label: "Contract fell through…", danger: true, fn: () => setShowFallThrough(true) },
-                  tx.status !== "Cancelled" && { icon: "🚫", label: "Cancel this deal…", danger: true, fn: () => isGuest ? setPaywallFeature("Cancelling a transaction") : (((window.prompt(`Cancel "${tx.address || "this transaction"}"? It will be HIDDEN from your dashboard (not deleted). Type CANCEL to confirm.`) || "").trim().toUpperCase() === "CANCEL") && update({ status: "Cancelled" })) },
+                  /* "Contract fell through…" lives in ONE place: the status dropdown (tester review). */
+                  tx.status !== "Cancelled" && { icon: "🚫", label: "Cancel this deal…", danger: true, fn: () => isGuest ? setPaywallFeature("Cancelling a transaction") : (async () => { if (((await askText(`Cancel "${tx.address || "this transaction"}"? It will be HIDDEN from your dashboard (not deleted). Type CANCEL to confirm.`, "", { okLabel: "Cancel this deal", placeholder: "Type CANCEL" })) || "").trim().toUpperCase() === "CANCEL") update({ status: "Cancelled" }); })() },
                   tx.status === "Cancelled" && { icon: "♻️", label: "Restore this deal", fn: () => isGuest ? setPaywallFeature("Restoring a transaction") : update({ status: "Active" }) },
                 ].filter(Boolean).map((it, i) => it.divider ? (
                   <div key={i} style={{ height: 1, background: "#e5e7eb", margin: "6px 8px" }} />
@@ -6906,7 +6983,7 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
           {onDeleteSample && (
             <button
               onClick={async () => {
-                if (!window.confirm("Delete the sample deal?\n\nIt's only a demo — you can create it again any time from Win The Day.")) return;
+                if (!(await askConfirm("Delete the sample deal?\n\nIt's only a demo — you can create it again any time from Win The Day.", { okLabel: "Delete", danger: true }))) return;
                 try { await onDeleteSample(); } catch (e) { alert(e.message || "Could not delete the sample deal."); }
               }}
               style={{ flexShrink: 0, background: "#fff", color: "#78350F", border: "1px solid #F59E0B", borderRadius: 8, padding: "7px 14px", fontSize: 12.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
@@ -7014,7 +7091,7 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
                     </button>
                     <button
                       onClick={async () => {
-                        if ((window.prompt("Mark this lead as Not Pursuing? It will be set to Cancelled and removed from your active list (you can reactivate it later). Type CANCEL to confirm.") || "").trim().toUpperCase() !== "CANCEL") return;
+                        if (((await askText("Mark this lead as Not Pursuing? It will be set to Cancelled and removed from your active list (you can reactivate it later). Type CANCEL to confirm.", "", { okLabel: "Not pursuing", placeholder: "Type CANCEL" })) || "").trim().toUpperCase() !== "CANCEL") return;
                         try {
                           const res = await fetch(`${API}/transactions/${tx.id}/status`, { method: "PATCH", headers: { "Content-Type": "application/json", "Authorization": "Bearer " + (localStorage.getItem("tp_token") || "") }, body: JSON.stringify({ status: "Cancelled" }) });
                           if (!res.ok) throw new Error("Failed");
@@ -7283,11 +7360,11 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
               <div style={{ fontSize: 13, color: COLORS.muted }}>{completedTasks}/{tx.tasks.length} complete {overdueTasks > 0 && <span style={{ color: COLORS.danger }}>· {overdueTasks} overdue</span>}</div>
               <Btn onClick={() => setShowAddTask(true)} small>+ Add Task</Btn>
               {tx.tasks.length > 0 && (
-                <Btn onClick={() => { if (window.confirm("Delete all tasks? This cannot be undone.")) update({ tasks: [] }); }} small variant="secondary">🗑 Clear All</Btn>
+                <Btn onClick={async () => { if (await askConfirm("Delete all tasks? This cannot be undone.", { okLabel: "Delete all", danger: true })) update({ tasks: [] }); }} small variant="secondary">🗑 Clear All</Btn>
               )}
               {tx.tasks.length === 0 && (
-                <Btn onClick={() => {
-                  if (window.confirm("Generate Florida task checklist for this transaction? This will add all standard FL tasks.")) {
+                <Btn onClick={async () => {
+                  if (await askConfirm("Generate Florida task checklist for this transaction? This will add all standard FL tasks.", { okLabel: "Generate checklist" })) {
                     const templates = FLORIDA_TASK_TEMPLATES[tx.type] || [];
                     const contractDate = tx.executedDate || tx.openDate;
                     const currentPhase = tx.status === "Closed" ? ["active", "contract", "closing"] :
@@ -7375,7 +7452,7 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
               const members = tx.parties.filter(p => p.role === role && !p.isVendor && !p.is_vendor && !(isCoordinator && (p.email || "").toLowerCase() === (currentUser?.email || "").toLowerCase()));
               if (!members.length) return null;
               return <div key={role} style={{ marginBottom: 16 }}><div style={{ fontSize: 12, fontWeight: 700, color: COLORS.muted, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 8 }}>{role}</div>{members.map(p => <PartyCard key={p.id} party={p} txId={tx.id} onEdit={isGuest ? () => setPaywallFeature("Editing parties") : () => setEditingParty({ ...p })} onRemove={isGuest ? () => setPaywallFeature("Removing parties") : () => isCoordinator ? coordDeleteParty(p.id) : update({ parties: tx.parties.filter(pp => pp.id !== p.id) })} onInvite={isGuest ? () => setPaywallFeature("Inviting parties to the app") : (isCoordinator ? undefined : (onInviteParty && isOwnSideClientRole(p.role) ? () => onInviteParty(p) : undefined))} onCopyLoginLink={isGuest ? () => setPaywallFeature("Sharing portal login links") : (isCoordinator ? undefined : (onCopyLoginLink && isOwnSideClientRole(p.role) ? () => onCopyLoginLink(p) : undefined))} onSendFollowup={isGuest ? () => setPaywallFeature("Follow-up reminders") : (party) => setFollowupParty(party)} onResetPin={(!isGuest && !isCoordinator && isOwnSideClientRole(p.role)) ? async (p2) => {
-                if (!window.confirm(`Reset the portal PIN for ${p2.name}?\n\nTheir old PIN stops working immediately. The next time they open their portal link, they'll be asked to create a new PIN.`)) return;
+                if (!(await askConfirm(`Reset the portal PIN for ${p2.name}?\n\nTheir old PIN stops working immediately. The next time they open their portal link, they'll be asked to create a new PIN.`, { okLabel: "Reset PIN", danger: true }))) return;
                 try {
                   const r = await fetch(API + "/admin/clients/reset-portal-pin", { method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + (localStorage.getItem("tp_token") || "") }, body: JSON.stringify({ email: p2.email }) });
                   const d = await r.json();
@@ -7404,7 +7481,7 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
                       <PartyCard party={p} txId={tx.id}
                         onEdit={isGuest ? () => setPaywallFeature("Editing parties") : () => setEditingParty({ ...p })}
                       onRemove={isGuest ? () => setPaywallFeature("Removing parties") : async () => {
-                        if (!window.confirm("Remove this vendor from the transaction?")) return;
+                        if (!(await askConfirm("Remove this vendor from the transaction?", { okLabel: "Remove", danger: true }))) return;
                         const tok = localStorage.getItem("tp_token") || "";
                         try {
                           await fetch("https://liz-team-server-api-production.up.railway.app/transactions/" + tx.id + "/party/" + p.id, {
@@ -7424,7 +7501,7 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
                             ✅ Selected by client
                           </span>
                           <button onClick={async () => {
-                            if (!window.confirm("Reset this vendor selection? The buyer will be able to choose again.")) return;
+                            if (!(await askConfirm("Reset this vendor selection? The buyer will be able to choose again.", { okLabel: "Reset selection" }))) return;
                             const tok = localStorage.getItem("tp_token") || "";
                             try {
                               const res = await fetch("https://liz-team-server-api-production.up.railway.app/vendors/reset/" + tx.id + "/" + p.id, {
@@ -7936,9 +8013,9 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
               )}
               <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 8 }}>
                 <button onClick={() => setStatusChangeModal(null)} style={{ padding: "10px 18px", border: "1px solid #CCC", borderRadius: 8, background: "none", cursor: "pointer", fontFamily: "inherit" }}>Cancel</button>
-                <button onClick={() => {
+                <button onClick={async () => {
                   const { newStatus, form } = statusChangeModal;
-                  if (newStatus === "Cancelled" && (window.prompt(`Cancel "${tx.address || "this transaction"}"? It will be HIDDEN from your dashboard (not deleted). Type CANCEL to confirm.`) || "").trim().toUpperCase() !== "CANCEL") return;
+                  if (newStatus === "Cancelled" && ((await askText(`Cancel "${tx.address || "this transaction"}"? It will be HIDDEN from your dashboard (not deleted). Type CANCEL to confirm.`, "", { okLabel: "Cancel this deal", placeholder: "Type CANCEL" })) || "").trim().toUpperCase() !== "CANCEL") return;
                   const inspDays = parseInt(form.inspectionDays) || 10;
                   const updates = { status: newStatus };
                   if (form.closingDate) updates.closingDate = form.closingDate;
@@ -8102,7 +8179,7 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
               {partyOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
             {partyOptions.length === 0 && (
-              <div style={{ fontSize: 11, color: "#B7770D", marginTop: 4 }}>
+              <div style={{ fontSize: 11, color: "#8A5A00", marginTop: 4 }}>
                 No parties with email/phone yet. Add them in the People tab to enable follow-ups.
               </div>
             )}
@@ -8271,7 +8348,7 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
                 <div key={field} style={{ marginBottom: 16 }}>
                   <div style={{ fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>{label}</div>
                   <input type={type} value={editTxForm[field] ? (type === "date" ? String(editTxForm[field]).slice(0,10) : editTxForm[field]) : ""} onChange={e => setEditTxForm(f => ({ ...f, [field]: e.target.value }))} style={{ width: "100%", padding: "10px 14px", borderRadius: 8, border: "1.5px solid #CCC", fontSize: 15, fontFamily: "inherit", boxSizing: "border-box" }} />
-                  {field === "representationExpiresOn" && isListing && <div style={{ fontSize: 11, color: "#888", marginTop: 4 }}>We'll warn you 14, 7, and 1 days before it expires so the listing doesn't lapse in the MLS.</div>}
+                  {field === "representationExpiresOn" && isListing && <div style={{ fontSize: 11, color: "#666666", marginTop: 4 }}>We'll warn you 14, 7, and 1 days before it expires so the listing doesn't lapse in the MLS.</div>}
                 </div>
                 ));
               })()}
@@ -8292,7 +8369,7 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
                   <div style={{ fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", marginBottom: 6 }}>Year Built <span style={{ color: "#C0392B" }}>*</span></div>
                   <input type="number" value={editTxForm.yearBuilt || ""} onChange={e => setEditTxForm(f => ({ ...f, yearBuilt: e.target.value }))} placeholder="e.g. 1998"
                     style={{ width: "100%", padding: "10px 14px", borderRadius: 8, border: "1.5px solid " + (editTxForm.yearBuilt ? "#CCC" : "#E5A5A5"), fontSize: 15, fontFamily: "inherit", boxSizing: "border-box" }} />
-                  <div style={{ fontSize: 11, color: "#888", marginTop: 4 }}>Sets which disclosures apply (e.g. lead-based paint on pre-1978 homes).</div>
+                  <div style={{ fontSize: 11, color: "#666666", marginTop: 4 }}>Sets which disclosures apply (e.g. lead-based paint on pre-1978 homes).</div>
                 </div>
                 <div>
                   <div style={{ fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", marginBottom: 6 }}>In an HOA / condo association? <span style={{ color: "#C0392B" }}>*</span></div>
@@ -8302,7 +8379,7 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
                     <option value="yes">Yes</option>
                     <option value="no">No</option>
                   </select>
-                  <div style={{ fontSize: 11, color: "#888", marginTop: 4 }}>Adds the HOA disclosure when Yes.</div>
+                  <div style={{ fontSize: 11, color: "#666666", marginTop: 4 }}>Adds the HOA disclosure when Yes.</div>
                 </div>
               </div>
               <div style={{ marginBottom: 14 }}><div style={{ fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", marginBottom: 6 }}>Construction Type</div><select value={editTxForm.constructionType || "Resale"} onChange={e => setEditTxForm(f => ({ ...f, constructionType: e.target.value }))} style={{ width: "100%", padding: "10px 14px", borderRadius: 8, border: "1.5px solid #CCC", fontSize: 15, fontFamily: "inherit" }}>{["Resale","New Construction","Vacant Land","Commercial"].map(t => <option key={t}>{t}</option>)}</select></div>
@@ -8401,33 +8478,33 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
                   <div style={{ marginBottom: 14 }}>
                     <div style={{ fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", marginBottom: 6 }}>Flood Zone</div>
                     <input value={editTxForm.floodZone || ""} onChange={e => setEditTxForm(f => ({ ...f, floodZone: e.target.value }))} placeholder="e.g. AE, X" style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: "1.5px solid #CCC", fontSize: 14, fontFamily: "inherit", boxSizing: "border-box" }} />
-                    <div style={{ fontSize: 11.5, color: "#888", marginTop: 4 }}>From the flood map (your title company or realtor MLS sheet has it). X = low risk. AE or A = flood insurance likely required — the app adds the flood addendum.</div>
+                    <div style={{ fontSize: 11.5, color: "#666666", marginTop: 4 }}>From the flood map (your title company or realtor MLS sheet has it). X = low risk. AE or A = flood insurance likely required — the app adds the flood addendum.</div>
                   </div>
                   {/* Compliance-checklist triggers the app can't infer */}
                   <div style={{ display: "flex", gap: 20, marginBottom: 14, flexWrap: "wrap" }}>
                     <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "#333", cursor: "pointer" }}>
                       <input type="checkbox" checked={!!editTxForm.sellerIsForeign} onChange={e => setEditTxForm(f => ({ ...f, sellerIsForeign: e.target.checked }))} />
-                      <span>Seller is a <b>foreign person</b> (FIRPTA) <span style={{ color: "#888", fontWeight: 400 }}>— adds FIRPTA docs; withholding is the buyer's liability if missed</span></span>
+                      <span>Seller is a <b>foreign person</b> (FIRPTA) <span style={{ color: "#666666", fontWeight: 400 }}>— adds FIRPTA docs; withholding is the buyer's liability if missed</span></span>
                     </label>
                     <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "#333", cursor: "pointer" }}>
                       <input type="checkbox" checked={!!editTxForm.isCoastal} onChange={e => setEditTxForm(f => ({ ...f, isCoastal: e.target.checked }))} />
-                      <span><b>Coastal</b> property (seaward of the CCCL) <span style={{ color: "#888", fontWeight: 400 }}>— adds the coastal/erosion disclosure</span></span>
+                      <span><b>Coastal</b> property (seaward of the CCCL) <span style={{ color: "#666666", fontWeight: 400 }}>— adds the coastal/erosion disclosure</span></span>
                     </label>
                     <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "#333", cursor: "pointer" }}>
                       <input type="checkbox" checked={!!editTxForm.sellerPaysBuyerBroker} onChange={e => setEditTxForm(f => ({ ...f, sellerPaysBuyerBroker: e.target.checked }))} />
-                      <span>Seller is <b>paying the buyer's broker</b> commission <span style={{ color: "#888", fontWeight: 400 }}>— adds the Seller's Agreement re Buyer-Broker Comp (Rider GG)</span></span>
+                      <span>Seller is <b>paying the buyer's broker</b> commission <span style={{ color: "#666666", fontWeight: 400 }}>— adds the Seller's Agreement re Buyer-Broker Comp (Rider GG)</span></span>
                     </label>
                     <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "#333", cursor: "pointer" }}>
                       <input type="checkbox" checked={!!editTxForm.isShortSale} onChange={e => setEditTxForm(f => ({ ...f, isShortSale: e.target.checked }))} />
-                      <span><b>Short sale</b> <span style={{ color: "#888", fontWeight: 400 }}>— adds the Short Sale Addendum</span></span>
+                      <span><b>Short sale</b> <span style={{ color: "#666666", fontWeight: 400 }}>— adds the Short Sale Addendum</span></span>
                     </label>
                     <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "#333", cursor: "pointer" }}>
                       <input type="checkbox" checked={!!editTxForm.hasSellerFinancing} onChange={e => setEditTxForm(f => ({ ...f, hasSellerFinancing: e.target.checked }))} />
-                      <span><b>Seller financing</b> <span style={{ color: "#888", fontWeight: 400 }}>— adds the Seller Financing Addendum</span></span>
+                      <span><b>Seller financing</b> <span style={{ color: "#666666", fontWeight: 400 }}>— adds the Seller Financing Addendum</span></span>
                     </label>
                     <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "#333", cursor: "pointer" }}>
                       <input type="checkbox" checked={!!editTxForm.sellerPostClosingOccupancy} onChange={e => setEditTxForm(f => ({ ...f, sellerPostClosingOccupancy: e.target.checked }))} />
-                      <span>Seller <b>stays after closing</b> <span style={{ color: "#888", fontWeight: 400 }}>— adds the Post-Closing Occupancy Agreement</span></span>
+                      <span>Seller <b>stays after closing</b> <span style={{ color: "#666666", fontWeight: 400 }}>— adds the Post-Closing Occupancy Agreement</span></span>
                     </label>
                   </div>
                   <div style={{ marginBottom: 14, maxWidth: 280 }}>
@@ -8441,7 +8518,7 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
                       <option>Cash</option>
                       <option>Other</option>
                     </select>
-                    <div style={{ fontSize: 11, color: "#888", marginTop: 4 }}>FHA or VA adds the FHA/VA Financing Addendum to the checklist.</div>
+                    <div style={{ fontSize: 11, color: "#666666", marginTop: 4 }}>FHA or VA adds the FHA/VA Financing Addendum to the checklist.</div>
                   </div>
                 </>
               )}
@@ -8867,12 +8944,12 @@ function NewTransactionForm({ onSave, onCancel, prefill = null, cmaId = null, on
             )}
           </div>
           {step === 1 && !step1Ok && (
-            <div style={{ fontSize: 12, color: "#9CA3AF", marginTop: 8, textAlign: "center" }}>
+            <div style={{ fontSize: 12, color: "#5F6B7A", marginTop: 8, textAlign: "center" }}>
               {!form.address.trim() || !form.city.trim() ? "Enter the address and city to continue." : "Answer year built, HOA, and who lives there — they decide which disclosures this listing needs."}
             </div>
           )}
           {step === 3 && !step3Ok && (
-            <div style={{ fontSize: 12, color: "#9CA3AF", marginTop: 8, textAlign: "center" }}>Pick where this client came from{teamAgents.length > 1 ? " and whose deal it is" : ""} to finish.</div>
+            <div style={{ fontSize: 12, color: "#5F6B7A", marginTop: 8, textAlign: "center" }}>Pick where this client came from{teamAgents.length > 1 ? " and whose deal it is" : ""} to finish.</div>
           )}
           {step === 3 && (
             <div style={{ fontSize: 12, color: "#6B7280", marginTop: 12, background: "#F0FDF4", border: "1px solid #BBF7D0", borderRadius: 8, padding: 10 }}>
@@ -9427,7 +9504,7 @@ function Dashboard({ transactions, coordinatorMode = false, unreadCounts = {}, o
 
   const handleDeleteView = async (id, e) => {
     if (e) e.stopPropagation();
-    if (!confirm("Delete this saved view?")) return;
+    if (!(await askConfirm("Delete this saved view?", { okLabel: "Delete", danger: true }))) return;
     try {
       const tok = localStorage.getItem("tp_token") || "";
       const res = await fetch(API + "/saved-views/" + id, {
@@ -9509,7 +9586,7 @@ function Dashboard({ transactions, coordinatorMode = false, unreadCounts = {}, o
     try {
       let res;
       if (kind === "cancel") {
-        if (!window.confirm("Mark this lead as Not Pursuing? It will be set to Cancelled and removed from your active list.")) return;
+        if (!(await askConfirm("Mark this lead as Not Pursuing? It will be set to Cancelled and removed from your active list.", { okLabel: "Not pursuing", danger: true }))) return;
         res = await fetch(`${API}/transactions/${txId}/status`, { method: "PATCH", headers: { "Content-Type": "application/json", "Authorization": "Bearer " + tok }, body: JSON.stringify({ status: "Cancelled" }) });
       } else {
         res = await fetch(`${API}/transactions/${txId}/confirm-lead`, { method: "POST", headers: { "Content-Type": "application/json", "Authorization": "Bearer " + tok } });
@@ -9942,11 +10019,11 @@ function Dashboard({ transactions, coordinatorMode = false, unreadCounts = {}, o
                 </div>
               )}
               {tx.assignedAgentId && !tx.needsReview && tx.leadConverted === false && (
-                <div style={{ background: "#FEF9E7", color: "#B7860B", padding: "8px 14px", fontSize: 12, fontWeight: 700, letterSpacing: 0.5, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, flexWrap: "wrap" }}>
+                <div style={{ background: "#FEF9E7", color: "#8A5A00", padding: "8px 14px", fontSize: 12, fontWeight: 700, letterSpacing: 0.5, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, flexWrap: "wrap" }}>
                   <span>🌱 {isBuyerSideType(tx.type) ? "INQUIRY" : "LEAD"} — not yet confirmed</span>
                   <span style={{ display: "flex", gap: 6 }}>
                     <button onClick={e => { e.stopPropagation(); onLeadAction(tx.id, "confirm"); }} style={{ background: "#B7860B", color: "#fff", border: "none", borderRadius: 6, padding: "4px 10px", fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>✓ Confirm</button>
-                    <button onClick={e => { e.stopPropagation(); onLeadAction(tx.id, "cancel"); }} style={{ background: "#fff", color: "#B7860B", border: "1px solid #C9A227", borderRadius: 6, padding: "4px 10px", fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>✕ Not Pursuing</button>
+                    <button onClick={e => { e.stopPropagation(); onLeadAction(tx.id, "cancel"); }} style={{ background: "#fff", color: "#8A5A00", border: "1px solid #C9A227", borderRadius: 6, padding: "4px 10px", fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>✕ Not Pursuing</button>
                   </span>
                 </div>
               )}
@@ -10004,7 +10081,7 @@ function Dashboard({ transactions, coordinatorMode = false, unreadCounts = {}, o
                 {/* Price + Closing row */}
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
                   <div>
-                    <div style={{ fontSize: 10, fontWeight: 700, color: "#888", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 2 }}>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: "#666666", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 2 }}>
                       {tx.contractPrice ? "Contract Price" : "List Price"}
                     </div>
                     <div style={{ fontSize: 18, fontWeight: 800, color: "#111" }}>
@@ -10012,7 +10089,7 @@ function Dashboard({ transactions, coordinatorMode = false, unreadCounts = {}, o
                     </div>
                   </div>
                   <div style={{ textAlign: "right" }}>
-                    <div style={{ fontSize: 10, fontWeight: 700, color: "#888", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 2 }}>Closing</div>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: "#666666", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 2 }}>Closing</div>
                     <div style={{ fontSize: 13, fontWeight: 700, color: dtc !== null && dtc <= 7 && dtc >= 0 ? "#C0392B" : "#111" }}>
                       {tx.closingDate ? formatDate(tx.closingDate) : "TBD"}
                     </div>
@@ -10088,7 +10165,7 @@ function Dashboard({ transactions, coordinatorMode = false, unreadCounts = {}, o
 
                 {/* Footer */}
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: 8, borderTop: "1px solid #F3F4F6" }}>
-                  <div style={{ fontSize: 12, color: "#888" }}>
+                  <div style={{ fontSize: 12, color: "#666666" }}>
                     {tx.parties.length} {tx.parties.length === 1 ? "party" : "parties"}
                   </div>
                   {overdue > 0 && (
@@ -10417,14 +10494,14 @@ function TenantSwitcher({ currentUser }) {
         <>
           <div onMouseDown={e => { if (e.target === e.currentTarget) e.currentTarget.dataset.dob = "1"; else delete e.currentTarget.dataset.dob; }} onClick={e => { if (e.target === e.currentTarget && e.currentTarget.dataset.dob === "1") setOpen(false); delete e.currentTarget.dataset.dob; }} style={{ position: "fixed", inset: 0, zIndex: 998 }} />
           <div style={{ position: "absolute", top: "calc(100% + 6px)", right: 0, background: "#fff", border: "1px solid #DDD", borderRadius: 10, boxShadow: "0 8px 24px rgba(0,0,0,0.15)", minWidth: 240, zIndex: 999, overflow: "hidden" }}>
-            <div style={{ padding: "10px 14px", fontSize: 11, color: "#888", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", borderBottom: "1px solid #EEE" }}>Switch Brokerage</div>
+            <div style={{ padding: "10px 14px", fontSize: 11, color: "#666666", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", borderBottom: "1px solid #EEE" }}>Switch Brokerage</div>
             {memberships.map(m => {
               const isActive = m.tenantId === activeId;
               return (
                 <div key={m.tenantId} onClick={() => switchTo(m.tenantId)} style={{ padding: "10px 14px", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center", background: isActive ? "#F4F6F8" : "#fff", borderBottom: "1px solid #F4F6F8" }}>
                   <div>
                     <div style={{ fontSize: 13, fontWeight: 600, color: "#111" }}>{m.tenantName}</div>
-                    <div style={{ fontSize: 11, color: "#888", marginTop: 2 }}>{m.role}</div>
+                    <div style={{ fontSize: 11, color: "#666666", marginTop: 2 }}>{m.role}</div>
                   </div>
                   {isActive && <span style={{ color: "#1E8449", fontSize: 14 }}>✓</span>}
                 </div>
@@ -11001,7 +11078,7 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
   };
 
   const duplicateTransaction = async (tx) => {
-    const newAddr = window.prompt("Enter address for the new transaction:", tx.address + " (Copy)");
+    const newAddr = await askText("Enter address for the new transaction:", tx.address + " (Copy)", { okLabel: "Create copy" });
     if (!newAddr) return;
     const tok = localStorage.getItem("tp_token") || "";
     const freshH = { "Content-Type": "application/json", "Authorization": "Bearer " + tok };
@@ -11039,7 +11116,7 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
 
   const invitePartyToPortal = async (party, tx) => {
     if (!party.email) { alert("This party has no email address. Add one first."); return; }
-    if (!window.confirm(`Send portal invitation to ${party.name} (${party.email})?`)) return;
+    if (!(await askConfirm(`Send portal invitation to ${party.name} (${party.email})?`, { okLabel: "Send invitation" }))) return;
     const tok = localStorage.getItem("tp_token") || "";
     // Find agent and TC from transaction parties
     const agent = tx && tx.parties ? tx.parties.find(p => p.role === "Listing Agent" || p.role === "Buyer's Agent") : null;
@@ -11097,9 +11174,10 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
       if (!res.ok || !data.link) throw new Error(data.error || "Could not create link");
       if (data.staff) { alert(data.message || "This is a staff account — they sign in with email and password."); return; }
       try { await navigator.clipboard.writeText(data.link); } catch { /* clipboard may be blocked; still show it below */ }
-      window.prompt(
+      await askText(
         `Login link for ${party.name || party.email} — copied to your clipboard. Text or email it to them.\n\nThey'll set a private 4-digit PIN the first time (the link alone can't sign anyone in).`,
-        data.link
+        data.link,
+        { okLabel: "Done" }
       );
     } catch (e) { alert("Could not create login link: " + e.message); }
   };

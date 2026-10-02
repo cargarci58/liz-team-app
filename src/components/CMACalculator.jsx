@@ -325,7 +325,7 @@ function CompCard({ comp, idx, onChange, onRemove, subjectUpgrades }) {
           Comp #{idx + 1}
           {comp._aiExtracted && <span style={{ marginLeft: 8, fontSize: 10, fontWeight: 700, color: "#7c3aed", background: "#ede9fe", padding: "2px 6px", borderRadius: 10 }}>✨ AI</span>}
         </div>
-        <button onClick={onRemove} style={{ background: "none", border: "none", color: "#9ca3af", cursor: "pointer", fontSize: 18 }}>✕</button>
+        <button onClick={onRemove} style={{ background: "none", border: "none", color: "#5F6B7A", cursor: "pointer", fontSize: 18 }}>✕</button>
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 10 }}>

@@ -404,7 +404,7 @@ export default function HelpCenter({ apiBase, token, userId, onGoals, onProfile,
                       <div style={{ flex: 1 }}>
                         <div style={{ fontWeight: 800, fontSize: 15, color: '#222' }}>{s.emoji} {s.title}</div>
                         <div style={{ fontSize: 13, color: '#555', margin: '4px 0 6px', lineHeight: 1.45 }}>{s.desc}</div>
-                        <div style={{ fontSize: 12, color: '#999', marginBottom: 10 }}>Find it at: {s.where}</div>
+                        <div style={{ fontSize: 12, color: '#666666', marginBottom: 10 }}>Find it at: {s.where}</div>
                         {s.go && (
                           <button onClick={() => { setOpen(false); s.go(); }} style={{ background: RED, color: '#fff', border: 'none', borderRadius: 8, padding: '8px 16px', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>Take me there →</button>
                         )}
@@ -438,7 +438,7 @@ export default function HelpCenter({ apiBase, token, userId, onGoals, onProfile,
                   {filteredSections.length === 0 && <div style={{ color: '#666' }}>No guides match your search.</div>}
                   {filteredSections.map(sec => (
                     <div key={sec.heading} style={{ marginBottom: 18 }}>
-                      <div style={{ fontSize: 12, fontWeight: 800, color: '#999', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 8 }}>{sec.heading}</div>
+                      <div style={{ fontSize: 12, fontWeight: 800, color: '#666666', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 8 }}>{sec.heading}</div>
                       {sec.items.map(it => (
                         <StepGuide key={it.title} gkey={`g:${it.title}`} title={it.title} steps={it.steps} />
                       ))}
@@ -456,7 +456,7 @@ export default function HelpCenter({ apiBase, token, userId, onGoals, onProfile,
                   )}
                   {yourRoleFaqs.length > 0 && (
                     <div style={{ marginBottom: 18 }}>
-                      <div style={{ fontSize: 12, fontWeight: 800, color: '#999', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 8 }}>For {ROLE_LABELS[roleBucket] || roleBucket}</div>
+                      <div style={{ fontSize: 12, fontWeight: 800, color: '#666666', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 8 }}>For {ROLE_LABELS[roleBucket] || roleBucket}</div>
                       {yourRoleFaqs.map(f => (
                         <StepGuide key={f.id} gkey={`f:${f.id}`} title={f.question} steps={[f.answer]} />
                       ))}
@@ -464,7 +464,7 @@ export default function HelpCenter({ apiBase, token, userId, onGoals, onProfile,
                   )}
                   {generalFaqs.length > 0 && (
                     <div>
-                      <div style={{ fontSize: 12, fontWeight: 800, color: '#999', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 8 }}>General</div>
+                      <div style={{ fontSize: 12, fontWeight: 800, color: '#666666', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 8 }}>General</div>
                       {generalFaqs.map(f => (
                         <StepGuide key={f.id} gkey={`f:${f.id}`} title={f.question} steps={[f.answer]} />
                       ))}
@@ -480,7 +480,7 @@ export default function HelpCenter({ apiBase, token, userId, onGoals, onProfile,
                       <div style={{ fontSize: 14, color: '#333', marginBottom: 12, lineHeight: 1.5 }}>
                         Hi! 👋 I'm your support assistant. Ask me anything about how to use the app — like "How do I receive an offer?" or "Where do I set my goals?"
                       </div>
-                      <div style={{ fontSize: 12, fontWeight: 800, color: '#999', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 8 }}>Try asking…</div>
+                      <div style={{ fontSize: 12, fontWeight: 800, color: '#666666', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 8 }}>Try asking…</div>
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                         {[
                           'How do I start a new transaction?',
@@ -507,7 +507,7 @@ export default function HelpCenter({ apiBase, token, userId, onGoals, onProfile,
                   ))}
                   {aiSending && (
                     <div style={{ display: 'flex', justifyContent: 'flex-start', marginBottom: 10 }}>
-                      <div style={{ padding: '10px 13px', borderRadius: 14, fontSize: 14, background: '#F1F1F1', color: '#888' }}>Thinking…</div>
+                      <div style={{ padding: '10px 13px', borderRadius: 14, fontSize: 14, background: '#F1F1F1', color: '#666666' }}>Thinking…</div>
                     </div>
                   )}
                   {aiError && <div style={{ color: RED, fontSize: 13, marginBottom: 10 }}>{aiError}</div>}
@@ -523,7 +523,7 @@ export default function HelpCenter({ apiBase, token, userId, onGoals, onProfile,
                     />
                     <button onClick={() => sendAi()} disabled={aiSending || !aiInput.trim()} style={{ flexShrink: 0, width: 44, height: 44, borderRadius: '50%', border: 'none', background: (aiSending || !aiInput.trim()) ? '#ccc' : RED, color: '#fff', fontSize: 18, cursor: (aiSending || !aiInput.trim()) ? 'default' : 'pointer', fontFamily: 'inherit' }}>↑</button>
                   </div>
-                  <div style={{ fontSize: 11, color: '#aaa', marginTop: 8, lineHeight: 1.4 }}>
+                  <div style={{ fontSize: 11, color: '#666666', marginTop: 8, lineHeight: 1.4 }}>
                     AI answers can occasionally be off. For a bug or account issue, use the 📣 Feedback tab; for anything urgent on a live deal, call or text your broker.
                   </div>
                 </div>
@@ -545,7 +545,7 @@ export default function HelpCenter({ apiBase, token, userId, onGoals, onProfile,
                       <div style={{ fontSize: 14, color: '#333', marginBottom: 16, lineHeight: 1.5 }}>
                         Found a bug? Have an idea? Need a hand? Tell us — it goes straight to our team.
                       </div>
-                      <div style={{ fontSize: 12, fontWeight: 800, color: '#999', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 8 }}>What kind of feedback is this?</div>
+                      <div style={{ fontSize: 12, fontWeight: 800, color: '#666666', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 8 }}>What kind of feedback is this?</div>
                       <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
                         {[
                           { id: 'bug', label: '🐞 Something’s broken' },
@@ -582,7 +582,7 @@ export default function HelpCenter({ apiBase, token, userId, onGoals, onProfile,
                         disabled={fbSending}
                         style={{ marginTop: 14, width: '100%', background: fbSending ? '#999' : RED, color: '#fff', border: 'none', borderRadius: 8, padding: '12px 16px', fontSize: 14, fontWeight: 800, cursor: fbSending ? 'default' : 'pointer', fontFamily: 'inherit' }}
                       >{fbSending ? 'Sending…' : (fbKind === 'support' ? 'Send to support' : 'Send to the team')}</button>
-                      <div style={{ fontSize: 12, color: '#999', marginTop: 10, lineHeight: 1.45 }}>
+                      <div style={{ fontSize: 12, color: '#666666', marginTop: 10, lineHeight: 1.45 }}>
                         We’ll know who sent it so we can follow up if needed. For an urgent issue with a live deal, call or text your contact directly.
                       </div>
                     </div>
@@ -592,7 +592,7 @@ export default function HelpCenter({ apiBase, token, userId, onGoals, onProfile,
             </div>
 
             {/* Footer */}
-            <div style={{ padding: '12px 20px', borderTop: '1px solid #eee', fontSize: 12, color: '#888', background: '#fafafa' }}>
+            <div style={{ padding: '12px 20px', borderTop: '1px solid #eee', fontSize: 12, color: '#666666', background: '#fafafa' }}>
               These guides are educational only and not legal advice. For legal or tax questions, consult a real estate attorney or CPA.
             </div>
           </div>

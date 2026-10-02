@@ -220,7 +220,7 @@ export default function TransactionChat({ transactionId, user, parties = [], sty
 
   if (accessError) {
     return (
-      <div style={{ padding: 40, textAlign: "center", color: "#888", ...style }}>
+      <div style={{ padding: 40, textAlign: "center", color: "#666666", ...style }}>
         <div style={{ fontSize: 32, marginBottom: 8 }}>🔒</div>
         <div style={{ fontWeight: 600, marginBottom: 4 }}>Chat unavailable</div>
         <div style={{ fontSize: 13 }}>{accessError}</div>
@@ -245,9 +245,9 @@ export default function TransactionChat({ transactionId, user, parties = [], sty
 
       <div style={{ flex: 1, overflowY: "auto", padding: 16, display: "flex", flexDirection: "column", gap: 8 }}>
         {loading ? (
-          <div style={{ textAlign: "center", color: "#888", padding: 20 }}>Loading messages...</div>
+          <div style={{ textAlign: "center", color: "#666666", padding: 20 }}>Loading messages...</div>
         ) : visibleMessages.length === 0 ? (
-          <div style={{ textAlign: "center", color: "#888", padding: 30 }}>
+          <div style={{ textAlign: "center", color: "#666666", padding: 30 }}>
             <div style={{ fontSize: 32, marginBottom: 8 }}>{directTo ? "🔒" : "💬"}</div>
             <div style={{ fontWeight: 600 }}>No messages yet</div>
             <div style={{ fontSize: 12, marginTop: 4 }}>{directTo ? `Start a private conversation — only ${directTo.name} will see it.` : "Start the conversation — everyone on this transaction will be notified."}</div>
@@ -272,7 +272,7 @@ export default function TransactionChat({ transactionId, user, parties = [], sty
               {showNewDivider && (
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
                   <div style={{ flex: 1, height: 1, background: "#E67E22" }} />
-                  <span style={{ fontSize: 11, color: "#E67E22", fontWeight: 700, whiteSpace: "nowrap" }}>NEW MESSAGES</span>
+                  <span style={{ fontSize: 11, color: "#8A5A00", fontWeight: 700, whiteSpace: "nowrap" }}>NEW MESSAGES</span>
                   <div style={{ flex: 1, height: 1, background: "#E67E22" }} />
                 </div>
               )}
@@ -309,7 +309,7 @@ export default function TransactionChat({ transactionId, user, parties = [], sty
                       }).join(", ")}
                     </div>
                   )}
-                  <div style={{ fontSize: 10, color: "#888", marginTop: 2, textAlign: mine ? "right" : "left", paddingLeft: 4, paddingRight: 4 }}>
+                  <div style={{ fontSize: 10, color: "#666666", marginTop: 2, textAlign: mine ? "right" : "left", paddingLeft: 4, paddingRight: 4 }}>
                     {formatTime(msg.created_at)}
                   </div>
                 </div>
@@ -328,9 +328,9 @@ export default function TransactionChat({ transactionId, user, parties = [], sty
             <input type="checkbox" checked={selectedEmails.length === 0} onChange={() => setSelectedEmails([])} />
             <span>👥 Everyone on the deal</span>
           </label>
-          <div style={{ fontSize: 11, color: "#888", margin: "8px 0 2px" }}>…or send to specific people only:</div>
+          <div style={{ fontSize: 11, color: "#666666", margin: "8px 0 2px" }}>…or send to specific people only:</div>
           {parties.filter(p => p.email).length === 0 ? (
-            <div style={{ fontSize: 12, color: "#888", fontStyle: "italic" }}>No parties with emails on this transaction.</div>
+            <div style={{ fontSize: 12, color: "#666666", fontStyle: "italic" }}>No parties with emails on this transaction.</div>
           ) : parties.filter(p => p.email).map(p => {
             const checked = selectedEmails.includes(p.email.toLowerCase());
             return (
@@ -340,12 +340,12 @@ export default function TransactionChat({ transactionId, user, parties = [], sty
                   setSelectedEmails(prev => e.target.checked ? [...prev.filter(x => x !== em), em] : prev.filter(x => x !== em));
                 }} />
                 <span style={{ color: "#111" }}>{p.name}</span>
-                <span style={{ color: "#888", fontSize: 11 }}>· {p.role}</span>
+                <span style={{ color: "#666666", fontSize: 11 }}>· {p.role}</span>
               </label>
             );
           })}
           <div style={{ marginTop: 10, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <span style={{ fontSize: 11, color: "#888" }}>{selectedEmails.length === 0 ? "Goes to the whole group." : `Only ${selectedEmails.length} selected will get it.`}</span>
+            <span style={{ fontSize: 11, color: "#666666" }}>{selectedEmails.length === 0 ? "Goes to the whole group." : `Only ${selectedEmails.length} selected will get it.`}</span>
             <button onClick={() => setPickerOpen(false)} style={{ background: "#1A5276", color: "#fff", border: "none", borderRadius: 8, padding: "6px 16px", fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}>Done</button>
           </div>
         </div>

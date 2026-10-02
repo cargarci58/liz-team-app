@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { askConfirm } from "./ui/dialogs";
 
 const API = "https://liz-team-server-api-production.up.railway.app";
 
@@ -630,10 +631,11 @@ function ReviewStep({ token, uploadId, user, currentStatus, onApproved, onBack }
     // accepted terms — make the agent confirm that's intended.
     const alreadyUnderContract = currentStatus && !["Active", "Coming Soon", "New"].includes(currentStatus);
     if (alreadyUnderContract) {
-      const ok = window.confirm(
+      const ok = await askConfirm(
         `This listing is already "${currentStatus}" — an offer was already accepted.\n\n` +
         `Approving THIS offer will replace the accepted offer's price, dates, commission and parties with this one's, and re-run the timeline.\n\n` +
-        `Only do this if you're intentionally switching to this offer. Continue?`
+        `Only do this if you're intentionally switching to this offer. Continue?`,
+        { okLabel: "Yes, switch offers", danger: true }
       );
       if (!ok) return;
     }
@@ -649,7 +651,7 @@ function ReviewStep({ token, uploadId, user, currentStatus, onApproved, onBack }
       // Backend guard: the seller declined this offer on their review link.
       // Confirm the agent really means to override, then retry.
       if (r.status === 409 && d.error === "seller_declined") {
-        const ok = window.confirm((d.message || "The seller declined this offer.") + "\n\nApprove it anyway?");
+        const ok = await askConfirm((d.message || "The seller declined this offer.") + "\n\nApprove it anyway?", { okLabel: "Approve anyway" });
         if (!ok) { setSaving(false); return; }
         r = await fetch(API + "/contracts/uploads/" + uploadId + "/approve", {
           method: "POST",

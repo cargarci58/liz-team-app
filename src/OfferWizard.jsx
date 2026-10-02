@@ -1095,7 +1095,7 @@ export default function OfferWizard({ offerId, token, onClose, onSaved }) {
               <div key={f.id} style={common ? { borderLeft: "3px solid #16a34a", paddingLeft: 12, background: "#f0fdf4", borderRadius: 6, padding: "10px 12px" } : {}}>
                 <label style={{ display: "block", fontSize: 13, fontWeight: 700, color: common ? "#15803d" : "#374151", marginBottom: 6 }}>
                   {f.label} {f.required && <span style={{ color: "#dc2626" }}>*</span>}
-                  {common && <span style={{ fontSize: 10, fontWeight: 700, color: "#16a34a", marginLeft: 6, textTransform: "uppercase", letterSpacing: "0.04em" }}>• commonly filled</span>}
+                  {common && <span style={{ fontSize: 10, fontWeight: 700, color: "#1E7B45", marginLeft: 6, textTransform: "uppercase", letterSpacing: "0.04em" }}>• commonly filled</span>}
                 </label>
                 <FieldRenderer field={f} value={data[f.id]} onChange={(val) => setField(f.id, val)} documents={documents}
                   formLibrary={formLibrary} onUploadRiderForm={uploadRiderForm} riderUploadBusy={riderUploadBusy} />

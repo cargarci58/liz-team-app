@@ -48,7 +48,7 @@ export default function PreApprovalCard({ transactionId, isAgent = true, onChang
   };
 
   if (loading) {
-    return <div style={cardStyle}><div style={{ color: '#888' }}>Loading pre-approval…</div></div>;
+    return <div style={cardStyle}><div style={{ color: '#666666' }}>Loading pre-approval…</div></div>;
   }
 
   const pa = data?.preapproval;
@@ -64,7 +64,7 @@ export default function PreApprovalCard({ transactionId, isAgent = true, onChang
         <div style={{ fontSize: 13, color: '#666', marginBottom: 4 }}>
           No pre-approval on file
         </div>
-        <div style={{ fontSize: 12, color: '#888', marginBottom: 12 }}>
+        <div style={{ fontSize: 12, color: '#666666', marginBottom: 12 }}>
           Required to build offers. Buyers can also upload from their Client Portal.
         </div>
         <button onClick={() => setUploadOpen(true)} style={primaryBtn}>📤 Upload Pre-Approval</button>
@@ -240,7 +240,7 @@ function UploadModal({ transactionId, onClose, onSaved }) {
         {stage === 'pick' && (
           <div>
             <input ref={fileRef} type="file" accept="application/pdf" onChange={onPick} style={{ marginBottom: 12 }} />
-            <div style={{ fontSize: 12, color: '#888' }}>PDF only, max 10MB</div>
+            <div style={{ fontSize: 12, color: '#666666' }}>PDF only, max 10MB</div>
           </div>
         )}
 
@@ -353,7 +353,7 @@ export function PreApprovalBadge({ transactionId }) {
 // Styles
 const cardStyle = { background: '#fff', border: '1px solid #e0e0e0', borderRadius: 10, padding: 14, marginBottom: 12 };
 const headerStyle = { display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 };
-const lbl = { fontSize: 11, color: '#888', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 };
+const lbl = { fontSize: 11, color: '#666666', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 };
 const primaryBtn = { background: '#3b82f6', color: '#fff', border: 'none', borderRadius: 6, padding: '8px 14px', fontWeight: 600, cursor: 'pointer', fontSize: 13 };
 const secondaryBtn = { background: '#f3f4f6', color: '#333', border: '1px solid #ddd', borderRadius: 6, padding: '7px 12px', fontWeight: 500, cursor: 'pointer', fontSize: 13 };
 const modalBackdrop = { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 };

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { askConfirm } from "./ui/dialogs";
 
 const API = "https://liz-team-server-api-production.up.railway.app";
 
@@ -189,7 +190,7 @@ export function ShareVendorModal({ vendor, onClose, presetTxId = "", presetRecip
     if (chosen.length === 0 && txId) {
       // A deal alone only posts to its in-app chat — nobody gets a text/email.
       // That surprised users ("I thought it was going to send by text and email").
-      if (!window.confirm("No recipients are selected — this will ONLY post the vendor in the deal's in-app chat. Nobody gets a text or email.\n\nContinue with chat-only?")) return;
+      if (!(await askConfirm("No recipients are selected — this will ONLY post the vendor in the deal's in-app chat. Nobody gets a text or email.\n\nContinue with chat-only?", { okLabel: "Post to chat only" }))) return;
     }
     setSending(true);
     try {
@@ -440,7 +441,7 @@ export default function VendorLibrary({ onClose }) {
   };
 
   const handleDelete = async (vendor) => {
-    if (!window.confirm(`Remove ${vendor.name} from your vendor library?`)) return;
+    if (!(await askConfirm(`Remove ${vendor.name} from your vendor library?`, { okLabel: "Remove", danger: true }))) return;
     const tok = localStorage.getItem("tp_token") || "";
     try {
       await fetch(API + "/vendors/" + vendor.id, {

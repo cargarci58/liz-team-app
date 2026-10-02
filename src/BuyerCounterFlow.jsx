@@ -10,6 +10,7 @@
 //     counter back (same, then edit), initial their marked-up copy, or say no.
 //   • Nothing is sent until you press Send — the agent handles everything.
 import { useEffect, useState, lazy, Suspense } from "react";
+import { askConfirm, askText } from "./ui/dialogs";
 
 const API = "https://liz-team-server-api-production.up.railway.app";
 const C = {
@@ -120,17 +121,17 @@ export function BuyerCounterPanel({ offer, counter, tx, onChanged, onOpenOffer, 
     const msg = mode === "accept"
       ? "Your buyer ACCEPTS the seller's counter?\n\nThe app builds a revised offer with their changes filled in. Next you generate the packet, your buyer signs, and you send it back. Nothing is sent now."
       : "Your buyer wants to COUNTER BACK?\n\nThe app builds a revised offer with the seller's changes filled in and opens it so you can change what your buyer wants. Nothing is sent now.";
-    if (!window.confirm(msg)) return;
+    if (!(await askConfirm(msg, { okLabel: mode === "accept" ? "Yes, accept counter" : "Yes, counter back" }))) return;
     try { const b = await post(`/their-counters/${counter.id}/resubmit`, { mode }, mode); onChanged && onChanged(); onOpenOffer && onOpenOffer(b.offerId); }
     catch (e) { alert(e.message); }
   };
   const decline = async () => {
-    const note = window.prompt("Your buyer says NO to the seller's counter. Add a note for the file (optional). This marks the offer withdrawn — tell the listing agent yourself; the app doesn't email them.");
+    const note = await askText("Your buyer says NO to the seller's counter. Add a note for the file (optional). This marks the offer withdrawn — tell the listing agent yourself; the app doesn't email them.", "", { okLabel: "Withdraw offer", multiline: true });
     if (note === null) return;
     try { await post(`/their-counters/${counter.id}/decline`, { note }, "decline"); onChanged && onChanged(); } catch (e) { alert(e.message); }
   };
   const reread = async () => {
-    if (!window.confirm("Re-read their counter? (Use this if you picked the wrong email or document.)")) return;
+    if (!(await askConfirm("Re-read their counter? (Use this if you picked the wrong email or document.)", { okLabel: "Re-read" }))) return;
     try { await post(`/their-counters/${counter.id}/reopen`, {}, "reread"); onChanged && onChanged(); onTheyCountered && onTheyCountered(); } catch (e) { alert(e.message); }
   };
   const box = st.tone === "bad" ? { bg: "#FDEDEC", bd: "#F5B7B1", fg: C.darkRed } : st.tone === "good" ? { bg: C.greenBg, bd: "#BFE3C9", fg: C.green } : { bg: C.blueBg, bd: "#bae6fd", fg: C.blue };

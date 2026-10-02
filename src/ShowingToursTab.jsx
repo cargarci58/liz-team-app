@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { askConfirm } from "./ui/dialogs";
 import { planRoute, simulate, fmtTime, toMin } from "./lib/tourRoute";
 import { telHref } from "./lib/telHref";
 import HomeScorecard, { FavoritesSummary, ScorecardButton } from "./components/HomeScorecard";
@@ -116,7 +117,7 @@ export default function ShowingToursTab({ tx, onOpenOffer }) {
   };
 
   const deleteTour = async () => {
-    if (!window.confirm(stops.length ? `Delete the ${fmtDate(tour.tour_date)} tour day and its ${stops.length} home(s)? Scorecards on those homes are deleted too.` : `Delete the ${fmtDate(tour.tour_date)} tour day?`)) return;
+    if (!(await askConfirm(stops.length ? `Delete the ${fmtDate(tour.tour_date)} tour day and its ${stops.length} home(s)? Scorecards on those homes are deleted too.` : `Delete the ${fmtDate(tour.tour_date)} tour day?`, { okLabel: "Delete", danger: true }))) return;
     await fetch(`${API}/showing-tours/${tour.id}`, { method: "DELETE", headers: hdrs }).catch(() => {});
     const rest = (tours || []).filter(t => t.id !== tour.id);
     setTours(rest); setTourId(rest[0] ? rest[0].id : null);
@@ -202,7 +203,7 @@ export default function ShowingToursTab({ tx, onOpenOffer }) {
     if (saved) { setEditing(null); setDraft(null); setJustAdded(prev => { const n = new Set(prev); n.delete(editing); return n; }); }
   };
   const removeStop = async (s) => {
-    if (!window.confirm(`Remove ${s.address} from this tour?`)) return;
+    if (!(await askConfirm(`Remove ${s.address} from this tour?`, { okLabel: "Remove", danger: true }))) return;
     await save({}, stops.filter(x => x.id !== s.id));
   };
   const move = async (i, dir) => {
@@ -232,7 +233,7 @@ export default function ShowingToursTab({ tx, onOpenOffer }) {
     // report was read and simply didn't list seller/parcel/etc., don't ask the
     // agent to upload the same thing twice (Carlos 9/26: "double input").
     if (!skipCheck && s.address && s.offer_details == null) {
-      if (window.confirm(`${s.address} was added before the app read contract details from the MLS report (or was typed in by hand), so it doesn't have the seller, parcel ID, county, legal description, HOA or title company yet.\n\nOK = upload its Broker Full report once — the app fills this offer from it.\nCancel = start the offer with the basics only.`)) {
+      if (await askConfirm(`${s.address} was added before the app read contract details from the MLS report (or was typed in by hand), so it doesn't have the seller, parcel ID, county, legal description, HOA or title company yet.\n\nOK = upload its Broker Full report once — the app fills this offer from it.\nCancel = start the offer with the basics only.`, { okLabel: "Upload report", cancelLabel: "Basics only" })) {
         offerAfterUpload.current = { id: s.id, at: Date.now() };
         if (fileRef.current) fileRef.current.click();
         return;

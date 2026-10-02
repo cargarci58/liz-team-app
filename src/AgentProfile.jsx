@@ -106,7 +106,7 @@ export default function AgentProfile({ onClose, currentUser }) {
         </div>
 
         <div style={{ padding: 24 }}>
-          {loading ? <div style={{ textAlign: "center", padding: 32, color: "#888" }}>Loading...</div> : <>
+          {loading ? <div style={{ textAlign: "center", padding: 32, color: "#666666" }}>Loading...</div> : <>
 
             {/* Photo Preview */}
             <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 24, padding: 16, background: "#F8F9FA", borderRadius: 10 }}>
@@ -119,7 +119,7 @@ export default function AgentProfile({ onClose, currentUser }) {
               )}
               <div>
                 <div style={{ fontWeight: 700, fontSize: 16 }}>{form.firstName} {form.lastName}</div>
-                <div style={{ fontSize: 13, color: "#888" }}>{currentUser?.email}</div>
+                <div style={{ fontSize: 13, color: "#666666" }}>{currentUser?.email}</div>
                 <div style={{ fontSize: 12, color: "#C0392B", fontWeight: 600, marginTop: 2 }}>{currentUser?.role?.toUpperCase()}</div>
               </div>
             </div>
@@ -130,7 +130,7 @@ export default function AgentProfile({ onClose, currentUser }) {
               <div style={{ marginBottom: 16, padding: 12, background: "#F4F4F4", borderRadius: 10, border: "1px solid #DDD" }}>
                 <label style={lbl}>Company Name</label>
                 <input value={sig.tenantName} onChange={e => setSig(s => ({ ...s, tenantName: e.target.value }))} style={inp} placeholder="Your coordinator company name" />
-                <div style={{ fontSize: 11, color: "#888", marginTop: 6 }}>Shown at the top of the app and under your name in every email you send.</div>
+                <div style={{ fontSize: 11, color: "#666666", marginTop: 6 }}>Shown at the top of the app and under your name in every email you send.</div>
               </div>
             )}
 
@@ -153,13 +153,13 @@ export default function AgentProfile({ onClose, currentUser }) {
             <div style={{ marginBottom: 18 }}>
               <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", marginBottom: 6 }}>Title</label>
               <input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} style={inp} placeholder="Transaction Coordinator, Broker, Real Estate Agent..." />
-              <div style={{ fontSize: 11, color: "#888", marginTop: 4 }}>Shown in your email signature</div>
+              <div style={{ fontSize: 11, color: "#666666", marginTop: 4 }}>Shown in your email signature</div>
             </div>
 
             <div style={{ marginBottom: 8 }}>
               <label style={lbl}>Street Address</label>
               <input value={form.address} onChange={e => setForm(f => ({ ...f, address: e.target.value }))} style={inp} placeholder="123 Main St, Suite 100" />
-              <div style={{ fontSize: 11, color: "#888", marginTop: 4 }}>Your business mailing address — required in the footer of newsletter/marketing emails (CAN-SPAM law).</div>
+              <div style={{ fontSize: 11, color: "#666666", marginTop: 4 }}>Your business mailing address — required in the footer of newsletter/marketing emails (CAN-SPAM law).</div>
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 8 }}>
               <div>
@@ -181,7 +181,7 @@ export default function AgentProfile({ onClose, currentUser }) {
                 <input value={form.zip} onChange={e => setForm(f => ({ ...f, zip: e.target.value }))} style={inp} placeholder="ZIP code" />
               </div>
             </div>
-            <div style={{ fontSize: 11, color: "#888", marginTop: -8, marginBottom: 16 }}>Your home market — used to default the property-tax rate on net sheets.</div>
+            <div style={{ fontSize: 11, color: "#666666", marginTop: -8, marginBottom: 16 }}>Your home market — used to default the property-tax rate on net sheets.</div>
 
             <div style={{ marginBottom: 16 }}>
               <label style={lbl}>Profile Photo</label>
@@ -198,7 +198,7 @@ export default function AgentProfile({ onClose, currentUser }) {
                   </button>
                 )}
               </div>
-              <div style={{ fontSize: 11, color: "#888", marginTop: 2 }}>After you pick a photo you'll drag and zoom it so your face sits right in the circle — exactly how it shows in your email signature.</div>
+              <div style={{ fontSize: 11, color: "#666666", marginTop: 2 }}>After you pick a photo you'll drag and zoom it so your face sits right in the circle — exactly how it shows in your email signature.</div>
               {cropSrc && <PhotoCropper src={cropSrc} onCancel={() => setCropSrc(null)} onSave={uploadCropped} />}
             </div>
 
@@ -207,7 +207,7 @@ export default function AgentProfile({ onClose, currentUser }) {
 
             {/* Email Signature Preview */}
             <div style={{ marginBottom: 20, padding: 16, background: "#F8F9FA", borderRadius: 10, border: "1px solid #DDD" }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: "#888", textTransform: "uppercase", marginBottom: 10 }}>Email Signature Preview</div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: "#666666", textTransform: "uppercase", marginBottom: 10 }}>Email Signature Preview</div>
               <div style={{ borderTop: "2px solid #C0392B", paddingTop: 12, display: "flex", alignItems: "center", gap: 12 }}>
                 {form.photoUrl && <img src={form.photoUrl} alt="" style={{ width: 44, height: 44, borderRadius: "50%", objectFit: "cover" }} onError={e => e.target.style.display="none"} />}
                 <div>

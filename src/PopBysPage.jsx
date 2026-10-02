@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import PopByLogModal from "./PopByLogModal";
+import { askConfirm } from "./ui/dialogs";
 
 const API = "https://liz-team-server-api-production.up.railway.app";
 
@@ -205,7 +206,7 @@ export default function PopBysPage({ token, onBack }) {
   };
 
   const markDelivered = async (c) => {
-    if (!confirm(`Mark the pop-by for ${c.firstName || "this contact"} as delivered? It'll move to your history and reschedule for next time.`)) return;
+    if (!(await askConfirm(`Mark the pop-by for ${c.firstName || "this contact"} as delivered? It'll move to your history and reschedule for next time.`, { okLabel: "Mark delivered" }))) return;
     try {
       const r = await fetch(API + "/popbys/" + c.id + "/delivered", { method: "POST", headers, body: JSON.stringify({ gift: batchGift.gift, note: batchGift.note }) });
       if (!r.ok) { const d = await r.json(); throw new Error(d.error || "Failed"); }
@@ -403,7 +404,7 @@ export default function PopBysPage({ token, onBack }) {
                     <strong>{total}</strong> due this round: <strong style={{ color: "#166534" }}>{nearDue.length} nearby</strong> (your run)
                     {farDue.length > 0 && <span> · <strong style={{ color: "#991b1b" }}>{farDue.length} too far</strong></span>}
                     {(data.noAddress || []).length > 0 && <span> · <strong style={{ color: "#9a3412" }}>{data.noAddress.length} missing an address</strong></span>}
-                    {(farDue.length > 0 || (data.noAddress || []).length > 0) && <span style={{ color: "#9ca3af" }}> — see the sections below.</span>}
+                    {(farDue.length > 0 || (data.noAddress || []).length > 0) && <span style={{ color: "#5F6B7A" }}> — see the sections below.</span>}
                   </div>
                 );
               })()}
@@ -537,7 +538,7 @@ export default function PopBysPage({ token, onBack }) {
                               <span style={{ fontWeight: 800, color: "#0c4a6e", width: 22, textAlign: "right" }}>{i + 1}.</span>
                               <div style={{ flex: 1, minWidth: 0 }}>
                                 <div style={{ fontWeight: 700, fontSize: 13 }}>{c.firstName} {c.lastName}</div>
-                                <div style={{ fontSize: 12, color: "#9ca3af" }}>{c.fullAddress}{leg != null ? ` · ${leg.toFixed(1)} mi ${legLabel}` : ""}</div>
+                                <div style={{ fontSize: 12, color: "#5F6B7A" }}>{c.fullAddress}{leg != null ? ` · ${leg.toFixed(1)} mi ${legLabel}` : ""}</div>
                               </div>
                               <button onClick={() => markDelivered(c)} style={{ ...btn("#fff", "#0c4a6e"), border: "1.5px solid #0c4a6e" }}>Mark delivered</button>
                             </div>
@@ -559,7 +560,7 @@ export default function PopBysPage({ token, onBack }) {
                       <div key={c.id} style={{ display: "flex", gap: 10, alignItems: "center", background: "#fff", border: "1px solid #fecaca", borderRadius: 8, padding: "8px 12px" }}>
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ fontWeight: 700, fontSize: 13 }}>{c.firstName} {c.lastName} <span style={{ fontSize: 11, background: "#0c4a6e", color: "#fff", borderRadius: 6, padding: "1px 6px", marginLeft: 4 }}>{c.tier}</span></div>
-                          <div style={{ fontSize: 12, color: "#9ca3af" }}>{c.fullAddress} · {c.milesFromStart != null ? `~${c.milesFromStart} mi away` : "out of state"}</div>
+                          <div style={{ fontSize: 12, color: "#5F6B7A" }}>{c.fullAddress} · {c.milesFromStart != null ? `~${c.milesFromStart} mi away` : "out of state"}</div>
                         </div>
                         <button onClick={() => markDelivered(c)} style={{ ...btn("#fff", "#0c4a6e"), border: "1.5px solid #0c4a6e" }} title="If you do visit them, mark it here">Mark delivered</button>
                       </div>

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { askConfirm, askText } from "./ui/dialogs";
 
 const API = "https://liz-team-server-api-production.up.railway.app";
 
@@ -33,7 +34,7 @@ const REVIEW_INTERVAL_DAYS = 92; // ~3 months
 // Feedback kind → label + accent
 const FB_KIND = {
   bug: { label: "🐞 Bug", color: "#C0392B" },
-  suggestion: { label: "💡 Idea", color: "#B7770D" },
+  suggestion: { label: "💡 Idea", color: "#8A5A00" },
   other: { label: "💬 Note", color: "#1A2B4A" },
 };
 const FB_FILTERS = [
@@ -161,27 +162,27 @@ function SuperuserDashboard({ onClose, token }) {
     } catch (e) { alert("⚠️ " + e.message); }
     setActingId(null);
   };
-  const revokeCode = (c) => {
-    if (!window.confirm(`Cancel code ${c.code}? Nobody will be able to sign up with it.`)) return;
+  const revokeCode = async (c) => {
+    if (!(await askConfirm(`Cancel code ${c.code}? Nobody will be able to sign up with it.`, { okLabel: "Cancel code", cancelLabel: "Keep it", danger: true }))) return;
     rowAction(c, `/admin/superuser/invite-codes/${c.id}/revoke`);
   };
-  const suspendAccount = (c) => {
-    const reason = window.prompt(
+  const suspendAccount = async (c) => {
+    const reason = await askText(
       `Suspend ${c.brokerage_name || c.used_by_email}?\n\n` +
       `• They're signed out right away and can't sign back in\n` +
       `• Their clients' portals close\n` +
       `• Every automatic email and text on their deals stops\n` +
       `• Nothing is deleted — Reactivate puts it all back\n\n` +
-      `Reason (optional, only you see it):`, "");
+      `Reason (optional, only you see it):`, "", { okLabel: "Suspend" });
     if (reason === null) return; // cancelled
     rowAction(c, `/admin/superuser/tenants/${c.tenant_id}/suspend`, { reason });
   };
-  const reactivateAccount = (c) => {
-    if (!window.confirm(`Reactivate ${c.brokerage_name || c.used_by_email}? They can sign in again and their automatic emails resume.`)) return;
+  const reactivateAccount = async (c) => {
+    if (!(await askConfirm(`Reactivate ${c.brokerage_name || c.used_by_email}? They can sign in again and their automatic emails resume.`, { okLabel: "Reactivate" }))) return;
     rowAction(c, `/admin/superuser/tenants/${c.tenant_id}/reactivate`);
   };
   const CODE_STATUS = {
-    unused:    { label: "Unused",    color: "#B7770D", bg: "#FEF6E7" },
+    unused:    { label: "Unused",    color: "#8A5A00", bg: "#FEF6E7" },
     active:    { label: "Active",    color: "#1E8449", bg: "#E8F5EC" },
     suspended: { label: "Suspended", color: "#B3261E", bg: "#FBE9E7" },
     expired:   { label: "Expired",   color: "#64748B", bg: "#F1F5F9" },

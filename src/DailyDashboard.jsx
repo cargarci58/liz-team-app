@@ -5,6 +5,7 @@ import { telHref } from "./lib/telHref";
 import { WelcomeReminderModal, markWelcomeReceiptConfirmed } from "./WelcomeReceipts";
 import ReminderPlanReview from "./ReminderPlanReview";
 import { ShareBadge } from "./lib/shareBadge";
+import { askConfirm, askText } from "./ui/dialogs";
 
 // Whole days from today (ET) to a date: negative = overdue. ET on purpose —
 // UTC comparisons flip a day after ~8pm Florida time.
@@ -237,7 +238,7 @@ function PersonalTaskCard({ task, token, onChange }) {
   };
 
   const del = async () => {
-    if (!confirm("Delete this general task?")) return;
+    if (!(await askConfirm("Delete this general task?", { okLabel: "Delete", danger: true }))) return;
     setBusy(true);
     try {
       await fetch(API + "/personal-tasks/" + task.id, {
@@ -517,8 +518,8 @@ function TaskItem({ task, bucket, token, onResolve, onComplete, onSnooze, onOpen
         ) : (
           <button onClick={() => onResolve(task.id)}
             style={{ flex:2, padding:"11px 0", borderRadius:10, border:"none",
-              background:COLORS.red, color:COLORS.white, fontWeight:700, fontSize:14, cursor:"pointer" }}>
-            Mark Done ✓
+              background:"#0c4a6e", color:COLORS.white, fontWeight:700, fontSize:14, cursor:"pointer" }}>
+            ✓ Mark Complete
           </button>
         )}
         <button onClick={() => onSnooze(task.id)}
@@ -1012,7 +1013,7 @@ function UnmatchedMailPanel({ token }) {
               </button>
             )}
             <button disabled={busy === m.id}
-              onClick={() => { if (m.forwarding && !window.confirm("Only hide this AFTER you clicked Confirm forwarding and saved the setting in your email.\n\nIf you hide it without confirming, your email will NOT forward into the app.\n\nHide it now?")) return; dismiss(m.id); }}
+              onClick={async () => { if (m.forwarding && !(await askConfirm("Only hide this AFTER you clicked Confirm forwarding and saved the setting in your email.\n\nIf you hide it without confirming, your email will NOT forward into the app.\n\nHide it now?", { okLabel: "Hide it" }))) return; dismiss(m.id); }}
               style={{ padding: "8px 14px", borderRadius: 8, border: "1.5px solid " + COLORS.lightGray, background: COLORS.white, color: COLORS.gray, fontWeight: 600, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>
               {m.forwarding ? "✓ Done — I confirmed it" : "Not deal-related"}
             </button>
@@ -1183,7 +1184,7 @@ function FollowupReviewModal({ token, isMobile, onClose }) {
     setBusy(false);
   };
   const stopStale = async () => {
-    if (!window.confirm(`Stop ALL ${staleCount} follow-ups older than 6 months?\n\nThe contacts stay in your database with their grades — only the old follow-up reminders are cleared. This cannot be undone in one tap.`)) return;
+    if (!(await askConfirm(`Stop ALL ${staleCount} follow-ups older than 6 months?\n\nThe contacts stay in your database with their grades — only the old follow-up reminders are cleared. This cannot be undone in one tap.`, { okLabel: "Clear them", danger: true }))) return;
     setBusy(true);
     try {
       const r = await fetch(API + "/contacts/followups/stop-stale", {
@@ -1275,7 +1276,7 @@ function FollowupReviewModal({ token, isMobile, onClose }) {
               </div>
               <button disabled={busy} onClick={stopFollowup} style={btn("#b91c1c")}>🛑 Stop following up</button>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <span style={{ fontSize: 11.5, color: "#9ca3af" }}>Stopping keeps the contact + grade — only the reminder is cleared.</span>
+                <span style={{ fontSize: 11.5, color: "#5F6B7A" }}>Stopping keeps the contact + grade — only the reminder is cleared.</span>
                 {list.length > 1 && (
                   <button disabled={busy} onClick={() => { setPos(p => (p + 1) % list.length); setCalledId(null); }}
                     style={{ background: "none", border: "none", color: "#6b7280", fontWeight: 800, fontSize: 12.5, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>Skip →</button>
@@ -1905,7 +1906,7 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
                       {tempEmoji} {name}
                       {c.tier && <span style={{ marginLeft: 6, fontSize: 11, fontWeight: 800, color: "#fff", background: "#9ca3af", borderRadius: 10, padding: "1px 7px" }}>{c.tier}</span>}
                     </div>
-                    <div style={{ fontSize: 12, color: "#9ca3af", marginTop: 2 }}>
+                    <div style={{ fontSize: 12, color: "#5F6B7A", marginTop: 2 }}>
                       {c.last_outcome ? `logged: ${String(c.last_outcome).replace(/_/g, " ")}` : "logged"}
                     </div>
                   </div>
@@ -2068,7 +2069,7 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
           <div key={a.id} style={{ background: "#fef2f2", border: "1px solid #fca5a5", borderLeft: "5px solid #dc2626", borderRadius: 8, padding: 12, marginBottom: 8 }}>
             <div style={{ fontWeight: 800, fontSize: 13.5, color: "#7f1d1d" }}>{a.title}</div>
             {a.body && <div style={{ fontSize: 12.5, color: "#991b1b", marginTop: 2, whiteSpace: "pre-line" }}>{a.body}</div>}
-            <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 3 }}>{new Date(a.created_at).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</div>
+            <div style={{ fontSize: 11, color: "#5F6B7A", marginTop: 3 }}>{new Date(a.created_at).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</div>
             <div style={{ display: "flex", gap: 8, marginTop: 9, flexWrap: "wrap" }}>
               {(a.transaction_id || a.kind === "email_needs_filing") && (
                 <button onClick={() => goTo(a)}
@@ -2096,7 +2097,7 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
               onClick={() => a.transaction_id && onOpenTransactionMilestones && onOpenTransactionMilestones(a.transaction_id)}>
               <div style={{ fontWeight: 700, fontSize: 13.5, color: "#111" }}>{a.title}</div>
               {a.body && <div style={{ fontSize: 12.5, color: "#4b5563", marginTop: 2, whiteSpace: "pre-line" }}>{a.body}</div>}
-              <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 3 }}>{new Date(a.created_at).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}{a.transaction_id ? " · tap to open the deal" : ""}</div>
+              <div style={{ fontSize: 11, color: "#5F6B7A", marginTop: 3 }}>{new Date(a.created_at).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}{a.transaction_id ? " · tap to open the deal" : ""}</div>
             </div>
             {!a.seen_at && (
               <button onClick={async () => {
@@ -2156,7 +2157,7 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
                   <div style={{ fontWeight: 700, fontSize: 13.5 }}>{m.from_name || m.from_email || "Unknown sender"} <span style={{ color: "#6b7280", fontWeight: 400 }}>&lt;{m.from_email}&gt;</span></div>
                   <div style={{ fontSize: 13, color: "#111", marginTop: 3, fontWeight: 600 }}>{m.subject || "(no subject)"}</div>
                   {m.snippet && <div style={{ fontSize: 12.5, color: "#4b5563", marginTop: 3 }}>{m.snippet}</div>}
-                  <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 3 }}>{new Date(m.created_at).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}{m.attachment_count ? ` · 📎 ${m.attachment_count} attachment(s)` : ""}</div>
+                  <div style={{ fontSize: 11, color: "#5F6B7A", marginTop: 3 }}>{new Date(m.created_at).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}{m.attachment_count ? ` · 📎 ${m.attachment_count} attachment(s)` : ""}</div>
                   <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap", alignItems: "center" }}>
                     {filingDeals === null ? <span style={{ fontSize: 12, color: "#6b7280" }}>Loading deals…</span> : (
                       <select defaultValue="" onChange={e => e.target.value && fileEmailTo(m.id, e.target.value)}
@@ -2187,7 +2188,7 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
             const needsAck = late >= 3;
             const pickNewDate = async () => {
               const suggestion = new Date(); suggestion.setDate(suggestion.getDate() + 1);
-              const v = prompt("Move this reminder to which date? (YYYY-MM-DD)", suggestion.toISOString().slice(0, 10));
+              const v = await askText("Move this reminder to which date? (YYYY-MM-DD)", suggestion.toISOString().slice(0, 10));
               if (!v) return;
               try {
                 const r = await fetch(API + "/reminders/" + t.target_ref_id + "/reschedule", {

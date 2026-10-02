@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { askConfirm } from "./ui/dialogs";
 
 // Agent-side card (Parties tab): invite a transaction coordinator to THIS deal —
 // or reuse a saved one, drop them onto several of your deals at once, and set a
@@ -17,10 +18,10 @@ async function api(path, opts = {}) {
   return data;
 }
 
-const L = { line: "#e7e2df", red: "#C0392B", muted: "#7a716c", soft: "#FADBD8", green: "#1e8449" };
+const L = { line: "#e7e2df", red: "#C0392B", muted: "#5f5752", soft: "#FADBD8", green: "#1e8449" };
 const wrap = { border: `1px solid ${L.line}`, borderRadius: 14, padding: 16, marginBottom: 16, background: "#fff" };
 const input = { fontSize: 16, padding: "10px 12px", borderRadius: 10, border: `1px solid ${L.line}`, width: "100%", boxSizing: "border-box" };
-const btn = (p) => ({ fontSize: 14, fontWeight: 700, padding: "9px 14px", borderRadius: 10, cursor: "pointer", border: p ? "none" : `1px solid ${L.line}`, background: p ? L.red : "#fff", color: p ? "#fff" : "#111" });
+const btn = (p) => ({ fontSize: 14, fontWeight: 700, padding: "9px 14px", borderRadius: 10, cursor: "pointer", border: p ? "none" : `1px solid ${L.line}`, background: p ? "#0c4a6e" : "#fff", color: p ? "#fff" : "#111" });
 const chk = { display: "flex", gap: 6, alignItems: "center" };
 
 export default function CoordinatorPanel({ txId }) {
@@ -106,12 +107,12 @@ export default function CoordinatorPanel({ txId }) {
     catch (e) { alert("⚠️ " + e.message); }
   };
   const remove = async (c) => {
-    if (!confirm(`Remove ${c.coordinator_name || c.coordinator_email} from this deal? They lose access immediately.`)) return;
+    if (!(await askConfirm(`Remove ${c.coordinator_name || c.coordinator_email} from this deal? They lose access immediately.`, { okLabel: "Remove", danger: true }))) return;
     try { await api(`/transactions/${txId}/coordinator/${c.id}`, { method: "DELETE" }); await load(); }
     catch (e) { alert("⚠️ " + e.message); }
   };
   const clearDefault = async () => {
-    if (!confirm("Stop auto-adding this coordinator to new deals?")) return;
+    if (!(await askConfirm("Stop auto-adding this coordinator to new deals?", { okLabel: "Stop auto-adding" }))) return;
     try { await api("/me/default-coordinator", { method: "PUT", body: JSON.stringify({ clear: true }) }); await loadMeta(); }
     catch (e) { alert("⚠️ " + e.message); }
   };

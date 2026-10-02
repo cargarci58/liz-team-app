@@ -77,7 +77,7 @@ export function StepTracker({ step, tone }) {
               background: cur ? color : done ? C.greenBg : C.bg, color: cur ? "#fff" : done ? C.green : C.muted,
               border: `1px solid ${cur ? color : done ? "#B7E1C1" : C.border}`,
             }}>{done ? "✓ " : `${i + 1} `}{s}</span>
-            {i < STEPS.length - 1 && <span style={{ color: "#BBB", fontSize: 11 }}>→</span>}
+            {i < STEPS.length - 1 && <span style={{ color: "#666666", fontSize: 11 }}>→</span>}
           </span>
         );
       })}

@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 
 const API = "https://liz-team-server-api-production.up.railway.app";
 
-const C = { card: "#fff", border: "#E5E7EB", navy: "#0F2044", gray: "#64748B", green: "#16A34A", red: "#DC2626", amber: "#D97706" };
+const C = { card: "#fff", border: "#E5E7EB", navy: "#0F2044", gray: "#64748B", green: "#1E7B45", red: "#B91C1C", amber: "#8A5A00" };
 const healthColor = (h) => h === "red" ? C.red : h === "yellow" ? C.amber : h === "green" ? C.green : "#CBD5E1";
 const dot = (h) => <span style={{ display: "inline-block", width: 10, height: 10, borderRadius: "50%", background: healthColor(h), flexShrink: 0 }} title={h || "no health read yet"} />;
 function ago(d) {

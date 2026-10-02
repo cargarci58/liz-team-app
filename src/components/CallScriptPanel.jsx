@@ -118,7 +118,7 @@ export default function CallScriptPanel({ contact, token, onClose, onCall }) {
               <div key={i} style={{ border: "1px solid #e5e7eb", borderRadius: 8, marginBottom: 6, overflow: "hidden" }}>
                 <button type="button" onClick={() => setOpenObjection(isOpen ? null : i)}
                   style={{ width: "100%", textAlign: "left", background: isOpen ? "#F4F4F4" : "#fff", border: "none", padding: "10px 12px", fontSize: 13.5, fontWeight: 700, color: "#111", cursor: "pointer", fontFamily: "inherit", display: "flex", justifyContent: "space-between", gap: 8 }}>
-                  <span>{o.says}</span><span style={{ color: "#9ca3af" }}>{isOpen ? "▲" : "▼"}</span>
+                  <span>{o.says}</span><span style={{ color: "#5F6B7A" }}>{isOpen ? "▲" : "▼"}</span>
                 </button>
                 {isOpen && (
                   <div style={{ padding: "0 12px 12px", background: "#F4F4F4" }}>
@@ -131,7 +131,7 @@ export default function CallScriptPanel({ contact, token, onClose, onCall }) {
 
           <div style={section}>⭐ My call scripts</div>
           {mine.length === 0 ? (
-            <div style={{ fontSize: 12.5, color: "#9ca3af", fontStyle: "italic" }}>None yet — add your own on the Scripts page, “📞 Phone calls” tab.</div>
+            <div style={{ fontSize: 12.5, color: "#5F6B7A", fontStyle: "italic" }}>None yet — add your own on the Scripts page, “📞 Phone calls” tab.</div>
           ) : mine.map(s => (
             <div key={s.id} style={{ background: "#F9FAFB", border: "1px dashed #C0392B", borderRadius: 8, padding: "10px 12px", marginTop: 8 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, marginBottom: 5 }}>

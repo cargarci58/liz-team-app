@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import AssistantPanel from "./components/AssistantPanel";
+import { askConfirm, askText } from "./ui/dialogs";
 import { ShareBadge } from "./lib/shareBadge";
 
 // ── Transaction Coordinator portal ──────────────────────────────────────────
@@ -14,7 +15,7 @@ import { ShareBadge } from "./lib/shareBadge";
 const API = "https://liz-team-server-api-production.up.railway.app";
 const C = {
   ink: "#111111", red: "#C0392B", soft: "#FADBD8", paper: "#ffffff",
-  bg: "#F7F4F2", line: "#e7e2df", muted: "#7a716c", green: "#1e8449", amber: "#B9770E",
+  bg: "#F7F4F2", line: "#e7e2df", muted: "#5f5752", green: "#1e8449", amber: "#8A5A00",
 };
 const tok = () => localStorage.getItem("tp_token") || "";
 
@@ -39,7 +40,8 @@ const fullName = (u) => `${u?.firstName || u?.first_name || ""} ${u?.lastName ||
 const card = { background: C.paper, border: `1px solid ${C.line}`, borderRadius: 14, padding: 16, marginBottom: 14 };
 const btn = (primary) => ({
   fontSize: 15, fontWeight: 700, padding: "10px 16px", borderRadius: 10, cursor: "pointer",
-  border: primary ? "none" : `1px solid ${C.line}`, background: primary ? C.red : C.paper, color: primary ? "#fff" : C.ink,
+  // Blue = the normal "do it" action; red is kept for the brand + destructive actions (ui/kit.js).
+  border: primary ? "none" : `1px solid ${C.line}`, background: primary ? "#0c4a6e" : C.paper, color: primary ? "#fff" : C.ink,
 });
 const input = { fontSize: 16, padding: "10px 12px", borderRadius: 10, border: `1px solid ${C.line}`, width: "100%", boxSizing: "border-box" };
 const pill = (bg, fg) => ({ display: "inline-block", fontSize: 12, fontWeight: 700, padding: "3px 9px", borderRadius: 999, background: bg, color: fg });
@@ -276,7 +278,7 @@ function DealView({ txId, onBack }) {
           <button
             disabled={!!busy}
             onClick={() => act(async () => {
-              const reason = (window.prompt('Contract fell through?\n\nThis archives the FULL contract record (people, timeline, terms, documents list), files its documents to a "Last contract" folder, removes the other side\'s people, and resets the deal to Active with a fresh timeline. Messages stay.\n\nType the reason: financing, inspection, appraisal, buyer_cold_feet, seller_side, insurance, title, or other') || "").trim().toLowerCase();
+              const reason = ((await askText('Contract fell through?\n\nThis archives the FULL contract record (people, timeline, terms, documents list), keeps its documents in that contract\'s folder marked "fell through", removes the other side\'s people, and resets the deal to Active with a fresh timeline. Messages stay.\n\nType the reason: financing, inspection, appraisal, buyer_cold_feet, seller_side, insurance, title, or other', '', { okLabel: "Archive & reset to Active", placeholder: "e.g. financing" })) || "").trim().toLowerCase();
               if (!reason) return;
               await api(`/transactions/${txId}/fall-through`, { method: "POST", body: JSON.stringify({ reason }) });
               alert("✓ Contract archived and deal reset to Active. The archive is on the deal's record; let the agent know about MLS + deposit release.");
@@ -318,7 +320,7 @@ function DealView({ txId, onBack }) {
                 )}
                 {permissions.milestones && (
                   <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
-                    {!done && <button disabled={!!busy} style={btn(true)} onClick={() => act(() => api(`/tc/milestones/${m.id}/complete`, { method: "PATCH" }))}>✓ Mark done</button>}
+                    {!done && <button disabled={!!busy} style={btn(true)} onClick={() => act(() => api(`/tc/milestones/${m.id}/complete`, { method: "PATCH" }))}>✓ Mark Complete</button>}
                     {done && <button disabled={!!busy} style={btn(false)} onClick={() => act(() => api(`/tc/milestones/${m.id}/reopen`, { method: "PATCH" }))}>Undo</button>}
                     {!done && <ScheduleControl onSave={(date, time) => act(() => api(`/tc/milestones/${m.id}/schedule`, { method: "PATCH", body: JSON.stringify({ date, time }) }))} />}
                   </div>
@@ -378,7 +380,7 @@ function PeopleTab({ txId, parties, canEdit, onChange }) {
     setBusy(false);
   };
   const remove = async (p) => {
-    if (!window.confirm(`Remove ${p.name || "this person"} from the deal?`)) return;
+    if (!(await askConfirm(`Remove ${p.name || "this person"} from the deal?`, { okLabel: "Remove", danger: true }))) return;
     setBusy(true);
     try { await api(`/tc/party/${p.id}`, { method: "DELETE" }); await onChange(); }
     catch (e) { alert("⚠️ " + e.message); }
@@ -653,7 +655,7 @@ function Business({ user }) {
 function Upgrade({ price, onDone }) {
   const [busy, setBusy] = useState(false);
   const subscribe = async () => {
-    if (!window.confirm(`Start your coordinator subscription at $${price}/month?`)) return;
+    if (!(await askConfirm(`Start your coordinator subscription at $${price}/month?`, { okLabel: "Start subscription" }))) return;
     setBusy(true);
     try { await api("/tc/subscribe", { method: "POST" }); await onDone(); }
     catch (e) { alert("⚠️ " + e.message); }

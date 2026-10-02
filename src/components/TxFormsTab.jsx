@@ -143,7 +143,7 @@ function ShareLinkModal({ form, tx, onClose }) {
           </>
         )}
 
-        {step === 'generating' && <div style={{ textAlign:'center', padding:24, color:'#6366f1' }}>⏳ Generating secure link...</div>}
+        {step === 'generating' && <div style={{ textAlign:'center', padding:24, color:'#4F46E5' }}>⏳ Generating secure link...</div>}
 
         {step === 'done' && linkData && (
           <>

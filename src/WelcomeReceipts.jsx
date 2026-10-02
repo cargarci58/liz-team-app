@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
+import { askConfirm } from "./ui/dialogs";
 
 // Welcome-email receipts: did every party (title, lender, co-op agent, clients…)
 // actually get the Under-Contract welcome email? Shown on the People tab (agent
@@ -73,7 +74,7 @@ export function WelcomeReminderModal({ receiptId, onClose, onSent }) {
 }
 
 export async function markWelcomeReceiptConfirmed(receiptId, name) {
-  if (!window.confirm(`Mark ${name || "this person"} as confirmed?\n\nUse this when they told you directly (phone, text, in person) that they got the welcome email.`)) return false;
+  if (!(await askConfirm(`Mark ${name || "this person"} as confirmed?\n\nUse this when they told you directly (phone, text, in person) that they got the welcome email.`, { okLabel: "Yes, confirmed" }))) return false;
   const r = await fetch(`${API}/welcome-receipts/${receiptId}/mark-confirmed`, { method: "POST", headers: authHeaders(), body: "{}" });
   if (!r.ok) { alert("Could not save — please try again."); return false; }
   return true;

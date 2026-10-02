@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { askConfirm } from "./ui/dialogs";
 
 const API = "https://liz-team-server-api-production.up.railway.app";
 
@@ -106,7 +107,7 @@ export default function TaskTemplatesAdmin({ token, user }) {
   };
 
   const archiveTemplate = async (id, name) => {
-    if (!window.confirm("Archive '" + name + "'? It will be hidden from new transactions but existing tasks won't be affected.")) return;
+    if (!(await askConfirm("Archive '" + name + "'? It will be hidden from new transactions but existing tasks won't be affected.", { okLabel: "Archive" }))) return;
     try {
       const res = await fetch(API + "/admin/task-templates/" + id, {
         method: "DELETE",

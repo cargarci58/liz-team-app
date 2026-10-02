@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import CommissionPlans from "./CommissionPlans";
+import { askConfirm } from "./ui/dialogs";
 
 const API = "https://liz-team-server-api-production.up.railway.app";
 
@@ -51,7 +52,7 @@ export default function CompanySettings({ onClose, onChangePassword }) {
   };
 
   const handleLogoRemove = async () => {
-    if (!confirm("Remove the current logo?")) return;
+    if (!(await askConfirm("Remove the current logo?", { okLabel: "Remove", danger: true }))) return;
     setLogoError("");
     try {
       const res = await fetch(API + "/settings/company/logo", { method: "DELETE", headers });
@@ -236,7 +237,7 @@ export default function CompanySettings({ onClose, onChangePassword }) {
                 <img src={form.logoUrl} alt="Logo preview" style={{ maxHeight: 60, maxWidth: 200, objectFit: "contain" }} onError={e => e.target.style.display = "none"} />
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: 12, fontWeight: 600, color: "#1E8449" }}>✓ Logo set</div>
-                  <div style={{ fontSize: 11, color: "#888", marginTop: 2 }}>This logo appears in all client-facing emails.</div>
+                  <div style={{ fontSize: 11, color: "#666666", marginTop: 2 }}>This logo appears in all client-facing emails.</div>
                 </div>
                 <button onClick={handleLogoRemove} style={{ padding: "6px 12px", background: "none", border: "1px solid #CCC", borderRadius: 6, cursor: "pointer", fontSize: 12, color: "#555", fontFamily: "inherit" }}>Remove</button>
               </div>
@@ -247,7 +248,7 @@ export default function CompanySettings({ onClose, onChangePassword }) {
               <input type="file" accept="image/png,image/jpeg,image/gif,image/webp,image/svg+xml" onChange={handleLogoUpload} disabled={uploadingLogo} style={{ display: "none" }} />
             </label>
 
-            <div style={{ fontSize: 11, color: "#888", marginTop: 6 }}>PNG, JPG, GIF, WebP, or SVG. Max 2 MB.</div>
+            <div style={{ fontSize: 11, color: "#666666", marginTop: 6 }}>PNG, JPG, GIF, WebP, or SVG. Max 2 MB.</div>
             {logoError && <div style={{ fontSize: 12, color: "#C0392B", marginTop: 6, fontWeight: 600 }}>⚠️ {logoError}</div>}
           </div>
 
@@ -261,7 +262,7 @@ export default function CompanySettings({ onClose, onChangePassword }) {
                     <div>
                       <div style={{ fontWeight: 600, color: "#111" }}>
                         {u.first_name} {u.last_name}
-                        {!u.is_active && <span style={{ fontSize: 11, color: "#999", marginLeft: 8, fontWeight: 400 }}>(inactive)</span>}
+                        {!u.is_active && <span style={{ fontSize: 11, color: "#666666", marginLeft: 8, fontWeight: 400 }}>(inactive)</span>}
                       </div>
                       <div style={{ fontSize: 12, color: "#666", marginTop: 2 }}>
                         {u.email}
@@ -272,7 +273,7 @@ export default function CompanySettings({ onClose, onChangePassword }) {
                   </div>
                 ))}
               </div>
-              <div style={{ fontSize: 11, color: "#888", marginTop: -8, marginBottom: 16 }}>Read-only summary. To add, remove, or edit agents, use the User Management screen.</div>
+              <div style={{ fontSize: 11, color: "#666666", marginTop: -8, marginBottom: 16 }}>Read-only summary. To add, remove, or edit agents, use the User Management screen.</div>
             </>
           )}
 
@@ -293,7 +294,7 @@ export default function CompanySettings({ onClose, onChangePassword }) {
               {generatingW9 ? "Generating…" : "📄 Generate W-9 PDF"}
             </button>
             {w9Error && <div style={{ fontSize: 12, color: "#C0392B", marginTop: 10, fontWeight: 600 }}>⚠️ {w9Error}</div>}
-            <div style={{ fontSize: 11, color: "#888", marginTop: 10, lineHeight: 1.4 }}>
+            <div style={{ fontSize: 11, color: "#666666", marginTop: 10, lineHeight: 1.4 }}>
               ℹ️ Print the PDF and sign Part II by hand. The IRS legally requires a real signature for the W-9 to be valid.
             </div>
           </div>

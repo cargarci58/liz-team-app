@@ -308,7 +308,7 @@ export default function CalendarView({ transactions, onBack, onSelectTx }) {
                 <button onClick={nextMonth} style={styles.navBtn}>›</button>
               </div>
             </div>
-            <div style={{ fontSize: 12, color: "#888", margin: "8px 4px 0" }}>💡 Tap any day to open the whole day</div>
+            <div style={{ fontSize: 12, color: "#666666", margin: "8px 4px 0" }}>💡 Tap any day to open the whole day</div>
 
             {/* Calendar Grid */}
             <div style={{ background: "#fff", borderRadius: 12, overflow: "hidden", border: "1px solid #DDD", marginTop: 8 }}>
@@ -332,7 +332,7 @@ export default function CalendarView({ transactions, onBack, onSelectTx }) {
                           {ev.type === "mine" ? "📝 " : ev.type === "deadline" ? "⏰ " : ""}{ev.label}
                         </span>
                       ))}
-                      {dayEvents.length > 3 && <span style={{ fontSize: 10, color: "#888" }}>+{dayEvents.length - 3} more</span>}
+                      {dayEvents.length > 3 && <span style={{ fontSize: 10, color: "#666666" }}>+{dayEvents.length - 3} more</span>}
                     </div>
                   );
                 })}
@@ -362,7 +362,7 @@ export default function CalendarView({ transactions, onBack, onSelectTx }) {
                 <div style={{ fontWeight: 700, fontSize: 20, color: "#111" }}>
                   {new Date(year, month, selectedDay).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
                 </div>
-                <div style={{ fontSize: 12, color: "#888" }}>{selectedEvents.length} item{selectedEvents.length === 1 ? "" : "s"}</div>
+                <div style={{ fontSize: 12, color: "#666666" }}>{selectedEvents.length} item{selectedEvents.length === 1 ? "" : "s"}</div>
               </div>
               <div style={{ display: "flex", gap: 8 }}>
                 <button onClick={() => setMode("month")} style={styles.smallBtn}>📅 Month</button>
@@ -370,7 +370,7 @@ export default function CalendarView({ transactions, onBack, onSelectTx }) {
               </div>
             </div>
             <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #DDD", padding: 20, marginTop: 12 }}>
-              {selectedEvents.length === 0 && <div style={{ fontSize: 14, color: "#888", marginBottom: 10 }}>Nothing scheduled for this day{Object.values(show).some(v => !v) ? " (some kinds are hidden — see Show above)" : ""}.</div>}
+              {selectedEvents.length === 0 && <div style={{ fontSize: 14, color: "#666666", marginBottom: 10 }}>Nothing scheduled for this day{Object.values(show).some(v => !v) ? " (some kinds are hidden — see Show above)" : ""}.</div>}
               {selectedEvents.map(eventRow)}
               {addRow(selectedKey, "➕ Add a task for this day")}
             </div>

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { askConfirm } from "./ui/dialogs";
 
 const API = "https://liz-team-server-api-production.up.railway.app";
 
@@ -38,7 +39,7 @@ export default function OfferReviewPublic({ token: urlToken }) {
 
   const decide = async (offerId, decision) => {
     const verb = decision === "accepted" ? "ACCEPT" : "DECLINE";
-    if (!window.confirm(`${verb} this offer?\n\nThis lets your agent know your choice. Your agent will finalize the acceptance.`)) return;
+    if (!(await askConfirm(`${verb} this offer?\n\nThis lets your agent know your choice. Your agent will finalize the acceptance.`, decision === "accepted" ? { okLabel: "Yes, accept" } : { okLabel: "Yes, decline", danger: true }))) return;
     setBusyId(offerId);
     try {
       const r = await fetch(`${API}/public/offer-review/${token}/decision`, {

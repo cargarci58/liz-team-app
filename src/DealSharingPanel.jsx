@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { askConfirm, askText } from "./ui/dialogs";
 
 const API = "https://liz-team-server-api-production.up.railway.app";
 
@@ -93,7 +94,7 @@ export default function DealSharingPanel({ txId, onChanged }) {
       <button onClick={async () => {
         const r = await fetch(API + "/transactions/" + txId + "/partners/" + p.id + "/link", { method: "POST", headers });
         const x = await r.json(); if (!r.ok || !x.success) { setMsg("⚠️ " + (x.error || "Couldn't make the link")); return; }
-        try { await navigator.clipboard.writeText(x.link); setMsg("✅ Partner link copied — paste it in a text."); } catch { window.prompt("Copy this partner link:", x.link); }
+        try { await navigator.clipboard.writeText(x.link); setMsg("✅ Partner link copied — paste it in a text."); } catch { await askText("Copy this partner link:", x.link, { okLabel: "Done" }); }
       }} style={{ padding: "4px 10px", borderRadius: 8, border: "1px solid " + C.border, background: "#fff", color: C.text, fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}>🔗 Copy link</button>
     </div>
   );
@@ -167,12 +168,12 @@ export default function DealSharingPanel({ txId, onChanged }) {
               <input placeholder="Their email" value={c.email || ""} onChange={e => setCo(i, { email: e.target.value })} style={inp} />
               <input placeholder="Their brokerage (if different)" value={c.brokerage || ""} onChange={e => setCo(i, { brokerage: e.target.value })} style={inp} />
               <input placeholder="Their share %" type="number" value={c.share_pct ?? ""} onChange={e => setCo(i, { share_pct: e.target.value })} style={inp} />
-              {canEdit ? <button onClick={() => {
+              {canEdit ? <button onClick={async () => {
                 const rest = form.coAgents.filter((_, j) => j !== i);
                 // A saved co-agent is removed for real right away — not left on
                 // screen waiting for "Save sharing" while they keep access.
                 if (!c.id) { set({ coAgents: rest }); return; }
-                if (!window.confirm(`Remove ${c.name || "this co-agent"} as co-agent?\n\nThey lose access to this deal right away.`)) return;
+                if (!(await askConfirm(`Remove ${c.name || "this co-agent"} as co-agent?\n\nThey lose access to this deal right away.`, { okLabel: "Remove", danger: true }))) return;
                 const next = { ...form, coAgents: rest, deal_share_type: rest.length ? form.deal_share_type : "standard" };
                 setForm(next); save(next);
               }} title="Remove" style={{ border: "none", background: "none", cursor: "pointer", fontSize: 16 }}>✕</button> : <span />}

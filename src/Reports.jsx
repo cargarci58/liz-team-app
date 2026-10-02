@@ -470,7 +470,7 @@ function GoalPlannerTab({ transactions }) {
 
           <div style={{ borderTop: "1px solid #EEE", paddingTop: 12 }}>
             <button onClick={() => setShowRates(v => !v)}
-              style={{ background: "none", border: "none", padding: 0, fontSize: 12.5, fontWeight: 700, color: "#888", cursor: "pointer", fontFamily: "inherit" }}>
+              style={{ background: "none", border: "none", padding: 0, fontSize: 12.5, fontWeight: 700, color: "#666666", cursor: "pointer", fontFamily: "inherit" }}>
               {showRates ? "▴ Hide" : "▾ Advanced"}: conversion assumptions (optional — good defaults are already set)
             </button>
             {showRates && (
@@ -482,7 +482,7 @@ function GoalPlannerTab({ transactions }) {
                     Use my actual numbers
                   </button>
                 </div>
-                {!hasRealRatios && <div style={{ fontSize: 11, color: "#AAA", marginBottom: 10 }}>("Use my actual numbers" unlocks after you've logged calls and closed deals in the app.)</div>}
+                {!hasRealRatios && <div style={{ fontSize: 11, color: "#666666", marginBottom: 10 }}>("Use my actual numbers" unlocks after you've logged calls and closed deals in the app.)</div>}
                 <RateRow k="dialToConv" label="Dials → Conversation" />
                 <RateRow k="convToAppt" label="Conversation → Appointment" />
                 <RateRow k="apptToContract" label="Appointment → Contract" />

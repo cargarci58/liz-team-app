@@ -2,17 +2,18 @@ import React from 'react';
 import { useState, useEffect, useRef } from "react";
 import PopByLogModal from "./PopByLogModal";
 import { CallScriptsButton } from "./components/CallScriptPanel";
+import { askConfirm, askText } from "./ui/dialogs";
 
 const API = "https://liz-team-server-api-production.up.railway.app";
 
 const TEMP_META = {
   hot:    { emoji: "🔥", label: "Hot",    color: "#dc2626", bg: "#fee2e2" },
-  warm:   { emoji: "🌤",  label: "Warm",   color: "#d97706", bg: "#fef3c7" },
-  cold:   { emoji: "❄️",  label: "Cold",   color: "#0284c7", bg: "#e0f2fe" },
+  warm:   { emoji: "🌤",  label: "Warm",   color: "#8A5A00", bg: "#fef3c7" },
+  cold:   { emoji: "❄️",  label: "Cold",   color: "#0369A1", bg: "#e0f2fe" },
   // Legacy values kept only so old badges still render; not selectable anymore
   // (these moved to Type / Tier to remove the Type-vs-Status overlap).
   sphere: { emoji: "👥", label: "Sphere", color: "#7c3aed", bg: "#ede9fe" },
-  past:   { emoji: "🏡", label: "Past",   color: "#16a34a", bg: "#dcfce7" },
+  past:   { emoji: "🏡", label: "Past",   color: "#1E7B45", bg: "#dcfce7" },
   dnc:    { emoji: "🚫", label: "DNC",    color: "#6b7280", bg: "#f3f4f6" },
 };
 // Temp is now purely opportunity heat: Hot / Warm / Cold.
@@ -222,7 +223,7 @@ function TierPicker({ value, currentTier, onChange }) {
                   {t.label}{currentTier === t.key ? <span style={{ fontSize: 10.5, fontWeight: 700, color: "#6b7280" }}> · current</span> : null}
                 </span>
                 <span style={{ display: "block", fontSize: 11.5, color: "#4b5563", lineHeight: 1.35 }}>{t.desc}</span>
-                <span style={{ display: "block", fontSize: 10.5, color: "#9ca3af", marginTop: 1 }}>{t.cadence}</span>
+                <span style={{ display: "block", fontSize: 10.5, color: "#5F6B7A", marginTop: 1 }}>{t.cadence}</span>
               </span>
             </button>
           );
@@ -374,17 +375,17 @@ function LogCallModal({ contact, token, onClose, onLogged }) {
                 <div key={h.id || i} style={{ paddingBottom: 8, marginBottom: 8, borderBottom: i < history.length - 1 ? "1px solid #EEF2F7" : "none" }}>
                   <div style={{ fontSize: 12, color: "#64748b" }}>
                     {h.created_at ? new Date(h.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : ""} · <span style={{ fontWeight: 700, color: "#334155" }}>{outcomeLabel(h.outcome)}</span>
-                    {(h.by_first || h.by_last) ? <span style={{ color: "#94a3b8" }}> · by {[h.by_first, h.by_last].filter(Boolean).join(" ")}</span> : null}
+                    {(h.by_first || h.by_last) ? <span style={{ color: "#5F6B7A" }}> · by {[h.by_first, h.by_last].filter(Boolean).join(" ")}</span> : null}
                   </div>
                   {h.notes && <div style={{ fontSize: 13, color: "#1f2937", marginTop: 2, lineHeight: 1.45 }}>"{h.notes}"</div>}
-                  {h.next_call_scheduled_at && <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 2 }}>↳ next: {new Date(h.next_call_scheduled_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</div>}
+                  {h.next_call_scheduled_at && <div style={{ fontSize: 11, color: "#5F6B7A", marginTop: 2 }}>↳ next: {new Date(h.next_call_scheduled_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</div>}
                 </div>
               ))}
             </div>
           </div>
         )}
         {step === 1 && history === null && (
-          <div style={{ fontSize: 12, color: "#94a3b8", marginBottom: 12 }}>Loading past conversations…</div>
+          <div style={{ fontSize: 12, color: "#5F6B7A", marginBottom: 12 }}>Loading past conversations…</div>
         )}
 
         {step === 1 && (
@@ -699,10 +700,10 @@ function ContactModal({ contact, token, onClose, onSaved }) {
           <Field label="Last time they moved" hint="When they bought / moved into their current home. We'll remind you to check in as their move cycle comes around."><input type="date" value={form.last_moved_on} onChange={e => update("last_moved_on", e.target.value)} style={inputStyle} /></Field>
           <Field label="Moves about every ___ years" hint="Most people move every few years — the app reminds you to check in as their time gets close. Leave blank for the default (3)."><input type="number" min="1" max="30" placeholder="3" value={form.move_cycle_years} onChange={e => update("move_cycle_years", e.target.value.replace(/\D/g, "").slice(0,2))} style={inputStyle} /></Field>
         </div>
-        {!isEdit && <div style={{ fontSize: 11, color: "#9ca3af", marginTop: -8, marginBottom: 4 }}>Tip: birthday, anniversaries, and "last moved" save once you create the contact and reopen it to edit.</div>}
+        {!isEdit && <div style={{ fontSize: 11, color: "#5F6B7A", marginTop: -8, marginBottom: 4 }}>Tip: birthday, anniversaries, and "last moved" save once you create the contact and reopen it to edit.</div>}
         <Field label="Groups" hint="Optional — tag where you know them from. Pick any that apply (a contact can be in several, or none).">
           {availableGroups.length === 0 && form.groups.length === 0 ? (
-            <div style={{ fontSize: 12, color: "#9ca3af", marginBottom: 6 }}>No groups yet — create one below or in "Manage Groups".</div>
+            <div style={{ fontSize: 12, color: "#5F6B7A", marginBottom: 6 }}>No groups yet — create one below or in "Manage Groups".</div>
           ) : (
             <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 8 }}>
               {Array.from(new Set([...availableGroups, ...form.groups])).map(name => {
@@ -1012,10 +1013,10 @@ function ImportModal({ token, onClose, onImported, onFillMissing }) {
   ];
 
   // Allow closing only when not importing
-  const safeClose = () => {
+  const safeClose = async () => {
     if (importing) return;
     if (step === 3) { onClose(); return; }
-    if (rawRows.length > 0 && !confirm("Discard this import? Your progress will be lost.")) return;
+    if (rawRows.length > 0 && !(await askConfirm("Discard this import? Your progress will be lost.", { okLabel: "Discard", danger: true }))) return;
     onClose();
   };
 
@@ -1166,12 +1167,12 @@ function ContactDetailDrawer({ contact, token, onClose, onEdit, onLogged, onArch
   const m = TEMP_META[contact.temperature] || TEMP_META.warm;
 
   const outcomeMeta = {
-    spoke_interested: { label: "✅ Reached - Interested", color: "#16a34a" },
-    spoke_not_now: { label: "💬 Reached - Not Now", color: "#0284c7" },
+    spoke_interested: { label: "✅ Reached - Interested", color: "#1E7B45" },
+    spoke_not_now: { label: "💬 Reached - Not Now", color: "#0369A1" },
     left_vm: { label: "📵 Left Voicemail", color: "#7c3aed" },
     no_answer: { label: "📞 No Answer", color: "#6b7280" },
     wrong_number: { label: "❌ Wrong Number", color: "#dc2626" },
-    meeting_set: { label: "📅 Meeting Set", color: "#16a34a" },
+    meeting_set: { label: "📅 Meeting Set", color: "#1E7B45" },
     dnc: { label: "🛑 Do Not Contact", color: "#6b7280" },
   };
 
@@ -1592,7 +1593,7 @@ function CampaignModal({ token, groupList, onClose }) {
     if (!subject.trim()) return alert("Add a subject line.");
     if (!body.trim()) return alert("Write a message first.");
     const n = preview && preview.count;
-    if (!confirm(`Send this newsletter now${n != null ? ` to about ${n} contact${n === 1 ? "" : "s"}` : ""}?\n\nEveryone gets a one-click unsubscribe link, and anyone who already opted out is skipped automatically. This will NOT affect your transaction emails.`)) return;
+    if (!(await askConfirm(`Send this newsletter now${n != null ? ` to about ${n} contact${n === 1 ? "" : "s"}` : ""}?\n\nEveryone gets a one-click unsubscribe link, and anyone who already opted out is skipped automatically. This will NOT affect your transaction emails.`, { okLabel: "Send now" }))) return;
     setBusy(true);
     try {
       const r = await fetch(API + "/marketing/send", { method: "POST", headers: authHeaders, body: JSON.stringify({ subject, body, audience_kind: audienceKind, audience_value: audienceValue || null }) });
@@ -1611,7 +1612,7 @@ function CampaignModal({ token, groupList, onClose }) {
   const schedule = async () => {
     if (!subject.trim()) return alert("Add a subject line.");
     if (!body.trim()) return alert("Write a message first.");
-    if (!confirm(`Schedule this to send automatically on day ${sendDay} of every month?`)) return;
+    if (!(await askConfirm(`Schedule this to send automatically on day ${sendDay} of every month?`, { okLabel: "Schedule" }))) return;
     setBusy(true);
     try {
       const r = await fetch(API + "/marketing/schedule", { method: "POST", headers: authHeaders, body: JSON.stringify({ subject, body, audience_kind: audienceKind, audience_value: audienceValue || null, send_day: sendDay }) });
@@ -1624,7 +1625,7 @@ function CampaignModal({ token, groupList, onClose }) {
   };
 
   const toggleCamp = async (id) => { await fetch(API + `/marketing/campaigns/${id}/toggle`, { method: "POST", headers: authHeaders }).catch(() => {}); loadCampaigns(); };
-  const delCamp = async (id) => { if (!confirm("Delete this campaign?")) return; await fetch(API + `/marketing/campaigns/${id}`, { method: "DELETE", headers: authHeaders }).catch(() => {}); loadCampaigns(); };
+  const delCamp = async (id) => { if (!(await askConfirm("Delete this campaign?", { okLabel: "Delete", danger: true }))) return; await fetch(API + `/marketing/campaigns/${id}`, { method: "DELETE", headers: authHeaders }).catch(() => {}); loadCampaigns(); };
 
   const monthly = campaigns.filter(c => c.schedule_kind === "monthly");
   const audienceLabel = audienceKind === "all" ? "everyone in your contacts"
@@ -1690,7 +1691,7 @@ function CampaignModal({ token, groupList, onClose }) {
             {/* Send now */}
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginBottom: 18 }}>
               <button onClick={send} disabled={busy} style={{ ...btnStyle("#0c4a6e", "white"), opacity: busy ? 0.6 : 1 }}>{busy ? "Working…" : "📤 Send Now"}</button>
-              <span style={{ color: "#9ca3af", fontSize: 13 }}>or schedule it to repeat:</span>
+              <span style={{ color: "#5F6B7A", fontSize: 13 }}>or schedule it to repeat:</span>
             </div>
 
             {/* Schedule monthly */}
@@ -1841,7 +1842,7 @@ export default function ContactsPage({ token, onBack }) {
   useEffect(() => { loadGroups(); }, []);
 
   const createGroup = async () => {
-    const name = prompt("New group name:");
+    const name = await askText("New group name:");
     if (!name || !name.trim()) return;
     try {
       const r = await fetch(API + "/contacts/groups", {
@@ -1855,7 +1856,7 @@ export default function ContactsPage({ token, onBack }) {
   };
 
   const deleteGroup = async (name) => {
-    if (!confirm("Delete group \"" + name + "\"? It will be removed from all contacts (contacts themselves are kept).")) return;
+    if (!(await askConfirm("Delete group \"" + name + "\"? It will be removed from all contacts (contacts themselves are kept).", { okLabel: "Delete", danger: true }))) return;
     try {
       const r = await fetch(API + "/contacts/groups/" + encodeURIComponent(name), { method: "DELETE", headers: { Authorization: "Bearer " + token } });
       if (!r.ok) { const d = await r.json(); throw new Error(d.error || "Failed"); }
@@ -1866,7 +1867,7 @@ export default function ContactsPage({ token, onBack }) {
 
   const bulkSetTier = async () => {
     if (selected.size === 0) return;
-    const t = prompt("Set tier for the selected " + selected.size + " contact(s)?\nType: A+, A, B, C, or D");
+    const t = await askText("Set tier for the selected " + selected.size + " contact(s)?\nType: A+, A, B, C, or D");
     if (!t || !t.trim()) return;
     try {
       const r = await fetch(API + "/contacts/bulk-tier", {
@@ -1883,7 +1884,7 @@ export default function ContactsPage({ token, onBack }) {
 
   const bulkAddToGroup = async () => {
     if (selected.size === 0) return;
-    const g = prompt("Add the selected " + selected.size + " contact(s) to which group?\n(e.g. Bunco, Church, Open House)");
+    const g = await askText("Add the selected " + selected.size + " contact(s) to which group?\n(e.g. Bunco, Church, Open House)");
     if (!g || !g.trim()) return;
     try {
       const r = await fetch(API + "/contacts/bulk-group", {
@@ -1909,9 +1910,9 @@ export default function ContactsPage({ token, onBack }) {
     const verb = action === "delete" ? "PERMANENTLY DELETE" : action === "archive" ? "archive" : "un-archive";
     const noun = selected.size === 1 ? "contact" : "contacts";
     if (action === "delete") {
-      if (!confirm("⚠️ Permanently delete " + selected.size + " " + noun + " AND all their call history?\n\nThis CANNOT be undone.")) return;
+      if (!(await askConfirm("⚠️ Permanently delete " + selected.size + " " + noun + " AND all their call history?\n\nThis CANNOT be undone.", { okLabel: "Delete forever", danger: true }))) return;
     } else {
-      if (!confirm("Are you sure you want to " + verb + " " + selected.size + " " + noun + "?")) return;
+      if (!(await askConfirm("Are you sure you want to " + verb + " " + selected.size + " " + noun + "?", { okLabel: action === "archive" ? "Archive" : "Un-archive" }))) return;
     }
     try {
       const r = await fetch(API + "/contacts/bulk", {
@@ -1942,14 +1943,14 @@ export default function ContactsPage({ token, onBack }) {
     const cityZip = [cityState, c.zip_code].filter(Boolean).join(" ").trim();
     return { name, street, cityZip, hasAddr: !!(street || cityZip) };
   };
-  const printLabels = (list) => {
+  const printLabels = async (list) => {
     const labels = list.map(buildLabel).filter(l => l.hasAddr);
     const skipped = list.length - labels.length;
     if (labels.length === 0) {
       alert("None of these contacts have a mailing address on file, so there's nothing to print.\n\nAdd a street/city/state/zip to a contact (Edit), then try again.");
       return;
     }
-    if (skipped > 0 && !confirm(`${labels.length} label${labels.length === 1 ? "" : "s"} will print.\n\n${skipped} contact${skipped === 1 ? " was" : "s were"} skipped — no mailing address on file.\n\nContinue?`)) return;
+    if (skipped > 0 && !(await askConfirm(`${labels.length} label${labels.length === 1 ? "" : "s"} will print.\n\n${skipped} contact${skipped === 1 ? " was" : "s were"} skipped — no mailing address on file.\n\nContinue?`, { okLabel: "Continue" }))) return;
     const cells = labels.map(l => `
       <div class="label">
         <div class="nm">${escHtml(l.name)}</div>
@@ -2053,7 +2054,7 @@ export default function ContactsPage({ token, onBack }) {
                       onMouseEnter={e => e.currentTarget.style.background = "#f3f4f6"}
                       onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
                       <span>{it.label}</span>
-                      {it.hint && <span style={{ fontSize: 11, fontWeight: 500, color: "#9ca3af" }}>{it.hint}</span>}
+                      {it.hint && <span style={{ fontSize: 11, fontWeight: 500, color: "#5F6B7A" }}>{it.hint}</span>}
                     </button>
                   ))}
                 </div>
@@ -2191,14 +2192,14 @@ export default function ContactsPage({ token, onBack }) {
                     <LogCallButton contact={c} token={token} onLogged={load} compact />
                     <button onClick={() => setEditing(c)} style={{ ...btnStyle("#e5e7eb", "#374151"), padding: "4px 10px", fontSize: 11, marginLeft: 6 }}>Edit</button>
                     <button onClick={async () => {
-                      if (!confirm("Archive " + name + "?")) return;
+                      if (!(await askConfirm("Archive " + name + "?", { okLabel: "Archive" }))) return;
                       try {
                         await fetch(API + "/contacts/" + c.id, { method: "PUT", headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" }, body: JSON.stringify({ is_archived: true }) });
                         load();
                       } catch (e) { alert("Error: " + e.message); }
                     }} title="Archive contact" style={{ background: "transparent", border: "none", cursor: "pointer", fontSize: 14, marginLeft: 6, padding: "2px 4px" }}>📦</button>
                     <button onClick={async () => {
-                      if (!confirm("⚠️ Delete " + name + " forever?\n\nThis CANNOT be undone — call history will also be lost.")) return;
+                      if (!(await askConfirm("⚠️ Delete " + name + " forever?\n\nThis CANNOT be undone — call history will also be lost.", { okLabel: "Delete forever", danger: true }))) return;
                       try {
                         await fetch(API + "/contacts/" + c.id, { method: "DELETE", headers: { Authorization: "Bearer " + token } });
                         load();
@@ -2259,7 +2260,7 @@ export default function ContactsPage({ token, onBack }) {
               Groups let you tag where contacts came from (Bunco, Church, Open House). Create one here, then add contacts to it from the list or the contact form.
             </div>
             {groupList.length === 0 ? (
-              <div style={{ color: "#9ca3af", fontSize: 13, padding: 20, textAlign: "center" }}>No groups yet. Click "+ New Group".</div>
+              <div style={{ color: "#5F6B7A", fontSize: 13, padding: 20, textAlign: "center" }}>No groups yet. Click "+ New Group".</div>
             ) : (
               <div style={{ display: "grid", gap: 6 }}>
                 {groupList.map(g => (

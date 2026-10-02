@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { askText } from "./ui/dialogs";
 
 const API = "https://liz-team-server-api-production.up.railway.app";
 
@@ -365,7 +366,7 @@ export default function OfferSignPublic({ urlToken, kind = "offer" }) {
   const interactiveCount = nonChoiceInteractive + choiceGroups.length;
   const [textMap, setTextMap] = useState({}); // stop gidx → signer-typed text
 
-  const applyStop = useCallback((idx) => {
+  const applyStop = useCallback(async (idx) => {
     const s = stops[idx];
     if (!s || s.auto) return;
     let nextChoice = choiceMap;
@@ -374,7 +375,7 @@ export default function OfferSignPublic({ urlToken, kind = "offer" }) {
       setChoiceMap(nextChoice);
     }
     if (s.kind === "text") {
-      const v = window.prompt("Type what should go in this box:", textMap[idx] || "");
+      const v = await askText("Type what should go in this box:", textMap[idx] || "", { okLabel: "Done" });
       if (v === null) return;
       const t = v.trim().slice(0, 120);
       if (!t) return;

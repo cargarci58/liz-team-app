@@ -130,7 +130,7 @@ export default function PortalMagicLogin({ urlToken }) {
         fontWeight: 700, fontSize: 16, padding: "14px 0", borderRadius: 10, cursor: busy ? "default" : "pointer" }}>
       {busy ? "One moment…" : isSetup ? "Save my PIN & open portal" : "Open my portal"}
     </button>
-    <div style={{ fontSize: 12, color: "#9CA3AF", marginTop: 14 }}>
+    <div style={{ fontSize: 12, color: "#5F6B7A", marginTop: 14 }}>
       {isSetup ? "You'll use this PIN every time you open a portal link." : "Forgot your PIN? Reply to any email from your agent and we'll reset it."}
     </div>
   </>);

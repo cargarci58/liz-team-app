@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { askConfirm, askText } from "./ui/dialogs";
 
 const API = "https://liz-team-server-api-production.up.railway.app";
 
@@ -186,7 +187,7 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
 
   // Mark a required document as Not Applicable for this deal, with a reason on record.
   const waiveSlot = async (documentType, label) => {
-    const reason = window.prompt(`Mark "${label}" as Not Applicable for this deal.\n\nReason (required) — e.g. "Transaction broker — no disclosure needed":`, "");
+    const reason = await askText(`Mark "${label}" as Not Applicable for this deal.\n\nReason (required) — e.g. "Transaction broker — no disclosure needed":`, "", { okLabel: "Mark N/A" });
     if (reason == null) return;            // cancelled
     if (!reason.trim()) { alert("A reason is required to waive a document."); return; }
     setSlotUploading(documentType);
@@ -218,7 +219,7 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
   // `folder` to the group's name, so it always lands where it was dropped.
   const docGroupKey = (d) => d.folder || d.category || "General";
   const createFolder = async () => {
-    const name = (window.prompt("New folder name:", "") || "").trim();
+    const name = ((await askText("New folder name:", "", { okLabel: "Create folder" })) || "").trim();
     if (!name) return;
     try {
       const res = await fetch(`${API}/transactions/${tx.id}/document-folders`, {
@@ -231,7 +232,7 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
     } catch (err) { alert("Couldn't create the folder: " + err.message); }
   };
   const renameFolder = async (from) => {
-    const to = (window.prompt(`Rename folder "${from}" to:`, from) || "").trim();
+    const to = ((await askText(`Rename folder "${from}" to:`, from, { okLabel: "Rename" })) || "").trim();
     if (!to || to === from) return;
     try {
       const res = await fetch(`${API}/transactions/${tx.id}/document-folders/rename`, {
@@ -244,7 +245,7 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
     } catch (err) { alert("Couldn't rename the folder: " + err.message); }
   };
   const deleteEmptyFolder = async (name) => {
-    if (!window.confirm(`Remove the empty folder "${name}"?`)) return;
+    if (!(await askConfirm(`Remove the empty folder "${name}"?`, { okLabel: "Remove", danger: true }))) return;
     try {
       const res = await fetch(`${API}/transactions/${tx.id}/document-folders/${encodeURIComponent(name)}`, {
         method: "DELETE", headers,
@@ -303,7 +304,7 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
     } catch (err) { alert("Couldn't move the file: " + err.message); }
   };
   const renameFile = async (doc) => {
-    const name = (window.prompt("Rename file to:", doc.name || "") || "").trim();
+    const name = ((await askText("Rename file to:", doc.name || "", { okLabel: "Rename" })) || "").trim();
     if (!name || name === doc.name) return;
     try {
       const res = await fetch(`${API}/documents/${doc.id}/name`, {
@@ -335,7 +336,7 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
   // Picked the wrong file for a slot? Un-assign it (that slot only — the doc
   // keeps any other slots it satisfies).
   const unassignExisting = async (documentType, docId, docName, slotLabel) => {
-    if (!window.confirm(`Remove "${docName}" from the ${slotLabel} slot?\n\nThe file stays in Documents — this only un-fills this checklist item so you can pick the right one.`)) return;
+    if (!(await askConfirm(`Remove "${docName}" from the ${slotLabel} slot?\n\nThe file stays in Documents — this only un-fills this checklist item so you can pick the right one.`, { okLabel: "Remove", danger: true }))) return;
     setSlotUploading(documentType);
     try {
       const res = await fetch(`${API}/documents/${docId}/document-type/${encodeURIComponent(documentType)}`, { method: "DELETE", headers });
@@ -433,7 +434,7 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
   };
 
   const handleDelete = async (doc) => {
-    if (!window.confirm(`Delete "${doc.name}"?`)) return;
+    if (!(await askConfirm(`Delete "${doc.name}"?`, { okLabel: "Delete", danger: true }))) return;
     try {
       await fetch(`${API}/documents/${doc.id}`, { method: "DELETE", headers });
       setDocs(prev => prev.filter(d => d.id !== doc.id));
@@ -485,7 +486,7 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
           {item.custom && <span style={{ marginLeft: 6, fontSize: 10, fontWeight: 700, color: "#1A5276", background: "#D6EAF8", padding: "1px 6px", borderRadius: 10 }}>BROKER</span>}
         </div>
         {item.waived ? (
-          <div style={{ fontSize: 11, color: "#7A7A7A", marginTop: 1 }}>N/A — {item.waiveReason}{item.waivedBy ? ` (${item.waivedBy})` : ""}</div>
+          <div style={{ fontSize: 11, color: "#666666", marginTop: 1 }}>N/A — {item.waiveReason}{item.waivedBy ? ` (${item.waivedBy})` : ""}</div>
         ) : (
           <>
             {item.description && (
@@ -669,27 +670,32 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
             style={{ padding: "8px 12px", borderRadius: 8, border: "1px solid #DDDDDD", fontSize: 13, fontFamily: "inherit" }}>
             {CATEGORIES.map(c => <option key={c}>{c}</option>)}
           </select>
-          <label style={{ padding: "8px 20px", background: "#C0392B", color: "#fff", borderRadius: 8, cursor: uploading ? "not-allowed" : "pointer", fontWeight: 600, fontSize: 13, opacity: uploading ? 0.7 : 1 }}>
+          <label style={{ padding: "8px 20px", background: "#0c4a6e", color: "#fff", borderRadius: 8, cursor: uploading ? "not-allowed" : "pointer", fontWeight: 600, fontSize: 13, opacity: uploading ? 0.7 : 1 }}>
             {uploading ? "Uploading..." : "Choose Files"}
             <input type="file" multiple onChange={handleUpload} disabled={uploading} style={{ display: "none" }}
               accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg,.gif,.txt" />
           </label>
-          <button onClick={() => setShowAddendum(true)}
-            title="Fill out an Addendum to Contract (ACSP-4): type any terms, then send it for signatures"
-            style={{ padding: "8px 16px", background: "#fff", color: "#86198f", border: "1px solid #d8b4fe", borderRadius: 8, cursor: "pointer", fontWeight: 700, fontSize: 13, fontFamily: "inherit" }}>
-            📝 New Addendum
-          </button>
-          <button onClick={() => setShowCombine(true)}
-            title="Merge several PDFs into one file (originals stay untouched)"
-            style={{ padding: "8px 16px", background: "#fff", color: "#0E7490", border: "1px solid #67E8F9", borderRadius: 8, cursor: "pointer", fontWeight: 700, fontSize: 13, fontFamily: "inherit" }}>
-            🧷 Combine PDFs
-          </button>
-          <button onClick={createFolder}
-            title="Create a folder to organize this deal's files — then drag files in, or use a file's ⋯ menu → Move to folder"
-            style={{ padding: "8px 16px", background: "#fff", color: "#92400E", border: "1px solid #FCD34D", borderRadius: 8, cursor: "pointer", fontWeight: 700, fontSize: 13, fontFamily: "inherit" }}>
-            📁 New Folder
-          </button>
         </div>
+      </div>
+      {/* Tools that aren't uploading live in their own row (tester review: they
+          sat inside "Upload Document" though none of them uploads anything). */}
+      <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginTop: -12, marginBottom: 24 }}>
+        <span style={{ fontSize: 12, fontWeight: 700, color: COLORS.muted, textTransform: "uppercase", letterSpacing: "0.05em", marginRight: 4 }}>Document tools</span>
+        <button onClick={() => setShowAddendum(true)}
+          title="Fill out an Addendum to Contract (ACSP-4): type any terms, then send it for signatures"
+          style={{ padding: "8px 14px", background: "#fff", color: "#0c4a6e", border: "1.5px solid #0c4a6e", borderRadius: 8, cursor: "pointer", fontWeight: 700, fontSize: 13, fontFamily: "inherit" }}>
+          📝 New Addendum
+        </button>
+        <button onClick={() => setShowCombine(true)}
+          title="Merge several PDFs into one file (originals stay untouched)"
+          style={{ padding: "8px 14px", background: "#fff", color: "#0c4a6e", border: "1.5px solid #0c4a6e", borderRadius: 8, cursor: "pointer", fontWeight: 700, fontSize: 13, fontFamily: "inherit" }}>
+          🧷 Combine PDFs
+        </button>
+        <button onClick={createFolder}
+          title="Create a folder to organize this deal's files — then drag files in, or use a file's ⋯ menu → Move to folder"
+          style={{ padding: "8px 14px", background: "#fff", color: "#0c4a6e", border: "1.5px solid #0c4a6e", borderRadius: 8, cursor: "pointer", fontWeight: 700, fontSize: 13, fontFamily: "inherit" }}>
+          📁 New Folder
+        </button>
       </div>
       {showCombine && (
         <CombinePdfsModal tx={tx} docs={docs} headers={headers}
@@ -1775,7 +1781,7 @@ export function DocSignModal({ tx, doc, allDocs = [], headers, onClose, initialR
   const setRow = (i, k, v) => setRows(rs => rs.map((r, j) => j === i ? { ...r, [k]: v } : r));
   const signerNames = rows.map(r => (r.name || "").trim()).filter(Boolean);
 
-  const placeAt = (docId, pg, e) => {
+  const placeAt = async (docId, pg, e) => {
     const rect = e.currentTarget.getBoundingClientRect();
     const scale = rect.width / pg.width;
     const x = Math.max(0, Math.min(pg.width - 10, (e.clientX - rect.left) / scale));
@@ -1783,7 +1789,7 @@ export function DocSignModal({ tx, doc, allDocs = [], headers, onClose, initialR
     const y = Math.max(4, Math.min(pg.height - 10, pg.height - yTop));
     let text = "";
     if (placeKind === "text") {
-      const t = prompt("What should this text box say?\n\nLeave it EMPTY to let the signer type it in when they sign.");
+      const t = await askText("What should this text box say?\n\nLeave it EMPTY to let the signer type it in when they sign.", "", { okLabel: "Place box" });
       if (t === null) return; // cancelled
       text = t.trim().slice(0, 120);
     }
@@ -1845,7 +1851,7 @@ export function DocSignModal({ tx, doc, allDocs = [], headers, onClose, initialR
   };
 
   const cancel = async () => {
-    if (!confirm("Cancel the outstanding signing links for this document?")) return;
+    if (!(await askConfirm("Cancel the outstanding signing links for this document?", { okLabel: "Cancel links", cancelLabel: "Keep links", danger: true }))) return;
     setBusy(true);
     try {
       const r = await fetch(`${API}/documents/${doc.id}/cancel-signatures`, { method: "POST", headers });
@@ -1902,7 +1908,7 @@ export function DocSignModal({ tx, doc, allDocs = [], headers, onClose, initialR
                         <span style={{ color: "#92400e", fontWeight: 700 }}>⏳ Waiting</span>
                         <button disabled={busy}
                           onClick={async () => {
-                            const em = prompt("Send " + (s.signer_name || "this signer") + "'s signing link to which email?\n\n(Change it here if it was wrong — same link, nothing to redo.)", s.signer_email || "");
+                            const em = await askText("Send " + (s.signer_name || "this signer") + "'s signing link to which email?\n\n(Change it here if it was wrong — same link, nothing to redo.)", s.signer_email || "", { okLabel: "Send link" });
                             if (em === null || !em.trim()) return;
                             setBusy(true); setErr(null);
                             try {
@@ -2334,9 +2340,9 @@ function ListingPackageModal({ tx, headers, dealDocs = [], onClose, onDone }) {
       <div style={{ background: "#fff", borderRadius: 14, width: "100%", maxWidth: 720, boxShadow: "0 20px 60px rgba(0,0,0,0.35)", overflow: "hidden" }}>
         <div style={{ background: "#7B241C", padding: "14px 20px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div style={{ color: "#fff", fontWeight: 800, fontSize: 16 }}>📦 Listing Package{tx.address ? " — " + tx.address : ""}</div>
-          <button onClick={() => {
+          <button onClick={async () => {
             if (step === "sent") { onDone(); return; }
-            if (step === "review" || busy) { if (window.confirm("Close the listing package? Your generated forms stay under Documents — nothing has been sent yet.")) onClose(); return; }
+            if (step === "review" || busy) { if (await askConfirm("Close the listing package? Your generated forms stay under Documents — nothing has been sent yet.", { okLabel: "Close", cancelLabel: "Keep working" })) onClose(); return; }
             onClose();
           }} style={{ background: "none", border: "none", color: "#fff", fontSize: 22, cursor: "pointer", lineHeight: 1 }}>×</button>
         </div>
@@ -2662,7 +2668,7 @@ function CombinePdfsModal({ tx, docs, headers, onClose, onDone }) {
           </div>
           {err && <div style={{ background: "#FDEDEC", border: "1px solid #F5B7B1", color: "#943126", borderRadius: 8, padding: "9px 11px", fontSize: 13, marginBottom: 10 }}>⚠️ {err}</div>}
           <div style={{ maxHeight: 300, overflowY: "auto", border: "1px solid #EEE", borderRadius: 10, padding: "6px 10px", marginBottom: 12 }}>
-            {pdfs.length === 0 && <div style={{ fontSize: 13, color: "#777", padding: 8 }}>No PDFs on this deal yet.</div>}
+            {pdfs.length === 0 && <div style={{ fontSize: 13, color: "#666666", padding: 8 }}>No PDFs on this deal yet.</div>}
             {pdfs.map(d => {
               const pos = picked.indexOf(d.id);
               return (
@@ -2773,14 +2779,14 @@ export function AdjustSpotsModal({ doc, signerNames, initial, headers, onSave, o
   };
   const endResize = () => { resizeRef.current = null; };
 
-  const placeAt = (pg, e) => {
+  const placeAt = async (pg, e) => {
     const rect = e.currentTarget.getBoundingClientRect();
     const scale = rect.width / pg.width;
     const x = Math.max(0, Math.min(pg.width - 10, (e.clientX - rect.left) / scale));
     const y = Math.max(4, Math.min(pg.height - 10, pg.height - (e.clientY - rect.top) / scale));
     let text;
     if (placeKind === "text") {
-      const t = prompt("What should this text box say?\n\nLeave it EMPTY to let the signer type it in when they sign.");
+      const t = await askText("What should this text box say?\n\nLeave it EMPTY to let the signer type it in when they sign.", "", { okLabel: "Place box" });
       if (t === null) return;
       text = t.trim().slice(0, 120);
     }

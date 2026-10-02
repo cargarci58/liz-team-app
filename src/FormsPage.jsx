@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { askConfirm } from './ui/dialogs';
 
 const API = import.meta.env.VITE_API_URL || 'https://liz-team-server-api-production.up.railway.app';
 const CATEGORIES = ['Disclosures','Addendums','Checklists','Marketing','Brokerage Policies','Other'];
@@ -61,7 +62,7 @@ export default function FormsPage({ user, onBack }) {
   }
 
   async function handleDelete(form) {
-    if (!confirm(`Delete "${form.name}"? This cannot be undone.`)) return;
+    if (!(await askConfirm(`Delete "${form.name}"? This cannot be undone.`, { okLabel: 'Delete', danger: true }))) return;
     try {
       const r = await fetch(`${API}/forms/${form.id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token()}` } });
       if (!r.ok) { const d = await r.json(); alert(d.error || 'Delete failed'); return; }
@@ -259,13 +260,13 @@ function UploadFormModal({ onClose, onSaved }) {
             <p style={{ fontSize: 14, color: '#4b5563' }}>Choose a PDF file. We'll analyze the filename and pre-fill the details for you.</p>
             <input type="file" accept="application/pdf" onChange={handleFile}
               style={{ display: 'block', marginTop: 12, padding: 8 }} />
-            {suggesting && <div style={{ marginTop: 12, color: '#6366f1' }}>✨ Analyzing filename with AI...</div>}
+            {suggesting && <div style={{ marginTop: 12, color: '#4F46E5' }}>✨ Analyzing filename with AI...</div>}
           </>
         )}
 
         {step === 2 && (
           <>
-            <p style={{ fontSize:13, color:'#059669', margin:'0 0 12px' }}>✨ AI suggested these — review and confirm:</p>
+            <p style={{ fontSize:13, color:'#1E7B45', margin:'0 0 12px' }}>✨ AI suggested these — review and confirm:</p>
             <label style={labelStyle}>Form Name</label>
             <input value={meta.name} onChange={e => setMeta({...meta, name: e.target.value})} style={inputStyle} />
             <label style={labelStyle}>Category</label>
@@ -384,7 +385,7 @@ function EditFormModal({ form, onClose, onSaved }) {
             {form.has_file ? '📄 Replace PDF File' : '📤 Upload PDF File'}
           </div>
           <input type="file" accept="application/pdf" onChange={handleReplace} disabled={replacing} />
-          {replacing && <div style={{ marginTop: 6, color: '#6366f1', fontSize: 12 }}>⏳ Uploading...</div>}
+          {replacing && <div style={{ marginTop: 6, color: '#4F46E5', fontSize: 12 }}>⏳ Uploading...</div>}
         </div>
 
         <div style={{ display:'flex', gap:8, marginTop:16, justifyContent:'flex-end' }}>

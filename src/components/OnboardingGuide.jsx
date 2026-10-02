@@ -71,7 +71,7 @@ export default function OnboardingGuide({ steps, doneKeys, onTakeMeThere, onSkip
         <div style={{ fontSize: 12, fontWeight: 800, color: RED, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
           Setup · Step {currentIdx + 1} of {steps.length}
         </div>
-        <button onClick={onDismiss} style={{ background: 'none', border: 'none', fontSize: 12, color: '#999', cursor: 'pointer', fontFamily: 'inherit' }}>Skip setup</button>
+        <button onClick={onDismiss} style={{ background: 'none', border: 'none', fontSize: 12, color: '#666666', cursor: 'pointer', fontFamily: 'inherit' }}>Skip setup</button>
       </div>
 
       {/* Progress dots */}
@@ -96,7 +96,7 @@ export default function OnboardingGuide({ steps, doneKeys, onTakeMeThere, onSkip
                 <button onClick={() => onStartTour(s)} style={primaryBtn}>Start the tour →</button>
               ) : (
                 <>
-                  <div style={{ fontSize: 12.5, color: '#777', marginBottom: 10, lineHeight: 1.5 }}>
+                  <div style={{ fontSize: 12.5, color: '#666666', marginBottom: 10, lineHeight: 1.5 }}>
                     👉 Where to click: <strong>{s.where}</strong> (top-right of your screen).
                   </div>
                   <button onClick={() => onTakeMeThere(s)} style={primaryBtn}>Show me — open it now →</button>
@@ -112,7 +112,7 @@ export default function OnboardingGuide({ steps, doneKeys, onTakeMeThere, onSkip
         );
       })}
 
-      <div style={{ fontSize: 12, color: '#999', textAlign: 'center', marginTop: 6 }}>
+      <div style={{ fontSize: 12, color: '#666666', textAlign: 'center', marginTop: 6 }}>
         You can turn this off anytime — it's always in ⚙️ Menu → ❓ Help &amp; Guides → Start Here.
       </div>
     </Overlay>
@@ -133,4 +133,4 @@ function Overlay({ children, onBackdrop }) {
 }
 
 const primaryBtn = { background: RED, color: '#fff', border: 'none', borderRadius: 10, padding: '11px 22px', fontSize: 14, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit' };
-const linkBtn = { background: 'none', border: 'none', color: '#999', fontSize: 13, cursor: 'pointer', marginTop: 14, fontFamily: 'inherit' };
+const linkBtn = { background: 'none', border: 'none', color: '#666666', fontSize: 13, cursor: 'pointer', marginTop: 14, fontFamily: 'inherit' };

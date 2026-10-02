@@ -146,7 +146,7 @@ export default function FaqHelpButton({ transactionId, apiBase, token }) {
                   border: 'none',
                   fontSize: '24px',
                   cursor: 'pointer',
-                  color: '#999',
+                  color: '#666666',
                   lineHeight: 1,
                 }}
               >
@@ -185,7 +185,7 @@ export default function FaqHelpButton({ transactionId, apiBase, token }) {
                   <div style={{
                     fontSize: '12px',
                     fontWeight: 'bold',
-                    color: '#888',
+                    color: '#666666',
                     textTransform: 'uppercase',
                     letterSpacing: '0.5px',
                     marginBottom: '8px',
@@ -203,7 +203,7 @@ export default function FaqHelpButton({ transactionId, apiBase, token }) {
                   <div style={{
                     fontSize: '12px',
                     fontWeight: 'bold',
-                    color: '#888',
+                    color: '#666666',
                     textTransform: 'uppercase',
                     letterSpacing: '0.5px',
                     marginBottom: '8px',
@@ -222,7 +222,7 @@ export default function FaqHelpButton({ transactionId, apiBase, token }) {
               padding: '12px 20px',
               borderTop: '1px solid #eee',
               fontSize: '12px',
-              color: '#888',
+              color: '#666666',
               background: '#fafafa',
             }}>
               These FAQs are educational only and not legal advice. For legal or tax questions, consult a real estate attorney or CPA.
@@ -259,7 +259,7 @@ function FaqRow({ faq, isOpen, onToggle }) {
         }}
       >
         <span>{faq.question}</span>
-        <span style={{ color: '#999', flexShrink: 0 }}>{isOpen ? '−' : '+'}</span>
+        <span style={{ color: '#666666', flexShrink: 0 }}>{isOpen ? '−' : '+'}</span>
       </button>
       {isOpen && (
         <div style={{

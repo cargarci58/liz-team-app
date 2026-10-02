@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { CALL_SCRIPT_GROUPS, CALL_OBJECTIONS } from "./config/callScripts";
+import { askConfirm } from "./ui/dialogs";
 
 const API = "https://liz-team-server-api-production.up.railway.app";
 
@@ -173,7 +174,7 @@ export default function ScriptsPage({ token, onBack, currentUser }) {
     setSaving(false);
   };
   const deleteScript = async (sc) => {
-    if (!window.confirm(`Delete your script "${sc.title || "Untitled"}"?`)) return;
+    if (!(await askConfirm(`Delete your script "${sc.title || "Untitled"}"?`, { okLabel: "Delete", danger: true }))) return;
     try { await fetch(API + "/scripts/" + sc.id, { method: "DELETE", headers: hdrs }); loadMine(); } catch {}
   };
   const myScripts = mine.filter(m => m.side === side);

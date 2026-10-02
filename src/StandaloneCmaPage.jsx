@@ -7,6 +7,7 @@
 // ============================================================================
 import React, { useState, useEffect, useCallback } from 'react';
 import CmaTool from './cma/CmaTool';
+import { askConfirm } from './ui/dialogs';
 
 const API_BASE = 'https://liz-team-server-api-production.up.railway.app';
 
@@ -53,7 +54,7 @@ export default function StandaloneCmaPage({ token, currentUser, onBack, onCreate
   };
 
   const deleteSaved = async (id, label) => {
-    if (!window.confirm(`Delete the CMA for "${label || 'this property'}"? This can't be undone.`)) return;
+    if (!(await askConfirm(`Delete the CMA for "${label || 'this property'}"? This can't be undone.`, { okLabel: 'Delete', danger: true }))) return;
     try {
       const r = await fetch(API_BASE + '/cmas/' + id, { method: 'DELETE', headers });
       if (r.ok) setList((l) => l.filter((c) => c.id !== id));
@@ -123,7 +124,7 @@ export default function StandaloneCmaPage({ token, currentUser, onBack, onCreate
                 <div style={{ fontSize: 13, color: '#475467' }}>
                   Recommended: <strong style={{ color: '#1a2b4a' }}>{fmtMoney(c.recommended_price)}</strong>
                 </div>
-                <div style={{ fontSize: 11, color: '#98a2b3' }}>Updated {fmtDate(c.updated_at || c.created_at)}</div>
+                <div style={{ fontSize: 11, color: '#5F6B7A' }}>Updated {fmtDate(c.updated_at || c.created_at)}</div>
                 {c.converted_transaction_id && (
                   <div style={{ fontSize: 11, fontWeight: 700, color: '#1E8449', background: '#eafaf1', borderRadius: 8, padding: '3px 8px', alignSelf: 'flex-start' }}>
                     ✓ Became a transaction

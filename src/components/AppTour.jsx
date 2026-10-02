@@ -36,7 +36,7 @@ export default function AppTour({ onClose, onCreateFirst }) {
           <div style={{ fontSize: 12, fontWeight: 800, color: RED, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
             App Tour · {i + 1} of {CARDS.length}
           </div>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: 20, color: '#999', cursor: 'pointer', lineHeight: 1 }}>×</button>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: 20, color: '#666666', cursor: 'pointer', lineHeight: 1 }}>×</button>
         </div>
 
         {/* Progress dots */}
@@ -69,7 +69,7 @@ export default function AppTour({ onClose, onCreateFirst }) {
         </div>
         {last && onCreateFirst && (
           <div style={{ textAlign: 'center', marginTop: 12 }}>
-            <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#999', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>I'll explore on my own</button>
+            <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#666666', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>I'll explore on my own</button>
           </div>
         )}
       </div>

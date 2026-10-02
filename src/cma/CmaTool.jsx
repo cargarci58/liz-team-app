@@ -25,6 +25,7 @@ import {
   runAnalysis,
 } from './lib/cmaAnalysis.js';
 import { normalizeRentalRow, computeRentalAnalysis } from './lib/rentalAnalysis.js';
+import { askConfirm } from '../ui/dialogs';
 
 // Backend base URL — matches the hardcoded value used elsewhere in the app
 // (CMACalculator, SMSPanel). Multi-tenant: every branding/profile call below is
@@ -279,8 +280,8 @@ function CmaTool({ tx, token, currentUser, standalone = false, initialCma = null
     }
   }, [draftKey, mode, comps, selectedIds, filename, subject, upgrades, marketOverride, filters, statusFilter, rentalComps, rentalFilename]);
 
-  const resetCMA = () => {
-    if (window.confirm('Start a new CMA? This will clear the comps and analysis (subject details reset to the transaction).')) {
+  const resetCMA = async () => {
+    if (await askConfirm('Start a new CMA? This will clear the comps and analysis (subject details reset to the transaction).', { okLabel: 'Start new CMA', danger: true })) {
       try { localStorage.removeItem(draftKey); } catch { /* ignore */ }
       setComps([]);
       setSelectedIds(new Set());
@@ -781,10 +782,10 @@ function CmaTool({ tx, token, currentUser, standalone = false, initialCma = null
                 ) : (
                   <div style={{ background: '#fff', border: '1px solid var(--rule)', borderRadius: 8, padding: 16 }}>
                     <div style={{ fontWeight: 800, fontSize: 14, marginBottom: 4 }}>✍️ Type your comps</div>
-                    <div style={{ fontSize: 12, color: '#777', marginBottom: 12 }}>Pull recently-sold homes near the property from your MLS app or Realtor.com — address, sold price, and heated sqft are all that's required. 3 minimum; 5–8 is better.</div>
+                    <div style={{ fontSize: 12, color: '#666666', marginBottom: 12 }}>Pull recently-sold homes near the property from your MLS app or Realtor.com — address, sold price, and heated sqft are all that's required. 3 minimum; 5–8 is better.</div>
                     <div style={{ overflowX: 'auto' }}>
                       <table style={{ borderCollapse: 'collapse', width: '100%', fontSize: 12.5 }}>
-                        <thead><tr>{['Address *', 'Status', 'Price ($) *', 'Heated sqft *', 'Sold date', 'Beds', 'Baths', 'Year built'].map(h => <th key={h} style={{ textAlign: 'left', padding: '4px 6px', color: '#777', fontWeight: 700, whiteSpace: 'nowrap' }}>{h}</th>)}</tr></thead>
+                        <thead><tr>{['Address *', 'Status', 'Price ($) *', 'Heated sqft *', 'Sold date', 'Beds', 'Baths', 'Year built'].map(h => <th key={h} style={{ textAlign: 'left', padding: '4px 6px', color: '#666666', fontWeight: 700, whiteSpace: 'nowrap' }}>{h}</th>)}</tr></thead>
                         <tbody>
                           {manualRows.map((r, i) => (
                             <tr key={i}>

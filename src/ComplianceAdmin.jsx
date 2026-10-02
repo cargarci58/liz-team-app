@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { askConfirm } from "./ui/dialogs";
 
 const API = "https://liz-team-server-api-production.up.railway.app";
 
@@ -172,7 +173,7 @@ function RequiredDocsManager({ token }) {
   };
 
   const remove = async (it) => {
-    if (!confirm(`Remove "${it.doc_label}" as a brokerage requirement? It will stop appearing on that side's deals.`)) return;
+    if (!(await askConfirm(`Remove "${it.doc_label}" as a brokerage requirement? It will stop appearing on that side's deals.`, { okLabel: "Remove", danger: true }))) return;
     try {
       await fetch(API + "/admin/document-requirements/" + it.id, { method: "DELETE", headers: h });
       await load();
@@ -346,7 +347,7 @@ export default function ComplianceAdmin({ token, user }) {
   };
 
   const approve = async (id) => {
-    if (!confirm("Mark as attorney-reviewed? This removes the pending-review flag.")) return;
+    if (!(await askConfirm("Mark as attorney-reviewed? This removes the pending-review flag.", { okLabel: "Mark reviewed" }))) return;
     try {
       await fetch(API + "/admin/document-requirements/" + id + "/approve", {
         method: "POST", headers: { Authorization: "Bearer " + token }
@@ -356,7 +357,7 @@ export default function ComplianceAdmin({ token, user }) {
   };
 
   const removeReq = async (id) => {
-    if (!confirm("Deactivate this requirement? It will stop applying to new transactions.")) return;
+    if (!(await askConfirm("Deactivate this requirement? It will stop applying to new transactions.", { okLabel: "Deactivate", danger: true }))) return;
     try {
       await fetch(API + "/admin/document-requirements/" + id, {
         method: "DELETE", headers: { Authorization: "Bearer " + token }

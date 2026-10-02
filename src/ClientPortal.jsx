@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import BuyerCalculator from "./components/BuyerCalculator";
 import SellerCalculator from "./components/SellerCalculator";
 import TransactionChat from "./TransactionChat";
+import { askConfirm } from "./ui/dialogs";
 // Liability-critical client-facing claim logic lives in one tested module.
 import { deriveStage, strongClaimFor } from "./portalClaims";
 import { flTaxRate, deedDocStampPer100 } from "./lib/flTaxRates";
@@ -242,7 +243,8 @@ function ClosingCountdownCard({ tx }) {
   if (tx.status === "Closed") return null;
   if (days === null || days < 0 || days > 30) return null;
   const isBuyer = tx.transactionType && tx.transactionType.includes("Buyer");
-  const headline = days === 0 ? "Closing is today! 🎉" : days === 1 ? "1 day to closing" : `${days} days to closing`;
+  // The day count lives in the welcome card / top pill — not repeated here (tester review).
+  const headline = days === 0 ? "Closing is today! 🎉" : "Get ready for closing day";
   const items = isBuyer ? [
     { icon: "🛡️", text: "Confirm your homeowner's insurance is active starting on closing day." },
     { icon: "👀", text: "Do your final walk-through with your agent to make sure the home is in the agreed condition." },
@@ -292,7 +294,7 @@ function AgentCard({ name, title, brokerage, phone, email, photo, brand }) {
         ? <img src={photo} alt={name} style={{ width: 58, height: 58, borderRadius: "50%", objectFit: "cover", flexShrink: 0, border: `2px solid ${brand}` }} />
         : <div style={{ width: 58, height: 58, borderRadius: "50%", background: brand, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 20, flexShrink: 0 }}>{initials}</div>}
       <div style={{ flex: 1, minWidth: 150 }}>
-        <div style={{ fontSize: 11, fontWeight: 700, color: "#888", textTransform: "uppercase", letterSpacing: 1 }}>Your Agent</div>
+        <div style={{ fontSize: 11, fontWeight: 700, color: "#666666", textTransform: "uppercase", letterSpacing: 1 }}>Your Agent</div>
         <div style={{ fontSize: 17, fontWeight: 800, color: "#111" }}>{name}</div>
         <div style={{ fontSize: 12.5, color: "#666" }}>{[title, brokerage].filter(Boolean).join(" · ")}</div>
       </div>
@@ -346,11 +348,8 @@ function JourneyHero({ tx, stage }) {
       <div style={{ position: "relative" }}>
         <div style={{ fontSize: 22, fontWeight: 900, lineHeight: 1.2, marginBottom: 6 }}>{headline}</div>
         <div style={{ fontSize: 13, color: "rgba(255,255,255,0.82)", lineHeight: 1.5 }}>{sub}</div>
-        {tx.closingDate && tx.status !== "Closed" && (
-          <div style={{ display: "inline-block", marginTop: 12, background: "rgba(255,255,255,0.14)", borderRadius: 20, padding: "5px 14px", fontSize: 12.5, fontWeight: 600 }}>
-            📅 Closing {formatDate(tx.closingDate)}
-          </div>
-        )}
+        {/* Closing date lives in the top pill; the countdown lives in the headline
+            above — each shown once (tester review: it was repeated). */}
       </div>
     </div>
   );
@@ -387,7 +386,7 @@ function SellerOffersCard({ offers, context, headers, agentName, onDecided }) {
 
   const decide = async (offerId, decision) => {
     const verb = decision === "accepted" ? "ACCEPT" : "decline";
-    if (!window.confirm(`Let ${agentName || "your agent"} know you'd like to ${verb} this offer?\n\nYour agent will follow up to finalize — this notifies them of your choice.`)) return;
+    if (!(await askConfirm(`Let ${agentName || "your agent"} know you'd like to ${verb} this offer?\n\nYour agent will follow up to finalize — this notifies them of your choice.`, { okLabel: decision === "accepted" ? "Yes, tell my agent" : "Yes, decline" }))) return;
     setBusyId(offerId);
     try {
       const r = await fetch(API + "/client/offers/" + offerId + "/decision", {
@@ -521,7 +520,7 @@ function WinsCard({ timeline }) {
       <div style={{ fontSize: 12, fontWeight: 800, color: "#555", textTransform: "uppercase", letterSpacing: 1, marginBottom: 2 }}>
         🎉 Look how far we've come — {done.length} step{done.length === 1 ? "" : "s"} done
       </div>
-      <div style={{ fontSize: 12, color: "#888", marginBottom: 10 }}>Your most recent wins:</div>
+      <div style={{ fontSize: 12, color: "#666666", marginBottom: 10 }}>Your most recent wins:</div>
       {recent.map((m, i) => (
         <div key={m.id || i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "7px 0", borderBottom: i < recent.length - 1 ? "1px solid #F4F4F4" : "none" }}>
           <span style={{ color: "#1E8449", fontSize: 16, fontWeight: 800 }}>✓</span>
@@ -792,7 +791,7 @@ function FirstTimeRoadmapCard({ tx }) {
               <div style={{ fontSize: 12.5, color: C.black, lineHeight: 1.55, marginTop: 5 }}>{s.happening}</div>
               <div style={{ fontSize: 12.5, color: C.gray, lineHeight: 1.55, marginTop: 6 }}><b style={{ color: NAVY }}>What you'll do:</b> {s.doText}</div>
               <div style={{ fontSize: 12, color: C.gray, lineHeight: 1.5, marginTop: 4 }}><b style={{ color: NAVY }}>How long:</b> {s.howLong}</div>
-              <div style={{ fontSize: 12, color: "#1E6B47", background: C.successBg, borderRadius: 9, padding: "8px 10px", marginTop: 8, lineHeight: 1.5 }}>💛 {s.note}</div>
+              <div style={{ fontSize: 12.5, color: "#374151", background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 9, padding: "8px 10px", marginTop: 8, lineHeight: 1.5 }}><b style={{ color: NAVY }}>Good to know:</b> {s.note}</div>
             </div>
           </div>
         );
@@ -883,7 +882,7 @@ function HomeSellingJourneyCard({ tx }) {
               <div style={{ fontSize: 12.5, color: C.black, lineHeight: 1.55, marginTop: 5 }}>{s.happening}</div>
               <div style={{ fontSize: 12.5, color: C.gray, lineHeight: 1.55, marginTop: 6 }}><b style={{ color: NAVY }}>What you'll do:</b> {s.doText}</div>
               <div style={{ fontSize: 12, color: C.gray, lineHeight: 1.5, marginTop: 4 }}><b style={{ color: NAVY }}>How long:</b> {s.howLong}</div>
-              <div style={{ fontSize: 12, color: "#1E6B47", background: C.successBg, borderRadius: 9, padding: "8px 10px", marginTop: 8, lineHeight: 1.5 }}>💛 {s.note}</div>
+              <div style={{ fontSize: 12.5, color: "#374151", background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 9, padding: "8px 10px", marginTop: 8, lineHeight: 1.5 }}><b style={{ color: NAVY }}>Good to know:</b> {s.note}</div>
             </div>
           </div>
         );
@@ -984,9 +983,9 @@ function ShowingToursCard({ txId, preview = false }) {
   const wantOffer = async (s) => {
     // Agent previewing the portal: the tap marks the home (so the agent sees the
     // ❤️ banner in their Showings tab) but sends no message/email to themselves.
-    if (!window.confirm(preview
+    if (!(await askConfirm(preview
       ? `Preview: mark ${s.address} as "buyer wants to make an offer"?\n\nYou'll see the ❤️ banner in your Showings tab. (In preview nothing is emailed — when your real buyer taps it, you also get a message + email.)`
-      : `Tell your agent you'd like to make an offer on ${s.address}?`)) return;
+      : `Tell your agent you'd like to make an offer on ${s.address}?`, { okLabel: "Yes, tell my agent" }))) return;
     setSending(s.id);
     try {
       const r = await fetch(API + "/client/showing-stops/" + s.id + "/offer-interest", { method: "POST", headers: { "Authorization": "Bearer " + (localStorage.getItem("tp_token") || "") } });
@@ -1274,7 +1273,7 @@ function VendorCategorySection({ category, vendors, transactionId, token, onUpda
   const available = vendors.filter(v => v.vendor_status === "available");
 
   const handleSelect = async (vendor) => {
-    if (!window.confirm("Select " + vendor.name + " as your " + category + "?")) return;
+    if (!(await askConfirm("Select " + vendor.name + " as your " + category + "?", { okLabel: "Select" }))) return;
     setSelecting(vendor.id);
     try {
       const res = await fetch(API + "/vendors/select/" + transactionId + "/" + vendor.id, {
@@ -1947,13 +1946,13 @@ export default function ClientPortal({ user, onLogout, previewTxId, onExitPrevie
 
       {/* Preview banner — agent is viewing the client's portal */}
       {isPreview && (
-        <div style={{ background: "#B7770D", color: "#fff", padding: "10px 16px",
+        <div style={{ background: "#8A5A00", color: "#fff", padding: "10px 16px",
           display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
           <span style={{ fontSize: 13, fontWeight: 700 }}>👁 Preview — this is exactly what your client sees.</span>
           <button onClick={() => (onExitPreview ? onExitPreview() : onLogout && onLogout())}
             style={{ background: "#fff", color: "#7A5C00", border: "none", borderRadius: 8,
               padding: "6px 14px", cursor: "pointer", fontSize: 12, fontWeight: 800, fontFamily: "inherit" }}>
-            ← Back to deal
+            ← Exit Preview
           </button>
         </div>
       )}
@@ -1977,13 +1976,16 @@ export default function ClientPortal({ user, onLogout, previewTxId, onExitPrevie
             </div>
           </div>
         </div>
-        <button onClick={() => (isPreview ? (onExitPreview ? onExitPreview() : onLogout && onLogout()) : onLogout && onLogout())}
+        {/* In preview the yellow banner above holds the ONE Exit Preview button. */}
+        {!isPreview && (
+        <button onClick={() => onLogout && onLogout()}
           style={{ background: "transparent", border: "1.5px solid rgba(255,255,255,0.5)",
             color: "#ffffff", borderRadius: 8, padding: "7px 18px",
             cursor: "pointer", fontSize: 13, fontWeight: 600, fontFamily: "inherit",
             letterSpacing: "0.3px" }}>
-          {isPreview ? "Exit Preview" : "Sign Out"}
+          Sign Out
         </button>
+        )}
       </div>
 
       {!tx ? (
@@ -2029,7 +2031,8 @@ export default function ClientPortal({ user, onLogout, previewTxId, onExitPrevie
                 <span style={{ fontSize: 13 }}>📅</span>
                 <span style={{ fontSize: 13, color: "#fff", fontWeight: 600 }}>
                   Closing {formatDate(tx.closingDate)}
-                  {daysToClose !== null && daysToClose >= 0 && " · " + daysToClose + " days away"}
+                  {/* Countdown only when the welcome card's headline isn't already showing it. */}
+                  {daysToClose !== null && daysToClose >= 0 && !(daysToClose <= 45 && !(tx.backOnMarket || tx.back_on_market) && !["Closed", "Clear to Close"].includes(stage?.effectiveStatus || tx.status)) && " · " + daysToClose + " days away"}
                 </span>
               </div>
             )}
@@ -2103,8 +2106,8 @@ export default function ClientPortal({ user, onLogout, previewTxId, onExitPrevie
                               <div style={{ flex: 1 }}>
                                 <div style={{ fontSize: 14, fontWeight: 700, color: C.black }}>{h.label}</div>
                                 {h.why && <div style={{ fontSize: 12.5, color: C.gray, lineHeight: 1.5, marginTop: 2 }}>{h.why}</div>}
-                                {m.due_date && <div style={{ fontSize: 12, color: "#B7770D", fontWeight: 600, marginTop: 2 }}>📅 by {formatDate(m.due_date)}</div>}
-                                {m.requires_document && <div style={{ fontSize: 11, color: "#B7770D" }}>📎 Document needed{m.document_label ? `: ${m.document_label}` : ""}</div>}
+                                {m.due_date && <div style={{ fontSize: 12, color: "#8A5A00", fontWeight: 600, marginTop: 2 }}>📅 by {formatDate(m.due_date)}</div>}
+                                {m.requires_document && <div style={{ fontSize: 11, color: "#8A5A00" }}>📎 Document needed{m.document_label ? `: ${m.document_label}` : ""}</div>}
                               </div>
                             </div>
                           );

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { askConfirm, askText } from './ui/dialogs';
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://liz-team-server-api-production.up.railway.app';
 
@@ -173,7 +174,7 @@ export default function ExpensesPage({ onBack }) {
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm('Delete this expense? This cannot be undone.')) return;
+    if (!(await askConfirm('Delete this expense? This cannot be undone.', { okLabel: 'Delete', danger: true }))) return;
     try {
       await authFetch(`/expenses/${id}`, { method: 'DELETE' });
       setExpenses(prev => prev.filter(e => e.id !== id));
@@ -522,7 +523,7 @@ export default function ExpensesPage({ onBack }) {
                             } catch (e) { alert('Could not load receipt: ' + e.message); }
                           }}
                           title="View receipt"
-                          style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, color: '#059669', padding: 4 }}
+                          style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, color: '#1E7B45', padding: 4 }}
                         >
                           📎
                         </button>
@@ -553,7 +554,7 @@ export default function ExpensesPage({ onBack }) {
                 <tr>
                   <Td colSpan={4} style={{ textAlign: 'right', paddingRight: 12 }}>Total ({countAll}):</Td>
                   <Td align="right">{fmtCurrency(totalAll)}</Td>
-                  <Td colSpan={3} style={{ fontSize: 12, color: '#10b981' }}>
+                  <Td colSpan={3} style={{ fontSize: 12, color: '#1E7B45' }}>
                     Mileage: {fmtCurrency(totalMileage)}
                   </Td>
                 </tr>
@@ -918,7 +919,7 @@ function AddExpenseModal({ categories, expense, allExpenses, onClose, onSaved })
       </Field>
 
       {receiptKey && (
-        <div style={{ fontSize: 13, color: '#059669', marginBottom: 12 }}>
+        <div style={{ fontSize: 13, color: '#1E7B45', marginBottom: 12 }}>
           📎 Receipt attached ({receiptKey.split('/').pop()})
         </div>
       )}
@@ -1216,10 +1217,10 @@ function SimpleMoneyView({ categories, goAdvanced }) {
             <div style={{ background: 'white', borderRadius: 14, boxShadow: '0 1px 3px rgba(0,0,0,0.06)', padding: '18px 20px', marginBottom: 18 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 6 }}>
                 <div style={{ fontWeight: 700, color: '#1f2937' }}>Your goal: make {fmtCurrency(goal)} this year</div>
-                <div style={{ fontSize: 14, color: '#6b7280' }}>You've made <strong style={{ color: '#059669' }}>{fmtCurrency(made)}</strong></div>
+                <div style={{ fontSize: 14, color: '#6b7280' }}>You've made <strong style={{ color: '#1E7B45' }}>{fmtCurrency(made)}</strong></div>
               </div>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, margin: '8px 0 10px' }}>
-                <div style={{ fontSize: 30, fontWeight: 800, color: '#059669' }}>{goalPct}%</div>
+                <div style={{ fontSize: 30, fontWeight: 800, color: '#1E7B45' }}>{goalPct}%</div>
                 <div style={{ fontSize: 14, color: '#6b7280' }}>{goal - made > 0 ? `${fmtCurrency(goal - made)} to go` : 'You hit your goal! 🎉'}</div>
               </div>
               <div style={{ position: 'relative', background: '#f3f4f6', borderRadius: 8, height: 16, overflow: 'hidden' }}>
@@ -1260,7 +1261,7 @@ function SimpleMoneyView({ categories, goAdvanced }) {
                   <div key={i} style={{ marginBottom: 10 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, marginBottom: 3 }}>
                       <span style={{ color: '#374151' }}>{c.category}</span>
-                      <span style={{ fontWeight: 600 }}>{fmtCurrency(c.total)} <span style={{ color: '#9ca3af', fontWeight: 400 }}>({pctOfSpend}%)</span></span>
+                      <span style={{ fontWeight: 600 }}>{fmtCurrency(c.total)} <span style={{ color: '#5F6B7A', fontWeight: 400 }}>({pctOfSpend}%)</span></span>
                     </div>
                     <div style={{ background: '#f3f4f6', borderRadius: 5, height: 8, overflow: 'hidden' }}>
                       <div style={{ width: `${pctOfSpend}%`, height: '100%', background: '#dc2626', opacity: 0.7 }} />
@@ -1294,7 +1295,7 @@ function BigMoneyCard({ emoji, label, value, sub, color, big }) {
     <div style={{ background: 'white', borderRadius: 14, boxShadow: '0 1px 3px rgba(0,0,0,0.06)', padding: 20, borderTop: `4px solid ${color}` }}>
       <div style={{ fontSize: 13, color: '#6b7280', fontWeight: 600 }}>{emoji} {label}</div>
       <div style={{ fontSize: big ? 34 : 28, fontWeight: 800, color, marginTop: 6 }}>{fmtCurrency(value)}</div>
-      <div style={{ fontSize: 12, color: '#9ca3af', marginTop: 2 }}>{sub}</div>
+      <div style={{ fontSize: 12, color: '#5F6B7A', marginTop: 2 }}>{sub}</div>
     </div>
   );
 }
@@ -1385,9 +1386,9 @@ function BillsSetupModal({ existing, onClose, onSaved }) {
           ) : (
             <div style={{ flex: 1, fontSize: 14, color: '#374151' }}>{r.label}</div>
           )}
-          <span style={{ color: '#9ca3af' }}>$</span>
+          <span style={{ color: '#5F6B7A' }}>$</span>
           <input type="number" step="1" min="0" value={r.amount} onChange={e => setAmt(i, e.target.value)} placeholder="0" style={{ ...inputStyle, maxWidth: 110, textAlign: 'right' }} />
-          <span style={{ fontSize: 12, color: '#9ca3af' }}>/mo</span>
+          <span style={{ fontSize: 12, color: '#5F6B7A' }}>/mo</span>
           {r.custom
             ? <button onClick={() => removeRow(i)} style={iconBtn} title="Remove">✕</button>
             : <span style={{ width: 24 }} />}
@@ -1413,7 +1414,7 @@ const INCOME_CATEGORIES = ['Commission (manual)', 'Referral Fee', 'Rental Income
 // way to add it). Prompts, saves it to the brokerage's category list, returns
 // the name (or null if cancelled). Works from any category dropdown.
 async function promptNewCategory() {
-  const name = (window.prompt("Name the new category (e.g. Owner's Withdrawal):") || "").trim();
+  const name = ((await askText("Name the new category (e.g. Owner's Withdrawal):")) || "").trim();
   if (!name) return null;
   try {
     await authFetch('/expenses/categories', { method: 'POST', body: JSON.stringify({ name }) });
@@ -1455,7 +1456,7 @@ function IncomeTab() {
   const grandTotal = manualTotal + commissionTotal;
 
   const handleDelete = async (id) => {
-    if (!window.confirm('Delete this income entry?')) return;
+    if (!(await askConfirm('Delete this income entry?', { okLabel: 'Delete', danger: true }))) return;
     try { await authFetch(`/income/${id}`, { method: 'DELETE' }); setRows(p => p.filter(r => r.id !== id)); }
     catch (e) { alert('Delete failed: ' + e.message); }
   };
@@ -1489,8 +1490,8 @@ function IncomeTab() {
           {/* Commission income — auto from closed deals */}
           <div style={{ background: 'white', borderRadius: 12, boxShadow: '0 1px 3px rgba(0,0,0,0.05)', overflow: 'hidden', marginBottom: 20 }}>
             <div style={{ padding: '12px 16px', borderBottom: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontWeight: 700, color: '#065f46' }}>💼 Commission income <span style={{ fontWeight: 400, fontSize: 12, color: '#9ca3af' }}>— auto from your closed deals (net of split & fees)</span></span>
-              <span style={{ fontWeight: 700, color: '#059669' }}>{fmtCurrency(commissionTotal)}</span>
+              <span style={{ fontWeight: 700, color: '#065f46' }}>💼 Commission income <span style={{ fontWeight: 400, fontSize: 12, color: '#5F6B7A' }}>— auto from your closed deals (net of split & fees)</span></span>
+              <span style={{ fontWeight: 700, color: '#1E7B45' }}>{fmtCurrency(commissionTotal)}</span>
             </div>
             {commissions.length === 0 ? (
               <div style={{ padding: 24, textAlign: 'center', color: '#6b7280', fontSize: 14 }}>No deals closed in this period. Mark a deal "Closed" with a closing date and it shows up here.</div>
@@ -1506,7 +1507,7 @@ function IncomeTab() {
                       <Td><strong>{d.address || 'Property'}</strong>{d.city ? <span style={{ color: '#9ca3af' }}>, {d.city}</span> : ''}{d.co_agent ? <span style={{ marginLeft: 6, fontSize: 10.5, fontWeight: 800, color: '#fff', background: '#0c4a6e', borderRadius: 8, padding: '1px 6px' }}>🤝 your co-agent share</span> : ''}</Td>
                       <Td style={{ color: '#6b7280', fontSize: 13 }}>{d.transaction_type || ''}</Td>
                       <Td align="right" style={{ color: '#6b7280' }}>{fmtCurrency(d.price)}</Td>
-                      <Td align="right" style={{ fontWeight: 600, color: '#059669' }}>{fmtCurrency(d.net_commission)}</Td>
+                      <Td align="right" style={{ fontWeight: 600, color: '#1E7B45' }}>{fmtCurrency(d.net_commission)}</Td>
                     </tr>
                   ))}
                 </tbody>
@@ -1517,8 +1518,8 @@ function IncomeTab() {
           {/* Other / manual income */}
           <div style={{ background: 'white', borderRadius: 12, boxShadow: '0 1px 3px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
             <div style={{ padding: '12px 16px', borderBottom: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontWeight: 700, color: '#1e40af' }}>➕ Other income <span style={{ fontWeight: 400, fontSize: 12, color: '#9ca3af' }}>— referrals, rentals, bonuses, BPOs</span></span>
-              <span style={{ fontWeight: 700, color: '#059669' }}>{fmtCurrency(manualTotal)}</span>
+              <span style={{ fontWeight: 700, color: '#1e40af' }}>➕ Other income <span style={{ fontWeight: 400, fontSize: 12, color: '#5F6B7A' }}>— referrals, rentals, bonuses, BPOs</span></span>
+              <span style={{ fontWeight: 700, color: '#1E7B45' }}>{fmtCurrency(manualTotal)}</span>
             </div>
             {rows.length === 0 ? (
               <div style={{ padding: 24, textAlign: 'center', color: '#6b7280', fontSize: 14 }}>No other income recorded. Use "Add Other Income" for non-commission earnings.</div>
@@ -1534,7 +1535,7 @@ function IncomeTab() {
                       <Td><strong>{r.source || '—'}</strong></Td>
                       <Td><span style={{ padding: '2px 8px', background: '#ecfdf5', color: '#065f46', borderRadius: 12, fontSize: 12, fontWeight: 600 }}>{r.category || 'Other Income'}</span></Td>
                       <Td style={{ color: '#6b7280' }}>{r.notes || ''}</Td>
-                      <Td align="right" style={{ fontWeight: 600, color: '#059669' }}>{fmtCurrency(r.amount)}</Td>
+                      <Td align="right" style={{ fontWeight: 600, color: '#1E7B45' }}>{fmtCurrency(r.amount)}</Td>
                       <Td align="right">
                         <button onClick={() => { setEditing(r); setModalOpen(true); }} style={iconBtn} title="Edit">✏️</button>
                         <button onClick={() => handleDelete(r.id)} style={iconBtn} title="Delete">🗑️</button>
@@ -1659,7 +1660,7 @@ function BudgetTab({ categories }) {
   useEffect(() => { load(); /* eslint-disable-next-line */ }, [period]);
 
   const handleDelete = async (id) => {
-    if (!window.confirm('Delete this budget line?')) return;
+    if (!(await askConfirm('Delete this budget line?', { okLabel: 'Delete', danger: true }))) return;
     try { await authFetch(`/budget/${id}`, { method: 'DELETE' }); setItems(p => p.filter(i => i.id !== id)); }
     catch (e) { alert('Delete failed: ' + e.message); }
   };
@@ -1816,7 +1817,7 @@ function BudgetTab({ categories }) {
 function BudgetAmountCell({ value, saving, onCommit }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState('');
-  if (saving) return <span style={{ color: '#9ca3af', fontSize: 13 }}>saving…</span>;
+  if (saving) return <span style={{ color: '#5F6B7A', fontSize: 13 }}>saving…</span>;
   if (editing) {
     const commit = () => { setEditing(false); onCommit(draft); };
     return (
@@ -1943,10 +1944,10 @@ function GoalProgress({ label, goal, actual, elapsed, actualLabel, emptyHint, fo
     <div style={{ background: 'white', borderRadius: 12, boxShadow: '0 1px 3px rgba(0,0,0,0.05)', padding: 18, marginBottom: 20, borderLeft: '4px solid #10b981' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', flexWrap: 'wrap', gap: 8 }}>
         <div style={{ fontWeight: 700, color: '#1f2937' }}>{label}</div>
-        <div style={{ fontSize: 13, color: '#6b7280' }}>{actualLabel}: <strong style={{ color: '#059669' }}>{fmtCurrency(actual)}</strong> of <strong>{fmtCurrency(goal)}</strong> goal</div>
+        <div style={{ fontSize: 13, color: '#6b7280' }}>{actualLabel}: <strong style={{ color: '#1E7B45' }}>{fmtCurrency(actual)}</strong> of <strong>{fmtCurrency(goal)}</strong> goal</div>
       </div>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, margin: '8px 0 10px' }}>
-        <div style={{ fontSize: 32, fontWeight: 800, color: '#059669' }}>{pct}%</div>
+        <div style={{ fontSize: 32, fontWeight: 800, color: '#1E7B45' }}>{pct}%</div>
         <div style={{ fontSize: 13, color: '#6b7280' }}>{remaining > 0 ? `${fmtCurrency(remaining)} to go` : 'goal reached 🎉'}</div>
       </div>
       <div style={{ position: 'relative', background: '#f3f4f6', borderRadius: 8, height: 16, overflow: 'hidden' }}>
@@ -1958,7 +1959,7 @@ function GoalProgress({ label, goal, actual, elapsed, actualLabel, emptyHint, fo
       <div style={{ fontSize: 12, color: onPace ? '#059669' : '#b45309', marginTop: 8, fontWeight: 600 }}>
         {onPace ? '✅ On pace' : '⏳ Behind pace'} — at this point in the period you'd expect about {fmtCurrency(expected)} {onPace ? '' : `(you're ${fmtCurrency(expected - actual)} under)`}
       </div>
-      {footer && <div style={{ fontSize: 12, color: '#9ca3af', marginTop: 6 }}>{footer}</div>}
+      {footer && <div style={{ fontSize: 12, color: '#5F6B7A', marginTop: 6 }}>{footer}</div>}
     </div>
   );
 }
@@ -1967,21 +1968,21 @@ function BudgetLineList({ title, hint, items, period, onEdit, onDelete }) {
   return (
     <div style={{ background: 'white', borderRadius: 12, boxShadow: '0 1px 3px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
       <div style={{ padding: '12px 16px', borderBottom: '1px solid #e5e7eb', fontWeight: 700, color: '#1f2937' }}>
-        {title}{hint && <span style={{ fontWeight: 400, fontSize: 12, color: '#9ca3af' }}> — {hint}</span>}
+        {title}{hint && <span style={{ fontWeight: 400, fontSize: 12, color: '#5F6B7A' }}> — {hint}</span>}
       </div>
       {items.length === 0 && <div style={{ padding: 20, color: '#6b7280', fontSize: 14 }}>None yet.</div>}
       {items.map(i => (
         <div key={i.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 16px', borderTop: '1px solid #f3f4f6' }}>
           <div style={{ flex: 1 }}>
             <div style={{ fontWeight: 600, color: '#1f2937', fontSize: 14 }}>{i.label || i.category || '—'}</div>
-            <div style={{ fontSize: 12, color: '#9ca3af' }}>
+            <div style={{ fontSize: 12, color: '#5F6B7A' }}>
               {i.category ? i.category + ' • ' : ''}{FREQ_LABEL[i.frequency] || i.frequency}
               {i.frequency !== 'monthly' && i.due_month ? ' • ' + MONTHS[i.due_month - 1] : ''}
             </div>
           </div>
           <div style={{ textAlign: 'right' }}>
             <div style={{ fontWeight: 700, color: '#1f2937' }}>{fmtCurrency(i.amount)}</div>
-            <div style={{ fontSize: 11, color: '#9ca3af' }}>{fmtCurrency(budgetedForPeriod(i, period))}/{period === 'year' ? 'yr' : 'mo'}</div>
+            <div style={{ fontSize: 11, color: '#5F6B7A' }}>{fmtCurrency(budgetedForPeriod(i, period))}/{period === 'year' ? 'yr' : 'mo'}</div>
           </div>
           <button onClick={() => onEdit(i)} style={iconBtn} title="Edit">✏️</button>
           <button onClick={() => onDelete(i.id)} style={iconBtn} title="Delete">🗑️</button>
@@ -2295,12 +2296,12 @@ function PnLTab() {
                   <Td>
                     Commission income (closed deals)
                     {pnl.income.commissions.length > 0 && (
-                      <button onClick={() => setShowDeals(s => !s)} style={{ marginLeft: 8, background: 'none', border: 'none', color: '#3b82f6', cursor: 'pointer', fontSize: 12 }}>
+                      <button onClick={() => setShowDeals(s => !s)} style={{ marginLeft: 8, background: 'none', border: 'none', color: '#0369A1', cursor: 'pointer', fontSize: 12 }}>
                         {showDeals ? 'hide' : `${pnl.income.commissions.length} deal${pnl.income.commissions.length === 1 ? '' : 's'}`}
                       </button>
                     )}
                   </Td>
-                  <Td align="right" style={{ fontWeight: 600, color: '#059669' }}>{fmtCurrency(pnl.income.commission_total)}</Td>
+                  <Td align="right" style={{ fontWeight: 600, color: '#1E7B45' }}>{fmtCurrency(pnl.income.commission_total)}</Td>
                 </tr>
                 {showDeals && pnl.income.commissions.map(d => (
                   <tr key={d.transaction_id} style={{ borderTop: '1px solid #f9fafb', background: '#fafafa' }}>
@@ -2310,7 +2311,7 @@ function PnLTab() {
                 ))}
                 {pnl.income.other.map((c, i) => (
                   <tr key={i} style={{ borderTop: '1px solid #f3f4f6' }}>
-                    <Td>{c.category}</Td><Td align="right" style={{ color: '#059669' }}>{fmtCurrency(c.total)}</Td>
+                    <Td>{c.category}</Td><Td align="right" style={{ color: '#1E7B45' }}>{fmtCurrency(c.total)}</Td>
                   </tr>
                 ))}
               </tbody>
@@ -2327,7 +2328,7 @@ function PnLTab() {
                 {pnl.expenses.by_category.length === 0 && <tr><Td colSpan={2} style={{ textAlign: 'center', padding: 20, color: '#6b7280' }}>No expenses for {year}.</Td></tr>}
                 {pnl.expenses.by_category.map((c, i) => (
                   <tr key={i} style={{ borderTop: '1px solid #f3f4f6' }}>
-                    <Td>{c.category} <span style={{ color: '#9ca3af', fontSize: 12 }}>({c.count})</span></Td>
+                    <Td>{c.category} <span style={{ color: '#5F6B7A', fontSize: 12 }}>({c.count})</span></Td>
                     <Td align="right" style={{ color: '#dc2626' }}>{fmtCurrency(c.total)}</Td>
                   </tr>
                 ))}
@@ -2374,7 +2375,7 @@ function BalanceSheetTab() {
     } catch (e) { alert('Could not add: ' + e.message); }
   };
   const del = async (id) => {
-    if (!window.confirm('Remove this line?')) return;
+    if (!(await askConfirm('Remove this line?', { okLabel: 'Remove', danger: true }))) return;
     try { await authFetch(`/finance/balance-sheet-items/${id}`, { method: 'DELETE' }); load(); } catch (e) { alert(e.message); }
   };
 
@@ -2401,10 +2402,10 @@ function BalanceSheetTab() {
       </div>
       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
         <tbody>
-          {items.length === 0 && <tr><Td colSpan={3} style={{ textAlign: 'center', padding: 16, color: '#9ca3af' }}>None yet</Td></tr>}
+          {items.length === 0 && <tr><Td colSpan={3} style={{ textAlign: 'center', padding: 16, color: '#5F6B7A' }}>None yet</Td></tr>}
           {items.map(it => (
             <tr key={it.id} style={{ borderTop: '1px solid #f3f4f6' }}>
-              <Td>{it.label}{it.auto && <span style={{ marginLeft: 6, fontSize: 11, color: '#3b82f6' }}>auto from reconciliation</span>}</Td>
+              <Td>{it.label}{it.auto && <span style={{ marginLeft: 6, fontSize: 11, color: '#0369A1' }}>auto from reconciliation</span>}</Td>
               <Td align="right" style={{ fontWeight: 600, color }}>{fmtCurrency(it.amount)}</Td>
               <Td align="right" style={{ width: 40 }}>{!it.auto && <button onClick={() => del(it.id)} style={{ background: 'none', border: 'none', color: '#dc2626', cursor: 'pointer', fontSize: 13 }} title="Remove">✕</button>}</Td>
             </tr>
@@ -2433,7 +2434,7 @@ function BalanceSheetTab() {
       {error && <div style={{ padding: 20, color: '#dc2626', background: '#fef2f2', borderRadius: 8 }}>Error: {error}</div>}
       {ytd && (ytdIncome > 0 || ytdProfit) ? (
         <div style={{ background: '#ecfdf5', border: '1px solid #a7f3d0', borderRadius: 10, padding: '12px 16px', marginBottom: 16, fontSize: 13, color: '#065f46' }}>
-          💰 <strong>Year-to-date from your deals ({bsYear}):</strong> {fmtCurrency(ytdIncome)} income · {fmtCurrency(ytdProfit)} profit <span style={{ color: '#059669' }}>(from your P&amp;L)</span>.
+          💰 <strong>Year-to-date from your deals ({bsYear}):</strong> {fmtCurrency(ytdIncome)} income · {fmtCurrency(ytdProfit)} profit <span style={{ color: '#1E7B45' }}>(from your P&amp;L)</span>.
           <div style={{ marginTop: 4, color: '#047857' }}>
             This is your earnings over the year — it's tracked on the <strong>P&amp;L</strong>, not here. The balance sheet shows what you <strong>own &amp; owe right now</strong>, so deal income only appears once it's sitting in a bank account you record.
             {data && data.totalAssets === 0 && <> <button onClick={() => { setAdding('asset'); setLabel('Cash in bank'); setAmount(''); }} style={{ background: '#059669', border: 'none', color: 'white', borderRadius: 6, padding: '4px 10px', cursor: 'pointer', fontSize: 12, fontWeight: 700, marginLeft: 4 }}>+ Add my bank balance</button></>}
@@ -2485,7 +2486,7 @@ function Contractors1099Tab() {
   const likelyUntagged = (data?.vendors || []).filter(v => v.likely_1099 && !v.is_1099);
   const markLikely = async () => {
     if (!likelyUntagged.length) return;
-    if (!window.confirm(`Mark ${likelyUntagged.length} vendor${likelyUntagged.length === 1 ? '' : 's'} paid under contractor categories (cleaning, TC, referral fees, etc.) as 1099? You can uncheck any afterward.`)) return;
+    if (!(await askConfirm(`Mark ${likelyUntagged.length} vendor${likelyUntagged.length === 1 ? '' : 's'} paid under contractor categories (cleaning, TC, referral fees, etc.) as 1099? You can uncheck any afterward.`, { okLabel: 'Mark as 1099' }))) return;
     try {
       for (const v of likelyUntagged) await authFetch('/finance/1099-vendor', { method: 'POST', body: JSON.stringify({ vendor_key: v.vendor_key, display_name: v.name, is_1099: true }) });
       load();
@@ -2545,13 +2546,13 @@ function Contractors1099Tab() {
                 <tr key={v.vendor_key} style={{ borderTop: '1px solid #f3f4f6' }}>
                   <Td align="center"><input type="checkbox" checked={v.is_1099} onChange={e => toggle(v, e.target.checked)} style={{ width: 16, height: 16, cursor: 'pointer' }} /></Td>
                   <Td>
-                    <div>{v.name} <span style={{ color: '#9ca3af', fontSize: 12 }}>({v.txns})</span>
+                    <div>{v.name} <span style={{ color: '#5F6B7A', fontSize: 12 }}>({v.txns})</span>
                       {v.likely_1099 && !v.is_1099 && <span style={{ marginLeft: 6, background: '#dbeafe', color: '#1e40af', borderRadius: 6, padding: '1px 7px', fontSize: 11, fontWeight: 600 }}>likely 1099</span>}
                     </div>
-                    {(v.categories && v.categories.length > 0) && <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 2 }}>{v.categories.join(', ')}</div>}
+                    {(v.categories && v.categories.length > 0) && <div style={{ fontSize: 11, color: '#5F6B7A', marginTop: 2 }}>{v.categories.join(', ')}</div>}
                   </Td>
                   <Td align="right" style={{ fontWeight: 600 }}>{fmtCurrency(v.total)}</Td>
-                  <Td align="center">{v.meets_threshold ? <span style={{ color: '#059669', fontWeight: 700 }}>✓</span> : <span style={{ color: '#9ca3af' }}>—</span>}</Td>
+                  <Td align="center">{v.meets_threshold ? <span style={{ color: '#1E7B45', fontWeight: 700 }}>✓</span> : <span style={{ color: '#5F6B7A' }}>—</span>}</Td>
                   <Td align="center">
                     <button onClick={() => setEditVendor(v)} style={{ background: v.w9 && v.w9.tin ? '#ecfdf5' : 'none', border: '1px solid ' + (v.w9 && v.w9.tin ? '#6ee7b7' : '#d1d5db'), color: v.w9 && v.w9.tin ? '#065f46' : '#6b7280', borderRadius: 6, padding: '3px 10px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
                       {v.w9 && v.w9.tin ? '✓ W-9' : 'W-9'}
@@ -2646,7 +2647,7 @@ function ReconcileCells({ imp, onSaved }) {
       <Td align="right">{cellInput(end, setEnd, () => save(begin, end))}</Td>
       <Td align="center">
         {!hasBegin || !hasEnd
-          ? <span style={{ color: '#9ca3af', fontSize: 12 }}>—</span>
+          ? <span style={{ color: '#5F6B7A', fontSize: 12 }}>—</span>
           : reconciled
             ? <span style={{ background: '#ecfdf5', color: '#065f46', borderRadius: 6, padding: '2px 8px', fontSize: 12, fontWeight: 600 }}>✓ Reconciled</span>
             : <span title={`These transactions add up to an ending balance of ${fmtCurrency(expected)}, but you entered ${fmtCurrency(Number(end))}. A line may be missing or miscategorized.`} style={{ background: '#fef2f2', color: '#dc2626', borderRadius: 6, padding: '2px 8px', fontSize: 12, fontWeight: 600, cursor: 'help' }}>Off by {fmtCurrency(Math.abs(diff))}</span>}
@@ -2741,7 +2742,7 @@ function ImportTab({ categories, onCommitted }) {
 
   const deleteImport = async (imp) => {
     const label = `${imp.account_type === 'credit_card' ? 'Credit card' : 'Checking'} — ${(imp.period_label || '').trim() || imp.file_name || 'statement'}`;
-    if (!window.confirm(`Remove "${label}"?\n\nThis takes its ${imp.committed_count || 0} saved transaction(s) back out of your Expenses, Income, and P&L. You can re-import the statement later if needed.`)) return;
+    if (!(await askConfirm(`Remove "${label}"?\n\nThis takes its ${imp.committed_count || 0} saved transaction(s) back out of your Expenses, Income, and P&L. You can re-import the statement later if needed.`, { okLabel: 'Remove', danger: true }))) return;
     setDeletingId(imp.id); setError(null);
     try {
       const r = await authFetch(`/bank-import/${imp.id}`, { method: 'DELETE' });
@@ -2800,7 +2801,7 @@ function ImportTab({ categories, onCommitted }) {
       try { const p = JSON.parse(e.message); if (p && p.error === 'duplicate_import') dup = p; } catch { /* not json */ }
       if (dup) {
         setCommitting(false);
-        if (window.confirm(`${dup.message}\n\nImport it anyway?`)) return commit(true);
+        if (await askConfirm(`${dup.message}\n\nImport it anyway?`, { okLabel: 'Import anyway' })) return commit(true);
         return;
       }
       setError(e.message);
@@ -2911,7 +2912,7 @@ function ImportTab({ categories, onCommitted }) {
                     ? 'On a credit-card statement, a PAYMENT to the card is NOT income — it\u2019s just you paying the bill. The real expenses are the charges. We already unchecked the payments we spotted (look for the ⚠️ notes) — give them a quick glance to confirm.'
                     : 'Transfers between your own accounts and credit-card bill payments are NOT income or expenses. Commission deposits from your closed deals are already counted by the app — importing them again would double-count. We unchecked what we spotted (look for the ⚠️ notes) — give them a quick glance.'}
                 </div>
-                <div style={{ marginBottom: 6 }}><strong>2. Check the Type on each line</strong> — money in should say <span style={{ color: '#059669', fontWeight: 700 }}>Income</span>, money out should say <span style={{ color: '#dc2626', fontWeight: 700 }}>Expense</span>.</div>
+                <div style={{ marginBottom: 6 }}><strong>2. Check the Type on each line</strong> — money in should say <span style={{ color: '#1E7B45', fontWeight: 700 }}>Income</span>, money out should say <span style={{ color: '#dc2626', fontWeight: 700 }}>Expense</span>.</div>
                 <div style={{ marginBottom: 6 }}><strong>3. Check each Category.</strong> The AI took its best guess — fix any that look wrong, because the category is what shows on your P&amp;L and at tax time.</div>
                 <div style={{ color: '#3730a3' }}>Then tap <strong>✅ Import selected</strong>. Nothing is saved until you do — and you can always remove an import later.</div>
               </div>
@@ -3023,7 +3024,7 @@ function Field({ label, hint, children }) {
     <div style={{ marginBottom: 14 }}>
       <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 4 }}>
         {label}
-        {hint && <span style={{ fontWeight: 400, color: '#9ca3af', marginLeft: 6, fontSize: 12 }}>— {hint}</span>}
+        {hint && <span style={{ fontWeight: 400, color: '#5F6B7A', marginLeft: 6, fontSize: 12 }}>— {hint}</span>}
       </label>
       {children}
     </div>
@@ -3038,7 +3039,7 @@ function SummaryCard({ label, value, sub, color, smallValue }) {
     }}>
       <div style={{ fontSize: 12, color: '#6b7280', textTransform: 'uppercase', letterSpacing: 0.5, fontWeight: 600 }}>{label}</div>
       <div style={{ fontSize: smallValue ? 14 : 22, fontWeight: 700, color: '#1f2937', marginTop: 4 }}>{value}</div>
-      {sub && <div style={{ fontSize: 12, color: '#9ca3af', marginTop: 2 }}>{sub}</div>}
+      {sub && <div style={{ fontSize: 12, color: '#5F6B7A', marginTop: 2 }}>{sub}</div>}
     </div>
   );
 }
@@ -3108,7 +3109,7 @@ const iconBtn = {
 const linkBtn = {
   background: 'none',
   border: 'none',
-  color: '#3b82f6',
+  color: '#0369A1',
   cursor: 'pointer',
   fontSize: 13,
   fontWeight: 600,
