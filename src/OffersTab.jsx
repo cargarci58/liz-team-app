@@ -3,6 +3,7 @@ import OfferWizard from "./OfferWizard";
 import { TheirCounterModal, BuyerCounterPanel, useTheirCounters, counterForOffer, HOW_BUYER_COUNTERS } from "./BuyerCounterFlow";
 import { WelcomeEmailPreview } from "./App"; // review-gated welcome emails after Accept (safe: OffersTab is lazy-loaded)
 import { askConfirm } from "./ui/dialogs";
+import { getWizard } from "./config/offerWizardSchema";
 
 const API = "https://liz-team-server-api-production.up.railway.app";
 
@@ -66,7 +67,7 @@ function fmtDate(d) {
   return new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 }
 
-export default function OffersTab({ tx, token, currentUser, createSignal = 0, onReviewReceived = null, openOffer = null, onOfferOpened = null }) {
+export default function OffersTab({ tx, token, currentUser, createSignal = 0, onCreateHandled = null, onReviewReceived = null, openOffer = null, onOfferOpened = null }) {
   const [offers, setOffers] = useState([]);
   const [loading, setLoading] = useState(true);
   // RECEIVED offers waiting for review live on the Overview's Pending Offers
@@ -118,12 +119,26 @@ export default function OffersTab({ tx, token, currentUser, createSignal = 0, on
 
   useEffect(() => { load(); /* eslint-disable-next-line */ }, [tx.id]);
 
-  // The toolbar "📝 Create Offer" button (in the transaction header) drives offer
-  // creation now — when it's clicked it bumps createSignal and we create here.
+  // The toolbar "📝 Create Offer" button (in the transaction header) bumps
+  // createSignal. If this deal already has an unfinished DRAFT, ask whether to
+  // continue it or start a new one (Carlos 10/2: it always started a new draft,
+  // so a half-done offer looked lost). No drafts → start a new one right away.
+  const [pendingCreate, setPendingCreate] = useState(false);
+  const [draftChooser, setDraftChooser] = useState(null); // drafts[] when asking
   useEffect(() => {
-    if (createSignal > 0) createOffer();
+    // Consume the click once — otherwise every return to this tab (it remounts)
+    // started yet another new draft.
+    if (createSignal > 0) { setPendingCreate(true); onCreateHandled && onCreateHandled(); }
     /* eslint-disable-next-line */
   }, [createSignal]);
+  useEffect(() => {
+    if (!pendingCreate || loading) return;
+    setPendingCreate(false);
+    const drafts = offers.filter(o => o.status === "draft");
+    if (drafts.length) setDraftChooser(drafts);
+    else createOffer();
+    /* eslint-disable-next-line */
+  }, [pendingCreate, loading]);
 
   // Showings tab "📝 Write an offer" created a pre-filled draft → open it.
   useEffect(() => {
@@ -308,7 +323,7 @@ export default function OffersTab({ tx, token, currentUser, createSignal = 0, on
       <div style={{ marginBottom: 16 }}>
         <div style={{ fontSize: 22, fontWeight: 800 }}>📝 Offers</div>
         <div style={{ fontSize: 13, color: "#6b7280", marginTop: 2 }}>
-          {creating ? "Creating your offer…" : "Build your buyer's offer (FAR/BAR AS-IS), assemble the packet, and send it to the listing agent. Use the 📝 Create Offer button at the top to start a new one."}{" "}
+          {creating ? "Creating your offer…" : "Build your buyer's offer (AS-IS contract, or the Vacant Land Contract for land), assemble the packet, and send it to the listing agent. Use the 📝 Create Offer button at the top to start or continue one."}{" "}
           <button onClick={() => setHowCounters(h => !h)} style={{ background: "none", border: "none", color: "#0c4a6e", textDecoration: "underline", cursor: "pointer", fontSize: 13, padding: 0, fontFamily: "inherit" }}>{howCounters ? "Hide" : "What if the seller counters?"}</button>
         </div>
         {howCounters && HOW_BUYER_COUNTERS}
@@ -375,7 +390,7 @@ export default function OffersTab({ tx, token, currentUser, createSignal = 0, on
                     <td style={{ padding: "10px 12px", textAlign: "right", color: "#111", fontWeight: 600 }}>
                       {fmtMoney(data.purchase_price)}
                     </td>
-                    <td style={{ padding: "10px 12px", color: "#6b7280" }}>{o.current_step}/12</td>
+                    <td style={{ padding: "10px 12px", color: "#6b7280" }}>{o.current_step}/{getWizard(o.base_contract_type || "as_is").steps.length}</td>
                     <td style={{ padding: "10px 12px", color: "#6b7280" }}>{fmtDate(o.updated_at)}</td>
                     <td style={{ padding: "10px 12px" }}>
                       {(() => {
@@ -516,6 +531,42 @@ export default function OffersTab({ tx, token, currentUser, createSignal = 0, on
           offer={signModal} token={token}
           onClose={(changed) => { setSignModal(null); if (changed) load(); }}
         />
+      )}
+
+      {draftChooser && (
+        <div onClick={() => setDraftChooser(null)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 4000, display: "flex", alignItems: "flex-start", justifyContent: "center", padding: 16, overflowY: "auto", fontFamily: "inherit" }}>
+          <div role="dialog" aria-modal="true" aria-labelledby="draft-chooser-title" onClick={e => e.stopPropagation()}
+            style={{ background: "#fff", borderRadius: 14, width: "100%", maxWidth: 520, margin: "auto", boxShadow: "0 20px 60px rgba(0,0,0,0.3)", overflow: "hidden" }}>
+            <div style={{ background: "#0c4a6e", color: "#fff", padding: "16px 20px" }}>
+              <div id="draft-chooser-title" style={{ fontSize: 17, fontWeight: 800 }}>Continue an offer or start a new one?</div>
+              <div style={{ fontSize: 13, opacity: 0.9, marginTop: 3 }}>This deal has {draftChooser.length === 1 ? "an offer" : draftChooser.length + " offers"} you started but haven't finished.</div>
+            </div>
+            <div style={{ padding: 16, display: "flex", flexDirection: "column", gap: 10 }}>
+              {draftChooser.map(o => {
+                const od = o.offer_data || {};
+                const total = getWizard(o.base_contract_type || "as_is").steps.length;
+                return (
+                  <button key={o.id} onClick={() => { setDraftChooser(null); setWizardOfferId(o.id); }}
+                    style={{ textAlign: "left", background: "#fff", border: "1.5px solid #0c4a6e", borderRadius: 10, padding: "12px 14px", cursor: "pointer", fontFamily: "inherit" }}>
+                    <div style={{ fontSize: 15, fontWeight: 800, color: "#0c4a6e" }}>✏️ Continue: {od.property_address || tx.address || "Draft offer"}</div>
+                    <div style={{ fontSize: 13, color: "#374151", marginTop: 3 }}>
+                      {od.purchase_price ? fmtMoney(od.purchase_price) + " · " : ""}Step {o.current_step || 1} of {total}
+                      {o.base_contract_type === "vacant_land" ? " · Vacant Land Contract" : ""} · last worked on {fmtDate(o.updated_at)}
+                    </div>
+                  </button>
+                );
+              })}
+              <button onClick={() => { setDraftChooser(null); createOffer(); }}
+                style={{ background: "#0c4a6e", color: "#fff", border: "none", borderRadius: 10, padding: "12px 14px", fontSize: 15, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>
+                ➕ Start a new offer
+              </button>
+              <button onClick={() => setDraftChooser(null)}
+                style={{ background: "none", border: "none", color: "#4B5563", fontSize: 13.5, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", padding: 6 }}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {wizardOfferId && (

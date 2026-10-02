@@ -7581,7 +7581,7 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
 
         {activeTab === "documents" && <DocumentsTab tx={tx} coordinatorMode={isCoordinator} />}
         {activeTab === "showings" && !isGuest && <div style={{ padding: 16 }}><ShowingToursTab tx={tx} onOpenOffer={(id) => { setOfferToOpen({ id, n: Date.now() }); setActiveTab("offers"); }} /></div>}
-        {activeTab === "offers" && <OffersTab tx={tx} token={localStorage.getItem("tp_token") || ""} currentUser={currentUser} createSignal={offerCreateSignal} openOffer={offerToOpen} onOfferOpened={() => setOfferToOpen(null)}
+        {activeTab === "offers" && <OffersTab tx={tx} token={localStorage.getItem("tp_token") || ""} currentUser={currentUser} createSignal={offerCreateSignal} onCreateHandled={() => setOfferCreateSignal(0)} openOffer={offerToOpen} onOfferOpened={() => setOfferToOpen(null)}
           onReviewReceived={() => { setActiveTab("overview"); setTimeout(() => { const el = document.getElementById("pending-offers-panel"); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); }, 60); }} />}
         {activeTab === "calculator" && (
           <div style={{ padding: 20 }}>
