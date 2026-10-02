@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import SignerEntityFields, { entityAwareRow, signerPayload, entityRowProblem } from "./ui/SignerEntityFields";
 import { askConfirm, askText } from "./ui/dialogs";
 
 const API = "https://liz-team-server-api-production.up.railway.app";
@@ -1704,7 +1705,8 @@ function AddendumModal({ tx, headers, onCreated, onClose }) {
 // still previews, moves, removes or adds blocks before sending).
 export function DocSignModal({ tx, doc, allDocs = [], headers, onClose, initialRows = null, initialPlacements = null, autoPlace = false, intro = null, onSent = null }) {
   const [info, setInfo] = useState(null);
-  const [rows, setRows] = useState(initialRows && initialRows.length ? initialRows : []);
+  // Company / LLC / trust parties become "person signs for the company" rows.
+  const [rows, setRows] = useState(initialRows && initialRows.length ? initialRows.map(entityAwareRow) : []);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState(null);
   // Bundle: more documents signed in the SAME round (one email, one link).
@@ -1728,8 +1730,8 @@ export function DocSignModal({ tx, doc, allDocs = [], headers, onClose, initialR
       if (!(b.signers || []).length && !(initialRows && initialRows.length)) {
         // Cap matches the 6-signer ceiling the UI enforces, not 4 — a 5th
         // principal used to be dropped here with no way to add them back.
-        const sug = (b.suggested || []).slice(0, 6).map(s => ({ name: s.name || "", email: s.email || "" }));
-        setRows(sug.length ? sug : [{ name: "", email: "" }]);
+        const sug = (b.suggested || []).slice(0, 6).map(s => entityAwareRow({ name: s.name || "", email: s.email || "" }));
+        setRows(sug.length ? sug : [{ name: "", email: "", isEntity: false }]);
       }
     } catch (e) { setErr(e.message); }
   };
@@ -1779,7 +1781,7 @@ export function DocSignModal({ tx, doc, allDocs = [], headers, onClose, initialR
   }, [placing, extraIds.join(",")]);
 
   const setRow = (i, k, v) => setRows(rs => rs.map((r, j) => j === i ? { ...r, [k]: v } : r));
-  const signerNames = rows.map(r => (r.name || "").trim()).filter(Boolean);
+  const signerNames = rows.map(r => (r.name || r.entity || "").trim()).filter(Boolean);
 
   const placeAt = async (docId, pg, e) => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -1828,7 +1830,10 @@ export function DocSignModal({ tx, doc, allDocs = [], headers, onClose, initialR
 
   const send = async () => {
     setErr(null);
-    const clean = rows.map(r => ({ name: (r.name || "").trim(), email: (r.email || "").trim() })).filter(r => r.name || r.email);
+    const used = rows.filter(r => (r.name || "").trim() || (r.email || "").trim() || (r.isEntity && (r.entity || "").trim()));
+    const problem = used.map(entityRowProblem).find(Boolean);
+    if (problem) { setErr(problem); return; }
+    const clean = used.map(signerPayload);
     if (!clean.length || clean.some(r => !r.name || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(r.email))) {
       setErr("Every signer needs a name and a valid email."); return;
     }
@@ -1900,7 +1905,7 @@ export function DocSignModal({ tx, doc, allDocs = [], headers, onClose, initialR
               <div style={{ fontSize: 13, fontWeight: 800, color: "#374151", marginBottom: 8 }}>Signing round in progress</div>
               {(info.signers || []).map(s => (
                 <div key={s.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, padding: "8px 10px", background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 8, marginBottom: 6, fontSize: 13, flexWrap: "wrap" }}>
-                  <span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis" }}>{s.signer_name} <span style={{ color: "#64748b" }}>({s.signer_email})</span></span>
+                  <span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis" }}>{s.signer_name}{s.signer_entity ? <span style={{ color: "#0c4a6e", fontWeight: 600 }}> for {s.signer_entity}{s.signer_title ? ", " + s.signer_title : ""}</span> : null} <span style={{ color: "#64748b" }}>({s.signer_email})</span></span>
                   {s.status === "signed"
                     ? <span style={{ color: "#15803d", fontWeight: 700 }}>✅ Signed</span>
                     : (
@@ -1968,8 +1973,9 @@ export function DocSignModal({ tx, doc, allDocs = [], headers, onClose, initialR
             <div>
               <div style={{ fontSize: 13, fontWeight: 800, color: "#374151", marginBottom: 8 }}>Who needs to sign?</div>
               {rows.map((r, i) => (
-                <div key={i} style={{ display: "flex", gap: 8, marginBottom: 8 }}>
-                  <input value={r.name} onChange={e => setRow(i, "name", e.target.value)} placeholder="Full name"
+                <div key={i} style={{ marginBottom: 10 }}>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <input value={r.name} onChange={e => setRow(i, "name", e.target.value)} placeholder={r.isEntity ? "Person signing (full name)" : "Full name"}
                     style={{ flex: 1, padding: "9px 10px", border: "1px solid #cbd5e1", borderRadius: 8, fontSize: 13, fontFamily: "inherit", minWidth: 0 }} />
                   <input value={r.email} onChange={e => setRow(i, "email", e.target.value)} placeholder="Email"
                     style={{ flex: 1, padding: "9px 10px", border: "1px solid #cbd5e1", borderRadius: 8, fontSize: 13, fontFamily: "inherit", minWidth: 0 }} />
@@ -1978,10 +1984,12 @@ export function DocSignModal({ tx, doc, allDocs = [], headers, onClose, initialR
                       style={{ background: "none", border: "none", color: "#7f1d1d", fontSize: 16, cursor: "pointer" }}>✕</button>
                   )}
                 </div>
+                <SignerEntityFields row={r} onChange={(nr) => setRows(rs => rs.map((x, j) => j === i ? nr : x))} />
+                </div>
               ))}
               {rows.length < 6 && (
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 10 }}>
-                  <button onClick={() => setRows(rs => [...rs, { name: "", email: "" }])}
+                  <button onClick={() => setRows(rs => [...rs, { name: "", email: "", isEntity: false }])}
                     style={{ background: "none", border: "1px dashed #94a3b8", color: "#475569", borderRadius: 8, padding: "6px 14px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
                     + Add another signer
                   </button>

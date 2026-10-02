@@ -469,6 +469,12 @@ export default function OfferSignPublic({ urlToken, kind = "offer" }) {
   // ── Phase 1: consent + adopt signature ──
   if (phase === "adopt") return shell(
     <div>
+      {/* Signing for a company / LLC / trust: say so up front. */}
+      {data.signerEntity && (
+        <div style={{ background: "#F0F9FF", border: "1px solid #BAE6FD", borderRadius: 10, padding: "10px 12px", fontSize: 14, color: "#0c4a6e", marginBottom: 12, lineHeight: 1.5 }}>
+          🏢 You're signing <strong>on behalf of {data.signerEntity}</strong>{data.signerTitle ? <> as <strong>{data.signerTitle}</strong></> : null}. Sign with your own name — "for {data.signerEntity}{data.signerTitle ? ", " + data.signerTitle : ""}" is printed under your signature.
+        </div>
+      )}
       <div style={{ fontSize: 14, color: "#374151", lineHeight: 1.6, marginBottom: 16 }}>
         Hi <strong>{data.signerName}</strong> — {kind === "doc" ? (docsArr.length > 1 ? "these " + docsArr.length + " documents are ready for your signature." : "this document is ready for your signature.") : "your offer package is ready to sign."} Two quick steps:
         first adopt your signature, then we'll walk you through <strong>each place</strong> it goes — {interactiveCount > 0 ? <strong>{[

@@ -3,6 +3,7 @@ import OfferWizard from "./OfferWizard";
 import { TheirCounterModal, BuyerCounterPanel, useTheirCounters, counterForOffer, HOW_BUYER_COUNTERS } from "./BuyerCounterFlow";
 import { WelcomeEmailPreview } from "./App"; // review-gated welcome emails after Accept (safe: OffersTab is lazy-loaded)
 import { askConfirm } from "./ui/dialogs";
+import SignerEntityFields, { entityAwareRow, signerPayload, entityRowProblem } from "./ui/SignerEntityFields";
 import { getWizard } from "./config/offerWizardSchema";
 // Same drag-to-adjust editor the document e-sign uses, pointed at the offer package.
 const AdjustSpotsModal = lazy(() => import("./DocumentsTab").then(m => ({ default: m.AdjustSpotsModal })));
@@ -810,8 +811,8 @@ function BuyerSignaturesModal({ offer, token, onClose }) {
       if (!r.ok) throw new Error(b.error || "Couldn't load signature status");
       setInfo(b);
       if (!(b.signers || []).length) {
-        const sug = (b.suggested || []).slice(0, 4);
-        setRows(sug.length ? sug : [{ name: "", email: "" }]);
+        const sug = (b.suggested || []).slice(0, 4).map(entityAwareRow);
+        setRows(sug.length ? sug : [{ name: "", email: "", isEntity: false }]);
       }
       // Server self-heals a missed finalize on this fetch — reflect it.
       if (b.signingStatus === "signed") setChanged(true);
@@ -823,7 +824,10 @@ function BuyerSignaturesModal({ offer, token, onClose }) {
 
   const send = async () => {
     setErr(null);
-    const clean = rows.map(r => ({ name: (r.name || "").trim(), email: (r.email || "").trim() })).filter(r => r.name || r.email);
+    const used = rows.filter(r => (r.name || "").trim() || (r.email || "").trim() || (r.isEntity && (r.entity || "").trim()));
+    const problem = used.map(entityRowProblem).find(Boolean);
+    if (problem) { setErr(problem); return; }
+    const clean = used.map(signerPayload);
     if (!clean.length || clean.some(r => !r.name || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(r.email))) {
       setErr("Every signer needs a name and a valid email."); return;
     }
@@ -884,7 +888,7 @@ function BuyerSignaturesModal({ offer, token, onClose }) {
               <div style={{ fontSize: 13, fontWeight: 800, color: "#374151", marginBottom: 8 }}>Signing round in progress</div>
               {(info.signers || []).map(s => (
                 <div key={s.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 10px", background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 8, marginBottom: 6, fontSize: 13 }}>
-                  <span style={{ color: "#111" }}>{s.signer_name} <span style={{ color: "#64748b" }}>({s.signer_email})</span></span>
+                  <span style={{ color: "#111" }}>{s.signer_name}{s.signer_entity ? <span style={{ color: "#0c4a6e", fontWeight: 600 }}> for {s.signer_entity}{s.signer_title ? ", " + s.signer_title : ""}</span> : null} <span style={{ color: "#64748b" }}>({s.signer_email})</span></span>
                   {s.status === "signed"
                     ? <span style={{ color: "#15803d", fontWeight: 700 }}>✅ Signed {s.signed_at ? new Date(s.signed_at).toLocaleDateString() : ""}</span>
                     : <span style={{ color: "#92400e", fontWeight: 700 }}>⏳ Waiting</span>}
@@ -913,8 +917,9 @@ function BuyerSignaturesModal({ offer, token, onClose }) {
               )}
               <div style={{ fontSize: 13, fontWeight: 800, color: "#374151", marginBottom: 8 }}>Who needs to sign?</div>
               {rows.map((r, i) => (
-                <div key={i} style={{ display: "flex", gap: 8, marginBottom: 8 }}>
-                  <input value={r.name} onChange={e => setRow(i, "name", e.target.value)} placeholder="Buyer full name"
+                <div key={i} style={{ marginBottom: 10 }}>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <input value={r.name} onChange={e => setRow(i, "name", e.target.value)} placeholder={r.isEntity ? "Person signing (full name)" : "Buyer full name"}
                     style={{ flex: 1, padding: "9px 10px", border: "1px solid #cbd5e1", borderRadius: 8, fontSize: 13, fontFamily: "inherit", minWidth: 0 }} />
                   <input value={r.email} onChange={e => setRow(i, "email", e.target.value)} placeholder="Email"
                     style={{ flex: 1, padding: "9px 10px", border: "1px solid #cbd5e1", borderRadius: 8, fontSize: 13, fontFamily: "inherit", minWidth: 0 }} />
@@ -923,9 +928,11 @@ function BuyerSignaturesModal({ offer, token, onClose }) {
                       style={{ background: "none", border: "none", color: "#0c4a6e", fontSize: 16, cursor: "pointer" }}>✕</button>
                   )}
                 </div>
+                <SignerEntityFields row={r} onChange={(nr) => setRows(rs => rs.map((x, j) => j === i ? nr : x))} />
+                </div>
               ))}
               {rows.length < 4 && (
-                <button onClick={() => setRows(rs => [...rs, { name: "", email: "" }])}
+                <button onClick={() => setRows(rs => [...rs, { name: "", email: "", isEntity: false }])}
                   style={{ background: "none", border: "1px dashed #94a3b8", color: "#475569", borderRadius: 8, padding: "6px 14px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", marginBottom: 12 }}>
                   + Add another signer
                 </button>
