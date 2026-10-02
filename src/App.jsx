@@ -43,6 +43,7 @@ const CmaTool = lazy(() => import("./cma/CmaTool"));
 const ContactsPage = lazy(() => import("./ContactsPage"));
 const PopBysPage = lazy(() => import("./PopBysPage"));
 const ReferralsOutPage = lazy(() => import("./ReferralsOutPage"));
+import { ReferralsOutStrip } from "./ReferralsOutPage";
 const ScriptsPage = lazy(() => import("./ScriptsPage"));
 const StandaloneCmaPage = lazy(() => import("./StandaloneCmaPage"));
 const GrowthPlanPage = lazy(() => import("./GrowthPlanPage"));
@@ -9265,7 +9266,7 @@ function DashboardSalesStrip({ onOpen }) {
   );
 }
 
-function Dashboard({ transactions, coordinatorMode = false, unreadCounts = {}, onSelect, onNew, onOpenContactBook, onOpenContacts, onOpenPopBys, onOpenScripts, onOpenCMA, onOpenGrowthPlan, onOpenExpenses, onOpenForms, contactCount, onLogout, onOpenTeam, onOpenCompliance, onOpenComplianceDash, onOpenTaskTmpls, onOpenContractIntake, onChangePassword, onReports, onGoalPlanner, onHome, onVendors, onCalendar, onCompanySettings, onSuperuser, onAgentProfile, onIntakeLinks, onViewTransactions, onHelp, onFeedback, onSupport, currentUser, isFreeGuest = false }) {
+function Dashboard({ transactions, coordinatorMode = false, unreadCounts = {}, onSelect, onNew, onOpenContactBook, onOpenContacts, onOpenPopBys, onOpenScripts, onOpenCMA, onOpenGrowthPlan, onOpenExpenses, onOpenForms, contactCount, onLogout, onOpenTeam, onOpenCompliance, onOpenComplianceDash, onOpenTaskTmpls, onOpenContractIntake, onChangePassword, onReports, onGoalPlanner, onHome, onVendors, onCalendar, onCompanySettings, onSuperuser, onAgentProfile, onIntakeLinks, onViewTransactions, onHelp, onFeedback, onSupport, currentUser, isFreeGuest = false, onOpenReferrals }) {
   const [filter, setFilter] = useState("All");
   const [search, setSearch] = useState("");
   const [showTcTeam, setShowTcTeam] = useState(false);
@@ -9971,6 +9972,7 @@ function Dashboard({ transactions, coordinatorMode = false, unreadCounts = {}, o
           <button onClick={clearAllFilters} style={{ marginLeft: "auto", background: "none", border: "none", color: COLORS.danger, fontSize: 11, fontWeight: 600, cursor: "pointer", textTransform: "uppercase", letterSpacing: "0.04em" }}>Clear all</button>
         </div>
       )}
+      {!coordinatorMode && onOpenReferrals && <ReferralsOutStrip onOpen={onOpenReferrals} />}
       {viewMode === "list" ? (
         <TransactionListView transactions={hydratedPagedTxs} sortKey={sortKey} sortDir={sortDir} toggleSort={toggleSort} onSelect={onSelect} onLeadAction={onLeadAction} />
       ) : viewMode === "kanban" ? (
@@ -11509,6 +11511,7 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
           onSelect={(id, tab) => { setSelectedId(id); setInitialDetailTab(tab || "overview"); setView("detail"); }}
           onNew={guard("Creating transactions", () => setView("new"))}
           onOpenContactBook={guard("Contacts", () => openContactBook(null))}
+          onOpenReferrals={() => setView("referrals")}
           onOpenContacts={guard("Contacts", () => setView("contacts"))} onOpenPopBys={guard("Pop-Bys", () => setView("popbys"))} onOpenScripts={guard("Scripts", () => setView("scripts"))} onOpenCMA={guard("CMA", () => setView("cma"))} onOpenGrowthPlan={guard("Growth Plan", () => setView("growthplan"))} onOpenExpenses={guard("Financials", () => setView("expenses"))} onOpenForms={guard("The Forms library", () => setView("forms"))}
           contactCount={contacts.length}
           onLogout={onLogout}

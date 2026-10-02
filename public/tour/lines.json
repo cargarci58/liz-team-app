@@ -286,13 +286,13 @@
  "d7_7a": "When your buyer picks a home, tap Write an offer. The contract fills in from the same report. If your buyer taps 'I'd like to make an offer' in their portal, a red banner shows up at the top of this page.",
  "d7_7b": "Need another day of showings? Tap Add another tour day.",
  "d18_1a": "On the deal's Overview, scroll to Deal Sharing and Commission. Tap Co-shared, then Add co-agent, and type their name, email, and share.",
- "d18_1b": "Tap Save sharing. Underneath, you'll see each step, your net, and the brokerage's income.",
+ "d18_1b": "Tap Save sharing, then Invite co-agent. Read the email, and tap Send. To take them off the deal, tap the X, and confirm.",
  "d18_2a": "If another agent sent you this client, tap Referral In, and enter their name, email, and fee. Tap Save sharing.",
  "d18_2b": "To let them follow the deal, tap Send partner link, read the email, then tap Send. They'll pick a PIN the first time.",
  "d18_3a": "Open Company Settings, then Commission Plans. Start from a plan, turn steps on or off, and use the arrows to change the order.",
  "d18_3b": "Check the example. If it matches how you pay, tap Save plan. Then choose each agent's plan.",
- "d18_4a": "Open Tools, then Referrals Out, and tap New referral. Add the client, the partner agent, and your fee.",
- "d18_4b": "Every few weeks, tap Ask for an update. When the fee arrives, tap Mark paid. It goes straight to your P&L.",
+ "d18_4a": "Open Tools, then Referrals Out, and tap New referral. Choose Buyer or Listing. Then fill in the pre-approval, the price range, and the other agent's brokerage.",
+ "d18_4b": "Your referral shows on My Deals. When the other agent finds the home, tap it, and add the price and the closing date. When the fee arrives, tap Mark paid.",
  "d7_8a": "To counter, open the listing, go to Pending Offers, and tap Counter on the offer. Every term the buyer offered is on the screen. Change only what you want to counter, and set when the counter expires.",
  "d7_8b": "Tap Next: review the email. The app writes the email to the buyer's agent, listing each change and asking them to strike and initial it, or resubmit. Edit anything you like, then tap Send counter to the buyer's agent. Your seller doesn't sign anything yet.",
  "d7_9a": "When the buyer's agent replies with the revised offer, it lands on the same offer by itself. If it came to your own inbox, tap Upload the revised offer. The app compares it to the original offer plus only your changes.",
@@ -300,5 +300,7 @@
  "d7_10a": "When everything is cleared, tap Send to seller to sign. The app places your seller's initials, signature and date for you. Look over each page, add or remove a block if needed, then send.",
  "d7_10b": "When your seller signs, the signed copy files itself in Documents. Tap Accept and go Under Contract.",
  "d7_11a": "When the seller counters your buyer's offer, open your buyer's deal, go to Offers, and tap They countered. Pick the listing agent's email, their document, or type what they told you, then tap Read their counter.",
- "d7_11b": "The app lists every change next to what your buyer signed. Red means it's in their document but not in their email. Tick I see it on each one, then save. Then tap Buyer accepts their counter, Counter back, Buyer initials their copy, or Buyer says no."
+ "d7_11b": "The app lists every change next to what your buyer signed. Red means it's in their document but not in their email. Tick I see it on each one, then save. Then tap Buyer accepts their counter, Counter back, Buyer initials their copy, or Buyer says no.",
+ "d18_5a": "On the referral, tap Referral agreement. Add the broker who signs for each brokerage, then tap Create the agreement.",
+ "d18_5b": "Tap Review the agreement. If it looks right, tap Send for signature. Everyone gets the signed copy by email."
 }

@@ -9,7 +9,10 @@ const API = "https://liz-team-server-api-production.up.railway.app";
 const C = { red: "#C0392B", dark: "#922B21", gray: "#F4F4F4", blue: "#0c4a6e", text: "#1f2937", muted: "#6b7280", border: "#E5E7EB" };
 const STATUS = [["sent", "Referred"], ["working", "Still working"], ["under_contract", "Under contract"], ["closed", "Closed"], ["lost", "Lost"]];
 const money = (n) => "$" + Math.round(Number(n) || 0).toLocaleString();
-const EMPTY = { client_name: "", client_email: "", client_phone: "", client_kind: "buyer", area: "", partner_name: "", partner_email: "", partner_phone: "", partner_brokerage: "", fee_pct: 25, commission_pct: 3, est_price: "", status: "sent", expected_close: "", notes: "" };
+const EMPTY = { client_name: "", client_email: "", client_phone: "", client_kind: "buyer", area: "", partner_name: "", partner_email: "", partner_phone: "", partner_brokerage: "", fee_pct: 25, commission_pct: 3, est_price: "", status: "sent", expected_close: "", notes: "",
+  preapproved: "", lender_name: "", preapproval_amount: "", price_min: "", price_max: "", timeframe: "", client_needs: "", property_address: "", contract_date: "",
+  partner_license: "", partner_brokerage_address: "", partner_broker_name: "", partner_broker_email: "", term_months: 12 };
+const day = (v) => v ? String(v).slice(0, 10) : "";
 
 export default function ReferralsOutPage({ onBack }) {
   const tok = localStorage.getItem("tp_token") || "";
@@ -21,6 +24,17 @@ export default function ReferralsOutPage({ onBack }) {
 
   const load = () => fetch(API + "/referrals-out", { headers }).then(r => r.json()).then(d => setList(d.referrals || [])).catch(() => setList([]));
   useEffect(() => { load(); /* eslint-disable-next-line */ }, []);
+  // Opened from a My Deals card → straight into that referral's form.
+  const [openId] = useState(() => { try { const v = sessionStorage.getItem("tp_open_referral"); sessionStorage.removeItem("tp_open_referral"); return v; } catch { return null; } });
+  const [opened, setOpened] = useState(false);
+  useEffect(() => {
+    if (!openId || opened || !list) return;
+    const x = list.find(r => String(r.id) === String(openId));
+    if (x) { setOpened(true); editOf(x); }
+    // eslint-disable-next-line
+  }, [list, openId]);
+  const editOf = (x) => setEdit({ ...EMPTY, ...Object.fromEntries(Object.entries(x).map(([k, v]) => [k, v == null ? "" : v])),
+    expected_close: day(x.expected_close), contract_date: day(x.contract_date) });
 
   const save = async () => {
     const isNew = !edit.id;
@@ -51,12 +65,24 @@ export default function ReferralsOutPage({ onBack }) {
     const d = await r.json();
     if (d.viewUrl) window.open(d.viewUrl, "_blank", "noopener"); else alert(d.error || "Couldn't open it");
   };
+  // Step 1 — WHO SIGNS: each brokerage's broker / authorized representative
+  // (Carlos 10/1), agents optional. Step 2 — review the PDF, then send.
   const makeAgreement = async (x) => {
-    setAgree({ x, busy: true });
-    const r = await fetch(API + "/referrals-out/" + x.id + "/agreement", { method: "POST", headers });
+    const rep = await fetch(API + "/referral-broker-rep", { headers }).then(r => r.json()).catch(() => ({}));
+    setAgree({ x, step: "who", canSave: !!rep.canSave, saveDefault: false,
+      who: { ref_broker_name: x.ref_broker_name || rep.name || "", ref_broker_email: x.ref_broker_email || rep.email || "",
+        partner_broker_name: x.partner_broker_name || "", partner_broker_email: x.partner_broker_email || "", agents_sign: !!x.agents_sign } });
+  };
+  const generateAgreement = async () => {
+    const w = agree.who;
+    if (!w.ref_broker_name || !w.ref_broker_email) { alert("Add who signs for your brokerage — your broker or authorized representative."); return; }
+    if (!w.partner_broker_name || !w.partner_broker_email) { alert("Add who signs for " + (agree.x.partner_brokerage || "their brokerage") + " — their broker or authorized representative."); return; }
+    setAgree(a => ({ ...a, busy: true }));
+    if (agree.saveDefault) await fetch(API + "/referral-broker-rep", { method: "PUT", headers, body: JSON.stringify({ name: w.ref_broker_name, email: w.ref_broker_email }) }).catch(() => {});
+    const r = await fetch(API + "/referrals-out/" + agree.x.id + "/agreement", { method: "POST", headers, body: JSON.stringify(w) });
     const d = await r.json();
-    if (!r.ok || !d.success) { setAgree(null); alert(d.error || "Couldn't create it"); return; }
-    setAgree({ x, docId: d.docId, signers: d.signers, busy: false });
+    if (!r.ok || !d.success) { setAgree(a => ({ ...a, busy: false })); alert(d.error || "Couldn't create it"); return; }
+    setAgree(a => ({ ...a, step: "review", docId: d.docId, signers: d.signers, busy: false }));
     load();
   };
   const sendAgreement = async () => {
@@ -65,7 +91,7 @@ export default function ReferralsOutPage({ onBack }) {
       body: JSON.stringify({ signers: agree.signers.map(s => ({ name: s.name, email: s.email })) }) });
     const d = await r.json();
     if (!r.ok || d.success === false) { setAgree(a => ({ ...a, busy: false })); alert(d.error || "Couldn't send it"); return; }
-    setAgree(null); setMsg(`✅ Agreement sent for signature to you and ${agree.x.partner_name}. You'll both get the signed copy by email.`); load();
+    setAgree(null); setMsg(`✅ Agreement sent for signature to ${agree.signers.map(s => s.name).join(", ")}. Everyone gets the signed copy by email.`); load();
   };
   const agreementLine = (x) => {
     const a = x.agreement;
@@ -95,12 +121,16 @@ export default function ReferralsOutPage({ onBack }) {
     <div key={x.id} style={{ background: "#fff", border: "1px solid " + (x.update_due ? "#E6B0AA" : C.border), borderRadius: 12, padding: 14, marginBottom: 10 }}>
       <div style={{ display: "flex", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
         <div>
-          <div style={{ fontWeight: 800, fontSize: 15 }}>{x.client_name} <span style={{ fontWeight: 500, color: C.muted, fontSize: 12.5 }}>· {x.client_kind}{x.area ? ` · ${x.area}` : ""}</span></div>
+          <div style={{ fontWeight: 800, fontSize: 15 }}>{x.client_name} <span style={{ fontWeight: 500, color: C.muted, fontSize: 12.5 }}>· {x.client_kind === "seller" ? "listing" : "buyer"}{x.area ? ` · ${x.area}` : ""}</span></div>
+          {x.property_address && <div style={{ fontSize: 13, color: C.text, marginTop: 2 }}>🏠 {x.property_address}</div>}
+          {x.client_kind !== "seller" && x.preapproved && <div style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>{x.preapproved === "cash" ? "Cash buyer" : x.preapproved === "yes" ? `Pre-approved${x.preapproval_amount ? " " + money(x.preapproval_amount) : ""}` : "Not pre-approved yet"}</div>}
           <div style={{ marginTop: 4 }}><span style={{ background: C.dark, color: "#fff", fontSize: 10.5, fontWeight: 800, padding: "2px 8px", borderRadius: 10 }}>↗️ REFERRAL OUT · to {x.partner_name}{x.partner_brokerage ? ` (${x.partner_brokerage})` : ""}</span></div>
         </div>
         <div style={{ textAlign: "right" }}>
           <div style={{ fontSize: 12, fontWeight: 800, color: C.blue }}>{x.status_label}{x.paid_at ? " · paid" : ""}</div>
           <div style={{ fontSize: 12.5, color: C.muted }}>{x.fee_pct}% fee · {x.paid_at ? "received" : "expected"} <b style={{ color: "#166534" }}>{money(x.paid_at ? x.fee_amount : x.expected_fee)}</b></div>
+          {x.my_net != null && x.my_net > 0 && <div style={{ fontSize: 12, color: C.muted }}>your net {money(x.my_net)}</div>}
+          {x.expected_close && <div style={{ fontSize: 12, color: C.muted }}>closing {new Date(String(x.expected_close).slice(0, 10) + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}</div>}
         </div>
       </div>
       {x.partner_note && <div style={{ fontSize: 12.5, color: C.text, marginTop: 6, background: C.gray, borderRadius: 8, padding: "6px 10px" }}>💬 {x.partner_name}: {x.partner_note}</div>}
@@ -110,7 +140,7 @@ export default function ReferralsOutPage({ onBack }) {
         {(!x.agreement || x.agreement.status === "draft") && <button onClick={() => makeAgreement(x)} style={btn(!x.agreement)}>📝 Referral agreement</button>}
         {!x.paid_at && x.status !== "lost" && <button onClick={() => askUpdate(x)} style={btn(!!x.update_due)}>📨 Ask for an update</button>}
         {x.status === "closed" && !x.paid_at && <button onClick={() => markPaid(x)} style={btn(true)}>💵 Mark paid</button>}
-        <button onClick={() => setEdit({ ...x, expected_close: x.expected_close ? String(x.expected_close).slice(0, 10) : "" })} style={btn(false)}>✏️ Edit</button>
+        <button onClick={() => editOf(x)} style={btn(false)}>✏️ Open / update</button>
         <button onClick={() => remove(x)} style={{ ...btn(false), color: C.dark }}>🗑</button>
       </div>
     </div>
@@ -134,29 +164,64 @@ export default function ReferralsOutPage({ onBack }) {
 
       {edit && (
         <div onClick={() => setEdit(null)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 1000, display: "flex", alignItems: "flex-start", justifyContent: "center", overflowY: "auto", padding: "24px 12px" }}>
-          <div onClick={e => e.stopPropagation()} style={{ background: "#fff", borderRadius: 14, width: "100%", maxWidth: 560, margin: "auto", padding: 20 }}>
-            <div style={{ fontSize: 17, fontWeight: 800, marginBottom: 12 }}>{edit.id ? "Edit referral" : "New referral out"}</div>
+          <div onClick={e => e.stopPropagation()} style={{ background: "#fff", borderRadius: 14, width: "100%", maxWidth: 640, margin: "auto", padding: 20 }}>
+            <div style={{ fontSize: 17, fontWeight: 800, marginBottom: 4 }}>{edit.id ? "Referral — " + (edit.client_name || "") : "New referral out"}</div>
+            <div style={{ fontSize: 12.5, color: C.muted, marginBottom: 12 }}>Fill in what you know now — come back and update it when the other agent finds the home or lists the property.</div>
+            <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+              {[["buyer", "🔑 Buyer referral"], ["seller", "🏡 Listing referral"]].map(([v, l]) => (
+                <button key={v} onClick={() => setEdit(f => ({ ...f, client_kind: v }))} style={{ flex: 1, padding: "9px 10px", borderRadius: 20, border: "1.5px solid " + (edit.client_kind === v ? C.blue : C.border), background: edit.client_kind === v ? C.blue : "#fff", color: edit.client_kind === v ? "#fff" : C.text, fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>{l}</button>
+              ))}
+            </div>
             <div style={{ fontSize: 12, fontWeight: 800, color: C.red, marginBottom: 6 }}>CLIENT</div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 8, marginBottom: 12 }}>
               {field("client_name", "Name *")}{field("client_email", "Email")}{field("client_phone", "Phone")}
-              <label style={{ fontSize: 12, color: C.muted }}>Buying or selling
-                <select value={edit.client_kind} onChange={e => setEdit(f => ({ ...f, client_kind: e.target.value }))} style={{ ...inp, marginTop: 3 }}><option value="buyer">Buyer</option><option value="seller">Seller</option></select>
-              </label>
-              {field("area", "Area / city")}
             </div>
-            <div style={{ fontSize: 12, fontWeight: 800, color: C.red, marginBottom: 6 }}>PARTNER AGENT</div>
+            {edit.client_kind === "seller" ? <>
+              <div style={{ fontSize: 12, fontWeight: 800, color: C.red, marginBottom: 6 }}>PROPERTY TO LIST</div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 8, marginBottom: 12 }}>
+                {field("property_address", "Address")}{field("est_price", "Estimated value $", "number")}{field("area", "City / area")}{field("timeframe", "When do they want to list?")}
+              </div>
+            </> : <>
+              <div style={{ fontSize: 12, fontWeight: 800, color: C.red, marginBottom: 6 }}>WHAT THEY'RE BUYING</div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 8, marginBottom: 12 }}>
+                <label style={{ fontSize: 12, color: C.muted }}>Pre-approved?
+                  <select value={edit.preapproved || ""} onChange={e => setEdit(f => ({ ...f, preapproved: e.target.value }))} style={{ ...inp, marginTop: 3 }}>
+                    <option value="">Not sure</option><option value="yes">Yes</option><option value="no">Not yet</option><option value="cash">Cash buyer</option>
+                  </select>
+                </label>
+                {edit.preapproved === "yes" && <>{field("preapproval_amount", "Pre-approved for $", "number")}{field("lender_name", "Lender")}</>}
+                {field("price_min", "Price from $", "number")}{field("price_max", "Price to $", "number")}
+                {field("area", "Areas")}{field("timeframe", "Timeframe (e.g. within 3 months)")}
+              </div>
+            </>}
+            <label style={{ fontSize: 12, color: C.muted, display: "block", marginBottom: 12 }}>What they need (beds, must-haves, situation)
+              <textarea value={edit.client_needs || ""} onChange={e => setEdit(f => ({ ...f, client_needs: e.target.value }))} rows={2} style={{ ...inp, marginTop: 3, resize: "vertical" }} />
+            </label>
+            <div style={{ fontSize: 12, fontWeight: 800, color: C.red, marginBottom: 6 }}>RECEIVING AGENT & BROKERAGE</div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 8, marginBottom: 6 }}>
+              {field("partner_name", "Agent name *")}{field("partner_email", "Agent email")}{field("partner_phone", "Agent phone")}
+              {field("partner_brokerage", "Brokerage")}{field("partner_license", "Brokerage license #")}{field("partner_brokerage_address", "Brokerage address")}
+            </div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 8, marginBottom: 12 }}>
-              {field("partner_name", "Name *")}{field("partner_email", "Email")}{field("partner_phone", "Phone")}{field("partner_brokerage", "Brokerage")}
+              {field("partner_broker_name", "Their broker / representative")}{field("partner_broker_email", "Broker's email")}
             </div>
-            <div style={{ fontSize: 12, fontWeight: 800, color: C.red, marginBottom: 6 }}>MONEY & STATUS</div>
+            <div style={{ fontSize: 12, fontWeight: 800, color: C.red, marginBottom: 6 }}>FEE & STATUS</div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 8, marginBottom: 12 }}>
-              {field("fee_pct", "Referral fee %", "number")}{field("commission_pct", "Their commission %", "number")}{field("est_price", "Price (est. or sold) $", "number")}
+              {field("fee_pct", "Referral fee %", "number")}{field("commission_pct", "Their commission %", "number")}{field("term_months", "Agreement good for (months)", "number")}
               <label style={{ fontSize: 12, color: C.muted }}>Status
                 <select value={edit.status} onChange={e => setEdit(f => ({ ...f, status: e.target.value }))} style={{ ...inp, marginTop: 3 }}>{STATUS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select>
               </label>
-              {field("expected_close", "Expected close", "date")}
             </div>
-            <label style={{ fontSize: 12, color: C.muted }}>Notes<textarea value={edit.notes || ""} onChange={e => setEdit(f => ({ ...f, notes: e.target.value }))} rows={3} style={{ ...inp, marginTop: 3, resize: "vertical" }} /></label>
+            {edit.id && <>
+              <div style={{ fontSize: 12, fontWeight: 800, color: C.red, marginBottom: 6 }}>WHEN THEY FIND IT — THE DEAL</div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 8, marginBottom: 12 }}>
+                {edit.client_kind !== "seller" && field("property_address", "Property address")}
+                {field("est_price", edit.client_kind === "seller" ? "List / contract price $" : "Contract price $", "number")}
+                {field("contract_date", "Contract date", "date")}{field("expected_close", "Closing date", "date")}
+                {field("closed_price", "Sold price $", "number")}
+              </div>
+            </>}
+            <label style={{ fontSize: 12, color: C.muted }}>Your private notes<textarea value={edit.notes || ""} onChange={e => setEdit(f => ({ ...f, notes: e.target.value }))} rows={3} style={{ ...inp, marginTop: 3, resize: "vertical" }} /></label>
             <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 14 }}>
               <button onClick={() => setEdit(null)} style={btn(false)}>Cancel</button>
               <button onClick={save} style={btn(true)}>Save</button>
@@ -169,14 +234,32 @@ export default function ReferralsOutPage({ onBack }) {
         <div onClick={() => !agree.busy && setAgree(null)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 1000, display: "flex", alignItems: "flex-start", justifyContent: "center", overflowY: "auto", padding: "24px 12px" }}>
           <div onClick={e => e.stopPropagation()} style={{ background: "#fff", borderRadius: 14, width: "100%", maxWidth: 520, margin: "auto", padding: 20 }}>
             <div style={{ fontSize: 17, fontWeight: 800, marginBottom: 4 }}>📝 Referral agreement — {agree.x.client_name}</div>
-            {agree.busy && !agree.docId ? <div style={{ color: C.muted, fontSize: 13.5 }}>Creating the agreement…</div> : <>
-              <div style={{ fontSize: 13, color: C.muted, marginBottom: 12 }}>Filled from this referral: both brokerages, the client, and the {agree.x.fee_pct}% referral fee. Read it first — nothing is sent until you tap Send.</div>
+            {agree.step === "who" ? <>
+              <div style={{ fontSize: 13, color: C.muted, marginBottom: 12 }}>A referral agreement is between the two <b>brokerages</b>, so each broker (or their authorized representative) signs it.</div>
+              <div style={{ fontSize: 12, fontWeight: 800, color: C.red, marginBottom: 6 }}>SIGNS FOR YOUR BROKERAGE</div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 8, marginBottom: 6 }}>
+                <input placeholder="Broker / representative name" value={agree.who.ref_broker_name} onChange={e => setAgree(a => ({ ...a, who: { ...a.who, ref_broker_name: e.target.value } }))} style={inp} />
+                <input placeholder="Their email" value={agree.who.ref_broker_email} onChange={e => setAgree(a => ({ ...a, who: { ...a.who, ref_broker_email: e.target.value } }))} style={inp} />
+              </div>
+              {agree.canSave && <label style={{ fontSize: 12.5, display: "flex", gap: 6, alignItems: "center", marginBottom: 12 }}><input type="checkbox" checked={agree.saveDefault} onChange={e => setAgree(a => ({ ...a, saveDefault: e.target.checked }))} /> Use this person for every referral in our brokerage</label>}
+              <div style={{ fontSize: 12, fontWeight: 800, color: C.red, margin: "6px 0" }}>SIGNS FOR {(agree.x.partner_brokerage || "THEIR BROKERAGE").toUpperCase()}</div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 8, marginBottom: 12 }}>
+                <input placeholder="Their broker / representative name" value={agree.who.partner_broker_name} onChange={e => setAgree(a => ({ ...a, who: { ...a.who, partner_broker_name: e.target.value } }))} style={inp} />
+                <input placeholder="Their email" value={agree.who.partner_broker_email} onChange={e => setAgree(a => ({ ...a, who: { ...a.who, partner_broker_email: e.target.value } }))} style={inp} />
+              </div>
+              <label style={{ fontSize: 12.5, display: "flex", gap: 6, alignItems: "center" }}><input type="checkbox" checked={agree.who.agents_sign} onChange={e => setAgree(a => ({ ...a, who: { ...a.who, agents_sign: e.target.checked } }))} /> The two agents sign too (after the brokers)</label>
+              <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 14 }}>
+                <button disabled={agree.busy} onClick={() => setAgree(null)} style={btn(false)}>Cancel</button>
+                <button disabled={agree.busy} onClick={generateAgreement} style={btn(true)}>{agree.busy ? "Creating…" : "Create the agreement"}</button>
+              </div>
+            </> : <>
+              <div style={{ fontSize: 13, color: C.muted, marginBottom: 12 }}>Filled from this referral: both brokerages, the client's details, and the {agree.x.fee_pct}% referral fee. Read it first — nothing is sent until you tap Send.</div>
               <button onClick={() => openDoc(agree.docId)} style={{ ...btn(false), marginBottom: 14 }}>👁 Review the agreement</button>
               <div style={{ fontSize: 12, fontWeight: 800, color: C.red, marginBottom: 6 }}>WHO SIGNS (in this order)</div>
               {(agree.signers || []).map((s, i) => (
                 <div key={i} style={{ fontSize: 13.5, padding: "6px 0", borderTop: "1px solid " + C.gray }}>{i + 1}. <b>{s.name}</b> · {s.email} <span style={{ color: C.muted }}>— {s.role}</span></div>
               ))}
-              <div style={{ fontSize: 12, color: C.muted, marginTop: 8 }}>Each signer gets a private signing link by email. When both have signed, you both receive the signed copy with its certificate.</div>
+              <div style={{ fontSize: 12, color: C.muted, marginTop: 8 }}>Each signer gets a private signing link by email. When everyone has signed, they all receive the signed copy with its certificate.</div>
               <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 14 }}>
                 <button disabled={agree.busy} onClick={() => setAgree(null)} style={btn(false)}>Not now</button>
                 <button disabled={agree.busy} onClick={sendAgreement} style={btn(true)}>{agree.busy ? "Sending…" : "✍️ Send for signature"}</button>
@@ -205,6 +288,40 @@ export default function ReferralsOutPage({ onBack }) {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// MY DEALS strip (Carlos 10/1: a referral out is a deal you keep updating).
+// Open referrals show as cards under the deal filters; tapping one opens its
+// form on Referrals Out. Read-only here — no timeline, no client emails.
+export function ReferralsOutStrip({ onOpen }) {
+  const [list, setList] = useState([]);
+  useEffect(() => {
+    const tok = localStorage.getItem("tp_token") || "";
+    fetch(API + "/referrals-out", { headers: { Authorization: "Bearer " + tok } }).then(r => r.ok ? r.json() : null)
+      .then(d => setList(((d && d.referrals) || []).filter(x => !x.paid_at && x.status !== "lost"))).catch(() => {});
+  }, []);
+  if (!list.length) return null;
+  const go = (id) => { try { if (id) sessionStorage.setItem("tp_open_referral", id); } catch {} onOpen && onOpen(); };
+  return (
+    <div style={{ padding: "12px 24px 0" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+        <span style={{ fontSize: 12, fontWeight: 800, color: C.dark, textTransform: "uppercase", letterSpacing: 0.4 }}>↗️ Referred out ({list.length})</span>
+        <button onClick={() => go(null)} style={{ background: "none", border: "none", color: C.blue, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>See all →</button>
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 10 }}>
+        {list.map(x => (
+          <button key={x.id} onClick={() => go(x.id)} style={{ textAlign: "left", background: "#fff", border: "1px solid " + (x.update_due ? "#E6B0AA" : C.border), borderLeft: "4px solid " + C.dark, borderRadius: 10, padding: "10px 12px", cursor: "pointer", fontFamily: "inherit" }}>
+            <div style={{ fontWeight: 800, fontSize: 14, color: C.text }}>{x.property_address || x.client_name}</div>
+            <div style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>{x.property_address ? x.client_name + " · " : ""}{x.client_kind === "seller" ? "listing" : "buyer"} → {x.partner_name}</div>
+            <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6, fontSize: 12 }}>
+              <span style={{ fontWeight: 800, color: C.blue }}>{x.status_label}</span>
+              <span style={{ color: "#166534", fontWeight: 700 }}>{x.expected_fee > 0 ? money(x.expected_fee) + " fee" : ""}</span>
+            </div>
+          </button>
+        ))}
+      </div>
     </div>
   );
 }
