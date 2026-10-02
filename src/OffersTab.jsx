@@ -136,8 +136,11 @@ export default function OffersTab({ tx, token, currentUser, createSignal = 0, on
   useEffect(() => {
     if (!pendingCreate || loading) return;
     setPendingCreate(false);
-    const drafts = offers.filter(o => o.status === "draft");
-    if (drafts.length) setDraftChooser(drafts);
+    // ANY active offer (draft, ready, sent, countered, accepted) → ask first.
+    // Carlos 10/2: a Ready/Sent offer isn't a draft, so the first version still
+    // created a new one silently.
+    const active = offers.filter(o => !["rejected", "withdrawn"].includes(o.status));
+    if (active.length) setDraftChooser(active);
     else createOffer();
     /* eslint-disable-next-line */
   }, [pendingCreate, loading]);
@@ -371,7 +374,7 @@ export default function OffersTab({ tx, token, currentUser, createSignal = 0, on
                 const showPanel = countersLoaded && (!!ctr || o.status === "sent" || o.status === "countered");
                 return (
                   <Fragment key={o.id}>
-                  <tr style={{ borderBottom: showPanel ? "none" : "1px solid #f3f4f6" }}>
+                  <tr data-offer-row={o.id} style={{ borderBottom: showPanel ? "none" : "1px solid #f3f4f6", transition: "outline 0.2s" }}>
                     <td style={{ padding: "10px 12px" }}>
                       <span style={{ background: meta.bg, color: meta.color, padding: "2px 8px", borderRadius: 12, fontSize: 11, fontWeight: 700 }}>
                         {meta.label}
@@ -541,19 +544,32 @@ export default function OffersTab({ tx, token, currentUser, createSignal = 0, on
             style={{ background: "#fff", borderRadius: 14, width: "100%", maxWidth: 520, margin: "auto", boxShadow: "0 20px 60px rgba(0,0,0,0.3)", overflow: "hidden" }}>
             <div style={{ background: "#0c4a6e", color: "#fff", padding: "16px 20px" }}>
               <div id="draft-chooser-title" style={{ fontSize: 17, fontWeight: 800 }}>Continue an offer or start a new one?</div>
-              <div style={{ fontSize: 13, opacity: 0.9, marginTop: 3 }}>This deal has {draftChooser.length === 1 ? "an offer" : draftChooser.length + " offers"} you started but haven't finished.</div>
+              <div style={{ fontSize: 13, opacity: 0.9, marginTop: 3 }}>This deal already has {draftChooser.length === 1 ? "an offer" : draftChooser.length + " offers"}.</div>
             </div>
             <div style={{ padding: 16, display: "flex", flexDirection: "column", gap: 10 }}>
               {draftChooser.map(o => {
                 const od = o.offer_data || {};
                 const total = getWizard(o.base_contract_type || "as_is").steps.length;
+                const editable = o.status === "draft" || o.status === "ready";
+                const meta = STATUS_META[o.status] || STATUS_META.draft;
+                const showIt = () => {
+                  setDraftChooser(null);
+                  setTimeout(() => {
+                    const row = document.querySelector('[data-offer-row="' + o.id + '"]');
+                    if (row) { row.scrollIntoView({ behavior: "smooth", block: "center" }); row.style.outline = "3px solid #0c4a6e"; setTimeout(() => { row.style.outline = ""; }, 2500); }
+                  }, 50);
+                };
                 return (
-                  <button key={o.id} onClick={() => { setDraftChooser(null); setWizardOfferId(o.id); }}
-                    style={{ textAlign: "left", background: "#fff", border: "1.5px solid #0c4a6e", borderRadius: 10, padding: "12px 14px", cursor: "pointer", fontFamily: "inherit" }}>
-                    <div style={{ fontSize: 15, fontWeight: 800, color: "#0c4a6e" }}>✏️ Continue: {od.property_address || tx.address || "Draft offer"}</div>
+                  <button key={o.id} onClick={editable ? () => { setDraftChooser(null); setWizardOfferId(o.id); } : showIt}
+                    style={{ textAlign: "left", background: "#fff", border: "1.5px solid " + (editable ? "#0c4a6e" : "#D1D5DB"), borderRadius: 10, padding: "12px 14px", cursor: "pointer", fontFamily: "inherit" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                      <span style={{ fontSize: 15, fontWeight: 800, color: "#0c4a6e" }}>{editable ? "✏️ Continue: " : "👀 Show it: "}{od.property_address || tx.address || "Offer"}</span>
+                      <span style={{ background: meta.bg, color: meta.color, padding: "2px 8px", borderRadius: 12, fontSize: 11, fontWeight: 700 }}>{meta.label}</span>
+                    </div>
                     <div style={{ fontSize: 13, color: "#374151", marginTop: 3 }}>
-                      {od.purchase_price ? fmtMoney(od.purchase_price) + " · " : ""}Step {o.current_step || 1} of {total}
-                      {o.base_contract_type === "vacant_land" ? " · Vacant Land Contract" : ""} · last worked on {fmtDate(o.updated_at)}
+                      {od.purchase_price ? fmtMoney(od.purchase_price) + " · " : ""}
+                      {editable ? `Step ${o.current_step || 1} of ${total}` : (o.status === "sent" ? "Sent to the listing agent" : meta.label)}
+                      {o.base_contract_type === "vacant_land" ? " · Vacant Land Contract" : ""} · updated {fmtDate(o.updated_at)}
                     </div>
                   </button>
                 );

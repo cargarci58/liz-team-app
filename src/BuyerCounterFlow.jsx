@@ -85,16 +85,24 @@ export function buyerOfferState(offer, counter) {
   return null;
 }
 
+// Displayed timeline. Carlos 10/2: "Offer sent" used to be the CURRENT pill
+// while waiting, which read as if it hadn't been sent. Now the history is shown
+// done (✓ Buyer signed → ✓ Offer sent) and the current step is the seller's
+// answer. `step` is still buyerOfferState()'s internal number (0 = waiting on
+// the seller) — only the display is shifted by the two done steps.
+const DISPLAY_STEPS = (countered) => ["Buyer signed", "Offer sent", countered ? "They countered" : "Seller's answer", "Your buyer's answer", "Buyer signs", "Sent back", "Seller accepts"];
 export function BuyerStepTracker({ step, tone }) {
   const color = tone === "bad" ? C.red : tone === "good" ? C.green : C.blue;
+  const cur = step + 2;
+  const steps = DISPLAY_STEPS(step >= 1);
   return (
     <div style={{ display: "flex", flexWrap: "wrap", gap: 4, alignItems: "center", margin: "4px 0 6px" }}>
-      {BUYER_STEPS.map((s, i) => (
+      {steps.map((s, i) => (
         <span key={s} style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
           <span style={{ fontSize: 11, fontWeight: 700, padding: "3px 8px", borderRadius: 12,
-            background: i < step ? C.greenBg : i === step ? color : C.bg, color: i < step ? C.green : i === step ? "#fff" : C.muted,
-            border: `1px solid ${i < step ? "#BFE3C9" : i === step ? color : C.border}` }}>{i < step ? "✓ " : `${i + 1} `}{s}</span>
-          {i < BUYER_STEPS.length - 1 && <span style={{ color: C.muted, fontSize: 10 }}>→</span>}
+            background: i < cur ? C.greenBg : i === cur ? color : C.bg, color: i < cur ? C.green : i === cur ? "#fff" : C.muted,
+            border: `1px solid ${i < cur ? "#BFE3C9" : i === cur ? color : C.border}` }}>{i < cur ? "✓ " : `${i + 1} `}{s}{i === cur && step === 0 ? " — waiting" : ""}</span>
+          {i < steps.length - 1 && <span style={{ color: C.muted, fontSize: 10 }}>→</span>}
         </span>
       ))}
     </div>
