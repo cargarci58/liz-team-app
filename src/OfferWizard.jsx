@@ -209,17 +209,57 @@ function FieldRenderer({ field, value, onChange, documents, formLibrary, onUploa
     );
   }
   if (field.type === "preapproval_picker") {
-    // Filter to docs that look like a pre-approval. Picker rendered alongside an upload button below.
-    const candidates = (documents || []).filter(d => /pre.?approval|proof.*funds|pof/i.test((d.category || "") + " " + (d.name || "") + " " + (d.document_type || "")));
+    // Files that LOOK like a pre-approval / proof of funds are suggested first,
+    // but ANY file on the deal can be picked (Carlos 10/2: a phone photo of a
+    // bank statement is saved as "6e8e…jpeg" in General and was unpickable).
+    // The server attaches PDFs as-is and turns JPG/PNG into a PDF page.
+    const all = Array.isArray(documents) ? documents : [];
+    const looksLikePof = (d) => /pre.?approv|pre.?qual|proof.*funds|\bpof\b|bank|statement|funds|commitment|approval letter|lender/i.test((d.category || "") + " " + (d.name || "") + " " + (d.document_type || ""));
+    const suggested = all.filter(looksLikePof);
+    const others = all.filter(d => !looksLikePof(d));
+    const when = (d) => d.created_at ? new Date(d.created_at).toLocaleString("en-US", { timeZone: "America/New_York", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) : "";
+    const isPhoto = (d) => /\.(jpe?g|png|heic|webp)$/i.test(d.name || "") || /^image\//i.test(d.mime_type || "");
+    // Random-looking file names (phone photos) get a readable label instead.
+    const label = (d) => {
+      const raw = d.name || "Untitled file";
+      const unreadable = /^[0-9a-f]{8}-[0-9a-f]{4}-/i.test(raw);
+      const name = unreadable ? (isPhoto(d) ? "Photo" : "File") : raw;
+      const bits = [when(d) && "added " + when(d), d.folder || (d.category && d.category !== "General" ? d.category : "")].filter(Boolean);
+      return bits.length ? `${name} — ${bits.join(" · ")}` : name;
+    };
+    const picked = all.find(d => String(d.id) === String(v));
+    const viewPicked = async () => {
+      try {
+        const r = await fetch(`${API}/documents/${picked.id}/view-url`, { headers: { Authorization: "Bearer " + (localStorage.getItem("tp_token") || "") } });
+        const d = await r.json();
+        if (d.viewUrl) window.open(d.viewUrl, "_blank"); else alert("Could not open the file: " + (d.error || "unknown error"));
+      } catch (e) { alert("Could not open the file: " + e.message); }
+    };
     return (
       <div>
         <select value={v} onChange={e => onChange(e.target.value)} style={inputStyle}>
-          <option value="">— select an existing pre-approval / proof of funds —</option>
-          {candidates.map(d => (
-            <option key={d.id} value={d.id}>{d.name}</option>
-          ))}
-          {candidates.length === 0 && <option value="" disabled>None on file yet — upload one below</option>}
+          <option value="">— pick a file already on this deal —</option>
+          {suggested.length > 0 && (
+            <optgroup label="Looks like a pre-approval / proof of funds">
+              {suggested.map(d => <option key={d.id} value={d.id}>{label(d)}</option>)}
+            </optgroup>
+          )}
+          {others.length > 0 && (
+            <optgroup label={suggested.length ? "Other files on this deal" : "Files on this deal"}>
+              {others.map(d => <option key={d.id} value={d.id}>{label(d)}</option>)}
+            </optgroup>
+          )}
+          {all.length === 0 && <option value="" disabled>No files on this deal yet — upload one</option>}
         </select>
+        {picked && (
+          <div style={{ marginTop: 6, fontSize: 12.5, color: "#374151" }}>
+            Selected: <strong>{label(picked)}</strong>{" "}
+            <button type="button" onClick={viewPicked}
+              style={{ background: "none", border: "none", color: "#0c4a6e", textDecoration: "underline", fontWeight: 700, cursor: "pointer", padding: 0, fontSize: 12.5, fontFamily: "inherit" }}>
+              👀 View it
+            </button>
+          </div>
+        )}
       </div>
     );
   }
