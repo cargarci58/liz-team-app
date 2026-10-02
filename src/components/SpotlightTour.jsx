@@ -145,7 +145,7 @@ export default function SpotlightTour({ onClose, onCreateFirst }) {
             onClick={() => setI(n => Math.max(0, n - 1))}
             disabled={i === 0}
             style={{ background: 'none', border: '1px solid #ddd', borderRadius: 10, padding: '9px 14px', fontSize: 13, fontWeight: 700, color: i === 0 ? '#ccc' : '#444', cursor: i === 0 ? 'default' : 'pointer', fontFamily: 'inherit' }}
-          >← Back</button>
+          >← Previous</button>
           <div style={{ flex: 1 }} />
           {!last ? (
             <button onClick={() => setI(n => Math.min(STEPS.length - 1, n + 1))} style={primaryBtn}>Next →</button>

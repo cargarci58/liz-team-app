@@ -34,6 +34,7 @@ const SUPERUSER_EMAIL = ((import.meta.env && import.meta.env.VITE_SUPERUSER_EMAI
 
 import { useState, useEffect, useCallback, useRef, lazy, Suspense } from "react";
 import { askConfirm, askText } from "./ui/dialogs";
+import BackButton from "./ui/BackButton";
 
 // ── Code-split heavy, route-level screens so the phone only downloads the
 // ── code for the screen you actually open, instead of one giant bundle up front.
@@ -6853,7 +6854,7 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
   return (
     <div style={{ fontFamily: "'Segoe UI', system-ui, sans-serif", background: COLORS.bg, minHeight: "100vh" }}>
       <div data-tx-detail-header="" style={{ background: COLORS.navy, padding: "16px 24px", display: "flex", alignItems: "center", gap: 16, position: "sticky", top: 0, zIndex: 100, flexWrap: "wrap" }}>
-        <button onClick={onBack} style={{ background: "none", border: "none", color: "#fff", cursor: "pointer", fontSize: 22, opacity: 0.7 }}>←</button>
+        <BackButton tone="dark" onClick={onBack} to={coordinatorMode ? "All deals" : "My Deals"} />
         <div style={{ flex: 1 }}>
           <div style={{ color: "#fff", fontWeight: 700, fontSize: 17 }}>{tx.address}</div>
           <div style={{ color: "rgba(255,255,255,0.85)", fontSize: 13 }}>{tx.city}, FL {tx.zipCode} · {tx.county} County · {tx.type}</div>
@@ -8747,7 +8748,7 @@ function NewTransactionForm({ onSave, onCancel, prefill = null, cmaId = null, on
   return (
     <div style={{ fontFamily: "'Segoe UI', system-ui, sans-serif", background: COLORS.bg, minHeight: "100vh" }}>
       <div style={{ background: COLORS.navy, padding: "16px 24px", display: "flex", alignItems: "center", gap: 16 }}>
-        <button onClick={onCancel} style={{ background: "none", border: "none", color: "#fff", cursor: "pointer", fontSize: 22, opacity: 0.7 }}>←</button>
+        <BackButton tone="dark" onClick={onCancel} to={cmaId ? "CMA" : "Win The Day"} />
         <div>
           <div style={{ color: "#fff", fontWeight: 700, fontSize: 17 }}>➕ New Deal</div>
           <div style={{ color: "rgba(255,255,255,0.7)", fontSize: 12, marginTop: 1 }}>Three quick steps — about a minute. You can add details later.</div>
@@ -8936,7 +8937,7 @@ function NewTransactionForm({ onSave, onCancel, prefill = null, cmaId = null, on
           {/* Footer: Back / Next / Create */}
           <div style={{ display: "flex", gap: 10, marginTop: 22 }}>
             {step > 1 && (
-              <button type="button" onClick={() => setStep(v => v - 1)} style={{ flex: 1, padding: "13px 0", borderRadius: 10, border: "1px solid #d1d5db", background: "#fff", color: "#374151", fontWeight: 700, fontSize: 15, cursor: "pointer", fontFamily: "inherit" }}>← Back</button>
+              <button type="button" onClick={() => setStep(v => v - 1)} style={{ flex: 1, padding: "13px 0", borderRadius: 10, border: "1px solid #d1d5db", background: "#fff", color: "#374151", fontWeight: 700, fontSize: 15, cursor: "pointer", fontFamily: "inherit" }}>← Previous step</button>
             )}
             {step < 3 && (
               <button type="button" disabled={step === 1 && !step1Ok} onClick={() => setStep(v => v + 1)}
@@ -11414,10 +11415,7 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
       {!showReports && !showCalendar && view === "detail" && !selectedTx && (
         <div style={{ maxWidth: 680, margin: "0 auto", padding: "48px 24px", textAlign: "center" }}>
           <div style={{ color: "#64748B", fontSize: 15, marginBottom: 16 }}>Loading this transaction…</div>
-          <button onClick={() => setView(coordinatorMode ? "home" : "dashboard")}
-            style={{ background: "#fff", border: "1px solid #E5E7EB", borderRadius: 10, padding: "10px 20px", fontWeight: 700, fontSize: 14, cursor: "pointer", fontFamily: "inherit" }}>
-            ← Back
-          </button>
+          <BackButton onClick={() => setView(coordinatorMode ? "home" : "dashboard")} to={coordinatorMode ? "All deals" : "My Deals"} />
         </div>
       )}
       {/* ONE header for the whole app (home + deals). Every other screen has a
@@ -11600,7 +11598,7 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
       {showCompliance && (
         <div style={{ position:"fixed", inset:0, background:"#fff", zIndex:200, overflowY:"auto" }}>
           <div style={{ position:"sticky", top:0, background:"#fff", borderBottom:"1px solid #DDD", padding:"12px 16px", display:"flex", alignItems:"center", gap:12, zIndex:1 }}>
-            <button onClick={() => setShowCompliance(false)} style={{ background:"none", border:"none", fontSize:20, cursor:"pointer" }}>←</button>
+            <BackButton onClick={() => setShowCompliance(false)} />
             <div style={{ fontWeight:700, fontSize:16 }}>Compliance Admin</div>
           </div>
           <ComplianceAdmin token={localStorage.getItem("tp_token") || ""} user={currentUser} />
@@ -11626,7 +11624,7 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
       {showTaskTmpls && (
         <div style={{ position:"fixed", inset:0, background:"#fff", zIndex:200, overflowY:"auto" }}>
           <div style={{ position:"sticky", top:0, background:"#fff", borderBottom:"1px solid #DDD", padding:"12px 16px", display:"flex", alignItems:"center", gap:12, zIndex:1 }}>
-            <button onClick={() => setShowTaskTmpls(false)} style={{ background:"none", border:"none", fontSize:20, cursor:"pointer" }}>←</button>
+            <BackButton onClick={() => setShowTaskTmpls(false)} />
             <div style={{ fontWeight:700, fontSize:16 }}>Task Templates</div>
           </div>
           <TaskTemplatesAdmin token={localStorage.getItem("tp_token") || ""} />
@@ -11635,7 +11633,7 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
       {showComplianceDash && (
         <div style={{ position:"fixed", inset:0, background:"#fff", zIndex:200, overflowY:"auto" }}>
           <div style={{ position:"sticky", top:0, background:"#fff", borderBottom:"1px solid #DDD", padding:"12px 16px", display:"flex", alignItems:"center", gap:12, zIndex:1 }}>
-            <button onClick={() => setShowComplianceDash(false)} style={{ background:"none", border:"none", fontSize:20, cursor:"pointer" }}>←</button>
+            <BackButton onClick={() => setShowComplianceDash(false)} />
             <div style={{ fontWeight:700, fontSize:16 }}>Compliance Dashboard</div>
           </div>
           <ComplianceDashboard

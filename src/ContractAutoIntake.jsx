@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import BackButton from "./ui/BackButton";
 import { askConfirm } from "./ui/dialogs";
 
 const API = "https://liz-team-server-api-production.up.railway.app";
@@ -223,7 +224,7 @@ function UploadStep({ token, existingTransactionId, onBack, onUploaded }) {
   return (
     <div style={{ fontFamily: "'Segoe UI', system-ui, sans-serif", background: COLORS.bg, minHeight: "100vh", padding: "24px" }}>
       <div style={{ maxWidth: 720, margin: "0 auto" }}>
-        <button onClick={onBack} style={{ background: "none", border: "none", color: COLORS.muted, fontSize: 14, cursor: "pointer", marginBottom: 16 }}>← Back</button>
+        <BackButton onClick={onBack} style={{ marginBottom: 16 }} />
         <h1 style={{ margin: 0, color: COLORS.navy, fontSize: 26 }}>{isOffer ? "📥 Upload Offer" : "📄 Import a Signed Contract"}</h1>
         <p style={{ color: COLORS.muted, marginTop: 6, marginBottom: 8 }}>
           {isOffer
@@ -725,7 +726,7 @@ function ReviewStep({ token, uploadId, user, currentStatus, onApproved, onBack }
         </div>
       )}
       <div style={{ maxWidth: 920, margin: "0 auto" }}>
-        <button onClick={onBack} style={{ background: "none", border: "none", color: COLORS.muted, fontSize: 14, cursor: "pointer", marginBottom: 16 }}>← Back</button>
+        <BackButton onClick={onBack} style={{ marginBottom: 16 }} />
         <h1 style={{ margin: 0, color: COLORS.navy, fontSize: 26 }}>📋 Review Extracted Contract Data</h1>
         <p style={{ color: COLORS.muted, marginTop: 6, marginBottom: 20 }}>
           Verify everything below is correct. Edit any field that's wrong. Click <strong>Approve Offer</strong> when ready — this accepts the offer, moves the listing to Under Contract, adds the parties, and sets up the timeline and tasks.

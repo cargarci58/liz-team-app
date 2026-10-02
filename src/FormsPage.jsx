@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import BackButton from "./ui/BackButton";
 import { askConfirm } from './ui/dialogs';
 
 const API = import.meta.env.VITE_API_URL || 'https://liz-team-server-api-production.up.railway.app';
@@ -74,7 +75,7 @@ export default function FormsPage({ user, onBack }) {
     <div style={{ padding: 24, maxWidth: 1200, margin: '0 auto' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <button onClick={() => onBack && onBack()} style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', padding: 4 }} title="Back to dashboard">←</button>
+          <BackButton onClick={() => onBack && onBack()} to="My Deals" />
           <h1 style={{ margin: 0, fontSize: 28 }}>📋 Forms Library</h1>
         </div>
         {isAdmin && (

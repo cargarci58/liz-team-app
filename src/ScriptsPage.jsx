@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import BackButton from "./ui/BackButton";
 import { CALL_SCRIPT_GROUPS, CALL_OBJECTIONS } from "./config/callScripts";
 import { askConfirm } from "./ui/dialogs";
 
@@ -183,7 +184,7 @@ export default function ScriptsPage({ token, onBack, currentUser }) {
     <div style={{ fontFamily: "'Segoe UI', system-ui, sans-serif", background: C.bg, minHeight: "100vh" }}>
       <div style={{ background: C.navy, padding: "16px 24px", display: "flex", alignItems: "center", gap: 16,
         position: "sticky", top: 0, zIndex: 100, flexWrap: "wrap" }}>
-        <button onClick={onBack} style={{ background: "none", border: "none", color: "#fff", cursor: "pointer", fontSize: 22, opacity: 0.7 }}>←</button>
+        <BackButton tone="dark" onClick={onBack} to="My Deals" />
         <div style={{ flex: 1 }}>
           <div style={{ color: "#fff", fontWeight: 700, fontSize: 17 }}>📜 Agent Scripts</div>
           <div style={{ color: "rgba(255,255,255,0.85)", fontSize: 13 }}>Ready-to-use talking points for your side of the deal</div>

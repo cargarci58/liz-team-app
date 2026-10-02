@@ -1,4 +1,5 @@
 import React from 'react';
+import BackButton from "./ui/BackButton";
 import { useState, useEffect, useRef } from "react";
 import PopByLogModal from "./PopByLogModal";
 import { CallScriptsButton } from "./components/CallScriptPanel";
@@ -489,7 +490,7 @@ function LogCallModal({ contact, token, onClose, onLogged }) {
             </Field>
 
             <div style={{ display: "flex", gap: 8, justifyContent: "space-between", marginTop: 20 }}>
-              <button onClick={() => setStep(1)} style={btnStyle("#e5e7eb", "#374151")}>← Back</button>
+              <button onClick={() => setStep(1)} style={btnStyle("#e5e7eb", "#374151")}>← Previous step</button>
               <div style={{ display: "flex", gap: 8 }}>
                 <button onClick={onClose} style={btnStyle("#e5e7eb", "#374151")}>Cancel</button>
                 <button onClick={save} disabled={saving} style={btnStyle("#0c4a6e", "white")}>
@@ -873,7 +874,7 @@ function FillMissingModal({ token, onClose, onDone }) {
               </div>
             ))}
             <div style={{ display:"flex", gap:10, marginTop:18 }}>
-              <button onClick={() => setStep(1)} disabled={busy} style={{ flex:1, padding:11, borderRadius:8, border:"1px solid #d1d5db", background:"#fff", color:"#374151", fontWeight:600, cursor:"pointer" }}>← Back</button>
+              <button onClick={() => setStep(1)} disabled={busy} style={{ flex:1, padding:11, borderRadius:8, border:"1px solid #d1d5db", background:"#fff", color:"#374151", fontWeight:600, cursor:"pointer" }}>← Previous step</button>
               <button onClick={submit} disabled={busy || mapping.email === undefined} style={{ flex:2, padding:11, borderRadius:8, border:"none", background: (busy || mapping.email === undefined) ? "#d1a878" : "#92400e", color:"#fff", fontWeight:700, cursor: busy ? "wait" : "pointer" }}>
                 {busy ? "Filling..." : "🩹 Fill Missing Info"}
               </button>
@@ -1089,7 +1090,7 @@ function ImportModal({ token, onClose, onImported, onFillMissing }) {
             </div>
 
             <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
-              <button onClick={() => setStep(1)} style={btnStyle("#e5e7eb", "#374151")}>← Back</button>
+              <button onClick={() => setStep(1)} style={btnStyle("#e5e7eb", "#374151")}>← Previous step</button>
               <button onClick={doImport} disabled={importing} style={btnStyle("#0c4a6e", "white")}>
                 {importing ? "Importing..." : ("Import " + rawRows.length + " Contacts")}
               </button>
@@ -1512,7 +1513,7 @@ function BulkScheduleModal({ token, contactCount, onClose, onScheduled }) {
             </div>
 
             <div style={{ display: "flex", gap: 8, justifyContent: "space-between" }}>
-              <button onClick={() => setStep(1)} style={btnStyle("#e5e7eb", "#374151")}>← Back</button>
+              <button onClick={() => setStep(1)} style={btnStyle("#e5e7eb", "#374151")}>← Previous step</button>
               <button onClick={submit} disabled={submitting} style={btnStyle("#0c4a6e", "white")}>
                 {submitting ? "Scheduling..." : "✓ Confirm Schedule"}
               </button>
@@ -2025,10 +2026,7 @@ export default function ContactsPage({ token, onBack }) {
   return (
     <div style={{ padding: 24, fontFamily: "system-ui, sans-serif", maxWidth: 1200, margin: "0 auto" }}>
       {onBack && (
-        <button onClick={onBack}
-          style={{ background: "transparent", border: "none", color: "#0c4a6e", cursor: "pointer", fontSize: 14, fontWeight: 600, marginBottom: 12, padding: "4px 0", fontFamily: "inherit" }}>
-          ← Back to Dashboard
-        </button>
+        <BackButton onClick={onBack} to="My Deals" style={{ marginBottom: 12 }} />
       )}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8, flexWrap: "wrap", gap: 12 }}>
         <div>

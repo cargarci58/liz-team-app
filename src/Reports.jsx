@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
+import BackButton from "./ui/BackButton";
 import FirstTimeHere from "./components/FirstTimeHere";
 import { PAGE_TIPS, PAGE_SCENES } from "./config/pageTips";
 
@@ -769,7 +770,7 @@ export default function Reports({ transactions, onBack, currentUser, initialTab 
       <div className="no-print" style={{ background: "#111", padding: "14px 24px", display: "flex", alignItems: "center", gap: 16 }}>
         {/* Labeled back button — a bare "←" was easy to miss; users couldn't tell
             how to get back (esp. mid-onboarding) and resorted to browser back. (tester #22) */}
-        <button onClick={onBack} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.25)", color: "#fff", fontSize: 14, fontWeight: 700, cursor: "pointer", borderRadius: 8, padding: "7px 14px", fontFamily: "inherit" }}>← Back</button>
+        <BackButton tone="dark" onClick={onBack} />
         <div style={{ color: "#fff", fontWeight: 700, fontSize: 18 }}>📊 Reports & Analytics</div>
         <div style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
           <button onClick={() => window.print()} style={{ background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.3)", color: "#fff", borderRadius: 8, padding: "7px 16px", cursor: "pointer", fontSize: 13, fontWeight: 600, fontFamily: "inherit" }}>🖨️ Print Report</button>

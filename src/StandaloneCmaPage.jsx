@@ -6,6 +6,7 @@
 // finished CMA up to the app to spin into a real transaction.
 // ============================================================================
 import React, { useState, useEffect, useCallback } from 'react';
+import BackButton from "./ui/BackButton";
 import CmaTool from './cma/CmaTool';
 import { askConfirm } from './ui/dialogs';
 
@@ -68,8 +69,8 @@ export default function StandaloneCmaPage({ token, currentUser, onBack, onCreate
     return (
       <div style={{ minHeight: '100vh', background: '#f4f5f7' }}>
         <div style={{ background: '#1a2b4a', padding: '12px 20px', display: 'flex', alignItems: 'center', gap: 14 }}>
-          <button onClick={backToList} style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', fontSize: 20, opacity: 0.8 }}>←</button>
-          <div style={{ color: '#fff', fontWeight: 700, fontSize: 15 }}>CMA — back to my CMAs</div>
+          <BackButton tone="dark" onClick={backToList} to="My CMAs" />
+          <div style={{ color: '#fff', fontWeight: 700, fontSize: 15 }}>CMA</div>
         </div>
         <CmaTool
           standalone
@@ -86,7 +87,7 @@ export default function StandaloneCmaPage({ token, currentUser, onBack, onCreate
   return (
     <div style={{ minHeight: '100vh', background: '#f4f5f7', fontFamily: "'Segoe UI', system-ui, sans-serif" }}>
       <div style={{ background: '#1a2b4a', padding: '16px 24px', display: 'flex', alignItems: 'center', gap: 16 }}>
-        <button onClick={onBack} style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', fontSize: 22, opacity: 0.7 }}>←</button>
+        <BackButton tone="dark" onClick={onBack} to="My Deals" />
         <div style={{ color: '#fff', fontWeight: 700, fontSize: 17 }}>📊 CMA — Comparative Market Analysis</div>
       </div>
 

@@ -2591,7 +2591,7 @@ function ListingPackageModal({ tx, headers, dealDocs = [], onClose, onDone }) {
                 ✍️ Signing links go to: {gen.signers.filter(s => s.email).map(s => `${s.name} (${s.email})`).join(", ")}. Every signature and initial line is pre-placed — including the page-bottom initials on every page.
               </div>
               <div style={{ display: "flex", gap: 10 }}>
-                <button onClick={() => setStep("form")} disabled={busy} style={{ flex: 1, padding: "12px 0", borderRadius: 10, border: "1.5px solid #CCC", background: "#fff", color: "#555", fontWeight: 700, fontSize: 14, cursor: "pointer", fontFamily: "inherit" }}>← Back</button>
+                <button onClick={() => setStep("form")} disabled={busy} style={{ flex: 1, padding: "12px 0", borderRadius: 10, border: "1.5px solid #CCC", background: "#fff", color: "#555", fontWeight: 700, fontSize: 14, cursor: "pointer", fontFamily: "inherit" }}>← Previous step</button>
                 <button onClick={send} disabled={busy} style={{ flex: 2, padding: "12px 0", borderRadius: 10, border: "none", background: busy ? "#B3B6B7" : "#1E8449", color: "#fff", fontWeight: 800, fontSize: 15, cursor: busy ? "wait" : "pointer", fontFamily: "inherit" }}>
                   {busy ? "Sending…" : "✉️ Send for signature"}
                 </button>

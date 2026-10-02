@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import BackButton from "./ui/BackButton";
 import PopByLogModal from "./PopByLogModal";
 import { askConfirm } from "./ui/dialogs";
 
@@ -324,7 +325,7 @@ export default function PopBysPage({ token, onBack }) {
 
   return (
     <div style={wrap}>
-      {onBack && <button onClick={onBack} style={{ background: "transparent", border: "none", color: "#0c4a6e", cursor: "pointer", fontSize: 14, fontWeight: 600, marginBottom: 12, padding: "4px 0" }}>← Back to Dashboard</button>}
+      {onBack && <BackButton onClick={onBack} to="My Deals" style={{ marginBottom: 12 }} />}
 
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10 }}>
         <div>

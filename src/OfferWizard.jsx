@@ -1118,7 +1118,7 @@ export default function OfferWizard({ offerId, token, onClose, onSaved }) {
                 into a twelve-step contract needs to be told they can walk away
                 without losing it. */}
             <button onClick={onSaveDraft} disabled={saving} style={btnGhost}>{saving ? "Saving…" : "Save & finish later"}</button>
-            {stepIdx > 0 && <button onClick={onBack} disabled={saving} style={btnSecondary}>← Back</button>}
+            {stepIdx > 0 && <button onClick={onBack} disabled={saving} style={btnSecondary}>← Previous step</button>}
             {!isLast && <button onClick={onNext} disabled={saving} style={btnPrimary}>{saving ? "Saving…" : "Next →"}</button>}
             {isLast && <button onClick={onSubmit} disabled={submitting} style={btnPrimary}>{submitting ? "Submitting…" : "Mark Ready ✓"}</button>}
           </div>

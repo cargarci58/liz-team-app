@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import BackButton from "./ui/BackButton";
 import { askConfirm } from "./ui/dialogs";
 
 const API = "https://liz-team-server-api-production.up.railway.app";
@@ -472,9 +473,7 @@ export default function VendorLibrary({ onClose }) {
       {/* Header */}
       <div style={{ background: COLORS.black, padding: "16px 20px",
         display: "flex", alignItems: "center", gap: 14, position: "sticky", top: 0, zIndex: 10 }}>
-        <button onClick={onClose}
-          style={{ background: "none", border: "none", color: "#fff",
-            fontSize: 22, cursor: "pointer", opacity: 0.7 }}>←</button>
+        <BackButton tone="dark" onClick={onClose} />
         <div>
           <div style={{ color: "#fff", fontWeight: 800, fontSize: 17 }}>Preferred Vendors</div>
           <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 12 }}>

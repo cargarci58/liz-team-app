@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import BackButton from "./ui/BackButton";
 
 // ════════════════════════════════════════════════════════════════
 // GROWTH PLAN — a dead-simple, vision-clear business plan for an agent.
@@ -192,7 +193,7 @@ export default function GrowthPlanPage({ onBack }) {
   return (
     <div style={{ maxWidth: 860, margin: "0 auto", padding: "16px 16px 60px", fontFamily: "'Segoe UI', system-ui, sans-serif", color: C.ink }}>
       <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
-        {onBack && <button onClick={onBack} style={{ background: "none", border: "none", color: C.gray, fontSize: 14, cursor: "pointer", fontFamily: "inherit" }}>← Back</button>}
+        {onBack && <BackButton onClick={onBack} to="My Deals" />}
         <div style={{ flex: 1 }}>
           <div style={{ fontSize: 22, fontWeight: 800, color: C.navy }}>🎯 My Growth Plan</div>
           <div style={{ fontSize: 13, color: C.gray }}>Where you're going this year — and over the next five.</div>

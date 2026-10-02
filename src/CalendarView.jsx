@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import BackButton from "./ui/BackButton";
 
 const API = "https://liz-team-server-api-production.up.railway.app";
 const SHOW_KEY = "tp_calendar_show_v1";
@@ -263,7 +264,7 @@ export default function CalendarView({ transactions, onBack, onSelectTx }) {
   return (
     <div style={styles.container}>
       <div style={styles.header}>
-        <button onClick={onBack} title="Back" style={{ background: "none", border: "none", color: "#fff", fontSize: 20, cursor: "pointer" }}>←</button>
+        <BackButton tone="dark" onClick={onBack} />
         <div style={{ color: "#fff", fontWeight: 700, fontSize: 18 }}>📅 Calendar</div>
         <button onClick={() => { setAddOpen(o => !o); if (!newDate) setNewDate(selectedDay ? ymd(year, month, selectedDay) : ymd(today.getFullYear(), today.getMonth(), today.getDate())); }}
           style={{ marginLeft: "auto", background: "#C0392B", border: "none", color: "#fff", borderRadius: 8, padding: "7px 16px", cursor: "pointer", fontSize: 13, fontWeight: 700, fontFamily: "inherit" }}>➕ Add a task</button>

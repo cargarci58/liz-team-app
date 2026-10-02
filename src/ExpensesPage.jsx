@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import BackButton from "./ui/BackButton";
 import { askConfirm, askText } from './ui/dialogs';
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://liz-team-server-api-production.up.railway.app';
@@ -249,21 +250,7 @@ export default function ExpensesPage({ onBack }) {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             {onBack && (
-              <button
-                onClick={onBack}
-                style={{
-                  background: 'rgba(255,255,255,0.2)',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: 8,
-                  padding: '8px 14px',
-                  fontSize: 14,
-                  cursor: 'pointer',
-                  fontWeight: 600
-                }}
-              >
-                ← Back
-              </button>
+              <BackButton tone="dark" onClick={onBack} to="My Deals" />
             )}
             <h1 style={{ margin: 0, fontSize: 26, fontWeight: 700 }}>💵 My Money</h1>
           </div>
@@ -2926,7 +2913,7 @@ function ImportTab({ categories, onCommitted }) {
             <SummaryCard label="Will add — Expenses" value={fmtCurrency(includedExp)} sub={`${lines.filter(l => l.include && l.direction === 'expense').length} items`} color="#dc2626" />
             <SummaryCard label="Will add — Income" value={fmtCurrency(includedInc)} sub={`${lines.filter(l => l.include && l.direction === 'income').length} items`} color="#10b981" />
             <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
-              <button onClick={() => { setLines([]); setImportId(null); setError(null); }} style={secondaryBtn}>← Back</button>
+              <button onClick={() => { setLines([]); setImportId(null); setError(null); }} style={secondaryBtn}>← Previous step</button>
               <button onClick={() => setLines(p => p.map(l => ({ ...l, include: true })))} style={secondaryBtn}>Select all</button>
               <button onClick={() => setLines(p => p.map(l => ({ ...l, include: false })))} style={secondaryBtn}>Select none</button>
               <button onClick={() => commit()} disabled={committing} style={{ ...primaryBtn('#10b981'), opacity: committing ? 0.6 : 1 }}>{committing ? 'Importing...' : `✅ Import ${lines.filter(l => l.include).length} selected`}</button>

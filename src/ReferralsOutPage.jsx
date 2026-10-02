@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import BackButton from "./ui/BackButton";
 
 const API = "https://liz-team-server-api-production.up.railway.app";
 
@@ -149,7 +150,7 @@ export default function ReferralsOutPage({ onBack }) {
   return (
     <div style={{ maxWidth: 860, margin: "0 auto", padding: "16px 16px 40px" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6, flexWrap: "wrap" }}>
-        {onBack && <button onClick={onBack} style={btn(false)}>← Back</button>}
+        {onBack && <BackButton onClick={onBack} to="My Deals" />}
         <div style={{ fontSize: 22, fontWeight: 800, color: "#0F2044" }}>↗️ Referrals Out</div>
         <span style={{ flex: 1 }} />
         <button onClick={() => setEdit({ ...EMPTY })} style={btn(true)}>➕ New referral</button>

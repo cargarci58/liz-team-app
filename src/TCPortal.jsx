@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import BackButton from "./ui/BackButton";
 import AssistantPanel from "./components/AssistantPanel";
 import { askConfirm, askText } from "./ui/dialogs";
 import { ShareBadge } from "./lib/shareBadge";
@@ -238,7 +239,7 @@ function DealView({ txId, onBack }) {
   }, [txId]);
   useEffect(() => { load(); }, [load]);
 
-  if (err) return <div style={{ ...card, color: C.red }}>⚠️ {err} <button style={{ ...btn(false), marginLeft: 10 }} onClick={onBack}>Back</button></div>;
+  if (err) return <div style={{ ...card, color: C.red }}>⚠️ {err} <BackButton onClick={onBack} to="All deals" style={{ marginLeft: 10 }} /></div>;
   if (!d) return <div style={{ ...card, color: C.muted }}>Loading…</div>;
 
   const { transaction: tx, parties, milestones, documents, permissions, phases = [] } = d;
@@ -257,7 +258,7 @@ function DealView({ txId, onBack }) {
 
   return (
     <>
-      <button style={{ ...btn(false), marginBottom: 12 }} onClick={onBack}>← All deals</button>
+      <BackButton onClick={onBack} to="All deals" style={{ marginBottom: 12 }} />
       <div style={{ ...card, background: C.ink, color: "#fff" }}>
         <div style={{ fontWeight: 800, fontSize: 18 }}>{tx.address}</div>
         {tx.deal_share_type && tx.deal_share_type !== "standard" && <div style={{ marginTop: 6 }}><ShareBadge of={tx} size={11} /></div>}
