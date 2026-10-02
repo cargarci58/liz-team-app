@@ -1,9 +1,11 @@
-import { useState, useEffect, useRef, Fragment } from "react";
+import { useState, useEffect, useRef, Fragment, lazy, Suspense } from "react";
 import OfferWizard from "./OfferWizard";
 import { TheirCounterModal, BuyerCounterPanel, useTheirCounters, counterForOffer, HOW_BUYER_COUNTERS } from "./BuyerCounterFlow";
 import { WelcomeEmailPreview } from "./App"; // review-gated welcome emails after Accept (safe: OffersTab is lazy-loaded)
 import { askConfirm } from "./ui/dialogs";
 import { getWizard } from "./config/offerWizardSchema";
+// Same drag-to-adjust editor the document e-sign uses, pointed at the offer package.
+const AdjustSpotsModal = lazy(() => import("./DocumentsTab").then(m => ({ default: m.AdjustSpotsModal })));
 
 const API = "https://liz-team-server-api-production.up.railway.app";
 
@@ -759,6 +761,31 @@ function BuyerSignaturesModal({ offer, token, onClose }) {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState(null);
   const [changed, setChanged] = useState(false);
+  // Preview & adjust where buyers sign (before links go out).
+  const [spots, setSpots] = useState(null);       // { placements, adjusted, signerNames, locked }
+  const [spotsOpen, setSpotsOpen] = useState(false);
+  const loadSpots = async (silent = false) => {
+    try {
+      const r = await fetch(API + "/offers/" + offer.id + "/signing-spots", { headers: { Authorization: "Bearer " + token } });
+      const b = await r.json();
+      if (!r.ok) throw new Error(b.error || "Couldn't load the signing spots");
+      setSpots(b);
+      return b;
+    } catch (e) { if (!silent) setErr(e.message); return null; }
+  };
+  const openSpots = async () => { const b = await loadSpots(); if (b) setSpotsOpen(true); };
+  const saveSpots = async (placements) => {
+    try {
+      const r = await fetch(API + "/offers/" + offer.id + "/signing-spots", {
+        method: "PUT", headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
+        body: JSON.stringify({ placements }),
+      });
+      const b = await r.json();
+      if (!r.ok) throw new Error(b.error || "Couldn't save the signing spots");
+      await loadSpots();
+    } catch (e) { setErr(e.message); }
+  };
+  useEffect(() => { loadSpots(true); /* eslint-disable-next-line */ }, [offer.id]);
 
   const loadInfo = async () => {
     try {
@@ -887,6 +914,26 @@ function BuyerSignaturesModal({ offer, token, onClose }) {
                   + Add another signer
                 </button>
               )}
+              {info.hasPacket && (
+                <div style={{ border: "1.5px solid #0c4a6e", background: "#F0F9FF", borderRadius: 10, padding: 12, margin: "4px 0 12px" }}>
+                  <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+                    <div style={{ flex: 1, minWidth: 200, fontSize: 13, color: "#0c4a6e", lineHeight: 1.45 }}>
+                      <b>Check where the buyers sign before sending.</b>{" "}
+                      {spots && spots.adjusted ? "You've adjusted the spots — they'll be used for this package." : "The app placed every signature, initial, and date automatically."}
+                    </div>
+                    <button onClick={openSpots}
+                      style={{ background: "#0c4a6e", color: "#fff", border: "none", borderRadius: 8, padding: "9px 14px", fontSize: 13, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>
+                      👀 Preview & adjust
+                    </button>
+                  </div>
+                  {spots && spots.adjusted && (
+                    <button onClick={async () => { if (await askConfirm("Go back to the app's automatic signing spots? Your adjustments will be cleared.", { okLabel: "Reset spots" })) saveSpots(null); }}
+                      style={{ background: "none", border: "none", color: "#0c4a6e", textDecoration: "underline", fontSize: 12.5, fontWeight: 700, cursor: "pointer", padding: "6px 0 0", fontFamily: "inherit" }}>
+                      ↺ Reset to automatic spots
+                    </button>
+                  )}
+                </div>
+              )}
               <button onClick={send} disabled={busy || !info.hasPacket}
                 style={{ width: "100%", padding: "12px 0", background: busy || !info.hasPacket ? "#94a3b8" : "#0c4a6e", color: "#fff", border: "none", borderRadius: 10, fontSize: 15, fontWeight: 800, cursor: busy || !info.hasPacket ? "default" : "pointer", fontFamily: "inherit", marginTop: 4 }}>
                 {busy ? "Sending links…" : "Send signing links ✍️"}
@@ -897,6 +944,21 @@ function BuyerSignaturesModal({ offer, token, onClose }) {
             </div>
           )}
         </div>
+        {spotsOpen && spots && (
+          <Suspense fallback={null}>
+            <AdjustSpotsModal
+              doc={{ id: offer.id, name: "Offer package" }}
+              pdfUrl={API + "/offers/" + offer.id + "/packet.pdf"}
+              title="👀 Where your buyers will sign — drag to adjust"
+              footerNote="Colors = which buyer. ✍️ signature · 🔤 initials · 📅 date. These exact spots are used on the buyer's signing page and in the final signed package."
+              signerNames={spots.signerNames || []}
+              initial={spots.placements || []}
+              headers={{ Authorization: "Bearer " + token }}
+              onSave={(ps) => saveSpots(ps)}
+              onClose={() => setSpotsOpen(false)}
+            />
+          </Suspense>
+        )}
         <div style={{ padding: "12px 22px", borderTop: "1px solid #e5e7eb", textAlign: "right" }}>
           <button onClick={() => onClose(changed)} style={{ padding: "8px 18px", background: "#e5e7eb", color: "#374151", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>Close</button>
         </div>

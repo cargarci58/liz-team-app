@@ -2698,7 +2698,8 @@ function CombinePdfsModal({ tx, docs, headers, onClose, onDone }) {
 // corner to resize, tap a block to remove it, tap the page to add a new one.
 // Same coordinate model as DocSignModal (PDF pts, bottom-left origin).
 // ════════════════════════════════════════════════════════════════
-export function AdjustSpotsModal({ doc, signerNames, initial, headers, onSave, onClose }) {
+// pdfUrl (optional): load a different PDF than the document — e.g. an offer package.
+export function AdjustSpotsModal({ doc, signerNames, initial, headers, onSave, onClose, pdfUrl = null, title = null, footerNote = null }) {
   const [placements, setPlacements] = useState(initial);
   const [pages, setPages] = useState([]);
   const [loadErr, setLoadErr] = useState(null);
@@ -2712,7 +2713,7 @@ export function AdjustSpotsModal({ doc, signerNames, initial, headers, onSave, o
         const pdfjs = await import("pdfjs-dist/build/pdf.min.mjs");
         const worker = await import("pdfjs-dist/build/pdf.worker.min.mjs?url");
         pdfjs.GlobalWorkerOptions.workerSrc = worker.default;
-        const resp = await fetch(`${API}/documents/${doc.id}/file.pdf`, { headers });
+        const resp = await fetch(pdfUrl || `${API}/documents/${doc.id}/file.pdf`, { headers });
         if (!resp.ok) throw new Error("Couldn't load the document preview.");
         const bytes = new Uint8Array(await resp.arrayBuffer());
         const pdf = await pdfjs.getDocument({ data: bytes, useSystemFonts: true, standardFontDataUrl: "/pdf-fonts/" }).promise;
@@ -2800,7 +2801,7 @@ export function AdjustSpotsModal({ doc, signerNames, initial, headers, onSave, o
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 1300, display: "flex", alignItems: "flex-start", justifyContent: "center", overflowY: "auto", padding: "20px 8px" }}>
       <div style={{ background: "#fff", borderRadius: 14, width: "100%", maxWidth: "min(97vw, 900px)", overflow: "hidden", boxShadow: "0 20px 60px rgba(0,0,0,0.4)" }}>
         <div style={{ background: "#334155", padding: "12px 18px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
-          <div style={{ color: "#fff", fontWeight: 800, fontSize: 15, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>✏️ Adjust signing spots — {doc.name}</div>
+          <div style={{ color: "#fff", fontWeight: 800, fontSize: 15, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{title || ("✏️ Adjust signing spots — " + doc.name)}</div>
           <button onClick={onClose} style={{ background: "none", border: "none", color: "#fff", fontSize: 22, cursor: "pointer", lineHeight: 1 }}>×</button>
         </div>
         <div style={{ padding: 14 }}>
@@ -2856,6 +2857,7 @@ export function AdjustSpotsModal({ doc, signerNames, initial, headers, onSave, o
               </div>
             ))}
           </div>
+          {footerNote && <div style={{ fontSize: 12.5, color: "#475569", marginTop: 10, lineHeight: 1.5 }}>{footerNote}</div>}
           <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
             <button onClick={() => { onSave(placements); onClose(); }}
               style={{ flex: 2, padding: "12px 0", borderRadius: 10, border: "none", background: "#0c4a6e", color: "#fff", fontWeight: 800, fontSize: 14, cursor: "pointer", fontFamily: "inherit" }}>
