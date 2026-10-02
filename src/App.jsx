@@ -8205,7 +8205,9 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
                 try {
                   await fetch(API + "/transactions/" + tx.id + "/regenerate-daily-tasks", {
                     method: "POST",
-                    headers: { Authorization: "Bearer " + token }
+                    // was `token` — not defined in this component, so this threw and the
+                    // new task only reached Win the Day on the next nightly run.
+                    headers: { Authorization: "Bearer " + (localStorage.getItem("tp_token") || "") }
                   });
                   window.dispatchEvent(new Event("wintheday:refresh"));
                 } catch (e) { /* non-fatal — cron will catch it tomorrow */ }
@@ -11612,9 +11614,11 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
             onBack={() => setShowContractIntake(false)}
             onApproved={(txId) => {
               setShowContractIntake(false);
-              const t = transactions.find(t => t.id === txId);
-              if (t) { setSelectedTx(t); setView("detail"); }
-              else { window.location.reload(); }
+              // Approval just changed the deal (status, parties, dates) — reload the
+              // list, then open it. (Was setSelectedTx, which doesn't exist here.)
+              loadTransactions()
+                .then(() => { setShowReports(false); setShowCalendar(false); setSelectedId(txId); setView("detail"); })
+                .catch(() => window.location.reload());
             }}
           />
         </div>
@@ -11638,7 +11642,7 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
             token={localStorage.getItem("tp_token") || ""}
             onOpenTransaction={(txId) => {
               const t = transactions.find(t => t.id === txId);
-              if (t) { setShowComplianceDash(false); setSelectedTx(t); setView("detail"); }
+              if (t) { setShowComplianceDash(false); setShowReports(false); setShowCalendar(false); setSelectedId(t.id); setView("detail"); }
             }}
           />
         </div>
