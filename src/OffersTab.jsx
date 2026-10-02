@@ -139,7 +139,8 @@ export default function OffersTab({ tx, token, currentUser, createSignal = 0, on
       const r = await fetch(API + "/transactions/" + tx.id + "/offers", {
         method: "POST",
         headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
-        body: JSON.stringify({ baseContractType: "as_is" }),
+        // No form named: the server picks the Vacant Land Contract for land deals, AS-IS otherwise.
+        body: JSON.stringify({}),
       });
       const data = await r.json();
       if (!r.ok) throw new Error(data.error || "Failed to create offer");
@@ -521,6 +522,7 @@ export default function OffersTab({ tx, token, currentUser, createSignal = 0, on
         <OfferWizard
           offerId={wizardOfferId}
           token={token}
+          isLandDeal={/vacant ?land|^land\b|^lots?\b|acreage/i.test(String(tx.propertyType || tx.property_type || "")) || String(tx.constructionType || tx.construction_type || "") === "Vacant Land"}
           onClose={() => { setWizardOfferId(null); load(); }}
           onSaved={() => load()}
         />

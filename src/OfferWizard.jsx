@@ -308,7 +308,7 @@ function fieldVisible(field, data) {
   return true;
 }
 
-export default function OfferWizard({ offerId, token, onClose, onSaved }) {
+export default function OfferWizard({ offerId, token, onClose, onSaved, isLandDeal = false }) {
   const [offer, setOffer] = useState(null);
   const [data, setData] = useState({});
   const [stepIdx, setStepIdx] = useState(0);
@@ -375,6 +375,27 @@ export default function OfferWizard({ offerId, token, onClose, onSaved }) {
   };
 
   const wizard = getWizard(offer?.base_contract_type || "as_is");
+  // Vacant Land Contract (VAC-15) offers: no Express mode (its defaults are
+  // residential) and no AS-IS rider logic.
+  const isLandOffer = offer?.base_contract_type === "vacant_land";
+  const [switchingForm, setSwitchingForm] = useState(false);
+  const switchContractForm = async (to) => {
+    setSwitchingForm(true);
+    try {
+      // Save what's typed so far, then flip the draft's contract form.
+      const r = await fetch(API + "/offers/" + offerId, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
+        body: JSON.stringify({ offerData: data, baseContractType: to, currentStep: 1 }),
+      });
+      const b = await r.json();
+      if (!r.ok) throw new Error(b.error || "Could not switch the contract form");
+      setOffer(b.offer);
+      setData(buildWizardData(b.offer));
+      setStepIdx(0);
+    } catch (e) { alert("⚠️ " + e.message); }
+    finally { setSwitchingForm(false); }
+  };
   const steps = wizard.steps;
   // ⚡ EXPRESS MODE — 4 answers + standard Florida terms, then jump straight
   // to Review. Every value it sets is visible/EDITABLE on the review screen
@@ -871,8 +892,30 @@ export default function OfferWizard({ offerId, token, onClose, onSaved }) {
             </div>
           )}
 
+          {/* Wrong contract form for this deal → one tap to switch (drafts only). */}
+          {offer && offer.status === "draft" && isLandDeal && !isLandOffer && (
+            <div style={{ border: "2px solid #0c4a6e", background: "#E0F2FE", borderRadius: 12, padding: 14, marginBottom: 20, display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
+              <div style={{ flex: 1, minWidth: 220, fontSize: 13.5, color: "#0c4a6e", lineHeight: 1.5 }}>
+                <strong>This deal is vacant land.</strong> This draft is on the residential AS-IS contract. Switch to the <strong>Vacant Land Contract (VAC-15)</strong> — your answers so far carry over.
+              </div>
+              <button type="button" onClick={() => switchContractForm("vacant_land")} disabled={switchingForm}
+                style={{ background: "#0c4a6e", color: "#fff", border: "none", borderRadius: 8, padding: "10px 16px", fontSize: 13, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>
+                {switchingForm ? "Switching…" : "Use the Vacant Land Contract"}
+              </button>
+            </div>
+          )}
+          {offer && offer.status === "draft" && isLandOffer && stepIdx === 0 && (
+            <div style={{ fontSize: 12.5, color: "#4B5563", marginBottom: 14 }}>
+              Writing on the <strong>Vacant Land Contract (VAC-15)</strong>.{" "}
+              <button type="button" onClick={() => switchContractForm("as_is")} disabled={switchingForm}
+                style={{ background: "none", border: "none", color: "#0c4a6e", textDecoration: "underline", fontWeight: 700, cursor: "pointer", padding: 0, fontSize: 12.5, fontFamily: "inherit" }}>
+                Use the residential AS-IS contract instead
+              </button>
+            </div>
+          )}
+
           {/* ⚡ EXPRESS — 4 answers + standard Florida terms, review at the end. */}
-          {stepIdx === 0 && (
+          {stepIdx === 0 && !isLandOffer && (
             <div style={{ border: "2px solid #F1C40F", background: "#FFFBEB", borderRadius: 12, padding: 14, marginBottom: 20 }}>
               {!express ? (
                 <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
@@ -1026,7 +1069,7 @@ export default function OfferWizard({ offerId, token, onClose, onSaved }) {
                 <div><strong>EMD:</strong> {data.initial_emd ? "$" + Number(data.initial_emd).toLocaleString() : "—"}</div>
                 <div><strong>Closing date:</strong> {data.closing_date || "—"}</div>
                 <div><strong>Listing agent:</strong> {data.listing_agent_name || "—"} {data.listing_agent_email ? "(" + data.listing_agent_email + ")" : ""}</div>
-                <div><strong>Addenda:</strong> {(Array.isArray(data.selected_addenda) && data.selected_addenda.length) || 0} selected</div>
+                <div><strong>Addenda:</strong> {(Array.isArray(isLandOffer ? data.vl_addenda : data.selected_addenda) && (isLandOffer ? data.vl_addenda : data.selected_addenda).length) || 0} selected</div>
               </div>
 
               {/* Generate / Download */}
@@ -1034,7 +1077,9 @@ export default function OfferWizard({ offerId, token, onClose, onSaved }) {
                 <div style={{ fontSize: 40, marginBottom: 8 }}>📦</div>
                 <div style={{ fontWeight: 700, color: "#1e3a8a", marginBottom: 6 }}>Generate the offer packet</div>
                 <div style={{ fontSize: 12, color: "#1e40af", marginBottom: 16 }}>
-                  Builds a PDF with the offer summary + addenda checklist + the buyer's pre-approval letter, all in one file. Download and review before marking the offer Ready.
+                  {isLandOffer
+                    ? "Builds one PDF: an offer summary, the filled Vacant Land Contract (VAC-15), any broker forms, and the buyer's proof of funds. Download and review before marking the offer Ready."
+                    : "Builds one PDF: an offer summary, the filled AS-IS contract, the selected addenda, and the buyer's pre-approval letter. Download and review before marking the offer Ready."}
                 </div>
                 <button onClick={onGeneratePacket} disabled={generating}
                   style={{ background: generating ? "#9ca3af" : "#0c4a6e", color: "white", border: "none", padding: "12px 24px", borderRadius: 6, fontSize: 14, fontWeight: 700, cursor: generating ? "wait" : "pointer", fontFamily: "inherit", marginRight: 8 }}>
@@ -1046,9 +1091,6 @@ export default function OfferWizard({ offerId, token, onClose, onSaved }) {
                     ⬇️ Download Again
                   </button>
                 )}
-                <div style={{ fontSize: 11, color: "#6b7280", marginTop: 16, fontStyle: "italic" }}>
-                  V1: summary PDF. V2 will replace with the actual FAR/BAR AS-IS form once we have field-mapped templates.
-                </div>
               </div>
             </div>
           )}

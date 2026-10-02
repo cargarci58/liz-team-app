@@ -418,11 +418,250 @@ export const AS_IS_WIZARD = {
   ]
 };
 
-// Export by contract type so future contracts (vacant land, commercial) plug in here
+// ============================================================
+// VACANT LAND CONTRACT — Florida Realtors VAC-15 (Rev 1/26)
+// Asks for EVERY blank and CHECK-ONE on the 8-page form a buyer's agent fills.
+// Field ids match buildVacantLandFill() in server.js (it turns these answers
+// into the form's boxes). Seller-only parts (counter/rejection, seller's notice
+// address) are left for the listing side.
+// ============================================================
+const LOAN = ["New loan"];
+export const VACANT_LAND_WIZARD = {
+  contractType: "vacant_land",
+  contractName: "Vacant Land Contract (VAC-15)",
+  steps: [
+    {
+      id: 0,
+      title: "Proof of Funds / Pre-Approval",
+      subtitle: "Land is often bought with cash — attach the buyer's proof of funds or lender letter",
+      why: "Listing agents won't present a land offer without proof the buyer can close. It's attached to the end of the offer package.",
+      fields: [
+        { id: "preapproval_doc_id", label: "Proof of funds or pre-approval letter", type: "preapproval_picker", required: true,
+          hint: "Pick any file already on this deal (bank statement, lender letter, photo) or upload a new one.",
+          why: "Sellers of land compare offers on certainty of closing — proof of funds is the first thing they look for." }
+      ]
+    },
+    {
+      id: 1,
+      title: "Parties & Property (Paragraphs 1 & 3)",
+      subtitle: "Who is buying, who is selling, and exactly which land",
+      why: "Vacant land is identified by its legal description and parcel ID far more than by an address — many lots have no street number yet.",
+      fields: [
+        { id: "offer_effective_date", label: "Seller must accept by (Paragraph 3)", type: "date", required: true,
+          hint: "Usually 1–3 days from today.",
+          why: "If the seller hasn't signed and delivered by this date, the offer is withdrawn and the deposit returned." },
+        { id: "buyer_names", label: "Buyer name(s)", type: "text", required: true,
+          hint: "Exact legal names (or the company name if buying in an LLC). Separate two buyers with 'and'.",
+          why: "Must match ID / entity documents at closing." },
+        { id: "seller_names", label: "Seller name(s)", type: "text", required: false,
+          hint: "From the county property appraiser or the listing. Leave blank if unknown.",
+          why: "Identifies the owner. The listing agent can complete it." },
+        { id: "property_address", label: "Address (or 'Vacant lot — no address')", type: "text", required: true, prefillFrom: "transaction.property_address" },
+        { id: "property_legal_description", label: "Legal description", type: "textarea", required: true,
+          hint: "Copy it from the county property appraiser or the deed. Up to 5 lines on the form.",
+          why: "The legal description — not the address — is what conveys land." },
+        { id: "vl_section", label: "Section (SEC)", type: "text", required: false, hint: "From the property appraiser record, e.g. 12." },
+        { id: "vl_township", label: "Township (TWP)", type: "text", required: false, hint: "e.g. 24S." },
+        { id: "vl_range", label: "Range (RNG)", type: "text", required: false, hint: "e.g. 29E." },
+        { id: "property_county", label: "County", type: "text", required: true, prefillFrom: "transaction.property_county" },
+        { id: "property_parcel_id", label: "Real Property ID No. (parcel ID)", type: "text", required: true,
+          why: "The parcel ID pins down the exact land even when the address is vague." },
+        { id: "vl_additional_property", label: "Additional property included (optional)", type: "text", required: false,
+          hint: "e.g. 'existing well and fencing', 'mobile home VIN …'. Leave blank if none." }
+      ]
+    },
+    {
+      id: 2,
+      title: "Price & Deposits (Paragraph 2)",
+      subtitle: "What the buyer pays, and how the deposit is handled",
+      why: "Land sellers weigh deposit size and timing heavily — a deposit that goes hard after due diligence is a strong signal.",
+      fields: [
+        { id: "vl_price_basis", label: "How is the price set?", type: "select", required: true, default: "Fixed price",
+          options: ["Fixed price", "Per unit (lot / acre / square foot)"],
+          why: "Paragraph 2(f): acreage deals are often priced per acre, with the final price set by the survey." },
+        { id: "vl_unit", label: "Price per…", type: "select", required: false, options: ["Lot", "Acre", "Square foot", "Other"],
+          showIf: { vl_price_basis: ["Per unit (lot / acre / square foot)"] } },
+        { id: "vl_unit_other", label: "Other unit (specify)", type: "text", required: false, showIf: { vl_unit: ["Other"] } },
+        { id: "vl_price_per_unit", label: "Price per unit ($)", type: "currency", required: false, showIf: { vl_price_basis: ["Per unit (lot / acre / square foot)"] } },
+        { id: "vl_unit_exclusions", label: "Rights-of-way / areas excluded from the calculation", type: "text", required: false,
+          showIf: { vl_price_basis: ["Per unit (lot / acre / square foot)"] }, hint: "e.g. 'road right-of-way and retention pond'. Leave blank if none." },
+        { id: "purchase_price", label: "Purchase price ($)", type: "currency", required: true,
+          hint: "If priced per unit, enter the estimated total — the survey sets the final number." },
+        { id: "initial_emd", label: "Initial deposit ($)", type: "currency", required: true },
+        { id: "vl_deposit_timing", label: "Initial deposit is…", type: "select", required: true, default: "Delivered within X days after Effective Date",
+          options: ["Accompanies the offer", "Delivered within X days after Effective Date"] },
+        { id: "initial_emd_deadline_days", label: "Initial deposit due within (days)", type: "number", required: false, default: 3,
+          showIf: { vl_deposit_timing: ["Delivered within X days after Effective Date"] }, hint: "Form default is 3 days if left blank." },
+        { id: "additional_emd", label: "Additional deposit ($) — optional", type: "currency", required: false },
+        { id: "vl_additional_timing", label: "Additional deposit is due…", type: "select", required: false, default: "Within X days after Due Diligence ends",
+          options: ["Within X days after Effective Date", "Within X days after Due Diligence ends"],
+          hint: "Most land deals tie it to the end of due diligence (form default 3 days)." },
+        { id: "additional_emd_deadline_days", label: "Additional deposit due within (days)", type: "number", required: false },
+        { id: "escrow_agent", label: "Escrow agent's name (who holds the deposit)", type: "text", required: true },
+        { id: "vl_escrow_contact", label: "Escrow agent's contact person", type: "text", required: false },
+        { id: "vl_escrow_address", label: "Escrow agent's address", type: "text", required: false },
+        { id: "vl_escrow_phone", label: "Escrow agent's phone", type: "text", required: false },
+        { id: "vl_escrow_email", label: "Escrow agent's email", type: "text", required: false },
+        { id: "purchase_other_desc", label: "Other amount toward the price — description (optional)", type: "text", required: false, hint: "Paragraph 2(d). Rarely used." },
+        { id: "purchase_other_amount", label: "Other amount ($)", type: "currency", required: false }
+      ]
+    },
+    {
+      id: 3,
+      title: "Financing (Paragraph 6)",
+      subtitle: "How the buyer is paying for the land",
+      why: "Land loans are harder to get than home loans — a financing contingency protects the buyer's deposit if the loan falls through.",
+      fields: [
+        { id: "financing_type", label: "Financing", type: "select", required: true, default: "Cash",
+          options: ["Cash", "New loan", "Seller financing", "Assume existing mortgage"],
+          why: "Cash = no financing contingency (6a). New loan = contract is contingent on the buyer's loan (6b-1). Seller financing (6b-2) and assumption (6b-3) have their own terms below." },
+        { id: "loan_amount", label: "Loan amount ($)", type: "currency", required: false, showIf: { financing_type: LOAN },
+          hint: "Or leave blank and enter a percentage below." },
+        { id: "vl_loan_pct", label: "…or loan as % of price", type: "number", required: false, showIf: { financing_type: LOAN } },
+        { id: "loan_rate_type", label: "Interest rate", type: "select", required: false, default: "Prevailing rate (leave blank)",
+          options: ["Prevailing rate (leave blank)", "Fixed", "Adjustable"], showIf: { financing_type: LOAN },
+          hint: "If neither is chosen, the form uses a fixed rate at the prevailing rate for the buyer's credit." },
+        { id: "vl_fixed_rate_max", label: "Fixed rate not to exceed (%)", type: "number", required: false, showIf: { loan_rate_type: ["Fixed"] } },
+        { id: "vl_adj_rate_max", label: "Adjustable rate at origination not to exceed (%)", type: "number", required: false, showIf: { loan_rate_type: ["Adjustable"] } },
+        { id: "vl_financing_period_days", label: "Loan commitment within (days after Effective Date)", type: "number", required: false, showIf: { financing_type: LOAN },
+          hint: "Blank = Closing Date or 30 days, whichever is first." },
+        { id: "loan_application_deadline_days", label: "Buyer applies for the loan within (days)", type: "number", required: false, default: 5, showIf: { financing_type: LOAN } },
+        { id: "vl_sf_position", label: "Seller financing — mortgage position", type: "select", required: false, default: "First mortgage",
+          options: ["First mortgage", "Second mortgage"], showIf: { financing_type: ["Seller financing"] } },
+        { id: "vl_sf_amount", label: "Seller financing — note amount ($)", type: "currency", required: false, showIf: { financing_type: ["Seller financing"] } },
+        { id: "vl_sf_rate", label: "Seller financing — annual interest (%)", type: "number", required: false, showIf: { financing_type: ["Seller financing"] } },
+        { id: "vl_sf_terms", label: "Seller financing — payable as follows", type: "text", required: false, showIf: { financing_type: ["Seller financing"] },
+          hint: "e.g. 'monthly payments of principal and interest amortized over 10 years, balloon at 5 years'." },
+        { id: "vl_as_mortgagee", label: "Assumption — existing mortgage held by", type: "text", required: false, showIf: { financing_type: ["Assume existing mortgage"] } },
+        { id: "vl_as_loan_no", label: "Assumption — loan number (LN#)", type: "text", required: false, showIf: { financing_type: ["Assume existing mortgage"] } },
+        { id: "vl_as_amount", label: "Assumption — approximate balance ($)", type: "currency", required: false, showIf: { financing_type: ["Assume existing mortgage"] } },
+        { id: "vl_as_payment", label: "Assumption — monthly payment ($)", type: "currency", required: false, showIf: { financing_type: ["Assume existing mortgage"] } },
+        { id: "vl_as_includes_ti", label: "Payment includes taxes and insurance?", type: "select", required: false, options: ["Yes", "No"], showIf: { financing_type: ["Assume existing mortgage"] } },
+        { id: "vl_as_rate_type", label: "Assumption — rate type", type: "select", required: false, default: "Fixed", options: ["Fixed", "Other"], showIf: { financing_type: ["Assume existing mortgage"] } },
+        { id: "vl_as_rate_other", label: "Describe the rate", type: "text", required: false, showIf: { vl_as_rate_type: ["Other"] } },
+        { id: "vl_as_rate", label: "Assumption — interest rate (%)", type: "number", required: false, showIf: { financing_type: ["Assume existing mortgage"] } },
+        { id: "vl_as_escalate", label: "Rate on assumption", type: "select", required: false, options: ["Will escalate", "Will not escalate"], showIf: { financing_type: ["Assume existing mortgage"] } },
+        { id: "vl_as_max_rate", label: "Either party may pay the excess if the rate exceeds (%)", type: "number", required: false, showIf: { financing_type: ["Assume existing mortgage"] } },
+        { id: "vl_as_max_fee", label: "…or the assumption/transfer fee exceeds ($)", type: "currency", required: false, showIf: { financing_type: ["Assume existing mortgage"] } }
+      ]
+    },
+    {
+      id: 4,
+      title: "Due Diligence (Paragraph 9)",
+      subtitle: "The buyer's window to check zoning, soil, access, utilities and permits",
+      why: "This is the buyer's main escape hatch on land: during the Due Diligence Period they can walk away for any reason and get the deposit back.",
+      fields: [
+        { id: "vl_due_diligence", label: "Due Diligence Period?", type: "select", required: true, default: "Yes — buyer gets a Due Diligence Period",
+          options: ["Yes — buyer gets a Due Diligence Period", "No — buyer is already satisfied (no due diligence)"],
+          why: "Choosing 'No' (9a-2) means the buyer accepts zoning, utilities/septic, environmental conditions as-is — use only when the buyer has already checked." },
+        { id: "vl_dd_days", label: "Due Diligence Period (days after Effective Date)", type: "number", required: false, default: 30,
+          showIf: { vl_due_diligence: ["Yes — buyer gets a Due Diligence Period"] },
+          hint: "Form default is 30 if left blank. Rezoning or permitting may need 60–90+.",
+          why: "Long enough for survey, soil/perc test, environmental Phase 1 and a zoning check." },
+        { id: "vl_cccl_waive", label: "Coastal Construction Control Line (9d)", type: "select", required: false, default: "No — keep the right to a CCCL affidavit/survey",
+          options: ["No — keep the right to a CCCL affidavit/survey", "Yes — buyer waives the CCCL affidavit/survey"],
+          hint: "Only matters if any part of the land is seaward of the CCCL." }
+      ]
+    },
+    {
+      id: 5,
+      title: "Title & Survey (Paragraph 8)",
+      subtitle: "Deed type, title evidence, and time to fix title problems",
+      why: "Title problems (liens, access, easements) are common on land. These answers decide who pays for title work and how long the seller has to cure defects.",
+      fields: [
+        { id: "vl_deed_type", label: "Seller conveys title by", type: "select", required: true, default: "Statutory warranty deed",
+          options: ["Statutory warranty deed", "Special warranty deed", "Other"] },
+        { id: "vl_deed_other", label: "Other deed (specify)", type: "text", required: false, showIf: { vl_deed_type: ["Other"] } },
+        { id: "vl_title_subject_to", label: "Other matters title will be subject to (optional)", type: "text", required: false,
+          hint: "e.g. 'existing ingress/egress easement recorded in OR Book …'. Leave blank if none." },
+        { id: "vl_title_ev_paid_by", label: "Title evidence at whose expense?", type: "select", required: true, default: "Seller's expense",
+          options: ["Seller's expense", "Buyer's expense"],
+          why: "The party who pays for the owner's title policy also picks the closing agent (8a)." },
+        { id: "vl_title_ev_type", label: "Title evidence", type: "select", required: true, default: "Title insurance commitment",
+          options: ["Title insurance commitment", "Abstract of title"] },
+        { id: "vl_title_ev_timing", label: "Title evidence delivered…", type: "select", required: true, default: "At least X days before Closing Date",
+          options: ["Within X days after Effective Date", "At least X days before Closing Date"] },
+        { id: "vl_title_ev_days", label: "Days (for the timing above)", type: "number", required: true, default: 15 },
+        { id: "vl_title_exam_days", label: "Buyer's title examination (days after receiving title evidence)", type: "number", required: false,
+          hint: "Form default is 10 if left blank." },
+        { id: "vl_cure_days", label: "Seller's cure period for title defects (days)", type: "number", required: false,
+          hint: "Form default is 30 if left blank." }
+      ]
+    },
+    {
+      id: 6,
+      title: "Closing, Costs & Assignment (Paragraphs 4, 7, 10)",
+      subtitle: "When it closes and the cost items you can negotiate",
+      why: "The Closing Date controls every other deadline in the contract, including due diligence and financing.",
+      fields: [
+        { id: "closing_date", label: "Closing date (Paragraph 4)", type: "date", required: true,
+          hint: "Allow time for the Due Diligence Period plus title work — often 45–60 days for land." },
+        { id: "seller_other_costs", label: "Other costs paid by SELLER (optional)", type: "text", required: false, hint: "Paragraph 10(a) 'Other' line." },
+        { id: "buyer_other_costs", label: "Other costs paid by BUYER (optional)", type: "text", required: false, hint: "Paragraph 10(b) 'Other' line." },
+        { id: "vl_assessment_installments", label: "Special-assessment installments due after closing paid by (10d)", type: "select", required: false, default: "Buyer (form default)",
+          options: ["Buyer (form default)", "Seller — paid in full at closing"] },
+        { id: "assignability", label: "Assignability (Paragraph 7 — CHECK ONE)", type: "select", required: true, default: "May NOT assign this contract",
+          options: ["May NOT assign this contract", "May assign and be released from liability", "May assign but NOT be released from liability"],
+          why: "Land investors and builders often need to assign to an LLC — pick 'may assign' if so." }
+      ]
+    },
+    {
+      id: 7,
+      title: "Addenda & Additional Terms (Paragraphs 22 & 23)",
+      subtitle: "Attach addenda and add any land-specific terms",
+      why: "Common land terms — perc test, rezoning, survey acreage, access — are written here so they're part of the contract.",
+      fields: [
+        { id: "vl_addenda", label: "Addenda (Paragraph 22)", type: "clause_picker", required: false,
+          options: ["A. Back-up Contract", "B. Kick Out Clause", "C. HOA Addendum"],
+          hint: "Attach the addendum form itself to the package if you use one." },
+        { id: "addenda_other_text", label: "D. Other addendum (specify)", type: "text", required: false },
+        { id: "common_clauses", label: "Common land clauses (select any)", type: "clause_picker", required: false,
+          options: [
+            "Buyer's obligation is contingent on a satisfactory soil/percolation test for a septic system during the Due Diligence Period.",
+            "Buyer's obligation is contingent on confirming the Property's zoning permits Buyer's intended use during the Due Diligence Period.",
+            "Seller to provide a current boundary survey at Seller's expense at least 10 days before Closing Date.",
+            "Seller to remove all debris, junk vehicles, and personal property from the Property before closing.",
+            "Seller to provide any existing surveys, environmental reports, soil tests, and permits in Seller's possession within 5 days after Effective Date.",
+            "Buyer's obligation is contingent on confirming legal access to a public road during the Due Diligence Period.",
+            "Buyer's obligation is contingent on confirming availability of electric service to the Property during the Due Diligence Period."
+          ] },
+        { id: "special_clauses", label: "Additional terms (free text)", type: "textarea", required: false,
+          hint: "One term per line. Up to about 16 lines fit on the form." }
+      ]
+    },
+    {
+      id: 8,
+      title: "Listing Agent & Buyer Contact (Paragraph 21 & signature page)",
+      subtitle: "Who receives the offer, and the buyer's notice address",
+      why: "Paragraph 21 names both agents. Your own name, license, and brokerage fill in automatically from your profile and company settings.",
+      fields: [
+        { id: "listing_agent_name", label: "Listing agent name", type: "text", required: true },
+        { id: "vl_listing_license", label: "Listing agent license no.", type: "text", required: false },
+        { id: "listing_agent_email", label: "Listing agent email", type: "text", required: true, hint: "The offer package is emailed here." },
+        { id: "listing_agent_phone", label: "Listing agent phone", type: "text", required: false },
+        { id: "listing_brokerage", label: "Listing brokerage", type: "text", required: false },
+        { id: "vl_listing_brokerage_address", label: "Listing brokerage address", type: "text", required: false },
+        { id: "vl_buyer_address", label: "Buyer's address for notices", type: "text", required: false },
+        { id: "vl_buyer_phone", label: "Buyer's phone", type: "text", required: false },
+        { id: "vl_buyer_email", label: "Buyer's email", type: "text", required: false },
+        { id: "seller_paid_commission_pct", label: "Commission % the seller/listing side pays your brokerage", type: "number", required: false,
+          hint: "Not on the contract — updates this deal's commission record." }
+      ]
+    },
+    {
+      id: 9,
+      title: "Review & Generate Bundle",
+      subtitle: "Confirm everything, then build the offer package",
+      why: "The package contains the filled Vacant Land Contract, any broker forms, and the proof of funds — ready to sign and send.",
+      fields: []
+    }
+  ]
+};
+
+// Export by contract type so future contracts (commercial) plug in here
 export const WIZARDS = {
   as_is: AS_IS_WIZARD,
-  // far_bar: FAR_BAR_WIZARD,    // future
-  // vacant_land: VL_WIZARD,     // future
+  vacant_land: VACANT_LAND_WIZARD,
   // commercial: COMM_WIZARD,    // future
 };
 
