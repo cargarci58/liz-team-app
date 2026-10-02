@@ -497,11 +497,14 @@ export const VACANT_LAND_WIZARD = {
           options: ["Within X days after Effective Date", "Within X days after Due Diligence ends"],
           hint: "Most land deals tie it to the end of due diligence (form default 3 days)." },
         { id: "additional_emd_deadline_days", label: "Additional deposit due within (days)", type: "number", required: false },
-        { id: "escrow_agent", label: "Escrow agent's name (who holds the deposit)", type: "text", required: true },
-        { id: "vl_escrow_contact", label: "Escrow agent's contact person", type: "text", required: false },
-        { id: "vl_escrow_address", label: "Escrow agent's address", type: "text", required: false },
-        { id: "vl_escrow_phone", label: "Escrow agent's phone", type: "text", required: false },
-        { id: "vl_escrow_email", label: "Escrow agent's email", type: "text", required: false },
+        // Same ids the MLS / broker-synopsis reader fills (closing_agent_*), so the
+        // escrow office's contact, address, phone and email come straight in.
+        { id: "escrow_agent", label: "Escrow agent's name (who holds the deposit)", type: "text", required: true,
+          hint: "Filled from the broker synopsis or the deal's Title Company — check it." },
+        { id: "closing_agent_name", label: "Escrow agent's contact person", type: "text", required: false },
+        { id: "closing_agent_address", label: "Escrow agent's address", type: "text", required: false },
+        { id: "closing_agent_phone", label: "Escrow agent's phone", type: "text", required: false },
+        { id: "closing_agent_email", label: "Escrow agent's email", type: "text", required: false },
         { id: "purchase_other_desc", label: "Other amount toward the price — description (optional)", type: "text", required: false, hint: "Paragraph 2(d). Rarely used." },
         { id: "purchase_other_amount", label: "Other amount ($)", type: "currency", required: false }
       ]
