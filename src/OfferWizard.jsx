@@ -593,6 +593,12 @@ export default function OfferWizard({ offerId, token, onClose, onSaved, isLandDe
     if (ok) { setStepIdx(stepIdx + 1); setError(null); }
   };
 
+  // Close = save what's on this step first, then close. Nothing typed is lost.
+  const closeAndSave = async () => {
+    if (offer && offer.status === "draft") await save({ nextStepIdx: stepIdx });
+    onClose();
+  };
+
   const onBack = async () => {
     await save({ nextStepIdx: stepIdx - 1 });
     setStepIdx(Math.max(0, stepIdx - 1));
@@ -865,8 +871,11 @@ export default function OfferWizard({ offerId, token, onClose, onSaved, isLandDe
   if (sel.includes("B") && data.is_condo && !data.has_hoa) complianceConflicts.push("B. Homeowners' Assn. is checked, but this is a CONDO — the condo association is covered by Rider A, not B. Uncheck B unless there is a separate HOA too.");
 
   return (
-    <div style={overlayStyle} onClick={onClose}>
-      <div style={modalStyle} onClick={e => e.stopPropagation()}>
+    // Clicking the dark area around the offer does NOTHING (Carlos 10/2: a click
+    // or text-drag that ended outside the window closed the offer and lost the
+    // step). Leave with "Close" — it saves first.
+    <div style={overlayStyle}>
+      <div style={modalStyle}>
         {/* Header */}
         <div style={{ padding: "20px 28px", borderBottom: "1px solid #e5e7eb", background: "#0c4a6e", color: "white", borderRadius: "12px 12px 0 0" }}>
           <div style={{ fontSize: 12, opacity: 0.8, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 4 }}>
@@ -1194,7 +1203,7 @@ export default function OfferWizard({ offerId, token, onClose, onSaved, isLandDe
 
         {/* Footer */}
         <div style={{ padding: "16px 28px", borderTop: "1px solid #e5e7eb", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, background: "#f9fafb", borderRadius: "0 0 12px 12px" }}>
-          <button onClick={onClose} style={btnSecondary}>Close</button>
+          <button onClick={closeAndSave} disabled={saving} style={btnSecondary}>{saving ? "Saving…" : "Save & Close"}</button>
           <div style={{ display: "flex", gap: 8 }}>
             {/* "Save Draft" didn't read as an escape hatch — a rookie four steps
                 into a twelve-step contract needs to be told they can walk away
