@@ -1,3 +1,4 @@
+import { t as tr, locale as uiLocale } from "./i18n";
 import { useState, useEffect, useRef, Fragment, lazy, Suspense } from "react";
 import OfferWizard from "./OfferWizard";
 import { TheirCounterModal, BuyerCounterPanel, useTheirCounters, counterForOffer, HOW_BUYER_COUNTERS } from "./BuyerCounterFlow";
@@ -26,22 +27,22 @@ function EffectiveDateConfirm({ txId, token, readDate }) {
       });
       const d = await r.json(); if (!r.ok || !d.success) throw new Error(d.error || "Could not save");
       setDone(date);
-    } catch (e) { alert("Error: " + e.message); }
+    } catch (e) { alert(tr("Error: ") + e.message); }
     setBusy(false);
   };
-  if (done) return <div style={{ color: "#065f46", fontWeight: 600 }}>✓ Effective date set to {fmtDate(done)} — deadlines and timeline recomputed.</div>;
+  if (done) return <div style={{ color: "#065f46", fontWeight: 600 }}>{tr("✓ Effective date set to")} {fmtDate(done)} {tr("— deadlines and timeline recomputed.")}</div>;
   return (
     <div style={{ background: "#fffbeb", border: "1px solid #fcd34d", borderRadius: 8, padding: "10px 12px", margin: "6px 0" }}>
-      <div style={{ fontWeight: 700, color: "#92400e", marginBottom: 4 }}>⚠️ Confirm the effective date</div>
+      <div style={{ fontWeight: 700, color: "#92400e", marginBottom: 4 }}>{tr("⚠️ Confirm the effective date")}</div>
       <div style={{ fontSize: 12.5, color: "#78350f", marginBottom: 8 }}>
-        The contract's last signature is dated <b>{readDate ? fmtDate(readDate) : "—"}</b>, but under FL FAR/BAR the contract becomes effective when <b>all parties receive the fully-signed copy</b>. When was that?
+        {tr("The contract's last signature is dated")} <b>{readDate ? fmtDate(readDate) : "—"}</b>{tr(", but under FL FAR/BAR the contract becomes effective when")} <b>{tr("all parties receive the fully-signed copy")}</b>{tr(". When was that?")}
       </div>
       <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
         <input type="date" value={date} onChange={e => setDate(e.target.value)}
           style={{ padding: "7px 10px", border: "1px solid #d1d5db", borderRadius: 6, fontSize: 13 }} />
         <button onClick={apply} disabled={busy || !date}
           style={{ background: "#0c4a6e", color: "#fff", border: "none", borderRadius: 6, padding: "8px 14px", fontSize: 13, fontWeight: 700, cursor: "pointer", opacity: busy ? 0.6 : 1 }}>
-          {busy ? "Saving…" : "✓ Set effective date"}
+          {busy ? tr("Saving…") : tr("✓ Set effective date")}
         </button>
       </div>
     </div>
@@ -67,7 +68,7 @@ function fmtMoney(n) {
 
 function fmtDate(d) {
   if (!d) return "—";
-  return new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+  return new Date(d).toLocaleDateString(uiLocale(), { month: "short", day: "numeric", year: "numeric" });
 }
 
 export default function OffersTab({ tx, token, currentUser, createSignal = 0, onCreateHandled = null, onReviewReceived = null, openOffer = null, onOfferOpened = null }) {
@@ -176,7 +177,7 @@ export default function OffersTab({ tx, token, currentUser, createSignal = 0, on
   };
 
   const deleteOffer = async (offerId) => {
-    if (!(await askConfirm("Delete this draft offer?", { okLabel: "Delete", danger: true }))) return;
+    if (!(await askConfirm(tr("Delete this draft offer?"), { okLabel: tr("Delete"), danger: true }))) return;
     try {
       const r = await fetch(API + "/offers/" + offerId, {
         method: "DELETE",
@@ -186,12 +187,12 @@ export default function OffersTab({ tx, token, currentUser, createSignal = 0, on
       if (!r.ok) throw new Error(data.error || "Delete failed");
       await load();
     } catch (e) {
-      alert("Error: " + e.message);
+      alert(tr("Error: ") + e.message);
     }
   };
 
   const acceptOffer = async (offerId) => {
-    if (!(await askConfirm("Mark this offer ACCEPTED?\n\nThis will:\n• Move the transaction to UNDER CONTRACT\n• Copy the offer's price, closing date, and terms onto the transaction\n• Withdraw any other offers on this transaction\n\nNOTHING is emailed yet — next you'll REVIEW the welcome emails and choose exactly what goes out.", { okLabel: "Yes, mark accepted" }))) return;
+    if (!(await askConfirm(tr("Mark this offer ACCEPTED?\n\nThis will:\n• Move the transaction to UNDER CONTRACT\n• Copy the offer's price, closing date, and terms onto the transaction\n• Withdraw any other offers on this transaction\n\nNOTHING is emailed yet — next you'll REVIEW the welcome emails and choose exactly what goes out."), { okLabel: tr("Yes, mark accepted") }))) return;
     try {
       const r = await fetch(API + "/offers/" + offerId + "/accept", {
         method: "POST", headers: { Authorization: "Bearer " + token },
@@ -203,7 +204,7 @@ export default function OffersTab({ tx, token, currentUser, createSignal = 0, on
       // each email before anything is sent (accept itself sends nothing).
       setShowWelcomePreview(true);
     } catch (e) {
-      alert("Error: " + e.message);
+      alert(tr("Error: ") + e.message);
     }
   };
 
@@ -246,7 +247,7 @@ export default function OffersTab({ tx, token, currentUser, createSignal = 0, on
       await load();
       // Chain straight into sending — no separate button to hunt for.
       await sendToListing({ ...o, signed_doc_id: data.docId });
-    } catch (e) { alert("Error: " + e.message); }
+    } catch (e) { alert(tr("Error: ") + e.message); }
   };
 
   // Upload the FULLY-EXECUTED contract on an accepted offer; the server has AI
@@ -270,21 +271,21 @@ export default function OffersTab({ tx, token, currentUser, createSignal = 0, on
       const data = await r.json(); if (!r.ok) throw new Error(data.error || "Upload failed");
       setExecResult({ offerId: o.id, verify: data.verify || null });
       await load();
-    } catch (e) { alert("Error: " + e.message); }
+    } catch (e) { alert(tr("Error: ") + e.message); }
     setExecBusy(false);
   };
 
   // Open the approve-and-attach modal to send the offer to the listing agent.
   const sendToListing = (o) => {
     if (!o.signed_doc_id && !o.packet_pdf_key) {
-      alert("Nothing to send yet — open the offer to generate the packet, or upload the signed offer first.");
+      alert(tr("Nothing to send yet — open the offer to generate the packet, or upload the signed offer first."));
       return;
     }
     setSendModal(o);
   };
 
   const setOfferStatus = async (offerId, status, label) => {
-    if (!(await askConfirm("Mark this offer " + label + "?", { okLabel: "Yes, mark it" }))) return;
+    if (!(await askConfirm(tr("Mark this offer ") + label + "?", { okLabel: tr("Yes, mark it") }))) return;
     try {
       const r = await fetch(API + "/offers/" + offerId + "/status", {
         method: "PATCH", headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
@@ -292,11 +293,11 @@ export default function OffersTab({ tx, token, currentUser, createSignal = 0, on
       });
       const data = await r.json(); if (!r.ok) throw new Error(data.error || "Failed");
       await load();
-    } catch (e) { alert("Error: " + e.message); }
+    } catch (e) { alert(tr("Error: ") + e.message); }
   };
 
   const unacceptOffer = async (offerId) => {
-    if (!(await askConfirm("Undo this acceptance?\n\nThe transaction will revert to its prior status and the other offers will be restored.\n\nNote: welcome emails already sent CANNOT be recalled.", { okLabel: "Undo acceptance", danger: true }))) return;
+    if (!(await askConfirm(tr("Undo this acceptance?\n\nThe transaction will revert to its prior status and the other offers will be restored.\n\nNote: welcome emails already sent CANNOT be recalled."), { okLabel: tr("Undo acceptance"), danger: true }))) return;
     try {
       const r = await fetch(API + "/offers/" + offerId + "/unaccept", {
         method: "POST", headers: { Authorization: "Bearer " + token },
@@ -304,9 +305,9 @@ export default function OffersTab({ tx, token, currentUser, createSignal = 0, on
       const data = await r.json();
       if (!r.ok) throw new Error(data.error || "Undo failed");
       await load();
-      alert(data.note || "Acceptance reverted.");
+      alert(data.note || tr("Acceptance reverted."));
     } catch (e) {
-      alert("Error: " + e.message);
+      alert(tr("Error: ") + e.message);
     }
   };
 
@@ -315,22 +316,22 @@ export default function OffersTab({ tx, token, currentUser, createSignal = 0, on
       {receivedPending > 0 && (
         <div style={{ background: "#fef2f2", border: "1px solid #fca5a5", borderLeft: "5px solid #dc2626", borderRadius: 10, padding: "12px 14px", marginBottom: 16, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
           <div style={{ flex: "1 1 240px" }}>
-            <div style={{ fontWeight: 800, fontSize: 14, color: "#7f1d1d" }}>📥 {receivedPending} received offer{receivedPending === 1 ? "" : "s"} waiting for your review</div>
-            <div style={{ fontSize: 12.5, color: "#991b1b", marginTop: 2 }}>Offers that came IN on this listing are reviewed from the deal's Overview.</div>
+            <div style={{ fontWeight: 800, fontSize: 14, color: "#7f1d1d" }}>📥 {receivedPending} {tr("received offer")}{receivedPending === 1 ? "" : "s"} {tr("waiting for your review")}</div>
+            <div style={{ fontSize: 12.5, color: "#991b1b", marginTop: 2 }}>{tr("Offers that came IN on this listing are reviewed from the deal's Overview.")}</div>
           </div>
           {onReviewReceived && (
             <button onClick={onReviewReceived}
               style={{ padding: "10px 18px", borderRadius: 8, border: "none", background: "#0c4a6e", color: "#fff", fontSize: 13.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit", flexShrink: 0 }}>
-              → Review received offers
+              {tr("→ Review received offers")}
             </button>
           )}
         </div>
       )}
       <div style={{ marginBottom: 16 }}>
-        <div style={{ fontSize: 22, fontWeight: 800 }}>📝 Offers</div>
+        <div style={{ fontSize: 22, fontWeight: 800 }}>{tr("📝 Offers")}</div>
         <div style={{ fontSize: 13, color: "#6b7280", marginTop: 2 }}>
-          {creating ? "Creating your offer…" : "Build your buyer's offer (AS-IS contract, or the Vacant Land Contract for land), assemble the packet, and send it to the listing agent. Use the 📝 Create Offer button at the top to start or continue one."}{" "}
-          <button onClick={() => setHowCounters(h => !h)} style={{ background: "none", border: "none", color: "#0c4a6e", textDecoration: "underline", cursor: "pointer", fontSize: 13, padding: 0, fontFamily: "inherit" }}>{howCounters ? "Hide" : "What if the seller counters?"}</button>
+          {creating ? tr("Creating your offer…") : tr("Build your buyer's offer (AS-IS contract, or the Vacant Land Contract for land), assemble the packet, and send it to the listing agent. Use the 📝 Create Offer button at the top to start or continue one.")}{" "}
+          <button onClick={() => setHowCounters(h => !h)} style={{ background: "none", border: "none", color: "#0c4a6e", textDecoration: "underline", cursor: "pointer", fontSize: 13, padding: 0, fontFamily: "inherit" }}>{howCounters ? tr("Hide") : tr("What if the seller counters?")}</button>
         </div>
         {howCounters && HOW_BUYER_COUNTERS}
       </div>
@@ -342,28 +343,28 @@ export default function OffersTab({ tx, token, currentUser, createSignal = 0, on
       )}
 
       {loading ? (
-        <div style={{ textAlign: "center", color: "#6b7280", padding: 40 }}>Loading…</div>
+        <div style={{ textAlign: "center", color: "#6b7280", padding: 40 }}>{tr("Loading…")}</div>
       ) : offers.length === 0 ? (
         <div style={{ background: "#f9fafb", border: "2px dashed #d1d5db", borderRadius: 8, padding: 40, textAlign: "center", color: "#6b7280" }}>
           <div style={{ fontSize: 32, marginBottom: 8 }}>📝</div>
-          <div style={{ fontWeight: 700, color: "#374151", marginBottom: 4 }}>No offers yet</div>
+          <div style={{ fontWeight: 700, color: "#374151", marginBottom: 4 }}>{tr("No offers yet")}</div>
           <button onClick={createOffer} disabled={creating}
             style={{ margin: "12px auto 0", display: "block", padding: "12px 26px", background: "#0c4a6e", color: "#fff", border: "none", borderRadius: 10, fontSize: 15, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>
-            {creating ? "Creating…" : "➕ Start an offer"}
+            {creating ? tr("Creating…") : tr("➕ Start an offer")}
           </button>
-          <div style={{ fontSize: 13 }}>Use the 📝 Create Offer button at the top of this transaction to build your first offer.</div>
+          <div style={{ fontSize: 13 }}>{tr("Use the 📝 Create Offer button at the top of this transaction to build your first offer.")}</div>
         </div>
       ) : (
         <div style={{ background: "white", border: "1px solid #e5e7eb", borderRadius: 8, overflow: "hidden" }}>
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
             <thead>
               <tr style={{ background: "#f9fafb", borderBottom: "1px solid #e5e7eb" }}>
-                <th style={{ textAlign: "left", padding: "10px 12px", fontWeight: 700, color: "#374151" }}>Status</th>
-                <th style={{ textAlign: "left", padding: "10px 12px", fontWeight: 700, color: "#374151" }}>Property</th>
-                <th style={{ textAlign: "right", padding: "10px 12px", fontWeight: 700, color: "#374151" }}>Offer Price</th>
-                <th style={{ textAlign: "left", padding: "10px 12px", fontWeight: 700, color: "#374151" }}>Step</th>
-                <th style={{ textAlign: "left", padding: "10px 12px", fontWeight: 700, color: "#374151" }}>Updated</th>
-                <th style={{ textAlign: "right", padding: "10px 12px", fontWeight: 700, color: "#374151" }}>Actions</th>
+                <th style={{ textAlign: "left", padding: "10px 12px", fontWeight: 700, color: "#374151" }}>{tr("Status")}</th>
+                <th style={{ textAlign: "left", padding: "10px 12px", fontWeight: 700, color: "#374151" }}>{tr("Property")}</th>
+                <th style={{ textAlign: "right", padding: "10px 12px", fontWeight: 700, color: "#374151" }}>{tr("Offer Price")}</th>
+                <th style={{ textAlign: "left", padding: "10px 12px", fontWeight: 700, color: "#374151" }}>{tr("Step")}</th>
+                <th style={{ textAlign: "left", padding: "10px 12px", fontWeight: 700, color: "#374151" }}>{tr("Updated")}</th>
+                <th style={{ textAlign: "right", padding: "10px 12px", fontWeight: 700, color: "#374151" }}>{tr("Actions")}</th>
               </tr>
             </thead>
             <tbody>
@@ -378,16 +379,16 @@ export default function OffersTab({ tx, token, currentUser, createSignal = 0, on
                   <tr data-offer-row={o.id} style={{ borderBottom: showPanel ? "none" : "1px solid #f3f4f6", transition: "outline 0.2s" }}>
                     <td style={{ padding: "10px 12px" }}>
                       <span style={{ background: meta.bg, color: meta.color, padding: "2px 8px", borderRadius: 12, fontSize: 11, fontWeight: 700 }}>
-                        {meta.label}
+                        {tr(meta.label)}
                       </span>
                       {o.signing_status === "out_for_signature" && (
-                        <div style={{ fontSize: 10, fontWeight: 700, color: "#86198f", marginTop: 4 }}>✍️ awaiting buyer signature(s)</div>
+                        <div style={{ fontSize: 10, fontWeight: 700, color: "#86198f", marginTop: 4 }}>{tr("✍️ awaiting buyer signature(s)")}</div>
                       )}
                       {o.signing_status === "signed" && (
-                        <div style={{ fontSize: 10, fontWeight: 700, color: "#15803d", marginTop: 4 }}>✍️ signed in-app</div>
+                        <div style={{ fontSize: 10, fontWeight: 700, color: "#15803d", marginTop: 4 }}>{tr("✍️ signed in-app")}</div>
                       )}
                       {o.parent_offer_id && (
-                        <div style={{ fontSize: 10, fontWeight: 700, color: "#0c4a6e", marginTop: 4 }}>🔁 Revision {o.revision_round || 2} — after the seller's counter</div>
+                        <div style={{ fontSize: 10, fontWeight: 700, color: "#0c4a6e", marginTop: 4 }}>{tr("🔁 Revision")} {o.revision_round || 2} {tr("— after the seller's counter")}</div>
                       )}
                     </td>
                     <td style={{ padding: "10px 12px", color: "#374151" }}>
@@ -401,7 +402,7 @@ export default function OffersTab({ tx, token, currentUser, createSignal = 0, on
                     <td style={{ padding: "10px 12px" }}>
                       {(() => {
                         const btn = (label, onClick, bg, color, big) => (
-                          <button onClick={onClick} style={{ background: bg, color, border: "none", padding: big ? "7px 14px" : "4px 10px", borderRadius: 6, fontSize: big ? 12.5 : 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>{label}</button>
+                          <button onClick={onClick} style={{ background: bg, color, border: "none", padding: big ? "7px 14px" : "4px 10px", borderRadius: 6, fontSize: big ? 12.5 : 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>{tr(label)}</button>
                         );
                         const active = !["accepted", "rejected", "withdrawn"].includes(o.status);
                         // ONE obvious next step per offer; everything else under ⋯.
@@ -429,7 +430,7 @@ export default function OffersTab({ tx, token, currentUser, createSignal = 0, on
                             {!ctr && (o.status === "ready" || o.status === "sent" || o.status === "countered") && btn("✅ Seller accepted", () => acceptOffer(o.id), "#16a34a", "#fff", true)}
                             {!ctr && (o.status === "sent" || o.status === "countered") && btn("❌ Declined", () => setOfferStatus(o.id, "rejected", "DECLINED by the seller"), "#fee2e2", "#7f1d1d")}
                             <div style={{ position: "relative" }}>
-                              <button onClick={(e) => { const r = e.currentTarget.getBoundingClientRect(); setOfferMenuPos({ top: r.bottom + 4, left: Math.max(8, r.right - 250) }); setOfferMenu(offerMenu === o.id ? null : o.id); }} title="More actions"
+                              <button onClick={(e) => { const r = e.currentTarget.getBoundingClientRect(); setOfferMenuPos({ top: r.bottom + 4, left: Math.max(8, r.right - 250) }); setOfferMenu(offerMenu === o.id ? null : o.id); }} title={tr("More actions")}
                                 style={{ background: "#fff", color: "#374151", border: "1px solid #d1d5db", padding: "5px 10px", borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>⋯</button>
                               {offerMenu === o.id && (
                                 <>
@@ -441,7 +442,7 @@ export default function OffersTab({ tx, token, currentUser, createSignal = 0, on
                                         style={{ display: "block", width: "100%", padding: "9px 13px", background: "none", border: "none", borderRadius: 6, fontSize: 13, color: it.danger ? "#B91C1C" : "#1f2937", cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}
                                         onMouseEnter={e => e.currentTarget.style.background = it.danger ? "#FEF2F2" : "#f3f4f6"}
                                         onMouseLeave={e => e.currentTarget.style.background = "none"}>
-                                        {it.label}
+                                        {tr(it.label)}
                                       </button>
                                     ))}
                                   </div>
@@ -478,7 +479,7 @@ export default function OffersTab({ tx, token, currentUser, createSignal = 0, on
 
       {execBusy && (
         <div style={{ background: "#eff6ff", border: "1px solid #93c5fd", borderRadius: 10, padding: 14, marginTop: 14, fontSize: 13, color: "#1e40af" }}>
-          Reading the executed contract — checking terms, dates, and signatures. This can take up to a minute…
+          {tr("Reading the executed contract — checking terms, dates, and signatures. This can take up to a minute…")}
         </div>
       )}
       {execResult && execResult.verify && (() => {
@@ -490,26 +491,26 @@ export default function OffersTab({ tx, token, currentUser, createSignal = 0, on
         return (
           <div style={{ background: signedOk ? "#ecfdf5" : "#fffbeb", border: `1px solid ${signedOk ? "#6ee7b7" : "#fcd34d"}`, borderRadius: 10, padding: 16, marginTop: 14 }}>
             <div style={{ fontWeight: 800, fontSize: 14, color: signedOk ? "#065f46" : "#92400e", marginBottom: 8 }}>
-              {signedOk ? "✅ Executed contract verified — signed properly" : "⚠️ Executed contract read — check the signatures"}
+              {signedOk ? tr("✅ Executed contract verified — signed properly") : tr("⚠️ Executed contract read — check the signatures")}
             </div>
             <div style={{ fontSize: 13, color: "#374151", lineHeight: 1.7 }}>
-              <div><b>Signatures:</b> {v.signatureStatus || "unknown"}{v.missingSignatures ? ` — missing: ${v.missingSignatures}` : ""}</div>
-              {v.executedDate && !v.effectiveDateUncertain && <div><b>Effective date:</b> {fmtDate(v.executedDate)}</div>}
+              <div><b>{tr("Signatures:")}</b> {v.signatureStatus || tr("unknown")}{v.missingSignatures ? tr(" — missing: {missingSignatures}", { missingSignatures: v.missingSignatures }) : ""}</div>
+              {v.executedDate && !v.effectiveDateUncertain && <div><b>{tr("Effective date:")}</b> {fmtDate(v.executedDate)}</div>}
               {v.effectiveDateUncertain && <EffectiveDateConfirm txId={tx.id} token={token} readDate={v.executedDate} />}
-              {v.closingDate && <div><b>Closing date:</b> {fmtDate(v.closingDate)}</div>}
-              {v.contractPrice && <div><b>Contract price:</b> {fmtMoney(v.contractPrice)}</div>}
-              {v.applied && v.applied.length > 0 && <div><b>Applied to the deal:</b> {v.applied.length} field{v.applied.length === 1 ? "" : "s"} (dates, contingencies) — the timeline recomputed automatically.</div>}
-              {v.partiesAdded > 0 && <div><b>People added from the contract:</b> {v.partiesAdded} (title company, lender, etc.) — check the People tab.</div>}
-              {v.docsFiled > 0 && <div><b>Documents filed:</b> {v.docsFiled} — each contract, rider, and disclosure in the package was split out into Documents (Executed Contract Package folder).</div>}
+              {v.closingDate && <div><b>{tr("Closing date:")}</b> {fmtDate(v.closingDate)}</div>}
+              {v.contractPrice && <div><b>{tr("Contract price:")}</b> {fmtMoney(v.contractPrice)}</div>}
+              {v.applied && v.applied.length > 0 && <div><b>{tr("Applied to the deal:")}</b> {v.applied.length} {tr("field")}{v.applied.length === 1 ? "" : "s"} {tr("(dates, contingencies) — the timeline recomputed automatically.")}</div>}
+              {v.partiesAdded > 0 && <div><b>{tr("People added from the contract:")}</b> {v.partiesAdded} {tr("(title company, lender, etc.) — check the People tab.")}</div>}
+              {v.docsFiled > 0 && <div><b>{tr("Documents filed:")}</b> {v.docsFiled} {tr("— each contract, rider, and disclosure in the package was split out into Documents (Executed Contract Package folder).")}</div>}
               {v.notes && <div style={{ color: "#6b7280", marginTop: 4 }}>{v.notes}</div>}
               {Array.isArray(v.termsCheck) && v.termsCheck.length > 0 && (
                 <div style={{ background: "#FDEDEC", border: "1px solid #F5B7B1", borderRadius: 8, padding: "8px 10px", marginTop: 8, color: "#922B21" }}>
-                  <b>🔴 The executed contract doesn't match what your buyer signed:</b>
-                  {v.termsCheck.map((d, i) => <div key={i}>{d.label}: your buyer signed <b>{d.signed}</b> — the executed contract says <b>{d.executed}</b></div>)}
-                  <div style={{ marginTop: 4 }}>Check with the listing agent before anything else goes out.</div>
+                  <b>{tr("🔴 The executed contract doesn't match what your buyer signed:")}</b>
+                  {v.termsCheck.map((d, i) => <div key={i}>{tr(d.label)}{tr(": your buyer signed")} <b>{d.signed}</b> {tr("— the executed contract says")} <b>{d.executed}</b></div>)}
+                  <div style={{ marginTop: 4 }}>{tr("Check with the listing agent before anything else goes out.")}</div>
                 </div>
               )}
-              {Array.isArray(v.termsCheck) && v.termsCheck.length === 0 && <div style={{ color: "#1E8449", marginTop: 4 }}>✓ Price, deposit, dates and financing match what your buyer signed.</div>}
+              {Array.isArray(v.termsCheck) && v.termsCheck.length === 0 && <div style={{ color: "#1E8449", marginTop: 4 }}>{tr("✓ Price, deposit, dates and financing match what your buyer signed.")}</div>}
             </div>
           </div>
         );
@@ -544,8 +545,8 @@ export default function OffersTab({ tx, token, currentUser, createSignal = 0, on
           <div role="dialog" aria-modal="true" aria-labelledby="draft-chooser-title" onClick={e => e.stopPropagation()}
             style={{ background: "#fff", borderRadius: 14, width: "100%", maxWidth: 520, margin: "auto", boxShadow: "0 20px 60px rgba(0,0,0,0.3)", overflow: "hidden" }}>
             <div style={{ background: "#0c4a6e", color: "#fff", padding: "16px 20px" }}>
-              <div id="draft-chooser-title" style={{ fontSize: 17, fontWeight: 800 }}>Continue an offer or start a new one?</div>
-              <div style={{ fontSize: 13, opacity: 0.9, marginTop: 3 }}>This deal already has {draftChooser.length === 1 ? "an offer" : draftChooser.length + " offers"}.</div>
+              <div id="draft-chooser-title" style={{ fontSize: 17, fontWeight: 800 }}>{tr("Continue an offer or start a new one?")}</div>
+              <div style={{ fontSize: 13, opacity: 0.9, marginTop: 3 }}>{tr("This deal already has")} {draftChooser.length === 1 ? tr("an offer") : draftChooser.length + tr(" offers")}.</div>
             </div>
             <div style={{ padding: 16, display: "flex", flexDirection: "column", gap: 10 }}>
               {draftChooser.map(o => {
@@ -564,24 +565,24 @@ export default function OffersTab({ tx, token, currentUser, createSignal = 0, on
                   <button key={o.id} onClick={editable ? () => { setDraftChooser(null); setWizardOfferId(o.id); } : showIt}
                     style={{ textAlign: "left", background: "#fff", border: "1.5px solid " + (editable ? "#0c4a6e" : "#D1D5DB"), borderRadius: 10, padding: "12px 14px", cursor: "pointer", fontFamily: "inherit" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                      <span style={{ fontSize: 15, fontWeight: 800, color: "#0c4a6e" }}>{editable ? "✏️ Continue: " : "👀 Show it: "}{od.property_address || tx.address || "Offer"}</span>
-                      <span style={{ background: meta.bg, color: meta.color, padding: "2px 8px", borderRadius: 12, fontSize: 11, fontWeight: 700 }}>{meta.label}</span>
+                      <span style={{ fontSize: 15, fontWeight: 800, color: "#0c4a6e" }}>{editable ? tr("✏️ Continue: ") : tr("👀 Show it: ")}{od.property_address || tx.address || tr("Offer")}</span>
+                      <span style={{ background: meta.bg, color: meta.color, padding: "2px 8px", borderRadius: 12, fontSize: 11, fontWeight: 700 }}>{tr(meta.label)}</span>
                     </div>
                     <div style={{ fontSize: 13, color: "#374151", marginTop: 3 }}>
                       {od.purchase_price ? fmtMoney(od.purchase_price) + " · " : ""}
-                      {editable ? `Step ${o.current_step || 1} of ${total}` : (o.status === "sent" ? "Sent to the listing agent" : meta.label)}
-                      {o.base_contract_type === "vacant_land" ? " · Vacant Land Contract" : ""} · updated {fmtDate(o.updated_at)}
+                      {editable ? tr("Step {v1} of {total}", { v1: o.current_step || 1, total }) : (o.status === "sent" ? tr("Sent to the listing agent") : tr(meta.label))}
+                      {o.base_contract_type === "vacant_land" ? tr(" · Vacant Land Contract") : ""} {tr("· updated")} {fmtDate(o.updated_at)}
                     </div>
                   </button>
                 );
               })}
               <button onClick={() => { setDraftChooser(null); createOffer(); }}
                 style={{ background: "#0c4a6e", color: "#fff", border: "none", borderRadius: 10, padding: "12px 14px", fontSize: 15, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>
-                ➕ Start a new offer
+                {tr("➕ Start a new offer")}
               </button>
               <button onClick={() => setDraftChooser(null)}
                 style={{ background: "none", border: "none", color: "#4B5563", fontSize: 13.5, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", padding: 6 }}>
-                Cancel
+                {tr("Cancel")}
               </button>
             </div>
           </div>
@@ -670,15 +671,15 @@ function SendOfferModal({ offer, tx, token, currentUser, onClose, onSent }) {
       });
       const dd = await r.json();
       if (dd.success && dd.docId) { setAttach(prev => [...prev, { id: dd.docId, name: file.name }]); setDocList(null); }
-      else alert("Upload failed: " + (dd.error || "unknown error"));
-    } catch (e) { alert("Upload error: " + e.message); }
+      else alert(tr("Upload failed: ") + (dd.error || tr("unknown error")));
+    } catch (e) { alert(tr("Upload error: ") + e.message); }
     setUploading(false);
   };
 
   const send = async () => {
-    if (!toEmail.trim() || !/.+@.+\..+/.test(toEmail.trim())) { alert("Enter the listing agent's email."); return; }
-    if (/[,;]/.test(toEmail)) { alert("Put only the LISTING AGENT's email in the To field — the deal's People syncs to it.\n\nTo get a copy yourself, leave the 'Send me a copy' box checked instead."); return; }
-    if (!message.trim()) { alert("Write a message."); return; }
+    if (!toEmail.trim() || !/.+@.+\..+/.test(toEmail.trim())) { alert(tr("Enter the listing agent's email.")); return; }
+    if (/[,;]/.test(toEmail)) { alert(tr("Put only the LISTING AGENT's email in the To field — the deal's People syncs to it.\n\nTo get a copy yourself, leave the 'Send me a copy' box checked instead.")); return; }
+    if (!message.trim()) { alert(tr("Write a message.")); return; }
     setSending(true);
     try {
       const r = await fetch(API + "/offers/" + offer.id + "/send-to-listing-agent", {
@@ -687,9 +688,9 @@ function SendOfferModal({ offer, tx, token, currentUser, onClose, onSent }) {
       });
       const data = await r.json(); if (!r.ok) throw new Error(data.error || "Send failed");
       const attached = Array.isArray(data.attached) ? data.attached.join(", ") : data.attached;
-      alert("✅ Sent to " + data.sentTo + (attached ? "\nAttached: " + attached : "") + ".\n\nThe listing agent's reply will appear in this deal's Replies, and the AI will flag whether it's an acceptance. When the seller accepts, click ✅ Accepted to start the transaction.");
+      alert(tr("✅ Sent to ") + data.sentTo + (attached ? tr("\nAttached: ") + attached : "") + tr(".\n\nThe listing agent's reply will appear in this deal's Replies, and the AI will flag whether it's an acceptance. When the seller accepts, click ✅ Accepted to start the transaction."));
       onSent();
-    } catch (e) { alert("Error: " + e.message); }
+    } catch (e) { alert(tr("Error: ") + e.message); }
     setSending(false);
   };
 
@@ -700,32 +701,32 @@ function SendOfferModal({ offer, tx, token, currentUser, onClose, onSent }) {
     <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 4000, display: "flex", alignItems: "flex-start", justifyContent: "center", padding: 16, overflowY: "auto" }}>
       <div onClick={e => e.stopPropagation()} style={{ background: "#fff", borderRadius: 14, maxWidth: 560, width: "100%", margin: "auto", boxShadow: "0 10px 40px rgba(0,0,0,0.25)", overflow: "hidden" }}>
         <div style={{ background: "#0c4a6e", padding: "16px 20px", color: "#fff", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <div style={{ fontWeight: 800, fontSize: 16 }}>📧 Send offer to listing agent</div>
+          <div style={{ fontWeight: 800, fontSize: 16 }}>{tr("📧 Send offer to listing agent")}</div>
           <button onClick={onClose} style={{ background: "none", border: "none", color: "rgba(255,255,255,0.7)", fontSize: 22, cursor: "pointer" }}>×</button>
         </div>
         <div style={{ padding: 20 }}>
-          <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 8 }}>Review and approve before it goes out. {baseAttach ? <><b>{baseAttach}</b> is attached automatically.</> : "⚠️ No signed offer or packet on this offer yet."}</div>
+          <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 8 }}>{tr("Review and approve before it goes out.")} {baseAttach ? <><b>{baseAttach}</b> {tr("is attached automatically.")}</> : tr("⚠️ No signed offer or packet on this offer yet.")}</div>
 
-          <div style={lbl}>To (listing agent)</div>
+          <div style={lbl}>{tr("To (listing agent)")}</div>
           <div style={{ display: "flex", gap: 8 }}>
-            <input value={toName} onChange={e => setToName(e.target.value)} placeholder="Name" style={{ ...inp, flex: "0 0 40%" }} />
-            <input value={toEmail} onChange={e => setToEmail(e.target.value)} placeholder="email@brokerage.com" style={{ ...inp, flex: 1 }} />
+            <input value={toName} onChange={e => setToName(e.target.value)} placeholder={tr("Name")} style={{ ...inp, flex: "0 0 40%" }} />
+            <input value={toEmail} onChange={e => setToEmail(e.target.value)} placeholder={tr("email@brokerage.com")} style={{ ...inp, flex: 1 }} />
           </div>
           <label style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 12.5, color: "#374151", marginTop: 8, cursor: "pointer" }}>
             <input type="checkbox" checked={ccSelf} onChange={e => setCcSelf(e.target.checked)} />
-            📩 Send me a copy (don&apos;t type your own email in the To field — that changes the listing agent&apos;s contact info)
+            {tr("📩 Send me a copy (don't type your own email in the To field — that changes the listing agent's contact info)")}
           </label>
 
-          <div style={lbl}>Subject</div>
+          <div style={lbl}>{tr("Subject")}</div>
           <input value={subject} onChange={e => setSubject(e.target.value)} style={inp} />
 
-          <div style={lbl}>Message</div>
+          <div style={lbl}>{tr("Message")}</div>
           <textarea value={message} onChange={e => setMessage(e.target.value)} rows={7} style={{ ...inp, resize: "vertical" }} />
 
           {/* Attachments */}
-          <div style={lbl}>Attachments</div>
+          <div style={lbl}>{tr("Attachments")}</div>
           <div style={{ fontSize: 13, color: "#374151", marginBottom: 8 }}>
-            {baseAttach && <div>📎 {baseAttach} <span style={{ color: "#1E7B45" }}>(included)</span></div>}
+            {baseAttach && <div>📎 {baseAttach} <span style={{ color: "#1E7B45" }}>{tr("(included)")}</span></div>}
             {attach.map(a => (
               <div key={a.id} style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "#F0F4FF", border: "1px solid #C7D2FE", borderRadius: 6, padding: "3px 8px", fontSize: 12, color: "#0c4a6e", marginRight: 6, marginTop: 6 }}>
                 📄 {a.name}
@@ -735,14 +736,14 @@ function SendOfferModal({ offer, tx, token, currentUser, onClose, onSent }) {
           </div>
           <input ref={fileRef} type="file" style={{ display: "none" }} onChange={e => { const f = e.target.files && e.target.files[0]; if (f) uploadFromComputer(f); e.target.value = ""; }} />
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            <button onClick={openDocPicker} style={{ fontSize: 12, padding: "6px 12px", borderRadius: 8, border: "1px solid #0c4a6e", background: "#fff", color: "#0c4a6e", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>📎 Attach from Documents</button>
-            <button onClick={() => fileRef.current && fileRef.current.click()} disabled={uploading} style={{ fontSize: 12, padding: "6px 12px", borderRadius: 8, border: "1px solid #0c4a6e", background: "#fff", color: "#0c4a6e", fontWeight: 600, cursor: "pointer", fontFamily: "inherit", opacity: uploading ? 0.5 : 1 }}>{uploading ? "Uploading…" : "💻 Upload from computer"}</button>
+            <button onClick={openDocPicker} style={{ fontSize: 12, padding: "6px 12px", borderRadius: 8, border: "1px solid #0c4a6e", background: "#fff", color: "#0c4a6e", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>{tr("📎 Attach from Documents")}</button>
+            <button onClick={() => fileRef.current && fileRef.current.click()} disabled={uploading} style={{ fontSize: 12, padding: "6px 12px", borderRadius: 8, border: "1px solid #0c4a6e", background: "#fff", color: "#0c4a6e", fontWeight: 600, cursor: "pointer", fontFamily: "inherit", opacity: uploading ? 0.5 : 1 }}>{uploading ? tr("Uploading…") : tr("💻 Upload from computer")}</button>
           </div>
 
           {docPicker && (
             <div style={{ marginTop: 10, border: "1px solid #e5e7eb", borderRadius: 8, padding: 10, maxHeight: 220, overflowY: "auto" }}>
-              {docList === null ? <div style={{ color: "#6b7280", fontSize: 13 }}>Loading documents…</div>
-               : docList.length === 0 ? <div style={{ color: "#6b7280", fontSize: 13 }}>No documents on this deal yet.</div>
+              {docList === null ? <div style={{ color: "#6b7280", fontSize: 13 }}>{tr("Loading documents…")}</div>
+               : docList.length === 0 ? <div style={{ color: "#6b7280", fontSize: 13 }}>{tr("No documents on this deal yet.")}</div>
                : docList.map(doc => {
                 const on = !!attach.find(a => a.id === doc.id);
                 return (
@@ -752,13 +753,13 @@ function SendOfferModal({ offer, tx, token, currentUser, onClose, onSent }) {
                   </label>
                 );
               })}
-              <button onClick={() => setDocPicker(false)} style={{ marginTop: 8, width: "100%", background: "#0c4a6e", color: "#fff", border: "none", borderRadius: 8, padding: "8px", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>Done</button>
+              <button onClick={() => setDocPicker(false)} style={{ marginTop: 8, width: "100%", background: "#0c4a6e", color: "#fff", border: "none", borderRadius: 8, padding: "8px", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>{tr("Done")}</button>
             </div>
           )}
 
           <div style={{ display: "flex", gap: 10, marginTop: 18 }}>
-            <button onClick={send} disabled={sending} style={{ flex: 1, background: sending ? "#9ca3af" : "#0c4a6e", color: "#fff", border: "none", borderRadius: 8, padding: "12px", fontWeight: 800, fontSize: 15, cursor: sending ? "wait" : "pointer", fontFamily: "inherit" }}>{sending ? "Sending…" : "📧 Approve & Send"}</button>
-            <button onClick={onClose} style={{ background: "#fff", color: "#374151", border: "1px solid #d1d5db", borderRadius: 8, padding: "12px 18px", fontWeight: 700, fontSize: 14, cursor: "pointer", fontFamily: "inherit" }}>Cancel</button>
+            <button onClick={send} disabled={sending} style={{ flex: 1, background: sending ? "#9ca3af" : "#0c4a6e", color: "#fff", border: "none", borderRadius: 8, padding: "12px", fontWeight: 800, fontSize: 15, cursor: sending ? "wait" : "pointer", fontFamily: "inherit" }}>{sending ? tr("Sending…") : tr("📧 Approve & Send")}</button>
+            <button onClick={onClose} style={{ background: "#fff", color: "#374151", border: "1px solid #d1d5db", borderRadius: 8, padding: "12px 18px", fontWeight: 700, fontSize: 14, cursor: "pointer", fontFamily: "inherit" }}>{tr("Cancel")}</button>
           </div>
         </div>
       </div>
@@ -842,12 +843,12 @@ function BuyerSignaturesModal({ offer, token, onClose }) {
       if (!r.ok) throw new Error(b.error || "Couldn't send signing links");
       setChanged(true);
       await loadInfo();
-      alert("✍️ Signing links sent to " + clean.map(s => s.name).join(" and ") + ".\n\nYou'll get an email the moment everyone has signed — then just click 📧 Send to listing agent.");
+      alert(tr("✍️ Signing links sent to ") + clean.map(s => s.name).join(" and ") + tr(".\n\nYou'll get an email the moment everyone has signed — then just click 📧 Send to listing agent."));
     } catch (e) { setErr(e.message); } finally { setBusy(false); }
   };
 
   const cancel = async () => {
-    if (!(await askConfirm("Cancel the outstanding signing links?\n\nThe buyers' links will stop working. You can send a fresh round any time.", { okLabel: "Cancel links", cancelLabel: "Keep links", danger: true }))) return;
+    if (!(await askConfirm(tr("Cancel the outstanding signing links?\n\nThe buyers' links will stop working. You can send a fresh round any time."), { okLabel: tr("Cancel links"), cancelLabel: tr("Keep links"), danger: true }))) return;
     setBusy(true);
     try {
       const r = await fetch(API + "/offers/" + offer.id + "/cancel-signatures", {
@@ -870,40 +871,40 @@ function BuyerSignaturesModal({ offer, token, onClose }) {
       onClick={() => onClose(changed)}>
       <div style={{ background: "#fff", borderRadius: 14, width: "100%", maxWidth: 560, boxShadow: "0 20px 60px rgba(2,6,23,0.35)" }} onClick={e => e.stopPropagation()}>
         <div style={{ background: "#86198f", color: "#fff", borderRadius: "14px 14px 0 0", padding: "16px 22px" }}>
-          <div style={{ fontSize: 17, fontWeight: 800 }}>✍️ Buyer signatures — no DocuSign needed</div>
-          <div style={{ fontSize: 12.5, opacity: 0.9, marginTop: 3 }}>Each buyer gets a private link to review the package and sign on their phone or computer.</div>
+          <div style={{ fontSize: 17, fontWeight: 800 }}>{tr("✍️ Buyer signatures — no DocuSign needed")}</div>
+          <div style={{ fontSize: 12.5, opacity: 0.9, marginTop: 3 }}>{tr("Each buyer gets a private link to review the package and sign on their phone or computer.")}</div>
         </div>
         <div style={{ padding: 22 }}>
-          {!info && !err && <div style={{ color: "#64748b", fontSize: 14 }}>Loading…</div>}
+          {!info && !err && <div style={{ color: "#64748b", fontSize: 14 }}>{tr("Loading…")}</div>}
           {err && <div style={{ background: "#fee2e2", border: "1px solid #fca5a5", borderRadius: 8, padding: 10, fontSize: 13, color: "#7f1d1d", marginBottom: 12 }}>⚠️ {err}</div>}
 
           {info && info.signingStatus === "signed" && (
             <div style={{ background: "#dcfce7", border: "1px solid #86efac", borderRadius: 10, padding: 14, fontSize: 14, color: "#14532d", marginBottom: 6 }}>
-              ✅ <b>All signed!</b> The signed package (with its signature certificate) is on this offer — close this and click <b>📧 Send to listing agent</b>.
+              ✅ <b>{tr("All signed!")}</b> {tr("The signed package (with its signature certificate) is on this offer — close this and click")} <b>{tr("📧 Send to listing agent")}</b>.
             </div>
           )}
 
           {info && roundOut && (
             <div style={{ marginBottom: 14 }}>
-              <div style={{ fontSize: 13, fontWeight: 800, color: "#374151", marginBottom: 8 }}>Signing round in progress</div>
+              <div style={{ fontSize: 13, fontWeight: 800, color: "#374151", marginBottom: 8 }}>{tr("Signing round in progress")}</div>
               {(info.signers || []).map(s => (
                 <div key={s.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 10px", background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 8, marginBottom: 6, fontSize: 13 }}>
-                  <span style={{ color: "#111" }}>{s.signer_name}{s.signer_entity ? <span style={{ color: "#0c4a6e", fontWeight: 600 }}> for {s.signer_entity}{s.signer_title ? ", " + s.signer_title : ""}</span> : null} <span style={{ color: "#64748b" }}>({s.signer_email})</span></span>
+                  <span style={{ color: "#111" }}>{s.signer_name}{s.signer_entity ? <span style={{ color: "#0c4a6e", fontWeight: 600 }}> {tr("for")} {s.signer_entity}{s.signer_title ? ", " + s.signer_title : ""}</span> : null} <span style={{ color: "#64748b" }}>({s.signer_email})</span></span>
                   {s.status === "signed"
-                    ? <span style={{ color: "#15803d", fontWeight: 700 }}>✅ Signed {s.signed_at ? new Date(s.signed_at).toLocaleDateString() : ""}</span>
-                    : <span style={{ color: "#92400e", fontWeight: 700 }}>⏳ Waiting</span>}
+                    ? <span style={{ color: "#15803d", fontWeight: 700 }}>{tr("✅ Signed")} {s.signed_at ? new Date(s.signed_at).toLocaleDateString() : ""}</span>
+                    : <span style={{ color: "#92400e", fontWeight: 700 }}>{tr("⏳ Waiting")}</span>}
                 </div>
               ))}
               {pending.length > 0 && (
                 <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
                   <button onClick={cancel} disabled={busy}
                     style={{ padding: "8px 16px", background: "#fee2e2", color: "#0c4a6e", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
-                    Cancel signing links
+                    {tr("Cancel signing links")}
                   </button>
                 </div>
               )}
               {signedRows.length > 0 && pending.length === 0 && info.signingStatus !== "signed" && (
-                <div style={{ fontSize: 12.5, color: "#92400e", marginTop: 8 }}>Finalizing the signed package… reopen this window in a moment if it doesn't complete.</div>
+                <div style={{ fontSize: 12.5, color: "#92400e", marginTop: 8 }}>{tr("Finalizing the signed package… reopen this window in a moment if it doesn't complete.")}</div>
               )}
             </div>
           )}
@@ -912,16 +913,16 @@ function BuyerSignaturesModal({ offer, token, onClose }) {
             <div>
               {!info.hasPacket && (
                 <div style={{ background: "#fef3c7", border: "1px solid #fcd34d", borderRadius: 8, padding: 10, fontSize: 13, color: "#78350f", marginBottom: 12 }}>
-                  ⚠️ Generate the offer packet first (open the offer → Review step → Generate) — the buyers sign the final package.
+                  {tr("⚠️ Generate the offer packet first (open the offer → Review step → Generate) — the buyers sign the final package.")}
                 </div>
               )}
-              <div style={{ fontSize: 13, fontWeight: 800, color: "#374151", marginBottom: 8 }}>Who needs to sign?</div>
+              <div style={{ fontSize: 13, fontWeight: 800, color: "#374151", marginBottom: 8 }}>{tr("Who needs to sign?")}</div>
               {rows.map((r, i) => (
                 <div key={i} style={{ marginBottom: 10 }}>
                 <div style={{ display: "flex", gap: 8 }}>
-                  <input value={r.name} onChange={e => setRow(i, "name", e.target.value)} placeholder={r.isEntity ? "Person signing (full name)" : "Buyer full name"}
+                  <input value={r.name} onChange={e => setRow(i, "name", e.target.value)} placeholder={r.isEntity ? tr("Person signing (full name)") : tr("Buyer full name")}
                     style={{ flex: 1, padding: "9px 10px", border: "1px solid #cbd5e1", borderRadius: 8, fontSize: 13, fontFamily: "inherit", minWidth: 0 }} />
-                  <input value={r.email} onChange={e => setRow(i, "email", e.target.value)} placeholder="Email"
+                  <input value={r.email} onChange={e => setRow(i, "email", e.target.value)} placeholder={tr("Email")}
                     style={{ flex: 1, padding: "9px 10px", border: "1px solid #cbd5e1", borderRadius: 8, fontSize: 13, fontFamily: "inherit", minWidth: 0 }} />
                   {rows.length > 1 && (
                     <button onClick={() => setRows(rs => rs.filter((_, j) => j !== i))}
@@ -934,35 +935,35 @@ function BuyerSignaturesModal({ offer, token, onClose }) {
               {rows.length < 4 && (
                 <button onClick={() => setRows(rs => [...rs, { name: "", email: "", isEntity: false }])}
                   style={{ background: "none", border: "1px dashed #94a3b8", color: "#475569", borderRadius: 8, padding: "6px 14px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", marginBottom: 12 }}>
-                  + Add another signer
+                  {tr("+ Add another signer")}
                 </button>
               )}
               {info.hasPacket && (
                 <div style={{ border: "1.5px solid #0c4a6e", background: "#F0F9FF", borderRadius: 10, padding: 12, margin: "4px 0 12px" }}>
                   <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
                     <div style={{ flex: 1, minWidth: 200, fontSize: 13, color: "#0c4a6e", lineHeight: 1.45 }}>
-                      <b>Check where the buyers sign before sending.</b>{" "}
-                      {spots && spots.adjusted ? "You've adjusted the spots — they'll be used for this package." : "The app placed every signature, initial, and date automatically."}
+                      <b>{tr("Check where the buyers sign before sending.")}</b>{" "}
+                      {spots && spots.adjusted ? tr("You've adjusted the spots — they'll be used for this package.") : tr("The app placed every signature, initial, and date automatically.")}
                     </div>
                     <button onClick={openSpots}
                       style={{ background: "#0c4a6e", color: "#fff", border: "none", borderRadius: 8, padding: "9px 14px", fontSize: 13, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>
-                      👀 Preview & adjust
+                      {tr("👀 Preview & adjust")}
                     </button>
                   </div>
                   {spots && spots.adjusted && (
-                    <button onClick={async () => { if (await askConfirm("Go back to the app's automatic signing spots? Your adjustments will be cleared.", { okLabel: "Reset spots" })) saveSpots(null); }}
+                    <button onClick={async () => { if (await askConfirm(tr("Go back to the app's automatic signing spots? Your adjustments will be cleared."), { okLabel: tr("Reset spots") })) saveSpots(null); }}
                       style={{ background: "none", border: "none", color: "#0c4a6e", textDecoration: "underline", fontSize: 12.5, fontWeight: 700, cursor: "pointer", padding: "6px 0 0", fontFamily: "inherit" }}>
-                      ↺ Reset to automatic spots
+                      {tr("↺ Reset to automatic spots")}
                     </button>
                   )}
                 </div>
               )}
               <button onClick={send} disabled={busy || !info.hasPacket}
                 style={{ width: "100%", padding: "12px 0", background: busy || !info.hasPacket ? "#94a3b8" : "#0c4a6e", color: "#fff", border: "none", borderRadius: 10, fontSize: 15, fontWeight: 800, cursor: busy || !info.hasPacket ? "default" : "pointer", fontFamily: "inherit", marginTop: 4 }}>
-                {busy ? "Sending links…" : "Send signing links ✍️"}
+                {busy ? tr("Sending links…") : tr("Send signing links ✍️")}
               </button>
               <div style={{ fontSize: 11.5, color: "#64748b", marginTop: 8, textAlign: "center" }}>
-                Signatures are stamped onto the contract, riders, and disclosures automatically, with a signature certificate attached.
+                {tr("Signatures are stamped onto the contract, riders, and disclosures automatically, with a signature certificate attached.")}
               </div>
             </div>
           )}
@@ -972,7 +973,7 @@ function BuyerSignaturesModal({ offer, token, onClose }) {
             <AdjustSpotsModal
               doc={{ id: offer.id, name: "Offer package" }}
               pdfUrl={API + "/offers/" + offer.id + "/packet.pdf"}
-              title="👀 Where your buyers will sign — drag to adjust"
+              title={tr("👀 Where your buyers will sign — drag to adjust")}
               footerNote="Colors = which buyer. ✍️ signature · 🔤 initials · 📅 date. These exact spots are used on the buyer's signing page and in the final signed package."
               signerNames={spots.signerNames || []}
               initial={spots.placements || []}
@@ -983,7 +984,7 @@ function BuyerSignaturesModal({ offer, token, onClose }) {
           </Suspense>
         )}
         <div style={{ padding: "12px 22px", borderTop: "1px solid #e5e7eb", textAlign: "right" }}>
-          <button onClick={() => onClose(changed)} style={{ padding: "8px 18px", background: "#e5e7eb", color: "#374151", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>Close</button>
+          <button onClick={() => onClose(changed)} style={{ padding: "8px 18px", background: "#e5e7eb", color: "#374151", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>{tr("Close")}</button>
         </div>
       </div>
     </div>

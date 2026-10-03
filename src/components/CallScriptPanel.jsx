@@ -1,3 +1,4 @@
+import { t as tr } from "../i18n";
 import { useState, useEffect } from "react";
 import { CALL_SCRIPT_GROUPS, CALL_OBJECTIONS, recommendCallScriptKeys, fillCallScript } from "../config/callScripts";
 import { telHref } from "../lib/telHref";
@@ -19,7 +20,7 @@ export function CallScriptsButton({ contact, token, compact, onCall }) {
         style={{ background: "#fff", color: "#C0392B", border: "1px solid #C0392B", borderRadius: 8,
           padding: compact ? "4px 10px" : "7px 14px", fontSize: compact ? 11 : 12.5, fontWeight: 700,
           cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>
-        📜 Scripts
+        {tr("📜 Scripts")}
       </button>
       {open && <CallScriptPanel contact={contact} token={token} onCall={onCall} onClose={() => setOpen(false)} />}
     </>
@@ -32,7 +33,7 @@ function CopyBtn({ text }) {
     <button type="button" onClick={() => { try { navigator.clipboard.writeText(text); setDone(true); setTimeout(() => setDone(false), 1500); } catch (e) {} }}
       style={{ flexShrink: 0, background: "#fff", border: "1px solid #e5e7eb", borderRadius: 6, padding: "3px 9px",
         fontSize: 11, fontWeight: 700, color: done ? "#0c4a6e" : "#555", cursor: "pointer", fontFamily: "inherit" }}>
-      {done ? "✓ Copied" : "📋 Copy"}
+      {done ? tr("✓ Copied") : tr("📋 Copy")}
     </button>
   );
 }
@@ -67,7 +68,7 @@ export default function CallScriptPanel({ contact, token, onClose, onCall }) {
       <div style={{ background: "#fff", width: "100%", maxWidth: 440, height: "100%", overflowY: "auto", boxShadow: "-8px 0 30px rgba(0,0,0,0.2)", fontFamily: "inherit" }}>
         <div style={{ position: "sticky", top: 0, zIndex: 1, background: "#C0392B", color: "#fff", padding: "14px 16px", display: "flex", alignItems: "center", gap: 10 }}>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontWeight: 700, fontSize: 11, letterSpacing: "0.06em", textTransform: "uppercase", opacity: 0.9 }}>📜 Call scripts · Calling</div>
+            <div style={{ fontWeight: 700, fontSize: 11, letterSpacing: "0.06em", textTransform: "uppercase", opacity: 0.9 }}>{tr("📜 Call scripts · Calling")}</div>
             {/* The person's name is the headline — big and bold so it's the first thing the agent sees. */}
             <div style={{ fontSize: 22, fontWeight: 800, lineHeight: 1.2, marginTop: 2, wordBreak: "break-word" }}>{name}</div>
           </div>
@@ -75,14 +76,14 @@ export default function CallScriptPanel({ contact, token, onClose, onCall }) {
             // Deferred onCall so the state change never unmounts the link before it dials.
             <a href={`tel:${telHref(contact.phone)}`} onClick={() => { if (onCall) setTimeout(onCall, 800); }}
               style={{ background: "#fff", color: "#C0392B", borderRadius: 8, padding: "7px 14px", fontWeight: 800, fontSize: 13.5, textDecoration: "none", whiteSpace: "nowrap" }}>
-              📞 Call
+              {tr("📞 Call")}
             </a>
           )}
-          <button type="button" onClick={onClose} style={{ background: "rgba(255,255,255,0.15)", border: "none", color: "#fff", borderRadius: 8, padding: "6px 12px", fontWeight: 800, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>✕ Close</button>
+          <button type="button" onClick={onClose} style={{ background: "rgba(255,255,255,0.15)", border: "none", color: "#fff", borderRadius: 8, padding: "6px 12px", fontWeight: 800, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>{tr("✕ Close")}</button>
         </div>
 
         <div style={{ padding: "4px 16px 40px" }}>
-          <div style={section}>Pick the kind of call</div>
+          <div style={section}>{tr("Pick the kind of call")}</div>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
             {ordered.map(g => {
               const on = g.key === group.key;
@@ -97,21 +98,21 @@ export default function CallScriptPanel({ contact, token, onClose, onCall }) {
               );
             })}
           </div>
-          <div style={{ fontSize: 11, color: "#0c4a6e", marginTop: 6 }}>⭐ = suggested for {contact?.first_name || "this contact"}</div>
+          <div style={{ fontSize: 11, color: "#0c4a6e", marginTop: 6 }}>{tr("⭐ = suggested for")} {contact?.first_name || tr("this contact")}</div>
 
           <div style={{ marginTop: 14, fontSize: 15, fontWeight: 800, color: "#111" }}>{group.situation}</div>
-          {group.why && <div style={{ fontSize: 12.5, color: "#6b7280", marginTop: 3, lineHeight: 1.45 }}>{group.why}</div>}
+          {group.why && <div style={{ fontSize: 12.5, color: "#6b7280", marginTop: 3, lineHeight: 1.45 }}>{tr(group.why)}</div>}
           {group.scripts.map((s, i) => (
             <div key={i} style={{ background: "#F9FAFB", border: "1px solid #e5e7eb", borderLeft: "3px solid #C0392B", borderRadius: 8, padding: "10px 12px", marginTop: 10 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, marginBottom: 5 }}>
-                <div style={{ fontSize: 12.5, fontWeight: 800, color: "#922B21" }}>{i + 1}. {s.title}</div>
+                <div style={{ fontSize: 12.5, fontWeight: 800, color: "#922B21" }}>{i + 1}. {tr(s.title)}</div>
                 <CopyBtn text={fill(s.body)} />
               </div>
               <div style={{ fontSize: 14.5, color: "#111", lineHeight: 1.6 }}>{fill(s.body)}</div>
             </div>
           ))}
 
-          <div style={section}>💬 When they say…</div>
+          <div style={section}>{tr("💬 When they say…")}</div>
           {CALL_OBJECTIONS.map((o, i) => {
             const isOpen = openObjection === i;
             return (
@@ -129,13 +130,13 @@ export default function CallScriptPanel({ contact, token, onClose, onCall }) {
             );
           })}
 
-          <div style={section}>⭐ My call scripts</div>
+          <div style={section}>{tr("⭐ My call scripts")}</div>
           {mine.length === 0 ? (
-            <div style={{ fontSize: 12.5, color: "#5F6B7A", fontStyle: "italic" }}>None yet — add your own on the Scripts page, “📞 Phone calls” tab.</div>
+            <div style={{ fontSize: 12.5, color: "#5F6B7A", fontStyle: "italic" }}>{tr("None yet — add your own on the Scripts page, “📞 Phone calls” tab.")}</div>
           ) : mine.map(s => (
             <div key={s.id} style={{ background: "#F9FAFB", border: "1px dashed #C0392B", borderRadius: 8, padding: "10px 12px", marginTop: 8 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, marginBottom: 5 }}>
-                <div style={{ fontSize: 12.5, fontWeight: 800, color: "#922B21" }}>{s.title || s.situation || "My script"}</div>
+                <div style={{ fontSize: 12.5, fontWeight: 800, color: "#922B21" }}>{tr(s.title) || s.situation || tr("My script")}</div>
                 <CopyBtn text={fill(s.body)} />
               </div>
               <div style={{ fontSize: 14.5, color: "#111", lineHeight: 1.6, whiteSpace: "pre-wrap" }}>{fill(s.body)}</div>

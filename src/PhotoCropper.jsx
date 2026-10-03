@@ -1,3 +1,4 @@
+import { t as tr } from "./i18n";
 import { useEffect, useRef, useState } from "react";
 
 // Frame a profile photo for the round email-signature avatar (Carlos 9/28:
@@ -77,8 +78,8 @@ export default function PhotoCropper({ src, onCancel, onSave }) {
   return (
     <div onClick={onCancel} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)", zIndex: 5000, display: "flex", alignItems: "flex-start", justifyContent: "center", overflowY: "auto", padding: "40px 16px" }}>
       <div onClick={e => e.stopPropagation()} style={{ background: "#fff", borderRadius: 14, width: "100%", maxWidth: 360, padding: 20, textAlign: "center", fontFamily: "inherit" }}>
-        <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 4 }}>Position your photo</div>
-        <div style={{ fontSize: 12.5, color: "#6B7280", marginBottom: 14 }}>Drag to move · slide to zoom. The circle is exactly what your email signature shows.</div>
+        <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 4 }}>{tr("Position your photo")}</div>
+        <div style={{ fontSize: 12.5, color: "#6B7280", marginBottom: 14 }}>{tr("Drag to move · slide to zoom. The circle is exactly what your email signature shows.")}</div>
         <div
           onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up}
           style={{ position: "relative", width: VIEW, height: VIEW, margin: "0 auto", overflow: "hidden", borderRadius: 8, background: "#F4F4F4", cursor: nat ? "grab" : "default", touchAction: "none", userSelect: "none" }}>
@@ -86,16 +87,16 @@ export default function PhotoCropper({ src, onCancel, onSave }) {
             style={{ position: "absolute", left: pos.x, top: pos.y, width: dispW, height: dispH, maxWidth: "none", pointerEvents: "none" }} />}
           {/* dim everything outside the round avatar */}
           <div style={{ position: "absolute", inset: 0, borderRadius: "50%", boxShadow: "0 0 0 999px rgba(0,0,0,0.45)", border: "2px solid #fff", pointerEvents: "none" }} />
-          {!nat && !err && <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", color: "#6B7280", fontSize: 13 }}>Loading…</div>}
+          {!nat && !err && <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", color: "#6B7280", fontSize: 13 }}>{tr("Loading…")}</div>}
         </div>
         <input type="range" min="1" max="4" step="0.01" value={zoom} disabled={!nat}
           onChange={e => changeZoom(Number(e.target.value))}
-          style={{ width: VIEW, marginTop: 14 }} aria-label="Zoom" />
+          style={{ width: VIEW, marginTop: 14 }} aria-label={tr("Zoom")} />
         {err && <div style={{ color: "#922B21", fontSize: 12.5, marginTop: 8 }}>{err}</div>}
         <div style={{ display: "flex", gap: 8, justifyContent: "center", marginTop: 14 }}>
-          <button onClick={onCancel} style={{ padding: "10px 18px", borderRadius: 8, border: "1px solid #D1D5DB", background: "#fff", color: "#374151", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Cancel</button>
+          <button onClick={onCancel} style={{ padding: "10px 18px", borderRadius: 8, border: "1px solid #D1D5DB", background: "#fff", color: "#374151", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>{tr("Cancel")}</button>
           <button onClick={save} disabled={!nat || busy} style={{ padding: "10px 18px", borderRadius: 8, border: "none", background: "#0c4a6e", color: "#fff", fontWeight: 700, cursor: nat && !busy ? "pointer" : "default", opacity: nat && !busy ? 1 : 0.6, fontFamily: "inherit" }}>
-            {busy ? "Saving…" : "Save photo"}
+            {busy ? tr("Saving…") : tr("Save photo")}
           </button>
         </div>
       </div>

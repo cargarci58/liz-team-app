@@ -9,9 +9,9 @@ const dot = (h) => <span style={{ display: "inline-block", width: 10, height: 10
 function ago(d) {
   if (!d) return "";
   const s = Math.max(0, (Date.now() - new Date(d).getTime()) / 1000);
-  if (s < 3600) return Math.round(s / 60) + "m ago";
-  if (s < 86400) return Math.round(s / 3600) + "h ago";
-  return Math.round(s / 86400) + "d ago";
+  if (s < 3600) return tr("{n}m ago", { n: Math.round(s / 60) });
+  if (s < 86400) return tr("{n}h ago", { n: Math.round(s / 3600) });
+  return tr("{n}d ago", { n: Math.round(s / 86400) });
 }
 // Human label for a coordinator activity-log row (kept generic — actions vary).
 const actionVerb = (a) => ({

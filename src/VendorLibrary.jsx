@@ -1,3 +1,4 @@
+import { t as tr } from "./i18n";
 import { useState, useEffect } from "react";
 import BackButton from "./ui/BackButton";
 import { askConfirm } from "./ui/dialogs";
@@ -43,7 +44,7 @@ function VendorForm({ vendor, onSave, onCancel }) {
   const [saving, setSaving] = useState(false);
 
   const handleSave = async () => {
-    if (!form.name || !form.category) { alert("Name and category required"); return; }
+    if (!form.name || !form.category) { alert(tr("Name and category required")); return; }
     setSaving(true);
     const tok = localStorage.getItem("tp_token") || "";
     try {
@@ -55,17 +56,17 @@ function VendorForm({ vendor, onSave, onCancel }) {
       });
       const data = await res.json();
       if (data.success) onSave(data.vendor);
-      else alert("Error: " + data.error);
-    } catch (e) { alert("Error saving vendor"); }
+      else alert(tr("Error: ") + data.error);
+    } catch (e) { alert(tr("Error saving vendor")); }
     setSaving(false);
   };
 
   const field = (label, key, type = "text", placeholder = "") => (
     <div style={{ marginBottom: 14 }}>
       <div style={{ fontSize: 12, fontWeight: 700, color: COLORS.gray,
-        textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 6 }}>{label}</div>
+        textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 6 }}>{tr(label)}</div>
       <input type={type} value={form[key]} onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))}
-        placeholder={placeholder}
+        placeholder={tr(placeholder)}
         style={{ width: "100%", padding: "10px 12px", borderRadius: 8,
           border: "1.5px solid " + COLORS.border, fontSize: 14,
           fontFamily: "inherit", boxSizing: "border-box" }} />
@@ -76,12 +77,12 @@ function VendorForm({ vendor, onSave, onCancel }) {
     <div style={{ background: COLORS.white, borderRadius: 16, padding: 24,
       boxShadow: "0 4px 20px rgba(0,0,0,0.12)" }}>
       <div style={{ fontWeight: 800, fontSize: 18, marginBottom: 20 }}>
-        {vendor ? "Edit Vendor" : "Add New Vendor"}
+        {vendor ? tr("Edit Vendor") : tr("Add New Vendor")}
       </div>
 
       <div style={{ marginBottom: 14 }}>
         <div style={{ fontSize: 12, fontWeight: 700, color: COLORS.gray,
-          textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 6 }}>CATEGORY</div>
+          textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 6 }}>{tr("CATEGORY")}</div>
         <select value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))}
           style={{ width: "100%", padding: "10px 12px", borderRadius: 8,
             border: "1.5px solid " + COLORS.border, fontSize: 14,
@@ -100,15 +101,15 @@ function VendorForm({ vendor, onSave, onCancel }) {
       <div style={{ marginBottom: 20 }}>
         <div style={{ fontSize: 12, fontWeight: 700, color: COLORS.gray,
           textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 6 }}>
-          SHORT DESCRIPTION
+          {tr("SHORT DESCRIPTION")}
         </div>
         <textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
-          placeholder="e.g. Thorough inspections with detailed reports delivered within 24 hours."
+          placeholder={tr("e.g. Thorough inspections with detailed reports delivered within 24 hours.")}
           style={{ width: "100%", height: 80, padding: "10px 12px", borderRadius: 8,
             border: "1.5px solid " + COLORS.border, fontSize: 14,
             fontFamily: "inherit", resize: "none", boxSizing: "border-box" }} />
         <div style={{ fontSize: 11, color: COLORS.gray, marginTop: 4 }}>
-          This is what your clients will see when choosing a vendor.
+          {tr("This is what your clients will see when choosing a vendor.")}
         </div>
       </div>
 
@@ -117,13 +118,13 @@ function VendorForm({ vendor, onSave, onCancel }) {
           style={{ flex: 1, padding: 13, borderRadius: 10,
             border: "1.5px solid " + COLORS.border, background: COLORS.white,
             color: COLORS.gray, fontWeight: 700, fontSize: 15, cursor: "pointer" }}>
-          Cancel
+          {tr("Cancel")}
         </button>
         <button onClick={handleSave} disabled={saving}
           style={{ flex: 2, padding: 13, borderRadius: 10, border: "none",
             background: "#0c4a6e", color: COLORS.white,
             fontWeight: 700, fontSize: 15, cursor: "pointer" }}>
-          {saving ? "Saving..." : vendor ? "Save Changes" : "Add Vendor"}
+          {saving ? tr("Saving...") : vendor ? tr("Save Changes") : tr("Add Vendor")}
         </button>
       </div>
     </div>
@@ -179,19 +180,19 @@ export function ShareVendorModal({ vendor, onClose, presetTxId = "", presetRecip
   };
 
   const addTyped = () => {
-    if (!nEmail.trim() && !nPhone.trim()) { alert("Enter an email or phone."); return; }
-    if (nEmail.trim() && !/.+@.+\..+/.test(nEmail.trim())) { alert("Enter a valid email."); return; }
+    if (!nEmail.trim() && !nPhone.trim()) { alert(tr("Enter an email or phone.")); return; }
+    if (nEmail.trim() && !/.+@.+\..+/.test(nEmail.trim())) { alert(tr("Enter a valid email.")); return; }
     add({ key: "typed:" + (nEmail || nPhone), name: nName.trim() || nEmail.trim() || nPhone.trim(), email: nEmail.trim(), phone: nPhone.trim(), source: "typed" });
     setNName(""); setNEmail(""); setNPhone("");
   };
 
   const send = async () => {
-    if (!channel) { alert("Pick how to send it first — 📧 Email, 📱 Text, or Both."); return; }
-    if (chosen.length === 0 && !txId) { alert("Add at least one recipient."); return; }
+    if (!channel) { alert(tr("Pick how to send it first — 📧 Email, 📱 Text, or Both.")); return; }
+    if (chosen.length === 0 && !txId) { alert(tr("Add at least one recipient.")); return; }
     if (chosen.length === 0 && txId) {
       // A deal alone only posts to its in-app chat — nobody gets a text/email.
       // That surprised users ("I thought it was going to send by text and email").
-      if (!(await askConfirm("No recipients are selected — this will ONLY post the vendor in the deal's in-app chat. Nobody gets a text or email.\n\nContinue with chat-only?", { okLabel: "Post to chat only" }))) return;
+      if (!(await askConfirm(tr("No recipients are selected — this will ONLY post the vendor in the deal's in-app chat. Nobody gets a text or email.\n\nContinue with chat-only?"), { okLabel: tr("Post to chat only") }))) return;
     }
     setSending(true);
     try {
@@ -205,8 +206,8 @@ export function ShareVendorModal({ vendor, onClose, presetTxId = "", presetRecip
       });
       const d = await res.json();
       if (d.success) setResult(d.results || []);
-      else alert("Share failed: " + (d.error || "unknown error"));
-    } catch { alert("Server unreachable."); }
+      else alert(tr("Share failed: ") + (d.error || tr("unknown error")));
+    } catch { alert(tr("Server unreachable.")); }
     setSending(false);
   };
 
@@ -229,27 +230,27 @@ export function ShareVendorModal({ vendor, onClose, presetTxId = "", presetRecip
     <div style={wrap} onClick={onClose}>
       <div style={card} onClick={e => e.stopPropagation()}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 20px", borderBottom: "1px solid " + COLORS.border }}>
-          <div style={{ fontWeight: 800, fontSize: 16 }}>📤 Share {vendor.name}</div>
+          <div style={{ fontWeight: 800, fontSize: 16 }}>{tr("📤 Share")} {vendor.name}</div>
           <button onClick={onClose} style={{ background: "none", border: "none", fontSize: 22, cursor: "pointer", color: COLORS.gray }}>×</button>
         </div>
 
         {result ? (
           <div style={{ padding: 20 }}>
             <div style={{ background: COLORS.successBg, border: "1px solid #86EFAC", borderRadius: 10, padding: "12px 14px", fontSize: 13 }}>
-              <div style={{ fontWeight: 700, color: COLORS.success, marginBottom: 6 }}>Shared ✓</div>
+              <div style={{ fontWeight: 700, color: COLORS.success, marginBottom: 6 }}>{tr("Shared ✓")}</div>
               {result.map((r, i) => (
-                <div key={i} style={{ color: "#374151" }}>{r.name}: {r.chat ? "💬 posted in chat" : ""}{r.email === true ? " ✅ emailed" : ""}{r.sms === true ? " ✅ texted" : ""}{r.email === false ? " ❌ email failed" : ""}{r.sms === false ? " ❌ text failed" : ""}{r.smsNote ? ` (${r.smsNote})` : ""}</div>
+                <div key={i} style={{ color: "#374151" }}>{r.name}: {r.chat ? tr("💬 posted in chat") : ""}{r.email === true ? tr(" ✅ emailed") : ""}{r.sms === true ? tr(" ✅ texted") : ""}{r.email === false ? tr(" ❌ email failed") : ""}{r.sms === false ? tr(" ❌ text failed") : ""}{r.smsNote ? ` (${r.smsNote})` : ""}</div>
               ))}
               {result.length === 0 && (
-                <div style={{ color: "#92400E" }}>💬 Posted in the deal's chat only — no texts or emails were sent (no recipients were selected).</div>
+                <div style={{ color: "#92400E" }}>{tr("💬 Posted in the deal's chat only — no texts or emails were sent (no recipients were selected).")}</div>
               )}
             </div>
-            <button onClick={onClose} style={{ marginTop: 16, width: "100%", padding: 12, borderRadius: 10, border: "none", background: "#0c4a6e", color: "#fff", fontWeight: 700, fontSize: 15, cursor: "pointer" }}>Done</button>
+            <button onClick={onClose} style={{ marginTop: 16, width: "100%", padding: 12, borderRadius: 10, border: "none", background: "#0c4a6e", color: "#fff", fontWeight: 700, fontSize: 15, cursor: "pointer" }}>{tr("Done")}</button>
           </div>
         ) : (
           <div style={{ padding: 20, maxHeight: "70vh", overflowY: "auto" }}>
             {/* chosen recipients */}
-            <div style={{ fontSize: 12, fontWeight: 700, color: COLORS.gray, textTransform: "uppercase", marginBottom: 6 }}>To ({chosen.length})</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: COLORS.gray, textTransform: "uppercase", marginBottom: 6 }}>{tr("To (")}{chosen.length})</div>
             {chosen.length > 0 && (
               <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 10 }}>
                 {chosen.map(c => (
@@ -263,17 +264,17 @@ export function ShareVendorModal({ vendor, onClose, presetTxId = "", presetRecip
 
             {/* recipient sources */}
             <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
-              <button style={srcBtn(source === "contacts")} onClick={loadContacts}>👥 My Contacts</button>
-              <button style={srcBtn(source === "deal")} onClick={loadDeals}>🏠 A Deal's Parties</button>
-              <button style={srcBtn(source === "typed")} onClick={() => setSource("typed")}>✍️ Type</button>
+              <button style={srcBtn(source === "contacts")} onClick={loadContacts}>{tr("👥 My Contacts")}</button>
+              <button style={srcBtn(source === "deal")} onClick={loadDeals}>{tr("🏠 A Deal's Parties")}</button>
+              <button style={srcBtn(source === "typed")} onClick={() => setSource("typed")}>{tr("✍️ Type")}</button>
             </div>
 
             {source === "contacts" && (
               <div style={{ marginBottom: 14 }}>
-                <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search contacts…" style={{ ...inp, marginBottom: 8 }} />
+                <input value={search} onChange={e => setSearch(e.target.value)} placeholder={tr("Search contacts…")} style={{ ...inp, marginBottom: 8 }} />
                 <div style={{ maxHeight: 200, overflowY: "auto", border: "1px solid " + COLORS.border, borderRadius: 8 }}>
-                  {contacts === null ? <div style={{ padding: 14, color: COLORS.gray, fontSize: 13 }}>Loading…</div> :
-                    filteredContacts.length === 0 ? <div style={{ padding: 14, color: COLORS.gray, fontSize: 13 }}>No contacts with an email or phone.</div> :
+                  {contacts === null ? <div style={{ padding: 14, color: COLORS.gray, fontSize: 13 }}>{tr("Loading…")}</div> :
+                    filteredContacts.length === 0 ? <div style={{ padding: 14, color: COLORS.gray, fontSize: 13 }}>{tr("No contacts with an email or phone.")}</div> :
                     <>
                     {filteredContacts.map(c => {
                       const key = "contact:" + c.id;
@@ -287,7 +288,7 @@ export function ShareVendorModal({ vendor, onClose, presetTxId = "", presetRecip
                     })}
                     {contactsHidden > 0 && (
                       <div style={{ padding: "8px 12px", fontSize: 12, color: COLORS.gray, fontStyle: "italic" }}>
-                        …and {contactsHidden} more match{contactsHidden === 1 ? "" : "es"} — type more of the name to narrow it down
+                        {tr("…and")} {contactsHidden} {tr("more match")}{contactsHidden === 1 ? "" : tr("es")} {tr("— type more of the name to narrow it down")}
                       </div>
                     )}
                     </>}
@@ -298,14 +299,14 @@ export function ShareVendorModal({ vendor, onClose, presetTxId = "", presetRecip
             {source === "deal" && (
               <div style={{ marginBottom: 14 }}>
                 <select value={txId} onChange={e => setTxId(e.target.value)} style={{ ...inp, marginBottom: 8 }}>
-                  <option value="">{deals === null ? "Loading deals…" : "Choose a deal…"}</option>
-                  {(deals || []).map(t => <option key={t.id} value={t.id}>{t.address || "Untitled deal"}</option>)}
+                  <option value="">{tr(deals === null ? tr("Loading deals…") : tr("Choose a deal…"))}</option>
+                  {(deals || []).map(t => <option key={t.id} value={t.id}>{tr(t.address || tr("Untitled deal"))}</option>)}
                 </select>
                 {txId !== "" && (
                   <>
-                    <div style={{ fontSize: 11, color: COLORS.gray, marginBottom: 6 }}>A copy also posts to this deal's in-app chat.</div>
+                    <div style={{ fontSize: 11, color: COLORS.gray, marginBottom: 6 }}>{tr("A copy also posts to this deal's in-app chat.")}</div>
                     <div style={{ maxHeight: 180, overflowY: "auto", border: "1px solid " + COLORS.border, borderRadius: 8 }}>
-                      {dealParties.length === 0 ? <div style={{ padding: 14, color: COLORS.gray, fontSize: 13 }}>No parties with contact info on this deal.</div> :
+                      {dealParties.length === 0 ? <div style={{ padding: 14, color: COLORS.gray, fontSize: 13 }}>{tr("No parties with contact info on this deal.")}</div> :
                         dealParties.map(p => {
                           const key = "party:" + (p.id || p.email || p.phone);
                           return (
@@ -324,29 +325,29 @@ export function ShareVendorModal({ vendor, onClose, presetTxId = "", presetRecip
 
             {source === "typed" && (
               <div style={{ marginBottom: 14, display: "flex", gap: 6, flexWrap: "wrap" }}>
-                <input value={nName} onChange={e => setNName(e.target.value)} placeholder="Name (optional)" style={{ ...inp, flex: "1 1 100%" }} />
-                <input value={nEmail} onChange={e => setNEmail(e.target.value)} placeholder="Email" style={{ ...inp, flex: "1 1 45%" }} />
-                <input value={nPhone} onChange={e => setNPhone(e.target.value)} placeholder="Phone" style={{ ...inp, flex: "1 1 45%" }} />
-                <button onClick={addTyped} style={{ ...srcBtn(false), flex: "1 1 100%", borderColor: COLORS.black }}>+ Add recipient</button>
+                <input value={nName} onChange={e => setNName(e.target.value)} placeholder={tr("Name (optional)")} style={{ ...inp, flex: "1 1 100%" }} />
+                <input value={nEmail} onChange={e => setNEmail(e.target.value)} placeholder={tr("Email")} style={{ ...inp, flex: "1 1 45%" }} />
+                <input value={nPhone} onChange={e => setNPhone(e.target.value)} placeholder={tr("Phone")} style={{ ...inp, flex: "1 1 45%" }} />
+                <button onClick={addTyped} style={{ ...srcBtn(false), flex: "1 1 100%", borderColor: COLORS.black }}>{tr("+ Add recipient")}</button>
               </div>
             )}
 
             {/* channel — explicit pick required, same rule as everywhere else */}
             <div style={{ fontSize: 12, fontWeight: 700, color: COLORS.gray, textTransform: "uppercase", marginBottom: 6 }}>
-              Send via {!channel && <span style={{ color: COLORS.red }}>👉 pick one</span>}
+              {tr("Send via")} {!channel && <span style={{ color: COLORS.red }}>{tr("👉 pick one")}</span>}
             </div>
             <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
               {[["email", "📧 Email"], ["sms", "📱 Text"], ["both", "📧 + 📱 Both"]].map(([v, label]) => (
-                <button key={v} onClick={() => setChannel(v)} style={srcBtn(channel === v)}>{label}</button>
+                <button key={v} onClick={() => setChannel(v)} style={srcBtn(channel === v)}>{tr(label)}</button>
               ))}
             </div>
 
             {/* optional note */}
-            <textarea value={message} onChange={e => setMessage(e.target.value)} rows={3} placeholder="Add a personal note (optional)…" style={{ ...inp, resize: "vertical", marginBottom: 6 }} />
-            <div style={{ fontSize: 11, color: COLORS.gray, marginBottom: 14 }}>Leave the note blank and a warm intro is added for you. The vendor's name, company, phone, email & description are always included.</div>
+            <textarea value={message} onChange={e => setMessage(e.target.value)} rows={3} placeholder={tr("Add a personal note (optional)…")} style={{ ...inp, resize: "vertical", marginBottom: 6 }} />
+            <div style={{ fontSize: 11, color: COLORS.gray, marginBottom: 14 }}>{tr("Leave the note blank and a warm intro is added for you. The vendor's name, company, phone, email & description are always included.")}</div>
 
             <button onClick={send} disabled={sending || (chosen.length === 0 && !txId)} style={{ width: "100%", padding: 13, borderRadius: 10, border: "none", background: "#0c4a6e", color: "#fff", fontWeight: 700, fontSize: 15, cursor: "pointer", opacity: (sending || (chosen.length === 0 && !txId)) ? 0.5 : 1 }}>
-              {sending ? "Sending…" : `Share with ${chosen.length || (txId ? "the deal" : "0")} ${chosen.length === 1 ? "person" : chosen.length ? "people" : ""}`.trim()}
+              {sending ? tr("Sending…") : `Share with ${chosen.length || (txId ? "the deal" : "0")} ${chosen.length === 1 ? "person" : chosen.length ? "people" : ""}`.trim()}
             </button>
           </div>
         )}
@@ -373,7 +374,7 @@ function VendorCard({ vendor, onEdit, onDelete, onShare }) {
           )}
           {vendor.description && (
             <div style={{ fontSize: 12, color: COLORS.gray, marginTop: 6,
-              lineHeight: 1.5, fontStyle: "italic" }}>"{vendor.description}"</div>
+              lineHeight: 1.5, fontStyle: "italic" }}>"{tr(vendor.description)}"</div>
           )}
           <div style={{ display: "flex", gap: 12, marginTop: 8, flexWrap: "wrap" }}>
             {vendor.phone && (
@@ -388,15 +389,15 @@ function VendorCard({ vendor, onEdit, onDelete, onShare }) {
           <button onClick={() => onShare(vendor)}
             style={{ padding: "5px 12px", borderRadius: 6, border: "none",
               background: "#0c4a6e", color: "#fff", fontSize: 12,
-              cursor: "pointer", fontWeight: 700 }}>📤 Share</button>
+              cursor: "pointer", fontWeight: 700 }}>{tr("📤 Share")}</button>
           <button onClick={() => onEdit(vendor)}
             style={{ padding: "5px 12px", borderRadius: 6, border: "1px solid " + COLORS.border,
               background: COLORS.white, color: COLORS.gray, fontSize: 12,
-              cursor: "pointer", fontWeight: 600 }}>Edit</button>
+              cursor: "pointer", fontWeight: 600 }}>{tr("Edit")}</button>
           <button onClick={() => onDelete(vendor)}
             style={{ padding: "5px 12px", borderRadius: 6, border: "none",
               background: COLORS.lightGray, color: COLORS.gray, fontSize: 12,
-              cursor: "pointer", fontWeight: 600 }}>Remove</button>
+              cursor: "pointer", fontWeight: 600 }}>{tr("Remove")}</button>
         </div>
       </div>
     </div>
@@ -442,14 +443,14 @@ export default function VendorLibrary({ onClose }) {
   };
 
   const handleDelete = async (vendor) => {
-    if (!(await askConfirm(`Remove ${vendor.name} from your vendor library?`, { okLabel: "Remove", danger: true }))) return;
+    if (!(await askConfirm(tr("Remove {name} from your vendor library?", { name: vendor.name }), { okLabel: tr("Remove"), danger: true }))) return;
     const tok = localStorage.getItem("tp_token") || "";
     try {
       await fetch(API + "/vendors/" + vendor.id, {
         method: "DELETE", headers: { Authorization: "Bearer " + tok }
       });
       setVendors(prev => prev.filter(v => v.id !== vendor.id));
-    } catch (e) { alert("Error removing vendor"); }
+    } catch (e) { alert(tr("Error removing vendor")); }
   };
 
   const categories = ["All", ...VENDOR_CATEGORIES.filter(c =>
@@ -475,16 +476,16 @@ export default function VendorLibrary({ onClose }) {
         display: "flex", alignItems: "center", gap: 14, position: "sticky", top: 0, zIndex: 10 }}>
         <BackButton tone="dark" onClick={onClose} />
         <div>
-          <div style={{ color: "#fff", fontWeight: 800, fontSize: 17 }}>Preferred Vendors</div>
+          <div style={{ color: "#fff", fontWeight: 800, fontSize: 17 }}>{tr("Preferred Vendors")}</div>
           <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 12 }}>
-            {vendors.length} vendor{vendors.length !== 1 ? "s" : ""} in your library
+            {vendors.length} {tr("vendor")}{vendors.length !== 1 ? "s" : ""} {tr("in your library")}
           </div>
         </div>
         <button onClick={() => { setEditingVendor(null); setShowForm(true); }}
           style={{ marginLeft: "auto", background: "#fff", border: "none",
             color: "#0c4a6e", borderRadius: 10, padding: "8px 16px",
             fontWeight: 700, fontSize: 14, cursor: "pointer" }}>
-          + Add Vendor
+          {tr("+ Add Vendor")}
         </button>
       </div>
 
@@ -511,9 +512,9 @@ export default function VendorLibrary({ onClose }) {
                 color: COLORS.black, cursor: "pointer" }}>
               {categories.map(cat => (
                 <option key={cat} value={cat}>
-                  {cat === "All"
-                    ? "All categories (" + vendors.length + ")"
-                    : CATEGORY_ICONS[cat] + " " + cat + " (" + vendors.filter(v => v.category === cat).length + ")"}
+                  {tr(cat === "All"
+                    ? tr("All categories (") + vendors.length + ")"
+                    : CATEGORY_ICONS[cat] + " " + cat + " (" + vendors.filter(v => v.category === cat).length + ")")}
                 </option>
               ))}
             </select>
@@ -523,7 +524,7 @@ export default function VendorLibrary({ onClose }) {
         {/* Loading */}
         {loading && (
           <div style={{ textAlign: "center", padding: 40, color: COLORS.gray }}>
-            Loading vendors...
+            {tr("Loading vendors...")}
           </div>
         )}
 
@@ -533,17 +534,16 @@ export default function VendorLibrary({ onClose }) {
             textAlign: "center", boxShadow: "0 1px 4px rgba(0,0,0,0.08)" }}>
             <div style={{ fontSize: 48, marginBottom: 16 }}>🏆</div>
             <div style={{ fontWeight: 700, fontSize: 18, color: COLORS.black, marginBottom: 8 }}>
-              Build Your Vendor Library
+              {tr("Build Your Vendor Library")}
             </div>
             <div style={{ color: COLORS.gray, fontSize: 14, lineHeight: 1.6, marginBottom: 24 }}>
-              Add your preferred inspectors, lenders, title companies, and other vendors.
-              You can then assign them to transactions so your clients can choose.
+              {tr("Add your preferred inspectors, lenders, title companies, and other vendors. You can then assign them to transactions so your clients can choose.")}
             </div>
             <button onClick={() => setShowForm(true)}
               style={{ background: "#0c4a6e", color: "#fff", border: "none",
                 borderRadius: 12, padding: "14px 32px", fontWeight: 700,
                 fontSize: 16, cursor: "pointer" }}>
-              + Add Your First Vendor
+              {tr("+ Add Your First Vendor")}
             </button>
           </div>
         )}

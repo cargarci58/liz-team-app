@@ -1,3 +1,4 @@
+import { t as tr, locale as uiLocale } from "./i18n";
 import React, { useState, useEffect, useMemo } from "react";
 import BackButton from "./ui/BackButton";
 import FirstTimeHere from "./components/FirstTimeHere";
@@ -52,7 +53,7 @@ function BarChart({ data, title, color = "#C0392B", valuePrefix = "$" }) {
   const max = Math.max(...data.map(d => d.value), 1);
   return (
     <div style={{ background: "#fff", borderRadius: 12, padding: 20, border: "1px solid #DDD" }}>
-      <div style={{ fontWeight: 700, fontSize: 14, color: COLORS.navy, marginBottom: 16 }}>{title}</div>
+      <div style={{ fontWeight: 700, fontSize: 14, color: COLORS.navy, marginBottom: 16 }}>{tr(title)}</div>
       <div style={{ display: "flex", alignItems: "flex-end", gap: 8, height: 150 }}>
         {data.map((d, i) => (
           <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
@@ -60,7 +61,7 @@ function BarChart({ data, title, color = "#C0392B", valuePrefix = "$" }) {
               {d.value > 0 ? `${valuePrefix}${d.value >= 1000000 ? (d.value/1000000).toFixed(1)+"M" : d.value >= 1000 ? (d.value/1000).toFixed(0)+"K" : d.value}` : ""}
             </div>
             <div style={{ width: "100%", background: color, borderRadius: "4px 4px 0 0", height: `${(d.value / max) * 120}px`, minHeight: d.value > 0 ? 4 : 0, transition: "height 0.5s ease" }} />
-            <div style={{ fontSize: 10, color: COLORS.gray, textAlign: "center", whiteSpace: "nowrap" }}>{d.label}</div>
+            <div style={{ fontSize: 10, color: COLORS.gray, textAlign: "center", whiteSpace: "nowrap" }}>{tr(d.label)}</div>
           </div>
         ))}
       </div>
@@ -72,8 +73,8 @@ function StatCard({ label, value, sub, color = COLORS.navy }) {
   return (
     <div style={{ background: "#fff", borderRadius: 12, padding: 20, border: "1px solid #DDD", textAlign: "center" }}>
       <div style={{ fontSize: 28, fontWeight: 900, color }}>{value}</div>
-      <div style={{ fontSize: 13, fontWeight: 700, color: COLORS.navy, marginTop: 4 }}>{label}</div>
-      {sub && <div style={{ fontSize: 11, color: COLORS.gray, marginTop: 4 }}>{sub}</div>}
+      <div style={{ fontSize: 13, fontWeight: 700, color: COLORS.navy, marginTop: 4 }}>{tr(label)}</div>
+      {sub && <div style={{ fontSize: 11, color: COLORS.gray, marginTop: 4 }}>{tr(sub)}</div>}
     </div>
   );
 }
@@ -118,7 +119,7 @@ function OverviewTab({ transactions }) {
   const months = [];
   for (let i = 5; i >= 0; i--) {
     const d = new Date(); d.setMonth(d.getMonth() - i);
-    const label = d.toLocaleString("en-US", { month: "short" });
+    const label = d.toLocaleString(uiLocale(), { month: "short" });
     const yr = d.getFullYear(), mo = d.getMonth();
     const vol = closed.filter(tx => {
       if (!tx.closingDate || !isSaleDeal(tx)) return false;
@@ -130,7 +131,7 @@ function OverviewTab({ transactions }) {
   const monthlyComm = [];
   for (let i = 5; i >= 0; i--) {
     const d = new Date(); d.setMonth(d.getMonth() - i);
-    const label = d.toLocaleString("en-US", { month: "short" });
+    const label = d.toLocaleString(uiLocale(), { month: "short" });
     const yr = d.getFullYear(), mo = d.getMonth();
     const comm = closed.filter(tx => {
       if (!tx.closingDate) return false;
@@ -151,12 +152,12 @@ function OverviewTab({ transactions }) {
   return (
     <>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 16, marginBottom: 24 }}>
-        <StatCard label="Total Volume" value={fmt(totalVolume)} sub="All transactions" color={COLORS.navy} />
-        <StatCard label="Projected Gross" value={fmt(projectedGross)} sub="Active + Under Contract" color={COLORS.gold} />
-        <StatCard label="Projected Net" value={fmt(projectedNet)} sub="After splits & fees" color={COLORS.gold} />
-        <StatCard label="Closed Gross" value={fmt(closedGross)} sub="All closed transactions" color={COLORS.green} />
-        <StatCard label="Closed Net" value={fmt(closedNet)} sub="Your take-home" color={COLORS.green} />
-        <StatCard label="Avg Days to Close" value={(() => {
+        <StatCard label={tr("Total Volume")} value={fmt(totalVolume)} sub="All transactions" color={COLORS.navy} />
+        <StatCard label={tr("Projected Gross")} value={fmt(projectedGross)} sub="Active + Under Contract" color={COLORS.gold} />
+        <StatCard label={tr("Projected Net")} value={fmt(projectedNet)} sub="After splits & fees" color={COLORS.gold} />
+        <StatCard label={tr("Closed Gross")} value={fmt(closedGross)} sub="All closed transactions" color={COLORS.green} />
+        <StatCard label={tr("Closed Net")} value={fmt(closedNet)} sub="Your take-home" color={COLORS.green} />
+        <StatCard label={tr("Avg Days to Close")} value={(() => {
           const c = closed.filter(tx => tx.openDate && tx.closingDate);
           if (!c.length) return "—";
           const avg = c.reduce((a, tx) => a + (new Date(tx.closingDate) - new Date(tx.openDate)) / 86400000, 0) / c.length;
@@ -165,17 +166,17 @@ function OverviewTab({ transactions }) {
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 24 }}>
-        <BarChart data={months} title="Monthly Closing Volume (6 months)" color={COLORS.navy} />
-        <BarChart data={monthlyComm} title="Monthly Net Commission (6 months)" color={COLORS.green} />
+        <BarChart data={months} title={tr("Monthly Closing Volume (6 months)")} color={COLORS.navy} />
+        <BarChart data={monthlyComm} title={tr("Monthly Net Commission (6 months)")} color={COLORS.green} />
       </div>
 
       <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #DDD", overflow: "hidden", marginBottom: 24 }}>
         <div style={{ background: COLORS.navy, padding: "14px 20px" }}>
-          <div style={{ color: "#fff", fontWeight: 700, fontSize: 15 }}>💰 Commission Pipeline</div>
-          <div style={{ color: "rgba(255,255,255,0.6)", fontSize: 12, marginTop: 2 }}>Active and under contract transactions with commission data</div>
+          <div style={{ color: "#fff", fontWeight: 700, fontSize: 15 }}>{tr("💰 Commission Pipeline")}</div>
+          <div style={{ color: "rgba(255,255,255,0.6)", fontSize: 12, marginTop: 2 }}>{tr("Active and under contract transactions with commission data")}</div>
         </div>
         {pipeline.length === 0 ? (
-          <div style={{ padding: 32, textAlign: "center", color: COLORS.gray }}>No commission data yet. Add commission percentages via ✏️ Edit on each transaction.</div>
+          <div style={{ padding: 32, textAlign: "center", color: COLORS.gray }}>{tr("No commission data yet. Add commission percentages via ✏️ Edit on each transaction.")}</div>
         ) : (
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
@@ -188,7 +189,7 @@ function OverviewTab({ transactions }) {
             <tbody>
               {pipeline.map((tx, i) => (
                 <tr key={tx.id} style={{ borderBottom: "1px solid #F0F0F0", background: i % 2 === 0 ? "#fff" : "#FAFAFA" }}>
-                  <td style={{ padding: "12px 16px", fontSize: 13, fontWeight: 600 }}>{tx.address}<br/><span style={{ fontSize: 11, color: COLORS.gray, fontWeight: 400 }}>{tx.city}, FL</span></td>
+                  <td style={{ padding: "12px 16px", fontSize: 13, fontWeight: 600 }}>{tx.address}<br/><span style={{ fontSize: 11, color: COLORS.gray, fontWeight: 400 }}>{tx.city}{tr(", FL")}</span></td>
                   <td style={{ padding: "12px 16px" }}><span style={{ fontSize: 11, padding: "2px 8px", borderRadius: 10, background: tx.status === "Under Contract" ? "#DBEAFE" : "#FEF9E7", color: tx.status === "Under Contract" ? "#1D4ED8" : COLORS.gold, fontWeight: 600 }}>{tx.status}</span></td>
                   <td style={{ padding: "12px 16px", fontSize: 13 }}>{tx.contractPrice || tx.listPrice ? fmt(Number(tx.contractPrice || tx.listPrice)) : "—"}</td>
                   <td style={{ padding: "12px 16px", fontSize: 13 }}>{tx.commissionListing ? `${tx.commissionListing}%` : "—"}</td>
@@ -198,7 +199,7 @@ function OverviewTab({ transactions }) {
                 </tr>
               ))}
               <tr style={{ background: "#F0FFF4", borderTop: "2px solid #1E8449" }}>
-                <td colSpan={5} style={{ padding: "12px 16px", fontWeight: 700, fontSize: 13 }}>PIPELINE TOTAL</td>
+                <td colSpan={5} style={{ padding: "12px 16px", fontWeight: 700, fontSize: 13 }}>{tr("PIPELINE TOTAL")}</td>
                 <td style={{ padding: "12px 16px", fontWeight: 700, color: COLORS.navy }}>{fmt(projectedGross)}</td>
                 <td style={{ padding: "12px 16px", fontWeight: 700, color: COLORS.green }}>{fmt(projectedNet)}</td>
               </tr>
@@ -209,7 +210,7 @@ function OverviewTab({ transactions }) {
 
       <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #DDD", overflow: "hidden" }}>
         <div style={{ background: COLORS.navy, padding: "14px 20px" }}>
-          <div style={{ color: "#fff", fontWeight: 700, fontSize: 15 }}>🏠 All Transactions Summary</div>
+          <div style={{ color: "#fff", fontWeight: 700, fontSize: 15 }}>{tr("🏠 All Transactions Summary")}</div>
         </div>
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
@@ -232,7 +233,7 @@ function OverviewTab({ transactions }) {
                   <td style={{ padding: "11px 16px", fontSize: 12, color: COLORS.gray }}>{tx.type}</td>
                   <td style={{ padding: "11px 16px" }}><span style={{ fontSize: 11, padding: "2px 8px", borderRadius: 10, background: statusColors[tx.status] || "#F3F4F6", color: statusText[tx.status] || COLORS.gray, fontWeight: 600 }}>{tx.status}</span></td>
                   <td style={{ padding: "11px 16px", fontSize: 13 }}>{tx.contractPrice || tx.listPrice ? fmt(Number(tx.contractPrice || tx.listPrice)) : "—"}</td>
-                  <td style={{ padding: "11px 16px", fontSize: 12, color: COLORS.gray }}>{tx.closingDate ? new Date(tx.closingDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "—"}</td>
+                  <td style={{ padding: "11px 16px", fontSize: 12, color: COLORS.gray }}>{tx.closingDate ? new Date(tx.closingDate).toLocaleDateString(uiLocale(), { month: "short", day: "numeric", year: "numeric" }) : "—"}</td>
                   <td style={{ padding: "11px 16px", fontSize: 13, fontWeight: 600, color: net > 0 ? COLORS.green : COLORS.gray }}>{net > 0 ? fmt(net) : "—"}</td>
                 </tr>
               );
@@ -252,7 +253,7 @@ function FunnelStage({ label, value, color, rate, rateLabel }) {
     <div style={{ flex: 1, minWidth: 120 }}>
       <div style={{ background: "#fff", border: "1px solid #DDD", borderRadius: 12, padding: "16px 12px", textAlign: "center" }}>
         <div style={{ fontSize: 26, fontWeight: 900, color }}>{value.toLocaleString()}</div>
-        <div style={{ fontSize: 12, fontWeight: 700, color: COLORS.navy, marginTop: 4 }}>{label}</div>
+        <div style={{ fontSize: 12, fontWeight: 700, color: COLORS.navy, marginTop: 4 }}>{tr(label)}</div>
       </div>
       {rate != null && (
         <div style={{ textAlign: "center", fontSize: 11, color: COLORS.gray, padding: "6px 0" }}>
@@ -288,51 +289,51 @@ function ActivityTab({ isAdmin }) {
         {isAdmin && (
           <div style={{ display: "flex", borderRadius: 8, overflow: "hidden", border: "1px solid #DDD" }}>
             {[["agent", "My numbers"], ["team", "Whole team"]].map(([v, l]) => (
-              <button key={v} onClick={() => setScope(v)} style={{ padding: "7px 14px", border: "none", cursor: "pointer", fontSize: 13, fontWeight: 600, background: scope === v ? COLORS.navy : "#fff", color: scope === v ? "#fff" : COLORS.gray }}>{l}</button>
+              <button key={v} onClick={() => setScope(v)} style={{ padding: "7px 14px", border: "none", cursor: "pointer", fontSize: 13, fontWeight: 600, background: scope === v ? COLORS.navy : "#fff", color: scope === v ? "#fff" : COLORS.gray }}>{tr(l)}</button>
             ))}
           </div>
         )}
         <div style={{ display: "flex", borderRadius: 8, overflow: "hidden", border: "1px solid #DDD" }}>
           {[["12", "Last 12 mo"], ["all", "All time"]].map(([v, l]) => (
-            <button key={v} onClick={() => setMonths(v)} style={{ padding: "7px 14px", border: "none", cursor: "pointer", fontSize: 13, fontWeight: 600, background: months === v ? COLORS.navy : "#fff", color: months === v ? "#fff" : COLORS.gray }}>{l}</button>
+            <button key={v} onClick={() => setMonths(v)} style={{ padding: "7px 14px", border: "none", cursor: "pointer", fontSize: 13, fontWeight: 600, background: months === v ? COLORS.navy : "#fff", color: months === v ? "#fff" : COLORS.gray }}>{tr(l)}</button>
           ))}
         </div>
       </div>
 
-      {loading && <div style={{ padding: 40, textAlign: "center", color: COLORS.gray }}>Loading activity…</div>}
+      {loading && <div style={{ padding: 40, textAlign: "center", color: COLORS.gray }}>{tr("Loading activity…")}</div>}
       {err && <div style={{ padding: 40, textAlign: "center", color: COLORS.red }}>{err}</div>}
 
       {data && !loading && (
         <>
           {/* Headline ratio cards */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 16, marginBottom: 24 }}>
-            <StatCard label="Conversations / Closing" value={ratioTxt(r.conversationsPerClosing)} sub="Your key number" color={COLORS.red} />
-            <StatCard label="Dials / Closing" value={ratioTxt(r.dialsPerClosing)} sub="Total calls per deal" color={COLORS.navy} />
-            <StatCard label="Conversation Rate" value={pct(r.conversationRate)} sub="Reached a human / dial" color={COLORS.gold} />
-            <StatCard label="Pull-Through" value={pct(r.closeRate)} sub="Contracts that closed" color={COLORS.green} />
+            <StatCard label={tr("Conversations / Closing")} value={ratioTxt(r.conversationsPerClosing)} sub="Your key number" color={COLORS.red} />
+            <StatCard label={tr("Dials / Closing")} value={ratioTxt(r.dialsPerClosing)} sub="Total calls per deal" color={COLORS.navy} />
+            <StatCard label={tr("Conversation Rate")} value={pct(r.conversationRate)} sub="Reached a human / dial" color={COLORS.gold} />
+            <StatCard label={tr("Pull-Through")} value={pct(r.closeRate)} sub="Contracts that closed" color={COLORS.green} />
           </div>
 
           {/* Funnel */}
           <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #DDD", padding: 20, marginBottom: 24 }}>
-            <div style={{ fontWeight: 700, fontSize: 15, color: COLORS.navy, marginBottom: 16 }}>📞 Activity Funnel — Calls to Closings</div>
+            <div style={{ fontWeight: 700, fontSize: 15, color: COLORS.navy, marginBottom: 16 }}>{tr("📞 Activity Funnel — Calls to Closings")}</div>
             <div style={{ display: "flex", gap: 8, alignItems: "flex-start", flexWrap: "wrap" }}>
-              <FunnelStage label="Dials" value={f.dials} color={COLORS.navy} rate={r.conversationRate} rateLabel="reached" />
-              <FunnelStage label="Conversations" value={f.conversations} color={COLORS.gold} rate={r.appointmentRate} rateLabel="→ appt" />
-              <FunnelStage label="Appointments" value={f.appointments} color={COLORS.gold} rate={r.contractRate} rateLabel="→ contract" />
-              <FunnelStage label="Contracts" value={f.contracts} color={COLORS.green} rate={r.closeRate} rateLabel="→ close" />
-              <FunnelStage label="Closings" value={f.closings} color={COLORS.green} />
+              <FunnelStage label={tr("Dials")} value={f.dials} color={COLORS.navy} rate={r.conversationRate} rateLabel="reached" />
+              <FunnelStage label={tr("Conversations")} value={f.conversations} color={COLORS.gold} rate={r.appointmentRate} rateLabel="→ appt" />
+              <FunnelStage label={tr("Appointments")} value={f.appointments} color={COLORS.gold} rate={r.contractRate} rateLabel="→ contract" />
+              <FunnelStage label={tr("Contracts")} value={f.contracts} color={COLORS.green} rate={r.closeRate} rateLabel="→ close" />
+              <FunnelStage label={tr("Closings")} value={f.closings} color={COLORS.green} />
             </div>
             {data.fallThroughs && data.fallThroughs.total > 0 && (
               <div style={{ marginTop: 12, background: "#FDF2F2", border: "1px solid #FADBD8", borderRadius: 8, padding: "10px 12px", fontSize: 12.5, color: "#7B241C" }}>
-                💔 <b>{data.fallThroughs.total}</b> contract{data.fallThroughs.total === 1 ? "" : "s"} fell through in this period
+                💔 <b>{data.fallThroughs.total}</b> {tr("contract")}{data.fallThroughs.total === 1 ? "" : "s"} {tr("fell through in this period")}
                 {" — "}{data.fallThroughs.byReason.map(x => `${x.reason.replace(/_/g, " ")}: ${x.n}`).join(" · ")}.
-                {" "}Each one's full record is archived on its deal under "💔 Past contracts".
+                {" "}{tr("Each one's full record is archived on its deal under \"💔 Past contracts\".")}
               </div>
             )}
             <div style={{ fontSize: 11, color: COLORS.gray, marginTop: 12, lineHeight: 1.5 }}>
-              <b>Dials</b> = every logged call · <b>Conversations</b> = reached a person (Interested, Not Now, or Meeting Set) · <b>Appointments</b> = Meeting Set ·
-              <b> Contracts</b> = deals that reached Under Contract or beyond · <b>Closings</b> = closed deals.
-              {data.avgNetPerTx != null && <> Avg net per closed deal: <b>{fmt(data.avgNetPerTx)}</b>.</>}
+              <b>{tr("Dials")}</b> {tr("= every logged call ·")} <b>{tr("Conversations")}</b> {tr("= reached a person (Interested, Not Now, or Meeting Set) ·")} <b>{tr("Appointments")}</b> {tr("= Meeting Set ·")}
+              <b> {tr("Contracts")}</b> {tr("= deals that reached Under Contract or beyond ·")} <b>{tr("Closings")}</b> {tr("= closed deals.")}
+              {data.avgNetPerTx != null && <> {tr("Avg net per closed deal:")} <b>{fmt(data.avgNetPerTx)}</b>.</>}
             </div>
           </div>
         </>
@@ -414,14 +415,14 @@ function GoalPlannerTab({ transactions }) {
       });
       setSaved(true);
       setTimeout(() => setSaved(false), 2500);
-    } catch { alert("Could not save the plan. Try again."); }
+    } catch { alert(tr("Could not save the plan. Try again.")); }
   };
 
   const inputStyle = { width: "100%", padding: "10px 12px", borderRadius: 8, border: "1px solid #CCC", fontSize: 14, fontFamily: "inherit", boxSizing: "border-box" };
   const labelStyle = { fontSize: 12, fontWeight: 700, color: COLORS.gray, marginBottom: 6, display: "block" };
   const RateRow = ({ k, label }) => (
     <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
-      <div style={{ flex: 1, fontSize: 13, color: COLORS.navy }}>{label}</div>
+      <div style={{ flex: 1, fontSize: 13, color: COLORS.navy }}>{tr(label)}</div>
       <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
         <input type="number" min="1" max="100" value={Math.round((rates[k] || 0) * 100)}
           onChange={e => setRates(a => ({ ...a, [k]: Math.min(100, Math.max(1, Number(e.target.value))) / 100 }))}
@@ -439,71 +440,71 @@ function GoalPlannerTab({ transactions }) {
           same math with the conversion rates exposed for agents who want to tune
           them. Say so plainly, or it reads as a second, competing goal feature. */}
       <div style={{ background: "#EEF4FB", border: "1px solid #C9DCF0", borderRadius: 12, padding: "12px 16px", marginBottom: 14, fontSize: 13, color: "#1A3A5C", lineHeight: 1.5 }}>
-        🎯 This is the <b>same income goal</b> you set in <b>🧰 Tools → 🎯 Growth Plan</b> — change it in either place and both update. This page just lets you fine-tune the conversion rates behind it.
+        {tr("🎯 This is the")} <b>{tr("same income goal")}</b> {tr("you set in")} <b>{tr("🧰 Tools → 🎯 Growth Plan")}</b> {tr("— change it in either place and both update. This page just lets you fine-tune the conversion rates behind it.")}
       </div>
       <div style={{ background: "#FFF8E1", border: "1px solid #F0E0A0", borderRadius: 12, padding: "14px 18px", marginBottom: 20, fontSize: 13, color: "#7A5C00", lineHeight: 1.5 }}>
-        🎯 <b>The conversation to have with every agent:</b> "How much do you want to make?" We work backward from that number — to closings, contracts, appointments, and the <b>phone calls per day</b> it takes to get there with your lead-gen method.
+        🎯 <b>{tr("The conversation to have with every agent:")}</b> {tr("\"How much do you want to make?\" We work backward from that number — to closings, contracts, appointments, and the")} <b>{tr("phone calls per day")}</b> {tr("it takes to get there with your lead-gen method.")}
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "minmax(280px, 1fr) minmax(280px, 1.2fr)", gap: 20 }}>
         {/* INPUTS */}
         <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #DDD", padding: 20 }}>
-          <div style={{ fontWeight: 700, fontSize: 15, color: COLORS.navy, marginBottom: 16 }}>Your Targets</div>
+          <div style={{ fontWeight: 700, fontSize: 15, color: COLORS.navy, marginBottom: 16 }}>{tr("Your Targets")}</div>
 
-          <label style={labelStyle}>Net income goal (per year)</label>
+          <label style={labelStyle}>{tr("Net income goal (per year)")}</label>
           {/* step=1000 so the up/down arrows jump by $1,000 instead of $1 (tester #14) */}
           <input type="number" step="1000" min="0" value={incomeGoal} onChange={e => setIncomeGoal(Number(e.target.value))} style={{ ...inputStyle, marginBottom: 16 }} />
 
-          <label style={labelStyle}>Lead-generation method</label>
+          <label style={labelStyle}>{tr("Lead-generation method")}</label>
           <select value={method} onChange={e => changeMethod(e.target.value)} style={{ ...inputStyle, marginBottom: 16 }}>
-            {Object.entries(LEAD_GEN_PRESETS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+            {Object.entries(LEAD_GEN_PRESETS).map(([k, v]) => <option key={k} value={k}>{tr(v.label)}</option>)}
           </select>
 
-          <label style={labelStyle}>Avg net commission per closing</label>
+          <label style={labelStyle}>{tr("Avg net commission per closing")}</label>
           {/* step=500 so the arrows move by $500 rather than $1 (tester #14) */}
           <input type="number" step="500" min="0" value={avgNet} onChange={e => setAvgNet(Number(e.target.value))} style={{ ...inputStyle, marginBottom: 4 }} />
           <div style={{ fontSize: 11, color: COLORS.gray, marginBottom: 16 }}>
-            {closedAvgNet ? `Your closed-deal average: ${fmt(closedAvgNet)}` : "No closed deals yet — using an estimate."}
+            {closedAvgNet ? tr("Your closed-deal average: {amount}", { amount: fmt(closedAvgNet) }) : tr("No closed deals yet — using an estimate.")}
           </div>
 
-          <label style={labelStyle}>Working weeks per year</label>
+          <label style={labelStyle}>{tr("Working weeks per year")}</label>
           <input type="number" min="1" max="52" value={weeks} onChange={e => setWeeks(Number(e.target.value))} style={{ ...inputStyle, marginBottom: 20 }} />
 
           <div style={{ borderTop: "1px solid #EEE", paddingTop: 12 }}>
             <button onClick={() => setShowRates(v => !v)}
               style={{ background: "none", border: "none", padding: 0, fontSize: 12.5, fontWeight: 700, color: "#666666", cursor: "pointer", fontFamily: "inherit" }}>
-              {showRates ? "▴ Hide" : "▾ Advanced"}: conversion assumptions (optional — good defaults are already set)
+              {showRates ? tr("▴ Hide") : tr("▾ Advanced")}{tr(": conversion assumptions (optional — good defaults are already set)")}
             </button>
             {showRates && (
               <div style={{ marginTop: 12 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: COLORS.navy }}>Conversion assumptions</div>
-                  <button onClick={useMyNumbers} disabled={!hasRealRatios} title={hasRealRatios ? "" : "Need logged calls + closings first"}
+                  <div style={{ fontSize: 13, fontWeight: 700, color: COLORS.navy }}>{tr("Conversion assumptions")}</div>
+                  <button onClick={useMyNumbers} disabled={!hasRealRatios} title={hasRealRatios ? "" : tr("Need logged calls + closings first")}
                     style={{ fontSize: 11, fontWeight: 600, padding: "5px 10px", borderRadius: 6, border: "1px solid " + (hasRealRatios ? COLORS.green : "#CCC"), background: hasRealRatios ? "#F0FFF4" : "#F4F4F4", color: hasRealRatios ? COLORS.green : "#AAA", cursor: hasRealRatios ? "pointer" : "not-allowed" }}>
-                    Use my actual numbers
+                    {tr("Use my actual numbers")}
                   </button>
                 </div>
-                {!hasRealRatios && <div style={{ fontSize: 11, color: "#666666", marginBottom: 10 }}>("Use my actual numbers" unlocks after you've logged calls and closed deals in the app.)</div>}
-                <RateRow k="dialToConv" label="Dials → Conversation" />
-                <RateRow k="convToAppt" label="Conversation → Appointment" />
-                <RateRow k="apptToContract" label="Appointment → Contract" />
-                <RateRow k="contractToClose" label="Contract → Closing" />
+                {!hasRealRatios && <div style={{ fontSize: 11, color: "#666666", marginBottom: 10 }}>{tr("(\"Use my actual numbers\" unlocks after you've logged calls and closed deals in the app.)")}</div>}
+                <RateRow k="dialToConv" label={tr("Dials → Conversation")} />
+                <RateRow k="convToAppt" label={tr("Conversation → Appointment")} />
+                <RateRow k="apptToContract" label={tr("Appointment → Contract")} />
+                <RateRow k="contractToClose" label={tr("Contract → Closing")} />
               </div>
             )}
           </div>
 
           <button onClick={save} style={{ width: "100%", marginTop: 18, padding: "12px", borderRadius: 8, border: "none", background: "#0c4a6e", color: "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer", fontFamily: "inherit" }}>
-            {saved ? "✓ Saved" : "💾 Save my plan"}
+            {saved ? tr("✓ Saved") : tr("💾 Save my plan")}
           </button>
         </div>
 
         {/* OUTPUTS */}
         <div>
           <div style={{ background: COLORS.navy, borderRadius: 12, padding: "24px 20px", color: "#fff", marginBottom: 16, textAlign: "center" }}>
-            <div style={{ fontSize: 13, opacity: 0.8 }}>To net {fmt(incomeGoal)} this year you need</div>
+            <div style={{ fontSize: 13, opacity: 0.8 }}>{tr("To net")} {fmt(incomeGoal)} {tr("this year you need")}</div>
             <div style={{ fontSize: 44, fontWeight: 900, margin: "8px 0", color: COLORS.gold }}>{dialsPerDay.toLocaleString()}</div>
-            <div style={{ fontSize: 15, fontWeight: 700 }}>dials per day</div>
-            <div style={{ fontSize: 12, opacity: 0.7, marginTop: 6 }}>≈ {dialsPerWeek.toLocaleString()} dials &amp; {convosPerWeek.toLocaleString()} conversations / week · {weeks} weeks</div>
+            <div style={{ fontSize: 15, fontWeight: 700 }}>{tr("dials per day")}</div>
+            <div style={{ fontSize: 12, opacity: 0.7, marginTop: 6 }}>≈ {dialsPerWeek.toLocaleString()} {tr("dials &")} {convosPerWeek.toLocaleString()} {tr("conversations / week ·")} {weeks} {tr("weeks")}</div>
           </div>
 
           <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #DDD", overflow: "hidden" }}>
@@ -516,15 +517,15 @@ function GoalPlannerTab({ transactions }) {
             ].map((row, i) => (
               <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 18px", borderBottom: i < 4 ? "1px solid #F0F0F0" : "none", background: i % 2 ? "#FAFAFA" : "#fff" }}>
                 <div>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: COLORS.navy }}>{row.label}</div>
-                  <div style={{ fontSize: 11, color: COLORS.gray }}>{row.sub}</div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: COLORS.navy }}>{tr(row.label)}</div>
+                  <div style={{ fontSize: 11, color: COLORS.gray }}>{tr(row.sub)}</div>
                 </div>
                 <div style={{ fontSize: 24, fontWeight: 900, color: row.color }}>{row.value}</div>
               </div>
             ))}
           </div>
           <div style={{ fontSize: 11, color: COLORS.gray, marginTop: 12, lineHeight: 1.5 }}>
-            Conversion rates start as typical estimates for your lead-gen method. Log calls and close deals, then tap <b>"Use my actual numbers"</b> to make this plan yours.
+            {tr("Conversion rates start as typical estimates for your lead-gen method. Log calls and close deals, then tap")} <b>{tr("\"Use my actual numbers\"")}</b> {tr("to make this plan yours.")}
           </div>
         </div>
       </div>
@@ -544,8 +545,8 @@ function SalesStatsTab() {
   useEffect(() => {
     authFetch("/reports/sales-stats").then(d => setStats(d.stats || {})).catch(() => setErr(true));
   }, []);
-  if (err) return <div style={{ color: COLORS.gray }}>Could not load sales stats.</div>;
-  if (!stats) return <div style={{ color: COLORS.gray }}>Loading…</div>;
+  if (err) return <div style={{ color: COLORS.gray }}>{tr("Could not load sales stats.")}</div>;
+  if (!stats) return <div style={{ color: COLORS.gray }}>{tr("Loading…")}</div>;
   const m = (n) => n == null ? "—" : fmt(n);
   const p = (n) => n == null ? "—" : `${Number(n).toFixed(n < 10 ? 1 : 0)}%`;
   const cards = [
@@ -560,8 +561,8 @@ function SalesStatsTab() {
   ];
   return (
     <div>
-      <div style={{ fontSize: 20, fontWeight: 800, color: COLORS.navy, marginBottom: 4 }}>My Sales Stats</div>
-      <div style={{ fontSize: 13, color: COLORS.gray, marginBottom: 16 }}>Your live pipeline plus your real production averages over the last 12 months ({stats.closed12mo ?? 0} closed deal{stats.closed12mo === 1 ? "" : "s"}).</div>
+      <div style={{ fontSize: 20, fontWeight: 800, color: COLORS.navy, marginBottom: 4 }}>{tr("My Sales Stats")}</div>
+      <div style={{ fontSize: 13, color: COLORS.gray, marginBottom: 16 }}>{tr("Your live pipeline plus your real production averages over the last 12 months (")}{stats.closed12mo ?? 0} {tr("closed deal")}{stats.closed12mo === 1 ? "" : "s"}).</div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 14 }}>
         {cards.map(c => <StatCard key={c.label} label={c.label} value={c.value} sub={c.sub} color={c.color} />)}
       </div>
@@ -607,36 +608,36 @@ function ActivitiesReportTab() {
   return (
     <div>
       <div className="no-print" style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", marginBottom: 16 }}>
-        <div style={{ fontSize: 20, fontWeight: 800, color: COLORS.navy, marginRight: "auto" }}>Activities Report</div>
+        <div style={{ fontSize: 20, fontWeight: 800, color: COLORS.navy, marginRight: "auto" }}>{tr("Activities Report")}</div>
         <select value={year} onChange={e => setYear(Number(e.target.value))} style={{ padding: "8px 10px", borderRadius: 8, border: `1px solid ${COLORS.border}`, fontFamily: "inherit", fontSize: 13 }}>
-          {[nowYear, nowYear - 1, nowYear - 2].map(y => <option key={y} value={y}>{y}</option>)}
+          {[nowYear, nowYear - 1, nowYear - 2].map(y => <option key={y} value={y}>{tr(y)}</option>)}
         </select>
         <div style={{ display: "flex", borderRadius: 8, overflow: "hidden", border: `1px solid ${COLORS.border}` }}>
           {["month", "week"].map(pp => (
             <button key={pp} onClick={() => setPeriod(pp)} style={{ padding: "8px 14px", border: "none", cursor: "pointer", fontSize: 13, fontWeight: 700, fontFamily: "inherit", textTransform: "capitalize", background: period === pp ? COLORS.navy : "#fff", color: period === pp ? "#fff" : COLORS.gray }}>{pp}</button>
           ))}
         </div>
-        <button onClick={exportCsv} style={{ background: "#fff", border: `1px solid ${COLORS.border}`, borderRadius: 8, padding: "8px 14px", cursor: "pointer", fontSize: 13, fontWeight: 700, fontFamily: "inherit" }}>⬇ Export Data</button>
+        <button onClick={exportCsv} style={{ background: "#fff", border: `1px solid ${COLORS.border}`, borderRadius: 8, padding: "8px 14px", cursor: "pointer", fontSize: 13, fontWeight: 700, fontFamily: "inherit" }}>{tr("⬇ Export Data")}</button>
       </div>
-      <div style={{ fontSize: 12, color: COLORS.gray, marginBottom: 12 }}>Pulled automatically from the calls you log in Win-the-Day and the pop-bys you deliver. Goals come from your income plan.</div>
+      <div style={{ fontSize: 12, color: COLORS.gray, marginBottom: 12 }}>{tr("Pulled automatically from the calls you log in Win-the-Day and the pop-bys you deliver. Goals come from your income plan.")}</div>
 
-      {loading ? <div style={{ color: COLORS.gray }}>Loading…</div> : !data ? <div style={{ color: COLORS.gray }}>Could not load report.</div> : (
+      {loading ? <div style={{ color: COLORS.gray }}>{tr("Loading…")}</div> : !data ? <div style={{ color: COLORS.gray }}>{tr("Could not load report.")}</div> : (
         <div style={{ overflowX: "auto", background: "#fff", border: `1px solid ${COLORS.border}`, borderRadius: 12 }}>
           <table style={{ borderCollapse: "collapse", width: "100%", minWidth: 720 }}>
             <thead>
               <tr>
-                <th style={{ ...th, textAlign: "left" }}>{period === "month" ? "Month" : "Week of"}</th>
-                {cols.map(c => <th key={c.key} style={th} colSpan={3}>{c.label}</th>)}
+                <th style={{ ...th, textAlign: "left" }}>{period === "month" ? tr("Month") : tr("Week of")}</th>
+                {cols.map(c => <th key={c.key} style={th} colSpan={3}>{tr(c.label)}</th>)}
               </tr>
               <tr>
                 <th style={th}></th>
-                {cols.map(c => <React.Fragment key={c.key}><th style={{ ...th, fontSize: 10 }}>Actual</th><th style={{ ...th, fontSize: 10 }}>Goal</th><th style={{ ...th, fontSize: 10 }}>%</th></React.Fragment>)}
+                {cols.map(c => <React.Fragment key={c.key}><th style={{ ...th, fontSize: 10 }}>{tr("Actual")}</th><th style={{ ...th, fontSize: 10 }}>{tr("Goal")}</th><th style={{ ...th, fontSize: 10 }}>%</th></React.Fragment>)}
               </tr>
             </thead>
             <tbody>
               {data.rows.map((row, i) => (
                 <tr key={i}>
-                  <td style={{ ...td, textAlign: "left", fontWeight: 600 }}>{row.label}</td>
+                  <td style={{ ...td, textAlign: "left", fontWeight: 600 }}>{tr(row.label)}</td>
                   {cols.map(c => { const cell = row[c.key] || {}; return (
                     <React.Fragment key={c.key}>
                       <td style={{ ...td, fontWeight: 700 }}>{cell.actual ?? 0}</td>
@@ -647,7 +648,7 @@ function ActivitiesReportTab() {
                 </tr>
               ))}
               <tr style={{ background: COLORS.light }}>
-                <td style={{ ...td, textAlign: "left", fontWeight: 800 }}>TOTAL</td>
+                <td style={{ ...td, textAlign: "left", fontWeight: 800 }}>{tr("TOTAL")}</td>
                 {cols.map(c => { const cell = data.totals[c.key] || {}; return (
                   <React.Fragment key={c.key}>
                     <td style={{ ...td, fontWeight: 800 }}>{cell.actual ?? 0}</td>
@@ -658,7 +659,7 @@ function ActivitiesReportTab() {
               </tr>
               {data.lastYearTotal && (
                 <tr>
-                  <td style={{ ...td, textAlign: "left", fontStyle: "italic", color: COLORS.gray }}>Last Year (total)</td>
+                  <td style={{ ...td, textAlign: "left", fontStyle: "italic", color: COLORS.gray }}>{tr("Last Year (total)")}</td>
                   {cols.map(c => (
                     <React.Fragment key={c.key}>
                       <td style={{ ...td, color: COLORS.gray }}>{data.lastYearTotal[c.key] ?? 0}</td>
@@ -693,38 +694,38 @@ function ClientFeedbackTab() {
       .then(d => setData(d.feedback || []))
       .catch(() => setErr(true));
   }, []);
-  const fmt = (d) => d ? new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "";
+  const fmt = (d) => d ? new Date(d).toLocaleDateString(uiLocale(), { month: "short", day: "numeric", year: "numeric" }) : "";
   const rated = (data || []).filter(f => f.rating);
   const avg = rated.length ? (rated.reduce((a, f) => a + f.rating, 0) / rated.length) : null;
 
   return (
     <div>
       <div style={{ display: "flex", alignItems: "baseline", gap: 12, flexWrap: "wrap", marginBottom: 4 }}>
-        <div style={{ fontSize: 20, fontWeight: 800, color: COLORS.navy }}>What your clients say</div>
+        <div style={{ fontSize: 20, fontWeight: 800, color: COLORS.navy }}>{tr("What your clients say")}</div>
         {avg != null && (
           <div style={{ fontSize: 13, color: COLORS.gray }}>
-            <Stars n={Math.round(avg)} /> <b style={{ color: COLORS.navy }}>{avg.toFixed(1)}</b> average · {data.length} response{data.length === 1 ? "" : "s"}
+            <Stars n={Math.round(avg)} /> <b style={{ color: COLORS.navy }}>{avg.toFixed(1)}</b> {tr("average ·")} {data.length} {tr("response")}{data.length === 1 ? "" : "s"}
           </div>
         )}
       </div>
       <div style={{ fontSize: 13, color: COLORS.gray, marginBottom: 18 }}>
-        Straight from your buyers and sellers, in their own words — what they like about their portal, and what would make it better.
+        {tr("Straight from your buyers and sellers, in their own words — what they like about their portal, and what would make it better.")}
       </div>
 
-      {err && <div style={{ background: "#FDEDEC", color: COLORS.red, borderRadius: 10, padding: 14, fontSize: 13 }}>Couldn't load feedback right now. Try again in a moment.</div>}
-      {!err && data === null && <div style={{ color: COLORS.gray, fontSize: 14 }}>Loading…</div>}
+      {err && <div style={{ background: "#FDEDEC", color: COLORS.red, borderRadius: 10, padding: 14, fontSize: 13 }}>{tr("Couldn't load feedback right now. Try again in a moment.")}</div>}
+      {!err && data === null && <div style={{ color: COLORS.gray, fontSize: 14 }}>{tr("Loading…")}</div>}
       {!err && data !== null && data.length === 0 && (
         <div style={{ background: "#fff", border: "1px solid " + COLORS.border, borderRadius: 12, padding: 28, textAlign: "center", color: COLORS.gray }}>
           <div style={{ fontSize: 32, marginBottom: 8 }}>💬</div>
-          <div style={{ fontWeight: 700, color: COLORS.navy, marginBottom: 4 }}>No feedback yet</div>
-          <div style={{ fontSize: 13 }}>When your buyers and sellers rate their portal, their comments show up here.</div>
+          <div style={{ fontWeight: 700, color: COLORS.navy, marginBottom: 4 }}>{tr("No feedback yet")}</div>
+          <div style={{ fontSize: 13 }}>{tr("When your buyers and sellers rate their portal, their comments show up here.")}</div>
         </div>
       )}
       {!err && (data || []).map(f => (
         <div key={f.id} style={{ background: "#fff", border: "1px solid " + COLORS.border, borderRadius: 12, padding: 16, marginBottom: 12 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", flexWrap: "wrap", gap: 8 }}>
             <div style={{ fontWeight: 700, color: COLORS.navy }}>
-              {f.party_name || "A client"}
+              {f.party_name || tr("A client")}
               {f.party_role && <span style={{ fontSize: 12, fontWeight: 600, color: COLORS.gray, background: COLORS.light, borderRadius: 6, padding: "2px 8px", marginLeft: 8 }}>{f.party_role}</span>}
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -735,13 +736,13 @@ function ClientFeedbackTab() {
           {f.address && <div style={{ fontSize: 12, color: COLORS.gray, marginTop: 2 }}>{f.address}</div>}
           {f.liked && (
             <div style={{ marginTop: 10, background: "#EAF7EF", borderRadius: 9, padding: "9px 11px" }}>
-              <div style={{ fontSize: 11, fontWeight: 800, color: COLORS.green, marginBottom: 2 }}>👍 LIKES</div>
+              <div style={{ fontSize: 11, fontWeight: 800, color: COLORS.green, marginBottom: 2 }}>{tr("👍 LIKES")}</div>
               <div style={{ fontSize: 13.5, color: "#1D3A2A", lineHeight: 1.5 }}>{f.liked}</div>
             </div>
           )}
           {f.disliked && (
             <div style={{ marginTop: 8, background: "#FEF6E7", borderRadius: 9, padding: "9px 11px" }}>
-              <div style={{ fontSize: 11, fontWeight: 800, color: COLORS.gold, marginBottom: 2 }}>💡 WANTS BETTER</div>
+              <div style={{ fontSize: 11, fontWeight: 800, color: COLORS.gold, marginBottom: 2 }}>{tr("💡 WANTS BETTER")}</div>
               <div style={{ fontSize: 13.5, color: "#5A4213", lineHeight: 1.5 }}>{f.disliked}</div>
             </div>
           )}
@@ -771,9 +772,9 @@ export default function Reports({ transactions, onBack, currentUser, initialTab 
         {/* Labeled back button — a bare "←" was easy to miss; users couldn't tell
             how to get back (esp. mid-onboarding) and resorted to browser back. (tester #22) */}
         <BackButton tone="dark" onClick={onBack} />
-        <div style={{ color: "#fff", fontWeight: 700, fontSize: 18 }}>📊 Reports & Analytics</div>
+        <div style={{ color: "#fff", fontWeight: 700, fontSize: 18 }}>{tr("📊 Reports & Analytics")}</div>
         <div style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
-          <button onClick={() => window.print()} style={{ background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.3)", color: "#fff", borderRadius: 8, padding: "7px 16px", cursor: "pointer", fontSize: 13, fontWeight: 600, fontFamily: "inherit" }}>🖨️ Print Report</button>
+          <button onClick={() => window.print()} style={{ background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.3)", color: "#fff", borderRadius: 8, padding: "7px 16px", cursor: "pointer", fontSize: 13, fontWeight: 600, fontFamily: "inherit" }}>{tr("🖨️ Print Report")}</button>
         </div>
       </div>
 
@@ -784,7 +785,7 @@ export default function Reports({ transactions, onBack, currentUser, initialTab 
             padding: "14px 18px", border: "none", background: "none", cursor: "pointer", fontSize: 14,
             fontWeight: tab === t.id ? 800 : 600, color: tab === t.id ? COLORS.red : COLORS.gray,
             borderBottom: tab === t.id ? `3px solid ${COLORS.red}` : "3px solid transparent", fontFamily: "inherit", whiteSpace: "nowrap",
-          }}>{t.label}</button>
+          }}>{tr(t.label)}</button>
         ))}
       </div>
 

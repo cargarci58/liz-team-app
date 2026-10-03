@@ -67,8 +67,8 @@ export default function CoordinatorCommandCenter({ token, onOpenTransaction }) {
       </div>
       <div style={{ fontSize: 13, color: C.gray, marginBottom: 16 }}>
         {data.needsYouCount === 0
-          ? `All ${data.total} of your transactions are on track — the app is handling them. Nothing needs you right now. ✅`
-          : `${data.needsYouCount} of your ${data.total} transactions need a look. The other ${data.onTrackCount} are on track and handled.`}
+          ? tr("All {total} of your transactions are on track — the app is handling them. Nothing needs you right now. ✅", { total: data.total })
+          : tr("{needsYouCount} of your {total} transactions need a look. The other {onTrackCount} are on track and handled.", { needsYouCount: data.needsYouCount, total: data.total, onTrackCount: data.onTrackCount })}
       </div>
 
       {/* (New-messages alert now renders ABOVE this banner, from the home — shared

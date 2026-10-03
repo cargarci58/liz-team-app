@@ -1,3 +1,4 @@
+import { t as tr } from "./i18n";
 import { useState, useEffect } from "react";
 import PhotoCropper from "./PhotoCropper";
 import ForwardingSetup from "./ForwardingSetup";
@@ -44,8 +45,8 @@ export default function AgentProfile({ onClose, currentUser }) {
   const [cropSrc, setCropSrc] = useState(null);
   const handlePhotoUpload = (file) => {
     if (!file) return;
-    if (!file.type.startsWith("image/")) { alert("Please select an image file."); return; }
-    if (file.size > 25 * 1024 * 1024) { alert("That photo is too large (25MB max)."); return; }
+    if (!file.type.startsWith("image/")) { alert(tr("Please select an image file.")); return; }
+    if (file.size > 25 * 1024 * 1024) { alert(tr("That photo is too large (25MB max).")); return; }
     setCropSrc(URL.createObjectURL(file));
   };
   const uploadCropped = async (base64) => {
@@ -61,7 +62,7 @@ export default function AgentProfile({ onClose, currentUser }) {
       // The server saves the photo to the profile immediately.
       setForm(f => ({ ...f, photoUrl: data.photoUrl }));
       setCropSrc(null);
-    } catch (e) { alert("Upload failed: " + e.message); }
+    } catch (e) { alert(tr("Upload failed: ") + e.message); }
     setUploading(false);
   };
 
@@ -71,14 +72,14 @@ export default function AgentProfile({ onClose, currentUser }) {
       const body = sig.canEditCompanyName ? { ...form, companyName: sig.tenantName } : form;
       const res = await fetch(API + "/profile", { method: "PUT", headers, body: JSON.stringify(body) });
       const data = await res.json();
-      if (!res.ok || !data.success) { alert(data.error || "Could not save — please try again."); setSaving(false); return; }
+      if (!res.ok || !data.success) { alert(data.error || tr("Could not save — please try again.")); setSaving(false); return; }
       // Keep the saved session's company name current (header, etc.) without a re-login.
       if (sig.canEditCompanyName) {
         try { const u = JSON.parse(localStorage.getItem("tp_user") || "{}"); u.tenantName = sig.tenantName; localStorage.setItem("tp_user", JSON.stringify(u)); } catch {}
       }
       // A renamed company shows in the page header — reload so it updates now.
       setSaved(true); setTimeout(() => { setSaved(false); if (sig.canEditCompanyName) window.location.reload(); else onClose(); }, 1500);
-    } catch { alert("Could not save — please try again."); }
+    } catch { alert(tr("Could not save — please try again.")); }
     setSaving(false);
   };
 
@@ -101,17 +102,17 @@ export default function AgentProfile({ onClose, currentUser }) {
         
         {/* Header */}
         <div style={{ background: "#111", padding: "18px 24px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <div style={{ color: "#fff", fontWeight: 700, fontSize: 18 }}>👤 My Profile</div>
+          <div style={{ color: "#fff", fontWeight: 700, fontSize: 18 }}>{tr("👤 My Profile")}</div>
           <button onClick={onClose} style={{ background: "none", border: "none", color: "rgba(255,255,255,0.6)", fontSize: 22, cursor: "pointer" }}>×</button>
         </div>
 
         <div style={{ padding: 24 }}>
-          {loading ? <div style={{ textAlign: "center", padding: 32, color: "#666666" }}>Loading...</div> : <>
+          {loading ? <div style={{ textAlign: "center", padding: 32, color: "#666666" }}>{tr("Loading...")}</div> : <>
 
             {/* Photo Preview */}
             <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 24, padding: 16, background: "#F8F9FA", borderRadius: 10 }}>
               {form.photoUrl ? (
-                <img src={form.photoUrl} alt="Profile" style={{ width: 64, height: 64, borderRadius: "50%", objectFit: "cover", border: "3px solid #C0392B" }} onError={e => e.target.style.display="none"} />
+                <img src={form.photoUrl} alt={tr("Profile")} style={{ width: 64, height: 64, borderRadius: "50%", objectFit: "cover", border: "3px solid #C0392B" }} onError={e => e.target.style.display="none"} />
               ) : (
                 <div style={{ width: 64, height: 64, borderRadius: "50%", background: "#C0392B", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, color: "#fff", fontWeight: 700 }}>
                   {form.firstName ? form.firstName[0].toUpperCase() : "?"}
@@ -128,77 +129,77 @@ export default function AgentProfile({ onClose, currentUser }) {
                 (it's the name at the top of the app + in every email signature). */}
             {sig.canEditCompanyName && (
               <div style={{ marginBottom: 16, padding: 12, background: "#F4F4F4", borderRadius: 10, border: "1px solid #DDD" }}>
-                <label style={lbl}>Company Name</label>
-                <input value={sig.tenantName} onChange={e => setSig(s => ({ ...s, tenantName: e.target.value }))} style={inp} placeholder="Your coordinator company name" />
-                <div style={{ fontSize: 11, color: "#666666", marginTop: 6 }}>Shown at the top of the app and under your name in every email you send.</div>
+                <label style={lbl}>{tr("Company Name")}</label>
+                <input value={sig.tenantName} onChange={e => setSig(s => ({ ...s, tenantName: e.target.value }))} style={inp} placeholder={tr("Your coordinator company name")} />
+                <div style={{ fontSize: 11, color: "#666666", marginTop: 6 }}>{tr("Shown at the top of the app and under your name in every email you send.")}</div>
               </div>
             )}
 
             {/* Form */}
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16 }}>
               <div>
-                <label style={lbl}>First Name</label>
-                <input value={form.firstName} onChange={e => setForm(f => ({ ...f, firstName: e.target.value }))} style={inp} placeholder="Jane" />
+                <label style={lbl}>{tr("First Name")}</label>
+                <input value={form.firstName} onChange={e => setForm(f => ({ ...f, firstName: e.target.value }))} style={inp} placeholder={tr("Jane")} />
               </div>
               <div>
-                <label style={lbl}>Last Name</label>
-                <input value={form.lastName} onChange={e => setForm(f => ({ ...f, lastName: e.target.value }))} style={inp} placeholder="Smith" />
+                <label style={lbl}>{tr("Last Name")}</label>
+                <input value={form.lastName} onChange={e => setForm(f => ({ ...f, lastName: e.target.value }))} style={inp} placeholder={tr("Smith")} />
               </div>
             </div>
 
             <div style={{ marginBottom: 16 }}>
-              <label style={lbl}>Cell Phone</label>
+              <label style={lbl}>{tr("Cell Phone")}</label>
               <input value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} style={inp} placeholder="407-555-0100" type="tel" />
             </div>
             <div style={{ marginBottom: 18 }}>
-              <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", marginBottom: 6 }}>Title</label>
-              <input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} style={inp} placeholder="Transaction Coordinator, Broker, Real Estate Agent..." />
-              <div style={{ fontSize: 11, color: "#666666", marginTop: 4 }}>Shown in your email signature</div>
+              <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", marginBottom: 6 }}>{tr("Title")}</label>
+              <input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} style={inp} placeholder={tr("Transaction Coordinator, Broker, Real Estate Agent...")} />
+              <div style={{ fontSize: 11, color: "#666666", marginTop: 4 }}>{tr("Shown in your email signature")}</div>
             </div>
 
             <div style={{ marginBottom: 8 }}>
-              <label style={lbl}>Street Address</label>
-              <input value={form.address} onChange={e => setForm(f => ({ ...f, address: e.target.value }))} style={inp} placeholder="123 Main St, Suite 100" />
-              <div style={{ fontSize: 11, color: "#666666", marginTop: 4 }}>Your business mailing address — required in the footer of newsletter/marketing emails (CAN-SPAM law).</div>
+              <label style={lbl}>{tr("Street Address")}</label>
+              <input value={form.address} onChange={e => setForm(f => ({ ...f, address: e.target.value }))} style={inp} placeholder={tr("123 Main St, Suite 100")} />
+              <div style={{ fontSize: 11, color: "#666666", marginTop: 4 }}>{tr("Your business mailing address — required in the footer of newsletter/marketing emails (CAN-SPAM law).")}</div>
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 8 }}>
               <div>
-                <label style={lbl}>City</label>
-                <input value={form.city} onChange={e => setForm(f => ({ ...f, city: e.target.value }))} style={inp} placeholder="City" />
+                <label style={lbl}>{tr("City")}</label>
+                <input value={form.city} onChange={e => setForm(f => ({ ...f, city: e.target.value }))} style={inp} placeholder={tr("City")} />
               </div>
               <div>
-                <label style={lbl}>County</label>
-                <input value={form.county} onChange={e => setForm(f => ({ ...f, county: e.target.value }))} style={inp} placeholder="County" />
+                <label style={lbl}>{tr("County")}</label>
+                <input value={form.county} onChange={e => setForm(f => ({ ...f, county: e.target.value }))} style={inp} placeholder={tr("County")} />
               </div>
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 18 }}>
               <div>
-                <label style={lbl}>State</label>
-                <input value={form.state} onChange={e => setForm(f => ({ ...f, state: e.target.value }))} style={inp} placeholder="FL" />
+                <label style={lbl}>{tr("State")}</label>
+                <input value={form.state} onChange={e => setForm(f => ({ ...f, state: e.target.value }))} style={inp} placeholder={tr("FL")} />
               </div>
               <div>
-                <label style={lbl}>Zip</label>
-                <input value={form.zip} onChange={e => setForm(f => ({ ...f, zip: e.target.value }))} style={inp} placeholder="ZIP code" />
+                <label style={lbl}>{tr("Zip")}</label>
+                <input value={form.zip} onChange={e => setForm(f => ({ ...f, zip: e.target.value }))} style={inp} placeholder={tr("ZIP code")} />
               </div>
             </div>
-            <div style={{ fontSize: 11, color: "#666666", marginTop: -8, marginBottom: 16 }}>Your home market — used to default the property-tax rate on net sheets.</div>
+            <div style={{ fontSize: 11, color: "#666666", marginTop: -8, marginBottom: 16 }}>{tr("Your home market — used to default the property-tax rate on net sheets.")}</div>
 
             <div style={{ marginBottom: 16 }}>
-              <label style={lbl}>Profile Photo</label>
+              <label style={lbl}>{tr("Profile Photo")}</label>
               <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 8, flexWrap: "wrap" }}>
                 {form.photoUrl && <img src={form.photoUrl} alt="" style={{ width: 56, height: 56, borderRadius: "50%", objectFit: "cover", border: "2px solid #C0392B" }} onError={e => e.target.style.display = "none"} />}
                 <label style={{ display: "inline-block", padding: "8px 16px", background: "#0c4a6e", color: "#fff", borderRadius: 8, cursor: "pointer", fontSize: 13, fontWeight: 600, fontFamily: "inherit" }}>
-                  {uploading ? "Uploading..." : "📷 Upload Photo"}
+                  {uploading ? tr("Uploading...") : tr("📷 Upload Photo")}
                   <input type="file" accept="image/*" style={{ display: "none" }} onChange={e => { handlePhotoUpload(e.target.files[0]); e.target.value = ""; }} disabled={uploading} />
                 </label>
                 {form.photoUrl && (
                   <button type="button" onClick={() => setCropSrc(form.photoUrl)} disabled={uploading}
                     style={{ padding: "8px 14px", background: "#fff", color: "#0c4a6e", border: "1.5px solid #0c4a6e", borderRadius: 8, cursor: "pointer", fontSize: 13, fontWeight: 600, fontFamily: "inherit" }}>
-                    ✂️ Adjust photo
+                    {tr("✂️ Adjust photo")}
                   </button>
                 )}
               </div>
-              <div style={{ fontSize: 11, color: "#666666", marginTop: 2 }}>After you pick a photo you'll drag and zoom it so your face sits right in the circle — exactly how it shows in your email signature.</div>
+              <div style={{ fontSize: 11, color: "#666666", marginTop: 2 }}>{tr("After you pick a photo you'll drag and zoom it so your face sits right in the circle — exactly how it shows in your email signature.")}</div>
               {cropSrc && <PhotoCropper src={cropSrc} onCancel={() => setCropSrc(null)} onSave={uploadCropped} />}
             </div>
 
@@ -207,12 +208,12 @@ export default function AgentProfile({ onClose, currentUser }) {
 
             {/* Email Signature Preview */}
             <div style={{ marginBottom: 20, padding: 16, background: "#F8F9FA", borderRadius: 10, border: "1px solid #DDD" }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: "#666666", textTransform: "uppercase", marginBottom: 10 }}>Email Signature Preview</div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: "#666666", textTransform: "uppercase", marginBottom: 10 }}>{tr("Email Signature Preview")}</div>
               <div style={{ borderTop: "2px solid #C0392B", paddingTop: 12, display: "flex", alignItems: "center", gap: 12 }}>
                 {form.photoUrl && <img src={form.photoUrl} alt="" style={{ width: 44, height: 44, borderRadius: "50%", objectFit: "cover" }} onError={e => e.target.style.display="none"} />}
                 <div>
                   <div style={{ fontWeight: 700, fontSize: 14 }}>{form.firstName} {form.lastName}</div>
-                  {form.title && <div style={{ fontSize: 12, color: "#555" }}>{form.title}</div>}
+                  {form.title && <div style={{ fontSize: 12, color: "#555" }}>{tr(form.title)}</div>}
                   {sig.tenantName && <div style={{ fontSize: 12, color: sig.brandColor, fontWeight: 600 }}>{sig.tenantName}</div>}
                   {form.phone && <div style={{ fontSize: 12, color: "#555" }}>📞 {form.phone}</div>}
                   <div style={{ fontSize: 12, color: "#555" }}>✉️ {sig.email || currentUser?.email}</div>
@@ -220,12 +221,12 @@ export default function AgentProfile({ onClose, currentUser }) {
               </div>
             </div>
 
-            {saved && <div style={{ background: "#F0FFF4", border: "1px solid #1E8449", borderRadius: 8, padding: 12, marginBottom: 16, color: "#1E8449", fontSize: 13, fontWeight: 600 }}>✅ Profile saved!</div>}
+            {saved && <div style={{ background: "#F0FFF4", border: "1px solid #1E8449", borderRadius: 8, padding: 12, marginBottom: 16, color: "#1E8449", fontSize: 13, fontWeight: 600 }}>{tr("✅ Profile saved!")}</div>}
 
             <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
-              <button onClick={onClose} style={{ padding: "10px 18px", border: "1px solid #CCC", borderRadius: 8, background: "none", cursor: "pointer", fontFamily: "inherit" }}>Cancel</button>
+              <button onClick={onClose} style={{ padding: "10px 18px", border: "1px solid #CCC", borderRadius: 8, background: "none", cursor: "pointer", fontFamily: "inherit" }}>{tr("Cancel")}</button>
               <button onClick={save} disabled={saving} style={{ padding: "10px 24px", background: "#0c4a6e", color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
-                {saving ? "Saving..." : "Save Profile"}
+                {saving ? tr("Saving...") : tr("Save Profile")}
               </button>
             </div>
           </>}

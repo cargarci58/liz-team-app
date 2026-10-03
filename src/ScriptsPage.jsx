@@ -1,3 +1,4 @@
+import { t as tr } from "./i18n";
 import { useState, useEffect } from "react";
 import BackButton from "./ui/BackButton";
 import { CALL_SCRIPT_GROUPS, CALL_OBJECTIONS } from "./config/callScripts";
@@ -138,11 +139,11 @@ function ScriptBlock({ s, idx }) {
     <div style={{ background: C.lightGray, border: `1px solid ${C.border}`, borderLeft: `3px solid ${C.red}`,
       borderRadius: 8, padding: "12px 14px", marginTop: 10 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, marginBottom: 6 }}>
-        <div style={{ fontSize: 13, fontWeight: 800, color: C.darkRed }}>Script {idx + 1} · {s.title}</div>
+        <div style={{ fontSize: 13, fontWeight: 800, color: C.darkRed }}>{tr("Script")} {idx + 1} · {tr(s.title)}</div>
         <button onClick={copy} style={{ flexShrink: 0, background: C.white, border: `1px solid ${C.border}`,
           borderRadius: 6, padding: "4px 10px", fontSize: 11, fontWeight: 700,
           color: copied ? "#0c4a6e" : C.gray, cursor: "pointer", fontFamily: "inherit" }}>
-          {copied ? "✓ Copied" : "📋 Copy"}
+          {copied ? tr("✓ Copied") : tr("📋 Copy")}
         </button>
       </div>
       <div style={{ fontSize: 14, color: C.navy, lineHeight: 1.6 }}>{s.body}</div>
@@ -162,7 +163,7 @@ export default function ScriptsPage({ token, onBack, currentUser }) {
     .then(d => { if (d.success) setMine(d.scripts || []); }).catch(() => {});
   useEffect(() => { loadMine(); }, []);
   const saveScript = async () => {
-    if (!editing.body || !editing.body.trim()) { alert("Write the script text first."); return; }
+    if (!editing.body || !editing.body.trim()) { alert(tr("Write the script text first.")); return; }
     setSaving(true);
     try {
       const url = editing.id ? API + "/scripts/" + editing.id : API + "/scripts";
@@ -171,11 +172,11 @@ export default function ScriptsPage({ token, onBack, currentUser }) {
       const d = await r.json();
       if (!r.ok || !d.success) throw new Error(d.error || "Save failed");
       setEditing(null); loadMine();
-    } catch (e) { alert("Could not save: " + e.message); }
+    } catch (e) { alert(tr("Could not save: ") + e.message); }
     setSaving(false);
   };
   const deleteScript = async (sc) => {
-    if (!(await askConfirm(`Delete your script "${sc.title || "Untitled"}"?`, { okLabel: "Delete", danger: true }))) return;
+    if (!(await askConfirm(tr("Delete your script \"{v1}\"?", { v1: sc.title || "Untitled" }), { okLabel: tr("Delete"), danger: true }))) return;
     try { await fetch(API + "/scripts/" + sc.id, { method: "DELETE", headers: hdrs }); loadMine(); } catch {}
   };
   const myScripts = mine.filter(m => m.side === side);
@@ -186,8 +187,8 @@ export default function ScriptsPage({ token, onBack, currentUser }) {
         position: "sticky", top: 0, zIndex: 100, flexWrap: "wrap" }}>
         <BackButton tone="dark" onClick={onBack} to="My Deals" />
         <div style={{ flex: 1 }}>
-          <div style={{ color: "#fff", fontWeight: 700, fontSize: 17 }}>📜 Agent Scripts</div>
-          <div style={{ color: "rgba(255,255,255,0.85)", fontSize: 13 }}>Ready-to-use talking points for your side of the deal</div>
+          <div style={{ color: "#fff", fontWeight: 700, fontSize: 17 }}>{tr("📜 Agent Scripts")}</div>
+          <div style={{ color: "rgba(255,255,255,0.85)", fontSize: 13 }}>{tr("Ready-to-use talking points for your side of the deal")}</div>
         </div>
       </div>
 
@@ -200,58 +201,58 @@ export default function ScriptsPage({ token, onBack, currentUser }) {
               <button key={s} onClick={() => setSide(s)} style={{ flex: 1, padding: "12px 10px", borderRadius: 10,
                 border: `2px solid ${active ? C.red : C.border}`, background: active ? "#FADBD8" : C.white,
                 color: active ? C.darkRed : C.gray, fontWeight: 700, fontSize: 14, cursor: "pointer", fontFamily: "inherit" }}>
-                {o.icon} {o.label}
-                <div style={{ fontSize: 11, fontWeight: 500, marginTop: 2, opacity: 0.85 }}>{o.sub}</div>
+                {o.icon} {tr(o.label)}
+                <div style={{ fontSize: 11, fontWeight: 500, marginTop: 2, opacity: 0.85 }}>{tr(o.sub)}</div>
               </button>
             );
           })}
         </div>
 
         <div style={{ fontSize: 12, color: C.muted, marginBottom: 16, lineHeight: 1.5 }}>
-          These are for you — the agent who owns this account. Fill in the <b>[brackets]</b> with the deal’s details, then make it a conversation, not a pitch.
+          {tr("These are for you — the agent who owns this account. Fill in the")} <b>{tr("[brackets]")}</b> {tr("with the deal’s details, then make it a conversation, not a pitch.")}
         </div>
 
         {/* MY SCRIPTS — the agent's own, above the built-in library */}
         <div style={{ background: C.white, border: `2px dashed ${C.red}`, borderRadius: 12, padding: "16px 18px", marginBottom: 14 }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, flexWrap: "wrap" }}>
             <div>
-              <div style={{ fontSize: 15, fontWeight: 800, color: C.navy }}>⭐ My Scripts</div>
-              <div style={{ fontSize: 12, color: C.muted, marginTop: 3 }}>Your own words, saved for reuse — only you see these.</div>
+              <div style={{ fontSize: 15, fontWeight: 800, color: C.navy }}>{tr("⭐ My Scripts")}</div>
+              <div style={{ fontSize: 12, color: C.muted, marginTop: 3 }}>{tr("Your own words, saved for reuse — only you see these.")}</div>
             </div>
             <button onClick={() => setEditing({ situation: "", title: "", body: "" })}
               style={{ background: "#0c4a6e", color: "#fff", border: "none", borderRadius: 8, padding: "9px 16px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
-              ➕ Add a script
+              {tr("➕ Add a script")}
             </button>
           </div>
           {myScripts.length === 0 && !editing && (
-            <div style={{ fontSize: 13, color: C.muted, marginTop: 12, fontStyle: "italic" }}>Nothing saved yet — add the lines that work for YOU and they'll live here on both phone and desktop.</div>
+            <div style={{ fontSize: 13, color: C.muted, marginTop: 12, fontStyle: "italic" }}>{tr("Nothing saved yet — add the lines that work for YOU and they'll live here on both phone and desktop.")}</div>
           )}
           {myScripts.map((sc, i) => (
             <div key={sc.id}>
               {sc.situation && <div style={{ fontSize: 12, fontWeight: 700, color: C.muted, marginTop: 12 }}>{sc.situation}</div>}
               <ScriptBlock s={sc} idx={i} />
               <div style={{ display: "flex", gap: 8, marginTop: 4, justifyContent: "flex-end" }}>
-                <button onClick={() => setEditing({ ...sc })} style={{ background: "none", border: `1px solid ${C.border}`, borderRadius: 6, padding: "3px 10px", fontSize: 11, fontWeight: 600, color: C.gray, cursor: "pointer", fontFamily: "inherit" }}>✏️ Edit</button>
-                <button onClick={() => deleteScript(sc)} style={{ background: "none", border: "1px solid #FECACA", borderRadius: 6, padding: "3px 10px", fontSize: 11, fontWeight: 600, color: "#B91C1C", cursor: "pointer", fontFamily: "inherit" }}>🗑 Delete</button>
+                <button onClick={() => setEditing({ ...sc })} style={{ background: "none", border: `1px solid ${C.border}`, borderRadius: 6, padding: "3px 10px", fontSize: 11, fontWeight: 600, color: C.gray, cursor: "pointer", fontFamily: "inherit" }}>{tr("✏️ Edit")}</button>
+                <button onClick={() => deleteScript(sc)} style={{ background: "none", border: "1px solid #FECACA", borderRadius: 6, padding: "3px 10px", fontSize: 11, fontWeight: 600, color: "#B91C1C", cursor: "pointer", fontFamily: "inherit" }}>{tr("🗑 Delete")}</button>
               </div>
             </div>
           ))}
           {editing && (
             <div style={{ marginTop: 14, background: C.lightGray, borderRadius: 10, padding: 14 }}>
-              <div style={{ fontSize: 13, fontWeight: 800, color: C.navy, marginBottom: 8 }}>{editing.id ? "Edit script" : "New script"} · {lib.label}</div>
+              <div style={{ fontSize: 13, fontWeight: 800, color: C.navy, marginBottom: 8 }}>{editing.id ? tr("Edit script") : tr("New script")} · {tr(lib.label)}</div>
               <input value={editing.situation || ""} onChange={e => setEditing(v => ({ ...v, situation: e.target.value }))}
-                placeholder="Situation (optional) — e.g. Seller wants to overprice"
+                placeholder={tr("Situation (optional) — e.g. Seller wants to overprice")}
                 style={{ width: "100%", boxSizing: "border-box", padding: "9px 11px", borderRadius: 8, border: `1.5px solid ${C.border}`, fontSize: 13, fontFamily: "inherit", marginBottom: 8 }} />
               <input value={editing.title || ""} onChange={e => setEditing(v => ({ ...v, title: e.target.value }))}
-                placeholder="Short name — e.g. The 90-day math"
+                placeholder={tr("Short name — e.g. The 90-day math")}
                 style={{ width: "100%", boxSizing: "border-box", padding: "9px 11px", borderRadius: 8, border: `1.5px solid ${C.border}`, fontSize: 13, fontFamily: "inherit", marginBottom: 8 }} />
               <textarea value={editing.body || ""} onChange={e => setEditing(v => ({ ...v, body: e.target.value }))} rows={5}
-                placeholder="The script itself. Use [brackets] for the parts you'll customize per deal."
+                placeholder={tr("The script itself. Use [brackets] for the parts you'll customize per deal.")}
                 style={{ width: "100%", boxSizing: "border-box", padding: "9px 11px", borderRadius: 8, border: `1.5px solid ${C.border}`, fontSize: 14, fontFamily: "inherit", resize: "vertical", marginBottom: 10 }} />
               <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
-                <button onClick={() => setEditing(null)} style={{ background: "none", border: `1px solid ${C.border}`, borderRadius: 8, padding: "8px 14px", fontSize: 13, fontWeight: 600, color: C.gray, cursor: "pointer", fontFamily: "inherit" }}>Cancel</button>
+                <button onClick={() => setEditing(null)} style={{ background: "none", border: `1px solid ${C.border}`, borderRadius: 8, padding: "8px 14px", fontSize: 13, fontWeight: 600, color: C.gray, cursor: "pointer", fontFamily: "inherit" }}>{tr("Cancel")}</button>
                 <button onClick={saveScript} disabled={saving} style={{ background: "#0c4a6e", color: "#fff", border: "none", borderRadius: 8, padding: "8px 18px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", opacity: saving ? 0.6 : 1 }}>
-                  {saving ? "Saving…" : "💾 Save script"}
+                  {saving ? tr("Saving…") : tr("💾 Save script")}
                 </button>
               </div>
             </div>
@@ -261,7 +262,7 @@ export default function ScriptsPage({ token, onBack, currentUser }) {
         {lib.groups.map((g, gi) => (
           <div key={gi} style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 12, padding: "16px 18px", marginBottom: 14 }}>
             <div style={{ fontSize: 15, fontWeight: 800, color: C.navy }}>{g.situation}</div>
-            {g.why && <div style={{ fontSize: 12, color: C.muted, marginTop: 3 }}>{g.why}</div>}
+            {g.why && <div style={{ fontSize: 12, color: C.muted, marginTop: 3 }}>{tr(g.why)}</div>}
             {g.scripts.map((s, si) => <ScriptBlock key={si} s={s} idx={si} />)}
           </div>
         ))}

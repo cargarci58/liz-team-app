@@ -671,7 +671,7 @@ function DealGroupCard({ deal, token, coordinatorMode = false, meta = null, agen
                   style={{ padding:"8px 14px", borderRadius:8, border:"none",
                     background:"#0c4a6e", color:COLORS.white, fontWeight:700, fontSize:13,
                     cursor: aiBusy === deal.transaction_id ? "wait" : "pointer", fontFamily:"inherit" }}>
-                  {aiBusy === deal.transaction_id ? tr("Sending…") : `✉️ Send the recommended message to the ${meta.draftToRole}`}
+                  {aiBusy === deal.transaction_id ? tr("Sending…") : tr("✉️ Send the recommended message to the {draftToRole}", { draftToRole: meta.draftToRole })}
                 </button>
               )}
               <button onClick={() => onDealAction && onDealAction(deal.transaction_id, "rec_not_now")}
@@ -1042,7 +1042,7 @@ function SendPreviewModal({ preview, busy, onCancel, onSend }) {
   const toggleDoc = (id) => setPickedDocIds(ids => ids.includes(id) ? ids.filter(x => x !== id) : [...ids, id]);
   const onFiles = (fileList) => {
     Array.from(fileList || []).forEach(file => {
-      if (file.size > 12 * 1024 * 1024) { alert(`"${file.name}" is too large to email (12MB max).`); return; }
+      if (file.size > 12 * 1024 * 1024) { alert(tr("\"{name}\" is too large to email (12MB max).", { name: file.name })); return; }
       const reader = new FileReader();
       reader.onload = () => setUploads(u => [...u, { name: file.name, dataBase64: reader.result, mimeType: file.type }]);
       reader.readAsDataURL(file);
@@ -1111,7 +1111,7 @@ function SendPreviewModal({ preview, busy, onCancel, onSend }) {
           <button onClick={onCancel} style={{ padding:"10px 18px", borderRadius:10, border:"1.5px solid "+COLORS.border, background:COLORS.white, color:COLORS.gray, fontWeight:600, fontSize:14, cursor:"pointer", fontFamily:"inherit" }}>{tr("Cancel")}</button>
           <button disabled={busy || !subject.trim() || !body.trim()} onClick={() => onSend(subject, body, { attachDocIds: pickedDocIds, uploadedFiles: uploads })}
             style={{ padding:"10px 20px", borderRadius:10, border:"none", background:"#0c4a6e", color:COLORS.white, fontWeight:700, fontSize:14, cursor: busy ? "wait" : "pointer", fontFamily:"inherit" }}>
-            {busy ? tr("Sending…") : (totalAttached > 0 ? `✅ Approve & send (${totalAttached} attached)` : tr("✅ Approve & send"))}
+            {busy ? tr("Sending…") : (totalAttached > 0 ? tr("✅ Approve & send ({totalAttached} attached)", { totalAttached }) : tr("✅ Approve & send"))}
           </button>
         </div>
       </div>
@@ -1179,7 +1179,7 @@ function FollowupReviewModal({ token, isMobile, onClose }) {
     setBusy(false);
   };
   const stopStale = async () => {
-    if (!(await askConfirm(`Stop ALL ${staleCount} follow-ups older than 6 months?\n\nThe contacts stay in your database with their grades — only the old follow-up reminders are cleared. This cannot be undone in one tap.`, { okLabel: tr("Clear them"), danger: true }))) return;
+    if (!(await askConfirm(tr("Stop ALL {staleCount} follow-ups older than 6 months?\n\nThe contacts stay in your database with their grades — only the old follow-up reminders are cleared. This cannot be undone in one tap.", { staleCount }), { okLabel: tr("Clear them"), danger: true }))) return;
     setBusy(true);
     try {
       const r = await fetch(API + "/contacts/followups/stop-stale", {
@@ -1909,7 +1909,7 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
                       {c.tier && <span style={{ marginLeft: 6, fontSize: 11, fontWeight: 800, color: "#fff", background: "#9ca3af", borderRadius: 10, padding: "1px 7px" }}>{c.tier}</span>}
                     </div>
                     <div style={{ fontSize: 12, color: "#5F6B7A", marginTop: 2 }}>
-                      {c.last_outcome ? `logged: ${String(c.last_outcome).replace(/_/g, " ")}` : tr("logged")}
+                      {c.last_outcome ? tr("logged: {v1}", { v1: String(c.last_outcome).replace(/_/g, " ") }) : tr("logged")}
                     </div>
                   </div>
                   <span style={{ color: "#15803d", fontWeight: 800, fontSize: 13, whiteSpace: "nowrap", flexShrink: 0 }}>{tr("✓ Done")}</span>
@@ -1971,7 +1971,7 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
             </div>
             <button onClick={() => pullMoreCalls(kind)} disabled={!!pullingMore}
               style={{ padding: "9px 16px", borderRadius: 8, border: "none", background: pullingMore ? "#0c4a6eaa" : "#0c4a6e", color: "#fff", fontWeight: 800, fontSize: 13, cursor: pullingMore ? "wait" : "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>
-              {pullingMore === kind ? tr("Loading…") : `Show ${Math.min(10, count)} more`}
+              {pullingMore === kind ? tr("Loading…") : tr("Show {v1} more", { v1: Math.min(10, count) })}
             </button>
             {extraBtn}
           </div>
@@ -2159,7 +2159,7 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
                   <div style={{ fontWeight: 700, fontSize: 13.5 }}>{m.from_name || m.from_email || tr("Unknown sender")} <span style={{ color: "#6b7280", fontWeight: 400 }}>&lt;{m.from_email}&gt;</span></div>
                   <div style={{ fontSize: 13, color: "#111", marginTop: 3, fontWeight: 600 }}>{m.subject || tr("(no subject)")}</div>
                   {m.snippet && <div style={{ fontSize: 12.5, color: "#4b5563", marginTop: 3 }}>{m.snippet}</div>}
-                  <div style={{ fontSize: 11, color: "#5F6B7A", marginTop: 3 }}>{new Date(m.created_at).toLocaleString(uiLocale(), { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}{m.attachment_count ? ` · 📎 ${m.attachment_count} attachment(s)` : ""}</div>
+                  <div style={{ fontSize: 11, color: "#5F6B7A", marginTop: 3 }}>{new Date(m.created_at).toLocaleString(uiLocale(), { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}{m.attachment_count ? tr(" · 📎 {attachment_count} attachment(s)", { attachment_count: m.attachment_count }) : ""}</div>
                   <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap", alignItems: "center" }}>
                     {filingDeals === null ? <span style={{ fontSize: 12, color: "#6b7280" }}>{tr("Loading deals…")}</span> : (
                       <select defaultValue="" onChange={e => e.target.value && fileEmailTo(m.id, e.target.value)}
@@ -2207,7 +2207,7 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
                 <div style={{ fontWeight: 800, fontSize: 14.5, color: needsAck ? "#7f1d1d" : "#78350f" }}>{tr(String(t.title || "").replace(/^⏰\s*/, "⏰ "))}</div>
                 {t.description && <div style={{ fontSize: 12.5, color: needsAck ? "#991b1b" : "#92400e", marginTop: 3 }}>{tr(t.description)}</div>}
                 <div style={{ fontSize: 12, fontWeight: 700, color: needsAck ? "#dc2626" : "#b45309", marginTop: 4 }}>
-                  {late > 0 ? `⚠️ Waiting ${late} day${late === 1 ? "" : "s"}` : du === 0 ? tr("Due today") : du === 1 ? tr("Due tomorrow") : `Due in ${du} days`}
+                  {late > 0 ? tn(late, "⚠️ Waiting {n} day", "⚠️ Waiting {n} days") : du === 0 ? tr("Due today") : du === 1 ? tr("Due tomorrow") : tr("Due in {du} days", { du })}
                   {needsAck && tr(" — mark it done or pick a new date")}
                 </div>
                 <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>

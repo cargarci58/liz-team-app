@@ -1,4 +1,4 @@
-import { t as tr } from "./i18n";
+import { t as tr, tn } from "./i18n";
 import { useState, useEffect, useCallback } from "react";
 import { askConfirm } from "./ui/dialogs";
 
@@ -91,7 +91,7 @@ export default function CoordinatorPanel({ txId }) {
       if (makeDefault) {
         await api("/me/default-coordinator", { method: "PUT", body: JSON.stringify({ email, name, emailIdentity: identity, permissions: perm }) });
       }
-      setMsg(`✅ Added to ${d.assigned} deal${d.assigned === 1 ? "" : "s"} — they'll get a portal link by email.`);
+      setMsg(tn(d.assigned, "✅ Added to {n} deal — they'll get a portal link by email.", "✅ Added to {n} deals — they'll get a portal link by email."));
       setEmail(""); setName(""); setMakeDefault(false); setShowForm(false);
       await load(); await loadMeta();
     } catch (e) { setMsg("⚠️ " + e.message); }
@@ -108,7 +108,7 @@ export default function CoordinatorPanel({ txId }) {
     catch (e) { alert("⚠️ " + e.message); }
   };
   const remove = async (c) => {
-    if (!(await askConfirm(`Remove ${c.coordinator_name || c.coordinator_email} from this deal? They lose access immediately.`, { okLabel: tr("Remove"), danger: true }))) return;
+    if (!(await askConfirm(tr("Remove {v1} from this deal? They lose access immediately.", { v1: c.coordinator_name || c.coordinator_email }), { okLabel: tr("Remove"), danger: true }))) return;
     try { await api(`/transactions/${txId}/coordinator/${c.id}`, { method: "DELETE" }); await load(); }
     catch (e) { alert("⚠️ " + e.message); }
   };
@@ -224,7 +224,7 @@ export default function CoordinatorPanel({ txId }) {
           </label>
 
           <div style={{ display: "flex", gap: 8 }}>
-            <button style={btn(true)} disabled={busy || !email.trim()} onClick={submit}>{busy ? tr("Adding…") : `Add to ${picked.size} deal${picked.size === 1 ? "" : "s"}`}</button>
+            <button style={btn(true)} disabled={busy || !email.trim()} onClick={submit}>{busy ? tr("Adding…") : tn(picked.size, "Add to {n} deal", "Add to {n} deals")}</button>
             <button style={btn(false)} onClick={() => { setShowForm(false); setMsg(""); }}>{tr("Cancel")}</button>
           </div>
         </div>

@@ -8,6 +8,7 @@
 //   - wrapped in a local ErrorBoundary (preserves the source's crash guard)
 // Do NOT change the math or the seller-report design here — see CLAUDE.md.
 // ============================================================================
+import { t as tr, tn } from "../i18n";
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import Papa from 'papaparse';
 import './cmaTool.css';
@@ -39,48 +40,48 @@ function MLSGuide() {
     <div className="mls-guide">
       <div className="mls-guide-header" onClick={() => setOpen(!open)}>
         <div>
-          <div className="mls-guide-title">📋 MLS Search Setup — How to pull the right data</div>
+          <div className="mls-guide-title">{tr("📋 MLS Search Setup — How to pull the right data")}</div>
         </div>
-        <div className="mls-guide-icon">{open ? '▲ HIDE' : '▼ SHOW'}</div>
+        <div className="mls-guide-icon">{open ? tr("▲ HIDE") : tr("▼ SHOW")}</div>
       </div>
       {open && (
         <div className="mls-guide-body">
-          <p>The quality of your CMA depends entirely on pulling the right comps from MLS. Use these search parameters every time. For best results, save these as a named search in MLS so it's one click for every future CMA.</p>
-          <h4>Search Parameters</h4>
+          <p>{tr("The quality of your CMA depends entirely on pulling the right comps from MLS. Use these search parameters every time. For best results, save these as a named search in MLS so it's one click for every future CMA.")}</p>
+          <h4>{tr("Search Parameters")}</h4>
           <table>
-            <thead><tr><th>Parameter</th><th>Setting</th></tr></thead>
+            <thead><tr><th>{tr("Parameter")}</th><th>{tr("Setting")}</th></tr></thead>
             <tbody>
-              <tr><td>Status</td><td>Sold + Pending + Active + Expired (all four)</td></tr>
-              <tr><td>Property Type</td><td>Match subject (Single Family Detached, Townhouse, etc.)</td></tr>
-              <tr><td>Geographic</td><td>Same subdivision first; 0.5 mile radius as fallback</td></tr>
-              <tr><td>Heated Sqft</td><td>Subject ±15-20% (e.g., 2,541 sqft → 2,000-3,000)</td></tr>
-              <tr><td>Beds</td><td>Subject ±1 (e.g., 4 BR → 3-5 BR)</td></tr>
-              <tr><td>Baths</td><td>No filter — adjust in analysis</td></tr>
-              <tr><td>Year Built</td><td>Subject ±10 years (±15 for older neighborhoods)</td></tr>
-              <tr><td>Close Date</td><td>Last 6 months primary; expand to 9-12 if needed</td></tr>
-              <tr><td>Pool</td><td>No filter — tool calculates pool premium</td></tr>
-              <tr><td>Lot Size</td><td>No filter — tool handles lot adjustment</td></tr>
+              <tr><td>{tr("Status")}</td><td>{tr("Sold + Pending + Active + Expired (all four)")}</td></tr>
+              <tr><td>{tr("Property Type")}</td><td>{tr("Match subject (Single Family Detached, Townhouse, etc.)")}</td></tr>
+              <tr><td>{tr("Geographic")}</td><td>{tr("Same subdivision first; 0.5 mile radius as fallback")}</td></tr>
+              <tr><td>{tr("Heated Sqft")}</td><td>{tr("Subject ±15-20% (e.g., 2,541 sqft → 2,000-3,000)")}</td></tr>
+              <tr><td>{tr("Beds")}</td><td>{tr("Subject ±1 (e.g., 4 BR → 3-5 BR)")}</td></tr>
+              <tr><td>{tr("Baths")}</td><td>{tr("No filter — adjust in analysis")}</td></tr>
+              <tr><td>{tr("Year Built")}</td><td>{tr("Subject ±10 years (±15 for older neighborhoods)")}</td></tr>
+              <tr><td>{tr("Close Date")}</td><td>{tr("Last 6 months primary; expand to 9-12 if needed")}</td></tr>
+              <tr><td>{tr("Pool")}</td><td>{tr("No filter — tool calculates pool premium")}</td></tr>
+              <tr><td>{tr("Lot Size")}</td><td>{tr("No filter — tool handles lot adjustment")}</td></tr>
             </tbody>
           </table>
-          <h4>Required CSV Export Columns</h4>
-          <p>The tool reads these standard MLS export fields. Set up a "CMA Export" report view in MLS with these columns:</p>
-          <p><strong>Required:</strong> <code>Address</code>, <code>City</code>, <code>Zip</code>, <code>Legal Subdivision Name</code>, <code>Heated Area</code>, <code>Current Price</code>, <code>LP / SqFt</code>, <code>SP / SqFt</code>, <code>Close Date</code>, <code>On Market Date</code>, <code>CDOM</code>, <code>ADOM</code>, <code>Status</code></p>
-          <p><strong>Recommended:</strong> <code>Beds</code>, <code>Full Baths</code>, <code>Half Baths</code>, <code>Year Built</code>, <code>Pool</code>, <code>View</code>, <code>Water View</code>, <code>Lot Size Acres</code>, <code>Sold Terms</code>, <code>List Agent</code>, <code>Selling Agent</code>, <code>Stories</code> or <code>Levels</code>, <code>Garage Spaces</code></p>
-          <h4>Before You Upload — Pre-Flight Checklist</h4>
+          <h4>{tr("Required CSV Export Columns")}</h4>
+          <p>{tr("The tool reads these standard MLS export fields. Set up a \"CMA Export\" report view in MLS with these columns:")}</p>
+          <p><strong>{tr("Required:")}</strong> <code>Address</code>, <code>City</code>, <code>Zip</code>, <code>Legal Subdivision Name</code>, <code>Heated Area</code>, <code>Current Price</code>, <code>LP / SqFt</code>, <code>SP / SqFt</code>, <code>Close Date</code>, <code>On Market Date</code>, <code>CDOM</code>, <code>ADOM</code>, <code>Status</code></p>
+          <p><strong>{tr("Recommended:")}</strong> <code>Beds</code>, <code>Full Baths</code>, <code>Half Baths</code>, <code>Year Built</code>, <code>Pool</code>, <code>View</code>, <code>Water View</code>, <code>Lot Size Acres</code>, <code>Sold Terms</code>, <code>List Agent</code>, <code>Selling Agent</code>, <code>Stories</code> {tr("or")} <code>Levels</code>, <code>Garage Spaces</code></p>
+          <h4>{tr("Before You Upload — Pre-Flight Checklist")}</h4>
           <ul>
-            <li><strong>Aim for 8-15 comps</strong> after filtering — fewer than 5 is risky, more than 20 dilutes the analysis</li>
-            <li><strong>Check for distress sales</strong> — foreclosure, family transfer, estate liquidation — exclude these manually</li>
-            <li><strong>Spread closing dates</strong> across the period; all 8 closing in one month = thin dataset</li>
-            <li><strong>Exclude the subject's own prior sale</strong> if it shows up</li>
-            <li><strong>Save the CSV as comma-delimited</strong>, not XLSX</li>
+            <li><strong>{tr("Aim for 8-15 comps")}</strong> {tr("after filtering — fewer than 5 is risky, more than 20 dilutes the analysis")}</li>
+            <li><strong>{tr("Check for distress sales")}</strong> {tr("— foreclosure, family transfer, estate liquidation — exclude these manually")}</li>
+            <li><strong>{tr("Spread closing dates")}</strong> {tr("across the period; all 8 closing in one month = thin dataset")}</li>
+            <li><strong>{tr("Exclude the subject's own prior sale")}</strong> {tr("if it shows up")}</li>
+            <li><strong>{tr("Save the CSV as comma-delimited")}</strong>{tr(", not XLSX")}</li>
           </ul>
-          <h4>For Low-Volume Subdivisions</h4>
-          <p>When a community has fewer than 5 closed sales in 6 months (e.g., Isles of Lake Nona, smaller luxury enclaves):</p>
+          <h4>{tr("For Low-Volume Subdivisions")}</h4>
+          <p>{tr("When a community has fewer than 5 closed sales in 6 months (e.g., Isles of Lake Nona, smaller luxury enclaves):")}</p>
           <ul>
-            <li>Expand the time window to 12 months in the same subdivision (do NOT cross subdivision lines first)</li>
-            <li>Widen sqft tolerance to ±25%</li>
-            <li>Use Active + Expired heavily as context — they show current competition and rejected prices</li>
-            <li>Only as last resort, pull from a directly-adjacent subdivision with same school zone and builder profile</li>
+            <li>{tr("Expand the time window to 12 months in the same subdivision (do NOT cross subdivision lines first)")}</li>
+            <li>{tr("Widen sqft tolerance to ±25%")}</li>
+            <li>{tr("Use Active + Expired heavily as context — they show current competition and rejected prices")}</li>
+            <li>{tr("Only as last resort, pull from a directly-adjacent subdivision with same school zone and builder profile")}</li>
           </ul>
         </div>
       )}
@@ -281,7 +282,7 @@ function CmaTool({ tx, token, currentUser, standalone = false, initialCma = null
   }, [draftKey, mode, comps, selectedIds, filename, subject, upgrades, marketOverride, filters, statusFilter, rentalComps, rentalFilename]);
 
   const resetCMA = async () => {
-    if (await askConfirm('Start a new CMA? This will clear the comps and analysis (subject details reset to the transaction).', { okLabel: 'Start new CMA', danger: true })) {
+    if (await askConfirm(tr("Start a new CMA? This will clear the comps and analysis (subject details reset to the transaction)."), { okLabel: tr("Start new CMA"), danger: true })) {
       try { localStorage.removeItem(draftKey); } catch { /* ignore */ }
       setComps([]);
       setSelectedIds(new Set());
@@ -661,10 +662,10 @@ function CmaTool({ tx, token, currentUser, standalone = false, initialCma = null
   const standaloneBar = standalone ? (
     <>
       <button className="btn btn-ghost" onClick={saveStandalone} disabled={saveState?.status === 'saving'}>
-        {saveState?.status === 'saving' ? 'Saving…' : (standaloneCmaId ? '💾 Update CMA' : '💾 Save CMA')}
+        {saveState?.status === 'saving' ? tr("Saving…") : (standaloneCmaId ? tr("💾 Update CMA") : tr("💾 Save CMA"))}
       </button>
-      <button className="btn btn-primary" onClick={convertToTransaction} disabled={saveState?.status === 'saving'} title="Create a transaction pre-filled from this CMA">
-        🏠 Create Transaction
+      <button className="btn btn-primary" onClick={convertToTransaction} disabled={saveState?.status === 'saving'} title={tr("Create a transaction pre-filled from this CMA")}>
+        {tr("🏠 Create Transaction")}
       </button>
       {/* Show save/validation feedback right next to the buttons — it also renders
           lower down, but a user clicking Create Transaction at the top never saw
@@ -687,18 +688,18 @@ function CmaTool({ tx, token, currentUser, standalone = false, initialCma = null
         <header className="masthead no-print">
           <div className="container masthead-inner">
             <div>
-              <div className="brand">{brokerageBrand} <span className="brand-mark">·</span> CMA Intelligence</div>
-              <div className="brand-sub">Comparative Market Analysis · Pricing Discipline System</div>
+              <div className="brand">{brokerageBrand} <span className="brand-mark">·</span> {tr("CMA Intelligence")}</div>
+              <div className="brand-sub">{tr("Comparative Market Analysis · Pricing Discipline System")}</div>
             </div>
             <div className="header-actions">
               {analysis && (
                 <div className="mode-toggle">
-                  <button className={`mode-btn ${mode === 'agent' ? 'active' : ''}`} onClick={() => setMode('agent')}>Agent View</button>
-                  <button className={`mode-btn ${mode === 'seller' ? 'active' : ''}`} onClick={() => setMode('seller')}>Seller Report</button>
+                  <button className={`mode-btn ${mode === 'agent' ? 'active' : ''}`} onClick={() => setMode('agent')}>{tr("Agent View")}</button>
+                  <button className={`mode-btn ${mode === 'seller' ? 'active' : ''}`} onClick={() => setMode('seller')}>{tr("Seller Report")}</button>
                 </div>
               )}
               {standaloneBar}
-              {(comps.length > 0 || subject.address) && <button className="btn-danger" onClick={resetCMA}>+ New CMA</button>}
+              {(comps.length > 0 || subject.address) && <button className="btn-danger" onClick={resetCMA}>{tr("+ New CMA")}</button>}
             </div>
           </div>
         </header>
@@ -732,29 +733,27 @@ function CmaTool({ tx, token, currentUser, standalone = false, initialCma = null
             return (
               <section className="section no-print">
                 <div style={{ background: '#f0f9f4', border: '1px solid var(--green)', borderRadius: 2, padding: '16px 20px' }}>
-                  <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 8, color: 'var(--green)' }}>✓ Property details already on file (from intake)</div>
+                  <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 8, color: 'var(--green)' }}>{tr("✓ Property details already on file (from intake)")}</div>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                     {chips.map((c, i) => <span key={i} style={chipStyle}>{c}</span>)}
                   </div>
                   {upLabels.length > 0 && (
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center', marginTop: 8 }}>
-                      <span style={{ fontSize: 11, color: 'var(--muted)' }}>Upgrades:</span>
+                      <span style={{ fontSize: 11, color: 'var(--muted)' }}>{tr("Upgrades:")}</span>
                       {upLabels.map((u, i) => <span key={i} style={chipStyle}>{u}</span>)}
                     </div>
                   )}
-                  <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 10 }}>These auto-fill the Subject step automatically once you import comps — edit anything there.</div>
+                  <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 10 }}>{tr("These auto-fill the Subject step automatically once you import comps — edit anything there.")}</div>
                 </div>
               </section>
             );
           })()}
 
           <section className="section no-print">
-            <div className="section-num">01 · DATA</div>
-            <h2 className="section-title">Import MLS comp data</h2>
+            <div className="section-num">{tr("01 · DATA")}</div>
+            <h2 className="section-title">{tr("Import MLS comp data")}</h2>
             <p className="section-sub">
-              A <strong>comp</strong> is a comparable, recently-sold home near your property. In your MLS, search nearby
-              sold (plus active/pending) listings, <strong>export the results as a CSV file</strong>, and drop it below.
-              New to this? Open <strong>📋 MLS Search Setup</strong> above for the exact search settings and the columns to include.
+              A <strong>{tr("comp")}</strong> {tr("is a comparable, recently-sold home near your property. In your MLS, search nearby sold (plus active/pending) listings,")} <strong>{tr("export the results as a CSV file")}</strong>{tr(", and drop it below. New to this? Open")} <strong>{tr("📋 MLS Search Setup")}</strong> {tr("above for the exact search settings and the columns to include.")}
             </p>
             {comps.length === 0 ? (
               <div
@@ -767,8 +766,8 @@ function CmaTool({ tx, token, currentUser, standalone = false, initialCma = null
                 <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" />
                 </svg>
-                <div className="primary">Drop your MLS CSV export here</div>
-                <div className="secondary">or click to choose the .csv file from your computer</div>
+                <div className="primary">{tr("Drop your MLS CSV export here")}</div>
+                <div className="secondary">{tr("or click to choose the .csv file from your computer")}</div>
                 <input ref={fileInputRef} type="file" accept=".csv" onChange={(e) => handleFile(e.target.files[0])} />
               </div>
             ) : null}
@@ -777,19 +776,19 @@ function CmaTool({ tx, token, currentUser, standalone = false, initialCma = null
                 {!manualOpen ? (
                   <button onClick={() => setManualOpen(true)}
                     style={{ background: 'none', border: '1px dashed #b8a26b', color: '#0c4a6e', borderRadius: 8, padding: '10px 18px', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
-                    ✍️ No spreadsheet? Type 3–8 comps by hand instead
+                    {tr("✍️ No spreadsheet? Type 3–8 comps by hand instead")}
                   </button>
                 ) : (
                   <div style={{ background: '#fff', border: '1px solid var(--rule)', borderRadius: 8, padding: 16 }}>
-                    <div style={{ fontWeight: 800, fontSize: 14, marginBottom: 4 }}>✍️ Type your comps</div>
-                    <div style={{ fontSize: 12, color: '#666666', marginBottom: 12 }}>Pull recently-sold homes near the property from your MLS app or Realtor.com — address, sold price, and heated sqft are all that's required. 3 minimum; 5–8 is better.</div>
+                    <div style={{ fontWeight: 800, fontSize: 14, marginBottom: 4 }}>{tr("✍️ Type your comps")}</div>
+                    <div style={{ fontSize: 12, color: '#666666', marginBottom: 12 }}>{tr("Pull recently-sold homes near the property from your MLS app or Realtor.com — address, sold price, and heated sqft are all that's required. 3 minimum; 5–8 is better.")}</div>
                     <div style={{ overflowX: 'auto' }}>
                       <table style={{ borderCollapse: 'collapse', width: '100%', fontSize: 12.5 }}>
                         <thead><tr>{['Address *', 'Status', 'Price ($) *', 'Heated sqft *', 'Sold date', 'Beds', 'Baths', 'Year built'].map(h => <th key={h} style={{ textAlign: 'left', padding: '4px 6px', color: '#666666', fontWeight: 700, whiteSpace: 'nowrap' }}>{h}</th>)}</tr></thead>
                         <tbody>
                           {manualRows.map((r, i) => (
                             <tr key={i}>
-                              <td style={{ padding: 3 }}><input value={r.address} onChange={e => setManualRows(rs => rs.map((x, j) => j === i ? { ...x, address: e.target.value } : x))} placeholder="123 Oak St" style={{ width: 170, padding: 6, border: '1px solid #ddd', borderRadius: 4, fontFamily: 'inherit' }} /></td>
+                              <td style={{ padding: 3 }}><input value={r.address} onChange={e => setManualRows(rs => rs.map((x, j) => j === i ? { ...x, address: e.target.value } : x))} placeholder={tr("123 Oak St")} style={{ width: 170, padding: 6, border: '1px solid #ddd', borderRadius: 4, fontFamily: 'inherit' }} /></td>
                               <td style={{ padding: 3 }}><select value={r.status} onChange={e => setManualRows(rs => rs.map((x, j) => j === i ? { ...x, status: e.target.value } : x))} style={{ padding: 6, border: '1px solid #ddd', borderRadius: 4, fontFamily: 'inherit' }}><option>Sold</option><option>Active</option><option>Pending</option></select></td>
                               <td style={{ padding: 3 }}><input value={r.price} onChange={e => setManualRows(rs => rs.map((x, j) => j === i ? { ...x, price: e.target.value.replace(/[^0-9.]/g, '') } : x))} placeholder="450000" style={{ width: 82, padding: 6, border: '1px solid #ddd', borderRadius: 4, fontFamily: 'inherit' }} /></td>
                               <td style={{ padding: 3 }}><input value={r.sqft} onChange={e => setManualRows(rs => rs.map((x, j) => j === i ? { ...x, sqft: e.target.value.replace(/[^0-9]/g, '') } : x))} placeholder="1850" style={{ width: 66, padding: 6, border: '1px solid #ddd', borderRadius: 4, fontFamily: 'inherit' }} /></td>
@@ -804,10 +803,10 @@ function CmaTool({ tx, token, currentUser, standalone = false, initialCma = null
                     </div>
                     <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
                       {manualRows.length < 8 && (
-                        <button onClick={() => setManualRows(rs => [...rs, { ...emptyManualRow }])} style={{ background: 'none', border: '1px dashed #ccc', color: '#666', borderRadius: 6, padding: '7px 14px', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>+ Add another comp</button>
+                        <button onClick={() => setManualRows(rs => [...rs, { ...emptyManualRow }])} style={{ background: 'none', border: '1px dashed #ccc', color: '#666', borderRadius: 6, padding: '7px 14px', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>{tr("+ Add another comp")}</button>
                       )}
-                      <button onClick={() => setManualOpen(false)} style={{ background: 'none', border: '1px solid #ddd', color: '#666', borderRadius: 6, padding: '7px 14px', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>Cancel</button>
-                      <button onClick={applyManualComps} style={{ background: 'var(--green, #1E8449)', border: 'none', color: '#fff', borderRadius: 6, padding: '7px 18px', fontSize: 12.5, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit' }}>✓ Use these comps</button>
+                      <button onClick={() => setManualOpen(false)} style={{ background: 'none', border: '1px solid #ddd', color: '#666', borderRadius: 6, padding: '7px 14px', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>{tr("Cancel")}</button>
+                      <button onClick={applyManualComps} style={{ background: 'var(--green, #1E8449)', border: 'none', color: '#fff', borderRadius: 6, padding: '7px 18px', fontSize: 12.5, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit' }}>{tr("✓ Use these comps")}</button>
                     </div>
                   </div>
                 )}
@@ -817,25 +816,25 @@ function CmaTool({ tx, token, currentUser, standalone = false, initialCma = null
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--green)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontWeight: 500, fontSize: 14 }}>{filename}</div>
-                  <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>{comps.length} comps loaded</div>
+                  <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>{comps.length} {tr("comps loaded")}</div>
                 </div>
-                <button className="btn-mini" onClick={() => { setComps([]); setSelectedIds(new Set()); setFilename(''); }}>Replace file</button>
+                <button className="btn-mini" onClick={() => { setComps([]); setSelectedIds(new Set()); setFilename(''); }}>{tr("Replace file")}</button>
               </div>
             )}
           </section>
 
           {comps.length > 0 && (
             <section className="section no-print">
-              <div className="section-num">02 · SUBJECT</div>
-              <h2 className="section-title">Subject property details</h2>
-              <p className="section-sub">Square footage is required. Every other field improves the accuracy of the price.</p>
+              <div className="section-num">{tr("02 · SUBJECT")}</div>
+              <h2 className="section-title">{tr("Subject property details")}</h2>
+              <p className="section-sub">{tr("Square footage is required. Every other field improves the accuracy of the price.")}</p>
 
               <div className="form-card">
-                <div className="form-card-title">Property basics</div>
+                <div className="form-card-title">{tr("Property basics")}</div>
                 <div className="form-grid">
-                  <div className="field"><label className="field-label">Address</label><input type="text" placeholder="13346 Alderley Dr" value={subject.address} onChange={(e) => setSubject({ ...subject, address: e.target.value })} /></div>
+                  <div className="field"><label className="field-label">{tr("Address")}</label><input type="text" placeholder={tr("13346 Alderley Dr")} value={subject.address} onChange={(e) => setSubject({ ...subject, address: e.target.value })} /></div>
                   <div className="field">
-                    <label className="field-label">Property Type</label>
+                    <label className="field-label">{tr("Property Type")}</label>
                     <select value={subject.propertyType} onChange={(e) => {
                       const next = e.target.value;
                       // Switching to a lot-less type clears the lot inputs so a
@@ -844,139 +843,139 @@ function CmaTool({ tx, token, currentUser, standalone = false, initialCma = null
                         ? { ...sub, propertyType: next }
                         : { ...sub, propertyType: next, lotSize: '', lotQuality: 'standard' });
                     }}>
-                      {PROPERTY_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                      {PROPERTY_TYPES.map(t => <option key={t} value={t}>{tr(t)}</option>)}
                     </select>
                   </div>
-                  <div className="field"><label className="field-label">Heated Sqft <span className="opt">required</span></label><input type="number" placeholder="3170" value={subject.sqft} onChange={(e) => setSubject({ ...subject, sqft: e.target.value })} /></div>
-                  <div className="field"><label className="field-label">Beds</label><input type="number" placeholder="4" value={subject.beds} onChange={(e) => setSubject({ ...subject, beds: e.target.value })} /></div>
-                  <div className="field"><label className="field-label">Year Built</label><input type="number" placeholder="2019" value={subject.yearBuilt} onChange={(e) => setSubject({ ...subject, yearBuilt: e.target.value })} /></div>
+                  <div className="field"><label className="field-label">{tr("Heated Sqft")} <span className="opt">{tr("required")}</span></label><input type="number" placeholder="3170" value={subject.sqft} onChange={(e) => setSubject({ ...subject, sqft: e.target.value })} /></div>
+                  <div className="field"><label className="field-label">{tr("Beds")}</label><input type="number" placeholder="4" value={subject.beds} onChange={(e) => setSubject({ ...subject, beds: e.target.value })} /></div>
+                  <div className="field"><label className="field-label">{tr("Year Built")}</label><input type="number" placeholder="2019" value={subject.yearBuilt} onChange={(e) => setSubject({ ...subject, yearBuilt: e.target.value })} /></div>
                   {hasOwnLot(subject.propertyType) && (
-                  <div className="field"><label className="field-label">Lot Size (acres)</label><input type="number" step="0.01" placeholder="0.20" value={subject.lotSize} onChange={(e) => setSubject({ ...subject, lotSize: e.target.value })} /></div>
+                  <div className="field"><label className="field-label">{tr("Lot Size (acres)")}</label><input type="number" step="0.01" placeholder="0.20" value={subject.lotSize} onChange={(e) => setSubject({ ...subject, lotSize: e.target.value })} /></div>
                   )}
                 </div>
               </div>
 
               <div className="form-card" style={{ borderLeft: '4px solid var(--accent)' }}>
-                <div className="form-card-title">⭐ Condition & lot — based on Liz's in-person walkthrough</div>
-                <div className="form-card-sub">These are the most important inputs for an accurate price. The comp data cannot tell us about condition or lot quality — Liz's judgment from the listing appointment does. Be honest. A home rated higher than reality will sit on the market.</div>
+                <div className="form-card-title">{tr("⭐ Condition & lot — based on Liz's in-person walkthrough")}</div>
+                <div className="form-card-sub">{tr("These are the most important inputs for an accurate price. The comp data cannot tell us about condition or lot quality — Liz's judgment from the listing appointment does. Be honest. A home rated higher than reality will sit on the market.")}</div>
                 <div className="form-grid">
                   <div className="field">
-                    <label className="field-label">Condition Tier</label>
+                    <label className="field-label">{tr("Condition Tier")}</label>
                     <select value={subject.conditionTier} onChange={(e) => setSubject({ ...subject, conditionTier: e.target.value })}>
-                      <option value="premium">Premium / Recently Renovated (+7%)</option>
-                      <option value="move_in">Move-In Ready (baseline)</option>
-                      <option value="original_maintained">Original but Maintained (−4%)</option>
-                      <option value="needs_work">Original + Needs Work (−10%)</option>
-                      <option value="major_updates">Major Updates Needed (−17%)</option>
+                      <option value="premium">{tr("Premium / Recently Renovated (+7%)")}</option>
+                      <option value="move_in">{tr("Move-In Ready (baseline)")}</option>
+                      <option value="original_maintained">{tr("Original but Maintained (−4%)")}</option>
+                      <option value="needs_work">{tr("Original + Needs Work (−10%)")}</option>
+                      <option value="major_updates">{tr("Major Updates Needed (−17%)")}</option>
                     </select>
                   </div>
                   {hasOwnLot(subject.propertyType) && (
                   <div className="field">
-                    <label className="field-label">Lot Quality</label>
+                    <label className="field-label">{tr("Lot Quality")}</label>
                     <select value={subject.lotQuality} onChange={(e) => setSubject({ ...subject, lotQuality: e.target.value })}>
-                      <option value="premium">Premium Lot (+5%)</option>
-                      <option value="above_avg">Above-Average Lot (+2%)</option>
-                      <option value="standard">Standard Lot (baseline)</option>
-                      <option value="below_avg">Below-Average Lot (−3%)</option>
-                      <option value="problem">Problem Lot (−7%)</option>
+                      <option value="premium">{tr("Premium Lot (+5%)")}</option>
+                      <option value="above_avg">{tr("Above-Average Lot (+2%)")}</option>
+                      <option value="standard">{tr("Standard Lot (baseline)")}</option>
+                      <option value="below_avg">{tr("Below-Average Lot (−3%)")}</option>
+                      <option value="problem">{tr("Problem Lot (−7%)")}</option>
                     </select>
                   </div>
                   )}
                 </div>
                 <div style={{ marginTop: 14, fontSize: 12, color: 'var(--muted)', lineHeight: 1.5 }}>
-                  <strong style={{ color: 'var(--accent)' }}>Tip:</strong> If you have photos of the kitchen, baths, flooring, and living spaces, upload them to a chat with Claude and ask "What condition tier?" for a second opinion before selecting.
+                  <strong style={{ color: 'var(--accent)' }}>{tr("Tip:")}</strong> {tr("If you have photos of the kitchen, baths, flooring, and living spaces, upload them to a chat with Claude and ask \"What condition tier?\" for a second opinion before selecting.")}
                 </div>
               </div>
 
               <div className="form-card">
-                <div className="form-card-title">Features that affect price</div>
-                <div className="form-card-sub">These all get factored into the recommended price using comp data where possible, Florida rules of thumb where not.</div>
+                <div className="form-card-title">{tr("Features that affect price")}</div>
+                <div className="form-card-sub">{tr("These all get factored into the recommended price using comp data where possible, Florida rules of thumb where not.")}</div>
                 <div className="form-grid">
                   <div className="field">
-                    <label className="field-label">Pool</label>
+                    <label className="field-label">{tr("Pool")}</label>
                     <select value={subject.poolType} onChange={(e) => setSubject({ ...subject, poolType: e.target.value })}>
-                      <option value="private">Private pool (best)</option>
-                      <option value="community">Community pool only</option>
-                      <option value="none">No pool at all</option>
+                      <option value="private">{tr("Private pool (best)")}</option>
+                      <option value="community">{tr("Community pool only")}</option>
+                      <option value="none">{tr("No pool at all")}</option>
                     </select>
                   </div>
                   <div className="field">
-                    <label className="field-label">Stories</label>
+                    <label className="field-label">{tr("Stories")}</label>
                     <select value={subject.stories} onChange={(e) => setSubject({ ...subject, stories: e.target.value })}>
-                      <option value="1">1 Story</option>
-                      <option value="2">2 Story</option>
+                      <option value="1">{tr("1 Story")}</option>
+                      <option value="2">{tr("2 Story")}</option>
                     </select>
                   </div>
                   <div className="field">
-                    <label className="field-label">Garage Spaces</label>
+                    <label className="field-label">{tr("Garage Spaces")}</label>
                     <select value={subject.garageSpaces} onChange={(e) => setSubject({ ...subject, garageSpaces: e.target.value })}>
-                      <option value="1">1-car</option>
-                      <option value="2">2-car</option>
-                      <option value="3">3-car</option>
-                      <option value="4">4-car</option>
+                      <option value="1">{tr("1-car")}</option>
+                      <option value="2">{tr("2-car")}</option>
+                      <option value="3">{tr("3-car")}</option>
+                      <option value="4">{tr("4-car")}</option>
                     </select>
                   </div>
-                  <div className="checkbox-field"><input type="checkbox" id="cma-wv" checked={subject.hasWaterView} onChange={(e) => setSubject({ ...subject, hasWaterView: e.target.checked })} /><label htmlFor="cma-wv">Water view (pond/lake)</label></div>
-                  <div className="checkbox-field"><input type="checkbox" id="cma-gv" checked={subject.hasGolfView} onChange={(e) => setSubject({ ...subject, hasGolfView: e.target.checked })} /><label htmlFor="cma-gv">Golf course view</label></div>
+                  <div className="checkbox-field"><input type="checkbox" id="cma-wv" checked={subject.hasWaterView} onChange={(e) => setSubject({ ...subject, hasWaterView: e.target.checked })} /><label htmlFor="cma-wv">{tr("Water view (pond/lake)")}</label></div>
+                  <div className="checkbox-field"><input type="checkbox" id="cma-gv" checked={subject.hasGolfView} onChange={(e) => setSubject({ ...subject, hasGolfView: e.target.checked })} /><label htmlFor="cma-gv">{tr("Golf course view")}</label></div>
                 </div>
               </div>
 
               <div className="form-card">
-                <div className="form-card-title">Is this home currently listed?</div>
-                <div className="form-card-sub">If yes, the home's actual market behavior matters more than any computed price. The tool will use this to recommend the right reduction strategy when the listing has stalled.</div>
+                <div className="form-card-title">{tr("Is this home currently listed?")}</div>
+                <div className="form-card-sub">{tr("If yes, the home's actual market behavior matters more than any computed price. The tool will use this to recommend the right reduction strategy when the listing has stalled.")}</div>
                 <div className="checkbox-field" style={{ marginBottom: subject.isCurrentlyListed ? 18 : 0 }}>
                   <input type="checkbox" id="cma-listed" checked={subject.isCurrentlyListed} onChange={(e) => setSubject({ ...subject, isCurrentlyListed: e.target.checked })} />
-                  <label htmlFor="cma-listed">Yes, this home is currently on the market</label>
+                  <label htmlFor="cma-listed">{tr("Yes, this home is currently on the market")}</label>
                 </div>
                 {subject.isCurrentlyListed && (
                   <>
                     <div className="form-grid">
-                      <div className="field"><label className="field-label">Current List Price ($)</label><input type="number" placeholder="614999" value={subject.currentListPrice} onChange={(e) => setSubject({ ...subject, currentListPrice: e.target.value })} /></div>
-                      <div className="field"><label className="field-label">Days on Market</label><input type="number" placeholder="56" value={subject.currentDOM} onChange={(e) => setSubject({ ...subject, currentDOM: e.target.value })} /></div>
-                      <div className="field"><label className="field-label">Total $ Reduced So Far</label><input type="number" placeholder="44000" value={subject.priceReductions} onChange={(e) => setSubject({ ...subject, priceReductions: e.target.value })} /></div>
+                      <div className="field"><label className="field-label">{tr("Current List Price ($)")}</label><input type="number" placeholder="614999" value={subject.currentListPrice} onChange={(e) => setSubject({ ...subject, currentListPrice: e.target.value })} /></div>
+                      <div className="field"><label className="field-label">{tr("Days on Market")}</label><input type="number" placeholder="56" value={subject.currentDOM} onChange={(e) => setSubject({ ...subject, currentDOM: e.target.value })} /></div>
+                      <div className="field"><label className="field-label">{tr("Total $ Reduced So Far")}</label><input type="number" placeholder="44000" value={subject.priceReductions} onChange={(e) => setSubject({ ...subject, priceReductions: e.target.value })} /></div>
                       <div className="field">
-                        <label className="field-label">Showing Activity</label>
+                        <label className="field-label">{tr("Showing Activity")}</label>
                         <select value={subject.showingActivity} onChange={(e) => setSubject({ ...subject, showingActivity: e.target.value })}>
-                          <option value="high">High (5+/week)</option>
-                          <option value="moderate">Moderate (2-4/week)</option>
-                          <option value="low">Low (1/week or less)</option>
-                          <option value="none">None / very rare</option>
+                          <option value="high">{tr("High (5+/week)")}</option>
+                          <option value="moderate">{tr("Moderate (2-4/week)")}</option>
+                          <option value="low">{tr("Low (1/week or less)")}</option>
+                          <option value="none">{tr("None / very rare")}</option>
                         </select>
                       </div>
                       <div className="field">
-                        <label className="field-label">Offers Received</label>
+                        <label className="field-label">{tr("Offers Received")}</label>
                         <select value={subject.offersReceived} onChange={(e) => setSubject({ ...subject, offersReceived: e.target.value })}>
-                          <option value="none">None</option>
-                          <option value="lowball">Lowball offers only</option>
-                          <option value="reasonable">Reasonable but rejected</option>
-                          <option value="multiple">Multiple offers</option>
+                          <option value="none">{tr("None")}</option>
+                          <option value="lowball">{tr("Lowball offers only")}</option>
+                          <option value="reasonable">{tr("Reasonable but rejected")}</option>
+                          <option value="multiple">{tr("Multiple offers")}</option>
                         </select>
                       </div>
                     </div>
                     <div style={{ marginTop: 14, fontSize: 12, color: 'var(--muted)', lineHeight: 1.5 }}>
-                      <strong style={{ color: 'var(--accent)' }}>Total $ Reduced:</strong> Enter the dollar amount the listing has been cut since the original list price. For example, if it was listed at $659,000 and is now $614,999, enter <strong>44000</strong>. This tells the tool how aggressively the market has already rejected this home — homes with significant prior reductions need bigger further cuts to find a buyer.
+                      <strong style={{ color: 'var(--accent)' }}>{tr("Total $ Reduced:")}</strong> {tr("Enter the dollar amount the listing has been cut since the original list price. For example, if it was listed at $659,000 and is now $614,999, enter")} <strong>44000</strong>{tr(". This tells the tool how aggressively the market has already rejected this home — homes with significant prior reductions need bigger further cuts to find a buyer.")}
                     </div>
                   </>
                 )}
               </div>
 
               <div className="form-card" style={{ borderLeft: '4px solid var(--gold)' }}>
-                <div className="form-card-title">⚖ Manual price override <span style={{ fontWeight: 400, color: 'var(--muted)', fontSize: 13 }}>· optional</span></div>
-                <div className="form-card-sub">If your judgment about this specific home tells you a different number than the tool calculated, enter your price here and it replaces the recommended tier. The tool does not always have enough information to be right — Liz's experience does. Use this freely.</div>
+                <div className="form-card-title">{tr("⚖ Manual price override")} <span style={{ fontWeight: 400, color: 'var(--muted)', fontSize: 13 }}>{tr("· optional")}</span></div>
+                <div className="form-card-sub">{tr("If your judgment about this specific home tells you a different number than the tool calculated, enter your price here and it replaces the recommended tier. The tool does not always have enough information to be right — Liz's experience does. Use this freely.")}</div>
                 <div className="form-grid">
-                  <div className="field"><label className="field-label">Your List Price ($)</label><input type="number" placeholder="599000" value={subject.manualPriceOverride} onChange={(e) => setSubject({ ...subject, manualPriceOverride: e.target.value })} /></div>
-                  <div className="field" style={{ gridColumn: 'span 2' }}><label className="field-label">Why this number? <span className="opt">optional note</span></label><input type="text" placeholder="e.g., Condition tier was understated, or pond view is uniquely valuable in this pocket" value={subject.manualPriceNote} onChange={(e) => setSubject({ ...subject, manualPriceNote: e.target.value })} /></div>
+                  <div className="field"><label className="field-label">{tr("Your List Price ($)")}</label><input type="number" placeholder="599000" value={subject.manualPriceOverride} onChange={(e) => setSubject({ ...subject, manualPriceOverride: e.target.value })} /></div>
+                  <div className="field" style={{ gridColumn: 'span 2' }}><label className="field-label">{tr("Why this number?")} <span className="opt">{tr("optional note")}</span></label><input type="text" placeholder={tr("e.g., Condition tier was understated, or pond view is uniquely valuable in this pocket")} value={subject.manualPriceNote} onChange={(e) => setSubject({ ...subject, manualPriceNote: e.target.value })} /></div>
                 </div>
               </div>
 
               <div className="form-card">
-                <div className="form-card-title">Carrying cost <span style={{ fontWeight: 400, color: 'var(--muted)', fontSize: 13 }}>· optional</span></div>
-                <div className="form-card-sub">Powers the Cost of Waiting calculation. Get HOA from listing, property tax from county appraiser site, insurance from HOI dec page, mortgage P&I from seller's statement.</div>
+                <div className="form-card-title">{tr("Carrying cost")} <span style={{ fontWeight: 400, color: 'var(--muted)', fontSize: 13 }}>{tr("· optional")}</span></div>
+                <div className="form-card-sub">{tr("Powers the Cost of Waiting calculation. Get HOA from listing, property tax from county appraiser site, insurance from HOI dec page, mortgage P&I from seller's statement.")}</div>
                 <div className="form-grid">
-                  <div className="field"><label className="field-label">Monthly HOA ($)</label><input type="number" placeholder="205" value={subject.monthlyHOA} onChange={(e) => setSubject({ ...subject, monthlyHOA: e.target.value })} /></div>
-                  <div className="field"><label className="field-label">Annual Property Tax ($)</label><input type="number" placeholder="12000" value={subject.propertyTaxAnnual} onChange={(e) => setSubject({ ...subject, propertyTaxAnnual: e.target.value })} /></div>
-                  <div className="field"><label className="field-label">Annual Insurance ($)</label><input type="number" placeholder="3500" value={subject.insuranceAnnual} onChange={(e) => setSubject({ ...subject, insuranceAnnual: e.target.value })} /></div>
-                  <div className="field"><label className="field-label">Mortgage P&I ($/mo)</label><input type="number" placeholder="6500" value={subject.estMortgagePayment} onChange={(e) => setSubject({ ...subject, estMortgagePayment: e.target.value })} /></div>
+                  <div className="field"><label className="field-label">{tr("Monthly HOA ($)")}</label><input type="number" placeholder="205" value={subject.monthlyHOA} onChange={(e) => setSubject({ ...subject, monthlyHOA: e.target.value })} /></div>
+                  <div className="field"><label className="field-label">{tr("Annual Property Tax ($)")}</label><input type="number" placeholder="12000" value={subject.propertyTaxAnnual} onChange={(e) => setSubject({ ...subject, propertyTaxAnnual: e.target.value })} /></div>
+                  <div className="field"><label className="field-label">{tr("Annual Insurance ($)")}</label><input type="number" placeholder="3500" value={subject.insuranceAnnual} onChange={(e) => setSubject({ ...subject, insuranceAnnual: e.target.value })} /></div>
+                  <div className="field"><label className="field-label">{tr("Mortgage P&I ($/mo)")}</label><input type="number" placeholder="6500" value={subject.estMortgagePayment} onChange={(e) => setSubject({ ...subject, estMortgagePayment: e.target.value })} /></div>
                 </div>
               </div>
             </section>
@@ -984,66 +983,66 @@ function CmaTool({ tx, token, currentUser, standalone = false, initialCma = null
 
           {comps.length > 0 && (
             <section className="section">
-              <div className="section-num">03 · COMPS</div>
-              <h2 className="section-title">Comparable properties</h2>
-              <p className="section-sub no-print">Tap rows to select. Outliers (price-per-sqft &gt;2.5× normal deviation from median) are flagged in red and automatically excluded from tier calculations even if you select them.</p>
+              <div className="section-num">{tr("03 · COMPS")}</div>
+              <h2 className="section-title">{tr("Comparable properties")}</h2>
+              <p className="section-sub no-print">{tr("Tap rows to select. Outliers (price-per-sqft >2.5× normal deviation from median) are flagged in red and automatically excluded from tier calculations even if you select them.")}</p>
 
               {!subject.sqft && (
-                <div className="data-info"><strong>Enter the subject's Heated Sqft in section 02 above</strong> to run the pricing analysis. You can select comps now — the verdict and pricing tiers appear once sqft is set.</div>
+                <div className="data-info"><strong>{tr("Enter the subject's Heated Sqft in section 02 above")}</strong> {tr("to run the pricing analysis. You can select comps now — the verdict and pricing tiers appear once sqft is set.")}</div>
               )}
 
               {selected.length > 0 && (
                 <>
                   <div className="health-grid">
-                    <div className="health-stat sold"><div className="health-stat-val">{healthStats.SLD}</div><div className="health-stat-label">Sold</div></div>
-                    <div className="health-stat pnd"><div className="health-stat-val">{healthStats.PND}</div><div className="health-stat-label">Pending</div></div>
-                    <div className="health-stat act"><div className="health-stat-val">{healthStats.ACT}</div><div className="health-stat-label">Active</div></div>
-                    <div className="health-stat exp"><div className="health-stat-val">{healthStats.EXP}</div><div className="health-stat-label">Expired</div></div>
+                    <div className="health-stat sold"><div className="health-stat-val">{healthStats.SLD}</div><div className="health-stat-label">{tr("Sold")}</div></div>
+                    <div className="health-stat pnd"><div className="health-stat-val">{healthStats.PND}</div><div className="health-stat-label">{tr("Pending")}</div></div>
+                    <div className="health-stat act"><div className="health-stat-val">{healthStats.ACT}</div><div className="health-stat-label">{tr("Active")}</div></div>
+                    <div className="health-stat exp"><div className="health-stat-val">{healthStats.EXP}</div><div className="health-stat-label">{tr("Expired")}</div></div>
                   </div>
 
                   {outlierInfo.details.length > 0 && (
                     <div className="data-warning">
-                      <strong>⚠ {outlierInfo.details.length} outlier comp(s) detected and auto-excluded from calculations:</strong>
+                      <strong>⚠ {outlierInfo.details.length} {tr("outlier comp(s) detected and auto-excluded from calculations:")}</strong>
                       <ul style={{ marginTop: 8, marginLeft: 18 }}>
                         {outlierInfo.details.map((o) => (
-                          <li key={o.id}>{o.address} at ${o.psf.toFixed(0)}/sqft ({o.devPct > 0 ? '+' : ''}{o.devPct.toFixed(0)}% from median). Likely not comparable — consider unchecking.</li>
+                          <li key={o.id}>{o.address} {tr("at $")}{o.psf.toFixed(0)}/sqft ({o.devPct > 0 ? '+' : ''}{o.devPct.toFixed(0)}{tr("% from median). Likely not comparable — consider unchecking.")}</li>
                         ))}
                       </ul>
                     </div>
                   )}
 
-                  {healthStats.SLD === 0 && <div className="data-warning"><strong>No Sold comps selected.</strong> Pricing without closed sales is risky.</div>}
-                  {healthStats.SLD > 0 && healthStats.SLD < 3 && <div className="data-info"><strong>Only {healthStats.SLD} Sold comp(s).</strong> Add more for a stronger analysis.</div>}
-                  {healthStats.SLD >= 3 && <div className="data-good"><strong>{healthStats.SLD} Sold comps.</strong> Solid foundation. {healthStats.EXP > 0 && `${healthStats.EXP} expired listing(s) provide useful ceiling data.`}</div>}
+                  {healthStats.SLD === 0 && <div className="data-warning"><strong>{tr("No Sold comps selected.")}</strong> {tr("Pricing without closed sales is risky.")}</div>}
+                  {healthStats.SLD > 0 && healthStats.SLD < 3 && <div className="data-info"><strong>{tr("Only")} {healthStats.SLD} {tr("Sold comp(s).")}</strong> {tr("Add more for a stronger analysis.")}</div>}
+                  {healthStats.SLD >= 3 && <div className="data-good"><strong>{healthStats.SLD} {tr("Sold comps.")}</strong> {tr("Solid foundation.")} {healthStats.EXP > 0 && tr("{EXP} expired listing(s) provide useful ceiling data.", { EXP: healthStats.EXP })}</div>}
                 </>
               )}
 
               <div className="comp-table-wrap">
                 <div className="comp-controls no-print">
                   <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                    <div className={`filter-chip ${statusFilter.SLD ? 'active' : ''}`} onClick={() => setStatusFilter({ ...statusFilter, SLD: !statusFilter.SLD })}>Sold</div>
-                    <div className={`filter-chip ${statusFilter.PND ? 'active' : ''}`} onClick={() => setStatusFilter({ ...statusFilter, PND: !statusFilter.PND })}>Pending</div>
-                    <div className={`filter-chip ${statusFilter.ACT ? 'active' : ''}`} onClick={() => setStatusFilter({ ...statusFilter, ACT: !statusFilter.ACT })}>Active</div>
-                    <div className={`filter-chip ${statusFilter.EXP ? 'active' : ''}`} onClick={() => setStatusFilter({ ...statusFilter, EXP: !statusFilter.EXP })}>Expired</div>
+                    <div className={`filter-chip ${statusFilter.SLD ? 'active' : ''}`} onClick={() => setStatusFilter({ ...statusFilter, SLD: !statusFilter.SLD })}>{tr("Sold")}</div>
+                    <div className={`filter-chip ${statusFilter.PND ? 'active' : ''}`} onClick={() => setStatusFilter({ ...statusFilter, PND: !statusFilter.PND })}>{tr("Pending")}</div>
+                    <div className={`filter-chip ${statusFilter.ACT ? 'active' : ''}`} onClick={() => setStatusFilter({ ...statusFilter, ACT: !statusFilter.ACT })}>{tr("Active")}</div>
+                    <div className={`filter-chip ${statusFilter.EXP ? 'active' : ''}`} onClick={() => setStatusFilter({ ...statusFilter, EXP: !statusFilter.EXP })}>{tr("Expired")}</div>
                     <div style={{ width: 1, background: 'var(--rule)', margin: '0 4px' }}></div>
-                    <div className={`filter-chip ${filters.similarSize ? 'active' : ''}`} onClick={() => setFilters({ ...filters, similarSize: !filters.similarSize })}>Similar Size ±20%</div>
+                    <div className={`filter-chip ${filters.similarSize ? 'active' : ''}`} onClick={() => setFilters({ ...filters, similarSize: !filters.similarSize })}>{tr("Similar Size ±20%")}</div>
                     <div style={{ width: 1, background: 'var(--rule)', margin: '0 4px' }}></div>
-                    <div className={`filter-chip ${filters.timeWindow === '6' ? 'active' : ''}`} onClick={() => setFilters({ ...filters, timeWindow: '6' })}>6 mo</div>
-                    <div className={`filter-chip ${filters.timeWindow === '9' ? 'active' : ''}`} onClick={() => setFilters({ ...filters, timeWindow: '9' })}>9 mo</div>
-                    <div className={`filter-chip ${filters.timeWindow === '12' ? 'active' : ''}`} onClick={() => setFilters({ ...filters, timeWindow: '12' })}>12 mo</div>
+                    <div className={`filter-chip ${filters.timeWindow === '6' ? 'active' : ''}`} onClick={() => setFilters({ ...filters, timeWindow: '6' })}>{tr("6 mo")}</div>
+                    <div className={`filter-chip ${filters.timeWindow === '9' ? 'active' : ''}`} onClick={() => setFilters({ ...filters, timeWindow: '9' })}>{tr("9 mo")}</div>
+                    <div className={`filter-chip ${filters.timeWindow === '12' ? 'active' : ''}`} onClick={() => setFilters({ ...filters, timeWindow: '12' })}>{tr("12 mo")}</div>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <span className="comp-count"><strong>{selectedIds.size}</strong> selected · {filteredComps.length} shown · {comps.length} total</span>
-                    <button className="btn-mini" onClick={selectAll}>Select all visible</button>
-                    <button className="btn-mini" onClick={clearAll}>Clear</button>
+                    <span className="comp-count"><strong>{selectedIds.size}</strong> {tr("selected ·")} {filteredComps.length} {tr("shown ·")} {comps.length} {tr("total")}</span>
+                    <button className="btn-mini" onClick={selectAll}>{tr("Select all visible")}</button>
+                    <button className="btn-mini" onClick={clearAll}>{tr("Clear")}</button>
                   </div>
                 </div>
                 <div className="comp-table-scroll">
                   <table className="comp-table">
-                    <thead><tr><th></th><th>Status</th><th>Address</th><th>SqFt</th><th>Yr</th><th>Pool</th><th>Sty</th><th>Gar</th><th>Price</th><th>$/sf</th><th>SP/LP</th><th>DOM</th><th>Closed</th></tr></thead>
+                    <thead><tr><th></th><th>{tr("Status")}</th><th>{tr("Address")}</th><th>{tr("SqFt")}</th><th>{tr("Yr")}</th><th>{tr("Pool")}</th><th>{tr("Sty")}</th><th>{tr("Gar")}</th><th>{tr("Price")}</th><th>{tr("$/sf")}</th><th>{tr("SP/LP")}</th><th>{tr("DOM")}</th><th>{tr("Closed")}</th></tr></thead>
                     <tbody>
                       {filteredComps.length === 0 ? (
-                        <tr><td colSpan="13" style={{ padding: 40, textAlign: 'center', color: 'var(--muted)' }}>No comps match filters.</td></tr>
+                        <tr><td colSpan="13" style={{ padding: 40, textAlign: 'center', color: 'var(--muted)' }}>{tr("No comps match filters.")}</td></tr>
                       ) : (
                         filteredComps.map((c) => {
                           const isOutlier = selectedIds.has(c.id) && outlierInfo.outlierIds.has(c.id);
@@ -1051,10 +1050,10 @@ function CmaTool({ tx, token, currentUser, standalone = false, initialCma = null
                             <tr key={c.id} className={`${selectedIds.has(c.id) ? 'selected' : ''} ${isOutlier ? 'outlier' : ''}`} onClick={() => toggleComp(c.id)}>
                               <td><input type="checkbox" checked={selectedIds.has(c.id)} readOnly /></td>
                               <td><span className={`status-pill status-${c.status.toLowerCase()}`}>{c.status}</span></td>
-                              <td className="addr-cell">{c.address}{isOutlier && <span className="outlier-flag">OUTLIER</span>}</td>
+                              <td className="addr-cell">{c.address}{isOutlier && <span className="outlier-flag">{tr("OUTLIER")}</span>}</td>
                               <td className="price-cell" style={{ color: 'var(--accent)' }}>{c.sqft ? c.sqft.toLocaleString() : '—'}</td>
                               <td>{c.yearBuilt || '—'}</td>
-                              <td style={{ fontSize: 11 }}>{c.poolType === 'private' ? 'Private' : c.poolType === 'community' ? 'Comm' : '—'}</td>
+                              <td style={{ fontSize: 11 }}>{c.poolType === 'private' ? tr("Private") : c.poolType === 'community' ? tr("Comm") : '—'}</td>
                               <td>{c.stories || '—'}</td>
                               <td>{c.garageSpaces || '—'}</td>
                               <td className="price-cell">{fmtMoney(c.currentPrice)}</td>
@@ -1075,16 +1074,16 @@ function CmaTool({ tx, token, currentUser, standalone = false, initialCma = null
 
           {comps.length > 0 && subject.sqft && (
             <section className={`section ${rentalAnalysis ? '' : 'no-print'}`}>
-              <div className="section-num">RENTAL <span style={{ color: 'var(--muted)' }}>· optional</span></div>
-              <h2 className="section-title">Rent vs. sell</h2>
+              <div className="section-num">{tr("RENTAL")} <span style={{ color: 'var(--muted)' }}>{tr("· optional")}</span></div>
+              <h2 className="section-title">{tr("Rent vs. sell")}</h2>
               <p className="section-sub">
-                Upload a SEPARATE MLS export of recently <strong>leased</strong> comps (same area/size, status Leased/Rented). The tool estimates the monthly rent for this home and compares renting to selling — useful when a seller is weighing holding the property, or when advising a buyer on rent vs. buy. This is independent of the sale analysis above.
+                {tr("Upload a SEPARATE MLS export of recently")} <strong>{tr("leased")}</strong> {tr("comps (same area/size, status Leased/Rented). The tool estimates the monthly rent for this home and compares renting to selling — useful when a seller is weighing holding the property, or when advising a buyer on rent vs. buy. This is independent of the sale analysis above.")}
               </p>
               {rentalComps.length === 0 ? (
                 <div className="upload-zone" onClick={() => rentalInputRef.current.click()}>
                   <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><polyline points="9 22 9 12 15 12 15 22" /></svg>
-                  <div className="primary">Drop leased-comps CSV here</div>
-                  <div className="secondary">or click to browse — MLS export of recently rented homes</div>
+                  <div className="primary">{tr("Drop leased-comps CSV here")}</div>
+                  <div className="secondary">{tr("or click to browse — MLS export of recently rented homes")}</div>
                   <input ref={rentalInputRef} type="file" accept=".csv" onChange={(e) => handleRentalFile(e.target.files[0])} />
                 </div>
               ) : (
@@ -1092,30 +1091,30 @@ function CmaTool({ tx, token, currentUser, standalone = false, initialCma = null
                   <div style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '12px 18px', background: 'white', border: '1px solid var(--rule)', borderRadius: 2, marginBottom: 16 }}>
                     <div style={{ flex: 1 }}>
                       <div style={{ fontWeight: 500, fontSize: 14 }}>{rentalFilename}</div>
-                      <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>{rentalComps.length} leased comps loaded{rentalAnalysis ? ` · ${rentalAnalysis.count} used` : ''}</div>
+                      <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>{rentalComps.length} {tr("leased comps loaded")}{rentalAnalysis ? tr(" · {count} used", { count: rentalAnalysis.count }) : ''}</div>
                     </div>
-                    <button className="btn-mini" onClick={() => { setRentalComps([]); setRentalFilename(''); }}>Replace file</button>
+                    <button className="btn-mini" onClick={() => { setRentalComps([]); setRentalFilename(''); }}>{tr("Replace file")}</button>
                   </div>
                   {!rentalAnalysis ? (
-                    <div className="data-info"><strong>Need 2+ leased comps with rent and sqft</strong> to estimate. Check the CSV has a rent (Lease Price / Current Price) and a sqft (Heated Area / Living Area) column.</div>
+                    <div className="data-info"><strong>{tr("Need 2+ leased comps with rent and sqft")}</strong> {tr("to estimate. Check the CSV has a rent (Lease Price / Current Price) and a sqft (Heated Area / Living Area) column.")}</div>
                   ) : (
                     <div className="carry-wrap">
                       <div className="carry-grid">
-                        <div><div className="carry-stat-label">Est. Monthly Rent</div><div className="carry-stat-val">{fmtMoney(rentalAnalysis.estMonthlyRent)}</div></div>
-                        <div><div className="carry-stat-label">Annual Rent</div><div className="carry-stat-val">{fmtMoney(rentalAnalysis.annualRent)}</div></div>
-                        <div><div className="carry-stat-label">Gross Yield</div><div className="carry-stat-val">{rentalAnalysis.grossYield != null ? fmtPct(rentalAnalysis.grossYield) : '—'}</div></div>
-                        <div><div className="carry-stat-label">Rent Multiple (GRM)</div><div className="carry-stat-val">{rentalAnalysis.grm != null ? rentalAnalysis.grm.toFixed(1) : '—'}</div></div>
+                        <div><div className="carry-stat-label">{tr("Est. Monthly Rent")}</div><div className="carry-stat-val">{fmtMoney(rentalAnalysis.estMonthlyRent)}</div></div>
+                        <div><div className="carry-stat-label">{tr("Annual Rent")}</div><div className="carry-stat-val">{fmtMoney(rentalAnalysis.annualRent)}</div></div>
+                        <div><div className="carry-stat-label">{tr("Gross Yield")}</div><div className="carry-stat-val">{rentalAnalysis.grossYield != null ? fmtPct(rentalAnalysis.grossYield) : '—'}</div></div>
+                        <div><div className="carry-stat-label">{tr("Rent Multiple (GRM)")}</div><div className="carry-stat-val">{rentalAnalysis.grm != null ? rentalAnalysis.grm.toFixed(1) : '—'}</div></div>
                       </div>
                       <div className="carry-narrative">
-                        Based on <strong>${rentalAnalysis.medianRentPsf.toFixed(2)}/sqft/mo</strong> median rent across {rentalAnalysis.count} leased comps, this home would rent for about <strong>{fmtMoney(rentalAnalysis.estMonthlyRent)}/mo</strong>.{' '}
-                        {rentalAnalysis.grossYield != null && rentalAnalysis.saleValue != null && <>That's a <strong>{fmtPct(rentalAnalysis.grossYield)}</strong> gross yield on a {fmtMoney(rentalAnalysis.saleValue)} sale price. </>}
-                        {rentalAnalysis.onePercentRuleMet != null && <>The 1% rule is <strong>{rentalAnalysis.onePercentRuleMet ? 'met' : 'not met'}</strong>. </>}
+                        {tr("Based on")} <strong>${rentalAnalysis.medianRentPsf.toFixed(2)}/sqft/mo</strong> {tr("median rent across")} {rentalAnalysis.count} {tr("leased comps, this home would rent for about")} <strong>{fmtMoney(rentalAnalysis.estMonthlyRent)}/mo</strong>.{' '}
+                        {rentalAnalysis.grossYield != null && rentalAnalysis.saleValue != null && <>{tr("That's a")} <strong>{fmtPct(rentalAnalysis.grossYield)}</strong> {tr("gross yield on a")} {fmtMoney(rentalAnalysis.saleValue)} {tr("sale price.")} </>}
+                        {rentalAnalysis.onePercentRuleMet != null && <>{tr("The 1% rule is")} <strong>{rentalAnalysis.onePercentRuleMet ? tr("met") : tr("not met")}</strong>. </>}
                         {rentalAnalysis.rentVsOwn && (
                           rentalAnalysis.rentVsOwn.diff >= 0
-                            ? <>Estimated rent <strong>covers</strong> the {fmtMoney(rentalAnalysis.rentVsOwn.monthlyCarry)}/mo carrying cost with <strong>{fmtMoney(rentalAnalysis.rentVsOwn.diff)}/mo</strong> to spare — holding and renting is cash-flow positive.</>
-                            : <>Estimated rent is <strong>{fmtMoney(Math.abs(rentalAnalysis.rentVsOwn.diff))}/mo short</strong> of the {fmtMoney(rentalAnalysis.rentVsOwn.monthlyCarry)}/mo carrying cost — holding and renting is cash-flow negative.</>
+                            ? <>{tr("Estimated rent")} <strong>{tr("covers")}</strong> {tr("the")} {fmtMoney(rentalAnalysis.rentVsOwn.monthlyCarry)}/mo carrying cost with <strong>{fmtMoney(rentalAnalysis.rentVsOwn.diff)}/mo</strong> {tr("to spare — holding and renting is cash-flow positive.")}</>
+                            : <>{tr("Estimated rent is")} <strong>{fmtMoney(Math.abs(rentalAnalysis.rentVsOwn.diff))}/mo short</strong> {tr("of the")} {fmtMoney(rentalAnalysis.rentVsOwn.monthlyCarry)}/mo carrying cost — holding and renting is cash-flow negative.</>
                         )}
-                        {rentalAnalysis.saleValue == null && <span style={{ color: 'var(--muted)' }}> Enter a list price or finish the sale analysis to see yield, GRM, and the 1% rule.</span>}
+                        {rentalAnalysis.saleValue == null && <span style={{ color: 'var(--muted)' }}> {tr("Enter a list price or finish the sale analysis to see yield, GRM, and the 1% rule.")}</span>}
                       </div>
                     </div>
                   )}
@@ -1126,9 +1125,9 @@ function CmaTool({ tx, token, currentUser, standalone = false, initialCma = null
 
           {comps.length > 0 && subject.sqft && selectedIds.size >= 2 && (
             <section className="section no-print">
-              <div className="section-num">04 · UPGRADES</div>
-              <h2 className="section-title">Property upgrades</h2>
-              <p className="section-sub">Florida-tuned recovery rates. Override any cost if known.</p>
+              <div className="section-num">{tr("04 · UPGRADES")}</div>
+              <h2 className="section-title">{tr("Property upgrades")}</h2>
+              <p className="section-sub">{tr("Florida-tuned recovery rates. Override any cost if known.")}</p>
               <div className="upgrade-grid">
                 {UPGRADE_LIBRARY.map((u) => {
                   const data = upgrades[u.id] || {};
@@ -1138,8 +1137,8 @@ function CmaTool({ tx, token, currentUser, standalone = false, initialCma = null
                       <div className="upgrade-info">
                         <div className="upgrade-name">{u.name}</div>
                         <div className="upgrade-meta">
-                          Default cost: ${u.costFL.toLocaleString()} · Recovery: {(u.recovery * 100).toFixed(0)}%
-                          {data.checked && <span style={{ marginLeft: 8 }}>· Override: <input type="number" placeholder={u.costFL} value={data.customValue || ''} onChange={(e) => updateUpgradeValue(u.id, e.target.value)} style={{ width: 80, padding: '2px 4px', fontSize: 11, border: '1px solid var(--rule)', borderRadius: 2 }} onClick={(e) => e.stopPropagation()} /></span>}
+                          {tr("Default cost: $")}{u.costFL.toLocaleString()} {tr("· Recovery:")} {(u.recovery * 100).toFixed(0)}%
+                          {data.checked && <span style={{ marginLeft: 8 }}>{tr("· Override:")} <input type="number" placeholder={u.costFL} value={data.customValue || ''} onChange={(e) => updateUpgradeValue(u.id, e.target.value)} style={{ width: 80, padding: '2px 4px', fontSize: 11, border: '1px solid var(--rule)', borderRadius: 2 }} onClick={(e) => e.stopPropagation()} /></span>}
                         </div>
                       </div>
                       {data.checked && <div className="upgrade-value">+{fmtMoney((data.customValue ? parseFloat(data.customValue) : u.costFL) * u.recovery)}</div>}
@@ -1153,62 +1152,62 @@ function CmaTool({ tx, token, currentUser, standalone = false, initialCma = null
           {analysis && (
             <>
               <section className="section">
-                <div className="section-num">05 · MARKET DIRECTION</div>
-                <h2 className="section-title">Where is the market headed?</h2>
+                <div className="section-num">{tr("05 · MARKET DIRECTION")}</div>
+                <h2 className="section-title">{tr("Where is the market headed?")}</h2>
                 <div style={{ background: 'white', border: '1px solid var(--rule)', borderRadius: 2, padding: 28, marginBottom: 20 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 20, marginBottom: 20 }}>
                     <div style={{ flex: '1 1 280px' }}>
-                      <div style={{ fontFamily: "'Segoe UI', system-ui, -apple-system, sans-serif", fontSize: 10, letterSpacing: '0.15em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: 8 }}>Detected Direction</div>
+                      <div style={{ fontFamily: "'Segoe UI', system-ui, -apple-system, sans-serif", fontSize: 10, letterSpacing: '0.15em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: 8 }}>{tr("Detected Direction")}</div>
                       <div style={{ fontFamily: "'Segoe UI', system-ui, -apple-system, sans-serif", fontSize: 36, fontWeight: 600, marginBottom: 6, color: analysis.marketDirection.annualPct > 0.02 ? 'var(--green)' : analysis.marketDirection.annualPct < -0.02 ? 'var(--red)' : 'var(--ink)' }}>
-                        {analysis.marketDirection.label}
+                        {tr(analysis.marketDirection.label)}
                       </div>
                       <div style={{ fontFamily: "'Segoe UI', system-ui, -apple-system, sans-serif", fontSize: 14, color: 'var(--accent)', marginBottom: 10 }}>
-                        {analysis.marketDirection.annualPct >= 0 ? '+' : ''}{(analysis.marketDirection.annualPct * 100).toFixed(1)}% annualized
+                        {analysis.marketDirection.annualPct >= 0 ? '+' : ''}{(analysis.marketDirection.annualPct * 100).toFixed(1)}{tr("% annualized")}
                       </div>
-                      <div style={{ fontSize: 13, color: 'var(--ink-soft)' }}>{analysis.marketDirection.desc}</div>
+                      <div style={{ fontSize: 13, color: 'var(--ink-soft)' }}>{tr(analysis.marketDirection.desc)}</div>
                     </div>
                     <div className="no-print" style={{ flex: '1 1 280px' }}>
-                      <div style={{ fontFamily: "'Segoe UI', system-ui, -apple-system, sans-serif", fontSize: 10, letterSpacing: '0.15em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: 8 }}>Manual Override</div>
+                      <div style={{ fontFamily: "'Segoe UI', system-ui, -apple-system, sans-serif", fontSize: 10, letterSpacing: '0.15em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: 8 }}>{tr("Manual Override")}</div>
                       <select value={marketOverride} onChange={(e) => setMarketOverride(e.target.value)} style={{ width: '100%', padding: '10px 12px', fontSize: 14, border: '1px solid var(--rule)', borderRadius: 2, background: 'var(--paper-deep)' }}>
-                        <option value="auto">Auto-detect (recommended)</option>
-                        <option value="rising">Rising (+8%)</option>
-                        <option value="flat">Flat</option>
-                        <option value="softening_mild">Softening (-4%)</option>
-                        <option value="softening_strong">Falling (-10%)</option>
+                        <option value="auto">{tr("Auto-detect (recommended)")}</option>
+                        <option value="rising">{tr("Rising (+8%)")}</option>
+                        <option value="flat">{tr("Flat")}</option>
+                        <option value="softening_mild">{tr("Softening (-4%)")}</option>
+                        <option value="softening_strong">{tr("Falling (-10%)")}</option>
                       </select>
                     </div>
                   </div>
                 </div>
                 {analysis.marketDirection.dated && analysis.marketDirection.dated.length >= 4 && (
                   <div style={{ background: 'white', border: '1px solid var(--rule)', borderRadius: 2, padding: 24 }}>
-                    <div style={{ fontFamily: "'Segoe UI', system-ui, -apple-system, sans-serif", fontSize: 10, letterSpacing: '0.15em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: 14 }}>$/sqft trend · {analysis.marketDirection.dataPoints} sold comps</div>
+                    <div style={{ fontFamily: "'Segoe UI', system-ui, -apple-system, sans-serif", fontSize: 10, letterSpacing: '0.15em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: 14 }}>{tr("$/sqft trend ·")} {analysis.marketDirection.dataPoints} {tr("sold comps")}</div>
                     <TrendChart points={analysis.marketDirection.dated} />
                   </div>
                 )}
               </section>
 
               <section className="section">
-                <div className="section-num">06 · INVENTORY</div>
-                <h2 className="section-title">Market context</h2>
+                <div className="section-num">{tr("06 · INVENTORY")}</div>
+                <h2 className="section-title">{tr("Market context")}</h2>
                 <div className="inv-card">
                   <div className="inv-grid">
-                    <div><div className="inv-stat-label">Months Supply</div><div className="inv-stat-val">{analysis.monthsSupply.toFixed(1)}</div></div>
-                    <div><div className="inv-stat-label">Active Listings</div><div className="inv-stat-val">{comps.filter((c) => c.status === 'ACT').length}</div></div>
-                    <div><div className="inv-stat-label">Sold (12 mo)</div><div className="inv-stat-val">{comps.filter((c) => c.status === 'SLD').length}</div></div>
-                    <div><div className="inv-stat-label">Market Type</div><div className="inv-stat-val" style={{ color: analysis.invVerdict.color, fontSize: 18 }}>{analysis.invVerdict.label}</div></div>
+                    <div><div className="inv-stat-label">{tr("Months Supply")}</div><div className="inv-stat-val">{analysis.monthsSupply.toFixed(1)}</div></div>
+                    <div><div className="inv-stat-label">{tr("Active Listings")}</div><div className="inv-stat-val">{comps.filter((c) => c.status === 'ACT').length}</div></div>
+                    <div><div className="inv-stat-label">{tr("Sold (12 mo)")}</div><div className="inv-stat-val">{comps.filter((c) => c.status === 'SLD').length}</div></div>
+                    <div><div className="inv-stat-label">{tr("Market Type")}</div><div className="inv-stat-val" style={{ color: analysis.invVerdict.color, fontSize: 18 }}>{tr(analysis.invVerdict.label)}</div></div>
                   </div>
-                  <div className="inv-verdict"><strong>{analysis.invVerdict.label}.</strong> {analysis.invVerdict.desc}</div>
+                  <div className="inv-verdict"><strong>{tr(analysis.invVerdict.label)}.</strong> {tr(analysis.invVerdict.desc)}</div>
                 </div>
               </section>
 
               <section className="section">
-                <div className="section-num">07 · ADJUSTMENTS</div>
-                <h2 className="section-title">How we got to the price</h2>
-                <p className="section-sub">Full transparency on every adjustment. Use this when sellers ask "why is your number that?"</p>
+                <div className="section-num">{tr("07 · ADJUSTMENTS")}</div>
+                <h2 className="section-title">{tr("How we got to the price")}</h2>
+                <p className="section-sub">{tr("Full transparency on every adjustment. Use this when sellers ask \"why is your number that?\"")}</p>
                 <div className="adj-card">
-                  <div className="adj-title">Pricing build-up</div>
+                  <div className="adj-title">{tr("Pricing build-up")}</div>
                   <div className="adj-row base">
-                    <div className="adj-label">Base value <span className="source">${analysis.medianPsf.toFixed(0)}/sqft × {parseFloat(subject.sqft).toLocaleString()} sqft</span></div>
+                    <div className="adj-label">{tr("Base value")} <span className="source">${analysis.medianPsf.toFixed(0)}/sqft × {parseFloat(subject.sqft).toLocaleString()} {tr("sqft")}</span></div>
                     <div className="adj-value">{fmtMoney(analysis.baseValue)}</div>
                   </div>
                   {analysis.adjustments.map((a, i) => (
@@ -1219,82 +1218,82 @@ function CmaTool({ tx, token, currentUser, standalone = false, initialCma = null
                   ))}
                   {analysis.upgradeBoost > 0 && (
                     <div className="adj-row">
-                      <div className="adj-label">Upgrades <span className="source">Florida recovery rates</span></div>
+                      <div className="adj-label">{tr("Upgrades")} <span className="source">{tr("Florida recovery rates")}</span></div>
                       <div className="adj-value pos">{fmtMoneySigned(analysis.upgradeBoost)}</div>
                     </div>
                   )}
                   {Math.abs(analysis.marketAdjPct) > 0.005 && (
                     <div className="adj-row">
-                      <div className="adj-label">Market direction <span className="source">{(analysis.marketAdjPct * 100).toFixed(2)}% forward adjustment</span></div>
+                      <div className="adj-label">{tr("Market direction")} <span className="source">{(analysis.marketAdjPct * 100).toFixed(2)}{tr("% forward adjustment")}</span></div>
                       <div className={`adj-value ${analysis.marketAdjPct >= 0 ? 'pos' : 'neg'}`}>{fmtMoneySigned((analysis.baseValue + analysis.totalAdjustments + analysis.upgradeBoost) * analysis.marketAdjPct)}</div>
                     </div>
                   )}
                   <div className="adj-row total">
-                    <div className="adj-label">Comp-supported sale price <span className="source">based on adjustments above</span></div>
+                    <div className="adj-label">{tr("Comp-supported sale price")} <span className="source">{tr("based on adjustments above")}</span></div>
                     <div className="adj-value">{fmtMoney(analysis.baseValue + analysis.totalAdjustments + analysis.upgradeBoost + (analysis.baseValue + analysis.totalAdjustments + analysis.upgradeBoost) * analysis.marketAdjPct)}</div>
                   </div>
                 </div>
               </section>
 
               <section className="section">
-                <div className="section-num">08 · VERDICT</div>
-                <h2 className="section-title">The recommended list price</h2>
+                <div className="section-num">{tr("08 · VERDICT")}</div>
+                <h2 className="section-title">{tr("The recommended list price")}</h2>
 
                 {analysis.manualOverrideApplied && (
                   <div className="insight good" style={{ marginBottom: 18 }}>
-                    <strong>⚖ Manual price override active.</strong> Recommended price is set by Liz's judgment at <strong>{fmtMoney(parseFloat(subject.manualPriceOverride))}</strong>, not from the comp math.
-                    {subject.manualPriceNote && <><br /><br /><em>Reason: {subject.manualPriceNote}</em></>}
+                    <strong>{tr("⚖ Manual price override active.")}</strong> {tr("Recommended price is set by Liz's judgment at")} <strong>{fmtMoney(parseFloat(subject.manualPriceOverride))}</strong>{tr(", not from the comp math.")}
+                    {subject.manualPriceNote && <><br /><br /><em>{tr("Reason:")} {subject.manualPriceNote}</em></>}
                     <br /><br />
-                    <span style={{ fontSize: 12, color: 'var(--muted)' }}>To return to comp-based pricing, clear the "Your List Price" field above.</span>
+                    <span style={{ fontSize: 12, color: 'var(--muted)' }}>{tr("To return to comp-based pricing, clear the \"Your List Price\" field above.")}</span>
                   </div>
                 )}
                 {analysis.currentListingOverride?.wasOverridden && !analysis.manualOverrideApplied && (
                   <div className="insight warn" style={{ marginBottom: 18 }}>
-                    <strong>⚠ Current listing override active.</strong> This home has been listed at {fmtMoney(analysis.currentListingOverride.currentPrice)} for {analysis.currentListingOverride.dom} days. {analysis.currentListingOverride.failureReason}.
+                    <strong>{tr("⚠ Current listing override active.")}</strong> {tr("This home has been listed at")} {fmtMoney(analysis.currentListingOverride.currentPrice)} {tr("for")} {analysis.currentListingOverride.dom} {tr("days.")} {analysis.currentListingOverride.failureReason}.
                     {analysis.currentListingOverride.reductionAmount > 0 && (
-                      <> Already cut <strong>{fmtMoney(analysis.currentListingOverride.reductionAmount)}</strong> from original list price of <strong>{fmtMoney(analysis.currentListingOverride.originalListPrice)}</strong> — that's a <strong>{(analysis.currentListingOverride.reductionPctSoFar * 100).toFixed(1)}% reduction</strong> already absorbed by the market with no offers.</>
+                      <> {tr("Already cut")} <strong>{fmtMoney(analysis.currentListingOverride.reductionAmount)}</strong> {tr("from original list price of")} <strong>{fmtMoney(analysis.currentListingOverride.originalListPrice)}</strong> {tr("— that's a")} <strong>{(analysis.currentListingOverride.reductionPctSoFar * 100).toFixed(1)}{tr("% reduction")}</strong> {tr("already absorbed by the market with no offers.")}</>
                     )}
                     <br /><br />
-                    <strong>Staleness depth: {analysis.currentListingOverride.stalenessDepth.toUpperCase()} stale.</strong>{' '}
-                    {analysis.currentListingOverride.stalenessDepth === 'deeply' && 'The home has been deeply rejected by the market — gentle reductions have already been tried and failed. The next cut needs to be aggressive (5%+) to find a new buyer pool.'}
-                    {analysis.currentListingOverride.stalenessDepth === 'moderate' && 'The home has been moderately rejected — gentle 1-2% cuts will likely fail. Meaningful reductions (3-7%) are needed to reactivate buyer interest.'}
-                    {analysis.currentListingOverride.stalenessDepth === 'barely' && 'The home is just starting to stall. A modest reduction (2-3%) plus fresh marketing can still generate renewed activity.'}
+                    <strong>{tr("Staleness depth:")} {analysis.currentListingOverride.stalenessDepth.toUpperCase()} {tr("stale.")}</strong>{' '}
+                    {analysis.currentListingOverride.stalenessDepth === 'deeply' && tr("The home has been deeply rejected by the market — gentle reductions have already been tried and failed. The next cut needs to be aggressive (5%+) to find a new buyer pool.")}
+                    {analysis.currentListingOverride.stalenessDepth === 'moderate' && tr("The home has been moderately rejected — gentle 1-2% cuts will likely fail. Meaningful reductions (3-7%) are needed to reactivate buyer interest.")}
+                    {analysis.currentListingOverride.stalenessDepth === 'barely' && tr("The home is just starting to stall. A modest reduction (2-3%) plus fresh marketing can still generate renewed activity.")}
                     <br /><br />
                     {analysis.currentListingOverride.currentIsBelowComps ? (
-                      <>The comp math says this home should sell around <strong>{fmtMoney(analysis.currentListingOverride.compSupportedSale)}</strong>, but the home has been listed <em>below</em> that and still hasn't sold. That's a strong signal the comp math is overestimating — there are factors the data can't capture (condition, lot, marketing, layout) that buyers can see in person.</>
+                      <>{tr("The comp math says this home should sell around")} <strong>{fmtMoney(analysis.currentListingOverride.compSupportedSale)}</strong>{tr(", but the home has been listed")} <em>{tr("below")}</em> {tr("that and still hasn't sold. That's a strong signal the comp math is overestimating — there are factors the data can't capture (condition, lot, marketing, layout) that buyers can see in person.")}</>
                     ) : (
-                      <>The comp math would have recommended <strong>{fmtMoney(analysis.currentListingOverride.compRecommended)}</strong>, but that's <em>above</em> the price the market has already refused. The tool is recommending reductions based on real market behavior, not just computed comp medians.</>
+                      <>{tr("The comp math would have recommended")} <strong>{fmtMoney(analysis.currentListingOverride.compRecommended)}</strong>{tr(", but that's")} <em>{tr("above")}</em> {tr("the price the market has already refused. The tool is recommending reductions based on real market behavior, not just computed comp medians.")}</>
                     )}
                     <br /><br />
-                    <span style={{ fontSize: 12, color: 'var(--muted)' }}>The "Expected DOM" below refers to days AFTER the reduction takes effect, not total days since the original listing.</span>
+                    <span style={{ fontSize: 12, color: 'var(--muted)' }}>{tr("The \"Expected DOM\" below refers to days AFTER the reduction takes effect, not total days since the original listing.")}</span>
                   </div>
                 )}
                 {analysis.currentListingOverride && !analysis.currentListingOverride.wasOverridden && !analysis.manualOverrideApplied && (
                   <div className="insight" style={{ marginBottom: 18 }}>
-                    <strong>Currently listed at {fmtMoney(analysis.currentListingOverride.currentPrice)} for {analysis.currentListingOverride.dom} days.</strong> {analysis.currentListingOverride.staleness < 1.2 ? 'Still within normal market window — proceed with comp-based pricing.' : 'Approaching elevated DOM — watch for stalling signs over the next 2-3 weeks.'}
+                    <strong>{tr("Currently listed at")} {fmtMoney(analysis.currentListingOverride.currentPrice)} {tr("for")} {analysis.currentListingOverride.dom} {tr("days.")}</strong> {analysis.currentListingOverride.staleness < 1.2 ? tr("Still within normal market window — proceed with comp-based pricing.") : tr("Approaching elevated DOM — watch for stalling signs over the next 2-3 weeks.")}
                   </div>
                 )}
 
                 <div className="verdict-card">
                   <div className="verdict-card-inner">
-                    <div className="verdict-label">{analysis.manualOverrideApplied ? "Liz's recommended price" : analysis.currentListingOverride?.wasOverridden ? 'Recommended price reset' : 'Recommended list price'}</div>
+                    <div className="verdict-label">{analysis.manualOverrideApplied ? tr("Liz's recommended price") : analysis.currentListingOverride?.wasOverridden ? tr("Recommended price reset") : tr("Recommended list price")}</div>
                     <div className="verdict-price">{fmtMoney(recommendedTier.listPrice)}</div>
                     <div className="verdict-sub">
-                      At {fmtPsf(recommendedTier.psf)}. Expected sale: <strong>{fmtMoney(recommendedTier.expectedSale)}</strong>. {recommendedTier.isPostReduction ? <>Expected to sell in <strong>~{recommendedTier.expectedDom} days after the reduction</strong>.</> : <>Expected DOM: <strong>~{recommendedTier.expectedDom} days</strong>.</>}
+                      {tr("At")} {fmtPsf(recommendedTier.psf)}{tr(". Expected sale:")} <strong>{fmtMoney(recommendedTier.expectedSale)}</strong>. {recommendedTier.isPostReduction ? <>{tr("Expected to sell in")} <strong>~{recommendedTier.expectedDom} {tr("days after the reduction")}</strong>.</> : <>{tr("Expected DOM:")} <strong>~{recommendedTier.expectedDom} {tr("days")}</strong>.</>}
                     </div>
                     <div className="verdict-stats">
-                      <div><div className="verdict-stat-label">Median $/sqft</div><div className="verdict-stat-value">${analysis.medianPsf.toFixed(0)}</div></div>
-                      <div><div className="verdict-stat-label">Clean Comps</div><div className="verdict-stat-value">{analysis.cleanCompCount}</div></div>
-                      <div><div className="verdict-stat-label">List-to-Sale</div><div className="verdict-stat-value">{fmtPct(analysis.medianRatio)}</div></div>
-                      <div><div className="verdict-stat-label">Typical DOM</div><div className="verdict-stat-value">{analysis.medianAdom.toFixed(0)}d</div></div>
+                      <div><div className="verdict-stat-label">{tr("Median $/sqft")}</div><div className="verdict-stat-value">${analysis.medianPsf.toFixed(0)}</div></div>
+                      <div><div className="verdict-stat-label">{tr("Clean Comps")}</div><div className="verdict-stat-value">{analysis.cleanCompCount}</div></div>
+                      <div><div className="verdict-stat-label">{tr("List-to-Sale")}</div><div className="verdict-stat-value">{fmtPct(analysis.medianRatio)}</div></div>
+                      <div><div className="verdict-stat-label">{tr("Typical DOM")}</div><div className="verdict-stat-value">{analysis.medianAdom.toFixed(0)}d</div></div>
                     </div>
                   </div>
                 </div>
               </section>
 
               <section className="section">
-                <div className="section-num">09 · STRATEGY</div>
-                <h2 className="section-title">Three pricing options</h2>
+                <div className="section-num">{tr("09 · STRATEGY")}</div>
+                <h2 className="section-title">{tr("Three pricing options")}</h2>
                 <div className="tier-grid">
                   {analysis.tiers.map((t, idx) => (
                     <div key={t.name} className={`tier-card ${idx === 1 ? 'market' : ''}`}>
@@ -1302,29 +1301,29 @@ function CmaTool({ tx, token, currentUser, standalone = false, initialCma = null
                       <div className="tier-price">{fmtMoney(t.listPrice)}</div>
                       <div className="tier-psf">{fmtPsf(t.psf)}</div>
                       <div className="tier-meta">
-                        <div className="tier-meta-row"><span className="label">Expected sale</span><span className="val">{fmtMoney(t.expectedSale)}</span></div>
-                        <div className="tier-meta-row"><span className="label">{t.isPostReduction ? 'Sells in (after reduction)' : 'Expected DOM'}</span><span className="val">~{t.expectedDom} days</span></div>
-                        <div className="tier-meta-row"><span className="label">Sells in 60 days</span><span className="val">{fmtPct(t.prob60, 0)}</span></div>
-                        <div className="tier-meta-row"><span className="label">Reduction risk</span><span className="val" style={{ color: t.riskOfReduction > 0.5 ? 'var(--red)' : t.riskOfReduction > 0.2 ? 'var(--gold)' : 'var(--green)' }}>{fmtPct(t.riskOfReduction, 0)}</span></div>
+                        <div className="tier-meta-row"><span className="label">{tr("Expected sale")}</span><span className="val">{fmtMoney(t.expectedSale)}</span></div>
+                        <div className="tier-meta-row"><span className="label">{t.isPostReduction ? tr("Sells in (after reduction)") : tr("Expected DOM")}</span><span className="val">~{t.expectedDom} {tr("days")}</span></div>
+                        <div className="tier-meta-row"><span className="label">{tr("Sells in 60 days")}</span><span className="val">{fmtPct(t.prob60, 0)}</span></div>
+                        <div className="tier-meta-row"><span className="label">{tr("Reduction risk")}</span><span className="val" style={{ color: t.riskOfReduction > 0.5 ? 'var(--red)' : t.riskOfReduction > 0.2 ? 'var(--gold)' : 'var(--green)' }}>{fmtPct(t.riskOfReduction, 0)}</span></div>
                       </div>
                     </div>
                   ))}
                 </div>
                 {analysis.aggressiveWasCapped && (
-                  <div className="insight warn"><strong>Note:</strong> Aggressive tier was capped at 25% above Market to prevent unrealistic pricing. The raw upper percentile of your comp set suggested a higher number, which is usually a sign of an outlier comp influencing the math.</div>
+                  <div className="insight warn"><strong>{tr("Note:")}</strong> {tr("Aggressive tier was capped at 25% above Market to prevent unrealistic pricing. The raw upper percentile of your comp set suggested a higher number, which is usually a sign of an outlier comp influencing the math.")}</div>
                 )}
               </section>
 
               {analysis.monthlyCarry > 0 && (
                 <section className="section">
-                  <div className="section-num">10 · COST OF WAITING</div>
-                  <h2 className="section-title">The price of overpricing</h2>
+                  <div className="section-num">{tr("10 · COST OF WAITING")}</div>
+                  <h2 className="section-title">{tr("The price of overpricing")}</h2>
                   <div className="carry-wrap">
                     <div className="carry-grid">
-                      <div><div className="carry-stat-label">Monthly</div><div className="carry-stat-val">{fmtMoney(analysis.monthlyCarry)}</div></div>
-                      <div><div className="carry-stat-label">90 Days</div><div className="carry-stat-val danger">{fmtMoney(analysis.monthlyCarry * 3)}</div></div>
-                      <div><div className="carry-stat-label">180 Days</div><div className="carry-stat-val danger">{fmtMoney(analysis.monthlyCarry * 6)}</div></div>
-                      <div><div className="carry-stat-label">Aggressive Upside</div><div className="carry-stat-val">{fmtMoney(analysis.tiers[0].expectedSale - analysis.tiers[1].expectedSale)}</div></div>
+                      <div><div className="carry-stat-label">{tr("Monthly")}</div><div className="carry-stat-val">{fmtMoney(analysis.monthlyCarry)}</div></div>
+                      <div><div className="carry-stat-label">{tr("90 Days")}</div><div className="carry-stat-val danger">{fmtMoney(analysis.monthlyCarry * 3)}</div></div>
+                      <div><div className="carry-stat-label">{tr("180 Days")}</div><div className="carry-stat-val danger">{fmtMoney(analysis.monthlyCarry * 6)}</div></div>
+                      <div><div className="carry-stat-label">{tr("Aggressive Upside")}</div><div className="carry-stat-val">{fmtMoney(analysis.tiers[0].expectedSale - analysis.tiers[1].expectedSale)}</div></div>
                     </div>
                   </div>
                 </section>
@@ -1332,17 +1331,17 @@ function CmaTool({ tx, token, currentUser, standalone = false, initialCma = null
 
               {analysis.buyerAgents.length > 0 && (
                 <section className="section">
-                  <div className="section-num">11 · BUYER AGENT OUTREACH</div>
-                  <h2 className="section-title">Agents to contact when listing goes live</h2>
-                  <p className="section-sub">These selling agents have closed 2+ deals in this subdivision recently. They have active buyer pipelines for this market. Personal outreach beats MLS syndication every time at the luxury tier.</p>
+                  <div className="section-num">{tr("11 · BUYER AGENT OUTREACH")}</div>
+                  <h2 className="section-title">{tr("Agents to contact when listing goes live")}</h2>
+                  <p className="section-sub">{tr("These selling agents have closed 2+ deals in this subdivision recently. They have active buyer pipelines for this market. Personal outreach beats MLS syndication every time at the luxury tier.")}</p>
                   <div className="agent-list">
                     {analysis.buyerAgents.map((a, i) => (
                       <div key={i} className="agent-row">
                         <div>
                           <div className="agent-name">{a.name}</div>
-                          <div className="agent-meta">Most recent close: {a.latest}</div>
+                          <div className="agent-meta">{tr("Most recent close:")} {a.latest}</div>
                         </div>
-                        <div className="agent-count">{a.count} deals</div>
+                        <div className="agent-count">{a.count} {tr("deals")}</div>
                       </div>
                     ))}
                   </div>
@@ -1350,13 +1349,13 @@ function CmaTool({ tx, token, currentUser, standalone = false, initialCma = null
               )}
 
               <section className="section no-print" style={{ display: 'flex', gap: 12, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
-                <button className="btn btn-ghost" onClick={() => setMode('seller')}>View Seller Report →</button>
-                <button className="btn btn-primary" onClick={printView}>Print / Save as PDF</button>
+                <button className="btn btn-ghost" onClick={() => setMode('seller')}>{tr("View Seller Report →")}</button>
+                <button className="btn btn-primary" onClick={printView}>{tr("Print / Save as PDF")}</button>
               </section>
             </>
           )}
 
-          <footer className="footer">{branding.brokerage || brokerageBrand} · CMA Intelligence</footer>
+          <footer className="footer">{branding.brokerage || brokerageBrand} {tr("· CMA Intelligence")}</footer>
         </div>
       </div>
     );
@@ -1371,26 +1370,26 @@ function CmaTool({ tx, token, currentUser, standalone = false, initialCma = null
         <header className="masthead no-print">
           <div className="container masthead-inner">
             <div>
-              <div className="brand">{brokerageBrand} <span className="brand-mark">·</span> CMA Intelligence</div>
-              <div className="brand-sub">Seller Report</div>
+              <div className="brand">{brokerageBrand} <span className="brand-mark">·</span> {tr("CMA Intelligence")}</div>
+              <div className="brand-sub">{tr("Seller Report")}</div>
             </div>
             <div className="header-actions">
               <div className="mode-toggle">
-                <button className={`mode-btn ${mode === 'agent' ? 'active' : ''}`} onClick={() => setMode('agent')}>Agent View</button>
-                <button className={`mode-btn ${mode === 'seller' ? 'active' : ''}`} onClick={() => setMode('seller')}>Seller Report</button>
+                <button className={`mode-btn ${mode === 'agent' ? 'active' : ''}`} onClick={() => setMode('agent')}>{tr("Agent View")}</button>
+                <button className={`mode-btn ${mode === 'seller' ? 'active' : ''}`} onClick={() => setMode('seller')}>{tr("Seller Report")}</button>
               </div>
               {standaloneBar}
-              {(comps.length > 0 || subject.address) && <button className="btn-danger" onClick={resetCMA}>+ New CMA</button>}
+              {(comps.length > 0 || subject.address) && <button className="btn-danger" onClick={resetCMA}>{tr("+ New CMA")}</button>}
             </div>
           </div>
         </header>
         <div className="container">
           <div style={{ background: 'white', border: '1px solid var(--rule)', borderRadius: 2, padding: 48, textAlign: 'center', marginTop: 40 }}>
-            <h2 style={{ fontFamily: "'Segoe UI', system-ui, -apple-system, sans-serif", fontSize: 28, fontWeight: 600, marginBottom: 16 }}>Seller Report Not Ready</h2>
+            <h2 style={{ fontFamily: "'Segoe UI', system-ui, -apple-system, sans-serif", fontSize: 28, fontWeight: 600, marginBottom: 16 }}>{tr("Seller Report Not Ready")}</h2>
             <p style={{ color: 'var(--muted)', fontSize: 15, lineHeight: 1.6, marginBottom: 24, maxWidth: 500, margin: '0 auto 24px' }}>
-              The seller report needs a complete analysis. Switch back to the Agent View to make sure you have a CSV loaded, the subject sqft filled in, and at least 2 comps selected. Your data is still safe — nothing has been lost.
+              {tr("The seller report needs a complete analysis. Switch back to the Agent View to make sure you have a CSV loaded, the subject sqft filled in, and at least 2 comps selected. Your data is still safe — nothing has been lost.")}
             </p>
-            <button className="btn btn-primary" onClick={() => setMode('agent')}>← Back to Agent View</button>
+            <button className="btn btn-primary" onClick={() => setMode('agent')}>{tr("← Back to Agent View")}</button>
           </div>
         </div>
       </div>
@@ -1406,22 +1405,22 @@ function CmaTool({ tx, token, currentUser, standalone = false, initialCma = null
       <header className="masthead no-print">
         <div className="container masthead-inner">
           <div>
-            <div className="brand">{brokerageBrand} <span className="brand-mark">·</span> CMA Intelligence</div>
-            <div className="brand-sub">Seller Report</div>
+            <div className="brand">{brokerageBrand} <span className="brand-mark">·</span> {tr("CMA Intelligence")}</div>
+            <div className="brand-sub">{tr("Seller Report")}</div>
           </div>
           <div className="header-actions">
             <div className="mode-toggle">
-              <button className={`mode-btn ${mode === 'agent' ? 'active' : ''}`} onClick={() => setMode('agent')}>Agent View</button>
-              <button className={`mode-btn ${mode === 'seller' ? 'active' : ''}`} onClick={() => setMode('seller')}>Seller Report</button>
+              <button className={`mode-btn ${mode === 'agent' ? 'active' : ''}`} onClick={() => setMode('agent')}>{tr("Agent View")}</button>
+              <button className={`mode-btn ${mode === 'seller' ? 'active' : ''}`} onClick={() => setMode('seller')}>{tr("Seller Report")}</button>
             </div>
             {standaloneBar}
             {!standalone && (
               <button className="btn btn-ghost" onClick={saveToDocuments} disabled={saveState?.status === 'saving'}>
-                {saveState?.status === 'saving' ? 'Saving…' : '⬇ Save to Documents'}
+                {saveState?.status === 'saving' ? tr("Saving…") : tr("⬇ Save to Documents")}
               </button>
             )}
-            <button className="btn btn-primary" onClick={printView}>Print / Save PDF</button>
-            <button className="btn-danger" onClick={resetCMA}>+ New CMA</button>
+            <button className="btn btn-primary" onClick={printView}>{tr("Print / Save PDF")}</button>
+            <button className="btn-danger" onClick={resetCMA}>{tr("+ New CMA")}</button>
           </div>
         </div>
       </header>
@@ -1438,61 +1437,61 @@ function CmaTool({ tx, token, currentUser, standalone = false, initialCma = null
           <div className="sr-cover">
             <div className="sr-cover-inner">
               <div className="sr-brand">{brokerageBrand}</div>
-              <div className="sr-tagline">Your Pricing Analysis</div>
-              <h1 className="sr-cover-title">Pricing Your Home<br />To Actually Sell</h1>
-              <div className="sr-cover-sub">An honest, data-driven look at what your home will sell for — based on real recent sales, not guesses or wishful thinking.</div>
+              <div className="sr-tagline">{tr("Your Pricing Analysis")}</div>
+              <h1 className="sr-cover-title">{tr("Pricing Your Home")}<br />{tr("To Actually Sell")}</h1>
+              <div className="sr-cover-sub">{tr("An honest, data-driven look at what your home will sell for — based on real recent sales, not guesses or wishful thinking.")}</div>
               <div className="sr-cover-divider"></div>
             </div>
           </div>
 
           <div className="sr-property">
-            <div className="sr-property-label">Prepared for the home at</div>
-            <div className="sr-property-addr">{subject.address || 'Subject Property'}</div>
+            <div className="sr-property-label">{tr("Prepared for the home at")}</div>
+            <div className="sr-property-addr">{subject.address || tr("Subject Property")}</div>
             <div className="sr-property-details">
               {subject.propertyType && `${subject.propertyType} · `}
-              {subject.sqft && `${parseInt(subject.sqft).toLocaleString()} sqft`}
-              {subject.beds && ` · ${subject.beds} bedrooms`}
-              {subject.yearBuilt && ` · Built ${subject.yearBuilt}`}
-              {subject.poolType === 'private' && ' · Private Pool'}
-              {subject.stories === '2' && ' · 2 Story'}
-              {subject.garageSpaces && ` · ${subject.garageSpaces}-car garage`}
+              {subject.sqft && tr("{v1} sqft", { v1: parseInt(subject.sqft).toLocaleString() })}
+              {subject.beds && tr(" · {beds} bedrooms", { beds: subject.beds })}
+              {subject.yearBuilt && tr(" · Built {yearBuilt}", { yearBuilt: subject.yearBuilt })}
+              {subject.poolType === 'private' && tr(" · Private Pool")}
+              {subject.stories === '2' && tr(" · 2 Story")}
+              {subject.garageSpaces && tr(" · {garageSpaces}-car garage", { garageSpaces: subject.garageSpaces })}
             </div>
           </div>
 
           <div className="sr-section">
-            <div className="sr-eyebrow">Our Recommendation</div>
-            <h1 className="sr-h1">Here's what your home should list for.</h1>
+            <div className="sr-eyebrow">{tr("Our Recommendation")}</div>
+            <h1 className="sr-h1">{tr("Here's what your home should list for.")}</h1>
             <div className="sr-hero-price">
-              <div className="sr-hero-price-label">Recommended List Price</div>
+              <div className="sr-hero-price-label">{tr("Recommended List Price")}</div>
               <div className="sr-hero-price-val">{fmtMoney(recommendedTier.listPrice)}</div>
               <div className="sr-hero-price-psf">{fmtPsf(recommendedTier.psf)}</div>
               <div className="sr-hero-price-stats">
-                <div className="sr-hero-stat"><div className="sr-hero-stat-label">Expected Sale</div><div className="sr-hero-stat-val">{fmtMoney(recommendedTier.expectedSale)}</div></div>
-                <div className="sr-hero-stat"><div className="sr-hero-stat-label">Expected Timeline</div><div className="sr-hero-stat-val">~{recommendedTier.expectedDom} days</div></div>
-                <div className="sr-hero-stat"><div className="sr-hero-stat-label">Sells in 60 Days</div><div className="sr-hero-stat-val">{fmtPct(recommendedTier.prob60, 0)}</div></div>
+                <div className="sr-hero-stat"><div className="sr-hero-stat-label">{tr("Expected Sale")}</div><div className="sr-hero-stat-val">{fmtMoney(recommendedTier.expectedSale)}</div></div>
+                <div className="sr-hero-stat"><div className="sr-hero-stat-label">{tr("Expected Timeline")}</div><div className="sr-hero-stat-val">~{recommendedTier.expectedDom} {tr("days")}</div></div>
+                <div className="sr-hero-stat"><div className="sr-hero-stat-label">{tr("Sells in 60 Days")}</div><div className="sr-hero-stat-val">{fmtPct(recommendedTier.prob60, 0)}</div></div>
               </div>
             </div>
             <div className="sr-body">
-              <p>This price isn't a guess. It's built on <strong>{analysis.soldCount} recent sale{analysis.soldCount === 1 ? '' : 's'}</strong> of homes just like yours{analysis.expiredCount > 0 && `, plus ${analysis.expiredCount} listing${analysis.expiredCount === 1 ? '' : 's'} the market rejected at higher prices`}.</p>
-              <p>The pages that follow show you the actual sales we used, where the market is headed, and your three pricing options.</p>
+              <p>{tr("This price isn't a guess. It's built on")} <strong>{analysis.soldCount} {tr("recent sale")}{analysis.soldCount === 1 ? '' : 's'}</strong> {tr("of homes just like yours")}{analysis.expiredCount > 0 && tn(analysis.expiredCount, ", plus {n} listing the market rejected at higher prices", ", plus {n} listings the market rejected at higher prices")}.</p>
+              <p>{tr("The pages that follow show you the actual sales we used, where the market is headed, and your three pricing options.")}</p>
             </div>
           </div>
 
           <div className="sr-section">
-            <div className="sr-eyebrow">The Evidence</div>
-            <h2 className="sr-h2">What homes like yours actually sold for.</h2>
-            <div className="sr-body"><p>These are the most relevant recent sales. Buyers and appraisers will look at these same homes when deciding what yours is worth.</p></div>
+            <div className="sr-eyebrow">{tr("The Evidence")}</div>
+            <h2 className="sr-h2">{tr("What homes like yours actually sold for.")}</h2>
+            <div className="sr-body"><p>{tr("These are the most relevant recent sales. Buyers and appraisers will look at these same homes when deciding what yours is worth.")}</p></div>
             <div className="sr-comp-list">
               {selected.filter((c) => (c.status === 'SLD' || c.status === 'PND') && !outlierInfo.outlierIds.has(c.id)).slice(0, 6).map((c) => (
                 <div key={c.id} className="sr-comp-card">
                   <div>
                     <div className="sr-comp-addr">{c.address}</div>
                     <div className="sr-comp-meta">
-                      {c.sqft?.toLocaleString()} sqft
-                      {c.yearBuilt && ` · Built ${c.yearBuilt}`}
-                      {c.poolType === 'private' && ' · Private Pool'}
-                      {c.stories && ` · ${c.stories} story`}
-                      {c.status === 'PND' && ' · Pending'}
+                      {c.sqft?.toLocaleString()} {tr("sqft")}
+                      {c.yearBuilt && tr(" · Built {yearBuilt}", { yearBuilt: c.yearBuilt })}
+                      {c.poolType === 'private' && tr(" · Private Pool")}
+                      {c.stories && tr(" · {stories} story", { stories: c.stories })}
+                      {c.status === 'PND' && tr(" · Pending")}
                     </div>
                   </div>
                   <div className="sr-comp-price-col"><div className="sr-comp-price">{fmtMoney(c.currentPrice)}</div></div>
@@ -1501,114 +1500,114 @@ function CmaTool({ tx, token, currentUser, standalone = false, initialCma = null
               ))}
             </div>
             <div className="sr-key-insight">
-              <div className="sr-key-insight-label">The Bottom Line</div>
+              <div className="sr-key-insight-label">{tr("The Bottom Line")}</div>
               <div className="sr-key-insight-body">
-                Across these sales, the typical price is <strong>${analysis.medianPsf.toFixed(0)} per square foot</strong>. For your {parseInt(subject.sqft).toLocaleString()} sqft home, that's the foundation of our recommendation — then we adjusted for your specific features (pool, story count, garage, view) and any upgrades you've made.
+                {tr("Across these sales, the typical price is")} <strong>${analysis.medianPsf.toFixed(0)} {tr("per square foot")}</strong>{tr(". For your")} {parseInt(subject.sqft).toLocaleString()} {tr("sqft home, that's the foundation of our recommendation — then we adjusted for your specific features (pool, story count, garage, view) and any upgrades you've made.")}
               </div>
             </div>
           </div>
 
           {md.confidence !== 'none' && (
             <div className="sr-section">
-              <div className="sr-eyebrow">Market Trend</div>
-              <h2 className="sr-h2">{isFalling ? 'The market is moving against us.' : isRising ? 'The market is working in our favor.' : 'The market is steady right now.'}</h2>
+              <div className="sr-eyebrow">{tr("Market Trend")}</div>
+              <h2 className="sr-h2">{isFalling ? tr("The market is moving against us.") : isRising ? tr("The market is working in our favor.") : tr("The market is steady right now.")}</h2>
               <div className={`sr-market ${isFalling ? 'falling' : isRising ? 'rising' : 'flat'}`}>
-                <div className="sr-market-label">Market Direction</div>
-                <div className="sr-market-status">{md.label}{Math.abs(md.annualPct) > 0.01 && ` (${md.annualPct >= 0 ? '+' : ''}${(md.annualPct * 100).toFixed(1)}% per year)`}</div>
-                <div className="sr-market-body">{md.desc}</div>
+                <div className="sr-market-label">{tr("Market Direction")}</div>
+                <div className="sr-market-status">{tr(md.label)}{Math.abs(md.annualPct) > 0.01 && ` (${md.annualPct >= 0 ? '+' : ''}${(md.annualPct * 100).toFixed(1)}% per year)`}</div>
+                <div className="sr-market-body">{tr(md.desc)}</div>
               </div>
               <div className="sr-body">
                 {isFalling ? (
-                  <p><strong>This matters more than most sellers realize.</strong> Even pricing "at market" today means selling for less by the time the home closes — because the market keeps moving while your home sits. We've already adjusted our recommended price to where the market will <em>be</em> when your home closes — not where it was when these comps sold.</p>
+                  <p><strong>{tr("This matters more than most sellers realize.")}</strong> {tr("Even pricing \"at market\" today means selling for less by the time the home closes — because the market keeps moving while your home sits. We've already adjusted our recommended price to where the market will")} <em>{tr("be")}</em> {tr("when your home closes — not where it was when these comps sold.")}</p>
                 ) : isRising ? (
-                  <p>Recent sales show prices are appreciating. We've accounted for this in your recommended price — pricing slightly above the most recent closed sales because the market is moving with us.</p>
+                  <p>{tr("Recent sales show prices are appreciating. We've accounted for this in your recommended price — pricing slightly above the most recent closed sales because the market is moving with us.")}</p>
                 ) : (
-                  <p>A flat market gives us a clear read — your home is worth what comparable homes are selling for today, and that's not changing quickly.</p>
+                  <p>{tr("A flat market gives us a clear read — your home is worth what comparable homes are selling for today, and that's not changing quickly.")}</p>
                 )}
               </div>
             </div>
           )}
 
           <div className="sr-section">
-            <div className="sr-eyebrow">Your Choice</div>
-            <h2 className="sr-h2">You have three pricing options.</h2>
-            <div className="sr-body"><p>Many sellers think pricing high is a "free test." The data tells a different story. Here's the honest breakdown:</p></div>
+            <div className="sr-eyebrow">{tr("Your Choice")}</div>
+            <h2 className="sr-h2">{tr("You have three pricing options.")}</h2>
+            <div className="sr-body"><p>{tr("Many sellers think pricing high is a \"free test.\" The data tells a different story. Here's the honest breakdown:")}</p></div>
             <div className="sr-strategies">
               <div className="sr-strategy danger">
-                <div className="sr-strategy-badge">RISKY</div>
-                <div className="sr-strategy-label">Aggressive</div>
+                <div className="sr-strategy-badge">{tr("RISKY")}</div>
+                <div className="sr-strategy-label">{tr("Aggressive")}</div>
                 <div className="sr-strategy-price">{fmtMoney(analysis.tiers[0].listPrice)}</div>
                 <div className="sr-strategy-detail">
-                  <div className="row"><span className="lbl">Likely sells in</span><span className="v">~{analysis.tiers[0].expectedDom} days</span></div>
-                  <div className="row"><span className="lbl">60-day chance</span><span className="v">{fmtPct(analysis.tiers[0].prob60, 0)}</span></div>
-                  <div className="row"><span className="lbl">Likely final sale</span><span className="v">{fmtMoney(analysis.tiers[0].expectedSale)}</span></div>
+                  <div className="row"><span className="lbl">{tr("Likely sells in")}</span><span className="v">~{analysis.tiers[0].expectedDom} {tr("days")}</span></div>
+                  <div className="row"><span className="lbl">{tr("60-day chance")}</span><span className="v">{fmtPct(analysis.tiers[0].prob60, 0)}</span></div>
+                  <div className="row"><span className="lbl">{tr("Likely final sale")}</span><span className="v">{fmtMoney(analysis.tiers[0].expectedSale)}</span></div>
                 </div>
               </div>
               <div className="sr-strategy rec">
-                <div className="sr-strategy-badge">RECOMMENDED</div>
-                <div className="sr-strategy-label">{analysis.tiers[1].name === 'Recommended' || analysis.tiers[1].override ? analysis.tiers[1].name : 'Market Price'}</div>
+                <div className="sr-strategy-badge">{tr("RECOMMENDED")}</div>
+                <div className="sr-strategy-label">{analysis.tiers[1].name === 'Recommended' || analysis.tiers[1].override ? analysis.tiers[1].name : tr("Market Price")}</div>
                 <div className="sr-strategy-price">{fmtMoney(analysis.tiers[1].listPrice)}</div>
                 <div className="sr-strategy-detail">
-                  <div className="row"><span className="lbl">Likely sells in</span><span className="v">~{analysis.tiers[1].expectedDom} days</span></div>
-                  <div className="row"><span className="lbl">60-day chance</span><span className="v">{fmtPct(analysis.tiers[1].prob60, 0)}</span></div>
-                  <div className="row"><span className="lbl">Likely final sale</span><span className="v">{fmtMoney(analysis.tiers[1].expectedSale)}</span></div>
+                  <div className="row"><span className="lbl">{tr("Likely sells in")}</span><span className="v">~{analysis.tiers[1].expectedDom} {tr("days")}</span></div>
+                  <div className="row"><span className="lbl">{tr("60-day chance")}</span><span className="v">{fmtPct(analysis.tiers[1].prob60, 0)}</span></div>
+                  <div className="row"><span className="lbl">{tr("Likely final sale")}</span><span className="v">{fmtMoney(analysis.tiers[1].expectedSale)}</span></div>
                 </div>
               </div>
               <div className="sr-strategy fast">
-                <div className="sr-strategy-badge">FASTEST</div>
-                <div className="sr-strategy-label">Quick Sale</div>
+                <div className="sr-strategy-badge">{tr("FASTEST")}</div>
+                <div className="sr-strategy-label">{tr("Quick Sale")}</div>
                 <div className="sr-strategy-price">{fmtMoney(analysis.tiers[2].listPrice)}</div>
                 <div className="sr-strategy-detail">
-                  <div className="row"><span className="lbl">Likely sells in</span><span className="v">~{analysis.tiers[2].expectedDom} days</span></div>
-                  <div className="row"><span className="lbl">60-day chance</span><span className="v">{fmtPct(analysis.tiers[2].prob60, 0)}</span></div>
-                  <div className="row"><span className="lbl">Likely final sale</span><span className="v">{fmtMoney(analysis.tiers[2].expectedSale)}</span></div>
+                  <div className="row"><span className="lbl">{tr("Likely sells in")}</span><span className="v">~{analysis.tiers[2].expectedDom} {tr("days")}</span></div>
+                  <div className="row"><span className="lbl">{tr("60-day chance")}</span><span className="v">{fmtPct(analysis.tiers[2].prob60, 0)}</span></div>
+                  <div className="row"><span className="lbl">{tr("Likely final sale")}</span><span className="v">{fmtMoney(analysis.tiers[2].expectedSale)}</span></div>
                 </div>
               </div>
             </div>
             <div className="sr-key-insight">
-              <div className="sr-key-insight-label">The Aggressive Trap</div>
+              <div className="sr-key-insight-label">{tr("The Aggressive Trap")}</div>
               <div className="sr-key-insight-body">
-                Listing at <strong>{fmtMoney(analysis.tiers[0].listPrice)}</strong> sounds appealing, but only has a <strong>{fmtPct(analysis.tiers[0].prob60, 0)} chance</strong> of selling in 60 days. After likely price cuts, you'd probably net <strong>{fmtMoney(analysis.tiers[0].expectedSale)}</strong> — only <strong>{fmtMoney(analysis.tiers[0].expectedSale - analysis.tiers[1].expectedSale)} more</strong> than the recommended price, in exchange for months of carrying costs.
+                {tr("Listing at")} <strong>{fmtMoney(analysis.tiers[0].listPrice)}</strong> {tr("sounds appealing, but only has a")} <strong>{fmtPct(analysis.tiers[0].prob60, 0)} {tr("chance")}</strong> {tr("of selling in 60 days. After likely price cuts, you'd probably net")} <strong>{fmtMoney(analysis.tiers[0].expectedSale)}</strong> {tr("— only")} <strong>{fmtMoney(analysis.tiers[0].expectedSale - analysis.tiers[1].expectedSale)} {tr("more")}</strong> {tr("than the recommended price, in exchange for months of carrying costs.")}
               </div>
             </div>
           </div>
 
           {analysis.monthlyCarry > 0 && (
             <div className="sr-section">
-              <div className="sr-eyebrow">The Hidden Cost</div>
-              <h2 className="sr-h2">Every month costs you real money.</h2>
-              <div className="sr-body"><p>Most sellers don't calculate this. Here's what you pay every month just to hold the home:</p></div>
+              <div className="sr-eyebrow">{tr("The Hidden Cost")}</div>
+              <h2 className="sr-h2">{tr("Every month costs you real money.")}</h2>
+              <div className="sr-body"><p>{tr("Most sellers don't calculate this. Here's what you pay every month just to hold the home:")}</p></div>
               <div className="sr-cost-section">
-                <div className="sr-cost-eyebrow">Your Carrying Cost</div>
-                <div className="sr-cost-title">What waiting actually costs you</div>
+                <div className="sr-cost-eyebrow">{tr("Your Carrying Cost")}</div>
+                <div className="sr-cost-title">{tr("What waiting actually costs you")}</div>
                 <div className="sr-cost-grid">
-                  <div className="sr-cost-cell"><div className="sr-cost-cell-label">Every Month</div><div className="sr-cost-cell-val">{fmtMoney(analysis.monthlyCarry)}</div></div>
-                  <div className="sr-cost-cell bad"><div className="sr-cost-cell-label">90 Extra Days</div><div className="sr-cost-cell-val">{fmtMoney(analysis.monthlyCarry * 3)}</div></div>
-                  <div className="sr-cost-cell bad"><div className="sr-cost-cell-label">180 Extra Days</div><div className="sr-cost-cell-val">{fmtMoney(analysis.monthlyCarry * 6)}</div></div>
+                  <div className="sr-cost-cell"><div className="sr-cost-cell-label">{tr("Every Month")}</div><div className="sr-cost-cell-val">{fmtMoney(analysis.monthlyCarry)}</div></div>
+                  <div className="sr-cost-cell bad"><div className="sr-cost-cell-label">{tr("90 Extra Days")}</div><div className="sr-cost-cell-val">{fmtMoney(analysis.monthlyCarry * 3)}</div></div>
+                  <div className="sr-cost-cell bad"><div className="sr-cost-cell-label">{tr("180 Extra Days")}</div><div className="sr-cost-cell-val">{fmtMoney(analysis.monthlyCarry * 6)}</div></div>
                 </div>
-                <div className="sr-cost-body">If listing higher adds 90 days to your timeline, that costs <strong>{fmtMoney(analysis.monthlyCarry * 3)}</strong> — often more than any premium from the higher list price.</div>
+                <div className="sr-cost-body">{tr("If listing higher adds 90 days to your timeline, that costs")} <strong>{fmtMoney(analysis.monthlyCarry * 3)}</strong> {tr("— often more than any premium from the higher list price.")}</div>
               </div>
             </div>
           )}
 
           <div className="sr-section">
-            <div className="sr-eyebrow">Our Honest Advice</div>
-            <h2 className="sr-h2">List at {fmtMoney(recommendedTier.listPrice)}.</h2>
+            <div className="sr-eyebrow">{tr("Our Honest Advice")}</div>
+            <h2 className="sr-h2">{tr("List at")} {fmtMoney(recommendedTier.listPrice)}.</h2>
             <div className="sr-body">
-              <p>This price respects what your home is genuinely worth, positions you to sell in a reasonable timeframe, and gives you the best chance of <strong>netting the most money</strong> after accounting for carrying costs and avoided price reductions.</p>
-              <p>Homes priced right from day one sell faster, attract stronger offers, and net more money than homes that start high and chase the market down.</p>
-              {isFalling && <p><strong>One more thing.</strong> The market is softening right now. Pricing correctly today is more important than ever — every month of delay costs you twice: in carrying costs, and in the market moving away from your price.</p>}
+              <p>{tr("This price respects what your home is genuinely worth, positions you to sell in a reasonable timeframe, and gives you the best chance of")} <strong>{tr("netting the most money")}</strong> {tr("after accounting for carrying costs and avoided price reductions.")}</p>
+              <p>{tr("Homes priced right from day one sell faster, attract stronger offers, and net more money than homes that start high and chase the market down.")}</p>
+              {isFalling && <p><strong>{tr("One more thing.")}</strong> {tr("The market is softening right now. Pricing correctly today is more important than ever — every month of delay costs you twice: in carrying costs, and in the market moving away from your price.")}</p>}
             </div>
           </div>
 
           <div className="sr-signature">
-            <div className="sr-signature-text">We've put real care into this analysis. If you have questions about the comps, the math, or our marketing plan, we'd love to walk you through it in person.</div>
+            <div className="sr-signature-text">{tr("We've put real care into this analysis. If you have questions about the comps, the math, or our marketing plan, we'd love to walk you through it in person.")}</div>
             <div className="sr-signature-name">{agentDisplayName}</div>
-            <div className="sr-signature-title">{agentTitleLine}{branding.license ? ` · Lic. ${branding.license}` : ''}{branding.phone ? ` · ${branding.phone}` : ''}</div>
+            <div className="sr-signature-title">{agentTitleLine}{branding.license ? tr(" · Lic. {license}", { license: branding.license }) : ''}{branding.phone ? ` · ${branding.phone}` : ''}</div>
           </div>
 
           <div className="sr-footer">
-            Prepared {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })} · Based on {analysis.soldCount} sold, {analysis.pendingCount} pending, {analysis.activeCount} active, and {analysis.expiredCount} expired comparable properties
+            {tr("Prepared")} {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })} {tr("· Based on")} {analysis.soldCount} {tr("sold,")} {analysis.pendingCount} {tr("pending,")} {analysis.activeCount} {tr("active, and")} {analysis.expiredCount} {tr("expired comparable properties")}
           </div>
         </div>
       </div>
@@ -1634,9 +1633,9 @@ class CmaErrorBoundary extends React.Component {
       return (
         <div style={{ padding: 32, maxWidth: 700, margin: '0 auto' }}>
           <div style={{ background: 'white', border: '2px solid #C0392B', padding: 28, borderRadius: 8 }}>
-            <h2 style={{ fontSize: 22, fontWeight: 700, color: '#C0392B', marginBottom: 12 }}>The CMA tool hit an error</h2>
+            <h2 style={{ fontSize: 22, fontWeight: 700, color: '#C0392B', marginBottom: 12 }}>{tr("The CMA tool hit an error")}</h2>
             <p style={{ fontSize: 15, lineHeight: 1.6, color: '#222', marginBottom: 16 }}>
-              Your data is still in memory. Switch tabs and back, or reload, to retry. If it keeps happening, send a screenshot of the detail below.
+              {tr("Your data is still in memory. Switch tabs and back, or reload, to retry. If it keeps happening, send a screenshot of the detail below.")}
             </p>
             <div style={{ background: '#f7e6e1', padding: 12, borderRadius: 6, fontFamily: 'monospace', fontSize: 13, color: '#5a1f15', wordBreak: 'break-word' }}>
               {this.state.error?.message || String(this.state.error)}

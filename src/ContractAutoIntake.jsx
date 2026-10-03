@@ -1,4 +1,4 @@
-import { t as tr } from "./i18n";
+import { t as tr, tn } from "./i18n";
 import React, { useState, useEffect, useRef } from "react";
 import BackButton from "./ui/BackButton";
 import { askConfirm } from "./ui/dialogs";
@@ -357,7 +357,7 @@ function UploadStep({ token, existingTransactionId, onBack, onUploaded }) {
         >
           <div style={{ fontSize: 48, marginBottom: 12 }}>📥</div>
           <div style={{ fontSize: 16, fontWeight: 600, color: COLORS.text, marginBottom: 6 }}>
-            {files.length > 0 ? `${files.length} file${files.length > 1 ? "s" : ""} selected — click to add more` : tr("Drop contract + addenda here, or click to browse")}
+            {files.length > 0 ? tn(files.length, "{n} file selected — click to add more", "{n} files selected — click to add more") : tr("Drop contract + addenda here, or click to browse")}
           </div>
           <div style={{ fontSize: 13, color: COLORS.muted }}>
             {files.length > 0 ? tr("You can add the contract, addenda, disclosures — all together") : tr("PDF, JPG, PNG, or HEIC · Max 30 MB each · Select multiple files")}
@@ -634,7 +634,7 @@ function ReviewStep({ token, uploadId, user, currentStatus, onApproved, onBack }
     const alreadyUnderContract = currentStatus && !["Active", "Coming Soon", "New"].includes(currentStatus);
     if (alreadyUnderContract) {
       const ok = await askConfirm(
-        `This listing is already "${currentStatus}" — an offer was already accepted.\n\n` +
+        tr("This listing is already \"{currentStatus}\" — an offer was already accepted.\n\n", { currentStatus }) +
         tr("Approving THIS offer will replace the accepted offer's price, dates, commission and parties with this one's, and re-run the timeline.\n\n") +
         tr("Only do this if you're intentionally switching to this offer. Continue?"),
         { okLabel: tr("Yes, switch offers"), danger: true }

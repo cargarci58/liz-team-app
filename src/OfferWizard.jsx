@@ -1,3 +1,4 @@
+import { t as tr, locale as uiLocale } from "./i18n";
 import { useState, useEffect, useRef } from "react";
 import { getWizard } from "./config/offerWizardSchema";
 
@@ -82,8 +83,8 @@ function FieldRenderer({ field, value, onChange, documents, formLibrary, onUploa
   if (field.type === "select") {
     return (
       <select value={v} onChange={e => onChange(e.target.value)} style={inputStyle}>
-        <option value="">— select —</option>
-        {(field.options || []).map(o => <option key={o} value={o}>{o}</option>)}
+        <option value="">{tr("— select —")}</option>
+        {(field.options || []).map(o => <option key={o} value={o}>{tr(o)}</option>)}
       </select>
     );
   }
@@ -96,11 +97,11 @@ function FieldRenderer({ field, value, onChange, documents, formLibrary, onUploa
       <div style={{ display: "flex", gap: 8 }}>
         <button type="button" onClick={() => onChange(true)}
           style={{ ...ynBase, background: yes ? "#0c4a6e" : "white", color: yes ? "white" : "#374151", borderColor: yes ? "#0c4a6e" : "#d1d5db" }}>
-          ✓ Yes
+          {tr("✓ Yes")}
         </button>
         <button type="button" onClick={() => onChange(false)}
           style={{ ...ynBase, background: no ? "#0c4a6e" : "white", color: no ? "white" : "#374151", borderColor: no ? "#0c4a6e" : "#d1d5db" }}>
-          ✗ No
+          {tr("✗ No")}
         </button>
       </div>
     );
@@ -133,17 +134,17 @@ function FieldRenderer({ field, value, onChange, documents, formLibrary, onUploa
     const badge = (a) => {
       const info = lib[a.id];
       if (!info) return null;
-      if (info.source === "fillable") return <span style={{ ...badgeBase, background: "#dcfce7", color: "#15803d" }}>✍️ fills automatically</span>;
-      if (info.source === "uploaded") return <span style={{ ...badgeBase, background: "#e0f2fe", color: "#075985" }}>📎 your form attaches</span>;
-      if (info.source === "static") return <span style={{ ...badgeBase, background: "#e0f2fe", color: "#075985" }}>📎 official form attaches</span>;
+      if (info.source === "fillable") return <span style={{ ...badgeBase, background: "#dcfce7", color: "#15803d" }}>{tr("✍️ fills automatically")}</span>;
+      if (info.source === "uploaded") return <span style={{ ...badgeBase, background: "#e0f2fe", color: "#075985" }}>{tr("📎 your form attaches")}</span>;
+      if (info.source === "static") return <span style={{ ...badgeBase, background: "#e0f2fe", color: "#075985" }}>{tr("📎 official form attaches")}</span>;
       return (
         <span style={{ whiteSpace: "nowrap" }}>
-          <span style={{ ...badgeBase, background: "#fef3c7", color: "#92400e" }}>⚠️ form not installed</span>
+          <span style={{ ...badgeBase, background: "#fef3c7", color: "#92400e" }}>{tr("⚠️ form not installed")}</span>
           {onUploadRiderForm && (
             <button type="button"
               onClick={(e) => { e.preventDefault(); setPendingRider(a.id); riderFileRef.current && riderFileRef.current.click(); }}
               style={{ marginLeft: 6, fontSize: 10, fontWeight: 700, color: "#075985", background: "none", border: "1px solid #7dd3fc", borderRadius: 10, padding: "2px 7px", cursor: "pointer", fontFamily: "inherit" }}>
-              {riderUploadBusy === a.id ? "Uploading…" : "⬆ Upload official form"}
+              {riderUploadBusy === a.id ? tr("Uploading…") : tr("⬆ Upload official form")}
             </button>
           )}
         </span>
@@ -161,26 +162,26 @@ function FieldRenderer({ field, value, onChange, documents, formLibrary, onUploa
         {STANDARD_ADDENDA.map(a => (
           <label key={a.id} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14, color: "#374151", cursor: "pointer", flexWrap: "wrap" }}>
             <input type="checkbox" checked={selected.includes(a.id)} onChange={() => toggle(a.id)} />
-            <span>{a.label}{badge(a)}</span>
+            <span>{tr(a.label)}{badge(a)}</span>
           </label>
         ))}
         {specials.length > 0 && (
           <div style={{ marginTop: 10, borderTop: "1px dashed #d1d5db", paddingTop: 10 }}>
             <div style={{ fontSize: 12, fontWeight: 800, color: "#0c4a6e", textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 6 }}>
-              📌 Included with every offer
+              {tr("📌 Included with every offer")}
             </div>
             {specials.map(s => (
               <div key={s.letter} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14, color: "#374151", flexWrap: "wrap", marginBottom: 4 }}>
                 <span>✔️</span>
                 <span>{s.label.replace(/ \(included with every offer\)/i, "")}
                   {s.source === "uploaded"
-                    ? <span style={{ ...badgeBase, background: "#dcfce7", color: "#15803d" }}>✅ on file — attaches to every packet</span>
-                    : <span style={{ ...badgeBase, background: "#fef3c7", color: "#92400e" }}>⚠️ not uploaded yet</span>}
+                    ? <span style={{ ...badgeBase, background: "#dcfce7", color: "#15803d" }}>{tr("✅ on file — attaches to every packet")}</span>
+                    : <span style={{ ...badgeBase, background: "#fef3c7", color: "#92400e" }}>{tr("⚠️ not uploaded yet")}</span>}
                   {onUploadRiderForm && (
                     <button type="button"
                       onClick={(e) => { e.preventDefault(); setPendingRider(s.letter); riderFileRef.current && riderFileRef.current.click(); }}
                       style={{ marginLeft: 6, fontSize: 10, fontWeight: 700, color: "#075985", background: "none", border: "1px solid #7dd3fc", borderRadius: 10, padding: "2px 7px", cursor: "pointer", fontFamily: "inherit" }}>
-                      {riderUploadBusy === s.letter ? "Uploading…" : (s.source === "uploaded" ? "Replace" : "⬆ Upload your broker's form")}
+                      {riderUploadBusy === s.letter ? tr("Uploading…") : (s.source === "uploaded" ? tr("Replace") : tr("⬆ Upload your broker's form"))}
                     </button>
                   )}
                 </span>
@@ -217,7 +218,7 @@ function FieldRenderer({ field, value, onChange, documents, formLibrary, onUploa
     const looksLikePof = (d) => /pre.?approv|pre.?qual|proof.*funds|\bpof\b|bank|statement|funds|commitment|approval letter|lender/i.test((d.category || "") + " " + (d.name || "") + " " + (d.document_type || ""));
     const suggested = all.filter(looksLikePof);
     const others = all.filter(d => !looksLikePof(d));
-    const when = (d) => d.created_at ? new Date(d.created_at).toLocaleString("en-US", { timeZone: "America/New_York", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) : "";
+    const when = (d) => d.created_at ? new Date(d.created_at).toLocaleString(uiLocale(), { timeZone: "America/New_York", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) : "";
     const isPhoto = (d) => /\.(jpe?g|png|heic|webp)$/i.test(d.name || "") || /^image\//i.test(d.mime_type || "");
     // Random-looking file names (phone photos) get a readable label instead.
     const label = (d) => {
@@ -232,31 +233,31 @@ function FieldRenderer({ field, value, onChange, documents, formLibrary, onUploa
       try {
         const r = await fetch(`${API}/documents/${picked.id}/view-url`, { headers: { Authorization: "Bearer " + (localStorage.getItem("tp_token") || "") } });
         const d = await r.json();
-        if (d.viewUrl) window.open(d.viewUrl, "_blank"); else alert("Could not open the file: " + (d.error || "unknown error"));
-      } catch (e) { alert("Could not open the file: " + e.message); }
+        if (d.viewUrl) window.open(d.viewUrl, "_blank"); else alert(tr("Could not open the file: ") + (d.error || tr("unknown error")));
+      } catch (e) { alert(tr("Could not open the file: ") + e.message); }
     };
     return (
       <div>
         <select value={v} onChange={e => onChange(e.target.value)} style={inputStyle}>
-          <option value="">— pick a file already on this deal —</option>
+          <option value="">{tr("— pick a file already on this deal —")}</option>
           {suggested.length > 0 && (
-            <optgroup label="Looks like a pre-approval / proof of funds">
-              {suggested.map(d => <option key={d.id} value={d.id}>{label(d)}</option>)}
+            <optgroup label={tr("Looks like a pre-approval / proof of funds")}>
+              {suggested.map(d => <option key={d.id} value={d.id}>{tr(label(d))}</option>)}
             </optgroup>
           )}
           {others.length > 0 && (
-            <optgroup label={suggested.length ? "Other files on this deal" : "Files on this deal"}>
-              {others.map(d => <option key={d.id} value={d.id}>{label(d)}</option>)}
+            <optgroup label={suggested.length ? tr("Other files on this deal") : tr("Files on this deal")}>
+              {others.map(d => <option key={d.id} value={d.id}>{tr(label(d))}</option>)}
             </optgroup>
           )}
-          {all.length === 0 && <option value="" disabled>No files on this deal yet — upload one</option>}
+          {all.length === 0 && <option value="" disabled>{tr("No files on this deal yet — upload one")}</option>}
         </select>
         {picked && (
           <div style={{ marginTop: 6, fontSize: 12.5, color: "#374151" }}>
-            Selected: <strong>{label(picked)}</strong>{" "}
+            {tr("Selected:")} <strong>{label(picked)}</strong>{" "}
             <button type="button" onClick={viewPicked}
               style={{ background: "none", border: "none", color: "#0c4a6e", textDecoration: "underline", fontWeight: 700, cursor: "pointer", padding: 0, fontSize: 12.5, fontFamily: "inherit" }}>
-              👀 View it
+              {tr("👀 View it")}
             </button>
           </div>
         )}
@@ -347,7 +348,7 @@ export default function OfferWizard({ offerId, token, onClose, onSaved, isLandDe
   useEffect(() => { loadFormLibrary(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const uploadRiderForm = async (letter, file) => {
-    if (file.size > 15 * 1024 * 1024) { alert("⚠️ That PDF is over 15 MB — export a smaller copy and try again."); return; }
+    if (file.size > 15 * 1024 * 1024) { alert(tr("⚠️ That PDF is over 15 MB — export a smaller copy and try again.")); return; }
     setRiderUploadBusy(letter);
     try {
       const base64 = await new Promise((resolve, reject) => {
@@ -365,10 +366,10 @@ export default function OfferWizard({ offerId, token, onClose, onSaved, isLandDe
       if (!r.ok) throw new Error(b.error || "Upload failed");
       await loadFormLibrary();
       alert(letter.length > 2
-        ? "✅ Saved. This form now goes out with EVERY offer packet, with the buyer's name filled in automatically."
-        : "✅ " + letter + " rider saved. It will be attached to this and every future offer packet, with the buyer/seller/property stamped on automatically.");
+        ? tr("✅ Saved. This form now goes out with EVERY offer packet, with the buyer's name filled in automatically.")
+        : "✅ " + letter + tr(" rider saved. It will be attached to this and every future offer packet, with the buyer/seller/property stamped on automatically."));
     } catch (e) {
-      alert("⚠️ " + (e.message || "Upload failed"));
+      alert("⚠️ " + (e.message || tr("Upload failed")));
     } finally {
       setRiderUploadBusy(null);
     }
@@ -403,7 +404,7 @@ export default function OfferWizard({ offerId, token, onClose, onSaved, isLandDe
   const [express, setExpress] = useState(false);
   const [xp, setXp] = useState({ price: "", emd: "", closing: "", financing: "" });
   const applyExpress = () => {
-    if (!xp.price || !xp.closing || !xp.financing) { alert("Answer the price, closing date, and how they're paying."); return; }
+    if (!xp.price || !xp.closing || !xp.financing) { alert(tr("Answer the price, closing date, and how they're paying.")); return; }
     const todayEt = new Date(new Date().toLocaleDateString("en-CA", { timeZone: "America/New_York" }) + "T00:00:00");
     const exp = new Date(todayEt); exp.setDate(exp.getDate() + 2);
     const expStr = `${exp.getFullYear()}-${String(exp.getMonth() + 1).padStart(2, "0")}-${String(exp.getDate()).padStart(2, "0")}`;
@@ -755,7 +756,7 @@ export default function OfferWizard({ offerId, token, onClose, onSaved, isLandDe
       const warns = [];
       if (body.preapprovalAttached === false) warns.push("• The PRE-APPROVAL LETTER could not be attached. Check Step 1 — it must be a PDF or photo (JPG/PNG).");
       if (body.brokerFormsAttached === 0) warns.push("• Your BROKER'S BUYER DISCLOSURE isn't on file yet. Upload it once on the Addenda step under '📌 Included with every offer'.");
-      if (warns.length) alert("⚠️ Packet generated, but it's missing:\n\n" + warns.join("\n\n") + "\n\nFix and click Generate again before sending.");
+      if (warns.length) alert(tr("⚠️ Packet generated, but it's missing:\n\n") + warns.join("\n\n") + tr("\n\nFix and click Generate again before sending."));
       // Trigger download immediately
       const u = await fetch(API + "/offers/" + offerId + "/packet-url", { headers: { Authorization: "Bearer " + token } });
       const ub = await u.json();
@@ -781,7 +782,7 @@ export default function OfferWizard({ offerId, token, onClose, onSaved, isLandDe
     const ok = await save({ nextStepIdx: stepIdx, status: "ready" });
     setSubmitting(false);
     if (ok) {
-      alert("Offer marked Ready. PDF packet assembly is coming in the next update — for now you can manually download from Documents.");
+      alert(tr("Offer marked Ready. PDF packet assembly is coming in the next update — for now you can manually download from Documents."));
       if (onSaved) onSaved();
       onClose();
     }
@@ -790,7 +791,7 @@ export default function OfferWizard({ offerId, token, onClose, onSaved, isLandDe
   if (loading) {
     return (
       <div style={overlayStyle} onClick={onClose}>
-        <div style={{ ...modalStyle, padding: 40, textAlign: "center" }} onClick={e => e.stopPropagation()}>Loading…</div>
+        <div style={{ ...modalStyle, padding: 40, textAlign: "center" }} onClick={e => e.stopPropagation()}>{tr("Loading…")}</div>
       </div>
     );
   }
@@ -798,8 +799,8 @@ export default function OfferWizard({ offerId, token, onClose, onSaved, isLandDe
     return (
       <div style={overlayStyle} onClick={onClose}>
         <div style={{ ...modalStyle, padding: 40 }} onClick={e => e.stopPropagation()}>
-          <div style={{ color: "#7f1d1d" }}>⚠️ {error || "Failed to load offer"}</div>
-          <button onClick={onClose} style={btnSecondary}>Close</button>
+          <div style={{ color: "#7f1d1d" }}>⚠️ {error || tr("Failed to load offer")}</div>
+          <button onClick={onClose} style={btnSecondary}>{tr("Close")}</button>
         </div>
       </div>
     );
@@ -879,16 +880,16 @@ export default function OfferWizard({ offerId, token, onClose, onSaved, isLandDe
         {/* Header */}
         <div style={{ padding: "20px 28px", borderBottom: "1px solid #e5e7eb", background: "#0c4a6e", color: "white", borderRadius: "12px 12px 0 0" }}>
           <div style={{ fontSize: 12, opacity: 0.8, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 4 }}>
-            {wizard.contractName} · Step {stepIdx + 1} of {steps.length}
+            {wizard.contractName} {tr("· Step")} {stepIdx + 1} {tr("of")} {steps.length}
           </div>
-          <div style={{ fontSize: 20, fontWeight: 800 }}>{step.title}</div>
-          {step.subtitle && <div style={{ fontSize: 13, opacity: 0.85, marginTop: 4 }}>{step.subtitle}</div>}
+          <div style={{ fontSize: 20, fontWeight: 800 }}>{tr(step.title)}</div>
+          {step.subtitle && <div style={{ fontSize: 13, opacity: 0.85, marginTop: 4 }}>{tr(step.subtitle)}</div>}
         </div>
 
         {/* Step progress dots */}
         <div style={{ padding: "12px 28px", borderBottom: "1px solid #e5e7eb", display: "flex", gap: 4, flexWrap: "wrap" }}>
           {steps.map((s, i) => (
-            <div key={s.id} title={s.title}
+            <div key={s.id} title={tr(s.title)}
               style={{ flex: 1, height: 4, borderRadius: 2, background: i <= stepIdx ? "#0c4a6e" : "#e5e7eb", minWidth: 12 }} />
           ))}
         </div>
@@ -897,7 +898,7 @@ export default function OfferWizard({ offerId, token, onClose, onSaved, isLandDe
         <div style={{ padding: 28, overflowY: "auto", flex: 1 }}>
           {step.why && (
             <div style={{ background: "#fef3c7", border: "1px solid #fcd34d", borderRadius: 6, padding: 12, fontSize: 13, color: "#78350f", marginBottom: 20 }}>
-              💡 <strong>Why this matters:</strong> {step.why}
+              💡 <strong>{tr("Why this matters:")}</strong> {tr(step.why)}
             </div>
           )}
 
@@ -905,20 +906,20 @@ export default function OfferWizard({ offerId, token, onClose, onSaved, isLandDe
           {offer && offer.status === "draft" && isLandDeal && !isLandOffer && (
             <div style={{ border: "2px solid #0c4a6e", background: "#E0F2FE", borderRadius: 12, padding: 14, marginBottom: 20, display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
               <div style={{ flex: 1, minWidth: 220, fontSize: 13.5, color: "#0c4a6e", lineHeight: 1.5 }}>
-                <strong>This deal is vacant land.</strong> This draft is on the residential AS-IS contract. Switch to the <strong>Vacant Land Contract (VAC-15)</strong> — your answers so far carry over.
+                <strong>{tr("This deal is vacant land.")}</strong> {tr("This draft is on the residential AS-IS contract. Switch to the")} <strong>{tr("Vacant Land Contract (VAC-15)")}</strong> {tr("— your answers so far carry over.")}
               </div>
               <button type="button" onClick={() => switchContractForm("vacant_land")} disabled={switchingForm}
                 style={{ background: "#0c4a6e", color: "#fff", border: "none", borderRadius: 8, padding: "10px 16px", fontSize: 13, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>
-                {switchingForm ? "Switching…" : "Use the Vacant Land Contract"}
+                {switchingForm ? tr("Switching…") : tr("Use the Vacant Land Contract")}
               </button>
             </div>
           )}
           {offer && offer.status === "draft" && isLandOffer && stepIdx === 0 && (
             <div style={{ fontSize: 12.5, color: "#4B5563", marginBottom: 14 }}>
-              Writing on the <strong>Vacant Land Contract (VAC-15)</strong>.{" "}
+              {tr("Writing on the")} <strong>{tr("Vacant Land Contract (VAC-15)")}</strong>.{" "}
               <button type="button" onClick={() => switchContractForm("as_is")} disabled={switchingForm}
                 style={{ background: "none", border: "none", color: "#0c4a6e", textDecoration: "underline", fontWeight: 700, cursor: "pointer", padding: 0, fontSize: 12.5, fontFamily: "inherit" }}>
-                Use the residential AS-IS contract instead
+                {tr("Use the residential AS-IS contract instead")}
               </button>
             </div>
           )}
@@ -930,32 +931,32 @@ export default function OfferWizard({ offerId, token, onClose, onSaved, isLandDe
                 <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
                   <span style={{ fontSize: 22 }}>⚡</span>
                   <div style={{ flex: 1, minWidth: 220 }}>
-                    <div style={{ fontWeight: 800, color: "#7A5C00", fontSize: 14 }}>First offer? Start here — Express offer (4 questions)</div>
-                    <div style={{ fontSize: 12.5, color: "#7A5C00", lineHeight: 1.5 }}>Answer 4 questions — the app fills everything else with standard Florida terms (15-day inspection, deposit due in 3 days, seller pays deed stamps, possession at closing…). You review it all before anything is sent.</div>
+                    <div style={{ fontWeight: 800, color: "#7A5C00", fontSize: 14 }}>{tr("First offer? Start here — Express offer (4 questions)")}</div>
+                    <div style={{ fontSize: 12.5, color: "#7A5C00", lineHeight: 1.5 }}>{tr("Answer 4 questions — the app fills everything else with standard Florida terms (15-day inspection, deposit due in 3 days, seller pays deed stamps, possession at closing…). You review it all before anything is sent.")}</div>
                   </div>
                   <button type="button" onClick={() => setExpress(true)}
                     style={{ background: "#0c4a6e", color: "#fff", border: "none", borderRadius: 8, padding: "10px 16px", fontSize: 13, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>
-                    ⚡ Use Express
+                    {tr("⚡ Use Express")}
                   </button>
                 </div>
               ) : (
                 <div>
-                  <div style={{ fontWeight: 800, color: "#7A5C00", fontSize: 14, marginBottom: 10 }}>⚡ Express offer — 4 quick answers</div>
+                  <div style={{ fontWeight: 800, color: "#7A5C00", fontSize: 14, marginBottom: 10 }}>{tr("⚡ Express offer — 4 quick answers")}</div>
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 }} data-keep-grid="">
                     <div>
-                      <div style={{ fontSize: 12, fontWeight: 700, color: "#7A5C00", marginBottom: 4 }}>1 · Offer price ($)</div>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: "#7A5C00", marginBottom: 4 }}>{tr("1 · Offer price ($)")}</div>
                       <input type="number" value={xp.price} onChange={e => setXp(x => ({ ...x, price: e.target.value }))} placeholder="e.g. 450000" style={inputStyle} />
                     </div>
                     <div>
-                      <div style={{ fontSize: 12, fontWeight: 700, color: "#7A5C00", marginBottom: 4 }}>2 · Deposit ($) <span style={{ fontWeight: 400 }}>(blank = ~1%)</span></div>
-                      <input type="number" value={xp.emd} onChange={e => setXp(x => ({ ...x, emd: e.target.value }))} placeholder="auto" style={inputStyle} />
+                      <div style={{ fontSize: 12, fontWeight: 700, color: "#7A5C00", marginBottom: 4 }}>{tr("2 · Deposit ($)")} <span style={{ fontWeight: 400 }}>{tr("(blank = ~1%)")}</span></div>
+                      <input type="number" value={xp.emd} onChange={e => setXp(x => ({ ...x, emd: e.target.value }))} placeholder={tr("auto")} style={inputStyle} />
                     </div>
                     <div>
-                      <div style={{ fontSize: 12, fontWeight: 700, color: "#7A5C00", marginBottom: 4 }}>3 · Closing date</div>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: "#7A5C00", marginBottom: 4 }}>{tr("3 · Closing date")}</div>
                       <input type="date" value={xp.closing} onChange={e => setXp(x => ({ ...x, closing: e.target.value }))} style={inputStyle} />
                     </div>
                     <div>
-                      <div style={{ fontSize: 12, fontWeight: 700, color: "#7A5C00", marginBottom: 4 }}>4 · How are they paying?</div>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: "#7A5C00", marginBottom: 4 }}>{tr("4 · How are they paying?")}</div>
                       <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                         {["Cash", "Conventional", "FHA", "VA"].map(ft => (
                           <button key={ft} type="button" onClick={() => setXp(x => ({ ...x, financing: ft }))}
@@ -966,10 +967,10 @@ export default function OfferWizard({ offerId, token, onClose, onSaved, isLandDe
                       </div>
                     </div>
                   </div>
-                  <div style={{ fontSize: 11.5, color: "#7A5C00", marginBottom: 10 }}>Tip: upload the MLS sheet on the next screen (or before sending) so the property, seller, and listing agent fill in automatically.</div>
+                  <div style={{ fontSize: 11.5, color: "#7A5C00", marginBottom: 10 }}>{tr("Tip: upload the MLS sheet on the next screen (or before sending) so the property, seller, and listing agent fill in automatically.")}</div>
                   <div style={{ display: "flex", gap: 8 }}>
-                    <button type="button" onClick={() => setExpress(false)} style={{ padding: "9px 16px", borderRadius: 8, border: "1px solid #d1d5db", background: "#fff", color: "#374151", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>Never mind</button>
-                    <button type="button" onClick={applyExpress} style={{ flex: 1, padding: "9px 16px", borderRadius: 8, border: "none", background: "#0c4a6e", color: "#fff", fontSize: 13, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>Apply & jump to Review →</button>
+                    <button type="button" onClick={() => setExpress(false)} style={{ padding: "9px 16px", borderRadius: 8, border: "1px solid #d1d5db", background: "#fff", color: "#374151", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>{tr("Never mind")}</button>
+                    <button type="button" onClick={applyExpress} style={{ flex: 1, padding: "9px 16px", borderRadius: 8, border: "none", background: "#0c4a6e", color: "#fff", fontSize: 13, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>{tr("Apply & jump to Review →")}</button>
                   </div>
                 </div>
               )}
@@ -984,10 +985,10 @@ export default function OfferWizard({ offerId, token, onClose, onSaved, isLandDe
             return (
             <div style={{ background: "#eff6ff", border: "1px solid #93c5fd", borderRadius: 8, padding: 16, marginBottom: 20 }}>
               <div style={{ fontWeight: 700, color: "#1e3a8a", marginBottom: 6, fontSize: 14 }}>
-                📎 Pre-approval letter (or proof of funds)
+                {tr("📎 Pre-approval letter (or proof of funds)")}
               </div>
               <div style={{ fontSize: 12, color: "#1e40af", marginBottom: 12 }}>
-                Two ways — upload the buyer's lender letter now, <strong>or</strong> pick one that's already in this deal's Documents. Either way it gets linked to this offer.
+                {tr("Two ways — upload the buyer's lender letter now,")} <strong>{tr("or")}</strong> {tr("pick one that's already in this deal's Documents. Either way it gets linked to this offer.")}
               </div>
               <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
                 <label style={{ display: "inline-block" }}>
@@ -996,10 +997,10 @@ export default function OfferWizard({ offerId, token, onClose, onSaved, isLandDe
                     onChange={e => onPreapUpload(e.target.files && e.target.files[0])}
                     style={{ display: "none" }} />
                   <span style={{ display: "inline-block", background: preapUploading ? "#9ca3af" : "#1e40af", color: "white", padding: "8px 16px", borderRadius: 6, fontSize: 13, fontWeight: 700, cursor: preapUploading ? "wait" : "pointer" }}>
-                    {preapUploading ? "Uploading…" : "📎 Upload New File"}
+                    {preapUploading ? tr("Uploading…") : tr("📎 Upload New File")}
                   </span>
                 </label>
-                <span style={{ fontSize: 12, fontWeight: 700, color: "#1e40af" }}>— or —</span>
+                <span style={{ fontSize: 12, fontWeight: 700, color: "#1e40af" }}>{tr("— or —")}</span>
                 {pickerField && (
                   <div style={{ flex: "1 1 260px", minWidth: 220 }}>
                     <FieldRenderer field={pickerField} value={data[pickerField.id]} onChange={(val) => setField(pickerField.id, val)} documents={documents} />
@@ -1024,12 +1025,12 @@ export default function OfferWizard({ offerId, token, onClose, onSaved, isLandDe
             return (
               <div style={{ background: "#f0fdf4", border: "1px solid #86efac", borderRadius: 8, padding: "12px 16px", marginBottom: 20, display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
                 <div style={{ fontSize: 13, color: "#166534", flex: "1 1 300px" }}>
-                  🧮 <strong>{data.financing_type}</strong> with <strong>{calc.pct}%</strong> down on ${calc.price.toLocaleString()} = <strong>${calc.dp.toLocaleString()} down</strong> / <strong>${calc.loan.toLocaleString()} loan</strong>
+                  🧮 <strong>{data.financing_type}</strong> {tr("with")} <strong>{calc.pct}%</strong> {tr("down on $")}{calc.price.toLocaleString()} = <strong>${calc.dp.toLocaleString()} {tr("down")}</strong> / <strong>${calc.loan.toLocaleString()} {tr("loan")}</strong>
                 </div>
                 {inSync
-                  ? <span style={{ fontSize: 12, fontWeight: 700, color: "#15803d" }}>✓ applied below</span>
+                  ? <span style={{ fontSize: 12, fontWeight: 700, color: "#15803d" }}>{tr("✓ applied below")}</span>
                   : <button onClick={applyFinanceCalc} style={{ background: "#0c4a6e", color: "#fff", border: "none", borderRadius: 6, padding: "8px 14px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
-                      Use these numbers
+                      {tr("Use these numbers")}
                     </button>}
               </div>
             );
@@ -1039,10 +1040,10 @@ export default function OfferWizard({ offerId, token, onClose, onSaved, isLandDe
           {visibleFields.some(f => f.id === "property_address") && (
             <div style={{ background: "#eff6ff", border: "1px solid #93c5fd", borderRadius: 8, padding: 16, marginBottom: 20 }}>
               <div style={{ fontWeight: 700, color: "#1e3a8a", marginBottom: 6, fontSize: 14 }}>
-                📎 Upload the MLS broker synopsis
+                {tr("📎 Upload the MLS broker synopsis")}
               </div>
               <div style={{ fontSize: 12, color: "#1e40af", marginBottom: 12 }}>
-                Print the listing detail sheet from your MLS as a PDF and upload it here. We'll fill in the property address, list price, year built, HOA, listing agent contact, and more — so you don't have to type it.
+                {tr("Print the listing detail sheet from your MLS as a PDF and upload it here. We'll fill in the property address, list price, year built, HOA, listing agent contact, and more — so you don't have to type it.")}
               </div>
               <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
                 <label style={{ display: "inline-block" }}>
@@ -1051,11 +1052,11 @@ export default function OfferWizard({ offerId, token, onClose, onSaved, isLandDe
                     onChange={e => onMlsUpload(e.target.files && e.target.files[0])}
                     style={{ display: "none" }} />
                   <span style={{ display: "inline-block", background: mlsUploading || mlsExtracting ? "#9ca3af" : "#1e40af", color: "white", padding: "8px 16px", borderRadius: 6, fontSize: 13, fontWeight: 700, cursor: mlsUploading || mlsExtracting ? "wait" : "pointer" }}>
-                    {mlsUploading ? "Uploading…" : mlsExtracting ? "Reading MLS sheet…" : "📎 Choose MLS PDF"}
+                    {mlsUploading ? tr("Uploading…") : mlsExtracting ? tr("Reading MLS sheet…") : tr("📎 Choose MLS PDF")}
                   </span>
                 </label>
                 <span style={{ fontSize: 12, color: "#1e40af" }}>
-                  …or fill in the fields manually below.
+                  {tr("…or fill in the fields manually below.")}
                 </span>
               </div>
               {mlsResultMsg && (
@@ -1070,34 +1071,34 @@ export default function OfferWizard({ offerId, token, onClose, onSaved, isLandDe
             <div style={{ padding: 20 }}>
               {/* Quick summary card */}
               <div style={{ background: "#f9fafb", border: "1px solid #e5e7eb", borderRadius: 8, padding: 16, marginBottom: 20, fontSize: 13, color: "#374151" }}>
-                <div style={{ fontWeight: 700, color: "#111", marginBottom: 8 }}>📋 Offer summary</div>
-                <div><strong>Property:</strong> {data.property_address || "—"}</div>
-                <div><strong>Buyer:</strong> {data.buyer_names || "—"}</div>
-                <div><strong>Seller (owner):</strong> {data.seller_names || "—"}</div>
-                <div><strong>Price:</strong> {data.purchase_price ? "$" + Number(data.purchase_price).toLocaleString() : "—"}</div>
-                <div><strong>EMD:</strong> {data.initial_emd ? "$" + Number(data.initial_emd).toLocaleString() : "—"}</div>
-                <div><strong>Closing date:</strong> {data.closing_date || "—"}</div>
-                <div><strong>Listing agent:</strong> {data.listing_agent_name || "—"} {data.listing_agent_email ? "(" + data.listing_agent_email + ")" : ""}</div>
-                <div><strong>Addenda:</strong> {(Array.isArray(isLandOffer ? data.vl_addenda : data.selected_addenda) && (isLandOffer ? data.vl_addenda : data.selected_addenda).length) || 0} selected</div>
+                <div style={{ fontWeight: 700, color: "#111", marginBottom: 8 }}>{tr("📋 Offer summary")}</div>
+                <div><strong>{tr("Property:")}</strong> {data.property_address || "—"}</div>
+                <div><strong>{tr("Buyer:")}</strong> {data.buyer_names || "—"}</div>
+                <div><strong>{tr("Seller (owner):")}</strong> {data.seller_names || "—"}</div>
+                <div><strong>{tr("Price:")}</strong> {data.purchase_price ? "$" + Number(data.purchase_price).toLocaleString() : "—"}</div>
+                <div><strong>{tr("EMD:")}</strong> {data.initial_emd ? "$" + Number(data.initial_emd).toLocaleString() : "—"}</div>
+                <div><strong>{tr("Closing date:")}</strong> {data.closing_date || "—"}</div>
+                <div><strong>{tr("Listing agent:")}</strong> {data.listing_agent_name || "—"} {data.listing_agent_email ? "(" + data.listing_agent_email + ")" : ""}</div>
+                <div><strong>{tr("Addenda:")}</strong> {(Array.isArray(isLandOffer ? data.vl_addenda : data.selected_addenda) && (isLandOffer ? data.vl_addenda : data.selected_addenda).length) || 0} {tr("selected")}</div>
               </div>
 
               {/* Generate / Download */}
               <div style={{ background: "#eff6ff", border: "1px solid #93c5fd", borderRadius: 8, padding: 16, textAlign: "center" }}>
                 <div style={{ fontSize: 40, marginBottom: 8 }}>📦</div>
-                <div style={{ fontWeight: 700, color: "#1e3a8a", marginBottom: 6 }}>Generate the offer packet</div>
+                <div style={{ fontWeight: 700, color: "#1e3a8a", marginBottom: 6 }}>{tr("Generate the offer packet")}</div>
                 <div style={{ fontSize: 12, color: "#1e40af", marginBottom: 16 }}>
                   {isLandOffer
-                    ? "Builds one PDF: an offer summary, the filled Vacant Land Contract (VAC-15), any broker forms, and the buyer's proof of funds. Download and review before marking the offer Ready."
-                    : "Builds one PDF: an offer summary, the filled AS-IS contract, the selected addenda, and the buyer's pre-approval letter. Download and review before marking the offer Ready."}
+                    ? tr("Builds one PDF: an offer summary, the filled Vacant Land Contract (VAC-15), any broker forms, and the buyer's proof of funds. Download and review before marking the offer Ready.")
+                    : tr("Builds one PDF: an offer summary, the filled AS-IS contract, the selected addenda, and the buyer's pre-approval letter. Download and review before marking the offer Ready.")}
                 </div>
                 <button onClick={onGeneratePacket} disabled={generating}
                   style={{ background: generating ? "#9ca3af" : "#0c4a6e", color: "white", border: "none", padding: "12px 24px", borderRadius: 6, fontSize: 14, fontWeight: 700, cursor: generating ? "wait" : "pointer", fontFamily: "inherit", marginRight: 8 }}>
-                  {generating ? "Generating…" : "📦 Generate Packet"}
+                  {generating ? tr("Generating…") : tr("📦 Generate Packet")}
                 </button>
                 {(packetReady || (offer && offer.packet_pdf_key)) && (
                   <button onClick={onDownloadPacket}
                     style={{ background: "#0c4a6e", color: "white", border: "none", padding: "12px 24px", borderRadius: 6, fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
-                    ⬇️ Download Again
+                    {tr("⬇️ Download Again")}
                   </button>
                 )}
               </div>
@@ -1107,18 +1108,18 @@ export default function OfferWizard({ offerId, token, onClose, onSaved, isLandDe
           {/* Addenda compliance — show on the addenda step */}
           {complianceMisses.length > 0 && visibleFields.some(f => f.id === "selected_addenda") && (
             <div style={{ background: "#fef2f2", border: "1px solid #fca5a5", borderRadius: 8, padding: 12, marginBottom: 18, fontSize: 13, color: "#7f1d1d" }}>
-              ⚠️ <strong>Possibly-required addenda not selected.</strong> Based on your answers, these should likely be attached:
+              ⚠️ <strong>{tr("Possibly-required addenda not selected.")}</strong> {tr("Based on your answers, these should likely be attached:")}
               <ul style={{ margin: "8px 0 0 0", paddingLeft: 20 }}>
                 {complianceMisses.map((m, i) => <li key={i} style={{ marginBottom: 2 }}>{m}</li>)}
               </ul>
-              <div style={{ marginTop: 6, fontSize: 12 }}>In Florida, a checked addendum becomes part of the contract — select them above (or proceed if intentionally omitted).</div>
+              <div style={{ marginTop: 6, fontSize: 12 }}>{tr("In Florida, a checked addendum becomes part of the contract — select them above (or proceed if intentionally omitted).")}</div>
             </div>
           )}
 
           {/* Addenda conflict — selected addendum contradicts the answers */}
           {complianceConflicts.length > 0 && visibleFields.some(f => f.id === "selected_addenda") && (
             <div style={{ background: "#fef9c3", border: "1px solid #fcd34d", borderRadius: 8, padding: 12, marginBottom: 18, fontSize: 13, color: "#78350f" }}>
-              ⚠️ <strong>Check these selections:</strong>
+              ⚠️ <strong>{tr("Check these selections:")}</strong>
               <ul style={{ margin: "8px 0 0 0", paddingLeft: 20 }}>
                 {complianceConflicts.map((m, i) => <li key={i} style={{ marginBottom: 2 }}>{m}</li>)}
               </ul>
@@ -1128,46 +1129,46 @@ export default function OfferWizard({ offerId, token, onClose, onSaved, isLandDe
           {/* Flood zone warning — show on the property step */}
           {floodRisk && visibleFields.some(f => f.id === "property_address") && (
             <div style={{ background: "#fef9c3", border: "1px solid #fcd34d", borderRadius: 8, padding: 12, marginBottom: 18, fontSize: 13, color: "#78350f" }}>
-              🌊 <strong>Flood zone {floodZone}.</strong> This property is in a Special Flood Hazard Area — a lender will require flood insurance, and it can be costly. Warn the buyer and factor it into their budget.
+              🌊 <strong>{tr("Flood zone")} {floodZone}.</strong> {tr("This property is in a Special Flood Hazard Area — a lender will require flood insurance, and it can be costly. Warn the buyer and factor it into their budget.")}
             </div>
           )}
 
           {/* Affordability warning on the price step or the financing step */}
           {overPreapproval && visibleFields.some(f => f.id === "purchase_price" || f.id === "loan_amount") && (
             <div style={{ background: "#fef2f2", border: "1px solid #fca5a5", borderRadius: 8, padding: 12, marginBottom: 18, fontSize: 13, color: "#7f1d1d" }}>
-              ⚠️ <strong>Loan exceeds pre-approval.</strong> The loan amount (${loanAmt.toLocaleString()}) is above the buyer's pre-approved max loan of ${maxLoan.toLocaleString()}. Lower the loan amount, increase the down payment, or get an updated pre-approval. You can still proceed.
+              ⚠️ <strong>{tr("Loan exceeds pre-approval.")}</strong> {tr("The loan amount ($")}{loanAmt.toLocaleString()}{tr(") is above the buyer's pre-approved max loan of $")}{maxLoan.toLocaleString()}{tr(". Lower the loan amount, increase the down payment, or get an updated pre-approval. You can still proceed.")}
             </div>
           )}
 
           {/* Offer-expiration date must be in the future */}
           {offerExpNotFuture && visibleFields.some(f => f.id === "offer_effective_date") && (
             <div style={{ background: "#fef2f2", border: "1px solid #fca5a5", borderRadius: 8, padding: 12, marginBottom: 18, fontSize: 13, color: "#7f1d1d" }}>
-              ⚠️ <strong>Offer expiration is today or in the past.</strong> Pick a future date (typically 1-2 business days out) so the seller has time to respond.
+              ⚠️ <strong>{tr("Offer expiration is today or in the past.")}</strong> {tr("Pick a future date (typically 1-2 business days out) so the seller has time to respond.")}
             </div>
           )}
 
           {/* Seller contribution over 6% of price */}
           {sellerCreditOver6 && visibleFields.some(f => f.id === "closing_costs_paid_by") && (
             <div style={{ background: "#fef9c3", border: "1px solid #fcd34d", borderRadius: 8, padding: 12, marginBottom: 18, fontSize: 13, color: "#78350f" }}>
-              ⚠️ <strong>Seller contribution is over 6% of price.</strong> Most loan programs cap seller-paid closing costs (FHA 6%, Conventional 3-9% by down payment, VA limited). ${sellerCredit.toLocaleString()} is {((sellerCredit / price) * 100).toFixed(1)}% — the lender may not allow it. You can still proceed.
+              ⚠️ <strong>{tr("Seller contribution is over 6% of price.")}</strong> {tr("Most loan programs cap seller-paid closing costs (FHA 6%, Conventional 3-9% by down payment, VA limited). $")}{sellerCredit.toLocaleString()} {tr("is")} {((sellerCredit / price) * 100).toFixed(1)}{tr("% — the lender may not allow it. You can still proceed.")}
             </div>
           )}
 
           {/* Closing date in the past */}
           {closingInPast && visibleFields.some(f => f.id === "closing_date") && (
             <div style={{ background: "#fef2f2", border: "1px solid #fca5a5", borderRadius: 8, padding: 12, marginBottom: 18, fontSize: 13, color: "#7f1d1d" }}>
-              ⚠️ <strong>Closing date is in the past.</strong> Pick a future date that's realistic for the loan type.
+              ⚠️ <strong>{tr("Closing date is in the past.")}</strong> {tr("Pick a future date that's realistic for the loan type.")}
             </div>
           )}
 
           {/* Weekend closing-date warning when this step shows the closing date */}
           {closingIsWeekend && !closingInPast && !closingDateAck && visibleFields.some(f => f.id === "closing_date") && (
             <div style={{ background: "#fef2f2", border: "1px solid #fca5a5", borderRadius: 8, padding: 12, marginBottom: 18, fontSize: 13, color: "#7f1d1d" }}>
-              ⚠️ <strong>Closing falls on a {closingDayName}.</strong> Title and closing companies are closed on weekends — this date likely won't work. Pick a weekday, or override to keep it.
+              ⚠️ <strong>{tr("Closing falls on a")} {closingDayName}.</strong> {tr("Title and closing companies are closed on weekends — this date likely won't work. Pick a weekday, or override to keep it.")}
               <div style={{ marginTop: 10 }}>
                 <button type="button" onClick={() => setClosingDateAck(true)}
                   style={{ background: "#7f1d1d", color: "white", border: "none", padding: "6px 14px", borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
-                  Override — keep this date
+                  {tr("Override — keep this date")}
                 </button>
               </div>
             </div>
@@ -1176,7 +1177,7 @@ export default function OfferWizard({ offerId, token, onClose, onSaved, isLandDe
           {visibleFields.length > 0 && (
             <div style={{ fontSize: 11, color: "#6b7280", marginBottom: 12, display: "flex", alignItems: "center", gap: 6 }}>
               <span style={{ display: "inline-block", width: 10, height: 10, background: "#16a34a", borderRadius: 2 }} />
-              Green = commonly filled on most offers · plain = optional / only when it applies
+              {tr("Green = commonly filled on most offers · plain = optional / only when it applies")}
             </div>
           )}
           <div style={{ display: "grid", gap: 18 }}>
@@ -1185,13 +1186,13 @@ export default function OfferWizard({ offerId, token, onClose, onSaved, isLandDe
               return (
               <div key={f.id} style={common ? { borderLeft: "3px solid #16a34a", paddingLeft: 12, background: "#f0fdf4", borderRadius: 6, padding: "10px 12px" } : {}}>
                 <label style={{ display: "block", fontSize: 13, fontWeight: 700, color: common ? "#15803d" : "#374151", marginBottom: 6 }}>
-                  {f.label} {f.required && <span style={{ color: "#dc2626" }}>*</span>}
-                  {common && <span style={{ fontSize: 10, fontWeight: 700, color: "#1E7B45", marginLeft: 6, textTransform: "uppercase", letterSpacing: "0.04em" }}>• commonly filled</span>}
+                  {tr(f.label)} {f.required && <span style={{ color: "#dc2626" }}>*</span>}
+                  {common && <span style={{ fontSize: 10, fontWeight: 700, color: "#1E7B45", marginLeft: 6, textTransform: "uppercase", letterSpacing: "0.04em" }}>{tr("• commonly filled")}</span>}
                 </label>
                 <FieldRenderer field={f} value={data[f.id]} onChange={(val) => setField(f.id, val)} documents={documents}
                   formLibrary={formLibrary} onUploadRiderForm={uploadRiderForm} riderUploadBusy={riderUploadBusy} />
-                {f.hint && <div style={{ fontSize: 11, color: "#6b7280", marginTop: 4 }}>{f.hint}</div>}
-                {f.why && <div style={{ fontSize: 11, color: "#92400e", marginTop: 2, fontStyle: "italic" }}>{f.why}</div>}
+                {f.hint && <div style={{ fontSize: 11, color: "#6b7280", marginTop: 4 }}>{tr(f.hint)}</div>}
+                {f.why && <div style={{ fontSize: 11, color: "#92400e", marginTop: 2, fontStyle: "italic" }}>{tr(f.why)}</div>}
               </div>
             );})}
           </div>
@@ -1203,15 +1204,15 @@ export default function OfferWizard({ offerId, token, onClose, onSaved, isLandDe
 
         {/* Footer */}
         <div style={{ padding: "16px 28px", borderTop: "1px solid #e5e7eb", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, background: "#f9fafb", borderRadius: "0 0 12px 12px" }}>
-          <button onClick={closeAndSave} disabled={saving} style={btnSecondary}>{saving ? "Saving…" : "Save & Close"}</button>
+          <button onClick={closeAndSave} disabled={saving} style={btnSecondary}>{saving ? tr("Saving…") : tr("Save & Close")}</button>
           <div style={{ display: "flex", gap: 8 }}>
             {/* "Save Draft" didn't read as an escape hatch — a rookie four steps
                 into a twelve-step contract needs to be told they can walk away
                 without losing it. */}
-            <button onClick={onSaveDraft} disabled={saving} style={btnGhost}>{saving ? "Saving…" : "Save & finish later"}</button>
-            {stepIdx > 0 && <button onClick={onBack} disabled={saving} style={btnSecondary}>← Previous step</button>}
-            {!isLast && <button onClick={onNext} disabled={saving} style={btnPrimary}>{saving ? "Saving…" : "Next →"}</button>}
-            {isLast && <button onClick={onSubmit} disabled={submitting} style={btnPrimary}>{submitting ? "Submitting…" : "Mark Ready ✓"}</button>}
+            <button onClick={onSaveDraft} disabled={saving} style={btnGhost}>{saving ? tr("Saving…") : tr("Save & finish later")}</button>
+            {stepIdx > 0 && <button onClick={onBack} disabled={saving} style={btnSecondary}>{tr("← Previous step")}</button>}
+            {!isLast && <button onClick={onNext} disabled={saving} style={btnPrimary}>{saving ? tr("Saving…") : tr("Next →")}</button>}
+            {isLast && <button onClick={onSubmit} disabled={submitting} style={btnPrimary}>{submitting ? tr("Submitting…") : tr("Mark Ready ✓")}</button>}
           </div>
         </div>
       </div>

@@ -1,4 +1,4 @@
-import { t as tr, locale as uiLocale } from "./i18n";
+import { t as tr, tn, locale as uiLocale } from "./i18n";
 import LoginScreen from "./LoginScreen";
 import BuyerCalculator from "./components/BuyerCalculator";
 import PreApprovalCard, { PreApprovalBadge } from './components/PreApprovalCard';
@@ -36,7 +36,6 @@ const SUPERUSER_EMAIL = ((import.meta.env && import.meta.env.VITE_SUPERUSER_EMAI
 import { useState, useEffect, useCallback, useRef, lazy, Suspense } from "react";
 import { askConfirm, askText } from "./ui/dialogs";
 import { applyStaffLang, getLang, saveStaffLang, loadSpanish, requestSpanish, useLang } from "./i18n";
-import LangToggle from "./components/LangToggle";
 import BackButton from "./ui/BackButton";
 
 // ── Code-split heavy, route-level screens so the phone only downloads the
@@ -497,10 +496,10 @@ function PipelineCard({ tx, onSelect }) {
         <span title={health.t} style={{ width: 9, height: 9, borderRadius: "50%", background: health.c, flexShrink: 0, display: "inline-block" }} />
         <span style={{ fontSize: 14 }}>{txTypeIcon(tx.type)}</span>
         <span style={{ fontSize: 9, fontWeight: 700, color: COLORS.muted, textTransform: "uppercase", letterSpacing: "0.06em" }}>{txTypeShort(tx.type)}</span>
-        {propertyTypeBadge(tx) && <span title={`${propertyTypeBadge(tx).label.replace(/^\S+\s/, "")} property`} style={{ background: propertyTypeBadge(tx).bg, color: propertyTypeBadge(tx).color, fontSize: 9, fontWeight: 700, padding: "1px 6px", borderRadius: 8 }}>{tr(propertyTypeBadge(tx).label)}</span>}
+        {propertyTypeBadge(tx) && <span title={tr("{v1} property", { v1: propertyTypeBadge(tx).label.replace(/^\S+\s/, "") })} style={{ background: propertyTypeBadge(tx).bg, color: propertyTypeBadge(tx).color, fontSize: 9, fontWeight: 700, padding: "1px 6px", borderRadius: 8 }}>{tr(propertyTypeBadge(tx).label)}</span>}
         {shareBadge(tx) && <span style={{ background: shareBadge(tx).bg, color: shareBadge(tx).color, fontSize: 9, fontWeight: 800, padding: "1px 6px", borderRadius: 8 }}>{tr(shareBadge(tx).label)}</span>}
         {tx.constructionType === "New Construction" && <span title={tr("New Construction")} style={{ background: "#FEF9E7", color: "#8A5A00", fontSize: 9, fontWeight: 700, padding: "1px 6px", borderRadius: 8 }}>{tr("🏗️ NC")}</span>}
-        {overdue > 0 && tx.status !== "Closed" && <span title={`${overdue} overdue item(s)`} style={{ marginLeft: "auto", background: COLORS.dangerBg, color: COLORS.danger, fontSize: 9, fontWeight: 700, padding: "1px 6px", borderRadius: 8 }}>⚠ {overdue}</span>}
+        {overdue > 0 && tx.status !== "Closed" && <span title={tr("{overdue} overdue item(s)", { overdue })} style={{ marginLeft: "auto", background: COLORS.dangerBg, color: COLORS.danger, fontSize: 9, fontWeight: 700, padding: "1px 6px", borderRadius: 8 }}>⚠ {overdue}</span>}
       </div>
       <div style={{ fontWeight: 700, fontSize: 13, color: COLORS.navy, marginBottom: 2, lineHeight: 1.3 }}>{tx.address}</div>
       {clientNameForTx(tx) && <div style={{ fontSize: 11.5, fontWeight: 600, color: COLORS.text, marginBottom: 1 }}>👤 {tr(clientLabelForTx(tx))}: {clientNameForTx(tx)}</div>}
@@ -1037,7 +1036,7 @@ function TaskReminderModal({ task, tx, onClose }) {
     if (assigned) setSelectedParties([assigned.id]);
     // Pre-fill message
     const urgency = isOverdue ? `⚠️ OVERDUE by ${Math.abs(due)} day${Math.abs(due) !== 1 ? "s" : ""}` : due === 0 ? "due TODAY" : `due in ${due} day${due !== 1 ? "s" : ""}`;
-    setMessage(`Hi, this is The Liz Team Realty.\n\nThis is a reminder that the following task is ${urgency}:\n\n📋 ${task.name}\n📍 ${tx.address}, ${tx.city}, FL\n📅 Due: ${formatDate(task.dueDate)}\n\nPlease take action as soon as possible. Thank you!`);
+    setMessage(tr("Hi, this is The Liz Team Realty.\n\nThis is a reminder that the following task is {urgency}:\n\n📋 {name}\n📍 {address}, {city}, FL\n📅 Due: {date}\n\nPlease take action as soon as possible. Thank you!", { urgency, name: task.name, address: tx.address, city: tx.city, date: formatDate(task.dueDate) }));
   }, []);
 
   const toggleParty = (id) => setSelectedParties(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
@@ -1099,7 +1098,7 @@ function TaskReminderModal({ task, tx, onClose }) {
             <div style={{ fontSize: 12, color: COLORS.muted, marginTop: 4 }}>
               {task.category} {tr("· Assigned to:")} {task.assignTo || "—"} {tr("· Due:")} {formatDate(task.dueDate)}
               {due !== null && <span style={{ fontWeight: 700, color: isOverdue ? COLORS.danger : COLORS.warning, marginLeft: 6 }}>
-                {isOverdue ? `(${Math.abs(due)}d overdue)` : due === 0 ? tr("(Due today!)") : `(${due}d remaining)`}
+                {isOverdue ? tr("({v1}d overdue)", { v1: Math.abs(due) }) : due === 0 ? tr("(Due today!)") : tr("({due}d remaining)", { due })}
               </span>}
             </div>
           </div>
@@ -1146,7 +1145,7 @@ function TaskReminderModal({ task, tx, onClose }) {
               <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
                 <Btn variant="ghost" onClick={onClose}>{tr("Cancel")}</Btn>
                 <Btn onClick={send} disabled={!selectedParties.length || !message.trim() || sending || !serverOnline} variant={isOverdue ? "danger" : "primary"}>
-                  {sending ? tr("Sending...") : `Send to ${selectedParties.length} part${selectedParties.length !== 1 ? "ies" : "y"}`}
+                  {sending ? tr("Sending...") : tn(selectedParties.length, "Send to {n} party", "Send to {n} parties")}
                 </Btn>
               </div>
             </>
@@ -1156,7 +1155,7 @@ function TaskReminderModal({ task, tx, onClose }) {
                 {result.map((r, i) => (
                   <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 0", borderBottom: `1px solid ${COLORS.border}` }}>
                     <div style={{ width: 10, height: 10, borderRadius: "50%", background: r.success ? COLORS.success : COLORS.danger, flexShrink: 0 }} />
-                    <div style={{ fontSize: 14 }}><strong>{r.name}</strong> — {r.success ? tr("Reminder sent ✓") : `Failed: ${r.error}`}</div>
+                    <div style={{ fontSize: 14 }}><strong>{r.name}</strong> — {r.success ? tr("Reminder sent ✓") : tr("Failed: {error}", { error: r.error })}</div>
                   </div>
                 ))}
               </div>
@@ -1383,7 +1382,7 @@ function SMSPanel({ tx, onUpdate, currentUser, sendOnly = false }) {
         try { await fetch(`${SMS_SERVER}/email/send`, { method: "POST", headers: { "Content-Type": "application/json", "Authorization": "Bearer " + (localStorage.getItem("tp_token") || "") }, body: JSON.stringify({ transactionId: tx.id, transactionAddress: tx.address, toEmail: party.email, toName: party.name, subject: `Reminder: ${task?.name} - ${tx.address}`, message: reminderBody, fromName: "The Liz Team" }) }); sent++; } catch {}
       }
     }
-    alert(`Reminders sent: ${sent} messages delivered.`);
+    alert(tr("Reminders sent: {sent} messages delivered.", { sent }));
     setShowReminderSMS(false);
     setReminderSending(false);
   };
@@ -1478,9 +1477,9 @@ function SMSPanel({ tx, onUpdate, currentUser, sendOnly = false }) {
           </span>
         ))}
         {gAttach.length > 0 ? (
-          <button onClick={postFilesToChat} disabled={chatPosting} style={{ fontSize: 12, padding: "6px 14px", borderRadius: 8, border: "none", background: "#0c4a6e", color: "#fff", fontWeight: 700, cursor: "pointer", fontFamily: "inherit", opacity: chatPosting ? 0.5 : 1 }}>{chatPosting ? tr("Sharing...") : `Share ${gAttach.length} file${gAttach.length > 1 ? "s" : ""} ${first ? `with ${first} only` : "in chat"}`}</button>
+          <button onClick={postFilesToChat} disabled={chatPosting} style={{ fontSize: 12, padding: "6px 14px", borderRadius: 8, border: "none", background: "#0c4a6e", color: "#fff", fontWeight: 700, cursor: "pointer", fontFamily: "inherit", opacity: chatPosting ? 0.5 : 1 }}>{chatPosting ? tr("Sharing...") : tn(gAttach.length, "Share {n} file {v3}", "Share {n} files {v3}", { v3: first ? `with ${first} only` : "in chat" })}</button>
         ) : (
-          <span style={{ fontSize: 11, color: "#6B7280" }}>{first ? `Files go privately to ${first} as secure download links.` : tr("Files post into the chat as secure download links.")}</span>
+          <span style={{ fontSize: 11, color: "#6B7280" }}>{first ? tr("Files go privately to {first} as secure download links.", { first }) : tr("Files post into the chat as secure download links.")}</span>
         )}
       </div>
     );
@@ -1660,7 +1659,7 @@ function SMSPanel({ tx, onUpdate, currentUser, sendOnly = false }) {
               </div>
 
               {(gChannel === "email" || gChannel === "both") && (
-                <input value={gSubject} onChange={e => setGSubject(e.target.value)} placeholder={`Email subject (default: Update: ${tx.address})`} style={{ width: "100%", padding: "9px 12px", borderRadius: 8, border: "1px solid #E5E7EB", fontSize: 13, fontFamily: "inherit", boxSizing: "border-box", marginBottom: 10 }} />
+                <input value={gSubject} onChange={e => setGSubject(e.target.value)} placeholder={tr("Email subject (default: Update: {address})", { address: tx.address })} style={{ width: "100%", padding: "9px 12px", borderRadius: 8, border: "1px solid #E5E7EB", fontSize: 13, fontFamily: "inherit", boxSizing: "border-box", marginBottom: 10 }} />
               )}
 
               <textarea value={gMessage} onChange={e => setGMessage(e.target.value)} rows={12} placeholder={tr("Type your message to the selected recipients...")} style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: "1px solid #E5E7EB", fontSize: 14, fontFamily: "inherit", resize: "vertical", minHeight: 220, boxSizing: "border-box", marginBottom: 10 }} />
@@ -1694,7 +1693,7 @@ function SMSPanel({ tx, onUpdate, currentUser, sendOnly = false }) {
                     </div>
                     {gUnreachable.length > 0 && (
                       <div style={{ color: "#DC2626", fontWeight: 600 }}>
-                        🚫 {gUnreachable.length} {gUnreachable.length === 1 ? tr("recipient has") : tr("recipients have")} {tr("no")} {gChannel === "sms" ? tr("phone") : gChannel === "email" ? tr("email") : tr("phone or email")} — {gChannel === "both" ? tr("add contact info to reach them") : `won't get this ${gChannel === "sms" ? "text" : "email"}`}
+                        🚫 {gUnreachable.length} {gUnreachable.length === 1 ? tr("recipient has") : tr("recipients have")} {tr("no")} {gChannel === "sms" ? tr("phone") : gChannel === "email" ? tr("email") : tr("phone or email")} — {gChannel === "both" ? tr("add contact info to reach them") : tr("won't get this {v1}", { v1: gChannel === "sms" ? "text" : "email" })}
                       </div>
                     )}
                   </>
@@ -1710,7 +1709,7 @@ function SMSPanel({ tx, onUpdate, currentUser, sendOnly = false }) {
                 </div>
               )}
 
-              <button onClick={sendGroup} disabled={!gChannel || !gMessage.trim() || gSending || gReachable === 0} style={{ width: "100%", padding: "11px", borderRadius: 8, border: "none", background: "#0c4a6e", color: "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer", fontFamily: "inherit", opacity: (!gChannel || !gMessage.trim() || gSending || gReachable === 0) ? 0.5 : 1 }}>{gSending ? tr("Sending...") : !gChannel ? tr("Pick Email or Text above") : `Send to ${gReachable} recipient${gReachable === 1 ? "" : "s"}`}</button>
+              <button onClick={sendGroup} disabled={!gChannel || !gMessage.trim() || gSending || gReachable === 0} style={{ width: "100%", padding: "11px", borderRadius: 8, border: "none", background: "#0c4a6e", color: "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer", fontFamily: "inherit", opacity: (!gChannel || !gMessage.trim() || gSending || gReachable === 0) ? 0.5 : 1 }}>{gSending ? tr("Sending...") : !gChannel ? tr("Pick Email or Text above") : tn(gReachable, "Send to {n} recipient", "Send to {n} recipients")}</button>
             </div>
         </div>
       )}
@@ -1821,7 +1820,7 @@ function SMSPanel({ tx, onUpdate, currentUser, sendOnly = false }) {
                 </div>
                 {(channel === "email" || channel === "both") && (
                   <div style={{ padding: "8px 18px 0", borderTop: "1px solid #E5E7EB" }}>
-                    <input value={subject} onChange={e => setSubject(e.target.value)} placeholder={`Subject (default: Re: ${tx.address})`} style={{ width: "100%", padding: "7px 12px", borderRadius: 8, border: "1px solid #E5E7EB", fontSize: 13, fontFamily: "inherit", boxSizing: "border-box" }} />
+                    <input value={subject} onChange={e => setSubject(e.target.value)} placeholder={tr("Subject (default: Re: {address})", { address: tx.address })} style={{ width: "100%", padding: "7px 12px", borderRadius: 8, border: "1px solid #E5E7EB", fontSize: 13, fontFamily: "inherit", boxSizing: "border-box" }} />
                   </div>
                 )}
                 <div style={{ padding: "8px 18px", borderTop: "1px solid #E5E7EB" }}>
@@ -1926,7 +1925,7 @@ function SMSPanel({ tx, onUpdate, currentUser, sendOnly = false }) {
               </div>
               <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
                 <button onClick={() => setShowReminderSMS(false)} style={{ padding: "8px 18px", borderRadius: 8, border: "1px solid #E5E7EB", background: "transparent", cursor: "pointer", fontFamily: "inherit" }}>{tr("Cancel")}</button>
-                <button onClick={sendReminder} disabled={!reminderTask || !reminderParties.length || reminderSending} style={{ padding: "8px 18px", borderRadius: 8, border: "none", background: "#0c4a6e", color: "#fff", fontWeight: 600, cursor: "pointer", fontFamily: "inherit", opacity: reminderSending ? 0.5 : 1 }}>{reminderSending ? tr("Sending...") : `Send to ${reminderParties.length} parties`}</button>
+                <button onClick={sendReminder} disabled={!reminderTask || !reminderParties.length || reminderSending} style={{ padding: "8px 18px", borderRadius: 8, border: "none", background: "#0c4a6e", color: "#fff", fontWeight: 600, cursor: "pointer", fontFamily: "inherit", opacity: reminderSending ? 0.5 : 1 }}>{reminderSending ? tr("Sending...") : tr("Send to {n} parties", { n: reminderParties.length })}</button>
               </div>
             </div>
           </div>
@@ -2609,7 +2608,7 @@ function ScheduleClosingModal({ tx, token, milestone, onClose, onDone }) {
         <div style={{ display: "flex", gap: 10, marginTop: 8, flexWrap: "wrap" }}>
           <button onClick={send} disabled={sending}
             style={{ flex: "2 1 220px", padding: "12px 0", borderRadius: 9, border: "none", background: "#0c4a6e", color: "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer" }}>
-            {sending ? tr("Sending…") : `📨 Send to ${sideLabel} & Mark Complete`}
+            {sending ? tr("Sending…") : tr("📨 Send to {sideLabel} & Mark Complete", { sideLabel })}
           </button>
           <button onClick={saveOnly} disabled={sending}
             style={{ flex: "1 1 150px", padding: "12px 0", borderRadius: 9, border: "1.5px solid #0c4a6e", background: "#fff", color: "#0c4a6e", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
@@ -2828,11 +2827,11 @@ function MilestonesTab({ tx, token, onSummaryChange, coordinatorMode = false }) 
       const lines = (d.milestones || []).slice(0, 30).map(m => `• ${m.name}: ${m.due || "no date yet"}`).join("\n");
       alert(
         tr("Dates recalculated from the contract date.\n\n") +
-        `Contract (executed) date: ${d.executedDate || "NOT SET"}\n` +
-        `Closing date: ${d.closingDate || "not set"}\n` +
-        `Status: ${d.status}\n` +
-        `Updated ${d.changed} date${d.changed === 1 ? "" : "s"}.\n\n` +
-        `Timeline now:\n${lines}`
+        tr("Contract (executed) date: {v1}\n", { v1: d.executedDate || "NOT SET" }) +
+        tr("Closing date: {v1}\n", { v1: d.closingDate || "not set" }) +
+        tr("Status: {status}\n", { status: d.status }) +
+        tn(d.changed, "Updated {n} date.\n\n", "Updated {n} dates.\n\n") +
+        tr("Timeline now:\n{lines}", { lines })
       );
     } catch (e) { alert(tr("Could not recalculate: ") + e.message); }
     setRecalcing(false);
@@ -3634,9 +3633,9 @@ function ContractReviewChecklist({ tx, token, onCleared, setActiveTab, openEditT
         alert(`✅ Welcome emails sent to ${d.emailsSent} parties.${sentList ? "\n\n" + sentList : ""}`);
         toggleStep(2);
       } else if ((d.emailsSent || 0) > 0 && (d.emailsFailed || 0) > 0) {
-        alert(`⚠️ Partial send: ${d.emailsSent} delivered, ${d.emailsFailed} FAILED.\n\nDelivered:\n${sentList}\n\nFailed:\n${failedList}`);
+        alert(tr("⚠️ Partial send: {emailsSent} delivered, {emailsFailed} FAILED.\n\nDelivered:\n{sentList}\n\nFailed:\n{failedList}", { emailsSent: d.emailsSent, emailsFailed: d.emailsFailed, sentList, failedList }));
       } else if ((d.emailsFailed || 0) > 0) {
-        alert(`❌ No welcome emails delivered (${d.emailsFailed} failed).\n\n${failedList}`);
+        alert(tr("❌ No welcome emails delivered ({emailsFailed} failed).\n\n{failedList}", { emailsFailed: d.emailsFailed, failedList }));
       } else {
         alert(tr("Could not send: ") + (d.error || tr("Unknown error")));
       }
@@ -3727,7 +3726,7 @@ function ContractReviewChecklist({ tx, token, onCleared, setActiveTab, openEditT
                           disabled={sendingEmails || partiesWithEmail.length === 0}
                           title={partiesWithEmail.length === 0 ? tr("At least one party needs a valid email address") : ""}
                           style={{ background: partiesWithEmail.length === 0 ? "#9ca3af" : "#1e8449", color: "white", border: "none", borderRadius: 6, padding: "10px 16px", fontSize: 13, fontWeight: 700, cursor: partiesWithEmail.length === 0 ? "not-allowed" : "pointer", fontFamily: "inherit", display: "block", marginBottom: 8, width: "100%", textAlign: "left" }}>
-                          {sendingEmails ? tr("Sending...") : `✉️ Send welcome emails to ${partiesWithEmail.length} parties — Recommended`}
+                          {sendingEmails ? tr("Sending...") : tr("✉️ Send welcome emails to {n} parties — Recommended", { n: partiesWithEmail.length })}
                         </button>
                         <div style={{ fontSize: 11, color: "#6b7280", marginBottom: 10, paddingLeft: 4 }}>
                           {tr("Sends a professional intro to every party with their role, key dates, and party roster. Marks this step verified.")}
@@ -4343,7 +4342,7 @@ export function WelcomeEmailPreview({ txId, onClose, onlyPartyId = null }) {
   };
 
   const sendAll = async () => {
-    if (!(await askConfirm(`Send all ${previews.length} welcome email(s) now?`, { okLabel: tr("Send all") }))) return;
+    if (!(await askConfirm(tr("Send all {n} welcome email(s) now?", { n: previews.length }), { okLabel: tr("Send all") }))) return;
     setBusy(true);
     try {
       const r = await fetch(`${API}/transactions/${txId}/send-welcome-emails`, { method: "POST", headers: { ...hdrs, "Content-Type": "application/json" }, body: JSON.stringify({ excludeDocIds: excludeList(), extraDocIds: Object.keys(extraDocs) }) });
@@ -4351,11 +4350,11 @@ export function WelcomeEmailPreview({ txId, onClose, onlyPartyId = null }) {
       const done = {};
       (d.sent || []).forEach(s => { const m = previews.find(p => p.email === s.email); if (m) done[m.partyId] = true; });
       setSentIds(prev => ({ ...prev, ...done }));
-      if (d.emailsFailed) alert(`${d.emailsSent} sent, ${d.emailsFailed} failed. Check the ones still marked unsent.`);
+      if (d.emailsFailed) alert(tr("{emailsSent} sent, {emailsFailed} failed. Check the ones still marked unsent.", { emailsSent: d.emailsSent, emailsFailed: d.emailsFailed }));
       else {
         // All sent — close the screen (Carlos 7/24: staying open after Send All
         // made it look like something was still pending).
-        alert(`✅ All ${d.emailsSent} welcome email(s) sent.`);
+        alert(tr("✅ All {emailsSent} welcome email(s) sent.", { emailsSent: d.emailsSent }));
         onClose();
       }
     } catch (e) { alert(tr("Send all failed: ") + e.message); }
@@ -4857,7 +4856,7 @@ function ActiveFollowups({ txId }) {
   useEffect(() => { load(); }, [txId]);
 
   const stop = async (chase) => {
-    if (!(await askConfirm(`Stop the automated follow-up for "${chase.label}" to ${chase.target_party_name || "this party"}?\n\nNo more reminder emails or texts will be sent for it.`, { okLabel: tr("Stop follow-up") }))) return;
+    if (!(await askConfirm(tr("Stop the automated follow-up for \"{label}\" to {v2}?\n\nNo more reminder emails or texts will be sent for it.", { label: chase.label, v2: chase.target_party_name || "this party" }), { okLabel: tr("Stop follow-up") }))) return;
     setStopping(chase.id);
     try {
       const res = await fetch(API + "/chases/" + chase.id + "/stop", {
@@ -5262,7 +5261,7 @@ function InboundRepliesPanel({ tx, coordinatorMode = false, onInboundRead }) {
                       <div key={i} style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8 }}>
                         <button onClick={() => openAttachment(m.id, i)}
                           style={{ border: `1px solid ${COLORS.border}`, background: COLORS.bg, borderRadius: 8, padding: "8px 12px", cursor: "pointer", fontSize: 13, fontWeight: 600, color: COLORS.navy }}>
-                          📄 {a.filename || `Attachment ${i + 1}`}
+                          📄 {a.filename || tr("Attachment {v1}", { v1: i + 1 })}
                         </button>
                         {(a.filedAs || a.filedMilestoneId) && (
                           <span style={{ fontSize: 12, fontWeight: 700, color: "#1E8449", background: "#EAF7EE", padding: "4px 10px", borderRadius: 20 }}>{tr("✓ Filed as")} {a.filedMilestoneId ? (a.filedLabel || tr("timeline step")) : slotLabel(a.filedAs)}</span>
@@ -5302,7 +5301,7 @@ function InboundRepliesPanel({ tx, coordinatorMode = false, onInboundRead }) {
                       ? <>{tr("Replying by")} <b style={{ color: "#0369A1" }}>{tr("📱 text")}</b> {tr("to")} <b style={{ color: COLORS.navy }}>{m.from_name || m.from_phone}</b> {m.from_phone ? `· ${m.from_phone}` : ""}</>
                       : <>{tr("Replying by")} <b style={{ color: COLORS.navy }}>{tr("📧 email")}</b> {tr("to")} <b style={{ color: COLORS.navy }}>{m.from_name || m.from_email}</b> {m.from_email ? `· ${m.from_email}` : ""}</>}
                   </div>
-                  <textarea value={replyText} onChange={e => setReplyText(e.target.value)} rows={4} autoFocus placeholder={`Write your reply to ${m.from_name || "them"}…`}
+                  <textarea value={replyText} onChange={e => setReplyText(e.target.value)} rows={4} autoFocus placeholder={tr("Write your reply to {v1}…", { v1: m.from_name || "them" })}
                     style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: `1px solid ${COLORS.border}`, fontSize: 14, fontFamily: "inherit", boxSizing: "border-box", resize: "vertical", marginBottom: 8 }} />
 
                   {/* Attach: from the deal's Documents, or upload from this computer */}
@@ -5671,10 +5670,10 @@ function DealDoctorPanel({ tx }) {
                       if (!r.ok) { const b = await r.json().catch(() => ({})); throw new Error(b.error || "Could not complete the step"); }
                       window.dispatchEvent(new Event("wintheday:refresh"));
                       await clear();
-                      alert(`✅ "${dd.completeMilestoneName}" is marked complete on the timeline.`);
+                      alert(tr("✅ \"{completeMilestoneName}\" is marked complete on the timeline.", { completeMilestoneName: dd.completeMilestoneName }));
                     } catch (e) { setErr(e.message); }
                   }}
-                  title={`Marks "${dd.completeMilestoneName}" complete on this deal's timeline`}
+                  title={tr("Marks \"{completeMilestoneName}\" complete on this deal's timeline", { completeMilestoneName: dd.completeMilestoneName })}
                   style={{ background: "#0c4a6e", color: "#fff", border: "none", borderRadius: 8, padding: "7px 14px", fontSize: 13, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>
                   {tr("✅ Complete \"")}{dd.completeMilestoneName}{tr("\" on the timeline")}
                 </button>
@@ -5728,7 +5727,7 @@ function CoordinatorTeamModal({ currentUser, onClose }) {
     setBusy(false);
   };
   const remove = async (m) => {
-    if (!(await askConfirm(`Remove ${m.first_name || m.email} from your team? Any deals assigned to them go back to you.`, { okLabel: tr("Remove"), danger: true }))) return;
+    if (!(await askConfirm(tr("Remove {v1} from your team? Any deals assigned to them go back to you.", { v1: m.first_name || m.email }), { okLabel: tr("Remove"), danger: true }))) return;
     try { const r = await fetch(`${_tcApi}/tc/team/${m.id}`, { method: "DELETE", headers: _tcHdrs2() }); const d = await r.json(); if (!r.ok) throw new Error(d.error || "Failed"); await load(); }
     catch (e) { alert("⚠️ " + e.message); }
   };
@@ -6584,7 +6583,7 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
   const [welcomePreviewPartyId, setWelcomePreviewPartyId] = useState(null);
   const onSendWelcome = (party) => {
     if (!party || !party.id) return;
-    if (!party.email) { alert(`${party.name || "This party"} has no email address. Add one in Edit, then try again.`); return; }
+    if (!party.email) { alert(tr("{v1} has no email address. Add one in Edit, then try again.", { v1: party.name || "This party" })); return; }
     setWelcomePreviewPartyId(party.id);
   };
   const [showContractWizard, setShowContractWizard] = useState(false);
@@ -6895,7 +6894,7 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
         {isCoordinator && <span style={{ background: "rgba(255,255,255,0.15)", color: "#fff", fontSize: 11, fontWeight: 700, padding: "4px 10px", borderRadius: 6 }}>{tr("🧭 Coordinator")}</span>}
         {/* CO-AGENT on someone else's deal: full access; only the deal agent's
             commission terms stay theirs. */}
-        {!isCoordinator && tx.isCoAgentView && <span title={`You share this deal with ${tx.assignedAgentName || "its agent"}. Their commission terms stay theirs.`} style={{ background: "rgba(255,255,255,0.15)", color: "#fff", fontSize: 11, fontWeight: 700, padding: "4px 10px", borderRadius: 6 }}>{tr("🤝 You're a co-agent")}</span>}
+        {!isCoordinator && tx.isCoAgentView && <span title={tr("You share this deal with {v1}. Their commission terms stay theirs.", { v1: tx.assignedAgentName || "its agent" })} style={{ background: "rgba(255,255,255,0.15)", color: "#fff", fontSize: 11, fontWeight: 700, padding: "4px 10px", borderRadius: 6 }}>{tr("🤝 You're a co-agent")}</span>}
         {!isCoordinator && <>
         <select value={tx.status} onChange={e => {
           if (isGuest) { setPaywallFeature("Changing transaction status"); e.target.value = tx.status; return; }
@@ -6967,7 +6966,7 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
                   !isGuest && { icon: "💔", label: "Past contracts (archives)", fn: () => setShowPastContracts(true) },
                   { divider: true },
                   /* "Contract fell through…" lives in ONE place: the status dropdown (tester review). */
-                  tx.status !== "Cancelled" && { icon: "🚫", label: "Cancel this deal…", danger: true, fn: () => isGuest ? setPaywallFeature("Cancelling a transaction") : (async () => { if (((await askText(`Cancel "${tx.address || "this transaction"}"? It will be HIDDEN from your dashboard (not deleted). Type CANCEL to confirm.`, "", { okLabel: "Cancel this deal", placeholder: "Type CANCEL" })) || "").trim().toUpperCase() === "CANCEL") update({ status: "Cancelled" }); })() },
+                  tx.status !== "Cancelled" && { icon: "🚫", label: "Cancel this deal…", danger: true, fn: () => isGuest ? setPaywallFeature("Cancelling a transaction") : (async () => { if (((await askText(tr("Cancel \"{v1}\"? It will be HIDDEN from your dashboard (not deleted). Type CANCEL to confirm.", { v1: tx.address || "this transaction" }), "", { okLabel: "Cancel this deal", placeholder: "Type CANCEL" })) || "").trim().toUpperCase() === "CANCEL") update({ status: "Cancelled" }); })() },
                   tx.status === "Cancelled" && { icon: "♻️", label: "Restore this deal", fn: () => isGuest ? setPaywallFeature("Restoring a transaction") : update({ status: "Active" }) },
                 ].filter(Boolean).map((it, i) => it.divider ? (
                   <div key={i} style={{ height: 1, background: "#e5e7eb", margin: "6px 8px" }} />
@@ -7485,12 +7484,12 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
               const members = tx.parties.filter(p => p.role === role && !p.isVendor && !p.is_vendor && !(isCoordinator && (p.email || "").toLowerCase() === (currentUser?.email || "").toLowerCase()));
               if (!members.length) return null;
               return <div key={role} style={{ marginBottom: 16 }}><div style={{ fontSize: 12, fontWeight: 700, color: COLORS.muted, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 8 }}>{tr(role)}</div>{members.map(p => <PartyCard key={p.id} party={p} txId={tx.id} onEdit={isGuest ? () => setPaywallFeature("Editing parties") : () => setEditingParty({ ...p })} onRemove={isGuest ? () => setPaywallFeature("Removing parties") : () => isCoordinator ? coordDeleteParty(p.id) : update({ parties: tx.parties.filter(pp => pp.id !== p.id) })} onInvite={isGuest ? () => setPaywallFeature("Inviting parties to the app") : (isCoordinator ? undefined : (onInviteParty && isOwnSideClientRole(p.role) ? () => onInviteParty(p) : undefined))} onCopyLoginLink={isGuest ? () => setPaywallFeature("Sharing portal login links") : (isCoordinator ? undefined : (onCopyLoginLink && isOwnSideClientRole(p.role) ? () => onCopyLoginLink(p) : undefined))} onSendFollowup={isGuest ? () => setPaywallFeature("Follow-up reminders") : (party) => setFollowupParty(party)} onResetPin={(!isGuest && !isCoordinator && isOwnSideClientRole(p.role)) ? async (p2) => {
-                if (!(await askConfirm(`Reset the portal PIN for ${p2.name}?\n\nTheir old PIN stops working immediately. The next time they open their portal link, they'll be asked to create a new PIN.`, { okLabel: tr("Reset PIN"), danger: true }))) return;
+                if (!(await askConfirm(tr("Reset the portal PIN for {name}?\n\nTheir old PIN stops working immediately. The next time they open their portal link, they'll be asked to create a new PIN.", { name: p2.name }), { okLabel: tr("Reset PIN"), danger: true }))) return;
                 try {
                   const r = await fetch(API + "/admin/clients/reset-portal-pin", { method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + (localStorage.getItem("tp_token") || "") }, body: JSON.stringify({ email: p2.email }) });
                   const d = await r.json();
                   if (!r.ok || !d.success) throw new Error(d.error || "Reset failed");
-                  alert(`✅ PIN cleared for ${p2.name}. Tell them to open their portal link again — it will ask them to CREATE a new 4-digit PIN.`);
+                  alert(tr("✅ PIN cleared for {name}. Tell them to open their portal link again — it will ask them to CREATE a new 4-digit PIN.", { name: p2.name }));
                 } catch (e) { alert(tr("Could not reset PIN: ") + e.message); }
               } : undefined} onSendWelcome={isGuest ? () => setPaywallFeature("Welcome emails") : onSendWelcome} onResetPassword={undefined /* password login retired for clients — portal is link+PIN; staff resets live in Team settings */} />)}</div>;
             })}
@@ -7709,7 +7708,7 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
                       {formatDate(r.date)}{" "}
                       {isDone
                         ? <span style={{ color: "#1E8449", fontWeight: 700 }}>{tr("✅ Done")} {formatDate(r.doneAt)}</span>
-                        : d !== null && <span style={{ color: d < 0 ? COLORS.danger : d <= 3 ? COLORS.warning : COLORS.muted }}>({d === 0 ? tr("Today") : d > 0 ? `in ${d}d` : `${Math.abs(d)}d ago`})</span>}
+                        : d !== null && <span style={{ color: d < 0 ? COLORS.danger : d <= 3 ? COLORS.warning : COLORS.muted }}>({d === 0 ? tr("Today") : d > 0 ? tr("in {d}d", { d }) : tr("{v1}d ago", { v1: Math.abs(d) })})</span>}
                     </div>
                     {r.message && <div style={{ fontSize: 13, marginTop: 4, fontStyle: "italic" }}>{r.message}</div>}
                   </div>
@@ -8050,7 +8049,7 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
                 <button onClick={() => setStatusChangeModal(null)} style={{ padding: "10px 18px", border: "1px solid #CCC", borderRadius: 8, background: "none", cursor: "pointer", fontFamily: "inherit" }}>{tr("Cancel")}</button>
                 <button onClick={async () => {
                   const { newStatus, form } = statusChangeModal;
-                  if (newStatus === "Cancelled" && ((await askText(`Cancel "${tx.address || "this transaction"}"? It will be HIDDEN from your dashboard (not deleted). Type CANCEL to confirm.`, "", { okLabel: "Cancel this deal", placeholder: "Type CANCEL" })) || "").trim().toUpperCase() !== "CANCEL") return;
+                  if (newStatus === "Cancelled" && ((await askText(tr("Cancel \"{v1}\"? It will be HIDDEN from your dashboard (not deleted). Type CANCEL to confirm.", { v1: tx.address || "this transaction" }), "", { okLabel: "Cancel this deal", placeholder: "Type CANCEL" })) || "").trim().toUpperCase() !== "CANCEL") return;
                   const inspDays = parseInt(form.inspectionDays) || 10;
                   const updates = { status: newStatus };
                   if (form.closingDate) updates.closingDate = form.closingDate;
@@ -8247,7 +8246,7 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
         );
       })()}
       {followupParty && (
-        <Modal title={`Send Follow-Up to ${followupParty.name}`} onClose={() => { setFollowupParty(null); setFollowupForm({ subject: "", message: "" }); }}>
+        <Modal title={tr("Send Follow-Up to {name}", { name: followupParty.name })} onClose={() => { setFollowupParty(null); setFollowupForm({ subject: "", message: "" }); }}>
           <div style={{ background:"#F3F4F6", borderRadius:8, padding:10, marginBottom:12, fontSize:12 }}>
             <div><strong>{tr("To:")}</strong> {followupParty.name} ({followupParty.role})</div>
             {followupParty.email && <div>📧 {followupParty.email}</div>}
@@ -9185,7 +9184,6 @@ function AppHeader(props) {
           onSupport={props.onSupport}
           onLogout={onLogout}
         />
-        <LangToggle staff style={{ border: "1px solid rgba(255,255,255,0.35)" }} />
         <TenantSwitcher currentUser={currentUser} />
       </div>
     </div>
@@ -9214,8 +9212,8 @@ function SettingsMenu({ currentUser, onOpenContactBook, contactCount, onReports,
   // so three doors read as three unfinished features. Growth Plan is the one door
   // now — it's the only one that also back-calculates the daily activity.
   items.push({ icon: "👤", label: "My Profile", onClick: onAgentProfile });
-  // Screen language for THIS person — also the EN | ES switch in the header.
-  items.push({ icon: "🌎", label: getLang() === "es" ? "Switch to English" : "Cambiar a Español", onClick: () => saveStaffLang(getLang() === "es" ? "en" : "es") });
+  // Screen language for THIS person (the only place to switch it).
+  items.push({ icon: "🌎", label: getLang() === "es" ? "Idioma: Español → Switch to English" : "Language: English → Cambiar a Español", onClick: () => saveStaffLang(getLang() === "es" ? "en" : "es") });
   if (onOpenForms) items.push({ icon: "📄", label: "Forms Library", onClick: onOpenForms });
   items.push({ icon: "🔒", label: "Change Password", onClick: onChangePassword });
   if (isAdmin) {
@@ -10154,10 +10152,10 @@ function Dashboard({ transactions, coordinatorMode = false, unreadCounts = {}, o
                 {/* Notification badges */}
                 {(smsMsgCount > 0 || unreadCounts[tx.id] > 0) && (
                   <div style={{ display: "flex", gap: 6, marginBottom: 10 }}>
-                    {smsMsgCount > 0 && <Badge label={`${smsMsgCount} SMS`} color={COLORS.success} bg={COLORS.successBg} />}
+                    {smsMsgCount > 0 && <Badge label={tr("{smsMsgCount} SMS", { smsMsgCount })} color={COLORS.success} bg={COLORS.successBg} />}
                     {unreadCounts[tx.id] > 0 && (
                       <span onClick={e => { e.stopPropagation(); onSelect(tx.id, "chat"); }} style={{ cursor: "pointer" }}>
-                        <Badge label={`💬 ${unreadCounts[tx.id]} new`} color="#fff" bg="#C0392B" />
+                        <Badge label={tr("💬 {v1} new", { v1: unreadCounts[tx.id] })} color="#fff" bg="#C0392B" />
                       </span>
                     )}
                   </div>
@@ -11163,7 +11161,7 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
 
   const invitePartyToPortal = async (party, tx) => {
     if (!party.email) { alert(tr("This party has no email address. Add one first.")); return; }
-    if (!(await askConfirm(`Send portal invitation to ${party.name} (${party.email})?`, { okLabel: tr("Send invitation") }))) return;
+    if (!(await askConfirm(tr("Send portal invitation to {name} ({email})?", { name: party.name, email: party.email }), { okLabel: tr("Send invitation") }))) return;
     const tok = localStorage.getItem("tp_token") || "";
     // Find agent and TC from transaction parties
     const agent = tx && tx.parties ? tx.parties.find(p => p.role === "Listing Agent" || p.role === "Buyer's Agent") : null;
@@ -11222,7 +11220,7 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
       if (data.staff) { alert(data.message || tr("This is a staff account — they sign in with email and password.")); return; }
       try { await navigator.clipboard.writeText(data.link); } catch { /* clipboard may be blocked; still show it below */ }
       await askText(
-        `Login link for ${party.name || party.email} — copied to your clipboard. Text or email it to them.\n\nThey'll set a private 4-digit PIN the first time (the link alone can't sign anyone in).`,
+        tr("Login link for {v1} — copied to your clipboard. Text or email it to them.\n\nThey'll set a private 4-digit PIN the first time (the link alone can't sign anyone in).", { v1: party.name || party.email }),
         data.link,
         { okLabel: "Done" }
       );
@@ -11332,7 +11330,7 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
               <button onClick={(e) => { e.stopPropagation(); setFloatHiddenSig(signAlerts.map(n => n.id).join(",")); }} title={tr("Hide (alerts stay on Win The Day)")}
                 style={{ background: "none", border: "none", color: "rgba(255,255,255,0.75)", fontSize: 16, cursor: "pointer", lineHeight: 1, padding: 0 }}>×</button>
             </div>
-            <div style={{ fontSize: 12, color: "rgba(255,255,255,0.92)", marginTop: 4, lineHeight: 1.4 }}>{tr(signAlerts[0].title)}{signAlerts.length > 1 ? ` (+${signAlerts.length - 1} more)` : ""}</div>
+            <div style={{ fontSize: 12, color: "rgba(255,255,255,0.92)", marginTop: 4, lineHeight: 1.4 }}>{tr(signAlerts[0].title)}{signAlerts.length > 1 ? tr(" (+{v1} more)", { v1: signAlerts.length - 1 }) : ""}</div>
             <div style={{ fontSize: 11, marginTop: 6, fontWeight: 800, textDecoration: "underline" }}>{tr("Tap to see them on Win The Day →")}</div>
           </div>
           <style>{"@keyframes signAlertIn { from { transform: translateX(30px); opacity: 0; } to { transform: none; opacity: 1; } } @keyframes mpulse2 { 0%,100%{transform:scale(1)} 50%{transform:scale(1.04)} }"}</style>
@@ -11379,7 +11377,7 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
             <style>{`@keyframes mpulse{0%,100%{transform:scale(1)}50%{transform:scale(1.07)}}`}</style>
             <div onClick={go} title={tr("You have new messages — tap to read")}
               style={{ position: "fixed", bottom: 18, left: 18, zIndex: 9998, background: "#C0392B", color: "#fff", borderRadius: 30, padding: "13px 20px", boxShadow: "0 8px 26px rgba(192,57,43,0.55)", cursor: "pointer", fontWeight: 800, fontSize: 15, display: "flex", alignItems: "center", gap: 10, animation: "mpulse 1.6s ease-in-out infinite", maxWidth: "calc(100vw - 36px)", fontFamily: "'Segoe UI', system-ui, sans-serif" }}>
-              🔔 {total} {tr("new message")}{total === 1 ? "" : "s"}{entries.length > 1 ? ` · ${entries.length} deals` : ""} <span style={{ textDecoration: "underline", whiteSpace: "nowrap" }}>{tr("Read →")}</span>
+              🔔 {total} {tr("new message")}{total === 1 ? "" : "s"}{entries.length > 1 ? tr(" · {n} deals", { n: entries.length }) : ""} <span style={{ textDecoration: "underline", whiteSpace: "nowrap" }}>{tr("Read →")}</span>
             </div>
           </>
         );
@@ -11807,7 +11805,7 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
         return (
           <button onClick={() => setOnboardAway(false)}
             style={{ position: "fixed", left: 16, bottom: 16, zIndex: 2500, background: "#0c4a6e", color: "#fff", border: "none", borderRadius: 999, padding: "11px 18px", fontSize: 14, fontWeight: 800, cursor: "pointer", fontFamily: "inherit", boxShadow: "0 6px 20px rgba(0,0,0,0.25)" }}>
-            {tr("← Back to setup")}{idx >= 0 ? ` · step ${idx + 1} of ${onboardSteps.length}` : tr(" · all done")}
+            {tr("← Back to setup")}{idx >= 0 ? tr(" · step {v1} of {n}", { v1: idx + 1, n: onboardSteps.length }) : tr(" · all done")}
           </button>
         );
       })()}

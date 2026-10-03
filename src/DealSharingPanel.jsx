@@ -174,7 +174,7 @@ export default function DealSharingPanel({ txId, onChanged }) {
                 // A saved co-agent is removed for real right away — not left on
                 // screen waiting for "Save sharing" while they keep access.
                 if (!c.id) { set({ coAgents: rest }); return; }
-                if (!(await askConfirm(`Remove ${c.name || "this co-agent"} as co-agent?\n\nThey lose access to this deal right away.`, { okLabel: tr("Remove"), danger: true }))) return;
+                if (!(await askConfirm(tr("Remove {v1} as co-agent?\n\nThey lose access to this deal right away.", { v1: c.name || "this co-agent" }), { okLabel: tr("Remove"), danger: true }))) return;
                 const next = { ...form, coAgents: rest, deal_share_type: rest.length ? form.deal_share_type : "standard" };
                 setForm(next); save(next);
               }} title={tr("Remove")} style={{ border: "none", background: "none", cursor: "pointer", fontSize: 16 }}>✕</button> : <span />}
@@ -236,9 +236,9 @@ export default function DealSharingPanel({ txId, onChanged }) {
                 const x = await r.json();
                 if (!r.ok || !x.success) { alert(x.error || tr("Couldn't send")); return; }
                 setInvite(null);
-                setMsg(invite.kind !== "coagent" ? `✅ Partner link sent to ${invite.to}.`
-                  : x.mode === "linked" ? `✅ ${invite.to} is working this deal — it's in their TransactPro app now.`
-                  : `✅ Invite sent to ${invite.to}. When they open it and pick a password, the deal opens in their app (status changes to "Working this deal").`);
+                setMsg(invite.kind !== "coagent" ? tr("✅ Partner link sent to {to}.", { to: invite.to })
+                  : x.mode === "linked" ? tr("✅ {to} is working this deal — it's in their TransactPro app now.", { to: invite.to })
+                  : tr("✅ Invite sent to {to}. When they open it and pick a password, the deal opens in their app (status changes to \"Working this deal\").", { to: invite.to }));
                 load();
               }} style={{ padding: "9px 18px", borderRadius: 8, border: "none", background: "#0c4a6e", color: "#fff", fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>{tr("✅ Send")}</button>
             </div>
@@ -255,7 +255,7 @@ export default function DealSharingPanel({ txId, onChanged }) {
               color: l.kind === "result" ? "#166534" : l.kind === "brokerage_total" ? C.blue : l.kind === "info" ? C.muted : C.text,
               borderTop: l.kind === "result" ? "1px solid " + C.border : "none" }}>
               {/* A co-agent viewing: "Your net" in the deal's calculation is the deal agent's. */}
-              <span>{l.kind === "result" && d.viewer === "coagent" ? `${d.ownerName || "Deal agent"}'s net` : tr(l.label)}</span><span>{money(l.amount)}</span>
+              <span>{l.kind === "result" && d.viewer === "coagent" ? tr("{v1}'s net", { v1: d.ownerName || "Deal agent" }) : tr(l.label)}</span><span>{money(l.amount)}</span>
             </div>
           ))}
           {(calc.coAgents || []).map((c, i) => (

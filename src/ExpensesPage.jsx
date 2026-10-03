@@ -1,3 +1,4 @@
+import { t as tr, tn } from "./i18n";
 import React, { useState, useEffect, useRef } from 'react';
 import BackButton from "./ui/BackButton";
 import { askConfirm, askText } from './ui/dialogs';
@@ -175,12 +176,12 @@ export default function ExpensesPage({ onBack }) {
   };
 
   const handleDelete = async (id) => {
-    if (!(await askConfirm('Delete this expense? This cannot be undone.', { okLabel: 'Delete', danger: true }))) return;
+    if (!(await askConfirm(tr("Delete this expense? This cannot be undone."), { okLabel: tr("Delete"), danger: true }))) return;
     try {
       await authFetch(`/expenses/${id}`, { method: 'DELETE' });
       setExpenses(prev => prev.filter(e => e.id !== id));
     } catch (e) {
-      alert('Delete failed: ' + e.message);
+      alert(tr("Delete failed: ") + e.message);
     }
   };
 
@@ -205,7 +206,7 @@ export default function ExpensesPage({ onBack }) {
   // CSV Export
   const exportCSV = () => {
     if (visibleExpenses.length === 0) {
-      alert('No expenses to export with current filters.');
+      alert(tr("No expenses to export with current filters."));
       return;
     }
     const headers = ['Date', 'Vendor', 'Category', 'Amount', 'Type', 'Miles', 'Rate', 'Notes', 'Receipt'];
@@ -252,7 +253,7 @@ export default function ExpensesPage({ onBack }) {
             {onBack && (
               <BackButton tone="dark" onClick={onBack} to="My Deals" />
             )}
-            <h1 style={{ margin: 0, fontSize: 26, fontWeight: 700 }}>💵 My Money</h1>
+            <h1 style={{ margin: 0, fontSize: 26, fontWeight: 700 }}>{tr("💵 My Money")}</h1>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <div style={{ display: 'flex', background: 'rgba(255,255,255,0.2)', borderRadius: 20, padding: 3 }}>
@@ -260,7 +261,7 @@ export default function ExpensesPage({ onBack }) {
                 <button key={k} onClick={() => setViewMode(k)} style={{
                   border: 'none', cursor: 'pointer', padding: '6px 14px', borderRadius: 18, fontSize: 13, fontWeight: 600,
                   background: viewMode === k ? 'white' : 'transparent', color: viewMode === k ? '#059669' : 'white',
-                }}>{l}</button>
+                }}>{tr(l)}</button>
               ))}
             </div>
             <button
@@ -271,14 +272,14 @@ export default function ExpensesPage({ onBack }) {
                 padding: '6px 14px', fontSize: 13, cursor: 'pointer'
               }}
             >
-              ℹ️ Help
+              {tr("ℹ️ Help")}
             </button>
           </div>
         </div>
         <div style={{ marginTop: 6, fontSize: 13, opacity: 0.9 }}>
           {viewMode === 'simple'
-            ? "See how much you're making, spending, and keeping — in plain English. Private to you."
-            : "Expenses, income, budget, P&L, and bank import. Your data is private — even admins can't see it."}
+            ? tr("See how much you're making, spending, and keeping — in plain English. Private to you.")
+            : tr("Expenses, income, budget, P&L, and bank import. Your data is private — even admins can't see it.")}
         </div>
       </div>
 
@@ -311,7 +312,7 @@ export default function ExpensesPage({ onBack }) {
                 fontFamily: 'inherit',
               }}
             >
-              <div>{label}</div>
+              <div>{tr(label)}</div>
               {plain && <div style={{ fontSize: 10.5, fontWeight: 500, color: activeTab === key ? '#10b981' : '#9ca3af', marginTop: 2 }}>{plain}</div>}
             </button>
           );
@@ -333,7 +334,7 @@ export default function ExpensesPage({ onBack }) {
               <div style={{ flex: 1, minWidth: 12 }} />
               <button
                 onClick={() => setActiveTab('import')}
-                title="Upload a bank or credit-card statement"
+                title={tr("Upload a bank or credit-card statement")}
                 style={{
                   display: 'flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap', cursor: 'pointer',
                   margin: '7px 0', padding: '8px 14px', fontSize: 14, fontWeight: 700, borderRadius: 8,
@@ -341,7 +342,7 @@ export default function ExpensesPage({ onBack }) {
                   background: activeTab === 'import' ? '#E0F2FE' : 'white',
                   color: activeTab === 'import' ? '#0c4a6e' : '#374151',
                 }}
-              >📥 Import Statement</button>
+              >{tr("📥 Import Statement")}</button>
             </>
           );
         })()}
@@ -353,8 +354,8 @@ export default function ExpensesPage({ onBack }) {
         <>
           {/* Obvious manual-entry doors on the full-details screen (Carlos 7/31). */}
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 14 }}>
-            <button onClick={() => setActiveTab('income')} style={secondaryBtn}>➕ Enter manually money I made</button>
-            <button onClick={() => setActiveTab('expenses')} style={secondaryBtn}>➖ Enter manually money I spent</button>
+            <button onClick={() => setActiveTab('income')} style={secondaryBtn}>{tr("➕ Enter manually money I made")}</button>
+            <button onClick={() => setActiveTab('expenses')} style={secondaryBtn}>{tr("➖ Enter manually money I spent")}</button>
           </div>
           <PnLTab />
         </>
@@ -367,10 +368,10 @@ export default function ExpensesPage({ onBack }) {
 
       {/* Summary cards */}
       <div style={{ padding: '20px 24px 0 24px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12 }}>
-        <SummaryCard label="Total Expenses" value={fmtCurrency(totalAll)} sub={`${countAll} item${countAll === 1 ? '' : 's'}`} color="#1f2937" />
-        <SummaryCard label="Mileage" value={fmtCurrency(totalMileage)} sub={`${countMileage} trip${countMileage === 1 ? '' : 's'}`} color="#10b981" />
-        <SummaryCard label="Cash Expenses" value={fmtCurrency(totalAll - totalMileage)} sub="non-mileage" color="#6b7280" />
-        <SummaryCard label="Period" value={`${fmtDate(filterStart)} → ${fmtDate(filterEnd)}`} sub="" color="#3b82f6" smallValue />
+        <SummaryCard label={tr("Total Expenses")} value={fmtCurrency(totalAll)} sub={tn(countAll, "{n} item", "{n} items")} color="#1f2937" />
+        <SummaryCard label={tr("Mileage")} value={fmtCurrency(totalMileage)} sub={tn(countMileage, "{n} trip", "{n} trips")} color="#10b981" />
+        <SummaryCard label={tr("Cash Expenses")} value={fmtCurrency(totalAll - totalMileage)} sub="non-mileage" color="#6b7280" />
+        <SummaryCard label={tr("Period")} value={`${fmtDate(filterStart)} → ${fmtDate(filterEnd)}`} sub="" color="#3b82f6" smallValue />
       </div>
 
       {/* Action bar */}
@@ -379,19 +380,19 @@ export default function ExpensesPage({ onBack }) {
           onClick={() => { setEditingExpense(null); setAddModalOpen(true); }}
           style={primaryBtn('#0c4a6e')}
         >
-          ➕ Add Expense
+          {tr("➕ Add Expense")}
         </button>
         <button
           onClick={() => setReportModalOpen(true)}
           style={primaryBtn('#0c4a6e')}
         >
-          📊 Tax Report
+          {tr("📊 Tax Report")}
         </button>
         <button
           onClick={exportCSV}
           style={primaryBtn('#6b7280')}
         >
-          ⬇️ Export CSV
+          {tr("⬇️ Export CSV")}
         </button>
       </div>
 
@@ -407,31 +408,31 @@ export default function ExpensesPage({ onBack }) {
         gap: 12,
         alignItems: 'end'
       }}>
-        <Field label="From">
+        <Field label={tr("From")}>
           <input type="date" value={filterStart} onChange={e => setFilterStart(e.target.value)} style={inputStyle} />
         </Field>
-        <Field label="To">
+        <Field label={tr("To")}>
           <input type="date" value={filterEnd} onChange={e => setFilterEnd(e.target.value)} style={inputStyle} />
         </Field>
-        <Field label="Category">
+        <Field label={tr("Category")}>
           <select value={filterCategory} onChange={e => setFilterCategory(e.target.value)} style={inputStyle}>
-            <option value="">All categories</option>
+            <option value="">{tr("All categories")}</option>
             {categories.map(c => (
-              <option key={c.id} value={c.name}>{c.name}</option>
+              <option key={c.id} value={c.name}>{tr(c.name)}</option>
             ))}
           </select>
         </Field>
-        <Field label="Type">
+        <Field label={tr("Type")}>
           <select value={filterDeductible} onChange={e => setFilterDeductible(e.target.value)} style={inputStyle}>
-            <option value="all">All types</option>
-            <option value="cash">Cash expenses</option>
-            <option value="mileage">Mileage only</option>
+            <option value="all">{tr("All types")}</option>
+            <option value="cash">{tr("Cash expenses")}</option>
+            <option value="mileage">{tr("Mileage only")}</option>
           </select>
         </Field>
-        <Field label="Search">
+        <Field label={tr("Search")}>
           <input
             type="text"
-            placeholder="vendor, notes..."
+            placeholder={tr("vendor, notes...")}
             value={filterSearch}
             onChange={e => setFilterSearch(e.target.value)}
             style={inputStyle}
@@ -441,18 +442,18 @@ export default function ExpensesPage({ onBack }) {
 
       {/* Table */}
       <div style={{ margin: '16px 24px', background: 'white', borderRadius: 12, boxShadow: '0 1px 3px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
-        {loading && <div style={{ padding: 40, textAlign: 'center', color: '#6b7280' }}>Loading expenses...</div>}
-        {error && <div style={{ padding: 20, color: '#dc2626', background: '#fef2f2' }}>Error: {error}</div>}
+        {loading && <div style={{ padding: 40, textAlign: 'center', color: '#6b7280' }}>{tr("Loading expenses...")}</div>}
+        {error && <div style={{ padding: 20, color: '#dc2626', background: '#fef2f2' }}>{tr("Error:")} {error}</div>}
         {!loading && !error && visibleExpenses.length === 0 && (
           <div style={{ padding: 60, textAlign: 'center', color: '#6b7280' }}>
             <div style={{ fontSize: 48, marginBottom: 12 }}>💵</div>
-            <div style={{ fontSize: 16, fontWeight: 600, color: '#374151' }}>No expenses yet</div>
-            <div style={{ fontSize: 14, marginTop: 6 }}>Add your first expense or snap a receipt to get started.</div>
+            <div style={{ fontSize: 16, fontWeight: 600, color: '#374151' }}>{tr("No expenses yet")}</div>
+            <div style={{ fontSize: 14, marginTop: 6 }}>{tr("Add your first expense or snap a receipt to get started.")}</div>
             <button
               onClick={() => { setEditingExpense(null); setAddModalOpen(true); }}
               style={{ ...primaryBtn('#0c4a6e'), marginTop: 16 }}
             >
-              ➕ Add Your First Expense
+              {tr("➕ Add Your First Expense")}
             </button>
           </div>
         )}
@@ -461,14 +462,14 @@ export default function ExpensesPage({ onBack }) {
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
               <thead style={{ background: '#f9fafb', borderBottom: '1px solid #e5e7eb' }}>
                 <tr>
-                  <Th>Date</Th>
-                  <Th>Vendor</Th>
-                  <Th>Category</Th>
-                  <Th>Notes</Th>
-                  <Th align="right">Amount</Th>
-                  <Th align="center">Type</Th>
-                  <Th align="center">Receipt</Th>
-                  <Th align="right">Actions</Th>
+                  <Th>{tr("Date")}</Th>
+                  <Th>{tr("Vendor")}</Th>
+                  <Th>{tr("Category")}</Th>
+                  <Th>{tr("Notes")}</Th>
+                  <Th align="right">{tr("Amount")}</Th>
+                  <Th align="center">{tr("Type")}</Th>
+                  <Th align="center">{tr("Receipt")}</Th>
+                  <Th align="right">{tr("Actions")}</Th>
                 </tr>
               </thead>
               <tbody>
@@ -486,7 +487,7 @@ export default function ExpensesPage({ onBack }) {
                         fontSize: 12,
                         fontWeight: 600
                       }}>
-                        {exp.category || 'Uncategorized'}
+                        {exp.category || tr("Uncategorized")}
                       </span>
                     </Td>
                     <Td style={{ color: '#6b7280', maxWidth: 250, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={exp.notes || ''}>
@@ -495,9 +496,9 @@ export default function ExpensesPage({ onBack }) {
                     <Td align="right" style={{ fontWeight: 600 }}>{fmtCurrency(exp.amount)}</Td>
                     <Td align="center">
                       {exp.is_mileage ? (
-                        <span style={{ fontSize: 11, padding: '2px 8px', background: '#d1fae5', color: '#065f46', borderRadius: 10, fontWeight: 600 }}>🚗 Mileage</span>
+                        <span style={{ fontSize: 11, padding: '2px 8px', background: '#d1fae5', color: '#065f46', borderRadius: 10, fontWeight: 600 }}>{tr("🚗 Mileage")}</span>
                       ) : (
-                        <span style={{ fontSize: 11, padding: '2px 8px', background: '#f3f4f6', color: '#4b5563', borderRadius: 10, fontWeight: 600 }}>💵 Cash</span>
+                        <span style={{ fontSize: 11, padding: '2px 8px', background: '#f3f4f6', color: '#4b5563', borderRadius: 10, fontWeight: 600 }}>{tr("💵 Cash")}</span>
                       )}
                     </Td>
                     <Td align="center">
@@ -507,9 +508,9 @@ export default function ExpensesPage({ onBack }) {
                             try {
                               const data = await authFetch(`/expenses/receipt-view-url?key=${encodeURIComponent(exp.receipt_key)}`);
                               if (data.viewUrl) window.open(data.viewUrl, '_blank');
-                            } catch (e) { alert('Could not load receipt: ' + e.message); }
+                            } catch (e) { alert(tr("Could not load receipt: ") + e.message); }
                           }}
-                          title="View receipt"
+                          title={tr("View receipt")}
                           style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, color: '#1E7B45', padding: 4 }}
                         >
                           📎
@@ -522,14 +523,14 @@ export default function ExpensesPage({ onBack }) {
                       <button
                         onClick={() => { setEditingExpense(exp); setAddModalOpen(true); }}
                         style={iconBtn}
-                        title="Edit"
+                        title={tr("Edit")}
                       >
                         ✏️
                       </button>
                       <button
                         onClick={() => handleDelete(exp.id)}
                         style={iconBtn}
-                        title="Delete"
+                        title={tr("Delete")}
                       >
                         🗑️
                       </button>
@@ -539,10 +540,10 @@ export default function ExpensesPage({ onBack }) {
               </tbody>
               <tfoot style={{ background: '#f9fafb', borderTop: '2px solid #e5e7eb', fontWeight: 700 }}>
                 <tr>
-                  <Td colSpan={4} style={{ textAlign: 'right', paddingRight: 12 }}>Total ({countAll}):</Td>
+                  <Td colSpan={4} style={{ textAlign: 'right', paddingRight: 12 }}>{tr("Total (")}{countAll}):</Td>
                   <Td align="right">{fmtCurrency(totalAll)}</Td>
                   <Td colSpan={3} style={{ fontSize: 12, color: '#1E7B45' }}>
-                    Mileage: {fmtCurrency(totalMileage)}
+                    {tr("Mileage:")} {fmtCurrency(totalMileage)}
                   </Td>
                 </tr>
               </tfoot>
@@ -756,28 +757,28 @@ function AddExpenseModal({ categories, expense, allExpenses, onClose, onSaved })
   };
 
   return (
-    <ModalShell onClose={onClose} title={isEdit ? '✏️ Edit Expense' : '➕ Add Expense'} width={620}>
+    <ModalShell onClose={onClose} title={isEdit ? tr("✏️ Edit Expense") : tr("➕ Add Expense")} width={620}>
       {similarPrompt && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 6000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
           <div style={{ background: '#fff', borderRadius: 14, maxWidth: 480, width: '100%', padding: 22 }}>
-            <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 10 }}>Found {similarPrompt.count} more from the same merchant</div>
+            <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 10 }}>{tr("Found")} {similarPrompt.count} {tr("more from the same merchant")}</div>
             <div style={{ fontSize: 14, color: '#374151', lineHeight: 1.6 }}>
-              This one is saved under <strong>{similarPrompt.newCat}</strong>. You have {similarPrompt.count} other expense{similarPrompt.count === 1 ? '' : 's'} that look{similarPrompt.count === 1 ? 's' : ''} like the same merchant
+              {tr("This one is saved under")} <strong>{similarPrompt.newCat}</strong>{tr(". You have")} {similarPrompt.count} {tr("other expense")}{similarPrompt.count === 1 ? '' : 's'} {tr("that look")}{similarPrompt.count === 1 ? 's' : ''} {tr("like the same merchant")}
               {similarPrompt.vendor ? <> (<em>{similarPrompt.vendor}</em>)</> : null}
-              {similarPrompt.otherCategories.length ? <> — currently under <strong>{similarPrompt.otherCategories.join(', ')}</strong></> : null}.
-              <div style={{ marginTop: 8 }}>Move {similarPrompt.count === 1 ? 'it' : 'them all'} to <strong>{similarPrompt.newCat}</strong> too?</div>
+              {similarPrompt.otherCategories.length ? <> {tr("— currently under")} <strong>{similarPrompt.otherCategories.join(', ')}</strong></> : null}.
+              <div style={{ marginTop: 8 }}>{tr("Move")} {similarPrompt.count === 1 ? tr("it") : tr("them all")} {tr("to")} <strong>{similarPrompt.newCat}</strong> {tr("too?")}</div>
             </div>
             <div style={{ display: 'flex', gap: 10, marginTop: 16, justifyContent: 'flex-end' }}>
               <button onClick={() => { setSimilarPrompt(null); onSaved(); }}
                 style={{ padding: '10px 18px', borderRadius: 8, border: '1px solid #d1d5db', background: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', color: '#374151' }}>
-                No — just this one
+                {tr("No — just this one")}
               </button>
               <button onClick={async () => {
                 try { await authFetch('/expenses/recategorize-by-vendor', { method: 'POST', body: JSON.stringify({ ids: similarPrompt.ids, category: similarPrompt.newCat }) }); } catch { /* single edit already saved */ }
                 setSimilarPrompt(null); onSaved();
               }}
                 style={{ padding: '10px 18px', borderRadius: 8, border: 'none', background: '#0c4a6e', color: '#fff', fontSize: 14, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit' }}>
-                ✓ Yes — move {similarPrompt.count === 1 ? 'it' : 'them all'}
+                {tr("✓ Yes — move")} {similarPrompt.count === 1 ? tr("it") : tr("them all")}
               </button>
             </div>
           </div>
@@ -793,10 +794,10 @@ function AddExpenseModal({ categories, expense, allExpenses, onClose, onSaved })
           marginBottom: 16
         }}>
           <div style={{ fontWeight: 600, color: '#065f46', marginBottom: 6 }}>
-            📸 Snap a receipt — let AI fill it in
+            {tr("📸 Snap a receipt — let AI fill it in")}
           </div>
           <div style={{ fontSize: 13, color: '#047857', marginBottom: 10 }}>
-            Take a photo or upload a PDF/image. We'll fill in the vendor, amount, date, and category. You review before saving.
+            {tr("Take a photo or upload a PDF/image. We'll fill in the vendor, amount, date, and category. You review before saving.")}
           </div>
           <input
             ref={cameraInputRef}
@@ -819,26 +820,26 @@ function AddExpenseModal({ categories, expense, allExpenses, onClose, onSaved })
               disabled={ocrLoading}
               style={{ ...primaryBtn('#0c4a6e'), opacity: ocrLoading ? 0.6 : 1 }}
             >
-              📷 Take Photo
+              {tr("📷 Take Photo")}
             </button>
             <button
               onClick={() => fileInputRef.current?.click()}
               disabled={ocrLoading}
               style={{ ...secondaryBtn, opacity: ocrLoading ? 0.6 : 1, borderColor: '#0c4a6e', color: '#065f46' }}
             >
-              📎 Upload File
+              {tr("📎 Upload File")}
             </button>
           </div>
           {ocrLoading && (
             <div style={{ marginTop: 10, fontSize: 13, color: '#065f46' }}>
-              🔄 {ocrStatus || 'Processing...'}
+              🔄 {ocrStatus || tr("Processing...")}
             </div>
           )}
           {ocrPreview && !ocrLoading && (
             <div style={{ marginTop: 10, padding: 10, background: 'white', borderRadius: 8, fontSize: 13, color: '#065f46' }}>
-              ✨ <strong>AI extracted:</strong> {ocrPreview.vendor || 'unknown vendor'} • {fmtCurrency(ocrPreview.amount || 0)} • {fmtDate(ocrPreview.occurred_at)}
+              ✨ <strong>{tr("AI extracted:")}</strong> {ocrPreview.vendor || tr("unknown vendor")} • {fmtCurrency(ocrPreview.amount || 0)} • {fmtDate(ocrPreview.occurred_at)}
               {ocrPreview.suggested_category && <> • <em>{ocrPreview.suggested_category}</em></>}
-              <div style={{ marginTop: 4, fontSize: 12 }}>Review the fields below — edit anything that looks off.</div>
+              <div style={{ marginTop: 4, fontSize: 12 }}>{tr("Review the fields below — edit anything that looks off.")}</div>
             </div>
           )}
         </div>
@@ -853,14 +854,14 @@ function AddExpenseModal({ categories, expense, allExpenses, onClose, onSaved })
             onChange={e => setIsMileage(e.target.checked)}
             style={{ width: 18, height: 18, cursor: 'pointer' }}
           />
-          🚗 This is a mileage expense (auto-calculates amount from miles × rate)
+          {tr("🚗 This is a mileage expense (auto-calculates amount from miles × rate)")}
         </label>
         {isMileage && (
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 10 }}>
-            <Field label="Miles driven">
+            <Field label={tr("Miles driven")}>
               <input type="number" step="0.1" min="0" value={mileageMiles} onChange={e => setMileageMiles(e.target.value)} placeholder="e.g. 23.5" style={inputStyle} />
             </Field>
-            <Field label="IRS rate ($/mile)" hint="2026: $0.67">
+            <Field label={tr("IRS rate ($/mile)")} hint="2026: $0.67">
               <input type="number" step="0.001" min="0" value={mileageRate} onChange={e => setMileageRate(e.target.value)} placeholder="0.67" style={inputStyle} />
             </Field>
           </div>
@@ -868,10 +869,10 @@ function AddExpenseModal({ categories, expense, allExpenses, onClose, onSaved })
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-        <Field label="Vendor" hint={isMileage ? 'Optional for mileage' : 'Who you paid'}>
-          <input value={vendor} onChange={e => setVendor(e.target.value)} placeholder={isMileage ? 'e.g. Client showing' : 'e.g. Office Depot'} style={inputStyle} />
+        <Field label={tr("Vendor")} hint={isMileage ? tr("Optional for mileage") : tr("Who you paid")}>
+          <input value={vendor} onChange={e => setVendor(e.target.value)} placeholder={isMileage ? tr("e.g. Client showing") : tr("e.g. Office Depot")} style={inputStyle} />
         </Field>
-        <Field label="Amount *" hint={isMileage ? 'Auto-calculated' : ''}>
+        <Field label={tr("Amount *")} hint={isMileage ? tr("Auto-calculated") : ''}>
           <input
             type="number" step="0.01" min="0" value={amount}
             onChange={e => setAmount(e.target.value)}
@@ -880,34 +881,34 @@ function AddExpenseModal({ categories, expense, allExpenses, onClose, onSaved })
             style={{ ...inputStyle, background: isMileage ? '#f3f4f6' : 'white' }}
           />
         </Field>
-        <Field label="Date *">
+        <Field label={tr("Date *")}>
           <input type="date" value={occurredAt} onChange={e => setOccurredAt(e.target.value)} style={inputStyle} />
         </Field>
-        <Field label="Category">
+        <Field label={tr("Category")}>
           <select value={category} onChange={async e => { const v = e.target.value; if (v === '__add_new_category__') { const n = await promptNewCategory(); if (n) setCategory(n); } else setCategory(v); }} style={inputStyle}>
-            <option value="">— pick one —</option>
-            {category && !categories.some(c => c.name === category) && <option value={category}>{category}</option>}
+            <option value="">{tr("— pick one —")}</option>
+            {category && !categories.some(c => c.name === category) && <option value={category}>{tr(category)}</option>}
             {categories.map(c => (
-              <option key={c.id} value={c.name}>{c.name}</option>
+              <option key={c.id} value={c.name}>{tr(c.name)}</option>
             ))}
-            <option value="__add_new_category__">➕ New category…</option>
+            <option value="__add_new_category__">{tr("➕ New category…")}</option>
           </select>
         </Field>
       </div>
 
-      <Field label="Notes" hint="What was bought / business purpose / which client">
+      <Field label={tr("Notes")} hint={tr("What was bought / business purpose / which client")}>
         <textarea
           value={notes}
           onChange={e => setNotes(e.target.value)}
           rows={3}
-          placeholder="e.g. Client lunch with the Smiths re: 123 Oak Dr listing"
+          placeholder={tr("e.g. Client lunch with the Smiths re: 123 Oak Dr listing")}
           style={{ ...inputStyle, fontFamily: 'inherit', resize: 'vertical' }}
         />
       </Field>
 
       {receiptKey && (
         <div style={{ fontSize: 13, color: '#1E7B45', marginBottom: 12 }}>
-          📎 Receipt attached ({receiptKey.split('/').pop()})
+          {tr("📎 Receipt attached (")}{receiptKey.split('/').pop()})
         </div>
       )}
 
@@ -918,9 +919,9 @@ function AddExpenseModal({ categories, expense, allExpenses, onClose, onSaved })
       )}
 
       <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-        <button onClick={onClose} style={secondaryBtn}>Cancel</button>
+        <button onClick={onClose} style={secondaryBtn}>{tr("Cancel")}</button>
         <button onClick={handleSave} disabled={saving} style={{ ...primaryBtn('#0c4a6e'), opacity: saving ? 0.6 : 1 }}>
-          {saving ? 'Saving...' : (isEdit ? 'Save Changes' : 'Add Expense')}
+          {saving ? tr("Saving...") : (isEdit ? tr("Save Changes") : tr("Add Expense"))}
         </button>
       </div>
     </ModalShell>
@@ -978,7 +979,7 @@ function ReportModal({ categories, onClose }) {
   };
 
   return (
-    <ModalShell onClose={onClose} title={`📊 Tax Report — ${year}`} width={640}>
+    <ModalShell onClose={onClose} title={tr("📊 Tax Report — {year}", { year })} width={640}>
       <div style={{
         background: '#eff6ff',
         border: '1px solid #bfdbfe',
@@ -988,44 +989,44 @@ function ReportModal({ categories, onClose }) {
         fontSize: 13,
         color: '#1e40af'
       }}>
-        <strong>What this is:</strong> Year-end summary of your business expenses by category. Hand this (or the CSV) to your accountant at tax time — it maps to Schedule C categories. <strong>Not tax advice;</strong> talk to your CPA.
+        <strong>{tr("What this is:")}</strong> {tr("Year-end summary of your business expenses by category. Hand this (or the CSV) to your accountant at tax time — it maps to Schedule C categories.")} <strong>{tr("Not tax advice;")}</strong> {tr("talk to your CPA.")}
       </div>
 
-      <Field label="Tax Year">
+      <Field label={tr("Tax Year")}>
         <select value={year} onChange={e => setYear(Number(e.target.value))} style={{ ...inputStyle, maxWidth: 200 }}>
           {[0, 1, 2, 3].map(i => {
             const y = new Date().getFullYear() - i;
-            return <option key={y} value={y}>{y}</option>;
+            return <option key={y} value={y}>{tr(y)}</option>;
           })}
         </select>
       </Field>
 
-      {loading && <div style={{ padding: 20, textAlign: 'center', color: '#6b7280' }}>Loading...</div>}
-      {error && <div style={{ padding: 10, color: '#dc2626' }}>Error: {error}</div>}
+      {loading && <div style={{ padding: 20, textAlign: 'center', color: '#6b7280' }}>{tr("Loading...")}</div>}
+      {error && <div style={{ padding: 10, color: '#dc2626' }}>{tr("Error:")} {error}</div>}
 
       {report && !loading && (
         <>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
-            <SummaryCard label="Total Expenses" value={fmtCurrency(totalAll)} sub={`${year}`} color="#1f2937" />
-            <SummaryCard label="Categories" value={String(byCategory.length)} sub="distinct" color="#3b82f6" />
+            <SummaryCard label={tr("Total Expenses")} value={fmtCurrency(totalAll)} sub={`${year}`} color="#1f2937" />
+            <SummaryCard label={tr("Categories")} value={String(byCategory.length)} sub="distinct" color="#3b82f6" />
           </div>
 
           <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 10, overflow: 'hidden', marginBottom: 16 }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
               <thead style={{ background: '#f9fafb' }}>
                 <tr>
-                  <Th>Category</Th>
-                  <Th align="right">Count</Th>
-                  <Th align="right">Total</Th>
+                  <Th>{tr("Category")}</Th>
+                  <Th align="right">{tr("Count")}</Th>
+                  <Th align="right">{tr("Total")}</Th>
                 </tr>
               </thead>
               <tbody>
                 {byCategory.length === 0 && (
-                  <tr><Td colSpan={3} style={{ textAlign: 'center', padding: 20, color: '#6b7280' }}>No expenses for {year} yet.</Td></tr>
+                  <tr><Td colSpan={3} style={{ textAlign: 'center', padding: 20, color: '#6b7280' }}>{tr("No expenses for")} {year} {tr("yet.")}</Td></tr>
                 )}
                 {byCategory.map((c, i) => (
                   <tr key={i} style={{ borderTop: '1px solid #f3f4f6' }}>
-                    <Td>{c.category || c.category_name || c.name || 'Uncategorized'}</Td>
+                    <Td>{c.category || c.category_name || c.name || tr("Uncategorized")}</Td>
                     <Td align="right">{c.count || 0}</Td>
                     <Td align="right" style={{ fontWeight: 600 }}>{fmtCurrency(c.total)}</Td>
                   </tr>
@@ -1035,8 +1036,8 @@ function ReportModal({ categories, onClose }) {
           </div>
 
           <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-            <button onClick={onClose} style={secondaryBtn}>Close</button>
-            <button onClick={exportReportCSV} style={primaryBtn('#0c4a6e')}>⬇️ Export Report CSV</button>
+            <button onClick={onClose} style={secondaryBtn}>{tr("Close")}</button>
+            <button onClick={exportReportCSV} style={primaryBtn('#0c4a6e')}>{tr("⬇️ Export Report CSV")}</button>
           </div>
         </>
       )}
@@ -1049,26 +1050,26 @@ function ReportModal({ categories, onClose }) {
 // ============================================================
 function TeachModal({ onClose }) {
   return (
-    <ModalShell onClose={onClose} title="💵 How Financials helps you" width={520}>
+    <ModalShell onClose={onClose} title={tr("💵 How Financials helps you")} width={520}>
       <div style={{ fontSize: 14, color: '#374151', lineHeight: 1.6 }}>
-        <p><strong>Why this exists:</strong> As an independent contractor real estate agent, you can deduct legitimate business expenses on Schedule C — every deduction reduces your taxable income. But only if you can prove it.</p>
+        <p><strong>{tr("Why this exists:")}</strong> {tr("As an independent contractor real estate agent, you can deduct legitimate business expenses on Schedule C — every deduction reduces your taxable income. But only if you can prove it.")}</p>
 
-        <p><strong>What this does:</strong></p>
+        <p><strong>{tr("What this does:")}</strong></p>
         <ul style={{ marginLeft: 18 }}>
-          <li><strong>Snap receipts</strong> — we read them and auto-fill the form. You confirm.</li>
-          <li><strong>Categorize</strong> — Mileage, marketing, MLS dues, office supplies, client gifts, CE, etc.</li>
-          <li><strong>Tag deductible</strong> — Mark which expenses are business (most should be).</li>
-          <li><strong>Year-end report</strong> — Hand the summary to your CPA in January.</li>
+          <li><strong>{tr("Snap receipts")}</strong> {tr("— we read them and auto-fill the form. You confirm.")}</li>
+          <li><strong>{tr("Categorize")}</strong> {tr("— Mileage, marketing, MLS dues, office supplies, client gifts, CE, etc.")}</li>
+          <li><strong>{tr("Tag deductible")}</strong> {tr("— Mark which expenses are business (most should be).")}</li>
+          <li><strong>{tr("Year-end report")}</strong> {tr("— Hand the summary to your CPA in January.")}</li>
         </ul>
 
-        <p><strong>Privacy:</strong> Your expenses are <em>private to you</em>. Brokerage admins cannot see them. Other agents cannot see them. This is your business, not the brokerage's.</p>
+        <p><strong>{tr("Privacy:")}</strong> {tr("Your expenses are")} <em>{tr("private to you")}</em>{tr(". Brokerage admins cannot see them. Other agents cannot see them. This is your business, not the brokerage's.")}</p>
 
         <div style={{ background: '#fef3c7', border: '1px solid #fcd34d', borderRadius: 8, padding: 10, marginTop: 12, fontSize: 13 }}>
-          ⚠️ <strong>Not tax advice.</strong> What's deductible depends on your situation. Always confirm with a licensed CPA before filing.
+          ⚠️ <strong>{tr("Not tax advice.")}</strong> {tr("What's deductible depends on your situation. Always confirm with a licensed CPA before filing.")}
         </div>
       </div>
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 16 }}>
-        <button onClick={onClose} style={primaryBtn('#0c4a6e')}>Got it</button>
+        <button onClick={onClose} style={primaryBtn('#0c4a6e')}>{tr("Got it")}</button>
       </div>
     </ModalShell>
   );
@@ -1138,7 +1139,7 @@ function SimpleMoneyView({ categories, goAdvanced }) {
     <div style={{ display: 'flex', gap: 12, padding: '12px 0', borderTop: n === 1 ? 'none' : '1px solid #f3f4f6' }}>
       <div style={{ flexShrink: 0, width: 30, height: 30, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 15, background: done ? '#10b981' : '#e5e7eb', color: done ? 'white' : '#6b7280' }}>{done ? '✓' : n}</div>
       <div style={{ flex: 1 }}>
-        <div style={{ fontWeight: 600, color: '#1f2937', marginBottom: 6 }}>{title}</div>
+        <div style={{ fontWeight: 600, color: '#1f2937', marginBottom: 6 }}>{tr(title)}</div>
         {children}
       </div>
     </div>
@@ -1146,41 +1147,41 @@ function SimpleMoneyView({ categories, goAdvanced }) {
 
   return (
     <div style={{ padding: '20px 24px', maxWidth: 920, margin: '0 auto' }}>
-      {loading && <div style={{ padding: 40, textAlign: 'center', color: '#6b7280' }}>Loading...</div>}
-      {error && <div style={{ padding: 20, color: '#dc2626', background: '#fef2f2', borderRadius: 8 }}>Error: {error}</div>}
+      {loading && <div style={{ padding: 40, textAlign: 'center', color: '#6b7280' }}>{tr("Loading...")}</div>}
+      {error && <div style={{ padding: 20, color: '#dc2626', background: '#fef2f2', borderRadius: 8 }}>{tr("Error:")} {error}</div>}
 
       {!loading && !error && (
         <>
           {/* SETUP CHECKLIST */}
           {(!setupDone || editSetup) && (
             <div style={{ background: 'white', borderRadius: 14, boxShadow: '0 1px 3px rgba(0,0,0,0.06)', padding: '16px 20px', marginBottom: 20, border: '1px solid #d1fae5' }}>
-              <div style={{ fontWeight: 700, fontSize: 17, color: '#065f46', marginBottom: 4 }}>👋 Let's set up your business money</div>
-              <div style={{ fontSize: 13, color: '#6b7280', marginBottom: 8 }}>Three quick things. You can change them anytime.</div>
+              <div style={{ fontWeight: 700, fontSize: 17, color: '#065f46', marginBottom: 4 }}>{tr("👋 Let's set up your business money")}</div>
+              <div style={{ fontSize: 13, color: '#6b7280', marginBottom: 8 }}>{tr("Three quick things. You can change them anytime.")}</div>
 
-              <Step done={hasGoal} n={1} title="How much do you want to make this year?">
+              <Step done={hasGoal} n={1} title={tr("How much do you want to make this year?")}>
                 {hasGoal
-                  ? <div style={{ fontSize: 14, color: '#374151' }}>Your goal: <strong>{fmtCurrency(goal)}</strong> &nbsp;<button onClick={() => setShowGoal(true)} style={linkBtn}>change</button></div>
-                  : <button onClick={() => setShowGoal(true)} style={primaryBtn('#0c4a6e')}>Set my income goal</button>}
+                  ? <div style={{ fontSize: 14, color: '#374151' }}>{tr("Your goal:")} <strong>{fmtCurrency(goal)}</strong> &nbsp;<button onClick={() => setShowGoal(true)} style={linkBtn}>{tr("change (edit)")}</button></div>
+                  : <button onClick={() => setShowGoal(true)} style={primaryBtn('#0c4a6e')}>{tr("Set my income goal")}</button>}
               </Step>
 
-              <Step done={hasBills} n={2} title="What do you pay every month to run your business?">
+              <Step done={hasBills} n={2} title={tr("What do you pay every month to run your business?")}>
                 {hasBills
-                  ? <div style={{ fontSize: 14, color: '#374151' }}>About <strong>{fmtCurrency(monthlyBills)}/mo</strong> in bills &nbsp;<button onClick={() => setShowBills(true)} style={linkBtn}>edit</button></div>
-                  : <button onClick={() => setShowBills(true)} style={primaryBtn('#0c4a6e')}>Add my monthly bills</button>}
+                  ? <div style={{ fontSize: 14, color: '#374151' }}>{tr("About")} <strong>{fmtCurrency(monthlyBills)}/mo</strong> {tr("in bills  ")}<button onClick={() => setShowBills(true)} style={linkBtn}>{tr("edit")}</button></div>
+                  : <button onClick={() => setShowBills(true)} style={primaryBtn('#0c4a6e')}>{tr("Add my monthly bills")}</button>}
               </Step>
 
-              <Step done={hasActivity} n={3} title="Add what you've made and spent">
-                <div style={{ fontSize: 13, color: '#6b7280', marginBottom: 8 }}>The easiest way is to upload a bank statement — we'll sort it for you. Or add things one at a time.</div>
+              <Step done={hasActivity} n={3} title={tr("Add what you've made and spent")}>
+                <div style={{ fontSize: 13, color: '#6b7280', marginBottom: 8 }}>{tr("The easiest way is to upload a bank statement — we'll sort it for you. Or add things one at a time.")}</div>
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                  <button onClick={() => goAdvanced('import')} style={primaryBtn('#0c4a6e')}>🏦 Upload a bank statement</button>
-                  <button onClick={() => setShowAddIncome(true)} style={secondaryBtn}>➕ Enter money I made (one at a time)</button>
-                  <button onClick={() => setShowAddExpense(true)} style={secondaryBtn}>➖ Enter money I spent (one at a time)</button>
+                  <button onClick={() => goAdvanced('import')} style={primaryBtn('#0c4a6e')}>{tr("🏦 Upload a bank statement")}</button>
+                  <button onClick={() => setShowAddIncome(true)} style={secondaryBtn}>{tr("➕ Enter money I made (one at a time)")}</button>
+                  <button onClick={() => setShowAddExpense(true)} style={secondaryBtn}>{tr("➖ Enter money I spent (one at a time)")}</button>
                 </div>
               </Step>
 
               {setupDone && (
                 <div style={{ marginTop: 8, textAlign: 'right' }}>
-                  <button onClick={() => setEditSetup(false)} style={linkBtn}>Done editing ✓</button>
+                  <button onClick={() => setEditSetup(false)} style={linkBtn}>{tr("Done editing ✓")}</button>
                 </div>
               )}
             </div>
@@ -1188,51 +1189,51 @@ function SimpleMoneyView({ categories, goAdvanced }) {
 
           {setupDone && !editSetup && (
             <div style={{ textAlign: 'right', marginBottom: 8 }}>
-              <button onClick={() => setEditSetup(true)} style={linkBtn}>⚙️ Edit my goal & bills</button>
+              <button onClick={() => setEditSetup(true)} style={linkBtn}>{tr("⚙️ Edit my goal & bills")}</button>
             </div>
           )}
 
           {/* THE 3 BIG NUMBERS */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px,1fr))', gap: 14, marginBottom: 18 }}>
-            <BigMoneyCard emoji="💰" label="Money you made" value={made} sub={`so far in ${year}`} color="#059669" />
-            <BigMoneyCard emoji="💸" label="Money you spent" value={spent} sub={`so far in ${year}`} color="#dc2626" />
-            <BigMoneyCard emoji={kept >= 0 ? '✅' : '⚠️'} label="Money you kept" value={kept} sub="after paying expenses" color={kept >= 0 ? '#059669' : '#dc2626'} big />
+            <BigMoneyCard emoji="💰" label={tr("Money you made")} value={made} sub={tr("so far in {year}", { year })} color="#059669" />
+            <BigMoneyCard emoji="💸" label={tr("Money you spent")} value={spent} sub={tr("so far in {year}", { year })} color="#dc2626" />
+            <BigMoneyCard emoji={kept >= 0 ? '✅' : '⚠️'} label={tr("Money you kept")} value={kept} sub={tr("after paying expenses")} color={kept >= 0 ? '#059669' : '#dc2626'} big />
           </div>
 
           {/* GOAL PROGRESS — plain */}
           {hasGoal && (
             <div style={{ background: 'white', borderRadius: 14, boxShadow: '0 1px 3px rgba(0,0,0,0.06)', padding: '18px 20px', marginBottom: 18 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 6 }}>
-                <div style={{ fontWeight: 700, color: '#1f2937' }}>Your goal: make {fmtCurrency(goal)} this year</div>
-                <div style={{ fontSize: 14, color: '#6b7280' }}>You've made <strong style={{ color: '#1E7B45' }}>{fmtCurrency(made)}</strong></div>
+                <div style={{ fontWeight: 700, color: '#1f2937' }}>{tr("Your goal: make")} {fmtCurrency(goal)} {tr("this year")}</div>
+                <div style={{ fontSize: 14, color: '#6b7280' }}>{tr("You've made")} <strong style={{ color: '#1E7B45' }}>{fmtCurrency(made)}</strong></div>
               </div>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, margin: '8px 0 10px' }}>
                 <div style={{ fontSize: 30, fontWeight: 800, color: '#1E7B45' }}>{goalPct}%</div>
-                <div style={{ fontSize: 14, color: '#6b7280' }}>{goal - made > 0 ? `${fmtCurrency(goal - made)} to go` : 'You hit your goal! 🎉'}</div>
+                <div style={{ fontSize: 14, color: '#6b7280' }}>{goal - made > 0 ? tr("{amount} to go", { amount: fmtCurrency(goal - made) }) : tr("You hit your goal! 🎉")}</div>
               </div>
               <div style={{ position: 'relative', background: '#f3f4f6', borderRadius: 8, height: 16, overflow: 'hidden' }}>
                 <div style={{ width: `${Math.min(100, goalPct)}%`, height: '100%', background: onPace ? '#10b981' : '#f59e0b' }} />
-                {elapsed > 0 && elapsed < 1 && <div title="Where you'd be if earning evenly" style={{ position: 'absolute', top: -2, bottom: -2, left: `${elapsed * 100}%`, width: 2, background: '#1f2937' }} />}
+                {elapsed > 0 && elapsed < 1 && <div title={tr("Where you'd be if earning evenly")} style={{ position: 'absolute', top: -2, bottom: -2, left: `${elapsed * 100}%`, width: 2, background: '#1f2937' }} />}
               </div>
               <div style={{ fontSize: 13, marginTop: 8, fontWeight: 600, color: onPace ? '#059669' : '#b45309' }}>
-                {made === 0 ? '➡️ Add what you\'ve made (or upload a statement) to see how you\'re tracking.'
-                  : onPace ? '👍 You\'re on pace to hit your goal — keep it up!'
-                  : `⏳ A little behind — by now you'd want about ${fmtCurrency(expectedByNow)}. ${fmtCurrency(expectedByNow - made)} would catch you up.`}
+                {made === 0 ? tr("➡️ Add what you've made (or upload a statement) to see how you're tracking.")
+                  : onPace ? tr("👍 You're on pace to hit your goal — keep it up!")
+                  : tr("⏳ A little behind — by now you'd want about {amount}. {amount2} would catch you up.", { amount: fmtCurrency(expectedByNow), amount2: fmtCurrency(expectedByNow - made) })}
               </div>
             </div>
           )}
 
           {/* PLAIN-ENGLISH SUMMARY */}
           <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 14, padding: '16px 20px', marginBottom: 18 }}>
-            <div style={{ fontWeight: 700, color: '#065f46', marginBottom: 6 }}>📖 In plain English</div>
+            <div style={{ fontWeight: 700, color: '#065f46', marginBottom: 6 }}>{tr("📖 In plain English")}</div>
             <div style={{ fontSize: 15, color: '#1f2937', lineHeight: 1.6 }}>
               {!hasActivity ? (
-                <>Nothing's been added yet. Add what you've made and spent — or just <button onClick={() => goAdvanced('import')} style={linkBtn}>upload a bank statement</button> — and I'll do the math for you.</>
+                <>{tr("Nothing's been added yet. Add what you've made and spent — or just")} <button onClick={() => goAdvanced('import')} style={linkBtn}>{tr("upload a bank statement")}</button> {tr("— and I'll do the math for you.")}</>
               ) : (
                 <>
-                  You've earned <strong>{fmtCurrency(made)}</strong> and spent <strong>{fmtCurrency(spent)}</strong>, so you've kept <strong style={{ color: kept >= 0 ? '#059669' : '#dc2626' }}>{fmtCurrency(kept)}</strong> so far this year.
-                  {made > 0 && <> That means out of every dollar you make, you keep about <strong>{keepRate}¢</strong>.</>}
-                  {kept < 0 && <> Right now you're spending more than you make — worth a look at your biggest costs below.</>}
+                  {tr("You've earned")} <strong>{fmtCurrency(made)}</strong> {tr("and spent")} <strong>{fmtCurrency(spent)}</strong>{tr(", so you've kept")} <strong style={{ color: kept >= 0 ? '#059669' : '#dc2626' }}>{fmtCurrency(kept)}</strong> {tr("so far this year.")}
+                  {made > 0 && <> {tr("That means out of every dollar you make, you keep about")} <strong>{keepRate}¢</strong>.</>}
+                  {kept < 0 && <> {tr("Right now you're spending more than you make — worth a look at your biggest costs below.")}</>}
                 </>
               )}
             </div>
@@ -1241,7 +1242,7 @@ function SimpleMoneyView({ categories, goAdvanced }) {
           {/* BIGGEST COSTS */}
           {topCosts.length > 0 && (
             <div style={{ background: 'white', borderRadius: 14, boxShadow: '0 1px 3px rgba(0,0,0,0.06)', padding: '16px 20px', marginBottom: 18 }}>
-              <div style={{ fontWeight: 700, color: '#1f2937', marginBottom: 10 }}>Where your money goes</div>
+              <div style={{ fontWeight: 700, color: '#1f2937', marginBottom: 10 }}>{tr("Where your money goes")}</div>
               {topCosts.map((c, i) => {
                 const pctOfSpend = spent > 0 ? Math.round(c.total / spent * 100) : 0;
                 return (
@@ -1263,8 +1264,8 @@ function SimpleMoneyView({ categories, goAdvanced }) {
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center' }}>
             {/* Manual entry moved BEHIND "See the full details" (Carlos 7/31:
                 the first screen was confusing — keep it to two clear choices). */}
-            <button onClick={() => goAdvanced('import')} style={primaryBtn('#0c4a6e')}>🏦 Upload a bank statement</button>
-            <button onClick={() => goAdvanced('pnl')} style={secondaryBtn}>📈 See the full details</button>
+            <button onClick={() => goAdvanced('import')} style={primaryBtn('#0c4a6e')}>{tr("🏦 Upload a bank statement")}</button>
+            <button onClick={() => goAdvanced('pnl')} style={secondaryBtn}>{tr("📈 See the full details")}</button>
           </div>
         </>
       )}
@@ -1280,9 +1281,9 @@ function SimpleMoneyView({ categories, goAdvanced }) {
 function BigMoneyCard({ emoji, label, value, sub, color, big }) {
   return (
     <div style={{ background: 'white', borderRadius: 14, boxShadow: '0 1px 3px rgba(0,0,0,0.06)', padding: 20, borderTop: `4px solid ${color}` }}>
-      <div style={{ fontSize: 13, color: '#6b7280', fontWeight: 600 }}>{emoji} {label}</div>
+      <div style={{ fontSize: 13, color: '#6b7280', fontWeight: 600 }}>{emoji} {tr(label)}</div>
       <div style={{ fontSize: big ? 34 : 28, fontWeight: 800, color, marginTop: 6 }}>{fmtCurrency(value)}</div>
-      <div style={{ fontSize: 12, color: '#5F6B7A', marginTop: 2 }}>{sub}</div>
+      <div style={{ fontSize: 12, color: '#5F6B7A', marginTop: 2 }}>{tr(sub)}</div>
     </div>
   );
 }
@@ -1304,9 +1305,9 @@ function GoalSetupModal({ existing, onClose, onSaved }) {
     } catch (e) { setError(e.message); setSaving(false); }
   };
   return (
-    <ModalShell onClose={onClose} title="🎯 Your income goal" width={460}>
-      <div style={{ fontSize: 14, color: '#374151', marginBottom: 14 }}>How much would you like to make this year (before expenses)? A rough number is fine — you can change it anytime.</div>
-      <Field label="I want to make this year">
+    <ModalShell onClose={onClose} title={tr("🎯 Your income goal")} width={460}>
+      <div style={{ fontSize: 14, color: '#374151', marginBottom: 14 }}>{tr("How much would you like to make this year (before expenses)? A rough number is fine — you can change it anytime.")}</div>
+      <Field label={tr("I want to make this year")}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <span style={{ fontSize: 22, color: '#6b7280' }}>$</span>
           <input type="number" step="1000" min="0" value={amount} onChange={e => setAmount(e.target.value)} placeholder="220,000" style={{ ...inputStyle, fontSize: 20, fontWeight: 700 }} autoFocus />
@@ -1314,8 +1315,8 @@ function GoalSetupModal({ existing, onClose, onSaved }) {
       </Field>
       {error && <div style={{ background: '#fef2f2', color: '#dc2626', padding: 10, borderRadius: 8, marginBottom: 12, fontSize: 14 }}>{error}</div>}
       <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-        <button onClick={onClose} style={secondaryBtn}>Cancel</button>
-        <button onClick={save} disabled={saving} style={{ ...primaryBtn('#0c4a6e'), opacity: saving ? 0.6 : 1 }}>{saving ? 'Saving...' : 'Save goal'}</button>
+        <button onClick={onClose} style={secondaryBtn}>{tr("Cancel")}</button>
+        <button onClick={save} disabled={saving} style={{ ...primaryBtn('#0c4a6e'), opacity: saving ? 0.6 : 1 }}>{saving ? tr("Saving...") : tr("Save goal")}</button>
       </div>
     </ModalShell>
   );
@@ -1364,29 +1365,29 @@ function BillsSetupModal({ existing, onClose, onSaved }) {
   const total = rows.reduce((s, r) => s + (Number(r.amount) || 0), 0);
 
   return (
-    <ModalShell onClose={onClose} title="🧾 Your monthly business bills" width={520}>
-      <div style={{ fontSize: 14, color: '#374151', marginBottom: 14 }}>About how much do you pay each month? Fill in what applies, add your own below, and leave the rest blank.</div>
+    <ModalShell onClose={onClose} title={tr("🧾 Your monthly business bills")} width={520}>
+      <div style={{ fontSize: 14, color: '#374151', marginBottom: 14 }}>{tr("About how much do you pay each month? Fill in what applies, add your own below, and leave the rest blank.")}</div>
       {rows.map((r, i) => (
         <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
           {r.custom ? (
-            <input value={r.label} onChange={e => setName(i, e.target.value)} placeholder="Name this bill (e.g. Assistant)" style={{ ...inputStyle, flex: 1 }} />
+            <input value={r.label} onChange={e => setName(i, e.target.value)} placeholder={tr("Name this bill (e.g. Assistant)")} style={{ ...inputStyle, flex: 1 }} />
           ) : (
-            <div style={{ flex: 1, fontSize: 14, color: '#374151' }}>{r.label}</div>
+            <div style={{ flex: 1, fontSize: 14, color: '#374151' }}>{tr(r.label)}</div>
           )}
           <span style={{ color: '#5F6B7A' }}>$</span>
           <input type="number" step="1" min="0" value={r.amount} onChange={e => setAmt(i, e.target.value)} placeholder="0" style={{ ...inputStyle, maxWidth: 110, textAlign: 'right' }} />
           <span style={{ fontSize: 12, color: '#5F6B7A' }}>/mo</span>
           {r.custom
-            ? <button onClick={() => removeRow(i)} style={iconBtn} title="Remove">✕</button>
+            ? <button onClick={() => removeRow(i)} style={iconBtn} title={tr("Remove")}>✕</button>
             : <span style={{ width: 24 }} />}
         </div>
       ))}
-      <button onClick={addCustom} style={{ ...secondaryBtn, marginTop: 2 }}>➕ Add another bill</button>
-      <div style={{ textAlign: 'right', fontWeight: 700, color: '#1f2937', marginTop: 12 }}>About {fmtCurrency(total)}/month</div>
+      <button onClick={addCustom} style={{ ...secondaryBtn, marginTop: 2 }}>{tr("➕ Add another bill")}</button>
+      <div style={{ textAlign: 'right', fontWeight: 700, color: '#1f2937', marginTop: 12 }}>{tr("About")} {fmtCurrency(total)}/month</div>
       {error && <div style={{ background: '#fef2f2', color: '#dc2626', padding: 10, borderRadius: 8, margin: '12px 0', fontSize: 14 }}>{error}</div>}
       <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 14 }}>
-        <button onClick={onClose} style={secondaryBtn}>Cancel</button>
-        <button onClick={save} disabled={saving} style={{ ...primaryBtn('#0c4a6e'), opacity: saving ? 0.6 : 1 }}>{saving ? 'Saving...' : 'Save my bills'}</button>
+        <button onClick={onClose} style={secondaryBtn}>{tr("Cancel")}</button>
+        <button onClick={save} disabled={saving} style={{ ...primaryBtn('#0c4a6e'), opacity: saving ? 0.6 : 1 }}>{saving ? tr("Saving...") : tr("Save my bills")}</button>
       </div>
     </ModalShell>
   );
@@ -1401,7 +1402,7 @@ const INCOME_CATEGORIES = ['Commission (manual)', 'Referral Fee', 'Rental Income
 // way to add it). Prompts, saves it to the brokerage's category list, returns
 // the name (or null if cancelled). Works from any category dropdown.
 async function promptNewCategory() {
-  const name = ((await askText("Name the new category (e.g. Owner's Withdrawal):")) || "").trim();
+  const name = ((await askText(tr("Name the new category (e.g. Owner's Withdrawal):"))) || "").trim();
   if (!name) return null;
   try {
     await authFetch('/expenses/categories', { method: 'POST', body: JSON.stringify({ name }) });
@@ -1443,55 +1444,55 @@ function IncomeTab() {
   const grandTotal = manualTotal + commissionTotal;
 
   const handleDelete = async (id) => {
-    if (!(await askConfirm('Delete this income entry?', { okLabel: 'Delete', danger: true }))) return;
+    if (!(await askConfirm(tr("Delete this income entry?"), { okLabel: tr("Delete"), danger: true }))) return;
     try { await authFetch(`/income/${id}`, { method: 'DELETE' }); setRows(p => p.filter(r => r.id !== id)); }
-    catch (e) { alert('Delete failed: ' + e.message); }
+    catch (e) { alert(tr("Delete failed: ") + e.message); }
   };
 
   return (
     <div style={{ padding: '20px 24px' }}>
       <div style={{ display: 'flex', gap: 12, alignItems: 'end', flexWrap: 'wrap', marginBottom: 16 }}>
-        <Field label="From"><input type="date" value={from} onChange={e => setFrom(e.target.value)} style={inputStyle} /></Field>
-        <Field label="To"><input type="date" value={to} onChange={e => setTo(e.target.value)} style={inputStyle} /></Field>
-        <button onClick={() => { setEditing(null); setModalOpen(true); }} style={primaryBtn('#0c4a6e')}>➕ Add Other Income</button>
+        <Field label={tr("From")}><input type="date" value={from} onChange={e => setFrom(e.target.value)} style={inputStyle} /></Field>
+        <Field label={tr("To")}><input type="date" value={to} onChange={e => setTo(e.target.value)} style={inputStyle} /></Field>
+        <button onClick={() => { setEditing(null); setModalOpen(true); }} style={primaryBtn('#0c4a6e')}>{tr("➕ Add Other Income")}</button>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px,1fr))', gap: 12, marginBottom: 20 }}>
-        <SummaryCard label="Total Income" value={fmtCurrency(grandTotal)} sub="commissions + other" color="#059669" />
-        <SummaryCard label="Commission Income" value={fmtCurrency(commissionTotal)} sub={`${commissions.length} closed deal${commissions.length === 1 ? '' : 's'}`} color="#10b981" />
-        <SummaryCard label="Other Income" value={fmtCurrency(manualTotal)} sub={`${rows.length} entr${rows.length === 1 ? 'y' : 'ies'}`} color="#3b82f6" />
+        <SummaryCard label={tr("Total Income")} value={fmtCurrency(grandTotal)} sub="commissions + other" color="#059669" />
+        <SummaryCard label={tr("Commission Income")} value={fmtCurrency(commissionTotal)} sub={tn(commissions.length, "{n} closed deal", "{n} closed deals")} color="#10b981" />
+        <SummaryCard label={tr("Other Income")} value={fmtCurrency(manualTotal)} sub={tn(rows.length, "{n} entry", "{n} entries")} color="#3b82f6" />
       </div>
 
-      {loading && <div style={{ padding: 40, textAlign: 'center', color: '#6b7280' }}>Loading...</div>}
-      {error && <div style={{ padding: 20, color: '#dc2626', background: '#fef2f2', borderRadius: 8 }}>Error: {error}</div>}
+      {loading && <div style={{ padding: 40, textAlign: 'center', color: '#6b7280' }}>{tr("Loading...")}</div>}
+      {error && <div style={{ padding: 20, color: '#dc2626', background: '#fef2f2', borderRadius: 8 }}>{tr("Error:")} {error}</div>}
 
       {!loading && !error && (
         <>
           {/* Referrals out that closed but aren't paid yet — expected, not counted */}
           {refExpected.length > 0 && (
             <div style={{ background: '#F4F4F4', borderRadius: 12, padding: '12px 16px', marginBottom: 16, fontSize: 13.5, color: '#1f2937' }}>
-              ↗️ <b>Referral fees expected</b> (closed, not paid yet — not counted until you mark them paid in Tools → Referrals Out):{' '}
+              ↗️ <b>{tr("Referral fees expected")}</b> {tr("(closed, not paid yet — not counted until you mark them paid in Tools → Referrals Out):")}{' '}
               {refExpected.map(r => `${r.client} → ${r.partner} ${fmtCurrency(r.expected_fee)}`).join(' · ')}
             </div>
           )}
           {/* Commission income — auto from closed deals */}
           <div style={{ background: 'white', borderRadius: 12, boxShadow: '0 1px 3px rgba(0,0,0,0.05)', overflow: 'hidden', marginBottom: 20 }}>
             <div style={{ padding: '12px 16px', borderBottom: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontWeight: 700, color: '#065f46' }}>💼 Commission income <span style={{ fontWeight: 400, fontSize: 12, color: '#5F6B7A' }}>— auto from your closed deals (net of split & fees)</span></span>
+              <span style={{ fontWeight: 700, color: '#065f46' }}>{tr("💼 Commission income")} <span style={{ fontWeight: 400, fontSize: 12, color: '#5F6B7A' }}>{tr("— auto from your closed deals (net of split & fees)")}</span></span>
               <span style={{ fontWeight: 700, color: '#1E7B45' }}>{fmtCurrency(commissionTotal)}</span>
             </div>
             {commissions.length === 0 ? (
-              <div style={{ padding: 24, textAlign: 'center', color: '#6b7280', fontSize: 14 }}>No deals closed in this period. Mark a deal "Closed" with a closing date and it shows up here.</div>
+              <div style={{ padding: 24, textAlign: 'center', color: '#6b7280', fontSize: 14 }}>{tr("No deals closed in this period. Mark a deal \"Closed\" with a closing date and it shows up here.")}</div>
             ) : (
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
                 <thead style={{ background: '#f9fafb', borderBottom: '1px solid #e5e7eb' }}>
-                  <tr><Th>Closing</Th><Th>Property</Th><Th>Type</Th><Th align="right">Sale Price</Th><Th align="right">Net Commission</Th></tr>
+                  <tr><Th>{tr("Closing")}</Th><Th>{tr("Property")}</Th><Th>{tr("Type")}</Th><Th align="right">{tr("Sale Price")}</Th><Th align="right">{tr("Net Commission")}</Th></tr>
                 </thead>
                 <tbody>
                   {commissions.map(d => (
                     <tr key={d.transaction_id} style={{ borderBottom: '1px solid #f3f4f6' }}>
                       <Td>{fmtDate(d.closing_date)}</Td>
-                      <Td><strong>{d.address || 'Property'}</strong>{d.city ? <span style={{ color: '#9ca3af' }}>, {d.city}</span> : ''}{d.co_agent ? <span style={{ marginLeft: 6, fontSize: 10.5, fontWeight: 800, color: '#fff', background: '#0c4a6e', borderRadius: 8, padding: '1px 6px' }}>🤝 your co-agent share</span> : ''}</Td>
+                      <Td><strong>{d.address || tr("Property")}</strong>{d.city ? <span style={{ color: '#9ca3af' }}>, {d.city}</span> : ''}{d.co_agent ? <span style={{ marginLeft: 6, fontSize: 10.5, fontWeight: 800, color: '#fff', background: '#0c4a6e', borderRadius: 8, padding: '1px 6px' }}>{tr("🤝 your co-agent share")}</span> : ''}</Td>
                       <Td style={{ color: '#6b7280', fontSize: 13 }}>{d.transaction_type || ''}</Td>
                       <Td align="right" style={{ color: '#6b7280' }}>{fmtCurrency(d.price)}</Td>
                       <Td align="right" style={{ fontWeight: 600, color: '#1E7B45' }}>{fmtCurrency(d.net_commission)}</Td>
@@ -1505,27 +1506,27 @@ function IncomeTab() {
           {/* Other / manual income */}
           <div style={{ background: 'white', borderRadius: 12, boxShadow: '0 1px 3px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
             <div style={{ padding: '12px 16px', borderBottom: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontWeight: 700, color: '#1e40af' }}>➕ Other income <span style={{ fontWeight: 400, fontSize: 12, color: '#5F6B7A' }}>— referrals, rentals, bonuses, BPOs</span></span>
+              <span style={{ fontWeight: 700, color: '#1e40af' }}>{tr("➕ Other income")} <span style={{ fontWeight: 400, fontSize: 12, color: '#5F6B7A' }}>{tr("— referrals, rentals, bonuses, BPOs")}</span></span>
               <span style={{ fontWeight: 700, color: '#1E7B45' }}>{fmtCurrency(manualTotal)}</span>
             </div>
             {rows.length === 0 ? (
-              <div style={{ padding: 24, textAlign: 'center', color: '#6b7280', fontSize: 14 }}>No other income recorded. Use "Add Other Income" for non-commission earnings.</div>
+              <div style={{ padding: 24, textAlign: 'center', color: '#6b7280', fontSize: 14 }}>{tr("No other income recorded. Use \"Add Other Income\" for non-commission earnings.")}</div>
             ) : (
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
                 <thead style={{ background: '#f9fafb', borderBottom: '1px solid #e5e7eb' }}>
-                  <tr><Th>Date</Th><Th>Source</Th><Th>Category</Th><Th>Notes</Th><Th align="right">Amount</Th><Th align="right">Actions</Th></tr>
+                  <tr><Th>{tr("Date")}</Th><Th>{tr("Source")}</Th><Th>{tr("Category")}</Th><Th>{tr("Notes")}</Th><Th align="right">{tr("Amount")}</Th><Th align="right">{tr("Actions")}</Th></tr>
                 </thead>
                 <tbody>
                   {rows.map(r => (
                     <tr key={r.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
                       <Td>{fmtDate(r.occurred_at)}</Td>
                       <Td><strong>{r.source || '—'}</strong></Td>
-                      <Td><span style={{ padding: '2px 8px', background: '#ecfdf5', color: '#065f46', borderRadius: 12, fontSize: 12, fontWeight: 600 }}>{r.category || 'Other Income'}</span></Td>
+                      <Td><span style={{ padding: '2px 8px', background: '#ecfdf5', color: '#065f46', borderRadius: 12, fontSize: 12, fontWeight: 600 }}>{r.category || tr("Other Income")}</span></Td>
                       <Td style={{ color: '#6b7280' }}>{r.notes || ''}</Td>
                       <Td align="right" style={{ fontWeight: 600, color: '#1E7B45' }}>{fmtCurrency(r.amount)}</Td>
                       <Td align="right">
-                        <button onClick={() => { setEditing(r); setModalOpen(true); }} style={iconBtn} title="Edit">✏️</button>
-                        <button onClick={() => handleDelete(r.id)} style={iconBtn} title="Delete">🗑️</button>
+                        <button onClick={() => { setEditing(r); setModalOpen(true); }} style={iconBtn} title={tr("Edit")}>✏️</button>
+                        <button onClick={() => handleDelete(r.id)} style={iconBtn} title={tr("Delete")}>🗑️</button>
                       </Td>
                     </tr>
                   ))}
@@ -1565,24 +1566,24 @@ function IncomeModal({ entry, onClose, onSaved }) {
   };
 
   return (
-    <ModalShell onClose={onClose} title={isEdit ? '✏️ Edit Income' : '➕ Add Income'} width={520}>
+    <ModalShell onClose={onClose} title={isEdit ? tr("✏️ Edit Income") : tr("➕ Add Income")} width={520}>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-        <Field label="Amount *"><input type="number" step="0.01" min="0" value={amount} onChange={e => setAmount(e.target.value)} placeholder="0.00" style={inputStyle} /></Field>
-        <Field label="Date *"><input type="date" value={occurredAt} onChange={e => setOccurredAt(e.target.value)} style={inputStyle} /></Field>
-        <Field label="Source" hint="Who paid you"><input value={source} onChange={e => setSource(e.target.value)} placeholder="e.g. ABC Realty referral" style={inputStyle} /></Field>
-        <Field label="Category">
+        <Field label={tr("Amount *")}><input type="number" step="0.01" min="0" value={amount} onChange={e => setAmount(e.target.value)} placeholder="0.00" style={inputStyle} /></Field>
+        <Field label={tr("Date *")}><input type="date" value={occurredAt} onChange={e => setOccurredAt(e.target.value)} style={inputStyle} /></Field>
+        <Field label={tr("Source")} hint={tr("Who paid you")}><input value={source} onChange={e => setSource(e.target.value)} placeholder={tr("e.g. ABC Realty referral")} style={inputStyle} /></Field>
+        <Field label={tr("Category")}>
           <select value={category} onChange={async e => { const v = e.target.value; if (v === '__add_new_category__') { const n = await promptNewCategory(); if (n) setCategory(n); } else setCategory(v); }} style={inputStyle}>
-            {category && !INCOME_CATEGORIES.includes(category) && <option value={category}>{category}</option>}
-            {INCOME_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
-            <option value="__add_new_category__">➕ New category…</option>
+            {category && !INCOME_CATEGORIES.includes(category) && <option value={category}>{tr(category)}</option>}
+            {INCOME_CATEGORIES.map(c => <option key={c} value={c}>{tr(c)}</option>)}
+            <option value="__add_new_category__">{tr("➕ New category…")}</option>
           </select>
         </Field>
       </div>
-      <Field label="Notes"><textarea value={notes} onChange={e => setNotes(e.target.value)} rows={2} style={{ ...inputStyle, fontFamily: 'inherit', resize: 'vertical' }} /></Field>
+      <Field label={tr("Notes")}><textarea value={notes} onChange={e => setNotes(e.target.value)} rows={2} style={{ ...inputStyle, fontFamily: 'inherit', resize: 'vertical' }} /></Field>
       {error && <div style={{ background: '#fef2f2', color: '#dc2626', padding: 10, borderRadius: 8, marginBottom: 12, fontSize: 14 }}>{error}</div>}
       <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-        <button onClick={onClose} style={secondaryBtn}>Cancel</button>
-        <button onClick={save} disabled={saving} style={{ ...primaryBtn('#0c4a6e'), opacity: saving ? 0.6 : 1 }}>{saving ? 'Saving...' : (isEdit ? 'Save' : 'Add Income')}</button>
+        <button onClick={onClose} style={secondaryBtn}>{tr("Cancel")}</button>
+        <button onClick={save} disabled={saving} style={{ ...primaryBtn('#0c4a6e'), opacity: saving ? 0.6 : 1 }}>{saving ? tr("Saving...") : (isEdit ? tr("Save") : tr("Add Income"))}</button>
       </div>
     </ModalShell>
   );
@@ -1647,9 +1648,9 @@ function BudgetTab({ categories }) {
   useEffect(() => { load(); /* eslint-disable-next-line */ }, [period]);
 
   const handleDelete = async (id) => {
-    if (!(await askConfirm('Delete this budget line?', { okLabel: 'Delete', danger: true }))) return;
+    if (!(await askConfirm(tr("Delete this budget line?"), { okLabel: tr("Delete"), danger: true }))) return;
     try { await authFetch(`/budget/${id}`, { method: 'DELETE' }); setItems(p => p.filter(i => i.id !== id)); }
-    catch (e) { alert('Delete failed: ' + e.message); }
+    catch (e) { alert(tr("Delete failed: ") + e.message); }
   };
 
   const expenseItems = items.filter(i => i.kind !== 'income');
@@ -1679,7 +1680,7 @@ function BudgetTab({ categories }) {
         else await authFetch('/budget', { method: 'POST', body: JSON.stringify(payload) });
       }
       await load();
-    } catch (e) { alert('Could not save budget: ' + e.message); } finally { setSavingCat(null); }
+    } catch (e) { alert(tr("Could not save budget: ") + e.message); } finally { setSavingCat(null); }
   };
 
   // Budget-vs-actual by expense category
@@ -1712,7 +1713,7 @@ function BudgetTab({ categories }) {
   return (
     <div style={{ padding: '20px 24px' }}>
       <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 10, padding: 12, marginBottom: 16, fontSize: 13, color: '#1e40af' }}>
-        💡 This tab compares your <strong>plan</strong> to <strong>reality</strong>. Set an <strong>income goal</strong> (what you want to earn) and your <strong>planned expenses</strong> (MLS, E&O, marketing…). The bars below show how you're tracking. Add lines with <strong>➕ Add Budget Line</strong>.
+        {tr("💡 This tab compares your")} <strong>{tr("plan")}</strong> {tr("to")} <strong>{tr("reality")}</strong>{tr(". Set an")} <strong>{tr("income goal")}</strong> {tr("(what you want to earn) and your")} <strong>{tr("planned expenses")}</strong> {tr("(MLS, E&O, marketing…). The bars below show how you're tracking. Add lines with")} <strong>{tr("➕ Add Budget Line")}</strong>.
       </div>
 
       <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 16, flexWrap: 'wrap' }}>
@@ -1722,21 +1723,21 @@ function BudgetTab({ categories }) {
               border: 'none', cursor: 'pointer', padding: '7px 14px', borderRadius: 6, fontSize: 13, fontWeight: 600,
               background: period === k ? 'white' : 'transparent', color: period === k ? '#059669' : '#6b7280',
               boxShadow: period === k ? '0 1px 2px rgba(0,0,0,0.1)' : 'none',
-            }}>{l}</button>
+            }}>{tr(l)}</button>
           ))}
         </div>
-        <button onClick={() => { setEditing(null); setModalOpen(true); }} style={primaryBtn('#0c4a6e')}>➕ Add Budget Line</button>
-        <button onClick={() => setBuildOpen(true)} style={primaryBtn('#0c4a6e')}>✨ Build budget from my expenses</button>
+        <button onClick={() => { setEditing(null); setModalOpen(true); }} style={primaryBtn('#0c4a6e')}>{tr("➕ Add Budget Line")}</button>
+        <button onClick={() => setBuildOpen(true)} style={primaryBtn('#0c4a6e')}>{tr("✨ Build budget from my expenses")}</button>
       </div>
 
-      {loading && <div style={{ padding: 40, textAlign: 'center', color: '#6b7280' }}>Loading...</div>}
-      {error && <div style={{ padding: 20, color: '#dc2626', background: '#fef2f2', borderRadius: 8 }}>Error: {error}</div>}
+      {loading && <div style={{ padding: 40, textAlign: 'center', color: '#6b7280' }}>{tr("Loading...")}</div>}
+      {error && <div style={{ padding: 20, color: '#dc2626', background: '#fef2f2', borderRadius: 8 }}>{tr("Error:")} {error}</div>}
 
       {!loading && !error && (
         <>
           {/* INCOME GOAL */}
           <GoalProgress
-            label={`Income Goal — ${period === 'year' ? 'This Year' : 'This Month'}`}
+            label={tr("Income Goal — {v1}", { v1: period === 'year' ? 'This Year' : 'This Month' })}
             goal={incomeGoal}
             actual={actualIncome}
             elapsed={elapsedFraction}
@@ -1746,22 +1747,22 @@ function BudgetTab({ categories }) {
           />
 
           {/* EXPENSE BUDGET */}
-          <div style={{ fontWeight: 700, color: '#374151', margin: '8px 2px 10px' }}>Expense Budget</div>
+          <div style={{ fontWeight: 700, color: '#374151', margin: '8px 2px 10px' }}>{tr("Expense Budget")}</div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px,1fr))', gap: 12, marginBottom: 16 }}>
-            <SummaryCard label="Planned to spend" value={fmtCurrency(totalBudgetExp)} sub={period === 'year' ? 'full-year budget' : 'this month'} color="#6b7280" />
-            <SummaryCard label="Actually spent" value={fmtCurrency(totalActualExp)} sub={`${totalBudgetExp > 0 ? Math.round(totalActualExp / totalBudgetExp * 100) : 0}% of budget used`} color={totalActualExp > totalBudgetExp ? '#dc2626' : '#10b981'} />
-            <SummaryCard label="Left in budget" value={fmtCurrency(totalBudgetExp - totalActualExp)} sub={totalActualExp > totalBudgetExp ? 'over budget' : 'remaining'} color={totalActualExp > totalBudgetExp ? '#dc2626' : '#3b82f6'} />
+            <SummaryCard label={tr("Planned to spend")} value={fmtCurrency(totalBudgetExp)} sub={period === 'year' ? 'full-year budget' : 'this month'} color="#6b7280" />
+            <SummaryCard label={tr("Actually spent")} value={fmtCurrency(totalActualExp)} sub={tr("{v1}% of budget used", { v1: totalBudgetExp > 0 ? Math.round(totalActualExp / totalBudgetExp * 100) : 0 })} color={totalActualExp > totalBudgetExp ? '#dc2626' : '#10b981'} />
+            <SummaryCard label={tr("Left in budget")} value={fmtCurrency(totalBudgetExp - totalActualExp)} sub={totalActualExp > totalBudgetExp ? 'over budget' : 'remaining'} color={totalActualExp > totalBudgetExp ? '#dc2626' : '#3b82f6'} />
           </div>
 
           {/* Budget vs actual by category */}
           <div style={{ background: 'white', borderRadius: 12, boxShadow: '0 1px 3px rgba(0,0,0,0.05)', overflow: 'hidden', marginBottom: 24 }}>
-            <div style={{ padding: '12px 16px', borderBottom: '1px solid #e5e7eb', fontWeight: 700, color: '#1f2937' }}>Expenses by category — planned vs actual <span style={{ fontWeight: 400, fontSize: 12, color: '#6b7280' }}>· click any amount in “Budgeted” to set it</span></div>
+            <div style={{ padding: '12px 16px', borderBottom: '1px solid #e5e7eb', fontWeight: 700, color: '#1f2937' }}>{tr("Expenses by category — planned vs actual")} <span style={{ fontWeight: 400, fontSize: 12, color: '#6b7280' }}>{tr("· click any amount in “Budgeted” to set it")}</span></div>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
               <thead style={{ background: '#f9fafb' }}>
-                <tr><Th>Category</Th><Th align="right">Budgeted</Th><Th align="right">Actual</Th><Th align="right">Remaining</Th><Th>Usage</Th></tr>
+                <tr><Th>{tr("Category")}</Th><Th align="right">{tr("Budgeted")}</Th><Th align="right">{tr("Actual")}</Th><Th align="right">{tr("Remaining")}</Th><Th>{tr("Usage")}</Th></tr>
               </thead>
               <tbody>
-                {allCats.length === 0 && <tr><Td colSpan={5} style={{ textAlign: 'center', padding: 24, color: '#6b7280' }}>No budget lines yet. Add MLS fees, E&O, marketing, etc.</Td></tr>}
+                {allCats.length === 0 && <tr><Td colSpan={5} style={{ textAlign: 'center', padding: 24, color: '#6b7280' }}>{tr("No budget lines yet. Add MLS fees, E&O, marketing, etc.")}</Td></tr>}
                 {allCats.map(cat => {
                   const bud = budgetByCat[cat] || 0;
                   const act = actualByCat[cat] || 0;
@@ -1787,8 +1788,8 @@ function BudgetTab({ categories }) {
 
           {/* Budget line management */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px,1fr))', gap: 16 }}>
-            <BudgetLineList title="📤 Planned Expenses" hint="What you expect to spend" items={expenseItems} period={period} onEdit={(i) => { setEditing(i); setModalOpen(true); }} onDelete={handleDelete} />
-            <BudgetLineList title="📥 Income Goal" hint="What you want to earn" items={incomeItems} period={period} onEdit={(i) => { setEditing(i); setModalOpen(true); }} onDelete={handleDelete} />
+            <BudgetLineList title={tr("📤 Planned Expenses")} hint={tr("What you expect to spend")} items={expenseItems} period={period} onEdit={(i) => { setEditing(i); setModalOpen(true); }} onDelete={handleDelete} />
+            <BudgetLineList title={tr("📥 Income Goal")} hint={tr("What you want to earn")} items={incomeItems} period={period} onEdit={(i) => { setEditing(i); setModalOpen(true); }} onDelete={handleDelete} />
           </div>
         </>
       )}
@@ -1804,7 +1805,7 @@ function BudgetTab({ categories }) {
 function BudgetAmountCell({ value, saving, onCommit }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState('');
-  if (saving) return <span style={{ color: '#5F6B7A', fontSize: 13 }}>saving…</span>;
+  if (saving) return <span style={{ color: '#5F6B7A', fontSize: 13 }}>{tr("saving…")}</span>;
   if (editing) {
     const commit = () => { setEditing(false); onCommit(draft); };
     return (
@@ -1815,9 +1816,9 @@ function BudgetAmountCell({ value, saving, onCommit }) {
           onKeyDown={e => { if (e.key === 'Enter') commit(); if (e.key === 'Escape') setEditing(false); }}
           style={{ width: 90, padding: '5px 6px', fontSize: 13, textAlign: 'right', border: '1px solid #3b82f6', borderRadius: 6 }}
         />
-        <button onMouseDown={e => e.preventDefault()} onClick={commit} title="Save"
+        <button onMouseDown={e => e.preventDefault()} onClick={commit} title={tr("Save")}
           style={{ background: '#0c4a6e', border: 'none', color: 'white', borderRadius: 6, width: 26, height: 26, cursor: 'pointer', fontSize: 13, fontWeight: 700 }}>✓</button>
-        <button onMouseDown={e => e.preventDefault()} onClick={() => setEditing(false)} title="Cancel"
+        <button onMouseDown={e => e.preventDefault()} onClick={() => setEditing(false)} title={tr("Cancel")}
           style={{ background: 'none', border: '1px solid #d1d5db', color: '#6b7280', borderRadius: 6, width: 26, height: 26, cursor: 'pointer', fontSize: 13 }}>✕</button>
       </span>
     );
@@ -1825,10 +1826,10 @@ function BudgetAmountCell({ value, saving, onCommit }) {
   return (
     <button
       onClick={() => { setDraft(value ? String(Math.round(value * 100) / 100) : ''); setEditing(true); }}
-      title="Click to set a budget"
+      title={tr("Click to set a budget")}
       style={{ background: 'none', border: '1px dashed #cbd5e1', borderRadius: 6, padding: '4px 10px', cursor: 'pointer', fontSize: 13, color: value ? '#1f2937' : '#3b82f6', fontWeight: value ? 600 : 500 }}
     >
-      {value ? fmtCurrency(value) : 'Set ✏️'}
+      {value ? fmtCurrency(value) : tr("Set ✏️")}
     </button>
   );
 }
@@ -1873,19 +1874,19 @@ function BuildBudgetModal({ existing, onClose, onSaved }) {
   };
 
   return (
-    <ModalShell onClose={onClose} title="✨ Build budget from my expenses" width={620}>
+    <ModalShell onClose={onClose} title={tr("✨ Build budget from my expenses")} width={620}>
       <div style={{ fontSize: 13, color: '#6b7280', marginBottom: 14 }}>
-        Based on what you've actually spent this year, here's a suggested <strong>monthly</strong> budget for each category. Recurring ones (showing up in 2+ months) are pre-checked. Adjust any amount, uncheck what you don't want, then apply.
+        {tr("Based on what you've actually spent this year, here's a suggested")} <strong>{tr("monthly")}</strong> {tr("budget for each category. Recurring ones (showing up in 2+ months) are pre-checked. Adjust any amount, uncheck what you don't want, then apply.")}
       </div>
-      {loading && <div style={{ padding: 24, textAlign: 'center', color: '#6b7280' }}>Analyzing your expenses…</div>}
+      {loading && <div style={{ padding: 24, textAlign: 'center', color: '#6b7280' }}>{tr("Analyzing your expenses…")}</div>}
       {error && <div style={{ padding: 12, color: '#dc2626', background: '#fef2f2', borderRadius: 8, marginBottom: 12 }}>{error}</div>}
-      {!loading && rows.length === 0 && <div style={{ padding: 20, textAlign: 'center', color: '#6b7280' }}>No expense history to build from yet.</div>}
+      {!loading && rows.length === 0 && <div style={{ padding: 20, textAlign: 'center', color: '#6b7280' }}>{tr("No expense history to build from yet.")}</div>}
       {!loading && rows.length > 0 && (
         <>
           <div style={{ maxHeight: 360, overflow: 'auto', border: '1px solid #e5e7eb', borderRadius: 8 }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
               <thead style={{ background: '#f9fafb', position: 'sticky', top: 0 }}>
-                <tr><Th></Th><Th>Category</Th><Th align="center">Months</Th><Th align="right">Spent</Th><Th align="right">Budget / mo</Th></tr>
+                <tr><Th></Th><Th>{tr("Category")}</Th><Th align="center">{tr("Months")}</Th><Th align="right">{tr("Spent")}</Th><Th align="right">{tr("Budget / mo")}</Th></tr>
               </thead>
               <tbody>
                 {rows.map((r, idx) => (
@@ -1901,10 +1902,10 @@ function BuildBudgetModal({ existing, onClose, onSaved }) {
             </table>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 16 }}>
-            <div style={{ fontSize: 14, color: '#374151' }}>Total planned: <strong>{fmtCurrency(totalMonthly)}/mo</strong></div>
+            <div style={{ fontSize: 14, color: '#374151' }}>{tr("Total planned:")} <strong>{fmtCurrency(totalMonthly)}/mo</strong></div>
             <div style={{ display: 'flex', gap: 8 }}>
-              <button onClick={onClose} style={secondaryBtn}>Cancel</button>
-              <button onClick={apply} disabled={saving} style={{ ...primaryBtn('#0c4a6e'), opacity: saving ? 0.6 : 1 }}>{saving ? 'Saving…' : `Apply ${rows.filter(r => r.include).length} budgets`}</button>
+              <button onClick={onClose} style={secondaryBtn}>{tr("Cancel")}</button>
+              <button onClick={apply} disabled={saving} style={{ ...primaryBtn('#0c4a6e'), opacity: saving ? 0.6 : 1 }}>{saving ? tr("Saving…") : tr("Apply {n} budgets", { n: rows.filter(r => r.include).length })}</button>
             </div>
           </div>
         </>
@@ -1918,7 +1919,7 @@ function GoalProgress({ label, goal, actual, elapsed, actualLabel, emptyHint, fo
   if (!goal || goal <= 0) {
     return (
       <div style={{ background: 'white', borderRadius: 12, boxShadow: '0 1px 3px rgba(0,0,0,0.05)', padding: 18, marginBottom: 16, borderLeft: '4px solid #3b82f6' }}>
-        <div style={{ fontWeight: 700, color: '#1f2937', marginBottom: 4 }}>{label}</div>
+        <div style={{ fontWeight: 700, color: '#1f2937', marginBottom: 4 }}>{tr(label)}</div>
         <div style={{ color: '#6b7280', fontSize: 14 }}>{emptyHint}</div>
       </div>
     );
@@ -1930,21 +1931,21 @@ function GoalProgress({ label, goal, actual, elapsed, actualLabel, emptyHint, fo
   return (
     <div style={{ background: 'white', borderRadius: 12, boxShadow: '0 1px 3px rgba(0,0,0,0.05)', padding: 18, marginBottom: 20, borderLeft: '4px solid #10b981' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', flexWrap: 'wrap', gap: 8 }}>
-        <div style={{ fontWeight: 700, color: '#1f2937' }}>{label}</div>
-        <div style={{ fontSize: 13, color: '#6b7280' }}>{actualLabel}: <strong style={{ color: '#1E7B45' }}>{fmtCurrency(actual)}</strong> of <strong>{fmtCurrency(goal)}</strong> goal</div>
+        <div style={{ fontWeight: 700, color: '#1f2937' }}>{tr(label)}</div>
+        <div style={{ fontSize: 13, color: '#6b7280' }}>{actualLabel}: <strong style={{ color: '#1E7B45' }}>{fmtCurrency(actual)}</strong> {tr("of")} <strong>{fmtCurrency(goal)}</strong> {tr("goal")}</div>
       </div>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, margin: '8px 0 10px' }}>
         <div style={{ fontSize: 32, fontWeight: 800, color: '#1E7B45' }}>{pct}%</div>
-        <div style={{ fontSize: 13, color: '#6b7280' }}>{remaining > 0 ? `${fmtCurrency(remaining)} to go` : 'goal reached 🎉'}</div>
+        <div style={{ fontSize: 13, color: '#6b7280' }}>{remaining > 0 ? tr("{amount} to go", { amount: fmtCurrency(remaining) }) : tr("goal reached 🎉")}</div>
       </div>
       <div style={{ position: 'relative', background: '#f3f4f6', borderRadius: 8, height: 16, overflow: 'hidden' }}>
         <div style={{ width: `${Math.min(100, pct)}%`, height: '100%', background: onPace ? '#10b981' : '#f59e0b', transition: 'width .3s' }} />
         {elapsed > 0 && elapsed < 1 && (
-          <div title="Where you'd be if earning evenly all period" style={{ position: 'absolute', top: -2, bottom: -2, left: `${elapsed * 100}%`, width: 2, background: '#1f2937' }} />
+          <div title={tr("Where you'd be if earning evenly all period")} style={{ position: 'absolute', top: -2, bottom: -2, left: `${elapsed * 100}%`, width: 2, background: '#1f2937' }} />
         )}
       </div>
       <div style={{ fontSize: 12, color: onPace ? '#059669' : '#b45309', marginTop: 8, fontWeight: 600 }}>
-        {onPace ? '✅ On pace' : '⏳ Behind pace'} — at this point in the period you'd expect about {fmtCurrency(expected)} {onPace ? '' : `(you're ${fmtCurrency(expected - actual)} under)`}
+        {onPace ? tr("✅ On pace") : tr("⏳ Behind pace")} {tr("— at this point in the period you'd expect about")} {fmtCurrency(expected)} {onPace ? '' : tr("(you're {amount} under)", { amount: fmtCurrency(expected - actual) })}
       </div>
       {footer && <div style={{ fontSize: 12, color: '#5F6B7A', marginTop: 6 }}>{footer}</div>}
     </div>
@@ -1955,13 +1956,13 @@ function BudgetLineList({ title, hint, items, period, onEdit, onDelete }) {
   return (
     <div style={{ background: 'white', borderRadius: 12, boxShadow: '0 1px 3px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
       <div style={{ padding: '12px 16px', borderBottom: '1px solid #e5e7eb', fontWeight: 700, color: '#1f2937' }}>
-        {title}{hint && <span style={{ fontWeight: 400, fontSize: 12, color: '#5F6B7A' }}> — {hint}</span>}
+        {tr(title)}{hint && <span style={{ fontWeight: 400, fontSize: 12, color: '#5F6B7A' }}> — {tr(hint)}</span>}
       </div>
-      {items.length === 0 && <div style={{ padding: 20, color: '#6b7280', fontSize: 14 }}>None yet.</div>}
+      {items.length === 0 && <div style={{ padding: 20, color: '#6b7280', fontSize: 14 }}>{tr("None yet.")}</div>}
       {items.map(i => (
         <div key={i.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 16px', borderTop: '1px solid #f3f4f6' }}>
           <div style={{ flex: 1 }}>
-            <div style={{ fontWeight: 600, color: '#1f2937', fontSize: 14 }}>{i.label || i.category || '—'}</div>
+            <div style={{ fontWeight: 600, color: '#1f2937', fontSize: 14 }}>{tr(i.label) || i.category || '—'}</div>
             <div style={{ fontSize: 12, color: '#5F6B7A' }}>
               {i.category ? i.category + ' • ' : ''}{FREQ_LABEL[i.frequency] || i.frequency}
               {i.frequency !== 'monthly' && i.due_month ? ' • ' + MONTHS[i.due_month - 1] : ''}
@@ -1969,10 +1970,10 @@ function BudgetLineList({ title, hint, items, period, onEdit, onDelete }) {
           </div>
           <div style={{ textAlign: 'right' }}>
             <div style={{ fontWeight: 700, color: '#1f2937' }}>{fmtCurrency(i.amount)}</div>
-            <div style={{ fontSize: 11, color: '#5F6B7A' }}>{fmtCurrency(budgetedForPeriod(i, period))}/{period === 'year' ? 'yr' : 'mo'}</div>
+            <div style={{ fontSize: 11, color: '#5F6B7A' }}>{fmtCurrency(budgetedForPeriod(i, period))}/{period === 'year' ? tr("yr") : tr("mo")}</div>
           </div>
-          <button onClick={() => onEdit(i)} style={iconBtn} title="Edit">✏️</button>
-          <button onClick={() => onDelete(i.id)} style={iconBtn} title="Delete">🗑️</button>
+          <button onClick={() => onEdit(i)} style={iconBtn} title={tr("Edit")}>✏️</button>
+          <button onClick={() => onDelete(i.id)} style={iconBtn} title={tr("Delete")}>🗑️</button>
         </div>
       ))}
     </div>
@@ -2004,54 +2005,54 @@ function BudgetModal({ item, categories, onClose, onSaved }) {
   };
 
   return (
-    <ModalShell onClose={onClose} title={isEdit ? '✏️ Edit Budget Line' : '➕ Add Budget Line'} width={540}>
+    <ModalShell onClose={onClose} title={isEdit ? tr("✏️ Edit Budget Line") : tr("➕ Add Budget Line")} width={540}>
       <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
         {[['expense', '📤 Planned Expense'], ['income', '📥 Income Goal']].map(([k, l]) => (
           <button key={k} onClick={() => { setKind(k); if (!isEdit) setFrequency(k === 'income' ? 'annual' : 'monthly'); }} style={{
             flex: 1, padding: '10px', borderRadius: 8, cursor: 'pointer', fontSize: 14, fontWeight: 600,
             border: kind === k ? '2px solid #10b981' : '1px solid #d1d5db',
             background: kind === k ? '#ecfdf5' : 'white', color: kind === k ? '#065f46' : '#6b7280',
-          }}>{l}</button>
+          }}>{tr(l)}</button>
         ))}
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-        <Field label="Name / Label" hint="e.g. MLS dues"><input value={label} onChange={e => setLabel(e.target.value)} placeholder="What is this?" style={inputStyle} /></Field>
-        <Field label="Amount *"><input type="number" step="0.01" min="0" value={amount} onChange={e => setAmount(e.target.value)} placeholder="0.00" style={inputStyle} /></Field>
-        <Field label="Category">
+        <Field label={tr("Name / Label")} hint={tr("e.g. MLS dues")}><input value={label} onChange={e => setLabel(e.target.value)} placeholder={tr("What is this?")} style={inputStyle} /></Field>
+        <Field label={tr("Amount *")}><input type="number" step="0.01" min="0" value={amount} onChange={e => setAmount(e.target.value)} placeholder="0.00" style={inputStyle} /></Field>
+        <Field label={tr("Category")}>
           {kind === 'expense' ? (
             <select value={category} onChange={e => setCategory(e.target.value)} style={inputStyle}>
-              <option value="">— pick one —</option>
-              {(categories || []).map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
-              <option value="Other">Other</option>
+              <option value="">{tr("— pick one —")}</option>
+              {(categories || []).map(c => <option key={c.id} value={c.name}>{tr(c.name)}</option>)}
+              <option value="Other">{tr("Other")}</option>
             </select>
           ) : (
             <select value={category} onChange={e => setCategory(e.target.value)} style={inputStyle}>
-              <option value="">— pick one —</option>
-              {INCOME_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+              <option value="">{tr("— pick one —")}</option>
+              {INCOME_CATEGORIES.map(c => <option key={c} value={c}>{tr(c)}</option>)}
             </select>
           )}
         </Field>
-        <Field label="Frequency">
+        <Field label={tr("Frequency")}>
           <select value={frequency} onChange={e => setFrequency(e.target.value)} style={inputStyle}>
-            <option value="monthly">Monthly (recurs every month)</option>
-            <option value="annual">Yearly (once a year)</option>
-            <option value="one_time">One-time</option>
+            <option value="monthly">{tr("Monthly (recurs every month)")}</option>
+            <option value="annual">{tr("Yearly (once a year)")}</option>
+            <option value="one_time">{tr("One-time")}</option>
           </select>
         </Field>
         {frequency !== 'monthly' && (
-          <Field label="Month due" hint="when it hits">
+          <Field label={tr("Month due")} hint={tr("when it hits")}>
             <select value={dueMonth} onChange={e => setDueMonth(e.target.value)} style={inputStyle}>
-              <option value="">— any —</option>
-              {MONTHS.map((m, i) => <option key={m} value={i + 1}>{m}</option>)}
+              <option value="">{tr("— any —")}</option>
+              {MONTHS.map((m, i) => <option key={m} value={i + 1}>{tr(m)}</option>)}
             </select>
           </Field>
         )}
       </div>
-      <Field label="Notes"><input value={notes} onChange={e => setNotes(e.target.value)} style={inputStyle} /></Field>
+      <Field label={tr("Notes")}><input value={notes} onChange={e => setNotes(e.target.value)} style={inputStyle} /></Field>
       {error && <div style={{ background: '#fef2f2', color: '#dc2626', padding: 10, borderRadius: 8, marginBottom: 12, fontSize: 14 }}>{error}</div>}
       <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-        <button onClick={onClose} style={secondaryBtn}>Cancel</button>
-        <button onClick={save} disabled={saving} style={{ ...primaryBtn('#0c4a6e'), opacity: saving ? 0.6 : 1 }}>{saving ? 'Saving...' : (isEdit ? 'Save' : 'Add Line')}</button>
+        <button onClick={onClose} style={secondaryBtn}>{tr("Cancel")}</button>
+        <button onClick={save} disabled={saving} style={{ ...primaryBtn('#0c4a6e'), opacity: saving ? 0.6 : 1 }}>{saving ? tr("Saving...") : (isEdit ? tr("Save") : tr("Add Line"))}</button>
       </div>
     </ModalShell>
   );
@@ -2160,7 +2161,7 @@ function PnLTab() {
       <p style="font-size:12px;color:#9ca3af;margin-top:24px">Commission income is computed from your closed transactions (net of brokerage split & fees). Not tax advice — confirm with your CPA.</p>
       </body></html>`;
     const w = window.open('', '_blank');
-    if (!w) { alert('Allow pop-ups to print the P&L.'); return; }
+    if (!w) { alert(tr("Allow pop-ups to print the P&L.")); return; }
     w.document.write(html); w.document.close(); w.focus();
     setTimeout(() => w.print(), 350);
   };
@@ -2204,45 +2205,45 @@ function PnLTab() {
   return (
     <div style={{ padding: '20px 24px' }}>
       <div style={{ display: 'flex', gap: 12, alignItems: 'end', flexWrap: 'wrap', marginBottom: 16 }}>
-        <Field label="Period">
+        <Field label={tr("Period")}>
           <select value={period} onChange={e => setPeriod(e.target.value)} style={{ ...inputStyle, maxWidth: 180 }}>
-            <option value="year">Full year</option>
-            <option value="this_month">This month</option>
-            <option value="last_month">Last month</option>
-            <option value="this_quarter">This quarter</option>
-            <option value="ytd">Year to date</option>
-            <option value="month">Pick a month…</option>
+            <option value="year">{tr("Full year")}</option>
+            <option value="this_month">{tr("This month")}</option>
+            <option value="last_month">{tr("Last month")}</option>
+            <option value="this_quarter">{tr("This quarter")}</option>
+            <option value="ytd">{tr("Year to date")}</option>
+            <option value="month">{tr("Pick a month…")}</option>
           </select>
         </Field>
         {period === 'month' && (
-          <Field label="Month">
+          <Field label={tr("Month")}>
             <select value={monthIdx} onChange={e => setMonthIdx(Number(e.target.value))} style={{ ...inputStyle, maxWidth: 150 }}>
-              {MONTH_NAMES.map((m, i) => <option key={m} value={i}>{m}</option>)}
+              {MONTH_NAMES.map((m, i) => <option key={m} value={i}>{tr(m)}</option>)}
             </select>
           </Field>
         )}
         {(period === 'year' || period === 'month') && (
-          <Field label="Year">
+          <Field label={tr("Year")}>
             <select value={year} onChange={e => setYear(Number(e.target.value))} style={{ ...inputStyle, maxWidth: 120 }}>
-              {[0, 1, 2, 3].map(i => { const y = new Date().getFullYear() - i; return <option key={y} value={y}>{y}</option>; })}
+              {[0, 1, 2, 3].map(i => { const y = new Date().getFullYear() - i; return <option key={y} value={y}>{tr(y)}</option>; })}
             </select>
           </Field>
         )}
-        <button onClick={printPnL} disabled={!pnl} style={primaryBtn('#0c4a6e')}>🖨️ Print P&L</button>
-        <button onClick={exportExcel} disabled={!pnl} style={primaryBtn('#0c4a6e')}>⬇️ Export to Excel</button>
+        <button onClick={printPnL} disabled={!pnl} style={primaryBtn('#0c4a6e')}>{tr("🖨️ Print P&L")}</button>
+        <button onClick={exportExcel} disabled={!pnl} style={primaryBtn('#0c4a6e')}>{tr("⬇️ Export to Excel")}</button>
       </div>
 
-      {loading && <div style={{ padding: 40, textAlign: 'center', color: '#6b7280' }}>Loading...</div>}
-      {error && <div style={{ padding: 20, color: '#dc2626', background: '#fef2f2', borderRadius: 8 }}>Error: {error}</div>}
+      {loading && <div style={{ padding: 40, textAlign: 'center', color: '#6b7280' }}>{tr("Loading...")}</div>}
+      {error && <div style={{ padding: 20, color: '#dc2626', background: '#fef2f2', borderRadius: 8 }}>{tr("Error:")} {error}</div>}
 
       {pnl && !loading && (
         <>
           {(company || profile) && (
             <div style={{ background: 'white', borderRadius: 12, boxShadow: '0 1px 3px rgba(0,0,0,0.05)', padding: '14px 18px', marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, borderLeft: `4px solid ${company?.primaryColor || '#059669'}` }}>
               <div>
-                <div style={{ fontSize: 18, fontWeight: 800, color: company?.primaryColor || '#059669' }}>{company?.name || 'My Real Estate Business'}</div>
+                <div style={{ fontSize: 18, fontWeight: 800, color: company?.primaryColor || '#059669' }}>{company?.name || tr("My Real Estate Business")}</div>
                 <div style={{ fontSize: 12, color: '#6b7280' }}>
-                  Profit &amp; Loss — {range.label}
+                  {tr("Profit & Loss —")} {tr(range.label)}
                   {profile ? ` • ${[profile.firstName, profile.lastName].filter(Boolean).join(' ')}` : ''}
                 </div>
               </div>
@@ -2250,15 +2251,15 @@ function PnLTab() {
             </div>
           )}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px,1fr))', gap: 12, marginBottom: 20 }}>
-            <SummaryCard label="Total Income" value={fmtCurrency(pnl.income.total)} sub={range.label} color="#10b981" />
-            <SummaryCard label="Total Expenses" value={fmtCurrency(pnl.expenses.total)} sub={range.label} color="#dc2626" />
-            <SummaryCard label={pnl.net_profit >= 0 ? 'Net Profit' : 'Net Loss'} value={fmtCurrency(pnl.net_profit)} sub="income − expenses" color={pnl.net_profit >= 0 ? '#059669' : '#dc2626'} />
+            <SummaryCard label={tr("Total Income")} value={fmtCurrency(pnl.income.total)} sub={range.label} color="#10b981" />
+            <SummaryCard label={tr("Total Expenses")} value={fmtCurrency(pnl.expenses.total)} sub={range.label} color="#dc2626" />
+            <SummaryCard label={pnl.net_profit >= 0 ? tr("Net Profit") : tr("Net Loss")} value={fmtCurrency(pnl.net_profit)} sub="income − expenses" color={pnl.net_profit >= 0 ? '#059669' : '#dc2626'} />
             {/* Expense ratio vs the typical agent business model. Benchmark: a
                 healthy solo agent runs ~30-40% of gross income on expenses;
                 40-50% is about average, above that spending needs a look. */}
             {(() => {
               const inc = Number(pnl.income.total || 0), exp = Number(pnl.expenses.total || 0);
-              if (inc <= 0) return <SummaryCard label="Expense Ratio" value="—" sub={exp > 0 ? 'Spending, but no income in this period yet' : 'No activity in this period'} color="#6b7280" />;
+              if (inc <= 0) return <SummaryCard label={tr("Expense Ratio")} value="—" sub={exp > 0 ? 'Spending, but no income in this period yet' : 'No activity in this period'} color="#6b7280" />;
               const pct = Math.round((exp / inc) * 100);
               const margin = 100 - pct;
               const color = pct <= 40 ? '#059669' : pct <= 50 ? '#d97706' : '#dc2626';
@@ -2267,24 +2268,24 @@ function PnLTab() {
                 : pct <= 50 ? 'A bit above the typical 30–40% — keep an eye on it'
                 : pct <= 100 ? 'High — most agents run 30–40%; worth reviewing spending'
                 : 'Spending more than you earn this period';
-              return <SummaryCard label="Expense Ratio" value={`${pct}% of income`}
-                sub={`${word} (${margin}% profit margin)`} color={color} />;
+              return <SummaryCard label={tr("Expense Ratio")} value={`${pct}% of income`}
+                sub={tr("{word} ({margin}% profit margin)", { word, margin })} color={color} />;
             })()}
           </div>
 
           {/* Income */}
           <div style={{ background: 'white', borderRadius: 12, boxShadow: '0 1px 3px rgba(0,0,0,0.05)', overflow: 'hidden', marginBottom: 16 }}>
             <div style={{ padding: '12px 16px', borderBottom: '1px solid #e5e7eb', fontWeight: 700, color: '#065f46', display: 'flex', justifyContent: 'space-between' }}>
-              <span>Income</span><span>{fmtCurrency(pnl.income.total)}</span>
+              <span>{tr("Income")}</span><span>{fmtCurrency(pnl.income.total)}</span>
             </div>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
               <tbody>
                 <tr style={{ borderTop: '1px solid #f3f4f6' }}>
                   <Td>
-                    Commission income (closed deals)
+                    {tr("Commission income (closed deals)")}
                     {pnl.income.commissions.length > 0 && (
                       <button onClick={() => setShowDeals(s => !s)} style={{ marginLeft: 8, background: 'none', border: 'none', color: '#0369A1', cursor: 'pointer', fontSize: 12 }}>
-                        {showDeals ? 'hide' : `${pnl.income.commissions.length} deal${pnl.income.commissions.length === 1 ? '' : 's'}`}
+                        {showDeals ? tr("hide") : tn(pnl.income.commissions.length, "{n} deal", "{n} deals")}
                       </button>
                     )}
                   </Td>
@@ -2292,7 +2293,7 @@ function PnLTab() {
                 </tr>
                 {showDeals && pnl.income.commissions.map(d => (
                   <tr key={d.transaction_id} style={{ borderTop: '1px solid #f9fafb', background: '#fafafa' }}>
-                    <Td style={{ paddingLeft: 28, color: '#6b7280', fontSize: 13 }}>{fmtDate(d.closing_date)} — {d.address || 'Property'}</Td>
+                    <Td style={{ paddingLeft: 28, color: '#6b7280', fontSize: 13 }}>{fmtDate(d.closing_date)} — {d.address || tr("Property")}</Td>
                     <Td align="right" style={{ color: '#6b7280', fontSize: 13 }}>{fmtCurrency(d.net_commission)}</Td>
                   </tr>
                 ))}
@@ -2308,11 +2309,11 @@ function PnLTab() {
           {/* Expenses */}
           <div style={{ background: 'white', borderRadius: 12, boxShadow: '0 1px 3px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
             <div style={{ padding: '12px 16px', borderBottom: '1px solid #e5e7eb', fontWeight: 700, color: '#991b1b', display: 'flex', justifyContent: 'space-between' }}>
-              <span>Expenses</span><span>{fmtCurrency(pnl.expenses.total)}</span>
+              <span>{tr("Expenses")}</span><span>{fmtCurrency(pnl.expenses.total)}</span>
             </div>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
               <tbody>
-                {pnl.expenses.by_category.length === 0 && <tr><Td colSpan={2} style={{ textAlign: 'center', padding: 20, color: '#6b7280' }}>No expenses for {year}.</Td></tr>}
+                {pnl.expenses.by_category.length === 0 && <tr><Td colSpan={2} style={{ textAlign: 'center', padding: 20, color: '#6b7280' }}>{tr("No expenses for")} {year}.</Td></tr>}
                 {pnl.expenses.by_category.map((c, i) => (
                   <tr key={i} style={{ borderTop: '1px solid #f3f4f6' }}>
                     <Td>{c.category} <span style={{ color: '#5F6B7A', fontSize: 12 }}>({c.count})</span></Td>
@@ -2355,14 +2356,14 @@ function BalanceSheetTab() {
   const ytdProfit = ytd ? Number(ytd.net_profit || 0) : null;
 
   const addItem = async () => {
-    if (!label || !amount || isNaN(Number(amount))) { alert('Enter a name and amount.'); return; }
+    if (!label || !amount || isNaN(Number(amount))) { alert(tr("Enter a name and amount.")); return; }
     try {
       await authFetch('/finance/balance-sheet-items', { method: 'POST', body: JSON.stringify({ kind: adding, label, amount: Number(amount) }) });
       setAdding(null); setLabel(''); setAmount(''); load();
-    } catch (e) { alert('Could not add: ' + e.message); }
+    } catch (e) { alert(tr("Could not add: ") + e.message); }
   };
   const del = async (id) => {
-    if (!(await askConfirm('Remove this line?', { okLabel: 'Remove', danger: true }))) return;
+    if (!(await askConfirm(tr("Remove this line?"), { okLabel: tr("Remove"), danger: true }))) return;
     try { await authFetch(`/finance/balance-sheet-items/${id}`, { method: 'DELETE' }); load(); } catch (e) { alert(e.message); }
   };
 
@@ -2384,24 +2385,24 @@ function BalanceSheetTab() {
   const section = (title, items, kind, color) => (
     <div style={{ background: 'white', borderRadius: 12, boxShadow: '0 1px 3px rgba(0,0,0,0.05)', overflow: 'hidden', marginBottom: 16 }}>
       <div style={{ padding: '12px 16px', borderBottom: '1px solid #e5e7eb', fontWeight: 700, color: '#1f2937', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <span>{title}</span>
-        <button onClick={() => { setAdding(kind); setLabel(''); setAmount(''); }} style={{ ...secondaryBtn, fontSize: 12 }}>➕ Add</button>
+        <span>{tr(title)}</span>
+        <button onClick={() => { setAdding(kind); setLabel(''); setAmount(''); }} style={{ ...secondaryBtn, fontSize: 12 }}>{tr("➕ Add")}</button>
       </div>
       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
         <tbody>
-          {items.length === 0 && <tr><Td colSpan={3} style={{ textAlign: 'center', padding: 16, color: '#5F6B7A' }}>None yet</Td></tr>}
+          {items.length === 0 && <tr><Td colSpan={3} style={{ textAlign: 'center', padding: 16, color: '#5F6B7A' }}>{tr("None yet")}</Td></tr>}
           {items.map(it => (
             <tr key={it.id} style={{ borderTop: '1px solid #f3f4f6' }}>
-              <Td>{it.label}{it.auto && <span style={{ marginLeft: 6, fontSize: 11, color: '#0369A1' }}>auto from reconciliation</span>}</Td>
+              <Td>{tr(it.label)}{it.auto && <span style={{ marginLeft: 6, fontSize: 11, color: '#0369A1' }}>{tr("auto from reconciliation")}</span>}</Td>
               <Td align="right" style={{ fontWeight: 600, color }}>{fmtCurrency(it.amount)}</Td>
-              <Td align="right" style={{ width: 40 }}>{!it.auto && <button onClick={() => del(it.id)} style={{ background: 'none', border: 'none', color: '#dc2626', cursor: 'pointer', fontSize: 13 }} title="Remove">✕</button>}</Td>
+              <Td align="right" style={{ width: 40 }}>{!it.auto && <button onClick={() => del(it.id)} style={{ background: 'none', border: 'none', color: '#dc2626', cursor: 'pointer', fontSize: 13 }} title={tr("Remove")}>✕</button>}</Td>
             </tr>
           ))}
           {adding === kind && (
             <tr style={{ borderTop: '1px solid #f3f4f6', background: '#f9fafb' }}>
-              <Td><input autoFocus value={label} onChange={e => setLabel(e.target.value)} placeholder={kind === 'asset' ? 'e.g. Office equipment, savings' : 'e.g. Auto loan, line of credit'} style={{ ...inputStyle, padding: '5px 8px' }} /></Td>
+              <Td><input autoFocus value={label} onChange={e => setLabel(e.target.value)} placeholder={kind === 'asset' ? tr("e.g. Office equipment, savings") : tr("e.g. Auto loan, line of credit")} style={{ ...inputStyle, padding: '5px 8px' }} /></Td>
               <Td align="right"><input type="number" step="0.01" value={amount} onChange={e => setAmount(e.target.value)} placeholder="0.00" style={{ width: 110, padding: '5px 8px', textAlign: 'right', border: '1px solid #d1d5db', borderRadius: 6 }} /></Td>
-              <Td align="right"><button onClick={addItem} style={{ background: '#0c4a6e', border: 'none', color: 'white', borderRadius: 6, padding: '5px 10px', cursor: 'pointer', fontSize: 12, fontWeight: 600 }}>Save</button></Td>
+              <Td align="right"><button onClick={addItem} style={{ background: '#0c4a6e', border: 'none', color: 'white', borderRadius: 6, padding: '5px 10px', cursor: 'pointer', fontSize: 12, fontWeight: 600 }}>{tr("Save")}</button></Td>
             </tr>
           )}
         </tbody>
@@ -2412,33 +2413,33 @@ function BalanceSheetTab() {
   return (
     <div style={{ padding: '20px 24px' }}>
       <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 10, padding: 12, marginBottom: 16, fontSize: 13, color: '#1e40af' }}>
-        💡 A snapshot of what your business <strong>owns</strong> (assets) minus what it <strong>owes</strong> (liabilities) = your <strong>equity</strong>. Cash comes automatically from your most recently reconciled statement; add anything else (equipment, savings, loans) by hand.
+        {tr("💡 A snapshot of what your business")} <strong>{tr("owns")}</strong> {tr("(assets) minus what it")} <strong>{tr("owes")}</strong> {tr("(liabilities) = your")} <strong>{tr("equity")}</strong>{tr(". Cash comes automatically from your most recently reconciled statement; add anything else (equipment, savings, loans) by hand.")}
       </div>
       <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
-        <button onClick={exportExcel} disabled={!data} style={primaryBtn('#0c4a6e')}>⬇️ Export to Excel</button>
+        <button onClick={exportExcel} disabled={!data} style={primaryBtn('#0c4a6e')}>{tr("⬇️ Export to Excel")}</button>
       </div>
-      {loading && <div style={{ padding: 40, textAlign: 'center', color: '#6b7280' }}>Loading…</div>}
-      {error && <div style={{ padding: 20, color: '#dc2626', background: '#fef2f2', borderRadius: 8 }}>Error: {error}</div>}
+      {loading && <div style={{ padding: 40, textAlign: 'center', color: '#6b7280' }}>{tr("Loading…")}</div>}
+      {error && <div style={{ padding: 20, color: '#dc2626', background: '#fef2f2', borderRadius: 8 }}>{tr("Error:")} {error}</div>}
       {ytd && (ytdIncome > 0 || ytdProfit) ? (
         <div style={{ background: '#ecfdf5', border: '1px solid #a7f3d0', borderRadius: 10, padding: '12px 16px', marginBottom: 16, fontSize: 13, color: '#065f46' }}>
-          💰 <strong>Year-to-date from your deals ({bsYear}):</strong> {fmtCurrency(ytdIncome)} income · {fmtCurrency(ytdProfit)} profit <span style={{ color: '#1E7B45' }}>(from your P&amp;L)</span>.
+          💰 <strong>{tr("Year-to-date from your deals (")}{bsYear}):</strong> {fmtCurrency(ytdIncome)} {tr("income ·")} {fmtCurrency(ytdProfit)} {tr("profit")} <span style={{ color: '#1E7B45' }}>{tr("(from your P&L)")}</span>.
           <div style={{ marginTop: 4, color: '#047857' }}>
-            This is your earnings over the year — it's tracked on the <strong>P&amp;L</strong>, not here. The balance sheet shows what you <strong>own &amp; owe right now</strong>, so deal income only appears once it's sitting in a bank account you record.
-            {data && data.totalAssets === 0 && <> <button onClick={() => { setAdding('asset'); setLabel('Cash in bank'); setAmount(''); }} style={{ background: '#0c4a6e', border: 'none', color: 'white', borderRadius: 6, padding: '4px 10px', cursor: 'pointer', fontSize: 12, fontWeight: 700, marginLeft: 4 }}>+ Add my bank balance</button></>}
+            {tr("This is your earnings over the year — it's tracked on the")} <strong>P&amp;L</strong>{tr(", not here. The balance sheet shows what you")} <strong>{tr("own & owe right now")}</strong>{tr(", so deal income only appears once it's sitting in a bank account you record.")}
+            {data && data.totalAssets === 0 && <> <button onClick={() => { setAdding('asset'); setLabel('Cash in bank'); setAmount(''); }} style={{ background: '#0c4a6e', border: 'none', color: 'white', borderRadius: 6, padding: '4px 10px', cursor: 'pointer', fontSize: 12, fontWeight: 700, marginLeft: 4 }}>{tr("+ Add my bank balance")}</button></>}
           </div>
         </div>
       ) : null}
       {data && !loading && data.totalAssets === 0 && data.totalLiabilities === 0 && data.assets.length === 0 && data.liabilities.length === 0 && (
         <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 10, padding: '12px 16px', marginBottom: 16, fontSize: 13, color: '#92400e' }}>
-          Everything's at $0 because there's nothing to show yet — the balance sheet tracks what you <strong>own</strong> (cash, savings, equipment) and <strong>owe</strong> (loans, credit cards), <strong>not</strong> your deal income (that's on the P&amp;L). Type in your <strong>bank balance</strong> with <strong>➕ Add</strong> below, or <strong>Import a Statement</strong> to pull cash in automatically.
+          {tr("Everything's at $0 because there's nothing to show yet — the balance sheet tracks what you")} <strong>{tr("own")}</strong> {tr("(cash, savings, equipment) and")} <strong>{tr("owe")}</strong> {tr("(loans, credit cards),")} <strong>{tr("not")}</strong> {tr("your deal income (that's on the P&L). Type in your")} <strong>{tr("bank balance")}</strong> {tr("with")} <strong>{tr("➕ Add")}</strong> {tr("below, or")} <strong>{tr("Import a Statement")}</strong> {tr("to pull cash in automatically.")}
         </div>
       )}
       {data && !loading && (
         <>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px,1fr))', gap: 12, marginBottom: 20 }}>
-            <SummaryCard label="Total Assets" value={fmtCurrency(data.totalAssets)} color="#10b981" />
-            <SummaryCard label="Total Liabilities" value={fmtCurrency(data.totalLiabilities)} color="#dc2626" />
-            <SummaryCard label="Equity (net worth)" value={fmtCurrency(data.equity)} sub="assets − liabilities" color={data.equity >= 0 ? '#059669' : '#dc2626'} />
+            <SummaryCard label={tr("Total Assets")} value={fmtCurrency(data.totalAssets)} color="#10b981" />
+            <SummaryCard label={tr("Total Liabilities")} value={fmtCurrency(data.totalLiabilities)} color="#dc2626" />
+            <SummaryCard label={tr("Equity (net worth)")} value={fmtCurrency(data.equity)} sub="assets − liabilities" color={data.equity >= 0 ? '#059669' : '#dc2626'} />
           </div>
           {section('🟢 Assets — what you own', data.assets, 'asset', '#059669')}
           {section('🔴 Liabilities — what you owe', data.liabilities, 'liability', '#dc2626')}
@@ -2473,7 +2474,7 @@ function Contractors1099Tab() {
   const likelyUntagged = (data?.vendors || []).filter(v => v.likely_1099 && !v.is_1099);
   const markLikely = async () => {
     if (!likelyUntagged.length) return;
-    if (!(await askConfirm(`Mark ${likelyUntagged.length} vendor${likelyUntagged.length === 1 ? '' : 's'} paid under contractor categories (cleaning, TC, referral fees, etc.) as 1099? You can uncheck any afterward.`, { okLabel: 'Mark as 1099' }))) return;
+    if (!(await askConfirm(tn(likelyUntagged.length, "Mark {n} vendor paid under contractor categories (cleaning, TC, referral fees, etc.) as 1099? You can uncheck any afterward.", "Mark {n} vendors paid under contractor categories (cleaning, TC, referral fees, etc.) as 1099? You can uncheck any afterward."), { okLabel: tr("Mark as 1099") }))) return;
     try {
       for (const v of likelyUntagged) await authFetch('/finance/1099-vendor', { method: 'POST', body: JSON.stringify({ vendor_key: v.vendor_key, display_name: v.name, is_1099: true }) });
       load();
@@ -2500,41 +2501,41 @@ function Contractors1099Tab() {
   return (
     <div style={{ padding: '20px 24px' }}>
       <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 10, padding: 12, marginBottom: 16, fontSize: 13, color: '#1e40af' }}>
-        💡 Mark the people/businesses you paid as <strong>1099 contractors</strong> and store their W-9 info. The app totals what you paid each one — anyone at <strong>$600+</strong> generally needs a 1099. Export the report for your accountant or filing service to file. <strong>This tracks &amp; prepares; it does not e-file with the IRS.</strong>
+        {tr("💡 Mark the people/businesses you paid as")} <strong>{tr("1099 contractors")}</strong> {tr("and store their W-9 info. The app totals what you paid each one — anyone at")} <strong>$600+</strong> {tr("generally needs a 1099. Export the report for your accountant or filing service to file.")} <strong>{tr("This tracks & prepares; it does not e-file with the IRS.")}</strong>
       </div>
       <div style={{ display: 'flex', gap: 8, alignItems: 'end', marginBottom: 16, flexWrap: 'wrap' }}>
-        <Field label="Tax Year">
+        <Field label={tr("Tax Year")}>
           <select value={year} onChange={e => setYear(Number(e.target.value))} style={{ ...inputStyle, maxWidth: 140 }}>
-            {[0, 1, 2, 3].map(i => { const y = new Date().getFullYear() - i; return <option key={y} value={y}>{y}</option>; })}
+            {[0, 1, 2, 3].map(i => { const y = new Date().getFullYear() - i; return <option key={y} value={y}>{tr(y)}</option>; })}
           </select>
         </Field>
         <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: '#374151' }}>
-          <input type="checkbox" checked={showAll} onChange={e => setShowAll(e.target.checked)} /> Show every vendor (not just contractors)
+          <input type="checkbox" checked={showAll} onChange={e => setShowAll(e.target.checked)} /> {tr("Show every vendor (not just contractors)")}
         </label>
-        {likelyUntagged.length > 0 && <button onClick={markLikely} style={primaryBtn('#0c4a6e')}>✨ Auto-mark likely contractors ({likelyUntagged.length})</button>}
-        <button onClick={exportExcel} disabled={!flagged.length} style={primaryBtn('#0c4a6e')}>⬇️ Export 1099 report</button>
+        {likelyUntagged.length > 0 && <button onClick={markLikely} style={primaryBtn('#0c4a6e')}>{tr("✨ Auto-mark likely contractors (")}{likelyUntagged.length})</button>}
+        <button onClick={exportExcel} disabled={!flagged.length} style={primaryBtn('#0c4a6e')}>{tr("⬇️ Export 1099 report")}</button>
       </div>
       {flagged.length > 0 && missingW9.length > 0 && (
         <div style={{ background: '#E0F2FE', border: '1px solid #7DD3FC', borderRadius: 8, padding: '10px 14px', marginBottom: 14, fontSize: 13, color: '#0c4a6e' }}>
-          ⚠️ {missingW9.length} contractor{missingW9.length === 1 ? '' : 's'} marked for 1099 still {missingW9.length === 1 ? 'needs' : 'need'} a W-9 (TIN). Click <strong>W-9</strong> to add it.
+          ⚠️ {missingW9.length} {tr("contractor")}{missingW9.length === 1 ? '' : 's'} {tr("marked for 1099 still")} {missingW9.length === 1 ? tr("needs") : tr("need")} {tr("a W-9 (TIN). Click")} <strong>W-9</strong> {tr("to add it.")}
         </div>
       )}
-      {loading && <div style={{ padding: 40, textAlign: 'center', color: '#6b7280' }}>Loading…</div>}
-      {error && <div style={{ padding: 20, color: '#dc2626', background: '#fef2f2', borderRadius: 8 }}>Error: {error}</div>}
+      {loading && <div style={{ padding: 40, textAlign: 'center', color: '#6b7280' }}>{tr("Loading…")}</div>}
+      {error && <div style={{ padding: 20, color: '#dc2626', background: '#fef2f2', borderRadius: 8 }}>{tr("Error:")} {error}</div>}
       {data && !loading && (
         <div style={{ background: 'white', borderRadius: 12, boxShadow: '0 1px 3px rgba(0,0,0,0.05)', overflow: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
             <thead style={{ background: '#f9fafb', borderBottom: '1px solid #e5e7eb' }}>
-              <tr><Th align="center">1099?</Th><Th>Vendor</Th><Th align="right">Paid {year}</Th><Th align="center">$600+</Th><Th align="center">W-9</Th></tr>
+              <tr><Th align="center">1099?</Th><Th>{tr("Vendor")}</Th><Th align="right">{tr("Paid")} {year}</Th><Th align="center">$600+</Th><Th align="center">W-9</Th></tr>
             </thead>
             <tbody>
-              {vendors.length === 0 && <tr><Td colSpan={5} style={{ textAlign: 'center', padding: 24, color: '#6b7280' }}>{showAll ? `No vendors for ${year}.` : `No contractor-category expenses for ${year}. Categorize expenses as Contract Labor (1099), Referral Fees, Office Cleaning, etc. — or check “Show every vendor.”`}</Td></tr>}
+              {vendors.length === 0 && <tr><Td colSpan={5} style={{ textAlign: 'center', padding: 24, color: '#6b7280' }}>{showAll ? tr("No vendors for {year}.", { year }) : tr("No contractor-category expenses for {year}. Categorize expenses as Contract Labor (1099), Referral Fees, Office Cleaning, etc. — or check “Show every vendor.”", { year })}</Td></tr>}
               {vendors.map(v => (
                 <tr key={v.vendor_key} style={{ borderTop: '1px solid #f3f4f6' }}>
                   <Td align="center"><input type="checkbox" checked={v.is_1099} onChange={e => toggle(v, e.target.checked)} style={{ width: 16, height: 16, cursor: 'pointer' }} /></Td>
                   <Td>
                     <div>{v.name} <span style={{ color: '#5F6B7A', fontSize: 12 }}>({v.txns})</span>
-                      {v.likely_1099 && !v.is_1099 && <span style={{ marginLeft: 6, background: '#dbeafe', color: '#1e40af', borderRadius: 6, padding: '1px 7px', fontSize: 11, fontWeight: 600 }}>likely 1099</span>}
+                      {v.likely_1099 && !v.is_1099 && <span style={{ marginLeft: 6, background: '#dbeafe', color: '#1e40af', borderRadius: 6, padding: '1px 7px', fontSize: 11, fontWeight: 600 }}>{tr("likely 1099")}</span>}
                     </div>
                     {(v.categories && v.categories.length > 0) && <div style={{ fontSize: 11, color: '#5F6B7A', marginTop: 2 }}>{v.categories.join(', ')}</div>}
                   </Td>
@@ -2579,24 +2580,24 @@ function W9Modal({ vendor, onClose, onSaved }) {
   };
 
   return (
-    <ModalShell onClose={onClose} title={`W-9 info — ${vendor.name}`} width={520}>
-      <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 14 }}>From the contractor's W-9. Marking this saves the vendor as a 1099 contractor.</div>
+    <ModalShell onClose={onClose} title={tr("W-9 info — {name}", { name: vendor.name })} width={520}>
+      <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 14 }}>{tr("From the contractor's W-9. Marking this saves the vendor as a 1099 contractor.")}</div>
       {error && <div style={{ padding: 10, color: '#dc2626', background: '#fef2f2', borderRadius: 8, marginBottom: 12 }}>{error}</div>}
-      <Field label="Legal name (person or business)"><input value={legalName} onChange={e => setLegalName(e.target.value)} style={inputStyle} /></Field>
-      <Field label="Business name (if different)"><input value={businessName} onChange={e => setBusinessName(e.target.value)} style={inputStyle} /></Field>
+      <Field label={tr("Legal name (person or business)")}><input value={legalName} onChange={e => setLegalName(e.target.value)} style={inputStyle} /></Field>
+      <Field label={tr("Business name (if different)")}><input value={businessName} onChange={e => setBusinessName(e.target.value)} style={inputStyle} /></Field>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-        <Field label="TIN / EIN / SSN"><input value={tin} onChange={e => setTin(e.target.value)} placeholder="XX-XXXXXXX" style={inputStyle} /></Field>
-        <Field label="Entity type">
+        <Field label={tr("TIN / EIN / SSN")}><input value={tin} onChange={e => setTin(e.target.value)} placeholder={tr("XX-XXXXXXX")} style={inputStyle} /></Field>
+        <Field label={tr("Entity type")}>
           <select value={entityType} onChange={e => setEntityType(e.target.value)} style={inputStyle}>
-            <option value="">— pick —</option>
-            {['Individual / Sole proprietor', 'Single-member LLC', 'LLC', 'Partnership', 'C Corporation', 'S Corporation', 'Other'].map(o => <option key={o} value={o}>{o}</option>)}
+            <option value="">{tr("— pick —")}</option>
+            {['Individual / Sole proprietor', 'Single-member LLC', 'LLC', 'Partnership', 'C Corporation', 'S Corporation', 'Other'].map(o => <option key={o} value={o}>{tr(o)}</option>)}
           </select>
         </Field>
       </div>
-      <Field label="Address"><textarea value={address} onChange={e => setAddress(e.target.value)} rows={2} style={{ ...inputStyle, resize: 'vertical' }} /></Field>
+      <Field label={tr("Address")}><textarea value={address} onChange={e => setAddress(e.target.value)} rows={2} style={{ ...inputStyle, resize: 'vertical' }} /></Field>
       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 8 }}>
-        <button onClick={onClose} style={secondaryBtn}>Cancel</button>
-        <button onClick={save} disabled={saving} style={{ ...primaryBtn('#0c4a6e'), opacity: saving ? 0.6 : 1 }}>{saving ? 'Saving…' : 'Save W-9'}</button>
+        <button onClick={onClose} style={secondaryBtn}>{tr("Cancel")}</button>
+        <button onClick={save} disabled={saving} style={{ ...primaryBtn('#0c4a6e'), opacity: saving ? 0.6 : 1 }}>{saving ? tr("Saving…") : tr("Save W-9")}</button>
       </div>
     </ModalShell>
   );
@@ -2622,7 +2623,7 @@ function ReconcileCells({ imp, onSaved }) {
   const reconciled = diff != null && Math.abs(diff) < 0.01;
   const save = async (b, e) => {
     try { await authFetch(`/bank-import/${imp.id}/balances`, { method: 'POST', body: JSON.stringify({ beginning: b === '' ? null : b, ending: e === '' ? null : e }) }); onSaved && onSaved(); }
-    catch (err) { alert('Could not save balances: ' + err.message); }
+    catch (err) { alert(tr("Could not save balances: ") + err.message); }
   };
   const cellInput = (val, setVal, onCommit) => (
     <input type="number" step="0.01" value={val} onChange={e => setVal(e.target.value)} onBlur={() => onCommit()} placeholder="—"
@@ -2636,8 +2637,8 @@ function ReconcileCells({ imp, onSaved }) {
         {!hasBegin || !hasEnd
           ? <span style={{ color: '#5F6B7A', fontSize: 12 }}>—</span>
           : reconciled
-            ? <span style={{ background: '#ecfdf5', color: '#065f46', borderRadius: 6, padding: '2px 8px', fontSize: 12, fontWeight: 600 }}>✓ Reconciled</span>
-            : <span title={`These transactions add up to an ending balance of ${fmtCurrency(expected)}, but you entered ${fmtCurrency(Number(end))}. A line may be missing or miscategorized.`} style={{ background: '#fef2f2', color: '#dc2626', borderRadius: 6, padding: '2px 8px', fontSize: 12, fontWeight: 600, cursor: 'help' }}>Off by {fmtCurrency(Math.abs(diff))}</span>}
+            ? <span style={{ background: '#ecfdf5', color: '#065f46', borderRadius: 6, padding: '2px 8px', fontSize: 12, fontWeight: 600 }}>{tr("✓ Reconciled")}</span>
+            : <span title={tr("These transactions add up to an ending balance of {amount}, but you entered {amount2}. A line may be missing or miscategorized.", { amount: fmtCurrency(expected), amount2: fmtCurrency(Number(end)) })} style={{ background: '#fef2f2', color: '#dc2626', borderRadius: 6, padding: '2px 8px', fontSize: 12, fontWeight: 600, cursor: 'help' }}>{tr("Off by")} {fmtCurrency(Math.abs(diff))}</span>}
       </Td>
     </>
   );
@@ -2666,15 +2667,15 @@ function PeriodEditCell({ imp, onSaved }) {
   const save = async (val) => {
     setSaving(true);
     try { await authFetch(`/bank-import/${imp.id}`, { method: 'PATCH', body: JSON.stringify({ periodLabel: val }) }); onSaved && onSaved(); }
-    catch (e) { alert('Could not update: ' + e.message); }
+    catch (e) { alert(tr("Could not update: ") + e.message); }
     finally { setSaving(false); }
   };
   return (
     <select value={current} onChange={e => save(e.target.value)} disabled={saving}
-      title="Statement month — change it here if the wrong one was picked"
+      title={tr("Statement month — change it here if the wrong one was picked")}
       style={{ padding: '4px 6px', fontSize: 12, border: '1px solid #d1d5db', borderRadius: 6, background: 'white', maxWidth: 130, color: current ? '#1f2937' : '#9ca3af' }}>
-      <option value="">{imp.file_name ? `— (${String(imp.file_name).slice(0, 18)})` : '— pick month —'}</option>
-      {opts.map(m => <option key={m} value={m}>{m}</option>)}
+      <option value="">{tr(imp.file_name ? `— (${String(imp.file_name).slice(0, 18)})` : tr("— pick month —"))}</option>
+      {opts.map(m => <option key={m} value={m}>{tr(m)}</option>)}
     </select>
   );
 }
@@ -2729,14 +2730,14 @@ function ImportTab({ categories, onCommitted }) {
 
   const deleteImport = async (imp) => {
     const label = `${imp.account_type === 'credit_card' ? 'Credit card' : 'Checking'} — ${(imp.period_label || '').trim() || imp.file_name || 'statement'}`;
-    if (!(await askConfirm(`Remove "${label}"?\n\nThis takes its ${imp.committed_count || 0} saved transaction(s) back out of your Expenses, Income, and P&L. You can re-import the statement later if needed.`, { okLabel: 'Remove', danger: true }))) return;
+    if (!(await askConfirm(tr("Remove \"{label}\"?\n\nThis takes its {v2} saved transaction(s) back out of your Expenses, Income, and P&L. You can re-import the statement later if needed.", { label, v2: imp.committed_count || 0 }), { okLabel: tr("Remove"), danger: true }))) return;
     setDeletingId(imp.id); setError(null);
     try {
       const r = await authFetch(`/bank-import/${imp.id}`, { method: 'DELETE' });
       await loadHistory();
       onCommitted && onCommitted();
       setDone(null);
-      setStatus(`Removed ${r.removedExpenses || 0} expense and ${r.removedIncome || 0} income item(s).`);
+      setStatus(tr("Removed {v1} expense and {v2} income item(s).", { v1: r.removedExpenses || 0, v2: r.removedIncome || 0 }));
       setTimeout(() => setStatus(''), 4000);
     } catch (e) { setError(e.message); } finally { setDeletingId(null); }
   };
@@ -2788,7 +2789,7 @@ function ImportTab({ categories, onCommitted }) {
       try { const p = JSON.parse(e.message); if (p && p.error === 'duplicate_import') dup = p; } catch { /* not json */ }
       if (dup) {
         setCommitting(false);
-        if (await askConfirm(`${dup.message}\n\nImport it anyway?`, { okLabel: 'Import anyway' })) return commit(true);
+        if (await askConfirm(tr("{message}\n\nImport it anyway?", { message: dup.message }), { okLabel: tr("Import anyway") })) return commit(true);
         return;
       }
       setError(e.message);
@@ -2802,27 +2803,27 @@ function ImportTab({ categories, onCommitted }) {
     <div style={{ padding: '20px 24px' }}>
       {!lines.length && (
         <div style={{ background: 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)', border: '1px dashed #3b82f6', borderRadius: 12, padding: 20, marginBottom: 16 }}>
-          <div style={{ fontWeight: 700, color: '#1e40af', marginBottom: 4 }}>🏦 Import a bank or credit-card statement</div>
+          <div style={{ fontWeight: 700, color: '#1e40af', marginBottom: 4 }}>{tr("🏦 Import a bank or credit-card statement")}</div>
           <div style={{ fontSize: 13, color: '#1e3a8a', marginBottom: 14 }}>
-            Upload a monthly statement (CSV export works best; PDF and screenshots also work). AI sorts each transaction into income vs expense and suggests a category. You review everything before it's saved.
+            {tr("Upload a monthly statement (CSV export works best; PDF and screenshots also work). AI sorts each transaction into income vs expense and suggests a category. You review everything before it's saved.")}
           </div>
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'end', marginBottom: 12 }}>
-            <Field label="Account type">
+            <Field label={tr("Account type")}>
               <select value={accountType} onChange={e => setAccountType(e.target.value)} style={inputStyle}>
-                <option value="checking">Checking / Bank</option>
-                <option value="credit_card">Credit Card</option>
+                <option value="checking">{tr("Checking / Bank")}</option>
+                <option value="credit_card">{tr("Credit Card")}</option>
               </select>
             </Field>
-            <Field label="Statement period" hint="optional — we'll read it off the statement if left blank">
+            <Field label={tr("Statement period")} hint={tr("optional — we'll read it off the statement if left blank")}>
               <select value={periodLabel} onChange={e => setPeriodLabel(e.target.value)} style={inputStyle}>
-                <option value="">— let AI read it —</option>
-                {statementMonthOptions().map(m => <option key={m} value={m}>{m}</option>)}
+                <option value="">{tr("— let AI read it —")}</option>
+                {statementMonthOptions().map(m => <option key={m} value={m}>{tr(m)}</option>)}
               </select>
             </Field>
           </div>
           <input ref={fileRef} type="file" accept=".csv,.txt,.tsv,.ofx,.qfx,application/pdf,image/*" style={{ display: 'none' }} onChange={e => handleUpload(e.target.files?.[0])} />
           <button onClick={() => fileRef.current?.click()} disabled={busy} style={{ ...primaryBtn('#0c4a6e'), opacity: busy ? 0.6 : 1 }}>
-            {busy ? '⏳ Working...' : '📎 Upload Statement'}
+            {busy ? tr("⏳ Working...") : tr("📎 Upload Statement")}
           </button>
           {status && <div style={{ marginTop: 10, fontSize: 13, color: '#1e40af' }}>🔄 {status}</div>}
         </div>
@@ -2833,27 +2834,27 @@ function ImportTab({ categories, onCommitted }) {
         const acctLabel = accountType === 'credit_card' ? 'Credit card' : 'Checking';
         return (
         <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 12, padding: '14px 18px', marginBottom: 16 }}>
-          <div style={{ fontWeight: 700, color: '#1f2937', marginBottom: 4 }}>📋 {acctLabel} statements you've imported</div>
-          <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 12 }}>Showing your <strong>{acctLabel.toLowerCase()}</strong> statements (switch “Account type” above to see the other kind). Picked the wrong month? Fix it right in the <strong>Statement period</strong> column. Remove any that's wrong or a duplicate — its transactions come back out automatically. <strong>Reconciling is automatic:</strong> AI reads each statement's beginning and ending balance, and ✓ means every transaction is accounted for — you can adjust the Begin/End numbers if the statement was hard to read.</div>
+          <div style={{ fontWeight: 700, color: '#1f2937', marginBottom: 4 }}>📋 {acctLabel} {tr("statements you've imported")}</div>
+          <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 12 }}>{tr("Showing your")} <strong>{acctLabel.toLowerCase()}</strong> {tr("statements (switch “Account type” above to see the other kind). Picked the wrong month? Fix it right in the")} <strong>{tr("Statement period")}</strong> {tr("column. Remove any that's wrong or a duplicate — its transactions come back out automatically.")} <strong>{tr("Reconciling is automatic:")}</strong> {tr("AI reads each statement's beginning and ending balance, and ✓ means every transaction is accounted for — you can adjust the Begin/End numbers if the statement was hard to read.")}</div>
           {shown.length === 0 ? (
-            <div style={{ fontSize: 13, color: '#6b7280', padding: '8px 2px' }}>No {acctLabel.toLowerCase()} statements imported yet.</div>
+            <div style={{ fontSize: 13, color: '#6b7280', padding: '8px 2px' }}>{tr("No")} {acctLabel.toLowerCase()} {tr("statements imported yet.")}</div>
           ) : (
           <div style={{ overflow: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
               <thead style={{ background: '#f9fafb', borderBottom: '1px solid #e5e7eb' }}>
-                <tr><Th>Account</Th><Th>Statement period</Th><Th align="center">Status</Th><Th align="right">Saved</Th><Th align="right">Begin $</Th><Th align="right">End $</Th><Th align="center">Reconciled</Th><Th></Th></tr>
+                <tr><Th>{tr("Account")}</Th><Th>{tr("Statement period")}</Th><Th align="center">{tr("Status")}</Th><Th align="right">{tr("Saved")}</Th><Th align="right">{tr("Begin $")}</Th><Th align="right">{tr("End $")}</Th><Th align="center">{tr("Reconciled")}</Th><Th></Th></tr>
               </thead>
               <tbody>
                 {shown.map(imp => {
                   const saved = imp.status === 'committed' && (imp.committed_count > 0);
                   return (
                     <tr key={imp.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
-                      <Td>{imp.account_type === 'credit_card' ? '💳 Credit card' : '🏦 Checking'}</Td>
+                      <Td>{imp.account_type === 'credit_card' ? tr("💳 Credit card") : tr("🏦 Checking")}</Td>
                       <Td><PeriodEditCell imp={imp} onSaved={loadHistory} /></Td>
                       <Td align="center">
                         {saved
-                          ? <span style={{ background: '#ecfdf5', color: '#065f46', borderRadius: 6, padding: '2px 8px', fontSize: 12, fontWeight: 600 }}>Saved</span>
-                          : <span style={{ background: '#fef9c3', color: '#854d0e', borderRadius: 6, padding: '2px 8px', fontSize: 12, fontWeight: 600 }}>Not saved</span>}
+                          ? <span style={{ background: '#ecfdf5', color: '#065f46', borderRadius: 6, padding: '2px 8px', fontSize: 12, fontWeight: 600 }}>{tr("Saved")}</span>
+                          : <span style={{ background: '#fef9c3', color: '#854d0e', borderRadius: 6, padding: '2px 8px', fontSize: 12, fontWeight: 600 }}>{tr("Not saved")}</span>}
                       </Td>
                       <Td align="right">{saved ? imp.committed_count : '—'}</Td>
                       <ReconcileCells imp={imp} onSaved={loadHistory} />
@@ -2861,11 +2862,11 @@ function ImportTab({ categories, onCommitted }) {
                         <div style={{ display: 'inline-flex', gap: 6 }}>
                           {!saved && (
                             <button onClick={() => resumeImport(imp)} style={{ background: '#0c4a6e', border: 'none', color: 'white', borderRadius: 6, padding: '4px 10px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
-                              Review &amp; save
+                              {tr("Review & save")}
                             </button>
                           )}
                           <button onClick={() => deleteImport(imp)} disabled={deletingId === imp.id} style={{ background: 'none', border: '1px solid #fecaca', color: '#dc2626', borderRadius: 6, padding: '4px 10px', fontSize: 12, fontWeight: 600, cursor: 'pointer', opacity: deletingId === imp.id ? 0.5 : 1 }}>
-                            {deletingId === imp.id ? 'Removing…' : 'Remove'}
+                            {deletingId === imp.id ? tr("Removing…") : tr("Remove")}
                           </button>
                         </div>
                       </Td>
@@ -2882,7 +2883,7 @@ function ImportTab({ categories, onCommitted }) {
 
       {done != null && (
         <div style={{ background: '#ecfdf5', border: '1px solid #6ee7b7', borderRadius: 10, padding: 16, color: '#065f46', marginBottom: 16 }}>
-          ✅ Imported <strong>{done}</strong> transaction{done === 1 ? '' : 's'}. They now appear in your Expenses, Income, and P&L. <button onClick={() => setDone(null)} style={{ ...secondaryBtn, marginLeft: 8 }}>Import another</button>
+          {tr("✅ Imported")} <strong>{done}</strong> {tr("transaction")}{done === 1 ? '' : 's'}{tr(". They now appear in your Expenses, Income, and P&L.")} <button onClick={() => setDone(null)} style={{ ...secondaryBtn, marginLeft: 8 }}>{tr("Import another")}</button>
         </div>
       )}
 
@@ -2892,38 +2893,38 @@ function ImportTab({ categories, onCommitted }) {
         <>
           {showImportGuide && (
             <div style={{ background: '#eff6ff', border: '2px solid #3b82f6', borderRadius: 12, padding: '16px 18px', marginBottom: 14 }}>
-              <div style={{ fontWeight: 800, fontSize: 15, color: '#1e3a8a', marginBottom: 8 }}>📋 Before you hit Import — a quick 3-step review</div>
+              <div style={{ fontWeight: 800, fontSize: 15, color: '#1e3a8a', marginBottom: 8 }}>{tr("📋 Before you hit Import — a quick 3-step review")}</div>
               <div style={{ fontSize: 13.5, color: '#1e3a8a', lineHeight: 1.65 }}>
-                <div style={{ marginBottom: 6 }}><strong>1. Uncheck anything that isn't real income or a real business expense.</strong>{' '}
+                <div style={{ marginBottom: 6 }}><strong>{tr("1. Uncheck anything that isn't real income or a real business expense.")}</strong>{' '}
                   {accountType === 'credit_card'
-                    ? 'On a credit-card statement, a PAYMENT to the card is NOT income — it\u2019s just you paying the bill. The real expenses are the charges. We already unchecked the payments we spotted (look for the ⚠️ notes) — give them a quick glance to confirm.'
-                    : 'Transfers between your own accounts and credit-card bill payments are NOT income or expenses. Commission deposits from your closed deals are already counted by the app — importing them again would double-count. We unchecked what we spotted (look for the ⚠️ notes) — give them a quick glance.'}
+                    ? tr("On a credit-card statement, a PAYMENT to the card is NOT income — it’s just you paying the bill. The real expenses are the charges. We already unchecked the payments we spotted (look for the ⚠️ notes) — give them a quick glance to confirm.")
+                    : tr("Transfers between your own accounts and credit-card bill payments are NOT income or expenses. Commission deposits from your closed deals are already counted by the app — importing them again would double-count. We unchecked what we spotted (look for the ⚠️ notes) — give them a quick glance.")}
                 </div>
-                <div style={{ marginBottom: 6 }}><strong>2. Check the Type on each line</strong> — money in should say <span style={{ color: '#1E7B45', fontWeight: 700 }}>Income</span>, money out should say <span style={{ color: '#dc2626', fontWeight: 700 }}>Expense</span>.</div>
-                <div style={{ marginBottom: 6 }}><strong>3. Check each Category.</strong> The AI took its best guess — fix any that look wrong, because the category is what shows on your P&amp;L and at tax time.</div>
-                <div style={{ color: '#3730a3' }}>Then tap <strong>✅ Import selected</strong>. Nothing is saved until you do — and you can always remove an import later.</div>
+                <div style={{ marginBottom: 6 }}><strong>{tr("2. Check the Type on each line")}</strong> {tr("— money in should say")} <span style={{ color: '#1E7B45', fontWeight: 700 }}>{tr("Income")}</span>{tr(", money out should say")} <span style={{ color: '#dc2626', fontWeight: 700 }}>{tr("Expense")}</span>.</div>
+                <div style={{ marginBottom: 6 }}><strong>{tr("3. Check each Category.")}</strong> {tr("The AI took its best guess — fix any that look wrong, because the category is what shows on your P&L and at tax time.")}</div>
+                <div style={{ color: '#3730a3' }}>{tr("Then tap")} <strong>{tr("✅ Import selected")}</strong>{tr(". Nothing is saved until you do — and you can always remove an import later.")}</div>
               </div>
               <button onClick={() => setShowImportGuide(false)}
                 style={{ marginTop: 10, padding: '8px 16px', borderRadius: 8, border: 'none', background: '#0c4a6e', color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
-                Got it — let's review
+                {tr("Got it — let's review")}
               </button>
             </div>
           )}
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center', marginBottom: 12 }}>
-            <SummaryCard label="Will add — Expenses" value={fmtCurrency(includedExp)} sub={`${lines.filter(l => l.include && l.direction === 'expense').length} items`} color="#dc2626" />
-            <SummaryCard label="Will add — Income" value={fmtCurrency(includedInc)} sub={`${lines.filter(l => l.include && l.direction === 'income').length} items`} color="#10b981" />
+            <SummaryCard label={tr("Will add — Expenses")} value={fmtCurrency(includedExp)} sub={tr("{n} items", { n: lines.filter(l => l.include && l.direction === 'expense').length })} color="#dc2626" />
+            <SummaryCard label={tr("Will add — Income")} value={fmtCurrency(includedInc)} sub={tr("{n} items", { n: lines.filter(l => l.include && l.direction === 'income').length })} color="#10b981" />
             <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
-              <button onClick={() => { setLines([]); setImportId(null); setError(null); }} style={secondaryBtn}>← Previous step</button>
-              <button onClick={() => setLines(p => p.map(l => ({ ...l, include: true })))} style={secondaryBtn}>Select all</button>
-              <button onClick={() => setLines(p => p.map(l => ({ ...l, include: false })))} style={secondaryBtn}>Select none</button>
-              <button onClick={() => commit()} disabled={committing} style={{ ...primaryBtn('#0c4a6e'), opacity: committing ? 0.6 : 1 }}>{committing ? 'Importing...' : `✅ Import ${lines.filter(l => l.include).length} selected`}</button>
+              <button onClick={() => { setLines([]); setImportId(null); setError(null); }} style={secondaryBtn}>{tr("← Previous step")}</button>
+              <button onClick={() => setLines(p => p.map(l => ({ ...l, include: true })))} style={secondaryBtn}>{tr("Select all")}</button>
+              <button onClick={() => setLines(p => p.map(l => ({ ...l, include: false })))} style={secondaryBtn}>{tr("Select none")}</button>
+              <button onClick={() => commit()} disabled={committing} style={{ ...primaryBtn('#0c4a6e'), opacity: committing ? 0.6 : 1 }}>{committing ? tr("Importing...") : tr("✅ Import {n} selected", { n: lines.filter(l => l.include).length })}</button>
             </div>
           </div>
 
           <div style={{ background: 'white', borderRadius: 12, boxShadow: '0 1px 3px rgba(0,0,0,0.05)', overflow: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
               <thead style={{ background: '#f9fafb', borderBottom: '1px solid #e5e7eb' }}>
-                <tr><Th align="center">Add?</Th><Th>Date</Th><Th>Description</Th><Th align="center">Type</Th><Th>Category</Th><Th align="right">Amount</Th></tr>
+                <tr><Th align="center">{tr("Add?")}</Th><Th>{tr("Date")}</Th><Th>{tr("Description")}</Th><Th align="center">{tr("Type")}</Th><Th>{tr("Category")}</Th><Th align="right">{tr("Amount")}</Th></tr>
               </thead>
               <tbody>
                 {lines.map(l => (
@@ -2932,21 +2933,21 @@ function ImportTab({ categories, onCommitted }) {
                     <Td><input type="date" value={l.txn_date} onChange={e => updateLine(l.id, { txn_date: e.target.value })} style={{ ...inputStyle, padding: '4px 6px', fontSize: 12 }} /></Td>
                     <Td>
                       <input value={l.description} onChange={e => updateLine(l.id, { description: e.target.value })} style={{ ...inputStyle, padding: '4px 6px', fontSize: 12, minWidth: 160 }} />
-                      {l.duplicate_of_deal && <div style={{ fontSize: 11, color: '#b45309', marginTop: 3 }}>⚠️ Looks like your commission for {l.duplicate_of_deal.address} — already counted from that closed deal. Left unchecked to avoid double-counting.</div>}
-                      {l.is_transfer && !l.duplicate_of_deal && <div style={{ fontSize: 11, color: '#b45309', marginTop: 3 }}>⚠️ Looks like a transfer between your own accounts (not real income or an expense). Left unchecked.</div>}
-                      {l.is_card_payment && <div style={{ fontSize: 11, color: '#b45309', marginTop: 3 }}>⚠️ Looks like a credit-card payment, not an expense — the real expenses are the charges on the card. Left unchecked.</div>}
+                      {l.duplicate_of_deal && <div style={{ fontSize: 11, color: '#b45309', marginTop: 3 }}>{tr("⚠️ Looks like your commission for")} {l.duplicate_of_deal.address} {tr("— already counted from that closed deal. Left unchecked to avoid double-counting.")}</div>}
+                      {l.is_transfer && !l.duplicate_of_deal && <div style={{ fontSize: 11, color: '#b45309', marginTop: 3 }}>{tr("⚠️ Looks like a transfer between your own accounts (not real income or an expense). Left unchecked.")}</div>}
+                      {l.is_card_payment && <div style={{ fontSize: 11, color: '#b45309', marginTop: 3 }}>{tr("⚠️ Looks like a credit-card payment, not an expense — the real expenses are the charges on the card. Left unchecked.")}</div>}
                     </Td>
                     <Td align="center">
                       <select value={l.direction} onChange={e => updateLine(l.id, { direction: e.target.value })} style={{ ...inputStyle, padding: '4px 6px', fontSize: 12, color: l.direction === 'income' ? '#059669' : '#dc2626', fontWeight: 600 }}>
-                        <option value="expense">Expense</option>
-                        <option value="income">Income</option>
+                        <option value="expense">{tr("Expense")}</option>
+                        <option value="income">{tr("Income")}</option>
                       </select>
                     </Td>
                     <Td>
                       <select value={l.category} onChange={async e => { const v = e.target.value; if (v === '__add_new_category__') { const n = await promptNewCategory(); if (n) updateLine(l.id, { category: n }); } else updateLine(l.id, { category: v }); }} style={{ ...inputStyle, padding: '4px 6px', fontSize: 12, minWidth: 130 }}>
-                        {!allCatOptions.includes(l.category) && <option value={l.category}>{l.category}</option>}
-                        {allCatOptions.map(c => <option key={c} value={c}>{c}</option>)}
-                        <option value="__add_new_category__">➕ New category…</option>
+                        {!allCatOptions.includes(l.category) && <option value={l.category}>{tr(l.category)}</option>}
+                        {allCatOptions.map(c => <option key={c} value={c}>{tr(c)}</option>)}
+                        <option value="__add_new_category__">{tr("➕ New category…")}</option>
                       </select>
                     </Td>
                     <Td align="right"><input type="number" step="0.01" value={l.amount} onChange={e => updateLine(l.id, { amount: e.target.value })} style={{ ...inputStyle, padding: '4px 6px', fontSize: 12, maxWidth: 100, textAlign: 'right', fontWeight: 600 }} /></Td>
@@ -2997,7 +2998,7 @@ function ModalShell({ children, onClose, title, width = 560 }) {
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           position: 'sticky', top: 0, background: 'white', zIndex: 1
         }}>
-          <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: '#1f2937' }}>{title}</h2>
+          <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: '#1f2937' }}>{tr(title)}</h2>
           <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: 24, cursor: 'pointer', color: '#6b7280', lineHeight: 1 }}>×</button>
         </div>
         <div style={{ padding: 20 }}>{children}</div>
@@ -3010,8 +3011,8 @@ function Field({ label, hint, children }) {
   return (
     <div style={{ marginBottom: 14 }}>
       <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 4 }}>
-        {label}
-        {hint && <span style={{ fontWeight: 400, color: '#5F6B7A', marginLeft: 6, fontSize: 12 }}>— {hint}</span>}
+        {tr(label)}
+        {hint && <span style={{ fontWeight: 400, color: '#5F6B7A', marginLeft: 6, fontSize: 12 }}>— {tr(hint)}</span>}
       </label>
       {children}
     </div>
@@ -3024,9 +3025,9 @@ function SummaryCard({ label, value, sub, color, smallValue }) {
       background: 'white', borderRadius: 12, padding: 16,
       boxShadow: '0 1px 3px rgba(0,0,0,0.05)', borderLeft: `4px solid ${color}`
     }}>
-      <div style={{ fontSize: 12, color: '#6b7280', textTransform: 'uppercase', letterSpacing: 0.5, fontWeight: 600 }}>{label}</div>
+      <div style={{ fontSize: 12, color: '#6b7280', textTransform: 'uppercase', letterSpacing: 0.5, fontWeight: 600 }}>{tr(label)}</div>
       <div style={{ fontSize: smallValue ? 14 : 22, fontWeight: 700, color: '#1f2937', marginTop: 4 }}>{value}</div>
-      {sub && <div style={{ fontSize: 12, color: '#5F6B7A', marginTop: 2 }}>{sub}</div>}
+      {sub && <div style={{ fontSize: 12, color: '#5F6B7A', marginTop: 2 }}>{tr(sub)}</div>}
     </div>
   );
 }

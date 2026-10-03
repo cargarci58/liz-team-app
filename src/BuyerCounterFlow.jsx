@@ -9,6 +9,7 @@
 //   • Your buyer answers: accept (a revised offer with the changes filled in),
 //     counter back (same, then edit), initial their marked-up copy, or say no.
 //   • Nothing is sent until you press Send — the agent handles everything.
+import { t as tr, tn, locale as uiLocale } from "./i18n";
 import { useEffect, useState, lazy, Suspense } from "react";
 import { askConfirm, askText } from "./ui/dialogs";
 
@@ -23,7 +24,7 @@ const btn = (primary, color = C.blue) => ({  // blue = normal action; pass C.red
   background: primary ? color : "#fff", color: primary ? "#fff" : color, border: `1px solid ${color}`,
   borderRadius: 8, padding: "8px 14px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
 });
-const fmtWhen = (d) => d ? new Date(d).toLocaleString("en-US", { timeZone: "America/New_York", weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) + " ET" : "";
+const fmtWhen = (d) => d ? new Date(d).toLocaleString(uiLocale(), { timeZone: "America/New_York", weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) + " ET" : "";
 const toLocalInput = (d) => { if (!d) return ""; const x = new Date(d); if (isNaN(x)) return ""; const p = (n) => String(n).padStart(2, "0"); return `${x.getFullYear()}-${p(x.getMonth() + 1)}-${p(x.getDate())}T${p(x.getHours())}:${p(x.getMinutes())}`; };
 const DocSignModal = lazy(() => import("./DocumentsTab").then(m => ({ default: m.DocSignModal })));
 
@@ -31,13 +32,13 @@ export const BUYER_STEPS = ["Offer sent", "They countered", "Your buyer's answer
 
 export const HOW_BUYER_COUNTERS = (
   <div style={{ background: "#fff", border: "1px solid " + C.border, borderRadius: 8, padding: "10px 12px", fontSize: 12.5, color: C.text, lineHeight: 1.55, marginTop: 8 }}>
-    <strong>When the seller counters your buyer's offer</strong>
+    <strong>{tr("When the seller counters your buyer's offer")}</strong>
     <ol style={{ margin: "6px 0 0 18px", padding: 0 }}>
-      <li><strong>They countered</strong> — tap 🔁 They countered and pick the listing agent's email (or the document, or type the changes). The app reads it against everything your buyer signed and lists every change.</li>
-      <li><strong>Check it</strong> — anything changed in their document that their email doesn't mention is flagged red. Tick "I see it" on each one, fix anything it read wrong, and save.</li>
-      <li><strong>Your buyer's answer</strong> — Accept their counter (a revised offer with their changes filled in), Counter back (same, then change what your buyer wants), Buyer initials their copy (initials placed beside each change), or Buyer says no.</li>
-      <li><strong>Buyer signs, you send it back</strong> — the revised offer goes through the same steps as the first one: packet → buyer signatures → 📧 Send to listing agent.</li>
-      <li><strong>Seller accepts</strong> — tap ✅ Seller accepted on the revised offer. When the executed contract comes back, upload it — the app checks it against what your buyer signed.</li>
+      <li><strong>{tr("They countered")}</strong> {tr("— tap 🔁 They countered and pick the listing agent's email (or the document, or type the changes). The app reads it against everything your buyer signed and lists every change.")}</li>
+      <li><strong>{tr("Check it")}</strong> {tr("— anything changed in their document that their email doesn't mention is flagged red. Tick \"I see it\" on each one, fix anything it read wrong, and save.")}</li>
+      <li><strong>{tr("Your buyer's answer")}</strong> {tr("— Accept their counter (a revised offer with their changes filled in), Counter back (same, then change what your buyer wants), Buyer initials their copy (initials placed beside each change), or Buyer says no.")}</li>
+      <li><strong>{tr("Buyer signs, you send it back")}</strong> {tr("— the revised offer goes through the same steps as the first one: packet → buyer signatures → 📧 Send to listing agent.")}</li>
+      <li><strong>{tr("Seller accepts")}</strong> {tr("— tap ✅ Seller accepted on the revised offer. When the executed contract comes back, upload it — the app checks it against what your buyer signed.")}</li>
     </ol>
   </div>
 );
@@ -101,7 +102,7 @@ export function BuyerStepTracker({ step, tone }) {
         <span key={s} style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
           <span style={{ fontSize: 11, fontWeight: 700, padding: "3px 8px", borderRadius: 12,
             background: i < cur ? C.greenBg : i === cur ? color : C.bg, color: i < cur ? C.green : i === cur ? "#fff" : C.muted,
-            border: `1px solid ${i < cur ? "#BFE3C9" : i === cur ? color : C.border}` }}>{i < cur ? "✓ " : `${i + 1} `}{s}{i === cur && step === 0 ? " — waiting" : ""}</span>
+            border: `1px solid ${i < cur ? "#BFE3C9" : i === cur ? color : C.border}` }}>{i < cur ? "✓ " : `${i + 1} `}{s}{i === cur && step === 0 ? tr(" — waiting") : ""}</span>
           {i < steps.length - 1 && <span style={{ color: C.muted, fontSize: 10 }}>→</span>}
         </span>
       ))}
@@ -129,17 +130,17 @@ export function BuyerCounterPanel({ offer, counter, tx, onChanged, onOpenOffer, 
     const msg = mode === "accept"
       ? "Your buyer ACCEPTS the seller's counter?\n\nThe app builds a revised offer with their changes filled in. Next you generate the packet, your buyer signs, and you send it back. Nothing is sent now."
       : "Your buyer wants to COUNTER BACK?\n\nThe app builds a revised offer with the seller's changes filled in and opens it so you can change what your buyer wants. Nothing is sent now.";
-    if (!(await askConfirm(msg, { okLabel: mode === "accept" ? "Yes, accept counter" : "Yes, counter back" }))) return;
+    if (!(await askConfirm(msg, { okLabel: mode === "accept" ? tr("Yes, accept counter") : tr("Yes, counter back") }))) return;
     try { const b = await post(`/their-counters/${counter.id}/resubmit`, { mode }, mode); onChanged && onChanged(); onOpenOffer && onOpenOffer(b.offerId); }
     catch (e) { alert(e.message); }
   };
   const decline = async () => {
-    const note = await askText("Your buyer says NO to the seller's counter. Add a note for the file (optional). This marks the offer withdrawn — tell the listing agent yourself; the app doesn't email them.", "", { okLabel: "Withdraw offer", multiline: true });
+    const note = await askText(tr("Your buyer says NO to the seller's counter. Add a note for the file (optional). This marks the offer withdrawn — tell the listing agent yourself; the app doesn't email them."), "", { okLabel: "Withdraw offer", multiline: true });
     if (note === null) return;
     try { await post(`/their-counters/${counter.id}/decline`, { note }, "decline"); onChanged && onChanged(); } catch (e) { alert(e.message); }
   };
   const reread = async () => {
-    if (!(await askConfirm("Re-read their counter? (Use this if you picked the wrong email or document.)", { okLabel: "Re-read" }))) return;
+    if (!(await askConfirm(tr("Re-read their counter? (Use this if you picked the wrong email or document.)"), { okLabel: tr("Re-read") }))) return;
     try { await post(`/their-counters/${counter.id}/reopen`, {}, "reread"); onChanged && onChanged(); onTheyCountered && onTheyCountered(); } catch (e) { alert(e.message); }
   };
   const box = st.tone === "bad" ? { bg: "#FDEDEC", bd: "#F5B7B1", fg: C.darkRed } : st.tone === "good" ? { bg: C.greenBg, bd: "#BFE3C9", fg: C.green } : { bg: C.blueBg, bd: "#bae6fd", fg: C.blue };
@@ -147,32 +148,32 @@ export function BuyerCounterPanel({ offer, counter, tx, onChanged, onOpenOffer, 
     <div style={{ background: "#FAFAFA", border: "1px solid " + C.border, borderRadius: 10, padding: "10px 12px" }}>
       <BuyerStepTracker step={st.step} tone={st.tone} />
       <div style={{ background: box.bg, border: "1px solid " + box.bd, borderRadius: 8, padding: "8px 10px", fontSize: 13, color: box.fg }}>
-        <strong>What's next:</strong> {st.line}{" "}
-        <button onClick={() => setHow(h => !h)} style={{ background: "none", border: "none", color: C.blue, textDecoration: "underline", cursor: "pointer", fontSize: 12, padding: 0, fontFamily: "inherit" }}>{how ? "Hide" : "How this works"}</button>
+        <strong>{tr("What's next:")}</strong> {st.line}{" "}
+        <button onClick={() => setHow(h => !h)} style={{ background: "none", border: "none", color: C.blue, textDecoration: "underline", cursor: "pointer", fontSize: 12, padding: 0, fontFamily: "inherit" }}>{how ? tr("Hide") : tr("How this works")}</button>
       </div>
       {how && HOW_BUYER_COUNTERS}
       {counter && (counter.changes || []).length > 0 && (
         <div style={{ marginTop: 8, fontSize: 12.5 }}>
-          <div style={{ fontWeight: 700, marginBottom: 4 }}>🔁 What the seller changed{counter.round > 1 ? ` (round ${counter.round})` : ""}{counter.source && counter.source.name ? <span style={{ fontWeight: 400, color: C.muted }}> — from {counter.source.name}</span> : null}</div>
+          <div style={{ fontWeight: 700, marginBottom: 4 }}>{tr("🔁 What the seller changed")}{counter.round > 1 ? tr(" (round {n})", { n: counter.round }) : ""}{counter.source && counter.source.name ? <span style={{ fontWeight: 400, color: C.muted }}> {tr("— from")} {counter.source.name}</span> : null}</div>
           {(counter.changes || []).map(ch => (
             <div key={ch.id} style={{ padding: "3px 0", borderBottom: "1px solid #eee" }}>
-              {ch.severity === "red" && <span title={ch.why || ""} style={{ color: C.red, fontWeight: 800 }}>🔴 </span>}
-              <strong>{ch.label}:</strong> {ch.key ? <>{ch.beforeText} → <strong>{ch.afterText}</strong></> : ch.afterText}
+              {ch.severity === "red" && <span title={tr(ch.why) || ""} style={{ color: C.red, fontWeight: 800 }}>🔴 </span>}
+              <strong>{tr(ch.label)}:</strong> {ch.key ? <>{ch.beforeText} → <strong>{ch.afterText}</strong></> : ch.afterText}
             </div>
           ))}
         </div>
       )}
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end", marginTop: 10 }}>
-        {st.step === 0 && <button onClick={onTheyCountered} style={btn(true)}>🔁 They countered</button>}
+        {st.step === 0 && <button onClick={onTheyCountered} style={btn(true)}>{tr("🔁 They countered")}</button>}
         {counter && counter.status === "recorded" && <>
-          <button onClick={() => resubmit("accept")} disabled={!!busy} style={btn(true, C.blue)}>{busy === "accept" ? "Building…" : "✅ Buyer accepts their counter"}</button>
-          <button onClick={() => resubmit("counter_back")} disabled={!!busy} style={btn(false, C.blue)}>{busy === "counter_back" ? "Building…" : "↩️ Counter back"}</button>
-          {counter.source && counter.source.hasPdf && <button onClick={() => setInitialsFor(counter)} disabled={!!busy} style={btn(false, C.blue)}>✍️ Buyer initials their copy</button>}
-          <button onClick={decline} disabled={!!busy} style={btn(false, "#555")}>Buyer says no</button>
-          <button onClick={reread} disabled={!!busy} style={{ ...btn(false, "#888"), fontWeight: 600 }}>Re-read it</button>
+          <button onClick={() => resubmit("accept")} disabled={!!busy} style={btn(true, C.blue)}>{busy === "accept" ? tr("Building…") : tr("✅ Buyer accepts their counter")}</button>
+          <button onClick={() => resubmit("counter_back")} disabled={!!busy} style={btn(false, C.blue)}>{busy === "counter_back" ? tr("Building…") : tr("↩️ Counter back")}</button>
+          {counter.source && counter.source.hasPdf && <button onClick={() => setInitialsFor(counter)} disabled={!!busy} style={btn(false, C.blue)}>{tr("✍️ Buyer initials their copy")}</button>}
+          <button onClick={decline} disabled={!!busy} style={btn(false, "#555")}>{tr("Buyer says no")}</button>
+          <button onClick={reread} disabled={!!busy} style={{ ...btn(false, "#888"), fontWeight: 600 }}>{tr("Re-read it")}</button>
         </>}
         {counter && ["accepted_by_buyer", "countered_back", "initialed"].includes(counter.status) && counter.revisionOfferId && counter.revisionStatus !== "sent" && counter.revisionStatus !== "accepted" &&
-          <button onClick={() => onOpenOffer && onOpenOffer(counter.revisionOfferId)} style={btn(true, C.blue)}>✏️ Open the revised offer</button>}
+          <button onClick={() => onOpenOffer && onOpenOffer(counter.revisionOfferId)} style={btn(true, C.blue)}>{tr("✏️ Open the revised offer")}</button>}
       </div>
       {initialsFor && <BuyerInitialsLauncher counter={initialsFor} tx={tx} onClose={() => setInitialsFor(null)} onSent={() => { setInitialsFor(null); onChanged && onChanged(); }} />}
     </div>
@@ -191,15 +192,15 @@ function BuyerInitialsLauncher({ counter, tx, onClose, onSent }) {
   }, [counter.id]);
   if (err) return (
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 2000, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }} onClick={onClose}>
-      <div style={{ background: "#fff", borderRadius: 12, padding: 20, maxWidth: 420, fontSize: 14 }} onClick={e => e.stopPropagation()}>⚠️ {err}<div style={{ textAlign: "right", marginTop: 12 }}><button onClick={onClose} style={btn(false, "#555")}>Close</button></div></div>
+      <div style={{ background: "#fff", borderRadius: 12, padding: 20, maxWidth: 420, fontSize: 14 }} onClick={e => e.stopPropagation()}>⚠️ {err}<div style={{ textAlign: "right", marginTop: 12 }}><button onClick={onClose} style={btn(false, "#555")}>{tr("Close")}</button></div></div>
     </div>);
   if (!pkg) return (
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 2000, display: "flex", alignItems: "center", justifyContent: "center" }}>
-      <div style={{ background: "#fff", borderRadius: 12, padding: 20, fontSize: 14 }}>Finding each change on their copy…</div>
+      <div style={{ background: "#fff", borderRadius: 12, padding: 20, fontSize: 14 }}>{tr("Finding each change on their copy…")}</div>
     </div>);
   const intro = (
     <>
-      <strong>Your buyer initials each change.</strong> The app placed {pkg.placements.length} initial{pkg.placements.length === 1 ? "" : "s"} beside the seller's changes for {pkg.signers.map(s => s.name).filter(Boolean).join(" & ") || "your buyer"} — check each page. Tap a block to remove it, or pick Initials and tap the page to add one.
+      <strong>{tr("Your buyer initials each change.")}</strong> {tr("The app placed")} {pkg.placements.length} {tr("initial")}{pkg.placements.length === 1 ? "" : "s"} {tr("beside the seller's changes for")} {pkg.signers.map(s => s.name).filter(Boolean).join(" & ") || tr("your buyer")} {tr("— check each page. Tap a block to remove it, or pick Initials and tap the page to add one.")}
       {pkg.notes && pkg.notes.length > 0 && <ul style={{ margin: "6px 0 0 18px", padding: 0 }}>{pkg.notes.map((n, i) => <li key={i}>{n}</li>)}</ul>}
     </>
   );
@@ -222,12 +223,12 @@ function TermInput({ term, value, onChange }) {
   if (term.type === "select") return (
     <select value={value || ""} onChange={e => onChange(e.target.value)} style={st}>
       <option value="">—</option>
-      {term.options.map(o => <option key={o} value={o}>{o}</option>)}
-      {value && !term.options.includes(value) && <option value={value}>{value}</option>}
+      {term.options.map(o => <option key={o} value={o}>{tr(o)}</option>)}
+      {value && !term.options.includes(value) && <option value={value}>{tr(value)}</option>}
     </select>);
   if (term.type === "date") return <input type="date" value={value ? String(value).slice(0, 10) : ""} onChange={e => onChange(e.target.value)} style={st} />;
-  if (["money", "days", "percent"].includes(term.type)) return <input inputMode="decimal" value={value ?? ""} onChange={e => onChange(e.target.value)} style={st} placeholder={term.type === "money" ? "$" : term.type === "percent" ? "%" : "days"} />;
-  if (term.type === "addenda") return <input value={Array.isArray(value) ? value.join(", ") : (value || "")} onChange={e => onChange(e.target.value)} style={st} placeholder="Rider letters, e.g. B, E, F" />;
+  if (["money", "days", "percent"].includes(term.type)) return <input inputMode="decimal" value={value ?? ""} onChange={e => onChange(e.target.value)} style={st} placeholder={term.type === "money" ? "$" : term.type === "percent" ? "%" : tr("days")} />;
+  if (term.type === "addenda") return <input value={Array.isArray(value) ? value.join(", ") : (value || "")} onChange={e => onChange(e.target.value)} style={st} placeholder={tr("Rider letters, e.g. B, E, F")} />;
   return <textarea rows={term.type === "longtext" ? 3 : 1} value={value || ""} onChange={e => onChange(e.target.value)} style={st} />;
 }
 
@@ -291,7 +292,7 @@ export function TheirCounterModal({ offer, address, onClose, onSaved }) {
 
   const save = async () => {
     setErr("");
-    if (unacked.length) { setErr(`Tick "I see it" on ${unacked.length} flagged change${unacked.length > 1 ? "s" : ""} first.`); return; }
+    if (unacked.length) { setErr(tn(unacked.length, "Tick \"I see it\" on {n} flagged change first.", "Tick \"I see it\" on {n} flagged changes first.")); return; }
     setBusy("save");
     try {
       const r = await fetch(`${API}/their-counters/${read.counterId}/save`, {
@@ -308,7 +309,7 @@ export function TheirCounterModal({ offer, address, onClose, onSaved }) {
   const radio = (checked, onPick, label, extra) => (
     <label style={{ display: "flex", gap: 8, alignItems: "flex-start", padding: "8px 10px", border: `1px solid ${checked ? C.blue : C.border}`, borderRadius: 8, marginBottom: 6, cursor: "pointer", background: checked ? C.blueBg : "#fff" }}>
       <input type="radio" checked={checked} onChange={onPick} style={{ marginTop: 3 }} />
-      <span style={{ flex: 1, fontSize: 13 }}>{label}{checked && extra}</span>
+      <span style={{ flex: 1, fontSize: 13 }}>{tr(label)}{checked && extra}</span>
     </label>
   );
 
@@ -318,38 +319,38 @@ export function TheirCounterModal({ offer, address, onClose, onSaved }) {
       onClick={e => { if (e.target === e.currentTarget && e.currentTarget.dataset.dob) onClose(); }}>
       <div style={{ background: "#fff", borderRadius: 14, width: "100%", maxWidth: 760, overflow: "hidden" }}>
         <div style={{ background: C.text, color: "#fff", padding: "14px 20px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <div><div style={{ fontSize: 18, fontWeight: 800 }}>🔁 The seller countered</div><div style={{ fontSize: 12.5, opacity: 0.8 }}>{address}</div></div>
+          <div><div style={{ fontSize: 18, fontWeight: 800 }}>{tr("🔁 The seller countered")}</div><div style={{ fontSize: 12.5, opacity: 0.8 }}>{address}</div></div>
           <button onClick={onClose} style={{ background: "none", border: "none", color: "#fff", fontSize: 22, cursor: "pointer" }}>×</button>
         </div>
         <div style={{ padding: 20 }}>
           {err && <div style={{ background: "#FDEDEC", border: "1px solid #F5B7B1", color: C.darkRed, borderRadius: 8, padding: "8px 12px", fontSize: 13, marginBottom: 12 }}>⚠️ {err}</div>}
-          {!setup && !err && <div style={{ fontSize: 14, color: C.muted }}>Loading…</div>}
+          {!setup && !err && <div style={{ fontSize: 14, color: C.muted }}>{tr("Loading…")}</div>}
 
           {setup && stage === "source" && src && (
             <>
               <div style={{ background: C.blueBg, border: "1px solid #bae6fd", borderRadius: 10, padding: "10px 12px", fontSize: 13, color: C.blue, lineHeight: 1.5, marginBottom: 14 }}>
-                <strong>Step 1 of 2 — where is their counter?</strong> Pick the listing agent's email, their document, upload it, or type the changes. The app reads it against everything your buyer signed.
+                <strong>{tr("Step 1 of 2 — where is their counter?")}</strong> {tr("Pick the listing agent's email, their document, upload it, or type the changes. The app reads it against everything your buyer signed.")}
               </div>
               {(setup.emails || []).map(e => radio(src.kind === "email" && src.id === e.id, () => setSrc({ kind: "email", id: e.id, attachmentKey: (e.attachments[0] || {}).key || null }),
-                <><strong>📧 {e.subject || "(no subject)"}</strong> <span style={{ color: C.muted }}>— {e.from}, {fmtWhen(e.receivedAt)}{e.attachments.length ? ` · 📎 ${e.attachments.length} PDF` : ""}</span><div style={{ color: C.muted, fontSize: 12, marginTop: 2 }}>{(e.snippet || "").slice(0, 160)}</div></>,
+                <><strong>📧 {e.subject || tr("(no subject)")}</strong> <span style={{ color: C.muted }}>— {e.from}, {fmtWhen(e.receivedAt)}{e.attachments.length ? tr(" · 📎 {n} PDF", { n: e.attachments.length }) : ""}</span><div style={{ color: C.muted, fontSize: 12, marginTop: 2 }}>{(e.snippet || "").slice(0, 160)}</div></>,
                 e.attachments.length > 1 && (
                   <select value={src.attachmentKey || ""} onChange={ev => setSrc(s => ({ ...s, attachmentKey: ev.target.value }))} style={{ marginTop: 6, padding: 6, borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 13 }}>
-                    {e.attachments.map(a => <option key={a.key} value={a.key}>{a.name}</option>)}
+                    {e.attachments.map(a => <option key={a.key} value={a.key}>{tr(a.name)}</option>)}
                   </select>)))}
-              {radio(src.kind === "document", () => setSrc({ kind: "document", id: (setup.documents[0] || {}).id || "" }), <strong>📁 A document already on this deal</strong>,
+              {radio(src.kind === "document", () => setSrc({ kind: "document", id: (setup.documents[0] || {}).id || "" }), <strong>{tr("📁 A document already on this deal")}</strong>,
                 <select value={src.id || ""} onChange={ev => setSrc({ kind: "document", id: ev.target.value })} style={{ display: "block", marginTop: 6, padding: 6, borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 13, maxWidth: "100%" }}>
-                  {(setup.documents || []).map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+                  {(setup.documents || []).map(d => <option key={d.id} value={d.id}>{tr(d.name)}</option>)}
                 </select>)}
-              {radio(src.kind === "upload", () => setSrc({ kind: "upload", file: null }), <strong>⬆ Upload their counter (PDF)</strong>,
+              {radio(src.kind === "upload", () => setSrc({ kind: "upload", file: null }), <strong>{tr("⬆ Upload their counter (PDF)")}</strong>,
                 <input type="file" accept=".pdf,application/pdf" onChange={ev => setSrc({ kind: "upload", file: ev.target.files && ev.target.files[0] })} style={{ display: "block", marginTop: 6, fontSize: 13 }} />)}
-              {radio(src.kind === "typed", () => setSrc({ kind: "typed" }), <strong>⌨️ They told me (phone / text) — I'll type the changes</strong>)}
-              <label style={{ display: "block", fontSize: 12.5, fontWeight: 700, marginTop: 8 }}>{src.kind === "typed" ? "What they changed" : "Anything else they said (optional)"}
-                <textarea rows={3} value={typed} onChange={e => setTyped(e.target.value)} placeholder="e.g. Price $515,000, closing November 30, seller won't pay the home warranty"
+              {radio(src.kind === "typed", () => setSrc({ kind: "typed" }), <strong>{tr("⌨️ They told me (phone / text) — I'll type the changes")}</strong>)}
+              <label style={{ display: "block", fontSize: 12.5, fontWeight: 700, marginTop: 8 }}>{src.kind === "typed" ? tr("What they changed") : tr("Anything else they said (optional)")}
+                <textarea rows={3} value={typed} onChange={e => setTyped(e.target.value)} placeholder={tr("e.g. Price $515,000, closing November 30, seller won't pay the home warranty")}
                   style={{ width: "100%", padding: "8px 10px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 14, marginTop: 4, boxSizing: "border-box", fontFamily: "inherit" }} />
               </label>
               <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 14 }}>
-                <button onClick={onClose} style={btn(false, "#555")}>Cancel</button>
-                <button onClick={doRead} disabled={!!busy} style={btn(true)}>{busy === "read" ? "Reading… (about a minute)" : "🔎 Read their counter"}</button>
+                <button onClick={onClose} style={btn(false, "#555")}>{tr("Cancel")}</button>
+                <button onClick={doRead} disabled={!!busy} style={btn(true)}>{busy === "read" ? tr("Reading… (about a minute)") : tr("🔎 Read their counter")}</button>
               </div>
             </>
           )}
@@ -357,34 +358,34 @@ export function TheirCounterModal({ offer, address, onClose, onSaved }) {
           {setup && stage === "review" && read && (
             <>
               <div style={{ background: C.blueBg, border: "1px solid #bae6fd", borderRadius: 10, padding: "10px 12px", fontSize: 13, color: C.blue, lineHeight: 1.5, marginBottom: 12 }}>
-                <strong>Step 2 of 2 — check what they changed.</strong> {read.summary || ""} Fix anything the app read wrong, remove what isn't a change, or add a term it missed. Nothing is sent.
+                <strong>{tr("Step 2 of 2 — check what they changed.")}</strong> {tr(read.summary) || ""} {tr("Fix anything the app read wrong, remove what isn't a change, or add a term it missed. Nothing is sent.")}
               </div>
               {reds.length > 0 && (
                 <div style={{ background: "#FDEDEC", border: "1px solid #F5B7B1", borderRadius: 10, padding: "10px 12px", fontSize: 13, color: C.darkRed, marginBottom: 12 }}>
-                  🔴 <strong>{reds.length} change{reds.length > 1 ? "s" : ""} to look at closely</strong> — in their document but not in their email, or the email and document don't agree. Tick "I see it" on each one.
+                  🔴 <strong>{reds.length} {tr("change")}{reds.length > 1 ? "s" : ""} {tr("to look at closely")}</strong> {tr("— in their document but not in their email, or the email and document don't agree. Tick \"I see it\" on each one.")}
                 </div>
               )}
-              {items.length === 0 && <div style={{ fontSize: 13, color: C.muted, marginBottom: 10 }}>No changes found. Add the terms they changed below, or go back and pick a different email or document.</div>}
+              {items.length === 0 && <div style={{ fontSize: 13, color: C.muted, marginBottom: 10 }}>{tr("No changes found. Add the terms they changed below, or go back and pick a different email or document.")}</div>}
               {items.map((it, idx) => {
                 const t = it.key ? termOf(it.key) : null;
                 const red = it.severity === "red";
                 return (
                   <div key={it.id} style={{ border: `1px solid ${red ? "#F5B7B1" : C.border}`, background: red ? "#FFF8F7" : "#fff", borderRadius: 10, padding: "10px 12px", marginBottom: 8 }}>
                     <div style={{ display: "flex", justifyContent: "space-between", gap: 8, alignItems: "flex-start" }}>
-                      <div style={{ fontSize: 13.5, fontWeight: 700 }}>{red ? "🔴 " : ""}{it.label}{it.page ? <span style={{ fontWeight: 400, color: C.muted, fontSize: 12 }}> · page {it.page}</span> : null}</div>
-                      <button onClick={() => setItems(list => list.filter((_, j) => j !== idx))} title="Not a change — remove" style={{ background: "none", border: "none", color: C.muted, cursor: "pointer", fontSize: 16 }}>✕</button>
+                      <div style={{ fontSize: 13.5, fontWeight: 700 }}>{red ? "🔴 " : ""}{tr(it.label)}{it.page ? <span style={{ fontWeight: 400, color: C.muted, fontSize: 12 }}> {tr("· page")} {it.page}</span> : null}</div>
+                      <button onClick={() => setItems(list => list.filter((_, j) => j !== idx))} title={tr("Not a change — remove")} style={{ background: "none", border: "none", color: C.muted, cursor: "pointer", fontSize: 16 }}>✕</button>
                     </div>
                     {it.detail && <div style={{ fontSize: 12.5, color: C.muted, marginTop: 2 }}>{it.detail}</div>}
-                    {red && it.why && <div style={{ fontSize: 12.5, color: C.darkRed, marginTop: 4, fontWeight: 600 }}>{it.why}</div>}
+                    {red && it.why && <div style={{ fontSize: 12.5, color: C.darkRed, marginTop: 4, fontWeight: 600 }}>{tr(it.why)}</div>}
                     <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) minmax(0,1fr)", gap: 10, marginTop: 8, alignItems: "end" }}>
-                      <div style={{ fontSize: 12.5 }}><div style={{ color: C.muted, fontWeight: 700, marginBottom: 3 }}>Your buyer's offer</div>{it.key ? (it.beforeText || "—") : "—"}</div>
-                      <div style={{ fontSize: 12.5 }}><div style={{ color: C.muted, fontWeight: 700, marginBottom: 3 }}>Their counter</div>
+                      <div style={{ fontSize: 12.5 }}><div style={{ color: C.muted, fontWeight: 700, marginBottom: 3 }}>{tr("Your buyer's offer")}</div>{it.key ? (it.beforeText || "—") : "—"}</div>
+                      <div style={{ fontSize: 12.5 }}><div style={{ color: C.muted, fontWeight: 700, marginBottom: 3 }}>{tr("Their counter")}</div>
                         <TermInput term={t} value={it.after} onChange={v => setItems(list => list.map((x, j) => j === idx ? { ...x, after: v } : x))} />
                       </div>
                     </div>
                     {red && (
                       <label style={{ display: "flex", gap: 6, alignItems: "center", marginTop: 8, fontSize: 13, fontWeight: 700, color: C.darkRed, cursor: "pointer" }}>
-                        <input type="checkbox" checked={!!acks[it.id]} onChange={e => setAcks(a => ({ ...a, [it.id]: e.target.checked }))} /> I see it — it's part of their counter
+                        <input type="checkbox" checked={!!acks[it.id]} onChange={e => setAcks(a => ({ ...a, [it.id]: e.target.checked }))} /> {tr("I see it — it's part of their counter")}
                       </label>
                     )}
                   </div>
@@ -392,17 +393,17 @@ export function TheirCounterModal({ offer, address, onClose, onSaved }) {
               })}
               <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", margin: "6px 0 12px" }}>
                 <select value={addKey} onChange={e => setAddKey(e.target.value)} style={{ padding: 7, borderRadius: 7, border: `1px solid ${C.border}`, fontSize: 13 }}>
-                  <option value="">+ Add a term they changed…</option>
-                  {(setup.terms || []).filter(t => !items.some(i => i.key === t.key)).map(t => <option key={t.key} value={t.key}>{t.group} — {t.label}</option>)}
+                  <option value="">{tr("+ Add a term they changed…")}</option>
+                  {(setup.terms || []).filter(t => !items.some(i => i.key === t.key)).map(t => <option key={t.key} value={t.key}>{t.group} — {tr(t.label)}</option>)}
                 </select>
-                {addKey && <button onClick={addTerm} style={btn(false, C.blue)}>Add</button>}
+                {addKey && <button onClick={addTerm} style={btn(false, C.blue)}>{tr("Add")}</button>}
               </div>
-              <label style={{ display: "block", fontSize: 13, fontWeight: 700, marginBottom: 4 }}>Their counter expires (optional)</label>
+              <label style={{ display: "block", fontSize: 13, fontWeight: 700, marginBottom: 4 }}>{tr("Their counter expires (optional)")}</label>
               <input type="datetime-local" value={deadline} onChange={e => setDeadline(e.target.value)} style={{ padding: "7px 9px", border: `1px solid ${C.border}`, borderRadius: 7, fontSize: 14, fontFamily: "inherit" }} />
-              <div style={{ fontSize: 11.5, color: C.muted, marginTop: 3 }}>You get a Win the Day reminder a day before.</div>
+              <div style={{ fontSize: 11.5, color: C.muted, marginTop: 3 }}>{tr("You get a Win the Day reminder a day before.")}</div>
               <div style={{ display: "flex", justifyContent: "space-between", gap: 10, marginTop: 16, flexWrap: "wrap" }}>
-                <button onClick={() => setStage("source")} style={btn(false, "#555")}>← Read something else</button>
-                <button onClick={save} disabled={!!busy || !items.length} style={{ ...btn(true), opacity: unacked.length || !items.length ? 0.6 : 1 }}>{busy === "save" ? "Saving…" : "Save their counter"}</button>
+                <button onClick={() => setStage("source")} style={btn(false, "#555")}>{tr("← Read something else")}</button>
+                <button onClick={save} disabled={!!busy || !items.length} style={{ ...btn(true), opacity: unacked.length || !items.length ? 0.6 : 1 }}>{busy === "save" ? tr("Saving…") : tr("Save their counter")}</button>
               </div>
             </>
           )}

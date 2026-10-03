@@ -1,3 +1,4 @@
+import { t as tr, tn, locale as uiLocale } from "./i18n";
 import React from 'react';
 import BackButton from "./ui/BackButton";
 import { useState, useEffect, useRef } from "react";
@@ -30,21 +31,21 @@ function ContactsGuide({ onClose }) {
   const step = (n, title, body) => (
     <div style={{ ...card, display: "flex", gap: 12 }}>
       <div style={{ flexShrink: 0, width: 30, height: 30, borderRadius: 16, background: "#0c4a6e", color: "white", fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center" }}>{n}</div>
-      <div><div style={h}>{title}</div><div style={p}>{body}</div></div>
+      <div><div style={h}>{tr(title)}</div><div style={p}>{body}</div></div>
     </div>
   );
   return (
     <div style={{ position: "fixed", inset: 0, zIndex: 6000, background: "rgba(0,0,0,0.55)", display: "flex", alignItems: "flex-start", justifyContent: "center", padding: 16, overflowY: "auto" }} onClick={onClose}>
       <div onClick={e => e.stopPropagation()} style={{ background: "#f9fafb", borderRadius: 14, maxWidth: 640, width: "100%", maxHeight: "92vh", overflowY: "auto", padding: 24, margin: "auto" }}>
-        <div style={{ fontSize: 24, fontWeight: 900, color: "#111", marginBottom: 4 }}>📖 How Your Contacts Work</div>
-        <div style={{ fontSize: 14, color: "#6b7280", marginBottom: 18 }}>A 2-minute guide. This is your relationship list — the people who will give you business and referrals. The app tells you who to call each day so you never lose touch.</div>
+        <div style={{ fontSize: 24, fontWeight: 900, color: "#111", marginBottom: 4 }}>{tr("📖 How Your Contacts Work")}</div>
+        <div style={{ fontSize: 14, color: "#6b7280", marginBottom: 18 }}>{tr("A 2-minute guide. This is your relationship list — the people who will give you business and referrals. The app tells you who to call each day so you never lose touch.")}</div>
 
         <div style={{ ...card, background: "#eff6ff", border: "1px solid #93c5fd" }}>
-          <div style={h}>The 3 simple labels on every contact</div>
+          <div style={h}>{tr("The 3 simple labels on every contact")}</div>
           <div style={p}>
-            <strong>👤 Type</strong> = who they are to you (Buyer, Seller, Past Client, Sphere…).<br/>
-            <strong>⭐ Tier</strong> = how likely they are to send you business — <strong>A</strong> = your best advocates, down to <strong>D</strong>. (Your relationship grade.)<br/>
-            <strong>🌡 Temp</strong> = how "hot" the opportunity is right now — 🔥 Hot, 🌤 Warm, ❄️ Cold.
+            <strong>{tr("👤 Type")}</strong> {tr("= who they are to you (Buyer, Seller, Past Client, Sphere…).")}<br/>
+            <strong>{tr("⭐ Tier")}</strong> {tr("= how likely they are to send you business —")} <strong>A</strong> {tr("= your best advocates, down to")} <strong>D</strong>{tr(". (Your relationship grade.)")}<br/>
+            <strong>{tr("🌡 Temp")}</strong> {tr("= how \"hot\" the opportunity is right now — 🔥 Hot, 🌤 Warm, ❄️ Cold.")}
           </div>
         </div>
 
@@ -54,26 +55,26 @@ function ContactsGuide({ onClose }) {
         {step(4, "That's the whole loop", "Call → log it → the app picks the next date → it shows up again on the right day. Hot leads come back fast, sphere & past clients come back on a relaxed schedule. You just work the list.")}
 
         <div style={card}>
-          <div style={h}>👥 Groups</div>
-          <div style={p}>Tag people by where you met them — "Bunco," "Church," "Open House." Use <strong>Manage Groups</strong> to create one, or check several contacts and click <strong>Add to Group</strong>. Then filter to see everyone from that group at once.</div>
+          <div style={h}>{tr("👥 Groups")}</div>
+          <div style={p}>{tr("Tag people by where you met them — \"Bunco,\" \"Church,\" \"Open House.\" Use")} <strong>{tr("Manage Groups")}</strong> {tr("to create one, or check several contacts and click")} <strong>{tr("Add to Group")}</strong>{tr(". Then filter to see everyone from that group at once.")}</div>
         </div>
         <div style={card}>
-          <div style={h}>📥 Adding people</div>
-          <div style={p}><strong>+ Add Contact</strong> for one person. <strong>Import CSV</strong> to bring in a whole list — it won't create duplicates or erase your call notes.</div>
+          <div style={h}>{tr("📥 Adding people")}</div>
+          <div style={p}><strong>{tr("+ Add Contact")}</strong> {tr("for one person.")} <strong>{tr("Import CSV")}</strong> {tr("to bring in a whole list — it won't create duplicates or erase your call notes.")}</div>
         </div>
         <div style={card}>
-          <div style={h}>⭐ Your daily list builds itself</div>
-          <div style={p}>You don't set anything up. Each contact's tier sets their rhythm (A clients come up often, D rarely), and Win the Day automatically shows the right handful for today — never hundreds at once. Work them, and the next ones appear tomorrow.</div>
+          <div style={h}>{tr("⭐ Your daily list builds itself")}</div>
+          <div style={p}>{tr("You don't set anything up. Each contact's tier sets their rhythm (A clients come up often, D rarely), and Win the Day automatically shows the right handful for today — never hundreds at once. Work them, and the next ones appear tomorrow.")}</div>
         </div>
         <div style={card}>
-          <div style={h}>🎂 Birthdays, 🎁 pop-bys & 📬 Items of Value</div>
-          <div style={p}>Birthdays and anniversaries pop up on your daily list that week. If you turn on <strong>Pop-bys</strong> (top of the page) the app reminds you to drop off a small gift to your best clients a few times a year — with a seasonal gift idea. <strong>Items of Value</strong> reminds you to send a helpful note/market update. Both are optional.</div>
+          <div style={h}>{tr("🎂 Birthdays, 🎁 pop-bys & 📬 Items of Value")}</div>
+          <div style={p}>{tr("Birthdays and anniversaries pop up on your daily list that week. If you turn on")} <strong>{tr("Pop-bys")}</strong> {tr("(top of the page) the app reminds you to drop off a small gift to your best clients a few times a year — with a seasonal gift idea.")} <strong>{tr("Items of Value")}</strong> {tr("reminds you to send a helpful note/market update. Both are optional.")}</div>
         </div>
 
-        <div style={{ fontSize: 13, color: "#6b7280", fontStyle: "italic", margin: "8px 0 16px" }}>👉 The golden rule: open the app, work today's list, log every call. Do that daily and your follow-up runs itself.</div>
+        <div style={{ fontSize: 13, color: "#6b7280", fontStyle: "italic", margin: "8px 0 16px" }}>{tr("👉 The golden rule: open the app, work today's list, log every call. Do that daily and your follow-up runs itself.")}</div>
 
         <div style={{ display: "flex", justifyContent: "flex-end" }}>
-          <button onClick={onClose} style={{ background: "#0c4a6e", color: "white", border: "none", borderRadius: 8, padding: "12px 28px", fontWeight: 700, fontSize: 15, cursor: "pointer", fontFamily: "inherit" }}>Got it — let's go</button>
+          <button onClick={onClose} style={{ background: "#0c4a6e", color: "white", border: "none", borderRadius: 8, padding: "12px 28px", fontWeight: 700, fontSize: 15, cursor: "pointer", fontFamily: "inherit" }}>{tr("Got it — let's go")}</button>
         </div>
       </div>
     </div>
@@ -105,29 +106,29 @@ function fmtDate(d) {
   const date = new Date(d);
   const now = new Date();
   const diff = Math.floor((date - now) / (1000 * 60 * 60 * 24));
-  if (diff < 0) return Math.abs(diff) + "d overdue";
-  if (diff === 0) return "Today";
-  if (diff === 1) return "Tomorrow";
-  if (diff < 7) return "In " + diff + "d";
-  return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  if (diff < 0) return tr("{n}d overdue", { n: Math.abs(diff) });
+  if (diff === 0) return tr("Today");
+  if (diff === 1) return tr("Tomorrow");
+  if (diff < 7) return tr("In {n}d", { n: diff });
+  return date.toLocaleDateString(uiLocale(), { month: "short", day: "numeric" });
 }
 
 // For columns showing a past event (e.g. "Last Called"). Never says "overdue".
 function fmtPastDate(d) {
-  if (!d) return "Never";
+  if (!d) return tr("Never");
   const date = new Date(d);
   const now = new Date();
   const diff = Math.floor((now - date) / (1000 * 60 * 60 * 24));
-  if (diff <= 0) return "Today";
-  if (diff === 1) return "Yesterday";
-  if (diff < 7) return diff + "d ago";
-  if (diff < 30) return Math.floor(diff / 7) + "w ago";
-  return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  if (diff <= 0) return tr("Today");
+  if (diff === 1) return tr("Yesterday");
+  if (diff < 7) return tr("{n}d ago", { n: diff });
+  if (diff < 30) return tr("{n}w ago", { n: Math.floor(diff / 7) });
+  return date.toLocaleDateString(uiLocale(), { month: "short", day: "numeric" });
 }
 
 function fmtLong(d) {
   if (!d) return "";
-  return new Date(d).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
+  return new Date(d).toLocaleDateString(uiLocale(), { weekday: "long", month: "long", day: "numeric" });
 }
 
 function computeDate(days) {
@@ -182,20 +183,20 @@ function TierPicker({ value, currentTier, onChange }) {
   const pick = (key) => onChange(value === key ? "" : key);
 
   const status = changed
-    ? <span style={{ color: "#b45309", fontWeight: 700 }}>Changing {currentTier || "no tier"} → {value || "no tier"} when you save. This changes how often they show up on your call list.</span>
-    : <>Currently <strong>{currentTier || "not set"}</strong>. Tap a letter to change it based on how this call went.</>;
+    ? <span style={{ color: "#b45309", fontWeight: 700 }}>{tr("Changing")} {currentTier || tr("no tier")} → {value || tr("no tier")} {tr("when you save. This changes how often they show up on your call list.")}</span>
+    : <>{tr("Currently")} <strong>{currentTier || tr("not set")}</strong>{tr(". Tap a letter to change it based on how this call went.")}</>;
 
   const guideToggle = (
     <>
       <button type="button" onClick={() => setShowGuide(v => !v)}
         style={{ background: "none", border: "none", padding: "6px 0 0", fontSize: 11, fontWeight: 700, color: "#0c4a6e", cursor: "pointer", fontFamily: "inherit" }}>
-        {showGuide ? "▾ Hide" : "▸ What do the letters mean / when should I change one?"}
+        {showGuide ? tr("▾ Hide") : tr("▸ What do the letters mean / when should I change one?")}
       </button>
       {showGuide && (
         <div style={{ marginTop: 6, background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 8, padding: 10, fontSize: 11.5, color: "#334155", lineHeight: 1.5 }}>
-          <div style={{ marginBottom: 4 }}><strong>Move them up</strong> when they refer you someone, say they're ready to buy or sell, or the relationship clearly warmed up on this call.</div>
-          <div style={{ marginBottom: 4 }}><strong>Move them down</strong> when they've gone quiet — e.g. no answer 3+ calls in a row, or they said "not right now." Dropping to <strong>D</strong> keeps them in your database but stops them crowding out your daily call list.</div>
-          <div>Leave it alone if nothing changed — most calls don't need a tier change.</div>
+          <div style={{ marginBottom: 4 }}><strong>{tr("Move them up")}</strong> {tr("when they refer you someone, say they're ready to buy or sell, or the relationship clearly warmed up on this call.")}</div>
+          <div style={{ marginBottom: 4 }}><strong>{tr("Move them down")}</strong> {tr("when they've gone quiet — e.g. no answer 3+ calls in a row, or they said \"not right now.\" Dropping to")} <strong>D</strong> {tr("keeps them in your database but stops them crowding out your daily call list.")}</div>
+          <div>{tr("Leave it alone if nothing changed — most calls don't need a tier change.")}</div>
         </div>
       )}
     </>
@@ -204,7 +205,7 @@ function TierPicker({ value, currentTier, onChange }) {
   return (
     <div style={{ marginBottom: 12 }}>
       <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 2 }}>
-        ⭐ Tier — how likely they are to send you business
+        {tr("⭐ Tier — how likely they are to send you business")}
       </label>
       <div style={{ fontSize: 11, color: "#6b7280", marginBottom: 8 }}>{status}</div>
       <div style={{ display: "grid", gap: 6 }}>
@@ -221,9 +222,9 @@ function TierPicker({ value, currentTier, onChange }) {
               <span style={{ ...tierBadgeStyle(t.key), flexShrink: 0, marginTop: 1 }}>{t.key}</span>
               <span style={{ minWidth: 0 }}>
                 <span style={{ display: "block", fontSize: 13, fontWeight: 800, color: "#111" }}>
-                  {t.label}{currentTier === t.key ? <span style={{ fontSize: 10.5, fontWeight: 700, color: "#6b7280" }}> · current</span> : null}
+                  {tr(t.label)}{currentTier === t.key ? <span style={{ fontSize: 10.5, fontWeight: 700, color: "#6b7280" }}> {tr("· current")}</span> : null}
                 </span>
-                <span style={{ display: "block", fontSize: 11.5, color: "#4b5563", lineHeight: 1.35 }}>{t.desc}</span>
+                <span style={{ display: "block", fontSize: 11.5, color: "#4b5563", lineHeight: 1.35 }}>{tr(t.desc)}</span>
                 <span style={{ display: "block", fontSize: 10.5, color: "#5F6B7A", marginTop: 1 }}>{t.cadence}</span>
               </span>
             </button>
@@ -238,9 +239,9 @@ function TierPicker({ value, currentTier, onChange }) {
 function Field({ label, hint, children }) {
   return (
     <div style={{ marginBottom: 12 }}>
-      <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 4 }}>{label}</label>
+      <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 4 }}>{tr(label)}</label>
       {children}
-      {hint && <div style={{ fontSize: 11, color: "#6b7280", marginTop: 2 }}>{hint}</div>}
+      {hint && <div style={{ fontSize: 11, color: "#6b7280", marginTop: 2 }}>{tr(hint)}</div>}
     </div>
   );
 }
@@ -348,7 +349,7 @@ function LogCallModal({ contact, token, onClose, onLogged }) {
       if (!r.ok) throw new Error(data.error || "Failed");
       onLogged && onLogged(data);
       onClose();
-    } catch (e) { alert("Failed: " + e.message); }
+    } catch (e) { alert(tr("Failed: ") + e.message); }
     finally { setSaving(false); }
   };
 
@@ -361,32 +362,32 @@ function LogCallModal({ contact, token, onClose, onLogged }) {
     <div style={{ position: "fixed", inset: 0, zIndex: 4500, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "flex-start", justifyContent: "center", padding: 16, overflowY: "auto" }} onMouseDown={e => { if (e.target === e.currentTarget) e.currentTarget.dataset.downOnBackdrop = "1"; else delete e.currentTarget.dataset.downOnBackdrop; }} onClick={e => { const ok = e.target === e.currentTarget && e.currentTarget.dataset.downOnBackdrop; delete e.currentTarget.dataset.downOnBackdrop; if (ok) onClose(); }}>
       <div onClick={e => e.stopPropagation()} style={{ background: "white", borderRadius: 12, maxWidth: 560, width: "100%", maxHeight: "90vh", overflowY: "auto", padding: 24, margin: "auto" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginBottom: 4 }}>
-          <div style={{ fontSize: 18, fontWeight: 800 }}>📞 Log Call · {contactName}</div>
+          <div style={{ fontSize: 18, fontWeight: 800 }}>{tr("📞 Log Call ·")} {contactName}</div>
           <CallScriptsButton contact={contact} token={token} />
         </div>
         <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 16 }}>
-          {step === 1 ? "What was the outcome of this call?" : "What's next with this lead?"}
+          {step === 1 ? tr("What was the outcome of this call?") : tr("What's next with this lead?")}
         </div>
 
         {step === 1 && history && history.length > 0 && (
           <div style={{ background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 10, padding: 12, marginBottom: 16 }}>
-            <div style={{ fontSize: 11, fontWeight: 800, color: "#475569", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 8 }}>🕑 Your full history ({history.length} interaction{history.length === 1 ? "" : "s"})</div>
+            <div style={{ fontSize: 11, fontWeight: 800, color: "#475569", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 8 }}>{tr("🕑 Your full history (")}{history.length} {tr("interaction")}{history.length === 1 ? "" : "s"})</div>
             <div style={{ maxHeight: 240, overflowY: "auto", paddingRight: 4 }}>
               {history.map((h, i) => (
                 <div key={h.id || i} style={{ paddingBottom: 8, marginBottom: 8, borderBottom: i < history.length - 1 ? "1px solid #EEF2F7" : "none" }}>
                   <div style={{ fontSize: 12, color: "#64748b" }}>
-                    {h.created_at ? new Date(h.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : ""} · <span style={{ fontWeight: 700, color: "#334155" }}>{outcomeLabel(h.outcome)}</span>
-                    {(h.by_first || h.by_last) ? <span style={{ color: "#5F6B7A" }}> · by {[h.by_first, h.by_last].filter(Boolean).join(" ")}</span> : null}
+                    {h.created_at ? new Date(h.created_at).toLocaleDateString(uiLocale(), { month: "short", day: "numeric", year: "numeric" }) : ""} · <span style={{ fontWeight: 700, color: "#334155" }}>{outcomeLabel(h.outcome)}</span>
+                    {(h.by_first || h.by_last) ? <span style={{ color: "#5F6B7A" }}> {tr("· by")} {[h.by_first, h.by_last].filter(Boolean).join(" ")}</span> : null}
                   </div>
                   {h.notes && <div style={{ fontSize: 13, color: "#1f2937", marginTop: 2, lineHeight: 1.45 }}>"{h.notes}"</div>}
-                  {h.next_call_scheduled_at && <div style={{ fontSize: 11, color: "#5F6B7A", marginTop: 2 }}>↳ next: {new Date(h.next_call_scheduled_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</div>}
+                  {h.next_call_scheduled_at && <div style={{ fontSize: 11, color: "#5F6B7A", marginTop: 2 }}>{tr("↳ next:")} {new Date(h.next_call_scheduled_at).toLocaleDateString(uiLocale(), { month: "short", day: "numeric", year: "numeric" })}</div>}
                 </div>
               ))}
             </div>
           </div>
         )}
         {step === 1 && history === null && (
-          <div style={{ fontSize: 12, color: "#5F6B7A", marginBottom: 12 }}>Loading past conversations…</div>
+          <div style={{ fontSize: 12, color: "#5F6B7A", marginBottom: 12 }}>{tr("Loading past conversations…")}</div>
         )}
 
         {step === 1 && (
@@ -396,7 +397,7 @@ function LogCallModal({ contact, token, onClose, onLogged }) {
                 style={{ ...btnStyle("#f3f4f6", "#1f2937"), textAlign: "left", padding: "12px 16px", fontSize: 14 }}
                 onMouseEnter={e => e.currentTarget.style.background = "#e5e7eb"}
                 onMouseLeave={e => e.currentTarget.style.background = "#f3f4f6"}>
-                {o.label}
+                {tr(o.label)}
               </button>
             ))}
           </div>
@@ -405,14 +406,14 @@ function LogCallModal({ contact, token, onClose, onLogged }) {
         {step === 2 && outcome && (
           <div>
             <div style={{ background: "#f0fdf4", border: "1px solid #86efac", borderRadius: 8, padding: 12, marginBottom: 16 }}>
-              <div style={{ fontSize: 11, color: "#15803d", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>What just happened</div>
-              <div style={{ fontSize: 14, fontWeight: 700, color: "#14532d", marginTop: 2 }}>{outcome.label}</div>
+              <div style={{ fontSize: 11, color: "#15803d", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>{tr("What just happened")}</div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: "#14532d", marginTop: 2 }}>{tr(outcome.label)}</div>
             </div>
 
             {/* What's next — preset chips + custom */}
             <div style={{ marginBottom: 16 }}>
               <div style={{ fontSize: 12, fontWeight: 700, color: "#374151", marginBottom: 8 }}>
-                🔮 When should I call them next? (tap multiple — each creates a separate reminder)
+                {tr("🔮 When should I call them next? (tap multiple — each creates a separate reminder)")}
               </div>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 8 }}>
                 {PRESETS.map(p => {
@@ -423,13 +424,13 @@ function LogCallModal({ contact, token, onClose, onLogged }) {
                       setFollowUpDaysList(prev => prev.includes(p.days) ? prev.filter(d => d !== p.days) : [...prev, p.days]);
                     }}
                       style={{ ...btnStyle(active ? "#0c4a6e" : "#f3f4f6", active ? "white" : "#374151"), padding: "6px 12px", fontSize: 12 }}>
-                      {active ? "✓ " : ""}{p.label}
+                      {active ? "✓ " : ""}{tr(p.label)}
                     </button>
                   );
                 })}
                 <button onClick={() => setNoFollowUp(true)}
                   style={{ ...btnStyle(noFollowUp ? "#6b7280" : "#f3f4f6", noFollowUp ? "white" : "#374151"), padding: "6px 12px", fontSize: 12 }}>
-                  No follow-up
+                  {tr("No follow-up")}
                 </button>
               </div>
               {!noFollowUp && (
@@ -437,64 +438,64 @@ function LogCallModal({ contact, token, onClose, onLogged }) {
                   <input type="date" value={customDate}
                     onChange={e => { setCustomDate(e.target.value); setNoFollowUp(false); }}
                     style={{ ...inputStyle, width: 180 }} />
-                  <span style={{ fontSize: 11, color: "#6b7280" }}>or pick a custom date</span>
+                  <span style={{ fontSize: 11, color: "#6b7280" }}>{tr("or pick a custom date")}</span>
                 </div>
               )}
               {!noFollowUp && computedNextDates().length > 0 && (
                 <div style={{ marginTop: 10, padding: 10, background: "#eff6ff", border: "1px solid #93c5fd", borderRadius: 6, fontSize: 13, color: "#1e3a8a" }}>
                   <div style={{ fontWeight: 700, marginBottom: 4 }}>
-                    📅 {computedNextDates().length === 1 ? "Reminder scheduled:" : computedNextDates().length + " reminders scheduled:"}
+                    📅 {computedNextDates().length === 1 ? tr("Reminder scheduled:") : computedNextDates().length + tr(" reminders scheduled:")}
                   </div>
                   {computedNextDates().map((d, i) => (
                     <div key={i} style={{ fontSize: 12, paddingLeft: 8 }}>• {fmtLong(d)}</div>
                   ))}
                   <div style={{ fontSize: 11, color: "#3730a3", marginTop: 6, fontStyle: "italic" }}>
-                    Each reminder will appear in your daily call list on its scheduled day.
+                    {tr("Each reminder will appear in your daily call list on its scheduled day.")}
                   </div>
                 </div>
               )}
               {!noFollowUp && computedNextDates().length === 0 && (
                 <div style={{ marginTop: 10, padding: 10, background: "#fef3c7", border: "1px solid #fcd34d", borderRadius: 6, fontSize: 12, color: "#92400e" }}>
-                  ⚠️ Pick at least one follow-up interval above, or choose "No follow-up".
+                  {tr("⚠️ Pick at least one follow-up interval above, or choose \"No follow-up\".")}
                 </div>
               )}
               {noFollowUp && (
                 <div style={{ marginTop: 10, padding: 10, background: "#f3f4f6", borderRadius: 6, fontSize: 13, color: "#6b7280" }}>
-                  No follow-up scheduled. This lead won't appear in your daily call list.
+                  {tr("No follow-up scheduled. This lead won't appear in your daily call list.")}
                 </div>
               )}
             </div>
 
             {!noFollowUp && (
-              <Field label="🎯 Reason for the next call (optional)" hint="Shows on your Win the Day list so you know why you're calling.">
+              <Field label={tr("🎯 Reason for the next call (optional)")} hint={tr("Shows on your Win the Day list so you know why you're calling.")}>
                 <input value={nextReason} onChange={e => setNextReason(e.target.value)}
-                  placeholder="e.g. Follow up on pre-approval, check in re: listing, send comps"
+                  placeholder={tr("e.g. Follow up on pre-approval, check in re: listing, send comps")}
                   style={inputStyle} />
               </Field>
             )}
 
-            <Field label="📝 What did you talk about? (optional)" hint="You'll see these notes next time you call this person.">
+            <Field label={tr("📝 What did you talk about? (optional)")} hint={tr("You'll see these notes next time you call this person.")}>
               <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={2}
-                placeholder="e.g. Looking in $600-700k range, contingent on selling current home, kids in Lake Mary schools..."
+                placeholder={tr("e.g. Looking in $600-700k range, contingent on selling current home, kids in Lake Mary schools...")}
                 style={{ ...inputStyle, resize: "vertical" }} />
             </Field>
 
             <TierPicker value={newTier} currentTier={currentTier} onChange={setNewTier} />
 
-            <Field label={"🌡 Temp — " + m.emoji + " " + m.label} hint="Did this call change how hot this lead is? Changing this adjusts how often you'll be reminded to call them.">
+            <Field label={tr("🌡 Temp — ") + m.emoji + " " + m.label} hint={tr("Did this call change how hot this lead is? Changing this adjusts how often you'll be reminded to call them.")}>
               <select value={TEMP_SELECTABLE.includes(newTemp) ? newTemp : "warm"} onChange={e => setNewTemp(e.target.value)} style={inputStyle}>
                 {TEMP_SELECTABLE.map(k => (
-                  <option key={k} value={k}>{TEMP_META[k].emoji} {TEMP_META[k].label}</option>
+                  <option key={k} value={k}>{TEMP_META[k].emoji} {tr(TEMP_META[k].label)}</option>
                 ))}
               </select>
             </Field>
 
             <div style={{ display: "flex", gap: 8, justifyContent: "space-between", marginTop: 20 }}>
-              <button onClick={() => setStep(1)} style={btnStyle("#e5e7eb", "#374151")}>← Previous step</button>
+              <button onClick={() => setStep(1)} style={btnStyle("#e5e7eb", "#374151")}>{tr("← Previous step")}</button>
               <div style={{ display: "flex", gap: 8 }}>
-                <button onClick={onClose} style={btnStyle("#e5e7eb", "#374151")}>Cancel</button>
+                <button onClick={onClose} style={btnStyle("#e5e7eb", "#374151")}>{tr("Cancel")}</button>
                 <button onClick={save} disabled={saving} style={btnStyle("#0c4a6e", "white")}>
-                  {saving ? "Saving..." : "✓ Save Call Log"}
+                  {saving ? tr("Saving...") : tr("✓ Save Call Log")}
                 </button>
               </div>
             </div>
@@ -520,7 +521,7 @@ export function LogCallButton({ contact, token, onLogged, compact, large, autoOp
   return (
     <>
       <button onClick={() => setOpen(true)} style={{ ...btnStyle("#0c4a6e", "white"), ...sizeStyle }}>
-        {compact ? "📞 Log" : "📞 Log Call"}
+        {compact ? tr("📞 Log") : tr("📞 Log Call")}
       </button>
       {open && <LogCallModal contact={contact} token={token} onClose={() => setOpen(false)} onLogged={(d) => { setOpen(false); onLogged && onLogged(d); }} />}
     </>
@@ -619,92 +620,92 @@ function ContactModal({ contact, token, onClose, onSaved }) {
   return (
     <div style={{ position: "fixed", inset: 0, zIndex: 4000, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "flex-start", justifyContent: "center", padding: 16, overflowY: "auto" }} onMouseDown={e => { if (e.target === e.currentTarget) e.currentTarget.dataset.downOnBackdrop = "1"; else delete e.currentTarget.dataset.downOnBackdrop; }} onClick={e => { const ok = e.target === e.currentTarget && e.currentTarget.dataset.downOnBackdrop; delete e.currentTarget.dataset.downOnBackdrop; if (ok) onClose(); }}>
       <div onClick={e => e.stopPropagation()} style={{ background: "white", borderRadius: 12, maxWidth: 520, width: "100%", maxHeight: "90vh", overflowY: "auto", padding: 24, margin: "auto" }}>
-        <div style={{ fontSize: 18, fontWeight: 800, marginBottom: 4 }}>{isEdit ? "Edit Contact" : "Add Contact"}</div>
+        <div style={{ fontSize: 18, fontWeight: 800, marginBottom: 4 }}>{isEdit ? tr("Edit Contact") : tr("Add Contact")}</div>
         <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 16 }}>
-          Contacts are private to you. Temperature drives how often the system reminds you to call.
+          {tr("Contacts are private to you. Temperature drives how often the system reminds you to call.")}
         </div>
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-          <Field label="First Name"><input value={form.firstName} onChange={e => update("firstName", e.target.value)} style={inputStyle} /></Field>
-          <Field label="Last Name"><input value={form.lastName} onChange={e => update("lastName", e.target.value)} style={inputStyle} /></Field>
+          <Field label={tr("First Name")}><input value={form.firstName} onChange={e => update("firstName", e.target.value)} style={inputStyle} /></Field>
+          <Field label={tr("Last Name")}><input value={form.lastName} onChange={e => update("lastName", e.target.value)} style={inputStyle} /></Field>
         </div>
-        <Field label="Email"><input type="email" value={form.email} onChange={e => update("email", e.target.value)} style={inputStyle} /></Field>
-        <Field label="Phone"><input value={form.phone} onChange={e => update("phone", e.target.value)} style={inputStyle} /></Field>
+        <Field label={tr("Email")}><input type="email" value={form.email} onChange={e => update("email", e.target.value)} style={inputStyle} /></Field>
+        <Field label={tr("Phone")}><input value={form.phone} onChange={e => update("phone", e.target.value)} style={inputStyle} /></Field>
 
         {(form.phone || form.email) && (
           <label style={{ display: "flex", gap: 8, alignItems: "flex-start", margin: "2px 0 12px", padding: "10px 12px", background: "#fef6f6", border: "1px solid #f3d4d4", borderRadius: 8, cursor: "pointer", fontSize: 12.5, color: "#7a1f2b", lineHeight: 1.4 }}>
             <input type="checkbox" checked={form.messagingConsent} onChange={e => update("messagingConsent", e.target.checked)} style={{ marginTop: 2, flexShrink: 0 }} />
-            <span>I have this person's permission to contact them by email and text. <span style={{ color: "#9a3b46" }}>(Required by Florida law before automated messages can be sent.)</span></span>
+            <span>{tr("I have this person's permission to contact them by email and text.")} <span style={{ color: "#9a3b46" }}>{tr("(Required by Florida law before automated messages can be sent.)")}</span></span>
           </label>
         )}
 
-        <Field label="How important is this person to your business?" hint="This decides how often the app reminds you to stay in touch. You can always change it.">
+        <Field label={tr("How important is this person to your business?")} hint={tr("This decides how often the app reminds you to stay in touch. You can always change it.")}>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
             {[["A", "⭐ VIP", "past clients & referrers"], ["B", "👍 Regular", "stay in touch"], ["C", "🌱 Just met", "new connection"]].map(([t, label, sub]) => {
               const on = form.tier === t || (t === "A" && form.tier === "A+");
               return (
                 <button type="button" key={t} onClick={() => update("tier", t)}
                   style={{ padding: "10px 14px", borderRadius: 10, border: on ? "2px solid #0c4a6e" : "1px solid #d1d5db", background: on ? "#0c4a6e" : "#fff", color: on ? "#fff" : "#374151", cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}>
-                  <div style={{ fontSize: 13.5, fontWeight: 800 }}>{label}</div>
-                  <div style={{ fontSize: 10.5, opacity: 0.75 }}>{sub}</div>
+                  <div style={{ fontSize: 13.5, fontWeight: 800 }}>{tr(label)}</div>
+                  <div style={{ fontSize: 10.5, opacity: 0.75 }}>{tr(sub)}</div>
                 </button>
               );
             })}
           </div>
         </Field>
-        <Field label="Where do you know them from?" hint="e.g. Referral, open house, Zillow, church, gym…"><input value={form.source} onChange={e => update("source", e.target.value)} style={inputStyle} /></Field>
+        <Field label={tr("Where do you know them from?")} hint={tr("e.g. Referral, open house, Zillow, church, gym…")}><input value={form.source} onChange={e => update("source", e.target.value)} style={inputStyle} /></Field>
 
         {!showMoreFields && (
           <button type="button" onClick={() => setShowMoreFields(true)}
             style={{ width: "100%", padding: "10px 0", background: "#f8fafc", border: "1px dashed #cbd5e1", borderRadius: 8, color: "#475569", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", marginBottom: 12 }}>
-            ▾ More details (optional) — birthday, spouse, groups, lead heat…
+            {tr("▾ More details (optional) — birthday, spouse, groups, lead heat…")}
           </button>
         )}
         {showMoreFields && (<>
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-          <Field label="Type">
+          <Field label={tr("Type")}>
             <select value={form.contactType} onChange={e => update("contactType", e.target.value)} style={inputStyle}>
-              {TYPE_OPTIONS.map(t => <option key={t} value={t}>{t.replace("_", " ")}</option>)}
+              {TYPE_OPTIONS.map(t => <option key={t} value={t}>{tr(t.replace("_", " "))}</option>)}
             </select>
           </Field>
-          <Field label="How hot is this lead? 🔥">
+          <Field label={tr("How hot is this lead? 🔥")}>
             <select value={TEMP_SELECTABLE.includes(form.temperature) ? form.temperature : "warm"} onChange={e => update("temperature", e.target.value)} style={inputStyle}>
               {TEMP_SELECTABLE.map(k => (
-                <option key={k} value={k}>{TEMP_META[k].emoji} {TEMP_META[k].label}</option>
+                <option key={k} value={k}>{TEMP_META[k].emoji} {tr(TEMP_META[k].label)}</option>
               ))}
             </select>
           </Field>
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-          <Field label="Precise grade (optional)" hint="Fine-tune the importance you picked above (A+ = top referrers, D = rarely contact).">
+          <Field label={tr("Precise grade (optional)")} hint={tr("Fine-tune the importance you picked above (A+ = top referrers, D = rarely contact).")}>
             <select value={form.tier} onChange={e => update("tier", e.target.value)} style={inputStyle}>
-              <option value="">— none —</option>
-              {["A+","A","B","C","D"].map(t => <option key={t} value={t}>{t}</option>)}
+              <option value="">{tr("— none —")}</option>
+              {["A+","A","B","C","D"].map(t => <option key={t} value={t}>{tr(t)}</option>)}
             </select>
           </Field>
-          <Field label="Referred By"><input value={form.referred_by} onChange={e => update("referred_by", e.target.value)} style={inputStyle} /></Field>
+          <Field label={tr("Referred By")}><input value={form.referred_by} onChange={e => update("referred_by", e.target.value)} style={inputStyle} /></Field>
         </div>
-        <Field label="Spouse / Partner Name"><input value={form.spouse_name} onChange={e => update("spouse_name", e.target.value)} style={inputStyle} /></Field>
-        <Field label="Home address"><input value={form.address} onChange={e => update("address", e.target.value)} placeholder="123 Main St" style={inputStyle} /></Field>
+        <Field label={tr("Spouse / Partner Name")}><input value={form.spouse_name} onChange={e => update("spouse_name", e.target.value)} style={inputStyle} /></Field>
+        <Field label={tr("Home address")}><input value={form.address} onChange={e => update("address", e.target.value)} placeholder={tr("123 Main St")} style={inputStyle} /></Field>
         <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr", gap: 12 }}>
-          <Field label="City"><input value={form.city} onChange={e => update("city", e.target.value)} style={inputStyle} /></Field>
-          <Field label="State"><input value={form.state} onChange={e => update("state", e.target.value)} style={inputStyle} /></Field>
-          <Field label="ZIP"><input value={form.zip_code} onChange={e => update("zip_code", e.target.value)} style={inputStyle} /></Field>
+          <Field label={tr("City")}><input value={form.city} onChange={e => update("city", e.target.value)} style={inputStyle} /></Field>
+          <Field label={tr("State")}><input value={form.state} onChange={e => update("state", e.target.value)} style={inputStyle} /></Field>
+          <Field label={tr("ZIP")}><input value={form.zip_code} onChange={e => update("zip_code", e.target.value)} style={inputStyle} /></Field>
         </div>
-        <Field label="Pop-by address (if different from above)" hint="Where to drop off pop-by gifts. Leave blank to use the main address."><input value={form.popby_address} onChange={e => update("popby_address", e.target.value)} style={inputStyle} /></Field>
+        <Field label={tr("Pop-by address (if different from above)")} hint={tr("Where to drop off pop-by gifts. Leave blank to use the main address.")}><input value={form.popby_address} onChange={e => update("popby_address", e.target.value)} style={inputStyle} /></Field>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-          <Field label="Birthday"><input type="date" value={form.birthday} onChange={e => update("birthday", e.target.value)} style={inputStyle} /></Field>
-          <Field label="Wedding Anniversary"><input type="date" value={form.wedding_anniversary} onChange={e => update("wedding_anniversary", e.target.value)} style={inputStyle} /></Field>
+          <Field label={tr("Birthday")}><input type="date" value={form.birthday} onChange={e => update("birthday", e.target.value)} style={inputStyle} /></Field>
+          <Field label={tr("Wedding Anniversary")}><input type="date" value={form.wedding_anniversary} onChange={e => update("wedding_anniversary", e.target.value)} style={inputStyle} /></Field>
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-          <Field label="Last time they moved" hint="When they bought / moved into their current home. We'll remind you to check in as their move cycle comes around."><input type="date" value={form.last_moved_on} onChange={e => update("last_moved_on", e.target.value)} style={inputStyle} /></Field>
-          <Field label="Moves about every ___ years" hint="Most people move every few years — the app reminds you to check in as their time gets close. Leave blank for the default (3)."><input type="number" min="1" max="30" placeholder="3" value={form.move_cycle_years} onChange={e => update("move_cycle_years", e.target.value.replace(/\D/g, "").slice(0,2))} style={inputStyle} /></Field>
+          <Field label={tr("Last time they moved")} hint={tr("When they bought / moved into their current home. We'll remind you to check in as their move cycle comes around.")}><input type="date" value={form.last_moved_on} onChange={e => update("last_moved_on", e.target.value)} style={inputStyle} /></Field>
+          <Field label={tr("Moves about every ___ years")} hint={tr("Most people move every few years — the app reminds you to check in as their time gets close. Leave blank for the default (3).")}><input type="number" min="1" max="30" placeholder="3" value={form.move_cycle_years} onChange={e => update("move_cycle_years", e.target.value.replace(/\D/g, "").slice(0,2))} style={inputStyle} /></Field>
         </div>
-        {!isEdit && <div style={{ fontSize: 11, color: "#5F6B7A", marginTop: -8, marginBottom: 4 }}>Tip: birthday, anniversaries, and "last moved" save once you create the contact and reopen it to edit.</div>}
-        <Field label="Groups" hint="Optional — tag where you know them from. Pick any that apply (a contact can be in several, or none).">
+        {!isEdit && <div style={{ fontSize: 11, color: "#5F6B7A", marginTop: -8, marginBottom: 4 }}>{tr("Tip: birthday, anniversaries, and \"last moved\" save once you create the contact and reopen it to edit.")}</div>}
+        <Field label={tr("Groups")} hint={tr("Optional — tag where you know them from. Pick any that apply (a contact can be in several, or none).")}>
           {availableGroups.length === 0 && form.groups.length === 0 ? (
-            <div style={{ fontSize: 12, color: "#5F6B7A", marginBottom: 6 }}>No groups yet — create one below or in "Manage Groups".</div>
+            <div style={{ fontSize: 12, color: "#5F6B7A", marginBottom: 6 }}>{tr("No groups yet — create one below or in \"Manage Groups\".")}</div>
           ) : (
             <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 8 }}>
               {Array.from(new Set([...availableGroups, ...form.groups])).map(name => {
@@ -722,18 +723,18 @@ function ContactModal({ contact, token, onClose, onSaved }) {
           <div style={{ display: "flex", gap: 6 }}>
             <input value={newGroup} onChange={e => setNewGroup(e.target.value)}
               onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); addNewGroup(); } }}
-              placeholder="+ New group (e.g. Bunco)" style={{ ...inputStyle, flex: 1, marginBottom: 0 }} />
-            <button type="button" onClick={addNewGroup} style={btnStyle("#E0F2FE", "#0c4a6e")}>Add</button>
+              placeholder={tr("+ New group (e.g. Bunco)")} style={{ ...inputStyle, flex: 1, marginBottom: 0 }} />
+            <button type="button" onClick={addNewGroup} style={btnStyle("#E0F2FE", "#0c4a6e")}>{tr("Add")}</button>
           </div>
         </Field>
-        <Field label="Notes"><textarea value={form.notes} onChange={e => update("notes", e.target.value)} rows={3} style={{ ...inputStyle, resize: "vertical" }} /></Field>
+        <Field label={tr("Notes")}><textarea value={form.notes} onChange={e => update("notes", e.target.value)} rows={3} style={{ ...inputStyle, resize: "vertical" }} /></Field>
         </>)}
 
         {err && <div style={{ color: "#b91c1c", fontSize: 13, marginBottom: 8 }}>⚠️ {err}</div>}
 
         <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 16 }}>
-          <button onClick={onClose} style={btnStyle("#e5e7eb", "#374151")}>Cancel</button>
-          <button onClick={save} disabled={saving} style={btnStyle("#0c4a6e", "white")}>{saving ? "Saving..." : (isEdit ? "Save" : "Add Contact")}</button>
+          <button onClick={onClose} style={btnStyle("#e5e7eb", "#374151")}>{tr("Cancel")}</button>
+          <button onClick={save} disabled={saving} style={btnStyle("#0c4a6e", "white")}>{saving ? tr("Saving...") : (isEdit ? tr("Save") : tr("Add Contact"))}</button>
         </div>
       </div>
     </div>
@@ -792,7 +793,7 @@ function FillMissingModal({ token, onClose, onDone }) {
     if (!file) return;
     const text = await file.text();
     const all = parseCsv(text);
-    if (all.length < 2) { alert("File appears empty"); return; }
+    if (all.length < 2) { alert(tr("File appears empty")); return; }
     const hdrs = all[0].map(h => h.trim());
     const data = all.slice(1).filter(r => r.some(c => c && c.trim()));
     setHeaders(hdrs);
@@ -816,7 +817,7 @@ function FillMissingModal({ token, onClose, onDone }) {
   };
 
   const submit = async () => {
-    if (mapping.email === undefined) { alert("You must map the Email column."); return; }
+    if (mapping.email === undefined) { alert(tr("You must map the Email column.")); return; }
     setBusy(true);
     const rows = rawRows.map(r => {
       const out = {};
@@ -832,51 +833,51 @@ function FillMissingModal({ token, onClose, onDone }) {
         body: JSON.stringify({ rows })
       });
       const data = await resp.json();
-      if (!resp.ok) { alert("Failed: " + (data.error || "unknown")); setBusy(false); return; }
+      if (!resp.ok) { alert(tr("Failed: ") + (data.error || tr("unknown"))); setBusy(false); return; }
       setResult(data);
       setStep(3);
-    } catch (e) { alert("Error: " + e.message); }
+    } catch (e) { alert(tr("Error: ") + e.message); }
     setBusy(false);
   };
 
   return (
     <div onClick={() => !busy && onClose()} style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.55)", zIndex:9999, display:"flex", alignItems: "flex-start", justifyContent:"center", padding:16, overflowY: "auto" }}>
       <div onClick={e => e.stopPropagation()} style={{ background:"#fff", borderRadius:14, padding:22, maxWidth:640, width:"100%", maxHeight:"90vh", overflowY:"auto", margin: "auto" }}>
-        <div style={{ fontSize:20, fontWeight:800, color:"#92400e", marginBottom:6 }}>🩹 Fill Missing Info from CSV</div>
+        <div style={{ fontSize:20, fontWeight:800, color:"#92400e", marginBottom:6 }}>{tr("🩹 Fill Missing Info from CSV")}</div>
         <div style={{ background:"#fef3c7", border:"1px solid #fcd34d", borderRadius:8, padding:12, marginBottom:14, fontSize:13, color:"#78350f", lineHeight:1.5 }}>
-          <strong>What this does:</strong> Re-imports a CSV from your other CRM and fills in <strong>only blank fields</strong> on existing contacts. <strong>Will never overwrite</strong> data you already have. Matches by <strong>email</strong>.<br/><br/>
-          <strong>When to use:</strong> The first import was missing phones (or other fields) because the source CRM didn't include them. Export again with phones, upload here.
+          <strong>{tr("What this does:")}</strong> {tr("Re-imports a CSV from your other CRM and fills in")} <strong>{tr("only blank fields")}</strong> {tr("on existing contacts.")} <strong>{tr("Will never overwrite")}</strong> {tr("data you already have. Matches by")} <strong>{tr("email")}</strong>.<br/><br/>
+          <strong>{tr("When to use:")}</strong> {tr("The first import was missing phones (or other fields) because the source CRM didn't include them. Export again with phones, upload here.")}
         </div>
 
         {step === 1 && (
           <div>
             <button onClick={() => fileRef.current?.click()} style={{ width:"100%", padding:14, borderRadius:10, border:"2px dashed #d1d5db", background:"#fafafa", cursor:"pointer", fontSize:14, fontWeight:600, color:"#374151" }}>
-              📁 Choose CSV file
+              {tr("📁 Choose CSV file")}
             </button>
             <input ref={fileRef} type="file" accept=".csv" style={{ display:"none" }} onChange={e => onFile(e.target.files?.[0])} />
-            <div style={{ marginTop:14, fontSize:12, color:"#6b7280" }}>The CSV must include an Email column.</div>
-            <button onClick={onClose} style={{ marginTop:16, width:"100%", padding:10, borderRadius:8, border:"1px solid #d1d5db", background:"#fff", color:"#374151", fontWeight:600, cursor:"pointer" }}>Cancel</button>
+            <div style={{ marginTop:14, fontSize:12, color:"#6b7280" }}>{tr("The CSV must include an Email column.")}</div>
+            <button onClick={onClose} style={{ marginTop:16, width:"100%", padding:10, borderRadius:8, border:"1px solid #d1d5db", background:"#fff", color:"#374151", fontWeight:600, cursor:"pointer" }}>{tr("Cancel")}</button>
           </div>
         )}
 
         {step === 2 && (
           <div>
-            <div style={{ fontSize:13, color:"#374151", marginBottom:10 }}>{rawRows.length} rows detected. Map your CSV columns to fields:</div>
+            <div style={{ fontSize:13, color:"#374151", marginBottom:10 }}>{rawRows.length} {tr("rows detected. Map your CSV columns to fields:")}</div>
             {FIELDS.map(f => (
               <div key={f.key} style={{ display:"flex", alignItems:"center", gap:10, marginBottom:8 }}>
-                <div style={{ width:200, fontSize:13, color: f.required ? "#92400e" : "#374151", fontWeight: f.required ? 700 : 500 }}>{f.label}</div>
+                <div style={{ width:200, fontSize:13, color: f.required ? "#92400e" : "#374151", fontWeight: f.required ? 700 : 500 }}>{tr(f.label)}</div>
                 <select value={mapping[f.key] === undefined ? "" : mapping[f.key]}
                   onChange={e => setMapping(m => ({ ...m, [f.key]: e.target.value === "" ? undefined : parseInt(e.target.value) }))}
                   style={{ flex:1, padding:8, borderRadius:6, border:"1px solid #d1d5db", fontSize:13 }}>
-                  <option value="">— skip —</option>
-                  {headers.map((h, i) => <option key={i} value={i}>{h}</option>)}
+                  <option value="">{tr("— skip —")}</option>
+                  {headers.map((h, i) => <option key={i} value={i}>{tr(h)}</option>)}
                 </select>
               </div>
             ))}
             <div style={{ display:"flex", gap:10, marginTop:18 }}>
-              <button onClick={() => setStep(1)} disabled={busy} style={{ flex:1, padding:11, borderRadius:8, border:"1px solid #d1d5db", background:"#fff", color:"#374151", fontWeight:600, cursor:"pointer" }}>← Previous step</button>
+              <button onClick={() => setStep(1)} disabled={busy} style={{ flex:1, padding:11, borderRadius:8, border:"1px solid #d1d5db", background:"#fff", color:"#374151", fontWeight:600, cursor:"pointer" }}>{tr("← Previous step")}</button>
               <button onClick={submit} disabled={busy || mapping.email === undefined} style={{ flex:2, padding:11, borderRadius:8, border:"none", background: (busy || mapping.email === undefined) ? "#9CA3AF" : "#0c4a6e", color:"#fff", fontWeight:700, cursor: busy ? "wait" : "pointer" }}>
-                {busy ? "Filling..." : "🩹 Fill Missing Info"}
+                {busy ? tr("Filling...") : tr("🩹 Fill Missing Info")}
               </button>
             </div>
           </div>
@@ -885,23 +886,23 @@ function FillMissingModal({ token, onClose, onDone }) {
         {step === 3 && result && (
           <div>
             <div style={{ background:"#ecfdf5", border:"1px solid #6ee7b7", borderRadius:8, padding:14, marginBottom:14, fontSize:13, color:"#065f46" }}>
-              <div style={{ fontWeight:700, marginBottom:6 }}>✅ Done</div>
-              <div>Rows in CSV: <strong>{result.summary.total_rows}</strong></div>
-              <div>Matched to existing contacts: <strong>{result.summary.matched}</strong></div>
-              <div>Contacts updated: <strong>{result.summary.updated}</strong></div>
-              <div>Already complete (no blanks): <strong>{result.summary.no_blanks_to_fill}</strong></div>
-              <div>Skipped (no email in row): <strong>{result.summary.skipped_no_email}</strong></div>
-              <div>Skipped (no match in your contacts): <strong>{result.summary.skipped_no_match}</strong></div>
+              <div style={{ fontWeight:700, marginBottom:6 }}>{tr("✅ Done")}</div>
+              <div>{tr("Rows in CSV:")} <strong>{result.summary.total_rows}</strong></div>
+              <div>{tr("Matched to existing contacts:")} <strong>{result.summary.matched}</strong></div>
+              <div>{tr("Contacts updated:")} <strong>{result.summary.updated}</strong></div>
+              <div>{tr("Already complete (no blanks):")} <strong>{result.summary.no_blanks_to_fill}</strong></div>
+              <div>{tr("Skipped (no email in row):")} <strong>{result.summary.skipped_no_email}</strong></div>
+              <div>{tr("Skipped (no match in your contacts):")} <strong>{result.summary.skipped_no_match}</strong></div>
             </div>
             {result.sample_updates && result.sample_updates.length > 0 && (
               <div style={{ fontSize:12, color:"#374151", marginBottom:14 }}>
-                <div style={{ fontWeight:700, marginBottom:4 }}>Sample updates:</div>
+                <div style={{ fontWeight:700, marginBottom:4 }}>{tr("Sample updates:")}</div>
                 {result.sample_updates.map((s, i) => (
-                  <div key={i}>• {s.email} → filled: {s.filled.join(", ")}</div>
+                  <div key={i}>• {s.email} {tr("→ filled:")} {s.filled.join(", ")}</div>
                 ))}
               </div>
             )}
-            <button onClick={onDone} style={{ width:"100%", padding:11, borderRadius:8, border:"none", background:"#0c4a6e", color:"#fff", fontWeight:700, cursor:"pointer" }}>Close & Refresh</button>
+            <button onClick={onDone} style={{ width:"100%", padding:11, borderRadius:8, border:"none", background:"#0c4a6e", color:"#fff", fontWeight:700, cursor:"pointer" }}>{tr("Close & Refresh")}</button>
           </div>
         )}
       </div>
@@ -947,7 +948,7 @@ function ImportModal({ token, onClose, onImported, onFillMissing }) {
     if (!file) return;
     const text = await file.text();
     const all = parseCsv(text);
-    if (all.length < 2) { alert("File appears empty or invalid"); return; }
+    if (all.length < 2) { alert(tr("File appears empty or invalid")); return; }
     const hdrs = all[0].map(h => h.trim());
     const data = all.slice(1).filter(r => r.some(c => c && c.trim()));
     setHeaders(hdrs);
@@ -995,7 +996,7 @@ function ImportModal({ token, onClose, onImported, onFillMissing }) {
       setResult(data);
       setStep(3);
       onImported && onImported(data);
-    } catch (e) { alert("Import failed: " + e.message); }
+    } catch (e) { alert(tr("Import failed: ") + e.message); }
     finally { setImporting(false); }
   };
 
@@ -1017,16 +1018,16 @@ function ImportModal({ token, onClose, onImported, onFillMissing }) {
   const safeClose = async () => {
     if (importing) return;
     if (step === 3) { onClose(); return; }
-    if (rawRows.length > 0 && !(await askConfirm("Discard this import? Your progress will be lost.", { okLabel: "Discard", danger: true }))) return;
+    if (rawRows.length > 0 && !(await askConfirm(tr("Discard this import? Your progress will be lost."), { okLabel: tr("Discard"), danger: true }))) return;
     onClose();
   };
 
   return (
     <div style={{ position: "fixed", inset: 0, zIndex: 4000, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "flex-start", justifyContent: "center", padding: 16, overflowY: "auto" }} onClick={safeClose}>
       <div onClick={e => e.stopPropagation()} style={{ background: "white", borderRadius: 12, maxWidth: 640, width: "100%", maxHeight: "90vh", overflowY: "auto", padding: 24, margin: "auto" }}>
-        <div style={{ fontSize: 18, fontWeight: 800, marginBottom: 4 }}>📥 Import Contacts (CSV)</div>
+        <div style={{ fontSize: 18, fontWeight: 800, marginBottom: 4 }}>{tr("📥 Import Contacts (CSV)")}</div>
         <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 16 }}>
-          Upload a CSV export from your CRM, Google Contacts, Excel, or any spreadsheet. Column matching is automatic.
+          {tr("Upload a CSV export from your CRM, Google Contacts, Excel, or any spreadsheet. Column matching is automatic.")}
         </div>
 
         {step === 1 && (
@@ -1034,19 +1035,19 @@ function ImportModal({ token, onClose, onImported, onFillMissing }) {
             <div style={{ border: "2px dashed #d1d5db", borderRadius: 8, padding: 32, textAlign: "center", background: "#f9fafb" }}>
               <input ref={fileRef} type="file" accept=".csv,text/csv" onChange={e => onFile(e.target.files && e.target.files[0])} style={{ display: "none" }} />
               <button onClick={() => fileRef.current && fileRef.current.click()} style={btnStyle("#0c4a6e", "white")}>
-                Choose CSV File
+                {tr("Choose CSV File")}
               </button>
               <div style={{ fontSize: 12, color: "#6b7280", marginTop: 12 }}>
-                Max 5,000 rows. Duplicates (same phone or email) are skipped automatically.
+                {tr("Max 5,000 rows. Duplicates (same phone or email) are skipped automatically.")}
               </div>
             </div>
             {onFillMissing && (
               <div style={{ marginTop: 16, padding: 12, background: "#fef3c7", border: "1px solid #fcd34d", borderRadius: 8, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
                 <div style={{ fontSize: 12, color: "#78350f" }}>
-                  Already have contacts but missing phones/emails? Re-import from another CRM to fill the gaps.
+                  {tr("Already have contacts but missing phones/emails? Re-import from another CRM to fill the gaps.")}
                 </div>
                 <button onClick={onFillMissing} style={{ ...btnStyle("#fef3c7", "#92400e"), border: "1px solid #fcd34d", whiteSpace: "nowrap" }}>
-                  🩹 Fill Missing Info
+                  {tr("🩹 Fill Missing Info")}
                 </button>
               </div>
             )}
@@ -1056,43 +1057,43 @@ function ImportModal({ token, onClose, onImported, onFillMissing }) {
         {step === 2 && (
           <div>
             <div style={{ background: "#fef3c7", border: "1px solid #fcd34d", borderRadius: 6, padding: 10, fontSize: 12, color: "#78350f", marginBottom: 16 }}>
-              Detected <strong>{rawRows.length}</strong> rows. Match each CSV column to a contact field. Leave blank to skip.
+              {tr("Detected")} <strong>{rawRows.length}</strong> {tr("rows. Match each CSV column to a contact field. Leave blank to skip.")}
             </div>
             <div style={{ display: "grid", gap: 8, marginBottom: 16 }}>
               {FIELDS.map(f => (
                 <div key={f.key} style={{ display: "grid", gridTemplateColumns: "180px 1fr", gap: 8, alignItems: "center" }}>
-                  <label style={{ fontSize: 13, color: "#374151" }}>{f.label}</label>
+                  <label style={{ fontSize: 13, color: "#374151" }}>{tr(f.label)}</label>
                   <select value={mapping[f.key] != null ? mapping[f.key] : ""}
                     onChange={e => setMapping(m => ({ ...m, [f.key]: e.target.value === "" ? null : Number(e.target.value) }))}
                     style={inputStyle}>
-                    <option value="">— skip —</option>
-                    {headers.map((h, i) => <option key={i} value={i}>{h}</option>)}
+                    <option value="">{tr("— skip —")}</option>
+                    {headers.map((h, i) => <option key={i} value={i}>{tr(h)}</option>)}
                   </select>
                 </div>
               ))}
             </div>
 
             <div style={{ borderTop: "1px solid #e5e7eb", paddingTop: 16, marginBottom: 16 }}>
-              <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 8 }}>Defaults for all imported contacts:</div>
+              <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 8 }}>{tr("Defaults for all imported contacts:")}</div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-                <Field label="Temperature">
+                <Field label={tr("Temperature")}>
                   <select value={defaultTemp} onChange={e => setDefaultTemp(e.target.value)} style={inputStyle}>
-                    {Object.entries(TEMP_META).filter(([k]) => k !== "dnc").map(([k, m]) => <option key={k} value={k}>{m.emoji} {m.label}</option>)}
+                    {Object.entries(TEMP_META).filter(([k]) => k !== "dnc").map(([k, m]) => <option key={k} value={k}>{m.emoji} {tr(m.label)}</option>)}
                   </select>
                 </Field>
-                <Field label="Type">
+                <Field label={tr("Type")}>
                   <select value={defaultType} onChange={e => setDefaultType(e.target.value)} style={inputStyle}>
-                    {TYPE_OPTIONS.map(t => <option key={t} value={t}>{t.replace("_", " ")}</option>)}
+                    {TYPE_OPTIONS.map(t => <option key={t} value={t}>{tr(t.replace("_", " "))}</option>)}
                   </select>
                 </Field>
               </div>
-              <Field label="Source label"><input value={source} onChange={e => setSource(e.target.value)} style={inputStyle} /></Field>
+              <Field label={tr("Source label")}><input value={source} onChange={e => setSource(e.target.value)} style={inputStyle} /></Field>
             </div>
 
             <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
-              <button onClick={() => setStep(1)} style={btnStyle("#e5e7eb", "#374151")}>← Previous step</button>
+              <button onClick={() => setStep(1)} style={btnStyle("#e5e7eb", "#374151")}>{tr("← Previous step")}</button>
               <button onClick={doImport} disabled={importing} style={btnStyle("#0c4a6e", "white")}>
-                {importing ? "Importing..." : ("Import " + rawRows.length + " Contacts")}
+                {importing ? tr("Importing...") : (tr("Import ") + rawRows.length + tr(" Contacts"))}
               </button>
             </div>
           </div>
@@ -1102,27 +1103,27 @@ function ImportModal({ token, onClose, onImported, onFillMissing }) {
           <div>
             <div style={{ background: result.created > 0 ? "#dcfce7" : "#fee2e2", border: "1px solid " + (result.created > 0 ? "#86efac" : "#fca5a5"), borderRadius: 8, padding: 16, marginBottom: 16 }}>
               <div style={{ fontWeight: 800, fontSize: 16, color: result.created > 0 ? "#14532d" : "#7f1d1d" }}>
-                {result.created > 0 ? "✅ Import Complete" : "⚠️ Import Failed"}
+                {result.created > 0 ? tr("✅ Import Complete") : tr("⚠️ Import Failed")}
               </div>
               <div style={{ fontSize: 13, color: result.created > 0 ? "#14532d" : "#7f1d1d", marginTop: 8 }}>
-                Created: <strong>{result.created}</strong><br/>
-                Skipped (duplicates / empty): <strong>{result.skipped}</strong><br/>
-                Errors: <strong>{(result.errors && result.errors.length) || 0}</strong>
+                {tr("Created:")} <strong>{result.created}</strong><br/>
+                {tr("Skipped (duplicates / empty):")} <strong>{result.skipped}</strong><br/>
+                {tr("Errors:")} <strong>{(result.errors && result.errors.length) || 0}</strong>
               </div>
             </div>
             {result.errors && result.errors.length > 0 && (
               <div style={{ background: "#fef2f2", border: "1px solid #fca5a5", borderRadius: 8, padding: 12, marginBottom: 16, maxHeight: 300, overflowY: "auto" }}>
-                <div style={{ fontSize: 12, fontWeight: 700, color: "#7f1d1d", marginBottom: 8 }}>First {Math.min(result.errors.length, 10)} errors:</div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: "#7f1d1d", marginBottom: 8 }}>{tr("First")} {Math.min(result.errors.length, 10)} {tr("errors:")}</div>
                 {result.errors.slice(0, 10).map((e, i) => (
                   <div key={i} style={{ fontSize: 11, color: "#7f1d1d", marginBottom: 6, fontFamily: "monospace", wordBreak: "break-word" }}>
-                    <strong>Row {i + 1}:</strong> {e.error || "Unknown error"}
+                    <strong>{tr("Row")} {i + 1}:</strong> {e.error || tr("Unknown error")}
                     <div style={{ color: "#991b1b", marginTop: 2 }}>{JSON.stringify(e.row).slice(0, 200)}</div>
                   </div>
                 ))}
               </div>
             )}
             <div style={{ display: "flex", justifyContent: "flex-end" }}>
-              <button onClick={onClose} style={btnStyle("#0c4a6e", "white")}>Done</button>
+              <button onClick={onClose} style={btnStyle("#0c4a6e", "white")}>{tr("Done")}</button>
             </div>
           </div>
         )}
@@ -1197,25 +1198,25 @@ function ContactDetailDrawer({ contact, token, onClose, onEdit, onLogged, onArch
       <div onClick={e => e.stopPropagation()} style={{ width: "100%", maxWidth: 520, background: "white", height: "100%", overflowY: "auto" }}>
         <div style={{ position: "sticky", top: 0, background: m.bg, borderBottom: "1px solid #e5e7eb", padding: "16px 20px", zIndex: 1 }}>
           <button onClick={onClose} style={{ float: "right", background: "none", border: "none", fontSize: 22, cursor: "pointer", color: "#374151" }}>✕</button>
-          <div style={{ fontSize: 11, color: m.color, fontWeight: 700, textTransform: "uppercase" }}>{m.emoji} {m.label}</div>
+          <div style={{ fontSize: 11, color: m.color, fontWeight: 700, textTransform: "uppercase" }}>{m.emoji} {tr(m.label)}</div>
           <div style={{ fontSize: 20, fontWeight: 800, color: "#111", marginTop: 4 }}>{name}</div>
           <div style={{ fontSize: 12, color: "#6b7280", marginTop: 4 }}>
-            {(contact.contact_type || "").replace("_", " ")}
-            {contact.source && " · from " + contact.source}
+            {tr((contact.contact_type || "").replace("_", " "))}
+            {contact.source && tr(" · from ") + contact.source}
           </div>
         </div>
 
         <div style={{ padding: 20 }}>
           {/* Contact info card */}
           <div style={{ background: "#f9fafb", border: "1px solid #e5e7eb", borderRadius: 8, padding: 14, marginBottom: 20 }}>
-            <div style={innerTitle("#374151")}>📇 Contact Info</div>
+            <div style={innerTitle("#374151")}>{tr("📇 Contact Info")}</div>
             {contact.phone && <div style={{ fontSize: 13, marginBottom: 4 }}>📞 <a href={"tel:" + contact.phone} style={{ color: "#0c4a6e" }}>{contact.phone}</a></div>}
             {contact.email && <div style={{ fontSize: 13, marginBottom: 4 }}>✉️ <a href={"mailto:" + contact.email} style={{ color: "#0c4a6e" }}>{contact.email}</a></div>}
             {(contact.address || contact.city) && (
               <div style={{ fontSize: 13, marginBottom: 4 }}>📍 {[contact.address, contact.city, contact.state, contact.zip_code].filter(Boolean).join(", ")}</div>
             )}
             <div style={{ fontSize: 12, color: "#6b7280", marginTop: 8 }}>
-              Last called: <strong>{fmtPastDate(contact.last_contacted_at)}</strong>
+              {tr("Last called:")} <strong>{fmtPastDate(contact.last_contacted_at)}</strong>
             </div>
           </div>
 
@@ -1228,17 +1229,17 @@ function ContactDetailDrawer({ contact, token, onClose, onEdit, onLogged, onArch
             return (
               <div style={{ background: c.bg, border: `1px solid ${c.bd}`, borderRadius: 8, padding: 14, marginBottom: 16 }}>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
-                  <div style={innerTitle(c.fg)}>🏡 Likely to Move</div>
+                  <div style={innerTitle(c.fg)}>{tr("🏡 Likely to Move")}</div>
                   <div style={{ fontSize: 22, fontWeight: 900, color: c.fg }}>{s}%</div>
                 </div>
                 <div style={{ fontSize: 12, fontWeight: 700, color: c.fg, marginBottom: 6 }}>{c.tag}</div>
-                {moveScore.lastMovedOn && <div style={{ fontSize: 13, marginBottom: 2 }}>🏠 Last moved: {fmtDate(moveScore.lastMovedOn)}{moveScore.yearsSince != null ? ` (~${moveScore.yearsSince} yrs ago)` : ""}</div>}
-                {moveScore.nextMoveDate && <div style={{ fontSize: 13, marginBottom: 4 }}>🔄 Move-cycle mark: {fmtDate(moveScore.nextMoveDate)} (every {moveScore.cycle} yrs)</div>}
+                {moveScore.lastMovedOn && <div style={{ fontSize: 13, marginBottom: 2 }}>{tr("🏠 Last moved:")} {fmtDate(moveScore.lastMovedOn)}{moveScore.yearsSince != null ? tr(" (~{yearsSince} yrs ago)", { yearsSince: moveScore.yearsSince }) : ""}</div>}
+                {moveScore.nextMoveDate && <div style={{ fontSize: 13, marginBottom: 4 }}>{tr("🔄 Move-cycle mark:")} {fmtDate(moveScore.nextMoveDate)} {tr("(every")} {moveScore.cycle} {tr("yrs)")}</div>}
                 {moveScore.engagement && (moveScore.engagement.clicks90 > 0 || moveScore.engagement.opens90 > 0) && (
-                  <div style={{ fontSize: 13, marginBottom: 4 }}>📬 Newsletter (90d): opened {moveScore.engagement.opens90}, <strong>clicked {moveScore.engagement.clicks90}</strong></div>
+                  <div style={{ fontSize: 13, marginBottom: 4 }}>{tr("📬 Newsletter (90d): opened")} {moveScore.engagement.opens90}, <strong>{tr("clicked")} {moveScore.engagement.clicks90}</strong></div>
                 )}
                 {Array.isArray(moveScore.reasons) && moveScore.reasons.length > 0 && (
-                  <div style={{ fontSize: 12, color: "#374151", marginTop: 4 }}>Why: {moveScore.reasons.join("; ")}.</div>
+                  <div style={{ fontSize: 12, color: "#374151", marginTop: 4 }}>{tr("Why:")} {moveScore.reasons.join("; ")}.</div>
                 )}
               </div>
             );
@@ -1247,18 +1248,18 @@ function ContactDetailDrawer({ contact, token, onClose, onEdit, onLogged, onArch
           {/* Relationship card — tier, spouse, key dates, groups, referred-by, notes */}
           {(contact.tier || contact.spouse_name || contact.birthday || contact.wedding_anniversary || contact.referred_by || (Array.isArray(contact.tags) && contact.tags.length) || contact.personal_notes || contact.popby_address || contact.last_moved_on) && (
             <div style={{ background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 8, padding: 14, marginBottom: 20 }}>
-              <div style={innerTitle("#0c4a6e")}>⭐ Relationship</div>
-              {contact.tier && <div style={{ fontSize: 13, marginBottom: 4 }}>Tier: <span style={{ ...tierBadgeStyle(contact.tier) }}>{contact.tier}</span></div>}
-              {contact.spouse_name && <div style={{ fontSize: 13, marginBottom: 4 }}>💑 Spouse/partner: <strong>{contact.spouse_name}</strong></div>}
-              {contact.birthday && <div style={{ fontSize: 13, marginBottom: 4 }}>🎂 Birthday: {fmtDate(contact.birthday)}</div>}
-              {contact.wedding_anniversary && <div style={{ fontSize: 13, marginBottom: 4 }}>💍 Anniversary: {fmtDate(contact.wedding_anniversary)}</div>}
-              {contact.referred_by && <div style={{ fontSize: 13, marginBottom: 4 }}>🙏 Referred by: <strong>{contact.referred_by}</strong></div>}
+              <div style={innerTitle("#0c4a6e")}>{tr("⭐ Relationship")}</div>
+              {contact.tier && <div style={{ fontSize: 13, marginBottom: 4 }}>{tr("Tier:")} <span style={{ ...tierBadgeStyle(contact.tier) }}>{contact.tier}</span></div>}
+              {contact.spouse_name && <div style={{ fontSize: 13, marginBottom: 4 }}>{tr("💑 Spouse/partner:")} <strong>{contact.spouse_name}</strong></div>}
+              {contact.birthday && <div style={{ fontSize: 13, marginBottom: 4 }}>{tr("🎂 Birthday:")} {fmtDate(contact.birthday)}</div>}
+              {contact.wedding_anniversary && <div style={{ fontSize: 13, marginBottom: 4 }}>{tr("💍 Anniversary:")} {fmtDate(contact.wedding_anniversary)}</div>}
+              {contact.referred_by && <div style={{ fontSize: 13, marginBottom: 4 }}>{tr("🙏 Referred by:")} <strong>{contact.referred_by}</strong></div>}
               {Array.isArray(contact.tags) && contact.tags.length > 0 && (
                 <div style={{ fontSize: 13, marginBottom: 4, display: "flex", flexWrap: "wrap", gap: 4, alignItems: "center" }}>
-                  👥 Groups: {contact.tags.map(t => <span key={t} style={{ background: "#dbeafe", color: "#1e3a8a", borderRadius: 10, padding: "1px 8px", fontSize: 11, fontWeight: 600 }}>{t}</span>)}
+                  {tr("👥 Groups:")} {contact.tags.map(t => <span key={t} style={{ background: "#dbeafe", color: "#1e3a8a", borderRadius: 10, padding: "1px 8px", fontSize: 11, fontWeight: 600 }}>{t}</span>)}
                 </div>
               )}
-              {contact.popby_address && <div style={{ fontSize: 13, marginBottom: 4 }}>🎁 Pop-by address: {contact.popby_address}</div>}
+              {contact.popby_address && <div style={{ fontSize: 13, marginBottom: 4 }}>{tr("🎁 Pop-by address:")} {contact.popby_address}</div>}
               {contact.personal_notes && <div style={{ fontSize: 12, color: "#374151", marginTop: 6, paddingTop: 6, borderTop: "1px solid #bae6fd" }}>{contact.personal_notes}</div>}
             </div>
           )}
@@ -1268,8 +1269,8 @@ function ContactDetailDrawer({ contact, token, onClose, onEdit, onLogged, onArch
             if (!contact.next_call_due_at) {
               return (
                 <div style={{ background: "#f3f4f6", border: "1px dashed #d1d5db", borderRadius: 8, padding: 16, marginBottom: 20, textAlign: "center" }}>
-                  <div style={{ ...innerTitle("#6b7280"), justifyContent: "center" }}>🔮 Next Follow-Up</div>
-                  <div style={{ fontSize: 13, color: "#6b7280" }}>No follow-up scheduled. Log a call to plan the next one.</div>
+                  <div style={{ ...innerTitle("#6b7280"), justifyContent: "center" }}>{tr("🔮 Next Follow-Up")}</div>
+                  <div style={{ fontSize: 13, color: "#6b7280" }}>{tr("No follow-up scheduled. Log a call to plan the next one.")}</div>
                 </div>
               );
             }
@@ -1300,16 +1301,16 @@ function ContactDetailDrawer({ contact, token, onClose, onEdit, onLogged, onArch
             return (
               <div style={{ background: bg, border: "1px solid " + border, borderRadius: 8, padding: 16, marginBottom: 20 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-                  <div style={innerTitle(color)}>🔮 Next Follow-Up</div>
+                  <div style={innerTitle(color)}>{tr("🔮 Next Follow-Up")}</div>
                   <div style={{ fontSize: 12, color, fontWeight: 800, padding: "3px 10px", background: "rgba(255,255,255,0.6)", borderRadius: 12 }}>{statusLabel}</div>
                 </div>
                 <div style={{ fontSize: 15, fontWeight: 700, color: "#111", marginBottom: 4 }}>
-                  {next.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
+                  {next.toLocaleDateString(uiLocale(), { weekday: "long", month: "long", day: "numeric" })}
                 </div>
                 <div style={{ fontSize: 13, color: color, marginBottom: 6 }}>{reason}</div>
                 {lastCall && lastCall.notes && (
                   <div style={{ fontSize: 12, color: "#374151", marginTop: 8, padding: 8, background: "rgba(255,255,255,0.6)", borderRadius: 4 }}>
-                    <strong style={{ fontSize: 10, textTransform: "uppercase", color: "#6b7280" }}>Last call note:</strong><br/>
+                    <strong style={{ fontSize: 10, textTransform: "uppercase", color: "#6b7280" }}>{tr("Last call note:")}</strong><br/>
                     {lastCall.notes}
                   </div>
                 )}
@@ -1320,7 +1321,7 @@ function ContactDetailDrawer({ contact, token, onClose, onEdit, onLogged, onArch
           {/* Profile notes */}
           {contact.notes && (
             <div style={{ background: "#fefce8", border: "1px solid #fde047", borderRadius: 8, padding: 16, marginBottom: 20 }}>
-              <div style={innerTitle("#854d0e")}>📌 Profile Notes</div>
+              <div style={innerTitle("#854d0e")}>{tr("📌 Profile Notes")}</div>
               <div style={{ fontSize: 14, color: "#1f2937", whiteSpace: "pre-wrap", lineHeight: 1.5 }}>{contact.notes}</div>
             </div>
           )}
@@ -1334,35 +1335,35 @@ function ContactDetailDrawer({ contact, token, onClose, onEdit, onLogged, onArch
               onClick={() => onEdit(contact)}
               style={{ background: "#fff", color: "#0c4a6e", border: "2px solid #0c4a6e", borderRadius: 8, padding: "12px 18px", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}
             >
-              ✏️ Edit Contact
+              {tr("✏️ Edit Contact")}
             </button>
           </div>
 
           {/* Log a pop-by for this contact */}
           <button onClick={() => setShowPopBy(true)}
             style={{ width: "100%", marginBottom: 16, background: "#fff", color: "#0F6E56", border: "2px solid #0F6E56", borderRadius: 8, padding: "11px 18px", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
-            🎁 Log a Pop-By
+            {tr("🎁 Log a Pop-By")}
           </button>
 
           {/* Activity history — calls + pop-bys in one timeline */}
           <div style={sectionTitle}>
-            📋 Activity History
+            {tr("📋 Activity History")}
             <span style={{ fontSize: 13, color: "#6b7280", fontWeight: 600, marginLeft: 4 }}>({callHistory.length})</span>
           </div>
 
-          {loading && <div style={{ fontSize: 13, color: "#6b7280", textAlign: "center", padding: 20 }}>Loading...</div>}
+          {loading && <div style={{ fontSize: 13, color: "#6b7280", textAlign: "center", padding: 20 }}>{tr("Loading...")}</div>}
           {!loading && callHistory.length === 0 && (
             <div style={{ background: "#f9fafb", border: "1px dashed #d1d5db", borderRadius: 8, padding: 20, textAlign: "center", color: "#6b7280", fontSize: 13 }}>
-              Nothing logged yet. Tap <strong>📞 Log Call</strong> or <strong>🎁 Log a Pop-By</strong> above to start the history.
+              {tr("Nothing logged yet. Tap")} <strong>{tr("📞 Log Call")}</strong> {tr("or")} <strong>{tr("🎁 Log a Pop-By")}</strong> {tr("above to start the history.")}
             </div>
           )}
           {!loading && callHistory.map(item => {
-            const when = new Date(item.at).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" });
+            const when = new Date(item.at).toLocaleDateString(uiLocale(), { weekday: "short", month: "short", day: "numeric", year: "numeric" });
             if (item.kind === "pop_by") {
               return (
                 <div key={"p" + item.id} style={{ background: "white", border: "1px solid #e5e7eb", borderLeft: "4px solid #0F6E56", borderRadius: 8, padding: 14, marginBottom: 12, boxShadow: "0 1px 2px rgba(0,0,0,0.04)" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8, gap: 8, flexWrap: "wrap" }}>
-                    <span style={{ fontSize: 14, fontWeight: 800, color: "#0F6E56" }}>🎁 Pop-by delivered</span>
+                    <span style={{ fontSize: 14, fontWeight: 800, color: "#0F6E56" }}>{tr("🎁 Pop-by delivered")}</span>
                     <span style={{ fontSize: 12, color: "#374151", fontWeight: 600 }}>{when}</span>
                   </div>
                   {item.gift && <div style={{ fontSize: 14, color: "#1f2937" }}>{item.gift}</div>}
@@ -1374,7 +1375,7 @@ function ContactDetailDrawer({ contact, token, onClose, onEdit, onLogged, onArch
             return (
               <div key={"c" + item.id} style={{ background: "white", border: "1px solid #e5e7eb", borderLeft: `4px solid ${o.color}`, borderRadius: 8, padding: 14, marginBottom: 12, boxShadow: "0 1px 2px rgba(0,0,0,0.04)" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8, gap: 8, flexWrap: "wrap" }}>
-                  <span style={{ fontSize: 14, fontWeight: 800, color: o.color }}>{o.label}</span>
+                  <span style={{ fontSize: 14, fontWeight: 800, color: o.color }}>{tr(o.label)}</span>
                   <span style={{ fontSize: 12, color: "#374151", fontWeight: 600 }}>{when}</span>
                 </div>
                 {item.notes && (
@@ -1383,8 +1384,8 @@ function ContactDetailDrawer({ contact, token, onClose, onEdit, onLogged, onArch
                   </div>
                 )}
                 <div style={{ fontSize: 12, color: "#6b7280", marginTop: 8, paddingTop: 8, borderTop: "1px dashed #e5e7eb" }}>
-                  {item.by && "Logged by " + item.by + " · "}
-                  {item.nextCallScheduledAt ? "📅 Next call: " + new Date(item.nextCallScheduledAt).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" }) : "No follow-up scheduled"}
+                  {item.by && tr("Logged by ") + item.by + " · "}
+                  {item.nextCallScheduledAt ? tr("📅 Next call: ") + new Date(item.nextCallScheduledAt).toLocaleDateString(uiLocale(), { weekday: "short", month: "short", day: "numeric" }) : tr("No follow-up scheduled")}
                 </div>
               </div>
             );
@@ -1424,51 +1425,51 @@ function BulkScheduleModal({ token, contactCount, onClose, onScheduled }) {
       setResult(data);
       setStep(3);
       onScheduled && onScheduled(data);
-    } catch (e) { alert("Failed: " + e.message); }
+    } catch (e) { alert(tr("Failed: ") + e.message); }
     finally { setSubmitting(false); }
   };
 
   return (
     <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 4100, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "flex-start", justifyContent: "center", padding: 16, overflowY: "auto" }}>
       <div onClick={e => e.stopPropagation()} style={{ background: "white", borderRadius: 12, maxWidth: 540, width: "100%", maxHeight: "90vh", overflowY: "auto", padding: 24, margin: "auto" }}>
-        <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 4 }}>📅 Schedule Calls</div>
+        <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 4 }}>{tr("📅 Schedule Calls")}</div>
         <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 16 }}>
-          Distribute your contacts into a daily call plan. The system staggers contacts across days so you have a manageable list every morning.
+          {tr("Distribute your contacts into a daily call plan. The system staggers contacts across days so you have a manageable list every morning.")}
         </div>
 
         {step === 1 && (
           <div>
             <div style={{ background: "#fef3c7", border: "1px solid #fcd34d", borderRadius: 8, padding: 12, marginBottom: 16, fontSize: 12, color: "#78350f" }}>
-              💡 <strong>How this works:</strong> You have {contactCount} contacts. The app will assign each one a "next call" date, spreading them across business days. Tomorrow's calls show up in your Win-the-Day widget.
+              💡 <strong>{tr("How this works:")}</strong> {tr("You have")} {contactCount} {tr("contacts. The app will assign each one a \"next call\" date, spreading them across business days. Tomorrow's calls show up in your Win-the-Day widget.")}
             </div>
 
-            <Field label="Which contacts?" hint="Choose what to schedule">
+            <Field label={tr("Which contacts?")} hint={tr("Choose what to schedule")}>
               <select value={filter.hasNoFollowUp ? "no_follow" : "all"} onChange={e => setFilter(f => ({ ...f, hasNoFollowUp: e.target.value === "no_follow" }))} style={inputStyle}>
-                <option value="no_follow">Only contacts without a next-call date (recommended)</option>
-                <option value="all">All matching contacts (overrides existing schedule)</option>
+                <option value="no_follow">{tr("Only contacts without a next-call date (recommended)")}</option>
+                <option value="all">{tr("All matching contacts (overrides existing schedule)")}</option>
               </select>
             </Field>
 
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-              <Field label="Temperature filter">
+              <Field label={tr("Temperature filter")}>
                 <select value={filter.temperature} onChange={e => setFilter(f => ({ ...f, temperature: e.target.value }))} style={inputStyle}>
-                  <option value="">All statuses</option>
-                  {Object.entries(TEMP_META).filter(([k]) => k !== "dnc").map(([k, m]) => <option key={k} value={k}>{m.emoji} {m.label}</option>)}
+                  <option value="">{tr("All statuses")}</option>
+                  {Object.entries(TEMP_META).filter(([k]) => k !== "dnc").map(([k, m]) => <option key={k} value={k}>{m.emoji} {tr(m.label)}</option>)}
                 </select>
               </Field>
-              <Field label="Type filter">
+              <Field label={tr("Type filter")}>
                 <select value={filter.type} onChange={e => setFilter(f => ({ ...f, type: e.target.value }))} style={inputStyle}>
-                  <option value="">All types</option>
-                  {TYPE_OPTIONS.map(t => <option key={t} value={t}>{t.replace("_", " ")}</option>)}
+                  <option value="">{tr("All types")}</option>
+                  {TYPE_OPTIONS.map(t => <option key={t} value={t}>{tr(t.replace("_", " "))}</option>)}
                 </select>
               </Field>
             </div>
 
-            <Field label="Start on" hint="First day of your call plan">
+            <Field label={tr("Start on")} hint={tr("First day of your call plan")}>
               <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} style={inputStyle} />
             </Field>
 
-            <Field label="How many calls per day?" hint="Realistic: 10-25 calls/day. Don't overcommit — you'll burn out.">
+            <Field label={tr("How many calls per day?")} hint={tr("Realistic: 10-25 calls/day. Don't overcommit — you'll burn out.")}>
               <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 8 }}>
                 {[5, 10, 20, 50].map(n => (
                   <button key={n} onClick={() => setCallsPerDay(n)} type="button"
@@ -1482,16 +1483,16 @@ function BulkScheduleModal({ token, contactCount, onClose, onScheduled }) {
                 style={{ ...inputStyle, width: 120 }} />
             </Field>
 
-            <Field label="Skip weekends?">
+            <Field label={tr("Skip weekends?")}>
               <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", fontSize: 13 }}>
                 <input type="checkbox" checked={skipWeekends} onChange={e => setSkipWeekends(e.target.checked)} style={{ width: 16, height: 16 }} />
-                Skip Saturdays and Sundays (recommended)
+                {tr("Skip Saturdays and Sundays (recommended)")}
               </label>
             </Field>
 
             <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 16 }}>
-              <button onClick={onClose} style={btnStyle("#e5e7eb", "#374151")}>Cancel</button>
-              <button onClick={() => setStep(2)} style={btnStyle("#0c4a6e", "white")}>Preview →</button>
+              <button onClick={onClose} style={btnStyle("#e5e7eb", "#374151")}>{tr("Cancel")}</button>
+              <button onClick={() => setStep(2)} style={btnStyle("#0c4a6e", "white")}>{tr("Preview →")}</button>
             </div>
           </div>
         )}
@@ -1499,23 +1500,23 @@ function BulkScheduleModal({ token, contactCount, onClose, onScheduled }) {
         {step === 2 && (
           <div>
             <div style={{ background: "#dbeafe", border: "1px solid #93c5fd", borderRadius: 8, padding: 14, marginBottom: 16, fontSize: 13, color: "#0c4a6e" }}>
-              <strong>📋 Review your plan:</strong>
+              <strong>{tr("📋 Review your plan:")}</strong>
               <ul style={{ margin: "8px 0 0 0", paddingLeft: 18, lineHeight: 1.7 }}>
-                <li>Filter: <strong>{filter.hasNoFollowUp ? "Only contacts without a follow-up" : "All matching contacts"}</strong>{filter.temperature ? " · " + (TEMP_META[filter.temperature] || {}).label : ""}{filter.type ? " · " + filter.type : ""}</li>
-                <li>Start: <strong>{new Date(startDate + "T09:00:00").toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}</strong></li>
-                <li>Pace: <strong>{callsPerDay} calls/day</strong></li>
-                <li>Weekends: <strong>{skipWeekends ? "Skipped" : "Included"}</strong></li>
+                <li>{tr("Filter:")} <strong>{filter.hasNoFollowUp ? tr("Only contacts without a follow-up") : tr("All matching contacts")}</strong>{filter.temperature ? " · " + tr((TEMP_META[filter.temperature] || {}).label) : ""}{filter.type ? " · " + filter.type : ""}</li>
+                <li>{tr("Start:")} <strong>{new Date(startDate + "T09:00:00").toLocaleDateString(uiLocale(), { weekday: "long", month: "long", day: "numeric" })}</strong></li>
+                <li>{tr("Pace:")} <strong>{callsPerDay} {tr("calls/day")}</strong></li>
+                <li>{tr("Weekends:")} <strong>{skipWeekends ? tr("Skipped") : tr("Included")}</strong></li>
               </ul>
             </div>
 
             <div style={{ background: "#fffbeb", border: "1px solid #fcd34d", borderRadius: 8, padding: 12, fontSize: 12, color: "#78350f", marginBottom: 16 }}>
-              ⚠️ This will assign a "next call" date to each contact. {filter.hasNoFollowUp ? "Only contacts without a schedule will be affected." : "Existing schedules will be overwritten."}
+              {tr("⚠️ This will assign a \"next call\" date to each contact.")} {filter.hasNoFollowUp ? tr("Only contacts without a schedule will be affected.") : tr("Existing schedules will be overwritten.")}
             </div>
 
             <div style={{ display: "flex", gap: 8, justifyContent: "space-between" }}>
-              <button onClick={() => setStep(1)} style={btnStyle("#e5e7eb", "#374151")}>← Previous step</button>
+              <button onClick={() => setStep(1)} style={btnStyle("#e5e7eb", "#374151")}>{tr("← Previous step")}</button>
               <button onClick={submit} disabled={submitting} style={btnStyle("#0c4a6e", "white")}>
-                {submitting ? "Scheduling..." : "✓ Confirm Schedule"}
+                {submitting ? tr("Scheduling...") : tr("✓ Confirm Schedule")}
               </button>
             </div>
           </div>
@@ -1524,19 +1525,19 @@ function BulkScheduleModal({ token, contactCount, onClose, onScheduled }) {
         {step === 3 && result && (
           <div>
             <div style={{ background: "#E0F2FE", border: "1px solid #7DD3FC", borderRadius: 8, padding: 16, marginBottom: 16 }}>
-              <div style={{ fontWeight: 800, fontSize: 16, color: "#14532d", marginBottom: 8 }}>✅ Calls Scheduled</div>
+              <div style={{ fontWeight: 800, fontSize: 16, color: "#14532d", marginBottom: 8 }}>{tr("✅ Calls Scheduled")}</div>
               <div style={{ fontSize: 13, color: "#14532d", lineHeight: 1.7 }}>
-                Scheduled: <strong>{result.scheduled} calls</strong><br/>
-                First call: <strong>{new Date(result.first_call_date).toLocaleDateString("en-US", { month: "long", day: "numeric" })}</strong><br/>
-                Last call: <strong>{new Date(result.last_call_date).toLocaleDateString("en-US", { month: "long", day: "numeric" })}</strong><br/>
-                Span: <strong>{result.days_span} business days</strong> at {result.calls_per_day}/day
+                {tr("Scheduled:")} <strong>{result.scheduled} {tr("calls")}</strong><br/>
+                {tr("First call:")} <strong>{new Date(result.first_call_date).toLocaleDateString(uiLocale(), { month: "long", day: "numeric" })}</strong><br/>
+                {tr("Last call:")} <strong>{new Date(result.last_call_date).toLocaleDateString(uiLocale(), { month: "long", day: "numeric" })}</strong><br/>
+                {tr("Span:")} <strong>{result.days_span} {tr("business days")}</strong> {tr("at")} {result.calls_per_day}/day
               </div>
               <div style={{ marginTop: 12, fontSize: 12, color: "#14532d", fontStyle: "italic" }}>
-                💡 Your daily call list will appear in the ⚡ Win The Day widget on the dashboard each morning.
+                {tr("💡 Your daily call list will appear in the ⚡ Win The Day widget on the dashboard each morning.")}
               </div>
             </div>
             <div style={{ display: "flex", justifyContent: "flex-end" }}>
-              <button onClick={onClose} style={btnStyle("#0c4a6e", "white")}>Done</button>
+              <button onClick={onClose} style={btnStyle("#0c4a6e", "white")}>{tr("Done")}</button>
             </div>
           </div>
         )}
@@ -1591,42 +1592,42 @@ function CampaignModal({ token, groupList, onClose }) {
   }, [audienceKind, audienceValue, status]);
 
   const send = async () => {
-    if (!subject.trim()) return alert("Add a subject line.");
-    if (!body.trim()) return alert("Write a message first.");
+    if (!subject.trim()) return alert(tr("Add a subject line."));
+    if (!body.trim()) return alert(tr("Write a message first."));
     const n = preview && preview.count;
-    if (!(await askConfirm(`Send this newsletter now${n != null ? ` to about ${n} contact${n === 1 ? "" : "s"}` : ""}?\n\nEveryone gets a one-click unsubscribe link, and anyone who already opted out is skipped automatically. This will NOT affect your transaction emails.`, { okLabel: "Send now" }))) return;
+    if (!(await askConfirm(`Send this newsletter now${n != null ? ` to about ${n} contact${n === 1 ? "" : "s"}` : ""}?\n\nEveryone gets a one-click unsubscribe link, and anyone who already opted out is skipped automatically. This will NOT affect your transaction emails.`, { okLabel: tr("Send now") }))) return;
     setBusy(true);
     try {
       const r = await fetch(API + "/marketing/send", { method: "POST", headers: authHeaders, body: JSON.stringify({ subject, body, audience_kind: audienceKind, audience_value: audienceValue || null }) });
       const d = await r.json();
       if (!r.ok) throw new Error(d.error || "Failed");
-      alert(`✅ Sent to ${d.sent} contact${d.sent === 1 ? "" : "s"}.`
-        + (d.skipped ? `\nSkipped ${d.skipped} (opted out or no email).` : "")
-        + (d.cappedOut ? `\n${d.cappedOut} held back — you hit this month's send limit.` : "")
-        + (d.failed ? `\n${d.failed} failed to send.` + (d.firstError ? `\n\nReason from email provider:\n${d.firstError}` : "") : ""));
+      alert(tn(d.sent, "✅ Sent to {n} contact.", "✅ Sent to {n} contacts.")
+        + (d.skipped ? tr("\nSkipped {skipped} (opted out or no email).", { skipped: d.skipped }) : "")
+        + (d.cappedOut ? tr("\n{cappedOut} held back — you hit this month's send limit.", { cappedOut: d.cappedOut }) : "")
+        + (d.failed ? tr("\n{failed} failed to send.", { failed: d.failed }) + (d.firstError ? tr("\n\nReason from email provider:\n{firstError}", { firstError: d.firstError }) : "") : ""));
       loadCampaigns();
       if (d.sent > 0) onClose();   // close after a successful send
-    } catch (e) { alert("Error: " + e.message); }
+    } catch (e) { alert(tr("Error: ") + e.message); }
     finally { setBusy(false); }
   };
 
   const schedule = async () => {
-    if (!subject.trim()) return alert("Add a subject line.");
-    if (!body.trim()) return alert("Write a message first.");
-    if (!(await askConfirm(`Schedule this to send automatically on day ${sendDay} of every month?`, { okLabel: "Schedule" }))) return;
+    if (!subject.trim()) return alert(tr("Add a subject line."));
+    if (!body.trim()) return alert(tr("Write a message first."));
+    if (!(await askConfirm(tr("Schedule this to send automatically on day {sendDay} of every month?", { sendDay }), { okLabel: tr("Schedule") }))) return;
     setBusy(true);
     try {
       const r = await fetch(API + "/marketing/schedule", { method: "POST", headers: authHeaders, body: JSON.stringify({ subject, body, audience_kind: audienceKind, audience_value: audienceValue || null, send_day: sendDay }) });
       const d = await r.json();
       if (!r.ok) throw new Error(d.error || "Failed");
-      alert(`✅ Scheduled. This newsletter will send automatically on day ${sendDay} of every month — and you can pause it anytime below.`);
+      alert(tr("✅ Scheduled. This newsletter will send automatically on day {sendDay} of every month — and you can pause it anytime below.", { sendDay }));
       loadCampaigns();
-    } catch (e) { alert("Error: " + e.message); }
+    } catch (e) { alert(tr("Error: ") + e.message); }
     finally { setBusy(false); }
   };
 
   const toggleCamp = async (id) => { await fetch(API + `/marketing/campaigns/${id}/toggle`, { method: "POST", headers: authHeaders }).catch(() => {}); loadCampaigns(); };
-  const delCamp = async (id) => { if (!(await askConfirm("Delete this campaign?", { okLabel: "Delete", danger: true }))) return; await fetch(API + `/marketing/campaigns/${id}`, { method: "DELETE", headers: authHeaders }).catch(() => {}); loadCampaigns(); };
+  const delCamp = async (id) => { if (!(await askConfirm(tr("Delete this campaign?"), { okLabel: tr("Delete"), danger: true }))) return; await fetch(API + `/marketing/campaigns/${id}`, { method: "DELETE", headers: authHeaders }).catch(() => {}); loadCampaigns(); };
 
   const monthly = campaigns.filter(c => c.schedule_kind === "monthly");
   const audienceLabel = audienceKind === "all" ? "everyone in your contacts"
@@ -1637,93 +1638,93 @@ function CampaignModal({ token, groupList, onClose }) {
     <div style={{ position: "fixed", inset: 0, zIndex: 5000, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "flex-start", justifyContent: "center", padding: 16, overflowY: "auto" }} onClick={onClose}>
       <div onClick={e => e.stopPropagation()} style={{ background: "white", borderRadius: 12, maxWidth: 640, width: "100%", margin: "24px 0", padding: 24 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-          <div style={{ fontSize: 20, fontWeight: 800 }}>📣 Email Newsletter</div>
+          <div style={{ fontSize: 20, fontWeight: 800 }}>{tr("📣 Email Newsletter")}</div>
           <button onClick={onClose} style={{ background: "transparent", border: "none", fontSize: 22, cursor: "pointer", color: "#6b7280", lineHeight: 1 }}>×</button>
         </div>
 
-        {status === null && <div style={{ padding: 30, textAlign: "center", color: "#6b7280" }}>Loading…</div>}
+        {status === null && <div style={{ padding: 30, textAlign: "center", color: "#6b7280" }}>{tr("Loading…")}</div>}
 
         {status && !status.configured && (
           <div style={{ background: "#fef3c7", border: "1px solid #fcd34d", borderRadius: 10, padding: 16, color: "#78350f", fontSize: 14, lineHeight: 1.6 }}>
-            <div style={{ fontWeight: 800, marginBottom: 6 }}>One-time setup needed first</div>
-            Newsletter sending isn't switched on yet. It needs its <strong>own separate sending address</strong> (a marketing subdomain) so it can never affect the important emails your transactions depend on.
-            <div style={{ marginTop: 10, fontSize: 13 }}>Once your admin finishes the email setup, this screen unlocks and you can write &amp; send. Nothing here can send mail until then.</div>
+            <div style={{ fontWeight: 800, marginBottom: 6 }}>{tr("One-time setup needed first")}</div>
+            {tr("Newsletter sending isn't switched on yet. It needs its")} <strong>{tr("own separate sending address")}</strong> {tr("(a marketing subdomain) so it can never affect the important emails your transactions depend on.")}
+            <div style={{ marginTop: 10, fontSize: 13 }}>{tr("Once your admin finishes the email setup, this screen unlocks and you can write & send. Nothing here can send mail until then.")}</div>
           </div>
         )}
 
         {status && status.configured && (
           <>
             <div style={{ fontSize: 13, color: "#6b7280", marginBottom: 16 }}>
-              Send a friendly update to your database. A one-click <strong>unsubscribe</strong> link and your mailing address are added automatically (required by law), opted-out contacts are skipped, and this is sent on a <strong>separate lane from your transaction emails</strong> so it can't hurt them.
+              {tr("Send a friendly update to your database. A one-click")} <strong>{tr("unsubscribe")}</strong> {tr("link and your mailing address are added automatically (required by law), opted-out contacts are skipped, and this is sent on a")} <strong>{tr("separate lane from your transaction emails")}</strong> {tr("so it can't hurt them.")}
             </div>
 
             {/* Audience */}
-            <label style={lbl}>Who gets it?</label>
+            <label style={lbl}>{tr("Who gets it?")}</label>
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 6 }}>
               <select value={audienceKind} onChange={e => { setAudienceKind(e.target.value); setAudienceValue(""); }} style={{ ...inputStyle, width: 200 }}>
-                <option value="all">Everyone in my contacts</option>
-                <option value="group">A specific group</option>
-                <option value="tier">A specific tier</option>
+                <option value="all">{tr("Everyone in my contacts")}</option>
+                <option value="group">{tr("A specific group")}</option>
+                <option value="tier">{tr("A specific tier")}</option>
               </select>
               {audienceKind === "group" && (
                 <select value={audienceValue} onChange={e => setAudienceValue(e.target.value)} style={{ ...inputStyle, width: 200 }}>
-                  <option value="">Pick a group…</option>
+                  <option value="">{tr("Pick a group…")}</option>
                   {groupList.map(g => <option key={g.name} value={g.name}>{g.name} ({g.count})</option>)}
                 </select>
               )}
               {audienceKind === "tier" && (
                 <select value={audienceValue} onChange={e => setAudienceValue(e.target.value)} style={{ ...inputStyle, width: 140 }}>
-                  <option value="">Pick a tier…</option>
-                  {["A+", "A", "B", "C", "D"].map(t => <option key={t} value={t}>Tier {t}</option>)}
+                  <option value="">{tr("Pick a tier…")}</option>
+                  {["A+", "A", "B", "C", "D"].map(t => <option key={t} value={t}>{tr("Tier")} {t}</option>)}
                 </select>
               )}
             </div>
             <div style={{ fontSize: 13, color: "#0c4a6e", fontWeight: 600, marginBottom: 16 }}>
-              {previewing ? "Counting recipients…" : preview ? `📨 Will reach ${preview.count} contact${preview.count === 1 ? "" : "s"} (${audienceLabel}, after skipping opt-outs and contacts with no email).` : ""}
+              {previewing ? tr("Counting recipients…") : preview ? tn(preview.count, "📨 Will reach {n} contact ({audienceLabel}, after skipping opt-outs and contacts with no email).", "📨 Will reach {n} contacts ({audienceLabel}, after skipping opt-outs and contacts with no email).", { audienceLabel }) : ""}
             </div>
 
             {/* Subject + body */}
-            <label style={lbl}>Subject line</label>
-            <input value={subject} onChange={e => setSubject(e.target.value)} placeholder="e.g. Your June market update 🏡" style={{ ...inputStyle, width: "100%", marginBottom: 12 }} />
-            <label style={lbl}>Message</label>
-            <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 4 }}>Tip: type <code>{"{first_name}"}</code> and it's swapped for each person's name. Your signature is added automatically.</div>
+            <label style={lbl}>{tr("Subject line")}</label>
+            <input value={subject} onChange={e => setSubject(e.target.value)} placeholder={tr("e.g. Your June market update 🏡")} style={{ ...inputStyle, width: "100%", marginBottom: 12 }} />
+            <label style={lbl}>{tr("Message")}</label>
+            <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 4 }}>{tr("Tip: type")} <code>{"{first_name}"}</code> {tr("and it's swapped for each person's name. Your signature is added automatically.")}</div>
             <textarea value={body} onChange={e => setBody(e.target.value)} rows={12} style={{ ...inputStyle, width: "100%", fontFamily: "inherit", lineHeight: 1.5, resize: "vertical", marginBottom: 16 }} />
 
             {/* Send now */}
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginBottom: 18 }}>
-              <button onClick={send} disabled={busy} style={{ ...btnStyle("#0c4a6e", "white"), opacity: busy ? 0.6 : 1 }}>{busy ? "Working…" : "📤 Send Now"}</button>
-              <span style={{ color: "#5F6B7A", fontSize: 13 }}>or schedule it to repeat:</span>
+              <button onClick={send} disabled={busy} style={{ ...btnStyle("#0c4a6e", "white"), opacity: busy ? 0.6 : 1 }}>{busy ? tr("Working…") : tr("📤 Send Now")}</button>
+              <span style={{ color: "#5F6B7A", fontSize: 13 }}>{tr("or schedule it to repeat:")}</span>
             </div>
 
             {/* Schedule monthly */}
             <div style={{ background: "#f8fafc", border: "1px solid #e5e7eb", borderRadius: 10, padding: 14, marginBottom: 8 }}>
-              <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 8 }}>🔁 Send automatically every month</div>
+              <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 8 }}>{tr("🔁 Send automatically every month")}</div>
               <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-                <span style={{ fontSize: 14, color: "#374151" }}>On day</span>
+                <span style={{ fontSize: 14, color: "#374151" }}>{tr("On day")}</span>
                 <select value={sendDay} onChange={e => setSendDay(parseInt(e.target.value, 10))} style={{ ...inputStyle, width: 80 }}>
-                  {Array.from({ length: 28 }, (_, i) => i + 1).map(d => <option key={d} value={d}>{d}</option>)}
+                  {Array.from({ length: 28 }, (_, i) => i + 1).map(d => <option key={d} value={d}>{tr(d)}</option>)}
                 </select>
-                <span style={{ fontSize: 14, color: "#374151" }}>of every month</span>
-                <button onClick={schedule} disabled={busy} style={{ ...btnStyle("#0c4a6e", "white"), opacity: busy ? 0.6 : 1 }}>Save Monthly</button>
+                <span style={{ fontSize: 14, color: "#374151" }}>{tr("of every month")}</span>
+                <button onClick={schedule} disabled={busy} style={{ ...btnStyle("#0c4a6e", "white"), opacity: busy ? 0.6 : 1 }}>{tr("Save Monthly")}</button>
               </div>
             </div>
 
             {/* Existing monthly schedules */}
             {monthly.length > 0 && (
               <div style={{ marginTop: 16 }}>
-                <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 6 }}>Your monthly newsletters</div>
+                <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 6 }}>{tr("Your monthly newsletters")}</div>
                 <div style={{ display: "grid", gap: 6 }}>
                   {monthly.map(c => (
                     <div key={c.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, padding: "8px 12px", border: "1px solid #e5e7eb", borderRadius: 8 }}>
                       <div style={{ minWidth: 0 }}>
                         <div style={{ fontSize: 13, fontWeight: 600, color: "#111", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.subject}</div>
                         <div style={{ fontSize: 11, color: "#6b7280" }}>
-                          Day {c.send_day} monthly · {c.is_active ? "Active" : "Paused"}
-                          {c.last_sent_at ? ` · last sent ${new Date(c.last_sent_at).toLocaleDateString()} (${c.last_sent_count})` : " · not sent yet"}
+                          {tr("Day")} {c.send_day} {tr("monthly ·")} {c.is_active ? tr("Active") : tr("Paused")}
+                          {c.last_sent_at ? tr(" · last sent {v1} ({last_sent_count})", { v1: new Date(c.last_sent_at).toLocaleDateString(), last_sent_count: c.last_sent_count }) : tr(" · not sent yet")}
                         </div>
                       </div>
                       <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
-                        <button onClick={() => toggleCamp(c.id)} style={btnStyle(c.is_active ? "#fef3c7" : "#dcfce7", c.is_active ? "#92400e" : "#166534")}>{c.is_active ? "Pause" : "Resume"}</button>
+                        <button onClick={() => toggleCamp(c.id)} style={btnStyle(c.is_active ? "#fef3c7" : "#dcfce7", c.is_active ? "#92400e" : "#166534")}>{c.is_active ? tr("Pause") : tr("Resume")}</button>
                         <button onClick={() => delCamp(c.id)} style={btnStyle("#fee2e2", "#991b1b")}>🗑</button>
                       </div>
                     </div>
@@ -1748,14 +1749,14 @@ function SortableTh({ label, col, sortBy, setSortBy, hint }) {
   return (
     <th
       style={{ padding: "12px 12px", textAlign: "left", borderBottom: "2px solid #cbd5e1", fontWeight: 800, fontSize: 13, color: "#0c4a6e", textTransform: "uppercase", letterSpacing: "0.04em", cursor: "pointer", userSelect: "none", whiteSpace: "nowrap" }}
-      title={hint || `Click to sort by ${label}`}
+      title={tr(hint) || tr("Click to sort by {label}", { label })}
       onClick={() => {
         if (sortBy.col !== col) setSortBy({ col, dir: "asc" });
         else if (sortBy.dir === "asc") setSortBy({ col, dir: "desc" });
         else setSortBy({ col: "", dir: "asc" });
       }}
     >
-      {label}{arrow}
+      {tr(label)}{arrow}
     </th>
   );
 }
@@ -1843,7 +1844,7 @@ export default function ContactsPage({ token, onBack }) {
   useEffect(() => { loadGroups(); }, []);
 
   const createGroup = async () => {
-    const name = await askText("New group name:");
+    const name = await askText(tr("New group name:"));
     if (!name || !name.trim()) return;
     try {
       const r = await fetch(API + "/contacts/groups", {
@@ -1852,23 +1853,23 @@ export default function ContactsPage({ token, onBack }) {
       });
       if (!r.ok) { const d = await r.json(); throw new Error(d.error || "Failed"); }
       await loadGroups();
-      alert("✅ Group \"" + name.trim() + "\" created. Now add contacts to it.");
-    } catch (e) { alert("Error: " + e.message); }
+      alert(tr("✅ Group \"") + name.trim() + tr("\" created. Now add contacts to it."));
+    } catch (e) { alert(tr("Error: ") + e.message); }
   };
 
   const deleteGroup = async (name) => {
-    if (!(await askConfirm("Delete group \"" + name + "\"? It will be removed from all contacts (contacts themselves are kept).", { okLabel: "Delete", danger: true }))) return;
+    if (!(await askConfirm(tr("Delete group \"") + name + tr("\"? It will be removed from all contacts (contacts themselves are kept)."), { okLabel: tr("Delete"), danger: true }))) return;
     try {
       const r = await fetch(API + "/contacts/groups/" + encodeURIComponent(name), { method: "DELETE", headers: { Authorization: "Bearer " + token } });
       if (!r.ok) { const d = await r.json(); throw new Error(d.error || "Failed"); }
       if (filter.group === name) setFilter(f => ({ ...f, group: "" }));
       await loadGroups(); await load();
-    } catch (e) { alert("Error: " + e.message); }
+    } catch (e) { alert(tr("Error: ") + e.message); }
   };
 
   const bulkSetTier = async () => {
     if (selected.size === 0) return;
-    const t = await askText("Set tier for the selected " + selected.size + " contact(s)?\nType: A+, A, B, C, or D");
+    const t = await askText(tr("Set tier for the selected ") + selected.size + tr(" contact(s)?\nType: A+, A, B, C, or D"));
     if (!t || !t.trim()) return;
     try {
       const r = await fetch(API + "/contacts/bulk-tier", {
@@ -1879,13 +1880,13 @@ export default function ContactsPage({ token, onBack }) {
       if (!r.ok) throw new Error(d.error || "Failed");
       setSelected(new Set());
       await load();
-      alert("✅ Set " + d.count + " contact(s) to tier " + d.tier + ".");
-    } catch (e) { alert("Error: " + e.message); }
+      alert(tr("✅ Set ") + d.count + tr(" contact(s) to tier ") + d.tier + ".");
+    } catch (e) { alert(tr("Error: ") + e.message); }
   };
 
   const bulkAddToGroup = async () => {
     if (selected.size === 0) return;
-    const g = await askText("Add the selected " + selected.size + " contact(s) to which group?\n(e.g. Bunco, Church, Open House)");
+    const g = await askText(tr("Add the selected ") + selected.size + tr(" contact(s) to which group?\n(e.g. Bunco, Church, Open House)"));
     if (!g || !g.trim()) return;
     try {
       const r = await fetch(API + "/contacts/bulk-group", {
@@ -1897,8 +1898,8 @@ export default function ContactsPage({ token, onBack }) {
       setSelected(new Set());
       await loadGroups();
       await load();
-      alert("✅ Added " + d.count + " contact(s) to group \"" + d.group + "\".");
-    } catch (e) { alert("Error: " + e.message); }
+      alert(tr("✅ Added ") + d.count + tr(" contact(s) to group \"") + d.group + "\".");
+    } catch (e) { alert(tr("Error: ") + e.message); }
   };
 
   const toggleOne = (id) => setSelected(prev => {
@@ -1911,9 +1912,9 @@ export default function ContactsPage({ token, onBack }) {
     const verb = action === "delete" ? "PERMANENTLY DELETE" : action === "archive" ? "archive" : "un-archive";
     const noun = selected.size === 1 ? "contact" : "contacts";
     if (action === "delete") {
-      if (!(await askConfirm("⚠️ Permanently delete " + selected.size + " " + noun + " AND all their call history?\n\nThis CANNOT be undone.", { okLabel: "Delete forever", danger: true }))) return;
+      if (!(await askConfirm(tr("⚠️ Permanently delete ") + selected.size + " " + noun + tr(" AND all their call history?\n\nThis CANNOT be undone."), { okLabel: tr("Delete forever"), danger: true }))) return;
     } else {
-      if (!(await askConfirm("Are you sure you want to " + verb + " " + selected.size + " " + noun + "?", { okLabel: action === "archive" ? "Archive" : "Un-archive" }))) return;
+      if (!(await askConfirm(tr("Are you sure you want to ") + verb + " " + selected.size + " " + noun + "?", { okLabel: action === "archive" ? tr("Archive") : tr("Un-archive") }))) return;
     }
     try {
       const r = await fetch(API + "/contacts/bulk", {
@@ -1922,10 +1923,10 @@ export default function ContactsPage({ token, onBack }) {
         body: JSON.stringify({ ids: Array.from(selected), action })
       });
       const data = await r.json();
-      if (!r.ok) { alert("Failed: " + (data.error || "unknown")); return; }
+      if (!r.ok) { alert(tr("Failed: ") + (data.error || tr("unknown"))); return; }
       setSelected(new Set());
       load();
-    } catch (e) { alert("Error: " + e.message); }
+    } catch (e) { alert(tr("Error: ") + e.message); }
   };
 
   useEffect(() => { const t = setTimeout(load, 300); return () => clearTimeout(t); }, [filter.search]);
@@ -1948,10 +1949,10 @@ export default function ContactsPage({ token, onBack }) {
     const labels = list.map(buildLabel).filter(l => l.hasAddr);
     const skipped = list.length - labels.length;
     if (labels.length === 0) {
-      alert("None of these contacts have a mailing address on file, so there's nothing to print.\n\nAdd a street/city/state/zip to a contact (Edit), then try again.");
+      alert(tr("None of these contacts have a mailing address on file, so there's nothing to print.\n\nAdd a street/city/state/zip to a contact (Edit), then try again."));
       return;
     }
-    if (skipped > 0 && !(await askConfirm(`${labels.length} label${labels.length === 1 ? "" : "s"} will print.\n\n${skipped} contact${skipped === 1 ? " was" : "s were"} skipped — no mailing address on file.\n\nContinue?`, { okLabel: "Continue" }))) return;
+    if (skipped > 0 && !(await askConfirm(tn(labels.length, "{n} label will print.\n\n{skipped} contact{v4} skipped — no mailing address on file.\n\nContinue?", "{n} labels will print.\n\n{skipped} contact{v4} skipped — no mailing address on file.\n\nContinue?", { skipped, v4: skipped === 1 ? " was" : "s were" }), { okLabel: tr("Continue") }))) return;
     const cells = labels.map(l => `
       <div class="label">
         <div class="nm">${escHtml(l.name)}</div>
@@ -1979,7 +1980,7 @@ export default function ContactsPage({ token, onBack }) {
       <script>window.onload = function(){ setTimeout(function(){ window.print(); }, 300); };<\/script>
       </body></html>`;
     const w = window.open("", "_blank");
-    if (!w) { alert("Your browser blocked the print window. Please allow pop-ups for this site and try again."); return; }
+    if (!w) { alert(tr("Your browser blocked the print window. Please allow pop-ups for this site and try again.")); return; }
     w.document.write(html);
     w.document.close();
   };
@@ -1988,7 +1989,7 @@ export default function ContactsPage({ token, onBack }) {
   // Downloads whatever is currently shown (filters/search apply) as a CSV
   // that re-imports cleanly via 📥 Import CSV. Column names match the importer.
   const exportCsv = () => {
-    if (contacts.length === 0) { alert("There are no contacts to export right now. Clear your filters or add a contact first."); return; }
+    if (contacts.length === 0) { alert(tr("There are no contacts to export right now. Clear your filters or add a contact first.")); return; }
     const cols = [
       ["first_name", "First Name"], ["last_name", "Last Name"],
       ["email", "Email"], ["phone", "Phone"],
@@ -2030,12 +2031,12 @@ export default function ContactsPage({ token, onBack }) {
       )}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8, flexWrap: "wrap", gap: 12 }}>
         <div>
-          <div style={{ fontSize: 26, fontWeight: 800 }}>📇 Contacts</div>
-          <div style={{ fontSize: 13, color: "#6b7280" }}>Your private lead list. {contacts.length} contact{contacts.length === 1 ? "" : "s"}.</div>
+          <div style={{ fontSize: 26, fontWeight: 800 }}>{tr("📇 Contacts")}</div>
+          <div style={{ fontSize: 13, color: "#6b7280" }}>{tr("Your private lead list.")} {contacts.length} {tr("contact")}{contacts.length === 1 ? "" : "s"}.</div>
         </div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
           <div style={{ position: "relative" }}>
-            <button onClick={() => setShowMenu(v => !v)} style={btnStyle("#e5e7eb", "#374151")}>☰ Tools ▾</button>
+            <button onClick={() => setShowMenu(v => !v)} style={btnStyle("#e5e7eb", "#374151")}>{tr("☰ Tools ▾")}</button>
             {showMenu && (
               <>
                 <div onMouseDown={e => { if (e.target === e.currentTarget) e.currentTarget.dataset.dob = "1"; else delete e.currentTarget.dataset.dob; }} onClick={e => { if (e.target === e.currentTarget && e.currentTarget.dataset.dob === "1") setShowMenu(false); delete e.currentTarget.dataset.dob; }} style={{ position: "fixed", inset: 0, zIndex: 40 }} />
@@ -2051,8 +2052,8 @@ export default function ContactsPage({ token, onBack }) {
                       style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, width: "100%", textAlign: "left", background: "transparent", border: "none", padding: "10px 12px", borderRadius: 6, fontSize: 14, fontWeight: 600, color: "#374151", cursor: "pointer", fontFamily: "inherit" }}
                       onMouseEnter={e => e.currentTarget.style.background = "#f3f4f6"}
                       onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
-                      <span>{it.label}</span>
-                      {it.hint && <span style={{ fontSize: 11, fontWeight: 500, color: "#5F6B7A" }}>{it.hint}</span>}
+                      <span>{tr(it.label)}</span>
+                      {it.hint && <span style={{ fontSize: 11, fontWeight: 500, color: "#5F6B7A" }}>{tr(it.hint)}</span>}
                     </button>
                   ))}
                 </div>
@@ -2061,73 +2062,73 @@ export default function ContactsPage({ token, onBack }) {
           </div>
           {/* Surfaced as its own button — it was buried in the Tools menu and testers
               couldn't find it. (round-2: contacts CSV import) */}
-          <button onClick={() => setShowImport(true)} style={btnStyle("#e5e7eb", "#374151")}>📥 Import CSV</button>
-          <button onClick={() => setShowAdd(true)} style={btnStyle("#0c4a6e", "white")}>+ Add Contact</button>
+          <button onClick={() => setShowImport(true)} style={btnStyle("#e5e7eb", "#374151")}>{tr("📥 Import CSV")}</button>
+          <button onClick={() => setShowAdd(true)} style={btnStyle("#0c4a6e", "white")}>{tr("+ Add Contact")}</button>
         </div>
       </div>
 
       <div style={{ background: "#E0F2FE", border: "1px solid #7DD3FC", borderRadius: 8, padding: 10, fontSize: 12, color: "#0c4a6e", marginBottom: 10 }}>
-        💡 New here, or training an agent? <button onClick={() => setShowGuide(true)} style={{ background: "#0c4a6e", color: "white", border: "none", borderRadius: 6, padding: "5px 12px", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit", marginLeft: 4 }}>📖 How Contacts Work — Start Here</button>
+        {tr("💡 New here, or training an agent?")} <button onClick={() => setShowGuide(true)} style={{ background: "#0c4a6e", color: "white", border: "none", borderRadius: 6, padding: "5px 12px", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit", marginLeft: 4 }}>{tr("📖 How Contacts Work — Start Here")}</button>
       </div>
       {showPopbyInfo && (
         <div style={{ position: "fixed", inset: 0, zIndex: 6000, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "flex-start", justifyContent: "center", padding: 16, overflowY: "auto" }} onMouseDown={e => { if (e.target === e.currentTarget) e.currentTarget.dataset.dob = "1"; else delete e.currentTarget.dataset.dob; }} onClick={e => { if (e.target === e.currentTarget && e.currentTarget.dataset.dob === "1") setShowPopbyInfo(false); delete e.currentTarget.dataset.dob; }}>
           <div onClick={e => e.stopPropagation()} style={{ background: "white", borderRadius: 12, maxWidth: 440, width: "100%", padding: 24, margin: "auto" }}>
-            <div style={{ fontSize: 18, fontWeight: 800, marginBottom: 8 }}>🎁 What's a "pop-by"?</div>
+            <div style={{ fontSize: 18, fontWeight: 800, marginBottom: 8 }}>{tr("🎁 What's a \"pop-by\"?")}</div>
             <div style={{ fontSize: 14, color: "#374151", lineHeight: 1.6 }}>
-              A pop-by is when you personally drop off a small, thoughtful gift to a top client — a pie in the fall, a cold drink in summer, a little something just to say hello. It keeps you top-of-mind so they think of you (and refer you) when real estate comes up.
+              {tr("A pop-by is when you personally drop off a small, thoughtful gift to a top client — a pie in the fall, a cold drink in summer, a little something just to say hello. It keeps you top-of-mind so they think of you (and refer you) when real estate comes up.")}
               <br/><br/>
-              Turn this on and the app will remind you to pop by your A/B clients a few times a year and suggest gift ideas. <strong>It's optional</strong> — leave it off if pop-bys aren't your style.
+              {tr("Turn this on and the app will remind you to pop by your A/B clients a few times a year and suggest gift ideas.")} <strong>{tr("It's optional")}</strong> {tr("— leave it off if pop-bys aren't your style.")}
             </div>
             <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 16 }}>
-              <button onClick={() => setShowPopbyInfo(false)} style={btnStyle("#0c4a6e", "white")}>Got it</button>
+              <button onClick={() => setShowPopbyInfo(false)} style={btnStyle("#0c4a6e", "white")}>{tr("Got it")}</button>
             </div>
           </div>
         </div>
       )}
 
       <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap", position: "sticky", top: 0, zIndex: 20, background: "#f7f8fa", padding: "8px 0" }}>
-        <input placeholder="🔍 Search name, email, phone..." value={filter.search}
+        <input placeholder={tr("🔍 Search name, email, phone...")} value={filter.search}
           onChange={e => setFilter(f => ({ ...f, search: e.target.value }))}
           style={{ ...inputStyle, flex: 1, minWidth: 200, maxWidth: 320 }} />
         <select value={filter.temperature} onChange={e => setFilter(f => ({ ...f, temperature: e.target.value }))} style={{ ...inputStyle, width: 140 }}>
-          <option value="">All temps</option>
-          {TEMP_SELECTABLE.map(k => <option key={k} value={k}>{TEMP_META[k].emoji} {TEMP_META[k].label}</option>)}
+          <option value="">{tr("All temps")}</option>
+          {TEMP_SELECTABLE.map(k => <option key={k} value={k}>{TEMP_META[k].emoji} {tr(TEMP_META[k].label)}</option>)}
         </select>
         <select value={filter.type} onChange={e => setFilter(f => ({ ...f, type: e.target.value }))} style={{ ...inputStyle, width: 160 }}>
-          <option value="">All types</option>
-          {TYPE_OPTIONS.map(t => <option key={t} value={t}>{t.replace("_", " ")}</option>)}
+          <option value="">{tr("All types")}</option>
+          {TYPE_OPTIONS.map(t => <option key={t} value={t}>{tr(t.replace("_", " "))}</option>)}
         </select>
         <select value={filter.due} onChange={e => setFilter(f => ({ ...f, due: e.target.value }))} style={{ ...inputStyle, width: 160 }}>
-          <option value="">All calls</option>
-          <option value="today">Due today / overdue</option>
-          <option value="overdue">Overdue only</option>
+          <option value="">{tr("All calls")}</option>
+          <option value="today">{tr("Due today / overdue")}</option>
+          <option value="overdue">{tr("Overdue only")}</option>
         </select>
-        <select value={filter.tier} onChange={e => setFilter(f => ({ ...f, tier: e.target.value }))} style={{ ...inputStyle, width: 120 }} title="Filter by tier">
-          <option value="">All tiers</option>
-          {["A+","A","B","C","D"].map(t => <option key={t} value={t}>Tier {t}</option>)}
+        <select value={filter.tier} onChange={e => setFilter(f => ({ ...f, tier: e.target.value }))} style={{ ...inputStyle, width: 120 }} title={tr("Filter by tier")}>
+          <option value="">{tr("All tiers")}</option>
+          {["A+","A","B","C","D"].map(t => <option key={t} value={t}>{tr("Tier")} {t}</option>)}
         </select>
-        <select value={filter.group} onChange={e => setFilter(f => ({ ...f, group: e.target.value }))} style={{ ...inputStyle, width: 170 }} title="Filter by group">
-          <option value="">All groups</option>
+        <select value={filter.group} onChange={e => setFilter(f => ({ ...f, group: e.target.value }))} style={{ ...inputStyle, width: 170 }} title={tr("Filter by group")}>
+          <option value="">{tr("All groups")}</option>
           {groupList.map(g => <option key={g.name} value={g.name}>{g.name} ({g.count})</option>)}
         </select>
-        <select value={filter.missing} onChange={e => setFilter(f => ({ ...f, missing: e.target.value }))} style={{ ...inputStyle, width: 200 }} title="Find contacts with missing info">
-          <option value="">All contacts</option>
-          <option value="no_phone">⚠️ Missing phone</option>
-          <option value="no_email">⚠️ Missing email</option>
-          <option value="no_phone_or_email">⚠️ Missing phone OR email</option>
+        <select value={filter.missing} onChange={e => setFilter(f => ({ ...f, missing: e.target.value }))} style={{ ...inputStyle, width: 200 }} title={tr("Find contacts with missing info")}>
+          <option value="">{tr("All contacts")}</option>
+          <option value="no_phone">{tr("⚠️ Missing phone")}</option>
+          <option value="no_email">{tr("⚠️ Missing email")}</option>
+          <option value="no_phone_or_email">{tr("⚠️ Missing phone OR email")}</option>
         </select>
       </div>
 
       {selected.size > 0 && (
         <div style={{ background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 8, padding: "10px 14px", marginBottom: 10, display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: "#1e3a8a" }}>{selected.size} selected</div>
-          <button onClick={bulkSetTier} style={btnStyle("#E0F2FE", "#0c4a6e")}>⭐ Set Tier</button>
-          <button onClick={bulkAddToGroup} style={btnStyle("#dcfce7", "#166534")}>👥 Add to Group</button>
-          <button onClick={() => printLabels(contacts.filter(c => selected.has(c.id)))} style={btnStyle("#fef9c3", "#854d0e")} title="Print Avery 5160 mailing labels for the selected contacts">🏷 Print Labels</button>
-          <button onClick={() => bulkAction("archive")} style={btnStyle("#fef3c7", "#92400e")}>📦 Archive</button>
-          <button onClick={() => bulkAction("unarchive")} style={btnStyle("#E0F2FE", "#0c4a6e")}>📤 Un-archive</button>
-          <button onClick={() => bulkAction("delete")} style={btnStyle("#fee2e2", "#991b1b")}>🗑 Delete Forever</button>
-          <button onClick={() => setSelected(new Set())} style={{ marginLeft: "auto", background: "transparent", border: "none", color: "#6b7280", cursor: "pointer", fontSize: 12, fontWeight: 600 }}>Clear selection</button>
+          <div style={{ fontSize: 13, fontWeight: 700, color: "#1e3a8a" }}>{selected.size} {tr("selected")}</div>
+          <button onClick={bulkSetTier} style={btnStyle("#E0F2FE", "#0c4a6e")}>{tr("⭐ Set Tier")}</button>
+          <button onClick={bulkAddToGroup} style={btnStyle("#dcfce7", "#166534")}>{tr("👥 Add to Group")}</button>
+          <button onClick={() => printLabels(contacts.filter(c => selected.has(c.id)))} style={btnStyle("#fef9c3", "#854d0e")} title={tr("Print Avery 5160 mailing labels for the selected contacts")}>{tr("🏷 Print Labels")}</button>
+          <button onClick={() => bulkAction("archive")} style={btnStyle("#fef3c7", "#92400e")}>{tr("📦 Archive")}</button>
+          <button onClick={() => bulkAction("unarchive")} style={btnStyle("#E0F2FE", "#0c4a6e")}>{tr("📤 Un-archive")}</button>
+          <button onClick={() => bulkAction("delete")} style={btnStyle("#fee2e2", "#991b1b")}>{tr("🗑 Delete Forever")}</button>
+          <button onClick={() => setSelected(new Set())} style={{ marginLeft: "auto", background: "transparent", border: "none", color: "#6b7280", cursor: "pointer", fontSize: 12, fontWeight: 600 }}>{tr("Clear selection")}</button>
         </div>
       )}
       <div style={{ background: "white", border: "1px solid #e5e7eb", borderRadius: 8, overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
@@ -2136,23 +2137,23 @@ export default function ContactsPage({ token, onBack }) {
             <tr style={{ background: "#eef2f7" }}>
               <th style={{ ...th, width: 32 }}>
                 <input type="checkbox" checked={contacts.length > 0 && selected.size === contacts.length} onChange={toggleAll}
-                  title="Select all" style={{ cursor: "pointer" }} />
+                  title={tr("Select all")} style={{ cursor: "pointer" }} />
               </th>
-              <SortableTh label="Name" col="name" sortBy={sortBy} setSortBy={setSortBy} />
-              <SortableTh label="Tier" col="tier" sortBy={sortBy} setSortBy={setSortBy} hint="A/B/C/D priority classification" />
-              <SortableTh label="Phone" col="phone" sortBy={sortBy} setSortBy={setSortBy} hint="Click twice → empties at top" />
-              <SortableTh label="Type" col="type" sortBy={sortBy} setSortBy={setSortBy} />
-              <SortableTh label="Temp" col="temperature" sortBy={sortBy} setSortBy={setSortBy} hint="Opportunity heat: Hot / Warm / Cold" />
-              <SortableTh label="Last Called" col="last_called" sortBy={sortBy} setSortBy={setSortBy} />
-              <SortableTh label="Next Call" col="next_call" sortBy={sortBy} setSortBy={setSortBy} />
+              <SortableTh label={tr("Name")} col="name" sortBy={sortBy} setSortBy={setSortBy} />
+              <SortableTh label={tr("Tier")} col="tier" sortBy={sortBy} setSortBy={setSortBy} hint={tr("A/B/C/D priority classification")} />
+              <SortableTh label={tr("Phone")} col="phone" sortBy={sortBy} setSortBy={setSortBy} hint={tr("Click twice → empties at top")} />
+              <SortableTh label={tr("Type")} col="type" sortBy={sortBy} setSortBy={setSortBy} />
+              <SortableTh label={tr("Temp")} col="temperature" sortBy={sortBy} setSortBy={setSortBy} hint={tr("Opportunity heat: Hot / Warm / Cold")} />
+              <SortableTh label={tr("Last Called")} col="last_called" sortBy={sortBy} setSortBy={setSortBy} />
+              <SortableTh label={tr("Next Call")} col="next_call" sortBy={sortBy} setSortBy={setSortBy} />
               <th style={th}></th>
             </tr>
           </thead>
           <tbody>
-            {loading && <tr><td colSpan={9} style={{ padding: 40, textAlign: "center", color: "#6b7280" }}>Loading...</td></tr>}
+            {loading && <tr><td colSpan={9} style={{ padding: 40, textAlign: "center", color: "#6b7280" }}>{tr("Loading...")}</td></tr>}
             {!loading && contacts.length === 0 && (
               <tr><td colSpan={9} style={{ padding: 40, textAlign: "center", color: "#6b7280" }}>
-                No contacts yet. Click <strong>+ Add Contact</strong> or <strong>📥 Import CSV</strong>.
+                {tr("No contacts yet. Click")} <strong>{tr("+ Add Contact")}</strong> {tr("or")} <strong>{tr("📥 Import CSV")}</strong>.
               </td></tr>
             )}
             {!loading && pagedContacts.map(c => {
@@ -2176,10 +2177,10 @@ export default function ContactsPage({ token, onBack }) {
                     ) : <span style={{ color: "#d1d5db" }}>—</span>}
                   </td>
                   <td style={td}>{c.phone || "—"}</td>
-                  <td style={td}>{(c.contact_type || "").replace("_", " ")}</td>
+                  <td style={td}>{tr((c.contact_type || "").replace("_", " "))}</td>
                   <td style={td}>
                     <span style={{ background: m.bg, color: m.color, padding: "2px 8px", borderRadius: 12, fontSize: 11, fontWeight: 700 }}>
-                      {m.emoji} {m.label}
+                      {m.emoji} {tr(m.label)}
                     </span>
                   </td>
                   <td style={td}>{fmtPastDate(c.last_contacted_at)}</td>
@@ -2188,21 +2189,21 @@ export default function ContactsPage({ token, onBack }) {
                   </td>
                   <td style={{ ...td, textAlign: "right", whiteSpace: "nowrap" }}>
                     <LogCallButton contact={c} token={token} onLogged={load} compact />
-                    <button onClick={() => setEditing(c)} style={{ ...btnStyle("#e5e7eb", "#374151"), padding: "4px 10px", fontSize: 11, marginLeft: 6 }}>Edit</button>
+                    <button onClick={() => setEditing(c)} style={{ ...btnStyle("#e5e7eb", "#374151"), padding: "4px 10px", fontSize: 11, marginLeft: 6 }}>{tr("Edit")}</button>
                     <button onClick={async () => {
-                      if (!(await askConfirm("Archive " + name + "?", { okLabel: "Archive" }))) return;
+                      if (!(await askConfirm(tr("Archive ") + name + "?", { okLabel: tr("Archive") }))) return;
                       try {
                         await fetch(API + "/contacts/" + c.id, { method: "PUT", headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" }, body: JSON.stringify({ is_archived: true }) });
                         load();
-                      } catch (e) { alert("Error: " + e.message); }
-                    }} title="Archive contact" style={{ background: "transparent", border: "none", cursor: "pointer", fontSize: 14, marginLeft: 6, padding: "2px 4px" }}>📦</button>
+                      } catch (e) { alert(tr("Error: ") + e.message); }
+                    }} title={tr("Archive contact")} style={{ background: "transparent", border: "none", cursor: "pointer", fontSize: 14, marginLeft: 6, padding: "2px 4px" }}>📦</button>
                     <button onClick={async () => {
-                      if (!(await askConfirm("⚠️ Delete " + name + " forever?\n\nThis CANNOT be undone — call history will also be lost.", { okLabel: "Delete forever", danger: true }))) return;
+                      if (!(await askConfirm(tr("⚠️ Delete ") + name + tr(" forever?\n\nThis CANNOT be undone — call history will also be lost."), { okLabel: tr("Delete forever"), danger: true }))) return;
                       try {
                         await fetch(API + "/contacts/" + c.id, { method: "DELETE", headers: { Authorization: "Bearer " + token } });
                         load();
-                      } catch (e) { alert("Error: " + e.message); }
-                    }} title="Delete forever" style={{ background: "transparent", border: "none", cursor: "pointer", fontSize: 14, marginLeft: 4, padding: "2px 4px" }}>🗑</button>
+                      } catch (e) { alert(tr("Error: ") + e.message); }
+                    }} title={tr("Delete forever")} style={{ background: "transparent", border: "none", cursor: "pointer", fontSize: 14, marginLeft: 4, padding: "2px 4px" }}>🗑</button>
                   </td>
                 </tr>
               );
@@ -2215,18 +2216,18 @@ export default function ContactsPage({ token, onBack }) {
       {!loading && contacts.length > PAGE_SIZE && (
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 12, marginTop: 14 }}>
           <button onClick={() => { setPage(p => Math.max(1, p - 1)); window.scrollTo({ top: 0, behavior: "smooth" }); }}
-            disabled={page === 1} style={{ ...btnStyle(page === 1 ? "#f3f4f6" : "#0c4a6e", page === 1 ? "#9ca3af" : "white"), cursor: page === 1 ? "default" : "pointer" }}>← Prev</button>
+            disabled={page === 1} style={{ ...btnStyle(page === 1 ? "#f3f4f6" : "#0c4a6e", page === 1 ? "#9ca3af" : "white"), cursor: page === 1 ? "default" : "pointer" }}>{tr("← Prev")}</button>
           <span style={{ fontSize: 13, color: "#374151", fontWeight: 600 }}>
-            Page {page} of {pageCount} · showing {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, contacts.length)} of {contacts.length}
+            {tr("Page")} {page} {tr("of")} {pageCount} {tr("· showing")} {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, contacts.length)} {tr("of")} {contacts.length}
           </span>
           <button onClick={() => { setPage(p => Math.min(pageCount, p + 1)); window.scrollTo({ top: 0, behavior: "smooth" }); }}
-            disabled={page === pageCount} style={{ ...btnStyle(page === pageCount ? "#f3f4f6" : "#0c4a6e", page === pageCount ? "#9ca3af" : "white"), cursor: page === pageCount ? "default" : "pointer" }}>Next →</button>
+            disabled={page === pageCount} style={{ ...btnStyle(page === pageCount ? "#f3f4f6" : "#0c4a6e", page === pageCount ? "#9ca3af" : "white"), cursor: page === pageCount ? "default" : "pointer" }}>{tr("Next →")}</button>
         </div>
       )}
 
       {/* Back to top */}
       <button onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-        title="Back to top"
+        title={tr("Back to top")}
         style={{ position: "fixed", bottom: 24, right: 24, zIndex: 30, background: "#0c4a6e", color: "white", border: "none", borderRadius: "50%", width: 46, height: 46, fontSize: 20, cursor: "pointer", boxShadow: "0 2px 10px rgba(0,0,0,0.25)" }}>↑</button>
 
       {showAdd && <ContactModal token={token} onClose={() => setShowAdd(false)} onSaved={() => load()} />}
@@ -2234,15 +2235,15 @@ export default function ContactsPage({ token, onBack }) {
       {showSettings && (
         <div style={{ position: "fixed", inset: 0, zIndex: 5000, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "flex-start", justifyContent: "center", padding: 16, overflowY: "auto" }} onMouseDown={e => { if (e.target === e.currentTarget) e.currentTarget.dataset.dob = "1"; else delete e.currentTarget.dataset.dob; }} onClick={e => { if (e.target === e.currentTarget && e.currentTarget.dataset.dob === "1") setShowSettings(false); delete e.currentTarget.dataset.dob; }}>
           <div onClick={e => e.stopPropagation()} style={{ background: "white", borderRadius: 12, maxWidth: 480, width: "100%", padding: 24, margin: "auto" }}>
-            <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 6 }}>⚙ Contact Settings</div>
+            <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 6 }}>{tr("⚙ Contact Settings")}</div>
             <div style={{ fontSize: 13, color: "#374151", lineHeight: 1.6, marginBottom: 16 }}>
-              Your daily call list builds itself from each contact's tier — open Win the Day and the right people are already there.
+              {tr("Your daily call list builds itself from each contact's tier — open Win the Day and the right people are already there.")}
             </div>
             <div style={{ background: "#fffbeb", border: "1px solid #fcd34d", borderRadius: 8, padding: 12, marginBottom: 16, fontSize: 13, color: "#78350f" }}>
-              🎁 <strong>Pop-bys / gift runs moved to their own page.</strong> Open <strong>🎁 Pop-Bys</strong> from your Dashboard to turn them on, set your tiers, budget &amp; frequency, get gift ideas, and plan a delivery route.
+              🎁 <strong>{tr("Pop-bys / gift runs moved to their own page.")}</strong> {tr("Open")} <strong>{tr("🎁 Pop-Bys")}</strong> {tr("from your Dashboard to turn them on, set your tiers, budget & frequency, get gift ideas, and plan a delivery route.")}
             </div>
             <div style={{ display: "flex", justifyContent: "flex-end" }}>
-              <button onClick={() => setShowSettings(false)} style={btnStyle("#0c4a6e", "white")}>Done</button>
+              <button onClick={() => setShowSettings(false)} style={btnStyle("#0c4a6e", "white")}>{tr("Done")}</button>
             </div>
           </div>
         </div>
@@ -2251,29 +2252,29 @@ export default function ContactsPage({ token, onBack }) {
         <div style={{ position: "fixed", inset: 0, zIndex: 4000, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "flex-start", justifyContent: "center", padding: 16, overflowY: "auto" }} onMouseDown={e => { if (e.target === e.currentTarget) e.currentTarget.dataset.dob = "1"; else delete e.currentTarget.dataset.dob; }} onClick={e => { if (e.target === e.currentTarget && e.currentTarget.dataset.dob === "1") setShowGroups(false); delete e.currentTarget.dataset.dob; }}>
           <div onClick={e => e.stopPropagation()} style={{ background: "white", borderRadius: 12, maxWidth: 460, width: "100%", maxHeight: "85vh", overflowY: "auto", padding: 24, margin: "auto" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-              <div style={{ fontSize: 18, fontWeight: 800 }}>👥 Manage Groups</div>
-              <button onClick={createGroup} style={btnStyle("#0c4a6e", "white")}>+ New Group</button>
+              <div style={{ fontSize: 18, fontWeight: 800 }}>{tr("👥 Manage Groups")}</div>
+              <button onClick={createGroup} style={btnStyle("#0c4a6e", "white")}>{tr("+ New Group")}</button>
             </div>
             <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 14 }}>
-              Groups let you tag where contacts came from (Bunco, Church, Open House). Create one here, then add contacts to it from the list or the contact form.
+              {tr("Groups let you tag where contacts came from (Bunco, Church, Open House). Create one here, then add contacts to it from the list or the contact form.")}
             </div>
             {groupList.length === 0 ? (
-              <div style={{ color: "#5F6B7A", fontSize: 13, padding: 20, textAlign: "center" }}>No groups yet. Click "+ New Group".</div>
+              <div style={{ color: "#5F6B7A", fontSize: 13, padding: 20, textAlign: "center" }}>{tr("No groups yet. Click \"+ New Group\".")}</div>
             ) : (
               <div style={{ display: "grid", gap: 6 }}>
                 {groupList.map(g => (
                   <div key={g.name} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 12px", border: "1px solid #e5e7eb", borderRadius: 8 }}>
                     <button onClick={() => { setFilter(f => ({ ...f, group: g.name })); setShowGroups(false); }}
                       style={{ background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 14, fontWeight: 600, color: "#0c4a6e", textAlign: "left" }}>
-                      {g.name} <span style={{ color: "#6b7280", fontWeight: 400 }}>· {g.count} contact{g.count === 1 ? "" : "s"}</span>
+                      {g.name} <span style={{ color: "#6b7280", fontWeight: 400 }}>· {g.count} {tr("contact")}{g.count === 1 ? "" : "s"}</span>
                     </button>
-                    <button onClick={() => deleteGroup(g.name)} title="Delete group" style={{ background: "transparent", border: "none", cursor: "pointer", color: "#b91c1c", fontSize: 13 }}>🗑</button>
+                    <button onClick={() => deleteGroup(g.name)} title={tr("Delete group")} style={{ background: "transparent", border: "none", cursor: "pointer", color: "#b91c1c", fontSize: 13 }}>🗑</button>
                   </div>
                 ))}
               </div>
             )}
             <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 16 }}>
-              <button onClick={() => setShowGroups(false)} style={btnStyle("#e5e7eb", "#374151")}>Close</button>
+              <button onClick={() => setShowGroups(false)} style={btnStyle("#e5e7eb", "#374151")}>{tr("Close")}</button>
             </div>
           </div>
         </div>

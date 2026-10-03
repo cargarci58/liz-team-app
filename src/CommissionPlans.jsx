@@ -1,3 +1,4 @@
+import { t as tr } from "./i18n";
 import { useState, useEffect } from "react";
 import { askConfirm } from "./ui/dialogs";
 
@@ -46,7 +47,7 @@ export default function CommissionPlans() {
   }, [draft, example]);
 
   if (data === false) return null;   // not available to this role (e.g. coordinators)
-  if (!data) return <div style={{ fontSize: 13, color: C.muted, marginBottom: 16 }}>Loading commission plans…</div>;
+  if (!data) return <div style={{ fontSize: 13, color: C.muted, marginBottom: 16 }}>{tr("Loading commission plans…")}</div>;
   const canEdit = data.canEdit;
 
   const startEdit = (p) => { setEditId(p.id); setDraft({ name: p.name, steps: p.steps, is_default: p.is_default }); setMsg(""); };
@@ -70,7 +71,7 @@ export default function CommissionPlans() {
     setBusy(false);
   };
   const remove = async (p) => {
-    if (!(await askConfirm(`Delete the plan "${p.name}"? Agents and deals on it go back to the brokerage default.`, { okLabel: "Delete", danger: true }))) return;
+    if (!(await askConfirm(tr("Delete the plan \"{name}\"? Agents and deals on it go back to the brokerage default.", { name: p.name }), { okLabel: tr("Delete"), danger: true }))) return;
     await fetch(API + "/commission-plans/" + p.id, { method: "DELETE", headers }).catch(() => {});
     if (editId === p.id) { setEditId(null); setDraft(null); }
     load();
@@ -93,15 +94,15 @@ export default function CommissionPlans() {
 
   return (
     <div style={{ marginBottom: 24 }}>
-      <div style={{ fontSize: 13, fontWeight: 700, color: C.red, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6, marginTop: 8 }}>Commission Plans</div>
+      <div style={{ fontSize: 13, fontWeight: 700, color: C.red, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6, marginTop: 8 }}>{tr("Commission Plans")}</div>
       <div style={{ fontSize: 12, color: C.muted, marginBottom: 12 }}>
-        How your brokerage works out commission. Every deal shows the <b>agent's net</b> and the <b>brokerage income</b> using these steps.
-        {!canEdit && " Only an admin can change plans."}
+        {tr("How your brokerage works out commission. Every deal shows the")} <b>{tr("agent's net")}</b> {tr("and the")} <b>{tr("brokerage income")}</b> {tr("using these steps.")}
+        {!canEdit && tr(" Only an admin can change plans.")}
       </div>
 
       {data.plans.length === 0 && (
         <div style={{ background: C.gray, borderRadius: 10, padding: 12, fontSize: 12.5, color: C.text, marginBottom: 10 }}>
-          No plan yet — every deal uses the built-in <b>Standard split</b> (referral off the top → co-agent split → brokerage split → office fee; the transaction fee is brokerage income).
+          {tr("No plan yet — every deal uses the built-in")} <b>{tr("Standard split")}</b> {tr("(referral off the top → co-agent split → brokerage split → office fee; the transaction fee is brokerage income).")}
         </div>
       )}
 
@@ -109,9 +110,9 @@ export default function CommissionPlans() {
         <div key={p.id} style={{ border: "1px solid " + (editId === p.id ? C.blue : C.border), borderRadius: 10, padding: 12, marginBottom: 10 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
             <b style={{ fontSize: 14, color: C.text }}>{p.name}</b>
-            {p.is_default && <span style={{ fontSize: 10.5, fontWeight: 800, color: "#fff", background: C.blue, borderRadius: 10, padding: "2px 8px" }}>BROKERAGE DEFAULT</span>}
+            {p.is_default && <span style={{ fontSize: 10.5, fontWeight: 800, color: "#fff", background: C.blue, borderRadius: 10, padding: "2px 8px" }}>{tr("BROKERAGE DEFAULT")}</span>}
             <span style={{ flex: 1 }} />
-            {canEdit && editId !== p.id && <button onClick={() => startEdit(p)} style={btn(false)}>✏️ Edit</button>}
+            {canEdit && editId !== p.id && <button onClick={() => startEdit(p)} style={btn(false)}>{tr("✏️ Edit")}</button>}
             {canEdit && <button onClick={() => remove(p)} style={{ ...btn(false), color: C.dark }}>🗑</button>}
           </div>
           {editId !== p.id && (
@@ -124,10 +125,10 @@ export default function CommissionPlans() {
               <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center", marginBottom: 10 }}>
                 <input value={draft.name} onChange={e => setDraft(d => ({ ...d, name: e.target.value }))} style={{ ...inp, width: 220 }} />
                 <label style={{ fontSize: 12.5, display: "flex", alignItems: "center", gap: 6 }}>
-                  <input type="checkbox" checked={!!draft.is_default} onChange={e => setDraft(d => ({ ...d, is_default: e.target.checked }))} /> Brokerage default
+                  <input type="checkbox" checked={!!draft.is_default} onChange={e => setDraft(d => ({ ...d, is_default: e.target.checked }))} /> {tr("Brokerage default")}
                 </label>
               </div>
-              <div style={{ fontSize: 12, color: C.muted, marginBottom: 6 }}>Steps run top to bottom. Turn on what applies; use ▲▼ to change the order.</div>
+              <div style={{ fontSize: 12, color: C.muted, marginBottom: 6 }}>{tr("Steps run top to bottom. Turn on what applies; use ▲▼ to change the order.")}</div>
               {draft.steps.map((s, i) => (
                 <div key={s.type} style={{ display: "flex", gap: 8, alignItems: "flex-start", padding: "8px 0", borderTop: "1px solid " + C.gray, opacity: s.enabled ? 1 : 0.6 }}>
                   <div style={{ display: "flex", flexDirection: "column" }}>
@@ -136,14 +137,14 @@ export default function CommissionPlans() {
                   </div>
                   <input type="checkbox" checked={s.enabled} onChange={e => setStep(i, { enabled: e.target.checked })} style={{ marginTop: 3, width: 17, height: 17 }} />
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{STEP_INFO[s.type].title}</div>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{tr(STEP_INFO[s.type].title)}</div>
                     <div style={{ fontSize: 11.5, color: C.muted }}>{STEP_INFO[s.type].help}</div>
-                    {s.enabled && s.type === "brokerage_split" && <label style={{ fontSize: 12 }}>Brokerage keeps <input type="number" value={s.brokeragePct} onChange={e => setStep(i, { brokeragePct: e.target.value })} style={inp} /> %</label>}
-                    {s.enabled && s.type === "cap" && <label style={{ fontSize: 12 }}>Cap per year $ <input type="number" value={s.capAmount} onChange={e => setStep(i, { capAmount: e.target.value })} style={inp} /></label>}
-                    {s.enabled && s.type === "flat_fee" && <label style={{ fontSize: 12 }}>$ per deal <input type="number" value={s.amount} onChange={e => setStep(i, { amount: e.target.value })} style={inp} /></label>}
+                    {s.enabled && s.type === "brokerage_split" && <label style={{ fontSize: 12 }}>{tr("Brokerage keeps")} <input type="number" value={s.brokeragePct} onChange={e => setStep(i, { brokeragePct: e.target.value })} style={inp} /> %</label>}
+                    {s.enabled && s.type === "cap" && <label style={{ fontSize: 12 }}>{tr("Cap per year $")} <input type="number" value={s.capAmount} onChange={e => setStep(i, { capAmount: e.target.value })} style={inp} /></label>}
+                    {s.enabled && s.type === "flat_fee" && <label style={{ fontSize: 12 }}>{tr("$ per deal")} <input type="number" value={s.amount} onChange={e => setStep(i, { amount: e.target.value })} style={inp} /></label>}
                     {s.enabled && s.type === "team_split" && (
                       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", fontSize: 12 }}>
-                        <label>Name <input value={s.label} onChange={e => setStep(i, { label: e.target.value })} style={{ ...inp, width: 140 }} /></label>
+                        <label>{tr("Name")} <input value={s.label} onChange={e => setStep(i, { label: e.target.value })} style={{ ...inp, width: 140 }} /></label>
                         <label><input type="number" value={s.pct} onChange={e => setStep(i, { pct: e.target.value })} style={inp} /> %</label>
                       </div>
                     )}
@@ -153,30 +154,30 @@ export default function CommissionPlans() {
 
               {/* LIVE EXAMPLE — the real calculator, so it matches every deal */}
               <div style={{ background: C.gray, borderRadius: 10, padding: 12, marginTop: 10 }}>
-                <div style={{ fontSize: 12.5, fontWeight: 800, color: C.blue, marginBottom: 6 }}>Example — check it matches how you pay</div>
+                <div style={{ fontSize: 12.5, fontWeight: 800, color: C.blue, marginBottom: 6 }}>{tr("Example — check it matches how you pay")}</div>
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap", fontSize: 12, marginBottom: 8 }}>
-                  <label>Sale $ <input type="number" value={example.price} onChange={e => setExample(x => ({ ...x, price: e.target.value }))} style={{ ...inp, width: 110 }} /></label>
-                  <label>Commission % <input type="number" value={example.pct} onChange={e => setExample(x => ({ ...x, pct: e.target.value }))} style={inp} /></label>
-                  <label>Referral % <input type="number" value={example.referralPct} onChange={e => setExample(x => ({ ...x, referralPct: e.target.value }))} style={inp} /></label>
-                  <label>Co-agent % <input type="number" value={example.coAgentPct} onChange={e => setExample(x => ({ ...x, coAgentPct: e.target.value }))} style={inp} /></label>
-                  <label>Transaction fee $ <input type="number" value={example.transactionFee} onChange={e => setExample(x => ({ ...x, transactionFee: e.target.value }))} style={inp} /></label>
-                  <label>Office fee $ <input type="number" value={example.officeFee} onChange={e => setExample(x => ({ ...x, officeFee: e.target.value }))} style={inp} /></label>
+                  <label>{tr("Sale $")} <input type="number" value={example.price} onChange={e => setExample(x => ({ ...x, price: e.target.value }))} style={{ ...inp, width: 110 }} /></label>
+                  <label>{tr("Commission %")} <input type="number" value={example.pct} onChange={e => setExample(x => ({ ...x, pct: e.target.value }))} style={inp} /></label>
+                  <label>{tr("Referral %")} <input type="number" value={example.referralPct} onChange={e => setExample(x => ({ ...x, referralPct: e.target.value }))} style={inp} /></label>
+                  <label>{tr("Co-agent %")} <input type="number" value={example.coAgentPct} onChange={e => setExample(x => ({ ...x, coAgentPct: e.target.value }))} style={inp} /></label>
+                  <label>{tr("Transaction fee $")} <input type="number" value={example.transactionFee} onChange={e => setExample(x => ({ ...x, transactionFee: e.target.value }))} style={inp} /></label>
+                  <label>{tr("Office fee $")} <input type="number" value={example.officeFee} onChange={e => setExample(x => ({ ...x, officeFee: e.target.value }))} style={inp} /></label>
                 </div>
                 {preview && preview.lines.map((l, i) => (
                   <div key={i} style={{ display: "flex", justifyContent: "space-between", fontSize: 12.5, padding: "3px 0",
                     fontWeight: l.kind === "result" || l.kind === "brokerage_total" || l.kind === "gross" ? 800 : 500,
                     color: l.kind === "result" ? "#166534" : l.kind === "brokerage_total" ? C.blue : C.text,
                     borderTop: l.kind === "result" ? "1px solid #d1d5db" : "none" }}>
-                    <span>{l.label}</span><span>{money(l.amount)}</span>
+                    <span>{tr(l.label)}</span><span>{money(l.amount)}</span>
                   </div>
                 ))}
                 {preview && preview.coAgents.map((c, i) => (
-                  <div key={"co" + i} style={{ display: "flex", justifyContent: "space-between", fontSize: 12.5, color: C.muted }}><span>Co-agent's net</span><span>{money(c.net)}</span></div>
+                  <div key={"co" + i} style={{ display: "flex", justifyContent: "space-between", fontSize: 12.5, color: C.muted }}><span>{tr("Co-agent's net")}</span><span>{money(c.net)}</span></div>
                 ))}
               </div>
               <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
-                <button disabled={busy} onClick={save} style={btn(true)}>{busy ? "Saving…" : "Save plan"}</button>
-                <button onClick={() => { setEditId(null); setDraft(null); }} style={btn(false)}>Cancel</button>
+                <button disabled={busy} onClick={save} style={btn(true)}>{busy ? tr("Saving…") : tr("Save plan")}</button>
+                <button onClick={() => { setEditId(null); setDraft(null); }} style={btn(false)}>{tr("Cancel")}</button>
               </div>
             </div>
           )}
@@ -185,7 +186,7 @@ export default function CommissionPlans() {
 
       {canEdit && (
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
-          <span style={{ fontSize: 12.5, color: C.muted, alignSelf: "center" }}>Start a plan from:</span>
+          <span style={{ fontSize: 12.5, color: C.muted, alignSelf: "center" }}>{tr("Start a plan from:")}</span>
           {Object.entries(data.presets).map(([k, p]) => (
             <button key={k} disabled={busy} onClick={() => create(k)} style={btn(false)}>➕ {p.name}</button>
           ))}
@@ -194,13 +195,13 @@ export default function CommissionPlans() {
 
       {canEdit && data.plans.length > 0 && data.agents.length > 0 && (
         <div style={{ border: "1px solid " + C.border, borderRadius: 10, padding: 12 }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: C.text, marginBottom: 6 }}>Which plan each agent is on</div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: C.text, marginBottom: 6 }}>{tr("Which plan each agent is on")}</div>
           {data.agents.map(a => (
             <div key={a.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "5px 0", fontSize: 13 }}>
               <span style={{ flex: 1 }}>{a.first_name} {a.last_name}</span>
               <select value={a.commission_plan_id || ""} onChange={e => assign(a.id, e.target.value)} style={{ ...inp, width: 200 }}>
-                <option value="">Brokerage default{defaultPlan ? ` (${defaultPlan.name})` : ""}</option>
-                {data.plans.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                <option value="">{tr("Brokerage default")}{defaultPlan ? ` (${defaultPlan.name})` : ""}</option>
+                {data.plans.map(p => <option key={p.id} value={p.id}>{tr(p.name)}</option>)}
               </select>
             </div>
           ))}

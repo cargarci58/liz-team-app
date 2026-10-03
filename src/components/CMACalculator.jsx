@@ -1,3 +1,4 @@
+import { t as tr } from "../i18n";
 import { useState, useMemo } from "react";
 
 const FL_UPGRADES = [
@@ -210,14 +211,14 @@ function UploadCompsButton({ transactionId, token, onExtracted, disabled }) {
     <div>
       <label style={{ display: "inline-block", padding: "10px 18px", background: disabled ? "#9ca3af" : "#0c4a6e", color: "white", borderRadius: 6, fontWeight: 700, fontSize: 13, cursor: disabled || uploading ? "wait" : "pointer", fontFamily: "inherit" }}>
         {uploading
-          ? (step === "uploading" ? `Uploading ${progress.done}/${progress.total}...` : "Reading the files…")
-          : "✨ Upload Broker Synopses (AI extracts comps)"}
+          ? (step === "uploading" ? tr("Uploading {done}/{total}...", { done: progress.done, total: progress.total }) : tr("Reading the files…"))
+          : tr("✨ Upload Broker Synopses (AI extracts comps)")}
         <input type="file" accept=".pdf,image/*" multiple disabled={uploading || disabled}
           onChange={e => { handleFiles(e.target.files); e.target.value = ""; }}
           style={{ display: "none" }} />
       </label>
       <div style={{ fontSize: 11, color: "#6b7280", marginTop: 6 }}>
-        Upload up to 6 MLS broker synopses, PDFs, or property screenshots. AI auto-fills the comp slots — you review and tweak.
+        {tr("Upload up to 6 MLS broker synopses, PDFs, or property screenshots. AI auto-fills the comp slots — you review and tweak.")}
       </div>
     </div>
   );
@@ -244,66 +245,66 @@ function SubjectTab({ subject, setSubject }) {
   return (
     <div>
       <div style={{ background: "#dbeafe", border: "1px solid #93c5fd", borderRadius: 8, padding: 12, marginBottom: 16, fontSize: 13, color: "#1e3a8a" }}>
-        💡 <strong>Subject property:</strong> The home you're pricing. Enter specs first, then check off any upgrades. The system uses these to adjust each comp.
+        💡 <strong>{tr("Subject property:")}</strong> {tr("The home you're pricing. Enter specs first, then check off any upgrades. The system uses these to adjust each comp.")}
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 16 }}>
         <div>
-          <label style={lbl}>Address</label>
-          <input value={subject.address || ""} onChange={e => update("address", e.target.value)} style={inputStyle} placeholder="123 Main St" />
+          <label style={lbl}>{tr("Address")}</label>
+          <input value={subject.address || ""} onChange={e => update("address", e.target.value)} style={inputStyle} placeholder={tr("123 Main St")} />
         </div>
         <div>
-          <label style={lbl}>City, ZIP</label>
-          <input value={subject.cityZip || ""} onChange={e => update("cityZip", e.target.value)} style={inputStyle} placeholder="Orlando, 32801" />
+          <label style={lbl}>{tr("City, ZIP")}</label>
+          <input value={subject.cityZip || ""} onChange={e => update("cityZip", e.target.value)} style={inputStyle} placeholder={tr("Orlando, 32801")} />
         </div>
         <div>
-          <label style={lbl}>Beds</label>
+          <label style={lbl}>{tr("Beds")}</label>
           <input type="number" value={subject.beds || ""} onChange={e => update("beds", Number(e.target.value))} style={inputStyle} />
         </div>
         <div>
-          <label style={lbl}>Baths</label>
+          <label style={lbl}>{tr("Baths")}</label>
           <input type="number" step="0.5" value={subject.baths || ""} onChange={e => update("baths", Number(e.target.value))} style={inputStyle} />
         </div>
         <div>
-          <label style={lbl}>Living Sqft</label>
+          <label style={lbl}>{tr("Living Sqft")}</label>
           <input type="number" value={subject.sqft || ""} onChange={e => update("sqft", Number(e.target.value))} style={inputStyle} />
         </div>
         <div>
-          <label style={lbl}>Lot Sqft</label>
+          <label style={lbl}>{tr("Lot Sqft")}</label>
           <input type="number" value={subject.lotSqft || ""} onChange={e => update("lotSqft", Number(e.target.value))} style={inputStyle} />
         </div>
         <div>
-          <label style={lbl}>Year Built</label>
+          <label style={lbl}>{tr("Year Built")}</label>
           <input type="number" value={subject.yearBuilt || ""} onChange={e => update("yearBuilt", Number(e.target.value))} style={inputStyle} />
         </div>
         <div>
-          <label style={lbl}>Garage Spaces</label>
+          <label style={lbl}>{tr("Garage Spaces")}</label>
           <input type="number" value={subject.garage || ""} onChange={e => update("garage", Number(e.target.value))} style={inputStyle} />
         </div>
       </div>
 
-      <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 8, color: "#1f2937" }}>FL Upgrades / Features</div>
-      <div style={{ fontSize: 11, color: "#6b7280", marginBottom: 10 }}>Check anything the subject property has. Dollar values are FL market averages — you can override on individual comps.</div>
+      <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 8, color: "#1f2937" }}>{tr("FL Upgrades / Features")}</div>
+      <div style={{ fontSize: 11, color: "#6b7280", marginBottom: 10 }}>{tr("Check anything the subject property has. Dollar values are FL market averages — you can override on individual comps.")}</div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, marginBottom: 16 }}>
         {FL_UPGRADES.map(u => (
           <label key={u.id} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, padding: "6px 8px", background: (subject.upgrades && subject.upgrades[u.id]) ? "#dbeafe" : "#f9fafb", borderRadius: 4, cursor: "pointer", border: "1px solid " + ((subject.upgrades && subject.upgrades[u.id]) ? "#93c5fd" : "#e5e7eb") }}>
             <input type="checkbox" checked={!!(subject.upgrades && subject.upgrades[u.id])} onChange={() => toggleUpgrade(u.id)} style={{ margin: 0 }} />
-            <span style={{ flex: 1 }}>{u.label}</span>
+            <span style={{ flex: 1 }}>{tr(u.label)}</span>
             <span style={{ color: "#6b7280" }}>+{money(u.value)}</span>
           </label>
         ))}
       </div>
 
-      <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 8, color: "#1f2937" }}>Custom Upgrades</div>
-      <div style={{ fontSize: 11, color: "#6b7280", marginBottom: 10 }}>Anything not in the standard list. Examples: tankless water heater, generator, smart home wiring, high-end appliances.</div>
+      <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 8, color: "#1f2937" }}>{tr("Custom Upgrades")}</div>
+      <div style={{ fontSize: 11, color: "#6b7280", marginBottom: 10 }}>{tr("Anything not in the standard list. Examples: tankless water heater, generator, smart home wiring, high-end appliances.")}</div>
       {(subject.customUpgrades || []).map((cu, i) => (
         <div key={i} style={{ display: "flex", gap: 8, marginBottom: 6 }}>
-          <input value={cu.label} onChange={e => updateCustom(i, "label", e.target.value)} placeholder="Description" style={{ ...inputStyle, flex: 2 }} />
-          <input type="number" value={cu.value} onChange={e => updateCustom(i, "value", Number(e.target.value))} placeholder="$ adjustment" style={{ ...inputStyle, width: 130 }} />
+          <input value={cu.label} onChange={e => updateCustom(i, "label", e.target.value)} placeholder={tr("Description")} style={{ ...inputStyle, flex: 2 }} />
+          <input type="number" value={cu.value} onChange={e => updateCustom(i, "value", Number(e.target.value))} placeholder={tr("$ adjustment")} style={{ ...inputStyle, width: 130 }} />
           <button onClick={() => removeCustom(i)} style={{ ...btnStyle("#fee2e2", "#7f1d1d"), padding: "4px 8px" }}>✕</button>
         </div>
       ))}
-      <button onClick={addCustom} style={{ ...btnStyle("#E0F2FE", "#0c4a6e"), fontSize: 12, padding: "6px 12px" }}>+ Add Custom Upgrade</button>
+      <button onClick={addCustom} style={{ ...btnStyle("#E0F2FE", "#0c4a6e"), fontSize: 12, padding: "6px 12px" }}>{tr("+ Add Custom Upgrade")}</button>
     </div>
   );
 }
@@ -322,62 +323,62 @@ function CompCard({ comp, idx, onChange, onRemove, subjectUpgrades }) {
     <div style={{ border: "1px solid #d1d5db", borderRadius: 8, padding: 14, marginBottom: 12, background: "white" }}>
       <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}>
         <div style={{ fontWeight: 700, color: "#1f2937" }}>
-          Comp #{idx + 1}
-          {comp._aiExtracted && <span style={{ marginLeft: 8, fontSize: 10, fontWeight: 700, color: "#7c3aed", background: "#ede9fe", padding: "2px 6px", borderRadius: 10 }}>✨ AI</span>}
+          {tr("Comp #")}{idx + 1}
+          {comp._aiExtracted && <span style={{ marginLeft: 8, fontSize: 10, fontWeight: 700, color: "#7c3aed", background: "#ede9fe", padding: "2px 6px", borderRadius: 10 }}>{tr("✨ AI")}</span>}
         </div>
         <button onClick={onRemove} style={{ background: "none", border: "none", color: "#5F6B7A", cursor: "pointer", fontSize: 18 }}>✕</button>
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 10 }}>
         <div style={{ gridColumn: "span 2" }}>
-          <label style={lbl}>Address</label>
+          <label style={lbl}>{tr("Address")}</label>
           <input value={comp.address || ""} onChange={e => update("address", e.target.value)} style={inputStyle} />
         </div>
         <div>
-          <label style={lbl}>Sold Date</label>
+          <label style={lbl}>{tr("Sold Date")}</label>
           <input type="date" value={comp.soldDate || ""} onChange={e => update("soldDate", e.target.value)} style={inputStyle} />
         </div>
         <div>
-          <label style={lbl}>Sold Price</label>
+          <label style={lbl}>{tr("Sold Price")}</label>
           <input type="number" value={comp.soldPrice || ""} onChange={e => update("soldPrice", Number(e.target.value))} style={inputStyle} placeholder="475000" />
         </div>
         <div>
-          <label style={lbl}>Sqft</label>
+          <label style={lbl}>{tr("Sqft")}</label>
           <input type="number" value={comp.sqft || ""} onChange={e => update("sqft", Number(e.target.value))} style={inputStyle} />
         </div>
         <div>
-          <label style={lbl}>$/Sqft</label>
+          <label style={lbl}>{tr("$/Sqft")}</label>
           <input type="text" value={pricePerSqft ? "$" + Math.round(pricePerSqft) : ""} readOnly style={{ ...inputStyle, background: "#f3f4f6", color: "#1f2937", fontWeight: 700 }} />
         </div>
         <div>
-          <label style={lbl}>Beds</label>
+          <label style={lbl}>{tr("Beds")}</label>
           <input type="number" value={comp.beds || ""} onChange={e => update("beds", Number(e.target.value))} style={inputStyle} />
         </div>
         <div>
-          <label style={lbl}>Baths</label>
+          <label style={lbl}>{tr("Baths")}</label>
           <input type="number" step="0.5" value={comp.baths || ""} onChange={e => update("baths", Number(e.target.value))} style={inputStyle} />
         </div>
         <div>
-          <label style={lbl}>Lot Sqft</label>
+          <label style={lbl}>{tr("Lot Sqft")}</label>
           <input type="number" value={comp.lotSqft || ""} onChange={e => update("lotSqft", Number(e.target.value))} style={inputStyle} />
         </div>
         <div>
-          <label style={lbl}>Year Built</label>
+          <label style={lbl}>{tr("Year Built")}</label>
           <input type="number" value={comp.yearBuilt || ""} onChange={e => update("yearBuilt", Number(e.target.value))} style={inputStyle} />
         </div>
         <div>
-          <label style={lbl}>DOM</label>
-          <input type="number" value={comp.dom || ""} onChange={e => update("dom", Number(e.target.value))} style={inputStyle} placeholder="Days" />
+          <label style={lbl}>{tr("DOM")}</label>
+          <input type="number" value={comp.dom || ""} onChange={e => update("dom", Number(e.target.value))} style={inputStyle} placeholder={tr("Days")} />
         </div>
       </div>
 
       <details style={{ marginBottom: 8 }}>
-        <summary style={{ cursor: "pointer", fontSize: 12, fontWeight: 600, color: "#374151" }}>This comp has these features:</summary>
+        <summary style={{ cursor: "pointer", fontSize: 12, fontWeight: 600, color: "#374151" }}>{tr("This comp has these features:")}</summary>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 4, marginTop: 8 }}>
           {FL_UPGRADES.map(u => (
             <label key={u.id} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, padding: "4px 6px", background: (comp.upgrades && comp.upgrades[u.id]) ? "#dbeafe" : "transparent", borderRadius: 3, cursor: "pointer" }}>
               <input type="checkbox" checked={!!(comp.upgrades && comp.upgrades[u.id])} onChange={() => toggleUpgrade(u.id)} style={{ margin: 0 }} />
-              <span>{u.label}</span>
+              <span>{tr(u.label)}</span>
             </label>
           ))}
         </div>
@@ -385,11 +386,11 @@ function CompCard({ comp, idx, onChange, onRemove, subjectUpgrades }) {
 
       {result && (
         <div style={{ background: "#f0fdf4", border: "1px solid #86efac", borderRadius: 6, padding: 10, fontSize: 12 }}>
-          <div style={{ fontWeight: 700, color: "#14532d", marginBottom: 4 }}>Adjusted Value: {money(result.adjustedValue)}</div>
+          <div style={{ fontWeight: 700, color: "#14532d", marginBottom: 4 }}>{tr("Adjusted Value:")} {money(result.adjustedValue)}</div>
           {result.adjustments.length > 0 && (
             <div style={{ color: "#374151", lineHeight: 1.5, fontSize: 11 }}>
               {result.adjustments.map((a, i) => (
-                <div key={i}>{a.sign}{money(a.value)} — {a.label}</div>
+                <div key={i}>{a.sign}{money(a.value)} — {tr(a.label)}</div>
               ))}
             </div>
           )}
@@ -465,9 +466,9 @@ export default function CMACalculator({ transactionId, token } = {}) {
 
   return (
     <div style={{ maxWidth: 820, margin: "0 auto", padding: 16, fontFamily: "system-ui, sans-serif" }}>
-      <h2 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: "#1f2937" }}>Quick CMA</h2>
+      <h2 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: "#1f2937" }}>{tr("Quick CMA")}</h2>
       <p style={{ margin: "4px 0 16px", fontSize: 13, color: "#6b7280" }}>
-        Comparative Market Analysis. Enter subject property + 3-6 comps. App computes adjusted values and suggests a list price.
+        {tr("Comparative Market Analysis. Enter subject property + 3-6 comps. App computes adjusted values and suggests a list price.")}
       </p>
 
       <div style={{ display: "flex", gap: 8, marginBottom: 20, borderBottom: "2px solid #e5e7eb" }}>
@@ -481,7 +482,7 @@ export default function CMACalculator({ transactionId, token } = {}) {
               borderBottom: tab === t.id ? "3px solid #0c4a6e" : "3px solid transparent",
               cursor: "pointer", fontSize: 13, fontWeight: tab === t.id ? 700 : 500,
               color: tab === t.id ? "#0c4a6e" : "#6b7280", marginBottom: -2 }}>
-            {t.label}
+            {tr(t.label)}
           </button>
         ))}
       </div>
@@ -492,11 +493,11 @@ export default function CMACalculator({ transactionId, token } = {}) {
         <div>
           {transactionId && (
             <div style={{ background: "#eff6ff", border: "1px solid #93c5fd", borderRadius: 8, padding: 16, marginBottom: 16 }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: "#1e3a8a", marginBottom: 8 }}>✨ AI Comp Extraction</div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "#1e3a8a", marginBottom: 8 }}>{tr("✨ AI Comp Extraction")}</div>
               <UploadCompsButton transactionId={transactionId} token={token}
                 onExtracted={(extracted) => {
                   // Merge extracted comps into state — replace or append
-                  if (extracted.length === 0) { alert("No comps extracted. Try clearer files."); return; }
+                  if (extracted.length === 0) { alert(tr("No comps extracted. Try clearer files.")); return; }
                   const merged = extracted.map(e => ({
                     address: e.address || "",
                     soldPrice: e.soldPrice || 0,
@@ -513,12 +514,12 @@ export default function CMACalculator({ transactionId, token } = {}) {
                   }));
                   // Replace existing comps with extracted (agent can add manual ones after)
                   setComps(merged.slice(0, 6));
-                  alert("✅ Extracted " + merged.length + " comp" + (merged.length === 1 ? "" : "s") + ". Review each one — fields can be adjusted before generating the report.");
+                  alert(tr("✅ Extracted ") + merged.length + tr(" comp") + (merged.length === 1 ? "" : "s") + tr(". Review each one — fields can be adjusted before generating the report."));
                 }} />
             </div>
           )}
           <div style={{ background: "#fef3c7", border: "1px solid #fcd34d", borderRadius: 8, padding: 12, marginBottom: 16, fontSize: 13, color: "#78350f" }}>
-            💡 <strong>Or enter manually:</strong> 3-6 recently sold homes (within last 6 months, ½ mile, similar specs). The system auto-adjusts for differences from your subject.
+            💡 <strong>{tr("Or enter manually:")}</strong> {tr("3-6 recently sold homes (within last 6 months, ½ mile, similar specs). The system auto-adjusts for differences from your subject.")}
           </div>
           {comps.map((c, i) => (
             <CompCard key={i} comp={c} idx={i}
@@ -527,7 +528,7 @@ export default function CMACalculator({ transactionId, token } = {}) {
               subjectUpgrades={subject.upgrades} />
           ))}
           {comps.length < 6 && (
-            <button onClick={addComp} style={btnStyle("#E0F2FE", "#0c4a6e")}>+ Add Comp ({6 - comps.length} more allowed)</button>
+            <button onClick={addComp} style={btnStyle("#E0F2FE", "#0c4a6e")}>{tr("+ Add Comp (")}{6 - comps.length} {tr("more allowed)")}</button>
           )}
         </div>
       )}
@@ -536,32 +537,32 @@ export default function CMACalculator({ transactionId, token } = {}) {
         <div>
           {!summary || compResults.length === 0 ? (
             <div style={{ background: "#fee2e2", border: "1px solid #fca5a5", borderRadius: 8, padding: 16, textAlign: "center", color: "#0c4a6e" }}>
-              Add at least one comp with sold price + sqft to see suggested pricing.
+              {tr("Add at least one comp with sold price + sqft to see suggested pricing.")}
             </div>
           ) : (
             <>
               <div style={{ background: "linear-gradient(135deg, #0c4a6e, #075985)", color: "white", padding: 20, borderRadius: 12, marginBottom: 16 }}>
-                <div style={{ fontSize: 13, opacity: 0.9 }}>Suggested List Price Range</div>
+                <div style={{ fontSize: 13, opacity: 0.9 }}>{tr("Suggested List Price Range")}</div>
                 <div style={{ fontSize: 32, fontWeight: 800, marginTop: 4 }}>{money(summary.min)} – {money(summary.max)}</div>
                 <div style={{ fontSize: 14, opacity: 0.95, marginTop: 8 }}>
-                  Recommended: <strong>{money(summary.median)}</strong> (median of {compResults.length} comps)
+                  {tr("Recommended:")} <strong>{money(summary.median)}</strong> {tr("(median of")} {compResults.length} {tr("comps)")}
                 </div>
                 <div style={{ fontSize: 12, opacity: 0.85, marginTop: 12, borderTop: "1px solid rgba(255,255,255,0.3)", paddingTop: 10 }}>
-                  Avg comp $/sqft: <strong>${Math.round(summary.avgPSF)}</strong>
-                  {summary.avgDOM > 0 && <> · Avg DOM: <strong>{Math.round(summary.avgDOM)} days</strong></>}
+                  {tr("Avg comp $/sqft:")} <strong>${Math.round(summary.avgPSF)}</strong>
+                  {summary.avgDOM > 0 && <> {tr("· Avg DOM:")} <strong>{Math.round(summary.avgDOM)} {tr("days")}</strong></>}
                 </div>
               </div>
 
               <div style={{ background: "white", border: "1px solid #e5e7eb", borderRadius: 8, padding: 16 }}>
-                <div style={{ fontWeight: 700, marginBottom: 10 }}>Per-Comp Breakdown</div>
+                <div style={{ fontWeight: 700, marginBottom: 10 }}>{tr("Per-Comp Breakdown")}</div>
                 {compResults.map((r, i) => (
                   <div key={i} style={{ borderTop: i > 0 ? "1px solid #f3f4f6" : "none", padding: "10px 0" }}>
                     <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
-                      <span><strong>Comp #{i + 1}</strong> {comps[i].address || "(no address)"}</span>
+                      <span><strong>{tr("Comp #")}{i + 1}</strong> {comps[i].address || tr("(no address)")}</span>
                       <span><strong>{money(r.adjustedValue)}</strong></span>
                     </div>
                     <div style={{ fontSize: 11, color: "#6b7280", marginTop: 2 }}>
-                      Sold {money(comps[i].soldPrice)} · {Math.round(r.basePricePerSqft)} $/sqft · {r.adjustments.length} adjustments
+                      {tr("Sold")} {money(comps[i].soldPrice)} · {Math.round(r.basePricePerSqft)} {tr("$/sqft ·")} {r.adjustments.length} {tr("adjustments")}
                     </div>
                   </div>
                 ))}
@@ -571,13 +572,13 @@ export default function CMACalculator({ transactionId, token } = {}) {
 
           {transactionId && (
             <div style={{ marginTop: 20, padding: 16, background: "#fffbeb", border: "1px solid #fcd34d", borderRadius: 8 }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: "#78350f", marginBottom: 6 }}>📄 Generate Compliance CMA PDF</div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "#78350f", marginBottom: 6 }}>{tr("📄 Generate Compliance CMA PDF")}</div>
               <div style={{ fontSize: 12, color: "#78350f", marginBottom: 10, lineHeight: 1.5 }}>
-                Generate a branded CMA report for this transaction. Includes subject, all comps, adjustments, and recommended price. Saves to Documents under "CMA Report" for compliance.
+                {tr("Generate a branded CMA report for this transaction. Includes subject, all comps, adjustments, and recommended price. Saves to Documents under \"CMA Report\" for compliance.")}
               </div>
               <button onClick={generatePdf} disabled={generating}
                 style={{ ...btnStyle(generating ? "#9ca3af" : "#0c4a6e", "white"), padding: "10px 18px" }}>
-                {generating ? "Generating..." : "📄 Generate CMA PDF"}
+                {generating ? tr("Generating...") : tr("📄 Generate CMA PDF")}
               </button>
               {genMsg && (
                 <div style={{ marginTop: 10, padding: 10, borderRadius: 6, fontSize: 12,

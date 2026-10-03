@@ -1,4 +1,4 @@
-import { t as tr, locale as uiLocale, requestSpanish, useLang, getLang } from "./i18n";
+import { t as tr, tn, locale as uiLocale, requestSpanish, useLang, getLang } from "./i18n";
 import { useState, useEffect, useRef } from "react";
 import SignerEntityFields, { entityAwareRow, signerPayload, entityRowProblem } from "./ui/SignerEntityFields";
 import { askConfirm, askText } from "./ui/dialogs";
@@ -93,20 +93,20 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
       // offer or a doc without firm dates. Say so clearly instead of "0 milestones".
       if (!d.milestonesDated && !d.executedDate && !d.closingDate) {
         alert(
-          `📅 No firm dates found in "${doc.name}".\n\n` +
+          tr("📅 No firm dates found in \"{name}\".\n\n", { name: doc.name }) +
           tr("This usually means it's an unsigned offer, or the contract dates (executed date, closing date) aren't filled in yet. ") +
           tr("\"Read dates\" works best on the fully-signed contract.\n") +
           (sigLine ? `\n${sigLine}\n` : "") +
-          (d.notes ? `\nNote: ${d.notes}` : "")
+          (d.notes ? tr("\nNote: {notes}", { notes: d.notes }) : "")
         );
       } else {
         alert(
-          `📅 Dates read from "${doc.name}"\n\n` +
-          `${d.milestonesDated} milestone${d.milestonesDated === 1 ? "" : "s"} dated on your timeline.\n` +
-          (d.executedDate ? `Executed: ${d.executedDate}\n` : "") +
-          (d.closingDate ? `Closing: ${d.closingDate}\n` : "") +
+          tr("📅 Dates read from \"{name}\"\n\n", { name: doc.name }) +
+          tn(d.milestonesDated, "{n} milestone dated on your timeline.\n", "{n} milestones dated on your timeline.\n") +
+          (d.executedDate ? tr("Executed: {executedDate}\n", { executedDate: d.executedDate }) : "") +
+          (d.closingDate ? tr("Closing: {closingDate}\n", { closingDate: d.closingDate }) : "") +
           (sigLine ? `\n${sigLine}\n` : "") +
-          (d.notes ? `\nNote: ${d.notes}` : "")
+          (d.notes ? tr("\nNote: {notes}", { notes: d.notes }) : "")
         );
       }
     } catch (e) {
@@ -170,7 +170,7 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
     const file = e.target.files[0];
     if (!file) return;
     if (file.size > MAX_UPLOAD_BYTES) { alert(tr("File too large. Max 50 MB.")); e.target.value = ""; return; }
-    if (file.type && !ALLOWED_UPLOAD_TYPES.includes(file.type)) { alert(`File type "${file.type}" not allowed.`); e.target.value = ""; return; }
+    if (file.type && !ALLOWED_UPLOAD_TYPES.includes(file.type)) { alert(tr("File type \"{type}\" not allowed.", { type: file.type })); e.target.value = ""; return; }
     setSlotUploading(documentType);
     try {
       const base64 = await new Promise((resolve, reject) => {
@@ -194,7 +194,7 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
 
   // Mark a required document as Not Applicable for this deal, with a reason on record.
   const waiveSlot = async (documentType, label) => {
-    const reason = await askText(`Mark "${label}" as Not Applicable for this deal.\n\nReason (required) — e.g. "Transaction broker — no disclosure needed":`, "", { okLabel: "Mark N/A" });
+    const reason = await askText(tr("Mark \"{label}\" as Not Applicable for this deal.\n\nReason (required) — e.g. \"Transaction broker — no disclosure needed\":", { label }), "", { okLabel: "Mark N/A" });
     if (reason == null) return;            // cancelled
     if (!reason.trim()) { alert(tr("A reason is required to waive a document.")); return; }
     setSlotUploading(documentType);
@@ -239,7 +239,7 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
     } catch (err) { alert(tr("Couldn't create the folder: ") + err.message); }
   };
   const renameFolder = async (from) => {
-    const to = ((await askText(`Rename folder "${from}" to:`, from, { okLabel: "Rename" })) || "").trim();
+    const to = ((await askText(tr("Rename folder \"{from}\" to:", { from }), from, { okLabel: "Rename" })) || "").trim();
     if (!to || to === from) return;
     try {
       const res = await fetch(`${API}/transactions/${tx.id}/document-folders/rename`, {
@@ -252,7 +252,7 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
     } catch (err) { alert(tr("Couldn't rename the folder: ") + err.message); }
   };
   const deleteEmptyFolder = async (name) => {
-    if (!(await askConfirm(`Remove the empty folder "${name}"?`, { okLabel: tr("Remove"), danger: true }))) return;
+    if (!(await askConfirm(tr("Remove the empty folder \"{name}\"?", { name }), { okLabel: tr("Remove"), danger: true }))) return;
     try {
       const res = await fetch(`${API}/transactions/${tx.id}/document-folders/${encodeURIComponent(name)}`, {
         method: "DELETE", headers,
@@ -343,7 +343,7 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
   // Picked the wrong file for a slot? Un-assign it (that slot only — the doc
   // keeps any other slots it satisfies).
   const unassignExisting = async (documentType, docId, docName, slotLabel) => {
-    if (!(await askConfirm(`Remove "${docName}" from the ${slotLabel} slot?\n\nThe file stays in Documents — this only un-fills this checklist item so you can pick the right one.`, { okLabel: tr("Remove"), danger: true }))) return;
+    if (!(await askConfirm(tr("Remove \"{docName}\" from the {slotLabel} slot?\n\nThe file stays in Documents — this only un-fills this checklist item so you can pick the right one.", { docName, slotLabel }), { okLabel: tr("Remove"), danger: true }))) return;
     setSlotUploading(documentType);
     try {
       const res = await fetch(`${API}/documents/${docId}/document-type/${encodeURIComponent(documentType)}`, { method: "DELETE", headers });
@@ -395,9 +395,9 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
       const docsData = await docsRes.json();
       if (docsData.documents) setDocs(docsData.documents);
       loadRequired();
-      if (ok.length && !failed.length) alert(`✅ ${ok.length} document${ok.length === 1 ? "" : "s"} uploaded!`);
-      else if (ok.length && failed.length) alert(`✅ ${ok.length} uploaded.\n\n⚠️ Couldn't upload:\n- ${failed.join("\n- ")}`);
-      else alert(`⚠️ Couldn't upload:\n- ${failed.join("\n- ")}`);
+      if (ok.length && !failed.length) alert(tn(ok.length, "✅ {n} document uploaded!", "✅ {n} documents uploaded!"));
+      else if (ok.length && failed.length) alert(tr("✅ {n} uploaded.\n\n⚠️ Couldn't upload:\n- {v2}", { n: ok.length, v2: failed.join("\n- ") }));
+      else alert(tr("⚠️ Couldn't upload:\n- {v1}", { v1: failed.join("\n- ") }));
     } catch (e) {
       console.error("Upload failed:", e);
       alert(tr("Upload failed: ") + e.message);
@@ -441,7 +441,7 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
   };
 
   const handleDelete = async (doc) => {
-    if (!(await askConfirm(`Delete "${doc.name}"?`, { okLabel: tr("Delete"), danger: true }))) return;
+    if (!(await askConfirm(tr("Delete \"{name}\"?", { name: doc.name }), { okLabel: tr("Delete"), danger: true }))) return;
     try {
       await fetch(`${API}/documents/${doc.id}`, { method: "DELETE", headers });
       setDocs(prev => prev.filter(d => d.id !== doc.id));
@@ -488,7 +488,7 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
       <div style={{ fontSize: 16, flexShrink: 0 }}>{icon}</div>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontWeight: 600, fontSize: 13, color: COLORS.text, textDecoration: item.waived ? "line-through" : "none" }}>
-          {getLang() === "es" ? tr(String(item.label || "").replace(/_/g, " ")) : item.label}
+          {getLang() === "es" ? tr(String(item.label || "").replace(/_/g, " ")) : tr(item.label)}
           {!item.required && <span style={{ marginLeft: 6, fontSize: 10, fontWeight: 700, color: "#92400E", background: "#FEF3C7", padding: "1px 6px", borderRadius: 10 }}>{tr("OPTIONAL")}</span>}
           {item.custom && <span style={{ marginLeft: 6, fontSize: 10, fontWeight: 700, color: "#1A5276", background: "#D6EAF8", padding: "1px 6px", borderRadius: 10 }}>{tr("BROKER")}</span>}
         </div>
@@ -500,7 +500,7 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
               <div style={{ fontSize: 12, color: "#4B5563", marginTop: 2, lineHeight: 1.45 }}>💡 {tr(item.description)}</div>
             )}
             <div style={{ fontSize: 10.5, color: COLORS.muted, marginTop: 2 }}>
-              {item.condition && item.condition !== "always" ? `Applies because: ${item.condition.replace(/_/g, " ")} · ` : ""}{item.statute || ""}
+              {item.condition && item.condition !== "always" ? tr("Applies because: {v1} · ", { v1: item.condition.replace(/_/g, " ") }) : ""}{item.statute || ""}
             </div>
           </>
         )}
@@ -563,7 +563,7 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
       const d = await r.json();
       if (!r.ok || !d.success) throw new Error(d.error || "Could not generate the waiver");
       await Promise.all([loadDocs(), loadRequired()]);
-      alert(`✅ "${d.name}" is in this deal's Documents below.\n\nNext: find it in the list and click "✍️ Get signature" to email it to the buyer to sign. The signed copy files back here automatically.`);
+      alert(tr("✅ \"{name}\" is in this deal's Documents below.\n\nNext: find it in the list and click \"✍️ Get signature\" to email it to the buyer to sign. The signed copy files back here automatically.", { name: d.name }));
     } catch (e) { alert("⚠️ " + e.message); }
     setWaiverBusy(false);
   };
@@ -882,7 +882,7 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
                         return (
                           <>
                             {waiting && (
-                              <span title={`${ss.signed} of ${ss.pending + ss.signed} signed so far`}
+                              <span title={tr("{signed} of {v2} signed so far", { signed: ss.signed, v2: ss.pending + ss.signed })}
                                 style={{ padding: "4px 8px", borderRadius: 6, background: "#fef3c7", fontSize: 11, fontWeight: 700, color: "#92400e" }}>
                                 {tr("⏳ Awaiting signature")}{ss.pending + ss.signed > 1 ? ` (${ss.signed}/${ss.pending + ss.signed})` : ""}
                               </span>
@@ -1851,7 +1851,7 @@ export function DocSignModal({ tx, doc, allDocs = [], headers, onClose, initialR
       const b = await r.json();
       if (!r.ok) throw new Error(b.error || "Couldn't send signing links");
       alert(tr("✍️ Signing link sent to ") + clean.map(s => s.name).join(" and ") + "." +
-        (selDocs.length > 1 ? `\n\nOne link covers all ${selDocs.length} documents — they sign everything in one sitting.` : "") +
+        (selDocs.length > 1 ? tr("\n\nOne link covers all {n} documents — they sign everything in one sitting.", { n: selDocs.length }) : "") +
         (placements.length ? tr("\n\nThey'll be guided to the exact spot") + (placements.length > 1 ? "s" : "") + tr(" you placed.") : "") +
         tr("\n\nWhen everyone has signed, each signed copy (with its signature certificate) appears here in Documents — and you'll get a pop-up."));
       if (typeof onSent === "function") { try { await onSent(doc.id); } catch { /* the round is out; the caller's bookkeeping is best effort */ } }
@@ -2078,7 +2078,7 @@ export function DocSignModal({ tx, doc, allDocs = [], headers, onClose, initialR
                     {(signerNames.length ? signerNames : ["Signer 1"]).map((n, i) => (
                       <button key={i} onClick={() => setActiveSigner(i + 1)}
                         style={{ padding: "5px 12px", borderRadius: 14, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", border: "2px solid " + SIGNER_COLORS[i % SIGNER_COLORS.length], background: activeSigner === i + 1 ? SIGNER_COLORS[i % SIGNER_COLORS.length] : "#fff", color: activeSigner === i + 1 ? "#fff" : SIGNER_COLORS[i % SIGNER_COLORS.length] }}>
-                        {n || `Signer ${i + 1}`}
+                        {n || tr("Signer {v1}", { v1: i + 1 })}
                       </button>
                     ))}
                     <span style={{ fontSize: 12.5, fontWeight: 700, color: "#374151" }}>{tr("should sign. Tap a block to remove it.")}</span>
@@ -2696,7 +2696,7 @@ function CombinePdfsModal({ tx, docs, headers, onClose, onDone }) {
             style={{ width: "100%", padding: "9px 11px", borderRadius: 8, border: "1.5px solid #D5D8DC", fontSize: 13.5, fontFamily: "inherit", boxSizing: "border-box", marginBottom: 12 }} />
           <button onClick={combine} disabled={busy || picked.length < 2}
             style={{ width: "100%", padding: "12px 0", borderRadius: 10, border: "none", background: busy || picked.length < 2 ? "#9CB4BC" : "#0c4a6e", color: "#fff", fontWeight: 800, fontSize: 14, cursor: busy ? "wait" : "pointer", fontFamily: "inherit" }}>
-            {busy ? tr("Combining…") : `Combine ${picked.length || ""} PDF${picked.length === 1 ? "" : "s"}`}
+            {busy ? tr("Combining…") : tn(picked.length, "Combine {v1} PDF", "Combine {v1} PDFs", { v1: picked.length || "" })}
           </button>
         </div>
       </div>
@@ -2821,7 +2821,7 @@ export function AdjustSpotsModal({ doc, signerNames, initial, headers, onSave, o
             {(signerNames.length ? signerNames : ["Signer 1"]).map((n, i) => (
               <button key={i} onClick={() => setActiveSigner(i + 1)}
                 style={{ padding: "5px 12px", borderRadius: 14, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", border: "2px solid " + SIGNER_COLORS[i % SIGNER_COLORS.length], background: activeSigner === i + 1 ? SIGNER_COLORS[i % SIGNER_COLORS.length] : "#fff", color: activeSigner === i + 1 ? "#fff" : SIGNER_COLORS[i % SIGNER_COLORS.length] }}>
-                {n || `Signer ${i + 1}`}
+                {n || tr("Signer {v1}", { v1: i + 1 })}
               </button>
             ))}
             {[["signature", "✍️"], ["initials", "🔤"], ["date", "📅"], ["checkbox", "☑️"], ["text", "💬"]].map(([k, label]) => (
@@ -2854,7 +2854,7 @@ export function AdjustSpotsModal({ doc, signerNames, initial, headers, onSave, o
                     <div key={idx}
                       onPointerDown={startDrag(idx, pg)} onPointerMove={moveDrag} onPointerUp={endDrag(idx)} onPointerCancel={endDrag(idx)}
                       onClick={(e) => e.stopPropagation()}
-                      title={`Signer ${p.signer || 1} · drag to move, tap to remove`}
+                      title={tr("Signer {v1} · drag to move, tap to remove", { v1: p.signer || 1 })}
                       style={{ position: "absolute", left: (p.x / pg.width * 100) + "%", bottom: (p.y / pg.height * 100) + "%", width: (widthPt / pg.width * 100) + "%", height: (heightPt / pg.height * 100) + "%", minHeight: 11,
                         border: "2px dashed " + color, background: color + "22", borderRadius: 4, display: "flex", alignItems: "center", justifyContent: "center", cursor: "grab", overflow: "visible", boxSizing: "border-box", touchAction: "none" }}>
                       <span style={{ fontSize: 10, fontWeight: 800, color, whiteSpace: "nowrap", pointerEvents: "none" }}>{tr(label)}</span>

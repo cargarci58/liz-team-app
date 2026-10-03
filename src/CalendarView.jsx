@@ -1,3 +1,4 @@
+import { t as tr, locale as uiLocale, useLang, requestSpanish } from "./i18n";
 import { useState, useEffect } from "react";
 import BackButton from "./ui/BackButton";
 
@@ -7,6 +8,7 @@ const SHOW_KEY = "tp_calendar_show_v1";
 const SHOW_DEFAULT = { closing: true, open: false, deadline: true, task: true, mine: true };
 
 export default function CalendarView({ transactions, onBack, onSelectTx }) {
+  useLang(); // redraw when the Spanish for deadline names arrives
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDay, setSelectedDay] = useState(null);     // day number in the current month
   const [mode, setMode] = useState("month");                  // "month" | "day"
@@ -24,6 +26,7 @@ export default function CalendarView({ transactions, onBack, onSelectTx }) {
   // calendar too, and can be added right here (Carlos 9/30).
   const [myTasks, setMyTasks] = useState([]);
   const [deadlines, setDeadlines] = useState([]);           // open timeline steps across the deals
+  useEffect(() => { requestSpanish((deadlines || []).map(m => m && m.name)); }, [deadlines]);
   const [newTitle, setNewTitle] = useState("");
   const [newDate, setNewDate] = useState("");
   const [adding, setAdding] = useState(false);
@@ -62,7 +65,7 @@ export default function CalendarView({ transactions, onBack, onSelectTx }) {
       if (!show.mine) toggleShow("mine");
       await loadMyTasks();
       try { window.dispatchEvent(new CustomEvent("wintheday:refresh")); } catch { /* ignore */ }
-    } catch (e) { alert(e.message || "Could not add the task."); }
+    } catch (e) { alert(e.message || tr("Could not add the task.")); }
     setAdding(false);
   };
   const completeTask = async (id) => {
@@ -70,7 +73,7 @@ export default function CalendarView({ transactions, onBack, onSelectTx }) {
       await fetch(API + "/personal-tasks/" + id + "/complete", { method: "PATCH", headers: { Authorization: "Bearer " + tok() } });
       await loadMyTasks();
       try { window.dispatchEvent(new CustomEvent("wintheday:refresh")); } catch { /* ignore */ }
-    } catch { alert("Could not mark that task done."); }
+    } catch { alert(tr("Could not mark that task done.")); }
   };
 
   const year = currentDate.getFullYear();
@@ -96,15 +99,15 @@ export default function CalendarView({ transactions, onBack, onSelectTx }) {
       return printRange === "3months" ? mDiff >= 0 && mDiff < 3 : mDiff === 0;
     }).sort();
     const title = printRange === "day"
-      ? new Date(year, month, selectedDay || 1).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })
+      ? new Date(year, month, selectedDay || 1).toLocaleDateString(uiLocale(), { weekday: "long", month: "long", day: "numeric", year: "numeric" })
       : printRange === "3months"
-      ? `${new Date(year, month, 1).toLocaleString("en-US", { month: "long" })} – ${new Date(year, month + 2, 1).toLocaleString("en-US", { month: "long", year: "numeric" })}`
+      ? `${new Date(year, month, 1).toLocaleString(uiLocale(), { month: "long" })} – ${new Date(year, month + 2, 1).toLocaleString(uiLocale(), { month: "long", year: "numeric" })}`
       : monthName;
     const rows = [];
     for (const k of keys) {
       const list = (allEvents[k] || []).filter(ev => inc[ev.type]);
       if (!list.length) continue;
-      const dateStr = new Date(k + "T00:00:00").toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" });
+      const dateStr = new Date(k + "T00:00:00").toLocaleDateString(uiLocale(), { weekday: "long", month: "short", day: "numeric" });
       rows.push(`<tr><td colspan='4' style='background:#F4F4F4;font-weight:700;padding:8px'>${esc(dateStr)}</td></tr>`);
       for (const ev of list) {
         rows.push(`<tr><td style='white-space:nowrap'>${ev.time ? esc(fmtTime(ev.time)) : ""}</td><td style='color:${typeColors[ev.type].bg};font-weight:700;white-space:nowrap'>${esc(typeLabels[ev.type])}</td><td>${esc(ev.label)}</td><td>${esc(ev.address || ev.notes || "")}</td></tr>`);
@@ -115,7 +118,7 @@ export default function CalendarView({ transactions, onBack, onSelectTx }) {
       + "<h1 style='margin:0 0 4px'>" + esc(title) + "</h1><p style='color:#666;margin:0 0 16px'>TransactPro calendar · printed " + esc(new Date().toLocaleDateString()) + "</p>"
       + "<table><tr style='background:#111;color:#fff'><th>Time</th><th>Type</th><th>What</th><th>Deal / notes</th></tr>" + body + "</table></body></html>";
     const printWindow = window.open("", "_blank");
-    if (!printWindow) { alert("Your browser blocked the print window — allow pop-ups for this site and try again."); return; }
+    if (!printWindow) { alert(tr("Your browser blocked the print window — allow pop-ups for this site and try again.")); return; }
     printWindow.document.write(html);
     printWindow.document.close();
     printWindow.focus();
@@ -123,7 +126,7 @@ export default function CalendarView({ transactions, onBack, onSelectTx }) {
     setShowPrintOptions(false);
   };
 
-  const monthName = currentDate.toLocaleString("en-US", { month: "long", year: "numeric" });
+  const monthName = currentDate.toLocaleString(uiLocale(), { month: "long", year: "numeric" });
   const firstDay = new Date(year, month, 1).getDay();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
 
@@ -232,10 +235,10 @@ export default function CalendarView({ transactions, onBack, onSelectTx }) {
   const addRow = (dateKey, placeholder) => (
     <div style={{ display: "flex", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
       <input value={newTitle} onChange={e => setNewTitle(e.target.value)} onKeyDown={e => { if (e.key === "Enter") addTask(dateKey); }}
-        placeholder={placeholder}
+        placeholder={tr(placeholder)}
         style={{ flex: "1 1 240px", padding: "9px 12px", border: "1px solid #CCC", borderRadius: 8, fontSize: 14, fontFamily: "inherit" }} />
       <button onClick={() => addTask(dateKey)} disabled={adding || !newTitle.trim()}
-        style={{ padding: "9px 16px", background: "#0c4a6e", color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", opacity: adding || !newTitle.trim() ? 0.6 : 1 }}>{adding ? "Adding…" : "Add"}</button>
+        style={{ padding: "9px 16px", background: "#0c4a6e", color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", opacity: adding || !newTitle.trim() ? 0.6 : 1 }}>{adding ? tr("Adding…") : tr("Add")}</button>
     </div>
   );
 
@@ -246,18 +249,18 @@ export default function CalendarView({ transactions, onBack, onSelectTx }) {
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: 14, fontWeight: 600 }}>
           {ev.time ? <span style={{ color: "#922B21", marginRight: 6 }}>{fmtTime(ev.time)}</span> : null}
-          {ev.label}
+          {tr(ev.label)}
         </div>
         <div style={{ fontSize: 12, color: "#666" }}>
-          {typeLabels[ev.type]}{ev.type === "deadline" ? (ev.booked ? " · appointment" : " · due") : ""}{ev.address ? ` · ${ev.address}` : ""}
+          {typeLabels[ev.type]}{ev.type === "deadline" ? (ev.booked ? tr(" · appointment") : tr(" · due")) : ""}{ev.address ? ` · ${ev.address}` : ""}
         </div>
         {ev.notes && <div style={{ fontSize: 12, color: "#666" }}>{ev.notes}</div>}
       </div>
       {ev.type === "mine" && (
         <button onClick={e => { e.stopPropagation(); completeTask(ev.taskId); }}
-          style={{ padding: "6px 12px", background: "#fff", border: "1px solid #CCC", borderRadius: 8, cursor: "pointer", fontSize: 12, fontWeight: 700, color: "#1E8449", fontFamily: "inherit" }}>✓ Done</button>
+          style={{ padding: "6px 12px", background: "#fff", border: "1px solid #CCC", borderRadius: 8, cursor: "pointer", fontSize: 12, fontWeight: 700, color: "#1E8449", fontFamily: "inherit" }}>{tr("✓ Done")}</button>
       )}
-      {ev.txId && <span style={{ fontSize: 12, color: "#0c4a6e", fontWeight: 700 }}>Open deal →</span>}
+      {ev.txId && <span style={{ fontSize: 12, color: "#0c4a6e", fontWeight: 700 }}>{tr("Open deal →")}</span>}
     </div>
   );
 
@@ -265,34 +268,34 @@ export default function CalendarView({ transactions, onBack, onSelectTx }) {
     <div style={styles.container}>
       <div style={styles.header}>
         <BackButton tone="dark" onClick={onBack} />
-        <div style={{ color: "#fff", fontWeight: 700, fontSize: 18 }}>📅 Calendar</div>
+        <div style={{ color: "#fff", fontWeight: 700, fontSize: 18 }}>{tr("📅 Calendar")}</div>
         <button onClick={() => { setAddOpen(o => !o); if (!newDate) setNewDate(selectedDay ? ymd(year, month, selectedDay) : ymd(today.getFullYear(), today.getMonth(), today.getDate())); }}
-          style={{ marginLeft: "auto", background: "#fff", border: "none", color: "#0c4a6e", borderRadius: 8, padding: "7px 16px", cursor: "pointer", fontSize: 13, fontWeight: 700, fontFamily: "inherit" }}>➕ Add a task</button>
-        <button onClick={openPrint} style={{ background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.3)", color: "#fff", borderRadius: 8, padding: "7px 16px", cursor: "pointer", fontSize: 13, fontWeight: 600, fontFamily: "inherit" }}>🖨️ Print Options</button>
+          style={{ marginLeft: "auto", background: "#fff", border: "none", color: "#0c4a6e", borderRadius: 8, padding: "7px 16px", cursor: "pointer", fontSize: 13, fontWeight: 700, fontFamily: "inherit" }}>{tr("➕ Add a task")}</button>
+        <button onClick={openPrint} style={{ background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.3)", color: "#fff", borderRadius: 8, padding: "7px 16px", cursor: "pointer", fontSize: 13, fontWeight: 600, fontFamily: "inherit" }}>{tr("🖨️ Print Options")}</button>
       </div>
 
       {addOpen && (
         <div style={{ background: "#fff", borderBottom: "1px solid #DDD", padding: "12px 24px", display: "flex", flexWrap: "wrap", gap: 10, alignItems: "center" }}>
           <input autoFocus value={newTitle} onChange={e => setNewTitle(e.target.value)} onKeyDown={e => { if (e.key === "Enter") addTask(newDate); }}
-            placeholder="What do you need to do? e.g. Call the appraiser"
+            placeholder={tr("What do you need to do? e.g. Call the appraiser")}
             style={{ flex: "1 1 260px", padding: "10px 12px", border: "1px solid #CCC", borderRadius: 8, fontSize: 15, fontFamily: "inherit" }} />
           <input type="date" value={newDate} onChange={e => setNewDate(e.target.value)}
             style={{ padding: "9px 10px", border: "1px solid #CCC", borderRadius: 8, fontSize: 15, fontFamily: "inherit" }} />
           <button onClick={() => addTask(newDate)} disabled={adding || !newTitle.trim()}
-            style={{ padding: "10px 18px", background: "#0c4a6e", color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", opacity: adding || !newTitle.trim() ? 0.6 : 1 }}>{adding ? "Adding…" : "Add"}</button>
-          <button onClick={() => setAddOpen(false)} style={{ padding: "10px 14px", background: "none", border: "1px solid #CCC", borderRadius: 8, cursor: "pointer", fontFamily: "inherit" }}>Cancel</button>
+            style={{ padding: "10px 18px", background: "#0c4a6e", color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", opacity: adding || !newTitle.trim() ? 0.6 : 1 }}>{adding ? tr("Adding…") : tr("Add")}</button>
+          <button onClick={() => setAddOpen(false)} style={{ padding: "10px 14px", background: "none", border: "1px solid #CCC", borderRadius: 8, cursor: "pointer", fontFamily: "inherit" }}>{tr("Cancel")}</button>
         </div>
       )}
 
       {/* Show: pick what the calendar displays (remembered on this device) */}
       <div style={{ background: "#fff", padding: "10px 24px", borderBottom: "1px solid #DDD", display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-        <span style={{ fontSize: 12, fontWeight: 700, color: "#555", marginRight: 4 }}>SHOW:</span>
+        <span style={{ fontSize: 12, fontWeight: 700, color: "#555", marginRight: 4 }}>{tr("SHOW:")}</span>
         {Object.entries(typeLabels).map(([type, label]) => (
           <label key={type} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, cursor: "pointer", padding: "5px 10px", borderRadius: 20,
             border: `1px solid ${show[type] ? typeColors[type].bg : "#DDD"}`, background: show[type] ? "#fff" : "#F4F4F4", opacity: show[type] ? 1 : 0.6 }}>
             <input type="checkbox" checked={!!show[type]} onChange={() => toggleShow(type)} style={{ width: 15, height: 15, accentColor: typeColors[type].bg }} />
             <span style={{ width: 10, height: 10, borderRadius: 3, background: typeColors[type].bg }} />
-            {label}
+            {tr(label)}
           </label>
         ))}
       </div>
@@ -305,17 +308,17 @@ export default function CalendarView({ transactions, onBack, onSelectTx }) {
               <button onClick={prevMonth} style={styles.navBtn}>‹</button>
               <div style={{ fontWeight: 700, fontSize: 20, color: "#111" }}>{monthName}</div>
               <div style={{ display: "flex", gap: 8 }}>
-                <button onClick={goToday} style={styles.smallBtn}>Today</button>
+                <button onClick={goToday} style={styles.smallBtn}>{tr("Today")}</button>
                 <button onClick={nextMonth} style={styles.navBtn}>›</button>
               </div>
             </div>
-            <div style={{ fontSize: 12, color: "#666666", margin: "8px 4px 0" }}>💡 Tap any day to open the whole day</div>
+            <div style={{ fontSize: 12, color: "#666666", margin: "8px 4px 0" }}>{tr("💡 Tap any day to open the whole day")}</div>
 
             {/* Calendar Grid */}
             <div style={{ background: "#fff", borderRadius: 12, overflow: "hidden", border: "1px solid #DDD", marginTop: 8 }}>
               <div data-keep-grid="" style={styles.grid}>
-                {["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].map(d => (
-                  <div key={d} style={styles.dayHeader}>{d}</div>
+                {["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].map((d, i) => (
+                  <div key={d} style={styles.dayHeader}>{new Date(2026, 1, 1 + i).toLocaleDateString(uiLocale(), { weekday: "short" })}</div>
                 ))}
                 {cells.map((day, i) => {
                   if (!day) return <div key={i} style={{ background: "#F8F9FA", minHeight: 90 }} />;
@@ -330,10 +333,10 @@ export default function CalendarView({ transactions, onBack, onSelectTx }) {
                       <div style={styles.dayNum(isToday, isSelected)}>{day}</div>
                       {dayEvents.slice(0, 3).map((ev, j) => (
                         <span key={j} style={styles.eventTag(ev.type)}>
-                          {ev.type === "mine" ? "📝 " : ev.type === "deadline" ? "⏰ " : ""}{ev.label}
+                          {ev.type === "mine" ? "📝 " : ev.type === "deadline" ? "⏰ " : ""}{tr(ev.label)}
                         </span>
                       ))}
-                      {dayEvents.length > 3 && <span style={{ fontSize: 10, color: "#666666" }}>+{dayEvents.length - 3} more</span>}
+                      {dayEvents.length > 3 && <span style={{ fontSize: 10, color: "#666666" }}>+{dayEvents.length - 3} {tr("more")}</span>}
                     </div>
                   );
                 })}
@@ -342,11 +345,11 @@ export default function CalendarView({ transactions, onBack, onSelectTx }) {
 
             {undatedTasks.length > 0 && (
               <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #DDD", padding: 20, marginTop: 16 }}>
-                <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 10, color: "#111" }}>📝 My tasks with no date ({undatedTasks.length})</div>
+                <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 10, color: "#111" }}>{tr("📝 My tasks with no date (")}{undatedTasks.length})</div>
                 {undatedTasks.map(t => (
                   <div key={t.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 12px", borderRadius: 8, background: "#F8F9FA", marginBottom: 6, border: "1px solid #EEE" }}>
-                    <div style={{ flex: 1, fontSize: 13, fontWeight: 600 }}>{t.title}</div>
-                    <button onClick={() => completeTask(t.id)} style={{ padding: "5px 10px", background: "#fff", border: "1px solid #CCC", borderRadius: 8, cursor: "pointer", fontSize: 12, fontWeight: 700, color: "#0c4a6e", fontFamily: "inherit" }}>✓ Done</button>
+                    <div style={{ flex: 1, fontSize: 13, fontWeight: 600 }}>{tr(t.title)}</div>
+                    <button onClick={() => completeTask(t.id)} style={{ padding: "5px 10px", background: "#fff", border: "1px solid #CCC", borderRadius: 8, cursor: "pointer", fontSize: 12, fontWeight: 700, color: "#0c4a6e", fontFamily: "inherit" }}>{tr("✓ Done")}</button>
                   </div>
                 ))}
               </div>
@@ -358,20 +361,20 @@ export default function CalendarView({ transactions, onBack, onSelectTx }) {
         {mode === "day" && selectedDay && (
           <>
             <div style={styles.nav}>
-              <button onClick={() => shiftDay(-1)} style={styles.navBtn} title="Previous day">‹</button>
+              <button onClick={() => shiftDay(-1)} style={styles.navBtn} title={tr("Previous day")}>‹</button>
               <div style={{ textAlign: "center" }}>
                 <div style={{ fontWeight: 700, fontSize: 20, color: "#111" }}>
-                  {new Date(year, month, selectedDay).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
+                  {new Date(year, month, selectedDay).toLocaleDateString(uiLocale(), { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
                 </div>
-                <div style={{ fontSize: 12, color: "#666666" }}>{selectedEvents.length} item{selectedEvents.length === 1 ? "" : "s"}</div>
+                <div style={{ fontSize: 12, color: "#666666" }}>{selectedEvents.length} {tr("item")}{selectedEvents.length === 1 ? "" : "s"}</div>
               </div>
               <div style={{ display: "flex", gap: 8 }}>
-                <button onClick={() => setMode("month")} style={styles.smallBtn}>📅 Month</button>
-                <button onClick={() => shiftDay(1)} style={styles.navBtn} title="Next day">›</button>
+                <button onClick={() => setMode("month")} style={styles.smallBtn}>{tr("📅 Month")}</button>
+                <button onClick={() => shiftDay(1)} style={styles.navBtn} title={tr("Next day")}>›</button>
               </div>
             </div>
             <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #DDD", padding: 20, marginTop: 12 }}>
-              {selectedEvents.length === 0 && <div style={{ fontSize: 14, color: "#666666", marginBottom: 10 }}>Nothing scheduled for this day{Object.values(show).some(v => !v) ? " (some kinds are hidden — see Show above)" : ""}.</div>}
+              {selectedEvents.length === 0 && <div style={{ fontSize: 14, color: "#666666", marginBottom: 10 }}>{tr("Nothing scheduled for this day")}{Object.values(show).some(v => !v) ? tr(" (some kinds are hidden — see Show above)") : ""}.</div>}
               {selectedEvents.map(eventRow)}
               {addRow(selectedKey, "➕ Add a task for this day")}
             </div>
@@ -382,31 +385,31 @@ export default function CalendarView({ transactions, onBack, onSelectTx }) {
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 2000, display: "flex", alignItems: "flex-start", justifyContent: "center", padding: 16, overflowY: "auto" }}>
           <div style={{ background: "#fff", borderRadius: 14, width: "100%", maxWidth: 400, boxShadow: "0 8px 40px rgba(0,0,0,0.2)", overflow: "hidden", fontFamily: "system-ui, sans-serif", margin: "auto" }}>
             <div style={{ background: "#111", padding: "16px 24px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <div style={{ color: "#fff", fontWeight: 700, fontSize: 16 }}>Print Options</div>
+              <div style={{ color: "#fff", fontWeight: 700, fontSize: 16 }}>{tr("Print Options")}</div>
               <button onClick={() => setShowPrintOptions(false)} style={{ background: "none", border: "none", color: "rgba(255,255,255,0.6)", fontSize: 20, cursor: "pointer" }}>x</button>
             </div>
             <div style={{ padding: 24 }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: "#555", textTransform: "uppercase", marginBottom: 10 }}>What to print</div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "#555", textTransform: "uppercase", marginBottom: 10 }}>{tr("What to print")}</div>
               {[
-                ["day", selectedDay ? `One day — ${new Date(year, month, selectedDay).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}` : "One day (tap a day first)"],
+                ["day", selectedDay ? `One day — ${new Date(year, month, selectedDay).toLocaleDateString(uiLocale(), { weekday: "short", month: "short", day: "numeric" })}` : "One day (tap a day first)"],
                 ["month", `This month — ${monthName}`],
                 ["3months", "The next 3 months"],
               ].map(([key, label]) => (
                 <label key={key} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10, cursor: key === "day" && !selectedDay ? "not-allowed" : "pointer", fontSize: 15, opacity: key === "day" && !selectedDay ? 0.5 : 1 }}>
                   <input type="radio" name="printRange" disabled={key === "day" && !selectedDay} checked={printRange === key} onChange={() => setPrintRange(key)} style={{ width: 18, height: 18 }} />
-                  {label}
+                  {tr(label)}
                 </label>
               ))}
-              <div style={{ fontSize: 13, fontWeight: 700, color: "#555", textTransform: "uppercase", margin: "16px 0 10px" }}>Include</div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "#555", textTransform: "uppercase", margin: "16px 0 10px" }}>{tr("Include")}</div>
               {Object.entries(typeLabels).map(([key, label]) => (
                 <label key={key} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10, cursor: "pointer", fontSize: 15 }}>
                   <input type="checkbox" checked={!!(printInclude || show)[key]} onChange={e => setPrintInclude(p => ({ ...(p || show), [key]: e.target.checked }))} style={{ width: 18, height: 18 }} />
-                  {label}
+                  {tr(label)}
                 </label>
               ))}
               <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 20 }}>
-                <button onClick={() => setShowPrintOptions(false)} style={{ padding: "10px 18px", border: "1px solid #CCC", borderRadius: 8, background: "none", cursor: "pointer", fontFamily: "inherit" }}>Cancel</button>
-                <button onClick={handlePrint} style={{ padding: "10px 20px", background: "#0c4a6e", color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>Print Now</button>
+                <button onClick={() => setShowPrintOptions(false)} style={{ padding: "10px 18px", border: "1px solid #CCC", borderRadius: 8, background: "none", cursor: "pointer", fontFamily: "inherit" }}>{tr("Cancel")}</button>
+                <button onClick={handlePrint} style={{ padding: "10px 20px", background: "#0c4a6e", color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>{tr("Print Now")}</button>
               </div>
             </div>
           </div>

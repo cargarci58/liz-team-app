@@ -1,3 +1,4 @@
+import { t as tr } from "./i18n";
 import { useState, useEffect } from "react";
 import BackButton from "./ui/BackButton";
 import PopByLogModal from "./PopByLogModal";
@@ -161,7 +162,7 @@ export default function PopBysPage({ token, onBack }) {
   const savePref = async (patch, reload = true) => {
     setBusy(true);
     try { await fetch(API + "/contacts/prefs", { method: "PUT", headers, body: JSON.stringify(patch) }); if (reload) await load(); }
-    catch (e) { alert("Couldn't save: " + e.message); }
+    catch (e) { alert(tr("Couldn't save: ") + e.message); }
     finally { setBusy(false); }
   };
 
@@ -177,7 +178,7 @@ export default function PopBysPage({ token, onBack }) {
       setSavedMsg(true); setTimeout(() => setSavedMsg(false), 2500);
       setShowSettings(false);
       load();
-    } catch (e) { alert("Couldn't save: " + e.message); }
+    } catch (e) { alert(tr("Couldn't save: ") + e.message); }
     finally { setBusy(false); }
   };
 
@@ -192,8 +193,8 @@ export default function PopBysPage({ token, onBack }) {
       if (r.ok) {
         if (batchGift.gift) setRejectedGifts(avoid);
         setBatchGift({ gift: d.gift, note: d.note, price: d.price, whereToBuy: d.whereToBuy || "", stores: Array.isArray(d.stores) ? d.stores : [] });
-      } else alert(d.error || "Couldn't get a suggestion.");
-    } catch (e) { alert("Error: " + e.message); }
+      } else alert(d.error || tr("Couldn't get a suggestion."));
+    } catch (e) { alert(tr("Error: ") + e.message); }
     finally { setSuggestingBatch(false); }
   };
 
@@ -207,12 +208,12 @@ export default function PopBysPage({ token, onBack }) {
   };
 
   const markDelivered = async (c) => {
-    if (!(await askConfirm(`Mark the pop-by for ${c.firstName || "this contact"} as delivered? It'll move to your history and reschedule for next time.`, { okLabel: "Mark delivered" }))) return;
+    if (!(await askConfirm(tr("Mark the pop-by for {v1} as delivered? It'll move to your history and reschedule for next time.", { v1: c.firstName || "this contact" }), { okLabel: tr("Mark delivered") }))) return;
     try {
       const r = await fetch(API + "/popbys/" + c.id + "/delivered", { method: "POST", headers, body: JSON.stringify({ gift: batchGift.gift, note: batchGift.note }) });
       if (!r.ok) { const d = await r.json(); throw new Error(d.error || "Failed"); }
       setData(prev => ({ ...prev, due: prev.due.filter(x => x.id !== c.id) }));
-    } catch (e) { alert("Error: " + e.message); }
+    } catch (e) { alert(tr("Error: ") + e.message); }
   };
 
   // Far contacts (~1 hr+ drive, incl. out-of-state) are excluded from the run
@@ -266,7 +267,7 @@ export default function PopBysPage({ token, onBack }) {
 
   const openMaps = () => {
     const stops = ordered.filter(c => c.fullAddress);
-    if (!stops.length) { alert("Pick at least one contact with an address first."); return; }
+    if (!stops.length) { alert(tr("Pick at least one contact with an address first.")); return; }
     const origin = data?.start?.hasAddress ? data.start.address : null;
     const points = (origin ? [origin] : []).concat(stops.map(c => c.fullAddress));
     window.open("https://www.google.com/maps/dir/" + points.map(encodeURIComponent).join("/"), "_blank");
@@ -276,9 +277,9 @@ export default function PopBysPage({ token, onBack }) {
   // (each 3.75in x 3.2in), dashed cut lines, auto page breaks. Each card is a
   // warm personal note: "Dear [First]," + message + signed by the agent.
   const printNotes = () => {
-    if (!batchGift.note) { alert("Pick a gift first (Step 1, ✨ Suggest a gift) — that's what creates the note card."); return; }
+    if (!batchGift.note) { alert(tr("Pick a gift first (Step 1, ✨ Suggest a gift) — that's what creates the note card.")); return; }
     const list = ordered;
-    if (!list.length) { alert("No contacts to print note cards for."); return; }
+    if (!list.length) { alert(tr("No contacts to print note cards for.")); return; }
     const signature = (data && data.agentName) ? data.agentName : "Your Realtor";
     const PER_PAGE = 6;
     const pages = [];
@@ -290,7 +291,7 @@ export default function PopBysPage({ token, onBack }) {
         <div class="sign">With gratitude,<br><span class="name">${escapeHtml(signature)}</span></div>
       </div>`).join("")}</div>`).join("");
     const w = window.open("", "_blank");
-    if (!w) { alert("Allow pop-ups to print."); return; }
+    if (!w) { alert(tr("Allow pop-ups to print.")); return; }
     w.document.write(`<!doctype html><html><head><meta charset=utf-8><title>Pop-by note cards</title>
       <style>
         @page { size: letter portrait; margin: 0.5in; }
@@ -321,7 +322,7 @@ export default function PopBysPage({ token, onBack }) {
   // ── render ──────────────────────────────────────────────────
   const wrap = { padding: 24, fontFamily: "system-ui, sans-serif", maxWidth: 1000, margin: "0 auto" };
 
-  if (loading) return <div style={wrap}>Loading…</div>;
+  if (loading) return <div style={wrap}>{tr("Loading…")}</div>;
 
   return (
     <div style={wrap}>
@@ -329,13 +330,13 @@ export default function PopBysPage({ token, onBack }) {
 
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10 }}>
         <div>
-          <div style={{ fontSize: 26, fontWeight: 800 }}>🎁 Pop-Bys</div>
-          <div style={{ fontSize: 13, color: "#6b7280" }}>Hand-deliver a small gift to your best clients — the #1 way to earn referrals.</div>
+          <div style={{ fontSize: 26, fontWeight: 800 }}>{tr("🎁 Pop-Bys")}</div>
+          <div style={{ fontSize: 13, color: "#6b7280" }}>{tr("Hand-deliver a small gift to your best clients — the #1 way to earn referrals.")}</div>
         </div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          <button onClick={() => setShowLog(true)} style={btn("#0c4a6e", "white")}>➕ Log a Pop-By</button>
-          <button onClick={() => setShowGuide(g => !g)} style={btn("#fef3c7", "#92400e")}>📖 How it works</button>
-          <button onClick={() => setShowSettings(s => !s)} style={btn("#e5e7eb", "#374151")}>⚙ Settings</button>
+          <button onClick={() => setShowLog(true)} style={btn("#0c4a6e", "white")}>{tr("➕ Log a Pop-By")}</button>
+          <button onClick={() => setShowGuide(g => !g)} style={btn("#fef3c7", "#92400e")}>{tr("📖 How it works")}</button>
+          <button onClick={() => setShowSettings(s => !s)} style={btn("#e5e7eb", "#374151")}>{tr("⚙ Settings")}</button>
         </div>
       </div>
 
@@ -346,40 +347,40 @@ export default function PopBysPage({ token, onBack }) {
 
       {showGuide && (
         <div style={{ background: "#fffbeb", border: "1px solid #fcd34d", borderRadius: 10, padding: 16, marginTop: 12, fontSize: 14, color: "#78350f", lineHeight: 1.6 }}>
-          <strong>What's a pop-by?</strong> It's when you personally drop off a small, thoughtful gift to a top client — a coffee mug, fresh-baked muffins, a little seasonal treat — just to say hello. No sales pitch. It keeps you top-of-mind so when real estate comes up, they think of <em>you</em> (and refer you).
+          <strong>{tr("What's a pop-by?")}</strong> {tr("It's when you personally drop off a small, thoughtful gift to a top client — a coffee mug, fresh-baked muffins, a little seasonal treat — just to say hello. No sales pitch. It keeps you top-of-mind so when real estate comes up, they think of")} <em>{tr("you")}</em> {tr("(and refer you).")}
           <br /><br />
-          <strong>How this page helps:</strong> (1) it lists the clients <strong>due</strong> for a pop-by, (2) suggests a <strong>gift idea + a little note-card line</strong> for each, (3) groups people who live <strong>near each other</strong> so you save gas, (4) lets you <strong>print the note cards</strong>, (5) gives you a <strong>map & driving route</strong>, and (6) tracks <strong>who you've already delivered to</strong>. Do a batch every few months and watch your referrals grow.
+          <strong>{tr("How this page helps:")}</strong> {tr("(1) it lists the clients")} <strong>{tr("due")}</strong> {tr("for a pop-by, (2) suggests a")} <strong>{tr("gift idea + a little note-card line")}</strong> {tr("for each, (3) groups people who live")} <strong>{tr("near each other")}</strong> {tr("so you save gas, (4) lets you")} <strong>{tr("print the note cards")}</strong>{tr(", (5) gives you a")} <strong>{tr("map & driving route")}</strong>{tr(", and (6) tracks")} <strong>{tr("who you've already delivered to")}</strong>{tr(". Do a batch every few months and watch your referrals grow.")}
         </div>
       )}
 
       {showSettings && (
         <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, padding: 16, marginTop: 12, display: "flex", gap: 16, flexWrap: "wrap", alignItems: "flex-end" }}>
-          <div><label style={lbl}>Who gets pop-bys</label>
+          <div><label style={lbl}>{tr("Who gets pop-bys")}</label>
             <select value={form.popByTiers} onChange={e => setForm(f => ({ ...f, popByTiers: e.target.value }))} style={{ ...input, width: 180 }}>
-              {Object.entries(TIER_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+              {Object.entries(TIER_LABEL).map(([k, v]) => <option key={k} value={k}>{tr(v)}</option>)}
             </select></div>
-          <div><label style={lbl}>How often</label>
+          <div><label style={lbl}>{tr("How often")}</label>
             <select value={form.popByFrequencyDays} onChange={e => setForm(f => ({ ...f, popByFrequencyDays: parseInt(e.target.value, 10) }))} style={{ ...input, width: 170 }}>
-              {Object.entries(FREQ_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+              {Object.entries(FREQ_LABEL).map(([k, v]) => <option key={k} value={k}>{tr(v)}</option>)}
             </select></div>
-          <div><label style={lbl}>Budget per gift</label>
+          <div><label style={lbl}>{tr("Budget per gift")}</label>
             <div style={{ display: "flex", alignItems: "center", gap: 4 }}><span style={{ fontSize: 16, color: "#6b7280" }}>$</span>
               <input type="number" min={1} max={500} value={form.popByBudget} onChange={e => setForm(f => ({ ...f, popByBudget: e.target.value }))} style={{ ...input, width: 90 }} /></div></div>
-          <button onClick={saveSettings} disabled={busy} style={btn("#0c4a6e", "white")}>{busy ? "Saving…" : "Save settings"}</button>
+          <button onClick={saveSettings} disabled={busy} style={btn("#0c4a6e", "white")}>{busy ? tr("Saving…") : tr("Save settings")}</button>
         </div>
       )}
 
-      {savedMsg && <div style={{ background: "#E0F2FE", border: "1px solid #7DD3FC", color: "#0c4a6e", borderRadius: 8, padding: "8px 12px", marginTop: 10, fontSize: 13, fontWeight: 700 }}>✓ Settings saved.</div>}
+      {savedMsg && <div style={{ background: "#E0F2FE", border: "1px solid #7DD3FC", color: "#0c4a6e", borderRadius: 8, padding: "8px 12px", marginTop: 10, fontSize: 13, fontWeight: 700 }}>{tr("✓ Settings saved.")}</div>}
 
       {/* Not enabled yet */}
       {data && !data.enabled && (
         <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 12, padding: 28, marginTop: 16, textAlign: "center" }}>
-          <div style={{ fontSize: 18, fontWeight: 800, marginBottom: 8 }}>Turn on Pop-Bys to get started</div>
+          <div style={{ fontSize: 18, fontWeight: 800, marginBottom: 8 }}>{tr("Turn on Pop-Bys to get started")}</div>
           <div style={{ fontSize: 14, color: "#6b7280", maxWidth: 520, margin: "0 auto 16px", lineHeight: 1.6 }}>
-            When it's on, the app schedules pop-bys for your chosen tiers and shows you who's due, with gift ideas and a delivery route. It's optional — leave it off if pop-bys aren't your style.
+            {tr("When it's on, the app schedules pop-bys for your chosen tiers and shows you who's due, with gift ideas and a delivery route. It's optional — leave it off if pop-bys aren't your style.")}
           </div>
-          <button onClick={enable} disabled={busy} style={btn("#0c4a6e", "white")}>{busy ? "Turning on…" : "🎁 Turn on Pop-Bys"}</button>
-          <div style={{ marginTop: 10 }}><button onClick={() => setShowGuide(true)} style={{ background: "none", border: "none", color: "#0c4a6e", fontWeight: 600, fontSize: 13, cursor: "pointer" }}>What's a pop-by?</button></div>
+          <button onClick={enable} disabled={busy} style={btn("#0c4a6e", "white")}>{busy ? tr("Turning on…") : tr("🎁 Turn on Pop-Bys")}</button>
+          <div style={{ marginTop: 10 }}><button onClick={() => setShowGuide(true)} style={{ background: "none", border: "none", color: "#0c4a6e", fontWeight: 600, fontSize: 13, cursor: "pointer" }}>{tr("What's a pop-by?")}</button></div>
         </div>
       )}
 
@@ -388,58 +389,58 @@ export default function PopBysPage({ token, onBack }) {
           {/* Tabs */}
           <div style={{ display: "flex", gap: 8, marginTop: 18, borderBottom: "2px solid #e5e7eb" }}>
             {[["run", "This run"], ["history", "History"]].map(([k, label]) => (
-              <button key={k} onClick={() => setTab(k)} style={{ background: "none", border: "none", borderBottom: tab === k ? "3px solid #0c4a6e" : "3px solid transparent", padding: "10px 14px", marginBottom: -2, fontWeight: 700, fontSize: 14, color: tab === k ? "#0c4a6e" : "#6b7280", cursor: "pointer" }}>{label}</button>
+              <button key={k} onClick={() => setTab(k)} style={{ background: "none", border: "none", borderBottom: tab === k ? "3px solid #0c4a6e" : "3px solid transparent", padding: "10px 14px", marginBottom: -2, fontWeight: 700, fontSize: 14, color: tab === k ? "#0c4a6e" : "#6b7280", cursor: "pointer" }}>{tr(label)}</button>
             ))}
           </div>
 
           {tab === "run" && (
             <div style={{ marginTop: 16 }}>
               <div style={{ fontSize: 13, color: "#6b7280", marginBottom: 10 }}>
-                Showing <strong>{TIER_LABEL[data.settings.tiers]}</strong> contacts due for a pop-by ({FREQ_LABEL[data.settings.frequencyDays]?.toLowerCase()}). Budget ~${data.settings.budget}/gift.
+                {tr("Showing")} <strong>{TIER_LABEL[data.settings.tiers]}</strong> {tr("contacts due for a pop-by (")}{FREQ_LABEL[data.settings.frequencyDays]?.toLowerCase()}{tr("). Budget ~$")}{data.settings.budget}/gift.
               </div>
               {(() => {
                 const total = nearDue.length + farDue.length + (data.noAddress || []).length;
                 if (total === 0) return null;
                 return (
                   <div style={{ background: "#f8fafc", border: "1px solid #e5e7eb", borderRadius: 8, padding: "8px 12px", marginBottom: 10, fontSize: 13, color: "#374151" }}>
-                    <strong>{total}</strong> due this round: <strong style={{ color: "#166534" }}>{nearDue.length} nearby</strong> (your run)
-                    {farDue.length > 0 && <span> · <strong style={{ color: "#991b1b" }}>{farDue.length} too far</strong></span>}
-                    {(data.noAddress || []).length > 0 && <span> · <strong style={{ color: "#9a3412" }}>{data.noAddress.length} missing an address</strong></span>}
-                    {(farDue.length > 0 || (data.noAddress || []).length > 0) && <span style={{ color: "#5F6B7A" }}> — see the sections below.</span>}
+                    <strong>{total}</strong> {tr("due this round:")} <strong style={{ color: "#166534" }}>{nearDue.length} {tr("nearby")}</strong> {tr("(your run)")}
+                    {farDue.length > 0 && <span> · <strong style={{ color: "#991b1b" }}>{farDue.length} {tr("too far")}</strong></span>}
+                    {(data.noAddress || []).length > 0 && <span> · <strong style={{ color: "#9a3412" }}>{data.noAddress.length} {tr("missing an address")}</strong></span>}
+                    {(farDue.length > 0 || (data.noAddress || []).length > 0) && <span style={{ color: "#5F6B7A" }}> {tr("— see the sections below.")}</span>}
                   </div>
                 );
               })()}
               {data.geocoding > 0 && (
                 <div style={{ background: "#eff6ff", border: "1px solid #bfdbfe", color: "#1e3a8a", borderRadius: 8, padding: "8px 12px", marginBottom: 10, fontSize: 13, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
-                  <span>📍 Locating {data.geocoding} address{data.geocoding === 1 ? "" : "es"} for the map… this runs in the background.</span>
-                  <button onClick={load} style={btn("#dbeafe", "#1e3a8a")}>Refresh</button>
+                  <span>{tr("📍 Locating")} {data.geocoding} {tr("address")}{data.geocoding === 1 ? "" : tr("es")} {tr("for the map… this runs in the background.")}</span>
+                  <button onClick={load} style={btn("#dbeafe", "#1e3a8a")}>{tr("Refresh")}</button>
                 </div>
               )}
 
               {!data.start.hasAddress && (data.due || []).length > 0 && (
                 <div style={{ background: "#fff7ed", border: "1px solid #fed7aa", color: "#9a3412", borderRadius: 8, padding: "8px 12px", marginBottom: 10, fontSize: 13 }}>
-                  ⚠️ Add your office/home address in <strong>My Profile</strong> — without it the app can't tell who's too far away or start your route from you.
+                  {tr("⚠️ Add your office/home address in")} <strong>{tr("My Profile")}</strong> {tr("— without it the app can't tell who's too far away or start your route from you.")}
                 </div>
               )}
               {nearDue.length === 0 ? (
                 <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 10, padding: 20, color: "#166534" }}>
-                  🎉 Nobody nearby is due for a pop-by right now. Check back later — or adjust your tiers/frequency in Settings.
-                  {farDue.length > 0 && <div style={{ marginTop: 6, color: "#9a3412" }}>({farDue.length} due contact{farDue.length === 1 ? " is" : "s are"} 1 hr+ away — see below.)</div>}
+                  {tr("🎉 Nobody nearby is due for a pop-by right now. Check back later — or adjust your tiers/frequency in Settings.")}
+                  {farDue.length > 0 && <div style={{ marginTop: 6, color: "#9a3412" }}>({farDue.length} {tr("due contact")}{farDue.length === 1 ? tr(" is") : tr("s are")} {tr("1 hr+ away — see below.)")}</div>}
                 </div>
               ) : (
                 <>
                   {/* ── STEP 1 — pick the gift ── */}
                   <div style={stepBox}>
-                    <div style={stepTitle}><span style={stepNum}>1</span> Pick the gift &amp; go shopping</div>
-                    <div style={{ fontSize: 13, color: "#6b7280", marginBottom: 10 }}>One gift for everyone — buy {runList.length} of the same thing.</div>
-                    <button onClick={suggestBatch} disabled={suggestingBatch} style={btn("#fef9c3", "#854d0e")}>{suggestingBatch ? "Thinking…" : (batchGift.gift ? "↻ Suggest another gift" : "✨ Suggest a gift")}</button>
+                    <div style={stepTitle}><span style={stepNum}>1</span> {tr("Pick the gift & go shopping")}</div>
+                    <div style={{ fontSize: 13, color: "#6b7280", marginBottom: 10 }}>{tr("One gift for everyone — buy")} {runList.length} {tr("of the same thing.")}</div>
+                    <button onClick={suggestBatch} disabled={suggestingBatch} style={btn("#fef9c3", "#854d0e")}>{suggestingBatch ? tr("Thinking…") : (batchGift.gift ? tr("↻ Suggest another gift") : tr("✨ Suggest a gift"))}</button>
                     {batchGift.gift && (
                       <div style={{ background: "#fffbeb", border: "1px solid #fcd34d", borderRadius: 10, padding: 14, marginTop: 10 }}>
-                        <div style={{ fontSize: 15, fontWeight: 800, color: "#92400e" }}>🛒 Buy {runList.length} × {batchGift.gift}</div>
+                        <div style={{ fontSize: 15, fontWeight: 800, color: "#92400e" }}>{tr("🛒 Buy")} {runList.length} × {batchGift.gift}</div>
                         <div style={{ fontSize: 13, color: "#78350f", marginTop: 4 }}>
-                          {batchGift.price != null && <span>💵 <strong>est. ~${batchGift.price}</strong> each{runList.length > 1 ? <span> · ~<strong>${Math.round(batchGift.price * runList.length)}</strong> total</span> : null} <span style={{ color: "#b45309" }}>(rough estimate — prices vary, check the store)</span></span>}
+                          {batchGift.price != null && <span>💵 <strong>{tr("est. ~$")}{batchGift.price}</strong> {tr("each")}{runList.length > 1 ? <span> · ~<strong>${Math.round(batchGift.price * runList.length)}</strong> {tr("total")}</span> : null} <span style={{ color: "#b45309" }}>{tr("(rough estimate — prices vary, check the store)")}</span></span>}
                           {batchGift.stores.length > 0 && (
-                            <span>{batchGift.price != null ? " · " : ""}🛍 buy it:{" "}
+                            <span>{batchGift.price != null ? " · " : ""}{tr("🛍 buy it:")}{" "}
                               {batchGift.stores.map((s, i) => (
                                 <span key={s}>
                                   {i > 0 && " · "}
@@ -449,61 +450,61 @@ export default function PopBysPage({ token, onBack }) {
                             </span>
                           )}
                         </div>
-                        <div style={{ fontSize: 13, color: "#78350f", marginTop: 6, paddingTop: 6, borderTop: "1px dashed #fcd34d" }}>💌 Note card message (each card opens "Dear [name]," and is signed by you):<br /><em>"{batchGift.note}"</em></div>
+                        <div style={{ fontSize: 13, color: "#78350f", marginTop: 6, paddingTop: 6, borderTop: "1px dashed #fcd34d" }}>{tr("💌 Note card message (each card opens \"Dear [name],\" and is signed by you):")}<br /><em>"{batchGift.note}"</em></div>
                       </div>
                     )}
                     <label style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 12, fontSize: 14, fontWeight: 700, color: "#166534", cursor: "pointer" }}>
                       <input type="checkbox" style={{ width: 18, height: 18, cursor: "pointer" }}
                         checked={runList.length > 0 && runList.every(c => c.purchased)}
                         onChange={e => toggleAllPurchased(runList, e.target.checked)} />
-                      ✓ I bought the gifts — ready to deliver
+                      {tr("✓ I bought the gifts — ready to deliver")}
                     </label>
                   </div>
 
                   {/* ── STEP 2 — print the notes ── */}
                   <div style={stepBox}>
-                    <div style={stepTitle}><span style={stepNum}>2</span> Print the note cards</div>
-                    <div style={{ fontSize: 13, color: "#6b7280", marginBottom: 10 }}>One card per person, ready to print on letter paper (8 per page) and cut out. Tape one to each gift.</div>
-                    <button onClick={printNotes} style={btn("#E0F2FE", "#0c4a6e")}>🖨 Print {runList.length} note card{runList.length === 1 ? "" : "s"}</button>
+                    <div style={stepTitle}><span style={stepNum}>2</span> {tr("Print the note cards")}</div>
+                    <div style={{ fontSize: 13, color: "#6b7280", marginBottom: 10 }}>{tr("One card per person, ready to print on letter paper (8 per page) and cut out. Tape one to each gift.")}</div>
+                    <button onClick={printNotes} style={btn("#E0F2FE", "#0c4a6e")}>{tr("🖨 Print")} {runList.length} {tr("note card")}{runList.length === 1 ? "" : "s"}</button>
                   </div>
 
                   {/* ── STEP 3 — pick who / which area ── */}
                   <div style={stepBox}>
-                    <div style={stepTitle}><span style={stepNum}>3</span> Pick who's on today's run</div>
+                    <div style={stepTitle}><span style={stepNum}>3</span> {tr("Pick who's on today's run")}</div>
 
                     {/* WHERE we measure from — defaults to the office address (works on
                         a desktop, no GPS). One link switches to live location on a phone. */}
                     <div style={{ fontSize: 13.5, color: "#374151", marginBottom: 8, lineHeight: 1.6 }}>
-                      Showing people near <strong>{refMode === "gps" ? "📍 your current location" : (officeAddr ? "🏠 " + officeAddr : "🏠 your office")}</strong>.
+                      {tr("Showing people near")} <strong>{refMode === "gps" ? tr("📍 your current location") : (officeAddr ? "🏠 " + officeAddr : tr("🏠 your office"))}</strong>.
                       {refMode === "gps"
-                        ? <button onClick={() => { setRefMode("office"); setGpsNote(""); }} style={linkBtn}>Use office instead</button>
-                        : <button onClick={useMyLocation} disabled={gpsBusy} style={linkBtn}>{gpsBusy ? "📍 locating…" : "📍 I'm out delivering — use my location"}</button>}
+                        ? <button onClick={() => { setRefMode("office"); setGpsNote(""); }} style={linkBtn}>{tr("Use office instead")}</button>
+                        : <button onClick={useMyLocation} disabled={gpsBusy} style={linkBtn}>{gpsBusy ? tr("📍 locating…") : tr("📍 I'm out delivering — use my location")}</button>}
                     </div>
                     {gpsNote && <div style={{ fontSize: 12, color: "#0c4a6e", marginBottom: 8 }}>{gpsNote}</div>}
                     {!refReady && radius !== "all" && (
                       <div style={{ fontSize: 13, color: "#b45309", background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 8, padding: 10, marginBottom: 10 }}>
-                        Add your office address in <strong>My Profile</strong> so we can find who's nearby — or tap <strong>📍 use my location</strong> above, or pick <strong>Everyone</strong> below.
+                        {tr("Add your office address in")} <strong>{tr("My Profile")}</strong> {tr("so we can find who's nearby — or tap")} <strong>{tr("📍 use my location")}</strong> {tr("above, or pick")} <strong>{tr("Everyone")}</strong> {tr("below.")}
                       </div>
                     )}
 
                     {/* HOW FAR — one tap, no slider */}
-                    <div style={{ fontSize: 13, fontWeight: 700, color: "#374151", marginBottom: 6 }}>How far do you want to drive?</div>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: "#374151", marginBottom: 6 }}>{tr("How far do you want to drive?")}</div>
                     <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 14 }}>
                       {[1, 3, 5, 10].map(r => (
-                        <button key={r} onClick={() => setRadius(r)} style={btn(radius === r ? "#0c4a6e" : "#eef2f7", radius === r ? "white" : "#374151")}>{r} miles</button>
+                        <button key={r} onClick={() => setRadius(r)} style={btn(radius === r ? "#0c4a6e" : "#eef2f7", radius === r ? "white" : "#374151")}>{r} {tr("miles")}</button>
                       ))}
-                      <button onClick={() => setRadius("all")} style={btn(radius === "all" ? "#0c4a6e" : "#eef2f7", radius === "all" ? "white" : "#374151")}>Everyone</button>
+                      <button onClick={() => setRadius("all")} style={btn(radius === "all" ? "#0c4a6e" : "#eef2f7", radius === "all" ? "white" : "#374151")}>{tr("Everyone")}</button>
                     </div>
 
                     <div style={{ fontSize: 15, fontWeight: 800, color: "#0c4a6e", marginBottom: 8 }}>
-                      {radius === "all" ? `Everyone due (${runList.length})`
-                        : refReady ? `${runList.length} ${runList.length === 1 ? "person" : "people"} within ${radius} miles`
-                        : "Pick a starting point above"}
-                      {runList.length > 0 && <span style={{ fontSize: 12, fontWeight: 600, color: "#6b7280" }}> · nearest first · uncheck anyone to skip</span>}
+                      {radius === "all" ? tr("Everyone due ({n})", { n: runList.length })
+                        : refReady ? tr("{n} {v2} within {radius} miles", { n: runList.length, v2: runList.length === 1 ? "person" : "people", radius })
+                        : tr("Pick a starting point above")}
+                      {runList.length > 0 && <span style={{ fontSize: 12, fontWeight: 600, color: "#6b7280" }}> {tr("· nearest first · uncheck anyone to skip")}</span>}
                     </div>
                     {refReady && radius !== "all" && displayContacts.length === 0 && (
                       <div style={{ fontSize: 13, color: "#b45309", background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 8, padding: 12, marginBottom: 8 }}>
-                        No one due within {radius} miles. Tap a bigger distance above.
+                        {tr("No one due within")} {radius} {tr("miles. Tap a bigger distance above.")}
                       </div>
                     )}
                     <div style={{ display: "grid", gap: 8 }}>
@@ -515,7 +516,7 @@ export default function PopBysPage({ token, onBack }) {
                             <input type="checkbox" checked={!skipped} onChange={() => toggleExclude(c.id)} style={{ width: 18, height: 18, cursor: "pointer" }} />
                             <div style={{ flex: 1, minWidth: 0 }}>
                               <div style={{ fontWeight: 700 }}>{c.firstName} {c.lastName} <span style={{ fontSize: 11, background: "#0c4a6e", color: "#fff", borderRadius: 6, padding: "1px 6px", marginLeft: 4 }}>{c.tier}</span></div>
-                              <div style={{ fontSize: 12, color: "#6b7280" }}>{c.fullAddress}{dist != null && <span style={{ color: "#166534", fontWeight: 700 }}> · {dist < 0.1 ? "<0.1" : dist.toFixed(1)} mi</span>}{!c.hasCoords && (data.geocoding > 0 ? <span style={{ color: "#2563eb" }}> · 📍 locating…</span> : <span style={{ color: "#b45309" }}> · ⚠️ couldn't pinpoint</span>)}</div>
+                              <div style={{ fontSize: 12, color: "#6b7280" }}>{c.fullAddress}{dist != null && <span style={{ color: "#166534", fontWeight: 700 }}> · {dist < 0.1 ? "<0.1" : dist.toFixed(1)} {tr("mi")}</span>}{!c.hasCoords && (data.geocoding > 0 ? <span style={{ color: "#2563eb" }}> {tr("· 📍 locating…")}</span> : <span style={{ color: "#b45309" }}> {tr("· ⚠️ couldn't pinpoint")}</span>)}</div>
                             </div>
                           </div>
                         );
@@ -525,10 +526,10 @@ export default function PopBysPage({ token, onBack }) {
 
                   {/* ── STEP 4 — drive & deliver ── */}
                   <div style={stepBox}>
-                    <div style={stepTitle}><span style={stepNum}>4</span> Drive the route &amp; mark delivered</div>
-                    <button onClick={openMaps} style={{ ...btn("#0c4a6e", "white"), marginBottom: 12 }}>🗺 Open the route in Google Maps</button>
+                    <div style={stepTitle}><span style={stepNum}>4</span> {tr("Drive the route & mark delivered")}</div>
+                    <button onClick={openMaps} style={{ ...btn("#0c4a6e", "white"), marginBottom: 12 }}>{tr("🗺 Open the route in Google Maps")}</button>
                     <div style={{ fontSize: 13 }}>
-                      <div style={{ fontWeight: 700, marginBottom: 4 }}>🚗 Stop order {routeTotal(ordered) != null && <span style={{ color: "#6b7280", fontWeight: 400 }}>· ~{routeTotal(ordered)} mi total (straight-line)</span>}</div>
+                      <div style={{ fontWeight: 700, marginBottom: 4 }}>{tr("🚗 Stop order")} {routeTotal(ordered) != null && <span style={{ color: "#6b7280", fontWeight: 400 }}>· ~{routeTotal(ordered)} {tr("mi total (straight-line)")}</span>}</div>
                       <div style={{ display: "grid", gap: 6 }}>
                         {ordered.map((c, i) => {
                           const prev = i === 0 ? (data.start?.lat != null ? data.start : null) : ordered[i - 1];
@@ -539,14 +540,14 @@ export default function PopBysPage({ token, onBack }) {
                               <span style={{ fontWeight: 800, color: "#0c4a6e", width: 22, textAlign: "right" }}>{i + 1}.</span>
                               <div style={{ flex: 1, minWidth: 0 }}>
                                 <div style={{ fontWeight: 700, fontSize: 13 }}>{c.firstName} {c.lastName}</div>
-                                <div style={{ fontSize: 12, color: "#5F6B7A" }}>{c.fullAddress}{leg != null ? ` · ${leg.toFixed(1)} mi ${legLabel}` : ""}</div>
+                                <div style={{ fontSize: 12, color: "#5F6B7A" }}>{c.fullAddress}{leg != null ? tr(" · {v1} mi {legLabel}", { v1: leg.toFixed(1), legLabel }) : ""}</div>
                               </div>
-                              <button onClick={() => markDelivered(c)} style={{ ...btn("#fff", "#0c4a6e"), border: "1.5px solid #0c4a6e" }}>Mark delivered</button>
+                              <button onClick={() => markDelivered(c)} style={{ ...btn("#fff", "#0c4a6e"), border: "1.5px solid #0c4a6e" }}>{tr("Mark delivered")}</button>
                             </div>
                           );
                         })}
                       </div>
-                      {!data.start.hasAddress && <div style={{ color: "#b45309", marginTop: 6 }}>Tip: add your office/home address in My Profile so the route starts from you.</div>}
+                      {!data.start.hasAddress && <div style={{ color: "#b45309", marginTop: 6 }}>{tr("Tip: add your office/home address in My Profile so the route starts from you.")}</div>}
                     </div>
                   </div>
                 </>
@@ -555,28 +556,28 @@ export default function PopBysPage({ token, onBack }) {
               {/* Too-far list — excluded from the run */}
               {farDue.length > 0 && (
                 <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 10, padding: 14, marginTop: 16 }}>
-                  <div style={{ fontWeight: 700, color: "#991b1b", marginBottom: 6 }}>⏱ {farDue.length} due, but 1 hr+ away — left out of this run</div>
+                  <div style={{ fontWeight: 700, color: "#991b1b", marginBottom: 6 }}>⏱ {farDue.length} {tr("due, but 1 hr+ away — left out of this run")}</div>
                   <div style={{ display: "grid", gap: 6 }}>
                     {farDue.map(c => (
                       <div key={c.id} style={{ display: "flex", gap: 10, alignItems: "center", background: "#fff", border: "1px solid #fecaca", borderRadius: 8, padding: "8px 12px" }}>
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ fontWeight: 700, fontSize: 13 }}>{c.firstName} {c.lastName} <span style={{ fontSize: 11, background: "#0c4a6e", color: "#fff", borderRadius: 6, padding: "1px 6px", marginLeft: 4 }}>{c.tier}</span></div>
-                          <div style={{ fontSize: 12, color: "#5F6B7A" }}>{c.fullAddress} · {c.milesFromStart != null ? `~${c.milesFromStart} mi away` : "out of state"}</div>
+                          <div style={{ fontSize: 12, color: "#5F6B7A" }}>{c.fullAddress} · {c.milesFromStart != null ? tr("~{milesFromStart} mi away", { milesFromStart: c.milesFromStart }) : tr("out of state")}</div>
                         </div>
-                        <button onClick={() => markDelivered(c)} style={{ ...btn("#fff", "#0c4a6e"), border: "1.5px solid #0c4a6e" }} title="If you do visit them, mark it here">Mark delivered</button>
+                        <button onClick={() => markDelivered(c)} style={{ ...btn("#fff", "#0c4a6e"), border: "1.5px solid #0c4a6e" }} title={tr("If you do visit them, mark it here")}>{tr("Mark delivered")}</button>
                       </div>
                     ))}
                   </div>
-                  <div style={{ fontSize: 12, color: "#991b1b", marginTop: 8 }}>Too far to mix into a local gift run. Mail them something instead, plan a separate trip — or if the distance looks wrong, double-check their address in Contacts.</div>
+                  <div style={{ fontSize: 12, color: "#991b1b", marginTop: 8 }}>{tr("Too far to mix into a local gift run. Mail them something instead, plan a separate trip — or if the distance looks wrong, double-check their address in Contacts.")}</div>
                 </div>
               )}
 
               {/* No-address list */}
               {(data.noAddress || []).length > 0 && (
                 <div style={{ background: "#fff7ed", border: "1px solid #fed7aa", borderRadius: 10, padding: 14, marginTop: 16 }}>
-                  <div style={{ fontWeight: 700, color: "#9a3412", marginBottom: 6 }}>⚠️ {data.noAddress.length} due, but missing a street address (can't be mapped or routed)</div>
+                  <div style={{ fontWeight: 700, color: "#9a3412", marginBottom: 6 }}>⚠️ {data.noAddress.length} {tr("due, but missing a street address (can't be mapped or routed)")}</div>
                   <div style={{ fontSize: 13, color: "#7c2d12" }}>{data.noAddress.map(c => `${c.firstName} ${c.lastName} (${c.tier})`).join(" · ")}</div>
-                  <div style={{ fontSize: 12, color: "#9a3412", marginTop: 6 }}>Add their address in Contacts to include them in a route.</div>
+                  <div style={{ fontSize: 12, color: "#9a3412", marginTop: 6 }}>{tr("Add their address in Contacts to include them in a route.")}</div>
                 </div>
               )}
             </div>
@@ -584,13 +585,13 @@ export default function PopBysPage({ token, onBack }) {
 
           {tab === "history" && (
             <div style={{ marginTop: 16 }}>
-              {history.length === 0 ? <div style={{ color: "#6b7280", padding: 20 }}>No pop-bys delivered yet. Once you mark some delivered, they'll show here.</div> : (
+              {history.length === 0 ? <div style={{ color: "#6b7280", padding: 20 }}>{tr("No pop-bys delivered yet. Once you mark some delivered, they'll show here.")}</div> : (
                 <div style={{ display: "grid", gap: 6 }}>
                   {history.map(h => (
                     <div key={h.id} style={{ display: "flex", justifyContent: "space-between", gap: 12, background: "#fff", border: "1px solid #e5e7eb", borderRadius: 8, padding: "10px 12px" }}>
                       <div>
-                        <div style={{ fontWeight: 700 }}>{h.contact_name || "(no name)"}</div>
-                        <div style={{ fontSize: 12, color: "#166534", fontWeight: 600, marginTop: 2 }}>✓ Delivered on {new Date(h.delivered_at).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric", year: "numeric" })}</div>
+                        <div style={{ fontWeight: 700 }}>{h.contact_name || tr("(no name)")}</div>
+                        <div style={{ fontSize: 12, color: "#166534", fontWeight: 600, marginTop: 2 }}>{tr("✓ Delivered on")} {new Date(h.delivered_at).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric", year: "numeric" })}</div>
                         {(h.gift || h.note) && <div style={{ fontSize: 12, color: "#6b7280", marginTop: 2 }}>🎁 {h.gift || "—"}{h.note ? ` · "${h.note}"` : ""}</div>}
                       </div>
                     </div>

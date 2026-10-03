@@ -1,4 +1,4 @@
-import { t as tr } from "./i18n";
+import { t as tr, tn } from "./i18n";
 import { useState, useEffect } from "react";
 
 const API = "https://liz-team-server-api-production.up.railway.app";
@@ -63,7 +63,7 @@ export default function ReminderPlanReview({ token, txId, reloadKey, onSent, onL
       const d = await r.json();
       if (!r.ok || !d.success) throw new Error(d.error || "Failed");
       const who = (d.sent || []).map(x => `${x.channel === "sms" ? "text" : "email"} to ${x.to}${x.role && !x.isAgent ? ` (${x.role})` : ""}`);
-      setMsg(who.length ? `✅ Sent: ${who.join(", ")}.` : "✅ Done — nothing needed sending.");
+      setMsg(who.length ? tr("✅ Sent: {v1}.", { v1: who.join(", ") }) : "✅ Done — nothing needed sending.");
       // Sent ones leave the list; anything held stays, still reviewable.
       setActions(list => list.filter(x => held[x.key]));
       onSent && onSent(d);
@@ -190,7 +190,7 @@ export default function ReminderPlanReview({ token, txId, reloadKey, onSent, onL
       <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 12, flexWrap: "wrap" }}>
         <button onClick={send} disabled={sending || checked.length === 0}
           style={{ background: sending || checked.length === 0 ? "#93C5FD" : "#0c4a6e", color: "#fff", border: "none", borderRadius: 10, padding: "11px 22px", fontSize: 15, fontWeight: 800, cursor: sending ? "wait" : "pointer", fontFamily: "inherit" }}>
-          {sending ? tr("Sending…") : `✅ Send ${checked.length} checked message${checked.length === 1 ? "" : "s"}`}
+          {sending ? tr("Sending…") : tn(checked.length, "✅ Send {n} checked message", "✅ Send {n} checked messages")}
         </button>
         <span style={{ fontSize: 12, color: "#1E40AF" }}>{tr("Nothing goes out until you approve.")}</span>
       </div>

@@ -1,3 +1,4 @@
+import { t as tr } from "./i18n";
 import { useState, useEffect } from 'react';
 import BackButton from "./ui/BackButton";
 import { askConfirm } from './ui/dialogs';
@@ -24,7 +25,7 @@ export default function FormsPage({ user, onBack }) {
       const r = await fetch(`${API}/forms`, { headers: { Authorization: `Bearer ${token()}` } });
       const data = await r.json();
       setForms(data.forms || []);
-    } catch (e) { alert('Failed to load forms: ' + e.message); }
+    } catch (e) { alert(tr("Failed to load forms: ") + e.message); }
     finally { setLoading(false); }
   }
   useEffect(() => { load(); }, []);
@@ -42,7 +43,7 @@ export default function FormsPage({ user, onBack }) {
 
   async function handleDownload(form) {
     if (!form.has_file) {
-      alert(`📋 "${form.name}"\n\nThis form is a placeholder. An admin must upload the licensed PDF before agents can download or share it.`);
+      alert(tr("📋 \"{name}\"\n\nThis form is a placeholder. An admin must upload the licensed PDF before agents can download or share it.", { name: form.name }));
       return;
     }
     try {
@@ -58,17 +59,17 @@ export default function FormsPage({ user, onBack }) {
       }
       const data = await r.json();
       if (data.downloadUrl) window.open(data.downloadUrl, '_blank');
-      else alert(data.error || 'Download failed');
-    } catch (e) { console.error('[forms] download failed', e); alert('Download error: ' + e.message); }
+      else alert(data.error || tr("Download failed"));
+    } catch (e) { console.error('[forms] download failed', e); alert(tr("Download error: ") + e.message); }
   }
 
   async function handleDelete(form) {
-    if (!(await askConfirm(`Delete "${form.name}"? This cannot be undone.`, { okLabel: 'Delete', danger: true }))) return;
+    if (!(await askConfirm(tr("Delete \"{name}\"? This cannot be undone.", { name: form.name }), { okLabel: tr("Delete"), danger: true }))) return;
     try {
       const r = await fetch(`${API}/forms/${form.id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token()}` } });
-      if (!r.ok) { const d = await r.json(); alert(d.error || 'Delete failed'); return; }
+      if (!r.ok) { const d = await r.json(); alert(d.error || tr("Delete failed")); return; }
       load();
-    } catch (e) { alert('Delete error: ' + e.message); }
+    } catch (e) { alert(tr("Delete error: ") + e.message); }
   }
 
   return (
@@ -76,52 +77,52 @@ export default function FormsPage({ user, onBack }) {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <BackButton onClick={() => onBack && onBack()} to="My Deals" />
-          <h1 style={{ margin: 0, fontSize: 28 }}>📋 Forms Library</h1>
+          <h1 style={{ margin: 0, fontSize: 28 }}>{tr("📋 Forms Library")}</h1>
         </div>
         {isAdmin && (
           <button onClick={() => setShowUpload(true)}
             style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', color: 'white', border: 'none',
                      padding: '10px 18px', borderRadius: 8, cursor: 'pointer', fontWeight: 600, fontSize: 14 }}>
-            ➕ Add Form
+            {tr("➕ Add Form")}
           </button>
         )}
       </div>
 
       <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 8, padding: 12, marginBottom: 16, fontSize: 13, color: '#1e3a8a' }}>
-        <strong>💡 What is this?</strong> Your brokerage's forms in one place. Agents can download to fill out manually, or send to clients/co-op agents via chat or shareable link. Placeholders (🚧) need a licensed PDF uploaded by an admin before they can be used.
+        <strong>{tr("💡 What is this?")}</strong> {tr("Your brokerage's forms in one place. Agents can download to fill out manually, or send to clients/co-op agents via chat or shareable link. Placeholders (🚧) need a licensed PDF uploaded by an admin before they can be used.")}
       </div>
 
       <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 20 }}>
-        <input type="text" placeholder="🔍 Search forms..." value={search} onChange={e => setSearch(e.target.value)}
+        <input type="text" placeholder={tr("🔍 Search forms...")} value={search} onChange={e => setSearch(e.target.value)}
           style={{ flex: '1 1 200px', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 14 }} />
         <select value={filterCat} onChange={e => setFilterCat(e.target.value)}
           style={{ padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 14 }}>
-          <option value="All">All Categories</option>
-          {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+          <option value="All">{tr("All Categories")}</option>
+          {CATEGORIES.map(c => <option key={c} value={c}>{tr(c)}</option>)}
         </select>
         <select value={filterSide} onChange={e => setFilterSide(e.target.value)}
           style={{ padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 14 }}>
-          <option value="All">Both Sides</option>
-          <option value="listing">🏠 Listing only</option>
-          <option value="buyer">🔑 Buyer only</option>
+          <option value="All">{tr("Both Sides")}</option>
+          <option value="listing">{tr("🏠 Listing only")}</option>
+          <option value="buyer">{tr("🔑 Buyer only")}</option>
         </select>
       </div>
 
       {loading ? (
-        <div style={{ textAlign: 'center', padding: 40, color: '#6b7280' }}>Loading forms...</div>
+        <div style={{ textAlign: 'center', padding: 40, color: '#6b7280' }}>{tr("Loading forms...")}</div>
       ) : filtered.length === 0 ? (
         <div style={{ textAlign: 'center', padding: 40, color: '#6b7280', background: '#f9fafb', borderRadius: 8 }}>
           {forms.length === 0 ? (
             <>
               <div style={{ fontSize: 32, marginBottom: 8 }}>📋</div>
-              <div style={{ fontWeight: 700, color: '#374151', marginBottom: 6 }}>No forms here yet</div>
+              <div style={{ fontWeight: 700, color: '#374151', marginBottom: 6 }}>{tr("No forms here yet")}</div>
               <div style={{ fontSize: 13, lineHeight: 1.6 }}>
                 {isAdmin
-                  ? 'Add your brokerage’s forms with the ➕ Add Form button above, then upload each licensed PDF so your agents can use them.'
-                  : 'Your brokerage hasn’t added any forms yet. An admin uploads the licensed PDFs here — check back once they have.'}
+                  ? tr("Add your brokerage’s forms with the ➕ Add Form button above, then upload each licensed PDF so your agents can use them.")
+                  : tr("Your brokerage hasn’t added any forms yet. An admin uploads the licensed PDFs here — check back once they have.")}
               </div>
             </>
-          ) : 'No forms match your filters.'}
+          ) : tr("No forms match your filters.")}
         </div>
       ) : (
         Object.keys(grouped).sort().map(cat => (
@@ -154,17 +155,17 @@ function FormCard({ form, isAdmin, onDownload, onEdit, onDelete, onReload }) {
       <div style={{ flex: '1 1 300px', minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
           <span style={{ fontWeight: 600, fontSize: 15 }}>{form.name}</span>
-          {!form.has_file && <span title="No file uploaded" style={{ background: '#fef3c7', color: '#92400e', padding: '2px 8px', borderRadius: 4, fontSize: 11, fontWeight: 600 }}>🚧 PLACEHOLDER</span>}
-          {form.is_system_default && <span style={{ background: '#dbeafe', color: '#1e40af', padding: '2px 8px', borderRadius: 4, fontSize: 11 }}>System</span>}
+          {!form.has_file && <span title={tr("No file uploaded")} style={{ background: '#fef3c7', color: '#92400e', padding: '2px 8px', borderRadius: 4, fontSize: 11, fontWeight: 600 }}>{tr("🚧 PLACEHOLDER")}</span>}
+          {form.is_system_default && <span style={{ background: '#dbeafe', color: '#1e40af', padding: '2px 8px', borderRadius: 4, fontSize: 11 }}>{tr("System")}</span>}
         </div>
         <div style={{ fontSize: 12, color: '#6b7280', marginTop: 2 }}>{sideBadges}</div>
-        {form.description && <div style={{ fontSize: 12, color: '#4b5563', marginTop: 4 }}>{form.description}</div>}
+        {form.description && <div style={{ fontSize: 12, color: '#4b5563', marginTop: 4 }}>{tr(form.description)}</div>}
       </div>
       <div style={{ display: 'flex', gap: 6 }}>
-        <button onClick={onDownload} title={form.has_file ? 'Download' : 'No file yet'}
+        <button onClick={onDownload} title={form.has_file ? tr("Download") : tr("No file yet")}
           style={{ background: form.has_file ? '#0c4a6e' : '#9ca3af', color: 'white', border: 'none',
                    padding: '6px 12px', borderRadius: 6, cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>
-          ⬇️ Download
+          {tr("⬇️ Download")}
         </button>
         {isAdmin && (
           <>
@@ -216,7 +217,7 @@ function UploadFormModal({ onClose, onSaved }) {
   }
 
   async function handleSave() {
-    if (!meta.name || !meta.category) { alert('Name and category required'); return; }
+    if (!meta.name || !meta.category) { alert(tr("Name and category required")); return; }
     setStep(3); setProgress('Creating form...');
     try {
       const cr = await fetch(`${API}/forms`, {
@@ -245,36 +246,36 @@ function UploadFormModal({ onClose, onSaved }) {
         body: JSON.stringify({ key: udata.key, fileName: file.name, fileSize: file.size })
       });
       onSaved();
-    } catch (e) { alert('Error: ' + e.message); setStep(2); }
+    } catch (e) { alert(tr("Error: ") + e.message); setStep(2); }
   }
 
   return (
     <div style={modalBackdrop} onClick={onClose}>
       <div style={modalCard} onClick={e => e.stopPropagation()}>
-        <h2 style={{ marginTop: 0 }}>➕ Add Form</h2>
+        <h2 style={{ marginTop: 0 }}>{tr("➕ Add Form")}</h2>
         <div style={{ background:'#fef3c7', border:'1px solid #fde68a', padding:10, borderRadius:6, fontSize:13, color:'#78350f', marginBottom:16 }}>
-          ⚠️ Upload only PDFs your brokerage is licensed to use (e.g. your own FAR/BAR member copies). Do not redistribute copyrighted forms outside your license.
+          {tr("⚠️ Upload only PDFs your brokerage is licensed to use (e.g. your own FAR/BAR member copies). Do not redistribute copyrighted forms outside your license.")}
         </div>
 
         {step === 1 && (
           <>
-            <p style={{ fontSize: 14, color: '#4b5563' }}>Choose a PDF file. We'll analyze the filename and pre-fill the details for you.</p>
+            <p style={{ fontSize: 14, color: '#4b5563' }}>{tr("Choose a PDF file. We'll analyze the filename and pre-fill the details for you.")}</p>
             <input type="file" accept="application/pdf" onChange={handleFile}
               style={{ display: 'block', marginTop: 12, padding: 8 }} />
-            {suggesting && <div style={{ marginTop: 12, color: '#4F46E5' }}>✨ Analyzing filename with AI...</div>}
+            {suggesting && <div style={{ marginTop: 12, color: '#4F46E5' }}>{tr("✨ Analyzing filename with AI...")}</div>}
           </>
         )}
 
         {step === 2 && (
           <>
-            <p style={{ fontSize:13, color:'#1E7B45', margin:'0 0 12px' }}>✨ AI suggested these — review and confirm:</p>
-            <label style={labelStyle}>Form Name</label>
+            <p style={{ fontSize:13, color:'#1E7B45', margin:'0 0 12px' }}>{tr("✨ AI suggested these — review and confirm:")}</p>
+            <label style={labelStyle}>{tr("Form Name")}</label>
             <input value={meta.name} onChange={e => setMeta({...meta, name: e.target.value})} style={inputStyle} />
-            <label style={labelStyle}>Category</label>
+            <label style={labelStyle}>{tr("Category")}</label>
             <select value={meta.category} onChange={e => setMeta({...meta, category: e.target.value})} style={inputStyle}>
-              {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+              {CATEGORIES.map(c => <option key={c} value={c}>{tr(c)}</option>)}
             </select>
-            <label style={labelStyle}>Applies to which side?</label>
+            <label style={labelStyle}>{tr("Applies to which side?")}</label>
             <div style={{ display:'flex', gap:8, marginBottom:12 }}>
               {['listing','buyer'].map(s => (
                 <button key={s} onClick={() => toggleSide(s)} type="button"
@@ -284,12 +285,12 @@ function UploadFormModal({ onClose, onSaved }) {
                 </button>
               ))}
             </div>
-            <label style={labelStyle}>Description (shown to agents)</label>
+            <label style={labelStyle}>{tr("Description (shown to agents)")}</label>
             <textarea value={meta.description} onChange={e => setMeta({...meta, description: e.target.value})}
-              style={{ ...inputStyle, height: 60 }} placeholder="What this form is for, when to use it..." />
+              style={{ ...inputStyle, height: 60 }} placeholder={tr("What this form is for, when to use it...")} />
             <div style={{ display:'flex', gap:8, marginTop:16, justifyContent:'flex-end' }}>
-              <button onClick={onClose} style={btnSecondary}>Cancel</button>
-              <button onClick={handleSave} style={btnPrimary}>💾 Save & Upload</button>
+              <button onClick={onClose} style={btnSecondary}>{tr("Cancel")}</button>
+              <button onClick={handleSave} style={btnPrimary}>{tr("💾 Save & Upload")}</button>
             </div>
           </>
         )}
@@ -297,7 +298,7 @@ function UploadFormModal({ onClose, onSaved }) {
         {step === 3 && (
           <div style={{ padding: 24, textAlign: 'center' }}>
             <div style={{ fontSize: 20, marginBottom: 12 }}>⏳ {progress}</div>
-            <div style={{ fontSize: 13, color: '#6b7280' }}>Please don't close this window.</div>
+            <div style={{ fontSize: 13, color: '#6b7280' }}>{tr("Please don't close this window.")}</div>
           </div>
         )}
       </div>
@@ -326,9 +327,9 @@ function EditFormModal({ form, onClose, onSaved }) {
         method: 'PATCH', headers: { 'Content-Type':'application/json', Authorization: `Bearer ${token()}` },
         body: JSON.stringify(meta)
       });
-      if (!r.ok) { const d = await r.json(); alert(d.error || 'Save failed'); return; }
+      if (!r.ok) { const d = await r.json(); alert(d.error || tr("Save failed")); return; }
       onSaved();
-    } catch (e) { alert('Save error: ' + e.message); }
+    } catch (e) { alert(tr("Save error: ") + e.message); }
   }
 
   async function handleReplace(e) {
@@ -352,22 +353,22 @@ function EditFormModal({ form, onClose, onSaved }) {
         method: 'POST', headers: { 'Content-Type':'application/json', Authorization: `Bearer ${token()}` },
         body: JSON.stringify({ key: udata.key, fileName: f.name, fileSize: f.size })
       });
-      alert('✓ File uploaded'); onSaved();
-    } catch (err) { alert('Upload error: ' + err.message); }
+      alert(tr("✓ File uploaded")); onSaved();
+    } catch (err) { alert(tr("Upload error: ") + err.message); }
     finally { setReplacing(false); }
   }
 
   return (
     <div style={modalBackdrop} onClick={onClose}>
       <div style={modalCard} onClick={e => e.stopPropagation()}>
-        <h2 style={{ marginTop: 0 }}>✏️ Edit Form</h2>
-        <label style={labelStyle}>Form Name</label>
+        <h2 style={{ marginTop: 0 }}>{tr("✏️ Edit Form")}</h2>
+        <label style={labelStyle}>{tr("Form Name")}</label>
         <input value={meta.name} onChange={e => setMeta({...meta, name: e.target.value})} style={inputStyle} />
-        <label style={labelStyle}>Category</label>
+        <label style={labelStyle}>{tr("Category")}</label>
         <select value={meta.category} onChange={e => setMeta({...meta, category: e.target.value})} style={inputStyle}>
-          {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+          {CATEGORIES.map(c => <option key={c} value={c}>{tr(c)}</option>)}
         </select>
-        <label style={labelStyle}>Applies to which side?</label>
+        <label style={labelStyle}>{tr("Applies to which side?")}</label>
         <div style={{ display:'flex', gap:8, marginBottom:12 }}>
           {['listing','buyer'].map(s => (
             <button key={s} onClick={() => toggleSide(s)} type="button"
@@ -377,21 +378,21 @@ function EditFormModal({ form, onClose, onSaved }) {
             </button>
           ))}
         </div>
-        <label style={labelStyle}>Description</label>
+        <label style={labelStyle}>{tr("Description")}</label>
         <textarea value={meta.description} onChange={e => setMeta({...meta, description: e.target.value})}
           style={{ ...inputStyle, height: 60 }} />
 
         <div style={{ marginTop: 16, padding: 12, background: '#f9fafb', borderRadius: 6 }}>
           <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 6 }}>
-            {form.has_file ? '📄 Replace PDF File' : '📤 Upload PDF File'}
+            {form.has_file ? tr("📄 Replace PDF File") : tr("📤 Upload PDF File")}
           </div>
           <input type="file" accept="application/pdf" onChange={handleReplace} disabled={replacing} />
-          {replacing && <div style={{ marginTop: 6, color: '#4F46E5', fontSize: 12 }}>⏳ Uploading...</div>}
+          {replacing && <div style={{ marginTop: 6, color: '#4F46E5', fontSize: 12 }}>{tr("⏳ Uploading...")}</div>}
         </div>
 
         <div style={{ display:'flex', gap:8, marginTop:16, justifyContent:'flex-end' }}>
-          <button onClick={onClose} style={btnSecondary}>Cancel</button>
-          <button onClick={handleSave} style={btnPrimary}>💾 Save Changes</button>
+          <button onClick={onClose} style={btnSecondary}>{tr("Cancel")}</button>
+          <button onClick={handleSave} style={btnPrimary}>{tr("💾 Save Changes")}</button>
         </div>
       </div>
     </div>

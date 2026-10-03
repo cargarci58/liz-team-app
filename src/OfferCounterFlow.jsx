@@ -8,6 +8,7 @@
 //   • What comes back is checked against the counter; anything that changed
 //     and was NOT in the counter is flagged and locks the seller's signature.
 //   • The SELLER ALWAYS SIGNS LAST.
+import { t as tr, tn, locale as uiLocale } from "./i18n";
 import { useEffect, useState, lazy, Suspense } from "react";
 
 const API = "https://liz-team-server-api-production.up.railway.app";
@@ -21,7 +22,7 @@ const btn = (primary, color = C.blue) => ({  // blue = normal action; pass C.red
   background: primary ? color : "#fff", color: primary ? "#fff" : color, border: `1px solid ${color}`,
   borderRadius: 8, padding: "8px 14px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
 });
-const fmtWhen = (d) => d ? new Date(d).toLocaleString("en-US", { timeZone: "America/New_York", weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) + " ET" : "";
+const fmtWhen = (d) => d ? new Date(d).toLocaleString(uiLocale(), { timeZone: "America/New_York", weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) + " ET" : "";
 const DocSignModal = lazy(() => import("./DocumentsTab").then(m => ({ default: m.DocSignModal })));
 
 export const STEPS = ["Received", "Countered", "Waiting on buyer's agent", "Check what came back", "Seller signs", "Under Contract"];
@@ -91,8 +92,8 @@ export function NextLine({ state }) {
   const fg = state.tone === "bad" ? C.darkRed : state.tone === "good" ? C.green : state.tone === "wait" ? "#7A5C00" : C.blue;
   return (
     <div style={{ background: bg, borderRadius: 8, padding: "8px 10px", fontSize: 13, color: fg, lineHeight: 1.45 }}>
-      <strong>What's next: </strong>{state.line}{" "}
-      <button onClick={() => setHow(h => !h)} style={{ background: "none", border: "none", color: C.blue, textDecoration: "underline", cursor: "pointer", fontSize: 12, padding: 0, fontFamily: "inherit" }}>{how ? "Hide" : "How this works"}</button>
+      <strong>{tr("What's next:")} </strong>{state.line}{" "}
+      <button onClick={() => setHow(h => !h)} style={{ background: "none", border: "none", color: C.blue, textDecoration: "underline", cursor: "pointer", fontSize: 12, padding: 0, fontFamily: "inherit" }}>{how ? tr("Hide") : tr("How this works")}</button>
       {how && <div style={{ marginTop: 6, color: "#333", fontSize: 12.5 }}>{HOW[state.step]}</div>}
     </div>
   );
@@ -111,7 +112,7 @@ export function ThreadLine({ offer, counters }) {
     if (c.sellerSignedAt) parts.push(`Seller signed ${new Date(c.sellerSignedAt).toLocaleDateString()}`);
     if (c.status === "expired") parts.push(`Counter ${c.round} expired`);
   }
-  return <div style={{ fontSize: 11.5, color: C.muted, marginTop: 4 }}>🧵 Offer received · {parts.join(" · ")}</div>;
+  return <div style={{ fontSize: 11.5, color: C.muted, marginTop: 4 }}>{tr("🧵 Offer received ·")} {parts.join(" · ")}</div>;
 }
 
 // ── COUNTER SCREEN ───────────────────────────────────────────────────────────
@@ -189,11 +190,11 @@ export function CounterModal({ uploadId, address, onClose, onDone }) {
     const set = (x) => setVals(s => ({ ...s, [t.key]: x }));
     if (t.type === "bool") return (
       <select value={v === true || /^(true|yes)$/i.test(String(v)) ? "true" : v === false || /^(false|no)$/i.test(String(v)) ? "false" : ""} onChange={e => set(e.target.value === "" ? null : e.target.value === "true")} style={style}>
-        <option value="">—</option><option value="true">Yes</option><option value="false">No</option>
+        <option value="">—</option><option value="true">{tr("Yes")}</option><option value="false">{tr("No")}</option>
       </select>);
     if (t.type === "date") return <input type="date" value={v ? String(v).slice(0, 10) : ""} onChange={e => set(e.target.value || null)} style={style} />;
     if (t.type === "longtext") return <textarea rows={3} value={v || ""} onChange={e => set(e.target.value)} style={{ ...style, resize: "vertical" }} />;
-    return <input value={v === null || v === undefined ? "" : String(v)} onChange={e => set(e.target.value)} placeholder={t.type === "money" ? "$" : t.type === "days" ? "days" : ""} inputMode={["money", "percent", "days"].includes(t.type) ? "decimal" : undefined} style={style} />;
+    return <input value={v === null || v === undefined ? "" : String(v)} onChange={e => set(e.target.value)} placeholder={t.type === "money" ? "$" : t.type === "days" ? tr("days") : ""} inputMode={["money", "percent", "days"].includes(t.type) ? "decimal" : undefined} style={style} />;
   };
 
   return (
@@ -201,27 +202,27 @@ export function CounterModal({ uploadId, address, onClose, onDone }) {
       <div onClick={e => e.stopPropagation()} style={{ background: "#fff", borderRadius: 14, width: "100%", maxWidth: 760, margin: "auto", boxShadow: "0 12px 50px rgba(0,0,0,0.25)", overflow: "hidden", fontFamily: "inherit" }}>
         <div style={{ background: "#111", color: "#fff", padding: "16px 22px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div>
-            <div style={{ fontWeight: 800, fontSize: 17 }}>🔁 Counter this offer{data ? ` — round ${data.round}` : ""}</div>
-            <div style={{ fontSize: 12.5, opacity: 0.85 }}>{address}{data && data.buyers.length ? ` · from ${data.buyers.join(" & ")}` : ""}</div>
+            <div style={{ fontWeight: 800, fontSize: 17 }}>{tr("🔁 Counter this offer")}{data ? tr(" — round {n}", { n: data.round }) : ""}</div>
+            <div style={{ fontSize: 12.5, opacity: 0.85 }}>{address}{data && data.buyers.length ? tr(" · from {v1}", { v1: data.buyers.join(" & ") }) : ""}</div>
           </div>
           <button onClick={onClose} style={{ background: "none", border: "none", color: "#fff", fontSize: 22, cursor: "pointer" }}>×</button>
         </div>
         <div style={{ padding: 22 }}>
           {err && <div style={{ background: "#FDEDEC", border: "1px solid #F5B7B1", color: C.darkRed, borderRadius: 8, padding: "8px 12px", marginBottom: 12, fontSize: 13 }}>⚠️ {err}</div>}
-          {!data && !err && <div style={{ color: C.muted }}>Loading the offer's terms…</div>}
+          {!data && !err && <div style={{ color: C.muted }}>{tr("Loading the offer's terms…")}</div>}
 
           {data && stage === "terms" && (
             <>
               <div style={{ background: C.blueBg, border: "1px solid #bae6fd", borderRadius: 10, padding: "10px 12px", fontSize: 13, color: C.blue, lineHeight: 1.5, marginBottom: 14 }}>
-                <strong>Step 1 of 2 — change the terms your seller wants.</strong> Every term the app read from the offer is below. Edit only what changes — changed terms turn red. Everything else stays exactly as the buyer wrote it.
+                <strong>{tr("Step 1 of 2 — change the terms your seller wants.")}</strong> {tr("Every term the app read from the offer is below. Edit only what changes — changed terms turn red. Everything else stays exactly as the buyer wrote it.")}
               </div>
               {groups.map(g => (
                 <div key={g} style={{ marginBottom: 14 }}>
                   <div style={{ fontSize: 12, fontWeight: 800, color: C.muted, textTransform: "uppercase", letterSpacing: 0.4, marginBottom: 6 }}>{g}</div>
                   {data.terms.filter(t => t.group === g).map(t => (
                     <div key={t.key} style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.1fr) minmax(0, 0.9fr) minmax(0, 1.2fr)", gap: 10, alignItems: "center", padding: "6px 0", borderBottom: "1px solid #F0F0F0" }}>
-                      <div style={{ fontSize: 13.5, fontWeight: 600, color: C.text }}>{t.label}</div>
-                      <div style={{ fontSize: 12.5, color: C.muted }} title="What the buyer offered">{t.display === "—" ? <em>not in the offer</em> : t.display}</div>
+                      <div style={{ fontSize: 13.5, fontWeight: 600, color: C.text }}>{tr(t.label)}</div>
+                      <div style={{ fontSize: 12.5, color: C.muted }} title={tr("What the buyer offered")}>{t.display === "—" ? <em>{tr("not in the offer")}</em> : t.display}</div>
                       <div>{input(t)}</div>
                     </div>
                   ))}
@@ -229,24 +230,24 @@ export function CounterModal({ uploadId, address, onClose, onDone }) {
               ))}
               <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) minmax(0,1fr)", gap: 14, marginTop: 6 }}>
                 <div>
-                  <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 6 }}>Counter expires</div>
+                  <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 6 }}>{tr("Counter expires")}</div>
                   <input type="datetime-local" value={exp} onChange={e => setExp(e.target.value)} style={{ width: "100%", padding: "8px 10px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 14, fontFamily: "inherit", boxSizing: "border-box" }} />
-                  <div style={{ fontSize: 11.5, color: C.muted, marginTop: 4 }}>You get a reminder a day before it lapses.</div>
+                  <div style={{ fontSize: 11.5, color: C.muted, marginTop: 4 }}>{tr("You get a reminder a day before it lapses.")}</div>
                 </div>
                 <div>
-                  <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 6 }}>Who signs when</div>
-                  <div style={{ fontSize: 12.5, color: C.muted, lineHeight: 1.5 }}>You send the counter. The buyer initials your changes (or resubmits). Your seller signs last — after the buyer accepts.</div>
+                  <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 6 }}>{tr("Who signs when")}</div>
+                  <div style={{ fontSize: 12.5, color: C.muted, lineHeight: 1.5 }}>{tr("You send the counter. The buyer initials your changes (or resubmits). Your seller signs last — after the buyer accepts.")}</div>
                 </div>
               </div>
               {changedList.length > 0 && (
                 <div style={{ marginTop: 14, background: C.bg, borderRadius: 10, padding: "10px 12px", fontSize: 13 }}>
-                  <strong>Your counter changes {changedList.length} term{changedList.length > 1 ? "s" : ""}:</strong>
-                  <ul style={{ margin: "6px 0 0 18px", padding: 0 }}>{changedList.map(t => <li key={t.key}>{t.label}</li>)}</ul>
+                  <strong>{tr("Your counter changes")} {changedList.length} {tr("term")}{changedList.length > 1 ? "s" : ""}:</strong>
+                  <ul style={{ margin: "6px 0 0 18px", padding: 0 }}>{changedList.map(t => <li key={t.key}>{tr(t.label)}</li>)}</ul>
                 </div>
               )}
               <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 16 }}>
-                <button onClick={onClose} style={btn(false, "#555")}>Cancel</button>
-                <button onClick={save} disabled={busy} style={btn(true)}>{busy ? "Saving…" : "Next: review the email →"}</button>
+                <button onClick={onClose} style={btn(false, "#555")}>{tr("Cancel")}</button>
+                <button onClick={save} disabled={busy} style={btn(true)}>{busy ? tr("Saving…") : tr("Next: review the email →")}</button>
               </div>
             </>
           )}
@@ -254,19 +255,19 @@ export function CounterModal({ uploadId, address, onClose, onDone }) {
           {data && stage === "email" && counter && (
             <>
               <div style={{ background: C.blueBg, border: "1px solid #bae6fd", borderRadius: 10, padding: "10px 12px", fontSize: 13, color: C.blue, lineHeight: 1.5, marginBottom: 14 }}>
-                <strong>Step 2 of 2 — review the email to the buyer's agent.</strong> Edit anything you like. It asks them to strike and initial your changes or resubmit, and their reply comes back to this deal automatically. Nothing is sent until you press Send.
+                <strong>{tr("Step 2 of 2 — review the email to the buyer's agent.")}</strong> {tr("Edit anything you like. It asks them to strike and initial your changes or resubmit, and their reply comes back to this deal automatically. Nothing is sent until you press Send.")}
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) minmax(0,1fr)", gap: 10, marginBottom: 10 }}>
-                <label style={{ fontSize: 12.5, fontWeight: 700 }}>To (name)<input value={mail.toName} onChange={e => setMail(m => ({ ...m, toName: e.target.value }))} style={{ width: "100%", padding: "8px 10px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 14, marginTop: 4, boxSizing: "border-box", fontFamily: "inherit" }} /></label>
-                <label style={{ fontSize: 12.5, fontWeight: 700 }}>To (email)<input value={mail.to} onChange={e => setMail(m => ({ ...m, to: e.target.value }))} placeholder="buyer's agent email" style={{ width: "100%", padding: "8px 10px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 14, marginTop: 4, boxSizing: "border-box", fontFamily: "inherit" }} /></label>
+                <label style={{ fontSize: 12.5, fontWeight: 700 }}>{tr("To (name)")}<input value={mail.toName} onChange={e => setMail(m => ({ ...m, toName: e.target.value }))} style={{ width: "100%", padding: "8px 10px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 14, marginTop: 4, boxSizing: "border-box", fontFamily: "inherit" }} /></label>
+                <label style={{ fontSize: 12.5, fontWeight: 700 }}>{tr("To (email)")}<input value={mail.to} onChange={e => setMail(m => ({ ...m, to: e.target.value }))} placeholder={tr("buyer's agent email")} style={{ width: "100%", padding: "8px 10px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 14, marginTop: 4, boxSizing: "border-box", fontFamily: "inherit" }} /></label>
               </div>
-              <label style={{ fontSize: 12.5, fontWeight: 700 }}>Subject<input value={mail.subject} onChange={e => setMail(m => ({ ...m, subject: e.target.value }))} style={{ width: "100%", padding: "8px 10px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 14, marginTop: 4, marginBottom: 10, boxSizing: "border-box", fontFamily: "inherit" }} /></label>
-              <label style={{ fontSize: 12.5, fontWeight: 700 }}>Message<textarea rows={14} value={mail.body} onChange={e => setMail(m => ({ ...m, body: e.target.value }))} style={{ width: "100%", padding: "10px 12px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 14, marginTop: 4, boxSizing: "border-box", fontFamily: "inherit", lineHeight: 1.5 }} /></label>
+              <label style={{ fontSize: 12.5, fontWeight: 700 }}>{tr("Subject")}<input value={mail.subject} onChange={e => setMail(m => ({ ...m, subject: e.target.value }))} style={{ width: "100%", padding: "8px 10px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 14, marginTop: 4, marginBottom: 10, boxSizing: "border-box", fontFamily: "inherit" }} /></label>
+              <label style={{ fontSize: 12.5, fontWeight: 700 }}>{tr("Message")}<textarea rows={14} value={mail.body} onChange={e => setMail(m => ({ ...m, body: e.target.value }))} style={{ width: "100%", padding: "10px 12px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 14, marginTop: 4, boxSizing: "border-box", fontFamily: "inherit", lineHeight: 1.5 }} /></label>
               <div style={{ display: "flex", justifyContent: "space-between", gap: 10, marginTop: 14, flexWrap: "wrap" }}>
-                <button onClick={() => setStage("terms")} style={btn(false, "#555")}>← Back to the terms</button>
+                <button onClick={() => setStage("terms")} style={btn(false, "#555")}>{tr("← Back to the terms")}</button>
                 <div style={{ display: "flex", gap: 10 }}>
-                  <button onClick={() => { onDone && onDone(counter); onClose(); }} style={btn(false, C.blue)}>Save, send later</button>
-                  <button onClick={send} disabled={busy} style={btn(true)}>{busy ? "Sending…" : "Send counter to the buyer's agent"}</button>
+                  <button onClick={() => { onDone && onDone(counter); onClose(); }} style={btn(false, C.blue)}>{tr("Save, send later")}</button>
+                  <button onClick={send} disabled={busy} style={btn(true)}>{busy ? tr("Sending…") : tr("Send counter to the buyer's agent")}</button>
                 </div>
               </div>
             </>
@@ -319,16 +320,16 @@ export function ReturnedOfferReview({ counter, onClose, onChanged, onCounterAgai
       <div style={{ border: `1px solid ${done ? "#B7E1C1" : color}`, background: done ? C.greenBg : "#fff", borderRadius: 10, padding: "10px 12px", marginBottom: 8 }}>
         <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "flex-start", flexWrap: "wrap" }}>
           <div style={{ flex: "1 1 300px", minWidth: 0 }}>
-            <div style={{ fontSize: 13.5, fontWeight: 700, color: C.text }}>{it.severity === "red" ? "🔴" : it.severity === "yellow" ? "⚠️" : "✓"} {it.label}</div>
-            {(it.before || it.after) && <div style={{ fontSize: 12.5, color: "#333", marginTop: 3 }}><span style={{ color: C.muted }}>Before:</span> {it.before || "—"} &nbsp;→&nbsp; <span style={{ color: C.muted }}>Now:</span> <strong>{it.after || "—"}</strong></div>}
+            <div style={{ fontSize: 13.5, fontWeight: 700, color: C.text }}>{it.severity === "red" ? "🔴" : it.severity === "yellow" ? "⚠️" : "✓"} {tr(it.label)}</div>
+            {(it.before || it.after) && <div style={{ fontSize: 12.5, color: "#333", marginTop: 3 }}><span style={{ color: C.muted }}>{tr("Before:")}</span> {it.before || "—"} &nbsp;→&nbsp; <span style={{ color: C.muted }}>{tr("Now:")}</span> <strong>{it.after || "—"}</strong></div>}
             {it.detail && <div style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>{it.detail}</div>}
-            {it.page && <div style={{ fontSize: 11.5, color: C.muted, marginTop: 2 }}>Page {it.page}</div>}
-            {done && <div style={{ fontSize: 11.5, color: C.green, marginTop: 3, fontWeight: 700 }}>{done.action === "checked" ? "Checked" : "Accepted"} by {done.byName || "you"} · {new Date(done.at).toLocaleString()}</div>}
+            {it.page && <div style={{ fontSize: 11.5, color: C.muted, marginTop: 2 }}>{tr("Page")} {it.page}</div>}
+            {done && <div style={{ fontSize: 11.5, color: C.green, marginTop: 3, fontWeight: 700 }}>{done.action === "checked" ? tr("Checked") : tr("Accepted")} {tr("by")} {done.byName || tr("you")} · {new Date(done.at).toLocaleString()}</div>}
           </div>
           {it.severity !== "green" && (
             done
-              ? <button onClick={() => resolve(it, "undo")} disabled={!!busy} style={btn(false, "#555")}>Undo</button>
-              : <button onClick={() => resolve(it, it.severity === "yellow" ? "checked" : "accept")} disabled={!!busy} style={btn(true, it.severity === "yellow" ? C.amber : C.red)}>{busy === it.id ? "Saving…" : it.severity === "yellow" ? "I checked it" : "Accept this change"}</button>
+              ? <button onClick={() => resolve(it, "undo")} disabled={!!busy} style={btn(false, "#555")}>{tr("Undo")}</button>
+              : <button onClick={() => resolve(it, it.severity === "yellow" ? "checked" : "accept")} disabled={!!busy} style={btn(true, it.severity === "yellow" ? C.amber : C.red)}>{busy === it.id ? tr("Saving…") : it.severity === "yellow" ? tr("I checked it") : tr("Accept this change")}</button>
           )}
         </div>
       </div>
@@ -340,32 +341,32 @@ export function ReturnedOfferReview({ counter, onClose, onChanged, onCounterAgai
       <div onClick={e => e.stopPropagation()} style={{ background: "#fff", borderRadius: 14, width: "100%", maxWidth: 760, margin: "auto", boxShadow: "0 12px 50px rgba(0,0,0,0.25)", overflow: "hidden" }}>
         <div style={{ background: "#111", color: "#fff", padding: "16px 22px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div>
-            <div style={{ fontWeight: 800, fontSize: 17 }}>🔎 What came back — counter round {c.round}</div>
-            <div style={{ fontSize: 12.5, opacity: 0.85 }}>Compared to the original offer plus only your changes</div>
+            <div style={{ fontWeight: 800, fontSize: 17 }}>{tr("🔎 What came back — counter round")} {c.round}</div>
+            <div style={{ fontSize: 12.5, opacity: 0.85 }}>{tr("Compared to the original offer plus only your changes")}</div>
           </div>
           <button onClick={onClose} style={{ background: "none", border: "none", color: "#fff", fontSize: 22, cursor: "pointer" }}>×</button>
         </div>
         <div style={{ padding: 22 }}>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 14 }}>
-            <button onClick={() => openFile("original")} style={btn(false, C.blue)}>📄 Open the original offer</button>
-            <button onClick={() => openFile("returned")} style={btn(false, C.blue)}>📄 Open what came back</button>
-            <button onClick={recheck} disabled={!!busy} style={btn(false, "#555")}>{busy === "recheck" ? "Checking…" : "↻ Check again"}</button>
+            <button onClick={() => openFile("original")} style={btn(false, C.blue)}>{tr("📄 Open the original offer")}</button>
+            <button onClick={() => openFile("returned")} style={btn(false, C.blue)}>{tr("📄 Open what came back")}</button>
+            <button onClick={recheck} disabled={!!busy} style={btn(false, "#555")}>{busy === "recheck" ? tr("Checking…") : tr("↻ Check again")}</button>
           </div>
-          {c.check && c.check.summary && <div style={{ fontSize: 13, color: "#333", marginBottom: 12 }}>{c.check.summary}</div>}
-          {reds.length > 0 && <div style={{ fontSize: 13, fontWeight: 800, color: C.red, margin: "6px 0" }}>Doesn't match your counter — accept each one, or counter again</div>}
+          {c.check && c.check.summary && <div style={{ fontSize: 13, color: "#333", marginBottom: 12 }}>{tr(c.check.summary)}</div>}
+          {reds.length > 0 && <div style={{ fontSize: 13, fontWeight: 800, color: C.red, margin: "6px 0" }}>{tr("Doesn't match your counter — accept each one, or counter again")}</div>}
           {reds.map(it => <Item key={it.id} it={it} />)}
-          {yellows.length > 0 && <div style={{ fontSize: 13, fontWeight: 800, color: C.amber, margin: "10px 0 6px" }}>Couldn't read clearly — check by eye</div>}
+          {yellows.length > 0 && <div style={{ fontSize: 13, fontWeight: 800, color: C.amber, margin: "10px 0 6px" }}>{tr("Couldn't read clearly — check by eye")}</div>}
           {yellows.map(it => <Item key={it.id} it={it} />)}
-          {greens.length > 0 && <div style={{ fontSize: 13, fontWeight: 800, color: C.green, margin: "10px 0 6px" }}>As you asked</div>}
+          {greens.length > 0 && <div style={{ fontSize: 13, fontWeight: 800, color: C.green, margin: "10px 0 6px" }}>{tr("As you asked")}</div>}
           {greens.map(it => <Item key={it.id} it={it} />)}
-          {!items.length && <div style={{ color: C.muted }}>Nothing to report.</div>}
+          {!items.length && <div style={{ color: C.muted }}>{tr("Nothing to report.")}</div>}
           <div style={{ marginTop: 16, background: open ? "#FDEDEC" : C.greenBg, borderRadius: 10, padding: "10px 12px", fontSize: 13, color: open ? C.darkRed : C.green }}>
-            {open ? `🔒 ${open} item${open > 1 ? "s" : ""} still open — your seller can't be sent this offer to sign until each one is accepted or checked, or you counter again.`
-                  : "✅ Everything is cleared. Next: send it to your seller to sign — the seller signs last."}
+            {open ? tn(open, "🔒 {n} item still open — your seller can't be sent this offer to sign until each one is accepted or checked, or you counter again.", "🔒 {n} items still open — your seller can't be sent this offer to sign until each one is accepted or checked, or you counter again.")
+                  : tr("✅ Everything is cleared. Next: send it to your seller to sign — the seller signs last.")}
           </div>
           <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 14, flexWrap: "wrap" }}>
-            <button onClick={() => onCounterAgain && onCounterAgain(c)} style={btn(false)}>🔁 Counter again</button>
-            <button onClick={() => onSendToSeller && onSendToSeller(c)} disabled={!!open} style={{ ...btn(true, C.blue), opacity: open ? 0.45 : 1 }}>✍️ Send to seller to sign</button>
+            <button onClick={() => onCounterAgain && onCounterAgain(c)} style={btn(false)}>{tr("🔁 Counter again")}</button>
+            <button onClick={() => onSendToSeller && onSendToSeller(c)} disabled={!!open} style={{ ...btn(true, C.blue), opacity: open ? 0.45 : 1 }}>{tr("✍️ Send to seller to sign")}</button>
           </div>
         </div>
       </div>
@@ -388,16 +389,16 @@ export function SellerSigningLauncher({ target, tx, onClose, onSent }) {
   }, [target.counterId, target.uploadId]);
   if (err) return (
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 2000, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }} onClick={onClose}>
-      <div style={{ background: "#fff", borderRadius: 12, padding: 20, maxWidth: 420, fontSize: 14 }} onClick={e => e.stopPropagation()}>⚠️ {err}<div style={{ textAlign: "right", marginTop: 12 }}><button onClick={onClose} style={btn(false, "#555")}>Close</button></div></div>
+      <div style={{ background: "#fff", borderRadius: 12, padding: 20, maxWidth: 420, fontSize: 14 }} onClick={e => e.stopPropagation()}>⚠️ {err}<div style={{ textAlign: "right", marginTop: 12 }}><button onClick={onClose} style={btn(false, "#555")}>{tr("Close")}</button></div></div>
     </div>);
   if (!pkg) return (
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 2000, display: "flex", alignItems: "center", justifyContent: "center" }}>
-      <div style={{ background: "#fff", borderRadius: 12, padding: 20, fontSize: 14 }}>Finding the seller's initial and signature spots…</div>
+      <div style={{ background: "#fff", borderRadius: 12, padding: 20, fontSize: 14 }}>{tr("Finding the seller's initial and signature spots…")}</div>
     </div>);
   const counts = pkg.placements.reduce((m, p) => ({ ...m, [p.kind]: (m[p.kind] || 0) + 1 }), {});
   const intro = (
     <>
-      <strong>The seller signs last.</strong> The app placed {counts.initials || 0} initial{counts.initials === 1 ? "" : "s"}, {counts.signature || 0} signature{counts.signature === 1 ? "" : "s"}{counts.date ? ` and ${counts.date} date${counts.date === 1 ? "" : "s"}` : ""} for {pkg.signers.map(s => s.name).filter(Boolean).join(" & ") || "the seller"} — look them over on the pages below. Tap a block to remove it, or pick a block type and tap the page to add one.
+      <strong>{tr("The seller signs last.")}</strong> {tr("The app placed")} {counts.initials || 0} {tr("initial")}{counts.initials === 1 ? "" : "s"}, {counts.signature || 0} {tr("signature")}{counts.signature === 1 ? "" : "s"}{counts.date ? tn(counts.date, " and {n} date", " and {n} dates") : ""} {tr("for")} {pkg.signers.map(s => s.name).filter(Boolean).join(" & ") || tr("the seller")} {tr("— look them over on the pages below. Tap a block to remove it, or pick a block type and tap the page to add one.")}
       {pkg.notes && pkg.notes.length > 0 && <ul style={{ margin: "6px 0 0 18px", padding: 0 }}>{pkg.notes.map((n, i) => <li key={i}>{n}</li>)}</ul>}
     </>
   );
@@ -435,19 +436,19 @@ export function PickReturnedDoc({ counter, txId, onClose, onLinked }) {
   return (
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 2000, display: "flex", alignItems: "flex-start", justifyContent: "center", padding: 16, overflowY: "auto" }} onClick={onClose}>
       <div onClick={e => e.stopPropagation()} style={{ background: "#fff", borderRadius: 14, width: "100%", maxWidth: 560, margin: "auto", padding: 20 }}>
-        <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 6 }}>Which file is the revised offer?</div>
-        <div style={{ fontSize: 13, color: C.muted, marginBottom: 12 }}>Pick the initialed or resubmitted offer the buyer's agent sent back. The app reads it and checks it against your counter.</div>
-        {docs === null && <div style={{ color: C.muted }}>Loading…</div>}
-        {docs && docs.length === 0 && <div style={{ color: C.muted }}>No PDFs on this deal yet — upload it with Receive Offer instead.</div>}
+        <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 6 }}>{tr("Which file is the revised offer?")}</div>
+        <div style={{ fontSize: 13, color: C.muted, marginBottom: 12 }}>{tr("Pick the initialed or resubmitted offer the buyer's agent sent back. The app reads it and checks it against your counter.")}</div>
+        {docs === null && <div style={{ color: C.muted }}>{tr("Loading…")}</div>}
+        {docs && docs.length === 0 && <div style={{ color: C.muted }}>{tr("No PDFs on this deal yet — upload it with Receive Offer instead.")}</div>}
         <div style={{ maxHeight: 360, overflowY: "auto" }}>
           {(docs || []).map(d => (
             <div key={d.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, padding: "8px 10px", border: `1px solid ${C.border}`, borderRadius: 8, marginBottom: 6 }}>
               <div style={{ minWidth: 0, fontSize: 13 }}><div style={{ fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>📄 {d.name}</div><div style={{ fontSize: 11.5, color: C.muted }}>{new Date(d.created_at).toLocaleString()}</div></div>
-              <button onClick={() => pick(d)} disabled={!!busy} style={btn(true, C.blue)}>{busy === d.id ? "Reading…" : "Use this"}</button>
+              <button onClick={() => pick(d)} disabled={!!busy} style={btn(true, C.blue)}>{busy === d.id ? tr("Reading…") : tr("Use this")}</button>
             </div>
           ))}
         </div>
-        <div style={{ textAlign: "right", marginTop: 10 }}><button onClick={onClose} style={btn(false, "#555")}>Close</button></div>
+        <div style={{ textAlign: "right", marginTop: 10 }}><button onClick={onClose} style={btn(false, "#555")}>{tr("Close")}</button></div>
       </div>
     </div>
   );

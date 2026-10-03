@@ -1,3 +1,4 @@
+import { t as tr, locale as uiLocale } from "./i18n";
 import { useState, useEffect, useRef } from "react";
 import { askConfirm } from "./ui/dialogs";
 import { planRoute, simulate, fmtTime, toMin } from "./lib/tourRoute";
@@ -28,7 +29,7 @@ const isMobileDevice = () => typeof window !== "undefined" && (window.innerWidth
 const oneLine = (s) => [s.address, s.city, [s.state || "FL", s.zip].filter(Boolean).join(" ")].filter(x => x && String(x).trim()).join(", ");
 const money = (n) => (n == null || n === "" || isNaN(Number(n))) ? "" : "$" + Number(n).toLocaleString();
 const navUrl = (s) => "https://www.google.com/maps/dir/?api=1&travelmode=driving&destination=" + encodeURIComponent(oneLine(s));
-const fmtDate = (d) => { if (!d) return ""; const x = new Date(String(d).slice(0, 10) + "T12:00:00"); return x.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" }); };
+const fmtDate = (d) => { if (!d) return ""; const x = new Date(String(d).slice(0, 10) + "T12:00:00"); return x.toLocaleDateString(uiLocale(), { weekday: "short", month: "short", day: "numeric" }); };
 const keyOf = (s) => (s.mls_number ? "m:" + String(s.mls_number).trim().toLowerCase() : "a:" + String(s.address || "").trim().toLowerCase().replace(/\s+/g, " "));
 
 const fileToB64 = (file) => new Promise((resolve, reject) => {
@@ -117,7 +118,7 @@ export default function ShowingToursTab({ tx, onOpenOffer }) {
   };
 
   const deleteTour = async () => {
-    if (!(await askConfirm(stops.length ? `Delete the ${fmtDate(tour.tour_date)} tour day and its ${stops.length} home(s)? Scorecards on those homes are deleted too.` : `Delete the ${fmtDate(tour.tour_date)} tour day?`, { okLabel: "Delete", danger: true }))) return;
+    if (!(await askConfirm(stops.length ? tr("Delete the {date} tour day and its {n} home(s)? Scorecards on those homes are deleted too.", { date: fmtDate(tour.tour_date), n: stops.length }) : tr("Delete the {date} tour day?", { date: fmtDate(tour.tour_date) }), { okLabel: tr("Delete"), danger: true }))) return;
     await fetch(`${API}/showing-tours/${tour.id}`, { method: "DELETE", headers: hdrs }).catch(() => {});
     const rest = (tours || []).filter(t => t.id !== tour.id);
     setTours(rest); setTourId(rest[0] ? rest[0].id : null);
@@ -197,13 +198,13 @@ export default function ShowingToursTab({ tx, onOpenOffer }) {
 
   const startEdit = (s) => { setEditing(s ? s.id : "new"); setDraft(s ? { ...EMPTY_STOP, ...Object.fromEntries(Object.entries(s).map(([k, v]) => [k, v == null ? "" : v])) } : { ...EMPTY_STOP }); };
   const saveEdit = async () => {
-    if (!draft.address.trim()) { alert("Add the street address first."); return; }
+    if (!draft.address.trim()) { alert(tr("Add the street address first.")); return; }
     const list = editing === "new" ? [...stops, draft] : stops.map(s => s.id === editing ? { ...s, ...draft } : s);
     const saved = await save({}, list);
     if (saved) { setEditing(null); setDraft(null); setJustAdded(prev => { const n = new Set(prev); n.delete(editing); return n; }); }
   };
   const removeStop = async (s) => {
-    if (!(await askConfirm(`Remove ${s.address} from this tour?`, { okLabel: "Remove", danger: true }))) return;
+    if (!(await askConfirm(tr("Remove {address} from this tour?", { address: s.address }), { okLabel: tr("Remove"), danger: true }))) return;
     await save({}, stops.filter(x => x.id !== s.id));
   };
   const move = async (i, dir) => {
@@ -233,7 +234,7 @@ export default function ShowingToursTab({ tx, onOpenOffer }) {
     // report was read and simply didn't list seller/parcel/etc., don't ask the
     // agent to upload the same thing twice (Carlos 9/26: "double input").
     if (!skipCheck && s.address && s.offer_details == null) {
-      if (await askConfirm(`${s.address} was added before the app read contract details from the MLS report (or was typed in by hand), so it doesn't have the seller, parcel ID, county, legal description, HOA or title company yet.\n\nOK = upload its Broker Full report once — the app fills this offer from it.\nCancel = start the offer with the basics only.`, { okLabel: "Upload report", cancelLabel: "Basics only" })) {
+      if (await askConfirm(tr("{address} was added before the app read contract details from the MLS report (or was typed in by hand), so it doesn't have the seller, parcel ID, county, legal description, HOA or title company yet.\n\nOK = upload its Broker Full report once — the app fills this offer from it.\nCancel = start the offer with the basics only.", { address: s.address }), { okLabel: tr("Upload report"), cancelLabel: tr("Basics only") })) {
         offerAfterUpload.current = { id: s.id, at: Date.now() };
         if (fileRef.current) fileRef.current.click();
         return;
@@ -280,16 +281,16 @@ export default function ShowingToursTab({ tx, onOpenOffer }) {
   // Google allows 9 in-between stops on a computer (only 3 on phones — so phones navigate one home at a time).
   const canWholeRoute = !mobile && stops.length > 1 && stops.length <= 10;
 
-  if (tours === null) return <div style={{ padding: 30, color: C.muted, textAlign: "center" }}>Loading showings…</div>;
+  if (tours === null) return <div style={{ padding: 30, color: C.muted, textAlign: "center" }}>{tr("Loading showings…")}</div>;
 
   return (
     <div style={{ padding: "4px 0 40px" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, flexWrap: "wrap", marginBottom: 12 }}>
         <div>
-          <div style={{ fontSize: 17, fontWeight: 800, color: C.navy }}>🏠 Showing Tours</div>
-          <div style={{ fontSize: 12.5, color: C.muted, marginTop: 2 }}>Upload the MLS report for the day's homes — the app reads them and plans the shortest route.</div>
+          <div style={{ fontSize: 17, fontWeight: 800, color: C.navy }}>{tr("🏠 Showing Tours")}</div>
+          <div style={{ fontSize: 12.5, color: C.muted, marginTop: 2 }}>{tr("Upload the MLS report for the day's homes — the app reads them and plans the shortest route.")}</div>
         </div>
-        <button onClick={newTour} disabled={!!busy} style={btn(C.blue)}>{tours.length ? "➕ Add another tour day" : "➕ Plan a tour"}</button>
+        <button onClick={newTour} disabled={!!busy} style={btn(C.blue)}>{tours.length ? tr("➕ Add another tour day") : tr("➕ Plan a tour")}</button>
       </div>
 
       {err && <div style={{ background: C.lightRed, color: C.darkRed, borderRadius: 8, padding: "10px 12px", fontSize: 13, fontWeight: 600, marginBottom: 12 }}>⚠️ {err}</div>}
@@ -297,22 +298,22 @@ export default function ShowingToursTab({ tx, onOpenOffer }) {
       {tours.length === 0 && (
         <div style={{ background: C.white, border: `2px dashed ${C.border}`, borderRadius: 12, padding: 24, textAlign: "center" }}>
           <div style={{ fontSize: 30 }}>🗺</div>
-          <div style={{ fontWeight: 800, fontSize: 15, color: C.navy, marginTop: 6 }}>No showing tours yet</div>
-          <div style={{ fontSize: 13, color: C.muted, marginTop: 4, lineHeight: 1.5 }}>Tap <b>Plan a tour</b>, upload the Stellar MLS <b>Broker Full</b> report (or screenshots) for the homes you're showing, and the app does the rest.</div>
+          <div style={{ fontWeight: 800, fontSize: 15, color: C.navy, marginTop: 6 }}>{tr("No showing tours yet")}</div>
+          <div style={{ fontSize: 13, color: C.muted, marginTop: 4, lineHeight: 1.5 }}>{tr("Tap")} <b>{tr("Plan a tour")}</b>{tr(", upload the Stellar MLS")} <b>{tr("Broker Full")}</b> {tr("report (or screenshots) for the homes you're showing, and the app does the rest.")}</div>
         </div>
       )}
 
       {wanted.length > 0 && (
         <div style={{ background: C.lightRed, border: `2px solid ${C.red}`, borderRadius: 12, padding: 14, marginBottom: 12 }}>
-          <div style={{ fontSize: 15, fontWeight: 800, color: C.darkRed }}>❤️ Your buyer wants to make an offer</div>
+          <div style={{ fontSize: 15, fontWeight: 800, color: C.darkRed }}>{tr("❤️ Your buyer wants to make an offer")}</div>
           {wanted.map(({ t, s }) => (
             <div key={s.id} style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", marginTop: 10, background: C.white, borderRadius: 10, padding: "10px 12px" }}>
               <div style={{ flex: "1 1 200px", minWidth: 0 }}>
                 <div style={{ fontSize: 14.5, fontWeight: 800, color: C.navy, wordBreak: "break-word" }}>{s.address}</div>
-                <div style={{ fontSize: 12, color: C.muted }}>{[s.city, fmtDate(t.tour_date)].filter(Boolean).join(" · ")} · tapped {new Date(s.buyer_offer_interest_at).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</div>
+                <div style={{ fontSize: 12, color: C.muted }}>{[s.city, fmtDate(t.tour_date)].filter(Boolean).join(" · ")} {tr("· tapped")} {new Date(s.buyer_offer_interest_at).toLocaleString(uiLocale(), { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</div>
               </div>
-              <button onClick={() => writeOffer(s)} disabled={!!busy || offering === s.id} style={btn(C.blue)}>{offering === s.id ? "Starting…" : s.offer_id ? "📝 Open offer" : "📝 Write an offer"}</button>
-              <button onClick={() => clearInterest(t, s)} title="Clear this flag" style={ghost({ padding: "7px 10px" })}>✕</button>
+              <button onClick={() => writeOffer(s)} disabled={!!busy || offering === s.id} style={btn(C.blue)}>{offering === s.id ? tr("Starting…") : s.offer_id ? tr("📝 Open offer") : tr("📝 Write an offer")}</button>
+              <button onClick={() => clearInterest(t, s)} title={tr("Clear this flag")} style={ghost({ padding: "7px 10px" })}>✕</button>
             </div>
           ))}
         </div>
@@ -322,11 +323,11 @@ export default function ShowingToursTab({ tx, onOpenOffer }) {
 
       {tours.length > 0 && (
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center", marginBottom: 12 }}>
-          <span style={{ fontSize: 12, fontWeight: 700, color: C.muted }}>Tour days:</span>
+          <span style={{ fontSize: 12, fontWeight: 700, color: C.muted }}>{tr("Tour days:")}</span>
           {[...tours].sort((a, b) => String(a.tour_date).localeCompare(String(b.tour_date))).map((t, di) => (
             <button key={t.id} onClick={() => { setTourId(t.id); setWarnings([]); setJustAdded(new Set()); setEditing(null); }}
               style={{ ...ghost(), border: `1.5px solid ${t.id === tourId ? C.red : C.border}`, background: t.id === tourId ? C.lightRed : C.white, color: t.id === tourId ? C.darkRed : C.gray }}>
-              Day {di + 1} · {fmtDate(t.tour_date)} · {(t.stops || []).length} home{(t.stops || []).length === 1 ? "" : "s"}
+              {tr("Day")} {di + 1} · {fmtDate(t.tour_date)} · {(t.stops || []).length} {tr("home")}{(t.stops || []).length === 1 ? "" : "s"}
             </button>
           ))}
         </div>
@@ -337,54 +338,54 @@ export default function ShowingToursTab({ tx, onOpenOffer }) {
           {/* SETTINGS */}
           <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 12, padding: 14, marginBottom: 12 }}>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", gap: 10 }}>
-              <div><label style={lbl}>Tour date</label>
+              <div><label style={lbl}>{tr("Tour date")}</label>
                 <input type="date" defaultValue={String(tour.tour_date || "").slice(0, 10)} key={"d" + tour.id} style={input}
                   onChange={e => e.target.value && save({ tourDate: e.target.value })} /></div>
-              <div><label style={lbl}>Start time</label>
+              <div><label style={lbl}>{tr("Start time")}</label>
                 <input type="time" defaultValue={tour.start_time || "10:00"} key={"t" + tour.id} style={input}
                   onBlur={e => e.target.value && e.target.value !== tour.start_time && save({ startTime: e.target.value })} /></div>
-              <div><label style={lbl}>Minutes per home</label>
+              <div><label style={lbl}>{tr("Minutes per home")}</label>
                 <select value={tour.minutes_per_stop || 20} style={input} onChange={e => save({ minutesPerStop: Number(e.target.value) })}>
-                  {[10, 15, 20, 25, 30, 45, 60].map(n => <option key={n} value={n}>{n} min</option>)}
+                  {[10, 15, 20, 25, 30, 45, 60].map(n => <option key={n} value={n}>{n} {tr("min")}</option>)}
                 </select></div>
             </div>
             <div style={{ marginTop: 10 }}>
-              <label style={lbl}>Start from (office, home, or your buyer's place)</label>
-              <input defaultValue={tour.start_address || ""} key={"s" + tour.id} placeholder="e.g. 100 Main St, Kissimmee, FL 34741" style={input}
+              <label style={lbl}>{tr("Start from (office, home, or your buyer's place)")}</label>
+              <input defaultValue={tour.start_address || ""} key={"s" + tour.id} placeholder={tr("e.g. 100 Main St, Kissimmee, FL 34741")} style={input}
                 onBlur={e => e.target.value.trim() !== (tour.start_address || "") && save({ startAddress: e.target.value.trim() })} />
-              {!tour.start_address && <div style={{ fontSize: 11.5, color: C.muted, marginTop: 3 }}>Without a start address the route begins at the first home.</div>}
-              {tour.start_address && tour.start_lat == null && <div style={{ fontSize: 11.5, color: C.darkRed, marginTop: 3 }}>Couldn't find that address on the map — check the spelling.</div>}
+              {!tour.start_address && <div style={{ fontSize: 11.5, color: C.muted, marginTop: 3 }}>{tr("Without a start address the route begins at the first home.")}</div>}
+              {tour.start_address && tour.start_lat == null && <div style={{ fontSize: 11.5, color: C.darkRed, marginTop: 3 }}>{tr("Couldn't find that address on the map — check the spelling.")}</div>}
             </div>
             <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 10 }}>
-              <button onClick={deleteTour} disabled={!!busy} style={ghost({ color: C.darkRed, borderColor: "#FECACA" })}>🗑 Delete this tour day</button>
+              <button onClick={deleteTour} disabled={!!busy} style={ghost({ color: C.darkRed, borderColor: "#FECACA" })}>{tr("🗑 Delete this tour day")}</button>
             </div>
           </div>
 
           {/* ADD HOMES */}
           <div style={{ background: C.white, border: `2px dashed ${C.red}`, borderRadius: 12, padding: 14, marginBottom: 12 }}>
-            <div style={{ fontSize: 14.5, fontWeight: 800, color: C.navy }}>📄 Add homes from the MLS report</div>
+            <div style={{ fontSize: 14.5, fontWeight: 800, color: C.navy }}>{tr("📄 Add homes from the MLS report")}</div>
             <div style={{ fontSize: 12.5, color: C.muted, marginTop: 3, lineHeight: 1.5 }}>
-              In Stellar MLS select the day's homes → <b>Broker Full</b> report → save as one PDF. Screenshots work too. The app reads the address, listing agent, showing instructions and lockbox/door codes.
+              {tr("In Stellar MLS select the day's homes →")} <b>{tr("Broker Full")}</b> {tr("report → save as one PDF. Screenshots work too. The app reads the address, listing agent, showing instructions and lockbox/door codes.")}
             </div>
             <input ref={fileRef} type="file" accept="application/pdf,.pdf,image/*" multiple style={{ display: "none" }} onChange={e => onFiles(e.target.files)} />
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 10 }}>
               <button onClick={() => fileRef.current && fileRef.current.click()} disabled={!!busy} style={btn(C.blue)}>
-                {busy === "reading" ? "📖 Reading the report…" : "⬆️ Upload MLS report"}
+                {busy === "reading" ? tr("📖 Reading the report…") : tr("⬆️ Upload MLS report")}
               </button>
-              <button onClick={() => startEdit(null)} disabled={!!busy} style={ghost()}>➕ Add a home by hand</button>
+              <button onClick={() => startEdit(null)} disabled={!!busy} style={ghost()}>{tr("➕ Add a home by hand")}</button>
             </div>
-            {busy === "reading" && <div style={{ fontSize: 12.5, color: C.blue, marginTop: 8 }}>This takes about 15–30 seconds for a handful of homes…</div>}
+            {busy === "reading" && <div style={{ fontSize: 12.5, color: C.blue, marginTop: 8 }}>{tr("This takes about 15–30 seconds for a handful of homes…")}</div>}
           </div>
 
           {warnings.length > 0 && (
             <div style={{ background: C.lightGray, border: `1px solid ${C.border}`, borderLeft: `4px solid ${C.blue}`, borderRadius: 8, padding: "10px 12px", marginBottom: 12 }}>
-              <div style={{ fontSize: 12.5, fontWeight: 800, color: C.blue, marginBottom: 4 }}>Check these</div>
+              <div style={{ fontSize: 12.5, fontWeight: 800, color: C.blue, marginBottom: 4 }}>{tr("Check these")}</div>
               {warnings.map((w, i) => <div key={i} style={{ fontSize: 13, color: C.navy, lineHeight: 1.5 }}>• {w}</div>)}
             </div>
           )}
           {justAdded.size > 0 && (
             <div style={{ background: C.lightRed, borderRadius: 8, padding: "10px 12px", marginBottom: 12, fontSize: 13, color: C.darkRed, fontWeight: 600 }}>
-              ✅ Added {justAdded.size} home{justAdded.size === 1 ? "" : "s"} (marked NEW). Give them a quick look and tap ✏️ Edit to fix anything the reader got wrong.
+              {tr("✅ Added")} {justAdded.size} {tr("home")}{justAdded.size === 1 ? "" : "s"} {tr("(marked NEW). Give them a quick look and tap ✏️ Edit to fix anything the reader got wrong.")}
             </div>
           )}
 
@@ -395,30 +396,30 @@ export default function ShowingToursTab({ tx, onOpenOffer }) {
             <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 12, padding: 14, marginBottom: 12 }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
                 <div>
-                  <div style={{ fontSize: 15, fontWeight: 800, color: C.navy }}>🚗 {fmtDate(tour.tour_date)} · {stops.length} home{stops.length === 1 ? "" : "s"}</div>
+                  <div style={{ fontSize: 15, fontWeight: 800, color: C.navy }}>🚗 {fmtDate(tour.tour_date)} · {stops.length} {tr("home")}{stops.length === 1 ? "" : "s"}</div>
                   <div style={{ fontSize: 13, color: C.gray, marginTop: 2 }}>
-                    {fmtTime(sched.legs[0] ? sched.legs[0].begin : null)} → done ~{fmtTime(sched.finish)}{sched.miles > 0 ? ` · ~${Math.round(sched.miles)} mi driving` : ""}
+                    {fmtTime(sched.legs[0] ? sched.legs[0].begin : null)} {tr("→ done ~")}{fmtTime(sched.finish)}{sched.miles > 0 ? tr(" · ~{v1} mi driving", { v1: Math.round(sched.miles) }) : ""}
                   </div>
                 </div>
               </div>
-              {lateCount > 0 && <div style={{ fontSize: 12.5, color: C.darkRed, fontWeight: 700, marginTop: 8 }}>⚠️ {lateCount} home{lateCount === 1 ? "" : "s"} can't make the appointment window with this plan — start earlier or remove a home.</div>}
-              {unmapped > 0 && <div style={{ fontSize: 12.5, color: C.darkRed, marginTop: 6 }}>📍 {unmapped} home{unmapped === 1 ? "" : "s"} couldn't be found on the map — check the address (kept at the end).</div>}
+              {lateCount > 0 && <div style={{ fontSize: 12.5, color: C.darkRed, fontWeight: 700, marginTop: 8 }}>⚠️ {lateCount} {tr("home")}{lateCount === 1 ? "" : "s"} {tr("can't make the appointment window with this plan — start earlier or remove a home.")}</div>}
+              {unmapped > 0 && <div style={{ fontSize: 12.5, color: C.darkRed, marginTop: 6 }}>📍 {unmapped} {tr("home")}{unmapped === 1 ? "" : "s"} {tr("couldn't be found on the map — check the address (kept at the end).")}</div>}
               {/* Each action says what it does for the agent (Carlos 9/26: "doesn't say anything"). */}
               <div style={{ display: "grid", gap: 10, marginTop: 12 }}>
                 {stops.length > 1 && (
-                  <ActionRow button={<button onClick={() => planAndSave()} disabled={!!busy} style={btn(C.blue, "#fff", { minWidth: 190 })}>{busy === "planning" ? "Planning…" : "🧭 Plan my route"}</button>}
+                  <ActionRow button={<button onClick={() => planAndSave()} disabled={!!busy} style={btn(C.blue, "#fff", { minWidth: 190 })}>{busy === "planning" ? tr("Planning…") : tr("🧭 Plan my route")}</button>}
                     text="Puts the homes in the order with the least driving and gives each one an arrival time. It respects any showing windows. Tap it again after you add or remove a home." />
                 )}
-                <ActionRow button={<button onClick={copyTimes} style={ghost({ minWidth: 190 })}>{copied ? "✓ Copied — now paste it" : "📋 Copy showing times"}</button>}
+                <ActionRow button={<button onClick={copyTimes} style={ghost({ minWidth: 190 })}>{copied ? tr("✓ Copied — now paste it") : tr("📋 Copy showing times")}</button>}
                   text="Copies each address with its time slot — paste it into ShowingTime or a text to the listing agents when you book the appointments." />
                 {canWholeRoute ? (
-                  <ActionRow button={<a href={wholeRouteUrl()} target="_blank" rel="noreferrer" style={{ ...ghost({ minWidth: 190 }), color: C.blue, textDecoration: "none", textAlign: "center", boxSizing: "border-box" }}>🗺 Open whole route in Google Maps</a>}
+                  <ActionRow button={<a href={wholeRouteUrl()} target="_blank" rel="noreferrer" style={{ ...ghost({ minWidth: 190 }), color: C.blue, textDecoration: "none", textAlign: "center", boxSizing: "border-box" }}>{tr("🗺 Open whole route in Google Maps")}</a>}
                     text="Opens all the homes as one trip in Google Maps, in this order, so you can see the whole day on a map." />
                 ) : (
-                  <div style={{ fontSize: 12.5, color: C.gray, lineHeight: 1.5 }}>🧭 On tour day, tap <b>Navigate</b> on each home — Google Maps takes you from wherever you are to that house.</div>
+                  <div style={{ fontSize: 12.5, color: C.gray, lineHeight: 1.5 }}>{tr("🧭 On tour day, tap")} <b>{tr("Navigate")}</b> {tr("on each home — Google Maps takes you from wherever you are to that house.")}</div>
                 )}
               </div>
-              <div style={{ fontSize: 11.5, color: C.muted, marginTop: 10 }}>Times are estimates from distance. Google Maps shows real traffic when you navigate.</div>
+              <div style={{ fontSize: 11.5, color: C.muted, marginTop: 10 }}>{tr("Times are estimates from distance. Google Maps shows real traffic when you navigate.")}</div>
             </div>
           )}
 
@@ -431,7 +432,7 @@ export default function ShowingToursTab({ tx, onOpenOffer }) {
             return (
               <div key={s.id}>
                 {i > 0 && l.driveMin != null && (
-                  <div style={{ fontSize: 11.5, color: C.muted, padding: "2px 0 6px 18px" }}>↓ ~{l.driveMin} min drive{l.wait > 0 ? ` · ${l.wait} min wait for the window` : ""}</div>
+                  <div style={{ fontSize: 11.5, color: C.muted, padding: "2px 0 6px 18px" }}>↓ ~{l.driveMin} {tr("min drive")}{l.wait > 0 ? tr(" · {wait} min wait for the window", { wait: l.wait }) : ""}</div>
                 )}
                 <div style={{ background: C.white, border: `1.5px solid ${l.late > 0 ? C.red : isNew ? C.red : C.border}`, borderRadius: 12, padding: 14, marginBottom: 6 }}>
                   <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
@@ -439,32 +440,32 @@ export default function ShowingToursTab({ tx, onOpenOffer }) {
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ display: "flex", justifyContent: "space-between", gap: 8, flexWrap: "wrap" }}>
                         <div style={{ fontSize: 15.5, fontWeight: 800, color: C.navy, wordBreak: "break-word" }}>
-                          {s.address}{isNew && <span style={{ marginLeft: 6, fontSize: 10.5, fontWeight: 800, color: "#fff", background: C.red, borderRadius: 10, padding: "2px 7px", verticalAlign: "middle" }}>NEW</span>}
+                          {s.address}{isNew && <span style={{ marginLeft: 6, fontSize: 10.5, fontWeight: 800, color: "#fff", background: C.red, borderRadius: 10, padding: "2px 7px", verticalAlign: "middle" }}>{tr("NEW")}</span>}
                         </div>
                         <div style={{ fontSize: 13.5, fontWeight: 800, color: l.late > 0 ? C.red : C.blue, whiteSpace: "nowrap" }}>{fmtTime(l.begin)} – {fmtTime(l.depart)}</div>
                       </div>
                       <div style={{ fontSize: 12.5, color: C.muted, marginTop: 2 }}>
-                        {[s.city, s.zip].filter(Boolean).join(" ")}{s.mls_number ? ` · MLS ${s.mls_number}` : ""}
-                        {s.list_price ? ` · ${money(s.list_price)}` : ""}{s.beds ? ` · ${Number(s.beds)} bd` : ""}{s.baths ? ` / ${Number(s.baths)} ba` : ""}{s.sqft ? ` · ${Number(s.sqft).toLocaleString()} sf` : ""}
+                        {[s.city, s.zip].filter(Boolean).join(" ")}{s.mls_number ? tr(" · MLS {mls_number}", { mls_number: s.mls_number }) : ""}
+                        {s.list_price ? ` · ${money(s.list_price)}` : ""}{s.beds ? tr(" · {Number} bd", { Number: Number(s.beds) }) : ""}{s.baths ? ` / ${Number(s.baths)} ba` : ""}{s.sqft ? tr(" · {v1} sf", { v1: Number(s.sqft).toLocaleString() }) : ""}
                         {s.occupancy ? ` · ${s.occupancy}` : ""}
                       </div>
                       {s.buyer_offer_interest_at && (
                         <div style={{ marginTop: 6, fontSize: 12.5, fontWeight: 800, color: C.darkRed, background: C.lightRed, borderRadius: 8, padding: "4px 4px 4px 9px", display: "inline-flex", alignItems: "center", gap: 6 }}>
-                          ❤️ Your buyer wants to make an offer on this one
-                          <button onClick={() => clearInterest(tour, s)} title="Clear this flag" style={{ background: "none", border: "none", color: C.darkRed, fontWeight: 800, cursor: "pointer", fontSize: 13, padding: "0 4px" }}>✕</button>
+                          {tr("❤️ Your buyer wants to make an offer on this one")}
+                          <button onClick={() => clearInterest(tour, s)} title={tr("Clear this flag")} style={{ background: "none", border: "none", color: C.darkRed, fontWeight: 800, cursor: "pointer", fontSize: 13, padding: "0 4px" }}>✕</button>
                         </div>
                       )}
                       {(s.appt_start || s.appt_end) && (
                         <div style={{ display: "inline-block", marginTop: 6, fontSize: 12, fontWeight: 700, color: l.late > 0 ? C.darkRed : C.blue, background: l.late > 0 ? C.lightRed : "#EEF2F7", borderRadius: 8, padding: "3px 8px" }}>
-                          🕑 Window {fmtTime(toMin(s.appt_start))}{s.appt_end ? ` – ${fmtTime(toMin(s.appt_end))}` : ""}{l.late > 0 ? ` · ${l.late} min late!` : ""}
+                          {tr("🕑 Window")} {fmtTime(toMin(s.appt_start))}{s.appt_end ? ` – ${fmtTime(toMin(s.appt_end))}` : ""}{l.late > 0 ? tr(" · {late} min late!", { late: l.late }) : ""}
                         </div>
                       )}
                       {(s.listing_agent_name || s.listing_agent_phone || s.listing_office) && (
                         <div style={{ fontSize: 13, color: C.navy, marginTop: 8 }}>
-                          👤 {s.listing_agent_name || "Listing agent"}{s.listing_office ? <span style={{ color: C.muted }}> · {s.listing_office}</span> : null}
+                          👤 {s.listing_agent_name || tr("Listing agent")}{s.listing_office ? <span style={{ color: C.muted }}> · {s.listing_office}</span> : null}
                           <div style={{ marginTop: 3, display: "flex", gap: 12, flexWrap: "wrap" }}>
                             {s.listing_agent_phone && <a href={`tel:${telHref(s.listing_agent_phone)}`} style={{ color: C.blue, fontWeight: 700, textDecoration: "none" }}>📞 {s.listing_agent_phone}</a>}
-                            {!s.listing_agent_phone && s.listing_office_phone && <a href={`tel:${telHref(s.listing_office_phone)}`} style={{ color: C.blue, fontWeight: 700, textDecoration: "none" }}>📞 Office {s.listing_office_phone}</a>}
+                            {!s.listing_agent_phone && s.listing_office_phone && <a href={`tel:${telHref(s.listing_office_phone)}`} style={{ color: C.blue, fontWeight: 700, textDecoration: "none" }}>{tr("📞 Office")} {s.listing_office_phone}</a>}
                             {s.listing_agent_email && <a href={`mailto:${s.listing_agent_email}`} style={{ color: C.blue, textDecoration: "none", wordBreak: "break-all" }}>✉️ {s.listing_agent_email}</a>}
                           </div>
                         </div>
@@ -472,24 +473,24 @@ export default function ShowingToursTab({ tx, onOpenOffer }) {
                       {(s.access_info || s.showing_instructions || s.agent_notes) && (
                         <div style={{ marginTop: 8 }}>
                           <button onClick={() => setOpenInfo(prev => { const n = new Set(prev); n.has(s.id) ? n.delete(s.id) : n.add(s.id); return n; })}
-                            style={{ ...ghost({ padding: "5px 10px", fontSize: 12 }) }}>🔐 Access & instructions {infoOpen ? "▲" : "▼"}</button>
+                            style={{ ...ghost({ padding: "5px 10px", fontSize: 12 }) }}>{tr("🔐 Access & instructions")} {infoOpen ? "▲" : "▼"}</button>
                           {infoOpen && (
                             <div style={{ background: C.lightGray, border: `1px solid ${C.border}`, borderRadius: 8, padding: "10px 12px", marginTop: 6, fontSize: 13.5, color: C.navy, lineHeight: 1.55 }}>
-                              {s.access_info && <div><b>Access:</b> {s.access_info}</div>}
-                              {s.showing_instructions && <div style={{ marginTop: s.access_info ? 6 : 0, whiteSpace: "pre-wrap" }}><b>Instructions:</b> {s.showing_instructions}</div>}
-                              {s.agent_notes && <div style={{ marginTop: 6, whiteSpace: "pre-wrap" }}><b>My notes:</b> {s.agent_notes}</div>}
+                              {s.access_info && <div><b>{tr("Access:")}</b> {s.access_info}</div>}
+                              {s.showing_instructions && <div style={{ marginTop: s.access_info ? 6 : 0, whiteSpace: "pre-wrap" }}><b>{tr("Instructions:")}</b> {s.showing_instructions}</div>}
+                              {s.agent_notes && <div style={{ marginTop: 6, whiteSpace: "pre-wrap" }}><b>{tr("My notes:")}</b> {s.agent_notes}</div>}
                             </div>
                           )}
                         </div>
                       )}
                       <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 10 }}>
-                        <a href={navUrl(s)} target="_blank" rel="noreferrer" style={{ ...btn(C.blue), textDecoration: "none", padding: "7px 12px", fontSize: 12.5 }}>🧭 Navigate</a>
+                        <a href={navUrl(s)} target="_blank" rel="noreferrer" style={{ ...btn(C.blue), textDecoration: "none", padding: "7px 12px", fontSize: 12.5 }}>{tr("🧭 Navigate")}</a>
                         <ScorecardButton stop={s} open={openCard.has(s.id)} onClick={() => toggleCard(s.id)} />
-                        <button onClick={() => writeOffer(s)} disabled={!!busy || offering === s.id} title="Start an offer already filled in from the MLS report"
-                          style={{ ...btn(C.blue), padding: "7px 12px", fontSize: 12.5 }}>{offering === s.id ? "Starting…" : s.offer_id ? "📝 Open offer" : "📝 Write an offer"}</button>
-                        <button onClick={() => startEdit(s)} disabled={!!busy} style={ghost()}>✏️ Edit</button>
-                        <button onClick={() => move(i, -1)} disabled={!!busy || i === 0} title="Move earlier" style={ghost({ opacity: i === 0 ? 0.4 : 1 })}>↑</button>
-                        <button onClick={() => move(i, 1)} disabled={!!busy || i === stops.length - 1} title="Move later" style={ghost({ opacity: i === stops.length - 1 ? 0.4 : 1 })}>↓</button>
+                        <button onClick={() => writeOffer(s)} disabled={!!busy || offering === s.id} title={tr("Start an offer already filled in from the MLS report")}
+                          style={{ ...btn(C.blue), padding: "7px 12px", fontSize: 12.5 }}>{offering === s.id ? tr("Starting…") : s.offer_id ? tr("📝 Open offer") : tr("📝 Write an offer")}</button>
+                        <button onClick={() => startEdit(s)} disabled={!!busy} style={ghost()}>{tr("✏️ Edit")}</button>
+                        <button onClick={() => move(i, -1)} disabled={!!busy || i === 0} title={tr("Move earlier")} style={ghost({ opacity: i === 0 ? 0.4 : 1 })}>↑</button>
+                        <button onClick={() => move(i, 1)} disabled={!!busy || i === stops.length - 1} title={tr("Move later")} style={ghost({ opacity: i === stops.length - 1 ? 0.4 : 1 })}>↓</button>
                         <button onClick={() => removeStop(s)} disabled={!!busy} style={ghost({ color: C.darkRed, borderColor: "#FECACA" })}>🗑</button>
                       </div>
                       {openCard.has(s.id) && <HomeScorecard stop={s} viewer="agent" onSave={(patch) => saveFeedback(tour, s, patch)} />}
@@ -502,7 +503,7 @@ export default function ShowingToursTab({ tx, onOpenOffer }) {
 
           {stops.length > 0 && (
             <div style={{ fontSize: 12, color: C.muted, marginTop: 10, lineHeight: 1.5 }}>
-              🔐 Door and lockbox codes are only visible to you{tx.coordinatorName ? " and your TC" : ""} — never sent to your buyer — and are erased automatically 3 days after the tour.
+              {tr("🔐 Door and lockbox codes are only visible to you")}{tx.coordinatorName ? tr(" and your TC") : ""} {tr("— never sent to your buyer — and are erased automatically 3 days after the tour.")}
             </div>
           )}
         </>
@@ -524,7 +525,7 @@ function ActionRow({ button, text }) {
 function StopForm({ draft, setDraft, onSave, onCancel, busy, isNew }) {
   const f = (k, label, extra = {}) => (
     <div style={extra.full ? { gridColumn: "1 / -1" } : undefined}>
-      <label style={lbl}>{label}</label>
+      <label style={lbl}>{tr(label)}</label>
       {extra.area
         ? <textarea rows={3} value={draft[k] ?? ""} onChange={e => setDraft(d => ({ ...d, [k]: e.target.value }))} style={{ ...input, resize: "vertical" }} />
         : <input type={extra.type || "text"} value={draft[k] ?? ""} onChange={e => setDraft(d => ({ ...d, [k]: e.target.value }))} style={input} />}
@@ -532,7 +533,7 @@ function StopForm({ draft, setDraft, onSave, onCancel, busy, isNew }) {
   );
   return (
     <div style={{ background: C.white, border: `2px solid ${C.red}`, borderRadius: 12, padding: 14, marginBottom: 12 }}>
-      <div style={{ fontSize: 14.5, fontWeight: 800, color: C.navy, marginBottom: 10 }}>{isNew ? "➕ Add a home" : "✏️ Edit home"}</div>
+      <div style={{ fontSize: 14.5, fontWeight: 800, color: C.navy, marginBottom: 10 }}>{isNew ? tr("➕ Add a home") : tr("✏️ Edit home")}</div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 10 }}>
         {f("address", "Street address *", { full: true })}
         {f("city", "City")}{f("zip", "ZIP")}{f("mls_number", "MLS #")}{f("list_price", "List price")}
@@ -545,8 +546,8 @@ function StopForm({ draft, setDraft, onSave, onCancel, busy, isNew }) {
         {f("agent_notes", "My notes", { full: true, area: true })}
       </div>
       <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 12 }}>
-        <button onClick={onCancel} style={ghost()}>Cancel</button>
-        <button onClick={onSave} disabled={!!busy} style={btn(C.blue)}>{busy === "saving" ? "Saving…" : "💾 Save"}</button>
+        <button onClick={onCancel} style={ghost()}>{tr("Cancel")}</button>
+        <button onClick={onSave} disabled={!!busy} style={btn(C.blue)}>{busy === "saving" ? tr("Saving…") : tr("💾 Save")}</button>
       </div>
     </div>
   );

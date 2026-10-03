@@ -1,3 +1,4 @@
+import { t as tr } from "./i18n";
 import React, { useState, useEffect, useRef } from "react";
 import BackButton from "./ui/BackButton";
 
@@ -107,8 +108,8 @@ function StatCard({ big, label, sub, color }) {
   return (
     <div style={{ flex: "1 1 130px", background: C.white, border: `1px solid ${C.line}`, borderRadius: 12, padding: "16px 14px", textAlign: "center" }}>
       <div style={{ fontSize: 26, fontWeight: 800, color: color || C.navy, lineHeight: 1.1 }}>{big}</div>
-      <div style={{ fontSize: 12, fontWeight: 700, color: C.ink, marginTop: 4 }}>{label}</div>
-      {sub && <div style={{ fontSize: 11, color: C.gray, marginTop: 2 }}>{sub}</div>}
+      <div style={{ fontSize: 12, fontWeight: 700, color: C.ink, marginTop: 4 }}>{tr(label)}</div>
+      {sub && <div style={{ fontSize: 11, color: C.gray, marginTop: 2 }}>{tr(sub)}</div>}
     </div>
   );
 }
@@ -188,33 +189,33 @@ export default function GrowthPlanPage({ onBack }) {
   const doneCount = allItems.filter(i => checklist[i.id]).length;
   const pct = Math.round((doneCount / allItems.length) * 100);
 
-  if (loading) return <div style={{ padding: 40, textAlign: "center", color: C.gray }}>Loading your plan…</div>;
+  if (loading) return <div style={{ padding: 40, textAlign: "center", color: C.gray }}>{tr("Loading your plan…")}</div>;
 
   return (
     <div style={{ maxWidth: 860, margin: "0 auto", padding: "16px 16px 60px", fontFamily: "'Segoe UI', system-ui, sans-serif", color: C.ink }}>
       <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
         {onBack && <BackButton onClick={onBack} to="My Deals" />}
         <div style={{ flex: 1 }}>
-          <div style={{ fontSize: 22, fontWeight: 800, color: C.navy }}>🎯 My Growth Plan</div>
-          <div style={{ fontSize: 13, color: C.gray }}>Where you're going this year — and over the next five.</div>
+          <div style={{ fontSize: 22, fontWeight: 800, color: C.navy }}>{tr("🎯 My Growth Plan")}</div>
+          <div style={{ fontSize: 13, color: C.gray }}>{tr("Where you're going this year — and over the next five.")}</div>
         </div>
         <div style={{ fontSize: 12, fontWeight: 700, minWidth: 70, textAlign: "right", color: status === "error" ? C.red : status === "saving" ? C.gray : C.green }}>
-          {status === "saving" ? "Saving…" : status === "saved" ? "Saved ✓" : status === "error" ? "Save failed" : ""}
+          {status === "saving" ? tr("Saving…") : status === "saved" ? tr("Saved ✓") : status === "error" ? tr("Save failed") : ""}
         </div>
       </div>
 
       {/* First-time intro — lands on money inputs otherwise, with no explanation */}
       <div style={{ background: "#FFF8E7", border: "1px solid #E8D5A0", borderRadius: 12, padding: "12px 16px", margin: "0 0 16px", fontSize: 13, color: "#7A5C00", lineHeight: 1.55 }}>
-        <b>How this works — 1, 2, 3:</b> ① Type the income you want this year. ② The app turns it into deals-per-month and daily calls. ③ Check off the quarterly actions below — they're the plan. Everything saves automatically.
+        <b>{tr("How this works — 1, 2, 3:")}</b> {tr("① Type the income you want this year. ② The app turns it into deals-per-month and daily calls. ③ Check off the quarterly actions below — they're the plan. Everything saves automatically.")}
       </div>
 
       {/* THE NUMBER */}
       <div style={{ background: C.navy, color: C.white, borderRadius: 16, padding: 22, marginBottom: 18 }}>
-        <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", opacity: 0.8 }}>Start with one number</div>
-        <div style={{ fontSize: 15, margin: "8px 0 14px" }}>How much do you want to earn this year?</div>
+        <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", opacity: 0.8 }}>{tr("Start with one number")}</div>
+        <div style={{ fontSize: 15, margin: "8px 0 14px" }}>{tr("How much do you want to earn this year?")}</div>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 16 }}>
           <div>
-            <div style={{ fontSize: 11, opacity: 0.8, marginBottom: 4 }}>Income goal</div>
+            <div style={{ fontSize: 11, opacity: 0.8, marginBottom: 4 }}>{tr("Income goal")}</div>
             <div style={{ display: "flex", alignItems: "center", background: "rgba(255,255,255,0.12)", borderRadius: 10, padding: "4px 12px" }}>
               <span style={{ fontSize: 20, fontWeight: 700 }}>$</span>
               <input value={incomeGoal} onChange={e => setIncomeGoal(e.target.value.replace(/\D/g, "").slice(0, 9))} inputMode="numeric"
@@ -222,7 +223,7 @@ export default function GrowthPlanPage({ onBack }) {
             </div>
           </div>
           <div>
-            <div style={{ fontSize: 11, opacity: 0.8, marginBottom: 4 }}>Avg. net commission per deal</div>
+            <div style={{ fontSize: 11, opacity: 0.8, marginBottom: 4 }}>{tr("Avg. net commission per deal")}</div>
             <div style={{ display: "flex", alignItems: "center", background: "rgba(255,255,255,0.12)", borderRadius: 10, padding: "4px 12px" }}>
               <span style={{ fontSize: 20, fontWeight: 700 }}>$</span>
               <input value={avgNet} onChange={e => setAvgNet(e.target.value.replace(/\D/g, "").slice(0, 7))} inputMode="numeric"
@@ -231,32 +232,32 @@ export default function GrowthPlanPage({ onBack }) {
           </div>
         </div>
         <div style={{ fontSize: 11.5, opacity: 0.85, marginTop: 12, lineHeight: 1.5 }}>
-          🔗 This is your <b>one</b> income goal — the same number in <b>Financials → Budget</b> and <b>Reports → Goal Planner</b>. Change it here and it updates everywhere{goalSource === "financials" ? " (currently in sync with Financials)" : ""}.
+          {tr("🔗 This is your")} <b>{tr("one")}</b> {tr("income goal — the same number in")} <b>{tr("Financials → Budget")}</b> {tr("and")} <b>{tr("Reports → Goal Planner")}</b>{tr(". Change it here and it updates everywhere")}{goalSource === "financials" ? tr(" (currently in sync with Financials)") : ""}.
         </div>
       </div>
 
       {/* 1-YEAR BACK-CALC — updates live as you type */}
       <div style={{ marginBottom: 22 }}>
-        <div style={{ fontSize: 13, fontWeight: 800, color: C.navy, textTransform: "uppercase", letterSpacing: 1, marginBottom: 4 }}>Your 1-Year Plan</div>
-        <div style={{ fontSize: 13, color: C.gray, marginBottom: 12 }}>To earn <b>{money(incomeGoal)}</b>, here's what it takes — broken down so you always know your daily number.</div>
+        <div style={{ fontSize: 13, fontWeight: 800, color: C.navy, textTransform: "uppercase", letterSpacing: 1, marginBottom: 4 }}>{tr("Your 1-Year Plan")}</div>
+        <div style={{ fontSize: 13, color: C.gray, marginBottom: 12 }}>{tr("To earn")} <b>{money(incomeGoal)}</b>{tr(", here's what it takes — broken down so you always know your daily number.")}</div>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginBottom: 10 }}>
-          <StatCard big={oneYear.closings} label="closings this year" sub={`~${oneYear.closingsPerMonth}/month`} color={C.red} />
-          <StatCard big={oneYear.appointments} label="appointments" sub={`~${oneYear.appointmentsPerWeek}/week`} color={C.gold} />
-          <StatCard big={oneYear.conversations} label="real conversations" sub={`~${oneYear.conversationsPerWeek}/week`} color={C.blue} />
-          <StatCard big={oneYear.dialsPerDay} label="outreach/day" sub={`~${oneYear.dialsPerWeek}/week`} color={C.green} />
+          <StatCard big={oneYear.closings} label={tr("closings this year")} sub={tr("~{closingsPerMonth}/month", { closingsPerMonth: oneYear.closingsPerMonth })} color={C.red} />
+          <StatCard big={oneYear.appointments} label={tr("appointments")} sub={tr("~{appointmentsPerWeek}/week", { appointmentsPerWeek: oneYear.appointmentsPerWeek })} color={C.gold} />
+          <StatCard big={oneYear.conversations} label={tr("real conversations")} sub={tr("~{conversationsPerWeek}/week", { conversationsPerWeek: oneYear.conversationsPerWeek })} color={C.blue} />
+          <StatCard big={oneYear.dialsPerDay} label={tr("outreach/day")} sub={tr("~{dialsPerWeek}/week", { dialsPerWeek: oneYear.dialsPerWeek })} color={C.green} />
         </div>
         <div style={{ fontSize: 12, color: C.gray, background: C.bg, borderRadius: 8, padding: "8px 12px", marginBottom: 8 }}>
-          💡 The big idea: <b>{oneYear.dialsPerDay} meaningful outreach touches a day</b> (calls, texts, DMs, door-knocks) feeds the whole plan.
+          {tr("💡 The big idea:")} <b>{oneYear.dialsPerDay} {tr("meaningful outreach touches a day")}</b> {tr("(calls, texts, DMs, door-knocks) feeds the whole plan.")}
         </div>
         <div style={{ fontSize: 12, color: ratesBasis === "measured" ? C.green : C.gray, background: ratesBasis === "measured" ? "#EAF7EF" : C.bg, borderRadius: 8, padding: "8px 12px", lineHeight: 1.5 }}>
-          <b>Where these numbers come from:</b> {basisLabel} Fine-tune the conversion rates anytime in <b>Reports → Goal Planner</b>.
+          <b>{tr("Where these numbers come from:")}</b> {basisLabel} {tr("Fine-tune the conversion rates anytime in")} <b>{tr("Reports → Goal Planner")}</b>.
         </div>
       </div>
 
       {/* YEAR-1 CHECKLIST with live progress */}
       <div style={{ background: C.white, border: `1px solid ${C.line}`, borderRadius: 14, padding: 18, marginBottom: 22 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
-          <div style={{ fontSize: 13, fontWeight: 800, color: C.navy, textTransform: "uppercase", letterSpacing: 1 }}>This Year, Quarter by Quarter</div>
+          <div style={{ fontSize: 13, fontWeight: 800, color: C.navy, textTransform: "uppercase", letterSpacing: 1 }}>{tr("This Year, Quarter by Quarter")}</div>
           <div style={{ fontSize: 12, fontWeight: 800, color: pct === 100 ? C.green : C.gray }}>{doneCount}/{allItems.length}</div>
         </div>
         {/* progress bar */}
@@ -264,7 +265,7 @@ export default function GrowthPlanPage({ onBack }) {
           <div style={{ width: `${pct}%`, height: "100%", background: pct === 100 ? C.green : C.gold, transition: "width 0.3s" }} />
         </div>
         <div style={{ fontSize: 12, fontWeight: 700, color: pct === 100 ? C.green : C.gray, marginBottom: 14 }}>
-          {pct === 100 ? "🎉 You completed your year-1 plan — outstanding!" : `${pct}% of your year-1 plan done`}
+          {pct === 100 ? tr("🎉 You completed your year-1 plan — outstanding!") : tr("{pct}% of your year-1 plan done", { pct })}
         </div>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 14 }}>
           {Q_CHECKLIST.map(q => {
@@ -288,8 +289,8 @@ export default function GrowthPlanPage({ onBack }) {
       </div>
 
       {/* 5-YEAR VISION TRACK — ladder changes instantly on click */}
-      <div style={{ fontSize: 13, fontWeight: 800, color: C.navy, textTransform: "uppercase", letterSpacing: 1, marginBottom: 4 }}>Your 5-Year Vision</div>
-      <div style={{ fontSize: 13, color: C.gray, marginBottom: 12 }}>Pick the path that fits where you want to be — the ladder below updates to match.</div>
+      <div style={{ fontSize: 13, fontWeight: 800, color: C.navy, textTransform: "uppercase", letterSpacing: 1, marginBottom: 4 }}>{tr("Your 5-Year Vision")}</div>
+      <div style={{ fontSize: 13, color: C.gray, marginBottom: 12 }}>{tr("Pick the path that fits where you want to be — the ladder below updates to match.")}</div>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginBottom: 16 }}>
         {TRACKS.map(t => (
           <button key={t.id} onClick={() => setTrack(t.id)} style={{
@@ -326,13 +327,13 @@ export default function GrowthPlanPage({ onBack }) {
 
       {/* YOUR WHY */}
       <div style={{ background: C.bg, borderRadius: 14, padding: 18, marginBottom: 10 }}>
-        <div style={{ fontSize: 13, fontWeight: 800, color: C.navy, textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>Why this matters to you</div>
-        <div style={{ fontSize: 12, color: C.gray, marginBottom: 8 }}>On the hard days, this is what you come back to.</div>
-        <textarea value={why} onChange={e => setWhy(e.target.value)} placeholder="e.g. Give my kids options I never had. Pay off the house in 5 years. Build something that outlasts me."
+        <div style={{ fontSize: 13, fontWeight: 800, color: C.navy, textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>{tr("Why this matters to you")}</div>
+        <div style={{ fontSize: 12, color: C.gray, marginBottom: 8 }}>{tr("On the hard days, this is what you come back to.")}</div>
+        <textarea value={why} onChange={e => setWhy(e.target.value)} placeholder={tr("e.g. Give my kids options I never had. Pay off the house in 5 years. Build something that outlasts me.")}
           rows={3} style={{ width: "100%", fontSize: 14, padding: 12, border: `1px solid ${C.line}`, borderRadius: 10, fontFamily: "inherit", resize: "vertical", boxSizing: "border-box" }} />
       </div>
 
-      <div style={{ fontSize: 12, color: C.gray, textAlign: "center" }}>Everything on this page saves automatically.</div>
+      <div style={{ fontSize: 12, color: C.gray, textAlign: "center" }}>{tr("Everything on this page saves automatically.")}</div>
     </div>
   );
 }
