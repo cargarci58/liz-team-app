@@ -2644,6 +2644,216 @@ function ReconcileCells({ imp, onSaved }) {
   );
 }
 
+// "🔍 See lines" — every line read off one saved statement, the reconcile math,
+// hints for what's causing an "Off by", and per-line fixes (flip side, edit,
+// remove, add missing). Reconciliation counts THESE lines, not the Expenses
+// list, so this is the only place an Off-by can be fixed. Each fix also updates
+// the matching expense/income row server-side.
+function StatementLinesModal({ imp, categories, onClose, onChanged }) {
+  const [lines, setLines] = useState(null);
+  const [error, setError] = useState(null);
+  const [busyId, setBusyId] = useState(null);
+  const [editId, setEditId] = useState(null);
+  const [draft, setDraft] = useState({});
+  const [adding, setAdding] = useState(null);
+  const isCard = String(imp.account_type || '').toLowerCase().includes('credit');
+
+  const load = async () => {
+    try { const d = await authFetch(`/bank-import/${imp.id}`); setLines(d.lines || []); setError(null); }
+    catch (e) { setError(e.message); }
+  };
+  useEffect(() => { load(); }, [imp.id]);
+
+  const run = async (id, fn) => {
+    setBusyId(id); setError(null);
+    try { await fn(); await load(); onChanged && onChanged(); }
+    catch (e) { setError(e.message); }
+    finally { setBusyId(null); }
+  };
+
+  // What one line does to the balance. Card: charges raise what you owe,
+  // payments/credits lower it. Checking: money in raises it, money out lowers it.
+  const contrib = (l) => {
+    const a = Number(l.amount || 0);
+    if (isCard) return l.direction === 'expense' ? a : -a;
+    return l.direction === 'income' ? a : -a;
+  };
+  const sideLabel = (dir) => isCard
+    ? (dir === 'expense' ? tr("Charge") : tr("Payment / credit"))
+    : (dir === 'income' ? tr("Money in") : tr("Money out"));
+  const up = (dir) => isCard ? dir === 'expense' : dir === 'income';
+
+  const all = lines || [];
+  const raises = all.filter(l => up(l.direction)).reduce((s, l) => s + Number(l.amount || 0), 0);
+  const lowers = all.filter(l => !up(l.direction)).reduce((s, l) => s + Number(l.amount || 0), 0);
+  const hasBegin = imp.beginning_balance != null && imp.beginning_balance !== '';
+  const hasEnd = imp.ending_balance != null && imp.ending_balance !== '';
+  const begin = Number(imp.beginning_balance || 0), end = Number(imp.ending_balance || 0);
+  const expected = begin + raises - lowers;
+  const diff = hasBegin && hasEnd ? end - expected : null;
+  const off = diff != null && Math.abs(diff) >= 0.01;
+  const near = (a, b) => Math.abs(a - b) < 0.01;
+
+  // Hints, most specific first.
+  const flipIds = new Set(), extraIds = new Set(), dupIds = new Set();
+  if (off) {
+    all.forEach(l => {
+      if (near(-2 * contrib(l), diff)) flipIds.add(l.id);
+      else if (near(-contrib(l), diff)) extraIds.add(l.id);
+    });
+  }
+  const seen = {};
+  all.forEach(l => {
+    const k = `${String(l.txn_date || '').slice(0, 10)}|${Number(l.amount).toFixed(2)}|${String(l.description || '').trim().toLowerCase()}`;
+    (seen[k] = seen[k] || []).push(l.id);
+  });
+  Object.values(seen).forEach(ids => { if (ids.length > 1) ids.forEach(id => dupIds.add(id)); });
+  const missingDir = off ? ((diff > 0) === isCard ? 'expense' : 'income') : null;
+
+  const startEdit = (l) => { setEditId(l.id); setDraft({ txn_date: String(l.txn_date || '').slice(0, 10), amount: Number(l.amount || 0), description: l.description || '' }); };
+  const saveEdit = (l) => run(l.id, async () => {
+    await authFetch(`/bank-import/${imp.id}/lines/${l.id}`, { method: 'PATCH', body: JSON.stringify(draft) });
+    setEditId(null);
+  });
+  const flip = (l) => run(l.id, () => authFetch(`/bank-import/${imp.id}/lines/${l.id}`, { method: 'PATCH', body: JSON.stringify({ direction: l.direction === 'income' ? 'expense' : 'income' }) }));
+  const remove = async (l) => {
+    if (!(await askConfirm(tr("Remove this line from the statement?\n\n{desc} — {amount}\n\nIf it's in your books, it comes out of your Expenses/Income too.", { desc: l.description || tr("(no description)"), amount: fmtCurrency(l.amount) }), { okLabel: tr("Remove"), danger: true }))) return;
+    run(l.id, () => authFetch(`/bank-import/${imp.id}/lines/${l.id}`, { method: 'DELETE' }));
+  };
+  const openAdd = () => setAdding({ txn_date: '', description: '', amount: off ? Math.abs(diff).toFixed(2) : '', direction: missingDir || 'expense', addToBooks: true, category: '' });
+  const saveAdd = () => run('add', async () => {
+    await authFetch(`/bank-import/${imp.id}/lines`, { method: 'POST', body: JSON.stringify({ ...adding, category: adding.category || null }) });
+    setAdding(null);
+  });
+
+  const catNames = Array.from(new Set([...(categories || []).map(c => c.name), 'Other Income', 'Other']));
+  const smallIn = { ...inputStyle, padding: '4px 6px', fontSize: 12 };
+  const actBtn = { background: 'white', border: '1px solid #bfdbfe', color: '#1d4ed8', borderRadius: 6, padding: '3px 8px', fontSize: 12, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' };
+  const delBtn = { ...actBtn, border: '1px solid #fecaca', color: '#dc2626' };
+  const title = `${isCard ? tr("💳 Credit card") : tr("🏦 Checking")} — ${tr((imp.period_label || '').trim() || imp.file_name || 'statement')}`;
+
+  return (
+    <ModalShell title={title} onClose={onClose} width={980}>
+      {lines === null && !error && <div style={{ fontSize: 13, color: '#6b7280' }}>{tr("Loading…")}</div>}
+      {error && <div style={{ background: '#fef2f2', color: '#b91c1c', borderRadius: 8, padding: '8px 12px', fontSize: 13, marginBottom: 12 }}>{error}</div>}
+      {lines !== null && (
+        <>
+          <div style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 10, padding: '12px 14px', marginBottom: 12, fontSize: 14, color: '#1f2937', lineHeight: 1.6 }}>
+            {hasBegin
+              ? <>{tr("Begin")} <strong>{fmtCurrency(begin)}</strong> + {isCard ? tr("charges") : tr("money in")} <strong>{fmtCurrency(raises)}</strong> − {isCard ? tr("payments/credits") : tr("money out")} <strong>{fmtCurrency(lowers)}</strong> = <strong>{fmtCurrency(expected)}</strong></>
+              : <>{isCard ? tr("charges") : tr("money in")} <strong>{fmtCurrency(raises)}</strong> · {isCard ? tr("payments/credits") : tr("money out")} <strong>{fmtCurrency(lowers)}</strong></>}
+            {hasEnd && <> · {tr("Statement says")} <strong>{fmtCurrency(end)}</strong></>}
+            <div style={{ marginTop: 4 }}>
+              {diff == null
+                ? <span style={{ color: '#6b7280', fontSize: 13 }}>{tr("Enter the Begin $ and End $ from the statement (in the list behind this window) to check it.")}</span>
+                : off
+                  ? <span style={{ background: '#fef2f2', color: '#dc2626', borderRadius: 6, padding: '2px 8px', fontSize: 13, fontWeight: 700 }}>{tr("Off by")} {fmtCurrency(Math.abs(diff))}</span>
+                  : <span style={{ background: '#ecfdf5', color: '#065f46', borderRadius: 6, padding: '2px 8px', fontSize: 13, fontWeight: 700 }}>{tr("✓ Reconciled")}</span>}
+            </div>
+          </div>
+
+          {off && (
+            <div style={{ background: '#fffbeb', border: '1px solid #fcd34d', borderRadius: 10, padding: '10px 14px', marginBottom: 12, fontSize: 13, color: '#78350f', lineHeight: 1.55 }}>
+              <div style={{ fontWeight: 700, marginBottom: 4 }}>{tr("💡 What's probably causing it")}</div>
+              {flipIds.size > 0 && <div>• {tr("A line marked ⇄ below is likely on the wrong side. Flipping it would balance the statement.")}</div>}
+              {extraIds.size > 0 && <div>• {tr("A line marked ✖ below equals the difference — it may be a duplicate or not really on this statement.")}</div>}
+              {dupIds.size > 0 && <div>• {tr("Lines marked 2× look like duplicates (same date, amount and description).")}</div>}
+              <div>• {tr("A {side} of {amount} may be missing — use ➕ Add a missing line.", { side: sideLabel(missingDir).toLowerCase(), amount: fmtCurrency(Math.abs(diff)) })}</div>
+              <div>• {tr("Or the Begin $ / End $ was misread — compare them with the statement.")}</div>
+            </div>
+          )}
+          {!off && dupIds.size > 0 && (
+            <div style={{ background: '#fffbeb', border: '1px solid #fcd34d', borderRadius: 10, padding: '10px 14px', marginBottom: 12, fontSize: 13, color: '#78350f' }}>
+              {tr("Lines marked 2× look like duplicates (same date, amount and description).")}
+            </div>
+          )}
+
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+              <thead style={{ background: '#f9fafb', borderBottom: '1px solid #e5e7eb' }}>
+                <tr><Th>{tr("Date")}</Th><Th>{tr("Description")}</Th><Th align="right">{tr("Amount")}</Th><Th align="center">{tr("Side")}</Th><Th align="center">{tr("In my books?")}</Th><Th></Th></tr>
+              </thead>
+              <tbody>
+                {all.length === 0 && <tr><Td colSpan={6} style={{ color: '#6b7280' }}>{tr("No lines on this statement.")}</Td></tr>}
+                {all.map(l => {
+                  const editing = editId === l.id;
+                  const flag = flipIds.has(l.id) ? '#fef3c7' : extraIds.has(l.id) ? '#fef3c7' : 'transparent';
+                  return (
+                    <tr key={l.id} style={{ borderBottom: '1px solid #f3f4f6', background: flag, opacity: busyId === l.id ? 0.5 : 1 }}>
+                      <Td>{editing ? <input type="date" value={draft.txn_date} onChange={e => setDraft(d => ({ ...d, txn_date: e.target.value }))} style={smallIn} /> : fmtDate(l.txn_date)}</Td>
+                      <Td>
+                        {editing ? <input value={draft.description} onChange={e => setDraft(d => ({ ...d, description: e.target.value }))} style={{ ...smallIn, minWidth: 180 }} /> : (l.description || '—')}
+                        {flipIds.has(l.id) && <div style={{ fontSize: 11, color: '#b45309', fontWeight: 600, marginTop: 2 }}>{tr("⇄ Likely on the wrong side — flipping it balances the statement")}</div>}
+                        {extraIds.has(l.id) && <div style={{ fontSize: 11, color: '#b45309', fontWeight: 600, marginTop: 2 }}>{tr("✖ Equals the difference — duplicate or not on the statement?")}</div>}
+                        {dupIds.has(l.id) && <div style={{ fontSize: 11, color: '#b45309', fontWeight: 600, marginTop: 2 }}>{tr("2× Looks like a duplicate")}</div>}
+                      </Td>
+                      <Td align="right">{editing ? <input type="number" step="0.01" value={draft.amount} onChange={e => setDraft(d => ({ ...d, amount: e.target.value }))} style={{ ...smallIn, width: 90, textAlign: 'right' }} /> : fmtCurrency(l.amount)}</Td>
+                      <Td align="center"><span style={{ fontWeight: 600, color: up(l.direction) ? (isCard ? '#dc2626' : '#059669') : (isCard ? '#059669' : '#dc2626'), whiteSpace: 'nowrap' }}>{sideLabel(l.direction)}</span></Td>
+                      <Td align="center">{l.committed ? <span style={{ color: '#065f46', fontWeight: 600 }}>{tr("Yes")}</span> : <span style={{ color: '#6b7280' }} title={tr("Left out when the statement was saved (for example a card payment or a transfer). It still counts toward the balance.")}>{tr("Left out")}</span>}</Td>
+                      <Td align="right">
+                        <div style={{ display: 'inline-flex', gap: 6 }}>
+                          {editing ? (
+                            <>
+                              <button onClick={() => saveEdit(l)} disabled={busyId === l.id} style={{ ...actBtn, background: '#1d4ed8', color: 'white', border: 'none' }}>{tr("Save")}</button>
+                              <button onClick={() => setEditId(null)} style={{ ...actBtn, color: '#374151', border: '1px solid #d1d5db' }}>{tr("Cancel")}</button>
+                            </>
+                          ) : (
+                            <>
+                              <button onClick={() => flip(l)} disabled={busyId != null} title={tr("Switch to {side}", { side: sideLabel(l.direction === 'income' ? 'expense' : 'income') })} style={actBtn}>{tr("⇄ Flip")}</button>
+                              <button onClick={() => startEdit(l)} disabled={busyId != null} style={actBtn}>{tr("✏️ Edit")}</button>
+                              <button onClick={() => remove(l)} disabled={busyId != null} style={delBtn}>{tr("🗑 Remove")}</button>
+                            </>
+                          )}
+                        </div>
+                      </Td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          {adding ? (
+            <div style={{ border: '1px solid #bfdbfe', background: '#eff6ff', borderRadius: 10, padding: '12px 14px', marginTop: 12 }}>
+              <div style={{ fontWeight: 700, color: '#1e40af', marginBottom: 8, fontSize: 14 }}>{tr("➕ Add a missing line")}</div>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'end' }}>
+                <Field label={tr("Date")}><input type="date" value={adding.txn_date} onChange={e => setAdding(a => ({ ...a, txn_date: e.target.value }))} style={smallIn} /></Field>
+                <Field label={tr("Description")}><input value={adding.description} onChange={e => setAdding(a => ({ ...a, description: e.target.value }))} style={{ ...smallIn, minWidth: 180 }} /></Field>
+                <Field label={tr("Amount")}><input type="number" step="0.01" value={adding.amount} onChange={e => setAdding(a => ({ ...a, amount: e.target.value }))} style={{ ...smallIn, width: 100 }} /></Field>
+                <Field label={tr("Side")}>
+                  <select value={adding.direction} onChange={e => setAdding(a => ({ ...a, direction: e.target.value, category: '' }))} style={smallIn}>
+                    <option value="expense">{sideLabel('expense')}</option>
+                    <option value="income">{sideLabel('income')}</option>
+                  </select>
+                </Field>
+                {adding.addToBooks && (
+                  <Field label={tr("Category")}>
+                    <select value={adding.category} onChange={e => setAdding(a => ({ ...a, category: e.target.value }))} style={smallIn}>
+                      <option value="">{adding.direction === 'income' ? tr("Other Income") : tr("Other")}</option>
+                      {catNames.map(c => <option key={c} value={c}>{tr(c)}</option>)}
+                    </select>
+                  </Field>
+                )}
+              </div>
+              <label style={{ display: 'flex', gap: 6, alignItems: 'center', fontSize: 13, color: '#1f2937', margin: '2px 0 10px' }}>
+                <input type="checkbox" checked={adding.addToBooks} onChange={e => setAdding(a => ({ ...a, addToBooks: e.target.checked }))} />
+                {tr("Add to my books too (Expenses/Income and P&L)")}
+              </label>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button onClick={saveAdd} disabled={busyId != null || !adding.txn_date || !(Number(adding.amount) > 0)} style={{ ...primaryBtn('#1d4ed8'), opacity: (busyId != null || !adding.txn_date || !(Number(adding.amount) > 0)) ? 0.5 : 1 }}>{tr("Add line")}</button>
+                <button onClick={() => setAdding(null)} style={secondaryBtn}>{tr("Cancel")}</button>
+              </div>
+            </div>
+          ) : (
+            <button onClick={openAdd} style={{ ...secondaryBtn, marginTop: 12, color: '#1d4ed8', borderColor: '#bfdbfe' }}>{tr("➕ Add a missing line")}</button>
+          )}
+          <div style={{ fontSize: 12, color: '#6b7280', marginTop: 12 }}>{tr("Fixes here also update your Expenses, Income and P&L. Removed items are archived, not deleted.")}</div>
+        </>
+      )}
+    </ModalShell>
+  );
+}
+
 // Last 24 statement months as labels ("June 2026"…), newest first — used by the
 // upload form and the per-row period editor so periods are always consistent.
 function statementMonthOptions() {
@@ -2695,6 +2905,7 @@ function ImportTab({ categories, onCommitted }) {
   const [done, setDone] = useState(null);
   const [history, setHistory] = useState([]);
   const [deletingId, setDeletingId] = useState(null);
+  const [linesForId, setLinesForId] = useState(null);
   const fileRef = useRef(null);
 
   const loadHistory = async () => {
@@ -2778,7 +2989,9 @@ function ImportTab({ categories, onCommitted }) {
     if (toCommit.length === 0) { setError('Nothing selected to import.'); return; }
     setCommitting(true); setError(null);
     try {
-      const res = await authFetch(`/bank-import/${importId}/commit`, { method: 'POST', body: JSON.stringify({ lines: toCommit, force }) });
+      // Send unchecked lines too: they stay out of the books, but their Type/amount
+      // still counts toward reconciling the statement.
+      const res = await authFetch(`/bank-import/${importId}/commit`, { method: 'POST', body: JSON.stringify({ lines, force }) });
       setDone(res.committed);
       setLines([]); setImportId(null);
       await loadHistory();
@@ -2860,6 +3073,11 @@ function ImportTab({ categories, onCommitted }) {
                       <ReconcileCells imp={imp} onSaved={loadHistory} />
                       <Td align="right">
                         <div style={{ display: 'inline-flex', gap: 6 }}>
+                          {saved && (
+                            <button onClick={() => setLinesForId(imp.id)} style={{ background: 'white', border: '1px solid #bfdbfe', color: '#1d4ed8', borderRadius: 6, padding: '4px 10px', fontSize: 12, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                              {tr("🔍 See lines")}
+                            </button>
+                          )}
                           {!saved && (
                             <button onClick={() => resumeImport(imp)} style={{ background: '#0c4a6e', border: 'none', color: 'white', borderRadius: 6, padding: '4px 10px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
                               {tr("Review & save")}
@@ -2957,6 +3175,14 @@ function ImportTab({ categories, onCommitted }) {
             </table>
           </div>
         </>
+      )}
+      {linesForId && history.find(h => h.id === linesForId) && (
+        <StatementLinesModal
+          imp={history.find(h => h.id === linesForId)}
+          categories={categories}
+          onClose={() => setLinesForId(null)}
+          onChanged={() => { loadHistory(); onCommitted && onCommitted(); }}
+        />
       )}
     </div>
   );
