@@ -2786,6 +2786,7 @@ function StatementLinesModal({ imp, categories, onClose, onChanged }) {
                         {flipIds.has(l.id) && <div style={{ fontSize: 11, color: '#b45309', fontWeight: 600, marginTop: 2 }}>{tr("⇄ Likely on the wrong side — flipping it balances the statement")}</div>}
                         {extraIds.has(l.id) && <div style={{ fontSize: 11, color: '#b45309', fontWeight: 600, marginTop: 2 }}>{tr("✖ Equals the difference — duplicate or not on the statement?")}</div>}
                         {dupIds.has(l.id) && <div style={{ fontSize: 11, color: '#b45309', fontWeight: 600, marginTop: 2 }}>{tr("2× Looks like a duplicate")}</div>}
+                        {l.parse_note && <div style={{ fontSize: 11, color: '#1d4ed8', marginTop: 2 }}>ℹ️ {tr(l.parse_note)}</div>}
                       </Td>
                       <Td align="right">{editing ? <input type="number" step="0.01" value={draft.amount} onChange={e => setDraft(d => ({ ...d, amount: e.target.value }))} style={{ ...smallIn, width: 90, textAlign: 'right' }} /> : fmtCurrency(l.amount)}</Td>
                       <Td align="center"><span style={{ fontWeight: 600, color: up(l.direction) ? (isCard ? '#dc2626' : '#059669') : (isCard ? '#059669' : '#dc2626'), whiteSpace: 'nowrap' }}>{sideLabel(l.direction)}</span></Td>
@@ -2901,6 +2902,8 @@ function ImportTab({ categories, onCommitted }) {
   const [error, setError] = useState(null);
   const [importId, setImportId] = useState(null);
   const [lines, setLines] = useState([]);
+  // Statement's own Begin/End, for the live "does this add up?" check on review.
+  const [reviewBal, setReviewBal] = useState(null);
   const [committing, setCommitting] = useState(false);
   const [done, setDone] = useState(null);
   const [history, setHistory] = useState([]);
@@ -2916,12 +2919,13 @@ function ImportTab({ categories, onCommitted }) {
   // Map a server line into an editable review row. Auto-unchecks internal
   // transfers and commission deposits that match a closed deal.
   const toReviewLine = (l) => ({
-    id: l.id, include: !(l.is_transfer || l.duplicate_of_deal || l.is_card_payment),
+    id: l.id, include: !(l.is_transfer || l.duplicate_of_deal || l.is_card_payment || l.is_card_bill_payment),
     txn_date: l.txn_date ? l.txn_date.split('T')[0] : '',
     description: l.description || '', amount: Number(l.amount || 0),
     direction: l.direction || 'expense', category: l.suggested_category || 'Other',
     is_transfer: !!l.is_transfer, duplicate_of_deal: l.duplicate_of_deal || null,
-    is_card_payment: !!l.is_card_payment,
+    is_card_payment: !!l.is_card_payment, is_card_bill_payment: !!l.is_card_bill_payment,
+    parse_note: l.parse_note || null,
   });
 
   // Re-open a previously uploaded statement that wasn't saved yet, back into
@@ -2933,7 +2937,7 @@ function ImportTab({ categories, onCommitted }) {
       setAccountType(imp.account_type || 'checking');
       setPeriodLabel((imp.period_label || '').trim());
       setImportId(imp.id);
-      setLines((data.lines || []).map(toReviewLine)); setShowImportGuide(true);
+      setLines((data.lines || []).map(toReviewLine)); setReviewBal(data.import ? { begin: data.import.beginning_balance, end: data.import.ending_balance } : null); setShowImportGuide(true);
       setStatus('');
       if (!data.lines || data.lines.length === 0) setError('This statement has no reviewable transactions. You can remove it.');
     } catch (e) { setError(e.message); setStatus(''); }
@@ -2976,7 +2980,7 @@ function ImportTab({ categories, onCommitted }) {
       setStatus('Loading transactions...');
       const data = await authFetch(`/bank-import/${enq.importId}`);
       setImportId(enq.importId);
-      setLines((data.lines || []).map(toReviewLine)); setShowImportGuide(true);
+      setLines((data.lines || []).map(toReviewLine)); setReviewBal(data.import ? { begin: data.import.beginning_balance, end: data.import.ending_balance } : null); setShowImportGuide(true);
       if (!data.lines || data.lines.length === 0) setError('No transactions were found in that file. Try a CSV export from your bank, or a clearer PDF.');
       setStatus('');
     } catch (e) { setError(e.message); setStatus(''); } finally { setBusy(false); }
@@ -3139,6 +3143,35 @@ function ImportTab({ categories, onCommitted }) {
             </div>
           </div>
 
+          {/* Does every line (checked or not) add up to the statement's own
+              ending balance? Catches a credit read as a charge BEFORE saving. */}
+          {reviewBal && reviewBal.begin != null && reviewBal.end != null && (() => {
+            const card = accountType === 'credit_card';
+            const contrib = (l) => { const a = Math.abs(Number(l.amount) || 0); return card ? (l.direction === 'expense' ? a : -a) : (l.direction === 'income' ? a : -a); };
+            const diff = Number(reviewBal.end) - (Number(reviewBal.begin) + lines.reduce((s, l) => s + contrib(l), 0));
+            if (Math.abs(diff) < 0.01) return (
+              <div style={{ background: '#ecfdf5', border: '1px solid #a7f3d0', color: '#065f46', borderRadius: 10, padding: '10px 14px', marginBottom: 12, fontSize: 13, fontWeight: 600 }}>
+                {tr("✓ These lines match the statement's balance ({begin} → {end}).", { begin: fmtCurrency(reviewBal.begin), end: fmtCurrency(reviewBal.end) })}
+              </div>
+            );
+            const flips = lines.filter(l => Math.abs(-2 * contrib(l) - diff) < 0.01);
+            const otherSide = (d) => d === 'income' ? 'expense' : 'income';
+            return (
+              <div style={{ background: '#fef2f2', border: '1px solid #fecaca', color: '#991b1b', borderRadius: 10, padding: '10px 14px', marginBottom: 12, fontSize: 13, lineHeight: 1.55 }}>
+                <div style={{ fontWeight: 700 }}>{tr("These lines don't match the statement's balance — off by {amount}.", { amount: fmtCurrency(Math.abs(diff)) })}</div>
+                {flips.length === 1
+                  ? <div style={{ marginTop: 4 }}>
+                      {tr("“{desc}” ({amount}) is probably on the wrong side.", { desc: flips[0].description, amount: fmtCurrency(flips[0].amount) })}{' '}
+                      <button onClick={() => updateLine(flips[0].id, { direction: otherSide(flips[0].direction), category: otherSide(flips[0].direction) === 'income' ? 'Other Income' : 'Other' })}
+                        style={{ background: '#1d4ed8', color: 'white', border: 'none', borderRadius: 6, padding: '3px 10px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+                        {tr("⇄ Switch it to {type}", { type: otherSide(flips[0].direction) === 'income' ? tr("Income") : tr("Expense") })}
+                      </button>
+                    </div>
+                  : <div style={{ marginTop: 4 }}>{tr("Check the Type on each line against the statement (a refund or credit is Income on a card), and look for a missing or doubled line. You can also fix it after saving with 🔍 See lines.")}</div>}
+              </div>
+            );
+          })()}
+
           <div style={{ background: 'white', borderRadius: 12, boxShadow: '0 1px 3px rgba(0,0,0,0.05)', overflow: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
               <thead style={{ background: '#f9fafb', borderBottom: '1px solid #e5e7eb' }}>
@@ -3154,6 +3187,8 @@ function ImportTab({ categories, onCommitted }) {
                       {l.duplicate_of_deal && <div style={{ fontSize: 11, color: '#b45309', marginTop: 3 }}>{tr("⚠️ Looks like your commission for")} {l.duplicate_of_deal.address} {tr("— already counted from that closed deal. Left unchecked to avoid double-counting.")}</div>}
                       {l.is_transfer && !l.duplicate_of_deal && <div style={{ fontSize: 11, color: '#b45309', marginTop: 3 }}>{tr("⚠️ Looks like a transfer between your own accounts (not real income or an expense). Left unchecked.")}</div>}
                       {l.is_card_payment && <div style={{ fontSize: 11, color: '#b45309', marginTop: 3 }}>{tr("⚠️ Looks like a credit-card payment, not an expense — the real expenses are the charges on the card. Left unchecked.")}</div>}
+                      {l.is_card_bill_payment && <div style={{ fontSize: 11, color: '#b45309', marginTop: 3 }}>{tr("⚠️ This is you paying the card bill — not income. Left unchecked (it still counts toward the statement balance).")}</div>}
+                      {l.parse_note && <div style={{ fontSize: 11, color: '#1d4ed8', marginTop: 3, fontWeight: 600 }}>ℹ️ {tr(l.parse_note)}</div>}
                     </Td>
                     <Td align="center">
                       <select value={l.direction} onChange={e => updateLine(l.id, { direction: e.target.value })} style={{ ...inputStyle, padding: '4px 6px', fontSize: 12, color: l.direction === 'income' ? '#059669' : '#dc2626', fontWeight: 600 }}>

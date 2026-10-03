@@ -8190,6 +8190,12 @@ const ES = {
   "Add to my books too (Expenses/Income and P&L)": "Agregarla también a mis libros (Gastos/Ingresos y P&L)",
   "Add line": "Agregar línea",
   "Fixes here also update your Expenses, Income and P&L. Removed items are archived, not deleted.": "Los cambios aquí también actualizan sus Gastos, Ingresos y P&L. Lo que se quita se archiva, no se borra.",
+  "⚠️ This is you paying the card bill — not income. Left unchecked (it still counts toward the statement balance).": "⚠️ Es usted pagando la factura de la tarjeta — no es un ingreso. Se dejó sin marcar (igual cuenta para el saldo del estado de cuenta).",
+  "✓ These lines match the statement's balance ({begin} → {end}).": "✓ Estas líneas cuadran con el saldo del estado de cuenta ({begin} → {end}).",
+  "These lines don't match the statement's balance — off by {amount}.": "Estas líneas no cuadran con el saldo del estado de cuenta — diferencia de {amount}.",
+  "“{desc}” ({amount}) is probably on the wrong side.": "“{desc}” ({amount}) probablemente está del lado equivocado.",
+  "⇄ Switch it to {type}": "⇄ Cambiarla a {type}",
+  "Check the Type on each line against the statement (a refund or credit is Income on a card), and look for a missing or doubled line. You can also fix it after saving with 🔍 See lines.": "Revise el Tipo de cada línea contra el estado de cuenta (un reembolso o crédito es Ingreso en una tarjeta) y busque una línea que falte o esté repetida. También puede corregirlo después de guardar con 🔍 Ver líneas.",
 };
 
 // Messages that carry a number (e.g. tries left) — regex on the English → Spanish ($1 = the number).
