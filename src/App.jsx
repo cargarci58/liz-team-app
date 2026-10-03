@@ -7325,7 +7325,9 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
             {/* Co-agents / referral + the Commission Plan breakdown. Owner + admin
                 only (the panel hides itself for anyone else); never coordinators. */}
             {!isCoordinator && !tx.isGuestView && !tx.isSample && (
-              <DealSharingPanel txId={tx.id} onChanged={(x) => onLocalUpdate && onLocalUpdate({ ...tx, agentNet: x.agent_net, brokerageIncome: x.brokerage_income, commissionCalc: x.commission_calc })} />
+              <DealSharingPanel txId={tx.id} onChanged={(x) => onLocalUpdate && onLocalUpdate({ ...tx, agentNet: x.agent_net, brokerageIncome: x.brokerage_income, commissionCalc: x.commission_calc,
+                ...(x.commission_listing !== undefined ? { commissionListing: x.commission_listing } : {}),
+                ...(x.commission_buyer !== undefined ? { commissionBuyer: x.commission_buyer } : {}) })} />
             )}
             {overdueTasks > 0 && (
               <div style={{ background: COLORS.dangerBg, border: `1px solid ${COLORS.danger}40`, borderRadius: 10, padding: 16, marginBottom: 20 }}>
@@ -8438,12 +8440,20 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
               <div style={{ background: "#F4F4F4", borderRadius: 10, padding: 16, marginBottom: 16, display: isCoordinator ? "none" : "block" }}>
                 <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 12, color: "#111" }}>{tr("Commission Details")}</div>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-                  {[["Listing Agent Commission %", "commissionListing"], ["Buyer Agent Commission %", "commissionBuyer"], ["Transaction Fee", "transactionFee"], ["Brokerage Split %", "brokerageSplit"], ["Office Flat Fee", "officeFlatFee"]].map(([label, field]) => (
+                  {/* Rentals (Carlos 10/3): the % is of ONE MONTH's rent (100 = a full
+                      month) — labels say so and show the dollars. */}
+                  {[[isLeaseType(editTxForm.type) ? "Landlord-side commission (% of one month's rent)" : "Listing Agent Commission %", "commissionListing"], [isLeaseType(editTxForm.type) ? "Tenant-side commission (% of one month's rent)" : "Buyer Agent Commission %", "commissionBuyer"], ["Transaction Fee", "transactionFee"], ["Brokerage Split %", "brokerageSplit"], ["Office Flat Fee", "officeFlatFee"]].map(([label, field]) => {
+                    const rent = Number(editTxForm.contractPrice) || Number(editTxForm.listPrice) || 0;
+                    const pctVal = Number(editTxForm[field]);
+                    const showDollars = isLeaseType(editTxForm.type) && (field === "commissionListing" || field === "commissionBuyer") && rent > 0 && pctVal > 0;
+                    return (
                     <div key={field}>
                       <div style={{ fontSize: 11, fontWeight: 700, color: "#555", textTransform: "uppercase", marginBottom: 4 }}>{tr(label)}</div>
                       <input value={editTxForm[field] || ""} onChange={e => setEditTxForm(f => ({ ...f, [field]: e.target.value }))} style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: "1.5px solid #CCC", fontSize: 13, fontFamily: "inherit", boxSizing: "border-box" }} />
+                      {showDollars && <div style={{ fontSize: 11.5, color: "#555", marginTop: 3 }}>= ${Math.round(rent * pctVal / 100).toLocaleString()}</div>}
                     </div>
-                  ))}
+                    );
+                  })}
                   <div>
                     <div style={{ fontSize: 11, fontWeight: 700, color: "#555", textTransform: "uppercase", marginBottom: 4 }}>{tr("Closing remotely? (mail-away)")}</div>
                     <select value={editTxForm.mailAway || "No"} onChange={e => setEditTxForm(f => ({ ...f, mailAway: e.target.value }))} style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: "1.5px solid #CCC", fontSize: 13, fontFamily: "inherit" }}>

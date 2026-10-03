@@ -27,6 +27,8 @@ export default function DealSharingPanel({ txId, onChanged }) {
   const [dirty, setDirty] = useState(false);
   const [invite, setInvite] = useState(null);
   const [sugg, setSugg] = useState([]);         // repeat co-agents: past co-agents + your brokerage's agents
+  const [comm, setComm] = useState(null);       // editing "Your commission": { mode: "usd" | "pct", value }
+  const [commSaving, setCommSaving] = useState(false);
   useEffect(() => {
     fetch(API + "/co-agents/suggestions", { headers }).then(r => r.ok ? r.json() : null).then(x => { if (x && x.suggestions) setSugg(x.suggestions); }).catch(() => {});
     // eslint-disable-next-line
@@ -128,10 +130,90 @@ export default function DealSharingPanel({ txId, onChanged }) {
   // fees in the deal's Commission Details.
   const canEdit = d.canManagePartners !== false;
 
+  // ── YOUR COMMISSION (Carlos 10/3) ──────────────────────────────
+  // A rental showed $0 everywhere because nothing ever asked for the commission.
+  // Our side's % lives here too: rentals take a $ amount OR a % of one month's
+  // rent (100% = one full month); sales take a %. Dual deals: Edit → Commission Details.
+  const txType = String(d.transaction_type || "");
+  const isLease = /^Lease\b/i.test(txType);
+  const sideCol = /dual/i.test(txType) ? null
+    : (txType === "Listing (Seller)" || /^Lease\b.*Landlord/i.test(txType)) ? "commission_listing"
+    : (txType === "Buyer Representation" || /^Lease\b.*Tenant/i.test(txType)) ? "commission_buyer" : null;
+  const price = Number(d.contract_price) || Number(d.list_price) || 0;
+  const curPct = sideCol && d[sideCol] != null && d[sideCol] !== "" ? Number(d[sideCol]) : null;
+  const pctLabel = isLease ? tr("% of one month's rent") : tr("% of the price");
+  const fmtPct = (p) => (Math.round(p * 100) / 100).toString();
+  const draftPct = !comm || comm.value === "" ? null
+    : comm.mode === "usd" ? (price > 0 ? Number(comm.value) / price * 100 : null) : Number(comm.value);
+  const saveComm = async () => {
+    if (draftPct == null || !Number.isFinite(draftPct) || draftPct < 0) { setMsg("⚠️ " + tr("Enter the commission first.")); return; }
+    setCommSaving(true); setMsg("");
+    try {
+      const r = await fetch(API + "/transactions/" + txId + "/our-commission", { method: "PUT", headers, body: JSON.stringify({ pct: Math.round(draftPct * 100) / 100 }) });
+      const x = await r.json();
+      if (!r.ok || !x.success) throw new Error(x.error || "Could not save");
+      setComm(null);
+      setMsg("✅ Saved — commission recalculated.");
+      await load();
+      onChanged && onChanged(x);
+    } catch (e) { setMsg("⚠️ " + e.message); }
+    setCommSaving(false);
+  };
+  const editing = !!comm || (sideCol && curPct == null);
+  const ed = comm || { mode: isLease ? "usd" : "pct", value: "" };
+  const modeBtn = (m, label) => (
+    <button type="button" onClick={() => setComm({ ...ed, mode: m, value: "" })}
+      style={{ padding: "6px 12px", borderRadius: 16, border: "1.5px solid " + (ed.mode === m ? C.blue : C.border), background: ed.mode === m ? C.blue : "#fff", color: ed.mode === m ? "#fff" : C.text, fontWeight: 700, fontSize: 12.5, cursor: "pointer", fontFamily: "inherit" }}>{label}</button>
+  );
+  const commissionBox = !sideCol ? (
+    calc && !(calc.gross > 0) ? (
+      <div style={{ background: "#FEF3C7", border: "1px solid #FCD34D", borderRadius: 10, padding: "10px 12px", marginBottom: 12, fontSize: 13, color: "#92400E" }}>
+        {tr("⚠️ No commission entered yet, so everything below shows $0. Add it in")} <b>{tr("Edit → Commission Details")}</b>.
+      </div>
+    ) : null
+  ) : !editing ? (
+    <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 12, fontSize: 13.5, color: C.text }}>
+      <span><b>{tr("Your commission:")}</b> {fmtPct(curPct)}{pctLabel}{price > 0 ? <> = <b>{money(price * curPct / 100)}</b></> : null}</span>
+      <button type="button" onClick={() => setComm(isLease ? { mode: "usd", value: price > 0 ? String(Math.round(price * curPct) / 100) : "" } : { mode: "pct", value: String(curPct) })}
+        style={{ padding: "4px 10px", borderRadius: 8, border: "1px solid " + C.blue, background: "#fff", color: C.blue, fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}>{tr("Change")}</button>
+    </div>
+  ) : (
+    <div style={{ background: curPct == null ? "#FEF3C7" : C.gray, border: "1px solid " + (curPct == null ? "#FCD34D" : C.border), borderRadius: 10, padding: 12, marginBottom: 12 }}>
+      <div style={{ fontSize: 13.5, fontWeight: 800, color: curPct == null ? "#92400E" : C.text, marginBottom: 4 }}>
+        {curPct == null ? tr("⚠️ Your commission isn't entered yet — that's why everything below shows $0.") : tr("Your commission")}
+      </div>
+      {isLease && <div style={{ fontSize: 12.5, color: C.muted, marginBottom: 8 }}>{tr("Monthly rent:")} <b>{price > 0 ? money(price) : tr("not entered")}</b>{tr(" · one full month's rent = 100%")}</div>}
+      {isLease && <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 8 }}>{modeBtn("usd", tr("$ amount"))}{modeBtn("pct", pctLabel.trim())}</div>}
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+        <div style={{ position: "relative", width: 160 }}>
+          {ed.mode === "usd" && <span style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: C.muted, fontSize: 13.5 }}>$</span>}
+          <input type="number" inputMode="decimal" min="0" value={ed.value} aria-label={ed.mode === "usd" ? tr("Commission in dollars") : tr("Commission percent")}
+            placeholder={ed.mode === "usd" ? (price > 0 ? String(Math.round(price)) : "") : (isLease ? "100" : "3")}
+            onChange={e => setComm({ ...ed, value: e.target.value })}
+            style={{ ...inp, paddingLeft: ed.mode === "usd" ? 22 : 10, paddingRight: ed.mode === "pct" ? 26 : 10 }} />
+          {ed.mode === "pct" && <span style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", color: C.muted, fontSize: 13.5 }}>%</span>}
+        </div>
+        <button type="button" disabled={commSaving || draftPct == null} onClick={saveComm}
+          style={{ padding: "9px 16px", borderRadius: 8, border: "none", background: C.blue, color: "#fff", fontWeight: 700, fontSize: 13.5, cursor: commSaving || draftPct == null ? "default" : "pointer", opacity: commSaving || draftPct == null ? 0.55 : 1, fontFamily: "inherit" }}>
+          {commSaving ? tr("Saving…") : tr("Save commission")}
+        </button>
+        {comm && curPct != null && <button type="button" onClick={() => setComm(null)} style={{ padding: "9px 12px", borderRadius: 8, border: "1px solid " + C.border, background: "#fff", color: C.text, fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>{tr("Cancel")}</button>}
+      </div>
+      {draftPct != null && Number.isFinite(draftPct) && (
+        <div style={{ fontSize: 12.5, color: C.muted, marginTop: 6 }}>
+          {ed.mode === "usd" ? <>= {fmtPct(draftPct)}{pctLabel}</> : price > 0 ? <>= {money(price * draftPct / 100)}</> : null}
+        </div>
+      )}
+      {ed.mode === "usd" && !(price > 0) && <div style={{ fontSize: 12.5, color: "#92400E", marginTop: 6 }}>{tr("Enter the monthly rent in Edit first, or switch to %.")}</div>}
+    </div>
+  );
+
   return (
     <div style={{ background: "#fff", border: "1px solid " + C.border, borderRadius: 12, padding: 20, marginBottom: 20 }}>
       <h3 style={{ margin: "0 0 4px", fontSize: 14, color: "#0F2044", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em" }}>{tr("Deal Sharing & Commission")}</h3>
       <div style={{ fontSize: 12, color: C.muted, marginBottom: 12 }}>{tr("Is this deal shared with a co-agent or a referral? Your net and the brokerage's income update from your brokerage's Commission Plan.")}</div>
+
+      {commissionBox}
 
       {!canEdit && (
         <div style={{ fontSize: 12.5, color: C.blue, background: C.gray, borderRadius: 8, padding: "8px 10px", marginBottom: 12 }}>
