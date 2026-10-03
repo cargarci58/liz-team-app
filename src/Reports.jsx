@@ -85,8 +85,8 @@ function calcComm(tx) {
   const listComm = tx.commissionListing ? price * Number(tx.commissionListing) / 100 : 0;
   const buyerComm = tx.commissionBuyer ? price * Number(tx.commissionBuyer) / 100 : 0;
   let ourGross = 0;
-  if (tx.type === "Listing (Seller)") ourGross = listComm;
-  else if (tx.type === "Buyer Representation") ourGross = buyerComm;
+  if (tx.type === "Listing (Seller)" || tx.type === "Lease — Landlord") ourGross = listComm;
+  else if (tx.type === "Buyer Representation" || tx.type === "Lease — Tenant") ourGross = buyerComm;
   else if (tx.type === "Dual Agency") ourGross = listComm + buyerComm;
   // Net = the server's Commission Plan result (agentNet) when present; the
   // transaction fee is brokerage income, never the agent's.

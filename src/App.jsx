@@ -7292,8 +7292,8 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
                     const listComm = tx.commissionListing ? (price * Number(tx.commissionListing) / 100) : 0;
                     const buyerComm = tx.commissionBuyer ? (price * Number(tx.commissionBuyer) / 100) : 0;
                     // Determine which side is OURS based on transaction type
-                    const isListing = tx.type === "Listing (Seller)";
-                    const isBuyer = tx.type === "Buyer Representation";
+                    const isListing = tx.type === "Listing (Seller)" || tx.type === "Lease — Landlord";
+                    const isBuyer = tx.type === "Buyer Representation" || tx.type === "Lease — Tenant";
                     const isDual = tx.type === "Dual Agency";
                     const ourComm = isListing ? listComm : isBuyer ? buyerComm : isDual ? (listComm + buyerComm) : 0;
                     const split = tx.brokerageSplit ? ourComm * Number(tx.brokerageSplit) / 100 : 0;
@@ -9846,8 +9846,8 @@ function Dashboard({ transactions, coordinatorMode = false, unreadCounts = {}, o
     totalVolume: transactions.filter(t => t.status !== "Cancelled" && !/lease|rental/i.test(t.type || t.transactionType || t.transaction_type || "")).reduce((a, t) => a + (Number(t.contractPrice) || Number(t.listPrice) || 0), 0),
     pendingCommissionGross: transactions.filter(t => !["Closed", "Cancelled", "On Hold"].includes(t.status)).reduce((acc, t) => {
       const price = Number(t.contractPrice || t.listPrice || 0);
-      const isListing = t.type === "Listing (Seller)";
-      const isBuyer = t.type === "Buyer Representation";
+      const isListing = (t.type === "Listing (Seller)" || t.type === "Lease — Landlord");
+      const isBuyer = (t.type === "Buyer Representation" || t.type === "Lease — Tenant");
       const isDual = t.type === "Dual Agency";
       const ourListComm = (isListing || isDual) && t.commissionListing ? price * Number(t.commissionListing) / 100 : 0;
       const ourBuyerComm = (isBuyer || isDual) && t.commissionBuyer ? price * Number(t.commissionBuyer) / 100 : 0;
@@ -9855,8 +9855,8 @@ function Dashboard({ transactions, coordinatorMode = false, unreadCounts = {}, o
     }, 0),
     pendingCommissionNet: transactions.filter(t => !["Closed", "Cancelled", "On Hold"].includes(t.status)).reduce((acc, t) => {
       const price = Number(t.contractPrice || t.listPrice || 0);
-      const isListing = t.type === "Listing (Seller)";
-      const isBuyer = t.type === "Buyer Representation";
+      const isListing = (t.type === "Listing (Seller)" || t.type === "Lease — Landlord");
+      const isBuyer = (t.type === "Buyer Representation" || t.type === "Lease — Tenant");
       const isDual = t.type === "Dual Agency";
       const ourListComm = (isListing || isDual) && t.commissionListing ? price * Number(t.commissionListing) / 100 : 0;
       const ourBuyerComm = (isBuyer || isDual) && t.commissionBuyer ? price * Number(t.commissionBuyer) / 100 : 0;
@@ -10034,7 +10034,7 @@ function Dashboard({ transactions, coordinatorMode = false, unreadCounts = {}, o
             const price = Number(tx.contractPrice || tx.listPrice || 0);
             const listComm = tx.commissionListing ? price * Number(tx.commissionListing) / 100 : 0;
             const buyerComm = tx.commissionBuyer ? price * Number(tx.commissionBuyer) / 100 : 0;
-            const our = tx.type === "Listing (Seller)" ? listComm : tx.type === "Buyer Representation" ? buyerComm : tx.type === "Dual Agency" ? listComm + buyerComm : 0;
+            const our = (tx.type === "Listing (Seller)" || tx.type === "Lease — Landlord") ? listComm : (tx.type === "Buyer Representation" || tx.type === "Lease — Tenant") ? buyerComm : tx.type === "Dual Agency" ? listComm + buyerComm : 0;
             if (!our) return 0;
             const split = tx.brokerageSplit ? our * Number(tx.brokerageSplit) / 100 : 0;
             return our - split - Number(tx.officeFlatFee || 0);
