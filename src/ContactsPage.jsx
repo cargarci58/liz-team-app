@@ -31,7 +31,7 @@ function ContactsGuide({ onClose }) {
   const step = (n, title, body) => (
     <div style={{ ...card, display: "flex", gap: 12 }}>
       <div style={{ flexShrink: 0, width: 30, height: 30, borderRadius: 16, background: "#0c4a6e", color: "white", fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center" }}>{n}</div>
-      <div><div style={h}>{tr(title)}</div><div style={p}>{body}</div></div>
+      <div><div style={h}>{tr(title)}</div><div style={p}>{tr(body)}</div></div>
     </div>
   );
   return (
@@ -371,7 +371,7 @@ function LogCallModal({ contact, token, onClose, onLogged }) {
 
         {step === 1 && history && history.length > 0 && (
           <div style={{ background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 10, padding: 12, marginBottom: 16 }}>
-            <div style={{ fontSize: 11, fontWeight: 800, color: "#475569", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 8 }}>{tr("🕑 Your full history (")}{history.length} {tr("interaction")}{history.length === 1 ? "" : "s"})</div>
+            <div style={{ fontSize: 11, fontWeight: 800, color: "#475569", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 8 }}>{tr("🕑 Your full history (")}{history.length} {tr(history.length === 1 ? "interaction" : "interactions")})</div>
             <div style={{ maxHeight: 240, overflowY: "auto", paddingRight: 4 }}>
               {history.map((h, i) => (
                 <div key={h.id || i} style={{ paddingBottom: 8, marginBottom: 8, borderBottom: i < history.length - 1 ? "1px solid #EEF2F7" : "none" }}>
@@ -730,7 +730,7 @@ function ContactModal({ contact, token, onClose, onSaved }) {
         <Field label={tr("Notes")}><textarea value={form.notes} onChange={e => update("notes", e.target.value)} rows={3} style={{ ...inputStyle, resize: "vertical" }} /></Field>
         </>)}
 
-        {err && <div style={{ color: "#b91c1c", fontSize: 13, marginBottom: 8 }}>⚠️ {err}</div>}
+        {err && <div style={{ color: "#b91c1c", fontSize: 13, marginBottom: 8 }}>⚠️ {tr(err)}</div>}
 
         <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 16 }}>
           <button onClick={onClose} style={btnStyle("#e5e7eb", "#374151")}>{tr("Cancel")}</button>
@@ -2032,7 +2032,7 @@ export default function ContactsPage({ token, onBack }) {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8, flexWrap: "wrap", gap: 12 }}>
         <div>
           <div style={{ fontSize: 26, fontWeight: 800 }}>{tr("📇 Contacts")}</div>
-          <div style={{ fontSize: 13, color: "#6b7280" }}>{tr("Your private lead list.")} {contacts.length} {tr("contact")}{contacts.length === 1 ? "" : "s"}.</div>
+          <div style={{ fontSize: 13, color: "#6b7280" }}>{tr("Your private lead list.")} {contacts.length} {tr(contacts.length === 1 ? "contact" : "contacts")}.</div>
         </div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
           <div style={{ position: "relative" }}>
@@ -2266,7 +2266,7 @@ export default function ContactsPage({ token, onBack }) {
                   <div key={g.name} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 12px", border: "1px solid #e5e7eb", borderRadius: 8 }}>
                     <button onClick={() => { setFilter(f => ({ ...f, group: g.name })); setShowGroups(false); }}
                       style={{ background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 14, fontWeight: 600, color: "#0c4a6e", textAlign: "left" }}>
-                      {g.name} <span style={{ color: "#6b7280", fontWeight: 400 }}>· {g.count} {tr("contact")}{g.count === 1 ? "" : "s"}</span>
+                      {g.name} <span style={{ color: "#6b7280", fontWeight: 400 }}>· {g.count} {tr(g.count === 1 ? "contact" : "contacts")}</span>
                     </button>
                     <button onClick={() => deleteGroup(g.name)} title={tr("Delete group")} style={{ background: "transparent", border: "none", cursor: "pointer", color: "#b91c1c", fontSize: 13 }}>🗑</button>
                   </div>

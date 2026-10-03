@@ -1,3 +1,4 @@
+import { t as tr, requestSpanish, useLang } from "./i18n";
 import React, { useState, useEffect } from "react";
 import { askConfirm } from "./ui/dialogs";
 
@@ -17,6 +18,7 @@ const COLORS = {
 };
 
 export default function TaskTemplatesAdmin({ token, user }) {
+  useLang(); // redraw when Spanish for the template names arrives
   const [templates, setTemplates] = useState([]);
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState(null);
@@ -49,8 +51,8 @@ export default function TaskTemplatesAdmin({ token, user }) {
         headers: { "Authorization": "Bearer " + token }
       });
       const data = await res.json();
-      if (data.templates) setTemplates(data.templates);
-    } catch (e) { alert("Failed to load templates"); }
+      if (data.templates) { setTemplates(data.templates); requestSpanish(data.templates.flatMap(x => [x.task_name, x.description, x.category])); }
+    } catch (e) { alert(tr("Failed to load templates")); }
     setLoading(false);
   };
 
@@ -77,13 +79,13 @@ export default function TaskTemplatesAdmin({ token, user }) {
         setEditDraft({});
         fetchTemplates();
       } else {
-        alert("Save failed: " + (data.error || "unknown"));
+        alert(tr("Save failed: ") + (data.error || tr("unknown")));
       }
-    } catch (e) { alert("Save failed"); }
+    } catch (e) { alert(tr("Save failed")); }
   };
 
   const createNew = async () => {
-    if (!newDraft.task_name.trim()) { alert("Task name is required"); return; }
+    if (!newDraft.task_name.trim()) { alert(tr("Task name is required")); return; }
     try {
       const res = await fetch(API + "/admin/task-templates", {
         method: "POST",
@@ -101,13 +103,13 @@ export default function TaskTemplatesAdmin({ token, user }) {
         });
         fetchTemplates();
       } else {
-        alert("Create failed: " + (data.error || "unknown"));
+        alert(tr("Create failed: ") + (data.error || tr("unknown")));
       }
-    } catch (e) { alert("Create failed"); }
+    } catch (e) { alert(tr("Create failed")); }
   };
 
   const archiveTemplate = async (id, name) => {
-    if (!(await askConfirm("Archive '" + name + "'? It will be hidden from new transactions but existing tasks won't be affected.", { okLabel: "Archive" }))) return;
+    if (!(await askConfirm(tr("Archive '") + name + tr("'? It will be hidden from new transactions but existing tasks won't be affected."), { okLabel: tr("Archive") }))) return;
     try {
       const res = await fetch(API + "/admin/task-templates/" + id, {
         method: "DELETE",
@@ -115,7 +117,7 @@ export default function TaskTemplatesAdmin({ token, user }) {
       });
       const data = await res.json();
       if (data.success) fetchTemplates();
-    } catch (e) { alert("Archive failed"); }
+    } catch (e) { alert(tr("Archive failed")); }
   };
 
   const filtered = templates.filter(t => {
@@ -144,112 +146,111 @@ export default function TaskTemplatesAdmin({ token, user }) {
     <div style={{ fontFamily: "'Segoe UI', system-ui, sans-serif", background: COLORS.bg, minHeight: "100vh", padding: "24px" }}>
       <div style={{ maxWidth: 1200, margin: "0 auto" }}>
         <div style={{ marginBottom: 24 }}>
-          <h1 style={{ margin: 0, color: COLORS.navy, fontSize: 24 }}>📋 Task Templates</h1>
+          <h1 style={{ margin: 0, color: COLORS.navy, fontSize: 24 }}>{tr("📋 Task Templates")}</h1>
           <p style={{ color: COLORS.muted, marginTop: 6 }}>
-            Manage the workflow tasks that get auto-generated for each transaction type.
-            Changes apply to new transactions going forward.
+            {tr("Manage the workflow tasks that get auto-generated for each transaction type. Changes apply to new transactions going forward.")}
           </p>
         </div>
 
         <div style={{ background: "white", border: "1px solid " + COLORS.border, borderRadius: 8, padding: 16, marginBottom: 16, display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
           <div>
-            <label style={{ fontSize: 12, color: COLORS.muted, display: "block", marginBottom: 4 }}>Transaction Type</label>
+            <label style={{ fontSize: 12, color: COLORS.muted, display: "block", marginBottom: 4 }}>{tr("Transaction Type")}</label>
             <select value={filterType} onChange={e => setFilterType(e.target.value)} style={{ ...inputStyle, width: "auto" }}>
-              <option value="all">All Types</option>
-              {TRANSACTION_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+              <option value="all">{tr("All Types")}</option>
+              {TRANSACTION_TYPES.map(t => <option key={t} value={t}>{tr(t)}</option>)}
             </select>
           </div>
           <div>
-            <label style={{ fontSize: 12, color: COLORS.muted, display: "block", marginBottom: 4 }}>Phase</label>
+            <label style={{ fontSize: 12, color: COLORS.muted, display: "block", marginBottom: 4 }}>{tr("Phase")}</label>
             <select value={filterPhase} onChange={e => setFilterPhase(e.target.value)} style={{ ...inputStyle, width: "auto" }}>
-              <option value="all">All Phases</option>
-              {PHASES.map(p => <option key={p} value={p}>{p}</option>)}
+              <option value="all">{tr("All Phases")}</option>
+              {PHASES.map(p => <option key={p} value={p}>{tr(p)}</option>)}
             </select>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 6, paddingTop: 18 }}>
             <input type="checkbox" id="showInactive" checked={showInactive} onChange={e => setShowInactive(e.target.checked)} />
-            <label htmlFor="showInactive" style={{ fontSize: 13, color: COLORS.text, cursor: "pointer" }}>Show archived</label>
+            <label htmlFor="showInactive" style={{ fontSize: 13, color: COLORS.text, cursor: "pointer" }}>{tr("Show archived")}</label>
           </div>
           <div style={{ marginLeft: "auto", paddingTop: 18 }}>
-            <button style={btnPrimary} onClick={() => setShowCreate(true)}>+ New Task Template</button>
+            <button style={btnPrimary} onClick={() => setShowCreate(true)}>{tr("+ New Task Template")}</button>
           </div>
         </div>
 
         <div style={{ background: "white", border: "1px solid " + COLORS.border, borderRadius: 8, padding: 12, marginBottom: 16, fontSize: 13, color: COLORS.muted }}>
-          Showing <strong style={{ color: COLORS.text }}>{filtered.length}</strong> of {templates.length} templates
+          {tr("Showing (count)")} <strong style={{ color: COLORS.text }}>{filtered.length}</strong> {tr("of")} {templates.length} {tr("templates")}
         </div>
 
         {showCreate && (
           <div style={{ background: "white", border: "2px solid " + COLORS.red, borderRadius: 8, padding: 20, marginBottom: 16 }}>
-            <h3 style={{ marginTop: 0, color: COLORS.navy }}>New Task Template</h3>
+            <h3 style={{ marginTop: 0, color: COLORS.navy }}>{tr("New Task Template")}</h3>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
               <div>
-                <label style={{ fontSize: 12, color: COLORS.muted, display: "block", marginBottom: 4 }}>Task Name *</label>
-                <input style={inputStyle} value={newDraft.task_name} onChange={e => setNewDraft({ ...newDraft, task_name: e.target.value })} placeholder="e.g., Order home inspection" />
+                <label style={{ fontSize: 12, color: COLORS.muted, display: "block", marginBottom: 4 }}>{tr("Task Name *")}</label>
+                <input style={inputStyle} value={newDraft.task_name} onChange={e => setNewDraft({ ...newDraft, task_name: e.target.value })} placeholder={tr("e.g., Order home inspection")} />
               </div>
               <div>
-                <label style={{ fontSize: 12, color: COLORS.muted, display: "block", marginBottom: 4 }}>Transaction Type</label>
+                <label style={{ fontSize: 12, color: COLORS.muted, display: "block", marginBottom: 4 }}>{tr("Transaction Type")}</label>
                 <select style={inputStyle} value={newDraft.transaction_type} onChange={e => setNewDraft({ ...newDraft, transaction_type: e.target.value })}>
-                  {TRANSACTION_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                  {TRANSACTION_TYPES.map(t => <option key={t} value={t}>{tr(t)}</option>)}
                 </select>
               </div>
               <div>
-                <label style={{ fontSize: 12, color: COLORS.muted, display: "block", marginBottom: 4 }}>Phase</label>
+                <label style={{ fontSize: 12, color: COLORS.muted, display: "block", marginBottom: 4 }}>{tr("Phase")}</label>
                 <select style={inputStyle} value={newDraft.phase} onChange={e => setNewDraft({ ...newDraft, phase: e.target.value })}>
-                  {PHASES.map(p => <option key={p} value={p}>{p}</option>)}
+                  {PHASES.map(p => <option key={p} value={p}>{tr(p)}</option>)}
                 </select>
               </div>
               <div>
-                <label style={{ fontSize: 12, color: COLORS.muted, display: "block", marginBottom: 4 }}>Assignee Role</label>
+                <label style={{ fontSize: 12, color: COLORS.muted, display: "block", marginBottom: 4 }}>{tr("Assignee Role")}</label>
                 <select style={inputStyle} value={newDraft.default_assignee_role} onChange={e => setNewDraft({ ...newDraft, default_assignee_role: e.target.value })}>
-                  {ASSIGNEES.map(a => <option key={a} value={a}>{a}</option>)}
+                  {ASSIGNEES.map(a => <option key={a} value={a}>{tr(a)}</option>)}
                 </select>
               </div>
               <div>
-                <label style={{ fontSize: 12, color: COLORS.muted, display: "block", marginBottom: 4 }}>Days From Open (negative = before closing)</label>
+                <label style={{ fontSize: 12, color: COLORS.muted, display: "block", marginBottom: 4 }}>{tr("Days From Open (negative = before closing)")}</label>
                 <input type="number" style={inputStyle} value={newDraft.days_from_open} onChange={e => setNewDraft({ ...newDraft, days_from_open: parseInt(e.target.value) || 0 })} />
               </div>
               <div>
-                <label style={{ fontSize: 12, color: COLORS.muted, display: "block", marginBottom: 4 }}>Sort Order</label>
+                <label style={{ fontSize: 12, color: COLORS.muted, display: "block", marginBottom: 4 }}>{tr("Sort Order")}</label>
                 <input type="number" style={inputStyle} value={newDraft.sort_order} onChange={e => setNewDraft({ ...newDraft, sort_order: parseInt(e.target.value) || 100 })} />
               </div>
               <div>
-                <label style={{ fontSize: 12, color: COLORS.muted, display: "block", marginBottom: 4 }}>Category</label>
-                <input style={inputStyle} value={newDraft.category} onChange={e => setNewDraft({ ...newDraft, category: e.target.value })} placeholder="e.g., Inspection, Title, Marketing" />
+                <label style={{ fontSize: 12, color: COLORS.muted, display: "block", marginBottom: 4 }}>{tr("Category")}</label>
+                <input style={inputStyle} value={newDraft.category} onChange={e => setNewDraft({ ...newDraft, category: e.target.value })} placeholder={tr("e.g., Inspection, Title, Marketing")} />
               </div>
               <div>
-                <label style={{ fontSize: 12, color: COLORS.muted, display: "block", marginBottom: 4 }}>State</label>
-                <input style={inputStyle} value={newDraft.state} onChange={e => setNewDraft({ ...newDraft, state: e.target.value })} placeholder="FL" />
+                <label style={{ fontSize: 12, color: COLORS.muted, display: "block", marginBottom: 4 }}>{tr("State")}</label>
+                <input style={inputStyle} value={newDraft.state} onChange={e => setNewDraft({ ...newDraft, state: e.target.value })} placeholder={tr("FL")} />
               </div>
               <div style={{ gridColumn: "1 / -1" }}>
-                <label style={{ fontSize: 12, color: COLORS.muted, display: "block", marginBottom: 4 }}>Description (what the agent should do)</label>
+                <label style={{ fontSize: 12, color: COLORS.muted, display: "block", marginBottom: 4 }}>{tr("Description (what the agent should do)")}</label>
                 <textarea style={{ ...inputStyle, minHeight: 60, fontFamily: "inherit" }} value={newDraft.description} onChange={e => setNewDraft({ ...newDraft, description: e.target.value })} />
               </div>
               <div style={{ gridColumn: "1 / -1" }}>
-                <label style={{ fontSize: 12, color: COLORS.muted, display: "block", marginBottom: 4 }}>Notes (admin reference)</label>
+                <label style={{ fontSize: 12, color: COLORS.muted, display: "block", marginBottom: 4 }}>{tr("Notes (admin reference)")}</label>
                 <textarea style={{ ...inputStyle, minHeight: 40, fontFamily: "inherit" }} value={newDraft.notes} onChange={e => setNewDraft({ ...newDraft, notes: e.target.value })} />
               </div>
               <div>
                 <label style={{ fontSize: 13, color: COLORS.text, display: "flex", alignItems: "center", gap: 6, cursor: "pointer" }}>
                   <input type="checkbox" checked={newDraft.is_required} onChange={e => setNewDraft({ ...newDraft, is_required: e.target.checked })} />
-                  Required task
+                  {tr("Required task")}
                 </label>
               </div>
             </div>
             <div style={{ marginTop: 16, display: "flex", gap: 8, justifyContent: "flex-end" }}>
-              <button style={btnSecondary} onClick={() => setShowCreate(false)}>Cancel</button>
-              <button style={btnPrimary} onClick={createNew}>Create Template</button>
+              <button style={btnSecondary} onClick={() => setShowCreate(false)}>{tr("Cancel")}</button>
+              <button style={btnPrimary} onClick={createNew}>{tr("Create Template")}</button>
             </div>
           </div>
         )}
 
         {loading ? (
-          <div style={{ textAlign: "center", padding: 40, color: COLORS.muted }}>Loading...</div>
+          <div style={{ textAlign: "center", padding: 40, color: COLORS.muted }}>{tr("Loading...")}</div>
         ) : (
           <div style={{ background: "white", border: "1px solid " + COLORS.border, borderRadius: 8, overflow: "hidden" }}>
             {filtered.length === 0 ? (
               <div style={{ padding: 40, textAlign: "center", color: COLORS.muted }}>
-                No templates match your filters.
+                {tr("No templates match your filters.")}
               </div>
             ) : filtered.map(t => (
               <div key={t.id} style={{
@@ -262,84 +263,84 @@ export default function TaskTemplatesAdmin({ token, user }) {
                   <div>
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                       <div>
-                        <label style={{ fontSize: 12, color: COLORS.muted, display: "block", marginBottom: 4 }}>Task Name</label>
+                        <label style={{ fontSize: 12, color: COLORS.muted, display: "block", marginBottom: 4 }}>{tr("Task Name")}</label>
                         <input style={inputStyle} value={editDraft.task_name || ""} onChange={e => setEditDraft({ ...editDraft, task_name: e.target.value })} />
                       </div>
                       <div>
-                        <label style={{ fontSize: 12, color: COLORS.muted, display: "block", marginBottom: 4 }}>Transaction Type</label>
+                        <label style={{ fontSize: 12, color: COLORS.muted, display: "block", marginBottom: 4 }}>{tr("Transaction Type")}</label>
                         <select style={inputStyle} value={editDraft.transaction_type || ""} onChange={e => setEditDraft({ ...editDraft, transaction_type: e.target.value })}>
-                          {TRANSACTION_TYPES.map(x => <option key={x} value={x}>{x}</option>)}
+                          {TRANSACTION_TYPES.map(x => <option key={x} value={x}>{tr(x)}</option>)}
                         </select>
                       </div>
                       <div>
-                        <label style={{ fontSize: 12, color: COLORS.muted, display: "block", marginBottom: 4 }}>Phase</label>
+                        <label style={{ fontSize: 12, color: COLORS.muted, display: "block", marginBottom: 4 }}>{tr("Phase")}</label>
                         <select style={inputStyle} value={editDraft.phase || ""} onChange={e => setEditDraft({ ...editDraft, phase: e.target.value })}>
-                          {PHASES.map(p => <option key={p} value={p}>{p}</option>)}
+                          {PHASES.map(p => <option key={p} value={p}>{tr(p)}</option>)}
                         </select>
                       </div>
                       <div>
-                        <label style={{ fontSize: 12, color: COLORS.muted, display: "block", marginBottom: 4 }}>Assignee</label>
+                        <label style={{ fontSize: 12, color: COLORS.muted, display: "block", marginBottom: 4 }}>{tr("Assignee")}</label>
                         <select style={inputStyle} value={editDraft.default_assignee_role || ""} onChange={e => setEditDraft({ ...editDraft, default_assignee_role: e.target.value })}>
-                          {ASSIGNEES.map(a => <option key={a} value={a}>{a}</option>)}
+                          {ASSIGNEES.map(a => <option key={a} value={a}>{tr(a)}</option>)}
                         </select>
                       </div>
                       <div>
-                        <label style={{ fontSize: 12, color: COLORS.muted, display: "block", marginBottom: 4 }}>Days From Open</label>
+                        <label style={{ fontSize: 12, color: COLORS.muted, display: "block", marginBottom: 4 }}>{tr("Days From Open")}</label>
                         <input type="number" style={inputStyle} value={editDraft.days_from_open ?? 0} onChange={e => setEditDraft({ ...editDraft, days_from_open: parseInt(e.target.value) || 0 })} />
                       </div>
                       <div>
-                        <label style={{ fontSize: 12, color: COLORS.muted, display: "block", marginBottom: 4 }}>Sort Order</label>
+                        <label style={{ fontSize: 12, color: COLORS.muted, display: "block", marginBottom: 4 }}>{tr("Sort Order")}</label>
                         <input type="number" style={inputStyle} value={editDraft.sort_order ?? 100} onChange={e => setEditDraft({ ...editDraft, sort_order: parseInt(e.target.value) || 100 })} />
                       </div>
                       <div>
-                        <label style={{ fontSize: 12, color: COLORS.muted, display: "block", marginBottom: 4 }}>Category</label>
+                        <label style={{ fontSize: 12, color: COLORS.muted, display: "block", marginBottom: 4 }}>{tr("Category")}</label>
                         <input style={inputStyle} value={editDraft.category || ""} onChange={e => setEditDraft({ ...editDraft, category: e.target.value })} />
                       </div>
                       <div>
-                        <label style={{ fontSize: 12, color: COLORS.muted, display: "block", marginBottom: 4 }}>State</label>
+                        <label style={{ fontSize: 12, color: COLORS.muted, display: "block", marginBottom: 4 }}>{tr("State")}</label>
                         <input style={inputStyle} value={editDraft.state || ""} onChange={e => setEditDraft({ ...editDraft, state: e.target.value })} />
                       </div>
                       <div style={{ gridColumn: "1 / -1" }}>
-                        <label style={{ fontSize: 12, color: COLORS.muted, display: "block", marginBottom: 4 }}>Description</label>
+                        <label style={{ fontSize: 12, color: COLORS.muted, display: "block", marginBottom: 4 }}>{tr("Description")}</label>
                         <textarea style={{ ...inputStyle, minHeight: 60, fontFamily: "inherit" }} value={editDraft.description || ""} onChange={e => setEditDraft({ ...editDraft, description: e.target.value })} />
                       </div>
                       <div style={{ gridColumn: "1 / -1" }}>
-                        <label style={{ fontSize: 12, color: COLORS.muted, display: "block", marginBottom: 4 }}>Notes</label>
+                        <label style={{ fontSize: 12, color: COLORS.muted, display: "block", marginBottom: 4 }}>{tr("Notes")}</label>
                         <textarea style={{ ...inputStyle, minHeight: 40, fontFamily: "inherit" }} value={editDraft.notes || ""} onChange={e => setEditDraft({ ...editDraft, notes: e.target.value })} />
                       </div>
                       <div style={{ display: "flex", gap: 16 }}>
                         <label style={{ fontSize: 13, display: "flex", alignItems: "center", gap: 6, cursor: "pointer" }}>
                           <input type="checkbox" checked={!!editDraft.is_required} onChange={e => setEditDraft({ ...editDraft, is_required: e.target.checked })} />
-                          Required
+                          {tr("Required")}
                         </label>
                         <label style={{ fontSize: 13, display: "flex", alignItems: "center", gap: 6, cursor: "pointer" }}>
                           <input type="checkbox" checked={!!editDraft.active} onChange={e => setEditDraft({ ...editDraft, active: e.target.checked })} />
-                          Active
+                          {tr("Active")}
                         </label>
                       </div>
                     </div>
                     <div style={{ marginTop: 12, display: "flex", gap: 8, justifyContent: "flex-end" }}>
-                      <button style={btnSecondary} onClick={cancelEdit}>Cancel</button>
-                      <button style={btnPrimary} onClick={saveEdit}>Save Changes</button>
+                      <button style={btnSecondary} onClick={cancelEdit}>{tr("Cancel")}</button>
+                      <button style={btnPrimary} onClick={saveEdit}>{tr("Save Changes")}</button>
                     </div>
                   </div>
                 ) : (
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16 }}>
                     <div style={{ flex: 1 }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6, flexWrap: "wrap" }}>
-                        <strong style={{ color: COLORS.text, fontSize: 15 }}>{t.task_name}</strong>
-                        {t.is_required && <span style={{ background: "#fef2f2", color: COLORS.red, fontSize: 10, padding: "2px 6px", borderRadius: 4, fontWeight: 600 }}>REQUIRED</span>}
-                        {!t.active && <span style={{ background: "#f3f4f6", color: COLORS.muted, fontSize: 10, padding: "2px 6px", borderRadius: 4, fontWeight: 600 }}>ARCHIVED</span>}
+                        <strong style={{ color: COLORS.text, fontSize: 15 }}>{tr(t.task_name)}</strong>
+                        {t.is_required && <span style={{ background: "#fef2f2", color: COLORS.red, fontSize: 10, padding: "2px 6px", borderRadius: 4, fontWeight: 600 }}>{tr("REQUIRED")}</span>}
+                        {!t.active && <span style={{ background: "#f3f4f6", color: COLORS.muted, fontSize: 10, padding: "2px 6px", borderRadius: 4, fontWeight: 600 }}>{tr("ARCHIVED")}</span>}
                       </div>
                       <div style={{ fontSize: 12, color: COLORS.muted, marginBottom: 4 }}>
-                        <strong>{t.transaction_type}</strong> · {t.phase} · assigned to <strong>{t.default_assignee_role}</strong> · day {t.days_from_open >= 0 ? "+" : ""}{t.days_from_open}
-                        {t.category && <> · {t.category}</>}
+                        <strong>{tr(t.transaction_type)}</strong> · {tr(t.phase)} {tr("· assigned to")} <strong>{tr(t.default_assignee_role)}</strong> {tr("· day")} {t.days_from_open >= 0 ? "+" : ""}{t.days_from_open}
+                        {t.category && <> · {tr(t.category)}</>}
                       </div>
-                      {t.description && <div style={{ fontSize: 13, color: COLORS.text, marginTop: 4 }}>{t.description}</div>}
+                      {t.description && <div style={{ fontSize: 13, color: COLORS.text, marginTop: 4 }}>{tr(t.description)}</div>}
                     </div>
                     <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
-                      <button style={btnSecondary} onClick={() => startEdit(t)}>Edit</button>
-                      {t.active && <button style={{ ...btnSecondary, color: COLORS.red }} onClick={() => archiveTemplate(t.id, t.task_name)}>Archive</button>}
+                      <button style={btnSecondary} onClick={() => startEdit(t)}>{tr("Edit")}</button>
+                      {t.active && <button style={{ ...btnSecondary, color: COLORS.red }} onClick={() => archiveTemplate(t.id, t.task_name)}>{tr("Archive")}</button>}
                     </div>
                   </div>
                 )}

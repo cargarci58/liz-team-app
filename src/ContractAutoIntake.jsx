@@ -282,7 +282,7 @@ function UploadStep({ token, existingTransactionId, onBack, onUploaded }) {
                 })}
               </div>
             )}
-            {error && <div style={{ marginTop: 10, background: "#FEF2F2", border: "1px solid #FCA5A5", borderRadius: 8, padding: 10, fontSize: 13, color: "#7F1D1D" }}>⚠️ {error}</div>}
+            {error && <div style={{ marginTop: 10, background: "#FEF2F2", border: "1px solid #FCA5A5", borderRadius: 8, padding: 10, fontSize: 13, color: "#7F1D1D" }}>⚠️ {tr(error)}</div>}
           </div>
         )}
 
@@ -374,7 +374,7 @@ function UploadStep({ token, existingTransactionId, onBack, onUploaded }) {
 
         {error && (
           <div style={{ background: "#fef2f2", border: "1px solid #fecaca", color: "#991b1b", borderRadius: 8, padding: "10px 14px", marginTop: 16, fontSize: 14 }}>
-            {error}
+            {tr(error)}
           </div>
         )}
 
@@ -495,7 +495,7 @@ function ProcessingStep({ token, uploadId, onReady, onFailed }) {
         <div style={{ marginTop: 32 }}>
           <div style={{ display: "inline-block", width: 40, height: 40, border: `4px solid ${COLORS.border}`, borderTop: `4px solid ${COLORS.red}`, borderRadius: "50%", animation: "spin 1s linear infinite" }} />
         </div>
-        {error && <div style={{ color: COLORS.red, marginTop: 20, fontSize: 14 }}>{error}</div>}
+        {error && <div style={{ color: COLORS.red, marginTop: 20, fontSize: 14 }}>{tr(error)}</div>}
         {slow && !error && (
           <div style={{ marginTop: 24, fontSize: 14, color: COLORS.muted, lineHeight: 1.6 }}>
             {tr("This is taking longer than usual. It may still finish in a moment — or something may have stalled.")}
@@ -691,7 +691,7 @@ function ReviewStep({ token, uploadId, user, currentStatus, onApproved, onBack }
   };
 
   if (loading) return <div style={{ padding: 40, textAlign: "center", color: COLORS.muted }}>{tr("Loading...")}</div>;
-  if (error && !edited) return <div style={{ padding: 40, textAlign: "center", color: COLORS.red }}>{error}</div>;
+  if (error && !edited) return <div style={{ padding: 40, textAlign: "center", color: COLORS.red }}>{tr(error)}</div>;
   if (!edited) return null;
 
   const tx = edited.transaction || {};
@@ -952,7 +952,7 @@ function ReviewStep({ token, uploadId, user, currentStatus, onApproved, onBack }
           ))}
         </div>
 
-        {error && <div style={{ background: "#fef2f2", border: "1px solid #fecaca", color: "#991b1b", borderRadius: 8, padding: "10px 14px", marginBottom: 16, fontSize: 14 }}>{error}</div>}
+        {error && <div style={{ background: "#fef2f2", border: "1px solid #fecaca", color: "#991b1b", borderRadius: 8, padding: "10px 14px", marginBottom: 16, fontSize: 14 }}>{tr(error)}</div>}
 
         <div style={{ background: "#EFF6FF", border: "1px solid #BFDBFE", borderRadius: 8, padding: "10px 14px", marginBottom: 14, fontSize: 13, color: "#1E3A8A" }}>
           💡 <strong>{tr("This offer is held in Pending Offers.")}</strong> {tr("Save it now and come back later — share it with the sellers, hold several offers side by side, and only")} <strong>{tr("Approve")}</strong> {tr("once the sellers have signed/accepted. Approving accepts it into the transaction (Under Contract, parties, timeline & tasks).")}

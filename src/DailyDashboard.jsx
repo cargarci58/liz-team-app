@@ -608,10 +608,10 @@ function DealGroupCard({ deal, token, coordinatorMode = false, meta = null, agen
   // A plain-English history line so the TC knows where the deal stands at a glance.
   const historyBits = [];
   if (meta) {
-    if (meta.status) historyBits.push(meta.status);
-    if (meta.msTotal) historyBits.push(`${meta.msDone}/${meta.msTotal} steps done`);
-    if (meta.daysSinceActivity != null) historyBits.push(meta.daysSinceActivity === 0 ? "active today" : `last activity ${meta.daysSinceActivity}d ago`);
-    if (meta.closingDate) historyBits.push(`closing ${meta.closingDate}`);
+    if (meta.status) historyBits.push(tr(meta.status));
+    if (meta.msTotal) historyBits.push(tr("{done}/{total} steps done", { done: meta.msDone, total: meta.msTotal }));
+    if (meta.daysSinceActivity != null) historyBits.push(meta.daysSinceActivity === 0 ? tr("active today") : tr("last activity {n}d ago", { n: meta.daysSinceActivity }));
+    if (meta.closingDate) historyBits.push(tr("closing {date}", { date: meta.closingDate }));
   }
   return (
     <div style={{ background:COLORS.white, borderRadius:14, padding:16, marginBottom:12,
@@ -633,7 +633,7 @@ function DealGroupCard({ deal, token, coordinatorMode = false, meta = null, agen
           {deal.address || tr("This transaction")}
         </button>
         <span style={{ fontSize:11, color:COLORS.gray, fontWeight:600 }}>
-          {deal.tasks.length} {tr("item")}{deal.tasks.length === 1 ? "" : "s"}
+          {deal.tasks.length} {tr(deal.tasks.length === 1 ? "item" : "items")}
         </span>
       </div>
       {deal.deal_share_type && deal.deal_share_type !== "standard" && <div style={{ margin:"-2px 0 8px" }}><ShareBadge of={deal} /></div>}
@@ -644,7 +644,7 @@ function DealGroupCard({ deal, token, coordinatorMode = false, meta = null, agen
             <div style={{ fontSize:12, color:COLORS.gray }}>{historyBits.join(" · ")}</div>
           )}
           {meta.reason && (
-            <div style={{ fontSize:13, color:COLORS.black, fontWeight:600, marginTop:3 }}>⚠️ {meta.reason}</div>
+            <div style={{ fontSize:13, color:COLORS.black, fontWeight:600, marginTop:3 }}>⚠️ {tr(meta.reason)}</div>
           )}
           {/* The recommendation — or what already happened to it (sent / handled /
               set aside), so a sent message never looks unsent. */}
@@ -662,7 +662,7 @@ function DealGroupCard({ deal, token, coordinatorMode = false, meta = null, agen
             </div>
           )}
           {!meta.aiHandled && meta.aiMove && (
-            <div style={{ fontSize:12.5, color:"#1E40AF", marginTop:3 }}>{tr("🤖 Next:")} {meta.aiMove}</div>
+            <div style={{ fontSize:12.5, color:"#1E40AF", marginTop:3 }}>{tr("🤖 Next:")} {tr(meta.aiMove)}</div>
           )}
           {!meta.aiHandled && (meta.hasDraft || meta.aiMove) && (
             <div style={{ display:"flex", gap:8, marginTop:8, flexWrap:"wrap" }}>
@@ -671,7 +671,7 @@ function DealGroupCard({ deal, token, coordinatorMode = false, meta = null, agen
                   style={{ padding:"8px 14px", borderRadius:8, border:"none",
                     background:"#0c4a6e", color:COLORS.white, fontWeight:700, fontSize:13,
                     cursor: aiBusy === deal.transaction_id ? "wait" : "pointer", fontFamily:"inherit" }}>
-                  {aiBusy === deal.transaction_id ? tr("Sending…") : tr("✉️ Send the recommended message to the {draftToRole}", { draftToRole: meta.draftToRole })}
+                  {aiBusy === deal.transaction_id ? tr("Sending…") : tr("✉️ Send the recommended message to the {draftToRole}", { draftToRole: tr(meta.draftToRole) })}
                 </button>
               )}
               <button onClick={() => onDealAction && onDealAction(deal.transaction_id, "rec_not_now")}
@@ -1237,7 +1237,7 @@ function FollowupReviewModal({ token, isMobile, onClose }) {
                   {name}
                   {current.tier && <span style={{ marginLeft: 7, fontSize: 11, fontWeight: 800, color: "#fff", background: "#0c4a6e", borderRadius: 10, padding: "1px 8px", verticalAlign: "middle" }}>{current.tier}</span>}
                 </div>
-                {overdueDays > 0 && <span style={{ fontSize: 11.5, fontWeight: 800, color: "#b91c1c", background: "#fee2e2", borderRadius: 8, padding: "3px 8px", whiteSpace: "nowrap" }}>{overdueDays} {tr("day")}{overdueDays === 1 ? "" : "s"} {tr("overdue")}</span>}
+                {overdueDays > 0 && <span style={{ fontSize: 11.5, fontWeight: 800, color: "#b91c1c", background: "#fee2e2", borderRadius: 8, padding: "3px 8px", whiteSpace: "nowrap" }}>{overdueDays} {tr(overdueDays === 1 ? "day" : "days")} {tr("overdue")}</span>}
               </div>
               {current.next_call_reason && (
                 <div style={{ fontSize: 13.5, color: "#7c2d12", fontWeight: 700, marginTop: 7 }}>{tr("🎯 You promised:")} {current.next_call_reason}</div>
@@ -1405,6 +1405,8 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
           (d.needsYou || []).forEach(x => { if (x.txId) map[x.txId] = x; });
           (d.onTrack || []).forEach(x => { if (x.txId) map[x.txId] = x; });
           setCcMeta(map);
+          // Spanish screens: the AI's reason / next-move lines are server-written.
+          requestSpanish(Object.values(map).flatMap(x => [x.reason, x.aiMove, x.draftToRole]));
           setNeedsYouDeals(d.needsYou || []);
           setOnTrackDeals(d.onTrack || []);
         }).catch(() => {});
@@ -1887,7 +1889,7 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
           </div>
           {allDone ? (
             <div style={{ background: "#f0fdf4", border: "1px solid #86efac", borderRadius: 8, padding: 12, fontSize: 13, color: "#166534", marginBottom: 10, fontWeight: 700, textAlign: "center" }}>
-              {tr("🎉 All")} {totalCalls} {tr("call")}{totalCalls === 1 ? "" : "s"} {tr("on this list done! Fresh list tomorrow.")}
+              {tr("🎉 All")} {totalCalls} {tr(totalCalls === 1 ? "call" : "calls")} {tr("on this list done! Fresh list tomorrow.")}
             </div>
           ) : (
             <div style={{ background: "#eff6ff", border: "1px solid #93c5fd", borderRadius: 8, padding: 10, fontSize: 11, color: "#1e3a8a", marginBottom: 10 }}>
@@ -1986,13 +1988,13 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
           <>
             {renderCallSection(followUps, "🔁 FOLLOW-UPS YOU PROMISED", "#7c2d12",
               <>{tr("These are follow-up calls you scheduled — knock these out first, then keep going with today's list below.")}</>)}
-            {pullMoreBanner(callBacklog, "followup", n => <>{tr("You have")} {n} {tr("more follow-up")}{n === 1 ? "" : "s"} {tr("due beyond today's list — promises waiting past their date.")}</>, reviewBtn)}
+            {pullMoreBanner(callBacklog, "followup", n => <>{tr("You have")} {n} {tr(n === 1 ? "more follow-up" : "more follow-ups")} {tr("due beyond today's list — promises waiting past their date.")}</>, reviewBtn)}
             {callBacklog === 0 && followUps.length > 0 && (
               <div style={{ display: "flex", justifyContent: "flex-end", marginTop: -6, marginBottom: 12 }}>{reviewBtn}</div>
             )}
             {renderCallSection(rhythm, "📞 CALLS DUE TODAY", "#0c4a6e",
               <>{tr("Tap")} <b>{tr("Call")}</b> {tr("to dial — then log the outcome.")}</>)}
-            {pullMoreBanner(rhythmBacklog, "rhythm", n => <>{tr("You have")} {n} {tr("more contact")}{n === 1 ? "" : "s"} {tr("due for a call beyond today's list.")}</>)}
+            {pullMoreBanner(rhythmBacklog, "rhythm", n => <>{tr("You have")} {n} {tr(n === 1 ? "more contact" : "more contacts")} {tr("due for a call beyond today's list.")}</>)}
             {reviewOpen && <FollowupReviewModal token={token} isMobile={isMobile} onClose={() => { setReviewOpen(false); fetchTasks(); }} />}
           </>
         );
@@ -2119,7 +2121,7 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
                 <SectionHeader label={tr("🚨 ALERTS — NEEDS YOUR ATTENTION")} count={alerts.length + (unmatchedEmails.length ? 1 : 0)} color={"#dc2626"} />
                 {unmatchedEmails.length > 0 && (
                   <div style={{ background: "#fff7ed", border: "1px solid #fdba74", borderLeft: "5px solid #ea580c", borderRadius: 8, padding: 12, marginBottom: 8 }}>
-                    <div style={{ fontWeight: 800, fontSize: 13.5, color: "#7c2d12" }}>📥 {unmatchedEmails.length} {tr("email")}{unmatchedEmails.length === 1 ? "" : "s"} {tr("need")}{unmatchedEmails.length === 1 ? "s" : ""} {tr("filing")}</div>
+                    <div style={{ fontWeight: 800, fontSize: 13.5, color: "#7c2d12" }}>📥 {unmatchedEmails.length} {tr(unmatchedEmails.length === 1 ? "email" : "emails")} {tr("need")}{unmatchedEmails.length === 1 ? "s" : ""} {tr("filing")}</div>
                     <div style={{ fontSize: 12.5, color: "#9a3412", marginTop: 2 }}>{tr("The app received")} {unmatchedEmails.length === 1 ? tr("an email") : tr("emails")} {tr("it couldn't match to a deal — file")} {unmatchedEmails.length === 1 ? tr("it") : tr("them")} {tr("so nothing is lost.")}</div>
                     <button onClick={openFiling}
                       style={{ marginTop: 9, padding: "7px 14px", borderRadius: 8, border: "none", background: "#0c4a6e", color: "#fff", fontSize: 12.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>
@@ -2250,7 +2252,7 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
           <button onClick={() => onOpenPopBys && onOpenPopBys()}
             style={{ width: "100%", textAlign: "left", background: "#fffbeb", border: "1px solid #fcd34d", borderRadius: 10, padding: "14px 16px", cursor: "pointer", fontFamily: "inherit", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
             <div>
-              <div style={{ fontWeight: 800, fontSize: 15, color: "#92400e" }}>🎁 {popByDueCount} {tr("pop-by")}{popByDueCount === 1 ? "" : "s"} {tr("to deliver")}</div>
+              <div style={{ fontWeight: 800, fontSize: 15, color: "#92400e" }}>🎁 {popByDueCount} {tr(popByDueCount === 1 ? "pop-by" : "pop-bys")} {tr("to deliver")}</div>
               <div style={{ fontSize: 12, color: "#b45309", marginTop: 2 }}>{tr("Plan your gift run — suggestions, route & note cards →")}</div>
             </div>
             <span style={{ fontSize: 20, color: "#b45309" }}>→</span>

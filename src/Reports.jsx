@@ -182,7 +182,7 @@ function OverviewTab({ transactions }) {
             <thead>
               <tr style={{ background: "#F8F9FA" }}>
                 {["Property", "Status", "Price", "List %", "Buyer %", "Gross Comm", "Net Comm"].map(h => (
-                  <th key={h} style={{ padding: "10px 16px", textAlign: "left", fontSize: 11, fontWeight: 700, color: COLORS.gray, textTransform: "uppercase", borderBottom: "1px solid #DDD" }}>{h}</th>
+                  <th key={h} style={{ padding: "10px 16px", textAlign: "left", fontSize: 11, fontWeight: 700, color: COLORS.gray, textTransform: "uppercase", borderBottom: "1px solid #DDD" }}>{tr(h)}</th>
                 ))}
               </tr>
             </thead>
@@ -216,7 +216,7 @@ function OverviewTab({ transactions }) {
           <thead>
             <tr style={{ background: "#F8F9FA" }}>
               {["Property", "Type", "Status", "Price", "Closing Date", "Net Commission"].map(h => (
-                <th key={h} style={{ padding: "10px 16px", textAlign: "left", fontSize: 11, fontWeight: 700, color: COLORS.gray, textTransform: "uppercase", borderBottom: "1px solid #DDD" }}>{h}</th>
+                <th key={h} style={{ padding: "10px 16px", textAlign: "left", fontSize: 11, fontWeight: 700, color: COLORS.gray, textTransform: "uppercase", borderBottom: "1px solid #DDD" }}>{tr(h)}</th>
               ))}
             </tr>
           </thead>
@@ -301,7 +301,7 @@ function ActivityTab({ isAdmin }) {
       </div>
 
       {loading && <div style={{ padding: 40, textAlign: "center", color: COLORS.gray }}>{tr("Loading activity…")}</div>}
-      {err && <div style={{ padding: 40, textAlign: "center", color: COLORS.red }}>{err}</div>}
+      {err && <div style={{ padding: 40, textAlign: "center", color: COLORS.red }}>{tr(err)}</div>}
 
       {data && !loading && (
         <>
@@ -325,7 +325,7 @@ function ActivityTab({ isAdmin }) {
             </div>
             {data.fallThroughs && data.fallThroughs.total > 0 && (
               <div style={{ marginTop: 12, background: "#FDF2F2", border: "1px solid #FADBD8", borderRadius: 8, padding: "10px 12px", fontSize: 12.5, color: "#7B241C" }}>
-                💔 <b>{data.fallThroughs.total}</b> {tr("contract")}{data.fallThroughs.total === 1 ? "" : "s"} {tr("fell through in this period")}
+                💔 <b>{data.fallThroughs.total}</b> {tr(data.fallThroughs.total === 1 ? "contract" : "contracts")} {tr("fell through in this period")}
                 {" — "}{data.fallThroughs.byReason.map(x => `${x.reason.replace(/_/g, " ")}: ${x.n}`).join(" · ")}.
                 {" "}{tr("Each one's full record is archived on its deal under \"💔 Past contracts\".")}
               </div>
@@ -562,7 +562,7 @@ function SalesStatsTab() {
   return (
     <div>
       <div style={{ fontSize: 20, fontWeight: 800, color: COLORS.navy, marginBottom: 4 }}>{tr("My Sales Stats")}</div>
-      <div style={{ fontSize: 13, color: COLORS.gray, marginBottom: 16 }}>{tr("Your live pipeline plus your real production averages over the last 12 months (")}{stats.closed12mo ?? 0} {tr("closed deal")}{stats.closed12mo === 1 ? "" : "s"}).</div>
+      <div style={{ fontSize: 13, color: COLORS.gray, marginBottom: 16 }}>{tr("Your live pipeline plus your real production averages over the last 12 months (")}{stats.closed12mo ?? 0} {tr(stats.closed12mo === 1 ? "closed deal" : "closed deals")}).</div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 14 }}>
         {cards.map(c => <StatCard key={c.label} label={c.label} value={c.value} sub={c.sub} color={c.color} />)}
       </div>
@@ -614,7 +614,7 @@ function ActivitiesReportTab() {
         </select>
         <div style={{ display: "flex", borderRadius: 8, overflow: "hidden", border: `1px solid ${COLORS.border}` }}>
           {["month", "week"].map(pp => (
-            <button key={pp} onClick={() => setPeriod(pp)} style={{ padding: "8px 14px", border: "none", cursor: "pointer", fontSize: 13, fontWeight: 700, fontFamily: "inherit", textTransform: "capitalize", background: period === pp ? COLORS.navy : "#fff", color: period === pp ? "#fff" : COLORS.gray }}>{pp}</button>
+            <button key={pp} onClick={() => setPeriod(pp)} style={{ padding: "8px 14px", border: "none", cursor: "pointer", fontSize: 13, fontWeight: 700, fontFamily: "inherit", textTransform: "capitalize", background: period === pp ? COLORS.navy : "#fff", color: period === pp ? "#fff" : COLORS.gray }}>{tr(pp)}</button>
           ))}
         </div>
         <button onClick={exportCsv} style={{ background: "#fff", border: `1px solid ${COLORS.border}`, borderRadius: 8, padding: "8px 14px", cursor: "pointer", fontSize: 13, fontWeight: 700, fontFamily: "inherit" }}>{tr("⬇ Export Data")}</button>
@@ -704,7 +704,7 @@ function ClientFeedbackTab() {
         <div style={{ fontSize: 20, fontWeight: 800, color: COLORS.navy }}>{tr("What your clients say")}</div>
         {avg != null && (
           <div style={{ fontSize: 13, color: COLORS.gray }}>
-            <Stars n={Math.round(avg)} /> <b style={{ color: COLORS.navy }}>{avg.toFixed(1)}</b> {tr("average ·")} {data.length} {tr("response")}{data.length === 1 ? "" : "s"}
+            <Stars n={Math.round(avg)} /> <b style={{ color: COLORS.navy }}>{avg.toFixed(1)}</b> {tr("average ·")} {data.length} {tr(data.length === 1 ? "response" : "responses")}
           </div>
         )}
       </div>

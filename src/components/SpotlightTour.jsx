@@ -1,3 +1,4 @@
+import { t as tr } from "../i18n";
 import { useState, useLayoutEffect, useEffect, useCallback } from 'react';
 
 // ═══════════════════════════════════════════════════════════════
@@ -126,7 +127,7 @@ export default function SpotlightTour({ onClose, onCreateFirst }) {
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
           <div style={{ fontSize: 11, fontWeight: 800, color: RED, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-            Tour · {i + 1} of {STEPS.length}
+            {tr("Tour ·")} {i + 1} {tr("of")} {STEPS.length}
           </div>
           <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: 18, color: '#666666', cursor: 'pointer', lineHeight: 1 }}>×</button>
         </div>
@@ -137,27 +138,27 @@ export default function SpotlightTour({ onClose, onCreateFirst }) {
           ))}
         </div>
 
-        <div style={{ fontSize: 17, fontWeight: 800, color: '#111', marginBottom: 6 }}>{step.emoji} {step.title}</div>
-        <div style={{ fontSize: 14, color: '#555', lineHeight: 1.55, marginBottom: 16 }}>{step.body}</div>
+        <div style={{ fontSize: 17, fontWeight: 800, color: '#111', marginBottom: 6 }}>{step.emoji} {tr(step.title)}</div>
+        <div style={{ fontSize: 14, color: '#555', lineHeight: 1.55, marginBottom: 16 }}>{tr(step.body)}</div>
 
         <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
           <button
             onClick={() => setI(n => Math.max(0, n - 1))}
             disabled={i === 0}
             style={{ background: 'none', border: '1px solid #ddd', borderRadius: 10, padding: '9px 14px', fontSize: 13, fontWeight: 700, color: i === 0 ? '#ccc' : '#444', cursor: i === 0 ? 'default' : 'pointer', fontFamily: 'inherit' }}
-          >← Previous</button>
+          >{tr("← Previous")}</button>
           <div style={{ flex: 1 }} />
           {!last ? (
-            <button onClick={() => setI(n => Math.min(STEPS.length - 1, n + 1))} style={primaryBtn}>Next →</button>
+            <button onClick={() => setI(n => Math.min(STEPS.length - 1, n + 1))} style={primaryBtn}>{tr("Next →")}</button>
           ) : onCreateFirst ? (
-            <button onClick={onCreateFirst} style={primaryBtn}>Create my first deal →</button>
+            <button onClick={onCreateFirst} style={primaryBtn}>{tr("Create my first deal →")}</button>
           ) : (
-            <button onClick={onClose} style={primaryBtn}>Done</button>
+            <button onClick={onClose} style={primaryBtn}>{tr("Done")}</button>
           )}
         </div>
         {last && onCreateFirst && (
           <div style={{ textAlign: 'center', marginTop: 10 }}>
-            <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#666666', fontSize: 12.5, cursor: 'pointer', fontFamily: 'inherit' }}>I'll explore on my own</button>
+            <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#666666', fontSize: 12.5, cursor: 'pointer', fontFamily: 'inherit' }}>{tr("I'll explore on my own")}</button>
           </div>
         )}
       </div>

@@ -89,7 +89,7 @@ export default function PopByLogModal({ token, contact: presetContact, onClose, 
         <label style={lbl}>{tr("Note (optional)")}</label>
         <textarea value={note} onChange={e => setNote(e.target.value)} rows={2} placeholder={tr("Anything to remember…")} style={{ ...inp, marginBottom: 14, resize: "vertical" }} />
 
-        {err && <div style={{ color: "#b91c1c", fontSize: 13, marginBottom: 10 }}>{err}</div>}
+        {err && <div style={{ color: "#b91c1c", fontSize: 13, marginBottom: 10 }}>{tr(err)}</div>}
         <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
           <button onClick={onClose} style={{ padding: "10px 18px", borderRadius: 10, border: "1.5px solid #e5e7eb", background: "#fff", color: "#6b7280", fontWeight: 600, fontSize: 14, cursor: "pointer", fontFamily: "inherit" }}>{tr("Cancel")}</button>
           <button disabled={saving} onClick={save} style={{ padding: "10px 20px", borderRadius: 10, border: "none", background: "#0c4a6e", color: "#fff", fontWeight: 700, fontSize: 14, cursor: saving ? "wait" : "pointer", fontFamily: "inherit" }}>{saving ? tr("Saving…") : tr("Save pop-by")}</button>

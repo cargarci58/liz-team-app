@@ -775,7 +775,7 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
               </div>
             );
           })()}
-          <div style={{ fontWeight: 700, marginBottom: 4, fontSize: 14 }}>{docs.length} {tr("document")}{docs.length !== 1 ? "s" : ""}</div>
+          <div style={{ fontWeight: 700, marginBottom: 4, fontSize: 14 }}>{docs.length} {tr(docs.length !== 1 ? "documents" : "document")}</div>
           <div style={{ fontSize: 12, color: COLORS.muted, marginBottom: 12, background: "#F6F8FA", border: "1px solid #E5E7EB", borderRadius: 8, padding: "7px 10px" }}>
             {tr("💡 Each file has a")} <b>{tr("👁 Client can view")}</b> / <b>{tr("🔒 Hidden")}</b> {tr("button — tap it to control whether your client sees that file in their portal. New uploads are")} <b>{tr("Hidden")}</b> {tr("by default.")}
           </div>
@@ -1191,7 +1191,7 @@ function ShareModal({ tx, doc, headers, onClose }) {
                   placeholder={tr("Add a short message — or leave blank and we'll write a friendly one for you.")}
                   style={{ ...inp, resize: "vertical" }} />
               </div>
-              {error && <div style={{ color: COLORS.danger, fontSize: 13, marginBottom: 12 }}>{error}</div>}
+              {error && <div style={{ color: COLORS.danger, fontSize: 13, marginBottom: 12 }}>{tr(error)}</div>}
               <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
                 <button onClick={onClose} disabled={busy} style={{ background: "#fff", color: COLORS.muted, border: "1px solid " + COLORS.border, padding: "10px 16px", borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: "pointer" }}>{tr("Cancel")}</button>
                 <button onClick={send} disabled={busy} style={{ background: "#0c4a6e", color: "#fff", border: "none", padding: "10px 20px", borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: busy ? "default" : "pointer", opacity: busy ? 0.6 : 1 }}>
@@ -1596,7 +1596,7 @@ function LetterOfIntentModal({ tx, headers, onClose, onSaved }) {
         </div>
         {/* Actions */}
         <div style={{ position: "sticky", bottom: 0, background: "#fff", borderTop: `1px solid ${COLORS.border}`, padding: "14px 22px", display: "flex", alignItems: "center", gap: 12, justifyContent: "flex-end", flexWrap: "wrap" }}>
-          {error && <div style={{ color: COLORS.danger, fontSize: 13, marginRight: "auto" }}>{error}</div>}
+          {error && <div style={{ color: COLORS.danger, fontSize: 13, marginRight: "auto" }}>{tr(error)}</div>}
           <button onClick={handleDownload} disabled={busy} style={{ background: "#fff", color: "#0c4a6e", border: "1px solid #0c4a6e", padding: "10px 16px", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: busy ? "default" : "pointer", opacity: busy ? 0.6 : 1 }}>
             {busy ? tr("Working…") : tr("⬇ Download Word (.docx)")}
           </button>
@@ -1684,7 +1684,7 @@ function AddendumModal({ tx, headers, onCreated, onClose }) {
                   placeholder={tr("Type anything the parties are agreeing to, e.g.\n1. Closing date is extended to July 31, 2026.\n2. Seller to credit Buyer $2,500 toward closing costs.\n\nLong text automatically continues on an attached page.")}
                   style={{ width: "100%", boxSizing: "border-box", padding: "10px 12px", border: "1px solid #cbd5e1", borderRadius: 8, fontSize: 13, fontFamily: "inherit", lineHeight: 1.5, resize: "vertical" }} />
               </div>
-              {err && <div style={{ background: "#fee2e2", border: "1px solid #fca5a5", borderRadius: 8, padding: 10, fontSize: 13, color: "#7f1d1d", marginBottom: 12 }}>⚠️ {err}</div>}
+              {err && <div style={{ background: "#fee2e2", border: "1px solid #fca5a5", borderRadius: 8, padding: 10, fontSize: 13, color: "#7f1d1d", marginBottom: 12 }}>⚠️ {tr(err)}</div>}
               <button onClick={create} disabled={busy}
                 style={{ width: "100%", padding: "12px 0", background: busy ? "#94a3b8" : "#0c4a6e", color: "#fff", border: "none", borderRadius: 10, fontSize: 15, fontWeight: 800, cursor: busy ? "default" : "pointer", fontFamily: "inherit" }}>
                 {busy ? tr("Creating…") : tr("Create addendum →")}
@@ -1902,7 +1902,7 @@ export function DocSignModal({ tx, doc, allDocs = [], headers, onClose, initialR
             <div style={{ background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 10, padding: "10px 12px", marginBottom: 14, fontSize: 13, color: "#0c4a6e", lineHeight: 1.5 }}>{intro}</div>
           )}
           {!info && !err && <div style={{ color: "#64748b", fontSize: 14 }}>{tr("Loading…")}</div>}
-          {err && <div style={{ background: "#fee2e2", border: "1px solid #fca5a5", borderRadius: 8, padding: 10, fontSize: 13, color: "#7f1d1d", marginBottom: 12 }}>⚠️ {err}</div>}
+          {err && <div style={{ background: "#fee2e2", border: "1px solid #fca5a5", borderRadius: 8, padding: 10, fontSize: 13, color: "#7f1d1d", marginBottom: 12 }}>⚠️ {tr(err)}</div>}
 
           {info && roundOut && (
             <div style={{ marginBottom: 14 }}>
@@ -2359,7 +2359,7 @@ function ListingPackageModal({ tx, headers, dealDocs = [], onClose, onDone }) {
           }} style={{ background: "none", border: "none", color: "#fff", fontSize: 22, cursor: "pointer", lineHeight: 1 }}>×</button>
         </div>
         <div style={{ padding: 20 }}>
-          {err && <div style={{ background: "#FDEDEC", border: "1px solid #F5B7B1", color: "#943126", borderRadius: 8, padding: "10px 12px", fontSize: 13, marginBottom: 14 }}>⚠️ {err}</div>}
+          {err && <div style={{ background: "#FDEDEC", border: "1px solid #F5B7B1", color: "#943126", borderRadius: 8, padding: "10px 12px", fontSize: 13, marginBottom: 14 }}>⚠️ {tr(err)}</div>}
 
           {step === "form" && !pre && !err && <div style={{ color: "#666", fontSize: 14 }}>{tr("Loading this deal's details…")}</div>}
 
@@ -2678,7 +2678,7 @@ function CombinePdfsModal({ tx, docs, headers, onClose, onDone }) {
           <div style={{ fontSize: 12.5, color: "#555", marginBottom: 12, lineHeight: 1.5 }}>
             {tr("Check the PDFs in the order you want them merged — the number shows their position. The combined file is saved as a new document; the originals stay put.")}
           </div>
-          {err && <div style={{ background: "#FDEDEC", border: "1px solid #F5B7B1", color: "#943126", borderRadius: 8, padding: "9px 11px", fontSize: 13, marginBottom: 10 }}>⚠️ {err}</div>}
+          {err && <div style={{ background: "#FDEDEC", border: "1px solid #F5B7B1", color: "#943126", borderRadius: 8, padding: "9px 11px", fontSize: 13, marginBottom: 10 }}>⚠️ {tr(err)}</div>}
           <div style={{ maxHeight: 300, overflowY: "auto", border: "1px solid #EEE", borderRadius: 10, padding: "6px 10px", marginBottom: 12 }}>
             {pdfs.length === 0 && <div style={{ fontSize: 13, color: "#666666", padding: 8 }}>{tr("No PDFs on this deal yet.")}</div>}
             {pdfs.map(d => {
@@ -2834,7 +2834,7 @@ export function AdjustSpotsModal({ doc, signerNames, initial, headers, onSave, o
           <div style={{ fontSize: 12, color: "#475569", marginBottom: 8, lineHeight: 1.5 }}>
             <b>{tr("Drag")}</b> {tr("a block to move it · drag the")} <b>{tr("● corner")}</b> {tr("to resize ·")} <b>{tr("tap")}</b> {tr("a block to remove it · tap the page to add a new one for the selected signer.")}
           </div>
-          {loadErr && <div style={{ fontSize: 13, color: "#7f1d1d", padding: 6 }}>⚠️ {loadErr}</div>}
+          {loadErr && <div style={{ fontSize: 13, color: "#7f1d1d", padding: 6 }}>⚠️ {tr(loadErr)}</div>}
           {!loadErr && pages.length === 0 && <div style={{ fontSize: 13, color: "#64748b", padding: 10 }}>{tr("Loading pages…")}</div>}
           <div style={{ maxHeight: "68vh", overflowY: "auto", border: "1px solid #e2e8f0", borderRadius: 10, padding: 8, background: "#f1f5f9" }}>
             {pages.map(pg => (

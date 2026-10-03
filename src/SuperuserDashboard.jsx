@@ -1,3 +1,4 @@
+import { t as tr, tn } from "./i18n";
 import React, { useState, useEffect } from "react";
 import { askConfirm, askText } from "./ui/dialogs";
 
@@ -163,22 +164,22 @@ function SuperuserDashboard({ onClose, token }) {
     setActingId(null);
   };
   const revokeCode = async (c) => {
-    if (!(await askConfirm(`Cancel code ${c.code}? Nobody will be able to sign up with it.`, { okLabel: "Cancel code", cancelLabel: "Keep it", danger: true }))) return;
+    if (!(await askConfirm(tr("Cancel code {code}? Nobody will be able to sign up with it.", { code: c.code }), { okLabel: tr("Cancel code"), cancelLabel: tr("Keep it"), danger: true }))) return;
     rowAction(c, `/admin/superuser/invite-codes/${c.id}/revoke`);
   };
   const suspendAccount = async (c) => {
     const reason = await askText(
-      `Suspend ${c.brokerage_name || c.used_by_email}?\n\n` +
-      `• They're signed out right away and can't sign back in\n` +
-      `• Their clients' portals close\n` +
-      `• Every automatic email and text on their deals stops\n` +
-      `• Nothing is deleted — Reactivate puts it all back\n\n` +
-      `Reason (optional, only you see it):`, "", { okLabel: "Suspend" });
+      tr("Suspend {v1}?\n\n", { v1: c.brokerage_name || c.used_by_email }) +
+      tr("• They're signed out right away and can't sign back in\n") +
+      tr("• Their clients' portals close\n") +
+      tr("• Every automatic email and text on their deals stops\n") +
+      tr("• Nothing is deleted — Reactivate puts it all back\n\n") +
+      tr("Reason (optional, only you see it):"), "", { okLabel: "Suspend" });
     if (reason === null) return; // cancelled
     rowAction(c, `/admin/superuser/tenants/${c.tenant_id}/suspend`, { reason });
   };
   const reactivateAccount = async (c) => {
-    if (!(await askConfirm(`Reactivate ${c.brokerage_name || c.used_by_email}? They can sign in again and their automatic emails resume.`, { okLabel: "Reactivate" }))) return;
+    if (!(await askConfirm(tr("Reactivate {v1}? They can sign in again and their automatic emails resume.", { v1: c.brokerage_name || c.used_by_email }), { okLabel: tr("Reactivate") }))) return;
     rowAction(c, `/admin/superuser/tenants/${c.tenant_id}/reactivate`);
   };
   const CODE_STATUS = {
@@ -218,36 +219,36 @@ function SuperuserDashboard({ onClose, token }) {
       <div style={{ maxWidth: 880, margin: "0 auto", padding: "24px 20px 60px" }}>
         {/* Header */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-          <h1 style={{ margin: 0, fontSize: 22, color: COLORS.navy, fontWeight: 800 }}>👑 Superuser Dashboard</h1>
-          <button onClick={onClose} style={{ background: "none", border: `1px solid ${COLORS.border}`, borderRadius: 8, padding: "8px 16px", cursor: "pointer", fontSize: 14, color: COLORS.muted, fontFamily: "inherit" }}>Close</button>
+          <h1 style={{ margin: 0, fontSize: 22, color: COLORS.navy, fontWeight: 800 }}>{tr("👑 Superuser Dashboard")}</h1>
+          <button onClick={onClose} style={{ background: "none", border: `1px solid ${COLORS.border}`, borderRadius: 8, padding: "8px 16px", cursor: "pointer", fontSize: 14, color: COLORS.muted, fontFamily: "inherit" }}>{tr("Close")}</button>
         </div>
-        <div style={{ fontSize: 13, color: COLORS.muted, marginBottom: 24 }}>Platform health and quarterly data-freshness checks. Visible only to you.</div>
+        <div style={{ fontSize: 13, color: COLORS.muted, marginBottom: 24 }}>{tr("Platform health and quarterly data-freshness checks. Visible only to you.")}</div>
 
         {/* 🎟️ INVITE CODES — signups are invite-only during early access */}
         <div style={{ background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 12, padding: 16, marginBottom: 24 }}>
-          <div style={{ fontSize: 15, fontWeight: 800, color: COLORS.navy, marginBottom: 4 }}>🎟️ Invite Codes</div>
+          <div style={{ fontSize: 15, fontWeight: 800, color: COLORS.navy, marginBottom: 4 }}>{tr("🎟️ Invite Codes")}</div>
           <div style={{ fontSize: 12.5, color: COLORS.muted, marginBottom: 12, lineHeight: 1.5 }}>
-            Signup is invite-only. Each code works <b>once</b> — generate one per person and send them the personal link. Once they sign up, their account appears on the code's row: <b>Suspend</b> signs them out and stops everything on their account without deleting anything, and <b>Reactivate</b> puts it all back. Invited signups are tagged <b>founding tester</b> (never billed).
+            {tr("Signup is invite-only. Each code works")} <b>{tr("once")}</b> {tr("— generate one per person and send them the personal link. Once they sign up, their account appears on the code's row:")} <b>{tr("Suspend")}</b> {tr("signs them out and stops everything on their account without deleting anything, and")} <b>{tr("Reactivate")}</b> {tr("puts it all back. Invited signups are tagged")} <b>{tr("founding tester")}</b> {tr("(never billed).")}
           </div>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
-            <input value={codeNote} onChange={e => setCodeNote(e.target.value)} placeholder='Who is this for? (e.g. "John Smith — tester #2")'
+            <input value={codeNote} onChange={e => setCodeNote(e.target.value)} placeholder={tr("Who is this for? (e.g. \"John Smith — tester #2\")")}
               style={{ flex: "1 1 240px", padding: "9px 12px", borderRadius: 8, border: "1.5px solid #CBD5E1", fontSize: 13.5, fontFamily: "inherit" }} />
-            <select value={codeExpiry} onChange={e => setCodeExpiry(e.target.value)} aria-label="Code expires"
+            <select value={codeExpiry} onChange={e => setCodeExpiry(e.target.value)} aria-label={tr("Code expires")}
               style={{ padding: "9px 10px", borderRadius: 8, border: "1.5px solid #CBD5E1", fontSize: 13, fontFamily: "inherit", background: "#fff" }}>
-              <option value="7">Expires in 7 days</option>
-              <option value="30">Expires in 30 days</option>
-              <option value="90">Expires in 90 days</option>
-              <option value="0">Never expires</option>
+              <option value="7">{tr("Expires in 7 days")}</option>
+              <option value="30">{tr("Expires in 30 days")}</option>
+              <option value="90">{tr("Expires in 90 days")}</option>
+              <option value="0">{tr("Never expires")}</option>
             </select>
             <button onClick={createCode} disabled={codeBusy}
               style={{ padding: "9px 18px", borderRadius: 8, border: "none", background: codeBusy ? "#94A3B8" : "#0c4a6e", color: "#fff", fontWeight: 800, fontSize: 13, cursor: codeBusy ? "wait" : "pointer", fontFamily: "inherit" }}>
-              {codeBusy ? "Creating…" : "➕ New code (copies the link)"}
+              {codeBusy ? tr("Creating…") : tr("➕ New code (copies the link)")}
             </button>
           </div>
           {codes === null ? (
-            <div style={{ fontSize: 13, color: COLORS.muted }}>Loading…</div>
+            <div style={{ fontSize: 13, color: COLORS.muted }}>{tr("Loading…")}</div>
           ) : codes.length === 0 ? (
-            <div style={{ fontSize: 13, color: COLORS.muted }}>No codes yet — create your first above.</div>
+            <div style={{ fontSize: 13, color: COLORS.muted }}>{tr("No codes yet — create your first above.")}</div>
           ) : (
             <div style={{ maxHeight: 360, overflowY: "auto" }}>
               {codes.map(c => {
@@ -258,36 +259,36 @@ function SuperuserDashboard({ onClose, token }) {
                   <div key={c.id} style={{ padding: "10px 0", borderBottom: "1px solid #EEF2F7", opacity: busy ? 0.55 : 1 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
                       <code style={{ fontWeight: 800, fontSize: 13.5, color: c.status === "unused" ? COLORS.navy : "#94A3B8" }}>{c.code}</code>
-                      <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: ".04em", textTransform: "uppercase", color: st.color, background: st.bg, padding: "2px 8px", borderRadius: 99 }}>{st.label}</span>
+                      <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: ".04em", textTransform: "uppercase", color: st.color, background: st.bg, padding: "2px 8px", borderRadius: 99 }}>{tr(st.label)}</span>
                       {c.note && <span style={{ fontSize: 12.5, color: "#475569" }}>{c.note}</span>}
                       <span style={{ marginLeft: "auto", display: "flex", gap: 6, flexWrap: "wrap" }}>
                         {c.status === "unused" && <>
                           <button onClick={() => copyLink(c.code)} disabled={busy} style={rowBtn("#1E8449")}>
-                            {copiedCode === c.code ? "✅ Link copied" : "🔗 Copy invite link"}
+                            {copiedCode === c.code ? tr("✅ Link copied") : tr("🔗 Copy invite link")}
                           </button>
-                          <button onClick={() => revokeCode(c)} disabled={busy} style={rowBtn("#64748B")}>Cancel code</button>
+                          <button onClick={() => revokeCode(c)} disabled={busy} style={rowBtn("#64748B")}>{tr("Cancel code")}</button>
                         </>}
                         {c.status === "active" && c.tenant_id &&
-                          <button onClick={() => suspendAccount(c)} disabled={busy} style={rowBtn("#B3261E")}>⛔ Suspend</button>}
+                          <button onClick={() => suspendAccount(c)} disabled={busy} style={rowBtn("#B3261E")}>{tr("⛔ Suspend")}</button>}
                         {c.status === "suspended" && c.tenant_id &&
-                          <button onClick={() => reactivateAccount(c)} disabled={busy} style={rowBtn("#1E8449", true)}>Reactivate</button>}
+                          <button onClick={() => reactivateAccount(c)} disabled={busy} style={rowBtn("#1E8449", true)}>{tr("Reactivate")}</button>}
                       </span>
                     </div>
                     <div style={{ fontSize: 12, color: "#64748B", marginTop: 4, lineHeight: 1.5 }}>
-                      {c.status === "unused" && (c.expires_at ? `Expires ${fmtDate(c.expires_at)}` : "Never expires")}
-                      {c.status === "expired" && `Expired ${fmtDate(c.expires_at)} without being used`}
-                      {c.status === "revoked" && `Cancelled ${fmtDate(c.revoked_at)}`}
+                      {c.status === "unused" && (c.expires_at ? tr("Expires {date}", { date: fmtDate(c.expires_at) }) : tr("Never expires"))}
+                      {c.status === "expired" && tr("Expired {date} without being used", { date: fmtDate(c.expires_at) })}
+                      {c.status === "revoked" && tr("Cancelled {date}", { date: fmtDate(c.revoked_at) })}
                       {redeemed && <>
                         <b style={{ color: "#334155" }}>{c.owner_name || c.used_by_email}</b>
                         {c.brokerage_name ? ` · ${c.brokerage_name}` : ""}
-                        {` · signed up ${fmtDate(c.used_at)}`}
-                        {` · ${c.open_deals || 0} open deal${c.open_deals === 1 ? "" : "s"}`}
+                        {tr(" · signed up {date}", { date: fmtDate(c.used_at) })}
+                        {tn(c.open_deals, " · {v1} open deal", " · {v1} open deals", { v1: c.open_deals || 0 })}
                         {` · ${c.last_login_at ? "last signed in " + fmtDate(c.last_login_at) : "never signed in"}`}
-                        {!c.tenant_id && " · account not found (it may have been removed)"}
+                        {!c.tenant_id && tr(" · account not found (it may have been removed)")}
                       </>}
                       {c.status === "suspended" && (
                         <div style={{ color: "#B3261E", marginTop: 2 }}>
-                          Suspended {fmtDate(c.suspended_at)}{c.suspended_reason ? ` — ${c.suspended_reason}` : ""}
+                          {tr("Suspended")} {fmtDate(c.suspended_at)}{c.suspended_reason ? ` — ${c.suspended_reason}` : ""}
                         </div>
                       )}
                     </div>
@@ -300,10 +301,10 @@ function SuperuserDashboard({ onClose, token }) {
 
         {/* ── Service Health ── */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-          <h2 style={{ margin: 0, fontSize: 16, color: COLORS.navy, fontWeight: 700 }}>Service Health</h2>
-          <button onClick={loadHealth} disabled={healthLoading} style={{ background: "#0c4a6e", color: "#fff", border: "none", borderRadius: 8, padding: "6px 14px", cursor: healthLoading ? "default" : "pointer", fontSize: 13, fontFamily: "inherit", opacity: healthLoading ? 0.6 : 1 }}>{healthLoading ? "Checking…" : "↻ Refresh"}</button>
+          <h2 style={{ margin: 0, fontSize: 16, color: COLORS.navy, fontWeight: 700 }}>{tr("Service Health")}</h2>
+          <button onClick={loadHealth} disabled={healthLoading} style={{ background: "#0c4a6e", color: "#fff", border: "none", borderRadius: 8, padding: "6px 14px", cursor: healthLoading ? "default" : "pointer", fontSize: 13, fontFamily: "inherit", opacity: healthLoading ? 0.6 : 1 }}>{healthLoading ? tr("Checking…") : tr("↻ Refresh")}</button>
         </div>
-        {healthError && <div style={{ background: "#FDEDEC", border: `1px solid ${COLORS.danger}40`, color: COLORS.danger, borderRadius: 8, padding: "10px 14px", fontSize: 13, marginBottom: 16 }}>Couldn't load health: {healthError}</div>}
+        {healthError && <div style={{ background: "#FDEDEC", border: `1px solid ${COLORS.danger}40`, color: COLORS.danger, borderRadius: 8, padding: "10px 14px", fontSize: 13, marginBottom: 16 }}>{tr("Couldn't load health:")} {tr(healthError)}</div>}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 10, marginBottom: 12 }}>
           {SERVICES.map(svc => {
             const c = (health && health[svc.key]) || null;
@@ -321,7 +322,7 @@ function SuperuserDashboard({ onClose, token }) {
               <div key={svc.key} style={{ display: "flex", alignItems: "center", gap: 12, background: COLORS.bg, border: `1px solid ${COLORS.border}`, borderLeft: `4px solid ${accent}`, borderRadius: 10, padding: "12px 14px" }}>
                 {statusDot(status)}
                 <div style={{ minWidth: 0 }}>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: COLORS.navy }}>{svc.label}</div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: COLORS.navy }}>{tr(svc.label)}</div>
                   <div style={{ fontSize: 11, color: detailColor, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{detailText}</div>
                 </div>
               </div>
@@ -330,16 +331,16 @@ function SuperuserDashboard({ onClose, token }) {
         </div>
         {/* Legend */}
         <div style={{ display: "flex", gap: 18, flexWrap: "wrap", margin: "0 0 36px", fontSize: 11, color: COLORS.muted }}>
-          <span style={{ display: "flex", alignItems: "center", gap: 6 }}>{statusDot("ok")} Healthy</span>
-          <span style={{ display: "flex", alignItems: "center", gap: 6 }}>{statusDot("unconfigured")} Needs attention</span>
-          <span style={{ display: "flex", alignItems: "center", gap: 6 }}>{statusDot("down")} Down</span>
+          <span style={{ display: "flex", alignItems: "center", gap: 6 }}>{statusDot("ok")} {tr("Healthy")}</span>
+          <span style={{ display: "flex", alignItems: "center", gap: 6 }}>{statusDot("unconfigured")} {tr("Needs attention")}</span>
+          <span style={{ display: "flex", alignItems: "center", gap: 6 }}>{statusDot("down")} {tr("Down")}</span>
         </div>
 
         {/* ── Quarterly Review ── */}
-        <h2 style={{ margin: "0 0 4px", fontSize: 16, color: COLORS.navy, fontWeight: 700 }}>Quarterly Data Review</h2>
-        <div style={{ fontSize: 12, color: COLORS.muted, marginBottom: 14 }}>These values drift over time as the platform goes statewide. Re-check each every ~3 months and mark it reviewed.</div>
+        <h2 style={{ margin: "0 0 4px", fontSize: 16, color: COLORS.navy, fontWeight: 700 }}>{tr("Quarterly Data Review")}</h2>
+        <div style={{ fontSize: 12, color: COLORS.muted, marginBottom: 14 }}>{tr("These values drift over time as the platform goes statewide. Re-check each every ~3 months and mark it reviewed.")}</div>
         {reviewsLoading ? (
-          <div style={{ color: COLORS.muted, fontSize: 13 }}>Loading…</div>
+          <div style={{ color: COLORS.muted, fontSize: 13 }}>{tr("Loading…")}</div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             {REVIEW_ITEMS.map(item => {
@@ -349,15 +350,15 @@ function SuperuserDashboard({ onClose, token }) {
                 <div key={item.key} style={{ border: `1px solid ${COLORS.border}`, borderLeft: `4px solid ${overdue ? COLORS.danger : COLORS.green}`, borderRadius: 10, padding: "12px 16px", background: "#fff" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, flexWrap: "wrap" }}>
                     <div style={{ flex: 1, minWidth: 220 }}>
-                      <div style={{ fontSize: 14, fontWeight: 700, color: COLORS.navy }}>{item.label} <span style={{ fontSize: 11, fontWeight: 500, color: COLORS.muted }}>· {item.where}</span></div>
+                      <div style={{ fontSize: 14, fontWeight: 700, color: COLORS.navy }}>{tr(item.label)} <span style={{ fontSize: 11, fontWeight: 500, color: COLORS.muted }}>· {item.where}</span></div>
                       <div style={{ fontSize: 12, color: COLORS.muted, marginTop: 3 }}>{item.note}</div>
                       <div style={{ display: "flex", gap: 14, marginTop: 8, flexWrap: "wrap" }}>
-                        <span style={{ fontSize: 12, color: COLORS.muted }}>Last reviewed: <strong style={{ color: COLORS.navy }}>{fmtDate(last)}</strong></span>
-                        <span style={{ fontSize: 12, fontWeight: 700, color: overdue ? COLORS.danger : COLORS.green }}>{overdue && "⚠ "}{label}</span>
+                        <span style={{ fontSize: 12, color: COLORS.muted }}>{tr("Last reviewed:")} <strong style={{ color: COLORS.navy }}>{fmtDate(last)}</strong></span>
+                        <span style={{ fontSize: 12, fontWeight: 700, color: overdue ? COLORS.danger : COLORS.green }}>{overdue && "⚠ "}{tr(label)}</span>
                       </div>
                     </div>
                     <button onClick={() => markReviewed(item.key)} disabled={savingKey === item.key} style={{ background: overdue ? COLORS.danger : COLORS.green, color: "#fff", border: "none", borderRadius: 8, padding: "8px 14px", cursor: savingKey === item.key ? "default" : "pointer", fontSize: 12, fontWeight: 600, fontFamily: "inherit", whiteSpace: "nowrap", opacity: savingKey === item.key ? 0.6 : 1 }}>
-                      {savingKey === item.key ? "Saving…" : "✓ Mark reviewed today"}
+                      {savingKey === item.key ? tr("Saving…") : tr("✓ Mark reviewed today")}
                     </button>
                   </div>
                 </div>
@@ -369,11 +370,11 @@ function SuperuserDashboard({ onClose, token }) {
         {/* ── Feedback Inbox ── */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", margin: "40px 0 4px" }}>
           <h2 style={{ margin: 0, fontSize: 16, color: COLORS.navy, fontWeight: 700 }}>
-            Feedback Inbox{(fbCounts.new || 0) > 0 ? <span style={{ marginLeft: 8, background: COLORS.danger, color: "#fff", borderRadius: 999, padding: "2px 9px", fontSize: 12, fontWeight: 700 }}>{fbCounts.new} new</span> : null}
+            {tr("Feedback Inbox")}{(fbCounts.new || 0) > 0 ? <span style={{ marginLeft: 8, background: COLORS.danger, color: "#fff", borderRadius: 999, padding: "2px 9px", fontSize: 12, fontWeight: 700 }}>{fbCounts.new} {tr("new")}</span> : null}
           </h2>
-          <button onClick={() => loadFeedback()} disabled={fbLoading} style={{ background: "#0c4a6e", color: "#fff", border: "none", borderRadius: 8, padding: "6px 14px", cursor: fbLoading ? "default" : "pointer", fontSize: 13, fontFamily: "inherit", opacity: fbLoading ? 0.6 : 1 }}>{fbLoading ? "Loading…" : "↻ Refresh"}</button>
+          <button onClick={() => loadFeedback()} disabled={fbLoading} style={{ background: "#0c4a6e", color: "#fff", border: "none", borderRadius: 8, padding: "6px 14px", cursor: fbLoading ? "default" : "pointer", fontSize: 13, fontFamily: "inherit", opacity: fbLoading ? 0.6 : 1 }}>{fbLoading ? tr("Loading…") : tr("↻ Refresh")}</button>
         </div>
-        <div style={{ fontSize: 12, color: COLORS.muted, marginBottom: 12 }}>Bugs, ideas, and notes submitted by agents from the in-app 📣 Feedback button.</div>
+        <div style={{ fontSize: 12, color: COLORS.muted, marginBottom: 12 }}>{tr("Bugs, ideas, and notes submitted by agents from the in-app 📣 Feedback button.")}</div>
 
         {/* Filter tabs */}
         <div style={{ display: "flex", gap: 8, marginBottom: 14, flexWrap: "wrap" }}>
@@ -385,15 +386,15 @@ function SuperuserDashboard({ onClose, token }) {
                 padding: "6px 14px", borderRadius: 999, cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 700,
                 border: active ? `2px solid ${COLORS.navy}` : `1px solid ${COLORS.border}`,
                 background: active ? COLORS.navy : "#fff", color: active ? "#fff" : COLORS.muted,
-              }}>{f.label}{typeof n === "number" ? ` (${n})` : ""}</button>
+              }}>{tr(f.label)}{typeof n === "number" ? ` (${n})` : ""}</button>
             );
           })}
         </div>
 
         {fbLoading ? (
-          <div style={{ color: COLORS.muted, fontSize: 13 }}>Loading…</div>
+          <div style={{ color: COLORS.muted, fontSize: 13 }}>{tr("Loading…")}</div>
         ) : feedback.length === 0 ? (
-          <div style={{ color: COLORS.muted, fontSize: 13, padding: "16px 0" }}>Nothing here{fbFilter !== "all" ? ` in "${(FB_FILTERS.find(f => f.id === fbFilter) || {}).label}"` : ""}. 🎉</div>
+          <div style={{ color: COLORS.muted, fontSize: 13, padding: "16px 0" }}>{tr("Nothing here")}{fbFilter !== "all" ? tr(" in \"{label}\"", { label: (FB_FILTERS.find(f => f.id === fbFilter) || {}).label }) : ""}. 🎉</div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             {feedback.map(item => {
@@ -403,7 +404,7 @@ function SuperuserDashboard({ onClose, token }) {
                 <div key={item.id} style={{ border: `1px solid ${COLORS.border}`, borderLeft: `4px solid ${meta.color}`, borderRadius: 10, padding: "12px 16px", background: item.status === "new" ? "#FFFDF5" : "#fff" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, flexWrap: "wrap", marginBottom: 6 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                      <span style={{ fontSize: 12, fontWeight: 800, color: meta.color }}>{meta.label}</span>
+                      <span style={{ fontSize: 12, fontWeight: 800, color: meta.color }}>{tr(meta.label)}</span>
                       <span style={{ fontSize: 12, color: COLORS.navy, fontWeight: 700 }}>{item.user_name || "—"}</span>
                       <span style={{ fontSize: 12, color: COLORS.muted }}>{item.user_email || ""}</span>
                     </div>
@@ -411,20 +412,20 @@ function SuperuserDashboard({ onClose, token }) {
                   </div>
                   <div style={{ fontSize: 14, color: "#222", lineHeight: 1.5, whiteSpace: "pre-wrap", marginBottom: 8 }}>{item.message}</div>
                   <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 10 }}>
-                    {item.tenant_id != null && <span style={{ fontSize: 11, color: COLORS.muted }}>Tenant #{item.tenant_id}</span>}
-                    {item.page && <span style={{ fontSize: 11, color: COLORS.muted }}>at <code style={{ background: COLORS.bg, padding: "1px 5px", borderRadius: 4 }}>{item.page}</code></span>}
+                    {item.tenant_id != null && <span style={{ fontSize: 11, color: COLORS.muted }}>{tr("Tenant #")}{item.tenant_id}</span>}
+                    {item.page && <span style={{ fontSize: 11, color: COLORS.muted }}>{tr("at")} <code style={{ background: COLORS.bg, padding: "1px 5px", borderRadius: 4 }}>{item.page}</code></span>}
                   </div>
                   <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                     {item.status !== "in_progress" && (
-                      <button onClick={() => updateFeedback(item.id, { status: "in_progress" })} disabled={busy} style={{ background: "#fff", color: COLORS.amber, border: `1px solid ${COLORS.amber}`, borderRadius: 8, padding: "6px 12px", cursor: busy ? "default" : "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit", opacity: busy ? 0.6 : 1 }}>◔ In progress</button>
+                      <button onClick={() => updateFeedback(item.id, { status: "in_progress" })} disabled={busy} style={{ background: "#fff", color: COLORS.amber, border: `1px solid ${COLORS.amber}`, borderRadius: 8, padding: "6px 12px", cursor: busy ? "default" : "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit", opacity: busy ? 0.6 : 1 }}>{tr("◔ In progress")}</button>
                     )}
                     {item.status !== "done" && (
-                      <button onClick={() => updateFeedback(item.id, { status: "done" })} disabled={busy} style={{ background: "#0c4a6e", color: "#fff", border: "none", borderRadius: 8, padding: "6px 12px", cursor: busy ? "default" : "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit", opacity: busy ? 0.6 : 1 }}>✓ Done</button>
+                      <button onClick={() => updateFeedback(item.id, { status: "done" })} disabled={busy} style={{ background: "#0c4a6e", color: "#fff", border: "none", borderRadius: 8, padding: "6px 12px", cursor: busy ? "default" : "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit", opacity: busy ? 0.6 : 1 }}>{tr("✓ Done")}</button>
                     )}
                     {item.status !== "new" && (
-                      <button onClick={() => updateFeedback(item.id, { status: "new" })} disabled={busy} style={{ background: "#fff", color: COLORS.muted, border: `1px solid ${COLORS.border}`, borderRadius: 8, padding: "6px 12px", cursor: busy ? "default" : "pointer", fontSize: 12, fontWeight: 600, fontFamily: "inherit", opacity: busy ? 0.6 : 1 }}>↩ Reopen</button>
+                      <button onClick={() => updateFeedback(item.id, { status: "new" })} disabled={busy} style={{ background: "#fff", color: COLORS.muted, border: `1px solid ${COLORS.border}`, borderRadius: 8, padding: "6px 12px", cursor: busy ? "default" : "pointer", fontSize: 12, fontWeight: 600, fontFamily: "inherit", opacity: busy ? 0.6 : 1 }}>{tr("↩ Reopen")}</button>
                     )}
-                    <span style={{ fontSize: 11, color: COLORS.muted, alignSelf: "center" }}>Status: <strong style={{ color: item.status === "done" ? COLORS.green : item.status === "in_progress" ? COLORS.amber : COLORS.danger }}>{item.status === "in_progress" ? "in progress" : item.status}</strong></span>
+                    <span style={{ fontSize: 11, color: COLORS.muted, alignSelf: "center" }}>{tr("Status:")} <strong style={{ color: item.status === "done" ? COLORS.green : item.status === "in_progress" ? COLORS.amber : COLORS.danger }}>{item.status === "in_progress" ? tr("in progress") : item.status}</strong></span>
                   </div>
                 </div>
               );

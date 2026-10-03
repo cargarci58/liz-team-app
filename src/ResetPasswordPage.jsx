@@ -1,3 +1,4 @@
+import { t as tr } from "./i18n";
 import { useState, useEffect } from "react";
 
 const API = "https://liz-team-server-api-production.up.railway.app";
@@ -10,7 +11,7 @@ function PwInput({ inputStyle, ...rest }) {
     <div style={wrapStyle}>
       <input {...rest} type={show ? "text" : "password"} style={innerStyle} />
       <button type="button" onClick={() => setShow(s => !s)} tabIndex={-1}
-        aria-label={show ? "Hide password" : "Show password"}
+        aria-label={show ? tr("Hide password") : tr("Show password")}
         style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", padding: 4, cursor: "pointer", color: "#6b7280", lineHeight: 0 }}>
         {show ? (
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
@@ -31,14 +32,14 @@ export default function ResetPasswordPage() {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    if (!token) setError("This reset link is missing its token. Open the most recent reset email and click the button there.");
+    if (!token) setError(tr("This reset link is missing its token. Open the most recent reset email and click the button there."));
   }, [token]);
 
   const submit = async (e) => {
     e.preventDefault();
     setError(null);
-    if (pw1.length < 8) { setError("Password must be at least 8 characters."); return; }
-    if (pw1 !== pw2) { setError("Passwords don\'t match."); return; }
+    if (pw1.length < 8) { setError(tr("Password must be at least 8 characters.")); return; }
+    if (pw1 !== pw2) { setError(tr("Passwords don\'t match.")); return; }
     setSubmitting(true);
     try {
       const r = await fetch(API + "/auth/reset-password", {
@@ -58,46 +59,46 @@ export default function ResetPasswordPage() {
       <div style={{ background: "white", borderRadius: 12, maxWidth: 440, width: "100%", padding: 32, boxShadow: "0 10px 40px rgba(0,0,0,0.2)" }}>
         <div style={{ textAlign: "center", marginBottom: 20 }}>
           <div style={{ fontSize: 32, marginBottom: 8 }}>🔐</div>
-          <div style={{ fontSize: 22, fontWeight: 800, color: "#111" }}>Reset Your Password</div>
-          <div style={{ fontSize: 13, color: "#6b7280", marginTop: 6 }}>Choose a new password to regain access to your account.</div>
+          <div style={{ fontSize: 22, fontWeight: 800, color: "#111" }}>{tr("Reset Your Password")}</div>
+          <div style={{ fontSize: 13, color: "#6b7280", marginTop: 6 }}>{tr("Choose a new password to regain access to your account.")}</div>
         </div>
 
         {done ? (
           <div>
             <div style={{ background: "#dcfce7", border: "1px solid #86efac", borderRadius: 8, padding: 16, textAlign: "center", marginBottom: 16 }}>
-              <div style={{ fontSize: 16, fontWeight: 800, color: "#14532d", marginBottom: 4 }}>✅ Password Updated</div>
-              <div style={{ fontSize: 13, color: "#14532d" }}>You can now sign in with your new password.</div>
+              <div style={{ fontSize: 16, fontWeight: 800, color: "#14532d", marginBottom: 4 }}>{tr("✅ Password Updated")}</div>
+              <div style={{ fontSize: 13, color: "#14532d" }}>{tr("You can now sign in with your new password.")}</div>
             </div>
-            <a href="/" style={{ display: "block", textAlign: "center", background: "#0c4a6e", color: "white", textDecoration: "none", padding: "12px 20px", borderRadius: 6, fontWeight: 700 }}>Go to Sign In</a>
+            <a href="/" style={{ display: "block", textAlign: "center", background: "#0c4a6e", color: "white", textDecoration: "none", padding: "12px 20px", borderRadius: 6, fontWeight: 700 }}>{tr("Go to Sign In")}</a>
           </div>
         ) : (
           <form onSubmit={submit}>
-            <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 4 }}>New Password</label>
+            <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 4 }}>{tr("New Password")}</label>
             <PwInput value={pw1} onChange={e => setPw1(e.target.value)} required autoFocus
-              placeholder="At least 8 characters"
+              placeholder={tr("At least 8 characters")}
               inputStyle={{ width: "100%", padding: "10px 12px", border: "1px solid #d1d5db", borderRadius: 6, fontSize: 14, marginBottom: 14, boxSizing: "border-box", fontFamily: "inherit" }} />
 
-            <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 4 }}>Confirm New Password</label>
+            <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 4 }}>{tr("Confirm New Password")}</label>
             <PwInput value={pw2} onChange={e => setPw2(e.target.value)} required
-              placeholder="Repeat your new password"
+              placeholder={tr("Repeat your new password")}
               inputStyle={{ width: "100%", padding: "10px 12px", border: "1px solid #d1d5db", borderRadius: 6, fontSize: 14, marginBottom: 14, boxSizing: "border-box", fontFamily: "inherit" }} />
 
             {error && (
               <div style={{ background: "#fee2e2", border: "1px solid #fca5a5", borderRadius: 6, padding: 10, fontSize: 13, color: "#7f1d1d", marginBottom: 14 }}>
-                ⚠️ {error}
+                ⚠️ {tr(error)}
               </div>
             )}
 
             <button type="submit" disabled={submitting || !token}
               style={{ width: "100%", background: submitting ? "#9ca3af" : "#0c4a6e", color: "white", border: "none", padding: "12px 20px", borderRadius: 6, fontSize: 14, fontWeight: 700, cursor: submitting ? "wait" : "pointer", fontFamily: "inherit" }}>
-              {submitting ? "Updating..." : "Update Password"}
+              {submitting ? tr("Updating...") : tr("Update Password")}
             </button>
 
             <div style={{ fontSize: 11, color: "#6b7280", marginTop: 16, textAlign: "center" }}>
-              💡 Tip: Use a unique password — don\'t reuse one from other accounts.
+              {tr("💡 Tip: Use a unique password — don\\'t reuse one from other accounts.")}
             </div>
 
-            <a href="/" style={{ display: "block", textAlign: "center", marginTop: 16, fontSize: 12, color: "#0c4a6e", textDecoration: "none" }}>← Back to Sign In</a>
+            <a href="/" style={{ display: "block", textAlign: "center", marginTop: 16, fontSize: 12, color: "#0c4a6e", textDecoration: "none" }}>{tr("← Back to Sign In")}</a>
           </form>
         )}
       </div>

@@ -1,3 +1,4 @@
+import { t as tr } from "./i18n";
 import { useState, useEffect } from "react";
 import CommissionPlans from "./CommissionPlans";
 import { askConfirm } from "./ui/dialogs";
@@ -27,8 +28,8 @@ export default function CompanySettings({ onClose, onChangePassword }) {
     e.target.value = ""; // allow re-selecting the same file later
     if (!file) return;
     setLogoError("");
-    if (file.size > 2 * 1024 * 1024) { setLogoError("Logo is too large — max 2 MB."); return; }
-    if (!/^image\//.test(file.type)) { setLogoError("Please pick an image file (PNG, JPG, GIF, WebP, or SVG)."); return; }
+    if (file.size > 2 * 1024 * 1024) { setLogoError(tr("Logo is too large — max 2 MB.")); return; }
+    if (!/^image\//.test(file.type)) { setLogoError(tr("Please pick an image file (PNG, JPG, GIF, WebP, or SVG).")); return; }
     setUploadingLogo(true);
     try {
       const base64 = await new Promise((resolve, reject) => {
@@ -45,14 +46,14 @@ export default function CompanySettings({ onClose, onChangePassword }) {
       if (!res.ok || !data.success) throw new Error(data.error || "Upload failed");
       setForm(f => ({ ...f, logoUrl: data.logoUrl }));
     } catch (err) {
-      setLogoError(err.message || "Upload failed");
+      setLogoError(err.message || tr("Upload failed"));
     } finally {
       setUploadingLogo(false);
     }
   };
 
   const handleLogoRemove = async () => {
-    if (!(await askConfirm("Remove the current logo?", { okLabel: "Remove", danger: true }))) return;
+    if (!(await askConfirm(tr("Remove the current logo?"), { okLabel: tr("Remove"), danger: true }))) return;
     setLogoError("");
     try {
       const res = await fetch(API + "/settings/company/logo", { method: "DELETE", headers });
@@ -60,7 +61,7 @@ export default function CompanySettings({ onClose, onChangePassword }) {
       if (!res.ok || !data.success) throw new Error(data.error || "Could not remove logo");
       setForm(f => ({ ...f, logoUrl: "" }));
     } catch (err) {
-      setLogoError(err.message || "Could not remove logo");
+      setLogoError(err.message || tr("Could not remove logo"));
     }
   };
 
@@ -117,7 +118,7 @@ export default function CompanySettings({ onClose, onChangePassword }) {
       a.remove();
       setTimeout(() => URL.revokeObjectURL(url), 1000);
     } catch (err) {
-      setW9Error(err.message || "Could not generate W-9");
+      setW9Error(err.message || tr("Could not generate W-9"));
     } finally {
       setGeneratingW9(false);
     }
@@ -129,14 +130,14 @@ export default function CompanySettings({ onClose, onChangePassword }) {
   const lbl = { fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", letterSpacing: "0.06em", display: "block", marginBottom: 6 };
   const field = (label, key, type = "text", placeholder = "") => (
     <div style={{ marginBottom: 16 }}>
-      <label style={lbl}>{label}</label>
-      <input type={type} value={form[key] || ""} onChange={e => f(key)(e.target.value)} placeholder={placeholder} style={inp} />
+      <label style={lbl}>{tr(label)}</label>
+      <input type={type} value={form[key] || ""} onChange={e => f(key)(e.target.value)} placeholder={tr(placeholder)} style={inp} />
     </div>
   );
 
   if (loading) return (
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 3000, display: "flex", alignItems: "center", justifyContent: "center" }}>
-      <div style={{ background: "#fff", borderRadius: 14, padding: 32 }}>Loading...</div>
+      <div style={{ background: "#fff", borderRadius: 14, padding: 32 }}>{tr("Loading...")}</div>
     </div>
   );
 
@@ -146,13 +147,13 @@ export default function CompanySettings({ onClose, onChangePassword }) {
         
         {/* Header */}
         <div style={{ background: "#111", padding: "18px 24px", display: "flex", justifyContent: "space-between", alignItems: "center", borderRadius: "14px 14px 0 0", position: "sticky", top: 0, zIndex: 1 }}>
-          <div style={{ color: "#fff", fontWeight: 700, fontSize: 18 }}>🏢 Company Settings</div>
+          <div style={{ color: "#fff", fontWeight: 700, fontSize: 18 }}>{tr("🏢 Company Settings")}</div>
           <button onClick={onClose} style={{ background: "none", border: "none", color: "rgba(255,255,255,0.6)", fontSize: 22, cursor: "pointer" }}>×</button>
         </div>
 
         <div style={{ padding: 24 }}>
           {/* Brokerage Info */}
-          <div style={{ fontSize: 13, fontWeight: 700, color: "#C0392B", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 16 }}>Brokerage Information</div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: "#C0392B", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 16 }}>{tr("Brokerage Information")}</div>
           {field("Brokerage Name (as on tax return)", "name", "text", "ABC Realty LLC")}
           {field("DBA (Doing Business As)", "dbaName", "text", "If different from legal name")}
           {field("Tagline", "tagline", "text", "Your trusted real estate partner")}
@@ -162,8 +163,8 @@ export default function CompanySettings({ onClose, onChangePassword }) {
 
           {/* Listing defaults — pre-fill every new listing's business terms so
               the listing package opens ready (agents just confirm). */}
-          <div style={{ fontSize: 13, fontWeight: 700, color: "#C0392B", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6, marginTop: 8 }}>Listing Defaults</div>
-          <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 14 }}>Every new listing starts with these (always editable per deal). Set once, stop retyping.</div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: "#C0392B", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6, marginTop: 8 }}>{tr("Listing Defaults")}</div>
+          <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 14 }}>{tr("Every new listing starts with these (always editable per deal). Set once, stop retyping.")}</div>
           {field("Standard listing commission (%)", "defaultCommissionListing", "number", "e.g. 6")}
           {field("Standard listing term (months)", "defaultListingTermMonths", "number", "e.g. 6")}
           {field("Standard buyer-broker compensation (%)", "defaultBuyerBrokerComp", "number", "e.g. 2.5")}
@@ -172,57 +173,57 @@ export default function CompanySettings({ onClose, onChangePassword }) {
           <CommissionPlans />
 
           {/* Tax / Entity Info — needed for W-9 generation */}
-          <div style={{ fontSize: 13, fontWeight: 700, color: "#C0392B", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 16, marginTop: 8 }}>Tax & Entity Info</div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: "#C0392B", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 16, marginTop: 8 }}>{tr("Tax & Entity Info")}</div>
           <div style={{ marginBottom: 16 }}>
-            <label style={lbl}>Business Type</label>
+            <label style={lbl}>{tr("Business Type")}</label>
             <select value={form.businessType || ""} onChange={e => f("businessType")(e.target.value)} style={inp}>
-              <option value="">— Select —</option>
-              <option value="Sole Proprietor">Sole Proprietor / Individual</option>
-              <option value="LLC">LLC (single-member or unspecified)</option>
-              <option value="LLC - S Corp">LLC taxed as S Corporation</option>
-              <option value="LLC - C Corp">LLC taxed as C Corporation</option>
-              <option value="LLC - Partnership">LLC taxed as Partnership</option>
-              <option value="S Corporation">S Corporation</option>
-              <option value="C Corporation">C Corporation</option>
-              <option value="Partnership">Partnership</option>
-              <option value="Trust/Estate">Trust / Estate</option>
+              <option value="">{tr("— Select —")}</option>
+              <option value="Sole Proprietor">{tr("Sole Proprietor / Individual")}</option>
+              <option value="LLC">{tr("LLC (single-member or unspecified)")}</option>
+              <option value="LLC - S Corp">{tr("LLC taxed as S Corporation")}</option>
+              <option value="LLC - C Corp">{tr("LLC taxed as C Corporation")}</option>
+              <option value="LLC - Partnership">{tr("LLC taxed as Partnership")}</option>
+              <option value="S Corporation">{tr("S Corporation")}</option>
+              <option value="C Corporation">{tr("C Corporation")}</option>
+              <option value="Partnership">{tr("Partnership")}</option>
+              <option value="Trust/Estate">{tr("Trust / Estate")}</option>
             </select>
           </div>
           {field("EIN (Federal Tax ID, 9 digits)", "ein", "text", "XX-XXXXXXX")}
 
           {/* Contact */}
-          <div style={{ fontSize: 13, fontWeight: 700, color: "#C0392B", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 16, marginTop: 8 }}>Contact Information</div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: "#C0392B", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 16, marginTop: 8 }}>{tr("Contact Information")}</div>
           {field("Email", "email", "email", "info@brokerage.com")}
           {field("Phone", "phone", "tel", "407-555-0100")}
           {field("Website", "website", "text", "https://yourbrokerage.com")}
 
           {/* Address */}
-          <div style={{ fontSize: 13, fontWeight: 700, color: "#C0392B", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 16, marginTop: 8 }}>Address</div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: "#C0392B", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 16, marginTop: 8 }}>{tr("Address")}</div>
           {field("Street Address", "address", "text", "123 Main St, Suite 100")}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 80px 120px", gap: 12, marginBottom: 16 }}>
             <div>
-              <label style={lbl}>City</label>
-              <input value={form.city || ""} onChange={e => f("city")(e.target.value)} placeholder="City" style={inp} />
+              <label style={lbl}>{tr("City")}</label>
+              <input value={form.city || ""} onChange={e => f("city")(e.target.value)} placeholder={tr("City")} style={inp} />
             </div>
             <div>
-              <label style={lbl}>State</label>
+              <label style={lbl}>{tr("State")}</label>
               <input value={form.state || "FL"} onChange={e => f("state")(e.target.value)} style={inp} />
             </div>
             <div>
-              <label style={lbl}>ZIP</label>
-              <input value={form.zip || ""} onChange={e => f("zip")(e.target.value)} placeholder="ZIP code" style={inp} />
+              <label style={lbl}>{tr("ZIP")}</label>
+              <input value={form.zip || ""} onChange={e => f("zip")(e.target.value)} placeholder={tr("ZIP code")} style={inp} />
             </div>
           </div>
 
           {/* Social */}
-          <div style={{ fontSize: 13, fontWeight: 700, color: "#C0392B", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 16, marginTop: 8 }}>Social Media</div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: "#C0392B", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 16, marginTop: 8 }}>{tr("Social Media")}</div>
           {field("Facebook URL", "facebook", "text", "https://facebook.com/yourbrokerage")}
           {field("Instagram URL", "instagram", "text", "https://instagram.com/yourbrokerage")}
 
           {/* Branding */}
-          <div style={{ fontSize: 13, fontWeight: 700, color: "#C0392B", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 16, marginTop: 8 }}>Branding</div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: "#C0392B", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 16, marginTop: 8 }}>{tr("Branding")}</div>
           <div style={{ marginBottom: 16 }}>
-            <label style={lbl}>Brand Color</label>
+            <label style={lbl}>{tr("Brand Color")}</label>
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
               <input type="color" value={form.primaryColor || "#C0392B"} onChange={e => f("primaryColor")(e.target.value)} style={{ width: 48, height: 40, borderRadius: 8, border: "1.5px solid #CCC", cursor: "pointer", padding: 2 }} />
               <input value={form.primaryColor || "#C0392B"} onChange={e => f("primaryColor")(e.target.value)} placeholder="#C0392B" style={{ ...inp, width: 120 }} />
@@ -230,84 +231,84 @@ export default function CompanySettings({ onClose, onChangePassword }) {
             </div>
           </div>
           <div style={{ marginBottom: 16 }}>
-            <label style={lbl}>Logo</label>
+            <label style={lbl}>{tr("Logo")}</label>
 
             {form.logoUrl ? (
               <div style={{ marginBottom: 8, padding: 12, background: "#FAFAFA", border: "1px solid #DDD", borderRadius: 8, display: "flex", alignItems: "center", gap: 14 }}>
-                <img src={form.logoUrl} alt="Logo preview" style={{ maxHeight: 60, maxWidth: 200, objectFit: "contain" }} onError={e => e.target.style.display = "none"} />
+                <img src={form.logoUrl} alt={tr("Logo preview")} style={{ maxHeight: 60, maxWidth: 200, objectFit: "contain" }} onError={e => e.target.style.display = "none"} />
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 12, fontWeight: 600, color: "#1E8449" }}>✓ Logo set</div>
-                  <div style={{ fontSize: 11, color: "#666666", marginTop: 2 }}>This logo appears in all client-facing emails.</div>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: "#1E8449" }}>{tr("✓ Logo set")}</div>
+                  <div style={{ fontSize: 11, color: "#666666", marginTop: 2 }}>{tr("This logo appears in all client-facing emails.")}</div>
                 </div>
-                <button onClick={handleLogoRemove} style={{ padding: "6px 12px", background: "none", border: "1px solid #CCC", borderRadius: 6, cursor: "pointer", fontSize: 12, color: "#555", fontFamily: "inherit" }}>Remove</button>
+                <button onClick={handleLogoRemove} style={{ padding: "6px 12px", background: "none", border: "1px solid #CCC", borderRadius: 6, cursor: "pointer", fontSize: 12, color: "#555", fontFamily: "inherit" }}>{tr("Remove")}</button>
               </div>
             ) : null}
 
             <label style={{ display: "inline-block", padding: "10px 18px", background: uploadingLogo ? "#888" : "#111", color: "#fff", borderRadius: 8, cursor: uploadingLogo ? "wait" : "pointer", fontWeight: 700, fontSize: 13, fontFamily: "inherit" }}>
-              {uploadingLogo ? "Uploading…" : (form.logoUrl ? "📤 Replace Logo" : "📤 Upload Logo")}
+              {uploadingLogo ? tr("Uploading…") : (form.logoUrl ? tr("📤 Replace Logo") : tr("📤 Upload Logo"))}
               <input type="file" accept="image/png,image/jpeg,image/gif,image/webp,image/svg+xml" onChange={handleLogoUpload} disabled={uploadingLogo} style={{ display: "none" }} />
             </label>
 
-            <div style={{ fontSize: 11, color: "#666666", marginTop: 6 }}>PNG, JPG, GIF, WebP, or SVG. Max 2 MB.</div>
-            {logoError && <div style={{ fontSize: 12, color: "#C0392B", marginTop: 6, fontWeight: 600 }}>⚠️ {logoError}</div>}
+            <div style={{ fontSize: 11, color: "#666666", marginTop: 6 }}>{tr("PNG, JPG, GIF, WebP, or SVG. Max 2 MB.")}</div>
+            {logoError && <div style={{ fontSize: 12, color: "#C0392B", marginTop: 6, fontWeight: 600 }}>⚠️ {tr(logoError)}</div>}
           </div>
 
           {/* Brokerage Roster — read-only list of agents in this brokerage */}
           {roster.length > 0 && (
             <>
-              <div style={{ fontSize: 13, fontWeight: 700, color: "#C0392B", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 12, marginTop: 8 }}>Brokerage Roster ({roster.length})</div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "#C0392B", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 12, marginTop: 8 }}>{tr("Brokerage Roster (")}{roster.length})</div>
               <div style={{ background: "#FAFAFA", border: "1px solid #EEE", borderRadius: 8, padding: 4, marginBottom: 16, maxHeight: 220, overflowY: "auto" }}>
                 {roster.map(u => (
                   <div key={u.id} style={{ padding: "10px 12px", borderBottom: "1px solid #F0F0F0", display: "grid", gridTemplateColumns: "1fr auto", gap: 8, alignItems: "center", fontSize: 13 }}>
                     <div>
                       <div style={{ fontWeight: 600, color: "#111" }}>
                         {u.first_name} {u.last_name}
-                        {!u.is_active && <span style={{ fontSize: 11, color: "#666666", marginLeft: 8, fontWeight: 400 }}>(inactive)</span>}
+                        {!u.is_active && <span style={{ fontSize: 11, color: "#666666", marginLeft: 8, fontWeight: 400 }}>{tr("(inactive)")}</span>}
                       </div>
                       <div style={{ fontSize: 12, color: "#666", marginTop: 2 }}>
                         {u.email}
-                        {u.license_number && <span style={{ marginLeft: 8 }}>· License #{u.license_number}</span>}
+                        {u.license_number && <span style={{ marginLeft: 8 }}>{tr("· License #")}{u.license_number}</span>}
                       </div>
                     </div>
                     <div style={{ fontSize: 11, fontWeight: 700, color: "#fff", background: u.role === "admin" || u.role === "superadmin" ? "#C0392B" : "#555", padding: "3px 8px", borderRadius: 4, textTransform: "uppercase", letterSpacing: "0.05em" }}>{u.role}</div>
                   </div>
                 ))}
               </div>
-              <div style={{ fontSize: 11, color: "#666666", marginTop: -8, marginBottom: 16 }}>Read-only summary. To add, remove, or edit agents, use the User Management screen.</div>
+              <div style={{ fontSize: 11, color: "#666666", marginTop: -8, marginBottom: 16 }}>{tr("Read-only summary. To add, remove, or edit agents, use the User Management screen.")}</div>
             </>
           )}
 
           {/* W-9 Generator */}
-          <div style={{ fontSize: 13, fontWeight: 700, color: "#C0392B", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 12, marginTop: 8 }}>W-9 Form</div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: "#C0392B", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 12, marginTop: 8 }}>{tr("W-9 Form")}</div>
           <div style={{ background: "#FAFAFA", border: "1px solid #EEE", borderRadius: 8, padding: 14, marginBottom: 16 }}>
             <div style={{ fontSize: 13, color: "#333", marginBottom: 10, lineHeight: 1.5 }}>
-              Generate an IRS Form W-9 pre-filled with your brokerage info. Use this when a co-op brokerage or client needs your W-9 on file before paying commission.
+              {tr("Generate an IRS Form W-9 pre-filled with your brokerage info. Use this when a co-op brokerage or client needs your W-9 on file before paying commission.")}
             </div>
             <div style={{ fontSize: 12, color: "#666", marginBottom: 12, lineHeight: 1.5 }}>
-              <strong>Requires:</strong> Brokerage Name, Address (street, city, state, ZIP), Business Type, and EIN. <strong>Save your settings first</strong> if you just added or changed any of these.
+              <strong>{tr("Requires:")}</strong> {tr("Brokerage Name, Address (street, city, state, ZIP), Business Type, and EIN.")} <strong>{tr("Save your settings first")}</strong> {tr("if you just added or changed any of these.")}
             </div>
             <button
               onClick={handleGenerateW9}
               disabled={generatingW9}
               style={{ padding: "10px 18px", background: generatingW9 ? "#888" : "#0c4a6e", color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: generatingW9 ? "wait" : "pointer", fontFamily: "inherit" }}
             >
-              {generatingW9 ? "Generating…" : "📄 Generate W-9 PDF"}
+              {generatingW9 ? tr("Generating…") : tr("📄 Generate W-9 PDF")}
             </button>
-            {w9Error && <div style={{ fontSize: 12, color: "#C0392B", marginTop: 10, fontWeight: 600 }}>⚠️ {w9Error}</div>}
+            {w9Error && <div style={{ fontSize: 12, color: "#C0392B", marginTop: 10, fontWeight: 600 }}>⚠️ {tr(w9Error)}</div>}
             <div style={{ fontSize: 11, color: "#666666", marginTop: 10, lineHeight: 1.4 }}>
-              ℹ️ Print the PDF and sign Part II by hand. The IRS legally requires a real signature for the W-9 to be valid.
+              {tr("ℹ️ Print the PDF and sign Part II by hand. The IRS legally requires a real signature for the W-9 to be valid.")}
             </div>
           </div>
 
           {/* Save */}
-          {saved && <div style={{ background: "#F0FFF4", border: "1px solid #1E8449", borderRadius: 8, padding: 12, marginBottom: 16, color: "#1E8449", fontSize: 13, fontWeight: 600 }}>✅ Settings saved successfully!</div>}
+          {saved && <div style={{ background: "#F0FFF4", border: "1px solid #1E8449", borderRadius: 8, padding: 12, marginBottom: 16, color: "#1E8449", fontSize: 13, fontWeight: 600 }}>{tr("✅ Settings saved successfully!")}</div>}
           <div style={{ borderTop: "1px solid #EEE", paddingTop: 16, marginBottom: 16 }}>
-            <button onClick={() => { onClose(); onChangePassword && onChangePassword(); }} style={{ background: "none", border: "1px solid #CCC", borderRadius: 8, padding: "8px 16px", cursor: "pointer", fontFamily: "inherit", fontSize: 13, color: "#555" }}>🔒 Change Password</button>
+            <button onClick={() => { onClose(); onChangePassword && onChangePassword(); }} style={{ background: "none", border: "1px solid #CCC", borderRadius: 8, padding: "8px 16px", cursor: "pointer", fontFamily: "inherit", fontSize: 13, color: "#555" }}>{tr("🔒 Change Password")}</button>
           </div>
           <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
-            <button onClick={onClose} style={{ padding: "10px 18px", border: "1px solid #CCC", borderRadius: 8, background: "none", cursor: "pointer", fontFamily: "inherit" }}>Cancel</button>
+            <button onClick={onClose} style={{ padding: "10px 18px", border: "1px solid #CCC", borderRadius: 8, background: "none", cursor: "pointer", fontFamily: "inherit" }}>{tr("Cancel")}</button>
             <button onClick={save} disabled={saving} style={{ padding: "10px 24px", background: "#0c4a6e", color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", fontSize: 15 }}>
-              {saving ? "Saving..." : "Save Settings"}
+              {saving ? tr("Saving...") : tr("Save Settings")}
             </button>
           </div>
         </div>

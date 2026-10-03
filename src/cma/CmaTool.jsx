@@ -673,7 +673,7 @@ function CmaTool({ tx, token, currentUser, standalone = false, initialCma = null
       {saveState && saveState.status !== 'saving' && (
         <div style={{ flexBasis: '100%', marginTop: 6, fontSize: 13, fontWeight: 600,
           color: saveState.status === 'ok' ? '#0c4a6e' : '#B8232F' }}>
-          {saveState.status === 'ok' ? '✓ ' : '⚠ '}{saveState.msg}
+          {saveState.status === 'ok' ? '✓ ' : '⚠ '}{tr(saveState.msg)}
         </div>
       )}
     </>
@@ -784,7 +784,7 @@ function CmaTool({ tx, token, currentUser, standalone = false, initialCma = null
                     <div style={{ fontSize: 12, color: '#666666', marginBottom: 12 }}>{tr("Pull recently-sold homes near the property from your MLS app or Realtor.com — address, sold price, and heated sqft are all that's required. 3 minimum; 5–8 is better.")}</div>
                     <div style={{ overflowX: 'auto' }}>
                       <table style={{ borderCollapse: 'collapse', width: '100%', fontSize: 12.5 }}>
-                        <thead><tr>{['Address *', 'Status', 'Price ($) *', 'Heated sqft *', 'Sold date', 'Beds', 'Baths', 'Year built'].map(h => <th key={h} style={{ textAlign: 'left', padding: '4px 6px', color: '#666666', fontWeight: 700, whiteSpace: 'nowrap' }}>{h}</th>)}</tr></thead>
+                        <thead><tr>{['Address *', 'Status', 'Price ($) *', 'Heated sqft *', 'Sold date', 'Beds', 'Baths', 'Year built'].map(h => <th key={h} style={{ textAlign: 'left', padding: '4px 6px', color: '#666666', fontWeight: 700, whiteSpace: 'nowrap' }}>{tr(h)}</th>)}</tr></thead>
                         <tbody>
                           {manualRows.map((r, i) => (
                             <tr key={i}>
@@ -1427,7 +1427,7 @@ function CmaTool({ tx, token, currentUser, standalone = false, initialCma = null
       {saveState && saveState.status !== 'saving' && (
         <div className="container no-print" style={{ paddingTop: 12 }}>
           <div className={saveState.status === 'ok' ? 'data-good' : 'data-warning'} style={{ margin: 0 }}>
-            <strong>{saveState.status === 'ok' ? '✓ ' : '⚠ '}</strong>{saveState.msg}
+            <strong>{saveState.status === 'ok' ? '✓ ' : '⚠ '}</strong>{tr(saveState.msg)}
           </div>
         </div>
       )}

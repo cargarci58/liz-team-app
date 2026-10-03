@@ -109,7 +109,7 @@ export default function CommissionPlans() {
       {data.plans.map(p => (
         <div key={p.id} style={{ border: "1px solid " + (editId === p.id ? C.blue : C.border), borderRadius: 10, padding: 12, marginBottom: 10 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-            <b style={{ fontSize: 14, color: C.text }}>{p.name}</b>
+            <b style={{ fontSize: 14, color: C.text }}>{tr(p.name)}</b>
             {p.is_default && <span style={{ fontSize: 10.5, fontWeight: 800, color: "#fff", background: C.blue, borderRadius: 10, padding: "2px 8px" }}>{tr("BROKERAGE DEFAULT")}</span>}
             <span style={{ flex: 1 }} />
             {canEdit && editId !== p.id && <button onClick={() => startEdit(p)} style={btn(false)}>{tr("✏️ Edit")}</button>}
@@ -188,7 +188,7 @@ export default function CommissionPlans() {
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
           <span style={{ fontSize: 12.5, color: C.muted, alignSelf: "center" }}>{tr("Start a plan from:")}</span>
           {Object.entries(data.presets).map(([k, p]) => (
-            <button key={k} disabled={busy} onClick={() => create(k)} style={btn(false)}>➕ {p.name}</button>
+            <button key={k} disabled={busy} onClick={() => create(k)} style={btn(false)}>➕ {tr(p.name)}</button>
           ))}
         </div>
       )}
@@ -200,14 +200,14 @@ export default function CommissionPlans() {
             <div key={a.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "5px 0", fontSize: 13 }}>
               <span style={{ flex: 1 }}>{a.first_name} {a.last_name}</span>
               <select value={a.commission_plan_id || ""} onChange={e => assign(a.id, e.target.value)} style={{ ...inp, width: 200 }}>
-                <option value="">{tr("Brokerage default")}{defaultPlan ? ` (${defaultPlan.name})` : ""}</option>
+                <option value="">{tr("Brokerage default")}{defaultPlan ? ` (${tr(defaultPlan.name)})` : ""}</option>
                 {data.plans.map(p => <option key={p.id} value={p.id}>{tr(p.name)}</option>)}
               </select>
             </div>
           ))}
         </div>
       )}
-      {msg && <div style={{ fontSize: 13, fontWeight: 700, marginTop: 8, color: msg.startsWith("✅") ? "#166534" : C.dark }}>{msg}</div>}
+      {msg && <div style={{ fontSize: 13, fontWeight: 700, marginTop: 8, color: msg.startsWith("✅") ? "#166534" : C.dark }}>{tr(msg)}</div>}
     </div>
   );
 }

@@ -135,7 +135,7 @@ export function AgentCoordinatorDesk({ token, onOpenTransaction }) {
       <button onClick={() => setOpen(o => !o)} style={{ width: "100%", textAlign: "left", background: "#F8FAFC", border: "1px solid " + C.border, borderRadius: 12, padding: "12px 14px", cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 8 }}>
         <span style={{ fontSize: 15, fontWeight: 800, color: C.navy }}>{tr("🧭 Coordinator Desk")}</span>
         <span style={{ fontSize: 13, color: C.gray }}>
-          {data.total} {tr("deal")}{data.total === 1 ? "" : "s"} {tr("with your TC ·")} {needLook.length > 0 ? <b style={{ color: C.red }}>{needLook.length} {tr("need a look")}</b> : tr("all on track ✅")}
+          {data.total} {tr(data.total === 1 ? "deal" : "deals")} {tr("with your TC ·")} {needLook.length > 0 ? <b style={{ color: C.red }}>{needLook.length} {tr("need a look")}</b> : tr("all on track ✅")}
         </span>
         <span style={{ marginLeft: "auto", fontSize: 13, color: C.gray }}>{open ? "▲" : "▼"}</span>
       </button>

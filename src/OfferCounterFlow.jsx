@@ -208,7 +208,7 @@ export function CounterModal({ uploadId, address, onClose, onDone }) {
           <button onClick={onClose} style={{ background: "none", border: "none", color: "#fff", fontSize: 22, cursor: "pointer" }}>×</button>
         </div>
         <div style={{ padding: 22 }}>
-          {err && <div style={{ background: "#FDEDEC", border: "1px solid #F5B7B1", color: C.darkRed, borderRadius: 8, padding: "8px 12px", marginBottom: 12, fontSize: 13 }}>⚠️ {err}</div>}
+          {err && <div style={{ background: "#FDEDEC", border: "1px solid #F5B7B1", color: C.darkRed, borderRadius: 8, padding: "8px 12px", marginBottom: 12, fontSize: 13 }}>⚠️ {tr(err)}</div>}
           {!data && !err && <div style={{ color: C.muted }}>{tr("Loading the offer's terms…")}</div>}
 
           {data && stage === "terms" && (
@@ -389,7 +389,7 @@ export function SellerSigningLauncher({ target, tx, onClose, onSent }) {
   }, [target.counterId, target.uploadId]);
   if (err) return (
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 2000, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }} onClick={onClose}>
-      <div style={{ background: "#fff", borderRadius: 12, padding: 20, maxWidth: 420, fontSize: 14 }} onClick={e => e.stopPropagation()}>⚠️ {err}<div style={{ textAlign: "right", marginTop: 12 }}><button onClick={onClose} style={btn(false, "#555")}>{tr("Close")}</button></div></div>
+      <div style={{ background: "#fff", borderRadius: 12, padding: 20, maxWidth: 420, fontSize: 14 }} onClick={e => e.stopPropagation()}>⚠️ {tr(err)}<div style={{ textAlign: "right", marginTop: 12 }}><button onClick={onClose} style={btn(false, "#555")}>{tr("Close")}</button></div></div>
     </div>);
   if (!pkg) return (
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 2000, display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -398,7 +398,7 @@ export function SellerSigningLauncher({ target, tx, onClose, onSent }) {
   const counts = pkg.placements.reduce((m, p) => ({ ...m, [p.kind]: (m[p.kind] || 0) + 1 }), {});
   const intro = (
     <>
-      <strong>{tr("The seller signs last.")}</strong> {tr("The app placed")} {counts.initials || 0} {tr("initial")}{counts.initials === 1 ? "" : "s"}, {counts.signature || 0} {tr("signature")}{counts.signature === 1 ? "" : "s"}{counts.date ? tn(counts.date, " and {n} date", " and {n} dates") : ""} {tr("for")} {pkg.signers.map(s => s.name).filter(Boolean).join(" & ") || tr("the seller")} {tr("— look them over on the pages below. Tap a block to remove it, or pick a block type and tap the page to add one.")}
+      <strong>{tr("The seller signs last.")}</strong> {tr("The app placed")} {counts.initials || 0} {tr(counts.initials === 1 ? "initial" : "initials")}, {counts.signature || 0} {tr(counts.signature === 1 ? "signature" : "signatures")}{counts.date ? tn(counts.date, " and {n} date", " and {n} dates") : ""} {tr("for")} {pkg.signers.map(s => s.name).filter(Boolean).join(" & ") || tr("the seller")} {tr("— look them over on the pages below. Tap a block to remove it, or pick a block type and tap the page to add one.")}
       {pkg.notes && pkg.notes.length > 0 && <ul style={{ margin: "6px 0 0 18px", padding: 0 }}>{pkg.notes.map((n, i) => <li key={i}>{n}</li>)}</ul>}
     </>
   );

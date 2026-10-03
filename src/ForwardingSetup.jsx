@@ -82,19 +82,19 @@ export default function ForwardingSetup() {
     try {
       const r = await fetch(API + "/me/forward-setup/test", { method: "POST", headers, body: "{}" });
       const d = await r.json();
-      if (!r.ok) { setTestMsg(d.error || "Couldn't send the test."); return; }
+      if (!r.ok) { setTestMsg(d.error || tr("Couldn't send the test.")); return; }
       setTestMsg(`Test sent to ${d.sentTo}. Watching for it to come back…`);
       clearInterval(poll.current);
       const started = Date.now();
       poll.current = setInterval(async () => {
         const d2 = await load();
         if (d2 && d2.status === "working" && d2.lastReceivedAt && new Date(d2.lastReceivedAt).getTime() > started - 5000) {
-          clearInterval(poll.current); setTestMsg("✅ It came back — forwarding works!");
+          clearInterval(poll.current); setTestMsg(tr("✅ It came back — forwarding works!"));
         } else if (Date.now() - started > 3 * 60 * 1000) {
-          clearInterval(poll.current); setTestMsg("⚠️ The test hasn't come back after 3 minutes, so forwarding isn't on yet. Re-check the steps above.");
+          clearInterval(poll.current); setTestMsg(tr("⚠️ The test hasn't come back after 3 minutes, so forwarding isn't on yet. Re-check the steps above."));
         }
       }, 10000);
-    } catch { setTestMsg("Network error — try again."); }
+    } catch { setTestMsg(tr("Network error — try again.")); }
   };
   const badge = s.status === "working"
     ? { t: `✅ Forwarding is working${s.lastReceivedAt ? " — last email " + new Date(s.lastReceivedAt).toLocaleString(uiLocale(), { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) : ""}`, c: C.green, bg: "#E9F7EF" }
@@ -128,7 +128,7 @@ export default function ForwardingSetup() {
           {tr("📨 Send me a test email")}
         </button>
         <button onClick={load} style={{ padding: "8px 12px", background: "none", color: C.gray, border: "1px solid " + C.border, borderRadius: 8, cursor: "pointer", fontFamily: "inherit", fontSize: 12 }}>{tr("↻ Check status")}</button>
-        {testMsg && <span style={{ fontSize: 12.5, color: "#333" }}>{testMsg}</span>}
+        {testMsg && <span style={{ fontSize: 12.5, color: "#333" }}>{tr(testMsg)}</span>}
       </div>
     </div>
   );

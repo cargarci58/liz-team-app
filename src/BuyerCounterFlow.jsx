@@ -192,7 +192,7 @@ function BuyerInitialsLauncher({ counter, tx, onClose, onSent }) {
   }, [counter.id]);
   if (err) return (
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 2000, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }} onClick={onClose}>
-      <div style={{ background: "#fff", borderRadius: 12, padding: 20, maxWidth: 420, fontSize: 14 }} onClick={e => e.stopPropagation()}>⚠️ {err}<div style={{ textAlign: "right", marginTop: 12 }}><button onClick={onClose} style={btn(false, "#555")}>{tr("Close")}</button></div></div>
+      <div style={{ background: "#fff", borderRadius: 12, padding: 20, maxWidth: 420, fontSize: 14 }} onClick={e => e.stopPropagation()}>⚠️ {tr(err)}<div style={{ textAlign: "right", marginTop: 12 }}><button onClick={onClose} style={btn(false, "#555")}>{tr("Close")}</button></div></div>
     </div>);
   if (!pkg) return (
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 2000, display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -200,7 +200,7 @@ function BuyerInitialsLauncher({ counter, tx, onClose, onSent }) {
     </div>);
   const intro = (
     <>
-      <strong>{tr("Your buyer initials each change.")}</strong> {tr("The app placed")} {pkg.placements.length} {tr("initial")}{pkg.placements.length === 1 ? "" : "s"} {tr("beside the seller's changes for")} {pkg.signers.map(s => s.name).filter(Boolean).join(" & ") || tr("your buyer")} {tr("— check each page. Tap a block to remove it, or pick Initials and tap the page to add one.")}
+      <strong>{tr("Your buyer initials each change.")}</strong> {tr("The app placed")} {pkg.placements.length} {tr(pkg.placements.length === 1 ? "initial" : "initials")} {tr("beside the seller's changes for")} {pkg.signers.map(s => s.name).filter(Boolean).join(" & ") || tr("your buyer")} {tr("— check each page. Tap a block to remove it, or pick Initials and tap the page to add one.")}
       {pkg.notes && pkg.notes.length > 0 && <ul style={{ margin: "6px 0 0 18px", padding: 0 }}>{pkg.notes.map((n, i) => <li key={i}>{n}</li>)}</ul>}
     </>
   );
@@ -323,7 +323,7 @@ export function TheirCounterModal({ offer, address, onClose, onSaved }) {
           <button onClick={onClose} style={{ background: "none", border: "none", color: "#fff", fontSize: 22, cursor: "pointer" }}>×</button>
         </div>
         <div style={{ padding: 20 }}>
-          {err && <div style={{ background: "#FDEDEC", border: "1px solid #F5B7B1", color: C.darkRed, borderRadius: 8, padding: "8px 12px", fontSize: 13, marginBottom: 12 }}>⚠️ {err}</div>}
+          {err && <div style={{ background: "#FDEDEC", border: "1px solid #F5B7B1", color: C.darkRed, borderRadius: 8, padding: "8px 12px", fontSize: 13, marginBottom: 12 }}>⚠️ {tr(err)}</div>}
           {!setup && !err && <div style={{ fontSize: 14, color: C.muted }}>{tr("Loading…")}</div>}
 
           {setup && stage === "source" && src && (

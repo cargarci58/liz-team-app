@@ -64,7 +64,7 @@ export function WelcomeReminderModal({ receiptId, onClose, onSent }) {
           <div style={{ fontSize: 12, fontWeight: 700, color: C.gray, marginBottom: 4 }}>{tr("Message")}</div>
           <textarea value={draft.body} onChange={e => setDraft(d => ({ ...d, body: e.target.value }))} rows={10} style={{ ...inp, resize: "vertical", lineHeight: 1.5 }} />
         </>)}
-        {err && <div style={{ color: C.darkRed, fontSize: 13, marginTop: 10 }}>{err}</div>}
+        {err && <div style={{ color: C.darkRed, fontSize: 13, marginTop: 10 }}>{tr(err)}</div>}
         <div style={{ display: "flex", gap: 8, marginTop: 16, justifyContent: "flex-end", flexWrap: "wrap" }}>
           <button onClick={onClose} style={{ padding: "10px 18px", borderRadius: 8, border: "1px solid " + C.border, background: "#fff", color: C.gray, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>{tr("Cancel")}</button>
           <button onClick={send} disabled={!draft || busy} style={{ padding: "10px 18px", borderRadius: 8, border: "none", background: "#0c4a6e", color: "#fff", fontWeight: 700, cursor: draft && !busy ? "pointer" : "default", opacity: draft && !busy ? 1 : 0.6, fontFamily: "inherit" }}>

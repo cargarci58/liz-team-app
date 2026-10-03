@@ -1,3 +1,4 @@
+import { t as tr, requestSpanish, useLang } from "./i18n";
 import { useState, useEffect } from "react";
 import { askConfirm } from "./ui/dialogs";
 
@@ -51,7 +52,7 @@ const condLabel = (f) => (COND_OPTIONS.find(c => c[0] === (f || ""))?.[1]) || f;
 function Field({ label, children }) {
   return (
     <div style={{ marginBottom: 10 }}>
-      <div style={{ fontSize: 11, fontWeight: 700, color: COLORS.gray, marginBottom: 4, letterSpacing: 0.5 }}>{label}</div>
+      <div style={{ fontSize: 11, fontWeight: 700, color: COLORS.gray, marginBottom: 4, letterSpacing: 0.5 }}>{tr(label)}</div>
       {children}
     </div>
   );
@@ -59,74 +60,74 @@ function Field({ label, children }) {
 
 function EditorForm({ form, setForm, onSave, onCancel, isNew }) {
   const input = (key, placeholder) => (
-    <input type="text" value={form[key] ?? ""} placeholder={placeholder}
+    <input type="text" value={form[key] ?? ""} placeholder={tr(placeholder)}
       onChange={e => setForm({ ...form, [key]: e.target.value })}
       style={{ width: "100%", padding: 8, borderRadius: 6, border: "1px solid " + COLORS.border, fontSize: 13, boxSizing: "border-box" }} />
   );
   const textarea = (key, placeholder) => (
-    <textarea value={form[key] ?? ""} placeholder={placeholder}
+    <textarea value={form[key] ?? ""} placeholder={tr(placeholder)}
       onChange={e => setForm({ ...form, [key]: e.target.value })}
       style={{ width: "100%", padding: 8, borderRadius: 6, border: "1px solid " + COLORS.border, fontSize: 13, minHeight: 60, boxSizing: "border-box", fontFamily: "inherit" }} />
   );
   return (
     <div style={{ background: COLORS.white, borderRadius: 12, padding: 16, marginBottom: 12, border: "2px solid " + COLORS.red }}>
       <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 12 }}>
-        {isNew ? "➕ New Document Requirement" : "✏️ Edit Requirement"}
+        {isNew ? tr("➕ New Document Requirement") : tr("✏️ Edit Requirement")}
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-        <Field label="STATE (blank = all states)">{input("state", "FL")}</Field>
-        <Field label="TRANSACTION TYPE (blank = all)">{input("transaction_type", "Listing (Seller) or blank")}</Field>
+        <Field label={tr("STATE (blank = all states)")}>{input("state", "FL")}</Field>
+        <Field label={tr("TRANSACTION TYPE (blank = all)")}>{input("transaction_type", "Listing (Seller) or blank")}</Field>
       </div>
-      <Field label="MILESTONE NAME PATTERN (keywords to match, lowercase)">
+      <Field label={tr("MILESTONE NAME PATTERN (keywords to match, lowercase)")}>
         {input("milestone_name_pattern", "e.g. earnest money, inspection period")}
       </Field>
-      <Field label="DOCUMENT TYPE (name shown to agent)">
+      <Field label={tr("DOCUMENT TYPE (name shown to agent)")}>
         {input("document_type", "e.g. EMD Receipt")}
       </Field>
-      <Field label="DESCRIPTION (what the document is)">
+      <Field label={tr("DESCRIPTION (what the document is)")}>
         {textarea("description", "Receipt from escrow confirming EMD was deposited...")}
       </Field>
-      <Field label="LEGAL CONSEQUENCE (why it matters)">
+      <Field label={tr("LEGAL CONSEQUENCE (why it matters)")}>
         {textarea("legal_consequence", "What happens if this is missed?")}
       </Field>
-      <Field label="STATUTE REFERENCE">
+      <Field label={tr("STATUTE REFERENCE")}>
         {input("statute_reference", "e.g. FS 689.302 or FAR/BAR Section 2")}
       </Field>
       <div style={{ display: "flex", gap: 16, marginBottom: 10, flexWrap: "wrap" }}>
         <label style={{ fontSize: 13 }}>
           <input type="checkbox" checked={form.is_required}
-            onChange={e => setForm({ ...form, is_required: e.target.checked })} /> Required
+            onChange={e => setForm({ ...form, is_required: e.target.checked })} /> {tr("Required")}
         </label>
         <label style={{ fontSize: 13 }}>
           <input type="checkbox" checked={form.is_conditional}
-            onChange={e => setForm({ ...form, is_conditional: e.target.checked })} /> Conditional
+            onChange={e => setForm({ ...form, is_conditional: e.target.checked })} /> {tr("Conditional")}
         </label>
         <label style={{ fontSize: 13 }}>
           <input type="checkbox" checked={form.active}
-            onChange={e => setForm({ ...form, active: e.target.checked })} /> Active
+            onChange={e => setForm({ ...form, active: e.target.checked })} /> {tr("Active")}
         </label>
       </div>
       {form.is_conditional && (
-        <Field label="WHEN DOES THIS APPLY?">
+        <Field label={tr("WHEN DOES THIS APPLY?")}>
           {input("conditional_logic", "e.g. Homes built before 1978")}
         </Field>
       )}
-      <Field label="PRIORITY (lower number = checked first)">
+      <Field label={tr("PRIORITY (lower number = checked first)")}>
         <input type="number" value={form.priority}
           onChange={e => setForm({ ...form, priority: parseInt(e.target.value) || 100 })}
           style={{ width: 100, padding: 8, borderRadius: 6, border: "1px solid " + COLORS.border, fontSize: 13 }} />
       </Field>
-      <Field label="INTERNAL NOTES">{input("notes", "Notes for admins only")}</Field>
+      <Field label={tr("INTERNAL NOTES")}>{input("notes", "Notes for admins only")}</Field>
       <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
         <button onClick={onCancel}
           style={{ flex: 1, padding: 11, borderRadius: 8, border: "1.5px solid " + COLORS.border,
             background: COLORS.white, color: COLORS.gray, fontWeight: 600, fontSize: 14, cursor: "pointer" }}>
-          Cancel
+          {tr("Cancel")}
         </button>
         <button onClick={onSave}
           style={{ flex: 2, padding: 11, borderRadius: 8, border: "none",
             background: "#0c4a6e", color: COLORS.white, fontWeight: 700, fontSize: 14, cursor: "pointer" }}>
-          {isNew ? "Create" : "Save Changes"}
+          {isNew ? tr("Create") : tr("Save Changes")}
         </button>
       </div>
     </div>
@@ -137,6 +138,7 @@ function EditorForm({ form, setForm, onSave, onCancel, isNew }) {
 // law (read-only); brokerage-added items can be added/removed and flow to every
 // transaction of the chosen side automatically.
 function RequiredDocsManager({ token }) {
+  useLang(); // redraw when Spanish for the server-written doc names arrives
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
@@ -151,14 +153,14 @@ function RequiredDocsManager({ token }) {
     try {
       const r = await fetch(API + "/document-requirements/checklist-config", { headers: h });
       const d = await r.json();
-      if (d.success) setItems(d.items || []);
+      if (d.success) { setItems(d.items || []); requestSpanish((d.items || []).map(i => i.doc_label || i.document_type)); }
     } catch (e) { /* ignore */ }
     setLoading(false);
   };
   useEffect(() => { load(); }, []);
 
   const add = async () => {
-    if (!label.trim()) { alert("Enter the document name."); return; }
+    if (!label.trim()) { alert(tr("Enter the document name.")); return; }
     setBusy(true);
     try {
       const r = await fetch(API + "/document-requirements/custom", {
@@ -168,16 +170,16 @@ function RequiredDocsManager({ token }) {
       const d = await r.json();
       if (!r.ok || !d.success) throw new Error(d.error || "Add failed");
       setLabel(""); setCond(""); setShowAdd(false); await load();
-    } catch (e) { alert("Add failed: " + e.message); }
+    } catch (e) { alert(tr("Add failed: ") + e.message); }
     setBusy(false);
   };
 
   const remove = async (it) => {
-    if (!(await askConfirm(`Remove "${it.doc_label}" as a brokerage requirement? It will stop appearing on that side's deals.`, { okLabel: "Remove", danger: true }))) return;
+    if (!(await askConfirm(tr("Remove \"{doc_label}\" as a brokerage requirement? It will stop appearing on that side's deals.", { doc_label: it.doc_label }), { okLabel: tr("Remove"), danger: true }))) return;
     try {
       await fetch(API + "/admin/document-requirements/" + it.id, { method: "DELETE", headers: h });
       await load();
-    } catch (e) { alert("Remove failed"); }
+    } catch (e) { alert(tr("Remove failed")); }
   };
 
   const move = async (it, direction) => {
@@ -187,7 +189,7 @@ function RequiredDocsManager({ token }) {
       });
       if (!r.ok) { const d = await r.json().catch(() => ({})); throw new Error(d.error || r.status); }
       await load();
-    } catch (e) { alert("Move failed: " + e.message); }
+    } catch (e) { alert(tr("Move failed: ") + e.message); }
   };
 
   const SIDES = [["Listing (Seller)", "🏡 Seller-side deals"], ["Buyer Representation", "🔑 Buyer-side deals"]];
@@ -197,24 +199,24 @@ function RequiredDocsManager({ token }) {
       background: COLORS.white, border: "1px solid " + COLORS.border, borderRadius: 8, marginBottom: 6 }}>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontWeight: 600, fontSize: 13 }}>
-          {it.doc_label || it.document_type}
+          {tr(it.doc_label || it.document_type)}
           {it.is_system_default
-            ? <span style={{ marginLeft: 6, fontSize: 10, fontWeight: 700, color: "#374151", background: "#E5E7EB", padding: "1px 6px", borderRadius: 10 }}>STATE / LAW</span>
-            : <span style={{ marginLeft: 6, fontSize: 10, fontWeight: 700, color: "#1A5276", background: "#D6EAF8", padding: "1px 6px", borderRadius: 10 }}>BROKER</span>}
+            ? <span style={{ marginLeft: 6, fontSize: 10, fontWeight: 700, color: "#374151", background: "#E5E7EB", padding: "1px 6px", borderRadius: 10 }}>{tr("STATE / LAW")}</span>
+            : <span style={{ marginLeft: 6, fontSize: 10, fontWeight: 700, color: "#1A5276", background: "#D6EAF8", padding: "1px 6px", borderRadius: 10 }}>{tr("BROKER")}</span>}
         </div>
-        <div style={{ fontSize: 11, color: COLORS.gray, marginTop: 1 }}>{condLabel(it.condition_flag)}</div>
+        <div style={{ fontSize: 11, color: COLORS.gray, marginTop: 1 }}>{tr(condLabel(it.condition_flag))}</div>
       </div>
       {it.is_system_default ? (
-        <span style={{ fontSize: 11, color: COLORS.gray, fontStyle: "italic", flexShrink: 0 }}>required by law</span>
+        <span style={{ fontSize: 11, color: COLORS.gray, fontStyle: "italic", flexShrink: 0 }}>{tr("required by law")}</span>
       ) : (
         <div style={{ display: "flex", gap: 6, flexShrink: 0, alignItems: "center" }}>
-          <button onClick={() => move(it, "up")} title="Move up"
+          <button onClick={() => move(it, "up")} title={tr("Move up")}
             style={{ padding: "5px 9px", borderRadius: 6, border: "1px solid " + COLORS.border, background: COLORS.white, fontSize: 12, fontWeight: 700, cursor: "pointer" }}>↑</button>
-          <button onClick={() => move(it, "down")} title="Move down"
+          <button onClick={() => move(it, "down")} title={tr("Move down")}
             style={{ padding: "5px 9px", borderRadius: 6, border: "1px solid " + COLORS.border, background: COLORS.white, fontSize: 12, fontWeight: 700, cursor: "pointer" }}>↓</button>
           <button onClick={() => remove(it)}
             style={{ padding: "5px 10px", borderRadius: 6, border: "1px solid " + COLORS.dangerBorder, background: COLORS.white, color: COLORS.danger, fontSize: 11, fontWeight: 700, cursor: "pointer" }}>
-            ✕ Remove
+            {tr("✕ Remove")}
           </button>
         </div>
       )}
@@ -223,48 +225,47 @@ function RequiredDocsManager({ token }) {
 
   return (
     <div style={{ background: "#F8FAFC", border: "1px solid " + COLORS.border, borderRadius: 14, padding: 18, marginBottom: 24 }}>
-      <div style={{ fontSize: 18, fontWeight: 800, color: COLORS.black, marginBottom: 4 }}>📋 Required Documents Checklist (per deal)</div>
+      <div style={{ fontSize: 18, fontWeight: 800, color: COLORS.black, marginBottom: 4 }}>{tr("📋 Required Documents Checklist (per deal)")}</div>
       <div style={{ fontSize: 13, color: COLORS.gray, marginBottom: 14, lineHeight: 1.5 }}>
-        What every transaction must have to be compliant. <b>STATE / LAW</b> items are fixed. Add your brokerage's own
-        required documents below — they apply to <b>every deal</b> of that side automatically, and agents upload or waive them per deal.
+        {tr("What every transaction must have to be compliant.")} <b>{tr("STATE / LAW")}</b> {tr("items are fixed. Add your brokerage's own required documents below — they apply to")} <b>{tr("every deal")}</b> {tr("of that side automatically, and agents upload or waive them per deal.")}
       </div>
-      {loading ? <div style={{ color: COLORS.gray, padding: 12 }}>Loading…</div> : SIDES.map(([sv, slabel]) => {
+      {loading ? <div style={{ color: COLORS.gray, padding: 12 }}>{tr("Loading…")}</div> : SIDES.map(([sv, slabel]) => {
         const group = items.filter(i => i.transaction_type === sv);
         return (
           <div key={sv} style={{ marginBottom: 16 }}>
-            <div style={{ fontWeight: 800, fontSize: 13, color: COLORS.black, margin: "4px 0 8px" }}>{slabel}</div>
-            {group.length === 0 ? <div style={{ fontSize: 12, color: COLORS.gray }}>None.</div> : group.map(Row)}
+            <div style={{ fontWeight: 800, fontSize: 13, color: COLORS.black, margin: "4px 0 8px" }}>{tr(slabel)}</div>
+            {group.length === 0 ? <div style={{ fontSize: 12, color: COLORS.gray }}>{tr("None.")}</div> : group.map(Row)}
           </div>
         );
       })}
       {!showAdd ? (
         <button onClick={() => setShowAdd(true)}
           style={{ background: "#0c4a6e", border: "none", borderRadius: 8, padding: "9px 16px", fontSize: 13, fontWeight: 700, color: "#fff", cursor: "pointer" }}>
-          ➕ Add a brokerage-required document
+          {tr("➕ Add a brokerage-required document")}
         </button>
       ) : (
         <div style={{ background: COLORS.white, border: "1px solid " + COLORS.border, borderRadius: 10, padding: 14 }}>
-          <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 10 }}>Add a document your brokerage requires</div>
+          <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 10 }}>{tr("Add a document your brokerage requires")}</div>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-            <input value={label} onChange={e => setLabel(e.target.value)} placeholder="Name (e.g. Buyer's Broker's Disclosure)"
+            <input value={label} onChange={e => setLabel(e.target.value)} placeholder={tr("Name (e.g. Buyer's Broker's Disclosure)")}
               style={{ flex: "2 1 240px", padding: "9px 10px", borderRadius: 7, border: "1px solid " + COLORS.border, fontSize: 13 }} />
             <select value={side} onChange={e => setSide(e.target.value)}
               style={{ padding: "9px 10px", borderRadius: 7, border: "1px solid " + COLORS.border, fontSize: 13 }}>
-              <option value="Listing (Seller)">Seller-side deals</option>
-              <option value="Buyer Representation">Buyer-side deals</option>
-              <option value="both">All deals (both sides)</option>
+              <option value="Listing (Seller)">{tr("Seller-side deals")}</option>
+              <option value="Buyer Representation">{tr("Buyer-side deals")}</option>
+              <option value="both">{tr("All deals (both sides)")}</option>
             </select>
             <select value={cond} onChange={e => setCond(e.target.value)}
               style={{ padding: "9px 10px", borderRadius: 7, border: "1px solid " + COLORS.border, fontSize: 13 }}>
-              {COND_OPTIONS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+              {COND_OPTIONS.map(([v, l]) => <option key={v} value={v}>{tr(l)}</option>)}
             </select>
             <button onClick={add} disabled={busy}
               style={{ padding: "9px 16px", borderRadius: 7, border: "none", background: "#0c4a6e", color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
-              {busy ? "Adding…" : "Add"}
+              {busy ? tr("Adding…") : tr("Add")}
             </button>
             <button onClick={() => { setShowAdd(false); setLabel(""); setCond(""); }}
               style={{ padding: "9px 12px", borderRadius: 7, border: "1px solid " + COLORS.border, background: COLORS.white, color: COLORS.gray, fontSize: 13, cursor: "pointer" }}>
-              Cancel
+              {tr("Cancel")}
             </button>
           </div>
         </div>
@@ -274,6 +275,7 @@ function RequiredDocsManager({ token }) {
 }
 
 export default function ComplianceAdmin({ token, user }) {
+  useLang(); // redraw when Spanish for the requirement descriptions arrives
   const [requirements, setRequirements] = useState([]);
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState(null);
@@ -290,8 +292,8 @@ export default function ComplianceAdmin({ token, user }) {
         headers: { Authorization: "Bearer " + token }
       });
       const data = await res.json();
-      if (data.success) setRequirements(data.requirements);
-    } catch (e) { alert("Failed to load requirements"); }
+      if (data.success) { setRequirements(data.requirements); requestSpanish((data.requirements || []).flatMap(q => [q.document_type, q.description, q.legal_consequence])); }
+    } catch (e) { alert(tr("Failed to load requirements")); }
     setLoading(false);
   };
 
@@ -328,8 +330,8 @@ export default function ComplianceAdmin({ token, user }) {
       });
       const data = await res.json();
       if (data.success) { setEditingId(null); fetchRequirements(); }
-      else alert("Save failed: " + (data.error || "?"));
-    } catch (e) { alert("Network error"); }
+      else alert(tr("Save failed: ") + (data.error || "?"));
+    } catch (e) { alert(tr("Network error")); }
   };
 
   const saveCreate = async () => {
@@ -342,12 +344,12 @@ export default function ComplianceAdmin({ token, user }) {
       });
       const data = await res.json();
       if (data.success) { setShowCreate(false); fetchRequirements(); }
-      else alert("Create failed: " + (data.error || "?"));
-    } catch (e) { alert("Network error"); }
+      else alert(tr("Create failed: ") + (data.error || "?"));
+    } catch (e) { alert(tr("Network error")); }
   };
 
   const approve = async (id) => {
-    if (!(await askConfirm("Mark as attorney-reviewed? This removes the pending-review flag.", { okLabel: "Mark reviewed" }))) return;
+    if (!(await askConfirm(tr("Mark as attorney-reviewed? This removes the pending-review flag."), { okLabel: tr("Mark reviewed") }))) return;
     try {
       await fetch(API + "/admin/document-requirements/" + id + "/approve", {
         method: "POST", headers: { Authorization: "Bearer " + token }
@@ -357,7 +359,7 @@ export default function ComplianceAdmin({ token, user }) {
   };
 
   const removeReq = async (id) => {
-    if (!(await askConfirm("Deactivate this requirement? It will stop applying to new transactions.", { okLabel: "Deactivate", danger: true }))) return;
+    if (!(await askConfirm(tr("Deactivate this requirement? It will stop applying to new transactions."), { okLabel: tr("Deactivate"), danger: true }))) return;
     try {
       await fetch(API + "/admin/document-requirements/" + id, {
         method: "DELETE", headers: { Authorization: "Bearer " + token }
@@ -377,7 +379,7 @@ export default function ComplianceAdmin({ token, user }) {
 
   const needsReviewCount = requirements.filter(r => r.needs_attorney_review && r.active).length;
 
-  if (loading) return <div style={{ padding: 32, textAlign: "center", color: COLORS.gray }}>Loading...</div>;
+  if (loading) return <div style={{ padding: 32, textAlign: "center", color: COLORS.gray }}>{tr("Loading...")}</div>;
 
   return (
     <div style={{ maxWidth: 900, margin: "0 auto", padding: "16px 16px 80px" }}>
@@ -386,29 +388,28 @@ export default function ComplianceAdmin({ token, user }) {
 
       <div style={{ marginBottom: 20 }}>
         <div style={{ fontSize: 18, fontWeight: 800, color: COLORS.black, marginBottom: 4 }}>
-          ⚙️ Advanced: milestone-linked document rules
+          {tr("⚙️ Advanced: milestone-linked document rules")}
         </div>
         <div style={{ fontSize: 13, color: COLORS.gray, lineHeight: 1.5 }}>
-          These tie a required document to a specific milestone step (e.g. "EMD Receipt" on the earnest-money milestone).
-          Most brokerages won't need to touch this — the per-deal checklist above is the main control.
+          {tr("These tie a required document to a specific milestone step (e.g. \"EMD Receipt\" on the earnest-money milestone). Most brokerages won't need to touch this — the per-deal checklist above is the main control.")}
         </div>
       </div>
 
       {needsReviewCount > 0 && (
         <div style={{ background: COLORS.warningBg, border: "1px solid " + COLORS.warningBorder, borderRadius: 10, padding: 12, marginBottom: 16 }}>
           <div style={{ fontWeight: 700, color: "#92400E", marginBottom: 4 }}>
-            ⚠️ {needsReviewCount} requirement{needsReviewCount !== 1 ? "s" : ""} pending attorney review
+            ⚠️ {needsReviewCount} {tr(needsReviewCount !== 1 ? "requirements" : "requirement")} {tr("pending attorney review")}
           </div>
           <div style={{ fontSize: 12, color: "#78350F" }}>
-            These were auto-seeded as a starting point. A Florida-licensed real estate attorney should verify each before this app is used in production transactions.
+            {tr("These were auto-seeded as a starting point. A Florida-licensed real estate attorney should verify each before this app is used in production transactions.")}
           </div>
         </div>
       )}
 
       <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
         {[
-          ["all", "All " + requirements.length],
-          ["needs_review", "Needs Review " + needsReviewCount],
+          ["all", tr("All") + " " + requirements.length],
+          ["needs_review", tr("Needs Review") + " " + needsReviewCount],
           ["fl", "Florida"],
           ["national", "National/Federal"],
           ["inactive", "Inactive"]
@@ -418,13 +419,13 @@ export default function ComplianceAdmin({ token, user }) {
               background: filter === key ? COLORS.red : COLORS.white,
               color: filter === key ? COLORS.white : COLORS.gray,
               fontWeight: 600, fontSize: 12, cursor: "pointer" }}>
-            {label}
+            {tr(label)}
           </button>
         ))}
         <button onClick={startCreate}
           style={{ marginLeft: "auto", padding: "8px 14px", borderRadius: 20, border: "none",
             background: "#0c4a6e", color: COLORS.white, fontWeight: 700, fontSize: 12, cursor: "pointer" }}>
-          ➕ Add Requirement
+          {tr("➕ Add Requirement")}
         </button>
       </div>
 
@@ -442,26 +443,26 @@ export default function ComplianceAdmin({ token, user }) {
               <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
                 <div style={{ flex: 1, minWidth: 240 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", marginBottom: 4 }}>
-                    <div style={{ fontWeight: 700, fontSize: 14 }}>{req.document_type}</div>
+                    <div style={{ fontWeight: 700, fontSize: 14 }}>{tr(req.document_type)}</div>
                     {req.state && <span style={{ background: "#DBEAFE", color: "#1E40AF", fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 20 }}>{req.state}</span>}
-                    {!req.state && <span style={{ background: "#E5E7EB", color: "#374151", fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 20 }}>NATIONAL</span>}
+                    {!req.state && <span style={{ background: "#E5E7EB", color: "#374151", fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 20 }}>{tr("NATIONAL")}</span>}
                     {req.transaction_type && <span style={{ background: "#F3E8FF", color: "#6B21A8", fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 20 }}>{req.transaction_type}</span>}
-                    {req.is_conditional && <span style={{ background: "#FEF3C7", color: "#92400E", fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 20 }}>CONDITIONAL</span>}
-                    {req.needs_attorney_review && <span style={{ background: "#FEE2E2", color: "#991B1B", fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 20 }}>NEEDS REVIEW</span>}
-                    {!req.active && <span style={{ background: "#E5E7EB", color: "#374151", fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 20 }}>INACTIVE</span>}
+                    {req.is_conditional && <span style={{ background: "#FEF3C7", color: "#92400E", fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 20 }}>{tr("CONDITIONAL")}</span>}
+                    {req.needs_attorney_review && <span style={{ background: "#FEE2E2", color: "#991B1B", fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 20 }}>{tr("NEEDS REVIEW")}</span>}
+                    {!req.active && <span style={{ background: "#E5E7EB", color: "#374151", fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 20 }}>{tr("INACTIVE")}</span>}
                   </div>
                   <div style={{ fontSize: 12, color: COLORS.gray, marginBottom: 4 }}>
-                    Matches milestones containing: <code style={{ background: "#F3F4F6", padding: "1px 6px", borderRadius: 4 }}>{req.milestone_name_pattern}</code>
+                    {tr("Matches milestones containing:")} <code style={{ background: "#F3F4F6", padding: "1px 6px", borderRadius: 4 }}>{req.milestone_name_pattern}</code>
                   </div>
-                  {req.description && <div style={{ fontSize: 12, color: "#374151", marginBottom: 4 }}>{req.description}</div>}
+                  {req.description && <div style={{ fontSize: 12, color: "#374151", marginBottom: 4 }}>{tr(req.description)}</div>}
                   {req.legal_consequence && (
                     <div style={{ fontSize: 11, color: "#78350F", marginTop: 4, lineHeight: 1.4 }}>
-                      ⚠️ {req.legal_consequence}
+                      ⚠️ {tr(req.legal_consequence)}
                     </div>
                   )}
                   {req.statute_reference && (
                     <div style={{ fontSize: 11, color: "#92400E", fontStyle: "italic", marginTop: 2 }}>
-                      Reference: {req.statute_reference}
+                      {tr("Reference:")} {req.statute_reference}
                     </div>
                   )}
                 </div>
@@ -469,20 +470,20 @@ export default function ComplianceAdmin({ token, user }) {
                   <button onClick={() => startEdit(req)}
                     style={{ padding: "6px 12px", borderRadius: 6, border: "1.5px solid " + COLORS.border,
                       background: COLORS.white, color: COLORS.gray, fontWeight: 600, fontSize: 11, cursor: "pointer" }}>
-                    ✏️ Edit
+                    {tr("✏️ Edit")}
                   </button>
                   {req.needs_attorney_review && (
                     <button onClick={() => approve(req.id)}
                       style={{ padding: "6px 12px", borderRadius: 6, border: "none",
                         background: "#0c4a6e", color: COLORS.white, fontWeight: 700, fontSize: 11, cursor: "pointer" }}>
-                      ✓ Approve
+                      {tr("✓ Approve")}
                     </button>
                   )}
                   {req.active && (
                     <button onClick={() => removeReq(req.id)}
                       style={{ padding: "6px 12px", borderRadius: 6, border: "1.5px solid " + COLORS.dangerBorder,
                         background: COLORS.white, color: COLORS.danger, fontWeight: 600, fontSize: 11, cursor: "pointer" }}>
-                      Deactivate
+                      {tr("Deactivate")}
                     </button>
                   )}
                 </div>
@@ -494,7 +495,7 @@ export default function ComplianceAdmin({ token, user }) {
 
       {filtered.length === 0 && (
         <div style={{ textAlign: "center", padding: 32, color: COLORS.gray, fontSize: 14 }}>
-          No requirements match this filter.
+          {tr("No requirements match this filter.")}
         </div>
       )}
     </div>

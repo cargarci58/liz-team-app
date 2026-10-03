@@ -465,7 +465,7 @@ export default function PopBysPage({ token, onBack }) {
                   <div style={stepBox}>
                     <div style={stepTitle}><span style={stepNum}>2</span> {tr("Print the note cards")}</div>
                     <div style={{ fontSize: 13, color: "#6b7280", marginBottom: 10 }}>{tr("One card per person, ready to print on letter paper (8 per page) and cut out. Tape one to each gift.")}</div>
-                    <button onClick={printNotes} style={btn("#E0F2FE", "#0c4a6e")}>{tr("🖨 Print")} {runList.length} {tr("note card")}{runList.length === 1 ? "" : "s"}</button>
+                    <button onClick={printNotes} style={btn("#E0F2FE", "#0c4a6e")}>{tr("🖨 Print")} {runList.length} {tr(runList.length === 1 ? "note card" : "note cards")}</button>
                   </div>
 
                   {/* ── STEP 3 — pick who / which area ── */}
@@ -480,7 +480,7 @@ export default function PopBysPage({ token, onBack }) {
                         ? <button onClick={() => { setRefMode("office"); setGpsNote(""); }} style={linkBtn}>{tr("Use office instead")}</button>
                         : <button onClick={useMyLocation} disabled={gpsBusy} style={linkBtn}>{gpsBusy ? tr("📍 locating…") : tr("📍 I'm out delivering — use my location")}</button>}
                     </div>
-                    {gpsNote && <div style={{ fontSize: 12, color: "#0c4a6e", marginBottom: 8 }}>{gpsNote}</div>}
+                    {gpsNote && <div style={{ fontSize: 12, color: "#0c4a6e", marginBottom: 8 }}>{tr(gpsNote)}</div>}
                     {!refReady && radius !== "all" && (
                       <div style={{ fontSize: 13, color: "#b45309", background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 8, padding: 10, marginBottom: 10 }}>
                         {tr("Add your office address in")} <strong>{tr("My Profile")}</strong> {tr("so we can find who's nearby — or tap")} <strong>{tr("📍 use my location")}</strong> {tr("above, or pick")} <strong>{tr("Everyone")}</strong> {tr("below.")}

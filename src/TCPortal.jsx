@@ -1,3 +1,4 @@
+import { t as tr, locale as uiLocale, requestSpanish, useLang, getLang, saveStaffLang } from "./i18n";
 import { useState, useEffect, useCallback } from "react";
 import BackButton from "./ui/BackButton";
 import AssistantPanel from "./components/AssistantPanel";
@@ -26,13 +27,25 @@ async function api(path, opts = {}) {
     headers: { "Content-Type": "application/json", Authorization: "Bearer " + tok(), ...(opts.headers || {}) },
   });
   const data = await r.json().catch(() => ({}));
+  // Spanish screens: server-written step names / Deal Doctor lines get their
+  // Spanish fetched (cached). Draft messages to other people are never touched.
+  try {
+    const out = [];
+    const walk = (o, k) => {
+      if (Array.isArray(o)) o.forEach(x => walk(x, k));
+      else if (o && typeof o === "object") Object.entries(o).forEach(([kk, v]) => { if (kk !== "draft") walk(v, kk); });
+      else if (typeof o === "string" && ["name", "risk", "move", "title", "category"].includes(k)) out.push(o);
+    };
+    walk(data, "");
+    if (out.length) requestSpanish(out);
+  } catch { /* display only */ }
   if (!r.ok) { const err = new Error(data.error || "Something went wrong"); err.status = r.status; throw err; }
   return data;
 }
 
 function fmtDate(d) {
   if (!d) return "";
-  try { return new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }); }
+  try { return new Date(d).toLocaleDateString(uiLocale(), { month: "short", day: "numeric", year: "numeric" }); }
   catch { return String(d); }
 }
 const money = (n) => "$" + Number(n || 0).toLocaleString("en-US", { maximumFractionDigits: 0 });
@@ -50,6 +63,7 @@ const pill = (bg, fg) => ({ display: "inline-block", fontSize: 12, fontWeight: 7
 const ROLE_OPTIONS = ["Buyer", "Seller", "Buyer's Agent", "Buyer's Agent Assistant", "Buyer's Agent TC", "Listing Agent", "Listing Agent Assistant", "Listing Agent TC", "Lender", "Title", "Inspector", "Appraiser", "HOA", "Closing Attorney", "Other"];
 
 export default function TCPortal({ user, onLogout }) {
+  useLang(); // redraw when Spanish for server-written text arrives
   const [nav, setNav] = useState("dashboard"); // dashboard | deals | business
   const [openId, setOpenId] = useState(null);
 
@@ -78,17 +92,22 @@ export default function TCPortal({ user, onLogout }) {
     <div style={{ minHeight: "100vh", background: C.bg, color: C.ink, fontFamily: "system-ui, -apple-system, Segoe UI, Roboto, sans-serif" }}>
       <div style={{ background: C.ink, color: "#fff", padding: "14px 18px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div>
-          <div style={{ fontWeight: 800, fontSize: 17 }}>Coordinator Portal</div>
+          <div style={{ fontWeight: 800, fontSize: 17 }}>{tr("Coordinator Portal")}</div>
           <div style={{ fontSize: 12, opacity: 0.7 }}>{fullName(user) || user?.email}</div>
         </div>
-        <button onClick={onLogout} style={{ ...btn(false), background: "transparent", color: "#fff", borderColor: "rgba(255,255,255,0.3)" }}>Log out</button>
+        <div style={{ display: "flex", gap: 8 }}>
+          {/* The TC portal has no ⚙️ Menu, so its language switch sits by Log out. */}
+          <button onClick={() => saveStaffLang(getLang() === "es" ? "en" : "es")} title={getLang() === "es" ? "Switch to English" : "Cambiar a Español"}
+            style={{ ...btn(false), background: "transparent", color: "#fff", borderColor: "rgba(255,255,255,0.3)" }}>🌎 {getLang() === "es" ? "English" : "Español"}</button>
+          <button onClick={onLogout} style={{ ...btn(false), background: "transparent", color: "#fff", borderColor: "rgba(255,255,255,0.3)" }}>{tr("Log out")}</button>
+        </div>
       </div>
 
       {!openId && (
         <div style={{ background: C.paper, borderBottom: `1px solid ${C.line}`, display: "flex", gap: 6, padding: "10px 16px", overflowX: "auto" }}>
           {NAVS.map(n => (
             <button key={n.id} onClick={() => setNav(n.id)}
-              style={{ ...btn(nav === n.id), whiteSpace: "nowrap", padding: "8px 14px", fontSize: 14 }}>{n.label}</button>
+              style={{ ...btn(nav === n.id), whiteSpace: "nowrap", padding: "8px 14px", fontSize: 14 }}>{tr(n.label)}</button>
           ))}
         </div>
       )}
@@ -123,8 +142,8 @@ function Dashboard({ onOpen, onGoDeals }) {
   const [err, setErr] = useState("");
   useEffect(() => { api("/tc/dashboard").then(setD).catch(e => setErr(e.message)); }, []);
 
-  if (err) return <div style={{ ...card, color: C.red }}>⚠️ {err}</div>;
-  if (!d) return <div style={{ ...card, color: C.muted }}>Loading your numbers…</div>;
+  if (err) return <div style={{ ...card, color: C.red }}>⚠️ {tr(err)}</div>;
+  if (!d) return <div style={{ ...card, color: C.muted }}>{tr("Loading your numbers…")}</div>;
 
   const today = new Date(); today.setHours(0, 0, 0, 0);
   const dueClass = (m) => {
@@ -135,8 +154,8 @@ function Dashboard({ onOpen, onGoDeals }) {
   const stat = (label, value, sub) => (
     <div style={{ ...card, marginBottom: 0, textAlign: "center", flex: "1 1 130px" }}>
       <div style={{ fontSize: 26, fontWeight: 800 }}>{value}</div>
-      <div style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>{label}</div>
-      {sub && <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>{sub}</div>}
+      <div style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>{tr(label)}</div>
+      {sub && <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>{tr(sub)}</div>}
     </div>
   );
 
@@ -151,24 +170,24 @@ function Dashboard({ onOpen, onGoDeals }) {
 
       {d.byStatus.length > 0 && (
         <div style={card}>
-          <div style={{ fontWeight: 700, marginBottom: 8 }}>Your book</div>
+          <div style={{ fontWeight: 700, marginBottom: 8 }}>{tr("Your book")}</div>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
             {d.byStatus.map(s => (
               <span key={s.status} style={pill(C.bg, C.ink)}>{s.status}: <strong>{s.n}</strong></span>
             ))}
           </div>
-          <button style={{ ...btn(false), marginTop: 12 }} onClick={onGoDeals}>View all deals →</button>
+          <button style={{ ...btn(false), marginTop: 12 }} onClick={onGoDeals}>{tr("View all deals →")}</button>
         </div>
       )}
 
       <div style={card}>
-        <div style={{ fontWeight: 700, marginBottom: 8 }}>What's due</div>
-        {d.due.length === 0 && <div style={{ color: C.muted, fontSize: 14 }}>Nothing scheduled is open right now. 🎉</div>}
+        <div style={{ fontWeight: 700, marginBottom: 8 }}>{tr("What's due")}</div>
+        {d.due.length === 0 && <div style={{ color: C.muted, fontSize: 14 }}>{tr("Nothing scheduled is open right now. 🎉")}</div>}
         {d.due.map(m => (
           <div key={m.id} onClick={() => onOpen(m.transaction_id)}
             style={{ display: "flex", justifyContent: "space-between", gap: 10, padding: "9px 0", borderTop: `1px solid ${C.line}`, cursor: "pointer" }}>
             <div>
-              <div style={{ fontWeight: 600 }}>{m.name}</div>
+              <div style={{ fontWeight: 600 }}>{tr(m.name)}</div>
               <div style={{ fontSize: 12, color: C.muted }}>{m.address}</div>
             </div>
             <div style={{ fontSize: 12, color: dueClass(m), fontWeight: 700, whiteSpace: "nowrap" }}>
@@ -187,17 +206,17 @@ function Deals({ onOpen }) {
   const [err, setErr] = useState("");
   useEffect(() => { api("/tc/transactions").then(d => setList(d.transactions || [])).catch(e => { setErr(e.message); setList([]); }); }, []);
 
-  if (err) return <div style={{ ...card, color: C.red }}>⚠️ {err}</div>;
-  if (list === null) return <div style={{ ...card, color: C.muted }}>Loading your deals…</div>;
+  if (err) return <div style={{ ...card, color: C.red }}>⚠️ {tr(err)}</div>;
+  if (list === null) return <div style={{ ...card, color: C.muted }}>{tr("Loading your deals…")}</div>;
   if (list.length === 0) return (
     <div style={card}>
-      <div style={{ fontWeight: 700, marginBottom: 6 }}>No deals yet</div>
-      <div style={{ color: C.muted, fontSize: 14 }}>When an agent adds you as the coordinator on a transaction, it shows up here automatically — all of them in one place.</div>
+      <div style={{ fontWeight: 700, marginBottom: 6 }}>{tr("No deals yet")}</div>
+      <div style={{ color: C.muted, fontSize: 14 }}>{tr("When an agent adds you as the coordinator on a transaction, it shows up here automatically — all of them in one place.")}</div>
     </div>
   );
   return (
     <>
-      <div style={{ fontSize: 13, color: C.muted, marginBottom: 12 }}>{list.length} deal{list.length === 1 ? "" : "s"} you're coordinating</div>
+      <div style={{ fontSize: 13, color: C.muted, marginBottom: 12 }}>{list.length} {tr(list.length === 1 ? "deal" : "deals")} {tr("you're coordinating")}</div>
       {list.map(tx => {
         const total = Number(tx.milestone_total || 0), done = Number(tx.milestone_done || 0);
         const pct = total ? Math.round((done / total) * 100) : 0;
@@ -211,14 +230,14 @@ function Deals({ onOpen }) {
             {tx.deal_share_type && tx.deal_share_type !== "standard" && <div style={{ marginTop: 4 }}><ShareBadge of={tx} /></div>}
             <div style={{ fontSize: 13, color: C.muted, marginTop: 2 }}>{[tx.city, tx.state].filter(Boolean).join(", ")}</div>
             <div style={{ fontSize: 13, marginTop: 8 }}>
-              <strong>Acting for</strong> {agent || "the agent"}{tx.owning_brokerage ? ` · ${tx.owning_brokerage}` : ""}
+              <strong>{tr("Acting for")}</strong> {agent || tr("the agent")}{tx.owning_brokerage ? ` · ${tx.owning_brokerage}` : ""}
             </div>
             <div style={{ marginTop: 10, height: 7, background: C.bg, borderRadius: 99, overflow: "hidden" }}>
               <div style={{ width: `${pct}%`, height: "100%", background: C.red }} />
             </div>
             <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: C.muted, marginTop: 5 }}>
-              <span>{done}/{total} milestones</span>
-              {tx.next_milestone && <span>Next: {tx.next_milestone.name}{tx.next_milestone.due_date ? ` · ${fmtDate(tx.next_milestone.due_date)}` : ""}</span>}
+              <span>{done}/{total} {tr("milestones")}</span>
+              {tx.next_milestone && <span>{tr("Next:")} {tr(tx.next_milestone.name)}{tx.next_milestone.due_date ? ` · ${fmtDate(tx.next_milestone.due_date)}` : ""}</span>}
             </div>
           </div>
         );
@@ -239,8 +258,8 @@ function DealView({ txId, onBack }) {
   }, [txId]);
   useEffect(() => { load(); }, [load]);
 
-  if (err) return <div style={{ ...card, color: C.red }}>⚠️ {err} <BackButton onClick={onBack} to="All deals" style={{ marginLeft: 10 }} /></div>;
-  if (!d) return <div style={{ ...card, color: C.muted }}>Loading…</div>;
+  if (err) return <div style={{ ...card, color: C.red }}>⚠️ {tr(err)} <BackButton onClick={onBack} to="All deals" style={{ marginLeft: 10 }} /></div>;
+  if (!d) return <div style={{ ...card, color: C.muted }}>{tr("Loading…")}</div>;
 
   const { transaction: tx, parties, milestones, documents, permissions, phases = [] } = d;
   const agent = `${tx.owning_agent_first_name || ""} ${tx.owning_agent_last_name || ""}`.trim();
@@ -263,11 +282,11 @@ function DealView({ txId, onBack }) {
         <div style={{ fontWeight: 800, fontSize: 18 }}>{tx.address}</div>
         {tx.deal_share_type && tx.deal_share_type !== "standard" && <div style={{ marginTop: 6 }}><ShareBadge of={tx} size={11} /></div>}
         <div style={{ fontSize: 13, opacity: 0.85, marginTop: 4 }}>
-          Acting for <strong>{agent || "the agent"}</strong>{tx.owning_brokerage ? ` · ${tx.owning_brokerage}` : ""} · {tx.status}
+          {tr("Acting for")} <strong>{agent || tr("the agent")}</strong>{tx.owning_brokerage ? ` · ${tx.owning_brokerage}` : ""} · {tx.status}
         </div>
         <div style={{ fontSize: 13, opacity: 0.85, marginTop: 4 }}>
-          {price ? <>Price <strong>{money(price)}</strong>{tx.contract_price ? "" : " (list)"}</> : null}
-          {tx.closing_date ? `  ·  Closing ${fmtDate(tx.closing_date)}` : ""}
+          {price ? <>{tr("Price")} <strong>{money(price)}</strong>{tx.contract_price ? "" : tr(" (list)")}</> : null}
+          {tx.closing_date ? tr("  ·  Closing {date}", { date: fmtDate(tx.closing_date) }) : ""}
         </div>
         {(tx.owning_agent_email || tx.owning_agent_phone) && (
           <div style={{ fontSize: 12, opacity: 0.7, marginTop: 4 }}>{[tx.owning_agent_email, tx.owning_agent_phone].filter(Boolean).join(" · ")}</div>
@@ -282,10 +301,10 @@ function DealView({ txId, onBack }) {
               const reason = ((await askText('Contract fell through?\n\nThis archives the FULL contract record (people, timeline, terms, documents list), keeps its documents in that contract\'s folder marked "fell through", removes the other side\'s people, and resets the deal to Active with a fresh timeline. Messages stay.\n\nType the reason: financing, inspection, appraisal, buyer_cold_feet, seller_side, insurance, title, or other', '', { okLabel: "Archive & reset to Active", placeholder: "e.g. financing" })) || "").trim().toLowerCase();
               if (!reason) return;
               await api(`/transactions/${txId}/fall-through`, { method: "POST", body: JSON.stringify({ reason }) });
-              alert("✓ Contract archived and deal reset to Active. The archive is on the deal's record; let the agent know about MLS + deposit release.");
+              alert(tr("✓ Contract archived and deal reset to Active. The archive is on the deal's record; let the agent know about MLS + deposit release."));
             })}
             style={{ ...btn(false), marginTop: 10, background: "transparent", color: "#fff", borderColor: "rgba(255,255,255,0.4)", fontSize: 13 }}>
-            💔 Contract fell through…
+            {tr("💔 Contract fell through…")}
           </button>
         )}
       </div>
@@ -293,36 +312,36 @@ function DealView({ txId, onBack }) {
       <div style={{ display: "flex", gap: 6, overflowX: "auto", marginBottom: 12 }}>
         {tabs.map(t => (
           <button key={t.id} onClick={() => setTab(t.id)}
-            style={{ ...btn(tab === t.id), whiteSpace: "nowrap", padding: "8px 14px", fontSize: 14 }}>{t.label}</button>
+            style={{ ...btn(tab === t.id), whiteSpace: "nowrap", padding: "8px 14px", fontSize: 14 }}>{tr(t.label)}</button>
         ))}
       </div>
 
       {tab === "timeline" && (
         <div>
-          {!permissions.milestones && <div style={{ fontSize: 12, color: C.muted, marginBottom: 10 }}>View-only — the agent hasn't enabled timeline edits for you on this deal.</div>}
-          {milestones.length === 0 && <div style={{ ...card, color: C.muted }}>No timeline items yet.</div>}
+          {!permissions.milestones && <div style={{ fontSize: 12, color: C.muted, marginBottom: 10 }}>{tr("View-only — the agent hasn't enabled timeline edits for you on this deal.")}</div>}
+          {milestones.length === 0 && <div style={{ ...card, color: C.muted }}>{tr("No timeline items yet.")}</div>}
           {milestones.map(m => {
             const done = m.status === "Completed";
             return (
               <div key={m.id} style={card}>
                 <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
-                  <div style={{ fontWeight: 700, textDecoration: done ? "line-through" : "none", color: done ? C.muted : C.ink }}>{m.name}</div>
+                  <div style={{ fontWeight: 700, textDecoration: done ? "line-through" : "none", color: done ? C.muted : C.ink }}>{tr(m.name)}</div>
                   <span style={pill(done ? "#e8f5ee" : C.soft, done ? C.green : C.red)}>{m.status}</span>
                 </div>
                 {(m.scheduled_date || m.due_date) && (
                   <div style={{ fontSize: 12, color: C.muted, marginTop: 4 }}>
-                    {m.scheduled_date ? `Scheduled ${fmtDate(m.scheduled_date)}${m.scheduled_time ? " " + m.scheduled_time : ""}` : `Due ${fmtDate(m.due_date)}`}
+                    {m.scheduled_date ? `Scheduled ${fmtDate(m.scheduled_date)}${m.scheduled_time ? " " + m.scheduled_time : ""}` : tr("Due {date}", { date: fmtDate(m.due_date) })}
                   </div>
                 )}
                 {m.requires_document && (
                   <div style={{ fontSize: 12, marginTop: 4, color: m.document_uploaded ? C.green : C.amber }}>
-                    {m.document_uploaded ? "📎 Document on file" : "📎 Document needed"}
+                    {m.document_uploaded ? tr("📎 Document on file") : tr("📎 Document needed")}
                   </div>
                 )}
                 {permissions.milestones && (
                   <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
-                    {!done && <button disabled={!!busy} style={btn(true)} onClick={() => act(() => api(`/tc/milestones/${m.id}/complete`, { method: "PATCH" }))}>✓ Mark Complete</button>}
-                    {done && <button disabled={!!busy} style={btn(false)} onClick={() => act(() => api(`/tc/milestones/${m.id}/reopen`, { method: "PATCH" }))}>Undo</button>}
+                    {!done && <button disabled={!!busy} style={btn(true)} onClick={() => act(() => api(`/tc/milestones/${m.id}/complete`, { method: "PATCH" }))}>{tr("✓ Mark Complete")}</button>}
+                    {done && <button disabled={!!busy} style={btn(false)} onClick={() => act(() => api(`/tc/milestones/${m.id}/reopen`, { method: "PATCH" }))}>{tr("Undo")}</button>}
                     {!done && <ScheduleControl onSave={(date, time) => act(() => api(`/tc/milestones/${m.id}/schedule`, { method: "PATCH", body: JSON.stringify({ date, time }) }))} />}
                   </div>
                 )}
@@ -355,12 +374,12 @@ function ScheduleControl({ onSave }) {
   const [open, setOpen] = useState(false);
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
-  if (!open) return <button style={btn(false)} onClick={() => setOpen(true)}>📅 Set date</button>;
+  if (!open) return <button style={btn(false)} onClick={() => setOpen(true)}>{tr("📅 Set date")}</button>;
   return (
     <span style={{ display: "inline-flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
       <input type="date" value={date} onChange={e => setDate(e.target.value)} style={{ ...input, width: "auto" }} />
       <input type="time" value={time} onChange={e => setTime(e.target.value)} style={{ ...input, width: "auto" }} />
-      <button style={btn(true)} disabled={!date} onClick={() => onSave(date, time)}>Save</button>
+      <button style={btn(true)} disabled={!date} onClick={() => onSave(date, time)}>{tr("Save")}</button>
     </span>
   );
 }
@@ -381,7 +400,7 @@ function PeopleTab({ txId, parties, canEdit, onChange }) {
     setBusy(false);
   };
   const remove = async (p) => {
-    if (!(await askConfirm(`Remove ${p.name || "this person"} from the deal?`, { okLabel: "Remove", danger: true }))) return;
+    if (!(await askConfirm(tr("Remove {v1} from the deal?", { v1: p.name || "this person" }), { okLabel: tr("Remove"), danger: true }))) return;
     setBusy(true);
     try { await api(`/tc/party/${p.id}`, { method: "DELETE" }); await onChange(); }
     catch (e) { alert("⚠️ " + e.message); }
@@ -391,7 +410,7 @@ function PeopleTab({ txId, parties, canEdit, onChange }) {
   return (
     <div>
       {canEdit && !editing && (
-        <button style={{ ...btn(true), marginBottom: 12 }} onClick={() => setEditing({ ...blank })}>＋ Add person</button>
+        <button style={{ ...btn(true), marginBottom: 12 }} onClick={() => setEditing({ ...blank })}>{tr("＋ Add person")}</button>
       )}
       {editing && <PartyForm initial={editing} busy={busy} onCancel={() => setEditing(null)} onSave={save} />}
       {parties.map(p => (
@@ -400,8 +419,8 @@ function PeopleTab({ txId, parties, canEdit, onChange }) {
             <div style={{ fontSize: 12, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: ".05em" }}>{p.role}</div>
             {canEdit && (p.role || "").toLowerCase() !== "transaction coordinator" && (
               <div style={{ display: "flex", gap: 6 }}>
-                <button style={{ ...btn(false), padding: "4px 10px", fontSize: 12 }} onClick={() => setEditing({ ...p })}>Edit</button>
-                <button style={{ ...btn(false), padding: "4px 10px", fontSize: 12, color: C.red, borderColor: C.soft }} onClick={() => remove(p)}>Remove</button>
+                <button style={{ ...btn(false), padding: "4px 10px", fontSize: 12 }} onClick={() => setEditing({ ...p })}>{tr("Edit")}</button>
+                <button style={{ ...btn(false), padding: "4px 10px", fontSize: 12, color: C.red, borderColor: C.soft }} onClick={() => remove(p)}>{tr("Remove")}</button>
               </div>
             )}
           </div>
@@ -418,17 +437,17 @@ function PartyForm({ initial, busy, onCancel, onSave }) {
   const set = (k) => (e) => setF(p => ({ ...p, [k]: e.target.value }));
   return (
     <div style={card}>
-      <div style={{ fontWeight: 700, marginBottom: 10 }}>{f.id ? "Edit person" : "Add person"}</div>
+      <div style={{ fontWeight: 700, marginBottom: 10 }}>{f.id ? tr("Edit person") : tr("Add person")}</div>
       <select value={f.role} onChange={set("role")} style={{ ...input, marginBottom: 8 }}>
-        {ROLE_OPTIONS.map(r => <option key={r} value={r}>{r}</option>)}
+        {ROLE_OPTIONS.map(r => <option key={r} value={r}>{tr(r)}</option>)}
       </select>
-      <input placeholder="Full name" value={f.name || ""} onChange={set("name")} style={{ ...input, marginBottom: 8 }} />
-      <input placeholder="Email" value={f.email || ""} onChange={set("email")} style={{ ...input, marginBottom: 8 }} />
-      <input placeholder="Phone" value={f.phone || ""} onChange={set("phone")} style={{ ...input, marginBottom: 8 }} />
-      <input placeholder="Company / brokerage" value={f.company || ""} onChange={set("company")} style={{ ...input, marginBottom: 10 }} />
+      <input placeholder={tr("Full name")} value={f.name || ""} onChange={set("name")} style={{ ...input, marginBottom: 8 }} />
+      <input placeholder={tr("Email")} value={f.email || ""} onChange={set("email")} style={{ ...input, marginBottom: 8 }} />
+      <input placeholder={tr("Phone")} value={f.phone || ""} onChange={set("phone")} style={{ ...input, marginBottom: 8 }} />
+      <input placeholder={tr("Company / brokerage")} value={f.company || ""} onChange={set("company")} style={{ ...input, marginBottom: 10 }} />
       <div style={{ display: "flex", gap: 8 }}>
-        <button style={btn(true)} disabled={busy || !f.name.trim()} onClick={() => onSave(f)}>{busy ? "Saving…" : "Save"}</button>
-        <button style={btn(false)} onClick={onCancel}>Cancel</button>
+        <button style={btn(true)} disabled={busy || !f.name.trim()} onClick={() => onSave(f)}>{busy ? tr("Saving…") : tr("Save")}</button>
+        <button style={btn(false)} onClick={onCancel}>{tr("Cancel")}</button>
       </div>
     </div>
   );
@@ -448,42 +467,42 @@ function HealthTab({ txId }) {
     setRestoreMsg("Working…");
     try {
       const r = await api(`/transactions/${txId}/failed-contracts/restore-pre-contract`, { method: "POST" });
-      setRestoreMsg(`✓ Restored ${r.restored} checkmark(s), closed ${r.remindersClosed || 0} stale reminder(s).`);
+      setRestoreMsg(tr("✓ Restored {n} checkmark(s), closed {m} stale reminder(s).", { n: r.restored, m: r.remindersClosed || 0 }));
     } catch (e) { setRestoreMsg("⚠️ " + e.message); }
   };
 
-  if (!d) return <div style={{ ...card, color: C.muted }}>Loading…</div>;
+  if (!d) return <div style={{ ...card, color: C.muted }}>{tr("Loading…")}</div>;
   const dd = d.dealDoctor;
   const hc = { green: C.green, yellow: C.amber, red: C.red };
   return (
     <div>
       {fails.length > 0 && (
         <div style={{ ...card, borderColor: C.soft }}>
-          <div style={{ fontWeight: 800, marginBottom: 6 }}>💔 Past contracts on this deal</div>
+          <div style={{ fontWeight: 800, marginBottom: 6 }}>{tr("💔 Past contracts on this deal")}</div>
           {fails.map(f => (
             <div key={f.id} style={{ fontSize: 13, color: C.muted, padding: "4px 0" }}>
-              Fell through {fmtDate(f.created_at)} — {(f.reason || "other").replace(/_/g, " ")}
+              {tr("Fell through")} {fmtDate(f.created_at)} — {(f.reason || "other").replace(/_/g, " ")}
               {(f.snapshot?.parties || []).length ? ` · ${(f.snapshot.parties || []).map(p => p.name).filter(Boolean).slice(0, 4).join(", ")}` : ""}
             </div>
           ))}
-          <button style={{ ...btn(false), marginTop: 8 }} onClick={restore}>↩ Restore pre-contract checkmarks / clear stale reminders</button>
-          {restoreMsg && <div style={{ fontSize: 12.5, marginTop: 6, color: restoreMsg.startsWith("✓") ? C.green : C.red }}>{restoreMsg}</div>}
+          <button style={{ ...btn(false), marginTop: 8 }} onClick={restore}>{tr("↩ Restore pre-contract checkmarks / clear stale reminders")}</button>
+          {restoreMsg && <div style={{ fontSize: 12.5, marginTop: 6, color: restoreMsg.startsWith("✓") ? C.green : C.red }}>{tr(restoreMsg)}</div>}
         </div>
       )}
-      <button style={{ ...btn(true), marginBottom: 12 }} disabled={busy} onClick={run}>{busy ? "Checking…" : "🩺 Run check-up"}</button>
-      {!dd && <div style={{ ...card, color: C.muted }}>No check-up yet — tap “Run check-up” for a quick read on this deal's risk and the next move.</div>}
+      <button style={{ ...btn(true), marginBottom: 12 }} disabled={busy} onClick={run}>{busy ? tr("Checking…") : tr("🩺 Run check-up")}</button>
+      {!dd && <div style={{ ...card, color: C.muted }}>{tr("No check-up yet — tap “Run check-up” for a quick read on this deal's risk and the next move.")}</div>}
       {dd && (
         <div style={card}>
           <span style={pill(hc[dd.health] + "22", hc[dd.health] || C.muted)}>● {String(dd.health || "").toUpperCase()}</span>
-          <div style={{ marginTop: 12 }}><strong>Biggest risk</strong><div style={{ color: C.muted, marginTop: 2 }}>{dd.risk}</div></div>
-          <div style={{ marginTop: 12 }}><strong>Do this today</strong><div style={{ color: C.muted, marginTop: 2 }}>{dd.move}</div></div>
+          <div style={{ marginTop: 12 }}><strong>{tr("Biggest risk")}</strong><div style={{ color: C.muted, marginTop: 2 }}>{tr(dd.risk)}</div></div>
+          <div style={{ marginTop: 12 }}><strong>{tr("Do this today")}</strong><div style={{ color: C.muted, marginTop: 2 }}>{tr(dd.move)}</div></div>
           {dd.draft && dd.draft.channel !== "none" && dd.draft.body && (
             <div style={{ marginTop: 12, background: C.bg, borderRadius: 10, padding: 12 }}>
-              <div style={{ fontSize: 12, color: C.muted, marginBottom: 4 }}>Ready draft → {dd.draft.toRole} ({dd.draft.channel}){dd.draft.subject ? ` · ${dd.draft.subject}` : ""}</div>
+              <div style={{ fontSize: 12, color: C.muted, marginBottom: 4 }}>{tr("Ready draft →")} {dd.draft.toRole} ({dd.draft.channel}){dd.draft.subject ? ` · ${dd.draft.subject}` : ""}</div>
               <div style={{ whiteSpace: "pre-wrap", fontSize: 14 }}>{dd.draft.body}</div>
             </div>
           )}
-          {d.at && <div style={{ fontSize: 11, color: C.muted, marginTop: 10 }}>Updated {fmtDate(d.at)}</div>}
+          {d.at && <div style={{ fontSize: 11, color: C.muted, marginTop: 10 }}>{tr("Updated")} {fmtDate(d.at)}</div>}
         </div>
       )}
     </div>
@@ -493,8 +512,8 @@ function HealthTab({ txId }) {
 function ActivityTab({ txId }) {
   const [rows, setRows] = useState(null);
   useEffect(() => { api(`/tc/transaction/${txId}/activity`).then(d => setRows(d.activities || [])).catch(() => setRows([])); }, [txId]);
-  if (rows === null) return <div style={{ ...card, color: C.muted }}>Loading…</div>;
-  if (rows.length === 0) return <div style={{ ...card, color: C.muted }}>No activity logged yet.</div>;
+  if (rows === null) return <div style={{ ...card, color: C.muted }}>{tr("Loading…")}</div>;
+  if (rows.length === 0) return <div style={{ ...card, color: C.muted }}>{tr("No activity logged yet.")}</div>;
   return (
     <div style={card}>
       {rows.map(a => (
@@ -539,27 +558,27 @@ function DocsTab({ txId, documents, phases = [], milestones, canUpload, onChange
     <div>
       {needed.length > 0 && (
         <div style={card}>
-          <div style={{ fontWeight: 700, marginBottom: 8 }}>Required documents</div>
+          <div style={{ fontWeight: 700, marginBottom: 8 }}>{tr("Required documents")}</div>
           {needed.map(m => (
             <div key={m.id} style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderTop: `1px solid ${C.line}` }}>
-              <span style={{ fontSize: 14 }}>{m.name}</span>
-              <span style={{ fontSize: 13, fontWeight: 700, color: m.document_uploaded ? C.green : C.amber }}>{m.document_uploaded ? "✓ On file" : "Needed"}</span>
+              <span style={{ fontSize: 14 }}>{tr(m.name)}</span>
+              <span style={{ fontSize: 13, fontWeight: 700, color: m.document_uploaded ? C.green : C.amber }}>{m.document_uploaded ? tr("✓ On file") : tr("Needed")}</span>
             </div>
           ))}
         </div>
       )}
       {canUpload && (
         <div style={card}>
-          <div style={{ fontWeight: 700, marginBottom: 8 }}>Upload a document</div>
+          <div style={{ fontWeight: 700, marginBottom: 8 }}>{tr("Upload a document")}</div>
           <select value={msId} onChange={e => setMsId(e.target.value)} style={{ ...input, marginBottom: 8 }}>
-            <option value="">General (not tied to a milestone)</option>
-            {milestones.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+            <option value="">{tr("General (not tied to a milestone)")}</option>
+            {milestones.map(m => <option key={m.id} value={m.id}>{tr(m.name)}</option>)}
           </select>
           <input type="file" disabled={busy} onChange={e => upload(e.target.files[0])} style={{ fontSize: 14 }} />
-          {busy && <div style={{ fontSize: 12, color: C.muted, marginTop: 6 }}>Uploading…</div>}
+          {busy && <div style={{ fontSize: 12, color: C.muted, marginTop: 6 }}>{tr("Uploading…")}</div>}
         </div>
       )}
-      {documents.length === 0 && <div style={{ ...card, color: C.muted }}>No documents on file yet.</div>}
+      {documents.length === 0 && <div style={{ ...card, color: C.muted }}>{tr("No documents on file yet.")}</div>}
       {/* Grouped by folder like the agent app — fall-through archives land in
           an "Under Contract — (buyers) · date (fell through …)" folder that must be visible here too. */}
       {(() => {
@@ -589,7 +608,7 @@ function DocsTab({ txId, documents, phases = [], milestones, canUpload, onChange
                   <div style={{ fontWeight: 700 }}>{doc.name}</div>
                   <div style={{ fontSize: 12, color: C.muted }}>{[doc.category, fmtDate(doc.created_at)].filter(Boolean).join(" · ")}</div>
                 </div>
-                <button style={btn(false)} onClick={() => view(doc.id)}>View</button>
+                <button style={btn(false)} onClick={() => view(doc.id)}>{tr("View")}</button>
               </div>
             ))}
           </div>
@@ -624,11 +643,11 @@ function SendUpdate({ txId, parties, identity }) {
   return (
     <div style={card}>
       <div style={{ fontSize: 12, color: C.muted, marginBottom: 10 }}>
-        Goes out in the agent's name{identity === "cobrand" ? " (co-branded with you)" : ""}.
+        {tr("Goes out in the agent's name")}{identity === "cobrand" ? tr(" (co-branded with you)") : ""}.
       </div>
-      <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 6 }}>Send to</div>
+      <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 6 }}>{tr("Send to")}</div>
       <div style={{ marginBottom: 12 }}>
-        {recipients.length === 0 && <div style={{ fontSize: 13, color: C.muted }}>No party on this deal has an email.</div>}
+        {recipients.length === 0 && <div style={{ fontSize: 13, color: C.muted }}>{tr("No party on this deal has an email.")}</div>}
         {recipients.map(p => (
           <label key={p.id} style={{ display: "flex", gap: 8, alignItems: "center", padding: "5px 0", fontSize: 14 }}>
             <input type="checkbox" checked={picked.includes(p.email)} onChange={() => toggle(p.email)} />
@@ -636,9 +655,9 @@ function SendUpdate({ txId, parties, identity }) {
           </label>
         ))}
       </div>
-      <input placeholder="Subject" value={subject} onChange={e => setSubject(e.target.value)} style={{ ...input, marginBottom: 8 }} />
-      <textarea placeholder="Your message…" value={message} onChange={e => setMessage(e.target.value)} rows={5} style={{ ...input, marginBottom: 10, resize: "vertical" }} />
-      <button style={btn(true)} disabled={busy || !message.trim() || picked.length === 0} onClick={send}>{busy ? "Sending…" : "Send update"}</button>
+      <input placeholder={tr("Subject")} value={subject} onChange={e => setSubject(e.target.value)} style={{ ...input, marginBottom: 8 }} />
+      <textarea placeholder={tr("Your message…")} value={message} onChange={e => setMessage(e.target.value)} rows={5} style={{ ...input, marginBottom: 10, resize: "vertical" }} />
+      <button style={btn(true)} disabled={busy || !message.trim() || picked.length === 0} onClick={send}>{busy ? tr("Sending…") : tr("Send update")}</button>
       {done && <div style={{ color: C.green, fontSize: 14, marginTop: 10 }}>{done}</div>}
     </div>
   );
@@ -648,7 +667,7 @@ function SendUpdate({ txId, parties, identity }) {
 function Business({ user }) {
   const [acct, setAcct] = useState(null);
   useEffect(() => { api("/tc/account").then(setAcct).catch(() => setAcct({ subscription: { active: false, priceMonthly: 149 } })); }, []);
-  if (!acct) return <div style={{ ...card, color: C.muted }}>Loading…</div>;
+  if (!acct) return <div style={{ ...card, color: C.muted }}>{tr("Loading…")}</div>;
   if (!acct.subscription.active) return <Upgrade price={acct.subscription.priceMonthly} onDone={() => api("/tc/account").then(setAcct)} />;
   return <BusinessSuite />;
 }
@@ -656,7 +675,7 @@ function Business({ user }) {
 function Upgrade({ price, onDone }) {
   const [busy, setBusy] = useState(false);
   const subscribe = async () => {
-    if (!(await askConfirm(`Start your coordinator subscription at $${price}/month?`, { okLabel: "Start subscription" }))) return;
+    if (!(await askConfirm(tr("Start your coordinator subscription at ${price}/month?", { price }), { okLabel: tr("Start subscription") }))) return;
     setBusy(true);
     try { await api("/tc/subscribe", { method: "POST" }); await onDone(); }
     catch (e) { alert("⚠️ " + e.message); }
@@ -664,18 +683,18 @@ function Upgrade({ price, onDone }) {
   };
   return (
     <div style={card}>
-      <div style={{ fontWeight: 800, fontSize: 20 }}>Run your whole business here</div>
+      <div style={{ fontWeight: 800, fontSize: 20 }}>{tr("Run your whole business here")}</div>
       <div style={{ color: C.muted, marginTop: 6, fontSize: 14 }}>
-        Coordinating deals an agent invited you to is always free. Unlock your own business tools to track your income, expenses, and goals across every deal you run.
+        {tr("Coordinating deals an agent invited you to is always free. Unlock your own business tools to track your income, expenses, and goals across every deal you run.")}
       </div>
       <ul style={{ color: C.ink, fontSize: 14, marginTop: 12, paddingLeft: 18 }}>
-        <li>Your money: income, expenses, and a simple profit & loss</li>
-        <li>Your goals: deals and income targets with live progress</li>
-        <li>Add your own transactions, not just invited ones</li>
+        <li>{tr("Your money: income, expenses, and a simple profit & loss")}</li>
+        <li>{tr("Your goals: deals and income targets with live progress")}</li>
+        <li>{tr("Add your own transactions, not just invited ones")}</li>
       </ul>
       <div style={{ fontSize: 26, fontWeight: 800, marginTop: 14 }}>${price}<span style={{ fontSize: 14, color: C.muted, fontWeight: 600 }}>/month</span></div>
-      <button style={{ ...btn(true), marginTop: 12 }} disabled={busy} onClick={subscribe}>{busy ? "Starting…" : "Start subscription"}</button>
-      <div style={{ fontSize: 11, color: C.muted, marginTop: 8 }}>You can cancel anytime.</div>
+      <button style={{ ...btn(true), marginTop: 12 }} disabled={busy} onClick={subscribe}>{busy ? tr("Starting…") : tr("Start subscription")}</button>
+      <div style={{ fontSize: 11, color: C.muted, marginTop: 8 }}>{tr("You can cancel anytime.")}</div>
     </div>
   );
 }
@@ -686,7 +705,7 @@ function BusinessSuite() {
     <>
       <div style={{ display: "flex", gap: 6, marginBottom: 12 }}>
         {[{ id: "money", label: "💵 Money" }, { id: "goals", label: "🎯 Goals" }].map(s => (
-          <button key={s.id} onClick={() => setSub(s.id)} style={{ ...btn(sub === s.id), padding: "8px 14px", fontSize: 14 }}>{s.label}</button>
+          <button key={s.id} onClick={() => setSub(s.id)} style={{ ...btn(sub === s.id), padding: "8px 14px", fontSize: 14 }}>{tr(s.label)}</button>
         ))}
       </div>
       {sub === "money" ? <Money /> : <Goals />}
@@ -713,34 +732,34 @@ function Money() {
   };
   const del = async (id) => { try { await api(`/tc/ledger/${id}`, { method: "DELETE" }); await load(); } catch (e) { alert("⚠️ " + e.message); } };
 
-  if (!d) return <div style={{ ...card, color: C.muted }}>Loading…</div>;
+  if (!d) return <div style={{ ...card, color: C.muted }}>{tr("Loading…")}</div>;
   if (d.error) return <div style={{ ...card, color: C.red }}>⚠️ {d.error}</div>;
   const s = d.summary;
   return (
     <>
       <div style={{ display: "flex", gap: 10, marginBottom: 14 }}>
-        <div style={{ ...card, marginBottom: 0, flex: 1, textAlign: "center" }}><div style={{ fontSize: 22, fontWeight: 800, color: C.green }}>{money(s.income)}</div><div style={{ fontSize: 12, color: C.muted }}>Income</div></div>
-        <div style={{ ...card, marginBottom: 0, flex: 1, textAlign: "center" }}><div style={{ fontSize: 22, fontWeight: 800, color: C.red }}>{money(s.expense)}</div><div style={{ fontSize: 12, color: C.muted }}>Expenses</div></div>
-        <div style={{ ...card, marginBottom: 0, flex: 1, textAlign: "center" }}><div style={{ fontSize: 22, fontWeight: 800 }}>{money(s.net)}</div><div style={{ fontSize: 12, color: C.muted }}>Net</div></div>
+        <div style={{ ...card, marginBottom: 0, flex: 1, textAlign: "center" }}><div style={{ fontSize: 22, fontWeight: 800, color: C.green }}>{money(s.income)}</div><div style={{ fontSize: 12, color: C.muted }}>{tr("Income")}</div></div>
+        <div style={{ ...card, marginBottom: 0, flex: 1, textAlign: "center" }}><div style={{ fontSize: 22, fontWeight: 800, color: C.red }}>{money(s.expense)}</div><div style={{ fontSize: 12, color: C.muted }}>{tr("Expenses")}</div></div>
+        <div style={{ ...card, marginBottom: 0, flex: 1, textAlign: "center" }}><div style={{ fontSize: 22, fontWeight: 800 }}>{money(s.net)}</div><div style={{ fontSize: 12, color: C.muted }}>{tr("Net")}</div></div>
       </div>
 
       <div style={card}>
-        <div style={{ fontWeight: 700, marginBottom: 8 }}>Add an entry</div>
+        <div style={{ fontWeight: 700, marginBottom: 8 }}>{tr("Add an entry")}</div>
         <div style={{ display: "flex", gap: 6, marginBottom: 8 }}>
           {["income", "expense"].map(k => (
-            <button key={k} onClick={() => setKind(k)} style={{ ...btn(kind === k), padding: "8px 14px", fontSize: 14, textTransform: "capitalize" }}>{k}</button>
+            <button key={k} onClick={() => setKind(k)} style={{ ...btn(kind === k), padding: "8px 14px", fontSize: 14, textTransform: "capitalize" }}>{tr(k)}</button>
           ))}
         </div>
-        <input placeholder="What for? (e.g. Smith deal retainer)" value={label} onChange={e => setLabel(e.target.value)} style={{ ...input, marginBottom: 8 }} />
-        <input placeholder="Amount" type="number" inputMode="decimal" value={amount} onChange={e => setAmount(e.target.value)} style={{ ...input, marginBottom: 10 }} />
-        <button style={btn(true)} disabled={busy || !(Number(amount) > 0)} onClick={add}>{busy ? "Adding…" : "Add"}</button>
+        <input placeholder={tr("What for? (e.g. Smith deal retainer)")} value={label} onChange={e => setLabel(e.target.value)} style={{ ...input, marginBottom: 8 }} />
+        <input placeholder={tr("Amount")} type="number" inputMode="decimal" value={amount} onChange={e => setAmount(e.target.value)} style={{ ...input, marginBottom: 10 }} />
+        <button style={btn(true)} disabled={busy || !(Number(amount) > 0)} onClick={add}>{busy ? tr("Adding…") : tr("Add")}</button>
       </div>
 
-      {d.entries.length === 0 && <div style={{ ...card, color: C.muted }}>No entries yet. Add your first above.</div>}
+      {d.entries.length === 0 && <div style={{ ...card, color: C.muted }}>{tr("No entries yet. Add your first above.")}</div>}
       {d.entries.map(e => (
         <div key={e.id} style={{ ...card, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div>
-            <div style={{ fontWeight: 700 }}>{e.label || (e.kind === "income" ? "Income" : "Expense")}</div>
+            <div style={{ fontWeight: 700 }}>{tr(e.label) || (e.kind === "income" ? tr("Income") : tr("Expense"))}</div>
             <div style={{ fontSize: 12, color: C.muted }}>{[e.category, fmtDate(e.entry_date || e.created_at)].filter(Boolean).join(" · ")}</div>
           </div>
           <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
@@ -767,7 +786,7 @@ function Goals() {
     setBusy(false);
   };
 
-  if (!d) return <div style={{ ...card, color: C.muted }}>Loading…</div>;
+  if (!d) return <div style={{ ...card, color: C.muted }}>{tr("Loading…")}</div>;
   if (d.error) return <div style={{ ...card, color: C.red }}>⚠️ {d.error}</div>;
   const p = d.progress || { closedDeals: 0, income: 0 };
   const bar = (done, goal, color) => {
@@ -777,26 +796,26 @@ function Goals() {
   return (
     <>
       <div style={card}>
-        <div style={{ fontWeight: 700, marginBottom: 10 }}>Set your target</div>
+        <div style={{ fontWeight: 700, marginBottom: 10 }}>{tr("Set your target")}</div>
         <div style={{ display: "flex", gap: 6, marginBottom: 8 }}>
           {["month", "year"].map(pr => (
-            <button key={pr} onClick={() => setForm(f => ({ ...f, period: pr }))} style={{ ...btn(form.period === pr), padding: "8px 14px", fontSize: 14, textTransform: "capitalize" }}>Per {pr}</button>
+            <button key={pr} onClick={() => setForm(f => ({ ...f, period: pr }))} style={{ ...btn(form.period === pr), padding: "8px 14px", fontSize: 14, textTransform: "capitalize" }}>{tr("Per")} {tr(pr)}</button>
           ))}
         </div>
-        <input placeholder="Deals goal" type="number" value={form.dealsGoal} onChange={e => setForm(f => ({ ...f, dealsGoal: e.target.value }))} style={{ ...input, marginBottom: 8 }} />
-        <input placeholder="Income goal ($)" type="number" value={form.incomeGoal} onChange={e => setForm(f => ({ ...f, incomeGoal: e.target.value }))} style={{ ...input, marginBottom: 10 }} />
-        <button style={btn(true)} disabled={busy} onClick={save}>{busy ? "Saving…" : "Save goal"}</button>
+        <input placeholder={tr("Deals goal")} type="number" value={form.dealsGoal} onChange={e => setForm(f => ({ ...f, dealsGoal: e.target.value }))} style={{ ...input, marginBottom: 8 }} />
+        <input placeholder={tr("Income goal ($)")} type="number" value={form.incomeGoal} onChange={e => setForm(f => ({ ...f, incomeGoal: e.target.value }))} style={{ ...input, marginBottom: 10 }} />
+        <button style={btn(true)} disabled={busy} onClick={save}>{busy ? tr("Saving…") : tr("Save goal")}</button>
       </div>
 
       {d.goal && (
         <div style={card}>
-          <div style={{ fontWeight: 700, marginBottom: 10 }}>Progress</div>
+          <div style={{ fontWeight: 700, marginBottom: 10 }}>{tr("Progress")}</div>
           <div style={{ marginBottom: 14 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 14 }}><span>Closed deals</span><span><strong>{p.closedDeals}</strong>{d.goal.deals_goal ? ` / ${d.goal.deals_goal}` : ""}</span></div>
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 14 }}><span>{tr("Closed deals")}</span><span><strong>{p.closedDeals}</strong>{d.goal.deals_goal ? ` / ${d.goal.deals_goal}` : ""}</span></div>
             {d.goal.deals_goal ? bar(p.closedDeals, d.goal.deals_goal, C.red) : null}
           </div>
           <div>
-            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 14 }}><span>Income</span><span><strong>{money(p.income)}</strong>{d.goal.income_goal ? ` / ${money(d.goal.income_goal)}` : ""}</span></div>
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 14 }}><span>{tr("Income")}</span><span><strong>{money(p.income)}</strong>{d.goal.income_goal ? ` / ${money(d.goal.income_goal)}` : ""}</span></div>
             {d.goal.income_goal ? bar(p.income, d.goal.income_goal, C.green) : null}
           </div>
         </div>

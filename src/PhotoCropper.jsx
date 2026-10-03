@@ -92,7 +92,7 @@ export default function PhotoCropper({ src, onCancel, onSave }) {
         <input type="range" min="1" max="4" step="0.01" value={zoom} disabled={!nat}
           onChange={e => changeZoom(Number(e.target.value))}
           style={{ width: VIEW, marginTop: 14 }} aria-label={tr("Zoom")} />
-        {err && <div style={{ color: "#922B21", fontSize: 12.5, marginTop: 8 }}>{err}</div>}
+        {err && <div style={{ color: "#922B21", fontSize: 12.5, marginTop: 8 }}>{tr(err)}</div>}
         <div style={{ display: "flex", gap: 8, justifyContent: "center", marginTop: 14 }}>
           <button onClick={onCancel} style={{ padding: "10px 18px", borderRadius: 8, border: "1px solid #D1D5DB", background: "#fff", color: "#374151", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>{tr("Cancel")}</button>
           <button onClick={save} disabled={!nat || busy} style={{ padding: "10px 18px", borderRadius: 8, border: "none", background: "#0c4a6e", color: "#fff", fontWeight: 700, cursor: nat && !busy ? "pointer" : "default", opacity: nat && !busy ? 1 : 0.6, fontFamily: "inherit" }}>

@@ -316,7 +316,7 @@ export default function OffersTab({ tx, token, currentUser, createSignal = 0, on
       {receivedPending > 0 && (
         <div style={{ background: "#fef2f2", border: "1px solid #fca5a5", borderLeft: "5px solid #dc2626", borderRadius: 10, padding: "12px 14px", marginBottom: 16, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
           <div style={{ flex: "1 1 240px" }}>
-            <div style={{ fontWeight: 800, fontSize: 14, color: "#7f1d1d" }}>📥 {receivedPending} {tr("received offer")}{receivedPending === 1 ? "" : "s"} {tr("waiting for your review")}</div>
+            <div style={{ fontWeight: 800, fontSize: 14, color: "#7f1d1d" }}>📥 {receivedPending} {tr(receivedPending === 1 ? "received offer" : "received offers")} {tr("waiting for your review")}</div>
             <div style={{ fontSize: 12.5, color: "#991b1b", marginTop: 2 }}>{tr("Offers that came IN on this listing are reviewed from the deal's Overview.")}</div>
           </div>
           {onReviewReceived && (
@@ -338,7 +338,7 @@ export default function OffersTab({ tx, token, currentUser, createSignal = 0, on
 
       {error && (
         <div style={{ background: "#fee2e2", border: "1px solid #fca5a5", borderRadius: 6, padding: 12, fontSize: 13, color: "#7f1d1d", marginBottom: 16 }}>
-          ⚠️ {error}
+          ⚠️ {tr(error)}
         </div>
       )}
 
@@ -499,7 +499,7 @@ export default function OffersTab({ tx, token, currentUser, createSignal = 0, on
               {v.effectiveDateUncertain && <EffectiveDateConfirm txId={tx.id} token={token} readDate={v.executedDate} />}
               {v.closingDate && <div><b>{tr("Closing date:")}</b> {fmtDate(v.closingDate)}</div>}
               {v.contractPrice && <div><b>{tr("Contract price:")}</b> {fmtMoney(v.contractPrice)}</div>}
-              {v.applied && v.applied.length > 0 && <div><b>{tr("Applied to the deal:")}</b> {v.applied.length} {tr("field")}{v.applied.length === 1 ? "" : "s"} {tr("(dates, contingencies) — the timeline recomputed automatically.")}</div>}
+              {v.applied && v.applied.length > 0 && <div><b>{tr("Applied to the deal:")}</b> {v.applied.length} {tr(v.applied.length === 1 ? "field" : "fields")} {tr("(dates, contingencies) — the timeline recomputed automatically.")}</div>}
               {v.partiesAdded > 0 && <div><b>{tr("People added from the contract:")}</b> {v.partiesAdded} {tr("(title company, lender, etc.) — check the People tab.")}</div>}
               {v.docsFiled > 0 && <div><b>{tr("Documents filed:")}</b> {v.docsFiled} {tr("— each contract, rider, and disclosure in the package was split out into Documents (Executed Contract Package folder).")}</div>}
               {v.notes && <div style={{ color: "#6b7280", marginTop: 4 }}>{v.notes}</div>}
@@ -876,7 +876,7 @@ function BuyerSignaturesModal({ offer, token, onClose }) {
         </div>
         <div style={{ padding: 22 }}>
           {!info && !err && <div style={{ color: "#64748b", fontSize: 14 }}>{tr("Loading…")}</div>}
-          {err && <div style={{ background: "#fee2e2", border: "1px solid #fca5a5", borderRadius: 8, padding: 10, fontSize: 13, color: "#7f1d1d", marginBottom: 12 }}>⚠️ {err}</div>}
+          {err && <div style={{ background: "#fee2e2", border: "1px solid #fca5a5", borderRadius: 8, padding: 10, fontSize: 13, color: "#7f1d1d", marginBottom: 12 }}>⚠️ {tr(err)}</div>}
 
           {info && info.signingStatus === "signed" && (
             <div style={{ background: "#dcfce7", border: "1px solid #86efac", borderRadius: 10, padding: 14, fontSize: 14, color: "#14532d", marginBottom: 6 }}>

@@ -21,7 +21,7 @@ export default function UnreadMessagesInbox({ unreadCounts, inboundCounts = {}, 
     <div style={{ maxWidth: 480, margin: "0 auto", padding: "8px 16px 0" }}>
       <div id="unread-inbox" style={{ background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: 12, padding: 16 }}>
         <div style={{ fontSize: 16, fontWeight: 800, color: "#B91C1C", marginBottom: 10 }}>
-          {tr("💬 New messages —")} {total} {tr("unread across")} {inbox.length} {tr("deal")}{inbox.length === 1 ? "" : "s"}
+          {tr("💬 New messages —")} {total} {tr("unread across")} {inbox.length} {tr(inbox.length === 1 ? "deal" : "deals")}
         </div>
         {inbox.map(it => (
           <div key={it.txId} onClick={() => onOpen && onOpen(it.txId, it.kind)}

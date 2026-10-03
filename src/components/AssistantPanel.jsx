@@ -1,3 +1,4 @@
+import { t as tr, getLang, swapQuoted } from "../i18n";
 import { useState, useRef, useEffect } from "react";
 import { routeLocal } from "../lib/assistantLocal.js";
 import { GUIDE_SECTIONS } from "./HelpCenter.jsx";
@@ -37,6 +38,21 @@ const RED = "#C0392B";
 const BUILD_TAG = "v25";
 
 const GREETING = "How can I help you today?";
+
+// Spanish screens: the assistant quotes button names in English ("📇 Contacts");
+// swap each quoted name for the Spanish label this app actually shows, so the
+// steps match the screen. Unknown names stay as written.
+const swapButtonNames = swapQuoted;
+const localizeAnswer = (out) => {
+  if (getLang() !== "es" || !out) return out;
+  return {
+    ...out,
+    reply: swapButtonNames(out.reply),
+    cards: (out.cards || []).map(c => (c && c.type === "help")
+      ? { ...c, title: swapButtonNames(c.title), steps: Array.isArray(c.steps) ? c.steps.map(swapButtonNames) : c.steps }
+      : c),
+  };
+};
 // Set if holding the mic stream ever breaks the recognizer on this device
 // (some Android builds refuse a second capture) — from then on, timers only.
 let METER_OFF = false;
@@ -178,11 +194,18 @@ function speak(text, onDone, { queue = false } = {}) {
       // hang), else the plain system default. NEVER pick the Enhanced/
       // Premium/Samantha local voices — they're the ones that freeze.
       const voices = window.speechSynthesis.getVoices() || [];
+      // Spanish screens → a Spanish voice (US Spanish first, then any Spanish),
+      // same "no Enhanced/Premium" rule.
+      const es = getLang() === "es";
+      const L = es ? /^es[-_](US|MX|419)/i : /en[-_]US/i;
+      const L2 = es ? /^es\b/i : L;
       const preferred =
-        voices.find(v => /en[-_]US/i.test(v.lang) && /google/i.test(v.name)) ||
-        voices.find(v => /en[-_]US/i.test(v.lang) && v.default) ||
-        voices.find(v => /en[-_]US/i.test(v.lang) && !/enhanced|premium|natural|neural|samantha/i.test(v.name));
+        voices.find(v => L.test(v.lang) && /google/i.test(v.name)) ||
+        voices.find(v => L.test(v.lang) && v.default) ||
+        voices.find(v => L.test(v.lang) && !/enhanced|premium|natural|neural|samantha/i.test(v.name)) ||
+        (es ? voices.find(v => L2.test(v.lang) && !/enhanced|premium|natural|neural/i.test(v.name)) : null);
       if (preferred) u.voice = preferred;
+      u.lang = es ? (preferred ? preferred.lang : "es-US") : (preferred ? preferred.lang : "en-US");
       if (onDone) {
         // onend does NOT always fire (Chrome drops it when the tab is
         // backgrounded, or when the engine stalls). Everything downstream —
@@ -249,7 +272,7 @@ function stopSpeaking() {
 function ContactCard({ contact }) {
   const btn = (href, bg, label) => (
     <a key={label} href={href} style={{ flex: 1, textAlign: "center", background: bg, color: "#fff", borderRadius: 8, padding: "10px 8px", fontWeight: 700, fontSize: 13, textDecoration: "none" }}>
-      {label}
+      {tr(label)}
     </a>
   );
   return (
@@ -270,16 +293,16 @@ function ContactCard({ contact }) {
 function TasksCard({ card }) {
   return (
     <div style={{ background: "#fff", border: "1px solid #E5E7EB", borderRadius: 12, padding: 14, marginTop: 8 }}>
-      <div style={{ fontWeight: 800, fontSize: 13, color: NAVY, marginBottom: 6 }}>{card.title}</div>
-      {(card.items || []).length === 0 && <div style={{ fontSize: 13, color: "#6b7280" }}>Nothing here. 🎉</div>}
+      <div style={{ fontWeight: 800, fontSize: 13, color: NAVY, marginBottom: 6 }}>{tr(card.title)}</div>
+      {(card.items || []).length === 0 && <div style={{ fontSize: 13, color: "#6b7280" }}>{tr("Nothing here. 🎉")}</div>}
       {(card.items || []).slice(0, 8).map((t, i) => (
         <div key={i} style={{ padding: "6px 0", borderTop: i ? "1px solid #F3F4F6" : "none" }}>
-          <div style={{ fontSize: 13, fontWeight: 600, color: "#111" }}>{t.title}</div>
+          <div style={{ fontSize: 13, fontWeight: 600, color: "#111" }}>{tr(t.title)}</div>
           <div style={{ fontSize: 11, color: "#6b7280" }}>{[t.where, t.due && `due ${t.due}`].filter(Boolean).join(" · ")}</div>
         </div>
       ))}
       {(card.items || []).length > 8 && (
-        <div style={{ fontSize: 11, color: "#6b7280", marginTop: 4 }}>…and {card.items.length - 8} more on Win the Day.</div>
+        <div style={{ fontSize: 11, color: "#6b7280", marginTop: 4 }}>{tr("…and")} {card.items.length - 8} {tr("more on Win the Day.")}</div>
       )}
     </div>
   );
@@ -294,7 +317,7 @@ function DealCard({ card, onOpenDeal }) {
         {[d.status, d.closingDate && `closing ${d.closingDate}`, d.price && `$${Number(d.price).toLocaleString()}`].filter(Boolean).join(" · ")}
       </div>
       <button onClick={() => onOpenDeal(d.id, card.tab)} style={{ marginTop: 10, width: "100%", background: NAVY, color: "#fff", border: "none", borderRadius: 8, padding: "10px 12px", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>
-        Open this deal →
+        {tr("Open this deal →")}
       </button>
     </div>
   );
@@ -303,7 +326,7 @@ function DealCard({ card, onOpenDeal }) {
 function HelpCard({ card, onNavigate }) {
   return (
     <div style={{ background: "#fff", border: "1px solid #E5E7EB", borderRadius: 12, padding: 14, marginTop: 8 }}>
-      <div style={{ fontWeight: 800, fontSize: 13, color: NAVY, marginBottom: 6 }}>📘 {card.title}</div>
+      <div style={{ fontWeight: 800, fontSize: 13, color: NAVY, marginBottom: 6 }}>📘 {tr(card.title)}</div>
       <ol style={{ margin: 0, paddingLeft: 18 }}>
         {(card.steps || []).map((s, i) => (
           <li key={i} style={{ fontSize: 13, color: "#374151", marginBottom: 5, lineHeight: 1.45 }}>{s}</li>
@@ -311,7 +334,7 @@ function HelpCard({ card, onNavigate }) {
       </ol>
       {card.target && (
         <button onClick={() => onNavigate(card.target)} style={{ marginTop: 8, background: "#EFF6FF", color: "#0c4a6e", border: "1px solid #BFDBFE", borderRadius: 8, padding: "8px 12px", fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}>
-          Take me there →
+          {tr("Take me there →")}
         </button>
       )}
     </div>
@@ -322,10 +345,10 @@ function CreateTaskCard({ card, token, onSpokenConfirm }) {
   const [state, setState] = useState("idle"); // idle | saving | done | cancelled | error
   const t = card.task || {};
   if (state === "done") {
-    return <div style={{ background: "#F0FDF4", border: "1px solid #BBF7D0", borderRadius: 12, padding: 12, marginTop: 8, fontSize: 13, fontWeight: 700, color: "#166534" }}>✓ Task added — it's on your Win the Day.</div>;
+    return <div style={{ background: "#F0FDF4", border: "1px solid #BBF7D0", borderRadius: 12, padding: 12, marginTop: 8, fontSize: 13, fontWeight: 700, color: "#166534" }}>{tr("✓ Task added — it's on your Win the Day.")}</div>;
   }
   if (state === "cancelled") {
-    return <div style={{ background: "#F9FAFB", border: "1px solid #E5E7EB", borderRadius: 12, padding: 12, marginTop: 8, fontSize: 13, color: "#6b7280" }}>Task discarded.</div>;
+    return <div style={{ background: "#F9FAFB", border: "1px solid #E5E7EB", borderRadius: 12, padding: 12, marginTop: 8, fontSize: 13, color: "#6b7280" }}>{tr("Task discarded.")}</div>;
   }
   const save = async () => {
     setState("saving");
@@ -345,16 +368,16 @@ function CreateTaskCard({ card, token, onSpokenConfirm }) {
   };
   return (
     <div style={{ background: "#FFFBEB", border: "1px solid #FDE68A", borderRadius: 12, padding: 14, marginTop: 8 }}>
-      <div style={{ fontSize: 11, fontWeight: 800, color: "#92400E", textTransform: "uppercase", letterSpacing: "0.04em" }}>New task — confirm to add</div>
-      <div style={{ fontWeight: 700, fontSize: 14, color: NAVY, marginTop: 6 }}>{t.title}</div>
+      <div style={{ fontSize: 11, fontWeight: 800, color: "#92400E", textTransform: "uppercase", letterSpacing: "0.04em" }}>{tr("New task — confirm to add")}</div>
+      <div style={{ fontWeight: 700, fontSize: 14, color: NAVY, marginTop: 6 }}>{tr(t.title)}</div>
       <div style={{ fontSize: 12, color: "#6b7280", marginTop: 2 }}>{[t.due_date ? `Due ${t.due_date}` : "No due date", t.category].filter(Boolean).join(" · ")}</div>
-      {state === "error" && <div style={{ fontSize: 12, color: RED, marginTop: 6 }}>Couldn't save — try again.</div>}
+      {state === "error" && <div style={{ fontSize: 12, color: RED, marginTop: 6 }}>{tr("Couldn't save — try again.")}</div>}
       <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
         <button onClick={() => setState("cancelled")} disabled={state === "saving"} style={{ flex: 1, background: "#fff", color: "#374151", border: "1px solid #D1D5DB", borderRadius: 8, padding: "9px 10px", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>
-          Cancel
+          {tr("Cancel")}
         </button>
         <button onClick={save} disabled={state === "saving"} style={{ flex: 2, background: "#0c4a6e", color: "#fff", border: "none", borderRadius: 8, padding: "9px 10px", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>
-          {state === "saving" ? "Saving…" : "✓ Add task"}
+          {state === "saving" ? tr("Saving…") : tr("✓ Add task")}
         </button>
       </div>
     </div>
@@ -369,7 +392,7 @@ function ProposalCard({ badge, confirmLabel, doneText, spokenText, body, doActio
     return <div style={{ background: "#F0FDF4", border: "1px solid #BBF7D0", borderRadius: 12, padding: 12, marginTop: 8, fontSize: 13, fontWeight: 700, color: "#166534" }}>✓ {doneText}</div>;
   }
   if (state === "cancelled") {
-    return <div style={{ background: "#F9FAFB", border: "1px solid #E5E7EB", borderRadius: 12, padding: 12, marginTop: 8, fontSize: 13, color: "#6b7280" }}>Discarded.</div>;
+    return <div style={{ background: "#F9FAFB", border: "1px solid #E5E7EB", borderRadius: 12, padding: 12, marginTop: 8, fontSize: 13, color: "#6b7280" }}>{tr("Discarded.")}</div>;
   }
   const run = async () => {
     setState("saving");
@@ -383,13 +406,13 @@ function ProposalCard({ badge, confirmLabel, doneText, spokenText, body, doActio
     <div style={{ background: "#FFFBEB", border: "1px solid #FDE68A", borderRadius: 12, padding: 14, marginTop: 8 }}>
       <div style={{ fontSize: 11, fontWeight: 800, color: "#92400E", textTransform: "uppercase", letterSpacing: "0.04em" }}>{badge}</div>
       {body}
-      {state === "error" && <div style={{ fontSize: 12, color: RED, marginTop: 6 }}>Couldn't do that — try again.</div>}
+      {state === "error" && <div style={{ fontSize: 12, color: RED, marginTop: 6 }}>{tr("Couldn't do that — try again.")}</div>}
       <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
         <button onClick={() => setState("cancelled")} disabled={state === "saving"} style={{ flex: 1, background: "#fff", color: "#374151", border: "1px solid #D1D5DB", borderRadius: 8, padding: "9px 10px", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>
-          Cancel
+          {tr("Cancel")}
         </button>
         <button onClick={run} disabled={state === "saving"} style={{ flex: 2, background: danger ? RED : "#0c4a6e", color: "#fff", border: "none", borderRadius: 8, padding: "9px 10px", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>
-          {state === "saving" ? "Working…" : confirmLabel}
+          {state === "saving" ? tr("Working…") : confirmLabel}
         </button>
       </div>
     </div>
@@ -404,14 +427,14 @@ function DraftEmailCard({ card, token, onSpokenConfirm }) {
   return (
     <ProposalCard
       badge="Email draft — review, then send"
-      confirmLabel="✉️ Send email"
-      doneText={`Sent to ${e.toName || e.toEmail}.`}
+      confirmLabel={tr("✉️ Send email")}
+      doneText={tr("Sent to {v1}.", { v1: e.toName || e.toEmail })}
       spokenText="Email sent."
       onSpokenConfirm={onSpokenConfirm}
       body={
         <>
-          <div style={{ fontSize: 12, color: "#6b7280", marginTop: 6 }}>To: <b style={{ color: "#111" }}>{e.toName || ""}</b> {e.toEmail}</div>
-          <div style={{ fontWeight: 700, fontSize: 13, color: NAVY, marginTop: 4 }}>{e.subject || "(no subject)"}</div>
+          <div style={{ fontSize: 12, color: "#6b7280", marginTop: 6 }}>{tr("To:")} <b style={{ color: "#111" }}>{e.toName || ""}</b> {e.toEmail}</div>
+          <div style={{ fontWeight: 700, fontSize: 13, color: NAVY, marginTop: 4 }}>{e.subject || tr("(no subject)")}</div>
           <div style={{ fontSize: 12.5, color: "#374151", marginTop: 6, whiteSpace: "pre-wrap", background: "#fff", border: "1px solid #F3E8C8", borderRadius: 8, padding: 10, maxHeight: 180, overflowY: "auto" }}>{e.message}</div>
         </>
       }
@@ -434,14 +457,14 @@ function StartChaseCard({ card, token, onSpokenConfirm }) {
   return (
     <ProposalCard
       badge="Follow-up chase — confirm to start"
-      confirmLabel="🔁 Start follow-up"
-      doneText={`Chasing ${c.targetName || c.targetEmail} until it's done.`}
+      confirmLabel={tr("🔁 Start follow-up")}
+      doneText={tr("Chasing {v1} until it's done.", { v1: c.targetName || c.targetEmail })}
       spokenText="Follow-up started."
       onSpokenConfirm={onSpokenConfirm}
       body={
         <>
-          <div style={{ fontWeight: 700, fontSize: 14, color: NAVY, marginTop: 6 }}>{c.subject || "Follow-up"}</div>
-          <div style={{ fontSize: 12, color: "#6b7280", marginTop: 2 }}>Nags {c.targetName || c.targetEmail} politely until resolved — stop it anytime from the deal's Active Follow-Ups.</div>
+          <div style={{ fontWeight: 700, fontSize: 14, color: NAVY, marginTop: 6 }}>{c.subject || tr("Follow-up")}</div>
+          <div style={{ fontSize: 12, color: "#6b7280", marginTop: 2 }}>{tr("Nags")} {c.targetName || c.targetEmail} {tr("politely until resolved — stop it anytime from the deal's Active Follow-Ups.")}</div>
           {c.message && <div style={{ fontSize: 12.5, color: "#374151", marginTop: 6, whiteSpace: "pre-wrap", background: "#fff", border: "1px solid #F3E8C8", borderRadius: 8, padding: 10, maxHeight: 140, overflowY: "auto" }}>{c.message}</div>}
         </>
       }
@@ -468,13 +491,13 @@ function LogCallCard({ card, token, onSpokenConfirm }) {
   return (
     <ProposalCard
       badge="Log this call — confirm"
-      confirmLabel="📞 Log call"
-      doneText={`Call logged for ${c.contactName || "contact"}.`}
+      confirmLabel={tr("📞 Log call")}
+      doneText={tr("Call logged for {v1}.", { v1: c.contactName || "contact" })}
       spokenText="Call logged."
       onSpokenConfirm={onSpokenConfirm}
       body={
         <>
-          <div style={{ fontWeight: 700, fontSize: 14, color: NAVY, marginTop: 6 }}>{c.contactName || "Contact"} — {CALL_OUTCOME_LABELS[c.outcome] || c.outcome}</div>
+          <div style={{ fontWeight: 700, fontSize: 14, color: NAVY, marginTop: 6 }}>{c.contactName || tr("Contact")} — {CALL_OUTCOME_LABELS[c.outcome] || c.outcome}</div>
           {c.notes && <div style={{ fontSize: 12.5, color: "#374151", marginTop: 4 }}>{c.notes}</div>}
         </>
       }
@@ -499,12 +522,12 @@ function AppActionCard({ card, token, onSpokenConfirm }) {
   return (
     <ProposalCard
       badge={card.danger ? "Confirm this change" : "Confirm to do this"}
-      confirmLabel={card.confirmLabel || "✓ Do it"}
+      confirmLabel={card.confirmLabel || tr("✓ Do it")}
       doneText={card.doneText || "Done."}
       spokenText="Done."
       danger={!!card.danger}
       onSpokenConfirm={onSpokenConfirm}
-      body={<div style={{ fontWeight: 700, fontSize: 14, color: NAVY, marginTop: 6 }}>{card.summary}</div>}
+      body={<div style={{ fontWeight: 700, fontSize: 14, color: NAVY, marginTop: 6 }}>{tr(card.summary)}</div>}
       doAction={async () => {
         const r = await fetch(API + card.path, {
           method: card.method,
@@ -532,7 +555,7 @@ function Card({ card, token, onOpenDeal, onNavigate, onSend, onSpokenConfirm }) 
         <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 8 }}>
           {(card.options || []).slice(0, 6).map((o, i) => (
             <button key={i} onClick={() => onSend(o.send || o.label)} style={{ textAlign: "left", background: "#fff", border: "1.5px solid " + NAVY, color: NAVY, borderRadius: 10, padding: "10px 12px", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>
-              {o.label}
+              {tr(o.label)}
             </button>
           ))}
         </div>
@@ -544,7 +567,7 @@ function Card({ card, token, onOpenDeal, onNavigate, onSend, onSpokenConfirm }) 
     case "navigate":
       return (
         <button onClick={() => onNavigate(card.target)} style={{ marginTop: 8, background: "#fff", border: "1.5px solid " + NAVY, color: NAVY, borderRadius: 10, padding: "10px 12px", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit", display: "block" }}>
-          {card.label || "Open"}
+          {tr(card.label) || tr("Open")}
         </button>
       );
     case "create_task":
@@ -716,7 +739,7 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
     openRef.current = true;   // armMic() runs before the next render
     refreshTasks();
     if (msgs.length === 0) {
-      setMsgs([{ role: "assistant", text: GREETING, cards: [] }]);
+      setMsgs([{ role: "assistant", text: tr(GREETING), cards: [] }]);
     }
     // Auto-listen opens the mic in THIS tap, and the greeting plays over the
     // top of it — armMic() FIRST (startListening cancels any speech as it
@@ -733,7 +756,7 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
           const live = listenRef.current;
           speakingRef.current = true;
           if (live) live.muted = true;      // deaf while we greet
-          speak(GREETING, () => {
+          speak(tr(GREETING), () => {
             speakingRef.current = false;
             if (live && !live.sent && live.restart) live.restart();
           });
@@ -741,7 +764,7 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
       });
       return;
     }
-    if (speakOn) speak(GREETING);
+    if (speakOn) speak(tr(GREETING));
   };
 
   const closePanel = () => {
@@ -808,7 +831,7 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
     if (!micStarting) return;
     const t = setTimeout(() => {
       setMicStarting(false);
-      setMicNote("The microphone is taking too long to start. Reload the page and try again — and check nothing else (Zoom, FaceTime) is holding the mic. You can always type your question.");
+      setMicNote(tr("The microphone is taking too long to start. Reload the page and try again — and check nothing else (Zoom, FaceTime) is holding the mic. You can always type your question."));
     }, 12000);
     return () => clearTimeout(t);
   }, [micStarting]);
@@ -869,7 +892,7 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
       } catch (err) {
         setMicStarting(false);
         setMicNote(err && err.message === "mic-timeout"
-          ? "The microphone didn't respond — another app (Zoom, FaceTime, Teams?) may be using it. Close that app or restart the browser, then try again."
+          ? tr("The microphone didn't respond — another app (Zoom, FaceTime, Teams?) may be using it. Close that app or restart the browser, then try again.")
           : MIC_BLOCKED_NOTE);
         return;
       }
@@ -878,7 +901,7 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
     try {
       const rec = new SR();
       recRef.current = rec;
-      rec.lang = "en-US";
+      rec.lang = getLang() === "es" ? "es-US" : "en-US";
       rec.continuous = true;       // do NOT cut off at the first brief pause
       rec.interimResults = true;   // show words as they're heard — proof it's working
       rec.maxAlternatives = 1;
@@ -925,7 +948,7 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
           // Quiet room — say so out loud and let go of the mic, instead of
           // leaving it open (and the recording light on) indefinitely.
           convoRef.current = false;
-          setMicNote("I didn't hear anything, so I closed the mic — tap 🎤 whenever you need me.");
+          setMicNote(tr("I didn't hear anything, so I closed the mic — tap 🎤 whenever you need me."));
           if (speakOn) speak(SIGN_OFF);
         }
       };
@@ -1011,14 +1034,14 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
             METER_OFF = true;
             releaseMicStream();   // hand the device back before retrying
             setTimeout(() => { if (openRef.current) startListening(); }, 250);
-          } else setMicNote("No working microphone was found on this device.");
+          } else setMicNote(tr("No working microphone was found on this device."));
         }
         else {
           // Recognizer broke for a non-permission reason (e.g. its speech
           // service is unreachable in this browser). Hand off to the
           // record-and-transcribe fallback instead of giving up.
           if (CAN_RECORD) startRecording();
-          else setMicNote("Voice input didn't start. Tip: the mic key on your phone's keyboard dictates straight into the text box.");
+          else setMicNote(tr("Voice input didn't start. Tip: the mic key on your phone's keyboard dictates straight into the text box."));
         }
       };
       rec.onend = () => {
@@ -1055,7 +1078,7 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
     } catch {
       setListening(false);
       if (CAN_RECORD) startRecording();
-      else setMicNote("Voice input isn't available in this browser. Tip: the mic key on your phone's keyboard dictates straight into the text box.");
+      else setMicNote(tr("Voice input isn't available in this browser. Tip: the mic key on your phone's keyboard dictates straight into the text box."));
     }
   };
 
@@ -1081,7 +1104,7 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
     } catch (err) {
       setMicStarting(false);
       setMicNote(err && err.message === "mic-timeout"
-        ? "The microphone didn't respond — another app (Zoom, FaceTime, Teams?) may be using it. Close that app or restart the browser, then try again."
+        ? tr("The microphone didn't respond — another app (Zoom, FaceTime, Teams?) may be using it. Close that app or restart the browser, then try again.")
         : MIC_BLOCKED_NOTE);
       return;
     }
@@ -1096,25 +1119,25 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
       mr.onstop = async () => {
         setRecording(false);   // stream stays open — re-asking re-prompts on iOS
         const blob = new Blob(chunksRef.current, { type: mr.mimeType || "audio/webm" });
-        if (blob.size < 1500) { setMicNote("I didn't catch any audio — tap the mic, speak, then tap it again when you're done."); return; }
+        if (blob.size < 1500) { setMicNote(tr("I didn't catch any audio — tap the mic, speak, then tap it again when you're done.")); return; }
         setTranscribing(true);
         try {
           const audio = await blobToBase64(blob);
           const r = await fetch(API + "/assistant/transcribe", {
             method: "POST",
             headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
-            body: JSON.stringify({ audio, mime: blob.type }),
+            body: JSON.stringify({ audio, mime: blob.type, lang: getLang() }),
           });
           const d = r.ok ? await r.json() : null;
           setTranscribing(false);
           if (d && d.success && d.text && d.text.trim()) {
             send(d.text.trim(), { voice: true });
           } else {
-            setMicNote("Voice isn't fully set up for this browser yet. You can still type, or dictate with the mic key on your keyboard.");
+            setMicNote(tr("Voice isn't fully set up for this browser yet. You can still type, or dictate with the mic key on your keyboard."));
           }
         } catch {
           setTranscribing(false);
-          setMicNote("Couldn't reach the voice service — check your connection, or type your question.");
+          setMicNote(tr("Couldn't reach the voice service — check your connection, or type your question."));
         }
       };
       mr.start();
@@ -1123,7 +1146,7 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
       recTimerRef.current = setTimeout(stopRecording, 30000);
     } catch {
       releaseMicStream();
-      setMicNote("Voice input isn't available in this browser. You can still type, or dictate with the mic key on your keyboard.");
+      setMicNote(tr("Voice input isn't available in this browser. You can still type, or dictate with the mic key on your keyboard."));
     }
   };
 
@@ -1182,6 +1205,7 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
       message: text,
       history,
       context: { screen: currentView || "", dealAddress: currentDealAddress || "", voice: !!voice },
+      lang: getLang(),
       snapshot: buildSnapshot(),
     });
     const headers = { Authorization: "Bearer " + token, "Content-Type": "application/json" };
@@ -1284,7 +1308,7 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
       };
     }
 
-    setMsgs(prev => [...prev, { role: "assistant", text: out.reply, cards: out.cards }]);
+    { const loc = localizeAnswer(out); setMsgs(prev => [...prev, { role: "assistant", text: loc.reply, cards: loc.cards }]); }
     setBusy(false);
 
     // Hands-free loop: when a VOICE question finishes being answered aloud,
@@ -1327,8 +1351,8 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
         <button
           onClick={openPanel}
           className="assist-fab"
-          aria-label="Get help — ask the assistant"
-          title="Stuck? Ask me anything — type it or say it"
+          aria-label={tr("Get help — ask the assistant")}
+          title={tr("Stuck? Ask me anything — type it or say it")}
           style={{ position: "fixed", bottom: 24, right: 24, width: 58, height: 58, borderRadius: "50%", background: `linear-gradient(135deg, ${NAVY}, #34506e)`, color: "#fff", border: "none", boxShadow: "0 6px 18px rgba(0,0,0,0.30)", cursor: "pointer", fontSize: 25, fontWeight: 800, zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "inherit" }}>
           ?
           <span aria-hidden="true" style={{ position: "absolute", right: -1, bottom: -1, width: 22, height: 22, borderRadius: "50%", background: "#fff", border: `2px solid ${NAVY}`, fontSize: 11, display: "flex", alignItems: "center", justifyContent: "center", lineHeight: 1 }}>🎤</span>
@@ -1343,17 +1367,17 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
             <div style={{ background: NAVY, padding: "12px 16px", display: "flex", alignItems: "center", gap: 10 }}>
               <div style={{ fontSize: 20 }}>🎙️</div>
               <div style={{ flex: 1 }}>
-                <div style={{ color: "#fff", fontWeight: 800, fontSize: 15 }}>Assistant</div>
-                <div style={{ color: "rgba(255,255,255,0.65)", fontSize: 11 }}>Type or talk — I can dial, show, and explain · {BUILD_TAG}</div>
+                <div style={{ color: "#fff", fontWeight: 800, fontSize: 15 }}>{tr("Assistant")}</div>
+                <div style={{ color: "rgba(255,255,255,0.65)", fontSize: 11 }}>{tr("Type or talk — I can dial, show, and explain ·")} {BUILD_TAG}</div>
               </div>
               {(SR || CAN_RECORD) && (
                 <button onClick={toggleAutoMic}
-                  title={autoMic ? "Mic opens automatically — tap to turn auto-listen off" : "Auto-listen OFF — tap to have the mic open by itself"}
+                  title={autoMic ? tr("Mic opens automatically — tap to turn auto-listen off") : tr("Auto-listen OFF — tap to have the mic open by itself")}
                   style={{ background: autoMic ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.25)", border: "none", borderRadius: 8, padding: "6px 9px", fontSize: 16, cursor: "pointer" }}>
                   {autoMic ? "🎤" : "🤐"}
                 </button>
               )}
-              <button onClick={toggleSpeak} title={speakOn ? "Voice replies ON — tap to mute" : "Voice replies OFF — tap to unmute"}
+              <button onClick={toggleSpeak} title={speakOn ? tr("Voice replies ON — tap to mute") : tr("Voice replies OFF — tap to unmute")}
                 style={{ background: "rgba(255,255,255,0.12)", border: "none", borderRadius: 8, padding: "6px 9px", fontSize: 16, cursor: "pointer" }}>
                 {speakOn ? "🔊" : "🔇"}
               </button>
@@ -1386,25 +1410,25 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
                   </div>
                 </div>
               )}
-              {busy && !streamText && <div style={{ fontSize: 13, color: "#6b7280", padding: "4px 2px" }}>{statusText || "Thinking…"}</div>}
+              {busy && !streamText && <div style={{ fontSize: 13, color: "#6b7280", padding: "4px 2px" }}>{statusText || tr("Thinking…")}</div>}
               {listening && (
                 <div style={{ background: "#FFF7ED", border: "1px solid #FED7AA", borderRadius: 10, padding: "10px 12px", marginTop: 4 }}>
-                  <div style={{ fontSize: 13, color: RED, fontWeight: 700 }}>● Listening — take all the time you need.</div>
-                  <div style={{ fontSize: 12, color: "#9A3412", marginTop: 2 }}>I'll answer as soon as you stop talking — or tap <b>⏹ to send</b> right away.</div>
+                  <div style={{ fontSize: 13, color: RED, fontWeight: 700 }}>{tr("● Listening — take all the time you need.")}</div>
+                  <div style={{ fontSize: 12, color: "#9A3412", marginTop: 2 }}>{tr("I'll answer as soon as you stop talking — or tap")} <b>{tr("⏹ to send")}</b> {tr("right away.")}</div>
                   {interim && <div style={{ fontSize: 12.5, color: "#374151", marginTop: 6, fontStyle: "italic" }}>“{interim}”</div>}
                 </div>
               )}
               {recording && (
                 <div style={{ fontSize: 13, color: RED, fontWeight: 700, padding: "4px 2px" }}>
-                  ● Recording — speak, then tap the mic again when you're done…
+                  {tr("● Recording — speak, then tap the mic again when you're done…")}
                 </div>
               )}
-              {transcribing && <div style={{ fontSize: 13, color: "#6b7280", padding: "4px 2px" }}>Writing down what you said…</div>}
-              {micStarting && <div style={{ fontSize: 13, color: "#6b7280", padding: "4px 2px" }}>Starting the microphone…</div>}
+              {transcribing && <div style={{ fontSize: 13, color: "#6b7280", padding: "4px 2px" }}>{tr("Writing down what you said…")}</div>}
+              {micStarting && <div style={{ fontSize: 13, color: "#6b7280", padding: "4px 2px" }}>{tr("Starting the microphone…")}</div>}
               {iosTip && (
                 <div style={{ display: "flex", gap: 8, alignItems: "flex-start", background: "#F1F5F9", border: "1px solid #E2E8F0", borderRadius: 10, padding: "9px 11px", fontSize: 12, color: "#475569", lineHeight: 1.5, marginTop: 4 }}>
                   <div style={{ flex: 1 }}>
-                    📱 iPhone asks for the microphone once each visit. To stop it asking, open the iPhone <b>Settings</b> app → <b>Safari</b> → scroll down to <b>Microphone</b> → <b>Allow</b>. (Newer iPhones: Settings → Apps → Safari.)
+                    {tr("📱 iPhone asks for the microphone once each visit. To stop it asking, open the iPhone")} <b>{tr("Settings")}</b> {tr("app →")} <b>{tr("Safari")}</b> {tr("→ scroll down to")} <b>{tr("Microphone")}</b> → <b>{tr("Allow")}</b>{tr(". (Newer iPhones: Settings → Apps → Safari.)")}
                   </div>
                   <button onClick={() => { setIosTip(false); localStorage.setItem("tp_assist_iostip", "off"); }}
                     style={{ background: "none", border: "none", color: "#5F6B7A", fontSize: 16, cursor: "pointer", padding: 0, lineHeight: 1 }}>×</button>
@@ -1412,7 +1436,7 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
               )}
               {micNote && (
                 <div style={{ background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: 10, padding: "10px 12px", fontSize: 12.5, color: "#7F1D1D", lineHeight: 1.5, marginTop: 4 }}>
-                  🎤 {micNote}
+                  🎤 {tr(micNote)}
                 </div>
               )}
             </div>
@@ -1423,7 +1447,7 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
                 <button key={ch.label}
                   onClick={() => { if (ch.nav) { closePanel(); onNavigate(ch.nav); } else if (ch.send) send(ch.send); else setInput(ch.fill); }}
                   style={{ whiteSpace: "nowrap", background: "#fff", border: "1px solid #D1D5DB", borderRadius: 16, padding: "6px 11px", fontSize: 12, fontWeight: 600, color: "#374151", cursor: "pointer", fontFamily: "inherit" }}>
-                  {ch.label}
+                  {tr(ch.label)}
                 </button>
               ))}
             </div>
@@ -1439,7 +1463,7 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
                     else if (SR) startListening();
                     else startRecording();
                   }}
-                  title={listening || recording ? "Stop" : "Talk instead of typing"}
+                  title={listening || recording ? tr("Stop") : tr("Talk instead of typing")}
                   style={{ width: 44, height: 44, borderRadius: "50%", flexShrink: 0, background: listening || recording ? RED : "#fff", color: listening || recording ? "#fff" : NAVY, border: listening || recording ? "none" : "1.5px solid " + NAVY, fontSize: 18, cursor: "pointer" }}>
                   {listening || recording ? "⏹" : "🎤"}
                 </button>
@@ -1448,7 +1472,7 @@ export default function AssistantPanel({ token, contacts, transactions, currentV
                 value={input}
                 onChange={e => setInput(e.target.value)}
                 onKeyDown={e => { if (e.key === "Enter") send(input); }}
-                placeholder='Try “dial Maria” or “what’s due today?”'
+                placeholder={tr("Try “dial Maria” or “what’s due today?”")}
                 style={{ flex: 1, padding: "11px 14px", borderRadius: 22, border: "1px solid #D1D5DB", fontSize: 14, fontFamily: "inherit", outline: "none", background: "#fff" }}
               />
               <button onClick={() => { unlockSpeech(); send(input); }} disabled={!input.trim() || busy}

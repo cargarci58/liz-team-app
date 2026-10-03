@@ -1,3 +1,4 @@
+import { t as tr } from "../i18n";
 import { useState } from 'react';
 
 // ═══════════════════════════════════════════════════════════════
@@ -34,7 +35,7 @@ export default function AppTour({ onClose, onCreateFirst }) {
       <div style={{ background: '#fff', borderRadius: 16, width: '100%', maxWidth: 460, boxShadow: '0 20px 60px rgba(0,0,0,0.35)', padding: 24, margin: 'auto', marginTop: 40 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
           <div style={{ fontSize: 12, fontWeight: 800, color: RED, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-            App Tour · {i + 1} of {CARDS.length}
+            {tr("App Tour ·")} {i + 1} {tr("of")} {CARDS.length}
           </div>
           <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: 20, color: '#666666', cursor: 'pointer', lineHeight: 1 }}>×</button>
         </div>
@@ -48,8 +49,8 @@ export default function AppTour({ onClose, onCreateFirst }) {
 
         <div style={{ textAlign: 'center', padding: '4px 4px 8px' }}>
           <div style={{ fontSize: 52, marginBottom: 10 }}>{card.emoji}</div>
-          <div style={{ fontSize: 21, fontWeight: 800, color: '#111' }}>{card.title}</div>
-          <div style={{ fontSize: 14.5, color: '#555', margin: '12px 0 4px', lineHeight: 1.6, minHeight: 70 }}>{card.body}</div>
+          <div style={{ fontSize: 21, fontWeight: 800, color: '#111' }}>{tr(card.title)}</div>
+          <div style={{ fontSize: 14.5, color: '#555', margin: '12px 0 4px', lineHeight: 1.6, minHeight: 70 }}>{tr(card.body)}</div>
         </div>
 
         <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginTop: 16 }}>
@@ -57,19 +58,19 @@ export default function AppTour({ onClose, onCreateFirst }) {
             onClick={() => setI(n => Math.max(0, n - 1))}
             disabled={i === 0}
             style={{ background: 'none', border: '1px solid #ddd', borderRadius: 10, padding: '11px 18px', fontSize: 14, fontWeight: 700, color: i === 0 ? '#ccc' : '#444', cursor: i === 0 ? 'default' : 'pointer', fontFamily: 'inherit' }}
-          >← Previous</button>
+          >{tr("← Previous")}</button>
           <div style={{ flex: 1 }} />
           {!last ? (
-            <button onClick={() => setI(n => Math.min(CARDS.length - 1, n + 1))} style={primaryBtn}>Next →</button>
+            <button onClick={() => setI(n => Math.min(CARDS.length - 1, n + 1))} style={primaryBtn}>{tr("Next →")}</button>
           ) : onCreateFirst ? (
-            <button onClick={onCreateFirst} style={primaryBtn}>Create my first deal →</button>
+            <button onClick={onCreateFirst} style={primaryBtn}>{tr("Create my first deal →")}</button>
           ) : (
-            <button onClick={onClose} style={primaryBtn}>Done</button>
+            <button onClick={onClose} style={primaryBtn}>{tr("Done")}</button>
           )}
         </div>
         {last && onCreateFirst && (
           <div style={{ textAlign: 'center', marginTop: 12 }}>
-            <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#666666', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>I'll explore on my own</button>
+            <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#666666', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>{tr("I'll explore on my own")}</button>
           </div>
         )}
       </div>

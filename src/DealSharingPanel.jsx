@@ -108,7 +108,7 @@ export default function DealSharingPanel({ txId, onChanged }) {
     setInvite({ kind: "coagent", pid: c.id, mode: x.mode, to: x.to, toEmail: x.toEmail, subject: x.subject, body: x.body });
   };
   const coAgentStatus = (c) => {
-    const chip = (txt, bg, col) => <span style={{ fontSize: 11, fontWeight: 800, color: col, background: bg, borderRadius: 10, padding: "2px 8px" }}>{txt}</span>;
+    const chip = (txt, bg, col) => <span style={{ fontSize: 11, fontWeight: 800, color: col, background: bg, borderRadius: 10, padding: "2px 8px" }}>{tr(txt)}</span>;
     const btn = (label, primary) => d.canManagePartners === false ? null : (
       <button onClick={() => coInvite(c)} style={{ padding: "4px 10px", borderRadius: 8, border: primary ? "none" : "1px solid " + C.blue, background: primary ? C.red : "#fff", color: primary ? "#fff" : C.blue, fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}>{tr(label)}</button>
     );
@@ -213,7 +213,7 @@ export default function DealSharingPanel({ txId, onChanged }) {
           {saving ? tr("Saving…") : tr("Save sharing")}
         </button>}
         {dirty && !saving && (canEdit || d.canOverridePlan) && <span style={{ fontSize: 12.5, fontWeight: 700, color: C.dark }}>{tr("● Unsaved changes — tap Save sharing")}</span>}
-        {msg && <span style={{ fontSize: 12.5, fontWeight: 700, color: msg.startsWith("✅") ? "#166534" : C.dark }}>{msg}</span>}
+        {msg && <span style={{ fontSize: 12.5, fontWeight: 700, color: msg.startsWith("✅") ? "#166534" : C.dark }}>{tr(msg)}</span>}
       </div>
 
       {invite && (

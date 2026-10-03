@@ -1,3 +1,4 @@
+import { t as tr, getLang } from "../i18n";
 import { useEffect } from 'react';
 
 // ═══════════════════════════════════════════════════════════════
@@ -24,6 +25,7 @@ export default function TourModal({ cut = 'marketing', chapter, scenes, onClose 
   }, [onClose]);
 
   const qs = new URLSearchParams({ cut, embed: '1' });
+  if (getLang() === 'es') qs.set('lang', 'es');   // Spanish captions (voice stays the English recording)
   if (cut === 'learn' && chapter) qs.set('chapter', String(chapter));
   if (cut === 'learn' && scenes && scenes.length) qs.set('scenes', scenes.join(','));
   const src = `/tour/index.html?${qs.toString()}`;
@@ -33,10 +35,10 @@ export default function TourModal({ cut = 'marketing', chapter, scenes, onClose 
       <div onClick={(e) => e.stopPropagation()} style={{ width: 'min(1100px, 100%)', maxHeight: '100%', display: 'flex', flexDirection: 'column', gap: 8 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: '#fff' }}>
           <div style={{ fontWeight: 800, fontSize: 15 }}>
-            {cut === 'learn' ? (scenes && scenes.length ? '🎬 How this page works' : '📚 Learn the app, chapter by chapter') : '🎬 The 2-minute tour'}
+            {cut === 'learn' ? (scenes && scenes.length ? tr("🎬 How this page works") : tr("📚 Learn the app, chapter by chapter")) : tr("🎬 The 2-minute tour")}
           </div>
-          <button onClick={onClose} aria-label="Close the tour" style={{ background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.25)', color: '#fff', borderRadius: 8, padding: '6px 12px', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
-            ✕ Close
+          <button onClick={onClose} aria-label={tr("Close the tour")} style={{ background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.25)', color: '#fff', borderRadius: 8, padding: '6px 12px', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+            {tr("✕ Close")}
           </button>
         </div>
         {/* 16:9 stage + caption + controls ≈ 16:11.5; the frame gets that ratio so nothing inside scrolls. */}
@@ -45,7 +47,7 @@ export default function TourModal({ cut = 'marketing', chapter, scenes, onClose 
             9/20: "you cannot pause the video" — the controls were clipped). */}
         <div style={{ position: 'relative', width: 'min(1100px, 100%, calc((100vh - 90px) * 16 / 11.6))', margin: '0 auto', aspectRatio: '16 / 11.6', borderRadius: 12, overflow: 'hidden', background: '#111', border: '1px solid #333' }}>
           <iframe
-            title={cut === 'learn' ? 'Learn TransactPro, chapter by chapter' : 'The 2-minute TransactPro tour'}
+            title={cut === 'learn' ? tr("Learn TransactPro, chapter by chapter") : tr("The 2-minute TransactPro tour")}
             src={src}
             allow="autoplay"
             style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', border: 'none', background: '#111' }}

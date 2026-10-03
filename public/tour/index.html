@@ -523,6 +523,36 @@ const AV = {"bed": "812265ee", "d10_1a": "d8504ef9", "d10_1b": "6e8f6855", "d10_
 
   // ── narration: one pre-rendered MP3 per line (Kristen — Friendly & Casual,
   // rendered once on the server side). Same voice for everyone, everywhere.
+  // ── Spanish (?lang=es — the app passes it when the agent works in Spanish) ──
+  // The voice stays the English recording; captions and on-screen text switch
+  // to Spanish from es.json (English text → Spanish). Any text node or label
+  // whose English is in the map is swapped as it appears, so scenes, captions
+  // and controls all follow without touching how the tour plays.
+  if (Q.get('lang') === 'es') {
+    document.documentElement.lang = 'es';
+    let ES = null;
+    const tx = (s) => {
+      const k = (s || '').trim(); if (!k || !ES) return null;
+      if (ES[k]) return s.replace(k, ES[k]);
+      if (k.includes(' · ')) { const parts = k.split(' · '); const out = parts.map(p => ES[p.trim()] || p); if (out.some((v, i) => v !== parts[i])) return s.replace(k, out.join(' · ')); }
+      return null;
+    };
+    const fixNode = (n) => {
+      if (n.nodeType === 3) { const v = tx(n.nodeValue); if (v !== null && v !== n.nodeValue) n.nodeValue = v; return; }
+      if (n.nodeType !== 1 || /^(SCRIPT|STYLE)$/.test(n.tagName)) return;
+      ['title', 'aria-label', 'alt', 'placeholder'].forEach(at => { const o = n.getAttribute && n.getAttribute(at); const v = o && tx(o); if (v && v !== o) n.setAttribute(at, v); });
+      n.childNodes.forEach(fixNode);
+    };
+    fetch('/tour/es.json').then(r => (r.ok ? r.json() : null)).then(m => {
+      if (!m) return; ES = m; fixNode(document.body);
+      new MutationObserver(list => list.forEach(mu => {
+        if (mu.type === 'characterData') fixNode(mu.target);
+        else if (mu.type === 'attributes') fixNode(mu.target);
+        else mu.addedNodes.forEach(fixNode);
+      })).observe(document.body, { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ['title', 'aria-label', 'alt', 'placeholder'] });
+      document.title = tx(document.title) || document.title;
+    }).catch(() => {});
+  }
   const AUDIO = '/tour/audio/';
   const clipUrl = id => AUDIO + id + '.mp3' + (AV[id] ? '?v=' + AV[id] : '');
   const ID_OF = {}; Object.entries(LINES).forEach(([id, txt]) => { ID_OF[txt.trim()] = id; });

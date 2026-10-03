@@ -166,7 +166,7 @@ function ShareLinkModal({ form, tx, onClose }) {
         {step === 'error' && (
           <>
             <div style={{ background:'#fef2f2', border:'1px solid #fecaca', borderRadius:6, padding:12, fontSize:13, color:'#991b1b', marginBottom:16 }}>
-              ⚠️ {errMsg}
+              ⚠️ {tr(errMsg)}
             </div>
             <button onClick={onClose} style={{ background:'#e5e7eb', color:'#374151', border:'none', padding:'10px 18px', borderRadius:8, cursor:'pointer', fontWeight:600, width:'100%' }}>{tr("Close")}</button>
           </>

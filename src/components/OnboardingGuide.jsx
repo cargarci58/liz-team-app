@@ -98,7 +98,7 @@ export default function OnboardingGuide({ steps, doneKeys, onTakeMeThere, onSkip
               ) : (
                 <>
                   <div style={{ fontSize: 12.5, color: '#666666', marginBottom: 10, lineHeight: 1.5 }}>
-                    {tr("👉 Where to click:")} <strong>{s.where}</strong> {tr("(top-right of your screen).")}
+                    {tr("👉 Where to click:")} <strong>{tr(s.where) !== s.where ? tr(s.where) : String(s.where || "").split(" → ").map(x => tr(x)).join(" → ")}</strong> {tr("(top-right of your screen).")}
                   </div>
                   <button onClick={() => onTakeMeThere(s)} style={primaryBtn}>{tr("Show me — open it now →")}</button>
                   {onSkipStep && (

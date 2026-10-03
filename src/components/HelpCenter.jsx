@@ -1,3 +1,4 @@
+import { t as tr, requestSpanish, useLang, getLang, swapQuoted } from "../i18n";
 import { useState, useEffect } from 'react';
 import { pageTipsAreOff, setPageTipsOff } from './FirstTimeHere';
 
@@ -151,6 +152,7 @@ export const GUIDE_SECTIONS = [
 ];
 
 export default function HelpCenter({ apiBase, token, userId, onGoals, onProfile, onCompany, onFirstDeal, onRestartTour, onTour, onVideo, isAdmin, openSignal, feedbackSignal, supportSignal, guideQuery }) {
+  useLang(); // redraw when Spanish for server-written guides/FAQs arrives
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState('start'); // start | guides | faqs | feedback
 
@@ -163,7 +165,7 @@ export default function HelpCenter({ apiBase, token, userId, onGoals, onProfile,
 
   const submitFeedback = () => {
     const msg = fbMessage.trim();
-    if (!msg) { setFbError('Please tell us what happened or what you have in mind.'); return; }
+    if (!msg) { setFbError(tr('Please tell us what happened or what you have in mind.')); return; }
     setFbSending(true); setFbError(null);
     fetch(`${apiBase}/feedback`, {
       method: 'POST',
@@ -172,7 +174,7 @@ export default function HelpCenter({ apiBase, token, userId, onGoals, onProfile,
     })
       .then(r => r.ok ? r.json() : r.json().then(e => Promise.reject(e)))
       .then(() => { setFbDone(true); setFbMessage(''); })
-      .catch(e => setFbError(e?.error || 'Could not send. Please try again.'))
+      .catch(e => setFbError(e?.error || tr('Could not send. Please try again.')))
       .finally(() => setFbSending(false));
   };
 
@@ -198,12 +200,12 @@ export default function HelpCenter({ apiBase, token, userId, onGoals, onProfile,
         const r = await fetch(`${apiBase}/support/chat`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Accept: 'text/event-stream', Authorization: `Bearer ${token}` },
-          body: JSON.stringify({ messages: next }),
+          body: JSON.stringify({ messages: next, lang: getLang() }),
         });
         if (!r.ok) throw await r.json().catch(() => ({}));
         if (!/text\/event-stream/.test(r.headers.get('content-type') || '') || !r.body) {
           const data = await r.json();
-          setAiMessages(m => [...m, { role: 'assistant', content: data.reply || "Sorry, I didn't catch that — could you rephrase?" }]);
+          setAiMessages(m => [...m, { role: 'assistant', content: data.reply || tr("Sorry, I didn't catch that — could you rephrase?") }]);
           return;
         }
         let acc = '', started = false;
@@ -233,9 +235,9 @@ export default function HelpCenter({ apiBase, token, userId, onGoals, onProfile,
           }
         }
         if (streamErr && !acc) throw { error: streamErr };
-        show(finalReply || acc || "Sorry, I didn't catch that — could you rephrase?");
+        show(finalReply || acc || tr("Sorry, I didn't catch that — could you rephrase?"));
       } catch (e) {
-        setAiError(e?.error || 'Could not reach the assistant. Please try again, or use the 📣 Feedback tab.');
+        setAiError(e?.error || tr('Could not reach the assistant. Please try again, or use the 📣 Feedback tab.'));
       } finally { setAiSending(false); }
     })();
   };
@@ -265,7 +267,13 @@ export default function HelpCenter({ apiBase, token, userId, onGoals, onProfile,
     setGuidesLoaded(true);
     fetch(`${apiBase}/help/guides`, { headers: { Authorization: `Bearer ${token}` } })
       .then(r => (r.ok ? r.json() : null))
-      .then(d => { if (d && Array.isArray(d.sections) && d.sections.length) setGuideSections(d.sections); })
+      .then(d => {
+        if (d && Array.isArray(d.sections) && d.sections.length) {
+          setGuideSections(d.sections);
+          // Guides added on the server after this build: translate on the fly.
+          requestSpanish(d.sections.flatMap(sec => [sec.heading, ...sec.items.flatMap(it => [it.title, ...it.steps])]));
+        }
+      })
       .catch(() => {});
   }, [open, guidesLoaded, apiBase, token]);
 
@@ -281,8 +289,8 @@ export default function HelpCenter({ apiBase, token, userId, onGoals, onProfile,
     setFaqLoading(true); setFaqError(null);
     fetch(`${apiBase}/me/faqs`, { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.ok ? r.json() : r.json().then(e => Promise.reject(e)))
-      .then(data => { setRoleBucket(data.role_bucket); setFaqs(data.faqs || []); setFaqLoaded(true); })
-      .catch(() => setFaqError('Could not load FAQs.'))
+      .then(data => { setRoleBucket(data.role_bucket); setFaqs(data.faqs || []); setFaqLoaded(true); requestSpanish((data.faqs || []).flatMap(f => [f.question, f.answer])); })
+      .catch(() => setFaqError(tr('Could not load FAQs.')))
       .finally(() => setFaqLoading(false));
   }, [open, tab, faqLoaded, apiBase, token]);
 
@@ -292,7 +300,8 @@ export default function HelpCenter({ apiBase, token, userId, onGoals, onProfile,
     setExpanded(next);
   };
 
-  const matches = (txt) => !search.trim() || txt.toLowerCase().includes(search.toLowerCase());
+  // Search both the English and the Spanish wording, so either finds a guide.
+  const matches = (txt) => !search.trim() || [txt, tr(txt)].some(x => String(x || '').toLowerCase().includes(search.toLowerCase()));
 
   // Filter how-to guides by search
   const filteredSections = guideSections.map(sec => ({
@@ -316,7 +325,7 @@ export default function HelpCenter({ apiBase, token, userId, onGoals, onProfile,
         borderBottom: tab === id ? `2px solid ${RED}` : '2px solid transparent',
         fontFamily: 'inherit',
       }}
-    >{label}</button>
+    >{tr(label)}</button>
   );
 
   const StepGuide = ({ gkey, title, steps, footer }) => {
@@ -324,7 +333,7 @@ export default function HelpCenter({ apiBase, token, userId, onGoals, onProfile,
     return (
       <div style={{ border: '1px solid #eee', borderRadius: 10, marginBottom: 10, overflow: 'hidden' }}>
         <button onClick={() => toggle(gkey)} style={{ width: '100%', textAlign: 'left', background: isOpen ? '#FCF3F2' : '#fff', border: 'none', padding: '12px 14px', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, fontSize: 14, fontWeight: 700, color: '#222', fontFamily: 'inherit' }}>
-          <span>{title}</span>
+          <span>{tr(title)}</span>
           <span style={{ color: RED, flexShrink: 0, fontSize: 18 }}>{isOpen ? '−' : '+'}</span>
         </button>
         {isOpen && (
@@ -369,7 +378,7 @@ export default function HelpCenter({ apiBase, token, userId, onGoals, onProfile,
           <div onClick={(e) => e.stopPropagation()} style={{ background: '#fff', borderRadius: 12, width: '100%', maxWidth: 720, maxHeight: '88vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', margin: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}>
             {/* Header */}
             <div style={{ background: '#111', padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <div style={{ color: '#fff', fontSize: 18, fontWeight: 800 }}>❓ Help Center</div>
+              <div style={{ color: '#fff', fontSize: 18, fontWeight: 800 }}>{tr("❓ Help Center")}</div>
               <button onClick={() => setOpen(false)} style={{ background: 'none', border: 'none', fontSize: 24, cursor: 'pointer', color: 'rgba(255,255,255,0.7)', lineHeight: 1 }}>×</button>
             </div>
 
@@ -387,7 +396,7 @@ export default function HelpCenter({ apiBase, token, userId, onGoals, onProfile,
             {/* Search (guides + faqs only) */}
             {(tab === 'guides' || tab === 'faqs') && (
               <div style={{ padding: '12px 20px', borderBottom: '1px solid #eee' }}>
-                <input type="text" placeholder={tab === 'guides' ? 'Search guides…' : 'Search questions…'} value={search} onChange={(e) => setSearch(e.target.value)} style={{ width: '100%', padding: '9px 12px', border: '1px solid #ddd', borderRadius: 8, fontSize: 14, boxSizing: 'border-box', fontFamily: 'inherit' }} />
+                <input type="text" placeholder={tab === 'guides' ? tr("Search guides…") : tr("Search questions…")} value={search} onChange={(e) => setSearch(e.target.value)} style={{ width: '100%', padding: '9px 12px', border: '1px solid #ddd', borderRadius: 8, fontSize: 14, boxSizing: 'border-box', fontFamily: 'inherit' }} />
               </div>
             )}
 
@@ -396,17 +405,17 @@ export default function HelpCenter({ apiBase, token, userId, onGoals, onProfile,
               {tab === 'start' && (
                 <div>
                   <div style={{ fontSize: 14, color: '#333', marginBottom: 16, lineHeight: 1.5 }}>
-                    New here? Work down this list — each step takes just a few minutes. Each button takes you straight to the right screen.
+                    {tr("New here? Work down this list — each step takes just a few minutes. Each button takes you straight to the right screen.")}
                   </div>
                   {setupSteps.map(s => (
                     <div key={s.n} style={{ display: 'flex', gap: 12, alignItems: 'flex-start', padding: 14, border: '1px solid #eee', borderRadius: 12, marginBottom: 12 }}>
                       <div style={{ flexShrink: 0, width: 34, height: 34, borderRadius: '50%', background: RED, color: '#fff', fontSize: 16, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{s.n}</div>
                       <div style={{ flex: 1 }}>
-                        <div style={{ fontWeight: 800, fontSize: 15, color: '#222' }}>{s.emoji} {s.title}</div>
-                        <div style={{ fontSize: 13, color: '#555', margin: '4px 0 6px', lineHeight: 1.45 }}>{s.desc}</div>
-                        <div style={{ fontSize: 12, color: '#666666', marginBottom: 10 }}>Find it at: {s.where}</div>
+                        <div style={{ fontWeight: 800, fontSize: 15, color: '#222' }}>{s.emoji} {tr(s.title)}</div>
+                        <div style={{ fontSize: 13, color: '#555', margin: '4px 0 6px', lineHeight: 1.45 }}>{tr(s.desc)}</div>
+                        <div style={{ fontSize: 12, color: '#666666', marginBottom: 10 }}>{tr("Find it at:")} {tr(s.where) !== s.where ? tr(s.where) : String(s.where || "").split(" → ").map(x => tr(x)).join(" → ")}</div>
                         {s.go && (
-                          <button onClick={() => { setOpen(false); s.go(); }} style={{ background: "#0c4a6e", color: '#fff', border: 'none', borderRadius: 8, padding: '8px 16px', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>Take me there →</button>
+                          <button onClick={() => { setOpen(false); s.go(); }} style={{ background: "#0c4a6e", color: '#fff', border: 'none', borderRadius: 8, padding: '8px 16px', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>{tr("Take me there →")}</button>
                         )}
                       </div>
                     </div>
@@ -416,31 +425,31 @@ export default function HelpCenter({ apiBase, token, userId, onGoals, onProfile,
                       voice everywhere — nothing depends on this device's speech engine. */}
                   {onVideo && (
                     <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 6, marginBottom: 8 }}>
-                      <button onClick={() => { setOpen(false); onVideo('marketing'); }} style={{ flex: '1 1 200px', background: "#0c4a6e", border: 'none', borderRadius: 8, padding: '11px 16px', fontSize: 13, fontWeight: 700, color: '#fff', cursor: 'pointer', fontFamily: 'inherit' }}>▶ Watch the 2-minute tour</button>
-                      <button onClick={() => { setOpen(false); onVideo('learn'); }} style={{ flex: '1 1 200px', background: '#0c4a6e', border: 'none', borderRadius: 8, padding: '11px 16px', fontSize: 13, fontWeight: 700, color: '#fff', cursor: 'pointer', fontFamily: 'inherit' }}>📚 Learn the app, chapter by chapter</button>
+                      <button onClick={() => { setOpen(false); onVideo('marketing'); }} style={{ flex: '1 1 200px', background: "#0c4a6e", border: 'none', borderRadius: 8, padding: '11px 16px', fontSize: 13, fontWeight: 700, color: '#fff', cursor: 'pointer', fontFamily: 'inherit' }}>{tr("▶ Watch the 2-minute tour")}</button>
+                      <button onClick={() => { setOpen(false); onVideo('learn'); }} style={{ flex: '1 1 200px', background: '#0c4a6e', border: 'none', borderRadius: 8, padding: '11px 16px', fontSize: 13, fontWeight: 700, color: '#fff', cursor: 'pointer', fontFamily: 'inherit' }}>{tr("📚 Learn the app, chapter by chapter")}</button>
                     </div>
                   )}
                   {onTour && (
-                    <button onClick={() => { setOpen(false); onTour(); }} style={{ marginBottom: 8, background: '#0c4a6e', border: 'none', borderRadius: 8, padding: '11px 16px', fontSize: 13, fontWeight: 700, color: '#fff', cursor: 'pointer', fontFamily: 'inherit', width: '100%' }}>🎬 Point out the buttons on my screen (60 seconds)</button>
+                    <button onClick={() => { setOpen(false); onTour(); }} style={{ marginBottom: 8, background: '#0c4a6e', border: 'none', borderRadius: 8, padding: '11px 16px', fontSize: 13, fontWeight: 700, color: '#fff', cursor: 'pointer', fontFamily: 'inherit', width: '100%' }}>{tr("🎬 Point out the buttons on my screen (60 seconds)")}</button>
                   )}
                   {onRestartTour && (
-                    <button onClick={() => { setOpen(false); onRestartTour(); }} style={{ background: 'none', border: '1px solid #ddd', borderRadius: 8, padding: '9px 16px', fontSize: 13, fontWeight: 600, color: '#444', cursor: 'pointer', fontFamily: 'inherit', width: '100%' }}>↻ Replay the welcome walkthrough</button>
+                    <button onClick={() => { setOpen(false); onRestartTour(); }} style={{ background: 'none', border: '1px solid #ddd', borderRadius: 8, padding: '9px 16px', fontSize: 13, fontWeight: 600, color: '#444', cursor: 'pointer', fontFamily: 'inherit', width: '100%' }}>{tr("↻ Replay the welcome walkthrough")}</button>
                   )}
                   {/* The "First time here?" tips were hidden on every page — one tap brings them back. */}
                   {pageTipsAreOff(userId) && (
-                    <button onClick={() => { setPageTipsOff(userId, false); setOpen(false); }} style={{ marginTop: 8, background: 'none', border: '1px solid #ddd', borderRadius: 8, padding: '9px 16px', fontSize: 13, fontWeight: 600, color: '#444', cursor: 'pointer', fontFamily: 'inherit', width: '100%' }}>💡 Turn the "First time here?" tips back on</button>
+                    <button onClick={() => { setPageTipsOff(userId, false); setOpen(false); }} style={{ marginTop: 8, background: 'none', border: '1px solid #ddd', borderRadius: 8, padding: '9px 16px', fontSize: 13, fontWeight: 600, color: '#444', cursor: 'pointer', fontFamily: 'inherit', width: '100%' }}>{tr("💡 Turn the \"First time here?\" tips back on")}</button>
                   )}
                 </div>
               )}
 
               {tab === 'guides' && (
                 <div>
-                  {filteredSections.length === 0 && <div style={{ color: '#666' }}>No guides match your search.</div>}
+                  {filteredSections.length === 0 && <div style={{ color: '#666' }}>{tr("No guides match your search.")}</div>}
                   {filteredSections.map(sec => (
                     <div key={sec.heading} style={{ marginBottom: 18 }}>
-                      <div style={{ fontSize: 12, fontWeight: 800, color: '#666666', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 8 }}>{sec.heading}</div>
+                      <div style={{ fontSize: 12, fontWeight: 800, color: '#666666', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 8 }}>{tr(sec.heading)}</div>
                       {sec.items.map(it => (
-                        <StepGuide key={it.title} gkey={`g:${it.title}`} title={it.title} steps={it.steps} />
+                        <StepGuide key={it.title} gkey={`g:${it.title}`} title={tr(it.title)} steps={it.steps.map(x => tr(x))} />
                       ))}
                     </div>
                   ))}
@@ -449,24 +458,24 @@ export default function HelpCenter({ apiBase, token, userId, onGoals, onProfile,
 
               {tab === 'faqs' && (
                 <div>
-                  {faqLoading && <div style={{ color: '#666' }}>Loading…</div>}
-                  {faqError && <div style={{ color: RED }}>{faqError}</div>}
+                  {faqLoading && <div style={{ color: '#666' }}>{tr("Loading…")}</div>}
+                  {faqError && <div style={{ color: RED }}>{tr(faqError)}</div>}
                   {!faqLoading && !faqError && faqLoaded && yourRoleFaqs.length === 0 && generalFaqs.length === 0 && (
-                    <div style={{ color: '#666' }}>No questions match your search.</div>
+                    <div style={{ color: '#666' }}>{tr("No questions match your search.")}</div>
                   )}
                   {yourRoleFaqs.length > 0 && (
                     <div style={{ marginBottom: 18 }}>
-                      <div style={{ fontSize: 12, fontWeight: 800, color: '#666666', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 8 }}>For {ROLE_LABELS[roleBucket] || roleBucket}</div>
+                      <div style={{ fontSize: 12, fontWeight: 800, color: '#666666', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 8 }}>{tr("For")} {tr(ROLE_LABELS[roleBucket] || roleBucket)}</div>
                       {yourRoleFaqs.map(f => (
-                        <StepGuide key={f.id} gkey={`f:${f.id}`} title={f.question} steps={[f.answer]} />
+                        <StepGuide key={f.id} gkey={`f:${f.id}`} title={tr(f.question)} steps={[tr(f.answer)]} />
                       ))}
                     </div>
                   )}
                   {generalFaqs.length > 0 && (
                     <div>
-                      <div style={{ fontSize: 12, fontWeight: 800, color: '#666666', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 8 }}>General</div>
+                      <div style={{ fontSize: 12, fontWeight: 800, color: '#666666', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 8 }}>{tr("General")}</div>
                       {generalFaqs.map(f => (
-                        <StepGuide key={f.id} gkey={`f:${f.id}`} title={f.question} steps={[f.answer]} />
+                        <StepGuide key={f.id} gkey={`f:${f.id}`} title={tr(f.question)} steps={[tr(f.answer)]} />
                       ))}
                     </div>
                   )}
@@ -478,9 +487,9 @@ export default function HelpCenter({ apiBase, token, userId, onGoals, onProfile,
                   {aiMessages.length === 0 && (
                     <div style={{ marginBottom: 14 }}>
                       <div style={{ fontSize: 14, color: '#333', marginBottom: 12, lineHeight: 1.5 }}>
-                        Hi! 👋 I'm your support assistant. Ask me anything about how to use the app — like "How do I receive an offer?" or "Where do I set my goals?"
+                        {tr("Hi! 👋 I'm your support assistant. Ask me anything about how to use the app — like \"How do I receive an offer?\" or \"Where do I set my goals?\"")}
                       </div>
-                      <div style={{ fontSize: 12, fontWeight: 800, color: '#666666', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 8 }}>Try asking…</div>
+                      <div style={{ fontSize: 12, fontWeight: 800, color: '#666666', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 8 }}>{tr("Try asking…")}</div>
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                         {[
                           'How do I start a new transaction?',
@@ -488,7 +497,7 @@ export default function HelpCenter({ apiBase, token, userId, onGoals, onProfile,
                           'Where do I set up my goals?',
                           'How do Pop-Bys work?',
                         ].map(q => (
-                          <button key={q} onClick={() => sendAi(q)} style={{ padding: '8px 12px', borderRadius: 16, border: '1px solid #ddd', background: '#fff', color: '#444', fontSize: 12.5, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>{q}</button>
+                          <button key={q} onClick={() => sendAi(q)} style={{ padding: '8px 12px', borderRadius: 16, border: '1px solid #ddd', background: '#fff', color: '#444', fontSize: 12.5, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>{tr(q)}</button>
                         ))}
                       </div>
                     </div>
@@ -502,15 +511,15 @@ export default function HelpCenter({ apiBase, token, userId, onGoals, onProfile,
                         color: m.role === 'user' ? '#fff' : '#222',
                         borderBottomRightRadius: m.role === 'user' ? 4 : 14,
                         borderBottomLeftRadius: m.role === 'user' ? 14 : 4,
-                      }}>{m.content}</div>
+                      }}>{m.role === 'assistant' ? swapQuoted(m.content) : m.content}</div>
                     </div>
                   ))}
                   {aiSending && (
                     <div style={{ display: 'flex', justifyContent: 'flex-start', marginBottom: 10 }}>
-                      <div style={{ padding: '10px 13px', borderRadius: 14, fontSize: 14, background: '#F1F1F1', color: '#666666' }}>Thinking…</div>
+                      <div style={{ padding: '10px 13px', borderRadius: 14, fontSize: 14, background: '#F1F1F1', color: '#666666' }}>{tr("Thinking…")}</div>
                     </div>
                   )}
-                  {aiError && <div style={{ color: RED, fontSize: 13, marginBottom: 10 }}>{aiError}</div>}
+                  {aiError && <div style={{ color: RED, fontSize: 13, marginBottom: 10 }}>{tr(aiError)}</div>}
 
                   <div style={{ display: 'flex', gap: 8, marginTop: 6, position: 'sticky', bottom: 0, background: '#fff', paddingTop: 6 }}>
                     <input
@@ -518,13 +527,13 @@ export default function HelpCenter({ apiBase, token, userId, onGoals, onProfile,
                       value={aiInput}
                       onChange={(e) => setAiInput(e.target.value)}
                       onKeyDown={(e) => { if (e.key === 'Enter') sendAi(); }}
-                      placeholder="Type your question…"
+                      placeholder={tr("Type your question…")}
                       style={{ flex: 1, padding: '11px 13px', border: '1px solid #ddd', borderRadius: 22, fontSize: 14, fontFamily: 'inherit', boxSizing: 'border-box' }}
                     />
                     <button onClick={() => sendAi()} disabled={aiSending || !aiInput.trim()} style={{ flexShrink: 0, width: 44, height: 44, borderRadius: '50%', border: 'none', background: (aiSending || !aiInput.trim()) ? '#ccc' : RED, color: '#fff', fontSize: 18, cursor: (aiSending || !aiInput.trim()) ? 'default' : 'pointer', fontFamily: 'inherit' }}>↑</button>
                   </div>
                   <div style={{ fontSize: 11, color: '#666666', marginTop: 8, lineHeight: 1.4 }}>
-                    AI answers can occasionally be off. For a bug or account issue, use the 📣 Feedback tab; for anything urgent on a live deal, call or text your broker.
+                    {tr("AI answers can occasionally be off. For a bug or account issue, use the 📣 Feedback tab; for anything urgent on a live deal, call or text your broker.")}
                   </div>
                 </div>
               )}
@@ -534,18 +543,18 @@ export default function HelpCenter({ apiBase, token, userId, onGoals, onProfile,
                   {fbDone ? (
                     <div style={{ textAlign: 'center', padding: '24px 12px' }}>
                       <div style={{ fontSize: 44, marginBottom: 8 }}>🙏</div>
-                      <div style={{ fontSize: 17, fontWeight: 800, color: '#222', marginBottom: 6 }}>Thank you — we got it!</div>
+                      <div style={{ fontSize: 17, fontWeight: 800, color: '#222', marginBottom: 6 }}>{tr("Thank you — we got it!")}</div>
                       <div style={{ fontSize: 13.5, color: '#555', lineHeight: 1.5, maxWidth: 380, margin: '0 auto 18px' }}>
-                        Your note went straight to the team. We read every single one, and it helps us make the app better for you.
+                        {tr("Your note went straight to the team. We read every single one, and it helps us make the app better for you.")}
                       </div>
-                      <button onClick={() => { setFbDone(false); setFbKind('bug'); }} style={{ background: "#0c4a6e", color: '#fff', border: 'none', borderRadius: 8, padding: '9px 18px', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>Send another</button>
+                      <button onClick={() => { setFbDone(false); setFbKind('bug'); }} style={{ background: "#0c4a6e", color: '#fff', border: 'none', borderRadius: 8, padding: '9px 18px', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>{tr("Send another")}</button>
                     </div>
                   ) : (
                     <div>
                       <div style={{ fontSize: 14, color: '#333', marginBottom: 16, lineHeight: 1.5 }}>
-                        Found a bug? Have an idea? Need a hand? Tell us — it goes straight to our team.
+                        {tr("Found a bug? Have an idea? Need a hand? Tell us — it goes straight to our team.")}
                       </div>
-                      <div style={{ fontSize: 12, fontWeight: 800, color: '#666666', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 8 }}>What kind of feedback is this?</div>
+                      <div style={{ fontSize: 12, fontWeight: 800, color: '#666666', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 8 }}>{tr("What kind of feedback is this?")}</div>
                       <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
                         {[
                           { id: 'bug', label: '🐞 Something’s broken' },
@@ -559,31 +568,31 @@ export default function HelpCenter({ apiBase, token, userId, onGoals, onProfile,
                             border: fbKind === opt.id ? `2px solid ${RED}` : '1px solid #ddd',
                             background: fbKind === opt.id ? '#FCF3F2' : '#fff',
                             color: fbKind === opt.id ? RED : '#444',
-                          }}>{opt.label}</button>
+                          }}>{tr(opt.label)}</button>
                         ))}
                       </div>
                       <textarea
                         value={fbMessage}
                         onChange={(e) => { setFbMessage(e.target.value); if (fbError) setFbError(null); }}
                         placeholder={fbKind === 'bug'
-                          ? 'What happened? What were you trying to do, and what went wrong? The more detail, the faster we can fix it.'
+                          ? tr("What happened? What were you trying to do, and what went wrong? The more detail, the faster we can fix it.")
                           : fbKind === 'suggestion'
-                          ? 'What would you like to see? Describe the idea or the change you’re hoping for.'
+                          ? tr("What would you like to see? Describe the idea or the change you’re hoping for.")
                           : fbKind === 'support'
-                          ? 'How can we help? Describe your question or the problem you’re running into and our support team will get back to you.'
-                          : 'Tell us what’s on your mind.'}
+                          ? tr("How can we help? Describe your question or the problem you’re running into and our support team will get back to you.")
+                          : tr("Tell us what’s on your mind.")}
                         rows={6}
                         maxLength={5000}
                         style={{ width: '100%', padding: '11px 12px', border: '1px solid #ddd', borderRadius: 8, fontSize: 14, boxSizing: 'border-box', fontFamily: 'inherit', resize: 'vertical', lineHeight: 1.5 }}
                       />
-                      {fbError && <div style={{ color: RED, fontSize: 13, marginTop: 8 }}>{fbError}</div>}
+                      {fbError && <div style={{ color: RED, fontSize: 13, marginTop: 8 }}>{tr(fbError)}</div>}
                       <button
                         onClick={submitFeedback}
                         disabled={fbSending}
                         style={{ marginTop: 14, width: '100%', background: fbSending ? '#999' : RED, color: '#fff', border: 'none', borderRadius: 8, padding: '12px 16px', fontSize: 14, fontWeight: 800, cursor: fbSending ? 'default' : 'pointer', fontFamily: 'inherit' }}
-                      >{fbSending ? 'Sending…' : (fbKind === 'support' ? 'Send to support' : 'Send to the team')}</button>
+                      >{fbSending ? tr("Sending…") : (fbKind === 'support' ? tr("Send to support") : tr("Send to the team"))}</button>
                       <div style={{ fontSize: 12, color: '#666666', marginTop: 10, lineHeight: 1.45 }}>
-                        We’ll know who sent it so we can follow up if needed. For an urgent issue with a live deal, call or text your contact directly.
+                        {tr("We’ll know who sent it so we can follow up if needed. For an urgent issue with a live deal, call or text your contact directly.")}
                       </div>
                     </div>
                   )}
@@ -593,7 +602,7 @@ export default function HelpCenter({ apiBase, token, userId, onGoals, onProfile,
 
             {/* Footer */}
             <div style={{ padding: '12px 20px', borderTop: '1px solid #eee', fontSize: 12, color: '#666666', background: '#fafafa' }}>
-              These guides are educational only and not legal advice. For legal or tax questions, consult a real estate attorney or CPA.
+              {tr("These guides are educational only and not legal advice. For legal or tax questions, consult a real estate attorney or CPA.")}
             </div>
           </div>
         </div>

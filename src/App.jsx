@@ -2603,7 +2603,7 @@ function ScheduleClosingModal({ tx, token, milestone, onClose, onDone }) {
           </button>
         )}
 
-        {err && <div style={{ color: "#C0392B", fontSize: 13, fontWeight: 600, marginBottom: 10 }}>{err}</div>}
+        {err && <div style={{ color: "#C0392B", fontSize: 13, fontWeight: 600, marginBottom: 10 }}>{tr(err)}</div>}
 
         <div style={{ display: "flex", gap: 10, marginTop: 8, flexWrap: "wrap" }}>
           <button onClick={send} disabled={sending}
@@ -4409,7 +4409,7 @@ export function WelcomeEmailPreview({ txId, onClose, onlyPartyId = null }) {
         {loading ? (
           <div style={{ padding: 40, textAlign: "center", color: COLORS.muted }}>{tr("Building previews…")}</div>
         ) : error ? (
-          <div style={{ padding: 40, textAlign: "center", color: COLORS.danger }}>{error}</div>
+          <div style={{ padding: 40, textAlign: "center", color: COLORS.danger }}>{tr(error)}</div>
         ) : previews.length === 0 ? (
           <div style={{ padding: 40, textAlign: "center", color: COLORS.muted }}>
             {tr("No emails to send (no parties with valid email addresses).")}
@@ -5509,7 +5509,7 @@ function DealDoctorSendModal({ tx, draft, onClose, onSent }) {
               <input type="file" style={{ display: "none" }} disabled={uploading} onChange={e => { uploadFromComputer(e.target.files[0]); e.target.value = ""; }} />
             </label>
           </div>
-          {err && <div style={{ background: "#FDEDEC", border: "1px solid #F5B7B1", color: "#922B21", borderRadius: 8, padding: "9px 12px", fontSize: 13, marginBottom: 12 }}>{err}</div>}
+          {err && <div style={{ background: "#FDEDEC", border: "1px solid #F5B7B1", color: "#922B21", borderRadius: 8, padding: "9px 12px", fontSize: 13, marginBottom: 12 }}>{tr(err)}</div>}
           <div style={{ display: "flex", justifyContent: "flex-end", gap: 10 }}>
             <button onClick={onClose} style={{ background: "#fff", border: "1px solid #CBD5E1", color: "#475569", borderRadius: 8, padding: "10px 18px", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>{tr("Cancel")}</button>
             <button onClick={send} disabled={sending}
@@ -5608,7 +5608,7 @@ function DealDoctorPanel({ tx }) {
           {running ? tr("Checking…") : dd ? tr("↻ Re-check") : snoozedFuture ? tr("↻ Check now") : tr("Run check-up")}
         </button>
       </div>
-      {err && <div style={{ color: "#C0392B", fontSize: 13, marginTop: 8 }}>{err}</div>}
+      {err && <div style={{ color: "#C0392B", fontSize: 13, marginTop: 8 }}>{tr(err)}</div>}
       {!dd && !err && snoozedFuture && <div style={{ fontSize: 13, color: "#64748B", marginTop: 8 }}>{tr("😴 Snoozed until")} <b>{snoozeLabel}</b> {tr("— I'll keep this deal quiet until then. Tap “Check now” to look sooner.")}</div>}
       {!dd && !err && !snoozedFuture && <div style={{ fontSize: 13, color: "#64748B", marginTop: 8 }}>{tr("Tap “Run check-up” and I'll review this deal to show the biggest risk right now and the one move to make today.")}</div>}
       {dd && (
@@ -6065,7 +6065,7 @@ function LeaseDocsModal({ tx, onClose, onGenerated }) {
          : done ? (
            <div>
              <div style={{ background: "#ECFDF5", border: "1px solid #6EE7B7", borderRadius: 10, padding: 16, marginBottom: 16 }}>
-               <div style={{ fontWeight: 800, color: "#065F46", marginBottom: 8 }}>{tr("✓ Generated")} {done.length} {tr("document")}{done.length !== 1 ? "s" : ""}</div>
+               <div style={{ fontWeight: 800, color: "#065F46", marginBottom: 8 }}>{tr("✓ Generated")} {done.length} {tr(done.length !== 1 ? "documents" : "document")}</div>
                <ul style={{ margin: 0, paddingLeft: 18, color: "#065F46", fontSize: 13 }}>{done.map(d => <li key={d.id}>{d.name}</li>)}</ul>
              </div>
              {sentTo ? (
@@ -6104,7 +6104,7 @@ function LeaseDocsModal({ tx, onClose, onGenerated }) {
              ) : (
                <div style={{ fontSize: 13, color: COLORS.muted, marginBottom: 16 }}>{tr("They're saved to the")} <strong>{tr("Documents")}</strong> {tr("tab, ready to review and send for signature.")}</div>
              )}
-             {error && <div style={{ background: "#FEF2F2", border: "1px solid #FCA5A5", borderRadius: 8, padding: 10, fontSize: 13, color: "#7F1D1D", marginBottom: 12 }}>⚠️ {error}</div>}
+             {error && <div style={{ background: "#FEF2F2", border: "1px solid #FCA5A5", borderRadius: 8, padding: 10, fontSize: 13, color: "#7F1D1D", marginBottom: 12 }}>⚠️ {tr(error)}</div>}
              <button onClick={onGenerated} style={{ width: "100%", background: "#0c4a6e", color: "#fff", border: "none", borderRadius: 8, padding: "12px", fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>{tr("Open Documents →")}</button>
              {adjustDoc && signPack && (
                <Suspense fallback={null}>
@@ -6150,7 +6150,7 @@ function LeaseDocsModal({ tx, onClose, onGenerated }) {
                  </div>
                </div>
              ))}
-             {error && <div style={{ color: COLORS.danger, fontSize: 13, marginBottom: 12 }}>{error}</div>}
+             {error && <div style={{ color: COLORS.danger, fontSize: 13, marginBottom: 12 }}>{tr(error)}</div>}
              <button disabled={busy} onClick={generate} style={{ width: "100%", background: busy ? "#9CA3AF" : "#0c4a6e", color: "#fff", border: "none", borderRadius: 8, padding: "12px", fontSize: 15, fontWeight: 700, cursor: busy ? "default" : "pointer", fontFamily: "inherit" }}>{busy ? tr("Generating…") : tr("Generate & Save to Documents")}</button>
            </div>
          )}
@@ -6319,7 +6319,7 @@ function FallThroughModal({ tx, onClose, onDone }) {
         {phase === "working" && <div style={{ padding: 30, textAlign: "center", fontSize: 14, color: "#374151" }}>{tr("Archiving the contract and resetting the deal…")}</div>}
         {phase === "error" && (
           <>
-            <div style={{ fontSize: 15, fontWeight: 800, color: "#B91C1C" }}>⚠️ {err}</div>
+            <div style={{ fontSize: 15, fontWeight: 800, color: "#B91C1C" }}>⚠️ {tr(err)}</div>
             <button onClick={onClose} style={{ marginTop: 14, width: "100%", padding: "11px 10px", borderRadius: 9, border: "1px solid #D1D5DB", background: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>{tr("Close")}</button>
           </>
         )}
@@ -6496,7 +6496,7 @@ function InternalNotesPanel({ txId, compact = false, onSeeAll }) {
             </button>
           )}
         </div>
-        {!loading && error && <div style={{ fontSize: 12.5, color: "#B91C1C", paddingTop: 6 }}>{tr("Couldn't load notes:")} {error}</div>}
+        {!loading && error && <div style={{ fontSize: 12.5, color: "#B91C1C", paddingTop: 6 }}>{tr("Couldn't load notes:")} {tr(error)}</div>}
         {!loading && !error && notes.length === 0 && (
           <div style={{ fontSize: 12.5, color: COLORS.muted, paddingTop: 6 }}>{tr("No notes on this deal yet. Ask the assistant to add one, or use “See all / add one”.")}</div>
         )}
@@ -6516,7 +6516,7 @@ function InternalNotesPanel({ txId, compact = false, onSeeAll }) {
     <div>
       <div style={{ background: "#fff", border: `1px solid ${COLORS.border}`, borderRadius: 12, padding: 20, marginBottom: 16, minHeight: 300, maxHeight: 500, overflowY: "auto" }}>
         {loading && <div style={{ textAlign: "center", color: COLORS.muted, padding: 40 }}>{tr("Loading notes…")}</div>}
-        {!loading && error && <div style={{ textAlign: "center", color: "#B91C1C", padding: 40 }}>{error}</div>}
+        {!loading && error && <div style={{ textAlign: "center", color: "#B91C1C", padding: 40 }}>{tr(error)}</div>}
         {!loading && !error && notes.length === 0 && <div style={{ textAlign: "center", color: COLORS.muted, padding: 40 }}>{tr("No internal notes yet.")}</div>}
         {!loading && notes.map(m => (
           <div key={m.id} style={{ marginBottom: 14 }}>
@@ -7784,9 +7784,9 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
         <div onMouseDown={e => { if (e.target === e.currentTarget) e.currentTarget.dataset.dob = "1"; else delete e.currentTarget.dataset.dob; }} onClick={e => { if (e.target === e.currentTarget && e.currentTarget.dataset.dob === "1") setPaywallFeature(null); delete e.currentTarget.dataset.dob; }} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)", zIndex: 9999, display: "flex", alignItems: "flex-start", justifyContent: "center", padding: 16, overflowY: "auto" }}>
           <div onClick={e => e.stopPropagation()} style={{ background: "#fff", borderRadius: 16, padding: 28, maxWidth: 420, width: "100%", textAlign: "center", boxShadow: "0 20px 60px rgba(0,0,0,0.3)", margin: "auto" }}>
             <div style={{ fontSize: 44, marginBottom: 10 }}>✨</div>
-            <div style={{ fontSize: 19, fontWeight: 800, color: COLORS.navy, marginBottom: 8 }}>{paywallFeature} {tr("is a paid feature")}</div>
+            <div style={{ fontSize: 19, fontWeight: 800, color: COLORS.navy, marginBottom: 8 }}>{tr(paywallFeature)} {tr("is a paid feature")}</div>
             <div style={{ fontSize: 14, color: COLORS.muted, lineHeight: 1.6, marginBottom: 20 }}>
-              {tr("You're viewing this transaction as an invited party.")} {paywallFeature} {tr("— along with your own pipeline, automated reminders, documents, and more — is part of a TransactPro subscription.")}
+              {tr("You're viewing this transaction as an invited party.")} {tr(paywallFeature)} {tr("— along with your own pipeline, automated reminders, documents, and more — is part of a TransactPro subscription.")}
             </div>
             <button onClick={() => setPaywallFeature(null)} style={{ background: "#0c4a6e", color: "#fff", border: "none", borderRadius: 10, padding: "12px 24px", fontWeight: 700, fontSize: 15, cursor: "pointer", fontFamily: "inherit" }}>{tr("Subscribe to unlock")}</button>
             <div style={{ marginTop: 12 }}><button onClick={() => setPaywallFeature(null)} style={{ background: "none", border: "none", color: COLORS.muted, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>{tr("Maybe later")}</button></div>
@@ -7870,7 +7870,7 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
           </label>
           {partyError && (
             <div style={{ background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: 8, padding: "10px 12px", marginBottom: 12, fontSize: 13, color: "#7F1D1D", fontWeight: 600 }}>
-              {partyError}
+              {tr(partyError)}
             </div>
           )}
           <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
@@ -7882,9 +7882,9 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
               const nameOk = String(partyForm.name || "").trim();
               if (!roleOk || !nameOk) {
                 setPartyError(
-                  !roleOk && !nameOk ? "Pick a role and enter a name for this person."
-                  : !roleOk ? "Pick a role for this person — use the Role dropdown above."
-                  : "Enter this person's full name."
+                  !roleOk && !nameOk ? tr("Pick a role and enter a name for this person.")
+                  : !roleOk ? tr("Pick a role for this person — use the Role dropdown above.")
+                  : tr("Enter this person's full name.")
                 );
                 return;
               }
@@ -10393,8 +10393,8 @@ function ContactBook({ contacts, onClose, onSelect, onAdd, onEdit, onDelete }) {
     // Was a bare `return` — the Save button simply did nothing and said nothing.
     if (!String(form.name || "").trim() || !String(form.role || "").trim()) {
       setContactError(!String(form.role || "").trim()
-        ? "Pick a role for this contact — use the Role dropdown."
-        : "Enter this contact's name.");
+        ? tr("Pick a role for this contact — use the Role dropdown.")
+        : tr("Enter this contact's name."));
       return;
     }
     setContactError(null);
@@ -10461,7 +10461,7 @@ function ContactBook({ contacts, onClose, onSelect, onAdd, onEdit, onDelete }) {
               <Input label={tr("Notes")} value={form.notes} onChange={f("notes")} />
             </div>
             {contactError && (
-              <div style={{ background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: 8, padding: "9px 12px", marginBottom: 10, fontSize: 13, color: "#7F1D1D", fontWeight: 600 }}>{contactError}</div>
+              <div style={{ background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: 8, padding: "9px 12px", marginBottom: 10, fontSize: 13, color: "#7F1D1D", fontWeight: 600 }}>{tr(contactError)}</div>
             )}
             <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 4 }}>
               <Btn variant="ghost" small onClick={() => { setShowAddContact(false); setEditingContact(null); }}>{tr("Cancel")}</Btn>
@@ -11325,7 +11325,7 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
             style={{ background: "#C0392B", color: "#fff", borderRadius: 12, padding: "12px 14px", boxShadow: "0 8px 26px rgba(192,57,43,0.55)", cursor: "pointer", animation: "signAlertIn 0.35s ease, mpulse2 1.6s ease-in-out infinite" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
               <div style={{ fontSize: 13.5, fontWeight: 800, lineHeight: 1.35 }}>
-                {tr("🔔 You have")} {signAlerts.length} {tr("new alert")}{signAlerts.length === 1 ? "" : "s"}
+                {tr("🔔 You have")} {signAlerts.length} {tr(signAlerts.length === 1 ? "new alert" : "new alerts")}
               </div>
               <button onClick={(e) => { e.stopPropagation(); setFloatHiddenSig(signAlerts.map(n => n.id).join(",")); }} title={tr("Hide (alerts stay on Win The Day)")}
                 style={{ background: "none", border: "none", color: "rgba(255,255,255,0.75)", fontSize: 16, cursor: "pointer", lineHeight: 1, padding: 0 }}>×</button>
@@ -11377,7 +11377,7 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
             <style>{`@keyframes mpulse{0%,100%{transform:scale(1)}50%{transform:scale(1.07)}}`}</style>
             <div onClick={go} title={tr("You have new messages — tap to read")}
               style={{ position: "fixed", bottom: 18, left: 18, zIndex: 9998, background: "#C0392B", color: "#fff", borderRadius: 30, padding: "13px 20px", boxShadow: "0 8px 26px rgba(192,57,43,0.55)", cursor: "pointer", fontWeight: 800, fontSize: 15, display: "flex", alignItems: "center", gap: 10, animation: "mpulse 1.6s ease-in-out infinite", maxWidth: "calc(100vw - 36px)", fontFamily: "'Segoe UI', system-ui, sans-serif" }}>
-              🔔 {total} {tr("new message")}{total === 1 ? "" : "s"}{entries.length > 1 ? tr(" · {n} deals", { n: entries.length }) : ""} <span style={{ textDecoration: "underline", whiteSpace: "nowrap" }}>{tr("Read →")}</span>
+              🔔 {total} {tr(total === 1 ? "new message" : "new messages")}{entries.length > 1 ? tr(" · {n} deals", { n: entries.length }) : ""} <span style={{ textDecoration: "underline", whiteSpace: "nowrap" }}>{tr("Read →")}</span>
             </div>
           </>
         );
@@ -11387,9 +11387,9 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
         <div onMouseDown={e => { if (e.target === e.currentTarget) e.currentTarget.dataset.dob = "1"; else delete e.currentTarget.dataset.dob; }} onClick={e => { if (e.target === e.currentTarget && e.currentTarget.dataset.dob === "1") setPaywallFeature(null); delete e.currentTarget.dataset.dob; }} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)", zIndex: 99999, display: "flex", alignItems: "flex-start", justifyContent: "center", padding: 16, overflowY: "auto" }}>
           <div onClick={e => e.stopPropagation()} style={{ background: "#fff", borderRadius: 16, padding: 28, maxWidth: 420, width: "100%", textAlign: "center", boxShadow: "0 20px 60px rgba(0,0,0,0.3)", fontFamily: "'Segoe UI', system-ui, sans-serif", margin: "auto" }}>
             <div style={{ fontSize: 44, marginBottom: 10 }}>✨</div>
-            <div style={{ fontSize: 19, fontWeight: 800, color: "#1a2332", marginBottom: 8 }}>{paywallFeature} {tr("is a paid feature")}</div>
+            <div style={{ fontSize: 19, fontWeight: 800, color: "#1a2332", marginBottom: 8 }}>{tr(paywallFeature)} {tr("is a paid feature")}</div>
             <div style={{ fontSize: 14, color: "#667085", lineHeight: 1.6, marginBottom: 20 }}>
-              {tr("You're on a free invited-party account.")} {paywallFeature} {tr("— plus your own transaction pipeline, contacts, expense tracking, reminders, intake links, and more — comes with a TransactPro subscription. Feel free to look around!")}
+              {tr("You're on a free invited-party account.")} {tr(paywallFeature)} {tr("— plus your own transaction pipeline, contacts, expense tracking, reminders, intake links, and more — comes with a TransactPro subscription. Feel free to look around!")}
             </div>
             <button onClick={() => setPaywallFeature(null)} style={{ background: "#0c4a6e", color: "#fff", border: "none", borderRadius: 10, padding: "12px 24px", fontWeight: 700, fontSize: 15, cursor: "pointer", fontFamily: "inherit" }}>{tr("Subscribe to unlock")}</button>
             <div style={{ marginTop: 12 }}><button onClick={() => setPaywallFeature(null)} style={{ background: "none", border: "none", color: "#667085", fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>{tr("Maybe later")}</button></div>

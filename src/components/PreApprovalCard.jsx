@@ -236,7 +236,7 @@ function UploadModal({ transactionId, onClose, onSaved }) {
           {tr("🎓 The pre-approval letter proves your buyer is financially qualified. Sellers require it with every offer. Upload a PDF and we'll pull out the key details for your review.")}
         </div>
 
-        {error && <div style={{ color: '#c00', marginBottom: 10, fontSize: 13 }}>{error}</div>}
+        {error && <div style={{ color: '#c00', marginBottom: 10, fontSize: 13 }}>{tr(error)}</div>}
 
         {stage === 'pick' && (
           <div>

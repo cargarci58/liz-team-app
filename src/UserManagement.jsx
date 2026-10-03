@@ -1,3 +1,4 @@
+import { t as tr } from "./i18n";
 import { useState, useEffect } from "react";
 
 const API = "https://liz-team-server-api-production.up.railway.app";
@@ -41,7 +42,7 @@ export default function UserManagement({ onClose }) {
     try {
       const res = await fetch(`${API}/auth/invite`, { method: "POST", headers, body: JSON.stringify(form) });
       const data = await res.json();
-      if (!res.ok) { setError(data.error || "Invite failed"); return; }
+      if (!res.ok) { setError(data.error || tr("Invite failed")); return; }
       setUsers(prev => [...prev, { ...data.user, is_active: true, created_at: new Date().toISOString() }]);
       // Show the login details so they can be shared directly — the email send is
       // best-effort and can fail, so the invite must never depend on it alone.
@@ -54,7 +55,7 @@ export default function UserManagement({ onClose }) {
       });
       setForm({ firstName: "", lastName: "", email: "", phone: "", role: "agent" });
       setShowInvite(false);
-    } catch { setError("Could not send invite. Try again."); }
+    } catch { setError(tr("Could not send invite. Try again.")); }
     finally { setInviting(false); }
   };
 
@@ -70,7 +71,7 @@ export default function UserManagement({ onClose }) {
 
   const copyInvite = async (c) => {
     try { await navigator.clipboard.writeText(inviteShareText(c)); setCopied(true); setTimeout(() => setCopied(false), 2000); }
-    catch { setError("Couldn't copy automatically — select the details and copy manually."); }
+    catch { setError(tr("Couldn't copy automatically — select the details and copy manually.")); }
   };
 
   const toggleActive = async (user) => {
@@ -101,13 +102,13 @@ export default function UserManagement({ onClose }) {
         {/* Header */}
         <div style={{ padding: "20px 24px 16px", borderBottom: `1px solid ${C.border}`, display: "flex", justifyContent: "space-between", alignItems: "center", background: C.black }}>
           <div>
-            <div style={{ color: C.white, fontWeight: 800, fontSize: 18 }}>👥 Team Management</div>
-            <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 12, marginTop: 2 }}>{users.length} team member{users.length !== 1 ? "s" : ""}</div>
+            <div style={{ color: C.white, fontWeight: 800, fontSize: 18 }}>{tr("👥 Team Management")}</div>
+            <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 12, marginTop: 2 }}>{users.length} {tr(users.length !== 1 ? "team members" : "team member")}</div>
           </div>
           <div style={{ display: "flex", gap: 8 }}>
             <button onClick={() => { setShowInvite(true); setError(""); setSuccess(""); }}
               style={{ padding: "8px 16px", background: "#fff", color: "#0c4a6e", border: "none", borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>
-              + Invite User
+              {tr("+ Invite User")}
             </button>
             <button onClick={onClose} style={{ background: "rgba(255,255,255,0.1)", border: "none", color: C.white, borderRadius: 8, width: 32, height: 32, cursor: "pointer", fontSize: 18 }}>×</button>
           </div>
@@ -115,31 +116,31 @@ export default function UserManagement({ onClose }) {
 
         {/* Success/Error */}
         {success && <div style={{ background: C.successBg, color: C.success, padding: "12px 24px", fontSize: 13 }}>✅ {success}</div>}
-        {error && <div style={{ background: C.lightRed, color: C.darkRed, padding: "12px 24px", fontSize: 13 }}>⚠️ {error}</div>}
+        {error && <div style={{ background: C.lightRed, color: C.darkRed, padding: "12px 24px", fontSize: 13 }}>⚠️ {tr(error)}</div>}
 
         {/* Invite credentials — shown after a successful invite so they can be
             shared directly (text/WhatsApp/in person) even if the email doesn't land. */}
         {invitedCreds && (
           <div style={{ background: "#FFF9E6", border: `1px solid #F1C40F`, margin: "12px 24px", borderRadius: 10, padding: 16 }}>
             <div style={{ fontWeight: 800, fontSize: 14, color: C.black, marginBottom: 4 }}>
-              ✅ {invitedCreds.name || invitedCreds.email} added to your team
+              ✅ {invitedCreds.name || invitedCreds.email} {tr("added to your team")}
             </div>
             <div style={{ fontSize: 12, color: C.gray, marginBottom: 12 }}>
-              We also emailed them these login details. In case the email doesn't arrive, you can copy and send them directly:
+              {tr("We also emailed them these login details. In case the email doesn't arrive, you can copy and send them directly:")}
             </div>
             <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 8, padding: 12, fontSize: 13, lineHeight: 1.7 }}>
-              <div><strong>Login link:</strong> {invitedCreds.loginUrl}</div>
-              <div><strong>Email:</strong> {invitedCreds.email}</div>
+              <div><strong>{tr("Login link:")}</strong> {invitedCreds.loginUrl}</div>
+              <div><strong>{tr("Email:")}</strong> {invitedCreds.email}</div>
               {invitedCreds.existing
-                ? <div><strong>Password:</strong> their existing TransactPro password</div>
-                : <div><strong>Temporary password:</strong> <span style={{ fontFamily: "monospace", background: C.lightGray, padding: "1px 6px", borderRadius: 4 }}>{invitedCreds.tempPassword}</span></div>}
+                ? <div><strong>{tr("Password:")}</strong> {tr("their existing TransactPro password")}</div>
+                : <div><strong>{tr("Temporary password:")}</strong> <span style={{ fontFamily: "monospace", background: C.lightGray, padding: "1px 6px", borderRadius: 4 }}>{invitedCreds.tempPassword}</span></div>}
             </div>
             <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
               <button onClick={() => copyInvite(invitedCreds)} style={{ padding: "8px 16px", background: "#0c4a6e", color: C.white, border: "none", borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>
-                {copied ? "✓ Copied!" : "📋 Copy login details"}
+                {copied ? tr("✓ Copied!") : tr("📋 Copy login details")}
               </button>
               <button onClick={() => setInvitedCreds(null)} style={{ padding: "8px 16px", background: "none", border: `1px solid ${C.midGray}`, borderRadius: 8, cursor: "pointer", fontFamily: "inherit", fontSize: 13 }}>
-                Done
+                {tr("Done")}
               </button>
             </div>
           </div>
@@ -148,40 +149,40 @@ export default function UserManagement({ onClose }) {
         {/* Invite Form */}
         {showInvite && (
           <div style={{ padding: "20px 24px", borderBottom: `1px solid ${C.border}`, background: C.lightGray }}>
-            <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 16, color: C.black }}>Invite New Team Member</div>
+            <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 16, color: C.black }}>{tr("Invite New Team Member")}</div>
             <form onSubmit={handleInvite}>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
                 <div>
-                  <label style={{ fontSize: 11, fontWeight: 700, color: C.gray, display: "block", marginBottom: 4, textTransform: "uppercase" }}>First Name *</label>
-                  <input value={form.firstName} onChange={e => setForm(f => ({ ...f, firstName: e.target.value }))} required style={inputStyle} placeholder="Jane" />
+                  <label style={{ fontSize: 11, fontWeight: 700, color: C.gray, display: "block", marginBottom: 4, textTransform: "uppercase" }}>{tr("First Name *")}</label>
+                  <input value={form.firstName} onChange={e => setForm(f => ({ ...f, firstName: e.target.value }))} required style={inputStyle} placeholder={tr("Jane")} />
                 </div>
                 <div>
-                  <label style={{ fontSize: 11, fontWeight: 700, color: C.gray, display: "block", marginBottom: 4, textTransform: "uppercase" }}>Last Name *</label>
-                  <input value={form.lastName} onChange={e => setForm(f => ({ ...f, lastName: e.target.value }))} required style={inputStyle} placeholder="Smith" />
+                  <label style={{ fontSize: 11, fontWeight: 700, color: C.gray, display: "block", marginBottom: 4, textTransform: "uppercase" }}>{tr("Last Name *")}</label>
+                  <input value={form.lastName} onChange={e => setForm(f => ({ ...f, lastName: e.target.value }))} required style={inputStyle} placeholder={tr("Smith")} />
                 </div>
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 16 }}>
                 <div>
-                  <label style={{ fontSize: 11, fontWeight: 700, color: C.gray, display: "block", marginBottom: 4, textTransform: "uppercase" }}>Email *</label>
-                  <input type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} required style={inputStyle} placeholder="jane@brokerage.com" />
+                  <label style={{ fontSize: 11, fontWeight: 700, color: C.gray, display: "block", marginBottom: 4, textTransform: "uppercase" }}>{tr("Email *")}</label>
+                  <input type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} required style={inputStyle} placeholder={tr("jane@brokerage.com")} />
                 </div>
                 <div>
-                  <label style={{ fontSize: 11, fontWeight: 700, color: C.gray, display: "block", marginBottom: 4, textTransform: "uppercase" }}>Phone</label>
+                  <label style={{ fontSize: 11, fontWeight: 700, color: C.gray, display: "block", marginBottom: 4, textTransform: "uppercase" }}>{tr("Phone")}</label>
                   <input type="tel" value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} style={inputStyle} placeholder="407-555-0100" />
                 </div>
                 <div>
-                  <label style={{ fontSize: 11, fontWeight: 700, color: C.gray, display: "block", marginBottom: 4, textTransform: "uppercase" }}>Role *</label>
+                  <label style={{ fontSize: 11, fontWeight: 700, color: C.gray, display: "block", marginBottom: 4, textTransform: "uppercase" }}>{tr("Role *")}</label>
                   <select value={form.role} onChange={e => setForm(f => ({ ...f, role: e.target.value }))} style={inputStyle}>
-                    {ROLES.map(r => <option key={r} value={r}>{ROLE_LABELS[r]}</option>)}
+                    {ROLES.map(r => <option key={r} value={r}>{tr(ROLE_LABELS[r])}</option>)}
                   </select>
                 </div>
               </div>
               <div style={{ display: "flex", gap: 8 }}>
                 <button type="submit" disabled={inviting} style={{ padding: "8px 20px", background: "#0c4a6e", color: C.white, border: "none", borderRadius: 8, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
-                  {inviting ? "Sending..." : "Send Invite"}
+                  {inviting ? tr("Sending...") : tr("Send Invite")}
                 </button>
                 <button type="button" onClick={() => setShowInvite(false)} style={{ padding: "8px 16px", background: "none", border: `1px solid ${C.midGray}`, borderRadius: 8, cursor: "pointer", fontFamily: "inherit" }}>
-                  Cancel
+                  {tr("Cancel")}
                 </button>
               </div>
             </form>
@@ -191,19 +192,19 @@ export default function UserManagement({ onClose }) {
         {/* User List */}
         <div style={{ flex: 1, overflowY: "auto" }}>
           {loading ? (
-            <div style={{ textAlign: "center", padding: 40, color: C.gray }}>Loading team members...</div>
+            <div style={{ textAlign: "center", padding: 40, color: C.gray }}>{tr("Loading team members...")}</div>
           ) : users.length === 0 ? (
             <div style={{ textAlign: "center", padding: 40, color: C.gray }}>
               <div style={{ fontSize: 40, marginBottom: 12 }}>👥</div>
-              <div style={{ fontWeight: 600 }}>No team members yet</div>
-              <div style={{ fontSize: 13, marginTop: 4 }}>Click "Invite User" to add your first team member</div>
+              <div style={{ fontWeight: 600 }}>{tr("No team members yet")}</div>
+              <div style={{ fontSize: 13, marginTop: 4 }}>{tr("Click \"Invite User\" to add your first team member")}</div>
             </div>
           ) : (
             <div style={{ overflowX: "auto" }}><table style={{ width: "100%", minWidth: 580, borderCollapse: "collapse" }}>
               <thead>
                 <tr style={{ background: C.lightGray }}>
                   {["Name", "Email", "Role", "Status", "Last Login", "Actions"].map(h => (
-                    <th key={h} style={{ padding: "10px 16px", textAlign: "left", fontSize: 11, fontWeight: 700, color: C.gray, textTransform: "uppercase", letterSpacing: "0.05em", borderBottom: `1px solid ${C.border}` }}>{h}</th>
+                    <th key={h} style={{ padding: "10px 16px", textAlign: "left", fontSize: 11, fontWeight: 700, color: C.gray, textTransform: "uppercase", letterSpacing: "0.05em", borderBottom: `1px solid ${C.border}` }}>{tr(h)}</th>
                   ))}
                 </tr>
               </thead>
@@ -225,21 +226,21 @@ export default function UserManagement({ onClose }) {
                     <td style={{ padding: "12px 16px" }}>
                       <select value={user.role} onChange={e => changeRole(user, e.target.value)}
                         style={{ fontSize: 12, padding: "4px 8px", borderRadius: 6, border: `1px solid ${C.border}`, background: C.white, fontFamily: "inherit", color: ROLE_COLORS[user.role] || C.black, fontWeight: 600 }}>
-                        {ROLES.map(r => <option key={r} value={r}>{ROLE_LABELS[r]}</option>)}
+                        {ROLES.map(r => <option key={r} value={r}>{tr(ROLE_LABELS[r])}</option>)}
                       </select>
                     </td>
                     <td style={{ padding: "12px 16px" }}>
                       <span style={{ fontSize: 12, fontWeight: 600, padding: "3px 10px", borderRadius: 12, background: user.is_active ? C.successBg : "#F5F5F5", color: user.is_active ? C.success : C.gray }}>
-                        {user.is_active ? "Active" : "Inactive"}
+                        {user.is_active ? tr("Active") : tr("Inactive")}
                       </span>
                     </td>
                     <td style={{ padding: "12px 16px", fontSize: 12, color: C.gray }}>
-                      {user.last_login_at ? new Date(user.last_login_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "Never"}
+                      {user.last_login_at ? new Date(user.last_login_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : tr("Never")}
                     </td>
                     <td style={{ padding: "12px 16px" }}>
                       <button onClick={() => toggleActive(user)}
                         style={{ fontSize: 12, padding: "4px 10px", borderRadius: 6, border: `1px solid ${user.is_active ? "#FCA5A5" : C.midGray}`, background: "none", color: user.is_active ? C.red : C.gray, cursor: "pointer", fontFamily: "inherit" }}>
-                        {user.is_active ? "Deactivate" : "Activate"}
+                        {user.is_active ? tr("Deactivate") : tr("Activate")}
                       </button>
                     </td>
                   </tr>
@@ -250,8 +251,8 @@ export default function UserManagement({ onClose }) {
 
         {/* Footer */}
         <div style={{ padding: "12px 24px", borderTop: `1px solid ${C.border}`, background: C.lightGray, fontSize: 12, color: C.gray, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <div>💡 Invited users receive an email with temporary login credentials</div>
-          <div style={{ fontWeight: 600 }}>{users.filter(u => u.is_active).length} active · {users.filter(u => !u.is_active).length} inactive</div>
+          <div>{tr("💡 Invited users receive an email with temporary login credentials")}</div>
+          <div style={{ fontWeight: 600 }}>{users.filter(u => u.is_active).length} {tr("active ·")} {users.filter(u => !u.is_active).length} {tr("inactive")}</div>
         </div>
       </div>
     </div>

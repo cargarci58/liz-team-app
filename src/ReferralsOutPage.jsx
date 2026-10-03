@@ -157,7 +157,7 @@ export default function ReferralsOutPage({ onBack }) {
         <button onClick={() => setEdit({ ...EMPTY })} style={btn(true)}>{tr("➕ New referral")}</button>
       </div>
       <div style={{ fontSize: 13, color: C.muted, marginBottom: 14 }}>{tr("Clients you sent to another agent. You keep these up to date; tap")} <b>{tr("Ask for an update")}</b> {tr("and the partner can answer with one tap.")} {expected > 0 && <>{tr("Expected, not yet paid:")} <b style={{ color: "#166534" }}>{money(expected)}</b>.</>}</div>
-      {msg && <div style={{ fontSize: 13, fontWeight: 700, color: msg.startsWith("✅") ? "#166534" : C.dark, marginBottom: 10 }}>{msg}</div>}
+      {msg && <div style={{ fontSize: 13, fontWeight: 700, color: msg.startsWith("✅") ? "#166534" : C.dark, marginBottom: 10 }}>{tr(msg)}</div>}
       {list === null && <div style={{ color: C.muted }}>{tr("Loading…")}</div>}
       {list && list.length === 0 && <div style={{ background: C.gray, borderRadius: 12, padding: 16, fontSize: 13.5 }}>{tr("No referrals yet. Tap")} <b>{tr("➕ New referral")}</b> {tr("when you send a client to another agent.")}</div>}
       {open.map(row)}
@@ -347,7 +347,7 @@ export function ReferralUpdatePublic({ urlToken }) {
   };
   const box = { maxWidth: 460, margin: "40px auto", background: "#fff", border: "1px solid " + C.border, borderRadius: 14, padding: 22, fontFamily: "system-ui, sans-serif", color: C.text };
   const inp = { padding: "10px 12px", border: "1px solid " + C.border, borderRadius: 8, fontSize: 15, width: "100%", boxSizing: "border-box", marginTop: 4, fontFamily: "inherit" };
-  if (err) return <div style={box}><b>{tr("Can't open this.")}</b><div style={{ color: C.muted, marginTop: 6 }}>{err}</div></div>;
+  if (err) return <div style={box}><b>{tr("Can't open this.")}</b><div style={{ color: C.muted, marginTop: 6 }}>{tr(err)}</div></div>;
   if (!info) return <div style={box}>{tr("Loading…")}</div>;
   if (done) return <div style={box}><div style={{ fontSize: 18, fontWeight: 800 }}>{tr("✅ Thank you!")}</div><div style={{ color: C.muted, marginTop: 6 }}>{info.agent} {tr("has your update on")} {info.client}.</div></div>;
   return (

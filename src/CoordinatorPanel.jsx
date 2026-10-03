@@ -229,7 +229,7 @@ export default function CoordinatorPanel({ txId }) {
           </div>
         </div>
       )}
-      {msg && <div style={{ marginTop: 10, fontSize: 14, color: msg.startsWith("✅") ? L.green : L.red }}>{msg}</div>}
+      {msg && <div style={{ marginTop: 10, fontSize: 14, color: msg.startsWith("✅") ? L.green : L.red }}>{tr(msg)}</div>}
     </div>
   );
 }

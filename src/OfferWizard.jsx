@@ -961,7 +961,7 @@ export default function OfferWizard({ offerId, token, onClose, onSaved, isLandDe
                         {["Cash", "Conventional", "FHA", "VA"].map(ft => (
                           <button key={ft} type="button" onClick={() => setXp(x => ({ ...x, financing: ft }))}
                             style={{ padding: "8px 12px", borderRadius: 16, border: xp.financing === ft ? "2px solid #0c4a6e" : "1px solid #d1d5db", background: xp.financing === ft ? "#0c4a6e" : "#fff", color: xp.financing === ft ? "#fff" : "#374151", fontSize: 12.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
-                            {ft}
+                            {tr(ft)}
                           </button>
                         ))}
                       </div>
@@ -1009,7 +1009,7 @@ export default function OfferWizard({ offerId, token, onClose, onSaved, isLandDe
               </div>
               {preapMsg && (
                 <div style={{ marginTop: 12, background: "#d1fae5", border: "1px solid #6ee7b7", borderRadius: 6, padding: 10, fontSize: 12, color: "#065f46" }}>
-                  {preapMsg}
+                  {tr(preapMsg)}
                 </div>
               )}
             </div>
@@ -1061,7 +1061,7 @@ export default function OfferWizard({ offerId, token, onClose, onSaved, isLandDe
               </div>
               {mlsResultMsg && (
                 <div style={{ marginTop: 12, background: "#d1fae5", border: "1px solid #6ee7b7", borderRadius: 6, padding: 10, fontSize: 12, color: "#065f46" }}>
-                  {mlsResultMsg}
+                  {tr(mlsResultMsg)}
                 </div>
               )}
             </div>
@@ -1198,7 +1198,7 @@ export default function OfferWizard({ offerId, token, onClose, onSaved, isLandDe
           </div>
 
           {error && (
-            <div style={{ marginTop: 16, background: "#fee2e2", border: "1px solid #fca5a5", borderRadius: 6, padding: 12, fontSize: 13, color: "#7f1d1d" }}>⚠️ {error}</div>
+            <div style={{ marginTop: 16, background: "#fee2e2", border: "1px solid #fca5a5", borderRadius: 6, padding: 12, fontSize: 13, color: "#7f1d1d" }}>⚠️ {tr(error)}</div>
           )}
         </div>
 

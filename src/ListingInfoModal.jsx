@@ -54,7 +54,7 @@ export default function ListingInfoModal({ txId, onClose }) {
         </div>
         <div style={{ padding: 18, maxHeight: "70vh", overflowY: "auto" }}>
           {!data && !err && <div style={{ color: "#6b7280", padding: 20, textAlign: "center" }}>{tr("Loading…")}</div>}
-          {err && !data && <div style={{ color: "#b91c1c", padding: 12 }}>⚠️ {err}</div>}
+          {err && !data && <div style={{ color: "#b91c1c", padding: 12 }}>⚠️ {tr(err)}</div>}
           {data && (
             <>
               <div style={{ fontSize: 12.5, color: "#6b7280", marginBottom: 14, lineHeight: 1.5 }}>
@@ -75,7 +75,7 @@ export default function ListingInfoModal({ txId, onClose }) {
                   )}
                 </div>
               ))}
-              {err && <div style={{ color: "#b91c1c", marginBottom: 10 }}>⚠️ {err}</div>}
+              {err && <div style={{ color: "#b91c1c", marginBottom: 10 }}>⚠️ {tr(err)}</div>}
               <div style={{ display: "flex", gap: 10, marginTop: 4 }}>
                 <button onClick={() => onClose(0)} disabled={busy}
                   style={{ flex: 1, padding: "12px 0", borderRadius: 10, border: "1px solid #d1d5db", background: "#fff", color: "#374151", fontWeight: 700, fontSize: 14, cursor: "pointer", fontFamily: "inherit" }}>

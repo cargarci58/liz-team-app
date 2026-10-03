@@ -293,7 +293,7 @@ export default function ShowingToursTab({ tx, onOpenOffer }) {
         <button onClick={newTour} disabled={!!busy} style={btn(C.blue)}>{tours.length ? tr("➕ Add another tour day") : tr("➕ Plan a tour")}</button>
       </div>
 
-      {err && <div style={{ background: C.lightRed, color: C.darkRed, borderRadius: 8, padding: "10px 12px", fontSize: 13, fontWeight: 600, marginBottom: 12 }}>⚠️ {err}</div>}
+      {err && <div style={{ background: C.lightRed, color: C.darkRed, borderRadius: 8, padding: "10px 12px", fontSize: 13, fontWeight: 600, marginBottom: 12 }}>⚠️ {tr(err)}</div>}
 
       {tours.length === 0 && (
         <div style={{ background: C.white, border: `2px dashed ${C.border}`, borderRadius: 12, padding: 24, textAlign: "center" }}>
@@ -385,7 +385,7 @@ export default function ShowingToursTab({ tx, onOpenOffer }) {
           )}
           {justAdded.size > 0 && (
             <div style={{ background: C.lightRed, borderRadius: 8, padding: "10px 12px", marginBottom: 12, fontSize: 13, color: C.darkRed, fontWeight: 600 }}>
-              {tr("✅ Added")} {justAdded.size} {tr("home")}{justAdded.size === 1 ? "" : "s"} {tr("(marked NEW). Give them a quick look and tap ✏️ Edit to fix anything the reader got wrong.")}
+              {tr("✅ Added")} {justAdded.size} {tr(justAdded.size === 1 ? "home" : "homes")} {tr("(marked NEW). Give them a quick look and tap ✏️ Edit to fix anything the reader got wrong.")}
             </div>
           )}
 
@@ -396,14 +396,14 @@ export default function ShowingToursTab({ tx, onOpenOffer }) {
             <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 12, padding: 14, marginBottom: 12 }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
                 <div>
-                  <div style={{ fontSize: 15, fontWeight: 800, color: C.navy }}>🚗 {fmtDate(tour.tour_date)} · {stops.length} {tr("home")}{stops.length === 1 ? "" : "s"}</div>
+                  <div style={{ fontSize: 15, fontWeight: 800, color: C.navy }}>🚗 {fmtDate(tour.tour_date)} · {stops.length} {tr(stops.length === 1 ? "home" : "homes")}</div>
                   <div style={{ fontSize: 13, color: C.gray, marginTop: 2 }}>
                     {fmtTime(sched.legs[0] ? sched.legs[0].begin : null)} {tr("→ done ~")}{fmtTime(sched.finish)}{sched.miles > 0 ? tr(" · ~{v1} mi driving", { v1: Math.round(sched.miles) }) : ""}
                   </div>
                 </div>
               </div>
-              {lateCount > 0 && <div style={{ fontSize: 12.5, color: C.darkRed, fontWeight: 700, marginTop: 8 }}>⚠️ {lateCount} {tr("home")}{lateCount === 1 ? "" : "s"} {tr("can't make the appointment window with this plan — start earlier or remove a home.")}</div>}
-              {unmapped > 0 && <div style={{ fontSize: 12.5, color: C.darkRed, marginTop: 6 }}>📍 {unmapped} {tr("home")}{unmapped === 1 ? "" : "s"} {tr("couldn't be found on the map — check the address (kept at the end).")}</div>}
+              {lateCount > 0 && <div style={{ fontSize: 12.5, color: C.darkRed, fontWeight: 700, marginTop: 8 }}>⚠️ {lateCount} {tr(lateCount === 1 ? "home" : "homes")} {tr("can't make the appointment window with this plan — start earlier or remove a home.")}</div>}
+              {unmapped > 0 && <div style={{ fontSize: 12.5, color: C.darkRed, marginTop: 6 }}>📍 {unmapped} {tr(unmapped === 1 ? "home" : "homes")} {tr("couldn't be found on the map — check the address (kept at the end).")}</div>}
               {/* Each action says what it does for the agent (Carlos 9/26: "doesn't say anything"). */}
               <div style={{ display: "grid", gap: 10, marginTop: 12 }}>
                 {stops.length > 1 && (

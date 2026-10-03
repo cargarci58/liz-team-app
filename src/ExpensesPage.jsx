@@ -443,7 +443,7 @@ export default function ExpensesPage({ onBack }) {
       {/* Table */}
       <div style={{ margin: '16px 24px', background: 'white', borderRadius: 12, boxShadow: '0 1px 3px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
         {loading && <div style={{ padding: 40, textAlign: 'center', color: '#6b7280' }}>{tr("Loading expenses...")}</div>}
-        {error && <div style={{ padding: 20, color: '#dc2626', background: '#fef2f2' }}>{tr("Error:")} {error}</div>}
+        {error && <div style={{ padding: 20, color: '#dc2626', background: '#fef2f2' }}>{tr("Error:")} {tr(error)}</div>}
         {!loading && !error && visibleExpenses.length === 0 && (
           <div style={{ padding: 60, textAlign: 'center', color: '#6b7280' }}>
             <div style={{ fontSize: 48, marginBottom: 12 }}>💵</div>
@@ -625,7 +625,7 @@ function AddExpenseModal({ categories, expense, allExpenses, onClose, onSaved })
       // raw iPhone files "just work" too. Only loads when a HEIC is detected.
       const isHeic = /heic|heif/i.test(file.type || '') || /\.(heic|heif)$/i.test(file.name || '');
       if (isHeic) {
-        setOcrStatus('Converting iPhone photo…');
+        setOcrStatus(tr('Converting iPhone photo…'));
         let converted = null;
         try {
           converted = await imageFileToJpeg(file); // native decode (Safari) — fast
@@ -643,7 +643,7 @@ function AddExpenseModal({ categories, expense, allExpenses, onClose, onSaved })
         file = converted;
       }
       // Server-proxied upload (browser→R2 presigned PUT fails CORS).
-      setOcrStatus('Uploading receipt...');
+      setOcrStatus(tr('Uploading receipt...'));
       const base64 = await new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = () => resolve(String(reader.result).split(',')[1]);
@@ -664,7 +664,7 @@ function AddExpenseModal({ categories, expense, allExpenses, onClose, onSaved })
       setReceiptKey(newKey);
 
       // Step 3: enqueue AI extraction job
-      setOcrStatus('AI reading receipt...');
+      setOcrStatus(tr('AI reading receipt...'));
       const enqueued = await authFetch('/expenses/extract-receipt', {
         method: 'POST',
         body: JSON.stringify({ receiptKey: newKey })
@@ -914,7 +914,7 @@ function AddExpenseModal({ categories, expense, allExpenses, onClose, onSaved })
 
       {error && (
         <div style={{ background: '#fef2f2', color: '#dc2626', padding: 10, borderRadius: 8, marginBottom: 12, fontSize: 14 }}>
-          {error}
+          {tr(error)}
         </div>
       )}
 
@@ -1002,7 +1002,7 @@ function ReportModal({ categories, onClose }) {
       </Field>
 
       {loading && <div style={{ padding: 20, textAlign: 'center', color: '#6b7280' }}>{tr("Loading...")}</div>}
-      {error && <div style={{ padding: 10, color: '#dc2626' }}>{tr("Error:")} {error}</div>}
+      {error && <div style={{ padding: 10, color: '#dc2626' }}>{tr("Error:")} {tr(error)}</div>}
 
       {report && !loading && (
         <>
@@ -1148,7 +1148,7 @@ function SimpleMoneyView({ categories, goAdvanced }) {
   return (
     <div style={{ padding: '20px 24px', maxWidth: 920, margin: '0 auto' }}>
       {loading && <div style={{ padding: 40, textAlign: 'center', color: '#6b7280' }}>{tr("Loading...")}</div>}
-      {error && <div style={{ padding: 20, color: '#dc2626', background: '#fef2f2', borderRadius: 8 }}>{tr("Error:")} {error}</div>}
+      {error && <div style={{ padding: 20, color: '#dc2626', background: '#fef2f2', borderRadius: 8 }}>{tr("Error:")} {tr(error)}</div>}
 
       {!loading && !error && (
         <>
@@ -1313,7 +1313,7 @@ function GoalSetupModal({ existing, onClose, onSaved }) {
           <input type="number" step="1000" min="0" value={amount} onChange={e => setAmount(e.target.value)} placeholder="220,000" style={{ ...inputStyle, fontSize: 20, fontWeight: 700 }} autoFocus />
         </div>
       </Field>
-      {error && <div style={{ background: '#fef2f2', color: '#dc2626', padding: 10, borderRadius: 8, marginBottom: 12, fontSize: 14 }}>{error}</div>}
+      {error && <div style={{ background: '#fef2f2', color: '#dc2626', padding: 10, borderRadius: 8, marginBottom: 12, fontSize: 14 }}>{tr(error)}</div>}
       <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
         <button onClick={onClose} style={secondaryBtn}>{tr("Cancel")}</button>
         <button onClick={save} disabled={saving} style={{ ...primaryBtn('#0c4a6e'), opacity: saving ? 0.6 : 1 }}>{saving ? tr("Saving...") : tr("Save goal")}</button>
@@ -1384,7 +1384,7 @@ function BillsSetupModal({ existing, onClose, onSaved }) {
       ))}
       <button onClick={addCustom} style={{ ...secondaryBtn, marginTop: 2 }}>{tr("➕ Add another bill")}</button>
       <div style={{ textAlign: 'right', fontWeight: 700, color: '#1f2937', marginTop: 12 }}>{tr("About")} {fmtCurrency(total)}/month</div>
-      {error && <div style={{ background: '#fef2f2', color: '#dc2626', padding: 10, borderRadius: 8, margin: '12px 0', fontSize: 14 }}>{error}</div>}
+      {error && <div style={{ background: '#fef2f2', color: '#dc2626', padding: 10, borderRadius: 8, margin: '12px 0', fontSize: 14 }}>{tr(error)}</div>}
       <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 14 }}>
         <button onClick={onClose} style={secondaryBtn}>{tr("Cancel")}</button>
         <button onClick={save} disabled={saving} style={{ ...primaryBtn('#0c4a6e'), opacity: saving ? 0.6 : 1 }}>{saving ? tr("Saving...") : tr("Save my bills")}</button>
@@ -1464,7 +1464,7 @@ function IncomeTab() {
       </div>
 
       {loading && <div style={{ padding: 40, textAlign: 'center', color: '#6b7280' }}>{tr("Loading...")}</div>}
-      {error && <div style={{ padding: 20, color: '#dc2626', background: '#fef2f2', borderRadius: 8 }}>{tr("Error:")} {error}</div>}
+      {error && <div style={{ padding: 20, color: '#dc2626', background: '#fef2f2', borderRadius: 8 }}>{tr("Error:")} {tr(error)}</div>}
 
       {!loading && !error && (
         <>
@@ -1580,7 +1580,7 @@ function IncomeModal({ entry, onClose, onSaved }) {
         </Field>
       </div>
       <Field label={tr("Notes")}><textarea value={notes} onChange={e => setNotes(e.target.value)} rows={2} style={{ ...inputStyle, fontFamily: 'inherit', resize: 'vertical' }} /></Field>
-      {error && <div style={{ background: '#fef2f2', color: '#dc2626', padding: 10, borderRadius: 8, marginBottom: 12, fontSize: 14 }}>{error}</div>}
+      {error && <div style={{ background: '#fef2f2', color: '#dc2626', padding: 10, borderRadius: 8, marginBottom: 12, fontSize: 14 }}>{tr(error)}</div>}
       <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
         <button onClick={onClose} style={secondaryBtn}>{tr("Cancel")}</button>
         <button onClick={save} disabled={saving} style={{ ...primaryBtn('#0c4a6e'), opacity: saving ? 0.6 : 1 }}>{saving ? tr("Saving...") : (isEdit ? tr("Save") : tr("Add Income"))}</button>
@@ -1731,7 +1731,7 @@ function BudgetTab({ categories }) {
       </div>
 
       {loading && <div style={{ padding: 40, textAlign: 'center', color: '#6b7280' }}>{tr("Loading...")}</div>}
-      {error && <div style={{ padding: 20, color: '#dc2626', background: '#fef2f2', borderRadius: 8 }}>{tr("Error:")} {error}</div>}
+      {error && <div style={{ padding: 20, color: '#dc2626', background: '#fef2f2', borderRadius: 8 }}>{tr("Error:")} {tr(error)}</div>}
 
       {!loading && !error && (
         <>
@@ -1879,7 +1879,7 @@ function BuildBudgetModal({ existing, onClose, onSaved }) {
         {tr("Based on what you've actually spent this year, here's a suggested")} <strong>{tr("monthly")}</strong> {tr("budget for each category. Recurring ones (showing up in 2+ months) are pre-checked. Adjust any amount, uncheck what you don't want, then apply.")}
       </div>
       {loading && <div style={{ padding: 24, textAlign: 'center', color: '#6b7280' }}>{tr("Analyzing your expenses…")}</div>}
-      {error && <div style={{ padding: 12, color: '#dc2626', background: '#fef2f2', borderRadius: 8, marginBottom: 12 }}>{error}</div>}
+      {error && <div style={{ padding: 12, color: '#dc2626', background: '#fef2f2', borderRadius: 8, marginBottom: 12 }}>{tr(error)}</div>}
       {!loading && rows.length === 0 && <div style={{ padding: 20, textAlign: 'center', color: '#6b7280' }}>{tr("No expense history to build from yet.")}</div>}
       {!loading && rows.length > 0 && (
         <>
@@ -1920,7 +1920,7 @@ function GoalProgress({ label, goal, actual, elapsed, actualLabel, emptyHint, fo
     return (
       <div style={{ background: 'white', borderRadius: 12, boxShadow: '0 1px 3px rgba(0,0,0,0.05)', padding: 18, marginBottom: 16, borderLeft: '4px solid #3b82f6' }}>
         <div style={{ fontWeight: 700, color: '#1f2937', marginBottom: 4 }}>{tr(label)}</div>
-        <div style={{ color: '#6b7280', fontSize: 14 }}>{emptyHint}</div>
+        <div style={{ color: '#6b7280', fontSize: 14 }}>{tr(emptyHint)}</div>
       </div>
     );
   }
@@ -2049,7 +2049,7 @@ function BudgetModal({ item, categories, onClose, onSaved }) {
         )}
       </div>
       <Field label={tr("Notes")}><input value={notes} onChange={e => setNotes(e.target.value)} style={inputStyle} /></Field>
-      {error && <div style={{ background: '#fef2f2', color: '#dc2626', padding: 10, borderRadius: 8, marginBottom: 12, fontSize: 14 }}>{error}</div>}
+      {error && <div style={{ background: '#fef2f2', color: '#dc2626', padding: 10, borderRadius: 8, marginBottom: 12, fontSize: 14 }}>{tr(error)}</div>}
       <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
         <button onClick={onClose} style={secondaryBtn}>{tr("Cancel")}</button>
         <button onClick={save} disabled={saving} style={{ ...primaryBtn('#0c4a6e'), opacity: saving ? 0.6 : 1 }}>{saving ? tr("Saving...") : (isEdit ? tr("Save") : tr("Add Line"))}</button>
@@ -2234,7 +2234,7 @@ function PnLTab() {
       </div>
 
       {loading && <div style={{ padding: 40, textAlign: 'center', color: '#6b7280' }}>{tr("Loading...")}</div>}
-      {error && <div style={{ padding: 20, color: '#dc2626', background: '#fef2f2', borderRadius: 8 }}>{tr("Error:")} {error}</div>}
+      {error && <div style={{ padding: 20, color: '#dc2626', background: '#fef2f2', borderRadius: 8 }}>{tr("Error:")} {tr(error)}</div>}
 
       {pnl && !loading && (
         <>
@@ -2419,7 +2419,7 @@ function BalanceSheetTab() {
         <button onClick={exportExcel} disabled={!data} style={primaryBtn('#0c4a6e')}>{tr("⬇️ Export to Excel")}</button>
       </div>
       {loading && <div style={{ padding: 40, textAlign: 'center', color: '#6b7280' }}>{tr("Loading…")}</div>}
-      {error && <div style={{ padding: 20, color: '#dc2626', background: '#fef2f2', borderRadius: 8 }}>{tr("Error:")} {error}</div>}
+      {error && <div style={{ padding: 20, color: '#dc2626', background: '#fef2f2', borderRadius: 8 }}>{tr("Error:")} {tr(error)}</div>}
       {ytd && (ytdIncome > 0 || ytdProfit) ? (
         <div style={{ background: '#ecfdf5', border: '1px solid #a7f3d0', borderRadius: 10, padding: '12px 16px', marginBottom: 16, fontSize: 13, color: '#065f46' }}>
           💰 <strong>{tr("Year-to-date from your deals (")}{bsYear}):</strong> {fmtCurrency(ytdIncome)} {tr("income ·")} {fmtCurrency(ytdProfit)} {tr("profit")} <span style={{ color: '#1E7B45' }}>{tr("(from your P&L)")}</span>.
@@ -2521,7 +2521,7 @@ function Contractors1099Tab() {
         </div>
       )}
       {loading && <div style={{ padding: 40, textAlign: 'center', color: '#6b7280' }}>{tr("Loading…")}</div>}
-      {error && <div style={{ padding: 20, color: '#dc2626', background: '#fef2f2', borderRadius: 8 }}>{tr("Error:")} {error}</div>}
+      {error && <div style={{ padding: 20, color: '#dc2626', background: '#fef2f2', borderRadius: 8 }}>{tr("Error:")} {tr(error)}</div>}
       {data && !loading && (
         <div style={{ background: 'white', borderRadius: 12, boxShadow: '0 1px 3px rgba(0,0,0,0.05)', overflow: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
@@ -2582,7 +2582,7 @@ function W9Modal({ vendor, onClose, onSaved }) {
   return (
     <ModalShell onClose={onClose} title={tr("W-9 info — {name}", { name: vendor.name })} width={520}>
       <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 14 }}>{tr("From the contractor's W-9. Marking this saves the vendor as a 1099 contractor.")}</div>
-      {error && <div style={{ padding: 10, color: '#dc2626', background: '#fef2f2', borderRadius: 8, marginBottom: 12 }}>{error}</div>}
+      {error && <div style={{ padding: 10, color: '#dc2626', background: '#fef2f2', borderRadius: 8, marginBottom: 12 }}>{tr(error)}</div>}
       <Field label={tr("Legal name (person or business)")}><input value={legalName} onChange={e => setLegalName(e.target.value)} style={inputStyle} /></Field>
       <Field label={tr("Business name (if different)")}><input value={businessName} onChange={e => setBusinessName(e.target.value)} style={inputStyle} /></Field>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
@@ -2887,7 +2887,7 @@ function ImportTab({ categories, onCommitted }) {
         </div>
       )}
 
-      {error && <div style={{ padding: 12, color: '#dc2626', background: '#fef2f2', borderRadius: 8, marginBottom: 16 }}>{error}</div>}
+      {error && <div style={{ padding: 12, color: '#dc2626', background: '#fef2f2', borderRadius: 8, marginBottom: 16 }}>{tr(error)}</div>}
 
       {lines.length > 0 && (
         <>

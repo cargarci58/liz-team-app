@@ -135,6 +135,13 @@ export function tn(n, one, many, vars) {
   return t(Number(n) === 1 ? one : many, { n, ...(vars || {}) });
 }
 
+// AI answers quote app buttons in English ("📇 Contacts"). On Spanish screens,
+// swap each quoted name for the Spanish label the app shows; unknown ones stay.
+export function swapQuoted(s) {
+  if (current !== "es" || typeof s !== "string") return s;
+  return s.replace(/(["“])([^"“”\n]{2,60})(["”])/g, (m, o, x, c) => { const es = t(x.trim()); return es !== x.trim() ? o + es + c : m; });
+}
+
 export const locale = () => (current === "es" ? "es-US" : "en-US");
 
 // Dates/times in the active language. Same options as toLocaleDateString.

@@ -478,7 +478,7 @@ export default function VendorLibrary({ onClose }) {
         <div>
           <div style={{ color: "#fff", fontWeight: 800, fontSize: 17 }}>{tr("Preferred Vendors")}</div>
           <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 12 }}>
-            {vendors.length} {tr("vendor")}{vendors.length !== 1 ? "s" : ""} {tr("in your library")}
+            {vendors.length} {tr(vendors.length !== 1 ? "vendors" : "vendor")} {tr("in your library")}
           </div>
         </div>
         <button onClick={() => { setEditingVendor(null); setShowForm(true); }}

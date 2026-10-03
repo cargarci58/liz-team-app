@@ -30,7 +30,7 @@ export default function ReminderPlanReview({ token, txId, reloadKey, onSent, onL
 
   if (actions === null) return inModal ? <div style={{ padding: 12, color: "#64748B", fontSize: 14 }}>{tr("Loading what would go out…")}</div> : null;
   if (actions.length === 0) {
-    if (msg) return <div style={{ marginBottom: 14, fontSize: 13, fontWeight: 700, color: msg.startsWith("✅") ? "#166534" : "#991B1B" }}>{msg}</div>;
+    if (msg) return <div style={{ marginBottom: 14, fontSize: 13, fontWeight: 700, color: msg.startsWith("✅") ? "#166534" : "#991B1B" }}>{tr(msg)}</div>;
     return inModal ? <div style={{ padding: 12, color: "#64748B", fontSize: 14 }}>{tr("Nothing is due to go out on this deal today. ✅")}</div> : null;
   }
 
@@ -194,7 +194,7 @@ export default function ReminderPlanReview({ token, txId, reloadKey, onSent, onL
         </button>
         <span style={{ fontSize: 12, color: "#1E40AF" }}>{tr("Nothing goes out until you approve.")}</span>
       </div>
-      {msg && <div style={{ marginTop: 10, fontSize: 13, fontWeight: 700, color: msg.startsWith("✅") ? "#166534" : "#991B1B" }}>{msg}</div>}
+      {msg && <div style={{ marginTop: 10, fontSize: 13, fontWeight: 700, color: msg.startsWith("✅") ? "#166534" : "#991B1B" }}>{tr(msg)}</div>}
     </div>
   );
 }

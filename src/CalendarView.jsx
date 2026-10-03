@@ -366,7 +366,7 @@ export default function CalendarView({ transactions, onBack, onSelectTx }) {
                 <div style={{ fontWeight: 700, fontSize: 20, color: "#111" }}>
                   {new Date(year, month, selectedDay).toLocaleDateString(uiLocale(), { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
                 </div>
-                <div style={{ fontSize: 12, color: "#666666" }}>{selectedEvents.length} {tr("item")}{selectedEvents.length === 1 ? "" : "s"}</div>
+                <div style={{ fontSize: 12, color: "#666666" }}>{selectedEvents.length} {tr(selectedEvents.length === 1 ? "item" : "items")}</div>
               </div>
               <div style={{ display: "flex", gap: 8 }}>
                 <button onClick={() => setMode("month")} style={styles.smallBtn}>{tr("📅 Month")}</button>

@@ -1,3 +1,4 @@
+import { t as tr, requestSpanish, useLang } from "../i18n";
 import { useState, useEffect } from 'react';
 
 const ROLE_LABELS = {
@@ -14,6 +15,7 @@ const ROLE_LABELS = {
 };
 
 export default function FaqHelpButton({ transactionId, apiBase, token }) {
+  useLang(); // redraw when Spanish for the FAQs arrives
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -36,10 +38,11 @@ export default function FaqHelpButton({ transactionId, apiBase, token }) {
       .then(data => {
         setRoleBucket(data.role_bucket);
         setFaqs(data.faqs || []);
+        requestSpanish((data.faqs || []).flatMap(f => [f.question, f.answer]));
       })
       .catch(err => {
         console.error('FAQ load error', err);
-        setError('Could not load FAQs.');
+        setError(tr('Could not load FAQs.'));
       })
       .finally(() => setLoading(false));
   }, [open, transactionId, apiBase, token]);
@@ -53,8 +56,7 @@ export default function FaqHelpButton({ transactionId, apiBase, token }) {
 
   const filtered = search.trim()
     ? faqs.filter(f =>
-        f.question.toLowerCase().includes(search.toLowerCase()) ||
-        f.answer.toLowerCase().includes(search.toLowerCase()))
+        [f.question, f.answer, tr(f.question), tr(f.answer)].some(x => String(x || '').toLowerCase().includes(search.toLowerCase())))
     : faqs;
 
   // Group filtered by role_bucket (your role first, then general)
@@ -66,8 +68,8 @@ export default function FaqHelpButton({ transactionId, apiBase, token }) {
       {/* Floating button */}
       <button
         onClick={() => setOpen(true)}
-        aria-label="Open FAQ help"
-        title="Frequently Asked Questions for this transaction"
+        aria-label={tr("Open FAQ help")}
+        title={tr("Frequently Asked Questions for this transaction")}
         style={{
           position: 'fixed',
           bottom: '24px',
@@ -131,11 +133,11 @@ export default function FaqHelpButton({ transactionId, apiBase, token }) {
             }}>
               <div>
                 <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#222' }}>
-                  Help & FAQs
+                  {tr("Help & FAQs")}
                 </div>
                 {roleBucket && (
                   <div style={{ fontSize: '13px', color: '#666', marginTop: '2px' }}>
-                    Showing answers for: <strong>{ROLE_LABELS[roleBucket] || roleBucket}</strong>
+                    {tr("Showing answers for:")} <strong>{tr(ROLE_LABELS[roleBucket] || roleBucket)}</strong>
                   </div>
                 )}
               </div>
@@ -158,7 +160,7 @@ export default function FaqHelpButton({ transactionId, apiBase, token }) {
             <div style={{ padding: '12px 20px', borderBottom: '1px solid #eee' }}>
               <input
                 type="text"
-                placeholder="Search questions..."
+                placeholder={tr("Search questions...")}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 style={{
@@ -174,10 +176,10 @@ export default function FaqHelpButton({ transactionId, apiBase, token }) {
 
             {/* Body */}
             <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px' }}>
-              {loading && <div style={{ color: '#666' }}>Loading…</div>}
-              {error && <div style={{ color: '#C0392B' }}>{error}</div>}
+              {loading && <div style={{ color: '#666' }}>{tr("Loading…")}</div>}
+              {error && <div style={{ color: '#C0392B' }}>{tr(error)}</div>}
               {!loading && !error && filtered.length === 0 && (
-                <div style={{ color: '#666' }}>No FAQs match your search.</div>
+                <div style={{ color: '#666' }}>{tr("No FAQs match your search.")}</div>
               )}
 
               {!loading && !error && yourRoleFaqs.length > 0 && (
@@ -190,7 +192,7 @@ export default function FaqHelpButton({ transactionId, apiBase, token }) {
                     letterSpacing: '0.5px',
                     marginBottom: '8px',
                   }}>
-                    For {ROLE_LABELS[roleBucket] || roleBucket}
+                    {tr("For")} {tr(ROLE_LABELS[roleBucket] || roleBucket)}
                   </div>
                   {yourRoleFaqs.map(f => (
                     <FaqRow key={f.id} faq={f} isOpen={expanded.has(f.id)} onToggle={() => toggle(f.id)} />
@@ -208,7 +210,7 @@ export default function FaqHelpButton({ transactionId, apiBase, token }) {
                     letterSpacing: '0.5px',
                     marginBottom: '8px',
                   }}>
-                    General
+                    {tr("General")}
                   </div>
                   {generalFaqs.map(f => (
                     <FaqRow key={f.id} faq={f} isOpen={expanded.has(f.id)} onToggle={() => toggle(f.id)} />
@@ -225,7 +227,7 @@ export default function FaqHelpButton({ transactionId, apiBase, token }) {
               color: '#666666',
               background: '#fafafa',
             }}>
-              These FAQs are educational only and not legal advice. For legal or tax questions, consult a real estate attorney or CPA.
+              {tr("These FAQs are educational only and not legal advice. For legal or tax questions, consult a real estate attorney or CPA.")}
             </div>
           </div>
         </div>
@@ -258,7 +260,7 @@ function FaqRow({ faq, isOpen, onToggle }) {
           fontWeight: '600',
         }}
       >
-        <span>{faq.question}</span>
+        <span>{tr(faq.question)}</span>
         <span style={{ color: '#666666', flexShrink: 0 }}>{isOpen ? '−' : '+'}</span>
       </button>
       {isOpen && (
@@ -269,7 +271,7 @@ function FaqRow({ faq, isOpen, onToggle }) {
           lineHeight: 1.5,
           whiteSpace: 'pre-wrap',
         }}>
-          {faq.answer}
+          {tr(faq.answer)}
         </div>
       )}
     </div>
