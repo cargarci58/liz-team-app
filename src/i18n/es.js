@@ -8195,6 +8195,21 @@ const ES = {
   "These lines don't match the statement's balance — off by {amount}.": "Estas líneas no cuadran con el saldo del estado de cuenta — diferencia de {amount}.",
   "“{desc}” ({amount}) is probably on the wrong side.": "“{desc}” ({amount}) probablemente está del lado equivocado.",
   "⇄ Switch it to {type}": "⇄ Cambiarla a {type}",
+  // Statement account check (wrong type / different account)
+  "credit card": "tarjeta de crédito",
+  "checking / bank": "cuenta corriente / banco",
+  "⚠️ Is this the right statement?": "⚠️ ¿Es este el estado de cuenta correcto?",
+  "This looks like a {detected} statement{acct}, but it was uploaded as {chosen}.": "Parece un estado de cuenta de {detected}{acct}, pero se subió como {chosen}.",
+  "Switch it to {type}": "Cambiarlo a {type}",
+  "No — it really is {type}": "No — de verdad es {type}",
+  "Wrong statement — remove it": "Estado de cuenta equivocado — quitarlo",
+  "⚠️ Is this the right account?": "⚠️ ¿Es esta la cuenta correcta?",
+  "This statement is for {acct}. Your other {type} statements are for {known}.": "Este estado de cuenta es de {acct}. Sus otros estados de cuenta de {type} son de {known}.",
+  "Yes — it's another account of mine": "Sí — es otra cuenta mía",
+  "Statement for": "Estado de cuenta de",
+  "Answer the account question at the top first": "Primero responda la pregunta sobre la cuenta arriba",
+  "Removed — upload the right statement whenever you're ready.": "Quitado — suba el estado de cuenta correcto cuando quiera.",
+  "Please answer the account question at the top of the review before importing.": "Responda la pregunta sobre la cuenta arriba antes de importar.",
   "Check the Type on each line against the statement (a refund or credit is Income on a card), and look for a missing or doubled line. You can also fix it after saving with 🔍 See lines.": "Revise el Tipo de cada línea contra el estado de cuenta (un reembolso o crédito es Ingreso en una tarjeta) y busque una línea que falte o esté repetida. También puede corregirlo después de guardar con 🔍 Ver líneas.",
 };
 

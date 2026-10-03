@@ -2904,6 +2904,10 @@ function ImportTab({ categories, onCommitted }) {
   const [lines, setLines] = useState([]);
   // Statement's own Begin/End, for the live "does this add up?" check on review.
   const [reviewBal, setReviewBal] = useState(null);
+  // Which account the AI read off the statement + the "wrong type / different
+  // account?" question that must be answered before Import unlocks.
+  const [reviewAcct, setReviewAcct] = useState(null);
+  const [acctBusy, setAcctBusy] = useState(false);
   const [committing, setCommitting] = useState(false);
   const [done, setDone] = useState(null);
   const [history, setHistory] = useState([]);
@@ -2937,7 +2941,7 @@ function ImportTab({ categories, onCommitted }) {
       setAccountType(imp.account_type || 'checking');
       setPeriodLabel((imp.period_label || '').trim());
       setImportId(imp.id);
-      setLines((data.lines || []).map(toReviewLine)); setReviewBal(data.import ? { begin: data.import.beginning_balance, end: data.import.ending_balance } : null); setShowImportGuide(true);
+      setLines((data.lines || []).map(toReviewLine)); setReviewBal(data.import ? { begin: data.import.beginning_balance, end: data.import.ending_balance } : null); setReviewAcct(data.account_check || null); setShowImportGuide(true);
       setStatus('');
       if (!data.lines || data.lines.length === 0) setError('This statement has no reviewable transactions. You can remove it.');
     } catch (e) { setError(e.message); setStatus(''); }
@@ -2980,13 +2984,35 @@ function ImportTab({ categories, onCommitted }) {
       setStatus('Loading transactions...');
       const data = await authFetch(`/bank-import/${enq.importId}`);
       setImportId(enq.importId);
-      setLines((data.lines || []).map(toReviewLine)); setReviewBal(data.import ? { begin: data.import.beginning_balance, end: data.import.ending_balance } : null); setShowImportGuide(true);
+      setLines((data.lines || []).map(toReviewLine)); setReviewBal(data.import ? { begin: data.import.beginning_balance, end: data.import.ending_balance } : null); setReviewAcct(data.account_check || null); setShowImportGuide(true);
       if (!data.lines || data.lines.length === 0) setError('No transactions were found in that file. Try a CSV export from your bank, or a clearer PDF.');
       setStatus('');
     } catch (e) { setError(e.message); setStatus(''); } finally { setBusy(false); }
   };
 
   const updateLine = (id, patch) => setLines(prev => prev.map(l => l.id === id ? { ...l, ...patch } : l));
+
+  // Answers to the account question. Each re-reads the check from the server so
+  // a type switch can surface the "different account?" question for the new type.
+  const refreshAcct = async () => { const d = await authFetch(`/bank-import/${importId}`); setReviewAcct(d.account_check || null); };
+  const acctAction = async (fn) => {
+    setAcctBusy(true); setError(null);
+    try { await fn(); } catch (e) { setError(e.message); } finally { setAcctBusy(false); }
+  };
+  const switchAcctType = (to) => acctAction(async () => {
+    await authFetch(`/bank-import/${importId}`, { method: 'PATCH', body: JSON.stringify({ accountType: to }) });
+    setAccountType(to); await refreshAcct(); await loadHistory();
+  });
+  const confirmAcct = () => acctAction(async () => {
+    await authFetch(`/bank-import/${importId}/confirm-account`, { method: 'POST' });
+    await refreshAcct();
+  });
+  const removeWrongStatement = () => acctAction(async () => {
+    await authFetch(`/bank-import/${importId}`, { method: 'DELETE' });
+    setLines([]); setImportId(null); setReviewAcct(null); setReviewBal(null);
+    await loadHistory();
+    setStatus(tr("Removed — upload the right statement whenever you're ready.")); setTimeout(() => setStatus(''), 5000);
+  });
 
   const commit = async (force = false) => {
     const toCommit = lines.filter(l => l.include);
@@ -3003,7 +3029,11 @@ function ImportTab({ categories, onCommitted }) {
     } catch (e) {
       // Duplicate-import guard returns a 409 whose body is JSON; offer to override.
       let dup = null;
-      try { const p = JSON.parse(e.message); if (p && p.error === 'duplicate_import') dup = p; } catch { /* not json */ }
+      try {
+        const p = JSON.parse(e.message);
+        if (p && p.error === 'duplicate_import') dup = p;
+        if (p && p.error === 'account_check') { setReviewAcct(p.account_check || null); setError(p.message); return; }
+      } catch { /* not json */ }
       if (dup) {
         setCommitting(false);
         if (await askConfirm(tr("{message}\n\nImport it anyway?", { message: dup.message }), { okLabel: tr("Import anyway") })) return commit(true);
@@ -3066,7 +3096,10 @@ function ImportTab({ categories, onCommitted }) {
                   const saved = imp.status === 'committed' && (imp.committed_count > 0);
                   return (
                     <tr key={imp.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
-                      <Td>{imp.account_type === 'credit_card' ? tr("💳 Credit card") : tr("🏦 Checking")}</Td>
+                      <Td>
+                        {imp.account_type === 'credit_card' ? tr("💳 Credit card") : tr("🏦 Checking")}
+                        {(imp.institution || imp.account_last4) && <div style={{ fontSize: 11, color: '#6b7280' }}>{[imp.institution, imp.account_last4 ? `••${imp.account_last4}` : null].filter(Boolean).join(' ')}</div>}
+                      </Td>
                       <Td><PeriodEditCell imp={imp} onSaved={loadHistory} /></Td>
                       <Td align="center">
                         {saved
@@ -3113,6 +3146,43 @@ function ImportTab({ categories, onCommitted }) {
 
       {lines.length > 0 && (
         <>
+          {reviewAcct && (() => {
+            const a = reviewAcct;
+            const kind = (t) => t === 'credit_card' ? tr("credit card") : tr("checking / bank");
+            const acctName = [a.institution, a.account_last4 ? `••${a.account_last4}` : null].filter(Boolean).join(' ');
+            const knownNames = (a.known || []).map(k => [k.institution, `••${k.account_last4}`].filter(Boolean).join(' ')).join(', ');
+            const btn = (bg, color, border) => ({ background: bg, color, border, borderRadius: 8, padding: '7px 14px', fontSize: 13, fontWeight: 700, cursor: acctBusy ? 'wait' : 'pointer', opacity: acctBusy ? 0.6 : 1 });
+            if (a.needs_answer && a.type_mismatch) return (
+              <div style={{ background: '#fef2f2', border: '2px solid #f87171', borderRadius: 12, padding: '14px 16px', marginBottom: 14 }}>
+                <div style={{ fontWeight: 800, color: '#991b1b', fontSize: 15, marginBottom: 4 }}>{tr("⚠️ Is this the right statement?")}</div>
+                <div style={{ fontSize: 13.5, color: '#7f1d1d', marginBottom: 10 }}>
+                  {tr("This looks like a {detected} statement{acct}, but it was uploaded as {chosen}.", { detected: kind(a.detected_type), acct: acctName ? ` (${acctName})` : '', chosen: kind(accountType) })}
+                </div>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  <button disabled={acctBusy} onClick={() => switchAcctType(a.detected_type)} style={btn('#1d4ed8', 'white', 'none')}>{tr("Switch it to {type}", { type: kind(a.detected_type) })}</button>
+                  <button disabled={acctBusy} onClick={confirmAcct} style={btn('white', '#374151', '1px solid #d1d5db')}>{tr("No — it really is {type}", { type: kind(accountType) })}</button>
+                  <button disabled={acctBusy} onClick={removeWrongStatement} style={btn('white', '#dc2626', '1px solid #fecaca')}>{tr("Wrong statement — remove it")}</button>
+                </div>
+              </div>
+            );
+            if (a.needs_answer && a.unknown_account) return (
+              <div style={{ background: '#fef2f2', border: '2px solid #f87171', borderRadius: 12, padding: '14px 16px', marginBottom: 14 }}>
+                <div style={{ fontWeight: 800, color: '#991b1b', fontSize: 15, marginBottom: 4 }}>{tr("⚠️ Is this the right account?")}</div>
+                <div style={{ fontSize: 13.5, color: '#7f1d1d', marginBottom: 10 }}>
+                  {tr("This statement is for {acct}. Your other {type} statements are for {known}.", { acct: acctName, type: kind(accountType), known: knownNames })}
+                </div>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  <button disabled={acctBusy} onClick={confirmAcct} style={btn('#1d4ed8', 'white', 'none')}>{tr("Yes — it's another account of mine")}</button>
+                  <button disabled={acctBusy} onClick={removeWrongStatement} style={btn('white', '#dc2626', '1px solid #fecaca')}>{tr("Wrong statement — remove it")}</button>
+                </div>
+              </div>
+            );
+            return acctName ? (
+              <div style={{ fontSize: 13, color: '#374151', marginBottom: 10 }}>
+                {accountType === 'credit_card' ? '💳' : '🏦'} {tr("Statement for")} <strong>{acctName}</strong>
+              </div>
+            ) : null;
+          })()}
           {showImportGuide && (
             <div style={{ background: '#eff6ff', border: '2px solid #3b82f6', borderRadius: 12, padding: '16px 18px', marginBottom: 14 }}>
               <div style={{ fontWeight: 800, fontSize: 15, color: '#1e3a8a', marginBottom: 8 }}>{tr("📋 Before you hit Import — a quick 3-step review")}</div>
@@ -3139,7 +3209,9 @@ function ImportTab({ categories, onCommitted }) {
               <button onClick={() => { setLines([]); setImportId(null); setError(null); }} style={secondaryBtn}>{tr("← Previous step")}</button>
               <button onClick={() => setLines(p => p.map(l => ({ ...l, include: true })))} style={secondaryBtn}>{tr("Select all")}</button>
               <button onClick={() => setLines(p => p.map(l => ({ ...l, include: false })))} style={secondaryBtn}>{tr("Select none")}</button>
-              <button onClick={() => commit()} disabled={committing} style={{ ...primaryBtn('#0c4a6e'), opacity: committing ? 0.6 : 1 }}>{committing ? tr("Importing...") : tr("✅ Import {n} selected", { n: lines.filter(l => l.include).length })}</button>
+              <button onClick={() => commit()} disabled={committing || !!(reviewAcct && reviewAcct.needs_answer)}
+                title={reviewAcct && reviewAcct.needs_answer ? tr("Answer the account question at the top first") : undefined}
+                style={{ ...primaryBtn('#0c4a6e'), opacity: (committing || (reviewAcct && reviewAcct.needs_answer)) ? 0.5 : 1 }}>{committing ? tr("Importing...") : tr("✅ Import {n} selected", { n: lines.filter(l => l.include).length })}</button>
             </div>
           </div>
 
