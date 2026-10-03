@@ -1,3 +1,4 @@
+import { t as tr } from "../i18n";
 import { useState, useEffect, useRef } from 'react';
 
 const API = import.meta.env.VITE_API_URL || 'https://liz-team-server-api-production.up.railway.app';
@@ -48,7 +49,7 @@ export default function PreApprovalCard({ transactionId, isAgent = true, onChang
   };
 
   if (loading) {
-    return <div style={cardStyle}><div style={{ color: '#666666' }}>Loading pre-approval…</div></div>;
+    return <div style={cardStyle}><div style={{ color: '#666666' }}>{tr("Loading pre-approval…")}</div></div>;
   }
 
   const pa = data?.preapproval;
@@ -59,15 +60,15 @@ export default function PreApprovalCard({ transactionId, isAgent = true, onChang
       <div style={cardStyle}>
         <div style={headerStyle}>
           <span style={{ fontSize: 18 }}>💰</span>
-          <span style={{ fontWeight: 700, fontSize: 15 }}>Pre-Approval Letter</span>
+          <span style={{ fontWeight: 700, fontSize: 15 }}>{tr("Pre-Approval Letter")}</span>
         </div>
         <div style={{ fontSize: 13, color: '#666', marginBottom: 4 }}>
-          No pre-approval on file
+          {tr("No pre-approval on file")}
         </div>
         <div style={{ fontSize: 12, color: '#666666', marginBottom: 12 }}>
-          Required to build offers. Buyers can also upload from their Client Portal.
+          {tr("Required to build offers. Buyers can also upload from their Client Portal.")}
         </div>
-        <button onClick={() => setUploadOpen(true)} style={primaryBtn}>📤 Upload Pre-Approval</button>
+        <button onClick={() => setUploadOpen(true)} style={primaryBtn}>{tr("📤 Upload Pre-Approval")}</button>
         {uploadOpen && (
           <UploadModal
             transactionId={transactionId}
@@ -93,26 +94,26 @@ export default function PreApprovalCard({ transactionId, isAgent = true, onChang
     <div style={cardStyle}>
       <div style={headerStyle}>
         <span style={{ fontSize: 18 }}>💰</span>
-        <span style={{ fontWeight: 700, fontSize: 15 }}>Pre-Approval Letter</span>
+        <span style={{ fontWeight: 700, fontSize: 15 }}>{tr("Pre-Approval Letter")}</span>
       </div>
 
       {expBadge && (
         <div style={{
           background: expBadge.bg, color: expBadge.color, padding: '6px 10px',
           borderRadius: 6, fontSize: 12, fontWeight: 600, marginBottom: 10
-        }}>{expBadge.label}</div>
+        }}>{tr(expBadge.label)}</div>
       )}
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 12, fontSize: 13 }}>
-        <div><span style={lbl}>Lender</span><div>{pa.lender_company || pa.lender_name || '—'}</div></div>
-        <div><span style={lbl}>Loan Type</span><div>{pa.loan_type || '—'}</div></div>
-        <div><span style={lbl}>Max Loan</span><div>{fmtMoney(pa.loan_amount)}</div></div>
-        <div><span style={lbl}>Expires</span><div>{fmtDate(pa.expiration_date)}</div></div>
+        <div><span style={lbl}>{tr("Lender")}</span><div>{pa.lender_company || pa.lender_name || '—'}</div></div>
+        <div><span style={lbl}>{tr("Loan Type")}</span><div>{pa.loan_type || '—'}</div></div>
+        <div><span style={lbl}>{tr("Max Loan")}</span><div>{fmtMoney(pa.loan_amount)}</div></div>
+        <div><span style={lbl}>{tr("Expires")}</span><div>{fmtDate(pa.expiration_date)}</div></div>
       </div>
 
       <div style={{ display: 'flex', gap: 8 }}>
-        <button onClick={view} style={secondaryBtn}>👁 View</button>
-        {isAgent && <button onClick={() => setUploadOpen(true)} style={secondaryBtn}>🔄 Replace</button>}
+        <button onClick={view} style={secondaryBtn}>{tr("👁 View")}</button>
+        {isAgent && <button onClick={() => setUploadOpen(true)} style={secondaryBtn}>{tr("🔄 Replace")}</button>}
       </div>
 
       {uploadOpen && (
@@ -230,9 +231,9 @@ function UploadModal({ transactionId, onClose, onSaved }) {
   return (
     <div style={modalBackdrop} onClick={onClose}>
       <div style={modalBox} onClick={e => e.stopPropagation()}>
-        <h3 style={{ margin: '0 0 8px 0' }}>📤 Upload Pre-Approval Letter</h3>
+        <h3 style={{ margin: '0 0 8px 0' }}>{tr("📤 Upload Pre-Approval Letter")}</h3>
         <div style={teachBanner}>
-          🎓 The pre-approval letter proves your buyer is financially qualified. Sellers require it with every offer. Upload a PDF and we'll pull out the key details for your review.
+          {tr("🎓 The pre-approval letter proves your buyer is financially qualified. Sellers require it with every offer. Upload a PDF and we'll pull out the key details for your review.")}
         </div>
 
         {error && <div style={{ color: '#c00', marginBottom: 10, fontSize: 13 }}>{error}</div>}
@@ -240,47 +241,47 @@ function UploadModal({ transactionId, onClose, onSaved }) {
         {stage === 'pick' && (
           <div>
             <input ref={fileRef} type="file" accept="application/pdf" onChange={onPick} style={{ marginBottom: 12 }} />
-            <div style={{ fontSize: 12, color: '#666666' }}>PDF only, max 10MB</div>
+            <div style={{ fontSize: 12, color: '#666666' }}>{tr("PDF only, max 10MB")}</div>
           </div>
         )}
 
-        {stage === 'uploading' && <div style={statusLine}>⏳ Uploading to secure storage…</div>}
-        {stage === 'extracting' && <div style={statusLine}>Reading the letter…</div>}
-        {stage === 'saving' && <div style={statusLine}>💾 Saving…</div>}
+        {stage === 'uploading' && <div style={statusLine}>{tr("⏳ Uploading to secure storage…")}</div>}
+        {stage === 'extracting' && <div style={statusLine}>{tr("Reading the letter…")}</div>}
+        {stage === 'saving' && <div style={statusLine}>{tr("💾 Saving…")}</div>}
 
         {stage === 'review' && extracted && (
           <div>
             <div style={{ fontSize: 13, color: '#444', marginBottom: 10 }}>
-              ✨ AI extracted these fields. Review and correct before saving:
+              {tr("✨ AI extracted these fields. Review and correct before saving:")}
             </div>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#666', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '12px 0 6px' }}>Lender Info</div>
-            <FormField label="Lender Company" value={extracted.lender_company || ''}
+            <div style={{ fontSize: 11, fontWeight: 700, color: '#666', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '12px 0 6px' }}>{tr("Lender Info")}</div>
+            <FormField label={tr("Lender Company")} value={extracted.lender_company || ''}
               onChange={v => setExtracted({ ...extracted, lender_company: v })} />
-            <FormField label="Loan Officer Name" value={extracted.loan_officer_name || ''}
+            <FormField label={tr("Loan Officer Name")} value={extracted.loan_officer_name || ''}
               onChange={v => setExtracted({ ...extracted, loan_officer_name: v })} />
-            <FormField label="Loan Officer Email" value={extracted.loan_officer_email || ''} type="email"
+            <FormField label={tr("Loan Officer Email")} value={extracted.loan_officer_email || ''} type="email"
               onChange={v => setExtracted({ ...extracted, loan_officer_email: v })} />
-            <FormField label="Loan Officer Phone" value={extracted.loan_officer_phone || ''}
+            <FormField label={tr("Loan Officer Phone")} value={extracted.loan_officer_phone || ''}
               onChange={v => setExtracted({ ...extracted, loan_officer_phone: v })} />
-            <FormField label="NMLS #" value={extracted.nmls_number || ''}
+            <FormField label={tr("NMLS #")} value={extracted.nmls_number || ''}
               onChange={v => setExtracted({ ...extracted, nmls_number: v })} />
 
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#666', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '14px 0 6px' }}>Loan Details</div>
-            <FormField label="Loan Type" value={extracted.loan_type || ''}
+            <div style={{ fontSize: 11, fontWeight: 700, color: '#666', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '14px 0 6px' }}>{tr("Loan Details")}</div>
+            <FormField label={tr("Loan Type")} value={extracted.loan_type || ''}
               onChange={v => setExtracted({ ...extracted, loan_type: v })}
               options={['Conventional', 'FHA', 'VA', 'USDA', 'Jumbo', 'Other']} />
-            <FormField label="Max Loan Amount ($)" value={extracted.loan_amount || ''} type="number"
+            <FormField label={tr("Max Loan Amount ($)")} value={extracted.loan_amount || ''} type="number"
               onChange={v => setExtracted({ ...extracted, loan_amount: v ? Number(v) : null })} />
-            <FormField label="Expiration Date" value={extracted.expiration_date || ''} type="date"
+            <FormField label={tr("Expiration Date")} value={extracted.expiration_date || ''} type="date"
               onChange={v => setExtracted({ ...extracted, expiration_date: v })} />
 
             <div style={{ background: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: 8, padding: 12, marginTop: 14 }}>
               <label style={{ display: 'flex', alignItems: 'flex-start', gap: 8, cursor: 'pointer' }}>
                 <input type="checkbox" checked={createLenderParty} onChange={e => setCreateLenderParty(e.target.checked)} style={{ marginTop: 3 }} />
                 <div>
-                  <div style={{ fontWeight: 600, fontSize: 13, color: '#0c4a6e' }}>📋 Auto-create Lender party</div>
+                  <div style={{ fontWeight: 600, fontSize: 13, color: '#0c4a6e' }}>{tr("📋 Auto-create Lender party")}</div>
                   <div style={{ fontSize: 12, color: '#075985', marginTop: 2 }}>
-                    Add the loan officer as a Lender party on this transaction (skipped if a Lender already exists). You can send them a welcome email after.
+                    {tr("Add the loan officer as a Lender party on this transaction (skipped if a Lender already exists). You can send them a welcome email after.")}
                   </div>
                 </div>
               </label>
@@ -289,8 +290,8 @@ function UploadModal({ transactionId, onClose, onSaved }) {
         )}
 
         <div style={{ display: 'flex', gap: 8, marginTop: 16, justifyContent: 'flex-end' }}>
-          <button onClick={onClose} style={secondaryBtn}>Cancel</button>
-          {stage === 'review' && <button onClick={save} style={primaryBtn}>💾 Save Pre-Approval</button>}
+          <button onClick={onClose} style={secondaryBtn}>{tr("Cancel")}</button>
+          {stage === 'review' && <button onClick={save} style={primaryBtn}>{tr("💾 Save Pre-Approval")}</button>}
         </div>
       </div>
     </div>
@@ -300,11 +301,11 @@ function UploadModal({ transactionId, onClose, onSaved }) {
 function FormField({ label, value, onChange, type = 'text', options }) {
   return (
     <div style={{ marginBottom: 10 }}>
-      <div style={{ fontSize: 12, fontWeight: 600, color: '#555', marginBottom: 4 }}>{label}</div>
+      <div style={{ fontSize: 12, fontWeight: 600, color: '#555', marginBottom: 4 }}>{tr(label)}</div>
       {options ? (
         <select value={value} onChange={e => onChange(e.target.value)} style={inputStyle}>
-          <option value="">— Select —</option>
-          {options.map(o => <option key={o} value={o}>{o}</option>)}
+          <option value="">{tr("— Select —")}</option>
+          {options.map(o => <option key={o} value={o}>{tr(o)}</option>)}
         </select>
       ) : (
         <input type={type} value={value} onChange={e => onChange(e.target.value)} style={inputStyle} />
@@ -339,15 +340,15 @@ export function PreApprovalBadge({ transactionId }) {
 
   if (!data) return null;
   if (!data.preapproval) {
-    return <div style={{ fontSize: 11, color: '#c00', marginTop: 6 }}>💰 No pre-approval on file</div>;
+    return <div style={{ fontSize: 11, color: '#c00', marginTop: 6 }}>{tr("💰 No pre-approval on file")}</div>;
   }
   if (data.is_expired) {
-    return <div style={{ fontSize: 11, color: '#c00', marginTop: 6, fontWeight: 600 }}>💰 🚨 Pre-approval EXPIRED</div>;
+    return <div style={{ fontSize: 11, color: '#c00', marginTop: 6, fontWeight: 600 }}>{tr("💰 🚨 Pre-approval EXPIRED")}</div>;
   }
   if (data.expiring_soon) {
-    return <div style={{ fontSize: 11, color: '#a05a00', marginTop: 6, fontWeight: 600 }}>💰 ⚠️ Pre-approval expires in {data.days_until_expiration}d</div>;
+    return <div style={{ fontSize: 11, color: '#a05a00', marginTop: 6, fontWeight: 600 }}>{tr("💰 ⚠️ Pre-approval expires in")} {data.days_until_expiration}d</div>;
   }
-  return <div style={{ fontSize: 11, color: '#080', marginTop: 6 }}>💰 ✅ Pre-approval current</div>;
+  return <div style={{ fontSize: 11, color: '#080', marginTop: 6 }}>{tr("💰 ✅ Pre-approval current")}</div>;
 }
 
 // Styles

@@ -1,3 +1,4 @@
+import { t as tr, tn, locale as uiLocale, useLang, requestSpanish } from "./i18n";
 import { useState, useEffect, useRef } from "react";
 import { LogCallButton } from "./ContactsPage";
 import { CallScriptsButton } from "./components/CallScriptPanel";
@@ -116,7 +117,7 @@ function SellerUpdateModal({ task, token, onClose, onDone }) {
           : { showingsCount: showings, interestLevel: interest, agentNote: note }),
       });
       onDone(task.id);
-    } catch (e) { alert("Error sending update"); }
+    } catch (e) { alert(tr("Error sending update")); }
     setSending(false);
   };
 
@@ -125,7 +126,7 @@ function SellerUpdateModal({ task, token, onClose, onDone }) {
       <div style={{ background:COLORS.white, borderRadius:"20px 20px 0 0", width:"100%", maxWidth:480, padding:24, paddingBottom:40 }}>
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:20 }}>
           <div>
-            <div style={{ fontWeight:700, fontSize:17 }}>{isBuyer ? "Buyer Weekly Update" : "Seller Weekly Update"}</div>
+            <div style={{ fontWeight:700, fontSize:17 }}>{isBuyer ? tr("Buyer Weekly Update") : tr("Seller Weekly Update")}</div>
             <div style={{ color:COLORS.gray, fontSize:13, marginTop:2 }}>{task.address}</div>
           </div>
           <button onClick={onClose} style={{ background:"none", border:"none", fontSize:22, cursor:"pointer", color:COLORS.gray }}>✕</button>
@@ -134,7 +135,7 @@ function SellerUpdateModal({ task, token, onClose, onDone }) {
         {!preview ? (
           <>
             <div style={{ marginBottom:20 }}>
-              <div style={{ fontSize:13, fontWeight:600, color:COLORS.gray, marginBottom:10 }}>{isBuyer ? "HOMES TOURED THIS WEEK (0 IS FINE)" : "SHOWINGS THIS WEEK"}</div>
+              <div style={{ fontSize:13, fontWeight:600, color:COLORS.gray, marginBottom:10 }}>{isBuyer ? tr("HOMES TOURED THIS WEEK (0 IS FINE)") : tr("SHOWINGS THIS WEEK")}</div>
               <div style={{ display:"flex", gap:8 }}>
                 {[0,1,2,3,4,"5+"].map(n => (
                   <button key={n} onClick={() => setShowings(n)}
@@ -151,7 +152,7 @@ function SellerUpdateModal({ task, token, onClose, onDone }) {
 
             {!isBuyer && (
             <div style={{ marginBottom:20 }}>
-              <div style={{ fontSize:13, fontWeight:600, color:COLORS.gray, marginBottom:10 }}>BUYER INTEREST LEVEL</div>
+              <div style={{ fontSize:13, fontWeight:600, color:COLORS.gray, marginBottom:10 }}>{tr("BUYER INTEREST LEVEL")}</div>
               <div style={{ display:"flex", gap:8 }}>
                 {[["low","Low"],["medium","Good"],["high","Strong"]].map(([val,label]) => (
                   <button key={val} onClick={() => setInterest(val)}
@@ -160,7 +161,7 @@ function SellerUpdateModal({ task, token, onClose, onDone }) {
                       background: interest===val ? COLORS.lightRed : COLORS.white,
                       color: interest===val ? COLORS.red : COLORS.black,
                       fontWeight:700, fontSize:14, cursor:"pointer" }}>
-                    {label}
+                    {tr(label)}
                   </button>
                 ))}
               </div>
@@ -169,14 +170,14 @@ function SellerUpdateModal({ task, token, onClose, onDone }) {
 
             {isBuyer && (
               <div style={{ background:"#f0f9ff", border:"1px solid #bae6fd", borderRadius:10, padding:"10px 12px", fontSize:12.5, color:"#0c4a6e", marginBottom:20 }}>
-                ✨ The email automatically includes what you've handled recently and what's coming up next, straight from this deal's timeline.
+                {tr("✨ The email automatically includes what you've handled recently and what's coming up next, straight from this deal's timeline.")}
               </div>
             )}
 
             <div style={{ marginBottom:24 }}>
-              <div style={{ fontSize:13, fontWeight:600, color:COLORS.gray, marginBottom:8 }}>ONE THING TO SHARE <span style={{fontWeight:400}}>(optional)</span></div>
+              <div style={{ fontSize:13, fontWeight:600, color:COLORS.gray, marginBottom:8 }}>{tr("ONE THING TO SHARE")} <span style={{fontWeight:400}}>{tr("(optional)")}</span></div>
               <textarea value={note} onChange={e => setNote(e.target.value)}
-                placeholder={isBuyer ? "e.g. The lender confirmed we're on track for closing..." : "e.g. Great feedback on the kitchen and backyard..."}
+                placeholder={isBuyer ? tr("e.g. The lender confirmed we're on track for closing...") : tr("e.g. Great feedback on the kitchen and backyard...")}
                 style={{ width:"100%", height:80, padding:12, borderRadius:10, border:"1.5px solid "+COLORS.border,
                   fontSize:14, fontFamily:"inherit", resize:"none", boxSizing:"border-box" }} />
             </div>
@@ -185,12 +186,12 @@ function SellerUpdateModal({ task, token, onClose, onDone }) {
               <button onClick={() => setPreview(true)}
                 style={{ flex:1, padding:14, borderRadius:10, border:"2px solid "+COLORS.red,
                   background:COLORS.white, color:COLORS.red, fontWeight:700, fontSize:15, cursor:"pointer" }}>
-                Preview Email
+                {tr("Preview Email")}
               </button>
               <button onClick={handleSend} disabled={sending}
                 style={{ flex:1, padding:14, borderRadius:10, border:"none",
                   background:"#0c4a6e", color:COLORS.white, fontWeight:700, fontSize:15, cursor:"pointer" }}>
-                {sending ? "Sending..." : "Send Now ✓"}
+                {sending ? tr("Sending...") : tr("Send Now ✓")}
               </button>
             </div>
           </>
@@ -204,12 +205,12 @@ function SellerUpdateModal({ task, token, onClose, onDone }) {
               <button onClick={() => setPreview(false)}
                 style={{ flex:1, padding:14, borderRadius:10, border:"2px solid "+COLORS.border,
                   background:COLORS.white, color:COLORS.black, fontWeight:700, fontSize:15, cursor:"pointer" }}>
-                ← Edit
+                {tr("← Edit")}
               </button>
               <button onClick={handleSend} disabled={sending}
                 style={{ flex:1, padding:14, borderRadius:10, border:"none",
                   background:"#0c4a6e", color:COLORS.white, fontWeight:700, fontSize:15, cursor:"pointer" }}>
-                {sending ? "Sending..." : (isBuyer ? "Send to Buyer ✓" : "Send to Seller ✓")}
+                {sending ? tr("Sending...") : (isBuyer ? tr("Send to Buyer ✓") : tr("Send to Seller ✓"))}
               </button>
             </div>
           </>
@@ -233,12 +234,12 @@ function PersonalTaskCard({ task, token, onChange }) {
       });
       window.dispatchEvent(new Event("wintheday:refresh"));
       if (onChange) onChange();
-    } catch (e) { alert("Error: " + e.message); }
+    } catch (e) { alert(tr("Error: ") + e.message); }
     setBusy(false);
   };
 
   const del = async () => {
-    if (!(await askConfirm("Delete this general task?", { okLabel: "Delete", danger: true }))) return;
+    if (!(await askConfirm(tr("Delete this general task?"), { okLabel: tr("Delete"), danger: true }))) return;
     setBusy(true);
     try {
       await fetch(API + "/personal-tasks/" + task.id, {
@@ -247,7 +248,7 @@ function PersonalTaskCard({ task, token, onChange }) {
       });
       window.dispatchEvent(new Event("wintheday:refresh"));
       if (onChange) onChange();
-    } catch (e) { alert("Error: " + e.message); }
+    } catch (e) { alert(tr("Error: ") + e.message); }
     setBusy(false);
   };
 
@@ -260,19 +261,19 @@ function PersonalTaskCard({ task, token, onChange }) {
     <div style={{ background: "#fff", border: "1px solid #d1fae5", borderLeft: "4px solid #1E8449", borderRadius: 10, padding: 14, marginBottom: 10 }}>
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 10, marginBottom: 6 }}>
         <div style={{ flex: 1 }}>
-          <div style={{ fontSize: 14, fontWeight: 700, color: "#1a2332", marginBottom: 4 }}>{task.title}</div>
+          <div style={{ fontSize: 14, fontWeight: 700, color: "#1a2332", marginBottom: 4 }}>{tr(task.title)}</div>
           {task.notes && <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 4 }}>{task.notes}</div>}
           <div style={{ fontSize: 11, color: overdue ? "#b91c1c" : "#6b7280", fontWeight: overdue ? 600 : 400 }}>
-            {overdue ? "⚠️ Overdue · " : ""}General task{task.due_date ? " · Due " + task.due_date : ""}
+            {overdue ? tr("⚠️ Overdue · ") : ""}{tr("General task")}{task.due_date ? tr(" · Due ") + task.due_date : ""}
           </div>
         </div>
       </div>
       <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
         <button onClick={complete} disabled={busy} style={{ flex: 2, padding: "7px 0", borderRadius: 6, border: "none", background: "#0c4a6e", color: "#fff", fontWeight: 600, fontSize: 13, cursor: busy ? "wait" : "pointer", fontFamily: "inherit" }}>
-          ✓ Done
+          {tr("✓ Done")}
         </button>
         <button onClick={del} disabled={busy} style={{ flex: 1, padding: "7px 0", borderRadius: 6, border: "1px solid #fecaca", background: "#fff", color: "#b91c1c", fontWeight: 600, fontSize: 12, cursor: busy ? "wait" : "pointer", fontFamily: "inherit" }}>
-          🗑 Delete
+          {tr("🗑 Delete")}
         </button>
       </div>
     </div>
@@ -341,7 +342,7 @@ function TaskItem({ task, bucket, token, onResolve, onComplete, onSnooze, onOpen
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file) return;
-    if (file.size > 50 * 1024 * 1024) { alert("File too large (50MB max)"); return; }
+    if (file.size > 50 * 1024 * 1024) { alert(tr("File too large (50MB max)")); return; }
     setGapBusy(true);
     try {
       const base64 = await new Promise((resolve, reject) => {
@@ -356,9 +357,9 @@ function TaskItem({ task, bucket, token, onResolve, onComplete, onSnooze, onOpen
       });
       const d = await r.json();
       if (!r.ok || !d.success) throw new Error(d.error || "Upload failed");
-      alert("✅ Document uploaded and filed — gap closed.");
+      alert(tr("✅ Document uploaded and filed — gap closed."));
       onResolve(task.id);
-    } catch (err) { alert("Upload failed: " + err.message); }
+    } catch (err) { alert(tr("Upload failed: ") + err.message); }
     setGapBusy(false);
   };
   // Approve-first: open the review modal (parent) instead of sending immediately.
@@ -375,39 +376,39 @@ function TaskItem({ task, bucket, token, onResolve, onComplete, onSnooze, onOpen
             <div style={{ marginBottom:4 }}>
               <span style={{ fontSize:10, fontWeight:700, color:cfg.color,
                 background:cfg.bg, padding:"2px 8px", borderRadius:20 }}>
-                {cfg.label}
+                {tr(cfg.label)}
               </span>
             </div>
           )}
           {task.tc_handled && (
             <div style={{ display:"inline-block", marginBottom:6, fontSize:11, fontWeight:700, color:"#0F6E56", background:"#E7F5EF", border:"1px solid #BBE3D2", borderRadius:6, padding:"2px 8px" }}>
-              🧭 Your TC is on this — flagged for your eyes
+              {tr("🧭 Your TC is on this — flagged for your eyes")}
             </div>
           )}
-          <div style={{ fontWeight:700, fontSize:15, color:COLORS.black, marginBottom:4 }}>{cleanItemTitle(task.title, task.address)}</div>
+          <div style={{ fontWeight:700, fontSize:15, color:COLORS.black, marginBottom:4 }}>{tr(cleanItemTitle(task.title, task.address))}</div>
           {task.description && (
-            <div style={{ fontSize:13, color:COLORS.gray, lineHeight:1.5 }}>{task.description}</div>
+            <div style={{ fontSize:13, color:COLORS.gray, lineHeight:1.5 }}>{tr(task.description)}</div>
           )}
           {scriptSet && (
             <div style={{ marginTop:10 }}>
               <button onClick={() => setShowScripts(s => !s)}
                 style={{ background:"none", border:"none", padding:0, cursor:"pointer",
                   color:COLORS.red, fontWeight:700, fontSize:13, fontFamily:"inherit" }}>
-                {showScripts ? "▼ Hide scripts" : "💬 View 3 scripts"}
+                {showScripts ? tr("▼ Hide scripts") : tr("💬 View 3 scripts")}
               </button>
               {showScripts && (
                 <div style={{ marginTop:10 }}>
-                  <div style={{ fontSize:12, color:COLORS.gray, marginBottom:8 }}>Pick the angle that fits your client. Brackets are yours to fill in.</div>
+                  <div style={{ fontSize:12, color:COLORS.gray, marginBottom:8 }}>{tr("Pick the angle that fits your client. Brackets are yours to fill in.")}</div>
                   {scriptSet.map((s, i) => (
                     <div key={i} style={{ background:COLORS.lightGray, borderRadius:8,
                       borderLeft:"3px solid "+COLORS.red, padding:"10px 12px", marginBottom:8 }}>
-                      <div style={{ fontSize:12, fontWeight:700, color:COLORS.darkRed, marginBottom:4 }}>Script {i + 1} · {s.title}</div>
+                      <div style={{ fontSize:12, fontWeight:700, color:COLORS.darkRed, marginBottom:4 }}>{tr("Script")} {i + 1} · {tr(s.title)}</div>
                       <div style={{ fontSize:13, color:COLORS.black, lineHeight:1.55 }}>{s.body}</div>
                       <button onClick={() => { try { navigator.clipboard.writeText(s.body); } catch (e) {} }}
                         style={{ marginTop:8, background:COLORS.white, border:"1px solid "+COLORS.border,
                           borderRadius:6, padding:"4px 10px", fontSize:11, fontWeight:600, color:COLORS.gray,
                           cursor:"pointer", fontFamily:"inherit" }}>
-                        📋 Copy
+                        {tr("📋 Copy")}
                       </button>
                     </div>
                   ))}
@@ -424,13 +425,13 @@ function TaskItem({ task, bucket, token, onResolve, onComplete, onSnooze, onOpen
             <button onClick={() => onOpenModal(task)}
               style={{ flex:"2 1 60%", padding:"11px 0", borderRadius:10, border:"none",
                 background:"#0c4a6e", color:COLORS.white, fontWeight:700, fontSize:14, cursor:"pointer" }}>
-              Do It Now →
+              {tr("Do It Now →")}
             </button>
             <button onClick={() => (onUpdateSent ? onUpdateSent(task) : onResolve(task.id))}
               style={{ flex:"1 1 30%", padding:"11px 0", borderRadius:10,
                 border:"1.5px solid "+COLORS.border, background:COLORS.white,
                 color:COLORS.gray, fontWeight:600, fontSize:13, cursor:"pointer" }}>
-              Already Sent
+              {tr("Already Sent")}
             </button>
           </>
         ) : isComplianceGap ? (
@@ -439,13 +440,13 @@ function TaskItem({ task, bucket, token, onResolve, onComplete, onSnooze, onOpen
             <button disabled={gapBusy} onClick={() => gapFileRef.current && gapFileRef.current.click()}
               style={{ flex:"2 1 60%", padding:"11px 0", borderRadius:10, border:"none",
                 background:"#0c4a6e", color:COLORS.white, fontWeight:700, fontSize:14, cursor: gapBusy ? "default" : "pointer", opacity: gapBusy ? 0.6 : 1 }}>
-              {gapBusy ? "Uploading…" : "📎 Upload It Here"}
+              {gapBusy ? tr("Uploading…") : tr("📎 Upload It Here")}
             </button>
             <button onClick={() => onOpenTransactionMilestones && onOpenTransactionMilestones(task.transaction_id)}
               style={{ flex:"1 1 30%", padding:"11px 0", borderRadius:10,
                 border:"1.5px solid "+COLORS.border, background:COLORS.white,
                 color:COLORS.gray, fontWeight:600, fontSize:13, cursor:"pointer" }}>
-              Open deal →
+              {tr("Open deal →")}
             </button>
           </>
         ) : isChaseable ? (
@@ -453,13 +454,13 @@ function TaskItem({ task, bucket, token, onResolve, onComplete, onSnooze, onOpen
             <button onClick={() => onStartChase(task)}
               style={{ flex:"2 1 60%", padding:"11px 0", borderRadius:10, border:"none",
                 background:"#0c4a6e", color:COLORS.white, fontWeight:700, fontSize:14, cursor:"pointer" }}>
-              Follow Up Now
+              {tr("Follow Up Now")}
             </button>
             <button onClick={() => onComplete(task)}
               style={{ flex:"1 1 30%", padding:"11px 0", borderRadius:10,
                 border:"1.5px solid #0c4a6e", background:COLORS.white,
                 color:"#0c4a6e", fontWeight:600, fontSize:13, cursor:"pointer" }}>
-              ✓ Done
+              {tr("✓ Done")}
             </button>
           </>
         ) : isWelcomeUnconfirmed ? (
@@ -468,20 +469,20 @@ function TaskItem({ task, bucket, token, onResolve, onComplete, onSnooze, onOpen
               <button onClick={() => onOpenTransactionMilestones && onOpenTransactionMilestones(task.transaction_id, "parties")}
                 style={{ flex:"2 1 60%", padding:"11px 0", borderRadius:10, border:"none",
                   background:"#0c4a6e", color:COLORS.white, fontWeight:700, fontSize:14, cursor:"pointer" }}>
-                ✏️ Fix email in People →
+                {tr("✏️ Fix email in People →")}
               </button>
             ) : (
               <button onClick={() => setRemindOpen(true)}
                 style={{ flex:"2 1 60%", padding:"11px 0", borderRadius:10, border:"none",
                   background:"#0c4a6e", color:COLORS.white, fontWeight:700, fontSize:14, cursor:"pointer" }}>
-                ✉️ Review &amp; send reminder
+                {tr("✉️ Review & send reminder")}
               </button>
             )}
             <button onClick={async () => { if (task.target_ref_id && await markWelcomeReceiptConfirmed(task.target_ref_id)) onResolve(task.id); }}
               style={{ flex:"1 1 30%", padding:"11px 0", borderRadius:10,
                 border:"1.5px solid #1E8449", background:COLORS.white,
                 color:"#1E8449", fontWeight:600, fontSize:13, cursor:"pointer" }}>
-              ✓ They got it
+              {tr("✓ They got it")}
             </button>
             {remindOpen && task.target_ref_id && (
               <WelcomeReminderModal receiptId={task.target_ref_id} onClose={() => setRemindOpen(false)}
@@ -492,7 +493,7 @@ function TaskItem({ task, bucket, token, onResolve, onComplete, onSnooze, onOpen
           <button onClick={() => onComplete(task)}
             style={{ flex:2, padding:"11px 0", borderRadius:10, border:"none",
               background:"#0c4a6e", color:COLORS.white, fontWeight:700, fontSize:14, cursor:"pointer" }}>
-            ✓ Done
+            {tr("✓ Done")}
           </button>
         ) : isInboundReply ? (
           <>
@@ -500,40 +501,40 @@ function TaskItem({ task, bucket, token, onResolve, onComplete, onSnooze, onOpen
               <button onClick={() => onInboundReply(task, true)}
                 style={{ flex:"2 1 60%", padding:"11px 0", borderRadius:10, border:"none",
                   background:"#0c4a6e", color:COLORS.white, fontWeight:700, fontSize:14, cursor:"pointer" }}>
-                ✓ Approve &amp; Update
+                {tr("✓ Approve & Update")}
               </button>
             )}
             <button onClick={() => (onOpenInboundReply || onOpenTransactionMilestones) && (onOpenInboundReply || onOpenTransactionMilestones)(task.transaction_id)}
               style={{ flex: inboundHasSuggestion ? "1 1 30%" : "2 1 60%", padding:"11px 0", borderRadius:10,
                 border:"none", background:"#0c4a6e", color:COLORS.white, fontWeight:700, fontSize:14, cursor:"pointer" }}>
-              📂 Open
+              {tr("📂 Open")}
             </button>
             <button onClick={() => onInboundReply(task, false)}
               style={{ flex:"1 1 30%", padding:"11px 0", borderRadius:10,
                 border:"1.5px solid "+COLORS.border, background:COLORS.white,
                 color:COLORS.gray, fontWeight:600, fontSize:13, cursor:"pointer" }}>
-              Got it
+              {tr("Got it")}
             </button>
           </>
         ) : (
           <button onClick={() => onResolve(task.id)}
             style={{ flex:2, padding:"11px 0", borderRadius:10, border:"none",
               background:"#0c4a6e", color:COLORS.white, fontWeight:700, fontSize:14, cursor:"pointer" }}>
-            ✓ Mark Complete
+            {tr("✓ Mark Complete")}
           </button>
         )}
         <button onClick={() => onSnooze(task.id)}
           style={{ flex: canReschedule ? "1 1 45%" : "1 1 100%", padding:"10px 0", borderRadius:10, marginTop:4,
             border:"1.5px solid "+COLORS.border, background:COLORS.white,
             color:COLORS.gray, fontWeight:600, fontSize:13, cursor:"pointer" }}>
-          ⏰ Not Today
+          {tr("⏰ Not Today")}
         </button>
         {canReschedule && (
           <button onClick={() => setReschedOpen(o => !o)}
             style={{ flex:"1 1 45%", padding:"10px 0", borderRadius:10, marginTop:4,
               border:"1.5px solid "+COLORS.border, background:COLORS.white,
               color:COLORS.gray, fontWeight:600, fontSize:13, cursor:"pointer" }}>
-            📅 {task.task_type === "milestone_checklist" ? "Set date" : "Reschedule"}
+            📅 {task.task_type === "milestone_checklist" ? tr("Set date") : tr("Reschedule")}
           </button>
         )}
       </div>
@@ -543,7 +544,7 @@ function TaskItem({ task, bucket, token, onResolve, onComplete, onSnooze, onOpen
             style={{ padding:"8px 10px", border:"1px solid "+COLORS.border, borderRadius:8, fontSize:14, fontFamily:"inherit" }} />
           <button disabled={!reschedDate} onClick={() => { onReschedule(task, reschedDate); setReschedOpen(false); }}
             style={{ padding:"8px 16px", borderRadius:8, border:"none", background: reschedDate ? "#0F6E56" : COLORS.border, color:"#fff", fontWeight:700, fontSize:13, cursor: reschedDate ? "pointer" : "default", fontFamily:"inherit" }}>
-            Set new date
+            {tr("Set new date")}
           </button>
         </div>
       )}
@@ -555,16 +556,16 @@ function TaskItem({ task, bucket, token, onResolve, onComplete, onSnooze, onOpen
               style={{ padding:"9px 16px", borderRadius:10, border:"none",
                 background:"#0c4a6e", color:COLORS.white, fontWeight:700, fontSize:13,
                 cursor: "pointer", fontFamily:"inherit" }}>
-              {actCfg.label}
+              {tr(actCfg.label)}
             </button>
           )}
-          {sent && <span style={{ fontSize:13, color:"#1E8449", fontWeight:700 }}>✓ Sent to {sent.to || "the right party"}</span>}
+          {sent && <span style={{ fontSize:13, color:"#1E8449", fontWeight:700 }}>{tr("✓ Sent to")} {sent.to || tr("the right party")}</span>}
           {task.task_type !== "compliance_gap" && task.transaction_id && (
             <button onClick={() => onOpenTransactionMilestones && onOpenTransactionMilestones(task.transaction_id)}
               style={{ padding:"9px 16px", borderRadius:10, border:"1.5px solid "+COLORS.border,
                 background:COLORS.white, color:COLORS.gray, fontWeight:600, fontSize:13,
                 cursor:"pointer", fontFamily:"inherit" }}>
-              Open deal →
+              {tr("Open deal →")}
             </button>
           )}
         </div>
@@ -618,21 +619,21 @@ function DealGroupCard({ deal, token, coordinatorMode = false, meta = null, agen
       {/* Deal header — address once, with the deal's most-urgent badge */}
       <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:4, flexWrap:"wrap" }}>
         {coordinatorMode && healthColor && (
-          <span title={meta.health + " — AI health read"} style={{ width:11, height:11, borderRadius:"50%", background:healthColor, flexShrink:0 }} />
+          <span title={meta.health + tr(" — AI health read")} style={{ width:11, height:11, borderRadius:"50%", background:healthColor, flexShrink:0 }} />
         )}
         {!coordinatorMode && top.label && (
           <span style={{ fontSize:10, fontWeight:800, color:COLORS.white,
-            background:top.color, padding:"2px 8px", borderRadius:20 }}>{top.label}</span>
+            background:top.color, padding:"2px 8px", borderRadius:20 }}>{tr(top.label)}</span>
         )}
         <button onClick={() => onOpenTransaction && onOpenTransaction(deal.transaction_id)}
           style={{ flex:1, minWidth:0, textAlign:"left", background:"none", border:"none",
             padding:0, cursor:"pointer", fontFamily:"inherit",
             fontWeight:800, fontSize:15, color:COLORS.black, whiteSpace:"nowrap",
             overflow:"hidden", textOverflow:"ellipsis" }}>
-          {deal.address || "This transaction"}
+          {deal.address || tr("This transaction")}
         </button>
         <span style={{ fontSize:11, color:COLORS.gray, fontWeight:600 }}>
-          {deal.tasks.length} item{deal.tasks.length === 1 ? "" : "s"}
+          {deal.tasks.length} {tr("item")}{deal.tasks.length === 1 ? "" : "s"}
         </span>
       </div>
       {deal.deal_share_type && deal.deal_share_type !== "standard" && <div style={{ margin:"-2px 0 8px" }}><ShareBadge of={deal} /></div>}
@@ -649,19 +650,19 @@ function DealGroupCard({ deal, token, coordinatorMode = false, meta = null, agen
               set aside), so a sent message never looks unsent. */}
           {meta.aiHandled && meta.aiHandled.kind === "sent" && (
             <div style={{ fontSize:12.5, color:"#166534", marginTop:3, fontWeight:600 }}>
-              ✅ Recommended message sent to the {meta.aiHandled.toRole || "party"}{meta.aiHandled.toName ? ` (${meta.aiHandled.toName})` : ""}
-              {meta.aiHandled.at ? ` · ${new Date(meta.aiHandled.at).toLocaleString("en-US", { month:"short", day:"numeric", hour:"numeric", minute:"2-digit" })}` : ""} — waiting on their reply.
+              {tr("✅ Recommended message sent to the")} {meta.aiHandled.toRole || tr("party")}{meta.aiHandled.toName ? ` (${meta.aiHandled.toName})` : ""}
+              {meta.aiHandled.at ? ` · ${new Date(meta.aiHandled.at).toLocaleString(uiLocale(), { month:"short", day:"numeric", hour:"numeric", minute:"2-digit" })}` : ""} {tr("— waiting on their reply.")}
             </div>
           )}
           {meta.aiHandled && meta.aiHandled.kind !== "sent" && (
             <div style={{ fontSize:12, color:COLORS.gray, marginTop:3 }}>
-              {meta.aiHandled.kind === "done" ? "✓ You marked the recommendation as handled." : "⏸ Recommendation set aside until tomorrow."}{" "}
+              {meta.aiHandled.kind === "done" ? tr("✓ You marked the recommendation as handled.") : tr("⏸ Recommendation set aside until tomorrow.")}{" "}
               <button onClick={() => onDealAction && onDealAction(deal.transaction_id, "rec_undo")}
-                style={{ background:"none", border:"none", padding:0, color:"#0c4a6e", textDecoration:"underline", cursor:"pointer", fontSize:12, fontFamily:"inherit" }}>Show it again</button>
+                style={{ background:"none", border:"none", padding:0, color:"#0c4a6e", textDecoration:"underline", cursor:"pointer", fontSize:12, fontFamily:"inherit" }}>{tr("Show it again")}</button>
             </div>
           )}
           {!meta.aiHandled && meta.aiMove && (
-            <div style={{ fontSize:12.5, color:"#1E40AF", marginTop:3 }}>🤖 Next: {meta.aiMove}</div>
+            <div style={{ fontSize:12.5, color:"#1E40AF", marginTop:3 }}>{tr("🤖 Next:")} {meta.aiMove}</div>
           )}
           {!meta.aiHandled && (meta.hasDraft || meta.aiMove) && (
             <div style={{ display:"flex", gap:8, marginTop:8, flexWrap:"wrap" }}>
@@ -670,16 +671,16 @@ function DealGroupCard({ deal, token, coordinatorMode = false, meta = null, agen
                   style={{ padding:"8px 14px", borderRadius:8, border:"none",
                     background:"#0c4a6e", color:COLORS.white, fontWeight:700, fontSize:13,
                     cursor: aiBusy === deal.transaction_id ? "wait" : "pointer", fontFamily:"inherit" }}>
-                  {aiBusy === deal.transaction_id ? "Sending…" : `✉️ Send the recommended message to the ${meta.draftToRole}`}
+                  {aiBusy === deal.transaction_id ? tr("Sending…") : `✉️ Send the recommended message to the ${meta.draftToRole}`}
                 </button>
               )}
               <button onClick={() => onDealAction && onDealAction(deal.transaction_id, "rec_not_now")}
                 style={{ padding:"8px 12px", borderRadius:8, border:"1.5px solid "+COLORS.border, background:COLORS.white, color:COLORS.gray, fontWeight:600, fontSize:12.5, cursor:"pointer", fontFamily:"inherit" }}>
-                ⏸ Not now
+                {tr("⏸ Not now")}
               </button>
               <button onClick={() => onDealAction && onDealAction(deal.transaction_id, "rec_done")}
                 style={{ padding:"8px 12px", borderRadius:8, border:"1.5px solid "+COLORS.border, background:COLORS.white, color:COLORS.gray, fontWeight:600, fontSize:12.5, cursor:"pointer", fontFamily:"inherit" }}>
-                ✓ Already handled
+                {tr("✓ Already handled")}
               </button>
             </div>
           )}
@@ -703,24 +704,24 @@ function DealGroupCard({ deal, token, coordinatorMode = false, meta = null, agen
           {meta.docGaps > 0 && (
             <button disabled={aiBusy === deal.transaction_id} onClick={() => onDealAction && onDealAction(deal.transaction_id, "doc")}
               style={{ padding:"9px 14px", borderRadius:10, border:"none", background:"#0c4a6e", color:COLORS.white, fontWeight:700, fontSize:13, cursor:"pointer", fontFamily:"inherit" }}>
-              {aiBusy === deal.transaction_id ? "…" : "✉️ Request document"}
+              {aiBusy === deal.transaction_id ? "…" : tr("✉️ Request document")}
             </button>
           )}
           {(meta.overdue > 0 || meta.dueNext7 > 0) && !meta.hasDraft && (
             <button disabled={aiBusy === deal.transaction_id} onClick={() => onDealAction && onDealAction(deal.transaction_id, "remind")}
               style={{ padding:"9px 14px", borderRadius:10, border:"none", background:"#0c4a6e", color:COLORS.white, fontWeight:700, fontSize:13, cursor:"pointer", fontFamily:"inherit" }}>
-              {aiBusy === deal.transaction_id ? "…" : "Send reminder"}
+              {aiBusy === deal.transaction_id ? "…" : tr("Send reminder")}
             </button>
           )}
           {meta.unreadReplies > 0 && (
             <button onClick={() => onDealAction && onDealAction(deal.transaction_id, "replies")}
               style={{ padding:"9px 14px", borderRadius:10, border:"1.5px solid "+COLORS.border, background:COLORS.white, color:COLORS.gray, fontWeight:600, fontSize:13, cursor:"pointer", fontFamily:"inherit" }}>
-              Read &amp; reply
+              {tr("Read & reply")}
             </button>
           )}
           <button onClick={() => onOpenTransaction && onOpenTransaction(deal.transaction_id)}
             style={{ padding:"9px 14px", borderRadius:10, border:"1.5px solid "+COLORS.border, background:COLORS.white, color:COLORS.gray, fontWeight:600, fontSize:13, cursor:"pointer", fontFamily:"inherit" }}>
-            Open deal →
+            {tr("Open deal →")}
           </button>
         </div>
       )}
@@ -730,30 +731,30 @@ function DealGroupCard({ deal, token, coordinatorMode = false, meta = null, agen
       {!coordinatorMode && agentTc && (
         <div style={{ marginTop: deal.tasks.length ? 12 : 2, paddingTop: 12, borderTop: "1px solid "+COLORS.lightGray }}>
           <div style={{ display:"flex", alignItems:"center", gap:8, flexWrap:"wrap", marginBottom:6 }}>
-            <span style={{ fontSize:13, fontWeight:800, color:"#0F6E56" }}>🧭 Your TC{agentTc.coordinatorName ? " · " + agentTc.coordinatorName : ""} is handling this</span>
-            {agentTc.msTotal > 0 && <span style={{ marginLeft:"auto", fontSize:12, color:COLORS.gray }}>{agentTc.msDone}/{agentTc.msTotal} done</span>}
+            <span style={{ fontSize:13, fontWeight:800, color:"#0F6E56" }}>{tr("🧭 Your TC")}{agentTc.coordinatorName ? " · " + agentTc.coordinatorName : ""} {tr("is handling this")}</span>
+            {agentTc.msTotal > 0 && <span style={{ marginLeft:"auto", fontSize:12, color:COLORS.gray }}>{agentTc.msDone}/{agentTc.msTotal} {tr("done")}</span>}
           </div>
           {deal._tcOnly && (
-            <div style={{ fontSize:13, color:"#1E8449", fontWeight:600, marginBottom:6 }}>✓ Nothing needs you here right now — your TC is on it.</div>
+            <div style={{ fontSize:13, color:"#1E8449", fontWeight:600, marginBottom:6 }}>{tr("✓ Nothing needs you here right now — your TC is on it.")}</div>
           )}
           {agentTc.overdue > 0 && (
-            <div style={{ fontSize:12.5, color:"#B91C1C", fontWeight:700, marginBottom:4 }}>⚠️ {agentTc.overdue} overdue — your TC is working it</div>
+            <div style={{ fontSize:12.5, color:"#B91C1C", fontWeight:700, marginBottom:4 }}>⚠️ {agentTc.overdue} {tr("overdue — your TC is working it")}</div>
           )}
           {agentTc.upcoming && agentTc.upcoming.length > 0 && (
             <div style={{ fontSize:12.5, color:COLORS.gray, marginBottom:4 }}>
-              <b style={{ color:COLORS.black }}>TC's next steps:</b> {agentTc.upcoming.map(u => u.name + (u.dueDate ? " (" + u.dueDate + ")" : "")).join(" · ")}
+              <b style={{ color:COLORS.black }}>{tr("TC's next steps:")}</b> {agentTc.upcoming.map(u => u.name + (u.dueDate ? " (" + u.dueDate + ")" : "")).join(" · ")}
             </div>
           )}
           {agentTc.recentTc && agentTc.recentTc.length > 0 ? (
             <div style={{ fontSize:12.5, color:COLORS.gray }}>
-              <b style={{ color:COLORS.black }}>TC recently:</b> {agentTc.recentTc.map(a => tcVerb(a.action)).join(" · ")}
+              <b style={{ color:COLORS.black }}>{tr("TC recently:")}</b> {agentTc.recentTc.map(a => tcVerb(a.action)).join(" · ")}
             </div>
           ) : (
-            <div style={{ fontSize:12, color:COLORS.gray }}>No TC activity logged yet.</div>
+            <div style={{ fontSize:12, color:COLORS.gray }}>{tr("No TC activity logged yet.")}</div>
           )}
           <button onClick={() => onOpenTransaction && onOpenTransaction(deal.transaction_id)}
             style={{ marginTop:8, padding:"7px 12px", borderRadius:8, border:"1.5px solid "+COLORS.border, background:COLORS.white, color:COLORS.gray, fontWeight:600, fontSize:12.5, cursor:"pointer", fontFamily:"inherit" }}>
-            See full coordinator detail →
+            {tr("See full coordinator detail →")}
           </button>
         </div>
       )}
@@ -765,7 +766,7 @@ function DealGroupCard({ deal, token, coordinatorMode = false, meta = null, agen
 function SectionHeader({ label, count, color }) {
   return (
     <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:12, marginTop:8 }}>
-      <div style={{ fontWeight:800, fontSize:13, color, letterSpacing:0.5 }}>{label}</div>
+      <div style={{ fontWeight:800, fontSize:13, color, letterSpacing:0.5 }}>{tr(label)}</div>
       <div style={{ background:color, color:COLORS.white, borderRadius:20,
         fontSize:11, fontWeight:700, padding:"1px 8px" }}>{count}</div>
       <div style={{ flex:1, height:1, background:COLORS.border }} />
@@ -790,11 +791,10 @@ export function DayOneState({ firstName, onNew, onUploadContract, onSampleDeal, 
       <div style={{ textAlign: "center", marginBottom: 22 }}>
         <div style={{ fontSize: 44, marginBottom: 12 }}>🏡</div>
         <div style={{ fontWeight: 800, fontSize: 21, color: COLORS.black, marginBottom: 8 }}>
-          Let's get your first deal in{firstName ? ", " + firstName : ""}
+          {tr("Let's get your first deal in")}{firstName ? ", " + firstName : ""}
         </div>
         <div style={{ color: COLORS.gray, fontSize: 15, lineHeight: 1.6, maxWidth: 380, margin: "0 auto" }}>
-          This screen fills itself once you have a deal — every deadline, call, and
-          document that needs you, in the order it needs you. Start it either way:
+          {tr("This screen fills itself once you have a deal — every deadline, call, and document that needs you, in the order it needs you. Start it either way:")}
         </div>
       </div>
 
@@ -803,18 +803,17 @@ export function DayOneState({ firstName, onNew, onUploadContract, onSampleDeal, 
           <div onClick={onUploadContract} style={{ ...card, borderColor: COLORS.red, borderWidth: 2 }}>
             <div style={{ fontSize: 26, marginBottom: 8 }}>📄</div>
             <div style={{ fontWeight: 800, fontSize: 15, color: COLORS.black, marginBottom: 5 }}>
-              Upload a signed contract
+              {tr("Upload a signed contract")}
             </div>
             <div style={{ fontSize: 13.5, color: COLORS.gray, lineHeight: 1.5, marginBottom: 12 }}>
-              Drop in a deal you're already working. The app reads the price, the dates,
-              the deposits and everyone's contact info, then builds the timeline for you.
+              {tr("Drop in a deal you're already working. The app reads the price, the dates, the deposits and everyone's contact info, then builds the timeline for you.")}
             </div>
             <span style={{ display: "inline-block", background: COLORS.red, color: COLORS.white,
               borderRadius: 8, padding: "9px 16px", fontSize: 13, fontWeight: 800 }}>
-              Upload a contract →
+              {tr("Upload a contract →")}
             </span>
             <div style={{ fontSize: 11.5, color: COLORS.gray, marginTop: 9, fontStyle: "italic" }}>
-              Fastest way to see what this thing does.
+              {tr("Fastest way to see what this thing does.")}
             </div>
           </div>
         )}
@@ -822,16 +821,15 @@ export function DayOneState({ firstName, onNew, onUploadContract, onSampleDeal, 
           <div onClick={onNew} style={card}>
             <div style={{ fontSize: 26, marginBottom: 8 }}>➕</div>
             <div style={{ fontWeight: 800, fontSize: 15, color: COLORS.black, marginBottom: 5 }}>
-              Start a deal from scratch
+              {tr("Start a deal from scratch")}
             </div>
             <div style={{ fontSize: 13.5, color: COLORS.gray, lineHeight: 1.5, marginBottom: 12 }}>
-              Three quick steps — the address, your client, the price. A new listing or
-              a buyer you just signed. The checklist builds itself.
+              {tr("Three quick steps — the address, your client, the price. A new listing or a buyer you just signed. The checklist builds itself.")}
             </div>
             <span style={{ display: "inline-block", background: COLORS.white, color: COLORS.black,
               border: "1px solid " + COLORS.border, borderRadius: 8, padding: "9px 16px",
               fontSize: 13, fontWeight: 800 }}>
-              New deal →
+              {tr("New deal →")}
             </span>
           </div>
         )}
@@ -848,12 +846,10 @@ export function DayOneState({ firstName, onNew, onUploadContract, onSampleDeal, 
           <div style={{ fontSize: 22 }}>👀</div>
           <div style={{ flex: 1, minWidth: 200 }}>
             <div style={{ fontWeight: 700, fontSize: 14, color: COLORS.black }}>
-              {hasSample ? "Your sample deal is waiting" : "Rather look around first?"}
+              {hasSample ? tr("Your sample deal is waiting") : tr("Rather look around first?")}
             </div>
             <div style={{ fontSize: 13, color: COLORS.gray, lineHeight: 1.5, marginTop: 2 }}>
-              Open a finished demo deal — real timeline, real documents tab, real
-              people list. Nothing on it can send an email, and you can delete it
-              in one tap.
+              {tr("Open a finished demo deal — real timeline, real documents tab, real people list. Nothing on it can send an email, and you can delete it in one tap.")}
             </div>
           </div>
           <button
@@ -861,7 +857,7 @@ export function DayOneState({ firstName, onNew, onUploadContract, onSampleDeal, 
             style={{ background: COLORS.white, color: COLORS.black, border: "1px solid " + COLORS.border,
               borderRadius: 8, padding: "9px 16px", fontSize: 13, fontWeight: 800, cursor: "pointer",
               fontFamily: "inherit", flexShrink: 0 }}>
-            {hasSample ? "Open sample deal →" : "Show me a sample deal →"}
+            {hasSample ? tr("Open sample deal →") : tr("Show me a sample deal →")}
           </button>
         </div>
       )}
@@ -872,14 +868,13 @@ export function DayOneState({ firstName, onNew, onUploadContract, onSampleDeal, 
           <button onClick={onWatchTour}
             style={{ background: "#0c4a6e", color: COLORS.white, border: "none", borderRadius: 999,
               padding: "11px 20px", fontSize: 14, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>
-            ▶ Watch the 2-minute tour first
+            {tr("▶ Watch the 2-minute tour first")}
           </button>
         </div>
       )}
 
       <div style={{ color: COLORS.gray, fontSize: 13, lineHeight: 1.6, marginTop: 20, textAlign: "center" }}>
-        Not ready yet? Tap the <b>?</b> button in the corner and ask it anything —
-        type it or just talk.
+        {tr("Not ready yet? Tap the")} <b>?</b> {tr("button in the corner and ask it anything — type it or just talk.")}
       </div>
     </div>
   );
@@ -892,14 +887,14 @@ function EmptyState({ firstName }) {
     <div style={{ textAlign:"center", padding:"48px 24px" }}>
       <div style={{ fontSize:48, marginBottom:16 }}>✅</div>
       <div style={{ fontWeight:700, fontSize:20, color:COLORS.black, marginBottom:8 }}>
-        You are all caught up{firstName ? ", " + firstName : ""}!
+        {tr("You are all caught up")}{firstName ? ", " + firstName : ""}!
       </div>
       <div style={{ color:COLORS.gray, fontSize:15, lineHeight:1.6 }}>
-        No tasks need your attention right now.{" "}
-        Check back tomorrow morning for your next briefing.
+        {tr("No tasks need your attention right now.")}{" "}
+        {tr("Check back tomorrow morning for your next briefing.")}
       </div>
       <div style={{ color:COLORS.gray, fontSize:13, lineHeight:1.6, marginTop:14, maxWidth:440, marginLeft:"auto", marginRight:"auto" }}>
-        📞 Tip: your <b>daily call list</b> shows up here too — it builds itself from your <b>Contacts</b>. Add people and set follow-ups (<b>⚙️ Menu → Contacts</b>) and the right ones appear each morning.
+        {tr("📞 Tip: your")} <b>{tr("daily call list")}</b> {tr("shows up here too — it builds itself from your")} <b>{tr("Contacts")}</b>{tr(". Add people and set follow-ups (")}<b>{tr("⚙️ Menu → Contacts")}</b>{tr(") and the right ones appear each morning.")}
       </div>
     </div>
   );
@@ -941,7 +936,7 @@ function UnmatchedMailPanel({ token }) {
       });
       const d = await r.json(); if (!r.ok) throw new Error(d.error || "Failed");
       setItems(prev => prev.filter(x => x.id !== id)); setAssignFor(null);
-    } catch (e) { alert("Could not file it: " + e.message); }
+    } catch (e) { alert(tr("Could not file it: ") + e.message); }
     setBusy(null);
   };
   const dismiss = async (id) => {
@@ -952,55 +947,55 @@ function UnmatchedMailPanel({ token }) {
       });
       const d = await r.json(); if (!r.ok) throw new Error(d.error || "Failed");
       setItems(prev => prev.filter(x => x.id !== id));
-    } catch (e) { alert("Could not dismiss it: " + e.message); }
+    } catch (e) { alert(tr("Could not dismiss it: ") + e.message); }
     setBusy(null);
   };
   if (!items.length) return null;
   return (
     <div style={{ marginBottom: 16 }}>
-      <SectionHeader label={"📥 MAIL TO FILE"} count={items.length} color={"#92400E"} />
+      <SectionHeader label={tr("📥 MAIL TO FILE")} count={items.length} color={"#92400E"} />
       <div style={{ fontSize: 12.5, color: COLORS.gray, margin: "0 0 8px" }}>
-        These emails reached the app but we weren't sure which deal they belong to. File each one so nothing is lost.
+        {tr("These emails reached the app but we weren't sure which deal they belong to. File each one so nothing is lost.")}
       </div>
       {items.map(m => (
         <div key={m.id} style={{ background: COLORS.white, border: "1px solid " + COLORS.lightGray, borderRadius: 12, padding: 14, marginBottom: 10 }}>
           <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 6 }}>
-            <span style={{ fontWeight: 700, color: COLORS.black, fontSize: 14 }}>{m.from_name || m.from_email || "Unknown sender"}</span>
+            <span style={{ fontWeight: 700, color: COLORS.black, fontSize: 14 }}>{m.from_name || m.from_email || tr("Unknown sender")}</span>
             <span style={{ fontSize: 12, color: COLORS.gray }}>{m.created_at ? new Date(m.created_at).toLocaleDateString() : ""}</span>
           </div>
           {m.from_name && m.from_email && <div style={{ fontSize: 12, color: COLORS.gray }}>{m.from_email}</div>}
           {m.subject && <div style={{ fontWeight: 600, fontSize: 13.5, color: COLORS.black, marginTop: 6 }}>{m.subject}</div>}
           {(m.snippet || m.body_text) && <div style={{ fontSize: 13, color: COLORS.gray, marginTop: 4, whiteSpace: "pre-wrap" }}>{String(m.snippet || m.body_text).slice(0, 200)}</div>}
-          {m.attachment_count > 0 && <div style={{ fontSize: 12, color: COLORS.gray, marginTop: 4 }}>📎 {m.attachment_count} attachment(s) — they follow the email to whichever deal you file it on.</div>}
+          {m.attachment_count > 0 && <div style={{ fontSize: 12, color: COLORS.gray, marginTop: 4 }}>📎 {m.attachment_count} {tr("attachment(s) — they follow the email to whichever deal you file it on.")}</div>}
           {/* Mail-provider forwarding confirmation: this is the one-time approval
               step that actually switches the agent's inbox forwarding ON. */}
           {m.forwarding ? (
             <div style={{ background: "#F0FDF4", border: "1px solid #BBF7D0", borderRadius: 10, padding: 12, marginTop: 10 }}>
-              <div style={{ fontSize: 13, fontWeight: 800, color: "#166534", marginBottom: 4 }}>✅ Turn on email forwarding</div>
+              <div style={{ fontSize: 13, fontWeight: 800, color: "#166534", marginBottom: 4 }}>{tr("✅ Turn on email forwarding")}</div>
               <div style={{ fontSize: 12.5, color: "#166534", lineHeight: 1.5, marginBottom: 8 }}>
-                This confirms the forwarding rule you set up in {m.forwarding.provider === "gmail" ? "Gmail" : "Outlook"}. Until you approve it, none of your deal email forwards into the app. Approve it once and you're done.
+                {tr("This confirms the forwarding rule you set up in")} {m.forwarding.provider === "gmail" ? tr("Gmail") : tr("Outlook")}{tr(". Until you approve it, none of your deal email forwards into the app. Approve it once and you're done.")}
               </div>
               {m.forwarding.link && (
                 <a href={m.forwarding.link} target="_blank" rel="noreferrer"
                   style={{ display: "inline-block", padding: "9px 16px", borderRadius: 8, background: "#166534", color: COLORS.white, fontWeight: 700, fontSize: 13, textDecoration: "none", marginBottom: m.forwarding.code ? 8 : 0 }}>
-                  Confirm forwarding →
+                  {tr("Confirm forwarding →")}
                 </a>
               )}
               {m.forwarding.code && (
                 <div style={{ fontSize: 12.5, color: "#166534" }}>
-                  {m.forwarding.link ? "…or enter" : "Enter"} this confirmation code in {m.forwarding.provider === "gmail" ? "Gmail → Settings → Forwarding" : "Outlook forwarding settings"}:{" "}
+                  {m.forwarding.link ? tr("…or enter") : tr("Enter")} {tr("this confirmation code in")} {m.forwarding.provider === "gmail" ? tr("Gmail → Settings → Forwarding") : tr("Outlook forwarding settings")}:{" "}
                   <code style={{ fontWeight: 800, background: COLORS.white, padding: "2px 8px", borderRadius: 6, border: "1px solid #BBF7D0" }}>{m.forwarding.code}</code>
                 </div>
               )}
               {!m.forwarding.link && !m.forwarding.code && (
-                <div style={{ fontSize: 12.5, color: "#166534" }}>Open this email in {m.forwarding.provider === "gmail" ? "Gmail" : "Outlook"} to click the confirmation link.</div>
+                <div style={{ fontSize: 12.5, color: "#166534" }}>{tr("Open this email in")} {m.forwarding.provider === "gmail" ? tr("Gmail") : tr("Outlook")} {tr("to click the confirmation link.")}</div>
               )}
               {/* Confirming alone does NOT start forwarding in Gmail — the
                   "Forward a copy…" choice must be picked and saved (9/28:
                   Limarys's forward sat unverified for 2½ months). */}
               {m.forwarding.provider === "gmail" && (
                 <div style={{ fontSize: 12.5, color: "#166534", lineHeight: 1.5, marginTop: 8, borderTop: "1px solid #BBF7D0", paddingTop: 8 }}>
-                  <b>Then, last step:</b> back in Gmail → Settings → <b>Forwarding and POP/IMAP</b> → refresh the page → pick <b>"Forward a copy of incoming mail to fw-…"</b> and <b>"keep … copy in the Inbox"</b> → click <b>Save Changes</b>.
+                  <b>{tr("Then, last step:")}</b> {tr("back in Gmail → Settings →")} <b>{tr("Forwarding and POP/IMAP")}</b> {tr("→ refresh the page → pick")} <b>{tr("\"Forward a copy of incoming mail to fw-…\"")}</b> {tr("and")} <b>{tr("\"keep … copy in the Inbox\"")}</b> {tr("→ click")} <b>{tr("Save Changes")}</b>.
                 </div>
               )}
             </div>
@@ -1009,22 +1004,22 @@ function UnmatchedMailPanel({ token }) {
             {!m.forwarding && (
               <button disabled={busy === m.id} onClick={() => openAssign(m.id)}
                 style={{ padding: "8px 14px", borderRadius: 8, border: "none", background: "#0c4a6e", color: COLORS.white, fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>
-                📂 File to a deal
+                {tr("📂 File to a deal")}
               </button>
             )}
             <button disabled={busy === m.id}
-              onClick={async () => { if (m.forwarding && !(await askConfirm("Only hide this AFTER you clicked Confirm forwarding and saved the setting in your email.\n\nIf you hide it without confirming, your email will NOT forward into the app.\n\nHide it now?", { okLabel: "Hide it" }))) return; dismiss(m.id); }}
+              onClick={async () => { if (m.forwarding && !(await askConfirm(tr("Only hide this AFTER you clicked Confirm forwarding and saved the setting in your email.\n\nIf you hide it without confirming, your email will NOT forward into the app.\n\nHide it now?"), { okLabel: tr("Hide it") }))) return; dismiss(m.id); }}
               style={{ padding: "8px 14px", borderRadius: 8, border: "1.5px solid " + COLORS.lightGray, background: COLORS.white, color: COLORS.gray, fontWeight: 600, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>
-              {m.forwarding ? "✓ Done — I confirmed it" : "Not deal-related"}
+              {m.forwarding ? tr("✓ Done — I confirmed it") : tr("Not deal-related")}
             </button>
           </div>
           {assignFor === m.id && (
             <div style={{ marginTop: 8 }}>
-              {dealList === null ? <span style={{ fontSize: 13, color: COLORS.gray }}>Loading your deals…</span>
+              {dealList === null ? <span style={{ fontSize: 13, color: COLORS.gray }}>{tr("Loading your deals…")}</span>
                : <select defaultValue="" onChange={e => e.target.value && assign(m.id, e.target.value)}
                    style={{ padding: "8px 10px", borderRadius: 8, border: "1px solid " + COLORS.lightGray, fontSize: 14, fontFamily: "inherit", maxWidth: "100%" }}>
-                   <option value="" disabled>Pick the deal…</option>
-                   {dealList.map(d => <option key={d.id} value={d.id}>{d.address}</option>)}
+                   <option value="" disabled>{tr("Pick the deal…")}</option>
+                   {dealList.map(d => <option key={d.id} value={d.id}>{tr(d.address)}</option>)}
                  </select>}
             </div>
           )}
@@ -1059,17 +1054,17 @@ function SendPreviewModal({ preview, busy, onCancel, onSend }) {
       display:"flex", alignItems:"flex-start", justifyContent:"center", overflowY:"auto", padding:"24px 12px" }}>
       <div onClick={e => e.stopPropagation()} style={{ background:COLORS.white, borderRadius:14, width:"100%",
         maxWidth:520, margin:"auto", padding:20, boxShadow:"0 10px 40px rgba(0,0,0,0.2)" }}>
-        <div style={{ fontSize:17, fontWeight:800, color:COLORS.black, marginBottom:4 }}>Review before sending</div>
-        <div style={{ fontSize:13, color:COLORS.gray, marginBottom:14 }}>Nothing sends until you approve. Edit anything below.</div>
+        <div style={{ fontSize:17, fontWeight:800, color:COLORS.black, marginBottom:4 }}>{tr("Review before sending")}</div>
+        <div style={{ fontSize:13, color:COLORS.gray, marginBottom:14 }}>{tr("Nothing sends until you approve. Edit anything below.")}</div>
         <div style={{ background:COLORS.lightGray, borderRadius:8, padding:"10px 12px", marginBottom:12, fontSize:13, lineHeight:1.6 }}>
-          <div><b>To:</b> {preview.to}{preview.role ? ` (${preview.role})` : ""}</div>
-          <div><b>How:</b> {preview.channel === "email" ? "📧 Email" : preview.channel}</div>
-          {preview.fromName && <div><b>From:</b> {preview.fromName} (your agent's voice)</div>}
+          <div><b>{tr("To:")}</b> {preview.to}{preview.role ? ` (${preview.role})` : ""}</div>
+          <div><b>{tr("How:")}</b> {preview.channel === "email" ? tr("📧 Email") : preview.channel}</div>
+          {preview.fromName && <div><b>{tr("From:")}</b> {preview.fromName} {tr("(your agent's voice)")}</div>}
         </div>
-        <label style={{ fontSize:12, fontWeight:700, color:COLORS.gray }}>Subject</label>
+        <label style={{ fontSize:12, fontWeight:700, color:COLORS.gray }}>{tr("Subject")}</label>
         <input value={subject} onChange={e => setSubject(e.target.value)}
           style={{ width:"100%", padding:"10px 12px", border:"1px solid "+COLORS.border, borderRadius:8, fontSize:14, fontFamily:"inherit", marginTop:4, marginBottom:12, boxSizing:"border-box" }} />
-        <label style={{ fontSize:12, fontWeight:700, color:COLORS.gray }}>Message</label>
+        <label style={{ fontSize:12, fontWeight:700, color:COLORS.gray }}>{tr("Message")}</label>
         <textarea value={body} onChange={e => setBody(e.target.value)} rows={9}
           style={{ width:"100%", padding:"10px 12px", border:"1px solid "+COLORS.border, borderRadius:8, fontSize:14, fontFamily:"inherit", marginTop:4, resize:"vertical", boxSizing:"border-box" }} />
 
@@ -1078,11 +1073,11 @@ function SendPreviewModal({ preview, busy, onCancel, onSend }) {
         {preview.canAttach && (
           <div style={{ marginTop:14, border:"1px solid "+COLORS.border, borderRadius:10, padding:12 }}>
             <div style={{ fontSize:13, fontWeight:700, color:COLORS.black, marginBottom:6 }}>
-              📎 Attach a document to send for signature {totalAttached > 0 ? `(${totalAttached})` : "(optional)"}
+              {tr("📎 Attach a document to send for signature")} {totalAttached > 0 ? `(${totalAttached})` : tr("(optional)")}
             </div>
             {availableDocs.length > 0 && (
               <div style={{ marginBottom:10 }}>
-                <div style={{ fontSize:11, fontWeight:700, color:COLORS.gray, marginBottom:4 }}>From this transaction</div>
+                <div style={{ fontSize:11, fontWeight:700, color:COLORS.gray, marginBottom:4 }}>{tr("From this transaction")}</div>
                 <div style={{ maxHeight:140, overflowY:"auto" }}>
                   {availableDocs.map(d => (
                     <label key={d.id} style={{ display:"flex", alignItems:"center", gap:8, padding:"5px 0", fontSize:13, cursor:"pointer" }}>
@@ -1095,7 +1090,7 @@ function SendPreviewModal({ preview, busy, onCancel, onSend }) {
               </div>
             )}
             <label style={{ display:"inline-block", padding:"7px 12px", border:"1.5px solid "+COLORS.border, borderRadius:8, fontSize:12.5, fontWeight:600, color:COLORS.gray, cursor:"pointer" }}>
-              ⬆️ Upload from computer
+              {tr("⬆️ Upload from computer")}
               <input type="file" multiple style={{ display:"none" }} onChange={e => { onFiles(e.target.files); e.target.value = ""; }} />
             </label>
             {uploads.length > 0 && (
@@ -1104,7 +1099,7 @@ function SendPreviewModal({ preview, busy, onCancel, onSend }) {
                   <div key={i} style={{ display:"flex", alignItems:"center", gap:8, fontSize:12.5, padding:"3px 0" }}>
                     <span style={{ color:COLORS.black }}>📄 {u.name}</span>
                     <button onClick={() => setUploads(us => us.filter((_, j) => j !== i))}
-                      style={{ marginLeft:"auto", background:"none", border:"none", color:COLORS.gray, cursor:"pointer", fontSize:12, textDecoration:"underline", fontFamily:"inherit" }}>remove</button>
+                      style={{ marginLeft:"auto", background:"none", border:"none", color:COLORS.gray, cursor:"pointer", fontSize:12, textDecoration:"underline", fontFamily:"inherit" }}>{tr("remove")}</button>
                   </div>
                 ))}
               </div>
@@ -1113,10 +1108,10 @@ function SendPreviewModal({ preview, busy, onCancel, onSend }) {
         )}
 
         <div style={{ display:"flex", gap:10, marginTop:16, justifyContent:"flex-end", flexWrap:"wrap" }}>
-          <button onClick={onCancel} style={{ padding:"10px 18px", borderRadius:10, border:"1.5px solid "+COLORS.border, background:COLORS.white, color:COLORS.gray, fontWeight:600, fontSize:14, cursor:"pointer", fontFamily:"inherit" }}>Cancel</button>
+          <button onClick={onCancel} style={{ padding:"10px 18px", borderRadius:10, border:"1.5px solid "+COLORS.border, background:COLORS.white, color:COLORS.gray, fontWeight:600, fontSize:14, cursor:"pointer", fontFamily:"inherit" }}>{tr("Cancel")}</button>
           <button disabled={busy || !subject.trim() || !body.trim()} onClick={() => onSend(subject, body, { attachDocIds: pickedDocIds, uploadedFiles: uploads })}
             style={{ padding:"10px 20px", borderRadius:10, border:"none", background:"#0c4a6e", color:COLORS.white, fontWeight:700, fontSize:14, cursor: busy ? "wait" : "pointer", fontFamily:"inherit" }}>
-            {busy ? "Sending…" : (totalAttached > 0 ? `✅ Approve & send (${totalAttached} attached)` : "✅ Approve & send")}
+            {busy ? tr("Sending…") : (totalAttached > 0 ? `✅ Approve & send (${totalAttached} attached)` : tr("✅ Approve & send"))}
           </button>
         </div>
       </div>
@@ -1184,7 +1179,7 @@ function FollowupReviewModal({ token, isMobile, onClose }) {
     setBusy(false);
   };
   const stopStale = async () => {
-    if (!(await askConfirm(`Stop ALL ${staleCount} follow-ups older than 6 months?\n\nThe contacts stay in your database with their grades — only the old follow-up reminders are cleared. This cannot be undone in one tap.`, { okLabel: "Clear them", danger: true }))) return;
+    if (!(await askConfirm(`Stop ALL ${staleCount} follow-ups older than 6 months?\n\nThe contacts stay in your database with their grades — only the old follow-up reminders are cleared. This cannot be undone in one tap.`, { okLabel: tr("Clear them"), danger: true }))) return;
     setBusy(true);
     try {
       const r = await fetch(API + "/contacts/followups/stop-stale", {
@@ -1210,14 +1205,14 @@ function FollowupReviewModal({ token, isMobile, onClose }) {
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)", zIndex: 3000, display: "flex", alignItems: "flex-start", justifyContent: "center", overflowY: "auto", padding: "24px 12px" }}>
       <div style={{ background: "#fff", borderRadius: 14, width: "100%", maxWidth: 480, boxShadow: "0 10px 40px rgba(0,0,0,0.25)", overflow: "hidden" }}>
         <div style={{ background: "#7c2d12", color: "#fff", padding: "14px 16px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
-          <div style={{ fontWeight: 800, fontSize: 15 }}>🔁 Follow-Up Review</div>
-          <button onClick={onClose} style={{ background: "rgba(255,255,255,0.15)", border: "none", color: "#fff", borderRadius: 8, padding: "5px 12px", fontWeight: 800, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>✕ Done</button>
+          <div style={{ fontWeight: 800, fontSize: 15 }}>{tr("🔁 Follow-Up Review")}</div>
+          <button onClick={onClose} style={{ background: "rgba(255,255,255,0.15)", border: "none", color: "#fff", borderRadius: 8, padding: "5px 12px", fontWeight: 800, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>{tr("✕ Done")}</button>
         </div>
 
         {initialTotal > 0 && (
           <div style={{ padding: "10px 16px 0" }}>
             <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, fontWeight: 700, color: "#7c2d12", marginBottom: 4 }}>
-              <span>{reviewed} of {initialTotal} reviewed</span><span>{pct}%</span>
+              <span>{reviewed} {tr("of")} {initialTotal} {tr("reviewed")}</span><span>{pct}%</span>
             </div>
             <div style={{ height: 7, background: "#fde68a", borderRadius: 4 }}>
               <div style={{ height: 7, width: pct + "%", background: "#b45309", borderRadius: 4, transition: "width .25s" }} />
@@ -1226,13 +1221,13 @@ function FollowupReviewModal({ token, isMobile, onClose }) {
         )}
 
         {list === null ? (
-          <div style={{ padding: 40, textAlign: "center", color: "#6b7280", fontSize: 14 }}>Loading follow-ups…</div>
+          <div style={{ padding: 40, textAlign: "center", color: "#6b7280", fontSize: 14 }}>{tr("Loading follow-ups…")}</div>
         ) : !current ? (
           <div style={{ padding: 40, textAlign: "center" }}>
             <div style={{ fontSize: 34 }}>🎉</div>
-            <div style={{ fontWeight: 800, fontSize: 16, color: "#166534", marginTop: 6 }}>All caught up!</div>
-            <div style={{ fontSize: 13, color: "#6b7280", marginTop: 4 }}>No follow-ups waiting for a decision.</div>
-            <button onClick={onClose} style={{ ...btn("#0c4a6e"), marginTop: 16 }}>Close</button>
+            <div style={{ fontWeight: 800, fontSize: 16, color: "#166534", marginTop: 6 }}>{tr("All caught up!")}</div>
+            <div style={{ fontSize: 13, color: "#6b7280", marginTop: 4 }}>{tr("No follow-ups waiting for a decision.")}</div>
+            <button onClick={onClose} style={{ ...btn("#0c4a6e"), marginTop: 16 }}>{tr("Close")}</button>
           </div>
         ) : (
           <div style={{ padding: 16 }}>
@@ -1242,16 +1237,16 @@ function FollowupReviewModal({ token, isMobile, onClose }) {
                   {name}
                   {current.tier && <span style={{ marginLeft: 7, fontSize: 11, fontWeight: 800, color: "#fff", background: "#0c4a6e", borderRadius: 10, padding: "1px 8px", verticalAlign: "middle" }}>{current.tier}</span>}
                 </div>
-                {overdueDays > 0 && <span style={{ fontSize: 11.5, fontWeight: 800, color: "#b91c1c", background: "#fee2e2", borderRadius: 8, padding: "3px 8px", whiteSpace: "nowrap" }}>{overdueDays} day{overdueDays === 1 ? "" : "s"} overdue</span>}
+                {overdueDays > 0 && <span style={{ fontSize: 11.5, fontWeight: 800, color: "#b91c1c", background: "#fee2e2", borderRadius: 8, padding: "3px 8px", whiteSpace: "nowrap" }}>{overdueDays} {tr("day")}{overdueDays === 1 ? "" : "s"} {tr("overdue")}</span>}
               </div>
               {current.next_call_reason && (
-                <div style={{ fontSize: 13.5, color: "#7c2d12", fontWeight: 700, marginTop: 7 }}>🎯 You promised: {current.next_call_reason}</div>
+                <div style={{ fontSize: 13.5, color: "#7c2d12", fontWeight: 700, marginTop: 7 }}>{tr("🎯 You promised:")} {current.next_call_reason}</div>
               )}
               <div style={{ marginTop: 8 }}><CallScriptsButton contact={{ ...current, batch_kind: "followup" }} token={token} onCall={() => setCalledId(current.id)} /></div>
               <div style={{ fontSize: 12.5, color: "#6b7280", marginTop: 7, lineHeight: 1.6 }}>
                 {current.phone && <div>📞 {isMobile ? <a href={`tel:${telHref(current.phone)}`} onClick={() => setCalledId(current.id)} style={{ color: "#0c4a6e", fontWeight: 700 }}>{current.phone}</a> : current.phone}</div>}
-                {current.next_call_due_at && <div>📅 Was due {new Date(current.next_call_due_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</div>}
-                {current.last_contacted_at && <div>🕐 Last talked {new Date(current.last_contacted_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</div>}
+                {current.next_call_due_at && <div>{tr("📅 Was due")} {new Date(current.next_call_due_at).toLocaleDateString(uiLocale(), { month: "short", day: "numeric", year: "numeric" })}</div>}
+                {current.last_contacted_at && <div>{tr("🕐 Last talked")} {new Date(current.last_contacted_at).toLocaleDateString(uiLocale(), { month: "short", day: "numeric", year: "numeric" })}</div>}
                 {current.notes && <div style={{ fontStyle: "italic", marginTop: 3 }}>"{String(current.notes).slice(0, 160)}"</div>}
               </div>
             </div>
@@ -1260,26 +1255,26 @@ function FollowupReviewModal({ token, isMobile, onClose }) {
               <div style={{ display: "flex", gap: 8 }}>
                 {isMobile && current.phone && (
                   <a href={`tel:${telHref(current.phone)}`} onClick={() => setCalledId(current.id)}
-                    style={{ ...btn("#0c4a6e"), flex: 1, textAlign: "center", textDecoration: "none", display: "block" }}>📞 Call now</a>
+                    style={{ ...btn("#0c4a6e"), flex: 1, textAlign: "center", textDecoration: "none", display: "block" }}>{tr("📞 Call now")}</a>
                 )}
                 <div style={{ flex: 1, display: "flex" }}>
                   <LogCallButton key={current.id} contact={current} token={token} onLogged={removeCurrent} autoOpen={isMobile && calledId === current.id} />
                 </div>
               </div>
               <div>
-                <div style={{ fontSize: 11.5, fontWeight: 800, color: "#0c4a6e", marginBottom: 5 }}>📅 KEEP — CALL ME BACK:</div>
+                <div style={{ fontSize: 11.5, fontWeight: 800, color: "#0c4a6e", marginBottom: 5 }}>{tr("📅 KEEP — CALL ME BACK:")}</div>
                 <div style={{ display: "flex", gap: 7 }}>
-                  <button disabled={busy} onClick={() => keepFor(7)} style={{ ...btn("#0c4a6e"), flex: 1, padding: "9px 6px", fontSize: 12.5 }}>Next week</button>
-                  <button disabled={busy} onClick={() => keepFor(30)} style={{ ...btn("#0c4a6e"), flex: 1, padding: "9px 6px", fontSize: 12.5 }}>Next month</button>
-                  <button disabled={busy} onClick={() => keepFor(90)} style={{ ...btn("#0c4a6e"), flex: 1, padding: "9px 6px", fontSize: 12.5 }}>In 3 months</button>
+                  <button disabled={busy} onClick={() => keepFor(7)} style={{ ...btn("#0c4a6e"), flex: 1, padding: "9px 6px", fontSize: 12.5 }}>{tr("Next week")}</button>
+                  <button disabled={busy} onClick={() => keepFor(30)} style={{ ...btn("#0c4a6e"), flex: 1, padding: "9px 6px", fontSize: 12.5 }}>{tr("Next month")}</button>
+                  <button disabled={busy} onClick={() => keepFor(90)} style={{ ...btn("#0c4a6e"), flex: 1, padding: "9px 6px", fontSize: 12.5 }}>{tr("In 3 months")}</button>
                 </div>
               </div>
-              <button disabled={busy} onClick={stopFollowup} style={btn("#b91c1c")}>🛑 Stop following up</button>
+              <button disabled={busy} onClick={stopFollowup} style={btn("#b91c1c")}>{tr("🛑 Stop following up")}</button>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <span style={{ fontSize: 11.5, color: "#5F6B7A" }}>Stopping keeps the contact + grade — only the reminder is cleared.</span>
+                <span style={{ fontSize: 11.5, color: "#5F6B7A" }}>{tr("Stopping keeps the contact + grade — only the reminder is cleared.")}</span>
                 {list.length > 1 && (
                   <button disabled={busy} onClick={() => { setPos(p => (p + 1) % list.length); setCalledId(null); }}
-                    style={{ background: "none", border: "none", color: "#6b7280", fontWeight: 800, fontSize: 12.5, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>Skip →</button>
+                    style={{ background: "none", border: "none", color: "#6b7280", fontWeight: 800, fontSize: 12.5, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>{tr("Skip →")}</button>
                 )}
               </div>
             </div>
@@ -1287,7 +1282,7 @@ function FollowupReviewModal({ token, isMobile, onClose }) {
             {staleCount > 0 && (
               <button disabled={busy} onClick={stopStale}
                 style={{ marginTop: 14, width: "100%", padding: "9px 12px", borderRadius: 9, border: "1px dashed #fca5a5", background: "#fef2f2", color: "#b91c1c", fontWeight: 800, fontSize: 12.5, cursor: busy ? "wait" : "pointer", fontFamily: "inherit" }}>
-                🛑 Stop all {staleCount} follow-ups older than 6 months
+                {tr("🛑 Stop all")} {staleCount} {tr("follow-ups older than 6 months")}
               </button>
             )}
           </div>
@@ -1298,6 +1293,7 @@ function FollowupReviewModal({ token, isMobile, onClose }) {
 }
 
 export default function DailyDashboard({ token, user, onViewTransactions, onOpenTransactionMilestones, onOpenInboundReply, onOpenPopBys, onNewDeal, onUploadContract, onSampleDeal, onOpenSample, onWatchTour, hasSample = false, dealCount = null, coordinatorMode = false }) {
+  useLang(); // redraw when Spanish for server-written cards arrives
   const [tasks, setTasks] = useState({ overdue:[], dueToday:[], upcoming:[] });
   const [personal, setPersonal] = useState({ overdue:[], dueToday:[], upcoming:[] });
   const [callsDue, setCallsDue] = useState([]);
@@ -1433,7 +1429,7 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
       try {
         await post("/tc/transaction/" + txId + "/recommendation", { action: kind.slice(4) });
         loadCc();
-      } catch (e) { alert("Could not: " + e.message); }
+      } catch (e) { alert(tr("Could not: ") + e.message); }
       return;
     }
     // "remind" = today's milestone reminder ladder for this deal. Opens the same
@@ -1467,7 +1463,7 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
             setPendingPreview(null);
             onSent && onSent(r);
             window.dispatchEvent(new Event("wintheday:refresh")); loadCc();
-          } catch (e) { alert("Could not send: " + e.message); }
+          } catch (e) { alert(tr("Could not send: ") + e.message); }
           setPreviewBusy(false);
         },
       });
@@ -1532,6 +1528,10 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
       const data = await tasksRes.json();
       if (data.success) {
         setTasks({ overdue: data.overdue || [], dueToday: data.dueToday || [], upcoming: data.upcoming || [] });
+        // Spanish screens: card titles/descriptions are written by the server in
+        // English — ask for Spanish once (cached); cards redraw when it lands.
+        requestSpanish([...(data.overdue || []), ...(data.dueToday || []), ...(data.upcoming || [])]
+          .flatMap(x => [x.title, cleanItemTitle(x.title, x.address), String(x.title || "").replace(/^[^A-Za-z]+/, ""), x.description]));
         setPersonal({ overdue: (data.personal && data.personal.overdue) || [], dueToday: (data.personal && data.personal.dueToday) || [], upcoming: (data.personal && data.personal.upcoming) || [] });
       }
       if (callsRes && callsRes.ok) {
@@ -1604,7 +1604,7 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
       if (!r.ok || !d.success) throw new Error(d.error || "Couldn't reschedule");
       window.dispatchEvent(new Event("wintheday:refresh"));
       fetchTasks({ silent: true });
-    } catch (e) { alert("Could not reschedule: " + e.message); }
+    } catch (e) { alert(tr("Could not reschedule: ") + e.message); }
   };
 
   const handleSnooze = async (taskId) => {
@@ -1624,7 +1624,7 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
     // on the next visit (tc1 9/28). Un-hide it and say so instead.
     const failed = () => {
       setResolvedIds(prev => { const n = new Set(prev); n.delete(task.id); return n; });
-      alert("That didn't save — the card is still open. Please try again.");
+      alert(tr("That didn't save — the card is still open. Please try again."));
     };
     try {
       const r = task.target_ref_id
@@ -1702,7 +1702,7 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
       targetId = chaseTask.target_ref_id;
     }
     if (!targetId) {
-      alert("This task doesn't have a linked milestone/task yet. Regenerate tasks and try again.");
+      alert(tr("This task doesn't have a linked milestone/task yet. Regenerate tasks and try again."));
       setChaseSubmitting(false);
       return;
     }
@@ -1728,19 +1728,19 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
 
       if (data.success) {
         await persistResolve(chaseTask.id);
-        alert("Follow-up started! First reminder will be sent shortly to " + (data.party?.name || "the party") + ".");
+        alert(tr("Follow-up started! First reminder will be sent shortly to ") + (data.party?.name || tr("the party")) + ".");
         setChaseTask(null);
         setResolvedIds(prev => new Set([...prev, chaseTask.id]));
       } else if (data.error && data.error.includes("already active")) {
         await persistResolve(chaseTask.id);
-        alert("A follow-up is already running for this item. It will keep going until the task is marked complete.");
+        alert(tr("A follow-up is already running for this item. It will keep going until the task is marked complete."));
         setChaseTask(null);
         setResolvedIds(prev => new Set([...prev, chaseTask.id]));
       } else {
-        alert("Could not start follow-up: " + (data.error || "unknown error"));
+        alert(tr("Could not start follow-up: ") + (data.error || tr("unknown error")));
       }
     } catch (e) {
-      alert("Network error starting follow-up");
+      alert(tr("Network error starting follow-up"));
     }
     setChaseSubmitting(false);
   };
@@ -1829,7 +1829,7 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
         <div style={{ width:36, height:36, border:"3px solid "+COLORS.lightRed,
           borderTop:"3px solid "+COLORS.red, borderRadius:"50%",
           animation:"spin 0.8s linear infinite" }} />
-        <div style={{ color:COLORS.gray, fontSize:14 }}>Loading your day...</div>
+        <div style={{ color:COLORS.gray, fontSize:14 }}>{tr("Loading your day...")}</div>
         <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
       </div>
     );
@@ -1841,14 +1841,16 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
       {/* Morning Greeting */}
       <div style={{ padding:"24px 0 16px" }}>
         <div style={{ fontSize:22, fontWeight:800, color:COLORS.black }}>
-          {greeting}{firstName ? ", " + firstName : ""}! ☀️
+          {firstName ? tr(greeting + ", {name}! ☀️", { name: firstName }) : tr(greeting + "! ☀️")}
         </div>
         <div style={{ color:COLORS.gray, fontSize:14, marginTop:4 }}>
           {totalVisible === 0
-            ? (callsDue.length > 0 ? `${callsDue.length} call${callsDue.length === 1 ? "" : "s"} to make today.`
-              : (!coordinatorMode && dealCount === 0) ? "Welcome aboard — here's where your day will live."
-              : "You are all caught up today.")
-            : `You have ${totalVisible} task${totalVisible === 1 ? "" : "s"}${callsDue.length > 0 ? ` and ${callsDue.length} call${callsDue.length === 1 ? "" : "s"}` : ""} that need your attention.`}
+            ? (callsDue.length > 0 ? tn(callsDue.length, "{n} call to make today.", "{n} calls to make today.")
+              : (!coordinatorMode && dealCount === 0) ? tr("Welcome aboard — here's where your day will live.")
+              : tr("You are all caught up today."))
+            : callsDue.length > 0
+              ? tr("You have {tasks} and {calls} that need your attention.", { tasks: tn(totalVisible, "{n} task", "{n} tasks"), calls: tn(callsDue.length, "{n} call", "{n} calls") })
+              : tn(totalVisible, "You have {n} task that needs your attention.", "You have {n} tasks that need your attention.")}
         </div>
       </div>
 
@@ -1885,11 +1887,11 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
           </div>
           {allDone ? (
             <div style={{ background: "#f0fdf4", border: "1px solid #86efac", borderRadius: 8, padding: 12, fontSize: 13, color: "#166534", marginBottom: 10, fontWeight: 700, textAlign: "center" }}>
-              🎉 All {totalCalls} call{totalCalls === 1 ? "" : "s"} on this list done! Fresh list tomorrow.
+              {tr("🎉 All")} {totalCalls} {tr("call")}{totalCalls === 1 ? "" : "s"} {tr("on this list done! Fresh list tomorrow.")}
             </div>
           ) : (
             <div style={{ background: "#eff6ff", border: "1px solid #93c5fd", borderRadius: 8, padding: 10, fontSize: 11, color: "#1e3a8a", marginBottom: 10 }}>
-              💡 {tip} {totalCalls - doneCalls} to go — finish these {totalCalls} and this list is done (no new calls added until tomorrow).
+              💡 {tr(tip)} {totalCalls - doneCalls} {tr("to go — finish these")} {totalCalls} {tr("and this list is done (no new calls added until tomorrow).")}
             </div>
           )}
           {list.map(c => {
@@ -1907,10 +1909,10 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
                       {c.tier && <span style={{ marginLeft: 6, fontSize: 11, fontWeight: 800, color: "#fff", background: "#9ca3af", borderRadius: 10, padding: "1px 7px" }}>{c.tier}</span>}
                     </div>
                     <div style={{ fontSize: 12, color: "#5F6B7A", marginTop: 2 }}>
-                      {c.last_outcome ? `logged: ${String(c.last_outcome).replace(/_/g, " ")}` : "logged"}
+                      {c.last_outcome ? `logged: ${String(c.last_outcome).replace(/_/g, " ")}` : tr("logged")}
                     </div>
                   </div>
-                  <span style={{ color: "#15803d", fontWeight: 800, fontSize: 13, whiteSpace: "nowrap", flexShrink: 0 }}>✓ Done</span>
+                  <span style={{ color: "#15803d", fontWeight: 800, fontSize: 13, whiteSpace: "nowrap", flexShrink: 0 }}>{tr("✓ Done")}</span>
                 </div>
               );
             }
@@ -1927,9 +1929,9 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
                     </div>
                   )}
                   <div style={{ fontSize: 12, color: "#6b7280", marginTop: 2 }}>
-                    {c.phone || c.email || "no contact info"}
-                    {c.last_outcome && <span style={{ marginLeft: 8 }}>· last: {String(c.last_outcome).replace(/_/g, " ")}</span>}
-                    {overdue && <span style={{ color: "#b91c1c", marginLeft: 8, fontWeight: 600 }}>⚠️ Overdue</span>}
+                    {c.phone || c.email || tr("no contact info")}
+                    {c.last_outcome && <span style={{ marginLeft: 8 }}>{tr("· last:")} {String(c.last_outcome).replace(/_/g, " ")}</span>}
+                    {overdue && <span style={{ color: "#b91c1c", marginLeft: 8, fontWeight: 600 }}>{tr("⚠️ Overdue")}</span>}
                   </div>
                   {c.notes && (
                     <div style={{ fontSize: 11, color: "#6b7280", marginTop: 4, fontStyle: "italic", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
@@ -1943,7 +1945,7 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
                   // so the state change doesn't unmount the link before it navigates).
                   <a href={`tel:${telHref(c.phone)}`} onClick={() => { setTimeout(() => setCalledIds(s => new Set(s).add(c.id)), 800); }}
                     style={{ background: "#15803d", color: "#fff", fontWeight: 700, fontSize: 13, padding: "9px 16px", borderRadius: 8, textDecoration: "none", whiteSpace: "nowrap", flexShrink: 0 }}>
-                    📞 Call
+                    {tr("📞 Call")}
                   </a>
                 ) : (
                   // Desktop: log directly. Mobile after a call: auto-open the log
@@ -1969,7 +1971,7 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
             </div>
             <button onClick={() => pullMoreCalls(kind)} disabled={!!pullingMore}
               style={{ padding: "9px 16px", borderRadius: 8, border: "none", background: pullingMore ? "#0c4a6eaa" : "#0c4a6e", color: "#fff", fontWeight: 800, fontSize: 13, cursor: pullingMore ? "wait" : "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>
-              {pullingMore === kind ? "Loading…" : `Show ${Math.min(10, count)} more`}
+              {pullingMore === kind ? tr("Loading…") : `Show ${Math.min(10, count)} more`}
             </button>
             {extraBtn}
           </div>
@@ -1977,20 +1979,20 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
         const reviewBtn = (
           <button onClick={() => setReviewOpen(true)}
             style={{ padding: "9px 16px", borderRadius: 8, border: "1px solid #B45309", background: "#fff", color: "#B45309", fontWeight: 800, fontSize: 13, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>
-            📋 Review all
+            {tr("📋 Review all")}
           </button>
         );
         return (
           <>
             {renderCallSection(followUps, "🔁 FOLLOW-UPS YOU PROMISED", "#7c2d12",
-              <>These are follow-up calls you scheduled — knock these out first, then keep going with today's list below.</>)}
-            {pullMoreBanner(callBacklog, "followup", n => <>You have {n} more follow-up{n === 1 ? "" : "s"} due beyond today's list — promises waiting past their date.</>, reviewBtn)}
+              <>{tr("These are follow-up calls you scheduled — knock these out first, then keep going with today's list below.")}</>)}
+            {pullMoreBanner(callBacklog, "followup", n => <>{tr("You have")} {n} {tr("more follow-up")}{n === 1 ? "" : "s"} {tr("due beyond today's list — promises waiting past their date.")}</>, reviewBtn)}
             {callBacklog === 0 && followUps.length > 0 && (
               <div style={{ display: "flex", justifyContent: "flex-end", marginTop: -6, marginBottom: 12 }}>{reviewBtn}</div>
             )}
             {renderCallSection(rhythm, "📞 CALLS DUE TODAY", "#0c4a6e",
-              <>Tap <b>Call</b> to dial — then log the outcome.</>)}
-            {pullMoreBanner(rhythmBacklog, "rhythm", n => <>You have {n} more contact{n === 1 ? "" : "s"} due for a call beyond today's list.</>)}
+              <>{tr("Tap")} <b>{tr("Call")}</b> {tr("to dial — then log the outcome.")}</>)}
+            {pullMoreBanner(rhythmBacklog, "rhythm", n => <>{tr("You have")} {n} {tr("more contact")}{n === 1 ? "" : "s"} {tr("due for a call beyond today's list.")}</>)}
             {reviewOpen && <FollowupReviewModal token={token} isMobile={isMobile} onClose={() => { setReviewOpen(false); fetchTasks(); }} />}
           </>
         );
@@ -1999,10 +2001,10 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
       {/* BIRTHDAYS & ANNIVERSARIES (next 7 days) */}
       {occasions.length > 0 && (
         <div style={{ marginBottom: 24 }}>
-          <SectionHeader label={"🎂 BIRTHDAYS & ANNIVERSARIES THIS WEEK"} count={occasions.length} color={"#be185d"} />
+          <SectionHeader label={tr("🎂 BIRTHDAYS & ANNIVERSARIES THIS WEEK")} count={occasions.length} color={"#be185d"} />
           {occasions.map(o => {
             const name = [o.first_name, o.last_name].filter(Boolean).join(" ") || o.phone || "(no name)";
-            const md = (d) => d ? new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "";
+            const md = (d) => d ? new Date(d).toLocaleDateString(uiLocale(), { month: "short", day: "numeric" }) : "";
             const items = [];
             if (o.birthday) items.push("🎂 Birthday " + md(o.birthday));
             if (o.wedding_anniversary) items.push("💍 Anniversary " + md(o.wedding_anniversary));
@@ -2067,25 +2069,25 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
         };
         const renderCritical = (a) => (
           <div key={a.id} style={{ background: "#fef2f2", border: "1px solid #fca5a5", borderLeft: "5px solid #dc2626", borderRadius: 8, padding: 12, marginBottom: 8 }}>
-            <div style={{ fontWeight: 800, fontSize: 13.5, color: "#7f1d1d" }}>{a.title}</div>
+            <div style={{ fontWeight: 800, fontSize: 13.5, color: "#7f1d1d" }}>{tr(a.title)}</div>
             {a.body && <div style={{ fontSize: 12.5, color: "#991b1b", marginTop: 2, whiteSpace: "pre-line" }}>{a.body}</div>}
-            <div style={{ fontSize: 11, color: "#5F6B7A", marginTop: 3 }}>{new Date(a.created_at).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</div>
+            <div style={{ fontSize: 11, color: "#5F6B7A", marginTop: 3 }}>{new Date(a.created_at).toLocaleString(uiLocale(), { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</div>
             <div style={{ display: "flex", gap: 8, marginTop: 9, flexWrap: "wrap" }}>
               {(a.transaction_id || a.kind === "email_needs_filing") && (
                 <button onClick={() => goTo(a)}
                   style={{ padding: "7px 14px", borderRadius: 8, border: "none", background: "#0c4a6e", color: "#fff", fontSize: 12.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>
-                  → Take me there
+                  {tr("→ Take me there")}
                 </button>
               )}
               {a.kind === "reminder_overdue" && a.target_id ? (
                 <button onClick={() => doneReminderAlert(a)}
                   style={{ padding: "7px 14px", borderRadius: 8, border: "1px solid #7DD3FC", background: "#E0F2FE", color: "#0c4a6e", fontSize: 12.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>
-                  ✓ Done — mark this reminder done
+                  {tr("✓ Done — mark this reminder done")}
                 </button>
               ) : (
                 <button onClick={() => ackAlert(a)}
                   style={{ padding: "7px 14px", borderRadius: 8, border: "1px solid #fca5a5", background: "#fff", color: "#b91c1c", fontSize: 12.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>
-                  ✓ Done — clear this alert
+                  {tr("✓ Done — clear this alert")}
                 </button>
               )}
             </div>
@@ -2095,9 +2097,9 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
           <div key={a.id} style={{ background: a.seen_at ? "#fafafa" : "#f5f3ff", border: "1px solid " + (a.seen_at ? "#e5e7eb" : "#c4b5fd"), borderRadius: 8, padding: 12, marginBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10, opacity: a.seen_at ? 0.75 : 1 }}>
             <div style={{ flex: 1, minWidth: 0, cursor: a.transaction_id ? "pointer" : "default" }}
               onClick={() => a.transaction_id && onOpenTransactionMilestones && onOpenTransactionMilestones(a.transaction_id)}>
-              <div style={{ fontWeight: 700, fontSize: 13.5, color: "#111" }}>{a.title}</div>
+              <div style={{ fontWeight: 700, fontSize: 13.5, color: "#111" }}>{tr(a.title)}</div>
               {a.body && <div style={{ fontSize: 12.5, color: "#4b5563", marginTop: 2, whiteSpace: "pre-line" }}>{a.body}</div>}
-              <div style={{ fontSize: 11, color: "#5F6B7A", marginTop: 3 }}>{new Date(a.created_at).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}{a.transaction_id ? " · tap to open the deal" : ""}</div>
+              <div style={{ fontSize: 11, color: "#5F6B7A", marginTop: 3 }}>{new Date(a.created_at).toLocaleString(uiLocale(), { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}{a.transaction_id ? tr(" · tap to open the deal") : ""}</div>
             </div>
             {!a.seen_at && (
               <button onClick={async () => {
@@ -2105,7 +2107,7 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
                 setRecentAlerts(list => list.map(x => x.id === a.id ? { ...x, seen_at: new Date().toISOString() } : x));
               }}
                 style={{ flexShrink: 0, padding: "6px 12px", borderRadius: 8, border: "1px solid #c4b5fd", background: "#fff", color: "#6d28d9", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
-                Got it
+                {tr("Got it")}
               </button>
             )}
           </div>
@@ -2114,14 +2116,14 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
           <div id="wtd-alerts" style={{ marginBottom: 24 }}>
             {(alerts.length > 0 || unmatchedEmails.length > 0) && (
               <>
-                <SectionHeader label={"🚨 ALERTS — NEEDS YOUR ATTENTION"} count={alerts.length + (unmatchedEmails.length ? 1 : 0)} color={"#dc2626"} />
+                <SectionHeader label={tr("🚨 ALERTS — NEEDS YOUR ATTENTION")} count={alerts.length + (unmatchedEmails.length ? 1 : 0)} color={"#dc2626"} />
                 {unmatchedEmails.length > 0 && (
                   <div style={{ background: "#fff7ed", border: "1px solid #fdba74", borderLeft: "5px solid #ea580c", borderRadius: 8, padding: 12, marginBottom: 8 }}>
-                    <div style={{ fontWeight: 800, fontSize: 13.5, color: "#7c2d12" }}>📥 {unmatchedEmails.length} email{unmatchedEmails.length === 1 ? "" : "s"} need{unmatchedEmails.length === 1 ? "s" : ""} filing</div>
-                    <div style={{ fontSize: 12.5, color: "#9a3412", marginTop: 2 }}>The app received {unmatchedEmails.length === 1 ? "an email" : "emails"} it couldn't match to a deal — file {unmatchedEmails.length === 1 ? "it" : "them"} so nothing is lost.</div>
+                    <div style={{ fontWeight: 800, fontSize: 13.5, color: "#7c2d12" }}>📥 {unmatchedEmails.length} {tr("email")}{unmatchedEmails.length === 1 ? "" : "s"} {tr("need")}{unmatchedEmails.length === 1 ? "s" : ""} {tr("filing")}</div>
+                    <div style={{ fontSize: 12.5, color: "#9a3412", marginTop: 2 }}>{tr("The app received")} {unmatchedEmails.length === 1 ? tr("an email") : tr("emails")} {tr("it couldn't match to a deal — file")} {unmatchedEmails.length === 1 ? tr("it") : tr("them")} {tr("so nothing is lost.")}</div>
                     <button onClick={openFiling}
                       style={{ marginTop: 9, padding: "7px 14px", borderRadius: 8, border: "none", background: "#0c4a6e", color: "#fff", fontSize: 12.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>
-                      → Open Needs Filing
+                      {tr("→ Open Needs Filing")}
                     </button>
                   </div>
                 )}
@@ -2132,7 +2134,7 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
               <>
                 <button onClick={() => setShowActivity(v => !v)}
                   style={{ width: "100%", textAlign: "left", background: "#fafafa", border: "1px solid #e5e7eb", borderRadius: 10, padding: "10px 14px", fontSize: 13, fontWeight: 700, color: "#4b5563", cursor: "pointer", fontFamily: "inherit", marginBottom: 8 }}>
-                  {showActivity ? "▾" : "▸"} 📰 Recent activity ({fyi.length}) — signings, feedback &amp; other good news
+                  {showActivity ? "▾" : "▸"} {tr("📰 Recent activity (")}{fyi.length}{tr(") — signings, feedback & other good news")}
                 </button>
                 {showActivity && fyi.map(renderFyi)}
               </>
@@ -2147,28 +2149,28 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
           style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)", zIndex: 4000, display: "flex", alignItems: "flex-start", justifyContent: "center", padding: 16, overflowY: "auto" }}>
           <div style={{ background: "#fff", borderRadius: 14, width: "100%", maxWidth: 640, margin: "24px auto", padding: 0, overflow: "hidden" }}>
             <div style={{ background: "#7c2d12", color: "#fff", padding: "14px 18px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <div style={{ fontWeight: 800, fontSize: 16 }}>📥 Needs filing</div>
+              <div style={{ fontWeight: 800, fontSize: 16 }}>{tr("📥 Needs filing")}</div>
               <button onClick={() => setShowFiling(false)} style={{ background: "none", border: "none", color: "rgba(255,255,255,0.8)", fontSize: 22, cursor: "pointer", lineHeight: 1 }}>×</button>
             </div>
             <div style={{ padding: 16, maxHeight: "70vh", overflowY: "auto" }}>
-              {unmatchedEmails.length === 0 && <div style={{ textAlign: "center", color: "#6b7280", padding: 30 }}>🎉 Nothing needs filing.</div>}
+              {unmatchedEmails.length === 0 && <div style={{ textAlign: "center", color: "#6b7280", padding: 30 }}>{tr("🎉 Nothing needs filing.")}</div>}
               {unmatchedEmails.map(m => (
                 <div key={m.id} style={{ border: "1px solid #e5e7eb", borderRadius: 10, padding: 14, marginBottom: 10 }}>
-                  <div style={{ fontWeight: 700, fontSize: 13.5 }}>{m.from_name || m.from_email || "Unknown sender"} <span style={{ color: "#6b7280", fontWeight: 400 }}>&lt;{m.from_email}&gt;</span></div>
-                  <div style={{ fontSize: 13, color: "#111", marginTop: 3, fontWeight: 600 }}>{m.subject || "(no subject)"}</div>
+                  <div style={{ fontWeight: 700, fontSize: 13.5 }}>{m.from_name || m.from_email || tr("Unknown sender")} <span style={{ color: "#6b7280", fontWeight: 400 }}>&lt;{m.from_email}&gt;</span></div>
+                  <div style={{ fontSize: 13, color: "#111", marginTop: 3, fontWeight: 600 }}>{m.subject || tr("(no subject)")}</div>
                   {m.snippet && <div style={{ fontSize: 12.5, color: "#4b5563", marginTop: 3 }}>{m.snippet}</div>}
-                  <div style={{ fontSize: 11, color: "#5F6B7A", marginTop: 3 }}>{new Date(m.created_at).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}{m.attachment_count ? ` · 📎 ${m.attachment_count} attachment(s)` : ""}</div>
+                  <div style={{ fontSize: 11, color: "#5F6B7A", marginTop: 3 }}>{new Date(m.created_at).toLocaleString(uiLocale(), { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}{m.attachment_count ? ` · 📎 ${m.attachment_count} attachment(s)` : ""}</div>
                   <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap", alignItems: "center" }}>
-                    {filingDeals === null ? <span style={{ fontSize: 12, color: "#6b7280" }}>Loading deals…</span> : (
+                    {filingDeals === null ? <span style={{ fontSize: 12, color: "#6b7280" }}>{tr("Loading deals…")}</span> : (
                       <select defaultValue="" onChange={e => e.target.value && fileEmailTo(m.id, e.target.value)}
                         style={{ padding: "8px 10px", borderRadius: 8, border: "1px solid #d1d5db", fontSize: 13, fontFamily: "inherit", maxWidth: 280 }}>
-                        <option value="" disabled>📁 File to a deal…</option>
-                        {filingDeals.map(d => <option key={d.id} value={d.id}>{d.address}</option>)}
+                        <option value="" disabled>{tr("📁 File to a deal…")}</option>
+                        {filingDeals.map(d => <option key={d.id} value={d.id}>{tr(d.address)}</option>)}
                       </select>
                     )}
                     <button onClick={() => dismissUnmatched(m.id)}
                       style={{ padding: "8px 12px", borderRadius: 8, border: "1px solid #e5e7eb", background: "#fff", color: "#6b7280", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
-                      Not deal-related — dismiss
+                      {tr("Not deal-related — dismiss")}
                     </button>
                   </div>
                 </div>
@@ -2181,14 +2183,14 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
           3+ days overdue = acknowledgment mode: Done or a new date, nothing else. */}
       {!coordinatorMode && reminderCards.length > 0 && (
         <div style={{ marginBottom: 24 }}>
-          <SectionHeader label={"⏰ YOUR REMINDERS"} count={reminderCards.length} color={"#b45309"} />
+          <SectionHeader label={tr("⏰ YOUR REMINDERS")} count={reminderCards.length} color={"#b45309"} />
           {reminderCards.map(t => {
             const du = daysUntil(t.due_date);
             const late = du !== null && du < 0 ? Math.abs(du) : 0;
             const needsAck = late >= 3;
             const pickNewDate = async () => {
               const suggestion = new Date(); suggestion.setDate(suggestion.getDate() + 1);
-              const v = await askText("Move this reminder to which date? (YYYY-MM-DD)", suggestion.toISOString().slice(0, 10));
+              const v = await askText(tr("Move this reminder to which date? (YYYY-MM-DD)"), suggestion.toISOString().slice(0, 10));
               if (!v) return;
               try {
                 const r = await fetch(API + "/reminders/" + t.target_ref_id + "/reschedule", {
@@ -2202,25 +2204,25 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
             };
             return (
               <div key={t.id} style={{ background: needsAck ? "#fef2f2" : "#fffbeb", border: "1.5px solid " + (needsAck ? "#fca5a5" : "#fcd34d"), borderLeft: "5px solid " + (needsAck ? "#dc2626" : "#d97706"), borderRadius: 10, padding: "14px 16px", marginBottom: 10 }}>
-                <div style={{ fontWeight: 800, fontSize: 14.5, color: needsAck ? "#7f1d1d" : "#78350f" }}>{String(t.title || "").replace(/^⏰\s*/, "⏰ ")}</div>
-                {t.description && <div style={{ fontSize: 12.5, color: needsAck ? "#991b1b" : "#92400e", marginTop: 3 }}>{t.description}</div>}
+                <div style={{ fontWeight: 800, fontSize: 14.5, color: needsAck ? "#7f1d1d" : "#78350f" }}>{tr(String(t.title || "").replace(/^⏰\s*/, "⏰ "))}</div>
+                {t.description && <div style={{ fontSize: 12.5, color: needsAck ? "#991b1b" : "#92400e", marginTop: 3 }}>{tr(t.description)}</div>}
                 <div style={{ fontSize: 12, fontWeight: 700, color: needsAck ? "#dc2626" : "#b45309", marginTop: 4 }}>
-                  {late > 0 ? `⚠️ Waiting ${late} day${late === 1 ? "" : "s"}` : du === 0 ? "Due today" : du === 1 ? "Due tomorrow" : `Due in ${du} days`}
-                  {needsAck && " — mark it done or pick a new date"}
+                  {late > 0 ? `⚠️ Waiting ${late} day${late === 1 ? "" : "s"}` : du === 0 ? tr("Due today") : du === 1 ? tr("Due tomorrow") : `Due in ${du} days`}
+                  {needsAck && tr(" — mark it done or pick a new date")}
                 </div>
                 <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
                   <button onClick={() => handleResolve(t.id)}
                     style={{ flex: "2 1 40%", padding: "10px 0", borderRadius: 9, border: "none", background: "#0c4a6e", color: "#fff", fontWeight: 700, fontSize: 13.5, cursor: "pointer", fontFamily: "inherit" }}>
-                    ✓ Done
+                    {tr("✓ Done")}
                   </button>
                   <button onClick={pickNewDate}
                     style={{ flex: "2 1 35%", padding: "10px 0", borderRadius: 9, border: "1.5px solid " + (needsAck ? "#dc2626" : "#d97706"), background: "#fff", color: needsAck ? "#dc2626" : "#b45309", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>
-                    📅 New date
+                    {tr("📅 New date")}
                   </button>
                   {!needsAck && (
                     <button onClick={() => handleSnooze(t.id)}
                       style={{ flex: "1 1 20%", padding: "10px 0", borderRadius: 9, border: "1.5px solid #d1d5db", background: "#fff", color: "#6b7280", fontWeight: 600, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>
-                      ⏰ Not Today
+                      {tr("⏰ Not Today")}
                     </button>
                   )}
                 </div>
@@ -2235,9 +2237,9 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
           agent has other activity; a fully-empty day shows EmptyState instead. */}
       {callsDue.length === 0 && totalVisible > 0 && (
         <div style={{ marginBottom: 16 }}>
-          <SectionHeader label={"📞 CALLS DUE TODAY"} count={"0"} color={"#0c4a6e"} />
+          <SectionHeader label={tr("📞 CALLS DUE TODAY")} count={"0"} color={"#0c4a6e"} />
           <div style={{ background: "#eff6ff", border: "1px solid #93c5fd", borderRadius: 8, padding: "10px 12px", fontSize: 12, color: "#1e3a8a" }}>
-            No calls scheduled for today. Your daily call list builds itself from your <b>Contacts</b> — add people and set follow-ups (<b>⚙️ Menu → Contacts</b>) and the right ones appear here each morning.
+            {tr("No calls scheduled for today. Your daily call list builds itself from your")} <b>{tr("Contacts")}</b> {tr("— add people and set follow-ups (")}<b>{tr("⚙️ Menu → Contacts")}</b>{tr(") and the right ones appear here each morning.")}
           </div>
         </div>
       )}
@@ -2248,8 +2250,8 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
           <button onClick={() => onOpenPopBys && onOpenPopBys()}
             style={{ width: "100%", textAlign: "left", background: "#fffbeb", border: "1px solid #fcd34d", borderRadius: 10, padding: "14px 16px", cursor: "pointer", fontFamily: "inherit", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
             <div>
-              <div style={{ fontWeight: 800, fontSize: 15, color: "#92400e" }}>🎁 {popByDueCount} pop-by{popByDueCount === 1 ? "" : "s"} to deliver</div>
-              <div style={{ fontSize: 12, color: "#b45309", marginTop: 2 }}>Plan your gift run — suggestions, route &amp; note cards →</div>
+              <div style={{ fontWeight: 800, fontSize: 15, color: "#92400e" }}>🎁 {popByDueCount} {tr("pop-by")}{popByDueCount === 1 ? "" : "s"} {tr("to deliver")}</div>
+              <div style={{ fontSize: 12, color: "#b45309", marginTop: 2 }}>{tr("Plan your gift run — suggestions, route & note cards →")}</div>
             </div>
             <span style={{ fontSize: 20, color: "#b45309" }}>→</span>
           </button>
@@ -2259,20 +2261,20 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
       {/* MONTHLY MONEY CHECK — once a month, close out last month's books */}
       {!coordinatorMode && financialsCards.map(t => (
         <div key={t.id} style={{ background: "linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)", border: "1.5px solid #10b981", borderRadius: 14, padding: 16, marginBottom: 18 }}>
-          <div style={{ fontWeight: 800, fontSize: 15, color: "#065f46", marginBottom: 6 }}>🧾 {t.title.replace(/^🧾\s*/, "")}</div>
-          <div style={{ fontSize: 13.5, color: "#047857", lineHeight: 1.5, marginBottom: 12 }}>{t.description}</div>
+          <div style={{ fontWeight: 800, fontSize: 15, color: "#065f46", marginBottom: 6 }}>🧾 {tr(t.title.replace(/^🧾\s*/, "").replace(/^[^A-Za-z]+/, ""))}</div>
+          <div style={{ fontSize: 13.5, color: "#047857", lineHeight: 1.5, marginBottom: 12 }}>{tr(t.description)}</div>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
             <button onClick={() => window.dispatchEvent(new CustomEvent("tp:open-financials"))}
               style={{ flex: "2 1 55%", padding: "11px 0", borderRadius: 10, border: "none", background: "#0c4a6e", color: "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer" }}>
-              💵 Open Financials →
+              {tr("💵 Open Financials →")}
             </button>
             <button onClick={() => handleResolve(t.id)}
               style={{ flex: "1 1 20%", padding: "11px 0", borderRadius: 10, border: "1.5px solid #0c4a6e", background: "#fff", color: "#065f46", fontWeight: 600, fontSize: 13, cursor: "pointer" }}>
-              ✓ Done
+              {tr("✓ Done")}
             </button>
             <button onClick={() => handleSnooze(t.id)}
               style={{ flex: "1 1 20%", padding: "11px 0", borderRadius: 10, border: "1.5px solid #d1d5db", background: "#fff", color: "#6b7280", fontWeight: 600, fontSize: 13, cursor: "pointer" }}>
-              ⏰ Not Today
+              {tr("⏰ Not Today")}
             </button>
           </div>
         </div>
@@ -2281,7 +2283,7 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
       {/* OVERDUE / URGENT */}
             {(personal.overdue.length > 0 || personal.dueToday.length > 0) && (
         <div style={{ marginBottom: 24 }}>
-          <SectionHeader label="📝 GENERAL TASKS DUE TODAY" count={personal.overdue.length + personal.dueToday.length} color="#1E8449" />
+          <SectionHeader label={tr("📝 GENERAL TASKS DUE TODAY")} count={personal.overdue.length + personal.dueToday.length} color="#1E8449" />
           {[...personal.overdue, ...personal.dueToday].map(t => (
             <PersonalTaskCard key={t.id} task={t} token={token} onChange={fetchTasks} />
           ))}
@@ -2289,7 +2291,7 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
       )}
       {personal.upcoming.length > 0 && (
         <div style={{ marginBottom: 24 }}>
-          <SectionHeader label="📝 GENERAL TASKS — NEXT 2 DAYS & UNDATED" count={personal.upcoming.length} color="#1E8449" />
+          <SectionHeader label={tr("📝 GENERAL TASKS — NEXT 2 DAYS & UNDATED")} count={personal.upcoming.length} color="#1E8449" />
           {personal.upcoming.map(t => (
             <PersonalTaskCard key={t.id} task={t} token={token} onChange={fetchTasks} />
           ))}
@@ -2298,7 +2300,7 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
       {/* ONE CARD PER TRANSACTION — all of a deal's items grouped, urgent first */}
       {dealGroups.length > 0 && (
         <div>
-          {!coordinatorMode && <SectionHeader label="YOUR DEALS TODAY" count={dealGroups.length} color={COLORS.red} />}
+          {!coordinatorMode && <SectionHeader label={tr("YOUR DEALS TODAY")} count={dealGroups.length} color={COLORS.red} />}
           {dealGroups.map(deal => (
             <DealGroupCard key={deal.transaction_id || deal.tasks[0]?.id} deal={deal} token={token}
               coordinatorMode={coordinatorMode} meta={ccMeta[deal.transaction_id]}
@@ -2322,7 +2324,7 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
             style={{ width:"100%", textAlign:"left", background:"#E0F2FE", border:"1px solid #7DD3FC",
               borderRadius:12, padding:"12px 14px", fontSize:14, fontWeight:700, color:"#0c4a6e",
               cursor:"pointer", fontFamily:"inherit" }}>
-            ✅ {onTrackDeals.length} on track &amp; handled {showOnTrack ? "▲" : "▼"}
+            ✅ {onTrackDeals.length} {tr("on track & handled")} {showOnTrack ? "▲" : "▼"}
           </button>
           {showOnTrack && (
             <div style={{ marginTop: 8 }}>
@@ -2334,7 +2336,7 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
                     background: d.health === "red" ? "#DC2626" : d.health === "yellow" ? "#D97706" : d.health === "green" ? "#16A34A" : "#CBD5E1" }} />
                   <span style={{ fontWeight:600, color:COLORS.black }}>{d.address}</span>
                   <span style={{ color:COLORS.gray }}>· {d.status}</span>
-                  {d.closingDate && <span style={{ marginLeft:"auto", color:COLORS.gray, fontSize:12 }}>Closing {d.closingDate}</span>}
+                  {d.closingDate && <span style={{ marginLeft:"auto", color:COLORS.gray, fontSize:12 }}>{tr("Closing")} {d.closingDate}</span>}
                 </div>
               ))}
             </div>
@@ -2347,7 +2349,7 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
         style={{ width:"100%", marginTop:24, padding:16, borderRadius:12,
           border:"2px solid "+COLORS.border, background:COLORS.white,
           color:COLORS.black, fontWeight:700, fontSize:15, cursor:"pointer" }}>
-        📋 View All My Transactions
+        {tr("📋 View All My Transactions")}
       </button>
 
       {/* Per-card "Send reminder" → review exactly what would go out first */}
@@ -2357,7 +2359,7 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
           <div onClick={e => e.stopPropagation()} style={{ background:COLORS.white, borderRadius:14, width:"100%",
             maxWidth:640, margin:"auto", padding:20, boxShadow:"0 10px 40px rgba(0,0,0,0.2)" }}>
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", gap:10, marginBottom:6 }}>
-              <div style={{ fontSize:17, fontWeight:800, color:COLORS.black }}>Review today's reminders</div>
+              <div style={{ fontSize:17, fontWeight:800, color:COLORS.black }}>{tr("Review today's reminders")}</div>
               <button onClick={() => setReminderReviewTx(null)} style={{ background:"none", border:"none", fontSize:20, color:COLORS.gray, cursor:"pointer" }}>✕</button>
             </div>
             <ReminderPlanReview token={token} txId={reminderReviewTx} inModal
@@ -2393,14 +2395,14 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
           <div onClick={e => e.stopPropagation()}
             style={{ background:COLORS.white, borderRadius:14, padding:20, maxWidth:420, width:"100%",
               maxHeight:"90vh", overflowY:"auto", margin:"auto" }}>
-            <div style={{ fontSize:18, fontWeight:800, marginBottom:6 }}>Start Follow-Up</div>
+            <div style={{ fontSize:18, fontWeight:800, marginBottom:6 }}>{tr("Start Follow-Up")}</div>
             <div style={{ fontSize:13, color:COLORS.gray, marginBottom:14 }}>
-              {chaseTask.title}
+              {tr(chaseTask.title)}
             </div>
 
             {previewLoading && (
               <div style={{ padding:"24px 0", textAlign:"center", color:COLORS.gray, fontSize:13 }}>
-                Loading preview...
+                {tr("Loading preview...")}
               </div>
             )}
 
@@ -2413,7 +2415,7 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
             {!previewLoading && chasePreview && chasePreview.success && (
               <>
                 <div style={{ fontSize:11, fontWeight:700, color:COLORS.gray, marginBottom:6, letterSpacing:0.5 }}>
-                  WILL CONTACT
+                  {tr("WILL CONTACT")}
                 </div>
                 <div style={{ background:"#F3F4F6", borderRadius:10, padding:12, marginBottom:14 }}>
                   <div style={{ fontWeight:700, fontSize:15, marginBottom:2 }}>👤 {chasePreview.party.name}</div>
@@ -2423,33 +2425,33 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
                 </div>
 
                 <div style={{ fontSize:11, fontWeight:700, color:COLORS.gray, marginBottom:6, letterSpacing:0.5 }}>
-                  MESSAGE PREVIEW
+                  {tr("MESSAGE PREVIEW")}
                 </div>
                 <div style={{ background:"#FFFBEB", border:"1px solid #FCD34D", borderRadius:8, padding:12, marginBottom:14, fontSize:13, lineHeight:1.6, whiteSpace:"pre-wrap" }}>
                   {chaseCustomMsg || chasePreview.defaultMessage}
                 </div>
 
                 <div style={{ fontSize:11, fontWeight:700, color:COLORS.gray, marginBottom:6, letterSpacing:0.5 }}>
-                  EDIT MESSAGE (OPTIONAL)
+                  {tr("EDIT MESSAGE (OPTIONAL)")}
                 </div>
                 <textarea
                   value={chaseCustomMsg}
                   onChange={e => setChaseCustomMsg(e.target.value)}
-                  placeholder="Leave blank to use the message above"
+                  placeholder={tr("Leave blank to use the message above")}
                   style={{ width:"100%", minHeight:70, padding:10, borderRadius:8,
                     border:"1.5px solid "+COLORS.border, fontSize:13, fontFamily:"inherit", boxSizing:"border-box", marginBottom:14 }}
                 />
 
                 <div style={{ fontSize:11, fontWeight:700, color:COLORS.gray, marginBottom:6, letterSpacing:0.5 }}>
-                  FOLLOW-UP SCHEDULE
+                  {tr("FOLLOW-UP SCHEDULE")}
                 </div>
                 <div style={{ background:"#EFF6FF", borderRadius:8, padding:12, marginBottom:14, fontSize:12, lineHeight:1.7, color:"#1E3A8A" }}>
-                  • First message: <strong>right now</strong> (SMS + email)<br/>
-                  • 2nd reminder: in 48 hours<br/>
-                  • 3rd reminder: 24 hours after that<br/>
-                  • 4th & 5th: every 12 hours<br/>
-                  • Stops automatically when marked complete<br/>
-                  • You get alerted if they stop responding
+                  {tr("• First message:")} <strong>{tr("right now")}</strong> {tr("(SMS + email)")}<br/>
+                  {tr("• 2nd reminder: in 48 hours")}<br/>
+                  {tr("• 3rd reminder: 24 hours after that")}<br/>
+                  {tr("• 4th & 5th: every 12 hours")}<br/>
+                  {tr("• Stops automatically when marked complete")}<br/>
+                  {tr("• You get alerted if they stop responding")}
                 </div>
               </>
             )}
@@ -2459,13 +2461,13 @@ export default function DailyDashboard({ token, user, onViewTransactions, onOpen
                 style={{ flex:1, padding:"12px 0", borderRadius:10,
                   border:"1.5px solid "+COLORS.border, background:COLORS.white,
                   color:COLORS.gray, fontWeight:600, fontSize:14, cursor:"pointer" }}>
-                Cancel
+                {tr("Cancel")}
               </button>
               <button onClick={submitChase} disabled={chaseSubmitting || previewLoading || (chasePreview && chasePreview.error)}
                 style={{ flex:2, padding:"12px 0", borderRadius:10, border:"none",
                   background:"#0c4a6e", color:COLORS.white, fontWeight:700, fontSize:14,
                   cursor: chaseSubmitting ? "wait" : "pointer", opacity: (chaseSubmitting || previewLoading || (chasePreview && chasePreview.error)) ? 0.5 : 1 }}>
-                {chaseSubmitting ? "Sending..." : "Send & Start Follow-Up"}
+                {chaseSubmitting ? tr("Sending...") : tr("Send & Start Follow-Up")}
               </button>
             </div>
           </div>

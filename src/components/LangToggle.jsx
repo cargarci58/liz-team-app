@@ -1,13 +1,15 @@
 import React from "react";
-import { useLang, setLang, saveLangToAccount } from "../i18n";
+import { useLang, setLang, saveLangToAccount, saveStaffLang } from "../i18n";
 
 // EN | ES switch for client-facing screens. `account` = also save the choice
 // on the signed-in client's account so emails and texts follow it.
 // persist=false (agent previewing a client's portal) changes only this screen.
-export default function LangToggle({ account = false, persist = true, style }) {
+// staff = agent / TC header: saves their own screen language and reloads.
+export default function LangToggle({ account = false, persist = true, staff = false, style }) {
   const lang = useLang();
   const pick = (l) => {
     if (l === lang) return;
+    if (staff) { saveStaffLang(l); return; }
     setLang(l, { persist });
     if (account) saveLangToAccount(l);
   };

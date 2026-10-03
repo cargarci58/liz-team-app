@@ -1,3 +1,4 @@
+import { t as tr, locale as uiLocale } from "./i18n";
 import { useEffect, useState, useCallback } from "react";
 import { askConfirm } from "./ui/dialogs";
 import { t, useLang, applyPreferredLang } from "./i18n";
@@ -11,7 +12,7 @@ import LangToggle from "./components/LangToggle";
 const API = "https://liz-team-server-api-production.up.railway.app";
 const C = { red: "#C0392B", darkRed: "#922B21", gray: "#6B7280", light: "#F4F4F4", border: "#E5E7EB", blue: "#0c4a6e", green: "#1E8449", black: "#1F2937" };
 const authHeaders = () => ({ "Content-Type": "application/json", Authorization: "Bearer " + (localStorage.getItem("tp_token") || "") });
-const fmt = (d) => d ? new Date(d).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) : "";
+const fmt = (d) => d ? new Date(d).toLocaleString(uiLocale(), { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) : "";
 
 function statusOf(r) {
   if (r.confirmed_at) {
@@ -47,27 +48,27 @@ export function WelcomeReminderModal({ receiptId, onClose, onSent }) {
   return (
     <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 3000, display: "flex", alignItems: "flex-start", justifyContent: "center", overflowY: "auto", padding: "40px 16px" }}>
       <div onClick={e => e.stopPropagation()} style={{ background: "#fff", borderRadius: 14, width: "100%", maxWidth: 560, padding: 22 }}>
-        <div style={{ fontWeight: 800, fontSize: 17, marginBottom: 4 }}>📭 Ask them to confirm the welcome email</div>
-        <div style={{ fontSize: 13, color: C.gray, marginBottom: 14 }}>Review the message. Nothing is sent until you press Send. It includes their one-click ✅ button.</div>
-        {!draft && !err && <div style={{ color: C.gray }}>Loading…</div>}
+        <div style={{ fontWeight: 800, fontSize: 17, marginBottom: 4 }}>{tr("📭 Ask them to confirm the welcome email")}</div>
+        <div style={{ fontSize: 13, color: C.gray, marginBottom: 14 }}>{tr("Review the message. Nothing is sent until you press Send. It includes their one-click ✅ button.")}</div>
+        {!draft && !err && <div style={{ color: C.gray }}>{tr("Loading…")}</div>}
         {draft && draft.bounced && (
           <div style={{ background: "#FADBD8", color: C.darkRed, borderRadius: 8, padding: 10, fontSize: 13, marginBottom: 12 }}>
-            ⚠️ Their last email to {draft.to} bounced. Fix the address in People and use their Send Welcome instead — a reminder to the same address will bounce too.
+            {tr("⚠️ Their last email to")} {draft.to} {tr("bounced. Fix the address in People and use their Send Welcome instead — a reminder to the same address will bounce too.")}
           </div>
         )}
         {draft && (<>
-          <div style={{ fontSize: 12, fontWeight: 700, color: C.gray, marginBottom: 4 }}>To</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: C.gray, marginBottom: 4 }}>{tr("To")}</div>
           <div style={{ fontSize: 14, marginBottom: 12 }}>{draft.toName ? `${draft.toName} · ` : ""}{draft.to}</div>
-          <div style={{ fontSize: 12, fontWeight: 700, color: C.gray, marginBottom: 4 }}>Subject</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: C.gray, marginBottom: 4 }}>{tr("Subject")}</div>
           <input value={draft.subject} onChange={e => setDraft(d => ({ ...d, subject: e.target.value }))} style={{ ...inp, marginBottom: 12 }} />
-          <div style={{ fontSize: 12, fontWeight: 700, color: C.gray, marginBottom: 4 }}>Message</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: C.gray, marginBottom: 4 }}>{tr("Message")}</div>
           <textarea value={draft.body} onChange={e => setDraft(d => ({ ...d, body: e.target.value }))} rows={10} style={{ ...inp, resize: "vertical", lineHeight: 1.5 }} />
         </>)}
         {err && <div style={{ color: C.darkRed, fontSize: 13, marginTop: 10 }}>{err}</div>}
         <div style={{ display: "flex", gap: 8, marginTop: 16, justifyContent: "flex-end", flexWrap: "wrap" }}>
-          <button onClick={onClose} style={{ padding: "10px 18px", borderRadius: 8, border: "1px solid " + C.border, background: "#fff", color: C.gray, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Cancel</button>
+          <button onClick={onClose} style={{ padding: "10px 18px", borderRadius: 8, border: "1px solid " + C.border, background: "#fff", color: C.gray, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>{tr("Cancel")}</button>
           <button onClick={send} disabled={!draft || busy} style={{ padding: "10px 18px", borderRadius: 8, border: "none", background: "#0c4a6e", color: "#fff", fontWeight: 700, cursor: draft && !busy ? "pointer" : "default", opacity: draft && !busy ? 1 : 0.6, fontFamily: "inherit" }}>
-            {busy ? "Sending…" : "✉️ Send reminder"}
+            {busy ? tr("Sending…") : tr("✉️ Send reminder")}
           </button>
         </div>
       </div>
@@ -76,9 +77,9 @@ export function WelcomeReminderModal({ receiptId, onClose, onSent }) {
 }
 
 export async function markWelcomeReceiptConfirmed(receiptId, name) {
-  if (!(await askConfirm(`Mark ${name || "this person"} as confirmed?\n\nUse this when they told you directly (phone, text, in person) that they got the welcome email.`, { okLabel: "Yes, confirmed" }))) return false;
+  if (!(await askConfirm(`Mark ${name || "this person"} as confirmed?\n\nUse this when they told you directly (phone, text, in person) that they got the welcome email.`, { okLabel: tr("Yes, confirmed") }))) return false;
   const r = await fetch(`${API}/welcome-receipts/${receiptId}/mark-confirmed`, { method: "POST", headers: authHeaders(), body: "{}" });
-  if (!r.ok) { alert("Could not save — please try again."); return false; }
+  if (!r.ok) { alert(tr("Could not save — please try again.")); return false; }
   return true;
 }
 
@@ -97,25 +98,25 @@ export default function WelcomeReceiptsPanel({ tx }) {
   return (
     <div style={{ border: "1px solid " + C.border, borderRadius: 12, padding: 14, marginBottom: 16, background: "#fff" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 10 }}>
-        <div style={{ fontWeight: 800, fontSize: 14 }}>📩 Welcome email received?</div>
-        <div style={{ fontSize: 12, fontWeight: 700, color: done === rows.length ? C.green : C.darkRed }}>{done} of {rows.length} confirmed</div>
+        <div style={{ fontWeight: 800, fontSize: 14 }}>{tr("📩 Welcome email received?")}</div>
+        <div style={{ fontSize: 12, fontWeight: 700, color: done === rows.length ? C.green : C.darkRed }}>{done} {tr("of")} {rows.length} {tr("confirmed")}</div>
       </div>
       {rows.map(r => {
         const s = statusOf(r);
         return (
           <div key={r.id} style={{ borderTop: "1px solid " + C.border, padding: "10px 0" }}>
             <div style={{ fontWeight: 700, fontSize: 14 }}>{r.party_name || r.party_email} <span style={{ fontWeight: 500, color: C.gray, fontSize: 12 }}>· {r.party_role}</span></div>
-            <div style={{ display: "inline-block", marginTop: 4, fontSize: 12, fontWeight: 600, color: s.color, background: s.bg, borderRadius: 6, padding: "2px 8px" }}>{s.label}</div>
+            <div style={{ display: "inline-block", marginTop: 4, fontSize: 12, fontWeight: 600, color: s.color, background: s.bg, borderRadius: 6, padding: "2px 8px" }}>{tr(s.label)}</div>
             {!r.confirmed_at && (
               <div style={{ display: "flex", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
                 {!r.bounced_at && (
-                  <button onClick={() => setRemindId(r.id)} style={{ padding: "7px 12px", borderRadius: 8, border: "none", background: "#0c4a6e", color: "#fff", fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}>✉️ Review &amp; send reminder</button>
+                  <button onClick={() => setRemindId(r.id)} style={{ padding: "7px 12px", borderRadius: 8, border: "none", background: "#0c4a6e", color: "#fff", fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}>{tr("✉️ Review & send reminder")}</button>
                 )}
-                <button onClick={async () => { if (await markWelcomeReceiptConfirmed(r.id, r.party_name)) load(); }} style={{ padding: "7px 12px", borderRadius: 8, border: "1px solid " + C.green, background: "#fff", color: C.green, fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}>✓ They told me they got it</button>
-                {r.party_phone && <a href={"tel:" + r.party_phone} style={{ padding: "7px 12px", borderRadius: 8, border: "1px solid " + C.border, color: C.blue, fontWeight: 700, fontSize: 12, textDecoration: "none" }}>📞 Call</a>}
+                <button onClick={async () => { if (await markWelcomeReceiptConfirmed(r.id, r.party_name)) load(); }} style={{ padding: "7px 12px", borderRadius: 8, border: "1px solid " + C.green, background: "#fff", color: C.green, fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}>{tr("✓ They told me they got it")}</button>
+                {r.party_phone && <a href={"tel:" + r.party_phone} style={{ padding: "7px 12px", borderRadius: 8, border: "1px solid " + C.border, color: C.blue, fontWeight: 700, fontSize: 12, textDecoration: "none" }}>{tr("📞 Call")}</a>}
               </div>
             )}
-            {r.bounced_at && !r.confirmed_at && <div style={{ fontSize: 12, color: C.darkRed, marginTop: 6 }}>Fix their email on their card below, then use their ✉️ Send Welcome.</div>}
+            {r.bounced_at && !r.confirmed_at && <div style={{ fontSize: 12, color: C.darkRed, marginTop: 6 }}>{tr("Fix their email on their card below, then use their ✉️ Send Welcome.")}</div>}
           </div>
         );
       })}

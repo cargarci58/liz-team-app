@@ -1,3 +1,4 @@
+import { t as tr, locale as uiLocale } from "./i18n";
 import { useState, useEffect, useRef } from "react";
 import ReminderPlanReview from "./ReminderPlanReview";
 
@@ -46,21 +47,21 @@ export default function CoordinatorCommandCenter({ token, onOpenTransaction }) {
     // eslint-disable-next-line
   }, []);
 
-  if (loading) return <div style={{ padding: 20, color: "#64748B", fontSize: 14 }}>Loading your command center…</div>;
+  if (loading) return <div style={{ padding: 20, color: "#64748B", fontSize: 14 }}>{tr("Loading your command center…")}</div>;
   if (!data) return null;
 
   const C = { card: "#fff", border: "#E5E7EB", navy: "#0F2044", red: "#DC2626", gray: "#64748B" };
-  const timeLabel = updatedAt ? updatedAt.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }) : null;
+  const timeLabel = updatedAt ? updatedAt.toLocaleTimeString(uiLocale(), { hour: "numeric", minute: "2-digit" }) : null;
 
   return (
     <div style={{ maxWidth: 920, margin: "0 auto", padding: "8px 16px 0" }}>
       <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", flexWrap: "wrap", gap: 8, marginBottom: 4 }}>
-        <div style={{ fontSize: 22, fontWeight: 800, color: C.navy }}>🧭 Command Center</div>
+        <div style={{ fontSize: 22, fontWeight: 800, color: C.navy }}>{tr("🧭 Command Center")}</div>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          {timeLabel && !refreshing && <span style={{ fontSize: 11.5, color: "#166534", fontWeight: 600 }}>✓ Updated {timeLabel}</span>}
+          {timeLabel && !refreshing && <span style={{ fontSize: 11.5, color: "#166534", fontWeight: 600 }}>{tr("✓ Updated")} {timeLabel}</span>}
           <button onClick={() => load(false)} disabled={refreshing}
             style={{ background: refreshing ? "#F4F4F4" : "none", border: "1px solid " + C.border, borderRadius: 8, padding: "5px 12px", fontSize: 12, fontWeight: 700, color: C.gray, cursor: refreshing ? "wait" : "pointer", fontFamily: "inherit" }}>
-            {refreshing ? "↻ Refreshing…" : "↻ Refresh"}
+            {refreshing ? tr("↻ Refreshing…") : tr("↻ Refresh")}
           </button>
         </div>
       </div>
@@ -80,7 +81,7 @@ export default function CoordinatorCommandCenter({ token, onOpenTransaction }) {
 
       {data.needsYouCount > 0 && (
         <div style={{ fontSize: 12, fontWeight: 800, color: C.gray, letterSpacing: 0.4, textTransform: "uppercase" }}>
-          Deals that need you — most urgent first
+          {tr("Deals that need you — most urgent first")}
         </div>
       )}
     </div>

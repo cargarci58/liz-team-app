@@ -1,3 +1,4 @@
+import { t as tr, locale as uiLocale, requestSpanish, useLang, getLang } from "./i18n";
 import { useState, useEffect, useRef } from "react";
 import SignerEntityFields, { entityAwareRow, signerPayload, entityRowProblem } from "./ui/SignerEntityFields";
 import { askConfirm, askText } from "./ui/dialogs";
@@ -31,17 +32,18 @@ function DocsFirstTimeTip() {
     <div style={{ background: "#EFF6FF", border: "1px solid #BFDBFE", borderRadius: 12, padding: "12px 16px", marginBottom: 16, display: "flex", gap: 12, alignItems: "flex-start" }}>
       <span style={{ fontSize: 20 }}>👋</span>
       <div style={{ flex: 1, fontSize: 13, color: "#1E3A8A", lineHeight: 1.6 }}>
-        <b>Paperwork, handled — 1, 2, 3:</b> ① The <b>checklist below</b> tells you exactly which documents this deal still needs. ② <b>Upload</b> straight into a checklist slot (or use the general upload). ③ Need it signed? <b>✍️ Get signature</b> emails a private signing link and files the signed copy back here by itself.
+        <b>{tr("Paperwork, handled — 1, 2, 3:")}</b> {tr("① The")} <b>{tr("checklist below")}</b> {tr("tells you exactly which documents this deal still needs. ②")} <b>{tr("Upload")}</b> {tr("straight into a checklist slot (or use the general upload). ③ Need it signed?")} <b>{tr("✍️ Get signature")}</b> {tr("emails a private signing link and files the signed copy back here by itself.")}
       </div>
       <button onClick={() => { setHidden(true); try { localStorage.setItem("tp_tip_docs", "1"); } catch {} }}
         style={{ background: "#0c4a6e", color: "#fff", border: "none", borderRadius: 8, padding: "7px 14px", fontSize: 12, fontWeight: 800, cursor: "pointer", fontFamily: "inherit", flexShrink: 0 }}>
-        Got it
+        {tr("Got it")}
       </button>
     </div>
   );
 }
 
 export default function DocumentsTab({ tx, coordinatorMode = false }) {
+  useLang(); // redraw when the Spanish for checklist text arrives
   // Coordinators open files through the money-free /tc view endpoint (the agent
   // view/download routes are tenant-scoped and 404 cross-tenant). Listing and
   // uploading already work for them (party-authorized, deal-tenant-tagged).
@@ -92,8 +94,8 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
       if (!d.milestonesDated && !d.executedDate && !d.closingDate) {
         alert(
           `📅 No firm dates found in "${doc.name}".\n\n` +
-          `This usually means it's an unsigned offer, or the contract dates (executed date, closing date) aren't filled in yet. ` +
-          `"Read dates" works best on the fully-signed contract.\n` +
+          tr("This usually means it's an unsigned offer, or the contract dates (executed date, closing date) aren't filled in yet. ") +
+          tr("\"Read dates\" works best on the fully-signed contract.\n") +
           (sigLine ? `\n${sigLine}\n` : "") +
           (d.notes ? `\nNote: ${d.notes}` : "")
         );
@@ -108,7 +110,7 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
         );
       }
     } catch (e) {
-      alert("Couldn't read the contract: " + e.message);
+      alert(tr("Couldn't read the contract: ") + e.message);
     } finally { setReadingDates(null); }
   };
   // "Read dates" must ONLY appear on the actual purchase contract — never on
@@ -141,7 +143,11 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
   const loadRequired = () =>
     fetch(`${API}/transactions/${tx.id}/required-documents`, { headers })
       .then(r => r.json())
-      .then(d => { if (d.success && !d.guest) { setRequired(d.items || []); setReqSummary(d.summary || null); } })
+      .then(d => { if (d.success && !d.guest) {
+        setRequired(d.items || []); setReqSummary(d.summary || null);
+        // Spanish screens: checklist names/explanations are written by the server.
+        requestSpanish((d.items || []).flatMap(it => [String(it.label || "").replace(/_/g, " "), it.description]));
+      } })
       .catch(e => console.error("Load required docs failed:", e));
 
   // Per-document e-sign status ({docId: {pending, signed}}) → row badges, so
@@ -163,7 +169,7 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
   const handleSlotUpload = async (documentType, label, e) => {
     const file = e.target.files[0];
     if (!file) return;
-    if (file.size > MAX_UPLOAD_BYTES) { alert(`File too large. Max 50 MB.`); e.target.value = ""; return; }
+    if (file.size > MAX_UPLOAD_BYTES) { alert(tr("File too large. Max 50 MB.")); e.target.value = ""; return; }
     if (file.type && !ALLOWED_UPLOAD_TYPES.includes(file.type)) { alert(`File type "${file.type}" not allowed.`); e.target.value = ""; return; }
     setSlotUploading(documentType);
     try {
@@ -182,7 +188,7 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
       await Promise.all([loadDocs(), loadRequired()]);
     } catch (err) {
       console.error("Slot upload failed:", err);
-      alert("Upload failed: " + err.message);
+      alert(tr("Upload failed: ") + err.message);
     } finally { setSlotUploading(null); e.target.value = ""; }
   };
 
@@ -190,7 +196,7 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
   const waiveSlot = async (documentType, label) => {
     const reason = await askText(`Mark "${label}" as Not Applicable for this deal.\n\nReason (required) — e.g. "Transaction broker — no disclosure needed":`, "", { okLabel: "Mark N/A" });
     if (reason == null) return;            // cancelled
-    if (!reason.trim()) { alert("A reason is required to waive a document."); return; }
+    if (!reason.trim()) { alert(tr("A reason is required to waive a document.")); return; }
     setSlotUploading(documentType);
     try {
       const res = await fetch(`${API}/transactions/${tx.id}/doc-waiver`, {
@@ -200,7 +206,7 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
       const data = await res.json();
       if (!res.ok || !data.success) throw new Error(data.error || "Waive failed");
       await loadRequired();
-    } catch (err) { alert("Waive failed: " + err.message); }
+    } catch (err) { alert(tr("Waive failed: ") + err.message); }
     finally { setSlotUploading(null); }
   };
 
@@ -209,7 +215,7 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
     try {
       await fetch(`${API}/transactions/${tx.id}/doc-waiver/${encodeURIComponent(documentType)}`, { method: "DELETE", headers });
       await loadRequired();
-    } catch (err) { alert("Undo failed: " + err.message); }
+    } catch (err) { alert(tr("Undo failed: ") + err.message); }
     finally { setSlotUploading(null); }
   };
 
@@ -220,7 +226,7 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
   // `folder` to the group's name, so it always lands where it was dropped.
   const docGroupKey = (d) => d.folder || d.category || "General";
   const createFolder = async () => {
-    const name = ((await askText("New folder name:", "", { okLabel: "Create folder" })) || "").trim();
+    const name = ((await askText(tr("New folder name:"), "", { okLabel: "Create folder" })) || "").trim();
     if (!name) return;
     try {
       const res = await fetch(`${API}/transactions/${tx.id}/document-folders`, {
@@ -230,7 +236,7 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
       if (!res.ok || !data.success) throw new Error(data.error || "Could not create folder");
       setFolders(f => f.includes(data.name) ? f : [...f, data.name].sort());
       return data.name;
-    } catch (err) { alert("Couldn't create the folder: " + err.message); }
+    } catch (err) { alert(tr("Couldn't create the folder: ") + err.message); }
   };
   const renameFolder = async (from) => {
     const to = ((await askText(`Rename folder "${from}" to:`, from, { okLabel: "Rename" })) || "").trim();
@@ -243,10 +249,10 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
       if (!res.ok || !data.success) throw new Error(data.error || "Rename failed");
       setFolders(f => f.map(n => (n === from ? to : n)));
       await loadDocs();
-    } catch (err) { alert("Couldn't rename the folder: " + err.message); }
+    } catch (err) { alert(tr("Couldn't rename the folder: ") + err.message); }
   };
   const deleteEmptyFolder = async (name) => {
-    if (!(await askConfirm(`Remove the empty folder "${name}"?`, { okLabel: "Remove", danger: true }))) return;
+    if (!(await askConfirm(`Remove the empty folder "${name}"?`, { okLabel: tr("Remove"), danger: true }))) return;
     try {
       const res = await fetch(`${API}/transactions/${tx.id}/document-folders/${encodeURIComponent(name)}`, {
         method: "DELETE", headers,
@@ -254,7 +260,7 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
       const data = await res.json();
       if (!res.ok || !data.success) throw new Error(data.error || "Delete failed");
       setFolders(f => f.filter(n => n !== name));
-    } catch (err) { alert("Couldn't remove the folder: " + err.message); }
+    } catch (err) { alert(tr("Couldn't remove the folder: ") + err.message); }
   };
   // ORDER inside a folder (Carlos 9/28: "put them in different orders"). Files the
   // agent placed keep their saved order; not-yet-placed ones sit on top, newest first.
@@ -283,7 +289,7 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
       }
       const r2 = await fetch(`${API}/transactions/${tx.id}/document-order`, { method: "PATCH", headers, body: JSON.stringify({ ids }) });
       const d2 = await r2.json(); if (!r2.ok || !d2.success) throw new Error(d2.error || "Couldn't save the order");
-    } catch (err) { alert("Couldn't move the file: " + err.message); }
+    } catch (err) { alert(tr("Couldn't move the file: ") + err.message); }
     await loadDocs();
   };
   // Phone-friendly: ⋯ → Move up / Move down one spot.
@@ -302,10 +308,10 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
       const data = await res.json();
       if (!res.ok || !data.success) throw new Error(data.error || "Move failed");
       await loadDocs();
-    } catch (err) { alert("Couldn't move the file: " + err.message); }
+    } catch (err) { alert(tr("Couldn't move the file: ") + err.message); }
   };
   const renameFile = async (doc) => {
-    const name = ((await askText("Rename file to:", doc.name || "", { okLabel: "Rename" })) || "").trim();
+    const name = ((await askText(tr("Rename file to:"), doc.name || "", { okLabel: "Rename" })) || "").trim();
     if (!name || name === doc.name) return;
     try {
       const res = await fetch(`${API}/documents/${doc.id}/name`, {
@@ -314,7 +320,7 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
       const data = await res.json();
       if (!res.ok || !data.success) throw new Error(data.error || "Rename failed");
       await loadDocs();
-    } catch (err) { alert("Couldn't rename the file: " + err.message); }
+    } catch (err) { alert(tr("Couldn't rename the file: ") + err.message); }
   };
 
   const assignExisting = async (documentType, docId) => {
@@ -330,21 +336,21 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
       await Promise.all([loadDocs(), loadRequired()]);
     } catch (err) {
       console.error("Assign failed:", err);
-      alert("Assign failed: " + err.message);
+      alert(tr("Assign failed: ") + err.message);
     } finally { setSlotUploading(null); }
   };
 
   // Picked the wrong file for a slot? Un-assign it (that slot only — the doc
   // keeps any other slots it satisfies).
   const unassignExisting = async (documentType, docId, docName, slotLabel) => {
-    if (!(await askConfirm(`Remove "${docName}" from the ${slotLabel} slot?\n\nThe file stays in Documents — this only un-fills this checklist item so you can pick the right one.`, { okLabel: "Remove", danger: true }))) return;
+    if (!(await askConfirm(`Remove "${docName}" from the ${slotLabel} slot?\n\nThe file stays in Documents — this only un-fills this checklist item so you can pick the right one.`, { okLabel: tr("Remove"), danger: true }))) return;
     setSlotUploading(documentType);
     try {
       const res = await fetch(`${API}/documents/${docId}/document-type/${encodeURIComponent(documentType)}`, { method: "DELETE", headers });
       const data = await res.json();
       if (!res.ok || !data.success) throw new Error(data.error || "Remove failed");
       await Promise.all([loadDocs(), loadRequired()]);
-    } catch (err) { alert("Remove failed: " + err.message); }
+    } catch (err) { alert(tr("Remove failed: ") + err.message); }
     finally { setSlotUploading(null); }
   };
 
@@ -394,7 +400,7 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
       else alert(`⚠️ Couldn't upload:\n- ${failed.join("\n- ")}`);
     } catch (e) {
       console.error("Upload failed:", e);
-      alert("Upload failed: " + e.message);
+      alert(tr("Upload failed: ") + e.message);
     }
     finally { setUploading(false); e.target.value = ""; }
   };
@@ -413,7 +419,7 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
       const res = await fetch(`${API}/documents/download/${doc.id}`, { headers });
       const data = await res.json();
       if (data.downloadUrl) window.open(data.downloadUrl, "_blank");
-    } catch (e) { alert("Download failed: " + e.message); }
+    } catch (e) { alert(tr("Download failed: ") + e.message); }
   };
 
   // In-app preview: fetch a signed inline URL and show it in a modal (PDF viewer
@@ -430,17 +436,17 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
       setPreview({ loading: false, doc, url: data.viewUrl, mime });
     } catch (e) {
       setPreview(null);
-      alert("Preview failed: " + e.message);
+      alert(tr("Preview failed: ") + e.message);
     }
   };
 
   const handleDelete = async (doc) => {
-    if (!(await askConfirm(`Delete "${doc.name}"?`, { okLabel: "Delete", danger: true }))) return;
+    if (!(await askConfirm(`Delete "${doc.name}"?`, { okLabel: tr("Delete"), danger: true }))) return;
     try {
       await fetch(`${API}/documents/${doc.id}`, { method: "DELETE", headers });
       setDocs(prev => prev.filter(d => d.id !== doc.id));
       loadRequired();
-    } catch (e) { alert("Delete failed: " + e.message); }
+    } catch (e) { alert(tr("Delete failed: ") + e.message); }
   };
 
   const toggleVisibility = async (doc) => {
@@ -450,7 +456,7 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
         body: JSON.stringify({ visible: !doc.is_visible_to_client }),
       });
       setDocs(prev => prev.map(d => d.id === doc.id ? { ...d, is_visible_to_client: !d.is_visible_to_client } : d));
-    } catch (e) { alert("Update failed: " + e.message); }
+    } catch (e) { alert(tr("Update failed: ") + e.message); }
   };
 
   const getIcon = (mime) => {
@@ -482,16 +488,16 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
       <div style={{ fontSize: 16, flexShrink: 0 }}>{icon}</div>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontWeight: 600, fontSize: 13, color: COLORS.text, textDecoration: item.waived ? "line-through" : "none" }}>
-          {item.label}
-          {!item.required && <span style={{ marginLeft: 6, fontSize: 10, fontWeight: 700, color: "#92400E", background: "#FEF3C7", padding: "1px 6px", borderRadius: 10 }}>OPTIONAL</span>}
-          {item.custom && <span style={{ marginLeft: 6, fontSize: 10, fontWeight: 700, color: "#1A5276", background: "#D6EAF8", padding: "1px 6px", borderRadius: 10 }}>BROKER</span>}
+          {getLang() === "es" ? tr(String(item.label || "").replace(/_/g, " ")) : item.label}
+          {!item.required && <span style={{ marginLeft: 6, fontSize: 10, fontWeight: 700, color: "#92400E", background: "#FEF3C7", padding: "1px 6px", borderRadius: 10 }}>{tr("OPTIONAL")}</span>}
+          {item.custom && <span style={{ marginLeft: 6, fontSize: 10, fontWeight: 700, color: "#1A5276", background: "#D6EAF8", padding: "1px 6px", borderRadius: 10 }}>{tr("BROKER")}</span>}
         </div>
         {item.waived ? (
           <div style={{ fontSize: 11, color: "#666666", marginTop: 1 }}>N/A — {item.waiveReason}{item.waivedBy ? ` (${item.waivedBy})` : ""}</div>
         ) : (
           <>
             {item.description && (
-              <div style={{ fontSize: 12, color: "#4B5563", marginTop: 2, lineHeight: 1.45 }}>💡 {item.description}</div>
+              <div style={{ fontSize: 12, color: "#4B5563", marginTop: 2, lineHeight: 1.45 }}>💡 {tr(item.description)}</div>
             )}
             <div style={{ fontSize: 10.5, color: COLORS.muted, marginTop: 2 }}>
               {item.condition && item.condition !== "always" ? `Applies because: ${item.condition.replace(/_/g, " ")} · ` : ""}{item.statute || ""}
@@ -502,7 +508,7 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
       {item.waived ? (
         <button onClick={() => unwaiveSlot(item.documentType)} disabled={!!slotUploading}
           style={{ flexShrink: 0, padding: "5px 12px", borderRadius: 7, border: "1px solid #CCC", background: "#fff", color: COLORS.muted, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
-          ↩ Undo N/A
+          {tr("↩ Undo N/A")}
         </button>
       ) : item.present ? (
         <div style={{ display: "flex", flexDirection: "column", gap: 4, flexShrink: 0, alignItems: "flex-end", maxWidth: 230 }}>
@@ -511,10 +517,10 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
               <span title={d.name} style={{ fontSize: 11, color: "#1E8449", fontWeight: 600, maxWidth: 150, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>📄 {d.name}</span>
               <button onClick={() => openPreview({ id: d.id, name: d.name, mime_type: d.mimeType })}
                 style={{ padding: "3px 8px", borderRadius: 6, border: "1px solid #A7E0BE", background: "#fff", color: "#0c4a6e", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>
-                👁 View
+                {tr("👁 View")}
               </button>
               <button onClick={() => unassignExisting(item.documentType, d.id, d.name, item.label)} disabled={!!slotUploading}
-                title="Wrong file? Remove it from this slot (the file itself stays in Documents)"
+                title={tr("Wrong file? Remove it from this slot (the file itself stays in Documents)")}
                 style={{ padding: "3px 7px", borderRadius: 6, border: "1px solid #FECACA", background: "#fff", color: "#B91C1C", fontSize: 11, fontWeight: 800, cursor: "pointer" }}>
                 ✕
               </button>
@@ -526,20 +532,20 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
           {docs.length > 0 && (
             <select value="" disabled={!!slotUploading}
               onChange={(e) => assignExisting(item.documentType, e.target.value)}
-              title="Use a document you've already uploaded"
+              title={tr("Use a document you've already uploaded")}
               style={{ padding: "5px 8px", borderRadius: 7, border: "1px solid #CCC", fontSize: 12, fontFamily: "inherit", maxWidth: 150, background: "#fff", cursor: "pointer" }}>
-              <option value="">Use existing…</option>
-              {docs.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+              <option value="">{tr("Use existing…")}</option>
+              {docs.map(d => <option key={d.id} value={d.id}>{tr(d.name)}</option>)}
             </select>
           )}
           <label style={{ padding: "5px 12px", background: "#0c4a6e", color: "#fff", borderRadius: 7,
             cursor: slotUploading ? "not-allowed" : "pointer", fontWeight: 600, fontSize: 12, opacity: slotUploading === item.documentType ? 0.6 : 1 }}>
-            {slotUploading === item.documentType ? "Saving…" : "📎 Upload"}
+            {slotUploading === item.documentType ? tr("Saving…") : tr("📎 Upload")}
             <input type="file" disabled={!!slotUploading} style={{ display: "none" }}
               accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg,.gif,.txt"
               onChange={(e) => handleSlotUpload(item.documentType, item.label, e)} />
           </label>
-          <button onClick={() => waiveSlot(item.documentType, item.label)} disabled={!!slotUploading} title="Not applicable to this deal"
+          <button onClick={() => waiveSlot(item.documentType, item.label)} disabled={!!slotUploading} title={tr("Not applicable to this deal")}
             style={{ padding: "5px 10px", borderRadius: 7, border: "1px solid #CCC", background: "#fff", color: COLORS.muted, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
             ⊘ N/A
           </button>
@@ -575,16 +581,16 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
         <div style={{ background: "#FDF2F2", border: "1.5px solid #C0392B", borderRadius: 12, padding: 16, marginBottom: 20,
           display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
           <div style={{ minWidth: 220, flex: 1 }}>
-            <div style={{ fontWeight: 800, fontSize: 15, color: "#7B241C" }}>📦 Listing Package — step 1 of every listing</div>
+            <div style={{ fontWeight: 800, fontSize: 15, color: "#7B241C" }}>{tr("📦 Listing Package — step 1 of every listing")}</div>
             <div style={{ fontSize: 12.5, color: "#7B241C", marginTop: 3, lineHeight: 1.45 }}>
               {hasPackageDocs
-                ? "Package generated — watch the ⏳/✅ badges below for signing progress. The listing unlocks automatically when everything is signed."
-                : "Fills the official Florida forms (listing agreement, disclosures, riders) with this deal's details and sends them to your seller to e-sign in one round. Photos, sign, and MLS stay locked until it's signed."}
+                ? tr("Package generated — watch the ⏳/✅ badges below for signing progress. The listing unlocks automatically when everything is signed.")
+                : tr("Fills the official Florida forms (listing agreement, disclosures, riders) with this deal's details and sends them to your seller to e-sign in one round. Photos, sign, and MLS stay locked until it's signed.")}
             </div>
           </div>
           <button onClick={() => setShowPackage(true)}
             style={{ background: "#0c4a6e", color: "#fff", border: "none", padding: "10px 18px", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap" }}>
-            {hasPackageDocs ? "Regenerate / Resend" : "Prepare & Send Package"}
+            {hasPackageDocs ? tr("Regenerate / Resend") : tr("Prepare & Send Package")}
           </button>
         </div>
       )}
@@ -597,14 +603,14 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
         <div style={{ background: "#FFFBEB", border: "1px solid #FDE68A", borderRadius: 12, padding: 16, marginBottom: 20,
           display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
           <div style={{ minWidth: 220, flex: 1 }}>
-            <div style={{ fontWeight: 800, fontSize: 15, color: "#92400E" }}>🏠 Buyer declining a home inspection?</div>
+            <div style={{ fontWeight: 800, fontSize: 15, color: "#92400E" }}>{tr("🏠 Buyer declining a home inspection?")}</div>
             <div style={{ fontSize: 12.5, color: "#78350F", marginTop: 3, lineHeight: 1.45 }}>
-              Generate a Home Inspection Waiver — it records that you recommended an inspection and the buyer chose to decline, which protects you. Then click <b>✍️ Get signature</b> on it below to have the buyer sign.
+              {tr("Generate a Home Inspection Waiver — it records that you recommended an inspection and the buyer chose to decline, which protects you. Then click")} <b>{tr("✍️ Get signature")}</b> {tr("on it below to have the buyer sign.")}
             </div>
           </div>
           <button onClick={generateInspectionWaiver} disabled={waiverBusy}
             style={{ background: "#0c4a6e", color: "#fff", border: "none", padding: "10px 18px", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: waiverBusy ? "default" : "pointer", whiteSpace: "nowrap", opacity: waiverBusy ? 0.6 : 1 }}>
-            {waiverBusy ? "Generating…" : "Generate Waiver"}
+            {waiverBusy ? tr("Generating…") : tr("Generate Waiver")}
           </button>
         </div>
       )}
@@ -613,14 +619,14 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
         <div style={{ background: "#ECFEFF", border: "1px solid #67E8F9", borderRadius: 12, padding: 16, marginBottom: 20,
           display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
           <div style={{ minWidth: 220, flex: 1 }}>
-            <div style={{ fontWeight: 800, fontSize: 15, color: "#0E7490" }}>📝 Letter of Intent (LOI)</div>
+            <div style={{ fontWeight: 800, fontSize: 15, color: "#0E7490" }}>{tr("📝 Letter of Intent (LOI)")}</div>
             <div style={{ fontSize: 12.5, color: "#155E63", marginTop: 3, lineHeight: 1.45 }}>
-              The standard non-binding first step on a commercial deal. Generate a ready-to-send draft from this deal's details — every clause is pre-written, just confirm the numbers.
+              {tr("The standard non-binding first step on a commercial deal. Generate a ready-to-send draft from this deal's details — every clause is pre-written, just confirm the numbers.")}
             </div>
           </div>
           <button onClick={() => setShowLOI(true)} style={{ background: "#0c4a6e", color: "#fff", border: "none",
             padding: "10px 18px", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap" }}>
-            Create Letter of Intent
+            {tr("Create Letter of Intent")}
           </button>
         </div>
       )}
@@ -635,11 +641,11 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
           borderRadius: 12, padding: 16, marginBottom: 20 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10, flexWrap: "wrap", gap: 8 }}>
             <div style={{ fontWeight: 800, fontSize: 15, color: COLORS.text }}>
-              {allIn ? "✅ Required Documents — all on file" : "📋 Required Documents for this deal"}
+              {allIn ? tr("✅ Required Documents — all on file") : tr("📋 Required Documents for this deal")}
             </div>
             {reqSummary && (
               <div style={{ fontWeight: 700, fontSize: 13, color: allIn ? "#1E8449" : "#92400E" }}>
-                {reqSummary.requiredPresent}/{reqSummary.requiredTotal} on file
+                {reqSummary.requiredPresent}/{reqSummary.requiredTotal} {tr("on file")}
               </div>
             )}
           </div>
@@ -649,14 +655,12 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
           {reqItems.map(ChecklistRow)}
           {recItems.length > 0 && (
             <>
-              <div style={{ fontSize: 11, fontWeight: 700, color: COLORS.muted, textTransform: "uppercase", letterSpacing: 0.5, margin: "12px 0 6px" }}>Recommended (optional)</div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: COLORS.muted, textTransform: "uppercase", letterSpacing: 0.5, margin: "12px 0 6px" }}>{tr("Recommended (optional)")}</div>
               {recItems.map(ChecklistRow)}
             </>
           )}
           <div style={{ fontSize: 11, color: COLORS.muted, marginTop: 10, lineHeight: 1.5 }}>
-            This list adjusts automatically to the deal (HOA, condo, age of home, financing, coastal, foreign seller, etc.).
-            Uploading here labels the file so it's filed correctly. Missing the right trigger? Update the deal's details.
-            To add or reorder your brokerage's required documents, go to <b>Settings → ⚖️ Doc Requirements</b>.
+            {tr("This list adjusts automatically to the deal (HOA, condo, age of home, financing, coastal, foreign seller, etc.). Uploading here labels the file so it's filed correctly. Missing the right trigger? Update the deal's details. To add or reorder your brokerage's required documents, go to")} <b>{tr("Settings → ⚖️ Doc Requirements")}</b>.
           </div>
         </div>
       )}
@@ -664,15 +668,15 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
       {/* Upload area */}
       <div style={{ background: "#F8F9FA", border: "2px dashed #DDDDDD", borderRadius: 12, padding: 24, marginBottom: 24, textAlign: "center" }}>
         <div style={{ fontSize: 32, marginBottom: 8 }}>📎</div>
-        <div style={{ fontWeight: 700, marginBottom: 4, color: COLORS.text }}>Upload Document</div>
-        <div style={{ fontSize: 13, color: COLORS.muted, marginBottom: 16 }}>PDF, Word, Excel, Images up to 50MB — you can pick several at once</div>
+        <div style={{ fontWeight: 700, marginBottom: 4, color: COLORS.text }}>{tr("Upload Document")}</div>
+        <div style={{ fontSize: 13, color: COLORS.muted, marginBottom: 16 }}>{tr("PDF, Word, Excel, Images up to 50MB — you can pick several at once")}</div>
         <div style={{ display: "flex", gap: 8, justifyContent: "center", alignItems: "center", flexWrap: "wrap" }}>
           <select value={category} onChange={e => setCategory(e.target.value)}
             style={{ padding: "8px 12px", borderRadius: 8, border: "1px solid #DDDDDD", fontSize: 13, fontFamily: "inherit" }}>
-            {CATEGORIES.map(c => <option key={c}>{c}</option>)}
+            {CATEGORIES.map(c => <option value={c} key={c}>{tr(c)}</option>)}
           </select>
           <label style={{ padding: "8px 20px", background: "#0c4a6e", color: "#fff", borderRadius: 8, cursor: uploading ? "not-allowed" : "pointer", fontWeight: 600, fontSize: 13, opacity: uploading ? 0.7 : 1 }}>
-            {uploading ? "Uploading..." : "Choose Files"}
+            {uploading ? tr("Uploading...") : tr("Choose Files")}
             <input type="file" multiple onChange={handleUpload} disabled={uploading} style={{ display: "none" }}
               accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg,.gif,.txt" />
           </label>
@@ -681,21 +685,21 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
       {/* Tools that aren't uploading live in their own row (tester review: they
           sat inside "Upload Document" though none of them uploads anything). */}
       <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginTop: -12, marginBottom: 24 }}>
-        <span style={{ fontSize: 12, fontWeight: 700, color: COLORS.muted, textTransform: "uppercase", letterSpacing: "0.05em", marginRight: 4 }}>Document tools</span>
+        <span style={{ fontSize: 12, fontWeight: 700, color: COLORS.muted, textTransform: "uppercase", letterSpacing: "0.05em", marginRight: 4 }}>{tr("Document tools")}</span>
         <button onClick={() => setShowAddendum(true)}
-          title="Fill out an Addendum to Contract (ACSP-4): type any terms, then send it for signatures"
+          title={tr("Fill out an Addendum to Contract (ACSP-4): type any terms, then send it for signatures")}
           style={{ padding: "8px 14px", background: "#fff", color: "#0c4a6e", border: "1.5px solid #0c4a6e", borderRadius: 8, cursor: "pointer", fontWeight: 700, fontSize: 13, fontFamily: "inherit" }}>
-          📝 New Addendum
+          {tr("📝 New Addendum")}
         </button>
         <button onClick={() => setShowCombine(true)}
-          title="Merge several PDFs into one file (originals stay untouched)"
+          title={tr("Merge several PDFs into one file (originals stay untouched)")}
           style={{ padding: "8px 14px", background: "#fff", color: "#0c4a6e", border: "1.5px solid #0c4a6e", borderRadius: 8, cursor: "pointer", fontWeight: 700, fontSize: 13, fontFamily: "inherit" }}>
-          🧷 Combine PDFs
+          {tr("🧷 Combine PDFs")}
         </button>
         <button onClick={createFolder}
-          title="Create a folder to organize this deal's files — then drag files in, or use a file's ⋯ menu → Move to folder"
+          title={tr("Create a folder to organize this deal's files — then drag files in, or use a file's ⋯ menu → Move to folder")}
           style={{ padding: "8px 14px", background: "#fff", color: "#0c4a6e", border: "1.5px solid #0c4a6e", borderRadius: 8, cursor: "pointer", fontWeight: 700, fontSize: 13, fontFamily: "inherit" }}>
-          📁 New Folder
+          {tr("📁 New Folder")}
         </button>
       </div>
       {showCombine && (
@@ -709,7 +713,7 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
         <div onClick={e => { if (e.target === e.currentTarget) setMoveDoc(null); }}
           style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 90, display: "flex", alignItems: "flex-start", justifyContent: "center", overflowY: "auto", padding: "40px 16px" }}>
           <div style={{ background: "#fff", borderRadius: 14, width: "100%", maxWidth: 420, padding: 20, boxShadow: "0 12px 40px rgba(0,0,0,0.25)" }}>
-            <div style={{ fontWeight: 800, fontSize: 15, marginBottom: 2 }}>📁 Move to folder</div>
+            <div style={{ fontWeight: 800, fontSize: 15, marginBottom: 2 }}>{tr("📁 Move to folder")}</div>
             <div style={{ fontSize: 12.5, color: COLORS.muted, marginBottom: 12, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{moveDoc.name}</div>
             {(() => {
               const groups = new Set(folders);
@@ -726,18 +730,18 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
                   onMouseLeave={e => { if (name !== current) e.currentTarget.style.background = "none"; }}>
                   <span>{/^(offer|received)/i.test(name) ? "📥" : "📁"}</span>
                   <span style={{ flex: 1 }}>{name}</span>
-                  {name === current && <span style={{ fontSize: 11, fontWeight: 700 }}>current</span>}
+                  {name === current && <span style={{ fontSize: 11, fontWeight: 700 }}>{tr("current")}</span>}
                 </button>
               ));
             })()}
             <div style={{ height: 1, background: "#e5e7eb", margin: "8px 0" }} />
             <button onClick={async () => { const d = moveDoc; const name = await createFolder(); if (name) { setMoveDoc(null); await moveDocToFolder(d, name); } }}
               style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", padding: "11px 13px", background: "none", border: "none", borderRadius: 8, fontSize: 13.5, color: "#92400E", cursor: "pointer", fontFamily: "inherit", textAlign: "left", fontWeight: 700 }}>
-              <span>➕</span><span>New folder…</span>
+              <span>➕</span><span>{tr("New folder…")}</span>
             </button>
             <button onClick={() => setMoveDoc(null)}
               style={{ width: "100%", marginTop: 8, padding: "10px 0", borderRadius: 8, border: "1px solid #DDDDDD", background: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", color: COLORS.text }}>
-              Cancel
+              {tr("Cancel")}
             </button>
           </div>
         </div>
@@ -745,12 +749,12 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
 
       {/* Documents list */}
       {loading ? (
-        <div style={{ textAlign: "center", padding: 40, color: COLORS.muted }}>Loading documents...</div>
+        <div style={{ textAlign: "center", padding: 40, color: COLORS.muted }}>{tr("Loading documents...")}</div>
       ) : docs.length === 0 ? (
         <div style={{ textAlign: "center", padding: 40, color: COLORS.muted }}>
           <div style={{ fontSize: 40, marginBottom: 8 }}>📂</div>
-          <div style={{ fontWeight: 600 }}>No documents yet</div>
-          <div style={{ fontSize: 13, marginTop: 4 }}>Upload your first document above</div>
+          <div style={{ fontWeight: 600 }}>{tr("No documents yet")}</div>
+          <div style={{ fontSize: 13, marginTop: 4 }}>{tr("Upload your first document above")}</div>
         </div>
       ) : (
         <div>
@@ -762,18 +766,18 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
             return (
               <div style={{ background: "#FCF6E3", border: "1px solid #C9A84C", borderRadius: 10, padding: "12px 14px", marginBottom: 14, display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
                 <div style={{ flex: 1, minWidth: 200, fontSize: 13, color: "#7A5C00" }}>
-                  📅 <b>Contract on file.</b> Let AI read it and auto-fill this deal's key dates (inspection, financing, closing) and timeline.
+                  📅 <b>{tr("Contract on file.")}</b> {tr("Let AI read it and auto-fill this deal's key dates (inspection, financing, closing) and timeline.")}
                 </div>
                 <button onClick={() => readContractDates(c)} disabled={readingDates === c.id}
                   style={{ padding: "8px 16px", borderRadius: 8, border: "1px solid #0c4a6e", background: readingDates === c.id ? "#F5F5F5" : "#fff", cursor: readingDates === c.id ? "default" : "pointer", fontSize: 13, color: "#0c4a6e", fontWeight: 700 }}>
-                  {readingDates === c.id ? "Reading…" : "📅 Read dates from contract"}
+                  {readingDates === c.id ? tr("Reading…") : tr("📅 Read dates from contract")}
                 </button>
               </div>
             );
           })()}
-          <div style={{ fontWeight: 700, marginBottom: 4, fontSize: 14 }}>{docs.length} document{docs.length !== 1 ? "s" : ""}</div>
+          <div style={{ fontWeight: 700, marginBottom: 4, fontSize: 14 }}>{docs.length} {tr("document")}{docs.length !== 1 ? "s" : ""}</div>
           <div style={{ fontSize: 12, color: COLORS.muted, marginBottom: 12, background: "#F6F8FA", border: "1px solid #E5E7EB", borderRadius: 8, padding: "7px 10px" }}>
-            💡 Each file has a <b>👁 Client can view</b> / <b>🔒 Hidden</b> button — tap it to control whether your client sees that file in their portal. New uploads are <b>Hidden</b> by default.
+            {tr("💡 Each file has a")} <b>{tr("👁 Client can view")}</b> / <b>{tr("🔒 Hidden")}</b> {tr("button — tap it to control whether your client sees that file in their portal. New uploads are")} <b>{tr("Hidden")}</b> {tr("by default.")}
           </div>
           {(() => {
             // Folders by deal PHASE (see the phase layout below). A NEW badge
@@ -812,16 +816,16 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
                     <span style={{ fontSize: big ? 15 : 14 }}>{folderIcon(folder)}</span>
                     <span style={{ fontWeight: 700, fontSize: big ? 13 : 12.5, color: COLORS.navy }}>{folder}</span>
                     <span style={{ fontSize: 11, color: COLORS.muted }}>({arr.length})</span>
-                    <button onClick={() => renameFolder(folder)} title="Rename this folder"
+                    <button onClick={() => renameFolder(folder)} title={tr("Rename this folder")}
                       style={{ border: "none", background: "none", cursor: "pointer", fontSize: 12, padding: "2px 4px", opacity: 0.55 }}>✏️</button>
                     {arr.length === 0 && folders.includes(folder) && (
-                      <button onClick={() => deleteEmptyFolder(folder)} title="Remove this empty folder"
+                      <button onClick={() => deleteEmptyFolder(folder)} title={tr("Remove this empty folder")}
                         style={{ border: "none", background: "none", cursor: "pointer", fontSize: 12, padding: "2px 4px", opacity: 0.55 }}>🗑</button>
                     )}
                   </div>
                   {arr.length === 0 ? (
                     <div style={{ marginLeft: 14, border: "1.5px dashed #d1d5db", borderRadius: 10, padding: "10px 14px", fontSize: 12, color: COLORS.muted, background: "#fafafa" }}>
-                      Empty — drag a file here, or use a file's ⋯ menu → 📁 Move to folder.
+                      {tr("Empty — drag a file here, or use a file's ⋯ menu → 📁 Move to folder.")}
                     </div>
                   ) : ordered(arr).map(renderDoc)}
                 </div>
@@ -852,24 +856,24 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
                       setDragDocId(null); setDragOverRow(null); setDragOverFolder(null);
                       if (d) placeDoc(d, doc, after);
                     }}
-                    title="Drag up or down to reorder, or onto another folder to move it"
+                    title={tr("Drag up or down to reorder, or onto another folder to move it")}
                     style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", background: "#fff", border: "1px solid " + (isNew(doc) ? "#93c5fd" : "#DDDDDD"), borderRadius: 10, marginBottom: 8, marginLeft: 14, flexWrap: "wrap", cursor: "grab", opacity: dragDocId === doc.id ? 0.45 : 1,
                       boxShadow: dragOverRow && dragOverRow.id === doc.id ? (dragOverRow.after ? "0 4px 0 -1px #2563eb" : "0 -4px 0 -1px #2563eb") : "none" }}>
                     <div style={{ fontSize: 24, flexShrink: 0 }}>{getIcon(doc.mime_type)}</div>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontWeight: 600, fontSize: 14, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                        {isNew(doc) && <span style={{ fontSize: 9.5, fontWeight: 800, color: "#fff", background: "#2563eb", borderRadius: 6, padding: "1px 6px", marginRight: 6, verticalAlign: "middle" }}>NEW</span>}
+                        {isNew(doc) && <span style={{ fontSize: 9.5, fontWeight: 800, color: "#fff", background: "#2563eb", borderRadius: 6, padding: "1px 6px", marginRight: 6, verticalAlign: "middle" }}>{tr("NEW")}</span>}
                         {doc.name}
                       </div>
-                      <div style={{ fontSize: 11, color: COLORS.muted, marginTop: 2 }}>{doc.category} · {new Date(doc.created_at).toLocaleString("en-US", { timeZone: "America/New_York", month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" })} ET</div>
+                      <div style={{ fontSize: 11, color: COLORS.muted, marginTop: 2 }}>{doc.category} · {new Date(doc.created_at).toLocaleString(uiLocale(), { timeZone: "America/New_York", month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" })} {tr("ET")}</div>
                     </div>
                     <div style={{ display: "flex", gap: 6, flexShrink: 0, alignItems: "center" }}>
                       {/* Rookie rule: two buttons per file — View and Get signature.
                           Everything else (share, download, hide, AI dates, delete)
                           lives under ⋯ so the row stops shouting. */}
                       {doc.is_visible_to_client && (
-                        <span title="Your client can see this file in their portal (change under ⋯)"
-                          style={{ padding: "4px 8px", borderRadius: 6, background: "#D5F5E3", fontSize: 11, fontWeight: 700, color: "#1E8449" }}>👁 Client</span>
+                        <span title={tr("Your client can see this file in their portal (change under ⋯)")}
+                          style={{ padding: "4px 8px", borderRadius: 6, background: "#D5F5E3", fontSize: 11, fontWeight: 700, color: "#1E8449" }}>{tr("👁 Client")}</span>
                       )}
                       {(() => {
                         const ss = signStatus[doc.id];
@@ -880,29 +884,29 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
                             {waiting && (
                               <span title={`${ss.signed} of ${ss.pending + ss.signed} signed so far`}
                                 style={{ padding: "4px 8px", borderRadius: 6, background: "#fef3c7", fontSize: 11, fontWeight: 700, color: "#92400e" }}>
-                                ⏳ Awaiting signature{ss.pending + ss.signed > 1 ? ` (${ss.signed}/${ss.pending + ss.signed})` : ""}
+                                {tr("⏳ Awaiting signature")}{ss.pending + ss.signed > 1 ? ` (${ss.signed}/${ss.pending + ss.signed})` : ""}
                               </span>
                             )}
                             {allSigned && (
-                              <span title="Everyone signed — the signed copy is filed in this list"
-                                style={{ padding: "4px 8px", borderRadius: 6, background: "#d5f5e3", fontSize: 11, fontWeight: 700, color: "#1e8449" }}>✅ Signed</span>
+                              <span title={tr("Everyone signed — the signed copy is filed in this list")}
+                                style={{ padding: "4px 8px", borderRadius: 6, background: "#d5f5e3", fontSize: 11, fontWeight: 700, color: "#1e8449" }}>{tr("✅ Signed")}</span>
                             )}
-                            <button onClick={() => openPreview(doc)} title="Open and read this file"
+                            <button onClick={() => openPreview(doc)} title={tr("Open and read this file")}
                               style={{ padding: "5px 12px", borderRadius: 6, border: "1px solid #DDDDDD", background: "#fff", cursor: "pointer", fontSize: 12, color: COLORS.info, fontWeight: 600 }}>
-                              👁 View
+                              {tr("👁 View")}
                             </button>
                             {/pdf$/i.test(doc.mime_type || "") && (
                               <button onClick={() => setSignDoc({ doc })}
-                                title={waiting ? "See who has signed, or cancel the signing links" : "Email a private e-signing link — the signed copy files back here"}
+                                title={waiting ? tr("See who has signed, or cancel the signing links") : tr("Email a private e-signing link — the signed copy files back here")}
                                 style={{ padding: "5px 12px", borderRadius: 6, border: "1px solid #d8b4fe", background: "#faf5ff", cursor: "pointer", fontSize: 12, color: "#86198f", fontWeight: 600 }}>
-                                {waiting ? "✍️ Status" : "✍️ Get signature"}
+                                {waiting ? tr("✍️ Status") : tr("✍️ Get signature")}
                               </button>
                             )}
                           </>
                         );
                       })()}
                       <div style={{ position: "relative" }}>
-                        <button onClick={() => setRowMenu(rowMenu === doc.id ? null : doc.id)} title="More actions"
+                        <button onClick={() => setRowMenu(rowMenu === doc.id ? null : doc.id)} title={tr("More actions")}
                           style={{ padding: "5px 10px", borderRadius: 6, border: "1px solid #DDDDDD", background: "#fff", cursor: "pointer", fontSize: 13, fontWeight: 700, color: COLORS.text }}>⋯</button>
                         {rowMenu === doc.id && (
                           <>
@@ -927,7 +931,7 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
                                   onMouseEnter={e => e.currentTarget.style.background = it.danger ? "#FEF2F2" : "#f3f4f6"}
                                   onMouseLeave={e => e.currentTarget.style.background = "none"}>
                                   <span style={{ fontSize: 15 }}>{it.icon}</span>
-                                  <span>{it.label}</span>
+                                  <span>{tr(it.label)}</span>
                                 </button>
                               ))}
                             </div>
@@ -997,7 +1001,7 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
                   </div>
                   {own.length === 0 && subs.length === 0 && (
                     <div style={{ marginLeft: 14, border: "1.5px dashed #d1d5db", borderRadius: 10, padding: "10px 14px", fontSize: 12, color: COLORS.muted, background: "#fafafa" }}>
-                      No files yet — new files for this {p.kind === "listing" ? "listing" : "contract"} land here automatically.
+                      {tr("No files yet — new files for this")} {p.kind === "listing" ? tr("listing") : tr("contract")} {tr("land here automatically.")}
                     </div>
                   )}
                   {ordered(own).map(renderDoc)}
@@ -1026,22 +1030,22 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
                 {preview.url && (
                   <a href={preview.url} target="_blank" rel="noreferrer"
                     style={{ padding: "6px 12px", borderRadius: 7, border: "1px solid #DDD", background: "#fff", color: COLORS.info, fontSize: 12, fontWeight: 600, textDecoration: "none" }}>
-                    Open in new tab
+                    {tr("Open in new tab")}
                   </a>
                 )}
                 <button onClick={() => setPreview(null)}
                   style={{ padding: "6px 12px", borderRadius: 7, border: "1.5px solid #D1D5DB", background: "#fff", color: "#1F2937", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
-                  Close ✕
+                  {tr("Close ✕")}
                 </button>
               </div>
             </div>
             <div style={{ flex: 1, background: "#525659", overflow: "auto", display: "flex", alignItems: "center", justifyContent: "center" }}>
               {preview.loading ? (
-                <div style={{ color: "#fff", padding: 40 }}>Loading preview…</div>
+                <div style={{ color: "#fff", padding: 40 }}>{tr("Loading preview…")}</div>
               ) : /image\//i.test(preview.mime || "") ? (
                 <img src={preview.url} alt={preview.doc?.name} style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain" }} />
               ) : (
-                <iframe title="preview" src={preview.url} style={{ width: "100%", height: "100%", border: "none", background: "#fff" }} />
+                <iframe title={tr("preview")} src={preview.url} style={{ width: "100%", height: "100%", border: "none", background: "#fff" }} />
               )}
             </div>
           </div>
@@ -1127,30 +1131,30 @@ function ShareModal({ tx, doc, headers, onClose }) {
     <div onClick={() => !busy && onClose()} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 1100, display: "flex", alignItems: "flex-start", justifyContent: "center", padding: 16, overflowY: "auto" }}>
       <div onClick={e => e.stopPropagation()} style={{ background: "#fff", borderRadius: 14, width: 460, maxWidth: "100%", maxHeight: "94vh", overflow: "auto", boxShadow: "0 20px 60px rgba(0,0,0,0.25)", margin: "auto" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "18px 22px 14px", borderBottom: "1px solid " + COLORS.border }}>
-          <h2 style={{ margin: 0, fontSize: 18, color: COLORS.text, fontWeight: 800 }}>📤 Share Document</h2>
+          <h2 style={{ margin: 0, fontSize: 18, color: COLORS.text, fontWeight: 800 }}>{tr("📤 Share Document")}</h2>
           <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 24, color: COLORS.muted }}>×</button>
         </div>
         <div style={{ padding: 22 }}>
           <div style={{ background: "#F8F9FA", border: "1px solid " + COLORS.border, borderRadius: 8, padding: "10px 12px", marginBottom: 16, fontSize: 13 }}>
-            📄 <b>{doc.name}</b> will be attached to the email.
+            📄 <b>{doc.name}</b> {tr("will be attached to the email.")}
           </div>
 
           {done ? (
             <div style={{ textAlign: "center", padding: "16px 0" }}>
               <div style={{ fontSize: 40, marginBottom: 8 }}>{done.failed.length ? "⚠️" : "✅"}</div>
               <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 4 }}>
-                Sent to {done.ok.join(", ")}
+                {tr("Sent to")} {done.ok.join(", ")}
               </div>
               {done.failed.length > 0 && (
-                <div style={{ fontSize: 13, color: COLORS.danger, marginBottom: 6 }}>Couldn't send to: {done.failed.join(", ")}</div>
+                <div style={{ fontSize: 13, color: COLORS.danger, marginBottom: 6 }}>{tr("Couldn't send to:")} {done.failed.join(", ")}</div>
               )}
-              <div style={{ fontSize: 13, color: COLORS.muted, marginBottom: 18 }}>Each person got their own email with the document attached, and it's now visible in their portal.</div>
-              <button onClick={onClose} style={{ background: "#0c4a6e", color: "#fff", border: "none", padding: "10px 22px", borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: "pointer" }}>Done</button>
+              <div style={{ fontSize: 13, color: COLORS.muted, marginBottom: 18 }}>{tr("Each person got their own email with the document attached, and it's now visible in their portal.")}</div>
+              <button onClick={onClose} style={{ background: "#0c4a6e", color: "#fff", border: "none", padding: "10px 22px", borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: "pointer" }}>{tr("Done")}</button>
             </div>
           ) : (
             <>
               <div style={{ marginBottom: 14 }}>
-                <label style={lbl}>Send to — check everyone who should get it</label>
+                <label style={lbl}>{tr("Send to — check everyone who should get it")}</label>
                 <div style={{ border: "1px solid " + COLORS.border, borderRadius: 8, maxHeight: 190, overflowY: "auto" }}>
                   {parties.map(p => {
                     const key = String(p.id || p.email);
@@ -1165,33 +1169,33 @@ function ShareModal({ tx, doc, headers, onClose }) {
                   })}
                   <label style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 11px", cursor: "pointer", fontSize: 14 }}>
                     <input type="checkbox" checked={extraOn} onChange={() => setExtraOn(v => !v)} />
-                    <span>✏️ Someone else (type their email)</span>
+                    <span>{tr("✏️ Someone else (type their email)")}</span>
                   </label>
                 </div>
               </div>
               {extraOn && (
                 <div style={{ display: "flex", gap: 10, marginBottom: 14 }}>
                   <div style={{ flex: 1 }}>
-                    <label style={lbl}>Name</label>
-                    <input value={name} onChange={e => setName(e.target.value)} placeholder="Recipient name" style={inp} />
+                    <label style={lbl}>{tr("Name")}</label>
+                    <input value={name} onChange={e => setName(e.target.value)} placeholder={tr("Recipient name")} style={inp} />
                   </div>
                   <div style={{ flex: 1.4 }}>
-                    <label style={lbl}>Email</label>
-                    <input value={email} onChange={e => setEmail(e.target.value)} placeholder="name@email.com" style={inp} />
+                    <label style={lbl}>{tr("Email")}</label>
+                    <input value={email} onChange={e => setEmail(e.target.value)} placeholder={tr("name@email.com")} style={inp} />
                   </div>
                 </div>
               )}
               <div style={{ marginBottom: 16 }}>
-                <label style={lbl}>Note (optional)</label>
+                <label style={lbl}>{tr("Note (optional)")}</label>
                 <textarea value={message} onChange={e => setMessage(e.target.value)} rows={3}
-                  placeholder="Add a short message — or leave blank and we'll write a friendly one for you."
+                  placeholder={tr("Add a short message — or leave blank and we'll write a friendly one for you.")}
                   style={{ ...inp, resize: "vertical" }} />
               </div>
               {error && <div style={{ color: COLORS.danger, fontSize: 13, marginBottom: 12 }}>{error}</div>}
               <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
-                <button onClick={onClose} disabled={busy} style={{ background: "#fff", color: COLORS.muted, border: "1px solid " + COLORS.border, padding: "10px 16px", borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: "pointer" }}>Cancel</button>
+                <button onClick={onClose} disabled={busy} style={{ background: "#fff", color: COLORS.muted, border: "1px solid " + COLORS.border, padding: "10px 16px", borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: "pointer" }}>{tr("Cancel")}</button>
                 <button onClick={send} disabled={busy} style={{ background: "#0c4a6e", color: "#fff", border: "none", padding: "10px 20px", borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: busy ? "default" : "pointer", opacity: busy ? 0.6 : 1 }}>
-                  {busy ? "Sending…" : `📤 Send${nRecipients > 1 ? ` to ${nRecipients} people` : ""}`}
+                  {busy ? tr("Sending…") : `📤 Send${nRecipients > 1 ? ` to ${nRecipients} people` : ""}`}
                 </button>
               </div>
             </>
@@ -1300,7 +1304,7 @@ function LetterOfIntentModal({ tx, headers, onClose, onSaved }) {
   const fmtDate = (iso) => {
     if (!iso) return "____________";
     const [y, m, d] = iso.split("-");
-    return new Date(y, m - 1, d).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
+    return new Date(y, m - 1, d).toLocaleDateString(uiLocale(), { year: "numeric", month: "long", day: "numeric" });
   };
 
   // PURCHASE → numbered letter clauses [title, text]
@@ -1465,25 +1469,25 @@ function LetterOfIntentModal({ tx, headers, onClose, onSaved }) {
   const inp = { width: "100%", padding: "8px 10px", borderRadius: 8, border: `1px solid ${COLORS.border}`, fontSize: 14, fontFamily: "inherit", color: COLORS.text, background: "#fff", boxSizing: "border-box" };
   const fld = (formObj, setter, label, key, opts = {}) => (
     <div style={{ marginBottom: 12 }}>
-      <label style={{ fontSize: 11, fontWeight: 700, color: COLORS.muted, display: "block", marginBottom: 4, textTransform: "uppercase", letterSpacing: 0.4 }}>{label}</label>
+      <label style={{ fontSize: 11, fontWeight: 700, color: COLORS.muted, display: "block", marginBottom: 4, textTransform: "uppercase", letterSpacing: 0.4 }}>{tr(label)}</label>
       {opts.type === "textarea"
-        ? <textarea value={formObj[key]} onChange={e => setter(key)(e.target.value)} rows={opts.rows || 2} placeholder={opts.placeholder} style={{ ...inp, resize: "vertical" }} />
+        ? <textarea value={formObj[key]} onChange={e => setter(key)(e.target.value)} rows={opts.rows || 2} placeholder={tr(opts.placeholder)} style={{ ...inp, resize: "vertical" }} />
         : opts.options
-          ? <select value={formObj[key]} onChange={e => setter(key)(e.target.value)} style={inp}>{opts.options.map(o => <option key={o}>{o}</option>)}</select>
-          : <input type={opts.type || "text"} value={formObj[key]} onChange={e => setter(key)(e.target.value)} placeholder={opts.placeholder} style={inp} />}
+          ? <select value={formObj[key]} onChange={e => setter(key)(e.target.value)} style={inp}>{opts.options.map(o => <option value={o} key={o}>{tr(o)}</option>)}</select>
+          : <input type={opts.type || "text"} value={formObj[key]} onChange={e => setter(key)(e.target.value)} placeholder={tr(opts.placeholder)} style={inp} />}
     </div>
   );
 
   const tabBtn = (m, label) => (
     <button onClick={() => setMode(m)} style={{ flex: 1, padding: "9px 10px", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer",
-      background: mode === m ? "#0c4a6e" : "#E5F6F8", color: mode === m ? "#fff" : "#0c4a6e" }}>{label}</button>
+      background: mode === m ? "#0c4a6e" : "#E5F6F8", color: mode === m ? "#fff" : "#0c4a6e" }}>{tr(label)}</button>
   );
 
   return (
     <div onClick={() => !busy && onClose()} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 1100, display: "flex", alignItems: "flex-start", justifyContent: "center", padding: 16, overflowY: "auto" }}>
       <div onClick={e => e.stopPropagation()} style={{ background: "#fff", borderRadius: 14, width: 960, maxWidth: "100%", maxHeight: "94vh", overflow: "auto", boxShadow: "0 20px 60px rgba(0,0,0,0.25)", margin: "auto" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "18px 22px 14px", borderBottom: `1px solid ${COLORS.border}`, position: "sticky", top: 0, background: "#fff", zIndex: 2 }}>
-          <h2 style={{ margin: 0, fontSize: 18, color: "#0E7490", fontWeight: 800 }}>📝 Letter of Intent</h2>
+          <h2 style={{ margin: 0, fontSize: 18, color: "#0E7490", fontWeight: 800 }}>{tr("📝 Letter of Intent")}</h2>
           <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 24, color: COLORS.muted }}>×</button>
         </div>
         <div style={{ display: "flex", gap: 8, padding: "14px 22px 0" }}>{tabBtn("purchase", "🏢 Purchase")}{tabBtn("lease", "🔑 Lease")}</div>
@@ -1491,7 +1495,7 @@ function LetterOfIntentModal({ tx, headers, onClose, onSaved }) {
           {/* Form */}
           <div style={{ flex: "1 1 320px", minWidth: 290 }}>
             <div style={{ fontSize: 12.5, color: COLORS.muted, marginBottom: 12, lineHeight: 1.45 }}>
-              Confirm the terms below — every clause is pre-written in standard FL commercial language. Generates an <b>editable Word (.docx)</b>. The letter is <b>non-binding</b>.
+              {tr("Confirm the terms below — every clause is pre-written in standard FL commercial language. Generates an")} <b>{tr("editable Word (.docx)")}</b>{tr(". The letter is")} <b>{tr("non-binding")}</b>.
             </div>
             {mode === "purchase" ? (
               <>
@@ -1563,27 +1567,27 @@ function LetterOfIntentModal({ tx, headers, onClose, onSaved }) {
           </div>
           {/* Preview */}
           <div style={{ flex: "1 1 380px", minWidth: 320 }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: COLORS.muted, textTransform: "uppercase", letterSpacing: 0.4, marginBottom: 6 }}>Preview</div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: COLORS.muted, textTransform: "uppercase", letterSpacing: 0.4, marginBottom: 6 }}>{tr("Preview")}</div>
             <div style={{ border: `1px solid ${COLORS.border}`, borderRadius: 8, maxHeight: "66vh", overflow: "auto", background: "#F3F4F6", padding: 12 }}>
               <div style={{ background: "#fff", padding: "40px 46px", fontFamily: "Calibri, Arial, sans-serif", color: "#111", fontSize: 12.5, lineHeight: 1.5 }}>
-                <div style={{ textAlign: "center", fontWeight: 700, fontSize: 16, marginBottom: 2 }}>LETTER OF INTENT</div>
-                <div style={{ textAlign: "center", fontSize: 11.5, color: "#555", fontStyle: "italic", marginBottom: 18 }}>(Non-Binding — {mode === "lease" ? "Proposal to Lease" : "Proposal to Purchase"})</div>
+                <div style={{ textAlign: "center", fontWeight: 700, fontSize: 16, marginBottom: 2 }}>{tr("LETTER OF INTENT")}</div>
+                <div style={{ textAlign: "center", fontSize: 11.5, color: "#555", fontStyle: "italic", marginBottom: 18 }}>{tr("(Non-Binding —")} {mode === "lease" ? tr("Proposal to Lease") : tr("Proposal to Purchase")})</div>
                 <div style={{ marginBottom: 12 }}>{fmtDate(mode === "lease" ? lf.loiDate : pf.loiDate)}</div>
                 {mode === "purchase" ? (
                   <>
-                    <div><b>To (Seller):</b> {pf.sellerName || "____________"}</div>
-                    <div><b>From (Buyer):</b> {pf.buyerName || "____________"}</div>
-                    <div style={{ marginBottom: 12 }}><b>Re:</b> Proposed Purchase of {pf.propertyAddress || "____________"}</div>
+                    <div><b>{tr("To (Seller):")}</b> {pf.sellerName || "____________"}</div>
+                    <div><b>{tr("From (Buyer):")}</b> {pf.buyerName || "____________"}</div>
+                    <div style={{ marginBottom: 12 }}><b>{tr("Re:")}</b> {tr("Proposed Purchase of")} {pf.propertyAddress || "____________"}</div>
                     {purchaseClauses().map(([t, text], i) => <div key={i} style={{ marginBottom: 9 }}><b>{i + 1}. {t}.</b> {text}</div>)}
-                    <div style={{ marginTop: 16 }}><b>Buyer:</b> {pf.buyerName} ____________  <b>Seller:</b> {pf.sellerName} ____________</div>
+                    <div style={{ marginTop: 16 }}><b>{tr("Buyer:")}</b> {pf.buyerName} ____________  <b>{tr("Seller:")}</b> {pf.sellerName} ____________</div>
                   </>
                 ) : (
                   <>
-                    <div><b>To (Tenant):</b> {lf.tenantName || "____________"}</div>
-                    <div><b>From (Landlord):</b> {lf.landlordName || "____________"}</div>
-                    <div style={{ marginBottom: 12 }}><b>Re:</b> Proposed Lease at {lf.propertyName || lf.premises || "____________"}</div>
+                    <div><b>{tr("To (Tenant):")}</b> {lf.tenantName || "____________"}</div>
+                    <div><b>{tr("From (Landlord):")}</b> {lf.landlordName || "____________"}</div>
+                    <div style={{ marginBottom: 12 }}><b>{tr("Re:")}</b> {tr("Proposed Lease at")} {lf.propertyName || lf.premises || "____________"}</div>
                     {leaseRows().map(([label, value], i) => <div key={i} style={{ marginBottom: 7 }}><b>{label.toUpperCase()}:</b> {value}</div>)}
-                    <div style={{ marginTop: 16 }}><b>Landlord:</b> {lf.landlordName} ____________  <b>Tenant:</b> {lf.tenantName} ____________</div>
+                    <div style={{ marginTop: 16 }}><b>{tr("Landlord:")}</b> {lf.landlordName} ____________  <b>{tr("Tenant:")}</b> {lf.tenantName} ____________</div>
                   </>
                 )}
               </div>
@@ -1594,10 +1598,10 @@ function LetterOfIntentModal({ tx, headers, onClose, onSaved }) {
         <div style={{ position: "sticky", bottom: 0, background: "#fff", borderTop: `1px solid ${COLORS.border}`, padding: "14px 22px", display: "flex", alignItems: "center", gap: 12, justifyContent: "flex-end", flexWrap: "wrap" }}>
           {error && <div style={{ color: COLORS.danger, fontSize: 13, marginRight: "auto" }}>{error}</div>}
           <button onClick={handleDownload} disabled={busy} style={{ background: "#fff", color: "#0c4a6e", border: "1px solid #0c4a6e", padding: "10px 16px", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: busy ? "default" : "pointer", opacity: busy ? 0.6 : 1 }}>
-            {busy ? "Working…" : "⬇ Download Word (.docx)"}
+            {busy ? tr("Working…") : tr("⬇ Download Word (.docx)")}
           </button>
           <button onClick={handleSave} disabled={busy} style={{ background: "#0c4a6e", color: "#fff", border: "none", padding: "10px 18px", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: busy ? "default" : "pointer", opacity: busy ? 0.6 : 1 }}>
-            {busy ? "Saving…" : "Save Word to Documents"}
+            {busy ? tr("Saving…") : tr("Save Word to Documents")}
           </button>
         </div>
       </div>
@@ -1635,8 +1639,8 @@ function AddendumModal({ tx, headers, onCreated, onClose }) {
   const set = (k) => (e) => setF(v => ({ ...v, [k]: e.target.value }));
   const input = (k, label, props = {}) => (
     <div style={{ marginBottom: 10, ...(props.half ? { flex: 1, minWidth: 140 } : {}) }}>
-      <div style={{ fontSize: 12, fontWeight: 700, color: "#374151", marginBottom: 4 }}>{label}</div>
-      <input value={f[k]} onChange={set(k)} placeholder={props.placeholder || ""}
+      <div style={{ fontSize: 12, fontWeight: 700, color: "#374151", marginBottom: 4 }}>{tr(label)}</div>
+      <input value={f[k]} onChange={set(k)} placeholder={tr(props.placeholder) || ""}
         style={{ width: "100%", boxSizing: "border-box", padding: "9px 10px", border: "1px solid #cbd5e1", borderRadius: 8, fontSize: 13, fontFamily: "inherit" }} />
     </div>
   );
@@ -1660,11 +1664,11 @@ function AddendumModal({ tx, headers, onCreated, onClose }) {
       onClick={onClose}>
       <div style={{ background: "#fff", borderRadius: 14, width: "100%", maxWidth: 620, boxShadow: "0 20px 60px rgba(2,6,23,0.35)" }} onClick={e => e.stopPropagation()}>
         <div style={{ background: "#86198f", color: "#fff", borderRadius: "14px 14px 0 0", padding: "16px 22px" }}>
-          <div style={{ fontSize: 17, fontWeight: 800 }}>📝 New Addendum to Contract</div>
-          <div style={{ fontSize: 12.5, opacity: 0.9, marginTop: 3 }}>The official ACSP-4 form, filled for you — just type the terms. Next step: signatures.</div>
+          <div style={{ fontSize: 17, fontWeight: 800 }}>{tr("📝 New Addendum to Contract")}</div>
+          <div style={{ fontSize: 12.5, opacity: 0.9, marginTop: 3 }}>{tr("The official ACSP-4 form, filled for you — just type the terms. Next step: signatures.")}</div>
         </div>
         <div style={{ padding: 22 }}>
-          {!f && <div style={{ color: "#64748b", fontSize: 14 }}>Loading…</div>}
+          {!f && <div style={{ color: "#64748b", fontSize: 14 }}>{tr("Loading…")}</div>}
           {f && (
             <div>
               <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
@@ -1675,24 +1679,24 @@ function AddendumModal({ tx, headers, onCreated, onClose }) {
               {input("buyerNames", "Buyer(s)")}
               {input("propertyDesc", "Property (address + legal description if you have it)")}
               <div style={{ marginBottom: 10 }}>
-                <div style={{ fontSize: 12, fontWeight: 700, color: "#374151", marginBottom: 4 }}>Terms of this addendum</div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: "#374151", marginBottom: 4 }}>{tr("Terms of this addendum")}</div>
                 <textarea value={f.terms} onChange={set("terms")} rows={8}
-                  placeholder={"Type anything the parties are agreeing to, e.g.\n1. Closing date is extended to July 31, 2026.\n2. Seller to credit Buyer $2,500 toward closing costs.\n\nLong text automatically continues on an attached page."}
+                  placeholder={tr("Type anything the parties are agreeing to, e.g.\n1. Closing date is extended to July 31, 2026.\n2. Seller to credit Buyer $2,500 toward closing costs.\n\nLong text automatically continues on an attached page.")}
                   style={{ width: "100%", boxSizing: "border-box", padding: "10px 12px", border: "1px solid #cbd5e1", borderRadius: 8, fontSize: 13, fontFamily: "inherit", lineHeight: 1.5, resize: "vertical" }} />
               </div>
               {err && <div style={{ background: "#fee2e2", border: "1px solid #fca5a5", borderRadius: 8, padding: 10, fontSize: 13, color: "#7f1d1d", marginBottom: 12 }}>⚠️ {err}</div>}
               <button onClick={create} disabled={busy}
                 style={{ width: "100%", padding: "12px 0", background: busy ? "#94a3b8" : "#0c4a6e", color: "#fff", border: "none", borderRadius: 10, fontSize: 15, fontWeight: 800, cursor: busy ? "default" : "pointer", fontFamily: "inherit" }}>
-                {busy ? "Creating…" : "Create addendum →"}
+                {busy ? tr("Creating…") : tr("Create addendum →")}
               </button>
               <div style={{ fontSize: 11.5, color: "#64748b", marginTop: 8, textAlign: "center" }}>
-                It files into Documents, then the signature window opens so you can send it for signing right away.
+                {tr("It files into Documents, then the signature window opens so you can send it for signing right away.")}
               </div>
             </div>
           )}
         </div>
         <div style={{ padding: "12px 22px", borderTop: "1px solid #e5e7eb", textAlign: "right" }}>
-          <button onClick={onClose} style={{ padding: "8px 18px", background: "#e5e7eb", color: "#374151", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>Cancel</button>
+          <button onClick={onClose} style={{ padding: "8px 18px", background: "#e5e7eb", color: "#374151", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>{tr("Cancel")}</button>
         </div>
       </div>
     </div>
@@ -1791,7 +1795,7 @@ export function DocSignModal({ tx, doc, allDocs = [], headers, onClose, initialR
     const y = Math.max(4, Math.min(pg.height - 10, pg.height - yTop));
     let text = "";
     if (placeKind === "text") {
-      const t = await askText("What should this text box say?\n\nLeave it EMPTY to let the signer type it in when they sign.", "", { okLabel: "Place box" });
+      const t = await askText(tr("What should this text box say?\n\nLeave it EMPTY to let the signer type it in when they sign."), "", { okLabel: "Place box" });
       if (t === null) return; // cancelled
       text = t.trim().slice(0, 120);
     }
@@ -1846,17 +1850,17 @@ export function DocSignModal({ tx, doc, allDocs = [], headers, onClose, initialR
       });
       const b = await r.json();
       if (!r.ok) throw new Error(b.error || "Couldn't send signing links");
-      alert("✍️ Signing link sent to " + clean.map(s => s.name).join(" and ") + "." +
+      alert(tr("✍️ Signing link sent to ") + clean.map(s => s.name).join(" and ") + "." +
         (selDocs.length > 1 ? `\n\nOne link covers all ${selDocs.length} documents — they sign everything in one sitting.` : "") +
-        (placements.length ? "\n\nThey'll be guided to the exact spot" + (placements.length > 1 ? "s" : "") + " you placed." : "") +
-        "\n\nWhen everyone has signed, each signed copy (with its signature certificate) appears here in Documents — and you'll get a pop-up.");
+        (placements.length ? tr("\n\nThey'll be guided to the exact spot") + (placements.length > 1 ? "s" : "") + tr(" you placed.") : "") +
+        tr("\n\nWhen everyone has signed, each signed copy (with its signature certificate) appears here in Documents — and you'll get a pop-up."));
       if (typeof onSent === "function") { try { await onSent(doc.id); } catch { /* the round is out; the caller's bookkeeping is best effort */ } }
       onClose();
     } catch (e) { setErr(e.message); } finally { setBusy(false); }
   };
 
   const cancel = async () => {
-    if (!(await askConfirm("Cancel the outstanding signing links for this document?", { okLabel: "Cancel links", cancelLabel: "Keep links", danger: true }))) return;
+    if (!(await askConfirm(tr("Cancel the outstanding signing links for this document?"), { okLabel: tr("Cancel links"), cancelLabel: tr("Keep links"), danger: true }))) return;
     setBusy(true);
     try {
       const r = await fetch(`${API}/documents/${doc.id}/cancel-signatures`, { method: "POST", headers });
@@ -1890,30 +1894,30 @@ export function DocSignModal({ tx, doc, allDocs = [], headers, onClose, initialR
       onClick={onClose}>
       <div style={{ background: "#fff", borderRadius: 14, width: "100%", maxWidth: placing ? "min(1100px, 97vw)" : 540, boxShadow: "0 20px 60px rgba(2,6,23,0.35)" }} onClick={e => e.stopPropagation()}>
         <div style={{ background: "#86198f", color: "#fff", borderRadius: "14px 14px 0 0", padding: "16px 22px" }}>
-          <div style={{ fontSize: 17, fontWeight: 800 }}>✍️ Get this signed — {doc.name}</div>
-          <div style={{ fontSize: 12.5, opacity: 0.9, marginTop: 3 }}>Each signer gets a private email link to review and sign on their phone or computer. No DocuSign needed.</div>
+          <div style={{ fontSize: 17, fontWeight: 800 }}>{tr("✍️ Get this signed —")} {doc.name}</div>
+          <div style={{ fontSize: 12.5, opacity: 0.9, marginTop: 3 }}>{tr("Each signer gets a private email link to review and sign on their phone or computer. No DocuSign needed.")}</div>
         </div>
         <div style={{ padding: 22 }}>
           {intro && (
             <div style={{ background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 10, padding: "10px 12px", marginBottom: 14, fontSize: 13, color: "#0c4a6e", lineHeight: 1.5 }}>{intro}</div>
           )}
-          {!info && !err && <div style={{ color: "#64748b", fontSize: 14 }}>Loading…</div>}
+          {!info && !err && <div style={{ color: "#64748b", fontSize: 14 }}>{tr("Loading…")}</div>}
           {err && <div style={{ background: "#fee2e2", border: "1px solid #fca5a5", borderRadius: 8, padding: 10, fontSize: 13, color: "#7f1d1d", marginBottom: 12 }}>⚠️ {err}</div>}
 
           {info && roundOut && (
             <div style={{ marginBottom: 14 }}>
-              <div style={{ fontSize: 13, fontWeight: 800, color: "#374151", marginBottom: 8 }}>Signing round in progress</div>
+              <div style={{ fontSize: 13, fontWeight: 800, color: "#374151", marginBottom: 8 }}>{tr("Signing round in progress")}</div>
               {(info.signers || []).map(s => (
                 <div key={s.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, padding: "8px 10px", background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 8, marginBottom: 6, fontSize: 13, flexWrap: "wrap" }}>
-                  <span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis" }}>{s.signer_name}{s.signer_entity ? <span style={{ color: "#0c4a6e", fontWeight: 600 }}> for {s.signer_entity}{s.signer_title ? ", " + s.signer_title : ""}</span> : null} <span style={{ color: "#64748b" }}>({s.signer_email})</span></span>
+                  <span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis" }}>{s.signer_name}{s.signer_entity ? <span style={{ color: "#0c4a6e", fontWeight: 600 }}> {tr("for")} {s.signer_entity}{s.signer_title ? ", " + s.signer_title : ""}</span> : null} <span style={{ color: "#64748b" }}>({s.signer_email})</span></span>
                   {s.status === "signed"
-                    ? <span style={{ color: "#15803d", fontWeight: 700 }}>✅ Signed</span>
+                    ? <span style={{ color: "#15803d", fontWeight: 700 }}>{tr("✅ Signed")}</span>
                     : (
                       <span style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
-                        <span style={{ color: "#92400e", fontWeight: 700 }}>⏳ Waiting</span>
+                        <span style={{ color: "#92400e", fontWeight: 700 }}>{tr("⏳ Waiting")}</span>
                         <button disabled={busy}
                           onClick={async () => {
-                            const em = await askText("Send " + (s.signer_name || "this signer") + "'s signing link to which email?\n\n(Change it here if it was wrong — same link, nothing to redo.)", s.signer_email || "", { okLabel: "Send link" });
+                            const em = await askText(tr("Send ") + (s.signer_name || tr("this signer")) + tr("'s signing link to which email?\n\n(Change it here if it was wrong — same link, nothing to redo.)"), s.signer_email || "", { okLabel: "Send link" });
                             if (em === null || !em.trim()) return;
                             setBusy(true); setErr(null);
                             try {
@@ -1923,13 +1927,13 @@ export function DocSignModal({ tx, doc, allDocs = [], headers, onClose, initialR
                               });
                               const b = await r.json();
                               if (!r.ok) throw new Error(b.error || "Couldn't resend");
-                              alert("📧 Signing link sent to " + b.email + ".");
+                              alert(tr("📧 Signing link sent to ") + b.email + ".");
                               await loadInfo();
                             } catch (e) { setErr(e.message); } finally { setBusy(false); }
                           }}
-                          title="Re-email this signer their link — fix the email address here if it was wrong"
+                          title={tr("Re-email this signer their link — fix the email address here if it was wrong")}
                           style={{ padding: "4px 10px", borderRadius: 7, border: "1px solid #d8b4fe", background: "#faf5ff", color: "#86198f", fontSize: 11.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
-                          📧 Resend / fix email
+                          {tr("📧 Resend / fix email")}
                         </button>
                       </span>
                     )}
@@ -1947,37 +1951,37 @@ export function DocSignModal({ tx, doc, allDocs = [], headers, onClose, initialR
                           window.open(URL.createObjectURL(blob), "_blank");
                         } catch (e) { alert("⚠️ " + e.message); }
                       }}
-                      title="Opens the document with the completed signatures stamped on it — print it, get the remaining signature by hand, then upload the scan into Documents"
+                      title={tr("Opens the document with the completed signatures stamped on it — print it, get the remaining signature by hand, then upload the scan into Documents")}
                       style={{ padding: "8px 16px", background: "#EFF6FF", color: "#1D4ED8", border: "1px solid #BFDBFE", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
-                      🖨️ Print with signatures so far
+                      {tr("🖨️ Print with signatures so far")}
                     </button>
                   )}
                   <button onClick={cancel} disabled={busy}
                     style={{ padding: "8px 16px", background: "#fee2e2", color: "#0c4a6e", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
-                    Cancel signing links
+                    {tr("Cancel signing links")}
                   </button>
                   {(info?.signers || []).some(s => s.status === "signed") && (
                     <div style={{ flex: "1 1 100%", fontSize: 11.5, color: "#555", lineHeight: 1.5 }}>
-                      Signer can't use a computer? Print the copy above, have them sign by hand, upload the scan into Documents, then cancel their remaining link.
+                      {tr("Signer can't use a computer? Print the copy above, have them sign by hand, upload the scan into Documents, then cancel their remaining link.")}
                     </div>
                   )}
                 </div>
               )}
               {pending.length === 0 && (
-                <div style={{ fontSize: 12.5, color: "#15803d", marginTop: 8 }}>✅ Everyone signed — look for "✍️ Signed — {doc.name}" in Documents.</div>
+                <div style={{ fontSize: 12.5, color: "#15803d", marginTop: 8 }}>{tr("✅ Everyone signed — look for \"✍️ Signed —")} {doc.name}{tr("\" in Documents.")}</div>
               )}
             </div>
           )}
 
           {info && !roundOut && (
             <div>
-              <div style={{ fontSize: 13, fontWeight: 800, color: "#374151", marginBottom: 8 }}>Who needs to sign?</div>
+              <div style={{ fontSize: 13, fontWeight: 800, color: "#374151", marginBottom: 8 }}>{tr("Who needs to sign?")}</div>
               {rows.map((r, i) => (
                 <div key={i} style={{ marginBottom: 10 }}>
                 <div style={{ display: "flex", gap: 8 }}>
-                  <input value={r.name} onChange={e => setRow(i, "name", e.target.value)} placeholder={r.isEntity ? "Person signing (full name)" : "Full name"}
+                  <input value={r.name} onChange={e => setRow(i, "name", e.target.value)} placeholder={r.isEntity ? tr("Person signing (full name)") : tr("Full name")}
                     style={{ flex: 1, padding: "9px 10px", border: "1px solid #cbd5e1", borderRadius: 8, fontSize: 13, fontFamily: "inherit", minWidth: 0 }} />
-                  <input value={r.email} onChange={e => setRow(i, "email", e.target.value)} placeholder="Email"
+                  <input value={r.email} onChange={e => setRow(i, "email", e.target.value)} placeholder={tr("Email")}
                     style={{ flex: 1, padding: "9px 10px", border: "1px solid #cbd5e1", borderRadius: 8, fontSize: 13, fontFamily: "inherit", minWidth: 0 }} />
                   {rows.length > 1 && (
                     <button onClick={() => { setRows(rs => rs.filter((_, j) => j !== i)); setPlacements(ps => ps.filter(p => p.signer !== i + 1).map(p => p.signer > i + 1 ? { ...p, signer: p.signer - 1 } : p)); }}
@@ -1991,7 +1995,7 @@ export function DocSignModal({ tx, doc, allDocs = [], headers, onClose, initialR
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 10 }}>
                   <button onClick={() => setRows(rs => [...rs, { name: "", email: "", isEntity: false }])}
                     style={{ background: "none", border: "1px dashed #94a3b8", color: "#475569", borderRadius: 8, padding: "6px 14px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
-                    + Add another signer
+                    {tr("+ Add another signer")}
                   </button>
                   {/* Anyone on the deal not already listed above — one tap, no
                       retyping. The server pre-fills only principals so a
@@ -2012,7 +2016,7 @@ export function DocSignModal({ tx, doc, allDocs = [], headers, onClose, initialR
                         });
                       }}
                       style={{ background: "#f0f9ff", border: "1px solid #7dd3fc", color: "#075985", borderRadius: 8, padding: "6px 10px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
-                      <option value="">+ Add someone from this deal…</option>
+                      <option value="">{tr("+ Add someone from this deal…")}</option>
                       {pickableSigners.map(o => (
                         <option key={o.email} value={o.email}>{o.name || o.email}{o.role ? ` — ${o.role}` : ""}</option>
                       ))}
@@ -2025,7 +2029,7 @@ export function DocSignModal({ tx, doc, allDocs = [], headers, onClose, initialR
                       return blank >= 0 ? rs.map((r, j) => j === blank ? mine : r) : [...rs, mine];
                     })}
                       style={{ background: "#faf5ff", border: "1px solid #d8b4fe", color: "#86198f", borderRadius: 8, padding: "6px 14px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
-                      ✍️ I sign too — add me
+                      {tr("✍️ I sign too — add me")}
                     </button>
                   )}
                 </div>
@@ -2034,8 +2038,8 @@ export function DocSignModal({ tx, doc, allDocs = [], headers, onClose, initialR
               {/* Bundle more documents into the same round */}
               {extraChoices.length > 0 && (
                 <div style={{ margin: "4px 0 12px", background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 10, padding: "10px 12px" }}>
-                  <div style={{ fontSize: 13, fontWeight: 800, color: "#374151", marginBottom: 6 }}>📚 Sign more documents in the same round <span style={{ fontWeight: 400, color: "#64748b" }}>(optional)</span></div>
-                  <div style={{ fontSize: 11.5, color: "#64748b", marginBottom: 8 }}>One email, one link — they sign everything in one sitting. Each document still files back as its own signed copy.</div>
+                  <div style={{ fontSize: 13, fontWeight: 800, color: "#374151", marginBottom: 6 }}>{tr("📚 Sign more documents in the same round")} <span style={{ fontWeight: 400, color: "#64748b" }}>{tr("(optional)")}</span></div>
+                  <div style={{ fontSize: 11.5, color: "#64748b", marginBottom: 8 }}>{tr("One email, one link — they sign everything in one sitting. Each document still files back as its own signed copy.")}</div>
                   <div style={{ maxHeight: 150, overflowY: "auto" }}>
                     {extraChoices.map(d => (
                       <label key={d.id} style={{ display: "flex", gap: 8, alignItems: "center", fontSize: 13, color: "#374151", padding: "4px 0", cursor: "pointer" }}>
@@ -2055,14 +2059,14 @@ export function DocSignModal({ tx, doc, allDocs = [], headers, onClose, initialR
               <div style={{ margin: "6px 0 12px" }}>
                 <button onClick={() => setPlacing(p => !p)}
                   style={{ padding: "8px 16px", background: placing ? "#0c4a6e" : "#E0F2FE", color: placing ? "#fff" : "#0c4a6e", border: "1px solid #7DD3FC", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
-                  📍 {placing ? "Hide pages" : "Place signature, initials, date & text blocks (optional)"}
+                  📍 {placing ? tr("Hide pages") : tr("Place signature, initials, date & text blocks (optional)")}
                 </button>
                 {!placing && placements.length > 0 && (
-                  <span style={{ marginLeft: 8, fontSize: 12, color: "#15803d", fontWeight: 700 }}>✅ {placements.length} block{placements.length > 1 ? "s" : ""} placed</span>
+                  <span style={{ marginLeft: 8, fontSize: 12, color: "#15803d", fontWeight: 700 }}>✅ {placements.length} {tr("block")}{placements.length > 1 ? "s" : ""} {tr("placed")}</span>
                 )}
                 {!placing && placements.length === 0 && (
                   <div style={{ fontSize: 11.5, color: "#64748b", marginTop: 6 }}>
-                    No blocks placed → the app finds printed "Signature" lines automatically; if there are none, signatures appear on the attached certificate page.
+                    {tr("No blocks placed → the app finds printed \"Signature\" lines automatically; if there are none, signatures appear on the attached certificate page.")}
                   </div>
                 )}
               </div>
@@ -2070,27 +2074,27 @@ export function DocSignModal({ tx, doc, allDocs = [], headers, onClose, initialR
               {placing && (
                 <div style={{ marginBottom: 12 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 8 }}>
-                    <span style={{ fontSize: 12.5, fontWeight: 700, color: "#374151" }}>Tap a page where</span>
+                    <span style={{ fontSize: 12.5, fontWeight: 700, color: "#374151" }}>{tr("Tap a page where")}</span>
                     {(signerNames.length ? signerNames : ["Signer 1"]).map((n, i) => (
                       <button key={i} onClick={() => setActiveSigner(i + 1)}
                         style={{ padding: "5px 12px", borderRadius: 14, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", border: "2px solid " + SIGNER_COLORS[i % SIGNER_COLORS.length], background: activeSigner === i + 1 ? SIGNER_COLORS[i % SIGNER_COLORS.length] : "#fff", color: activeSigner === i + 1 ? "#fff" : SIGNER_COLORS[i % SIGNER_COLORS.length] }}>
                         {n || `Signer ${i + 1}`}
                       </button>
                     ))}
-                    <span style={{ fontSize: 12.5, fontWeight: 700, color: "#374151" }}>should sign. Tap a block to remove it.</span>
+                    <span style={{ fontSize: 12.5, fontWeight: 700, color: "#374151" }}>{tr("should sign. Tap a block to remove it.")}</span>
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", marginBottom: 8 }}>
-                    <span style={{ fontSize: 12.5, fontWeight: 700, color: "#374151" }}>Block type:</span>
+                    <span style={{ fontSize: 12.5, fontWeight: 700, color: "#374151" }}>{tr("Block type:")}</span>
                     {[["signature", "✍️ Signature"], ["initials", "🔤 Initials"], ["date", "📅 Date signed"], ["text", "💬 Text"], ["checkbox", "☑️ Check mark"]].map(([k, label]) => (
                       <button key={k} onClick={() => setPlaceKind(k)}
                         style={{ padding: "5px 12px", borderRadius: 14, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", border: "2px solid #64748b", background: placeKind === k ? "#334155" : "#fff", color: placeKind === k ? "#fff" : "#334155" }}>
-                        {label}
+                        {tr(label)}
                       </button>
                     ))}
-                    {placeKind === "date" && <span style={{ fontSize: 11.5, color: "#64748b" }}>Fills in the date they sign, automatically.</span>}
-                    {placeKind === "text" && <span style={{ fontSize: 11.5, color: "#64748b" }}>You type it now — or leave it blank and the signer types it.</span>}
-                    {placeKind === "checkbox" && <span style={{ fontSize: 11.5, color: "#64748b" }}>Puts an X in a little box on the form, automatically.</span>}
-                    {(placeKind === "signature" || placeKind === "initials") && <span style={{ fontSize: 11.5, color: "#64748b" }}>Drag the ● corner of a placed block to make it bigger or smaller.</span>}
+                    {placeKind === "date" && <span style={{ fontSize: 11.5, color: "#64748b" }}>{tr("Fills in the date they sign, automatically.")}</span>}
+                    {placeKind === "text" && <span style={{ fontSize: 11.5, color: "#64748b" }}>{tr("You type it now — or leave it blank and the signer types it.")}</span>}
+                    {placeKind === "checkbox" && <span style={{ fontSize: 11.5, color: "#64748b" }}>{tr("Puts an X in a little box on the form, automatically.")}</span>}
+                    {(placeKind === "signature" || placeKind === "initials") && <span style={{ fontSize: 11.5, color: "#64748b" }}>{tr("Drag the ● corner of a placed block to make it bigger or smaller.")}</span>}
                   </div>
                   <div style={{ maxHeight: "72vh", overflowY: "auto", border: "1px solid #e2e8f0", borderRadius: 10, padding: 8, background: "#f1f5f9" }}>
                     {selDocs.map(d => { const entry = pagesByDoc[d.id] || { pages: [], err: null }; return (
@@ -2099,13 +2103,13 @@ export function DocSignModal({ tx, doc, allDocs = [], headers, onClose, initialR
                         <div style={{ fontSize: 12, fontWeight: 800, color: "#334155", background: "#e2e8f0", borderRadius: 6, padding: "5px 10px", margin: "2px 0 8px" }}>📄 {d.name}</div>
                       )}
                       {entry.err && <div style={{ fontSize: 13, color: "#7f1d1d", padding: 6 }}>⚠️ {entry.err}</div>}
-                      {!entry.err && entry.pages.length === 0 && <div style={{ fontSize: 13, color: "#64748b", padding: 10 }}>Loading pages…</div>}
+                      {!entry.err && entry.pages.length === 0 && <div style={{ fontSize: 13, color: "#64748b", padding: 10 }}>{tr("Loading pages…")}</div>}
                       {entry.pages.map(pg => (
                       <div key={d.id + "-" + pg.num} data-sign-page="1" style={{ position: "relative", marginBottom: 10, cursor: "crosshair" }}
                         onClick={(e) => placeAt(d.id, pg, e)}>
                         {pg.dataUrl
-                          ? <img src={pg.dataUrl} alt={"Page " + pg.num} style={{ display: "block", width: "100%", borderRadius: 4, boxShadow: "0 1px 6px rgba(2,6,23,0.15)" }} draggable={false} />
-                          : <div style={{ width: "100%", height: 300, background: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, color: "#64748b" }}>Page {pg.num} preview unavailable</div>}
+                          ? <img src={pg.dataUrl} alt={tr("Page ") + pg.num} style={{ display: "block", width: "100%", borderRadius: 4, boxShadow: "0 1px 6px rgba(2,6,23,0.15)" }} draggable={false} />
+                          : <div style={{ width: "100%", height: 300, background: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, color: "#64748b" }}>{tr("Page")} {pg.num} {tr("preview unavailable")}</div>}
                         <div style={{ position: "absolute", top: 4, left: 6, fontSize: 10, fontWeight: 700, color: "#64748b", background: "rgba(255,255,255,0.85)", borderRadius: 4, padding: "1px 6px" }}>p.{pg.num}</div>
                         {placements.filter(p => p.docId === d.id && p.page === pg.num).map((p, pi) => {
                           const idx = placements.indexOf(p);
@@ -2123,13 +2127,13 @@ export function DocSignModal({ tx, doc, allDocs = [], headers, onClose, initialR
                           return (
                             <div key={pi}
                               onClick={(e) => { e.stopPropagation(); setPlacements(ps => ps.filter((_, j) => j !== idx)); }}
-                              title="Tap to remove"
+                              title={tr("Tap to remove")}
                               style={{ position: "absolute", left: (p.x / pg.width * 100) + "%", bottom: (p.y / pg.height * 100) + "%", width: (widthPt / pg.width * 100) + "%", height: (heightPt / pg.height * 100) + "%", minHeight: 12, border: "2px dashed " + color, background: color + "22", borderRadius: 4, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", overflow: "visible", boxSizing: "border-box" }}>
-                              <span style={{ fontSize: 10, fontWeight: 800, color, whiteSpace: "nowrap", overflow: "hidden" }}>{label}</span>
+                              <span style={{ fontSize: 10, fontWeight: 800, color, whiteSpace: "nowrap", overflow: "hidden" }}>{tr(label)}</span>
                               {resizable && (
                                 <div onPointerDown={startResize(idx, pg)} onPointerMove={moveResize} onPointerUp={endResize} onPointerCancel={endResize}
                                   onClick={(e) => e.stopPropagation()}
-                                  title="Drag to resize"
+                                  title={tr("Drag to resize")}
                                   style={{ position: "absolute", right: -11, bottom: -11, width: 22, height: 22, borderRadius: 11, background: color, border: "2.5px solid #fff", boxShadow: "0 1px 5px rgba(2,6,23,0.4)", cursor: "nwse-resize", touchAction: "none" }} />
                               )}
                             </div>
@@ -2145,16 +2149,16 @@ export function DocSignModal({ tx, doc, allDocs = [], headers, onClose, initialR
 
               <button onClick={send} disabled={busy}
                 style={{ width: "100%", padding: "12px 0", background: busy ? "#94a3b8" : "#0c4a6e", color: "#fff", border: "none", borderRadius: 10, fontSize: 15, fontWeight: 800, cursor: busy ? "default" : "pointer", fontFamily: "inherit", marginTop: 4 }}>
-                {busy ? "Sending links…" : "Send signing link ✍️"}
+                {busy ? tr("Sending links…") : tr("Send signing link ✍️")}
               </button>
               <div style={{ fontSize: 11.5, color: "#64748b", marginTop: 8, textAlign: "center" }}>
-                The signed copy files back here automatically, with a signature certificate (who signed, when, from where) attached.
+                {tr("The signed copy files back here automatically, with a signature certificate (who signed, when, from where) attached.")}
               </div>
             </div>
           )}
         </div>
         <div style={{ padding: "12px 22px", borderTop: "1px solid #e5e7eb", textAlign: "right" }}>
-          <button onClick={onClose} style={{ padding: "8px 18px", background: "#e5e7eb", color: "#374151", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>Close</button>
+          <button onClick={onClose} style={{ padding: "8px 18px", background: "#e5e7eb", color: "#374151", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>{tr("Close")}</button>
         </div>
       </div>
     </div>
@@ -2332,8 +2336,8 @@ function ListingPackageModal({ tx, headers, dealDocs = [], onClose, onDone }) {
     try {
       const r = await fetch(`${API}/documents/${docId}/view-url`, { headers });
       const d = await r.json();
-      if (d.viewUrl) window.open(d.viewUrl, "_blank"); else alert("Could not open preview: " + (d.error || "unknown error"));
-    } catch (e) { alert("Could not open preview: " + e.message); }
+      if (d.viewUrl) window.open(d.viewUrl, "_blank"); else alert(tr("Could not open preview: ") + (d.error || tr("unknown error")));
+    } catch (e) { alert(tr("Could not open preview: ") + e.message); }
   };
 
   const inp = { width: "100%", padding: "9px 11px", borderRadius: 8, border: "1.5px solid #D5D8DC", fontSize: 13.5, fontFamily: "inherit", boxSizing: "border-box" };
@@ -2347,55 +2351,55 @@ function ListingPackageModal({ tx, headers, dealDocs = [], onClose, onDone }) {
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)", zIndex: 1200, display: "flex", alignItems: "flex-start", justifyContent: "center", overflowY: "auto", padding: "30px 12px" }}>
       <div style={{ background: "#fff", borderRadius: 14, width: "100%", maxWidth: 720, boxShadow: "0 20px 60px rgba(0,0,0,0.35)", overflow: "hidden" }}>
         <div style={{ background: "#7B241C", padding: "14px 20px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <div style={{ color: "#fff", fontWeight: 800, fontSize: 16 }}>📦 Listing Package{tx.address ? " — " + tx.address : ""}</div>
+          <div style={{ color: "#fff", fontWeight: 800, fontSize: 16 }}>{tr("📦 Listing Package")}{tx.address ? " — " + tx.address : ""}</div>
           <button onClick={async () => {
             if (step === "sent") { onDone(); return; }
-            if (step === "review" || busy) { if (await askConfirm("Close the listing package? Your generated forms stay under Documents — nothing has been sent yet.", { okLabel: "Close", cancelLabel: "Keep working" })) onClose(); return; }
+            if (step === "review" || busy) { if (await askConfirm(tr("Close the listing package? Your generated forms stay under Documents — nothing has been sent yet."), { okLabel: tr("Close"), cancelLabel: tr("Keep working") })) onClose(); return; }
             onClose();
           }} style={{ background: "none", border: "none", color: "#fff", fontSize: 22, cursor: "pointer", lineHeight: 1 }}>×</button>
         </div>
         <div style={{ padding: 20 }}>
           {err && <div style={{ background: "#FDEDEC", border: "1px solid #F5B7B1", color: "#943126", borderRadius: 8, padding: "10px 12px", fontSize: 13, marginBottom: 14 }}>⚠️ {err}</div>}
 
-          {step === "form" && !pre && !err && <div style={{ color: "#666", fontSize: 14 }}>Loading this deal's details…</div>}
+          {step === "form" && !pre && !err && <div style={{ color: "#666", fontSize: 14 }}>{tr("Loading this deal's details…")}</div>}
 
           {step === "form" && pre && (
             <>
               <div style={{ fontSize: 12.5, color: "#555", lineHeight: 1.5, marginBottom: 14 }}>
-                Review the terms below — they fill the <b>official Florida forms</b> (the forms themselves are never modified). Then you'll preview each PDF before anything is sent to your seller.
+                {tr("Review the terms below — they fill the")} <b>{tr("official Florida forms")}</b> {tr("(the forms themselves are never modified). Then you'll preview each PDF before anything is sent to your seller.")}
               </div>
 
               {/* Skip the typing: read an old MLS sheet / broker synopsis */}
               <div style={{ background: "#EAF2F8", border: "1px solid #AED6F1", borderRadius: 10, padding: 12, marginBottom: 14 }}>
-                <div style={{ fontSize: 13, fontWeight: 800, color: "#1A5276", marginBottom: 3 }}>📄 Skip the typing — upload a broker synopsis or old MLS sheet</div>
+                <div style={{ fontSize: 13, fontWeight: 800, color: "#1A5276", marginBottom: 3 }}>{tr("📄 Skip the typing — upload a broker synopsis or old MLS sheet")}</div>
                 <div style={{ fontSize: 12, color: "#1A5276", lineHeight: 1.5, marginBottom: 8 }}>
-                  Drop in a prior MLS printout, broker synopsis, or tax record (PDF or photo) and we'll fill in the price, legal description, HOA/condo details, and more. You review everything before any form is generated.
+                  {tr("Drop in a prior MLS printout, broker synopsis, or tax record (PDF or photo) and we'll fill in the price, legal description, HOA/condo details, and more. You review everything before any form is generated.")}
                 </div>
                 <input ref={synopsisRef} type="file" accept=".pdf,.png,.jpg,.jpeg,.webp" style={{ display: "none" }}
                   onChange={e => { const file = e.target.files?.[0]; if (file) readSynopsis(file); e.target.value = ""; }} />
                 <button onClick={() => synopsisRef.current?.click()} disabled={reading}
                   style={{ padding: "8px 16px", borderRadius: 8, border: "none", background: reading ? "#85929E" : "#0c4a6e", color: "#fff", fontWeight: 700, fontSize: 13, cursor: reading ? "wait" : "pointer", fontFamily: "inherit" }}>
-                  {reading ? "Reading the sheet…" : "📎 Upload & auto-fill"}
+                  {reading ? tr("Reading the sheet…") : tr("📎 Upload & auto-fill")}
                 </button>
                 {readNote && <div style={{ fontSize: 12.5, color: "#1E8449", fontWeight: 600, marginTop: 8 }}>{readNote}</div>}
               </div>
 
-              <div style={{ ...lbl }}>Seller(s) — each gets a private e-signing link</div>
+              <div style={{ ...lbl }}>{tr("Seller(s) — each gets a private e-signing link")}</div>
               {sellers.map((s, i) => (
                 <div key={i} style={{ ...row, marginBottom: 8 }}>
-                  <input value={s.name} readOnly title="Edit names under the People tab" style={{ ...inp, ...col(180), background: "#F8F9F9", color: "#555" }} />
-                  <input value={s.email} placeholder="seller@email.com" onChange={e => setSellers(prev => prev.map((x, j) => j === i ? { ...x, email: e.target.value } : x))} style={{ ...inp, ...col(200) }} />
+                  <input value={s.name} readOnly title={tr("Edit names under the People tab")} style={{ ...inp, ...col(180), background: "#F8F9F9", color: "#555" }} />
+                  <input value={s.email} placeholder={tr("seller@email.com")} onChange={e => setSellers(prev => prev.map((x, j) => j === i ? { ...x, email: e.target.value } : x))} style={{ ...inp, ...col(200) }} />
                 </div>
               ))}
-              {!sellers.length && <div style={{ fontSize: 13, color: "#943126", marginBottom: 10 }}>No sellers found on this deal — add them under the People tab first.</div>}
-              {pre.agentName && <div style={{ fontSize: 12, color: "#555", margin: "2px 0 12px" }}>✍️ You ({pre.agentName}) sign too — you'll get your own signing link for the broker lines.</div>}
+              {!sellers.length && <div style={{ fontSize: 13, color: "#943126", marginBottom: 10 }}>{tr("No sellers found on this deal — add them under the People tab first.")}</div>}
+              {pre.agentName && <div style={{ fontSize: 12, color: "#555", margin: "2px 0 12px" }}>{tr("✍️ You (")}{pre.agentName}{tr(") sign too — you'll get your own signing link for the broker lines.")}</div>}
 
               {/* Assistant/TC delegation: business terms missing → one tap asks
                   the AGENT via a phone-friendly magic form (Carlos 8/3). */}
               {(!f.commissionPct || !f.price || !f.personalProperty || !f.additionalTerms || !f.bbcPct) && (
                 <div style={{ background: "#fffbeb", border: "1px solid #fcd34d", borderRadius: 10, padding: "10px 14px", marginBottom: 12, display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
                   <span style={{ fontSize: 13, color: "#92400e", flex: 1, minWidth: 200 }}>
-                    Missing details? One tap asks the agent for EVERYTHING still blank — commission (both sides), included appliances, additional terms, HOA info — in a 2-minute form on their phone.
+                    {tr("Missing details? One tap asks the agent for EVERYTHING still blank — commission (both sides), included appliances, additional terms, HOA info — in a 2-minute form on their phone.")}
                   </span>
                   <button onClick={async () => {
                     try {
@@ -2420,64 +2424,64 @@ function ListingPackageModal({ tx, headers, dealDocs = [], onClose, onDone }) {
                       const r = await fetch(`${API}/transactions/${tx.id}/request-info`, { method: "POST", headers: { ...headers, "Content-Type": "application/json" }, body: JSON.stringify({ fields }) });
                       const d = await r.json();
                       if (!d.success) throw new Error(d.error || "Could not send");
-                      alert("📨 Sent! The agent got a text + email with a 1-minute form. You'll be notified when they answer — then reopen this wizard and the values fill in.");
+                      alert(tr("📨 Sent! The agent got a text + email with a 1-minute form. You'll be notified when they answer — then reopen this wizard and the values fill in."));
                     } catch (e2) { alert("⚠️ " + e2.message); }
                   }}
                     style={{ padding: "8px 14px", borderRadius: 8, border: "none", background: "#d97706", color: "#fff", fontSize: 12.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>
-                    📨 Ask the agent
+                    {tr("📨 Ask the agent")}
                   </button>
                 </div>
               )}
               <div style={row}>
-                <div style={col(140)}><label style={lbl}>Listing begins</label><input value={f.beginDate} onChange={e => set({ beginDate: e.target.value })} placeholder="MM/DD/YYYY" style={inp} /></div>
-                <div style={col(140)}><label style={lbl}>Ends (termination)</label><input value={f.terminationDate} onChange={e => set({ terminationDate: e.target.value })} placeholder="MM/DD/YYYY" style={inp} /></div>
-                <div style={col(140)}><label style={lbl}>List price ($)</label><input value={f.price} onChange={e => set({ price: e.target.value })} placeholder="e.g. 560000" style={inp} /></div>
+                <div style={col(140)}><label style={lbl}>{tr("Listing begins")}</label><input value={f.beginDate} onChange={e => set({ beginDate: e.target.value })} placeholder={tr("MM/DD/YYYY")} style={inp} /></div>
+                <div style={col(140)}><label style={lbl}>{tr("Ends (termination)")}</label><input value={f.terminationDate} onChange={e => set({ terminationDate: e.target.value })} placeholder={tr("MM/DD/YYYY")} style={inp} /></div>
+                <div style={col(140)}><label style={lbl}>{tr("List price ($)")}</label><input value={f.price} onChange={e => set({ price: e.target.value })} placeholder="e.g. 560000" style={inp} /></div>
               </div>
               <div style={row}>
-                <div style={col(120)}><label style={lbl}>Commission %</label><input value={f.commissionPct} onChange={e => set({ commissionPct: e.target.value })} placeholder="e.g. 5" style={inp} /></div>
+                <div style={col(120)}><label style={lbl}>{tr("Commission %")}</label><input value={f.commissionPct} onChange={e => set({ commissionPct: e.target.value })} placeholder="e.g. 5" style={inp} /></div>
                 <div style={col(160)}>
-                  <label style={lbl}>Buyer's broker comp</label>
+                  <label style={lbl}>{tr("Buyer's broker comp")}</label>
                   <select value={f.bbcMode} onChange={e => set({ bbcMode: e.target.value })} style={inp}>
-                    <option value="from_seller">From Seller</option>
-                    <option value="from_broker">From Broker's fee</option>
-                    <option value="none">None offered</option>
+                    <option value="from_seller">{tr("From Seller")}</option>
+                    <option value="from_broker">{tr("From Broker's fee")}</option>
+                    <option value="none">{tr("None offered")}</option>
                   </select>
                 </div>
-                {f.bbcMode !== "none" && <div style={col(100)}><label style={lbl}>Their %</label><input value={f.bbcPct} onChange={e => set({ bbcPct: e.target.value })} placeholder="e.g. 2.5" style={inp} /></div>}
+                {f.bbcMode !== "none" && <div style={col(100)}><label style={lbl}>{tr("Their %")}</label><input value={f.bbcPct} onChange={e => set({ bbcPct: e.target.value })} placeholder="e.g. 2.5" style={inp} /></div>}
               </div>
               <div style={row}>
-                <div style={col(120)}><label style={lbl}>Protection (days)</label><input value={f.protectionDays} onChange={e => set({ protectionDays: e.target.value })} style={inp} /></div>
-                <div style={col(140)}><label style={lbl}>Retained deposits %</label><input value={f.retainedDepositsPct} onChange={e => set({ retainedDepositsPct: e.target.value })} style={inp} /></div>
+                <div style={col(120)}><label style={lbl}>{tr("Protection (days)")}</label><input value={f.protectionDays} onChange={e => set({ protectionDays: e.target.value })} style={inp} /></div>
+                <div style={col(140)}><label style={lbl}>{tr("Retained deposits %")}</label><input value={f.retainedDepositsPct} onChange={e => set({ retainedDepositsPct: e.target.value })} style={inp} /></div>
                 <div style={col(200)}>
-                  <label style={lbl}>Financing seller will consider</label>
+                  <label style={lbl}>{tr("Financing seller will consider")}</label>
                   <div style={{ display: "flex", gap: 10, flexWrap: "wrap", paddingTop: 6 }}>
                     {[["finCash","Cash"],["finConventional","Conv."],["finVa","VA"],["finFha","FHA"]].map(([k, label]) => (
                       <label key={k} style={{ fontSize: 13, display: "flex", gap: 4, alignItems: "center", cursor: "pointer" }}>
-                        <input type="checkbox" checked={!!f[k]} onChange={e => set({ [k]: e.target.checked })} />{label}
+                        <input type="checkbox" checked={!!f[k]} onChange={e => set({ [k]: e.target.checked })} />{tr(label)}
                       </label>
                     ))}
                   </div>
                 </div>
               </div>
               <div style={row}>
-                <div style={col(300)}><label style={lbl}>Legal description (optional)</label><input value={f.legalDescription} onChange={e => set({ legalDescription: e.target.value })} style={inp} /></div>
-                <div style={col(300)}><label style={lbl}>Personal property included (optional)</label><input value={f.personalProperty} onChange={e => set({ personalProperty: e.target.value })} placeholder="e.g. refrigerator, washer, dryer" style={inp} /></div>
+                <div style={col(300)}><label style={lbl}>{tr("Legal description (optional)")}</label><input value={f.legalDescription} onChange={e => set({ legalDescription: e.target.value })} style={inp} /></div>
+                <div style={col(300)}><label style={lbl}>{tr("Personal property included (optional)")}</label><input value={f.personalProperty} onChange={e => set({ personalProperty: e.target.value })} placeholder={tr("e.g. refrigerator, washer, dryer")} style={inp} /></div>
                 <div style={col(190)}>
-                  <label style={lbl}>Currently occupied by a tenant?</label>
+                  <label style={lbl}>{tr("Currently occupied by a tenant?")}</label>
                   <select value={f.occupiedByTenant} onChange={e => set({ occupiedByTenant: e.target.value })} style={inp}>
-                    <option value="no">No — vacant / owner-occupied</option>
-                    <option value="yes">Yes — tenant occupied</option>
+                    <option value="no">{tr("No — vacant / owner-occupied")}</option>
+                    <option value="yes">{tr("Yes — tenant occupied")}</option>
                   </select>
                 </div>
-                {f.occupiedByTenant === "yes" && <div style={col(150)}><label style={lbl}>Lease term expires</label><input value={f.leaseExpires} onChange={e => set({ leaseExpires: e.target.value })} placeholder="MM/DD/YYYY" style={inp} /></div>}
+                {f.occupiedByTenant === "yes" && <div style={col(150)}><label style={lbl}>{tr("Lease term expires")}</label><input value={f.leaseExpires} onChange={e => set({ leaseExpires: e.target.value })} placeholder={tr("MM/DD/YYYY")} style={inp} /></div>}
               </div>
               <div style={{ marginBottom: 12 }}>
-                <label style={lbl}>Additional terms (optional)</label>
+                <label style={lbl}>{tr("Additional terms (optional)")}</label>
                 <textarea value={f.additionalTerms} onChange={e => set({ additionalTerms: e.target.value })} rows={2} style={{ ...inp, resize: "vertical" }} />
               </div>
 
               <div style={{ background: "#FBFBFB", border: "1px solid #EEE", borderRadius: 10, padding: 12, marginBottom: 12 }}>
-                <label style={lbl}>Listing agreement options (paragraph 6)</label>
+                <label style={lbl}>{tr("Listing agreement options (paragraph 6)")}</label>
                 {[
                   ["lockbox", "Use a lock box system to show and access the Property"],
                   ["withholdVerbal", "Withhold verbal offers"],
@@ -2487,66 +2491,66 @@ function ListingPackageModal({ tx, headers, dealDocs = [], onClose, onDone }) {
                 ].map(([k, label]) => (
                   <label key={k} style={{ display: "flex", gap: 8, alignItems: "flex-start", fontSize: 13, padding: "4px 0", cursor: "pointer", lineHeight: 1.45 }}>
                     <input type="checkbox" checked={!!f[k]} onChange={e => set({ [k]: e.target.checked })} style={{ marginTop: 2 }} />
-                    {label}
+                    {tr(label)}
                   </label>
                 ))}
               </div>
 
               <div style={{ background: "#FBFBFB", border: "1px solid #EEE", borderRadius: 10, padding: 12, marginBottom: 12 }}>
-                <label style={lbl}>Section 13 — Arbitration initials</label>
+                <label style={lbl}>{tr("Section 13 — Arbitration initials")}</label>
                 <label style={{ fontSize: 13, display: "flex", gap: 6, alignItems: "center", cursor: "pointer", marginBottom: 4 }}>
                   <input type="radio" checked={f.arbitration === "sellers"} onChange={() => set({ arbitration: "sellers" })} />
-                  Assign arbitration initials (default) — seller & you initial Section 13
+                  {tr("Assign arbitration initials (default) — seller & you initial Section 13")}
                 </label>
                 <label style={{ fontSize: 13, display: "flex", gap: 6, alignItems: "center", cursor: "pointer" }}>
                   <input type="radio" checked={f.arbitration === "no_one"} onChange={() => set({ arbitration: "no_one" })} />
-                  No one — leave the arbitration initials blank
+                  {tr("No one — leave the arbitration initials blank")}
                 </label>
               </div>
 
               <div style={{ marginBottom: 6 }}>
-                <label style={lbl}>Forms in this package</label>
+                <label style={lbl}>{tr("Forms in this package")}</label>
                 {(pre.forms || []).map(fm => (
                   <label key={fm.formId} style={{ display: "flex", gap: 8, alignItems: "center", fontSize: 13.5, padding: "5px 0", cursor: "pointer" }}>
                     <input type="checkbox" checked={!!forms[fm.formId]} onChange={e => setForms(prev => ({ ...prev, [fm.formId]: e.target.checked }))} />
-                    {fm.label}
-                    {fm.suggested && fm.condition !== "always" && <span style={{ fontSize: 10, fontWeight: 800, background: "#FDEBD0", color: "#9C640C", borderRadius: 10, padding: "1px 7px" }}>AUTO — applies to this deal</span>}
+                    {tr(fm.label)}
+                    {fm.suggested && fm.condition !== "always" && <span style={{ fontSize: 10, fontWeight: 800, background: "#FDEBD0", color: "#9C640C", borderRadius: 10, padding: "1px 7px" }}>{tr("AUTO — applies to this deal")}</span>}
                   </label>
                 ))}
               </div>
               {forms["cr7b-hoa"] && (
                 <>
                   <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 8 }}>
-                    <div style={{ flex: "2 1 220px" }}><label style={lbl}>HOA / community name</label><input value={f.communityName} onChange={e => set({ communityName: e.target.value })} style={inp} /></div>
-                    <div style={{ flex: "1 1 110px" }}><label style={lbl}>HOA fee ($)</label><input value={f.hoaFee} onChange={e => set({ hoaFee: e.target.value })} placeholder="e.g. 250" style={inp} /></div>
+                    <div style={{ flex: "2 1 220px" }}><label style={lbl}>{tr("HOA / community name")}</label><input value={f.communityName} onChange={e => set({ communityName: e.target.value })} style={inp} /></div>
+                    <div style={{ flex: "1 1 110px" }}><label style={lbl}>{tr("HOA fee ($)")}</label><input value={f.hoaFee} onChange={e => set({ hoaFee: e.target.value })} placeholder="e.g. 250" style={inp} /></div>
                     <div style={{ flex: "1 1 110px" }}>
-                      <label style={lbl}>Per</label>
+                      <label style={lbl}>{tr("Per")}</label>
                       <select value={f.hoaFeePeriod} onChange={e => set({ hoaFeePeriod: e.target.value })} style={inp}>
-                        <option value="month">month</option>
-                        <option value="quarter">quarter</option>
-                        <option value="year">year</option>
+                        <option value="month">{tr("month")}</option>
+                        <option value="quarter">{tr("quarter")}</option>
+                        <option value="year">{tr("year")}</option>
                       </select>
                     </div>
                   </div>
                   <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 4 }}>
-                    <div style={{ flex: "1 1 160px" }}><label style={lbl}>HOA mgmt / contact</label><input value={f.hoaContactName} onChange={e => set({ hoaContactName: e.target.value })} placeholder="e.g. Evergreen Mgmt — Zayriliann" style={inp} /></div>
-                    <div style={{ flex: "1 1 130px" }}><label style={lbl}>HOA phone</label><input value={f.hoaContactPhone} onChange={e => set({ hoaContactPhone: e.target.value })} style={inp} /></div>
-                    <div style={{ flex: "1 1 170px" }}><label style={lbl}>HOA email</label><input value={f.hoaContactEmail} onChange={e => set({ hoaContactEmail: e.target.value })} style={inp} /></div>
-                    <div style={{ flex: "1 1 160px" }}><label style={lbl}>HOA website</label><input value={f.hoaWebsite} onChange={e => set({ hoaWebsite: e.target.value })} placeholder="eaglecreekhoa.com" style={inp} /></div>
+                    <div style={{ flex: "1 1 160px" }}><label style={lbl}>{tr("HOA mgmt / contact")}</label><input value={f.hoaContactName} onChange={e => set({ hoaContactName: e.target.value })} placeholder={tr("e.g. Evergreen Mgmt — Zayriliann")} style={inp} /></div>
+                    <div style={{ flex: "1 1 130px" }}><label style={lbl}>{tr("HOA phone")}</label><input value={f.hoaContactPhone} onChange={e => set({ hoaContactPhone: e.target.value })} style={inp} /></div>
+                    <div style={{ flex: "1 1 170px" }}><label style={lbl}>{tr("HOA email")}</label><input value={f.hoaContactEmail} onChange={e => set({ hoaContactEmail: e.target.value })} style={inp} /></div>
+                    <div style={{ flex: "1 1 160px" }}><label style={lbl}>{tr("HOA website")}</label><input value={f.hoaWebsite} onChange={e => set({ hoaWebsite: e.target.value })} placeholder={tr("eaglecreekhoa.com")} style={inp} /></div>
                   </div>
-                  <div style={{ fontSize: 11.5, color: "#78350F", marginBottom: 10 }}>💡 Upload the broker synopsis above and these fill from the sheet. Anything left blank stays <b>blank on the form</b> for you to complete — never guessed from other contacts.</div>
+                  <div style={{ fontSize: 11.5, color: "#78350F", marginBottom: 10 }}>{tr("💡 Upload the broker synopsis above and these fill from the sheet. Anything left blank stays")} <b>{tr("blank on the form")}</b> {tr("for you to complete — never guessed from other contacts.")}</div>
                 </>
               )}
               {forms["cr7a-condo"] && (
-                <div style={{ marginBottom: 10 }}><label style={lbl}>Condominium association name</label><input value={f.associationName} onChange={e => set({ associationName: e.target.value })} style={inp} /></div>
+                <div style={{ marginBottom: 10 }}><label style={lbl}>{tr("Condominium association name")}</label><input value={f.associationName} onChange={e => set({ associationName: e.target.value })} style={inp} /></div>
               )}
               {forms["rider-aa"] && (
-                <div style={{ marginBottom: 10 }}><label style={lbl}>Your interest in the property (Rider AA)</label><input value={f.aaInterestDesc} onChange={e => set({ aaInterestDesc: e.target.value })} placeholder="e.g. Seller is licensee's parent" style={inp} /></div>
+                <div style={{ marginBottom: 10 }}><label style={lbl}>{tr("Your interest in the property (Rider AA)")}</label><input value={f.aaInterestDesc} onChange={e => set({ aaInterestDesc: e.target.value })} placeholder={tr("e.g. Seller is licensee's parent")} style={inp} /></div>
               )}
 
               <button onClick={generate} disabled={busy}
                 style={{ width: "100%", padding: "13px 0", borderRadius: 10, border: "none", background: busy ? "#B3B6B7" : "#0c4a6e", color: "#fff", fontWeight: 800, fontSize: 15, cursor: busy ? "wait" : "pointer", fontFamily: "inherit", marginTop: 6 }}>
-                {busy ? "Filling the official forms…" : "Generate package →"}
+                {busy ? tr("Filling the official forms…") : tr("Generate package →")}
               </button>
             </>
           )}
@@ -2554,31 +2558,31 @@ function ListingPackageModal({ tx, headers, dealDocs = [], onClose, onDone }) {
           {step === "review" && gen && (
             <>
               <div style={{ fontSize: 13.5, color: "#333", lineHeight: 1.55, marginBottom: 14 }}>
-                <b>Review before sending.</b> Open each filled form and check every blank — nothing goes to your seller until you hit Send.
+                <b>{tr("Review before sending.")}</b> {tr("Open each filled form and check every blank — nothing goes to your seller until you hit Send.")}
               </div>
               {gen.documents.map(d => (
                 <div key={d.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, padding: "10px 12px", border: "1px solid #EEE", borderRadius: 10, marginBottom: 8 }}>
                   <div style={{ fontSize: 13.5, fontWeight: 600, color: "#222" }}>📄 {d.name}</div>
-                  <button onClick={() => preview(d.id)} style={{ padding: "6px 14px", borderRadius: 8, border: "1px solid #0c4a6e", background: "#fff", color: "#0c4a6e", fontWeight: 700, fontSize: 12.5, cursor: "pointer", whiteSpace: "nowrap" }}>👀 Review PDF</button>
-                  <button onClick={() => setAdjustDoc(d)} title="Move, resize, remove, or add signature/initial spots on this document"
-                    style={{ padding: "6px 14px", borderRadius: 8, border: "1px solid #334155", background: "#fff", color: "#334155", fontWeight: 700, fontSize: 12.5, cursor: "pointer", whiteSpace: "nowrap" }}>✏️ Adjust spots</button>
+                  <button onClick={() => preview(d.id)} style={{ padding: "6px 14px", borderRadius: 8, border: "1px solid #0c4a6e", background: "#fff", color: "#0c4a6e", fontWeight: 700, fontSize: 12.5, cursor: "pointer", whiteSpace: "nowrap" }}>{tr("👀 Review PDF")}</button>
+                  <button onClick={() => setAdjustDoc(d)} title={tr("Move, resize, remove, or add signature/initial spots on this document")}
+                    style={{ padding: "6px 14px", borderRadius: 8, border: "1px solid #334155", background: "#fff", color: "#334155", fontWeight: 700, fontSize: 12.5, cursor: "pointer", whiteSpace: "nowrap" }}>{tr("✏️ Adjust spots")}</button>
                 </div>
               ))}
               {netSheetDoc ? (
                 <label style={{ display: "flex", gap: 8, alignItems: "flex-start", background: "#F0FDF4", border: "1px solid #BBF7D0", borderRadius: 10, padding: 12, marginTop: 10, cursor: "pointer" }}>
                   <input type="checkbox" checked={includeNetSheet} onChange={e => setIncludeNetSheet(e.target.checked)} style={{ marginTop: 2 }} />
                   <span style={{ fontSize: 13, color: "#14532D", lineHeight: 1.5 }}>
-                    <b>💰 Include the Seller's Net Sheet</b> ("{netSheetDoc.name}") in this signing round — your brokerage requires it signed at listing. Seller, co-seller, and your signature lines are placed automatically.
+                    <b>{tr("💰 Include the Seller's Net Sheet")}</b> ("{netSheetDoc.name}{tr("\") in this signing round — your brokerage requires it signed at listing. Seller, co-seller, and your signature lines are placed automatically.")}
                   </span>
                 </label>
               ) : (
                 <div style={{ background: "#FFFBEB", border: "1px solid #FDE68A", borderRadius: 10, padding: 12, marginTop: 10, fontSize: 12.5, color: "#78350F", lineHeight: 1.5 }}>
-                  ⚠️ <b>No Seller's Net Sheet on this deal yet.</b> Your brokerage requires a SIGNED net sheet at listing — create it under <b>💰 Money → Seller's Net Sheet</b>, then reopen this package to include it (or send it separately with ✍️ Get signature).
+                  ⚠️ <b>{tr("No Seller's Net Sheet on this deal yet.")}</b> {tr("Your brokerage requires a SIGNED net sheet at listing — create it under")} <b>{tr("💰 Money → Seller's Net Sheet")}</b>{tr(", then reopen this package to include it (or send it separately with ✍️ Get signature).")}
                 </div>
               )}
               {extraCandidates.length > 0 && (
                 <div style={{ background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 10, padding: 12, marginTop: 10 }}>
-                  <div style={{ fontSize: 12, fontWeight: 800, color: "#334155", textTransform: "uppercase", letterSpacing: 0.4, marginBottom: 6 }}>➕ Include more documents in this signing round (optional)</div>
+                  <div style={{ fontSize: 12, fontWeight: 800, color: "#334155", textTransform: "uppercase", letterSpacing: 0.4, marginBottom: 6 }}>{tr("➕ Include more documents in this signing round (optional)")}</div>
                   <div style={{ maxHeight: 150, overflowY: "auto" }}>
                     {extraCandidates.map(d => {
                       const on = extraIds.includes(d.id);
@@ -2592,16 +2596,16 @@ function ListingPackageModal({ tx, headers, dealDocs = [], onClose, onDone }) {
                       );
                     })}
                   </div>
-                  <div style={{ fontSize: 11.5, color: "#64748B", marginTop: 4 }}>They ride the same signing session. Signature lines are detected automatically; use ✍️ Get signature separately if a doc needs precise placement.</div>
+                  <div style={{ fontSize: 11.5, color: "#64748B", marginTop: 4 }}>{tr("They ride the same signing session. Signature lines are detected automatically; use ✍️ Get signature separately if a doc needs precise placement.")}</div>
                 </div>
               )}
               <div style={{ fontSize: 12.5, color: "#555", margin: "12px 0", lineHeight: 1.5 }}>
-                ✍️ Signing links go to: {gen.signers.filter(s => s.email).map(s => `${s.name} (${s.email})`).join(", ")}. Every signature and initial line is pre-placed — including the page-bottom initials on every page.
+                {tr("✍️ Signing links go to:")} {gen.signers.filter(s => s.email).map(s => `${s.name} (${s.email})`).join(", ")}{tr(". Every signature and initial line is pre-placed — including the page-bottom initials on every page.")}
               </div>
               <div style={{ display: "flex", gap: 10 }}>
-                <button onClick={() => setStep("form")} disabled={busy} style={{ flex: 1, padding: "12px 0", borderRadius: 10, border: "1.5px solid #CCC", background: "#fff", color: "#555", fontWeight: 700, fontSize: 14, cursor: "pointer", fontFamily: "inherit" }}>← Previous step</button>
+                <button onClick={() => setStep("form")} disabled={busy} style={{ flex: 1, padding: "12px 0", borderRadius: 10, border: "1.5px solid #CCC", background: "#fff", color: "#555", fontWeight: 700, fontSize: 14, cursor: "pointer", fontFamily: "inherit" }}>{tr("← Previous step")}</button>
                 <button onClick={send} disabled={busy} style={{ flex: 2, padding: "12px 0", borderRadius: 10, border: "none", background: busy ? "#B3B6B7" : "#0c4a6e", color: "#fff", fontWeight: 800, fontSize: 15, cursor: busy ? "wait" : "pointer", fontFamily: "inherit" }}>
-                  {busy ? "Sending…" : "✉️ Send for signature"}
+                  {busy ? tr("Sending…") : tr("✉️ Send for signature")}
                 </button>
               </div>
             </>
@@ -2610,11 +2614,11 @@ function ListingPackageModal({ tx, headers, dealDocs = [], onClose, onDone }) {
           {step === "sent" && (
             <div style={{ textAlign: "center", padding: "18px 6px" }}>
               <div style={{ fontSize: 40, marginBottom: 8 }}>🎉</div>
-              <div style={{ fontSize: 17, fontWeight: 800, color: "#1E8449", marginBottom: 6 }}>Listing package sent!</div>
+              <div style={{ fontSize: 17, fontWeight: 800, color: "#1E8449", marginBottom: 6 }}>{tr("Listing package sent!")}</div>
               <div style={{ fontSize: 13.5, color: "#555", lineHeight: 1.6, maxWidth: 440, margin: "0 auto 16px" }}>
-                Your seller(s) — and you — each got a private signing link by email. Track progress with the ⏳ badges under Documents. The moment everyone has signed, the signed copies file back here and your listing's launch steps (photos, sign, MLS) unlock automatically.
+                {tr("Your seller(s) — and you — each got a private signing link by email. Track progress with the ⏳ badges under Documents. The moment everyone has signed, the signed copies file back here and your listing's launch steps (photos, sign, MLS) unlock automatically.")}
               </div>
-              <button onClick={onDone} style={{ padding: "11px 26px", borderRadius: 10, border: "none", background: "#0c4a6e", color: "#fff", fontWeight: 800, fontSize: 14, cursor: "pointer", fontFamily: "inherit" }}>Done</button>
+              <button onClick={onDone} style={{ padding: "11px 26px", borderRadius: 10, border: "none", background: "#0c4a6e", color: "#fff", fontWeight: 800, fontSize: 14, cursor: "pointer", fontFamily: "inherit" }}>{tr("Done")}</button>
             </div>
           )}
         </div>
@@ -2667,16 +2671,16 @@ function CombinePdfsModal({ tx, docs, headers, onClose, onDone }) {
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)", zIndex: 1200, display: "flex", alignItems: "flex-start", justifyContent: "center", overflowY: "auto", padding: "40px 12px" }}>
       <div style={{ background: "#fff", borderRadius: 14, width: "100%", maxWidth: 560, overflow: "hidden", boxShadow: "0 20px 60px rgba(0,0,0,0.35)" }}>
         <div style={{ background: "#0E7490", padding: "14px 20px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <div style={{ color: "#fff", fontWeight: 800, fontSize: 16 }}>🧷 Combine PDFs into one file</div>
+          <div style={{ color: "#fff", fontWeight: 800, fontSize: 16 }}>{tr("🧷 Combine PDFs into one file")}</div>
           <button onClick={onClose} style={{ background: "none", border: "none", color: "#fff", fontSize: 22, cursor: "pointer", lineHeight: 1 }}>×</button>
         </div>
         <div style={{ padding: 20 }}>
           <div style={{ fontSize: 12.5, color: "#555", marginBottom: 12, lineHeight: 1.5 }}>
-            Check the PDFs in the order you want them merged — the number shows their position. The combined file is saved as a new document; the originals stay put.
+            {tr("Check the PDFs in the order you want them merged — the number shows their position. The combined file is saved as a new document; the originals stay put.")}
           </div>
           {err && <div style={{ background: "#FDEDEC", border: "1px solid #F5B7B1", color: "#943126", borderRadius: 8, padding: "9px 11px", fontSize: 13, marginBottom: 10 }}>⚠️ {err}</div>}
           <div style={{ maxHeight: 300, overflowY: "auto", border: "1px solid #EEE", borderRadius: 10, padding: "6px 10px", marginBottom: 12 }}>
-            {pdfs.length === 0 && <div style={{ fontSize: 13, color: "#666666", padding: 8 }}>No PDFs on this deal yet.</div>}
+            {pdfs.length === 0 && <div style={{ fontSize: 13, color: "#666666", padding: 8 }}>{tr("No PDFs on this deal yet.")}</div>}
             {pdfs.map(d => {
               const pos = picked.indexOf(d.id);
               return (
@@ -2688,11 +2692,11 @@ function CombinePdfsModal({ tx, docs, headers, onClose, onDone }) {
               );
             })}
           </div>
-          <input value={name} onChange={e => setName(e.target.value)} placeholder='Name for the combined file (e.g. "MLS attachments package")'
+          <input value={name} onChange={e => setName(e.target.value)} placeholder={tr("Name for the combined file (e.g. \"MLS attachments package\")")}
             style={{ width: "100%", padding: "9px 11px", borderRadius: 8, border: "1.5px solid #D5D8DC", fontSize: 13.5, fontFamily: "inherit", boxSizing: "border-box", marginBottom: 12 }} />
           <button onClick={combine} disabled={busy || picked.length < 2}
             style={{ width: "100%", padding: "12px 0", borderRadius: 10, border: "none", background: busy || picked.length < 2 ? "#9CB4BC" : "#0c4a6e", color: "#fff", fontWeight: 800, fontSize: 14, cursor: busy ? "wait" : "pointer", fontFamily: "inherit" }}>
-            {busy ? "Combining…" : `Combine ${picked.length || ""} PDF${picked.length === 1 ? "" : "s"}`}
+            {busy ? tr("Combining…") : `Combine ${picked.length || ""} PDF${picked.length === 1 ? "" : "s"}`}
           </button>
         </div>
       </div>
@@ -2795,7 +2799,7 @@ export function AdjustSpotsModal({ doc, signerNames, initial, headers, onSave, o
     const y = Math.max(4, Math.min(pg.height - 10, pg.height - (e.clientY - rect.top) / scale));
     let text;
     if (placeKind === "text") {
-      const t = await askText("What should this text box say?\n\nLeave it EMPTY to let the signer type it in when they sign.", "", { okLabel: "Place box" });
+      const t = await askText(tr("What should this text box say?\n\nLeave it EMPTY to let the signer type it in when they sign."), "", { okLabel: "Place box" });
       if (t === null) return;
       text = t.trim().slice(0, 120);
     }
@@ -2809,7 +2813,7 @@ export function AdjustSpotsModal({ doc, signerNames, initial, headers, onSave, o
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 1300, display: "flex", alignItems: "flex-start", justifyContent: "center", overflowY: "auto", padding: "20px 8px" }}>
       <div style={{ background: "#fff", borderRadius: 14, width: "100%", maxWidth: "min(97vw, 900px)", overflow: "hidden", boxShadow: "0 20px 60px rgba(0,0,0,0.4)" }}>
         <div style={{ background: "#334155", padding: "12px 18px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
-          <div style={{ color: "#fff", fontWeight: 800, fontSize: 15, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{title || ("✏️ Adjust signing spots — " + doc.name)}</div>
+          <div style={{ color: "#fff", fontWeight: 800, fontSize: 15, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{tr(title) || (tr("✏️ Adjust signing spots — ") + doc.name)}</div>
           <button onClick={onClose} style={{ background: "none", border: "none", color: "#fff", fontSize: 22, cursor: "pointer", lineHeight: 1 }}>×</button>
         </div>
         <div style={{ padding: 14 }}>
@@ -2823,21 +2827,21 @@ export function AdjustSpotsModal({ doc, signerNames, initial, headers, onSave, o
             {[["signature", "✍️"], ["initials", "🔤"], ["date", "📅"], ["checkbox", "☑️"], ["text", "💬"]].map(([k, label]) => (
               <button key={k} onClick={() => setPlaceKind(k)} title={k}
                 style={{ padding: "5px 10px", borderRadius: 14, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", border: "2px solid #64748b", background: placeKind === k ? "#334155" : "#fff", color: placeKind === k ? "#fff" : "#334155" }}>
-                {label}
+                {tr(label)}
               </button>
             ))}
           </div>
           <div style={{ fontSize: 12, color: "#475569", marginBottom: 8, lineHeight: 1.5 }}>
-            <b>Drag</b> a block to move it · drag the <b>● corner</b> to resize · <b>tap</b> a block to remove it · tap the page to add a new one for the selected signer.
+            <b>{tr("Drag")}</b> {tr("a block to move it · drag the")} <b>{tr("● corner")}</b> {tr("to resize ·")} <b>{tr("tap")}</b> {tr("a block to remove it · tap the page to add a new one for the selected signer.")}
           </div>
           {loadErr && <div style={{ fontSize: 13, color: "#7f1d1d", padding: 6 }}>⚠️ {loadErr}</div>}
-          {!loadErr && pages.length === 0 && <div style={{ fontSize: 13, color: "#64748b", padding: 10 }}>Loading pages…</div>}
+          {!loadErr && pages.length === 0 && <div style={{ fontSize: 13, color: "#64748b", padding: 10 }}>{tr("Loading pages…")}</div>}
           <div style={{ maxHeight: "68vh", overflowY: "auto", border: "1px solid #e2e8f0", borderRadius: 10, padding: 8, background: "#f1f5f9" }}>
             {pages.map(pg => (
               <div key={pg.num} data-adjust-page="1" style={{ position: "relative", marginBottom: 10, cursor: "crosshair" }} onClick={(e) => placeAt(pg, e)}>
                 {pg.dataUrl
-                  ? <img src={pg.dataUrl} alt={"Page " + pg.num} style={{ display: "block", width: "100%", borderRadius: 4, boxShadow: "0 1px 6px rgba(2,6,23,0.15)" }} draggable={false} />
-                  : <div style={{ width: "100%", height: 300, background: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, color: "#64748b" }}>Page {pg.num} preview unavailable</div>}
+                  ? <img src={pg.dataUrl} alt={tr("Page ") + pg.num} style={{ display: "block", width: "100%", borderRadius: 4, boxShadow: "0 1px 6px rgba(2,6,23,0.15)" }} draggable={false} />
+                  : <div style={{ width: "100%", height: 300, background: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, color: "#64748b" }}>{tr("Page")} {pg.num} {tr("preview unavailable")}</div>}
                 <div style={{ position: "absolute", top: 4, left: 6, fontSize: 10, fontWeight: 700, color: "#64748b", background: "rgba(255,255,255,0.85)", borderRadius: 4, padding: "1px 6px" }}>p.{pg.num}</div>
                 {placements.map((p, idx) => ({ p, idx })).filter(({ p }) => p.page === pg.num).map(({ p, idx }) => {
                   const color = SIGNER_COLORS[((p.signer || 1) - 1) % SIGNER_COLORS.length];
@@ -2853,10 +2857,10 @@ export function AdjustSpotsModal({ doc, signerNames, initial, headers, onSave, o
                       title={`Signer ${p.signer || 1} · drag to move, tap to remove`}
                       style={{ position: "absolute", left: (p.x / pg.width * 100) + "%", bottom: (p.y / pg.height * 100) + "%", width: (widthPt / pg.width * 100) + "%", height: (heightPt / pg.height * 100) + "%", minHeight: 11,
                         border: "2px dashed " + color, background: color + "22", borderRadius: 4, display: "flex", alignItems: "center", justifyContent: "center", cursor: "grab", overflow: "visible", boxSizing: "border-box", touchAction: "none" }}>
-                      <span style={{ fontSize: 10, fontWeight: 800, color, whiteSpace: "nowrap", pointerEvents: "none" }}>{label}</span>
+                      <span style={{ fontSize: 10, fontWeight: 800, color, whiteSpace: "nowrap", pointerEvents: "none" }}>{tr(label)}</span>
                       {resizable && (
                         <div data-handle="1" onPointerDown={startResize(idx, pg)} onPointerMove={moveResize} onPointerUp={endResize} onPointerCancel={endResize}
-                          title="Drag to resize"
+                          title={tr("Drag to resize")}
                           style={{ position: "absolute", right: -10, bottom: -10, width: 20, height: 20, borderRadius: 10, background: color, border: "2.5px solid #fff", boxShadow: "0 1px 5px rgba(2,6,23,0.4)", cursor: "nwse-resize", touchAction: "none" }} />
                       )}
                     </div>
@@ -2869,11 +2873,11 @@ export function AdjustSpotsModal({ doc, signerNames, initial, headers, onSave, o
           <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
             <button onClick={() => { onSave(placements); onClose(); }}
               style={{ flex: 2, padding: "12px 0", borderRadius: 10, border: "none", background: "#0c4a6e", color: "#fff", fontWeight: 800, fontSize: 14, cursor: "pointer", fontFamily: "inherit" }}>
-              💾 Save these spots
+              {tr("💾 Save these spots")}
             </button>
             <button onClick={onClose}
               style={{ flex: 1, padding: "12px 0", borderRadius: 10, border: "1.5px solid #CBD5E1", background: "#fff", color: "#475569", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>
-              Cancel
+              {tr("Cancel")}
             </button>
           </div>
         </div>

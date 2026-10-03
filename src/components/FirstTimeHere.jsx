@@ -1,3 +1,4 @@
+import { t as tr } from "../i18n";
 import { useState, useEffect } from "react";
 
 // ═══════════════════════════════════════════════════════════════
@@ -81,7 +82,7 @@ export default function FirstTimeHere({ pageKey, tip, userId, onAction, onShowHo
   const hideAllBtn = (
     <button onClick={hideAll}
       style={{ background: "none", border: "none", color: "rgba(255,255,255,0.85)", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", padding: "4px 2px", textDecoration: "underline", flex: "0 0 auto" }}>
-      Hide tips on all pages
+      {tr("Hide tips on all pages")}
     </button>
   );
 
@@ -91,9 +92,9 @@ export default function FirstTimeHere({ pageKey, tip, userId, onAction, onShowHo
       <div data-tour="tips" style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 4, padding: compact ? "6px 24px 0" : "8px 24px 0" }}>
         <button onClick={reopen}
           style={{ background: GUIDE, border: "none", color: "#fff", borderRadius: 999, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", padding: "5px 12px" }}>
-          {hasClip ? "🎬" : "💡"} First time here?
+          {hasClip ? "🎬" : "💡"} {tr("First time here?")}
         </button>
-        <button onClick={hideAll} aria-label="Hide tips on all pages" title="Hide tips on all pages"
+        <button onClick={hideAll} aria-label={tr("Hide tips on all pages")} title={tr("Hide tips on all pages")}
           style={{ background: "none", border: "none", color: "#6B7280", fontSize: 16, lineHeight: 1, cursor: "pointer", padding: "4px 6px", fontFamily: "inherit" }}>
           ×
         </button>
@@ -109,16 +110,16 @@ export default function FirstTimeHere({ pageKey, tip, userId, onAction, onShowHo
         <div style={{ background: GUIDE, borderLeft: `6px solid ${GUIDE_GOLD}`, borderRadius: 12, padding: "11px 14px 11px 16px", display: "flex", flexWrap: "wrap", alignItems: "center", gap: "8px 14px", boxShadow: "0 6px 18px rgba(30,64,175,0.25)", fontFamily: "'Segoe UI', system-ui, sans-serif" }}>
           <button onClick={() => onWatch(scenes)}
             style={{ background: GUIDE_GOLD, color: "#2E1065", border: "none", borderRadius: 999, padding: "9px 16px", fontSize: 13.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap", flex: "0 0 auto" }}>
-            ▶ Watch how this page works
+            {tr("▶ Watch how this page works")}
           </button>
           <div style={{ flex: "1 1 220px", minWidth: 0 }}>
-            <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: "0.06em", textTransform: "uppercase", color: GUIDE_LABEL }}>First time here? · about {scenes.length > 1 ? scenes.length : "1"} minute{scenes.length > 1 ? "s" : ""}</div>
-            <div style={{ fontSize: 14, color: "#fff", lineHeight: 1.45 }}>{tip.what}</div>
+            <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: "0.06em", textTransform: "uppercase", color: GUIDE_LABEL }}>{scenes.length > 1 ? tr("First time here? · about {n} minutes", { n: scenes.length }) : tr("First time here? · about 1 minute")}</div>
+            <div style={{ fontSize: 14, color: "#fff", lineHeight: 1.45 }}>{tr(tip.what)}</div>
           </div>
           {hideAllBtn}
-          <button onClick={dismiss} aria-label="Got it, hide this"
+          <button onClick={dismiss} aria-label={tr("Got it, hide this")}
             style={{ background: "rgba(255,255,255,0.14)", border: "1px solid rgba(255,255,255,0.35)", color: "#fff", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", padding: "4px 10px", flex: "0 0 auto" }}>
-            Got it ×
+            {tr("Got it ×")}
           </button>
         </div>
       </div>
@@ -130,8 +131,8 @@ export default function FirstTimeHere({ pageKey, tip, userId, onAction, onShowHo
   // label + text it wraps onto its own line by itself.
   const row = (label, text) => (
     <div style={{ display: "flex", flexWrap: "wrap", gap: "2px 10px", alignItems: "flex-start" }}>
-      <span style={{ flex: "0 0 auto", minWidth: 104, whiteSpace: "nowrap", fontSize: 11, fontWeight: 800, letterSpacing: "0.06em", textTransform: "uppercase", color: GUIDE_LABEL, paddingTop: 3 }}>{label}</span>
-      <span style={{ flex: "1 1 220px", fontSize: 14.5, color: "#fff", lineHeight: 1.5 }}>{text}</span>
+      <span style={{ flex: "0 0 auto", minWidth: 104, whiteSpace: "nowrap", fontSize: 11, fontWeight: 800, letterSpacing: "0.06em", textTransform: "uppercase", color: GUIDE_LABEL, paddingTop: 3 }}>{tr(label)}</span>
+      <span style={{ flex: "1 1 220px", fontSize: 14.5, color: "#fff", lineHeight: 1.5 }}>{tr(text)}</span>
     </div>
   );
 
@@ -140,11 +141,11 @@ export default function FirstTimeHere({ pageKey, tip, userId, onAction, onShowHo
       <div style={{ background: GUIDE, borderLeft: `6px solid ${GUIDE_GOLD}`, borderRadius: 12, padding: "13px 18px 14px 16px", display: "flex", flexDirection: "column", gap: 9, boxShadow: "0 6px 18px rgba(30,64,175,0.25)", fontFamily: "'Segoe UI', system-ui, sans-serif" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <span style={{ fontSize: 16 }}>💡</span>
-          <span style={{ fontSize: 14, fontWeight: 800, color: "#fff", flex: 1, letterSpacing: "0.01em" }}>First time here?</span>
+          <span style={{ fontSize: 14, fontWeight: 800, color: "#fff", flex: 1, letterSpacing: "0.01em" }}>{tr("First time here?")}</span>
           {hideAllBtn}
-          <button onClick={dismiss} aria-label="Got it, hide this"
+          <button onClick={dismiss} aria-label={tr("Got it, hide this")}
             style={{ background: "rgba(255,255,255,0.14)", border: "1px solid rgba(255,255,255,0.35)", color: "#fff", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", padding: "4px 10px" }}>
-            Got it ×
+            {tr("Got it ×")}
           </button>
         </div>
         {row("What this is", tip.what)}
@@ -157,13 +158,13 @@ export default function FirstTimeHere({ pageKey, tip, userId, onAction, onShowHo
             {tip.action && onAction && (
               <button onClick={() => onAction(tip.action.key)}
                 style={{ background: GUIDE_GOLD, color: "#2E1065", border: "none", borderRadius: 8, padding: "8px 15px", fontSize: 12.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>
-                {tip.action.label} →
+                {tr(tip.action.label)} →
               </button>
             )}
             {tip.guide && onShowHow && (
               <button onClick={() => onShowHow(tip.guide)}
                 style={{ background: "transparent", color: "#fff", border: "1px solid rgba(255,255,255,0.6)", borderRadius: 8, padding: "8px 15px", fontSize: 12.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
-                📖 Show me how
+                {tr("📖 Show me how")}
               </button>
             )}
             </div>

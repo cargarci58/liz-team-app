@@ -1,6 +1,7 @@
 import { Component } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
+import { spanishExpected, loadSpanish } from './i18n'
 import App from './App.jsx'
 import PartyUploadPage from './PartyUploadPage.jsx'
 import ResetPasswordPage from './ResetPasswordPage.jsx'
@@ -156,4 +157,6 @@ class ErrorBoundary extends Component {
   }
 }
 
-createRoot(document.getElementById('root')).render(<ErrorBoundary>{Root}</ErrorBoundary>);
+// Spanish users: load the dictionary first so the very first paint is Spanish.
+const __render = () => createRoot(document.getElementById('root')).render(<ErrorBoundary>{Root}</ErrorBoundary>);
+if (spanishExpected()) loadSpanish().finally(__render); else __render();

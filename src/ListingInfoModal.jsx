@@ -1,3 +1,4 @@
+import { t as tr } from "./i18n";
 import React, { useEffect, useState } from "react";
 const API = "https://liz-team-server-api-production.up.railway.app";
 
@@ -46,22 +47,22 @@ export default function ListingInfoModal({ txId, onClose }) {
       <div style={{ background: "#fff", borderRadius: 14, width: "100%", maxWidth: 560, margin: "24px auto", overflow: "hidden", fontFamily: "'Segoe UI', system-ui, sans-serif" }}>
         <div style={{ background: "#0F2044", color: "#fff", padding: "14px 18px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div>
-            <div style={{ fontWeight: 800, fontSize: 16 }}>📋 Listing agreement info</div>
-            {data && <div style={{ fontSize: 12, opacity: 0.85, marginTop: 2 }}>{data.address}{missing > 0 ? ` · ${missing} answer${missing === 1 ? "" : "s"} still blank` : " · all filled in ✓"}</div>}
+            <div style={{ fontWeight: 800, fontSize: 16 }}>{tr("📋 Listing agreement info")}</div>
+            {data && <div style={{ fontSize: 12, opacity: 0.85, marginTop: 2 }}>{data.address}{missing > 0 ? ` · ${missing} answer${missing === 1 ? "" : "s"} still blank` : tr(" · all filled in ✓")}</div>}
           </div>
           <button onClick={() => onClose(0)} style={{ background: "none", border: "none", color: "rgba(255,255,255,0.8)", fontSize: 22, cursor: "pointer", lineHeight: 1 }}>×</button>
         </div>
         <div style={{ padding: 18, maxHeight: "70vh", overflowY: "auto" }}>
-          {!data && !err && <div style={{ color: "#6b7280", padding: 20, textAlign: "center" }}>Loading…</div>}
+          {!data && !err && <div style={{ color: "#6b7280", padding: 20, textAlign: "center" }}>{tr("Loading…")}</div>}
           {err && !data && <div style={{ color: "#b91c1c", padding: 12 }}>⚠️ {err}</div>}
           {data && (
             <>
               <div style={{ fontSize: 12.5, color: "#6b7280", marginBottom: 14, lineHeight: 1.5 }}>
-                These answers go straight onto the listing agreement and the rest of the listing package. Fill what you know — everything is optional and you can come back any time.
+                {tr("These answers go straight onto the listing agreement and the rest of the listing package. Fill what you know — everything is optional and you can come back any time.")}
               </div>
               {data.fields.map(f => (
                 <div key={f.key} style={{ marginBottom: 13 }}>
-                  <label style={{ display: "block", fontSize: 12.5, fontWeight: 700, marginBottom: 4, color: "#111" }}>{f.label}</label>
+                  <label style={{ display: "block", fontSize: 12.5, fontWeight: 700, marginBottom: 4, color: "#111" }}>{tr(f.label)}</label>
                   {isLong(f.key) ? (
                     <textarea defaultValue={f.current ?? ""} rows={2}
                       onChange={e => setValues(v => ({ ...v, [f.key]: e.target.value }))}
@@ -78,11 +79,11 @@ export default function ListingInfoModal({ txId, onClose }) {
               <div style={{ display: "flex", gap: 10, marginTop: 4 }}>
                 <button onClick={() => onClose(0)} disabled={busy}
                   style={{ flex: 1, padding: "12px 0", borderRadius: 10, border: "1px solid #d1d5db", background: "#fff", color: "#374151", fontWeight: 700, fontSize: 14, cursor: "pointer", fontFamily: "inherit" }}>
-                  Skip for now
+                  {tr("Skip for now")}
                 </button>
                 <button onClick={save} disabled={busy}
                   style={{ flex: 2, padding: "12px 0", borderRadius: 10, border: "none", background: "#0c4a6e", color: "#fff", fontWeight: 800, fontSize: 14, cursor: "pointer", fontFamily: "inherit", opacity: busy ? 0.6 : 1 }}>
-                  {busy ? "Saving…" : "✓ Save answers"}
+                  {busy ? tr("Saving…") : tr("✓ Save answers")}
                 </button>
               </div>
             </>
@@ -115,12 +116,12 @@ export function ListingInfoCard({ txId }) {
     <>
       <div style={{ background: "#fffbeb", border: "1px solid #fcd34d", borderRadius: 10, padding: "12px 14px", marginBottom: 14, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
         <div style={{ flex: "1 1 240px", minWidth: 0 }}>
-          <div style={{ fontWeight: 800, fontSize: 13.5, color: "#78350f" }}>📋 Listing agreement info — {missing} answer{missing === 1 ? "" : "s"} needed</div>
-          <div style={{ fontSize: 12, color: "#92400e", marginTop: 2 }}>Fill these in once and the listing package builds itself from them.</div>
+          <div style={{ fontWeight: 800, fontSize: 13.5, color: "#78350f" }}>{tr("📋 Listing agreement info —")} {missing === 1 ? tr("1 answer needed") : tr("{n} answers needed", { n: missing })}</div>
+          <div style={{ fontSize: 12, color: "#92400e", marginTop: 2 }}>{tr("Fill these in once and the listing package builds itself from them.")}</div>
         </div>
         <button onClick={() => setOpen(true)}
           style={{ padding: "9px 16px", borderRadius: 8, border: "none", background: "#0c4a6e", color: "#fff", fontSize: 13, fontWeight: 800, cursor: "pointer", fontFamily: "inherit", flexShrink: 0 }}>
-          Complete listing info →
+          {tr("Complete listing info →")}
         </button>
       </div>
       {open && <ListingInfoModal txId={txId} onClose={() => setOpen(false)} />}

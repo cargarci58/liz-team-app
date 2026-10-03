@@ -512,7 +512,7 @@ export default function OfferSignPublic({ urlToken, kind = "offer" }) {
       <div style={{ marginBottom: 18 }}>
         <div style={{ fontSize: 13, fontWeight: 800, color: "#0c4a6e", textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 8 }}>2 · {t("Adopt your signature")}</div>
         <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
-          {[["draw", "✍️ " + t("Draw")], ["type", "⌨️ " + t("Type")]].map(([m, label]) => (
+          {[["draw", "✍️ " + t("Draw")], ["type", "⌨️ " + t("Type it")]].map(([m, label]) => (
             <button key={m} type="button" onClick={() => { setMode(m); setSigDataUrl(null); if (m === "type" && !typedName) setTypedName(data.signerName || ""); }}
               style={{ padding: "8px 18px", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", border: "1px solid " + (mode === m ? "#0c4a6e" : "#cbd5e1"), background: mode === m ? "#0c4a6e" : "#fff", color: mode === m ? "#fff" : "#374151" }}>
               {label}

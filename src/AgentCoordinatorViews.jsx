@@ -1,10 +1,11 @@
+import { t as tr } from "./i18n";
 import { useState, useEffect } from "react";
 
 const API = "https://liz-team-server-api-production.up.railway.app";
 
 const C = { card: "#fff", border: "#E5E7EB", navy: "#0F2044", gray: "#64748B", green: "#1E7B45", red: "#B91C1C", amber: "#8A5A00" };
 const healthColor = (h) => h === "red" ? C.red : h === "yellow" ? C.amber : h === "green" ? C.green : "#CBD5E1";
-const dot = (h) => <span style={{ display: "inline-block", width: 10, height: 10, borderRadius: "50%", background: healthColor(h), flexShrink: 0 }} title={h || "no health read yet"} />;
+const dot = (h) => <span style={{ display: "inline-block", width: 10, height: 10, borderRadius: "50%", background: healthColor(h), flexShrink: 0 }} title={h || tr("no health read yet")} />;
 function ago(d) {
   if (!d) return "";
   const s = Math.max(0, (Date.now() - new Date(d).getTime()) / 1000);
@@ -43,9 +44,9 @@ export function CoordinatorSummaryPanel({ txId, token }) {
     <div style={{ background: C.card, border: "1px solid " + C.border, borderLeft: "4px solid " + healthColor(d.health), borderRadius: 12, padding: 16, marginBottom: 16 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 10 }}>
         {dot(d.health)}
-        <span style={{ fontSize: 15, fontWeight: 800, color: C.navy }}>🧭 Handled by your coordinator</span>
+        <span style={{ fontSize: 15, fontWeight: 800, color: C.navy }}>{tr("🧭 Handled by your coordinator")}</span>
         <span style={{ fontSize: 13, color: C.gray }}>· {d.coordinatorName}</span>
-        <span style={{ marginLeft: "auto", fontSize: 12, color: C.gray }}>{d.progress.done} of {d.progress.total} steps done</span>
+        <span style={{ marginLeft: "auto", fontSize: 12, color: C.gray }}>{d.progress.done} {tr("of")} {d.progress.total} {tr("steps done")}</span>
       </div>
       <div style={{ height: 8, background: "#EEF2F6", borderRadius: 6, overflow: "hidden", marginBottom: 14 }}>
         <div style={{ width: pct + "%", height: "100%", background: C.green }} />
@@ -53,24 +54,24 @@ export function CoordinatorSummaryPanel({ txId, token }) {
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }} data-keep-grid="">
         <div>
-          <div style={{ fontSize: 12, fontWeight: 800, color: C.gray, textTransform: "uppercase", letterSpacing: 0.4, marginBottom: 6 }}>✅ Done recently</div>
-          {d.doneRecently.length === 0 ? <div style={{ fontSize: 13, color: C.gray }}>Nothing completed yet.</div> :
+          <div style={{ fontSize: 12, fontWeight: 800, color: C.gray, textTransform: "uppercase", letterSpacing: 0.4, marginBottom: 6 }}>{tr("✅ Done recently")}</div>
+          {d.doneRecently.length === 0 ? <div style={{ fontSize: 13, color: C.gray }}>{tr("Nothing completed yet.")}</div> :
             d.doneRecently.map((m, i) => (
               <div key={i} style={{ fontSize: 13, color: "#1a2332", padding: "3px 0" }}>✓ {m.name}{m.completedAt ? <span style={{ color: C.gray }}> · {ago(m.completedAt)}</span> : null}</div>
             ))}
         </div>
         <div>
-          <div style={{ fontSize: 12, fontWeight: 800, color: C.gray, textTransform: "uppercase", letterSpacing: 0.4, marginBottom: 6 }}>⏳ What's left / next</div>
-          {d.upcoming.length === 0 ? <div style={{ fontSize: 13, color: C.gray }}>Nothing outstanding.</div> :
+          <div style={{ fontSize: 12, fontWeight: 800, color: C.gray, textTransform: "uppercase", letterSpacing: 0.4, marginBottom: 6 }}>{tr("⏳ What's left / next")}</div>
+          {d.upcoming.length === 0 ? <div style={{ fontSize: 13, color: C.gray }}>{tr("Nothing outstanding.")}</div> :
             d.upcoming.map((m, i) => (
-              <div key={i} style={{ fontSize: 13, color: "#1a2332", padding: "3px 0" }}>• {m.name}{m.dueDate ? <span style={{ color: C.gray }}> · due {m.dueDate}</span> : <span style={{ color: C.gray }}> · no date</span>}</div>
+              <div key={i} style={{ fontSize: 13, color: "#1a2332", padding: "3px 0" }}>• {m.name}{m.dueDate ? <span style={{ color: C.gray }}> {tr("· due")} {m.dueDate}</span> : <span style={{ color: C.gray }}> {tr("· no date")}</span>}</div>
             ))}
         </div>
       </div>
 
       <div style={{ marginTop: 14 }}>
-        <div style={{ fontSize: 12, fontWeight: 800, color: C.gray, textTransform: "uppercase", letterSpacing: 0.4, marginBottom: 6 }}>🧭 What {d.coordinatorName} has done</div>
-        {d.tcActivity.length === 0 ? <div style={{ fontSize: 13, color: C.gray }}>No coordinator activity logged yet.</div> :
+        <div style={{ fontSize: 12, fontWeight: 800, color: C.gray, textTransform: "uppercase", letterSpacing: 0.4, marginBottom: 6 }}>{tr("🧭 What")} {d.coordinatorName} {tr("has done")}</div>
+        {d.tcActivity.length === 0 ? <div style={{ fontSize: 13, color: C.gray }}>{tr("No coordinator activity logged yet.")}</div> :
           d.tcActivity.map((a, i) => (
             <div key={i} style={{ display: "flex", gap: 8, fontSize: 13, color: "#1a2332", padding: "4px 0", borderTop: i ? "1px solid #F1F5F9" : "none" }}>
               <span>{actionVerb(a.action)}</span>
@@ -96,16 +97,16 @@ function DeskRow({ d, onOpenTransaction }) {
         {dot(d.health)}
         <span style={{ fontWeight: 800, fontSize: 15, color: C.navy }}>{d.address}</span>
         <span style={{ fontSize: 12, color: C.gray }}>· {d.status}</span>
-        <span style={{ marginLeft: "auto", fontSize: 12, color: C.gray }}>{d.msDone}/{d.msTotal} done</span>
+        <span style={{ marginLeft: "auto", fontSize: 12, color: C.gray }}>{d.msDone}/{d.msTotal} {tr("done")}</span>
       </div>
       <div style={{ display: "flex", gap: 6, marginTop: 8, flexWrap: "wrap", alignItems: "center" }}>
-        {d.overdue > 0 && <span style={{ fontSize: 11, fontWeight: 700, color: "#fff", background: C.red, borderRadius: 20, padding: "2px 9px" }}>{d.overdue} overdue</span>}
-        {d.nextName && <span style={{ fontSize: 12, color: "#1a2332" }}>Next: <b>{d.nextName}</b>{d.nextWhen ? " · " + d.nextWhen : ""}</span>}
-        {d.closingDate && <span style={{ fontSize: 12, color: C.gray }}>· closing {d.closingDate}</span>}
+        {d.overdue > 0 && <span style={{ fontSize: 11, fontWeight: 700, color: "#fff", background: C.red, borderRadius: 20, padding: "2px 9px" }}>{d.overdue} {tr("overdue")}</span>}
+        {d.nextName && <span style={{ fontSize: 12, color: "#1a2332" }}>{tr("Next:")} <b>{d.nextName}</b>{d.nextWhen ? " · " + d.nextWhen : ""}</span>}
+        {d.closingDate && <span style={{ fontSize: 12, color: C.gray }}>{tr("· closing")} {d.closingDate}</span>}
       </div>
       {d.lastTcAction && (
         <div style={{ fontSize: 12, color: C.gray, marginTop: 6 }}>
-          Last: {actionVerb(d.lastTcAction.action)}{d.lastTcAction.details ? " — " + d.lastTcAction.details : ""} · {ago(d.lastTcAction.at)}
+          {tr("Last:")} {actionVerb(d.lastTcAction.action)}{d.lastTcAction.details ? " — " + d.lastTcAction.details : ""} · {ago(d.lastTcAction.at)}
         </div>
       )}
     </div>
@@ -132,9 +133,9 @@ export function AgentCoordinatorDesk({ token, onOpenTransaction }) {
   return (
     <div style={{ maxWidth: 920, margin: "16px auto 0", padding: "0 16px" }}>
       <button onClick={() => setOpen(o => !o)} style={{ width: "100%", textAlign: "left", background: "#F8FAFC", border: "1px solid " + C.border, borderRadius: 12, padding: "12px 14px", cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 8 }}>
-        <span style={{ fontSize: 15, fontWeight: 800, color: C.navy }}>🧭 Coordinator Desk</span>
+        <span style={{ fontSize: 15, fontWeight: 800, color: C.navy }}>{tr("🧭 Coordinator Desk")}</span>
         <span style={{ fontSize: 13, color: C.gray }}>
-          {data.total} deal{data.total === 1 ? "" : "s"} with your TC · {needLook.length > 0 ? <b style={{ color: C.red }}>{needLook.length} need a look</b> : "all on track ✅"}
+          {data.total} {tr("deal")}{data.total === 1 ? "" : "s"} {tr("with your TC ·")} {needLook.length > 0 ? <b style={{ color: C.red }}>{needLook.length} {tr("need a look")}</b> : tr("all on track ✅")}
         </span>
         <span style={{ marginLeft: "auto", fontSize: 13, color: C.gray }}>{open ? "▲" : "▼"}</span>
       </button>
@@ -144,7 +145,7 @@ export function AgentCoordinatorDesk({ token, onOpenTransaction }) {
           {onTrack.length > 0 && (
             <>
               <button onClick={() => setShowOk(s => !s)} style={{ width: "100%", textAlign: "left", background: "#E0F2FE", border: "1px solid #7DD3FC", borderRadius: 12, padding: "10px 14px", fontSize: 13, fontWeight: 700, color: "#0c4a6e", cursor: "pointer", fontFamily: "inherit" }}>
-                ✅ {onTrack.length} on track & handled by your TC {showOk ? "▲" : "▼"}
+                ✅ {onTrack.length} {tr("on track & handled by your TC")} {showOk ? "▲" : "▼"}
               </button>
               {showOk && <div style={{ marginTop: 10 }}>{onTrack.map(d => <DeskRow key={d.txId} d={d} onOpenTransaction={onOpenTransaction} />)}</div>}
             </>

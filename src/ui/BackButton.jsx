@@ -12,6 +12,7 @@
 //   • NOT for steps inside a form/wizard ("previous step") or for closing a
 //     pop-up (×) — those are different jobs and must not look like this.
 // ═══════════════════════════════════════════════════════════════
+import { t as tr } from "../i18n";
 import { UI } from "./kit";
 
 export default function BackButton({ onClick, to = "", tone = "light", style = {} }) {
@@ -21,7 +22,7 @@ export default function BackButton({ onClick, to = "", tone = "light", style = {
     <button
       type="button"
       onClick={onClick}
-      aria-label={to ? `Back to ${to}` : "Go back"}
+      aria-label={to ? `Back to ${to}` : tr("Go back")}
       style={{
         display: "inline-flex", alignItems: "center", gap: 6, flexShrink: 0, whiteSpace: "nowrap",
         minHeight: 40, padding: "8px 14px", borderRadius: 8, cursor: "pointer",
@@ -32,7 +33,7 @@ export default function BackButton({ onClick, to = "", tone = "light", style = {
         ...style,
       }}>
       <span aria-hidden="true" style={{ fontSize: 16, lineHeight: 1 }}>←</span>
-      <span>{label}</span>
+      <span>{tr(label)}</span>
     </button>
   );
 }

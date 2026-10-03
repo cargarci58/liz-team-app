@@ -1,3 +1,4 @@
+import { t as tr } from "./i18n";
 import { useState, useEffect } from "react";
 
 const API = "https://liz-team-server-api-production.up.railway.app";
@@ -27,10 +28,10 @@ export default function ReminderPlanReview({ token, txId, reloadKey, onSent, onL
     // eslint-disable-next-line
   }, [token, txId, reloadKey]);
 
-  if (actions === null) return inModal ? <div style={{ padding: 12, color: "#64748B", fontSize: 14 }}>Loading what would go out…</div> : null;
+  if (actions === null) return inModal ? <div style={{ padding: 12, color: "#64748B", fontSize: 14 }}>{tr("Loading what would go out…")}</div> : null;
   if (actions.length === 0) {
     if (msg) return <div style={{ marginBottom: 14, fontSize: 13, fontWeight: 700, color: msg.startsWith("✅") ? "#166534" : "#991B1B" }}>{msg}</div>;
-    return inModal ? <div style={{ padding: 12, color: "#64748B", fontSize: 14 }}>Nothing is due to go out on this deal today. ✅</div> : null;
+    return inModal ? <div style={{ padding: 12, color: "#64748B", fontSize: 14 }}>{tr("Nothing is due to go out on this deal today. ✅")}</div> : null;
   }
 
   const checked = actions.filter(a => !held[a.key]);
@@ -94,9 +95,9 @@ export default function ReminderPlanReview({ token, txId, reloadKey, onSent, onL
 
   return (
     <div style={box}>
-      {!inModal && <div style={{ fontSize: 15, fontWeight: 800, color: "#1E3A8A", marginBottom: 4 }}>🤖 Here's what I'll send today</div>}
+      {!inModal && <div style={{ fontSize: 15, fontWeight: 800, color: "#1E3A8A", marginBottom: 4 }}>{tr("🤖 Here's what I'll send today")}</div>}
       <div style={{ fontSize: 12.5, color: "#1E40AF", marginBottom: 12 }}>
-        Tap <b>👀 Preview &amp; edit</b> to read or change any message. <b>⏸ Not now</b> holds it for later; <b>🚫 Don't send</b> removes it for today. Only messages still checked go out.
+        {tr("Tap")} <b>{tr("👀 Preview & edit")}</b> {tr("to read or change any message.")} <b>{tr("⏸ Not now")}</b> {tr("holds it for later;")} <b>{tr("🚫 Don't send")}</b> {tr("removes it for today. Only messages still checked go out.")}
       </div>
       {byDeal.map(g => (
         <div key={g.txId} style={{ padding: "8px 0", borderTop: "1px solid #DBEAFE" }}>
@@ -111,70 +112,70 @@ export default function ReminderPlanReview({ token, txId, reloadKey, onSent, onL
                     style={{ marginTop: 3, width: 18, height: 18, flexShrink: 0 }} />
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 13.5, color: held[a.key] ? "#94A3B8" : "#1a2332", fontWeight: 600, textDecoration: held[a.key] ? "line-through" : "none" }}>
-                      {icon(a)} {a.summary}{a.role && !a.isAgent ? ` · ${a.role}` : ""}
-                      {isEdited(a) && <span style={{ marginLeft: 6, fontSize: 11, fontWeight: 800, color: "#0c4a6e", background: "#E0F2FE", borderRadius: 6, padding: "1px 6px" }}>✏️ edited</span>}
+                      {icon(a)} {tr(a.summary)}{a.role && !a.isAgent ? ` · ${a.role}` : ""}
+                      {isEdited(a) && <span style={{ marginLeft: 6, fontSize: 11, fontWeight: 800, color: "#0c4a6e", background: "#E0F2FE", borderRadius: 6, padding: "1px 6px" }}>{tr("✏️ edited")}</span>}
                     </div>
                     <div style={{ fontSize: 12.5, color: "#475569", marginTop: 2 }}>
-                      {a.channel === "email" ? <>Subject: “{ev.subject}” · {a.detail}</> : a.detail}
+                      {a.channel === "email" ? <>{tr("Subject: “")}{ev.subject}” · {a.detail}</> : a.detail}
                     </div>
                     {a.channel !== "sms" && a.fromName && (
-                      <div style={{ fontSize: 12, color: "#64748B", marginTop: 2 }}>From: {a.fromName}{a.ccAgent ? " · agent CC'd" : ""}</div>
+                      <div style={{ fontSize: 12, color: "#64748B", marginTop: 2 }}>{tr("From:")} {a.fromName}{a.ccAgent ? tr(" · agent CC'd") : ""}</div>
                     )}
                     <div style={{ display: "flex", gap: 6, marginTop: 6, flexWrap: "wrap" }}>
                       <button onClick={() => { setOpenKey(open ? null : a.key); setView("email"); }} style={linkBtn}>
-                        {open ? "Close preview" : "👀 Preview & edit"}
+                        {open ? tr("Close preview") : tr("👀 Preview & edit")}
                       </button>
                       <button onClick={() => setHeld(h => ({ ...h, [a.key]: !h[a.key] }))} style={linkBtn}>
-                        {held[a.key] ? "↩ Include again" : "⏸ Not now"}
+                        {held[a.key] ? tr("↩ Include again") : tr("⏸ Not now")}
                       </button>
                       <button disabled={skipping === a.key} onClick={() => skip(a)}
                         style={{ ...linkBtn, borderColor: "#E6B0AA", color: "#922B21" }}>
-                        {skipping === a.key ? "…" : "🚫 Don't send"}
+                        {skipping === a.key ? "…" : tr("🚫 Don't send")}
                       </button>
                     </div>
-                    {held[a.key] && <div style={{ fontSize: 11.5, color: "#922B21", marginTop: 4 }}>On hold — won't go out now. It'll be here again next time you open this.</div>}
+                    {held[a.key] && <div style={{ fontSize: 11.5, color: "#922B21", marginTop: 4 }}>{tr("On hold — won't go out now. It'll be here again next time you open this.")}</div>}
                   </div>
                 </div>
                 {open && (
                   <div style={{ margin: "8px 0 4px 28px", background: "#fff", border: "1px solid #BFDBFE", borderRadius: 10, padding: 12 }}>
                     <div style={{ fontSize: 12.5, color: "#475569", lineHeight: 1.6, marginBottom: 8 }}>
-                      <div><b>To:</b> {a.to}{a.channel === "sms" ? ` · ${a.phone}` : a.toEmail ? ` <${a.toEmail}>` : ""}</div>
-                      {a.fromName && <div><b>From:</b> {a.fromName}{a.fromEmail ? ` <${a.fromEmail}>` : ""} — replies come to {a.ccAgent ? "you" : "the agent"}</div>}
-                      {a.ccAgent && <div><b>CC:</b> {a.ccAgent} (the agent)</div>}
+                      <div><b>{tr("To:")}</b> {a.to}{a.channel === "sms" ? ` · ${a.phone}` : a.toEmail ? ` <${a.toEmail}>` : ""}</div>
+                      {a.fromName && <div><b>{tr("From:")}</b> {a.fromName}{a.fromEmail ? ` <${a.fromEmail}>` : ""} {tr("— replies come to")} {a.ccAgent ? tr("you") : tr("the agent")}</div>}
+                      {a.ccAgent && <div><b>{tr("CC:")}</b> {a.ccAgent} {tr("(the agent)")}</div>}
                     </div>
                     {a.channel === "sms" ? (
                       <>
-                        <div style={{ fontSize: 12, fontWeight: 700, color: "#64748B", marginBottom: 4 }}>Text message</div>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: "#64748B", marginBottom: 4 }}>{tr("Text message")}</div>
                         <div style={{ whiteSpace: "pre-wrap", fontSize: 13, background: "#F4F4F4", borderRadius: 8, padding: 10 }}>{a.text}</div>
-                        <div style={{ fontSize: 11.5, color: "#64748B", marginTop: 6 }}>Texts are a fixed alert and can't be reworded — uncheck it to hold it.</div>
+                        <div style={{ fontSize: 11.5, color: "#64748B", marginTop: 6 }}>{tr("Texts are a fixed alert and can't be reworded — uncheck it to hold it.")}</div>
                       </>
                     ) : (
                       <>
                         <div style={{ display: "flex", gap: 6, marginBottom: 8, flexWrap: "wrap" }}>
-                          <button onClick={() => setView("email")} style={tab(view === "email")}>As they'll see it</button>
-                          <button onClick={() => setView("edit")} style={tab(view === "edit")}>✏️ Edit wording</button>
-                          {isEdited(a) && <button onClick={() => setEdits(e => { const c = { ...e }; delete c[a.key]; return c; })} style={linkBtn}>↺ Undo my edits</button>}
+                          <button onClick={() => setView("email")} style={tab(view === "email")}>{tr("As they'll see it")}</button>
+                          <button onClick={() => setView("edit")} style={tab(view === "edit")}>{tr("✏️ Edit wording")}</button>
+                          {isEdited(a) && <button onClick={() => setEdits(e => { const c = { ...e }; delete c[a.key]; return c; })} style={linkBtn}>{tr("↺ Undo my edits")}</button>}
                         </div>
                         {view === "email" ? (
                           isEdited(a) ? (
                             <div>
-                              <div style={{ fontSize: 12, color: "#0c4a6e", marginBottom: 6 }}>Your edited version will be sent (with {a.fromName ? `${a.fromName}'s` : "your"} signature):</div>
+                              <div style={{ fontSize: 12, color: "#0c4a6e", marginBottom: 6 }}>{tr("Your edited version will be sent (with")} {a.fromName ? `${a.fromName}'s` : tr("your")} {tr("signature):")}</div>
                               <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 4 }}>{ev.subject}</div>
                               <div style={{ whiteSpace: "pre-wrap", fontSize: 13, background: "#F4F4F4", borderRadius: 8, padding: 10 }}>{ev.text}</div>
                             </div>
                           ) : (
-                            <iframe title="Email preview" sandbox="" srcDoc={a.html || ""}
+                            <iframe title={tr("Email preview")} sandbox="" srcDoc={a.html || ""}
                               style={{ width: "100%", height: 420, border: "1px solid #E5E7EB", borderRadius: 8, background: "#fff" }} />
                           )
                         ) : (
                           <div>
-                            <label style={{ fontSize: 12, fontWeight: 700, color: "#64748B" }}>Subject</label>
+                            <label style={{ fontSize: 12, fontWeight: 700, color: "#64748B" }}>{tr("Subject")}</label>
                             <input value={ev.subject} onChange={e => setEdit(a, { subject: e.target.value })}
                               style={{ width: "100%", padding: "8px 10px", border: "1px solid #E5E7EB", borderRadius: 8, fontSize: 14, fontFamily: "inherit", margin: "4px 0 10px", boxSizing: "border-box" }} />
-                            <label style={{ fontSize: 12, fontWeight: 700, color: "#64748B" }}>Message</label>
+                            <label style={{ fontSize: 12, fontWeight: 700, color: "#64748B" }}>{tr("Message")}</label>
                             <textarea value={ev.text} onChange={e => setEdit(a, { text: e.target.value })} rows={12}
                               style={{ width: "100%", padding: "8px 10px", border: "1px solid #E5E7EB", borderRadius: 8, fontSize: 14, fontFamily: "inherit", marginTop: 4, resize: "vertical", boxSizing: "border-box" }} />
-                            <div style={{ fontSize: 11.5, color: "#64748B", marginTop: 4 }}>Your signature is added automatically. Keep the “Mark it done” link so they can confirm in one tap.</div>
+                            <div style={{ fontSize: 11.5, color: "#64748B", marginTop: 4 }}>{tr("Your signature is added automatically. Keep the “Mark it done” link so they can confirm in one tap.")}</div>
                           </div>
                         )}
                       </>
@@ -189,9 +190,9 @@ export default function ReminderPlanReview({ token, txId, reloadKey, onSent, onL
       <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 12, flexWrap: "wrap" }}>
         <button onClick={send} disabled={sending || checked.length === 0}
           style={{ background: sending || checked.length === 0 ? "#93C5FD" : "#0c4a6e", color: "#fff", border: "none", borderRadius: 10, padding: "11px 22px", fontSize: 15, fontWeight: 800, cursor: sending ? "wait" : "pointer", fontFamily: "inherit" }}>
-          {sending ? "Sending…" : `✅ Send ${checked.length} checked message${checked.length === 1 ? "" : "s"}`}
+          {sending ? tr("Sending…") : `✅ Send ${checked.length} checked message${checked.length === 1 ? "" : "s"}`}
         </button>
-        <span style={{ fontSize: 12, color: "#1E40AF" }}>Nothing goes out until you approve.</span>
+        <span style={{ fontSize: 12, color: "#1E40AF" }}>{tr("Nothing goes out until you approve.")}</span>
       </div>
       {msg && <div style={{ marginTop: 10, fontSize: 13, fontWeight: 700, color: msg.startsWith("✅") ? "#166534" : "#991B1B" }}>{msg}</div>}
     </div>

@@ -1,3 +1,4 @@
+import { t as tr } from "./i18n";
 import { useState, useEffect, useCallback } from "react";
 import { askConfirm } from "./ui/dialogs";
 
@@ -107,12 +108,12 @@ export default function CoordinatorPanel({ txId }) {
     catch (e) { alert("⚠️ " + e.message); }
   };
   const remove = async (c) => {
-    if (!(await askConfirm(`Remove ${c.coordinator_name || c.coordinator_email} from this deal? They lose access immediately.`, { okLabel: "Remove", danger: true }))) return;
+    if (!(await askConfirm(`Remove ${c.coordinator_name || c.coordinator_email} from this deal? They lose access immediately.`, { okLabel: tr("Remove"), danger: true }))) return;
     try { await api(`/transactions/${txId}/coordinator/${c.id}`, { method: "DELETE" }); await load(); }
     catch (e) { alert("⚠️ " + e.message); }
   };
   const clearDefault = async () => {
-    if (!(await askConfirm("Stop auto-adding this coordinator to new deals?", { okLabel: "Stop auto-adding" }))) return;
+    if (!(await askConfirm(tr("Stop auto-adding this coordinator to new deals?"), { okLabel: tr("Stop auto-adding") }))) return;
     try { await api("/me/default-coordinator", { method: "PUT", body: JSON.stringify({ clear: true }) }); await loadMeta(); }
     catch (e) { alert("⚠️ " + e.message); }
   };
@@ -120,13 +121,13 @@ export default function CoordinatorPanel({ txId }) {
   return (
     <div style={wrap}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: coords && coords.length ? 12 : 0 }}>
-        <div style={{ fontWeight: 800 }}>🤝 Transaction Coordinator</div>
-        {!showForm && <button style={btn(true)} onClick={openForm}>+ Add coordinator</button>}
+        <div style={{ fontWeight: 800 }}>{tr("🤝 Transaction Coordinator")}</div>
+        {!showForm && <button style={btn(true)} onClick={openForm}>{tr("+ Add coordinator")}</button>}
       </div>
 
       {def && !showForm && (
         <div style={{ fontSize: 12, color: L.muted, marginBottom: 10 }}>
-          ⭐ Auto-added to new deals: <strong>{def.name || def.email}</strong> · <span style={{ color: L.red, cursor: "pointer" }} onClick={clearDefault}>turn off</span>
+          {tr("⭐ Auto-added to new deals:")} <strong>{def.name || def.email}</strong> · <span style={{ color: L.red, cursor: "pointer" }} onClick={clearDefault}>{tr("turn off")}</span>
         </div>
       )}
 
@@ -137,37 +138,37 @@ export default function CoordinatorPanel({ txId }) {
               <div style={{ fontWeight: 700 }}>{c.coordinator_name || c.coordinator_email}</div>
               <div style={{ fontSize: 12, color: L.muted }}>{c.coordinator_email}</div>
             </div>
-            <button style={btn(false)} onClick={() => remove(c)}>Remove</button>
+            <button style={btn(false)} onClick={() => remove(c)}>{tr("Remove")}</button>
           </div>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 12, marginTop: 10, fontSize: 13 }}>
-            <label style={chk}><input type="checkbox" checked={c.can_edit_milestones} onChange={() => togglePerm(c, "milestones")} /> Edit timeline</label>
-            <label style={chk}><input type="checkbox" checked={c.can_upload_docs} onChange={() => togglePerm(c, "docs")} /> Upload docs</label>
-            <label style={chk}><input type="checkbox" checked={c.can_send_reminders} onChange={() => togglePerm(c, "reminders")} /> Send updates</label>
+            <label style={chk}><input type="checkbox" checked={c.can_edit_milestones} onChange={() => togglePerm(c, "milestones")} /> {tr("Edit timeline")}</label>
+            <label style={chk}><input type="checkbox" checked={c.can_upload_docs} onChange={() => togglePerm(c, "docs")} /> {tr("Upload docs")}</label>
+            <label style={chk}><input type="checkbox" checked={c.can_send_reminders} onChange={() => togglePerm(c, "reminders")} /> {tr("Send updates")}</label>
           </div>
           <div style={{ marginTop: 8, fontSize: 12, color: L.muted }}>
-            Emails they send go out under their own name and signature — you're copied.
+            {tr("Emails they send go out under their own name and signature — you're copied.")}
           </div>
         </div>
       ))}
 
       {showForm && (
         <div style={{ marginTop: 12, borderTop: `1px solid ${L.line}`, paddingTop: 12 }}>
-          <div style={{ fontSize: 13, color: L.muted, marginBottom: 10 }}>They get one portal with all the deals you (and other agents) invite them to. Free while you're on a paid plan.</div>
+          <div style={{ fontSize: 13, color: L.muted, marginBottom: 10 }}>{tr("They get one portal with all the deals you (and other agents) invite them to. Free while you're on a paid plan.")}</div>
 
           {saved.length > 0 && (
             <select onChange={e => pickSaved(e.target.value)} value={email} style={{ ...input, marginBottom: 8 }}>
-              <option value="">— Reuse a saved coordinator —</option>
-              {saved.map(s => <option key={s.coordinator_email} value={s.coordinator_email}>{s.coordinator_name || s.coordinator_email}</option>)}
+              <option value="">{tr("— Reuse a saved coordinator —")}</option>
+              {saved.map(s => <option key={s.coordinator_email} value={s.coordinator_email}>{tr(s.coordinator_name || s.coordinator_email)}</option>)}
             </select>
           )}
 
           <button type="button" onClick={openDirectory} style={{ background: "#fff", border: `1px solid ${L.line}`, borderRadius: 8, padding: "8px 12px", fontSize: 13, fontWeight: 700, cursor: "pointer", marginBottom: 8, fontFamily: "inherit" }}>
-            {showDir ? "▾ Hide coordinator directory" : "🔎 Browse available coordinators"}
+            {showDir ? tr("▾ Hide coordinator directory") : tr("🔎 Browse available coordinators")}
           </button>
           {showDir && (
             <div style={{ border: `1px solid ${L.line}`, borderRadius: 8, padding: 8, marginBottom: 10, maxHeight: 260, overflowY: "auto" }}>
-              {dir === null && <div style={{ fontSize: 13, color: L.muted, padding: 6 }}>Loading…</div>}
-              {dir && dir.length === 0 && <div style={{ fontSize: 13, color: L.muted, padding: 6 }}>No coordinators are listed for hire yet.</div>}
+              {dir === null && <div style={{ fontSize: 13, color: L.muted, padding: 6 }}>{tr("Loading…")}</div>}
+              {dir && dir.length === 0 && <div style={{ fontSize: 13, color: L.muted, padding: 6 }}>{tr("No coordinators are listed for hire yet.")}</div>}
               {dir && dir.map(c => {
                 const nm = `${c.first_name || ""} ${c.last_name || ""}`.trim() || c.email;
                 const picked = email === c.email;
@@ -176,9 +177,9 @@ export default function CoordinatorPanel({ txId }) {
                     style={{ padding: "8px 10px", borderRadius: 8, cursor: "pointer", border: `1px solid ${picked ? "#C0392B" : "transparent"}`, background: picked ? "#FDEDEC" : "transparent" }}>
                     <div style={{ fontWeight: 700, fontSize: 14 }}>{nm}{c.tc_service_area ? <span style={{ fontWeight: 500, color: L.muted, fontSize: 12 }}> · {c.tc_service_area}</span> : null}</div>
                     <div style={{ fontSize: 12, color: L.muted, display: "flex", gap: 10, flexWrap: "wrap", marginTop: 2 }}>
-                      {c.tc_fee_listing != null && <span>Listing {money(c.tc_fee_listing)}</span>}
-                      {c.tc_fee_seller != null && <span>Seller {money(c.tc_fee_seller)}</span>}
-                      {c.tc_fee_buyer != null && <span>Buyer {money(c.tc_fee_buyer)}</span>}
+                      {c.tc_fee_listing != null && <span>{tr("Listing")} {money(c.tc_fee_listing)}</span>}
+                      {c.tc_fee_seller != null && <span>{tr("Seller")} {money(c.tc_fee_seller)}</span>}
+                      {c.tc_fee_buyer != null && <span>{tr("Buyer")} {money(c.tc_fee_buyer)}</span>}
                     </div>
                     {c.tc_bio && <div style={{ fontSize: 12, color: L.muted, marginTop: 3 }}>{c.tc_bio}</div>}
                   </div>
@@ -187,31 +188,31 @@ export default function CoordinatorPanel({ txId }) {
             </div>
           )}
 
-          <input placeholder="Coordinator email" value={email} onChange={e => setEmail(e.target.value)} onBlur={e => refetchAssignable(e.target.value)} style={{ ...input, marginBottom: 8 }} />
-          <input placeholder="Name (optional)" value={name} onChange={e => setName(e.target.value)} style={{ ...input, marginBottom: 8 }} />
+          <input placeholder={tr("Coordinator email")} value={email} onChange={e => setEmail(e.target.value)} onBlur={e => refetchAssignable(e.target.value)} style={{ ...input, marginBottom: 8 }} />
+          <input placeholder={tr("Name (optional)")} value={name} onChange={e => setName(e.target.value)} style={{ ...input, marginBottom: 8 }} />
 
           <div style={{ display: "flex", flexWrap: "wrap", gap: 12, fontSize: 13, marginBottom: 8 }}>
-            <label style={chk}><input type="checkbox" checked={perm.milestones} onChange={e => setPerm({ ...perm, milestones: e.target.checked })} /> Edit timeline</label>
-            <label style={chk}><input type="checkbox" checked={perm.docs} onChange={e => setPerm({ ...perm, docs: e.target.checked })} /> Upload docs</label>
-            <label style={chk}><input type="checkbox" checked={perm.reminders} onChange={e => setPerm({ ...perm, reminders: e.target.checked })} /> Send updates</label>
+            <label style={chk}><input type="checkbox" checked={perm.milestones} onChange={e => setPerm({ ...perm, milestones: e.target.checked })} /> {tr("Edit timeline")}</label>
+            <label style={chk}><input type="checkbox" checked={perm.docs} onChange={e => setPerm({ ...perm, docs: e.target.checked })} /> {tr("Upload docs")}</label>
+            <label style={chk}><input type="checkbox" checked={perm.reminders} onChange={e => setPerm({ ...perm, reminders: e.target.checked })} /> {tr("Send updates")}</label>
           </div>
 
           {/* Carlos 9/28: a TC sends under their OWN name + signature; you're CC'd. */}
           <div style={{ fontSize: 12, color: L.muted, marginBottom: 10 }}>
-            Emails your coordinator sends go out under their own name and signature — you're copied on every one.
+            {tr("Emails your coordinator sends go out under their own name and signature — you're copied on every one.")}
           </div>
 
           {assignable.length > 0 && (
             <div style={{ border: `1px solid ${L.line}`, borderRadius: 10, padding: 10, marginBottom: 10 }}>
-              <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 6 }}>Add to which deals?</div>
+              <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 6 }}>{tr("Add to which deals?")}</div>
               <div style={{ maxHeight: 180, overflowY: "auto" }}>
                 {assignable.map(t => (
                   <label key={t.id} style={{ ...chk, padding: "4px 0", fontSize: 14, justifyContent: "space-between" }}>
                     <span style={{ display: "flex", gap: 6, alignItems: "center" }}>
                       <input type="checkbox" checked={picked.has(t.id) || t.id === txId} disabled={t.id === txId} onChange={() => toggleDeal(t.id)} />
-                      <span>{t.address || "—"} {t.id === txId && <em style={{ color: L.muted }}>(this deal)</em>}</span>
+                      <span>{t.address || "—"} {t.id === txId && <em style={{ color: L.muted }}>{tr("(this deal)")}</em>}</span>
                     </span>
-                    {t.already && t.id !== txId && <span style={{ fontSize: 11, color: L.green }}>already on</span>}
+                    {t.already && t.id !== txId && <span style={{ fontSize: 11, color: L.green }}>{tr("already on")}</span>}
                   </label>
                 ))}
               </div>
@@ -219,12 +220,12 @@ export default function CoordinatorPanel({ txId }) {
           )}
 
           <label style={{ ...chk, fontSize: 14, marginBottom: 10 }}>
-            <input type="checkbox" checked={makeDefault} onChange={e => setMakeDefault(e.target.checked)} /> ⭐ Also make this my default coordinator on new deals
+            <input type="checkbox" checked={makeDefault} onChange={e => setMakeDefault(e.target.checked)} /> {tr("⭐ Also make this my default coordinator on new deals")}
           </label>
 
           <div style={{ display: "flex", gap: 8 }}>
-            <button style={btn(true)} disabled={busy || !email.trim()} onClick={submit}>{busy ? "Adding…" : `Add to ${picked.size} deal${picked.size === 1 ? "" : "s"}`}</button>
-            <button style={btn(false)} onClick={() => { setShowForm(false); setMsg(""); }}>Cancel</button>
+            <button style={btn(true)} disabled={busy || !email.trim()} onClick={submit}>{busy ? tr("Adding…") : `Add to ${picked.size} deal${picked.size === 1 ? "" : "s"}`}</button>
+            <button style={btn(false)} onClick={() => { setShowForm(false); setMsg(""); }}>{tr("Cancel")}</button>
           </div>
         </div>
       )}

@@ -1,3 +1,4 @@
+import { t as tr } from "../i18n";
 import { useState } from 'react';
 
 // ═══════════════════════════════════════════════════════════════
@@ -31,19 +32,19 @@ export default function OnboardingGuide({ steps, doneKeys, onTakeMeThere, onSkip
       <Overlay onBackdrop={onDismiss}>
         <div style={{ textAlign: 'center', padding: '8px 4px' }}>
           <div style={{ fontSize: 44, marginBottom: 8 }}>👋</div>
-          <div style={{ fontSize: 22, fontWeight: 800, color: '#111' }}>Welcome! Let's get you set up.</div>
+          <div style={{ fontSize: 22, fontWeight: 800, color: '#111' }}>{tr("Welcome! Let's get you set up.")}</div>
           <div style={{ fontSize: 14, color: '#555', margin: '10px 0 22px', lineHeight: 1.55 }}>
-            A few quick steps and you're ready to go — each one takes just a few minutes. We'll walk you through exactly where to click.
+            {tr("A few quick steps and you're ready to go — each one takes just a few minutes. We'll walk you through exactly where to click.")}
           </div>
-          <button onClick={() => setWelcomed(true)} style={primaryBtn}>Start setup →</button>
+          <button onClick={() => setWelcomed(true)} style={primaryBtn}>{tr("Start setup →")}</button>
           {/* The narrated tour: what the app does, in two minutes, before any setup. */}
           {onWatchTour && (
             <div style={{ marginTop: 10 }}>
-              <button onClick={onWatchTour} style={{ ...primaryBtn, background: '#0c4a6e' }}>▶ Watch the 2-minute tour</button>
+              <button onClick={onWatchTour} style={{ ...primaryBtn, background: '#0c4a6e' }}>{tr("▶ Watch the 2-minute tour")}</button>
             </div>
           )}
           <div>
-            <button onClick={onDismiss} style={linkBtn}>I'll do it later</button>
+            <button onClick={onDismiss} style={linkBtn}>{tr("I'll do it later")}</button>
           </div>
         </div>
       </Overlay>
@@ -55,11 +56,11 @@ export default function OnboardingGuide({ steps, doneKeys, onTakeMeThere, onSkip
       <Overlay onBackdrop={onFinish}>
         <div style={{ textAlign: 'center', padding: '8px 4px' }}>
           <div style={{ fontSize: 44, marginBottom: 8 }}>🎉</div>
-          <div style={{ fontSize: 22, fontWeight: 800, color: '#111' }}>You're all set!</div>
+          <div style={{ fontSize: 22, fontWeight: 800, color: '#111' }}>{tr("You're all set!")}</div>
           <div style={{ fontSize: 14, color: '#555', margin: '10px 0 22px', lineHeight: 1.55 }}>
-            Nice work. You can re-open this anytime from <strong>⚙️ Menu → ❓ Help &amp; Guides</strong>.
+            {tr("Nice work. You can re-open this anytime from")} <strong>{tr("⚙️ Menu → ❓ Help & Guides")}</strong>.
           </div>
-          <button onClick={onFinish} style={primaryBtn}>Go to my dashboard →</button>
+          <button onClick={onFinish} style={primaryBtn}>{tr("Go to my dashboard →")}</button>
         </div>
       </Overlay>
     );
@@ -69,9 +70,9 @@ export default function OnboardingGuide({ steps, doneKeys, onTakeMeThere, onSkip
     <Overlay onBackdrop={onDismiss}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
         <div style={{ fontSize: 12, fontWeight: 800, color: RED, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-          Setup · Step {currentIdx + 1} of {steps.length}
+          {tr("Setup · Step")} {currentIdx + 1} {tr("of")} {steps.length}
         </div>
-        <button onClick={onDismiss} style={{ background: 'none', border: 'none', fontSize: 12, color: '#666666', cursor: 'pointer', fontFamily: 'inherit' }}>Skip setup</button>
+        <button onClick={onDismiss} style={{ background: 'none', border: 'none', fontSize: 12, color: '#666666', cursor: 'pointer', fontFamily: 'inherit' }}>{tr("Skip setup")}</button>
       </div>
 
       {/* Progress dots */}
@@ -90,19 +91,19 @@ export default function OnboardingGuide({ steps, doneKeys, onTakeMeThere, onSkip
               {done ? '✓' : i + 1}
             </div>
             <div style={{ flex: 1 }}>
-              <div style={{ fontWeight: 800, fontSize: 15, color: '#222' }}>{s.emoji} {s.title}</div>
-              <div style={{ fontSize: 13, color: '#555', margin: '4px 0 6px', lineHeight: 1.45 }}>{s.desc}</div>
+              <div style={{ fontWeight: 800, fontSize: 15, color: '#222' }}>{s.emoji} {tr(s.title)}</div>
+              <div style={{ fontSize: 13, color: '#555', margin: '4px 0 6px', lineHeight: 1.45 }}>{tr(s.desc)}</div>
               {isCurrent && (s.tour ? (
-                <button onClick={() => onStartTour(s)} style={primaryBtn}>Start the tour →</button>
+                <button onClick={() => onStartTour(s)} style={primaryBtn}>{tr("Start the tour →")}</button>
               ) : (
                 <>
                   <div style={{ fontSize: 12.5, color: '#666666', marginBottom: 10, lineHeight: 1.5 }}>
-                    👉 Where to click: <strong>{s.where}</strong> (top-right of your screen).
+                    {tr("👉 Where to click:")} <strong>{s.where}</strong> {tr("(top-right of your screen).")}
                   </div>
-                  <button onClick={() => onTakeMeThere(s)} style={primaryBtn}>Show me — open it now →</button>
+                  <button onClick={() => onTakeMeThere(s)} style={primaryBtn}>{tr("Show me — open it now →")}</button>
                   {onSkipStep && (
                     <div>
-                      <button onClick={() => onSkipStep(s)} style={{ ...linkBtn, marginTop: 8, color: '#0c4a6e', textDecoration: 'underline' }}>Skip this step for now</button>
+                      <button onClick={() => onSkipStep(s)} style={{ ...linkBtn, marginTop: 8, color: '#0c4a6e', textDecoration: 'underline' }}>{tr("Skip this step for now")}</button>
                     </div>
                   )}
                 </>
@@ -113,7 +114,7 @@ export default function OnboardingGuide({ steps, doneKeys, onTakeMeThere, onSkip
       })}
 
       <div style={{ fontSize: 12, color: '#666666', textAlign: 'center', marginTop: 6 }}>
-        You can turn this off anytime — it's always in ⚙️ Menu → ❓ Help &amp; Guides → Start Here.
+        {tr("You can turn this off anytime — it's always in ⚙️ Menu → ❓ Help & Guides → Start Here.")}
       </div>
     </Overlay>
   );

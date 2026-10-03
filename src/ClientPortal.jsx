@@ -8,7 +8,7 @@ import { deriveStage, strongClaimFor } from "./portalClaims";
 import { flTaxRate, deedDocStampPer100 } from "./lib/flTaxRates";
 import { simulate, fmtTime } from "./lib/tourRoute";
 import HomeScorecard, { FavoritesSummary, ScorecardButton } from "./components/HomeScorecard";
-import { t, tn, useLang, getLang, setLang, applyPreferredLang, addSpanish, locale } from "./i18n";
+import { t, tn, useLang, getLang, setLang, staffLang, applyPreferredLang, addSpanish, locale } from "./i18n";
 import LangToggle from "./components/LangToggle";
 
 const API = "https://liz-team-server-api-production.up.railway.app";
@@ -1677,7 +1677,7 @@ export default function ClientPortal({ user, onLogout, previewTxId, onExitPrevie
     if (!isPreview && user && user.preferredLanguage) applyPreferredLang(user.preferredLanguage);
   }, [isPreview, user && user.preferredLanguage]);
   // Agent preview: back to English when they leave (their own screens are English).
-  useEffect(() => () => { if (isPreview) setLang("en", { persist: false }); }, [isPreview]);
+  useEffect(() => () => { if (isPreview) setLang(staffLang(), { persist: false }); }, [isPreview]);
   const [tx, setTx] = useState(null);
   const [allTx, setAllTx] = useState([]);
   const [docs, setDocs] = useState([]);

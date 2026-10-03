@@ -1,3 +1,4 @@
+import { t as tr } from "./i18n";
 import React, { useState, useEffect, useRef } from "react";
 import BackButton from "./ui/BackButton";
 import { askConfirm } from "./ui/dialogs";
@@ -225,14 +226,14 @@ function UploadStep({ token, existingTransactionId, onBack, onUploaded }) {
     <div style={{ fontFamily: "'Segoe UI', system-ui, sans-serif", background: COLORS.bg, minHeight: "100vh", padding: "24px" }}>
       <div style={{ maxWidth: 720, margin: "0 auto" }}>
         <BackButton onClick={onBack} style={{ marginBottom: 16 }} />
-        <h1 style={{ margin: 0, color: COLORS.navy, fontSize: 26 }}>{isOffer ? "📥 Upload Offer" : "📄 Import a Signed Contract"}</h1>
+        <h1 style={{ margin: 0, color: COLORS.navy, fontSize: 26 }}>{isOffer ? tr("📥 Upload Offer") : tr("📄 Import a Signed Contract")}</h1>
         <p style={{ color: COLORS.muted, marginTop: 6, marginBottom: 8 }}>
           {isOffer
-            ? "Drop the buyer's offer below (signed by the buyer — your seller hasn't signed yet, and nothing here accepts it). We'll read it, identify every document and addendum, and pull out the price, buyer, dates, and terms automatically."
-            : "Drop the fully-signed contract package below. We'll read it, identify every document and addendum, and pull out all the key fields automatically."}
+            ? tr("Drop the buyer's offer below (signed by the buyer — your seller hasn't signed yet, and nothing here accepts it). We'll read it, identify every document and addendum, and pull out the price, buyer, dates, and terms automatically.")
+            : tr("Drop the fully-signed contract package below. We'll read it, identify every document and addendum, and pull out all the key fields automatically.")}
         </p>
         <p style={{ color: COLORS.muted, marginTop: 0, marginBottom: 24, fontSize: 13 }}>
-          Two ways: <strong>upload it yourself</strong>, or <strong>send {isOffer ? "the other agent" : "your client"} a no-login link</strong> so they can upload it for you.
+          {tr("Two ways:")} <strong>{tr("upload it yourself")}</strong>{tr(", or")} <strong>{tr("send")} {isOffer ? tr("the other agent") : tr("your client")} {tr("a no-login link")}</strong> {tr("so they can upload it for you.")}
         </p>
 
         <div style={{ display: "flex", gap: 8, marginBottom: 24, flexWrap: "wrap" }}>
@@ -241,31 +242,31 @@ function UploadStep({ token, existingTransactionId, onBack, onUploaded }) {
               onClick={() => setMode("existing")}
               style={{ flex: "1 1 30%", padding: "12px", borderRadius: 8, border: `2px solid ${mode === "existing" ? COLORS.red : COLORS.border}`, background: mode === "existing" ? "#fef2f2" : "white", color: mode === "existing" ? COLORS.red : COLORS.text, fontWeight: 600, fontSize: 14, cursor: "pointer", fontFamily: "inherit" }}
             >
-              📁 Already on this deal
+              {tr("📁 Already on this deal")}
             </button>
           )}
           <button
             onClick={() => setMode("self")}
             style={{ flex: "1 1 30%", padding: "12px", borderRadius: 8, border: `2px solid ${mode === "self" ? COLORS.red : COLORS.border}`, background: mode === "self" ? "#fef2f2" : "white", color: mode === "self" ? COLORS.red : COLORS.text, fontWeight: 600, fontSize: 14, cursor: "pointer", fontFamily: "inherit" }}
           >
-            📤 Upload Myself
+            {tr("📤 Upload Myself")}
           </button>
           <button
             onClick={() => setMode("link")}
             style={{ flex: "1 1 30%", padding: "12px", borderRadius: 8, border: `2px solid ${mode === "link" ? COLORS.red : COLORS.border}`, background: mode === "link" ? "#fef2f2" : "white", color: mode === "link" ? COLORS.red : COLORS.text, fontWeight: 600, fontSize: 14, cursor: "pointer", fontFamily: "inherit" }}
           >
-            🔗 Send a Link (no login)
+            {tr("🔗 Send a Link (no login)")}
           </button>
         </div>
 
         {mode === "existing" && (
           <div style={{ background: "white", border: "1px solid " + COLORS.border, borderRadius: 12, padding: 20, marginBottom: 24 }}>
-            <h3 style={{ margin: "0 0 6px 0", color: COLORS.navy, fontSize: 16 }}>Pick the offer/contract already on this deal</h3>
+            <h3 style={{ margin: "0 0 6px 0", color: COLORS.navy, fontSize: 16 }}>{tr("Pick the offer/contract already on this deal")}</h3>
             <p style={{ color: COLORS.muted, fontSize: 13, marginTop: 0, marginBottom: 14 }}>
-              Signed the offer in-app? It's already here. Pick it and we'll read it — no re-uploading.
+              {tr("Signed the offer in-app? It's already here. Pick it and we'll read it — no re-uploading.")}
             </p>
             {dealDocs.length === 0 ? (
-              <div style={{ fontSize: 13, color: COLORS.muted, padding: "8px 0" }}>No PDF documents on this deal yet — use <strong>Upload Myself</strong> instead.</div>
+              <div style={{ fontSize: 13, color: COLORS.muted, padding: "8px 0" }}>{tr("No PDF documents on this deal yet — use")} <strong>{tr("Upload Myself")}</strong> {tr("instead.")}</div>
             ) : (
               <div style={{ maxHeight: 320, overflowY: "auto" }}>
                 {dealDocs.map(d => {
@@ -275,7 +276,7 @@ function UploadStep({ token, existingTransactionId, onBack, onUploaded }) {
                   <button key={d.id} disabled={!!pickingId} onClick={() => useExistingDoc(d.id)}
                     style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, width: "100%", textAlign: "left", padding: "11px 12px", marginBottom: 6, borderRadius: 8, border: "1px solid " + (isThis ? COLORS.red : COLORS.border), background: isThis ? "#fef2f2" : "#fff", cursor: pickingId ? "default" : "pointer", fontFamily: "inherit", opacity: dimmed ? 0.5 : 1 }}>
                     <span style={{ fontSize: 13.5, fontWeight: 600, color: COLORS.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>📄 {d.name}</span>
-                    <span style={{ flexShrink: 0, fontSize: 12, fontWeight: 700, color: COLORS.red }}>{isThis ? "Reading…" : "Read this →"}</span>
+                    <span style={{ flexShrink: 0, fontSize: 12, fontWeight: 700, color: COLORS.red }}>{isThis ? tr("Reading…") : tr("Read this →")}</span>
                   </button>
                   );
                 })}
@@ -287,21 +288,21 @@ function UploadStep({ token, existingTransactionId, onBack, onUploaded }) {
 
         {mode === "link" && (
           <div style={{ background: "white", border: "1px solid " + COLORS.border, borderRadius: 12, padding: 24, marginBottom: 24 }}>
-            <h3 style={{ margin: "0 0 8px 0", color: COLORS.navy, fontSize: 16 }}>Generate Upload Link</h3>
+            <h3 style={{ margin: "0 0 8px 0", color: COLORS.navy, fontSize: 16 }}>{tr("Generate Upload Link")}</h3>
             <p style={{ color: COLORS.muted, fontSize: 13, marginTop: 0, marginBottom: 16 }}>
-              Anyone with this link can upload the contract — no login required. Once it's been processed, we'll notify you when it's ready to review.
+              {tr("Anyone with this link can upload the contract — no login required. Once it's been processed, we'll notify you when it's ready to review.")}
             </p>
             <div style={{ marginBottom: 16 }}>
-              <label style={{ fontSize: 12, color: COLORS.muted, display: "block", marginBottom: 6, fontWeight: 600 }}>LINK EXPIRES IN</label>
+              <label style={{ fontSize: 12, color: COLORS.muted, display: "block", marginBottom: 6, fontWeight: 600 }}>{tr("LINK EXPIRES IN")}</label>
               <select
                 value={linkExpiry}
                 onChange={e => setLinkExpiry(parseInt(e.target.value))}
                 style={{ padding: "8px 12px", border: "1px solid " + COLORS.border, borderRadius: 6, fontSize: 14, fontFamily: "inherit" }}
               >
-                <option value={24}>24 hours</option>
-                <option value={48}>48 hours</option>
-                <option value={72}>72 hours (default)</option>
-                <option value={168}>7 days</option>
+                <option value={24}>{tr("24 hours")}</option>
+                <option value={48}>{tr("48 hours")}</option>
+                <option value={72}>{tr("72 hours (default)")}</option>
+                <option value={168}>{tr("7 days")}</option>
               </select>
             </div>
             {!generatedLink ? (
@@ -310,7 +311,7 @@ function UploadStep({ token, existingTransactionId, onBack, onUploaded }) {
                 disabled={generatingLink}
                 style={{ background: "#0c4a6e", color: "white", border: "none", borderRadius: 8, padding: "12px 24px", fontSize: 14, fontWeight: 600, cursor: generatingLink ? "wait" : "pointer", fontFamily: "inherit", opacity: generatingLink ? 0.7 : 1 }}
               >
-                {generatingLink ? "Generating..." : "Generate Link"}
+                {generatingLink ? tr("Generating...") : tr("Generate Link")}
               </button>
             ) : (
               <div>
@@ -322,17 +323,17 @@ function UploadStep({ token, existingTransactionId, onBack, onUploaded }) {
                     onClick={copyLink}
                     style={{ background: linkCopied ? COLORS.green : COLORS.navy, color: "white", border: "none", borderRadius: 8, padding: "10px 20px", fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}
                   >
-                    {linkCopied ? "✓ Copied!" : "📋 Copy Link"}
+                    {linkCopied ? tr("✓ Copied!") : tr("📋 Copy Link")}
                   </button>
                   <button
                     onClick={() => { setGeneratedLink(""); setLinkCopied(false); }}
                     style={{ background: "white", color: COLORS.text, border: "1px solid " + COLORS.border, borderRadius: 8, padding: "10px 20px", fontSize: 14, cursor: "pointer", fontFamily: "inherit" }}
                   >
-                    Generate New Link
+                    {tr("Generate New Link")}
                   </button>
                 </div>
                 <div style={{ marginTop: 12, fontSize: 12, color: COLORS.muted }}>
-                  ✅ You'll get an email + SMS notification when the contract is uploaded and ready to review.
+                  {tr("✅ You'll get an email + SMS notification when the contract is uploaded and ready to review.")}
                 </div>
               </div>
             )}
@@ -356,10 +357,10 @@ function UploadStep({ token, existingTransactionId, onBack, onUploaded }) {
         >
           <div style={{ fontSize: 48, marginBottom: 12 }}>📥</div>
           <div style={{ fontSize: 16, fontWeight: 600, color: COLORS.text, marginBottom: 6 }}>
-            {files.length > 0 ? `${files.length} file${files.length > 1 ? "s" : ""} selected — click to add more` : "Drop contract + addenda here, or click to browse"}
+            {files.length > 0 ? `${files.length} file${files.length > 1 ? "s" : ""} selected — click to add more` : tr("Drop contract + addenda here, or click to browse")}
           </div>
           <div style={{ fontSize: 13, color: COLORS.muted }}>
-            {files.length > 0 ? "You can add the contract, addenda, disclosures — all together" : "PDF, JPG, PNG, or HEIC · Max 30 MB each · Select multiple files"}
+            {files.length > 0 ? tr("You can add the contract, addenda, disclosures — all together") : tr("PDF, JPG, PNG, or HEIC · Max 30 MB each · Select multiple files")}
           </div>
           <input
             ref={fileInputRef}
@@ -382,50 +383,50 @@ function UploadStep({ token, existingTransactionId, onBack, onUploaded }) {
             <div style={{ background: "#e5e7eb", height: 8, borderRadius: 4, overflow: "hidden" }}>
               <div style={{ background: COLORS.red, height: "100%", width: progress + "%", transition: "width 0.3s" }} />
             </div>
-            <div style={{ fontSize: 13, color: COLORS.muted, marginTop: 8 }}>Uploading... {progress}%</div>
+            <div style={{ fontSize: 13, color: COLORS.muted, marginTop: 8 }}>{tr("Uploading...")} {progress}%</div>
           </div>
         )}
 
         {mode === "self" && files.length > 0 && !uploading && (
           <div style={{ marginTop: 16 }}>
             <div style={{ fontSize: 13, fontWeight: 600, color: COLORS.text, marginBottom: 8 }}>
-              Files to upload ({files.length}):
+              {tr("Files to upload (")}{files.length}):
             </div>
             <div style={{ background: "#f9fafb", border: "1px solid #e5e7eb", borderRadius: 8, padding: 12, marginBottom: 16 }}>
               {files.map((f, idx) => (
                 <div key={idx} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "6px 0", borderBottom: idx < files.length - 1 ? "1px solid #e5e7eb" : "none" }}>
                   <div style={{ fontSize: 13, color: COLORS.text }}>
-                    📄 {f.name} <span style={{ color: COLORS.muted }}>({(f.size / 1024 / 1024).toFixed(2)} MB)</span>
+                    📄 {f.name} <span style={{ color: COLORS.muted }}>({(f.size / 1024 / 1024).toFixed(2)} {tr("MB)")}</span>
                   </div>
                   <button
                     onClick={(e) => { e.stopPropagation(); removeFile(idx); }}
                     style={{ background: "transparent", border: "none", color: "#dc2626", cursor: "pointer", fontSize: 13, fontWeight: 600 }}
                   >
-                    Remove
+                    {tr("Remove")}
                   </button>
                 </div>
               ))}
             </div>
             <div style={{ fontSize: 12, color: COLORS.muted, marginBottom: 12 }}>
-              💡 Add the contract and any addenda or disclosures together. We'll read them as one package.
+              {tr("💡 Add the contract and any addenda or disclosures together. We'll read them as one package.")}
             </div>
             <button
               onClick={handleUpload}
               style={{ background: "#0c4a6e", color: "white", border: "none", borderRadius: 8, padding: "14px 28px", fontSize: 15, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}
             >
-              Upload & Process →
+              {tr("Upload & Process →")}
             </button>
           </div>
         )}
 
         <div style={{ marginTop: 32, padding: 20, background: "#f9fafb", borderRadius: 8, fontSize: 13, color: COLORS.muted, lineHeight: 1.6 }}>
-          <strong style={{ color: COLORS.text }}>What happens next?</strong>
+          <strong style={{ color: COLORS.text }}>{tr("What happens next?")}</strong>
           <ol style={{ paddingLeft: 20, margin: "8px 0 0 0" }}>
-            <li>Your contract is uploaded securely</li>
-            <li>The file processes (takes 30–60 seconds)</li>
-            <li>Each document and addendum is identified separately</li>
-            <li>You review what was extracted, edit anything wrong, and approve</li>
-            <li>On approval, the offer is accepted: the listing moves to Under Contract, parties are added, and the timeline + tasks are created</li>
+            <li>{tr("Your contract is uploaded securely")}</li>
+            <li>{tr("The file processes (takes 30–60 seconds)")}</li>
+            <li>{tr("Each document and addendum is identified separately")}</li>
+            <li>{tr("You review what was extracted, edit anything wrong, and approve")}</li>
+            <li>{tr("On approval, the offer is accepted: the listing moves to Under Contract, parties are added, and the timeline + tasks are created")}</li>
           </ol>
         </div>
       </div>
@@ -487,9 +488,9 @@ function ProcessingStep({ token, uploadId, onReady, onFailed }) {
     <div style={{ fontFamily: "'Segoe UI', system-ui, sans-serif", background: COLORS.bg, minHeight: "100vh", padding: 24, display: "flex", alignItems: "center", justifyContent: "center" }}>
       <div style={{ maxWidth: 500, textAlign: "center" }}>
         <div style={{ fontSize: 64, marginBottom: 24 }}>🤖</div>
-        <h2 style={{ margin: 0, color: COLORS.navy, fontSize: 22 }}>Reading your contract...</h2>
+        <h2 style={{ margin: 0, color: COLORS.navy, fontSize: 22 }}>{tr("Reading your contract...")}</h2>
         <p style={{ color: COLORS.muted, marginTop: 12, fontSize: 15, lineHeight: 1.6 }}>
-          We're identifying every document and pulling out all the key fields. This usually takes 30–60 seconds.
+          {tr("We're identifying every document and pulling out all the key fields. This usually takes 30–60 seconds.")}
         </p>
         <div style={{ marginTop: 32 }}>
           <div style={{ display: "inline-block", width: 40, height: 40, border: `4px solid ${COLORS.border}`, borderTop: `4px solid ${COLORS.red}`, borderRadius: "50%", animation: "spin 1s linear infinite" }} />
@@ -497,11 +498,11 @@ function ProcessingStep({ token, uploadId, onReady, onFailed }) {
         {error && <div style={{ color: COLORS.red, marginTop: 20, fontSize: 14 }}>{error}</div>}
         {slow && !error && (
           <div style={{ marginTop: 24, fontSize: 14, color: COLORS.muted, lineHeight: 1.6 }}>
-            This is taking longer than usual. It may still finish in a moment — or something may have stalled.
+            {tr("This is taking longer than usual. It may still finish in a moment — or something may have stalled.")}
             <div style={{ marginTop: 14 }}>
               <button onClick={() => onFailedRef.current("Extraction is taking too long")}
                 style={{ background: "#0c4a6e", color: "#fff", border: "none", borderRadius: 8, padding: "10px 20px", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
-                Go back &amp; try again
+                {tr("Go back & try again")}
               </button>
             </div>
           </div>
@@ -634,9 +635,9 @@ function ReviewStep({ token, uploadId, user, currentStatus, onApproved, onBack }
     if (alreadyUnderContract) {
       const ok = await askConfirm(
         `This listing is already "${currentStatus}" — an offer was already accepted.\n\n` +
-        `Approving THIS offer will replace the accepted offer's price, dates, commission and parties with this one's, and re-run the timeline.\n\n` +
-        `Only do this if you're intentionally switching to this offer. Continue?`,
-        { okLabel: "Yes, switch offers", danger: true }
+        tr("Approving THIS offer will replace the accepted offer's price, dates, commission and parties with this one's, and re-run the timeline.\n\n") +
+        tr("Only do this if you're intentionally switching to this offer. Continue?"),
+        { okLabel: tr("Yes, switch offers"), danger: true }
       );
       if (!ok) return;
     }
@@ -652,7 +653,7 @@ function ReviewStep({ token, uploadId, user, currentStatus, onApproved, onBack }
       // Backend guard: the seller declined this offer on their review link.
       // Confirm the agent really means to override, then retry.
       if (r.status === 409 && d.error === "seller_declined") {
-        const ok = await askConfirm((d.message || "The seller declined this offer.") + "\n\nApprove it anyway?", { okLabel: "Approve anyway" });
+        const ok = await askConfirm((d.message || tr("The seller declined this offer.")) + tr("\n\nApprove it anyway?"), { okLabel: tr("Approve anyway") });
         if (!ok) { setSaving(false); return; }
         r = await fetch(API + "/contracts/uploads/" + uploadId + "/approve", {
           method: "POST",
@@ -689,7 +690,7 @@ function ReviewStep({ token, uploadId, user, currentStatus, onApproved, onBack }
     } catch (e) { setError(e.message); setSaving(false); }
   };
 
-  if (loading) return <div style={{ padding: 40, textAlign: "center", color: COLORS.muted }}>Loading...</div>;
+  if (loading) return <div style={{ padding: 40, textAlign: "center", color: COLORS.muted }}>{tr("Loading...")}</div>;
   if (error && !edited) return <div style={{ padding: 40, textAlign: "center", color: COLORS.red }}>{error}</div>;
   if (!edited) return null;
 
@@ -706,20 +707,19 @@ function ReviewStep({ token, uploadId, user, currentStatus, onApproved, onBack }
       {needsSigPrompt && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)", zIndex: 10060, display: "flex", alignItems: "flex-start", justifyContent: "center", padding: 16, overflowY: "auto" }}>
           <div style={{ background: "#fff", borderRadius: 14, maxWidth: 460, width: "100%", margin: "60px auto", padding: 24 }}>
-            <div style={{ fontSize: 17, fontWeight: 800, color: "#7f1d1d", marginBottom: 8 }}>✍️ Signatures first</div>
+            <div style={{ fontSize: 17, fontWeight: 800, color: "#7f1d1d", marginBottom: 8 }}>{tr("✍️ Signatures first")}</div>
             <div style={{ fontSize: 14, color: "#374151", lineHeight: 1.6, marginBottom: 6 }}>{needsSigPrompt}</div>
             <div style={{ fontSize: 13.5, color: "#374151", lineHeight: 1.6, marginBottom: 16 }}>
-              <b>Do you already have the fully-signed contract in hand</b> (signed outside the app)?
-              If not: the offer stays pending — the offer's documents are in the deal's <b>Documents</b> tab, where you can 📤 share them with the sellers or ✍️ send them for e-signature, then approve once everyone has signed.
+              <b>{tr("Do you already have the fully-signed contract in hand")}</b> {tr("(signed outside the app)? If not: the offer stays pending — the offer's documents are in the deal's")} <b>{tr("Documents")}</b> {tr("tab, where you can 📤 share them with the sellers or ✍️ send them for e-signature, then approve once everyone has signed.")}
             </div>
             <div style={{ display: "flex", gap: 10 }}>
               <button onClick={() => setNeedsSigPrompt(null)}
                 style={{ flex: 1, padding: "12px 0", borderRadius: 10, border: "1px solid #d1d5db", background: "#fff", color: "#374151", fontWeight: 700, fontSize: 14, cursor: "pointer", fontFamily: "inherit" }}>
-                No — wait for signatures
+                {tr("No — wait for signatures")}
               </button>
               <button onClick={approveConfirmedSigned}
                 style={{ flex: 1, padding: "12px 0", borderRadius: 10, border: "none", background: "#0c4a6e", color: "#fff", fontWeight: 800, fontSize: 14, cursor: "pointer", fontFamily: "inherit" }}>
-                Yes — it's fully signed, approve
+                {tr("Yes — it's fully signed, approve")}
               </button>
             </div>
           </div>
@@ -727,14 +727,14 @@ function ReviewStep({ token, uploadId, user, currentStatus, onApproved, onBack }
       )}
       <div style={{ maxWidth: 920, margin: "0 auto" }}>
         <BackButton onClick={onBack} style={{ marginBottom: 16 }} />
-        <h1 style={{ margin: 0, color: COLORS.navy, fontSize: 26 }}>📋 Review Extracted Contract Data</h1>
+        <h1 style={{ margin: 0, color: COLORS.navy, fontSize: 26 }}>{tr("📋 Review Extracted Contract Data")}</h1>
         <p style={{ color: COLORS.muted, marginTop: 6, marginBottom: 20 }}>
-          Verify everything below is correct. Edit any field that's wrong. Click <strong>Approve Offer</strong> when ready — this accepts the offer, moves the listing to Under Contract, adds the parties, and sets up the timeline and tasks.
+          {tr("Verify everything below is correct. Edit any field that's wrong. Click")} <strong>{tr("Approve Offer")}</strong> {tr("when ready — this accepts the offer, moves the listing to Under Contract, adds the parties, and sets up the timeline and tasks.")}
         </p>
 
         {offerFiles.length > 0 && (
           <div style={{ background: "#eff6ff", border: "1.5px solid #93c5fd", borderRadius: 10, padding: "14px 16px", marginBottom: 16 }}>
-            <div style={{ fontWeight: 800, fontSize: 14, color: "#1e3a8a", marginBottom: 8 }}>📄 Read the actual documents first</div>
+            <div style={{ fontWeight: 800, fontSize: 14, color: "#1e3a8a", marginBottom: 8 }}>{tr("📄 Read the actual documents first")}</div>
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
               {offerFiles.map((f, i) => (
                 <button key={i} onClick={() => window.open(f.url, "_blank")}
@@ -743,17 +743,17 @@ function ReviewStep({ token, uploadId, user, currentStatus, onApproved, onBack }
                 </button>
               ))}
             </div>
-            <div style={{ fontSize: 11.5, color: "#3730a3", marginTop: 6 }}>Each opens in a new tab. The summary below is only what the AI read — the documents are the source of truth.</div>
+            <div style={{ fontSize: 11.5, color: "#3730a3", marginTop: 6 }}>{tr("Each opens in a new tab. The summary below is only what the AI read — the documents are the source of truth.")}</div>
           </div>
         )}
 
         <div style={{ background: "#fef3c7", border: "1px solid #fcd34d", borderRadius: 8, padding: "12px 16px", marginBottom: 20, fontSize: 13, color: "#78350f" }}>
-          ⚠️ <strong>Agent responsibility:</strong> As the agent, you are legally responsible for verifying all extracted data is accurate before approval.
+          ⚠️ <strong>{tr("Agent responsibility:")}</strong> {tr("As the agent, you are legally responsible for verifying all extracted data is accurate before approval.")}
         </div>
 
         {edited.extraction_notes && (
           <div style={{ background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 8, padding: "12px 16px", marginBottom: 20, fontSize: 13, color: "#1e3a8a" }}>
-            🤖 <strong>AI Notes:</strong> {edited.extraction_notes}
+            🤖 <strong>{tr("AI Notes:")}</strong> {edited.extraction_notes}
           </div>
         )}
 
@@ -762,13 +762,13 @@ function ReviewStep({ token, uploadId, user, currentStatus, onApproved, onBack }
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
             <span style={{ fontSize: 20 }}>📝</span>
             <div style={{ fontWeight: 800, color: edited.transaction?.additional_terms ? "#854d0e" : "#374151", fontSize: 15 }}>
-              {edited.transaction?.additional_terms ? "ADDITIONAL TERMS / SPECIAL CLAUSES DETECTED" : "Additional Terms / Special Clauses"}
+              {edited.transaction?.additional_terms ? tr("ADDITIONAL TERMS / SPECIAL CLAUSES DETECTED") : tr("Additional Terms / Special Clauses")}
             </div>
           </div>
           {edited.transaction?.additional_terms ? (
             <>
               <div style={{ fontSize: 12, color: "#713f12", marginBottom: 10, lineHeight: 1.5 }}>
-                <strong>⚠️ Important:</strong> These are CUSTOM clauses negotiated between parties (not standard form terms). They override standard contract terms. <strong>Read every line carefully</strong> — missing one can cost the buyer/seller money or break the deal. Edit below if the AI misread anything.
+                <strong>{tr("⚠️ Important:")}</strong> {tr("These are CUSTOM clauses negotiated between parties (not standard form terms). They override standard contract terms.")} <strong>{tr("Read every line carefully")}</strong> {tr("— missing one can cost the buyer/seller money or break the deal. Edit below if the AI misread anything.")}
               </div>
               <textarea
                 value={edited.transaction?.additional_terms || ""}
@@ -776,18 +776,18 @@ function ReviewStep({ token, uploadId, user, currentStatus, onApproved, onBack }
                 style={{ width: "100%", minHeight: 120, padding: 10, borderRadius: 6, border: "1.5px solid #facc15", fontSize: 13, fontFamily: "monospace", lineHeight: 1.5, boxSizing: "border-box", background: "white" }}
               />
               <div style={{ fontSize: 11, color: "#854d0e", marginTop: 6 }}>
-                ℹ️ On approval, this text will also be saved to the transaction Notes so you can find it later.
+                {tr("ℹ️ On approval, this text will also be saved to the transaction Notes so you can find it later.")}
               </div>
             </>
           ) : (
             <>
               <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 8, lineHeight: 1.5 }}>
-                ✓ No additional terms or special clauses in this contract — nothing to review here. Leave it blank. (Only type something if the contract has an "Additional Terms" section the AI missed.)
+                {tr("✓ No additional terms or special clauses in this contract — nothing to review here. Leave it blank. (Only type something if the contract has an \"Additional Terms\" section the AI missed.)")}
               </div>
               <textarea
                 value={edited.transaction?.additional_terms || ""}
                 onChange={(e) => setEdited(prev => ({ ...prev, transaction: { ...prev.transaction, additional_terms: e.target.value } }))}
-                placeholder="(blank — no additional terms)"
+                placeholder={tr("(blank — no additional terms)")}
                 style={{ width: "100%", minHeight: 60, padding: 10, borderRadius: 6, border: "1px solid #d1d5db", fontSize: 13, fontFamily: "inherit", lineHeight: 1.5, boxSizing: "border-box", background: "white" }}
               />
             </>
@@ -795,29 +795,29 @@ function ReviewStep({ token, uploadId, user, currentStatus, onApproved, onBack }
         </div>
 
         <div style={sectionStyle}>
-          <h3 style={{ marginTop: 0, color: COLORS.navy, fontSize: 16 }}>📄 Documents Detected ({docs.length})</h3>
+          <h3 style={{ marginTop: 0, color: COLORS.navy, fontSize: 16 }}>{tr("📄 Documents Detected (")}{docs.length})</h3>
           {docs.map((d, i) => (
             <div key={i} style={{ padding: 10, background: "#f9fafb", borderRadius: 6, marginBottom: 6, fontSize: 13, display: "flex", justifyContent: "space-between" }}>
-              <span><strong>{DOC_TYPE_LABELS[d.document_type] || d.document_type}</strong> · pages {d.page_start}-{d.page_end}</span>
+              <span><strong>{DOC_TYPE_LABELS[d.document_type] || d.document_type}</strong> {tr("· pages")} {d.page_start}-{d.page_end}</span>
               <span style={{ color: d.confidence === "high" ? COLORS.green : (d.confidence === "medium" ? COLORS.amber : COLORS.red), fontWeight: 600, fontSize: 11, textTransform: "uppercase" }}>{d.confidence}</span>
             </div>
           ))}
         </div>
 
         <div style={sectionStyle}>
-          <h3 style={{ marginTop: 0, color: COLORS.navy, fontSize: 16 }}>🏠 Property & Contract</h3>
+          <h3 style={{ marginTop: 0, color: COLORS.navy, fontSize: 16 }}>{tr("🏠 Property & Contract")}</h3>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
             <div style={{ gridColumn: "1 / -1" }}>
-              <label style={labelStyle}>PROPERTY ADDRESS</label>
+              <label style={labelStyle}>{tr("PROPERTY ADDRESS")}</label>
               <input style={inputStyle} value={tx.property_address || ""} onChange={e => updateTx("property_address", e.target.value)} />
             </div>
-            <div><label style={labelStyle}>CITY</label><input style={inputStyle} value={tx.property_city || ""} onChange={e => updateTx("property_city", e.target.value)} /></div>
-            <div><label style={labelStyle}>STATE</label><input style={inputStyle} value={tx.property_state || ""} onChange={e => updateTx("property_state", e.target.value)} /></div>
-            <div><label style={labelStyle}>ZIP</label><input style={inputStyle} value={tx.property_zip || ""} onChange={e => updateTx("property_zip", e.target.value)} /></div>
-            <div><label style={labelStyle}>COUNTY</label><input style={inputStyle} value={tx.property_county || ""} onChange={e => updateTx("property_county", e.target.value)} /></div>
-            <div><label style={labelStyle}>MLS #</label><input style={inputStyle} value={tx.mls_number || ""} onChange={e => updateTx("mls_number", e.target.value)} /></div>
+            <div><label style={labelStyle}>{tr("CITY")}</label><input style={inputStyle} value={tx.property_city || ""} onChange={e => updateTx("property_city", e.target.value)} /></div>
+            <div><label style={labelStyle}>{tr("STATE")}</label><input style={inputStyle} value={tx.property_state || ""} onChange={e => updateTx("property_state", e.target.value)} /></div>
+            <div><label style={labelStyle}>{tr("ZIP")}</label><input style={inputStyle} value={tx.property_zip || ""} onChange={e => updateTx("property_zip", e.target.value)} /></div>
+            <div><label style={labelStyle}>{tr("COUNTY")}</label><input style={inputStyle} value={tx.property_county || ""} onChange={e => updateTx("property_county", e.target.value)} /></div>
+            <div><label style={labelStyle}>{tr("MLS #")}</label><input style={inputStyle} value={tx.mls_number || ""} onChange={e => updateTx("mls_number", e.target.value)} /></div>
             <div>
-              <label style={labelStyle}>PROPERTY TYPE</label>
+              <label style={labelStyle}>{tr("PROPERTY TYPE")}</label>
               <select style={inputStyle} value={tx.property_type || ""} onChange={e => updateTx("property_type", e.target.value)}>
                 <option value="">—</option>
                 <option>Single Family</option><option>Condo</option><option>Townhouse</option>
@@ -825,28 +825,28 @@ function ReviewStep({ token, uploadId, user, currentStatus, onApproved, onBack }
               </select>
             </div>
             <div>
-              <label style={labelStyle}>CONTRACT FORM</label>
+              <label style={labelStyle}>{tr("CONTRACT FORM")}</label>
               <select style={inputStyle} value={tx.contract_form_type || ""} onChange={e => updateTx("contract_form_type", e.target.value)}>
                 <option value="">—</option>
-                <option value="FAR_BAR">FAR/BAR</option>
-                <option value="AS_IS">AS-IS</option>
-                <option value="VACANT_LAND">Vacant Land</option>
-                <option value="COMMERCIAL">Commercial</option>
-                <option value="LEASE">Lease</option>
+                <option value="FAR_BAR">{tr("FAR/BAR")}</option>
+                <option value="AS_IS">{tr("AS-IS")}</option>
+                <option value="VACANT_LAND">{tr("Vacant Land")}</option>
+                <option value="COMMERCIAL">{tr("Commercial")}</option>
+                <option value="LEASE">{tr("Lease")}</option>
               </select>
             </div>
-            <div><label style={labelStyle}>CONTRACT PRICE ($)</label><input type="number" style={inputStyle} value={tx.contract_price || ""} onChange={e => updateTx("contract_price", parseFloat(e.target.value) || 0)} /></div>
-            <div><label style={labelStyle}>EARNEST MONEY ($)</label><input type="number" style={inputStyle} value={tx.earnest_money_amount || ""} onChange={e => updateTx("earnest_money_amount", parseFloat(e.target.value) || 0)} /></div>
-            <div><label style={labelStyle}>EXECUTED DATE</label><input type="date" style={inputStyle} value={tx.executed_date || ""} onChange={e => updateTx("executed_date", e.target.value)} /></div>
-            <div><label style={labelStyle}>CLOSING DATE</label><input type="date" style={inputStyle} value={tx.closing_date || ""} onChange={e => updateTx("closing_date", e.target.value)} /></div>
-            <div><label style={labelStyle}>OFFER ACCEPTANCE DEADLINE</label><input type="date" style={inputStyle} value={tx.offer_acceptance_deadline || ""} onChange={e => updateTx("offer_acceptance_deadline", e.target.value)} /></div>
-            <div><label style={labelStyle}>EMD DEADLINE (DAYS)</label><input type="number" style={inputStyle} value={tx.emd_deadline_days || ""} onChange={e => updateTx("emd_deadline_days", parseInt(e.target.value) || 0)} /></div>
-            <div><label style={labelStyle}>INSPECTION PERIOD (DAYS)</label><input type="number" style={inputStyle} value={tx.inspection_period_days || ""} onChange={e => updateTx("inspection_period_days", parseInt(e.target.value) || 0)} /></div>
-            <div><label style={labelStyle}>FINANCING CONTINGENCY (DAYS)</label><input type="number" style={inputStyle} value={tx.financing_contingency_days || ""} onChange={e => updateTx("financing_contingency_days", parseInt(e.target.value) || 0)} disabled={!tx.financing_contingency} /></div>
-            <div><label style={labelStyle}>APPRAISAL CONTINGENCY (DAYS)</label><input type="number" style={inputStyle} value={tx.appraisal_contingency_days || ""} onChange={e => updateTx("appraisal_contingency_days", parseInt(e.target.value) || 0)} disabled={!tx.appraisal_contingency} /></div>
+            <div><label style={labelStyle}>{tr("CONTRACT PRICE ($)")}</label><input type="number" style={inputStyle} value={tx.contract_price || ""} onChange={e => updateTx("contract_price", parseFloat(e.target.value) || 0)} /></div>
+            <div><label style={labelStyle}>{tr("EARNEST MONEY ($)")}</label><input type="number" style={inputStyle} value={tx.earnest_money_amount || ""} onChange={e => updateTx("earnest_money_amount", parseFloat(e.target.value) || 0)} /></div>
+            <div><label style={labelStyle}>{tr("EXECUTED DATE")}</label><input type="date" style={inputStyle} value={tx.executed_date || ""} onChange={e => updateTx("executed_date", e.target.value)} /></div>
+            <div><label style={labelStyle}>{tr("CLOSING DATE")}</label><input type="date" style={inputStyle} value={tx.closing_date || ""} onChange={e => updateTx("closing_date", e.target.value)} /></div>
+            <div><label style={labelStyle}>{tr("OFFER ACCEPTANCE DEADLINE")}</label><input type="date" style={inputStyle} value={tx.offer_acceptance_deadline || ""} onChange={e => updateTx("offer_acceptance_deadline", e.target.value)} /></div>
+            <div><label style={labelStyle}>{tr("EMD DEADLINE (DAYS)")}</label><input type="number" style={inputStyle} value={tx.emd_deadline_days || ""} onChange={e => updateTx("emd_deadline_days", parseInt(e.target.value) || 0)} /></div>
+            <div><label style={labelStyle}>{tr("INSPECTION PERIOD (DAYS)")}</label><input type="number" style={inputStyle} value={tx.inspection_period_days || ""} onChange={e => updateTx("inspection_period_days", parseInt(e.target.value) || 0)} /></div>
+            <div><label style={labelStyle}>{tr("FINANCING CONTINGENCY (DAYS)")}</label><input type="number" style={inputStyle} value={tx.financing_contingency_days || ""} onChange={e => updateTx("financing_contingency_days", parseInt(e.target.value) || 0)} disabled={!tx.financing_contingency} /></div>
+            <div><label style={labelStyle}>{tr("APPRAISAL CONTINGENCY (DAYS)")}</label><input type="number" style={inputStyle} value={tx.appraisal_contingency_days || ""} onChange={e => updateTx("appraisal_contingency_days", parseInt(e.target.value) || 0)} disabled={!tx.appraisal_contingency} /></div>
             <div style={{ gridColumn: "1 / -1" }}>
               <label style={{ ...labelStyle, color: tx.buyer_agent_commission_pct ? COLORS.muted : COLORS.red }}>
-                BUYER'S AGENT COMMISSION (%) {tx.buyer_agent_commission_pct ? "" : "— not found on the offer, please enter"}
+                {tr("BUYER'S AGENT COMMISSION (%)")} {tx.buyer_agent_commission_pct ? "" : tr("— not found on the offer, please enter")}
               </label>
               <input
                 type="number" step="0.01" placeholder="e.g. 2.5"
@@ -854,22 +854,22 @@ function ReviewStep({ token, uploadId, user, currentStatus, onApproved, onBack }
                 value={tx.buyer_agent_commission_pct ?? ""}
                 onChange={e => updateTx("buyer_agent_commission_pct", e.target.value === "" ? null : parseFloat(e.target.value))}
               />
-              <div style={{ fontSize: 11, color: COLORS.muted, marginTop: 4 }}>Buy-side only. The listing-side commission already on the transaction is not changed. Used for pipeline & commission reporting.</div>
+              <div style={{ fontSize: 11, color: COLORS.muted, marginTop: 4 }}>{tr("Buy-side only. The listing-side commission already on the transaction is not changed. Used for pipeline & commission reporting.")}</div>
             </div>
           </div>
           <div style={{ display: "flex", gap: 24, marginTop: 16, flexWrap: "wrap" }}>
-            <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, cursor: "pointer" }}><input type="checkbox" checked={!!tx.is_cash} onChange={e => updateTx("is_cash", e.target.checked)} /> Cash deal</label>
-            <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, cursor: "pointer" }}><input type="checkbox" checked={!!tx.financing_contingency} onChange={e => updateTx("financing_contingency", e.target.checked)} /> Financing contingency</label>
-            <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, cursor: "pointer" }}><input type="checkbox" checked={!!tx.appraisal_contingency} onChange={e => updateTx("appraisal_contingency", e.target.checked)} /> Appraisal contingency</label>
-            <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, cursor: "pointer" }}><input type="checkbox" checked={!!tx.hoa_approval_required} onChange={e => updateTx("hoa_approval_required", e.target.checked)} /> HOA approval required</label>
-            <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, cursor: "pointer" }}><input type="checkbox" checked={!!tx.survey_required} onChange={e => updateTx("survey_required", e.target.checked)} /> Survey required</label>
+            <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, cursor: "pointer" }}><input type="checkbox" checked={!!tx.is_cash} onChange={e => updateTx("is_cash", e.target.checked)} /> {tr("Cash deal")}</label>
+            <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, cursor: "pointer" }}><input type="checkbox" checked={!!tx.financing_contingency} onChange={e => updateTx("financing_contingency", e.target.checked)} /> {tr("Financing contingency")}</label>
+            <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, cursor: "pointer" }}><input type="checkbox" checked={!!tx.appraisal_contingency} onChange={e => updateTx("appraisal_contingency", e.target.checked)} /> {tr("Appraisal contingency")}</label>
+            <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, cursor: "pointer" }}><input type="checkbox" checked={!!tx.hoa_approval_required} onChange={e => updateTx("hoa_approval_required", e.target.checked)} /> {tr("HOA approval required")}</label>
+            <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, cursor: "pointer" }}><input type="checkbox" checked={!!tx.survey_required} onChange={e => updateTx("survey_required", e.target.checked)} /> {tr("Survey required")}</label>
           </div>
         </div>
 
         <div style={sectionStyle}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-            <h3 style={{ margin: 0, color: COLORS.navy, fontSize: 16 }}>👥 Parties ({parties.length})</h3>
-            <button onClick={addParty} style={{ background: "white", border: "1px solid " + COLORS.border, borderRadius: 6, padding: "6px 12px", fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>+ Add Party</button>
+            <h3 style={{ margin: 0, color: COLORS.navy, fontSize: 16 }}>{tr("👥 Parties (")}{parties.length})</h3>
+            <button onClick={addParty} style={{ background: "white", border: "1px solid " + COLORS.border, borderRadius: 6, padding: "6px 12px", fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>{tr("+ Add Party")}</button>
           </div>
           {/* The uploaded offer only carries buyer/seller/agents. In Florida the
               closing runs through a title company OR a real estate attorney, who
@@ -878,9 +878,9 @@ function ReviewStep({ token, uploadId, user, currentStatus, onApproved, onBack }
               once a closing party is on the list. */}
           {!parties.some(p => /title|attorney|escrow|closing/i.test(p.role || "")) && (
             <div style={{ background: "#FEF9E7", border: "1px solid #FCD34D", borderRadius: 8, padding: 12, marginBottom: 12 }}>
-              <div style={{ fontSize: 13, fontWeight: 800, color: "#92400E", marginBottom: 4 }}>🏛️ Add your closing agent</div>
+              <div style={{ fontSize: 13, fontWeight: 800, color: "#92400E", marginBottom: 4 }}>{tr("🏛️ Add your closing agent")}</div>
               <div style={{ fontSize: 12.5, color: "#78350f", marginBottom: 10, lineHeight: 1.5 }}>
-                In Florida the closing is handled by a title company or a real estate attorney. Add them here so they're included in the transaction and receive the welcome email. (You can fill in their name and email below after adding.)
+                {tr("In Florida the closing is handled by a title company or a real estate attorney. Add them here so they're included in the transaction and receive the welcome email. (You can fill in their name and email below after adding.)")}
               </div>
               {/* One-tap picks from saved Preferred Vendors (title companies /
                   attorneys the agent uses on every deal) — pre-fills the row. */}
@@ -889,7 +889,7 @@ function ReviewStep({ token, uploadId, user, currentStatus, onApproved, onBack }
                 if (saved.length === 0) return null;
                 return (
                   <div style={{ marginBottom: 10 }}>
-                    <div style={{ fontSize: 11, fontWeight: 700, color: "#78350f", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 6 }}>Your saved vendors</div>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: "#78350f", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 6 }}>{tr("Your saved vendors")}</div>
                     <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                       {saved.map(v => (
                         <button key={v.id} onClick={() => addPartyFromVendor(v)} title={[v.company || v.name, v.email, v.phone].filter(Boolean).join(" · ")} style={{ background: "#fff", border: "1px solid " + COLORS.navy, color: COLORS.navy, borderRadius: 20, padding: "6px 14px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
@@ -901,8 +901,8 @@ function ReviewStep({ token, uploadId, user, currentStatus, onApproved, onBack }
                 );
               })()}
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                <button onClick={() => addPartyRole("Title Company")} style={{ background: "#0c4a6e", border: "none", color: "#fff", borderRadius: 6, padding: "7px 14px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>+ Add New Title Company</button>
-                <button onClick={() => addPartyRole("Attorney")} style={{ background: "white", border: "1px solid " + COLORS.navy, color: COLORS.navy, borderRadius: 6, padding: "7px 14px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>+ Add New Closing Attorney</button>
+                <button onClick={() => addPartyRole("Title Company")} style={{ background: "#0c4a6e", border: "none", color: "#fff", borderRadius: 6, padding: "7px 14px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>{tr("+ Add New Title Company")}</button>
+                <button onClick={() => addPartyRole("Attorney")} style={{ background: "white", border: "1px solid " + COLORS.navy, color: COLORS.navy, borderRadius: 6, padding: "7px 14px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>{tr("+ Add New Closing Attorney")}</button>
               </div>
             </div>
           )}
@@ -910,7 +910,7 @@ function ReviewStep({ token, uploadId, user, currentStatus, onApproved, onBack }
             <div key={i} style={{ background: "#f9fafb", borderRadius: 8, padding: 12, marginBottom: 8 }}>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr auto", gap: 8, alignItems: "end" }}>
                 <div>
-                  <label style={labelStyle}>ROLE</label>
+                  <label style={labelStyle}>{tr("ROLE")}</label>
                   <select style={inputStyle} value={p.role || ""} onChange={e => updateParty(i, "role", e.target.value)}>
                     <option>Buyer</option><option>Seller</option>
                     <option>Buyer's Agent</option><option>Listing Agent</option>
@@ -925,26 +925,26 @@ function ReviewStep({ token, uploadId, user, currentStatus, onApproved, onBack }
                   </select>
                 </div>
                 <div>
-                  <label style={labelStyle}>NAME</label>
+                  <label style={labelStyle}>{tr("NAME")}</label>
                   <input style={inputStyle} value={p.name || ""} onChange={e => updateParty(i, "name", e.target.value)} />
                 </div>
                 <div>
-                  <label style={labelStyle}>COMPANY</label>
+                  <label style={labelStyle}>{tr("COMPANY")}</label>
                   <input style={inputStyle} value={p.company || ""} onChange={e => updateParty(i, "company", e.target.value)} />
                 </div>
-                <button onClick={() => removeParty(i)} style={{ background: "white", border: "1px solid " + COLORS.border, borderRadius: 6, padding: "8px 10px", color: COLORS.red, cursor: "pointer", fontSize: 13 }}>Remove</button>
+                <button onClick={() => removeParty(i)} style={{ background: "white", border: "1px solid " + COLORS.border, borderRadius: 6, padding: "8px 10px", color: COLORS.red, cursor: "pointer", fontSize: 13 }}>{tr("Remove")}</button>
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginTop: 8 }}>
                 <div>
-                  <label style={labelStyle}>EMAIL</label>
+                  <label style={labelStyle}>{tr("EMAIL")}</label>
                   <input style={inputStyle} value={p.email || ""} onChange={e => updateParty(i, "email", e.target.value)} />
                 </div>
                 <div>
-                  <label style={labelStyle}>PHONE</label>
+                  <label style={labelStyle}>{tr("PHONE")}</label>
                   <input style={inputStyle} value={p.phone || ""} onChange={e => updateParty(i, "phone", e.target.value)} />
                 </div>
                 <div>
-                  <label style={labelStyle}>LICENSE #</label>
+                  <label style={labelStyle}>{tr("LICENSE #")}</label>
                   <input style={inputStyle} value={p.license_number || ""} onChange={e => updateParty(i, "license_number", e.target.value)} />
                 </div>
               </div>
@@ -955,12 +955,12 @@ function ReviewStep({ token, uploadId, user, currentStatus, onApproved, onBack }
         {error && <div style={{ background: "#fef2f2", border: "1px solid #fecaca", color: "#991b1b", borderRadius: 8, padding: "10px 14px", marginBottom: 16, fontSize: 14 }}>{error}</div>}
 
         <div style={{ background: "#EFF6FF", border: "1px solid #BFDBFE", borderRadius: 8, padding: "10px 14px", marginBottom: 14, fontSize: 13, color: "#1E3A8A" }}>
-          💡 <strong>This offer is held in Pending Offers.</strong> Save it now and come back later — share it with the sellers, hold several offers side by side, and only <strong>Approve</strong> once the sellers have signed/accepted. Approving accepts it into the transaction (Under Contract, parties, timeline & tasks).
+          💡 <strong>{tr("This offer is held in Pending Offers.")}</strong> {tr("Save it now and come back later — share it with the sellers, hold several offers side by side, and only")} <strong>{tr("Approve")}</strong> {tr("once the sellers have signed/accepted. Approving accepts it into the transaction (Under Contract, parties, timeline & tasks).")}
         </div>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, marginTop: 4, flexWrap: "wrap" }}>
-          <button onClick={handleSaveDraft} disabled={saving} style={{ background: "white", color: COLORS.navy, border: "1px solid " + COLORS.border, borderRadius: 8, padding: "12px 24px", fontSize: 14, fontWeight: 700, cursor: saving ? "wait" : "pointer", fontFamily: "inherit", opacity: saving ? 0.7 : 1 }}>{saving ? "Saving..." : "← Save to Pending Offers"}</button>
+          <button onClick={handleSaveDraft} disabled={saving} style={{ background: "white", color: COLORS.navy, border: "1px solid " + COLORS.border, borderRadius: 8, padding: "12px 24px", fontSize: 14, fontWeight: 700, cursor: saving ? "wait" : "pointer", fontFamily: "inherit", opacity: saving ? 0.7 : 1 }}>{saving ? tr("Saving...") : tr("← Save to Pending Offers")}</button>
           <button onClick={handleApprove} disabled={saving} style={{ background: "#0c4a6e", color: "white", border: "none", borderRadius: 8, padding: "12px 28px", fontSize: 14, fontWeight: 600, cursor: saving ? "wait" : "pointer", fontFamily: "inherit", opacity: saving ? 0.7 : 1 }}>
-            {saving ? "Approving Offer..." : "✓ Approve Offer (sellers accepted)"}
+            {saving ? tr("Approving Offer...") : tr("✓ Approve Offer (sellers accepted)")}
           </button>
         </div>
       </div>
@@ -973,11 +973,11 @@ function FailedStep({ onBack, onRetry }) {
     <div style={{ fontFamily: "'Segoe UI', system-ui, sans-serif", background: COLORS.bg, minHeight: "100vh", padding: 24, display: "flex", alignItems: "center", justifyContent: "center" }}>
       <div style={{ maxWidth: 500, textAlign: "center" }}>
         <div style={{ fontSize: 64, marginBottom: 24 }}>❌</div>
-        <h2 style={{ margin: 0, color: COLORS.navy, fontSize: 22 }}>Extraction Failed</h2>
-        <p style={{ color: COLORS.muted, marginTop: 12 }}>We couldn't process this contract. Try again with a different file or use manual entry.</p>
+        <h2 style={{ margin: 0, color: COLORS.navy, fontSize: 22 }}>{tr("Extraction Failed")}</h2>
+        <p style={{ color: COLORS.muted, marginTop: 12 }}>{tr("We couldn't process this contract. Try again with a different file or use manual entry.")}</p>
         <div style={{ marginTop: 24, display: "flex", gap: 12, justifyContent: "center" }}>
-          <button onClick={onRetry} style={{ background: "#0c4a6e", color: "white", border: "none", borderRadius: 8, padding: "10px 20px", fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Try Another File</button>
-          <button onClick={onBack} style={{ background: "white", color: COLORS.text, border: "1px solid " + COLORS.border, borderRadius: 8, padding: "10px 20px", fontSize: 14, cursor: "pointer", fontFamily: "inherit" }}>Back</button>
+          <button onClick={onRetry} style={{ background: "#0c4a6e", color: "white", border: "none", borderRadius: 8, padding: "10px 20px", fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>{tr("Try Another File")}</button>
+          <button onClick={onBack} style={{ background: "white", color: COLORS.text, border: "1px solid " + COLORS.border, borderRadius: 8, padding: "10px 20px", fontSize: 14, cursor: "pointer", fontFamily: "inherit" }}>{tr("Back")}</button>
         </div>
       </div>
     </div>

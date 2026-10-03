@@ -1,3 +1,4 @@
+import { t as tr, locale as uiLocale } from "./i18n";
 import LoginScreen from "./LoginScreen";
 import BuyerCalculator from "./components/BuyerCalculator";
 import PreApprovalCard, { PreApprovalBadge } from './components/PreApprovalCard';
@@ -34,7 +35,8 @@ const SUPERUSER_EMAIL = ((import.meta.env && import.meta.env.VITE_SUPERUSER_EMAI
 
 import { useState, useEffect, useCallback, useRef, lazy, Suspense } from "react";
 import { askConfirm, askText } from "./ui/dialogs";
-import { setLang } from "./i18n";
+import { applyStaffLang, getLang, saveStaffLang, loadSpanish, requestSpanish, useLang } from "./i18n";
+import LangToggle from "./components/LangToggle";
 import BackButton from "./ui/BackButton";
 
 // ── Code-split heavy, route-level screens so the phone only downloads the
@@ -90,7 +92,7 @@ const SMS_SERVER = API;
 function LazyLoading() {
   return (
     <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "60vh", color: "#666666", fontSize: 14, fontFamily: "'Segoe UI', system-ui, sans-serif" }}>
-      Loading…
+      {tr("Loading…")}
     </div>
   );
 }
@@ -495,19 +497,19 @@ function PipelineCard({ tx, onSelect }) {
         <span title={health.t} style={{ width: 9, height: 9, borderRadius: "50%", background: health.c, flexShrink: 0, display: "inline-block" }} />
         <span style={{ fontSize: 14 }}>{txTypeIcon(tx.type)}</span>
         <span style={{ fontSize: 9, fontWeight: 700, color: COLORS.muted, textTransform: "uppercase", letterSpacing: "0.06em" }}>{txTypeShort(tx.type)}</span>
-        {propertyTypeBadge(tx) && <span title={`${propertyTypeBadge(tx).label.replace(/^\S+\s/, "")} property`} style={{ background: propertyTypeBadge(tx).bg, color: propertyTypeBadge(tx).color, fontSize: 9, fontWeight: 700, padding: "1px 6px", borderRadius: 8 }}>{propertyTypeBadge(tx).label}</span>}
-        {shareBadge(tx) && <span style={{ background: shareBadge(tx).bg, color: shareBadge(tx).color, fontSize: 9, fontWeight: 800, padding: "1px 6px", borderRadius: 8 }}>{shareBadge(tx).label}</span>}
-        {tx.constructionType === "New Construction" && <span title="New Construction" style={{ background: "#FEF9E7", color: "#8A5A00", fontSize: 9, fontWeight: 700, padding: "1px 6px", borderRadius: 8 }}>🏗️ NC</span>}
+        {propertyTypeBadge(tx) && <span title={`${propertyTypeBadge(tx).label.replace(/^\S+\s/, "")} property`} style={{ background: propertyTypeBadge(tx).bg, color: propertyTypeBadge(tx).color, fontSize: 9, fontWeight: 700, padding: "1px 6px", borderRadius: 8 }}>{tr(propertyTypeBadge(tx).label)}</span>}
+        {shareBadge(tx) && <span style={{ background: shareBadge(tx).bg, color: shareBadge(tx).color, fontSize: 9, fontWeight: 800, padding: "1px 6px", borderRadius: 8 }}>{tr(shareBadge(tx).label)}</span>}
+        {tx.constructionType === "New Construction" && <span title={tr("New Construction")} style={{ background: "#FEF9E7", color: "#8A5A00", fontSize: 9, fontWeight: 700, padding: "1px 6px", borderRadius: 8 }}>{tr("🏗️ NC")}</span>}
         {overdue > 0 && tx.status !== "Closed" && <span title={`${overdue} overdue item(s)`} style={{ marginLeft: "auto", background: COLORS.dangerBg, color: COLORS.danger, fontSize: 9, fontWeight: 700, padding: "1px 6px", borderRadius: 8 }}>⚠ {overdue}</span>}
       </div>
       <div style={{ fontWeight: 700, fontSize: 13, color: COLORS.navy, marginBottom: 2, lineHeight: 1.3 }}>{tx.address}</div>
-      {clientNameForTx(tx) && <div style={{ fontSize: 11.5, fontWeight: 600, color: COLORS.text, marginBottom: 1 }}>👤 {clientLabelForTx(tx)}: {clientNameForTx(tx)}</div>}
-      <div style={{ fontSize: 11, color: COLORS.muted, marginBottom: 6 }}>{tx.city}, FL</div>
+      {clientNameForTx(tx) && <div style={{ fontSize: 11.5, fontWeight: 600, color: COLORS.text, marginBottom: 1 }}>👤 {tr(clientLabelForTx(tx))}: {clientNameForTx(tx)}</div>}
+      <div style={{ fontSize: 11, color: COLORS.muted, marginBottom: 6 }}>{tx.city}{tr(", FL")}</div>
       {price && <div style={{ fontSize: 13, fontWeight: 700, color: COLORS.navy, marginBottom: 4 }}>${Number(price).toLocaleString()}</div>}
       {tx.closingDate && <div style={{ fontSize: 11, color: dtc !== null && dtc < 7 && dtc >= 0 ? COLORS.danger : COLORS.muted, marginBottom: 6 }}>📅 {formatDate(tx.closingDate)}{dtc !== null ? ` (${dtc < 0 ? "past" : dtc + "d"})` : ""}</div>}
       {next && next.name && tx.status !== "Closed" && (
-        <div style={{ fontSize: 11, color: COLORS.navy, marginBottom: 6, background: "#F8FAFC", borderRadius: 6, padding: "4px 8px" }} title="Next action on this deal">
-          ⏭️ <b>Next:</b> {next.name}{next.dueDate ? ` · ${formatDate(next.dueDate)}` : ""}
+        <div style={{ fontSize: 11, color: COLORS.navy, marginBottom: 6, background: "#F8FAFC", borderRadius: 6, padding: "4px 8px" }} title={tr("Next action on this deal")}>
+          ⏭️ <b>{tr("Next:")}</b> {tr(next.name)}{next.dueDate ? ` · ${formatDate(next.dueDate)}` : ""}
         </div>
       )}
       {total > 0 && (
@@ -515,11 +517,11 @@ function PipelineCard({ tx, onSelect }) {
           <div style={{ height: 4, background: COLORS.bg, borderRadius: 2, overflow: "hidden" }}>
             <div style={{ height: "100%", width: progress + "%", background: progress === 100 ? COLORS.success : COLORS.navy }} />
           </div>
-          <div style={{ fontSize: 10, color: COLORS.muted, marginTop: 2 }}>{completed}/{total} done</div>
+          <div style={{ fontSize: 10, color: COLORS.muted, marginTop: 2 }}>{completed}/{total} {tr("done")}</div>
         </div>
       )}
       {tx.assignedAgentName && <div style={{ fontSize: 10, color: COLORS.muted }}>👤 {tx.assignedAgentName}</div>}
-      {tx.isGuestView && tx.owningBrokerageName && <div style={{ fontSize: 10, color: COLORS.muted, marginTop: 2 }}>🏢 Managed by {tx.owningBrokerageName}</div>}
+      {tx.isGuestView && tx.owningBrokerageName && <div style={{ fontSize: 10, color: COLORS.muted, marginTop: 2 }}>{tr("🏢 Managed by")} {tx.owningBrokerageName}</div>}
     </div>
   );
 }
@@ -535,7 +537,7 @@ function PipelineColumn({ status, transactions, onSelect }) {
       </div>
       <div style={{ overflowY: "auto", flex: 1 }}>
         {transactions.length === 0 ? (
-          <div style={{ textAlign: "center", padding: 20, color: COLORS.muted, fontSize: 11, fontStyle: "italic" }}>No transactions</div>
+          <div style={{ textAlign: "center", padding: 20, color: COLORS.muted, fontSize: 11, fontStyle: "italic" }}>{tr("No transactions")}</div>
         ) : (
           transactions.map(tx => <PipelineCard key={tx.id} tx={tx} onSelect={onSelect} />)
         )}
@@ -705,9 +707,9 @@ if (typeof document !== "undefined" && !document.getElementById("lizteam-mobile"
 function genId() { return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, c => { const r = Math.random() * 16 | 0; return (c === "x" ? r : (r & 0x3 | 0x8)).toString(16); }); }
 function today() { return new Date().toLocaleDateString("en-CA", { timeZone: "America/New_York" }); } // EASTERN day — UTC rolled a day forward every evening
 function addDays(date, days) { const clean = String(date).includes("T") ? String(date).split("T")[0] : String(date); const d = new Date(clean + "T00:00:00"); d.setDate(d.getDate() + days); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; }
-function formatDate(s) { if (!s) return "—"; const clean = String(s).includes("T") ? String(s).split("T")[0] : String(s); const d = new Date(clean + "T00:00:00"); return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }); }
+function formatDate(s) { if (!s) return "—"; const clean = String(s).includes("T") ? String(s).split("T")[0] : String(s); const d = new Date(clean + "T00:00:00"); return d.toLocaleDateString(uiLocale(), { month: "short", day: "numeric", year: "numeric" }); }
 function daysUntil(s) { if (!s) return null; const clean = String(s).includes("T") ? String(s).split("T")[0] : String(s); const diff = new Date(clean + "T00:00:00") - new Date(today() + "T00:00:00"); return Math.round(diff / 86400000); }
-function formatTime(iso) { return new Date(iso).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }); }
+function formatTime(iso) { return new Date(iso).toLocaleString(uiLocale(), { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }); }
 function roleColor(role) { const c = ["#1D4ED8","#15803D","#C9A84C","#7C3AED","#DC2626","#0F766E","#B45309","#9D174D"]; return c[String(role || "").length % c.length]; }
 
 const INITIAL_TRANSACTIONS = [{
@@ -732,7 +734,7 @@ INITIAL_TRANSACTIONS[0].tasks = FLORIDA_TASK_TEMPLATES["Listing (Seller)"].map((
 }));
 
 function Badge({ label, color, bg }) {
-  return <span style={{ display: "inline-block", padding: "2px 10px", borderRadius: 20, fontSize: 11, fontWeight: 600, color, background: bg, whiteSpace: "nowrap" }}>{label}</span>;
+  return <span style={{ display: "inline-block", padding: "2px 10px", borderRadius: 20, fontSize: 11, fontWeight: 600, color, background: bg, whiteSpace: "nowrap" }}>{tr(label)}</span>;
 }
 
 function Btn({ children, onClick, variant = "primary", small, disabled, style = {} }) {
@@ -753,10 +755,10 @@ function Input({ label, value, onChange, type = "text", placeholder, required, o
   const base = { width: "100%", padding: "8px 12px", borderRadius: 8, border: `1px solid ${COLORS.border}`, fontSize: 14, fontFamily: "inherit", color: COLORS.text, background: "#fff", boxSizing: "border-box", ...style };
   return (
     <div style={{ marginBottom: 14 }}>
-      {label && <label style={{ fontSize: 12, fontWeight: 600, color: COLORS.muted, display: "block", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em" }}>{label}{required && <span style={{ color: COLORS.danger }}> *</span>}</label>}
-      {options ? <select value={value} onChange={e => onChange(e.target.value)} style={base}><option value="">Select...</option>{options.map(o => typeof o === "object" ? <option key={o.value} value={o.value}>{o.label}</option> : <option key={o} value={o}>{o}</option>)}</select>
-        : type === "textarea" ? <textarea value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} rows={3} style={{ ...base, resize: "vertical" }} />
-        : <input type={type} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} style={base} />}
+      {label && <label style={{ fontSize: 12, fontWeight: 600, color: COLORS.muted, display: "block", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em" }}>{tr(label)}{required && <span style={{ color: COLORS.danger }}> *</span>}</label>}
+      {options ? <select value={value} onChange={e => onChange(e.target.value)} style={base}><option value="">{tr("Select...")}</option>{options.map(o => typeof o === "object" ? <option key={o.value} value={o.value}>{tr(o.label)}</option> : <option key={o} value={o}>{tr(o)}</option>)}</select>
+        : type === "textarea" ? <textarea value={value} onChange={e => onChange(e.target.value)} placeholder={tr(placeholder)} rows={3} style={{ ...base, resize: "vertical" }} />
+        : <input type={type} value={value} onChange={e => onChange(e.target.value)} placeholder={tr(placeholder)} style={base} />}
     </div>
   );
 }
@@ -767,11 +769,11 @@ function Input({ label, value, onChange, type = "text", placeholder, required, o
 function PartyLanguageField({ value, onChange }) {
   return (
     <div>
-      <Input label="Preferred language" value={value === "es" ? "es" : "en"} onChange={v => onChange(v === "es" ? "es" : "en")}
+      <Input label={tr("Preferred language")} value={value === "es" ? "es" : "en"} onChange={v => onChange(v === "es" ? "es" : "en")}
         options={[{ value: "en", label: "English" }, { value: "es", label: "Español (Spanish)" }]} />
       {value === "es" && (
         <div style={{ fontSize: 12, color: COLORS.muted, marginTop: -8, marginBottom: 14, lineHeight: 1.5 }}>
-          🇪🇸 Their automatic emails, texts, portal and signing pages will be in Spanish. Messages you type yourself go out exactly as you write them.
+          {tr("🇪🇸 Their automatic emails, texts, portal and signing pages will be in Spanish. Messages you type yourself go out exactly as you write them.")}
         </div>
       )}
     </div>
@@ -783,7 +785,7 @@ function Modal({ title, onClose, children, wide }) {
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 1000, display: "flex", alignItems: "flex-start", justifyContent: "center", padding: 16, overflowY: "auto" }}>
       <div style={{ background: "#fff", borderRadius: 14, width: wide ? 800 : 520, maxWidth: "100%", maxHeight: "92vh", overflow: "auto", boxShadow: "0 20px 60px rgba(0,0,0,0.25)", margin: "auto" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "20px 24px 16px", borderBottom: `1px solid ${COLORS.border}` }}>
-          <h2 style={{ margin: 0, fontSize: 18, color: COLORS.navy, fontWeight: 700 }}>{title}</h2>
+          <h2 style={{ margin: 0, fontSize: 18, color: COLORS.navy, fontWeight: 700 }}>{tr(title)}</h2>
           <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 22, color: COLORS.muted }}>×</button>
         </div>
         <div style={{ padding: "20px 24px 24px" }}>{children}</div>
@@ -795,7 +797,7 @@ function Modal({ title, onClose, children, wide }) {
 function TransactionListView({ transactions, sortKey, sortDir, toggleSort, onSelect, onLeadAction }) {
   const arrow = (key) => sortKey === key ? (sortDir === "asc" ? " ↑" : " ↓") : "";
   const fmtPrice = (p) => p ? "$" + Number(p).toLocaleString() : "—";
-  const fmtDate = (d) => d ? new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "—";
+  const fmtDate = (d) => d ? new Date(d).toLocaleDateString(uiLocale(), { month: "short", day: "numeric", year: "numeric" }) : "—";
   const cols = [
     { key: "address", label: "Address" },
     { key: "status", label: "Status" },
@@ -812,9 +814,9 @@ function TransactionListView({ transactions, sortKey, sortDir, toggleSort, onSel
             <thead>
               <tr style={{ background: COLORS.bg, borderBottom: `1px solid ${COLORS.border}` }}>
                 {cols.map(c => (
-                  <th key={c.key} onClick={() => toggleSort(c.key)} style={{ padding: "10px 14px", textAlign: "left", fontWeight: 700, color: COLORS.navy, cursor: "pointer", userSelect: "none", textTransform: "uppercase", letterSpacing: "0.04em", fontSize: 11 }}>{c.label}{arrow(c.key)}</th>
+                  <th key={c.key} onClick={() => toggleSort(c.key)} style={{ padding: "10px 14px", textAlign: "left", fontWeight: 700, color: COLORS.navy, cursor: "pointer", userSelect: "none", textTransform: "uppercase", letterSpacing: "0.04em", fontSize: 11 }}>{tr(c.label)}{arrow(c.key)}</th>
                 ))}
-                <th style={{ padding: "10px 14px", textAlign: "left", fontWeight: 700, color: COLORS.navy, textTransform: "uppercase", letterSpacing: "0.04em", fontSize: 11 }}>Type</th>
+                <th style={{ padding: "10px 14px", textAlign: "left", fontWeight: 700, color: COLORS.navy, textTransform: "uppercase", letterSpacing: "0.04em", fontSize: 11 }}>{tr("Type")}</th>
               </tr>
             </thead>
             <tbody>
@@ -825,12 +827,12 @@ function TransactionListView({ transactions, sortKey, sortDir, toggleSort, onSel
                       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                         <span style={{ fontSize: 20 }}>🔔</span>
                         <div>
-                          <div style={{ fontWeight: 700, color: "#991b1b", fontSize: 13 }}>{isBuyerSideType(tx.type) ? "NEW BUYER INQUIRY" : "NEW SELLER LEAD"} — Action Required</div>
-                          <div style={{ fontSize: 12, color: "#7f1d1d" }}>{tx.address} · {tx.city}, FL · Contact within 24 hours</div>
+                          <div style={{ fontWeight: 700, color: "#991b1b", fontSize: 13 }}>{isBuyerSideType(tx.type) ? tr("NEW BUYER INQUIRY") : tr("NEW SELLER LEAD")} {tr("— Action Required")}</div>
+                          <div style={{ fontSize: 12, color: "#7f1d1d" }}>{tx.address} · {tx.city}{tr(", FL · Contact within 24 hours")}</div>
                         </div>
                       </div>
                       <div style={{ display: "flex", gap: 8 }}>
-                        <button onClick={e => { e.stopPropagation(); onSelect(tx.id); }} style={{ background: "#0c4a6e", color: "white", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>View →</button>
+                        <button onClick={e => { e.stopPropagation(); onSelect(tx.id); }} style={{ background: "#0c4a6e", color: "white", border: "none", borderRadius: 6, padding: "6px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>{tr("View →")}</button>
                       </div>
                     </div>
                   </td>
@@ -851,10 +853,10 @@ function TransactionListView({ transactions, sortKey, sortDir, toggleSort, onSel
                     <td style={{ padding: "12px 14px" }}>
                       <div style={{ fontWeight: 600, color: COLORS.navy, display: "flex", alignItems: "center", gap: 6 }}>
                         {tx.address}
-                        {propertyTypeBadge(tx) && <span style={{ background: propertyTypeBadge(tx).bg, color: propertyTypeBadge(tx).color, fontSize: 9, fontWeight: 700, padding: "1px 6px", borderRadius: 8, whiteSpace: "nowrap" }}>{propertyTypeBadge(tx).label}</span>}
-                        {shareBadge(tx) && <span style={{ background: shareBadge(tx).bg, color: shareBadge(tx).color, fontSize: 9, fontWeight: 800, padding: "1px 6px", borderRadius: 8, whiteSpace: "normal" }}>{shareBadge(tx).label}</span>}
+                        {propertyTypeBadge(tx) && <span style={{ background: propertyTypeBadge(tx).bg, color: propertyTypeBadge(tx).color, fontSize: 9, fontWeight: 700, padding: "1px 6px", borderRadius: 8, whiteSpace: "nowrap" }}>{tr(propertyTypeBadge(tx).label)}</span>}
+                        {shareBadge(tx) && <span style={{ background: shareBadge(tx).bg, color: shareBadge(tx).color, fontSize: 9, fontWeight: 800, padding: "1px 6px", borderRadius: 8, whiteSpace: "normal" }}>{tr(shareBadge(tx).label)}</span>}
                       </div>
-                      <div style={{ fontSize: 11, color: COLORS.muted, marginTop: 2 }}>{tx.city}, FL</div>
+                      <div style={{ fontSize: 11, color: COLORS.muted, marginTop: 2 }}>{tx.city}{tr(", FL")}</div>
                     </td>
                     <td style={{ padding: "12px 14px" }}>
                       <span style={{ display: "inline-block", padding: "3px 10px", borderRadius: 12, background: cfg.bg, color: cfg.color, fontWeight: 700, fontSize: 11 }}>{tx.status}</span>
@@ -875,14 +877,14 @@ function TransactionListView({ transactions, sortKey, sortDir, toggleSort, onSel
                 );
               })}
               {transactions.length === 0 && (
-                <tr><td colSpan="7" style={{ padding: 40, textAlign: "center", color: COLORS.muted }}>Nothing here — if you have a search or filter on, clear it up top. Otherwise tap ➕ New Deal to start one.</td></tr>
+                <tr><td colSpan="7" style={{ padding: 40, textAlign: "center", color: COLORS.muted }}>{tr("Nothing here — if you have a search or filter on, clear it up top. Otherwise tap ➕ New Deal to start one.")}</td></tr>
               )}
             </tbody>
           </table>
         </div>
       </div>
       <div className="tx-list-mobile">
-        {transactions.length === 0 && <div style={{ padding: 40, textAlign: "center", color: COLORS.muted, background: "#fff", borderRadius: 10, border: `1px solid ${COLORS.border}` }}>Nothing here — if you have a search or filter on, clear it up top. Otherwise tap ➕ New Deal to start one.</div>}
+        {transactions.length === 0 && <div style={{ padding: 40, textAlign: "center", color: COLORS.muted, background: "#fff", borderRadius: 10, border: `1px solid ${COLORS.border}` }}>{tr("Nothing here — if you have a search or filter on, clear it up top. Otherwise tap ➕ New Deal to start one.")}</div>}
         {transactions.map(tx => {
           // Progress = Auto-TC timeline (milestones), not the legacy tasks table.
           const ms = tx.milestoneSummary;
@@ -895,41 +897,41 @@ function TransactionListView({ transactions, sortKey, sortDir, toggleSort, onSel
             <div key={tx.id} onClick={() => onSelect(tx.id)} style={{ background: !tx.assignedAgentId ? "#fef3c7" : tx.needsReview ? "#eff6ff" : tx.needsFirstContact ? "#fef2f2" : "#fff", border: `2px solid ${!tx.assignedAgentId ? "#fde68a" : tx.needsReview ? "#bfdbfe" : tx.needsFirstContact ? "#fecaca" : COLORS.border}`, borderLeft: propertyTypeAccent(tx) ? `5px solid ${propertyTypeAccent(tx)}` : undefined, borderRadius: 10, padding: "12px 14px", marginBottom: 8, cursor: "pointer" }}>
               {!tx.assignedAgentId && (
                 <div style={{ background: "#f59e0b", color: "white", borderRadius: 6, padding: "4px 10px", fontSize: 11, fontWeight: 700, marginBottom: 8, display: "inline-block" }}>
-                  ⚠️ UNASSIGNED LEAD — Tap to Assign an Agent
+                  {tr("⚠️ UNASSIGNED LEAD — Tap to Assign an Agent")}
                 </div>
               )}
               {tx.assignedAgentId && tx.needsReview && (
                 <div style={{ background: "#2563eb", color: "white", borderRadius: 6, padding: "4px 10px", fontSize: 11, fontWeight: 700, marginBottom: 8, display: "inline-block" }}>
-                  📋 NEW FROM CONTRACT — Review & Verify
+                  {tr("📋 NEW FROM CONTRACT — Review & Verify")}
                 </div>
               )}
               {tx.assignedAgentId && !tx.needsReview && tx.needsFirstContact && (
                 <div style={{ background: "#c8102e", color: "white", borderRadius: 6, padding: "4px 10px", fontSize: 11, fontWeight: 700, marginBottom: 8, display: "inline-block" }}>
-                  🔔 {isBuyerSideType(tx.type) ? "NEW BUYER INQUIRY" : "NEW SELLER LEAD"} — Contact Within 24hrs
+                  🔔 {isBuyerSideType(tx.type) ? tr("NEW BUYER INQUIRY") : tr("NEW SELLER LEAD")} {tr("— Contact Within 24hrs")}
                 </div>
               )}
               {tx.assignedAgentId && !tx.needsReview && tx.leadConverted === false && (
                 <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 8 }}>
                   <span style={{ background: "#FEF9E7", color: "#8A5A00", border: "1px solid #F1C40F", borderRadius: 6, padding: "4px 10px", fontSize: 11, fontWeight: 700 }}>
-                    🌱 {isBuyerSideType(tx.type) ? "INQUIRY" : "LEAD"} — not yet confirmed
+                    🌱 {isBuyerSideType(tx.type) ? "INQUIRY" : tr("LEAD")} {tr("— not yet confirmed")}
                   </span>
-                  {onLeadAction && <button onClick={e => { e.stopPropagation(); onLeadAction(tx.id, "confirm"); }} style={{ background: "#0c4a6e", color: "#fff", border: "none", borderRadius: 6, padding: "4px 10px", fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>✓ Confirm</button>}
-                  {onLeadAction && <button onClick={e => { e.stopPropagation(); onLeadAction(tx.id, "cancel"); }} style={{ background: "transparent", color: "#8A5A00", border: "1px solid #C9A227", borderRadius: 6, padding: "4px 10px", fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>✕ Not Pursuing</button>}
+                  {onLeadAction && <button onClick={e => { e.stopPropagation(); onLeadAction(tx.id, "confirm"); }} style={{ background: "#0c4a6e", color: "#fff", border: "none", borderRadius: 6, padding: "4px 10px", fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>{tr("✓ Confirm")}</button>}
+                  {onLeadAction && <button onClick={e => { e.stopPropagation(); onLeadAction(tx.id, "cancel"); }} style={{ background: "transparent", color: "#8A5A00", border: "1px solid #C9A227", borderRadius: 6, padding: "4px 10px", fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>{tr("✕ Not Pursuing")}</button>}
                 </div>
               )}
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10 }}>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontWeight: 700, color: COLORS.navy, fontSize: 14, overflow: "hidden", textOverflow: "ellipsis", display: "flex", alignItems: "center", gap: 6 }}>
                     <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{tx.address}</span>
-                    {propertyTypeBadge(tx) && <span style={{ background: propertyTypeBadge(tx).bg, color: propertyTypeBadge(tx).color, fontSize: 9, fontWeight: 700, padding: "1px 6px", borderRadius: 8, whiteSpace: "nowrap", flexShrink: 0 }}>{propertyTypeBadge(tx).label}</span>}
-                    {shareBadge(tx) && <span style={{ background: shareBadge(tx).bg, color: shareBadge(tx).color, fontSize: 9, fontWeight: 800, padding: "1px 6px", borderRadius: 8, whiteSpace: "normal" }}>{shareBadge(tx).label}</span>}
+                    {propertyTypeBadge(tx) && <span style={{ background: propertyTypeBadge(tx).bg, color: propertyTypeBadge(tx).color, fontSize: 9, fontWeight: 700, padding: "1px 6px", borderRadius: 8, whiteSpace: "nowrap", flexShrink: 0 }}>{tr(propertyTypeBadge(tx).label)}</span>}
+                    {shareBadge(tx) && <span style={{ background: shareBadge(tx).bg, color: shareBadge(tx).color, fontSize: 9, fontWeight: 800, padding: "1px 6px", borderRadius: 8, whiteSpace: "normal" }}>{tr(shareBadge(tx).label)}</span>}
                   </div>
-                  <div style={{ fontSize: 11, color: COLORS.muted, marginTop: 2 }}>{tx.city}, FL · {txTypeShort(tx.type)}</div>
+                  <div style={{ fontSize: 11, color: COLORS.muted, marginTop: 2 }}>{tx.city}{tr(", FL ·")} {txTypeShort(tx.type)}</div>
                 </div>
                 <span style={{ display: "inline-block", padding: "2px 8px", borderRadius: 10, background: cfg.bg, color: cfg.color, fontWeight: 700, fontSize: 10, whiteSpace: "nowrap" }}>{tx.status}</span>
               </div>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 8, fontSize: 12 }}>
-                <div style={{ color: COLORS.muted }}>Closing: <strong style={{ color: COLORS.text }}>{fmtDate(tx.closingDate)}</strong></div>
+                <div style={{ color: COLORS.muted }}>{tr("Closing:")} <strong style={{ color: COLORS.text }}>{fmtDate(tx.closingDate)}</strong></div>
                 <div style={{ color: COLORS.navy, fontWeight: 600 }}>{fmtPrice(price)}</div>
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 8 }}>
@@ -959,25 +961,25 @@ function PartyCard({ party, txId, onRemove, onEdit, onClick, onInvite, onCopyLog
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontWeight: 600, fontSize: 14, color: COLORS.text }}>{party.name}</div>
         {txId && party.role && /buyer/i.test(party.role) && <PreApprovalBadge transactionId={txId} />}
-        <div style={{ fontSize: 12, color: roleColor(party.role), fontWeight: 600, marginBottom: 2 }}>{party.role}</div>
+        <div style={{ fontSize: 12, color: roleColor(party.role), fontWeight: 600, marginBottom: 2 }}>{tr(party.role)}</div>
         {party.company && <div style={{ fontSize: 12, color: COLORS.muted }}>{party.company}</div>}
         {party.email && <div style={{ fontSize: 12, color: COLORS.muted }}>{party.email}</div>}
         {party.phone && <div style={{ fontSize: 12, color: COLORS.muted }}>{party.phone}</div>}
-        {party.preferredLanguage === "es" && <div style={{ fontSize: 11, color: "#0c4a6e", fontWeight: 700, marginTop: 2 }}>🇪🇸 Prefers Spanish — automatic emails &amp; texts go in Spanish</div>}
+        {party.preferredLanguage === "es" && <div style={{ fontSize: 11, color: "#0c4a6e", fontWeight: 700, marginTop: 2 }}>{tr("🇪🇸 Prefers Spanish — automatic emails & texts go in Spanish")}</div>}
         {party.email && party.role && /buyer|seller/i.test(party.role) && !/agent/i.test(party.role) && (
           party.lastLoginAt
-            ? <div style={{ fontSize: 11, color: "#1E8449", fontWeight: 700, marginTop: 4 }}>🟢 Viewed portal — last seen {new Date(party.lastLoginAt).toLocaleString([], { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" })}</div>
-            : <div style={{ fontSize: 11, color: "#9A6700", fontWeight: 700, marginTop: 4 }}>⚪ Hasn't logged into portal yet</div>
+            ? <div style={{ fontSize: 11, color: "#1E8449", fontWeight: 700, marginTop: 4 }}>{tr("🟢 Viewed portal — last seen")} {new Date(party.lastLoginAt).toLocaleString([], { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" })}</div>
+            : <div style={{ fontSize: 11, color: "#9A6700", fontWeight: 700, marginTop: 4 }}>{tr("⚪ Hasn't logged into portal yet")}</div>
         )}
       </div>
       <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
-        {onInvite && <button onClick={e => { e.stopPropagation(); onInvite(); }} style={{ background: "none", border: "1px solid #C0392B", borderRadius: 6, cursor: "pointer", color: "#C0392B", fontSize: 11, padding: "2px 8px", fontWeight: 600 }}>Send Invite</button>}
-        {onCopyLoginLink && party.email && party.role && /buyer|seller/i.test(party.role) && !/agent/i.test(party.role) && <button onClick={e => { e.stopPropagation(); onCopyLoginLink(); }} title="Get a portal login link to text or share directly — useful if the invite email didn't arrive. They still set their own PIN." style={{ background: "none", border: "1px solid #1E8449", borderRadius: 6, cursor: "pointer", color: "#1E8449", fontSize: 11, padding: "2px 8px", fontWeight: 600 }}>🔗 Login Link</button>}
-        {onSendFollowup && (party.email || party.phone) && <button onClick={e => { e.stopPropagation(); onSendFollowup(party); }} style={{ background: "#0c4a6e", border: "1px solid #C0392B", borderRadius: 6, cursor: "pointer", color: "#fff", fontSize: 11, padding: "2px 8px", fontWeight: 600 }}>Follow Up</button>}
-        {onSendWelcome && party.email && <button onClick={e => { e.stopPropagation(); onSendWelcome(party); }} title="Send (or re-send) the role-specific welcome email with key dates, financial summary, parties roster, and the contract document package. Use this when you've added or corrected this party's email after the initial Under Contract send." style={{ background: "#0c4a6e", border: "1px solid #1E8449", borderRadius: 6, cursor: "pointer", color: "#fff", fontSize: 11, padding: "2px 8px", fontWeight: 600 }}>✉️ Send Welcome</button>}
-        {onResetPassword && party.email && <button onClick={e => { e.stopPropagation(); onResetPassword(party); }} title="Email a one-time secure link so this party can set a new password. The link expires in 1 hour. Use this when a party calls saying they can't log in." style={{ background: "#0c4a6e", border: "1px solid #7c3aed", borderRadius: 6, cursor: "pointer", color: "#fff", fontSize: 11, padding: "2px 8px", fontWeight: 600 }}>🔐 Reset PW</button>}
-        {onResetPin && party.email && <button onClick={e => { e.stopPropagation(); onResetPin(party); }} title="Clear this client's forgotten portal PIN. Next time they open their portal link they'll be asked to CREATE a new PIN — nothing is emailed." style={{ background: "#0c4a6e", border: "1px solid #0e7490", borderRadius: 6, cursor: "pointer", color: "#fff", fontSize: 11, padding: "2px 8px", fontWeight: 600 }}>🔢 Reset PIN</button>}
-        {onEdit && <button onClick={e => { e.stopPropagation(); onEdit(); }} style={{ background: "none", border: `1px solid ${COLORS.border}`, borderRadius: 6, cursor: "pointer", color: COLORS.muted, fontSize: 12, padding: "2px 8px" }}>Edit</button>}
+        {onInvite && <button onClick={e => { e.stopPropagation(); onInvite(); }} style={{ background: "none", border: "1px solid #C0392B", borderRadius: 6, cursor: "pointer", color: "#C0392B", fontSize: 11, padding: "2px 8px", fontWeight: 600 }}>{tr("Send Invite")}</button>}
+        {onCopyLoginLink && party.email && party.role && /buyer|seller/i.test(party.role) && !/agent/i.test(party.role) && <button onClick={e => { e.stopPropagation(); onCopyLoginLink(); }} title={tr("Get a portal login link to text or share directly — useful if the invite email didn't arrive. They still set their own PIN.")} style={{ background: "none", border: "1px solid #1E8449", borderRadius: 6, cursor: "pointer", color: "#1E8449", fontSize: 11, padding: "2px 8px", fontWeight: 600 }}>{tr("🔗 Login Link")}</button>}
+        {onSendFollowup && (party.email || party.phone) && <button onClick={e => { e.stopPropagation(); onSendFollowup(party); }} style={{ background: "#0c4a6e", border: "1px solid #C0392B", borderRadius: 6, cursor: "pointer", color: "#fff", fontSize: 11, padding: "2px 8px", fontWeight: 600 }}>{tr("Follow Up")}</button>}
+        {onSendWelcome && party.email && <button onClick={e => { e.stopPropagation(); onSendWelcome(party); }} title={tr("Send (or re-send) the role-specific welcome email with key dates, financial summary, parties roster, and the contract document package. Use this when you've added or corrected this party's email after the initial Under Contract send.")} style={{ background: "#0c4a6e", border: "1px solid #1E8449", borderRadius: 6, cursor: "pointer", color: "#fff", fontSize: 11, padding: "2px 8px", fontWeight: 600 }}>{tr("✉️ Send Welcome")}</button>}
+        {onResetPassword && party.email && <button onClick={e => { e.stopPropagation(); onResetPassword(party); }} title={tr("Email a one-time secure link so this party can set a new password. The link expires in 1 hour. Use this when a party calls saying they can't log in.")} style={{ background: "#0c4a6e", border: "1px solid #7c3aed", borderRadius: 6, cursor: "pointer", color: "#fff", fontSize: 11, padding: "2px 8px", fontWeight: 600 }}>{tr("🔐 Reset PW")}</button>}
+        {onResetPin && party.email && <button onClick={e => { e.stopPropagation(); onResetPin(party); }} title={tr("Clear this client's forgotten portal PIN. Next time they open their portal link they'll be asked to CREATE a new PIN — nothing is emailed.")} style={{ background: "#0c4a6e", border: "1px solid #0e7490", borderRadius: 6, cursor: "pointer", color: "#fff", fontSize: 11, padding: "2px 8px", fontWeight: 600 }}>{tr("🔢 Reset PIN")}</button>}
+        {onEdit && <button onClick={e => { e.stopPropagation(); onEdit(); }} style={{ background: "none", border: `1px solid ${COLORS.border}`, borderRadius: 6, cursor: "pointer", color: COLORS.muted, fontSize: 12, padding: "2px 8px" }}>{tr("Edit")}</button>}
         {onRemove && <button onClick={e => { e.stopPropagation(); onRemove(); }} style={{ background: "none", border: "none", cursor: "pointer", color: COLORS.muted, fontSize: 16 }}>×</button>}
       </div>
     </div>
@@ -1003,14 +1005,14 @@ function TaskRow({ task, onUpdate, onRemind, onRemove }) {
       <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
         {onRemind && task.status !== "Completed" && task.status !== "Waived" && (
           <button onClick={() => onRemind(task)} style={{ fontSize: 11, padding: "3px 10px", borderRadius: 6, border: `1px solid ${isOverdue ? COLORS.danger : COLORS.border}`, background: isOverdue ? COLORS.dangerBg : "#F9FAFB", color: isOverdue ? COLORS.danger : COLORS.muted, cursor: "pointer", fontFamily: "inherit", fontWeight: 600, whiteSpace: "nowrap" }}>
-            {isOverdue ? "⚠ Remind" : "📱 Remind"}
+            {isOverdue ? tr("⚠ Remind") : tr("📱 Remind")}
           </button>
         )}
         <Badge label={effectiveStatus} color={cfg.color} bg={cfg.bg} />
         <select value={task.status} onChange={e => onUpdate({ ...task, status: e.target.value })} style={{ fontSize: 12, padding: "3px 6px", borderRadius: 6, border: `1px solid ${COLORS.border}`, fontFamily: "inherit" }}>
-          {Object.keys(TASK_STATUS).map(s => <option key={s}>{s}</option>)}
+          {Object.keys(TASK_STATUS).map(s => <option value={s} key={s}>{tr(s)}</option>)}
         </select>
-        {onRemove && <button onClick={async () => { if (await askConfirm("Delete this task?", { okLabel: "Delete", danger: true })) onRemove(task.id); }} style={{ background: "none", border: "none", color: "#CCC", cursor: "pointer", fontSize: 16, padding: "2px 4px", lineHeight: 1 }} title="Delete task">×</button>}
+        {onRemove && <button onClick={async () => { if (await askConfirm(tr("Delete this task?"), { okLabel: tr("Delete"), danger: true })) onRemove(task.id); }} style={{ background: "none", border: "none", color: "#CCC", cursor: "pointer", fontSize: 16, padding: "2px 4px", lineHeight: 1 }} title={tr("Delete task")}>×</button>}
       </div>
     </div>
   );
@@ -1084,8 +1086,8 @@ function TaskReminderModal({ task, tx, onClose }) {
       <div style={{ background: "#fff", borderRadius: 14, width: 560, maxWidth: "100%", maxHeight: "92vh", overflow: "auto", boxShadow: "0 20px 60px rgba(0,0,0,0.25)", margin: "auto" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "20px 24px 16px", borderBottom: `1px solid ${COLORS.border}` }}>
           <div>
-            <h2 style={{ margin: 0, fontSize: 17, color: COLORS.navy, fontWeight: 700 }}>📱 Send Task Reminder</h2>
-            <div style={{ fontSize: 12, color: COLORS.muted, marginTop: 3 }}>{tx.address} · {tx.city}, FL</div>
+            <h2 style={{ margin: 0, fontSize: 17, color: COLORS.navy, fontWeight: 700 }}>{tr("📱 Send Task Reminder")}</h2>
+            <div style={{ fontSize: 12, color: COLORS.muted, marginTop: 3 }}>{tx.address} · {tx.city}{tr(", FL")}</div>
           </div>
           <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 22, color: COLORS.muted }}>×</button>
         </div>
@@ -1095,9 +1097,9 @@ function TaskReminderModal({ task, tx, onClose }) {
           <div style={{ background: isOverdue ? COLORS.dangerBg : COLORS.infoBg, border: `1px solid ${isOverdue ? COLORS.danger + "40" : COLORS.info + "40"}`, borderRadius: 10, padding: 14, marginBottom: 20 }}>
             <div style={{ fontWeight: 700, fontSize: 14, color: isOverdue ? COLORS.danger : COLORS.info }}>{task.name}</div>
             <div style={{ fontSize: 12, color: COLORS.muted, marginTop: 4 }}>
-              {task.category} · Assigned to: {task.assignTo || "—"} · Due: {formatDate(task.dueDate)}
+              {task.category} {tr("· Assigned to:")} {task.assignTo || "—"} {tr("· Due:")} {formatDate(task.dueDate)}
               {due !== null && <span style={{ fontWeight: 700, color: isOverdue ? COLORS.danger : COLORS.warning, marginLeft: 6 }}>
-                {isOverdue ? `(${Math.abs(due)}d overdue)` : due === 0 ? "(Due today!)" : `(${due}d remaining)`}
+                {isOverdue ? `(${Math.abs(due)}d overdue)` : due === 0 ? tr("(Due today!)") : `(${due}d remaining)`}
               </span>}
             </div>
           </div>
@@ -1105,7 +1107,7 @@ function TaskReminderModal({ task, tx, onClose }) {
           {/* SMS Server status */}
           {serverOnline === false && (
             <div style={{ background: COLORS.dangerBg, borderRadius: 8, padding: 12, marginBottom: 16, fontSize: 13, color: COLORS.danger }}>
-              SMS server is not running. Start it first to send reminders.
+              {tr("SMS server is not running. Start it first to send reminders.")}
             </div>
           )}
 
@@ -1113,9 +1115,9 @@ function TaskReminderModal({ task, tx, onClose }) {
             <>
               {/* Party selection */}
               <div style={{ marginBottom: 16 }}>
-                <div style={{ fontSize: 12, fontWeight: 700, color: COLORS.muted, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 8 }}>Notify</div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: COLORS.muted, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 8 }}>{tr("Notify")}</div>
                 {partiesWithPhone.length === 0 && (
-                  <div style={{ fontSize: 13, color: COLORS.muted, fontStyle: "italic" }}>No parties with phone numbers. Add phone numbers in the People tab.</div>
+                  <div style={{ fontSize: 13, color: COLORS.muted, fontStyle: "italic" }}>{tr("No parties with phone numbers. Add phone numbers in the People tab.")}</div>
                 )}
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, "data-form-grid": "" }}>
                   {partiesWithPhone.map(p => (
@@ -1130,21 +1132,21 @@ function TaskReminderModal({ task, tx, onClose }) {
                   ))}
                 </div>
                 {partiesWithPhone.length > 0 && (
-                  <button onClick={() => setSelectedParties(partiesWithPhone.map(p => p.id))} style={{ marginTop: 6, fontSize: 12, color: COLORS.info, background: "none", border: "none", cursor: "pointer" }}>Select all</button>
+                  <button onClick={() => setSelectedParties(partiesWithPhone.map(p => p.id))} style={{ marginTop: 6, fontSize: 12, color: COLORS.info, background: "none", border: "none", cursor: "pointer" }}>{tr("Select all")}</button>
                 )}
               </div>
 
               {/* Editable message */}
               <div style={{ marginBottom: 16 }}>
-                <div style={{ fontSize: 12, fontWeight: 700, color: COLORS.muted, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6 }}>Message (editable)</div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: COLORS.muted, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6 }}>{tr("Message (editable)")}</div>
                 <textarea value={message} onChange={e => setMessage(e.target.value)} rows={8} style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: `1px solid ${COLORS.border}`, fontSize: 13, fontFamily: "inherit", resize: "vertical", boxSizing: "border-box", lineHeight: 1.6 }} />
-                <div style={{ fontSize: 11, color: COLORS.muted, marginTop: 4 }}>{message.length} characters · Edit freely before sending</div>
+                <div style={{ fontSize: 11, color: COLORS.muted, marginTop: 4 }}>{message.length} {tr("characters · Edit freely before sending")}</div>
               </div>
 
               <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
-                <Btn variant="ghost" onClick={onClose}>Cancel</Btn>
+                <Btn variant="ghost" onClick={onClose}>{tr("Cancel")}</Btn>
                 <Btn onClick={send} disabled={!selectedParties.length || !message.trim() || sending || !serverOnline} variant={isOverdue ? "danger" : "primary"}>
-                  {sending ? "Sending..." : `Send to ${selectedParties.length} part${selectedParties.length !== 1 ? "ies" : "y"}`}
+                  {sending ? tr("Sending...") : `Send to ${selectedParties.length} part${selectedParties.length !== 1 ? "ies" : "y"}`}
                 </Btn>
               </div>
             </>
@@ -1154,11 +1156,11 @@ function TaskReminderModal({ task, tx, onClose }) {
                 {result.map((r, i) => (
                   <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 0", borderBottom: `1px solid ${COLORS.border}` }}>
                     <div style={{ width: 10, height: 10, borderRadius: "50%", background: r.success ? COLORS.success : COLORS.danger, flexShrink: 0 }} />
-                    <div style={{ fontSize: 14 }}><strong>{r.name}</strong> — {r.success ? "Reminder sent ✓" : `Failed: ${r.error}`}</div>
+                    <div style={{ fontSize: 14 }}><strong>{r.name}</strong> — {r.success ? tr("Reminder sent ✓") : `Failed: ${r.error}`}</div>
                   </div>
                 ))}
               </div>
-              <Btn onClick={onClose}>Done</Btn>
+              <Btn onClick={onClose}>{tr("Done")}</Btn>
             </>
           )}
         </div>
@@ -1307,11 +1309,11 @@ function SMSPanel({ tx, onUpdate, currentUser, sendOnly = false }) {
     return (
     <div>
       <div style={{ fontSize: 12, fontWeight: 800, color: "#0F2044", marginBottom: 5 }}>
-        How should this go out? {!value && <span style={{ color: "#C0392B" }}>👉 pick one</span>}
+        {tr("How should this go out?")} {!value && <span style={{ color: "#C0392B" }}>{tr("👉 pick one")}</span>}
       </div>
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
         {[["email", "📧 Email"], ["sms", "📱 Text"], ["both", "📧 + 📱 Both"]].map(([v, label]) => (
-          <button key={v} onClick={() => onChange(v)} style={{ padding: "10px 16px", borderRadius: 10, border: "2px solid " + (value === v ? "#0c4a6e" : "#D1D5DB"), background: value === v ? "#0c4a6e" : "#fff", color: value === v ? "#fff" : "#374151", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>{label}</button>
+          <button key={v} onClick={() => onChange(v)} style={{ padding: "10px 16px", borderRadius: 10, border: "2px solid " + (value === v ? "#0c4a6e" : "#D1D5DB"), background: value === v ? "#0c4a6e" : "#fff", color: value === v ? "#fff" : "#374151", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>{tr(label)}</button>
         ))}
       </div>
     </div>
@@ -1320,7 +1322,7 @@ function SMSPanel({ tx, onUpdate, currentUser, sendOnly = false }) {
 
   const sendMessage = async () => {
     if (!selectedParty || !message.trim() || !serverOnline) return;
-    if (!channel) { alert("Pick how to send it first — 📧 Email or 📱 Text."); return; }
+    if (!channel) { alert(tr("Pick how to send it first — 📧 Email or 📱 Text.")); return; }
     setSending(true);
     try {
       const isSMS = channel === "sms" || channel === "both";
@@ -1356,13 +1358,13 @@ function SMSPanel({ tx, onUpdate, currentUser, sendOnly = false }) {
               if (!newThreads[key]) newThreads[key] = [];
               newThreads[key].push({ id: d.message?.id || Date.now().toString(), body: message.trim(), direction: "outbound", channel: "email", timestamp: new Date().toISOString(), status: "sent" });
               onUpdate({ ...tx, smsThreads: newThreads });
-            } else alert("Email failed: " + (d.error || "Unknown error"));
-          } catch(e) { console.error("Email error", e); alert("Email error: " + e.message); }
-        } else { alert("No email address for this party. Add one in the People tab."); }
+            } else alert(tr("Email failed: ") + (d.error || tr("Unknown error")));
+          } catch(e) { console.error("Email error", e); alert(tr("Email error: ") + e.message); }
+        } else { alert(tr("No email address for this party. Add one in the People tab.")); }
       }
       if (anySent) { setMessage(""); setSubject(""); setGAttach([]); loadLogged(); }
-      else alert("Send failed. Check server and credentials.");
-    } catch { alert("Server unreachable."); }
+      else alert(tr("Send failed. Check server and credentials."));
+    } catch { alert(tr("Server unreachable.")); }
     setSending(false);
   };
 
@@ -1401,10 +1403,10 @@ function SMSPanel({ tx, onUpdate, currentUser, sendOnly = false }) {
   };
   const addExtraEmail = () => {
     const email = gNewEmail.trim();
-    if (!/.+@.+\..+/.test(email)) { alert("Enter a valid email address."); return; }
+    if (!/.+@.+\..+/.test(email)) { alert(tr("Enter a valid email address.")); return; }
     if (gExtra.some(e => e.email.toLowerCase() === email.toLowerCase()) ||
         gContactable.some(p => (p.email || "").toLowerCase() === email.toLowerCase())) {
-      alert("That email is already on the list."); return;
+      alert(tr("That email is already on the list.")); return;
     }
     setGExtra(prev => [...prev, { name: gNewName.trim(), email }]);
     setGNewEmail(""); setGNewName("");
@@ -1427,7 +1429,7 @@ function SMSPanel({ tx, onUpdate, currentUser, sendOnly = false }) {
 
   const sendGroup = async () => {
     if (!gMessage.trim()) return;
-    if (!gChannel) { alert("Pick how to send it first — 📧 Email, 📱 Text, or Both."); return; }
+    if (!gChannel) { alert(tr("Pick how to send it first — 📧 Email, 📱 Text, or Both.")); return; }
     setGSending(true);
     try {
       const res = await fetch(`${SMS_SERVER}/transactions/${tx.id}/broadcast`, {
@@ -1437,8 +1439,8 @@ function SMSPanel({ tx, onUpdate, currentUser, sendOnly = false }) {
       });
       const d = await res.json();
       if (d.success) { setGResult(d.results || []); setGMessage(""); setGSubject(""); setGAttach([]); setGExtra([]); setGSelectedIds(new Set()); loadLogged(); }
-      else alert("Send failed: " + (d.error || "unknown error"));
-    } catch { alert("Server unreachable."); }
+      else alert(tr("Send failed: ") + (d.error || tr("unknown error")));
+    } catch { alert(tr("Server unreachable.")); }
     setGSending(false);
   };
 
@@ -1457,8 +1459,8 @@ function SMSPanel({ tx, onUpdate, currentUser, sendOnly = false }) {
       });
       const d = await res.json();
       if (d.success) setGAttach([]);
-      else alert(d.error || "Couldn't share the files.");
-    } catch { alert("Server unreachable."); }
+      else alert(d.error || tr("Couldn't share the files."));
+    } catch { alert(tr("Server unreachable.")); }
     setChatPosting(false);
   };
 
@@ -1467,8 +1469,8 @@ function SMSPanel({ tx, onUpdate, currentUser, sendOnly = false }) {
     const first = chatTarget ? (chatTarget.name || "").split(" ")[0] : null;
     return (
       <div style={{ background: "#fff", border: "1px solid #E5E7EB", borderRadius: 12, padding: "10px 14px", display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-        <button onClick={openDocPicker} style={{ fontSize: 12, padding: "6px 12px", borderRadius: 8, border: "1px solid #0c4a6e", background: "#fff", color: "#0c4a6e", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>📎 Attach from Documents</button>
-        <button onClick={() => fileInputRef.current?.click()} disabled={uploading} style={{ fontSize: 12, padding: "6px 12px", borderRadius: 8, border: "1px solid #0c4a6e", background: "#fff", color: "#0c4a6e", fontWeight: 600, cursor: "pointer", fontFamily: "inherit", opacity: uploading ? 0.5 : 1 }}>{uploading ? "Uploading..." : "💻 Upload"}</button>
+        <button onClick={openDocPicker} style={{ fontSize: 12, padding: "6px 12px", borderRadius: 8, border: "1px solid #0c4a6e", background: "#fff", color: "#0c4a6e", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>{tr("📎 Attach from Documents")}</button>
+        <button onClick={() => fileInputRef.current?.click()} disabled={uploading} style={{ fontSize: 12, padding: "6px 12px", borderRadius: 8, border: "1px solid #0c4a6e", background: "#fff", color: "#0c4a6e", fontWeight: 600, cursor: "pointer", fontFamily: "inherit", opacity: uploading ? 0.5 : 1 }}>{uploading ? tr("Uploading...") : tr("💻 Upload")}</button>
         {gAttach.map(a => (
           <span key={a.id} style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "#F0F4FF", border: "1px solid #C7D2FE", borderRadius: 6, padding: "4px 8px", fontSize: 12, color: "#0F2044" }}>
             📄 {a.name}
@@ -1476,9 +1478,9 @@ function SMSPanel({ tx, onUpdate, currentUser, sendOnly = false }) {
           </span>
         ))}
         {gAttach.length > 0 ? (
-          <button onClick={postFilesToChat} disabled={chatPosting} style={{ fontSize: 12, padding: "6px 14px", borderRadius: 8, border: "none", background: "#0c4a6e", color: "#fff", fontWeight: 700, cursor: "pointer", fontFamily: "inherit", opacity: chatPosting ? 0.5 : 1 }}>{chatPosting ? "Sharing..." : `Share ${gAttach.length} file${gAttach.length > 1 ? "s" : ""} ${first ? `with ${first} only` : "in chat"}`}</button>
+          <button onClick={postFilesToChat} disabled={chatPosting} style={{ fontSize: 12, padding: "6px 14px", borderRadius: 8, border: "none", background: "#0c4a6e", color: "#fff", fontWeight: 700, cursor: "pointer", fontFamily: "inherit", opacity: chatPosting ? 0.5 : 1 }}>{chatPosting ? tr("Sharing...") : `Share ${gAttach.length} file${gAttach.length > 1 ? "s" : ""} ${first ? `with ${first} only` : "in chat"}`}</button>
         ) : (
-          <span style={{ fontSize: 11, color: "#6B7280" }}>{first ? `Files go privately to ${first} as secure download links.` : "Files post into the chat as secure download links."}</span>
+          <span style={{ fontSize: 11, color: "#6B7280" }}>{first ? `Files go privately to ${first} as secure download links.` : tr("Files post into the chat as secure download links.")}</span>
         )}
       </div>
     );
@@ -1502,8 +1504,8 @@ function SMSPanel({ tx, onUpdate, currentUser, sendOnly = false }) {
       const res = await fetch(`${SMS_SERVER}/documents/upload`, { method: "POST", headers: { "Content-Type": "application/json", "Authorization": "Bearer " + (localStorage.getItem("tp_token") || "") }, body: JSON.stringify({ transactionId: tx.id, fileName: file.name, fileType: file.type, category: "Email Attachments", base64 }) });
       const d = await res.json();
       if (d.success && d.docId) { setGAttach(prev => [...prev, { id: d.docId, name: file.name }]); setDocList(null); }
-      else alert("Upload failed: " + (d.error || "unknown error"));
-    } catch (e) { alert("Upload error: " + e.message); }
+      else alert(tr("Upload failed: ") + (d.error || tr("unknown error")));
+    } catch (e) { alert(tr("Upload error: ") + e.message); }
     setUploading(false);
   };
 
@@ -1511,13 +1513,13 @@ function SMSPanel({ tx, onUpdate, currentUser, sendOnly = false }) {
     return (
       <div style={{ background: "#fff", border: "1px solid #E5E7EB", borderRadius: 14, padding: 40, textAlign: "center" }}>
         <div style={{ fontSize: 48, marginBottom: 16 }}>📡</div>
-        <div style={{ fontSize: 20, fontWeight: 700, color: "#0F2044", marginBottom: 8 }}>Communication Server Not Running</div>
-        <div style={{ fontSize: 14, color: "#6B7280", maxWidth: 440, margin: "0 auto 20px" }}>In Terminal: cd ~/Downloads/LizTeamApp/sms-server && node server.js</div>
-        <button onClick={() => { setServerOnline(null); fetch(`${SMS_SERVER}/health`).then(r => r.json()).then(d => { setServerOnline(true); setEmailOnline(!!d.email); }).catch(() => setServerOnline(false)); }} style={{ padding: "8px 18px", borderRadius: 8, border: "1px solid #0F2044", background: "#fff", color: "#0F2044", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Retry Connection</button>
+        <div style={{ fontSize: 20, fontWeight: 700, color: "#0F2044", marginBottom: 8 }}>{tr("Communication Server Not Running")}</div>
+        <div style={{ fontSize: 14, color: "#6B7280", maxWidth: 440, margin: "0 auto 20px" }}>{tr("In Terminal: cd ~/Downloads/LizTeamApp/sms-server && node server.js")}</div>
+        <button onClick={() => { setServerOnline(null); fetch(`${SMS_SERVER}/health`).then(r => r.json()).then(d => { setServerOnline(true); setEmailOnline(!!d.email); }).catch(() => setServerOnline(false)); }} style={{ padding: "8px 18px", borderRadius: 8, border: "1px solid #0F2044", background: "#fff", color: "#0F2044", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>{tr("Retry Connection")}</button>
       </div>
     );
   }
-  if (serverOnline === null) return <div style={{ textAlign: "center", padding: 60, color: "#6B7280" }}>Connecting to server...</div>;
+  if (serverOnline === null) return <div style={{ textAlign: "center", padding: 60, color: "#6B7280" }}>{tr("Connecting to server...")}</div>;
 
   return (
     <div>
@@ -1525,17 +1527,17 @@ function SMSPanel({ tx, onUpdate, currentUser, sendOnly = false }) {
           only speak up when something is actually wrong — email is checked via /health. */}
       {!emailOnline && (
         <div role="alert" style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "#922B21", background: "#FDEDEC", border: "1px solid #F5B7B1", borderRadius: 8, padding: "8px 12px", marginBottom: 16 }}>
-          <span aria-hidden="true">⚠️</span> Email sending isn't available right now — texts still work.
+          <span aria-hidden="true">⚠️</span> {tr("Email sending isn't available right now — texts still work.")}
         </div>
       )}
 
       {/* The two choices the agent must make: WHO (over the conversations list) and HOW (over the messaging window) */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: 10, marginBottom: 12, flexWrap: "wrap" }}>
         <div>
-          <div style={{ fontSize: 13, fontWeight: 800, color: "#0F2044", marginBottom: 5 }}>1. Select who to message:</div>
+          <div style={{ fontSize: 13, fontWeight: 800, color: "#0F2044", marginBottom: 5 }}>{tr("1. Select who to message:")}</div>
           <div style={{ display: "inline-flex", background: "#F3F4F6", borderRadius: 8, padding: 3, gap: 2, border: "1.5px solid #C9A84C" }}>
             {[["direct", "👤 One person"], ["group", "👥 Group / several"]].map(([v, label]) => (
-              <button key={v} onClick={() => setMode(v)} style={{ padding: "8px 18px", borderRadius: 6, border: "none", background: mode === v ? "#0c4a6e" : "transparent", color: mode === v ? "#fff" : "#374151", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>{label}</button>
+              <button key={v} onClick={() => setMode(v)} style={{ padding: "8px 18px", borderRadius: 6, border: "none", background: mode === v ? "#0c4a6e" : "transparent", color: mode === v ? "#fff" : "#374151", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>{tr(label)}</button>
             ))}
           </div>
         </div>
@@ -1543,10 +1545,10 @@ function SMSPanel({ tx, onUpdate, currentUser, sendOnly = false }) {
             sender is email/text only (sendOnly hides the chat-surface toggle). */}
         {!sendOnly && (
           <div style={{ textAlign: "right" }}>
-            <div style={{ fontSize: 13, fontWeight: 800, color: "#0F2044", marginBottom: 5 }}>2. Select how to send it:</div>
+            <div style={{ fontSize: 13, fontWeight: 800, color: "#0F2044", marginBottom: 5 }}>{tr("2. Select how to send it:")}</div>
             <div style={{ display: "inline-flex", background: "#F3F4F6", borderRadius: 8, padding: 3, gap: 2, border: "1.5px solid #0F2044" }}>
               {[["send", "📨 Email / Text"], ["chat", "💬 Chat in the app"]].map(([v, label]) => (
-                <button key={v} onClick={() => setSurface(v)} style={{ padding: "8px 18px", borderRadius: 6, border: "none", background: surface === v ? "#0c4a6e" : "transparent", color: surface === v ? "#fff" : "#374151", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>{label}</button>
+                <button key={v} onClick={() => setSurface(v)} style={{ padding: "8px 18px", borderRadius: 6, border: "none", background: surface === v ? "#0c4a6e" : "transparent", color: surface === v ? "#fff" : "#374151", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>{tr(label)}</button>
               ))}
             </div>
           </div>
@@ -1557,7 +1559,7 @@ function SMSPanel({ tx, onUpdate, currentUser, sendOnly = false }) {
       {surface === "chat" && mode === "direct" && (
         <div data-msg-grid style={{ display: "grid", gridTemplateColumns: "260px 1fr", gap: 16, height: "min(900px, calc(100vh - 180px))", minHeight: 600 }}>
           <div style={{ background: "#fff", border: "1px solid #E5E7EB", borderRadius: 12, overflow: "hidden", display: "flex", flexDirection: "column" }}>
-            <div style={{ padding: "12px 14px", borderBottom: "1px solid #E5E7EB", fontSize: 12, fontWeight: 700, color: "#6B7280", textTransform: "uppercase", letterSpacing: "0.05em" }}>Chat privately with...</div>
+            <div style={{ padding: "12px 14px", borderBottom: "1px solid #E5E7EB", fontSize: 12, fontWeight: 700, color: "#6B7280", textTransform: "uppercase", letterSpacing: "0.05em" }}>{tr("Chat privately with...")}</div>
             <div style={{ flex: 1, overflowY: "auto" }}>
               {tx.parties.filter(p => p.email && p.email.trim()).map(party => {
                 const isSelected = selectedParty?.id === party.id;
@@ -1566,13 +1568,13 @@ function SMSPanel({ tx, onUpdate, currentUser, sendOnly = false }) {
                     <div style={{ width: 36, height: 36, borderRadius: "50%", background: "#1D4ED822", color: "#1D4ED8", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 13, flexShrink: 0 }}>{party.name.split(" ").map(w => w[0]).join("").toUpperCase().substr(0, 2)}</div>
                     <div style={{ minWidth: 0 }}>
                       <div style={{ fontWeight: 600, fontSize: 13, color: "#1A1A2E", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{party.name}</div>
-                      <div style={{ fontSize: 11, fontWeight: 600, color: "#C9A84C" }}>{party.role}</div>
+                      <div style={{ fontSize: 11, fontWeight: 600, color: "#C9A84C" }}>{tr(party.role)}</div>
                     </div>
                   </div>
                 );
               })}
               {tx.parties.filter(p => p.email && p.email.trim()).length === 0 && (
-                <div style={{ padding: 20, fontSize: 13, color: "#6B7280" }}>No parties with an email yet — private chat needs one. Add it in the People tab.</div>
+                <div style={{ padding: 20, fontSize: 13, color: "#6B7280" }}>{tr("No parties with an email yet — private chat needs one. Add it in the People tab.")}</div>
               )}
             </div>
           </div>
@@ -1586,8 +1588,8 @@ function SMSPanel({ tx, onUpdate, currentUser, sendOnly = false }) {
           ) : (
             <div style={{ background: "#fff", border: "1px solid #E5E7EB", borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 8, color: "#6B7280", padding: 20, textAlign: "center" }}>
               <div style={{ fontSize: 40 }}>🔒</div>
-              <div style={{ fontWeight: 700, color: "#0F2044" }}>← Pick a person to chat privately</div>
-              <div style={{ fontSize: 13 }}>Only you and them see it. For the whole group, switch to "👥 Everyone" above.</div>
+              <div style={{ fontWeight: 700, color: "#0F2044" }}>{tr("← Pick a person to chat privately")}</div>
+              <div style={{ fontSize: 13 }}>{tr("Only you and them see it. For the whole group, switch to \"👥 Everyone\" above.")}</div>
             </div>
           )}
         </div>
@@ -1606,22 +1608,22 @@ function SMSPanel({ tx, onUpdate, currentUser, sendOnly = false }) {
         <div style={{ maxWidth: 760 }}>
             {/* Composer */}
             <div style={{ background: "#fff", border: "1px solid #E5E7EB", borderRadius: 12, padding: 18 }}>
-              <div style={{ fontWeight: 700, fontSize: 15, color: "#0F2044", marginBottom: 4 }}>Message the group</div>
-              <div style={{ fontSize: 12, color: "#6B7280", marginBottom: 14 }}>Pick who gets this below — everyone, just a few, or add an email that isn't on the deal. A copy is also saved in the in-app Chat.</div>
+              <div style={{ fontWeight: 700, fontSize: 15, color: "#0F2044", marginBottom: 4 }}>{tr("Message the group")}</div>
+              <div style={{ fontSize: 12, color: "#6B7280", marginBottom: 14 }}>{tr("Pick who gets this below — everyone, just a few, or add an email that isn't on the deal. A copy is also saved in the in-app Chat.")}</div>
 
               {/* Recipients — some, all, or add an address not on the deal */}
               <div style={{ background: "#F9FAFB", border: "1px solid #E5E7EB", borderRadius: 8, padding: "10px 12px", marginBottom: 14 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: "#6B7280", textTransform: "uppercase" }}>To ({gChosen.length} selected)</div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "#6B7280", textTransform: "uppercase" }}>{tr("To (")}{gChosen.length} {tr("selected)")}</div>
                   {gContactable.length > 0 && (
                     <div style={{ display: "flex", gap: 12 }}>
-                      <button onClick={() => setGSelectedIds(null)} style={{ background: "none", border: "none", color: "#0c4a6e", fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "inherit", textDecoration: "underline" }}>Select all</button>
-                      <button onClick={() => setGSelectedIds(new Set())} style={{ background: "none", border: "none", color: "#6B7280", fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "inherit", textDecoration: "underline" }}>Clear</button>
+                      <button onClick={() => setGSelectedIds(null)} style={{ background: "none", border: "none", color: "#0c4a6e", fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "inherit", textDecoration: "underline" }}>{tr("Select all")}</button>
+                      <button onClick={() => setGSelectedIds(new Set())} style={{ background: "none", border: "none", color: "#6B7280", fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "inherit", textDecoration: "underline" }}>{tr("Clear")}</button>
                     </div>
                   )}
                 </div>
                 {gContactable.length === 0 ? (
-                  <div style={{ fontSize: 12, color: "#6B7280" }}>No parties with contact info yet — add them in the People tab, or type an email below.</div>
+                  <div style={{ fontSize: 12, color: "#6B7280" }}>{tr("No parties with contact info yet — add them in the People tab, or type an email below.")}</div>
                 ) : (
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }} data-keep-grid="">
                     {gContactable.map(p => (
@@ -1629,8 +1631,8 @@ function SMSPanel({ tx, onUpdate, currentUser, sendOnly = false }) {
                         <input type="checkbox" checked={isRecipientOn(p.id)} onChange={() => toggleRecipient(p.id)} style={{ width: 16, height: 16, flexShrink: 0 }} />
                         <span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                           {p.name} <span style={{ color: "#C9A84C", fontWeight: 600 }}>· {p.role}</span>
-                          {!(p.email && p.email.trim()) && <span style={{ color: "#B45309" }}> (text only)</span>}
-                          {!(p.phone && p.phone.trim()) && <span style={{ color: "#6B7280" }}> (email only)</span>}
+                          {!(p.email && p.email.trim()) && <span style={{ color: "#B45309" }}> {tr("(text only)")}</span>}
+                          {!(p.phone && p.phone.trim()) && <span style={{ color: "#6B7280" }}> {tr("(email only)")}</span>}
                         </span>
                       </label>
                     ))}
@@ -1647,9 +1649,9 @@ function SMSPanel({ tx, onUpdate, currentUser, sendOnly = false }) {
                   </div>
                 )}
                 <div style={{ display: "flex", gap: 6, marginTop: 8, flexWrap: "wrap" }}>
-                  <input value={gNewName} onChange={e => setGNewName(e.target.value)} placeholder="Name (optional)" style={{ flex: "0 1 130px", padding: "7px 10px", borderRadius: 8, border: "1px solid #E5E7EB", fontSize: 13, fontFamily: "inherit", boxSizing: "border-box" }} />
-                  <input value={gNewEmail} onChange={e => setGNewEmail(e.target.value)} onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); addExtraEmail(); } }} placeholder="Add another email…" style={{ flex: "1 1 180px", padding: "7px 10px", borderRadius: 8, border: "1px solid #E5E7EB", fontSize: 13, fontFamily: "inherit", boxSizing: "border-box" }} />
-                  <button onClick={addExtraEmail} style={{ fontSize: 13, padding: "7px 14px", borderRadius: 8, border: "1px solid #0c4a6e", background: "#fff", color: "#0c4a6e", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>+ Add</button>
+                  <input value={gNewName} onChange={e => setGNewName(e.target.value)} placeholder={tr("Name (optional)")} style={{ flex: "0 1 130px", padding: "7px 10px", borderRadius: 8, border: "1px solid #E5E7EB", fontSize: 13, fontFamily: "inherit", boxSizing: "border-box" }} />
+                  <input value={gNewEmail} onChange={e => setGNewEmail(e.target.value)} onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); addExtraEmail(); } }} placeholder={tr("Add another email…")} style={{ flex: "1 1 180px", padding: "7px 10px", borderRadius: 8, border: "1px solid #E5E7EB", fontSize: 13, fontFamily: "inherit", boxSizing: "border-box" }} />
+                  <button onClick={addExtraEmail} style={{ fontSize: 13, padding: "7px 14px", borderRadius: 8, border: "1px solid #0c4a6e", background: "#fff", color: "#0c4a6e", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>{tr("+ Add")}</button>
                 </div>
               </div>
 
@@ -1661,13 +1663,13 @@ function SMSPanel({ tx, onUpdate, currentUser, sendOnly = false }) {
                 <input value={gSubject} onChange={e => setGSubject(e.target.value)} placeholder={`Email subject (default: Update: ${tx.address})`} style={{ width: "100%", padding: "9px 12px", borderRadius: 8, border: "1px solid #E5E7EB", fontSize: 13, fontFamily: "inherit", boxSizing: "border-box", marginBottom: 10 }} />
               )}
 
-              <textarea value={gMessage} onChange={e => setGMessage(e.target.value)} rows={12} placeholder="Type your message to the selected recipients..." style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: "1px solid #E5E7EB", fontSize: 14, fontFamily: "inherit", resize: "vertical", minHeight: 220, boxSizing: "border-box", marginBottom: 10 }} />
+              <textarea value={gMessage} onChange={e => setGMessage(e.target.value)} rows={12} placeholder={tr("Type your message to the selected recipients...")} style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: "1px solid #E5E7EB", fontSize: 14, fontFamily: "inherit", resize: "vertical", minHeight: 220, boxSizing: "border-box", marginBottom: 10 }} />
 
               {/* Attachments */}
               <div style={{ marginBottom: 12 }}>
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: gAttach.length ? 8 : 0 }}>
-                  <button onClick={openDocPicker} style={{ fontSize: 12, padding: "6px 12px", borderRadius: 8, border: "1px solid #0c4a6e", background: "#fff", color: "#0c4a6e", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>📎 Attach from Documents</button>
-                  <button onClick={() => fileInputRef.current?.click()} disabled={uploading} style={{ fontSize: 12, padding: "6px 12px", borderRadius: 8, border: "1px solid #0c4a6e", background: "#fff", color: "#0c4a6e", fontWeight: 600, cursor: "pointer", fontFamily: "inherit", opacity: uploading ? 0.5 : 1 }}>{uploading ? "Uploading..." : "💻 Upload"}</button>
+                  <button onClick={openDocPicker} style={{ fontSize: 12, padding: "6px 12px", borderRadius: 8, border: "1px solid #0c4a6e", background: "#fff", color: "#0c4a6e", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>{tr("📎 Attach from Documents")}</button>
+                  <button onClick={() => fileInputRef.current?.click()} disabled={uploading} style={{ fontSize: 12, padding: "6px 12px", borderRadius: 8, border: "1px solid #0c4a6e", background: "#fff", color: "#0c4a6e", fontWeight: 600, cursor: "pointer", fontFamily: "inherit", opacity: uploading ? 0.5 : 1 }}>{uploading ? tr("Uploading...") : tr("💻 Upload")}</button>
                 </div>
                 {gAttach.map(a => (
                   <div key={a.id} style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "#F0F4FF", border: "1px solid #C7D2FE", borderRadius: 6, padding: "4px 8px", fontSize: 12, color: "#0F2044", marginRight: 6, marginBottom: 6 }}>
@@ -1676,23 +1678,23 @@ function SMSPanel({ tx, onUpdate, currentUser, sendOnly = false }) {
                   </div>
                 ))}
                 {gAttach.length > 0 && (gChannel === "sms" || gChannel === "both") && (
-                  <div style={{ fontSize: 11, color: "#6B7280", marginTop: 2 }}>Texted parties get a secure download link (files can't attach to a text).</div>
+                  <div style={{ fontSize: 11, color: "#6B7280", marginTop: 2 }}>{tr("Texted parties get a secure download link (files can't attach to a text).")}</div>
                 )}
               </div>
 
               {/* Reachability note */}
               <div style={{ background: "#F9FAFB", border: "1px solid #E5E7EB", borderRadius: 8, padding: "10px 12px", fontSize: 12, color: "#374151", marginBottom: 14 }}>
-                <div style={{ fontWeight: 700, marginBottom: 4 }}>Who will get this</div>
-                {gChosen.length === 0 ? <div style={{ color: "#6B7280" }}>Nobody selected yet — tick a recipient above or add an email.</div> : (
+                <div style={{ fontWeight: 700, marginBottom: 4 }}>{tr("Who will get this")}</div>
+                {gChosen.length === 0 ? <div style={{ color: "#6B7280" }}>{tr("Nobody selected yet — tick a recipient above or add an email.")}</div> : (
                   <>
                     <div>
-                      {gChannel !== "sms" && <>📧 {gWithEmail.length} by email</>}
+                      {gChannel !== "sms" && <>📧 {gWithEmail.length} {tr("by email")}</>}
                       {gChannel === "both" && " · "}
-                      {gChannel !== "email" && <>📱 {gWithPhone.length} by text</>}
+                      {gChannel !== "email" && <>📱 {gWithPhone.length} {tr("by text")}</>}
                     </div>
                     {gUnreachable.length > 0 && (
                       <div style={{ color: "#DC2626", fontWeight: 600 }}>
-                        🚫 {gUnreachable.length} {gUnreachable.length === 1 ? "recipient has" : "recipients have"} no {gChannel === "sms" ? "phone" : gChannel === "email" ? "email" : "phone or email"} — {gChannel === "both" ? "add contact info to reach them" : `won't get this ${gChannel === "sms" ? "text" : "email"}`}
+                        🚫 {gUnreachable.length} {gUnreachable.length === 1 ? tr("recipient has") : tr("recipients have")} {tr("no")} {gChannel === "sms" ? tr("phone") : gChannel === "email" ? tr("email") : tr("phone or email")} — {gChannel === "both" ? tr("add contact info to reach them") : `won't get this ${gChannel === "sms" ? "text" : "email"}`}
                       </div>
                     )}
                   </>
@@ -1701,14 +1703,14 @@ function SMSPanel({ tx, onUpdate, currentUser, sendOnly = false }) {
 
               {gResult && (
                 <div style={{ background: "#F0FDF4", border: "1px solid #86EFAC", borderRadius: 8, padding: "10px 12px", fontSize: 12, marginBottom: 12 }}>
-                  <div style={{ fontWeight: 700, color: "#15803D", marginBottom: 4 }}>Sent ✓</div>
+                  <div style={{ fontWeight: 700, color: "#15803D", marginBottom: 4 }}>{tr("Sent ✓")}</div>
                   {gResult.map((r, i) => (
-                    <div key={i} style={{ color: "#374151" }}>{r.name}: {r.email === true ? "📧" : ""}{r.sms === true ? " 📱" : ""}{r.email === false ? " email failed" : ""}{r.sms === false ? " text failed" : ""}{r.email === null && r.sms === null ? "—" : ""}</div>
+                    <div key={i} style={{ color: "#374151" }}>{r.name}: {r.email === true ? "📧" : ""}{r.sms === true ? " 📱" : ""}{r.email === false ? tr(" email failed") : ""}{r.sms === false ? tr(" text failed") : ""}{r.email === null && r.sms === null ? "—" : ""}</div>
                   ))}
                 </div>
               )}
 
-              <button onClick={sendGroup} disabled={!gChannel || !gMessage.trim() || gSending || gReachable === 0} style={{ width: "100%", padding: "11px", borderRadius: 8, border: "none", background: "#0c4a6e", color: "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer", fontFamily: "inherit", opacity: (!gChannel || !gMessage.trim() || gSending || gReachable === 0) ? 0.5 : 1 }}>{gSending ? "Sending..." : !gChannel ? "Pick Email or Text above" : `Send to ${gReachable} recipient${gReachable === 1 ? "" : "s"}`}</button>
+              <button onClick={sendGroup} disabled={!gChannel || !gMessage.trim() || gSending || gReachable === 0} style={{ width: "100%", padding: "11px", borderRadius: 8, border: "none", background: "#0c4a6e", color: "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer", fontFamily: "inherit", opacity: (!gChannel || !gMessage.trim() || gSending || gReachable === 0) ? 0.5 : 1 }}>{gSending ? tr("Sending...") : !gChannel ? tr("Pick Email or Text above") : `Send to ${gReachable} recipient${gReachable === 1 ? "" : "s"}`}</button>
             </div>
         </div>
       )}
@@ -1717,12 +1719,12 @@ function SMSPanel({ tx, onUpdate, currentUser, sendOnly = false }) {
             <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 1000, display: "flex", alignItems: "flex-start", justifyContent: "center", padding: 16, overflowY: "auto" }}>
               <div style={{ background: "#fff", borderRadius: 14, width: 480, maxWidth: "100%", maxHeight: "90vh", overflow: "auto", boxShadow: "0 20px 60px rgba(0,0,0,0.25)", "data-modal": "", margin: "auto" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "18px 22px", borderBottom: "1px solid #E5E7EB" }}>
-                  <div style={{ fontWeight: 700, fontSize: 16, color: "#0F2044" }}>Attach from Documents</div>
+                  <div style={{ fontWeight: 700, fontSize: 16, color: "#0F2044" }}>{tr("Attach from Documents")}</div>
                   <button onClick={() => setDocPickerOpen(false)} style={{ background: "none", border: "none", fontSize: 22, cursor: "pointer", color: "#6B7280" }}>×</button>
                 </div>
                 <div style={{ padding: "12px 22px 22px" }}>
-                  {docList === null ? <div style={{ color: "#6B7280", padding: 20, textAlign: "center" }}>Loading...</div> :
-                    docList.length === 0 ? <div style={{ color: "#6B7280", padding: 20, textAlign: "center" }}>No documents on this deal yet.</div> :
+                  {docList === null ? <div style={{ color: "#6B7280", padding: 20, textAlign: "center" }}>{tr("Loading...")}</div> :
+                    docList.length === 0 ? <div style={{ color: "#6B7280", padding: 20, textAlign: "center" }}>{tr("No documents on this deal yet.")}</div> :
                     docList.map(doc => {
                       const on = !!gAttach.find(a => a.id === doc.id);
                       return (
@@ -1730,13 +1732,13 @@ function SMSPanel({ tx, onUpdate, currentUser, sendOnly = false }) {
                           <input type="checkbox" checked={on} onChange={() => toggleAttach(doc)} />
                           <div style={{ minWidth: 0 }}>
                             <div style={{ fontSize: 13, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{doc.name}</div>
-                            <div style={{ fontSize: 11, color: "#6B7280" }}>{doc.category || doc.folder || "General"}</div>
+                            <div style={{ fontSize: 11, color: "#6B7280" }}>{doc.category || doc.folder || tr("General")}</div>
                           </div>
                         </label>
                       );
                     })}
                   <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 8 }}>
-                    <button onClick={() => setDocPickerOpen(false)} style={{ padding: "8px 18px", borderRadius: 8, border: "none", background: "#0c4a6e", color: "#fff", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Done</button>
+                    <button onClick={() => setDocPickerOpen(false)} style={{ padding: "8px 18px", borderRadius: 8, border: "none", background: "#0c4a6e", color: "#fff", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>{tr("Done")}</button>
                   </div>
                 </div>
               </div>
@@ -1744,11 +1746,11 @@ function SMSPanel({ tx, onUpdate, currentUser, sendOnly = false }) {
           )}
 
       {surface === "send" && mode === "direct" && (partiesWithContact.length === 0 ? (
-        <div style={{ textAlign: "center", color: "#6B7280", padding: 40 }}>No parties with phone or email. Add contact info in the People tab.</div>
+        <div style={{ textAlign: "center", color: "#6B7280", padding: 40 }}>{tr("No parties with phone or email. Add contact info in the People tab.")}</div>
       ) : (
         <div data-msg-grid style={{ display: "grid", gridTemplateColumns: "260px 1fr", gap: 16, height: "min(900px, calc(100vh - 180px))", minHeight: 600 }}>
           <div style={{ background: "#fff", border: "1px solid #E5E7EB", borderRadius: 12, overflow: "hidden", display: "flex", flexDirection: "column" }}>
-            <div style={{ padding: "12px 14px", borderBottom: "1px solid #E5E7EB", fontSize: 12, fontWeight: 700, color: "#6B7280", textTransform: "uppercase", letterSpacing: "0.05em" }}>Conversations</div>
+            <div style={{ padding: "12px 14px", borderBottom: "1px solid #E5E7EB", fontSize: 12, fontWeight: 700, color: "#6B7280", textTransform: "uppercase", letterSpacing: "0.05em" }}>{tr("Conversations")}</div>
             <div style={{ flex: 1, overflowY: "auto" }}>
               {partiesWithContact.map(party => {
                 const thread = getThread(party);
@@ -1766,16 +1768,16 @@ function SMSPanel({ tx, onUpdate, currentUser, sendOnly = false }) {
                           <div style={{ fontWeight: 600, fontSize: 13, color: "#1A1A2E", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{party.name}</div>
                           {inbound > 0 && <div style={{ background: "#DC2626", color: "#fff", borderRadius: "50%", width: 18, height: 18, fontSize: 10, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center" }}>{inbound}</div>}
                         </div>
-                        <div style={{ fontSize: 11, fontWeight: 600, color: "#C9A84C" }}>{party.role}</div>
+                        <div style={{ fontSize: 11, fontWeight: 600, color: "#C9A84C" }}>{tr(party.role)}</div>
                         <div style={{ fontSize: 10, color: "#6B7280" }}>{party.phone ? "📱 " : ""}{party.email ? "📧" : ""}</div>
-                        <div style={{ fontSize: 12.5, color: "#4B5563", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginTop: 2 }}>{last ? `${last.direction === "outbound" ? "You: " : ""}${last.body}` : "No messages yet"}</div>
+                        <div style={{ fontSize: 12.5, color: "#4B5563", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginTop: 2 }}>{last ? `${last.direction === "outbound" ? "You: " : ""}${last.body}` : tr("No messages yet")}</div>
                       </div>
                     </div>
                   </div>
                 );
               })}
             </div>
-            <button onClick={() => setShowReminderSMS(true)} style={{ margin: 10, padding: "8px 12px", borderRadius: 8, border: "1px solid #E5E7EB", background: "#F9FAFB", color: "#0c4a6e", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>⏰ Send a deadline reminder</button>
+            <button onClick={() => setShowReminderSMS(true)} style={{ margin: 10, padding: "8px 12px", borderRadius: 8, border: "1px solid #E5E7EB", background: "#F9FAFB", color: "#0c4a6e", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>{tr("⏰ Send a deadline reminder")}</button>
           </div>
 
           {/* overflowY auto (not hidden): with the thread holding a real reading
@@ -1785,8 +1787,8 @@ function SMSPanel({ tx, onUpdate, currentUser, sendOnly = false }) {
             {!selectedParty ? (
               <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", color: "#6B7280", flexDirection: "column", gap: 8, padding: 20, textAlign: "center" }}>
                 <div style={{ fontSize: 40 }}>📧</div>
-                <div style={{ fontWeight: 700, color: "#0F2044" }}>← Pick a person to email or text them privately</div>
-                <div style={{ fontSize: 13 }}>Only they see it. To reach everyone at once, switch to "👥 To everyone" above.</div>
+                <div style={{ fontWeight: 700, color: "#0F2044" }}>{tr("← Pick a person to email or text them privately")}</div>
+                <div style={{ fontSize: 13 }}>{tr("Only they see it. To reach everyone at once, switch to \"👥 To everyone\" above.")}</div>
               </div>
             ) : (
               <>
@@ -1800,13 +1802,13 @@ function SMSPanel({ tx, onUpdate, currentUser, sendOnly = false }) {
                 {/* The conversation needs a REAL reading pane — at 140px a single
                     bubble showed as an unreadable sliver above the composer. */}
                 <div style={{ flex: 1, minHeight: 300, overflowY: "auto", padding: "16px 18px", display: "flex", flexDirection: "column", gap: 10 }}>
-                  {getThread(selectedParty).length === 0 && <div style={{ textAlign: "center", color: "#6B7280", fontSize: 13, marginTop: 40 }}>No messages yet. Choose 📧 Email or 📱 Text below, then type your message.</div>}
+                  {getThread(selectedParty).length === 0 && <div style={{ textAlign: "center", color: "#6B7280", fontSize: 13, marginTop: 40 }}>{tr("No messages yet. Choose 📧 Email or 📱 Text below, then type your message.")}</div>}
                   {getThread(selectedParty).map(m => {
                     const isOut = m.direction === "outbound";
                     return (
                       <div key={m.id} style={{ display: "flex", justifyContent: isOut ? "flex-end" : "flex-start" }}>
                         <div style={{ maxWidth: "82%" }}>
-                          <div style={{ fontSize: 12, color: "#4B5563", marginBottom: 4, textAlign: isOut ? "right" : "left", fontWeight: 600 }}>{isOut ? "You" : selectedParty.name} · {formatTime(m.timestamp)} {m.channel === "both" ? "📧 + 📱 Both" : m.channel === "email" ? "📧 Email" : "📱 Text"}</div>
+                          <div style={{ fontSize: 12, color: "#4B5563", marginBottom: 4, textAlign: isOut ? "right" : "left", fontWeight: 600 }}>{isOut ? tr("You") : selectedParty.name} · {formatTime(m.timestamp)} {m.channel === "both" ? tr("📧 + 📱 Both") : m.channel === "email" ? tr("📧 Email") : tr("📱 Text")}</div>
                           <div style={{ background: isOut ? "#0F2044" : "#F3F4F6", color: isOut ? "#fff" : "#1A1A2E", padding: "12px 16px", borderRadius: isOut ? "14px 14px 4px 14px" : "14px 14px 14px 4px", fontSize: 15.5, lineHeight: 1.6, whiteSpace: "pre-wrap" }}>
                             {m.channel === "email" && m.subject && <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 6, opacity: 0.92, borderBottom: isOut ? "1px solid rgba(255,255,255,0.25)" : "1px solid #D1D5DB", paddingBottom: 6 }}>{m.subject}</div>}
                             {m.body}
@@ -1823,7 +1825,7 @@ function SMSPanel({ tx, onUpdate, currentUser, sendOnly = false }) {
                   </div>
                 )}
                 <div style={{ padding: "8px 18px", borderTop: "1px solid #E5E7EB" }}>
-                  <div style={{ fontSize: 11, color: "#6B7280", marginBottom: 6, fontWeight: 600 }}>📝 EMAIL TEMPLATES</div>
+                  <div style={{ fontSize: 11, color: "#6B7280", marginBottom: 6, fontWeight: 600 }}>{tr("📝 EMAIL TEMPLATES")}</div>
                   <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                     {EMAIL_TEMPLATES.map((tmpl, i) => (
                       <button key={i} onClick={() => {
@@ -1840,15 +1842,15 @@ function SMSPanel({ tx, onUpdate, currentUser, sendOnly = false }) {
                           setSubject(tmpl.subject(tx.address || ""));
                         } catch(e) { console.error("Template error:", e); }
                       }} style={{ fontSize: 11, padding: "4px 12px", borderRadius: 14, border: "1px solid #C0392B", background: "#FEF2F2", color: "#C0392B", cursor: "pointer", fontFamily: "inherit", fontWeight: 600, whiteSpace: "nowrap" }}>
-                        {tmpl.label}
+                        {tr(tmpl.label)}
                       </button>
                     ))}
                   </div>
                 </div>
                 <div style={{ padding: "10px 18px 0", borderTop: "1px solid #E5E7EB" }}>
                   <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: gAttach.length ? 8 : 0 }}>
-                    <button onClick={openDocPicker} style={{ fontSize: 12, padding: "6px 12px", borderRadius: 8, border: "1px solid #0c4a6e", background: "#fff", color: "#0c4a6e", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>📎 Attach from Documents</button>
-                    <button onClick={() => fileInputRef.current?.click()} disabled={uploading} style={{ fontSize: 12, padding: "6px 12px", borderRadius: 8, border: "1px solid #0c4a6e", background: "#fff", color: "#0c4a6e", fontWeight: 600, cursor: "pointer", fontFamily: "inherit", opacity: uploading ? 0.5 : 1 }}>{uploading ? "Uploading..." : "💻 Upload"}</button>
+                    <button onClick={openDocPicker} style={{ fontSize: 12, padding: "6px 12px", borderRadius: 8, border: "1px solid #0c4a6e", background: "#fff", color: "#0c4a6e", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>{tr("📎 Attach from Documents")}</button>
+                    <button onClick={() => fileInputRef.current?.click()} disabled={uploading} style={{ fontSize: 12, padding: "6px 12px", borderRadius: 8, border: "1px solid #0c4a6e", background: "#fff", color: "#0c4a6e", fontWeight: 600, cursor: "pointer", fontFamily: "inherit", opacity: uploading ? 0.5 : 1 }}>{uploading ? tr("Uploading...") : tr("💻 Upload")}</button>
                   </div>
                   {gAttach.map(a => (
                     <div key={a.id} style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "#F0F4FF", border: "1px solid #C7D2FE", borderRadius: 6, padding: "4px 8px", fontSize: 12, color: "#0F2044", marginRight: 6, marginBottom: 6 }}>
@@ -1857,25 +1859,25 @@ function SMSPanel({ tx, onUpdate, currentUser, sendOnly = false }) {
                     </div>
                   ))}
                   {gAttach.length > 0 && channel !== "email" && (
-                    <div style={{ fontSize: 11, color: "#6B7280", marginBottom: 4 }}>Texts get a secure download link (files can't attach to a text).</div>
+                    <div style={{ fontSize: 11, color: "#6B7280", marginBottom: 4 }}>{tr("Texts get a secure download link (files can't attach to a text).")}</div>
                   )}
                 </div>
                 {/* Required channel choice — sits right above the box you type in + Send, so it can't be missed */}
                 <div style={{ padding: "12px 18px", borderTop: "1px solid #E5E7EB", background: channel ? "#fff" : "#FFF7ED" }}>
                   <ChannelPicker value={channel} onChange={setChannel} />
                   {selectedParty && !selectedParty.phone && (channel === "sms" || channel === "both") && (
-                    <div style={{ fontSize: 12, color: "#C0392B", marginTop: 6, fontWeight: 600 }}>⚠️ No phone on file for {selectedParty.name} — add one in the People tab to text them.</div>
+                    <div style={{ fontSize: 12, color: "#C0392B", marginTop: 6, fontWeight: 600 }}>{tr("⚠️ No phone on file for")} {selectedParty.name} {tr("— add one in the People tab to text them.")}</div>
                   )}
                 </div>
                 <div style={{ padding: "12px 18px", borderTop: "1px solid #E5E7EB", display: "flex", gap: 10, alignItems: "flex-end", flexWrap: "wrap" }}>
-                  <textarea value={message} onChange={e => setMessage(e.target.value)} onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey && channel === "sms") { e.preventDefault(); sendMessage(); } }} placeholder={!channel ? "Pick Email or Text above first…" : channel === "sms" ? "Type message... (Shift+Enter for new line)" : "Write your email..."} rows={channel === "sms" ? 3 : 8} style={{ flex: "1 1 100%", padding: "12px 16px", borderRadius: 10, border: "1px solid #E5E7EB", fontSize: 15, lineHeight: 1.55, fontFamily: "inherit", resize: "vertical", minHeight: channel === "sms" ? 70 : 200, boxSizing: "border-box" }} />
-                  <button onClick={sendMessage} disabled={!channel || !message.trim() || sending} title={!channel ? "Pick Email or Text first" : ""} style={{ height: 44, minWidth: 70, borderRadius: 8, border: "none", background: "#0c4a6e", color: "#fff", fontWeight: 600, fontSize: 14, cursor: "pointer", fontFamily: "inherit", opacity: (!channel || !message.trim() || sending) ? 0.5 : 1 }}>{sending ? "..." : "Send"}</button>
+                  <textarea value={message} onChange={e => setMessage(e.target.value)} onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey && channel === "sms") { e.preventDefault(); sendMessage(); } }} placeholder={!channel ? tr("Pick Email or Text above first…") : channel === "sms" ? tr("Type message... (Shift+Enter for new line)") : tr("Write your email...")} rows={channel === "sms" ? 3 : 8} style={{ flex: "1 1 100%", padding: "12px 16px", borderRadius: 10, border: "1px solid #E5E7EB", fontSize: 15, lineHeight: 1.55, fontFamily: "inherit", resize: "vertical", minHeight: channel === "sms" ? 70 : 200, boxSizing: "border-box" }} />
+                  <button onClick={sendMessage} disabled={!channel || !message.trim() || sending} title={!channel ? tr("Pick Email or Text first") : ""} style={{ height: 44, minWidth: 70, borderRadius: 8, border: "none", background: "#0c4a6e", color: "#fff", fontWeight: 600, fontSize: 14, cursor: "pointer", fontFamily: "inherit", opacity: (!channel || !message.trim() || sending) ? 0.5 : 1 }}>{sending ? "..." : tr("Send")}</button>
                 </div>
                 <div style={{ margin: "0 18px 12px", padding: "10px 14px", borderTop: "2px solid #C0392B", background: "#F9FAFB", borderRadius: "0 0 8px 8px", display: "flex", alignItems: "center", gap: 10 }}>
-                    <div style={{ fontSize: 10, color: "#666666", textTransform: "uppercase", fontWeight: 700, marginRight: 4 }}>Signature:</div>
+                    <div style={{ fontSize: 10, color: "#666666", textTransform: "uppercase", fontWeight: 700, marginRight: 4 }}>{tr("Signature:")}</div>
                     <div style={{ fontSize: 12, color: "#333", lineHeight: 1.5 }}>
-                      <span style={{ fontWeight: 700 }}>{agentFullName || "Your Name"}</span>
-                      {companyName ? <span style={{ color: "#C0392B" }}> · {companyName}</span> : <span style={{ color: "#C0392B" }}> · The Liz Team Realty</span>}
+                      <span style={{ fontWeight: 700 }}>{agentFullName || tr("Your Name")}</span>
+                      {companyName ? <span style={{ color: "#C0392B" }}> · {companyName}</span> : <span style={{ color: "#C0392B" }}> {tr("· The Liz Team Realty")}</span>}
                       {agentPhone && <span style={{ color: "#666" }}> · {agentPhone}</span>}
                     </div>
                   </div>
@@ -1889,26 +1891,26 @@ function SMSPanel({ tx, onUpdate, currentUser, sendOnly = false }) {
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 1000, display: "flex", alignItems: "flex-start", justifyContent: "center", padding: 16, overflowY: "auto" }}>
           <div style={{ background: "#fff", borderRadius: 14, width: 560, maxWidth: "100%", maxHeight: "90vh", overflow: "auto", boxShadow: "0 20px 60px rgba(0,0,0,0.25)", "data-modal": "", margin: "auto" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "20px 24px 16px", borderBottom: "1px solid #E5E7EB" }}>
-              <div style={{ fontWeight: 700, fontSize: 18, color: "#0F2044" }}>Send Deadline Reminder</div>
+              <div style={{ fontWeight: 700, fontSize: 18, color: "#0F2044" }}>{tr("Send Deadline Reminder")}</div>
               <button onClick={() => setShowReminderSMS(false)} style={{ background: "none", border: "none", fontSize: 22, cursor: "pointer", color: "#6B7280" }}>x</button>
             </div>
             <div style={{ padding: "20px 24px 24px" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-                <div style={{ fontWeight: 600, fontSize: 13 }}>Send via</div>
+                <div style={{ fontWeight: 600, fontSize: 13 }}>{tr("Send via")}</div>
                 <ChannelPicker value={reminderChannel} onChange={setReminderChannel} />
               </div>
               <div style={{ marginBottom: 14 }}>
-                <label style={{ fontSize: 12, fontWeight: 600, color: "#6B7280", display: "block", marginBottom: 4, textTransform: "uppercase" }}>Select Task</label>
+                <label style={{ fontSize: 12, fontWeight: 600, color: "#6B7280", display: "block", marginBottom: 4, textTransform: "uppercase" }}>{tr("Select Task")}</label>
                 <select value={reminderTask} onChange={e => setReminderTask(e.target.value)} style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: "1px solid #E5E7EB", fontSize: 14, fontFamily: "inherit" }}>
-                  <option value="">Select a pending task...</option>
+                  <option value="">{tr("Select a pending task...")}</option>
                   {tx.tasks.filter(t => t.status !== "Completed" && t.status !== "Waived").map(t => (
                     <option key={t.id} value={t.id}>{t.name} - {formatDate(t.dueDate)}</option>
                   ))}
                 </select>
               </div>
-              {reminderTask && (() => { const task = tx.tasks.find(t => t.id === reminderTask); return task ? <div style={{ background: "#FEF3C7", borderRadius: 8, padding: 12, marginBottom: 14, fontSize: 13, color: "#B45309" }}><strong>{task.name}</strong> - Due: {formatDate(task.dueDate)}</div> : null; })()}
+              {reminderTask && (() => { const task = tx.tasks.find(t => t.id === reminderTask); return task ? <div style={{ background: "#FEF3C7", borderRadius: 8, padding: 12, marginBottom: 14, fontSize: 13, color: "#B45309" }}><strong>{task.name}</strong> {tr("- Due:")} {formatDate(task.dueDate)}</div> : null; })()}
               <div style={{ marginBottom: 14 }}>
-                <div style={{ fontSize: 12, fontWeight: 600, color: "#6B7280", textTransform: "uppercase", marginBottom: 8 }}>Notify</div>
+                <div style={{ fontSize: 12, fontWeight: 600, color: "#6B7280", textTransform: "uppercase", marginBottom: 8 }}>{tr("Notify")}</div>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, "data-form-grid": "" }}>
                   {partiesWithContact.map(p => (
                     <label key={p.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", border: `1px solid ${reminderParties.includes(p.id) ? "#0F2044" : "#E5E7EB"}`, borderRadius: 8, cursor: "pointer" }}>
@@ -1919,12 +1921,12 @@ function SMSPanel({ tx, onUpdate, currentUser, sendOnly = false }) {
                 </div>
               </div>
               <div style={{ marginBottom: 14 }}>
-                <label style={{ fontSize: 12, fontWeight: 600, color: "#6B7280", display: "block", marginBottom: 4, textTransform: "uppercase" }}>Additional note (optional)</label>
+                <label style={{ fontSize: 12, fontWeight: 600, color: "#6B7280", display: "block", marginBottom: 4, textTransform: "uppercase" }}>{tr("Additional note (optional)")}</label>
                 <textarea value={reminderMsg} onChange={e => setReminderMsg(e.target.value)} rows={3} style={{ width: "100%", padding: "8px 12px", borderRadius: 8, border: "1px solid #E5E7EB", fontSize: 14, fontFamily: "inherit", resize: "vertical", boxSizing: "border-box" }} />
               </div>
               <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
-                <button onClick={() => setShowReminderSMS(false)} style={{ padding: "8px 18px", borderRadius: 8, border: "1px solid #E5E7EB", background: "transparent", cursor: "pointer", fontFamily: "inherit" }}>Cancel</button>
-                <button onClick={sendReminder} disabled={!reminderTask || !reminderParties.length || reminderSending} style={{ padding: "8px 18px", borderRadius: 8, border: "none", background: "#0c4a6e", color: "#fff", fontWeight: 600, cursor: "pointer", fontFamily: "inherit", opacity: reminderSending ? 0.5 : 1 }}>{reminderSending ? "Sending..." : `Send to ${reminderParties.length} parties`}</button>
+                <button onClick={() => setShowReminderSMS(false)} style={{ padding: "8px 18px", borderRadius: 8, border: "1px solid #E5E7EB", background: "transparent", cursor: "pointer", fontFamily: "inherit" }}>{tr("Cancel")}</button>
+                <button onClick={sendReminder} disabled={!reminderTask || !reminderParties.length || reminderSending} style={{ padding: "8px 18px", borderRadius: 8, border: "none", background: "#0c4a6e", color: "#fff", fontWeight: 600, cursor: "pointer", fontFamily: "inherit", opacity: reminderSending ? 0.5 : 1 }}>{reminderSending ? tr("Sending...") : `Send to ${reminderParties.length} parties`}</button>
               </div>
             </div>
           </div>
@@ -1970,7 +1972,7 @@ function PersonalTaskAddButton({ token, hideTrigger = false, forceOpen = false, 
   const selectedDays = dueDate ? Math.round((new Date(dueDate + "T00:00:00") - new Date(today + "T00:00:00")) / 86400000) : null;
 
   const save = async () => {
-    if (!title.trim()) { alert("Task title required"); return; }
+    if (!title.trim()) { alert(tr("Task title required")); return; }
     setSaving(true);
     try {
       const r = await fetch(API + "/personal-tasks", {
@@ -1978,10 +1980,10 @@ function PersonalTaskAddButton({ token, hideTrigger = false, forceOpen = false, 
         headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
         body: JSON.stringify({ title: title.trim(), notes: notes || null, due_date: dueDate || null, category: category || null })
       });
-      if (!r.ok) { const e = await r.json(); alert("Failed: " + (e.error || "unknown")); setSaving(false); return; }
+      if (!r.ok) { const e = await r.json(); alert(tr("Failed: ") + (e.error || tr("unknown"))); setSaving(false); return; }
       window.dispatchEvent(new Event("wintheday:refresh"));
       setTitle(""); setNotes(""); setDueDate(""); setCategory(""); closeAll();
-    } catch (e) { alert("Error: " + e.message); }
+    } catch (e) { alert(tr("Error: ") + e.message); }
     setSaving(false);
   };
 
@@ -1990,62 +1992,62 @@ function PersonalTaskAddButton({ token, hideTrigger = false, forceOpen = false, 
       {!hideTrigger && (
         <button onClick={() => setOpen(true)}
           style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "#fff", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}
-          title="Add a general task — not tied to any transaction">
-          📝 + Task
+          title={tr("Add a general task — not tied to any transaction")}>
+          {tr("📝 + Task")}
         </button>
       )}
       {isOpen && (
         <div onClick={() => !saving && closeAll()} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)", zIndex: 9999, display: "flex", alignItems: "flex-start", justifyContent: "center", padding: 16, overflowY: "auto" }}>
           <div onClick={e => e.stopPropagation()} style={{ background: "#fff", borderRadius: 14, padding: 22, maxWidth: 520, width: "100%", maxHeight: "90vh", overflowY: "auto", margin: "auto" }}>
-            <div style={{ fontSize: 20, fontWeight: 800, color: "#1a2332", marginBottom: 6 }}>📝 Add General Task</div>
+            <div style={{ fontSize: 20, fontWeight: 800, color: "#1a2332", marginBottom: 6 }}>{tr("📝 Add General Task")}</div>
             <div style={{ background: "#EFF6FF", border: "1px solid #BFDBFE", borderRadius: 8, padding: 10, marginBottom: 14, fontSize: 12, color: "#1E3A8A", lineHeight: 1.5 }}>
-              <strong>What this is:</strong> A general to-do that's NOT tied to any transaction (e.g., "Renew real estate license", "Order business cards"). Appears on your Win-the-Day dashboard.
+              <strong>{tr("What this is:")}</strong> {tr("A general to-do that's NOT tied to any transaction (e.g., \"Renew real estate license\", \"Order business cards\"). Appears on your Win-the-Day dashboard.")}
             </div>
 
             <div style={{ marginBottom: 12 }}>
-              <div style={{ fontSize: 12, fontWeight: 600, color: "#555", marginBottom: 4 }}>Category</div>
+              <div style={{ fontSize: 12, fontWeight: 600, color: "#555", marginBottom: 4 }}>{tr("Category")}</div>
               <select value={category} onChange={e => setCategory(e.target.value)} disabled={saving}
                 style={{ width: "100%", padding: 9, borderRadius: 6, border: "1px solid #d1d5db", fontSize: 14, fontFamily: "inherit", background: "#fff", boxSizing: "border-box" }}>
-                <option value="">— select category —</option>
-                {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                <option value="">{tr("— select category —")}</option>
+                {CATEGORIES.map(c => <option key={c} value={c}>{tr(c)}</option>)}
               </select>
             </div>
 
             <div style={{ marginBottom: 12 }}>
-              <div style={{ fontSize: 12, fontWeight: 600, color: "#555", marginBottom: 4 }}>Task <span style={{ color: "#C0392B" }}>*</span></div>
+              <div style={{ fontSize: 12, fontWeight: 600, color: "#555", marginBottom: 4 }}>{tr("Task")} <span style={{ color: "#C0392B" }}>*</span></div>
               <input value={title} onChange={e => setTitle(e.target.value)} disabled={saving}
-                placeholder="What do you need to do?"
+                placeholder={tr("What do you need to do?")}
                 style={{ width: "100%", padding: 9, borderRadius: 6, border: "1px solid #d1d5db", fontSize: 14, fontFamily: "inherit", boxSizing: "border-box" }} />
             </div>
 
             <div style={{ marginBottom: 12 }}>
-              <div style={{ fontSize: 12, fontWeight: 600, color: "#555", marginBottom: 6 }}>When?</div>
+              <div style={{ fontSize: 12, fontWeight: 600, color: "#555", marginBottom: 6 }}>{tr("When?")}</div>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 8 }}>
                 {PRESETS.map(p => {
                   const active = selectedDays === p.days;
                   return (
                     <button key={p.label} type="button" onClick={() => setPreset(p.days)} disabled={saving}
                       style={{ padding: "6px 10px", borderRadius: 16, border: active ? "1.5px solid #0c4a6e" : "1px solid #d1d5db", background: active ? "#0c4a6e" : "#fff", color: active ? "#fff" : "#374151", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
-                      {p.label}
+                      {tr(p.label)}
                     </button>
                   );
                 })}
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <span style={{ fontSize: 11, color: "#6b7280" }}>Or custom date:</span>
+                <span style={{ fontSize: 11, color: "#6b7280" }}>{tr("Or custom date:")}</span>
                 <input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} disabled={saving}
                   style={{ padding: 6, borderRadius: 6, border: "1px solid #d1d5db", fontSize: 13, fontFamily: "inherit" }} />
                 {dueDate && (
                   <button type="button" onClick={() => setDueDate("")} disabled={saving}
                     style={{ background: "transparent", border: "none", color: "#dc2626", cursor: "pointer", fontSize: 12, fontWeight: 600 }}>
-                    Clear
+                    {tr("Clear")}
                   </button>
                 )}
               </div>
             </div>
 
             <div style={{ marginBottom: 16 }}>
-              <div style={{ fontSize: 12, fontWeight: 600, color: "#555", marginBottom: 4 }}>Notes (optional)</div>
+              <div style={{ fontSize: 12, fontWeight: 600, color: "#555", marginBottom: 4 }}>{tr("Notes (optional)")}</div>
               <textarea value={notes} onChange={e => setNotes(e.target.value)} disabled={saving} rows={3}
                 style={{ width: "100%", padding: 9, borderRadius: 6, border: "1px solid #d1d5db", fontSize: 14, fontFamily: "inherit", resize: "vertical", boxSizing: "border-box" }} />
             </div>
@@ -2053,11 +2055,11 @@ function PersonalTaskAddButton({ token, hideTrigger = false, forceOpen = false, 
             <div style={{ display: "flex", gap: 10 }}>
               <button onClick={() => !saving && closeAll()} disabled={saving}
                 style={{ flex: 1, padding: 11, borderRadius: 8, border: "1px solid #d1d5db", background: "#fff", color: "#374151", fontWeight: 600, fontSize: 14, cursor: saving ? "not-allowed" : "pointer" }}>
-                Cancel
+                {tr("Cancel")}
               </button>
               <button onClick={save} disabled={saving || !title.trim()}
                 style={{ flex: 2, padding: 11, borderRadius: 8, border: "none", background: (saving || !title.trim()) ? "#9ca3af" : "#0c4a6e", color: "#fff", fontWeight: 700, fontSize: 14, cursor: (saving || !title.trim()) ? "not-allowed" : "pointer" }}>
-                {saving ? "Saving..." : "Add Task"}
+                {saving ? tr("Saving...") : tr("Add Task")}
               </button>
             </div>
           </div>
@@ -2116,7 +2118,7 @@ function WinTheDayButton({ token, onViewTransactions, coordinatorMode = false, o
           cursor: "pointer", fontSize: 12, fontWeight: 700,
           fontFamily: "inherit", display: "flex", alignItems: "center", gap: 6,
           transition: "all 0.2s" }}>
-        ⚡ Win The Day
+        {tr("⚡ Win The Day")}
         {taskCount > 0 && (
           <span style={{ background: "#fff",
             color: taskCount <= 2 ? "#B7770D" : "#C0392B",
@@ -2152,7 +2154,7 @@ function WinTheDayButton({ token, onViewTransactions, coordinatorMode = false, o
             <div style={{ display: "flex", justifyContent: "space-between",
               alignItems: "center", padding: "12px 20px 0" }}>
               <div style={{ fontWeight: 800, fontSize: 20, color: "#111" }}>
-                ⚡ Win The Day
+                {tr("⚡ Win The Day")}
               </div>
               <button onClick={() => { setShowModal(false); fetchCount(); }}
                 style={{ background: "none", border: "none", fontSize: 24,
@@ -2250,9 +2252,9 @@ function AssignVendorPanel({ tx, token, onClose, onAssigned }) {
       if (data.success) {
         setAssigned({ vendor, party: data.party });
       } else {
-        alert(data.error || "Error assigning vendor");
+        alert(data.error || tr("Error assigning vendor"));
       }
-    } catch (e) { alert("Error assigning vendor"); }
+    } catch (e) { alert(tr("Error assigning vendor")); }
     setAssigning(null);
   };
 
@@ -2263,7 +2265,7 @@ function AssignVendorPanel({ tx, token, onClose, onAssigned }) {
     <div style={{ background: "#F4F4F4", borderRadius: 14, padding: 16, marginBottom: 16,
       border: "2px solid #C0392B" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-        <div style={{ fontWeight: 700, fontSize: 15 }}>🏆 Assign Preferred Vendor</div>
+        <div style={{ fontWeight: 700, fontSize: 15 }}>{tr("🏆 Assign Preferred Vendor")}</div>
         <button onClick={onClose} style={{ background: "none", border: "none",
           fontSize: 20, cursor: "pointer", color: "#555" }}>✕</button>
       </div>
@@ -2271,16 +2273,16 @@ function AssignVendorPanel({ tx, token, onClose, onAssigned }) {
       {assigned ? (
         <div style={{ textAlign: "center", padding: 20 }}>
           <div style={{ fontSize: 34, marginBottom: 8 }}>✅</div>
-          <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 4 }}>{assigned.vendor.name} is on this deal</div>
-          <div style={{ fontSize: 13, color: "#555", marginBottom: 16 }}>Want to share their contact card with your client right now — by text, email, or both?</div>
+          <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 4 }}>{assigned.vendor.name} {tr("is on this deal")}</div>
+          <div style={{ fontSize: 13, color: "#555", marginBottom: 16 }}>{tr("Want to share their contact card with your client right now — by text, email, or both?")}</div>
           <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
             <button onClick={() => setShowShare(true)}
               style={{ background: "#0c4a6e", color: "#fff", border: "none", borderRadius: 10, padding: "11px 20px", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
-              📤 Share with client (text / email)
+              {tr("📤 Share with client (text / email)")}
             </button>
             <button onClick={() => onAssigned(assigned.party)}
               style={{ background: "#fff", color: "#555", border: "1.5px solid #D1D5DB", borderRadius: 10, padding: "11px 20px", fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
-              Done — no share
+              {tr("Done — no share")}
             </button>
           </div>
           {showShare && (
@@ -2291,12 +2293,12 @@ function AssignVendorPanel({ tx, token, onClose, onAssigned }) {
           )}
         </div>
       ) : loading ? (
-        <div style={{ textAlign: "center", padding: 20, color: "#555" }}>Loading vendors...</div>
+        <div style={{ textAlign: "center", padding: 20, color: "#555" }}>{tr("Loading vendors...")}</div>
       ) : vendors.length === 0 ? (
         <div style={{ textAlign: "center", padding: 20, color: "#555" }}>
           <div style={{ fontSize: 32, marginBottom: 8 }}>🏆</div>
-          <div style={{ fontWeight: 600, marginBottom: 4 }}>No vendors available</div>
-          <div style={{ fontSize: 13 }}>All your vendors are already on this transaction, or your library is empty.</div>
+          <div style={{ fontWeight: 600, marginBottom: 4 }}>{tr("No vendors available")}</div>
+          <div style={{ fontSize: 13 }}>{tr("All your vendors are already on this transaction, or your library is empty.")}</div>
         </div>
       ) : (
         <>
@@ -2310,7 +2312,7 @@ function AssignVendorPanel({ tx, token, onClose, onAssigned }) {
                   background: selectedCategory === cat ? "#0c4a6e" : "#fff",
                   color: selectedCategory === cat ? "#fff" : "#555",
                   fontWeight: selectedCategory === cat ? 700 : 500 }}>
-                {cat === "All" ? "All" : (CATEGORY_ICONS[cat] || "") + " " + cat}
+                {cat === "All" ? tr("All") : (CATEGORY_ICONS[cat] || "") + " " + cat}
               </button>
             ))}
           </div>
@@ -2323,13 +2325,13 @@ function AssignVendorPanel({ tx, token, onClose, onAssigned }) {
               <div style={{ flex: 1 }}>
                 <div style={{ fontWeight: 700, fontSize: 14 }}>{v.name}</div>
                 {v.company && <div style={{ fontSize: 12, color: "#C0392B", fontWeight: 600 }}>{v.company}</div>}
-                {v.description && <div style={{ fontSize: 12, color: "#555", marginTop: 2 }}>{v.description}</div>}
+                {v.description && <div style={{ fontSize: 12, color: "#555", marginTop: 2 }}>{tr(v.description)}</div>}
               </div>
               <button onClick={() => handleAssign(v)} disabled={assigning === v.id}
                 style={{ padding: "8px 14px", borderRadius: 8, border: "none",
                   background: "#0c4a6e", color: "#fff", fontWeight: 700,
                   fontSize: 13, cursor: "pointer", flexShrink: 0 }}>
-                {assigning === v.id ? "..." : "Assign"}
+                {assigning === v.id ? "..." : tr("Assign")}
               </button>
             </div>
           ))}
@@ -2373,7 +2375,7 @@ function BrokerFilePanel({ txId, token }) {
     if (!file || !docType) return;
     e.target.value = "";
 
-    if (file.size > 50 * 1024 * 1024) { alert("File too large (50MB max)"); return; }
+    if (file.size > 50 * 1024 * 1024) { alert(tr("File too large (50MB max)")); return; }
 
     setUploadingType(docType);
     try {
@@ -2396,13 +2398,13 @@ function BrokerFilePanel({ txId, token }) {
       });
       const upData = await upRes.json();
       if (!upRes.ok || !upData.success) {
-        alert("Upload failed: " + (upData.error || "please try again"));
+        alert(tr("Upload failed: ") + (upData.error || tr("please try again")));
         setUploadingType(null);
         return;
       }
       await fetchData();
     } catch (err) {
-      alert("Upload error: " + err.message);
+      alert(tr("Upload error: ") + err.message);
     }
     setUploadingType(null);
     pendingTypeRef.current = null;
@@ -2421,14 +2423,14 @@ function BrokerFilePanel({ txId, token }) {
       <input ref={fileInputRef} type="file" style={{ display: "none" }} onChange={handleFileSelected} />
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
         <div style={{ fontWeight: 700, fontSize: 14, color: complete ? "#065F46" : "#92400E" }}>
-          {complete ? "✅ Broker File Complete" : "📂 Broker File Compliance"}
+          {complete ? tr("✅ Broker File Complete") : tr("📂 Broker File Compliance")}
         </div>
         <div style={{ fontWeight: 700, fontSize: 14, color: complete ? "#065F46" : "#92400E" }}>
-          {data.uploaded}/{data.total} documents
+          {data.uploaded}/{data.total} {tr("documents")}
         </div>
       </div>
       <div style={{ fontSize: 12, color: "#78350F", marginBottom: 12, lineHeight: 1.5 }}>
-        New Construction broker file. Florida law requires these documents to be retained for 5 years (Fla. Stat. § 475.5015). Upload each as you obtain it.
+        {tr("New Construction broker file. Florida law requires these documents to be retained for 5 years (Fla. Stat. § 475.5015). Upload each as you obtain it.")}
       </div>
 
       {data.items.map(item => (
@@ -2449,7 +2451,7 @@ function BrokerFilePanel({ txId, token }) {
               {item.documentType.replace(/_/g, " ")}
             </div>
             <div style={{ fontSize: 11, color: "#555", lineHeight: 1.4 }}>
-              {item.description}
+              {tr(item.description)}
             </div>
             {item.uploaded && item.uploadedDoc && (
               <div style={{ fontSize: 10, color: "#1E8449", marginTop: 4 }}>
@@ -2466,7 +2468,7 @@ function BrokerFilePanel({ txId, token }) {
                 borderRadius: 8, padding: "8px 14px", fontWeight: 700,
                 fontSize: 12, cursor: "pointer", whiteSpace: "nowrap"
               }}>
-              {uploadingType === item.documentType ? "Uploading..." : "📎 Upload"}
+              {uploadingType === item.documentType ? tr("Uploading...") : tr("📎 Upload")}
             </button>
           )}
         </div>
@@ -2498,8 +2500,8 @@ function ScheduleClosingModal({ tx, token, milestone, onClose, onDone }) {
     if (!date) return "[closing date]";
     try {
       const d = new Date(date + "T" + (time || "10:00"));
-      return d.toLocaleString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" }) +
-        " at " + d.toLocaleString("en-US", { hour: "numeric", minute: "2-digit" });
+      return d.toLocaleString(uiLocale(), { weekday: "long", month: "long", day: "numeric", year: "numeric" }) +
+        " at " + d.toLocaleString(uiLocale(), { hour: "numeric", minute: "2-digit" });
     } catch { return date + " " + (time || ""); }
   };
   const buildBody = () => {
@@ -2553,52 +2555,52 @@ function ScheduleClosingModal({ tx, token, milestone, onClose, onDone }) {
       style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)", zIndex: 9999, display: "flex", alignItems: "flex-start", justifyContent: "center", padding: 16, overflowY: "auto" }}>
       <div onClick={e => e.stopPropagation()}
         style={{ background: "#fff", borderRadius: 14, padding: 22, maxWidth: 600, width: "100%", maxHeight: "92vh", overflowY: "auto", boxShadow: "0 20px 60px rgba(0,0,0,0.3)", margin: "auto" }}>
-        <div style={{ fontSize: 20, fontWeight: 800, color: "#1E3A8A", marginBottom: 4 }}>🗓️ Schedule the Closing</div>
+        <div style={{ fontSize: 20, fontWeight: 800, color: "#1E3A8A", marginBottom: 4 }}>{tr("🗓️ Schedule the Closing")}</div>
         <div style={{ fontSize: 13, color: "#1a2332", fontWeight: 600, marginBottom: 14 }}>{tx.address}</div>
 
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 12 }}>
           <div style={{ flex: "1 1 150px" }}>
-            <label style={lbl}>Closing date</label>
+            <label style={lbl}>{tr("Closing date")}</label>
             <input type="date" value={date} onChange={e => setDate(e.target.value)} style={fld} />
           </div>
           <div style={{ flex: "1 1 120px" }}>
-            <label style={lbl}>Time</label>
+            <label style={lbl}>{tr("Time")}</label>
             <input type="time" value={time} onChange={e => setTime(e.target.value)} style={fld} />
           </div>
         </div>
         <div style={{ marginBottom: 12 }}>
-          <label style={lbl}>Location (title company / attorney address)</label>
+          <label style={lbl}>{tr("Location (title company / attorney address)")}</label>
           <input type="text" value={location} onChange={e => setLocation(e.target.value)}
-            placeholder="e.g. ABC Title, 123 Main St, City, FL" style={fld} />
+            placeholder={tr("e.g. ABC Title, 123 Main St, City, FL")} style={fld} />
         </div>
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 14 }}>
           <div style={{ flex: "1 1 150px" }}>
-            <label style={lbl}>Amount due at closing</label>
-            <input type="text" value={amount} onChange={e => setAmount(e.target.value)} placeholder="e.g. $14,250.00 (cash to close)" style={fld} />
+            <label style={lbl}>{tr("Amount due at closing")}</label>
+            <input type="text" value={amount} onChange={e => setAmount(e.target.value)} placeholder={tr("e.g. $14,250.00 (cash to close)")} style={fld} />
           </div>
           <div style={{ flex: "1 1 150px" }}>
-            <label style={lbl}>What to bring</label>
+            <label style={lbl}>{tr("What to bring")}</label>
             <input type="text" value={bring} onChange={e => setBring(e.target.value)} style={fld} />
           </div>
         </div>
 
         <div style={{ background: "#EFF6FF", border: "1px solid #BFDBFE", borderRadius: 8, padding: "10px 12px", marginBottom: 12, fontSize: 12, color: "#1E40AF", lineHeight: 1.5 }}>
-          ✉️ Review &amp; edit the email below before sending. It goes to <strong>{sideLabel}</strong> only — never the other side. A day-before reminder will go out automatically.
+          {tr("✉️ Review & edit the email below before sending. It goes to")} <strong>{sideLabel}</strong> {tr("only — never the other side. A day-before reminder will go out automatically.")}
         </div>
 
         <div style={{ marginBottom: 10 }}>
-          <label style={lbl}>Email subject</label>
+          <label style={lbl}>{tr("Email subject")}</label>
           <input type="text" value={subject} onChange={e => { setSubject(e.target.value); setEdited(true); }} style={fld} />
         </div>
         <div style={{ marginBottom: 6 }}>
-          <label style={lbl}>Email message (editable)</label>
+          <label style={lbl}>{tr("Email message (editable)")}</label>
           <textarea value={body} onChange={e => { setBody(e.target.value); setEdited(true); }} rows={11}
             style={{ ...fld, resize: "vertical", lineHeight: 1.5, fontFamily: "inherit" }} />
         </div>
         {edited && (
           <button onClick={() => { setEdited(false); setSubject(`Your closing is scheduled — ${tx.address}`); setBody(buildBody()); }}
             style={{ background: "none", border: "none", color: "#1E3A8A", fontSize: 12, fontWeight: 600, cursor: "pointer", padding: 0, marginBottom: 8 }}>
-            ↻ Reset email to the fields above
+            {tr("↻ Reset email to the fields above")}
           </button>
         )}
 
@@ -2607,15 +2609,15 @@ function ScheduleClosingModal({ tx, token, milestone, onClose, onDone }) {
         <div style={{ display: "flex", gap: 10, marginTop: 8, flexWrap: "wrap" }}>
           <button onClick={send} disabled={sending}
             style={{ flex: "2 1 220px", padding: "12px 0", borderRadius: 9, border: "none", background: "#0c4a6e", color: "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer" }}>
-            {sending ? "Sending…" : `📨 Send to ${sideLabel} & Mark Complete`}
+            {sending ? tr("Sending…") : `📨 Send to ${sideLabel} & Mark Complete`}
           </button>
           <button onClick={saveOnly} disabled={sending}
             style={{ flex: "1 1 150px", padding: "12px 0", borderRadius: 9, border: "1.5px solid #0c4a6e", background: "#fff", color: "#0c4a6e", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
-            Save without emailing
+            {tr("Save without emailing")}
           </button>
           <button onClick={onClose} disabled={sending}
             style={{ flex: "1 1 90px", padding: "12px 0", borderRadius: 9, border: "1.5px solid #D1D5DB", background: "#fff", color: "#374151", fontWeight: 600, fontSize: 13, cursor: "pointer" }}>
-            Cancel
+            {tr("Cancel")}
           </button>
         </div>
       </div>
@@ -2627,6 +2629,7 @@ function ScheduleClosingModal({ tx, token, milestone, onClose, onDone }) {
 // MILESTONES TAB
 // ═══════════════════════════════════════════════════════════════
 function MilestonesTab({ tx, token, onSummaryChange, coordinatorMode = false }) {
+  useLang(); // redraw when the Spanish for step names arrives
   const [milestones, setMilestones] = useState([]);
   const [compliance, setCompliance] = useState({});
   const [availableDocs, setAvailableDocs] = useState([]);
@@ -2644,6 +2647,8 @@ function MilestonesTab({ tx, token, onSummaryChange, coordinatorMode = false }) 
         const map = {};
         data.compliance.forEach(c => { map[c.milestoneId] = c; });
         setCompliance(map);
+        // Spanish screens: the required-document notes are written by the server.
+        requestSpanish(data.compliance.flatMap(c => [c.requiredDocType, c.description, c.legalConsequence]));
         setAvailableDocs(data.availableDocs || []);
       }
     } catch (e) {}
@@ -2664,7 +2669,7 @@ function MilestonesTab({ tx, token, onSummaryChange, coordinatorMode = false }) 
       if (!res.ok || !data.success) throw new Error(data.error || "Could not attach document");
       await fetchCompliance();
     } catch (err) {
-      alert("Could not attach document: " + err.message);
+      alert(tr("Could not attach document: ") + err.message);
     }
     setUploadingFor(null);
   };
@@ -2682,7 +2687,7 @@ function MilestonesTab({ tx, token, onSummaryChange, coordinatorMode = false }) 
     if (!file || !milestoneId) return;
     e.target.value = "";
 
-    if (file.size > 50 * 1024 * 1024) { alert("File too large (50MB max)"); return; }
+    if (file.size > 50 * 1024 * 1024) { alert(tr("File too large (50MB max)")); return; }
 
     setUploadingFor(milestoneId);
     // If milestone is already completed, retroactive upload — don't try to re-complete
@@ -2711,7 +2716,7 @@ function MilestonesTab({ tx, token, onSummaryChange, coordinatorMode = false }) 
       const upData = await upRes.json();
       if (!upRes.ok || !upData.success) throw new Error(upData.error || "Upload failed");
 
-      alert(isRetroactive ? "✅ Document uploaded to existing milestone." : "✅ Document uploaded and milestone marked complete!");
+      alert(isRetroactive ? tr("✅ Document uploaded to existing milestone.") : tr("✅ Document uploaded and milestone marked complete!"));
       if (!isRetroactive) {
         setMilestones(prev => prev.map(m =>
           m.id === milestoneId ? { ...m, status: "Completed", completed_at: new Date().toISOString() } : m
@@ -2719,7 +2724,7 @@ function MilestonesTab({ tx, token, onSummaryChange, coordinatorMode = false }) 
       }
       fetchCompliance();
     } catch (err) {
-      alert("Upload failed: " + err.message);
+      alert(tr("Upload failed: ") + err.message);
     }
     setUploadingFor(null);
     pendingMilestoneRef.current = null;
@@ -2764,14 +2769,18 @@ function MilestonesTab({ tx, token, onSummaryChange, coordinatorMode = false }) 
         cache: "no-store"
       });
       const data = await res.json();
-      if (data.success) setMilestones(data.milestones || []);
+      if (data.success) {
+        setMilestones(data.milestones || []);
+        // Spanish screens: step names come from the deal's template (English).
+        requestSpanish((data.milestones || []).flatMap(m => [m.name, m.category, m.completed_by_name, milestoneHelpText(m.name)]));
+      }
     } catch (e) { console.error(e); }
     setLoading(false);
   };
 
   const handleGenerate = async () => {
     if (!tx.openDate && !tx.executedDate) {
-      alert("Please add a contract date to this transaction first.");
+      alert(tr("Please add a contract date to this transaction first."));
       return;
     }
     setGenerating(true);
@@ -2782,13 +2791,13 @@ function MilestonesTab({ tx, token, onSummaryChange, coordinatorMode = false }) 
       });
       const data = await res.json();
       if (data.success) { await fetchMilestones(); }
-    } catch (e) { alert("Error generating milestones"); }
+    } catch (e) { alert(tr("Error generating milestones")); }
     setGenerating(false);
   };
 
   const [resetting, setResetting] = useState(false);
   const handleReset = async () => {
-    if (!(await askConfirm("Rebuild this deal's checklist?\n\nThis clears the current items and rebuilds the full start-to-finish timeline for this deal's current stage. Your uploaded documents and parties are NOT touched.", { okLabel: "Rebuild checklist", danger: true }))) return;
+    if (!(await askConfirm(tr("Rebuild this deal's checklist?\n\nThis clears the current items and rebuilds the full start-to-finish timeline for this deal's current stage. Your uploaded documents and parties are NOT touched."), { okLabel: tr("Rebuild checklist"), danger: true }))) return;
     setResetting(true);
     try {
       const res = await fetch(API + "/milestones/reset/" + tx.id, {
@@ -2797,8 +2806,8 @@ function MilestonesTab({ tx, token, onSummaryChange, coordinatorMode = false }) 
       });
       const data = await res.json();
       if (data.success) { await fetchMilestones(); await fetchCompliance(); }
-      else alert("Could not rebuild: " + (data.error || "unknown error"));
-    } catch (e) { alert("Error rebuilding checklist"); }
+      else alert(tr("Could not rebuild: ") + (data.error || tr("unknown error")));
+    } catch (e) { alert(tr("Error rebuilding checklist")); }
     setResetting(false);
   };
 
@@ -2818,14 +2827,14 @@ function MilestonesTab({ tx, token, onSummaryChange, coordinatorMode = false }) 
       await fetchMilestones();
       const lines = (d.milestones || []).slice(0, 30).map(m => `• ${m.name}: ${m.due || "no date yet"}`).join("\n");
       alert(
-        `Dates recalculated from the contract date.\n\n` +
+        tr("Dates recalculated from the contract date.\n\n") +
         `Contract (executed) date: ${d.executedDate || "NOT SET"}\n` +
         `Closing date: ${d.closingDate || "not set"}\n` +
         `Status: ${d.status}\n` +
         `Updated ${d.changed} date${d.changed === 1 ? "" : "s"}.\n\n` +
         `Timeline now:\n${lines}`
       );
-    } catch (e) { alert("Could not recalculate: " + e.message); }
+    } catch (e) { alert(tr("Could not recalculate: ") + e.message); }
     setRecalcing(false);
   };
 
@@ -2839,13 +2848,13 @@ function MilestonesTab({ tx, token, onSummaryChange, coordinatorMode = false }) 
       setMilestones(prev => prev.map(m =>
         m.id === milestoneId ? { ...m, status: "Completed", completed_at: new Date().toISOString() } : m
       ));
-    } catch (e) { alert("Error completing milestone"); }
+    } catch (e) { alert(tr("Error completing milestone")); }
     setCompleting(null);
   };
 
   // Undo an accidental completion — reverts the milestone back to Pending.
   const handleReopen = async (milestoneId) => {
-    if (!(await askConfirm("Reopen this step? It goes back to pending and reminders resume.", { okLabel: "Reopen step" }))) return;
+    if (!(await askConfirm(tr("Reopen this step? It goes back to pending and reminders resume."), { okLabel: tr("Reopen step") }))) return;
     setCompleting(milestoneId);
     try {
       const r = await fetch(mBase + milestoneId + "/reopen", {
@@ -2857,14 +2866,14 @@ function MilestonesTab({ tx, token, onSummaryChange, coordinatorMode = false }) 
       setMilestones(prev => prev.map(m =>
         m.id === milestoneId ? { ...m, status: "Pending", completed_at: null, completed_by_name: null } : m
       ));
-    } catch (e) { alert("Error reopening milestone"); }
+    } catch (e) { alert(tr("Error reopening milestone")); }
     setCompleting(null);
   };
 
   // Scheduling-type milestone (e.g. "Inspection Scheduled"): record the date the
   // buyer's agent gave us and mark it done — no document needed.
   const handleSchedule = async (milestoneId, date, time, access) => {
-    if (!date) { alert("Pick the scheduled date first."); return; }
+    if (!date) { alert(tr("Pick the scheduled date first.")); return; }
     setCompleting(milestoneId);
     try {
       const r = await fetch(mBase + milestoneId + "/schedule", {
@@ -2877,7 +2886,7 @@ function MilestonesTab({ tx, token, onSummaryChange, coordinatorMode = false }) 
       setMilestones(prev => prev.map(m =>
         m.id === milestoneId ? { ...m, status: "Completed", completed_at: new Date().toISOString(), scheduled_date: date, scheduled_time: time || null, notes: d.milestone?.notes ?? m.notes } : m
       ));
-    } catch (e) { alert("Error saving scheduled date: " + e.message); }
+    } catch (e) { alert(tr("Error saving scheduled date: ") + e.message); }
     setCompleting(null);
   };
 
@@ -2906,9 +2915,9 @@ function MilestonesTab({ tx, token, onSummaryChange, coordinatorMode = false }) 
 
   const handleWaive = async () => {
     if (!waiveModalFor) return;
-    if (!waiveReason) { alert("Select a reason for waiving."); return; }
+    if (!waiveReason) { alert(tr("Select a reason for waiving.")); return; }
     
-    if (!waiveConfirm) { alert("Please confirm you take responsibility for this waiver."); return; }
+    if (!waiveConfirm) { alert(tr("Please confirm you take responsibility for this waiver.")); return; }
     setWaiving(true);
     try {
       const r = await fetch(API + "/milestones/" + waiveModalFor.id + "/waive", {
@@ -2917,14 +2926,14 @@ function MilestonesTab({ tx, token, onSummaryChange, coordinatorMode = false }) 
         body: JSON.stringify({ reason: waiveReason, justification: waiveJustification.trim() })
       });
       const d = await r.json();
-      if (!r.ok) { alert("Could not waive: " + (d.error || "unknown error")); setWaiving(false); return; }
+      if (!r.ok) { alert(tr("Could not waive: ") + (d.error || tr("unknown error"))); setWaiving(false); return; }
       await fetchMilestones();
       await fetchCompliance();
       setWaiveModalFor(null);
       setWaiveReason("");
       setWaiveJustification("");
       setWaiveConfirm(false);
-    } catch (e) { alert("Error waiving milestone: " + e.message); }
+    } catch (e) { alert(tr("Error waiving milestone: ") + e.message); }
     setWaiving(false);
   };
 
@@ -3031,7 +3040,7 @@ function MilestonesTab({ tx, token, onSummaryChange, coordinatorMode = false }) 
   const progress = total > 0 ? Math.round(completed / total * 100) : 0;
 
   if (loading) return (
-    <div style={{ padding: 32, textAlign: "center", color: "#555" }}>Loading milestones...</div>
+    <div style={{ padding: 32, textAlign: "center", color: "#555" }}>{tr("Loading milestones...")}</div>
   );
 
   if (milestones.length === 0) return (
@@ -3040,22 +3049,21 @@ function MilestonesTab({ tx, token, onSummaryChange, coordinatorMode = false }) 
         boxShadow: "0 1px 4px rgba(0,0,0,0.08)" }}>
         <div style={{ fontSize: 48, marginBottom: 16 }}>⚡</div>
         <div style={{ fontWeight: 700, fontSize: 18, color: "#111", marginBottom: 8 }}>
-          Build This Deal's Timeline
+          {tr("Build This Deal's Timeline")}
         </div>
         <div style={{ color: "#555", fontSize: 14, lineHeight: 1.6, marginBottom: 24 }}>
-          Create the full start-to-finish checklist for this deal — built automatically for its
-          current stage and contract details. Due dates fill in from the contract date when one is set.
+          {tr("Create the full start-to-finish checklist for this deal — built automatically for its current stage and contract details. Due dates fill in from the contract date when one is set.")}
         </div>
         {(!tx.openDate && !tx.executedDate) && (
           <div style={{ background: "#FEF9E7", border: "1px solid #F9CA24", borderRadius: 10,
             padding: 12, marginBottom: 20, fontSize: 13, color: "#8A5A00" }}>
-            Tip: add a contract date so deadlines and reminders can be calculated. (You can build the list now either way.)
+            {tr("Tip: add a contract date so deadlines and reminders can be calculated. (You can build the list now either way.)")}
           </div>
         )}
         <button onClick={handleReset} disabled={resetting}
           style={{ background: "#0c4a6e", color: "#fff", border: "none", borderRadius: 12,
             padding: "14px 32px", fontWeight: 700, fontSize: 16, cursor: "pointer" }}>
-          {resetting ? "Building…" : "🔄 Reset & Rebuild Checklist"}
+          {resetting ? tr("Building…") : tr("🔄 Reset & Rebuild Checklist")}
         </button>
       </div>
     </div>
@@ -3082,22 +3090,21 @@ function MilestonesTab({ tx, token, onSummaryChange, coordinatorMode = false }) 
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
               <div style={{ fontWeight: 700, fontSize: 14, color:
                 completedWithoutDoc > 0 ? "#991B1B" : (pct === 100 ? "#065F46" : "#92400E") }}>
-                {pct === 100 ? "✅ Fully Compliant" : "📋 Compliance Status"}
+                {pct === 100 ? tr("✅ Fully Compliant") : tr("📋 Compliance Status")}
               </div>
               <div style={{ fontWeight: 700, fontSize: 14, color:
                 completedWithoutDoc > 0 ? "#991B1B" : (pct === 100 ? "#065F46" : "#92400E") }}>
-                {uploaded}/{totalRequired} documents
+                {uploaded}/{totalRequired} {tr("documents")}
               </div>
             </div>
             {completedWithoutDoc > 0 && (
               <div style={{ fontSize: 12, color: "#991B1B", marginTop: 4, lineHeight: 1.5 }}>
-                ⚠️ <strong>{completedWithoutDoc}</strong> milestone{completedWithoutDoc > 1 ? "s" : ""} marked complete but missing required document{completedWithoutDoc > 1 ? "s" : ""}.
-                Scroll down to upload the missing files.
+                ⚠️ <strong>{completedWithoutDoc}</strong> {tr("milestone")}{completedWithoutDoc > 1 ? "s" : ""} {tr("marked complete but missing required document")}{completedWithoutDoc > 1 ? "s" : ""}{tr(". Scroll down to upload the missing files.")}
               </div>
             )}
             {completedWithoutDoc === 0 && pct < 100 && (
               <div style={{ fontSize: 12, color: "#78350F", marginTop: 4, lineHeight: 1.5 }}>
-                Upload required documents as milestones complete to keep this transaction compliant.
+                {tr("Upload required documents as milestones complete to keep this transaction compliant.")}
               </div>
             )}
           </div>
@@ -3106,15 +3113,15 @@ function MilestonesTab({ tx, token, onSummaryChange, coordinatorMode = false }) 
 
       {!tx.openDate && !tx.executedDate && milestones.some(m => !m.due_date && m.phase !== "active") && (
         <div style={{ background: "#FEF2F2", border: "1px solid #FCA5A5", borderRadius: 12, padding: 14, marginBottom: 12, fontSize: 13, color: "#991B1B" }}>
-          ⚠️ <b>No contract date set.</b> Add the contract/effective date to this deal so deadlines can be calculated and reminders can go out. Items below have no due date until then.
+          ⚠️ <b>{tr("No contract date set.")}</b> {tr("Add the contract/effective date to this deal so deadlines can be calculated and reminders can go out. Items below have no due date until then.")}
         </div>
       )}
 
       <div style={{ background: "#fff", borderRadius: 14, padding: 16, marginBottom: 16,
         boxShadow: "0 1px 4px rgba(0,0,0,0.08)" }}>
         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
-          <div style={{ fontWeight: 700, fontSize: 14 }}>Progress</div>
-          <div style={{ fontWeight: 700, fontSize: 14, color: "#C0392B" }}>{completed}/{total} done</div>
+          <div style={{ fontWeight: 700, fontSize: 14 }}>{tr("Progress")}</div>
+          <div style={{ fontWeight: 700, fontSize: 14, color: "#C0392B" }}>{completed}/{total} {tr("done")}</div>
         </div>
         <div style={{ background: "#F4F4F4", borderRadius: 20, height: 10, overflow: "hidden" }}>
           <div style={{ width: progress + "%", height: "100%",
@@ -3127,15 +3134,15 @@ function MilestonesTab({ tx, token, onSummaryChange, coordinatorMode = false }) 
           <button onClick={handleRecalc} disabled={recalcing}
             style={{ fontSize: 11, fontWeight: 600, color: "#0c4a6e", background: "#E0F2FE",
               border: "1px solid #7DD3FC", borderRadius: 8, padding: "5px 12px", cursor: "pointer" }}
-            title="Recalculate every milestone due date from the contract (executed) date, and show the dates. Keeps your progress — only dates change.">
-            {recalcing ? "Recalculating…" : "🔧 Recalculate Dates"}
+            title={tr("Recalculate every milestone due date from the contract (executed) date, and show the dates. Keeps your progress — only dates change.")}>
+            {recalcing ? tr("Recalculating…") : tr("🔧 Recalculate Dates")}
           </button>
           {!coordinatorMode && (
           <button onClick={handleReset} disabled={resetting}
             style={{ fontSize: 11, fontWeight: 600, color: "#555", background: "#F9FAFB",
               border: "1px solid #E5E7EB", borderRadius: 8, padding: "5px 12px", cursor: "pointer" }}
-            title="Clear and rebuild this deal's full timeline from the latest template. Documents and parties are not touched.">
-            {resetting ? "Rebuilding…" : "🔄 Reset & Rebuild Checklist"}
+            title={tr("Clear and rebuild this deal's full timeline from the latest template. Documents and parties are not touched.")}>
+            {resetting ? tr("Rebuilding…") : tr("🔄 Reset & Rebuild Checklist")}
           </button>
           )}
         </div>
@@ -3150,7 +3157,7 @@ function MilestonesTab({ tx, token, onSummaryChange, coordinatorMode = false }) 
         return (
         <div key={phaseKey} style={{ marginBottom: 24 }}>
           <div style={{ fontSize: 13, fontWeight: 800, color: "#1a2332", letterSpacing: 0.3,
-            marginBottom: 10, paddingBottom: 6, borderBottom: "2px solid #EEE" }}>{phaseLabel}</div>
+            marginBottom: 10, paddingBottom: 6, borderBottom: "2px solid #EEE" }}>{tr(phaseLabel)}</div>
           {visibleItems.map(m => {
             const ms = getMilestoneStatus(m);
             const cfg = statusConfig[ms];
@@ -3175,44 +3182,44 @@ function MilestonesTab({ tx, token, onSummaryChange, coordinatorMode = false }) 
                   <div style={{ flex: 1 }}>
                     <div style={{ fontWeight: 700, fontSize: 14, color: "#111",
                       textDecoration: isClosed ? "line-through" : "none", marginBottom: 4 }}>
-                      {m.name}
+                      {tr(m.name)}
                       {m.is_hard_block && !isClosed && tx.constructionType !== "New Construction" && (
                         <span style={{ marginLeft: 8, fontSize: 10, fontWeight: 700,
                           color: "#0c4a6e", background: "#E0F2FE",
-                          padding: "2px 7px", borderRadius: 20 }}>REQUIRED</span>
+                          padding: "2px 7px", borderRadius: 20 }}>{tr("REQUIRED")}</span>
                       )}
                     </div>
                     <div style={{ fontSize: 11, color: "#666666", marginBottom: 2 }}>
-                      {m.category}{m.owner_role && OWNER_LABELS[m.owner_role] ? " · 👤 " + OWNER_LABELS[m.owner_role] : ""}
+                      {tr(m.category)}{m.owner_role && OWNER_LABELS[m.owner_role] ? " · 👤 " + tr(OWNER_LABELS[m.owner_role]) : ""}
                     </div>
                     {!isClosed && milestoneHelpText(m.name) && (
                       <div style={{ background: "#EFF6FF", border: "1px solid #BFDBFE", borderRadius: 6, padding: "6px 9px", marginTop: 4, marginBottom: 2, fontSize: 11, lineHeight: 1.5, color: "#1E40AF" }}>
-                        💡 {milestoneHelpText(m.name)}
+                        💡 {tr(milestoneHelpText(m.name))}
                       </div>
                     )}
                     {m.due_date && (
                       <div style={{ fontSize: 12, color: cfg.color, fontWeight: 600 }}>
-                        {isWaived ? "Waived" : isCompleted ? "Completed" :
-                         days === 0 ? "Due today" :
-                         days < 0 ? Math.abs(days) + "d overdue" :
-                         "Due in " + days + "d"} · {m.due_date}
+                        {isWaived ? tr("Waived") : isCompleted ? tr("Completed") :
+                         days === 0 ? tr("Due today") :
+                         days < 0 ? Math.abs(days) + tr("d overdue") :
+                         tr("Due in ") + days + "d"} · {m.due_date}
                       </div>
                     )}
                     {m.scheduled_date && (
-                      <div style={{ fontSize: 12, color: "#1E8449", fontWeight: 700, marginTop: 2 }}>📅 Scheduled: {m.scheduled_date}{m.scheduled_time ? " · " + fmtTime(m.scheduled_time) : ""}</div>
+                      <div style={{ fontSize: 12, color: "#1E8449", fontWeight: 700, marginTop: 2 }}>{tr("📅 Scheduled:")} {m.scheduled_date}{m.scheduled_time ? " · " + fmtTime(m.scheduled_time) : ""}</div>
                     )}
                     {m.notes && (
                       <div style={{ fontSize: 12, color: "#0e7490", marginTop: 2 }}>🔑 {m.notes}</div>
                     )}
                     {m.requires_document && !m.document_uploaded && !isClosed && m.status !== "Waived" && (
-                      <div style={{ fontSize: 11, color: "#8A5A00", marginTop: 2 }}>📎 Document required</div>
+                      <div style={{ fontSize: 11, color: "#8A5A00", marginTop: 2 }}>{tr("📎 Document required")}</div>
                     )}
                     {isCompleted && m.completed_by_name && (
-                      <div style={{ fontSize: 11, color: "#555", marginTop: 2 }}>by {m.completed_by_name}</div>
+                      <div style={{ fontSize: 11, color: "#555", marginTop: 2 }}>{tr("by {name}", { name: tr(m.completed_by_name) })}</div>
                     )}
                     {isClosed && !isWaived && compliance[m.id]?.documentRequired && !compliance[m.id]?.documentUploaded && (
                       <div style={{ background: "#FEE2E2", border: "1px solid #FCA5A5", borderRadius: 6, padding: 8, marginTop: 6, fontSize: 11, color: "#991B1B" }}>
-                        ⚠️ Compliance gap: marked complete but missing {compliance[m.id].requiredDocType}
+                        {tr("⚠️ Compliance gap: marked complete but missing")} {tr(compliance[m.id].requiredDocType)}
                       </div>
                     )}
                   </div>
@@ -3220,29 +3227,29 @@ function MilestonesTab({ tx, token, onSummaryChange, coordinatorMode = false }) 
                 {compliance[m.id]?.documentRequired && !isClosed && compliance[m.id]?.status !== "Waived" && (
                   <div style={{ background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 8, padding: 12, marginTop: 10, fontSize: 12.5, lineHeight: 1.5 }}>
                     <div style={{ fontWeight: 700, color: "#1F2937", marginBottom: 4, fontSize: 13 }}>
-                      📎 Document needed: {compliance[m.id].requiredDocType}
+                      {tr("📎 Document needed:")} {tr(compliance[m.id].requiredDocType)}
                     </div>
                     <div style={{ color: "#374151", marginBottom: compliance[m.id].legalConsequence ? 8 : 0 }}>
-                      {compliance[m.id].description}
+                      {tr(compliance[m.id].description)}
                     </div>
                     {compliance[m.id].legalConsequence && (
                       <div style={{ borderTop: "1px solid #E2E8F0", paddingTop: 8, marginTop: 4 }}>
                         <div style={{ fontWeight: 700, color: "#4B5563", fontSize: 11, letterSpacing: 0.5, marginBottom: 2 }}>
-                          WHY THIS MATTERS
+                          {tr("WHY THIS MATTERS")}
                         </div>
                         <div style={{ color: "#374151", fontSize: 12 }}>
-                          {compliance[m.id].legalConsequence}
+                          {tr(compliance[m.id].legalConsequence)}
                         </div>
                         {compliance[m.id].statuteReference && (
                           <div style={{ color: "#4B5563", fontSize: 11, fontStyle: "italic", marginTop: 3 }}>
-                            Reference: {compliance[m.id].statuteReference}
+                            {tr("Reference:")} {compliance[m.id].statuteReference}
                           </div>
                         )}
                       </div>
                     )}
                     {compliance[m.id].isConditional && compliance[m.id].conditionalLogic && (
                       <div style={{ borderTop: "1px solid #E2E8F0", paddingTop: 8, marginTop: 8, color: "#4B5563", fontSize: 11.5, fontStyle: "italic" }}>
-                        Only applies if: {compliance[m.id].conditionalLogic}
+                        {tr("Only applies if:")} {compliance[m.id].conditionalLogic}
                       </div>
                     )}
                   </div>
@@ -3252,17 +3259,17 @@ function MilestonesTab({ tx, token, onSummaryChange, coordinatorMode = false }) 
                     {availableDocs.length > 0 && (
                       <select value="" disabled={uploadingFor === m.id}
                         onChange={e => assignExistingToMilestone(m.id, e.target.value)}
-                        title="Attach a file already on this deal"
+                        title={tr("Attach a file already on this deal")}
                         style={{ flex: "1 1 160px", padding: "9px 10px", borderRadius: 8, border: "1.5px solid #0c4a6e",
                           fontSize: 13, fontFamily: "inherit", background: "#fff", color: "#0c4a6e", fontWeight: 600, cursor: "pointer" }}>
-                        <option value="">📄 Use existing document…</option>
-                        {availableDocs.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+                        <option value="">{tr("📄 Use existing document…")}</option>
+                        {availableDocs.map(d => <option key={d.id} value={d.id}>{tr(d.name)}</option>)}
                       </select>
                     )}
                     <button onClick={() => handleUploadClick(m.id)} disabled={uploadingFor === m.id}
                       style={{ flex: "1 1 160px", padding: "10px 0", borderRadius: 8, border: "1.5px solid #0c4a6e",
                         background: "#fff", color: "#0c4a6e", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
-                      {uploadingFor === m.id ? "Uploading..." : "📎 Upload Missing Document"}
+                      {uploadingFor === m.id ? tr("Uploading...") : tr("📎 Upload Missing Document")}
                     </button>
                   </div>
                 )}
@@ -3271,9 +3278,9 @@ function MilestonesTab({ tx, token, onSummaryChange, coordinatorMode = false }) 
                     <button onClick={() => handleReopen(m.id)} disabled={completing === m.id}
                       style={{ padding: "7px 14px", borderRadius: 8, border: "1.5px solid #D1D5DB",
                         background: "#fff", color: "#555", fontWeight: 600, fontSize: 12, cursor: "pointer" }}>
-                      {completing === m.id ? "..." : "↩ Reopen (undo)"}
+                      {completing === m.id ? "..." : tr("↩ Reopen (undo)")}
                     </button>
-                    <span style={{ fontSize: 11, color: "#666666", marginLeft: 8 }}>Clicked done by mistake? Put it back.</span>
+                    <span style={{ fontSize: 11, color: "#666666", marginLeft: 8 }}>{tr("Clicked done by mistake? Put it back.")}</span>
                   </div>
                 )}
                 {!isClosed && launchLocked && (
@@ -3281,7 +3288,7 @@ function MilestonesTab({ tx, token, onSummaryChange, coordinatorMode = false }) 
                     background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: 8, padding: "10px 12px" }}>
                     <span style={{ fontSize: 16 }}>🔒</span>
                     <div style={{ fontSize: 12, color: "#991B1B", lineHeight: 1.5 }}>
-                      Locked until the <b>listing package is signed</b>. Florida requires the signed listing agreement and disclosures before you market the home — complete <b>“Listing Package Signed &amp; Executed”</b> at the top to unlock this.
+                      {tr("Locked until the")} <b>{tr("listing package is signed")}</b>{tr(". Florida requires the signed listing agreement and disclosures before you market the home — complete")} <b>{tr("“Listing Package Signed & Executed”")}</b> {tr("at the top to unlock this.")}
                     </div>
                   </div>
                 )}
@@ -3290,16 +3297,16 @@ function MilestonesTab({ tx, token, onSummaryChange, coordinatorMode = false }) 
                     <button onClick={() => setClosingModalFor(m)}
                       style={{ flex: "2 1 240px", padding: "11px 0", borderRadius: 8, border: "none",
                         background: "#0c4a6e", color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
-                      🗓️ Set Closing Date & Notify Client
+                      {tr("🗓️ Set Closing Date & Notify Client")}
                     </button>
                     <div style={{ flex: "1 1 100%", fontSize: 11, color: "#555", marginTop: 2 }}>
-                      Enter the closing date/time/location & amount the title company or attorney gave you. You'll review &amp; edit the email before it's sent — to your side only.
+                      {tr("Enter the closing date/time/location & amount the title company or attorney gave you. You'll review & edit the email before it's sent — to your side only.")}
                     </div>
-                    <button onClick={() => coordinatorMode ? alert("Waiving a required document is the agent's decision. Mark the milestone done if you have what you need, or ask the agent to waive it.") : setWaiveModalFor(m)}
+                    <button onClick={() => coordinatorMode ? alert(tr("Waiving a required document is the agent's decision. Mark the milestone done if you have what you need, or ask the agent to waive it.")) : setWaiveModalFor(m)}
                       style={{ flex: "1 1 90px", padding: "9px 0", borderRadius: 8,
                         border: "1.5px solid #D1D5DB", background: "#fff",
                         color: "#1F2937", fontWeight: 600, fontSize: 12.5, cursor: "pointer" }}>
-                      Waive (N/A)
+                      {tr("Waive (N/A)")}
                     </button>
                   </div>
                 )}
@@ -3321,10 +3328,10 @@ function MilestonesTab({ tx, token, onSummaryChange, coordinatorMode = false }) 
                     )}
                     {isInspection && (
                       <>
-                        <input type="text" value={aVal.who} placeholder="Who lets the inspector in? (lockbox / listing agent / seller home)"
+                        <input type="text" value={aVal.who} placeholder={tr("Who lets the inspector in? (lockbox / listing agent / seller home)")}
                           onChange={e => setA({ who: e.target.value })}
                           style={{ flex: "2 1 240px", padding: "9px 10px", borderRadius: 8, border: "1.5px solid #D1D5DB", fontSize: 13, fontFamily: "inherit" }} />
-                        <input type="text" value={aVal.code} placeholder="Door / lockbox code (optional)"
+                        <input type="text" value={aVal.code} placeholder={tr("Door / lockbox code (optional)")}
                           onChange={e => setA({ code: e.target.value })}
                           style={{ flex: "1 1 160px", padding: "9px 10px", borderRadius: 8, border: "1.5px solid #D1D5DB", fontSize: 13, fontFamily: "inherit" }} />
                       </>
@@ -3332,16 +3339,16 @@ function MilestonesTab({ tx, token, onSummaryChange, coordinatorMode = false }) 
                     <button onClick={() => handleSchedule(m.id, dVal, tVal, isInspection ? aVal : null)} disabled={completing === m.id || !dVal}
                       style={{ flex: "2 1 220px", padding: "10px 0", borderRadius: 8, border: "none",
                         background: dVal ? "#0c4a6e" : "#9CA3AF", color: "#fff", fontWeight: 700, fontSize: 13, cursor: dVal ? "pointer" : "not-allowed" }}>
-                      {completing === m.id ? "Saving..." : "✓ Confirm Date" + (scheduleSpec.time ? " & Time" : "") + " & Mark Complete"}
+                      {completing === m.id ? tr("Saving...") : tr("✓ Confirm Date") + (scheduleSpec.time ? tr(" & Time") : "") + tr(" & Mark Complete")}
                     </button>
                     <div style={{ flex: "1 1 100%", fontSize: 11, color: "#555", marginTop: 2 }}>
-                      Enter the date{scheduleSpec.time ? " and time" : ""} the responsible party gave you. It's recorded on the deal so you can follow up, and reminders anchor to it.
+                      {tr("Enter the date")}{scheduleSpec.time ? tr(" and time") : ""} {tr("the responsible party gave you. It's recorded on the deal so you can follow up, and reminders anchor to it.")}
                     </div>
-                    <button onClick={() => coordinatorMode ? alert("Waiving a required document is the agent's decision. Mark the milestone done if you have what you need, or ask the agent to waive it.") : setWaiveModalFor(m)}
+                    <button onClick={() => coordinatorMode ? alert(tr("Waiving a required document is the agent's decision. Mark the milestone done if you have what you need, or ask the agent to waive it.")) : setWaiveModalFor(m)}
                       style={{ flex: "1 1 90px", padding: "9px 0", borderRadius: 8,
                         border: "1.5px solid #D1D5DB", background: "#fff",
                         color: "#1F2937", fontWeight: 600, fontSize: 12.5, cursor: "pointer" }}>
-                      Waive (N/A)
+                      {tr("Waive (N/A)")}
                     </button>
                   </div>
                   );
@@ -3353,39 +3360,39 @@ function MilestonesTab({ tx, token, onSummaryChange, coordinatorMode = false }) 
                         <button onClick={() => handleUploadClick(m.id)} disabled={uploadingFor === m.id}
                           style={{ flex: "2 1 200px", padding: "10px 0", borderRadius: 8, border: "none",
                             background: "#0c4a6e", color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
-                          {uploadingFor === m.id ? "Uploading..." : "📎 Upload Document & Complete"}
+                          {uploadingFor === m.id ? tr("Uploading...") : tr("📎 Upload Document & Complete")}
                         </button>
                         {availableDocs.length > 0 && (
                           <select value="" disabled={uploadingFor === m.id}
                             onChange={e => assignExistingToMilestone(m.id, e.target.value)}
-                            title="Attach a file already on this deal"
+                            title={tr("Attach a file already on this deal")}
                             style={{ flex: "1 1 160px", padding: "9px 10px", borderRadius: 8, border: "1.5px solid #0c4a6e",
                               fontSize: 13, fontFamily: "inherit", background: "#fff", color: "#0c4a6e", fontWeight: 600, cursor: "pointer" }}>
-                            <option value="">📄 Use existing document…</option>
-                            {availableDocs.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+                            <option value="">{tr("📄 Use existing document…")}</option>
+                            {availableDocs.map(d => <option key={d.id} value={d.id}>{tr(d.name)}</option>)}
                           </select>
                         )}
                         <button onClick={() => handleComplete(m.id)} disabled={completing === m.id}
                           style={{ flex: "1 1 130px", padding: "10px 0", borderRadius: 8, border: "1.5px solid #0c4a6e",
                             background: "#fff", color: "#0c4a6e", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
-                          {completing === m.id ? "Saving..." : "✓ Mark Complete"}
+                          {completing === m.id ? tr("Saving...") : tr("✓ Mark Complete")}
                         </button>
                         <div style={{ flex: "1 1 100%", fontSize: 12, color: "#4B5563", textAlign: "center", marginTop: 2 }}>
-                          📎 Already uploaded it? Pick "Use existing document" to file it here — no need to upload twice.
+                          {tr("📎 Already uploaded it? Pick \"Use existing document\" to file it here — no need to upload twice.")}
                         </div>
                       </>
                     ) : (
                       <button onClick={() => handleComplete(m.id)} disabled={completing === m.id}
                         style={{ flex: 2, padding: "9px 0", borderRadius: 8, border: "none",
                           background: "#0c4a6e", color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
-                        {completing === m.id ? "Saving..." : "✓ Mark Complete"}
+                        {completing === m.id ? tr("Saving...") : tr("✓ Mark Complete")}
                       </button>
                     )}
-                    <button onClick={() => coordinatorMode ? alert("Waiving a required document is the agent's decision. Mark the milestone done if you have what you need, or ask the agent to waive it.") : setWaiveModalFor(m)}
+                    <button onClick={() => coordinatorMode ? alert(tr("Waiving a required document is the agent's decision. Mark the milestone done if you have what you need, or ask the agent to waive it.")) : setWaiveModalFor(m)}
                       style={{ flex: 1, padding: "9px 0", borderRadius: 8,
                         border: "1.5px solid #D1D5DB", background: "#fff",
                         color: "#1F2937", fontWeight: 600, fontSize: 12.5, cursor: "pointer" }}>
-                      Waive (N/A)
+                      {tr("Waive (N/A)")}
                     </button>
                   </div>
                 )}
@@ -3408,49 +3415,49 @@ function MilestonesTab({ tx, token, onSummaryChange, coordinatorMode = false }) 
           style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)", zIndex: 9999, display: "flex", alignItems: "flex-start", justifyContent: "center", padding: 16, overflowY: "auto" }}>
           <div onClick={e => e.stopPropagation()}
             style={{ background: "#fff", borderRadius: 14, padding: 22, maxWidth: 520, width: "100%", maxHeight: "90vh", overflowY: "auto", boxShadow: "0 20px 60px rgba(0,0,0,0.3)", margin: "auto" }}>
-            <div style={{ fontSize: 20, fontWeight: 800, color: "#92400E", marginBottom: 6 }}>⚠️ Waive Milestone — Not Applicable</div>
+            <div style={{ fontSize: 20, fontWeight: 800, color: "#92400E", marginBottom: 6 }}>{tr("⚠️ Waive Milestone — Not Applicable")}</div>
             <div style={{ fontSize: 14, color: "#1a2332", fontWeight: 700, marginBottom: 10 }}>{waiveModalFor.name}</div>
             <div style={{ background: "#FEF3C7", border: "1px solid #FCD34D", borderRadius: 8, padding: 12, marginBottom: 16, fontSize: 13, lineHeight: 1.5, color: "#78350F" }}>
-              <strong>What this does:</strong> Marks this milestone complete <strong>without</strong> a document. The transaction can keep moving.<br/><br/>
-              <strong>Why it matters:</strong> Your broker and compliance team can see every waiver. If audited, you must be able to defend this decision. A permanent audit-log entry is created with your name, the reason, and your justification.
+              <strong>{tr("What this does:")}</strong> {tr("Marks this milestone complete")} <strong>{tr("without")}</strong> {tr("a document. The transaction can keep moving.")}<br/><br/>
+              <strong>{tr("Why it matters:")}</strong> {tr("Your broker and compliance team can see every waiver. If audited, you must be able to defend this decision. A permanent audit-log entry is created with your name, the reason, and your justification.")}
             </div>
 
             <div style={{ marginBottom: 14 }}>
-              <label style={{ display: "block", fontWeight: 700, fontSize: 13, color: "#1a2332", marginBottom: 6 }}>Reason this is not applicable <span style={{ color: "#C0392B" }}>*</span></label>
+              <label style={{ display: "block", fontWeight: 700, fontSize: 13, color: "#1a2332", marginBottom: 6 }}>{tr("Reason this is not applicable")} <span style={{ color: "#C0392B" }}>*</span></label>
               <select value={waiveReason} onChange={e => setWaiveReason(e.target.value)} disabled={waiving}
                 style={{ width: "100%", padding: 10, borderRadius: 8, border: "1.5px solid #D1D5DB", fontSize: 14, fontFamily: "inherit", background: "#fff" }}>
-                <option value="">-- Select a reason --</option>
-                <option value="Cash deal — no lender">Cash deal — no lender</option>
-                <option value="New construction — no inspection">New construction — no inspection</option>
-                <option value="Not applicable to this property type">Not applicable to this property type</option>
-                <option value="Bundled with another document upload">Bundled with another document upload</option>
-                <option value="Document exists outside our system">Document exists outside our system (e.g. brokerage uses different form)</option>
-                <option value="Buyer/seller declined">Buyer/seller declined and signed waiver</option>
-                <option value="Other">Other (explain in justification)</option>
+                <option value="">{tr("-- Select a reason --")}</option>
+                <option value="Cash deal — no lender">{tr("Cash deal — no lender")}</option>
+                <option value="New construction — no inspection">{tr("New construction — no inspection")}</option>
+                <option value="Not applicable to this property type">{tr("Not applicable to this property type")}</option>
+                <option value="Bundled with another document upload">{tr("Bundled with another document upload")}</option>
+                <option value="Document exists outside our system">{tr("Document exists outside our system (e.g. brokerage uses different form)")}</option>
+                <option value="Buyer/seller declined">{tr("Buyer/seller declined and signed waiver")}</option>
+                <option value="Other">{tr("Other (explain in justification)")}</option>
               </select>
             </div>
 
             <div style={{ marginBottom: 14 }}>
-              <label style={{ display: "block", fontWeight: 700, fontSize: 13, color: "#1a2332", marginBottom: 6 }}>Justification <span style={{ color: "#C0392B" }}>*</span></label>
+              <label style={{ display: "block", fontWeight: 700, fontSize: 13, color: "#1a2332", marginBottom: 6 }}>{tr("Justification")} <span style={{ color: "#C0392B" }}>*</span></label>
               <textarea value={waiveJustification} onChange={e => setWaiveJustification(e.target.value)} disabled={waiving}
-                placeholder="Example: Buyer is paying all-cash via wire transfer from Chase. No financing involved. Confirmed via signed cash letter dated 5/15/26."
+                placeholder={tr("Example: Buyer is paying all-cash via wire transfer from Chase. No financing involved. Confirmed via signed cash letter dated 5/15/26.")}
                 rows={4}
                 style={{ width: "100%", padding: 10, borderRadius: 8, border: "1.5px solid #D1D5DB", fontSize: 14, fontFamily: "inherit", resize: "vertical", boxSizing: "border-box" }} />
             </div>
 
             <label style={{ display: "flex", alignItems: "flex-start", gap: 8, marginBottom: 18, cursor: "pointer", fontSize: 13, color: "#1a2332" }}>
               <input type="checkbox" checked={waiveConfirm} onChange={e => setWaiveConfirm(e.target.checked)} disabled={waiving} style={{ marginTop: 3, flexShrink: 0 }} />
-              <span>I confirm this waiver is justified and I take responsibility for compliance on this transaction.</span>
+              <span>{tr("I confirm this waiver is justified and I take responsibility for compliance on this transaction.")}</span>
             </label>
 
             <div style={{ display: "flex", gap: 10 }}>
               <button onClick={() => { if (!waiving) { setWaiveModalFor(null); setWaiveReason(""); setWaiveJustification(""); setWaiveConfirm(false); } }} disabled={waiving}
                 style={{ flex: 1, padding: "11px 0", borderRadius: 8, border: "1.5px solid #D1D5DB", background: "#fff", color: "#374151", fontWeight: 600, fontSize: 14, cursor: waiving ? "not-allowed" : "pointer" }}>
-                Cancel
+                {tr("Cancel")}
               </button>
               <button onClick={handleWaive} disabled={waiving || !waiveReason || !waiveConfirm}
                 style={{ flex: 2, padding: "11px 0", borderRadius: 8, border: "none", background: (waiving || !waiveReason || !waiveConfirm) ? "#9CA3AF" : "#0c4a6e", color: "#fff", fontWeight: 700, fontSize: 14, cursor: (waiving || !waiveReason || !waiveConfirm) ? "not-allowed" : "pointer" }}>
-                {waiving ? "Waiving..." : "⚠️ Waive This Milestone"}
+                {waiving ? tr("Waiving...") : tr("⚠️ Waive This Milestone")}
               </button>
             </div>
           </div>
@@ -3460,7 +3467,7 @@ function MilestonesTab({ tx, token, onSummaryChange, coordinatorMode = false }) 
         style={{ width: "100%", padding: 13, borderRadius: 10,
           border: "1.5px solid #DDD", background: "#fff",
           color: "#555", fontWeight: 600, fontSize: 14, cursor: "pointer", marginTop: 8 }}>
-        {generating ? "Generating..." : "Add Missing Milestones"}
+        {generating ? tr("Generating...") : tr("Add Missing Milestones")}
       </button>
       <input
         ref={fileInputRef}
@@ -3501,7 +3508,7 @@ function BuyerIntakeChecklist({ tx, token, onContactLogged }) {
         setStepsDone(d.steps);
         if (d.allDone && onContactLogged) onContactLogged();
       }
-    } catch (e) { alert("Failed: " + e.message); }
+    } catch (e) { alert(tr("Failed: ") + e.message); }
     setUpdating(null);
   };
 
@@ -3531,9 +3538,9 @@ function BuyerIntakeChecklist({ tx, token, onContactLogged }) {
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
         <span style={{ fontSize: 24 }}>🔔</span>
         <div style={{ flex: 1 }}>
-          <div style={{ fontWeight: 800, color: "#991b1b", fontSize: 16 }}>{isSeller ? "New Seller Listing" : "New Buyer Inquiry"} — {doneCount}/{totalSteps} Steps Complete</div>
+          <div style={{ fontWeight: 800, color: "#991b1b", fontSize: 16 }}>{isSeller ? tr("New Seller Listing") : tr("New Buyer Inquiry")} — {doneCount}/{totalSteps} {tr("Steps Complete")}</div>
           <div style={{ fontSize: 13, color: "#7f1d1d", marginTop: 2 }}>
-            {client ? (client.name || "") + (client.phone ? " · " + client.phone : "") + (client.email ? " · " + client.email : "") : (isSeller ? "Seller info in parties tab" : "Buyer info in parties tab")} · {isSeller ? "List price" : "Budget"}: {budget}
+            {client ? (client.name || "") + (client.phone ? " · " + client.phone : "") + (client.email ? " · " + client.email : "") : (isSeller ? tr("Seller info in parties tab") : tr("Buyer info in parties tab"))} · {isSeller ? tr("List price") : tr("Budget")}: {budget}
           </div>
         </div>
       </div>
@@ -3551,12 +3558,12 @@ function BuyerIntakeChecklist({ tx, token, onContactLogged }) {
                 <div style={{ flex: 1 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
                     <span style={{ background: isDone ? "#1e8449" : "#c8102e", color: "white", borderRadius: "50%", width: 20, height: 20, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, flexShrink: 0 }}>{step.num}</span>
-                    <span style={{ fontWeight: 700, color: "#1a2332", fontSize: 14, textDecoration: isDone ? "line-through" : "none" }}>{step.title}</span>
+                    <span style={{ fontWeight: 700, color: "#1a2332", fontSize: 14, textDecoration: isDone ? "line-through" : "none" }}>{tr(step.title)}</span>
                   </div>
-                  {!isDone && <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 6, lineHeight: 1.5 }}><strong style={{ color: "#92400e" }}>Why:</strong> {step.why}</div>}
+                  {!isDone && <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 6, lineHeight: 1.5 }}><strong style={{ color: "#92400e" }}>{tr("Why:")}</strong> {tr(step.why)}</div>}
                   {!isDone && <div style={{ fontSize: 13, color: "#1a2332", marginBottom: 10, background: "#f9fafb", padding: "6px 10px", borderRadius: 6 }}>📌 {step.action}</div>}
                   <button onClick={() => toggleStep(step.num)} disabled={isUpdating} style={{ background: isDone ? "white" : "#0c4a6e", color: isDone ? "#6b7280" : "white", border: isDone ? "1px solid #d1d5db" : "none", borderRadius: 6, padding: "6px 14px", fontSize: 12, fontWeight: 600, cursor: isUpdating ? "wait" : "pointer", fontFamily: "inherit", opacity: isUpdating ? 0.7 : 1 }}>
-                    {isUpdating ? "..." : (isDone ? "↺ Undo" : "✓ Mark Complete")}
+                    {isUpdating ? "..." : (isDone ? tr("↺ Undo") : tr("✓ Mark Complete"))}
                   </button>
                 </div>
               </div>
@@ -3613,7 +3620,7 @@ function ContractReviewChecklist({ tx, token, onCleared, setActiveTab, openEditT
     }
     warning += "\n─── CONFIRM ───\nClick OK only if every party email is correct AND every transaction field is filled in. This action cannot be undone — once sent, recipients have the email.";
 
-    if (!(await askConfirm(warning, { okLabel: "Send welcome emails" }))) return;
+    if (!(await askConfirm(warning, { okLabel: tr("Send welcome emails") }))) return;
     setSendingEmails(true);
     try {
       const r = await fetch("https://liz-team-server-api-production.up.railway.app/transactions/" + tx.id + "/send-welcome-emails", {
@@ -3631,9 +3638,9 @@ function ContractReviewChecklist({ tx, token, onCleared, setActiveTab, openEditT
       } else if ((d.emailsFailed || 0) > 0) {
         alert(`❌ No welcome emails delivered (${d.emailsFailed} failed).\n\n${failedList}`);
       } else {
-        alert("Could not send: " + (d.error || "Unknown error"));
+        alert(tr("Could not send: ") + (d.error || tr("Unknown error")));
       }
-    } catch (e) { alert("Error: " + e.message); }
+    } catch (e) { alert(tr("Error: ") + e.message); }
     setSendingEmails(false);
   };
   const API_URL = "https://liz-team-server-api-production.up.railway.app";
@@ -3652,7 +3659,7 @@ function ContractReviewChecklist({ tx, token, onCleared, setActiveTab, openEditT
         setStepsDone(d.steps);
         if (d.allDone && onCleared) onCleared();
       }
-    } catch (e) { alert("Failed: " + e.message); }
+    } catch (e) { alert(tr("Failed: ") + e.message); }
     setUpdating(null);
   };
 
@@ -3673,9 +3680,9 @@ function ContractReviewChecklist({ tx, token, onCleared, setActiveTab, openEditT
       <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
         <span style={{ fontSize: 26 }}>📋</span>
         <div style={{ flex: 1 }}>
-          <div style={{ fontWeight: 800, color: "#1e3a8a", fontSize: 16 }}>NEW FROM CONTRACT — {doneCount}/3 Verified</div>
+          <div style={{ fontWeight: 800, color: "#1e3a8a", fontSize: 16 }}>{tr("NEW FROM CONTRACT —")} {doneCount}/3 Verified</div>
           <div style={{ fontSize: 12, color: "#1e40af", marginTop: 2 }}>
-            The AI extracted this data from the contract. As the agent of record, you must verify each section below. The banner clears when all 5 are done.
+            {tr("The AI extracted this data from the contract. As the agent of record, you must verify each section below. The banner clears when all 5 are done.")}
           </div>
         </div>
       </div>
@@ -3685,7 +3692,7 @@ function ContractReviewChecklist({ tx, token, onCleared, setActiveTab, openEditT
 
       {tx.additionalTerms && (
         <div style={{ background: "#fef9c3", border: "1px solid #fde047", borderRadius: 8, padding: 12, marginBottom: 14 }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: "#854d0e", marginBottom: 6 }}>📝 Additional Terms / Special Clauses extracted from contract (also saved in Notes):</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: "#854d0e", marginBottom: 6 }}>{tr("📝 Additional Terms / Special Clauses extracted from contract (also saved in Notes):")}</div>
           <div style={{ fontSize: 12, color: "#713f12", whiteSpace: "pre-wrap", lineHeight: 1.5, fontFamily: "monospace", background: "white", padding: 10, borderRadius: 6 }}>{tx.additionalTerms}</div>
         </div>
       )}
@@ -3701,37 +3708,37 @@ function ContractReviewChecklist({ tx, token, onCleared, setActiveTab, openEditT
                 <div style={{ flex: 1 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
                     <span style={{ background: isDone ? "#1e8449" : "#2563eb", color: "white", borderRadius: "50%", width: 20, height: 20, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, flexShrink: 0 }}>{step.num}</span>
-                    <span style={{ fontWeight: 700, color: "#1a2332", fontSize: 14, textDecoration: isDone ? "line-through" : "none" }}>{step.title}</span>
+                    <span style={{ fontWeight: 700, color: "#1a2332", fontSize: 14, textDecoration: isDone ? "line-through" : "none" }}>{tr(step.title)}</span>
                   </div>
-                  {!isDone && <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 6, lineHeight: 1.5 }}><strong style={{ color: "#1e40af" }}>Why:</strong> {step.why}</div>}
+                  {!isDone && <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 6, lineHeight: 1.5 }}><strong style={{ color: "#1e40af" }}>{tr("Why:")}</strong> {tr(step.why)}</div>}
                   {!isDone && <div style={{ fontSize: 13, color: "#1a2332", marginBottom: 10, background: "#f9fafb", padding: "6px 10px", borderRadius: 6 }}>📌 {step.action}</div>}
                   {!isDone && step.isPartiesStep && (
                     <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                       <button onClick={(e) => { e.stopPropagation(); step.onCta(); }}
                         style={{ background: "#0c4a6e", color: "white", border: "none", borderRadius: 6, padding: "8px 14px", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", alignSelf: "flex-start" }}>
-                        {step.cta} →
+                        {tr(step.cta)} →
                       </button>
 
                       <div style={{ borderTop: "1px solid #bfdbfe", paddingTop: 10, marginTop: 4 }}>
                         <div style={{ fontSize: 12, color: "#1e40af", marginBottom: 8 }}>
-                          After verifying/adding/fixing parties, pick one:
+                          {tr("After verifying/adding/fixing parties, pick one:")}
                         </div>
                         <button onClick={(e) => { e.stopPropagation(); sendWelcomeEmails(); }}
                           disabled={sendingEmails || partiesWithEmail.length === 0}
-                          title={partiesWithEmail.length === 0 ? "At least one party needs a valid email address" : ""}
+                          title={partiesWithEmail.length === 0 ? tr("At least one party needs a valid email address") : ""}
                           style={{ background: partiesWithEmail.length === 0 ? "#9ca3af" : "#1e8449", color: "white", border: "none", borderRadius: 6, padding: "10px 16px", fontSize: 13, fontWeight: 700, cursor: partiesWithEmail.length === 0 ? "not-allowed" : "pointer", fontFamily: "inherit", display: "block", marginBottom: 8, width: "100%", textAlign: "left" }}>
-                          {sendingEmails ? "Sending..." : `✉️ Send welcome emails to ${partiesWithEmail.length} parties — Recommended`}
+                          {sendingEmails ? tr("Sending...") : `✉️ Send welcome emails to ${partiesWithEmail.length} parties — Recommended`}
                         </button>
                         <div style={{ fontSize: 11, color: "#6b7280", marginBottom: 10, paddingLeft: 4 }}>
-                          Sends a professional intro to every party with their role, key dates, and party roster. Marks this step verified.
+                          {tr("Sends a professional intro to every party with their role, key dates, and party roster. Marks this step verified.")}
                         </div>
                         <button onClick={(e) => { e.stopPropagation(); toggleStep(step.num); }}
                           disabled={isUpdating}
                           style={{ background: "white", color: "#6b7280", border: "1px solid #d1d5db", borderRadius: 6, padding: "8px 14px", fontSize: 12, fontWeight: 600, cursor: isUpdating ? "wait" : "pointer", fontFamily: "inherit", display: "block", width: "100%", textAlign: "left" }}>
-                          {isUpdating ? "..." : "✓ Mark Verified without sending emails"}
+                          {isUpdating ? "..." : tr("✓ Mark Verified without sending emails")}
                         </button>
                         <div style={{ fontSize: 11, color: "#6b7280", marginTop: 4, paddingLeft: 4 }}>
-                          Use this if you want to call parties first or send emails manually later.
+                          {tr("Use this if you want to call parties first or send emails manually later.")}
                         </div>
                       </div>
                     </div>
@@ -3740,18 +3747,18 @@ function ContractReviewChecklist({ tx, token, onCleared, setActiveTab, openEditT
                     <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                       <button onClick={(e) => { e.stopPropagation(); step.onCta(); }}
                         style={{ background: "#0c4a6e", color: "white", border: "none", borderRadius: 6, padding: "6px 14px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
-                        {step.cta} →
+                        {tr(step.cta)} →
                       </button>
                       <button onClick={() => toggleStep(step.num)} disabled={isUpdating}
                         style={{ background: "#0c4a6e", color: "white", border: "none", borderRadius: 6, padding: "6px 14px", fontSize: 12, fontWeight: 600, cursor: isUpdating ? "wait" : "pointer", fontFamily: "inherit", opacity: isUpdating ? 0.7 : 1 }}>
-                        {isUpdating ? "..." : "✓ Mark Verified"}
+                        {isUpdating ? "..." : tr("✓ Mark Verified")}
                       </button>
                     </div>
                   )}
                   {isDone && (
                     <button onClick={() => toggleStep(step.num)} disabled={isUpdating}
                       style={{ background: "white", color: "#6b7280", border: "1px solid #d1d5db", borderRadius: 6, padding: "6px 14px", fontSize: 12, fontWeight: 600, cursor: isUpdating ? "wait" : "pointer", fontFamily: "inherit" }}>
-                      {isUpdating ? "..." : "↺ Undo"}
+                      {isUpdating ? "..." : tr("↺ Undo")}
                     </button>
                   )}
                 </div>
@@ -3782,7 +3789,7 @@ function AssignAgentModal({ tx, token, onClose, onAssigned, currentUser }) {
   const leadType = isBuyer ? "buyer" : "seller";
 
   const handleAssign = async () => {
-    if (!selectedAgentId) { alert("Please select an agent first."); return; }
+    if (!selectedAgentId) { alert(tr("Please select an agent first.")); return; }
     setSaving(true);
     try {
       const r = await fetch(API_URL + "/transactions/" + tx.id + "/assign-agent", {
@@ -3792,13 +3799,13 @@ function AssignAgentModal({ tx, token, onClose, onAssigned, currentUser }) {
       });
       const d = await r.json();
       if (d.success) {
-        alert("✅ Lead assigned to " + d.assignedTo + ".\n\nThey have been notified by email and SMS to contact this " + leadType + " within 24 hours.");
+        alert(tr("✅ Lead assigned to ") + d.assignedTo + tr(".\n\nThey have been notified by email and SMS to contact this ") + leadType + tr(" within 24 hours."));
         if (onAssigned) onAssigned(selectedAgentId);
         onClose();
       } else {
-        alert("Error: " + (d.error || "Could not assign"));
+        alert(tr("Error: ") + (d.error || tr("Could not assign")));
       }
-    } catch (e) { alert("Error: " + e.message); }
+    } catch (e) { alert(tr("Error: ") + e.message); }
     setSaving(false);
   };
 
@@ -3806,51 +3813,51 @@ function AssignAgentModal({ tx, token, onClose, onAssigned, currentUser }) {
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 3000, display: "flex", alignItems: "flex-start", justifyContent: "center", padding: 16, fontFamily: "system-ui, sans-serif", overflowY: "auto" }}>
       <div style={{ background: "#fff", borderRadius: 14, width: "100%", maxWidth: 540, boxShadow: "0 8px 40px rgba(0,0,0,0.2)", overflow: "hidden", margin: "auto" }}>
         <div style={{ background: "#f59e0b", padding: "18px 24px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <div style={{ color: "#fff", fontWeight: 800, fontSize: 18 }}>⚠️ Assign This Lead to an Agent</div>
+          <div style={{ color: "#fff", fontWeight: 800, fontSize: 18 }}>{tr("⚠️ Assign This Lead to an Agent")}</div>
           <button onClick={onClose} style={{ background: "none", border: "none", color: "rgba(255,255,255,0.85)", fontSize: 24, cursor: "pointer", lineHeight: 1 }}>×</button>
         </div>
         <div style={{ padding: 24 }}>
           {/* Lead summary */}
           <div style={{ background: "#fef3c7", border: "1px solid #fde68a", borderRadius: 8, padding: 14, marginBottom: 18 }}>
-            <div style={{ fontSize: 13, color: "#78350f", fontWeight: 700, marginBottom: 4 }}>Lead Details</div>
+            <div style={{ fontSize: 13, color: "#78350f", fontWeight: 700, marginBottom: 4 }}>{tr("Lead Details")}</div>
             <div style={{ fontSize: 14, color: "#1a2332" }}>{tx.address}</div>
-            <div style={{ fontSize: 12, color: "#6b7280", marginTop: 2 }}>{tx.type || (isBuyer ? "Buyer Representation" : "Listing (Seller)")} · {tx.parties && tx.parties[0] ? tx.parties[0].name : "Party info in transaction"}</div>
+            <div style={{ fontSize: 12, color: "#6b7280", marginTop: 2 }}>{tx.type || (isBuyer ? tr("Buyer Representation") : tr("Listing (Seller)"))} · {tx.parties && tx.parties[0] ? tx.parties[0].name : tr("Party info in transaction")}</div>
           </div>
 
           {/* What / Why / What proves */}
           <div style={{ marginBottom: 18 }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: "#1a2332", marginBottom: 6 }}>📋 What you are about to do</div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "#1a2332", marginBottom: 6 }}>{tr("📋 What you are about to do")}</div>
             <div style={{ fontSize: 13, color: "#374151", lineHeight: 1.5 }}>
-              Pick an agent who will take ownership of this {leadType} lead. They become responsible for first contact, the buyer/seller representation agreement, and all follow-up.
+              {tr("Pick an agent who will take ownership of this")} {leadType} {tr("lead. They become responsible for first contact, the buyer/seller representation agreement, and all follow-up.")}
             </div>
           </div>
 
           <div style={{ marginBottom: 18 }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: "#991b1b", marginBottom: 6 }}>⚠️ Why this matters</div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "#991b1b", marginBottom: 6 }}>{tr("⚠️ Why this matters")}</div>
             <div style={{ fontSize: 13, color: "#374151", lineHeight: 1.5 }}>
-              Florida law and brokerage policy require prompt first contact (within 24 hours). Until assigned, no one is responsible for this lead and it can go cold fast. You can assign it to yourself if you are taking it, or to another agent at your brokerage.
+              {tr("Florida law and brokerage policy require prompt first contact (within 24 hours). Until assigned, no one is responsible for this lead and it can go cold fast. You can assign it to yourself if you are taking it, or to another agent at your brokerage.")}
             </div>
           </div>
 
           <div style={{ marginBottom: 18 }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: "#065f46", marginBottom: 6 }}>✅ What happens next</div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "#065f46", marginBottom: 6 }}>{tr("✅ What happens next")}</div>
             <div style={{ fontSize: 13, color: "#374151", lineHeight: 1.5 }}>
-              The agent you pick will receive an email and SMS with the lead details. The transaction card will turn red with the "Contact Within 24hrs" banner. The 5-step intake checklist will activate inside the transaction.
+              {tr("The agent you pick will receive an email and SMS with the lead details. The transaction card will turn red with the \"Contact Within 24hrs\" banner. The 5-step intake checklist will activate inside the transaction.")}
             </div>
           </div>
 
           {/* Agent picker */}
           <div style={{ marginBottom: 20 }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: "#6b7280", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 8 }}>SELECT AGENT</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: "#6b7280", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 8 }}>{tr("SELECT AGENT")}</div>
             {loading ? (
-              <div style={{ fontSize: 13, color: "#5F6B7A", padding: 12 }}>Loading agents at your brokerage…</div>
+              <div style={{ fontSize: 13, color: "#5F6B7A", padding: 12 }}>{tr("Loading agents at your brokerage…")}</div>
             ) : (
               <select value={selectedAgentId} onChange={e => setSelectedAgentId(e.target.value)}
                 style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: "1.5px solid #d1d5db", fontSize: 14, fontFamily: "inherit", background: "#fff", boxSizing: "border-box" }}>
-                <option value="">— Pick an agent —</option>
+                <option value="">{tr("— Pick an agent —")}</option>
                 {users.map(u => (
                   <option key={u.id} value={u.id}>
-                    {u.first_name} {u.last_name}{u.id === currentUser?.id ? " (me)" : ""} · {u.role === "admin" || u.role === "superadmin" ? "Admin" : "Agent"}
+                    {u.first_name} {u.last_name}{u.id === currentUser?.id ? tr(" (me)") : ""} · {u.role === "admin" || u.role === "superadmin" ? tr("Admin") : tr("Agent")}
                   </option>
                 ))}
               </select>
@@ -3860,11 +3867,11 @@ function AssignAgentModal({ tx, token, onClose, onAssigned, currentUser }) {
           <div style={{ display: "flex", gap: 10 }}>
             <button onClick={onClose} disabled={saving}
               style={{ flex: 1, padding: 13, borderRadius: 10, border: "1.5px solid #d1d5db", background: "#fff", color: "#6b7280", fontWeight: 700, fontSize: 14, cursor: "pointer", fontFamily: "inherit" }}>
-              Cancel
+              {tr("Cancel")}
             </button>
             <button onClick={handleAssign} disabled={saving || !selectedAgentId}
               style={{ flex: 2, padding: 13, borderRadius: 10, border: "none", background: selectedAgentId ? "#0c4a6e" : "#d1d5db", color: "#fff", fontWeight: 700, fontSize: 14, cursor: saving || !selectedAgentId ? "not-allowed" : "pointer", fontFamily: "inherit" }}>
-              {saving ? "Assigning…" : "👤 Assign Agent & Notify"}
+              {saving ? tr("Assigning…") : tr("👤 Assign Agent & Notify")}
             </button>
           </div>
         </div>
@@ -3898,7 +3905,7 @@ function DueDatePresetPicker({ label, value, onChange }) {
 
   return (
     <div style={{ marginBottom: 12 }}>
-      <div style={{ fontSize: 12, fontWeight: 600, color: "#555", marginBottom: 6 }}>{label || "Due Date"}</div>
+      <div style={{ fontSize: 12, fontWeight: 600, color: "#555", marginBottom: 6 }}>{tr(label) || tr("Due Date")}</div>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 8 }}>
         {PRESETS.map(p => {
           const active = selectedDays === p.days;
@@ -3909,19 +3916,19 @@ function DueDatePresetPicker({ label, value, onChange }) {
                 background: active ? "#0c4a6e" : "#fff", color: active ? "#fff" : "#374151",
                 fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit"
               }}>
-              {p.label}
+              {tr(p.label)}
             </button>
           );
         })}
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        <span style={{ fontSize: 11, color: "#6b7280" }}>Or custom date:</span>
+        <span style={{ fontSize: 11, color: "#6b7280" }}>{tr("Or custom date:")}</span>
         <input type="date" value={value || ""} onChange={e => onChange(e.target.value)}
           style={{ padding: 6, borderRadius: 6, border: "1px solid #d1d5db", fontSize: 13, fontFamily: "inherit" }} />
         {value && (
           <button type="button" onClick={() => onChange("")}
             style={{ background: "transparent", border: "none", color: "#dc2626", cursor: "pointer", fontSize: 12, fontWeight: 600 }}>
-            Clear
+            {tr("Clear")}
           </button>
         )}
       </div>
@@ -3957,10 +3964,10 @@ function NotesField({ value, onChange }) {
       {more && (
         <div
           onClick={() => { const el = ref.current; if (el) el.scrollBy({ top: el.clientHeight - 24, behavior: "smooth" }); }}
-          title="More notes below — click to scroll"
+          title={tr("More notes below — click to scroll")}
           style={{ position: "absolute", right: 12, bottom: 12, background: COLORS.navy, color: "#fff", fontSize: 11, fontWeight: 700, padding: "2px 9px", borderRadius: 20, cursor: "pointer", boxShadow: "0 1px 4px rgba(0,0,0,0.25)", pointerEvents: "auto", userSelect: "none" }}
         >
-          ⌄ more
+          {tr("⌄ more")}
         </div>
       )}
     </div>
@@ -3995,14 +4002,14 @@ function NoteEntries({ text, onSave }) {
   const entries = parseNoteEntries(text);
   const [editIdx, setEditIdx] = useState(null);
   const [editVal, setEditVal] = useState("");
-  if (!entries.length) return <div style={{ fontSize: 13, color: COLORS.muted, padding: "8px 2px" }}>No notes yet.</div>;
+  if (!entries.length) return <div style={{ fontSize: 13, color: COLORS.muted, padding: "8px 2px" }}>{tr("No notes yet.")}</div>;
   const saveEdit = (i) => {
     const next = entries.map((e, j) => (j === i ? { ...e, body: editVal } : e));
     onSave(serializeNoteEntries(next));
     setEditIdx(null);
   };
   const remove = async (i) => {
-    if (!(await askConfirm("Delete this note? This can't be undone.", { okLabel: "Delete", danger: true }))) return;
+    if (!(await askConfirm(tr("Delete this note? This can't be undone."), { okLabel: tr("Delete"), danger: true }))) return;
     onSave(serializeNoteEntries(entries.filter((_, j) => j !== i)));
     if (editIdx === i) setEditIdx(null);
   };
@@ -4012,17 +4019,17 @@ function NoteEntries({ text, onSave }) {
       {entries.map((e, i) => (
         <div key={i + ":" + (e.stamp || "lead")} style={{ border: `1px solid ${COLORS.border}`, borderRadius: 10, padding: "10px 12px", background: "#fff" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-            <span style={{ fontSize: 12, fontWeight: 700, color: COLORS.muted, flex: 1 }}>{e.stamp || "Earlier notes"}</span>
-            {editIdx !== i && <button onClick={() => { setEditIdx(i); setEditVal(e.body); }} style={linkBtn("#0c4a6e")}>Edit</button>}
-            {editIdx !== i && <button onClick={() => remove(i)} style={linkBtn("#B91C1C")}>Delete</button>}
+            <span style={{ fontSize: 12, fontWeight: 700, color: COLORS.muted, flex: 1 }}>{e.stamp || tr("Earlier notes")}</span>
+            {editIdx !== i && <button onClick={() => { setEditIdx(i); setEditVal(e.body); }} style={linkBtn("#0c4a6e")}>{tr("Edit")}</button>}
+            {editIdx !== i && <button onClick={() => remove(i)} style={linkBtn("#B91C1C")}>{tr("Delete")}</button>}
           </div>
           {editIdx === i ? (
             <div>
-              <textarea value={editVal} onChange={ev => setEditVal(ev.target.value)} rows={Math.min(10, Math.max(3, editVal.split("\n").length + 1))} aria-label="Edit note"
+              <textarea value={editVal} onChange={ev => setEditVal(ev.target.value)} rows={Math.min(10, Math.max(3, editVal.split("\n").length + 1))} aria-label={tr("Edit note")}
                 style={{ width: "100%", boxSizing: "border-box", border: `1px solid ${COLORS.border}`, borderRadius: 8, padding: "8px 10px", fontFamily: "inherit", fontSize: 14, resize: "vertical" }} />
               <div style={{ display: "flex", gap: 8, marginTop: 6 }}>
-                <Btn small onClick={() => saveEdit(i)} disabled={!editVal.trim()}>Save</Btn>
-                <Btn small variant="ghost" onClick={() => setEditIdx(null)}>Cancel</Btn>
+                <Btn small onClick={() => saveEdit(i)} disabled={!editVal.trim()}>{tr("Save")}</Btn>
+                <Btn small variant="ghost" onClick={() => setEditIdx(null)}>{tr("Cancel")}</Btn>
               </div>
             </div>
           ) : (
@@ -4102,34 +4109,34 @@ function NotesSection({ txId, value, onChange }) {
       onChange(d.notes, { savedRemotely: true });
       setDraft("");
     } catch {
-      alert("Couldn't save that note — check your connection and try again.");
+      alert(tr("Couldn't save that note — check your connection and try again."));
     } finally { setSaving(false); }
   };
   return (
     <div>
-      <div style={{ fontSize: 12, color: COLORS.muted, marginBottom: 8 }}>Notes appear newest to oldest.</div>
+      <div style={{ fontSize: 12, color: COLORS.muted, marginBottom: 8 }}>{tr("Notes appear newest to oldest.")}</div>
       <div style={{ display: "flex", gap: 8, marginBottom: 12, alignItems: "flex-start" }}>
         <textarea
           value={draft}
           onChange={e => setDraft(e.target.value)}
           onKeyDown={e => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); addNote(); } }}
           rows={2}
-          placeholder="Add a new note…"
+          placeholder={tr("Add a new note…")}
           style={{ flex: 1, border: `1px solid ${COLORS.border}`, borderRadius: 8, padding: "10px 12px", fontFamily: "inherit", fontSize: 14, resize: "vertical", boxSizing: "border-box" }}
         />
-        <Btn onClick={addNote} small disabled={saving}>{saving ? "Saving…" : "+ Add Note"}</Btn>
+        <Btn onClick={addNote} small disabled={saving}>{saving ? tr("Saving…") : tr("+ Add Note")}</Btn>
       </div>
       {showRaw
         ? <NotesField value={text} onChange={onTextChange} />
         : <NoteEntries text={text} onSave={(next) => { setText(next); dirty.current = true; saveText(next); }} />}
       <button onClick={() => setShowRaw(v => !v)}
         style={{ background: "none", border: "none", color: "#0c4a6e", textDecoration: "underline", fontSize: 12.5, fontWeight: 600, cursor: "pointer", padding: "6px 0 0", fontFamily: "inherit" }}>
-        {showRaw ? "Show notes as a list" : "Edit all notes as one block of text"}
+        {showRaw ? tr("Show notes as a list") : tr("Edit all notes as one block of text")}
       </button>
       <div style={{ minHeight: 16, fontSize: 11.5, marginTop: 4, color: editState === "error" ? "#B91C1C" : COLORS.muted }}>
-        {editState === "saving" && "Saving…"}
-        {editState === "saved" && "Saved ✓"}
-        {editState === "error" && "Couldn't save your edit — check your connection; your text is still here."}
+        {editState === "saving" && tr("Saving…")}
+        {editState === "saved" && tr("Saved ✓")}
+        {editState === "error" && tr("Couldn't save your edit — check your connection; your text is still here.")}
       </div>
     </div>
   );
@@ -4147,13 +4154,13 @@ function SentHistoryPanel({ txId }) {
       .then(d => setRows(((d && d.messages) || []).filter(m => (m.direction || "outbound") === "outbound").reverse()))
       .catch(() => setRows([]));
   }, [txId]);
-  if (rows === null) return <div style={{ padding: 24, color: COLORS.muted, fontSize: 13 }}>Loading sent history…</div>;
-  if (rows.length === 0) return <div style={{ padding: 24, color: COLORS.muted, fontSize: 13 }}>Nothing sent on this deal yet — welcome emails, reminders, and updates will show here the moment they go out.</div>;
+  if (rows === null) return <div style={{ padding: 24, color: COLORS.muted, fontSize: 13 }}>{tr("Loading sent history…")}</div>;
+  if (rows.length === 0) return <div style={{ padding: 24, color: COLORS.muted, fontSize: 13 }}>{tr("Nothing sent on this deal yet — welcome emails, reminders, and updates will show here the moment they go out.")}</div>;
   return (
     <div style={{ padding: 12 }}>
       {rows.map(m => {
         const isOpen = openId === m.id;
-        const when = m.created_at ? new Date(m.created_at).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) : "";
+        const when = m.created_at ? new Date(m.created_at).toLocaleString(uiLocale(), { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) : "";
         return (
           <div key={m.id} onClick={() => setOpenId(isOpen ? null : m.id)}
             style={{ border: "1px solid " + COLORS.border, borderRadius: 10, padding: "10px 14px", marginBottom: 8, cursor: "pointer", background: "#fff" }}>
@@ -4166,8 +4173,8 @@ function SentHistoryPanel({ txId }) {
             </div>
             {isOpen && (
               <div style={{ marginTop: 10, paddingTop: 10, borderTop: "1px solid " + COLORS.bg, fontSize: 13, color: COLORS.text, whiteSpace: "pre-wrap", lineHeight: 1.55 }}>
-                {(m.to_email || m.to_phone) && <div style={{ fontSize: 12, color: COLORS.muted, marginBottom: 6 }}>To: {[m.to_email, m.to_phone].filter(Boolean).join(" · ")}</div>}
-                {m.body || "(no message body recorded)"}
+                {(m.to_email || m.to_phone) && <div style={{ fontSize: 12, color: COLORS.muted, marginBottom: 6 }}>{tr("To:")} {[m.to_email, m.to_phone].filter(Boolean).join(" · ")}</div>}
+                {m.body || tr("(no message body recorded)")}
               </div>
             )}
           </div>
@@ -4255,7 +4262,7 @@ export function WelcomeEmailPreview({ txId, onClose, onlyPartyId = null }) {
       setExcludedDocs(s => { const n = { ...s }; delete n[docId]; return n; });
       await loadPreviews();
       setShowDocPicker(false);
-    } catch (e) { alert("Could not attach: " + e.message); }
+    } catch (e) { alert(tr("Could not attach: ") + e.message); }
     finally { setAttaching(false); }
   };
 
@@ -4302,7 +4309,7 @@ export function WelcomeEmailPreview({ txId, onClose, onlyPartyId = null }) {
   // the emails as an extra (on top of the contract, never replacing it).
   const attachFile = async (file) => {
     if (!file) return;
-    if (file.size > 10 * 1024 * 1024) { alert("File too large — max 10 MB so it fits as an email attachment."); return; }
+    if (file.size > 10 * 1024 * 1024) { alert(tr("File too large — max 10 MB so it fits as an email attachment.")); return; }
     setAttaching(true);
     try {
       const base64 = await new Promise((resolve, reject) => {
@@ -4319,24 +4326,24 @@ export function WelcomeEmailPreview({ txId, onClose, onlyPartyId = null }) {
       if (d.error) throw new Error(d.error);
       if (d.docId) addExtra(d.docId, file.name, d.documentType);
       await loadPreviews();
-    } catch (e) { alert("Could not attach: " + e.message); }
+    } catch (e) { alert(tr("Could not attach: ") + e.message); }
     finally { setAttaching(false); if (fileRef.current) fileRef.current.value = ""; }
   };
 
   const sendOne = async (p) => {
-    if (!p.partyId) { alert("This recipient can't be sent individually (missing id). Use Send All."); return; }
+    if (!p.partyId) { alert(tr("This recipient can't be sent individually (missing id). Use Send All.")); return; }
     setBusy(true);
     try {
       const r = await fetch(`${API}/transactions/${txId}/parties/${p.partyId}/send-welcome`, { method: "POST", headers: { ...hdrs, "Content-Type": "application/json" }, body: JSON.stringify({ excludeDocIds: excludeList(), extraDocIds: Object.keys(extraDocs) }) });
       const d = await r.json();
       if (!d.success) throw new Error(d.error || "Email was not sent.");
       setSentIds(s => ({ ...s, [p.partyId]: true }));
-    } catch (e) { alert("Could not send: " + e.message); }
+    } catch (e) { alert(tr("Could not send: ") + e.message); }
     finally { setBusy(false); }
   };
 
   const sendAll = async () => {
-    if (!(await askConfirm(`Send all ${previews.length} welcome email(s) now?`, { okLabel: "Send all" }))) return;
+    if (!(await askConfirm(`Send all ${previews.length} welcome email(s) now?`, { okLabel: tr("Send all") }))) return;
     setBusy(true);
     try {
       const r = await fetch(`${API}/transactions/${txId}/send-welcome-emails`, { method: "POST", headers: { ...hdrs, "Content-Type": "application/json" }, body: JSON.stringify({ excludeDocIds: excludeList(), extraDocIds: Object.keys(extraDocs) }) });
@@ -4351,7 +4358,7 @@ export function WelcomeEmailPreview({ txId, onClose, onlyPartyId = null }) {
         alert(`✅ All ${d.emailsSent} welcome email(s) sent.`);
         onClose();
       }
-    } catch (e) { alert("Send all failed: " + e.message); }
+    } catch (e) { alert(tr("Send all failed: ") + e.message); }
     finally { setBusy(false); }
   };
 
@@ -4366,48 +4373,48 @@ export function WelcomeEmailPreview({ txId, onClose, onlyPartyId = null }) {
       <div style={box}>
         <div style={{ padding: "16px 20px", borderBottom: "1px solid " + COLORS.border, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div>
-            <div style={{ fontSize: 16, fontWeight: 800, color: COLORS.navy }}>✉️ Preview Welcome Emails</div>
-            <div style={{ fontSize: 12, color: COLORS.muted }}>Review each email, then Send. Nothing is sent until you click Send.</div>
+            <div style={{ fontSize: 16, fontWeight: 800, color: COLORS.navy }}>{tr("✉️ Preview Welcome Emails")}</div>
+            <div style={{ fontSize: 12, color: COLORS.muted }}>{tr("Review each email, then Send. Nothing is sent until you click Send.")}</div>
           </div>
           <div style={{ display: "flex", gap: 8 }}>
-            {previews.length > 0 && <button onClick={sendAll} disabled={busy || commLocked} title={commLocked ? "Enter the commission first" : undefined} style={{ background: commLocked ? "#9CA3AF" : "#0c4a6e", color: "#fff", border: "none", borderRadius: 8, padding: "9px 16px", fontSize: 13, fontWeight: 700, cursor: commLocked ? "not-allowed" : "pointer", fontFamily: "inherit" }}>{commLocked ? "🔒 Send All" : "Send All"}</button>}
-            <button onClick={onClose} style={{ background: "#fff", color: COLORS.text, border: "1px solid " + COLORS.border, borderRadius: 8, padding: "9px 16px", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>{Object.keys(sentIds).length > 0 ? "Done" : "Cancel — send later"}</button>
+            {previews.length > 0 && <button onClick={sendAll} disabled={busy || commLocked} title={commLocked ? tr("Enter the commission first") : undefined} style={{ background: commLocked ? "#9CA3AF" : "#0c4a6e", color: "#fff", border: "none", borderRadius: 8, padding: "9px 16px", fontSize: 13, fontWeight: 700, cursor: commLocked ? "not-allowed" : "pointer", fontFamily: "inherit" }}>{commLocked ? tr("🔒 Send All") : tr("Send All")}</button>}
+            <button onClick={onClose} style={{ background: "#fff", color: COLORS.text, border: "1px solid " + COLORS.border, borderRadius: 8, padding: "9px 16px", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>{Object.keys(sentIds).length > 0 ? tr("Done") : tr("Cancel — send later")}</button>
           </div>
         </div>
 
         {!loading && commLocked && (
           <div style={{ background: "#FEF2F2", borderBottom: "1px solid #FCA5A5", padding: "12px 20px", display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
             <div style={{ flex: "1 1 260px", fontSize: 13, color: "#991B1B", lineHeight: 1.45 }}>
-              ⚠️ <b>Commission is not entered on this deal.</b> The title company's welcome email includes it for the settlement statement — enter it to unlock Send.
+              ⚠️ <b>{tr("Commission is not entered on this deal.")}</b> {tr("The title company's welcome email includes it for the settlement statement — enter it to unlock Send.")}
             </div>
             {commissionMissing.includes("commission_listing") && (
               <label style={{ fontSize: 12, fontWeight: 700, color: "#991B1B", display: "flex", alignItems: "center", gap: 6 }}>
-                Listing side %
+                {tr("Listing side %")}
                 <input type="number" min="0" max="50" step="0.25" value={commVals.commission_listing ?? ""} onChange={e => setCommVals(v => ({ ...v, commission_listing: e.target.value }))}
                   style={{ width: 74, padding: "7px 8px", borderRadius: 7, border: "1px solid #FCA5A5", fontSize: 14, fontFamily: "inherit" }} />
               </label>
             )}
             {commissionMissing.includes("commission_buyer") && (
               <label style={{ fontSize: 12, fontWeight: 700, color: "#991B1B", display: "flex", alignItems: "center", gap: 6 }}>
-                Buyer's broker %
+                {tr("Buyer's broker %")}
                 <input type="number" min="0" max="50" step="0.25" value={commVals.commission_buyer ?? ""} onChange={e => setCommVals(v => ({ ...v, commission_buyer: e.target.value }))}
                   style={{ width: 74, padding: "7px 8px", borderRadius: 7, border: "1px solid #FCA5A5", fontSize: 14, fontFamily: "inherit" }} />
               </label>
             )}
             <button onClick={saveCommission} disabled={savingComm}
               style={{ background: "#0c4a6e", color: "#fff", border: "none", borderRadius: 8, padding: "9px 16px", fontSize: 13, fontWeight: 700, cursor: savingComm ? "wait" : "pointer", fontFamily: "inherit" }}>
-              {savingComm ? "Saving…" : "Save & unlock"}
+              {savingComm ? tr("Saving…") : tr("Save & unlock")}
             </button>
           </div>
         )}
         {loading ? (
-          <div style={{ padding: 40, textAlign: "center", color: COLORS.muted }}>Building previews…</div>
+          <div style={{ padding: 40, textAlign: "center", color: COLORS.muted }}>{tr("Building previews…")}</div>
         ) : error ? (
           <div style={{ padding: 40, textAlign: "center", color: COLORS.danger }}>{error}</div>
         ) : previews.length === 0 ? (
           <div style={{ padding: 40, textAlign: "center", color: COLORS.muted }}>
-            No emails to send (no parties with valid email addresses).
-            {skipped.length > 0 && <div style={{ marginTop: 8, fontSize: 12 }}>Skipped: {skipped.map(s => `${s.name || s.role} (${s.reason})`).join(", ")}</div>}
+            {tr("No emails to send (no parties with valid email addresses).")}
+            {skipped.length > 0 && <div style={{ marginTop: 8, fontSize: 12 }}>{tr("Skipped:")} {skipped.map(s => `${s.name || s.role} (${s.reason})`).join(", ")}</div>}
           </div>
         ) : (
           <div style={{ display: "flex", flex: 1, minHeight: 0 }}>
@@ -4417,25 +4424,25 @@ export function WelcomeEmailPreview({ txId, onClose, onlyPartyId = null }) {
                 <div key={p.partyId || i} onClick={() => setSel(i)} style={{ padding: "12px 14px", borderBottom: "1px solid " + COLORS.border, cursor: "pointer", background: i === sel ? "#EFF6FF" : "#fff" }}>
                   <div style={{ fontSize: 13, fontWeight: 700, color: COLORS.navy }}>{p.name}</div>
                   <div style={{ fontSize: 11, color: COLORS.muted }}>{p.role} · {p.email}</div>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: sentIds[p.partyId] ? "#1E8449" : COLORS.amber, marginTop: 2 }}>{sentIds[p.partyId] ? "✓ Sent" : "Not sent"}</div>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: sentIds[p.partyId] ? "#1E8449" : COLORS.amber, marginTop: 2 }}>{sentIds[p.partyId] ? tr("✓ Sent") : tr("Not sent")}</div>
                 </div>
               ))}
               {skipped.length > 0 && (
                 <div style={{ padding: "10px 14px", fontSize: 11, color: COLORS.muted }}>
-                  <div style={{ fontWeight: 700, marginBottom: 4 }}>Not emailed</div>
-                  {skipped.map((s, i) => <div key={i}>{s.name || s.role} — {s.reason === "hoa_reference_only" ? "HOA (reference only)" : s.reason === "no_email" ? "no email" : s.reason === "duplicate_email" ? "duplicate (same email already included)" : s.reason}</div>)}
+                  <div style={{ fontWeight: 700, marginBottom: 4 }}>{tr("Not emailed")}</div>
+                  {skipped.map((s, i) => <div key={i}>{s.name || s.role} — {s.reason === "hoa_reference_only" ? tr("HOA (reference only)") : s.reason === "no_email" ? tr("no email") : s.reason === "duplicate_email" ? tr("duplicate (same email already included)") : s.reason}</div>)}
                 </div>
               )}
             </div>
             {/* rendered email */}
             <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
               <div style={{ padding: "10px 16px", borderBottom: "1px solid " + COLORS.border, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
-                <div style={{ fontSize: 13, color: COLORS.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}><strong>To:</strong> {cur?.email} &nbsp; <strong>Subj:</strong> {cur?.subject}</div>
-                <button onClick={() => sendOne(cur)} disabled={busy || commLocked || sentIds[cur?.partyId]} title={commLocked ? "Enter the commission first" : undefined} style={{ background: sentIds[cur?.partyId] || commLocked ? "#9CA3AF" : "#0c4a6e", color: "#fff", border: "none", borderRadius: 8, padding: "8px 18px", fontSize: 13, fontWeight: 700, cursor: sentIds[cur?.partyId] || commLocked ? "default" : "pointer", fontFamily: "inherit", flexShrink: 0 }}>{sentIds[cur?.partyId] ? "✓ Sent" : commLocked ? "🔒 Send" : "Send"}</button>
+                <div style={{ fontSize: 13, color: COLORS.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}><strong>{tr("To:")}</strong> {cur?.email} &nbsp; <strong>{tr("Subj:")}</strong> {cur?.subject}</div>
+                <button onClick={() => sendOne(cur)} disabled={busy || commLocked || sentIds[cur?.partyId]} title={commLocked ? tr("Enter the commission first") : undefined} style={{ background: sentIds[cur?.partyId] || commLocked ? "#9CA3AF" : "#0c4a6e", color: "#fff", border: "none", borderRadius: 8, padding: "8px 18px", fontSize: 13, fontWeight: 700, cursor: sentIds[cur?.partyId] || commLocked ? "default" : "pointer", fontFamily: "inherit", flexShrink: 0 }}>{sentIds[cur?.partyId] ? tr("✓ Sent") : commLocked ? tr("🔒 Send") : tr("Send")}</button>
               </div>
               {/* attachments for this recipient — click name to preview, X to remove */}
               <div style={{ padding: "8px 16px", borderBottom: "1px solid " + COLORS.border, background: "#F9FAFB", display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                <span style={{ fontSize: 12, fontWeight: 700, color: COLORS.muted }}>📎 Attachments:</span>
+                <span style={{ fontSize: 12, fontWeight: 700, color: COLORS.muted }}>{tr("📎 Attachments:")}</span>
                 {(() => {
                   const all = cur?.attachments || [];
                   const active = all.filter(a => !excludedDocs[a.id]);
@@ -4448,23 +4455,23 @@ export function WelcomeEmailPreview({ txId, onClose, onlyPartyId = null }) {
                     <>
                       {extras.map(([id, name]) => (
                         <span key={"x" + id} style={{ fontSize: 12, color: COLORS.text, background: "#fff", border: "1px solid " + COLORS.border, borderRadius: 6, padding: "3px 6px 3px 8px", display: "inline-flex", alignItems: "center", gap: 6 }}>
-                          <span onClick={() => previewDoc(id)} title="Click to preview" style={{ cursor: "pointer", textDecoration: "underline", textDecorationStyle: "dotted" }}>📄 {name}</span>
-                          <button onClick={() => removeExtra(id)} title="Remove from emails" style={{ background: "none", border: "none", color: "#B91C1C", cursor: "pointer", fontSize: 14, fontWeight: 800, lineHeight: 1, padding: "0 2px" }}>×</button>
+                          <span onClick={() => previewDoc(id)} title={tr("Click to preview")} style={{ cursor: "pointer", textDecoration: "underline", textDecorationStyle: "dotted" }}>📄 {name}</span>
+                          <button onClick={() => removeExtra(id)} title={tr("Remove from emails")} style={{ background: "none", border: "none", color: "#B91C1C", cursor: "pointer", fontSize: 14, fontWeight: 800, lineHeight: 1, padding: "0 2px" }}>×</button>
                         </span>
                       ))}
                       {active.length === 0 && removed.length === 0 && extras.length === 0 && (
-                        <span style={{ fontSize: 12, color: COLORS.muted, fontStyle: "italic" }}>None for this recipient{cur && /inspector|hoa/i.test(cur.role || "") ? " (role gets no documents)" : ""}</span>
+                        <span style={{ fontSize: 12, color: COLORS.muted, fontStyle: "italic" }}>{tr("None for this recipient")}{cur && /inspector|hoa/i.test(cur.role || "") ? tr(" (role gets no documents)") : ""}</span>
                       )}
                       {active.map((a) => (
                         <span key={a.id} style={{ fontSize: 12, color: COLORS.text, background: "#fff", border: "1px solid " + COLORS.border, borderRadius: 6, padding: "3px 6px 3px 8px", display: "inline-flex", alignItems: "center", gap: 6 }}>
-                          <span onClick={() => previewDoc(a.id)} title="Click to preview" style={{ cursor: "pointer", textDecoration: "underline", textDecorationStyle: "dotted" }}>📄 {a.name}</span>
-                          <button onClick={() => removeAttachment(a.id)} title="Remove from emails" style={{ background: "none", border: "none", color: "#B91C1C", cursor: "pointer", fontSize: 14, fontWeight: 800, lineHeight: 1, padding: "0 2px" }}>×</button>
+                          <span onClick={() => previewDoc(a.id)} title={tr("Click to preview")} style={{ cursor: "pointer", textDecoration: "underline", textDecorationStyle: "dotted" }}>📄 {a.name}</span>
+                          <button onClick={() => removeAttachment(a.id)} title={tr("Remove from emails")} style={{ background: "none", border: "none", color: "#B91C1C", cursor: "pointer", fontSize: 14, fontWeight: 800, lineHeight: 1, padding: "0 2px" }}>×</button>
                         </span>
                       ))}
                       {removed.map((a) => (
                         <span key={a.id} style={{ fontSize: 12, color: COLORS.muted, background: "#fff", border: "1px dashed " + COLORS.border, borderRadius: 6, padding: "3px 8px", textDecoration: "line-through", display: "inline-flex", alignItems: "center", gap: 6 }}>
                           {a.name}
-                          <button onClick={() => restoreAttachment(a.id)} title="Add back" style={{ background: "none", border: "none", color: "#0c4a6e", cursor: "pointer", fontSize: 11, fontWeight: 700, textDecoration: "none" }}>undo</button>
+                          <button onClick={() => restoreAttachment(a.id)} title={tr("Add back")} style={{ background: "none", border: "none", color: "#0c4a6e", cursor: "pointer", fontSize: 11, fontWeight: 700, textDecoration: "none" }}>{tr("undo")}</button>
                         </span>
                       ))}
                     </>
@@ -4472,36 +4479,36 @@ export function WelcomeEmailPreview({ txId, onClose, onlyPartyId = null }) {
                 })()}
                 <input ref={fileRef} type="file" style={{ display: "none" }} onChange={e => attachFile(e.target.files && e.target.files[0])} />
                 <div style={{ marginLeft: "auto", display: "flex", gap: 6 }}>
-                  <button onClick={() => { setShowDocPicker(true); loadDealDocs(); }} disabled={attaching} style={{ background: "#fff", color: "#1E8449", border: "1px solid #1E8449", borderRadius: 6, padding: "5px 12px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>📁 From this deal</button>
-                  <button onClick={() => fileRef.current && fileRef.current.click()} disabled={attaching} style={{ background: "#fff", color: "#0c4a6e", border: "1px solid #0c4a6e", borderRadius: 6, padding: "5px 12px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>{attaching ? "Attaching…" : "📤 Upload"}</button>
+                  <button onClick={() => { setShowDocPicker(true); loadDealDocs(); }} disabled={attaching} style={{ background: "#fff", color: "#1E8449", border: "1px solid #1E8449", borderRadius: 6, padding: "5px 12px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>{tr("📁 From this deal")}</button>
+                  <button onClick={() => fileRef.current && fileRef.current.click()} disabled={attaching} style={{ background: "#fff", color: "#0c4a6e", border: "1px solid #0c4a6e", borderRadius: 6, padding: "5px 12px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>{attaching ? tr("Attaching…") : tr("📤 Upload")}</button>
                 </div>
               </div>
               {showDocPicker && (
                 <div style={{ padding: "10px 16px", borderBottom: "1px solid " + COLORS.border, background: "#fff" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-                    <span style={{ fontSize: 12.5, fontWeight: 800, color: COLORS.navy }}>Pick a document already on this deal</span>
+                    <span style={{ fontSize: 12.5, fontWeight: 800, color: COLORS.navy }}>{tr("Pick a document already on this deal")}</span>
                     <button onClick={() => setShowDocPicker(false)} style={{ background: "none", border: "none", color: COLORS.muted, fontSize: 16, cursor: "pointer" }}>✕</button>
                   </div>
                   <div style={{ maxHeight: 220, overflowY: "auto" }}>
                     {dealDocs.length === 0 ? (
-                      <div style={{ fontSize: 12, color: COLORS.muted, padding: "4px 0" }}>Loading…</div>
+                      <div style={{ fontSize: 12, color: COLORS.muted, padding: "4px 0" }}>{tr("Loading…")}</div>
                     ) : dealDocs.map(d => (
                       <div key={d.id}
                         style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, width: "100%", padding: "6px 10px", marginBottom: 4, borderRadius: 7, border: "1px solid " + COLORS.border, background: "#fff", boxSizing: "border-box" }}>
                         <span style={{ fontSize: 12.5, color: COLORS.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>📄 {d.name}</span>
                         <span style={{ display: "flex", gap: 6, flexShrink: 0 }}>
-                          <button disabled={attaching} onClick={() => attachExisting(d.id)} title="Send this INSTEAD of the current contract file"
-                            style={{ background: "#fff", color: COLORS.muted, border: "1px solid " + COLORS.border, borderRadius: 6, padding: "4px 8px", fontSize: 11, fontWeight: 600, cursor: attaching ? "default" : "pointer", fontFamily: "inherit" }}>Use as the contract</button>
-                          <button disabled={attaching || !!extraDocs[d.id]} onClick={() => addExtra(d.id, d.name, d.document_type)} title="Add this file to the emails (keeps the others)"
-                            style={{ background: extraDocs[d.id] ? "#E5E7EB" : "#0c4a6e", color: extraDocs[d.id] ? COLORS.muted : "#fff", border: "none", borderRadius: 6, padding: "4px 10px", fontSize: 11.5, fontWeight: 700, cursor: attaching || extraDocs[d.id] ? "default" : "pointer", fontFamily: "inherit" }}>{extraDocs[d.id] ? "✓ Added" : "+ Add"}</button>
+                          <button disabled={attaching} onClick={() => attachExisting(d.id)} title={tr("Send this INSTEAD of the current contract file")}
+                            style={{ background: "#fff", color: COLORS.muted, border: "1px solid " + COLORS.border, borderRadius: 6, padding: "4px 8px", fontSize: 11, fontWeight: 600, cursor: attaching ? "default" : "pointer", fontFamily: "inherit" }}>{tr("Use as the contract")}</button>
+                          <button disabled={attaching || !!extraDocs[d.id]} onClick={() => addExtra(d.id, d.name, d.document_type)} title={tr("Add this file to the emails (keeps the others)")}
+                            style={{ background: extraDocs[d.id] ? "#E5E7EB" : "#0c4a6e", color: extraDocs[d.id] ? COLORS.muted : "#fff", border: "none", borderRadius: 6, padding: "4px 10px", fontSize: 11.5, fontWeight: 700, cursor: attaching || extraDocs[d.id] ? "default" : "pointer", fontFamily: "inherit" }}>{extraDocs[d.id] ? tr("✓ Added") : tr("+ Add")}</button>
                         </span>
                       </div>
                     ))}
                   </div>
-                  <div style={{ fontSize: 11, color: COLORS.muted, marginTop: 6 }}><b>+ Add</b> attaches the file along with the others. <b>Use as the contract</b> swaps it in for the contract file (e.g. the “Fully Executed Contract” package).</div>
+                  <div style={{ fontSize: 11, color: COLORS.muted, marginTop: 6 }}><b>{tr("+ Add")}</b> {tr("attaches the file along with the others.")} <b>{tr("Use as the contract")}</b> {tr("swaps it in for the contract file (e.g. the “Fully Executed Contract” package).")}</div>
                 </div>
               )}
-              <div style={{ padding: "4px 16px", fontSize: 11, color: COLORS.muted, borderBottom: "1px solid " + COLORS.border, background: "#F9FAFB" }}>Removing an attachment (×) applies to everyone — it won't be sent to any party.</div>
+              <div style={{ padding: "4px 16px", fontSize: 11, color: COLORS.muted, borderBottom: "1px solid " + COLORS.border, background: "#F9FAFB" }}>{tr("Removing an attachment (×) applies to everyone — it won't be sent to any party.")}</div>
               {/* Loud guard: this is the deal's INTRO email — sending it to a
                   contract-eligible role with the contract missing is exactly how
                   the title company ended up without the executed contract. */}
@@ -4513,11 +4520,11 @@ export function WelcomeEmailPreview({ txId, onClose, onlyPartyId = null }) {
                 if (!roleGetsDocs || contractAttached) return null;
                 return (
                   <div style={{ padding: "8px 16px", fontSize: 12.5, fontWeight: 700, color: "#991B1B", background: "#FEF2F2", borderBottom: "1px solid #FECACA" }}>
-                    ⚠️ The executed contract is NOT attached to this email{all.some(a => a.isBaseContract) ? " — click “undo” above to add it back" : " — upload it to Documents (Contract Package) or use “+ Attach another file”"}. This recipient likely needs the contract.
+                    {tr("⚠️ The executed contract is NOT attached to this email")}{all.some(a => a.isBaseContract) ? tr(" — click “undo” above to add it back") : tr(" — upload it to Documents (Contract Package) or use “+ Attach another file”")}{tr(". This recipient likely needs the contract.")}
                   </div>
                 );
               })()}
-              <iframe title="email-preview" srcDoc={cur?.html || ""} style={{ flex: 1, width: "100%", border: "none", background: "#fff" }} />
+              <iframe title={tr("email-preview")} srcDoc={cur?.html || ""} style={{ flex: 1, width: "100%", border: "none", background: "#fff" }} />
             </div>
           </div>
         )}
@@ -4566,7 +4573,7 @@ function ListingOffers({ txId, txStatus, txAddress, refreshKey, onReview, onRece
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [busyServer, txId]);
   const withdraw = async (c) => {
-    if (!(await askConfirm(c.status === "sent" ? "Withdraw this counter? Let the buyer's agent know — the app doesn't email them about it." : "Delete this unsent counter?", { okLabel: c.status === "sent" ? "Withdraw counter" : "Delete", danger: true }))) return;
+    if (!(await askConfirm(c.status === "sent" ? tr("Withdraw this counter? Let the buyer's agent know — the app doesn't email them about it.") : tr("Delete this unsent counter?"), { okLabel: c.status === "sent" ? tr("Withdraw counter") : tr("Delete"), danger: true }))) return;
     try {
       const r = await fetch(`${API}/offer-counters/${c.id}/withdraw`, { method: "POST", headers: hdrs });
       if (!r.ok) throw new Error((await r.json()).error || "Failed");
@@ -4611,7 +4618,7 @@ function ListingOffers({ txId, txStatus, txAddress, refreshKey, onReview, onRece
   // Upload the signed copy (seller signed outside the app) into this offer's folder.
   const uploadSigned = async (offerId, file) => {
     if (!file) return;
-    if (file.size > 50 * 1024 * 1024) { alert("File too large (max 50 MB)."); return; }
+    if (file.size > 50 * 1024 * 1024) { alert(tr("File too large (max 50 MB).")); return; }
     setSigningId(offerId);
     try {
       const base64 = await new Promise((resolve, reject) => {
@@ -4637,14 +4644,14 @@ function ListingOffers({ txId, txStatus, txAddress, refreshKey, onReview, onRece
       if (preContract) {
         onReview(offerId);
       } else {
-        alert("Signed copy saved to this offer's folder in Documents.");
+        alert(tr("Signed copy saved to this offer's folder in Documents."));
       }
-    } catch (e) { alert("Could not upload signed copy: " + e.message); }
+    } catch (e) { alert(tr("Could not upload signed copy: ") + e.message); }
     finally { setSigningId(null); }
   };
 
   const reject = async (id) => {
-    if (!(await askConfirm("Reject this offer? This does not change the listing.", { okLabel: "Reject offer", danger: true }))) return;
+    if (!(await askConfirm(tr("Reject this offer? This does not change the listing."), { okLabel: tr("Reject offer"), danger: true }))) return;
     try {
       const r = await fetch(`${API}/contracts/uploads/${id}/reject`, { method: "POST", headers: hdrs });
       const d = await r.json();
@@ -4673,14 +4680,14 @@ function ListingOffers({ txId, txStatus, txAddress, refreshKey, onReview, onRece
   if (loading) return null;
   const howBlock = (
     <div style={{ background: "#fff", border: "1px solid " + COLORS.border, borderRadius: 8, padding: "10px 12px", fontSize: 12.5, color: COLORS.text, lineHeight: 1.55, marginTop: 8 }}>
-      <strong>How offers and counter-offers work here</strong>
+      <strong>{tr("How offers and counter-offers work here")}</strong>
       <ol style={{ margin: "6px 0 0 18px", padding: 0 }}>
-        <li><strong>Received</strong> — the buyer signed the offer; you log it with Receive Offer and the app reads every term.</li>
-        <li><strong>Counter</strong> — you change the terms right on the screen, review the email to the buyer's agent and send it. No seller approval or signature yet.</li>
-        <li><strong>Waiting on the buyer's agent</strong> — they strike &amp; initial your changes or resubmit. Their reply lands here by itself.</li>
-        <li><strong>Check what came back</strong> — compared to the original offer plus only your changes. Anything else that changed is flagged red and must be cleared.</li>
-        <li><strong>Seller signs last</strong> — the app places the seller's initials and signature; you check them and send.</li>
-        <li><strong>Accept</strong> — the listing goes Under Contract with the final terms.</li>
+        <li><strong>{tr("Received")}</strong> {tr("— the buyer signed the offer; you log it with Receive Offer and the app reads every term.")}</li>
+        <li><strong>{tr("Counter")}</strong> {tr("— you change the terms right on the screen, review the email to the buyer's agent and send it. No seller approval or signature yet.")}</li>
+        <li><strong>{tr("Waiting on the buyer's agent")}</strong> {tr("— they strike & initial your changes or resubmit. Their reply lands here by itself.")}</li>
+        <li><strong>{tr("Check what came back")}</strong> {tr("— compared to the original offer plus only your changes. Anything else that changed is flagged red and must be cleared.")}</li>
+        <li><strong>{tr("Seller signs last")}</strong> {tr("— the app places the seller's initials and signature; you check them and send.")}</li>
+        <li><strong>{tr("Accept")}</strong> {tr("— the listing goes Under Contract with the final terms.")}</li>
       </ol>
     </div>
   );
@@ -4688,10 +4695,10 @@ function ListingOffers({ txId, txStatus, txAddress, refreshKey, onReview, onRece
     return (
       <div style={{ background: "#F9FAFB", border: "1px dashed " + COLORS.border, borderRadius: 12, padding: 16 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-          <span style={{ fontSize: 13, color: COLORS.muted }}>No pending offers on this listing yet. When a buyer's agent sends one, tap <strong>Receive Offer</strong> to log it here — then counter, or send it to your seller to sign. <em>(Writing an offer for a buyer you represent? Do it from that buyer's deal. Working both sides of this sale? Log the buyer's offer here with Receive Offer.)</em>{" "}
-            <button onClick={() => setHowOpen(h => !h)} style={{ background: "none", border: "none", color: "#0c4a6e", textDecoration: "underline", cursor: "pointer", fontSize: 12.5, padding: 0, fontFamily: "inherit" }}>{howOpen ? "Hide" : "How offers & counter-offers work"}</button>
+          <span style={{ fontSize: 13, color: COLORS.muted }}>{tr("No pending offers on this listing yet. When a buyer's agent sends one, tap")} <strong>{tr("Receive Offer")}</strong> {tr("to log it here — then counter, or send it to your seller to sign.")} <em>{tr("(Writing an offer for a buyer you represent? Do it from that buyer's deal. Working both sides of this sale? Log the buyer's offer here with Receive Offer.)")}</em>{" "}
+            <button onClick={() => setHowOpen(h => !h)} style={{ background: "none", border: "none", color: "#0c4a6e", textDecoration: "underline", cursor: "pointer", fontSize: 12.5, padding: 0, fontFamily: "inherit" }}>{howOpen ? tr("Hide") : tr("How offers & counter-offers work")}</button>
           </span>
-          <button onClick={onReceiveOffer} style={{ background: "#0c4a6e", border: "none", color: "#fff", borderRadius: 6, padding: "7px 14px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>📥 Receive Offer</button>
+          <button onClick={onReceiveOffer} style={{ background: "#0c4a6e", border: "none", color: "#fff", borderRadius: 6, padding: "7px 14px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>{tr("📥 Receive Offer")}</button>
         </div>
         {howOpen && howBlock}
         {modals}
@@ -4702,29 +4709,29 @@ function ListingOffers({ txId, txStatus, txAddress, refreshKey, onReview, onRece
   const decisionBadge = (d) => {
     if (!d) return null;
     const accepted = d === "accepted";
-    return <span style={{ fontSize: 11, fontWeight: 700, color: "#fff", background: accepted ? "#1E8449" : "#B91C1C", borderRadius: 20, padding: "2px 10px" }}>{accepted ? "✓ Seller accepted" : "Seller declined"}</span>;
+    return <span style={{ fontSize: 11, fontWeight: 700, color: "#fff", background: accepted ? "#1E8449" : "#B91C1C", borderRadius: 20, padding: "2px 10px" }}>{accepted ? tr("✓ Seller accepted") : tr("Seller declined")}</span>;
   };
   const smallBtn = (primary, color) => ({ background: primary ? color : "#fff", border: "1px solid " + color, color: primary ? "#fff" : color, borderRadius: 6, padding: "7px 12px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" });
 
   return (
     <div style={{ background: "#FFFBEB", border: "1px solid #FCD34D", borderRadius: 12, padding: 16 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6, gap: 8, flexWrap: "wrap" }}>
-        <div style={{ fontSize: 14, fontWeight: 800, color: "#92400E" }}>📥 Pending Offers ({offers.length})</div>
+        <div style={{ fontSize: 14, fontWeight: 800, color: "#92400E" }}>{tr("📥 Pending Offers (")}{offers.length})</div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          <button onClick={shareWithSellers} disabled={sharing} style={{ background: "#fff", border: "1px solid #0c4a6e", color: "#0c4a6e", borderRadius: 6, padding: "6px 12px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>{sharing ? "Creating…" : "🔗 Share with Sellers"}</button>
-          <button onClick={onReceiveOffer} style={{ background: "#0c4a6e", border: "none", color: "#fff", borderRadius: 6, padding: "6px 12px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>+ Receive Another Offer</button>
+          <button onClick={shareWithSellers} disabled={sharing} style={{ background: "#fff", border: "1px solid #0c4a6e", color: "#0c4a6e", borderRadius: 6, padding: "6px 12px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>{sharing ? tr("Creating…") : tr("🔗 Share with Sellers")}</button>
+          <button onClick={onReceiveOffer} style={{ background: "#0c4a6e", border: "none", color: "#fff", borderRadius: 6, padding: "6px 12px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>{tr("+ Receive Another Offer")}</button>
         </div>
       </div>
       <div style={{ fontSize: 12, color: "#7A5C00", marginBottom: 10 }}>
-        Each offer shows its step and what to do next. <button onClick={() => setHowOpen(h => !h)} style={{ background: "none", border: "none", color: "#0c4a6e", textDecoration: "underline", cursor: "pointer", fontSize: 12, padding: 0, fontFamily: "inherit" }}>{howOpen ? "Hide" : "How offers & counter-offers work"}</button>
+        {tr("Each offer shows its step and what to do next.")} <button onClick={() => setHowOpen(h => !h)} style={{ background: "none", border: "none", color: "#0c4a6e", textDecoration: "underline", cursor: "pointer", fontSize: 12, padding: 0, fontFamily: "inherit" }}>{howOpen ? tr("Hide") : tr("How offers & counter-offers work")}</button>
         {howOpen && howBlock}
       </div>
       {shareUrl && (
         <div style={{ background: "#fff", border: "1px solid #1E8449", borderRadius: 8, padding: 12, marginBottom: 10 }}>
-          <div style={{ fontSize: 12, color: "#166534", marginBottom: 6, fontWeight: 600 }}>Send this secure link to your seller(s). They'll see all offers side by side and mark Accept/Decline — their choice shows here. You can re-send it any time; nothing is final until you Accept an offer.</div>
+          <div style={{ fontSize: 12, color: "#166534", marginBottom: 6, fontWeight: 600 }}>{tr("Send this secure link to your seller(s). They'll see all offers side by side and mark Accept/Decline — their choice shows here. You can re-send it any time; nothing is final until you Accept an offer.")}</div>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
             <input readOnly value={shareUrl} onFocus={e => e.target.select()} style={{ flex: 1, minWidth: 200, fontSize: 12, padding: "8px 10px", border: "1px solid " + COLORS.border, borderRadius: 6, fontFamily: "inherit" }} />
-            <button onClick={copyShare} style={{ background: copied ? "#1E8449" : COLORS.navy, color: "#fff", border: "none", borderRadius: 6, padding: "8px 16px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>{copied ? "✓ Copied" : "Copy"}</button>
+            <button onClick={copyShare} style={{ background: copied ? "#1E8449" : COLORS.navy, color: "#fff", border: "none", borderRadius: 6, padding: "8px 16px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>{copied ? tr("✓ Copied") : tr("Copy")}</button>
           </div>
         </div>
       )}
@@ -4747,24 +4754,24 @@ function ListingOffers({ txId, txStatus, txAddress, refreshKey, onReview, onRece
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, flexWrap: "wrap" }}>
               <div style={{ fontSize: 13, color: COLORS.text }}>
                 <div style={{ fontWeight: 700, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                  {t.contract_price ? "$" + Number(t.contract_price).toLocaleString() : (ready ? "Price not read" : "Processing…")}
-                  {isReply && <span style={{ fontSize: 11, fontWeight: 700, color: "#fff", background: "#0c4a6e", borderRadius: 20, padding: "2px 10px" }}>Revised after your counter</span>}
+                  {t.contract_price ? "$" + Number(t.contract_price).toLocaleString() : (ready ? tr("Price not read") : tr("Processing…"))}
+                  {isReply && <span style={{ fontSize: 11, fontWeight: 700, color: "#fff", background: "#0c4a6e", borderRadius: 20, padding: "2px 10px" }}>{tr("Revised after your counter")}</span>}
                   {decisionBadge(o.seller_decision)}
                 </div>
                 <div style={{ color: COLORS.muted, fontSize: 12 }}>
-                  {!ready ? "reading contract…" : (
+                  {!ready ? tr("reading contract…") : (
                     buyer?.name || buyerAgent?.name ? (
                       <>
-                        {buyer?.name && <span><strong>Buyer:</strong> {buyer.name}</span>}
+                        {buyer?.name && <span><strong>{tr("Buyer:")}</strong> {buyer.name}</span>}
                         {buyer?.name && buyerAgent?.name && <span> · </span>}
-                        {buyerAgent?.name && <span><strong>Buyer's Agent:</strong> {buyerAgent.name}{buyerAgent.company ? ` (${buyerAgent.company})` : ""}</span>}
+                        {buyerAgent?.name && <span><strong>{tr("Buyer's Agent:")}</strong> {buyerAgent.name}{buyerAgent.company ? ` (${buyerAgent.company})` : ""}</span>}
                       </>
-                    ) : (o.original_filename || "Offer")
+                    ) : (o.original_filename || tr("Offer"))
                   )}
                 </div>
                 {o.created_at && (
                   <div style={{ marginTop: 4, fontSize: 11, fontWeight: 700, color: "#0c4a6e" }}>
-                    📥 Received {new Date(o.created_at).toLocaleString("en-US", { timeZone: "America/New_York", month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" })} ET
+                    {tr("📥 Received")} {new Date(o.created_at).toLocaleString(uiLocale(), { timeZone: "America/New_York", month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" })} {tr("ET")}
                   </div>
                 )}
                 {(() => {
@@ -4779,7 +4786,7 @@ function ListingOffers({ txId, txStatus, txAddress, refreshKey, onReview, onRece
                   const label = expired ? `Offer expired ${Math.abs(days)}d ago` : days === 0 ? "Must accept by today" : `Must accept in ${days}d`;
                   return (
                     <div style={{ marginTop: 4, fontSize: 11, fontWeight: 700, color: expired ? "#B91C1C" : urgent ? "#B7770D" : COLORS.muted }}>
-                      ⏰ {label} <span style={{ fontWeight: 400 }}>({new Date(dl + "T00:00:00").toLocaleDateString()})</span>
+                      ⏰ {tr(label)} <span style={{ fontWeight: 400 }}>({new Date(dl + "T00:00:00").toLocaleDateString()})</span>
                     </div>
                   );
                 })()}
@@ -4787,9 +4794,9 @@ function ListingOffers({ txId, txStatus, txAddress, refreshKey, onReview, onRece
                   const signedOnFile = o.has_signed_copy || o.contract_doc_on_file;
                   return (
                     <div style={{ marginTop: 4, fontSize: 11, fontWeight: 700, color: signedOnFile ? "#1E8449" : COLORS.muted }}>
-                      {o.has_signed_copy ? "✓ Seller's signed copy on file"
-                        : o.contract_doc_on_file ? "✓ Contract on file (in Documents)"
-                        : "✎ Seller hasn't signed yet (the seller signs last)"}
+                      {o.has_signed_copy ? tr("✓ Seller's signed copy on file")
+                        : o.contract_doc_on_file ? tr("✓ Contract on file (in Documents)")
+                        : tr("✎ Seller hasn't signed yet (the seller signs last)")}
                     </div>
                   );
                 })()}
@@ -4797,30 +4804,30 @@ function ListingOffers({ txId, txStatus, txAddress, refreshKey, onReview, onRece
               </div>
             </div>
             {countersLoaded ? <><StepTracker step={st.step} tone={st.tone} /><NextLine state={st} /></>
-              : <div style={{ marginTop: 8, fontSize: 12, color: COLORS.muted }}>Loading this offer's status…</div>}
+              : <div style={{ marginTop: 8, fontSize: 12, color: COLORS.muted }}>{tr("Loading this offer's status…")}</div>}
             {maybeReply && (
               <div style={{ marginTop: 8, background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 8, padding: "8px 10px", fontSize: 12.5, color: "#0c4a6e" }}>
-                Is this the reply to your counter (round {maybeReply.round})? <button onClick={() => linkAsReply(maybeReply, o.id)} style={{ ...smallBtn(true, "#0c4a6e"), padding: "4px 10px", marginLeft: 6 }}>Yes — check it against my counter</button>
+                {tr("Is this the reply to your counter (round")} {maybeReply.round})? <button onClick={() => linkAsReply(maybeReply, o.id)} style={{ ...smallBtn(true, "#0c4a6e"), padding: "4px 10px", marginLeft: 6 }}>{tr("Yes — check it against my counter")}</button>
               </div>
             )}
             {/* One main button per step, then the less common actions. */}
             {countersLoaded && <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end", marginTop: 10 }}>
               <input ref={el => signedRefs.current[o.id] = el} type="file" accept=".pdf,.doc,.docx,image/*" style={{ display: "none" }} onChange={e => uploadSigned(o.id, e.target.files && e.target.files[0])} />
-              {ready && st.step === 0 && <button onClick={() => setCounterFor(o.id)} style={smallBtn(true, COLORS.red)}>🔁 Counter</button>}
-              {ready && st.step === 0 && <button onClick={() => setSignTarget({ uploadId: o.id })} style={smallBtn(false, "#1E8449")}>✍️ Send to seller to sign (accept as-is)</button>}
-              {st.step === 1 && c && <button onClick={() => setCounterFor(o.id)} style={smallBtn(true, COLORS.red)}>Continue counter → send</button>}
-              {st.step === 1 && c && <button onClick={() => withdraw(c)} style={smallBtn(false, "#555")}>Delete counter</button>}
-              {st.step === 2 && c && c.status === "sent" && <button onClick={onReceiveOffer} style={smallBtn(true, "#0c4a6e")}>⤴ Upload the revised offer</button>}
-              {st.step === 2 && c && <button onClick={() => setPickFor(c)} style={smallBtn(false, "#0c4a6e")}>📁 It's in Documents — pick it</button>}
-              {st.step === 2 && c && c.status === "expired" && <button onClick={() => counterAgain(c)} style={smallBtn(true, COLORS.red)}>🔁 Counter again</button>}
-              {st.step === 2 && c && c.status === "sent" && <button onClick={() => withdraw(c)} style={smallBtn(false, "#555")}>Withdraw counter</button>}
-              {st.step === 3 && c && c.checkStatus === "done" && <button onClick={() => setReviewCounter(c)} style={smallBtn(true, COLORS.red)}>🔎 Review what came back</button>}
-              {st.step === 4 && c && c.status === "checked" && <button onClick={() => setSignTarget({ counterId: c.id })} style={smallBtn(true, "#1E8449")}>✍️ Send to seller to sign</button>}
-              {st.step === 4 && c && c.status === "checked" && <button onClick={() => setReviewCounter(c)} style={smallBtn(false, "#0c4a6e")}>Review what came back</button>}
-              {st.step === 5 && <button onClick={() => onReview(o.id)} style={smallBtn(true, "#1E8449")}>✅ Accept &amp; go Under Contract</button>}
-              {ready && st.step !== 5 && <button onClick={() => onReview(o.id)} style={smallBtn(false, COLORS.navy)}>Review terms</button>}
-              <button onClick={() => signedRefs.current[o.id] && signedRefs.current[o.id].click()} disabled={signingId === o.id} style={smallBtn(false, COLORS.navy)} title="Seller signed outside the app? Upload the signed copy.">{signingId === o.id ? "Uploading…" : ((o.has_signed_copy || o.contract_doc_on_file) ? "Replace signed copy" : "⤴ Upload signed copy")}</button>
-              <button onClick={() => reject(o.id)} style={{ background: "#fff", border: "1px solid #E5E7EB", color: "#B91C1C", borderRadius: 6, padding: "7px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Reject</button>
+              {ready && st.step === 0 && <button onClick={() => setCounterFor(o.id)} style={smallBtn(true, COLORS.red)}>{tr("🔁 Counter")}</button>}
+              {ready && st.step === 0 && <button onClick={() => setSignTarget({ uploadId: o.id })} style={smallBtn(false, "#1E8449")}>{tr("✍️ Send to seller to sign (accept as-is)")}</button>}
+              {st.step === 1 && c && <button onClick={() => setCounterFor(o.id)} style={smallBtn(true, COLORS.red)}>{tr("Continue counter → send")}</button>}
+              {st.step === 1 && c && <button onClick={() => withdraw(c)} style={smallBtn(false, "#555")}>{tr("Delete counter")}</button>}
+              {st.step === 2 && c && c.status === "sent" && <button onClick={onReceiveOffer} style={smallBtn(true, "#0c4a6e")}>{tr("⤴ Upload the revised offer")}</button>}
+              {st.step === 2 && c && <button onClick={() => setPickFor(c)} style={smallBtn(false, "#0c4a6e")}>{tr("📁 It's in Documents — pick it")}</button>}
+              {st.step === 2 && c && c.status === "expired" && <button onClick={() => counterAgain(c)} style={smallBtn(true, COLORS.red)}>{tr("🔁 Counter again")}</button>}
+              {st.step === 2 && c && c.status === "sent" && <button onClick={() => withdraw(c)} style={smallBtn(false, "#555")}>{tr("Withdraw counter")}</button>}
+              {st.step === 3 && c && c.checkStatus === "done" && <button onClick={() => setReviewCounter(c)} style={smallBtn(true, COLORS.red)}>{tr("🔎 Review what came back")}</button>}
+              {st.step === 4 && c && c.status === "checked" && <button onClick={() => setSignTarget({ counterId: c.id })} style={smallBtn(true, "#1E8449")}>{tr("✍️ Send to seller to sign")}</button>}
+              {st.step === 4 && c && c.status === "checked" && <button onClick={() => setReviewCounter(c)} style={smallBtn(false, "#0c4a6e")}>{tr("Review what came back")}</button>}
+              {st.step === 5 && <button onClick={() => onReview(o.id)} style={smallBtn(true, "#1E8449")}>{tr("✅ Accept & go Under Contract")}</button>}
+              {ready && st.step !== 5 && <button onClick={() => onReview(o.id)} style={smallBtn(false, COLORS.navy)}>{tr("Review terms")}</button>}
+              <button onClick={() => signedRefs.current[o.id] && signedRefs.current[o.id].click()} disabled={signingId === o.id} style={smallBtn(false, COLORS.navy)} title={tr("Seller signed outside the app? Upload the signed copy.")}>{signingId === o.id ? tr("Uploading…") : ((o.has_signed_copy || o.contract_doc_on_file) ? tr("Replace signed copy") : tr("⤴ Upload signed copy"))}</button>
+              <button onClick={() => reject(o.id)} style={{ background: "#fff", border: "1px solid #E5E7EB", color: "#B91C1C", borderRadius: 6, padding: "7px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>{tr("Reject")}</button>
             </div>}
           </div>
         );
@@ -4850,7 +4857,7 @@ function ActiveFollowups({ txId }) {
   useEffect(() => { load(); }, [txId]);
 
   const stop = async (chase) => {
-    if (!(await askConfirm(`Stop the automated follow-up for "${chase.label}" to ${chase.target_party_name || "this party"}?\n\nNo more reminder emails or texts will be sent for it.`, { okLabel: "Stop follow-up" }))) return;
+    if (!(await askConfirm(`Stop the automated follow-up for "${chase.label}" to ${chase.target_party_name || "this party"}?\n\nNo more reminder emails or texts will be sent for it.`, { okLabel: tr("Stop follow-up") }))) return;
     setStopping(chase.id);
     try {
       const res = await fetch(API + "/chases/" + chase.id + "/stop", {
@@ -4860,8 +4867,8 @@ function ActiveFollowups({ txId }) {
       });
       const data = await res.json();
       if (data.success) setChases(prev => prev.filter(c => c.id !== chase.id));
-      else alert("Could not stop follow-up: " + (data.error || "unknown"));
-    } catch (e) { alert("Could not stop follow-up. Please try again."); }
+      else alert(tr("Could not stop follow-up: ") + (data.error || tr("unknown")));
+    } catch (e) { alert(tr("Could not stop follow-up. Please try again.")); }
     setStopping(null);
   };
 
@@ -4869,17 +4876,17 @@ function ActiveFollowups({ txId }) {
 
   return (
     <div style={{ background: "#FEF6F4", border: "1px solid #F0C9C0", borderRadius: 10, padding: 14, marginBottom: 16 }}>
-      <div style={{ fontSize: 12, fontWeight: 700, color: "#C0392B", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 10 }}>🔔 Active Follow-Ups ({chases.length})</div>
+      <div style={{ fontSize: 12, fontWeight: 700, color: "#C0392B", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 10 }}>{tr("🔔 Active Follow-Ups (")}{chases.length})</div>
       {chases.map(c => (
         <div key={c.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, padding: "8px 0", borderTop: "1px solid #F5DAD3" }}>
           <div style={{ minWidth: 0 }}>
-            <div style={{ fontSize: 14, fontWeight: 600, color: COLORS.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.label}</div>
+            <div style={{ fontSize: 14, fontWeight: 600, color: COLORS.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{tr(c.label)}</div>
             <div style={{ fontSize: 12, color: COLORS.muted }}>
-              To {c.target_party_name || c.target_party_email}{c.target_party_role ? " (" + c.target_party_role + ")" : ""} · {c.nudge_count} of {c.max_nudges} reminders sent
+              {tr("To")} {c.target_party_name || c.target_party_email}{c.target_party_role ? " (" + c.target_party_role + ")" : ""} · {c.nudge_count} {tr("of")} {c.max_nudges} {tr("reminders sent")}
             </div>
           </div>
           <button onClick={() => stop(c)} disabled={stopping === c.id} style={{ flexShrink: 0, background: "#fff", border: "1px solid #C0392B", color: "#C0392B", borderRadius: 6, padding: "6px 12px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
-            {stopping === c.id ? "Stopping…" : "Stop"}
+            {stopping === c.id ? tr("Stopping…") : tr("Stop")}
           </button>
         </div>
       ))}
@@ -4931,40 +4938,40 @@ function MarketingLogPanel({ tx }) {
       });
       const d = await res.json();
       if (d.success) { setItems(prev => [d.item, ...prev]); setCustom(""); }
-      else alert("Could not save: " + (d.error || "unknown"));
-    } catch (e) { alert("Could not save. Try again."); }
+      else alert(tr("Could not save: ") + (d.error || tr("unknown")));
+    } catch (e) { alert(tr("Could not save. Try again.")); }
     setAdding(false);
   };
   const remove = async (id) => {
-    if (!(await askConfirm("Remove this marketing entry? The seller will no longer see it.", { okLabel: "Remove", danger: true }))) return;
+    if (!(await askConfirm(tr("Remove this marketing entry? The seller will no longer see it."), { okLabel: tr("Remove"), danger: true }))) return;
     try {
       const res = await fetch(API + "/transactions/" + tx.id + "/marketing/" + id, { method: "DELETE", headers: hdrs });
       const d = await res.json();
       if (d.success) setItems(prev => prev.filter(i => i.id !== id));
-    } catch (e) { alert("Could not remove. Try again."); }
+    } catch (e) { alert(tr("Could not remove. Try again.")); }
   };
   return (
     <div style={{ background: "#fff", border: `1px solid ${COLORS.border}`, borderRadius: 12, padding: 20, marginBottom: 20 }}>
-      <h3 style={{ margin: "0 0 6px", fontSize: 14, color: COLORS.navy, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em" }}>📣 Marketing Log</h3>
-      <div style={{ fontSize: 12, color: COLORS.muted, marginBottom: 12 }}>Tap to log your completed marketing activities for this home. Each entry appears in the seller's portal, giving them a clear record of your work.</div>
+      <h3 style={{ margin: "0 0 6px", fontSize: 14, color: COLORS.navy, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em" }}>{tr("📣 Marketing Log")}</h3>
+      <div style={{ fontSize: 12, color: COLORS.muted, marginBottom: 12 }}>{tr("Tap to log your completed marketing activities for this home. Each entry appears in the seller's portal, giving them a clear record of your work.")}</div>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 12 }}>
         {MKT_PRESETS.map(p => (
-          <button key={p.type} onClick={() => add(p.type, p.label)} disabled={adding} style={{ background: COLORS.bg, border: `1px solid ${COLORS.border}`, color: COLORS.text, borderRadius: 16, padding: "6px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>+ {p.label}</button>
+          <button key={p.type} onClick={() => add(p.type, p.label)} disabled={adding} style={{ background: COLORS.bg, border: `1px solid ${COLORS.border}`, color: COLORS.text, borderRadius: 16, padding: "6px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>+ {tr(p.label)}</button>
         ))}
       </div>
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginBottom: 16 }}>
-        <input value={custom} onChange={e => setCustom(e.target.value)} placeholder="Something else you did…" style={{ flex: "1 1 200px", fontSize: 14, padding: "9px 12px", border: `1px solid ${COLORS.border}`, borderRadius: 8, fontFamily: "inherit" }} />
+        <input value={custom} onChange={e => setCustom(e.target.value)} placeholder={tr("Something else you did…")} style={{ flex: "1 1 200px", fontSize: 14, padding: "9px 12px", border: `1px solid ${COLORS.border}`, borderRadius: 8, fontFamily: "inherit" }} />
         <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: COLORS.muted, fontWeight: 600 }}>
-          Date done
+          {tr("Date done")}
           <input type="date" value={date} max={today()} onChange={e => setDate(e.target.value)} style={{ fontSize: 13, padding: "9px 10px", border: `1px solid ${COLORS.border}`, borderRadius: 8, fontFamily: "inherit" }} />
         </label>
-        <button onClick={() => add("action", custom)} disabled={adding || !custom.trim()} style={{ background: "#0c4a6e", color: "#fff", border: "none", borderRadius: 8, padding: "10px 16px", fontSize: 13, fontWeight: 700, cursor: custom.trim() ? "pointer" : "default", opacity: custom.trim() ? 1 : 0.5, fontFamily: "inherit" }}>Add</button>
+        <button onClick={() => add("action", custom)} disabled={adding || !custom.trim()} style={{ background: "#0c4a6e", color: "#fff", border: "none", borderRadius: 8, padding: "10px 16px", fontSize: 13, fontWeight: 700, cursor: custom.trim() ? "pointer" : "default", opacity: custom.trim() ? 1 : 0.5, fontFamily: "inherit" }}>{tr("Add")}</button>
       </div>
-      {loading ? <div style={{ fontSize: 13, color: COLORS.muted }}>Loading…</div>
-        : items.length === 0 ? <div style={{ fontSize: 13, color: COLORS.muted }}>No marketing logged yet — tap a button above to add the first.</div>
+      {loading ? <div style={{ fontSize: 13, color: COLORS.muted }}>{tr("Loading…")}</div>
+        : items.length === 0 ? <div style={{ fontSize: 13, color: COLORS.muted }}>{tr("No marketing logged yet — tap a button above to add the first.")}</div>
         : items.map(it => (
           <div key={it.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, padding: "8px 0", borderTop: `1px solid ${COLORS.bg}` }}>
-            <div><span style={{ fontSize: 14, fontWeight: 600, color: COLORS.text }}>{it.label}</span><span style={{ fontSize: 12, color: COLORS.muted }}> · {formatDate(it.activity_date)}</span></div>
+            <div><span style={{ fontSize: 14, fontWeight: 600, color: COLORS.text }}>{tr(it.label)}</span><span style={{ fontSize: 12, color: COLORS.muted }}> · {formatDate(it.activity_date)}</span></div>
             <button onClick={() => remove(it.id)} style={{ flexShrink: 0, background: "none", border: "none", color: COLORS.muted, fontSize: 16, cursor: "pointer" }}>✕</button>
           </div>
         ))}
@@ -5045,7 +5052,7 @@ function InboundRepliesPanel({ tx, coordinatorMode = false, onInboundRead }) {
         : "📎 Moved back to General" }));
       await loadMessages();
       try { window.dispatchEvent(new CustomEvent("deals:refresh")); } catch { /* ignore */ }
-    } catch (e) { alert(e.message || "Could not file that attachment."); }
+    } catch (e) { alert(e.message || tr("Could not file that attachment.")); }
     setFiling(f => ({ ...f, [k]: false }));
   };
 
@@ -5054,8 +5061,8 @@ function InboundRepliesPanel({ tx, coordinatorMode = false, onInboundRead }) {
       const r = await fetch(`${API}/inbound-emails/${msgId}/attachment/${idx}`, { headers: { Authorization: "Bearer " + tok } });
       const d = await r.json();
       if (d.url) window.open(d.url, "_blank");
-      else alert("Could not open that attachment.");
-    } catch { alert("Could not open that attachment."); }
+      else alert(tr("Could not open that attachment."));
+    } catch { alert(tr("Could not open that attachment.")); }
   };
 
   // The deal's own email address — give it to any third party (title, lender,
@@ -5076,13 +5083,13 @@ function InboundRepliesPanel({ tx, coordinatorMode = false, onInboundRead }) {
   };
   const captureBanner = captureAddr ? (
     <div style={{ background: "#F0FDF4", border: "1px solid #BBF7D0", borderRadius: 12, padding: "12px 14px", marginBottom: 4 }}>
-      <div style={{ fontSize: 12, fontWeight: 800, color: "#166534", marginBottom: 4 }}>📧 THIS DEAL'S EMAIL ADDRESS</div>
+      <div style={{ fontSize: 12, fontWeight: 800, color: "#166534", marginBottom: 4 }}>{tr("📧 THIS DEAL'S EMAIL ADDRESS")}</div>
       <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
         <code style={{ fontSize: 13, color: "#14532D", wordBreak: "break-all" }}>{captureAddr}</code>
-        <button onClick={copyCaptureAddr} style={{ fontSize: 12, padding: "4px 10px", borderRadius: 8, border: "1px solid #0c4a6e", background: "#fff", color: "#0c4a6e", fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>{copied ? "✅ Copied" : "Copy"}</button>
+        <button onClick={copyCaptureAddr} style={{ fontSize: 12, padding: "4px 10px", borderRadius: 8, border: "1px solid #0c4a6e", background: "#fff", color: "#0c4a6e", fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>{copied ? tr("✅ Copied") : tr("Copy")}</button>
       </div>
       <div style={{ fontSize: 12, color: "#166534", marginTop: 6, lineHeight: 1.5 }}>
-        Give this to the title company, lender, or anyone on the deal — or CC it on any email about this property. Every message sent to it lands here automatically, so the AI always has the full picture.
+        {tr("Give this to the title company, lender, or anyone on the deal — or CC it on any email about this property. Every message sent to it lands here automatically, so the AI always has the full picture.")}
       </div>
     </div>
   ) : null;
@@ -5105,8 +5112,8 @@ function InboundRepliesPanel({ tx, coordinatorMode = false, onInboundRead }) {
       const res = await fetch(`${API}/documents/upload`, { method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + tok }, body: JSON.stringify({ transactionId: tx.id, fileName: file.name, fileType: file.type, category: "Email Attachments", base64 }) });
       const d = await res.json();
       if (d.success && d.docId) { setAttach(prev => [...prev, { id: d.docId, name: file.name }]); setDocList(null); }
-      else alert("Upload failed: " + (d.error || "unknown error"));
-    } catch (e) { alert("Upload error: " + e.message); }
+      else alert(tr("Upload failed: ") + (d.error || tr("unknown error")));
+    } catch (e) { alert(tr("Upload error: ") + e.message); }
     setUploading(false);
   };
 
@@ -5119,7 +5126,7 @@ function InboundRepliesPanel({ tx, coordinatorMode = false, onInboundRead }) {
     const isSms = m.channel === "sms";
     const toPhone = m.from_phone;
     const toEmail = m.from_email;
-    if (isSms ? !toPhone : !toEmail) { alert(isSms ? "No phone number to text back." : "No email address to respond to."); return; }
+    if (isSms ? !toPhone : !toEmail) { alert(isSms ? tr("No phone number to text back.") : tr("No email address to respond to.")); return; }
     setSending(true);
     try {
       const attachDocIds = attach.map(a => a.id);
@@ -5171,18 +5178,18 @@ function InboundRepliesPanel({ tx, coordinatorMode = false, onInboundRead }) {
       const d = await r.json(); if (!r.ok) throw new Error(d.error || "Failed");
       setReassignFor(null);
       setMessages(prev => prev.filter(x => x.id !== msgId));  // moved off this deal
-      alert("Moved to the selected deal.");
+      alert(tr("Moved to the selected deal."));
     } catch (e) { alert("⚠️ " + e.message); }
   };
 
-  if (loading) return <div style={{ padding: 24, color: COLORS.gray }}>Loading replies…</div>;
+  if (loading) return <div style={{ padding: 24, color: COLORS.gray }}>{tr("Loading replies…")}</div>;
   if (!messages.length) return (
     <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
       {captureBanner}
       <div style={{ background: "#fff", border: `1px solid ${COLORS.border}`, borderRadius: 12, padding: 28, textAlign: "center", color: COLORS.gray }}>
         <div style={{ fontSize: 34, marginBottom: 8 }}>💬</div>
-        <div style={{ fontWeight: 700, color: COLORS.navy, marginBottom: 4 }}>No replies yet</div>
-        <div style={{ fontSize: 13 }}>When a party replies to one of your automated emails or texts, their message shows up here.</div>
+        <div style={{ fontWeight: 700, color: COLORS.navy, marginBottom: 4 }}>{tr("No replies yet")}</div>
+        <div style={{ fontSize: 13 }}>{tr("When a party replies to one of your automated emails or texts, their message shows up here.")}</div>
       </div>
     </div>
   );
@@ -5203,9 +5210,9 @@ function InboundRepliesPanel({ tx, coordinatorMode = false, onInboundRead }) {
           <div key={m.id} style={{ background: "#fff", border: `1px solid ${COLORS.border}`, borderRadius: 12, padding: 18 }}>
             <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 6, marginBottom: 8 }}>
               <div>
-                {!m.read_at && m.status === "received" && <span style={{ marginRight: 8, fontSize: 11, fontWeight: 800, background: "#C0392B", color: "#fff", padding: "2px 8px", borderRadius: 20 }}>● NEW</span>}
-                <span style={{ marginRight: 8, fontSize: 11, fontWeight: 700, background: m.channel === "sms" ? "#E0F2FE" : m.channel === "chat" ? "#EDE9FE" : "#F3F4F6", color: m.channel === "sms" ? "#0369A1" : m.channel === "chat" ? "#6D28D9" : "#374151", padding: "2px 8px", borderRadius: 6 }}>{m.channel === "sms" ? "📱 Text" : m.channel === "chat" ? "💬 Chat" : "📧 Email"}</span>
-                <span style={{ fontWeight: 700, color: COLORS.navy }}>{m.from_name || m.from_phone || m.from_email || "A party"}</span>
+                {!m.read_at && m.status === "received" && <span style={{ marginRight: 8, fontSize: 11, fontWeight: 800, background: "#C0392B", color: "#fff", padding: "2px 8px", borderRadius: 20 }}>{tr("● NEW")}</span>}
+                <span style={{ marginRight: 8, fontSize: 11, fontWeight: 700, background: m.channel === "sms" ? "#E0F2FE" : m.channel === "chat" ? "#EDE9FE" : "#F3F4F6", color: m.channel === "sms" ? "#0369A1" : m.channel === "chat" ? "#6D28D9" : "#374151", padding: "2px 8px", borderRadius: 6 }}>{m.channel === "sms" ? tr("📱 Text") : m.channel === "chat" ? tr("💬 Chat") : tr("📧 Email")}</span>
+                <span style={{ fontWeight: 700, color: COLORS.navy }}>{m.from_name || m.from_phone || m.from_email || tr("A party")}</span>
                 {m.party_role && <span style={{ marginLeft: 8, fontSize: 12, background: COLORS.bg, color: COLORS.gray, padding: "2px 8px", borderRadius: 6 }}>{m.party_role}</span>}
               </div>
               <span style={{ fontSize: 12, color: COLORS.gray }}>{when}</span>
@@ -5214,14 +5221,14 @@ function InboundRepliesPanel({ tx, coordinatorMode = false, onInboundRead }) {
             {/* Shared-number guess flag: this person is on 2+ deals — let the agent move it */}
             {m.ambiguous && (
               <div style={{ background: "#FFF7ED", border: "1px solid #FED7AA", borderRadius: 8, padding: "8px 10px", marginBottom: 8, fontSize: 13, color: "#9A3412" }}>
-                ⚠️ This person is on more than one of your deals — we filed this text here as our best guess.{" "}
-                <button onClick={() => openReassign(m.id)} style={{ background: "none", border: "none", color: COLORS.navy, textDecoration: "underline", cursor: "pointer", fontWeight: 700, fontSize: 13, padding: 0 }}>Move to another deal</button>
+                {tr("⚠️ This person is on more than one of your deals — we filed this text here as our best guess.")}{" "}
+                <button onClick={() => openReassign(m.id)} style={{ background: "none", border: "none", color: COLORS.navy, textDecoration: "underline", cursor: "pointer", fontWeight: 700, fontSize: 13, padding: 0 }}>{tr("Move to another deal")}</button>
                 {reassignFor === m.id && (
                   <div style={{ marginTop: 8 }}>
-                    {dealList === null ? <span style={{ color: COLORS.gray }}>Loading your deals…</span>
+                    {dealList === null ? <span style={{ color: COLORS.gray }}>{tr("Loading your deals…")}</span>
                      : <select defaultValue="" onChange={e => e.target.value && reassign(m.id, e.target.value)} style={{ padding: "8px 10px", borderRadius: 8, border: `1px solid ${COLORS.border}`, fontSize: 14, fontFamily: "inherit", maxWidth: "100%" }}>
-                         <option value="" disabled>Pick the right deal…</option>
-                         {dealList.filter(d => d.id !== tx.id).map(d => <option key={d.id} value={d.id}>{d.address}</option>)}
+                         <option value="" disabled>{tr("Pick the right deal…")}</option>
+                         {dealList.filter(d => d.id !== tx.id).map(d => <option key={d.id} value={d.id}>{tr(d.address)}</option>)}
                        </select>}
                   </div>
                 )}
@@ -5233,21 +5240,21 @@ function InboundRepliesPanel({ tx, coordinatorMode = false, onInboundRead }) {
               ? <div style={{ whiteSpace: "pre-wrap", color: "#333", fontSize: 14, lineHeight: 1.5 }}>{m.body_text || m.snippet}</div>
               : (
                 <div style={{ fontSize: 13, color: COLORS.gray }}>
-                  <span style={{ fontStyle: "italic" }}>No readable text was extracted from this reply.</span>{" "}
+                  <span style={{ fontStyle: "italic" }}>{tr("No readable text was extracted from this reply.")}</span>{" "}
                   <button onClick={async () => {
                     try {
                       const r = await fetch(`${API}/inbound-emails/${m.id}/raw`, { headers: { Authorization: "Bearer " + tok } });
                       const d = await r.json();
-                      if (d.hasRaw && (d.readable || d.raw)) alert("Original reply:\n\n" + (d.readable || d.raw));
-                      else alert("The original content wasn't saved for this reply (it arrived before we started keeping a copy). Ask the sender to resend, or check any attachment above.");
-                    } catch (e) { alert("Could not load the original: " + e.message); }
-                  }} style={{ background: "none", border: "none", color: COLORS.navy, textDecoration: "underline", cursor: "pointer", fontSize: 13, fontWeight: 600, padding: 0 }}>View original email</button>
+                      if (d.hasRaw && (d.readable || d.raw)) alert(tr("Original reply:\n\n") + (d.readable || d.raw));
+                      else alert(tr("The original content wasn't saved for this reply (it arrived before we started keeping a copy). Ask the sender to resend, or check any attachment above."));
+                    } catch (e) { alert(tr("Could not load the original: ") + e.message); }
+                  }} style={{ background: "none", border: "none", color: COLORS.navy, textDecoration: "underline", cursor: "pointer", fontSize: 13, fontWeight: 600, padding: 0 }}>{tr("View original email")}</button>
                 </div>
               )}
             {atts.length > 0 && (
               <div style={{ marginTop: 12, borderTop: `1px solid ${COLORS.border}`, paddingTop: 10 }}>
-                <div style={{ fontSize: 12, fontWeight: 700, color: COLORS.gray, marginBottom: 2 }}>📎 Attachments</div>
-                <div style={{ fontSize: 12, color: COLORS.gray, marginBottom: 8 }}>Saved to this deal's Documents automatically. The app files them to the checklist when it can tell what they are — pick a slot to change it.</div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: COLORS.gray, marginBottom: 2 }}>{tr("📎 Attachments")}</div>
+                <div style={{ fontSize: 12, color: COLORS.gray, marginBottom: 8 }}>{tr("Saved to this deal's Documents automatically. The app files them to the checklist when it can tell what they are — pick a slot to change it.")}</div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                   {atts.map((a, i) => {
                     const busy = !!filing[`${m.id}:${i}`];
@@ -5258,22 +5265,22 @@ function InboundRepliesPanel({ tx, coordinatorMode = false, onInboundRead }) {
                           📄 {a.filename || `Attachment ${i + 1}`}
                         </button>
                         {(a.filedAs || a.filedMilestoneId) && (
-                          <span style={{ fontSize: 12, fontWeight: 700, color: "#1E8449", background: "#EAF7EE", padding: "4px 10px", borderRadius: 20 }}>✓ Filed as {a.filedMilestoneId ? (a.filedLabel || "timeline step") : slotLabel(a.filedAs)}</span>
+                          <span style={{ fontSize: 12, fontWeight: 700, color: "#1E8449", background: "#EAF7EE", padding: "4px 10px", borderRadius: 20 }}>{tr("✓ Filed as")} {a.filedMilestoneId ? (a.filedLabel || tr("timeline step")) : slotLabel(a.filedAs)}</span>
                         )}
                         {a.inDocuments === false && a.key && (
-                          <span style={{ fontSize: 12, color: COLORS.gray }}>not in Documents (small image)</span>
+                          <span style={{ fontSize: 12, color: COLORS.gray }}>{tr("not in Documents (small image)")}</span>
                         )}
                         <select value="" disabled={busy || slots === null}
                           onChange={e => { const v = e.target.value; if (v === "__general") fileAttachment(m.id, i, ""); else if (v) fileAttachment(m.id, i, v); }}
                           style={{ padding: "6px 8px", borderRadius: 8, border: `1px solid ${COLORS.border}`, fontSize: 12, fontFamily: "inherit", maxWidth: "100%", color: COLORS.navy, background: "#fff" }}>
-                          <option value="">{busy ? "Filing…" : (a.filedAs || a.filedMilestoneId) ? "Change…" : "File as…"}</option>
-                          {steps.length > 0 && <optgroup label="Timeline steps waiting for a document">
-                            {steps.map(s => <option key={s.milestoneId} value={"ms:" + s.milestoneId}>{s.milestoneName}{s.documentUploaded ? " (on file)" : ""}</option>)}
+                          <option value="">{tr(busy ? tr("Filing…") : (a.filedAs || a.filedMilestoneId) ? tr("Change…") : tr("File as…"))}</option>
+                          {steps.length > 0 && <optgroup label={tr("Timeline steps waiting for a document")}>
+                            {steps.map(s => <option key={s.milestoneId} value={"ms:" + s.milestoneId}>{s.milestoneName}{s.documentUploaded ? tr(" (on file)") : ""}</option>)}
                           </optgroup>}
-                          <optgroup label="Required-documents checklist">
-                            {(slots || []).map(s => <option key={s.documentType} value={s.documentType}>{s.label}{s.present ? " (on file)" : ""}</option>)}
+                          <optgroup label={tr("Required-documents checklist")}>
+                            {(slots || []).map(s => <option key={s.documentType} value={s.documentType}>{tr(s.label)}{s.present ? tr(" (on file)") : ""}</option>)}
                           </optgroup>
-                          {(a.filedAs || a.filedMilestoneId) && <option value="__general">Keep as General (no slot)</option>}
+                          {(a.filedAs || a.filedMilestoneId) && <option value="__general">{tr("Keep as General (no slot)")}</option>}
                         </select>
                       </div>
                     );
@@ -5282,7 +5289,7 @@ function InboundRepliesPanel({ tx, coordinatorMode = false, onInboundRead }) {
               </div>
             )}
             {atts.length === 0 && m.attachment_count > 0 && (
-              <div style={{ marginTop: 10, fontSize: 12, color: COLORS.gray }}>📎 {m.attachment_count} attachment(s) were sent before attachment saving was enabled — ask the sender to resend if you still need them.</div>
+              <div style={{ marginTop: 10, fontSize: 12, color: COLORS.gray }}>📎 {m.attachment_count} {tr("attachment(s) were sent before attachment saving was enabled — ask the sender to resend if you still need them.")}</div>
             )}
 
             {/* Reply by email to whoever wrote in */}
@@ -5292,8 +5299,8 @@ function InboundRepliesPanel({ tx, coordinatorMode = false, onInboundRead }) {
                 <div>
                   <div style={{ fontSize: 12, color: COLORS.gray, marginBottom: 6 }}>
                     {m.channel === "sms"
-                      ? <>Replying by <b style={{ color: "#0369A1" }}>📱 text</b> to <b style={{ color: COLORS.navy }}>{m.from_name || m.from_phone}</b> {m.from_phone ? `· ${m.from_phone}` : ""}</>
-                      : <>Replying by <b style={{ color: COLORS.navy }}>📧 email</b> to <b style={{ color: COLORS.navy }}>{m.from_name || m.from_email}</b> {m.from_email ? `· ${m.from_email}` : ""}</>}
+                      ? <>{tr("Replying by")} <b style={{ color: "#0369A1" }}>{tr("📱 text")}</b> {tr("to")} <b style={{ color: COLORS.navy }}>{m.from_name || m.from_phone}</b> {m.from_phone ? `· ${m.from_phone}` : ""}</>
+                      : <>{tr("Replying by")} <b style={{ color: COLORS.navy }}>{tr("📧 email")}</b> {tr("to")} <b style={{ color: COLORS.navy }}>{m.from_name || m.from_email}</b> {m.from_email ? `· ${m.from_email}` : ""}</>}
                   </div>
                   <textarea value={replyText} onChange={e => setReplyText(e.target.value)} rows={4} autoFocus placeholder={`Write your reply to ${m.from_name || "them"}…`}
                     style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: `1px solid ${COLORS.border}`, fontSize: 14, fontFamily: "inherit", boxSizing: "border-box", resize: "vertical", marginBottom: 8 }} />
@@ -5301,8 +5308,8 @@ function InboundRepliesPanel({ tx, coordinatorMode = false, onInboundRead }) {
                   {/* Attach: from the deal's Documents, or upload from this computer */}
                   <input ref={replyFileRef} type="file" style={{ display: "none" }} onChange={e => { const f = e.target.files?.[0]; if (f) uploadFromComputer(f); e.target.value = ""; }} />
                   <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: attach.length ? 8 : 10 }}>
-                    <button onClick={openDocPicker} style={{ fontSize: 12, padding: "6px 12px", borderRadius: 8, border: `1px solid ${COLORS.navy}`, background: "#fff", color: COLORS.navy, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>📎 Attach from Documents</button>
-                    <button onClick={() => replyFileRef.current?.click()} disabled={uploading} style={{ fontSize: 12, padding: "6px 12px", borderRadius: 8, border: `1px solid ${COLORS.navy}`, background: "#fff", color: COLORS.navy, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", opacity: uploading ? 0.5 : 1 }}>{uploading ? "Uploading…" : "💻 Upload from computer"}</button>
+                    <button onClick={openDocPicker} style={{ fontSize: 12, padding: "6px 12px", borderRadius: 8, border: `1px solid ${COLORS.navy}`, background: "#fff", color: COLORS.navy, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>{tr("📎 Attach from Documents")}</button>
+                    <button onClick={() => replyFileRef.current?.click()} disabled={uploading} style={{ fontSize: 12, padding: "6px 12px", borderRadius: 8, border: `1px solid ${COLORS.navy}`, background: "#fff", color: COLORS.navy, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", opacity: uploading ? 0.5 : 1 }}>{uploading ? tr("Uploading…") : tr("💻 Upload from computer")}</button>
                   </div>
                   {attach.length > 0 && (
                     <div style={{ marginBottom: 10 }}>
@@ -5319,11 +5326,11 @@ function InboundRepliesPanel({ tx, coordinatorMode = false, onInboundRead }) {
                     <div onMouseDown={e => { if (e.target === e.currentTarget) e.currentTarget.dataset.dob = "1"; else delete e.currentTarget.dataset.dob; }} onClick={e => { if (e.target === e.currentTarget && e.currentTarget.dataset.dob === "1") setDocPicker(false); delete e.currentTarget.dataset.dob; }} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 1000, display: "flex", alignItems: "flex-start", justifyContent: "center", padding: 16, overflowY: "auto" }}>
                       <div onClick={e => e.stopPropagation()} style={{ background: "#fff", borderRadius: 12, maxWidth: 520, width: "100%", margin: "auto", padding: 20, boxShadow: "0 10px 40px rgba(0,0,0,0.25)" }}>
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-                          <div style={{ fontWeight: 800, fontSize: 16, color: COLORS.navy }}>📎 Attach from Documents</div>
+                          <div style={{ fontWeight: 800, fontSize: 16, color: COLORS.navy }}>{tr("📎 Attach from Documents")}</div>
                           <button onClick={() => setDocPicker(false)} style={{ background: "none", border: "none", fontSize: 22, cursor: "pointer", color: COLORS.gray }}>×</button>
                         </div>
-                        {docList === null ? <div style={{ padding: 20, textAlign: "center", color: COLORS.gray }}>Loading documents…</div>
-                         : docList.length === 0 ? <div style={{ padding: 20, textAlign: "center", color: COLORS.gray }}>No documents on this deal yet. Use “Upload from computer” instead.</div>
+                        {docList === null ? <div style={{ padding: 20, textAlign: "center", color: COLORS.gray }}>{tr("Loading documents…")}</div>
+                         : docList.length === 0 ? <div style={{ padding: 20, textAlign: "center", color: COLORS.gray }}>{tr("No documents on this deal yet. Use “Upload from computer” instead.")}</div>
                          : docList.map(doc => {
                           const on = !!attach.find(a => a.id === doc.id);
                           return (
@@ -5333,7 +5340,7 @@ function InboundRepliesPanel({ tx, coordinatorMode = false, onInboundRead }) {
                             </label>
                           );
                         })}
-                        <button onClick={() => setDocPicker(false)} style={{ marginTop: 14, width: "100%", background: "#0c4a6e", color: "#fff", border: "none", borderRadius: 8, padding: "10px", fontWeight: 700, fontSize: 14, cursor: "pointer", fontFamily: "inherit" }}>Done</button>
+                        <button onClick={() => setDocPicker(false)} style={{ marginTop: 14, width: "100%", background: "#0c4a6e", color: "#fff", border: "none", borderRadius: 8, padding: "10px", fontWeight: 700, fontSize: 14, cursor: "pointer", fontFamily: "inherit" }}>{tr("Done")}</button>
                       </div>
                     </div>
                   )}
@@ -5342,19 +5349,19 @@ function InboundRepliesPanel({ tx, coordinatorMode = false, onInboundRead }) {
                     {(() => { const canReply = m.channel === "sms" ? !!m.from_phone : !!m.from_email; return (
                     <button onClick={() => sendReply(m)} disabled={sending || !replyText.trim() || !canReply}
                       style={{ background: (sending || !replyText.trim() || !canReply) ? "#ccc" : "#0c4a6e", color: "#fff", border: "none", borderRadius: 8, padding: "9px 16px", fontWeight: 700, fontSize: 14, cursor: "pointer", fontFamily: "inherit" }}>
-                      {sending ? "Sending…" : m.channel === "sms" ? "📱 Send text" : "📧 Send reply"}
+                      {sending ? tr("Sending…") : m.channel === "sms" ? tr("📱 Send text") : tr("📧 Send reply")}
                     </button> ); })()}
                     <button onClick={() => { setReplyTo(null); setReplyText(""); setAttach([]); }}
                       style={{ background: "#fff", color: COLORS.gray, border: `1px solid ${COLORS.border}`, borderRadius: 8, padding: "9px 16px", fontWeight: 600, fontSize: 14, cursor: "pointer", fontFamily: "inherit" }}>
-                      Cancel
+                      {tr("Cancel")}
                     </button>
                   </div>
-                  {(m.channel === "sms" ? !m.from_phone : !m.from_email) && <div style={{ fontSize: 12, color: "#C0392B", marginTop: 6 }}>No {m.channel === "sms" ? "phone number" : "email address"} on this reply to respond to.</div>}
+                  {(m.channel === "sms" ? !m.from_phone : !m.from_email) && <div style={{ fontSize: 12, color: "#C0392B", marginTop: 6 }}>{tr("No")} {m.channel === "sms" ? tr("phone number") : tr("email address")} {tr("on this reply to respond to.")}</div>}
                 </div>
               ) : (
                 <button onClick={() => { setReplyTo(m.id); setReplyText(""); }}
                   style={{ background: "#fff", color: COLORS.navy, border: `1px solid ${COLORS.navy}`, borderRadius: 8, padding: "8px 16px", fontWeight: 700, fontSize: 14, cursor: "pointer", fontFamily: "inherit" }}>
-                  {m.channel === "sms" ? "↩️ Reply by text" : "↩️ Reply by email"}
+                  {m.channel === "sms" ? tr("↩️ Reply by text") : tr("↩️ Reply by email")}
                 </button>
               )}
             </div>
@@ -5441,19 +5448,19 @@ function DealDoctorSendModal({ tx, draft, onClose, onSent }) {
     <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 9999, display: "flex", alignItems: "flex-start", justifyContent: "center", padding: 16, overflowY: "auto" }}>
       <div onClick={e => e.stopPropagation()} style={{ background: "#fff", borderRadius: 14, width: "100%", maxWidth: 560, margin: "auto", boxShadow: "0 20px 60px rgba(0,0,0,0.3)", overflow: "hidden" }}>
         <div style={{ background: "#1A2B4A", color: "#fff", padding: "14px 18px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <div style={{ fontWeight: 800, fontSize: 16 }}>✉️ Send this message</div>
+          <div style={{ fontWeight: 800, fontSize: 16 }}>{tr("✉️ Send this message")}</div>
           <button onClick={onClose} style={{ background: "none", border: "none", color: "rgba(255,255,255,0.7)", fontSize: 22, cursor: "pointer" }}>×</button>
         </div>
         <div style={{ padding: 18, maxHeight: "75vh", overflowY: "auto" }}>
           <div style={{ marginBottom: 14 }}>
-            <span style={label}>To</span>
-            {parties.length === 0 && <div style={{ fontSize: 13, color: "#5F6B7A" }}>No parties with contact info on this deal yet.</div>}
+            <span style={label}>{tr("To")}</span>
+            {parties.length === 0 && <div style={{ fontSize: 13, color: "#5F6B7A" }}>{tr("No parties with contact info on this deal yet.")}</div>}
             <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
               {parties.map((p, i) => {
                 const key = p.id || i; const on = !!picked[key];
                 return (
                   <button key={key} disabled={!p.email} onClick={() => setPicked(s => ({ ...s, [key]: !s[key] }))}
-                    title={p.email || "No email"}
+                    title={p.email || tr("No email")}
                     style={{ border: `1.5px solid ${on ? "#0c4a6e" : "#CBD5E1"}`, background: on ? "#EEF2F7" : "#fff", color: p.email ? "#1a2332" : "#94A3B8", borderRadius: 999, padding: "6px 12px", fontSize: 12.5, fontWeight: 600, cursor: p.email ? "pointer" : "not-allowed", fontFamily: "inherit" }}>
                     {on ? "✓ " : ""}{p.name || p.email}{p.role ? ` · ${p.role}` : ""}
                   </button>
@@ -5461,8 +5468,8 @@ function DealDoctorSendModal({ tx, draft, onClose, onSent }) {
               })}
             </div>
             <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
-              <input value={extraEmail} onChange={e => setExtraEmail(e.target.value)} onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); addExtra(); } }} placeholder="Add another email…" style={{ ...input, flex: 1 }} />
-              <button onClick={addExtra} style={{ background: "#EEF2F7", border: "1px solid #CBD5E1", borderRadius: 8, padding: "0 14px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>Add</button>
+              <input value={extraEmail} onChange={e => setExtraEmail(e.target.value)} onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); addExtra(); } }} placeholder={tr("Add another email…")} style={{ ...input, flex: 1 }} />
+              <button onClick={addExtra} style={{ background: "#EEF2F7", border: "1px solid #CBD5E1", borderRadius: 8, padding: "0 14px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>{tr("Add")}</button>
             </div>
             {extraEmails.length > 0 && (
               <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
@@ -5471,15 +5478,15 @@ function DealDoctorSendModal({ tx, draft, onClose, onSent }) {
             )}
           </div>
           <div style={{ marginBottom: 14 }}>
-            <span style={label}>Subject</span>
+            <span style={label}>{tr("Subject")}</span>
             <input value={subject} onChange={e => setSubject(e.target.value)} style={input} />
           </div>
           <div style={{ marginBottom: 14 }}>
-            <span style={label}>Message</span>
+            <span style={label}>{tr("Message")}</span>
             <textarea value={body} onChange={e => setBody(e.target.value)} rows={9} style={{ ...input, resize: "vertical", lineHeight: 1.5 }} />
           </div>
           <div style={{ marginBottom: 14 }}>
-            <span style={label}>Attach (optional)</span>
+            <span style={label}>{tr("Attach (optional)")}</span>
             {docs.length > 0 && (
               <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 8 }}>
                 {docs.slice(0, 30).map(d => {
@@ -5493,22 +5500,22 @@ function DealDoctorSendModal({ tx, draft, onClose, onSent }) {
                 })}
                 {docs.length > 30 && (
                   <span style={{ fontSize: 12, color: "#5F6B7A", fontStyle: "italic", alignSelf: "center" }}>
-                    …and {docs.length - 30} more in the Documents tab (showing the 30 newest)
+                    {tr("…and")} {docs.length - 30} {tr("more in the Documents tab (showing the 30 newest)")}
                   </span>
                 )}
               </div>
             )}
             <label style={{ display: "inline-block", background: "#fff", border: "1px dashed #CBD5E1", borderRadius: 8, padding: "8px 14px", fontSize: 12.5, fontWeight: 600, color: "#475569", cursor: "pointer" }}>
-              {uploading ? "Uploading…" : "⬆️ Upload from computer"}
+              {uploading ? tr("Uploading…") : tr("⬆️ Upload from computer")}
               <input type="file" style={{ display: "none" }} disabled={uploading} onChange={e => { uploadFromComputer(e.target.files[0]); e.target.value = ""; }} />
             </label>
           </div>
           {err && <div style={{ background: "#FDEDEC", border: "1px solid #F5B7B1", color: "#922B21", borderRadius: 8, padding: "9px 12px", fontSize: 13, marginBottom: 12 }}>{err}</div>}
           <div style={{ display: "flex", justifyContent: "flex-end", gap: 10 }}>
-            <button onClick={onClose} style={{ background: "#fff", border: "1px solid #CBD5E1", color: "#475569", borderRadius: 8, padding: "10px 18px", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>Cancel</button>
+            <button onClick={onClose} style={{ background: "#fff", border: "1px solid #CBD5E1", color: "#475569", borderRadius: 8, padding: "10px 18px", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>{tr("Cancel")}</button>
             <button onClick={send} disabled={sending}
               style={{ background: sending ? "#9CA3AF" : "#0c4a6e", color: "#fff", border: "none", borderRadius: 8, padding: "10px 22px", fontSize: 14, fontWeight: 800, cursor: sending ? "default" : "pointer", fontFamily: "inherit" }}>
-              {sending ? "Sending…" : "✉️ Send"}
+              {sending ? tr("Sending…") : tr("✉️ Send")}
             </button>
           </div>
         </div>
@@ -5521,6 +5528,7 @@ function DealDoctorSendModal({ tx, draft, onClose, onSent }) {
 // with a ready-to-send draft when a party needs a nudge. Reads the stored nightly
 // check-up on open; "Run check-up" refreshes it live.
 function DealDoctorPanel({ tx }) {
+  useLang(); // redraw when the Spanish for the AI risk/move lines arrives
   const [dd, setDd] = useState(null);
   const [at, setAt] = useState(null);
   const [running, setRunning] = useState(false);
@@ -5584,56 +5592,57 @@ function DealDoctorPanel({ tx }) {
     const text = (draft.subject ? `Subject: ${draft.subject}\n\n` : "") + (draft.body || "");
     navigator.clipboard?.writeText(text).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); }).catch(() => {});
   };
-  const ago = at ? new Date(at).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) : null;
+  const ago = at ? new Date(at).toLocaleString(uiLocale(), { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) : null;
   const snoozedFuture = snoozeUntil && new Date(snoozeUntil) > new Date();
-  const snoozeLabel = snoozedFuture ? new Date(snoozeUntil).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" }) : null;
+  const snoozeLabel = snoozedFuture ? new Date(snoozeUntil).toLocaleDateString(uiLocale(), { weekday: "short", month: "short", day: "numeric" }) : null;
   const snoozeBtn = (label, days) => (
     <button onClick={() => snooze(days)}
-      style={{ background: "#fff", color: "#475569", border: "1px solid #CBD5E1", borderRadius: 8, padding: "6px 12px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>{label}</button>
+      style={{ background: "#fff", color: "#475569", border: "1px solid #CBD5E1", borderRadius: 8, padding: "6px 12px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>{tr(label)}</button>
   );
 
   return (
     <div style={{ border: `1px solid ${dd ? t.bar : "#E5E7EB"}`, borderLeft: `5px solid ${dd ? t.bar : "#94A3B8"}`, background: dd ? t.bg : "#F8FAFC", borderRadius: 12, padding: 16, marginBottom: 20 }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
-        <div style={{ fontWeight: 800, fontSize: 15, color: "#1A2B4A" }}>🩺 Transaction Check {dd && <span style={{ fontSize: 16 }}>{t.dot}</span>}</div>
+        <div style={{ fontWeight: 800, fontSize: 15, color: "#1A2B4A" }}>{tr("🩺 Transaction Check")} {dd && <span style={{ fontSize: 16 }}>{t.dot}</span>}</div>
         <button onClick={run} disabled={running}
           style={{ background: running ? "#9CA3AF" : "#0c4a6e", color: "#fff", border: "none", borderRadius: 8, padding: "7px 14px", fontSize: 13, fontWeight: 700, cursor: running ? "default" : "pointer", fontFamily: "inherit" }}>
-          {running ? "Checking…" : dd ? "↻ Re-check" : snoozedFuture ? "↻ Check now" : "Run check-up"}
+          {running ? tr("Checking…") : dd ? tr("↻ Re-check") : snoozedFuture ? tr("↻ Check now") : tr("Run check-up")}
         </button>
       </div>
       {err && <div style={{ color: "#C0392B", fontSize: 13, marginTop: 8 }}>{err}</div>}
-      {!dd && !err && snoozedFuture && <div style={{ fontSize: 13, color: "#64748B", marginTop: 8 }}>😴 Snoozed until <b>{snoozeLabel}</b> — I'll keep this deal quiet until then. Tap “Check now” to look sooner.</div>}
-      {!dd && !err && !snoozedFuture && <div style={{ fontSize: 13, color: "#64748B", marginTop: 8 }}>Tap “Run check-up” and I'll review this deal to show the biggest risk right now and the one move to make today.</div>}
+      {!dd && !err && snoozedFuture && <div style={{ fontSize: 13, color: "#64748B", marginTop: 8 }}>{tr("😴 Snoozed until")} <b>{snoozeLabel}</b> {tr("— I'll keep this deal quiet until then. Tap “Check now” to look sooner.")}</div>}
+      {!dd && !err && !snoozedFuture && <div style={{ fontSize: 13, color: "#64748B", marginTop: 8 }}>{tr("Tap “Run check-up” and I'll review this deal to show the biggest risk right now and the one move to make today.")}</div>}
       {dd && (
         <div style={{ marginTop: 12 }}>
           <div style={{ marginBottom: 10 }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: "#64748B", letterSpacing: ".04em" }}>⚠️ BIGGEST RISK</div>
-            <div style={{ fontSize: 14, color: "#1a2332", marginTop: 2 }}>{dd.risk}</div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: "#64748B", letterSpacing: ".04em" }}>{tr("⚠️ BIGGEST RISK")}</div>
+            {requestSpanish([dd.risk, dd.move]) || null}
+            <div style={{ fontSize: 14, color: "#1a2332", marginTop: 2 }}>{tr(dd.risk)}</div>
           </div>
           <div>
-            <div style={{ fontSize: 11, fontWeight: 700, color: "#64748B", letterSpacing: ".04em" }}>✅ DO THIS TODAY</div>
-            <div style={{ fontSize: 14, color: "#1a2332", marginTop: 2, fontWeight: 600 }}>{dd.move}</div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: "#64748B", letterSpacing: ".04em" }}>{tr("✅ DO THIS TODAY")}</div>
+            <div style={{ fontSize: 14, color: "#1a2332", marginTop: 2, fontWeight: 600 }}>{tr(dd.move)}</div>
           </div>
           {draftSent && (
             <div style={{ marginTop: 12, fontSize: 13, color: "#166534", fontWeight: 600 }}>
-              ✅ The recommended message was sent to the {draftSent.toRole || "party"}{draftSent.at ? ` · ${new Date(draftSent.at).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}` : ""} — waiting on their reply.
+              {tr("✅ The recommended message was sent to the")} {draftSent.toRole || tr("party")}{draftSent.at ? ` · ${new Date(draftSent.at).toLocaleString(uiLocale(), { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}` : ""} {tr("— waiting on their reply.")}
             </div>
           )}
           {draft && (
             <div style={{ marginTop: 12, background: "#fff", border: "1px solid #E5E7EB", borderRadius: 8, padding: 12 }}>
               <div style={{ fontSize: 11, fontWeight: 700, color: "#64748B", letterSpacing: ".04em", marginBottom: 6 }}>
-                ✍️ READY-TO-SEND {draft.channel === "sms" ? "TEXT" : "EMAIL"}{draft.toRole ? ` · to the ${draft.toRole}` : ""}
+                {tr("✍️ READY-TO-SEND")} {draft.channel === "sms" ? tr("TEXT") : tr("EMAIL")}{draft.toRole ? " · " + tr("to the {role}", { role: tr(draft.toRole) }) : ""}
               </div>
               {draft.subject && <div style={{ fontSize: 13, fontWeight: 700, color: "#1a2332", marginBottom: 4 }}>{draft.subject}</div>}
               <div style={{ fontSize: 13, color: "#334155", whiteSpace: "pre-wrap", lineHeight: 1.5 }}>{draft.body}</div>
               <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap", alignItems: "center" }}>
                 <button onClick={() => setSendOpen(true)}
                   style={{ background: "#0c4a6e", color: "#fff", border: "none", borderRadius: 8, padding: "8px 16px", fontSize: 13, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>
-                  ✉️ Send this
+                  {tr("✉️ Send this")}
                 </button>
                 <button onClick={copyDraft}
                   style={{ background: "#fff", color: "#475569", border: "1px solid #CBD5E1", borderRadius: 8, padding: "8px 14px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
-                  {copied ? "✓ Copied" : "📋 Copy"}
+                  {copied ? tr("✓ Copied") : tr("📋 Copy")}
                 </button>
                 {sentNote && <span style={{ fontSize: 12, color: "#1E8449", fontWeight: 700 }}>{sentNote}</span>}
               </div>
@@ -5667,22 +5676,22 @@ function DealDoctorPanel({ tx }) {
                   }}
                   title={`Marks "${dd.completeMilestoneName}" complete on this deal's timeline`}
                   style={{ background: "#0c4a6e", color: "#fff", border: "none", borderRadius: 8, padding: "7px 14px", fontSize: 13, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>
-                  ✅ Complete "{dd.completeMilestoneName}" on the timeline
+                  {tr("✅ Complete \"")}{dd.completeMilestoneName}{tr("\" on the timeline")}
                 </button>
               )}
-              <button onClick={clear} title="I've handled this — clear it. Tonight's check-up will flag anything still outstanding."
+              <button onClick={clear} title={tr("I've handled this — clear it. Tonight's check-up will flag anything still outstanding.")}
                 style={{ background: dd.completeMilestoneId ? "#fff" : "#0c4a6e", color: dd.completeMilestoneId ? "#475569" : "#fff", border: dd.completeMilestoneId ? "1px solid #CBD5E1" : "none", borderRadius: 8, padding: "7px 14px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
-                ✓ Mark handled
+                {tr("✓ Mark handled")}
               </button>
-              <button onClick={() => setSnoozeOpen(o => !o)} title="Set this aside for a bit — I'll keep it quiet, then bring it back."
+              <button onClick={() => setSnoozeOpen(o => !o)} title={tr("Set this aside for a bit — I'll keep it quiet, then bring it back.")}
                 style={{ background: "#fff", color: "#475569", border: "1px solid #CBD5E1", borderRadius: 8, padding: "7px 14px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
-                😴 Not today
+                {tr("😴 Not today")}
               </button>
-              {ago && <span style={{ fontSize: 11, color: "#5F6B7A", marginLeft: "auto" }}>Checked {ago}</span>}
+              {ago && <span style={{ fontSize: 11, color: "#5F6B7A", marginLeft: "auto" }}>{tr("Checked")} {ago}</span>}
             </div>
             {snoozeOpen && (
               <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginTop: 8 }}>
-                <span style={{ fontSize: 12, color: "#64748B", fontWeight: 600 }}>Remind me:</span>
+                <span style={{ fontSize: 12, color: "#64748B", fontWeight: 600 }}>{tr("Remind me:")}</span>
                 {snoozeBtn("Tomorrow", 1)}
                 {snoozeBtn("In 3 days", 3)}
                 {snoozeBtn("In a week", 7)}
@@ -5719,36 +5728,36 @@ function CoordinatorTeamModal({ currentUser, onClose }) {
     setBusy(false);
   };
   const remove = async (m) => {
-    if (!(await askConfirm(`Remove ${m.first_name || m.email} from your team? Any deals assigned to them go back to you.`, { okLabel: "Remove", danger: true }))) return;
+    if (!(await askConfirm(`Remove ${m.first_name || m.email} from your team? Any deals assigned to them go back to you.`, { okLabel: tr("Remove"), danger: true }))) return;
     try { const r = await fetch(`${_tcApi}/tc/team/${m.id}`, { method: "DELETE", headers: _tcHdrs2() }); const d = await r.json(); if (!r.ok) throw new Error(d.error || "Failed"); await load(); }
     catch (e) { alert("⚠️ " + e.message); }
   };
   const isLead = data?.isLead;
   return (
-    <Modal title="👥 My Team" onClose={onClose}>
-      {!data && <div style={{ color: COLORS.muted }}>Loading…</div>}
+    <Modal title={tr("👥 My Team")} onClose={onClose}>
+      {!data && <div style={{ color: COLORS.muted }}>{tr("Loading…")}</div>}
       {data?.error && <div style={{ color: COLORS.danger }}>⚠️ {data.error}</div>}
       {data && !data.error && (
         <>
           <div style={{ fontSize: 13, color: COLORS.muted, marginBottom: 14, lineHeight: 1.5 }}>
-            {isLead ? "Add assistants who work under you. You can reassign any deal to a teammate from the deal's People tab — they'll see and work just that deal." : "You're a team member. Your lead coordinator assigns deals to you; they show up on your dashboard."}
+            {isLead ? tr("Add assistants who work under you. You can reassign any deal to a teammate from the deal's People tab — they'll see and work just that deal.") : tr("You're a team member. Your lead coordinator assigns deals to you; they show up on your dashboard.")}
           </div>
           {isLead && (
             <div style={{ background: COLORS.bg, borderRadius: 10, padding: 12, marginBottom: 14 }}>
-              <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 8 }}>Add a team member</div>
-              <input placeholder="Full name" value={name} onChange={e => setName(e.target.value)} style={{ width: "100%", padding: "9px 11px", borderRadius: 8, border: `1px solid ${COLORS.border}`, fontSize: 14, fontFamily: "inherit", boxSizing: "border-box", marginBottom: 8 }} />
-              <input placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} style={{ width: "100%", padding: "9px 11px", borderRadius: 8, border: `1px solid ${COLORS.border}`, fontSize: 14, fontFamily: "inherit", boxSizing: "border-box", marginBottom: 10 }} />
-              <Btn small onClick={invite} disabled={busy || !email.trim() || !name.trim()}>{busy ? "Adding…" : "Send invite"}</Btn>
+              <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 8 }}>{tr("Add a team member")}</div>
+              <input placeholder={tr("Full name")} value={name} onChange={e => setName(e.target.value)} style={{ width: "100%", padding: "9px 11px", borderRadius: 8, border: `1px solid ${COLORS.border}`, fontSize: 14, fontFamily: "inherit", boxSizing: "border-box", marginBottom: 8 }} />
+              <input placeholder={tr("Email")} value={email} onChange={e => setEmail(e.target.value)} style={{ width: "100%", padding: "9px 11px", borderRadius: 8, border: `1px solid ${COLORS.border}`, fontSize: 14, fontFamily: "inherit", boxSizing: "border-box", marginBottom: 10 }} />
+              <Btn small onClick={invite} disabled={busy || !email.trim() || !name.trim()}>{busy ? tr("Adding…") : tr("Send invite")}</Btn>
               {note && <div style={{ color: COLORS.success, fontSize: 13, marginTop: 8 }}>{note}</div>}
             </div>
           )}
           {(data.members || []).map(m => (
             <div key={m.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, padding: "10px 0", borderTop: `1px solid ${COLORS.border}` }}>
               <div>
-                <div style={{ fontWeight: 600 }}>{`${m.first_name || ""} ${m.last_name || ""}`.trim() || m.email}{m.is_lead && <span style={{ marginLeft: 8, fontSize: 11, fontWeight: 700, color: COLORS.navy, background: "#E5EDFF", padding: "2px 8px", borderRadius: 20 }}>LEAD</span>}</div>
-                <div style={{ fontSize: 12, color: COLORS.muted }}>{m.email}{m.last_login_at ? " · active" : " · invite pending"}</div>
+                <div style={{ fontWeight: 600 }}>{`${m.first_name || ""} ${m.last_name || ""}`.trim() || m.email}{m.is_lead && <span style={{ marginLeft: 8, fontSize: 11, fontWeight: 700, color: COLORS.navy, background: "#E5EDFF", padding: "2px 8px", borderRadius: 20 }}>{tr("LEAD")}</span>}</div>
+                <div style={{ fontSize: 12, color: COLORS.muted }}>{m.email}{m.last_login_at ? tr(" · active") : tr(" · invite pending")}</div>
               </div>
-              {isLead && !m.is_lead && <button onClick={() => remove(m)} style={{ background: "none", border: `1px solid ${COLORS.border}`, color: COLORS.danger, borderRadius: 6, padding: "4px 10px", fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}>Remove</button>}
+              {isLead && !m.is_lead && <button onClick={() => remove(m)} style={{ background: "none", border: `1px solid ${COLORS.border}`, color: COLORS.danger, borderRadius: 6, padding: "4px 10px", fontSize: 12, cursor: "pointer", fontFamily: "inherit" }}>{tr("Remove")}</button>}
             </div>
           ))}
         </>
@@ -5790,45 +5799,45 @@ function CoordinatorServicesModal({ currentUser, onClose }) {
   const lab = { fontSize: 12, fontWeight: 700, color: COLORS.muted, display: "block", marginBottom: 4, marginTop: 12 };
   const pendingCount = (reqs || []).filter(r => r.status === "pending").length;
   return (
-    <Modal title="💼 My Services" onClose={onClose}>
+    <Modal title={tr("💼 My Services")} onClose={onClose}>
       <div style={{ display: "flex", gap: 6, marginBottom: 14 }}>
         {[["services", "Pricing & Link"], ["requests", `Requests${pendingCount ? ` (${pendingCount})` : ""}`]].map(([id, l]) => (
           <button key={id} onClick={() => setTab(id)} style={{ padding: "7px 14px", borderRadius: 8, border: `1px solid ${tab === id ? COLORS.navy : COLORS.border}`, background: tab === id ? COLORS.navy : "#fff", color: tab === id ? "#fff" : COLORS.text, fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>{l}</button>
         ))}
       </div>
-      {tab === "services" && (!f ? <div style={{ color: COLORS.muted }}>Loading…</div> : (
+      {tab === "services" && (!f ? <div style={{ color: COLORS.muted }}>{tr("Loading…")}</div> : (
         <>
           <label style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 14, fontWeight: 600, cursor: "pointer" }}>
             <input type="checkbox" checked={f.availableForHire} onChange={e => setF(p => ({ ...p, availableForHire: e.target.checked }))} style={{ width: 16, height: 16 }} />
-            List me in the coordinator directory (agents can find & hire me)
+            {tr("List me in the coordinator directory (agents can find & hire me)")}
           </label>
-          <div style={{ fontSize: 12, color: COLORS.muted, marginTop: 4 }}>Off = private; you only work with agents who invite you directly.</div>
-          <label style={lab}>Listing — put on MLS, full service ($)</label>
+          <div style={{ fontSize: 12, color: COLORS.muted, marginTop: 4 }}>{tr("Off = private; you only work with agents who invite you directly.")}</div>
+          <label style={lab}>{tr("Listing — put on MLS, full service ($)")}</label>
           <input style={fld} type="number" value={f.feeListing} onChange={e => setF(p => ({ ...p, feeListing: e.target.value }))} placeholder="e.g. 595" />
-          <label style={lab}>Seller representation — cash or financed ($)</label>
+          <label style={lab}>{tr("Seller representation — cash or financed ($)")}</label>
           <input style={fld} type="number" value={f.feeSeller} onChange={e => setF(p => ({ ...p, feeSeller: e.target.value }))} placeholder="e.g. 450" />
-          <label style={lab}>Buyer representation ($)</label>
+          <label style={lab}>{tr("Buyer representation ($)")}</label>
           <input style={fld} type="number" value={f.feeBuyer} onChange={e => setF(p => ({ ...p, feeBuyer: e.target.value }))} placeholder="e.g. 395" />
-          <label style={lab}>Service area</label>
-          <input style={fld} value={f.serviceArea} onChange={e => setF(p => ({ ...p, serviceArea: e.target.value }))} placeholder="e.g. Central Florida" />
-          <label style={lab}>Short bio (shown to agents & on your intake page)</label>
+          <label style={lab}>{tr("Service area")}</label>
+          <input style={fld} value={f.serviceArea} onChange={e => setF(p => ({ ...p, serviceArea: e.target.value }))} placeholder={tr("e.g. Central Florida")} />
+          <label style={lab}>{tr("Short bio (shown to agents & on your intake page)")}</label>
           <textarea style={{ ...fld, resize: "vertical" }} rows={3} value={f.bio} onChange={e => setF(p => ({ ...p, bio: e.target.value }))} />
           <div style={{ display: "flex", gap: 10, alignItems: "center", marginTop: 14 }}>
-            <Btn onClick={save}>Save</Btn>
-            {saved && <span style={{ color: COLORS.success, fontSize: 13, fontWeight: 700 }}>✓ Saved</span>}
+            <Btn onClick={save}>{tr("Save")}</Btn>
+            {saved && <span style={{ color: COLORS.success, fontSize: 13, fontWeight: 700 }}>{tr("✓ Saved")}</span>}
           </div>
           <div style={{ background: COLORS.bg, borderRadius: 10, padding: 12, marginTop: 16 }}>
-            <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 6 }}>Your intake link</div>
-            <div style={{ fontSize: 12, color: COLORS.muted, marginBottom: 8 }}>Share this with agents or clients so they can submit a deal to you.</div>
+            <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 6 }}>{tr("Your intake link")}</div>
+            <div style={{ fontSize: 12, color: COLORS.muted, marginBottom: 8 }}>{tr("Share this with agents or clients so they can submit a deal to you.")}</div>
             <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
               <code style={{ fontSize: 12, background: "#fff", border: `1px solid ${COLORS.border}`, borderRadius: 6, padding: "6px 8px", wordBreak: "break-all", flex: "1 1 200px" }}>{intakeUrl}</code>
-              <Btn small variant="secondary" onClick={() => { navigator.clipboard?.writeText(intakeUrl); setCopied(true); setTimeout(() => setCopied(false), 2000); }}>{copied ? "✓ Copied" : "Copy"}</Btn>
+              <Btn small variant="secondary" onClick={() => { navigator.clipboard?.writeText(intakeUrl); setCopied(true); setTimeout(() => setCopied(false), 2000); }}>{copied ? tr("✓ Copied") : tr("Copy")}</Btn>
             </div>
           </div>
         </>
       ))}
-      {tab === "requests" && (!reqs ? <div style={{ color: COLORS.muted }}>Loading…</div> : (
-        reqs.length === 0 ? <div style={{ color: COLORS.muted, fontSize: 14 }}>No intake requests yet. Share your link to start receiving deals.</div> : (
+      {tab === "requests" && (!reqs ? <div style={{ color: COLORS.muted }}>{tr("Loading…")}</div> : (
+        reqs.length === 0 ? <div style={{ color: COLORS.muted, fontSize: 14 }}>{tr("No intake requests yet. Share your link to start receiving deals.")}</div> : (
           reqs.map(r => (
             <div key={r.id} style={{ border: `1px solid ${COLORS.border}`, borderRadius: 10, padding: 12, marginBottom: 10 }}>
               <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
@@ -5840,8 +5849,8 @@ function CoordinatorServicesModal({ currentUser, onClose }) {
               {r.details?.notes && <div style={{ fontSize: 13, marginTop: 6 }}>{r.details.notes}</div>}
               {r.status === "pending" && (
                 <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
-                  <Btn small onClick={() => decide(r.id, "accept")}>Accept</Btn>
-                  <Btn small variant="ghost" onClick={() => decide(r.id, "decline")}>Decline</Btn>
+                  <Btn small onClick={() => decide(r.id, "accept")}>{tr("Accept")}</Btn>
+                  <Btn small variant="ghost" onClick={() => decide(r.id, "decline")}>{tr("Decline")}</Btn>
                 </div>
               )}
             </div>
@@ -5873,16 +5882,16 @@ function CoordinatorAssignControl({ tx, currentUser }) {
   // Member viewing a deal assigned to them (not the lead): show a read-only note.
   if (!isLead) {
     if (!asg.handlerUserId) return null;
-    return <div style={{ marginBottom: 16, fontSize: 12, color: COLORS.muted }}>🧭 Assigned to you by the lead coordinator.</div>;
+    return <div style={{ marginBottom: 16, fontSize: 12, color: COLORS.muted }}>{tr("🧭 Assigned to you by the lead coordinator.")}</div>;
   }
   if (!members.length) return null; // lead with no team yet — nothing to assign
   return (
     <div style={{ marginBottom: 16 }}>
-      <div style={{ fontSize: 12, fontWeight: 700, color: COLORS.muted, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 8 }}>Handled by</div>
+      <div style={{ fontSize: 12, fontWeight: 700, color: COLORS.muted, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 8 }}>{tr("Handled by")}</div>
       <select value={handler} disabled={busy} onChange={e => assign(e.target.value)}
         style={{ width: "100%", maxWidth: 320, padding: "10px 12px", borderRadius: 8, border: `1px solid ${COLORS.border}`, fontSize: 14, fontFamily: "inherit" }}>
-        <option value="">Me (lead coordinator)</option>
-        {members.map(m => <option key={m.id} value={m.id}>{`${m.first_name || ""} ${m.last_name || ""}`.trim() || m.email}</option>)}
+        <option value="">{tr("Me (lead coordinator)")}</option>
+        {members.map(m => <option key={m.id} value={m.id}>{tr(`${m.first_name || ""} ${m.last_name || ""}`.trim() || m.email)}</option>)}
       </select>
     </div>
   );
@@ -5903,7 +5912,7 @@ function CoordinatorSendUpdate({ tx }) {
   const toggle = (email) => setPicked(p => p.includes(email) ? p.filter(e => e !== email) : [...p, email]);
   const wantEmail = channel === "email" || channel === "both";
   const send = async () => {
-    if (!channel) { alert("Pick how to send it first — 📧 Email or 📱 Text."); return; }
+    if (!channel) { alert(tr("Pick how to send it first — 📧 Email or 📱 Text.")); return; }
     setBusy(true); setDone("");
     try {
       const r = await fetch(`${API}/tc/transaction/${tx.id}/message`, {
@@ -5918,14 +5927,14 @@ function CoordinatorSendUpdate({ tx }) {
     setBusy(false);
   };
   const chanBtn = (v, label) => (
-    <button key={v} onClick={() => setChannel(v)} style={{ padding: "10px 16px", borderRadius: 10, border: "2px solid " + (channel === v ? "#0c4a6e" : "#D1D5DB"), background: channel === v ? "#0c4a6e" : "#fff", color: channel === v ? "#fff" : "#374151", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>{label}</button>
+    <button key={v} onClick={() => setChannel(v)} style={{ padding: "10px 16px", borderRadius: 10, border: "2px solid " + (channel === v ? "#0c4a6e" : "#D1D5DB"), background: channel === v ? "#0c4a6e" : "#fff", color: channel === v ? "#fff" : "#374151", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>{tr(label)}</button>
   );
   return (
     <div style={{ background: "#fff", border: `1px solid ${COLORS.border}`, borderRadius: 12, padding: 16 }}>
-      <div style={{ fontSize: 12, color: COLORS.muted, marginBottom: 10 }}>Goes out in the agent's name (or co-branded with you, if enabled).</div>
-      <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 6 }}>Send to</div>
+      <div style={{ fontSize: 12, color: COLORS.muted, marginBottom: 10 }}>{tr("Goes out in the agent's name (or co-branded with you, if enabled).")}</div>
+      <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 6 }}>{tr("Send to")}</div>
       <div style={{ marginBottom: 12 }}>
-        {recipients.length === 0 && <div style={{ fontSize: 13, color: COLORS.muted }}>No party on this deal has an email.</div>}
+        {recipients.length === 0 && <div style={{ fontSize: 13, color: COLORS.muted }}>{tr("No party on this deal has an email.")}</div>}
         {recipients.map(p => (
           <label key={p.id} style={{ display: "flex", gap: 8, alignItems: "center", padding: "5px 0", fontSize: 14 }}>
             <input type="checkbox" checked={picked.includes(p.email)} onChange={() => toggle(p.email)} />
@@ -5934,13 +5943,13 @@ function CoordinatorSendUpdate({ tx }) {
         ))}
       </div>
       {/* Explicit channel choice — no silent default */}
-      <div style={{ fontSize: 12, fontWeight: 800, color: "#0F2044", marginBottom: 5 }}>How should this go out? {!channel && <span style={{ color: "#C0392B" }}>👉 pick one</span>}</div>
+      <div style={{ fontSize: 12, fontWeight: 800, color: "#0F2044", marginBottom: 5 }}>{tr("How should this go out?")} {!channel && <span style={{ color: "#C0392B" }}>{tr("👉 pick one")}</span>}</div>
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
         {chanBtn("email", "📧 Email")}{chanBtn("sms", "📱 Text")}{chanBtn("both", "📧 + 📱 Both")}
       </div>
-      {wantEmail && <input placeholder="Subject (for the email)" value={subject} onChange={e => setSubject(e.target.value)} style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: `1px solid ${COLORS.border}`, fontSize: 14, fontFamily: "inherit", boxSizing: "border-box", marginBottom: 8 }} />}
-      <textarea placeholder="Your message…" value={message} onChange={e => setMessage(e.target.value)} rows={5} style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: `1px solid ${COLORS.border}`, fontSize: 14, fontFamily: "inherit", boxSizing: "border-box", marginBottom: 10, resize: "vertical" }} />
-      <button onClick={send} disabled={busy || !channel || !message.trim() || picked.length === 0} style={{ background: (busy || !channel || !message.trim() || picked.length === 0) ? "#ccc" : "#0c4a6e", color: "#fff", border: "none", borderRadius: 8, padding: "10px 16px", fontWeight: 700, fontSize: 14, cursor: "pointer", fontFamily: "inherit" }}>{busy ? "Sending…" : !channel ? "Pick Email or Text above" : channel === "sms" ? "Send text" : channel === "both" ? "Send text + email" : "Send email"}</button>
+      {wantEmail && <input placeholder={tr("Subject (for the email)")} value={subject} onChange={e => setSubject(e.target.value)} style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: `1px solid ${COLORS.border}`, fontSize: 14, fontFamily: "inherit", boxSizing: "border-box", marginBottom: 8 }} />}
+      <textarea placeholder={tr("Your message…")} value={message} onChange={e => setMessage(e.target.value)} rows={5} style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: `1px solid ${COLORS.border}`, fontSize: 14, fontFamily: "inherit", boxSizing: "border-box", marginBottom: 10, resize: "vertical" }} />
+      <button onClick={send} disabled={busy || !channel || !message.trim() || picked.length === 0} style={{ background: (busy || !channel || !message.trim() || picked.length === 0) ? "#ccc" : "#0c4a6e", color: "#fff", border: "none", borderRadius: 8, padding: "10px 16px", fontWeight: 700, fontSize: 14, cursor: "pointer", fontFamily: "inherit" }}>{busy ? tr("Sending…") : !channel ? tr("Pick Email or Text above") : channel === "sms" ? tr("Send text") : channel === "both" ? tr("Send text + email") : tr("Send email")}</button>
       {done && <div style={{ color: "#1E8449", fontSize: 14, marginTop: 10 }}>{done}</div>}
     </div>
   );
@@ -6049,55 +6058,55 @@ function LeaseDocsModal({ tx, onClose, onGenerated }) {
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 1000, display: "flex", alignItems: "flex-start", justifyContent: "center", padding: 16, overflowY: "auto" }}>
       <div style={{ background: "#fff", borderRadius: 12, maxWidth: 640, width: "100%", margin: "auto", padding: 24, boxShadow: "0 10px 40px rgba(0,0,0,0.25)" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-          <h2 style={{ margin: 0, fontSize: 19, color: COLORS.navy }}>📦 Lease Listing Package</h2>
+          <h2 style={{ margin: 0, fontSize: 19, color: COLORS.navy }}>{tr("📦 Lease Listing Package")}</h2>
           <button onClick={onClose} style={{ background: "none", border: "none", fontSize: 22, cursor: "pointer", color: COLORS.muted }}>×</button>
         </div>
-        <div style={{ fontSize: 13, color: COLORS.muted, marginBottom: 16 }}>{tx.address} · {tx.type}. The app fills your official Florida Realtors forms — then everyone signs in-app with one link each.</div>
-        {loading ? <div style={{ padding: 30, textAlign: "center", color: COLORS.muted }}>Loading deal data…</div>
+        <div style={{ fontSize: 13, color: COLORS.muted, marginBottom: 16 }}>{tx.address} · {tx.type}{tr(". The app fills your official Florida Realtors forms — then everyone signs in-app with one link each.")}</div>
+        {loading ? <div style={{ padding: 30, textAlign: "center", color: COLORS.muted }}>{tr("Loading deal data…")}</div>
          : done ? (
            <div>
              <div style={{ background: "#ECFDF5", border: "1px solid #6EE7B7", borderRadius: 10, padding: 16, marginBottom: 16 }}>
-               <div style={{ fontWeight: 800, color: "#065F46", marginBottom: 8 }}>✓ Generated {done.length} document{done.length !== 1 ? "s" : ""}</div>
+               <div style={{ fontWeight: 800, color: "#065F46", marginBottom: 8 }}>{tr("✓ Generated")} {done.length} {tr("document")}{done.length !== 1 ? "s" : ""}</div>
                <ul style={{ margin: 0, paddingLeft: 18, color: "#065F46", fontSize: 13 }}>{done.map(d => <li key={d.id}>{d.name}</li>)}</ul>
              </div>
              {sentTo ? (
                <div style={{ background: "#F0F9FF", border: "1px solid #BAE6FD", borderRadius: 10, padding: 14, marginBottom: 16, fontSize: 13.5, color: "#0C4A6E" }}>
-                 ✍️ Signing links sent to <strong>{sentTo}</strong>. Each person signs everything in one sitting; every signed copy files back into Documents with its certificate, and you'll get a pop-up.
+                 {tr("✍️ Signing links sent to")} <strong>{sentTo}</strong>{tr(". Each person signs everything in one sitting; every signed copy files back into Documents with its certificate, and you'll get a pop-up.")}
                </div>
              ) : signPack ? (
                <div style={{ background: "#FAF5FF", border: "1px solid #D8B4FE", borderRadius: 10, padding: 14, marginBottom: 16 }}>
-                 <div style={{ fontWeight: 800, fontSize: 13.5, color: "#86198F", marginBottom: 4 }}>✍️ Send for signatures — one tap</div>
-                 <div style={{ fontSize: 12, color: COLORS.muted, marginBottom: 10 }}>Signature, initials and date spots are already placed on every form. Check the emails and send — landlords, tenants and you each sign only the pages that need you.</div>
+                 <div style={{ fontWeight: 800, fontSize: 13.5, color: "#86198F", marginBottom: 4 }}>{tr("✍️ Send for signatures — one tap")}</div>
+                 <div style={{ fontSize: 12, color: COLORS.muted, marginBottom: 10 }}>{tr("Signature, initials and date spots are already placed on every form. Check the emails and send — landlords, tenants and you each sign only the pages that need you.")}</div>
                  <div style={{ marginBottom: 10 }}>
                    {signPack.documents.map(d => (
                      <div key={d.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, fontSize: 12.5, padding: "4px 0" }}>
                        <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>📄 {d.name}</span>
                        <button onClick={() => setAdjustDoc(d)}
-                         title="Move, resize, remove or add signature/initials/date/text/check-mark blocks on this form"
+                         title={tr("Move, resize, remove or add signature/initials/date/text/check-mark blocks on this form")}
                          style={{ flexShrink: 0, padding: "4px 10px", borderRadius: 7, border: "1px solid #CBD5E1", background: "#fff", color: "#334155", fontSize: 11.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
-                         ✏️ Adjust spots
+                         {tr("✏️ Adjust spots")}
                        </button>
                      </div>
                    ))}
                  </div>
                  {sigRows.map((s, i) => (
                    <div key={i} style={{ display: "flex", gap: 8, marginBottom: 6 }}>
-                     <input value={s.name} onChange={e => setSigRows(rs => rs.map((r, j) => j === i ? { ...r, name: e.target.value } : r))} placeholder="Name"
+                     <input value={s.name} onChange={e => setSigRows(rs => rs.map((r, j) => j === i ? { ...r, name: e.target.value } : r))} placeholder={tr("Name")}
                        style={{ flex: 1, minWidth: 0, padding: "8px 10px", borderRadius: 7, border: "1.5px solid #CCC", fontSize: 13, fontFamily: "inherit" }} />
-                     <input value={s.email} onChange={e => setSigRows(rs => rs.map((r, j) => j === i ? { ...r, email: e.target.value } : r))} placeholder="Email"
+                     <input value={s.email} onChange={e => setSigRows(rs => rs.map((r, j) => j === i ? { ...r, email: e.target.value } : r))} placeholder={tr("Email")}
                        style={{ flex: 1.2, minWidth: 0, padding: "8px 10px", borderRadius: 7, border: "1.5px solid " + ((s.email || "").trim() ? "#CCC" : "#F5B7B1"), fontSize: 13, fontFamily: "inherit" }} />
                    </div>
                  ))}
                  <button onClick={sendForSignatures} disabled={sending}
                    style={{ width: "100%", marginTop: 6, background: sending ? "#94A3B8" : "#0c4a6e", color: "#fff", border: "none", borderRadius: 8, padding: "11px", fontSize: 14, fontWeight: 800, cursor: sending ? "default" : "pointer", fontFamily: "inherit" }}>
-                   {sending ? "Sending links…" : "Send signing links ✍️"}
+                   {sending ? tr("Sending links…") : tr("Send signing links ✍️")}
                  </button>
                </div>
              ) : (
-               <div style={{ fontSize: 13, color: COLORS.muted, marginBottom: 16 }}>They're saved to the <strong>Documents</strong> tab, ready to review and send for signature.</div>
+               <div style={{ fontSize: 13, color: COLORS.muted, marginBottom: 16 }}>{tr("They're saved to the")} <strong>{tr("Documents")}</strong> {tr("tab, ready to review and send for signature.")}</div>
              )}
              {error && <div style={{ background: "#FEF2F2", border: "1px solid #FCA5A5", borderRadius: 8, padding: 10, fontSize: 13, color: "#7F1D1D", marginBottom: 12 }}>⚠️ {error}</div>}
-             <button onClick={onGenerated} style={{ width: "100%", background: "#0c4a6e", color: "#fff", border: "none", borderRadius: 8, padding: "12px", fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>Open Documents →</button>
+             <button onClick={onGenerated} style={{ width: "100%", background: "#0c4a6e", color: "#fff", border: "none", borderRadius: 8, padding: "12px", fontSize: 15, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>{tr("Open Documents →")}</button>
              {adjustDoc && signPack && (
                <Suspense fallback={null}>
                  <AdjustSpotsModal doc={adjustDoc} headers={{ Authorization: "Bearer " + tok }}
@@ -6113,12 +6122,12 @@ function LeaseDocsModal({ tx, onClose, onGenerated }) {
            </div>
          ) : (
            <div>
-             <div style={{ fontWeight: 700, fontSize: 13, color: COLORS.navy, marginBottom: 8 }}>Forms to generate</div>
+             <div style={{ fontWeight: 700, fontSize: 13, color: COLORS.navy, marginBottom: 8 }}>{tr("Forms to generate")}</div>
              <div style={{ marginBottom: 18 }}>
                {forms.map(f => (
                  <label key={f.docType} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 10px", border: `1px solid ${COLORS.border}`, borderRadius: 8, marginBottom: 6, cursor: "pointer" }}>
                    <input type="checkbox" checked={!!selected[f.docType]} onChange={e => setSelected(s => ({ ...s, [f.docType]: e.target.checked }))} />
-                   <span style={{ fontSize: 14 }}>{f.label}</span>
+                   <span style={{ fontSize: 14 }}>{tr(f.label)}</span>
                  </label>
                ))}
              </div>
@@ -6128,10 +6137,10 @@ function LeaseDocsModal({ tx, onClose, onGenerated }) {
                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }} data-keep-grid>
                    {questions.filter(q => q.group === g).map(q => (
                      <div key={q.key}>
-                       <div style={{ fontSize: 11, fontWeight: 600, color: COLORS.muted, marginBottom: 3 }}>{q.label}</div>
+                       <div style={{ fontSize: 11, fontWeight: 600, color: COLORS.muted, marginBottom: 3 }}>{tr(q.label)}</div>
                        {q.type === "select" ? (
                          <select value={answers[q.key] || ""} onChange={e => setAnswer(q.key, e.target.value)} style={inp}>
-                           {(q.options || []).map(o => <option key={o} value={o}>{o}</option>)}
+                           {(q.options || []).map(o => <option key={o} value={o}>{tr(o)}</option>)}
                          </select>
                        ) : (
                          <input type={q.type === "date" ? "date" : "text"} inputMode={q.type === "money" ? "decimal" : undefined}
@@ -6143,7 +6152,7 @@ function LeaseDocsModal({ tx, onClose, onGenerated }) {
                </div>
              ))}
              {error && <div style={{ color: COLORS.danger, fontSize: 13, marginBottom: 12 }}>{error}</div>}
-             <button disabled={busy} onClick={generate} style={{ width: "100%", background: busy ? "#9CA3AF" : "#0c4a6e", color: "#fff", border: "none", borderRadius: 8, padding: "12px", fontSize: 15, fontWeight: 700, cursor: busy ? "default" : "pointer", fontFamily: "inherit" }}>{busy ? "Generating…" : "Generate & Save to Documents"}</button>
+             <button disabled={busy} onClick={generate} style={{ width: "100%", background: busy ? "#9CA3AF" : "#0c4a6e", color: "#fff", border: "none", borderRadius: 8, padding: "12px", fontSize: 15, fontWeight: 700, cursor: busy ? "default" : "pointer", fontFamily: "inherit" }}>{busy ? tr("Generating…") : tr("Generate & Save to Documents")}</button>
            </div>
          )}
       </div>
@@ -6198,15 +6207,15 @@ function NextStepStrip({ txId, coordinatorMode, onOpenTimeline }) {
   const today = new Date().toLocaleDateString("en-CA", { timeZone: "America/New_York" });
   const due = typeof next.due_date === "string" ? next.due_date.split("T")[0] : next.due_date ? new Date(next.due_date).toISOString().split("T")[0] : null;
   const isOverdue = due && due < today;
-  const dueLabel = !due ? "" : isOverdue ? ` — was due ${formatDate(due)}` : due === today ? " — due TODAY" : ` — due ${formatDate(due)}`;
+  const dueLabel = !due ? "" : isOverdue ? " — " + tr("was due {date}", { date: formatDate(due) }) : due === today ? " — " + tr("due TODAY") : " — " + tr("due {date}", { date: formatDate(due) });
   return (
     <div onClick={onOpenTimeline}
       style={{ background: isOverdue ? "#FEF2F2" : "#F0FDF4", borderBottom: `1px solid ${isOverdue ? "#FECACA" : "#BBF7D0"}`, padding: "10px 24px", display: "flex", alignItems: "center", gap: 10, cursor: "pointer", flexWrap: "wrap" }}>
       <span style={{ fontSize: 16 }}>{isOverdue ? "⚠️" : "👉"}</span>
       <span style={{ fontSize: 13.5, color: isOverdue ? "#7F1D1D" : "#14532D" }}>
-        <b>{isOverdue ? "Behind: " : "Next step: "}</b>{stripLabel(next.name)}{dueLabel}
+        <b>{isOverdue ? tr("Behind: ") : tr("Next step: ")}</b>{tr(stripLabel(next.name))}{dueLabel}
       </span>
-      <span style={{ marginLeft: "auto", fontSize: 12.5, fontWeight: 800, color: isOverdue ? "#B91C1C" : "#166534" }}>Open the timeline →</span>
+      <span style={{ marginLeft: "auto", fontSize: 12.5, fontWeight: 800, color: isOverdue ? "#B91C1C" : "#166534" }}>{tr("Open the timeline →")}</span>
     </div>
   );
 }
@@ -6286,68 +6295,68 @@ function FallThroughModal({ tx, onClose, onDone }) {
       <div style={box}>
         {phase === "confirm" && (
           <>
-            <div style={{ fontSize: 17, fontWeight: 800, color: "#111" }}>💔 Contract fell through — {tx.address}</div>
-            <div style={{ fontSize: 13, color: "#374151", margin: "10px 0 4px", fontWeight: 700 }}>What happened?</div>
+            <div style={{ fontSize: 17, fontWeight: 800, color: "#111" }}>{tr("💔 Contract fell through —")} {tx.address}</div>
+            <div style={{ fontSize: 13, color: "#374151", margin: "10px 0 4px", fontWeight: 700 }}>{tr("What happened?")}</div>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }} data-keep-grid>
               {REASONS.map(([val, label]) => (
-                <button key={val} onClick={() => setReason(val)} style={{ padding: "7px 11px", borderRadius: 16, fontSize: 12.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", border: reason === val ? "2px solid #C0392B" : "1px solid #D1D5DB", background: reason === val ? "#FDEDEC" : "#fff", color: reason === val ? "#C0392B" : "#374151" }}>{label}</button>
+                <button key={val} onClick={() => setReason(val)} style={{ padding: "7px 11px", borderRadius: 16, fontSize: 12.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", border: reason === val ? "2px solid #C0392B" : "1px solid #D1D5DB", background: reason === val ? "#FDEDEC" : "#fff", color: reason === val ? "#C0392B" : "#374151" }}>{tr(label)}</button>
               ))}
             </div>
-            <textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="Optional notes for the record (e.g. lender name, what fell apart)…" style={{ width: "100%", boxSizing: "border-box", marginTop: 10, minHeight: 60, padding: 10, borderRadius: 10, border: "1px solid #D1D5DB", fontSize: 13, fontFamily: "inherit" }} />
+            <textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder={tr("Optional notes for the record (e.g. lender name, what fell apart)…")} style={{ width: "100%", boxSizing: "border-box", marginTop: 10, minHeight: 60, padding: 10, borderRadius: 10, border: "1px solid #D1D5DB", fontSize: 13, fontFamily: "inherit" }} />
             <div style={{ background: "#F9FAFB", border: "1px solid #E5E7EB", borderRadius: 10, padding: "10px 12px", marginTop: 10, fontSize: 12.5, color: "#374151", lineHeight: 1.6 }}>
-              One tap does all of this — nothing is lost:
-              <br />🗄️ <b>Everything archived for compliance</b> — people, timeline, contract terms, offer — viewable anytime under "💔 Past contracts".
-              <br />📁 This contract's documents stay together in its <b>"Under Contract — (buyers)"</b> folder, marked <b>fell through</b>.
-              <br />👥 The other side's people come off the deal (your client{tx.type === "Dual Agency" ? "s" : ""} and your TC stay). 💬 Messages stay.
-              <br />🔄 Status returns to <b>Active</b> with a fresh timeline; contract dates clear; follow-up chases stop.
-              <br />📥 Any backup offers resurface, and you'll get a client email draft to review.
+              {tr("One tap does all of this — nothing is lost:")}
+              <br />🗄️ <b>{tr("Everything archived for compliance")}</b> {tr("— people, timeline, contract terms, offer — viewable anytime under \"💔 Past contracts\".")}
+              <br />{tr("📁 This contract's documents stay together in its")} <b>{tr("\"Under Contract — (buyers)\"")}</b> {tr("folder, marked")} <b>{tr("fell through")}</b>.
+              <br />{tr("👥 The other side's people come off the deal (your client")}{tx.type === "Dual Agency" ? "s" : ""} {tr("and your TC stay). 💬 Messages stay.")}
+              <br />{tr("🔄 Status returns to")} <b>{tr("Active")}</b> {tr("with a fresh timeline; contract dates clear; follow-up chases stop.")}
+              <br />{tr("📥 Any backup offers resurface, and you'll get a client email draft to review.")}
             </div>
             <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
-              <button onClick={onClose} style={{ flex: 1, padding: "11px 10px", borderRadius: 9, border: "1px solid #D1D5DB", background: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>Never mind</button>
-              <button onClick={run} style={{ flex: 2, padding: "11px 10px", borderRadius: 9, border: "none", background: "#C0392B", color: "#fff", fontWeight: 800, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>💔 Yes — contract fell through</button>
+              <button onClick={onClose} style={{ flex: 1, padding: "11px 10px", borderRadius: 9, border: "1px solid #D1D5DB", background: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>{tr("Never mind")}</button>
+              <button onClick={run} style={{ flex: 2, padding: "11px 10px", borderRadius: 9, border: "none", background: "#C0392B", color: "#fff", fontWeight: 800, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>{tr("💔 Yes — contract fell through")}</button>
             </div>
           </>
         )}
-        {phase === "working" && <div style={{ padding: 30, textAlign: "center", fontSize: 14, color: "#374151" }}>Archiving the contract and resetting the deal…</div>}
+        {phase === "working" && <div style={{ padding: 30, textAlign: "center", fontSize: 14, color: "#374151" }}>{tr("Archiving the contract and resetting the deal…")}</div>}
         {phase === "error" && (
           <>
             <div style={{ fontSize: 15, fontWeight: 800, color: "#B91C1C" }}>⚠️ {err}</div>
-            <button onClick={onClose} style={{ marginTop: 14, width: "100%", padding: "11px 10px", borderRadius: 9, border: "1px solid #D1D5DB", background: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>Close</button>
+            <button onClick={onClose} style={{ marginTop: 14, width: "100%", padding: "11px 10px", borderRadius: 9, border: "1px solid #D1D5DB", background: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>{tr("Close")}</button>
           </>
         )}
         {phase === "result" && result && (
           <>
-            <div style={{ fontSize: 17, fontWeight: 800, color: "#166534" }}>✓ Back on market — the record is safe</div>
+            <div style={{ fontSize: 17, fontWeight: 800, color: "#166534" }}>{tr("✓ Back on market — the record is safe")}</div>
             <div style={{ fontSize: 13, color: "#374151", marginTop: 8, lineHeight: 1.7 }}>
-              🗄️ Archived {result.archived.parties} people, {result.archived.milestones} timeline steps, {result.archived.documents} documents.
-              <br />📁 {result.docsFiled.count} document(s) filed to <b>"{result.docsFiled.folder}"</b>.
-              <br />👥 Removed: {result.removedParties.length ? result.removedParties.map(p => `${p.name || p.role}`).join(", ") : "no one"}. Kept: {result.keptParties.map(p => p.name || p.role).join(", ") || "—"}.
-              <br />🔄 Timeline rebuilt with {result.timeline.rebuilt} fresh steps · {result.chasesStopped} chase(s) stopped · cleanup task added (MLS + deposit).
+              {tr("🗄️ Archived")} {result.archived.parties} {tr("people,")} {result.archived.milestones} {tr("timeline steps,")} {result.archived.documents} {tr("documents.")}
+              <br />📁 {result.docsFiled.count} {tr("document(s) filed to")} <b>"{result.docsFiled.folder}"</b>.
+              <br />{tr("👥 Removed:")} {result.removedParties.length ? result.removedParties.map(p => `${p.name || p.role}`).join(", ") : tr("no one")}{tr(". Kept:")} {result.keptParties.map(p => p.name || p.role).join(", ") || "—"}.
+              <br />{tr("🔄 Timeline rebuilt with")} {result.timeline.rebuilt} {tr("fresh steps ·")} {result.chasesStopped} {tr("chase(s) stopped · cleanup task added (MLS + deposit).")}
               {typeof autoRestored === "number" && autoRestored > 0 && (
-                <><br />↩ Re-checked <b>{autoRestored} listing step(s)</b> you'd already done before the contract — no chasing a sign that's already in the yard.</>
+                <><br />{tr("↩ Re-checked")} <b>{autoRestored} {tr("listing step(s)")}</b> {tr("you'd already done before the contract — no chasing a sign that's already in the yard.")}</>
               )}
-              {result.backupOffers.length > 0 && <><br />📥 <b>{result.backupOffers.length} backup offer(s) still on the table</b> — open "Review Offers Received" to re-share them with your seller.</>}
+              {result.backupOffers.length > 0 && <><br />📥 <b>{result.backupOffers.length} {tr("backup offer(s) still on the table")}</b> {tr("— open \"Review Offers Received\" to re-share them with your seller.")}</>}
             </div>
             {autoRestored === "failed" && (
               <div style={{ marginTop: 10, background: "#FFFBEB", border: "1px solid #FDE68A", borderRadius: 10, padding: 10, fontSize: 12.5, color: "#92400E", lineHeight: 1.5 }}>
-                ⚠️ Couldn't re-check your pre-contract steps just now — the deal itself reset fine. If listing work you already finished (sign, lockbox, photos) shows up as to-do again, open <b>⋯ → 💔 Past contracts</b> and hit <b>↩ Restore pre-contract checkmarks</b>.
+                {tr("⚠️ Couldn't re-check your pre-contract steps just now — the deal itself reset fine. If listing work you already finished (sign, lockbox, photos) shows up as to-do again, open")} <b>{tr("⋯ → 💔 Past contracts")}</b> {tr("and hit")} <b>{tr("↩ Restore pre-contract checkmarks")}</b>.
               </div>
             )}
             {draft && emailState !== "sent" && (
               <div style={{ marginTop: 12, border: "1px solid #FDE68A", background: "#FFFBEB", borderRadius: 10, padding: 12 }}>
-                <div style={{ fontSize: 11, fontWeight: 800, color: "#92400E", textTransform: "uppercase" }}>Reassurance email — review, edit, then send (or skip)</div>
-                <div style={{ fontSize: 12, color: "#6b7280", marginTop: 6 }}>To: <b style={{ color: "#111" }}>{draft.toName}</b> ({draft.toEmail})</div>
+                <div style={{ fontSize: 11, fontWeight: 800, color: "#92400E", textTransform: "uppercase" }}>{tr("Reassurance email — review, edit, then send (or skip)")}</div>
+                <div style={{ fontSize: 12, color: "#6b7280", marginTop: 6 }}>{tr("To:")} <b style={{ color: "#111" }}>{draft.toName}</b> ({draft.toEmail})</div>
                 <input value={draft.subject} onChange={e => setDraft({ ...draft, subject: e.target.value })} style={{ width: "100%", boxSizing: "border-box", marginTop: 6, padding: 8, borderRadius: 8, border: "1px solid #E5E7EB", fontSize: 13, fontWeight: 700, fontFamily: "inherit" }} />
                 <textarea value={draft.message} onChange={e => setDraft({ ...draft, message: e.target.value })} style={{ width: "100%", boxSizing: "border-box", marginTop: 6, minHeight: 150, padding: 10, borderRadius: 8, border: "1px solid #E5E7EB", fontSize: 13, fontFamily: "inherit", lineHeight: 1.5 }} />
-                {emailState === "failed" && <div style={{ fontSize: 12, color: "#B91C1C", marginTop: 4 }}>Couldn't send — try again.</div>}
+                {emailState === "failed" && <div style={{ fontSize: 12, color: "#B91C1C", marginTop: 4 }}>{tr("Couldn't send — try again.")}</div>}
                 <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
-                  <button onClick={() => setDraft(null)} style={{ flex: 1, padding: "9px 10px", borderRadius: 8, border: "1px solid #D1D5DB", background: "#fff", fontWeight: 700, fontSize: 12.5, cursor: "pointer", fontFamily: "inherit" }}>Skip</button>
-                  <button onClick={sendDraft} disabled={emailState === "sending"} style={{ flex: 2, padding: "9px 10px", borderRadius: 8, border: "none", background: "#0c4a6e", color: "#fff", fontWeight: 800, fontSize: 12.5, cursor: "pointer", fontFamily: "inherit" }}>{emailState === "sending" ? "Sending…" : "✉️ Send to " + (draft.toName || "client").split(" ")[0]}</button>
+                  <button onClick={() => setDraft(null)} style={{ flex: 1, padding: "9px 10px", borderRadius: 8, border: "1px solid #D1D5DB", background: "#fff", fontWeight: 700, fontSize: 12.5, cursor: "pointer", fontFamily: "inherit" }}>{tr("Skip")}</button>
+                  <button onClick={sendDraft} disabled={emailState === "sending"} style={{ flex: 2, padding: "9px 10px", borderRadius: 8, border: "none", background: "#0c4a6e", color: "#fff", fontWeight: 800, fontSize: 12.5, cursor: "pointer", fontFamily: "inherit" }}>{emailState === "sending" ? tr("Sending…") : tr("✉️ Send to ") + (draft.toName || "client").split(" ")[0]}</button>
                 </div>
               </div>
             )}
-            {emailState === "sent" && <div style={{ marginTop: 12, background: "#F0FDF4", border: "1px solid #BBF7D0", borderRadius: 10, padding: 10, fontSize: 13, fontWeight: 700, color: "#166534" }}>✓ Email sent.</div>}
-            <button onClick={onClose} style={{ marginTop: 14, width: "100%", padding: "11px 10px", borderRadius: 9, border: "none", background: "#0c4a6e", color: "#fff", fontWeight: 800, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>Done</button>
+            {emailState === "sent" && <div style={{ marginTop: 12, background: "#F0FDF4", border: "1px solid #BBF7D0", borderRadius: 10, padding: 10, fontSize: 13, fontWeight: 700, color: "#166534" }}>{tr("✓ Email sent.")}</div>}
+            <button onClick={onClose} style={{ marginTop: 14, width: "100%", padding: "11px 10px", borderRadius: 9, border: "none", background: "#0c4a6e", color: "#fff", fontWeight: 800, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>{tr("Done")}</button>
           </>
         )}
       </div>
@@ -6376,27 +6385,27 @@ function PastContractsModal({ tx, onClose }) {
       setRestoreState("done");
     } catch { setRestoreState("failed"); }
   };
-  const fmt = (d) => { try { return new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }); } catch { return String(d || ""); } };
+  const fmt = (d) => { try { return new Date(d).toLocaleDateString(uiLocale(), { month: "short", day: "numeric", year: "numeric" }); } catch { return String(d || ""); } };
   return (
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)", zIndex: 4000, display: "flex", alignItems: "flex-start", justifyContent: "center", overflowY: "auto", padding: "40px 14px" }} onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
       <div style={{ background: "#fff", borderRadius: 14, maxWidth: 620, width: "100%", padding: 22, boxShadow: "0 18px 60px rgba(0,0,0,0.35)" }}>
-        <div style={{ fontSize: 17, fontWeight: 800, color: "#111" }}>💔 Past contracts — {tx.address}</div>
-        {rows === null && <div style={{ padding: 16, color: "#6b7280", fontSize: 13 }}>Loading…</div>}
-        {rows && rows.length === 0 && <div style={{ padding: 16, color: "#6b7280", fontSize: 13 }}>No fall-through archives on this deal. 🎉</div>}
+        <div style={{ fontSize: 17, fontWeight: 800, color: "#111" }}>{tr("💔 Past contracts —")} {tx.address}</div>
+        {rows === null && <div style={{ padding: 16, color: "#6b7280", fontSize: 13 }}>{tr("Loading…")}</div>}
+        {rows && rows.length === 0 && <div style={{ padding: 16, color: "#6b7280", fontSize: 13 }}>{tr("No fall-through archives on this deal. 🎉")}</div>}
         {(rows || []).map(a => {
           const s = a.snapshot || {};
           const c = s.contract || {};
           return (
             <div key={a.id} style={{ border: "1px solid #E5E7EB", borderRadius: 10, padding: 12, marginTop: 10 }}>
-              <div style={{ fontWeight: 800, fontSize: 14, color: "#111" }}>Fell through {fmt(a.created_at)} — {(a.reason || "other").replace(/_/g, " ")}</div>
+              <div style={{ fontWeight: 800, fontSize: 14, color: "#111" }}>{tr("Fell through")} {fmt(a.created_at)} — {(a.reason || "other").replace(/_/g, " ")}</div>
               {a.notes && <div style={{ fontSize: 12.5, color: "#374151", marginTop: 3 }}>{a.notes}</div>}
               <div style={{ fontSize: 12.5, color: "#374151", marginTop: 6, lineHeight: 1.6 }}>
-                {c.contract_price && <>Contract price: <b>${Number(c.contract_price).toLocaleString()}</b> · </>}
-                {c.executed_date && <>Executed {String(c.executed_date).slice(0, 10)} · </>}
-                {c.closing_date && <>was closing {String(c.closing_date).slice(0, 10)}</>}
+                {c.contract_price && <>{tr("Contract price:")} <b>${Number(c.contract_price).toLocaleString()}</b> · </>}
+                {c.executed_date && <>{tr("Executed")} {String(c.executed_date).slice(0, 10)} · </>}
+                {c.closing_date && <>{tr("was closing")} {String(c.closing_date).slice(0, 10)}</>}
                 <br />👥 {(s.parties || []).map(p => `${p.name || "?"} (${p.role})`).join(", ") || "—"}
-                <br />📋 Timeline: {(s.milestones || []).filter(m => /completed|waived/i.test(m.status || "")).length} of {(s.milestones || []).length} steps were done
-                {s.documents_moved_to_folder && s.documents_moved_to_folder.ids && s.documents_moved_to_folder.ids.length > 0 && <><br />📁 {s.documents_moved_to_folder.ids.length} document(s) in "{s.documents_moved_to_folder.folder}" (Documents tab)</>}
+                <br />{tr("📋 Timeline:")} {(s.milestones || []).filter(m => /completed|waived/i.test(m.status || "")).length} {tr("of")} {(s.milestones || []).length} {tr("steps were done")}
+                {s.documents_moved_to_folder && s.documents_moved_to_folder.ids && s.documents_moved_to_folder.ids.length > 0 && <><br />📁 {s.documents_moved_to_folder.ids.length} {tr("document(s) in \"")}{s.documents_moved_to_folder.folder}{tr("\" (Documents tab)")}</>}
               </div>
             </div>
           );
@@ -6404,19 +6413,19 @@ function PastContractsModal({ tx, onClose }) {
         {rows && rows.length > 0 && (
           <div style={{ marginTop: 12, background: "#F0F9FF", border: "1px solid #BAE6FD", borderRadius: 10, padding: 12 }}>
             <div style={{ fontSize: 12.5, color: "#0C4A6E", lineHeight: 1.5 }}>
-              Pre-contract checkmarks missing after the reset? Restore them from the archive — it only re-completes listing-phase steps that were done before; it never un-checks anything.
+              {tr("Pre-contract checkmarks missing after the reset? Restore them from the archive — it only re-completes listing-phase steps that were done before; it never un-checks anything.")}
             </div>
             {restoreState === "done" ? (
-              <div style={{ marginTop: 8, fontSize: 13, fontWeight: 700, color: "#166534" }}>✓ Restored {restoredCount} checkmark(s). Reopen the Timeline tab to see them.</div>
+              <div style={{ marginTop: 8, fontSize: 13, fontWeight: 700, color: "#166534" }}>{tr("✓ Restored")} {restoredCount} {tr("checkmark(s). Reopen the Timeline tab to see them.")}</div>
             ) : (
               <button onClick={restore} disabled={restoreState === "working"} style={{ marginTop: 8, padding: "9px 12px", borderRadius: 8, border: "none", background: "#0c4a6e", color: "#fff", fontWeight: 700, fontSize: 12.5, cursor: "pointer", fontFamily: "inherit" }}>
-                {restoreState === "working" ? "Restoring…" : "↩ Restore pre-contract checkmarks"}
+                {restoreState === "working" ? tr("Restoring…") : tr("↩ Restore pre-contract checkmarks")}
               </button>
             )}
-            {restoreState === "failed" && <div style={{ marginTop: 6, fontSize: 12, color: "#B91C1C" }}>Couldn't restore — try again.</div>}
+            {restoreState === "failed" && <div style={{ marginTop: 6, fontSize: 12, color: "#B91C1C" }}>{tr("Couldn't restore — try again.")}</div>}
           </div>
         )}
-        <button onClick={onClose} style={{ marginTop: 14, width: "100%", padding: "11px 10px", borderRadius: 9, border: "1px solid #D1D5DB", background: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>Close</button>
+        <button onClick={onClose} style={{ marginTop: 14, width: "100%", padding: "11px 10px", borderRadius: 9, border: "1px solid #D1D5DB", background: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>{tr("Close")}</button>
       </div>
     </div>
   );
@@ -6478,24 +6487,24 @@ function InternalNotesPanel({ txId, compact = false, onSeeAll }) {
       <div style={{ background: "#fff", border: `1px solid ${COLORS.border}`, borderRadius: 12, padding: 16, marginBottom: 20 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
           <div style={{ fontWeight: 800, fontSize: 14, color: COLORS.navy, flex: 1 }}>
-            🗒 Internal Notes {loading ? "…" : `(${notes.length})`}
+            {tr("🗒 Internal Notes")} {loading ? "…" : `(${notes.length})`}
           </div>
-          <button onClick={load} title="Re-check for notes"
+          <button onClick={load} title={tr("Re-check for notes")}
             style={{ background: "none", border: "none", color: COLORS.muted, fontSize: 13, cursor: "pointer", padding: 0 }}>⟳</button>
           {onSeeAll && (
             <button onClick={onSeeAll} style={{ background: "none", border: "none", color: COLORS.navy, fontWeight: 700, fontSize: 12, textDecoration: "underline", cursor: "pointer", padding: 0 }}>
-              See all / add one
+              {tr("See all / add one")}
             </button>
           )}
         </div>
-        {!loading && error && <div style={{ fontSize: 12.5, color: "#B91C1C", paddingTop: 6 }}>Couldn't load notes: {error}</div>}
+        {!loading && error && <div style={{ fontSize: 12.5, color: "#B91C1C", paddingTop: 6 }}>{tr("Couldn't load notes:")} {error}</div>}
         {!loading && !error && notes.length === 0 && (
-          <div style={{ fontSize: 12.5, color: COLORS.muted, paddingTop: 6 }}>No notes on this deal yet. Ask the assistant to add one, or use “See all / add one”.</div>
+          <div style={{ fontSize: 12.5, color: COLORS.muted, paddingTop: 6 }}>{tr("No notes on this deal yet. Ask the assistant to add one, or use “See all / add one”.")}</div>
         )}
         {notes.slice(-3).reverse().map(m => (
           <div key={m.id} style={{ borderTop: `1px solid ${COLORS.border}`, paddingTop: 8, marginTop: 8 }}>
             <div style={{ fontSize: 11, color: COLORS.muted, marginBottom: 2 }}>
-              {m.sender} · {new Date(m.timestamp).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
+              {m.sender} · {new Date(m.timestamp).toLocaleString(uiLocale(), { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
             </div>
             <div style={{ fontSize: 13.5, color: COLORS.text, lineHeight: 1.45 }}>{m.text}</div>
           </div>
@@ -6507,13 +6516,13 @@ function InternalNotesPanel({ txId, compact = false, onSeeAll }) {
   return (
     <div>
       <div style={{ background: "#fff", border: `1px solid ${COLORS.border}`, borderRadius: 12, padding: 20, marginBottom: 16, minHeight: 300, maxHeight: 500, overflowY: "auto" }}>
-        {loading && <div style={{ textAlign: "center", color: COLORS.muted, padding: 40 }}>Loading notes…</div>}
+        {loading && <div style={{ textAlign: "center", color: COLORS.muted, padding: 40 }}>{tr("Loading notes…")}</div>}
         {!loading && error && <div style={{ textAlign: "center", color: "#B91C1C", padding: 40 }}>{error}</div>}
-        {!loading && !error && notes.length === 0 && <div style={{ textAlign: "center", color: COLORS.muted, padding: 40 }}>No internal notes yet.</div>}
+        {!loading && !error && notes.length === 0 && <div style={{ textAlign: "center", color: COLORS.muted, padding: 40 }}>{tr("No internal notes yet.")}</div>}
         {!loading && notes.map(m => (
           <div key={m.id} style={{ marginBottom: 14 }}>
             <div style={{ fontSize: 11, color: COLORS.muted, marginBottom: 3 }}>
-              {m.sender} · {new Date(m.timestamp).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
+              {m.sender} · {new Date(m.timestamp).toLocaleString(uiLocale(), { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
             </div>
             <div style={{ background: "#F3F4F6", color: COLORS.text, padding: "10px 14px", borderRadius: 10, fontSize: 14, lineHeight: 1.5 }}>{m.text}</div>
           </div>
@@ -6522,9 +6531,9 @@ function InternalNotesPanel({ txId, compact = false, onSeeAll }) {
       <div style={{ display: "flex", gap: 10 }}>
         <input value={text} onChange={e => setText(e.target.value)}
           onKeyDown={e => { if (e.key === "Enter") save(); }}
-          placeholder="Internal note (Enter to save)..."
+          placeholder={tr("Internal note (Enter to save)...")}
           style={{ flex: 1, padding: "10px 14px", borderRadius: 8, border: `1px solid ${COLORS.border}`, fontSize: 14, fontFamily: "inherit" }} />
-        <Btn onClick={save} disabled={saving}>{saving ? "Saving…" : "Save"}</Btn>
+        <Btn onClick={save} disabled={saving}>{saving ? tr("Saving…") : tr("Save")}</Btn>
       </div>
     </div>
   );
@@ -6846,11 +6855,11 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
     ...(isBuyerSideTx && !isGuest ? [{ id: "showings", label: "🏠 Showings" }] : []),
     ...(isBuyerSideTx && !isGuest ? [{ id: "offers", label: "📝 Offers" }] : []),
     { id: "documents", label: "📎 Documents" },
-    { id: "parties", label: `People (${(isCoordinator ? tx.parties.filter(p => (p.email || "").toLowerCase() !== (currentUser?.email || "").toLowerCase()) : tx.parties).length})` },
+    { id: "parties", label: tr("People ({n})", { n: (isCoordinator ? tx.parties.filter(p => (p.email || "").toLowerCase() !== (currentUser?.email || "").toLowerCase()) : tx.parties).length }) },
     ...(!isGuest
-      ? [{ id: "messages", label: (chatUnread > 0 || dashboardUnread > 0 || unreadReplyCount > 0) ? `💬 Messages (${Math.max(chatUnread, dashboardUnread) + unreadReplyCount})` : "💬 Messages" }]
+      ? [{ id: "messages", label: (chatUnread > 0 || dashboardUnread > 0 || unreadReplyCount > 0) ? "💬 " + tr("Messages ({n})", { n: Math.max(chatUnread, dashboardUnread) + unreadReplyCount }) : "💬 " + tr("Messages") }]
       : []),
-    ...(isGuest ? [{ id: "chat", label: (chatUnread > 0 || dashboardUnread > 0) ? `💬 Group Chat (${Math.max(chatUnread, dashboardUnread)})` : "💬 Group Chat" }] : []),
+    ...(isGuest ? [{ id: "chat", label: (chatUnread > 0 || dashboardUnread > 0) ? "💬 " + tr("Group Chat ({n})", { n: Math.max(chatUnread, dashboardUnread) }) : "💬 " + tr("Group Chat") }] : []),
   ].filter(t => !isCoordinator || !COORD_HIDDEN_TABS.includes(t.id));
   const moreTabs = [
     ...(isListingSideTx ? [{ id: "seller-calc", label: "💰 Seller's Net Sheet" }] : []),
@@ -6877,16 +6886,16 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
         <BackButton tone="dark" onClick={onBack} to={coordinatorMode ? "All deals" : "My Deals"} />
         <div style={{ flex: 1 }}>
           <div style={{ color: "#fff", fontWeight: 700, fontSize: 17 }}>{tx.address}</div>
-          <div style={{ color: "rgba(255,255,255,0.85)", fontSize: 13 }}>{tx.city}, FL {tx.zipCode} · {tx.county} County · {tx.type}</div>
-          {isGuest && tx.owningBrokerageName && <div style={{ color: "rgba(255,255,255,0.7)", fontSize: 12, marginTop: 2 }}>🏢 Managed by {tx.owningBrokerageName}</div>}
+          <div style={{ color: "rgba(255,255,255,0.85)", fontSize: 13 }}>{tx.city}{tr(", FL")} {tx.zipCode} · {tx.county ? tr("{county} County", { county: tx.county }) + " · " : ""}{tr(tx.type)}</div>
+          {isGuest && tx.owningBrokerageName && <div style={{ color: "rgba(255,255,255,0.7)", fontSize: 12, marginTop: 2 }}>{tr("🏢 Managed by")} {tx.owningBrokerageName}</div>}
         </div>
         {propertyTypeBadge(tx) && <Badge label={propertyTypeBadge(tx).label} color={propertyTypeBadge(tx).color} bg={propertyTypeBadge(tx).bg} />}
         {shareBadge(tx) && <Badge label={shareBadge(tx).label} color={shareBadge(tx).color} bg={shareBadge(tx).bg} />}
-        {isGuest && <span style={{ background: "rgba(255,255,255,0.15)", color: "#fff", fontSize: 11, fontWeight: 700, padding: "4px 10px", borderRadius: 6 }}>👤 Shared with you · view only</span>}
-        {isCoordinator && <span style={{ background: "rgba(255,255,255,0.15)", color: "#fff", fontSize: 11, fontWeight: 700, padding: "4px 10px", borderRadius: 6 }}>🧭 Coordinator</span>}
+        {isGuest && <span style={{ background: "rgba(255,255,255,0.15)", color: "#fff", fontSize: 11, fontWeight: 700, padding: "4px 10px", borderRadius: 6 }}>{tr("👤 Shared with you · view only")}</span>}
+        {isCoordinator && <span style={{ background: "rgba(255,255,255,0.15)", color: "#fff", fontSize: 11, fontWeight: 700, padding: "4px 10px", borderRadius: 6 }}>{tr("🧭 Coordinator")}</span>}
         {/* CO-AGENT on someone else's deal: full access; only the deal agent's
             commission terms stay theirs. */}
-        {!isCoordinator && tx.isCoAgentView && <span title={`You share this deal with ${tx.assignedAgentName || "its agent"}. Their commission terms stay theirs.`} style={{ background: "rgba(255,255,255,0.15)", color: "#fff", fontSize: 11, fontWeight: 700, padding: "4px 10px", borderRadius: 6 }}>🤝 You're a co-agent</span>}
+        {!isCoordinator && tx.isCoAgentView && <span title={`You share this deal with ${tx.assignedAgentName || "its agent"}. Their commission terms stay theirs.`} style={{ background: "rgba(255,255,255,0.15)", color: "#fff", fontSize: 11, fontWeight: 700, padding: "4px 10px", borderRadius: 6 }}>{tr("🤝 You're a co-agent")}</span>}
         {!isCoordinator && <>
         <select value={tx.status} onChange={e => {
           if (isGuest) { setPaywallFeature("Changing transaction status"); e.target.value = tx.status; return; }
@@ -6909,7 +6918,7 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
           if (["Closed","On Hold","Cancelled"].includes(tx.status) && newStatus === "Active") {
             e.target.value = tx.status;   // nothing changes until they say OK in the box
             (async () => {
-              const confirmed = await askConfirm("Change back to Active?\n\nAll contract task due dates will be cleared and tasks reset to Pending.", { okLabel: "Change to Active" });
+              const confirmed = await askConfirm(tr("Change back to Active?\n\nAll contract task due dates will be cleared and tasks reset to Pending."), { okLabel: tr("Change to Active") });
               if (!confirmed) return;
               const clearedTasks = tx.tasks.map(t => {
                 const tmpl = (FLORIDA_TASK_TEMPLATES[tx.type] || []).find(tmp => tmp.name === t.name);
@@ -6923,29 +6932,29 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
           setStatusChangeModal({ newStatus, form: { executedDate: tx.executedDate || "", closingDate: tx.closingDate || "", inspectionDays: "10", note: "" } });
           e.target.value = tx.status;
         }} style={{ fontSize: 12, padding: "4px 8px", borderRadius: 6, border: "none", fontFamily: "inherit", background: "rgba(255,255,255,0.15)", color: "#fff", cursor: "pointer" }}>
-          {Object.keys(STATUS_CONFIG).map(s => <option key={s} style={{ color: COLORS.text, background: "#fff" }}>{s}</option>)}
+          {Object.keys(STATUS_CONFIG).map(s => <option value={s} key={s} style={{ color: COLORS.text, background: "#fff" }}>{tr(s)}</option>)}
           {/* Always findable where agents actually look: on any open deal —
               including one already flipped back to Active (the server checks
               there was really a contract and refuses politely otherwise). */}
           {!isGuest && !["Closed", "Cancelled"].includes(tx.status) && (
-            <option value="__fell_through" style={{ color: "#B91C1C", background: "#fff", fontWeight: 700 }}>💔 Contract fell through…</option>
+            <option value="__fell_through" style={{ color: "#B91C1C", background: "#fff", fontWeight: 700 }}>{tr("💔 Contract fell through…")}</option>
           )}
         </select>
         {/* ONE main action per side (white on the dark header — green is reserved for "done"); Edit; everything else under ⋯ */}
         {!isGuest && tx.type === "Buyer Representation" && !["Closed", "Cancelled"].includes(tx.status) && (
-          <button onClick={() => { setActiveTab("offers"); setOfferCreateSignal(n => n + 1); }} title="Build and send your buyer's offer to the listing agent" style={{ fontSize: 12, padding: "6px 14px", borderRadius: 6, border: "none", background: "#fff", color: "#0c4a6e", fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>📝 Create Offer</button>
+          <button onClick={() => { setActiveTab("offers"); setOfferCreateSignal(n => n + 1); }} title={tr("Build and send your buyer's offer to the listing agent")} style={{ fontSize: 12, padding: "6px 14px", borderRadius: 6, border: "none", background: "#fff", color: "#0c4a6e", fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>{tr("📝 Create Offer")}</button>
         )}
         {tx.type !== "Buyer Representation" && !isLeaseType(tx.type) && !["Closed", "Cancelled"].includes(tx.status) && (
-          <button onClick={() => isGuest ? setPaywallFeature("Receiving offers") : (setActiveTab("overview"), setShowReceiveOffer(true))} style={{ fontSize: 12, padding: "6px 14px", borderRadius: 6, border: "none", background: "#fff", color: "#0c4a6e", fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>📥 Receive Offer</button>
+          <button onClick={() => isGuest ? setPaywallFeature("Receiving offers") : (setActiveTab("overview"), setShowReceiveOffer(true))} style={{ fontSize: 12, padding: "6px 14px", borderRadius: 6, border: "none", background: "#fff", color: "#0c4a6e", fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>{tr("📥 Receive Offer")}</button>
         )}
         {/* Lease deals: the ONE green action is the lease package (ERL, lease,
             disclosures — filled + sent for signatures in one flow). */}
         {!isGuest && isLeaseType(tx.type) && !["Closed", "Cancelled"].includes(tx.status) && (
-          <button onClick={() => setShowLeaseDocs(true)} title="Fill the lease listing forms (ERL, lease, flood, lead-paint) and send them for signatures" style={{ fontSize: 12, padding: "6px 14px", borderRadius: 6, border: "none", background: "#fff", color: "#0c4a6e", fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>📦 Lease Package</button>
+          <button onClick={() => setShowLeaseDocs(true)} title={tr("Fill the lease listing forms (ERL, lease, flood, lead-paint) and send them for signatures")} style={{ fontSize: 12, padding: "6px 14px", borderRadius: 6, border: "none", background: "#fff", color: "#0c4a6e", fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>{tr("📦 Lease Package")}</button>
         )}
-        <button onClick={() => isGuest ? setPaywallFeature("Editing a transaction") : openEditTx()} style={{ fontSize: 12, padding: "6px 14px", borderRadius: 6, border: "1px solid rgba(255,255,255,0.35)", background: "rgba(255,255,255,0.12)", color: "#fff", fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>✏️ Edit</button>
+        <button onClick={() => isGuest ? setPaywallFeature("Editing a transaction") : openEditTx()} style={{ fontSize: 12, padding: "6px 14px", borderRadius: 6, border: "1px solid rgba(255,255,255,0.35)", background: "rgba(255,255,255,0.12)", color: "#fff", fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>{tr("✏️ Edit")}</button>
         <div style={{ position: "relative" }}>
-          <button onClick={() => setShowTxMore(v => !v)} title="More actions" style={{ fontSize: 15, padding: "5px 12px", borderRadius: 6, border: "1px solid rgba(255,255,255,0.35)", background: "rgba(255,255,255,0.12)", color: "#fff", cursor: "pointer", fontFamily: "inherit", fontWeight: 700 }}>⋯</button>
+          <button onClick={() => setShowTxMore(v => !v)} title={tr("More actions")} style={{ fontSize: 15, padding: "5px 12px", borderRadius: 6, border: "1px solid rgba(255,255,255,0.35)", background: "rgba(255,255,255,0.12)", color: "#fff", cursor: "pointer", fontFamily: "inherit", fontWeight: 700 }}>⋯</button>
           {showTxMore && (
             <>
               <div onMouseDown={e => { if (e.target === e.currentTarget) e.currentTarget.dataset.dob = "1"; else delete e.currentTarget.dataset.dob; }} onClick={e => { if (e.target === e.currentTarget && e.currentTarget.dataset.dob === "1") setShowTxMore(false); delete e.currentTarget.dataset.dob; }} style={{ position: "fixed", inset: 0, zIndex: 200 }} />
@@ -6968,7 +6977,7 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
                     onMouseEnter={e => e.currentTarget.style.background = it.danger ? "#FEF2F2" : "#f3f4f6"}
                     onMouseLeave={e => e.currentTarget.style.background = "none"}>
                     <span style={{ fontSize: 15 }}>{it.icon}</span>
-                    <span>{it.label}</span>
+                    <span>{tr(it.label)}</span>
                   </button>
                 ))}
               </div>
@@ -6990,7 +6999,7 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
           { label: "Texts Sent", value: smsMsgCount },
         ].map(s => (
           <div key={s.label} style={{ textAlign: "center", flexShrink: 0 }}>
-            <div style={{ fontSize: 11, color: COLORS.muted, textTransform: "uppercase", letterSpacing: "0.05em", fontWeight: 600 }}>{s.label}</div>
+            <div style={{ fontSize: 11, color: COLORS.muted, textTransform: "uppercase", letterSpacing: "0.05em", fontWeight: 600 }}>{tr(s.label)}</div>
             <div style={{ fontSize: 16, fontWeight: 700, color: s.highlight ? COLORS.danger : COLORS.navy, marginTop: 2 }}>{s.value}</div>
           </div>
         ))}
@@ -7002,19 +7011,16 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
         <div style={{ background: "#FEF3C7", borderBottom: "2px solid #F59E0B", padding: "11px 24px", display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
           <span style={{ fontSize: 18 }}>👀</span>
           <div style={{ flex: 1, minWidth: 220, fontSize: 13, color: "#78350F", lineHeight: 1.5 }}>
-            <b>This is a sample deal — none of it is real.</b> Click around all you
-            like: nobody on it has an email address or a phone number, so nothing
-            here can send a message to anyone. It disappears on its own once you
-            add a real deal.
+            <b>{tr("This is a sample deal — none of it is real.")}</b> {tr("Click around all you like: nobody on it has an email address or a phone number, so nothing here can send a message to anyone. It disappears on its own once you add a real deal.")}
           </div>
           {onDeleteSample && (
             <button
               onClick={async () => {
-                if (!(await askConfirm("Delete the sample deal?\n\nIt's only a demo — you can create it again any time from Win The Day.", { okLabel: "Delete", danger: true }))) return;
-                try { await onDeleteSample(); } catch (e) { alert(e.message || "Could not delete the sample deal."); }
+                if (!(await askConfirm(tr("Delete the sample deal?\n\nIt's only a demo — you can create it again any time from Win The Day."), { okLabel: tr("Delete"), danger: true }))) return;
+                try { await onDeleteSample(); } catch (e) { alert(e.message || tr("Could not delete the sample deal.")); }
               }}
               style={{ flexShrink: 0, background: "#fff", color: "#78350F", border: "1px solid #F59E0B", borderRadius: 8, padding: "7px 14px", fontSize: 12.5, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
-              🗑 Delete sample deal
+              {tr("🗑 Delete sample deal")}
             </button>
           )}
         </div>
@@ -7025,14 +7031,14 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
       )}
       <div style={{ background: "#fff", borderBottom: `1px solid ${COLORS.border}`, display: "flex", overflowX: "auto" }}>
         {primaryTabs.map(t => (
-          <button key={t.id} onClick={() => handleTabClick(t)} style={{ padding: "12px 20px", background: "none", border: "none", borderBottom: `3px solid ${activeTab === t.id ? COLORS.navy : "transparent"}`, color: activeTab === t.id ? COLORS.navy : COLORS.muted, fontWeight: activeTab === t.id ? 700 : 500, fontSize: 13, cursor: "pointer", flexShrink: 0, fontFamily: "inherit" }}>{t.label}{isGuest && !GUEST_ALLOWED_TABS.includes(t.id) ? " 🔒" : ""}</button>
+          <button key={t.id} onClick={() => handleTabClick(t)} style={{ padding: "12px 20px", background: "none", border: "none", borderBottom: `3px solid ${activeTab === t.id ? COLORS.navy : "transparent"}`, color: activeTab === t.id ? COLORS.navy : COLORS.muted, fontWeight: activeTab === t.id ? 700 : 500, fontSize: 13, cursor: "pointer", flexShrink: 0, fontFamily: "inherit" }}>{tr(t.label)}{isGuest && !GUEST_ALLOWED_TABS.includes(t.id) ? " 🔒" : ""}</button>
         ))}
         {moreTabs.length > 0 && (
           <div style={{ position: "relative", flexShrink: 0 }}>
             {(() => { const activeMore = moreTabs.find(t => t.id === activeTab); return (
               <button onClick={(e) => { const r = e.currentTarget.getBoundingClientRect(); setMoreTabsPos({ top: r.bottom + 4, left: Math.max(8, Math.min(r.left, window.innerWidth - 230)) }); setShowMoreTabs(v => !v); }}
                 style={{ padding: "12px 20px", background: "none", border: "none", borderBottom: `3px solid ${activeMore ? COLORS.navy : "transparent"}`, color: activeMore ? COLORS.navy : COLORS.muted, fontWeight: activeMore ? 700 : 500, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>
-                {activeMore ? activeMore.label : "More"} ▾
+                {activeMore ? tr(activeMore.label) : tr("More")} ▾
               </button>
             ); })()}
             {showMoreTabs && (
@@ -7047,7 +7053,7 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
                       style={{ display: "block", width: "100%", textAlign: "left", padding: "10px 14px", background: activeTab === t.id ? "#F0F4FA" : "none", border: "none", borderRadius: 6, fontSize: 13, fontWeight: activeTab === t.id ? 700 : 500, color: "#1f2937", cursor: "pointer", fontFamily: "inherit" }}
                       onMouseEnter={e => e.currentTarget.style.background = "#f3f4f6"}
                       onMouseLeave={e => e.currentTarget.style.background = activeTab === t.id ? "#F0F4FA" : "none"}>
-                      {t.label}{isGuest && !GUEST_ALLOWED_TABS.includes(t.id) ? " 🔒" : ""}
+                      {tr(t.label)}{isGuest && !GUEST_ALLOWED_TABS.includes(t.id) ? " 🔒" : ""}
                     </button>
                   ))}
                 </div>
@@ -7101,8 +7107,8 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
                 <div style={{ display: "flex", alignItems: "flex-start", gap: 12, flexWrap: "wrap" }}>
                   <span style={{ fontSize: 24 }}>🌱</span>
                   <div style={{ flex: 1, minWidth: 220 }}>
-                    <div style={{ fontWeight: 800, color: "#7A5C00", fontSize: 15, marginBottom: 4 }}>This is still a {isBuyerSideType(tx.type) ? "buyer inquiry" : "seller lead"} — not yet confirmed</div>
-                    <div style={{ fontSize: 13, color: "#7A5C00", lineHeight: 1.5 }}>It came in from your intake link and hasn't been worked into a real deal yet. <strong>Confirm</strong> it to keep working it, or <strong>Not Pursuing</strong> if it went nowhere. (You can also set any status from the selector at the top.)</div>
+                    <div style={{ fontWeight: 800, color: "#7A5C00", fontSize: 15, marginBottom: 4 }}>{tr("This is still a")} {isBuyerSideType(tx.type) ? tr("buyer inquiry") : tr("seller lead")} {tr("— not yet confirmed")}</div>
+                    <div style={{ fontSize: 13, color: "#7A5C00", lineHeight: 1.5 }}>{tr("It came in from your intake link and hasn't been worked into a real deal yet.")} <strong>{tr("Confirm")}</strong> {tr("it to keep working it, or")} <strong>{tr("Not Pursuing")}</strong> {tr("if it went nowhere. (You can also set any status from the selector at the top.)")}</div>
                   </div>
                   <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                     <button
@@ -7111,22 +7117,22 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
                           const res = await fetch(`${API}/transactions/${tx.id}/confirm-lead`, { method: "POST", headers: { "Content-Type": "application/json", "Authorization": "Bearer " + (localStorage.getItem("tp_token") || "") } });
                           if (!res.ok) throw new Error("Failed");
                           onUpdate({ ...tx, leadConverted: true, needsFirstContact: false });
-                        } catch { alert("Could not confirm — please try again."); }
+                        } catch { alert(tr("Could not confirm — please try again.")); }
                       }}
                       style={{ background: "#0c4a6e", color: "white", border: "none", borderRadius: 8, padding: "10px 16px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>
-                      ✓ Confirm Lead
+                      {tr("✓ Confirm Lead")}
                     </button>
                     <button
                       onClick={async () => {
-                        if (((await askText("Mark this lead as Not Pursuing? It will be set to Cancelled and removed from your active list (you can reactivate it later). Type CANCEL to confirm.", "", { okLabel: "Not pursuing", placeholder: "Type CANCEL" })) || "").trim().toUpperCase() !== "CANCEL") return;
+                        if (((await askText(tr("Mark this lead as Not Pursuing? It will be set to Cancelled and removed from your active list (you can reactivate it later). Type CANCEL to confirm."), "", { okLabel: "Not pursuing", placeholder: "Type CANCEL" })) || "").trim().toUpperCase() !== "CANCEL") return;
                         try {
                           const res = await fetch(`${API}/transactions/${tx.id}/status`, { method: "PATCH", headers: { "Content-Type": "application/json", "Authorization": "Bearer " + (localStorage.getItem("tp_token") || "") }, body: JSON.stringify({ status: "Cancelled" }) });
                           if (!res.ok) throw new Error("Failed");
                           onUpdate({ ...tx, status: "Cancelled", leadConverted: true, needsFirstContact: false });
-                        } catch { alert("Could not update — please try again."); }
+                        } catch { alert(tr("Could not update — please try again.")); }
                       }}
                       style={{ background: "transparent", color: "#7A5C00", border: "1px solid #C9A227", borderRadius: 8, padding: "10px 16px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>
-                      ✕ Not Pursuing
+                      {tr("✕ Not Pursuing")}
                     </button>
                   </div>
                 </div>
@@ -7174,8 +7180,8 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
             )}
             {!isGuest && ["Under Contract", "Inspection", "Appraisal", "Clear to Close", "Closed"].includes(tx.status) && (
               <div style={{ background: "#fff", border: `1px solid ${COLORS.border}`, borderRadius: 12, padding: 16, marginBottom: 20, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-                <div style={{ fontSize: 13, color: COLORS.muted }}>Send the welcome &amp; intro emails to all parties — you can preview each before it goes out.</div>
-                <button onClick={() => setShowEmailPreview(true)} style={{ background: "#0c4a6e", color: "#fff", border: "none", borderRadius: 8, padding: "9px 16px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>✉️ Preview &amp; Send Welcome Emails</button>
+                <div style={{ fontSize: 13, color: COLORS.muted }}>{tr("Send the welcome & intro emails to all parties — you can preview each before it goes out.")}</div>
+                <button onClick={() => setShowEmailPreview(true)} style={{ background: "#0c4a6e", color: "#fff", border: "none", borderRadius: 8, padding: "9px 16px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>{tr("✉️ Preview & Send Welcome Emails")}</button>
               </div>
             )}
             {(tx.transaction_type || tx.type) && /buyer|dual/i.test(tx.transaction_type || tx.type) && (
@@ -7210,11 +7216,11 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
               if (!rows.length) return null;
               return (
                 <div style={{ background: "#fff", border: `1px solid ${COLORS.border}`, borderRadius: 12, padding: 18, marginBottom: 20 }}>
-                  <div style={{ fontSize: 15, fontWeight: 800, color: "#1A5276", marginBottom: 12, display: "flex", alignItems: "center", gap: 8 }}>🔍 Buyer Search Criteria <span style={{ fontSize: 11, fontWeight: 600, color: COLORS.muted, textTransform: "uppercase", letterSpacing: "0.05em" }}>from intake</span></div>
+                  <div style={{ fontSize: 15, fontWeight: 800, color: "#1A5276", marginBottom: 12, display: "flex", alignItems: "center", gap: 8 }}>{tr("🔍 Buyer Search Criteria")} <span style={{ fontSize: 11, fontWeight: 600, color: COLORS.muted, textTransform: "uppercase", letterSpacing: "0.05em" }}>{tr("from intake")}</span></div>
                   <div style={{ display: "grid", gridTemplateColumns: "minmax(140px, 200px) 1fr", rowGap: 8, columnGap: 16, fontSize: 14 }}>
                     {rows.map(([label, value]) => (
                       <div key={label} style={{ display: "contents" }}>
-                        <div style={{ color: COLORS.muted, fontWeight: 600 }}>{label}</div>
+                        <div style={{ color: COLORS.muted, fontWeight: 600 }}>{tr(label)}</div>
                         <div style={{ color: COLORS.ink || "#111" }}>{value}</div>
                       </div>
                     ))}
@@ -7230,19 +7236,19 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
                 <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
                   <span style={{ fontSize: 26 }}>⚠️</span>
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: 800, color: "#78350f", fontSize: 16, marginBottom: 6 }}>UNASSIGNED LEAD — Action Required</div>
+                    <div style={{ fontWeight: 800, color: "#78350f", fontSize: 16, marginBottom: 6 }}>{tr("UNASSIGNED LEAD — Action Required")}</div>
                     <div style={{ fontSize: 13, color: "#92400e", marginBottom: 8, lineHeight: 1.5 }}>
-                      <strong>What to do:</strong> Click the button below to assign this lead to an agent at your brokerage. You can pick yourself if you are taking it.
+                      <strong>{tr("What to do:")}</strong> {tr("Click the button below to assign this lead to an agent at your brokerage. You can pick yourself if you are taking it.")}
                     </div>
                     <div style={{ fontSize: 13, color: "#92400e", marginBottom: 8, lineHeight: 1.5 }}>
-                      <strong>Why it matters:</strong> Florida law requires prompt first contact (within 24 hours). Until assigned, no one is responsible for this lead and it can go cold quickly. Brokerage admins are notified by email and SMS that this lead is waiting.
+                      <strong>{tr("Why it matters:")}</strong> {tr("Florida law requires prompt first contact (within 24 hours). Until assigned, no one is responsible for this lead and it can go cold quickly. Brokerage admins are notified by email and SMS that this lead is waiting.")}
                     </div>
                     <div style={{ fontSize: 13, color: "#92400e", marginBottom: 12, lineHeight: 1.5 }}>
-                      <strong>What happens after assigning:</strong> The assigned agent gets an email + SMS. The card turns red with the "Contact Within 24hrs" banner. The 5-step onboarding checklist activates.
+                      <strong>{tr("What happens after assigning:")}</strong> {tr("The assigned agent gets an email + SMS. The card turns red with the \"Contact Within 24hrs\" banner. The 5-step onboarding checklist activates.")}
                     </div>
                     <button onClick={() => setShowAssignAgent(true)}
                       style={{ background: "#0c4a6e", color: "white", border: "none", borderRadius: 8, padding: "10px 18px", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
-                      👤 Assign Agent & Notify
+                      {tr("👤 Assign Agent & Notify")}
                     </button>
                   </div>
                 </div>
@@ -7253,12 +7259,12 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
             )}
             {(tx.isCash || /cash/i.test(tx.financingType || "")) && (
               <div style={{ background: "#ECFDF5", border: "1px solid #6EE7B7", borderRadius: 10, padding: "10px 14px", marginBottom: 16, display: "flex", alignItems: "center", gap: 8, fontSize: 14, fontWeight: 700, color: "#065F46" }}>
-                💵 Cash deal — no lender or financing. No loan application, lender appraisal, or financing contingency applies.
+                {tr("💵 Cash deal — no lender or financing. No loan application, lender appraisal, or financing contingency applies.")}
               </div>
             )}
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, marginBottom: 20 }}>
               {[
-                { title: "Property", rows: [["Assigned Agent", tx.assignedAgentName || "—"], ["Referral Source", tx.referralSource || "—"], ["Address", tx.address], ["City/County", `${tx.city}, ${tx.county} County`], ["Zip", tx.zipCode], ["Type", tx.propertyType], ["Transaction", tx.type], ["MLS #", tx.mlsNumber],
+                { title: "Property", rows: [["Assigned Agent", tx.assignedAgentName || "—"], ["Referral Source", tx.referralSource || "—"], ["Address", tx.address], ["City/County", `${tx.city}, ` + (tx.county ? tr("{county} County", { county: tx.county }) : "")], ["Zip", tx.zipCode], ["Type", tx.propertyType], ["Transaction", tx.type], ["MLS #", tx.mlsNumber],
                   ["Year Built", tx.yearBuilt || "—"],
                   ["HOA", tx.inHoa === "yes" ? `Yes${tx.hoaFeeMonthly ? ` · $${Number(tx.hoaFeeMonthly).toLocaleString()}/mo` : ""}` : tx.inHoa === "no" ? "No" : "—"],
                   ["Flood Zone", tx.floodZone || "—"],
@@ -7270,8 +7276,8 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
                     const _financingLabel = _isCashDeal
                       ? "💵 Cash — no lender"
                       : (tx.financingType
-                          ? `${tx.financingType}${tx.financingContingency && tx.financingContingencyDays ? ` · ${tx.financingContingencyDays}d contingency` : ""}`
-                          : (tx.financingContingency ? `Financed${tx.financingContingencyDays ? ` · ${tx.financingContingencyDays}d contingency` : ""}` : "—"));
+                          ? `${tr(tx.financingType)}${tx.financingContingency && tx.financingContingencyDays ? " · " + tr("{n}d contingency", { n: tx.financingContingencyDays }) : ""}`
+                          : (tx.financingContingency ? `${tr("Financed")}${tx.financingContingencyDays ? " · " + tr("{n}d contingency", { n: tx.financingContingencyDays }) : ""}` : "—"));
                     const dateRows = [
                       ["List Price", tx.listPrice ? `$${Number(tx.listPrice).toLocaleString()}` : "—"],
                       ["Contract Price", tx.contractPrice ? `$${Number(tx.contractPrice).toLocaleString()}` : "—"],
@@ -7312,8 +7318,8 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
                   })() },
               ].map(({ title, rows }) => (
                 <div key={title} style={{ background: "#fff", border: `1px solid ${COLORS.border}`, borderRadius: 12, padding: 20 }}>
-                  <h3 style={{ margin: "0 0 16px", fontSize: 14, color: COLORS.navy, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em" }}>{title}</h3>
-                  {rows.map(([k, v]) => <div key={k} style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: `1px solid ${COLORS.bg}`, fontSize: 13 }}><span style={{ color: COLORS.muted }}>{k}</span><span style={{ color: COLORS.text, fontWeight: 600 }}>{v || "—"}</span></div>)}
+                  <h3 style={{ margin: "0 0 16px", fontSize: 14, color: COLORS.navy, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em" }}>{tr(title)}</h3>
+                  {rows.map(([k, v]) => <div key={k} style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: `1px solid ${COLORS.bg}`, fontSize: 13 }}><span style={{ color: COLORS.muted }}>{tr(k)}</span><span style={{ color: COLORS.text, fontWeight: 600 }}>{tr(v) || "—"}</span></div>)}
                 </div>
               ))}
             </div>
@@ -7324,14 +7330,14 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
             )}
             {overdueTasks > 0 && (
               <div style={{ background: COLORS.dangerBg, border: `1px solid ${COLORS.danger}40`, borderRadius: 10, padding: 16, marginBottom: 20 }}>
-                <div style={{ fontWeight: 700, color: COLORS.danger, marginBottom: 8 }}>⚠ {overdueTasks} Overdue Task{overdueTasks > 1 ? "s" : ""}</div>
+                <div style={{ fontWeight: 700, color: COLORS.danger, marginBottom: 8 }}>⚠ {overdueTasks} {tr("Overdue Task")}{overdueTasks > 1 ? "s" : ""}</div>
                 {tx.tasks.filter(t => { const d = daysUntil(t.dueDate); return d !== null && d < 0 && t.status !== "Completed" && t.status !== "Waived"; }).map(t => (
-                  <div key={t.id} style={{ fontSize: 13, color: COLORS.danger, marginBottom: 4 }}>· {t.name} — {formatDate(t.dueDate)} ({Math.abs(daysUntil(t.dueDate))}d overdue)</div>
+                  <div key={t.id} style={{ fontSize: 13, color: COLORS.danger, marginBottom: 4 }}>· {t.name} — {formatDate(t.dueDate)} ({Math.abs(daysUntil(t.dueDate))}{tr("d overdue)")}</div>
                 ))}
               </div>
             )}
             <div style={{ background: "#fff", border: `1px solid ${COLORS.border}`, borderRadius: 12, padding: 20, marginBottom: 20 }}>
-              <h3 style={{ margin: "0 0 14px", fontSize: 14, color: COLORS.navy, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em" }}>Key Parties</h3>
+              <h3 style={{ margin: "0 0 14px", fontSize: 14, color: COLORS.navy, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em" }}>{tr("Key Parties")}</h3>
               {/* ALL parties, clients first then agents then vendors — the old
                   first-6 cap silently hid the title company / HOA on full deals. */}
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 10 }}>
@@ -7353,7 +7359,7 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
               <MarketingLogPanel tx={tx} />
             )}
             <div style={{ background: "#fff", border: `1px solid ${COLORS.border}`, borderRadius: 12, padding: 20 }}>
-              <h3 style={{ margin: "0 0 10px", fontSize: 14, color: COLORS.navy, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em" }}>Notes</h3>
+              <h3 style={{ margin: "0 0 10px", fontSize: 14, color: COLORS.navy, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em" }}>{tr("Notes")}</h3>
               <NotesSection
                 txId={tx.id}
                 value={tx.notes}
@@ -7375,7 +7381,7 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
                 inspection/closing-scheduling steps were "missing". Explain they unlock. */}
             {["Active", "New"].includes(tx.status) && !isCoordinator && (
               <div style={{ background: "#EFF6FF", border: "1px solid #BFDBFE", borderRadius: 10, padding: "10px 14px", marginBottom: 14, fontSize: 13, color: "#1E3A8A" }}>
-                📅 You're seeing the <strong>active / pre-contract</strong> steps. Contract &amp; closing steps — inspection dates, appraisal, scheduling the closing — <strong>unlock automatically once this deal goes Under Contract</strong>.
+                {tr("📅 You're seeing the")} <strong>{tr("active / pre-contract")}</strong> {tr("steps. Contract & closing steps — inspection dates, appraisal, scheduling the closing —")} <strong>{tr("unlock automatically once this deal goes Under Contract")}</strong>.
               </div>
             )}
             <MilestonesTab tx={tx} token={localStorage.getItem("tp_token") || ""} onSummaryChange={onMilestoneSummary} coordinatorMode={isCoordinator} />
@@ -7384,14 +7390,14 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
           {activeTab === "tasks" && (
           <div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-              <div style={{ fontSize: 13, color: COLORS.muted }}>{completedTasks}/{tx.tasks.length} complete {overdueTasks > 0 && <span style={{ color: COLORS.danger }}>· {overdueTasks} overdue</span>}</div>
-              <Btn onClick={() => setShowAddTask(true)} small>+ Add Task</Btn>
+              <div style={{ fontSize: 13, color: COLORS.muted }}>{completedTasks}/{tx.tasks.length} {tr("complete")} {overdueTasks > 0 && <span style={{ color: COLORS.danger }}>· {overdueTasks} {tr("overdue")}</span>}</div>
+              <Btn onClick={() => setShowAddTask(true)} small>{tr("+ Add Task")}</Btn>
               {tx.tasks.length > 0 && (
-                <Btn onClick={async () => { if (await askConfirm("Delete all tasks? This cannot be undone.", { okLabel: "Delete all", danger: true })) update({ tasks: [] }); }} small variant="secondary">🗑 Clear All</Btn>
+                <Btn onClick={async () => { if (await askConfirm(tr("Delete all tasks? This cannot be undone."), { okLabel: tr("Delete all"), danger: true })) update({ tasks: [] }); }} small variant="secondary">{tr("🗑 Clear All")}</Btn>
               )}
               {tx.tasks.length === 0 && (
                 <Btn onClick={async () => {
-                  if (await askConfirm("Generate Florida task checklist for this transaction? This will add all standard FL tasks.", { okLabel: "Generate checklist" })) {
+                  if (await askConfirm(tr("Generate Florida task checklist for this transaction? This will add all standard FL tasks."), { okLabel: tr("Generate checklist") })) {
                     const templates = FLORIDA_TASK_TEMPLATES[tx.type] || [];
                     const contractDate = tx.executedDate || tx.openDate;
                     const currentPhase = tx.status === "Closed" ? ["active", "contract", "closing"] :
@@ -7415,14 +7421,14 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
                       }));
                     update({ tasks: newTasks });
                   }
-                }} small variant="secondary">🏠 Generate FL Tasks</Btn>
+                }} small variant="secondary">{tr("🏠 Generate FL Tasks")}</Btn>
               )}
             </div>
             {sortedTaskCategories.map(([cat, tasks]) => (
               <div key={cat} style={{ marginBottom: 24 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8, padding: "4px 0", borderBottom: `1px solid ${COLORS.border}` }}>
                 <div style={{ fontSize: 12, fontWeight: 700, color: COLORS.muted, textTransform: "uppercase", letterSpacing: "0.06em" }}>{cat} ({tasks.filter(t => t.status === "Completed").length}/{tasks.length})</div>
-                {tasks.some(t => t.status !== "Completed") && <button onClick={() => update({ tasks: tx.tasks.map(t => tasks.find(ct => ct.id === t.id) ? { ...t, status: "Completed" } : t) })} style={{ fontSize: 10, color: COLORS.success, background: "none", border: `1px solid ${COLORS.success}`, borderRadius: 6, padding: "2px 8px", cursor: "pointer", fontFamily: "inherit", fontWeight: 600 }}>✓ All Done</button>}
+                {tasks.some(t => t.status !== "Completed") && <button onClick={() => update({ tasks: tx.tasks.map(t => tasks.find(ct => ct.id === t.id) ? { ...t, status: "Completed" } : t) })} style={{ fontSize: 10, color: COLORS.success, background: "none", border: `1px solid ${COLORS.success}`, borderRadius: 6, padding: "2px 8px", cursor: "pointer", fontFamily: "inherit", fontWeight: 600 }}>{tr("✓ All Done")}</button>}
               </div>
                 {tasks.map(t => <TaskRow key={t.id} task={t} onUpdate={updateTask} onRemind={setRemindingTask} onRemove={id => update({ tasks: tx.tasks.filter(tk => tk.id !== id) })} />)}
               </div>
@@ -7438,21 +7444,21 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
                     flow uses. Surfaced here (and not just buried in Overview/per-party) so
                     agents get the full email preview and can send everyone at once. */}
                 {!isCoordinator && tx.parties.some(p => p.email && p.email.trim()) && (
-                  <Btn onClick={() => setShowEmailPreview(true)} small>✉️ Preview &amp; Send Welcome Emails</Btn>
+                  <Btn onClick={() => setShowEmailPreview(true)} small>{tr("✉️ Preview & Send Welcome Emails")}</Btn>
                 )}
-                {!isCoordinator && <Btn onClick={() => setShowAssignVendor(true)} small>🏆 Assign Vendor</Btn>}
-                <Btn onClick={() => setShowAddParty(true)} small>+ Add Party</Btn>
+                {!isCoordinator && <Btn onClick={() => setShowAssignVendor(true)} small>{tr("🏆 Assign Vendor")}</Btn>}
+                <Btn onClick={() => setShowAddParty(true)} small>{tr("+ Add Party")}</Btn>
               </div>
             )}
             {/* Coordinator: show the agent who owns/sent this deal, with contact info. */}
             {isCoordinator && (tx.assignedAgentName || tx.owningAgentEmail) && (
               <div style={{ marginBottom: 16 }}>
-                <div style={{ fontSize: 12, fontWeight: 700, color: COLORS.muted, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 8 }}>Agent · sent you this deal</div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: COLORS.muted, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 8 }}>{tr("Agent · sent you this deal")}</div>
                 <div style={{ background: "#fff", border: `1px solid ${COLORS.border}`, borderRadius: 10, padding: "12px 14px", display: "flex", alignItems: "flex-start", gap: 12 }}>
                   <PartyAvatar party={{ name: tx.assignedAgentName || "Agent", role: "Agent" }} />
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontWeight: 600, fontSize: 14, color: COLORS.text }}>{tx.assignedAgentName || "Agent"}</div>
-                    <div style={{ fontSize: 12, color: roleColor("Agent"), fontWeight: 600, marginBottom: 2 }}>{tx.owningAgentTitle || "Agent"}{tx.owningBrokerageName ? " · " + tx.owningBrokerageName : ""}</div>
+                    <div style={{ fontWeight: 600, fontSize: 14, color: COLORS.text }}>{tx.assignedAgentName || tr("Agent")}</div>
+                    <div style={{ fontSize: 12, color: roleColor("Agent"), fontWeight: 600, marginBottom: 2 }}>{tx.owningAgentTitle || tr("Agent")}{tx.owningBrokerageName ? " · " + tx.owningBrokerageName : ""}</div>
                     {tx.owningAgentEmail && <div style={{ fontSize: 12, color: COLORS.muted }}>{tx.owningAgentEmail}</div>}
                     {tx.owningAgentPhone && <div style={{ fontSize: 12, color: COLORS.muted }}>{tx.owningAgentPhone}</div>}
                   </div>
@@ -7478,14 +7484,14 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
             {PARTY_ROLES.map(role => {
               const members = tx.parties.filter(p => p.role === role && !p.isVendor && !p.is_vendor && !(isCoordinator && (p.email || "").toLowerCase() === (currentUser?.email || "").toLowerCase()));
               if (!members.length) return null;
-              return <div key={role} style={{ marginBottom: 16 }}><div style={{ fontSize: 12, fontWeight: 700, color: COLORS.muted, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 8 }}>{role}</div>{members.map(p => <PartyCard key={p.id} party={p} txId={tx.id} onEdit={isGuest ? () => setPaywallFeature("Editing parties") : () => setEditingParty({ ...p })} onRemove={isGuest ? () => setPaywallFeature("Removing parties") : () => isCoordinator ? coordDeleteParty(p.id) : update({ parties: tx.parties.filter(pp => pp.id !== p.id) })} onInvite={isGuest ? () => setPaywallFeature("Inviting parties to the app") : (isCoordinator ? undefined : (onInviteParty && isOwnSideClientRole(p.role) ? () => onInviteParty(p) : undefined))} onCopyLoginLink={isGuest ? () => setPaywallFeature("Sharing portal login links") : (isCoordinator ? undefined : (onCopyLoginLink && isOwnSideClientRole(p.role) ? () => onCopyLoginLink(p) : undefined))} onSendFollowup={isGuest ? () => setPaywallFeature("Follow-up reminders") : (party) => setFollowupParty(party)} onResetPin={(!isGuest && !isCoordinator && isOwnSideClientRole(p.role)) ? async (p2) => {
-                if (!(await askConfirm(`Reset the portal PIN for ${p2.name}?\n\nTheir old PIN stops working immediately. The next time they open their portal link, they'll be asked to create a new PIN.`, { okLabel: "Reset PIN", danger: true }))) return;
+              return <div key={role} style={{ marginBottom: 16 }}><div style={{ fontSize: 12, fontWeight: 700, color: COLORS.muted, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 8 }}>{tr(role)}</div>{members.map(p => <PartyCard key={p.id} party={p} txId={tx.id} onEdit={isGuest ? () => setPaywallFeature("Editing parties") : () => setEditingParty({ ...p })} onRemove={isGuest ? () => setPaywallFeature("Removing parties") : () => isCoordinator ? coordDeleteParty(p.id) : update({ parties: tx.parties.filter(pp => pp.id !== p.id) })} onInvite={isGuest ? () => setPaywallFeature("Inviting parties to the app") : (isCoordinator ? undefined : (onInviteParty && isOwnSideClientRole(p.role) ? () => onInviteParty(p) : undefined))} onCopyLoginLink={isGuest ? () => setPaywallFeature("Sharing portal login links") : (isCoordinator ? undefined : (onCopyLoginLink && isOwnSideClientRole(p.role) ? () => onCopyLoginLink(p) : undefined))} onSendFollowup={isGuest ? () => setPaywallFeature("Follow-up reminders") : (party) => setFollowupParty(party)} onResetPin={(!isGuest && !isCoordinator && isOwnSideClientRole(p.role)) ? async (p2) => {
+                if (!(await askConfirm(`Reset the portal PIN for ${p2.name}?\n\nTheir old PIN stops working immediately. The next time they open their portal link, they'll be asked to create a new PIN.`, { okLabel: tr("Reset PIN"), danger: true }))) return;
                 try {
                   const r = await fetch(API + "/admin/clients/reset-portal-pin", { method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + (localStorage.getItem("tp_token") || "") }, body: JSON.stringify({ email: p2.email }) });
                   const d = await r.json();
                   if (!r.ok || !d.success) throw new Error(d.error || "Reset failed");
                   alert(`✅ PIN cleared for ${p2.name}. Tell them to open their portal link again — it will ask them to CREATE a new 4-digit PIN.`);
-                } catch (e) { alert("Could not reset PIN: " + e.message); }
+                } catch (e) { alert(tr("Could not reset PIN: ") + e.message); }
               } : undefined} onSendWelcome={isGuest ? () => setPaywallFeature("Welcome emails") : onSendWelcome} onResetPassword={undefined /* password login retired for clients — portal is link+PIN; staff resets live in Team settings */} />)}</div>;
             })}
             {(() => {
@@ -7501,14 +7507,14 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
                 <div key={cat} style={{ marginBottom: 16 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
                     <div style={{ fontSize: 12, fontWeight: 700, color: COLORS.muted, textTransform: "uppercase", letterSpacing: "0.06em" }}>{cat}</div>
-                    <span style={{ fontSize: 10, fontWeight: 700, color: "#C0392B", background: "#FADBD8", padding: "2px 8px", borderRadius: 20 }}>PREFERRED VENDOR</span>
+                    <span style={{ fontSize: 10, fontWeight: 700, color: "#C0392B", background: "#FADBD8", padding: "2px 8px", borderRadius: 20 }}>{tr("PREFERRED VENDOR")}</span>
                   </div>
                   {members.map(p => (
                     <div key={p.id}>
                       <PartyCard party={p} txId={tx.id}
                         onEdit={isGuest ? () => setPaywallFeature("Editing parties") : () => setEditingParty({ ...p })}
                       onRemove={isGuest ? () => setPaywallFeature("Removing parties") : async () => {
-                        if (!(await askConfirm("Remove this vendor from the transaction?", { okLabel: "Remove", danger: true }))) return;
+                        if (!(await askConfirm(tr("Remove this vendor from the transaction?"), { okLabel: tr("Remove"), danger: true }))) return;
                         const tok = localStorage.getItem("tp_token") || "";
                         try {
                           await fetch("https://liz-team-server-api-production.up.railway.app/transactions/" + tx.id + "/party/" + p.id, {
@@ -7525,10 +7531,10 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
                           padding: "8px 12px", background: "#D5F5E3", borderRadius: 8,
                           marginTop: -8, marginBottom: 8 }}>
                           <span style={{ fontSize: 12, color: "#1E8449", fontWeight: 600 }}>
-                            ✅ Selected by client
+                            {tr("✅ Selected by client")}
                           </span>
                           <button onClick={async () => {
-                            if (!(await askConfirm("Reset this vendor selection? The buyer will be able to choose again.", { okLabel: "Reset selection" }))) return;
+                            if (!(await askConfirm(tr("Reset this vendor selection? The buyer will be able to choose again."), { okLabel: tr("Reset selection") }))) return;
                             const tok = localStorage.getItem("tp_token") || "";
                             try {
                               const res = await fetch("https://liz-team-server-api-production.up.railway.app/vendors/reset/" + tx.id + "/" + p.id, {
@@ -7542,13 +7548,13 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
                                 );
                                 onUpdate({ ...tx, parties: updatedParties });
                               }
-                            } catch (e) { alert("Error resetting vendor"); }
+                            } catch (e) { alert(tr("Error resetting vendor")); }
                           }}
                             style={{ marginLeft: "auto", padding: "4px 12px", borderRadius: 6,
                               border: "1px solid #1E8449", background: "#fff",
                               color: "#1E8449", fontSize: 12, fontWeight: 600,
                               cursor: "pointer" }}>
-                            Reset Selection
+                            {tr("Reset Selection")}
                           </button>
                         </div>
                       )}
@@ -7579,15 +7585,15 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
                   style={{ padding: "9px 14px", borderRadius: 10, border: "none", cursor: "pointer", fontFamily: "inherit",
                     fontWeight: 700, fontSize: 13,
                     background: msgSection === id ? "#0c4a6e" : "#eef2f7", color: msgSection === id ? "#fff" : "#374151" }}>
-                  {label}{n > 0 ? ` (${n})` : ""}
+                  {tr(label)}{n > 0 ? ` (${n})` : ""}
                 </button>
               ))}
             </div>
             <div style={{ fontSize: 12, color: "#6b7280", padding: "8px 14px 0" }}>
-              {msgSection === "chat" && "The deal's group chat, with everyone on the deal: you, the agent/coordinator, and any parties like the photographer, title, and lender."}
-              {msgSection === "replies" && "Replies the clients sent back — approve any milestone updates."}
-              {msgSection === "send" && (isCoordinator ? "Send the client an email/text update in the agent's voice." : "Send an email or text to an individual or a group.")}
-              {msgSection === "sent" && "Every email and text this deal has sent — welcome emails, reminders, updates — newest first."}
+              {msgSection === "chat" && tr("The deal's group chat, with everyone on the deal: you, the agent/coordinator, and any parties like the photographer, title, and lender.")}
+              {msgSection === "replies" && tr("Replies the clients sent back — approve any milestone updates.")}
+              {msgSection === "send" && (isCoordinator ? tr("Send the client an email/text update in the agent's voice.") : tr("Send an email or text to an individual or a group."))}
+              {msgSection === "sent" && tr("Every email and text this deal has sent — welcome emails, reminders, updates — newest first.")}
             </div>
             {msgSection === "chat" && <div style={{ padding: 12, height: 500 }}><TransactionChat transactionId={tx.id} user={null} parties={tx.parties || []} style={{ height: "100%" }} unreadCount={chatUnread} onUnreadChange={() => {}} /></div>}
             {msgSection === "replies" && <InboundRepliesPanel tx={tx} coordinatorMode={coordinatorMode} onInboundRead={onInboundRead} />}
@@ -7605,7 +7611,7 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
         {activeTab === "calculator" && (
           <div style={{ padding: 20 }}>
             <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 8, padding: 12, marginBottom: 16, fontSize: 13, color: "#7f1d1d" }}>
-              <strong>🎓 Why this matters:</strong> Use this with your buyer to set realistic expectations on price, monthly payment, and cash-to-close BEFORE writing offers. Florida's doc stamps, intangible tax, and insurance costs surprise most first-time buyers.
+              <strong>{tr("🎓 Why this matters:")}</strong> {tr("Use this with your buyer to set realistic expectations on price, monthly payment, and cash-to-close BEFORE writing offers. Florida's doc stamps, intangible tax, and insurance costs surprise most first-time buyers.")}
             </div>
             <BuyerCalculator transactionId={tx.id} token={localStorage.getItem("tp_token") || ""} county={tx.county} />
           </div>
@@ -7614,7 +7620,7 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
         {activeTab === "buyer-net" && (
           <div style={{ padding: 20 }}>
             <div style={{ background: "#f0fdf4", border: "1px solid #86efac", borderRadius: 8, padding: 12, marginBottom: 16, fontSize: 13, color: "#14532d" }}>
-              <strong>🎓 Why this matters:</strong> Give your buyer a clear estimate of the cash they'll need at closing, then generate a branded English or Spanish net sheet and save it to Documents.
+              <strong>{tr("🎓 Why this matters:")}</strong> {tr("Give your buyer a clear estimate of the cash they'll need at closing, then generate a branded English or Spanish net sheet and save it to Documents.")}
             </div>
             <BuyerCalculator mode="net" transactionId={tx.id} token={localStorage.getItem("tp_token") || ""} county={tx.county} />
           </div>
@@ -7627,7 +7633,7 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
         {activeTab === "seller-calc" && (
           <div style={{ padding: 20 }}>
             <div style={{ background: "#e0f2fe", border: "1px solid #7dd3fc", borderRadius: 8, padding: 12, marginBottom: 16, fontSize: 13, color: "#0c4a6e" }}>
-              <strong>🎓 Why this matters:</strong> Sellers want to know what they'll walk away with. Use this BEFORE the listing appointment to set realistic expectations on commission, FL doc stamps (~0.7%), title fees, and mortgage payoff. Avoids "I thought I was getting more" at closing.
+              <strong>{tr("🎓 Why this matters:")}</strong> {tr("Sellers want to know what they'll walk away with. Use this BEFORE the listing appointment to set realistic expectations on commission, FL doc stamps (~0.7%), title fees, and mortgage payoff. Avoids \"I thought I was getting more\" at closing.")}
             </div>
             <SellerCalculator transactionId={tx.id} token={localStorage.getItem("tp_token") || ""} county={tx.county}
               initialSalePrice={tx.contractPrice || tx.listPrice}
@@ -7649,9 +7655,9 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
           const icons = { transaction_created: "🏠", status_changed: "🔄", party_added: "👤", document_uploaded: "📎", email_sent: "📧", sms_sent: "📱", task_completed: "✅" };
           return (
             <div style={{ padding: 20, overflowY: "auto", maxHeight: 500 }}>
-              <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 16, color: COLORS.navy }}>Transaction Activity Log</div>
+              <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 16, color: COLORS.navy }}>{tr("Transaction Activity Log")}</div>
               {activities.length === 0 ? (
-                <div style={{ textAlign: "center", color: COLORS.muted, padding: 40 }}>No activity recorded yet.</div>
+                <div style={{ textAlign: "center", color: COLORS.muted, padding: 40 }}>{tr("No activity recorded yet.")}</div>
               ) : activities.map(a => (
                 <div key={a.id} style={{ display: "flex", gap: 12, marginBottom: 16, paddingBottom: 16, borderBottom: `1px solid ${COLORS.border}` }}>
                   <div style={{ fontSize: 20, flexShrink: 0 }}>{icons[a.action] || "📌"}</div>
@@ -7667,8 +7673,8 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
         {activeTab === "chat" && <div style={{ padding: 20, height: 500 }}><TransactionChat transactionId={tx.id} user={null} parties={tx.parties || []} style={{ height: "100%" }} unreadCount={chatUnread} onUnreadChange={() => {}} /></div>}
         {activeTab === "reminders" && (
           <div>
-            <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 16 }}><Btn onClick={() => setShowAddReminder(true)} small>+ Add Reminder</Btn></div>
-            {(tx.reminders || []).length === 0 && <div style={{ textAlign: "center", color: COLORS.muted, padding: 40 }}>No reminders set.</div>}
+            <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 16 }}><Btn onClick={() => setShowAddReminder(true)} small>{tr("+ Add Reminder")}</Btn></div>
+            {(tx.reminders || []).length === 0 && <div style={{ textAlign: "center", color: COLORS.muted, padding: 40 }}>{tr("No reminders set.")}</div>}
             {(tx.reminders || []).map(r => {
               const d = daysUntil(r.date);
               const _remHdrs = { "Content-Type": "application/json", Authorization: "Bearer " + (localStorage.getItem("tp_token") || "") };
@@ -7698,25 +7704,25 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
               return (
                 <div key={r.id} style={{ background: isDone ? "#F8FAF8" : "#fff", border: `1px solid ${COLORS.border}`, borderLeft: `3px solid ${isDone ? "#1E8449" : COLORS.gold}`, borderRadius: 10, padding: "14px 16px", marginBottom: 10, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, opacity: isDone ? 0.75 : 1 }}>
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: 700, fontSize: 14, textDecoration: isDone ? "line-through" : "none", color: isDone ? "#6B7280" : COLORS.text }}>{r.title}</div>
+                    <div style={{ fontWeight: 700, fontSize: 14, textDecoration: isDone ? "line-through" : "none", color: isDone ? "#6B7280" : COLORS.text }}>{tr(r.title)}</div>
                     <div style={{ fontSize: 12, color: COLORS.muted, marginTop: 3 }}>
                       {formatDate(r.date)}{" "}
                       {isDone
-                        ? <span style={{ color: "#1E8449", fontWeight: 700 }}>✅ Done {formatDate(r.doneAt)}</span>
-                        : d !== null && <span style={{ color: d < 0 ? COLORS.danger : d <= 3 ? COLORS.warning : COLORS.muted }}>({d === 0 ? "Today" : d > 0 ? `in ${d}d` : `${Math.abs(d)}d ago`})</span>}
+                        ? <span style={{ color: "#1E8449", fontWeight: 700 }}>{tr("✅ Done")} {formatDate(r.doneAt)}</span>
+                        : d !== null && <span style={{ color: d < 0 ? COLORS.danger : d <= 3 ? COLORS.warning : COLORS.muted }}>({d === 0 ? tr("Today") : d > 0 ? `in ${d}d` : `${Math.abs(d)}d ago`})</span>}
                     </div>
                     {r.message && <div style={{ fontSize: 13, marginTop: 4, fontStyle: "italic" }}>{r.message}</div>}
                   </div>
                   <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
                     {isDone ? (
-                      <button onClick={reopenReminder} title="Not actually done? Bring it back — it returns to Win The Day too" style={{ background: "#fff", border: `1px solid ${COLORS.border}`, color: COLORS.text, borderRadius: 6, padding: "6px 10px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>↩️ Reopen</button>
+                      <button onClick={reopenReminder} title={tr("Not actually done? Bring it back — it returns to Win The Day too")} style={{ background: "#fff", border: `1px solid ${COLORS.border}`, color: COLORS.text, borderRadius: 6, padding: "6px 10px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>{tr("↩️ Reopen")}</button>
                     ) : (
                       <>
-                        <button onClick={markDone} title="Mark done — stays here for the record, stops all nagging" style={{ background: "#0c4a6e", border: "none", color: "#fff", borderRadius: 6, padding: "6px 10px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>✓ Done</button>
-                        <button onClick={bumpToTomorrow} title="Snooze 1 day — reappears tomorrow" style={{ background: "#fff", border: `1px solid ${COLORS.border}`, color: COLORS.muted, borderRadius: 6, padding: "6px 10px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>⏰ Not Today</button>
+                        <button onClick={markDone} title={tr("Mark done — stays here for the record, stops all nagging")} style={{ background: "#0c4a6e", border: "none", color: "#fff", borderRadius: 6, padding: "6px 10px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>{tr("✓ Done")}</button>
+                        <button onClick={bumpToTomorrow} title={tr("Snooze 1 day — reappears tomorrow")} style={{ background: "#fff", border: `1px solid ${COLORS.border}`, color: COLORS.muted, borderRadius: 6, padding: "6px 10px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>{tr("⏰ Not Today")}</button>
                       </>
                     )}
-                    <button onClick={removeReminder} title="Delete reminder" style={{ background: "none", border: "none", cursor: "pointer", color: COLORS.muted, fontSize: 18, padding: "0 6px" }}>×</button>
+                    <button onClick={removeReminder} title={tr("Delete reminder")} style={{ background: "none", border: "none", cursor: "pointer", color: COLORS.muted, fontSize: 18, padding: "0 6px" }}>×</button>
                   </div>
                 </div>
               );
@@ -7726,19 +7732,19 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
       </div>
 
       {editingParty && (
-        <Modal title="Edit Party" onClose={() => setEditingParty(null)}>
+        <Modal title={tr("Edit Party")} onClose={() => setEditingParty(null)}>
           {/* Same rule as Add Party: an empty role must show "Select…", not "Other". */}
-          <Input label="Role" value={!editingParty.role ? "" : (PARTY_ROLES.includes(editingParty.role) ? editingParty.role : "Other")} onChange={v => setEditingParty(p => ({ ...p, role: v }))} options={PARTY_ROLES} required />
+          <Input label={tr("Role")} value={!editingParty.role ? "" : (PARTY_ROLES.includes(editingParty.role) ? editingParty.role : "Other")} onChange={v => setEditingParty(p => ({ ...p, role: v }))} options={PARTY_ROLES} required />
           {(editingParty.role === "Other" || (editingParty.role && !PARTY_ROLES.includes(editingParty.role))) && (
-            <Input label="Specify role" value={editingParty.role === "Other" ? "" : editingParty.role} onChange={v => setEditingParty(p => ({ ...p, role: v.trim() ? v : "Other" }))} placeholder="e.g. Notary, Surveyor, Co-buyer" />
+            <Input label={tr("Specify role")} value={editingParty.role === "Other" ? "" : editingParty.role} onChange={v => setEditingParty(p => ({ ...p, role: v.trim() ? v : "Other" }))} placeholder={tr("e.g. Notary, Surveyor, Co-buyer")} />
           )}
-          <Input label="Full Name" value={editingParty.name} onChange={v => setEditingParty(p => ({ ...p, name: v }))} required />
-          <Input label="Company / Brokerage" value={editingParty.company || ""} onChange={v => setEditingParty(p => ({ ...p, company: v }))} />
-          <Input label="Email" value={editingParty.email || ""} onChange={v => setEditingParty(p => ({ ...p, email: v }))} type="email" />
-          <Input label="Cell Phone (for SMS)" value={editingParty.phone || ""} onChange={v => setEditingParty(p => ({ ...p, phone: v }))} type="tel" />
+          <Input label={tr("Full Name")} value={editingParty.name} onChange={v => setEditingParty(p => ({ ...p, name: v }))} required />
+          <Input label={tr("Company / Brokerage")} value={editingParty.company || ""} onChange={v => setEditingParty(p => ({ ...p, company: v }))} />
+          <Input label={tr("Email")} value={editingParty.email || ""} onChange={v => setEditingParty(p => ({ ...p, email: v }))} type="email" />
+          <Input label={tr("Cell Phone (for SMS)")} value={editingParty.phone || ""} onChange={v => setEditingParty(p => ({ ...p, phone: v }))} type="tel" />
           <PartyLanguageField value={editingParty.preferredLanguage} onChange={v => setEditingParty(p => ({ ...p, preferredLanguage: v }))} />
           <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
-            <Btn variant="ghost" onClick={() => setEditingParty(null)}>Cancel</Btn>
+            <Btn variant="ghost" onClick={() => setEditingParty(null)}>{tr("Cancel")}</Btn>
             <Btn onClick={async () => {
               const editedParty = editingParty;
               // Editing a party ONLY saves — it never emails anyone, not even a
@@ -7747,7 +7753,7 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
               if (isCoordinator) await coordEditParty(editedParty);
               else await update({ parties: tx.parties.map(p => p.id === editedParty.id ? editedParty : p) });
               setEditingParty(null);
-            }}>Save Changes</Btn>
+            }}>{tr("Save Changes")}</Btn>
           </div>
         </Modal>
       )}
@@ -7765,7 +7771,7 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
       )}
       {showPortalPreview && (
         <div style={{ position: "fixed", inset: 0, zIndex: 9998, background: COLORS.bg, overflowY: "auto" }}>
-          <Suspense fallback={<div style={{ padding: 60, textAlign: "center", color: COLORS.muted }}>Loading the client's view…</div>}>
+          <Suspense fallback={<div style={{ padding: 60, textAlign: "center", color: COLORS.muted }}>{tr("Loading the client's view…")}</div>}>
             <ClientPortal
               user={currentUser || { firstName: "Preview" }}
               previewTxId={tx.id}
@@ -7779,12 +7785,12 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
         <div onMouseDown={e => { if (e.target === e.currentTarget) e.currentTarget.dataset.dob = "1"; else delete e.currentTarget.dataset.dob; }} onClick={e => { if (e.target === e.currentTarget && e.currentTarget.dataset.dob === "1") setPaywallFeature(null); delete e.currentTarget.dataset.dob; }} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)", zIndex: 9999, display: "flex", alignItems: "flex-start", justifyContent: "center", padding: 16, overflowY: "auto" }}>
           <div onClick={e => e.stopPropagation()} style={{ background: "#fff", borderRadius: 16, padding: 28, maxWidth: 420, width: "100%", textAlign: "center", boxShadow: "0 20px 60px rgba(0,0,0,0.3)", margin: "auto" }}>
             <div style={{ fontSize: 44, marginBottom: 10 }}>✨</div>
-            <div style={{ fontSize: 19, fontWeight: 800, color: COLORS.navy, marginBottom: 8 }}>{paywallFeature} is a paid feature</div>
+            <div style={{ fontSize: 19, fontWeight: 800, color: COLORS.navy, marginBottom: 8 }}>{paywallFeature} {tr("is a paid feature")}</div>
             <div style={{ fontSize: 14, color: COLORS.muted, lineHeight: 1.6, marginBottom: 20 }}>
-              You're viewing this transaction as an invited party. {paywallFeature} — along with your own pipeline, automated reminders, documents, and more — is part of a TransactPro subscription.
+              {tr("You're viewing this transaction as an invited party.")} {paywallFeature} {tr("— along with your own pipeline, automated reminders, documents, and more — is part of a TransactPro subscription.")}
             </div>
-            <button onClick={() => setPaywallFeature(null)} style={{ background: "#0c4a6e", color: "#fff", border: "none", borderRadius: 10, padding: "12px 24px", fontWeight: 700, fontSize: 15, cursor: "pointer", fontFamily: "inherit" }}>Subscribe to unlock</button>
-            <div style={{ marginTop: 12 }}><button onClick={() => setPaywallFeature(null)} style={{ background: "none", border: "none", color: COLORS.muted, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>Maybe later</button></div>
+            <button onClick={() => setPaywallFeature(null)} style={{ background: "#0c4a6e", color: "#fff", border: "none", borderRadius: 10, padding: "12px 24px", fontWeight: 700, fontSize: 15, cursor: "pointer", fontFamily: "inherit" }}>{tr("Subscribe to unlock")}</button>
+            <div style={{ marginTop: 12 }}><button onClick={() => setPaywallFeature(null)} style={{ background: "none", border: "none", color: COLORS.muted, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>{tr("Maybe later")}</button></div>
           </div>
         </div>
       )}
@@ -7805,7 +7811,7 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
         />
       )}
       {showAddParty && (
-        <Modal title="Add Party" onClose={() => { setShowAddParty(false); setPartyFromContactBook(false); }}>
+        <Modal title={tr("Add Party")} onClose={() => { setShowAddParty(false); setPartyFromContactBook(false); }}>
           <ContactAutocomplete
             token={localStorage.getItem("tp_token") || ""}
             onSelect={(c) => {
@@ -7826,8 +7832,8 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
                 setPartyForm({ role: contact.role, name: contact.name, company: contact.company || "", email: contact.email || "", phone: contact.phone || "" });
                 setPartyFromContactBook(true);
                 setShowAddParty(true);
-              })}>📒 Pick from Address Book</Btn>
-              <span style={{ fontSize: 12, color: COLORS.muted, marginLeft: 10 }}>(transaction-party shortcuts)</span>
+              })}>{tr("📒 Pick from Address Book")}</Btn>
+              <span style={{ fontSize: 12, color: COLORS.muted, marginLeft: 10 }}>{tr("(transaction-party shortcuts)")}</span>
             </div>
           )}
           {/* The displayed value MUST track the real one. This used to fall back to
@@ -7837,31 +7843,31 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
               silently did nothing, and re-picking "Other" fired no change event
               because the select already displayed it. "Other" was a dead end you
               could not click your way out of. Empty now shows "Select…". */}
-          <Input label="Role" value={partyForm.role === "" ? "" : (PARTY_ROLES.includes(partyForm.role) ? partyForm.role : "Other")} onChange={v => { setPartyForm(f => ({ ...f, role: v })); setPartyError(null); }} options={PARTY_ROLES} required />
+          <Input label={tr("Role")} value={partyForm.role === "" ? "" : (PARTY_ROLES.includes(partyForm.role) ? partyForm.role : "Other")} onChange={v => { setPartyForm(f => ({ ...f, role: v })); setPartyError(null); }} options={PARTY_ROLES} required />
           {(partyForm.role === "Other" || (partyForm.role && !PARTY_ROLES.includes(partyForm.role))) && (
-            <Input label="Specify role" value={partyForm.role === "Other" ? "" : partyForm.role} onChange={v => setPartyForm(f => ({ ...f, role: v.trim() ? v : "Other" }))} placeholder="e.g. Notary, Surveyor, Co-buyer" />
+            <Input label={tr("Specify role")} value={partyForm.role === "Other" ? "" : partyForm.role} onChange={v => setPartyForm(f => ({ ...f, role: v.trim() ? v : "Other" }))} placeholder={tr("e.g. Notary, Surveyor, Co-buyer")} />
           )}
-          <Input label="Full Name" value={partyForm.name} onChange={v => setPartyForm(f => ({ ...f, name: v }))} required />
-          <Input label="Company / Brokerage" value={partyForm.company} onChange={v => setPartyForm(f => ({ ...f, company: v }))} />
-          <Input label="Email" value={partyForm.email} onChange={v => setPartyForm(f => ({ ...f, email: v }))} type="email" />
-          <Input label="Cell Phone (for SMS)" value={partyForm.phone} onChange={v => setPartyForm(f => ({ ...f, phone: v }))} type="tel" placeholder="407-555-0100" />
+          <Input label={tr("Full Name")} value={partyForm.name} onChange={v => setPartyForm(f => ({ ...f, name: v }))} required />
+          <Input label={tr("Company / Brokerage")} value={partyForm.company} onChange={v => setPartyForm(f => ({ ...f, company: v }))} />
+          <Input label={tr("Email")} value={partyForm.email} onChange={v => setPartyForm(f => ({ ...f, email: v }))} type="email" />
+          <Input label={tr("Cell Phone (for SMS)")} value={partyForm.phone} onChange={v => setPartyForm(f => ({ ...f, phone: v }))} type="tel" placeholder="407-555-0100" />
           <PartyLanguageField value={partyForm.preferredLanguage} onChange={v => setPartyForm(f => ({ ...f, preferredLanguage: v }))} />
           {(partyForm.role === "Buyer" || partyForm.role === "Seller") && (<>
-            <Input label="Mailing Address" value={partyForm.mailingAddress} onChange={v => setPartyForm(f => ({ ...f, mailingAddress: v }))} />
-            <Input label="Preferred Communication" value={partyForm.preferredComm} onChange={v => setPartyForm(f => ({ ...f, preferredComm: v }))} options={["Email", "Phone", "Text"]} />
-            <Input label="Checks Email Frequently?" value={partyForm.checksEmail} onChange={v => setPartyForm(f => ({ ...f, checksEmail: v }))} options={["Yes", "No"]} />
-            {partyForm.role === "Buyer" && <Input label="Primary Residence?" value={partyForm.primaryResidence} onChange={v => setPartyForm(f => ({ ...f, primaryResidence: v }))} options={["Yes", "No"]} />}
-            <Input label="Closing remotely? (mail-away / mobile notary)" value={partyForm.mailAway} onChange={v => setPartyForm(f => ({ ...f, mailAway: v }))} options={["Yes", "No"]} />
+            <Input label={tr("Mailing Address")} value={partyForm.mailingAddress} onChange={v => setPartyForm(f => ({ ...f, mailingAddress: v }))} />
+            <Input label={tr("Preferred Communication")} value={partyForm.preferredComm} onChange={v => setPartyForm(f => ({ ...f, preferredComm: v }))} options={["Email", "Phone", "Text"]} />
+            <Input label={tr("Checks Email Frequently?")} value={partyForm.checksEmail} onChange={v => setPartyForm(f => ({ ...f, checksEmail: v }))} options={["Yes", "No"]} />
+            {partyForm.role === "Buyer" && <Input label={tr("Primary Residence?")} value={partyForm.primaryResidence} onChange={v => setPartyForm(f => ({ ...f, primaryResidence: v }))} options={["Yes", "No"]} />}
+            <Input label={tr("Closing remotely? (mail-away / mobile notary)")} value={partyForm.mailAway} onChange={v => setPartyForm(f => ({ ...f, mailAway: v }))} options={["Yes", "No"]} />
           </>)}
           {!partyFromContactBook && (
             <label style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12, cursor: "pointer", fontSize: 13, color: COLORS.muted }}>
               <input type="checkbox" id="saveContact" style={{ width: 15, height: 15 }} />
-              Save this contact to my Contact Book for future transactions
+              {tr("Save this contact to my Contact Book for future transactions")}
             </label>
           )}
           <label style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16, cursor: "pointer", fontSize: 13, color: "#C0392B", fontWeight: 600 }}>
             <input type="checkbox" id="sendInvitation" style={{ width: 15, height: 15 }} />
-            Send portal invitation to this party
+            {tr("Send portal invitation to this party")}
           </label>
           {partyError && (
             <div style={{ background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: 8, padding: "10px 12px", marginBottom: 12, fontSize: 13, color: "#7F1D1D", fontWeight: 600 }}>
@@ -7869,7 +7875,7 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
             </div>
           )}
           <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
-            <Btn variant="ghost" onClick={() => { setPartyError(null); setShowAddParty(false); }}>Cancel</Btn>
+            <Btn variant="ghost" onClick={() => { setPartyError(null); setShowAddParty(false); }}>{tr("Cancel")}</Btn>
             <Btn onClick={() => {
               // A button that does nothing when a field is missing is
               // indistinguishable from a broken button. Say which field.
@@ -7912,24 +7918,24 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
                 setPartyFromContactBook(false);
                 setShowAddParty(false);
               }
-            }}>Add Party</Btn>
+            }}>{tr("Add Party")}</Btn>
           </div>
         </Modal>
       )}
       {pendingInviteParty && (
-        <Modal title="Send invitation?" onClose={() => setPendingInviteParty(null)}>
+        <Modal title={tr("Send invitation?")} onClose={() => setPendingInviteParty(null)}>
           <div style={{ marginBottom: 18, fontSize: 14, color: COLORS.text, lineHeight: 1.5 }}>
-            Would you like to send a portal invitation to <strong>{pendingInviteParty.name}</strong> at <strong>{pendingInviteParty.email}</strong> now?
+            {tr("Would you like to send a portal invitation to")} <strong>{pendingInviteParty.name}</strong> {tr("at")} <strong>{pendingInviteParty.email}</strong> {tr("now?")}
           </div>
           <div style={{ background: COLORS.infoBg, border: "1px solid " + COLORS.info, borderRadius: 8, padding: 12, fontSize: 12, color: COLORS.info, marginBottom: 18 }}>
-            They will get an email with a link to access this transaction. You can also send the invite later from the party's card.
+            {tr("They will get an email with a link to access this transaction. You can also send the invite later from the party's card.")}
           </div>
           <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
-            <Btn variant="ghost" onClick={() => setPendingInviteParty(null)}>Skip</Btn>
+            <Btn variant="ghost" onClick={() => setPendingInviteParty(null)}>{tr("Skip")}</Btn>
             <Btn onClick={() => {
               if (onInviteParty) onInviteParty(pendingInviteParty);
               setPendingInviteParty(null);
-            }}>Send Invite Now</Btn>
+            }}>{tr("Send Invite Now")}</Btn>
           </div>
         </Modal>
       )}
@@ -7939,14 +7945,14 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
         <div onClick={() => setToActiveAsk(false)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 2000, display: "flex", alignItems: "flex-start", justifyContent: "center", padding: 16, fontFamily: "system-ui, sans-serif", overflowY: "auto" }}>
           <div role="dialog" aria-modal="true" aria-labelledby="to-active-title" onClick={e => e.stopPropagation()} style={{ background: "#fff", borderRadius: 14, width: "100%", maxWidth: 480, boxShadow: "0 8px 40px rgba(0,0,0,0.2)", overflow: "hidden", margin: "auto" }}>
             <div style={{ background: "#0F2044", padding: "16px 24px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <div id="to-active-title" style={{ color: "#fff", fontWeight: 700, fontSize: 16 }}>Move this deal back to Active?</div>
-              <button onClick={() => setToActiveAsk(false)} aria-label="Close — keep the deal as it is" style={{ background: "none", border: "none", color: "rgba(255,255,255,0.8)", fontSize: 24, cursor: "pointer", lineHeight: 1 }}>×</button>
+              <div id="to-active-title" style={{ color: "#fff", fontWeight: 700, fontSize: 16 }}>{tr("Move this deal back to Active?")}</div>
+              <button onClick={() => setToActiveAsk(false)} aria-label={tr("Close — keep the deal as it is")} style={{ background: "none", border: "none", color: "rgba(255,255,255,0.8)", fontSize: 24, cursor: "pointer", lineHeight: 1 }}>×</button>
             </div>
             <div style={{ padding: 24, display: "flex", flexDirection: "column", gap: 12 }}>
-              <div style={{ fontSize: 15, color: COLORS.text, lineHeight: 1.5 }}>This deal is <strong>{tx.status}</strong>. What happened?</div>
+              <div style={{ fontSize: 15, color: COLORS.text, lineHeight: 1.5 }}>{tr("This deal is")} <strong>{tx.status}</strong>{tr(". What happened?")}</div>
               <button onClick={() => { setToActiveAsk(false); setShowFallThrough(true); }} style={{ textAlign: "left", background: "#C0392B", color: "#fff", border: "none", borderRadius: 10, padding: "12px 16px", cursor: "pointer", fontFamily: "inherit" }}>
-                <div style={{ fontSize: 15, fontWeight: 800 }}>The contract fell through (recommended)</div>
-                <div style={{ fontSize: 13, opacity: 0.92, marginTop: 3, lineHeight: 1.45 }}>Saves the whole contract record, keeps its documents in that contract's folder marked "fell through", removes the other side's people, and starts a fresh timeline.</div>
+                <div style={{ fontSize: 15, fontWeight: 800 }}>{tr("The contract fell through (recommended)")}</div>
+                <div style={{ fontSize: 13, opacity: 0.92, marginTop: 3, lineHeight: 1.45 }}>{tr("Saves the whole contract record, keeps its documents in that contract's folder marked \"fell through\", removes the other side's people, and starts a fresh timeline.")}</div>
               </button>
               <button onClick={() => {
                 setToActiveAsk(false);
@@ -7957,10 +7963,10 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
                 });
                 update({ status: "Active", tasks: clearedTasks, closingDate: null, executedDate: null, contractPrice: null, commissionListing: null, commissionBuyer: null, transactionFee: null, brokerageSplit: null, officeFlatFee: null, commissionNotes: null });
               }} style={{ textAlign: "left", background: "#fff", color: COLORS.text, border: `1px solid ${COLORS.border}`, borderRadius: 10, padding: "12px 16px", cursor: "pointer", fontFamily: "inherit" }}>
-                <div style={{ fontSize: 15, fontWeight: 700 }}>Just switch it to Active</div>
-                <div style={{ fontSize: 13, color: COLORS.muted, marginTop: 3, lineHeight: 1.45 }}>Keeps the people, but clears the contract date, closing date, price and commission, and resets the contract steps.</div>
+                <div style={{ fontSize: 15, fontWeight: 700 }}>{tr("Just switch it to Active")}</div>
+                <div style={{ fontSize: 13, color: COLORS.muted, marginTop: 3, lineHeight: 1.45 }}>{tr("Keeps the people, but clears the contract date, closing date, price and commission, and resets the contract steps.")}</div>
               </button>
-              <button onClick={() => setToActiveAsk(false)} style={{ background: "none", border: "none", color: "#0c4a6e", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", padding: "8px 0 0" }}>Never mind — keep it {tx.status}</button>
+              <button onClick={() => setToActiveAsk(false)} style={{ background: "none", border: "none", color: "#0c4a6e", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", padding: "8px 0 0" }}>{tr("Never mind — keep it")} {tx.status}</button>
             </div>
           </div>
         </div>
@@ -7970,11 +7976,11 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
           <div style={{ background: "#fff", borderRadius: 14, width: "100%", maxWidth: 480, boxShadow: "0 8px 40px rgba(0,0,0,0.2)", overflow: "hidden", margin: "auto" }}>
             <div style={{ background: "#0F2044", padding: "16px 24px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <div style={{ color: "#fff", fontWeight: 700, fontSize: 16 }}>
-                {statusChangeModal.newStatus === "Under Contract" ? "Under Contract Details" :
-                 statusChangeModal.newStatus === "Closed" ? "Closing Details" :
-                 statusChangeModal.newStatus === "On Hold" ? "Place On Hold" :
-                 statusChangeModal.newStatus === "Cancelled" ? "Cancel Transaction" :
-                 "Change Status"}
+                {statusChangeModal.newStatus === "Under Contract" ? tr("Under Contract Details") :
+                 statusChangeModal.newStatus === "Closed" ? tr("Closing Details") :
+                 statusChangeModal.newStatus === "On Hold" ? tr("Place On Hold") :
+                 statusChangeModal.newStatus === "Cancelled" ? tr("Cancel Transaction") :
+                 tr("Change Status")}
               </div>
               <button onClick={() => setStatusChangeModal(null)} style={{ background: "none", border: "none", color: "rgba(255,255,255,0.6)", fontSize: 20, cursor: "pointer" }}>x</button>
             </div>
@@ -7982,30 +7988,30 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
               {statusChangeModal.newStatus === "Under Contract" && (
                 <>
                   <div style={{ background: "#F0FFF4", border: "1px solid #1E8449", borderRadius: 8, padding: 12, marginBottom: 16, fontSize: 13, color: "#1E8449", fontWeight: 600 }}>
-                    All contract task due dates will be calculated from these dates.
+                    {tr("All contract task due dates will be calculated from these dates.")}
                   </div>
                   <div style={{ marginBottom: 14 }}>
-                    <label style={{ fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", display: "block", marginBottom: 6 }}>Executed Date (Contract Date) *</label>
+                    <label style={{ fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", display: "block", marginBottom: 6 }}>{tr("Executed Date (Contract Date) *")}</label>
                     <input type="date" value={statusChangeModal.form.executedDate} onChange={e => setStatusChangeModal(m => ({ ...m, form: { ...m.form, executedDate: e.target.value } }))}
                       style={{ width: "100%", padding: "10px 14px", borderRadius: 8, border: "1.5px solid #CCC", fontSize: 14, fontFamily: "inherit", boxSizing: "border-box" }} />
                   </div>
                   <div style={{ marginBottom: 14 }}>
-                    <label style={{ fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", display: "block", marginBottom: 6 }}>Closing Date *</label>
+                    <label style={{ fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", display: "block", marginBottom: 6 }}>{tr("Closing Date *")}</label>
                     <input type="date" value={statusChangeModal.form.closingDate} onChange={e => setStatusChangeModal(m => ({ ...m, form: { ...m.form, closingDate: e.target.value } }))}
                       style={{ width: "100%", padding: "10px 14px", borderRadius: 8, border: "1.5px solid #CCC", fontSize: 14, fontFamily: "inherit", boxSizing: "border-box" }} />
                   </div>
                   <div style={{ marginBottom: 14 }}>
-                    <label style={{ fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", display: "block", marginBottom: 6 }}>Inspection Period (days)</label>
+                    <label style={{ fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", display: "block", marginBottom: 6 }}>{tr("Inspection Period (days)")}</label>
                     <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                       {["7", "10", "15", "custom"].map(d => (
                         <button key={d} type="button" onClick={() => setStatusChangeModal(m => ({ ...m, form: { ...m.form, inspectionDays: d === "custom" ? "" : d } }))}
                           style={{ padding: "8px 16px", borderRadius: 8, border: "1.5px solid " + (statusChangeModal.form.inspectionDays === d ? "#0c4a6e" : "#CCC"), background: statusChangeModal.form.inspectionDays === d ? "#E0F2FE" : "#fff", color: statusChangeModal.form.inspectionDays === d ? "#0c4a6e" : "#555", fontWeight: 600, cursor: "pointer", fontFamily: "inherit", fontSize: 13 }}>
-                          {d === "custom" ? "Custom" : d + " days"}
+                          {d === "custom" ? tr("Custom") : d + tr(" days")}
                         </button>
                       ))}
                     </div>
                     {(statusChangeModal.form.inspectionDays === "" || !["7","10","15"].includes(statusChangeModal.form.inspectionDays)) && (
-                      <input type="number" placeholder="Enter days" value={statusChangeModal.form.inspectionDays} onChange={e => setStatusChangeModal(m => ({ ...m, form: { ...m.form, inspectionDays: e.target.value } }))}
+                      <input type="number" placeholder={tr("Enter days")} value={statusChangeModal.form.inspectionDays} onChange={e => setStatusChangeModal(m => ({ ...m, form: { ...m.form, inspectionDays: e.target.value } }))}
                         style={{ marginTop: 8, width: "100%", padding: "10px 14px", borderRadius: 8, border: "1.5px solid #CCC", fontSize: 14, fontFamily: "inherit", boxSizing: "border-box" }} />
                     )}
                   </div>
@@ -8015,8 +8021,8 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
                         <input type="checkbox" checked={!!statusChangeModal.form.isNewConstruction} onChange={e => setStatusChangeModal(m => ({ ...m, form: { ...m.form, isNewConstruction: e.target.checked } }))}
                           style={{ marginTop: 3, width: 16, height: 16, cursor: "pointer", flexShrink: 0 }} />
                         <div>
-                          <div style={{ fontSize: 13, fontWeight: 700, color: "#9A3412" }}>🏗️ This is a new construction purchase</div>
-                          <div style={{ fontSize: 11, color: "#9A3412", opacity: 0.85, marginTop: 2 }}>Adds 19 new construction tasks (design center, builder warranty, inspections, etc.)</div>
+                          <div style={{ fontSize: 13, fontWeight: 700, color: "#9A3412" }}>{tr("🏗️ This is a new construction purchase")}</div>
+                          <div style={{ fontSize: 11, color: "#9A3412", opacity: 0.85, marginTop: 2 }}>{tr("Adds 19 new construction tasks (design center, builder warranty, inspections, etc.)")}</div>
                         </div>
                       </label>
                     </div>
@@ -8025,7 +8031,7 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
               )}
               {statusChangeModal.newStatus === "Closed" && (
                 <div style={{ marginBottom: 14 }}>
-                  <label style={{ fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", display: "block", marginBottom: 6 }}>Actual Closing Date</label>
+                  <label style={{ fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", display: "block", marginBottom: 6 }}>{tr("Actual Closing Date")}</label>
                   <input type="date" value={statusChangeModal.form.closingDate} onChange={e => setStatusChangeModal(m => ({ ...m, form: { ...m.form, closingDate: e.target.value } }))}
                     style={{ width: "100%", padding: "10px 14px", borderRadius: 8, border: "1.5px solid #CCC", fontSize: 14, fontFamily: "inherit", boxSizing: "border-box" }} />
                 </div>
@@ -8033,15 +8039,15 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
               {(statusChangeModal.newStatus === "On Hold" || statusChangeModal.newStatus === "Cancelled") && (
                 <div style={{ marginBottom: 14 }}>
                   <label style={{ fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", display: "block", marginBottom: 6 }}>
-                    {statusChangeModal.newStatus === "Cancelled" ? "Cancellation Reason" : "Reason for Hold"}
+                    {statusChangeModal.newStatus === "Cancelled" ? tr("Cancellation Reason") : tr("Reason for Hold")}
                   </label>
                   <textarea value={statusChangeModal.form.note} onChange={e => setStatusChangeModal(m => ({ ...m, form: { ...m.form, note: e.target.value } }))}
-                    placeholder={statusChangeModal.newStatus === "Cancelled" ? "e.g. Financing fell through..." : "e.g. Waiting for probate..."}
+                    placeholder={statusChangeModal.newStatus === "Cancelled" ? tr("e.g. Financing fell through...") : tr("e.g. Waiting for probate...")}
                     rows={3} style={{ width: "100%", padding: "10px 14px", borderRadius: 8, border: "1.5px solid #CCC", fontSize: 14, fontFamily: "inherit", boxSizing: "border-box", resize: "none" }} />
                 </div>
               )}
               <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 8 }}>
-                <button onClick={() => setStatusChangeModal(null)} style={{ padding: "10px 18px", border: "1px solid #CCC", borderRadius: 8, background: "none", cursor: "pointer", fontFamily: "inherit" }}>Cancel</button>
+                <button onClick={() => setStatusChangeModal(null)} style={{ padding: "10px 18px", border: "1px solid #CCC", borderRadius: 8, background: "none", cursor: "pointer", fontFamily: "inherit" }}>{tr("Cancel")}</button>
                 <button onClick={async () => {
                   const { newStatus, form } = statusChangeModal;
                   if (newStatus === "Cancelled" && ((await askText(`Cancel "${tx.address || "this transaction"}"? It will be HIDDEN from your dashboard (not deleted). Type CANCEL to confirm.`, "", { okLabel: "Cancel this deal", placeholder: "Type CANCEL" })) || "").trim().toUpperCase() !== "CANCEL") return;
@@ -8100,7 +8106,7 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
                   update(updates);
                   setStatusChangeModal(null);
                 }} style={{ padding: "10px 24px", background: "#C0392B", color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
-                  Confirm
+                  {tr("Confirm")}
                 </button>
               </div>
             </div>
@@ -8108,22 +8114,22 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
         </div>
       )}
       {showContractWizard && (
-        <Modal title="🎉 Under Contract — Enter Contract Details" onClose={() => setShowContractWizard(false)}>
+        <Modal title={tr("🎉 Under Contract — Enter Contract Details")} onClose={() => setShowContractWizard(false)}>
           <div style={{ fontSize: 13, color: "#555", marginBottom: 16, background: "#F0FFF4", border: "1px solid #1E8449", borderRadius: 8, padding: 12 }}>
-            Congratulations! Please fill in the contract details. Task due dates will be calculated automatically from the executed date.
+            {tr("Congratulations! Please fill in the contract details. Task due dates will be calculated automatically from the executed date.")}
           </div>
-          <Input label="Contract Executed Date *" value={contractWizardForm.executedDate} onChange={v => setContractWizardForm(f => ({ ...f, executedDate: v }))} type="date" required />
-          <Input label="Closing Date *" value={contractWizardForm.closingDate} onChange={v => setContractWizardForm(f => ({ ...f, closingDate: v }))} type="date" required />
-          <Input label="Contract Price ($)" value={contractWizardForm.contractPrice} onChange={v => setContractWizardForm(f => ({ ...f, contractPrice: v }))} type="number" />
-          <Input label="Listing Commission (%)" value={contractWizardForm.commissionListing} onChange={v => setContractWizardForm(f => ({ ...f, commissionListing: v }))} type="number" />
-          <Input label="Buyer Agent Commission (%)" value={contractWizardForm.commissionBuyer} onChange={v => setContractWizardForm(f => ({ ...f, commissionBuyer: v }))} type="number" />
-          <Input label="Transaction Fee ($)" value={contractWizardForm.transactionFee} onChange={v => setContractWizardForm(f => ({ ...f, transactionFee: v }))} type="number" />
-          <Input label="Brokerage Split (%)" value={contractWizardForm.brokerageSplit} onChange={v => setContractWizardForm(f => ({ ...f, brokerageSplit: v }))} type="number" />
+          <Input label={tr("Contract Executed Date *")} value={contractWizardForm.executedDate} onChange={v => setContractWizardForm(f => ({ ...f, executedDate: v }))} type="date" required />
+          <Input label={tr("Closing Date *")} value={contractWizardForm.closingDate} onChange={v => setContractWizardForm(f => ({ ...f, closingDate: v }))} type="date" required />
+          <Input label={tr("Contract Price ($)")} value={contractWizardForm.contractPrice} onChange={v => setContractWizardForm(f => ({ ...f, contractPrice: v }))} type="number" />
+          <Input label={tr("Listing Commission (%)")} value={contractWizardForm.commissionListing} onChange={v => setContractWizardForm(f => ({ ...f, commissionListing: v }))} type="number" />
+          <Input label={tr("Buyer Agent Commission (%)")} value={contractWizardForm.commissionBuyer} onChange={v => setContractWizardForm(f => ({ ...f, commissionBuyer: v }))} type="number" />
+          <Input label={tr("Transaction Fee ($)")} value={contractWizardForm.transactionFee} onChange={v => setContractWizardForm(f => ({ ...f, transactionFee: v }))} type="number" />
+          <Input label={tr("Brokerage Split (%)")} value={contractWizardForm.brokerageSplit} onChange={v => setContractWizardForm(f => ({ ...f, brokerageSplit: v }))} type="number" />
           <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 8 }}>
-            <Btn variant="ghost" onClick={() => setShowContractWizard(false)}>Skip for Now</Btn>
+            <Btn variant="ghost" onClick={() => setShowContractWizard(false)}>{tr("Skip for Now")}</Btn>
             <Btn onClick={() => {
               if (!contractWizardForm.executedDate || !contractWizardForm.closingDate) {
-                alert("Please enter the Executed Date and Closing Date.");
+                alert(tr("Please enter the Executed Date and Closing Date."));
                 return;
               }
               // Add contract phase tasks and update dates
@@ -8175,7 +8181,7 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
                 tasks: updatedTasks,
               });
               setShowContractWizard(false);
-            }}>Save & Go Under Contract</Btn>
+            }}>{tr("Save & Go Under Contract")}</Btn>
           </div>
         </Modal>
       )}
@@ -8185,11 +8191,11 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
           label: `${p.name} (${p.role})${p.email ? " — " + p.email : ""}${p.phone ? " — " + p.phone : ""}`
         }));
         return (
-        <Modal title="Add Task" onClose={() => setShowAddTask(false)}>
-          <Input label="Task Name" value={taskForm.name} onChange={v => setTaskForm(f => ({ ...f, name: v }))} required />
-          <Input label="Category" value={taskForm.category} onChange={v => setTaskForm(f => ({ ...f, category: v }))} options={["Buyer","Seller","Pre-Approval","Follow Up","Contract","Disclosure","Escrow","Inspection","Financing","Title","HOA","Insurance","Marketing","Closing","Post-Closing","Other"]} />
+        <Modal title={tr("Add Task")} onClose={() => setShowAddTask(false)}>
+          <Input label={tr("Task Name")} value={taskForm.name} onChange={v => setTaskForm(f => ({ ...f, name: v }))} required />
+          <Input label={tr("Category")} value={taskForm.category} onChange={v => setTaskForm(f => ({ ...f, category: v }))} options={["Buyer","Seller","Pre-Approval","Follow Up","Contract","Disclosure","Escrow","Inspection","Financing","Title","HOA","Insurance","Marketing","Closing","Post-Closing","Other"]} />
           <div style={{ marginBottom: 10 }}>
-            <div style={{ fontSize: 12, fontWeight: 600, color: "#555", marginBottom: 4 }}>Who is responsible? (for follow-ups)</div>
+            <div style={{ fontSize: 12, fontWeight: 600, color: "#555", marginBottom: 4 }}>{tr("Who is responsible? (for follow-ups)")}</div>
             <select value={taskForm.assignedPartyId || ""}
               onChange={e => {
                 const partyId = e.target.value;
@@ -8204,21 +8210,21 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
                 }));
               }}
               style={{ width: "100%", padding: 8, borderRadius: 6, border: "1px solid #DDD", fontSize: 13, boxSizing: "border-box" }}>
-              <option value="">No specific party</option>
-              {partyOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+              <option value="">{tr("No specific party")}</option>
+              {partyOptions.map(o => <option key={o.value} value={o.value}>{tr(o.label)}</option>)}
             </select>
             {partyOptions.length === 0 && (
               <div style={{ fontSize: 11, color: "#8A5A00", marginTop: 4 }}>
-                No parties with email/phone yet. Add them in the People tab to enable follow-ups.
+                {tr("No parties with email/phone yet. Add them in the People tab to enable follow-ups.")}
               </div>
             )}
           </div>
-          <DueDatePresetPicker label="When to follow up?"
+          <DueDatePresetPicker label={tr("When to follow up?")}
             value={taskForm.dueDate}
             onChange={v => setTaskForm(f => ({ ...f, dueDate: v }))} />
-          <Input label="Notes" value={taskForm.notes} onChange={v => setTaskForm(f => ({ ...f, notes: v }))} type="textarea" />
+          <Input label={tr("Notes")} value={taskForm.notes} onChange={v => setTaskForm(f => ({ ...f, notes: v }))} type="textarea" />
           <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
-            <Btn variant="ghost" onClick={() => setShowAddTask(false)}>Cancel</Btn>
+            <Btn variant="ghost" onClick={() => setShowAddTask(false)}>{tr("Cancel")}</Btn>
             <Btn onClick={async () => {
               if (taskForm.name) {
                 update({ tasks: [...tx.tasks, { ...taskForm, id: genId(), status: "Pending" }] });
@@ -8235,7 +8241,7 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
                   window.dispatchEvent(new Event("wintheday:refresh"));
                 } catch (e) { /* non-fatal — cron will catch it tomorrow */ }
               }
-            }}>Add Task</Btn>
+            }}>{tr("Add Task")}</Btn>
           </div>
         </Modal>
         );
@@ -8243,10 +8249,10 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
       {followupParty && (
         <Modal title={`Send Follow-Up to ${followupParty.name}`} onClose={() => { setFollowupParty(null); setFollowupForm({ subject: "", message: "" }); }}>
           <div style={{ background:"#F3F4F6", borderRadius:8, padding:10, marginBottom:12, fontSize:12 }}>
-            <div><strong>To:</strong> {followupParty.name} ({followupParty.role})</div>
+            <div><strong>{tr("To:")}</strong> {followupParty.name} ({followupParty.role})</div>
             {followupParty.email && <div>📧 {followupParty.email}</div>}
             {followupParty.phone && <div>📱 {followupParty.phone}</div>}
-            <div style={{ marginTop:4 }}><strong>Property:</strong> {tx.address}</div>
+            <div style={{ marginTop:4 }}><strong>{tr("Property:")}</strong> {tx.address}</div>
           </div>
           {(() => {
             // Role-smart quick asks — one tap prefills subject + message, editable after.
@@ -8275,29 +8281,27 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
             if (!list) return null;
             return (
               <div style={{ marginBottom: 12 }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: COLORS.muted, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6 }}>Quick asks for a {followupParty.role}</div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: COLORS.muted, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6 }}>{tr("Quick asks for a")} {followupParty.role}</div>
                 <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                   {list.map(([label, msg]) => (
                     <button key={label} onClick={() => setFollowupForm({ subject: label + " — " + tx.address, message: msg })}
                       style={{ background: "#EFF6FF", border: "1px solid #93C5FD", color: "#1E40AF", borderRadius: 8, padding: "6px 10px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
-                      {label}
+                      {tr(label)}
                     </button>
                   ))}
                 </div>
               </div>
             );
           })()}
-          <Input label="Subject (what's this about?)" value={followupForm.subject} onChange={v => setFollowupForm(f => ({ ...f, subject: v }))} required />
-          <Input label="Message" value={followupForm.message} onChange={v => setFollowupForm(f => ({ ...f, message: v }))} type="textarea" />
+          <Input label={tr("Subject (what's this about?)")} value={followupForm.subject} onChange={v => setFollowupForm(f => ({ ...f, subject: v }))} required />
+          <Input label={tr("Message")} value={followupForm.message} onChange={v => setFollowupForm(f => ({ ...f, message: v }))} type="textarea" />
           <div style={{ background:"#EFF6FF", borderRadius:8, padding:10, marginBottom:12, fontSize:11, color:"#1E3A8A", lineHeight:1.5 }}>
-            We'll send an SMS + email to {followupParty.name.split(" ")[0]} right away.
-            If they don't respond, we'll follow up every 48h → 24h → 12h up to 5 times.
-            You'll get a Win the Day alert if they go silent.
+            {tr("We'll send an SMS + email to")} {followupParty.name.split(" ")[0]} {tr("right away. If they don't respond, we'll follow up every 48h → 24h → 12h up to 5 times. You'll get a Win the Day alert if they go silent.")}
           </div>
           <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
-            <Btn variant="ghost" onClick={() => { setFollowupParty(null); setFollowupForm({ subject: "", message: "" }); }}>Cancel</Btn>
+            <Btn variant="ghost" onClick={() => { setFollowupParty(null); setFollowupForm({ subject: "", message: "" }); }}>{tr("Cancel")}</Btn>
             <Btn disabled={followupSubmitting || !followupForm.subject} onClick={async () => {
-              if (!followupForm.subject) { alert("Please add a subject"); return; }
+              if (!followupForm.subject) { alert(tr("Please add a subject")); return; }
               setFollowupSubmitting(true);
               try {
                 const res = await fetch(API + "/chases/start", {
@@ -8313,28 +8317,28 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
                 });
                 const data = await res.json();
                 if (data.success) {
-                  alert("Follow-up started! First message will be sent shortly to " + followupParty.name);
+                  alert(tr("Follow-up started! First message will be sent shortly to ") + followupParty.name);
                   setFollowupParty(null);
                   setFollowupForm({ subject: "", message: "" });
                 } else if (data.error && data.error.includes("already active")) {
-                  alert("A follow-up is already running for this party. It will keep going until resolved.");
+                  alert(tr("A follow-up is already running for this party. It will keep going until resolved."));
                   setFollowupParty(null);
                 } else {
-                  alert("Could not start follow-up: " + (data.error || "unknown"));
+                  alert(tr("Could not start follow-up: ") + (data.error || tr("unknown")));
                 }
-              } catch (e) { alert("Network error"); }
+              } catch (e) { alert(tr("Network error")); }
               setFollowupSubmitting(false);
-            }}>{followupSubmitting ? "Sending..." : "Send Follow-Up"}</Btn>
+            }}>{followupSubmitting ? tr("Sending...") : tr("Send Follow-Up")}</Btn>
           </div>
         </Modal>
       )}
       {showAddReminder && (
-        <Modal title="Add Reminder" onClose={() => setShowAddReminder(false)}>
-          <Input label="Title" value={reminderForm.title} onChange={v => setReminderForm(f => ({ ...f, title: v }))} required />
-          <Input label="Date" value={reminderForm.date} onChange={v => setReminderForm(f => ({ ...f, date: v }))} type="date" required />
-          <Input label="Message" value={reminderForm.message} onChange={v => setReminderForm(f => ({ ...f, message: v }))} type="textarea" />
+        <Modal title={tr("Add Reminder")} onClose={() => setShowAddReminder(false)}>
+          <Input label={tr("Title")} value={reminderForm.title} onChange={v => setReminderForm(f => ({ ...f, title: v }))} required />
+          <Input label={tr("Date")} value={reminderForm.date} onChange={v => setReminderForm(f => ({ ...f, date: v }))} type="date" required />
+          <Input label={tr("Message")} value={reminderForm.message} onChange={v => setReminderForm(f => ({ ...f, message: v }))} type="textarea" />
           <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
-            <Btn variant="ghost" onClick={() => setShowAddReminder(false)}>Cancel</Btn>
+            <Btn variant="ghost" onClick={() => setShowAddReminder(false)}>{tr("Cancel")}</Btn>
             <Btn onClick={async () => {
               if (reminderForm.title && reminderForm.date) {
                 const newId = genId();
@@ -8352,7 +8356,7 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
                 setReminderForm({ title: "", date: "", message: "", channels: "both", parties: [] });
                 setShowAddReminder(false);
               }
-            }}>Add</Btn>
+            }}>{tr("Add")}</Btn>
           </div>
         </Modal>
       )}
@@ -8361,7 +8365,7 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 2000, display: "flex", alignItems: "flex-start", justifyContent: "center", padding: 16, overflowY: "auto" }}>
           <div style={{ background: "#fff", borderRadius: 14, width: "100%", maxWidth: 480, boxShadow: "0 8px 40px rgba(0,0,0,0.2)", overflow: "hidden", fontFamily: "system-ui, sans-serif", margin: "auto" }}>
             <div style={{ background: "#111", padding: "16px 24px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <div style={{ color: "#fff", fontWeight: 700, fontSize: 16 }}>Edit Transaction</div>
+              <div style={{ color: "#fff", fontWeight: 700, fontSize: 16 }}>{tr("Edit Transaction")}</div>
               <button onClick={() => setShowEditTx(false)} style={{ background: "none", border: "none", color: "rgba(255,255,255,0.6)", fontSize: 20, cursor: "pointer" }}>x</button>
             </div>
             <div style={{ padding: 24, overflowY: "auto", maxHeight: "70vh" }}>
@@ -8377,79 +8381,79 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
                 ];
                 return rows.map(([label, field, type]) => (
                 <div key={field} style={{ marginBottom: 16 }}>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>{label}</div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>{tr(label)}</div>
                   <input type={type} value={editTxForm[field] ? (type === "date" ? String(editTxForm[field]).slice(0,10) : editTxForm[field]) : ""} onChange={e => setEditTxForm(f => ({ ...f, [field]: e.target.value }))} style={{ width: "100%", padding: "10px 14px", borderRadius: 8, border: "1.5px solid #CCC", fontSize: 15, fontFamily: "inherit", boxSizing: "border-box" }} />
-                  {field === "representationExpiresOn" && isListing && <div style={{ fontSize: 11, color: "#666666", marginTop: 4 }}>We'll warn you 14, 7, and 1 days before it expires so the listing doesn't lapse in the MLS.</div>}
+                  {field === "representationExpiresOn" && isListing && <div style={{ fontSize: 11, color: "#666666", marginTop: 4 }}>{tr("We'll warn you 14, 7, and 1 days before it expires so the listing doesn't lapse in the MLS.")}</div>}
                 </div>
                 ));
               })()}
               <div style={{ marginBottom: 16 }}>
-                <div style={{ fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>Referral Source</div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>{tr("Referral Source")}</div>
                 <select value={editTxForm.referralSource || ""} onChange={e => setEditTxForm(f => ({ ...f, referralSource: e.target.value }))}
                   style={{ width: "100%", padding: "10px 14px", borderRadius: 8, border: "1.5px solid #CCC", fontSize: 15, fontFamily: "inherit" }}>
-                  <option value="">— Select Source —</option>
-                  {["Past Client", "Referral - Past Client", "Referral - Agent", "Zillow", "Realtor.com", "Social Media", "Google", "Open House", "Sign Call", "Cold Call", "Walk-In", "Other"].map(s => <option key={s} value={s}>{s}</option>)}
+                  <option value="">{tr("— Select Source —")}</option>
+                  {["Past Client", "Referral - Past Client", "Referral - Agent", "Zillow", "Realtor.com", "Social Media", "Google", "Open House", "Sign Call", "Cold Call", "Walk-In", "Other"].map(s => <option key={s} value={s}>{tr(s)}</option>)}
                 </select>
               </div>
-              <div style={{ fontSize: 13, fontWeight: 700, color: "#C0392B", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 12, paddingBottom: 8, borderBottom: "1px solid #EEE" }}>Property Information</div>
-              <div style={{ marginBottom: 14 }}><div style={{ fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", marginBottom: 6 }}>Address</div><input value={editTxForm.address || ""} onChange={e => setEditTxForm(f => ({ ...f, address: e.target.value }))} placeholder="123 Main St" style={{ width: "100%", padding: "10px 14px", borderRadius: 8, border: "1.5px solid #CCC", fontSize: 15, fontFamily: "inherit", boxSizing: "border-box" }} /></div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 14 }}><div><div style={{ fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", marginBottom: 6 }}>City</div><input value={editTxForm.city || ""} onChange={e => setEditTxForm(f => ({ ...f, city: e.target.value }))} placeholder="City" style={{ width: "100%", padding: "10px 14px", borderRadius: 8, border: "1.5px solid #CCC", fontSize: 15, fontFamily: "inherit", boxSizing: "border-box" }} /></div><div><div style={{ fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", marginBottom: 6 }}>ZIP</div><input value={editTxForm.zipCode || ""} onChange={e => setEditTxForm(f => ({ ...f, zipCode: e.target.value }))} placeholder="ZIP code" style={{ width: "100%", padding: "10px 14px", borderRadius: 8, border: "1.5px solid #CCC", fontSize: 15, fontFamily: "inherit", boxSizing: "border-box" }} /></div></div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 14 }}><div><div style={{ fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", marginBottom: 6 }}>County</div><select value={editTxForm.county || ""} onChange={e => setEditTxForm(f => ({ ...f, county: e.target.value }))} style={{ width: "100%", padding: "10px 14px", borderRadius: 8, border: "1.5px solid #CCC", fontSize: 15, fontFamily: "inherit" }}>{["Orange","Osceola","Seminole","Polk","Lake","Volusia","Other"].map(c => <option key={c}>{c}</option>)}</select></div><div><div style={{ fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", marginBottom: 6 }}>Property Type</div><select value={editTxForm.propertyType || ""} onChange={e => setEditTxForm(f => ({ ...f, propertyType: e.target.value }))} style={{ width: "100%", padding: "10px 14px", borderRadius: 8, border: "1.5px solid #CCC", fontSize: 15, fontFamily: "inherit" }}>{(PROPERTY_TYPES.includes(editTxForm.propertyType) || !editTxForm.propertyType ? PROPERTY_TYPES : [editTxForm.propertyType, ...PROPERTY_TYPES]).map(t => <option key={t}>{t}</option>)}</select></div></div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "#C0392B", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 12, paddingBottom: 8, borderBottom: "1px solid #EEE" }}>{tr("Property Information")}</div>
+              <div style={{ marginBottom: 14 }}><div style={{ fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", marginBottom: 6 }}>{tr("Address")}</div><input value={editTxForm.address || ""} onChange={e => setEditTxForm(f => ({ ...f, address: e.target.value }))} placeholder={tr("123 Main St")} style={{ width: "100%", padding: "10px 14px", borderRadius: 8, border: "1.5px solid #CCC", fontSize: 15, fontFamily: "inherit", boxSizing: "border-box" }} /></div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 14 }}><div><div style={{ fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", marginBottom: 6 }}>{tr("City")}</div><input value={editTxForm.city || ""} onChange={e => setEditTxForm(f => ({ ...f, city: e.target.value }))} placeholder={tr("City")} style={{ width: "100%", padding: "10px 14px", borderRadius: 8, border: "1.5px solid #CCC", fontSize: 15, fontFamily: "inherit", boxSizing: "border-box" }} /></div><div><div style={{ fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", marginBottom: 6 }}>{tr("ZIP")}</div><input value={editTxForm.zipCode || ""} onChange={e => setEditTxForm(f => ({ ...f, zipCode: e.target.value }))} placeholder={tr("ZIP code")} style={{ width: "100%", padding: "10px 14px", borderRadius: 8, border: "1.5px solid #CCC", fontSize: 15, fontFamily: "inherit", boxSizing: "border-box" }} /></div></div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 14 }}><div><div style={{ fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", marginBottom: 6 }}>{tr("County")}</div><select value={editTxForm.county || ""} onChange={e => setEditTxForm(f => ({ ...f, county: e.target.value }))} style={{ width: "100%", padding: "10px 14px", borderRadius: 8, border: "1.5px solid #CCC", fontSize: 15, fontFamily: "inherit" }}>{["Orange","Osceola","Seminole","Polk","Lake","Volusia","Other"].map(c => <option value={c} key={c}>{tr(c)}</option>)}</select></div><div><div style={{ fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", marginBottom: 6 }}>{tr("Property Type")}</div><select value={editTxForm.propertyType || ""} onChange={e => setEditTxForm(f => ({ ...f, propertyType: e.target.value }))} style={{ width: "100%", padding: "10px 14px", borderRadius: 8, border: "1.5px solid #CCC", fontSize: 15, fontFamily: "inherit" }}>{(PROPERTY_TYPES.includes(editTxForm.propertyType) || !editTxForm.propertyType ? PROPERTY_TYPES : [editTxForm.propertyType, ...PROPERTY_TYPES]).map(t => <option value={t} key={t}>{tr(t)}</option>)}</select></div></div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 14 }}>
                 <div>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", marginBottom: 6 }}>Year Built <span style={{ color: "#C0392B" }}>*</span></div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", marginBottom: 6 }}>{tr("Year Built")} <span style={{ color: "#C0392B" }}>*</span></div>
                   <input type="number" value={editTxForm.yearBuilt || ""} onChange={e => setEditTxForm(f => ({ ...f, yearBuilt: e.target.value }))} placeholder="e.g. 1998"
                     style={{ width: "100%", padding: "10px 14px", borderRadius: 8, border: "1.5px solid " + (editTxForm.yearBuilt ? "#CCC" : "#E5A5A5"), fontSize: 15, fontFamily: "inherit", boxSizing: "border-box" }} />
-                  <div style={{ fontSize: 11, color: "#666666", marginTop: 4 }}>Sets which disclosures apply (e.g. lead-based paint on pre-1978 homes).</div>
+                  <div style={{ fontSize: 11, color: "#666666", marginTop: 4 }}>{tr("Sets which disclosures apply (e.g. lead-based paint on pre-1978 homes).")}</div>
                 </div>
                 <div>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", marginBottom: 6 }}>In an HOA / condo association? <span style={{ color: "#C0392B" }}>*</span></div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", marginBottom: 6 }}>{tr("In an HOA / condo association?")} <span style={{ color: "#C0392B" }}>*</span></div>
                   <select value={editTxForm.inHoa || ""} onChange={e => setEditTxForm(f => ({ ...f, inHoa: e.target.value }))}
                     style={{ width: "100%", padding: "10px 14px", borderRadius: 8, border: "1.5px solid " + (editTxForm.inHoa ? "#CCC" : "#E5A5A5"), fontSize: 15, fontFamily: "inherit", boxSizing: "border-box" }}>
                     <option value="">—</option>
-                    <option value="yes">Yes</option>
-                    <option value="no">No</option>
+                    <option value="yes">{tr("Yes")}</option>
+                    <option value="no">{tr("No")}</option>
                   </select>
-                  <div style={{ fontSize: 11, color: "#666666", marginTop: 4 }}>Adds the HOA disclosure when Yes.</div>
+                  <div style={{ fontSize: 11, color: "#666666", marginTop: 4 }}>{tr("Adds the HOA disclosure when Yes.")}</div>
                 </div>
               </div>
-              <div style={{ marginBottom: 14 }}><div style={{ fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", marginBottom: 6 }}>Construction Type</div><select value={editTxForm.constructionType || "Resale"} onChange={e => setEditTxForm(f => ({ ...f, constructionType: e.target.value }))} style={{ width: "100%", padding: "10px 14px", borderRadius: 8, border: "1.5px solid #CCC", fontSize: 15, fontFamily: "inherit" }}>{["Resale","New Construction","Vacant Land","Commercial"].map(t => <option key={t}>{t}</option>)}</select></div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 14 }}><div><div style={{ fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", marginBottom: 6 }}>Transaction Type</div><select value={editTxForm.type || ""} onChange={e => setEditTxForm(f => ({ ...f, type: e.target.value }))} style={{ width: "100%", padding: "10px 14px", borderRadius: 8, border: "1.5px solid #CCC", fontSize: 15, fontFamily: "inherit" }}>{TRANSACTION_TYPES.map(t => <option key={t}>{t}</option>)}</select></div><div><div style={{ fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", marginBottom: 6 }}>{isLeaseType(editTxForm.type) ? "Monthly Rent ($)" : "List Price ($)"}</div><input type="number" value={editTxForm.listPrice || ""} onChange={e => setEditTxForm(f => ({ ...f, listPrice: e.target.value }))} placeholder="450000" style={{ width: "100%", padding: "10px 14px", borderRadius: 8, border: "1.5px solid #CCC", fontSize: 15, fontFamily: "inherit", boxSizing: "border-box" }} /></div></div>
-              <div style={{ fontSize: 13, fontWeight: 700, color: "#C0392B", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 12, paddingBottom: 8, borderBottom: "1px solid #EEE", marginTop: 8 }}>Transaction Details</div>
+              <div style={{ marginBottom: 14 }}><div style={{ fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", marginBottom: 6 }}>{tr("Construction Type")}</div><select value={editTxForm.constructionType || "Resale"} onChange={e => setEditTxForm(f => ({ ...f, constructionType: e.target.value }))} style={{ width: "100%", padding: "10px 14px", borderRadius: 8, border: "1.5px solid #CCC", fontSize: 15, fontFamily: "inherit" }}>{["Resale","New Construction","Vacant Land","Commercial"].map(t => <option value={t} key={t}>{tr(t)}</option>)}</select></div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 14 }}><div><div style={{ fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", marginBottom: 6 }}>{tr("Transaction Type")}</div><select value={editTxForm.type || ""} onChange={e => setEditTxForm(f => ({ ...f, type: e.target.value }))} style={{ width: "100%", padding: "10px 14px", borderRadius: 8, border: "1.5px solid #CCC", fontSize: 15, fontFamily: "inherit" }}>{TRANSACTION_TYPES.map(t => <option value={t} key={t}>{tr(t)}</option>)}</select></div><div><div style={{ fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", marginBottom: 6 }}>{isLeaseType(editTxForm.type) ? tr("Monthly Rent ($)") : tr("List Price ($)")}</div><input type="number" value={editTxForm.listPrice || ""} onChange={e => setEditTxForm(f => ({ ...f, listPrice: e.target.value }))} placeholder="450000" style={{ width: "100%", padding: "10px 14px", borderRadius: 8, border: "1.5px solid #CCC", fontSize: 15, fontFamily: "inherit", boxSizing: "border-box" }} /></div></div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "#C0392B", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 12, paddingBottom: 8, borderBottom: "1px solid #EEE", marginTop: 8 }}>{tr("Transaction Details")}</div>
               {teamMembers.length > 0 && (
                 <div style={{ marginBottom: 16 }}>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>Assigned Agent</div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>{tr("Assigned Agent")}</div>
                   <select value={editTxForm.assignedAgent || ""} onChange={e => setEditTxForm(f => ({ ...f, assignedAgent: e.target.value }))}
                     style={{ width: "100%", padding: "10px 14px", borderRadius: 8, border: "1.5px solid #CCC", fontSize: 15, fontFamily: "inherit" }}>
-                    <option value="">— Select Agent —</option>
+                    <option value="">{tr("— Select Agent —")}</option>
                     {teamMembers.map(m => <option key={m.id} value={m.id}>{m.first_name} {m.last_name} ({m.role})</option>)}
                   </select>
                 </div>
               )}
               <div style={{ marginBottom: 16 }}>
-                <div style={{ fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>Lockbox / Gate / Alarm Codes</div>
-                <textarea value={editTxForm.propertyAccess || ""} onChange={e => setEditTxForm(f => ({ ...f, propertyAccess: e.target.value }))} placeholder="Lockbox code, gate code, special instructions..." style={{ width: "100%", padding: "10px 14px", borderRadius: 8, border: "1.5px solid #CCC", fontSize: 14, fontFamily: "inherit", boxSizing: "border-box", minHeight: 60, resize: "vertical" }} />
+                <div style={{ fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>{tr("Lockbox / Gate / Alarm Codes")}</div>
+                <textarea value={editTxForm.propertyAccess || ""} onChange={e => setEditTxForm(f => ({ ...f, propertyAccess: e.target.value }))} placeholder={tr("Lockbox code, gate code, special instructions...")} style={{ width: "100%", padding: "10px 14px", borderRadius: 8, border: "1.5px solid #CCC", fontSize: 14, fontFamily: "inherit", boxSizing: "border-box", minHeight: 60, resize: "vertical" }} />
               </div>
               {/* Commission terms — hidden for coordinators only. Co-agents see and
                   edit them like the deal's agent (Carlos 10/1: "same as owner"). */}
               <div style={{ background: "#F4F4F4", borderRadius: 10, padding: 16, marginBottom: 16, display: isCoordinator ? "none" : "block" }}>
-                <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 12, color: "#111" }}>Commission Details</div>
+                <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 12, color: "#111" }}>{tr("Commission Details")}</div>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
                   {[["Listing Agent Commission %", "commissionListing"], ["Buyer Agent Commission %", "commissionBuyer"], ["Transaction Fee", "transactionFee"], ["Brokerage Split %", "brokerageSplit"], ["Office Flat Fee", "officeFlatFee"]].map(([label, field]) => (
                     <div key={field}>
-                      <div style={{ fontSize: 11, fontWeight: 700, color: "#555", textTransform: "uppercase", marginBottom: 4 }}>{label}</div>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: "#555", textTransform: "uppercase", marginBottom: 4 }}>{tr(label)}</div>
                       <input value={editTxForm[field] || ""} onChange={e => setEditTxForm(f => ({ ...f, [field]: e.target.value }))} style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: "1.5px solid #CCC", fontSize: 13, fontFamily: "inherit", boxSizing: "border-box" }} />
                     </div>
                   ))}
                   <div>
-                    <div style={{ fontSize: 11, fontWeight: 700, color: "#555", textTransform: "uppercase", marginBottom: 4 }}>Closing remotely? (mail-away)</div>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: "#555", textTransform: "uppercase", marginBottom: 4 }}>{tr("Closing remotely? (mail-away)")}</div>
                     <select value={editTxForm.mailAway || "No"} onChange={e => setEditTxForm(f => ({ ...f, mailAway: e.target.value }))} style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: "1.5px solid #CCC", fontSize: 13, fontFamily: "inherit" }}>
                       <option>No</option><option>Yes</option>
                     </select>
                   </div>
                 </div>
                 <div style={{ marginTop: 10 }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: "#555", textTransform: "uppercase", marginBottom: 4 }}>Additional Credits / Referrals</div>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: "#555", textTransform: "uppercase", marginBottom: 4 }}>{tr("Additional Credits / Referrals")}</div>
                   <input value={editTxForm.commissionNotes || ""} onChange={e => setEditTxForm(f => ({ ...f, commissionNotes: e.target.value }))} style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: "1.5px solid #CCC", fontSize: 13, fontFamily: "inherit", boxSizing: "border-box" }} />
                 </div>
               </div>
@@ -8457,45 +8461,45 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
               {(tx.status === "Under Contract" || tx.status === "Inspection" || tx.status === "Appraisal" || tx.status === "Clear to Close" || tx.status === "Closed" || editTxForm.earnestMoneyAmount || editTxForm.emdDeadline) && (
                 <>
                   <div style={{ borderTop: "2px solid #2563eb", margin: "20px 0 14px 0", paddingTop: 14 }}>
-                    <div style={{ fontSize: 14, fontWeight: 800, color: "#1e3a8a", marginBottom: 4 }}>📋 Under Contract Details</div>
-                    <div style={{ fontSize: 11, color: "#6b7280", marginBottom: 14 }}>These come from the executed contract. Verify each field matches the original.</div>
+                    <div style={{ fontSize: 14, fontWeight: 800, color: "#1e3a8a", marginBottom: 4 }}>{tr("📋 Under Contract Details")}</div>
+                    <div style={{ fontSize: 11, color: "#6b7280", marginBottom: 14 }}>{tr("These come from the executed contract. Verify each field matches the original.")}</div>
                   </div>
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 14 }}>
                     <div>
-                      <div style={{ fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", marginBottom: 6 }}>Earnest Money ($)</div>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", marginBottom: 6 }}>{tr("Earnest Money ($)")}</div>
                       <input type="number" value={editTxForm.earnestMoneyAmount || ""} onChange={e => setEditTxForm(f => ({ ...f, earnestMoneyAmount: e.target.value }))} placeholder="5000" style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: "1.5px solid #CCC", fontSize: 14, fontFamily: "inherit", boxSizing: "border-box" }} />
                     </div>
                     <div>
-                      <div style={{ fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", marginBottom: 6 }}>Deposit deadline (earnest money)</div>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", marginBottom: 6 }}>{tr("Deposit deadline (earnest money)")}</div>
                       <input type="date" value={editTxForm.emdDeadline ? String(editTxForm.emdDeadline).slice(0,10) : ""} onChange={e => setEditTxForm(f => ({ ...f, emdDeadline: e.target.value }))} style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: "1.5px solid #CCC", fontSize: 14, fontFamily: "inherit", boxSizing: "border-box" }} />
                     </div>
                   </div>
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 14 }}>
                     <div>
-                      <div style={{ fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", marginBottom: 6 }}>Inspection (days)</div>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", marginBottom: 6 }}>{tr("Inspection (days)")}</div>
                       <input type="number" value={editTxForm.inspectionPeriodDays || ""} onChange={e => setEditTxForm(f => ({ ...f, inspectionPeriodDays: e.target.value }))} placeholder="10" style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: "1.5px solid #CCC", fontSize: 14, fontFamily: "inherit", boxSizing: "border-box" }} />
                     </div>
                     <div>
-                      <div style={{ fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", marginBottom: 6 }}>Financing (days)</div>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", marginBottom: 6 }}>{tr("Financing (days)")}</div>
                       <input type="number" value={editTxForm.financingContingencyDays || ""} onChange={e => setEditTxForm(f => ({ ...f, financingContingencyDays: e.target.value }))} placeholder="30" style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: "1.5px solid #CCC", fontSize: 14, fontFamily: "inherit", boxSizing: "border-box" }} />
                     </div>
                     <div>
-                      <div style={{ fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", marginBottom: 6 }}>Appraisal (days)</div>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", marginBottom: 6 }}>{tr("Appraisal (days)")}</div>
                       <input type="number" value={editTxForm.appraisalContingencyDays || ""} onChange={e => setEditTxForm(f => ({ ...f, appraisalContingencyDays: e.target.value }))} placeholder="30" style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: "1.5px solid #CCC", fontSize: 14, fontFamily: "inherit", boxSizing: "border-box" }} />
                     </div>
                   </div>
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 14 }}>
                     <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, cursor: "pointer" }}>
-                      <input type="checkbox" checked={!!editTxForm.isCash} onChange={e => setEditTxForm(f => ({ ...f, isCash: e.target.checked }))} /> Cash deal
+                      <input type="checkbox" checked={!!editTxForm.isCash} onChange={e => setEditTxForm(f => ({ ...f, isCash: e.target.checked }))} /> {tr("Cash deal")}
                     </label>
                     <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, cursor: "pointer" }}>
-                      <input type="checkbox" checked={!!editTxForm.hoaApprovalRequired} onChange={e => setEditTxForm(f => ({ ...f, hoaApprovalRequired: e.target.checked }))} /> HOA approval required
+                      <input type="checkbox" checked={!!editTxForm.hoaApprovalRequired} onChange={e => setEditTxForm(f => ({ ...f, hoaApprovalRequired: e.target.checked }))} /> {tr("HOA approval required")}
                     </label>
                     <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, cursor: "pointer" }}>
-                      <input type="checkbox" checked={!!editTxForm.surveyRequired} onChange={e => setEditTxForm(f => ({ ...f, surveyRequired: e.target.checked }))} /> Survey required
+                      <input type="checkbox" checked={!!editTxForm.surveyRequired} onChange={e => setEditTxForm(f => ({ ...f, surveyRequired: e.target.checked }))} /> {tr("Survey required")}
                     </label>
                     <div>
-                      <div style={{ fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", marginBottom: 6 }}>Occupancy</div>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", marginBottom: 6 }}>{tr("Occupancy")}</div>
                       <select value={editTxForm.occupancyStatus || ""} onChange={e => setEditTxForm(f => ({ ...f, occupancyStatus: e.target.value }))}
                         style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: "1.5px solid #CCC", fontSize: 13, fontFamily: "inherit" }}>
                         <option value="">—</option>
@@ -8507,39 +8511,39 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
                   </div>
                   {/* Agreement start/expiration are set up top (Transaction Details) for every deal type. */}
                   <div style={{ marginBottom: 14 }}>
-                    <div style={{ fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", marginBottom: 6 }}>Flood Zone</div>
-                    <input value={editTxForm.floodZone || ""} onChange={e => setEditTxForm(f => ({ ...f, floodZone: e.target.value }))} placeholder="e.g. AE, X" style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: "1.5px solid #CCC", fontSize: 14, fontFamily: "inherit", boxSizing: "border-box" }} />
-                    <div style={{ fontSize: 11.5, color: "#666666", marginTop: 4 }}>From the flood map (your title company or realtor MLS sheet has it). X = low risk. AE or A = flood insurance likely required — the app adds the flood addendum.</div>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", marginBottom: 6 }}>{tr("Flood Zone")}</div>
+                    <input value={editTxForm.floodZone || ""} onChange={e => setEditTxForm(f => ({ ...f, floodZone: e.target.value }))} placeholder={tr("e.g. AE, X")} style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: "1.5px solid #CCC", fontSize: 14, fontFamily: "inherit", boxSizing: "border-box" }} />
+                    <div style={{ fontSize: 11.5, color: "#666666", marginTop: 4 }}>{tr("From the flood map (your title company or realtor MLS sheet has it). X = low risk. AE or A = flood insurance likely required — the app adds the flood addendum.")}</div>
                   </div>
                   {/* Compliance-checklist triggers the app can't infer */}
                   <div style={{ display: "flex", gap: 20, marginBottom: 14, flexWrap: "wrap" }}>
                     <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "#333", cursor: "pointer" }}>
                       <input type="checkbox" checked={!!editTxForm.sellerIsForeign} onChange={e => setEditTxForm(f => ({ ...f, sellerIsForeign: e.target.checked }))} />
-                      <span>Seller is a <b>foreign person</b> (FIRPTA) <span style={{ color: "#666666", fontWeight: 400 }}>— adds FIRPTA docs; withholding is the buyer's liability if missed</span></span>
+                      <span>{tr("Seller is a")} <b>{tr("foreign person")}</b> {tr("(FIRPTA)")} <span style={{ color: "#666666", fontWeight: 400 }}>{tr("— adds FIRPTA docs; withholding is the buyer's liability if missed")}</span></span>
                     </label>
                     <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "#333", cursor: "pointer" }}>
                       <input type="checkbox" checked={!!editTxForm.isCoastal} onChange={e => setEditTxForm(f => ({ ...f, isCoastal: e.target.checked }))} />
-                      <span><b>Coastal</b> property (seaward of the CCCL) <span style={{ color: "#666666", fontWeight: 400 }}>— adds the coastal/erosion disclosure</span></span>
+                      <span><b>{tr("Coastal")}</b> {tr("property (seaward of the CCCL)")} <span style={{ color: "#666666", fontWeight: 400 }}>{tr("— adds the coastal/erosion disclosure")}</span></span>
                     </label>
                     <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "#333", cursor: "pointer" }}>
                       <input type="checkbox" checked={!!editTxForm.sellerPaysBuyerBroker} onChange={e => setEditTxForm(f => ({ ...f, sellerPaysBuyerBroker: e.target.checked }))} />
-                      <span>Seller is <b>paying the buyer's broker</b> commission <span style={{ color: "#666666", fontWeight: 400 }}>— adds the Seller's Agreement re Buyer-Broker Comp (Rider GG)</span></span>
+                      <span>{tr("Seller is")} <b>{tr("paying the buyer's broker")}</b> {tr("commission")} <span style={{ color: "#666666", fontWeight: 400 }}>{tr("— adds the Seller's Agreement re Buyer-Broker Comp (Rider GG)")}</span></span>
                     </label>
                     <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "#333", cursor: "pointer" }}>
                       <input type="checkbox" checked={!!editTxForm.isShortSale} onChange={e => setEditTxForm(f => ({ ...f, isShortSale: e.target.checked }))} />
-                      <span><b>Short sale</b> <span style={{ color: "#666666", fontWeight: 400 }}>— adds the Short Sale Addendum</span></span>
+                      <span><b>{tr("Short sale")}</b> <span style={{ color: "#666666", fontWeight: 400 }}>{tr("— adds the Short Sale Addendum")}</span></span>
                     </label>
                     <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "#333", cursor: "pointer" }}>
                       <input type="checkbox" checked={!!editTxForm.hasSellerFinancing} onChange={e => setEditTxForm(f => ({ ...f, hasSellerFinancing: e.target.checked }))} />
-                      <span><b>Seller financing</b> <span style={{ color: "#666666", fontWeight: 400 }}>— adds the Seller Financing Addendum</span></span>
+                      <span><b>{tr("Seller financing")}</b> <span style={{ color: "#666666", fontWeight: 400 }}>{tr("— adds the Seller Financing Addendum")}</span></span>
                     </label>
                     <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "#333", cursor: "pointer" }}>
                       <input type="checkbox" checked={!!editTxForm.sellerPostClosingOccupancy} onChange={e => setEditTxForm(f => ({ ...f, sellerPostClosingOccupancy: e.target.checked }))} />
-                      <span>Seller <b>stays after closing</b> <span style={{ color: "#666666", fontWeight: 400 }}>— adds the Post-Closing Occupancy Agreement</span></span>
+                      <span>{tr("Seller")} <b>{tr("stays after closing")}</b> <span style={{ color: "#666666", fontWeight: 400 }}>{tr("— adds the Post-Closing Occupancy Agreement")}</span></span>
                     </label>
                   </div>
                   <div style={{ marginBottom: 14, maxWidth: 280 }}>
-                    <div style={{ fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", marginBottom: 6 }}>Financing Type</div>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", marginBottom: 6 }}>{tr("Financing Type")}</div>
                     <select value={editTxForm.financingType || ""} onChange={e => setEditTxForm(f => ({ ...f, financingType: e.target.value }))}
                       style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: "1.5px solid #CCC", fontSize: 14, fontFamily: "inherit" }}>
                       <option value="">—</option>
@@ -8549,16 +8553,16 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
                       <option>Cash</option>
                       <option>Other</option>
                     </select>
-                    <div style={{ fontSize: 11, color: "#666666", marginTop: 4 }}>FHA or VA adds the FHA/VA Financing Addendum to the checklist.</div>
+                    <div style={{ fontSize: 11, color: "#666666", marginTop: 4 }}>{tr("FHA or VA adds the FHA/VA Financing Addendum to the checklist.")}</div>
                   </div>
                 </>
               )}
               <div style={{ marginBottom: 16 }}>
-                <div style={{ fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>Notes</div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>{tr("Notes")}</div>
                 <textarea value={editTxForm.notes || ""} onChange={e => setEditTxForm(f => ({ ...f, notes: e.target.value }))} style={{ width: "100%", padding: "10px 14px", borderRadius: 8, border: "1.5px solid #CCC", fontSize: 14, fontFamily: "inherit", boxSizing: "border-box", minHeight: 80, resize: "vertical" }} />
               </div>
               <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
-                <button onClick={() => setShowEditTx(false)} style={{ padding: "10px 18px", border: "1px solid #CCC", borderRadius: 8, background: "none", cursor: "pointer", fontFamily: "inherit" }}>Cancel</button>
+                <button onClick={() => setShowEditTx(false)} style={{ padding: "10px 18px", border: "1px solid #CCC", borderRadius: 8, background: "none", cursor: "pointer", fontFamily: "inherit" }}>{tr("Cancel")}</button>
                 <button onClick={() => {
                   // Year Built is required on real property deals — it determines which
                   // disclosures apply (lead-based paint, etc.). Skip the check for
@@ -8566,11 +8570,11 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
                   const isProspect = /^\s*buyer search\b/i.test(editTxForm.address || "");
                   const yb = parseInt(editTxForm.yearBuilt, 10);
                   if (!isProspect && (!editTxForm.yearBuilt || !Number.isFinite(yb) || yb < 1800 || yb > 2100)) {
-                    alert("Please enter the Year Built (a valid 4-digit year). It's required to determine which disclosures this deal needs — for example, lead-based paint applies only to homes built before 1978.");
+                    alert(tr("Please enter the Year Built (a valid 4-digit year). It's required to determine which disclosures this deal needs — for example, lead-based paint applies only to homes built before 1978."));
                     return;
                   }
                   if (!isProspect && !editTxForm.inHoa) {
-                    alert("Please answer whether the property is in an HOA or condo association. It determines whether the HOA disclosure is required.");
+                    alert(tr("Please answer whether the property is in an HOA or condo association. It determines whether the HOA disclosure is required."));
                     return;
                   }
                   // The form is pre-filled from the tx via buildEditTxForm, so an empty
@@ -8622,7 +8626,7 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
                       body: JSON.stringify({ constructionType: editTxForm.constructionType })
                     }).catch(e => console.error("[bg]", e && e.message ? e.message : e));
                   }
-                }} style={{ padding: "10px 20px", background: "#C0392B", color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>Save Changes</button>
+                }} style={{ padding: "10px 20px", background: "#C0392B", color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>{tr("Save Changes")}</button>
               </div>
             </div>
           </div>
@@ -8673,14 +8677,14 @@ function NewTransactionForm({ onSave, onCancel, prefill = null, cmaId = null, on
     return () => clearTimeout(t);
   }, [contactSearch]);
   const handleSave = async () => {
-    if (!form.address || !form.city) { alert("Please enter the property address and city."); return; }
-    if (!form.assignedAgent) { alert("Pick which agent this deal belongs to."); return; }
-    if (!form.referralSource) { alert("Pick where this client came from — it powers your reports."); return; }
+    if (!form.address || !form.city) { alert(tr("Please enter the property address and city.")); return; }
+    if (!form.assignedAgent) { alert(tr("Pick which agent this deal belongs to.")); return; }
+    if (!form.referralSource) { alert(tr("Pick where this client came from — it powers your reports.")); return; }
     if (isListingSide) {
       const ybNum = parseInt(form.yearBuilt, 10);
-      if (!form.yearBuilt || !Number.isFinite(ybNum) || ybNum < 1800 || ybNum > 2100) { alert("Please enter the Year Built (4 digits) — it decides which disclosures this listing needs (e.g. lead paint before 1978)."); return; }
-      if (!form.inHoa) { alert("Please answer whether the property is in an HOA / condo association."); return; }
-      if (!form.occupancyStatus) { alert("Please pick who lives in the property right now."); return; }
+      if (!form.yearBuilt || !Number.isFinite(ybNum) || ybNum < 1800 || ybNum > 2100) { alert(tr("Please enter the Year Built (4 digits) — it decides which disclosures this listing needs (e.g. lead paint before 1978).")); return; }
+      if (!form.inHoa) { alert(tr("Please answer whether the property is in an HOA / condo association.")); return; }
+      if (!form.occupancyStatus) { alert(tr("Please pick who lives in the property right now.")); return; }
     }
     const contractDate = form.executedDate || form.openDate;
     const tasks = useFLTemplates ? taskTemplates.filter(t => t.phase === "active").map(t => ({ id: genId(), name: t.task_name, category: t.category, assignTo: t.default_assignee_role, dueDate: null, status: "Pending", notes: "", phase: "active" })) : [];
@@ -8750,11 +8754,11 @@ function NewTransactionForm({ onSave, onCancel, prefill = null, cmaId = null, on
           setTimeout(() => window.dispatchEvent(new CustomEvent("tp:listing-info-prompt", { detail: { txId: t.id } })), 600);
         }
       } else {
-        alert("Failed to save transaction: " + (data.error || "Unknown error"));
+        alert(tr("Failed to save transaction: ") + (data.error || tr("Unknown error")));
       }
     } catch (e) {
       console.error("Save error:", e);
-      alert("Could not save transaction. Check your connection.");
+      alert(tr("Could not save transaction. Check your connection."));
     }
   };
   // ── 3-STEP WIZARD (rookie-first). Step gating replaces alert()-validation:
@@ -8772,8 +8776,8 @@ function NewTransactionForm({ onSave, onCancel, prefill = null, cmaId = null, on
       <div style={{ background: COLORS.navy, padding: "16px 24px", display: "flex", alignItems: "center", gap: 16 }}>
         <BackButton tone="dark" onClick={onCancel} to={backLabel || (cmaId ? "CMA" : "My Deals")} />
         <div>
-          <div style={{ color: "#fff", fontWeight: 700, fontSize: 17 }}>➕ New Deal</div>
-          <div style={{ color: "rgba(255,255,255,0.7)", fontSize: 12, marginTop: 1 }}>Three quick steps — about a minute. You can add details later.</div>
+          <div style={{ color: "#fff", fontWeight: 700, fontSize: 17 }}>{tr("➕ New Deal")}</div>
+          <div style={{ color: "rgba(255,255,255,0.7)", fontSize: 12, marginTop: 1 }}>{tr("Three quick steps — about a minute. You can add details later.")}</div>
         </div>
       </div>
       <div style={{ maxWidth: 640, margin: "0 auto", padding: "20px 16px 60px" }}>
@@ -8781,8 +8785,8 @@ function NewTransactionForm({ onSave, onCancel, prefill = null, cmaId = null, on
           <div onClick={onImportContract} style={{ marginBottom: 14, background: "#EFF6FF", border: "1.5px dashed #3B82F6", borderRadius: 12, padding: "12px 16px", cursor: "pointer", display: "flex", alignItems: "center", gap: 12 }}>
             <span style={{ fontSize: 22 }}>📥</span>
             <div>
-              <div style={{ fontWeight: 800, fontSize: 14, color: "#1E40AF" }}>Already have a signed contract? Import it instead</div>
-              <div style={{ fontSize: 12.5, color: "#1E3A8A" }}>Upload it — we'll read it and build the whole deal for you.</div>
+              <div style={{ fontWeight: 800, fontSize: 14, color: "#1E40AF" }}>{tr("Already have a signed contract? Import it instead")}</div>
+              <div style={{ fontSize: 12.5, color: "#1E3A8A" }}>{tr("Upload it — we'll read it and build the whole deal for you.")}</div>
             </div>
           </div>
         )}
@@ -8792,7 +8796,7 @@ function NewTransactionForm({ onSave, onCancel, prefill = null, cmaId = null, on
           {[["1", "Property"], ["2", "Client"], ["3", "Price"]].map(([n, label], i) => (
             <div key={n} style={{ display: "flex", alignItems: "center", gap: 8, flex: i < 2 ? "0 0 auto" : "0 0 auto" }}>
               <div style={{ width: 30, height: 30, borderRadius: "50%", background: step > i ? "#0F2044" : "#E5E7EB", color: step > i ? "#fff" : "#6B7280", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 14 }}>{n}</div>
-              <span style={{ fontSize: 13, fontWeight: 700, color: step > i ? "#0F2044" : "#9CA3AF" }}>{label}</span>
+              <span style={{ fontSize: 13, fontWeight: 700, color: step > i ? "#0F2044" : "#9CA3AF" }}>{tr(label)}</span>
               {i < 2 && <div style={{ width: 28, height: 2, background: step > i + 1 ? "#0F2044" : "#E5E7EB" }} />}
             </div>
           ))}
@@ -8801,63 +8805,63 @@ function NewTransactionForm({ onSave, onCancel, prefill = null, cmaId = null, on
         <div style={{ background: "#fff", borderRadius: 14, padding: 22, boxShadow: "0 2px 12px rgba(15,32,68,0.08)" }}>
           {step === 1 && (
             <div>
-              <div style={{ fontSize: 19, fontWeight: 800, color: "#0F2044", marginBottom: 14 }}>What kind of deal is this?</div>
+              <div style={{ fontSize: 19, fontWeight: 800, color: "#0F2044", marginBottom: 14 }}>{tr("What kind of deal is this?")}</div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 8 }} data-keep-grid="">
                 <button type="button" onClick={() => f("type")("Listing (Seller)")}
                   style={{ padding: "16px 12px", borderRadius: 12, border: /^listing/i.test(form.type) ? "2.5px solid #0c4a6e" : "1px solid #d1d5db", background: /^listing/i.test(form.type) ? "#F0F4FA" : "#fff", cursor: "pointer", fontFamily: "inherit", textAlign: "center" }}>
                   <div style={{ fontSize: 26 }}>🏠</div>
-                  <div style={{ fontWeight: 800, fontSize: 14.5, color: "#0F2044", marginTop: 4 }}>I'm SELLING it</div>
-                  <div style={{ fontSize: 12, color: "#6B7280" }}>A listing — I represent the seller</div>
+                  <div style={{ fontWeight: 800, fontSize: 14.5, color: "#0F2044", marginTop: 4 }}>{tr("I'm SELLING it")}</div>
+                  <div style={{ fontSize: 12, color: "#6B7280" }}>{tr("A listing — I represent the seller")}</div>
                 </button>
                 <button type="button" onClick={() => f("type")("Buyer Representation")}
                   style={{ padding: "16px 12px", borderRadius: 12, border: /^buyer/i.test(form.type) ? "2.5px solid #0c4a6e" : "1px solid #d1d5db", background: /^buyer/i.test(form.type) ? "#F0F4FA" : "#fff", cursor: "pointer", fontFamily: "inherit", textAlign: "center" }}>
                   <div style={{ fontSize: 26 }}>🏡</div>
-                  <div style={{ fontWeight: 800, fontSize: 14.5, color: "#0F2044", marginTop: 4 }}>I'm helping someone BUY</div>
-                  <div style={{ fontSize: 12, color: "#6B7280" }}>I represent the buyer</div>
+                  <div style={{ fontWeight: 800, fontSize: 14.5, color: "#0F2044", marginTop: 4 }}>{tr("I'm helping someone BUY")}</div>
+                  <div style={{ fontSize: 12, color: "#6B7280" }}>{tr("I represent the buyer")}</div>
                 </button>
                 <button type="button" onClick={() => f("type")("Lease — Landlord")}
                   style={{ padding: "16px 12px", borderRadius: 12, border: form.type === "Lease — Landlord" ? "2.5px solid #0c4a6e" : "1px solid #d1d5db", background: form.type === "Lease — Landlord" ? "#E0F2FE" : "#fff", cursor: "pointer", fontFamily: "inherit", textAlign: "center" }}>
                   <div style={{ fontSize: 26 }}>🔑</div>
-                  <div style={{ fontWeight: 800, fontSize: 14.5, color: "#0F2044", marginTop: 4 }}>I'm LEASING it out</div>
-                  <div style={{ fontSize: 12, color: "#6B7280" }}>A rental listing — I represent the owner</div>
+                  <div style={{ fontWeight: 800, fontSize: 14.5, color: "#0F2044", marginTop: 4 }}>{tr("I'm LEASING it out")}</div>
+                  <div style={{ fontSize: 12, color: "#6B7280" }}>{tr("A rental listing — I represent the owner")}</div>
                 </button>
                 <button type="button" onClick={() => f("type")("Lease — Tenant")}
                   style={{ padding: "16px 12px", borderRadius: 12, border: form.type === "Lease — Tenant" ? "2.5px solid #0c4a6e" : "1px solid #d1d5db", background: form.type === "Lease — Tenant" ? "#E0F2FE" : "#fff", cursor: "pointer", fontFamily: "inherit", textAlign: "center" }}>
                   <div style={{ fontSize: 26 }}>🧳</div>
-                  <div style={{ fontWeight: 800, fontSize: 14.5, color: "#0F2044", marginTop: 4 }}>Helping someone RENT</div>
-                  <div style={{ fontSize: 12, color: "#6B7280" }}>I represent the tenant</div>
+                  <div style={{ fontWeight: 800, fontSize: 14.5, color: "#0F2044", marginTop: 4 }}>{tr("Helping someone RENT")}</div>
+                  <div style={{ fontSize: 12, color: "#6B7280" }}>{tr("I represent the tenant")}</div>
                 </button>
               </div>
               <button type="button" onClick={() => setMoreTypes(m => !m)} style={{ background: "none", border: "none", color: "#6B7280", fontSize: 12.5, cursor: "pointer", fontFamily: "inherit", padding: 0, marginBottom: 12 }}>
-                {moreTypes ? "▴ Hide other types" : "▾ It's dual agency"}
+                {moreTypes ? tr("▴ Hide other types") : tr("▾ It's dual agency")}
               </button>
               {moreTypes && (
                 <select value={form.type} onChange={e => f("type")(e.target.value)} style={{ ...inputBig, marginBottom: 12 }}>
-                  {["Listing (Seller)", "Buyer Representation", "Dual Agency", "Lease — Landlord", "Lease — Tenant"].map(t => <option key={t} value={t}>{t}</option>)}
+                  {["Listing (Seller)", "Buyer Representation", "Dual Agency", "Lease — Landlord", "Lease — Tenant"].map(t => <option key={t} value={t}>{tr(t)}</option>)}
                 </select>
               )}
               {/* Commercial + land get their own timelines and doc sets — one tap here
                   routes the deal onto the right track (detected via propertyType). */}
               {!/lease/i.test(form.type) && (
                 <div style={{ marginBottom: 12 }}>
-                  <label style={lblW}>What kind of property?</label>
+                  <label style={lblW}>{tr("What kind of property?")}</label>
                   <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                    <button type="button" onClick={() => f("propertyType")("Single Family")} style={chip(!/commercial|land/i.test(form.propertyType || ""))}>🏠 Residential</button>
-                    <button type="button" onClick={() => f("propertyType")("Commercial")} style={chip(/commercial/i.test(form.propertyType || ""))}>🏢 Commercial</button>
-                    <button type="button" onClick={() => f("propertyType")("Vacant Land")} style={chip(/land/i.test(form.propertyType || ""))}>🟩 Vacant Land</button>
+                    <button type="button" onClick={() => f("propertyType")("Single Family")} style={chip(!/commercial|land/i.test(form.propertyType || ""))}>{tr("🏠 Residential")}</button>
+                    <button type="button" onClick={() => f("propertyType")("Commercial")} style={chip(/commercial/i.test(form.propertyType || ""))}>{tr("🏢 Commercial")}</button>
+                    <button type="button" onClick={() => f("propertyType")("Vacant Land")} style={chip(/land/i.test(form.propertyType || ""))}>{tr("🟩 Vacant Land")}</button>
                   </div>
                 </div>
               )}
 
-              <label style={lblW}>{isListingSide ? "Property address *" : "Address (or the area they're searching) *"}</label>
-              <input value={form.address} onChange={e => f("address")(e.target.value)} placeholder={isListingSide ? "123 Main St" : "e.g. Lake Nona area, or an address"} style={{ ...inputBig, marginBottom: 12 }} />
+              <label style={lblW}>{isListingSide ? tr("Property address *") : tr("Address (or the area they're searching) *")}</label>
+              <input value={form.address} onChange={e => f("address")(e.target.value)} placeholder={isListingSide ? tr("123 Main St") : tr("e.g. Lake Nona area, or an address")} style={{ ...inputBig, marginBottom: 12 }} />
               <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 10, marginBottom: 12 }} data-keep-grid="">
                 <div>
-                  <label style={lblW}>City *</label>
-                  <input value={form.city} onChange={e => f("city")(e.target.value)} placeholder="Orlando" style={inputBig} />
+                  <label style={lblW}>{tr("City *")}</label>
+                  <input value={form.city} onChange={e => f("city")(e.target.value)} placeholder={tr("Orlando")} style={inputBig} />
                 </div>
                 <div>
-                  <label style={lblW}>ZIP</label>
+                  <label style={lblW}>{tr("ZIP")}</label>
                   <input value={form.zipCode} onChange={e => f("zipCode")(e.target.value)} style={inputBig} />
                 </div>
               </div>
@@ -8866,22 +8870,22 @@ function NewTransactionForm({ onSave, onCancel, prefill = null, cmaId = null, on
                 <>
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 12 }} data-keep-grid="">
                     <div>
-                      <label style={lblW}>Year built *</label>
+                      <label style={lblW}>{tr("Year built *")}</label>
                       <input value={form.yearBuilt || ""} onChange={e => f("yearBuilt")(e.target.value.replace(/\D/g, "").slice(0, 4))} placeholder="e.g. 1998" style={inputBig} />
-                      <div style={{ fontSize: 11.5, color: "#6B7280", marginTop: 3 }}>Decides which disclosures you need (lead paint = before 1978).</div>
+                      <div style={{ fontSize: 11.5, color: "#6B7280", marginTop: 3 }}>{tr("Decides which disclosures you need (lead paint = before 1978).")}</div>
                     </div>
                     <div>
-                      <label style={lblW}>HOA or condo association? *</label>
+                      <label style={lblW}>{tr("HOA or condo association? *")}</label>
                       <div style={{ display: "flex", gap: 8 }}>
-                        <button type="button" onClick={() => f("inHoa")("yes")} style={chip(form.inHoa === "yes")}>Yes</button>
-                        <button type="button" onClick={() => f("inHoa")("no")} style={chip(form.inHoa === "no")}>No</button>
+                        <button type="button" onClick={() => f("inHoa")("yes")} style={chip(form.inHoa === "yes")}>{tr("Yes")}</button>
+                        <button type="button" onClick={() => f("inHoa")("no")} style={chip(form.inHoa === "no")}>{tr("No")}</button>
                       </div>
                     </div>
                   </div>
-                  <label style={lblW}>Who lives there right now? *</label>
+                  <label style={lblW}>{tr("Who lives there right now? *")}</label>
                   <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 4 }}>
                     {[["Owner Occupied", "🏠 The owner"], ["Tenant Occupied", "👥 A tenant"], ["Vacant", "📭 Nobody — vacant"]].map(([v, label]) => (
-                      <button key={v} type="button" onClick={() => f("occupancyStatus")(v)} style={chip(form.occupancyStatus === v)}>{label}</button>
+                      <button key={v} type="button" onClick={() => f("occupancyStatus")(v)} style={chip(form.occupancyStatus === v)}>{tr(label)}</button>
                     ))}
                   </div>
                 </>
@@ -8891,10 +8895,10 @@ function NewTransactionForm({ onSave, onCancel, prefill = null, cmaId = null, on
 
           {step === 2 && (
             <div>
-              <div style={{ fontSize: 19, fontWeight: 800, color: "#0c4a6e", marginBottom: 4 }}>Who is your client?</div>
-              <div style={{ fontSize: 13, color: "#6B7280", marginBottom: 16 }}>Optional — you can add or change this later under the deal's People. Adding an email now lets the app send them updates automatically.</div>
-              <label style={lblW}>📇 Pick from your Contacts</label>
-              <input value={contactSearch} onChange={e => setContactSearch(e.target.value)} placeholder="Start typing a name, email or phone…" style={{ ...inputBig, marginBottom: contactHits.length ? 4 : 12 }} />
+              <div style={{ fontSize: 19, fontWeight: 800, color: "#0c4a6e", marginBottom: 4 }}>{tr("Who is your client?")}</div>
+              <div style={{ fontSize: 13, color: "#6B7280", marginBottom: 16 }}>{tr("Optional — you can add or change this later under the deal's People. Adding an email now lets the app send them updates automatically.")}</div>
+              <label style={lblW}>{tr("📇 Pick from your Contacts")}</label>
+              <input value={contactSearch} onChange={e => setContactSearch(e.target.value)} placeholder={tr("Start typing a name, email or phone…")} style={{ ...inputBig, marginBottom: contactHits.length ? 4 : 12 }} />
               {contactHits.length > 0 && (
                 <div style={{ border: "1px solid #d1d5db", borderRadius: 10, marginBottom: 12, overflow: "hidden" }}>
                   {contactHits.map(c => {
@@ -8910,16 +8914,16 @@ function NewTransactionForm({ onSave, onCancel, prefill = null, cmaId = null, on
                   })}
                 </div>
               )}
-              <label style={lblW}>{/buyer|tenant/i.test(form.type) ? "Buyer's name" : "Seller's name"}</label>
-              <input value={form.clientName} onChange={e => f("clientName")(e.target.value)} placeholder="First and last name" style={{ ...inputBig, marginBottom: 12 }} />
+              <label style={lblW}>{/buyer|tenant/i.test(form.type) ? tr("Buyer's name") : tr("Seller's name")}</label>
+              <input value={form.clientName} onChange={e => f("clientName")(e.target.value)} placeholder={tr("First and last name")} style={{ ...inputBig, marginBottom: 12 }} />
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }} data-keep-grid="">
                 <div>
-                  <label style={lblW}>Phone</label>
+                  <label style={lblW}>{tr("Phone")}</label>
                   <input value={form.clientPhone} onChange={e => f("clientPhone")(e.target.value)} placeholder="(407) 555-0100" style={inputBig} />
                 </div>
                 <div>
-                  <label style={lblW}>Email</label>
-                  <input value={form.clientEmail} onChange={e => f("clientEmail")(e.target.value)} placeholder="name@email.com" style={inputBig} />
+                  <label style={lblW}>{tr("Email")}</label>
+                  <input value={form.clientEmail} onChange={e => f("clientEmail")(e.target.value)} placeholder={tr("name@email.com")} style={inputBig} />
                 </div>
               </div>
             </div>
@@ -8927,18 +8931,18 @@ function NewTransactionForm({ onSave, onCancel, prefill = null, cmaId = null, on
 
           {step === 3 && (
             <div>
-              <div style={{ fontSize: 19, fontWeight: 800, color: "#0F2044", marginBottom: 14 }}>{/lease/i.test(form.type) ? "Rent & source" : "Price & source"}</div>
-              <label style={lblW}>{/lease/i.test(form.type) ? "Monthly rent ($)" : (isListingSide ? "List price ($)" : "Their budget — top end ($)")}</label>
+              <div style={{ fontSize: 19, fontWeight: 800, color: "#0F2044", marginBottom: 14 }}>{/lease/i.test(form.type) ? tr("Rent & source") : tr("Price & source")}</div>
+              <label style={lblW}>{/lease/i.test(form.type) ? tr("Monthly rent ($)") : (isListingSide ? tr("List price ($)") : tr("Their budget — top end ($)"))}</label>
               <input value={form.listPrice} onChange={e => f("listPrice")(e.target.value.replace(/[^0-9.]/g, ""))} placeholder={isListingSide ? "e.g. 450000" : "e.g. 400000"} style={{ ...inputBig, marginBottom: 4 }} />
-              <div style={{ fontSize: 11.5, color: "#6B7280", marginBottom: 14 }}>A rough number is fine — you can change it anytime.</div>
+              <div style={{ fontSize: 11.5, color: "#6B7280", marginBottom: 14 }}>{tr("A rough number is fine — you can change it anytime.")}</div>
               {isListingSide && !/lease/i.test(form.type) && (
                 <div style={{ marginBottom: 14 }}>
-                  <label style={lblW}>Listing agreement expires (optional)</label>
+                  <label style={lblW}>{tr("Listing agreement expires (optional)")}</label>
                   <input type="date" value={form.representationExpiresOn} onChange={e => f("representationExpiresOn")(e.target.value)} style={inputBig} />
-                  <div style={{ fontSize: 11.5, color: "#6B7280", marginTop: 3 }}>The app will remind you before it runs out.</div>
+                  <div style={{ fontSize: 11.5, color: "#6B7280", marginTop: 3 }}>{tr("The app will remind you before it runs out.")}</div>
                 </div>
               )}
-              <label style={lblW}>Where did this client come from? *</label>
+              <label style={lblW}>{tr("Where did this client come from? *")}</label>
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 14 }}>
                 {SOURCES.map(src => (
                   <button key={src} type="button" onClick={() => f("referralSource")(src)} style={chip(form.referralSource === src)}>{src}</button>
@@ -8946,9 +8950,9 @@ function NewTransactionForm({ onSave, onCancel, prefill = null, cmaId = null, on
               </div>
               {teamAgents.length > 1 && (
                 <div style={{ marginBottom: 4 }}>
-                  <label style={lblW}>Whose deal is this?</label>
+                  <label style={lblW}>{tr("Whose deal is this?")}</label>
                   <select value={form.assignedAgent} onChange={e => f("assignedAgent")(e.target.value)} style={inputBig}>
-                    <option value="">— pick an agent —</option>
+                    <option value="">{tr("— pick an agent —")}</option>
                     {teamAgents.map(a => <option key={a.id} value={a.id}>{a.first_name} {a.last_name}</option>)}
                   </select>
                 </div>
@@ -8959,32 +8963,32 @@ function NewTransactionForm({ onSave, onCancel, prefill = null, cmaId = null, on
           {/* Footer: Back / Next / Create */}
           <div style={{ display: "flex", gap: 10, marginTop: 22 }}>
             {step > 1 && (
-              <button type="button" onClick={() => setStep(v => v - 1)} style={{ flex: 1, padding: "13px 0", borderRadius: 10, border: "1px solid #d1d5db", background: "#fff", color: "#374151", fontWeight: 700, fontSize: 15, cursor: "pointer", fontFamily: "inherit" }}>← Previous step</button>
+              <button type="button" onClick={() => setStep(v => v - 1)} style={{ flex: 1, padding: "13px 0", borderRadius: 10, border: "1px solid #d1d5db", background: "#fff", color: "#374151", fontWeight: 700, fontSize: 15, cursor: "pointer", fontFamily: "inherit" }}>{tr("← Previous step")}</button>
             )}
             {step < 3 && (
               <button type="button" disabled={step === 1 && !step1Ok} onClick={() => setStep(v => v + 1)}
                 style={{ flex: 2, padding: "13px 0", borderRadius: 10, border: "none", background: (step === 1 && !step1Ok) ? "#9CA3AF" : "#0c4a6e", color: "#fff", fontWeight: 800, fontSize: 15, cursor: (step === 1 && !step1Ok) ? "not-allowed" : "pointer", fontFamily: "inherit" }}>
-                Next →
+                {tr("Next →")}
               </button>
             )}
             {step === 3 && (
               <button type="button" disabled={!step3Ok} onClick={handleSave}
                 style={{ flex: 2, padding: "13px 0", borderRadius: 10, border: "none", background: !step3Ok ? "#9CA3AF" : "#0c4a6e", color: "#fff", fontWeight: 800, fontSize: 15, cursor: !step3Ok ? "not-allowed" : "pointer", fontFamily: "inherit" }}>
-                ✓ Create Deal
+                {tr("✓ Create Deal")}
               </button>
             )}
           </div>
           {step === 1 && !step1Ok && (
             <div style={{ fontSize: 12, color: "#5F6B7A", marginTop: 8, textAlign: "center" }}>
-              {!form.address.trim() || !form.city.trim() ? "Enter the address and city to continue." : "Answer year built, HOA, and who lives there — they decide which disclosures this listing needs."}
+              {!form.address.trim() || !form.city.trim() ? tr("Enter the address and city to continue.") : tr("Answer year built, HOA, and who lives there — they decide which disclosures this listing needs.")}
             </div>
           )}
           {step === 3 && !step3Ok && (
-            <div style={{ fontSize: 12, color: "#5F6B7A", marginTop: 8, textAlign: "center" }}>Pick where this client came from{teamAgents.length > 1 ? " and whose deal it is" : ""} to finish.</div>
+            <div style={{ fontSize: 12, color: "#5F6B7A", marginTop: 8, textAlign: "center" }}>{tr("Pick where this client came from")}{teamAgents.length > 1 ? tr(" and whose deal it is") : ""} {tr("to finish.")}</div>
           )}
           {step === 3 && (
             <div style={{ fontSize: 12, color: "#6B7280", marginTop: 12, background: "#F0FDF4", border: "1px solid #BBF7D0", borderRadius: 8, padding: 10 }}>
-              ✅ When you tap Create, the app builds the deal's timeline, checklist, and reminders for you. Commission details, MLS number, and everything else can be added later from the deal.
+              {tr("✅ When you tap Create, the app builds the deal's timeline, checklist, and reminders for you. Commission details, MLS number, and everything else can be added later from the deal.")}
             </div>
           )}
         </div>
@@ -9030,13 +9034,13 @@ function ContactAutocomplete({ token, onSelect }) {
   return (
     <div style={{ position: "relative", marginBottom: 14 }}>
       <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 4 }}>
-        🔍 Search your contacts (optional)
+        {tr("🔍 Search your contacts (optional)")}
       </label>
       <input
         value={q}
         onChange={e => setQ(e.target.value)}
         onFocus={() => results.length > 0 && setOpen(true)}
-        placeholder="Type a name, email, or phone to auto-fill from your CRM..."
+        placeholder={tr("Type a name, email, or phone to auto-fill from your CRM...")}
         style={{ width: "100%", padding: "8px 10px", border: "1px solid #d1d5db", borderRadius: 6, fontSize: 13, fontFamily: "inherit", boxSizing: "border-box" }}
       />
       {open && results.length > 0 && (
@@ -9062,7 +9066,7 @@ function ContactAutocomplete({ token, onSelect }) {
           </div>
         </>
       )}
-      {loading && <div style={{ fontSize: 11, color: "#6b7280", marginTop: 4 }}>Searching...</div>}
+      {loading && <div style={{ fontSize: 11, color: "#6b7280", marginTop: 4 }}>{tr("Searching...")}</div>}
     </div>
   );
 }
@@ -9097,7 +9101,7 @@ function ToolsMenu({ coordinatorMode, onOpenPopBys, onOpenScripts, onOpenCMA, on
   return (
     <div style={{ position: "relative" }} data-tour="tools">
       <button onClick={() => setOpen(!open)} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "#fff", borderRadius: 8, padding: "8px 14px", cursor: "pointer", fontSize: 13, fontWeight: 700, fontFamily: "inherit" }}>
-        🧰 Tools {open ? "▴" : "▾"}
+        {tr("🧰 Tools")} {open ? "▴" : "▾"}
       </button>
       {open && (
         <>
@@ -9109,7 +9113,7 @@ function ToolsMenu({ coordinatorMode, onOpenPopBys, onOpenScripts, onOpenCMA, on
                 onMouseEnter={e => e.currentTarget.style.background = "#f3f4f6"}
                 onMouseLeave={e => e.currentTarget.style.background = "none"}>
                 <span style={{ fontSize: 16 }}>{icon}</span>
-                <span>{label}</span>
+                <span>{tr(label)}</span>
               </button>
             ))}
           </div>
@@ -9136,24 +9140,24 @@ function AppHeader(props) {
   const btn = (active) => ({ background: active ? "rgba(255,255,255,0.3)" : "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "#fff", borderRadius: 8, padding: "8px 14px", cursor: "pointer", fontSize: 13, fontWeight: 700, fontFamily: "inherit" });
   return (
     <div style={{ background: COLORS.navy, padding: "12px 24px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10 }}>
-      <div onClick={onHome} title="Back to Win The Day" style={{ display: "flex", alignItems: "center", gap: 12, flexShrink: 0, cursor: "pointer" }}>
+      <div onClick={onHome} title={tr("Back to Win The Day")} style={{ display: "flex", alignItems: "center", gap: 12, flexShrink: 0, cursor: "pointer" }}>
         {brand.logoUrl ? (
-          <img src={brand.logoUrl} alt={brand.name || "Logo"} style={{ height: 40, maxWidth: 140, objectFit: "contain", background: "#fff", borderRadius: 6, padding: 4 }} onError={e => { e.target.style.display = "none"; }} />
+          <img src={brand.logoUrl} alt={brand.name || tr("Logo")} style={{ height: 40, maxWidth: 140, objectFit: "contain", background: "#fff", borderRadius: 6, padding: 4 }} onError={e => { e.target.style.display = "none"; }} />
         ) : (
           <div style={{ width: 36, height: 36, borderRadius: 8, background: COLORS.gold, display: "flex", alignItems: "center", justifyContent: "center" }}>
             <span style={{ color: "#fff", fontSize: 18, fontWeight: 900 }}>T</span>
           </div>
         )}
         <div>
-          <div style={{ color: "#fff", fontSize: 17, fontWeight: 800 }}>{brand.name || "TransactPro"}</div>
-          <div style={{ color: "rgba(255,255,255,0.6)", fontSize: 11 }}>{brand.name ? "Powered by TransactPro" : "Real Estate Transaction Management"}</div>
+          <div style={{ color: "#fff", fontSize: 17, fontWeight: 800 }}>{brand.name || tr("TransactPro")}</div>
+          <div style={{ color: "rgba(255,255,255,0.6)", fontSize: 11 }}>{brand.name ? tr("Powered by TransactPro") : tr("Real Estate Transaction Management")}</div>
         </div>
       </div>
       <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", justifyContent: "flex-end" }}>
-        <button data-tour="home" onClick={onHome} style={btn(view === "home")} title="Your daily list — what needs attention today">🏆 Win The Day</button>
-        <button data-tour="deals" onClick={onDeals} style={btn(view === "dashboard")} title="All your listings and buyers">📋 My Deals</button>
-        {!coordinatorMode && <button data-tour="new" onClick={onNew} style={{ ...btn(false), background: "#fff", color: "#0c4a6e", border: "none", fontWeight: 800 }}>➕ New Deal</button>}
-        <button data-tour="contacts" onClick={onOpenContacts} style={btn(false)}>📇 Contacts</button>
+        <button data-tour="home" onClick={onHome} style={btn(view === "home")} title={tr("Your daily list — what needs attention today")}>{tr("🏆 Win The Day")}</button>
+        <button data-tour="deals" onClick={onDeals} style={btn(view === "dashboard")} title={tr("All your listings and buyers")}>{tr("📋 My Deals")}</button>
+        {!coordinatorMode && <button data-tour="new" onClick={onNew} style={{ ...btn(false), background: "#fff", color: "#0c4a6e", border: "none", fontWeight: 800 }}>{tr("➕ New Deal")}</button>}
+        <button data-tour="contacts" onClick={onOpenContacts} style={btn(false)}>{tr("📇 Contacts")}</button>
         <ToolsMenu
           coordinatorMode={coordinatorMode}
           onOpenPopBys={props.onOpenPopBys} onOpenScripts={props.onOpenScripts} onOpenCMA={props.onOpenCMA}
@@ -9181,6 +9185,7 @@ function AppHeader(props) {
           onSupport={props.onSupport}
           onLogout={onLogout}
         />
+        <LangToggle staff style={{ border: "1px solid rgba(255,255,255,0.35)" }} />
         <TenantSwitcher currentUser={currentUser} />
       </div>
     </div>
@@ -9209,6 +9214,8 @@ function SettingsMenu({ currentUser, onOpenContactBook, contactCount, onReports,
   // so three doors read as three unfinished features. Growth Plan is the one door
   // now — it's the only one that also back-calculates the daily activity.
   items.push({ icon: "👤", label: "My Profile", onClick: onAgentProfile });
+  // Screen language for THIS person — also the EN | ES switch in the header.
+  items.push({ icon: "🌎", label: getLang() === "es" ? "Switch to English" : "Cambiar a Español", onClick: () => saveStaffLang(getLang() === "es" ? "en" : "es") });
   if (onOpenForms) items.push({ icon: "📄", label: "Forms Library", onClick: onOpenForms });
   items.push({ icon: "🔒", label: "Change Password", onClick: onChangePassword });
   if (isAdmin) {
@@ -9231,7 +9238,7 @@ function SettingsMenu({ currentUser, onOpenContactBook, contactCount, onReports,
   return (
     <div style={{ position: "relative" }} data-tour="menu">
       <button onClick={() => setOpen(!open)} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)", color: "rgba(255,255,255,0.88)", borderRadius: 8, padding: "7px 14px", cursor: "pointer", fontSize: 12, fontWeight: 600, fontFamily: "inherit" }}>
-        ⚙️ Menu {open ? "▴" : "▾"}
+        {tr("⚙️ Menu")} {open ? "▴" : "▾"}
       </button>
       {open && (
         <>
@@ -9245,7 +9252,7 @@ function SettingsMenu({ currentUser, onOpenContactBook, contactCount, onReports,
                 onMouseEnter={e => e.currentTarget.style.background = "#f3f4f6"}
                 onMouseLeave={e => e.currentTarget.style.background = "none"}>
                 <span style={{ fontSize: 16 }}>{it.icon}</span>
-                <span>{it.label}</span>
+                <span>{tr(it.label)}</span>
               </button>
             ))}
           </div>
@@ -9278,18 +9285,18 @@ function DashboardSalesStrip({ onOpen }) {
     { label: "Avg Commission", value: m(stats.avgCommissionGross), sub: "12mo" },
   ];
   return (
-    <div onClick={onOpen} title="Open full Sales Stats report" style={{ background: "#EEF2F7", borderBottom: `1px solid ${COLORS.border}`, padding: "12px 24px", display: "flex", gap: 22, alignItems: "center", flexWrap: "nowrap", overflowX: "auto", cursor: onOpen ? "pointer" : "default" }}>
-      <span style={{ fontSize: 11, fontWeight: 800, color: COLORS.muted, textTransform: "uppercase", letterSpacing: "0.05em", flexShrink: 0 }}>📊 My Stats</span>
+    <div onClick={onOpen} title={tr("Open full Sales Stats report")} style={{ background: "#EEF2F7", borderBottom: `1px solid ${COLORS.border}`, padding: "12px 24px", display: "flex", gap: 22, alignItems: "center", flexWrap: "nowrap", overflowX: "auto", cursor: onOpen ? "pointer" : "default" }}>
+      <span style={{ fontSize: 11, fontWeight: 800, color: COLORS.muted, textTransform: "uppercase", letterSpacing: "0.05em", flexShrink: 0 }}>{tr("📊 My Stats")}</span>
       {items.map(it => (
         <div key={it.label} style={{ flexShrink: 0, textAlign: "center" }}>
           <div style={{ fontSize: 18, fontWeight: 800, color: COLORS.navy, lineHeight: 1 }}>{it.value}</div>
-          <div style={{ fontSize: 10, color: COLORS.muted, marginTop: 2, whiteSpace: "nowrap" }}>{it.label}{it.sub ? ` · ${it.sub}` : ""}</div>
+          <div style={{ fontSize: 10, color: COLORS.muted, marginTop: 2, whiteSpace: "nowrap" }}>{tr(it.label)}{it.sub ? " · " + tr(it.sub) : ""}</div>
         </div>
       ))}
       {rate && (
         <div style={{ flexShrink: 0, textAlign: "center", marginLeft: "auto", background: "#fff", border: `1px solid ${COLORS.border}`, borderRadius: 8, padding: "6px 14px" }}>
           <div style={{ fontSize: 18, fontWeight: 800, color: "#1A5276", lineHeight: 1 }}>{(rate.monthlyAvg ?? rate.rate).toFixed(2)}%</div>
-          <div style={{ fontSize: 10, color: COLORS.muted, marginTop: 2, whiteSpace: "nowrap" }}>📈 30-yr rate{rate.monthLabel ? ` · ${rate.monthLabel} avg` : ""}</div>
+          <div style={{ fontSize: 10, color: COLORS.muted, marginTop: 2, whiteSpace: "nowrap" }}>{tr("📈 30-yr rate")}{rate.monthLabel ? " · " + tr("{month} avg", { month: getLang() === "es" && !isNaN(new Date("1 " + rate.monthLabel)) ? new Date("1 " + rate.monthLabel).toLocaleDateString("es-US", { month: "long", year: "numeric" }) : rate.monthLabel }) : ""}</div>
         </div>
       )}
     </div>
@@ -9297,6 +9304,9 @@ function DashboardSalesStrip({ onOpen }) {
 }
 
 function Dashboard({ transactions, coordinatorMode = false, unreadCounts = {}, onSelect, onNew, onOpenContactBook, onOpenContacts, onOpenPopBys, onOpenScripts, onOpenCMA, onOpenGrowthPlan, onOpenExpenses, onOpenForms, contactCount, onLogout, onOpenTeam, onOpenCompliance, onOpenComplianceDash, onOpenTaskTmpls, onOpenContractIntake, onChangePassword, onReports, onGoalPlanner, onHome, onVendors, onCalendar, onCompanySettings, onSuperuser, onAgentProfile, onIntakeLinks, onViewTransactions, onHelp, onFeedback, onSupport, currentUser, isFreeGuest = false, onOpenReferrals }) {
+  useLang();
+  // Spanish screens: the "Next:" step names come from each deal's template.
+  useEffect(() => { requestSpanish((transactions || []).map(x => x && x.nextMilestone && x.nextMilestone.name)); }, [transactions]);
   const [filter, setFilter] = useState("All");
   const [search, setSearch] = useState("");
   const [showTcTeam, setShowTcTeam] = useState(false);
@@ -9535,17 +9545,17 @@ function Dashboard({ transactions, coordinatorMode = false, unreadCounts = {}, o
 
   const handleDeleteView = async (id, e) => {
     if (e) e.stopPropagation();
-    if (!(await askConfirm("Delete this saved view?", { okLabel: "Delete", danger: true }))) return;
+    if (!(await askConfirm(tr("Delete this saved view?"), { okLabel: tr("Delete"), danger: true }))) return;
     try {
       const tok = localStorage.getItem("tp_token") || "";
       const res = await fetch(API + "/saved-views/" + id, {
         method: "DELETE",
         headers: { "Authorization": "Bearer " + tok }
       });
-      if (!res.ok) { const d = await res.json().catch(() => ({})); alert("Failed to delete: " + (d.error || res.status)); return; }
+      if (!res.ok) { const d = await res.json().catch(() => ({})); alert(tr("Failed to delete: ") + (d.error || res.status)); return; }
       setSavedViews(prev => prev.filter(v => v.id !== id));
     } catch (err) {
-      alert("Network error: " + err.message);
+      alert(tr("Network error: ") + err.message);
     }
   };
 
@@ -9558,10 +9568,10 @@ function Dashboard({ transactions, coordinatorMode = false, unreadCounts = {}, o
         headers: { "Content-Type": "application/json", "Authorization": "Bearer " + tok },
         body: JSON.stringify({ isDefault: !currentDefault })
       });
-      if (!res.ok) { const d = await res.json().catch(() => ({})); alert("Failed: " + (d.error || res.status)); return; }
+      if (!res.ok) { const d = await res.json().catch(() => ({})); alert(tr("Failed: ") + (d.error || res.status)); return; }
       setSavedViews(prev => prev.map(v => ({ ...v, isDefault: v.id === id ? !currentDefault : false })));
     } catch (err) {
-      alert("Network error: " + err.message);
+      alert(tr("Network error: ") + err.message);
     }
   };
 
@@ -9575,7 +9585,7 @@ function Dashboard({ transactions, coordinatorMode = false, unreadCounts = {}, o
   }, [savedViews, defaultViewApplied]);
 
   const handleSaveView = async () => {
-    if (!saveViewName.trim()) { alert("Please enter a name"); return; }
+    if (!saveViewName.trim()) { alert(tr("Please enter a name")); return; }
     setSaveViewLoading(true);
     try {
       const tok = localStorage.getItem("tp_token") || "";
@@ -9594,7 +9604,7 @@ function Dashboard({ transactions, coordinatorMode = false, unreadCounts = {}, o
         body: JSON.stringify({ name: saveViewName.trim(), filters, sortKey, sortDir, viewMode, isDefault: saveViewAsDefault })
       });
       const data = await res.json();
-      if (!res.ok) { alert("Failed to save view: " + (data.error || res.status)); return; }
+      if (!res.ok) { alert(tr("Failed to save view: ") + (data.error || res.status)); return; }
       // Append the new view (or replace if it became default)
       setSavedViews(prev => {
         const others = saveViewAsDefault ? prev.map(v => ({ ...v, isDefault: false })) : prev;
@@ -9604,7 +9614,7 @@ function Dashboard({ transactions, coordinatorMode = false, unreadCounts = {}, o
       setSaveViewName("");
       setSaveViewAsDefault(false);
     } catch (e) {
-      alert("Network error: " + e.message);
+      alert(tr("Network error: ") + e.message);
     } finally {
       setSaveViewLoading(false);
     }
@@ -9617,14 +9627,14 @@ function Dashboard({ transactions, coordinatorMode = false, unreadCounts = {}, o
     try {
       let res;
       if (kind === "cancel") {
-        if (!(await askConfirm("Mark this lead as Not Pursuing? It will be set to Cancelled and removed from your active list.", { okLabel: "Not pursuing", danger: true }))) return;
+        if (!(await askConfirm(tr("Mark this lead as Not Pursuing? It will be set to Cancelled and removed from your active list."), { okLabel: tr("Not pursuing"), danger: true }))) return;
         res = await fetch(`${API}/transactions/${txId}/status`, { method: "PATCH", headers: { "Content-Type": "application/json", "Authorization": "Bearer " + tok }, body: JSON.stringify({ status: "Cancelled" }) });
       } else {
         res = await fetch(`${API}/transactions/${txId}/confirm-lead`, { method: "POST", headers: { "Content-Type": "application/json", "Authorization": "Bearer " + tok } });
       }
       if (!res.ok) throw new Error("Failed");
       setPagedTxs(prev => prev.map(r => r.id === txId ? { ...r, lead_converted: true, needs_first_contact: false, ...(kind === "cancel" ? { status: "Cancelled" } : {}) } : r));
-    } catch { alert("Could not update — please try again."); }
+    } catch { alert(tr("Could not update — please try again.")); }
   };
 
   const hydratedPagedTxs = [...pagedTxs].sort((a, b) => {
@@ -9868,7 +9878,7 @@ function Dashboard({ transactions, coordinatorMode = false, unreadCounts = {}, o
         <div data-stats-bar="" style={{ display: "flex", marginTop: 16, borderTop: "1px solid rgba(255,255,255,0.1)", overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
           {(() => { const s = dashStats || stats; const clearAdv = () => { setAgentFilter(""); setPropTypeFilter(""); setTxTypeFilter(""); setDatePreset(""); }; return [["Active Listings", s.active, COLORS.gold, () => { setViewMode("cards"); setFilter("Active"); setClosingFrom(""); setClosingTo(""); clearAdv(); }], ["Under Contract", s.underContract, "#93C5FD", () => { setViewMode("cards"); setFilter("Under Contract"); setClosingFrom(""); setClosingTo(""); clearAdv(); }], ["Closing This Month", s.closingSoon, s.closingSoon > 0 ? "#FDE68A" : "rgba(255,255,255,0.4)", () => { const t = new Date(); const last = new Date(t.getFullYear(), t.getMonth() + 1, 0); setViewMode("cards"); setFilter("All"); clearAdv(); setClosingFrom(t.toISOString().split("T")[0]); setClosingTo(last.toISOString().split("T")[0]); }], ["Closed", s.closed, "#6EE7B7", () => { setViewMode("cards"); setFilter("Closed"); setClosingFrom(""); setClosingTo(""); clearAdv(); }], ...(coordinatorMode ? [] : [["Volume", `$${((s.totalVolume || 0) / 1000000).toFixed(2)}M`, COLORS.gold, null], ["Pending Commission", `$${Math.round(s.pendingCommissionGross || 0).toLocaleString()}`, "#FDBA74", null], ["Under Contract Commission", `$${Math.round(s.underContractCommissionGross || 0).toLocaleString()}`, "#93C5FD", null], ["Closed Commission", s.totalCommission > 0 ? `$${Math.round(s.totalCommission).toLocaleString()}` : "$0", "#6EE7B7", null]])]; })().map(([label, value, color, onClick]) => (
             <div key={label} onClick={onClick} style={{ padding: "12px 20px", flex: 1, cursor: onClick ? "pointer" : "default" }}>
-              <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>{label}{onClick && " ↗"}</div>
+              <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>{tr(label)}{onClick && " ↗"}</div>
               <div style={{ color, fontSize: 22, fontWeight: 800, marginTop: 2 }}>{value}</div>
             </div>
           ))}
@@ -9877,65 +9887,65 @@ function Dashboard({ transactions, coordinatorMode = false, unreadCounts = {}, o
       {showSaveViewModal && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 1000, display: "flex", alignItems: "flex-start", justifyContent: "center", padding: 20, overflowY: "auto" }} onClick={() => !saveViewLoading && setShowSaveViewModal(false)}>
           <div style={{ background: "#fff", borderRadius: 12, padding: 24, maxWidth: 440, width: "100%", boxShadow: "0 20px 60px rgba(0,0,0,0.3)", margin: "auto" }} onClick={e => e.stopPropagation()}>
-            <div style={{ fontSize: 18, fontWeight: 700, color: COLORS.navy, marginBottom: 6 }}>💾 Save Current View</div>
-            <div style={{ fontSize: 13, color: COLORS.muted, marginBottom: 16 }}>Save your current filters, sort, and view mode so you can come back to it with one click.</div>
-            <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: COLORS.text, marginBottom: 6 }}>View name</label>
-            <input autoFocus value={saveViewName} onChange={e => setSaveViewName(e.target.value)} maxLength={100} placeholder="e.g. My Active Listings" style={{ width: "100%", padding: "10px 14px", borderRadius: 8, border: `1px solid ${COLORS.border}`, fontSize: 14, fontFamily: "inherit", marginBottom: 16, boxSizing: "border-box" }} onKeyDown={e => { if (e.key === "Enter") handleSaveView(); }} />
+            <div style={{ fontSize: 18, fontWeight: 700, color: COLORS.navy, marginBottom: 6 }}>{tr("💾 Save Current View")}</div>
+            <div style={{ fontSize: 13, color: COLORS.muted, marginBottom: 16 }}>{tr("Save your current filters, sort, and view mode so you can come back to it with one click.")}</div>
+            <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: COLORS.text, marginBottom: 6 }}>{tr("View name")}</label>
+            <input autoFocus value={saveViewName} onChange={e => setSaveViewName(e.target.value)} maxLength={100} placeholder={tr("e.g. My Active Listings")} style={{ width: "100%", padding: "10px 14px", borderRadius: 8, border: `1px solid ${COLORS.border}`, fontSize: 14, fontFamily: "inherit", marginBottom: 16, boxSizing: "border-box" }} onKeyDown={e => { if (e.key === "Enter") handleSaveView(); }} />
             <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: COLORS.text, marginBottom: 20, cursor: "pointer" }}>
               <input type="checkbox" checked={saveViewAsDefault} onChange={e => setSaveViewAsDefault(e.target.checked)} />
-              <span>Set as my default view (auto-loads when I open the app)</span>
+              <span>{tr("Set as my default view (auto-loads when I open the app)")}</span>
             </label>
             <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
-              <button onClick={() => setShowSaveViewModal(false)} disabled={saveViewLoading} style={{ padding: "8px 16px", borderRadius: 8, border: `1px solid ${COLORS.border}`, background: "#fff", color: COLORS.text, fontSize: 13, fontWeight: 600, cursor: saveViewLoading ? "not-allowed" : "pointer", fontFamily: "inherit", opacity: saveViewLoading ? 0.5 : 1 }}>Cancel</button>
-              <button onClick={handleSaveView} disabled={saveViewLoading || !saveViewName.trim()} style={{ padding: "8px 16px", borderRadius: 8, border: "none", background: "#0c4a6e", color: "#fff", fontSize: 13, fontWeight: 600, cursor: (saveViewLoading || !saveViewName.trim()) ? "not-allowed" : "pointer", fontFamily: "inherit", opacity: (saveViewLoading || !saveViewName.trim()) ? 0.5 : 1 }}>{saveViewLoading ? "Saving…" : "Save View"}</button>
+              <button onClick={() => setShowSaveViewModal(false)} disabled={saveViewLoading} style={{ padding: "8px 16px", borderRadius: 8, border: `1px solid ${COLORS.border}`, background: "#fff", color: COLORS.text, fontSize: 13, fontWeight: 600, cursor: saveViewLoading ? "not-allowed" : "pointer", fontFamily: "inherit", opacity: saveViewLoading ? 0.5 : 1 }}>{tr("Cancel")}</button>
+              <button onClick={handleSaveView} disabled={saveViewLoading || !saveViewName.trim()} style={{ padding: "8px 16px", borderRadius: 8, border: "none", background: "#0c4a6e", color: "#fff", fontSize: 13, fontWeight: 600, cursor: (saveViewLoading || !saveViewName.trim()) ? "not-allowed" : "pointer", fontFamily: "inherit", opacity: (saveViewLoading || !saveViewName.trim()) ? 0.5 : 1 }}>{saveViewLoading ? tr("Saving…") : tr("Save View")}</button>
             </div>
           </div>
         </div>
       )}
       {!isFreeGuest && !coordinatorMode && <DashboardSalesStrip onOpen={onReports} />}
       <div data-toolbar="" style={{ background: "#fff", borderBottom: `1px solid ${COLORS.border}`, padding: "12px 24px", display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
-        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search address, city, MLS #..." style={{ flex: 1, maxWidth: 340, padding: "8px 14px", borderRadius: 8, border: `1px solid ${COLORS.border}`, fontSize: 14, fontFamily: "inherit" }} />
+        <input value={search} onChange={e => setSearch(e.target.value)} placeholder={tr("Search address, city, MLS #...")} style={{ flex: 1, maxWidth: 340, padding: "8px 14px", borderRadius: 8, border: `1px solid ${COLORS.border}`, fontSize: 14, fontFamily: "inherit" }} />
         <select value={filter} onChange={e => setFilter(e.target.value)}
           style={{ padding: "7px 14px", borderRadius: 8, border: `1px solid ${COLORS.border}`,
             background: "#fff", color: "#111", fontSize: 13, fontWeight: 600,
             cursor: "pointer", fontFamily: "inherit", minWidth: 160 }}>
-          <option value="All">📂 Read All (default)</option>
-          <option value="Leads">🌱 New Leads & Inquiries</option>
-          <option value="Active">🏷️ Active Listings Only</option>
-          <option value="Under Contract">📝 Under Contract Only</option>
-          <option value="Closed">✅ Closed Only</option>
-          <option value="On Hold">⏸️ On Hold</option>
-          <option value="Cancelled">❌ Cancelled</option>
+          <option value="All">{tr("📂 Read All (default)")}</option>
+          <option value="Leads">{tr("🌱 New Leads & Inquiries")}</option>
+          <option value="Active">{tr("🏷️ Active Listings Only")}</option>
+          <option value="Under Contract">{tr("📝 Under Contract Only")}</option>
+          <option value="Closed">{tr("✅ Closed Only")}</option>
+          <option value="On Hold">{tr("⏸️ On Hold")}</option>
+          <option value="Cancelled">{tr("❌ Cancelled")}</option>
         </select>
         {!coordinatorMode && (
           <select value={coordFilter} onChange={e => setCoordFilter(e.target.value)}
-            title="Who's handling these deals"
+            title={tr("Who's handling these deals")}
             style={{ padding: "7px 14px", borderRadius: 8, border: `1px solid ${COLORS.border}`,
               background: "#fff", color: "#111", fontSize: 13, fontWeight: 600,
               cursor: "pointer", fontFamily: "inherit", minWidth: 170 }}>
-            <option value="">👥 Anyone handling</option>
-            <option value="yes">🧭 With my coordinator</option>
-            <option value="no">🙋 Just mine</option>
+            <option value="">{tr("👥 Anyone handling")}</option>
+            <option value="yes">{tr("🧭 With my coordinator")}</option>
+            <option value="no">{tr("🙋 Just mine")}</option>
           </select>
         )}
         <div style={{ marginLeft: "auto", display: "flex", gap: 6, position: "relative" }}>
-          <button onClick={() => setShowViewsMenu(v => !v)} title="Layout & saved views" style={{ padding: "7px 12px", borderRadius: 8, border: `1px solid ${COLORS.border}`, background: "#fff", color: COLORS.text, fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 6 }}>🗂 Views {savedViews.length > 0 && <span style={{ background: COLORS.bg, color: COLORS.muted, borderRadius: 10, padding: "1px 7px", fontSize: 11, fontWeight: 700 }}>{savedViews.length}</span>} <span style={{ fontSize: 9 }}>▾</span></button>
+          <button onClick={() => setShowViewsMenu(v => !v)} title={tr("Layout & saved views")} style={{ padding: "7px 12px", borderRadius: 8, border: `1px solid ${COLORS.border}`, background: "#fff", color: COLORS.text, fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 6 }}>{tr("🗂 Views")} {savedViews.length > 0 && <span style={{ background: COLORS.bg, color: COLORS.muted, borderRadius: 10, padding: "1px 7px", fontSize: 11, fontWeight: 700 }}>{savedViews.length}</span>} <span style={{ fontSize: 9 }}>▾</span></button>
           {showViewsMenu && (
             <>
               <div onMouseDown={e => { if (e.target === e.currentTarget) e.currentTarget.dataset.dob = "1"; else delete e.currentTarget.dataset.dob; }} onClick={e => { if (e.target === e.currentTarget && e.currentTarget.dataset.dob === "1") setShowViewsMenu(false); delete e.currentTarget.dataset.dob; }} style={{ position: "fixed", inset: 0, zIndex: 100 }} />
               <div style={{ position: "absolute", top: "calc(100% + 6px)", right: 0, background: "#fff", border: `1px solid ${COLORS.border}`, borderRadius: 10, boxShadow: "0 8px 24px rgba(0,0,0,0.15)", minWidth: 280, maxWidth: 360, zIndex: 101, maxHeight: 400, overflowY: "auto" }}>
-                <div style={{ padding: "10px 14px", borderBottom: `1px solid ${COLORS.border}`, fontSize: 11, fontWeight: 700, color: COLORS.muted, textTransform: "uppercase", letterSpacing: "0.06em" }}>Layout</div>
+                <div style={{ padding: "10px 14px", borderBottom: `1px solid ${COLORS.border}`, fontSize: 11, fontWeight: 700, color: COLORS.muted, textTransform: "uppercase", letterSpacing: "0.06em" }}>{tr("Layout")}</div>
                 {[["cards", "▦ Cards"], ["list", "☰ List"], ["kanban", "⋮⋮ Pipeline"]].map(([mode, label]) => (
                   <div key={mode} onClick={() => { setViewMode(mode); setShowViewsMenu(false); }} style={{ padding: "10px 14px", borderBottom: `1px solid ${COLORS.border}`, cursor: "pointer", display: "flex", alignItems: "center", gap: 8, fontSize: 13, fontWeight: 600, color: viewMode === mode ? COLORS.navy : COLORS.text, background: viewMode === mode ? COLORS.bg : "#fff" }}
                     onMouseEnter={e => e.currentTarget.style.background = COLORS.bg}
                     onMouseLeave={e => e.currentTarget.style.background = viewMode === mode ? COLORS.bg : "#fff"}>
-                    <span style={{ flex: 1 }}>{label}</span>
+                    <span style={{ flex: 1 }}>{tr(label)}</span>
                     {viewMode === mode && <span style={{ color: COLORS.navy, fontSize: 14 }}>✓</span>}
                   </div>
                 ))}
-                <div style={{ padding: "10px 14px", borderBottom: `1px solid ${COLORS.border}`, fontSize: 11, fontWeight: 700, color: COLORS.muted, textTransform: "uppercase", letterSpacing: "0.06em" }}>My Saved Views</div>
+                <div style={{ padding: "10px 14px", borderBottom: `1px solid ${COLORS.border}`, fontSize: 11, fontWeight: 700, color: COLORS.muted, textTransform: "uppercase", letterSpacing: "0.06em" }}>{tr("My Saved Views")}</div>
                 {savedViews.length === 0 ? (
-                  <div style={{ padding: "20px 14px", textAlign: "center", color: COLORS.muted, fontSize: 13 }}>No saved views yet.<br/><span style={{ fontSize: 11 }}>Click 💾 Save to create one.</span></div>
+                  <div style={{ padding: "20px 14px", textAlign: "center", color: COLORS.muted, fontSize: 13 }}>{tr("No saved views yet.")}<br/><span style={{ fontSize: 11 }}>{tr("Click 💾 Save to create one.")}</span></div>
                 ) : (
                   savedViews.map(v => (
                     <div key={v.id} onClick={() => applyView(v)} style={{ padding: "10px 14px", borderBottom: `1px solid ${COLORS.border}`, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}
@@ -9943,12 +9953,12 @@ function Dashboard({ transactions, coordinatorMode = false, unreadCounts = {}, o
                       onMouseLeave={e => e.currentTarget.style.background = "#fff"}>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontSize: 13, fontWeight: 600, color: COLORS.text, display: "flex", alignItems: "center", gap: 6 }}>
-                          {v.isDefault && <span title="Default view" style={{ color: COLORS.gold, fontSize: 12 }}>★</span>}
+                          {v.isDefault && <span title={tr("Default view")} style={{ color: COLORS.gold, fontSize: 12 }}>★</span>}
                           <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{v.name}</span>
                         </div>
                       </div>
-                      <button onClick={(e) => handleToggleDefault(v.id, v.isDefault, e)} title={v.isDefault ? "Unset as default" : "Set as default"} style={{ background: "none", border: "none", cursor: "pointer", color: v.isDefault ? COLORS.gold : COLORS.muted, fontSize: 14, padding: 4 }}>{v.isDefault ? "★" : "☆"}</button>
-                      <button onClick={(e) => handleDeleteView(v.id, e)} title="Delete view" style={{ background: "none", border: "none", cursor: "pointer", color: COLORS.muted, fontSize: 14, padding: 4 }} onMouseEnter={e => e.currentTarget.style.color = COLORS.danger} onMouseLeave={e => e.currentTarget.style.color = COLORS.muted}>×</button>
+                      <button onClick={(e) => handleToggleDefault(v.id, v.isDefault, e)} title={v.isDefault ? tr("Unset as default") : tr("Set as default")} style={{ background: "none", border: "none", cursor: "pointer", color: v.isDefault ? COLORS.gold : COLORS.muted, fontSize: 14, padding: 4 }}>{v.isDefault ? "★" : "☆"}</button>
+                      <button onClick={(e) => handleDeleteView(v.id, e)} title={tr("Delete view")} style={{ background: "none", border: "none", cursor: "pointer", color: COLORS.muted, fontSize: 14, padding: 4 }} onMouseEnter={e => e.currentTarget.style.color = COLORS.danger} onMouseLeave={e => e.currentTarget.style.color = COLORS.muted}>×</button>
                     </div>
                   ))
                 )}
@@ -9956,40 +9966,40 @@ function Dashboard({ transactions, coordinatorMode = false, unreadCounts = {}, o
                   onMouseEnter={e => e.currentTarget.style.background = COLORS.bg}
                   onMouseLeave={e => e.currentTarget.style.background = "#FAFAFA"}>
                   <span style={{ fontSize: 14 }}>+</span>
-                  <span>Save current as new view</span>
+                  <span>{tr("Save current as new view")}</span>
                 </div>
               </div>
             </>
           )}
         </div>
         <button data-filter-btn="" onClick={() => setShowFilters(true)} style={{ padding: "7px 12px", borderRadius: 8, border: `1px solid ${activeFilterCount > 0 ? COLORS.navy : COLORS.border}`, background: activeFilterCount > 0 ? COLORS.navy : "#fff", color: activeFilterCount > 0 ? "#fff" : COLORS.text, fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 6, position: "relative" }}>
-          <span>⚙ Filters</span>
+          <span>{tr("⚙ Filters")}</span>
           {activeFilterCount > 0 && <span style={{ background: "#fff", color: COLORS.navy, borderRadius: 10, padding: "1px 7px", fontSize: 11, fontWeight: 700 }}>{activeFilterCount}</span>}
         </button>
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          <span style={{ fontSize: 11, color: COLORS.muted, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.04em" }}>Sort:</span>
+          <span style={{ fontSize: 11, color: COLORS.muted, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.04em" }}>{tr("Sort:")}</span>
           <select value={sortKey} onChange={e => setSortKey(e.target.value)} style={{ padding: "6px 10px", borderRadius: 6, border: `1px solid ${COLORS.border}`, background: "#fff", fontSize: 12, fontWeight: 600, color: COLORS.navy, cursor: "pointer", fontFamily: "inherit" }}>
-            <option value="closingDate">Closing Date</option>
-            <option value="openDate">Open Date</option>
-            <option value="address">Address</option>
-            <option value="status">Status</option>
-            <option value="price">Price</option>
-            <option value="progress">Progress</option>
+            <option value="closingDate">{tr("Closing Date")}</option>
+            <option value="openDate">{tr("Open Date")}</option>
+            <option value="address">{tr("Address")}</option>
+            <option value="status">{tr("Status")}</option>
+            <option value="price">{tr("Price")}</option>
+            <option value="progress">{tr("Progress")}</option>
           </select>
-          <button onClick={() => setSortDir(sortDir === "asc" ? "desc" : "asc")} title={sortDir === "asc" ? "Ascending" : "Descending"} style={{ padding: "6px 10px", borderRadius: 6, border: `1px solid ${COLORS.border}`, background: "#fff", color: COLORS.navy, fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", minWidth: 36 }}>{sortDir === "asc" ? "↑" : "↓"}</button>
+          <button onClick={() => setSortDir(sortDir === "asc" ? "desc" : "asc")} title={sortDir === "asc" ? tr("Ascending") : tr("Descending")} style={{ padding: "6px 10px", borderRadius: 6, border: `1px solid ${COLORS.border}`, background: "#fff", color: COLORS.navy, fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", minWidth: 36 }}>{sortDir === "asc" ? "↑" : "↓"}</button>
         </div>
       </div>
       {activeFilterCount > 0 && (
         <div style={{ background: "#fff", borderBottom: `1px solid ${COLORS.border}`, padding: "8px 24px", display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-          <span style={{ fontSize: 11, color: COLORS.muted, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.04em" }}>Filters:</span>
+          <span style={{ fontSize: 11, color: COLORS.muted, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.04em" }}>{tr("Filters:")}</span>
           {agentFilter && (() => {
             const a = agentList.find(x => x.id === agentFilter);
             const label = a ? `${a.first_name} ${a.last_name}` : "Agent";
-            return <span style={{ background: COLORS.bg, border: `1px solid ${COLORS.border}`, borderRadius: 14, padding: "3px 10px", fontSize: 12, display: "inline-flex", alignItems: "center", gap: 6 }}>Agent: {label}<button onClick={() => setAgentFilter("")} style={{ background: "none", border: "none", color: COLORS.muted, cursor: "pointer", fontSize: 14, lineHeight: 1, padding: 0 }}>×</button></span>;
+            return <span style={{ background: COLORS.bg, border: `1px solid ${COLORS.border}`, borderRadius: 14, padding: "3px 10px", fontSize: 12, display: "inline-flex", alignItems: "center", gap: 6 }}>{tr("Agent:")} {tr(label)}<button onClick={() => setAgentFilter("")} style={{ background: "none", border: "none", color: COLORS.muted, cursor: "pointer", fontSize: 14, lineHeight: 1, padding: 0 }}>×</button></span>;
           })()}
           {(closingFrom || closingTo) && (
             <span style={{ background: COLORS.bg, border: `1px solid ${COLORS.border}`, borderRadius: 14, padding: "3px 10px", fontSize: 12, display: "inline-flex", alignItems: "center", gap: 6 }}>
-              {datePreset && datePreset !== "custom" ? (datePreset === "thisWeek" ? "This Week" : datePreset === "thisMonth" ? "This Month" : "Next 30 Days") : (closingFrom || "...") + " → " + (closingTo || "...")}
+              {datePreset && datePreset !== "custom" ? (datePreset === "thisWeek" ? tr("This Week") : datePreset === "thisMonth" ? tr("This Month") : tr("Next 30 Days")) : (closingFrom || "...") + " → " + (closingTo || "...")}
               <button onClick={() => { setDatePreset(""); setClosingFrom(""); setClosingTo(""); }} style={{ background: "none", border: "none", color: COLORS.muted, cursor: "pointer", fontSize: 14, lineHeight: 1, padding: 0 }}>×</button>
             </span>
           )}
@@ -9999,7 +10009,7 @@ function Dashboard({ transactions, coordinatorMode = false, unreadCounts = {}, o
           {txTypeFilter && (
             <span style={{ background: COLORS.bg, border: `1px solid ${COLORS.border}`, borderRadius: 14, padding: "3px 10px", fontSize: 12, display: "inline-flex", alignItems: "center", gap: 6 }}>{txTypeFilter}<button onClick={() => setTxTypeFilter("")} style={{ background: "none", border: "none", color: COLORS.muted, cursor: "pointer", fontSize: 14, lineHeight: 1, padding: 0 }}>×</button></span>
           )}
-          <button onClick={clearAllFilters} style={{ marginLeft: "auto", background: "none", border: "none", color: COLORS.danger, fontSize: 11, fontWeight: 600, cursor: "pointer", textTransform: "uppercase", letterSpacing: "0.04em" }}>Clear all</button>
+          <button onClick={clearAllFilters} style={{ marginLeft: "auto", background: "none", border: "none", color: COLORS.danger, fontSize: 11, fontWeight: 600, cursor: "pointer", textTransform: "uppercase", letterSpacing: "0.04em" }}>{tr("Clear all")}</button>
         </div>
       )}
       {!coordinatorMode && onOpenReferrals && <ReferralsOutStrip onOpen={onOpenReferrals} />}
@@ -10037,25 +10047,25 @@ function Dashboard({ transactions, coordinatorMode = false, unreadCounts = {}, o
               onMouseLeave={e => e.currentTarget.style.boxShadow = "none"}>
               {!tx.assignedAgentId && (
                 <div style={{ background: "#f59e0b", color: "white", padding: "8px 14px", fontSize: 12, fontWeight: 700, letterSpacing: 0.5 }}>
-                  ⚠️ UNASSIGNED LEAD — Tap to Assign an Agent
+                  {tr("⚠️ UNASSIGNED LEAD — Tap to Assign an Agent")}
                 </div>
               )}
               {tx.assignedAgentId && tx.needsReview && (
                 <div style={{ background: "#2563eb", color: "white", padding: "8px 14px", fontSize: 12, fontWeight: 700, letterSpacing: 0.5 }}>
-                  📋 NEW FROM CONTRACT — Review & Verify Details
+                  {tr("📋 NEW FROM CONTRACT — Review & Verify Details")}
                 </div>
               )}
               {tx.assignedAgentId && !tx.needsReview && tx.needsFirstContact && (
                 <div style={{ background: "#c8102e", color: "white", padding: "8px 14px", fontSize: 12, fontWeight: 700, letterSpacing: 0.5 }}>
-                  🔔 {isBuyerSideType(tx.type) ? "NEW BUYER INQUIRY" : "NEW SELLER LEAD"} — Contact Within 24hrs
+                  🔔 {isBuyerSideType(tx.type) ? tr("NEW BUYER INQUIRY") : tr("NEW SELLER LEAD")} {tr("— Contact Within 24hrs")}
                 </div>
               )}
               {tx.assignedAgentId && !tx.needsReview && tx.leadConverted === false && (
                 <div style={{ background: "#FEF9E7", color: "#8A5A00", padding: "8px 14px", fontSize: 12, fontWeight: 700, letterSpacing: 0.5, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, flexWrap: "wrap" }}>
-                  <span>🌱 {isBuyerSideType(tx.type) ? "INQUIRY" : "LEAD"} — not yet confirmed</span>
+                  <span>🌱 {isBuyerSideType(tx.type) ? "INQUIRY" : tr("LEAD")} {tr("— not yet confirmed")}</span>
                   <span style={{ display: "flex", gap: 6 }}>
-                    <button onClick={e => { e.stopPropagation(); onLeadAction(tx.id, "confirm"); }} style={{ background: "#0c4a6e", color: "#fff", border: "none", borderRadius: 6, padding: "4px 10px", fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>✓ Confirm</button>
-                    <button onClick={e => { e.stopPropagation(); onLeadAction(tx.id, "cancel"); }} style={{ background: "#fff", color: "#8A5A00", border: "1px solid #C9A227", borderRadius: 6, padding: "4px 10px", fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>✕ Not Pursuing</button>
+                    <button onClick={e => { e.stopPropagation(); onLeadAction(tx.id, "confirm"); }} style={{ background: "#0c4a6e", color: "#fff", border: "none", borderRadius: 6, padding: "4px 10px", fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>{tr("✓ Confirm")}</button>
+                    <button onClick={e => { e.stopPropagation(); onLeadAction(tx.id, "cancel"); }} style={{ background: "#fff", color: "#8A5A00", border: "1px solid #C9A227", borderRadius: 6, padding: "4px 10px", fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>{tr("✕ Not Pursuing")}</button>
                   </span>
                 </div>
               )}
@@ -10075,7 +10085,7 @@ function Dashboard({ transactions, coordinatorMode = false, unreadCounts = {}, o
                       background: tx.type === "Buyer Representation" ? "rgba(59,130,246,0.15)" : "rgba(192,57,43,0.15)",
                       padding: "2px 8px", borderRadius: 20
                     }}>
-                      {tx.type === "Buyer Representation" ? "Buyer" : tx.type === "Dual Agency" ? "Dual" : "Listing"}
+                      {tx.type === "Buyer Representation" ? tr("Buyer") : tx.type === "Dual Agency" ? tr("Dual") : tr("Listing")}
                     </span>
                     <Badge label={tx.status} color={cfg.color} bg={cfg.bg} />
                     {propertyTypeBadge(tx) && <Badge label={propertyTypeBadge(tx).label} color={propertyTypeBadge(tx).color} bg={propertyTypeBadge(tx).bg} />}
@@ -10084,14 +10094,14 @@ function Dashboard({ transactions, coordinatorMode = false, unreadCounts = {}, o
                       cut off ("CO-SHARED · with B…", Carlos 10/1). */}
                   {shareBadge(tx) && (
                     <div style={{ marginBottom: 6 }}>
-                      <span style={{ display: "inline-block", background: "#FFFFFF", color: shareBadge(tx).bg, fontSize: 11, fontWeight: 800, padding: "3px 10px", borderRadius: 20, whiteSpace: "normal", lineHeight: 1.35 }}>{shareBadge(tx).label}</span>
+                      <span style={{ display: "inline-block", background: "#FFFFFF", color: shareBadge(tx).bg, fontSize: 11, fontWeight: 800, padding: "3px 10px", borderRadius: 20, whiteSpace: "normal", lineHeight: 1.35 }}>{tr(shareBadge(tx).label)}</span>
                     </div>
                   )}
                   <div style={{ color: "#FFFFFF", fontWeight: 700, fontSize: 15, marginBottom: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{tx.address}</div>
                   {clientNameForTx(tx) && (
-                    <div style={{ color: "rgba(255,255,255,0.92)", fontSize: 12.5, fontWeight: 600, marginBottom: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>👤 {clientLabelForTx(tx)}: {clientNameForTx(tx)}</div>
+                    <div style={{ color: "rgba(255,255,255,0.92)", fontSize: 12.5, fontWeight: 600, marginBottom: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>👤 {tr(clientLabelForTx(tx))}: {clientNameForTx(tx)}</div>
                   )}
-                  <div style={{ color: "rgba(255,255,255,0.6)", fontSize: 12 }}>{tx.city}, FL · {tx.county} County</div>
+                  <div style={{ color: "rgba(255,255,255,0.6)", fontSize: 12 }}>{tx.city}{tr(", FL ·")} {tx.county ? tr("{county} County", { county: tx.county }) : ""}</div>
                   {/* Coordinator: show which brokerage/agent this deal belongs to — they juggle many across firms. */}
                   {coordinatorMode && tx.owningBrokerageName && (
                     <div style={{ display: "inline-block", marginTop: 6, color: "#FCD34D", fontSize: 11, fontWeight: 700, background: "rgba(252,211,77,0.15)", border: "1px solid rgba(252,211,77,0.4)", borderRadius: 6, padding: "2px 8px" }}>
@@ -10101,7 +10111,7 @@ function Dashboard({ transactions, coordinatorMode = false, unreadCounts = {}, o
                   {/* Agent view: this deal is run by a transaction coordinator. */}
                   {!coordinatorMode && tx.coordinatorName && (
                     <div style={{ display: "inline-block", marginTop: 6, color: "#A7F3D0", fontSize: 11, fontWeight: 700, background: "rgba(16,110,86,0.25)", border: "1px solid rgba(16,185,129,0.5)", borderRadius: 6, padding: "2px 8px" }}>
-                      🧭 Coordinated by {tx.coordinatorName}
+                      {tr("🧭 Coordinated by")} {tx.coordinatorName}
                     </div>
                   )}
                 </div>
@@ -10114,20 +10124,20 @@ function Dashboard({ transactions, coordinatorMode = false, unreadCounts = {}, o
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
                   <div>
                     <div style={{ fontSize: 10, fontWeight: 700, color: "#666666", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 2 }}>
-                      {tx.contractPrice ? "Contract Price" : "List Price"}
+                      {tx.contractPrice ? tr("Contract Price") : tr("List Price")}
                     </div>
                     <div style={{ fontSize: 18, fontWeight: 800, color: "#111" }}>
-                      {tx.contractPrice ? `$${Number(tx.contractPrice).toLocaleString()}` : tx.listPrice ? `$${Number(tx.listPrice).toLocaleString()}` : "TBD"}
+                      {tx.contractPrice ? `$${Number(tx.contractPrice).toLocaleString()}` : tx.listPrice ? `$${Number(tx.listPrice).toLocaleString()}` : tr("TBD")}
                     </div>
                   </div>
                   <div style={{ textAlign: "right" }}>
-                    <div style={{ fontSize: 10, fontWeight: 700, color: "#666666", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 2 }}>Closing</div>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: "#666666", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 2 }}>{tr("Closing")}</div>
                     <div style={{ fontSize: 13, fontWeight: 700, color: dtc !== null && dtc <= 7 && dtc >= 0 ? "#C0392B" : "#111" }}>
-                      {tx.closingDate ? formatDate(tx.closingDate) : "TBD"}
+                      {tx.closingDate ? formatDate(tx.closingDate) : tr("TBD")}
                     </div>
                     {dtc !== null && (
                       <div style={{ fontSize: 11, fontWeight: 600, color: dtc < 0 ? "#C0392B" : dtc <= 14 ? "#B7770D" : "#888", marginTop: 1 }}>
-                        {dtc < 0 ? `${Math.abs(dtc)}d past` : dtc === 0 ? "Today!" : `${dtc}d away`}
+                        {dtc < 0 ? tr("{n}d past", { n: Math.abs(dtc) }) : dtc === 0 ? tr("Today!") : tr("{n}d away", { n: dtc })}
                       </div>
                     )}
                   </div>
@@ -10136,7 +10146,7 @@ function Dashboard({ transactions, coordinatorMode = false, unreadCounts = {}, o
                 {/* Commission at a glance (agent view only) */}
                 {!coordinatorMode && cardNetComm > 0 && (
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "#EAF7EF", border: "1px solid #BBE6CC", borderRadius: 8, padding: "7px 12px", marginBottom: 12 }}>
-                    <span style={{ fontSize: 11, fontWeight: 700, color: "#1E8449", textTransform: "uppercase", letterSpacing: "0.05em" }}>💵 Est. Commission</span>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: "#1E8449", textTransform: "uppercase", letterSpacing: "0.05em" }}>{tr("💵 Est. Commission")}</span>
                     <span style={{ fontSize: 16, fontWeight: 800, color: "#1E8449" }}>${Math.round(cardNetComm).toLocaleString()}</span>
                   </div>
                 )}
@@ -10156,7 +10166,7 @@ function Dashboard({ transactions, coordinatorMode = false, unreadCounts = {}, o
                 {/* Progress */}
                 <div style={{ marginBottom: 10 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, marginBottom: 5 }}>
-                    <span style={{ fontWeight: 600, color: "#555" }}>Progress: {completed}/{total} done</span>
+                    <span style={{ fontWeight: 600, color: "#555" }}>{tr("Progress:")} {completed}/{total} {tr("done")}</span>
                     <span style={{ fontWeight: 800, color: progress === 100 ? "#1E8449" : progress > 50 ? "#B7770D" : "#555" }}>{progress}%</span>
                   </div>
                   <div style={{ height: 7, background: "#E5E7EB", borderRadius: 4, overflow: "hidden", marginBottom: 8 }}>
@@ -10181,7 +10191,7 @@ function Dashboard({ transactions, coordinatorMode = false, unreadCounts = {}, o
                       return (
                         <div key={milestone} style={{ display: "flex", flexDirection: "column", alignItems: "center", flex: 1 }}>
                           <div style={{ width: 9, height: 9, borderRadius: "50%", background: dotColor, marginBottom: 3 }} />
-                          <span style={{ fontSize: 9, color: isDone ? "#1E8449" : "#999", fontWeight: isDone ? 700 : 400 }}>{milestone}</span>
+                          <span style={{ fontSize: 9, color: isDone ? "#1E8449" : "#999", fontWeight: isDone ? 700 : 400 }}>{tr(milestone)}</span>
                         </div>
                       );
                     })}
@@ -10190,19 +10200,19 @@ function Dashboard({ transactions, coordinatorMode = false, unreadCounts = {}, o
 
                 {/* Next action (matches the Pipeline view) */}
                 {tx.nextMilestone && tx.nextMilestone.name && (
-                  <div style={{ fontSize: 11, color: "#0F2744", marginBottom: 10, background: "#F8FAFC", borderRadius: 6, padding: "5px 8px" }} title="Next action on this deal">
-                    ⏭️ <b>Next:</b> {tx.nextMilestone.name}{tx.nextMilestone.dueDate ? ` · ${tx.nextMilestone.dueDate}` : ""}
+                  <div style={{ fontSize: 11, color: "#0F2744", marginBottom: 10, background: "#F8FAFC", borderRadius: 6, padding: "5px 8px" }} title={tr("Next action on this deal")}>
+                    ⏭️ <b>{tr("Next:")}</b> {tr(tx.nextMilestone.name)}{tx.nextMilestone.dueDate ? ` · ${tx.nextMilestone.dueDate}` : ""}
                   </div>
                 )}
 
                 {/* Footer */}
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: 8, borderTop: "1px solid #F3F4F6" }}>
                   <div style={{ fontSize: 12, color: "#666666" }}>
-                    {tx.parties.length} {tx.parties.length === 1 ? "party" : "parties"}
+                    {tx.parties.length} {tx.parties.length === 1 ? tr("party") : tr("parties")}
                   </div>
                   {overdue > 0 && (
                     <span style={{ fontSize: 11, fontWeight: 700, color: "#fff", background: "#C0392B", padding: "2px 10px", borderRadius: 20 }}>
-                      ⚠️ {overdue} overdue
+                      ⚠️ {overdue} {tr("overdue")}
                     </span>
                   )}
                 </div>
@@ -10214,11 +10224,11 @@ function Dashboard({ transactions, coordinatorMode = false, unreadCounts = {}, o
           (search || filter !== "All" || activeFilterCount > 0) ? (
             <div style={{ gridColumn: "1/-1", textAlign: "center", padding: 60, color: COLORS.muted }}>
               <div style={{ fontSize: 40, marginBottom: 12 }}>🔍</div>
-              <div style={{ fontSize: 18, fontWeight: 700, color: COLORS.navy, marginBottom: 6 }}>Nothing matches your search or filters</div>
-              <div style={{ marginBottom: 14 }}>Your deals are still here — they're just hidden by the current filter.</div>
+              <div style={{ fontSize: 18, fontWeight: 700, color: COLORS.navy, marginBottom: 6 }}>{tr("Nothing matches your search or filters")}</div>
+              <div style={{ marginBottom: 14 }}>{tr("Your deals are still here — they're just hidden by the current filter.")}</div>
               <button onClick={() => { setSearch(""); setFilter("All"); clearAllFilters(); }}
                 style={{ padding: "11px 22px", background: "#0c4a6e", color: "#fff", border: "none", borderRadius: 10, fontSize: 14, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>
-                Show all my deals
+                {tr("Show all my deals")}
               </button>
             </div>
           ) : transactions.length > 0 ? (
@@ -10227,9 +10237,9 @@ function Dashboard({ transactions, coordinatorMode = false, unreadCounts = {}, o
             // "No deals yet", which is simply untrue and alarming.
             <div style={{ gridColumn: "1/-1", textAlign: "center", padding: 60, color: COLORS.muted }}>
               <div style={{ fontSize: 40, marginBottom: 12 }}>🗂️</div>
-              <div style={{ fontSize: 18, fontWeight: 700, color: COLORS.navy, marginBottom: 6 }}>Nothing live right now</div>
+              <div style={{ fontSize: 18, fontWeight: 700, color: COLORS.navy, marginBottom: 6 }}>{tr("Nothing live right now")}</div>
               <div style={{ marginBottom: 14 }}>
-                Your other deals are still here — <b>Read All</b> only shows what's active.
+                {tr("Your other deals are still here —")} <b>{tr("Read All")}</b> {tr("only shows what's active.")}
               </div>
               <div style={{ display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap" }}>
                 {[["On Hold", "⏸️ On Hold"], ["Closed", "✅ Closed"], ["Cancelled", "❌ Cancelled"]]
@@ -10238,7 +10248,7 @@ function Dashboard({ transactions, coordinatorMode = false, unreadCounts = {}, o
                     return n === 0 ? null : (
                       <button key={st} onClick={() => setFilter(st)}
                         style={{ padding: "10px 18px", background: "#fff", color: COLORS.navy, border: `1px solid ${COLORS.border}`, borderRadius: 10, fontSize: 13, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>
-                        {label} ({n})
+                        {tr(label)} ({n})
                       </button>
                     );
                   })}
@@ -10247,40 +10257,40 @@ function Dashboard({ transactions, coordinatorMode = false, unreadCounts = {}, o
           ) : (
             <div style={{ gridColumn: "1/-1", textAlign: "center", padding: 60, color: COLORS.muted }}>
               <div style={{ fontSize: 40, marginBottom: 12 }}>🏠</div>
-              <div style={{ fontSize: 18, fontWeight: 700, color: COLORS.navy, marginBottom: 6 }}>No deals yet — let's start your first one</div>
-              <div style={{ marginBottom: 14 }}>Tap <b>➕ New Deal</b> up top: the address, your client, the price — about a minute.</div>
-              {!coordinatorMode && <button onClick={onNew} style={{ padding: "11px 22px", background: "#0c4a6e", color: "#fff", border: "none", borderRadius: 10, fontSize: 14, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>➕ Start my first deal</button>}
+              <div style={{ fontSize: 18, fontWeight: 700, color: COLORS.navy, marginBottom: 6 }}>{tr("No deals yet — let's start your first one")}</div>
+              <div style={{ marginBottom: 14 }}>{tr("Tap")} <b>{tr("➕ New Deal")}</b> {tr("up top: the address, your client, the price — about a minute.")}</div>
+              {!coordinatorMode && <button onClick={onNew} style={{ padding: "11px 22px", background: "#0c4a6e", color: "#fff", border: "none", borderRadius: 10, fontSize: 14, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>{tr("➕ Start my first deal")}</button>}
             </div>
           )
         )}
       </div>
       )}
       <div ref={sentinelRef} style={{ height: 1 }} />
-      {pagedLoading && <div style={{ textAlign: "center", padding: 16, color: COLORS.muted, fontSize: 13 }}>Loading…</div>}
-      {!pagedHasMore && hydratedPagedTxs.length > 0 && pagedTotal > 0 && <div style={{ textAlign: "center", padding: 16, color: COLORS.muted, fontSize: 12 }}>Showing all {viewMode === "pipeline" ? transactions.filter(t => t.status !== "Cancelled").length : pagedTotal} transactions</div>}
+      {pagedLoading && <div style={{ textAlign: "center", padding: 16, color: COLORS.muted, fontSize: 13 }}>{tr("Loading…")}</div>}
+      {!pagedHasMore && hydratedPagedTxs.length > 0 && pagedTotal > 0 && <div style={{ textAlign: "center", padding: 16, color: COLORS.muted, fontSize: 12 }}>{tr("Showing all")} {viewMode === "pipeline" ? transactions.filter(t => t.status !== "Cancelled").length : pagedTotal} {tr("transactions")}</div>}
 
       {showFilters && (
-        <Modal title="Filter Transactions" onClose={() => setShowFilters(false)}>
+        <Modal title={tr("Filter Transactions")} onClose={() => setShowFilters(false)}>
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
             <div>
-              <label style={{ fontSize: 11, fontWeight: 700, color: COLORS.muted, textTransform: "uppercase", letterSpacing: "0.05em", display: "block", marginBottom: 6 }}>Assigned Agent</label>
+              <label style={{ fontSize: 11, fontWeight: 700, color: COLORS.muted, textTransform: "uppercase", letterSpacing: "0.05em", display: "block", marginBottom: 6 }}>{tr("Assigned Agent")}</label>
               <select value={agentFilter} onChange={e => setAgentFilter(e.target.value)} style={{ width: "100%", padding: "9px 12px", borderRadius: 8, border: `1px solid ${COLORS.border}`, fontSize: 14, fontFamily: "inherit", background: "#fff" }}>
-                <option value="">All agents</option>
+                <option value="">{tr("All agents")}</option>
                 {agentList.map(a => <option key={a.id} value={a.id}>{a.first_name} {a.last_name}</option>)}
               </select>
             </div>
             <div>
-              <label style={{ fontSize: 11, fontWeight: 700, color: COLORS.muted, textTransform: "uppercase", letterSpacing: "0.05em", display: "block", marginBottom: 6 }}>Closing Date</label>
+              <label style={{ fontSize: 11, fontWeight: 700, color: COLORS.muted, textTransform: "uppercase", letterSpacing: "0.05em", display: "block", marginBottom: 6 }}>{tr("Closing Date")}</label>
               <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 8 }}>
                 {[{k:"thisWeek",l:"This Week"},{k:"thisMonth",l:"This Month"},{k:"next30",l:"Next 30 Days"},{k:"custom",l:"Custom"}].map(p => (
                   <button key={p.k} onClick={() => setDatePreset(p.k)} style={{ padding: "6px 12px", borderRadius: 16, border: `1px solid ${datePreset === p.k ? COLORS.navy : COLORS.border}`, background: datePreset === p.k ? COLORS.navy : "#fff", color: datePreset === p.k ? "#fff" : COLORS.text, fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>{p.l}</button>
                 ))}
-                {(datePreset || closingFrom || closingTo) && <button onClick={() => { setDatePreset(""); setClosingFrom(""); setClosingTo(""); }} style={{ padding: "6px 12px", borderRadius: 16, border: `1px solid ${COLORS.border}`, background: "#fff", color: COLORS.danger, fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>× Clear</button>}
+                {(datePreset || closingFrom || closingTo) && <button onClick={() => { setDatePreset(""); setClosingFrom(""); setClosingTo(""); }} style={{ padding: "6px 12px", borderRadius: 16, border: `1px solid ${COLORS.border}`, background: "#fff", color: COLORS.danger, fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>{tr("× Clear")}</button>}
               </div>
               {datePreset === "custom" && (
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-                  <input type="date" value={closingFrom} onChange={e => setClosingFrom(e.target.value)} placeholder="From" style={{ padding: "8px 10px", borderRadius: 8, border: `1px solid ${COLORS.border}`, fontSize: 14, fontFamily: "inherit" }} />
-                  <input type="date" value={closingTo} onChange={e => setClosingTo(e.target.value)} placeholder="To" style={{ padding: "8px 10px", borderRadius: 8, border: `1px solid ${COLORS.border}`, fontSize: 14, fontFamily: "inherit" }} />
+                  <input type="date" value={closingFrom} onChange={e => setClosingFrom(e.target.value)} placeholder={tr("From")} style={{ padding: "8px 10px", borderRadius: 8, border: `1px solid ${COLORS.border}`, fontSize: 14, fontFamily: "inherit" }} />
+                  <input type="date" value={closingTo} onChange={e => setClosingTo(e.target.value)} placeholder={tr("To")} style={{ padding: "8px 10px", borderRadius: 8, border: `1px solid ${COLORS.border}`, fontSize: 14, fontFamily: "inherit" }} />
                 </div>
               )}
               {datePreset && datePreset !== "custom" && (closingFrom || closingTo) && (
@@ -10288,22 +10298,22 @@ function Dashboard({ transactions, coordinatorMode = false, unreadCounts = {}, o
               )}
             </div>
             <div>
-              <label style={{ fontSize: 11, fontWeight: 700, color: COLORS.muted, textTransform: "uppercase", letterSpacing: "0.05em", display: "block", marginBottom: 6 }}>Property Type</label>
+              <label style={{ fontSize: 11, fontWeight: 700, color: COLORS.muted, textTransform: "uppercase", letterSpacing: "0.05em", display: "block", marginBottom: 6 }}>{tr("Property Type")}</label>
               <select value={propTypeFilter} onChange={e => setPropTypeFilter(e.target.value)} style={{ width: "100%", padding: "9px 12px", borderRadius: 8, border: `1px solid ${COLORS.border}`, fontSize: 14, fontFamily: "inherit", background: "#fff" }}>
-                <option value="">All property types</option>
-                {PROPERTY_TYPES.map(pt => <option key={pt} value={pt}>{pt}</option>)}
+                <option value="">{tr("All property types")}</option>
+                {PROPERTY_TYPES.map(pt => <option key={pt} value={pt}>{tr(pt)}</option>)}
               </select>
             </div>
             <div>
-              <label style={{ fontSize: 11, fontWeight: 700, color: COLORS.muted, textTransform: "uppercase", letterSpacing: "0.05em", display: "block", marginBottom: 6 }}>Transaction Type</label>
+              <label style={{ fontSize: 11, fontWeight: 700, color: COLORS.muted, textTransform: "uppercase", letterSpacing: "0.05em", display: "block", marginBottom: 6 }}>{tr("Transaction Type")}</label>
               <select value={txTypeFilter} onChange={e => setTxTypeFilter(e.target.value)} style={{ width: "100%", padding: "9px 12px", borderRadius: 8, border: `1px solid ${COLORS.border}`, fontSize: 14, fontFamily: "inherit", background: "#fff" }}>
-                <option value="">All transaction types</option>
-                {TRANSACTION_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                <option value="">{tr("All transaction types")}</option>
+                {TRANSACTION_TYPES.map(t => <option key={t} value={t}>{tr(t)}</option>)}
               </select>
             </div>
             <div style={{ display: "flex", gap: 10, justifyContent: "space-between", marginTop: 8, paddingTop: 16, borderTop: `1px solid ${COLORS.border}` }}>
-              <Btn variant="ghost" onClick={() => { clearAllFilters(); }}>Clear All</Btn>
-              <Btn onClick={() => setShowFilters(false)}>Apply</Btn>
+              <Btn variant="ghost" onClick={() => { clearAllFilters(); }}>{tr("Clear All")}</Btn>
+              <Btn onClick={() => setShowFilters(false)}>{tr("Apply")}</Btn>
             </div>
           </div>
         </Modal>
@@ -10313,8 +10323,8 @@ function Dashboard({ transactions, coordinatorMode = false, unreadCounts = {}, o
           <div style={{ background: "#fff", borderRadius: 14, width: 680, maxWidth: "100%", maxHeight: "90vh", overflow: "auto", boxShadow: "0 20px 60px rgba(0,0,0,0.25)", margin: "auto" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "20px 24px 16px", borderBottom: `1px solid ${COLORS.border}`, position: "sticky", top: 0, background: "#fff", zIndex: 1 }}>
               <div>
-                <h2 style={{ margin: 0, fontSize: 18, color: COLORS.danger, fontWeight: 700 }}>⚠ Overdue Tasks — Action Required</h2>
-                <div style={{ fontSize: 13, color: COLORS.muted, marginTop: 4 }}>These tasks need your attention today</div>
+                <h2 style={{ margin: 0, fontSize: 18, color: COLORS.danger, fontWeight: 700 }}>{tr("⚠ Overdue Tasks — Action Required")}</h2>
+                <div style={{ fontSize: 13, color: COLORS.muted, marginTop: 4 }}>{tr("These tasks need your attention today")}</div>
               </div>
               <button onClick={() => setShowOverdue(false)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 22, color: COLORS.muted }}>×</button>
             </div>
@@ -10327,9 +10337,9 @@ function Dashboard({ transactions, coordinatorMode = false, unreadCounts = {}, o
                     <div onClick={() => { onSelect(tx.id); setShowOverdue(false); }} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: COLORS.navy, borderRadius: "10px 10px 0 0", padding: "10px 16px", cursor: "pointer" }}>
                       <div>
                         <div style={{ color: "#fff", fontWeight: 700, fontSize: 14 }}>{tx.address}</div>
-                        <div style={{ color: COLORS.gold, fontSize: 12 }}>{tx.city}, FL · {tx.type}</div>
+                        <div style={{ color: COLORS.gold, fontSize: 12 }}>{tx.city}{tr(", FL ·")} {tx.type}</div>
                       </div>
-                      <div style={{ color: "#fff", fontSize: 12, opacity: 0.7 }}>Open transaction →</div>
+                      <div style={{ color: "#fff", fontSize: 12, opacity: 0.7 }}>{tr("Open transaction →")}</div>
                     </div>
                     <div style={{ border: `1px solid ${COLORS.border}`, borderTop: "none", borderRadius: "0 0 10px 10px", overflow: "hidden" }}>
                       {overdueTasks.map((t, i) => {
@@ -10339,11 +10349,11 @@ function Dashboard({ transactions, coordinatorMode = false, unreadCounts = {}, o
                             <div style={{ width: 8, height: 8, borderRadius: "50%", background: COLORS.danger, flexShrink: 0 }} />
                             <div style={{ flex: 1 }}>
                               <div style={{ fontSize: 13, fontWeight: 600, color: COLORS.text }}>{t.name}</div>
-                              <div style={{ fontSize: 11, color: COLORS.muted, marginTop: 2 }}>{t.category} · Assigned to: {t.assignTo || "—"} · Due: {formatDate(t.dueDate)}</div>
+                              <div style={{ fontSize: 11, color: COLORS.muted, marginTop: 2 }}>{t.category} {tr("· Assigned to:")} {t.assignTo || "—"} {tr("· Due:")} {formatDate(t.dueDate)}</div>
                             </div>
                             <div style={{ display: "flex", gap: 6, alignItems: "center", flexShrink: 0 }}>
-                              <button onClick={() => { setRemindingTask(t); setRemindingTx(tx); }} style={{ fontSize: 11, padding: "3px 10px", borderRadius: 6, border: `1px solid ${COLORS.danger}`, background: COLORS.dangerBg, color: COLORS.danger, cursor: "pointer", fontFamily: "inherit", fontWeight: 600 }}>⚠ Remind</button>
-                              <div style={{ background: COLORS.dangerBg, color: COLORS.danger, fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 20 }}>{daysLate}d overdue</div>
+                              <button onClick={() => { setRemindingTask(t); setRemindingTx(tx); }} style={{ fontSize: 11, padding: "3px 10px", borderRadius: 6, border: `1px solid ${COLORS.danger}`, background: COLORS.dangerBg, color: COLORS.danger, cursor: "pointer", fontFamily: "inherit", fontWeight: 600 }}>{tr("⚠ Remind")}</button>
+                              <div style={{ background: COLORS.dangerBg, color: COLORS.danger, fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 20 }}>{daysLate}{tr("d overdue")}</div>
                             </div>
                           </div>
                         );
@@ -10355,7 +10365,7 @@ function Dashboard({ transactions, coordinatorMode = false, unreadCounts = {}, o
               {transactions.every(tx => !tx.tasks.some(t => { const d = daysUntil(t.dueDate); return d !== null && d < 0 && t.status !== "Completed" && t.status !== "Waived"; })) && (
                 <div style={{ textAlign: "center", padding: 40, color: COLORS.success }}>
                   <div style={{ fontSize: 32, marginBottom: 8 }}>✓</div>
-                  <div style={{ fontWeight: 700 }}>No overdue tasks — great job!</div>
+                  <div style={{ fontWeight: 700 }}>{tr("No overdue tasks — great job!")}</div>
                 </div>
               )}
             </div>
@@ -10416,48 +10426,48 @@ function ContactBook({ contacts, onClose, onSelect, onAdd, onEdit, onDelete }) {
         {/* Header */}
         <div style={{ padding: "20px 24px 16px", borderBottom: `1px solid ${COLORS.border}`, display: "flex", justifyContent: "space-between", alignItems: "center", flexShrink: 0 }}>
           <div>
-            <h2 style={{ margin: 0, fontSize: 18, color: COLORS.navy, fontWeight: 700 }}>Contact Book</h2>
-            <div style={{ fontSize: 13, color: COLORS.muted, marginTop: 2 }}>{contacts.length} saved contacts</div>
+            <h2 style={{ margin: 0, fontSize: 18, color: COLORS.navy, fontWeight: 700 }}>{tr("Contact Book")}</h2>
+            <div style={{ fontSize: 13, color: COLORS.muted, marginTop: 2 }}>{contacts.length} {tr("saved contacts")}</div>
           </div>
           <div style={{ display: "flex", gap: 8 }}>
-            <Btn onClick={() => { setEditingContact(null); setForm({ role: "", name: "", company: "", email: "", phone: "", notes: "" }); setShowAddContact(true); }} small variant="gold">+ New Contact</Btn>
+            <Btn onClick={() => { setEditingContact(null); setForm({ role: "", name: "", company: "", email: "", phone: "", notes: "" }); setShowAddContact(true); }} small variant="gold">{tr("+ New Contact")}</Btn>
             <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 22, color: COLORS.muted }}>×</button>
           </div>
         </div>
 
         {/* Search and filter */}
         <div style={{ padding: "12px 24px", borderBottom: `1px solid ${COLORS.border}`, display: "flex", gap: 10, flexShrink: 0 }}>
-          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search by name, company, email..." style={{ flex: 1, padding: "8px 12px", borderRadius: 8, border: `1px solid ${COLORS.border}`, fontSize: 14, fontFamily: "inherit" }} />
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder={tr("Search by name, company, email...")} style={{ flex: 1, padding: "8px 12px", borderRadius: 8, border: `1px solid ${COLORS.border}`, fontSize: 14, fontFamily: "inherit" }} />
           <select value={filterRole} onChange={e => setFilterRole(e.target.value)} style={{ padding: "8px 12px", borderRadius: 8, border: `1px solid ${COLORS.border}`, fontSize: 13, fontFamily: "inherit", color: COLORS.text }}>
-            <option value="All">All Roles</option>
-            {PARTY_ROLES.map(r => <option key={r} value={r}>{r}</option>)}
+            <option value="All">{tr("All Roles")}</option>
+            {PARTY_ROLES.map(r => <option key={r} value={r}>{tr(r)}</option>)}
           </select>
         </div>
 
         {/* Add/Edit form */}
         {showAddContact && (
           <div style={{ padding: "16px 24px", borderBottom: `1px solid ${COLORS.border}`, background: COLORS.bg, flexShrink: 0 }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: COLORS.navy, marginBottom: 12 }}>{editingContact ? "Edit Contact" : "New Contact"}</div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: COLORS.navy, marginBottom: 12 }}>{editingContact ? tr("Edit Contact") : tr("New Contact")}</div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, "data-form-grid": "" }}>
-              <Input label="Full Name" value={form.name} onChange={f("name")} required />
+              <Input label={tr("Full Name")} value={form.name} onChange={f("name")} required />
               {/* Same rule again — a NEW contact starts with an empty role, so this
                   box read "Other" while the value was "", Save returned silently,
                   and re-picking "Other" fired no change event. */}
-              <Input label="Role" value={!form.role ? "" : (PARTY_ROLES.includes(form.role) ? form.role : "Other")} onChange={f("role")} options={PARTY_ROLES} required />
+              <Input label={tr("Role")} value={!form.role ? "" : (PARTY_ROLES.includes(form.role) ? form.role : "Other")} onChange={f("role")} options={PARTY_ROLES} required />
               {(form.role === "Other" || (form.role && !PARTY_ROLES.includes(form.role))) && (
-                <Input label="Specify role" value={form.role === "Other" ? "" : form.role} onChange={v => f("role")(v.trim() ? v : "Other")} placeholder="e.g. Notary, Surveyor, Co-buyer" />
+                <Input label={tr("Specify role")} value={form.role === "Other" ? "" : form.role} onChange={v => f("role")(v.trim() ? v : "Other")} placeholder={tr("e.g. Notary, Surveyor, Co-buyer")} />
               )}
-              <Input label="Company / Brokerage" value={form.company} onChange={f("company")} />
-              <Input label="Email" value={form.email} onChange={f("email")} type="email" />
-              <Input label="Cell Phone" value={form.phone} onChange={f("phone")} type="tel" />
-              <Input label="Notes" value={form.notes} onChange={f("notes")} />
+              <Input label={tr("Company / Brokerage")} value={form.company} onChange={f("company")} />
+              <Input label={tr("Email")} value={form.email} onChange={f("email")} type="email" />
+              <Input label={tr("Cell Phone")} value={form.phone} onChange={f("phone")} type="tel" />
+              <Input label={tr("Notes")} value={form.notes} onChange={f("notes")} />
             </div>
             {contactError && (
               <div style={{ background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: 8, padding: "9px 12px", marginBottom: 10, fontSize: 13, color: "#7F1D1D", fontWeight: 600 }}>{contactError}</div>
             )}
             <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 4 }}>
-              <Btn variant="ghost" small onClick={() => { setShowAddContact(false); setEditingContact(null); }}>Cancel</Btn>
-              <Btn small onClick={handleSave} disabled={!form.name || !form.role}>{editingContact ? "Save Changes" : "Add Contact"}</Btn>
+              <Btn variant="ghost" small onClick={() => { setShowAddContact(false); setEditingContact(null); }}>{tr("Cancel")}</Btn>
+              <Btn small onClick={handleSave} disabled={!form.name || !form.role}>{editingContact ? tr("Save Changes") : tr("Add Contact")}</Btn>
             </div>
           </div>
         )}
@@ -10467,8 +10477,8 @@ function ContactBook({ contacts, onClose, onSelect, onAdd, onEdit, onDelete }) {
           {filtered.length === 0 && (
             <div style={{ textAlign: "center", padding: 40, color: COLORS.muted }}>
               <div style={{ fontSize: 32, marginBottom: 8 }}>👥</div>
-              <div style={{ fontWeight: 700, color: COLORS.navy, marginBottom: 4 }}>No contacts yet</div>
-              <div style={{ fontSize: 13 }}>Add contacts to reuse them across transactions</div>
+              <div style={{ fontWeight: 700, color: COLORS.navy, marginBottom: 4 }}>{tr("No contacts yet")}</div>
+              <div style={{ fontSize: 13 }}>{tr("Add contacts to reuse them across transactions")}</div>
             </div>
           )}
           {filtered.map(c => (
@@ -10481,8 +10491,8 @@ function ContactBook({ contacts, onClose, onSelect, onAdd, onEdit, onDelete }) {
                 {c.notes && <div style={{ fontSize: 12, color: COLORS.muted, fontStyle: "italic", marginTop: 2 }}>{c.notes}</div>}
               </div>
               <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
-                {onSelect && <Btn small variant="green" onClick={() => { onSelect(c); onClose(); }}>+ Add to Transaction</Btn>}
-                <Btn small variant="secondary" onClick={() => startEdit(c)}>Edit</Btn>
+                {onSelect && <Btn small variant="green" onClick={() => { onSelect(c); onClose(); }}>{tr("+ Add to Transaction")}</Btn>}
+                <Btn small variant="secondary" onClick={() => startEdit(c)}>{tr("Edit")}</Btn>
                 <button onClick={() => onDelete(c.id)} style={{ background: "none", border: "none", cursor: "pointer", color: COLORS.muted, fontSize: 18, padding: "0 4px" }}>×</button>
               </div>
             </div>
@@ -10510,23 +10520,23 @@ function TenantSwitcher({ currentUser }) {
         body: JSON.stringify({ tenantId })
       });
       const data = await res.json();
-      if (!data.success) { alert("Could not switch: " + (data.error || "Unknown error")); return; }
+      if (!data.success) { alert(tr("Could not switch: ") + (data.error || tr("Unknown error"))); return; }
       localStorage.setItem("tp_token", data.token);
       localStorage.setItem("tp_user", JSON.stringify(data.user));
       window.location.reload();
-    } catch (e) { alert("Switch failed: " + e.message); }
+    } catch (e) { alert(tr("Switch failed: ") + e.message); }
   };
 
   return (
     <div style={{ position: "relative" }}>
       <button onClick={() => setOpen(!open)} style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.2)", color: "#fff", borderRadius: 8, padding: "7px 12px", cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit", display: "flex", alignItems: "center", gap: 6 }}>
-        🏢 {active?.tenantName || "Brokerage"} <span style={{ fontSize: 10, opacity: 0.7 }}>▾</span>
+        🏢 {active?.tenantName || tr("Brokerage")} <span style={{ fontSize: 10, opacity: 0.7 }}>▾</span>
       </button>
       {open && (
         <>
           <div onMouseDown={e => { if (e.target === e.currentTarget) e.currentTarget.dataset.dob = "1"; else delete e.currentTarget.dataset.dob; }} onClick={e => { if (e.target === e.currentTarget && e.currentTarget.dataset.dob === "1") setOpen(false); delete e.currentTarget.dataset.dob; }} style={{ position: "fixed", inset: 0, zIndex: 998 }} />
           <div style={{ position: "absolute", top: "calc(100% + 6px)", right: 0, background: "#fff", border: "1px solid #DDD", borderRadius: 10, boxShadow: "0 8px 24px rgba(0,0,0,0.15)", minWidth: 240, zIndex: 999, overflow: "hidden" }}>
-            <div style={{ padding: "10px 14px", fontSize: 11, color: "#666666", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", borderBottom: "1px solid #EEE" }}>Switch Brokerage</div>
+            <div style={{ padding: "10px 14px", fontSize: 11, color: "#666666", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", borderBottom: "1px solid #EEE" }}>{tr("Switch Brokerage")}</div>
             {memberships.map(m => {
               const isActive = m.tenantId === activeId;
               return (
@@ -11099,7 +11109,7 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
       await loadTransactions();
       openTransactionMilestones(data.transaction.id, "milestones");
     } catch (e) {
-      alert(e.message || "Could not open the sample deal. Please try again.");
+      alert(e.message || tr("Could not open the sample deal. Please try again."));
     } finally { setSampleBusy(false); }
   };
 
@@ -11115,7 +11125,7 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
   };
 
   const duplicateTransaction = async (tx) => {
-    const newAddr = await askText("Enter address for the new transaction:", tx.address + " (Copy)", { okLabel: "Create copy" });
+    const newAddr = await askText(tr("Enter address for the new transaction:"), tx.address + " (Copy)", { okLabel: "Create copy" });
     if (!newAddr) return;
     const tok = localStorage.getItem("tp_token") || "";
     const freshH = { "Content-Type": "application/json", "Authorization": "Bearer " + tok };
@@ -11148,12 +11158,12 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
         setSelectedId(normalized.id);
         setView("detail");
       }
-    } catch (e) { alert("Failed to duplicate: " + e.message); }
+    } catch (e) { alert(tr("Failed to duplicate: ") + e.message); }
   };
 
   const invitePartyToPortal = async (party, tx) => {
-    if (!party.email) { alert("This party has no email address. Add one first."); return; }
-    if (!(await askConfirm(`Send portal invitation to ${party.name} (${party.email})?`, { okLabel: "Send invitation" }))) return;
+    if (!party.email) { alert(tr("This party has no email address. Add one first.")); return; }
+    if (!(await askConfirm(`Send portal invitation to ${party.name} (${party.email})?`, { okLabel: tr("Send invitation") }))) return;
     const tok = localStorage.getItem("tp_token") || "";
     // Find agent and TC from transaction parties
     const agent = tx && tx.parties ? tx.parties.find(p => p.role === "Listing Agent" || p.role === "Buyer's Agent") : null;
@@ -11184,22 +11194,22 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
       });
       const data = await res.json();
       if (res.ok && data.existing) {
-        alert(party.email + " already has a portal account — we just re-sent their one-tap login link by email.\n\nIf they still don't see it (check spam), use the 🔗 Login Link button to copy the link and text it to them directly.");
+        alert(party.email + tr(" already has a portal account — we just re-sent their one-tap login link by email.\n\nIf they still don't see it (check spam), use the 🔗 Login Link button to copy the link and text it to them directly."));
       } else if (res.ok) {
-        alert("Invitation sent to " + party.email + "! They'll get an email with a one-tap link to their portal (they set a 4-digit PIN on first use).");
+        alert(tr("Invitation sent to ") + party.email + tr("! They'll get an email with a one-tap link to their portal (they set a 4-digit PIN on first use)."));
       } else if (data.error === "Email already registered") {
-        alert(party.email + " is already registered — we re-sent their login link by email. If it doesn't arrive, use 🔗 Login Link to share it directly.");
+        alert(party.email + tr(" is already registered — we re-sent their login link by email. If it doesn't arrive, use 🔗 Login Link to share it directly."));
       } else {
-        alert("Failed: " + (data.error || "Unknown error"));
+        alert(tr("Failed: ") + (data.error || tr("Unknown error")));
       }
-    } catch (e) { alert("Error: " + e.message); }
+    } catch (e) { alert(tr("Error: ") + e.message); }
   };
 
   // Get a portal login LINK to share manually (text/WhatsApp/phone) when email
   // isn't reliable. Ensures the account exists, then copies the link to the
   // clipboard. The link still needs their private PIN, so it's safe to send.
   const copyPartyLoginLink = async (party, tx) => {
-    if (!party.email) { alert("This party has no email address. Add one first."); return; }
+    if (!party.email) { alert(tr("This party has no email address. Add one first.")); return; }
     const tok = localStorage.getItem("tp_token") || "";
     try {
       const res = await fetch(API + "/transactions/" + tx.id + "/party-login-link", {
@@ -11209,14 +11219,14 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
       });
       const data = await res.json();
       if (!res.ok || !data.link) throw new Error(data.error || "Could not create link");
-      if (data.staff) { alert(data.message || "This is a staff account — they sign in with email and password."); return; }
+      if (data.staff) { alert(data.message || tr("This is a staff account — they sign in with email and password.")); return; }
       try { await navigator.clipboard.writeText(data.link); } catch { /* clipboard may be blocked; still show it below */ }
       await askText(
         `Login link for ${party.name || party.email} — copied to your clipboard. Text or email it to them.\n\nThey'll set a private 4-digit PIN the first time (the link alone can't sign anyone in).`,
         data.link,
         { okLabel: "Done" }
       );
-    } catch (e) { alert("Could not create login link: " + e.message); }
+    } catch (e) { alert(tr("Could not create login link: ") + e.message); }
   };
 
   const openTransactionMilestones = async (txId, tab = "documents") => {
@@ -11237,7 +11247,7 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
       setView("detail");
     } else {
       console.error("[openTransactionMilestones] tx still not found after refresh:", txId);
-      alert("Couldn't open that transaction — it may have been moved or you no longer have access. Try refreshing.");
+      alert(tr("Couldn't open that transaction — it may have been moved or you no longer have access. Try refreshing."));
     }
   };
 
@@ -11317,13 +11327,13 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
             style={{ background: "#C0392B", color: "#fff", borderRadius: 12, padding: "12px 14px", boxShadow: "0 8px 26px rgba(192,57,43,0.55)", cursor: "pointer", animation: "signAlertIn 0.35s ease, mpulse2 1.6s ease-in-out infinite" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
               <div style={{ fontSize: 13.5, fontWeight: 800, lineHeight: 1.35 }}>
-                🔔 You have {signAlerts.length} new alert{signAlerts.length === 1 ? "" : "s"}
+                {tr("🔔 You have")} {signAlerts.length} {tr("new alert")}{signAlerts.length === 1 ? "" : "s"}
               </div>
-              <button onClick={(e) => { e.stopPropagation(); setFloatHiddenSig(signAlerts.map(n => n.id).join(",")); }} title="Hide (alerts stay on Win The Day)"
+              <button onClick={(e) => { e.stopPropagation(); setFloatHiddenSig(signAlerts.map(n => n.id).join(",")); }} title={tr("Hide (alerts stay on Win The Day)")}
                 style={{ background: "none", border: "none", color: "rgba(255,255,255,0.75)", fontSize: 16, cursor: "pointer", lineHeight: 1, padding: 0 }}>×</button>
             </div>
-            <div style={{ fontSize: 12, color: "rgba(255,255,255,0.92)", marginTop: 4, lineHeight: 1.4 }}>{signAlerts[0].title}{signAlerts.length > 1 ? ` (+${signAlerts.length - 1} more)` : ""}</div>
-            <div style={{ fontSize: 11, marginTop: 6, fontWeight: 800, textDecoration: "underline" }}>Tap to see them on Win The Day →</div>
+            <div style={{ fontSize: 12, color: "rgba(255,255,255,0.92)", marginTop: 4, lineHeight: 1.4 }}>{tr(signAlerts[0].title)}{signAlerts.length > 1 ? ` (+${signAlerts.length - 1} more)` : ""}</div>
+            <div style={{ fontSize: 11, marginTop: 6, fontWeight: 800, textDecoration: "underline" }}>{tr("Tap to see them on Win The Day →")}</div>
           </div>
           <style>{"@keyframes signAlertIn { from { transform: translateX(30px); opacity: 0; } to { transform: none; opacity: 1; } } @keyframes mpulse2 { 0%,100%{transform:scale(1)} 50%{transform:scale(1.04)} }"}</style>
         </div>
@@ -11367,9 +11377,9 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
         return (
           <>
             <style>{`@keyframes mpulse{0%,100%{transform:scale(1)}50%{transform:scale(1.07)}}`}</style>
-            <div onClick={go} title="You have new messages — tap to read"
+            <div onClick={go} title={tr("You have new messages — tap to read")}
               style={{ position: "fixed", bottom: 18, left: 18, zIndex: 9998, background: "#C0392B", color: "#fff", borderRadius: 30, padding: "13px 20px", boxShadow: "0 8px 26px rgba(192,57,43,0.55)", cursor: "pointer", fontWeight: 800, fontSize: 15, display: "flex", alignItems: "center", gap: 10, animation: "mpulse 1.6s ease-in-out infinite", maxWidth: "calc(100vw - 36px)", fontFamily: "'Segoe UI', system-ui, sans-serif" }}>
-              🔔 {total} new message{total === 1 ? "" : "s"}{entries.length > 1 ? ` · ${entries.length} deals` : ""} <span style={{ textDecoration: "underline", whiteSpace: "nowrap" }}>Read →</span>
+              🔔 {total} {tr("new message")}{total === 1 ? "" : "s"}{entries.length > 1 ? ` · ${entries.length} deals` : ""} <span style={{ textDecoration: "underline", whiteSpace: "nowrap" }}>{tr("Read →")}</span>
             </div>
           </>
         );
@@ -11379,12 +11389,12 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
         <div onMouseDown={e => { if (e.target === e.currentTarget) e.currentTarget.dataset.dob = "1"; else delete e.currentTarget.dataset.dob; }} onClick={e => { if (e.target === e.currentTarget && e.currentTarget.dataset.dob === "1") setPaywallFeature(null); delete e.currentTarget.dataset.dob; }} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)", zIndex: 99999, display: "flex", alignItems: "flex-start", justifyContent: "center", padding: 16, overflowY: "auto" }}>
           <div onClick={e => e.stopPropagation()} style={{ background: "#fff", borderRadius: 16, padding: 28, maxWidth: 420, width: "100%", textAlign: "center", boxShadow: "0 20px 60px rgba(0,0,0,0.3)", fontFamily: "'Segoe UI', system-ui, sans-serif", margin: "auto" }}>
             <div style={{ fontSize: 44, marginBottom: 10 }}>✨</div>
-            <div style={{ fontSize: 19, fontWeight: 800, color: "#1a2332", marginBottom: 8 }}>{paywallFeature} is a paid feature</div>
+            <div style={{ fontSize: 19, fontWeight: 800, color: "#1a2332", marginBottom: 8 }}>{paywallFeature} {tr("is a paid feature")}</div>
             <div style={{ fontSize: 14, color: "#667085", lineHeight: 1.6, marginBottom: 20 }}>
-              You're on a free invited-party account. {paywallFeature} — plus your own transaction pipeline, contacts, expense tracking, reminders, intake links, and more — comes with a TransactPro subscription. Feel free to look around!
+              {tr("You're on a free invited-party account.")} {paywallFeature} {tr("— plus your own transaction pipeline, contacts, expense tracking, reminders, intake links, and more — comes with a TransactPro subscription. Feel free to look around!")}
             </div>
-            <button onClick={() => setPaywallFeature(null)} style={{ background: "#0c4a6e", color: "#fff", border: "none", borderRadius: 10, padding: "12px 24px", fontWeight: 700, fontSize: 15, cursor: "pointer", fontFamily: "inherit" }}>Subscribe to unlock</button>
-            <div style={{ marginTop: 12 }}><button onClick={() => setPaywallFeature(null)} style={{ background: "none", border: "none", color: "#667085", fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>Maybe later</button></div>
+            <button onClick={() => setPaywallFeature(null)} style={{ background: "#0c4a6e", color: "#fff", border: "none", borderRadius: 10, padding: "12px 24px", fontWeight: 700, fontSize: 15, cursor: "pointer", fontFamily: "inherit" }}>{tr("Subscribe to unlock")}</button>
+            <div style={{ marginTop: 12 }}><button onClick={() => setPaywallFeature(null)} style={{ background: "none", border: "none", color: "#667085", fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>{tr("Maybe later")}</button></div>
           </div>
         </div>
       )}
@@ -11442,7 +11452,7 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
       {/* Never blank: detail requested but the deal isn't loaded yet. */}
       {!showReports && !showCalendar && view === "detail" && !selectedTx && (
         <div style={{ maxWidth: 680, margin: "0 auto", padding: "48px 24px", textAlign: "center" }}>
-          <div style={{ color: "#64748B", fontSize: 15, marginBottom: 16 }}>Loading this transaction…</div>
+          <div style={{ color: "#64748B", fontSize: 15, marginBottom: 16 }}>{tr("Loading this transaction…")}</div>
           <BackButton onClick={() => setView(coordinatorMode ? "home" : "dashboard")} to={coordinatorMode ? "All deals" : "My Deals"} />
         </div>
       )}
@@ -11602,7 +11612,7 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
       {view === "referrals" && (
         <>
         <FirstTimeHere pageKey="referrals" tip={PAGE_TIPS.referrals} userId={currentUser?.id} onAction={tipAction} onShowHow={openGuide} scenes={PAGE_SCENES.referrals} onWatch={watchScenes} />
-        <Suspense fallback={<div style={{ padding: 20 }}>Loading…</div>}><ReferralsOutPage onBack={() => setView("dashboard")} /></Suspense>
+        <Suspense fallback={<div style={{ padding: 20 }}>{tr("Loading…")}</div>}><ReferralsOutPage onBack={() => setView("dashboard")} /></Suspense>
         </>
       )}
       {view === "popbys" && (
@@ -11627,7 +11637,7 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
         <div style={{ position:"fixed", inset:0, background:"#fff", zIndex:200, overflowY:"auto" }}>
           <div style={{ position:"sticky", top:0, background:"#fff", borderBottom:"1px solid #DDD", padding:"12px 16px", display:"flex", alignItems:"center", gap:12, zIndex:1 }}>
             <BackButton onClick={() => setShowCompliance(false)} />
-            <div style={{ fontWeight:700, fontSize:16 }}>Compliance Admin</div>
+            <div style={{ fontWeight:700, fontSize:16 }}>{tr("Compliance Admin")}</div>
           </div>
           <ComplianceAdmin token={localStorage.getItem("tp_token") || ""} user={currentUser} />
         </div>
@@ -11653,7 +11663,7 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
         <div style={{ position:"fixed", inset:0, background:"#fff", zIndex:200, overflowY:"auto" }}>
           <div style={{ position:"sticky", top:0, background:"#fff", borderBottom:"1px solid #DDD", padding:"12px 16px", display:"flex", alignItems:"center", gap:12, zIndex:1 }}>
             <BackButton onClick={() => setShowTaskTmpls(false)} />
-            <div style={{ fontWeight:700, fontSize:16 }}>Task Templates</div>
+            <div style={{ fontWeight:700, fontSize:16 }}>{tr("Task Templates")}</div>
           </div>
           <TaskTemplatesAdmin token={localStorage.getItem("tp_token") || ""} />
         </div>
@@ -11662,7 +11672,7 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
         <div style={{ position:"fixed", inset:0, background:"#fff", zIndex:200, overflowY:"auto" }}>
           <div style={{ position:"sticky", top:0, background:"#fff", borderBottom:"1px solid #DDD", padding:"12px 16px", display:"flex", alignItems:"center", gap:12, zIndex:1 }}>
             <BackButton onClick={() => setShowComplianceDash(false)} />
-            <div style={{ fontWeight:700, fontSize:16 }}>Compliance Dashboard</div>
+            <div style={{ fontWeight:700, fontSize:16 }}>{tr("Compliance Dashboard")}</div>
           </div>
           <ComplianceDashboard
             token={localStorage.getItem("tp_token") || ""}
@@ -11683,22 +11693,22 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 3000, display: "flex", alignItems: "flex-start", justifyContent: "center", padding: 16, fontFamily: "system-ui, sans-serif", overflowY: "auto" }}>
           <div style={{ background: "#fff", borderRadius: 14, width: "100%", maxWidth: 500, boxShadow: "0 8px 40px rgba(0,0,0,0.2)", overflow: "hidden", margin: "auto" }}>
             <div style={{ background: "#111", padding: "18px 24px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <div style={{ color: "#fff", fontWeight: 700, fontSize: 18 }}>🔗 New Buyer / Seller Intake Forms</div>
+              <div style={{ color: "#fff", fontWeight: 700, fontSize: 18 }}>{tr("🔗 New Buyer / Seller Intake Forms")}</div>
               <button onClick={() => setShowIntakeLinks(false)} style={{ background: "none", border: "none", color: "rgba(255,255,255,0.6)", fontSize: 22, cursor: "pointer" }}>x</button>
             </div>
             <div style={{ padding: 24 }}>
-              <p style={{ fontSize: 13, color: "#555", marginBottom: 20 }}>Send these to a NEW buyer or seller (or fill them out yourself). Each submission creates a new lead in your pipeline.</p>
+              <p style={{ fontSize: 13, color: "#555", marginBottom: 20 }}>{tr("Send these to a NEW buyer or seller (or fill them out yourself). Each submission creates a new lead in your pipeline.")}</p>
               {[{ label: "🏠 New Seller Intake Form", type: "seller", color: "#C0392B" }, { label: "🏡 New Buyer Intake Form", type: "buyer", color: "#1A5276" }].map(({ label, type, color }) => {
                 const slug = currentUser?.slug || "";
                 const url = window.location.origin + "/" + type + ".html?agent=" + slug + "&uid=" + (currentUser?.id || "");
                 return (
                   <div key={type} style={{ marginBottom: 16, padding: 16, background: "#F8F9FA", borderRadius: 10, border: "1px solid #EEE" }}>
-                    <div style={{ fontWeight: 700, color, marginBottom: 8 }}>{label}</div>
+                    <div style={{ fontWeight: 700, color, marginBottom: 8 }}>{tr(label)}</div>
                     <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                       <input readOnly value={url} style={{ flex: 1, padding: "8px 12px", borderRadius: 8, border: "1px solid #DDD", fontSize: 12, fontFamily: "inherit", background: "#fff" }} onClick={e => e.target.select()} />
-                      <button onClick={() => { navigator.clipboard.writeText(url); alert("Link copied!"); }} style={{ padding: "8px 14px", background: color, color: "#fff", border: "none", borderRadius: 8, cursor: "pointer", fontWeight: 600, fontSize: 12, fontFamily: "inherit", whiteSpace: "nowrap" }}>Copy</button>
+                      <button onClick={() => { navigator.clipboard.writeText(url); alert(tr("Link copied!")); }} style={{ padding: "8px 14px", background: color, color: "#fff", border: "none", borderRadius: 8, cursor: "pointer", fontWeight: 600, fontSize: 12, fontFamily: "inherit", whiteSpace: "nowrap" }}>{tr("Copy")}</button>
                     </div>
-                    <button onClick={() => window.open(url, "_blank")} style={{ marginTop: 8, background: "none", border: "none", color, cursor: "pointer", fontSize: 12, fontFamily: "inherit", textDecoration: "underline" }}>Preview form</button>
+                    <button onClick={() => window.open(url, "_blank")} style={{ marginTop: 8, background: "none", border: "none", color, cursor: "pointer", fontSize: 12, fontFamily: "inherit", textDecoration: "underline" }}>{tr("Preview form")}</button>
                   </div>
                 );
               })}
@@ -11797,7 +11807,7 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
         return (
           <button onClick={() => setOnboardAway(false)}
             style={{ position: "fixed", left: 16, bottom: 16, zIndex: 2500, background: "#0c4a6e", color: "#fff", border: "none", borderRadius: 999, padding: "11px 18px", fontSize: 14, fontWeight: 800, cursor: "pointer", fontFamily: "inherit", boxShadow: "0 6px 20px rgba(0,0,0,0.25)" }}>
-            ← Back to setup{idx >= 0 ? ` · step ${idx + 1} of ${onboardSteps.length}` : " · all done"}
+            {tr("← Back to setup")}{idx >= 0 ? ` · step ${idx + 1} of ${onboardSteps.length}` : tr(" · all done")}
           </button>
         );
       })()}
@@ -11825,20 +11835,21 @@ function AuthGate() {
     try { return JSON.parse(localStorage.getItem("tp_user")); } catch { return null; }
   });
   const [forcePasswordReset, setForcePasswordReset] = useState(false);
-  // Spanish is for CLIENT screens only (Phase 1): agent / TC / admin screens
-  // always run in English, even on a device a Spanish-speaking client used.
-  useEffect(() => {
-    if (authUser && authUser.role !== "client") setLang("en", { persist: false });
-  }, [authUser && authUser.role]);
+  // Agent / TC / admin screens run in the language saved on THEIR account
+  // (EN | ES in the header). Applied before render so every screen paints in it;
+  // clients are handled by the portal itself.
+  if (authUser && authUser.role !== "client") applyStaffLang(authUser.uiLanguage);
 
   if (forcePasswordReset) {
     return <ChangePassword forceReset onClose={() => { setForcePasswordReset(false); }} />;
   }
 
   if (!authUser) {
-    return <LoginScreen onLogin={(user, token) => {
+    return <LoginScreen onLogin={async (user, token) => {
       localStorage.setItem("tp_token", token);
       localStorage.setItem("tp_user", JSON.stringify(user));
+      // Spanish account: have the dictionary ready before the app paints.
+      if (user && (user.uiLanguage === "es" || (user.role === "client" && user.preferredLanguage === "es"))) await loadSpanish();
       setAuthUser(user);
       if (user.passwordResetRequired) setForcePasswordReset(true);
     }} />;

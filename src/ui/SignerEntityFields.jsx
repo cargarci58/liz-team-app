@@ -8,6 +8,7 @@
 //   name   = the PERSON who signs (what the e-sign engine stamps / greets)
 //   entity = company / LLC / trust name (what the contract says)
 // ═══════════════════════════════════════════════════════════════
+import { t as tr } from "../i18n";
 import { UI } from "./kit";
 
 export const ENTITY_RE = /\b(L\.?L\.?C|L\.?L\.?P|L\.?P|Inc|Incorporated|Corp|Corporation|Company|Co|Ltd|Limited|P\.?A|P\.?L\.?L\.?C|Trust|Trustees?|Holdings|Properties|Investments?|Ventures|Group|Partners(hip)?|Enterprises|Estate of)\b\.?/i;
@@ -48,19 +49,19 @@ export default function SignerEntityFields({ row, onChange, compact = false }) {
           onChange={e => onChange(e.target.checked
             ? { ...row, isEntity: true, entity: row.entity || (looksLikeEntity(row.name) ? row.name : ""), name: looksLikeEntity(row.name) ? "" : row.name }
             : { ...row, isEntity: false, name: row.name || row.entity || "", entity: "", title: "" })} />
-        🏢 Signing for a company, LLC, or trust
+        {tr("🏢 Signing for a company, LLC, or trust")}
       </label>
       {row.isEntity && (
         <div style={{ background: "#F0F9FF", border: "1px solid #BAE6FD", borderRadius: 8, padding: 8, marginTop: 6 }}>
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 6 }}>
-            <input value={row.entity || ""} onChange={e => set("entity", e.target.value)} placeholder="Company / LLC / trust name (as on the contract)" aria-label="Company, LLC, or trust name" style={{ ...inp, flexBasis: "100%" }} />
+            <input value={row.entity || ""} onChange={e => set("entity", e.target.value)} placeholder={tr("Company / LLC / trust name (as on the contract)")} aria-label={tr("Company, LLC, or trust name")} style={{ ...inp, flexBasis: "100%" }} />
           </div>
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-            <input list="tp-signer-titles" value={row.title || ""} onChange={e => set("title", e.target.value)} placeholder="Their title (e.g. Managing Member)" aria-label="Signer's title" style={inp} />
+            <input list="tp-signer-titles" value={row.title || ""} onChange={e => set("title", e.target.value)} placeholder={tr("Their title (e.g. Managing Member)")} aria-label={tr("Signer's title")} style={inp} />
             <datalist id="tp-signer-titles">{TITLES.map(t => <option key={t} value={t} />)}</datalist>
           </div>
           <div style={{ fontSize: 11.5, color: UI.muted, marginTop: 6, lineHeight: 1.45 }}>
-            Put the <b>person who signs</b> in the name box above. They sign and initial with their own name; the contract stays in the company's name, and "for {row.entity || "the company"}{row.title ? ", " + row.title : ""}" prints under their signature.
+            {tr("Put the")} <b>{tr("person who signs")}</b> {tr("in the name box above. They sign and initial with their own name; the contract stays in the company's name, and \"for")} {row.entity || tr("the company")}{row.title ? ", " + tr(row.title) : ""}{tr("\" prints under their signature.")}
           </div>
         </div>
       )}

@@ -14,7 +14,20 @@
 // sent by the server) → English.
 // ═══════════════════════════════════════════════════════════════
 import { useEffect, useState } from "react";
-import ES, { ES_PATTERNS } from "./i18n/es.js";
+// The Spanish dictionary (~300 KB) is loaded only when Spanish is in use, so
+// English users never download it. loadSpanish() is awaited before the first
+// paint when the device/account is already Spanish (main.jsx).
+let ES = {};
+let ES_PATTERNS = [];
+let esLoaded = false, esLoading = null;
+export function loadSpanish() {
+  if (esLoaded) return Promise.resolve();
+  if (!esLoading) esLoading = import("./i18n/es.js").then(m => {
+    ES = m.default || {}; ES_PATTERNS = m.ES_PATTERNS || []; esLoaded = true;
+    listeners.forEach(fn => fn());
+  }).catch(() => { esLoading = null; });
+  return esLoading;
+}
 
 const STORE_KEY = "tp_lang";
 const listeners = new Set();
@@ -26,6 +39,15 @@ function readStored() {
 // Default is English: Spanish only when the agent marked the person Español
 // (server tells the page) or the client tapped ES on this device.
 let current = readStored() || "en";
+// Is Spanish expected on this device right away? (stored pick, or the saved
+// account language) — main.jsx waits for the dictionary before rendering.
+export function spanishExpected() {
+  if (current === "es") return true;
+  try {
+    const u = JSON.parse(localStorage.getItem("tp_user") || "null");
+    return !!(u && (u.uiLanguage === "es" || (u.role === "client" && u.preferredLanguage === "es")));
+  } catch { return false; }
+}
 try { document.documentElement.lang = current; } catch { /* no DOM in tests */ }
 
 export function getLang() { return current; }
@@ -38,7 +60,21 @@ export function setLang(lang, { persist = true } = {}) {
   if (next === current) return;
   current = next;
   try { document.documentElement.lang = next; } catch { /* no DOM */ }
+  if (next === "es") loadSpanish();
   listeners.forEach(fn => fn());
+}
+
+// Staff screens (agent / TC / admin): their own saved choice, applied before
+// the first paint — no listeners fire, the whole tree simply renders in it.
+export function applyStaffLang(lang) {
+  const next = lang === "es" ? "es" : "en";
+  if (next === current) return;
+  current = next;
+  try { document.documentElement.lang = next; } catch { /* no DOM */ }
+  if (next === "es") loadSpanish();
+}
+export function staffLang() {
+  try { const u = JSON.parse(localStorage.getItem("tp_user") || "null"); return u && u.uiLanguage === "es" ? "es" : "en"; } catch { return "en"; }
 }
 
 // The agent's setting (or the account's saved choice) — used only when the
@@ -79,6 +115,9 @@ export function addSpanish(map) {
 }
 
 export function t(en, vars) {
+  // Non-text (numbers, elements, null) passes through untouched, so a label
+  // that is sometimes a React element is safe to wrap.
+  if (typeof en !== "string") return en;
   let s = en;
   if (current === "es" && en != null) {
     if (Object.prototype.hasOwnProperty.call(ES, en)) s = ES[en];
@@ -110,6 +149,46 @@ export function fmtTime(d, opts) {
   const x = d instanceof Date ? d : new Date(d);
   if (isNaN(x)) return "";
   return x.toLocaleTimeString(locale(), opts || { hour: "numeric", minute: "2-digit" });
+}
+
+// Staff pick (EN | ES in the header or ⚙️ Menu): save on the account, then
+// reload so every screen redraws in the new language.
+export function saveStaffLang(lang) {
+  const next = lang === "es" ? "es" : "en";
+  try { const u = JSON.parse(localStorage.getItem("tp_user") || "{}"); u.uiLanguage = next; localStorage.setItem("tp_user", JSON.stringify(u)); } catch { /* ignore */ }
+  let token = null;
+  try { token = localStorage.getItem("tp_token"); } catch { /* none */ }
+  const done = () => { try { window.location.reload(); } catch { /* tests */ } };
+  if (!token) return done();
+  fetch(API + "/me/language", {
+    method: "PUT",
+    headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
+    body: JSON.stringify({ language: next }),
+  }).catch(() => {}).finally(done);
+}
+
+// Spanish for text that comes from the server (deal step names, Win-the-Day
+// cards…). Only what the dictionary doesn't already know is sent; the server
+// translates once and caches. Feeds t() via addSpanish. No-op in English.
+const _asked = new Set();
+export function requestSpanish(texts) {
+  if (current !== "es") return;
+  const missing = [...new Set(texts || [])]
+    .filter(x => typeof x === "string" && x.trim() && x.length <= 400 && !_asked.has(x) && t(x) === x)
+    .slice(0, 150);
+  if (!missing.length) return;
+  missing.forEach(x => _asked.add(x));
+  let token = null;
+  try { token = localStorage.getItem("tp_token"); } catch { /* none */ }
+  if (!token) return;
+  fetch(API + "/client/translate", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
+    body: JSON.stringify({ texts: missing, lang: "es" }),
+  })
+    .then(r => r.ok ? r.json() : null)
+    .then(d => { if (d && d.translations) addSpanish(d.translations); })
+    .catch(() => { missing.forEach(x => _asked.delete(x)); });
 }
 
 // Save the client's pick on their account too, so emails and texts follow it.
