@@ -17,6 +17,10 @@ import CoagentJoin from './CoagentJoin'
 import { ReferralUpdatePublic } from './ReferralsOutPage'
 import TcIntakePublic from './TcIntakePublic'
 import FillInfoPublic from './FillInfoPublic'
+import { installKeepMenusOnScreen } from './ui/keepMenusOnScreen'
+
+// Phones: pop-up menus that open partly off the screen get slid back into view.
+installKeepMenusOnScreen()
 
 // Stale-deploy self-heal: after a new Netlify build, the hashed JS chunks
 // change. A tab that was already open (or one served the SPA index.html
