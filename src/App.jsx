@@ -10566,6 +10566,10 @@ function TenantSwitcher({ currentUser }) {
 
 function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
   const [transactions, setTransactions] = useState([]);
+  // What this screen last showed — updateTransaction diffs against it to send
+  // only the people the user actually REMOVED (see removedParties below).
+  const transactionsRef = useRef(transactions);
+  transactionsRef.current = transactions;
   const [txLoading, setTxLoading] = useState(true);
   const [unreadCounts, setUnreadCounts] = useState({});       // in-app chat, per tx
   const [inboundCounts, setInboundCounts] = useState({});     // client email replies, per tx
@@ -11054,6 +11058,15 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
     alert(msg);
   };
   const updateTransaction = useCallback(async (updated) => {
+    // People the user removed on this screen = in what the screen showed, not in
+    // what it's saving now. The server removes ONLY these — never someone this
+    // screen never knew about (e.g. the Listing Agent the offer send just added).
+    const shownParties = ((transactionsRef.current || []).find(t => t.id === updated.id) || {}).parties || [];
+    const key = (p) => p && p.id ? `id:${p.id}` : `rk:${String(p.role || "").toLowerCase()}|${String(p.email || "").trim().toLowerCase() || String(p.name || "").trim().toLowerCase()}`;
+    const keepKeys = new Set((Array.isArray(updated.parties) ? updated.parties : []).filter(Boolean).map(key));
+    const removedParties = Array.isArray(updated.parties)
+      ? shownParties.filter(p => p && !keepKeys.has(key(p))).map(p => ({ id: p.id, role: p.role, name: p.name, email: p.email }))
+      : [];
     // Capture the prior tx so we can roll back if the server rejects the save.
     let previous = null;
     setTransactions(txs => { previous = txs.find(t => t.id === updated.id) || null; return txs.map(t => t.id === updated.id ? updated : t); });
@@ -11071,7 +11084,7 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
     try {
       const r = await fetch(API + "/transactions/" + updated.id, { method: "PUT", headers: freshH, body: JSON.stringify({ address: updated.address, city: updated.city, state: updated.state, zipCode: updated.zipCode, county: updated.county, mlsNumber: updated.mlsNumber, propertyType: updated.propertyType, type: updated.type, status: updated.status, listPrice: updated.listPrice, contractPrice: updated.contractPrice, openDate: updated.openDate, closingDate: updated.closingDate, executedDate: updated.executedDate, ...(updated.__saveNotes ? { notes: updated.notes } : {}), propertyAccess: updated.propertyAccess, commissionListing: updated.commissionListing, commissionBuyer: updated.commissionBuyer, transactionFee: updated.transactionFee, brokerageSplit: updated.brokerageSplit, officeFlatFee: updated.officeFlatFee, mailAway: updated.mailAway, commissionNotes: updated.commissionNotes, referralSource: updated.referralSource, assignedAgent: updated.assignedAgentId, occupancyStatus: updated.occupancyStatus, earnestMoneyAmount: updated.earnestMoneyAmount, emdDeadline: updated.emdDeadline, inspectionPeriodDays: updated.inspectionPeriodDays, inspectionPeriodEnd: updated.inspectionPeriodEnd, financingContingency: updated.financingContingency, financingContingencyDays: updated.financingContingencyDays, appraisalContingency: updated.appraisalContingency, appraisalContingencyDays: updated.appraisalContingencyDays, hoaApprovalRequired: updated.hoaApprovalRequired, hoaApprovalDays: updated.hoaApprovalDays, surveyRequired: updated.surveyRequired, isCash: updated.isCash, yearBuilt: updated.yearBuilt, inHoa: updated.inHoa, floodZone: updated.floodZone, sellerIsForeign: updated.sellerIsForeign, isCoastal: updated.isCoastal, financingType: updated.financingType, sellerPaysBuyerBroker: updated.sellerPaysBuyerBroker, isShortSale: updated.isShortSale, hasSellerFinancing: updated.hasSellerFinancing, sellerPostClosingOccupancy: updated.sellerPostClosingOccupancy, representationExpiresOn: updated.representationExpiresOn, contractFormType: updated.contractFormType, additionalTerms: updated.additionalTerms, /* internalNotes deliberately omitted — the server owns them now (POST
    /transactions/:id/notes). Sending the copy this screen loaded earlier is
-   what erased notes written since. */ smsThreads: updated.smsThreads || {}, parties: updated.parties || [], tasks: updated.tasks || [], reminders: updated.reminders || [] }) });
+   what erased notes written since. */ smsThreads: updated.smsThreads || {}, parties: updated.parties || [], removedParties, tasks: updated.tasks || [], reminders: updated.reminders || [] }) });
       if (!r.ok) {
         const e = await r.json().catch(() => ({}));
         console.error("Save error:", e);

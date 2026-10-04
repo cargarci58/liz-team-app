@@ -687,6 +687,9 @@ function SendOfferModal({ offer, tx, token, currentUser, onClose, onSent }) {
         body: JSON.stringify({ toEmail: toEmail.trim(), toName: toName.trim(), subject, message, attachDocIds: attach.map(a => a.id), ccSelf }),
       });
       const data = await r.json(); if (!r.ok) throw new Error(data.error || "Send failed");
+      // The send adds the listing agent to People on the server — reload the
+      // deal so this screen shows her (and never saves its older copy).
+      try { window.dispatchEvent(new CustomEvent("deals:refresh")); } catch { /* ignore */ }
       const attached = Array.isArray(data.attached) ? data.attached.join(", ") : data.attached;
       alert(tr("✅ Sent to ") + data.sentTo + (attached ? tr("\nAttached: ") + attached : "") + tr(".\n\nThe listing agent's reply will appear in this deal's Replies, and the AI will flag whether it's an acceptance. When the seller accepts, click ✅ Accepted to start the transaction."));
       onSent();
