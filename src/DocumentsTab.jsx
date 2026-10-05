@@ -489,8 +489,8 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontWeight: 600, fontSize: 13, color: COLORS.text, textDecoration: item.waived ? "line-through" : "none" }}>
           {getLang() === "es" ? tr(String(item.label || "").replace(/_/g, " ")) : tr(item.label)}
-          {!item.required && <span style={{ marginLeft: 6, fontSize: 10, fontWeight: 700, color: "#92400E", background: "#FEF3C7", padding: "1px 6px", borderRadius: 10 }}>{tr("OPTIONAL")}</span>}
-          {item.custom && <span style={{ marginLeft: 6, fontSize: 10, fontWeight: 700, color: "#1A5276", background: "#D6EAF8", padding: "1px 6px", borderRadius: 10 }}>{tr("BROKER")}</span>}
+          {!item.required && <span style={{ marginLeft: 6, fontSize: 10, fontWeight: 700, color: "#92400E", background: "#FEF3C7", padding: "1px 6px", borderRadius: 10, display: "inline-block", whiteSpace: "nowrap" }}>{tr("OPTIONAL")}</span>}
+          {item.custom && <span style={{ marginLeft: 6, fontSize: 10, fontWeight: 700, color: "#1A5276", background: "#D6EAF8", padding: "1px 6px", borderRadius: 10, display: "inline-block", whiteSpace: "nowrap" }}>{tr("BROKER")}</span>}
         </div>
         {item.waived ? (
           <div style={{ fontSize: 11, color: "#666666", marginTop: 1 }}>N/A — {item.waiveReason}{item.waivedBy ? ` (${item.waivedBy})` : ""}</div>

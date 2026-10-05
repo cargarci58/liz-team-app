@@ -571,6 +571,16 @@ if (typeof document !== "undefined" && !document.getElementById("lizteam-mobile"
     input, textarea, select { font-size: 16px !important; }
     img, video { max-width: 100% !important; height: auto; }
     input, textarea, select { max-width: 100%; }
+    /* iPhone (Carlos 10/5, replying to the lender's email): a "File as…" drop-
+       down is as wide as its LONGEST option (437px on a 375px phone). Inside a
+       column of cards it stretched the whole reply card past the screen edge,
+       and iOS then auto-ENLARGED the text in the too-wide block. Three fixes:
+       never let iOS inflate text; dropdowns may shrink; a column's children
+       never get wider than the column. */
+    html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+    select { min-width: 0 !important; max-width: 100% !important; }
+    div[style*="flex-direction: column"] > * { max-width: 100%; }
+    div[style*="white-space: pre-wrap"] { overflow-wrap: anywhere; }
     @media (max-width: 768px) {
       /* Universal: collapse any inline multi-column grid to a single column on phones.
          Opt out per-element with data-keep-grid="" (e.g. the month calendar). */
