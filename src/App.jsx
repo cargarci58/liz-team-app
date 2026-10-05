@@ -581,6 +581,9 @@ if (typeof document !== "undefined" && !document.getElementById("lizteam-mobile"
     select { min-width: 0 !important; max-width: 100% !important; }
     div[style*="flex-direction: column"] > * { max-width: 100%; }
     div[style*="white-space: pre-wrap"] { overflow-wrap: anywhere; }
+    /* Grid columns (1fr) may shrink below their longest text instead of pushing
+       the screen wider — a kept 2-column grid can never run off a phone. */
+    [style*="grid-template-columns"] > * { min-width: 0; }
     @media (max-width: 768px) {
       /* Universal: collapse any inline multi-column grid to a single column on phones.
          Opt out per-element with data-keep-grid="" (e.g. the month calendar). */
@@ -1635,11 +1638,13 @@ function SMSPanel({ tx, onUpdate, currentUser, sendOnly = false }) {
                 {gContactable.length === 0 ? (
                   <div style={{ fontSize: 12, color: "#6B7280" }}>{tr("No parties with contact info yet — add them in the People tab, or type an email below.")}</div>
                 ) : (
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }} data-keep-grid="">
+                  // One column on a phone, two when there's room — names are never cut
+                  // off (Carlos 10/5: right column ran off his iPhone screen).
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(240px, 100%), 1fr))", gap: 6 }} data-keep-grid="">
                     {gContactable.map(p => (
                       <label key={p.id} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "#1A1A2E", cursor: "pointer", padding: "4px 2px" }}>
                         <input type="checkbox" checked={isRecipientOn(p.id)} onChange={() => toggleRecipient(p.id)} style={{ width: 16, height: 16, flexShrink: 0 }} />
-                        <span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        <span style={{ minWidth: 0, overflowWrap: "anywhere" }}>
                           {p.name} <span style={{ color: "#C9A84C", fontWeight: 600 }}>· {p.role}</span>
                           {!(p.email && p.email.trim()) && <span style={{ color: "#B45309" }}> {tr("(text only)")}</span>}
                           {!(p.phone && p.phone.trim()) && <span style={{ color: "#6B7280" }}> {tr("(email only)")}</span>}
