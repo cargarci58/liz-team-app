@@ -52,6 +52,10 @@ const TASK_ICONS = {
   welcome_unconfirmed: "📭",
   move_anniversary:  "🏡",
   monthly_financials: "🧾",
+  listing_expiration: "🏁",
+  expiration_missing: "🏁",
+  expiration_confirm: "🏁",
+  closing_date_missing: "📅",
 };
 
 // Three ready-to-use scripts to walk a seller toward a price reduction. Shown
@@ -73,6 +77,24 @@ const BUYER_FOLLOWUP_SCRIPTS = [
     body: "“When we find it, I don’t want us to lose it over a soft offer. If we’re ready with strong financing, a solid deposit, and flexibility on the closing date, we look like the safest buyer — and that’s who sellers pick. Let’s have all of that lined up so we can move the same day.”" },
   { title: "Don’t let the right one pass",
     body: "“Good homes in your range aren’t sitting — they’re gone in days. I’d rather we move decisively on the right one and use the inspection period to protect you than hesitate and spend the next few months comparing everything to the one that got away. When it shows up, let’s write it.”" },
+];
+
+// Extension talk — shown on the agreement-expiration card (Carlos 10/5).
+const LISTING_EXTENSION_SCRIPTS = [
+  { title: "Keep the momentum",
+    body: "“Your listing agreement runs through [date]. Everything we've built — the photos, the showings, the buyers who've saved your home — goes away if it lapses and we start from zero. Let's extend through [new date] so we keep that momentum while we adjust [price / plan].”" },
+  { title: "Here's what changes next",
+    body: "“Before we extend, here's what I'll do differently over the next [60/90] days: [new marketing / price strategy / open houses]. I want to earn the extension — can we sign it today so the listing stays live on the MLS?”" },
+  { title: "Don't go dark on buyers",
+    body: "“If the listing expires, it disappears from the MLS and the buyer sites the same day, and agents stop showing it. A quick extension keeps you in front of every buyer looking right now. I'll send it over for e-signature.”" },
+];
+const BUYER_EXTENSION_SCRIPTS = [
+  { title: "Keep the search going",
+    body: "“Our buyer agreement runs through [date]. You're close — we've learned exactly what you want. Let's extend through [new date] so I can keep working for you without a gap.”" },
+  { title: "Stay ready to write",
+    body: "“If the right home hits tomorrow, I want to be able to write the offer the same day. Extending our agreement keeps me ready to represent you the moment it does.”" },
+  { title: "What we'll do next",
+    body: "“Before we extend, let's adjust the plan: [areas / price range / must-haves]. I'll send the extension for e-signature so we keep going right where we left off.”" },
 ];
 
 // ── SELLER UPDATE MODAL ───────────────────────────────────────
@@ -319,8 +341,31 @@ function TaskItem({ task, bucket, token, onResolve, onComplete, onSnooze, onOpen
   const [remindOpen, setRemindOpen] = useState(false);
   // Scripts cards: listing price-reduction + buyer still-searching. Each carries
   // 3 ready-to-use scripts for the paying agent's side of the deal.
+  // Agreement-expiration cards: change / confirm the date right here.
+  const isExpiry = ["listing_expiration", "expiration_missing", "expiration_confirm", "closing_date_missing"].includes(task.task_type);
+  const isClosingMissing = task.task_type === "closing_date_missing";
+  const expiryIsBuyer = isExpiry && /^Buyer agreement|buyer agreement/.test(task.title || "");
+  const [expOpen, setExpOpen] = useState(false);
+  const [expDate, setExpDate] = useState("");
+  const [expBusy, setExpBusy] = useState(false);
+  const saveExpiry = async (date) => {
+    if (!date || expBusy) return;
+    setExpBusy(true);
+    try {
+      const r = await fetch(API + "/transactions/" + task.transaction_id + (isClosingMissing ? "/closing-date" : "/agreement-expiration"), {
+        method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
+        body: JSON.stringify({ date }),
+      });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(d.error || "Could not save the date.");
+      onResolve(task.id);
+      try { window.dispatchEvent(new CustomEvent("deals:refresh")); window.dispatchEvent(new CustomEvent("wintheday:refresh")); } catch { /* ignore */ }
+    } catch (e) { alert(e.message || tr("Could not save the date.")); }
+    setExpBusy(false);
+  };
   const scriptSet = task.task_type === "price_reduction" ? PRICE_REDUCTION_SCRIPTS
-    : task.task_type === "buyer_followup" ? BUYER_FOLLOWUP_SCRIPTS : null;
+    : task.task_type === "buyer_followup" ? BUYER_FOLLOWUP_SCRIPTS
+    : task.task_type === "listing_expiration" ? (expiryIsBuyer ? BUYER_EXTENSION_SCRIPTS : LISTING_EXTENSION_SCRIPTS) : null;
   const [showScripts, setShowScripts] = useState(false);
   // A milestone-backed line can be rescheduled right here when the date moves.
   const canReschedule = !!onReschedule && !!task.target_ref_id && /^milestone_/.test(task.task_type || "");
@@ -489,6 +534,27 @@ function TaskItem({ task, bucket, token, onResolve, onComplete, onSnooze, onOpen
                 onSent={() => { setRemindOpen(false); onResolve(task.id); }} />
             )}
           </>
+        ) : isExpiry ? (
+          <>
+            {task.task_type === "expiration_confirm" && task.target_ref_id && /^\d{4}-\d{2}-\d{2}$/.test(task.target_ref_id) && (
+              <button disabled={expBusy} onClick={() => saveExpiry(task.target_ref_id)}
+                style={{ flex:"1 1 30%", padding:"11px 0", borderRadius:10, border:"none",
+                  background:"#1E8449", color:COLORS.white, fontWeight:700, fontSize:14, cursor:"pointer", opacity: expBusy ? 0.6 : 1 }}>
+                {tr("✓ Correct")}
+              </button>
+            )}
+            <button onClick={() => { setExpDate(/^\d{4}-\d{2}-\d{2}$/.test(task.target_ref_id || "") ? task.target_ref_id : ""); setExpOpen(o => !o); }}
+              style={{ flex:"2 1 45%", padding:"11px 0", borderRadius:10, border:"none",
+                background:"#0c4a6e", color:COLORS.white, fontWeight:700, fontSize:14, cursor:"pointer" }}>
+              {isClosingMissing ? tr("📅 Add the closing date") : task.task_type === "expiration_missing" ? tr("📅 Add the expiration date") : task.task_type === "expiration_confirm" ? tr("📅 Change") : tr("📅 Enter the new (extended) date")}
+            </button>
+            <button onClick={() => onOpenTransactionMilestones && onOpenTransactionMilestones(task.transaction_id)}
+              style={{ flex:"1 1 25%", padding:"11px 0", borderRadius:10,
+                border:"1.5px solid "+COLORS.border, background:COLORS.white,
+                color:COLORS.gray, fontWeight:600, fontSize:13, cursor:"pointer" }}>
+              {tr("Open deal →")}
+            </button>
+          </>
         ) : isChecklist ? (
           <button onClick={() => onComplete(task)}
             style={{ flex:2, padding:"11px 0", borderRadius:10, border:"none",
@@ -538,6 +604,16 @@ function TaskItem({ task, bucket, token, onResolve, onComplete, onSnooze, onOpen
           </button>
         )}
       </div>
+      {isExpiry && expOpen && (
+        <div style={{ display:"flex", gap:8, marginTop:8, alignItems:"center", flexWrap:"wrap" }}>
+          <input type="date" value={expDate} onChange={e => setExpDate(e.target.value)} autoFocus
+            style={{ padding:"8px 10px", border:"1px solid "+COLORS.border, borderRadius:8, fontSize:14, fontFamily:"inherit" }} />
+          <button disabled={!expDate || expBusy} onClick={() => saveExpiry(expDate)}
+            style={{ padding:"8px 16px", borderRadius:8, border:"none", background: expDate ? "#0F6E56" : COLORS.border, color:"#fff", fontWeight:700, fontSize:13, cursor: expDate ? "pointer" : "default", fontFamily:"inherit", opacity: expBusy ? 0.6 : 1 }}>
+            {expBusy ? tr("Saving…") : tr("Save date")}
+          </button>
+        </div>
+      )}
       {canReschedule && reschedOpen && (
         <div style={{ display:"flex", gap:8, marginTop:8, alignItems:"center", flexWrap:"wrap" }}>
           <input type="date" value={reschedDate} onChange={e => setReschedDate(e.target.value)}

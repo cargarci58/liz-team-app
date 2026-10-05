@@ -5,7 +5,7 @@ import BackButton from "./ui/BackButton";
 const API = "https://liz-team-server-api-production.up.railway.app";
 const SHOW_KEY = "tp_calendar_show_v1";
 // What the calendar can show; the agent picks (remembered on this device).
-const SHOW_DEFAULT = { closing: true, open: false, deadline: true, task: true, mine: true };
+const SHOW_DEFAULT = { closing: true, expires: true, open: false, deadline: true, task: true, mine: true };
 
 export default function CalendarView({ transactions, onBack, onSelectTx }) {
   useLang(); // redraw when the Spanish for deadline names arrives
@@ -67,6 +67,24 @@ export default function CalendarView({ transactions, onBack, onSelectTx }) {
       try { window.dispatchEvent(new CustomEvent("wintheday:refresh")); } catch { /* ignore */ }
     } catch (e) { alert(e.message || tr("Could not add the task.")); }
     setAdding(false);
+  };
+  // Change an agreement's expiration (extended) right from the calendar.
+  const [expEdit, setExpEdit] = useState(null);   // { txId, date }
+  const [expSaving, setExpSaving] = useState(false);
+  const saveExpiration = async (txId, date) => {
+    if (!date || expSaving) return;
+    setExpSaving(true);
+    try {
+      const r = await fetch(API + "/transactions/" + txId + "/agreement-expiration", {
+        method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + tok() },
+        body: JSON.stringify({ date }),
+      });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(d.error || "Could not save the date.");
+      setExpEdit(null);
+      try { window.dispatchEvent(new CustomEvent("deals:refresh")); window.dispatchEvent(new CustomEvent("wintheday:refresh")); } catch { /* ignore */ }
+    } catch (e) { alert(e.message || tr("Could not save the date.")); }
+    setExpSaving(false);
   };
   const completeTask = async (id) => {
     try {
@@ -146,6 +164,11 @@ export default function CalendarView({ transactions, onBack, onSelectTx }) {
   transactions.filter(tx => tx.status !== "Cancelled").forEach(tx => {
     if (tx.closingDate) addEvent(tx.closingDate, { type: "closing", label: tx.address, txId: tx.id, status: tx.status });
     if (tx.openDate) addEvent(tx.openDate, { type: "open", label: tx.address, txId: tx.id });
+    // Listing / buyer agreement expiration (the day the listing drops off the
+    // MLS) — open deals only; editable right here when it's extended.
+    if (tx.representationExpiresOn && !/^(closed|cancelled)$/i.test(tx.status || "")) {
+      addEvent(tx.representationExpiresOn, { type: "expires", label: tx.address, txId: tx.id, buyer: /buyer|tenant/i.test(tx.type || ""), date: String(tx.representationExpiresOn).slice(0, 10) });
+    }
     (tx.tasks || []).filter(t => t.dueDate && t.status !== "Completed" && t.status !== "Waived").forEach(task => {
       addEvent(task.dueDate, { type: "task", label: task.name, address: tx.address, txId: tx.id });
     });
@@ -157,20 +180,21 @@ export default function CalendarView({ transactions, onBack, onSelectTx }) {
     if (t && t.due_date && t.status !== "completed") addEvent(String(t.due_date), { type: "mine", label: t.title, taskId: t.id, notes: t.notes });
   }
   const undatedTasks = show.mine ? myTasks.filter(t => t && !t.due_date && t.status !== "completed") : [];
-  const typeOrder = { closing: 0, deadline: 1, mine: 2, task: 3, open: 4 };
+  const typeOrder = { closing: 0, expires: 1, deadline: 2, mine: 3, task: 4, open: 5 };
   for (const k of Object.keys(allEvents)) allEvents[k].sort((a, b) => (typeOrder[a.type] - typeOrder[b.type]) || String(a.time || "").localeCompare(String(b.time || "")));
   const events = {};
   for (const [k, list] of Object.entries(allEvents)) { const f = list.filter(ev => show[ev.type]); if (f.length) events[k] = f; }
 
   const typeColors = {
     closing: { bg: "#C0392B", text: "#fff", dot: "#C0392B" },
+    expires: { bg: "#6D28D9", text: "#fff", dot: "#6D28D9" },
     deadline: { bg: "#922B21", text: "#fff", dot: "#922B21" },
     open: { bg: "#1A5276", text: "#fff", dot: "#1A5276" },
     task: { bg: "#B7860B", text: "#fff", dot: "#B7860B" },
     mine: { bg: "#0c4a6e", text: "#fff", dot: "#0c4a6e" },
   };
 
-  const typeLabels = { closing: "🏠 Closing day", deadline: "⏰ Timeline deadline", mine: "📝 My task", task: "✅ Deal task due", open: "📋 Deal started" };
+  const typeLabels = { closing: "🏠 Closing day", expires: "🏁 Agreement expires", deadline: "⏰ Timeline deadline", mine: "📝 My task", task: "✅ Deal task due", open: "📋 Deal started" };
 
   const prevMonth = () => { setCurrentDate(new Date(year, month - 1, 1)); setSelectedDay(null); setMode("month"); };
   const nextMonth = () => { setCurrentDate(new Date(year, month + 1, 1)); setSelectedDay(null); setMode("month"); };
@@ -252,10 +276,22 @@ export default function CalendarView({ transactions, onBack, onSelectTx }) {
           {tr(ev.label)}
         </div>
         <div style={{ fontSize: 12, color: "#666" }}>
-          {typeLabels[ev.type]}{ev.type === "deadline" ? (ev.booked ? tr(" · appointment") : tr(" · due")) : ""}{ev.address ? ` · ${ev.address}` : ""}
+          {ev.type === "expires" ? tr(ev.buyer ? "🏁 Buyer agreement expires" : "🏁 Listing agreement expires — drops off the MLS") : typeLabels[ev.type]}{ev.type === "deadline" ? (ev.booked ? tr(" · appointment") : tr(" · due")) : ""}{ev.address ? ` · ${ev.address}` : ""}
         </div>
         {ev.notes && <div style={{ fontSize: 12, color: "#666" }}>{ev.notes}</div>}
       </div>
+      {ev.type === "expires" && (expEdit && expEdit.txId === ev.txId ? (
+        <span onClick={e => e.stopPropagation()} style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
+          <input type="date" value={expEdit.date} onChange={e => setExpEdit({ ...expEdit, date: e.target.value })}
+            style={{ padding: "6px 8px", border: "1px solid #CCC", borderRadius: 8, fontSize: 14, fontFamily: "inherit" }} />
+          <button onClick={() => saveExpiration(ev.txId, expEdit.date)} disabled={expSaving || !expEdit.date}
+            style={{ padding: "6px 12px", background: "#0c4a6e", color: "#fff", border: "none", borderRadius: 8, cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit", opacity: expSaving ? 0.6 : 1 }}>{expSaving ? tr("Saving…") : tr("Save")}</button>
+          <button onClick={() => setExpEdit(null)} style={{ padding: "6px 10px", background: "#fff", border: "1px solid #CCC", borderRadius: 8, cursor: "pointer", fontSize: 12, fontFamily: "inherit" }}>{tr("Cancel")}</button>
+        </span>
+      ) : (
+        <button onClick={e => { e.stopPropagation(); setExpEdit({ txId: ev.txId, date: ev.date }); }}
+          style={{ padding: "6px 12px", background: "#fff", border: "1px solid #CCC", borderRadius: 8, cursor: "pointer", fontSize: 12, fontWeight: 700, color: "#0c4a6e", fontFamily: "inherit" }}>{tr("📅 Change date")}</button>
+      ))}
       {ev.type === "mine" && (
         <button onClick={e => { e.stopPropagation(); completeTask(ev.taskId); }}
           style={{ padding: "6px 12px", background: "#fff", border: "1px solid #CCC", borderRadius: 8, cursor: "pointer", fontSize: 12, fontWeight: 700, color: "#1E8449", fontFamily: "inherit" }}>{tr("✓ Done")}</button>
@@ -333,7 +369,7 @@ export default function CalendarView({ transactions, onBack, onSelectTx }) {
                       <div style={styles.dayNum(isToday, isSelected)}>{day}</div>
                       {dayEvents.slice(0, 3).map((ev, j) => (
                         <span key={j} style={styles.eventTag(ev.type)}>
-                          {ev.type === "mine" ? "📝 " : ev.type === "deadline" ? "⏰ " : ""}{tr(ev.label)}
+                          {ev.type === "mine" ? "📝 " : ev.type === "deadline" ? "⏰ " : ev.type === "expires" ? "🏁 " : ""}{tr(ev.label)}
                         </span>
                       ))}
                       {dayEvents.length > 3 && <span style={{ fontSize: 10, color: "#666666" }}>+{dayEvents.length - 3} {tr("more")}</span>}

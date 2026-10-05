@@ -68,6 +68,7 @@ const ShareVendorModalLazy = lazy(() => import("./VendorLibrary").then(m => ({ d
 const CompanySettings = lazy(() => import("./CompanySettings"));
 const AgentProfile = lazy(() => import("./AgentProfile"));
 const CalendarView = lazy(() => import("./CalendarView"));
+import AgreementExpiryStrip from "./components/AgreementExpiryStrip";
 const ClientPortal = lazy(() => import("./ClientPortal"));
 const TCPortal = lazy(() => import("./TCPortal"));
 const CoordinatorPanel = lazy(() => import("./CoordinatorPanel"));
@@ -7261,6 +7262,7 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
                 {tr("💵 Cash deal — no lender or financing. No loan application, lender appraisal, or financing contingency applies.")}
               </div>
             )}
+            <AgreementExpiryStrip tx={tx} />
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, marginBottom: 20 }}>
               {[
                 { title: "Property", rows: [["Assigned Agent", tx.assignedAgentName || "—"], ["Referral Source", tx.referralSource || "—"], ["Address", tx.address], ["City/County", `${tx.city}, ` + (tx.county ? tr("{county} County", { county: tx.county }) : "")], ["Zip", tx.zipCode], ["Type", tx.propertyType], ["Transaction", tx.type], ["MLS #", tx.mlsNumber],
@@ -8384,7 +8386,7 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
                 <div key={field} style={{ marginBottom: 16 }}>
                   <div style={{ fontSize: 12, fontWeight: 700, color: "#555", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>{tr(label)}</div>
                   <input type={type} value={editTxForm[field] ? (type === "date" ? String(editTxForm[field]).slice(0,10) : editTxForm[field]) : ""} onChange={e => setEditTxForm(f => ({ ...f, [field]: e.target.value }))} style={{ width: "100%", padding: "10px 14px", borderRadius: 8, border: "1.5px solid #CCC", fontSize: 15, fontFamily: "inherit", boxSizing: "border-box" }} />
-                  {field === "representationExpiresOn" && isListing && <div style={{ fontSize: 11, color: "#666666", marginTop: 4 }}>{tr("We'll warn you 14, 7, and 1 days before it expires so the listing doesn't lapse in the MLS.")}</div>}
+                  {field === "representationExpiresOn" && <div style={{ fontSize: 11, color: "#666666", marginTop: 4 }}>{tr("We'll warn you 30, 14, 7, and 1 days before it expires (and every day after) so it doesn't lapse. Extended? Put the new date here.")}</div>}
                 </div>
                 ));
               })()}
@@ -9733,6 +9735,7 @@ function Dashboard({ transactions, coordinatorMode = false, unreadCounts = {}, o
     hasSellerFinancing: t.has_seller_financing || false,
     sellerPostClosingOccupancy: t.seller_post_closing_occupancy || false,
     representationExpiresOn: t.representation_expires_on ? String(t.representation_expires_on).slice(0, 10) : "",
+    representationExpiresSource: t.representation_expires_source || null,
     contractFormType: t.contract_form_type || "",
     occupancyStatus: t.occupancy_status || "",
   }));
@@ -10773,6 +10776,7 @@ function MainApp({ onLogout, currentUser, coordinatorMode = false }) {
     hasSellerFinancing: t.has_seller_financing || false,
     sellerPostClosingOccupancy: t.seller_post_closing_occupancy || false,
             representationExpiresOn: t.representation_expires_on ? String(t.representation_expires_on).slice(0, 10) : "",
+            representationExpiresSource: t.representation_expires_source || null,
             contractFormType: t.contract_form_type || "",
             occupancyStatus: t.occupancy_status || "",
             // CMA subject auto-fill: property specs captured at intake (and
