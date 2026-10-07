@@ -8463,11 +8463,27 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
                     const rent = Number(editTxForm.contractPrice) || Number(editTxForm.listPrice) || 0;
                     const pctVal = Number(editTxForm[field]);
                     const showDollars = isLeaseType(editTxForm.type) && (field === "commissionListing" || field === "commissionBuyer") && rent > 0 && pctVal > 0;
+                    // Rentals: a % over 100 is more than a month's rent — almost always
+                    // dollars typed into the % box (Carlos 10/7: 3000 on $3,300 rent →
+                    // "Save failed: Internal error"). Offer the one-tap conversion.
+                    const looksLikeDollars = showDollars && pctVal > 100;
+                    const pctFromDollars = looksLikeDollars ? Math.round(pctVal / rent * 10000) / 100 : null;
+                    const salePctTooBig = !isLeaseType(editTxForm.type) && (field === "commissionListing" || field === "commissionBuyer") && pctVal > 100;
                     return (
                     <div key={field}>
                       <div style={{ fontSize: 11, fontWeight: 700, color: "#555", textTransform: "uppercase", marginBottom: 4 }}>{tr(label)}</div>
                       <input value={editTxForm[field] || ""} onChange={e => setEditTxForm(f => ({ ...f, [field]: e.target.value }))} style={{ width: "100%", padding: "8px 10px", borderRadius: 8, border: "1.5px solid #CCC", fontSize: 13, fontFamily: "inherit", boxSizing: "border-box" }} />
-                      {showDollars && <div style={{ fontSize: 11.5, color: "#555", marginTop: 3 }}>= ${Math.round(rent * pctVal / 100).toLocaleString()}</div>}
+                      {showDollars && !looksLikeDollars && <div style={{ fontSize: 11.5, color: "#555", marginTop: 3 }}>= ${Math.round(rent * pctVal / 100).toLocaleString()}</div>}
+                      {looksLikeDollars && (
+                        <div style={{ fontSize: 12, color: "#92400E", background: "#FEF3C7", border: "1px solid #FCD34D", borderRadius: 6, padding: "6px 8px", marginTop: 4, lineHeight: 1.4 }}>
+                          {tr("That's {n} months' rent. Did you mean ${amt}?", { n: Math.round(pctVal / 100 * 10) / 10, amt: pctVal.toLocaleString() })}{" "}
+                          <button type="button" onClick={() => setEditTxForm(f => ({ ...f, [field]: String(pctFromDollars) }))}
+                            style={{ marginTop: 4, background: "#0c4a6e", color: "#fff", border: "none", borderRadius: 6, padding: "4px 10px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                            {tr("Use ${amt} ({pct}% of the rent)", { amt: pctVal.toLocaleString(), pct: pctFromDollars })}
+                          </button>
+                        </div>
+                      )}
+                      {salePctTooBig && <div style={{ fontSize: 12, color: "#991B1B", marginTop: 3 }}>{tr("A commission percentage can't be over 100.")}</div>}
                     </div>
                     );
                   })}
@@ -8602,6 +8618,19 @@ function TransactionDetail({ tx, onUpdate, onLocalUpdate, coordinatorMode = fals
                   if (!isProspect && !editTxForm.inHoa) {
                     alert(tr("Please answer whether the property is in an HOA or condo association. It determines whether the HOA disclosure is required."));
                     return;
+                  }
+                  // Commission boxes are PERCENTAGES. Catch impossible values here with
+                  // a plain answer instead of a server "Internal error".
+                  const _lease = isLeaseType(editTxForm.type);
+                  for (const [f, lbl] of [["commissionListing", _lease ? "Landlord-side commission" : "Listing commission"], ["commissionBuyer", _lease ? "Tenant-side commission" : "Buyer commission"]]) {
+                    const v = Number(editTxForm[f]);
+                    if (editTxForm[f] === "" || editTxForm[f] == null || !Number.isFinite(v)) continue;
+                    if (v < 0 || (!_lease && v > 100) || v > 999) {
+                      alert(_lease
+                        ? tr("{label} is a percentage of ONE month's rent (100 = one full month). {v} is {n} months' rent — if you meant dollars, tap the \"Use $\" button under that box.", { label: tr(lbl), v, n: Math.round(v / 100 * 10) / 10 })
+                        : tr("{label} is a percentage (for example 3 for 3%). {v} isn't a valid percentage.", { label: tr(lbl), v }));
+                      return;
+                    }
                   }
                   // The form is pre-filled from the tx via buildEditTxForm, so an empty
                   // value means the user intentionally cleared the field. Merge directly
