@@ -5990,6 +5990,11 @@ function LeaseDocsModal({ tx, onClose, onGenerated }) {
   const [sentTo, setSentTo] = useState(null);
   // "✏️ Adjust spots" — move/resize/add blocks on a generated doc before sending.
   const [adjustDoc, setAdjustDoc] = useState(null);
+  // Copies already made per form ({docType: [{name, created_at, sent, signed}]})
+  // and when the answers were last saved (a redo starts from them).
+  const [existing, setExisting] = useState({});
+  const [savedAt, setSavedAt] = useState(null);
+  const [replaced, setReplaced] = useState([]);
   useEffect(() => {
     (async () => {
       try {
@@ -5999,6 +6004,8 @@ function LeaseDocsModal({ tx, onClose, onGenerated }) {
         setForms(data.forms || []);
         setSelected(Object.fromEntries((data.forms || []).map(f => [f.docType, true])));
         setQuestions(data.questions || []);
+        setExisting(data.existing || {});
+        setSavedAt(data.savedAt || null);
         const init = {};
         (data.questions || []).forEach(q => { init[q.key] = q.type === "date" ? String(q.value || "").slice(0, 10) : (q.value || ""); });
         // If no end date came from the deal, derive it from the term + start.
@@ -6024,6 +6031,10 @@ function LeaseDocsModal({ tx, onClose, onGenerated }) {
     try {
       const docTypes = Object.keys(selected).filter(k => selected[k]);
       if (!docTypes.length) { setError("Pick at least one form."); setBusy(false); return; }
+      // A copy that already went out for signature is never replaced — ask
+      // before adding a second one next to it.
+      const sentForms = forms.filter(f => docTypes.includes(f.docType) && (existing[f.docType] || []).some(c => c.sent || c.signed));
+      if (sentForms.length && !(await askConfirm(tr("{forms} was already sent for signature. That copy stays exactly as it is — a new copy will be added next to it. Make a new one anyway?", { forms: sentForms.map(f => tr(f.label)).join(", ") }), { okLabel: tr("Make a new copy") }))) { setBusy(false); return; }
       const res = await fetch(`${API}/transactions/${tx.id}/lease-docs/generate`, {
         method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + tok },
         body: JSON.stringify({ docTypes, answers }),
@@ -6031,6 +6042,7 @@ function LeaseDocsModal({ tx, onClose, onGenerated }) {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed");
       setDone(data.documents || []);
+      setReplaced(data.replaced || []);
       if (Array.isArray(data.signers) && Array.isArray(data.placements) && data.placements.length) {
         setSignPack(data);
         setSigRows(data.signers.map(s => ({ name: s.name || "", email: s.email || "" })));
@@ -6084,6 +6096,12 @@ function LeaseDocsModal({ tx, onClose, onGenerated }) {
                <div style={{ fontWeight: 800, color: "#065F46", marginBottom: 8 }}>{tr("✓ Generated")} {done.length} {tr(done.length !== 1 ? "documents" : "document")}</div>
                <ul style={{ margin: 0, paddingLeft: 18, color: "#065F46", fontSize: 13 }}>{done.map(d => <li key={d.id}>{d.name}</li>)}</ul>
              </div>
+             {replaced.length > 0 && (
+               <div style={{ background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 10, padding: 12, marginBottom: 16, fontSize: 13, color: "#334155" }}>
+                 {tr("The earlier unsent copy was replaced and moved to the")} <strong>{tr("Replaced copies")}</strong> {tr("folder in Documents (kept, not deleted):")}
+                 <ul style={{ margin: "6px 0 0", paddingLeft: 18 }}>{replaced.map(r => <li key={r.id}>{r.name} · {new Date(r.created_at).toLocaleString(uiLocale(), { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</li>)}</ul>
+               </div>
+             )}
              {sentTo ? (
                <div style={{ background: "#F0F9FF", border: "1px solid #BAE6FD", borderRadius: 10, padding: 14, marginBottom: 16, fontSize: 13.5, color: "#0C4A6E" }}>
                  {tr("✍️ Signing links sent to")} <strong>{sentTo}</strong>{tr(". Each person signs everything in one sitting; every signed copy files back into Documents with its certificate, and you'll get a pop-up.")}
@@ -6137,20 +6155,39 @@ function LeaseDocsModal({ tx, onClose, onGenerated }) {
            </div>
          ) : (
            <div>
+             {savedAt && (
+               <div style={{ background: "#EFF6FF", border: "1px solid #BFDBFE", borderRadius: 8, padding: "10px 12px", marginBottom: 14, fontSize: 13, color: "#1E3A8A" }}>
+                 {tr("Your answers from {when} are filled in — change only what's different, then generate again.", { when: new Date(savedAt).toLocaleString(uiLocale(), { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) })}
+               </div>
+             )}
              <div style={{ fontWeight: 700, fontSize: 13, color: COLORS.navy, marginBottom: 8 }}>{tr("Forms to generate")}</div>
              <div style={{ marginBottom: 18 }}>
-               {forms.map(f => (
-                 <label key={f.docType} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 10px", border: `1px solid ${COLORS.border}`, borderRadius: 8, marginBottom: 6, cursor: "pointer" }}>
-                   <input type="checkbox" checked={!!selected[f.docType]} onChange={e => setSelected(s => ({ ...s, [f.docType]: e.target.checked }))} />
-                   <span style={{ fontSize: 14 }}>{tr(f.label)}</span>
+               {forms.map(f => {
+                 const copies = existing[f.docType] || [];
+                 const last = copies[0];
+                 const sent = copies.some(c => c.sent || c.signed);
+                 return (
+                 <label key={f.docType} style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: "8px 10px", border: `1px solid ${COLORS.border}`, borderRadius: 8, marginBottom: 6, cursor: "pointer" }}>
+                   <input type="checkbox" checked={!!selected[f.docType]} onChange={e => setSelected(s => ({ ...s, [f.docType]: e.target.checked }))} style={{ marginTop: 3 }} />
+                   <span style={{ fontSize: 14 }}>
+                     {tr(f.label)}
+                     {last && (
+                       <span style={{ display: "block", fontSize: 12, color: sent ? "#92400E" : COLORS.muted, marginTop: 2 }}>
+                         {sent
+                           ? tr("Already sent for signature — that copy stays; making it again adds a new copy.")
+                           : tr("Already made {when} — making it again replaces that copy.", { when: new Date(last.created_at).toLocaleString(uiLocale(), { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) })}
+                       </span>
+                     )}
+                   </span>
                  </label>
-               ))}
+                 );
+               })}
              </div>
              {groups.map(g => (
                <div key={g} style={{ marginBottom: 16 }}>
                  <div style={{ fontWeight: 700, fontSize: 13, color: COLORS.navy, marginBottom: 8 }}>{g}</div>
                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }} data-keep-grid>
-                   {questions.filter(q => q.group === g).map(q => (
+                   {questions.filter(q => q.group === g && (!q.showIf || answers[q.showIf.key] === q.showIf.equals)).map(q => (
                      <div key={q.key}>
                        <div style={{ fontSize: 11, fontWeight: 600, color: COLORS.muted, marginBottom: 3 }}>{tr(q.label)}</div>
                        {q.type === "select" ? (
