@@ -784,6 +784,20 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
             // flags anything uploaded in the last 2 days.
             const NEW_MS = 2 * 24 * 60 * 60 * 1000;
             const isNew = (d) => d.created_at && (Date.now() - new Date(d.created_at).getTime()) < NEW_MS;
+            // Same-name copies (a redone form): tag the newest "Current copy" and
+            // the rest "Older copy" so the agent never signs the wrong one
+            // (Carlos 10/9). Replaced copies and signed copies don't count.
+            const liveSameName = {};
+            for (const d of docs) {
+              if (d.status === "superseded" || /^(✍️|📦) Signed/.test(d.name || "")) continue;
+              (liveSameName[d.name] = liveSameName[d.name] || []).push(d);
+            }
+            const copyTag = (d) => {
+              const g = liveSameName[d.name];
+              if (!g || g.length < 2 || d.status === "superseded") return null;
+              const newest = g.reduce((a, b) => (new Date(b.created_at) > new Date(a.created_at) ? b : a));
+              return newest.id === d.id ? "current" : "older";
+            };
             const subGroups = (list, extraFolders = []) => {
               const g = {};
               for (const doc of list) { const k = doc.folder || doc.category || "General"; (g[k] = g[k] || []).push(doc); }
@@ -865,6 +879,8 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
                         {isNew(doc) && <span style={{ fontSize: 9.5, fontWeight: 800, color: "#fff", background: "#2563eb", borderRadius: 6, padding: "1px 6px", marginRight: 6, verticalAlign: "middle" }}>{tr("NEW")}</span>}
                         {doc.name}
                       </div>
+                      {copyTag(doc) === "current" && <span style={{ display: "inline-block", fontSize: 10.5, fontWeight: 800, color: "#166534", background: "#DCFCE7", borderRadius: 6, padding: "1px 7px", marginTop: 3 }}>{tr("✓ Current copy — use this one")}</span>}
+                      {copyTag(doc) === "older" && <span style={{ display: "inline-block", fontSize: 10.5, fontWeight: 700, color: "#6B7280", background: "#F3F4F6", borderRadius: 6, padding: "1px 7px", marginTop: 3 }}>{tr("Older copy — a newer one exists")}</span>}
                       <div style={{ fontSize: 11, color: COLORS.muted, marginTop: 2 }}>{doc.category} · {new Date(doc.created_at).toLocaleString(uiLocale(), { timeZone: "America/New_York", month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" })} {tr("ET")}</div>
                     </div>
                     <div style={{ display: "flex", gap: 6, flexShrink: 0, alignItems: "center" }}>
@@ -878,7 +894,8 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
                       {(() => {
                         const ss = signStatus[doc.id];
                         const waiting = ss && ss.pending > 0;
-                        const allSigned = ss && ss.pending === 0 && ss.signed > 0;
+                        const allSigned = ss && ss.pending === 0 && ss.signed > 0 && !(ss.cancelled > 0);
+                        const stopped = ss && ss.pending === 0 && ss.cancelled > 0;
                         return (
                           <>
                             {waiting && (
@@ -886,6 +903,10 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
                                 style={{ padding: "4px 8px", borderRadius: 6, background: "#fef3c7", fontSize: 11, fontWeight: 700, color: "#92400e" }}>
                                 {tr("⏳ Awaiting signature")}{ss.pending + ss.signed > 1 ? ` (${ss.signed}/${ss.pending + ss.signed})` : ""}
                               </span>
+                            )}
+                            {stopped && (
+                              <span title={tr("The signing links were cancelled before everyone signed — this copy isn't fully signed")}
+                                style={{ padding: "4px 8px", borderRadius: 6, background: "#F3F4F6", fontSize: 11, fontWeight: 700, color: "#6B7280" }}>{tr("⛔ Signing cancelled")}</span>
                             )}
                             {allSigned && (
                               <span title={tr("Everyone signed — the signed copy is filed in this list")}
@@ -1053,7 +1074,7 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
       )}
 
       {signDoc && (
-        <DocSignModal tx={tx} doc={signDoc.doc} allDocs={docs} headers={headers}
+        <DocSignModal tx={tx} doc={signDoc.doc} allDocs={docs} headers={headers} signStatus={signStatus}
           onClose={() => { setSignDoc(null); loadSignStatus(); loadDocs(); }} />
       )}
 
@@ -1707,7 +1728,7 @@ function AddendumModal({ tx, headers, onCreated, onClose }) {
 // screen open this pre-filled — e.g. the Offers panel's "Send to seller to
 // sign", which brings the sellers and their auto-placed blocks (the agent
 // still previews, moves, removes or adds blocks before sending).
-export function DocSignModal({ tx, doc, allDocs = [], headers, onClose, initialRows = null, initialPlacements = null, autoPlace = false, intro = null, onSent = null }) {
+export function DocSignModal({ tx, doc, allDocs = [], headers, onClose, initialRows = null, initialPlacements = null, autoPlace = false, intro = null, onSent = null, signStatus = {} }) {
   const [info, setInfo] = useState(null);
   // Company / LLC / trust parties become "person signs for the company" rows.
   const [rows, setRows] = useState(initialRows && initialRows.length ? initialRows.map(entityAwareRow) : []);
@@ -1715,8 +1736,18 @@ export function DocSignModal({ tx, doc, allDocs = [], headers, onClose, initialR
   const [err, setErr] = useState(null);
   // Bundle: more documents signed in the SAME round (one email, one link).
   const [extraIds, setExtraIds] = useState([]);
+  // Only CURRENT documents (never a replaced copy), newest first — each shows
+  // its date/time and whether it's the newest copy of that form.
   const extraChoices = allDocs.filter(d =>
-    d.id !== doc.id && /pdf$/i.test(d.mime_type || "") && !/^✍️ Signed/.test(d.name || ""));
+    d.id !== doc.id && d.status !== "superseded" && /pdf$/i.test(d.mime_type || "") && !/^(✍️|📦) Signed/.test(d.name || ""))
+    .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+  const newestByName = {};
+  for (const d of [doc, ...extraChoices]) {
+    const cur = newestByName[d.name];
+    if (!cur || new Date(d.created_at) > new Date(cur.created_at)) newestByName[d.name] = d;
+  }
+  const sameNameCount = (name) => [doc, ...extraChoices].filter(d => d.name === name).length;
+  const whenLabel = (d) => d.created_at ? new Date(d.created_at).toLocaleString(uiLocale(), { timeZone: "America/New_York", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) : "";
   const selDocs = [doc, ...extraIds.map(id => extraChoices.find(d => d.id === id)).filter(Boolean)];
   // Tap-to-place state
   const [placing, setPlacing] = useState(!!autoPlace);
@@ -2048,7 +2079,15 @@ export function DocSignModal({ tx, doc, allDocs = [], headers, onClose, initialR
                             if (e.target.checked) { setExtraIds(ids => ids.length < 7 ? [...ids, d.id] : ids); }
                             else { setExtraIds(ids => ids.filter(x => x !== d.id)); setPlacements(ps => ps.filter(p => p.docId !== d.id)); }
                           }} />
-                        <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>📄 {d.name}</span>
+                        <span style={{ minWidth: 0, overflowWrap: "anywhere" }}>
+                          📄 {d.name}
+                          <span style={{ color: "#64748b", fontSize: 11.5 }}> · {whenLabel(d)}</span>
+                          {sameNameCount(d.name) > 1 && (newestByName[d.name] && newestByName[d.name].id === d.id
+                            ? <span style={{ marginLeft: 6, fontSize: 10.5, fontWeight: 800, color: "#166534", background: "#DCFCE7", borderRadius: 6, padding: "1px 6px" }}>{tr("Newest")}</span>
+                            : <span style={{ marginLeft: 6, fontSize: 10.5, fontWeight: 700, color: "#6B7280", background: "#F3F4F6", borderRadius: 6, padding: "1px 6px" }}>{tr("Older copy")}</span>)}
+                          {signStatus[d.id] && signStatus[d.id].pending > 0 && <span style={{ marginLeft: 6, fontSize: 10.5, fontWeight: 700, color: "#92400e" }}>{tr("⏳ already out for signature")}</span>}
+                          {signStatus[d.id] && signStatus[d.id].pending === 0 && signStatus[d.id].cancelled > 0 && <span style={{ marginLeft: 6, fontSize: 10.5, fontWeight: 700, color: "#6B7280" }}>{tr("⛔ signing cancelled")}</span>}
+                        </span>
                       </label>
                     ))}
                   </div>

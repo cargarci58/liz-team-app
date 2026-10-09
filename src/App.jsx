@@ -578,7 +578,10 @@ if (typeof document !== "undefined" && !document.getElementById("lizteam-mobile"
        never let iOS inflate text; dropdowns may shrink; a column's children
        never get wider than the column. */
     html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
-    select { min-width: 0 !important; max-width: 100% !important; }
+    /* max-width WITHOUT !important: a dropdown's own inline limit (e.g. the
+       checklist's 150px "Use existing…") must still win — forcing 100% over
+       it squeezed the Documents checklist on desktop (Carlos 10/9). */
+    select { min-width: 0 !important; max-width: 100%; }
     div[style*="flex-direction: column"] > * { max-width: 100%; }
     div[style*="white-space: pre-wrap"] { overflow-wrap: anywhere; }
     /* Grid columns (1fr) may shrink below their longest text instead of pushing
