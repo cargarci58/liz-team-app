@@ -449,11 +449,24 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
     } catch (e) { alert(tr("Delete failed: ") + e.message); }
   };
 
+  // WHO the portal client is on this deal, in plain words (Carlos 10/9: "Not
+  // shared" told a new agent nothing). Lease listing → owner, sale listing →
+  // seller, buyer deal → buyer, tenant deal → tenant, dual → client.
+  const _dealType = String(tx.transaction_type || tx.transactionType || tx.type || "");
+  const shareWho = /dual/i.test(_dealType) ? { word: "client", re: /buyer|seller/i }
+    : /landlord/i.test(_dealType) ? { word: "owner", re: /landlord|owner/i }
+    : /tenant/i.test(_dealType) ? { word: "tenant", re: /tenant/i }
+    : /buyer/i.test(_dealType) ? { word: "buyer", re: /buyer/i }
+    : { word: "seller", re: /seller|owner/i };
+  const shareParty = (tx.parties || []).find(p => p && shareWho.re.test(p.role || "") && !/agent|attorney|lender/i.test(p.role || "") && (p.name || "").trim());
   // Share / unshare a file with the client's portal. Sharing asks first (the
   // client will see it); a failed save says so instead of flipping the tag.
   const toggleVisibility = async (doc) => {
     const share = !doc.is_visible_to_client;
-    if (share && !(await askConfirm(tr("Share \"{name}\" with your client? They'll be able to see it in their portal.", { name: doc.name }), { okLabel: tr("Share with client") }))) return;
+    if (share && !(await askConfirm(shareParty
+        ? tr("Share \"{name}\" with {person} ({who})? They'll see it in their client portal.", { name: doc.name, person: shareParty.name, who: tr(shareWho.word) })
+        : tr("Share \"{name}\" with the {who}? They'll see it in their client portal.", { name: doc.name, who: tr(shareWho.word) }),
+      { okLabel: tr("Share with {who}", { who: tr(shareWho.word) }) }))) return;
     try {
       const r = await fetch(`${API}/documents/${doc.id}/visibility`, {
         method: "PUT", headers,
@@ -783,7 +796,7 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
           })()}
           <div style={{ fontWeight: 700, marginBottom: 4, fontSize: 14 }}>{docs.length} {tr(docs.length !== 1 ? "documents" : "document")}</div>
           <div style={{ fontSize: 12, color: COLORS.muted, marginBottom: 12, background: "#F6F8FA", border: "1px solid #E5E7EB", borderRadius: 8, padding: "7px 10px" }}>
-            {tr("💡 Each file shows")} <b>{tr("👁 Shared with client")}</b> {tr("or")} <b>{tr("🔒 Not shared")}</b> {tr("— tap it to share the file in your client's portal or take it back. New uploads start")} <b>{tr("Not shared")}</b>.
+            {tr("💡 New files are private — only you see them. Tap")} <b>{tr("📤 Share with {who}", { who: tr(shareWho.word) })}</b> {tr("on a file to put it in the {who}'s client portal; it then shows", { who: tr(shareWho.word) })} <b>{tr("👁 Shared with {who}", { who: tr(shareWho.word) })}</b>{tr(". Tap that again to take it back.")}
           </div>
           {(() => {
             // Folders by deal PHASE (see the phase layout below). A NEW badge
@@ -896,9 +909,11 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
                       {/* Tap to share / unshare with the client's portal (Carlos 10/9:
                           the old "👁 Client" tag looked clickable but did nothing). */}
                       <button onClick={() => toggleVisibility(doc)}
-                        title={doc.is_visible_to_client ? tr("Your client can see this file in their portal — tap to stop sharing") : tr("Your client can't see this file — tap to share it in their portal")}
+                        title={doc.is_visible_to_client
+                          ? tr("The {who} can see this file in their client portal — tap to stop sharing", { who: tr(shareWho.word) })
+                          : tr("Private — only you can see this file. Tap to share it in the {who}'s client portal", { who: tr(shareWho.word) })}
                         style={{ padding: "4px 8px", borderRadius: 6, border: "1px solid " + (doc.is_visible_to_client ? "#A9DFBF" : "#E5E7EB"), background: doc.is_visible_to_client ? "#D5F5E3" : "#F9FAFB", fontSize: 11, fontWeight: 700, color: doc.is_visible_to_client ? "#1E8449" : "#6B7280", cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>
-                        {doc.is_visible_to_client ? tr("👁 Shared with client") : tr("🔒 Not shared")}
+                        {doc.is_visible_to_client ? tr("👁 Shared with {who}", { who: tr(shareWho.word) }) : tr("📤 Share with {who}", { who: tr(shareWho.word) })}
                       </button>
                       {(() => {
                         const ss = signStatus[doc.id];
@@ -948,7 +963,7 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
                                 { icon: "⬆️", label: "Move up", fn: () => nudgeDoc(doc, -1) },
                                 { icon: "⬇️", label: "Move down", fn: () => nudgeDoc(doc, 1) },
                                 { icon: "✏️", label: "Rename file…", fn: () => renameFile(doc) },
-                                { icon: doc.is_visible_to_client ? "🔒" : "👁", label: doc.is_visible_to_client ? "Stop sharing with client" : "Share with client", fn: () => toggleVisibility(doc) },
+                                { icon: doc.is_visible_to_client ? "🔒" : "👁", label: doc.is_visible_to_client ? tr("Stop sharing with {who}", { who: tr(shareWho.word) }) : tr("Share with {who}", { who: tr(shareWho.word) }), fn: () => toggleVisibility(doc) },
                                 isContractReadable(doc) && { icon: "📅", label: readingDates === doc.id ? "Reading…" : "AI: read dates from this contract", fn: () => readContractDates(doc) },
                                 { icon: "⬇️", label: "Download", fn: () => handleDownload(doc) },
                                 { divider: true },
