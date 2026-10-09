@@ -449,13 +449,19 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
     } catch (e) { alert(tr("Delete failed: ") + e.message); }
   };
 
+  // Share / unshare a file with the client's portal. Sharing asks first (the
+  // client will see it); a failed save says so instead of flipping the tag.
   const toggleVisibility = async (doc) => {
+    const share = !doc.is_visible_to_client;
+    if (share && !(await askConfirm(tr("Share \"{name}\" with your client? They'll be able to see it in their portal.", { name: doc.name }), { okLabel: tr("Share with client") }))) return;
     try {
-      await fetch(`${API}/documents/${doc.id}/visibility`, {
+      const r = await fetch(`${API}/documents/${doc.id}/visibility`, {
         method: "PUT", headers,
-        body: JSON.stringify({ visible: !doc.is_visible_to_client }),
+        body: JSON.stringify({ visible: share }),
       });
-      setDocs(prev => prev.map(d => d.id === doc.id ? { ...d, is_visible_to_client: !d.is_visible_to_client } : d));
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok || d.success === false) throw new Error(d.error || "Could not change sharing.");
+      setDocs(prev => prev.map(x => x.id === doc.id ? { ...x, is_visible_to_client: share } : x));
     } catch (e) { alert(tr("Update failed: ") + e.message); }
   };
 
@@ -777,7 +783,7 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
           })()}
           <div style={{ fontWeight: 700, marginBottom: 4, fontSize: 14 }}>{docs.length} {tr(docs.length !== 1 ? "documents" : "document")}</div>
           <div style={{ fontSize: 12, color: COLORS.muted, marginBottom: 12, background: "#F6F8FA", border: "1px solid #E5E7EB", borderRadius: 8, padding: "7px 10px" }}>
-            {tr("💡 Each file has a")} <b>{tr("👁 Client can view")}</b> / <b>{tr("🔒 Hidden")}</b> {tr("button — tap it to control whether your client sees that file in their portal. New uploads are")} <b>{tr("Hidden")}</b> {tr("by default.")}
+            {tr("💡 Each file shows")} <b>{tr("👁 Shared with client")}</b> {tr("or")} <b>{tr("🔒 Not shared")}</b> {tr("— tap it to share the file in your client's portal or take it back. New uploads start")} <b>{tr("Not shared")}</b>.
           </div>
           {(() => {
             // Folders by deal PHASE (see the phase layout below). A NEW badge
@@ -887,10 +893,13 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
                       {/* Rookie rule: two buttons per file — View and Get signature.
                           Everything else (share, download, hide, AI dates, delete)
                           lives under ⋯ so the row stops shouting. */}
-                      {doc.is_visible_to_client && (
-                        <span title={tr("Your client can see this file in their portal (change under ⋯)")}
-                          style={{ padding: "4px 8px", borderRadius: 6, background: "#D5F5E3", fontSize: 11, fontWeight: 700, color: "#1E8449" }}>{tr("👁 Client")}</span>
-                      )}
+                      {/* Tap to share / unshare with the client's portal (Carlos 10/9:
+                          the old "👁 Client" tag looked clickable but did nothing). */}
+                      <button onClick={() => toggleVisibility(doc)}
+                        title={doc.is_visible_to_client ? tr("Your client can see this file in their portal — tap to stop sharing") : tr("Your client can't see this file — tap to share it in their portal")}
+                        style={{ padding: "4px 8px", borderRadius: 6, border: "1px solid " + (doc.is_visible_to_client ? "#A9DFBF" : "#E5E7EB"), background: doc.is_visible_to_client ? "#D5F5E3" : "#F9FAFB", fontSize: 11, fontWeight: 700, color: doc.is_visible_to_client ? "#1E8449" : "#6B7280", cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>
+                        {doc.is_visible_to_client ? tr("👁 Shared with client") : tr("🔒 Not shared")}
+                      </button>
                       {(() => {
                         const ss = signStatus[doc.id];
                         const waiting = ss && ss.pending > 0;
@@ -939,7 +948,7 @@ export default function DocumentsTab({ tx, coordinatorMode = false }) {
                                 { icon: "⬆️", label: "Move up", fn: () => nudgeDoc(doc, -1) },
                                 { icon: "⬇️", label: "Move down", fn: () => nudgeDoc(doc, 1) },
                                 { icon: "✏️", label: "Rename file…", fn: () => renameFile(doc) },
-                                { icon: doc.is_visible_to_client ? "🔒" : "👁", label: doc.is_visible_to_client ? "Hide from client's portal" : "Show in client's portal", fn: () => toggleVisibility(doc) },
+                                { icon: doc.is_visible_to_client ? "🔒" : "👁", label: doc.is_visible_to_client ? "Stop sharing with client" : "Share with client", fn: () => toggleVisibility(doc) },
                                 isContractReadable(doc) && { icon: "📅", label: readingDates === doc.id ? "Reading…" : "AI: read dates from this contract", fn: () => readContractDates(doc) },
                                 { icon: "⬇️", label: "Download", fn: () => handleDownload(doc) },
                                 { divider: true },
